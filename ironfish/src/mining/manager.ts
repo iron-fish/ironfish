@@ -127,10 +127,10 @@ export class MiningManager {
     let minersFee: Transaction
     const minersFeePromise = this.emptyMinersFeeCache.get(sequence)
     if (minersFeePromise !== undefined) {
-      this.node.logger.debug(`[krx] Found prepared miners fee ${sequence}`)
+      this.node.logger.debug(`[krx] Found cached EMPTY miners fee ${sequence}`)
       minersFee = await minersFeePromise
     } else {
-      this.node.logger.debug(`[krx] Can't find prepared miners fee. Creating. ${sequence}`)
+      this.node.logger.debug(`[krx] Can't find cached EMPTY miners fee. Creating. ${sequence}`)
       minersFee = await this.node.strategy.createMinersFee(
         BigInt(0),
         sequence,
@@ -140,7 +140,7 @@ export class MiningManager {
 
     const nextSequence = sequence + 1
     if (this.emptyMinersFeeCache.get(nextSequence) === undefined) {
-      this.node.logger.debug(`[krx] Firing background empty miners fee routine for ${nextSequence}`)
+      this.node.logger.debug(`[krx] Firing background EMPTY miners fee routine for ${nextSequence}`)
       this.emptyMinersFeeCache.set(
         nextSequence,
         this.node.strategy.createMinersFee(
@@ -157,6 +157,28 @@ export class MiningManager {
     return minersFee
   }
 
+  async createEmptyBlockTemplate(currentBlock: Block): Promise<SerializedBlockTemplate> {
+    const account = this.node.wallet.getDefaultAccount()
+    Assert.isNotNull(account, 'Cannot mine without an account')
+    Assert.isNotNull(account.spendingKey, 'Account must have spending key in order to mine')
+
+    const newBlockSequence = currentBlock.header.sequence + 1
+    this.node.logger.debug(
+      `[krx] Begin constructing new EMPTY block template for block sequence ${newBlockSequence}`,
+    )
+    const minersFee = await this.getEmptyMinersFee(newBlockSequence, account.spendingKey)
+
+    const blockTransactions: Transaction[] = []
+    const newBlock = await this.chain.newBlock(
+      blockTransactions,
+      minersFee,
+      GraffitiUtils.fromString(this.node.config.get('blockGraffiti')),
+    )
+    this.node.logger.debug(
+      `[krx] Created EMPTY block template ${newBlock.header.sequence}, with ${newBlock.transactions.length} transactions`,
+    )
+    return BlockTemplateSerde.serialize(newBlock, currentBlock)
+  }
 
   /**
    * Construct the new block template which is everything a miner needs to begin mining.

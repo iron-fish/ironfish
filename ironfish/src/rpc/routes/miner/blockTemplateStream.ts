@@ -68,7 +68,7 @@ router.register<typeof BlockTemplateStreamRequestSchema, BlockTemplateStreamResp
         // The chain may change while block creation is in progress -- if so,
         // we can catch the error and expect the next call of `streamBlockTemplate`
         // to generate a block template.
-        serializedBlock = await node.miningManager.createNewBlockTemplate(block)
+        serializedBlock = await node.miningManager.createEmptyBlockTemplate(block)
       } catch (e) {
         const message = e instanceof Error ? e.message : 'Unknown Error'
         node.logger.debug(
@@ -78,9 +78,11 @@ router.register<typeof BlockTemplateStreamRequestSchema, BlockTemplateStreamResp
         )
         return
       }
-      node.logger.debug(
-        `[krx] Sending serialized block for sequence ${block.header.sequence + 1} to stream`,
-      )
+      node.logger.debug(`[krx] Sending serialized EMPTY block for sequence ${block.header.sequence + 1} to stream`)
+      request.stream(serializedBlock)
+
+      serializedBlock = await node.miningManager.createNewBlockTemplate(block)
+      node.logger.debug(`[krx] Sending serialized FULL block for sequence ${block.header.sequence + 1} to stream`)
       request.stream(serializedBlock)
     }
 
