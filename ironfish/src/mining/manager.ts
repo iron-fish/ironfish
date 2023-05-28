@@ -175,10 +175,18 @@ export class MiningManager {
     )
 
     this.node.logger.debug(`[krx] Getting new block transactions ${newBlockSequence}`)
-
+    const currBlockSize = getBlockWithMinersFeeSize()
+    const { totalFees, blockTransactions, newBlockSize } = await this.getNewBlockTransactions(
+      newBlockSequence,
+      currBlockSize,
+    )
 
     // Calculate the final fee for the miner of this block
-    const minersFee = await this.getEmptyMinersFee(newBlockSequence, account.spendingKey)
+    const minersFee = await this.node.strategy.createMinersFee(
+      totalFees,
+      newBlockSequence,
+      account.spendingKey,
+    )
     this.node.logger.debug(
       `[krx] Constructed miner's reward transaction for account ${account.displayName}, block sequence ${newBlockSequence}`,
     )
@@ -191,9 +199,6 @@ export class MiningManager {
     )
 
     // Create the new block as a template for mining
-    this.node.logger.debug(`[krx] Creating new block ${newBlockSequence}`)
-    const newBlockSize = getBlockWithMinersFeeSize()
-    const blockTransactions: Transaction[] = []
     const newBlock = await this.chain.newBlock(
       blockTransactions,
       minersFee,
