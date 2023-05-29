@@ -80,20 +80,30 @@ router.register<typeof BlockTemplateStreamRequestSchema, BlockTemplateStreamResp
       } catch (e) {
         const message = e instanceof Error ? e.message : 'Unknown Error'
         node.logger.debug(
-          `Failed to create new block template for sequence ${
+          `Failed to create new empty block template for sequence ${
             block.header.sequence + 1
           }: ${message}`,
         )
         return
       }
-      node.logger.debug(`[krx] Sending serialized EMPTY block for sequence ${block.header.sequence + 1} to stream`)
+      node.logger.debug(`[krx] Sending serialized empty block for sequence ${block.header.sequence + 1} to stream`)
       request.stream(serializedBlock)
 
-      serializedBlock = await node.miningManager.createFullBlockTemplate(
-        block,
-        account.spendingKey,
-      )
-      node.logger.debug(`[krx] Sending serialized FULL block for sequence ${block.header.sequence + 1} to stream`)
+      try {
+        serializedBlock = await node.miningManager.createFullBlockTemplate(
+          block,
+          account.spendingKey,
+        )
+      } catch (e) {
+        const message = e instanceof Error ? e.message : 'Unknown Error'
+        node.logger.debug(
+          `Failed to create new full block template for sequence ${
+            block.header.sequence + 1
+          }: ${message}`,
+        )
+        return
+      }
+      node.logger.debug(`[krx] Sending serialized full block for sequence ${block.header.sequence + 1} to stream`)
       request.stream(serializedBlock)
     }
 
