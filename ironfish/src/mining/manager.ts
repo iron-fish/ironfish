@@ -62,9 +62,7 @@ class MiningManagerCache {
   // getEmptyBlock(sequence: number, spendingKey: string) { TODO
   getEmptyBlock(sequence: number): Block | undefined  {
     this.deleteOutdated(sequence)
-    if (this.emptyBlock.has(sequence)) {
-      return this.emptyBlock.get(sequence)
-    }
+    return this.emptyBlock.get(sequence)
   }
 
   setEmptyBlock(block: Block) {
@@ -74,9 +72,7 @@ class MiningManagerCache {
 
   getFullBlock(sequence: number): Block | undefined {
     this.deleteOutdated(sequence)
-    if (this.fullBlock.has(sequence)) {
-      return this.fullBlock.get(sequence)
-    }
+    return this.fullBlock.get(sequence)
   }
 
   setFullBlock(block: Block) {
@@ -84,8 +80,13 @@ class MiningManagerCache {
     this.fullBlock.set(block.header.sequence, block)
   }
 
+  getEmptyMinersFee(sequence: number): Promise<Transaction> | undefined {
+    this.deleteOutdated(sequence)
+    return this.emptyMinersFee.get(sequence)
+  }
+
   async pregenEmptyMinersFee(sequence: number, spendingKey: string): Promise<void> {
-    if (this.emptyMinersFee.get(sequence) === undefined) {
+    if (!this.emptyMinersFee.has(sequence)) {
       this.node.logger.debug(`[krx] Firing background EMPTY miners fee routine for ${sequence}`)
       this.emptyMinersFee.set(
         sequence,
@@ -96,26 +97,6 @@ class MiningManagerCache {
         )
       )
     }
-  }
-
-  async getEmptyMinersFee(sequence: number, spendingKey: string): Promise<Transaction> {
-    this.node.logger.debug(`[krx] Starting getEmptyMinersFee ${sequence}`)
-    let minersFee: Transaction
-    const minersFeePromise = this.emptyMinersFee.get(sequence)
-    if (minersFeePromise !== undefined) {
-      this.node.logger.debug(`[krx] Found cached EMPTY miners fee ${sequence}`)
-      minersFee = await minersFeePromise
-    } else {
-      this.node.logger.debug(`[krx] Can't find cached EMPTY miners fee. Creating. ${sequence}`)
-      minersFee = await this.node.strategy.createMinersFee(
-        BigInt(0),
-        sequence,
-        spendingKey
-      )
-    }
-    void this.pregenEmptyMinersFee(sequence + 1, spendingKey)
-    this.deleteOutdated(sequence)
-    return minersFee
   }
 }
 
@@ -209,9 +190,27 @@ export class MiningManager {
     }
   }
 
+  async createEmptyMinersFee(sequence: number, spendingKey: string): Promise<Transaction> {
+    this.node.logger.debug(`[krx] Starting createEmptyMinersFee ${sequence}`)
+    const emptyMinersFee = await this.node.strategy.createMinersFee(
+      BigInt(0),
+      sequence,
+      spendingKey
+    )
+    void this.cache.pregenEmptyMinersFee(sequence + 1, spendingKey)
+    return emptyMinersFee
+  }
+
   async createEmptyBlock(sequence: number, spendingKey: string): Promise<Block> {
     this.node.logger.debug(`[krx] Started createEmptyBlock ${sequence}`)
-    const minersFee = await this.cache.getEmptyMinersFee(sequence, spendingKey)
+
+    let minersFee: Transaction
+    const cachedEmptyMinersFeePromise = this.cache.getEmptyMinersFee(sequence)
+    if (cachedEmptyMinersFeePromise) {
+      minersFee = await cachedEmptyMinersFeePromise
+    } else {
+      minersFee = await this.createEmptyMinersFee(sequence, spendingKey)
+    }
 
     const blockTransactions: Transaction[] = []
     const emptyBlock = await this.chain.newBlock(
