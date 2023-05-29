@@ -86,7 +86,7 @@ router.register<typeof BlockTemplateStreamRequestSchema, BlockTemplateStreamResp
         )
         return
       }
-      node.logger.debug(`[krx] Sending serialized empty block for sequence ${block.header.sequence + 1} to stream`)
+      node.logger.debug(`[krx] [${block.header.sequence + 1}] Sending serialized empty block to stream`)
       request.stream(serializedBlock)
 
       try {
@@ -103,7 +103,7 @@ router.register<typeof BlockTemplateStreamRequestSchema, BlockTemplateStreamResp
         )
         return
       }
-      node.logger.debug(`[krx] Sending serialized full block for sequence ${block.header.sequence + 1} to stream`)
+      node.logger.debug(`[krx] [${block.header.sequence + 1}] Sending serialized full block to stream`)
       request.stream(serializedBlock)
     }
 

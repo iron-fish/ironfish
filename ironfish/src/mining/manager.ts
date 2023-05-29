@@ -53,13 +53,12 @@ class MiningManagerCache {
     }
   }
 
-  // getEmptyBlock(sequence: number, spendingKey: string) { TODO
   getEmptyBlock(sequence: number): Block | undefined  {
     return this.emptyBlock.get(sequence)
   }
 
   setEmptyBlock(block: Block) {
-    this.node.logger.debug(`Setting empty block in cache ${block.header.sequence}`)
+    this.node.logger.debug(`[krx] [${block.header.sequence}] Setting empty block in cache ${block.header.sequence}`)
     this.prune(this.emptyBlock, block.header.sequence)
     this.emptyBlock.set(block.header.sequence, block)
   }
@@ -69,7 +68,7 @@ class MiningManagerCache {
   }
 
   setFullBlock(block: Block) {
-    this.node.logger.debug(`Setting full block in cache ${block.header.sequence}`)
+    this.node.logger.debug(`[krx] [${block.header.sequence}] Setting full block in cache`)
     this.prune(this.fullBlock, block.header.sequence)
     this.fullBlock.set(block.header.sequence, block)
   }
@@ -79,18 +78,20 @@ class MiningManagerCache {
   }
 
   async pregenEmptyMinersFee(sequence: number, spendingKey: string): Promise<void> {
+    this.node.logger.debug(`[krx] [${sequence}] Pregenerating empty miners fee`)
     this.prune(this.emptyMinersFee, sequence)
-    if (!this.emptyMinersFee.has(sequence)) {
-      this.node.logger.debug(`[krx] Firing background EMPTY miners fee routine for ${sequence}`)
-      this.emptyMinersFee.set(
-        sequence,
-        this.node.strategy.createMinersFee(
-          BigInt(0),
-          sequence,
-          spendingKey
-        )
-      )
+    if (this.emptyMinersFee.has(sequence)) {
+      this.node.logger.debug(`[krx] [${sequence}] Already has empty fee promise for the sequence`)
+      return
     }
+    this.emptyMinersFee.set(
+      sequence,
+      this.node.strategy.createMinersFee(
+        BigInt(0),
+        sequence,
+        spendingKey
+      )
+    )
   }
 }
 
@@ -185,7 +186,8 @@ export class MiningManager {
   }
 
   async createEmptyMinersFee(sequence: number, spendingKey: string): Promise<Transaction> {
-    this.node.logger.debug(`[krx] Starting createEmptyMinersFee ${sequence}`)
+
+    this.node.logger.debug(`[krx] [${sequence}] Creating empty miners fee`)
     const emptyMinersFee = await this.node.strategy.createMinersFee(
       BigInt(0),
       sequence,
@@ -196,16 +198,19 @@ export class MiningManager {
   }
 
   async createEmptyBlock(sequence: number, spendingKey: string): Promise<Block> {
-    this.node.logger.debug(`[krx] Started createEmptyBlock ${sequence}`)
+    this.node.logger.debug(`[krx] [${sequence}] Started createEmptyBlock`)
 
     let minersFee: Transaction
     const cachedEmptyMinersFeePromise = this.cache.getEmptyMinersFee(sequence)
     if (cachedEmptyMinersFeePromise) {
+      this.node.logger.debug(`[krx] [${sequence}] Found cached emptyMinersFee promise, awaiting`)
       minersFee = await cachedEmptyMinersFeePromise
     } else {
+      this.node.logger.debug(`[krx] [${sequence}] No cached emptyMinersFee promise, creating`)
       minersFee = await this.createEmptyMinersFee(sequence, spendingKey)
     }
 
+    this.node.logger.debug(`[krx] [${sequence}] Constructing empty block`)
     const blockTransactions: Transaction[] = []
     const emptyBlock = await this.chain.newBlock(
       blockTransactions,
@@ -213,70 +218,73 @@ export class MiningManager {
       GraffitiUtils.fromString(this.node.config.get('blockGraffiti')),
     )
     this.cache.setEmptyBlock(emptyBlock)
-    this.node.logger.debug(`[krx] Finished createEmptyBlock ${sequence}`)
+    this.node.logger.debug(`[krx] [${sequence}] Finished createEmptyBlock`)
     return emptyBlock
   }
 
   async createFullBlock(sequence: number, spendingKey: string): Promise<Block> {
-    this.node.logger.debug(`[krx] Started createFullBlock ${sequence}`)
+    this.node.logger.debug(`[krx] [${sequence}] Started createFullBlock`)
     const currBlockSize = getBlockWithMinersFeeSize()
     const { totalFees, blockTransactions, newBlockSize } = await this.getNewBlockTransactions(
       sequence,
       currBlockSize,
     )
+    this.node.logger.debug(`[krx] [${sequence}] Creating full miners fee`)
     const minersFee = await this.node.strategy.createMinersFee(
       totalFees,
       sequence,
       spendingKey,
     )
+    this.node.logger.debug(`[krx] [${sequence}] Constructing full block`)
     const fullBlock = await this.chain.newBlock(
       blockTransactions,
       minersFee,
       GraffitiUtils.fromString(this.node.config.get('blockGraffiti')),
     )
     this.cache.setFullBlock(fullBlock)
-    this.node.logger.debug(`[krx] Finished createFullBlock ${sequence}`)
+    this.node.logger.debug(`[krx] [${sequence}] Finished createFullBlock`)
     return fullBlock
   }
 
   async createEmptyBlockTemplate(currentBlock: Block, spendingKey: string): Promise<SerializedBlockTemplate> {
     const newBlockSequence = currentBlock.header.sequence + 1
-    this.node.logger.debug(`[krx] Started createEmptyBlockTemplate ${newBlockSequence}`)
+    this.node.logger.debug(`[krx] [${newBlockSequence}] Started createEmptyBlockTemplate`)
 
-    this.node.logger.debug(`Trying get empty block from cache ${newBlockSequence}`)
+    this.node.logger.debug(`[krx] [${newBlockSequence}] Trying to get empty block from cache`)
     const cachedBlock = this.cache.getEmptyBlock(newBlockSequence)
-    if (cachedBlock !== undefined) {
-      this.node.logger.debug(`Hit empty block cache! ${newBlockSequence}`)
+    if (cachedBlock) {
+      this.node.logger.debug(`[krx] [${newBlockSequence}] Found empty block in cache`)
       return BlockTemplateSerde.serialize(cachedBlock, currentBlock)
     }
 
-    this.node.logger.debug(`Creating empty block ${newBlockSequence}`)
+    this.node.logger.debug(`[krx] [${newBlockSequence}] No empty block in cache, creating new one`)
     const emptyBlock = await this.createEmptyBlock(newBlockSequence, spendingKey)
-    this.node.logger.debug(`Finished creating empty block ${newBlockSequence}`)
+    this.node.logger.debug(`[krx] [${newBlockSequence}] Finished creating empty block`)
     return BlockTemplateSerde.serialize(emptyBlock, currentBlock)
   }
 
   async createFullBlockTemplate(currentBlock: Block, spendingKey: string): Promise<SerializedBlockTemplate> {
     const newBlockSequence = currentBlock.header.sequence + 1
     this.node.logger.debug(
-      `[krx] Started createFullBlockTemplate ${newBlockSequence}`,
+      `[krx] [${newBlockSequence}] Started createFullBlockTemplate`,
     )
 
-    this.node.logger.debug(`Trying get full block from cache ${newBlockSequence}`)
+    this.node.logger.debug(`[krx] [${newBlockSequence}] Trying to get full block from cache`)
     const cachedBlock = this.cache.getFullBlock(newBlockSequence)
-    if (cachedBlock !== undefined) {
-      this.node.logger.debug(`Hit full block cache! ${newBlockSequence}`)
+    if (cachedBlock) {
+      this.node.logger.debug(`[krx] [${newBlockSequence}] Found full block in cache`)
       return BlockTemplateSerde.serialize(cachedBlock, currentBlock)
     }
 
+    this.node.logger.debug(`[krx] [${newBlockSequence}] No full block in cache, is mempool empty?`)
     if (this.memPool.count() === 0) {
-      this.node.logger.debug(`Mempool empty. Calling createEmptyBlockTemplate ${newBlockSequence}`)
+      this.node.logger.debug(`[krx] [${newBlockSequence}] Mempool is empty, calling createEmptyBlockTemplate`)
       return await this.createEmptyBlockTemplate(currentBlock, spendingKey)
     }
 
-    this.node.logger.debug(`Creating full block ${newBlockSequence}`)
+    this.node.logger.debug(`[krx] [${newBlockSequence}] Mempool is not empty. Generating full block.`)
     const fullBlock = await this.createFullBlock(newBlockSequence, spendingKey)
-    this.node.logger.debug(`Finished creating full block ${newBlockSequence}`)
+    this.node.logger.debug(`[krx] [${newBlockSequence}] Finished creating full block ${newBlockSequence}`)
     return BlockTemplateSerde.serialize(fullBlock, currentBlock)
   }
 
