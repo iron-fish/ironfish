@@ -45,47 +45,41 @@ class MiningManagerCache {
     this.node = node
   }
 
-  deleteOutdated(sequence: number) {
-    const prune = (map: Map<number, any>, n: number) => {
-      for (let key of map.keys()) {
-        if (key < n) {
-          map.delete(key)
-        }
+  private prune(cache: Map<number, any>, sequence: number) {
+    for (let key of cache.keys()) {
+      if (key < sequence) {
+        cache.delete(key)
       }
     }
-    sequence--
-    prune(this.emptyMinersFee, sequence)
-    prune(this.emptyBlock, sequence)
-    prune(this.fullBlock, sequence)
   }
 
   // getEmptyBlock(sequence: number, spendingKey: string) { TODO
   getEmptyBlock(sequence: number): Block | undefined  {
-    this.deleteOutdated(sequence)
     return this.emptyBlock.get(sequence)
   }
 
   setEmptyBlock(block: Block) {
     this.node.logger.debug(`Setting empty block in cache ${block.header.sequence}`)
+    this.prune(this.emptyBlock, block.header.sequence)
     this.emptyBlock.set(block.header.sequence, block)
   }
 
   getFullBlock(sequence: number): Block | undefined {
-    this.deleteOutdated(sequence)
     return this.fullBlock.get(sequence)
   }
 
   setFullBlock(block: Block) {
     this.node.logger.debug(`Setting full block in cache ${block.header.sequence}`)
+    this.prune(this.fullBlock, block.header.sequence)
     this.fullBlock.set(block.header.sequence, block)
   }
 
   getEmptyMinersFee(sequence: number): Promise<Transaction> | undefined {
-    this.deleteOutdated(sequence)
     return this.emptyMinersFee.get(sequence)
   }
 
   async pregenEmptyMinersFee(sequence: number, spendingKey: string): Promise<void> {
+    this.prune(this.emptyMinersFee, sequence)
     if (!this.emptyMinersFee.has(sequence)) {
       this.node.logger.debug(`[krx] Firing background EMPTY miners fee routine for ${sequence}`)
       this.emptyMinersFee.set(
