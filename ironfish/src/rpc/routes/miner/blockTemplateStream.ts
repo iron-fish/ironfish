@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { Block } from '../../../primitives/block'
-import { SerializedBlockTemplate } from '../../../serde/BlockTemplateSerde'
+import { Assert } from '../../../assert'
+import { Block } from '../../../primitives'
+import { SerializedBlockTemplate } from '../../../serde'
 import { ApiNamespace, router } from '../router'
 
 export type BlockTemplateStreamRequest = Record<string, never> | undefined
@@ -63,12 +64,19 @@ router.register<typeof BlockTemplateStreamRequestSchema, BlockTemplateStreamResp
         return
       }
 
+      const account = node.wallet.getDefaultAccount()
+      Assert.isNotNull(account, 'Cannot mine without an account')
+      Assert.isNotNull(account.spendingKey, 'Account must have spending key in order to mine')
+
       let serializedBlock: SerializedBlockTemplate
       try {
         // The chain may change while block creation is in progress -- if so,
         // we can catch the error and expect the next call of `streamBlockTemplate`
         // to generate a block template.
-        serializedBlock = await node.miningManager.createEmptyBlockTemplate(block)
+        serializedBlock = await node.miningManager.createEmptyBlockTemplate(
+          block,
+          account.spendingKey,
+        )
       } catch (e) {
         const message = e instanceof Error ? e.message : 'Unknown Error'
         node.logger.debug(
@@ -81,7 +89,10 @@ router.register<typeof BlockTemplateStreamRequestSchema, BlockTemplateStreamResp
       node.logger.debug(`[krx] Sending serialized EMPTY block for sequence ${block.header.sequence + 1} to stream`)
       request.stream(serializedBlock)
 
-      serializedBlock = await node.miningManager.createNewBlockTemplate(block)
+      serializedBlock = await node.miningManager.createFullBlockTemplate(
+        block,
+        account.spendingKey,
+      )
       node.logger.debug(`[krx] Sending serialized FULL block for sequence ${block.header.sequence + 1} to stream`)
       request.stream(serializedBlock)
     }

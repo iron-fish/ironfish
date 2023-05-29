@@ -32,18 +32,102 @@ export enum MINED_RESULT {
   SUCCESS = 'SUCCESS',
 }
 
+class MiningManagerCache {
+  private readonly emptyMinersFee: Map<number, Promise<Transaction>>
+  private readonly emptyBlock: Map<number, Block>
+  private readonly fullBlock: Map<number, Block>
+  private readonly node: IronfishNode
+
+  constructor(node: IronfishNode) {
+    this.emptyMinersFee = new Map()
+    this.emptyBlock = new Map()
+    this.fullBlock = new Map()
+    this.node = node
+  }
+
+  deleteOutdated(sequence: number) {
+    const prune = (map: Map<number, any>, n: number) => {
+      for (let key of map.keys()) {
+        if (key < n) {
+          map.delete(key)
+        }
+      }
+    }
+    sequence--
+    prune(this.emptyMinersFee, sequence)
+    prune(this.emptyBlock, sequence)
+    prune(this.fullBlock, sequence)
+  }
+
+  // getEmptyBlock(sequence: number, spendingKey: string) { TODO
+  getEmptyBlock(sequence: number): Block | undefined  {
+    this.deleteOutdated(sequence)
+    if (this.emptyBlock.has(sequence)) {
+      return this.emptyBlock.get(sequence)
+    }
+  }
+
+  setEmptyBlock(block: Block) {
+    this.node.logger.debug(`Setting empty block in cache ${block.header.sequence}`)
+    this.emptyBlock.set(block.header.sequence, block)
+  }
+
+  getFullBlock(sequence: number): Block | undefined {
+    this.deleteOutdated(sequence)
+    if (this.fullBlock.has(sequence)) {
+      return this.fullBlock.get(sequence)
+    }
+  }
+
+  setFullBlock(block: Block) {
+    this.node.logger.debug(`Setting full block in cache ${block.header.sequence}`)
+    this.fullBlock.set(block.header.sequence, block)
+  }
+
+  async pregenEmptyMinersFee(sequence: number, spendingKey: string): Promise<void> {
+    if (this.emptyMinersFee.get(sequence) === undefined) {
+      this.node.logger.debug(`[krx] Firing background EMPTY miners fee routine for ${sequence}`)
+      this.emptyMinersFee.set(
+        sequence,
+        this.node.strategy.createMinersFee(
+          BigInt(0),
+          sequence,
+          spendingKey
+        )
+      )
+    }
+  }
+
+  async getEmptyMinersFee(sequence: number, spendingKey: string): Promise<Transaction> {
+    this.node.logger.debug(`[krx] Starting getEmptyMinersFee ${sequence}`)
+    let minersFee: Transaction
+    const minersFeePromise = this.emptyMinersFee.get(sequence)
+    if (minersFeePromise !== undefined) {
+      this.node.logger.debug(`[krx] Found cached EMPTY miners fee ${sequence}`)
+      minersFee = await minersFeePromise
+    } else {
+      this.node.logger.debug(`[krx] Can't find cached EMPTY miners fee. Creating. ${sequence}`)
+      minersFee = await this.node.strategy.createMinersFee(
+        BigInt(0),
+        sequence,
+        spendingKey
+      )
+    }
+    void this.pregenEmptyMinersFee(sequence + 1, spendingKey)
+    this.deleteOutdated(sequence)
+    return minersFee
+  }
+}
+
 export class MiningManager {
   private readonly chain: Blockchain
   private readonly memPool: MemPool
   private readonly node: IronfishNode
   private readonly metrics: MetricsMonitor
+  private readonly cache: MiningManagerCache
 
   blocksMined = 0
   minersConnected = 0
-
-  emptyMinersFeeCache: Map<number, Promise<Transaction>> = new Map()
-  emptyBlockCache: Map<number, Block> = new Map()
-  normalBlockCache: Map<number, Block> = new Map()
 
   readonly onNewBlock = new Event<[Block]>()
 
@@ -57,6 +141,7 @@ export class MiningManager {
     this.memPool = options.memPool
     this.chain = options.chain
     this.metrics = options.metrics
+    this.cache = new MiningManagerCache(options.node)
   }
 
   /**
@@ -124,141 +209,82 @@ export class MiningManager {
     }
   }
 
-  async getEmptyMinersFee(sequence: number, spendingKey: string): Promise<Transaction> {
-    this.node.logger.debug(`[krx] Starting getEmptyMinersFee ${sequence}`)
-    let minersFee: Transaction
-    const minersFeePromise = this.emptyMinersFeeCache.get(sequence)
-    if (minersFeePromise !== undefined) {
-      this.node.logger.debug(`[krx] Found cached EMPTY miners fee ${sequence}`)
-      minersFee = await minersFeePromise
-    } else {
-      this.node.logger.debug(`[krx] Can't find cached EMPTY miners fee. Creating. ${sequence}`)
-      minersFee = await this.node.strategy.createMinersFee(
-        BigInt(0),
-        sequence,
-        spendingKey
-      )
-    }
+  async createEmptyBlock(sequence: number, spendingKey: string): Promise<Block> {
+    this.node.logger.debug(`[krx] Started createEmptyBlock ${sequence}`)
+    const minersFee = await this.cache.getEmptyMinersFee(sequence, spendingKey)
 
-    const nextSequence = sequence + 1
-    if (this.emptyMinersFeeCache.get(nextSequence) === undefined) {
-      this.node.logger.debug(`[krx] Firing background EMPTY miners fee routine for ${nextSequence}`)
-      this.emptyMinersFeeCache.set(
-        nextSequence,
-        this.node.strategy.createMinersFee(
-          BigInt(0),
-          nextSequence,
-          spendingKey
-        )
-      )
-    }
-
-    const prevSequence = sequence - 1
-    this.emptyMinersFeeCache.delete(prevSequence)
-
-    return minersFee
+    const blockTransactions: Transaction[] = []
+    const emptyBlock = await this.chain.newBlock(
+      blockTransactions,
+      minersFee,
+      GraffitiUtils.fromString(this.node.config.get('blockGraffiti')),
+    )
+    this.cache.setEmptyBlock(emptyBlock)
+    this.node.logger.debug(`[krx] Finished createEmptyBlock ${sequence}`)
+    return emptyBlock
   }
 
-  async createEmptyBlockTemplate(currentBlock: Block): Promise<SerializedBlockTemplate> {
+  async createFullBlock(sequence: number, spendingKey: string): Promise<Block> {
+    this.node.logger.debug(`[krx] Started createFullBlock ${sequence}`)
+    const currBlockSize = getBlockWithMinersFeeSize()
+    const { totalFees, blockTransactions, newBlockSize } = await this.getNewBlockTransactions(
+      sequence,
+      currBlockSize,
+    )
+    const minersFee = await this.node.strategy.createMinersFee(
+      totalFees,
+      sequence,
+      spendingKey,
+    )
+    const fullBlock = await this.chain.newBlock(
+      blockTransactions,
+      minersFee,
+      GraffitiUtils.fromString(this.node.config.get('blockGraffiti')),
+    )
+    this.cache.setFullBlock(fullBlock)
+    this.node.logger.debug(`[krx] Finished createFullBlock ${sequence}`)
+    return fullBlock
+  }
+
+  async createEmptyBlockTemplate(currentBlock: Block, spendingKey: string): Promise<SerializedBlockTemplate> {
     const newBlockSequence = currentBlock.header.sequence + 1
-    const cachedBlock = this.emptyBlockCache.get(newBlockSequence)
+    this.node.logger.debug(`[krx] Started createEmptyBlockTemplate ${newBlockSequence}`)
+
+    this.node.logger.debug(`Trying get empty block from cache ${newBlockSequence}`)
+    const cachedBlock = this.cache.getEmptyBlock(newBlockSequence)
     if (cachedBlock !== undefined) {
       this.node.logger.debug(`Hit empty block cache! ${newBlockSequence}`)
       return BlockTemplateSerde.serialize(cachedBlock, currentBlock)
     }
 
-    const account = this.node.wallet.getDefaultAccount()
-    Assert.isNotNull(account, 'Cannot mine without an account')
-    Assert.isNotNull(account.spendingKey, 'Account must have spending key in order to mine')
-
-
-    this.node.logger.debug(
-      `[krx] Begin constructing new EMPTY block template for block sequence ${newBlockSequence}`,
-    )
-    const minersFee = await this.getEmptyMinersFee(newBlockSequence, account.spendingKey)
-
-    const blockTransactions: Transaction[] = []
-    const newBlock = await this.chain.newBlock(
-      blockTransactions,
-      minersFee,
-      GraffitiUtils.fromString(this.node.config.get('blockGraffiti')),
-    )
-    this.node.logger.debug(
-      `[krx] Created EMPTY block template ${newBlock.header.sequence}, with ${newBlock.transactions.length} transactions`,
-    )
-
-    this.emptyBlockCache.set(newBlockSequence, newBlock)
-    return BlockTemplateSerde.serialize(newBlock, currentBlock)
+    this.node.logger.debug(`Creating empty block ${newBlockSequence}`)
+    const emptyBlock = await this.createEmptyBlock(newBlockSequence, spendingKey)
+    this.node.logger.debug(`Finished creating empty block ${newBlockSequence}`)
+    return BlockTemplateSerde.serialize(emptyBlock, currentBlock)
   }
 
-  /**
-   * Construct the new block template which is everything a miner needs to begin mining.
-   *
-   * @param currentBlock The head block of the current heaviest chain
-   * @returns
-   */
-  async createNewBlockTemplate(currentBlock: Block): Promise<SerializedBlockTemplate> {
+  async createFullBlockTemplate(currentBlock: Block, spendingKey: string): Promise<SerializedBlockTemplate> {
     const newBlockSequence = currentBlock.header.sequence + 1
-    const cachedBlock = this.normalBlockCache.get(newBlockSequence)
+    this.node.logger.debug(
+      `[krx] Started createFullBlockTemplate ${newBlockSequence}`,
+    )
+
+    this.node.logger.debug(`Trying get full block from cache ${newBlockSequence}`)
+    const cachedBlock = this.cache.getFullBlock(newBlockSequence)
     if (cachedBlock !== undefined) {
-      this.node.logger.debug(`Hit normal block cache! ${newBlockSequence}`)
+      this.node.logger.debug(`Hit full block cache! ${newBlockSequence}`)
       return BlockTemplateSerde.serialize(cachedBlock, currentBlock)
     }
 
-    const startTime = BenchUtils.start()
+    if (this.memPool.count() === 0) {
+      this.node.logger.debug(`Mempool empty. Calling createEmptyBlockTemplate ${newBlockSequence}`)
+      return await this.createEmptyBlockTemplate(currentBlock, spendingKey)
+    }
 
-    const account = this.node.wallet.getDefaultAccount()
-    Assert.isNotNull(account, 'Cannot mine without an account')
-    Assert.isNotNull(account.spendingKey, 'Account must have spending key in order to mine')
-
-    this.node.logger.debug(
-      `[krx] Begin constructing new block template for block sequence ${newBlockSequence}`,
-    )
-
-    this.node.logger.debug(`[krx] Getting new block transactions ${newBlockSequence}`)
-    const currBlockSize = getBlockWithMinersFeeSize()
-    const { totalFees, blockTransactions, newBlockSize } = await this.getNewBlockTransactions(
-      newBlockSequence,
-      currBlockSize,
-    )
-
-    // Calculate the final fee for the miner of this block
-    const minersFee = await this.node.strategy.createMinersFee(
-      totalFees,
-      newBlockSequence,
-      account.spendingKey,
-    )
-    this.node.logger.debug(
-      `[krx] Constructed miner's reward transaction for account ${account.displayName}, block sequence ${newBlockSequence}`,
-    )
-
-    const txSize = getTransactionSize(minersFee)
-    Assert.isEqual(
-      MINERS_FEE_TRANSACTION_SIZE_BYTES,
-      txSize,
-      "Incorrect miner's fee transaction size used during block creation",
-    )
-
-    // Create the new block as a template for mining
-    const newBlock = await this.chain.newBlock(
-      blockTransactions,
-      minersFee,
-      GraffitiUtils.fromString(this.node.config.get('blockGraffiti')),
-    )
-    Assert.isEqual(
-      newBlockSize,
-      getBlockSize(newBlock),
-      'Incorrect block size calculated during block creation',
-    )
-
-    this.node.logger.debug(
-      `[krx] Created block template ${newBlock.header.sequence}, with ${newBlock.transactions.length} transactions`,
-    )
-
-    this.metrics.mining_newBlockTemplate.add(BenchUtils.end(startTime))
-
-    this.normalBlockCache.set(newBlockSequence, newBlock)
-    return BlockTemplateSerde.serialize(newBlock, currentBlock)
+    this.node.logger.debug(`Creating full block ${newBlockSequence}`)
+    const fullBlock = await this.createFullBlock(newBlockSequence, spendingKey)
+    this.node.logger.debug(`Finished creating full block ${newBlockSequence}`)
+    return BlockTemplateSerde.serialize(fullBlock, currentBlock)
   }
 
   async submitBlockTemplate(blockTemplate: SerializedBlockTemplate): Promise<MINED_RESULT> {
