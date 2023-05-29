@@ -209,6 +209,12 @@ export class MiningManager {
       this.node.logger.debug(`[krx] [${sequence}] No cached emptyMinersFee promise, creating`)
       minersFee = await this.createEmptyMinersFee(sequence, spendingKey)
     }
+    const txSize = getTransactionSize(minersFee)
+    Assert.isEqual(
+      MINERS_FEE_TRANSACTION_SIZE_BYTES,
+      txSize,
+      "Incorrect miner's fee transaction size used during block creation",
+    )
 
     this.node.logger.debug(`[krx] [${sequence}] Constructing empty block`)
     const blockTransactions: Transaction[] = []
@@ -217,6 +223,12 @@ export class MiningManager {
       minersFee,
       GraffitiUtils.fromString(this.node.config.get('blockGraffiti')),
     )
+    Assert.isEqual(
+      getBlockWithMinersFeeSize(),
+      getBlockSize(emptyBlock),
+      'Incorrect block size calculated during block creation',
+    )
+
     this.cache.setEmptyBlock(emptyBlock)
     this.node.logger.debug(`[krx] [${sequence}] Finished createEmptyBlock`)
     return emptyBlock
@@ -229,23 +241,49 @@ export class MiningManager {
       sequence,
       currBlockSize,
     )
+
     this.node.logger.debug(`[krx] [${sequence}] Creating full miners fee`)
     const minersFee = await this.node.strategy.createMinersFee(
       totalFees,
       sequence,
       spendingKey,
     )
+    const txSize = getTransactionSize(minersFee)
+    Assert.isEqual(
+      MINERS_FEE_TRANSACTION_SIZE_BYTES,
+      txSize,
+      "Incorrect miner's fee transaction size used during block creation",
+    )
+
     this.node.logger.debug(`[krx] [${sequence}] Constructing full block`)
     const fullBlock = await this.chain.newBlock(
       blockTransactions,
       minersFee,
       GraffitiUtils.fromString(this.node.config.get('blockGraffiti')),
     )
+    Assert.isEqual(
+      newBlockSize,
+      getBlockSize(fullBlock),
+      'Incorrect block size calculated during block creation',
+    )
+
     this.cache.setFullBlock(fullBlock)
     this.node.logger.debug(`[krx] [${sequence}] Finished createFullBlock`)
     return fullBlock
   }
 
+  /**
+   * Construct the new empty block template to begin mining immediately.
+   * This is an optimization made to decrease the latency between seeing
+   * a new block and starting mining a new height.
+   *
+   * Empty block can be constructed using pre-generated minersFee,
+   * thus reducing the template generation time from 500-1000ms down to 10-50ms.
+   *
+   * @param currentBlock The head block of the current heaviest chain
+   * @param spendingKey Miner's account spending key
+   * @returns
+   */
   async createEmptyBlockTemplate(currentBlock: Block, spendingKey: string): Promise<SerializedBlockTemplate> {
     const newBlockSequence = currentBlock.header.sequence + 1
     this.node.logger.debug(`[krx] [${newBlockSequence}] Started createEmptyBlockTemplate`)
@@ -263,6 +301,13 @@ export class MiningManager {
     return BlockTemplateSerde.serialize(emptyBlock, currentBlock)
   }
 
+  /**
+   * Construct the new full block template with transactions from mem pool.
+   *
+   * @param currentBlock The head block of the current heaviest chain
+   * @param spendingKey Miner's account spending key
+   * @returns
+   */
   async createFullBlockTemplate(currentBlock: Block, spendingKey: string): Promise<SerializedBlockTemplate> {
     const newBlockSequence = currentBlock.header.sequence + 1
     this.node.logger.debug(
