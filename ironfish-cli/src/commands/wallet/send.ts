@@ -57,7 +57,6 @@ export class Send extends IronfishCommand {
     memo: Flags.string({
       char: 'm',
       description: 'The memo of transaction',
-      default: '',
     }),
     confirm: Flags.boolean({
       default: false,
@@ -99,7 +98,6 @@ export class Send extends IronfishCommand {
     let assetId = flags.assetId
     let to = flags.to?.trim()
     let from = flags.account?.trim()
-    let memo = flags.memo?.trim()
 
     const client = await this.sdk.connectRpc()
 
@@ -163,9 +161,9 @@ export class Send extends IronfishCommand {
       })
     }
 
-    if (!memo) {
-      memo = await CliUx.ux.prompt('Enter the memo (or leave blank)', { required: false })
-    }
+    const memo =
+      flags.memo?.trim() ??
+      (await CliUx.ux.prompt('Enter the memo (or leave blank)', { required: false }))
 
     if (!isValidPublicAddress(to)) {
       this.log(`A valid public address is required`)
