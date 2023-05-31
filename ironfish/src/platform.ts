@@ -23,6 +23,14 @@ const getRuntime = ():
   return { type: 'unknown', runtime: 'unknown' }
 }
 
+const getName = (): NodeJS.Platform | 'unknown' => {
+  if (typeof process === 'object' && process && process.platform) {
+    return process.platform
+  }
+
+  return 'unknown'
+}
+
 /**
  * Returns a user agent that combines the name and version components
  *
@@ -34,4 +42,4 @@ const getAgent = (pkg: Package): string => {
   return `${pkg.name}/${pkg.version}/${pkg.git.slice(0, 8)}`
 }
 
-export const Platform = { getAgent, getRuntime }
+export const Platform = { getAgent, getRuntime, getName }
