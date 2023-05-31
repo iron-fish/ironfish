@@ -73,6 +73,21 @@ export function wordsToSpendingKey(words: string, languageCode: LanguageCode): s
 export function generateKeyFromPrivateKey(privateKey: string): Key
 export function initializeSapling(): void
 export function isValidPublicAddress(hexAddress: string): boolean
+export interface NativeDecryptNoteOptions {
+  serializedNote: Buffer
+  incomingViewKey: string
+  outgoingViewKey: string
+  viewKey: string
+  currentNoteIndex?: number
+  decryptForSpender: boolean
+}
+export interface DecryptedNote {
+  index?: number
+  forSpender: boolean
+  hash: Buffer
+  nullifier?: Buffer
+  serializedNote: Buffer
+}
 export class BoxKeyPair {
   constructor()
   static fromHex(secretHex: string): BoxKeyPair
@@ -237,4 +252,9 @@ export class ThreadPoolHandler {
   pause(): void
   getFoundBlock(): FoundBlockResult | null
   getHashRateSubmission(): number
+}
+export class NativeWorkerPool {
+  constructor(size: number)
+  sleep(callback: (...args: any[]) => any, ms: number): void
+  decryptNotes(callback: (...args: any[]) => any, encryptedNotes: Array<NativeDecryptNoteOptions>): void
 }

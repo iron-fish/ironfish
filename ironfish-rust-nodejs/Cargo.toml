@@ -33,6 +33,8 @@ napi-derive = "=2.9.1"
 napi-derive-backend = "=1.0.38"
 ironfish_mpc = { path = "../ironfish-mpc" }
 
+rayon = "1"
+
 [dependencies.napi]
 version = "=2.9.1"
 features = ["napi6"]

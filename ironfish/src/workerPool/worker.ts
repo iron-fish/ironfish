@@ -20,7 +20,11 @@ import {
   VerifyTransactionsRequest,
   VerifyTransactionsResponse,
 } from './tasks/verifyTransactions'
-import { WorkerMessage, WorkerMessageType } from './tasks/workerMessage'
+import {
+  WORKER_MESSAGE_HEADER_SIZE,
+  WorkerMessage,
+  WorkerMessageType,
+} from './tasks/workerMessage'
 
 export class Worker {
   thread: WorkerThread | null = null
@@ -30,6 +34,12 @@ export class Worker {
   maxJobs: number
   started: boolean
   logger: Logger
+
+  // sharedRequestBuffer: SharedArrayBuffer
+  // sharedResponseBuffer: SharedArrayBuffer
+
+  // requestBuffer: Uint8Array
+  // responseBuffer: Uint8Array
 
   get executing(): boolean {
     return this.jobs.size > 0
@@ -52,6 +62,12 @@ export class Worker {
     this.started = true
     this.logger = options.logger || createRootLogger()
 
+    // this.sharedRequestBuffer = new SharedArrayBuffer(1024 * 1024) // 1MB
+    // this.sharedResponseBuffer = new SharedArrayBuffer(1024 * 1024) // 1MB
+
+    // this.requestBuffer = new Uint8Array(this.sharedRequestBuffer)
+    // this.responseBuffer = new Uint8Array(this.sharedResponseBuffer)
+
     if (options.parent) {
       this.spawned()
     } else {
@@ -67,8 +83,14 @@ export class Worker {
   send(message: WorkerMessage): void {
     if (this.thread) {
       this.thread.postMessage(message.serialize())
+
+      // this.requestBuffer.set(message.serialize(), 0)
+      // this.thread.postMessage(this.sharedRequestBuffer)
     } else if (this.parent) {
       this.parent.postMessage(message.serialize())
+
+      // this.responseBuffer.set(message.serialize(), 0)
+      // this.parent.postMessage(this.sharedResponseBuffer)
     } else {
       throw new Error(`Cannot send message: no thread or worker`)
     }
@@ -120,6 +142,7 @@ export class Worker {
     initializeSapling()
   }
 
+  // private onMessageFromParent = (request: SharedArrayBuffer): void => {
   private onMessageFromParent = (request: Uint8Array): void => {
     const message = Buffer.from(request)
 
@@ -170,6 +193,7 @@ export class Worker {
       })
   }
 
+  // private onMessageFromWorker = (response: SharedArrayBuffer): void => {
   private onMessageFromWorker = (response: Uint8Array): void => {
     const message = Buffer.from(response)
 

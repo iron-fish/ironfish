@@ -1369,6 +1369,7 @@ dependencies = [
  "napi-build",
  "napi-derive",
  "napi-derive-backend",
+ "rayon",
 ]
 
 [[package]]

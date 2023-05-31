@@ -35,19 +35,19 @@ export abstract class WorkerMessage implements Serializable {
   abstract getSize(): number
 
   static deserializeHeader(buffer: Buffer): WorkerHeader {
-    const br = bufio.read(buffer)
+    const br = bufio.read(buffer, true)
     const jobId = Number(br.readU64())
     const type = br.readU8()
     // TODO(mat): can we utilize zero copy here?
     return {
       jobId,
       type,
-      body: br.readBytes(br.left()),
+      body: br.readBytes(br.left(), true),
     }
   }
 
   serialize(): Buffer {
-    const bw = bufio.write(WORKER_MESSAGE_HEADER_SIZE + this.getSize())
+    const bw = bufio.pool(WORKER_MESSAGE_HEADER_SIZE + this.getSize())
     bw.writeU64(this.jobId)
     bw.writeU8(this.type)
     this.serializePayload(bw)

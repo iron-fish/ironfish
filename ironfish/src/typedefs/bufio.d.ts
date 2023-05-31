@@ -86,6 +86,7 @@ declare module 'bufio' {
     readHash(enc?: null): Buffer
   }
 
+  export function pool(size: number): StaticWriter
   export function write(size?: number): StaticWriter | BufferWriter
   export function read(data: Buffer, zeroCopy?: boolean): BufferReader
 
