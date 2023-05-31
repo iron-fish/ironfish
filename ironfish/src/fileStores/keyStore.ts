@@ -7,16 +7,20 @@ import { FileSystem } from '../fileSystems'
 import { PartialRecursive, YupUtils } from '../utils'
 import { FileStore } from './fileStore'
 
-export class KeyStore<TSchema extends Record<string, unknown>> {
+export class KeyStore<
+  TSchema extends Record<string, unknown>,
+  TRewrites extends Record<string, keyof TSchema>,
+> {
   dataDir: string
   files: FileSystem
   storage: FileStore<TSchema>
   config: Readonly<TSchema>
   defaults: TSchema
   loaded: Partial<TSchema>
-  overrides: Partial<TSchema> = {}
+  overrides: Partial<TSchema>
   keysLoaded = new Set<keyof TSchema>()
   schema: yup.ObjectSchema<Partial<TSchema>> | undefined
+  rewrites: Record<string, keyof TSchema> | undefined
 
   readonly onConfigChange: Event<[key: keyof TSchema, value: TSchema[keyof TSchema]]> =
     new Event()
@@ -27,11 +31,13 @@ export class KeyStore<TSchema extends Record<string, unknown>> {
     defaults: TSchema,
     dataDir: string,
     schema?: yup.ObjectSchema<TSchema | Partial<TSchema>>,
+    rewrites?: TRewrites,
   ) {
     this.files = files
     this.storage = new FileStore<TSchema>(files, configName, dataDir)
     this.schema = schema
     this.dataDir = this.storage.dataDir
+    this.rewrites = rewrites
 
     const loaded = Object.setPrototypeOf({}, defaults) as TSchema
     const overrides = Object.setPrototypeOf({}, loaded) as TSchema
@@ -66,6 +72,13 @@ export class KeyStore<TSchema extends Record<string, unknown>> {
 
       for (key in data) {
         this.keysLoaded.add(key)
+
+        // Rewrite the key to the new key
+        if (this.rewrites && key in this.rewrites) {
+          const rewrote: string = key
+          const rewrite: keyof TSchema = this.rewrites[rewrote]
+          data[rewrite] = data[key]
+        }
       }
     }
 

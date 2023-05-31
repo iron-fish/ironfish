@@ -22,6 +22,37 @@ describe('KeyStore', () => {
     expect(store.get('foo')).toEqual('baz')
   })
 
+  it.only('should rewrite key on load', async () => {
+    const dir = getUniqueTestDataDir()
+    const files = await new NodeFileProvider().init()
+
+    const store1 = new KeyStore<{ foo: string }>(
+      files,
+      'store',
+      { foo: 'default' },
+      dir,
+      undefined,
+    )
+    await store1.load()
+    store1.set('foo', 'foo')
+    await store1.save()
+
+    const store2 = new KeyStore<{ bar: string }>(
+      files,
+      'store',
+      { bar: 'default' },
+      dir,
+      undefined,
+      {
+        foo: 'bar',
+      },
+    )
+
+    await store2.load()
+
+    expect(store2.get('bar')).toBe('foo')
+  })
+
   it('should validate schema in load', async () => {
     const dir = getUniqueTestDataDir()
     const files = await new NodeFileProvider().init()
