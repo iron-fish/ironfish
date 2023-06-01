@@ -35,6 +35,7 @@ export type FollowChainStreamResponse = {
       hash: string
       size: number
       fee: number
+      expiration: number
       notes: Array<{ commitment: string }>
       spends: Array<{ nullifier: string }>
       mints: Array<{
@@ -84,6 +85,7 @@ export const FollowChainStreamResponseSchema: yup.ObjectSchema<FollowChainStream
                 hash: yup.string().defined(),
                 size: yup.number().defined(),
                 fee: yup.number().defined(),
+                expiration: yup.number().defined(),
                 notes: yup
                   .array(
                     yup
@@ -153,6 +155,7 @@ router.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
             hash: BlockHashSerdeInstance.serialize(transaction.hash()),
             size: getTransactionSize(transaction),
             fee: Number(transaction.fee()),
+            expiration: transaction.expiration(),
             notes: transaction.notes.map((note) => ({
               commitment: note.hash().toString('hex'),
             })),
