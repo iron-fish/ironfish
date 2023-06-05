@@ -37,7 +37,7 @@ lerna-debug.log*
 .pnp.*
 
 # rust build artifacts
-**/target/*
+**/target
 *.node
 
 # ironfish-cli
