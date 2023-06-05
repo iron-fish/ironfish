@@ -20,7 +20,7 @@ VOLUME /root/.ironfish
 ENV NODE_ENV production
 
 COPY --from=build /usr/src/ironfish/ironfish-cli/build.cli/ironfish-cli /usr/share/ironfish
-COPY --from=build --chmod=755 /usr/src/ironfish/ironfish-cli/scripts/entrypoint.sh /usr/bin/ironfish
+COPY --from=build --chmod=755 /usr/src/ironfish/ironfish-cli/scripts/docker-entrypoint.sh /usr/bin/ironfish
 
 ENTRYPOINT ["/usr/bin/ironfish"]
 CMD ["start", "--rpc.ipc", "--rpc.tcp"]
