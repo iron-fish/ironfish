@@ -3,10 +3,19 @@ name = "ironfish_zkp"
 version = "0.1.0"
 license = "MIT OR Apache-2.0"
 
+description = "Sapling API and zero-knowledge proving mechanism for the Iron Fish node"
+keywords = ["iron-fish", "sapling", "zero-knowledge"]
+
 [package.authors]
 workspace = true
 
 [package.edition]
+workspace = true
+
+[package.homepage]
+workspace = true
+
+[package.repository]
 workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

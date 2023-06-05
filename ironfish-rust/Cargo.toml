@@ -3,10 +3,19 @@ name = "ironfish_rust"
 version = "0.1.0"
 license = "MPL-2.0"
 
+description = "Rust crate for interacting with transactions on the Iron Fish chain"
+keywords = ["iron-fish", "cryptocurrency", "blockchain"]
+
 [package.authors]
 workspace = true
 
 [package.edition]
+workspace = true
+
+[package.homepage]
+workspace = true
+
+[package.repository]
 workspace = true
 
 [features]
