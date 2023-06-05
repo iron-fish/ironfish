@@ -40,8 +40,7 @@ export class DisconnectingMessage extends NetworkMessage {
     this.sourceIdentity = sourceIdentity
   }
 
-  serialize(): Buffer {
-    const bw = bufio.write(this.getSize())
+  serializePayload(bw: bufio.StaticWriter | bufio.BufferWriter): void {
     // Truncates the timestamp to seconds
     bw.writeU32(Math.ceil(this.disconnectUntil / 1000))
     bw.writeU8(this.reason)
@@ -49,10 +48,9 @@ export class DisconnectingMessage extends NetworkMessage {
     if (this.destinationIdentity) {
       bw.writeBytes(Buffer.from(this.destinationIdentity, 'base64'))
     }
-    return bw.render()
   }
 
-  static deserialize(buffer: Buffer): DisconnectingMessage {
+  static deserializePayload(buffer: Buffer): DisconnectingMessage {
     const reader = bufio.read(buffer, true)
     const disconnectUntil = reader.readU32() * 1000
     const reason = reader.readU8()

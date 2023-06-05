@@ -1,7 +1,11 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { createNodeTest, useMinerBlockFixture } from '../../testUtilities'
+import {
+  createNodeTest,
+  serializePayloadToBuffer,
+  useMinerBlockFixture,
+} from '../../testUtilities'
 import { expectGetBlockHeadersResponseToMatch } from '../testUtilities'
 import { GetBlockHeadersRequest, GetBlockHeadersResponse } from './getBlockHeaders'
 
@@ -10,8 +14,9 @@ describe('GetBlockHeadersRequest', () => {
     it('serializes the object into a buffer and deserializes to the original object', () => {
       const rpcId = 0
       const message = new GetBlockHeadersRequest(1, 10, 0, false, rpcId)
-      const buffer = message.serialize()
-      const deserializedMessage = GetBlockHeadersRequest.deserialize(buffer, rpcId)
+
+      const buffer = serializePayloadToBuffer(message)
+      const deserializedMessage = GetBlockHeadersRequest.deserializePayload(buffer, rpcId)
       expect(deserializedMessage).toEqual(message)
     })
   })
@@ -20,8 +25,9 @@ describe('GetBlockHeadersRequest', () => {
     it('serializes the object into a buffer and deserializes to the original object', () => {
       const rpcId = 0
       const message = new GetBlockHeadersRequest(Buffer.alloc(32, 1), 10, 0, false, rpcId)
-      const buffer = message.serialize()
-      const deserializedMessage = GetBlockHeadersRequest.deserialize(buffer, rpcId)
+
+      const buffer = serializePayloadToBuffer(message)
+      const deserializedMessage = GetBlockHeadersRequest.deserializePayload(buffer, rpcId)
       expect(deserializedMessage).toEqual(message)
     })
   })
@@ -36,8 +42,9 @@ describe('GetBlockHeadersResponse', () => {
 
     const rpcId = 0
     const message = new GetBlockHeadersResponse([block1.header, block2.header], rpcId)
-    const buffer = message.serialize()
-    const deserializedMessage = GetBlockHeadersResponse.deserialize(buffer, rpcId)
+
+    const buffer = serializePayloadToBuffer(message)
+    const deserializedMessage = GetBlockHeadersResponse.deserializePayload(buffer, rpcId)
     expectGetBlockHeadersResponseToMatch(deserializedMessage, message)
   })
 
@@ -47,8 +54,9 @@ describe('GetBlockHeadersResponse', () => {
 
     const rpcId = 0
     const message = new GetBlockHeadersResponse([block1.header, block2.header], rpcId)
-    const buffer = message.serialize()
+
+    const buffer = serializePayloadToBuffer(message)
     buffer.writeUInt16LE(3, 0)
-    expect(() => GetBlockHeadersResponse.deserialize(buffer, rpcId)).toThrow()
+    expect(() => GetBlockHeadersResponse.deserializePayload(buffer, rpcId)).toThrow()
   })
 })

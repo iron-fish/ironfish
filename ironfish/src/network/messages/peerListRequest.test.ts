@@ -6,7 +6,7 @@ import { PeerListRequestMessage } from './peerListRequest'
 describe('PeerListRequestMessage', () => {
   it('serializes the object into a buffer and deserializes to the original object', () => {
     const message = new PeerListRequestMessage()
-    const deserializedMessage = PeerListRequestMessage.deserialize()
+    const deserializedMessage = PeerListRequestMessage.deserializePayload()
     expect(deserializedMessage).toEqual(message)
   })
 })

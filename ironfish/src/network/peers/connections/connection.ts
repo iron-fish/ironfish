@@ -117,7 +117,7 @@ export abstract class Connection {
   }
 
   send(object: NetworkMessage): boolean {
-    const data = object.serializeWithMetadata()
+    const data = object.serialize()
     const byteCount = data.byteLength
 
     if (byteCount >= MAX_MESSAGE_SIZE) {

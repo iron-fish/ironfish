@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { initializeSapling } from '@ironfish/rust-nodejs'
-import bufio from 'bufio'
 import path from 'path'
 import { MessagePort, parentPort, Worker as WorkerThread } from 'worker_threads'
 import { Assert } from '../assert'
@@ -67,9 +66,9 @@ export class Worker {
 
   send(message: WorkerMessage): void {
     if (this.thread) {
-      this.thread.postMessage(message.serializeWithMetadata())
+      this.thread.postMessage(message.serialize())
     } else if (this.parent) {
-      this.parent.postMessage(message.serializeWithMetadata())
+      this.parent.postMessage(message.serialize())
     } else {
       throw new Error(`Cannot send message: no thread or worker`)
     }
@@ -126,7 +125,7 @@ export class Worker {
 
     let header: WorkerHeader
     try {
-      header = this.parseHeader(message)
+      header = WorkerMessage.deserializeHeader(message)
     } catch {
       this.logger.error(`Could not parse header from request: '${message.toString('hex')}'`)
       return
@@ -176,7 +175,7 @@ export class Worker {
 
     let header: WorkerHeader
     try {
-      header = this.parseHeader(message)
+      header = WorkerMessage.deserializeHeader(message)
     } catch {
       this.logger.error(`Could not parse header from response: '${message.toString('hex')}'`)
       return
@@ -220,37 +219,26 @@ export class Worker {
     return
   }
 
-  private parseHeader(data: Buffer): WorkerHeader {
-    const br = bufio.read(data)
-    const jobId = Number(br.readU64())
-    const type = br.readU8()
-    return {
-      jobId,
-      type,
-      body: br.readBytes(br.left()),
-    }
-  }
-
   private parseRequest(jobId: number, type: WorkerMessageType, request: Buffer): WorkerMessage {
     switch (type) {
       case WorkerMessageType.CreateMinersFee:
-        return CreateMinersFeeRequest.deserialize(jobId, request)
+        return CreateMinersFeeRequest.deserializePayload(jobId, request)
       case WorkerMessageType.PostTransaction:
-        return PostTransactionRequest.deserialize(jobId, request)
+        return PostTransactionRequest.deserializePayload(jobId, request)
       case WorkerMessageType.DecryptNotes:
-        return DecryptNotesRequest.deserialize(jobId, request)
+        return DecryptNotesRequest.deserializePayload(jobId, request)
       case WorkerMessageType.JobAborted:
         throw new Error('JobAbort should not be sent as a request')
       case WorkerMessageType.JobError:
         throw new Error('JobError should not be sent as a request')
       case WorkerMessageType.Sleep:
-        return SleepRequest.deserialize(jobId, request)
+        return SleepRequest.deserializePayload(jobId, request)
       case WorkerMessageType.SubmitTelemetry:
-        return SubmitTelemetryRequest.deserialize(jobId, request)
+        return SubmitTelemetryRequest.deserializePayload(jobId, request)
       case WorkerMessageType.VerifyTransaction:
-        return VerifyTransactionRequest.deserialize(jobId, request)
+        return VerifyTransactionRequest.deserializePayload(jobId, request)
       case WorkerMessageType.VerifyTransactions:
-        return VerifyTransactionsRequest.deserialize(jobId, request)
+        return VerifyTransactionsRequest.deserializePayload(jobId, request)
     }
   }
 
@@ -261,23 +249,23 @@ export class Worker {
   ): WorkerMessage | JobError | JobAbortedError {
     switch (type) {
       case WorkerMessageType.CreateMinersFee:
-        return CreateMinersFeeResponse.deserialize(jobId, response)
+        return CreateMinersFeeResponse.deserializePayload(jobId, response)
       case WorkerMessageType.PostTransaction:
-        return PostTransactionResponse.deserialize(jobId, response)
+        return PostTransactionResponse.deserializePayload(jobId, response)
       case WorkerMessageType.DecryptNotes:
-        return DecryptNotesResponse.deserialize(jobId, response)
+        return DecryptNotesResponse.deserializePayload(jobId, response)
       case WorkerMessageType.JobAborted:
-        return JobAbortedMessage.deserialize()
+        return JobAbortedMessage.deserializePayload()
       case WorkerMessageType.JobError:
-        return JobErrorMessage.deserialize(jobId, response)
+        return JobErrorMessage.deserializePayload(jobId, response)
       case WorkerMessageType.Sleep:
-        return SleepResponse.deserialize(jobId, response)
+        return SleepResponse.deserializePayload(jobId, response)
       case WorkerMessageType.SubmitTelemetry:
-        return SubmitTelemetryResponse.deserialize(jobId)
+        return SubmitTelemetryResponse.deserializePayload(jobId)
       case WorkerMessageType.VerifyTransaction:
-        return VerifyTransactionResponse.deserialize(jobId, response)
+        return VerifyTransactionResponse.deserializePayload(jobId, response)
       case WorkerMessageType.VerifyTransactions:
-        return VerifyTransactionsResponse.deserialize(jobId, response)
+        return VerifyTransactionsResponse.deserializePayload(jobId, response)
     }
   }
 }

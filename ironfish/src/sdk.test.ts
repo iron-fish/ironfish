@@ -40,6 +40,29 @@ describe('IronfishSdk', () => {
       expect(sdk.config.storage.configPath).toContain('foo.config.json')
     })
 
+    it('should initialize an SDK/node with correct agent tag', async () => {
+      const dataDir = os.tmpdir()
+
+      const fileSystem = new NodeFileProvider()
+      await fileSystem.init()
+
+      const sdk = await IronfishSdk.init({
+        pkg: { name: 'node-app', license: 'MIT', version: '1.0.0', git: 'foo' },
+        configName: 'foo.config.json',
+        dataDir: dataDir,
+        fileSystem: fileSystem,
+      })
+
+      const node = await sdk.node()
+
+      expect(node.telemetry['defaultTags']).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ name: 'agent', value: 'node-app/1.0.0/foo' }),
+        ]),
+      )
+      expect(sdk.config.storage.configPath).toContain('foo.config.json')
+    })
+
     it('should detect platform defaults', async () => {
       const sdk = await IronfishSdk.init({ dataDir: os.tmpdir() })
       const runtime = Platform.getRuntime()

@@ -1,7 +1,12 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { createNodeTest, useMinersTxFixture, useTxSpendsFixture } from '../../testUtilities'
+import {
+  createNodeTest,
+  serializePayloadToBuffer,
+  useMinersTxFixture,
+  useTxSpendsFixture,
+} from '../../testUtilities'
 import { NewTransactionsMessage } from './newTransactions'
 
 describe('NewTransactionsMessage', () => {
@@ -31,8 +36,8 @@ describe('NewTransactionsMessage', () => {
 
     const message = new NewTransactionsMessage(transactions)
 
-    const buffer = message.serialize()
-    const deserializedMessage = NewTransactionsMessage.deserialize(buffer)
+    const buffer = serializePayloadToBuffer(message)
+    const deserializedMessage = NewTransactionsMessage.deserializePayload(buffer)
 
     expectNewTransactionsMessageToMatch(message, deserializedMessage)
   })

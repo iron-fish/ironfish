@@ -3,8 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import axios, { AxiosError, AxiosRequestConfig } from 'axios'
+import { getTransactionSize } from './network/utils/serializers'
+import { Transaction } from './primitives'
 import { FollowChainStreamResponse } from './rpc/routes/chain/followChainStream'
+import { BlockHashSerdeInstance } from './serde'
 import { Metric } from './telemetry'
+import { BufferUtils } from './utils'
 import { HasOwnProperty, UnwrapPromise } from './utils/types'
 
 type FaucetTransaction = {
@@ -134,6 +138,42 @@ export class WebApi {
     const options = this.options({ 'Content-Type': 'application/json' })
 
     await axios.post(`${this.host}/blocks`, { blocks: serialized }, options)
+  }
+
+  async transactions(transactions: Transaction[]): Promise<void> {
+    this.requireToken()
+
+    const serialized = []
+
+    for (const transaction of transactions) {
+      serialized.push({
+        hash: BlockHashSerdeInstance.serialize(transaction.hash()),
+        size: getTransactionSize(transaction),
+        fee: Number(transaction.fee()),
+        notes: transaction.notes.map((note) => ({
+          commitment: note.hash().toString('hex'),
+        })),
+        spends: transaction.spends.map((spend) => ({
+          nullifier: spend.nullifier.toString('hex'),
+        })),
+        mints: transaction.mints.map((mint) => ({
+          id: mint.asset.id().toString('hex'),
+          metadata: BufferUtils.toHuman(mint.asset.metadata()),
+          name: BufferUtils.toHuman(mint.asset.name()),
+          owner: mint.asset.owner().toString('hex'),
+          value: mint.value.toString(),
+        })),
+        burns: transaction.burns.map((burn) => ({
+          id: burn.assetId.toString('hex'),
+          value: burn.value.toString(),
+        })),
+        expiration: transaction.expiration(),
+      })
+    }
+
+    const options = this.options({ 'Content-Type': 'application/json' })
+
+    await axios.post(`${this.host}/transactions`, { transactions: serialized }, options)
   }
 
   async getFunds(data: { email?: string; public_key: string }): Promise<{

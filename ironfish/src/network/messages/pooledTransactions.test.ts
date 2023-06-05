@@ -3,7 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { blake3 } from '@napi-rs/blake-hash'
 import { v4 as uuid } from 'uuid'
-import { createNodeTest, useMinersTxFixture, useTxSpendsFixture } from '../../testUtilities'
+import {
+  createNodeTest,
+  serializePayloadToBuffer,
+  useMinersTxFixture,
+  useTxSpendsFixture,
+} from '../../testUtilities'
 import { PooledTransactionsRequest, PooledTransactionsResponse } from './pooledTransactions'
 
 describe('PooledTransactionsRequest', () => {
@@ -13,8 +18,8 @@ describe('PooledTransactionsRequest', () => {
 
     const message = new PooledTransactionsRequest(hashes, rpcId)
 
-    const buffer = message.serialize()
-    const deserializedMessage = PooledTransactionsRequest.deserialize(buffer, rpcId)
+    const buffer = serializePayloadToBuffer(message)
+    const deserializedMessage = PooledTransactionsRequest.deserializePayload(buffer, rpcId)
     expect(deserializedMessage).toEqual(message)
   })
 })
@@ -46,8 +51,8 @@ describe('PooledTransactionsResponse', () => {
 
     const message = new PooledTransactionsResponse(transactions, rpcId)
 
-    const buffer = message.serialize()
-    const deserializedMessage = PooledTransactionsResponse.deserialize(buffer, rpcId)
+    const buffer = serializePayloadToBuffer(message)
+    const deserializedMessage = PooledTransactionsResponse.deserializePayload(buffer, rpcId)
 
     expectPooledTransactionsResponseToMatch(message, deserializedMessage)
   })
