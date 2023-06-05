@@ -9,6 +9,12 @@ workspace = true
 [package.edition]
 workspace = true
 
+[package.homepage]
+workspace = true
+
+[package.repository]
+workspace = true
+
 [dependencies]
 criterion = "0.4"
 ironfish_rust = { path = "../ironfish-rust", features = ["benchmark"] }
