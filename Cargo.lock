@@ -111,7 +111,7 @@ name = "benchmarks"
 version = "0.1.0"
 dependencies = [
  "criterion",
- "ironfish_rust",
+ "ironfish",
 ]
 
 [[package]]
@@ -811,6 +811,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "ironfish"
+version = "0.1.0"
+dependencies = [
+ "bellman",
+ "blake2b_simd",
+ "blake2s_simd",
+ "blake3",
+ "bls12_381",
+ "byteorder",
+ "chacha20poly1305",
+ "crypto_box",
+ "ff 0.12.1",
+ "group 0.12.1",
+ "ironfish_zkp",
+ "jubjub",
+ "lazy_static",
+ "libc",
+ "rand 0.8.5",
+ "tiny-bip39",
+ "xxhash-rust",
+]
+
+[[package]]
 name = "ironfish-phase2"
 version = "0.2.2"
 dependencies = [
@@ -831,8 +854,8 @@ name = "ironfish-rust-nodejs"
 version = "0.1.0"
 dependencies = [
  "base64",
+ "ironfish",
  "ironfish_mpc",
- "ironfish_rust",
  "napi",
  "napi-build",
  "napi-derive",
@@ -852,29 +875,6 @@ dependencies = [
  "rand 0.8.5",
  "rand_chacha 0.3.1",
  "rand_seeder",
-]
-
-[[package]]
-name = "ironfish_rust"
-version = "0.1.0"
-dependencies = [
- "bellman",
- "blake2b_simd",
- "blake2s_simd",
- "blake3",
- "bls12_381",
- "byteorder",
- "chacha20poly1305",
- "crypto_box",
- "ff 0.12.1",
- "group 0.12.1",
- "ironfish_zkp",
- "jubjub",
- "lazy_static",
- "libc",
- "rand 0.8.5",
- "tiny-bip39",
- "xxhash-rust",
 ]
 
 [[package]]

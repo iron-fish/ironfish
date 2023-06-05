@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use ironfish_rust::{
+use ironfish::{
     assets::asset::ID_LENGTH as ASSET_ID_LENGTH,
     note::{AMOUNT_VALUE_SIZE, MEMO_SIZE, SCALAR_SIZE},
     ViewKey,
@@ -10,9 +10,9 @@ use ironfish_rust::{
 use napi::{bindgen_prelude::*, JsBuffer};
 use napi_derive::napi;
 
-use ironfish_rust::Note;
+use ironfish::Note;
 
-use ironfish_rust::keys::PUBLIC_ADDRESS_SIZE;
+use ironfish::keys::PUBLIC_ADDRESS_SIZE;
 
 use crate::to_napi_err;
 
@@ -59,9 +59,8 @@ impl NativeNote {
         sender: String,
     ) -> Result<Self> {
         let value_u64 = value.get_u64().1;
-        let owner_address = ironfish_rust::PublicAddress::from_hex(&owner).map_err(to_napi_err)?;
-        let sender_address =
-            ironfish_rust::PublicAddress::from_hex(&sender).map_err(to_napi_err)?;
+        let owner_address = ironfish::PublicAddress::from_hex(&owner).map_err(to_napi_err)?;
+        let sender_address = ironfish::PublicAddress::from_hex(&sender).map_err(to_napi_err)?;
 
         let buffer = asset_id.into_value()?;
         let asset_id_vec = buffer.as_ref();
