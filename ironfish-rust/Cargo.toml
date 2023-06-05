@@ -33,7 +33,7 @@ blake3 = "1.3.1"
 bls12_381 = "0.7.0"
 byteorder = "1.4.3"
 chacha20poly1305 = "0.9.0"
-crypto_box = { version = "0.7.2", features = ["std"] }
+crypto_box = { version = "0.8", features = ["std"] }
 ff = "0.12.0"
 group = "0.12.0"
 ironfish_zkp = { version = "0.1.0", path = "../ironfish-zkp" }
