@@ -36,7 +36,7 @@ chacha20poly1305 = "0.9.0"
 crypto_box = { version = "0.7.2", features = ["std"] }
 ff = "0.12.0"
 group = "0.12.0"
-ironfish_zkp = { path = "../ironfish-zkp" }
+ironfish_zkp = { version = "0.1.0", path = "../ironfish-zkp" }
 jubjub = "0.9.0"
 lazy_static = "1.4.0"
 libc = "0.2.126" # sub-dependency that needs a pinned version until a new release of cpufeatures: https://github.com/RustCrypto/utils/pull/789 
