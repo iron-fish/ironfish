@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crypto_box::{
-    aead::{generic_array::GenericArray, Aead},
+    aead::{generic_array::GenericArray, Aead, AeadCore},
     rand_core::OsRng,
-    PublicKey, SecretKey,
+    PublicKey, SalsaBox, SecretKey,
 };
 use rand::RngCore;
 
@@ -41,9 +41,9 @@ pub fn box_message(
     let sender: SecretKey = SecretKey::from(sender_secret_key);
     let recipient: PublicKey = PublicKey::from(recipient_public_key);
 
-    let nonce = crypto_box::generate_nonce(&mut rng);
+    let nonce = SalsaBox::generate_nonce(&mut rng);
 
-    let key_box = crypto_box::Box::new(&recipient, &sender);
+    let key_box = SalsaBox::new(&recipient, &sender);
 
     let ciphertext = key_box.encrypt(&nonce, plaintext.as_bytes())?;
 
@@ -65,7 +65,7 @@ pub fn unbox_message(
     let recipient: SecretKey = SecretKey::from(recipient_secret_key);
     let sender: PublicKey = PublicKey::from(sender_public_key);
 
-    let key_box = crypto_box::Box::new(&sender, &recipient);
+    let key_box = SalsaBox::new(&sender, &recipient);
 
     let cleartext_bytes = key_box.decrypt(nonce, boxed_message)?;
 
