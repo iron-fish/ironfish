@@ -2,17 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use ironfish_rust::IncomingViewKey;
-use ironfish_rust::MerkleNoteHash;
-use ironfish_rust::OutgoingViewKey;
+use ironfish::IncomingViewKey;
+use ironfish::MerkleNoteHash;
+use ironfish::OutgoingViewKey;
 use napi::bindgen_prelude::*;
 use napi::JsBuffer;
 use napi_derive::napi;
 
-use ironfish_rust::merkle_note::NOTE_ENCRYPTION_KEY_SIZE;
-use ironfish_rust::note::ENCRYPTED_NOTE_SIZE;
-use ironfish_rust::serializing::aead::MAC_SIZE;
-use ironfish_rust::MerkleNote;
+use ironfish::merkle_note::NOTE_ENCRYPTION_KEY_SIZE;
+use ironfish::note::ENCRYPTED_NOTE_SIZE;
+use ironfish::serializing::aead::MAC_SIZE;
+use ironfish::MerkleNote;
 
 use crate::to_napi_err;
 

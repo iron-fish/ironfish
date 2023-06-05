@@ -1,5 +1,5 @@
 use criterion::{black_box, criterion_group, criterion_main, BatchSize, Criterion};
-use ironfish_rust::{
+use ironfish::{
     assets::asset::{Asset, METADATA_LENGTH, NAME_LENGTH},
     SaplingKey,
 };

@@ -1,5 +1,5 @@
 [package]
-name = "ironfish_rust"
+name = "ironfish"
 version = "0.1.0"
 license = "MPL-2.0"
 
@@ -13,7 +13,7 @@ workspace = true
 benchmark = []
 
 [lib]
-name = "ironfish_rust"
+name = "ironfish"
 path = "src/lib.rs"
 
 [dependencies]

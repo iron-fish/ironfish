@@ -5,13 +5,13 @@
 use std::cell::RefCell;
 use std::ops::Deref;
 
-use ironfish_rust::sapling_bls12::Scalar;
-use ironfish_rust::MerkleNoteHash;
+use ironfish::sapling_bls12::Scalar;
+use ironfish::MerkleNoteHash;
 use napi::bindgen_prelude::*;
 use napi::Env;
 use napi::JsObject;
 
-use ironfish_rust::witness::{WitnessNode, WitnessTrait};
+use ironfish::witness::{WitnessNode, WitnessTrait};
 
 pub struct JsWitness {
     pub cx: RefCell<Env>,
