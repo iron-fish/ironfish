@@ -6,6 +6,11 @@ license = "MPL-2.0"
 description = "Rust crate for interacting with transactions on the Iron Fish chain"
 keywords = ["iron-fish", "cryptocurrency", "blockchain"]
 
+# Do not include the sapling params to reduce the crate size (which otherwise
+# would be too big and would be rejected by crates.io). The build.rs script
+# will take care of downloading these files at build time.
+exclude = ["src/sapling_params/*.params"]
+
 [package.authors]
 workspace = true
 
@@ -39,7 +44,12 @@ group = "0.12.0"
 ironfish_zkp = { version = "0.1.0", path = "../ironfish-zkp" }
 jubjub = "0.9.0"
 lazy_static = "1.4.0"
-libc = "0.2.126" # sub-dependency that needs a pinned version until a new release of cpufeatures: https://github.com/RustCrypto/utils/pull/789 
+libc = "0.2.126" # sub-dependency that needs a pinned version until a new release of cpufeatures: https://github.com/RustCrypto/utils/pull/789
 rand = "0.8.5"
 tiny-bip39 = "0.8"
 xxhash-rust = { version = "0.8.5", features = ["xxh3"] }
+
+[build-dependencies]
+hex = "0.4"
+reqwest = { version = "0.11", features = ["blocking"] }
+sha2 = "0.10"

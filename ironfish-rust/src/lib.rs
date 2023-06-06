@@ -55,11 +55,20 @@ pub struct Sapling {
 
 impl Sapling {
     /// Initialize a Sapling instance and prepare for proving. Load the parameters from files
-    /// at a known location (`./sapling_params`, for now).
+    /// at a known location (`$OUT_DIR/sapling_params`).
     pub fn load() -> Self {
-        let spend_bytes = include_bytes!("sapling_params/sapling-spend.params");
-        let output_bytes = include_bytes!("sapling_params/sapling-output.params");
-        let mint_bytes = include_bytes!("sapling_params/sapling-mint.params");
+        let spend_bytes = include_bytes!(concat!(
+            env!("OUT_DIR"),
+            "/sapling_params/sapling-spend.params"
+        ));
+        let output_bytes = include_bytes!(concat!(
+            env!("OUT_DIR"),
+            "/sapling_params/sapling-output.params"
+        ));
+        let mint_bytes = include_bytes!(concat!(
+            env!("OUT_DIR"),
+            "/sapling_params/sapling-mint.params"
+        ));
 
         let spend_params = Sapling::load_params(&spend_bytes[..]);
         let output_params = Sapling::load_params(&output_bytes[..]);
