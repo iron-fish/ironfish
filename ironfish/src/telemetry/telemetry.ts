@@ -234,11 +234,6 @@ export class Telemetry {
         type: 'integer',
         value: this.chain.head.sequence,
       },
-      {
-        name: 'chain_database_size',
-        type: 'integer',
-        value: this.metrics.chain_databaseSize.value,
-      },
     ]
 
     for (const [messageType, meter] of this.metrics.p2p_InboundTrafficByMessage) {

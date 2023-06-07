@@ -14,6 +14,7 @@ export interface ChainInfo {
   genesisBlockIdentifier: BlockIdentifier
   oldestBlockIdentifier: BlockIdentifier
   currentBlockTimestamp: number
+  chainDBSizeBytes: number
 }
 
 export type GetChainInfoRequest = Record<string, never> | undefined
@@ -35,6 +36,7 @@ export const GetChainInfoResponseSchema: yup.ObjectSchema<GetChainInfoResponse> 
       .object({ index: yup.string().defined(), hash: yup.string().defined() })
       .defined(),
     currentBlockTimestamp: yup.number().defined(),
+    chainDBSizeBytes: yup.number().defined(),
   })
   .defined()
 
@@ -44,7 +46,7 @@ export const GetChainInfoResponseSchema: yup.ObjectSchema<GetChainInfoResponse> 
 router.register<typeof GetChainInfoRequestSchema, GetChainInfoResponse>(
   `${ApiNamespace.chain}/getChainInfo`,
   GetChainInfoRequestSchema,
-  (request, node): void => {
+  async (request, node): Promise<void> => {
     Assert.isNotNull(node.chain.genesis, 'no genesis')
 
     const latestHeader = node.chain.latest
@@ -68,11 +70,14 @@ router.register<typeof GetChainInfoRequestSchema, GetChainInfoResponse>(
     genesisBlockIdentifier.index = GENESIS_BLOCK_SEQUENCE.toString()
     genesisBlockIdentifier.hash = BlockHashSerdeInstance.serialize(node.chain.genesis.hash)
 
+    const chainDBSizeBytes = await node.chain.db.size()
+
     request.end({
       currentBlockIdentifier,
       oldestBlockIdentifier,
       genesisBlockIdentifier,
       currentBlockTimestamp,
+      chainDBSizeBytes,
     })
   },
 )
