@@ -1106,13 +1106,16 @@ export class WalletDB {
   async *loadTransactionsByTime(
     account: Account,
     tx?: IDatabaseTransaction,
+    options?: {
+      reverse?: boolean
+    },
   ): AsyncGenerator<TransactionValue> {
     for await (const [, [, transactionHash]] of this.timestampToTransactionHash.getAllKeysIter(
       tx,
       account.prefixRange,
       {
         ordered: true,
-        reverse: true,
+        reverse: options?.reverse ?? true,
       },
     )) {
       const transaction = await this.loadTransaction(account, transactionHash, tx)

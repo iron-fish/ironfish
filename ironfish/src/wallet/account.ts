@@ -694,8 +694,11 @@ export class Account {
     return this.walletDb.loadTransactions(this, range, tx)
   }
 
-  getTransactionsByTime(tx?: IDatabaseTransaction): AsyncGenerator<Readonly<TransactionValue>> {
-    return this.walletDb.loadTransactionsByTime(this, tx)
+  getTransactionsByTime(
+    tx?: IDatabaseTransaction,
+    options?: { reverse?: boolean },
+  ): AsyncGenerator<Readonly<TransactionValue>> {
+    return this.walletDb.loadTransactionsByTime(this, tx, options)
   }
 
   async *getTransactionsBySequence(

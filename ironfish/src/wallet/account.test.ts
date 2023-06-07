@@ -2138,6 +2138,24 @@ describe('Accounts', () => {
 
       expect(accountBTx[0].transaction.hash()).toEqualHash(sortedHashes[0])
       expect(accountBTx[1].transaction.hash()).toEqualHash(sortedHashes[1])
+
+      // It also allows us to return transactions in chronological order
+      // getTransactionsByTime returns transactions in reverse order by time, hash
+      const accountATxChronological = await AsyncUtils.materialize(
+        accountA.getTransactionsByTime(undefined, { reverse: false }),
+      )
+      const accountBTxChronological = await AsyncUtils.materialize(
+        accountB.getTransactionsByTime(undefined, { reverse: false }),
+      )
+
+      // 3 block rewards plus 2 outgoing transactions
+      expect(accountATxChronological).toHaveLength(5)
+
+      // tx1 and tx2 will have the same timestamp for accountB, so ordering should be reverse by hash
+      const sortedHashesChron = [tx1.hash(), tx2.hash()].sort()
+
+      expect(accountBTxChronological[0].transaction.hash()).toEqualHash(sortedHashesChron[0])
+      expect(accountBTxChronological[1].transaction.hash()).toEqualHash(sortedHashesChron[1])
     })
   })
 
