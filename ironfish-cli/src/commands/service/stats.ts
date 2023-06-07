@@ -50,7 +50,7 @@ export default class Stats extends IronfishCommand {
     await this.sdk.client.connect()
 
     // metric loops, must await last loop
-    await this.chainDBSize(api, flags.delay)
+    void this.chainDBSize(api, flags.delay)
     void this.forks(api, flags.delay)
     await this.feeRates(api, flags.delay)
   }
@@ -159,9 +159,9 @@ export default class Stats extends IronfishCommand {
         continue
       }
 
-      const response = await this.sdk.client.chain.getChainInfo()
+      const response = await this.sdk.client.node.getStatus()
 
-      if (!response.content.chainDBSizeBytes) {
+      if (!response.content.blockchain.dbSizeBytes) {
         this.log(`chain DB size unexpected response`)
       } else {
         await api.submitTelemetry({
@@ -173,7 +173,7 @@ export default class Stats extends IronfishCommand {
                 {
                   name: `chain_db_size_bytes`,
                   type: 'integer',
-                  value: Number(response.content.chainDBSizeBytes),
+                  value: Number(response.content.blockchain.dbSizeBytes),
                 },
               ],
               tags: [{ name: 'version', value: IronfishCliPKG.version }],
