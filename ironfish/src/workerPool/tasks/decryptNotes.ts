@@ -35,7 +35,6 @@ export class DecryptNotesRequest extends WorkerMessage {
   }
 
   serializePayload(bw: bufio.StaticWriter | bufio.BufferWriter): void {
-    bw.writeU8(this.payloads.length)
     for (const payload of this.payloads) {
       let flags = 0
       flags |= Number(!!payload.currentNoteIndex) << 0
@@ -57,8 +56,7 @@ export class DecryptNotesRequest extends WorkerMessage {
     const reader = bufio.read(buffer, true)
     const payloads = []
 
-    const length = reader.readU8()
-    for (let i = 0; i < length; i++) {
+    while (reader.left() > 0) {
       const flags = reader.readU8()
       const hasCurrentNoteIndex = flags & (1 << 0)
       const decryptForSpender = Boolean(flags & (1 << 1))
@@ -82,7 +80,7 @@ export class DecryptNotesRequest extends WorkerMessage {
   }
 
   getSize(): number {
-    let size = 1
+    let size = 0
     for (const payload of this.payloads) {
       size += 1
       size += ENCRYPTED_NOTE_LENGTH
@@ -106,7 +104,6 @@ export class DecryptNotesResponse extends WorkerMessage {
   }
 
   serializePayload(bw: bufio.StaticWriter | bufio.BufferWriter): void {
-    bw.writeU8(this.notes.length)
     for (const note of this.notes) {
       const hasDecryptedNote = Number(!!note)
       bw.writeU8(hasDecryptedNote)
@@ -135,8 +132,7 @@ export class DecryptNotesResponse extends WorkerMessage {
     const reader = bufio.read(buffer)
     const notes = []
 
-    const length = reader.readU8()
-    for (let i = 0; i < length; i++) {
+    while (reader.left() > 0) {
       const hasDecryptedNote = reader.readU8()
       if (!hasDecryptedNote) {
         notes.push(null)
@@ -173,7 +169,7 @@ export class DecryptNotesResponse extends WorkerMessage {
   }
 
   getSize(): number {
-    let size = 1
+    let size = 0
 
     for (const note of this.notes) {
       size += 1

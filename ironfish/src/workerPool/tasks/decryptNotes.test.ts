@@ -33,6 +33,25 @@ describe('DecryptNotesRequest', () => {
     const deserializedRequest = DecryptNotesRequest.deserializePayload(request.jobId, buffer)
     expect(deserializedRequest).toEqual(request)
   })
+
+  it('serializes over 255 notes', () => {
+    const length = 600
+
+    const request = new DecryptNotesRequest(
+      Array.from({ length }, () => ({
+        serializedNote: Buffer.alloc(ENCRYPTED_NOTE_LENGTH, 1),
+        incomingViewKey: Buffer.alloc(ACCOUNT_KEY_LENGTH, 1).toString('hex'),
+        outgoingViewKey: Buffer.alloc(ACCOUNT_KEY_LENGTH, 1).toString('hex'),
+        viewKey: Buffer.alloc(VIEW_KEY_LENGTH, 1).toString('hex'),
+        currentNoteIndex: 2,
+        decryptForSpender: true,
+      })),
+      0,
+    )
+    const buffer = serializePayloadToBuffer(request)
+    const deserializedRequest = DecryptNotesRequest.deserializePayload(request.jobId, buffer)
+    expect(deserializedRequest.payloads).toHaveLength(length)
+  })
 })
 
 describe('DecryptNotesResponse', () => {
@@ -53,6 +72,24 @@ describe('DecryptNotesResponse', () => {
     const buffer = serializePayloadToBuffer(response)
     const deserializedResponse = DecryptNotesResponse.deserializePayload(response.jobId, buffer)
     expect(deserializedResponse).toEqual(response)
+  })
+
+  it('serializes over 255 notes', () => {
+    const length = 600
+
+    const request = new DecryptNotesResponse(
+      Array.from({ length }, () => ({
+        forSpender: false,
+        index: 1,
+        hash: Buffer.alloc(32, 1),
+        nullifier: Buffer.alloc(32, 1),
+        serializedNote: Buffer.alloc(DECRYPTED_NOTE_LENGTH, 1),
+      })),
+      0,
+    )
+    const buffer = serializePayloadToBuffer(request)
+    const deserializedResponse = DecryptNotesResponse.deserializePayload(request.jobId, buffer)
+    expect(deserializedResponse.notes).toHaveLength(length)
   })
 })
 
