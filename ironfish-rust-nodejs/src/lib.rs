@@ -10,17 +10,20 @@ use std::time::Duration;
 use std::time::Instant;
 
 use ironfish::keys::Language;
+use ironfish::transaction::batch_verify_transactions;
 use ironfish::IncomingViewKey;
 use ironfish::MerkleNote;
 use ironfish::OutgoingViewKey;
 use ironfish::PublicAddress;
 use ironfish::SaplingKey;
+use ironfish::Transaction;
 use ironfish::ViewKey;
 use napi::bindgen_prelude::*;
 use napi::threadsafe_function::ErrorStrategy;
 use napi::threadsafe_function::ThreadSafeCallContext;
 use napi::threadsafe_function::ThreadsafeFunction;
 use napi::threadsafe_function::ThreadsafeFunctionCallMode;
+use napi::JsBuffer;
 use napi::JsNumber;
 use napi_derive::napi;
 
@@ -338,7 +341,40 @@ impl NativeWorkerPool {
             let dur = start.elapsed();
             println!("\nActual Logic (RS): {}\n", dur.as_micros());
 
+            // TODO: Figure out which to use, NonBlocking or Blocking
             tscb.call(Ok(decrypted_notes), ThreadsafeFunctionCallMode::Blocking);
+        });
+
+        Ok(())
+    }
+
+    #[napi]
+    pub fn verify_transactions(
+        &self,
+        callback: JsFunction,
+        // TODO: Does buffer still leak in this way? JsBuffer isn't Send, so figure this out if so.
+        serialized_transactions: Vec<Buffer>,
+    ) -> napi::Result<()> {
+        let tscb: ThreadsafeFunction<bool, ErrorStrategy::CalleeHandled> =
+            callback.create_threadsafe_function(0, |ctx| Ok(vec![ctx.value]))?;
+
+        self.pool.spawn(move || {
+            let mut transactions: Vec<Transaction> = vec![];
+
+            for tx_bytes in serialized_transactions {
+                // let buf = tx_bytes.into_value().unwrap(); // TODO:
+                // match Transaction::read(buf.as_ref()) {
+                match Transaction::read(tx_bytes.as_ref()) {
+                    Ok(tx) => transactions.push(tx),
+                    Err(_) => {
+                        tscb.call(Ok(false), ThreadsafeFunctionCallMode::Blocking);
+                        return;
+                    }
+                }
+            }
+
+            let batch_result = batch_verify_transactions(transactions.iter()).is_ok();
+            tscb.call(Ok(batch_result), ThreadsafeFunctionCallMode::Blocking);
         });
 
         Ok(())

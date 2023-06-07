@@ -10,6 +10,7 @@ import {
   NativeWorkerPool,
 } from '@ironfish/rust-nodejs'
 import { Assert } from '../../assert'
+import { Transaction } from '../../primitives'
 import { createNodeTest, useAccountFixture, useBlockWithTxs } from '../../testUtilities'
 import { BenchUtils, CurrencyUtils, PromiseUtils, SegmentResults } from '../../utils'
 import { Account } from '../../wallet'
@@ -51,14 +52,21 @@ class RustPool {
   ): Promise<Array<DecryptedNote | null>> {
     return this.wrapRustWorkerpoolFn(this.nativeWorkerPool.decryptNotes, encrypted_notes)
   }
+
+  verifyTransactions(transactions: Array<Transaction>): Promise<boolean> {
+    const txs = transactions.map((t) => t.serialize())
+    return this.wrapRustWorkerpoolFn(this.nativeWorkerPool.verifyTransactions, txs)
+  }
 }
 
 // TODO: Split into a different file
 describe('Foo', () => {
   const nodeTest1 = createNodeTest()
 
-  // Number of notes for decrypt job is 2x this number
-  const txCount = 10
+  // Number of notes available for decrypt job is 2x this number
+  const txCount = 50
+  const notesToDecrypt = 100 // "real" code uses 20
+  const transactionsToVerify = 50 // "real" code uses 10
 
   // let account: Account
 
@@ -147,12 +155,23 @@ describe('Foo', () => {
 
     const start1 = process.hrtime.bigint()
     console.log('Start - ts decrypt:', start1)
+    payload.notes = payload.notes.slice(0, notesToDecrypt)
     const job1 = tsPool.decryptNotes(payload)
     console.log('Kickoff Duration:', (process.hrtime.bigint() - start1) / 1000n, 'microseconds')
 
     const r1 = await job1
     console.log('Final duration:', (process.hrtime.bigint() - start1) / 1000n, 'micoroseconds')
     console.log('Result: ', r1.length)
+
+    const start2 = process.hrtime.bigint()
+    console.log('Start - ts verify:', start2)
+    // const job2 = tsPool.verifyTransactions(transactions.slice(0, 10))
+    const job2 = tsPool.verifyTransactions(transactions.slice(0, transactionsToVerify))
+    console.log('Kickoff Duration:', (process.hrtime.bigint() - start2) / 1000n, 'microseconds')
+
+    const r2 = await job2
+    console.log('Final duration:', (process.hrtime.bigint() - start2) / 1000n, 'micoroseconds')
+    console.log('Result: ', r2)
 
     await tsPool.stop()
 
@@ -199,12 +218,22 @@ describe('Foo', () => {
 
     const start1 = process.hrtime.bigint()
     console.log('Start - rs decrypt:', start1)
-    const job1 = rsPool.decryptNotes(payload)
+    const job1 = rsPool.decryptNotes(payload.slice(0, notesToDecrypt))
     console.log('Kickoff Duration:', (process.hrtime.bigint() - start1) / 1000n, 'microseconds')
 
     const r1 = await job1
     console.log('Final duration:', (process.hrtime.bigint() - start1) / 1000n, 'micoroseconds')
     console.log('Result: ', r1.length)
+
+    const start2 = process.hrtime.bigint()
+    console.log('Start - rs verify:', start2)
+    // const job2 = rsPool.verifyTransactions(transactions.slice(0, 10))
+    const job2 = rsPool.verifyTransactions(transactions.slice(0, transactionsToVerify))
+    console.log('Kickoff Duration:', (process.hrtime.bigint() - start2) / 1000n, 'microseconds')
+
+    const r2 = await job2
+    console.log('Final duration:', (process.hrtime.bigint() - start2) / 1000n, 'micoroseconds')
+    console.log('Result: ', r2)
 
     expect(true).toEqual(true)
   })

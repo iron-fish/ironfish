@@ -257,4 +257,5 @@ export class NativeWorkerPool {
   constructor(size: number)
   sleep(callback: (...args: any[]) => any, ms: number): void
   decryptNotes(callback: (...args: any[]) => any, encryptedNotes: Array<NativeDecryptNoteOptions>): void
+  verifyTransactions(callback: (...args: any[]) => any, serializedTransactions: Array<Buffer>): void
 }
