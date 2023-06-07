@@ -1,0 +1,15 @@
+{
+  "Route wallet/rename rename existing account": [
+    {
+      "version": 2,
+      "id": "b7531b48-ac9e-40db-9b95-74d0088d9fd6",
+      "name": "existingAccount",
+      "spendingKey": "c83d17e5a78407fa51136636211f2871ca28b70b0481ecb9db24ae171f6f751b",
+      "viewKey": "9c28e7ebb1ddf4203d8765186b5f55d1c72470d3fdfaab1212bce30bfad9d10c8193d0ec835095d6c6e80bfc3bc670940ecce4d6e463e5482097db3a07d92459",
+      "incomingViewKey": "4b2548afe4369f0d88dd358cf491efd7a8e918c5f795944fe3ad30492bab5703",
+      "outgoingViewKey": "76fa2c35107a241b04d1986cce47bc3b56ba228558e6ee58af5d6fe7c1ec02b0",
+      "publicAddress": "3b9568789efceb08e8d977cb7b6ad7cbde509539e59d81df284d936eaa069d82",
+      "createdAt": null
+    }
+  ]
+}

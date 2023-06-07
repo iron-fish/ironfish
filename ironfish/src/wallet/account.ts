@@ -84,6 +84,12 @@ export class Account {
     }
   }
 
+  async setName(name: string, tx?: IDatabaseTransaction): Promise<void> {
+    this.name = name
+
+    await this.walletDb.setAccount(this, tx)
+  }
+
   async *getNotes(
     keyRange?: DatabaseKeyRange,
   ): AsyncGenerator<DecryptedNoteValue & { hash: Buffer }> {
