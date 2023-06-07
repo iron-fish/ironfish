@@ -197,7 +197,7 @@ pub struct NativeDecryptNoteOptions {
     pub decrypt_for_spender: bool,
 }
 
-#[napi(object)]
+#[napi(object, js_name = "NativeDecryptedNote")]
 pub struct DecryptedNote {
     pub index: Option<u32>,
     pub for_spender: bool,
@@ -252,7 +252,7 @@ impl NativeWorkerPool {
             callback.create_threadsafe_function(0, |ctx| Ok(vec![ctx.value]))?;
 
         self.pool.spawn(move || {
-            let start = Instant::now();
+            // let start = Instant::now();
 
             let mut decrypted_notes: Vec<Option<DecryptedNote>> =
                 Vec::with_capacity(encrypted_notes.len());
@@ -338,8 +338,8 @@ impl NativeWorkerPool {
                 decrypted_notes.push(None);
             }
 
-            let dur = start.elapsed();
-            println!("\nActual Logic (RS): {}\n", dur.as_micros());
+            // let dur = start.elapsed();
+            // println!("\nActual Logic (RS): {}\n", dur.as_micros());
 
             // TODO: Figure out which to use, NonBlocking or Blocking
             tscb.call(Ok(decrypted_notes), ThreadsafeFunctionCallMode::Blocking);

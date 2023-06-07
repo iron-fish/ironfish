@@ -5,7 +5,7 @@
 /* eslint-disable no-console */
 
 import {
-  DecryptedNote,
+  NativeDecryptedNote,
   NativeDecryptNoteOptions,
   NativeWorkerPool,
 } from '@ironfish/rust-nodejs'
@@ -49,7 +49,7 @@ class RustPool {
 
   decryptNotes(
     encrypted_notes: Array<NativeDecryptNoteOptions>,
-  ): Promise<Array<DecryptedNote | null>> {
+  ): Promise<Array<NativeDecryptedNote | null>> {
     return this.wrapRustWorkerpoolFn(this.nativeWorkerPool.decryptNotes, encrypted_notes)
   }
 

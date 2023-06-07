@@ -2,6 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import {
+  NativeDecryptedNote,
+  NativeDecryptNoteOptions,
+  NativeWorkerPool,
+} from '@ironfish/rust-nodejs'
 import _ from 'lodash'
 import { VerificationResult, VerificationResultReason } from '../consensus'
 import { createRootLogger, Logger } from '../logger'
@@ -50,6 +55,8 @@ export class WorkerPool {
   change: Meter | null
   speed: Meter | null
 
+  nativeWorkerPool: NativeWorkerPool
+
   readonly stats = new Map<WorkerMessageType, WorkerMessageStats>([
     [WorkerMessageType.CreateMinersFee, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.DecryptNotes, { complete: 0, error: 0, queue: 0, execute: 0 }],
@@ -90,6 +97,9 @@ export class WorkerPool {
     this.change = options?.metrics?.addMeter() ?? null
     this.speed = options?.metrics?.addMeter() ?? null
     this.logger = options?.logger ?? createRootLogger()
+
+    console.log('Num workers', this.numWorkers)
+    this.nativeWorkerPool = new NativeWorkerPool(this.numWorkers)
   }
 
   start(): void {
@@ -196,6 +206,22 @@ export class WorkerPool {
 
     return response.notes
   }
+
+  // async decryptNotes2(
+  //   payloads: DecryptNoteOptions[],
+  // ): Promise<Array<NativeDecryptedNote | null>> {
+  //   const p = payloads as NativeDecryptNoteOptions[]
+  //   return new Promise((resolve, reject) => {
+  //     const cb = (error: Error | null, result: Array<NativeDecryptedNote>) => {
+  //       if (error !== null) {
+  //         reject(error)
+  //       } else {
+  //         resolve(result)
+  //       }
+  //     }
+  //     this.nativeWorkerPool.decryptNotes(cb, p)
+  //   })
+  // }
 
   /**
    * A test worker task that sleeps for specified milliseconds

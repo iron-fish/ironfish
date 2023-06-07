@@ -386,8 +386,10 @@ export class Wallet {
   ): Promise<Array<DecryptedNote>> {
     const decryptedNotes = []
     const response = await this.workerPool.decryptNotes(decryptNotesPayloads)
+    // const response = await this.workerPool.decryptNotes2(decryptNotesPayloads)
     for (const decryptedNote of response) {
       decryptedNotes.push(decryptedNote)
+      // decryptedNotes.push(decryptedNote as DecryptedNote)
     }
 
     return decryptedNotes

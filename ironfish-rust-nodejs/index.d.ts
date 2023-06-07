@@ -81,7 +81,7 @@ export interface NativeDecryptNoteOptions {
   currentNoteIndex?: number
   decryptForSpender: boolean
 }
-export interface DecryptedNote {
+export interface NativeDecryptedNote {
   index?: number
   forSpender: boolean
   hash: Buffer
