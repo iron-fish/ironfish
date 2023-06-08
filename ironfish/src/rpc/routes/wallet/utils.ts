@@ -77,7 +77,7 @@ export async function getTransactionNotes(
   transaction: TransactionValue,
 ): Promise<Array<DecryptedNoteValue>> {
   const notes = []
-  const decryptNotesPayloads = []
+  const notesToDecrypt = []
 
   let accountHasSpend = false
   for (const spend of transaction.transaction.spends) {
@@ -97,18 +97,20 @@ export async function getTransactionNotes(
       continue
     }
 
-    decryptNotesPayloads.push({
+    notesToDecrypt.push({
       serializedNote: note.serialize(),
-      incomingViewKey: account.incomingViewKey,
-      outgoingViewKey: account.outgoingViewKey,
-      viewKey: account.viewKey,
       currentNoteIndex: null,
-      decryptForSpender: true,
     })
   }
 
-  if (accountHasSpend && decryptNotesPayloads.length > 0) {
-    const decryptedSends = await node.workerPool.decryptNotes(decryptNotesPayloads)
+  if (accountHasSpend && notesToDecrypt.length > 0) {
+    const decryptedSends = await node.workerPool.decryptNotes({
+      incomingViewKey: account.incomingViewKey,
+      outgoingViewKey: account.outgoingViewKey,
+      viewKey: account.viewKey,
+      decryptForSpender: true,
+      notes: notesToDecrypt,
+    })
 
     for (const note of decryptedSends) {
       if (note === null) {

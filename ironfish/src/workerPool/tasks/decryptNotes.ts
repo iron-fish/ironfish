@@ -10,12 +10,14 @@ import { WorkerMessage, WorkerMessageType } from './workerMessage'
 import { WorkerTask } from './workerTask'
 
 export interface DecryptNoteOptions {
-  serializedNote: Buffer
   incomingViewKey: string
   outgoingViewKey: string
   viewKey: string
-  currentNoteIndex: number | null
   decryptForSpender: boolean
+  notes: Array<{
+    serializedNote: Buffer
+    currentNoteIndex: number | null
+  }>
 }
 
 export interface DecryptedNote {
@@ -27,70 +29,78 @@ export interface DecryptedNote {
 }
 
 export class DecryptNotesRequest extends WorkerMessage {
-  readonly payloads: Array<DecryptNoteOptions>
+  readonly payload: DecryptNoteOptions
 
-  constructor(payloads: Array<DecryptNoteOptions>, jobId?: number) {
+  constructor(payload: DecryptNoteOptions, jobId?: number) {
     super(WorkerMessageType.DecryptNotes, jobId)
-    this.payloads = payloads
+    this.payload = payload
   }
 
   serializePayload(bw: bufio.StaticWriter | bufio.BufferWriter): void {
-    for (const payload of this.payloads) {
-      let flags = 0
-      flags |= Number(!!payload.currentNoteIndex) << 0
-      flags |= Number(payload.decryptForSpender) << 1
-      bw.writeU8(flags)
+    bw.writeBytes(Buffer.from(this.payload.incomingViewKey, 'hex'))
+    bw.writeBytes(Buffer.from(this.payload.outgoingViewKey, 'hex'))
+    bw.writeBytes(Buffer.from(this.payload.viewKey, 'hex'))
+    bw.writeU8(Number(this.payload.decryptForSpender))
 
-      bw.writeBytes(payload.serializedNote)
-      bw.writeBytes(Buffer.from(payload.incomingViewKey, 'hex'))
-      bw.writeBytes(Buffer.from(payload.outgoingViewKey, 'hex'))
-      bw.writeBytes(Buffer.from(payload.viewKey, 'hex'))
+    // TODO: Try different loops too.
+    for (const note of this.payload.notes) {
+      bw.writeBytes(note.serializedNote)
 
-      if (payload.currentNoteIndex) {
-        bw.writeU32(payload.currentNoteIndex)
+      if (note.currentNoteIndex) {
+        bw.writeU8(Number(true))
+        bw.writeU32(note.currentNoteIndex)
+      } else {
+        bw.writeU8(Number(false))
       }
     }
   }
 
   static deserializePayload(jobId: number, buffer: Buffer): DecryptNotesRequest {
     const reader = bufio.read(buffer, true)
-    const payloads = []
+
+    const incomingViewKey = reader.readBytes(ACCOUNT_KEY_LENGTH).toString('hex')
+    const outgoingViewKey = reader.readBytes(ACCOUNT_KEY_LENGTH).toString('hex')
+    const viewKey = reader.readBytes(VIEW_KEY_LENGTH).toString('hex')
+    const decryptForSpender = Boolean(reader.readU8())
+
+    const notes = []
 
     while (reader.left() > 0) {
-      const flags = reader.readU8()
-      const hasCurrentNoteIndex = flags & (1 << 0)
-      const decryptForSpender = Boolean(flags & (1 << 1))
       const serializedNote = reader.readBytes(ENCRYPTED_NOTE_LENGTH)
-      const incomingViewKey = reader.readBytes(ACCOUNT_KEY_LENGTH).toString('hex')
-      const outgoingViewKey = reader.readBytes(ACCOUNT_KEY_LENGTH).toString('hex')
-      const viewKey = reader.readBytes(VIEW_KEY_LENGTH).toString('hex')
+      const hasCurrentNoteIndex = Boolean(reader.readU8())
       const currentNoteIndex = hasCurrentNoteIndex ? reader.readU32() : null
 
-      payloads.push({
+      notes.push({
         serializedNote,
-        incomingViewKey,
-        outgoingViewKey,
         currentNoteIndex,
-        decryptForSpender,
-        viewKey,
       })
     }
 
-    return new DecryptNotesRequest(payloads, jobId)
+    const payload = {
+      incomingViewKey,
+      outgoingViewKey,
+      viewKey,
+      decryptForSpender,
+      notes,
+    }
+
+    return new DecryptNotesRequest(payload, jobId)
   }
 
   getSize(): number {
     let size = 0
-    for (const payload of this.payloads) {
-      size += 1
+    size += ACCOUNT_KEY_LENGTH // incoming view key
+    size += ACCOUNT_KEY_LENGTH // outgoing view key
+    size += VIEW_KEY_LENGTH
+    size += 1 // decrypt for spender
+    for (const note of this.payload.notes) {
       size += ENCRYPTED_NOTE_LENGTH
-      size += ACCOUNT_KEY_LENGTH
-      size += ACCOUNT_KEY_LENGTH
-      size += VIEW_KEY_LENGTH
-      if (payload.currentNoteIndex) {
+      size += 1 // has current note index
+      if (note.currentNoteIndex) {
         size += 4
       }
     }
+
     return size
   }
 }
@@ -186,17 +196,16 @@ export class DecryptNotesTask extends WorkerTask {
     return DecryptNotesTask.instance
   }
 
-  execute({ payloads, jobId }: DecryptNotesRequest): DecryptNotesResponse {
+  execute({ payload, jobId }: DecryptNotesRequest): DecryptNotesResponse {
+    const incomingViewKey = payload.incomingViewKey
+    const outgoingViewKey = payload.outgoingViewKey
+    const viewKey = payload.viewKey
+    const decryptForSpender = payload.decryptForSpender
+
     const decryptedNotes = []
 
-    for (const {
-      serializedNote,
-      incomingViewKey,
-      outgoingViewKey,
-      viewKey,
-      currentNoteIndex,
-      decryptForSpender,
-    } of payloads) {
+    // TODO: Try other loops
+    for (const { serializedNote, currentNoteIndex } of payload.notes) {
       const note = new NoteEncrypted(serializedNote)
 
       // Try decrypting the note as the owner

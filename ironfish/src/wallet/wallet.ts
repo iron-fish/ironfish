@@ -336,34 +336,40 @@ export class Wallet {
     const batchSize = 20
     for (const account of accountsToCheck) {
       const decryptedNotes = []
-      let decryptNotesPayloads = []
+      let notesToDecrypt = []
       let currentNoteIndex = initialNoteIndex
 
       for (const note of transaction.notes) {
-        decryptNotesPayloads.push({
+        notesToDecrypt.push({
           serializedNote: note.serialize(),
-          incomingViewKey: account.incomingViewKey,
-          outgoingViewKey: account.outgoingViewKey,
-          viewKey: account.viewKey,
           currentNoteIndex,
-          decryptForSpender,
         })
 
         if (currentNoteIndex) {
           currentNoteIndex++
         }
 
-        if (decryptNotesPayloads.length >= batchSize) {
-          const decryptedNotesBatch = await this.decryptNotesFromTransaction(
-            decryptNotesPayloads,
-          )
+        if (notesToDecrypt.length >= batchSize) {
+          const decryptedNotesBatch = await this.decryptNotesFromTransaction({
+            incomingViewKey: account.incomingViewKey,
+            outgoingViewKey: account.outgoingViewKey,
+            viewKey: account.viewKey,
+            decryptForSpender,
+            notes: notesToDecrypt,
+          })
           decryptedNotes.push(...decryptedNotesBatch)
-          decryptNotesPayloads = []
+          notesToDecrypt = []
         }
       }
 
-      if (decryptNotesPayloads.length) {
-        const decryptedNotesBatch = await this.decryptNotesFromTransaction(decryptNotesPayloads)
+      if (notesToDecrypt.length) {
+        const decryptedNotesBatch = await this.decryptNotesFromTransaction({
+          incomingViewKey: account.incomingViewKey,
+          outgoingViewKey: account.outgoingViewKey,
+          viewKey: account.viewKey,
+          decryptForSpender,
+          notes: notesToDecrypt,
+        })
         decryptedNotes.push(...decryptedNotesBatch)
       }
 
@@ -376,7 +382,7 @@ export class Wallet {
   }
 
   async decryptNotesFromTransaction(
-    decryptNotesPayloads: Array<DecryptNoteOptions>,
+    decryptNotesPayloads: DecryptNoteOptions,
   ): Promise<Array<DecryptedNote>> {
     const decryptedNotes = []
     const response = await this.workerPool.decryptNotes(decryptNotesPayloads)

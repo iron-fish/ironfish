@@ -186,8 +186,8 @@ export class WorkerPool {
       : { valid: false, reason: VerificationResultReason.ERROR }
   }
 
-  async decryptNotes(payloads: DecryptNoteOptions[]): Promise<Array<DecryptedNote>> {
-    const request = new DecryptNotesRequest(payloads)
+  async decryptNotes(payload: DecryptNoteOptions): Promise<Array<DecryptedNote>> {
+    const request = new DecryptNotesRequest(payload)
 
     const response = await this.execute(request).result()
     if (!(response instanceof DecryptNotesResponse)) {
