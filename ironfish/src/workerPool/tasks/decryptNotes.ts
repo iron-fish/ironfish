@@ -5,6 +5,7 @@ import {
   DECRYPTED_NOTE_LENGTH,
   ENCRYPTED_NOTE_LENGTH,
   NativeIncomingViewKey,
+  NativeOutgoingViewKey,
   NativeViewKey,
 } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
@@ -218,6 +219,15 @@ export class DecryptNotesTask extends WorkerTask {
       return viewKey
     }
 
+    let outgoingViewKey: NativeOutgoingViewKey | null = null
+    const getOutgoingViewKey = () => {
+      if (outgoingViewKey == null) {
+        outgoingViewKey = new NativeOutgoingViewKey(outgoingViewKeyHex)
+      }
+
+      return outgoingViewKey
+    }
+
     const decryptedNotes = []
 
     // TODO: Try other loops
@@ -242,7 +252,7 @@ export class DecryptNotesTask extends WorkerTask {
 
       if (decryptForSpender) {
         // Try decrypting the note as the spender
-        const spentNote = note.decryptNoteForSpender(outgoingViewKeyHex)
+        const spentNote = note.decryptNoteForSpenderKey(getOutgoingViewKey())
         if (spentNote && spentNote.value() !== 0n) {
           decryptedNotes.push({
             index: currentNoteIndex,

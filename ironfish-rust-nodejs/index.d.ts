@@ -127,6 +127,8 @@ export class NoteEncrypted {
   decryptNoteForOwnerKey(incomingViewKey: NativeIncomingViewKey): Buffer | null
   /** Returns undefined if the note was unable to be decrypted with the given key. */
   decryptNoteForSpender(outgoingHexKey: string): Buffer | null
+  /** Returns undefined if the note was unable to be decrypted with the given key. */
+  decryptNoteForSpenderKey(outgoingViewKey: NativeOutgoingViewKey): Buffer | null
 }
 export type NativeNote = Note
 export class Note {
