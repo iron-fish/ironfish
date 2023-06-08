@@ -27,7 +27,7 @@ function arrayMedian(values: number[], isSorted = false): number {
     return sorted[half]
   }
 
-  return sorted[half - 1] + values[half] / 2
+  return (sorted[half - 1] + values[half]) / 2
 }
 
 function arraySum(values: number[]): number {
