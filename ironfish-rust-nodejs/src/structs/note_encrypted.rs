@@ -16,6 +16,8 @@ use ironfish::MerkleNote;
 
 use crate::to_napi_err;
 
+use super::NativeIncomingViewKey;
+
 #[napi]
 pub const NOTE_ENCRYPTION_KEY_LENGTH: u32 = NOTE_ENCRYPTION_KEY_SIZE as u32;
 
@@ -99,6 +101,7 @@ impl NativeNoteEncrypted {
     }
 
     /// Returns undefined if the note was unable to be decrypted with the given key.
+    // TODO: This can become a wrapper for for the new fn
     #[napi]
     pub fn decrypt_note_for_owner(&self, incoming_hex_key: String) -> Result<Option<Buffer>> {
         let incoming_view_key =
@@ -112,6 +115,24 @@ impl NativeNoteEncrypted {
             }
             Err(_) => None,
         })
+    }
+
+    /// Returns undefined if the note was unable to be decrypted with the given key.
+    #[napi]
+    pub fn decrypt_note_for_owner_key(
+        &self,
+        incoming_view_key: &NativeIncomingViewKey,
+    ) -> Result<Option<Buffer>> {
+        Ok(
+            match self.note.decrypt_note_for_owner(&incoming_view_key.inner) {
+                Ok(note) => {
+                    let mut vec = vec![];
+                    note.write(&mut vec).map_err(to_napi_err)?;
+                    Some(Buffer::from(vec))
+                }
+                Err(_) => None,
+            },
+        )
     }
 
     /// Returns undefined if the note was unable to be decrypted with the given key.

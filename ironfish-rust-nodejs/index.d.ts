@@ -97,6 +97,15 @@ export class Asset {
   serialize(): Buffer
   static deserialize(jsBytes: Buffer): NativeAsset
 }
+export class NativeIncomingViewKey {
+  constructor(incomingHexKey: string)
+}
+export class NativeOutgoingViewKey {
+  constructor(outgoingHexKey: string)
+}
+export class NativeViewKey {
+  constructor(viewHexKey: string)
+}
 export type NativeNoteEncrypted = NoteEncrypted
 export class NoteEncrypted {
   constructor(jsBytes: Buffer)
@@ -114,6 +123,8 @@ export class NoteEncrypted {
   static combineHash(depth: number, jsLeft: Buffer, jsRight: Buffer): Buffer
   /** Returns undefined if the note was unable to be decrypted with the given key. */
   decryptNoteForOwner(incomingHexKey: string): Buffer | null
+  /** Returns undefined if the note was unable to be decrypted with the given key. */
+  decryptNoteForOwnerKey(incomingViewKey: NativeIncomingViewKey): Buffer | null
   /** Returns undefined if the note was unable to be decrypted with the given key. */
   decryptNoteForSpender(outgoingHexKey: string): Buffer | null
 }

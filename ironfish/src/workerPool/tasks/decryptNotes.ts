@@ -1,7 +1,11 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { DECRYPTED_NOTE_LENGTH, ENCRYPTED_NOTE_LENGTH } from '@ironfish/rust-nodejs'
+import {
+  DECRYPTED_NOTE_LENGTH,
+  ENCRYPTED_NOTE_LENGTH,
+  NativeIncomingViewKey,
+} from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { NoteEncrypted } from '../../primitives/noteEncrypted'
 import { ACCOUNT_KEY_LENGTH } from '../../wallet'
@@ -197,10 +201,12 @@ export class DecryptNotesTask extends WorkerTask {
   }
 
   execute({ payload, jobId }: DecryptNotesRequest): DecryptNotesResponse {
-    const incomingViewKey = payload.incomingViewKey
-    const outgoingViewKey = payload.outgoingViewKey
-    const viewKey = payload.viewKey
+    const incomingViewKeyHex = payload.incomingViewKey
+    const outgoingViewKeyHex = payload.outgoingViewKey
+    const viewKeyHex = payload.viewKey
     const decryptForSpender = payload.decryptForSpender
+
+    const incomingViewKey = new NativeIncomingViewKey(incomingViewKeyHex)
 
     const decryptedNotes = []
 
@@ -209,7 +215,7 @@ export class DecryptNotesTask extends WorkerTask {
       const note = new NoteEncrypted(serializedNote)
 
       // Try decrypting the note as the owner
-      const receivedNote = note.decryptNoteForOwner(incomingViewKey)
+      const receivedNote = note.decryptNoteForOwnerKey(incomingViewKey)
       if (receivedNote && receivedNote.value() !== 0n) {
         decryptedNotes.push({
           index: currentNoteIndex,
@@ -217,7 +223,7 @@ export class DecryptNotesTask extends WorkerTask {
           hash: note.hash(),
           nullifier:
             currentNoteIndex !== null
-              ? receivedNote.nullifier(viewKey, BigInt(currentNoteIndex))
+              ? receivedNote.nullifier(viewKeyHex, BigInt(currentNoteIndex))
               : null,
           serializedNote: receivedNote.serialize(),
         })
@@ -226,7 +232,7 @@ export class DecryptNotesTask extends WorkerTask {
 
       if (decryptForSpender) {
         // Try decrypting the note as the spender
-        const spentNote = note.decryptNoteForSpender(outgoingViewKey)
+        const spentNote = note.decryptNoteForSpender(outgoingViewKeyHex)
         if (spentNote && spentNote.value() !== 0n) {
           decryptedNotes.push({
             index: currentNoteIndex,
