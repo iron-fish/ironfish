@@ -5,6 +5,7 @@
 import {
   ENCRYPTED_NOTE_PLAINTEXT_LENGTH,
   NativeIncomingViewKey,
+  NativeOutgoingViewKey,
   NOTE_ENCRYPTION_KEY_LENGTH,
   NoteEncrypted as NativeNoteEncrypted,
 } from '@ironfish/rust-nodejs'
@@ -89,6 +90,14 @@ export class NoteEncrypted {
 
   decryptNoteForSpender(spenderHexKey: string): Note | undefined {
     const note = this.takeReference().decryptNoteForSpender(spenderHexKey)
+    this.returnReference()
+    if (note) {
+      return new Note(note)
+    }
+  }
+
+  decryptNoteForSpenderKey(outgoingViewKey: NativeOutgoingViewKey): Note | undefined {
+    const note = this.takeReference().decryptNoteForSpenderKey(outgoingViewKey)
     this.returnReference()
     if (note) {
       return new Note(note)
