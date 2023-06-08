@@ -161,6 +161,14 @@ export class Note {
    * 'nullifier set', preventing double-spend.
    */
   nullifier(ownerViewKey: string, position: bigint): Buffer
+  /**
+   * Compute the nullifier for this note, given the private key of its owner.
+   *
+   * The nullifier is a series of bytes that is published by the note owner
+   * only at the time the note is spent. This key is collected in a massive
+   * 'nullifier set', preventing double-spend.
+   */
+  nullifierWithKey(ownerViewKey: NativeViewKey, position: bigint): Buffer
 }
 export type NativeTransactionPosted = TransactionPosted
 export class TransactionPosted {

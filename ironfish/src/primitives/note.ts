@@ -5,6 +5,7 @@
 import {
   ASSET_ID_LENGTH,
   MEMO_LENGTH,
+  NativeViewKey,
   Note as NativeNote,
   PUBLIC_ADDRESS_LENGTH,
   RANDOMNESS_LENGTH,
@@ -99,6 +100,12 @@ export class Note {
 
   nullifier(ownerViewKey: string, position: bigint): Buffer {
     const buf = this.takeReference().nullifier(ownerViewKey, position)
+    this.returnReference()
+    return buf
+  }
+
+  nullifierWithKey(ownerViewKey: NativeViewKey, position: bigint): Buffer {
+    const buf = this.takeReference().nullifierWithKey(ownerViewKey, position)
     this.returnReference()
     return buf
   }

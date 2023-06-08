@@ -5,6 +5,7 @@ import {
   DECRYPTED_NOTE_LENGTH,
   ENCRYPTED_NOTE_LENGTH,
   NativeIncomingViewKey,
+  NativeViewKey,
 } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { NoteEncrypted } from '../../primitives/noteEncrypted'
@@ -208,6 +209,15 @@ export class DecryptNotesTask extends WorkerTask {
 
     const incomingViewKey = new NativeIncomingViewKey(incomingViewKeyHex)
 
+    // TODO: Try without the getter?
+    let viewKey: NativeViewKey | null = null
+    const getViewKey = () => {
+      if (viewKey == null) {
+        viewKey = new NativeViewKey(viewKeyHex)
+      }
+      return viewKey
+    }
+
     const decryptedNotes = []
 
     // TODO: Try other loops
@@ -223,7 +233,7 @@ export class DecryptNotesTask extends WorkerTask {
           hash: note.hash(),
           nullifier:
             currentNoteIndex !== null
-              ? receivedNote.nullifier(viewKeyHex, BigInt(currentNoteIndex))
+              ? receivedNote.nullifierWithKey(getViewKey(), BigInt(currentNoteIndex))
               : null,
           serializedNote: receivedNote.serialize(),
         })
