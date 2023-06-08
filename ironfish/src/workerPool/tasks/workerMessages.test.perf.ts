@@ -39,28 +39,28 @@ describe.only('DecryptNotes job', () => {
     const { block, transactions } = await useBlockWithTxs(nodeTest.node, TRANSACTIONS, account)
     await expect(nodeTest.chain).toAddBlock(block)
 
-    const payload1: DecryptNoteOptions[] = []
-    const payload2: DecryptNoteOptions[] = []
+    const payload1: DecryptNoteOptions = {
+      incomingViewKey: account.incomingViewKey,
+      outgoingViewKey: account.outgoingViewKey,
+      viewKey: account.viewKey,
+      decryptForSpender: true,
+      notes: [],
+    }
+    const payload2: DecryptNoteOptions = {
+      incomingViewKey: account2.incomingViewKey,
+      outgoingViewKey: account2.outgoingViewKey,
+      viewKey: account2.viewKey,
+      decryptForSpender: true,
+      notes: [],
+    }
+    const notesToDecrypt: DecryptNoteOptions['notes'] = []
     let i = 0
     for (const transaction of transactions) {
       for (const note of transaction.notes) {
-        payload1.push({
+        notesToDecrypt.push({
           serializedNote: note.serialize(),
-          incomingViewKey: account.incomingViewKey,
-          outgoingViewKey: account.outgoingViewKey,
-          viewKey: account.viewKey,
-          currentNoteIndex: i,
-          decryptForSpender: true,
+          currentNoteIndex: i++,
         })
-        payload2.push({
-          serializedNote: note.serialize(),
-          incomingViewKey: account2.incomingViewKey,
-          outgoingViewKey: account2.outgoingViewKey,
-          viewKey: account2.viewKey,
-          currentNoteIndex: i,
-          decryptForSpender: true,
-        })
-        i += 1
       }
     }
 
@@ -84,13 +84,14 @@ describe.only('DecryptNotes job', () => {
 
     for (const test of TESTS) {
       const payload = test.canDecryptAsOwner ? payload1 : payload2
-      payload.forEach((n) => (n.decryptForSpender = test.tryDecryptForSpender))
+      payload.decryptForSpender = test.tryDecryptForSpender
+      payload.notes = notesToDecrypt.slice(0, test.notes)
 
       const tsPool = new WorkerPool({ numWorkers: 1 })
       tsPool.start()
 
       const results = await BenchUtils.withSegmentIterations(10, 100, async () => {
-        const _x = await tsPool.decryptNotes(payload.slice(0, test.notes))
+        const _x = await tsPool.decryptNotes(payload)
       })
 
       const title = `[DecryptNotes: notes: ${
@@ -147,21 +148,23 @@ describe('WorkerMessages', () => {
     const { block, transactions } = await useBlockWithTxs(nodeTest.node, txCount, account)
     await expect(nodeTest.chain).toAddBlock(block)
 
-    const payload: DecryptNoteOptions[] = []
+    const payload: DecryptNoteOptions = {
+      incomingViewKey: account.incomingViewKey,
+      outgoingViewKey: account.outgoingViewKey,
+      viewKey: account.viewKey,
+      decryptForSpender: true,
+      notes: [],
+    }
     for (const transaction of transactions) {
       for (const note of transaction.notes) {
-        payload.push({
+        payload.notes.push({
           serializedNote: note.serialize(),
-          incomingViewKey: account.incomingViewKey,
-          outgoingViewKey: account.outgoingViewKey,
-          viewKey: account.viewKey,
           currentNoteIndex: 0,
-          decryptForSpender: true,
         })
       }
     }
 
-    expect(payload.length).toEqual(100)
+    expect(payload.notes.length).toEqual(100)
 
     const message = new DecryptNotesRequest(payload)
 
