@@ -28,15 +28,15 @@ crate-type = ["cdylib"]
 [dependencies]
 base64 = "0.13.0"
 ironfish = { path = "../ironfish-rust" }
-napi-derive = "=2.9.1"
+napi-derive = "=2.13.0"
 # Pinning this can be removed if we eventually move to the latest releases again
-napi-derive-backend = "=1.0.38"
+napi-derive-backend = "=1.0.52"
 ironfish_mpc = { path = "../ironfish-mpc" }
 
 rayon = "1"
 
 [dependencies.napi]
-version = "=2.9.1"
+version = "=2.13.1"
 features = ["napi6"]
 
 [build-dependencies]
