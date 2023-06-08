@@ -65,7 +65,6 @@ describe('DecryptNotesResponse', () => {
           nullifier: Buffer.alloc(32, 1),
           serializedNote: Buffer.alloc(DECRYPTED_NOTE_LENGTH, 1),
         },
-        null,
       ],
       0,
     )
@@ -176,7 +175,7 @@ describe('DecryptNotesTask', () => {
       ])
       const responseNoSpender = task.execute(requestNoSpender)
 
-      expect(responseNoSpender).toMatchObject({ notes: [null] })
+      expect(responseNoSpender).toMatchObject({ notes: [] })
     })
   })
 })

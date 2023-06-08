@@ -186,7 +186,7 @@ export class WorkerPool {
       : { valid: false, reason: VerificationResultReason.ERROR }
   }
 
-  async decryptNotes(payloads: DecryptNoteOptions[]): Promise<Array<DecryptedNote | null>> {
+  async decryptNotes(payloads: DecryptNoteOptions[]): Promise<Array<DecryptedNote>> {
     const request = new DecryptNotesRequest(payloads)
 
     const response = await this.execute(request).result()

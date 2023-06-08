@@ -96,34 +96,29 @@ export class DecryptNotesRequest extends WorkerMessage {
 }
 
 export class DecryptNotesResponse extends WorkerMessage {
-  readonly notes: Array<DecryptedNote | null>
+  readonly notes: Array<DecryptedNote>
 
-  constructor(notes: Array<DecryptedNote | null>, jobId: number) {
+  constructor(notes: Array<DecryptedNote>, jobId: number) {
     super(WorkerMessageType.DecryptNotes, jobId)
     this.notes = notes
   }
 
   serializePayload(bw: bufio.StaticWriter | bufio.BufferWriter): void {
     for (const note of this.notes) {
-      const hasDecryptedNote = Number(!!note)
-      bw.writeU8(hasDecryptedNote)
+      let flags = 0
+      flags |= Number(!!note.index) << 0
+      flags |= Number(!!note.nullifier) << 1
+      flags |= Number(note.forSpender) << 2
+      bw.writeU8(flags)
+      bw.writeHash(note.hash)
+      bw.writeBytes(note.serializedNote)
 
-      if (note) {
-        let flags = 0
-        flags |= Number(!!note.index) << 0
-        flags |= Number(!!note.nullifier) << 1
-        flags |= Number(note.forSpender) << 2
-        bw.writeU8(flags)
-        bw.writeHash(note.hash)
-        bw.writeBytes(note.serializedNote)
+      if (note.index) {
+        bw.writeU32(note.index)
+      }
 
-        if (note.index) {
-          bw.writeU32(note.index)
-        }
-
-        if (note.nullifier) {
-          bw.writeHash(note.nullifier)
-        }
+      if (note.nullifier) {
+        bw.writeHash(note.nullifier)
       }
     }
   }
@@ -133,12 +128,6 @@ export class DecryptNotesResponse extends WorkerMessage {
     const notes = []
 
     while (reader.left() > 0) {
-      const hasDecryptedNote = reader.readU8()
-      if (!hasDecryptedNote) {
-        notes.push(null)
-        continue
-      }
-
       const flags = reader.readU8()
       const hasIndex = flags & (1 << 0)
       const hasNullifier = flags & (1 << 1)
@@ -172,18 +161,14 @@ export class DecryptNotesResponse extends WorkerMessage {
     let size = 0
 
     for (const note of this.notes) {
-      size += 1
+      size += 1 + 32 + DECRYPTED_NOTE_LENGTH
 
-      if (note) {
-        size += 1 + 32 + DECRYPTED_NOTE_LENGTH
+      if (note.index) {
+        size += 4
+      }
 
-        if (note.index) {
-          size += 4
-        }
-
-        if (note.nullifier) {
-          size += 32
-        }
+      if (note.nullifier) {
+        size += 32
       }
     }
 
@@ -244,8 +229,6 @@ export class DecryptNotesTask extends WorkerTask {
           continue
         }
       }
-
-      decryptedNotes.push(null)
     }
 
     return new DecryptNotesResponse(decryptedNotes, jobId)

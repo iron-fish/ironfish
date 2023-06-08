@@ -381,9 +381,7 @@ export class Wallet {
     const decryptedNotes = []
     const response = await this.workerPool.decryptNotes(decryptNotesPayloads)
     for (const decryptedNote of response) {
-      if (decryptedNote) {
-        decryptedNotes.push(decryptedNote)
-      }
+      decryptedNotes.push(decryptedNote)
     }
 
     return decryptedNotes
