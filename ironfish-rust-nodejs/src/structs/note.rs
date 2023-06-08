@@ -16,6 +16,8 @@ use ironfish::keys::PUBLIC_ADDRESS_SIZE;
 
 use crate::to_napi_err;
 
+use super::NativeViewKey;
+
 #[napi]
 pub const PUBLIC_ADDRESS_LENGTH: u32 = PUBLIC_ADDRESS_SIZE as u32;
 
@@ -142,6 +144,24 @@ impl NativeNote {
         let view_key = ViewKey::from_hex(&owner_view_key).map_err(to_napi_err)?;
 
         let nullifier: &[u8] = &self.note.nullifier(&view_key, position_u64).0;
+
+        Ok(Buffer::from(nullifier))
+    }
+
+    /// Compute the nullifier for this note, given the private key of its owner.
+    ///
+    /// The nullifier is a series of bytes that is published by the note owner
+    /// only at the time the note is spent. This key is collected in a massive
+    /// 'nullifier set', preventing double-spend.
+    #[napi]
+    pub fn nullifier_with_key(
+        &self,
+        owner_view_key: &NativeViewKey,
+        position: BigInt,
+    ) -> Result<Buffer> {
+        let position_u64 = position.get_u64().1;
+
+        let nullifier: &[u8] = &self.note.nullifier(&owner_view_key.inner, position_u64).0;
 
         Ok(Buffer::from(nullifier))
     }
