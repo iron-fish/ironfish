@@ -38,6 +38,7 @@ export type GetNodeStatusResponse = {
     miners: number
     blocks: number
     blockGraffiti: string
+    newEmptyBlockTemplateSpeed: number
     newBlockTemplateSpeed: number
     newBlockTransactionsSpeed: number
   }
@@ -144,6 +145,7 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetNodeStatusResponse> = 
         miners: yup.number().defined(),
         blocks: yup.number().defined(),
         blockGraffiti: yup.string().defined(),
+        newEmptyBlockTemplateSpeed: yup.number().defined(),
         newBlockTemplateSpeed: yup.number().defined(),
         newBlockTransactionsSpeed: yup.number().defined(),
       })
@@ -314,6 +316,7 @@ function getStatus(node: IronfishNode): GetNodeStatusResponse {
       miners: node.miningManager.minersConnected,
       blocks: node.miningManager.blocksMined,
       blockGraffiti: node.config.get('blockGraffiti'),
+      newEmptyBlockTemplateSpeed: node.metrics.mining_newEmptyBlockTemplate.avg,
       newBlockTemplateSpeed: node.metrics.mining_newBlockTemplate.avg,
       newBlockTransactionsSpeed: node.metrics.mining_newBlockTransactions.avg,
     },

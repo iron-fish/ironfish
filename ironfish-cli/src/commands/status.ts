@@ -141,7 +141,9 @@ function renderStatus(content: GetNodeStatusResponse, debugOutput: boolean): str
       content.miningDirector.newBlockTransactionsSpeed,
     )}, block: ${TimeUtils.renderSpan(
       content.blockchain.newBlockSpeed,
-    )}, template: ${TimeUtils.renderSpan(content.miningDirector.newBlockTemplateSpeed)}`
+    )}, empty template: ${TimeUtils.renderSpan(
+      content.miningDirector.newEmptyBlockTemplateSpeed,
+    )}, full template: ${TimeUtils.renderSpan(content.miningDirector.newBlockTemplateSpeed)}`
   }
 
   const memPoolStorage = FileUtils.formatMemorySize(content.memPool.sizeBytes)
