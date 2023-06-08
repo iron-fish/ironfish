@@ -6,6 +6,8 @@ license = "MPL-2.0"
 description = "Node.js addon for interacting with transactions on the Iron Fish chain"
 keywords = ["iron-fish", "cryptocurrency", "blockchain"]
 
+publish = false
+
 [package.authors]
 workspace = true
 
