@@ -14,6 +14,22 @@ function arrayAverage(values: number[]): number {
   return total / values.length
 }
 
+function arrayMedian(values: number[], isSorted = false): number {
+  if (values.length === 0) {
+    return 0
+  }
+
+  // TODO(mat): We can use values.toSorted() when we set NodeJS min version to 20
+  const sorted = isSorted ? values : [...values].sort()
+
+  const half = Math.floor(sorted.length / 2)
+  if (sorted.length % 2) {
+    return sorted[half]
+  }
+
+  return sorted[half - 1] + values[half] / 2
+}
+
 function arraySum(values: number[]): number {
   if (values.length === 0) {
     return 0
@@ -56,4 +72,13 @@ function min<T extends number | bigint>(a: T, b: T): T {
   return a > b ? b : a
 }
 
-export const MathUtils = { arrayAverage, arraySum, round, roundBy, min, max, floor }
+export const MathUtils = {
+  arrayAverage,
+  arrayMedian,
+  arraySum,
+  round,
+  roundBy,
+  min,
+  max,
+  floor,
+}
