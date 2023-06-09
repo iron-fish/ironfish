@@ -144,9 +144,16 @@ jobs:
           json_suite_details: true
           json_test_case_results: true
       
-      - name: Test output
+      - name: Output test results
         uses: ./.github/json_output
         if: always()
         with:
           json: '${{ steps.test-results.outputs.json }}'
           json_file: 'tests.json'
+
+      - name: Archive test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: perf-test-report
+          path: tests.json
