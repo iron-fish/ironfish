@@ -50,8 +50,8 @@ export default class Stats extends IronfishCommand {
     await this.sdk.client.connect()
 
     // metric loops, must await last loop
-    void this.chainDBSize(api, flags.delay)
     void this.forks(api, flags.delay)
+    void this.chainDBSize(api, flags.delay)
     await this.feeRates(api, flags.delay)
   }
 
