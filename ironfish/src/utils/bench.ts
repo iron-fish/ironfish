@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { FileUtils } from './file'
+import { MathUtils } from './math'
 import { TimeUtils } from './time'
 
 export type SegmentResults = {
@@ -9,6 +10,21 @@ export type SegmentResults = {
   heap: number
   rss: number
   mem: number
+}
+
+type Aggregate = {
+  min: number
+  max: number
+  avg: number
+  median: number
+}
+
+export type SegmentAggregateResults = {
+  iterations: number
+  time: Aggregate
+  heap: Aggregate
+  rss: Aggregate
+  mem: Aggregate
 }
 
 type Segment = {
@@ -94,10 +110,88 @@ function renderSegment(segment: SegmentResults, title = 'Benchmark', delimiter =
   return rendered
 }
 
+function renderSegmentAggregate(
+  segmentAggregate: SegmentAggregateResults,
+  title = 'Benchmark',
+  delimiter = '\n',
+): string {
+  const result = []
+
+  const renderAggregate = (
+    name: string,
+    aggregate: Aggregate,
+    renderFn: (arg: number) => string,
+  ): string => {
+    return `${name}: min: ${renderFn(aggregate.min)}, avg: ${renderFn(
+      aggregate.avg,
+    )}, median: ${renderFn(aggregate.median)}, max ${renderFn(aggregate.max)}`
+  }
+
+  result.push(`Iterations: ${segmentAggregate.iterations}`)
+  result.push(renderAggregate('Time', segmentAggregate.time, TimeUtils.renderSpan))
+  result.push(renderAggregate('Heap', segmentAggregate.heap, FileUtils.formatMemorySize))
+  result.push(renderAggregate('Rss', segmentAggregate.rss, FileUtils.formatMemorySize))
+  result.push(renderAggregate('Mem', segmentAggregate.mem, FileUtils.formatMemorySize))
+
+  let rendered = result.join(delimiter)
+
+  if (title) {
+    rendered = `${title}` + delimiter + rendered
+  }
+
+  return rendered
+}
+
 async function withSegment(fn: () => Promise<void> | void): Promise<SegmentResults> {
   const segment = startSegment()
   await fn()
   return endSegment(segment)
+}
+
+async function withSegmentIterations(
+  warmupIterations: number,
+  testIterations: number,
+  fn: () => Promise<void> | void,
+): Promise<SegmentAggregateResults> {
+  for (let i = 0; i < warmupIterations; i++) {
+    await fn()
+  }
+
+  const results: Array<SegmentResults> = []
+  for (let i = 0; i < testIterations; i++) {
+    results.push(await withSegment(fn))
+  }
+
+  return aggregateResults(results)
+}
+
+function aggregateResults(results: SegmentResults[]): SegmentAggregateResults {
+  const assignResults = (key: Aggregate, sortedArray: number[]) => {
+    key.min = sortedArray[0]
+    key.max = sortedArray[time.length - 1]
+    key.avg = MathUtils.arrayAverage(sortedArray)
+    key.median = MathUtils.arrayMedian(sortedArray, true)
+  }
+
+  const aggregateResults: SegmentAggregateResults = {
+    iterations: results.length,
+    time: { min: 0, max: 0, avg: 0, median: 0 },
+    heap: { min: 0, max: 0, avg: 0, median: 0 },
+    rss: { min: 0, max: 0, avg: 0, median: 0 },
+    mem: { min: 0, max: 0, avg: 0, median: 0 },
+  }
+
+  const time = results.map((r) => r.time).sort()
+  const heap = results.map((r) => r.heap).sort()
+  const rss = results.map((r) => r.rss).sort()
+  const mem = results.map((r) => r.mem).sort()
+
+  assignResults(aggregateResults.time, time)
+  assignResults(aggregateResults.heap, heap)
+  assignResults(aggregateResults.rss, rss)
+  assignResults(aggregateResults.mem, mem)
+
+  return aggregateResults
 }
 
 export const BenchUtils = {
@@ -106,5 +200,7 @@ export const BenchUtils = {
   startSegment,
   endSegment,
   renderSegment,
+  renderSegmentAggregate,
   withSegment,
+  withSegmentIterations,
 }
