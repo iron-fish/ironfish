@@ -1,34 +1,26 @@
-FROM node:18.12.1-bullseye as build
+FROM node:18-bullseye as build
 ENV PATH="/root/.cargo/bin:${PATH}"
 
 RUN \
+    --mount=type=cache,target=/var/cache/apt \
     apt-get update && \
-    apt-get install jq rsync gcc cmake python -y
+    apt-get install jq rsync -y
 
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 
-WORKDIR ./app
+COPY ./ /usr/src/ironfish
 
-COPY ./ ./
+RUN /usr/src/ironfish/ironfish-cli/scripts/build.sh
 
-RUN ./ironfish-cli/scripts/build.sh
+FROM node:18-bullseye-slim
 
-FROM node:18.12.1-bullseye-slim
 EXPOSE 8020:8020
 EXPOSE 9033:9033
 VOLUME /root/.ironfish
 ENV NODE_ENV production
-ENV PATH="/usr/src/app/bin:${PATH}"
 
-RUN \
-    apt-get update && \
-    apt-get install curl libc6 -y
+COPY --from=build /usr/src/ironfish/ironfish-cli/build.cli/ironfish-cli /usr/share/ironfish
+COPY --from=build --chmod=755 /usr/src/ironfish/ironfish-cli/scripts/docker-entrypoint.sh /usr/bin/ironfish
 
-WORKDIR /usr/src
-COPY --from=build /app/ironfish-cli/build.cli/ironfish-cli ./app
-COPY --from=build /app/ironfish-cli/scripts/entrypoint.sh ./app/
-RUN chmod +x ./app/entrypoint.sh
-
-WORKDIR /usr/src/app
-ENTRYPOINT ["./entrypoint.sh"]
+ENTRYPOINT ["/usr/bin/ironfish"]
 CMD ["start", "--rpc.ipc", "--rpc.tcp"]

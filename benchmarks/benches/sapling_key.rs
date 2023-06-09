@@ -1,5 +1,5 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use ironfish_rust::SaplingKey;
+use ironfish::SaplingKey;
 
 pub fn generate_key(c: &mut Criterion) {
     c.bench_function("sapling_key::generate_key", |b| {

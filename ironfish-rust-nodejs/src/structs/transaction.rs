@@ -5,12 +5,12 @@
 use std::cell::RefCell;
 use std::convert::TryInto;
 
-use ironfish_rust::assets::asset_identifier::AssetIdentifier;
-use ironfish_rust::transaction::{
+use ironfish::assets::asset_identifier::AssetIdentifier;
+use ironfish::transaction::{
     batch_verify_transactions, TRANSACTION_EXPIRATION_SIZE, TRANSACTION_FEE_SIZE,
     TRANSACTION_PUBLIC_KEY_SIZE, TRANSACTION_SIGNATURE_SIZE,
 };
-use ironfish_rust::{
+use ironfish::{
     MerkleNoteHash, ProposedTransaction, PublicAddress, SaplingKey, Transaction,
     TRANSACTION_VERSION as TX_VERSION,
 };
@@ -26,7 +26,7 @@ use super::note::NativeNote;
 use super::spend_proof::NativeSpendDescription;
 use super::witness::JsWitness;
 use super::{NativeAsset, ENCRYPTED_NOTE_LENGTH};
-use ironfish_rust::transaction::outputs::PROOF_SIZE;
+use ironfish::transaction::outputs::PROOF_SIZE;
 
 #[napi(js_name = "TransactionPosted")]
 pub struct NativeTransactionPosted {

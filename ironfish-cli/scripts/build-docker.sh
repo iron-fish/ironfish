@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
-cd "$(dirname "$0")"
-cd ../..
+cd "$(dirname "$0")/../.."
+
+cat .gitignore - > .dockerignore <<EOF
+# do not send the .git directory to the Docker daemon to make builds faster
+.git
+EOF
 
 echo "Building Docker Image"
-cp .gitignore .dockerignore
+
+export DOCKER_BUILDKIT=1
 
 docker build . \
     --progress plain \

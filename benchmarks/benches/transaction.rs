@@ -1,6 +1,6 @@
 use benchmarks::{slow_config, very_slow_config};
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
-use ironfish_rust::{
+use ironfish::{
     assets::{asset::Asset, asset_identifier::NATIVE_ASSET},
     test_util::make_fake_witness,
     transaction::batch_verify_transactions,

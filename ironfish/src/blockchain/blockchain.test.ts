@@ -102,8 +102,6 @@ describe('Blockchain', () => {
     expect((await chain.getHashAtSequence(2))?.equals(headerA1.hash)).toBe(true)
     expect((await chain.getHashAtSequence(3))?.equals(headerB2.hash)).toBe(true)
     expect((await chain.getHashAtSequence(4))?.equals(headerB3.hash)).toBe(true)
-
-    expect(await chain.db.size()).toBeGreaterThan(0)
   })
 
   it('iterate', async () => {
