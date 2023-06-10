@@ -1,0 +1,32 @@
+name: Import perf test result
+
+on:
+  push:
+    branches:
+      - yajun/ifl-983-output-perf-test-output-to-a-file-in-a-format
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'Get artifact url'
+        uses: actions/github-script@v6
+        id: get-url
+        with:
+          result-encoding: string
+          script: |
+            let allArtifacts = await github.rest.actions.listWorkflowRunArtifacts({
+               owner: context.repo.owner,
+               repo: context.repo.repo,
+            });
+            let matchArtifact = allArtifacts.data.artifacts.filter((artifact) => {
+              return artifact.name == "perf-test-report"
+            })[0];
+            return matchArtifact.url
+
+      - name: Import test result to Flat Data
+        uses: githubocto/flat@v3
+        with:
+          http_url: '${{steps.get-url.outputs.result}}'
+          downloaded_filename: 'perf-test-report.zip'
+          postprocess: src/perfTest/postprocess.ts
