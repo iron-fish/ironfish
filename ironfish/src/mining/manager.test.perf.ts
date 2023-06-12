@@ -14,7 +14,7 @@ import {
 } from '../testUtilities'
 import { createRawTransaction } from '../testUtilities/helpers/transaction'
 import { BenchUtils } from '../utils'
-import { Account, AssertSpending } from '../wallet'
+import { Account, SpendingAccount } from '../wallet'
 
 type Results = { mempoolSize: number; numTransactions: number; elapsed: number }
 
@@ -83,7 +83,7 @@ describe('MiningManager', () => {
   }
 
   async function runTest(
-    account: Account,
+    account: SpendingAccount,
     blocks: Block[],
     transactions: Transaction[],
     mempoolSize: number,
@@ -104,8 +104,6 @@ describe('MiningManager', () => {
     }
 
     expect(node.memPool.count()).toEqual(mempoolSize)
-
-    AssertSpending(account)
 
     const start = BenchUtils.start()
     const blockTemplate = await node.miningManager.createNewBlockTemplate(

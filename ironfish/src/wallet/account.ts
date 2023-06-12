@@ -27,11 +27,12 @@ export const ACCOUNT_SCHEMA_VERSION = 2
 
 export type SpendingAccount = WithNonNull<Account, 'spendingKey'>
 
-export function AssertSpending(
-  account: Account,
-  message?: string,
-): asserts account is SpendingAccount {
-  Assert.isNotNull(account.spendingKey, message)
+export function isSpendingAccount(account: Account): account is SpendingAccount {
+  return account.spendingKey !== null
+}
+
+export function AssertSpending(account: Account): asserts account is SpendingAccount {
+  Assert.isNotNull(account.spendingKey)
 }
 
 export class Account {

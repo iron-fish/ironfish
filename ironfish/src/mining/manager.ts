@@ -23,7 +23,7 @@ import { BlockTemplateSerde, SerializedBlockTemplate } from '../serde'
 import { ErrorUtils } from '../utils'
 import { BenchUtils } from '../utils/bench'
 import { GraffitiUtils } from '../utils/graffiti'
-import { AssertSpending, SpendingAccount } from '../wallet'
+import { isSpendingAccount, SpendingAccount } from '../wallet'
 import { MinersFeeCache } from './minersFeeCache'
 
 export enum MINED_RESULT {
@@ -164,11 +164,10 @@ export class MiningManager {
       return
     }
 
-    if (account.spendingKey === null) {
+    if (!isSpendingAccount(account)) {
       this.node.logger.info('Account must have spending key in order to mine')
       return
     }
-    AssertSpending(account)
 
     // Kick off job to creating the next empty miners fee
     this.minersFeeCache.startCreatingEmptyMinersFee(currentBlock.header.sequence + 2, account)
