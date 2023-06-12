@@ -141,6 +141,11 @@ export class MiningManager {
   private onConnectedBlock(currentBlock: Block): void {
     const connectedAt = BenchUtils.start()
 
+    // If there are not listeners for new blocks, then return early
+    if (!this.templateStream) {
+      return
+    }
+
     // If we mine when we're not synced, then we will mine a fork no one cares about
     if (!this.node.chain.synced && !this.node.config.get('miningForce')) {
       return
@@ -151,13 +156,6 @@ export class MiningManager {
       return
     }
 
-    // If there are not listeners for new blocks, then return early
-    if (!this.templateStream) {
-      return
-    }
-
-    // TODO: Where should this check on account be? Do we want to re-query the default account on every connected block?
-    // Or do we want to set the account on node startup?
     const account = this.node.wallet.getDefaultAccount()
     if (!account) {
       this.node.logger.info('Cannot mine without an account')
@@ -294,8 +292,6 @@ export class MiningManager {
     )
 
     // Create the new block as a template for mining
-    // TODO: we should do an explicit check here that `currentBlock` === chain.head
-    // Currently `chain.newBlock` just fails if this is not the case but that could change in the future
     const newBlock = await this.chain.newBlock(
       blockTransactions,
       minersFee,
