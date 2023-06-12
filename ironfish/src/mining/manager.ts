@@ -23,7 +23,7 @@ import { BlockTemplateSerde, SerializedBlockTemplate } from '../serde'
 import { ErrorUtils } from '../utils'
 import { BenchUtils } from '../utils/bench'
 import { GraffitiUtils } from '../utils/graffiti'
-import { isSpendingAccount, SpendingAccount } from '../wallet'
+import { SpendingAccount } from '../wallet'
 import { MinersFeeCache } from './minersFeeCache'
 
 export enum MINED_RESULT {
@@ -162,7 +162,7 @@ export class MiningManager {
       return
     }
 
-    if (!isSpendingAccount(account)) {
+    if (!account.isSpendingAccount()) {
       this.node.logger.info('Account must have spending key in order to mine')
       return
     }
@@ -341,8 +341,6 @@ export class MiningManager {
     )
 
     // Create the new block as a template for mining
-    // TODO: we should do an explicit check here that `currentBlock` === chain.head
-    // Currently `chain.newBlock` just fails if this is not the case but that could change in the future
     const newBlock = await this.chain.newBlock(
       [],
       minersFee,

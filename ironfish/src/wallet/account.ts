@@ -27,12 +27,8 @@ export const ACCOUNT_SCHEMA_VERSION = 2
 
 export type SpendingAccount = WithNonNull<Account, 'spendingKey'>
 
-export function isSpendingAccount(account: Account): account is SpendingAccount {
-  return account.spendingKey !== null
-}
-
 export function AssertSpending(account: Account): asserts account is SpendingAccount {
-  Assert.isNotNull(account.spendingKey)
+  Assert.isTrue(account.isSpendingAccount())
 }
 
 export class Account {
@@ -79,6 +75,10 @@ export class Account {
     this.walletDb = walletDb
     this.version = version ?? 1
     this.createdAt = createdAt
+  }
+
+  isSpendingAccount(): this is SpendingAccount {
+    return this.spendingKey !== null
   }
 
   serialize(): AccountValue {
