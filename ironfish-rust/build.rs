@@ -8,9 +8,7 @@ use std::io::BufReader;
 use std::path::Path;
 use std::path::PathBuf;
 
-fn copy_if_present<P: AsRef<Path>, Q: AsRef<Path>>(src: P, dst: Q) {
-    let src = src.as_ref();
-    let dst = dst.as_ref();
+fn copy_if_present(src: &Path, dst: &Path) {
     if let Err(err) = fs::copy(src, dst) {
         match err.kind() {
             // If the source file is not found, it's fine to keep going: `fetch_if_missing` will
@@ -27,8 +25,11 @@ fn copy_if_present<P: AsRef<Path>, Q: AsRef<Path>>(src: P, dst: Q) {
     }
 }
 
-fn fetch_if_missing<P: AsRef<Path>>(dst: P) {
-    let dst = dst.as_ref();
+#[cfg(not(feature = "download-params"))]
+fn fetch_if_missing(_dst: &Path) {}
+
+#[cfg(feature = "download-params")]
+fn fetch_if_missing(dst: &Path) {
     if dst.exists() {
         return;
     }
@@ -65,10 +66,7 @@ fn fetch_if_missing<P: AsRef<Path>>(dst: P) {
     });
 }
 
-fn verify_integrity<P: AsRef<Path>, Q: AsRef<Path>>(checksum_path: P, files_dir: Q) {
-    let checksum_path = checksum_path.as_ref();
-    let files_dir = files_dir.as_ref();
-
+fn verify_integrity(checksum_path: &Path, files_dir: &Path) {
     let checksum_file = fs::File::open(checksum_path)
         .unwrap_or_else(|err| panic!("failed to open {}: {}", checksum_path.display(), err));
     let checksum_file_reader = BufReader::new(checksum_file);
@@ -123,14 +121,14 @@ fn prepare_sapling_params() {
     for name in param_files.iter() {
         let src = params_src_path.join(name);
         let dst = params_dst_path.join(name);
-        copy_if_present(src, &dst);
+        copy_if_present(&src, &dst);
         fetch_if_missing(&dst);
     }
 
     // Check the integrity of the param files. The checksum file is never downloaded and is assumed
     // to be always present
     let checksum = params_src_path.join("params-sha512.txt");
-    verify_integrity(checksum, params_dst_path);
+    verify_integrity(&checksum, &params_dst_path);
 }
 
 fn main() {
