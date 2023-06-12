@@ -42,4 +42,4 @@ jobs:
         uses: githubocto/flat@v3
         with:
           http_url: '${{steps.get-url.outputs.result}}'
-          downloaded_filename: './perfTest/perf-test-report.zip'
+          downloaded_filename: 'perf-test-report.zip'
