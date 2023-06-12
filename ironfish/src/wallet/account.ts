@@ -10,6 +10,7 @@ import { GENESIS_BLOCK_SEQUENCE } from '../primitives/block'
 import { Note } from '../primitives/note'
 import { DatabaseKeyRange, IDatabaseTransaction } from '../storage'
 import { StorageUtils } from '../storage/database/utils'
+import { WithNonNull } from '../utils'
 import { DecryptedNote } from '../workerPool/tasks/decryptNotes'
 import { AssetBalances } from './assetBalances'
 import { AccountValue } from './walletdb/accountValue'
@@ -23,6 +24,12 @@ import { WalletDB } from './walletdb/walletdb'
 export const ACCOUNT_KEY_LENGTH = 32
 
 export const ACCOUNT_SCHEMA_VERSION = 2
+
+export type SpendingAccount = WithNonNull<Account, 'spendingKey'>
+
+export function AssertSpending(account: Account): asserts account is SpendingAccount {
+  Assert.isTrue(account.isSpendingAccount())
+}
 
 export class Account {
   private readonly walletDb: WalletDB
@@ -68,6 +75,10 @@ export class Account {
     this.walletDb = walletDb
     this.version = version ?? 1
     this.createdAt = createdAt
+  }
+
+  isSpendingAccount(): this is SpendingAccount {
+    return this.spendingKey !== null
   }
 
   serialize(): AccountValue {

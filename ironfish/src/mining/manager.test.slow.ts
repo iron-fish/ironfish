@@ -2,9 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../assert'
-import { VerificationResultReason } from '../consensus/verifier'
-import { Target } from '../primitives'
-import { BlockTemplateSerde } from '../serde/BlockTemplateSerde'
+import { VerificationResultReason } from '../consensus'
+import { getBlockWithMinersFeeSize, getTransactionSize } from '../network/utils/serializers'
+import { Target, Transaction } from '../primitives'
+import { BlockTemplateSerde, SerializedBlockTemplate } from '../serde'
 import {
   createNodeTest,
   useAccountFixture,
@@ -12,116 +13,228 @@ import {
   useTxFixture,
 } from '../testUtilities'
 import { isTransactionMine } from '../testUtilities/helpers/transaction'
-import { MINED_RESULT } from './manager'
+import { PromiseUtils } from '../utils'
+import { MINED_RESULT, MiningManager } from './manager'
+
+/*
+ * Helper function to wait for the first `numTemplates` block templates
+ */
+function collectTemplates(
+  miningManager: MiningManager,
+  numTemplates: number,
+): Promise<SerializedBlockTemplate[]> {
+  const templates: SerializedBlockTemplate[] = []
+  const [promise, resolve] = PromiseUtils.split<SerializedBlockTemplate[]>()
+
+  const handler = (template: SerializedBlockTemplate) => {
+    templates.push(template)
+    if (templates.length === numTemplates) {
+      resolve(templates)
+    }
+  }
+
+  miningManager.onNewBlockTemplate(handler)
+
+  return promise.then((templates: SerializedBlockTemplate[]) => {
+    miningManager.offNewBlockTemplate(handler)
+    return templates
+  })
+}
 
 describe('Mining manager', () => {
-  const nodeTest = createNodeTest()
+  const nodeTest = createNodeTest(false, { config: { miningForce: true } })
 
-  it('creates a new block template', async () => {
-    const { chain, miningManager } = nodeTest.node
+  describe('create block template', () => {
+    it('creates a new block template', async () => {
+      const { chain, miningManager } = nodeTest.node
 
-    const account = await useAccountFixture(nodeTest.node.wallet, 'account')
-    await nodeTest.node.wallet.setDefaultAccount(account.name)
+      const account = await useAccountFixture(nodeTest.node.wallet, 'account')
+      await nodeTest.node.wallet.setDefaultAccount(account.name)
 
-    const block = await useMinerBlockFixture(chain, 2)
-    await expect(chain).toAddBlock(block)
+      const block = await useMinerBlockFixture(chain, 2)
+      await expect(chain).toAddBlock(block)
 
-    const spy = jest.spyOn(BlockTemplateSerde, 'serialize')
+      const currentHeadHash = chain.head.hash.toString('hex')
 
-    await miningManager.createNewBlockTemplate(block)
+      // Wait for the first 2 block templates
+      const template = (await collectTemplates(miningManager, 2))[0]
 
-    expect(spy).toHaveBeenCalledTimes(1)
-    const [newBlock, currentBlock] = spy.mock.calls[0]
-    expect(newBlock.header.previousBlockHash.equals(chain.head.hash)).toBe(true)
-    expect(newBlock.transactions).toHaveLength(1)
-    expect(currentBlock).toEqual(block)
-    expect(isTransactionMine(newBlock.transactions[0], account)).toBe(true)
-  })
+      expect(template.header.previousBlockHash).toBe(currentHeadHash)
+      expect(template.transactions).toHaveLength(1)
 
-  it('adds transactions from the mempool', async () => {
-    const { node, chain } = nodeTest
-    const { miningManager } = node
+      const minersFee = new Transaction(Buffer.from(template.transactions[0], 'hex'))
+      expect(isTransactionMine(minersFee, account)).toBe(true)
+    })
 
-    const account = await useAccountFixture(nodeTest.node.wallet, 'account')
-    await nodeTest.node.wallet.setDefaultAccount(account.name)
+    it('adds transactions from the mempool', async () => {
+      const { node, chain } = nodeTest
+      const { miningManager } = node
 
-    const previous = await useMinerBlockFixture(chain, 2, account, node.wallet)
-    await expect(chain).toAddBlock(previous)
-    await node.wallet.updateHead()
+      const account = await useAccountFixture(nodeTest.node.wallet, 'account')
+      await nodeTest.node.wallet.setDefaultAccount(account.name)
 
-    const transaction = await useTxFixture(node.wallet, account, account)
+      const previous = await useMinerBlockFixture(chain, 2, account, node.wallet)
+      await expect(chain).toAddBlock(previous)
+      await node.wallet.updateHead()
 
-    expect(node.memPool.count()).toBe(0)
-    node.memPool.acceptTransaction(transaction)
-    expect(node.memPool.count()).toBe(1)
+      const transaction = await useTxFixture(node.wallet, account, account)
 
-    const spy = jest.spyOn(BlockTemplateSerde, 'serialize')
-    spy.mockClear()
+      expect(node.memPool.count()).toBe(0)
+      node.memPool.acceptTransaction(transaction)
+      expect(node.memPool.count()).toBe(1)
 
-    await miningManager.createNewBlockTemplate(previous)
+      const block = await useMinerBlockFixture(chain, 2)
+      await expect(chain).toAddBlock(block)
 
-    expect(spy).toHaveBeenCalledTimes(1)
-    const [newBlock, currentBlock] = spy.mock.calls[0]
-    expect(newBlock.header.previousBlockHash.equals(chain.head.hash)).toBe(true)
-    expect(newBlock.transactions).toHaveLength(2)
-    expect(currentBlock).toEqual(previous)
-    expect(isTransactionMine(newBlock.transactions[0], account)).toBe(true)
-    expect(node.memPool.count()).toBe(1)
-  })
+      // Wait for the first 2 block templates
+      const templates = await collectTemplates(miningManager, 2)
+      const fullTemplate = templates.find((t) => t.transactions.length > 1)
 
-  it('should not add transactions to block if they have invalid spends', async () => {
-    const { node: nodeA } = await nodeTest.createSetup()
-    const { node: nodeB } = await nodeTest.createSetup()
+      Assert.isNotUndefined(fullTemplate)
 
-    const accountA = await useAccountFixture(nodeA.wallet, 'a')
-    const accountB = await useAccountFixture(nodeA.wallet, 'b')
+      expect(fullTemplate.header.previousBlockHash).toBe(chain.head.hash.toString('hex'))
+      expect(fullTemplate.transactions).toHaveLength(2)
 
-    const blockA1 = await useMinerBlockFixture(nodeA.chain, undefined, accountA, nodeA.wallet)
-    await expect(nodeA.chain).toAddBlock(blockA1)
+      const minersFee = new Transaction(Buffer.from(fullTemplate.transactions[0], 'hex'))
+      expect(isTransactionMine(minersFee, account)).toBe(true)
 
-    const blockB1 = await useMinerBlockFixture(nodeB.chain, undefined, accountB)
-    await expect(nodeB.chain).toAddBlock(blockB1)
-    const blockB2 = await useMinerBlockFixture(nodeB.chain, undefined, accountB)
-    await expect(nodeB.chain).toAddBlock(blockB2)
+      expect(fullTemplate.transactions[1]).toEqual(transaction.serialize().toString('hex'))
+      expect(node.memPool.count()).toBe(1)
+    })
 
-    // This transaction will be invalid after the reorg
-    await nodeA.wallet.updateHead()
-    const invalidTx = await useTxFixture(nodeA.wallet, accountA, accountB)
+    it('should not add transactions to block if they have invalid spends', async () => {
+      const { node: nodeA } = await nodeTest.createSetup()
+      const { node: nodeB } = await nodeTest.createSetup()
 
-    await expect(nodeA.chain).toAddBlock(blockB1)
-    await expect(nodeA.chain).toAddBlock(blockB2)
-    expect(nodeA.chain.head.hash.equals(blockB2.header.hash)).toBe(true)
+      const accountA = await useAccountFixture(nodeA.wallet, 'a')
+      const accountB = await useAccountFixture(nodeA.wallet, 'b')
+      await nodeA.wallet.setDefaultAccount(accountA.name)
 
-    // invalidTx is trying to spend a note from A1 that has been removed once A1
-    // was disconnected from the blockchain after the reorg, so should it should not
-    // be added to the block
-    //
-    // G -> A1
-    //   -> B2 -> B3
+      const blockA1 = await useMinerBlockFixture(nodeA.chain, undefined, accountA, nodeA.wallet)
+      await expect(nodeA.chain).toAddBlock(blockA1)
 
-    const added = nodeA.memPool.acceptTransaction(invalidTx)
-    expect(added).toBe(true)
+      const blockB1 = await useMinerBlockFixture(nodeB.chain, undefined, accountB)
+      await expect(nodeB.chain).toAddBlock(blockB1)
+      const blockB2 = await useMinerBlockFixture(nodeB.chain, undefined, accountB)
+      await expect(nodeB.chain).toAddBlock(blockB2)
 
-    const { blockTransactions } = await nodeA.miningManager.getNewBlockTransactions(
-      nodeA.chain.head.sequence + 1,
-      0,
-    )
-    expect(blockTransactions).toHaveLength(0)
+      // This transaction will be invalid after the reorg
+      await nodeA.wallet.updateHead()
+      const invalidTx = await useTxFixture(nodeA.wallet, accountA, accountB)
+
+      await expect(nodeA.chain).toAddBlock(blockB1)
+      await expect(nodeA.chain).toAddBlock(blockB2)
+      expect(nodeA.chain.head.hash.equals(blockB2.header.hash)).toBe(true)
+
+      // invalidTx is trying to spend a note from A1 that has been removed once A1
+      // was disconnected from the blockchain after the reorg, so should it should not
+      // be added to the block
+      //
+      // G -> A1
+      //   -> B2 -> B3
+
+      const added = nodeA.memPool.acceptTransaction(invalidTx)
+      expect(added).toBe(true)
+
+      const templates = await collectTemplates(nodeA.miningManager, 2)
+      const fullTemplate = templates.find((t) => t.transactions.length > 1)
+
+      expect(fullTemplate).toBeUndefined()
+    })
+
+    it('should not add expired transaction to block', async () => {
+      const { node, chain, wallet } = nodeTest
+
+      // Create an account with some money
+      const account = await useAccountFixture(wallet)
+      await wallet.setDefaultAccount(account.name)
+
+      const block1 = await useMinerBlockFixture(chain, undefined, account, wallet)
+      await expect(chain).toAddBlock(block1)
+      await wallet.updateHead()
+
+      const transaction = await useTxFixture(
+        wallet,
+        account,
+        account,
+        undefined,
+        undefined,
+        chain.head.sequence + 2,
+      )
+
+      jest.spyOn(node.memPool, 'orderedTransactions').mockImplementation(function* () {
+        yield transaction
+      })
+
+      const templates = await collectTemplates(node.miningManager, 2)
+      const fullTemplate = templates.find((t) => t.transactions.length > 1)
+
+      Assert.isNotUndefined(fullTemplate)
+      expect(fullTemplate.transactions).toHaveLength(2)
+      expect(fullTemplate.transactions[1]).toEqual(transaction.serialize().toString('hex'))
+
+      // It shouldn't be returned after 1 more block is added
+      const block2 = await useMinerBlockFixture(chain)
+      await expect(chain).toAddBlock(block2)
+
+      const templates2 = await collectTemplates(node.miningManager, 2)
+      const fullTemplate2 = templates2.find((t) => t.transactions.length > 1)
+
+      expect(fullTemplate2).toBeUndefined()
+    })
+
+    it('should stop adding transactions before block size exceeds maxBlockSizeBytes', async () => {
+      const { node, chain, wallet } = nodeTest
+
+      // Create an account with some money
+      const account = await useAccountFixture(wallet)
+      await wallet.setDefaultAccount(account.name)
+
+      const block1 = await useMinerBlockFixture(chain, undefined, account, wallet)
+      await expect(chain).toAddBlock(block1)
+      await wallet.updateHead()
+
+      const transaction = await useTxFixture(
+        wallet,
+        account,
+        account,
+        undefined,
+        undefined,
+        chain.head.sequence + 2,
+      )
+
+      node.memPool.acceptTransaction(transaction)
+      chain.consensus.parameters.maxBlockSizeBytes = getBlockWithMinersFeeSize()
+
+      const templates = await collectTemplates(node.miningManager, 2)
+      const fullTemplate = templates.find((t) => t.transactions.length > 1)
+
+      expect(fullTemplate).toBeUndefined()
+
+      // Expand max block size, should allow transaction to be added to block
+      chain.consensus.parameters.maxBlockSizeBytes =
+        getBlockWithMinersFeeSize() + getTransactionSize(transaction)
+
+      const templates2 = await collectTemplates(node.miningManager, 2)
+      const fullTemplate2 = templates2.find((t) => t.transactions.length > 1)
+
+      Assert.isNotUndefined(fullTemplate2)
+
+      expect(fullTemplate2.transactions[1]).toEqual(transaction.serialize().toString('hex'))
+    })
   })
 
   describe('submit block template', () => {
     it('discards block if chain changed', async () => {
-      const { strategy, chain, node } = nodeTest
+      const { node, chain, wallet } = nodeTest
       const { miningManager } = node
-      strategy.disableMiningReward()
 
-      await nodeTest.node.wallet.createAccount('account', true)
+      // Create an account with some money
+      const account = await useAccountFixture(wallet)
+      await wallet.setDefaultAccount(account.name)
 
-      const genesis = await node.chain.getBlock(node.chain.genesis)
-      Assert.isNotNull(genesis)
-
-      // create a block template that connects to the genesis block
-      const blockTemplateA1 = await miningManager.createNewBlockTemplate(genesis)
+      // Create an old block template to submit later
+      const oldTemplate = (await collectTemplates(miningManager, 2))[0]
 
       // add both A1 and A2 to the chain
       const blockA1 = await useMinerBlockFixture(chain, 2)
@@ -129,47 +242,46 @@ describe('Mining manager', () => {
       const blockA2 = await useMinerBlockFixture(chain, 3)
       await expect(chain).toAddBlock(blockA2)
 
-      // create a block template that connects to the new chain head, blockA2
-      const blockTemplateA2 = await miningManager.createNewBlockTemplate(blockA2)
-
-      // the chain has changed, so a template connecting to genesis should be discarded
-      await expect(miningManager.submitBlockTemplate(blockTemplateA1)).resolves.toBe(
+      await expect(miningManager.submitBlockTemplate(oldTemplate)).resolves.toBe(
         MINED_RESULT.CHAIN_CHANGED,
       )
-      // template for a new block connecting to the head should be connected
-      await expect(miningManager.submitBlockTemplate(blockTemplateA2)).resolves.toBe(
+
+      // Create an old block template to submit later
+      const newTemplate = (await collectTemplates(miningManager, 2))[0]
+
+      await expect(miningManager.submitBlockTemplate(newTemplate)).resolves.toBe(
         MINED_RESULT.SUCCESS,
       )
     })
 
     it('discards block if not valid', async () => {
-      const { strategy, chain, node } = nodeTest
+      const { node, chain, wallet } = nodeTest
       const { miningManager } = node
-      strategy.disableMiningReward()
 
-      await nodeTest.node.wallet.createAccount('account', true)
+      // Create an account with some money
+      const account = await useAccountFixture(wallet)
+      await wallet.setDefaultAccount(account.name)
 
-      const blockA1 = await useMinerBlockFixture(chain, 2)
-      const blockTemplateA1 = await miningManager.createNewBlockTemplate(blockA1)
+      const template = (await collectTemplates(miningManager, 2))[0]
 
       jest
         .spyOn(chain.verifier, 'verifyBlock')
         .mockResolvedValue({ valid: false, reason: VerificationResultReason.INVALID_TARGET })
 
-      await expect(miningManager.submitBlockTemplate(blockTemplateA1)).resolves.toBe(
+      await expect(miningManager.submitBlockTemplate(template)).resolves.toBe(
         MINED_RESULT.INVALID_BLOCK,
       )
     })
 
     it('discard block if cannot add to chain', async () => {
-      const { strategy, chain, node } = nodeTest
+      const { node, chain, wallet } = nodeTest
       const { miningManager } = node
-      strategy.disableMiningReward()
 
-      await nodeTest.node.wallet.createAccount('account', true)
+      // Create an account with some money
+      const account = await useAccountFixture(wallet)
+      await wallet.setDefaultAccount(account.name)
 
-      const blockA1 = await useMinerBlockFixture(chain, 2)
-      const blockTemplateA1 = await miningManager.createNewBlockTemplate(blockA1)
+      const template = (await collectTemplates(miningManager, 2))[0]
 
       jest.spyOn(chain, 'addBlock').mockResolvedValue({
         isAdded: false,
@@ -178,20 +290,24 @@ describe('Mining manager', () => {
         score: 0,
       })
 
-      await expect(miningManager.submitBlockTemplate(blockTemplateA1)).resolves.toBe(
+      await expect(miningManager.submitBlockTemplate(template)).resolves.toBe(
         MINED_RESULT.ADD_FAILED,
       )
     })
 
     it('discard block if on a fork', async () => {
-      const { strategy, chain, node } = nodeTest
+      // This test should not really be possible since we make sure whether the template
+      // is heavier than the chain head before adding it. If it is heavier, it would not be a fork.
+      // However, it could be possible through a race condition so keeping this test for now.s
+
+      const { node, chain, wallet } = nodeTest
       const { miningManager } = node
-      strategy.disableMiningReward()
 
-      await nodeTest.node.wallet.createAccount('account', true)
+      // Create an account with some money
+      const account = await useAccountFixture(wallet)
+      await wallet.setDefaultAccount(account.name)
 
-      const blockA1 = await useMinerBlockFixture(chain, 2)
-      const blockTemplateA1 = await miningManager.createNewBlockTemplate(blockA1)
+      const template = (await collectTemplates(miningManager, 2))[0]
 
       jest.spyOn(chain, 'addBlock').mockResolvedValue({
         isAdded: true,
@@ -200,62 +316,67 @@ describe('Mining manager', () => {
         score: 0,
       })
 
-      await expect(miningManager.submitBlockTemplate(blockTemplateA1)).resolves.toBe(
-        MINED_RESULT.FORK,
-      )
-    })
-
-    it('adds block on successful mining', async () => {
-      const { strategy, chain, node } = nodeTest
-      const { miningManager } = node
-      strategy.disableMiningReward()
-
-      await nodeTest.node.wallet.createAccount('account', true)
-
-      const onNewBlockSpy = jest.spyOn(miningManager.onNewBlock, 'emit')
-
-      const blockA1 = await useMinerBlockFixture(chain, 2)
-      const blockTemplateA1 = await miningManager.createNewBlockTemplate(blockA1)
-
-      const validBlock = BlockTemplateSerde.deserialize(blockTemplateA1)
-      // These values are what the code generates from the fixture block
-      validBlock.header.noteSize = blockA1.header.noteSize
-      validBlock.header.work = expect.any(BigInt)
-
-      // This populates the _hash field on all transactions so that
-      // the test passes. Without it the expected block and the actual
-      // block passed to onNewBlockSpy would have different transaction._hash values
-      for (const t of validBlock.transactions) {
-        t.hash()
-      }
-
-      await miningManager.submitBlockTemplate(blockTemplateA1)
-      expect(onNewBlockSpy).toHaveBeenCalledWith(validBlock)
+      await expect(miningManager.submitBlockTemplate(template)).resolves.toBe(MINED_RESULT.FORK)
     })
 
     it('adds block if chain changed but block is heavier', async () => {
-      const { strategy, chain, node } = nodeTest
+      const { node, chain, wallet } = nodeTest
       const { miningManager } = node
-      strategy.disableMiningReward()
 
-      await nodeTest.node.wallet.createAccount('account', true)
+      // Create an account with some money
+      const account = await useAccountFixture(wallet)
+      await wallet.setDefaultAccount(account.name)
 
-      // mine two blocks at the same sequence
-      const blockA1 = await useMinerBlockFixture(chain, 2)
-      const blockB1 = await useMinerBlockFixture(chain, 2)
+      const firstBlock = await chain.getBlock(chain.head)
+      Assert.isNotNull(firstBlock)
 
-      // add blockA1 to the chain so that blockB1 no longer connects to the head
-      await expect(chain).toAddBlock(blockA1)
-      expect(blockB1.header.previousBlockHash).not.toEqualHash(chain.head.hash)
-
-      // increase difficulty so that blockB1 is heavier
+      // Create 2 blocks at the same sequence, one with higher difficulty
+      const blockA1 = await useMinerBlockFixture(chain, undefined, account, wallet)
+      const blockB1 = await useMinerBlockFixture(chain, undefined, account, wallet)
       blockB1.header.target = Target.fromDifficulty(blockA1.header.target.toDifficulty() + 1n)
 
-      const blockTemplateB1 = await miningManager.createNewBlockTemplate(blockB1)
+      await expect(chain).toAddBlock(blockA1)
 
-      await expect(miningManager.submitBlockTemplate(blockTemplateB1)).resolves.toBe(
+      const templateA2 = (await collectTemplates(miningManager, 2))[0]
+
+      await expect(chain).toAddBlock(blockB1)
+
+      // Increase difficulty of submitted template so it
+      const blockA2 = BlockTemplateSerde.deserialize(templateA2)
+      blockA2.header.target = Target.fromDifficulty(blockA2.header.target.toDifficulty() + 2n)
+      const templateToSubmit = BlockTemplateSerde.serialize(blockA2, firstBlock)
+
+      // Check that we are submitting a template that does not attack to current head
+      expect(templateToSubmit.header.previousBlockHash).not.toEqual(
+        chain.head.hash.toString('hex'),
+      )
+
+      await expect(miningManager.submitBlockTemplate(templateToSubmit)).resolves.toBe(
         MINED_RESULT.SUCCESS,
       )
+    })
+
+    it('onNewBlock is called when a template is submitted successfully', async () => {
+      const { chain, miningManager } = nodeTest.node
+
+      const account = await useAccountFixture(nodeTest.node.wallet, 'account')
+      await nodeTest.node.wallet.setDefaultAccount(account.name)
+
+      const block = await useMinerBlockFixture(chain, 2)
+      await expect(chain).toAddBlock(block)
+
+      // Wait for the first 2 block templates
+      const template = (await collectTemplates(miningManager, 2))[0]
+
+      const onNewBlockSpy = jest.spyOn(miningManager.onNewBlock, 'emit')
+
+      await expect(miningManager.submitBlockTemplate(template)).resolves.toBe(
+        MINED_RESULT.SUCCESS,
+      )
+
+      const submittedBlock = BlockTemplateSerde.deserialize(template)
+      const newBlock = onNewBlockSpy.mock.calls[0][0]
+      expect(newBlock.header.hash).toEqual(submittedBlock.header.hash)
     })
   })
 })

@@ -1,16 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Assert } from '../../assert'
-import { WithNonNull } from '../../utils'
-import { Account, AccountValue, Wallet } from '../../wallet'
+import { AccountValue, AssertSpending, SpendingAccount, Wallet } from '../../wallet'
 import { FixtureGenerate, useFixture } from './fixture'
-
-type SpendingAccount = WithNonNull<Account, 'spendingKey'>
-
-function AssertSpending(account: Account): asserts account is SpendingAccount {
-  Assert.isNotNull(account.spendingKey)
-}
 
 export function useAccountFixture(
   wallet: Wallet,
