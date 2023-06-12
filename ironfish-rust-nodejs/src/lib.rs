@@ -10,6 +10,7 @@ use std::time::Duration;
 use std::time::Instant;
 
 use ironfish::keys::Language;
+use ironfish::signal_catcher::init_signal_handler;
 use ironfish::transaction::batch_verify_transactions;
 use ironfish::IncomingViewKey;
 use ironfish::MerkleNote;
@@ -187,23 +188,44 @@ pub fn is_valid_public_address(hex_address: String) -> bool {
     PublicAddress::from_hex(&hex_address).is_ok()
 }
 
+// #[napi(object)]
+// pub struct NativeDecryptNoteOptions {
+//     pub serialized_note: Buffer,
+//     pub incoming_view_key: String,
+//     pub outgoing_view_key: String,
+//     pub view_key: String,
+//     pub current_note_index: Option<u32>,
+//     pub decrypt_for_spender: bool,
+// }
+
+#[napi(object)]
+pub struct NativeDecryptNote {
+    // pub serialized_note: Vec<u8>,
+    // TODO: Stack trace is pointing to Buffer being dropped - this may need ot be a ref or a Vec
+    pub serialized_note: Buffer,
+    // TODO: Issue is likely related to this being undefined vs null
+    pub current_note_index: Option<u32>,
+}
+
 #[napi(object)]
 pub struct NativeDecryptNoteOptions {
-    pub serialized_note: Buffer,
     pub incoming_view_key: String,
     pub outgoing_view_key: String,
     pub view_key: String,
-    pub current_note_index: Option<u32>,
     pub decrypt_for_spender: bool,
+    pub notes: Vec<NativeDecryptNote>,
 }
 
 #[napi(object, js_name = "NativeDecryptedNote")]
 pub struct DecryptedNote {
     pub index: Option<u32>,
     pub for_spender: bool,
-    pub hash: Buffer,
-    pub nullifier: Option<Buffer>,
-    pub serialized_note: Buffer,
+    // pub hash: Buffer,
+    // pub nullifier: Option<Buffer>,
+    // pub serialized_note: Buffer,
+    pub hash: Vec<u8>,
+    pub nullifier: Option<Vec<u8>>,
+    pub serialized_note: Vec<u8>,
 }
 
 #[napi]
@@ -246,34 +268,62 @@ impl NativeWorkerPool {
     pub fn decrypt_notes(
         &self,
         callback: JsFunction,
-        encrypted_notes: Vec<NativeDecryptNoteOptions>,
+        decrypt_note_payload: NativeDecryptNoteOptions,
     ) -> napi::Result<()> {
-        let tscb: ThreadsafeFunction<Vec<Option<DecryptedNote>>, ErrorStrategy::CalleeHandled> =
+        let tscb: ThreadsafeFunction<Vec<DecryptedNote>, ErrorStrategy::CalleeHandled> =
             callback.create_threadsafe_function(0, |ctx| Ok(vec![ctx.value]))?;
 
         self.pool.spawn(move || {
+            unsafe {
+                init_signal_handler();
+            }
             // let start = Instant::now();
 
-            let mut decrypted_notes: Vec<Option<DecryptedNote>> =
-                Vec::with_capacity(encrypted_notes.len());
+            // println!("r1");
+            let mut incoming_view_key: Option<IncomingViewKey> = None;
+            let mut outgoing_view_key: Option<OutgoingViewKey> = None;
+            let mut view_key: Option<ViewKey> = None;
+            // println!("r2");
 
-            for encrypted_note in encrypted_notes {
+            let mut decrypted_notes: Vec<DecryptedNote> = vec![];
+            // let mut decrypted_notes: Vec<Option<DecryptedNote>> =
+            //     Vec::with_capacity(decrypt_note_payload.notes.len());
+
+            // println!("r3");
+            for encrypted_note in decrypt_note_payload.notes {
+                // println!("r4");
                 let merkle_note =
-                    MerkleNote::read(encrypted_note.serialized_note.as_ref()).unwrap();
+                    // MerkleNote::read(encrypted_note.serialized_note.as_ref()).unwrap();
+                    MerkleNote::read(&encrypted_note.serialized_note[..]).unwrap();
+                // MerkleNote::read(&encrypted_note.serialized_note[..]).unwrap();
+                // println!("r5");
 
-                let incoming_view_key =
-                    IncomingViewKey::from_hex(&encrypted_note.incoming_view_key).unwrap();
+                let ivk = incoming_view_key.get_or_insert_with(|| {
+                    IncomingViewKey::from_hex(&decrypt_note_payload.incoming_view_key).unwrap()
+                });
+                // println!("r6");
 
-                if let Ok(decrypted_note) = merkle_note.decrypt_note_for_owner(&incoming_view_key) {
+                // let incoming_view_key =
+                //     IncomingViewKey::from_hex(&encrypted_note.incoming_view_key).unwrap();
+
+                if let Ok(decrypted_note) = merkle_note.decrypt_note_for_owner(ivk) {
+                    // println!("r7");
                     if decrypted_note.value() != 0 {
+                        // println!("r8");
                         let nullifier = encrypted_note
                             .current_note_index
                             .filter(|note_index| *note_index != 0) // Hack to match the bug in decryptNotes.ts
                             .map(|note_index| {
-                                let view_key = ViewKey::from_hex(&encrypted_note.view_key).unwrap();
-                                Buffer::from(
-                                    &decrypted_note.nullifier(&view_key, note_index as u64).0[..],
-                                )
+                                // let view_key = ViewKey::from_hex(&encrypted_note.view_key).unwrap();
+
+                                // println!("r9");
+
+                                let vk = view_key.get_or_insert_with(|| {
+                                    ViewKey::from_hex(&decrypt_note_payload.view_key).unwrap()
+                                });
+                                // println!("r10");
+                                // Buffer::from(&decrypted_note.nullifier(vk, note_index as u64).0[..])
+                                decrypted_note.nullifier(vk, note_index as u64).0.into()
                                 // decrypted_note
                                 //     .nullifier(&view_key, note_index as u64)
                                 //     .0
@@ -296,48 +346,57 @@ impl NativeWorkerPool {
 
                         // TODO: We can with_capacity this
                         // let mut serialized_note: Vec<u8> = vec![];
+                        // println!("r11");
                         let mut serialized_note: Vec<u8> = Vec::with_capacity(168);
                         decrypted_note.write(&mut serialized_note).unwrap();
+                        // println!("r12");
 
-                        decrypted_notes.push(Some(DecryptedNote {
+                        decrypted_notes.push(DecryptedNote {
                             index: encrypted_note.current_note_index,
                             for_spender: false,
-                            hash: Buffer::from(&merkle_note.merkle_hash().0.to_bytes_le()[..]),
+                            // hash: Buffer::from(&merkle_note.merkle_hash().0.to_bytes_le()[..]),
+                            // nullifier,
+                            hash: merkle_note.merkle_hash().0.to_bytes_le().into(),
                             nullifier,
                             serialized_note: serialized_note.into(),
-                        }));
+                        });
+                        // println!("r13 -- {:?}", encrypted_note.current_note_index);
 
                         continue;
                     }
                 }
 
-                if encrypted_note.decrypt_for_spender {
-                    let outgoing_view_key =
-                        OutgoingViewKey::from_hex(&encrypted_note.outgoing_view_key).unwrap();
+                if decrypt_note_payload.decrypt_for_spender {
+                    // println!("r14");
+                    // let outgoing_view_key =
+                    //     OutgoingViewKey::from_hex(&encrypted_note.outgoing_view_key).unwrap();jA
+                    let ovk = outgoing_view_key.get_or_insert_with(|| {
+                        OutgoingViewKey::from_hex(&decrypt_note_payload.outgoing_view_key).unwrap()
+                    });
 
-                    if let Ok(decrypted_note) =
-                        merkle_note.decrypt_note_for_spender(&outgoing_view_key)
-                    {
+                    if let Ok(decrypted_note) = merkle_note.decrypt_note_for_spender(ovk) {
                         if decrypted_note.value() != 0 {
                             // TODO: We can with_capacity this
                             let mut serialized_note: Vec<u8> = Vec::with_capacity(168);
                             decrypted_note.write(&mut serialized_note).unwrap();
 
-                            decrypted_notes.push(Some(DecryptedNote {
+                            decrypted_notes.push(DecryptedNote {
                                 index: encrypted_note.current_note_index,
                                 for_spender: true,
-                                hash: Buffer::from(&merkle_note.merkle_hash().0.to_bytes_le()[..]),
+                                hash: merkle_note.merkle_hash().0.to_bytes_le().into(),
+                                // hash: Buffer::from(&merkle_note.merkle_hash().0.to_bytes_le()[..]),
                                 nullifier: None,
                                 serialized_note: serialized_note.into(),
-                            }));
+                            });
                             continue;
                         }
                     }
                 }
 
-                decrypted_notes.push(None);
+                // decrypted_notes.push(None);
             }
 
+            // println!("r15");
             // let dur = start.elapsed();
             // println!("\nActual Logic (RS): {}\n", dur.as_micros());
 
@@ -378,41 +437,5 @@ impl NativeWorkerPool {
         });
 
         Ok(())
-    }
-}
-
-pub struct ChannelReceiverTask {
-    receiver: Receiver<u32>,
-}
-
-#[napi]
-impl Task for ChannelReceiverTask {
-    type Output = u32;
-    type JsValue = JsNumber;
-
-    fn compute(&mut self) -> napi::Result<Self::Output> {
-        Ok(self.receiver.recv().unwrap())
-    }
-
-    fn resolve(&mut self, env: Env, output: Self::Output) -> napi::Result<Self::JsValue> {
-        env.create_uint32(output)
-    }
-}
-
-pub struct DecryptNotesTask {
-    receiver: Receiver<Vec<Option<DecryptedNote>>>,
-}
-
-#[napi]
-impl Task for DecryptNotesTask {
-    type Output = Vec<Option<DecryptedNote>>;
-    type JsValue = Vec<Option<DecryptedNote>>;
-
-    fn compute(&mut self) -> napi::Result<Self::Output> {
-        Ok(self.receiver.recv().unwrap())
-    }
-
-    fn resolve(&mut self, _env: Env, output: Self::Output) -> napi::Result<Self::JsValue> {
-        Ok(output)
     }
 }

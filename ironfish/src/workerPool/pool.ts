@@ -207,21 +207,47 @@ export class WorkerPool {
     return response.notes
   }
 
-  // async decryptNotes2(
-  //   payloads: DecryptNoteOptions[],
-  // ): Promise<Array<NativeDecryptedNote | null>> {
-  //   const p = payloads as NativeDecryptNoteOptions[]
-  //   return new Promise((resolve, reject) => {
-  //     const cb = (error: Error | null, result: Array<NativeDecryptedNote>) => {
-  //       if (error !== null) {
-  //         reject(error)
-  //       } else {
-  //         resolve(result)
-  //       }
-  //     }
-  //     this.nativeWorkerPool.decryptNotes(cb, p)
-  //   })
-  // }
+  async decryptNotes2(payload: DecryptNoteOptions): Promise<Array<NativeDecryptedNote>> {
+    // console.log(1)
+    const p = payload as NativeDecryptNoteOptions
+    // console.log(2)
+    return new Promise((resolve, reject) => {
+      // console.log(3)
+      const cb = (error: Error | null, result: Array<NativeDecryptedNote>) => {
+        // console.log(5)
+        if (error !== null) {
+          // console.log(6)
+          reject(error)
+        } else {
+          // console.log(7)
+          resolve(result)
+        }
+      }
+      // console.log(4)
+      this.nativeWorkerPool.decryptNotes(cb, p)
+    })
+  }
+
+  async decryptNotes3(payload: NativeDecryptNoteOptions): Promise<Array<NativeDecryptedNote>> {
+    // console.log(1)
+    // const p = payload as NativeDecryptNoteOptions
+    // console.log(2)
+    return new Promise((resolve, reject) => {
+      // console.log(3)
+      const cb = (error: Error | null, result: Array<NativeDecryptedNote>) => {
+        // console.log(5)
+        if (error !== null) {
+          // console.log(6)
+          reject(error)
+        } else {
+          // console.log(7)
+          resolve(result)
+        }
+      }
+      // console.log(4)
+      this.nativeWorkerPool.decryptNotes(cb, payload)
+    })
+  }
 
   /**
    * A test worker task that sleeps for specified milliseconds

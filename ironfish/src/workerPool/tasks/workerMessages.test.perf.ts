@@ -47,9 +47,7 @@ class RustPool {
     return this.wrapRustWorkerpoolFn(this.nativeWorkerPool.sleep, ms)
   }
 
-  decryptNotes(
-    encrypted_notes: Array<NativeDecryptNoteOptions>,
-  ): Promise<Array<NativeDecryptedNote | null>> {
+  decryptNotes(encrypted_notes: NativeDecryptNoteOptions): Promise<Array<NativeDecryptedNote>> {
     return this.wrapRustWorkerpoolFn(this.nativeWorkerPool.decryptNotes, encrypted_notes)
   }
 
@@ -199,26 +197,29 @@ describe('Foo', () => {
     await expect(nodeTest.chain).toAddBlock(block)
 
     const accountToUse = account
-    const payload: NativeDecryptNoteOptions[] = []
+    const payload: NativeDecryptNoteOptions = {
+      incomingViewKey: account.incomingViewKey,
+      outgoingViewKey: account.outgoingViewKey,
+      viewKey: account.viewKey,
+      decryptForSpender: true,
+      notes: [],
+    }
     for (const transaction of transactions) {
       for (const note of transaction.notes) {
-        payload.push({
+        payload.notes.push({
           serializedNote: note.serialize(),
-          incomingViewKey: accountToUse.incomingViewKey,
-          outgoingViewKey: accountToUse.outgoingViewKey,
-          viewKey: accountToUse.viewKey,
           currentNoteIndex: 0,
-          decryptForSpender: true,
         })
       }
     }
 
     // Warmup job
-    const _foo = await rsPool.decryptNotes([])
+    const _foo = await rsPool.decryptNotes(payload)
 
     const start1 = process.hrtime.bigint()
     console.log('Start - rs decrypt:', start1)
-    const job1 = rsPool.decryptNotes(payload.slice(0, notesToDecrypt))
+    payload.notes = payload.notes.slice(0, notesToDecrypt)
+    const job1 = rsPool.decryptNotes(payload)
     console.log('Kickoff Duration:', (process.hrtime.bigint() - start1) / 1000n, 'microseconds')
 
     const r1 = await job1

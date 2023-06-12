@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 /* eslint-disable no-console */
+import { NativeDecryptNote, NativeDecryptNoteOptions } from '@ironfish/rust-nodejs'
 import { createNodeTest, useAccountFixture, useBlockWithTxs } from '../../testUtilities'
-import { BenchUtils } from '../../utils'
+import { BenchUtils, PromiseUtils } from '../../utils'
 import { WorkerPool } from '../pool'
 import { DecryptNoteOptions } from './decryptNotes'
 
@@ -47,6 +48,20 @@ describe('DecryptNotes job', () => {
       decryptForSpender: true,
       notes: [],
     }
+    const rsPayload1: NativeDecryptNoteOptions = {
+      incomingViewKey: account.incomingViewKey,
+      outgoingViewKey: account.outgoingViewKey,
+      viewKey: account.viewKey,
+      decryptForSpender: true,
+      notes: [],
+    }
+    const rsPayload2: NativeDecryptNoteOptions = {
+      incomingViewKey: account2.incomingViewKey,
+      outgoingViewKey: account2.outgoingViewKey,
+      viewKey: account2.viewKey,
+      decryptForSpender: true,
+      notes: [],
+    }
     const notesToDecrypt: DecryptNoteOptions['notes'] = []
     let i = 0
     for (const transaction of transactions) {
@@ -76,17 +91,48 @@ describe('DecryptNotes job', () => {
       }
     }
 
+    // console.log('--------------------------------')
+    // console.log('TYPESCRIPT')
+    // console.log('--------------------------------')
+    // for (const test of TESTS) {
+    //   const payload = test.canDecryptAsOwner ? payload1 : payload2
+    //   payload.decryptForSpender = test.tryDecryptForSpender
+    //   payload.notes = notesToDecrypt.slice(0, test.notes)
+
+    //   // TODO: RE-use the same pool since we arent testing worker count here
+    //   const tsPool = new WorkerPool({ numWorkers: 1 })
+    //   tsPool.start()
+
+    //   const results = await BenchUtils.withSegmentIterations(10, 100, async () => {
+    //     const _x = await tsPool.decryptNotes(payload)
+    //   })
+
+    //   const title = `[DecryptNotes: notes: ${
+    //     test.notes
+    //   }, canDecrypt: ${test.canDecryptAsOwner.toString()}, decryptForSpender: ${test.tryDecryptForSpender.toString()}]`
+    //   console.log(BenchUtils.renderSegmentAggregate(results, title))
+
+    //   await tsPool.stop()
+    // }
+
+    console.log('--------------------------------')
+    console.log('RUST')
+    console.log('--------------------------------')
     for (const test of TESTS) {
-      const payload = test.canDecryptAsOwner ? payload1 : payload2
+      const payload = test.canDecryptAsOwner ? rsPayload1 : rsPayload2
       payload.decryptForSpender = test.tryDecryptForSpender
-      payload.notes = notesToDecrypt.slice(0, test.notes)
+      // payload.notes = notesToDecrypt.slice(0, test.notes) as Array<NativeDecryptNote>
+      payload.notes = [...notesToDecrypt.slice(0, test.notes)] as Array<NativeDecryptNote>
 
       const tsPool = new WorkerPool({ numWorkers: 1 })
       tsPool.start()
 
+      console.log('Starting test ..')
       const results = await BenchUtils.withSegmentIterations(10, 100, async () => {
-        const _x = await tsPool.decryptNotes(payload)
+        const _x = await tsPool.decryptNotes3(payload)
       })
+
+      await PromiseUtils.sleep(1000)
 
       const title = `[DecryptNotes: notes: ${
         test.notes

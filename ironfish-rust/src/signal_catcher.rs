@@ -34,6 +34,14 @@ pub unsafe fn init_signal_handler() {
     // sure why it differs based on system
     libc::signal(libc::SIGTRAP, display_trace as usize);
     libc::signal(libc::SIGILL, display_trace as usize);
+
+    libc::signal(libc::SIGQUIT, display_trace as usize);
+    libc::signal(libc::SIGABRT, display_trace as usize);
+    libc::signal(libc::SIGEMT, display_trace as usize);
+    libc::signal(libc::SIGFPE, display_trace as usize);
+    libc::signal(libc::SIGPIPE, display_trace as usize);
+    libc::signal(libc::SIGALRM, display_trace as usize);
+    libc::signal(libc::SIGTERM, display_trace as usize);
 }
 
 /// # Safety
