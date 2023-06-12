@@ -25,6 +25,7 @@ workspace = true
 
 [features]
 benchmark = []
+download-params = ["dep:reqwest"]
 
 [lib]
 name = "ironfish"
@@ -51,5 +52,5 @@ xxhash-rust = { version = "0.8.5", features = ["xxh3"] }
 
 [build-dependencies]
 hex = "0.4"
-reqwest = { version = "0.11", features = ["blocking"] }
+reqwest = { optional = true, version = "0.11", features = ["blocking"] }
 sha2 = "0.10"
