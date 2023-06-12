@@ -1,4 +1,5 @@
 name: Import perf test result
+permissions: write-all
 
 on:
   push:
@@ -18,15 +19,27 @@ jobs:
             let allArtifacts = await github.rest.actions.listWorkflowRunArtifacts({
                owner: context.repo.owner,
                repo: context.repo.repo,
+               run_id: '5217915093'
             });
             let matchArtifact = allArtifacts.data.artifacts.filter((artifact) => {
               return artifact.name == "perf-test-report"
             })[0];
-            return matchArtifact.url
 
-      - name: Import test result to Flat Data
+            let download = await github.rest.actions.downloadArtifact({
+               owner: context.repo.owner,
+               repo: context.repo.repo,
+               artifact_id: matchArtifact.id,
+               archive_format: 'zip',
+            });
+
+            console.log(download)
+            return download.url
+
+      - name: Check out repo
+        uses: actions/checkout@v2
+
+      - name: Fetch Data
         uses: githubocto/flat@v3
         with:
           http_url: '${{steps.get-url.outputs.result}}'
-          downloaded_filename: 'perf-test-report.zip'
-          postprocess: src/perfTest/postprocess.ts
+          downloaded_filename: './raw-data/perf-test-report.zip'
