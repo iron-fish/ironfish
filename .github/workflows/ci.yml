@@ -9,6 +9,7 @@ on:
       - master
 
 permissions:
+  checks: write
   contents: write
   pull-requests: write
 
