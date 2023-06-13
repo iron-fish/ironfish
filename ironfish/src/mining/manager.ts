@@ -29,7 +29,6 @@ import { MinersFeeCache } from './minersFeeCache'
 export enum MINED_RESULT {
   UNKNOWN_REQUEST = 'UNKNOWN_REQUEST',
   CHAIN_CHANGED = 'CHAIN_CHANGED',
-  INVALID_BLOCK = 'INVALID_BLOCK',
   ADD_FAILED = 'ADD_FAILED',
   FORK = 'FORK',
   SUCCESS = 'SUCCESS',
@@ -378,15 +377,6 @@ export class MiningManager {
 
         return MINED_RESULT.CHAIN_CHANGED
       }
-    }
-
-    const validation = await this.node.chain.verifier.verifyBlock(block)
-
-    if (!validation.valid) {
-      this.node.logger.info(
-        `Discarding invalid mined block ${blockDisplay} ${validation.reason || 'undefined'}`,
-      )
-      return MINED_RESULT.INVALID_BLOCK
     }
 
     const { isAdded, reason, isFork } = await this.node.chain.addBlock(block)
