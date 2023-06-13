@@ -20,6 +20,7 @@ import { Block } from '../primitives/block'
 import { isBlockHeavier } from '../primitives/blockheader'
 import { Transaction } from '../primitives/transaction'
 import { BlockTemplateSerde, SerializedBlockTemplate } from '../serde'
+import { ErrorUtils } from '../utils'
 import { BenchUtils } from '../utils/bench'
 import { GraffitiUtils } from '../utils/graffiti'
 import { SpendingAccount } from '../wallet'
@@ -63,7 +64,14 @@ export class MiningManager {
     this.metrics = options.metrics
     this.minersFeeCache = new MinersFeeCache({ node: this.node })
 
-    this.chain.onConnectBlock.on((block) => void this.onConnectedBlock(block))
+    this.chain.onConnectBlock.on(
+      (block) =>
+        void this.onConnectedBlock(block).catch((error) => {
+          this.node.logger.info(
+            `Error creating block template: ${ErrorUtils.renderError(error)}`,
+          )
+        }),
+    )
   }
 
   get minersConnected(): number {
@@ -79,7 +87,11 @@ export class MiningManager {
       // Send an initial block template to the requester so they can begin working immediately
       void this.chain.getBlock(this.chain.head).then((currentBlock) => {
         if (currentBlock) {
-          void this.onConnectedBlock(currentBlock)
+          void this.onConnectedBlock(currentBlock).catch((error) => {
+            this.node.logger.info(
+              `Error creating block template: ${ErrorUtils.renderError(error)}`,
+            )
+          })
         }
       })
 
@@ -160,6 +172,9 @@ export class MiningManager {
       return
     }
 
+    // Kick off job to create the next empty miners fee
+    this.minersFeeCache.startCreatingEmptyMinersFee(currentBlock.header.sequence + 2, account)
+
     // Only try creating a block with transactions if there are transactions in
     // the mempool
     if (this.memPool.count()) {
@@ -167,9 +182,6 @@ export class MiningManager {
       this.metrics.mining_newBlockTemplate.add(BenchUtils.end(connectedAt))
       this.streamBlockTemplate(currentBlock, template)
     }
-
-    // Kick off job to create the next empty miners fee
-    this.minersFeeCache.startCreatingEmptyMinersFee(currentBlock.header.sequence + 2, account)
   }
 
   /**
