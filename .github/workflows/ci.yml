@@ -9,7 +9,6 @@ on:
       - master
 
 permissions:
-  checks: write
   contents: write
   pull-requests: write
 
@@ -145,7 +144,7 @@ jobs:
           json_test_case_results: true
       
       - name: Output test results
-        uses: ./.github/json_output
+        uses: ./.github/perf_test_output
         if: always()
         with:
           json: '${{ steps.test-results.outputs.json }}'
