@@ -40,7 +40,7 @@ jobs:
         with:
           save-if: false
           shared-key: base
-
+      
       - name: Install Cargo tools
         run: |
           rustup component add rustfmt clippy
