@@ -116,6 +116,6 @@ describe('Block template stream', () => {
     await expect(response.waitForRoute()).resolves.toEqual(expect.anything())
 
     // newBlock should have thrown an error, but the response should not have crashed
-    await expect(newBlockSpy.mock.results[2].value).rejects.toThrow()
+    await expect(newBlockSpy.mock.results[0].value).rejects.toThrow()
   })
 })
