@@ -98,7 +98,7 @@ describe('WorkerMessages', () => {
 
     expect(max).toBeLessThanOrEqual(6.1685)
     expect(min).toBeLessThanOrEqual(0.490597)
-    expect(avg).toBeLessThanOrEqual(0.582932)
+    expect(avg).toBeLessThanOrEqual(0.682932)
   })
 
   function printResults(

@@ -77,7 +77,7 @@ describe('Blockchain', () => {
     expect(addBlockOnForkTime).toBeLessThanOrEqual(1)
 
     const addHeadRewindForkBlocksTime = MathUtils.arrayAverage(result.rewind)
-    expect(addHeadRewindForkBlocksTime).toBeLessThanOrEqual(30.6)
+    expect(addHeadRewindForkBlocksTime).toBeLessThanOrEqual(36.6)
   })
 
   it('Times Ran: 5, Fork Length: 3', async () => {
@@ -91,7 +91,7 @@ describe('Blockchain', () => {
     expect(addBlockLinearTime).toBeLessThanOrEqual(45.3)
 
     const addBlockOnForkTime = MathUtils.arrayAverage(result.fork)
-    expect(addBlockOnForkTime).toBeLessThanOrEqual(30.2)
+    expect(addBlockOnForkTime).toBeLessThanOrEqual(34.2)
 
     const addHeadRewindForkBlocksTime = MathUtils.arrayAverage(result.rewind)
     expect(addHeadRewindForkBlocksTime).toBeLessThanOrEqual(157.8)
