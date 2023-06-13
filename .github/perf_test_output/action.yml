@@ -1,0 +1,30 @@
+name: 'Parse perf test output'
+description: 'A GitHub Action that parses perf tests and saves to JSON output'
+
+inputs:
+  json:
+    description: 'Perf test JSON data.'
+    required: true
+  json_file:
+    description: 'Path to the perf test JSON file.'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+  - name: JSON file
+    shell: bash
+    run: |
+      jq '.cases' "${{ inputs.json_file }}"
+
+  - name: JSON output
+    if: always()
+    env:
+      SUMMARY: ${{ fromJSON( inputs.json ).summary }}
+    shell: bash
+    run: |
+      echo "summary=$SUMMARY"
+
+branding:
+  icon: 'check-circle'
+  color: 'green'
