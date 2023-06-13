@@ -56,8 +56,8 @@ describe('Mining manager', () => {
 
       const currentHeadHash = chain.head.hash.toString('hex')
 
-      // Wait for the first 2 block templates
-      const template = (await collectTemplates(miningManager, 2))[0]
+      // Wait for the first block template
+      const template = (await collectTemplates(miningManager, 1))[0]
 
       expect(template.header.previousBlockHash).toBe(currentHeadHash)
       expect(template.transactions).toHaveLength(1)
@@ -162,9 +162,7 @@ describe('Mining manager', () => {
         chain.head.sequence + 2,
       )
 
-      jest.spyOn(node.memPool, 'orderedTransactions').mockImplementation(function* () {
-        yield transaction
-      })
+      node.memPool.acceptTransaction(transaction)
 
       const templates = await collectTemplates(node.miningManager, 2)
       const fullTemplate = templates.find((t) => t.transactions.length > 1)
@@ -222,6 +220,45 @@ describe('Mining manager', () => {
 
       expect(fullTemplate2.transactions[1]).toEqual(transaction.serialize().toString('hex'))
     })
+
+    it('should not try to create a full block if there are no transactions in the mempool', async () => {
+      const { chain, miningManager } = nodeTest.node
+
+      const createBlockTemplateSpy = jest.spyOn(miningManager, 'createNewBlockTemplate')
+
+      const account = await useAccountFixture(nodeTest.node.wallet, 'account')
+      await nodeTest.node.wallet.setDefaultAccount(account.name)
+
+      const block = await useMinerBlockFixture(chain, 2)
+      await expect(chain).toAddBlock(block)
+
+      // Wait for the first block template
+      const _template = (await collectTemplates(miningManager, 1))[0]
+
+      expect(createBlockTemplateSpy).toHaveBeenCalledTimes(1)
+    })
+
+    it('should create a new empty block when head changes', async () => {
+      const { chain, miningManager } = nodeTest.node
+
+      const account = await useAccountFixture(nodeTest.node.wallet, 'account')
+      await nodeTest.node.wallet.setDefaultAccount(account.name)
+
+      const block = await useMinerBlockFixture(chain, 2)
+      await expect(chain).toAddBlock(block)
+
+      // Wait for the first block template
+      const _template = (await collectTemplates(miningManager, 1))[0]
+
+      // Change the chain head to trigger a new template
+      const block3 = await useMinerBlockFixture(chain, 3)
+      await expect(chain).toAddBlock(block3)
+
+      // Wait for the block template
+      const template = (await collectTemplates(miningManager, 1))[0]
+
+      expect(template.header.previousBlockHash).toBe(block3.header.hash.toString('hex'))
+    })
   })
 
   describe('submit block template', () => {
@@ -234,7 +271,7 @@ describe('Mining manager', () => {
       await wallet.setDefaultAccount(account.name)
 
       // Create an old block template to submit later
-      const oldTemplate = (await collectTemplates(miningManager, 2))[0]
+      const oldTemplate = (await collectTemplates(miningManager, 1))[0]
 
       // add both A1 and A2 to the chain
       const blockA1 = await useMinerBlockFixture(chain, 2)
@@ -247,7 +284,7 @@ describe('Mining manager', () => {
       )
 
       // Create an old block template to submit later
-      const newTemplate = (await collectTemplates(miningManager, 2))[0]
+      const newTemplate = (await collectTemplates(miningManager, 1))[0]
 
       await expect(miningManager.submitBlockTemplate(newTemplate)).resolves.toBe(
         MINED_RESULT.SUCCESS,
@@ -262,7 +299,7 @@ describe('Mining manager', () => {
       const account = await useAccountFixture(wallet)
       await wallet.setDefaultAccount(account.name)
 
-      const template = (await collectTemplates(miningManager, 2))[0]
+      const template = (await collectTemplates(miningManager, 1))[0]
 
       jest
         .spyOn(chain.verifier, 'verifyBlock')
@@ -281,7 +318,7 @@ describe('Mining manager', () => {
       const account = await useAccountFixture(wallet)
       await wallet.setDefaultAccount(account.name)
 
-      const template = (await collectTemplates(miningManager, 2))[0]
+      const template = (await collectTemplates(miningManager, 1))[0]
 
       jest.spyOn(chain, 'addBlock').mockResolvedValue({
         isAdded: false,
@@ -307,7 +344,7 @@ describe('Mining manager', () => {
       const account = await useAccountFixture(wallet)
       await wallet.setDefaultAccount(account.name)
 
-      const template = (await collectTemplates(miningManager, 2))[0]
+      const template = (await collectTemplates(miningManager, 1))[0]
 
       jest.spyOn(chain, 'addBlock').mockResolvedValue({
         isAdded: true,
@@ -337,7 +374,7 @@ describe('Mining manager', () => {
 
       await expect(chain).toAddBlock(blockA1)
 
-      const templateA2 = (await collectTemplates(miningManager, 2))[0]
+      const templateA2 = (await collectTemplates(miningManager, 1))[0]
 
       await expect(chain).toAddBlock(blockB1)
 
@@ -365,8 +402,8 @@ describe('Mining manager', () => {
       const block = await useMinerBlockFixture(chain, 2)
       await expect(chain).toAddBlock(block)
 
-      // Wait for the first 2 block templates
-      const template = (await collectTemplates(miningManager, 2))[0]
+      // Wait for the first block template
+      const template = (await collectTemplates(miningManager, 1))[0]
 
       const onNewBlockSpy = jest.spyOn(miningManager.onNewBlock, 'emit')
 
