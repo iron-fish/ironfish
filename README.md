@@ -13,7 +13,7 @@ See https://ironfish.network
 
 ## Developer Install
 
-The following steps should only be used to install if you are planning on contributing to the Iron Fish codebase. Otherwise, we **strongly** recommend using the installation methods here: https://ironfish.network/docs/onboarding/installation-iron-fish
+The following steps should only be used to install if you are planning on contributing to the Iron Fish codebase. Otherwise, we **strongly** recommend using the installation methods here: https://ironfish.network/use/get-started/installation
 
 1. Install [Node.js 18.x](https://nodejs.org/en/download/)
 1. Install [Rust](https://www.rust-lang.org/learn/get-started).

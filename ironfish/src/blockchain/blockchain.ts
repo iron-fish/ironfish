@@ -354,8 +354,6 @@ export class Blockchain {
     if (this._head) {
       this.updateSynced()
     }
-
-    this.metrics.chain_databaseSize.value = await this.db.size()
   }
 
   async close(): Promise<void> {
@@ -407,8 +405,6 @@ export class Blockchain {
         const connectResult = await this.connect(block, previous, tx)
 
         this.resolveOrphans(block)
-
-        this.metrics.chain_databaseSize.value = await this.db.size()
 
         return connectResult
       })
@@ -940,6 +936,7 @@ export class Blockchain {
     userTransactions: Transaction[],
     minersFee: Transaction,
     graffiti?: Buffer,
+    previous?: BlockHeader,
   ): Promise<Block> {
     const transactions = [minersFee, ...userTransactions]
 
@@ -969,6 +966,11 @@ export class Blockchain {
         if (!previousHeader && previousSequence !== 1) {
           throw new Error('There is no previous block to calculate a target')
         }
+
+        if (previous && !previous.hash.equals(previousBlockHash)) {
+          throw new Error('Cannot create a block with a previous header that does not match')
+        }
+
         target = Target.calculateTarget(
           timestamp,
           heaviestHead.timestamp,
@@ -1163,8 +1165,6 @@ export class Blockchain {
         this.latest = this.head
         await this.meta.put('latest', this.head.hash, tx)
       }
-
-      this.metrics.chain_databaseSize.value = await this.db.size()
     })
   }
 

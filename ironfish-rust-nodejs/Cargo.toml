@@ -3,10 +3,21 @@ name = "ironfish-rust-nodejs"
 version = "0.1.0"
 license = "MPL-2.0"
 
+description = "Node.js addon for interacting with transactions on the Iron Fish chain"
+keywords = ["iron-fish", "cryptocurrency", "blockchain"]
+
+publish = false
+
 [package.authors]
 workspace = true
 
 [package.edition]
+workspace = true
+
+[package.homepage]
+workspace = true
+
+[package.repository]
 workspace = true
 
 [lib]
@@ -16,7 +27,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 base64 = "0.13.0"
-ironfish_rust = { path = "../ironfish-rust" }
+ironfish = { path = "../ironfish-rust" }
 napi-derive = "=2.9.1"
 # Pinning this can be removed if we eventually move to the latest releases again
 napi-derive-backend = "=1.0.38"

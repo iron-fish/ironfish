@@ -3,15 +3,23 @@ name = "benchmarks"
 version = "0.1.0"
 license = "MPL-2.0"
 
+publish = false
+
 [package.authors]
 workspace = true
 
 [package.edition]
 workspace = true
 
+[package.homepage]
+workspace = true
+
+[package.repository]
+workspace = true
+
 [dependencies]
 criterion = "0.4"
-ironfish_rust = { path = "../ironfish-rust", features = ["benchmark"] }
+ironfish = { path = "../ironfish-rust", features = ["benchmark"] }
 
 [[bench]]
 name = "asset"

@@ -4,14 +4,14 @@
 
 use std::fmt::Display;
 
-use ironfish_rust::keys::Language;
-use ironfish_rust::PublicAddress;
-use ironfish_rust::SaplingKey;
+use ironfish::keys::Language;
+use ironfish::PublicAddress;
+use ironfish::SaplingKey;
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 
-use ironfish_rust::mining;
-use ironfish_rust::sapling_bls12;
+use ironfish::mining;
+use ironfish::sapling_bls12;
 
 pub mod mpc;
 pub mod nacl;

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use ironfish_rust::{
+use ironfish::{
     nacl::{self, box_message, bytes_to_secret_key, new_secret_key, unbox_message},
     serializing::hex_to_bytes,
 };
