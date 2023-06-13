@@ -10,7 +10,7 @@ import { IronfishCliPKG } from '../../package'
 import { GossipForkCounter } from '../../utils/gossipForkCounter'
 
 export default class Stats extends IronfishCommand {
-  //static hidden = true
+  static hidden = true
 
   static description = `Submits stats to telemetry API`
 
