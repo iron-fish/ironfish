@@ -269,7 +269,7 @@ describe('Mining manager', () => {
         .mockResolvedValue({ valid: false, reason: VerificationResultReason.INVALID_TARGET })
 
       await expect(miningManager.submitBlockTemplate(template)).resolves.toBe(
-        MINED_RESULT.INVALID_BLOCK,
+        MINED_RESULT.ADD_FAILED,
       )
     })
 
