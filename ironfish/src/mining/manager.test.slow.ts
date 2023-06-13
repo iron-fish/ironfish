@@ -259,6 +259,56 @@ describe('Mining manager', () => {
 
       expect(template.header.previousBlockHash).toBe(block3.header.hash.toString('hex'))
     })
+
+    it('should skip block verification for empty blocks', async () => {
+      const { chain, miningManager } = nodeTest.node
+
+      const account = await useAccountFixture(nodeTest.node.wallet, 'account')
+      await nodeTest.node.wallet.setDefaultAccount(account.name)
+
+      const block = await useMinerBlockFixture(chain, 2)
+      await expect(chain).toAddBlock(block)
+
+      const verifyBlockSpy = jest.spyOn(nodeTest.node.chain.verifier, 'verifyBlock')
+
+      // Wait for the first block template
+      await collectTemplates(miningManager, 1)
+
+      expect(verifyBlockSpy).not.toHaveBeenCalled()
+    })
+
+    it('should re-send the empty template if verification fails for the full template', async () => {
+      const { node, chain, wallet } = nodeTest
+
+      // Create an account with some money
+      const account = await useAccountFixture(wallet)
+      await wallet.setDefaultAccount(account.name)
+
+      const block1 = await useMinerBlockFixture(chain, undefined, account, wallet)
+      await expect(chain).toAddBlock(block1)
+      await wallet.updateHead()
+
+      const transaction = await useTxFixture(
+        wallet,
+        account,
+        account,
+        undefined,
+        undefined,
+        chain.head.sequence + 2,
+      )
+
+      node.memPool.acceptTransaction(transaction)
+
+      jest
+        .spyOn(nodeTest.node.chain.verifier, 'verifyBlock')
+        .mockResolvedValue({ valid: false, reason: VerificationResultReason.ERROR })
+
+      const templates = await collectTemplates(node.miningManager, 3)
+
+      expect(templates.length).toEqual(3)
+
+      expect(templates[0]).toEqual(templates[2])
+    })
   })
 
   describe('submit block template', () => {
