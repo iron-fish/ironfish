@@ -14,7 +14,7 @@ import {
 } from '../testUtilities'
 import { createRawTransaction } from '../testUtilities/helpers/transaction'
 import { BenchUtils } from '../utils'
-import { Account, Wallet, SpendingAccount } from '../wallet'
+import { Account, SpendingAccount, Wallet } from '../wallet'
 
 type Results = { mempoolSize: number; numTransactions: number; elapsed: number }
 
@@ -72,6 +72,10 @@ describe('MiningManager', () => {
 
   for (const testInput of TEST_AMOUNTS) {
     it(`Mempool size: ${testInput.mempoolSize}`, async () => {
+      if (!account.isSpendingAccount()) {
+        return
+      }
+
       const results = await runTest(account, blocks, transactions, testInput.mempoolSize)
       printResults(results)
 
