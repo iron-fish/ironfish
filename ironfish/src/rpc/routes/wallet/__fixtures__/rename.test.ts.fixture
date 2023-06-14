@@ -11,5 +11,18 @@
       "publicAddress": "3b9568789efceb08e8d977cb7b6ad7cbde509539e59d81df284d936eaa069d82",
       "createdAt": null
     }
+  ],
+  "Route wallet/rename renames existing account": [
+    {
+      "version": 2,
+      "id": "849a9316-0b0f-4e34-8e8e-ecf3a6014687",
+      "name": "existingAccount",
+      "spendingKey": "6138f2ed243b1ad8f73df2b2bbc3a096da20bc5448c36160c4505502ad0e853f",
+      "viewKey": "c019d627fc6cace0c8f62025b900a9eaf1ca3cd45e9fc9a6ab651226e05e292630f4e38aac4ac1960579626269c15fe1efdc76a2595e43cdb7fb177880cab1cc",
+      "incomingViewKey": "5c6ad3fc9a3ee1ae6395ddc721e75eac6e7c7313c7e6e0a0ffc72bbce18ab201",
+      "outgoingViewKey": "361e6b24ad3fe79adb54d338dd14ba4ee2d489f46543b59b70007b3e52343a97",
+      "publicAddress": "8a94f1851509119394b683d54ca1768443c7cb8538c74f679146ee1edbfa0344",
+      "createdAt": null
+    }
   ]
 }
