@@ -1,4 +1,4 @@
-use bellperson::{
+use bellman::{
     gadgets::{
         blake2s,
         boolean::{self, AllocatedBit, Boolean},
@@ -57,7 +57,7 @@ pub fn expose_value_commitment<CS>(
     value_commitment: Option<ValueCommitment>,
 ) -> Result<Vec<boolean::Boolean>, SynthesisError>
 where
-    CS: ConstraintSystem<blstrs::Scalar>,
+    CS: ConstraintSystem<bls12_381::Scalar>,
 {
     // Booleanize the value into little-endian bit order
     let value_bits = boolean::u64_into_boolean_vec_le(
@@ -109,7 +109,7 @@ where
     Ok(value_bits)
 }
 
-pub fn assert_valid_asset_generator<CS: bellperson::ConstraintSystem<blstrs::Scalar>>(
+pub fn assert_valid_asset_generator<CS: bellman::ConstraintSystem<bls12_381::Scalar>>(
     mut cs: CS,
     asset_id: &[u8; ASSET_ID_LENGTH],
     asset_generator_repr: &[Boolean],

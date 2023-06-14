@@ -7,7 +7,7 @@ use super::{
     witness::{Witness, WitnessNode},
     MerkleNoteHash,
 };
-use blstrs::Scalar;
+use bls12_381::Scalar;
 use ironfish_zkp::constants::TREE_DEPTH;
 use rand::{thread_rng, Rng};
 
@@ -39,6 +39,7 @@ pub fn make_fake_witness(note: &Note) -> Witness {
 /// Currently marked for test-only compilation,
 /// but it may be useful to publish
 /// something like this in the future.
+
 pub(crate) fn auth_path_to_root_hash(
     auth_path: &[WitnessNode<Scalar>],
     child_hash: Scalar,

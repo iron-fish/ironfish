@@ -10,9 +10,8 @@ use crate::{
     sapling_bls12::SAPLING,
 };
 
-use bellperson::groth16;
-use blstrs::{Bls12, Scalar};
-use ff::Field;
+use bellman::groth16;
+use bls12_381::{Bls12, Scalar};
 use group::Curve;
 use ironfish_zkp::{primitives::ValueCommitment, proofs::Output, redjubjub};
 use jubjub::ExtendedPoint;
@@ -172,7 +171,7 @@ impl OutputDescription {
         Ok(())
     }
 
-    /// Converts the values to appropriate inputs for verifying the bellperson proof.
+    /// Converts the values to appropriate inputs for verifying the bellman proof.
     /// Demonstrates knowledge of a note containing the sender's randomized public key,
     /// value_commitment, public_key, and note_commitment
     pub fn public_inputs(&self, randomized_public_key: &redjubjub::PublicKey) -> [Scalar; 7] {
@@ -238,7 +237,7 @@ mod test {
         let public_key_randomness = jubjub::Fr::random(thread_rng());
         let randomized_public_key =
             redjubjub::PublicKey(spender_key.view_key.authorizing_key.into())
-                .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);
+                .randomize(public_key_randomness, SPENDING_KEY_GENERATOR);
 
         let note = Note::new(
             spender_key.public_address(),
@@ -268,7 +267,7 @@ mod test {
         let public_key_randomness = jubjub::Fr::random(thread_rng());
         let randomized_public_key =
             redjubjub::PublicKey(spender_key.view_key.authorizing_key.into())
-                .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);
+                .randomize(public_key_randomness, SPENDING_KEY_GENERATOR);
 
         let note = Note::new(
             receiver_key.public_address(),
@@ -296,7 +295,7 @@ mod test {
         let public_key_randomness = jubjub::Fr::random(thread_rng());
         let randomized_public_key =
             redjubjub::PublicKey(spender_key.view_key.authorizing_key.into())
-                .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);
+                .randomize(public_key_randomness, SPENDING_KEY_GENERATOR);
 
         let note = Note::new(
             receiver_key.public_address(),

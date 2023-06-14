@@ -1,8 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-use bellperson::groth16;
-use blstrs::Bls12;
+use bellman::groth16;
+use bls12_381::Bls12;
 
 pub mod assets;
 pub mod errors;
@@ -39,7 +39,7 @@ pub use ironfish_zkp::primitives::ValueCommitment;
 // The main entry-point to the sapling API. Construct this with loaded parameters, and then call
 // methods on it to do the actual work.
 //
-// spend and output are two arithmetic circuits for use in zksnark calculations provided by bellperson.
+// spend and output are two arithmetic circuits for use in zksnark calculations provided by Bellman.
 // Though the *_params have a verifying key on them, they are not the prepared verifying keys,
 // so we store the prepared keys separately at the time of loading the params.
 //

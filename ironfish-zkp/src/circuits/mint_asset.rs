@@ -1,4 +1,4 @@
-use bellperson::{
+use bellman::{
     gadgets::{blake2s, boolean},
     Circuit,
 };
@@ -20,11 +20,11 @@ pub struct MintAsset {
     pub public_key_randomness: Option<jubjub::Fr>,
 }
 
-impl Circuit<blstrs::Scalar> for MintAsset {
-    fn synthesize<CS: bellperson::ConstraintSystem<blstrs::Scalar>>(
+impl Circuit<bls12_381::Scalar> for MintAsset {
+    fn synthesize<CS: bellman::ConstraintSystem<bls12_381::Scalar>>(
         self,
         cs: &mut CS,
-    ) -> Result<(), bellperson::SynthesisError> {
+    ) -> Result<(), bellman::SynthesisError> {
         // Prover witnesses ak (ensures that it's on the curve)
         let ak = ecc::EdwardsPoint::witness(
             cs.namespace(|| "ak"),
@@ -117,7 +117,7 @@ impl Circuit<blstrs::Scalar> for MintAsset {
 
 #[cfg(test)]
 mod test {
-    use bellperson::{gadgets::test::TestConstraintSystem, Circuit, ConstraintSystem};
+    use bellman::{gadgets::test::TestConstraintSystem, Circuit};
     use ff::Field;
     use group::{Curve, Group};
     use jubjub::ExtendedPoint;
@@ -140,7 +140,7 @@ mod test {
             nsk: jubjub::Fr::random(&mut rng),
         };
         let incoming_view_key = proof_generation_key.to_viewing_key();
-        let public_address = *PUBLIC_KEY_GENERATOR * incoming_view_key.ivk().0;
+        let public_address = PUBLIC_KEY_GENERATOR * incoming_view_key.ivk().0;
         let public_address_point = ExtendedPoint::from(public_address).to_affine();
 
         let public_key_randomness = jubjub::Fr::random(&mut rng);
