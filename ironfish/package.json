@@ -94,6 +94,7 @@
     "url": "https://github.com/iron-fish/ironfish/issues"
   },
   "jest-junit": {
+    "includeShortConsoleOutput": "true",
     "suiteName": "jest tests",
     "outputDirectory": "test-reports",
     "outputName": "jest-junit.xml",

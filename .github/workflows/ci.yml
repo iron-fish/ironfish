@@ -137,6 +137,7 @@ jobs:
         with:
           files: |
             ironfish/test-reports/jest-junit.xml
+          comment_mode: 'off'
           job_summary: true
           json_file: 'tests.json'
           report_individual_runs: true

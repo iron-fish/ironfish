@@ -6,6 +6,7 @@
 import { Asset } from '@ironfish/rust-nodejs'
 import _ from 'lodash'
 import { Assert } from '../assert'
+import { IronfishNode } from '../node'
 import { Block } from '../primitives'
 import {
   createNodeTest,
@@ -19,6 +20,8 @@ describe('Blockchain', () => {
   const nodeTest = createNodeTest()
   const blocksA = new Array<Block>()
   const blocksB = new Array<Block>()
+  const nodeArrays = new Array<IronfishNode>()
+  const testCount = 5
 
   beforeAll(async () => {
     const { node: nodeA } = await nodeTest.createSetup()
@@ -63,8 +66,16 @@ describe('Blockchain', () => {
     Assert.isEqual(balanceB.unconfirmed, BigInt(1999999901))
   })
 
+  beforeEach(async () => {
+    // Create 5 nodes for each test
+    for (let i = 0; i < testCount; ++i) {
+      const { node } = await nodeTest.createSetup()
+      nodeArrays.push(node)
+    }
+  })
+
   it('Times Ran: 5, Fork Length: 1', async () => {
-    const result = await runTest(5, 1)
+    const result = await runTest(testCount, 1)
     printResults(result)
 
     const totalTestAverageTime = MathUtils.arrayAverage(result.all)
@@ -81,7 +92,7 @@ describe('Blockchain', () => {
   })
 
   it('Times Ran: 5, Fork Length: 3', async () => {
-    const result = await runTest(5, 3)
+    const result = await runTest(testCount, 3)
     printResults(result)
 
     const totalTestAverageTime = MathUtils.arrayAverage(result.all)
@@ -98,7 +109,7 @@ describe('Blockchain', () => {
   })
 
   it('Times Ran: 5, Fork Length: 5', async () => {
-    const result = await runTest(5, 5)
+    const result = await runTest(testCount, 5)
     printResults(result)
 
     const totalTestAverageTime = MathUtils.arrayAverage(result.all)
@@ -115,7 +126,7 @@ describe('Blockchain', () => {
   })
 
   it('Times Ran: 5, Fork Length: 10', async () => {
-    const result = await runTest(5, 10)
+    const result = await runTest(testCount, 10)
     printResults(result)
 
     const totalTestAverageTime = MathUtils.arrayAverage(result.all)
@@ -132,7 +143,7 @@ describe('Blockchain', () => {
   })
 
   it('Times Ran: 5, Fork Length: 50', async () => {
-    const result = await runTest(5, 50)
+    const result = await runTest(testCount, 50)
     printResults(result)
 
     const totalTestAverageTime = MathUtils.arrayAverage(result.all)
@@ -149,7 +160,7 @@ describe('Blockchain', () => {
   })
 
   it('Times Ran: 5, Fork Length: 100', async () => {
-    const result = await runTest(5, 100)
+    const result = await runTest(testCount, 100)
     printResults(result)
 
     const totalTestAverageTime = MathUtils.arrayAverage(result.all)
@@ -186,7 +197,7 @@ describe('Blockchain', () => {
     for (let i = 0; i < testCount; i++) {
       console.log(`Running Test ${i}`)
 
-      const { node } = await nodeTest.createSetup()
+      const node = nodeArrays[i]
 
       const startAll = Date.now()
 
