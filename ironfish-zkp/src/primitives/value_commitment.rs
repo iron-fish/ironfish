@@ -24,7 +24,7 @@ impl ValueCommitment {
 
     pub fn commitment(&self) -> jubjub::SubgroupPoint {
         (self.asset_generator.clear_cofactor() * jubjub::Fr::from(self.value))
-            + (*VALUE_COMMITMENT_RANDOMNESS_GENERATOR * self.randomness)
+            + (VALUE_COMMITMENT_RANDOMNESS_GENERATOR * self.randomness)
     }
 }
 
@@ -52,9 +52,9 @@ mod test {
         assert_eq!(
             commitment.to_bytes(),
             [
-                26, 187, 102, 88, 49, 246, 207, 250, 101, 221, 173, 175, 223, 125, 32, 121, 255,
-                254, 160, 169, 214, 227, 29, 219, 84, 179, 43, 24, 186, 217, 93, 177
-            ],
+                246, 11, 253, 164, 210, 130, 169, 101, 41, 250, 51, 71, 158, 70, 62, 61, 194, 206,
+                21, 161, 234, 105, 158, 75, 142, 162, 25, 155, 101, 231, 117, 38
+            ]
         );
     }
 

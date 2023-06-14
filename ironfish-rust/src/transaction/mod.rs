@@ -20,8 +20,9 @@ use crate::{
     OutputDescription, SpendDescription,
 };
 
-use bellperson::groth16::verify_proofs_batch;
+use bellman::groth16::batch::Verifier;
 use blake2b_simd::Params as Blake2b;
+use bls12_381::Bls12;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use group::GroupEncoding;
 use jubjub::ExtendedPoint;
@@ -267,7 +268,7 @@ impl ProposedTransaction {
         // Calculated from the authorizing key and the public_key_randomness.
         let randomized_public_key =
             redjubjub::PublicKey(self.spender_key.view_key.authorizing_key.into())
-                .randomize(self.public_key_randomness, *SPENDING_KEY_GENERATOR);
+                .randomize(self.public_key_randomness, SPENDING_KEY_GENERATOR);
 
         // Build descriptions
         let mut unsigned_spends = Vec::with_capacity(self.spends.len());
@@ -371,7 +372,7 @@ impl ProposedTransaction {
 
         let randomized_public_key =
             redjubjub::PublicKey(self.spender_key.view_key.authorizing_key.into())
-                .randomize(self.public_key_randomness, *SPENDING_KEY_GENERATOR);
+                .randomize(self.public_key_randomness, SPENDING_KEY_GENERATOR);
 
         hasher
             .write_all(&randomized_public_key.0.to_bytes())
@@ -421,7 +422,7 @@ impl ProposedTransaction {
         Ok(private_key.sign(
             &data_to_be_signed,
             &mut OsRng,
-            *VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
+            VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
         ))
     }
 
@@ -450,7 +451,7 @@ impl ProposedTransaction {
 
         let private_key = PrivateKey(binding_signature_key);
         let public_key =
-            PublicKey::from_private(&private_key, *VALUE_COMMITMENT_RANDOMNESS_GENERATOR);
+            PublicKey::from_private(&private_key, VALUE_COMMITMENT_RANDOMNESS_GENERATOR);
 
         let value_balance =
             self.calculate_value_balance(&binding_verification_key, mints, burns)?;
@@ -724,7 +725,7 @@ impl Transaction {
         if !redjubjub::PublicKey(value_balance).verify(
             &data_to_verify_signature,
             &self.binding_signature,
-            *VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
+            VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
         ) {
             return Err(IronfishError::VerificationFailed);
         }
@@ -744,7 +745,7 @@ fn fee_to_point(value: i64) -> Result<ExtendedPoint, IronfishError> {
         None => return Err(IronfishError::IllegalValue),
     };
 
-    let mut value_balance = *NATIVE_VALUE_COMMITMENT_GENERATOR * jubjub::Fr::from(abs);
+    let mut value_balance = NATIVE_VALUE_COMMITMENT_GENERATOR * jubjub::Fr::from(abs);
 
     if is_negative {
         value_balance = -value_balance;
@@ -783,14 +784,9 @@ fn calculate_value_balance(
 pub fn batch_verify_transactions<'a>(
     transactions: impl IntoIterator<Item = &'a Transaction>,
 ) -> Result<(), IronfishError> {
-    let mut spend_proofs = vec![];
-    let mut spend_public_inputs = vec![];
-
-    let mut output_proofs = vec![];
-    let mut output_public_inputs = vec![];
-
-    let mut mint_proofs = vec![];
-    let mut mint_public_inputs = vec![];
+    let mut spend_verifier = Verifier::<Bls12>::new();
+    let mut output_verifier = Verifier::<Bls12>::new();
+    let mut mint_verifier = Verifier::<Bls12>::new();
 
     for transaction in transactions {
         // Currently only support version 1 transactions, the version
@@ -808,12 +804,8 @@ pub fn batch_verify_transactions<'a>(
         for spend in transaction.spends.iter() {
             spend.partial_verify()?;
 
-            spend_proofs.push(&spend.proof);
-            spend_public_inputs.push(
-                spend
-                    .public_inputs(transaction.randomized_public_key())
-                    .to_vec(),
-            );
+            let public_inputs = spend.public_inputs(transaction.randomized_public_key());
+            spend_verifier.queue((&spend.proof, &public_inputs[..]));
 
             binding_verification_key += spend.value_commitment;
 
@@ -826,12 +818,8 @@ pub fn batch_verify_transactions<'a>(
         for output in transaction.outputs.iter() {
             output.partial_verify()?;
 
-            output_proofs.push(&output.proof);
-            output_public_inputs.push(
-                output
-                    .public_inputs(transaction.randomized_public_key())
-                    .to_vec(),
-            );
+            let public_inputs = output.public_inputs(transaction.randomized_public_key());
+            output_verifier.queue((&output.proof, &public_inputs[..]));
 
             binding_verification_key -= output.merkle_note.value_commitment;
         }
@@ -839,11 +827,8 @@ pub fn batch_verify_transactions<'a>(
         for mint in transaction.mints.iter() {
             mint.partial_verify()?;
 
-            mint_proofs.push(&mint.proof);
-            mint_public_inputs.push(
-                mint.public_inputs(transaction.randomized_public_key())
-                    .to_vec(),
-            );
+            let public_inputs = mint.public_inputs(transaction.randomized_public_key());
+            mint_verifier.queue((&mint.proof, &public_inputs[..]));
 
             mint.verify_signature(
                 &hash_to_verify_signature,
@@ -854,30 +839,9 @@ pub fn batch_verify_transactions<'a>(
         transaction.verify_binding_signature(&binding_verification_key)?;
     }
 
-    if !spend_proofs.is_empty() {
-        verify_proofs_batch(
-            &SAPLING.spend_verifying_key,
-            &mut OsRng,
-            &spend_proofs[..],
-            &spend_public_inputs[..],
-        )?;
-    }
-    if !output_proofs.is_empty() {
-        verify_proofs_batch(
-            &SAPLING.output_verifying_key,
-            &mut OsRng,
-            &output_proofs[..],
-            &output_public_inputs[..],
-        )?;
-    }
-    if !mint_proofs.is_empty() {
-        verify_proofs_batch(
-            &SAPLING.mint_verifying_key,
-            &mut OsRng,
-            &mint_proofs[..],
-            &mint_public_inputs[..],
-        )?;
-    }
+    spend_verifier.verify(&mut OsRng, &SAPLING.spend_params.vk)?;
+    output_verifier.verify(&mut OsRng, &SAPLING.output_params.vk)?;
+    mint_verifier.verify(&mut OsRng, &SAPLING.mint_params.vk)?;
 
     Ok(())
 }

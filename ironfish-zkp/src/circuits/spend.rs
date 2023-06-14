@@ -1,16 +1,16 @@
-use bellperson::{Circuit, ConstraintSystem, SynthesisError};
-use ff::{Field, PrimeField};
+use bellman::{Circuit, ConstraintSystem, SynthesisError};
+use ff::PrimeField;
 use jubjub::SubgroupPoint;
 
 use crate::constants::{CRH_IVK_PERSONALIZATION, PRF_NF_PERSONALIZATION};
 use crate::{constants::proof::PUBLIC_KEY_GENERATOR, primitives::ValueCommitment};
 
 use super::util::expose_value_commitment;
-use bellperson::gadgets::blake2s;
-use bellperson::gadgets::boolean;
-use bellperson::gadgets::multipack;
-use bellperson::gadgets::num;
-use bellperson::gadgets::Assignment;
+use bellman::gadgets::blake2s;
+use bellman::gadgets::boolean;
+use bellman::gadgets::multipack;
+use bellman::gadgets::num;
+use bellman::gadgets::Assignment;
 use zcash_primitives::sapling::ProofGenerationKey;
 use zcash_proofs::{
     circuit::{ecc, pedersen_hash},
@@ -40,18 +40,18 @@ pub struct Spend {
     pub ar: Option<jubjub::Fr>,
 
     /// The authentication path of the commitment in the tree
-    pub auth_path: Vec<Option<(blstrs::Scalar, bool)>>,
+    pub auth_path: Vec<Option<(bls12_381::Scalar, bool)>>,
 
     /// The anchor; the root of the tree. If the note being
     /// spent is zero-value, this can be anything.
-    pub anchor: Option<blstrs::Scalar>,
+    pub anchor: Option<bls12_381::Scalar>,
 
     /// The sender address associated with the note
     pub sender_address: Option<SubgroupPoint>,
 }
 
-impl Circuit<blstrs::Scalar> for Spend {
-    fn synthesize<CS: ConstraintSystem<blstrs::Scalar>>(
+impl Circuit<bls12_381::Scalar> for Spend {
+    fn synthesize<CS: ConstraintSystem<bls12_381::Scalar>>(
         self,
         cs: &mut CS,
     ) -> Result<(), SynthesisError> {
@@ -167,7 +167,7 @@ impl Circuit<blstrs::Scalar> for Spend {
 
             // Compute the note's value as a linear combination
             // of the bits.
-            let mut coeff = blstrs::Scalar::one();
+            let mut coeff = bls12_381::Scalar::one();
             for bit in &value_bits {
                 value_num = value_num.add_bool_with_coeff(CS::one(), bit, coeff);
                 coeff = coeff.double();
@@ -293,7 +293,7 @@ impl Circuit<blstrs::Scalar> for Spend {
             cs.enforce(
                 || "conditionally enforce correct root",
                 |lc| lc + cur.get_variable() - rt.get_variable(),
-                |lc| lc + &value_num.lc(blstrs::Scalar::one()),
+                |lc| lc + &value_num.lc(bls12_381::Scalar::one()),
                 |lc| lc,
             );
 
@@ -334,9 +334,9 @@ impl Circuit<blstrs::Scalar> for Spend {
 
 #[cfg(test)]
 mod test {
-    use bellperson::{
+    use bellman::{
         gadgets::{multipack, test::*},
-        Circuit, ConstraintSystem,
+        Circuit,
     };
     use blake2s_simd::Params as Blake2sParams;
     use ff::{Field, PrimeField, PrimeFieldBits};
@@ -354,7 +354,7 @@ mod test {
     };
 
     #[test]
-    fn test_spend_circuit_with_blstrs() {
+    fn test_spend_circuit_with_bls12_381() {
         // Seed a fixed rng for determinism in the test
         let mut rng = StdRng::seed_from_u64(0);
 
@@ -364,7 +364,7 @@ mod test {
             let value_commitment = ValueCommitment {
                 value: rng.next_u64(),
                 randomness: jubjub::Fr::random(&mut rng),
-                asset_generator: (*VALUE_COMMITMENT_VALUE_GENERATOR).into(),
+                asset_generator: VALUE_COMMITMENT_VALUE_GENERATOR.into(),
             };
 
             let proof_generation_key = ProofGenerationKey {
@@ -374,11 +374,14 @@ mod test {
 
             let viewing_key = proof_generation_key.to_viewing_key();
 
-            let payment_address = *PUBLIC_KEY_GENERATOR * viewing_key.ivk().0;
+            let payment_address = PUBLIC_KEY_GENERATOR * viewing_key.ivk().0;
 
             let commitment_randomness = jubjub::Fr::random(&mut rng);
             let auth_path =
-                vec![Some((blstrs::Scalar::random(&mut rng), rng.next_u32() % 2 != 0)); tree_depth];
+                vec![
+                    Some((bls12_381::Scalar::random(&mut rng), rng.next_u32() % 2 != 0));
+                    tree_depth
+                ];
             let ar = jubjub::Fr::random(&mut rng);
 
             {
@@ -387,7 +390,7 @@ mod test {
                     jubjub::ExtendedPoint::from(value_commitment.commitment()).to_affine();
                 let note = Note {
                     value: value_commitment.value,
-                    g_d: *PUBLIC_KEY_GENERATOR,
+                    g_d: PUBLIC_KEY_GENERATOR,
                     pk_d: payment_address,
                     rseed: Rseed::BeforeZip212(commitment_randomness),
                 };
@@ -421,8 +424,12 @@ mod test {
                         pedersen_hash::Personalization::MerkleTree(i),
                         lhs.iter()
                             .by_vals()
-                            .take(blstrs::Scalar::NUM_BITS as usize)
-                            .chain(rhs.iter().by_vals().take(blstrs::Scalar::NUM_BITS as usize)),
+                            .take(bls12_381::Scalar::NUM_BITS as usize)
+                            .chain(
+                                rhs.iter()
+                                    .by_vals()
+                                    .take(bls12_381::Scalar::NUM_BITS as usize),
+                            ),
                     ))
                     .to_affine()
                     .get_u();
@@ -432,7 +439,7 @@ mod test {
                     }
                 }
 
-                let rho = commitment + (*NULLIFIER_POSITION_GENERATOR * jubjub::Fr::from(position));
+                let rho = commitment + (NULLIFIER_POSITION_GENERATOR * jubjub::Fr::from(position));
 
                 // Compute nf = BLAKE2s(nk | rho)
                 let expected_nf = Nullifier::from_slice(
@@ -476,7 +483,7 @@ mod test {
                 assert_eq!(cs.get("randomization of note commitment/u3/num"), cmu);
 
                 assert_eq!(cs.num_inputs(), 8);
-                assert_eq!(cs.get_input(0, "ONE"), blstrs::Scalar::one());
+                assert_eq!(cs.get_input(0, "ONE"), bls12_381::Scalar::one());
                 assert_eq!(cs.get_input(1, "rk/u/input variable"), rk.get_u());
                 assert_eq!(cs.get_input(2, "rk/v/input variable"), rk.get_v());
                 assert_eq!(
@@ -495,7 +502,7 @@ mod test {
     }
 
     #[test]
-    fn test_spend_circuit_with_blstrs_external_test_vectors() {
+    fn test_spend_circuit_with_bls12_381_external_test_vectors() {
         // Seed a fixed rng for determinism in the test
         let mut rng = StdRng::seed_from_u64(0);
 
@@ -521,7 +528,7 @@ mod test {
             let value_commitment = ValueCommitment {
                 value: i,
                 randomness: jubjub::Fr::from(1000 * (i + 1)),
-                asset_generator: (*VALUE_COMMITMENT_VALUE_GENERATOR).into(),
+                asset_generator: VALUE_COMMITMENT_VALUE_GENERATOR.into(),
             };
 
             let proof_generation_key = ProofGenerationKey {
@@ -531,11 +538,14 @@ mod test {
 
             let viewing_key = proof_generation_key.to_viewing_key();
 
-            let payment_address = *PUBLIC_KEY_GENERATOR * viewing_key.ivk().0;
+            let payment_address = PUBLIC_KEY_GENERATOR * viewing_key.ivk().0;
 
             let commitment_randomness = jubjub::Fr::random(&mut rng);
             let auth_path =
-                vec![Some((blstrs::Scalar::random(&mut rng), rng.next_u32() % 2 != 0)); tree_depth];
+                vec![
+                    Some((bls12_381::Scalar::random(&mut rng), rng.next_u32() % 2 != 0));
+                    tree_depth
+                ];
             let ar = jubjub::Fr::random(&mut rng);
 
             {
@@ -544,11 +554,13 @@ mod test {
                     jubjub::ExtendedPoint::from(value_commitment.commitment()).to_affine();
                 assert_eq!(
                     expected_value_commitment.get_u(),
-                    blstrs::Scalar::from_str_vartime(expected_commitment_us[i as usize]).unwrap()
+                    bls12_381::Scalar::from_str_vartime(expected_commitment_us[i as usize])
+                        .unwrap()
                 );
                 assert_eq!(
                     expected_value_commitment.get_v(),
-                    blstrs::Scalar::from_str_vartime(expected_commitment_vs[i as usize]).unwrap()
+                    bls12_381::Scalar::from_str_vartime(expected_commitment_vs[i as usize])
+                        .unwrap()
                 );
 
                 let mut position = 0u64;
@@ -581,8 +593,12 @@ mod test {
                         pedersen_hash::Personalization::MerkleTree(i),
                         lhs.iter()
                             .by_vals()
-                            .take(blstrs::Scalar::NUM_BITS as usize)
-                            .chain(rhs.iter().by_vals().take(blstrs::Scalar::NUM_BITS as usize)),
+                            .take(bls12_381::Scalar::NUM_BITS as usize)
+                            .chain(
+                                rhs.iter()
+                                    .by_vals()
+                                    .take(bls12_381::Scalar::NUM_BITS as usize),
+                            ),
                     ))
                     .to_affine()
                     .get_u();
@@ -592,7 +608,7 @@ mod test {
                     }
                 }
 
-                let rho = commitment + (*NULLIFIER_POSITION_GENERATOR * jubjub::Fr::from(position));
+                let rho = commitment + (NULLIFIER_POSITION_GENERATOR * jubjub::Fr::from(position));
 
                 // Compute nf = BLAKE2s(nk | rho)
                 let expected_nf = Nullifier::from_slice(
@@ -636,7 +652,7 @@ mod test {
                 assert_eq!(cs.get("randomization of note commitment/u3/num"), cmu);
 
                 assert_eq!(cs.num_inputs(), 8);
-                assert_eq!(cs.get_input(0, "ONE"), blstrs::Scalar::one());
+                assert_eq!(cs.get_input(0, "ONE"), bls12_381::Scalar::one());
                 assert_eq!(cs.get_input(1, "rk/u/input variable"), rk.get_u());
                 assert_eq!(cs.get_input(2, "rk/v/input variable"), rk.get_v());
                 assert_eq!(

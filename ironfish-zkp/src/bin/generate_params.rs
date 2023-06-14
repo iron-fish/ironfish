@@ -1,5 +1,5 @@
-use bellperson::{groth16, Circuit};
-use blstrs::Bls12;
+use bellman::{groth16, Circuit};
+use bls12_381::Bls12;
 use ironfish_zkp::{
     constants::ASSET_ID_LENGTH,
     proofs::{MintAsset, Output, Spend},
@@ -12,7 +12,7 @@ const TREE_DEPTH: usize = 32;
 
 const ALLOWED_ARGUMENTS: [&str; 4] = ["all", "spend", "output", "mint"];
 
-fn generate_params(filename: &str, circuit: impl Circuit<blstrs::Scalar>) {
+fn generate_params(filename: &str, circuit: impl Circuit<bls12_381::Scalar>) {
     let full_filename = format!("{filename}.params");
 
     let rng = &mut thread_rng();

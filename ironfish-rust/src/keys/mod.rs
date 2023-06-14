@@ -93,8 +93,8 @@ impl SaplingKey {
         let outgoing_viewing_key = OutgoingViewKey {
             view_key: outgoing_viewing_key,
         };
-        let authorizing_key = *SPENDING_KEY_GENERATOR * spend_authorizing_key;
-        let nullifier_deriving_key = *PROOF_GENERATION_KEY_GENERATOR * proof_authorizing_key;
+        let authorizing_key = SPENDING_KEY_GENERATOR * spend_authorizing_key;
+        let nullifier_deriving_key = PROOF_GENERATION_KEY_GENERATOR * proof_authorizing_key;
         let view_key = ViewKey {
             authorizing_key,
             nullifier_deriving_key,

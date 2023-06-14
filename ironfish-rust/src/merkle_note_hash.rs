@@ -8,7 +8,7 @@ use crate::errors::IronfishError;
 /// A tree containing these values can serve as a snapshot of the entire chain.
 use super::serializing::read_scalar;
 
-use blstrs::Scalar;
+use bls12_381::Scalar;
 use ff::{PrimeField, PrimeFieldBits};
 use group::Curve;
 use ironfish_zkp::pedersen_hash::{pedersen_hash, Personalization};
@@ -39,7 +39,7 @@ impl MerkleNoteHash {
     }
 
     pub fn write<W: io::Write>(&self, writer: &mut W) -> Result<(), IronfishError> {
-        writer.write_all(&self.0.to_bytes_le())?;
+        writer.write_all(&self.0.to_bytes())?;
 
         Ok(())
     }

@@ -49,7 +49,7 @@ impl PublicAddress {
 
     pub fn from_view_key(view_key: &IncomingViewKey) -> PublicAddress {
         PublicAddress {
-            transmission_key: *PUBLIC_KEY_GENERATOR * view_key.view_key,
+            transmission_key: PUBLIC_KEY_GENERATOR * view_key.view_key,
         }
     }
 
