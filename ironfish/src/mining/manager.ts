@@ -203,6 +203,7 @@ export class MiningManager {
     // Fetch pending transactions
     const blockTransactions: Transaction[] = []
     const nullifiers = new BufferSet()
+    let totalTransactionFees = BigInt(0)
     for (const transaction of this.memPool.orderedTransactions()) {
       // Skip transactions that would cause the block to exceed the max size
       const transactionSize = getTransactionSize(transaction)
@@ -229,14 +230,8 @@ export class MiningManager {
       }
 
       currBlockSize += transactionSize
+      totalTransactionFees += transaction.fee()
       blockTransactions.push(transaction)
-    }
-
-    // Sum the transaction fees
-    let totalTransactionFees = BigInt(0)
-    const transactionFees = await Promise.all(blockTransactions.map((t) => t.fee()))
-    for (const transactionFee of transactionFees) {
-      totalTransactionFees += transactionFee
     }
 
     this.metrics.mining_newBlockTransactions.add(BenchUtils.end(startTime))
