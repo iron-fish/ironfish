@@ -254,4 +254,20 @@ export class LevelupDatabase extends Database {
   ): IDatabaseStore<Schema> {
     return new LevelupStore(this, options)
   }
+
+  size(): Promise<number> {
+    return new Promise<number>((resolve, reject) => {
+      if (this.db instanceof LevelDOWN) {
+        const start = DATABASE_ALL_KEY_RANGE.gte
+        const end = DATABASE_ALL_KEY_RANGE.lt
+
+        Assert.isNotUndefined(start)
+        Assert.isNotUndefined(end)
+
+        this.db.approximateSize(start, end, (err, size) => (err ? reject(err) : resolve(size)))
+      } else {
+        resolve(0)
+      }
+    })
+  }
 }

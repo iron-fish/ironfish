@@ -17,9 +17,12 @@ export class MetricsMonitor {
   private _meters: Meter[] = []
   private readonly logger: Logger
 
+  readonly mining_newEmptyBlockTemplate: Meter
   readonly mining_newBlockTemplate: Meter
-  readonly chain_newBlock: Meter
   readonly mining_newBlockTransactions: Meter
+
+  readonly chain_newBlock: Meter
+  readonly chain_databaseSize: Gauge
 
   readonly p2p_InboundTraffic: Meter
   readonly p2p_InboundTraffic_WS: Meter
@@ -64,9 +67,12 @@ export class MetricsMonitor {
   constructor({ logger }: { logger?: Logger }) {
     this.logger = logger ?? createRootLogger()
 
+    this.mining_newEmptyBlockTemplate = this.addMeter()
     this.mining_newBlockTemplate = this.addMeter()
-    this.chain_newBlock = this.addMeter()
     this.mining_newBlockTransactions = this.addMeter({ maxRollingAverageSamples: 100 })
+
+    this.chain_newBlock = this.addMeter()
+    this.chain_databaseSize = new Gauge()
 
     this.p2p_InboundTraffic = this.addMeter()
     this.p2p_InboundTraffic_WS = this.addMeter()

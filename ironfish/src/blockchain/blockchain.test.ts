@@ -46,7 +46,6 @@ describe('Blockchain', () => {
 
   it('add blocks with forks', async () => {
     const { chain } = nodeTest
-
     // G -> A1 -> A2
     //         -> B2 -> B3
 

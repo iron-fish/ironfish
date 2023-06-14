@@ -19,13 +19,14 @@ if ! command -v git &> /dev/null; then
 fi
 
 
-GIT_HASH=$(git rev-parse --short HEAD)
+if [[ -d .git ]]; then
+    git_hash=$(git rev-parse --short HEAD)
 
-echo "Inserting GIT hash into ironfish-cli/package.json as gitHash"
-cat <<< "$(jq --arg gh "$GIT_HASH" '.gitHash = $gh' < ironfish-cli/package.json)" > ironfish-cli/package.json
-
-echo "Inserting GIT hash into ironfish/package.json as gitHash"
-cat <<< "$(jq --arg gh "$GIT_HASH" '.gitHash = $gh' < ironfish/package.json)" > ironfish/package.json
+    for file in ironfish/package.json ironfish-cli/package.json; do
+        echo "Inserting GIT hash into $file as gitHash"
+        cat <<< "$(jq --arg gh "$git_hash" '.gitHash = $gh' < "$file")" > "$file"
+    done
+fi
 
 echo "Installing from lockfile"
 yarn --non-interactive --frozen-lockfile

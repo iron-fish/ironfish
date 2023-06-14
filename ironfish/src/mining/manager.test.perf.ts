@@ -14,7 +14,7 @@ import {
 } from '../testUtilities'
 import { createRawTransaction } from '../testUtilities/helpers/transaction'
 import { BenchUtils } from '../utils'
-import { Account } from '../wallet'
+import { Account, SpendingAccount } from '../wallet'
 
 type Results = { mempoolSize: number; numTransactions: number; elapsed: number }
 
@@ -83,7 +83,7 @@ describe('MiningManager', () => {
   }
 
   async function runTest(
-    account: Account,
+    account: SpendingAccount,
     blocks: Block[],
     transactions: Transaction[],
     mempoolSize: number,
@@ -108,6 +108,7 @@ describe('MiningManager', () => {
     const start = BenchUtils.start()
     const blockTemplate = await node.miningManager.createNewBlockTemplate(
       blocks[blocks.length - 1],
+      account,
     )
     const elapsed = BenchUtils.end(start)
 

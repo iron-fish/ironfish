@@ -38,6 +38,7 @@ export type GetNodeStatusResponse = {
     miners: number
     blocks: number
     blockGraffiti: string
+    newEmptyBlockTemplateSpeed: number
     newBlockTemplateSpeed: number
     newBlockTransactionsSpeed: number
   }
@@ -59,6 +60,7 @@ export type GetNodeStatusResponse = {
     }
     headTimestamp: number
     newBlockSpeed: number
+    dbSizeBytes: number
   }
   blockSyncer: {
     status: 'stopped' | 'idle' | 'stopping' | 'syncing'
@@ -144,6 +146,7 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetNodeStatusResponse> = 
         miners: yup.number().defined(),
         blocks: yup.number().defined(),
         blockGraffiti: yup.string().defined(),
+        newEmptyBlockTemplateSpeed: yup.number().defined(),
         newBlockTemplateSpeed: yup.number().defined(),
         newBlockTransactionsSpeed: yup.number().defined(),
       })
@@ -173,6 +176,7 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetNodeStatusResponse> = 
           .defined(),
         headTimestamp: yup.number().defined(),
         newBlockSpeed: yup.number().defined(),
+        dbSizeBytes: yup.number().defined(),
       })
       .defined(),
     peerNetwork: yup
@@ -243,16 +247,16 @@ router.register<typeof GetStatusRequestSchema, GetNodeStatusResponse>(
     const status = getStatus(node)
 
     if (!request.data?.stream) {
-      request.end(status)
+      request.end(await status)
       return
     }
 
-    request.stream(status)
+    request.stream(await status)
 
     let stream = true
     while (stream) {
       const status = getStatus(node)
-      request.stream(status)
+      request.stream(await status)
       await PromiseUtils.sleep(500)
     }
 
@@ -262,7 +266,7 @@ router.register<typeof GetStatusRequestSchema, GetNodeStatusResponse>(
   },
 )
 
-function getStatus(node: IronfishNode): GetNodeStatusResponse {
+async function getStatus(node: IronfishNode): Promise<GetNodeStatusResponse> {
   let accountsScanning
   if (node.wallet.scan !== null) {
     accountsScanning = {
@@ -271,6 +275,8 @@ function getStatus(node: IronfishNode): GetNodeStatusResponse {
       startedAt: node.wallet.scan.startedAt,
     }
   }
+
+  const chainDBSizeBytes = await node.chain.db.size()
 
   const status: GetNodeStatusResponse = {
     peerNetwork: {
@@ -288,6 +294,7 @@ function getStatus(node: IronfishNode): GetNodeStatusResponse {
       },
       headTimestamp: node.chain.head.timestamp.getTime(),
       newBlockSpeed: node.metrics.chain_newBlock.avg,
+      dbSizeBytes: chainDBSizeBytes,
     },
     node: {
       status: node.started ? 'started' : 'stopped',
@@ -314,6 +321,7 @@ function getStatus(node: IronfishNode): GetNodeStatusResponse {
       miners: node.miningManager.minersConnected,
       blocks: node.miningManager.blocksMined,
       blockGraffiti: node.config.get('blockGraffiti'),
+      newEmptyBlockTemplateSpeed: node.metrics.mining_newEmptyBlockTemplate.avg,
       newBlockTemplateSpeed: node.metrics.mining_newBlockTemplate.avg,
       newBlockTransactionsSpeed: node.metrics.mining_newBlockTransactions.avg,
     },

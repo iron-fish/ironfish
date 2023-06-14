@@ -51,6 +51,7 @@ export default class Stats extends IronfishCommand {
 
     // metric loops, must await last loop
     void this.forks(api, flags.delay)
+    void this.chainDBSize(api, flags.delay)
     await this.feeRates(api, flags.delay)
   }
 
@@ -142,6 +143,46 @@ export default class Stats extends IronfishCommand {
             },
           ],
         })
+      }
+
+      await PromiseUtils.sleep(delay)
+    }
+  }
+
+  async chainDBSize(api: WebApi, delay: number): Promise<void> {
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const connected = await this.sdk.client.tryConnect()
+
+      if (!connected) {
+        await PromiseUtils.sleep(1000)
+        continue
+      }
+
+      const response = await this.sdk.client.node.getStatus()
+
+      if (!response.content.blockchain.dbSizeBytes) {
+        this.log(`chain DB size unexpected response`)
+      } else {
+        const chainSize = Number(response.content.blockchain.dbSizeBytes)
+        await api.submitTelemetry({
+          points: [
+            {
+              measurement: 'chain_db',
+              timestamp: new Date(),
+              fields: [
+                {
+                  name: `chain_db_size_bytes`,
+                  type: 'integer',
+                  value: chainSize,
+                },
+              ],
+              tags: [{ name: 'version', value: IronfishCliPKG.version }],
+            },
+          ],
+        })
+
+        this.log(`Chain DB size: ${chainSize}`)
       }
 
       await PromiseUtils.sleep(delay)

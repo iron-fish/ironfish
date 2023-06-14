@@ -20,13 +20,15 @@ import { Block } from '../primitives/block'
 import { isBlockHeavier } from '../primitives/blockheader'
 import { Transaction } from '../primitives/transaction'
 import { BlockTemplateSerde, SerializedBlockTemplate } from '../serde'
+import { ErrorUtils } from '../utils'
 import { BenchUtils } from '../utils/bench'
 import { GraffitiUtils } from '../utils/graffiti'
+import { SpendingAccount } from '../wallet'
+import { MinersFeeCache } from './minersFeeCache'
 
 export enum MINED_RESULT {
   UNKNOWN_REQUEST = 'UNKNOWN_REQUEST',
   CHAIN_CHANGED = 'CHAIN_CHANGED',
-  INVALID_BLOCK = 'INVALID_BLOCK',
   ADD_FAILED = 'ADD_FAILED',
   FORK = 'FORK',
   SUCCESS = 'SUCCESS',
@@ -37,11 +39,17 @@ export class MiningManager {
   private readonly memPool: MemPool
   private readonly node: IronfishNode
   private readonly metrics: MetricsMonitor
+  private readonly minersFeeCache: MinersFeeCache
 
   blocksMined = 0
-  minersConnected = 0
 
+  // Called when a new block has been mined and added to the chain
   readonly onNewBlock = new Event<[Block]>()
+
+  private templateStream?: {
+    onNewBlockTemplate: Event<[SerializedBlockTemplate]>
+    mostRecent?: SerializedBlockTemplate
+  }
 
   constructor(options: {
     chain: Blockchain
@@ -53,6 +61,126 @@ export class MiningManager {
     this.memPool = options.memPool
     this.chain = options.chain
     this.metrics = options.metrics
+    this.minersFeeCache = new MinersFeeCache({ node: this.node })
+
+    this.chain.onConnectBlock.on(
+      (block) =>
+        void this.onConnectedBlock(block).catch((error) => {
+          this.node.logger.info(
+            `Error creating block template: ${ErrorUtils.renderError(error)}`,
+          )
+        }),
+    )
+  }
+
+  get minersConnected(): number {
+    return this.templateStream?.onNewBlockTemplate.subscribers || 0
+  }
+
+  onNewBlockTemplate(listener: (template: SerializedBlockTemplate) => void): void {
+    if (!this.templateStream) {
+      const onNewBlockTemplate = new Event<[SerializedBlockTemplate]>()
+      onNewBlockTemplate.on(listener)
+      this.templateStream = { onNewBlockTemplate }
+
+      // Send an initial block template to the requester so they can begin working immediately
+      void this.chain.getBlock(this.chain.head).then((currentBlock) => {
+        if (currentBlock) {
+          void this.onConnectedBlock(currentBlock).catch((error) => {
+            this.node.logger.info(
+              `Error creating block template: ${ErrorUtils.renderError(error)}`,
+            )
+          })
+        }
+      })
+
+      return
+    }
+
+    if (this.templateStream.mostRecent) {
+      listener(this.templateStream.mostRecent)
+    }
+
+    this.templateStream.onNewBlockTemplate.on(listener)
+  }
+
+  offNewBlockTemplate(listener: (template: SerializedBlockTemplate) => void): void {
+    if (this.templateStream) {
+      this.templateStream.onNewBlockTemplate.off(listener)
+      if (this.templateStream.onNewBlockTemplate.isEmpty) {
+        this.templateStream = undefined
+      }
+    }
+  }
+
+  streamBlockTemplate(currentBlock: Block, template: SerializedBlockTemplate): void {
+    // If there are not listeners for new blocks, return early
+    if (!this.templateStream) {
+      return
+    }
+
+    // The head of the chain has changed, abort working on this template
+    if (!this.chain.head.hash.equals(currentBlock.header.hash)) {
+      return
+    }
+
+    this.templateStream.onNewBlockTemplate.emit(template)
+    this.templateStream.mostRecent = template
+  }
+
+  private async onConnectedBlock(currentBlock: Block): Promise<void> {
+    const connectedAt = BenchUtils.start()
+
+    // If there are not listeners for new blocks, then return early
+    if (!this.templateStream) {
+      return
+    }
+
+    // If we mine when we're not synced, then we will mine a fork no one cares about
+    if (!this.node.chain.synced && !this.node.config.get('miningForce')) {
+      return
+    }
+
+    // If we mine when we're not connected to anyone, then no one will get our blocks
+    if (!this.node.peerNetwork.isReady && !this.node.config.get('miningForce')) {
+      return
+    }
+
+    // The head of the chain has changed, abort working on this template
+    if (!this.chain.head.hash.equals(currentBlock.header.hash)) {
+      return
+    }
+
+    const account = this.node.wallet.getDefaultAccount()
+    if (!account) {
+      this.node.logger.info('Cannot mine without an account')
+      return
+    }
+
+    if (!account.isSpendingAccount()) {
+      this.node.logger.info('Account must have spending key in order to mine')
+      return
+    }
+
+    const emptyTemplate = await this.createNewBlockTemplate(currentBlock, account, false)
+    this.metrics.mining_newEmptyBlockTemplate.add(BenchUtils.end(connectedAt))
+    this.streamBlockTemplate(currentBlock, emptyTemplate)
+
+    // The head of the chain has changed, abort working on this template
+    if (!this.chain.head.hash.equals(currentBlock.header.hash)) {
+      return
+    }
+
+    // Kick off job to create the next empty miners fee
+    this.minersFeeCache.startCreatingEmptyMinersFee(currentBlock.header.sequence + 2, account)
+
+    // Only try creating a block with transactions if there are transactions in
+    // the mempool
+    if (this.memPool.count()) {
+      const template = await this.createNewBlockTemplate(currentBlock, account)
+      this.metrics.mining_newBlockTemplate.add(BenchUtils.end(connectedAt))
+      this.streamBlockTemplate(currentBlock, template)
+    }
   }
 
   /**
@@ -75,6 +203,7 @@ export class MiningManager {
     // Fetch pending transactions
     const blockTransactions: Transaction[] = []
     const nullifiers = new BufferSet()
+    let totalTransactionFees = BigInt(0)
     for (const transaction of this.memPool.orderedTransactions()) {
       // Skip transactions that would cause the block to exceed the max size
       const transactionSize = getTransactionSize(transaction)
@@ -101,14 +230,8 @@ export class MiningManager {
       }
 
       currBlockSize += transactionSize
+      totalTransactionFees += transaction.fee()
       blockTransactions.push(transaction)
-    }
-
-    // Sum the transaction fees
-    let totalTransactionFees = BigInt(0)
-    const transactionFees = await Promise.all(blockTransactions.map((t) => t.fee()))
-    for (const transactionFee of transactionFees) {
-      totalTransactionFees += transactionFee
     }
 
     this.metrics.mining_newBlockTransactions.add(BenchUtils.end(startTime))
@@ -126,28 +249,36 @@ export class MiningManager {
    * @param currentBlock The head block of the current heaviest chain
    * @returns
    */
-  async createNewBlockTemplate(currentBlock: Block): Promise<SerializedBlockTemplate> {
-    const startTime = BenchUtils.start()
-
-    const account = this.node.wallet.getDefaultAccount()
-    Assert.isNotNull(account, 'Cannot mine without an account')
-    Assert.isNotNull(account.spendingKey, 'Account must have spending key in order to mine')
-
+  async createNewBlockTemplate(
+    currentBlock: Block,
+    account: SpendingAccount,
+    includeTransactions = true,
+  ): Promise<SerializedBlockTemplate> {
     const newBlockSequence = currentBlock.header.sequence + 1
 
-    const currBlockSize = getBlockWithMinersFeeSize()
+    let currBlockSize = getBlockWithMinersFeeSize()
+    let transactions: Transaction[] = []
 
-    const { totalFees, blockTransactions, newBlockSize } = await this.getNewBlockTransactions(
-      newBlockSequence,
-      currBlockSize,
-    )
+    let minersFee: Transaction
+    if (includeTransactions) {
+      const { totalFees, blockTransactions, newBlockSize } = await this.getNewBlockTransactions(
+        newBlockSequence,
+        currBlockSize,
+      )
 
-    // Calculate the final fee for the miner of this block
-    const minersFee = await this.node.strategy.createMinersFee(
-      totalFees,
-      newBlockSequence,
-      account.spendingKey,
-    )
+      transactions = blockTransactions
+      currBlockSize = newBlockSize
+
+      // Calculate the final fee for the miner of this block
+      minersFee = await this.node.strategy.createMinersFee(
+        totalFees,
+        newBlockSequence,
+        account.spendingKey,
+      )
+    } else {
+      minersFee = await this.minersFeeCache.createEmptyMinersFee(newBlockSequence, account)
+    }
+
     this.node.logger.debug(
       `Constructed miner's reward transaction for account ${account.displayName}, block sequence ${newBlockSequence}`,
     )
@@ -161,12 +292,14 @@ export class MiningManager {
 
     // Create the new block as a template for mining
     const newBlock = await this.chain.newBlock(
-      blockTransactions,
+      transactions,
       minersFee,
       GraffitiUtils.fromString(this.node.config.get('blockGraffiti')),
+      currentBlock.header,
     )
+
     Assert.isEqual(
-      newBlockSize,
+      currBlockSize,
       getBlockSize(newBlock),
       'Incorrect block size calculated during block creation',
     )
@@ -174,8 +307,6 @@ export class MiningManager {
     this.node.logger.debug(
       `Current block template ${newBlock.header.sequence}, has ${newBlock.transactions.length} transactions`,
     )
-
-    this.metrics.mining_newBlockTemplate.add(BenchUtils.end(startTime))
 
     return BlockTemplateSerde.serialize(newBlock, currentBlock)
   }
@@ -197,15 +328,6 @@ export class MiningManager {
 
         return MINED_RESULT.CHAIN_CHANGED
       }
-    }
-
-    const validation = await this.node.chain.verifier.verifyBlock(block)
-
-    if (!validation.valid) {
-      this.node.logger.info(
-        `Discarding invalid mined block ${blockDisplay} ${validation.reason || 'undefined'}`,
-      )
-      return MINED_RESULT.INVALID_BLOCK
     }
 
     const { isAdded, reason, isFork } = await this.node.chain.addBlock(block)
