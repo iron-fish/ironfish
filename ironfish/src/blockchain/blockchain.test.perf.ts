@@ -176,6 +176,10 @@ describe('Blockchain', () => {
     expect(addHeadRewindForkBlocksTime).toBeLessThanOrEqual(1086.2)
   })
 
+  afterEach(() => {
+    nodeArrays.splice(0)
+  })
+
   async function runTest(
     testCount: number,
     forkLength: number,

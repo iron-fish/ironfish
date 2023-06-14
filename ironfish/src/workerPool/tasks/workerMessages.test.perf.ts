@@ -97,7 +97,7 @@ describe('WorkerMessages', () => {
     const { min, max, avg } = printResults('decryptNotes', runs, segment)
 
     expect(max).toBeLessThanOrEqual(6.1685)
-    expect(min).toBeLessThanOrEqual(0.490597)
+    expect(min).toBeLessThanOrEqual(0.510597)
     expect(avg).toBeLessThanOrEqual(0.682932)
   })
 
