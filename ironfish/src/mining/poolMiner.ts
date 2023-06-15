@@ -111,7 +111,9 @@ export class MiningPoolMiner {
     Assert.isNotNull(this.graffiti)
 
     this.logger.debug(
-      `new work ${this.target.toString('hex')} ${miningRequestId} ${FileUtils.formatHashRate(
+      `new work ${header
+        .toString('hex')
+        .slice(0, 50)}... ${miningRequestId} ${FileUtils.formatHashRate(
         this.hashRate.rate1s,
       )}/s`,
     )
