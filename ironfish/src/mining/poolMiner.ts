@@ -10,7 +10,7 @@ import { GraffitiUtils } from '../utils/graffiti'
 import { PromiseUtils } from '../utils/promise'
 import { isValidPublicAddress } from '../wallet/validator'
 import { StratumClient } from './stratum/clients/client'
-import { MINEABLE_BLOCK_HEADER_GRAFFITI_OFFSET } from './utils'
+import { MINEABLE_BLOCK_HEADER_GRAFFITI_OFFSET, minedPartialHeader } from './utils'
 
 export class MiningPoolMiner {
   readonly hashRate: Meter
@@ -109,6 +109,9 @@ export class MiningPoolMiner {
 
   newWork(miningRequestId: number, header: Buffer): void {
     Assert.isNotNull(this.graffiti)
+
+    const { target } = minedPartialHeader(header)
+    this.setTarget(target)
 
     this.logger.debug(
       `new work ${this.target.toString('hex')} ${miningRequestId} ${FileUtils.formatHashRate(
