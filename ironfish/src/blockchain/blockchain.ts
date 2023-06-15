@@ -968,7 +968,7 @@ export class Blockchain {
         }
 
         if (previous && !previous.hash.equals(previousBlockHash)) {
-          throw new Error('Cannot create a block with a previous header that does not match')
+          throw new BlockCreationError(BlockCreationErrorReason.HEAD_CHANGED)
         }
 
         target = Target.calculateTarget(
@@ -1518,5 +1518,19 @@ export class VerifyError extends Error {
 
     this.reason = reason
     this.score = score
+  }
+}
+
+export enum BlockCreationErrorReason {
+  HEAD_CHANGED = 'HEAD_CHANGED',
+}
+
+export class BlockCreationError extends Error {
+  name = this.constructor.name
+  reason: BlockCreationErrorReason
+
+  constructor(reason: BlockCreationErrorReason) {
+    super()
+    this.reason = reason
   }
 }
