@@ -4,7 +4,7 @@
 
 import { BufferSet } from 'buffer-map'
 import { Assert } from '../assert'
-import { Blockchain } from '../blockchain'
+import { Blockchain, HeadChangedError } from '../blockchain'
 import { isExpiredSequence } from '../consensus'
 import { Event } from '../event'
 import { MemPool } from '../memPool'
@@ -66,9 +66,17 @@ export class MiningManager {
     this.chain.onConnectBlock.on(
       (block) =>
         void this.onConnectedBlock(block).catch((error) => {
-          this.node.logger.info(
-            `Error creating block template: ${ErrorUtils.renderError(error)}`,
-          )
+          if (error instanceof HeadChangedError) {
+            this.node.logger.debug(
+              `Chain head changed while creating block template for sequence ${
+                block.header.sequence + 1
+              }`,
+            )
+          } else {
+            this.node.logger.error(
+              `Error creating block template: ${ErrorUtils.renderError(error)}`,
+            )
+          }
         }),
     )
   }
