@@ -68,7 +68,7 @@ export class MiningManager {
         void this.onConnectedBlock(block).catch((error) => {
           if (error instanceof HeadChangedError) {
             this.node.logger.debug(
-              `Chain head changed while creating block template for seqeunce ${
+              `Chain head changed while creating block template for sequence ${
                 block.header.sequence + 1
               }`,
             )
