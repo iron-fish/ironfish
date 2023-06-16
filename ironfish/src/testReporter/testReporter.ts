@@ -6,7 +6,7 @@ import { format } from '@fast-csv/format'
 import { Reporter, TestContext } from '@jest/reporters'
 import { AggregatedResult, Test, TestResult } from '@jest/test-result'
 import { Config } from '@jest/types'
-import { createWriteStream } from 'fs'
+import { createWriteStream, existsSync, mkdirSync } from 'fs'
 import path from 'path'
 
 type CustomReporter = Pick<Reporter, 'onRunComplete'>
@@ -44,6 +44,10 @@ export default class TestReporter implements CustomReporter {
 
     if (!testFileName.includes('perf')) {
       return
+    }
+
+    if (!existsSync(`${this.globalConfig.rootDir}/${this.reporterConfig.outputDirectory}`)) {
+      mkdirSync(`${this.globalConfig.rootDir}/${this.reporterConfig.outputDirectory}`)
     }
 
     const writeStream = createWriteStream(
