@@ -14,12 +14,13 @@ import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { Format, TableCols } from '../../utils/table'
 
+const { sort: _, ...tableFlags } = CliUx.ux.table.flags()
 export class TransactionsCommand extends IronfishCommand {
   static description = `Display the account transactions`
 
   static flags = {
     ...RemoteFlags,
-    ...CliUx.ux.table.flags(),
+    ...tableFlags,
     hash: Flags.string({
       char: 't',
       description: 'Transaction hash to get details for',

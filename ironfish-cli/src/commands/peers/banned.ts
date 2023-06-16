@@ -32,6 +32,10 @@ export class BannedCommand extends IronfishCommand {
       this.exit(0)
     }
 
+    if (flags.sort !== undefined) {
+      this.log('The `sort` flag is not supported when using the `follow` flag.')
+    }
+
     // Console log will create display issues with Blessed
     this.logger.pauseLogs()
 

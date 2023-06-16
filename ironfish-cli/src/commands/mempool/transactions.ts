@@ -7,7 +7,7 @@ import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { CommandFlags } from '../../types'
 
-const tableFlags = CliUx.ux.table.flags()
+const { sort: _, ...tableFlags } = CliUx.ux.table.flags()
 
 const parseMinMax = (input: string): MinMax | undefined => {
   if (input.split(':').length === 1) {

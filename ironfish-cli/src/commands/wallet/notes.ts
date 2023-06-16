@@ -7,12 +7,13 @@ import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { TableCols } from '../../utils/table'
 
+const { sort: _, ...tableFlags } = CliUx.ux.table.flags()
 export class NotesCommand extends IronfishCommand {
   static description = `Display the account notes`
 
   static flags = {
     ...RemoteFlags,
-    ...CliUx.ux.table.flags(),
+    ...tableFlags,
   }
 
   static args = [
