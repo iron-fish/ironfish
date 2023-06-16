@@ -130,31 +130,9 @@ jobs:
       - name: Run perf tests
         run: yarn test:perf:report
 
-      - name: Generate test report
-        uses: EnricoMi/publish-unit-test-result-action@v2
-        id: test-results
-        if: always()
-        with:
-          files: |
-            ironfish/test-reports/jest-junit.xml
-          comment_mode: 'off'
-          job_summary: true
-          json_file: 'tests.json'
-          report_individual_runs: true
-          report_suite_logs: 'any'
-          json_suite_details: true
-          json_test_case_results: true
-      
-      - name: Output test results
-        uses: ./.github/perf_test_output
-        if: always()
-        with:
-          json: '${{ steps.test-results.outputs.json }}'
-          json_file: 'tests.json'
-
       - name: Archive test results
         uses: actions/upload-artifact@v3
         if: always()
         with:
           name: perf-test-report
-          path: tests.json
+          path: ironfish/test-reports/*.perf.csv
