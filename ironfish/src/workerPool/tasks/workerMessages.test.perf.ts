@@ -121,13 +121,12 @@ describe('WorkerMessages', () => {
     const average = total / runs.length
 
     console.log(
-      `[TEST RESULTS: Message: ${testName}, Iterations: ${TEST_ITERATIONS}]` +
-        `\nTotal elapsed: ${total} milliseconds` +
-        `\nFastest: ${min} milliseconds` +
-        `\nSlowest: ${max} milliseconds` +
-        `\nAverage: ${average} milliseconds`,
+      `Total time: ${total},` +
+        `Fastest runtime: ${min},` +
+        `Slowest runtime: ${max},` +
+        `Average runtime: ${average},` +
+        BenchUtils.renderSegment(segment, ''),
     )
-    console.log(BenchUtils.renderSegment(segment))
 
     return {
       min,

@@ -18,6 +18,7 @@
   ],
   "dependencies": {
     "@ethersproject/bignumber": "5.7.0",
+    "@fast-csv/format": "4.3.5",
     "@ironfish/rust-nodejs": "1.2.0",
     "@napi-rs/blake-hash": "1.3.3",
     "axios": "0.21.4",
@@ -55,12 +56,14 @@
     "test": "tsc -b && tsc -b tsconfig.test.json && jest --testTimeout=${JEST_TIMEOUT:-5000}",
     "test:slow": "tsc -b && tsc -b tsconfig.test.json && cross-env TEST_INIT_RUST=true jest --testMatch \"**/*.test.slow.ts\" --testTimeout=${JEST_TIMEOUT:-60000} --testPathIgnorePatterns",
     "test:perf": "tsc -b && tsc -b tsconfig.test.json && cross-env TEST_INIT_RUST=true jest --testMatch \"**/*.test.perf.ts\" --testTimeout=${JEST_TIMEOUT:-600000} --testPathIgnorePatterns --runInBand",
-    "test:perf:report":"tsc -b && tsc -b tsconfig.test.json && cross-env TEST_INIT_RUST=true jest --testMatch \"**/*.test.perf.ts\" --testTimeout=${JEST_TIMEOUT:-600000} --testPathIgnorePatterns --ci --reporters=default --reporters=jest-junit",
+    "test:perf:report": "tsc -b && tsc -b tsconfig.test.json && cross-env TEST_INIT_RUST=true jest --config jest.config.js --testMatch \"**/*.test.perf.ts\" --testTimeout=${JEST_TIMEOUT:-600000} --testPathIgnorePatterns --ci",
     "test:coverage:html": "tsc -b tsconfig.test.json && jest --coverage --coverage-reporters html --testPathIgnorePatterns",
     "test:watch": "tsc -b tsconfig.test.json && jest --watch --coverage false",
     "fixtures:regenerate": "find . -name \"__fixtures__\" | xargs rm -rf && JEST_TIMEOUT=1000000000 yarn run test && JEST_TIMEOUT=1000000000 yarn run test:slow && JEST_TIMEOUT=1000000000 yarn run test:perf"
   },
   "devDependencies": {
+    "@jest/reporters": "29.3.1",
+    "@jest/types": "29.3.1",
     "@types/buffer-json": "2.0.0",
     "@types/colors": "1.2.1",
     "@types/imurmurhash": "0.1.1",
@@ -88,20 +91,11 @@
     "mitm": "1.7.2",
     "prettier": "2.3.2",
     "ts-jest": "29.0.3",
-    "typescript": "4.3.4"
+    "ts-node": "10.9.1",
+    "typescript": "4.3.5"
   },
   "bugs": {
     "url": "https://github.com/iron-fish/ironfish/issues"
-  },
-  "jest-junit": {
-    "includeShortConsoleOutput": "true",
-    "suiteName": "jest tests",
-    "outputDirectory": "test-reports",
-    "outputName": "jest-junit.xml",
-    "uniqueOutputName": "false",
-    "classNameTemplate": "{classname}-{title}",
-    "titleTemplate": "{classname}-{title}",
-    "ancestorSeparator": " › "
   },
   "homepage": "https://ironfish.network"
 }

@@ -32,8 +32,6 @@ describe('Blockchain', () => {
 
     // Create 100 blocks each on nodeA and nodeB
     for (let i = 0; i < 100; ++i) {
-      console.log(`Creating Blocks ${i}`)
-
       let blockA: Block
       let blockB: Block
 
@@ -74,7 +72,7 @@ describe('Blockchain', () => {
     }
   })
 
-  it('Times Ran: 5, Fork Length: 1', async () => {
+  it('Times Ran 5 Fork Length 1', async () => {
     const result = await runTest(testCount, 1)
     printResults(result)
 
@@ -91,7 +89,7 @@ describe('Blockchain', () => {
     expect(addHeadRewindForkBlocksTime).toBeLessThanOrEqual(36.6)
   })
 
-  it('Times Ran: 5, Fork Length: 3', async () => {
+  it('Times Ran 5 Fork Length 3', async () => {
     const result = await runTest(testCount, 3)
     printResults(result)
 
@@ -108,7 +106,7 @@ describe('Blockchain', () => {
     expect(addHeadRewindForkBlocksTime).toBeLessThanOrEqual(157.8)
   })
 
-  it('Times Ran: 5, Fork Length: 5', async () => {
+  it('Times Ran 5 Fork Length 5', async () => {
     const result = await runTest(testCount, 5)
     printResults(result)
 
@@ -125,7 +123,7 @@ describe('Blockchain', () => {
     expect(addHeadRewindForkBlocksTime).toBeLessThanOrEqual(82.6)
   })
 
-  it('Times Ran: 5, Fork Length: 10', async () => {
+  it('Times Ran 5 Fork Length 10', async () => {
     const result = await runTest(testCount, 10)
     printResults(result)
 
@@ -142,7 +140,7 @@ describe('Blockchain', () => {
     expect(addHeadRewindForkBlocksTime).toBeLessThanOrEqual(94.6)
   })
 
-  it('Times Ran: 5, Fork Length: 50', async () => {
+  it('Times Ran 5 Fork Length 50', async () => {
     const result = await runTest(testCount, 50)
     printResults(result)
 
@@ -159,7 +157,7 @@ describe('Blockchain', () => {
     expect(addHeadRewindForkBlocksTime).toBeLessThanOrEqual(189.0)
   })
 
-  it('Times Ran: 5, Fork Length: 100', async () => {
+  it('Times Ran 5 Fork Length 100', async () => {
     const result = await runTest(testCount, 100)
     printResults(result)
 
@@ -199,8 +197,6 @@ describe('Blockchain', () => {
     const samplesRewind: number[] = []
 
     for (let i = 0; i < testCount; i++) {
-      console.log(`Running Test ${i}`)
-
       const node = nodeArrays[i]
 
       const startAll = Date.now()
@@ -250,15 +246,10 @@ describe('Blockchain', () => {
 
   function printResults(result: UnwrapPromise<ReturnType<typeof runTest>>): void {
     console.log(
-      `[TEST RESULTS: Times Ran: ${result.testCount}, Fork Length: ${result.forkLength}]` +
-        `\nTotal Test Average: ${MathUtils.arrayAverage(result.all).toFixed(2)}ms` +
-        `\nInsert ${result.forkLength - 1} blocks linear: ${MathUtils.arrayAverage(
-          result.add,
-        ).toFixed(2)}ms` +
-        `\nInsert ${result.forkLength - 1} blocks on fork: ${MathUtils.arrayAverage(
-          result.fork,
-        ).toFixed(2)}ms` +
-        `\nAdd head rewind fork blocks: ${MathUtils.arrayAverage(result.rewind).toFixed(2)}ms`,
+      `Total Test Average: ${MathUtils.arrayAverage(result.all).toFixed(2)}` +
+        `,Insert blocks linear: ${MathUtils.arrayAverage(result.add).toFixed(2)}` +
+        `,Insert blocks on fork: ${MathUtils.arrayAverage(result.fork).toFixed(2)}` +
+        `,Add head rewind fork blocks: ${MathUtils.arrayAverage(result.rewind).toFixed(2)}`,
     )
   }
 })

@@ -71,7 +71,7 @@ describe('MiningManager', () => {
   })
 
   for (const testInput of TEST_AMOUNTS) {
-    it(`Mempool size: ${testInput.mempoolSize}`, async () => {
+    it(`Mempool size ${testInput.mempoolSize}`, async () => {
       if (!account.isSpendingAccount()) {
         return
       }
@@ -84,10 +84,7 @@ describe('MiningManager', () => {
   }
 
   function printResults(results: Results) {
-    console.log(
-      `[TEST RESULTS: Mempool size: ${results.mempoolSize}, Transactions count: ${results.numTransactions}]` +
-        `\nElapsed: ${results.elapsed.toLocaleString()} milliseconds`,
-    )
+    console.log(`Elapsed: ${results.elapsed.toLocaleString()}`)
   }
 
   async function runTest(

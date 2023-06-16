@@ -42,7 +42,7 @@ describe('Transaction', () => {
   })
 
   for (const input of TEST_AMOUNTS) {
-    it(`test spends: ${input.spends} outputs: ${input.outputs}`, async () => {
+    it(`test spends ${input.spends} outputs ${input.outputs}`, async () => {
       const results = await runTest(account, input.spends, input.outputs)
       expect(results).toBeDefined()
       printResults(results)
@@ -50,10 +50,7 @@ describe('Transaction', () => {
   }
 
   function printResults(results: Results) {
-    console.log(
-      `[TEST RESULTS: Spends: ${results.spends}, Outputs: ${results.outputs}]` +
-        `\nElapsed: ${results.elapsed.toLocaleString()} milliseconds`,
-    )
+    console.log(`Elapsed: ${results.elapsed.toLocaleString()}`)
   }
 
   async function runTest(
