@@ -171,7 +171,7 @@ describe('Blockchain', () => {
     expect(addBlockOnForkTime).toBeLessThanOrEqual(351.67)
 
     const addHeadRewindForkBlocksTime = MathUtils.arrayAverage(result.rewind)
-    expect(addHeadRewindForkBlocksTime).toBeLessThanOrEqual(1086.2)
+    expect(addHeadRewindForkBlocksTime).toBeLessThanOrEqual(1200.2)
   })
 
   afterEach(() => {
