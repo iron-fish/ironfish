@@ -164,6 +164,7 @@ export default class Stats extends IronfishCommand {
       if (!response.content.blockchain.dbSizeBytes) {
         this.log(`chain DB size unexpected response`)
       } else {
+        const chainSize = Number(response.content.blockchain.dbSizeBytes)
         await api.submitTelemetry({
           points: [
             {
@@ -173,13 +174,15 @@ export default class Stats extends IronfishCommand {
                 {
                   name: `chain_db_size_bytes`,
                   type: 'integer',
-                  value: Number(response.content.blockchain.dbSizeBytes),
+                  value: chainSize,
                 },
               ],
               tags: [{ name: 'version', value: IronfishCliPKG.version }],
             },
           ],
         })
+
+        this.log(`Chain DB size: ${chainSize}`)
       }
 
       await PromiseUtils.sleep(delay)
