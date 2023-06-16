@@ -12,6 +12,7 @@ type GetPeerResponsePeer = GetPeersResponse['peers'][0]
 
 const STATE_COLUMN_HEADER = 'STATE'
 const { sort, ...tableFlags } = CliUx.ux.table.flags()
+
 export class ListCommand extends IronfishCommand {
   static description = `List all connected peers`
 
