@@ -4,7 +4,7 @@
 
 import { BufferSet } from 'buffer-map'
 import { Assert } from '../assert'
-import { Blockchain, BlockCreationError, BlockCreationErrorReason } from '../blockchain'
+import { Blockchain, HeadChangedError } from '../blockchain'
 import { isExpiredSequence } from '../consensus'
 import { Event } from '../event'
 import { MemPool } from '../memPool'
@@ -66,12 +66,8 @@ export class MiningManager {
     this.chain.onConnectBlock.on(
       (block) =>
         void this.onConnectedBlock(block).catch((error) => {
-          const headChanged =
-            error instanceof BlockCreationError &&
-            error.reason === BlockCreationErrorReason.HEAD_CHANGED
-
-          if (headChanged) {
-            this.node.logger.info(
+          if (error instanceof HeadChangedError) {
+            this.node.logger.debug(
               `Chain head changed while creating block template for seqeunce ${
                 block.header.sequence + 1
               }`,

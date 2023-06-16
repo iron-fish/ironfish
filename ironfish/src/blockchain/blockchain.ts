@@ -968,7 +968,7 @@ export class Blockchain {
         }
 
         if (previous && !previous.hash.equals(previousBlockHash)) {
-          throw new BlockCreationError(BlockCreationErrorReason.HEAD_CHANGED)
+          throw new HeadChangedError()
         }
 
         target = Target.calculateTarget(
@@ -1521,16 +1521,6 @@ export class VerifyError extends Error {
   }
 }
 
-export enum BlockCreationErrorReason {
-  HEAD_CHANGED = 'HEAD_CHANGED',
-}
-
-export class BlockCreationError extends Error {
+export class HeadChangedError extends Error {
   name = this.constructor.name
-  reason: BlockCreationErrorReason
-
-  constructor(reason: BlockCreationErrorReason) {
-    super()
-    this.reason = reason
-  }
 }
