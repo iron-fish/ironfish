@@ -7,7 +7,7 @@ import blessed from 'blessed'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
-const tableFlags = CliUx.ux.table.flags()
+const { sort, ...tableFlags } = CliUx.ux.table.flags()
 
 export class BannedCommand extends IronfishCommand {
   static description = `List all banned peers`
@@ -15,6 +15,10 @@ export class BannedCommand extends IronfishCommand {
   static flags = {
     ...RemoteFlags,
     ...tableFlags,
+    sort: {
+      ...sort,
+      exclusive: ['follow'],
+    },
     follow: Flags.boolean({
       char: 'f',
       default: false,
@@ -30,10 +34,6 @@ export class BannedCommand extends IronfishCommand {
       const response = await this.sdk.client.peer.getBannedPeers()
       this.log(renderTable(response.content))
       this.exit(0)
-    }
-
-    if (flags.sort !== undefined) {
-      this.log('The `sort` flag is not supported when using the `follow` flag.')
     }
 
     // Console log will create display issues with Blessed

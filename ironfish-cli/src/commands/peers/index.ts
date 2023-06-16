@@ -11,12 +11,17 @@ import { CommandFlags } from '../../types'
 type GetPeerResponsePeer = GetPeersResponse['peers'][0]
 
 const STATE_COLUMN_HEADER = 'STATE'
+const { sort, ...tableFlags } = CliUx.ux.table.flags()
 export class ListCommand extends IronfishCommand {
   static description = `List all connected peers`
 
   static flags = {
     ...RemoteFlags,
-    ...CliUx.ux.table.flags(),
+    ...tableFlags,
+    sort: {
+      ...sort,
+      exclusive: ['follow'],
+    },
     follow: Flags.boolean({
       char: 'f',
       default: false,
@@ -61,10 +66,6 @@ export class ListCommand extends IronfishCommand {
       const response = await this.sdk.client.peer.getPeers()
       this.log(renderTable(response.content, flags))
       this.exit(0)
-    }
-
-    if (flags.sort !== undefined) {
-      this.log('The `sort` flag is not supported when using the `follow` flag.')
     }
 
     // Console log will create display issues with Blessed
