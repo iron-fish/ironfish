@@ -968,7 +968,7 @@ export class Blockchain {
         }
 
         if (previous && !previous.hash.equals(previousBlockHash)) {
-          throw new HeadChangedError()
+          throw new HeadChangedError(`Can't create a block not attached to the chain head`)
         }
 
         target = Target.calculateTarget(
