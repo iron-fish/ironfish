@@ -32,6 +32,7 @@
     "test:update:changed": "lerna run --since origin/master --include-dependents test -- -u",
     "test:slow": "lerna run test:slow",
     "test:slow:coverage": "lerna run test:slow --stream -- --collect-coverage --testPathIgnorePatterns",
+    "test:perf:report": "lerna run test:perf:report",
     "typecheck": "lerna exec -- tsc --noEmit",
     "typecheck:changed": "lerna exec --since origin/master --include-dependents -- tsc --noEmit",
     "coverage:upload": "lerna exec '\"yarn codecov -t $CODECOV_TOKEN -f ./coverage/clover.xml -F $LERNA_PACKAGE_NAME -p $ROOT_PATH/ --disable=gcov\"'"
