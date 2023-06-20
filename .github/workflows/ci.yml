@@ -69,6 +69,13 @@ jobs:
       - name: Run tests
         run: yarn test:coverage --maxWorkers=2 --workerIdleMemoryLimit=2000MB
 
+      - name: Check for missing fixtures
+        run: |
+          if [[ $(git status | grep fixture) ]]; then
+            echo "New test fixtures have not been checked in, please check them in."
+            exit 1
+          fi
+
       - name: Upload coverage
         if: github.repository == 'iron-fish/ironfish'
         run: CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }} ROOT_PATH=$GITHUB_WORKSPACE/ yarn coverage:upload
@@ -97,6 +104,13 @@ jobs:
 
       - name: Run slow tests & coverage
         run: yarn test:slow:coverage --maxWorkers=2 --workerIdleMemoryLimit=2000MB
+
+      - name: Check for missing fixtures
+        run: |
+          if [[ $(git status | grep fixture) ]]; then
+            echo "New test fixtures have not been checked in, please check them in."
+            exit 1
+          fi
 
       - name: Run import/export account tests
         run: sudo apt-get update && sudo apt-get install -y expect && yarn build && cd ironfish-cli && yarn test:importexport
@@ -129,6 +143,13 @@ jobs:
 
       - name: Run perf tests
         run: yarn test:perf:report
+
+      - name: Check for missing fixtures
+        run: |
+          if [[ $(git status | grep fixture) ]]; then
+            echo "New test fixtures have not been checked in, please check them in."
+            exit 1
+          fi
 
       - name: Archive test results
         uses: actions/upload-artifact@v3
