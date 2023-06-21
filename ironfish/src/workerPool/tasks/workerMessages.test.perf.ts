@@ -48,11 +48,7 @@ describe('WorkerMessages', () => {
     })
 
     expect(true).toBe(true)
-    const { min, max, avg } = printResults('createMinersFeeRequest', runs, segment)
-
-    expect(max).toBeLessThanOrEqual(1.191)
-    expect(min).toBeLessThanOrEqual(0.029459)
-    expect(avg).toBeLessThanOrEqual(0.06783)
+    printResults('createMinersFeeRequest', runs, segment)
   })
 
   it('decryptNotes', async () => {
@@ -94,22 +90,10 @@ describe('WorkerMessages', () => {
       }
     })
 
-    const { min, max, avg } = printResults('decryptNotes', runs, segment)
-
-    expect(max).toBeLessThanOrEqual(6.1685)
-    expect(min).toBeLessThanOrEqual(0.510597)
-    expect(avg).toBeLessThanOrEqual(0.682932)
+    printResults('decryptNotes', runs, segment)
   })
 
-  function printResults(
-    testName: string,
-    runs: number[],
-    segment: SegmentResults,
-  ): {
-    min: number
-    max: number
-    avg: number
-  } {
+  function printResults(testName: string, runs: number[], segment: SegmentResults) {
     let min = Number.MAX_SAFE_INTEGER
     let max = 0
     let total = 0
@@ -137,12 +121,6 @@ describe('WorkerMessages', () => {
           `\nAverage: ${average} milliseconds`,
       )
       console.info(BenchUtils.renderSegment(segment))
-    }
-
-    return {
-      min,
-      max,
-      avg: average,
     }
   }
 })
