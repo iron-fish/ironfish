@@ -1,6 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+/* eslint-disable no-console */
+
 import path from 'path'
 import { v4 as uuid } from 'uuid'
 
@@ -15,6 +18,21 @@ export function getCurrentTestPath(): string {
 
 export function getUniqueTestDataDir(): string {
   return path.join(TEST_DATA_DIR, uuid())
+}
+
+export function writeTestReport(
+  csvReport: Map<string, string>,
+  consoleReport: Map<string, string>,
+  testName: string,
+): void {
+  if (process.env.GENERATE_TEST_REPORT) {
+    let row = ''
+    csvReport.forEach((v, k) => (row = row.concat(`${k}: ${v},`)))
+    console.log(row.substring(0, row.length - 1))
+  } else {
+    console.info(`[TEST RESULTS: ${testName}]`)
+    consoleReport.forEach((v, k) => console.info(`${k}: ${v}`))
+  }
 }
 
 /**

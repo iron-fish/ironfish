@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-//import { getConsoleOutput } from '@jest/console'
 import { format } from '@fast-csv/format'
 import { Reporter, TestContext } from '@jest/reporters'
 import { AggregatedResult, Test, TestResult } from '@jest/test-result'
@@ -53,16 +52,46 @@ export default class TestReporter implements CustomReporter {
     const writeStream = createWriteStream(
       `${this.globalConfig.rootDir}/${this.reporterConfig.outputDirectory}/${testFileName}.csv`,
     )
-    const stream = format({ headers: true })
-    stream.pipe(writeStream)
 
     // filter console log
     const consoleOutputs = testResult.console?.filter((output) => output.type === 'log')
 
+    // annotation headers for influx data
+    let datatypeHeader = '#datatype,measurement,field,field,time'
+    let groupHeader = '#group,false,false,false'
+    let defaultHeader = '#default,,,'
+    if (consoleOutputs && consoleOutputs[0]) {
+      const entries = consoleOutputs[0].message.split(',')
+      entries.forEach((input) => {
+        const entry = input.split(':')
+        const value = entry[1]
+        if (value) {
+          const trim = value.replace(/[^\d.-]/g, '')
+          if (trim.includes('.')) {
+            datatypeHeader = datatypeHeader.concat(',double')
+          } else {
+            datatypeHeader = datatypeHeader.concat(',long')
+          }
+          groupHeader = groupHeader.concat(',false')
+          defaultHeader = defaultHeader.concat(',')
+        }
+      })
+    }
+
+    writeStream.write(datatypeHeader + '\n')
+    writeStream.write(groupHeader + '\n')
+    writeStream.write(defaultHeader + '\n')
+
+    const stream = format({ headers: true })
+    stream.pipe(writeStream)
+
     testResult.testResults.forEach((result, i) => {
       const row: Record<string, string> = {
+        measurement: 'perf-test',
+        file: testFileName.split('.')[0],
         name: result.title,
         duration: String(result.duration),
+        time: String(Date.now()),
       }
 
       if (consoleOutputs && consoleOutputs[i]) {

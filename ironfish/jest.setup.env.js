@@ -35,4 +35,5 @@ beforeAll(() => {
 
 beforeEach(() => {
   consola.pause()
+  global.console = require('console')
 })
