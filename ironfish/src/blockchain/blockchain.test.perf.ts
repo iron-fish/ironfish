@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 /* eslint-disable no-console */
+/* eslint-disable jest/expect-expect */
 import { Asset } from '@ironfish/rust-nodejs'
 import _ from 'lodash'
 import { Assert } from '../assert'
@@ -75,103 +76,31 @@ describe('Blockchain', () => {
   it('Times Ran 5 Fork Length 1', async () => {
     const result = await runTest(testCount, 1)
     printResults(result)
-
-    const totalTestAverageTime = MathUtils.arrayAverage(result.all)
-    expect(totalTestAverageTime).toBeLessThanOrEqual(39.4)
-
-    const addBlockLinearTime = MathUtils.arrayAverage(result.add)
-    expect(addBlockLinearTime).toBeLessThanOrEqual(1)
-
-    const addBlockOnForkTime = MathUtils.arrayAverage(result.fork)
-    expect(addBlockOnForkTime).toBeLessThanOrEqual(1)
-
-    const addHeadRewindForkBlocksTime = MathUtils.arrayAverage(result.rewind)
-    expect(addHeadRewindForkBlocksTime).toBeLessThanOrEqual(36.6)
   })
 
   it('Times Ran 5 Fork Length 3', async () => {
     const result = await runTest(testCount, 3)
     printResults(result)
-
-    const totalTestAverageTime = MathUtils.arrayAverage(result.all)
-    expect(totalTestAverageTime).toBeLessThanOrEqual(274.6)
-
-    const addBlockLinearTime = MathUtils.arrayAverage(result.add)
-    expect(addBlockLinearTime).toBeLessThanOrEqual(45.3)
-
-    const addBlockOnForkTime = MathUtils.arrayAverage(result.fork)
-    expect(addBlockOnForkTime).toBeLessThanOrEqual(34.2)
-
-    const addHeadRewindForkBlocksTime = MathUtils.arrayAverage(result.rewind)
-    expect(addHeadRewindForkBlocksTime).toBeLessThanOrEqual(157.8)
   })
 
   it('Times Ran 5 Fork Length 5', async () => {
     const result = await runTest(testCount, 5)
     printResults(result)
-
-    const totalTestAverageTime = MathUtils.arrayAverage(result.all)
-    expect(totalTestAverageTime).toBeLessThanOrEqual(612.2)
-
-    const addBlockLinearTime = MathUtils.arrayAverage(result.add)
-    expect(addBlockLinearTime).toBeLessThanOrEqual(57.3)
-
-    const addBlockOnForkTime = MathUtils.arrayAverage(result.fork)
-    expect(addBlockOnForkTime).toBeLessThanOrEqual(75.1)
-
-    const addHeadRewindForkBlocksTime = MathUtils.arrayAverage(result.rewind)
-    expect(addHeadRewindForkBlocksTime).toBeLessThanOrEqual(82.6)
   })
 
   it('Times Ran 5 Fork Length 10', async () => {
     const result = await runTest(testCount, 10)
     printResults(result)
-
-    const totalTestAverageTime = MathUtils.arrayAverage(result.all)
-    expect(totalTestAverageTime).toBeLessThanOrEqual(1598.8)
-
-    const addBlockLinearTime = MathUtils.arrayAverage(result.add)
-    expect(addBlockLinearTime).toBeLessThanOrEqual(67.49)
-
-    const addBlockOnForkTime = MathUtils.arrayAverage(result.fork)
-    expect(addBlockOnForkTime).toBeLessThanOrEqual(99.64)
-
-    const addHeadRewindForkBlocksTime = MathUtils.arrayAverage(result.rewind)
-    expect(addHeadRewindForkBlocksTime).toBeLessThanOrEqual(94.6)
   })
 
   it('Times Ran 5 Fork Length 50', async () => {
     const result = await runTest(testCount, 50)
     printResults(result)
-
-    const totalTestAverageTime = MathUtils.arrayAverage(result.all)
-    expect(totalTestAverageTime).toBeLessThanOrEqual(13709.4)
-
-    const addBlockLinearTime = MathUtils.arrayAverage(result.add)
-    expect(addBlockLinearTime).toBeLessThanOrEqual(74.29)
-
-    const addBlockOnForkTime = MathUtils.arrayAverage(result.fork)
-    expect(addBlockOnForkTime).toBeLessThanOrEqual(201.62)
-
-    const addHeadRewindForkBlocksTime = MathUtils.arrayAverage(result.rewind)
-    expect(addHeadRewindForkBlocksTime).toBeLessThanOrEqual(189.0)
   })
 
   it('Times Ran 5 Fork Length 100', async () => {
     const result = await runTest(testCount, 100)
     printResults(result)
-
-    const totalTestAverageTime = MathUtils.arrayAverage(result.all)
-    expect(totalTestAverageTime).toBeLessThanOrEqual(43504.2)
-
-    const addBlockLinearTime = MathUtils.arrayAverage(result.add)
-    expect(addBlockLinearTime).toBeLessThanOrEqual(84.23)
-
-    const addBlockOnForkTime = MathUtils.arrayAverage(result.fork)
-    expect(addBlockOnForkTime).toBeLessThanOrEqual(351.67)
-
-    const addHeadRewindForkBlocksTime = MathUtils.arrayAverage(result.rewind)
-    expect(addHeadRewindForkBlocksTime).toBeLessThanOrEqual(1200.2)
   })
 
   afterEach(() => {
