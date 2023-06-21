@@ -245,12 +245,28 @@ describe('Blockchain', () => {
   }
 
   function printResults(result: UnwrapPromise<ReturnType<typeof runTest>>): void {
-    console.log(
-      `Total Test Average: ${MathUtils.arrayAverage(result.all).toFixed(2)}` +
-        `,Insert blocks linear: ${MathUtils.arrayAverage(result.add).toFixed(2)}` +
-        `,Insert blocks on fork: ${MathUtils.arrayAverage(result.fork).toFixed(2)}` +
-        `,Add head rewind fork blocks: ${MathUtils.arrayAverage(result.rewind).toFixed(2)}`,
-    )
+    if (process.env.GENERATE_TEST_REPORT) {
+      console.log(
+        `Total Test Average: ${MathUtils.arrayAverage(result.all).toFixed(2)}` +
+          `,Insert blocks linear: ${MathUtils.arrayAverage(result.add).toFixed(2)}` +
+          `,Insert blocks on fork: ${MathUtils.arrayAverage(result.fork).toFixed(2)}` +
+          `,Add head rewind fork blocks: ${MathUtils.arrayAverage(result.rewind).toFixed(2)}`,
+      )
+    } else {
+      console.info(
+        `[TEST RESULTS: Times Ran: ${result.testCount}, Fork Length: ${result.forkLength}]` +
+          `\nTotal Test Average: ${MathUtils.arrayAverage(result.all).toFixed(2)}ms` +
+          `\nInsert ${result.forkLength - 1} blocks linear: ${MathUtils.arrayAverage(
+            result.add,
+          ).toFixed(2)}ms` +
+          `\nInsert ${result.forkLength - 1} blocks on fork: ${MathUtils.arrayAverage(
+            result.fork,
+          ).toFixed(2)}ms` +
+          `\nAdd head rewind fork blocks: ${MathUtils.arrayAverage(result.rewind).toFixed(
+            2,
+          )}ms`,
+      )
+    }
   }
 })
 
