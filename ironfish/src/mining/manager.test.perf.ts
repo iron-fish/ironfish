@@ -84,7 +84,14 @@ describe('MiningManager', () => {
   }
 
   function printResults(results: Results) {
-    console.log(`Elapsed: ${results.elapsed.toLocaleString()}`)
+    if (process.env.GENERATE_TEST_REPORT) {
+      console.log(`Elapsed: ${results.elapsed.toLocaleString()}`)
+    } else {
+      console.info(
+        `[TEST RESULTS: Mempool size: ${results.mempoolSize}, Transactions count: ${results.numTransactions}]` +
+          `\nElapsed: ${results.elapsed.toLocaleString()} milliseconds`,
+      )
+    }
   }
 
   async function runTest(

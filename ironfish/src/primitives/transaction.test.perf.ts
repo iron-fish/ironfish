@@ -50,7 +50,14 @@ describe('Transaction', () => {
   }
 
   function printResults(results: Results) {
-    console.log(`Elapsed: ${results.elapsed.toLocaleString()}`)
+    if (process.env.GENERATE_TEST_REPORT) {
+      console.log(`Elapsed: ${results.elapsed.toLocaleString()}`)
+    } else {
+      console.info(
+        `[TEST RESULTS: Spends: ${results.spends}, Outputs: ${results.outputs}]` +
+          `\nElapsed: ${results.elapsed.toLocaleString()} milliseconds`,
+      )
+    }
   }
 
   async function runTest(
