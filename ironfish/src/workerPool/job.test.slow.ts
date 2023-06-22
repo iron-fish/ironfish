@@ -5,6 +5,8 @@
 import { generateKey } from '@ironfish/rust-nodejs'
 import { Assert } from '../assert'
 import { createNodeTest } from '../testUtilities/nodeTest'
+import { Job } from './job'
+import { WorkerMessage, WorkerMessageType } from './tasks/workerMessage'
 
 describe('Worker Pool', () => {
   const nodeTest = createNodeTest(false, { config: { nodeWorkers: 1 } })
@@ -38,4 +40,35 @@ describe('Worker Pool', () => {
     expect(result.valid).toBe(true)
     expect(workerPool.completed).toBe(1)
   })
+
+  describe('execute', () => {
+    it('handles failures sending messages to workers', () => {
+      const { workerPool } = nodeTest
+
+      workerPool.start()
+
+      expect(workerPool.workers.length).toBe(1)
+
+      const worker = workerPool.workers[0]
+      const message = new ErrorWorkerMessage(WorkerMessageType.JobError)
+      const job = new Job(message)
+
+      expect(job.status).toEqual('queued')
+
+      expect(() => job.execute(worker)).toThrow()
+
+      expect(job.status).toEqual('error')
+      expect(worker.jobs.size).toEqual(0)
+    })
+  })
 })
+
+class ErrorWorkerMessage extends WorkerMessage {
+  serializePayload(): void {
+    throw new Error('Always throw an error during serialization.')
+  }
+
+  getSize(): number {
+    return 0
+  }
+}
