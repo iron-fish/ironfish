@@ -53,7 +53,7 @@ export type R2Secret = {
   r2SecretAccessKey: string
 }
 
-export async function uploadToBucket(
+async function uploadToBucket(
   s3: S3Client,
   filePath: string,
   contentType: string,
@@ -205,7 +205,7 @@ export async function uploadToBucket(
     })
 }
 
-export async function downloadFromBucket(
+async function downloadFromBucket(
   s3: S3Client,
   bucket: string,
   keyName: string,
@@ -224,7 +224,7 @@ export async function downloadFromBucket(
   }
 }
 
-export async function getPresignedUploadUrl(
+async function getPresignedUploadUrl(
   s3: S3Client,
   bucket: string,
   keyName: string,
@@ -247,7 +247,7 @@ export async function getPresignedUploadUrl(
  * https://docs.aws.amazon.com/AmazonS3/latest/userguide/transfer-acceleration-getting-started.html
  * https://docs.aws.amazon.com/AmazonS3/latest/userguide/dual-stack-endpoints.html
  */
-export function getDownloadUrl(
+function getDownloadUrl(
   bucket: string,
   key: string,
   region: { accelerated: true } | { accelerated: false; regionCode: string },
@@ -265,7 +265,7 @@ export function getDownloadUrl(
   return `https://${bucket}.${regionString}.amazonaws.com/${key}`
 }
 
-export async function getObjectMetadata(
+async function getObjectMetadata(
   s3: S3Client,
   bucket: string,
   key: string,
@@ -275,7 +275,7 @@ export async function getObjectMetadata(
   return response
 }
 
-export async function getBucketObjects(s3: S3Client, bucket: string): Promise<string[]> {
+async function getBucketObjects(s3: S3Client, bucket: string): Promise<string[]> {
   let truncated = true
   let commandParams: ListObjectsCommandInput = { Bucket: bucket }
   const keys: string[] = []
@@ -297,7 +297,7 @@ export async function getBucketObjects(s3: S3Client, bucket: string): Promise<st
   return keys
 }
 
-export async function deleteFromBucket(
+async function deleteFromBucket(
   s3Client: S3Client,
   bucket: string,
   fileName: string,
@@ -305,7 +305,7 @@ export async function deleteFromBucket(
   return s3Client.send(new DeleteObjectCommand({ Bucket: bucket, Key: fileName }))
 }
 
-export function getS3Client(
+function getS3Client(
   useDualstackEndpoint: boolean,
   credentials?: {
     accessKeyId: string
@@ -330,7 +330,7 @@ export function getS3Client(
   })
 }
 
-export function getR2S3Client(credentials: {
+function getR2S3Client(credentials: {
   r2AccessKeyId: string
   r2SecretAccessKey: string
 }): S3Client {
@@ -344,7 +344,7 @@ export function getR2S3Client(credentials: {
   })
 }
 
-export async function getR2Credentials(region?: string): Promise<R2Secret | undefined> {
+async function getR2Credentials(region?: string): Promise<R2Secret | undefined> {
   const client = new SecretsManagerClient({ region })
   const command = new GetSecretValueCommand({ SecretId: R2_SECRET_NAME })
   const response = await client.send(command)
@@ -355,7 +355,7 @@ export async function getR2Credentials(region?: string): Promise<R2Secret | unde
   }
 }
 
-export async function getCognitoIdentityCredentials(): Promise<Credentials> {
+async function getCognitoIdentityCredentials(): Promise<Credentials> {
   const identityPoolId = 'us-east-1:3ebc542a-6ac4-4c5d-9558-1621eadd2382'
 
   const cognito = new CognitoIdentity({ region: 'us-east-1' })
@@ -381,4 +381,18 @@ export async function getCognitoIdentityCredentials(): Promise<Credentials> {
     secretAccessKey: cognitoSecretAccessKey,
     sessionToken: cognitoSessionToken,
   }
+}
+
+export const S3Utils = {
+  deleteFromBucket,
+  downloadFromBucket,
+  getBucketObjects,
+  getCognitoIdentityCredentials,
+  getDownloadUrl,
+  getObjectMetadata,
+  getPresignedUploadUrl,
+  getR2Credentials,
+  getR2S3Client,
+  getS3Client,
+  uploadToBucket,
 }
