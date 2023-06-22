@@ -110,15 +110,19 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
       }
     }
 
+    if (!request.data.expirationDelta) {
+      request.data.expirationDelta = node.config.get('transactionExpirationDelta')
+    }
+
     try {
-      const transaction = await node.wallet.send(
+      const transaction = await node.wallet.send({
         account,
         outputs,
         fee,
-        request.data.expirationDelta ?? node.config.get('transactionExpirationDelta'),
-        request.data.expiration,
-        request.data.confirmations,
-      )
+        expirationDelta: request.data.expirationDelta,
+        expiration: request.data.expiration,
+        confirmations: request.data.confirmations,
+      })
 
       request.end({
         account: account.name,
