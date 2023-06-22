@@ -188,6 +188,18 @@ export class MiningManager {
       const template = await this.createNewBlockTemplate(currentBlock, account)
       this.metrics.mining_newBlockTemplate.add(BenchUtils.end(connectedAt))
       this.streamBlockTemplate(currentBlock, template)
+
+      const block = BlockTemplateSerde.deserialize(template)
+      const verification = await this.chain.verifier.verifyBlock(block, {
+        verifyTarget: false,
+      })
+
+      if (!verification.valid) {
+        // Abort working on invalid block template and re-send empty block
+        this.streamBlockTemplate(currentBlock, emptyTemplate)
+
+        throw new Error(verification.reason)
+      }
     }
   }
 
@@ -304,6 +316,7 @@ export class MiningManager {
       minersFee,
       GraffitiUtils.fromString(this.node.config.get('blockGraffiti')),
       currentBlock.header,
+      false,
     )
 
     Assert.isEqual(
