@@ -757,7 +757,8 @@ export class Wallet {
       memo: string
       assetId: Buffer
     }[]
-    fee: bigint
+    fee?: bigint
+    feeRate?: bigint
     expirationDelta?: number
     expiration?: number
     confirmations?: number
@@ -766,6 +767,7 @@ export class Wallet {
       account: options.account,
       outputs: options.outputs,
       fee: options.fee,
+      feeRate: options.feeRate,
       expirationDelta: options.expirationDelta,
       expiration: options.expiration ?? undefined,
       confirmations: options.confirmations ?? undefined,

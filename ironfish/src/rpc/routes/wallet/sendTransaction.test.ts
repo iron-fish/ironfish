@@ -244,9 +244,7 @@ describe('Route wallet/sendTransaction', () => {
 
     Assert.isNotUndefined(sendSpy.mock.lastCall)
 
-    expect(sendSpy.mock.lastCall[0]).toMatchObject({
-      expirationDelta: undefined,
-    })
+    expect(sendSpy.mock.lastCall[0].expirationDelta).toBeUndefined()
 
     await routeTest.client.wallet.sendTransaction({
       ...TEST_PARAMS,
