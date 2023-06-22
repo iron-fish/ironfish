@@ -1009,7 +1009,7 @@ export class Blockchain {
       )
 
       const block = new Block(header, transactions)
-      if (!previousBlockHash.equals(GENESIS_BLOCK_PREVIOUS) && verifyBlock) {
+      if (verifyBlock && !previousBlockHash.equals(GENESIS_BLOCK_PREVIOUS)) {
         // since we're creating a block that hasn't been mined yet, don't
         // verify target because it'll always fail target check here
         const verification = await this.verifier.verifyBlock(block, { verifyTarget: false })
