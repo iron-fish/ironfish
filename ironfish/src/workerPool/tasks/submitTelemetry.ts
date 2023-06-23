@@ -35,20 +35,32 @@ export class SubmitTelemetryRequest extends WorkerMessage {
       bw.writeU64(fields.length)
       for (const field of fields) {
         bw.writeVarString(field.name, 'utf8')
-        bw.writeVarString(field.type, 'utf8')
-        switch (field.type) {
-          case 'string':
-            bw.writeVarString(field.value, 'utf8')
-            break
-          case 'boolean':
-            bw.writeU8(Number(field.value))
-            break
-          case 'float':
-            bw.writeDouble(field.value)
-            break
-          case 'integer':
-            bw.writeU64(field.value)
-            break
+        try {
+          bw.writeVarString(field.type, 'utf8')
+          switch (field.type) {
+            case 'string':
+              bw.writeVarString(field.value, 'utf8')
+              break
+            case 'boolean':
+              bw.writeU8(Number(field.value))
+              break
+            case 'float':
+              bw.writeDouble(field.value)
+              break
+            case 'integer':
+              bw.writeU64(Math.round(field.value))
+              break
+          }
+        } catch (e: unknown) {
+          if (e instanceof TypeError) {
+            throw new TypeError(
+              `Failed to serialize field ${field.name}: expected value of ${
+                field.type
+              } type but received ${field.value.toString()}`,
+            )
+          }
+
+          throw e
         }
       }
 
