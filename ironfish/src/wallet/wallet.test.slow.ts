@@ -105,9 +105,9 @@ describe('Accounts', () => {
     })
 
     // Spend the balance
-    const transaction = await node.wallet.send(
+    const transaction = await node.wallet.send({
       account,
-      [
+      outputs: [
         {
           publicAddress: generateKey().publicAddress,
           amount: BigInt(2),
@@ -115,10 +115,10 @@ describe('Accounts', () => {
           assetId: Asset.nativeId(),
         },
       ],
-      BigInt(0),
-      node.config.get('transactionExpirationDelta'),
-      0,
-    )
+      fee: BigInt(0),
+      expirationDelta: node.config.get('transactionExpirationDelta'),
+      expiration: 0,
+    })
 
     // Create a block with a miner's fee
     const minersfee2 = await strategy.createMinersFee(
@@ -173,9 +173,9 @@ describe('Accounts', () => {
     })
 
     // Spend the balance
-    const transaction = await node.wallet.send(
+    const transaction = await node.wallet.send({
       account,
-      [
+      outputs: [
         {
           publicAddress: generateKey().publicAddress,
           amount: BigInt(2),
@@ -183,9 +183,9 @@ describe('Accounts', () => {
           assetId: Asset.nativeId(),
         },
       ],
-      BigInt(0),
-      node.config.get('transactionExpirationDelta'),
-    )
+      fee: BigInt(0),
+      expirationDelta: node.config.get('transactionExpirationDelta'),
+    })
 
     expect(transaction.expiration()).toBe(
       node.chain.head.sequence + node.config.get('transactionExpirationDelta'),
@@ -243,9 +243,9 @@ describe('Accounts', () => {
       unconfirmed: BigInt(2000000000),
     })
 
-    const transaction = await node.wallet.send(
+    const transaction = await node.wallet.send({
       account,
-      [
+      outputs: [
         {
           publicAddress: generateKey().publicAddress,
           amount: BigInt(2),
@@ -265,9 +265,9 @@ describe('Accounts', () => {
           assetId: Asset.nativeId(),
         },
       ],
-      BigInt(0),
-      node.config.get('transactionExpirationDelta'),
-    )
+      fee: BigInt(0),
+      expirationDelta: node.config.get('transactionExpirationDelta'),
+    })
 
     expect(transaction.expiration()).toBe(
       node.chain.head.sequence + node.config.get('transactionExpirationDelta'),
@@ -297,9 +297,9 @@ describe('Accounts', () => {
 
     // Spend the balance with an invalid expiration
     await expect(
-      node.wallet.send(
+      node.wallet.send({
         account,
-        [
+        outputs: [
           {
             publicAddress: generateKey().publicAddress,
             amount: BigInt(2),
@@ -307,10 +307,10 @@ describe('Accounts', () => {
             assetId: Asset.nativeId(),
           },
         ],
-        BigInt(0),
-        node.config.get('transactionExpirationDelta'),
-        1,
-      ),
+        fee: BigInt(0),
+        expirationDelta: node.config.get('transactionExpirationDelta'),
+        expiration: 1,
+      }),
     ).rejects.toThrow(Error)
   })
 
@@ -352,9 +352,9 @@ describe('Accounts', () => {
     })
 
     // Spend the balance, setting expiry soon
-    const transaction = await node.wallet.send(
+    const transaction = await node.wallet.send({
       account,
-      [
+      outputs: [
         {
           publicAddress: generateKey().publicAddress,
           amount: BigInt(2),
@@ -362,9 +362,9 @@ describe('Accounts', () => {
           assetId: Asset.nativeId(),
         },
       ],
-      BigInt(0),
-      1,
-    )
+      fee: BigInt(0),
+      expirationDelta: 1,
+    })
 
     // Transaction should be pending
     await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
@@ -438,9 +438,9 @@ describe('Accounts', () => {
     })
 
     // Spend the balance, setting expiry soon
-    const transaction = await node.wallet.send(
+    const transaction = await node.wallet.send({
       account,
-      [
+      outputs: [
         {
           publicAddress: generateKey().publicAddress,
           amount: BigInt(2),
@@ -448,9 +448,9 @@ describe('Accounts', () => {
           assetId: Asset.nativeId(),
         },
       ],
-      BigInt(0),
-      1,
-    )
+      fee: BigInt(0),
+      expirationDelta: 1,
+    })
 
     // Transaction should be unconfirmed
     await expect(account.hasPendingTransaction(transaction.hash())).resolves.toBeTruthy()
@@ -660,9 +660,9 @@ describe('Accounts', () => {
     })
 
     // Spend the balance
-    const transaction = await node.wallet.send(
+    const transaction = await node.wallet.send({
       account,
-      [
+      outputs: [
         {
           publicAddress: generateKey().publicAddress,
           amount: BigInt(2),
@@ -670,10 +670,10 @@ describe('Accounts', () => {
           assetId: Asset.nativeId(),
         },
       ],
-      BigInt(0),
-      node.config.get('transactionExpirationDelta'),
-      0,
-    )
+      fee: BigInt(0),
+      expirationDelta: node.config.get('transactionExpirationDelta'),
+      expiration: 0,
+    })
 
     // Create a block with a miner's fee
     const minersfee2 = await strategy.createMinersFee(
