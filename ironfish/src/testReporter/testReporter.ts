@@ -57,7 +57,7 @@ export default class TestReporter implements CustomReporter {
     const consoleOutputs = testResult.console?.filter((output) => output.type === 'log')
 
     // annotation headers for influx data
-    let datatypeHeader = '#datatype,measurement,field,field,time'
+    let datatypeHeader = '#datatype,measurement,string,string'
     let groupHeader = '#group,false,false,false'
     let defaultHeader = '#default,,,'
     if (consoleOutputs && consoleOutputs[0]) {
@@ -78,20 +78,19 @@ export default class TestReporter implements CustomReporter {
       })
     }
 
-    writeStream.write(datatypeHeader + '\n')
-    writeStream.write(groupHeader + '\n')
-    writeStream.write(defaultHeader + '\n')
+    writeStream.write(datatypeHeader + ',time\n')
+    writeStream.write(groupHeader + ',false\n')
+    writeStream.write(defaultHeader + ',\n')
 
     const stream = format({ headers: true })
     stream.pipe(writeStream)
 
     testResult.testResults.forEach((result, i) => {
       const row: Record<string, string> = {
+        '': '',
         measurement: 'perf-test',
         file: testFileName.split('.')[0],
         name: result.title,
-        duration: String(result.duration),
-        time: String(Date.now()),
       }
 
       if (consoleOutputs && consoleOutputs[i]) {
@@ -105,6 +104,8 @@ export default class TestReporter implements CustomReporter {
           }
         })
       }
+      row['timestamp'] = String(Date.now())
+
       stream.write(row)
     })
     writeStream.end()

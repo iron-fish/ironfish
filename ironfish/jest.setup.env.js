@@ -35,5 +35,7 @@ beforeAll(() => {
 
 beforeEach(() => {
   consola.pause()
-  global.console = require('console')
+  if (!process.env.GENERATE_TEST_REPORT) {
+    global.console = require('console')
+  }
 })
