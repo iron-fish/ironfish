@@ -16,4 +16,5 @@ homepage = "https://ironfish.network/"
 repository = "https://github.com/iron-fish/ironfish"
 
 [patch.crates-io]
+blst = { git = "https://github.com/andreacorbellini/blst.git" }
 bellman = { git = "https://github.com/iron-fish/bellman", rev = "1cc52ca33e6db14233f1cbc0c9c5b7c822b229ec" }
