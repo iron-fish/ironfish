@@ -65,13 +65,25 @@ export class Job {
   }
 
   execute(worker: Worker | null = null): Job {
+    this.worker = worker
+
     const prevStatus = this.status
     this.status = 'executing'
-    this.worker = worker
     this.onChange.emit(this, prevStatus)
 
     if (worker) {
-      worker.send(this.request)
+      try {
+        worker.send(this.request)
+      } catch (e: unknown) {
+        const prevStatus = this.status
+        this.status = 'error'
+        this.onChange.emit(this, prevStatus)
+        this.onEnded.emit(this)
+
+        throw e
+      }
+
+      worker.jobs.set(this.id, this)
       return this
     }
 
