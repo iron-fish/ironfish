@@ -49,6 +49,16 @@ describe('Worker Pool', () => {
 
       expect(workerPool.workers.length).toBe(1)
 
+      class ErrorWorkerMessage extends WorkerMessage {
+        serializePayload(): void {
+          throw new Error('Always throw an error during serialization.')
+        }
+
+        getSize(): number {
+          return 0
+        }
+      }
+
       const worker = workerPool.workers[0]
       const message = new ErrorWorkerMessage(WorkerMessageType.JobError)
       const job = new Job(message)
@@ -59,16 +69,7 @@ describe('Worker Pool', () => {
 
       expect(job.status).toEqual('error')
       expect(worker.jobs.size).toEqual(0)
+      expect(worker.canTakeJobs).toBe(true)
     })
   })
 })
-
-class ErrorWorkerMessage extends WorkerMessage {
-  serializePayload(): void {
-    throw new Error('Always throw an error during serialization.')
-  }
-
-  getSize(): number {
-    return 0
-  }
-}
