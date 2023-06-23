@@ -141,7 +141,7 @@ jobs:
           options: ${{ matrix.settings.platform && format('--platform {0}', matrix.settings.platform) || ''}} -v ${{ github.workspace }}:/build -w /build/ironfish-rust-nodejs
           run: |
             set -e
-            npm run test:slow
+            npm run -- test:slow --verbose
 
       - name: Run tests natively
         if: ${{ !matrix.settings.docker }}
