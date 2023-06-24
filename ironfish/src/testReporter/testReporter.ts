@@ -72,7 +72,7 @@ export default class TestReporter implements CustomReporter {
           } else {
             datatypeHeader = datatypeHeader.concat(',long')
           }
-          groupHeader = groupHeader.concat(',false')
+          groupHeader = groupHeader.concat(',true')
           defaultHeader = defaultHeader.concat(',')
         }
       })
