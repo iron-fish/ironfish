@@ -57,9 +57,9 @@ export default class TestReporter implements CustomReporter {
     const consoleOutputs = testResult.console?.filter((output) => output.type === 'log')
 
     // annotation headers for influx data
-    let datatypeHeader = '#datatype,measurement,string,string'
-    let groupHeader = '#group,false,false,false'
-    let defaultHeader = '#default,,,'
+    let datatypeHeader = '#datatype,string,long,string,string,string,dateTime:RFC3339'
+    let groupHeader = '#group,false,false,true,true,true,false'
+    let defaultHeader = '#default,_result,,,,,'
     if (consoleOutputs && consoleOutputs[0]) {
       const entries = consoleOutputs[0].message.split(',')
       entries.forEach((input) => {
@@ -78,9 +78,9 @@ export default class TestReporter implements CustomReporter {
       })
     }
 
-    writeStream.write(datatypeHeader + ',time\n')
-    writeStream.write(groupHeader + ',false\n')
-    writeStream.write(defaultHeader + ',\n')
+    writeStream.write(groupHeader + '\n')
+    writeStream.write(datatypeHeader + '\n')
+    writeStream.write(defaultHeader + '\n')
 
     const stream = format({ headers: true })
     stream.pipe(writeStream)
@@ -88,24 +88,31 @@ export default class TestReporter implements CustomReporter {
     testResult.testResults.forEach((result, i) => {
       const row: Record<string, string> = {
         '': '',
-        measurement: 'perf-test',
-        file: testFileName.split('.')[0],
-        name: result.title,
+        result: '_result',
+        table: '0',
+        _measurement: 'perf_test',
+        testsuite: testFileName.split('.')[0],
+        _field: result.title,
+        _time: new Date(Date.now()).toISOString(),
       }
 
       if (consoleOutputs && consoleOutputs[i]) {
         const entries = consoleOutputs[i].message.split(',')
+        let isValueSet = false
         entries.forEach((input) => {
           const entry = input.split(':')
           const key = entry[0]
           const value = entry[1]
           if (key && value) {
-            row[key.trim()] = value.replace(/[^\d.-]/g, '')
+            if (!isValueSet) {
+              row['_value'] = value.replace(/[^\d.-]/g, '')
+              isValueSet = true
+            } else {
+              row[key.trim().replace(/\s/g, '').toLowerCase()] = value.replace(/[^\d.-]/g, '')
+            }
           }
         })
       }
-      row['timestamp'] = String(Date.now())
-
       stream.write(row)
     })
     writeStream.end()

@@ -174,5 +174,5 @@ jobs:
         run: |
           influx config create --config-name ghaction --host-url $INFLUX_URL --org $INFLUX_ORG --token $INFLUX_TOKEN --active
           for f in ironfish/test-reports/*.perf.csv; do 
-            influx write --bucket ironfish-telemetry-mainnet --format=csv --file $f
+            influx write --bucket ironfish-telemetry-mainnet --token INFLUX_TOKEN --format=csv --file $f
           done
