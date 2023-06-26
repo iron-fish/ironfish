@@ -111,14 +111,14 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
     }
 
     try {
-      const transaction = await node.wallet.send(
+      const transaction = await node.wallet.send({
         account,
         outputs,
         fee,
-        request.data.expirationDelta ?? node.config.get('transactionExpirationDelta'),
-        request.data.expiration,
-        request.data.confirmations,
-      )
+        expirationDelta: request.data.expirationDelta ?? undefined,
+        expiration: request.data.expiration ?? undefined,
+        confirmations: request.data.confirmations ?? undefined,
+      })
 
       request.end({
         account: account.name,

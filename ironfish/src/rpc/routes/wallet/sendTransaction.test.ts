@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Asset } from '@ironfish/rust-nodejs'
+import { Assert } from '../../../assert'
 import { useAccountFixture, useMinersTxFixture } from '../../../testUtilities/fixtures'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { NotEnoughFundsError } from '../../../wallet/errors'
@@ -241,14 +242,11 @@ describe('Route wallet/sendTransaction', () => {
 
     await routeTest.client.wallet.sendTransaction(TEST_PARAMS)
 
-    expect(sendSpy).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.anything(),
-      expect.anything(),
-      routeTest.node.config.get('transactionExpirationDelta'),
-      undefined,
-      undefined,
-    )
+    Assert.isNotUndefined(sendSpy.mock.lastCall)
+
+    expect(sendSpy.mock.lastCall[0]).toMatchObject({
+      expirationDelta: undefined,
+    })
 
     await routeTest.client.wallet.sendTransaction({
       ...TEST_PARAMS,
@@ -257,13 +255,10 @@ describe('Route wallet/sendTransaction', () => {
       confirmations: 10,
     })
 
-    expect(sendSpy).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.anything(),
-      expect.anything(),
-      12345,
-      1234,
-      10,
-    )
+    expect(sendSpy.mock.lastCall[0]).toMatchObject({
+      expiration: 1234,
+      expirationDelta: 12345,
+      confirmations: 10,
+    })
   })
 })
