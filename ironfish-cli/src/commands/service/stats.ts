@@ -52,6 +52,7 @@ export default class Stats extends IronfishCommand {
     // metric loops, must await last loop
     void this.forks(api, flags.delay)
     void this.chainDBSize(api, flags.delay)
+    void this.chainReorgs(api)
     await this.feeRates(api, flags.delay)
   }
 
@@ -186,6 +187,67 @@ export default class Stats extends IronfishCommand {
       }
 
       await PromiseUtils.sleep(delay)
+    }
+  }
+
+  async chainReorgs(api: WebApi): Promise<void> {
+    let connected = false
+
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      connected = await this.sdk.client.tryConnect()
+
+      if (!connected) {
+        await PromiseUtils.sleep(1000)
+        continue
+      }
+
+      const response = this.sdk.client.event.onReorganizeChainStream()
+
+      for await (const value of response.contentStream()) {
+        const { oldHead, newHead, fork } = value
+        void api.submitTelemetry({
+          points: [
+            {
+              measurement: 'chain_reorg',
+              timestamp: new Date(),
+              fields: [
+                {
+                  name: 'old_sequence',
+                  type: 'integer',
+                  value: oldHead.sequence,
+                },
+                {
+                  name: 'old_hash',
+                  type: 'string',
+                  value: oldHead.hash,
+                },
+                {
+                  name: 'new_sequence',
+                  type: 'integer',
+                  value: newHead.sequence,
+                },
+                {
+                  name: 'new_hash',
+                  type: 'string',
+                  value: newHead.hash,
+                },
+                {
+                  name: 'fork_sequence',
+                  type: 'integer',
+                  value: fork.sequence,
+                },
+                {
+                  name: 'fork_hash',
+                  type: 'string',
+                  value: fork.hash,
+                },
+              ],
+              tags: [{ name: 'version', value: IronfishCliPKG.version }],
+            },
+          ],
+        })
+      }
     }
   }
 }
