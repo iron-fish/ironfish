@@ -1,10 +1,11 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { CurrencyUtils, GetBalanceResponse } from '@ironfish/sdk'
+import { CurrencyUtils, GetBalanceResponse, isNativeIdentifier } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
+import { renderAssetName } from '../../utils'
 
 export class BalanceCommand extends IronfishCommand {
   static description =
@@ -53,10 +54,16 @@ export class BalanceCommand extends IronfishCommand {
       assetId: flags.assetId,
       confirmations: flags.confirmations,
     })
+
     const assetId = response.content.assetId
+    const assetName = renderAssetName(isNativeIdentifier(assetId) ? '$IRON' : assetId, {
+      verification: response.content.assetVerification,
+      verbose: !!flags.verbose,
+      logWarn: this.warn.bind(this),
+    })
 
     if (flags.explain) {
-      this.explainBalance(response.content, assetId)
+      this.explainBalance(response.content, assetName)
       return
     }
 
@@ -65,16 +72,20 @@ export class BalanceCommand extends IronfishCommand {
       this.log(`Head Hash: ${response.content.blockHash || 'NULL'}`)
       this.log(`Head Sequence: ${response.content.sequence || 'NULL'}`)
       this.log(
-        `Available:   ${CurrencyUtils.renderIron(response.content.available, true, assetId)}`,
+        `Available:   ${CurrencyUtils.renderIron(response.content.available, true, assetName)}`,
       )
       this.log(
-        `Confirmed:   ${CurrencyUtils.renderIron(response.content.confirmed, true, assetId)}`,
+        `Confirmed:   ${CurrencyUtils.renderIron(response.content.confirmed, true, assetName)}`,
       )
       this.log(
-        `Unconfirmed: ${CurrencyUtils.renderIron(response.content.unconfirmed, true, assetId)}`,
+        `Unconfirmed: ${CurrencyUtils.renderIron(
+          response.content.unconfirmed,
+          true,
+          assetName,
+        )}`,
       )
       this.log(
-        `Pending:     ${CurrencyUtils.renderIron(response.content.pending, true, assetId)}`,
+        `Pending:     ${CurrencyUtils.renderIron(response.content.pending, true, assetName)}`,
       )
       return
     }
@@ -84,7 +95,7 @@ export class BalanceCommand extends IronfishCommand {
       `Available Balance: ${CurrencyUtils.renderIron(
         response.content.available,
         true,
-        assetId,
+        assetName,
       )}`,
     )
   }

@@ -33,4 +33,16 @@ const getByteLength = (value: string, encoding?: BufferEncoding): number => {
   return Buffer.from(value, encoding).byteLength
 }
 
-export const StringUtils = { hash, hashToNumber, getByteLength }
+/**
+ * Converts a potentially unsafe string to a string that can be safely printed
+ * on a terminal.
+ *
+ * This removes all Unicode control characters, which could be used (among
+ * other things) to inject ANSI control sequences to alter arbitrary contents
+ * on the user's terminal.
+ */
+const sanitizeString = (s: string): string => {
+  return s.replace(/[\u0000-\u001F\u007F-\u009F]/g, '').trim()
+}
+
+export const StringUtils = { hash, hashToNumber, getByteLength, sanitizeString }
