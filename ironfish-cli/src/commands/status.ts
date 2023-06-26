@@ -199,7 +199,7 @@ function renderStatus(content: GetNodeStatusResponse, debugOutput: boolean): str
     ? [cores, current, rollingAvg].join(', ')
     : [cores, current].join(', ')
 
-  return `\
+  let output = `\
 Version              ${content.node.version} @ ${content.node.git}
 Node                 ${nodeStatus}
 Node Name            ${content.node.nodeName}
@@ -215,5 +215,12 @@ Syncer               ${blockSyncerStatus}
 Blockchain           ${blockchainStatus}
 Accounts             ${accountStatus}
 Telemetry            ${telemetryStatus}
-Workers              ${workersStatus}`
+Workers              ${workersStatus}
+`
+
+  if (debugOutput) {
+    output += `UV Active Reqs       ${content.misc.uvActiveReqs}\n`
+  }
+
+  return output
 }

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Asset, DECRYPTED_NOTE_LENGTH, initSignalHandler, LanguageCode, spendingKeyToWords, wordsToSpendingKey } from '..'
+import { Asset, DECRYPTED_NOTE_LENGTH, getUvActiveReqs, initSignalHandler, LanguageCode, spendingKeyToWords, wordsToSpendingKey } from '..'
 import {
   initializeSapling,
   generateKey,
@@ -12,6 +12,7 @@ import {
   Transaction,
   TransactionPosted,
 } from '../'
+import crypto from 'node:crypto'
 
 describe('Demonstrate the Sapling API', () => {
   beforeAll(async () => {
@@ -143,5 +144,43 @@ describe('Demonstrate the Sapling API', () => {
 describe('signal catcher', () => {
   it('should be able to initialize the handler', () => {
     expect(() => initSignalHandler()).not.toThrow()
+  })
+})
+
+describe('uv monitor', () => {
+  const JOBS = 500
+  const CHECKPOINT = JOBS / 4
+  var nextCheckpoint = JOBS - CHECKPOINT;
+
+  it('should kick off jobs and see the queue count', (done) => {
+    console.log("Starting...")
+    const start = process.hrtime.bigint()
+
+    for (let i = 0; i < JOBS; i++) {
+      crypto.scrypt("the quick brown fox jumped over the lazy dog", 'salt', 64, (err, _) => {
+        if (err) throw err;
+      })
+    }
+
+    expect(getUvActiveReqs()).toEqual(JOBS)
+
+    const check = () => {
+      const activeReqs = getUvActiveReqs()
+
+      if (activeReqs <= nextCheckpoint) {
+        console.log('Queue size:', activeReqs)
+        nextCheckpoint -= CHECKPOINT
+      }
+
+      if (activeReqs == 0) {
+        console.log("Done. Took:", (process.hrtime.bigint() - start) / BigInt(1e6), "milliseconds")
+        expect(activeReqs).toEqual(0)
+        done()
+      } else {
+        setTimeout(() => check())
+      }
+    }
+
+    check()
   })
 })

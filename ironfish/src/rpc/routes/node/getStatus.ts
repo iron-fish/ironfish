@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { getUvActiveReqs } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
 import { IronfishNode } from '../../../node'
 import { MathUtils, PromiseUtils } from '../../../utils'
@@ -102,6 +103,9 @@ export type GetNodeStatusResponse = {
       hash: string
       sequence: number
     }
+  }
+  misc: {
+    uvActiveReqs: number
   }
 }
 
@@ -237,6 +241,11 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetNodeStatusResponse> = 
           .optional(),
       })
       .defined(),
+    misc: yup
+      .object({
+        uvActiveReqs: yup.number().defined(),
+      })
+      .defined(),
   })
   .defined()
 
@@ -364,6 +373,9 @@ async function getStatus(node: IronfishNode): Promise<GetNodeStatusResponse> {
         hash: node.wallet.chainProcessor.hash?.toString('hex') ?? '',
         sequence: node.wallet.chainProcessor.sequence ?? -1,
       },
+    },
+    misc: {
+      uvActiveReqs: getUvActiveReqs(),
     },
   }
 
