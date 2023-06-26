@@ -1,10 +1,11 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { BufferUtils, CurrencyUtils, GetBalancesResponse } from '@ironfish/sdk'
+import { CurrencyUtils, GetBalancesResponse } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
+import { compareAssets, renderAssetNameFromHex } from '../../utils'
 
 export class BalancesCommand extends IronfishCommand {
   static description = `Display the account's balances for all assets`
@@ -45,7 +46,13 @@ export class BalancesCommand extends IronfishCommand {
     let columns: CliUx.Table.table.Columns<GetBalancesResponse['balances'][number]> = {
       assetName: {
         header: 'Asset Name',
-        get: (row) => BufferUtils.toHuman(Buffer.from(row.assetName, 'hex')),
+        get: (row) =>
+          renderAssetNameFromHex(row.assetName, {
+            verification: row.assetVerification,
+            outputType: flags.output,
+            verbose: !!flags.verbose,
+            logWarn: this.warn.bind(this),
+          }),
       },
       assetId: {
         header: 'Asset Id',
@@ -82,6 +89,15 @@ export class BalancesCommand extends IronfishCommand {
       }
     }
 
-    CliUx.ux.table(response.content.balances, columns)
+    response.content.balances.sort((left, right) =>
+      compareAssets(
+        left.assetName,
+        left.assetVerification,
+        right.assetName,
+        right.assetVerification,
+      ),
+    )
+
+    CliUx.ux.table(response.content.balances, columns, flags)
   }
 }
