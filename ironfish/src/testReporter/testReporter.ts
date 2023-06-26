@@ -66,8 +66,7 @@ export default class TestReporter implements CustomReporter {
         const entry = input.split(':')
         const value = entry[1]
         if (value) {
-          const trim = value.replace(/[^\d.-]/g, '')
-          if (trim.includes('.')) {
+          if (value.includes('.')) {
             datatypeHeader = datatypeHeader.concat(',double')
           } else {
             datatypeHeader = datatypeHeader.concat(',long')
