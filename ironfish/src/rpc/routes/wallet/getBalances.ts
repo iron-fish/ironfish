@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { AssetVerification } from '../../../assets'
 import { CurrencyUtils } from '../../../utils'
 import { ApiNamespace, router } from '../router'
 import { getAccount } from './utils'
@@ -17,6 +18,7 @@ export interface GetBalancesResponse {
     assetId: string
     assetName: string
     assetOwner: string
+    assetVerification: AssetVerification
     confirmed: string
     unconfirmed: string
     unconfirmedCount: number
@@ -47,6 +49,11 @@ export const GetBalancesResponseSchema: yup.ObjectSchema<GetBalancesResponse> = 
             assetId: yup.string().defined(),
             assetName: yup.string().defined(),
             assetOwner: yup.string().defined(),
+            assetVerification: yup
+              .object({
+                status: yup.string().oneOf(['verified', 'unverified', 'unknown']).defined(),
+              })
+              .defined(),
             unconfirmed: yup.string().defined(),
             unconfirmedCount: yup.number().defined(),
             pending: yup.string().defined(),
@@ -80,6 +87,7 @@ router.register<typeof GetBalancesRequestSchema, GetBalancesResponse>(
         assetId: balance.assetId.toString('hex'),
         assetName: asset?.name.toString('hex') ?? '',
         assetOwner: asset?.owner.toString('hex') ?? '',
+        assetVerification: node.assetsVerifier.verify(balance.assetId),
         blockHash: balance.blockHash?.toString('hex') ?? null,
         confirmed: CurrencyUtils.encode(balance.confirmed),
         sequence: balance.sequence,

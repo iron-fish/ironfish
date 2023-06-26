@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
+import { AssetVerification } from '../../../assets'
 import { ApiNamespace, router } from '../router'
 import { getAccount } from './utils'
 
@@ -15,6 +16,7 @@ export type GetBalanceRequest = {
 export type GetBalanceResponse = {
   account: string
   assetId: string
+  assetVerification: AssetVerification
   confirmed: string
   unconfirmed: string
   unconfirmedCount: number
@@ -38,6 +40,9 @@ export const GetBalanceResponseSchema: yup.ObjectSchema<GetBalanceResponse> = yu
   .object({
     account: yup.string().defined(),
     assetId: yup.string().defined(),
+    assetVerification: yup
+      .object({ status: yup.string().oneOf(['verified', 'unverified', 'unknown']).defined() })
+      .defined(),
     unconfirmed: yup.string().defined(),
     unconfirmedCount: yup.number().defined(),
     pending: yup.string().defined(),
@@ -70,6 +75,7 @@ router.register<typeof GetBalanceRequestSchema, GetBalanceResponse>(
     request.end({
       account: account.name,
       assetId: assetId.toString('hex'),
+      assetVerification: node.assetsVerifier.verify(assetId),
       confirmed: balance.confirmed.toString(),
       unconfirmed: balance.unconfirmed.toString(),
       unconfirmedCount: balance.unconfirmedCount,

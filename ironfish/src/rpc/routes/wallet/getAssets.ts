@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { AssetVerification } from '../../../assets'
 import { CurrencyUtils } from '../../../utils'
 import { ApiNamespace, router } from '../router'
 import { getAccount } from './utils'
@@ -19,6 +20,7 @@ export type GetAssetsResponse = {
   owner: string
   status: string
   supply?: string
+  verification: AssetVerification
 }
 
 export const GetAssetsRequestSchema: yup.ObjectSchema<GetAssetsRequest> = yup
@@ -38,6 +40,9 @@ export const GetAssetsResponseSchema: yup.ObjectSchema<GetAssetsResponse> = yup
     owner: yup.string().defined(),
     status: yup.string().defined(),
     supply: yup.string().optional(),
+    verification: yup
+      .object({ status: yup.string().oneOf(['verified', 'unverified', 'unknown']).defined() })
+      .defined(),
   })
   .defined()
 
@@ -62,6 +67,7 @@ router.register<typeof GetAssetsRequestSchema, GetAssetsResponse>(
           confirmations: request.data.confirmations,
         }),
         supply: asset.supply !== null ? CurrencyUtils.encode(asset.supply) : undefined,
+        verification: node.assetsVerifier.verify(asset.id),
       })
     }
 
