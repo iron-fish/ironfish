@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 export * from './wallet'
 export * from './assert'
+export * from './assets'
 export * from './blockchain'
 export * from './consensus'
 export {

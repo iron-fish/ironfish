@@ -4,6 +4,7 @@
 import { BoxKeyPair } from '@ironfish/rust-nodejs'
 import os from 'os'
 import { v4 as uuid } from 'uuid'
+import { AssetsVerifier } from './assets'
 import { Blockchain } from './blockchain'
 import { TestnetConsensus } from './consensus'
 import {
@@ -50,6 +51,7 @@ export class IronfishNode {
   syncer: Syncer
   pkg: Package
   telemetry: Telemetry
+  assetsVerifier: AssetsVerifier
 
   started = false
   shutdownPromise: Promise<void> | null = null
@@ -167,6 +169,10 @@ export class IronfishNode {
       telemetry: this.telemetry,
       peerNetwork: this.peerNetwork,
       blocksPerMessage: config.get('blocksPerMessage'),
+    })
+
+    this.assetsVerifier = new AssetsVerifier({
+      logger,
     })
 
     this.config.onConfigChange.on((key, value) => this.onConfigChange(key, value))
@@ -351,6 +357,8 @@ export class IronfishNode {
 
     await this.memPool.start()
 
+    this.assetsVerifier.start()
+
     this.telemetry.submitNodeStarted()
   }
 
@@ -364,6 +372,7 @@ export class IronfishNode {
       this.syncer.stop(),
       this.peerNetwork.stop(),
       this.rpc.stop(),
+      this.assetsVerifier.stop(),
       this.telemetry.stop(),
       this.metrics.stop(),
     ])
