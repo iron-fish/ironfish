@@ -1,0 +1,41 @@
+{
+  "Route wallet/getBalance with a valid account returns balance of the native asset": [
+    {
+      "version": 2,
+      "id": "6cec6436-6dda-4da3-9306-b01361443de5",
+      "name": "accountA",
+      "spendingKey": "b1e802f5a067fa3d687fa021acae99f79675f64533a25aebae1a460d6cc27db7",
+      "viewKey": "c225034859d1d51b6023d331e856515bcf91d0dc51c4ba3f11f14137f68b036854b9a89f9a8f005c3b2d97d0bd022543d7c8ef745d2b5866f6750a89d19fd20e",
+      "incomingViewKey": "9b6a35e632066bec7d8412cb824c0e991a80e7d510c86e871341e917f0c64003",
+      "outgoingViewKey": "fec5ea6d66d5d28488f0aef4fcfbc85783574750359b29bec7de5b39abb30d91",
+      "publicAddress": "780cb854b70107dea2a1b1df2a20a6d1c7bcc8251a88288b474b06c56e5367c7",
+      "createdAt": null
+    }
+  ],
+  "Route wallet/getBalance with a valid account returns balance of an arbitrary asset": [
+    {
+      "version": 2,
+      "id": "07520350-2d4d-4150-a634-284cb8b22ff8",
+      "name": "accountB",
+      "spendingKey": "cfb6fd3625ee2cea3c0dafe885d5ad040c1cf70ffe1b25a27f697af3c870a79c",
+      "viewKey": "ef8221b7a78d5c032ad33edb96fd58ce3ec81cd19a19d9fa9be2f1a0dd778a6c4af59f07d7d1fe64c17467dc1cbb8d91ab00254149cb1422e8d778da7e4c55a5",
+      "incomingViewKey": "14ec7c251b551a9c6cbdf85ac9aac360ca657631d57f231b86d5af08a5c32403",
+      "outgoingViewKey": "1b55f91d2de429133dee0f5c2931fa56c0f8f8d36aac7fa06d4c8d16f181d99d",
+      "publicAddress": "ae781cd6a959fc63191c2ec7959513541f3711957e1859c56a97f1fe845926bd",
+      "createdAt": null
+    }
+  ],
+  "Route wallet/getBalance with a valid account returns asset verification information": [
+    {
+      "version": 2,
+      "id": "4c6e0910-bc52-4eda-9e87-29d1b9007cd2",
+      "name": "accountC",
+      "spendingKey": "93577bda0322ea2f5a024673db32afe1ce679879f6ca2ee1599aefb51b62726e",
+      "viewKey": "68c38cf8fbd3c2cfddf0be485d9588001146886297e704973d9493e13f0ce1f3712528b45f66a0585f3087cbc1e7aea99cfd2e5b47c3f8405314426ef38b1e2a",
+      "incomingViewKey": "a26e731e4ef28fd2ad7c4a4afc70c7268cca893609056ef59d746dfd50895304",
+      "outgoingViewKey": "24cbfbc269cfab69ab9cbd99c0ef1166641d0ee5c64d025ee71cd8866c02f2e2",
+      "publicAddress": "9dd5d952c98bfda9c3257cd50264bb1b4e470a731a0f14495e9d3bdffe40692d",
+      "createdAt": null
+    }
+  ]
+}
