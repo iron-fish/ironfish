@@ -72,7 +72,7 @@ export default class TestReporter implements CustomReporter {
           } else {
             datatypeHeader = datatypeHeader.concat(',long')
           }
-          groupHeader = groupHeader.concat(',true')
+          groupHeader = groupHeader.concat(',false')
           defaultHeader = defaultHeader.concat(',')
         }
       })
@@ -105,10 +105,10 @@ export default class TestReporter implements CustomReporter {
           const value = entry[1]
           if (key && value) {
             if (!isValueSet) {
-              row['_value'] = value.replace(/[^\d.-]/g, '')
+              row['_value'] = value
               isValueSet = true
             } else {
-              row[key.trim().replace(/\s/g, '').toLowerCase()] = value.replace(/[^\d.-]/g, '')
+              row[key.trim().replace(/\s/g, '').toLowerCase()] = value
             }
           }
         })

@@ -27,7 +27,7 @@ export function writeTestReport(
 ): void {
   if (process.env.GENERATE_TEST_REPORT) {
     let row = ''
-    csvReport.forEach((v, k) => (row = row.concat(`${k}: ${v},`)))
+    csvReport.forEach((v, k) => (row = row.concat(`${k}:${v},`)))
     console.log(row.substring(0, row.length - 1))
   } else {
     console.info(`[TEST RESULTS: ${testName}]`)

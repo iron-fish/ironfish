@@ -5,7 +5,12 @@
 /* eslint-disable no-console */
 
 import { Assert } from '../../assert'
-import { createNodeTest, useAccountFixture, useBlockWithTxs } from '../../testUtilities'
+import {
+  createNodeTest,
+  useAccountFixture,
+  useBlockWithTxs,
+  writeTestReport,
+} from '../../testUtilities'
 import { BenchUtils, CurrencyUtils, PromiseUtils, SegmentResults } from '../../utils'
 import { Account } from '../../wallet'
 import { CreateMinersFeeRequest } from './createMinersFee'
@@ -104,23 +109,25 @@ describe('WorkerMessages', () => {
     }
     const average = total / runs.length
 
-    if (process.env.GENERATE_TEST_REPORT) {
-      console.log(
-        `Total time: ${total},` +
-          `Fastest runtime: ${min},` +
-          `Slowest runtime: ${max},` +
-          `Average runtime: ${average},` +
-          BenchUtils.renderSegment(segment, ''),
-      )
-    } else {
-      console.info(
-        `[TEST RESULTS: Message: ${testName}, Iterations: ${TEST_ITERATIONS}]` +
-          `\nTotal elapsed: ${total} milliseconds` +
-          `\nFastest: ${min} milliseconds` +
-          `\nSlowest: ${max} milliseconds` +
-          `\nAverage: ${average} milliseconds`,
-      )
-      console.info(BenchUtils.renderSegment(segment))
-    }
+    writeTestReport(
+      new Map([
+        ['elapsed', `${total}`],
+        ['fastestruntime', `${min}`],
+        ['slowestruntime', `${max}`],
+        ['averageruntime', `${average}`],
+        ['timespan', `${segment.time}`],
+        ['rss', `${segment.rss}`],
+        ['mem', `${segment.mem}`],
+        ['heap', `${segment.heap}`],
+      ]),
+      new Map([
+        ['Total elapsed', `${total} milliseconds`],
+        ['Fastest runtime', `${min} milliseconds`],
+        ['Slowest runtime', `${max} milliseconds`],
+        ['Average runtime', `${average} milliseconds`],
+      ]),
+      `Message: ${testName}, Iterations: ${TEST_ITERATIONS}`,
+    )
+    console.info(BenchUtils.renderSegment(segment))
   }
 })
