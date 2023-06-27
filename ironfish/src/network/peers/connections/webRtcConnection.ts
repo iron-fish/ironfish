@@ -58,6 +58,7 @@ export class WebRtcConnection extends Connection {
   constructor(
     initiator: boolean,
     logger: Logger,
+    stunServers: string[],
     metrics?: MetricsMonitor,
     options: { simulateLatency?: number } = {},
   ) {
@@ -73,9 +74,8 @@ export class WebRtcConnection extends Connection {
       this.addLatencyWrapper()
     }
 
-    // TODO: Use our own STUN servers
     this.peer = new nodeDataChannel.PeerConnection('peer', {
-      iceServers: ['stun:stun.l.google.com:19302', 'stun:global.stun.twilio.com:3478'],
+      iceServers: stunServers,
       maxMessageSize: MAX_MESSAGE_SIZE,
     })
 

@@ -158,6 +158,7 @@ export class PeerNetwork {
     listen?: boolean
     port?: number
     bootstrapNodes?: string[]
+    stunServers: string[]
     name?: string | null
     maxPeers?: number
     minPeers?: number
@@ -204,6 +205,7 @@ export class PeerNetwork {
     this.peerManager = new PeerManager(
       this.localPeer,
       options.hostsStore,
+      options.stunServers,
       this.logger,
       this.metrics,
       maxPeers,
