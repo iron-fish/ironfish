@@ -57,9 +57,9 @@ export default class TestReporter implements CustomReporter {
     const consoleOutputs = testResult.console?.filter((output) => output.type === 'log')
 
     // annotation headers for influx data
-    let datatypeHeader = '#datatype,string,long,string,string,string,dateTime:RFC3339'
-    let groupHeader = '#group,false,false,true,true,true,false'
-    let defaultHeader = '#default,_result,,,,,'
+    let datatypeHeader = '#datatype,measurement,tag,tag,dateTime:RFC3339'
+    let groupHeader = '#group,true,true,true,false'
+    let defaultHeader = '#default,,,,'
     if (consoleOutputs && consoleOutputs[0]) {
       const entries = consoleOutputs[0].message.split(',')
       entries.forEach((input) => {
@@ -87,29 +87,19 @@ export default class TestReporter implements CustomReporter {
     testResult.testResults.forEach((result, i) => {
       const row: Record<string, string> = {
         '': '',
-        result: '_result',
-        table: '0',
         _measurement: 'perf_test',
         testsuite: testFileName.split('.')[0],
-        _field: result.title,
+        testname: result.title,
         _time: new Date(Date.now()).toISOString(),
       }
 
       if (consoleOutputs && consoleOutputs[i]) {
         const entries = consoleOutputs[i].message.split(',')
-        let isValueSet = false
         entries.forEach((input) => {
           const entry = input.split(':')
           const key = entry[0]
           const value = entry[1]
-          if (key && value) {
-            if (!isValueSet) {
-              row['_value'] = value
-              isValueSet = true
-            } else {
-              row[key.trim().replace(/\s/g, '').toLowerCase()] = value
-            }
-          }
+          row[key.trim().replace(/\s/g, '').toLowerCase()] = value
         })
       }
       stream.write(row)
