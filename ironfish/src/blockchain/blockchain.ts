@@ -127,9 +127,7 @@ export class Blockchain {
   // When ever a block is added to a fork
   onForkBlock = new Event<[block: Block, tx?: IDatabaseTransaction]>()
   // When ever the blockchain is reorganized
-  onReorganizeChain = new Event<
-    [oldHead: BlockHeader, newHead: BlockHeader, fork: BlockHeader]
-  >()
+  onReorganize = new Event<[oldHead: BlockHeader, newHead: BlockHeader, fork: BlockHeader]>()
 
   private _head: BlockHeader | null = null
 
@@ -845,7 +843,7 @@ export class Blockchain {
         ` fork: ${HashUtils.renderHash(fork.hash)} (${fork.sequence})`,
     )
 
-    this.onReorganizeChain.emit(oldHead, newHead, fork)
+    this.onReorganize.emit(oldHead, newHead, fork)
   }
 
   addOrphan(header: BlockHeader): void {

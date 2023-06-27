@@ -36,10 +36,10 @@ router.register<typeof OnReorganizeChainRequestSchema, OnReorganizeChainResponse
       })
     }
 
-    node.chain.onReorganizeChain.on(onReorganizeChain)
+    node.chain.onReorganize.on(onReorganizeChain)
 
     request.onClose.on(() => {
-      node.chain.onReorganizeChain.off(onReorganizeChain)
+      node.chain.onReorganize.off(onReorganizeChain)
     })
   },
 )
