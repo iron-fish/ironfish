@@ -153,13 +153,6 @@ jobs:
             exit 1
           fi
 
-      - name: Archive test results
-        uses: actions/upload-artifact@v3
-        if: always()
-        with:
-          name: perf-test-report
-          path: ironfish/test-reports/*.perf.csv
-
       - name: Setup InfluxDB
         uses: influxdata/influxdb-action@v3
         with:
