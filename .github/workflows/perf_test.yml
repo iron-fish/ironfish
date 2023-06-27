@@ -1,18 +1,14 @@
 name: Performance Tests
 
 on:
-  pull_request:
-    branches:
-      - master
   push:
     branches:
-      - master
       - staging
 
 permissions:
   checks: write
   contents: write
-  
+
 jobs:
   testperf:
     name: Perf Tests
