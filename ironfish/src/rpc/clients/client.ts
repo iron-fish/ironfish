@@ -229,7 +229,7 @@ export abstract class RpcClient {
     },
 
     getAccountBalance: (
-      params: GetBalanceRequest = {},
+      params?: GetBalanceRequest,
     ): Promise<RpcResponseEnded<GetBalanceResponse>> => {
       return this.request<GetBalanceResponse>(
         `${ApiNamespace.wallet}/getBalance`,

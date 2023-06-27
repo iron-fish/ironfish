@@ -6,11 +6,13 @@ import * as yup from 'yup'
 import { ApiNamespace, router } from '../router'
 import { getAccount } from './utils'
 
-export type GetBalanceRequest = {
-  account?: string
-  assetId?: string
-  confirmations?: number
-}
+export type GetBalanceRequest =
+  | {
+      account?: string
+      assetId?: string
+      confirmations?: number
+    }
+  | undefined
 
 export type GetBalanceResponse = {
   account: string
@@ -28,11 +30,11 @@ export type GetBalanceResponse = {
 
 export const GetBalanceRequestSchema: yup.ObjectSchema<GetBalanceRequest> = yup
   .object({
-    account: yup.string().trim(),
-    assetId: yup.string().optional(),
+    account: yup.string().optional().trim(),
+    assetId: yup.string().optional().trim(),
     confirmations: yup.number().min(0).optional(),
   })
-  .defined()
+  .optional()
 
 export const GetBalanceResponseSchema: yup.ObjectSchema<GetBalanceResponse> = yup
   .object({
@@ -54,12 +56,12 @@ router.register<typeof GetBalanceRequestSchema, GetBalanceResponse>(
   `${ApiNamespace.wallet}/getBalance`,
   GetBalanceRequestSchema,
   async (request, node): Promise<void> => {
-    const confirmations = request.data.confirmations ?? node.config.get('confirmations')
+    const confirmations = request.data?.confirmations ?? node.config.get('confirmations')
 
-    const account = getAccount(node, request.data.account)
+    const account = getAccount(node, request.data?.account)
 
     let assetId = Asset.nativeId()
-    if (request.data.assetId) {
+    if (request.data?.assetId) {
       assetId = Buffer.from(request.data.assetId, 'hex')
     }
 
