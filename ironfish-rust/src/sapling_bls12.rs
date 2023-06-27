@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-pub use bls12_381::Scalar;
+pub use blstrs::Scalar;
 use lazy_static::lazy_static;
 use std::sync::Arc;
 

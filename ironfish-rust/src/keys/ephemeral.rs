@@ -21,7 +21,7 @@ impl EphemeralKeyPair {
 
         Self {
             secret,
-            public: PUBLIC_KEY_GENERATOR * secret,
+            public: *PUBLIC_KEY_GENERATOR * secret,
         }
     }
 
@@ -44,7 +44,10 @@ mod test {
     fn test_ephemeral_key_pair() {
         let key_pair = EphemeralKeyPair::new();
 
-        assert_eq!(*key_pair.public(), PUBLIC_KEY_GENERATOR * key_pair.secret());
+        assert_eq!(
+            *key_pair.public(),
+            *PUBLIC_KEY_GENERATOR * key_pair.secret()
+        );
 
         assert_eq!(key_pair.public(), &key_pair.public);
         assert_eq!(key_pair.secret(), &key_pair.secret);
