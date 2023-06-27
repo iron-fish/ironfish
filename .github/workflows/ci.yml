@@ -126,6 +126,8 @@ jobs:
     steps:
       - name: Check out Git repository
         uses: actions/checkout@v3
+        with:
+          ref: ${{ github.ref }}
 
       - name: Use Node.js
         uses: actions/setup-node@v3
@@ -157,3 +159,20 @@ jobs:
         with:
           name: perf-test-report
           path: ironfish/test-reports/*.perf.csv
+
+      - name: Setup InfluxDB
+        uses: influxdata/influxdb-action@v3
+        with:
+          influxdb_version: 2.6.0
+          influxdb_start: false
+      
+      - name: Import to InfluxDB
+        env:
+          INFLUX_TOKEN: ${{ secrets.INFLUX_TOKEN }}
+          INFLUX_ORG: 'fdcfe96f6c31245a'
+          INFLUX_URL: 'https://us-east-1-1.aws.cloud2.influxdata.com'
+        run: |
+          influx config create --config-name ghaction --host-url $INFLUX_URL --org $INFLUX_ORG --token $INFLUX_TOKEN --active
+          for f in ironfish/test-reports/*.perf.csv; do 
+            influx write --bucket ironfish-telemetry-mainnet --token $INFLUX_TOKEN --format=csv --file $f
+          done

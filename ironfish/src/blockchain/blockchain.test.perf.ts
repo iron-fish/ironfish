@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-/* eslint-disable no-console */
 /* eslint-disable jest/expect-expect */
+
 import { Asset } from '@ironfish/rust-nodejs'
 import _ from 'lodash'
 import { Assert } from '../assert'
@@ -14,6 +14,7 @@ import {
   useAccountFixture,
   useBlockWithTx,
   useMinerBlockFixture,
+  writeTestReport,
 } from '../testUtilities'
 import { MathUtils, UnwrapPromise } from '../utils'
 
@@ -174,28 +175,30 @@ describe('Blockchain', () => {
   }
 
   function printResults(result: UnwrapPromise<ReturnType<typeof runTest>>): void {
-    if (process.env.GENERATE_TEST_REPORT) {
-      console.log(
-        `Total Test Average: ${MathUtils.arrayAverage(result.all).toFixed(2)}` +
-          `,Insert blocks linear: ${MathUtils.arrayAverage(result.add).toFixed(2)}` +
-          `,Insert blocks on fork: ${MathUtils.arrayAverage(result.fork).toFixed(2)}` +
-          `,Add head rewind fork blocks: ${MathUtils.arrayAverage(result.rewind).toFixed(2)}`,
-      )
-    } else {
-      console.info(
-        `[TEST RESULTS: Times Ran: ${result.testCount}, Fork Length: ${result.forkLength}]` +
-          `\nTotal Test Average: ${MathUtils.arrayAverage(result.all).toFixed(2)}ms` +
-          `\nInsert ${result.forkLength - 1} blocks linear: ${MathUtils.arrayAverage(
-            result.add,
-          ).toFixed(2)}ms` +
-          `\nInsert ${result.forkLength - 1} blocks on fork: ${MathUtils.arrayAverage(
-            result.fork,
-          ).toFixed(2)}ms` +
-          `\nAdd head rewind fork blocks: ${MathUtils.arrayAverage(result.rewind).toFixed(
-            2,
-          )}ms`,
-      )
-    }
+    writeTestReport(
+      new Map([
+        ['TotalTestAverage', `${MathUtils.arrayAverage(result.all).toFixed(2)}`],
+        ['InsertBlocksLinear', `${MathUtils.arrayAverage(result.add).toFixed(2)}`],
+        ['InsertBlocksOnFork', `${MathUtils.arrayAverage(result.fork).toFixed(2)}`],
+        ['AddHeadRewindForkBlocks', `${MathUtils.arrayAverage(result.rewind).toFixed(2)}`],
+      ]),
+      new Map([
+        ['Total Test Average', `${MathUtils.arrayAverage(result.all).toFixed(2)}ms`],
+        [
+          `Insert ${result.forkLength - 1} blocks linear`,
+          `${MathUtils.arrayAverage(result.add).toFixed(2)}ms`,
+        ],
+        [
+          `Insert ${result.forkLength - 1} blocks on fork`,
+          `${MathUtils.arrayAverage(result.fork).toFixed(2)}ms`,
+        ],
+        [
+          'Add head rewind fork blocks',
+          `${MathUtils.arrayAverage(result.rewind).toFixed(2)}ms`,
+        ],
+      ]),
+      `Times Ran: ${result.testCount}, Fork Length: ${result.forkLength}`,
+    )
   }
 })
 

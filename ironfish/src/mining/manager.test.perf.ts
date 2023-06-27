@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-/* eslint-disable no-console */
 import { Asset } from '@ironfish/rust-nodejs'
 import { Assert } from '../assert'
 import { Block, Transaction } from '../primitives'
@@ -11,6 +10,7 @@ import {
   useAccountFixture,
   useMinerBlockFixture,
   useTxFixture,
+  writeTestReport,
 } from '../testUtilities'
 import { createRawTransaction } from '../testUtilities/helpers/transaction'
 import { BenchUtils } from '../utils'
@@ -84,14 +84,11 @@ describe('MiningManager', () => {
   }
 
   function printResults(results: Results) {
-    if (process.env.GENERATE_TEST_REPORT) {
-      console.log(`Elapsed: ${results.elapsed.toLocaleString()}`)
-    } else {
-      console.info(
-        `[TEST RESULTS: Mempool size: ${results.mempoolSize}, Transactions count: ${results.numTransactions}]` +
-          `\nElapsed: ${results.elapsed.toLocaleString()} milliseconds`,
-      )
-    }
+    writeTestReport(
+      new Map([['elapsed', `${results.elapsed}`]]),
+      new Map([['Elapsed', `${results.elapsed.toLocaleString()} milliseconds`]]),
+      `Mempool size: ${results.mempoolSize}, Transactions count: ${results.numTransactions}`,
+    )
   }
 
   async function runTest(

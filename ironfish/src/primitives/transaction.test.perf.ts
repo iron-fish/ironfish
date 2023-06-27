@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-/* eslint-disable no-console */
 import { Asset } from '@ironfish/rust-nodejs'
 import { Assert } from '../assert'
+import { writeTestReport } from '../testUtilities'
 import { useAccountFixture, useMinerBlockFixture } from '../testUtilities/fixtures'
 import { createRawTransaction } from '../testUtilities/helpers/transaction'
 import { createNodeTest } from '../testUtilities/nodeTest'
@@ -50,14 +50,11 @@ describe('Transaction', () => {
   }
 
   function printResults(results: Results) {
-    if (process.env.GENERATE_TEST_REPORT) {
-      console.log(`Elapsed: ${results.elapsed.toLocaleString()}`)
-    } else {
-      console.info(
-        `[TEST RESULTS: Spends: ${results.spends}, Outputs: ${results.outputs}]` +
-          `\nElapsed: ${results.elapsed.toLocaleString()} milliseconds`,
-      )
-    }
+    writeTestReport(
+      new Map([['elapsed', `${results.elapsed}`]]),
+      new Map([['Elapsed', `${results.elapsed.toLocaleString()} milliseconds`]]),
+      `Spends: ${results.spends}, Outputs: ${results.outputs}`,
+    )
   }
 
   async function runTest(
