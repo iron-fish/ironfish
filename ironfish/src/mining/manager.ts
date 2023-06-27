@@ -65,20 +65,22 @@ export class MiningManager {
 
     this.chain.onConnectBlock.on(
       (block) =>
-        void this.onConnectedBlock(block).catch((error) => {
-          if (error instanceof HeadChangedError) {
-            this.node.logger.debug(
-              `Chain head changed while creating block template for sequence ${
-                block.header.sequence + 1
-              }`,
-            )
-          } else {
-            this.node.logger.error(
-              `Error creating block template: ${ErrorUtils.renderError(error)}`,
-            )
-          }
-        }),
+        void this.onConnectedBlock(block).catch((error) =>
+          this.handleOnConnectBlockError(error, block),
+        ),
     )
+  }
+
+  handleOnConnectBlockError(error: unknown, block: Block): void {
+    if (error instanceof HeadChangedError) {
+      this.node.logger.debug(
+        `Chain head changed while creating block template for sequence ${
+          block.header.sequence + 1
+        }`,
+      )
+    } else {
+      this.node.logger.error(`Error creating block template: ${ErrorUtils.renderError(error)}`)
+    }
   }
 
   get minersConnected(): number {
@@ -94,11 +96,9 @@ export class MiningManager {
       // Send an initial block template to the requester so they can begin working immediately
       void this.chain.getBlock(this.chain.head).then((currentBlock) => {
         if (currentBlock) {
-          void this.onConnectedBlock(currentBlock).catch((error) => {
-            this.node.logger.info(
-              `Error creating block template: ${ErrorUtils.renderError(error)}`,
-            )
-          })
+          void this.onConnectedBlock(currentBlock).catch((error) =>
+            this.handleOnConnectBlockError(error, currentBlock),
+          )
         }
       })
 
