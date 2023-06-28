@@ -29,7 +29,6 @@ export type ConfigOptions = {
   bootstrapNodes: string[]
   /**
    * STUN servers to use for inititating WebRTC connections.
-   * TODO: Use our own STUN servers
    */
   p2pStunServers: string[]
   databaseMigrate: boolean

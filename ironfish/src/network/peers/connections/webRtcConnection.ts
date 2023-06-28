@@ -59,7 +59,7 @@ export class WebRtcConnection extends Connection {
     initiator: boolean,
     logger: Logger,
     metrics?: MetricsMonitor,
-    options: { simulateLatency?: number; stunServers: string[] } = { stunServers: [] },
+    options: { simulateLatency?: number; stunServers?: string[] } = {},
   ) {
     super(
       ConnectionType.WebRtc,
@@ -74,7 +74,7 @@ export class WebRtcConnection extends Connection {
     }
 
     this.peer = new nodeDataChannel.PeerConnection('peer', {
-      iceServers: options.stunServers,
+      iceServers: options.stunServers ?? [],
       maxMessageSize: MAX_MESSAGE_SIZE,
     })
 
