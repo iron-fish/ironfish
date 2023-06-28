@@ -357,7 +357,9 @@ export class IronfishNode {
 
     await this.memPool.start()
 
-    this.assetsVerifier.start()
+    if (this.config.get('enableAssetVerification')) {
+      this.assetsVerifier.start()
+    }
 
     this.telemetry.submitNodeStarted()
   }
@@ -423,6 +425,14 @@ export class IronfishNode {
           await this.rpc.start()
         } else {
           await this.rpc.stop()
+        }
+        break
+      }
+      case 'enableAssetVerification': {
+        if (newValue) {
+          this.assetsVerifier.start()
+        } else {
+          this.assetsVerifier.stop()
         }
         break
       }
