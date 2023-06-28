@@ -50,12 +50,6 @@ export const TRANSACTION_EXPIRATION_LENGTH: number
 export const TRANSACTION_FEE_LENGTH: number
 export const TRANSACTION_VERSION: number
 export function verifyTransactions(serializedTransactions: Array<Buffer>): boolean
-/**
- * # Safety: This transmutes a pointer from a napi type to a libuv_sys2 type.
- * This function returns the number of requests waiting for libuv to handle
- * them. This is basically a queue size for the libuv thread pool.
- */
-export function getUvActiveReqs(): number
 export const enum LanguageCode {
   English = 0,
   ChineseSimplified = 1,

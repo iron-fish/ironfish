@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { getUvActiveReqs } from '@ironfish/rust-nodejs'
+import { getActiveReqs } from 'libuv-monitor'
 import * as yup from 'yup'
 import { IronfishNode } from '../../../node'
 import { MathUtils, PromiseUtils } from '../../../utils'
@@ -375,7 +375,7 @@ async function getStatus(node: IronfishNode): Promise<GetNodeStatusResponse> {
       },
     },
     misc: {
-      uvActiveReqs: getUvActiveReqs(),
+      uvActiveReqs: getActiveReqs(), // TODO: Handle unsupported platforms
     },
   }
 

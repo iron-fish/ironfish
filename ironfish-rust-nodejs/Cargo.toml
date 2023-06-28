@@ -28,11 +28,14 @@ crate-type = ["cdylib"]
 [dependencies]
 base64 = "0.13.0"
 ironfish = { path = "../ironfish-rust" }
-ironfish_mpc = { path = "../ironfish-mpc" }
-libuv-sys2 = "~1.44.2" # This should be bumped with the appropriate version used by our minimum supported NodeJS version
-napi = { version = "=2.9.1", features = ["napi6"] }
 napi-derive = "=2.9.1"
-napi-derive-backend = "=1.0.38" # Pinning this can be removed if we eventually move to the latest releases again
+# Pinning this can be removed if we eventually move to the latest releases again
+napi-derive-backend = "=1.0.38"
+ironfish_mpc = { path = "../ironfish-mpc" }
+
+[dependencies.napi]
+version = "=2.9.1"
+features = ["napi6"]
 
 [build-dependencies]
 napi-build = "2.0.1"

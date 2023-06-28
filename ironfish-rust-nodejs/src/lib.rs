@@ -18,7 +18,6 @@ pub mod nacl;
 pub mod rolling_filter;
 pub mod signal_catcher;
 pub mod structs;
-pub mod uv;
 
 fn to_napi_err(err: impl Display) -> napi::Error {
     Error::from_reason(err.to_string())
