@@ -172,6 +172,7 @@ export class IronfishNode {
     })
 
     this.assetsVerifier = new AssetsVerifier({
+      apiUrl: config.get('assetVerificationApi'),
       logger,
     })
 
