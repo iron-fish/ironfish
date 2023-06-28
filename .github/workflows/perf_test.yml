@@ -45,13 +45,6 @@ jobs:
             exit 1
           fi
 
-      - name: Setup InfluxDB
-        if: contains(github.event_name, 'push')
-        uses: influxdata/influxdb-action@v3
-        with:
-          influxdb_version: 2.6.0
-          influxdb_start: false
-
       - name: Import to InfluxDB
         if: contains(github.event_name, 'push')
         env:
