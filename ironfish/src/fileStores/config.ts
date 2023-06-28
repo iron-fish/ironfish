@@ -110,6 +110,7 @@ export type ConfigOptions = {
    */
   targetPeers: number
   telemetryApi: string
+  assetVerificationApi: string
 
   /**
    * When the option is true, then each invocation of start command will invoke generation of new identity.
@@ -315,6 +316,7 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     minPeers: YupUtils.isPositiveInteger,
     targetPeers: yup.number().integer().min(1),
     telemetryApi: yup.string(),
+    assetVerificationApi: yup.string(),
     generateNewIdentity: yup.boolean(),
     transactionExpirationDelta: YupUtils.isPositiveInteger,
     blocksPerMessage: YupUtils.isPositiveInteger,
@@ -410,6 +412,7 @@ export class Config extends KeyStore<ConfigOptions> {
       minPeers: 1,
       targetPeers: 50,
       telemetryApi: '',
+      assetVerificationApi: '',
       generateNewIdentity: false,
       blocksPerMessage: 25,
       minerBatchSize: 25000,
