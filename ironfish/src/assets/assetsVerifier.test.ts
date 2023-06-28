@@ -175,12 +175,12 @@ describe('AssetsVerifier', () => {
         apiUrl: 'https://test/assets/verified',
       })
       const refresh = jest.spyOn(assetsVerifier as any, 'refresh')
-      const error = jest.spyOn(assetsVerifier['logger'], 'error')
+      const warn = jest.spyOn(assetsVerifier['logger'], 'warn')
 
       assetsVerifier.start()
       await waitForRefreshToFinish(refresh)
 
-      expect(error).toHaveBeenCalledWith(
+      expect(warn).toHaveBeenCalledWith(
         'Error while fetching verified assets: Request failed with status code 500',
       )
       expect(assetsVerifier.verify('0123')).toStrictEqual({ status: 'unknown' })
@@ -236,19 +236,19 @@ describe('AssetsVerifier', () => {
         apiUrl: 'https://test/assets/verified',
       })
       const refresh = jest.spyOn(assetsVerifier as any, 'refresh')
-      const error = jest.spyOn(assetsVerifier['logger'], 'error')
+      const warn = jest.spyOn(assetsVerifier['logger'], 'warn')
 
       assetsVerifier.start()
       await waitForRefreshToFinish(refresh)
 
-      expect(error).not.toHaveBeenCalled()
+      expect(warn).not.toHaveBeenCalled()
       expect(assetsVerifier.verify('0123')).toStrictEqual({ status: 'verified' })
       expect(assetsVerifier.verify('4567')).toStrictEqual({ status: 'unverified' })
 
       jest.runOnlyPendingTimers()
       await waitForRefreshToFinish(refresh)
 
-      expect(error).toHaveBeenCalledWith(
+      expect(warn).toHaveBeenCalledWith(
         'Error while fetching verified assets: Request failed with status code 500',
       )
       expect(assetsVerifier.verify('0123')).toStrictEqual({ status: 'verified' })
