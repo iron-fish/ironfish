@@ -58,14 +58,14 @@ export class AssetsVerifier {
   private async refresh(): Promise<void> {
     try {
       if (this.verifiedAssets) {
+        this.logger.debug(`Refreshing list of verified assets from ${this.api.url}`)
         await this.api.refreshVerifiedAssets(this.verifiedAssets)
       } else {
+        this.logger.debug(`Downloading list of verified assets from ${this.api.url}`)
         this.verifiedAssets = await this.api.getVerifiedAssets()
       }
     } catch (error) {
-      this.logger.error(
-        `Error while fetching verified assets: ${ErrorUtils.renderError(error)}`,
-      )
+      this.logger.warn(`Error while fetching verified assets: ${ErrorUtils.renderError(error)}`)
     }
   }
 

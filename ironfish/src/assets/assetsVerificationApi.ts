@@ -28,8 +28,9 @@ export class VerifiedAssets {
 }
 
 export class AssetsVerificationApi {
-  private readonly url: string
   private readonly timeout: number
+
+  readonly url: string
 
   constructor(options?: { url?: string; timeout?: number }) {
     this.url = options?.url ?? 'https://api.ironfish.network/assets?verified=true'
