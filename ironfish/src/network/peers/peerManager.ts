@@ -143,12 +143,12 @@ export class PeerManager {
   constructor(
     localPeer: LocalPeer,
     hostsStore: HostsStore,
-    stunServers: string[],
     logger: Logger = createRootLogger(),
     metrics?: MetricsMonitor,
     maxPeers = 10000,
     targetPeers = 50,
     logPeerMessages = false,
+    stunServers: string[] = [],
   ) {
     this.stunServers = stunServers
     this.logger = logger.withTag('peermanager')
