@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
 import { BufferMap } from 'buffer-map'
-import { Assert } from '../assert'
+import { Assert } from '../../assert'
 import {
   createNodeTest,
   useAccountFixture,
@@ -14,10 +14,10 @@ import {
   useMintBlockFixture,
   usePostTxFixture,
   useTxFixture,
-} from '../testUtilities'
-import { AsyncUtils } from '../utils/async'
+} from '../../testUtilities'
+import { AsyncUtils } from '../../utils/async'
+import { BalanceValue } from '../walletdb/balanceValue'
 import { Account } from './account'
-import { BalanceValue } from './walletdb/balanceValue'
 
 describe('Accounts', () => {
   const nodeTest = createNodeTest()
