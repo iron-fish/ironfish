@@ -16,6 +16,9 @@
     "build/**/*.d.ts.map",
     "build/**/*.json"
   ],
+  "engines": {
+    "node": ">=16"
+  },
   "dependencies": {
     "@ethersproject/bignumber": "5.7.0",
     "@fast-csv/format": "4.3.5",
