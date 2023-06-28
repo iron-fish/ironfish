@@ -4,7 +4,7 @@
 import { PUBLIC_ADDRESS_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { IDatabaseEncoding } from '../../storage'
-import { ACCOUNT_KEY_LENGTH } from '../account'
+import { ACCOUNT_KEY_LENGTH } from '../account/account'
 import { HeadValue, NullableHeadValueEncoding } from './headValue'
 
 const KEY_LENGTH = ACCOUNT_KEY_LENGTH
