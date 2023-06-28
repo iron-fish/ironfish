@@ -39,6 +39,7 @@ export type ConfigOptions = {
   enableSyncing: boolean
   enableTelemetry: boolean
   enableMetrics: boolean
+  enableAssetVerification: boolean
   getFundsApi: string
   ipcPath: string
   /**
@@ -290,6 +291,7 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     enableSyncing: yup.boolean(),
     enableTelemetry: yup.boolean(),
     enableMetrics: yup.boolean(),
+    enableAssetVerification: yup.boolean(),
     getFundsApi: yup.string(),
     ipcPath: yup.string().trim(),
     miningForce: yup.boolean(),
@@ -387,6 +389,7 @@ export class Config extends KeyStore<ConfigOptions> {
       enableSyncing: true,
       enableTelemetry: false,
       enableMetrics: true,
+      enableAssetVerification: true,
       getFundsApi: 'https://testnet.api.ironfish.network/faucet_transactions',
       ipcPath: files.resolve(files.join(dataDir, 'ironfish.ipc')),
       logLevel: '*:info',
