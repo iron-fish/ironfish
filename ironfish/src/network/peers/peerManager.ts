@@ -329,15 +329,10 @@ export class PeerManager {
    * @param initiator Set to true if we are initiating a connection with `peer`
    */
   private initWebRtcConnection(peer: Peer, initiator: boolean): WebRtcConnection {
-    const connection = new WebRtcConnection(
-      initiator,
-      this.logger,
-      this.stunServers,
-      this.metrics,
-      {
-        simulateLatency: this.localPeer.simulateLatency,
-      },
-    )
+    const connection = new WebRtcConnection(initiator, this.logger, this.metrics, {
+      simulateLatency: this.localPeer.simulateLatency,
+      stunServers: this.stunServers,
+    })
 
     connection.onSignal.on((data) => {
       let errorMessage
