@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { getActiveReqs } from 'libuv-monitor'
+import { getActiveReqs, isActive } from 'libuv-monitor'
 import * as yup from 'yup'
 import { IronfishNode } from '../../../node'
 import { MathUtils, PromiseUtils } from '../../../utils'
@@ -105,6 +105,7 @@ export type GetNodeStatusResponse = {
     }
   }
   misc: {
+    uvMonitorActive: boolean
     uvActiveReqs: number
   }
 }
@@ -243,6 +244,7 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetNodeStatusResponse> = 
       .defined(),
     misc: yup
       .object({
+        uvMonitorActive: yup.boolean().defined(),
         uvActiveReqs: yup.number().defined(),
       })
       .defined(),
@@ -375,7 +377,8 @@ async function getStatus(node: IronfishNode): Promise<GetNodeStatusResponse> {
       },
     },
     misc: {
-      uvActiveReqs: getActiveReqs(), // TODO: Handle unsupported platforms
+      uvMonitorActive: isActive(),
+      uvActiveReqs: getActiveReqs(),
     },
   }
 
