@@ -6,8 +6,11 @@ import * as yup from 'yup'
 import { AccountImport } from '../../../wallet/walletdb/accountValue'
 import { ApiNamespace, router } from '../router'
 
+export class ImportError extends Error {}
+
 export type ImportAccountRequest = {
   account: AccountImport
+  name?: string
   rescan?: boolean
 }
 
@@ -19,9 +22,10 @@ export type ImportResponse = {
 export const ImportAccountRequestSchema: yup.ObjectSchema<ImportAccountRequest> = yup
   .object({
     rescan: yup.boolean().optional().default(true),
+    name: yup.string().optional(),
     account: yup
       .object({
-        name: yup.string().defined(),
+        name: yup.string().optional(),
         spendingKey: yup.string().nullable().defined(),
         viewKey: yup.string().defined(),
         publicAddress: yup.string().defined(),
@@ -52,6 +56,11 @@ router.register<typeof ImportAccountRequestSchema, ImportResponse>(
   ImportAccountRequestSchema,
   async (request, node): Promise<void> => {
     let createdAt = null
+    const name = request.data.account.name || request.data.name
+    if (!name) {
+      throw new ImportError('Account name is required')
+    }
+
     if (request.data.account.createdAt) {
       createdAt = {
         hash: Buffer.from(request.data.account.createdAt.hash, 'hex'),
@@ -62,6 +71,7 @@ router.register<typeof ImportAccountRequestSchema, ImportResponse>(
     const accountValue = {
       id: uuid(),
       ...request.data.account,
+      name,
       createdAt,
     }
     const account = await node.wallet.importAccount(accountValue)

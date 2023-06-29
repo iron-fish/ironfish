@@ -23,8 +23,9 @@ export interface AccountValue {
   createdAt: HeadValue | null
 }
 
-export type AccountImport = Omit<AccountValue, 'id' | 'createdAt'> & {
+export type AccountImport = Omit<AccountValue, 'id' | 'createdAt' | 'name'> & {
   createdAt: { hash: string; sequence: number } | null
+  name?: string
 }
 
 export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
