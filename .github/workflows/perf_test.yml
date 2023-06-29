@@ -1,10 +1,10 @@
 name: Performance Tests
 
 on:
-  workflow_dispatch:
   push:
     branches:
       - staging
+  workflow_dispatch:
 
 permissions:
   checks: write
