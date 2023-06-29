@@ -47,12 +47,7 @@ jobs:
 
       - name: Import to InfluxDB
         if: contains(github.event_name, 'push')
-        env:
-          INFLUX_TOKEN: ${{ secrets.INFLUX_TOKEN }}
-          INFLUX_ORG: 'fdcfe96f6c31245a'
-          INFLUX_URL: 'https://us-east-1-1.aws.cloud2.influxdata.com'
         run: |
-          influx config create --config-name ghaction --host-url $INFLUX_URL --org $INFLUX_ORG --token $INFLUX_TOKEN --active
           for f in ironfish/test-reports/*.perf.csv; do
-            influx write --bucket ironfish-telemetry-mainnet --token $INFLUX_TOKEN --format=csv --file $f
+            influx write --bucket ironfish-telemetry-mainnet -c ghaction --format=csv --file $f
           done
