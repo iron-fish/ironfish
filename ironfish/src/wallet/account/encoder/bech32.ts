@@ -4,35 +4,30 @@
 import { PUBLIC_ADDRESS_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { Bech32m } from '../../../utils'
-import {
-  AccountImport,
-  KEY_LENGTH,
-  VERSION_LENGTH,
-  VIEW_KEY_LENGTH,
-} from '../../walletdb/accountValue'
+import { AccountImport, KEY_LENGTH, VIEW_KEY_LENGTH } from '../../walletdb/accountValue'
+import { ACCOUNT_SCHEMA_VERSION } from '../account'
 import { AccountEncoder } from './encoder'
 
-export const BECH32_ACCOUNT_PREFIX = 'ironfishaccount00000'
-
+export const BECH32_ACCOUNT_PREFIX = 'ifaccount'
 export class Bech32AccountEncoder implements AccountEncoder {
+  VERSION = 1
+
   encode(value: AccountImport): string {
     const bw = bufio.write(this.getSize(value))
-    bw.writeU16(value.version)
-
-    let flags = 0
-    flags |= Number(!!value.spendingKey) << 0
-    flags |= Number(!!value.createdAt) << 1
-    bw.writeU8(flags)
+    bw.writeU16(this.VERSION)
 
     bw.writeVarString(value.name, 'utf8')
-    if (value.spendingKey) {
-      bw.writeBytes(Buffer.from(value.spendingKey, 'hex'))
-    }
     bw.writeBytes(Buffer.from(value.viewKey, 'hex'))
     bw.writeBytes(Buffer.from(value.incomingViewKey, 'hex'))
     bw.writeBytes(Buffer.from(value.outgoingViewKey, 'hex'))
     bw.writeBytes(Buffer.from(value.publicAddress, 'hex'))
 
+    bw.writeU8(Number(!!value.spendingKey))
+    if (value.spendingKey) {
+      bw.writeBytes(Buffer.from(value.spendingKey, 'hex'))
+    }
+
+    bw.writeU8(Number(!!value.createdAt))
     if (value.createdAt) {
       bw.writeBytes(Buffer.from(value.createdAt.hash, 'hex'))
       bw.writeU32(value.createdAt.sequence)
@@ -55,17 +50,20 @@ export class Bech32AccountEncoder implements AccountEncoder {
 
       const version = reader.readU16()
 
-      const flags = reader.readU8()
-      const hasSpendingKey = flags & (1 << 0)
-      const hasCreatedAt = flags & (1 << 1)
+      if (version !== this.VERSION) {
+        return null
+      }
 
       const name = reader.readVarString('utf8')
-      const spendingKey = hasSpendingKey ? reader.readBytes(KEY_LENGTH).toString('hex') : null
       const viewKey = reader.readBytes(VIEW_KEY_LENGTH).toString('hex')
       const incomingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
       const outgoingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
       const publicAddress = reader.readBytes(PUBLIC_ADDRESS_LENGTH).toString('hex')
 
+      const hasSpendingKey = reader.readU8() === 1
+      const spendingKey = hasSpendingKey ? reader.readBytes(KEY_LENGTH).toString('hex') : null
+
+      const hasCreatedAt = reader.readU8() === 1
       let createdAt = null
       if (hasCreatedAt) {
         const hash = reader.readBytes(32).toString('hex')
@@ -74,7 +72,7 @@ export class Bech32AccountEncoder implements AccountEncoder {
       }
 
       return {
-        version,
+        version: ACCOUNT_SCHEMA_VERSION,
         name,
         viewKey,
         incomingViewKey,
@@ -94,16 +92,17 @@ export class Bech32AccountEncoder implements AccountEncoder {
 
   getSize(value: AccountImport): number {
     let size = 0
-    size += VERSION_LENGTH
-    size += 1 // flags
+    size += 2 // encoder version
     size += bufio.sizeVarString(value.name, 'utf8')
-    if (value.spendingKey) {
-      size += KEY_LENGTH
-    }
     size += VIEW_KEY_LENGTH
     size += KEY_LENGTH // incomingViewKey
     size += KEY_LENGTH // outgoingViewKey
     size += PUBLIC_ADDRESS_LENGTH
+    size += 1 // spendingKey byte
+    if (value.spendingKey) {
+      size += KEY_LENGTH
+    }
+    size += 1 // createdAt byte
     if (value.createdAt) {
       size += 32 // block hash
       size += 4 // block sequence

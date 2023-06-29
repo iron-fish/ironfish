@@ -4,6 +4,7 @@
 import { generateKey } from '@ironfish/rust-nodejs'
 import { Bech32m } from '../../../utils'
 import { AccountImport } from '../../walletdb/accountValue'
+import { ACCOUNT_SCHEMA_VERSION } from '../account'
 import { BECH32_ACCOUNT_PREFIX, Bech32AccountEncoder } from './bech32'
 
 describe('Bech32AccountEncoder', () => {
@@ -12,7 +13,7 @@ describe('Bech32AccountEncoder', () => {
 
   it('encodes the account as a bech32 string and decodes the string', () => {
     const accountImport: AccountImport = {
-      version: 2,
+      version: ACCOUNT_SCHEMA_VERSION,
       name: 'test',
       spendingKey: key.spendingKey,
       viewKey: key.viewKey,
@@ -31,7 +32,7 @@ describe('Bech32AccountEncoder', () => {
 
   it('encodes and decodes accounts with non-null createdAt', () => {
     const accountImport: AccountImport = {
-      version: 2,
+      version: ACCOUNT_SCHEMA_VERSION,
       name: 'test',
       spendingKey: key.spendingKey,
       viewKey: key.viewKey,
@@ -53,7 +54,7 @@ describe('Bech32AccountEncoder', () => {
 
   it('encodes and decodes view-only accounts', () => {
     const accountImport: AccountImport = {
-      version: 2,
+      version: ACCOUNT_SCHEMA_VERSION,
       name: 'test',
       spendingKey: null,
       viewKey: key.viewKey,
@@ -83,6 +84,29 @@ describe('Bech32AccountEncoder', () => {
 
     const decoded = encoder.decode(encoded)
 
+    expect(decoded).toBeNull()
+  })
+
+  it('returns null when decoding if the version does not match', () => {
+    const accountImport: AccountImport = {
+      version: ACCOUNT_SCHEMA_VERSION,
+      name: 'test',
+      spendingKey: null,
+      viewKey: key.viewKey,
+      incomingViewKey: key.incomingViewKey,
+      outgoingViewKey: key.outgoingViewKey,
+      publicAddress: key.publicAddress,
+      createdAt: null,
+    }
+
+    encoder.VERSION = 0
+
+    const encoded = encoder.encode(accountImport)
+    expect(encoded.startsWith(BECH32_ACCOUNT_PREFIX)).toBe(true)
+
+    encoder.VERSION = 1
+
+    const decoded = encoder.decode(encoded)
     expect(decoded).toBeNull()
   })
 })
