@@ -82,6 +82,11 @@ export class PeerManager {
   private requestPeerListHandle: SetIntervalToken | undefined
 
   /**
+   * STUN servers to use for inititating WebRTC connections.
+   */
+  private stunServers: string[]
+
+  /**
    * setInterval handle for peer disposal, which removes peers from the list that we
    * no longer care about
    */
@@ -143,7 +148,9 @@ export class PeerManager {
     maxPeers = 10000,
     targetPeers = 50,
     logPeerMessages = false,
+    stunServers: string[] = [],
   ) {
+    this.stunServers = stunServers
     this.logger = logger.withTag('peermanager')
     this.metrics = metrics || new MetricsMonitor({ logger: this.logger })
     this.localPeer = localPeer
@@ -324,6 +331,7 @@ export class PeerManager {
   private initWebRtcConnection(peer: Peer, initiator: boolean): WebRtcConnection {
     const connection = new WebRtcConnection(initiator, this.logger, this.metrics, {
       simulateLatency: this.localPeer.simulateLatency,
+      stunServers: this.stunServers,
     })
 
     connection.onSignal.on((data) => {

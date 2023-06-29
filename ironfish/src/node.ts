@@ -140,6 +140,7 @@ export class IronfishNode {
       logPeerMessages: config.get('logPeerMessages'),
       simulateLatency: config.get('p2pSimulateLatency'),
       bootstrapNodes: config.getArray('bootstrapNodes'),
+      stunServers: config.getArray('p2pStunServers'),
       webSocket: webSocket,
       node: this,
       chain: chain,

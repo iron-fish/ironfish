@@ -27,6 +27,10 @@ const MEGABYTES = 1000 * 1000
 
 export type ConfigOptions = {
   bootstrapNodes: string[]
+  /**
+   * STUN servers to use for inititating WebRTC connections.
+   */
+  p2pStunServers: string[]
   databaseMigrate: boolean
   editor: string
   enableListenP2P: boolean
@@ -280,6 +284,7 @@ export type ConfigOptions = {
 export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
   .object({
     bootstrapNodes: yup.array().of(yup.string().defined()),
+    p2pStunServers: yup.array().of(yup.string().defined()),
     databaseMigrate: yup.boolean(),
     editor: yup.string().trim(),
     enableListenP2P: yup.boolean(),
@@ -378,6 +383,7 @@ export class Config extends KeyStore<ConfigOptions> {
   static GetDefaults(files: FileSystem, dataDir: string): ConfigOptions {
     return {
       bootstrapNodes: [],
+      p2pStunServers: ['stun:stun.l.google.com:19302', 'stun:global.stun.twilio.com:3478'],
       databaseMigrate: false,
       transactionExpirationDelta: 15,
       editor: '',
