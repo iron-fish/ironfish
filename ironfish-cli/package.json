@@ -49,7 +49,6 @@
     "test": "yarn clean && tsc -b && tsc -b tsconfig.test.json && jest --passWithNoTests",
     "test:coverage:html": "tsc -b tsconfig.test.json && jest --passWithNoTests --coverage --coverage-reporters html --testPathIgnorePatterns",
     "test:watch": "tsc -b tsconfig.test.json && jest --watch --coverage false",
-    "test:importexport": "bash ./scripts/import-export-test.sh",
     "postpack": "rimraf oclif.manifest.json",
     "clean": "rimraf build",
     "prepack": "rimraf build && yarn build && oclif manifest && oclif readme",
