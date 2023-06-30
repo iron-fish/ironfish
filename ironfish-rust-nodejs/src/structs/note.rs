@@ -5,7 +5,6 @@
 use ironfish::{
     assets::asset::ID_LENGTH as ASSET_ID_LENGTH,
     note::{AMOUNT_VALUE_SIZE, MEMO_SIZE, SCALAR_SIZE},
-    ViewKey,
 };
 use napi::{bindgen_prelude::*, JsBuffer};
 use napi_derive::napi;
@@ -139,13 +138,9 @@ impl NativeNote {
     /// 'nullifier set', preventing double-spend.
     #[napi]
     pub fn nullifier(&self, owner_view_key: String, position: BigInt) -> Result<Buffer> {
-        let position_u64 = position.get_u64().1;
+        let view_key = NativeViewKey::from_hex(owner_view_key)?;
 
-        let view_key = ViewKey::from_hex(&owner_view_key).map_err(to_napi_err)?;
-
-        let nullifier: &[u8] = &self.note.nullifier(&view_key, position_u64).0;
-
-        Ok(Buffer::from(nullifier))
+        self.nullifier_with_key(&view_key, position)
     }
 
     /// Compute the nullifier for this note, given the private key of its owner.

@@ -48,7 +48,6 @@ export class DecryptNotesRequest extends WorkerMessage {
     bw.writeBytes(Buffer.from(this.payload.viewKey, 'hex'))
     bw.writeU8(Number(this.payload.decryptForSpender))
 
-    // TODO: Try different loops too.
     for (const note of this.payload.notes) {
       bw.writeBytes(note.serializedNote)
 
@@ -210,7 +209,6 @@ export class DecryptNotesTask extends WorkerTask {
 
     const incomingViewKey = new NativeIncomingViewKey(incomingViewKeyHex)
 
-    // TODO: Try without the getter?
     let viewKey: NativeViewKey | null = null
     const getViewKey = () => {
       if (viewKey == null) {
@@ -230,7 +228,6 @@ export class DecryptNotesTask extends WorkerTask {
 
     const decryptedNotes = []
 
-    // TODO: Try other loops
     for (const { serializedNote, currentNoteIndex } of payload.notes) {
       const note = new NoteEncrypted(serializedNote)
 

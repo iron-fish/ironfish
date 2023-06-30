@@ -2,9 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use ironfish::IncomingViewKey;
 use ironfish::MerkleNoteHash;
-use ironfish::OutgoingViewKey;
 use napi::bindgen_prelude::*;
 use napi::JsBuffer;
 use napi_derive::napi;
@@ -102,20 +100,11 @@ impl NativeNoteEncrypted {
     }
 
     /// Returns undefined if the note was unable to be decrypted with the given key.
-    // TODO: This can become a wrapper for for the new fn
     #[napi]
     pub fn decrypt_note_for_owner(&self, incoming_hex_key: String) -> Result<Option<Buffer>> {
-        let incoming_view_key =
-            IncomingViewKey::from_hex(&incoming_hex_key).map_err(to_napi_err)?;
+        let incoming_view_key = NativeIncomingViewKey::from_hex(incoming_hex_key)?;
 
-        Ok(match self.note.decrypt_note_for_owner(&incoming_view_key) {
-            Ok(note) => {
-                let mut vec = vec![];
-                note.write(&mut vec).map_err(to_napi_err)?;
-                Some(Buffer::from(vec))
-            }
-            Err(_) => None,
-        })
+        self.decrypt_note_for_owner_key(&incoming_view_key)
     }
 
     /// Returns undefined if the note was unable to be decrypted with the given key.
@@ -139,18 +128,9 @@ impl NativeNoteEncrypted {
     /// Returns undefined if the note was unable to be decrypted with the given key.
     #[napi]
     pub fn decrypt_note_for_spender(&self, outgoing_hex_key: String) -> Result<Option<Buffer>> {
-        let outgoing_view_key =
-            OutgoingViewKey::from_hex(&outgoing_hex_key).map_err(to_napi_err)?;
-        Ok(
-            match self.note.decrypt_note_for_spender(&outgoing_view_key) {
-                Ok(note) => {
-                    let mut vec = vec![];
-                    note.write(&mut vec).map_err(to_napi_err)?;
-                    Some(Buffer::from(vec))
-                }
-                Err(_) => None,
-            },
-        )
+        let outgoing_view_key = NativeOutgoingViewKey::from_hex(outgoing_hex_key)?;
+
+        self.decrypt_note_for_spender_key(&outgoing_view_key)
     }
 
     /// Returns undefined if the note was unable to be decrypted with the given key.
