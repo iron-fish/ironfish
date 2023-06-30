@@ -69,7 +69,7 @@ export class ImportCommand extends IronfishCommand {
       (accountName) => accountName === account.name,
     )
     // Offer the user to use a different name if a duplicate is found
-    if (duplicateAccount) {
+    if (duplicateAccount && account.name) {
       this.log()
       this.log(`Found existing account with name '${account.name}'`)
 
