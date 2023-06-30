@@ -4,20 +4,14 @@
 
 /* eslint-disable no-console */
 import { createNodeTest, useAccountFixture, useBlockWithTxs } from '../../testUtilities'
-import { BenchUtils } from '../../utils'
+import { BenchUtils, SegmentAggregateResults } from '../../utils'
+import { Account } from '../../wallet'
 import { WorkerPool } from '../pool'
 import { DecryptNoteOptions } from './decryptNotes'
 
+type TestDetails = { notes: number; canDecryptAsOwner: boolean; tryDecryptForSpender: boolean }
+
 describe('DecryptNotes job', () => {
-  const jestConsole = console
-
-  beforeAll(() => {
-    global.console = require('console')
-  })
-
-  afterAll(() => {
-    global.console = jestConsole
-  })
   const nodeTest = createNodeTest(true)
 
   const TRANSACTIONS = 50
@@ -26,10 +20,15 @@ describe('DecryptNotes job', () => {
   const CAN_DECRYPT_AS_OWNER = [true, false]
   const TRY_DECRYPT_AS_SPENDER = [true, false]
 
-  it('decryptsNotes', async () => {
-    const account = await useAccountFixture(nodeTest.wallet, 'account')
-    const account2 = await useAccountFixture(nodeTest.wallet, 'account2')
+  let account: Account
+  let account2: Account
 
+  beforeAll(async () => {
+    account = await useAccountFixture(nodeTest.wallet, 'account')
+    account2 = await useAccountFixture(nodeTest.wallet, 'account2')
+  })
+
+  it('decryptsNotes', async () => {
     const { block, transactions } = await useBlockWithTxs(nodeTest.node, TRANSACTIONS, account)
     await expect(nodeTest.chain).toAddBlock(block)
 
@@ -59,11 +58,7 @@ describe('DecryptNotes job', () => {
     }
 
     // Generate test permutations
-    const TESTS: {
-      notes: number
-      canDecryptAsOwner: boolean
-      tryDecryptForSpender: boolean
-    }[] = []
+    const TESTS: TestDetails[] = []
     for (const notes of NOTES) {
       for (const canDecryptAsOwner of CAN_DECRYPT_AS_OWNER) {
         for (const tryDecryptForSpender of TRY_DECRYPT_AS_SPENDER) {
@@ -88,12 +83,16 @@ describe('DecryptNotes job', () => {
         const _x = await tsPool.decryptNotes(payload)
       })
 
-      const title = `[DecryptNotes: notes: ${
-        test.notes
-      }, canDecrypt: ${test.canDecryptAsOwner.toString()}, decryptForSpender: ${test.tryDecryptForSpender.toString()}]`
-      console.log(BenchUtils.renderSegmentAggregate(results, title))
+      printResults(test, results)
 
       await tsPool.stop()
     }
   })
+
+  function printResults(test: TestDetails, results: SegmentAggregateResults) {
+    const title = `[DecryptNotes: notes: ${
+      test.notes
+    }, canDecrypt: ${test.canDecryptAsOwner.toString()}, decryptForSpender: ${test.tryDecryptForSpender.toString()}]`
+    console.log(BenchUtils.renderSegmentAggregate(results, title))
+  }
 })
