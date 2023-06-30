@@ -27,11 +27,6 @@ jobs:
           node-version: '18.12.1'
           cache: 'yarn'
 
-      - name: Cache Rust
-        uses: Swatinem/rust-cache@v2
-        with:
-          shared-key: nodejs
-
       - name: Install packages
         run: yarn --non-interactive --frozen-lockfile
 
