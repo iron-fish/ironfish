@@ -53,5 +53,5 @@ jobs:
           INFLUX_URL: 'https://us-east-1-1.aws.cloud2.influxdata.com'
         run: |
           for f in ironfish/test-reports/*.perf.csv; do
-            influx write --bucket ironfish-telemetry-mainnet --host $INFLUX_URL --org-id $INFLUX_ORG --token $INFLUX_TOKEN --format=csv --file $f
+            influx write --bucket ironfish-telemetry-mainnet --format=csv --file $f
           done
