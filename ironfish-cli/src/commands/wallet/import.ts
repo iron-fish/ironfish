@@ -2,13 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { generateKeyFromPrivateKey, wordsToSpendingKey } from '@ironfish/rust-nodejs'
-import { ACCOUNT_SCHEMA_VERSION, Bech32m, JSONUtils, PromiseUtils } from '@ironfish/sdk'
+import {
+  ACCOUNT_SCHEMA_VERSION,
+  Bech32m,
+  JSONUtils,
+  LanguageUtils,
+  PromiseUtils,
+} from '@ironfish/sdk'
 import { AccountImport } from '@ironfish/sdk/src/wallet/walletdb/accountValue'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { CommandFlags } from '../../types'
-import { LANGUAGE_VALUES } from '../../utils/language'
 
 export class ImportCommand extends IronfishCommand {
   static description = `Import an account`
@@ -102,7 +107,7 @@ export class ImportCommand extends IronfishCommand {
     if (mnemonic.trim().split(/\s+/).length !== 24) {
       return null
     }
-    for (const language of LANGUAGE_VALUES) {
+    for (const language of LanguageUtils.LANGUAGE_VALUES) {
       try {
         spendingKey = wordsToSpendingKey(mnemonic.trim(), language)
         return spendingKey
