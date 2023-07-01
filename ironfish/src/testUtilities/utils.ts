@@ -45,7 +45,7 @@ export function appendTestReport(row: string[], filename: string): void {
   const writeStream = createWriteStream(`${process.cwd()}/${TEST_REPORT_FOLDER}/${filename}`, {
     flags: 'a+',
   })
-  writeStream.write(row.join(',src/testUtilities/utils.ts'))
+  writeStream.write(row.join(','))
   writeStream.write('\n')
   writeStream.end()
 }

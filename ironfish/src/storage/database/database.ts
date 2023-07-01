@@ -259,8 +259,8 @@ export abstract class Database implements IDatabase {
           'acquire lock',
           new Date(Date.now()).toISOString(),
           transaction.lockWaitTime.toString(),
-          transaction.lockContention.rollingRate1s.toString(),
-          transaction.lockAcquisition.rollingRate1s.toString(),
+          transaction.lockContention.rate1s.toFixed(2),
+          transaction.lockAcquisition.rate1s.toFixed(2),
           this.callerName(),
         ]
 

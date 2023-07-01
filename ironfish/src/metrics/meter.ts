@@ -32,7 +32,7 @@ export class Meter {
   private _intervalLastMs: number | null = null
 
   constructor(options?: { maxRollingAverageSamples?: number }) {
-    this._intervalMs = 1000
+    this._intervalMs = 1
 
     this._rate1s = new EwmAverage(1000 / this._intervalMs)
     this._rate5s = new EwmAverage(5000 / this._intervalMs)
