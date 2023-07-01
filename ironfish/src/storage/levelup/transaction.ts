@@ -3,7 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import type { LevelupDatabase } from './database'
 import type { LevelupStore } from './store'
+import { Meter } from '../../metrics'
 import { MutexUnlockFunction } from '../../mutex'
+import { BenchUtils } from '../../utils/bench'
 import {
   BufferToStringEncoding,
   DatabaseSchema,
@@ -27,12 +29,20 @@ export class LevelupTransaction implements IDatabaseTransaction {
   waitingResolve: (() => void) | null = null
   id = 0
 
+  public lockAcquisition: Meter
+  public lockContention: Meter
+  public lockWaitTime: number
   static id = 0
 
   constructor(db: LevelupDatabase) {
     this.db = db
     this.id = ++LevelupTransaction.id
     this.batch = new LevelupBatch(db)
+    this.lockAcquisition = new Meter()
+    this.lockAcquisition.start()
+    this.lockContention = new Meter()
+    this.lockContention.start()
+    this.lockWaitTime = 0
   }
 
   get size(): number {
@@ -40,10 +50,14 @@ export class LevelupTransaction implements IDatabaseTransaction {
   }
 
   async acquireLock(): Promise<void> {
+    this.lockAcquisition.add(1)
+    const start = BenchUtils.start()
+
     if (this.unlock) {
       return
     }
 
+    this.lockContention.add(1)
     if (!this.waiting) {
       this.waiting = new Promise((resolve) => (this.waitingResolve = resolve))
       this.unlock = await this.db.lock.lock()
@@ -55,6 +69,8 @@ export class LevelupTransaction implements IDatabaseTransaction {
     } else {
       await this.waiting
     }
+
+    this.lockWaitTime = BenchUtils.end(start)
   }
 
   releaseLock(): void {
@@ -172,6 +188,10 @@ export class LevelupTransaction implements IDatabaseTransaction {
   async abort(): Promise<void> {
     this.aborting = true
     this.releaseLock()
+
+    this.lockAcquisition.stop()
+    this.lockContention.stop()
+
     return Promise.resolve()
   }
 

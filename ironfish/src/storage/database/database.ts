@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { appendTestReport } from '../../testUtilities/utils'
+import { BenchUtils } from '../../utils/bench'
+import { LevelupTransaction } from '../levelup/transaction'
 import { BatchOperation, IDatabaseBatch } from './batch'
 import { IDatabaseStore, IDatabaseStoreOptions } from './store'
 import { IDatabaseTransaction } from './transaction'
@@ -248,16 +251,68 @@ export abstract class Database implements IDatabase {
 
     try {
       await transaction.acquireLock()
+      if (transaction instanceof LevelupTransaction) {
+        const row: string[] = [
+          '',
+          'perf_test',
+          'transactionLock',
+          'acquire lock',
+          new Date(Date.now()).toISOString(),
+          transaction.lockWaitTime.toString(),
+          transaction.lockContention.rollingRate1s.toString(),
+          transaction.lockAcquisition.rollingRate1s.toString(),
+          this.callerName(),
+        ]
+
+        appendTestReport(row, 'acquireLock.perf.csv')
+      }
+
+      const start = BenchUtils.start()
+
       const result = await handler(transaction)
       if (created) {
         await transaction.commit()
       }
+
+      const lockHoldingTime = BenchUtils.end(start)
+
+      const row = [
+        '',
+        'perf_test',
+        'transactionLock',
+        'hold lock',
+        new Date(Date.now()).toISOString(),
+        lockHoldingTime.toString(),
+        this.callerName(),
+        transaction.size.toString(),
+      ]
+
+      appendTestReport(row, 'holdLock.perf.csv')
+
       return result
     } catch (error: unknown) {
       if (created) {
         await transaction.abort()
       }
       throw error
+    }
+  }
+
+  private callerName(): string {
+    try {
+      throw new Error()
+    } catch (e) {
+      if (e instanceof Error && e.stack) {
+        // matches this function, the caller and the parent
+        const allMatches = e.stack.match(/(\w+)@|at ([\w.\s<>]+) \(.*/g)
+        if (allMatches) {
+          const index = allMatches.reverse().findIndex((s) => s.includes('withTransaction'))
+          if (index > 0) {
+            return allMatches[index - 1]
+          }
+        }
+      }
+      return ''
     }
   }
 }

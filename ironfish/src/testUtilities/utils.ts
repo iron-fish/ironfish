@@ -4,6 +4,7 @@
 
 /* eslint-disable no-console */
 
+import { createWriteStream, existsSync, mkdirSync } from 'fs'
 import path from 'path'
 import { v4 as uuid } from 'uuid'
 
@@ -35,6 +36,18 @@ export function writeTestReport(
   }
 }
 
+export function appendTestReport(row: string[], filename: string): void {
+  if (!existsSync(`${process.cwd()}/test-report`)) {
+    mkdirSync(`${process.cwd()}/test-report`)
+  }
+
+  const writeStream = createWriteStream(`${process.cwd()}/test-reports/${filename}`, {
+    flags: 'a+',
+  })
+  writeStream.write(row.join(','))
+  writeStream.write('\n')
+  writeStream.end()
+}
 /**
  * Asserts the type of a given function as a Jest mock.
  */
