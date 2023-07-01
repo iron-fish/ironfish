@@ -36,15 +36,16 @@ export function writeTestReport(
   }
 }
 
+const TEST_REPORT_FOLDER = 'test-reports'
 export function appendTestReport(row: string[], filename: string): void {
-  if (!existsSync(`${process.cwd()}/test-report`)) {
-    mkdirSync(`${process.cwd()}/test-report`)
+  if (!existsSync(`${process.cwd()}/${TEST_REPORT_FOLDER}`)) {
+    mkdirSync(`${process.cwd()}/${TEST_REPORT_FOLDER}`)
   }
 
-  const writeStream = createWriteStream(`${process.cwd()}/test-reports/${filename}`, {
+  const writeStream = createWriteStream(`${process.cwd()}/${TEST_REPORT_FOLDER}/${filename}`, {
     flags: 'a+',
   })
-  writeStream.write(row.join(','))
+  writeStream.write(row.join(',src/testUtilities/utils.ts'))
   writeStream.write('\n')
   writeStream.end()
 }
