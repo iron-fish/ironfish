@@ -23,9 +23,7 @@ export interface AccountValue {
   createdAt: HeadValue | null
 }
 
-export type AccountImport = Omit<AccountValue, 'id' | 'createdAt'> & {
-  createdAt: { hash: string; sequence: number } | null
-}
+export type AccountImport = Omit<AccountValue, 'id'>
 
 export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
   serialize(value: AccountValue): Buffer {
