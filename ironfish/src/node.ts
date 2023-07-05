@@ -4,6 +4,7 @@
 import { BoxKeyPair } from '@ironfish/rust-nodejs'
 import os from 'os'
 import { v4 as uuid } from 'uuid'
+import { AssetsVerifier } from './assets'
 import { Blockchain } from './blockchain'
 import { TestnetConsensus } from './consensus'
 import {
@@ -50,6 +51,7 @@ export class IronfishNode {
   syncer: Syncer
   pkg: Package
   telemetry: Telemetry
+  assetsVerifier: AssetsVerifier
 
   started = false
   shutdownPromise: Promise<void> | null = null
@@ -138,6 +140,7 @@ export class IronfishNode {
       logPeerMessages: config.get('logPeerMessages'),
       simulateLatency: config.get('p2pSimulateLatency'),
       bootstrapNodes: config.getArray('bootstrapNodes'),
+      stunServers: config.getArray('p2pStunServers'),
       webSocket: webSocket,
       node: this,
       chain: chain,
@@ -167,6 +170,11 @@ export class IronfishNode {
       telemetry: this.telemetry,
       peerNetwork: this.peerNetwork,
       blocksPerMessage: config.get('blocksPerMessage'),
+    })
+
+    this.assetsVerifier = new AssetsVerifier({
+      apiUrl: config.get('assetVerificationApi'),
+      logger,
     })
 
     this.config.onConfigChange.on((key, value) => this.onConfigChange(key, value))
@@ -351,6 +359,10 @@ export class IronfishNode {
 
     await this.memPool.start()
 
+    if (this.config.get('enableAssetVerification')) {
+      this.assetsVerifier.start()
+    }
+
     this.telemetry.submitNodeStarted()
   }
 
@@ -364,6 +376,7 @@ export class IronfishNode {
       this.syncer.stop(),
       this.peerNetwork.stop(),
       this.rpc.stop(),
+      this.assetsVerifier.stop(),
       this.telemetry.stop(),
       this.metrics.stop(),
     ])
@@ -414,6 +427,14 @@ export class IronfishNode {
           await this.rpc.start()
         } else {
           await this.rpc.stop()
+        }
+        break
+      }
+      case 'enableAssetVerification': {
+        if (newValue) {
+          this.assetsVerifier.start()
+        } else {
+          this.assetsVerifier.stop()
         }
         break
       }

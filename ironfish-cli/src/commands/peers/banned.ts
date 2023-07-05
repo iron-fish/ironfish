@@ -7,7 +7,7 @@ import blessed from 'blessed'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
-const tableFlags = CliUx.ux.table.flags()
+const { sort, ...tableFlags } = CliUx.ux.table.flags()
 
 export class BannedCommand extends IronfishCommand {
   static description = `List all banned peers`
@@ -15,6 +15,10 @@ export class BannedCommand extends IronfishCommand {
   static flags = {
     ...RemoteFlags,
     ...tableFlags,
+    sort: {
+      ...sort,
+      exclusive: ['follow'],
+    },
     follow: Flags.boolean({
       char: 'f',
       default: false,

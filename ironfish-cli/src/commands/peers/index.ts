@@ -11,8 +11,7 @@ import { CommandFlags } from '../../types'
 type GetPeerResponsePeer = GetPeersResponse['peers'][0]
 
 const STATE_COLUMN_HEADER = 'STATE'
-const tableFlags = CliUx.ux.table.flags()
-tableFlags.sort.default = STATE_COLUMN_HEADER
+const { sort, ...tableFlags } = CliUx.ux.table.flags()
 
 export class ListCommand extends IronfishCommand {
   static description = `List all connected peers`
@@ -20,6 +19,10 @@ export class ListCommand extends IronfishCommand {
   static flags = {
     ...RemoteFlags,
     ...tableFlags,
+    sort: {
+      ...sort,
+      exclusive: ['follow'],
+    },
     follow: Flags.boolean({
       char: 'f',
       default: false,
@@ -58,6 +61,8 @@ export class ListCommand extends IronfishCommand {
     const { flags } = await this.parse(ListCommand)
 
     if (!flags.follow) {
+      flags.sort = flags.sort ?? STATE_COLUMN_HEADER
+
       await this.sdk.client.connect()
       const response = await this.sdk.client.peer.getPeers()
       this.log(renderTable(response.content, flags))

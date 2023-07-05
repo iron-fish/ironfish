@@ -11,6 +11,7 @@ import { BufferUtils } from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
+import { renderAssetNameFromHex } from '../../utils'
 import { TableCols } from '../../utils/table'
 
 const MAX_ASSET_METADATA_COLUMN_WIDTH = ASSET_METADATA_LENGTH + 1
@@ -19,12 +20,14 @@ const MIN_ASSET_METADATA_COLUMN_WIDTH = ASSET_METADATA_LENGTH / 2 + 1
 const MAX_ASSET_NAME_COLUMN_WIDTH = ASSET_NAME_LENGTH + 1
 const MIN_ASSET_NAME_COLUMN_WIDTH = ASSET_NAME_LENGTH / 2 + 1
 
+const { ...tableFlags } = CliUx.ux.table.flags()
+
 export class AssetsCommand extends IronfishCommand {
   static description = `Display the wallet's assets`
 
   static flags = {
     ...RemoteFlags,
-    ...CliUx.ux.table.flags(),
+    ...tableFlags,
   }
 
   static args = [
@@ -60,7 +63,13 @@ export class AssetsCommand extends IronfishCommand {
           name: TableCols.fixedWidth({
             header: 'Name',
             width: assetNameWidth,
-            get: (row) => BufferUtils.toHuman(Buffer.from(row.name, 'hex')),
+            get: (row) =>
+              renderAssetNameFromHex(row.name, {
+                verification: row.verification,
+                outputType: flags.output,
+                verbose: !!flags.verbose,
+                logWarn: this.warn.bind(this),
+              }),
           }),
           id: {
             header: 'ID',

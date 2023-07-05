@@ -158,6 +158,7 @@ export class PeerNetwork {
     listen?: boolean
     port?: number
     bootstrapNodes?: string[]
+    stunServers?: string[]
     name?: string | null
     maxPeers?: number
     minPeers?: number
@@ -209,6 +210,7 @@ export class PeerNetwork {
       maxPeers,
       targetPeers,
       logPeerMessages,
+      options.stunServers,
     )
     this.peerManager.onMessage.on((peer, message) => this.handleMessage(peer, message))
     this.peerManager.onConnectedPeersChanged.on(() => {

@@ -27,6 +27,10 @@ const MEGABYTES = 1000 * 1000
 
 export type ConfigOptions = {
   bootstrapNodes: string[]
+  /**
+   * STUN servers to use for inititating WebRTC connections.
+   */
+  p2pStunServers: string[]
   databaseMigrate: boolean
   editor: string
   enableListenP2P: boolean
@@ -39,6 +43,7 @@ export type ConfigOptions = {
   enableSyncing: boolean
   enableTelemetry: boolean
   enableMetrics: boolean
+  enableAssetVerification: boolean
   getFundsApi: string
   ipcPath: string
   /**
@@ -110,6 +115,7 @@ export type ConfigOptions = {
    */
   targetPeers: number
   telemetryApi: string
+  assetVerificationApi: string
 
   /**
    * When the option is true, then each invocation of start command will invoke generation of new identity.
@@ -278,6 +284,7 @@ export type ConfigOptions = {
 export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
   .object({
     bootstrapNodes: yup.array().of(yup.string().defined()),
+    p2pStunServers: yup.array().of(yup.string().defined()),
     databaseMigrate: yup.boolean(),
     editor: yup.string().trim(),
     enableListenP2P: yup.boolean(),
@@ -290,6 +297,7 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     enableSyncing: yup.boolean(),
     enableTelemetry: yup.boolean(),
     enableMetrics: yup.boolean(),
+    enableAssetVerification: yup.boolean(),
     getFundsApi: yup.string(),
     ipcPath: yup.string().trim(),
     miningForce: yup.boolean(),
@@ -315,6 +323,7 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     minPeers: YupUtils.isPositiveInteger,
     targetPeers: yup.number().integer().min(1),
     telemetryApi: yup.string(),
+    assetVerificationApi: yup.string(),
     generateNewIdentity: yup.boolean(),
     transactionExpirationDelta: YupUtils.isPositiveInteger,
     blocksPerMessage: YupUtils.isPositiveInteger,
@@ -374,6 +383,7 @@ export class Config extends KeyStore<ConfigOptions> {
   static GetDefaults(files: FileSystem, dataDir: string): ConfigOptions {
     return {
       bootstrapNodes: [],
+      p2pStunServers: ['stun:stun.l.google.com:19302', 'stun:global.stun.twilio.com:3478'],
       databaseMigrate: false,
       transactionExpirationDelta: 15,
       editor: '',
@@ -387,6 +397,7 @@ export class Config extends KeyStore<ConfigOptions> {
       enableSyncing: true,
       enableTelemetry: false,
       enableMetrics: true,
+      enableAssetVerification: true,
       getFundsApi: 'https://testnet.api.ironfish.network/faucet_transactions',
       ipcPath: files.resolve(files.join(dataDir, 'ironfish.ipc')),
       logLevel: '*:info',
@@ -410,6 +421,7 @@ export class Config extends KeyStore<ConfigOptions> {
       minPeers: 1,
       targetPeers: 50,
       telemetryApi: '',
+      assetVerificationApi: '',
       generateNewIdentity: false,
       blocksPerMessage: 25,
       minerBatchSize: 25000,

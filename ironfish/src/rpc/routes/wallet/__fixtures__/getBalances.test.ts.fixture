@@ -3,12 +3,25 @@
     {
       "version": 2,
       "id": "e9a91252-1821-4d33-a020-74b13571ea92",
-      "name": "test",
+      "name": "accountA",
       "spendingKey": "fe9011b7c1884572df018bc242aae9bc7fccae7c2a6c1e92e263acdc709f7de0",
       "viewKey": "1df0c8cadfff457b90e82d386aa86253ac31d467670d4a51d28e3ad1997d8a3cf4a54e28908f335f99644f949ab5cb81733563075ac55f9c6602dc5ef869ba5d",
       "incomingViewKey": "66c952cb7e5036e73d5a74a4d6afd2c6f13a09b742c6b0bbe5c7573d441e9c00",
       "outgoingViewKey": "441ba7626e48059932474817baa6b171ced77338dc430d996c5f731de43de16b",
       "publicAddress": "47beee12a1576fff129c50f410105920511498cf41d071067e14a686ea16a524",
+      "createdAt": null
+    }
+  ],
+  "Route wallet/getBalances with a valid account returns asset verification information": [
+    {
+      "version": 2,
+      "id": "44b5a84f-df14-4c6f-abda-8631121ea899",
+      "name": "accountB",
+      "spendingKey": "895a5529fa76676da3a6eff7d12c4c6506b8dc7d777e2a4015c2c3489e0265cd",
+      "viewKey": "53df90e4140c65c76ccd8f022410d82244948612d341a891896fa4080c8d144d3d42ff10f922b38d243fc49f49bfcf8e22de45612ca23701c3cdf5f7bed285a9",
+      "incomingViewKey": "b068123e8b53ce9f1b19f0df16136defc945b5456bf52a9c9b8fed8ab1b38507",
+      "outgoingViewKey": "2815d8d04c91a616ef2692ac85fd7204617b97a06aa7855fdf691e7b2405c70e",
+      "publicAddress": "6d30780c939b01e9a22d8a730c8be2c95361b5cb95b1c9410eca07b000954cdb",
       "createdAt": null
     }
   ]

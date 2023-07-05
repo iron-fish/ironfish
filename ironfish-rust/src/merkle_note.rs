@@ -15,7 +15,7 @@ use super::{
 };
 
 use blake2b_simd::Params as Blake2b;
-use bls12_381::Scalar;
+use blstrs::Scalar;
 use ff::PrimeField;
 use group::GroupEncoding;
 use ironfish_zkp::primitives::ValueCommitment;
@@ -168,7 +168,7 @@ impl MerkleNote {
 
     pub fn write<W: io::Write>(&self, writer: &mut W) -> Result<(), IronfishError> {
         writer.write_all(&self.value_commitment.to_bytes())?;
-        writer.write_all(&self.note_commitment.to_bytes())?;
+        writer.write_all(&self.note_commitment.to_bytes_le())?;
         writer.write_all(&self.ephemeral_public_key.to_bytes())?;
         writer.write_all(&self.encrypted_note)?;
         writer.write_all(&self.note_encryption_keys)?;
@@ -281,7 +281,7 @@ mod test {
     use crate::keys::EphemeralKeyPair;
     use crate::{keys::SaplingKey, note::Note};
 
-    use bls12_381::Scalar;
+    use blstrs::Scalar;
     use ironfish_zkp::primitives::ValueCommitment;
     use rand::prelude::*;
 

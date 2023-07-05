@@ -97,6 +97,8 @@ import {
   MintAssetResponse,
   OnGossipRequest,
   OnGossipResponse,
+  OnReorganizeChainRequest,
+  OnReorganizeChainResponse,
   OnTransactionGossipRequest,
   OnTransactionGossipResponse,
   PostTransactionRequest,
@@ -227,7 +229,7 @@ export abstract class RpcClient {
     },
 
     getAccountBalance: (
-      params: GetBalanceRequest = {},
+      params?: GetBalanceRequest,
     ): Promise<RpcResponseEnded<GetBalanceResponse>> => {
       return this.request<GetBalanceResponse>(
         `${ApiNamespace.wallet}/getBalance`,
@@ -511,6 +513,15 @@ export abstract class RpcClient {
       params: OnGossipRequest = undefined,
     ): RpcResponse<void, OnGossipResponse> => {
       return this.request<void, OnGossipResponse>(`${ApiNamespace.event}/onGossip`, params)
+    },
+
+    onReorganizeChainStream: (
+      params: OnReorganizeChainRequest = undefined,
+    ): RpcResponse<void, OnReorganizeChainResponse> => {
+      return this.request<void, OnReorganizeChainResponse>(
+        `${ApiNamespace.event}/onReorganizeChain`,
+        params,
+      )
     },
 
     onTransactionGossipStream: (

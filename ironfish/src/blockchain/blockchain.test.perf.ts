@@ -2,36 +2,38 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-/* eslint-disable no-console */
+/* eslint-disable jest/expect-expect */
+
 import { Asset } from '@ironfish/rust-nodejs'
 import _ from 'lodash'
 import { Assert } from '../assert'
+import { IronfishNode } from '../node'
 import { Block } from '../primitives'
 import {
   createNodeTest,
   useAccountFixture,
   useBlockWithTx,
   useMinerBlockFixture,
+  writeTestReport,
 } from '../testUtilities'
 import { MathUtils, UnwrapPromise } from '../utils'
 
 describe('Blockchain', () => {
   const nodeTest = createNodeTest()
+  const blocksA = new Array<Block>()
+  const blocksB = new Array<Block>()
+  const nodeArrays = new Array<IronfishNode>()
+  const testCount = 5
 
-  it('Add Block with fork', async () => {
+  beforeAll(async () => {
     const { node: nodeA } = await nodeTest.createSetup()
     const { node: nodeB } = await nodeTest.createSetup()
 
     const accountA = await useAccountFixture(nodeA.wallet, 'accountA')
     const accountB = await useAccountFixture(nodeB.wallet, 'accountB')
 
-    const blocksA = new Array<Block>()
-    const blocksB = new Array<Block>()
-
     // Create 100 blocks each on nodeA and nodeB
     for (let i = 0; i < 100; ++i) {
-      console.log(`Creating Blocks ${i}`)
-
       let blockA: Block
       let blockB: Block
 
@@ -46,10 +48,7 @@ describe('Blockchain', () => {
         blockB = bB
       }
 
-      await Promise.all([
-        expect(nodeA.chain).toAddBlock(blockA),
-        expect(nodeB.chain).toAddBlock(blockB),
-      ])
+      await Promise.all([nodeA.chain.addBlock(blockA), nodeB.chain.addBlock(blockB)])
 
       await Promise.all([nodeA.wallet.updateHead(), nodeB.wallet.updateHead()])
 
@@ -61,104 +60,146 @@ describe('Blockchain', () => {
     const balanceB = await nodeB.wallet.getBalance(accountB, Asset.nativeId())
 
     // You'll need to update this if the block reward changes
-    expect(balanceA.confirmed).toEqual(BigInt(1999999901))
-    expect(balanceA.unconfirmed).toEqual(BigInt(1999999901))
-    expect(balanceB.confirmed).toEqual(BigInt(1999999901))
-    expect(balanceB.unconfirmed).toEqual(BigInt(1999999901))
+    Assert.isEqual(balanceA.confirmed, BigInt(1999999901))
+    Assert.isEqual(balanceA.unconfirmed, BigInt(1999999901))
+    Assert.isEqual(balanceB.confirmed, BigInt(1999999901))
+    Assert.isEqual(balanceB.unconfirmed, BigInt(1999999901))
+  })
 
-    async function runTest(
-      testCount: number,
-      forkLength: number,
-    ): Promise<{
-      testCount: number
-      forkLength: number
-      all: number[]
-      add: number[]
-      fork: number[]
-      rewind: number[]
-    }> {
-      forkLength = Math.min(Math.min(forkLength, blocksA.length), blocksB.length)
+  beforeEach(async () => {
+    // Create 5 nodes for each test
+    for (let i = 0; i < testCount; ++i) {
+      const { node } = await nodeTest.createSetup()
+      nodeArrays.push(node)
+    }
+  })
 
-      const samplesAll = []
-      const samplesAdd = []
-      const samplesFork = []
-      const samplesRewind = []
+  it('Times Ran 5 Fork Length 1', async () => {
+    const result = await runTest(testCount, 1)
+    printResults(result)
+  })
 
-      for (let i = 0; i < testCount; i++) {
-        console.log(`Running Test ${i}`)
+  it('Times Ran 5 Fork Length 3', async () => {
+    const result = await runTest(testCount, 3)
+    printResults(result)
+  })
 
-        const { node } = await nodeTest.createSetup()
+  it('Times Ran 5 Fork Length 5', async () => {
+    const result = await runTest(testCount, 5)
+    printResults(result)
+  })
 
-        const startAll = Date.now()
+  it('Times Ran 5 Fork Length 10', async () => {
+    const result = await runTest(testCount, 10)
+    printResults(result)
+  })
 
-        // Add 99 blocks from blocksA
-        for (let i = 0; i < forkLength - 1; ++i) {
-          const startAdd = Date.now()
-          await node.chain.addBlock(blocksA[i])
-          const endAdd = Date.now()
-          samplesAdd.push(endAdd - startAdd)
-        }
+  it('Times Ran 5 Fork Length 50', async () => {
+    const result = await runTest(testCount, 50)
+    printResults(result)
+  })
 
-        // Add 99 blocks from blocksB
-        for (let i = 0; i < forkLength - 1; ++i) {
-          const startFork = Date.now()
-          await node.chain.addBlock(blocksB[i])
-          const endFork = Date.now()
-          samplesFork.push(endFork - startFork)
-        }
+  it('Times Ran 5 Fork Length 100', async () => {
+    const result = await runTest(testCount, 100)
+    printResults(result)
+  })
 
-        // Now add the new heaviest block from blockB which causes
-        // the blocks from blocksB to be removed from the trees
-        const startRewind = Date.now()
-        await node.chain.addBlock(blocksB[forkLength - 1])
-        const endRewind = Date.now()
-        samplesRewind.push(endRewind - startRewind)
+  afterEach(() => {
+    nodeArrays.splice(0)
+  })
 
-        const endAll = Date.now()
-        samplesAll.push(endAll - startAll)
+  async function runTest(
+    testCount: number,
+    forkLength: number,
+  ): Promise<{
+    testCount: number
+    forkLength: number
+    all: number[]
+    add: number[]
+    fork: number[]
+    rewind: number[]
+  }> {
+    forkLength = Math.min(Math.min(forkLength, blocksA.length), blocksB.length)
 
-        // Verify the head is the last block in blocksB
-        const actualHead = node.chain.head
-        const expectedHead = blocksB[forkLength - 1]
-        Assert.isNotNull(actualHead, 'Chain has no head')
-        expect(actualHead.hash.toString('hex')).toEqual(
-          expectedHead.header.hash.toString('hex'),
-        )
+    const samplesAll: number[] = []
+    const samplesAdd: number[] = []
+    const samplesFork: number[] = []
+    const samplesRewind: number[] = []
+
+    for (let i = 0; i < testCount; i++) {
+      const node = nodeArrays[i]
+
+      const startAll = Date.now()
+
+      // Add 99 blocks from blocksA
+      for (let i = 0; i < forkLength - 1; ++i) {
+        const startAdd = Date.now()
+        await node.chain.addBlock(blocksA[i])
+        const endAdd = Date.now()
+        samplesAdd.push(endAdd - startAdd)
       }
 
-      return {
-        testCount,
-        forkLength,
-        all: samplesAll,
-        add: samplesAdd,
-        rewind: samplesRewind,
-        fork: samplesFork,
+      // Add 99 blocks from blocksB
+      for (let i = 0; i < forkLength - 1; ++i) {
+        const startFork = Date.now()
+        await node.chain.addBlock(blocksB[i])
+        const endFork = Date.now()
+        samplesFork.push(endFork - startFork)
       }
+
+      // Now add the new heaviest block from blockB which causes
+      // the blocks from blocksB to be removed from the trees
+      const startRewind = Date.now()
+      await node.chain.addBlock(blocksB[forkLength - 1])
+      const endRewind = Date.now()
+      samplesRewind.push(endRewind - startRewind)
+
+      const endAll = Date.now()
+      samplesAll.push(endAll - startAll)
+
+      // Verify the head is the last block in blocksB
+      const actualHead = node.chain.head
+      const expectedHead = blocksB[forkLength - 1]
+      Assert.isNotNull(actualHead, 'Chain has no head')
+      expect(actualHead.hash.toString('hex')).toEqual(expectedHead.header.hash.toString('hex'))
     }
 
-    function printResults(result: UnwrapPromise<ReturnType<typeof runTest>>): void {
-      console.log(
-        `[TEST RESULTS: Times Ran: ${result.testCount}, Fork Length: ${result.forkLength}]` +
-          `\nTotal Test Average: ${MathUtils.arrayAverage(result.all).toFixed(2)}ms` +
-          `\nInsert ${result.forkLength - 1} blocks linear: ${MathUtils.arrayAverage(
-            result.add,
-          ).toFixed(2)}ms` +
-          `\nInsert ${result.forkLength - 1} blocks on fork: ${MathUtils.arrayAverage(
-            result.fork,
-          ).toFixed(2)}ms` +
-          `\nAdd head rewind fork blocks: ${MathUtils.arrayAverage(result.rewind).toFixed(
-            2,
-          )}ms`,
-      )
+    return {
+      testCount,
+      forkLength,
+      all: samplesAll,
+      add: samplesAdd,
+      rewind: samplesRewind,
+      fork: samplesFork,
     }
+  }
 
-    printResults(await runTest(5, 1))
-    printResults(await runTest(5, 3))
-    printResults(await runTest(5, 5))
-    printResults(await runTest(5, 10))
-    printResults(await runTest(5, 50))
-    printResults(await runTest(5, 100))
-  }, 600000)
+  function printResults(result: UnwrapPromise<ReturnType<typeof runTest>>): void {
+    writeTestReport(
+      new Map([
+        ['TotalTestAverage', `${MathUtils.arrayAverage(result.all).toFixed(2)}`],
+        ['InsertBlocksLinear', `${MathUtils.arrayAverage(result.add).toFixed(2)}`],
+        ['InsertBlocksOnFork', `${MathUtils.arrayAverage(result.fork).toFixed(2)}`],
+        ['AddHeadRewindForkBlocks', `${MathUtils.arrayAverage(result.rewind).toFixed(2)}`],
+      ]),
+      new Map([
+        ['Total Test Average', `${MathUtils.arrayAverage(result.all).toFixed(2)}ms`],
+        [
+          `Insert ${result.forkLength - 1} blocks linear`,
+          `${MathUtils.arrayAverage(result.add).toFixed(2)}ms`,
+        ],
+        [
+          `Insert ${result.forkLength - 1} blocks on fork`,
+          `${MathUtils.arrayAverage(result.fork).toFixed(2)}ms`,
+        ],
+        [
+          'Add head rewind fork blocks',
+          `${MathUtils.arrayAverage(result.rewind).toFixed(2)}ms`,
+        ],
+      ]),
+      `Times Ran: ${result.testCount}, Fork Length: ${result.forkLength}`,
+    )
+  }
 })
 
 // Last results on Jason Spafford's Machine

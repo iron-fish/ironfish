@@ -2,20 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { spendingKeyToWords } from '@ironfish/rust-nodejs'
-import { Assert, Bech32m, ErrorUtils } from '@ironfish/sdk'
+import { Assert, Bech32m, ErrorUtils, LanguageKey, LanguageUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import fs from 'fs'
+import inquirer from 'inquirer'
 import jsonColorizer from 'json-colorizer'
 import path from 'path'
 import { IronfishCommand } from '../../command'
 import { ColorFlag, ColorFlagKey, RemoteFlags } from '../../flags'
-import {
-  inferLanguageCode,
-  LANGUAGE_KEYS,
-  languageCodeToKey,
-  LANGUAGES,
-  selectLanguage,
-} from '../../utils/language'
 
 export class ExportCommand extends IronfishCommand {
   static description = `Export an account`
@@ -34,7 +28,7 @@ export class ExportCommand extends IronfishCommand {
     language: Flags.enum({
       description: 'Language to use for mnemonic export',
       required: false,
-      options: LANGUAGE_KEYS,
+      options: LanguageUtils.LANGUAGE_KEYS,
     }),
     json: Flags.boolean({
       default: false,
@@ -75,19 +69,33 @@ export class ExportCommand extends IronfishCommand {
     let output
 
     if (flags.mnemonic) {
-      let languageCode = flags.language ? LANGUAGES[flags.language] : null
+      let languageCode = flags.language ? LanguageUtils.LANGUAGES[flags.language] : null
 
       if (languageCode == null) {
-        languageCode = inferLanguageCode()
+        languageCode = LanguageUtils.inferLanguageCode()
 
         if (languageCode !== null) {
-          CliUx.ux.info(`Detected Language as '${languageCodeToKey(languageCode)}', exporting:`)
+          CliUx.ux.info(
+            `Detected Language as '${LanguageUtils.languageCodeToKey(
+              languageCode,
+            )}', exporting:`,
+          )
         }
       }
 
       if (languageCode == null) {
         CliUx.ux.info(`Could not detect your language, please select language for export`)
-        languageCode = await selectLanguage()
+        const response = await inquirer.prompt<{
+          language: LanguageKey
+        }>([
+          {
+            name: 'language',
+            message: `Select your language`,
+            type: 'list',
+            choices: LanguageUtils.LANGUAGE_KEYS,
+          },
+        ])
+        languageCode = LanguageUtils.LANGUAGES[response.language]
       }
       Assert.isTruthy(
         response.content.account.spendingKey,

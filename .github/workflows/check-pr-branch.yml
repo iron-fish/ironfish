@@ -1,0 +1,17 @@
+name: Pull Requests should target Staging branch
+
+on:
+  pull_request:
+    types: ['*']
+    branches:
+      - '**'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - if: ${{ contains(github.event.pull_request.base.ref, 'master') && !contains(github.event.pull_request.title, 'master') }}
+        run: |
+          echo 'Pull request has "master" base branch without the override keyword "master" in the PR Title'
+          echo 'This pull request probably meant to target "staging"'
+          exit 1

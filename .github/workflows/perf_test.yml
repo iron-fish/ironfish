@@ -1,0 +1,52 @@
+name: Performance Tests
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - staging
+
+permissions:
+  checks: write
+  contents: write
+
+jobs:
+  testperf:
+    name: Perf Tests
+    runs-on: [self-hosted, macOS, ARM64]
+
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.12.1'
+          cache: 'yarn'
+
+      - name: Install packages
+        run: yarn --non-interactive --frozen-lockfile
+
+      - name: Run perf tests
+        run: yarn test:perf:report
+
+      - name: Check for missing fixtures
+        run: |
+          if [[ $(git status | grep fixture) ]]; then
+            echo "New test fixtures have not been checked in, please check them in."
+            exit 1
+          fi
+
+      - name: Import to InfluxDB
+        if: contains(github.event_name, 'push')
+        env:
+          INFLUX_TOKEN: ${{ secrets.INFLUX_TOKEN }}
+          INFLUX_ORG: 'fdcfe96f6c31245a'
+          INFLUX_HOST: 'https://us-east-1-1.aws.cloud2.influxdata.com'
+        run: |
+          for f in ironfish/test-reports/*.perf.csv; do
+            influx write --bucket ironfish-telemetry-mainnet --format=csv --file $f
+          done

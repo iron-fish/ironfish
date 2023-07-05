@@ -96,7 +96,7 @@ function endSegment(start: Segment): SegmentResults {
 function renderSegment(segment: SegmentResults, title = 'Benchmark', delimiter = ', '): string {
   const result = []
 
-  result.push(`Time: ${TimeUtils.renderSpan(segment.time)}`)
+  result.push(`Timespan: ${TimeUtils.renderSpan(segment.time)}`)
   result.push(`Heap: ${FileUtils.formatMemorySize(segment.heap)}`)
   result.push(`RSS: ${FileUtils.formatMemorySize(segment.rss)}`)
   result.push(`Mem: ${FileUtils.formatMemorySize(segment.mem)}`)

@@ -2,22 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-/* eslint-disable no-console */
 import { Asset } from '@ironfish/rust-nodejs'
 import { Assert } from '../assert'
+import { writeTestReport } from '../testUtilities'
 import { useAccountFixture, useMinerBlockFixture } from '../testUtilities/fixtures'
 import { createRawTransaction } from '../testUtilities/helpers/transaction'
 import { createNodeTest } from '../testUtilities/nodeTest'
 import { BigIntUtils, CurrencyUtils } from '../utils'
 import { BenchUtils } from '../utils/bench'
-import { Account } from '../wallet'
+import { Account, Wallet } from '../wallet'
 import { RawTransaction } from './rawTransaction'
 
 type Results = { spends: number; outputs: number; elapsed: number }
 
 describe('Transaction', () => {
-  const nodeTest = createNodeTest()
-
+  const nodeTest = createNodeTest(true)
   const TEST_AMOUNTS = [
     { spends: 1, outputs: 1 },
     { spends: 10, outputs: 1 },
@@ -26,29 +25,35 @@ describe('Transaction', () => {
     { spends: 1, outputs: 100 },
   ]
 
-  it('post', async () => {
-    const { chain, wallet } = nodeTest
+  let account: Account
+  let wallet: Wallet
 
-    const account = await useAccountFixture(wallet)
+  beforeAll(async () => {
+    const { node } = await nodeTest.createSetup()
 
+    account = await useAccountFixture(node.wallet, 'test')
+    wallet = node.wallet
     // Generate enough notes for the tests
     for (let i = 0; i < Math.max(...TEST_AMOUNTS.map((t) => t.spends)); i++) {
-      const block = await useMinerBlockFixture(chain, undefined, account, wallet)
-      await expect(chain).toAddBlock(block)
-      await wallet.updateHead()
-    }
-
-    // Run tests
-    for (const { spends, outputs } of TEST_AMOUNTS) {
-      const results = await runTest(account, spends, outputs)
-      printResults(results)
+      const block = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
+      await node.chain.addBlock(block)
+      await node.wallet.updateHead()
     }
   })
 
+  for (const input of TEST_AMOUNTS) {
+    it(`test spends ${input.spends} outputs ${input.outputs}`, async () => {
+      const results = await runTest(account, input.spends, input.outputs)
+      expect(results).toBeDefined()
+      printResults(results)
+    })
+  }
+
   function printResults(results: Results) {
-    console.log(
-      `[TEST RESULTS: Spends: ${results.spends}, Outputs: ${results.outputs}]` +
-        `\nElapsed: ${results.elapsed.toLocaleString()} milliseconds`,
+    writeTestReport(
+      new Map([['elapsed', `${results.elapsed}`]]),
+      new Map([['Elapsed', `${results.elapsed.toLocaleString()} milliseconds`]]),
+      `Spends: ${results.spends}, Outputs: ${results.outputs}`,
     )
   }
 
@@ -91,7 +96,7 @@ describe('Transaction', () => {
     }
 
     return createRawTransaction({
-      wallet: nodeTest.wallet,
+      wallet: wallet,
       from: account,
       amount: spendAmount,
       outputs,

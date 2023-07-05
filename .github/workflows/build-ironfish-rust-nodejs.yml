@@ -39,6 +39,12 @@ jobs:
     name: Build ${{ matrix.settings.target }}
     runs-on: ${{ matrix.settings.host }}
     steps:
+      - name: Record CPU information
+        run: |
+          ${{ contains(matrix.settings.host, 'ubuntu-') && 'cat /proc/cpuinfo' || '' }}
+          ${{ contains(matrix.settings.host, 'macos-') && 'sysctl -a | grep machdep.cpu' || '' }}
+          ${{ contains(matrix.settings.host, 'windows-') && 'Get-WmiObject -Class Win32_Processor -ComputerName.' || '' }}
+
       - name: Check out Git repository
         uses: actions/checkout@v3
 

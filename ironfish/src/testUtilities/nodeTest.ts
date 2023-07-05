@@ -78,6 +78,7 @@ export class NodeTest {
     sdk.config.setOverride('networkId', 2)
     sdk.config.setOverride('enableListenP2P', false)
     sdk.config.setOverride('enableTelemetry', false)
+    sdk.config.setOverride('enableAssetVerification', false)
     sdk.config.setOverride('confirmations', 0)
 
     // Allow tests to override default settings
@@ -155,7 +156,6 @@ export function createNodeTest(preserveState = false, options: NodeTestOptions =
 
   if (preserveState) {
     beforeAll(() => nodeTest.setup(), 10000)
-    afterEach(() => nodeTest.teardownEach())
     afterAll(() => nodeTest.teardownAll())
   } else {
     beforeEach(() => nodeTest.setup(), 10000)

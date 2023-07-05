@@ -1,6 +1,6 @@
 use ff::PrimeField;
 
-use bellman::{gadgets::blake2s, Circuit, ConstraintSystem, SynthesisError};
+use bellperson::{gadgets::blake2s, Circuit, ConstraintSystem, SynthesisError};
 
 use group::Curve;
 use jubjub::SubgroupPoint;
@@ -21,7 +21,7 @@ use crate::{
 };
 
 use super::util::expose_value_commitment;
-use bellman::gadgets::boolean;
+use bellperson::gadgets::boolean;
 
 /// This is a circuit instance inspired from ZCash's `Output` circuit in the Sapling protocol
 /// https://github.com/zcash/librustzcash/blob/main/zcash_proofs/src/circuit/sapling.rs#L57-L70
@@ -49,8 +49,8 @@ pub struct Output {
     pub ar: Option<jubjub::Fr>,
 }
 
-impl Circuit<bls12_381::Scalar> for Output {
-    fn synthesize<CS: ConstraintSystem<bls12_381::Scalar>>(
+impl Circuit<blstrs::Scalar> for Output {
+    fn synthesize<CS: ConstraintSystem<blstrs::Scalar>>(
         self,
         cs: &mut CS,
     ) -> Result<(), SynthesisError> {
@@ -255,7 +255,7 @@ impl Circuit<bls12_381::Scalar> for Output {
 
 #[cfg(test)]
 mod test {
-    use bellman::{gadgets::test::*, Circuit};
+    use bellperson::{gadgets::test::*, Circuit, ConstraintSystem};
     use ff::Field;
     use group::{Curve, Group};
     use rand::rngs::StdRng;
@@ -269,7 +269,7 @@ mod test {
     };
 
     #[test]
-    fn test_output_circuit_with_bls12_381() {
+    fn test_output_circuit_with_blstrs() {
         // Seed a fixed rng for determinism in the test
         let mut rng = StdRng::seed_from_u64(0);
 
@@ -300,7 +300,7 @@ mod test {
 
             let viewing_key = proof_generation_key.to_viewing_key();
 
-            let payment_address = PUBLIC_KEY_GENERATOR * viewing_key.ivk().0;
+            let payment_address = *PUBLIC_KEY_GENERATOR * viewing_key.ivk().0;
 
             let sender_address = payment_address;
 
@@ -340,10 +340,10 @@ mod test {
                     jubjub::ExtendedPoint::from(value_commitment.commitment()).to_affine();
 
                 let expected_epk =
-                    jubjub::ExtendedPoint::from(PUBLIC_KEY_GENERATOR * esk).to_affine();
+                    jubjub::ExtendedPoint::from(*PUBLIC_KEY_GENERATOR * esk).to_affine();
 
                 assert_eq!(cs.num_inputs(), 8);
-                assert_eq!(cs.get_input(0, "ONE"), bls12_381::Scalar::one());
+                assert_eq!(cs.get_input(0, "ONE"), blstrs::Scalar::one());
                 assert_eq!(cs.get_input(1, "rk/u/input variable"), rk.get_u());
                 assert_eq!(cs.get_input(2, "rk/v/input variable"), rk.get_v());
                 assert_eq!(

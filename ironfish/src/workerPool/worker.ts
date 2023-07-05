@@ -59,11 +59,6 @@ export class Worker {
     }
   }
 
-  execute(job: Job): void {
-    this.jobs.set(job.id, job)
-    job.execute(this)
-  }
-
   send(message: WorkerMessage): void {
     if (this.thread) {
       this.thread.postMessage(message.serialize())

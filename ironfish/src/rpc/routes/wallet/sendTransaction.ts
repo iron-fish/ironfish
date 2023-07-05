@@ -5,6 +5,7 @@ import { Asset, MEMO_LENGTH } from '@ironfish/rust-nodejs'
 import { BufferMap } from 'buffer-map'
 import * as yup from 'yup'
 import { CurrencyUtils, YupUtils } from '../../../utils'
+import { Wallet } from '../../../wallet'
 import { NotEnoughFundsError } from '../../../wallet/errors'
 import { ERROR_CODES, ValidationError } from '../../adapters/errors'
 import { ApiNamespace, router } from '../router'
@@ -18,7 +19,8 @@ export type SendTransactionRequest = {
     memo: string
     assetId?: string
   }[]
-  fee: string
+  fee?: string
+  feeRate?: string
   expiration?: number | null
   expirationDelta?: number | null
   confirmations?: number | null
@@ -45,7 +47,8 @@ export const SendTransactionRequestSchema: yup.ObjectSchema<SendTransactionReque
           .defined(),
       )
       .defined(),
-    fee: YupUtils.currency({ min: 1n }).defined(),
+    fee: YupUtils.currency({ min: 1n }).optional(),
+    feeRate: YupUtils.currency({ min: 1n }).optional(),
     expiration: yup.number().nullable().optional(),
     expirationDelta: yup.number().nullable().optional(),
     confirmations: yup.number().nullable().optional(),
@@ -85,14 +88,28 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
       assetId: output.assetId ? Buffer.from(output.assetId, 'hex') : Asset.nativeId(),
     }))
 
-    const fee = CurrencyUtils.decode(request.data.fee)
+    const params: Parameters<Wallet['send']>[0] = {
+      account,
+      outputs,
+      expiration: request.data.expiration ?? undefined,
+      expirationDelta: request.data.expirationDelta ?? undefined,
+      confirmations: request.data.confirmations ?? undefined,
+    }
 
     const totalByAssetId = new BufferMap<bigint>()
-    totalByAssetId.set(Asset.nativeId(), fee)
 
     for (const { assetId, amount } of outputs) {
       const sum = totalByAssetId.get(assetId) ?? 0n
       totalByAssetId.set(assetId, sum + amount)
+    }
+
+    if (request.data.fee) {
+      params.fee = CurrencyUtils.decode(request.data.fee)
+      totalByAssetId.set(Asset.nativeId(), params.fee)
+    }
+
+    if (request.data.feeRate) {
+      params.feeRate = CurrencyUtils.decode(request.data.feeRate)
     }
 
     // Check that the node has enough balance
@@ -111,14 +128,7 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
     }
 
     try {
-      const transaction = await node.wallet.send(
-        account,
-        outputs,
-        fee,
-        request.data.expirationDelta ?? node.config.get('transactionExpirationDelta'),
-        request.data.expiration,
-        request.data.confirmations,
-      )
+      const transaction = await node.wallet.send(params)
 
       request.end({
         account: account.name,

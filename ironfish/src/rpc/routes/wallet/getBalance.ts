@@ -3,18 +3,22 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
+import { AssetVerification } from '../../../assets'
 import { ApiNamespace, router } from '../router'
 import { getAccount } from './utils'
 
-export type GetBalanceRequest = {
-  account?: string
-  assetId?: string
-  confirmations?: number
-}
+export type GetBalanceRequest =
+  | {
+      account?: string
+      assetId?: string
+      confirmations?: number
+    }
+  | undefined
 
 export type GetBalanceResponse = {
   account: string
   assetId: string
+  assetVerification: AssetVerification
   confirmed: string
   unconfirmed: string
   unconfirmedCount: number
@@ -28,16 +32,19 @@ export type GetBalanceResponse = {
 
 export const GetBalanceRequestSchema: yup.ObjectSchema<GetBalanceRequest> = yup
   .object({
-    account: yup.string().trim(),
-    assetId: yup.string().optional(),
+    account: yup.string().optional().trim(),
+    assetId: yup.string().optional().trim(),
     confirmations: yup.number().min(0).optional(),
   })
-  .defined()
+  .optional()
 
 export const GetBalanceResponseSchema: yup.ObjectSchema<GetBalanceResponse> = yup
   .object({
     account: yup.string().defined(),
     assetId: yup.string().defined(),
+    assetVerification: yup
+      .object({ status: yup.string().oneOf(['verified', 'unverified', 'unknown']).defined() })
+      .defined(),
     unconfirmed: yup.string().defined(),
     unconfirmedCount: yup.number().defined(),
     pending: yup.string().defined(),
@@ -54,12 +61,12 @@ router.register<typeof GetBalanceRequestSchema, GetBalanceResponse>(
   `${ApiNamespace.wallet}/getBalance`,
   GetBalanceRequestSchema,
   async (request, node): Promise<void> => {
-    const confirmations = request.data.confirmations ?? node.config.get('confirmations')
+    const confirmations = request.data?.confirmations ?? node.config.get('confirmations')
 
-    const account = getAccount(node, request.data.account)
+    const account = getAccount(node, request.data?.account)
 
     let assetId = Asset.nativeId()
-    if (request.data.assetId) {
+    if (request.data?.assetId) {
       assetId = Buffer.from(request.data.assetId, 'hex')
     }
 
@@ -70,6 +77,7 @@ router.register<typeof GetBalanceRequestSchema, GetBalanceResponse>(
     request.end({
       account: account.name,
       assetId: assetId.toString('hex'),
+      assetVerification: node.assetsVerifier.verify(assetId),
       confirmed: balance.confirmed.toString(),
       unconfirmed: balance.unconfirmed.toString(),
       unconfirmedCount: balance.unconfirmedCount,

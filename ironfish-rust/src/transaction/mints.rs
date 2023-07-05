@@ -4,9 +4,10 @@
 
 use std::io;
 
-use bellman::groth16;
-use bls12_381::{Bls12, Scalar};
+use bellperson::groth16;
+use blstrs::{Bls12, Scalar};
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+use ff::Field;
 use group::{Curve, GroupEncoding};
 use ironfish_zkp::{
     constants::SPENDING_KEY_GENERATOR,
@@ -95,11 +96,11 @@ impl UnsignedMintDescription {
         let private_key = redjubjub::PrivateKey(spender_key.spend_authorizing_key);
         let randomized_private_key = private_key.randomize(self.public_key_randomness);
         let randomized_public_key =
-            redjubjub::PublicKey::from_private(&randomized_private_key, SPENDING_KEY_GENERATOR);
+            redjubjub::PublicKey::from_private(&randomized_private_key, *SPENDING_KEY_GENERATOR);
 
         let transaction_randomized_public_key =
             redjubjub::PublicKey(spender_key.view_key.authorizing_key.into())
-                .randomize(self.public_key_randomness, SPENDING_KEY_GENERATOR);
+                .randomize(self.public_key_randomness, *SPENDING_KEY_GENERATOR);
 
         if randomized_public_key.0 != transaction_randomized_public_key.0 {
             return Err(IronfishError::InvalidSigningKey);
@@ -112,7 +113,7 @@ impl UnsignedMintDescription {
         self.description.authorizing_signature = randomized_private_key.sign(
             &data_to_be_signed,
             &mut thread_rng(),
-            SPENDING_KEY_GENERATOR,
+            *SPENDING_KEY_GENERATOR,
         );
 
         Ok(self.description)
@@ -156,7 +157,7 @@ impl MintDescription {
         if !randomized_public_key.verify(
             &data_to_be_signed,
             &self.authorizing_signature,
-            SPENDING_KEY_GENERATOR,
+            *SPENDING_KEY_GENERATOR,
         ) {
             return Err(IronfishError::VerificationFailed);
         }
@@ -273,7 +274,7 @@ mod test {
 
         let public_key_randomness = jubjub::Fr::random(thread_rng());
         let randomized_public_key = redjubjub::PublicKey(key.view_key.authorizing_key.into())
-            .randomize(public_key_randomness, SPENDING_KEY_GENERATOR);
+            .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);
 
         let mint = MintBuilder::new(asset, value);
         let unsigned_mint = mint
@@ -303,7 +304,7 @@ mod test {
             .is_err());
 
         let other_randomized_public_key = redjubjub::PublicKey(key.view_key.authorizing_key.into())
-            .randomize(jubjub::Fr::random(thread_rng()), SPENDING_KEY_GENERATOR);
+            .randomize(jubjub::Fr::random(thread_rng()), *SPENDING_KEY_GENERATOR);
         assert!(description
             .verify_signature(&sig_hash, &other_randomized_public_key)
             .is_err());
@@ -322,7 +323,7 @@ mod test {
 
         let public_key_randomness = jubjub::Fr::random(thread_rng());
         let randomized_public_key = redjubjub::PublicKey(key.view_key.authorizing_key.into())
-            .randomize(public_key_randomness, SPENDING_KEY_GENERATOR);
+            .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);
 
         let mint = MintBuilder::new(asset, value);
         let unsigned_mint = mint
@@ -398,7 +399,7 @@ mod test {
 
         let public_key_randomness = jubjub::Fr::random(thread_rng());
         let randomized_public_key = redjubjub::PublicKey(key.view_key.authorizing_key.into())
-            .randomize(public_key_randomness, SPENDING_KEY_GENERATOR);
+            .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);
 
         let mint = MintBuilder::new(
             Asset {

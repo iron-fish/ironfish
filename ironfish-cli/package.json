@@ -1,6 +1,6 @@
 {
   "name": "ironfish",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "CLI for running and interacting with an Iron Fish node",
   "author": "Iron Fish <contact@ironfish.network> (https://ironfish.network)",
   "main": "build/src/index.js",
@@ -49,7 +49,6 @@
     "test": "yarn clean && tsc -b && tsc -b tsconfig.test.json && jest --passWithNoTests",
     "test:coverage:html": "tsc -b tsconfig.test.json && jest --passWithNoTests --coverage --coverage-reporters html --testPathIgnorePatterns",
     "test:watch": "tsc -b tsconfig.test.json && jest --watch --coverage false",
-    "test:importexport": "bash ./scripts/import-export-test.sh",
     "postpack": "rimraf oclif.manifest.json",
     "clean": "rimraf build",
     "prepack": "rimraf build && yarn build && oclif manifest && oclif readme",
@@ -60,11 +59,12 @@
     "@aws-sdk/client-s3": "3",
     "@aws-sdk/client-secrets-manager": "3",
     "@aws-sdk/s3-request-presigner": "3",
-    "@ironfish/rust-nodejs": "1.3.0",
-    "@ironfish/sdk": "1.4.0",
+    "@ironfish/rust-nodejs": "1.4.0",
+    "@ironfish/sdk": "1.5.0",
     "@oclif/core": "1.23.1",
     "@oclif/plugin-help": "5.1.12",
     "@oclif/plugin-not-found": "2.3.1",
+    "@oclif/plugin-warn-if-update-available": "2.0.40",
     "@types/tar": "6.1.1",
     "axios": "0.21.4",
     "bech32": "2.0.0",
@@ -89,7 +89,8 @@
     "bin": "ironfish",
     "plugins": [
       "@oclif/plugin-help",
-      "@oclif/plugin-not-found"
+      "@oclif/plugin-not-found",
+      "@oclif/plugin-warn-if-update-available"
     ],
     "topics": {}
   },

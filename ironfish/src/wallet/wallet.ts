@@ -32,7 +32,7 @@ import {
 } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { DecryptedNote, DecryptNoteOptions } from '../workerPool/tasks/decryptNotes'
-import { Account, ACCOUNT_SCHEMA_VERSION } from './account'
+import { Account, ACCOUNT_SCHEMA_VERSION } from './account/account'
 import { AssetBalances } from './assetBalances'
 import { NotEnoughFundsError } from './errors'
 import { MintAssetOptions } from './interfaces/mintAssetOptions'
@@ -749,31 +749,33 @@ export class Wallet {
     }
   }
 
-  async send(
-    account: Account,
+  async send(options: {
+    account: Account
     outputs: {
       publicAddress: string
       amount: bigint
       memo: string
       assetId: Buffer
-    }[],
-    fee: bigint,
-    expirationDelta: number,
-    expiration?: number | null,
-    confirmations?: number | null,
-  ): Promise<Transaction> {
+    }[]
+    fee?: bigint
+    feeRate?: bigint
+    expirationDelta?: number
+    expiration?: number
+    confirmations?: number
+  }): Promise<Transaction> {
     const raw = await this.createTransaction({
-      account,
-      outputs,
-      fee,
-      expirationDelta,
-      expiration: expiration ?? undefined,
-      confirmations: confirmations ?? undefined,
+      account: options.account,
+      outputs: options.outputs,
+      fee: options.fee,
+      feeRate: options.feeRate,
+      expirationDelta: options.expirationDelta,
+      expiration: options.expiration ?? undefined,
+      confirmations: options.confirmations ?? undefined,
     })
 
     return this.post({
       transaction: raw,
-      account,
+      account: options.account,
     })
   }
 

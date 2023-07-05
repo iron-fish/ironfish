@@ -1,6 +1,6 @@
 {
   "name": "@ironfish/sdk",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "SDK for running and interacting with an Iron Fish node",
   "author": "Iron Fish <contact@ironfish.network> (https://ironfish.network)",
   "main": "build/src/index.js",
@@ -16,9 +16,13 @@
     "build/**/*.d.ts.map",
     "build/**/*.json"
   ],
+  "engines": {
+    "node": ">=16"
+  },
   "dependencies": {
     "@ethersproject/bignumber": "5.7.0",
-    "@ironfish/rust-nodejs": "1.3.0",
+    "@fast-csv/format": "4.3.5",
+    "@ironfish/rust-nodejs": "1.4.0",
     "@napi-rs/blake-hash": "1.3.3",
     "axios": "0.21.4",
     "bech32": "2.0.0",
@@ -35,6 +39,7 @@
     "level-errors": "2.0.1",
     "leveldown": "5.6.0",
     "levelup": "4.4.0",
+    "libuv-monitor": "0.0.3",
     "lodash": "4.17.21",
     "node-datachannel": "0.4.0",
     "node-forge": "1.3.1",
@@ -55,11 +60,14 @@
     "test": "tsc -b && tsc -b tsconfig.test.json && jest --testTimeout=${JEST_TIMEOUT:-5000}",
     "test:slow": "tsc -b && tsc -b tsconfig.test.json && cross-env TEST_INIT_RUST=true jest --testMatch \"**/*.test.slow.ts\" --testTimeout=${JEST_TIMEOUT:-60000} --testPathIgnorePatterns",
     "test:perf": "tsc -b && tsc -b tsconfig.test.json && cross-env TEST_INIT_RUST=true jest --testMatch \"**/*.test.perf.ts\" --testTimeout=${JEST_TIMEOUT:-600000} --testPathIgnorePatterns --runInBand",
+    "test:perf:report": "tsc -b && tsc -b tsconfig.test.json && cross-env TEST_INIT_RUST=true GENERATE_TEST_REPORT=true jest --config jest.config.js --testMatch \"**/*.test.perf.ts\" --testTimeout=${JEST_TIMEOUT:-600000} --testPathIgnorePatterns --ci",
     "test:coverage:html": "tsc -b tsconfig.test.json && jest --coverage --coverage-reporters html --testPathIgnorePatterns",
     "test:watch": "tsc -b tsconfig.test.json && jest --watch --coverage false",
     "fixtures:regenerate": "find . -name \"__fixtures__\" | xargs rm -rf && JEST_TIMEOUT=1000000000 yarn run test && JEST_TIMEOUT=1000000000 yarn run test:slow && JEST_TIMEOUT=1000000000 yarn run test:perf"
   },
   "devDependencies": {
+    "@jest/reporters": "29.3.1",
+    "@jest/types": "29.3.1",
     "@types/buffer-json": "2.0.0",
     "@types/colors": "1.2.1",
     "@types/imurmurhash": "0.1.1",
@@ -86,7 +94,8 @@
     "mitm": "1.7.2",
     "prettier": "2.3.2",
     "ts-jest": "29.0.3",
-    "typescript": "4.3.4"
+    "ts-node": "10.9.1",
+    "typescript": "4.3.5"
   },
   "bugs": {
     "url": "https://github.com/iron-fish/ironfish/issues"

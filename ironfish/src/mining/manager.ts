@@ -4,7 +4,7 @@
 
 import { BufferSet } from 'buffer-map'
 import { Assert } from '../assert'
-import { Blockchain } from '../blockchain'
+import { Blockchain, HeadChangedError } from '../blockchain'
 import { isExpiredSequence } from '../consensus'
 import { Event } from '../event'
 import { MemPool } from '../memPool'
@@ -65,12 +65,22 @@ export class MiningManager {
 
     this.chain.onConnectBlock.on(
       (block) =>
-        void this.onConnectedBlock(block).catch((error) => {
-          this.node.logger.info(
-            `Error creating block template: ${ErrorUtils.renderError(error)}`,
-          )
-        }),
+        void this.onConnectedBlock(block).catch((error) =>
+          this.handleOnConnectBlockError(error, block),
+        ),
     )
+  }
+
+  handleOnConnectBlockError(error: unknown, block: Block): void {
+    if (error instanceof HeadChangedError) {
+      this.node.logger.debug(
+        `Chain head changed while creating block template for sequence ${
+          block.header.sequence + 1
+        }`,
+      )
+    } else {
+      this.node.logger.error(`Error creating block template: ${ErrorUtils.renderError(error)}`)
+    }
   }
 
   get minersConnected(): number {
@@ -86,11 +96,9 @@ export class MiningManager {
       // Send an initial block template to the requester so they can begin working immediately
       void this.chain.getBlock(this.chain.head).then((currentBlock) => {
         if (currentBlock) {
-          void this.onConnectedBlock(currentBlock).catch((error) => {
-            this.node.logger.info(
-              `Error creating block template: ${ErrorUtils.renderError(error)}`,
-            )
-          })
+          void this.onConnectedBlock(currentBlock).catch((error) =>
+            this.handleOnConnectBlockError(error, currentBlock),
+          )
         }
       })
 
@@ -180,6 +188,18 @@ export class MiningManager {
       const template = await this.createNewBlockTemplate(currentBlock, account)
       this.metrics.mining_newBlockTemplate.add(BenchUtils.end(connectedAt))
       this.streamBlockTemplate(currentBlock, template)
+
+      const block = BlockTemplateSerde.deserialize(template)
+      const verification = await this.chain.verifier.verifyBlock(block, {
+        verifyTarget: false,
+      })
+
+      if (!verification.valid) {
+        // Abort working on invalid block template and re-send empty block
+        this.streamBlockTemplate(currentBlock, emptyTemplate)
+
+        throw new Error(verification.reason)
+      }
     }
   }
 
@@ -296,6 +316,7 @@ export class MiningManager {
       minersFee,
       GraffitiUtils.fromString(this.node.config.get('blockGraffiti')),
       currentBlock.header,
+      false,
     )
 
     Assert.isEqual(

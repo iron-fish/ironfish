@@ -60,6 +60,7 @@ export default class Debug extends IronfishCommand {
     const heapTotal = FileUtils.formatMemorySize(getHeapStatistics().total_available_size)
 
     const telemetryEnabled = this.sdk.config.get('enableTelemetry').toString()
+    const assetVerificationEnabled = this.sdk.config.get('enableAssetVerification').toString()
 
     const nodeName = this.sdk.config.get('nodeName').toString()
     const blockGraffiti = this.sdk.config.get('blockGraffiti').toString()
@@ -84,6 +85,7 @@ export default class Debug extends IronfishCommand {
       ['ironfish in PATH', `${cmdInPath.toString()}`],
       ['Garbage Collector Exposed', `${String(!!global.gc)}`],
       ['Telemetry enabled', `${telemetryEnabled}`],
+      ['Asset Verification enabled', `${assetVerificationEnabled}`],
       ['Node name', `${nodeName}`],
       ['Block graffiti', `${blockGraffiti}`],
     ])

@@ -242,7 +242,7 @@ export class WorkerPool {
       return job
     }
 
-    worker.execute(job)
+    job.execute(worker)
     return job
   }
 
@@ -261,7 +261,7 @@ export class WorkerPool {
       return
     }
 
-    worker.execute(job)
+    job.execute(worker)
   }
 
   private jobEnded = (): void => {

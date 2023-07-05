@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-/* eslint-disable no-console */
 import { Asset } from '@ironfish/rust-nodejs'
 import { Assert } from '../assert'
 import { Block, Transaction } from '../primitives'
@@ -11,15 +10,19 @@ import {
   useAccountFixture,
   useMinerBlockFixture,
   useTxFixture,
+  writeTestReport,
 } from '../testUtilities'
 import { createRawTransaction } from '../testUtilities/helpers/transaction'
 import { BenchUtils } from '../utils'
-import { Account, SpendingAccount } from '../wallet'
+import { Account, SpendingAccount, Wallet } from '../wallet'
 
 type Results = { mempoolSize: number; numTransactions: number; elapsed: number }
 
 describe('MiningManager', () => {
   const nodeTest = createNodeTest()
+  let account: Account
+  const transactions: Transaction[] = []
+  const blocks: Block[] = []
 
   const TEST_AMOUNTS = [
     { mempoolSize: 0 },
@@ -29,56 +32,62 @@ describe('MiningManager', () => {
     { mempoolSize: 100 },
   ]
 
-  it('createNewBlockTemplate', async () => {
+  beforeAll(async () => {
     // Initialize the setup node
-    const { chain, wallet } = nodeTest
-    const account = await useAccountFixture(wallet)
-    const blocks: Block[] = []
+    const { node } = await nodeTest.createSetup()
+    account = await useAccountFixture(node.wallet)
 
     // Block 1: Initial funds for split
-    const block1 = await useMinerBlockFixture(chain, undefined, account, wallet)
+    const block1 = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
 
-    await expect(chain).toAddBlock(block1)
-    await wallet.updateHead()
+    await node.chain.addBlock(block1)
+    await node.wallet.updateHead()
     blocks.push(block1)
 
     // Split enough notes to create the transactions we need
     const transactionAmount = Math.max(...TEST_AMOUNTS.map((t) => t.mempoolSize))
     const transaction = await useTxFixture(
-      wallet,
+      node.wallet,
       account,
       account,
-      async () => await splitNotes(account, transactionAmount),
+      async () => await splitNotes(account, transactionAmount, node.wallet),
     )
 
     // Block 2: Split notes for transactions
-    const block2 = await useMinerBlockFixture(chain, undefined, account, wallet, [transaction])
+    const block2 = await useMinerBlockFixture(node.chain, undefined, account, node.wallet, [
+      transaction,
+    ])
 
-    await expect(chain).toAddBlock(block2)
-    await wallet.updateHead()
+    await node.chain.addBlock(block2)
+    await node.wallet.updateHead()
     blocks.push(block2)
 
-    // Create the transactions
-    const transactions: Transaction[] = []
-
     for (let i = 0; i < transactionAmount; i++) {
-      const tx = await useTxFixture(wallet, account, account, undefined, 0n)
+      const tx = await useTxFixture(node.wallet, account, account, undefined, 0n)
       transactions.push(tx)
     }
 
-    expect(transactions.length).toEqual(transactionAmount)
-
-    // Run tests
-    for (const { mempoolSize } of TEST_AMOUNTS) {
-      const results = await runTest(account, blocks, transactions, mempoolSize)
-      printResults(results)
-    }
+    Assert.isEqual(transactions.length, transactionAmount)
   })
 
+  for (const testInput of TEST_AMOUNTS) {
+    it(`Mempool size ${testInput.mempoolSize}`, async () => {
+      if (!account.isSpendingAccount()) {
+        return
+      }
+
+      const results = await runTest(account, blocks, transactions, testInput.mempoolSize)
+      printResults(results)
+
+      expect(results).toBeDefined()
+    })
+  }
+
   function printResults(results: Results) {
-    console.log(
-      `[TEST RESULTS: Mempool size: ${results.mempoolSize}, Transactions count: ${results.numTransactions}]` +
-        `\nElapsed: ${results.elapsed.toLocaleString()} milliseconds`,
+    writeTestReport(
+      new Map([['elapsed', `${results.elapsed}`]]),
+      new Map([['Elapsed', `${results.elapsed.toLocaleString()} milliseconds`]]),
+      `Mempool size: ${results.mempoolSize}, Transactions count: ${results.numTransactions}`,
     )
   }
 
@@ -117,7 +126,11 @@ describe('MiningManager', () => {
     return { mempoolSize, numTransactions: blockTemplate.transactions.length, elapsed }
   }
 
-  async function splitNotes(account: Account, numOutputs: number): Promise<Transaction> {
+  async function splitNotes(
+    account: Account,
+    numOutputs: number,
+    wallet: Wallet,
+  ): Promise<Transaction> {
     const outputs: { publicAddress: string; amount: bigint; memo: string; assetId: Buffer }[] =
       []
     for (let i = 0; i < numOutputs; i++) {
@@ -130,7 +143,7 @@ describe('MiningManager', () => {
     }
 
     const transaction = await createRawTransaction({
-      wallet: nodeTest.wallet,
+      wallet: wallet,
       from: account,
       amount: BigInt(outputs.length),
       outputs,

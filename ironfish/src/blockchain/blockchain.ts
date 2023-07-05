@@ -126,6 +126,8 @@ export class Blockchain {
   onDisconnectBlock = new Event<[block: Block, tx?: IDatabaseTransaction]>()
   // When ever a block is added to a fork
   onForkBlock = new Event<[block: Block, tx?: IDatabaseTransaction]>()
+  // When ever the blockchain is reorganized
+  onReorganize = new Event<[oldHead: BlockHeader, newHead: BlockHeader, fork: BlockHeader]>()
 
   private _head: BlockHeader | null = null
 
@@ -840,6 +842,8 @@ export class Blockchain {
         ` new: ${HashUtils.renderHash(newHead.hash)} (${newHead.sequence}),` +
         ` fork: ${HashUtils.renderHash(fork.hash)} (${fork.sequence})`,
     )
+
+    this.onReorganize.emit(oldHead, newHead, fork)
   }
 
   addOrphan(header: BlockHeader): void {
@@ -923,10 +927,10 @@ export class Blockchain {
   /**
    * Create a new block on the chain.
    *
-   * Excluding the randomness, the new block is guaranteed to be valid with
-   * the current state of the chain. If the chain's head does not change,
-   * then the new block can be added to the chain, once its randomness is
-   * set to something that meets the target of the chain.
+   * When 'verifyBlock' is set, excluding the randomness, the new block is guaranteed
+   * to be valid with the current state of the chain. If the chain's head does
+   * not change, then the new block can be added to the chain, once its
+   * randomness is set to something that meets the target of the chain.
    *
    * After calling this function, the chain itself remains unchanged. No notes
    * or nullifiers have been added to the tree, and no blocks have been added
@@ -937,6 +941,7 @@ export class Blockchain {
     minersFee: Transaction,
     graffiti?: Buffer,
     previous?: BlockHeader,
+    verifyBlock = true,
   ): Promise<Block> {
     const transactions = [minersFee, ...userTransactions]
 
@@ -968,7 +973,7 @@ export class Blockchain {
         }
 
         if (previous && !previous.hash.equals(previousBlockHash)) {
-          throw new Error('Cannot create a block with a previous header that does not match')
+          throw new HeadChangedError(`Can't create a block not attached to the chain head`)
         }
 
         target = Target.calculateTarget(
@@ -1008,7 +1013,7 @@ export class Blockchain {
       )
 
       const block = new Block(header, transactions)
-      if (!previousBlockHash.equals(GENESIS_BLOCK_PREVIOUS)) {
+      if (verifyBlock && !previousBlockHash.equals(GENESIS_BLOCK_PREVIOUS)) {
         // since we're creating a block that hasn't been mined yet, don't
         // verify target because it'll always fail target check here
         const verification = await this.verifier.verifyBlock(block, { verifyTarget: false })
@@ -1519,4 +1524,8 @@ export class VerifyError extends Error {
     this.reason = reason
     this.score = score
   }
+}
+
+export class HeadChangedError extends Error {
+  name = this.constructor.name
 }

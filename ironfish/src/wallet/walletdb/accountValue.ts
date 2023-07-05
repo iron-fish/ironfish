@@ -4,10 +4,10 @@
 import { PUBLIC_ADDRESS_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { IDatabaseEncoding } from '../../storage'
-import { ACCOUNT_KEY_LENGTH } from '../account'
+import { ACCOUNT_KEY_LENGTH } from '../account/account'
 import { HeadValue, NullableHeadValueEncoding } from './headValue'
 
-const KEY_LENGTH = ACCOUNT_KEY_LENGTH
+export const KEY_LENGTH = ACCOUNT_KEY_LENGTH
 export const VIEW_KEY_LENGTH = 64
 const VERSION_LENGTH = 2
 
@@ -23,9 +23,7 @@ export interface AccountValue {
   createdAt: HeadValue | null
 }
 
-export type AccountImport = Omit<AccountValue, 'id' | 'createdAt'> & {
-  createdAt: { hash: string; sequence: number } | null
-}
+export type AccountImport = Omit<AccountValue, 'id'>
 
 export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
   serialize(value: AccountValue): Buffer {
