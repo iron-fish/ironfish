@@ -1,10 +1,19 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { LanguageKey } from '../../../utils'
 import { AccountImport } from '../../walletdb/accountValue'
 
-export type AccountEncoder = {
-  encode(value: AccountImport): string
+export type AccountEncodingOptions = {
+  language?: LanguageKey
+}
 
-  decode(value: string): AccountImport | null
+export type AccountDecodingOptions = {
+  name?: string
+}
+
+export type AccountEncoder = {
+  encode(value: AccountImport, options?: AccountEncodingOptions): string
+
+  decode(value: string, options?: AccountDecodingOptions): AccountImport
 }
