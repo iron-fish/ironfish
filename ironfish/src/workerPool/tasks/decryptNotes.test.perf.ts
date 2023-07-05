@@ -3,7 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 /* eslint-disable no-console */
-import { createNodeTest, useAccountFixture, useBlockWithTxs } from '../../testUtilities'
+import {
+  createNodeTest,
+  useAccountFixture,
+  useBlockWithTxs,
+  writeTestReport,
+} from '../../testUtilities'
 import { BenchUtils, SegmentAggregateResults } from '../../utils'
 import { Account } from '../../wallet'
 import { WorkerPool } from '../pool'
@@ -93,6 +98,19 @@ describe('DecryptNotes job', () => {
     const title = `[DecryptNotes: notes: ${
       test.notes
     }, canDecrypt: ${test.canDecryptAsOwner.toString()}, decryptForSpender: ${test.tryDecryptForSpender.toString()}]`
+
+    writeTestReport(
+      new Map([
+        ['iterations', results.iterations.toString()],
+        ['fastestRuntime', results.iterations.toString()],
+        ['slowestRuntime', results.iterations.toString()],
+        ['averageRuntime', results.iterations.toString()],
+        ['medianRuntime', results.iterations.toString()],
+      ]),
+      new Map(),
+      '',
+    )
+
     console.log(BenchUtils.renderSegmentAggregate(results, title))
   }
 })

@@ -29,7 +29,7 @@ export function writeTestReport(
     let row = ''
     csvReport.forEach((v, k) => (row = row.concat(`${k}:${v},`)))
     console.log(row.substring(0, row.length - 1))
-  } else {
+  } else if (testName !== '') {
     console.info(`[TEST RESULTS: ${testName}]`)
     consoleReport.forEach((v, k) => console.info(`${k}: ${v}`))
   }
