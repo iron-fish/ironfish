@@ -7,7 +7,7 @@ import { IDatabaseEncoding } from '../../storage'
 import { ACCOUNT_KEY_LENGTH } from '../account/account'
 import { HeadValue, NullableHeadValueEncoding } from './headValue'
 
-const KEY_LENGTH = ACCOUNT_KEY_LENGTH
+export const KEY_LENGTH = ACCOUNT_KEY_LENGTH
 export const VIEW_KEY_LENGTH = 64
 const VERSION_LENGTH = 2
 
