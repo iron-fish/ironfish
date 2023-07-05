@@ -9,7 +9,7 @@ import { HeadValue, NullableHeadValueEncoding } from './headValue'
 
 export const KEY_LENGTH = ACCOUNT_KEY_LENGTH
 export const VIEW_KEY_LENGTH = 64
-export const VERSION_LENGTH = 2
+const VERSION_LENGTH = 2
 
 export interface AccountValue {
   version: number
