@@ -40,7 +40,10 @@ describe('Bech32AccountEncoder', () => {
       outgoingViewKey: key.outgoingViewKey,
       publicAddress: key.publicAddress,
       createdAt: {
-        hash: '0000000000000000000000000000000000000000000000000000000000000000',
+        hash: Buffer.from(
+          '0000000000000000000000000000000000000000000000000000000000000000',
+          'hex',
+        ),
         sequence: 1,
       },
     }
@@ -71,23 +74,19 @@ describe('Bech32AccountEncoder', () => {
     expect(decoded).toMatchObject(accountImport)
   })
 
-  it('returns null if it cannot decode the bech32 string', () => {
+  it('throws an error if it cannot decode the bech32 string', () => {
     const encoded = Bech32m.encode('incorrect serialization', BECH32_ACCOUNT_PREFIX)
 
-    const decoded = encoder.decode(encoded)
-
-    expect(decoded).toBeNull()
+    expect(() => encoder.decode(encoded)).toThrow()
   })
 
-  it('returns null when decoding non-bech32 strings', () => {
+  it('throws an error when decoding non-bech32 strings', () => {
     const encoded = 'not bech32'
 
-    const decoded = encoder.decode(encoded)
-
-    expect(decoded).toBeNull()
+    expect(() => encoder.decode(encoded)).toThrow()
   })
 
-  it('returns null when decoding if the version does not match', () => {
+  it('throws an error when decoding if the version does not match', () => {
     const accountImport: AccountImport = {
       version: ACCOUNT_SCHEMA_VERSION,
       name: 'test',
@@ -106,7 +105,6 @@ describe('Bech32AccountEncoder', () => {
 
     encoder.VERSION = 1
 
-    const decoded = encoder.decode(encoded)
-    expect(decoded).toBeNull()
+    expect(() => encoder.decode(encoded)).toThrow()
   })
 })
