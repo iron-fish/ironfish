@@ -3,13 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { v4 as uuid } from 'uuid'
 import * as yup from 'yup'
-import { AccountImport } from '../../../wallet/walletdb/accountValue'
 import { ApiNamespace, router } from '../router'
+import { RpcAccountImport, RpcAccountImportSchema } from './types'
 
 export class ImportError extends Error {}
 
 export type ImportAccountRequest = {
-  account: AccountImport
+  account: RpcAccountImport
   name?: string
   rescan?: boolean
 }
@@ -23,24 +23,7 @@ export const ImportAccountRequestSchema: yup.ObjectSchema<ImportAccountRequest> 
   .object({
     rescan: yup.boolean().optional().default(true),
     name: yup.string().optional(),
-    account: yup
-      .object({
-        name: yup.string().defined(),
-        spendingKey: yup.string().nullable().defined(),
-        viewKey: yup.string().defined(),
-        publicAddress: yup.string().defined(),
-        incomingViewKey: yup.string().defined(),
-        outgoingViewKey: yup.string().defined(),
-        version: yup.number().defined(),
-        createdAt: yup
-          .object({
-            hash: yup.string().defined(),
-            sequence: yup.number().defined(),
-          })
-          .nullable()
-          .defined(),
-      })
-      .defined(),
+    account: RpcAccountImportSchema,
   })
   .defined()
 
