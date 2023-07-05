@@ -1318,7 +1318,7 @@ checksum = "12b6ee2129af8d4fb011108c73d99a1b83a85977f23b82460c0ae2e25bb4b57f"
 
 [[package]]
 name = "ironfish"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "bellperson",
  "blake2b_simd",
@@ -1388,7 +1388,7 @@ dependencies = [
 
 [[package]]
 name = "ironfish_zkp"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "bellperson",
  "blake2s_simd",
