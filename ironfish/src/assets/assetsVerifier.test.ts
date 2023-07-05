@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import nock from 'nock'
+import { VerifiedAssetsCacheStore } from '../fileStores/verifiedAssets'
 import { AssetsVerifier } from './assetsVerifier'
 
 /* eslint-disable jest/no-standalone-expect */
@@ -103,7 +104,7 @@ describe('AssetsVerifier', () => {
     expect(refresh).toHaveBeenCalledTimes(1)
   })
 
-  it('preserves cache after being stopped', async () => {
+  it('preserves the in-memory cache after being stopped', async () => {
     nock('https://test')
       .get('/assets/verified')
       .reply(
@@ -223,7 +224,7 @@ describe('AssetsVerifier', () => {
       expect(assetsVerifier.verify('4567')).toStrictEqual({ status: 'unverified' })
     })
 
-    it('uses the cache when the API is unreachable', async () => {
+    it('uses the the in-memory cache when the API is unreachable', async () => {
       nock('https://test')
         .get('/assets/verified')
         .reply(200, {
@@ -253,6 +254,151 @@ describe('AssetsVerifier', () => {
       )
       expect(assetsVerifier.verify('0123')).toStrictEqual({ status: 'verified' })
       expect(assetsVerifier.verify('4567')).toStrictEqual({ status: 'unverified' })
+    })
+  })
+
+  describe('with persistent cache', () => {
+    it('returns data from persistent cache', async () => {
+      const cache = Object.create(
+        VerifiedAssetsCacheStore.prototype,
+      ) as VerifiedAssetsCacheStore
+      cache.config = {
+        apiUrl: 'https://test/assets/verified',
+        assetIds: ['0123'],
+      }
+
+      nock('https://test')
+        .get('/assets/verified')
+        .reply(200, {
+          data: [{ identifier: '4567' }],
+        })
+
+      const assetsVerifier = new AssetsVerifier({
+        apiUrl: 'https://test/assets/verified',
+        cache: cache,
+      })
+      const refresh = jest.spyOn(assetsVerifier as any, 'refresh')
+
+      assetsVerifier.start()
+
+      expect(assetsVerifier.verify('0123')).toStrictEqual({ status: 'verified' })
+      expect(assetsVerifier.verify('4567')).toStrictEqual({ status: 'unverified' })
+
+      await waitForRefreshToFinish(refresh)
+    })
+
+    it('ignores persistent cache if API url does not match', async () => {
+      const cache = Object.create(
+        VerifiedAssetsCacheStore.prototype,
+      ) as VerifiedAssetsCacheStore
+      cache.config = {
+        apiUrl: 'https://foo.test/assets/verified',
+        assetIds: ['0123'],
+      }
+
+      nock('https://bar.test')
+        .get('/assets/verified')
+        .reply(200, {
+          data: [{ identifier: '4567' }],
+        })
+
+      const assetsVerifier = new AssetsVerifier({
+        apiUrl: 'https://bar.test/assets/verified',
+        cache: cache,
+      })
+      const refresh = jest.spyOn(assetsVerifier as any, 'refresh')
+
+      assetsVerifier.start()
+
+      expect(assetsVerifier.verify('0123')).toStrictEqual({ status: 'unknown' })
+      expect(assetsVerifier.verify('4567')).toStrictEqual({ status: 'unknown' })
+
+      await waitForRefreshToFinish(refresh)
+
+      expect(assetsVerifier.verify('0123')).toStrictEqual({ status: 'unverified' })
+      expect(assetsVerifier.verify('4567')).toStrictEqual({ status: 'verified' })
+    })
+
+    it('saves the persistent cache after every update', async () => {
+      const cache = Object.create(VerifiedAssetsCacheStore.prototype)
+      const setManySpy = jest.spyOn(cache, 'setMany').mockReturnValue(undefined)
+      const saveSpy = jest.spyOn(cache, 'save').mockResolvedValue(undefined)
+
+      nock('https://test')
+        .get('/assets/verified')
+        .reply(200, {
+          data: [{ identifier: '0123' }],
+        })
+        .get('/assets/verified')
+        .reply(
+          200,
+          {
+            data: [{ identifier: '4567' }],
+          },
+          { 'last-modified': 'some-date' },
+        )
+
+      const assetsVerifier = new AssetsVerifier({
+        apiUrl: 'https://test/assets/verified',
+        cache: cache,
+      })
+      const refresh = jest.spyOn(assetsVerifier as any, 'refresh')
+
+      assetsVerifier.start()
+      await waitForRefreshToFinish(refresh)
+
+      expect(setManySpy).toHaveBeenCalledWith({
+        apiUrl: 'https://test/assets/verified',
+        assetIds: ['0123'],
+        lastModified: undefined,
+      })
+      expect(saveSpy).toHaveBeenCalledTimes(1)
+
+      jest.runOnlyPendingTimers()
+      await waitForRefreshToFinish(refresh)
+
+      expect(setManySpy).toHaveBeenCalledWith({
+        apiUrl: 'https://test/assets/verified',
+        assetIds: ['4567'],
+        lastModified: 'some-date',
+      })
+      expect(saveSpy).toHaveBeenCalledTimes(2)
+    })
+
+    it('does not save the persistent cache after when not modified', async () => {
+      const cache = Object.create(
+        VerifiedAssetsCacheStore.prototype,
+      ) as VerifiedAssetsCacheStore
+      cache.config = {
+        apiUrl: 'https://test/assets/verified',
+        assetIds: ['0123'],
+        lastModified: 'some-date',
+      }
+      const setManySpy = jest.spyOn(cache, 'setMany').mockReturnValue(undefined)
+      const saveSpy = jest.spyOn(cache, 'save').mockResolvedValue(undefined)
+
+      nock('https://test')
+        .matchHeader('if-modified-since', 'some-date')
+        .get('/assets/verified')
+        .reply(304)
+
+      const assetsVerifier = new AssetsVerifier({
+        apiUrl: 'https://test/assets/verified',
+        cache: cache,
+      })
+      const refresh = jest.spyOn(assetsVerifier as any, 'refresh')
+
+      assetsVerifier.start()
+
+      expect(assetsVerifier.verify('0123')).toStrictEqual({ status: 'verified' })
+      expect(assetsVerifier.verify('4567')).toStrictEqual({ status: 'unverified' })
+
+      await waitForRefreshToFinish(refresh)
+
+      expect(assetsVerifier.verify('0123')).toStrictEqual({ status: 'verified' })
+      expect(assetsVerifier.verify('4567')).toStrictEqual({ status: 'unverified' })
+      expect(setManySpy).not.toHaveBeenCalled()
+      expect(saveSpy).not.toHaveBeenCalled()
     })
   })
 })

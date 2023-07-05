@@ -13,6 +13,7 @@ import {
   DEFAULT_DATA_DIR,
   HostsStore,
   InternalStore,
+  VerifiedAssetsCacheStore,
 } from './fileStores'
 import { FileSystem } from './fileSystems'
 import { createRootLogger, Logger } from './logger'
@@ -73,6 +74,7 @@ export class IronfishNode {
     privateIdentity,
     hostsStore,
     networkId,
+    verifiedAssetsCache,
   }: {
     pkg: Package
     files: FileSystem
@@ -89,6 +91,7 @@ export class IronfishNode {
     privateIdentity?: PrivateIdentity
     hostsStore: HostsStore
     networkId: number
+    verifiedAssetsCache: VerifiedAssetsCacheStore
   }) {
     this.files = files
     this.config = config
@@ -174,6 +177,7 @@ export class IronfishNode {
 
     this.assetsVerifier = new AssetsVerifier({
       apiUrl: config.get('assetVerificationApi'),
+      cache: verifiedAssetsCache,
       logger,
     })
 
@@ -220,6 +224,9 @@ export class IronfishNode {
 
     const hostsStore = new HostsStore(files, dataDir)
     await hostsStore.load()
+
+    const verifiedAssetsCache = new VerifiedAssetsCacheStore(files, dataDir)
+    await verifiedAssetsCache.load()
 
     let workers = config.get('nodeWorkers')
     if (workers === -1) {
@@ -308,6 +315,7 @@ export class IronfishNode {
       privateIdentity,
       hostsStore,
       networkId: networkDefinition.id,
+      verifiedAssetsCache,
     })
   }
 
