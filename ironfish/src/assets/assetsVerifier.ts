@@ -95,9 +95,11 @@ export class AssetsVerifier {
   }
 
   verify(assetId: Buffer | string): AssetVerification {
-    if (!this.started || !this.verifiedAssets) {
+    if (!this.verifiedAssets) {
       return { status: 'unknown' }
-    } else if (this.verifiedAssets.isVerified(assetId)) {
+    }
+
+    if (this.verifiedAssets.isVerified(assetId)) {
       return { status: 'verified' }
     } else {
       return { status: 'unverified' }

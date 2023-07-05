@@ -145,30 +145,6 @@ describe('AssetsVerifier', () => {
       expect(assetsVerifier.verify('4567')).toStrictEqual({ status: 'unknown' })
     })
 
-    it("returns 'unknown' after being stopped", async () => {
-      nock('https://test')
-        .get('/assets/verified')
-        .reply(200, {
-          data: [{ identifier: '0123' }],
-        })
-
-      const assetsVerifier = new AssetsVerifier({
-        apiUrl: 'https://test/assets/verified',
-      })
-      const refresh = jest.spyOn(assetsVerifier as any, 'refresh')
-
-      assetsVerifier.start()
-      await waitForRefreshToFinish(refresh)
-
-      expect(assetsVerifier.verify('0123')).toStrictEqual({ status: 'verified' })
-      expect(assetsVerifier.verify('4567')).toStrictEqual({ status: 'unverified' })
-
-      assetsVerifier.stop()
-
-      expect(assetsVerifier.verify('0123')).toStrictEqual({ status: 'unknown' })
-      expect(assetsVerifier.verify('4567')).toStrictEqual({ status: 'unknown' })
-    })
-
     it("returns 'unknown' when the API is unreachable", async () => {
       nock('https://test').get('/assets/verified').reply(500)
 
@@ -252,6 +228,30 @@ describe('AssetsVerifier', () => {
       expect(warn).toHaveBeenCalledWith(
         'Error while fetching verified assets: Request failed with status code 500',
       )
+      expect(assetsVerifier.verify('0123')).toStrictEqual({ status: 'verified' })
+      expect(assetsVerifier.verify('4567')).toStrictEqual({ status: 'unverified' })
+    })
+
+    it('uses the in-memory cache after being stopped', async () => {
+      nock('https://test')
+        .get('/assets/verified')
+        .reply(200, {
+          data: [{ identifier: '0123' }],
+        })
+
+      const assetsVerifier = new AssetsVerifier({
+        apiUrl: 'https://test/assets/verified',
+      })
+      const refresh = jest.spyOn(assetsVerifier as any, 'refresh')
+
+      assetsVerifier.start()
+      await waitForRefreshToFinish(refresh)
+
+      expect(assetsVerifier.verify('0123')).toStrictEqual({ status: 'verified' })
+      expect(assetsVerifier.verify('4567')).toStrictEqual({ status: 'unverified' })
+
+      assetsVerifier.stop()
+
       expect(assetsVerifier.verify('0123')).toStrictEqual({ status: 'verified' })
       expect(assetsVerifier.verify('4567')).toStrictEqual({ status: 'unverified' })
     })
