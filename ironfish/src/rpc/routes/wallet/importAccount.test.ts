@@ -62,24 +62,4 @@ describe('Route wallet/importAccount', () => {
       isDefaultAccount: false, // This is false because the default account is already imported in a previous test
     })
   })
-
-  it('should throw when account.name and name are not set', async () => {
-    const key = generateKey()
-    await expect(async () => {
-      await routeTest.client
-        .request<ImportResponse>('wallet/importAccount', {
-          account: {
-            viewKey: key.viewKey,
-            spendingKey: key.spendingKey,
-            publicAddress: key.publicAddress,
-            incomingViewKey: key.incomingViewKey,
-            outgoingViewKey: key.outgoingViewKey,
-            version: 1,
-            createdAt: null,
-          },
-          rescan: false,
-        })
-        .waitForEnd()
-    }).rejects.toThrow('Account name is required')
-  })
 })

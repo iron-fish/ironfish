@@ -25,7 +25,7 @@ export const ImportAccountRequestSchema: yup.ObjectSchema<ImportAccountRequest> 
     name: yup.string().optional(),
     account: yup
       .object({
-        name: yup.string().optional(),
+        name: yup.string().defined(),
         spendingKey: yup.string().nullable().defined(),
         viewKey: yup.string().defined(),
         publicAddress: yup.string().defined(),
