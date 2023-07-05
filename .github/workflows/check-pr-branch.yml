@@ -1,4 +1,4 @@
-name: Disallow Pull Requests to Master Branch
+name: Pull Requests should target Staging branch
 
 on:
   pull_request:
