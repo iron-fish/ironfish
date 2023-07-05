@@ -5,11 +5,17 @@ import { IronfishNode } from '../../../node'
 import { Note } from '../../../primitives'
 import { CurrencyUtils } from '../../../utils'
 import { Account } from '../../../wallet'
+import { AccountImport } from '../../../wallet/walletdb/accountValue'
 import { AssetValue } from '../../../wallet/walletdb/assetValue'
 import { DecryptedNoteValue } from '../../../wallet/walletdb/decryptedNoteValue'
 import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
 import { ValidationError } from '../../adapters'
-import { RcpAccountAssetBalanceDelta, RpcAccountTransaction, RpcWalletNote } from './types'
+import {
+  RcpAccountAssetBalanceDelta,
+  RpcAccountImport,
+  RpcAccountTransaction,
+  RpcWalletNote,
+} from './types'
 
 export function getAccount(node: IronfishNode, name?: string): Account {
   if (name) {
@@ -46,6 +52,18 @@ export function serializeRpcAccountTransaction(
     expiration: transaction.transaction.expiration(),
     timestamp: transaction.timestamp.getTime(),
     submittedSequence: transaction.submittedSequence,
+  }
+}
+
+export function deserializeRpcAccountImport(accountImport: RpcAccountImport): AccountImport {
+  return {
+    ...accountImport,
+    createdAt: accountImport.createdAt
+      ? {
+          hash: Buffer.from(accountImport.createdAt.hash, 'hex'),
+          sequence: accountImport.createdAt.sequence,
+        }
+      : null,
   }
 }
 
