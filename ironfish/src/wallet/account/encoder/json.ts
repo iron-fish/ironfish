@@ -4,7 +4,7 @@
 import { RpcAccountImport } from '../../../rpc/routes/wallet/types'
 import { validateAccount } from '../../validator'
 import { AccountImport } from '../../walletdb/accountValue'
-import { AccountEncoder } from './encoder'
+import { AccountDecodingOptions, AccountEncoder } from './encoder'
 
 export class JsonEncoder implements AccountEncoder {
   encode(value: AccountImport): string {
@@ -18,10 +18,11 @@ export class JsonEncoder implements AccountEncoder {
     return JSON.stringify({ ...value, createdAt })
   }
 
-  decode(value: string): AccountImport {
+  decode(value: string, options?: AccountDecodingOptions): AccountImport {
     const account = JSON.parse(value) as RpcAccountImport
     const updatedAccount = {
       ...account,
+      name: options?.name ? options.name : account.name,
       createdAt: account.createdAt
         ? {
             hash: Buffer.from(account.createdAt.hash, 'hex'),
@@ -29,7 +30,6 @@ export class JsonEncoder implements AccountEncoder {
           }
         : null,
     } as AccountImport
-
     validateAccount(updatedAccount)
     return updatedAccount
   }
