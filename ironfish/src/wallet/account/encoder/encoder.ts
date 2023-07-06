@@ -4,6 +4,13 @@
 import { LanguageKey } from '../../../utils'
 import { AccountImport } from '../../walletdb/accountValue'
 
+export enum Format {
+  JSON = 'JSON',
+  Bech32 = 'Bech32',
+  SpendingKey = 'SpendingKey',
+  Mnemonic = 'Mnemonic',
+}
+
 export type AccountEncodingOptions = {
   language?: LanguageKey
 }

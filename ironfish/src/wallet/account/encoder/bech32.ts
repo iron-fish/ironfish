@@ -6,10 +6,10 @@ import bufio from 'bufio'
 import { Bech32m } from '../../../utils'
 import { AccountImport, KEY_LENGTH, VIEW_KEY_LENGTH } from '../../walletdb/accountValue'
 import { ACCOUNT_SCHEMA_VERSION } from '../account'
-import { AccountEncoder } from './encoder'
+import { AccountDecodingOptions, AccountEncoder } from './encoder'
 
 export const BECH32_ACCOUNT_PREFIX = 'ifaccount'
-export class Bech32AccountEncoder implements AccountEncoder {
+export class Bech32Encoder implements AccountEncoder {
   VERSION = 1
 
   encode(value: AccountImport): string {
@@ -36,7 +36,7 @@ export class Bech32AccountEncoder implements AccountEncoder {
     return Bech32m.encode(bw.render().toString('hex'), BECH32_ACCOUNT_PREFIX)
   }
 
-  decode(value: string): AccountImport {
+  decode(value: string, options?: AccountDecodingOptions): AccountImport {
     const [hexEncoding, _] = Bech32m.decode(value)
 
     if (hexEncoding === null) {
@@ -74,7 +74,7 @@ export class Bech32AccountEncoder implements AccountEncoder {
 
     return {
       version: ACCOUNT_SCHEMA_VERSION,
-      name,
+      name: options?.name ? options.name : name,
       viewKey,
       incomingViewKey,
       outgoingViewKey,

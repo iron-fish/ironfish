@@ -7,16 +7,15 @@ import {
   spendingKeyToWords,
   wordsToSpendingKey,
 } from '@ironfish/rust-nodejs'
-import { EncodingError } from 'bufio'
 import { LanguageUtils } from '../../../utils'
 import { AccountImport } from '../../walletdb/accountValue'
 import { ACCOUNT_SCHEMA_VERSION } from '../account'
 import { AccountDecodingOptions, AccountEncoder, AccountEncodingOptions } from './encoder'
 
 export class MnemonicEncoder implements AccountEncoder {
-  encode(value: AccountImport, options?: AccountEncodingOptions): string {
+  encode(value: AccountImport, options: AccountEncodingOptions): string {
     if (!value.spendingKey) {
-      throw new EncodingError('Spending key is required for mnemonic key encoder')
+      throw new Error('Spending key is required for mnemonic key encoder')
     }
 
     return spendingKeyToWords(
@@ -29,7 +28,7 @@ export class MnemonicEncoder implements AccountEncoder {
 
   decode(value: string, options: AccountDecodingOptions): AccountImport {
     if (!options.name) {
-      throw new EncodingError('Name option is required for mnemonic key encoder')
+      throw new Error('Name option is required for mnemonic key encoder')
     }
     let spendingKey = ''
     let language = null
@@ -42,7 +41,7 @@ export class MnemonicEncoder implements AccountEncoder {
       language = LanguageUtils.languageCodeToKey(code)
     }
     if (language === null) {
-      throw new EncodingError('Invalid mnemonic')
+      throw new Error('Invalid mnemonic')
     }
     const key = generateKeyFromPrivateKey(spendingKey)
     return {

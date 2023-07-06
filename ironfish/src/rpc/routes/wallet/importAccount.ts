@@ -3,13 +3,15 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { v4 as uuid } from 'uuid'
 import * as yup from 'yup'
+import { decodeAccount } from '../../../wallet/account/encoder/account'
 import { ApiNamespace, router } from '../router'
-import { RpcAccountImport, RpcAccountImportSchema } from './types'
+import { RpcAccountImport } from './types'
+import { deserializeRpcAccountImport } from './utils'
 
 export class ImportError extends Error {}
 
 export type ImportAccountRequest = {
-  account: RpcAccountImport
+  account: RpcAccountImport | string
   name?: string
   rescan?: boolean
 }
@@ -23,7 +25,7 @@ export const ImportAccountRequestSchema: yup.ObjectSchema<ImportAccountRequest> 
   .object({
     rescan: yup.boolean().optional().default(true),
     name: yup.string().optional(),
-    account: RpcAccountImportSchema,
+    account: yup.mixed<RpcAccountImport | string>().defined(),
   })
   .defined()
 
@@ -38,26 +40,19 @@ router.register<typeof ImportAccountRequestSchema, ImportResponse>(
   `${ApiNamespace.wallet}/importAccount`,
   ImportAccountRequestSchema,
   async (request, node): Promise<void> => {
-    let createdAt = null
-    const name = request.data.account.name || request.data.name
-    if (!name) {
-      throw new ImportError('Account name is required')
+    let accountImport = null
+    if (typeof request.data.account === 'string') {
+      accountImport = decodeAccount(request.data.account, {
+        name: request.data.name,
+      })
+    } else {
+      accountImport = deserializeRpcAccountImport(request.data.account)
     }
 
-    if (request.data.account.createdAt) {
-      createdAt = {
-        hash: Buffer.from(request.data.account.createdAt.hash, 'hex'),
-        sequence: request.data.account.createdAt.sequence,
-      }
-    }
-
-    const accountValue = {
+    const account = await node.wallet.importAccount({
       id: uuid(),
-      ...request.data.account,
-      name,
-      createdAt,
-    }
-    const account = await node.wallet.importAccount(accountValue)
+      ...accountImport,
+    })
 
     if (request.data.rescan) {
       void node.wallet.scanTransactions()

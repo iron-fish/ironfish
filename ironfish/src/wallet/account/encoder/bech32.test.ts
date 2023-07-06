@@ -5,11 +5,11 @@ import { generateKey } from '@ironfish/rust-nodejs'
 import { Bech32m } from '../../../utils'
 import { AccountImport } from '../../walletdb/accountValue'
 import { ACCOUNT_SCHEMA_VERSION } from '../account'
-import { BECH32_ACCOUNT_PREFIX, Bech32AccountEncoder } from './bech32'
+import { BECH32_ACCOUNT_PREFIX, Bech32Encoder } from './bech32'
 
 describe('Bech32AccountEncoder', () => {
   const key = generateKey()
-  const encoder = new Bech32AccountEncoder()
+  const encoder = new Bech32Encoder()
 
   it('encodes the account as a bech32 string and decodes the string', () => {
     const accountImport: AccountImport = {
