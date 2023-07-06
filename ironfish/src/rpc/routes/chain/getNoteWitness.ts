@@ -57,12 +57,17 @@ router.register<typeof GetNoteWitnessRequestSchema, GetNoteWitnessResponse>(
       chain.head.sequence - confirmations,
       GENESIS_BLOCK_SEQUENCE,
     )
-    const maxConfirmedHeader = await chain.getHeaderAtSequence(maxConfirmedSequence)
+    const maxConfirmedHeader = await chain.blockchainDb.getBlockHeaderAtSequence(
+      maxConfirmedSequence,
+    )
 
-    Assert.isNotNull(maxConfirmedHeader)
+    Assert.isNotUndefined(maxConfirmedHeader)
     Assert.isNotNull(maxConfirmedHeader?.noteSize)
 
-    const witness = await chain.notes.witness(request.data.index, maxConfirmedHeader.noteSize)
+    const witness = await chain.blockchainDb.getNoteWitness(
+      request.data.index,
+      maxConfirmedHeader.noteSize,
+    )
 
     if (witness === null) {
       throw new ValidationError(

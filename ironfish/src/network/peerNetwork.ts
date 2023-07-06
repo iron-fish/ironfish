@@ -755,8 +755,10 @@ export class PeerNetwork {
     }
 
     // if we don't have the previous block, start syncing
-    const prevHeader = await this.chain.getHeader(block.header.previousBlockHash)
-    if (prevHeader === null) {
+    const prevHeader = await this.chain.blockchainDb.getBlockHeader(
+      block.header.previousBlockHash,
+    )
+    if (prevHeader === undefined) {
       this.chain.addOrphan(block.header)
       this.blockFetcher.removeBlock(block.header.hash)
       this.node.syncer.startSync(peer)
@@ -813,8 +815,8 @@ export class PeerNetwork {
     this.onBlockGossipReceived.emit(header)
 
     // if we don't have the previous block, start syncing
-    const prevHeader = await this.chain.getHeader(header.previousBlockHash)
-    if (prevHeader === null) {
+    const prevHeader = await this.chain.blockchainDb.getBlockHeader(header.previousBlockHash)
+    if (prevHeader === undefined) {
       this.chain.addOrphan(header)
       this.blockFetcher.removeBlock(header.hash)
       this.node.syncer.startSync(peer)
@@ -1047,10 +1049,10 @@ export class PeerNetwork {
     let block = this.blockFetcher.getFullBlock(message.blockHash)
 
     if (block === null) {
-      block = await this.chain.db.withTransaction(null, async (tx) => {
-        const header = await this.chain.getHeader(message.blockHash, tx)
+      block = await this.chain.blockchainDb.db.withTransaction(null, async (tx) => {
+        const header = await this.chain.blockchainDb.getBlockHeader(message.blockHash, tx)
 
-        if (header === null) {
+        if (header === undefined) {
           throw new CannotSatisfyRequestError(
             `Peer requested transactions for block ${message.blockHash.toString(
               'hex',
@@ -1113,10 +1115,10 @@ export class PeerNetwork {
   private async onGetCompactBlockRequest(
     message: GetCompactBlockRequest,
   ): Promise<GetCompactBlockResponse> {
-    const block = await this.chain.db.withTransaction(null, async (tx) => {
-      const header = await this.chain.getHeader(message.blockHash, tx)
+    const block = await this.chain.blockchainDb.db.withTransaction(null, async (tx) => {
+      const header = await this.chain.blockchainDb.getBlockHeader(message.blockHash, tx)
 
-      if (header === null) {
+      if (header === undefined) {
         throw new CannotSatisfyRequestError(
           `Peer requested compact block for block ${message.blockHash.toString(
             'hex',
@@ -1182,8 +1184,10 @@ export class PeerNetwork {
     this.onBlockGossipReceived.emit(block.header)
 
     // if we don't have the previous block, start syncing
-    const prevHeader = await this.chain.getHeader(block.header.previousBlockHash)
-    if (prevHeader === null) {
+    const prevHeader = await this.chain.blockchainDb.getBlockHeader(
+      block.header.previousBlockHash,
+    )
+    if (prevHeader === undefined) {
       this.chain.addOrphan(block.header)
       this.blockFetcher.removeBlock(block.header.hash)
       this.node.syncer.startSync(peer)
@@ -1275,7 +1279,7 @@ export class PeerNetwork {
       return true
     }
 
-    return await this.chain.hasBlock(hash)
+    return await this.chain.blockchainDb.hasBlock(hash)
   }
 
   private async onNewTransaction(peer: Peer, transaction: Transaction): Promise<void> {

@@ -68,16 +68,18 @@ export default class Benchmark extends IronfishCommand {
     CliUx.ux.action.stop('done.')
 
     const startingSequence = tempNode.chain.head.sequence
-    const startingHeader = await node.chain.getHeaderAtSequence(startingSequence)
+    const startingHeader = await node.chain.blockchainDb.getBlockHeaderAtSequence(
+      startingSequence,
+    )
 
     const endingSequence = startingSequence + blocks
-    const endingHeader = await node.chain.getHeaderAtSequence(endingSequence)
+    const endingHeader = await node.chain.blockchainDb.getBlockHeaderAtSequence(endingSequence)
 
-    if (startingHeader === null) {
+    if (startingHeader === undefined) {
       return this.error(`Target chain is longer than source chain`)
     }
 
-    if (endingHeader === null) {
+    if (endingHeader === undefined) {
       return this.error(`Chain must have at least ${blocks} blocks`)
     }
 
@@ -136,8 +138,8 @@ export default class Benchmark extends IronfishCommand {
     if (endingHeader.noteSize === null) {
       return this.error(`Header should have a noteSize`)
     }
-    const nodeNotesHash = await node.chain.notes.pastRoot(endingHeader.noteSize)
-    const tempNodeNotesHash = await tempNode.chain.notes.rootHash()
+    const nodeNotesHash = await node.chain.blockchainDb.getNotesPastRoot(endingHeader.noteSize)
+    const tempNodeNotesHash = await tempNode.chain.blockchainDb.getNotesRootHash()
     if (!nodeNotesHash.equals(tempNodeNotesHash)) {
       throw new Error('/!\\ Note tree hashes were not consistent /!\\')
     }

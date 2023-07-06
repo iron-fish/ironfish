@@ -198,7 +198,7 @@ describe('PeerNetwork', () => {
 
       await expect(node.chain).toAddBlock(block)
 
-      await node.chain.transactions.put(block.header.hash, {
+      await node.chain.blockchainDb.transactions.put(block.header.hash, {
         transactions: [transaction1, transaction2, transaction3],
       })
 
@@ -278,7 +278,7 @@ describe('PeerNetwork', () => {
 
       await expect(node.chain).toAddBlock(block)
 
-      await node.chain.transactions.put(block.header.hash, {
+      await node.chain.blockchainDb.transactions.put(block.header.hash, {
         transactions: [transaction1, transaction2, transaction3],
       })
 
@@ -759,7 +759,7 @@ describe('PeerNetwork', () => {
           }
 
           const invalidHeader = invalidBlock.header
-          await expect(chain.hasBlock(invalidHeader.hash)).resolves.toBe(false)
+          await expect(chain.blockchainDb.hasBlock(invalidHeader.hash)).resolves.toBe(false)
           expect(chain.isInvalid(invalidHeader)).toBe(reason)
         }
       })
@@ -957,7 +957,7 @@ describe('PeerNetwork', () => {
         const { block, transaction } = await useBlockWithTx(node, accountA, accountB)
         const verifyNewTransactionSpy = jest.spyOn(node.chain.verifier, 'verifyNewTransaction')
 
-        await node.chain.nullifiers.connectBlock(block)
+        await node.chain.blockchainDb.connectBlockToNullifiers(block)
 
         const acceptTransaction = jest.spyOn(node.memPool, 'acceptTransaction')
         const addPendingTransaction = jest.spyOn(node.wallet, 'addPendingTransaction')

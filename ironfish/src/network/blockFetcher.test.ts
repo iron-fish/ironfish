@@ -89,7 +89,7 @@ describe('BlockFetcher', () => {
       await peerNetwork.peerManager.onMessage.emitAsync(...newHashMessageEvent(peer, block))
     }
 
-    await expect(chain.hasBlock(block.header.hash)).resolves.toBe(false)
+    await expect(chain.blockchainDb.hasBlock(block.header.hash)).resolves.toBe(false)
 
     // Another peer sends a compact block
     const { peer } = getConnectedPeer(peerNetwork.peerManager)
@@ -97,7 +97,7 @@ describe('BlockFetcher', () => {
     const message = peerMessage(peer, new NewCompactBlockMessage(block.toCompactBlock()))
     await peerNetwork.peerManager.onMessage.emitAsync(...message)
 
-    await expect(chain.hasBlock(block.header.hash)).resolves.toBe(true)
+    await expect(chain.blockchainDb.hasBlock(block.header.hash)).resolves.toBe(true)
 
     jest.runOnlyPendingTimers()
 
@@ -133,11 +133,11 @@ describe('BlockFetcher', () => {
     const rpcId = (sentMessage as GetCompactBlockRequest).rpcId
     const message = new GetCompactBlockResponse(block.toCompactBlock(), rpcId)
 
-    await expect(chain.hasBlock(block.header.hash)).resolves.toBe(false)
+    await expect(chain.blockchainDb.hasBlock(block.header.hash)).resolves.toBe(false)
 
     await peerNetwork.peerManager.onMessage.emitAsync(sentPeer, message)
 
-    await expect(chain.hasBlock(block.header.hash)).resolves.toBe(true)
+    await expect(chain.blockchainDb.hasBlock(block.header.hash)).resolves.toBe(true)
 
     // The timeout for the original request ends. This should not affect anything
     // since we've already received the response
@@ -166,7 +166,7 @@ describe('BlockFetcher', () => {
     // Create 5 connected peers
     const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 5)
 
-    expect(await chain.hasBlock(block.header.hash)).toBe(false)
+    expect(await chain.blockchainDb.hasBlock(block.header.hash)).toBe(false)
 
     // Get compact block from peer and fill missing tx from mempool
     await peerNetwork.peerManager.onMessage.emitAsync(
@@ -180,7 +180,7 @@ describe('BlockFetcher', () => {
       new GetBlockTransactionsRequest(block.header.hash, [1, 0, 1, 0], expect.any(Number)),
     )
 
-    expect(await chain.hasBlock(block.header.hash)).toBe(false)
+    expect(await chain.blockchainDb.hasBlock(block.header.hash)).toBe(false)
 
     // The peer we requested responds with the transactions not in mempool
     const response = new GetBlockTransactionsResponse(
@@ -191,7 +191,7 @@ describe('BlockFetcher', () => {
 
     await peerNetwork.peerManager.onMessage.emitAsync(...peerMessage(peers[0].peer, response))
 
-    expect(await chain.hasBlock(block.header.hash)).toBe(true)
+    expect(await chain.blockchainDb.hasBlock(block.header.hash)).toBe(true)
 
     // Block should be gossiped to peers who have not seen it
     for (const { sendSpy } of peers.slice(1)) {
@@ -232,7 +232,7 @@ describe('BlockFetcher', () => {
 
     await peerNetwork.peerManager.onMessage.emitAsync(...compactBlockResponse)
 
-    await expect(chain.hasBlock(block.header.hash)).resolves.toBe(false)
+    await expect(chain.blockchainDb.hasBlock(block.header.hash)).resolves.toBe(false)
 
     // We should have sent a transaction request to the peer who sent the compact block
     const sentMessage2 = sentPeers[0].sendSpy.mock.calls[1][0]
@@ -257,7 +257,7 @@ describe('BlockFetcher', () => {
     await peerNetwork.peerManager.onMessage.emitAsync(...peerMessage(sentPeer, response))
 
     // The block should now be in the chain
-    await expect(chain.hasBlock(block.header.hash)).resolves.toBe(true)
+    await expect(chain.blockchainDb.hasBlock(block.header.hash)).resolves.toBe(true)
 
     // Run timers to make sure we would not have sent messages to any other peers
     jest.runOnlyPendingTimers()
@@ -284,7 +284,7 @@ describe('BlockFetcher', () => {
       )
     }
 
-    await expect(chain.hasBlock(block.header.hash)).resolves.toBe(false)
+    await expect(chain.blockchainDb.hasBlock(block.header.hash)).resolves.toBe(false)
 
     // We should have sent a transaction request to one random peer
     const sentPeers = peers.filter(({ sendSpy }) => sendSpy.mock.calls.length > 0)
@@ -317,7 +317,7 @@ describe('BlockFetcher', () => {
       ...peerMessage(otherSentPeer, new GetBlocksResponse([block], getBlocksRequest.rpcId)),
     )
 
-    await expect(chain.hasBlock(block.header.hash)).resolves.toBe(true)
+    await expect(chain.blockchainDb.hasBlock(block.header.hash)).resolves.toBe(true)
 
     // Reset mocks and run timers to time out any other potential requests
     for (const { sendSpy } of peers) {
@@ -460,7 +460,7 @@ describe('BlockFetcher', () => {
       ...peerMessage(peers[1].peer, new NewCompactBlockMessage(orphan.toCompactBlock())),
     )
 
-    await expect(chain.hasBlock(orphan.header.hash)).resolves.toBe(true)
+    await expect(chain.blockchainDb.hasBlock(orphan.header.hash)).resolves.toBe(true)
 
     await peerNetwork.stop()
   })

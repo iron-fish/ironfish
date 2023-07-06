@@ -242,13 +242,13 @@ export class Wallet {
         continue
       }
 
-      if (!(await this.chain.hasBlock(account.createdAt.hash))) {
+      if (!(await this.chain.blockchainDb.hasBlock(account.createdAt.hash))) {
         await this.resetAccount(account, { resetCreatedAt: true })
       }
     }
 
     if (this.chainProcessor.hash) {
-      const hasHeadBlock = await this.chain.hasBlock(this.chainProcessor.hash)
+      const hasHeadBlock = await this.chain.blockchainDb.hasBlock(this.chainProcessor.hash)
 
       if (!hasHeadBlock) {
         this.logger.error(
@@ -632,17 +632,17 @@ export class Wallet {
 
     // Priority: fromHeader > startHeader > genesisBlock
     const beginHash = fromHash ? fromHash : startHash ? startHash : this.chain.genesis.hash
-    const beginHeader = await this.chain.getHeader(beginHash)
+    const beginHeader = await this.chain.blockchainDb.getBlockHeader(beginHash)
 
-    Assert.isNotNull(
+    Assert.isNotUndefined(
       beginHeader,
       `scanTransactions: No header found for start hash ${beginHash.toString('hex')}`,
     )
 
     const endHash = this.chainProcessor.hash || this.chain.head.hash
-    const endHeader = await this.chain.getHeader(endHash)
+    const endHeader = await this.chain.blockchainDb.getBlockHeader(endHash)
 
-    Assert.isNotNull(
+    Assert.isNotUndefined(
       endHeader,
       `scanTransactions: No header found for end hash ${endHash.toString('hex')}`,
     )
@@ -874,9 +874,11 @@ export class Wallet {
       heaviestHead.sequence - confirmations,
       GENESIS_BLOCK_SEQUENCE,
     )
-    const maxConfirmedHeader = await this.chain.getHeaderAtSequence(maxConfirmedSequence)
+    const maxConfirmedHeader = await this.chain.blockchainDb.getBlockHeaderAtSequence(
+      maxConfirmedSequence,
+    )
 
-    Assert.isNotNull(maxConfirmedHeader)
+    Assert.isNotUndefined(maxConfirmedHeader)
     Assert.isNotNull(maxConfirmedHeader.noteSize)
 
     const notesTreeSize = maxConfirmedHeader.noteSize
@@ -1059,7 +1061,7 @@ export class Wallet {
         .toString('hex')} is missing an index and cannot be spent.`,
     )
 
-    const witness = await this.chain.notes.witness(note.index, treeSize)
+    const witness = await this.chain.blockchainDb.getNoteWitness(note.index, treeSize)
 
     Assert.isNotNull(
       witness,
@@ -1139,9 +1141,8 @@ export class Wallet {
       return
     }
 
-    const head = await this.chain.getHeader(this.chainProcessor.hash)
-
-    if (head === null) {
+    const head = await this.chain.blockchainDb.getBlockHeader(this.chainProcessor.hash)
+    if (head === undefined) {
       return
     }
 
@@ -1219,9 +1220,8 @@ export class Wallet {
       return
     }
 
-    const head = await this.chain.getHeader(this.chainProcessor.hash)
-
-    if (head === null) {
+    const head = await this.chain.blockchainDb.getBlockHeader(this.chainProcessor.hash)
+    if (head === undefined) {
       return
     }
 
@@ -1394,7 +1394,7 @@ export class Wallet {
     validateAccount(accountValue)
 
     let createdAt = accountValue.createdAt
-    if (createdAt !== null && !(await this.chain.hasBlock(createdAt.hash))) {
+    if (createdAt !== null && !(await this.chain.blockchainDb.hasBlock(createdAt.hash))) {
       this.logger.debug(
         `Account ${accountValue.name} createdAt block ${createdAt.hash.toString('hex')} (${
           createdAt.sequence

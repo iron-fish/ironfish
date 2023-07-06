@@ -73,10 +73,10 @@ router.register<typeof ExportChainStreamRequestSchema, ExportChainStreamResponse
     request.stream({ start, stop })
 
     for (let i = start; i <= stop; ++i) {
-      const blocks = await node.chain.getHeadersAtSequence(i)
+      const blocks = await node.chain.blockchainDb.getBlockHeadersAtSequence(i)
 
       for (const block of blocks) {
-        const isMain = await node.chain.isHeadChain(block)
+        const isMain = await node.chain.blockchainDb.isHeadChain(block)
 
         const result = {
           main: isMain,

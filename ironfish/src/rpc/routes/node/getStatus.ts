@@ -287,7 +287,7 @@ async function getStatus(node: IronfishNode): Promise<GetNodeStatusResponse> {
     }
   }
 
-  const chainDBSizeBytes = await node.chain.db.size()
+  const chainDBSizeBytes = await node.chain.blockchainDb.db.size()
 
   const status: GetNodeStatusResponse = {
     peerNetwork: {

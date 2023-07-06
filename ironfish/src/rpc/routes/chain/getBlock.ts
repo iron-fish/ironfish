@@ -89,7 +89,7 @@ router.register<typeof GetBlockRequestSchema, GetBlockResponse>(
   `${ApiNamespace.chain}/getBlock`,
   GetBlockRequestSchema,
   async (request, node): Promise<void> => {
-    let header: BlockHeader | null = null
+    let header: BlockHeader | undefined
     let error = ''
 
     const confirmations = request.data.confirmations ?? node.config.get('confirmations')
@@ -115,12 +115,12 @@ router.register<typeof GetBlockRequestSchema, GetBlockResponse>(
 
     if (request.data.hash) {
       const hash = Buffer.from(request.data.hash, 'hex')
-      header = await node.chain.getHeader(hash)
+      header = await node.chain.blockchainDb.getBlockHeader(hash)
       error = `No block found with hash ${request.data.hash}`
     }
 
     if (request.data.sequence && !header) {
-      header = await node.chain.getHeaderAtSequence(request.data.sequence)
+      header = await node.chain.blockchainDb.getBlockHeaderAtSequence(request.data.sequence)
       error = `No block found with sequence ${request.data.sequence}`
     }
 
@@ -151,7 +151,7 @@ router.register<typeof GetBlockRequestSchema, GetBlockResponse>(
       })
     }
 
-    const main = await node.chain.isHeadChain(header)
+    const main = await node.chain.blockchainDb.isHeadChain(header)
     const confirmed = node.chain.head.sequence - header.sequence >= confirmations
 
     request.end({

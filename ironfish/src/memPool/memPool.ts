@@ -245,7 +245,8 @@ export class MemPool {
       this.addTransaction(transaction)
     }
 
-    this.head = await this.chain.getHeader(block.header.previousBlockHash)
+    this.head =
+      (await this.chain.blockchainDb.getBlockHeader(block.header.previousBlockHash)) ?? null
   }
 
   /**

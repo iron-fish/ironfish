@@ -89,7 +89,7 @@ router.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
 
     const blockHashBuffer = request.data.blockHash
       ? BlockHashSerdeInstance.deserialize(request.data.blockHash)
-      : await node.chain.getBlockHashByTransactionHash(transactionHashBuffer)
+      : await node.chain.blockchainDb.getBlockHashByTransactionHash(transactionHashBuffer)
 
     if (!blockHashBuffer) {
       throw new NotFoundError(
@@ -97,7 +97,7 @@ router.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
       )
     }
 
-    const blockHeader = await node.chain.getHeader(blockHashBuffer)
+    const blockHeader = await node.chain.blockchainDb.getBlockHeader(blockHashBuffer)
     if (!blockHeader) {
       throw new NotFoundError(
         `No block found for block hash ${blockHashBuffer.toString('hex')}`,

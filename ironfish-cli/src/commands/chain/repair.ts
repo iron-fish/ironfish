@@ -86,16 +86,16 @@ export default class RepairChain extends IronfishCommand {
     Assert.isNotNull(node.chain.head)
 
     CliUx.ux.action.start('Clearing hash to next hash table')
-    await node.chain.hashToNextHash.clear()
+    await node.chain.blockchainDb.clearHashToNextHash()
     CliUx.ux.action.stop()
 
     CliUx.ux.action.start('Clearing Sequence to hash table')
-    await node.chain.sequenceToHash.clear()
+    await node.chain.blockchainDb.clearSequenceToHash()
     CliUx.ux.action.stop()
 
     const total = Number(node.chain.head.sequence)
     let done = 0
-    let head = node.chain.head as BlockHeader | null
+    let head = node.chain.head as BlockHeader | undefined
 
     speed.start()
     progress.start(total, 0, {
@@ -105,10 +105,10 @@ export default class RepairChain extends IronfishCommand {
     })
 
     while (head && head.sequence > BigInt(0)) {
-      await node.chain.sequenceToHash.put(head.sequence, head.hash)
-      await node.chain.hashToNextHash.put(head.previousBlockHash, head.hash)
+      await node.chain.blockchainDb.putSequenceToHash(head.sequence, head.hash)
+      await node.chain.blockchainDb.putNextBlockHash(head.previousBlockHash, head.hash)
 
-      head = await node.chain.getHeader(head.previousBlockHash)
+      head = await node.chain.blockchainDb.getBlockHeader(head.previousBlockHash)
 
       done++
       speed.add(1)
@@ -130,8 +130,8 @@ export default class RepairChain extends IronfishCommand {
   ): Promise<void> {
     Assert.isNotNull(node.chain.head)
 
-    const noNotes = (await node.chain.notes.size()) === 0
-    const noNullifiers = (await node.chain.nullifiers.size()) === 0
+    const noNotes = (await node.chain.blockchainDb.getNotesSize()) === 0
+    const noNullifiers = (await node.chain.blockchainDb.getNullifiersSize()) === 0
     const headBlock = await node.chain.getBlock(node.chain.head)
     Assert.isNotNull(headBlock)
     const treeStatus = await node.chain.verifier.verifyConnectedBlock(headBlock)
@@ -149,17 +149,17 @@ export default class RepairChain extends IronfishCommand {
     let done = 0
 
     let tx: IDatabaseTransaction | null = null
-    let header = await node.chain.getHeaderAtSequence(TREE_START)
+    let header = await node.chain.blockchainDb.getBlockHeaderAtSequence(TREE_START)
     let block = header ? await node.chain.getBlock(header) : null
-    let prev = await node.chain.getHeaderAtSequence(TREE_START - 1)
+    let prev = await node.chain.blockchainDb.getBlockHeaderAtSequence(TREE_START - 1)
     const noteSize = prev && prev.noteSize !== null ? prev.noteSize : 0
 
     CliUx.ux.action.start('Clearing notes MerkleTree')
-    await node.chain.notes.truncate(noteSize)
+    await node.chain.blockchainDb.truncateNotes(noteSize)
     CliUx.ux.action.stop()
 
     CliUx.ux.action.start('Clearing nullifier set')
-    await node.chain.nullifiers.clear()
+    await node.chain.blockchainDb.clearNullifiers()
 
     CliUx.ux.action.stop()
 
@@ -172,7 +172,7 @@ export default class RepairChain extends IronfishCommand {
 
     while (block) {
       if (tx === null) {
-        tx = node.chain.db.transaction()
+        tx = node.chain.blockchainDb.db.transaction()
       }
 
       await node.chain.saveConnect(block, prev || null, tx)
@@ -203,7 +203,7 @@ export default class RepairChain extends IronfishCommand {
       }
 
       prev = block.header
-      header = await node.chain.getNext(block.header, tx)
+      header = await node.chain.blockchainDb.getNextBlockHeader(block.header, tx)
       block = header ? await node.chain.getBlock(header, tx) : null
 
       speed.add(1)

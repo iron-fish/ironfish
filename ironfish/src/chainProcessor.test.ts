@@ -100,7 +100,7 @@ describe('ChainProcessor', () => {
     await processor.update()
     expect(processor.hash?.equals(blockA3.header.hash)).toBe(true)
 
-    await chain.db.transaction(async (tx) => {
+    await chain.blockchainDb.db.transaction(async (tx) => {
       await chain.disconnect(blockA3, tx)
       await chain.disconnect(blockA2, tx)
     })

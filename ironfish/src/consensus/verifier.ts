@@ -245,7 +245,7 @@ export class Verifier {
       return verificationResult
     }
 
-    const reason = await this.chain.db.withTransaction(null, async (tx) => {
+    const reason = await this.chain.blockchainDb.db.withTransaction(null, async (tx) => {
       for (const spend of transaction.spends) {
         // If the spend references a larger tree size, allow it, so it's possible to
         // store transactions made while the node is a few blocks behind
@@ -254,7 +254,7 @@ export class Verifier {
         // (and spends) can eventually become valid if the chain forks to them.
         // Calculating the notes rootHash is also expensive at the time of writing, so performance test
         // before verifying the rootHash on spends.
-        if (await this.chain.nullifiers.contains(spend.nullifier, tx)) {
+        if (await this.chain.blockchainDb.hasNullifier(spend.nullifier, tx)) {
           return VerificationResultReason.DOUBLE_SPEND
         }
       }
@@ -320,8 +320,8 @@ export class Verifier {
     transaction: Transaction,
     tx?: IDatabaseTransaction,
   ): Promise<VerificationResult> {
-    return this.chain.db.withTransaction(tx, async (tx) => {
-      const notesSize = await this.chain.notes.size(tx)
+    return this.chain.blockchainDb.db.withTransaction(tx, async (tx) => {
+      const notesSize = await this.chain.blockchainDb.getNotesSize(tx)
 
       for (const spend of transaction.spends) {
         const reason = await this.verifySpend(spend, notesSize, tx)
@@ -330,7 +330,7 @@ export class Verifier {
           return { valid: false, reason }
         }
 
-        if (await this.chain.nullifiers.contains(spend.nullifier, tx)) {
+        if (await this.chain.blockchainDb.hasNullifier(spend.nullifier, tx)) {
           return { valid: false, reason: VerificationResultReason.DOUBLE_SPEND }
         }
       }
@@ -404,7 +404,7 @@ export class Verifier {
     block: Block,
     tx?: IDatabaseTransaction,
   ): Promise<VerificationResult> {
-    return this.chain.db.withTransaction(tx, async (tx) => {
+    return this.chain.blockchainDb.db.withTransaction(tx, async (tx) => {
       const previousNotesSize = block.header.noteSize
       Assert.isNotNull(previousNotesSize)
 
@@ -432,7 +432,7 @@ export class Verifier {
     }
 
     for (const spend of block.spends()) {
-      if (await this.chain.nullifiers.contains(spend.nullifier, tx)) {
+      if (await this.chain.blockchainDb.hasNullifier(spend.nullifier, tx)) {
         return { valid: false, reason: VerificationResultReason.DOUBLE_SPEND }
       }
     }
@@ -464,7 +464,7 @@ export class Verifier {
     }
 
     try {
-      const realSpendRoot = await this.chain.notes.pastRoot(spend.size, tx)
+      const realSpendRoot = await this.chain.blockchainDb.getNotesPastRoot(spend.size, tx)
       if (!spend.commitment.equals(realSpendRoot)) {
         return VerificationResultReason.INVALID_SPEND
       }
@@ -484,11 +484,11 @@ export class Verifier {
     block: Block,
     tx?: IDatabaseTransaction,
   ): Promise<VerificationResult> {
-    return this.chain.db.withTransaction(tx, async (tx) => {
+    return this.chain.blockchainDb.db.withTransaction(tx, async (tx) => {
       const header = block.header
 
       Assert.isNotNull(header.noteSize)
-      const noteRoot = await this.chain.notes.pastRoot(header.noteSize, tx)
+      const noteRoot = await this.chain.blockchainDb.getNotesPastRoot(header.noteSize, tx)
       if (!noteRoot.equals(header.noteCommitment)) {
         return { valid: false, reason: VerificationResultReason.NOTE_COMMITMENT }
       }
@@ -552,8 +552,8 @@ export class Verifier {
     transaction: Transaction,
     tx?: IDatabaseTransaction,
   ): Promise<VerificationResult> {
-    return this.chain.db.withTransaction(tx, async (tx) => {
-      if (await this.chain.transactionHashToBlockHash.has(transaction.hash(), tx)) {
+    return this.chain.blockchainDb.db.withTransaction(tx, async (tx) => {
+      if (await this.chain.blockchainDb.transactionHashHasBlock(transaction.hash(), tx)) {
         return { valid: false, reason: VerificationResultReason.DUPLICATE_TRANSACTION }
       }
 

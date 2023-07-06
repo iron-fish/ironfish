@@ -38,10 +38,10 @@ describe('Blockchain', () => {
     expect(chain.latest.hash).toEqualHash(genesis.header.hash)
     expect(chain.isEmpty).toBe(false)
     expect(chain.hasGenesisBlock).toBe(true)
-    expect(await chain.notes.size()).toBeGreaterThan(0)
-    expect(await chain.nullifiers.size()).toBeGreaterThan(0)
-    expect(await chain.getPrevious(genesis.header)).toBe(null)
-    expect(await chain.getNext(genesis.header)).toBe(null)
+    expect(await chain.blockchainDb.getNotesSize()).toBeGreaterThan(0)
+    expect(await chain.blockchainDb.getNullifiersSize()).toBeGreaterThan(0)
+    expect(await chain.blockchainDb.getPreviousBlockHeader(genesis.header)).toBe(null)
+    expect(await chain.blockchainDb.getNextBlockHeader(genesis.header)).toBe(null)
   })
 
   it('add blocks with forks', async () => {
@@ -71,37 +71,59 @@ describe('Blockchain', () => {
     await expect(chain).toAddBlock(blockB2)
     await expect(chain).toAddBlock(blockB3)
 
-    const headerA1 = await chain.getHeader(blockA1.header.hash)
-    const headerA2 = await chain.getHeader(blockA2.header.hash)
-    const headerB2 = await chain.getHeader(blockB2.header.hash)
-    const headerB3 = await chain.getHeader(blockB3.header.hash)
+    const headerA1 = await chain.blockchainDb.getBlockHeader(blockA1.header.hash)
+    const headerA2 = await chain.blockchainDb.getBlockHeader(blockA2.header.hash)
+    const headerB2 = await chain.blockchainDb.getBlockHeader(blockB2.header.hash)
+    const headerB3 = await chain.blockchainDb.getBlockHeader(blockB3.header.hash)
 
-    Assert.isNotNull(headerA1)
-    Assert.isNotNull(headerA2)
-    Assert.isNotNull(headerB2)
-    Assert.isNotNull(headerB3)
+    Assert.isNotUndefined(headerA1)
+    Assert.isNotUndefined(headerA2)
+    Assert.isNotUndefined(headerB2)
+    Assert.isNotUndefined(headerB3)
 
     expect(chain.head.hash.equals(headerB3.hash)).toBe(true)
     expect(chain.latest.hash.equals(headerB3.hash)).toBe(true)
 
     // getNext
-    expect((await chain.getNext(chain.genesis))?.hash?.equals(headerA1.hash)).toBe(true)
-    expect((await chain.getNext(headerA1))?.hash?.equals(headerB2.hash)).toBe(true)
-    expect(await chain.getNext(headerA2)).toBe(null)
-    expect((await chain.getNext(headerB2))?.hash?.equals(headerB3.hash)).toBe(true)
-    expect(await chain.getNext(headerB3)).toBe(null)
+    expect(
+      (await chain.blockchainDb.getNextBlockHeader(chain.genesis))?.hash?.equals(headerA1.hash),
+    ).toBe(true)
+    expect(
+      (await chain.blockchainDb.getNextBlockHeader(headerA1))?.hash?.equals(headerB2.hash),
+    ).toBe(true)
+    expect(await chain.blockchainDb.getNextBlockHeader(headerA2)).toBe(null)
+    expect(
+      (await chain.blockchainDb.getNextBlockHeader(headerB2))?.hash?.equals(headerB3.hash),
+    ).toBe(true)
+    expect(await chain.blockchainDb.getNextBlockHeader(headerB3)).toBe(null)
 
     // getPrevious
-    expect(await chain.getPrevious(chain.genesis)).toBe(null)
-    expect((await chain.getPrevious(headerA1))?.hash?.equals(chain.genesis.hash)).toBe(true)
-    expect((await chain.getPrevious(headerB2))?.hash?.equals(headerA1.hash)).toBe(true)
-    expect((await chain.getPrevious(headerB3))?.hash?.equals(headerB2.hash)).toBe(true)
+    expect(await chain.blockchainDb.getPreviousBlockHeader(chain.genesis)).toBe(null)
+    expect(
+      (await chain.blockchainDb.getPreviousBlockHeader(headerA1))?.hash?.equals(
+        chain.genesis.hash,
+      ),
+    ).toBe(true)
+    expect(
+      (await chain.blockchainDb.getPreviousBlockHeader(headerB2))?.hash?.equals(headerA1.hash),
+    ).toBe(true)
+    expect(
+      (await chain.blockchainDb.getPreviousBlockHeader(headerB3))?.hash?.equals(headerB2.hash),
+    ).toBe(true)
 
     // getAtSequence
-    expect((await chain.getHashAtSequence(1))?.equals(chain.genesis.hash)).toBe(true)
-    expect((await chain.getHashAtSequence(2))?.equals(headerA1.hash)).toBe(true)
-    expect((await chain.getHashAtSequence(3))?.equals(headerB2.hash)).toBe(true)
-    expect((await chain.getHashAtSequence(4))?.equals(headerB3.hash)).toBe(true)
+    expect(
+      (await chain.blockchainDb.getBlockHashAtSequence(1))?.equals(chain.genesis.hash),
+    ).toBe(true)
+    expect((await chain.blockchainDb.getBlockHashAtSequence(2))?.equals(headerA1.hash)).toBe(
+      true,
+    )
+    expect((await chain.blockchainDb.getBlockHashAtSequence(3))?.equals(headerB2.hash)).toBe(
+      true,
+    )
+    expect((await chain.blockchainDb.getBlockHashAtSequence(4))?.equals(headerB3.hash)).toBe(
+      true,
+    )
   })
 
   it('iterate', async () => {
@@ -455,7 +477,7 @@ describe('Blockchain', () => {
 
     await expect(node.chain).toAddBlock(blockA3)
     expect(node.chain.head?.hash).toEqualBuffer(blockA3.header.hash)
-    expect(await node.chain.notes.size()).toBe(blockA3.header.noteSize)
+    expect(await node.chain.blockchainDb.getNotesSize()).toBe(blockA3.header.noteSize)
   })
 
   describe('MerkleTree + Nullifier Set', () => {
@@ -474,10 +496,10 @@ describe('Blockchain', () => {
       const accountB = await useAccountFixture(nodeB.wallet, 'accountB')
 
       // Counts before adding any blocks
-      const countNoteA = await nodeA.chain.notes.size()
-      const countNullifierA = await nodeA.chain.nullifiers.size()
-      const countNoteB = await nodeB.chain.notes.size()
-      const countNullifierB = await nodeB.chain.nullifiers.size()
+      const countNoteA = await nodeA.chain.blockchainDb.getNotesSize()
+      const countNullifierA = await nodeA.chain.blockchainDb.getNullifiersSize()
+      const countNoteB = await nodeB.chain.blockchainDb.getNotesSize()
+      const countNullifierB = await nodeB.chain.blockchainDb.getNullifiersSize()
 
       // Create nodeA blocks
       const blockA1 = await useMinerBlockFixture(nodeA.chain, undefined, accountA)
@@ -524,30 +546,37 @@ describe('Blockchain', () => {
       expect(txB3.spends.length).toBe(1)
 
       // Check nodeA has notes from blockA1, blockA2
-      expect(await nodeA.chain.notes.size()).toBe(countNoteA + 4)
-      let addedNoteA1 = (await nodeA.chain.notes.getLeaf(countNoteA + 0)).merkleHash
-      let addedNoteA2 = (await nodeA.chain.notes.getLeaf(countNoteA + 1)).merkleHash
-      let addedNoteA3 = (await nodeA.chain.notes.getLeaf(countNoteA + 2)).merkleHash
-      let addedNoteA4 = (await nodeA.chain.notes.getLeaf(countNoteA + 3)).merkleHash
+      expect(await nodeA.chain.blockchainDb.getNotesSize()).toBe(countNoteA + 4)
+      let addedNoteA1 = (await nodeA.chain.blockchainDb.getNotesLeaf(countNoteA + 0)).merkleHash
+      let addedNoteA2 = (await nodeA.chain.blockchainDb.getNotesLeaf(countNoteA + 1)).merkleHash
+      let addedNoteA3 = (await nodeA.chain.blockchainDb.getNotesLeaf(countNoteA + 2)).merkleHash
+      let addedNoteA4 = (await nodeA.chain.blockchainDb.getNotesLeaf(countNoteA + 3)).merkleHash
       expect(addedNoteA1.equals(minersFeeA1.getNote(0).hash())).toBe(true)
       expect(addedNoteA2.equals(minersFeeA2.getNote(0).hash())).toBe(true)
       expect(addedNoteA3.equals(txA2.getNote(0).hash())).toBe(true)
       expect(addedNoteA4.equals(txA2.getNote(1).hash())).toBe(true)
 
       // Check nodeA has nullifiers from blockA2
-      expect(await nodeA.chain.nullifiers.size()).toBe(countNullifierA + 1)
+      expect(await nodeA.chain.blockchainDb.getNullifiersSize()).toBe(countNullifierA + 1)
 
-      let addedNullifierA1 = await nodeA.chain.nullifiers.get(txA2.getSpend(0).nullifier)
+      let addedNullifierA1 = await nodeA.chain.blockchainDb.getTransactionHashFromNullifier(
+        txA2.getSpend(0).nullifier,
+      )
       expect(addedNullifierA1).toBeDefined()
       expect(addedNullifierA1?.equals(txA2.hash())).toBe(true)
 
       // Check nodeB has notes from blockB1, blockB2, blockB3
-      expect(await nodeB.chain.notes.size()).toBe(countNoteB + 5)
-      const addedNoteB1 = (await nodeB.chain.notes.getLeaf(countNoteB + 0)).merkleHash
-      const addedNoteB2 = (await nodeB.chain.notes.getLeaf(countNoteB + 1)).merkleHash
-      const addedNoteB3 = (await nodeB.chain.notes.getLeaf(countNoteB + 2)).merkleHash
-      const addedNoteB4 = (await nodeB.chain.notes.getLeaf(countNoteB + 3)).merkleHash
-      const addedNoteB5 = (await nodeB.chain.notes.getLeaf(countNoteB + 4)).merkleHash
+      expect(await nodeB.chain.blockchainDb.getNotesSize()).toBe(countNoteB + 5)
+      const addedNoteB1 = (await nodeB.chain.blockchainDb.getNotesLeaf(countNoteB + 0))
+        .merkleHash
+      const addedNoteB2 = (await nodeB.chain.blockchainDb.getNotesLeaf(countNoteB + 1))
+        .merkleHash
+      const addedNoteB3 = (await nodeB.chain.blockchainDb.getNotesLeaf(countNoteB + 2))
+        .merkleHash
+      const addedNoteB4 = (await nodeB.chain.blockchainDb.getNotesLeaf(countNoteB + 3))
+        .merkleHash
+      const addedNoteB5 = (await nodeB.chain.blockchainDb.getNotesLeaf(countNoteB + 4))
+        .merkleHash
       expect(addedNoteB1.equals(minersFeeB1.getNote(0).hash())).toBe(true)
       expect(addedNoteB2.equals(minersFeeB2.getNote(0).hash())).toBe(true)
       expect(addedNoteB3.equals(minersFeeB3.getNote(0).hash())).toBe(true)
@@ -555,8 +584,10 @@ describe('Blockchain', () => {
       expect(addedNoteB5.equals(txB3.getNote(1).hash())).toBe(true)
 
       // Check nodeB has nullifiers from blockB3
-      expect(await nodeB.chain.nullifiers.size()).toBe(countNullifierB + 1)
-      const addedNullifierB1 = await nodeB.chain.nullifiers.get(txB3.getSpend(0).nullifier)
+      expect(await nodeB.chain.blockchainDb.getNullifiersSize()).toBe(countNullifierB + 1)
+      const addedNullifierB1 = await nodeB.chain.blockchainDb.getTransactionHashFromNullifier(
+        txB3.getSpend(0).nullifier,
+      )
       expect(addedNullifierB1).toBeDefined()
       expect(addedNullifierB1?.equals(txB3.hash())).toBe(true)
 
@@ -566,12 +597,13 @@ describe('Blockchain', () => {
       await nodeA.chain.addBlock(blockB3)
 
       // Check nodeA's chain has removed blockA1 notes and added blockB1, blockB2, blockB3
-      expect(await nodeA.chain.notes.size()).toBe(countNoteA + 5)
-      addedNoteA1 = (await nodeA.chain.notes.getLeaf(countNoteA + 0)).merkleHash
-      addedNoteA2 = (await nodeA.chain.notes.getLeaf(countNoteA + 1)).merkleHash
-      addedNoteA3 = (await nodeA.chain.notes.getLeaf(countNoteA + 2)).merkleHash
-      addedNoteA4 = (await nodeA.chain.notes.getLeaf(countNoteA + 3)).merkleHash
-      const addedNoteA5 = (await nodeA.chain.notes.getLeaf(countNoteA + 4)).merkleHash
+      expect(await nodeA.chain.blockchainDb.getNotesSize()).toBe(countNoteA + 5)
+      addedNoteA1 = (await nodeA.chain.blockchainDb.getNotesLeaf(countNoteA + 0)).merkleHash
+      addedNoteA2 = (await nodeA.chain.blockchainDb.getNotesLeaf(countNoteA + 1)).merkleHash
+      addedNoteA3 = (await nodeA.chain.blockchainDb.getNotesLeaf(countNoteA + 2)).merkleHash
+      addedNoteA4 = (await nodeA.chain.blockchainDb.getNotesLeaf(countNoteA + 3)).merkleHash
+      const addedNoteA5 = (await nodeA.chain.blockchainDb.getNotesLeaf(countNoteA + 4))
+        .merkleHash
       expect(addedNoteA1.equals(minersFeeB1.getNote(0).hash())).toBe(true)
       expect(addedNoteA2.equals(minersFeeB2.getNote(0).hash())).toBe(true)
       expect(addedNoteA3.equals(minersFeeB3.getNote(0).hash())).toBe(true)
@@ -579,8 +611,10 @@ describe('Blockchain', () => {
       expect(addedNoteA5.equals(txB3.getNote(1).hash())).toBe(true)
 
       // Check nodeA's chain has removed blockA2 nullifiers and added blockB3
-      expect(await nodeA.chain.nullifiers.size()).toBe(countNullifierA + 1)
-      addedNullifierA1 = await nodeA.chain.nullifiers.get(txB3.getSpend(0).nullifier)
+      expect(await nodeA.chain.blockchainDb.getNullifiersSize()).toBe(countNullifierA + 1)
+      addedNullifierA1 = await nodeA.chain.blockchainDb.getTransactionHashFromNullifier(
+        txB3.getSpend(0).nullifier,
+      )
       expect(addedNullifierA1).toBeDefined()
       expect(addedNullifierA1?.equals(txB3.hash())).toBe(true)
     }, 300000)
@@ -590,7 +624,7 @@ describe('Blockchain', () => {
       const tx = await useMinersTxFixture(nodeTest.wallet, account)
       const block = await useMinerBlockFixture(nodeTest.chain)
 
-      await nodeTest.chain.notes.add(tx.getNote(0))
+      await nodeTest.chain.blockchainDb.addNote(tx.getNote(0))
 
       await expect(nodeTest.chain.addBlock(block)).rejects.toThrow(
         'Notes tree must match previous block header',
@@ -700,7 +734,7 @@ describe('Blockchain', () => {
       { expiration: 4 },
     )
 
-    await expect(nodeB.chain.hasBlock(blockB1.header.hash)).resolves.toBe(true)
+    await expect(nodeB.chain.blockchainDb.hasBlock(blockB1.header.hash)).resolves.toBe(true)
     await expect(nodeB.chain).toAddBlock(blockB2)
 
     // When we add blockB2 it will be expired on the chain head, but not on the
@@ -1068,7 +1102,7 @@ describe('Blockchain', () => {
         ])
         await expect(node.chain).toAddBlock(block)
 
-        const mintedAsset = await node.chain.assets.get(asset.id())
+        const mintedAsset = await node.chain.blockchainDb.getAsset(asset.id())
 
         expect(mintedAsset).toEqual({
           createdTransactionHash: mint.hash(),
@@ -1110,7 +1144,7 @@ describe('Blockchain', () => {
         const blockB = await burnAsset(node, account, 3, asset, burnValue, noteToBurn)
         await expect(node.chain).toAddBlock(blockB)
 
-        const mintedAsset = await node.chain.assets.get(asset.id())
+        const mintedAsset = await node.chain.blockchainDb.getAsset(asset.id())
         expect(mintedAsset).toMatchObject({
           createdTransactionHash: mintTransaction.hash(),
           supply: mintValue - burnValue,
@@ -1147,7 +1181,7 @@ describe('Blockchain', () => {
         })
         await expect(node.chain).toAddBlock(blockB)
 
-        const mintedAsset = await node.chain.assets.get(asset.id())
+        const mintedAsset = await node.chain.blockchainDb.getAsset(asset.id())
         expect(mintedAsset).toEqual({
           createdTransactionHash: mintTransactionA.hash(),
           id: asset.id(),
@@ -1180,7 +1214,7 @@ describe('Blockchain', () => {
 
         await node.chain.removeBlock(block.header.hash)
 
-        const mintedAsset = await node.chain.assets.get(asset.id())
+        const mintedAsset = await node.chain.blockchainDb.getAsset(asset.id())
         expect(mintedAsset).toBeUndefined()
       })
     })
@@ -1215,7 +1249,7 @@ describe('Blockchain', () => {
 
         await node.chain.removeBlock(blockB.header.hash)
 
-        const mintedAsset = await node.chain.assets.get(asset.id())
+        const mintedAsset = await node.chain.blockchainDb.getAsset(asset.id())
         expect(mintedAsset).toMatchObject({
           supply: mintValueA,
         })
@@ -1247,7 +1281,7 @@ describe('Blockchain', () => {
 
         await node.chain.removeBlock(blockB.header.hash)
 
-        const mintedAsset = await node.chain.assets.get(asset.id())
+        const mintedAsset = await node.chain.blockchainDb.getAsset(asset.id())
         expect(mintedAsset).toMatchObject({
           supply: mintValue,
         })
@@ -1279,7 +1313,7 @@ describe('Blockchain', () => {
         // hack, the posted transaction would raise an exception, which is a
         // separate flow to test for. We should never hit this case; this is a
         // sanity check.
-        await node.chain.assets.del(assetId)
+        await node.chain.blockchainDb.deleteAsset(assetId)
 
         const burnValue = BigInt(3)
         const noteToBurn = blockA.transactions[1].getNote(0)
@@ -1309,14 +1343,14 @@ describe('Blockchain', () => {
         })
         await expect(node.chain).toAddBlock(blockA)
 
-        const record = await node.chain.assets.get(assetId)
+        const record = await node.chain.blockchainDb.getAsset(assetId)
         Assert.isNotUndefined(record)
         // Perform a hack where we adjust the supply in the DB to be lower than
         // what was previously minted. This is done to check what happens if a
         // burn is processed but the DB does not have enough supply for a given
         // burn. Without this, the posted transaction would raise an invalid
         // balance exception, which is a separate flow to test for.
-        await node.chain.assets.put(assetId, {
+        await node.chain.blockchainDb.putAsset(assetId, {
           ...record,
           supply: BigInt(1),
         })
@@ -1348,7 +1382,7 @@ describe('Blockchain', () => {
         })
         await expect(node.chain).toAddBlock(blockA)
         // Check first mint value
-        let record = await node.chain.assets.get(assetId)
+        let record = await node.chain.blockchainDb.getAsset(assetId)
         Assert.isNotUndefined(record)
         expect(record).toMatchObject({
           createdTransactionHash: blockA.transactions[1].hash(),
@@ -1366,7 +1400,7 @@ describe('Blockchain', () => {
         })
         await expect(node.chain).toAddBlock(blockB)
         // Check aggregate mint value
-        record = await node.chain.assets.get(assetId)
+        record = await node.chain.blockchainDb.getAsset(assetId)
         Assert.isNotUndefined(record)
         expect(record).toMatchObject({
           createdTransactionHash: blockA.transactions[1].hash(),
@@ -1379,7 +1413,7 @@ describe('Blockchain', () => {
         const blockC = await burnAsset(node, account, 4, asset, burnValueC, noteToBurnC)
         await expect(node.chain).toAddBlock(blockC)
         // Check value after burn
-        record = await node.chain.assets.get(assetId)
+        record = await node.chain.blockchainDb.getAsset(assetId)
         Assert.isNotUndefined(record)
         expect(record).toMatchObject({
           createdTransactionHash: blockA.transactions[1].hash(),
@@ -1389,7 +1423,7 @@ describe('Blockchain', () => {
         // 4. Roll back the burn from Block C (Step 3 above)
         await node.chain.removeBlock(blockC.header.hash)
         // Check value after burn roll back
-        record = await node.chain.assets.get(assetId)
+        record = await node.chain.blockchainDb.getAsset(assetId)
         Assert.isNotUndefined(record)
         expect(record).toMatchObject({
           createdTransactionHash: blockA.transactions[1].hash(),
@@ -1402,7 +1436,7 @@ describe('Blockchain', () => {
         const blockD = await burnAsset(node, account, 4, asset, burnValueD, noteToBurnD)
         await expect(node.chain).toAddBlock(blockD)
         // Check aggregate mint value
-        record = await node.chain.assets.get(assetId)
+        record = await node.chain.blockchainDb.getAsset(assetId)
         Assert.isNotUndefined(record)
         expect(record).toMatchObject({
           createdTransactionHash: blockA.transactions[1].hash(),
@@ -1420,7 +1454,7 @@ describe('Blockchain', () => {
         })
         await expect(node.chain).toAddBlock(blockE)
         // Check aggregate mint value
-        record = await node.chain.assets.get(assetId)
+        record = await node.chain.blockchainDb.getAsset(assetId)
         Assert.isNotUndefined(record)
         expect(record).toMatchObject({
           createdTransactionHash: blockA.transactions[1].hash(),
@@ -1430,7 +1464,7 @@ describe('Blockchain', () => {
         // 7. Roll back the mint from Block E (Step 6 above)
         await node.chain.removeBlock(blockE.header.hash)
         // Check value after burn roll back
-        record = await node.chain.assets.get(assetId)
+        record = await node.chain.blockchainDb.getAsset(assetId)
         Assert.isNotUndefined(record)
         expect(record).toMatchObject({
           createdTransactionHash: blockA.transactions[1].hash(),
@@ -1462,7 +1496,7 @@ describe('Blockchain', () => {
         await nodeA.chain.addBlock(blockA1)
 
         // Verify Node A has the asset
-        let record = await nodeA.chain.assets.get(assetId)
+        let record = await nodeA.chain.blockchainDb.getAsset(assetId)
         Assert.isNotUndefined(record)
         expect(record).toMatchObject({
           createdTransactionHash: blockA1.transactions[1].hash(),
@@ -1475,7 +1509,7 @@ describe('Blockchain', () => {
         await nodeB.chain.addBlock(blockB2)
 
         // Verify Node B does not have the asset
-        record = await nodeB.chain.assets.get(assetId)
+        record = await nodeB.chain.blockchainDb.getAsset(assetId)
         expect(record).toBeUndefined()
 
         // Reorganize the chain on Node A
@@ -1484,7 +1518,7 @@ describe('Blockchain', () => {
 
         // Verify Node A no longer has the asset from Block A1
         expect(nodeA.chain.head.hash.equals(blockB2.header.hash)).toBe(true)
-        record = await nodeA.chain.assets.get(assetId)
+        record = await nodeA.chain.blockchainDb.getAsset(assetId)
         expect(record).toBeUndefined()
       })
     })
@@ -1509,7 +1543,7 @@ describe('Blockchain', () => {
         await node.wallet.updateHead()
 
         // Verify Node A has the asset
-        const record = await node.chain.assets.get(assetId)
+        const record = await node.chain.blockchainDb.getAsset(assetId)
         Assert.isNotUndefined(record)
         expect(record).toMatchObject({
           createdTransactionHash: block.transactions[1].hash(),
@@ -1522,7 +1556,7 @@ describe('Blockchain', () => {
 
           Assert.isNotUndefined(note)
           Assert.isNotNull(note.index)
-          const witness = await node.chain.notes.witness(note.index)
+          const witness = await node.chain.blockchainDb.getNoteWitness(note.index)
           Assert.isNotNull(witness)
 
           const rawBurn = new RawTransaction()
@@ -1597,7 +1631,9 @@ describe('Blockchain', () => {
       await expect(node.chain).toAddBlock(block2)
 
       for (const transaction of block2.transactions) {
-        const blockHash = await node.chain.transactionHashToBlockHash.get(transaction.hash())
+        const blockHash = await node.chain.blockchainDb.getBlockHashByTransactionHash(
+          transaction.hash(),
+        )
 
         Assert.isNotUndefined(blockHash)
 
@@ -1633,7 +1669,9 @@ describe('Blockchain', () => {
       // nodeB: G -> A2 -> B3 -> B4
 
       for (const transaction of blockA3.transactions) {
-        const blockHash = await nodeA.chain.transactionHashToBlockHash.get(transaction.hash())
+        const blockHash = await nodeA.chain.blockchainDb.getBlockHashByTransactionHash(
+          transaction.hash(),
+        )
 
         Assert.isNotUndefined(blockHash)
 
@@ -1647,7 +1685,9 @@ describe('Blockchain', () => {
       // nodeB: G -> A2 -> B3 -> B4
 
       for (const transaction of blockA3.transactions) {
-        const blockHash = await nodeA.chain.transactionHashToBlockHash.get(transaction.hash())
+        const blockHash = await nodeA.chain.blockchainDb.getBlockHashByTransactionHash(
+          transaction.hash(),
+        )
         expect(blockHash).toBeUndefined()
       }
 
@@ -1657,7 +1697,9 @@ describe('Blockchain', () => {
 
       await expect(nodeA.chain).toAddBlock(blockB5)
 
-      const blockHash = await nodeA.chain.transactionHashToBlockHash.get(transactionA3.hash())
+      const blockHash = await nodeA.chain.blockchainDb.getBlockHashByTransactionHash(
+        transactionA3.hash(),
+      )
       expect(blockHash).toEqualHash(blockB5.header.hash)
     })
 
@@ -1669,7 +1711,9 @@ describe('Blockchain', () => {
       await expect(nodeA.chain).toAddBlock(block2)
 
       for (const transaction of block2.transactions) {
-        const blockHash = await nodeA.chain.transactionHashToBlockHash.get(transaction.hash())
+        const blockHash = await nodeA.chain.blockchainDb.getBlockHashByTransactionHash(
+          transaction.hash(),
+        )
 
         Assert.isNotUndefined(blockHash)
 
@@ -1685,7 +1729,9 @@ describe('Blockchain', () => {
       await expect(nodeA.chain).toAddBlock(block2B)
 
       for (const transaction of block2B.transactions) {
-        const blockHashA = await nodeA.chain.transactionHashToBlockHash.get(transaction.hash())
+        const blockHashA = await nodeA.chain.blockchainDb.getBlockHashByTransactionHash(
+          transaction.hash(),
+        )
         expect(blockHashA).toBeUndefined()
       }
     })

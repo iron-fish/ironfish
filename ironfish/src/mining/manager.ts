@@ -337,7 +337,7 @@ export class MiningManager {
 
     const blockDisplay = `${block.header.hash.toString('hex')} (${block.header.sequence})`
     if (!block.header.previousBlockHash.equals(this.node.chain.head.hash)) {
-      const previous = await this.node.chain.getPrevious(block.header)
+      const previous = await this.node.chain.blockchainDb.getPreviousBlockHeader(block.header)
 
       const work = block.header.target.toDifficulty()
       block.header.work = (previous ? previous.work : BigInt(0)) + work

@@ -236,12 +236,12 @@ export class Syncer {
         return { found: false, local: null }
       }
 
-      const header = await this.chain.getHeader(hash)
+      const header = await this.chain.blockchainDb.getBlockHeader(hash)
       if (!header) {
         return { found: false, local: null }
       }
 
-      const found = await this.chain.isHeadChain(header)
+      const found = await this.chain.blockchainDb.isHeadChain(header)
       return { found: found, local: header }
     }
 

@@ -103,19 +103,19 @@ export async function makeGenesisBlock(
   if (postedInitialTransaction.notes.length !== 1) {
     throw new Error('Expected postedInitialTransaction to have 1 note')
   }
-  await chain.notes.add(postedMinersFeeTransaction.getNote(0))
-  await chain.notes.add(postedInitialTransaction.getNote(0))
+  await chain.blockchainDb.addNote(postedMinersFeeTransaction.getNote(0))
+  await chain.blockchainDb.addNote(postedInitialTransaction.getNote(0))
 
   // Construct a witness of the Transaction 1 note
   logger.info('  Constructing a witness of the note...')
-  const witness = await chain.notes.witness(1)
+  const witness = await chain.blockchainDb.getNoteWitness(1)
   if (witness === null) {
     throw new Error('We must be able to construct a witness in order to generate a spend.')
   }
 
   // Now that we have the witness, remove the note from the tree
   logger.info('  Removing the note from the tree...')
-  await chain.notes.truncate(0)
+  await chain.blockchainDb.truncateNotes(0)
 
   /**
    *

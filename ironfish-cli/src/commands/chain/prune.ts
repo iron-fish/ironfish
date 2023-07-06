@@ -51,8 +51,8 @@ export default class Prune extends IronfishCommand {
       let total = 0
 
       for (let sequence = stop; sequence >= start; --sequence) {
-        const hashes = await node.chain.getHashesAtSequence(sequence)
-        const main = await node.chain.getHashAtSequence(sequence)
+        const hashes = await node.chain.blockchainDb.getBlockHashesAtSequence(sequence)
+        const main = await node.chain.blockchainDb.getBlockHashAtSequence(sequence)
 
         const forks = hashes.filter((h) => !main || !h.equals(main))
 
@@ -78,7 +78,7 @@ export default class Prune extends IronfishCommand {
 
     if (flags.compact) {
       CliUx.ux.action.start(`Compacting Database`)
-      await node.chain.db.compact()
+      await node.chain.blockchainDb.db.compact()
       CliUx.ux.action.stop()
     }
 

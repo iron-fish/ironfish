@@ -132,7 +132,7 @@ router.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
 
     const head = request.data.head ? Buffer.from(request.data.head, 'hex') : null
 
-    if (head && !(await node.chain.hasBlock(head))) {
+    if (head && !(await node.chain.blockchainDb.hasBlock(head))) {
       throw new ValidationError(
         `Block with hash ${String(request.data.head)} was not found in the chain`,
       )

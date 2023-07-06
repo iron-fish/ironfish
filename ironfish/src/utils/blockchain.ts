@@ -42,12 +42,12 @@ export function getBlockRange(
 async function blockHeaderBySequenceOrHash(
   chain: Blockchain,
   start: Buffer | number,
-): Promise<BlockHeader | null> {
+): Promise<BlockHeader | undefined> {
   if (Buffer.isBuffer(start)) {
-    return await chain.getHeader(start)
+    return await chain.blockchainDb.getBlockHeader(start)
   }
 
-  return await chain.getHeaderAtSequence(start)
+  return await chain.blockchainDb.getBlockHeaderAtSequence(start)
 }
 
 export const BlockchainUtils = { getBlockRange, blockHeaderBySequenceOrHash }

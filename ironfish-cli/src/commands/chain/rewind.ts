@@ -98,7 +98,7 @@ async function disconnectBlocks(chain: Blockchain, toDisconnect: number): Promis
 
     Assert.isNotNull(headBlock)
 
-    await chain.db.transaction(async (tx) => {
+    await chain.blockchainDb.db.transaction(async (tx) => {
       await chain.disconnect(headBlock, tx)
     })
 
@@ -121,7 +121,7 @@ async function rewindWalletHead(
   const walletHeadHash = await wallet.getLatestHeadHash()
 
   if (walletHeadHash) {
-    const walletHead = await chain.getHeader(walletHeadHash)
+    const walletHead = await chain.blockchainDb.getBlockHeader(walletHeadHash)
 
     if (walletHead && walletHead.sequence > sequence) {
       const bar = getProgressBar('Rewiding wallet')
@@ -170,7 +170,7 @@ async function removeBlocks(
   let removed = 0
 
   while (fromSequence > sequence) {
-    const hashes = await chain.getHashesAtSequence(fromSequence)
+    const hashes = await chain.blockchainDb.getBlockHashesAtSequence(fromSequence)
 
     for (const hash of hashes) {
       await chain.removeBlock(hash)

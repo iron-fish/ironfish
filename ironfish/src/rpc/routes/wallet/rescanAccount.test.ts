@@ -112,7 +112,7 @@ describe('Route wallet/rescanAccount', () => {
       .mockReturnValue(Promise.resolve())
 
     const getHeaderAtSequence = jest
-      .spyOn(routeTest.node.chain, 'getHeaderAtSequence')
+      .spyOn(routeTest.node.chain.blockchainDb, 'getBlockHeaderAtSequence')
       .mockReturnValue(Promise.resolve(block2.header))
 
     const updateHead = jest.spyOn(account, 'updateHead').mockReturnValue(Promise.resolve())

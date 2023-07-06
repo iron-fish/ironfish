@@ -73,7 +73,7 @@ export async function renderChain(
     stop,
   })
 
-  const roots = await chain.getHeadersAtSequence(startHeight)
+  const roots = await chain.blockchainDb.getBlockHeadersAtSequence(startHeight)
 
   for (const root of roots) {
     await renderGraph(chain, root, stopHeight, content, options, logger)
@@ -133,7 +133,7 @@ export async function renderGraph(
     return
   }
 
-  const next = await chain.getHeadersAtSequence(header.sequence + 1)
+  const next = await chain.blockchainDb.getBlockHeadersAtSequence(header.sequence + 1)
   const children = next.filter((h) => h.previousBlockHash.equals(header.hash))
   const nesting = children.length >= 2
 

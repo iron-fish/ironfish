@@ -55,7 +55,7 @@ router.register<typeof GetNetworkHashPowerRequestSchema, GetNetworkHashPowerResp
     // estimate network hps at specified sequence
     // if the sequence is out of bounds, use the head as the last block
     if (sequence > 0 && sequence < node.chain.head.sequence) {
-      const blockAtSequence = await node.chain.getHeaderAtSequence(sequence)
+      const blockAtSequence = await node.chain.blockchainDb.getBlockHeaderAtSequence(sequence)
       if (!blockAtSequence) {
         throw new Error(`No end block found at sequence ${sequence}`)
       }
@@ -67,7 +67,9 @@ router.register<typeof GetNetworkHashPowerRequestSchema, GetNetworkHashPowerResp
       blocks = endBlock.sequence - 1
     }
 
-    const startBlock = await node.chain.getHeaderAtSequence(endBlock.sequence - blocks)
+    const startBlock = await node.chain.blockchainDb.getBlockHeaderAtSequence(
+      endBlock.sequence - blocks,
+    )
     if (!startBlock) {
       throw new Error(`Failure to find start block ${endBlock.sequence - blocks}`)
     }

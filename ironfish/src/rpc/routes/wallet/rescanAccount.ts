@@ -43,9 +43,9 @@ router.register<typeof RescanAccountRequestSchema, RescanAccountResponse>(
 
       let fromHash = undefined
       if (request.data.from && request.data.from > GENESIS_BLOCK_SEQUENCE) {
-        const header = await node.chain.getHeaderAtSequence(request.data.from)
+        const header = await node.chain.blockchainDb.getBlockHeaderAtSequence(request.data.from)
 
-        if (header === null) {
+        if (header === undefined) {
           throw new ValidationError(
             `No block header found in the chain at sequence ${request.data.from}`,
           )

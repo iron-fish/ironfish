@@ -17,7 +17,7 @@ describe('NullifierSet', () => {
   it('connects blocks and checks that nullifiers are included', async () => {
     const { node, chain } = nodeTest
 
-    const set = new NullifierSet({ db: chain.db, name: 'u-test' })
+    const set = new NullifierSet({ db: chain.blockchainDb.db, name: 'u-test' })
 
     await chain.open()
 

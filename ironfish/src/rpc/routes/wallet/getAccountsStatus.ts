@@ -49,7 +49,9 @@ router.register<typeof GetAccountStatusRequestSchema, GetAccountStatusResponse>(
     const accountsInfo: GetAccountStatusResponse['accounts'] = []
     for (const account of node.wallet.listAccounts()) {
       const headHash = headHashes.get(account.id)
-      const blockHeader = headHash ? await node.chain.getHeader(headHash) : null
+      const blockHeader = headHash
+        ? await node.chain.blockchainDb.getBlockHeader(headHash)
+        : null
       const headInChain = !!blockHeader
       const headSequence = blockHeader?.sequence || 'NULL'
       accountsInfo.push({

@@ -66,9 +66,9 @@ export class ChainProcessor {
       return { hashChanged: false }
     }
 
-    const head = await this.chain.getHeader(this.hash)
+    const head = await this.chain.blockchainDb.getBlockHeader(this.hash)
 
-    Assert.isNotNull(
+    Assert.isNotUndefined(
       head,
       `Chain processor head not found in chain: ${this.hash.toString('hex')}`,
     )

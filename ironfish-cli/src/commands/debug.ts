@@ -102,7 +102,9 @@ export default class Debug extends IronfishCommand {
     for (const [accountId, headHash] of headHashes.entries()) {
       const account = node.wallet.getAccount(accountId)
 
-      const blockHeader = headHash ? await node.chain.getHeader(headHash) : null
+      const blockHeader = headHash
+        ? await node.chain.blockchainDb.getBlockHeader(headHash)
+        : undefined 
       const headInChain = !!blockHeader
       const headSequence = blockHeader?.sequence || 'null'
 
