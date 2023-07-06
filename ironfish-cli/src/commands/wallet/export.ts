@@ -2,7 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { spendingKeyToWords } from '@ironfish/rust-nodejs'
-import { Assert, Bech32m, ErrorUtils, LanguageKey, LanguageUtils } from '@ironfish/sdk'
+import {
+  Assert,
+  Bech32m,
+  ErrorUtils,
+  LanguageKey,
+  LanguageUtils,
+  RpcAccountImportSchema,
+  YupUtils,
+} from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import fs from 'fs'
 import inquirer from 'inquirer'
@@ -56,7 +64,7 @@ export class ExportCommand extends IronfishCommand {
   async start(): Promise<void> {
     const { flags, args } = await this.parse(ExportCommand)
     const { color, local } = flags
-    const account = args.account as string
+    const accountName = args.account as string
     const exportPath = flags.path
     const viewOnly = flags.viewonly
 
@@ -65,7 +73,21 @@ export class ExportCommand extends IronfishCommand {
     }
 
     const client = await this.sdk.connectRpc(local)
-    const response = await client.wallet.exportAccount({ account: account, viewOnly: viewOnly })
+    const response = await client.wallet.exportAccount({
+      account: accountName,
+      viewOnly: viewOnly,
+    })
+
+    const { result: account, error } = await YupUtils.tryValidate(
+      RpcAccountImportSchema,
+      response.content,
+    )
+
+    if (error) {
+      throw error
+    }
+    Assert.isNotNull(account)
+
     let output
 
     if (flags.mnemonic) {
@@ -98,10 +120,10 @@ export class ExportCommand extends IronfishCommand {
         languageCode = LanguageUtils.LANGUAGES[response.language]
       }
       Assert.isTruthy(
-        response.content.account.spendingKey,
+        account.spendingKey,
         'The account you are trying to export does not have a spending key, therefore a mnemonic cannot be generated for it',
       )
-      output = spendingKeyToWords(response.content.account.spendingKey, languageCode)
+      output = spendingKeyToWords(account.spendingKey, languageCode)
     } else if (flags.json) {
       output = JSON.stringify(response.content.account, undefined, '    ')
 
@@ -119,7 +141,7 @@ export class ExportCommand extends IronfishCommand {
         const stats = await fs.promises.stat(resolved)
 
         if (stats.isDirectory()) {
-          resolved = this.sdk.fileSystem.join(resolved, `ironfish-${account}.txt`)
+          resolved = this.sdk.fileSystem.join(resolved, `ironfish-${accountName}.txt`)
         }
 
         if (fs.existsSync(resolved)) {
@@ -135,7 +157,7 @@ export class ExportCommand extends IronfishCommand {
         }
 
         await fs.promises.writeFile(resolved, output)
-        this.log(`Exported account ${response.content.account.name} to ${resolved}`)
+        this.log(`Exported account ${account.name} to ${resolved}`)
       } catch (err: unknown) {
         if (ErrorUtils.isNoEntityError(err)) {
           await fs.promises.mkdir(path.dirname(resolved), { recursive: true })
