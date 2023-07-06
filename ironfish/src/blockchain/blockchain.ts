@@ -50,19 +50,17 @@ import {
   StringEncoding,
   U32_ENCODING,
 } from '../storage'
-import { createDB } from '../storage/utils'
 import { Strategy } from '../strategy'
 import { AsyncUtils, BenchUtils, HashUtils } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { AssetValue, AssetValueEncoding } from './database/assetValue'
-import { HeaderEncoding } from './database/headers'
+import { BlockchainDB } from './database/blockchaindb'
 import { SequenceToHashesValueEncoding } from './database/sequenceToHashes'
 import { TransactionsValueEncoding } from './database/transactions'
 import { NullifierSet } from './nullifierSet/nullifierSet'
 import {
   AssetSchema,
   HashToNextSchema,
-  HeadersSchema,
   MetaSchema,
   SequenceToHashesSchema,
   SequenceToHashSchema,
@@ -83,6 +81,7 @@ export class Blockchain {
   consensus: Consensus
   seedGenesisBlock: SerializedBlock
   config: Config
+  blockchainDb: BlockchainDB
 
   synced = false
   opened = false
@@ -103,8 +102,6 @@ export class Blockchain {
 
   // Contains flat fields
   meta: IDatabaseStore<MetaSchema>
-  // BlockHash -> BlockHeader
-  headers: IDatabaseStore<HeadersSchema>
   // BlockHash -> BlockHeader
   transactions: IDatabaseStore<TransactionsSchema>
   // Sequence -> BlockHash[]
@@ -187,7 +184,6 @@ export class Blockchain {
     this.logger = logger.withTag('blockchain')
     this.metrics = options.metrics || new MetricsMonitor({ logger: this.logger })
     this.verifier = new Verifier(this, options.workerPool)
-    this.db = createDB({ location: options.location })
     this.addSpeed = new RollingAverage(500)
     this.invalid = new LRU(100, null, BufferMap)
     this.orphans = new LRU(100, null, BufferMap)
@@ -197,18 +193,19 @@ export class Blockchain {
     this.seedGenesisBlock = options.genesis
     this.config = options.config
 
+    this.blockchainDb = new BlockchainDB({
+      files: options.files,
+      location: options.location,
+    })
+    // TODO(rohanjadvani): This is temporary to reduce pull request sizes and
+    // will be removed once all stores are migrated
+    this.db = this.blockchainDb.db
+
     // Flat Fields
     this.meta = this.db.addStore({
       name: 'bm',
       keyEncoding: new StringEncoding<'head' | 'latest'>(),
       valueEncoding: BUFFER_ENCODING,
-    })
-
-    // BlockHash -> BlockHeader
-    this.headers = this.db.addStore({
-      name: 'bh',
-      keyEncoding: BUFFER_ENCODING,
-      valueEncoding: new HeaderEncoding(),
     })
 
     // BlockHash -> Transaction[]
@@ -303,12 +300,13 @@ export class Blockchain {
     if (this.opened) {
       return
     }
+
     this.opened = true
+    await this.blockchainDb.open()
+    await this.load()
+  }
 
-    await this.files.mkdir(this.location, { recursive: true })
-    await this.db.open()
-    await this.db.upgrade(VERSION_DATABASE_CHAIN)
-
+  private async load(): Promise<void> {
     let genesisHeader = await this.getHeaderAtSequence(GENESIS_BLOCK_SEQUENCE)
     if (genesisHeader) {
       Assert.isTrue(
@@ -362,8 +360,9 @@ export class Blockchain {
     if (!this.opened) {
       return
     }
+
     this.opened = false
-    await this.db.close()
+    await this.blockchainDb.close()
   }
 
   async addBlock(block: Block): Promise<{
@@ -872,7 +871,7 @@ export class Blockchain {
 
     return this.db.withTransaction(tx, async (tx) => {
       const [header, transactions] = await Promise.all([
-        blockHeader || this.headers.get(blockHash, tx).then((result) => result?.header),
+        blockHeader || this.blockchainDb.getBlockHeader(blockHash, tx),
         this.transactions.get(blockHash, tx),
       ])
 
@@ -894,7 +893,7 @@ export class Blockchain {
    * Returns true if the blockchain has a block at the given hash
    */
   async hasBlock(hash: BlockHash, tx?: IDatabaseTransaction): Promise<boolean> {
-    const header = await this.headers.get(hash, tx)
+    const header = await this.blockchainDb.getBlockHeader(hash, tx)
     return !!header
   }
 
@@ -1034,7 +1033,7 @@ export class Blockchain {
   }
 
   async getHeader(hash: BlockHash, tx?: IDatabaseTransaction): Promise<BlockHeader | null> {
-    return (await this.headers.get(hash, tx))?.header || null
+    return (await this.blockchainDb.getBlockHeader(hash, tx)) || null
   }
 
   async getPrevious(
@@ -1163,7 +1162,7 @@ export class Blockchain {
       }
 
       await this.transactions.del(hash, tx)
-      await this.headers.del(hash, tx)
+      await this.blockchainDb.deleteHeader(hash, tx)
 
       // TODO: use a new heads table to recalculate this
       if (this.latest.hash.equals(hash)) {
@@ -1336,7 +1335,7 @@ export class Blockchain {
     const sequence = block.header.sequence
 
     // Update BlockHash -> BlockHeader
-    await this.headers.put(hash, { header: block.header }, tx)
+    await this.blockchainDb.putBlockHeader(hash, { header: block.header }, tx)
 
     // Update BlockHash -> Transaction
     await this.transactions.add(hash, { transactions: block.transactions }, tx)
