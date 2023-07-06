@@ -4,7 +4,7 @@
 import { LanguageKey } from '../../../utils'
 import { AccountImport } from '../../walletdb/accountValue'
 
-export enum Format {
+export enum AccountFormat {
   JSON = 'JSON',
   Bech32 = 'Bech32',
   SpendingKey = 'SpendingKey',
