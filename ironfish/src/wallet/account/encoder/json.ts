@@ -20,6 +20,11 @@ export class JsonEncoder implements AccountEncoder {
 
   decode(value: string, options?: AccountDecodingOptions): AccountImport {
     const account = JSON.parse(value) as RpcAccountImport
+
+    if (account.createdAt && !account.createdAt.hash) {
+      account.createdAt = null
+    }
+
     const updatedAccount = {
       ...account,
       name: options?.name ? options.name : account.name,

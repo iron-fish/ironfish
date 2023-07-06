@@ -3,6 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { generateKey, LanguageCode, spendingKeyToWords } from '@ironfish/rust-nodejs'
+import fs from 'fs'
+import path from 'path'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { encodeAccount } from '../../../wallet/account/encoder/account'
 import { Bech32JsonEncoder } from '../../../wallet/account/encoder/bech32json'
@@ -172,6 +174,27 @@ describe('Route wallet/importAccount', () => {
         name: name,
         isDefaultAccount: false, // This is false because the default account is already imported in a previous test
       })
+    })
+
+    it('should support importing old account export formats', async () => {
+      const testCaseDir = path.join(__dirname, '__importTestCases__')
+      const importTestCaseFiles = fs.readdirSync(testCaseDir)
+
+      for (const testCaseFile of importTestCaseFiles) {
+        const testCase = await routeTest.sdk.fileSystem.readFile(
+          path.join(testCaseDir, testCaseFile),
+        )
+
+        const response = await routeTest.client
+          .request<ImportResponse>('wallet/importAccount', {
+            account: testCase,
+            name: testCaseFile,
+          })
+          .waitForEnd()
+
+        expect(response.status).toBe(200)
+        expect(response.content.name).not.toBeNull()
+      }
     })
   })
 })
