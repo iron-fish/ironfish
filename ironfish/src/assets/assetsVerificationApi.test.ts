@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import fs from 'fs'
 import nock from 'nock'
 import { AssetsVerificationApi } from './assetsVerificationApi'
 
@@ -145,6 +146,21 @@ describe('Assets Verification API Client', () => {
         timeout: 1000,
       })
       await expect(api.getVerifiedAssets()).rejects.toThrow('timeout of 1000ms exceeded')
+    })
+
+    it('supports file:// URIs', async () => {
+      const contents = JSON.stringify({
+        data: [{ identifier: '0123' }, { identifier: 'abcd' }],
+      })
+      const readFileSpy = jest.spyOn(fs.promises, 'readFile').mockResolvedValue(contents)
+
+      const api = new AssetsVerificationApi({
+        url: 'file:///some/where',
+      })
+      const verifiedAssets = await api.getVerifiedAssets()
+
+      expect(verifiedAssets['assetIds']).toStrictEqual(new Set(['0123', 'abcd']))
+      expect(readFileSpy).toHaveBeenCalledWith('/some/where', { encoding: 'utf8' })
     })
   })
 })
