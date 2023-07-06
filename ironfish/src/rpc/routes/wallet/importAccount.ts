@@ -5,7 +5,7 @@ import { v4 as uuid } from 'uuid'
 import * as yup from 'yup'
 import { decodeAccount } from '../../../wallet/account/encoder/account'
 import { ApiNamespace, router } from '../router'
-import { RpcAccountImport, RpcAccountImportSchema } from './types'
+import { RpcAccountImport } from './types'
 import { deserializeRpcAccountImport } from './utils'
 
 export class ImportError extends Error {}

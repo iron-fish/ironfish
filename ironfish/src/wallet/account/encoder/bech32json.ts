@@ -4,12 +4,13 @@
 import { Bech32m } from '../../../utils'
 import { AccountImport } from '../../walletdb/accountValue'
 import { AccountEncoder } from './encoder'
+import { JsonEncoder } from './json'
 export class Bech32JsonEncoder implements AccountEncoder {
   /**
    * @deprecated Bech32 JSON encoding is deprecated. Use the newest version of the Bech32JSONEncoder.
    */
   encode(value: AccountImport): string {
-    return Bech32m.encode(JSON.stringify(value), 'ironfishaccount00000')
+    return Bech32m.encode(new JsonEncoder().encode(value), 'ironfishaccount00000')
   }
 
   decode(value: string): AccountImport {
@@ -17,6 +18,6 @@ export class Bech32JsonEncoder implements AccountEncoder {
     if (!decoded) {
       throw new Error('Invalid bech32 JSON encoding')
     }
-    return JSON.parse(decoded) as AccountImport
+    return new JsonEncoder().decode(decoded)
   }
 }
