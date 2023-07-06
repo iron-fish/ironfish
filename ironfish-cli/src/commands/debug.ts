@@ -104,7 +104,7 @@ export default class Debug extends IronfishCommand {
 
       const blockHeader = headHash
         ? await node.chain.blockchainDb.getBlockHeader(headHash)
-        : undefined 
+        : undefined
       const headInChain = !!blockHeader
       const headSequence = blockHeader?.sequence || 'null'
 
