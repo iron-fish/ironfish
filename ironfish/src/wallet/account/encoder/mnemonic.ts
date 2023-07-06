@@ -14,7 +14,7 @@ import { ACCOUNT_SCHEMA_VERSION } from '../account'
 import { AccountDecodingOptions, AccountEncoder, AccountEncodingOptions } from './encoder'
 
 export class MnemonicEncoder implements AccountEncoder {
-  encode(value: AccountImport, options?: AccountEncodingOptions): string {
+  encode(value: AccountImport, options: AccountEncodingOptions): string {
     if (!value.spendingKey) {
       throw new EncodingError('Spending key is required for mnemonic key encoder')
     }

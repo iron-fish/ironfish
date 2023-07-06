@@ -9,7 +9,7 @@ import { ACCOUNT_SCHEMA_VERSION } from '../account'
 import { AccountEncoder } from './encoder'
 
 export const BECH32_ACCOUNT_PREFIX = 'ifaccount'
-export class Bech32AccountEncoder implements AccountEncoder {
+export class Bech32Encoder implements AccountEncoder {
   VERSION = 1
 
   encode(value: AccountImport): string {
