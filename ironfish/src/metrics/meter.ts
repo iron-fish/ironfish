@@ -129,7 +129,7 @@ export class Meter {
   }
 
   private update(): void {
-    const now = Date.now()
+    const now = performance.now()
 
     if (this._intervalLastMs === null) {
       this._intervalLastMs = now
