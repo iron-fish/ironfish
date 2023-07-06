@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../../../assert'
-import { AccountImport } from '../../walletdb/accountValue'
+import { AccountExport } from '../../walletdb/accountValue'
 import { Bech32Encoder } from './bech32'
 import { Bech32JsonEncoder } from './bech32json'
 import { AccountDecodingOptions, AccountEncodingOptions, AccountFormat } from './encoder'
@@ -19,7 +19,7 @@ const ENCODER_VERSIONS = [
 ]
 
 export function encodeAccount(
-  value: AccountImport,
+  value: AccountExport,
   format: AccountFormat,
   options: AccountEncodingOptions = {},
 ): string {
@@ -40,7 +40,7 @@ export function encodeAccount(
 export function decodeAccount(
   value: string,
   options: AccountDecodingOptions = {},
-): AccountImport {
+): AccountExport {
   let decoded = null
   for (const encoder of ENCODER_VERSIONS) {
     try {

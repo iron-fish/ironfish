@@ -1,13 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { RpcAccountImport } from '../../../rpc/routes/wallet/types'
+import { RpcAccountExport } from '../../../rpc/routes/wallet/types'
 import { validateAccount } from '../../validator'
-import { AccountImport } from '../../walletdb/accountValue'
+import { AccountExport } from '../../walletdb/accountValue'
 import { AccountDecodingOptions, AccountEncoder } from './encoder'
 
 export class JsonEncoder implements AccountEncoder {
-  encode(value: AccountImport): string {
+  encode(value: AccountExport): string {
     let createdAt = null
     if (value.createdAt) {
       createdAt = {
@@ -18,8 +18,8 @@ export class JsonEncoder implements AccountEncoder {
     return JSON.stringify({ ...value, createdAt })
   }
 
-  decode(value: string, options?: AccountDecodingOptions): AccountImport {
-    const account = JSON.parse(value) as RpcAccountImport
+  decode(value: string, options?: AccountDecodingOptions): AccountExport {
+    const account = JSON.parse(value) as RpcAccountExport
 
     if (account.createdAt && !account.createdAt.hash) {
       account.createdAt = null
@@ -34,7 +34,8 @@ export class JsonEncoder implements AccountEncoder {
             sequence: account.createdAt.sequence,
           }
         : null,
-    } as AccountImport
+    } as AccountExport
+
     validateAccount(updatedAccount)
     return updatedAccount
   }

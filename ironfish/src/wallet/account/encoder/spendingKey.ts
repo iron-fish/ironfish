@@ -2,19 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { generateKeyFromPrivateKey } from '@ironfish/rust-nodejs'
-import { AccountImport } from '../../walletdb/accountValue'
+import { AccountExport } from '../../walletdb/accountValue'
 import { ACCOUNT_SCHEMA_VERSION } from '../account'
 import { AccountDecodingOptions, AccountEncoder } from './encoder'
 
 export class SpendingKeyEncoder implements AccountEncoder {
-  encode(value: AccountImport): string {
+  encode(value: AccountExport): string {
     if (!value.spendingKey) {
       throw new Error('Spending key is required for spending key encoder')
     }
     return value.spendingKey
   }
 
-  decode(spendingKey: string, options: AccountDecodingOptions): AccountImport {
+  decode(spendingKey: string, options: AccountDecodingOptions): AccountExport {
     if (!options.name) {
       throw new Error('Name option is required for spending key encoder')
     }

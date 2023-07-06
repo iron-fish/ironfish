@@ -75,8 +75,8 @@ describe('Route wallet/exportAccount', () => {
 
     expect(response.status).toBe(200)
 
-    const { id: _, ...accountImport } = account.serialize()
-    expect(response.content.account).toEqual(new JsonEncoder().encode(accountImport))
+    const { id: _, ...accountExport } = account.serialize()
+    expect(response.content.account).toEqual(new JsonEncoder().encode(accountExport))
   })
 
   it('should export an account as a bech32 string if requested', async () => {

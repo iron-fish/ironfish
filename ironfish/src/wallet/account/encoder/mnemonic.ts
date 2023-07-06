@@ -8,12 +8,12 @@ import {
   wordsToSpendingKey,
 } from '@ironfish/rust-nodejs'
 import { LanguageUtils } from '../../../utils'
-import { AccountImport } from '../../walletdb/accountValue'
+import { AccountExport } from '../../walletdb/accountValue'
 import { ACCOUNT_SCHEMA_VERSION } from '../account'
 import { AccountDecodingOptions, AccountEncoder, AccountEncodingOptions } from './encoder'
 
 export class MnemonicEncoder implements AccountEncoder {
-  encode(value: AccountImport, options: AccountEncodingOptions): string {
+  encode(value: AccountExport, options: AccountEncodingOptions): string {
     if (!value.spendingKey) {
       throw new Error('Spending key is required for mnemonic key encoder')
     }
@@ -26,7 +26,7 @@ export class MnemonicEncoder implements AccountEncoder {
     )
   }
 
-  decode(value: string, options: AccountDecodingOptions): AccountImport {
+  decode(value: string, options: AccountDecodingOptions): AccountExport {
     if (!options.name) {
       throw new Error('Name option is required for mnemonic key encoder')
     }

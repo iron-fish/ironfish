@@ -5,13 +5,13 @@ import { v4 as uuid } from 'uuid'
 import * as yup from 'yup'
 import { decodeAccount } from '../../../wallet/account/encoder/account'
 import { ApiNamespace, router } from '../router'
-import { RpcAccountImport } from './types'
-import { deserializeRpcAccountImport } from './utils'
+import { RpcAccountExport } from './types'
+import { deserializeRpcAccountExport } from './utils'
 
 export class ImportError extends Error {}
 
 export type ImportAccountRequest = {
-  account: RpcAccountImport | string
+  account: RpcAccountExport | string
   name?: string
   rescan?: boolean
 }
@@ -25,7 +25,7 @@ export const ImportAccountRequestSchema: yup.ObjectSchema<ImportAccountRequest> 
   .object({
     rescan: yup.boolean().optional().default(true),
     name: yup.string().optional(),
-    account: yup.mixed<RpcAccountImport | string>().defined(),
+    account: yup.mixed<RpcAccountExport | string>().defined(),
   })
   .defined()
 
@@ -40,18 +40,18 @@ router.register<typeof ImportAccountRequestSchema, ImportResponse>(
   `${ApiNamespace.wallet}/importAccount`,
   ImportAccountRequestSchema,
   async (request, node): Promise<void> => {
-    let accountImport = null
+    let accountExport = null
     if (typeof request.data.account === 'string') {
-      accountImport = decodeAccount(request.data.account, {
+      accountExport = decodeAccount(request.data.account, {
         name: request.data.name,
       })
     } else {
-      accountImport = deserializeRpcAccountImport(request.data.account)
+      accountExport = deserializeRpcAccountExport(request.data.account)
     }
 
     const account = await node.wallet.importAccount({
       id: uuid(),
-      ...accountImport,
+      ...accountExport,
     })
 
     if (request.data.rescan) {

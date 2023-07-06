@@ -6,7 +6,7 @@ import { LanguageKey, LanguageUtils } from '../../../utils'
 import { encodeAccount } from '../../../wallet/account/encoder/account'
 import { AccountFormat } from '../../../wallet/account/encoder/encoder'
 import { ApiNamespace, router } from '../router'
-import { RpcAccountImport } from './types'
+import { RpcAccountExport } from './types'
 import { getAccount } from './utils'
 
 export type ExportAccountRequest = {
@@ -16,7 +16,7 @@ export type ExportAccountRequest = {
   language?: LanguageKey
 }
 export type ExportAccountResponse = {
-  account: string | RpcAccountImport | null
+  account: string | RpcAccountExport | null
 }
 
 export const ExportAccountRequestSchema: yup.ObjectSchema<ExportAccountRequest> = yup
@@ -30,7 +30,7 @@ export const ExportAccountRequestSchema: yup.ObjectSchema<ExportAccountRequest> 
 
 export const ExportAccountResponseSchema: yup.ObjectSchema<ExportAccountResponse> = yup
   .object({
-    account: yup.mixed<RpcAccountImport | string>().nullable(),
+    account: yup.mixed<RpcAccountExport | string>().nullable(),
   })
   .defined()
 

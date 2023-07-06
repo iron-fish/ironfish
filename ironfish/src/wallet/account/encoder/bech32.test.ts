@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { generateKey } from '@ironfish/rust-nodejs'
 import { Bech32m } from '../../../utils'
-import { AccountImport } from '../../walletdb/accountValue'
+import { AccountExport } from '../../walletdb/accountValue'
 import { ACCOUNT_SCHEMA_VERSION } from '../account'
 import { BECH32_ACCOUNT_PREFIX, Bech32Encoder } from './bech32'
 
@@ -12,7 +12,7 @@ describe('Bech32AccountEncoder', () => {
   const encoder = new Bech32Encoder()
 
   it('encodes the account as a bech32 string and decodes the string', () => {
-    const accountImport: AccountImport = {
+    const accountExport: AccountExport = {
       version: ACCOUNT_SCHEMA_VERSION,
       name: 'test',
       spendingKey: key.spendingKey,
@@ -23,15 +23,15 @@ describe('Bech32AccountEncoder', () => {
       createdAt: null,
     }
 
-    const encoded = encoder.encode(accountImport)
+    const encoded = encoder.encode(accountExport)
     expect(encoded.startsWith(BECH32_ACCOUNT_PREFIX)).toBe(true)
 
     const decoded = encoder.decode(encoded)
-    expect(decoded).toMatchObject(accountImport)
+    expect(decoded).toMatchObject(accountExport)
   })
 
   it('encodes and decodes accounts with non-null createdAt', () => {
-    const accountImport: AccountImport = {
+    const accountExport: AccountExport = {
       version: ACCOUNT_SCHEMA_VERSION,
       name: 'test',
       spendingKey: key.spendingKey,
@@ -48,15 +48,15 @@ describe('Bech32AccountEncoder', () => {
       },
     }
 
-    const encoded = encoder.encode(accountImport)
+    const encoded = encoder.encode(accountExport)
     expect(encoded.startsWith(BECH32_ACCOUNT_PREFIX)).toBe(true)
 
     const decoded = encoder.decode(encoded)
-    expect(decoded).toMatchObject(accountImport)
+    expect(decoded).toMatchObject(accountExport)
   })
 
   it('encodes and decodes view-only accounts', () => {
-    const accountImport: AccountImport = {
+    const accountExport: AccountExport = {
       version: ACCOUNT_SCHEMA_VERSION,
       name: 'test',
       spendingKey: null,
@@ -67,11 +67,11 @@ describe('Bech32AccountEncoder', () => {
       createdAt: null,
     }
 
-    const encoded = encoder.encode(accountImport)
+    const encoded = encoder.encode(accountExport)
     expect(encoded.startsWith(BECH32_ACCOUNT_PREFIX)).toBe(true)
 
     const decoded = encoder.decode(encoded)
-    expect(decoded).toMatchObject(accountImport)
+    expect(decoded).toMatchObject(accountExport)
   })
 
   it('throws an error if it cannot decode the bech32 string', () => {
@@ -87,7 +87,7 @@ describe('Bech32AccountEncoder', () => {
   })
 
   it('throws an error when decoding if the version does not match', () => {
-    const accountImport: AccountImport = {
+    const accountExport: AccountExport = {
       version: ACCOUNT_SCHEMA_VERSION,
       name: 'test',
       spendingKey: null,
@@ -100,7 +100,7 @@ describe('Bech32AccountEncoder', () => {
 
     encoder.VERSION = 0
 
-    const encoded = encoder.encode(accountImport)
+    const encoded = encoder.encode(accountExport)
     expect(encoded.startsWith(BECH32_ACCOUNT_PREFIX)).toBe(true)
 
     encoder.VERSION = 1

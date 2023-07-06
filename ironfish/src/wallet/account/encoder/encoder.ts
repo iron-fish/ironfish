@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { LanguageKey } from '../../../utils'
-import { AccountImport } from '../../walletdb/accountValue'
+import { AccountExport } from '../../walletdb/accountValue'
 
 export enum AccountFormat {
   JSON = 'JSON',
@@ -20,7 +20,7 @@ export type AccountDecodingOptions = {
 }
 
 export type AccountEncoder = {
-  encode(value: AccountImport, options?: AccountEncodingOptions): string
+  encode(value: AccountExport, options?: AccountEncodingOptions): string
 
-  decode(value: string, options?: AccountDecodingOptions): AccountImport
+  decode(value: string, options?: AccountDecodingOptions): AccountExport
 }

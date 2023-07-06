@@ -4,7 +4,7 @@
 import { PUBLIC_ADDRESS_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { Bech32m } from '../../../utils'
-import { AccountImport, KEY_LENGTH, VIEW_KEY_LENGTH } from '../../walletdb/accountValue'
+import { AccountExport, KEY_LENGTH, VIEW_KEY_LENGTH } from '../../walletdb/accountValue'
 import { ACCOUNT_SCHEMA_VERSION } from '../account'
 import { AccountDecodingOptions, AccountEncoder } from './encoder'
 
@@ -12,7 +12,7 @@ export const BECH32_ACCOUNT_PREFIX = 'ifaccount'
 export class Bech32Encoder implements AccountEncoder {
   VERSION = 1
 
-  encode(value: AccountImport): string {
+  encode(value: AccountExport): string {
     const bw = bufio.write(this.getSize(value))
     bw.writeU16(this.VERSION)
 
@@ -36,7 +36,7 @@ export class Bech32Encoder implements AccountEncoder {
     return Bech32m.encode(bw.render().toString('hex'), BECH32_ACCOUNT_PREFIX)
   }
 
-  decode(value: string, options?: AccountDecodingOptions): AccountImport {
+  decode(value: string, options?: AccountDecodingOptions): AccountExport {
     const [hexEncoding, _] = Bech32m.decode(value)
 
     if (hexEncoding === null) {
@@ -84,7 +84,7 @@ export class Bech32Encoder implements AccountEncoder {
     }
   }
 
-  getSize(value: AccountImport): number {
+  getSize(value: AccountExport): number {
     let size = 0
     size += 2 // encoder version
     size += bufio.sizeVarString(value.name, 'utf8')

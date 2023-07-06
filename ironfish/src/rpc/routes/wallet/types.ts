@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import * as yup from 'yup'
-import { AccountImport } from '../../../wallet/walletdb/accountValue'
+import { AccountExport } from '../../../wallet/walletdb/accountValue'
 
 export type RpcAccountTransaction = {
   hash: string
@@ -79,11 +79,11 @@ export const RpcSpendSchema: yup.ObjectSchema<RpcSpend> = yup
   })
   .defined()
 
-export type RpcAccountImport = Omit<AccountImport, 'createdAt'> & {
+export type RpcAccountExport = Omit<AccountExport, 'createdAt'> & {
   createdAt: { hash: string; sequence: number } | null
 }
 
-export const RpcAccountImportSchema: yup.ObjectSchema<RpcAccountImport> = yup
+export const RpcAccountExportSchema: yup.ObjectSchema<RpcAccountExport> = yup
   .object({
     name: yup.string().defined(),
     spendingKey: yup.string().nullable().defined(),
