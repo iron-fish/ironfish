@@ -78,7 +78,7 @@ export default class Prune extends IronfishCommand {
 
     if (flags.compact) {
       CliUx.ux.action.start(`Compacting Database`)
-      await node.chain.blockchainDb.db.compact()
+      await node.chain.blockchainDb.compact()
       CliUx.ux.action.stop()
     }
 

@@ -3,4 +3,4 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 export * from './blockchain'
-export * from './blockchaindb'
+export { VERSION_DATABASE_CHAIN } from './database/blockchaindb'

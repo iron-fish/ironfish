@@ -36,8 +36,8 @@ import { IDatabaseTransaction } from '../storage'
 import { Strategy } from '../strategy'
 import { AsyncUtils, BenchUtils, HashUtils } from '../utils'
 import { WorkerPool } from '../workerPool'
-import { BlockchainDB } from './blockchaindb'
 import { AssetValue } from './database/assetValue'
+import { BlockchainDB } from './database/blockchaindb'
 
 export class Blockchain {
   logger: Logger

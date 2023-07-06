@@ -40,8 +40,8 @@ describe('Blockchain', () => {
     expect(chain.hasGenesisBlock).toBe(true)
     expect(await chain.blockchainDb.getNotesSize()).toBeGreaterThan(0)
     expect(await chain.blockchainDb.getNullifiersSize()).toBeGreaterThan(0)
-    expect(await chain.blockchainDb.getPreviousBlockHeader(genesis.header)).toBe(null)
-    expect(await chain.blockchainDb.getNextBlockHeader(genesis.header)).toBe(null)
+    expect(await chain.blockchainDb.getPreviousBlockHeader(genesis.header)).toBeUndefined()
+    expect(await chain.blockchainDb.getNextBlockHeader(genesis.header)).toBeUndefined()
   })
 
   it('add blocks with forks', async () => {
@@ -91,14 +91,14 @@ describe('Blockchain', () => {
     expect(
       (await chain.blockchainDb.getNextBlockHeader(headerA1))?.hash?.equals(headerB2.hash),
     ).toBe(true)
-    expect(await chain.blockchainDb.getNextBlockHeader(headerA2)).toBe(null)
+    expect(await chain.blockchainDb.getNextBlockHeader(headerA2)).toBeUndefined()
     expect(
       (await chain.blockchainDb.getNextBlockHeader(headerB2))?.hash?.equals(headerB3.hash),
     ).toBe(true)
-    expect(await chain.blockchainDb.getNextBlockHeader(headerB3)).toBe(null)
+    expect(await chain.blockchainDb.getNextBlockHeader(headerB3)).toBeUndefined()
 
     // getPrevious
-    expect(await chain.blockchainDb.getPreviousBlockHeader(chain.genesis)).toBe(null)
+    expect(await chain.blockchainDb.getPreviousBlockHeader(chain.genesis)).toBeUndefined()
     expect(
       (await chain.blockchainDb.getPreviousBlockHeader(headerA1))?.hash?.equals(
         chain.genesis.hash,

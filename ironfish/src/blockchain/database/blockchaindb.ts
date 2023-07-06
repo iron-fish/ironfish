@@ -1,23 +1,23 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Assert } from '../assert'
-import { FileSystem } from '../fileSystems'
-import { MerkleTree, Witness } from '../merkletree'
-import { LeafEncoding } from '../merkletree/database/leaves'
-import { NodeEncoding } from '../merkletree/database/nodes'
-import { NoteHasher } from '../merkletree/hasher'
-import { LeavesSchema } from '../merkletree/schema'
-import { Block, BlockHeader } from '../primitives'
-import { BlockHash } from '../primitives/blockheader'
+import { Assert } from '../../assert'
+import { FileSystem } from '../../fileSystems'
+import { MerkleTree, Witness } from '../../merkletree'
+import { LeafEncoding } from '../../merkletree/database/leaves'
+import { NodeEncoding } from '../../merkletree/database/nodes'
+import { NoteHasher } from '../../merkletree/hasher'
+import { LeavesSchema } from '../../merkletree/schema'
+import { Block, BlockHeader } from '../../primitives'
+import { BlockHash } from '../../primitives/blockheader'
 import {
   NoteEncrypted,
   NoteEncryptedHash,
   SerializedNoteEncrypted,
   SerializedNoteEncryptedHash,
-} from '../primitives/noteEncrypted'
-import { Nullifier } from '../primitives/nullifier'
-import { TransactionHash } from '../primitives/transaction'
+} from '../../primitives/noteEncrypted'
+import { Nullifier } from '../../primitives/nullifier'
+import { TransactionHash } from '../../primitives/transaction'
 import {
   BUFFER_ENCODING,
   IDatabase,
@@ -26,13 +26,9 @@ import {
   SchemaValue,
   StringEncoding,
   U32_ENCODING,
-} from '../storage'
-import { createDB } from '../storage/utils'
-import { AssetValue, AssetValueEncoding } from './database/assetValue'
-import { HeaderEncoding, HeaderValue } from './database/headers'
-import { SequenceToHashesValueEncoding } from './database/sequenceToHashes'
-import { TransactionsValue, TransactionsValueEncoding } from './database/transactions'
-import { NullifierSet } from './nullifierSet/nullifierSet'
+} from '../../storage'
+import { createDB } from '../../storage/utils'
+import { NullifierSet } from '../nullifierSet/nullifierSet'
 import {
   AssetSchema,
   HashToNextSchema,
@@ -42,7 +38,11 @@ import {
   SequenceToHashSchema,
   TransactionHashToBlockHashSchema,
   TransactionsSchema,
-} from './schema'
+} from '../schema'
+import { AssetValue, AssetValueEncoding } from './assetValue'
+import { HeaderEncoding, HeaderValue } from './headers'
+import { SequenceToHashesValueEncoding } from './sequenceToHashes'
+import { TransactionsValue, TransactionsValueEncoding } from './transactions'
 
 export const VERSION_DATABASE_CHAIN = 14
 
@@ -493,5 +493,13 @@ export class BlockchainDB {
 
   async getVersion(): Promise<number> {
     return this.db.getVersion()
+  }
+
+  transaction(): IDatabaseTransaction {
+    return this.db.transaction()
+  }
+
+  async size(): Promise<number> {
+    return this.db.size()
   }
 }
