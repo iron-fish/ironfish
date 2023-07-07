@@ -7,7 +7,7 @@ import { MerkleTree, NoteHasher, Witness } from '../../merkletree'
 import { LeafEncoding } from '../../merkletree/database/leaves'
 import { NodeEncoding } from '../../merkletree/database/nodes'
 import { LeavesSchema } from '../../merkletree/schema'
-import { BlockHeader } from '../../primitives'
+import { Block, BlockHeader } from '../../primitives'
 import { BlockHash } from '../../primitives/blockheader'
 import {
   NoteEncrypted,
@@ -15,6 +15,7 @@ import {
   SerializedNoteEncrypted,
   SerializedNoteEncryptedHash,
 } from '../../primitives/noteEncrypted'
+import { Nullifier } from '../../primitives/nullifier'
 import { TransactionHash } from '../../primitives/transaction'
 import {
   BUFFER_ENCODING,
@@ -26,6 +27,7 @@ import {
   U32_ENCODING,
 } from '../../storage'
 import { createDB } from '../../storage/utils'
+import { NullifierSet } from '../nullifierSet/nullifierSet'
 import {
   AssetSchema,
   HashToNextSchema,
@@ -71,6 +73,8 @@ export class BlockchainDB {
     SerializedNoteEncrypted,
     SerializedNoteEncryptedHash
   >
+
+  nullifiers: NullifierSet
 
   constructor(options: { location: string; files: FileSystem }) {
     this.location = options.location
@@ -140,6 +144,8 @@ export class BlockchainDB {
       depth: 32,
       defaultValue: Buffer.alloc(32),
     })
+
+    this.nullifiers = new NullifierSet({ db: this.db, name: 'u' })
   }
 
   async open(): Promise<void> {
@@ -410,5 +416,32 @@ export class BlockchainDB {
     tx?: IDatabaseTransaction,
   ): Promise<SchemaValue<LeavesSchema<NoteEncryptedHash>>> {
     return this.notes.getLeaf(index, tx)
+  }
+
+    async getNullifiersSize(tx?: IDatabaseTransaction): Promise<number> {
+    return this.nullifiers.size(tx)
+  }
+
+  async getTransactionHashByNullifier(
+    nullifier: Nullifier,
+    tx?: IDatabaseTransaction,
+  ): Promise<TransactionHash | undefined> {
+    return this.nullifiers.get(nullifier, tx)
+  }
+
+    async connectBlockToNullifiers(block: Block, tx?: IDatabaseTransaction): Promise<void> {
+    return this.nullifiers.connectBlock(block, tx)
+  }
+
+    async disconnectBlockFromNullifiers(block: Block, tx?: IDatabaseTransaction): Promise<void> {
+    return this.nullifiers.disconnectBlock(block, tx)
+  }
+
+    async hasNullifier(nullifier: Nullifier, tx?: IDatabaseTransaction): Promise<boolean> {
+    return this.nullifiers.contains(nullifier, tx)
+  }
+
+  async clearNullifiers(tx?: IDatabaseTransaction): Promise<void> {
+    return this.nullifiers.clear(tx)
   }
 }

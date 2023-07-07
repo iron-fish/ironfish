@@ -35,19 +35,18 @@ import {
 import { NoteEncrypted, NoteEncryptedHash } from '../primitives/noteEncrypted'
 import { Target } from '../primitives/target'
 import { Transaction, TransactionHash } from '../primitives/transaction'
-import { IDatabase, IDatabaseTransaction, SchemaValue } from '../storage'
+import { IDatabaseTransaction, SchemaValue } from '../storage'
 import { Strategy } from '../strategy'
 import { AsyncUtils, BenchUtils, HashUtils } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { AssetValue } from './database/assetValue'
 import { BlockchainDB } from './database/blockchaindb'
 import { TransactionsValue } from './database/transactions'
-import { NullifierSet } from './nullifierSet/nullifierSet'
+import { Nullifier } from '../primitives/nullifier'
 
 export const VERSION_DATABASE_CHAIN = 14
 
 export class Blockchain {
-  db: IDatabase
   logger: Logger
   strategy: Strategy
   verifier: Verifier
@@ -61,7 +60,6 @@ export class Blockchain {
 
   synced = false
   opened = false
-  nullifiers: NullifierSet
 
   addSpeed: RollingAverage
   invalid: LRU<BlockHash, VerificationResultReason>
@@ -152,11 +150,6 @@ export class Blockchain {
       files: options.files,
       location: options.location,
     })
-    // TODO(rohanjadvani): This is temporary to reduce pull request sizes and
-    // will be removed once all stores are migrated
-    this.db = this.blockchainDb.db
-
-    this.nullifiers = new NullifierSet({ db: this.db, name: 'u' })
   }
 
   get isEmpty(): boolean {
@@ -271,7 +264,7 @@ export class Blockchain {
   }> {
     let connectResult = null
     try {
-      connectResult = await this.db.transaction(async (tx) => {
+      connectResult = await this.blockchainDb.db.transaction(async (tx) => {
         const hash = block.header.recomputeHash()
 
         if (!this.hasGenesisBlock && block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
@@ -767,7 +760,7 @@ export class Blockchain {
     const blockHeader = hashOrHeader instanceof BlockHeader ? hashOrHeader : null
     const blockHash = hashOrHeader instanceof BlockHeader ? hashOrHeader.hash : hashOrHeader
 
-    return this.db.withTransaction(tx, async (tx) => {
+    return this.blockchainDb.db.withTransaction(tx, async (tx) => {
       const [header, transactions] = await Promise.all([
         blockHeader || this.blockchainDb.getBlockHeader(blockHash, tx),
         this.blockchainDb.getTransactions(blockHash, tx),
@@ -856,7 +849,7 @@ export class Blockchain {
   ): Promise<Block> {
     const transactions = [minersFee, ...userTransactions]
 
-    return await this.db.transaction(async (tx) => {
+    return await this.blockchainDb.db.transaction(async (tx) => {
       const startTime = BenchUtils.start()
 
       let previousBlockHash
@@ -1083,8 +1076,20 @@ export class Blockchain {
     return this.blockchainDb.truncateNotes(pastSize, tx)
   }
 
+  async getNullifiersSize(tx?: IDatabaseTransaction): Promise<number> {
+    return this.blockchainDb.getNullifiersSize(tx)
+  }
+
+  async getTransactionHashByNullifier(nullifier: Nullifier, tx?: IDatabaseTransaction): Promise<Buffer | undefined> {
+    return this.blockchainDb.getTransactionHashByNullifier(nullifier, tx)
+  }
+
+    async hasNullifier(nullifier: Nullifier, tx?: IDatabaseTransaction): Promise<boolean> {
+    return this.blockchainDb.hasNullifier(nullifier, tx)
+  }
+
   async removeBlock(hash: Buffer): Promise<void> {
-    await this.db.transaction(async (tx) => {
+    await this.blockchainDb.db.transaction(async (tx) => {
       this.logger.debug(`Deleting block ${hash.toString('hex')}`)
 
       const exists = await this.hasBlock(hash, tx)
@@ -1241,7 +1246,7 @@ export class Blockchain {
     )
 
     await this.blockchainDb.addNotesBatch(block.notes(), tx)
-    await this.nullifiers.connectBlock(block, tx)
+    await this.blockchainDb.connectBlockToNullifiers(block, tx)
 
     for (const transaction of block.transactions) {
       await this.saveConnectedMintsToAssetsStore(transaction, tx)
@@ -1283,7 +1288,7 @@ export class Blockchain {
 
     await Promise.all([
       this.blockchainDb.truncateNotes(prev.noteSize, tx),
-      this.nullifiers.disconnectBlock(block, tx),
+      this.blockchainDb.disconnectBlockFromNullifiers(block, tx),
     ])
 
     await this.blockchainDb.putMetaHash('head', prev.hash, tx)

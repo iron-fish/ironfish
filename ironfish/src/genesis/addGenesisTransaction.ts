@@ -53,7 +53,7 @@ export async function addGenesisTransaction(
         account.viewKey,
         BigInt(initialNoteIndex + noteIndex),
       )
-      if (await node.chain.nullifiers.contains(nullifier)) {
+      if (await node.chain.hasNullifier(nullifier)) {
         continue
       }
 

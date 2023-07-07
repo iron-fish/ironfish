@@ -254,7 +254,7 @@ export class Verifier {
         // (and spends) can eventually become valid if the chain forks to them.
         // Calculating the notes rootHash is also expensive at the time of writing, so performance test
         // before verifying the rootHash on spends.
-        if (await this.chain.nullifiers.contains(spend.nullifier, tx)) {
+        if (await this.chain.hasNullifier(spend.nullifier, tx)) {
           return VerificationResultReason.DOUBLE_SPEND
         }
       }
@@ -432,7 +432,7 @@ export class Verifier {
     }
 
     for (const spend of block.spends()) {
-      if (await this.chain.nullifiers.contains(spend.nullifier, tx)) {
+      if (await this.chain.hasNullifier(spend.nullifier, tx)) {
         return { valid: false, reason: VerificationResultReason.DOUBLE_SPEND }
       }
     }

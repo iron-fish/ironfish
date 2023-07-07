@@ -58,10 +58,10 @@ async function toAddDoubleSpendBlock(
   const transactionHashMock = jest
     .spyOn(self, 'transactionHashHasBlock')
     .mockResolvedValue(false)
-  const containsMock = jest.spyOn(self.nullifiers, 'contains').mockResolvedValue(false)
+  const containsMock = jest.spyOn(self, 'hasNullifier').mockResolvedValue(false)
   const addNullifierMock = jest
-    .spyOn(self.nullifiers['nullifiers'], 'add')
-    .mockImplementation((...args) => self.nullifiers['nullifiers'].put(...args))
+    .spyOn(self['blockchainDb'].nullifiers['nullifiers'], 'add')
+    .mockImplementation((...args) => self['blockchainDb'].nullifiers['nullifiers'].put(...args))
 
   const result = await self.addBlock(other)
 

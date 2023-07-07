@@ -39,7 +39,7 @@ describe('Blockchain', () => {
     expect(chain.isEmpty).toBe(false)
     expect(chain.hasGenesisBlock).toBe(true)
     expect(await chain.getNotesSize()).toBeGreaterThan(0)
-    expect(await chain.nullifiers.size()).toBeGreaterThan(0)
+    expect(await chain.getNullifiersSize()).toBeGreaterThan(0)
     expect(await chain.getPrevious(genesis.header)).toBe(null)
     expect(await chain.getNext(genesis.header)).toBe(null)
   })
@@ -475,9 +475,9 @@ describe('Blockchain', () => {
 
       // Counts before adding any blocks
       const countNoteA = await nodeA.chain.getNotesSize()
-      const countNullifierA = await nodeA.chain.nullifiers.size()
+      const countNullifierA = await nodeA.chain.getNullifiersSize()
       const countNoteB = await nodeB.chain.getNotesSize()
-      const countNullifierB = await nodeB.chain.nullifiers.size()
+      const countNullifierB = await nodeB.chain.getNullifiersSize()
 
       // Create nodeA blocks
       const blockA1 = await useMinerBlockFixture(nodeA.chain, undefined, accountA)
@@ -535,9 +535,9 @@ describe('Blockchain', () => {
       expect(addedNoteA4.equals(txA2.getNote(1).hash())).toBe(true)
 
       // Check nodeA has nullifiers from blockA2
-      expect(await nodeA.chain.nullifiers.size()).toBe(countNullifierA + 1)
+      expect(await nodeA.chain.getNullifiersSize()).toBe(countNullifierA + 1)
 
-      let addedNullifierA1 = await nodeA.chain.nullifiers.get(txA2.getSpend(0).nullifier)
+      let addedNullifierA1 = await nodeA.chain.getTransactionHashByNullifier(txA2.getSpend(0).nullifier)
       expect(addedNullifierA1).toBeDefined()
       expect(addedNullifierA1?.equals(txA2.hash())).toBe(true)
 
@@ -555,8 +555,8 @@ describe('Blockchain', () => {
       expect(addedNoteB5.equals(txB3.getNote(1).hash())).toBe(true)
 
       // Check nodeB has nullifiers from blockB3
-      expect(await nodeB.chain.nullifiers.size()).toBe(countNullifierB + 1)
-      const addedNullifierB1 = await nodeB.chain.nullifiers.get(txB3.getSpend(0).nullifier)
+      expect(await nodeB.chain.getNullifiersSize()).toBe(countNullifierB + 1)
+      const addedNullifierB1 = await nodeB.chain.getTransactionHashByNullifier(txB3.getSpend(0).nullifier)
       expect(addedNullifierB1).toBeDefined()
       expect(addedNullifierB1?.equals(txB3.hash())).toBe(true)
 
@@ -579,8 +579,8 @@ describe('Blockchain', () => {
       expect(addedNoteA5.equals(txB3.getNote(1).hash())).toBe(true)
 
       // Check nodeA's chain has removed blockA2 nullifiers and added blockB3
-      expect(await nodeA.chain.nullifiers.size()).toBe(countNullifierA + 1)
-      addedNullifierA1 = await nodeA.chain.nullifiers.get(txB3.getSpend(0).nullifier)
+      expect(await nodeA.chain.getNullifiersSize()).toBe(countNullifierA + 1)
+      addedNullifierA1 = await nodeA.chain.getTransactionHashByNullifier(txB3.getSpend(0).nullifier)
       expect(addedNullifierA1).toBeDefined()
       expect(addedNullifierA1?.equals(txB3.hash())).toBe(true)
     }, 300000)
