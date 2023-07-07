@@ -130,7 +130,7 @@ export default class RepairChain extends IronfishCommand {
   ): Promise<void> {
     Assert.isNotNull(node.chain.head)
 
-    const noNotes = (await node.chain.notes.size()) === 0
+    const noNotes = (await node.chain.getNotesSize()) === 0
     const noNullifiers = (await node.chain.nullifiers.size()) === 0
     const headBlock = await node.chain.getBlock(node.chain.head)
     Assert.isNotNull(headBlock)
@@ -155,7 +155,7 @@ export default class RepairChain extends IronfishCommand {
     const noteSize = prev && prev.noteSize !== null ? prev.noteSize : 0
 
     CliUx.ux.action.start('Clearing notes MerkleTree')
-    await node.chain.notes.truncate(noteSize)
+    await node.chain.truncateNotes(noteSize)
     CliUx.ux.action.stop()
 
     CliUx.ux.action.start('Clearing nullifier set')

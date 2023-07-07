@@ -1059,7 +1059,7 @@ export class Wallet {
         .toString('hex')} is missing an index and cannot be spent.`,
     )
 
-    const witness = await this.chain.notes.witness(note.index, treeSize)
+    const witness = await this.chain.getNoteWitness(note.index, treeSize)
 
     Assert.isNotNull(
       witness,
