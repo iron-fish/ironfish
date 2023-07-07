@@ -42,13 +42,7 @@ import {
 } from '../primitives/noteEncrypted'
 import { Target } from '../primitives/target'
 import { Transaction, TransactionHash } from '../primitives/transaction'
-import {
-  BUFFER_ENCODING,
-  IDatabase,
-  IDatabaseStore,
-  IDatabaseTransaction,
-  U32_ENCODING,
-} from '../storage'
+import { BUFFER_ENCODING, IDatabase, IDatabaseStore, IDatabaseTransaction } from '../storage'
 import { Strategy } from '../strategy'
 import { AsyncUtils, BenchUtils, HashUtils } from '../utils'
 import { WorkerPool } from '../workerPool'
@@ -56,12 +50,7 @@ import { AssetValue, AssetValueEncoding } from './database/assetValue'
 import { BlockchainDB } from './database/blockchaindb'
 import { TransactionsValue } from './database/transactions'
 import { NullifierSet } from './nullifierSet/nullifierSet'
-import {
-  AssetSchema,
-  HashToNextSchema,
-  SequenceToHashSchema,
-  TransactionHashToBlockHashSchema,
-} from './schema'
+import { AssetSchema, HashToNextSchema, TransactionHashToBlockHashSchema } from './schema'
 
 export const VERSION_DATABASE_CHAIN = 14
 
@@ -95,8 +84,6 @@ export class Blockchain {
   // Whether to seed the chain with a genesis block when opening the database.
   autoSeed: boolean
 
-  // Sequence -> BlockHash
-  sequenceToHash: IDatabaseStore<SequenceToHashSchema>
   // BlockHash -> BlockHash
   hashToNextHash: IDatabaseStore<HashToNextSchema>
   // Asset Identifier -> Asset
@@ -189,13 +176,6 @@ export class Blockchain {
     // TODO(rohanjadvani): This is temporary to reduce pull request sizes and
     // will be removed once all stores are migrated
     this.db = this.blockchainDb.db
-
-    // number -> BlockHash
-    this.sequenceToHash = this.db.addStore({
-      name: 'bS',
-      keyEncoding: U32_ENCODING,
-      valueEncoding: BUFFER_ENCODING,
-    })
 
     this.hashToNextHash = this.db.addStore({
       name: 'bH',
@@ -893,6 +873,18 @@ export class Blockchain {
     return this.blockchainDb.putTransaction(hash, value, tx)
   }
 
+  async clearSequenceToHash(tx?: IDatabaseTransaction): Promise<void> {
+    return this.blockchainDb.clearSequenceToHash(tx)
+  }
+
+  async putSequenceToHash(
+    sequence: number,
+    hash: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    return this.blockchainDb.putSequenceToHash(sequence, hash, tx)
+  }
+
   /**
    * Create a new block on the chain.
    *
@@ -1025,7 +1017,7 @@ export class Blockchain {
     sequence: number,
     tx?: IDatabaseTransaction,
   ): Promise<BlockHash | null> {
-    const hash = await this.sequenceToHash.get(sequence, tx)
+    const hash = await this.blockchainDb.getBlockHashAtSequence(sequence, tx)
     return hash || null
   }
 
@@ -1041,7 +1033,7 @@ export class Blockchain {
    * Gets the header of the block at the sequence on the head chain
    */
   async getHeaderAtSequence(sequence: number): Promise<BlockHeader | null> {
-    const hash = await this.sequenceToHash.get(sequence)
+    const hash = await this.blockchainDb.getBlockHashAtSequence(sequence)
 
     if (!hash) {
       return null
@@ -1217,7 +1209,7 @@ export class Blockchain {
       await this.hashToNextHash.put(prev.hash, block.header.hash, tx)
     }
 
-    await this.sequenceToHash.put(block.header.sequence, block.header.hash, tx)
+    await this.blockchainDb.putSequenceToHash(block.header.sequence, block.header.hash, tx)
     await this.blockchainDb.putMetaHash('head', block.header.hash, tx)
 
     // If the tree sizes don't match the previous block, we can't verify if the tree
@@ -1267,7 +1259,7 @@ export class Blockchain {
     }
 
     await this.hashToNextHash.del(prev.hash, tx)
-    await this.sequenceToHash.del(block.header.sequence, tx)
+    await this.blockchainDb.deleteSequenceToHash(block.header.sequence, tx)
 
     Assert.isNotNull(prev.noteSize)
 
