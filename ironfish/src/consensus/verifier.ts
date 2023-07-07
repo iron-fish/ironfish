@@ -245,7 +245,7 @@ export class Verifier {
       return verificationResult
     }
 
-    const reason = await this.chain.db.withTransaction(null, async (tx) => {
+    const reason = await this.chain.blockchainDb.db.withTransaction(null, async (tx) => {
       for (const spend of transaction.spends) {
         // If the spend references a larger tree size, allow it, so it's possible to
         // store transactions made while the node is a few blocks behind
@@ -320,7 +320,7 @@ export class Verifier {
     transaction: Transaction,
     tx?: IDatabaseTransaction,
   ): Promise<VerificationResult> {
-    return this.chain.db.withTransaction(tx, async (tx) => {
+    return this.chain.blockchainDb.db.withTransaction(tx, async (tx) => {
       const notesSize = await this.chain.getNotesSize(tx)
 
       for (const spend of transaction.spends) {
@@ -330,7 +330,7 @@ export class Verifier {
           return { valid: false, reason }
         }
 
-        if (await this.chain.nullifiers.contains(spend.nullifier, tx)) {
+        if (await this.chain.hasNullifier(spend.nullifier, tx)) {
           return { valid: false, reason: VerificationResultReason.DOUBLE_SPEND }
         }
       }
@@ -404,7 +404,7 @@ export class Verifier {
     block: Block,
     tx?: IDatabaseTransaction,
   ): Promise<VerificationResult> {
-    return this.chain.db.withTransaction(tx, async (tx) => {
+    return this.chain.blockchainDb.db.withTransaction(tx, async (tx) => {
       const previousNotesSize = block.header.noteSize
       Assert.isNotNull(previousNotesSize)
 
@@ -484,7 +484,7 @@ export class Verifier {
     block: Block,
     tx?: IDatabaseTransaction,
   ): Promise<VerificationResult> {
-    return this.chain.db.withTransaction(tx, async (tx) => {
+    return this.chain.blockchainDb.db.withTransaction(tx, async (tx) => {
       const header = block.header
 
       Assert.isNotNull(header.noteSize)
@@ -552,7 +552,7 @@ export class Verifier {
     transaction: Transaction,
     tx?: IDatabaseTransaction,
   ): Promise<VerificationResult> {
-    return this.chain.db.withTransaction(tx, async (tx) => {
+    return this.chain.blockchainDb.db.withTransaction(tx, async (tx) => {
       if (await this.chain.transactionHashHasBlock(transaction.hash(), tx)) {
         return { valid: false, reason: VerificationResultReason.DUPLICATE_TRANSACTION }
       }

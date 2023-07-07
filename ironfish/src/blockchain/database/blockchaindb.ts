@@ -418,7 +418,7 @@ export class BlockchainDB {
     return this.notes.getLeaf(index, tx)
   }
 
-    async getNullifiersSize(tx?: IDatabaseTransaction): Promise<number> {
+  async getNullifiersSize(tx?: IDatabaseTransaction): Promise<number> {
     return this.nullifiers.size(tx)
   }
 
@@ -429,19 +429,35 @@ export class BlockchainDB {
     return this.nullifiers.get(nullifier, tx)
   }
 
-    async connectBlockToNullifiers(block: Block, tx?: IDatabaseTransaction): Promise<void> {
+  async connectBlockToNullifiers(block: Block, tx?: IDatabaseTransaction): Promise<void> {
     return this.nullifiers.connectBlock(block, tx)
   }
 
-    async disconnectBlockFromNullifiers(block: Block, tx?: IDatabaseTransaction): Promise<void> {
+  async disconnectBlockFromNullifiers(block: Block, tx?: IDatabaseTransaction): Promise<void> {
     return this.nullifiers.disconnectBlock(block, tx)
   }
 
-    async hasNullifier(nullifier: Nullifier, tx?: IDatabaseTransaction): Promise<boolean> {
+  async hasNullifier(nullifier: Nullifier, tx?: IDatabaseTransaction): Promise<boolean> {
     return this.nullifiers.contains(nullifier, tx)
   }
 
   async clearNullifiers(tx?: IDatabaseTransaction): Promise<void> {
     return this.nullifiers.clear(tx)
+  }
+
+  async compact(): Promise<void> {
+    return this.db.compact()
+  }
+
+  async getVersion(): Promise<number> {
+    return this.db.getVersion()
+  }
+
+  transaction(): IDatabaseTransaction {
+    return this.db.transaction()
+  }
+
+  async size(): Promise<number> {
+    return this.db.size()
   }
 }

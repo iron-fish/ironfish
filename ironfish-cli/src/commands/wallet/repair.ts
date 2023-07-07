@@ -128,7 +128,7 @@ export default class Repair extends IronfishCommand {
         continue
       }
 
-      const spent = await chain.nullifiers.contains(decryptedNoteValue.nullifier)
+      const spent = await chain.hasNullifier(decryptedNoteValue.nullifier)
 
       if (spent && !decryptedNoteValue.spent) {
         noteUnspentMismatches++

@@ -1047,7 +1047,7 @@ export class PeerNetwork {
     let block = this.blockFetcher.getFullBlock(message.blockHash)
 
     if (block === null) {
-      block = await this.chain.db.withTransaction(null, async (tx) => {
+      block = await this.chain.blockchainDb.db.withTransaction(null, async (tx) => {
         const header = await this.chain.getHeader(message.blockHash, tx)
 
         if (header === null) {
@@ -1113,7 +1113,7 @@ export class PeerNetwork {
   private async onGetCompactBlockRequest(
     message: GetCompactBlockRequest,
   ): Promise<GetCompactBlockResponse> {
-    const block = await this.chain.db.withTransaction(null, async (tx) => {
+    const block = await this.chain.blockchainDb.db.withTransaction(null, async (tx) => {
       const header = await this.chain.getHeader(message.blockHash, tx)
 
       if (header === null) {

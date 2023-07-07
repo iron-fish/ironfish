@@ -33,6 +33,7 @@ import {
   transactionCommitment,
 } from '../primitives/blockheader'
 import { NoteEncrypted, NoteEncryptedHash } from '../primitives/noteEncrypted'
+import { Nullifier } from '../primitives/nullifier'
 import { Target } from '../primitives/target'
 import { Transaction, TransactionHash } from '../primitives/transaction'
 import { IDatabaseTransaction, SchemaValue } from '../storage'
@@ -42,7 +43,6 @@ import { WorkerPool } from '../workerPool'
 import { AssetValue } from './database/assetValue'
 import { BlockchainDB } from './database/blockchaindb'
 import { TransactionsValue } from './database/transactions'
-import { Nullifier } from '../primitives/nullifier'
 
 export const VERSION_DATABASE_CHAIN = 14
 
@@ -1080,12 +1080,23 @@ export class Blockchain {
     return this.blockchainDb.getNullifiersSize(tx)
   }
 
-  async getTransactionHashByNullifier(nullifier: Nullifier, tx?: IDatabaseTransaction): Promise<Buffer | undefined> {
+  async getTransactionHashByNullifier(
+    nullifier: Nullifier,
+    tx?: IDatabaseTransaction,
+  ): Promise<Buffer | undefined> {
     return this.blockchainDb.getTransactionHashByNullifier(nullifier, tx)
   }
 
-    async hasNullifier(nullifier: Nullifier, tx?: IDatabaseTransaction): Promise<boolean> {
+  async hasNullifier(nullifier: Nullifier, tx?: IDatabaseTransaction): Promise<boolean> {
     return this.blockchainDb.hasNullifier(nullifier, tx)
+  }
+
+  async connectBlockToNullifiers(block: Block, tx?: IDatabaseTransaction): Promise<void> {
+    return this.blockchainDb.connectBlockToNullifiers(block, tx)
+  }
+
+  async clearNullifiers(tx?: IDatabaseTransaction): Promise<void> {
+    return this.blockchainDb.clearNullifiers(tx)
   }
 
   async removeBlock(hash: Buffer): Promise<void> {
