@@ -64,7 +64,7 @@ export class Blockchain {
   consensus: Consensus
   seedGenesisBlock: SerializedBlock
   config: Config
-  private readonly blockchainDb: BlockchainDB
+  readonly blockchainDb: BlockchainDB
 
   synced = false
   opened = false
