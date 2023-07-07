@@ -55,7 +55,7 @@ import { WorkerPool } from '../workerPool'
 import { AssetValue, AssetValueEncoding } from './database/assetValue'
 import { BlockchainDB } from './database/blockchaindb'
 import { SequenceToHashesValueEncoding } from './database/sequenceToHashes'
-import { TransactionsValueEncoding } from './database/transactions'
+import { TransactionsValue } from './database/transactions'
 import { NullifierSet } from './nullifierSet/nullifierSet'
 import {
   AssetSchema,
@@ -63,7 +63,6 @@ import {
   SequenceToHashesSchema,
   SequenceToHashSchema,
   TransactionHashToBlockHashSchema,
-  TransactionsSchema,
 } from './schema'
 
 export const VERSION_DATABASE_CHAIN = 14
@@ -79,7 +78,7 @@ export class Blockchain {
   consensus: Consensus
   seedGenesisBlock: SerializedBlock
   config: Config
-  blockchainDb: BlockchainDB
+  private readonly blockchainDb: BlockchainDB
 
   synced = false
   opened = false
@@ -98,8 +97,6 @@ export class Blockchain {
   // Whether to seed the chain with a genesis block when opening the database.
   autoSeed: boolean
 
-  // BlockHash -> BlockHeader
-  transactions: IDatabaseStore<TransactionsSchema>
   // Sequence -> BlockHash[]
   sequenceToHashes: IDatabaseStore<SequenceToHashesSchema>
   // Sequence -> BlockHash
@@ -196,13 +193,6 @@ export class Blockchain {
     // TODO(rohanjadvani): This is temporary to reduce pull request sizes and
     // will be removed once all stores are migrated
     this.db = this.blockchainDb.db
-
-    // BlockHash -> Transaction[]
-    this.transactions = this.db.addStore({
-      name: 'bt',
-      keyEncoding: BUFFER_ENCODING,
-      valueEncoding: new TransactionsValueEncoding(),
-    })
 
     // number -> BlockHash[]
     this.sequenceToHashes = this.db.addStore({
@@ -861,7 +851,7 @@ export class Blockchain {
     return this.db.withTransaction(tx, async (tx) => {
       const [header, transactions] = await Promise.all([
         blockHeader || this.blockchainDb.getBlockHeader(blockHash, tx),
-        this.transactions.get(blockHash, tx),
+        this.blockchainDb.getTransactions(blockHash, tx),
       ])
 
       if (!header && !transactions) {
@@ -910,6 +900,14 @@ export class Blockchain {
     }
 
     return hashes.hashes
+  }
+
+  async putTransaction(
+    hash: Buffer,
+    value: TransactionsValue,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    return this.blockchainDb.putTransaction(hash, value, tx)
   }
 
   /**
@@ -1150,7 +1148,7 @@ export class Blockchain {
         await this.sequenceToHashes.put(header.sequence, { hashes }, tx)
       }
 
-      await this.transactions.del(hash, tx)
+      await this.blockchainDb.deleteTransaction(hash, tx)
       await this.blockchainDb.deleteHeader(hash, tx)
 
       // TODO: use a new heads table to recalculate this
@@ -1327,7 +1325,7 @@ export class Blockchain {
     await this.blockchainDb.putBlockHeader(hash, { header: block.header }, tx)
 
     // Update BlockHash -> Transaction
-    await this.transactions.add(hash, { transactions: block.transactions }, tx)
+    await this.blockchainDb.addTransaction(hash, { transactions: block.transactions }, tx)
 
     // Update Sequence -> BlockHash[]
     const hashes = await this.sequenceToHashes.get(sequence, tx)
