@@ -38,15 +38,15 @@ describe('AssetsVerifier', () => {
     nock('https://test')
       .get('/assets/verified')
       .reply(200, {
-        data: [{ identifier: '0123' }],
+        assets: [{ identifier: '0123' }],
       })
       .get('/assets/verified')
       .reply(200, {
-        data: [{ identifier: '4567' }],
+        assets: [{ identifier: '4567' }],
       })
       .get('/assets/verified')
       .reply(200, {
-        data: [{ identifier: '89ab' }],
+        assets: [{ identifier: '89ab' }],
       })
 
     const assetsVerifier = new AssetsVerifier({
@@ -87,7 +87,7 @@ describe('AssetsVerifier', () => {
     nock('https://test')
       .get('/assets/verified')
       .reply(200, {
-        data: [{ identifier: '0123' }],
+        assets: [{ identifier: '0123' }],
       })
 
     const assetsVerifier = new AssetsVerifier({
@@ -110,7 +110,7 @@ describe('AssetsVerifier', () => {
       .reply(
         200,
         {
-          data: [{ identifier: '0123' }],
+          assets: [{ identifier: '0123' }],
         },
         { 'last-modified': 'some-date' },
       )
@@ -168,7 +168,7 @@ describe('AssetsVerifier', () => {
       nock('https://test')
         .get('/assets/verified')
         .reply(200, {
-          data: [{ identifier: '0123' }],
+          assets: [{ identifier: '0123' }],
         })
 
       const assetsVerifier = new AssetsVerifier({
@@ -186,7 +186,7 @@ describe('AssetsVerifier', () => {
       nock('https://test')
         .get('/assets/verified')
         .reply(200, {
-          data: [{ identifier: '0123' }],
+          assets: [{ identifier: '0123' }],
         })
 
       const assetsVerifier = new AssetsVerifier({
@@ -204,7 +204,7 @@ describe('AssetsVerifier', () => {
       nock('https://test')
         .get('/assets/verified')
         .reply(200, {
-          data: [{ identifier: '0123' }],
+          assets: [{ identifier: '0123' }],
         })
         .get('/assets/verified')
         .reply(500)
@@ -236,7 +236,7 @@ describe('AssetsVerifier', () => {
       nock('https://test')
         .get('/assets/verified')
         .reply(200, {
-          data: [{ identifier: '0123' }],
+          assets: [{ identifier: '0123' }],
         })
 
       const assetsVerifier = new AssetsVerifier({
@@ -270,7 +270,7 @@ describe('AssetsVerifier', () => {
       nock('https://test')
         .get('/assets/verified')
         .reply(200, {
-          data: [{ identifier: '4567' }],
+          assets: [{ identifier: '4567' }],
         })
 
       const assetsVerifier = new AssetsVerifier({
@@ -299,7 +299,7 @@ describe('AssetsVerifier', () => {
       nock('https://bar.test')
         .get('/assets/verified')
         .reply(200, {
-          data: [{ identifier: '4567' }],
+          assets: [{ identifier: '4567' }],
         })
 
       const assetsVerifier = new AssetsVerifier({
@@ -327,13 +327,13 @@ describe('AssetsVerifier', () => {
       nock('https://test')
         .get('/assets/verified')
         .reply(200, {
-          data: [{ identifier: '0123' }],
+          assets: [{ identifier: '0123' }],
         })
         .get('/assets/verified')
         .reply(
           200,
           {
-            data: [{ identifier: '4567' }],
+            assets: [{ identifier: '4567' }],
           },
           { 'last-modified': 'some-date' },
         )

@@ -6,7 +6,7 @@ import { readFile } from 'node:fs/promises'
 import url, { URL } from 'url'
 
 type GetVerifiedAssetsResponse = {
-  data: Array<{ identifier: string }>
+  assets: Array<{ identifier: string }>
 }
 
 type GetVerifiedAssetsRequestHeaders = {
@@ -63,7 +63,7 @@ export class AssetsVerificationApi {
   readonly url: string
 
   constructor(options?: { url?: string; timeout?: number }) {
-    this.url = options?.url || 'https://api.ironfish.network/assets?verified=true'
+    this.url = options?.url || 'https://api.ironfish.network/assets/verified'
     this.timeout = options?.timeout ?? 30 * 1000 // 30 seconds
     this.adapter = isFileUrl(this.url) ? axiosFileAdapter : axios.defaults.adapter
   }
@@ -95,7 +95,7 @@ export class AssetsVerificationApi {
           headers: GetVerifiedAssetsResponseHeaders
         }) => {
           verifiedAssets['assetIds'].clear()
-          response.data.data.forEach(({ identifier }) => {
+          response.data.assets.forEach(({ identifier }) => {
             return verifiedAssets['assetIds'].add(identifier)
           })
           verifiedAssets['lastModified'] = response.headers['last-modified']
