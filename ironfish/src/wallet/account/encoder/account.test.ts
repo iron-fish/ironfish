@@ -41,5 +41,19 @@ describe('decodeAccount/encodeAccount', () => {
       const invalidJson = '{}'
       expect(() => decodeAccount(invalidJson)).toThrow()
     })
+    it('throws when name is not passed, but mnemonic is valid', () => {
+      const mnemonic =
+        'own bicycle nasty chaos type agent amateur inject cheese spare poverty charge ecology portion frame earn garden shed bulk youth patch sugar physical family'
+      expect(() => decodeAccount(mnemonic)).toThrow(
+        'Name option is required for mnemonic key encoder',
+      )
+    })
+
+    it('throws when name is not passed, but spending key is valid', () => {
+      const spendingKey = '9e02be4c932ebc09c1eba0273a0ea41344615097222a5fb8a8787fba0db1a8fa'
+      expect(() => decodeAccount(spendingKey)).toThrow(
+        'Name option is required for spending key encoder',
+      )
+    })
   })
 })

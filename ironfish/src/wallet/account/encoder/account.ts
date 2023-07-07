@@ -5,7 +5,12 @@ import { Assert } from '../../../assert'
 import { AccountImport } from '../../walletdb/accountValue'
 import { Bech32Encoder } from './bech32'
 import { Bech32JsonEncoder } from './bech32json'
-import { AccountDecodingOptions, AccountEncodingOptions, AccountFormat } from './encoder'
+import {
+  AccountDecodingOptions,
+  AccountEncodingOptions,
+  AccountFormat,
+  DecodeFailed,
+} from './encoder'
 import { JsonEncoder } from './json'
 import { MnemonicEncoder } from './mnemonic'
 import { SpendingKeyEncoder } from './spendingKey'
@@ -47,8 +52,12 @@ export function decodeAccount(
     try {
       decoded = new encoder().decode(value, options)
     } catch (e) {
-      errors.push({ name: encoder.name, err: e as Error })
-      continue
+      if (e instanceof DecodeFailed) {
+        errors.push({ name: encoder.name, err: e as Error })
+        continue
+      } else {
+        throw e
+      }
     }
     if (decoded) {
       return decoded
