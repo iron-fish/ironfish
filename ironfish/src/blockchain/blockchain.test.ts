@@ -1597,9 +1597,8 @@ describe('Blockchain', () => {
       await expect(node.chain).toAddBlock(block2)
 
       for (const transaction of block2.transactions) {
-        const blockHash = await node.chain.transactionHashToBlockHash.get(transaction.hash())
-
-        Assert.isNotUndefined(blockHash)
+        const blockHash = await node.chain.getBlockHashByTransactionHash(transaction.hash())
+        Assert.isNotNull(blockHash)
 
         expect(blockHash).toEqualHash(block2.header.hash)
       }
@@ -1633,9 +1632,8 @@ describe('Blockchain', () => {
       // nodeB: G -> A2 -> B3 -> B4
 
       for (const transaction of blockA3.transactions) {
-        const blockHash = await nodeA.chain.transactionHashToBlockHash.get(transaction.hash())
-
-        Assert.isNotUndefined(blockHash)
+        const blockHash = await nodeA.chain.getBlockHashByTransactionHash(transaction.hash())
+        Assert.isNotNull(blockHash)
 
         expect(blockHash).toEqualHash(blockA3.header.hash)
       }
@@ -1647,8 +1645,8 @@ describe('Blockchain', () => {
       // nodeB: G -> A2 -> B3 -> B4
 
       for (const transaction of blockA3.transactions) {
-        const blockHash = await nodeA.chain.transactionHashToBlockHash.get(transaction.hash())
-        expect(blockHash).toBeUndefined()
+        const blockHash = await nodeA.chain.getBlockHashByTransactionHash(transaction.hash())
+        expect(blockHash).toBeNull()
       }
 
       const blockB5 = await useMinerBlockFixture(nodeB.chain, undefined, undefined, undefined, [
@@ -1657,7 +1655,7 @@ describe('Blockchain', () => {
 
       await expect(nodeA.chain).toAddBlock(blockB5)
 
-      const blockHash = await nodeA.chain.transactionHashToBlockHash.get(transactionA3.hash())
+      const blockHash = await nodeA.chain.getBlockHashByTransactionHash(transactionA3.hash())
       expect(blockHash).toEqualHash(blockB5.header.hash)
     })
 
@@ -1669,9 +1667,8 @@ describe('Blockchain', () => {
       await expect(nodeA.chain).toAddBlock(block2)
 
       for (const transaction of block2.transactions) {
-        const blockHash = await nodeA.chain.transactionHashToBlockHash.get(transaction.hash())
-
-        Assert.isNotUndefined(blockHash)
+        const blockHash = await nodeA.chain.getBlockHashByTransactionHash(transaction.hash())
+        Assert.isNotNull(blockHash)
 
         expect(blockHash).toEqualHash(block2.header.hash)
       }
@@ -1685,8 +1682,8 @@ describe('Blockchain', () => {
       await expect(nodeA.chain).toAddBlock(block2B)
 
       for (const transaction of block2B.transactions) {
-        const blockHashA = await nodeA.chain.transactionHashToBlockHash.get(transaction.hash())
-        expect(blockHashA).toBeUndefined()
+        const blockHashA = await nodeA.chain.getBlockHashByTransactionHash(transaction.hash())
+        expect(blockHashA).toBeNull()
       }
     })
   })

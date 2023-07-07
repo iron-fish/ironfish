@@ -42,7 +42,7 @@ import {
 } from '../primitives/noteEncrypted'
 import { Target } from '../primitives/target'
 import { Transaction, TransactionHash } from '../primitives/transaction'
-import { BUFFER_ENCODING, IDatabase, IDatabaseStore, IDatabaseTransaction } from '../storage'
+import { BUFFER_ENCODING, IDatabase, IDatabaseTransaction } from '../storage'
 import { Strategy } from '../strategy'
 import { AsyncUtils, BenchUtils, HashUtils } from '../utils'
 import { WorkerPool } from '../workerPool'
@@ -50,7 +50,6 @@ import { AssetValue } from './database/assetValue'
 import { BlockchainDB } from './database/blockchaindb'
 import { TransactionsValue } from './database/transactions'
 import { NullifierSet } from './nullifierSet/nullifierSet'
-import { TransactionHashToBlockHashSchema } from './schema'
 
 export const VERSION_DATABASE_CHAIN = 14
 
@@ -83,9 +82,6 @@ export class Blockchain {
   logAllBlockAdd: boolean
   // Whether to seed the chain with a genesis block when opening the database.
   autoSeed: boolean
-
-  // TransactionHash -> BlockHash
-  transactionHashToBlockHash: IDatabaseStore<TransactionHashToBlockHashSchema>
 
   // When ever the blockchain becomes synced
   onSynced = new Event<[]>()
@@ -172,12 +168,6 @@ export class Blockchain {
     // TODO(rohanjadvani): This is temporary to reduce pull request sizes and
     // will be removed once all stores are migrated
     this.db = this.blockchainDb.db
-
-    this.transactionHashToBlockHash = this.db.addStore({
-      name: 'tb',
-      keyEncoding: BUFFER_ENCODING,
-      valueEncoding: BUFFER_ENCODING,
-    })
 
     this.notes = new MerkleTree({
       hasher: new NoteHasher(),
@@ -1009,8 +999,15 @@ export class Blockchain {
     transactionHash: TransactionHash,
     tx?: IDatabaseTransaction,
   ): Promise<BlockHash | null> {
-    const hash = await this.transactionHashToBlockHash.get(transactionHash, tx)
+    const hash = await this.blockchainDb.getBlockHashByTransactionHash(transactionHash, tx)
     return hash || null
+  }
+
+  async transactionHashHasBlock(
+    transactionHash: TransactionHash,
+    tx?: IDatabaseTransaction,
+  ): Promise<boolean> {
+    return this.blockchainDb.transactionHashHasBlock(transactionHash, tx)
   }
 
   /**
@@ -1224,7 +1221,11 @@ export class Blockchain {
     for (const transaction of block.transactions) {
       await this.saveConnectedMintsToAssetsStore(transaction, tx)
       await this.saveConnectedBurnsToAssetsStore(transaction, tx)
-      await this.transactionHashToBlockHash.put(transaction.hash(), block.header.hash, tx)
+      await this.blockchainDb.putTransactionHashToBlockHash(
+        transaction.hash(),
+        block.header.hash,
+        tx,
+      )
     }
 
     const verify = await this.verifier.verifyConnectedBlock(block, tx)
@@ -1247,7 +1248,7 @@ export class Blockchain {
     for (const transaction of block.transactions.slice().reverse()) {
       await this.deleteDisconnectedBurnsFromAssetsStore(transaction, tx)
       await this.deleteDisconnectedMintsFromAssetsStore(transaction, tx)
-      await this.transactionHashToBlockHash.del(transaction.hash(), tx)
+      await this.blockchainDb.deleteTransactionHashToBlockHash(transaction.hash(), tx)
     }
 
     await this.blockchainDb.deleteNextHash(prev.hash, tx)

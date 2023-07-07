@@ -56,7 +56,7 @@ async function toAddDoubleSpendBlock(
 ): Promise<jest.CustomMatcherResult> {
   // Mock data stores to allow creation of a double spend chain
   const transactionHashMock = jest
-    .spyOn(self.transactionHashToBlockHash, 'has')
+    .spyOn(self, 'transactionHashHasBlock')
     .mockResolvedValue(false)
   const containsMock = jest.spyOn(self.nullifiers, 'contains').mockResolvedValue(false)
   const addNullifierMock = jest
