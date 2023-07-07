@@ -248,10 +248,11 @@ export abstract class Database implements IDatabase {
   ): Promise<TResult> {
     const created = !transaction
     transaction = transaction || this.transaction()
+    const caller = this.callerName('withTransaction')
 
     try {
-      await transaction.acquireLock()
       if (transaction instanceof LevelupTransaction) {
+        await transaction.acquireLock()
         const row: string[] = [
           '',
           'perf_test',
@@ -259,12 +260,16 @@ export abstract class Database implements IDatabase {
           'acquire lock',
           new Date(Date.now()).toISOString(),
           transaction.lockWaitTime.toString(),
-          transaction.lockContention.rate1s.toFixed(2),
-          transaction.lockAcquisition.rate1s.toFixed(2),
-          this.callerName(),
+          transaction.lockContention.toString(),
+          transaction.lockAcquisition.toString(),
+          caller,
         ]
 
         appendTestReport(row, 'acquireLock.perf.csv')
+
+        transaction.db.dblockUser = caller
+      } else {
+        await transaction.acquireLock()
       }
 
       const start = BenchUtils.start()
@@ -283,7 +288,7 @@ export abstract class Database implements IDatabase {
         'hold lock',
         new Date(Date.now()).toISOString(),
         lockHoldingTime.toString(),
-        this.callerName(),
+        caller,
         transaction.size.toString(),
       ]
 
@@ -298,21 +303,19 @@ export abstract class Database implements IDatabase {
     }
   }
 
-  private callerName(): string {
-    try {
-      throw new Error()
-    } catch (e) {
-      if (e instanceof Error && e.stack) {
-        // matches this function, the caller and the parent
-        const allMatches = e.stack.match(/(\w+)@|at ([\w.\s<>]+) \(.*/g)
-        if (allMatches) {
-          const index = allMatches.reverse().findIndex((s) => s.includes('withTransaction'))
-          if (index > 0) {
-            return allMatches[index - 1]
-          }
+  callerName(target: string): string {
+    const e = new Error()
+
+    if (e instanceof Error && e.stack) {
+      // matches this function, the caller and the parent
+      const allMatches = e.stack.match(/(\w+)@|at ([\w.\s<>]+) \(.*/g)
+      if (allMatches) {
+        const index = allMatches.reverse().findIndex((s) => s.includes(target))
+        if (index > 0) {
+          return allMatches[index - 1]
         }
       }
-      return ''
     }
+    return ''
   }
 }

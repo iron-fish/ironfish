@@ -6,8 +6,10 @@ import levelErrors from 'level-errors'
 import LevelDOWN from 'leveldown'
 import levelup, { LevelUp } from 'levelup'
 import { Assert } from '../../assert'
-import { Mutex } from '../../mutex'
+import { Meter } from '../../metrics/meter'
+import { Mutex, MutexUnlockFunction } from '../../mutex'
 import { IJsonSerializable } from '../../serde'
+import { appendTestReport } from '../../testUtilities'
 import {
   BatchOperation,
   Database,
@@ -52,6 +54,10 @@ export class LevelupDatabase extends Database {
   metaStore: LevelupStore<MetaSchema>
   lock = new Mutex()
   _levelup: LevelUp | null = null
+  dblockAcquisition: Meter
+  dblockContention: Meter
+  dblockUser: string
+  dblockCaller: string
 
   get levelup(): LevelUp {
     if (!this._levelup) {
@@ -69,6 +75,13 @@ export class LevelupDatabase extends Database {
       keyEncoding: new StringEncoding(),
       valueEncoding: new JsonEncoding(),
     }) as LevelupStore<MetaSchema>
+
+    this.dblockAcquisition = new Meter()
+    this.dblockAcquisition.start()
+    this.dblockContention = new Meter()
+    this.dblockContention.start()
+    this.dblockUser = ''
+    this.dblockCaller = ''
   }
 
   get isOpen(): boolean {
@@ -139,6 +152,24 @@ export class LevelupDatabase extends Database {
     })
   }
 
+  async acquireLock(): Promise<MutexUnlockFunction> {
+    this.dblockContention.add(1)
+    const row: string[] = [
+      '',
+      'perf_test',
+      'dbLock',
+      'acquire lock',
+      new Date(Date.now()).toISOString(),
+      this.dblockContention.rate1s.toFixed(2),
+      this.dblockAcquisition.rate1s.toFixed(2),
+      this.dblockUser,
+      this.dblockCaller,
+    ]
+
+    appendTestReport(row, 'dbLock.perf.csv')
+    return await this.lock.lock()
+  }
+
   transaction<TResult>(
     handler: (transaction: IDatabaseTransaction) => Promise<TResult>,
   ): Promise<TResult>
@@ -150,6 +181,8 @@ export class LevelupDatabase extends Database {
       return new LevelupTransaction(this)
     }
 
+    this.dblockAcquisition.add(1)
+    this.dblockCaller = this.callerName('LevelupDatabase.transaction')
     return this.withTransaction(null, handler)
   }
 
