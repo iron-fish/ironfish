@@ -15,6 +15,7 @@ import {
 } from '../../storage'
 import { createDB } from '../../storage/utils'
 import {
+  HashToNextSchema,
   HeadersSchema,
   MetaSchema,
   SequenceToHashesSchema,
@@ -42,6 +43,8 @@ export class BlockchainDB {
   sequenceToHashes: IDatabaseStore<SequenceToHashesSchema>
   // Sequence -> BlockHash
   sequenceToHash: IDatabaseStore<SequenceToHashSchema>
+  // BlockHash -> BlockHash
+  hashToNextHash: IDatabaseStore<HashToNextSchema>
 
   constructor(options: { location: string; files: FileSystem }) {
     this.location = options.location
@@ -80,6 +83,12 @@ export class BlockchainDB {
     this.sequenceToHash = this.db.addStore({
       name: 'bS',
       keyEncoding: U32_ENCODING,
+      valueEncoding: BUFFER_ENCODING,
+    })
+
+    this.hashToNextHash = this.db.addStore({
+      name: 'bH',
+      keyEncoding: BUFFER_ENCODING,
       valueEncoding: BUFFER_ENCODING,
     })
   }
@@ -230,5 +239,24 @@ export class BlockchainDB {
 
   async clearSequenceToHash(tx?: IDatabaseTransaction): Promise<void> {
     return this.sequenceToHash.clear(tx)
+  }
+
+  async getNextHash(
+    hash: BlockHash,
+    tx?: IDatabaseTransaction,
+  ): Promise<BlockHash | undefined> {
+    return this.hashToNextHash.get(hash, tx)
+  }
+
+  async putNextHash(hash: Buffer, nextHash: Buffer, tx?: IDatabaseTransaction): Promise<void> {
+    return this.hashToNextHash.put(hash, nextHash, tx)
+  }
+
+  async deleteNextHash(hash: Buffer, tx?: IDatabaseTransaction): Promise<void> {
+    return this.hashToNextHash.del(hash, tx)
+  }
+
+  async clearHashToNextHash(tx?: IDatabaseTransaction): Promise<void> {
+    return this.hashToNextHash.clear(tx)
   }
 }

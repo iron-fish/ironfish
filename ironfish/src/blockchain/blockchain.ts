@@ -50,7 +50,7 @@ import { AssetValue, AssetValueEncoding } from './database/assetValue'
 import { BlockchainDB } from './database/blockchaindb'
 import { TransactionsValue } from './database/transactions'
 import { NullifierSet } from './nullifierSet/nullifierSet'
-import { AssetSchema, HashToNextSchema, TransactionHashToBlockHashSchema } from './schema'
+import { AssetSchema, TransactionHashToBlockHashSchema } from './schema'
 
 export const VERSION_DATABASE_CHAIN = 14
 
@@ -84,8 +84,6 @@ export class Blockchain {
   // Whether to seed the chain with a genesis block when opening the database.
   autoSeed: boolean
 
-  // BlockHash -> BlockHash
-  hashToNextHash: IDatabaseStore<HashToNextSchema>
   // Asset Identifier -> Asset
   assets: IDatabaseStore<AssetSchema>
   // TransactionHash -> BlockHash
@@ -176,12 +174,6 @@ export class Blockchain {
     // TODO(rohanjadvani): This is temporary to reduce pull request sizes and
     // will be removed once all stores are migrated
     this.db = this.blockchainDb.db
-
-    this.hashToNextHash = this.db.addStore({
-      name: 'bH',
-      keyEncoding: BUFFER_ENCODING,
-      valueEncoding: BUFFER_ENCODING,
-    })
 
     this.assets = this.db.addStore({
       name: 'bA',
@@ -1006,7 +998,7 @@ export class Blockchain {
   }
 
   async getNextHash(hash: BlockHash, tx?: IDatabaseTransaction): Promise<BlockHash | null> {
-    const next = await this.hashToNextHash.get(hash, tx)
+    const next = await this.blockchainDb.getNextHash(hash, tx)
     return next || null
   }
 
@@ -1067,6 +1059,14 @@ export class Blockchain {
     }
 
     return this.getHeader(hash, tx)
+  }
+
+  async putNextHash(hash: Buffer, nextHash: Buffer, tx?: IDatabaseTransaction): Promise<void> {
+    return this.blockchainDb.putNextHash(hash, nextHash, tx)
+  }
+
+  async clearHashToNextHash(tx?: IDatabaseTransaction): Promise<void> {
+    return this.blockchainDb.clearHashToNextHash(tx)
   }
 
   async removeBlock(hash: Buffer): Promise<void> {
@@ -1206,7 +1206,7 @@ export class Blockchain {
     }
 
     if (prev) {
-      await this.hashToNextHash.put(prev.hash, block.header.hash, tx)
+      await this.blockchainDb.putNextHash(prev.hash, block.header.hash, tx)
     }
 
     await this.blockchainDb.putSequenceToHash(block.header.sequence, block.header.hash, tx)
@@ -1258,7 +1258,7 @@ export class Blockchain {
       await this.transactionHashToBlockHash.del(transaction.hash(), tx)
     }
 
-    await this.hashToNextHash.del(prev.hash, tx)
+    await this.blockchainDb.deleteNextHash(prev.hash, tx)
     await this.blockchainDb.deleteSequenceToHash(block.header.sequence, tx)
 
     Assert.isNotNull(prev.noteSize)
