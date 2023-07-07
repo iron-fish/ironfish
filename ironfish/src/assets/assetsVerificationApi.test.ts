@@ -20,7 +20,7 @@ describe('Assets Verification API Client', () => {
       nock('https://test')
         .get('/assets/verified')
         .reply(200, {
-          data: [{ identifier: '0123' }, { identifier: 'abcd' }],
+          assets: [{ identifier: '0123' }, { identifier: 'abcd' }],
         })
 
       const api = new AssetsVerificationApi({
@@ -39,7 +39,7 @@ describe('Assets Verification API Client', () => {
       nock('https://test')
         .get('/assets/verified')
         .reply(200, {
-          data: [
+          assets: [
             { identifier: '0123', extra: 'should be ignored' },
             { identifier: 'abcd', extra: 'should be ignored' },
           ],
@@ -58,11 +58,11 @@ describe('Assets Verification API Client', () => {
       nock('https://test')
         .get('/assets/verified')
         .reply(200, {
-          data: [{ identifier: '0123' }, { identifier: 'abcd' }],
+          assets: [{ identifier: '0123' }, { identifier: 'abcd' }],
         })
         .get('/assets/verified')
         .reply(200, {
-          data: [{ identifier: '4567' }, { identifier: '0123' }],
+          assets: [{ identifier: '4567' }, { identifier: '0123' }],
         })
 
       const api = new AssetsVerificationApi({
@@ -84,7 +84,7 @@ describe('Assets Verification API Client', () => {
         .reply(
           200,
           {
-            data: [{ identifier: '0123' }, { identifier: 'abcd' }],
+            assets: [{ identifier: '0123' }, { identifier: 'abcd' }],
           },
           {
             'last-modified': lastModified,
@@ -123,7 +123,7 @@ describe('Assets Verification API Client', () => {
         .get('/assets/verified')
         .delayConnection(2000)
         .reply(200, {
-          data: [{ identifier: '0123' }, { identifier: 'abcd' }],
+          assets: [{ identifier: '0123' }, { identifier: 'abcd' }],
         })
 
       const api = new AssetsVerificationApi({
@@ -138,7 +138,7 @@ describe('Assets Verification API Client', () => {
         .get('/assets/verified')
         .delay(2000)
         .reply(200, {
-          data: [{ identifier: '0123' }, { identifier: 'abcd' }],
+          assets: [{ identifier: '0123' }, { identifier: 'abcd' }],
         })
 
       const api = new AssetsVerificationApi({
@@ -150,7 +150,7 @@ describe('Assets Verification API Client', () => {
 
     it('supports file:// URIs', async () => {
       const contents = JSON.stringify({
-        data: [{ identifier: '0123' }, { identifier: 'abcd' }],
+        assets: [{ identifier: '0123' }, { identifier: 'abcd' }],
       })
       const readFileSpy = jest.spyOn(fs.promises, 'readFile').mockResolvedValue(contents)
 
