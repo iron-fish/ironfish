@@ -41,16 +41,21 @@ router.register<typeof ImportAccountRequestSchema, ImportResponse>(
   ImportAccountRequestSchema,
   async (request, node): Promise<void> => {
     let accountImport = null
+    const id = uuid()
     if (typeof request.data.account === 'string') {
       accountImport = decodeAccount(request.data.account, {
-        name: request.data.name,
+        name: request.data.name ? request.data.name : id,
       })
     } else {
       accountImport = deserializeRpcAccountImport(request.data.account)
     }
 
+    if (request.data.name) {
+      accountImport.name = request.data.name
+    }
+
     const account = await node.wallet.importAccount({
-      id: uuid(),
+      id,
       ...accountImport,
     })
 

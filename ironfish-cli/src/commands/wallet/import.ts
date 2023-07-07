@@ -52,35 +52,25 @@ export class ImportCommand extends IronfishCommand {
       CliUx.ux.error(`Invalid import type`)
     }
 
-    const accountsResponse = await client.wallet.getAccounts()
-    const duplicateAccount = accountsResponse.content.accounts.find(
-      (accountName) => accountName === flags.name,
-    )
-    // Offer the user to use a different name if a duplicate is found
-    if (duplicateAccount && flags.name) {
+    if (!flags.name) {
       this.log()
-      this.log(`Found existing account with name '${flags.name}'`)
 
-      const name = await CliUx.ux.prompt('Enter a different name for the account', {
-        required: true,
+      flags.name = await CliUx.ux.prompt('Enter a name for the account (or leave blank)', {
+        required: false,
       })
-      if (name === flags.name) {
-        this.error(`Entered the same name: '${name}'`)
-      }
-
-      flags.name = name
     }
 
     const rescan = flags.rescan
     const result = await client.wallet.importAccount({ account, rescan, name: flags.name })
 
     const { name, isDefaultAccount } = result.content
-    this.log(`Account ${name} imported.`)
+    this.log(`Account imported with name ${name}`)
 
     if (isDefaultAccount) {
       this.log(`The default account is now: ${name}`)
     } else {
       this.log(`Run "ironfish wallet:use ${name}" to set the account as default`)
+      this.log(`Use "ironfish wallet:rename ${name} [new-name]" to rename the account`)
     }
   }
 
