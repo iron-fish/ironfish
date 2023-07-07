@@ -46,11 +46,11 @@ import { BUFFER_ENCODING, IDatabase, IDatabaseStore, IDatabaseTransaction } from
 import { Strategy } from '../strategy'
 import { AsyncUtils, BenchUtils, HashUtils } from '../utils'
 import { WorkerPool } from '../workerPool'
-import { AssetValue, AssetValueEncoding } from './database/assetValue'
+import { AssetValue } from './database/assetValue'
 import { BlockchainDB } from './database/blockchaindb'
 import { TransactionsValue } from './database/transactions'
 import { NullifierSet } from './nullifierSet/nullifierSet'
-import { AssetSchema, TransactionHashToBlockHashSchema } from './schema'
+import { TransactionHashToBlockHashSchema } from './schema'
 
 export const VERSION_DATABASE_CHAIN = 14
 
@@ -84,8 +84,6 @@ export class Blockchain {
   // Whether to seed the chain with a genesis block when opening the database.
   autoSeed: boolean
 
-  // Asset Identifier -> Asset
-  assets: IDatabaseStore<AssetSchema>
   // TransactionHash -> BlockHash
   transactionHashToBlockHash: IDatabaseStore<TransactionHashToBlockHashSchema>
 
@@ -174,12 +172,6 @@ export class Blockchain {
     // TODO(rohanjadvani): This is temporary to reduce pull request sizes and
     // will be removed once all stores are migrated
     this.db = this.blockchainDb.db
-
-    this.assets = this.db.addStore({
-      name: 'bA',
-      keyEncoding: BUFFER_ENCODING,
-      valueEncoding: new AssetValueEncoding(),
-    })
 
     this.transactionHashToBlockHash = this.db.addStore({
       name: 'tb',
@@ -1307,7 +1299,7 @@ export class Blockchain {
   ): Promise<void> {
     for (const { asset, value } of transaction.mints) {
       const assetId = asset.id()
-      const existingAsset = await this.assets.get(assetId, tx)
+      const existingAsset = await this.blockchainDb.getAsset(assetId, tx)
 
       let createdTransactionHash = transaction.hash()
       let supply = BigInt(0)
@@ -1316,7 +1308,7 @@ export class Blockchain {
         supply = existingAsset.supply
       }
 
-      await this.assets.put(
+      await this.blockchainDb.putAsset(
         assetId,
         {
           createdTransactionHash,
@@ -1337,14 +1329,14 @@ export class Blockchain {
     tx: IDatabaseTransaction,
   ): Promise<void> {
     for (const { assetId, value } of transaction.burns) {
-      const existingAsset = await this.assets.get(assetId, tx)
+      const existingAsset = await this.blockchainDb.getAsset(assetId, tx)
       Assert.isNotUndefined(existingAsset, 'Cannot burn undefined asset from the database')
 
       const existingSupply = existingAsset.supply
       const supply = existingSupply - value
       Assert.isTrue(supply >= BigInt(0), 'Invalid burn value')
 
-      await this.assets.put(
+      await this.blockchainDb.putAsset(
         assetId,
         {
           createdTransactionHash: existingAsset.createdTransactionHash,
@@ -1365,13 +1357,13 @@ export class Blockchain {
     tx: IDatabaseTransaction,
   ): Promise<void> {
     for (const { assetId, value } of transaction.burns.slice().reverse()) {
-      const existingAsset = await this.assets.get(assetId, tx)
+      const existingAsset = await this.blockchainDb.getAsset(assetId, tx)
       Assert.isNotUndefined(existingAsset)
 
       const existingSupply = existingAsset.supply
       const supply = existingSupply + value
 
-      await this.assets.put(
+      await this.blockchainDb.putAsset(
         assetId,
         {
           createdTransactionHash: existingAsset.createdTransactionHash,
@@ -1393,7 +1385,7 @@ export class Blockchain {
   ): Promise<void> {
     for (const { asset, value } of transaction.mints.slice().reverse()) {
       const assetId = asset.id()
-      const existingAsset = await this.assets.get(assetId, tx)
+      const existingAsset = await this.blockchainDb.getAsset(assetId, tx)
       Assert.isNotUndefined(existingAsset)
 
       const existingSupply = existingAsset.supply
@@ -1406,9 +1398,9 @@ export class Blockchain {
         transaction.hash().equals(existingAsset.createdTransactionHash) &&
         supply === BigInt(0)
       ) {
-        await this.assets.del(assetId, tx)
+        await this.blockchainDb.deleteAsset(assetId, tx)
       } else {
-        await this.assets.put(
+        await this.blockchainDb.putAsset(
           assetId,
           {
             createdTransactionHash: existingAsset.createdTransactionHash,
@@ -1455,8 +1447,16 @@ export class Blockchain {
       }
     }
 
-    const asset = await this.assets.get(assetId)
+    const asset = await this.blockchainDb.getAsset(assetId)
     return asset || null
+  }
+
+  async putAsset(assetId: Buffer, asset: AssetValue, tx?: IDatabaseTransaction): Promise<void> {
+    return this.blockchainDb.putAsset(assetId, asset, tx)
+  }
+
+  async deleteAsset(assetId: Buffer, tx?: IDatabaseTransaction): Promise<void> {
+    return this.blockchainDb.deleteAsset(assetId, tx)
   }
 }
 
