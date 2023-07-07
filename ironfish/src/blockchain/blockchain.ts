@@ -54,13 +54,11 @@ import { AsyncUtils, BenchUtils, HashUtils } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { AssetValue, AssetValueEncoding } from './database/assetValue'
 import { BlockchainDB } from './database/blockchaindb'
-import { SequenceToHashesValueEncoding } from './database/sequenceToHashes'
 import { TransactionsValue } from './database/transactions'
 import { NullifierSet } from './nullifierSet/nullifierSet'
 import {
   AssetSchema,
   HashToNextSchema,
-  SequenceToHashesSchema,
   SequenceToHashSchema,
   TransactionHashToBlockHashSchema,
 } from './schema'
@@ -97,8 +95,6 @@ export class Blockchain {
   // Whether to seed the chain with a genesis block when opening the database.
   autoSeed: boolean
 
-  // Sequence -> BlockHash[]
-  sequenceToHashes: IDatabaseStore<SequenceToHashesSchema>
   // Sequence -> BlockHash
   sequenceToHash: IDatabaseStore<SequenceToHashSchema>
   // BlockHash -> BlockHash
@@ -193,13 +189,6 @@ export class Blockchain {
     // TODO(rohanjadvani): This is temporary to reduce pull request sizes and
     // will be removed once all stores are migrated
     this.db = this.blockchainDb.db
-
-    // number -> BlockHash[]
-    this.sequenceToHashes = this.db.addStore({
-      name: 'bs',
-      keyEncoding: U32_ENCODING,
-      valueEncoding: new SequenceToHashesValueEncoding(),
-    })
 
     // number -> BlockHash
     this.sequenceToHash = this.db.addStore({
@@ -893,13 +882,7 @@ export class Blockchain {
    * Returns an array of hashes for any blocks at the given sequence
    */
   async getHashesAtSequence(sequence: number, tx?: IDatabaseTransaction): Promise<BlockHash[]> {
-    const hashes = await this.sequenceToHashes.get(sequence, tx)
-
-    if (!hashes) {
-      return []
-    }
-
-    return hashes.hashes
+    return this.blockchainDb.getBlockHashesAtSequence(sequence, tx)
   }
 
   async putTransaction(
@@ -1071,21 +1054,7 @@ export class Blockchain {
     sequence: number,
     tx?: IDatabaseTransaction,
   ): Promise<BlockHeader[]> {
-    const hashes = await this.sequenceToHashes.get(sequence, tx)
-
-    if (!hashes) {
-      return []
-    }
-
-    const headers = await Promise.all(
-      hashes.hashes.map(async (h) => {
-        const header = await this.getHeader(h, tx)
-        Assert.isNotNull(header)
-        return header
-      }),
-    )
-
-    return headers
+    return this.blockchainDb.getBlockHeadersAtSequence(sequence, tx)
   }
 
   async isHeadChain(header: BlockHeader, tx?: IDatabaseTransaction): Promise<boolean> {
@@ -1140,12 +1109,12 @@ export class Blockchain {
         await this.disconnect(block, tx)
       }
 
-      const result = await this.sequenceToHashes.get(header.sequence, tx)
-      const hashes = (result?.hashes || []).filter((h) => !h.equals(hash))
+      const result = await this.blockchainDb.getBlockHashesAtSequence(header.sequence, tx)
+      const hashes = result.filter((h) => !h.equals(hash))
       if (hashes.length === 0) {
-        await this.sequenceToHashes.del(header.sequence, tx)
+        await this.blockchainDb.deleteSequenceToHashes(header.sequence, tx)
       } else {
-        await this.sequenceToHashes.put(header.sequence, { hashes }, tx)
+        await this.blockchainDb.putSequenceToHashes(header.sequence, hashes, tx)
       }
 
       await this.blockchainDb.deleteTransaction(hash, tx)
@@ -1328,8 +1297,8 @@ export class Blockchain {
     await this.blockchainDb.addTransaction(hash, { transactions: block.transactions }, tx)
 
     // Update Sequence -> BlockHash[]
-    const hashes = await this.sequenceToHashes.get(sequence, tx)
-    await this.sequenceToHashes.put(sequence, { hashes: [...(hashes?.hashes || []), hash] }, tx)
+    const hashes = await this.blockchainDb.getBlockHashesAtSequence(sequence, tx)
+    await this.blockchainDb.putSequenceToHashes(sequence, [...hashes, hash], tx)
 
     if (!fork) {
       await this.saveConnect(block, prev, tx)
