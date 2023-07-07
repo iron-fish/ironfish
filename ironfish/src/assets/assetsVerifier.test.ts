@@ -155,7 +155,7 @@ describe('AssetsVerifier', () => {
       const warn = jest.spyOn(assetsVerifier['logger'], 'warn')
 
       assetsVerifier.start()
-      await waitForRefreshToFinish(refresh)
+      await expect(waitForRefreshToFinish(refresh)).rejects.toThrow()
 
       expect(warn).toHaveBeenCalledWith(
         'Error while fetching verified assets: Request failed with status code 500',
@@ -223,7 +223,7 @@ describe('AssetsVerifier', () => {
       expect(assetsVerifier.verify('4567')).toStrictEqual({ status: 'unverified' })
 
       jest.runOnlyPendingTimers()
-      await waitForRefreshToFinish(refresh)
+      await expect(waitForRefreshToFinish(refresh)).rejects.toThrow()
 
       expect(warn).toHaveBeenCalledWith(
         'Error while fetching verified assets: Request failed with status code 500',
@@ -262,6 +262,8 @@ describe('AssetsVerifier', () => {
       const cache = Object.create(
         VerifiedAssetsCacheStore.prototype,
       ) as VerifiedAssetsCacheStore
+      jest.spyOn(cache, 'setMany').mockReturnValue(undefined)
+      jest.spyOn(cache, 'save').mockResolvedValue(undefined)
       cache.config = {
         apiUrl: 'https://test/assets/verified',
         assetIds: ['0123'],
@@ -291,6 +293,8 @@ describe('AssetsVerifier', () => {
       const cache = Object.create(
         VerifiedAssetsCacheStore.prototype,
       ) as VerifiedAssetsCacheStore
+      jest.spyOn(cache, 'setMany').mockReturnValue(undefined)
+      jest.spyOn(cache, 'save').mockResolvedValue(undefined)
       cache.config = {
         apiUrl: 'https://foo.test/assets/verified',
         assetIds: ['0123'],
