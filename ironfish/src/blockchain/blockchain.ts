@@ -47,7 +47,6 @@ import {
   IDatabase,
   IDatabaseStore,
   IDatabaseTransaction,
-  StringEncoding,
   U32_ENCODING,
 } from '../storage'
 import { Strategy } from '../strategy'
@@ -61,7 +60,6 @@ import { NullifierSet } from './nullifierSet/nullifierSet'
 import {
   AssetSchema,
   HashToNextSchema,
-  MetaSchema,
   SequenceToHashesSchema,
   SequenceToHashSchema,
   TransactionHashToBlockHashSchema,
@@ -100,8 +98,6 @@ export class Blockchain {
   // Whether to seed the chain with a genesis block when opening the database.
   autoSeed: boolean
 
-  // Contains flat fields
-  meta: IDatabaseStore<MetaSchema>
   // BlockHash -> BlockHeader
   transactions: IDatabaseStore<TransactionsSchema>
   // Sequence -> BlockHash[]
@@ -200,13 +196,6 @@ export class Blockchain {
     // TODO(rohanjadvani): This is temporary to reduce pull request sizes and
     // will be removed once all stores are migrated
     this.db = this.blockchainDb.db
-
-    // Flat Fields
-    this.meta = this.db.addStore({
-      name: 'bm',
-      keyEncoding: new StringEncoding<'head' | 'latest'>(),
-      valueEncoding: BUFFER_ENCODING,
-    })
 
     // BlockHash -> Transaction[]
     this.transactions = this.db.addStore({
@@ -327,7 +316,7 @@ export class Blockchain {
       this.latest = this.genesis
     }
 
-    const headHash = await this.meta.get('head')
+    const headHash = await this.blockchainDb.getMetaHash('head')
     if (headHash) {
       const head = await this.getHeader(headHash)
       Assert.isNotNull(
@@ -339,7 +328,7 @@ export class Blockchain {
       this.head = head
     }
 
-    const latestHash = await this.meta.get('latest')
+    const latestHash = await this.blockchainDb.getMetaHash('latest')
     if (latestHash) {
       const latest = await this.getHeader(latestHash)
       Assert.isNotNull(
@@ -1167,7 +1156,7 @@ export class Blockchain {
       // TODO: use a new heads table to recalculate this
       if (this.latest.hash.equals(hash)) {
         this.latest = this.head
-        await this.meta.put('latest', this.head.hash, tx)
+        await this.blockchainDb.putMetaHash('latest', this.head.hash, tx)
       }
     })
   }
@@ -1262,7 +1251,7 @@ export class Blockchain {
     }
 
     await this.sequenceToHash.put(block.header.sequence, block.header.hash, tx)
-    await this.meta.put('head', block.header.hash, tx)
+    await this.blockchainDb.putMetaHash('head', block.header.hash, tx)
 
     // If the tree sizes don't match the previous block, we can't verify if the tree
     // sizes on this block are correct
@@ -1320,7 +1309,7 @@ export class Blockchain {
       this.nullifiers.disconnectBlock(block, tx),
     ])
 
-    await this.meta.put('head', prev.hash, tx)
+    await this.blockchainDb.putMetaHash('head', prev.hash, tx)
 
     await tx.update()
   }
@@ -1349,7 +1338,7 @@ export class Blockchain {
     }
 
     if (!this.hasGenesisBlock || isBlockLater(block.header, this.latest)) {
-      await this.meta.put('latest', hash, tx)
+      await this.blockchainDb.putMetaHash('latest', hash, tx)
     }
   }
 
