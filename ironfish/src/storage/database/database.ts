@@ -251,8 +251,9 @@ export abstract class Database implements IDatabase {
     const caller = this.callerName('withTransaction')
 
     try {
+      await transaction.acquireLock()
+
       if (transaction instanceof LevelupTransaction) {
-        await transaction.acquireLock()
         const row: string[] = [
           '',
           'perf_test',
@@ -268,8 +269,6 @@ export abstract class Database implements IDatabase {
         appendTestReport(row, 'acquireLock.perf.csv')
 
         transaction.db.dblockUser = caller
-      } else {
-        await transaction.acquireLock()
       }
 
       const start = BenchUtils.start()

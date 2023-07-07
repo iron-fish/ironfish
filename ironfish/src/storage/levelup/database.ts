@@ -9,7 +9,7 @@ import { Assert } from '../../assert'
 import { Meter } from '../../metrics/meter'
 import { Mutex, MutexUnlockFunction } from '../../mutex'
 import { IJsonSerializable } from '../../serde'
-import { appendTestReport } from '../../testUtilities'
+import { appendTestReport } from '../../testUtilities/utils'
 import {
   BatchOperation,
   Database,
