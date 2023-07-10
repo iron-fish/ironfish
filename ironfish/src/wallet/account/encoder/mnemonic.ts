@@ -44,7 +44,7 @@ export class MnemonicEncoder implements AccountEncoder {
       language = LanguageUtils.languageCodeToKey(code)
     }
     if (language === null) {
-      throw new DecodeFailed('Invalid mnemonic')
+      throw new DecodeFailed('Invalid mnemonic', this.constructor.name)
     }
     if (!options.name) {
       throw new DecodeInvalid('Name option is required for mnemonic key encoder')

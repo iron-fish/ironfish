@@ -46,23 +46,24 @@ export function decodeAccount(
   value: string,
   options: AccountDecodingOptions = {},
 ): AccountImport {
-  let decoded = null
-  const errors: { name: string; err: Error }[] = []
+  const errors: DecodeFailed[] = []
+
   for (const encoder of ENCODER_VERSIONS) {
     try {
-      decoded = new encoder().decode(value, options)
+      const decoded = new encoder().decode(value, options)
+
+      if (decoded) {
+        return decoded
+      }
     } catch (e) {
       if (e instanceof DecodeFailed) {
-        errors.push({ name: encoder.name, err: e as Error })
-        continue
+        errors.push(e)
       } else {
         throw e
       }
     }
-    if (decoded) {
-      return decoded
-    }
   }
-  const errorString = errors.map((error) => `${error.name}: ${error.err.message}`).join('\n')
+
+  const errorString = errors.map((error) => `${error.decoder}: ${error.message}`).join('\n')
   throw new Error(`Account could not be decoded, decoder errors:\n${errorString} `)
 }

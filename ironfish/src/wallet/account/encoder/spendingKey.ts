@@ -19,7 +19,10 @@ export class SpendingKeyEncoder implements AccountEncoder {
     try {
       key = generateKeyFromPrivateKey(spendingKey)
     } catch (e) {
-      throw new DecodeFailed(`Invalid spending key: ${(e as Error).message}`)
+      throw new DecodeFailed(
+        `Invalid spending key: ${(e as Error).message}`,
+        this.constructor.name,
+      )
     }
 
     if (!options.name) {

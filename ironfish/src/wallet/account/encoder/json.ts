@@ -38,7 +38,7 @@ export class JsonEncoder implements AccountEncoder {
       validateAccount(accountImport)
       return accountImport
     } catch (e) {
-      throw new DecodeFailed(`Invalid JSON: ${(e as Error).message}`)
+      throw new DecodeFailed(`Invalid JSON: ${(e as Error).message}`, this.constructor.name)
     }
   }
 }
