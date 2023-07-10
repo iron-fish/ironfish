@@ -42,6 +42,7 @@ export class Bech32Encoder implements AccountEncoder {
     if (!hexEncoding) {
       throw new DecodeFailed(
         `Could not decode account ${value} using bech32: ${err?.message || ''}`,
+        this.constructor.name,
       )
     }
 
@@ -84,7 +85,10 @@ export class Bech32Encoder implements AccountEncoder {
       }
     } catch (e) {
       if (e instanceof EncodingError) {
-        throw new DecodeFailed(`Bufio decoding failed while using bech32 encoder: ${e.message}`)
+        throw new DecodeFailed(
+          `Bufio decoding failed while using bech32 encoder: ${e.message}`,
+          this.constructor.name,
+        )
       }
       throw e
     }

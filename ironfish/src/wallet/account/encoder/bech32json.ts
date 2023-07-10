@@ -16,7 +16,10 @@ export class Bech32JsonEncoder implements AccountEncoder {
   decode(value: string, options?: AccountDecodingOptions): AccountImport {
     const [decoded, err] = Bech32m.decode(value)
     if (!decoded) {
-      throw new DecodeFailed(`Invalid bech32 JSON encoding: ${err?.message || ''}`)
+      throw new DecodeFailed(
+        `Invalid bech32 JSON encoding: ${err?.message || ''}`,
+        this.constructor.name,
+      )
     }
     const accountImport = new JsonEncoder().decode(decoded)
     return {
