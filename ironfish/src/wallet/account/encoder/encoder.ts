@@ -4,6 +4,10 @@
 import { LanguageKey } from '../../../utils'
 import { AccountImport } from '../../walletdb/accountValue'
 
+export class DecodeInvalid extends Error {}
+
+export class DecodeFailed extends Error {}
+
 export enum AccountFormat {
   JSON = 'JSON',
   Bech32 = 'Bech32',
