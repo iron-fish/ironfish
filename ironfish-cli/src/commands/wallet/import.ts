@@ -71,8 +71,11 @@ export class ImportCommand extends IronfishCommand {
       flags.name = name
     }
 
-    const rescan = flags.rescan
-    const result = await client.wallet.importAccount({ account, rescan, name: flags.name })
+    const result = await client.wallet.importAccount({
+      account,
+      rescan: flags.rescan,
+      name: flags.name,
+    })
 
     const { name, isDefaultAccount } = result.content
     this.log(`Account ${name} imported.`)
