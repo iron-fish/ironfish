@@ -4,7 +4,7 @@
 import { IronfishNode } from '../../../node'
 import { Note } from '../../../primitives'
 import { CurrencyUtils } from '../../../utils'
-import { Account } from '../../../wallet'
+import { Account, Wallet } from '../../../wallet'
 import { AccountImport } from '../../../wallet/walletdb/accountValue'
 import { AssetValue } from '../../../wallet/walletdb/assetValue'
 import { DecryptedNoteValue } from '../../../wallet/walletdb/decryptedNoteValue'
@@ -17,16 +17,16 @@ import {
   RpcWalletNote,
 } from './types'
 
-export function getAccount(node: IronfishNode, name?: string): Account {
+export function getAccount(wallet: Wallet, name?: string): Account {
   if (name) {
-    const account = node.wallet.getAccountByName(name)
+    const account = wallet.getAccountByName(name)
     if (account) {
       return account
     }
     throw new ValidationError(`No account with name ${name}`)
   }
 
-  const defaultAccount = node.wallet.getDefaultAccount()
+  const defaultAccount = wallet.getDefaultAccount()
   if (defaultAccount) {
     return defaultAccount
   }
