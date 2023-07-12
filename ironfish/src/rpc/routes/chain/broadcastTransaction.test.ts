@@ -27,7 +27,7 @@ describe('Route chain/broadcastTransaction', () => {
 
     const acceptSpy = jest.spyOn(routeTest.node.memPool, 'acceptTransaction')
 
-    const response = await routeTest.client.broadcastTransaction({
+    const response = await routeTest.client.chain.broadcastTransaction({
       transaction: transaction.serialize().toString('hex'),
     })
 
