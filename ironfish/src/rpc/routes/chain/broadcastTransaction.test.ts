@@ -13,7 +13,7 @@ describe('Route chain/broadcastTransaction', () => {
 
     const broadcastSpy = jest.spyOn(routeTest.peerNetwork, 'broadcastTransaction')
 
-    const response = await routeTest.client.broadcastTransaction({
+    const response = await routeTest.client.chain.broadcastTransaction({
       transaction: transaction.serialize().toString('hex'),
     })
 
@@ -24,7 +24,7 @@ describe('Route chain/broadcastTransaction', () => {
 
   it("should return an error if the transaction won't deserialize", async () => {
     await expect(
-      routeTest.client.broadcastTransaction({
+      routeTest.client.chain.broadcastTransaction({
         transaction: '0xdeadbeef',
       }),
     ).rejects.toThrow('Out of bounds read')
