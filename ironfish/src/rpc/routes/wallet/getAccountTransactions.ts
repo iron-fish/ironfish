@@ -99,7 +99,7 @@ router.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
   `${ApiNamespace.wallet}/getAccountTransactions`,
   GetAccountTransactionsRequestSchema,
   async (request, node): Promise<void> => {
-    const account = getAccount(node, request.data.account)
+    const account = getAccount(node.wallet, request.data.account)
 
     const headSequence = (await account.getHead())?.sequence ?? null
 

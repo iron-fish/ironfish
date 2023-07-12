@@ -63,7 +63,7 @@ router.register<typeof GetBalanceRequestSchema, GetBalanceResponse>(
   async (request, node): Promise<void> => {
     const confirmations = request.data?.confirmations ?? node.config.get('confirmations')
 
-    const account = getAccount(node, request.data?.account)
+    const account = getAccount(node.wallet, request.data?.account)
 
     let assetId = Asset.nativeId()
     if (request.data?.assetId) {
