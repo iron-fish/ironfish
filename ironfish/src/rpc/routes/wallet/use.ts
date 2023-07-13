@@ -22,7 +22,7 @@ router.register<typeof UseAccountRequestSchema, UseAccountResponse>(
   `${ApiNamespace.wallet}/use`,
   UseAccountRequestSchema,
   async (request, node): Promise<void> => {
-    const account = getAccount(node, request.data.account)
+    const account = getAccount(node.wallet, request.data.account)
     await node.wallet.setDefaultAccount(account.name)
     request.end()
   },

@@ -50,7 +50,7 @@ router.register<typeof GetAssetsRequestSchema, GetAssetsResponse>(
   `${ApiNamespace.wallet}/getAssets`,
   GetAssetsRequestSchema,
   async (request, node): Promise<void> => {
-    const account = getAccount(node, request.data.account)
+    const account = getAccount(node.wallet, request.data.account)
 
     for await (const asset of account.getAssets()) {
       if (request.closed) {

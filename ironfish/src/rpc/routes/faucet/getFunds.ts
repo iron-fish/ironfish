@@ -37,7 +37,7 @@ router.register<typeof GetFundsRequestSchema, GetFundsResponse>(
       throw new ResponseError('This endpoint is only available for testnet.', ERROR_CODES.ERROR)
     }
 
-    const account = getAccount(node, request.data.account)
+    const account = getAccount(node.wallet, request.data.account)
 
     const api = new WebApi({
       getFundsEndpoint: node.config.get('getFundsApi'),

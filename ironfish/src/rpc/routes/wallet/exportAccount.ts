@@ -38,7 +38,7 @@ router.register<typeof ExportAccountRequestSchema, ExportAccountResponse>(
   `${ApiNamespace.wallet}/exportAccount`,
   ExportAccountRequestSchema,
   (request, node): void => {
-    const account = getAccount(node, request.data.account)
+    const account = getAccount(node.wallet, request.data.account)
     const { id: _, ...accountInfo } = account.serialize()
     if (request.data.viewOnly) {
       accountInfo.spendingKey = null

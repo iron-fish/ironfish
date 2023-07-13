@@ -25,7 +25,7 @@ router.register<typeof GetPublicKeyRequestSchema, GetPublicKeyResponse>(
   `${ApiNamespace.wallet}/getPublicKey`,
   GetPublicKeyRequestSchema,
   (request, node): void => {
-    const account = getAccount(node, request.data.account)
+    const account = getAccount(node.wallet, request.data.account)
 
     request.end({
       account: account.name,

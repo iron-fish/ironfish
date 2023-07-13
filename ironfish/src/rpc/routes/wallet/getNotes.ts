@@ -72,7 +72,7 @@ router.register<typeof GetNotesRequestSchema, GetNotesResponse>(
   `${ApiNamespace.wallet}/getNotes`,
   GetNotesRequestSchema,
   async (request, node): Promise<void> => {
-    const account = getAccount(node, request.data.account)
+    const account = getAccount(node.wallet, request.data.account)
     const pageSize = request.data.pageSize ?? DEFAULT_PAGE_SIZE
     const pageCursor = request.data.pageCursor
 

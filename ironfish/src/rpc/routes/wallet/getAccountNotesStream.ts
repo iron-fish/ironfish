@@ -25,7 +25,7 @@ router.register<typeof GetAccountNotesStreamRequestSchema, GetAccountNotesStream
   `${ApiNamespace.wallet}/getAccountNotesStream`,
   GetAccountNotesStreamRequestSchema,
   async (request, node): Promise<void> => {
-    const account = getAccount(node, request.data.account)
+    const account = getAccount(node.wallet, request.data.account)
 
     for await (const transaction of account.getTransactionsByTime()) {
       if (request.closed) {

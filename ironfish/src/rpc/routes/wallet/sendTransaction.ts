@@ -67,7 +67,7 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
   `${ApiNamespace.wallet}/sendTransaction`,
   SendTransactionRequestSchema,
   async (request, node): Promise<void> => {
-    const account = getAccount(node, request.data.account)
+    const account = getAccount(node.wallet, request.data.account)
 
     if (!node.peerNetwork.isReady) {
       throw new ValidationError(

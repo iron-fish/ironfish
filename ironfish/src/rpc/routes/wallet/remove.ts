@@ -26,7 +26,7 @@ router.register<typeof RemoveAccountRequestSchema, RemoveAccountResponse>(
   `${ApiNamespace.wallet}/remove`,
   RemoveAccountRequestSchema,
   async (request, node): Promise<void> => {
-    const account = getAccount(node, request.data.account)
+    const account = getAccount(node.wallet, request.data.account)
 
     if (!request.data.confirm) {
       const balances = await account.getUnconfirmedBalances()

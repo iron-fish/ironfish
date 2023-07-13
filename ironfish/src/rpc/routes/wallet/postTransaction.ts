@@ -36,7 +36,7 @@ router.register<typeof PostTransactionRequestSchema, PostTransactionResponse>(
   `${ApiNamespace.wallet}/postTransaction`,
   PostTransactionRequestSchema,
   async (request, node): Promise<void> => {
-    const account = getAccount(node, request.data.account)
+    const account = getAccount(node.wallet, request.data.account)
 
     const bytes = Buffer.from(request.data.transaction, 'hex')
     const raw = RawTransactionSerde.deserialize(bytes)

@@ -73,7 +73,7 @@ router.register<typeof GetBalancesRequestSchema, GetBalancesResponse>(
   `${ApiNamespace.wallet}/getBalances`,
   GetBalancesRequestSchema,
   async (request, node): Promise<void> => {
-    const account = getAccount(node, request.data.account)
+    const account = getAccount(node.wallet, request.data.account)
 
     const balances = []
     for await (const balance of node.wallet.getBalances(account, request.data.confirmations)) {
