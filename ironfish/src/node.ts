@@ -154,10 +154,6 @@ export class IronfishNode {
       incomingWebSocketWhitelist: config.getArray('incomingWebSocketWhitelist'),
     })
 
-    this.wallet.onTransactionCreated.on((transaction) => {
-      this.telemetry.submitNewTransactionCreated(transaction, new Date())
-    })
-
     this.miningManager.onNewBlock.on((block) => {
       this.telemetry.submitBlockMined(block)
     })
