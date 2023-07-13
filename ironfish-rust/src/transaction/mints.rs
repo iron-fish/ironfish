@@ -173,7 +173,7 @@ impl MintDescription {
         public_inputs[1] = randomized_public_key_point.get_v();
 
         let owner_public_address_point =
-            ExtendedPoint::from(self.asset.owner.transmission_key).to_affine();
+            ExtendedPoint::from(self.asset.creator.transmission_key).to_affine();
         public_inputs[2] = owner_public_address_point.get_u();
         public_inputs[3] = owner_public_address_point.get_v();
 
@@ -193,7 +193,7 @@ impl MintDescription {
 
     fn verify_valid_asset(&self) -> Result<(), IronfishError> {
         let asset = Asset::new_with_nonce(
-            self.asset.owner,
+            self.asset.creator,
             self.asset.name,
             self.asset.metadata,
             self.asset.nonce,
@@ -407,7 +407,7 @@ mod test {
                 metadata: asset.metadata,
                 name: asset.name,
                 nonce: asset.nonce,
-                owner: asset.owner,
+                creator: asset.creator,
             },
             value,
         );

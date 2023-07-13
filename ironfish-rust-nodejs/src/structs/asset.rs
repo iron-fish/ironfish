@@ -9,7 +9,6 @@ use ironfish::{
         },
         asset_identifier::NATIVE_ASSET,
     },
-    keys::PUBLIC_ADDRESS_SIZE,
     PublicAddress,
 };
 use napi::{
@@ -30,9 +29,6 @@ pub const ASSET_METADATA_LENGTH: u32 = METADATA_LENGTH as u32;
 pub const ASSET_NAME_LENGTH: u32 = NAME_LENGTH as u32;
 
 #[napi]
-pub const ASSET_OWNER_LENGTH: u32 = PUBLIC_ADDRESS_SIZE as u32;
-
-#[napi]
 pub const ASSET_LENGTH: u32 = SERIALIZED_ASSET_LENGTH as u32;
 
 #[napi(js_name = "Asset")]
@@ -44,11 +40,12 @@ pub struct NativeAsset {
 impl NativeAsset {
     #[napi(constructor)]
     pub fn new(
-        owner_public_address: String,
+        creator_public_address: String,
         name: String,
         metadata: String,
     ) -> Result<NativeAsset> {
-        let public_address = PublicAddress::from_hex(&owner_public_address).map_err(to_napi_err)?;
+        let public_address =
+            PublicAddress::from_hex(&creator_public_address).map_err(to_napi_err)?;
 
         Ok(NativeAsset {
             asset: Asset::new(public_address, &name, &metadata).map_err(to_napi_err)?,
@@ -71,8 +68,8 @@ impl NativeAsset {
     }
 
     #[napi]
-    pub fn owner(&self) -> Buffer {
-        Buffer::from(&self.asset.owner()[..])
+    pub fn creator(&self) -> Buffer {
+        Buffer::from(&self.asset.creator()[..])
     }
 
     #[napi]
