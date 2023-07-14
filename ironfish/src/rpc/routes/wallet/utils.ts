@@ -68,15 +68,13 @@ export function deserializeRpcAccountImport(accountImport: RpcAccountImport): Ac
 }
 
 export async function getAssetBalanceDeltas(
-  node: IronfishNode,
+  account: Account,
   transaction: TransactionValue,
 ): Promise<RcpAccountAssetBalanceDelta[]> {
   const assetBalanceDeltas = new Array<RcpAccountAssetBalanceDelta>()
 
   for (const [assetId, delta] of transaction.assetBalanceDeltas.entries()) {
-    // TODO: update to use wallet assets store
-    const asset = await node.chain.getAssetById(assetId)
-
+    const asset = await account.getAsset(assetId)
     const assetName = asset?.name.toString('hex') ?? ''
 
     assetBalanceDeltas.push({

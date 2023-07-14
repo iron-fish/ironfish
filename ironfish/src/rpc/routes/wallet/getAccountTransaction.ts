@@ -105,7 +105,7 @@ router.register<typeof GetAccountTransactionRequestSchema, GetAccountTransaction
 
     const serializedTransaction = serializeRpcAccountTransaction(transaction)
 
-    const assetBalanceDeltas = await getAssetBalanceDeltas(node, transaction)
+    const assetBalanceDeltas = await getAssetBalanceDeltas(account, transaction)
 
     const notes = await getAccountDecryptedNotes(node, account, transaction)
 
