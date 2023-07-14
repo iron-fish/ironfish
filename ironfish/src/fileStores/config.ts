@@ -283,7 +283,7 @@ export type ConfigOptions = {
   /**
    * Enable the node's in-process wallet to scan blocks and mempool transactions
    */
-  enableWalletScanning: boolean
+  walletScanningEnabled: boolean
 
   /**
    * Enable standalone wallet process to connect to a node via IPC
@@ -418,7 +418,7 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     memPoolRecentlyEvictedCacheSize: yup.number().integer(),
     networkDefinitionPath: yup.string().trim(),
     incomingWebSocketWhitelist: yup.array(yup.string().trim().defined()),
-    enableWalletScanning: yup.boolean(),
+    walletScanningEnabled: yup.boolean(),
     walletNodeIpcEnabled: yup.boolean(),
     walletNodeIpcPath: yup.string(),
     walletNodeTcpEnabled: yup.boolean(),
@@ -534,7 +534,7 @@ export class Config extends KeyStore<ConfigOptions> {
       memPoolRecentlyEvictedCacheSize: 60000,
       networkDefinitionPath: files.resolve(files.join(dataDir, 'network.json')),
       incomingWebSocketWhitelist: [],
-      enableWalletScanning: true,
+      walletScanningEnabled: true,
       walletNodeIpcEnabled: true,
       walletNodeIpcPath: files.resolve(files.join(dataDir, 'ironfish.ipc')),
       walletNodeTcpEnabled: false,
