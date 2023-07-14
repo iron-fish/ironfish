@@ -3,49 +3,45 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import * as yup from 'yup'
+import { IronfishNode } from '../../../node'
 import { Transaction } from '../../../primitives'
 import { ValidationError } from '../../adapters'
-import { ApiNamespace, router } from '../router'
+import { RpcRequest } from '../../request'
 
-export type BroadcastTransactionRequest = {
+export type Request = {
   transaction: string
 }
 
-export type BroadcastTransactionResponse = {
+export type Response = {
   hash: string
 }
 
-export const BroadcastTransactionRequestSchema: yup.ObjectSchema<BroadcastTransactionRequest> =
-  yup
-    .object({
-      transaction: yup.string().defined(),
-    })
-    .defined()
+export const RequestSchema: yup.ObjectSchema<Request> = yup
+  .object({
+    transaction: yup.string().defined(),
+  })
+  .defined()
 
-export const BroadcastTransactionResponseSchema: yup.ObjectSchema<BroadcastTransactionResponse> =
-  yup
-    .object({
-      hash: yup.string().defined(),
-    })
-    .defined()
+export const ResponseSchema: yup.ObjectSchema<Response> = yup
+  .object({
+    hash: yup.string().defined(),
+  })
+  .defined()
 
-router.register<typeof BroadcastTransactionRequestSchema, BroadcastTransactionResponse>(
-  `${ApiNamespace.chain}/broadcastTransaction`,
-  BroadcastTransactionRequestSchema,
-  (request, node): void => {
-    const data = Buffer.from(request.data.transaction, 'hex')
-    const transaction = new Transaction(data)
+export const route = 'broadcastTransaction'
+export const handle = (request: RpcRequest<Request, Response>, node: IronfishNode): void => {
+  const data = Buffer.from(request.data.transaction, 'hex')
+  const transaction = new Transaction(data)
 
-    const verify = node.chain.verifier.verifyCreatedTransaction(transaction)
-    if (!verify.valid) {
-      throw new ValidationError(`Invalid transaction, reason: ${String(verify.reason)}`)
-    }
+  const verify = node.chain.verifier.verifyCreatedTransaction(transaction)
+  if (!verify.valid) {
+    throw new ValidationError(`Invalid transaction, reason: ${String(verify.reason)}`)
+  }
 
-    node.memPool.acceptTransaction(transaction)
-    node.peerNetwork.broadcastTransaction(transaction)
+  node.memPool.acceptTransaction(transaction)
+  node.peerNetwork.broadcastTransaction(transaction)
 
-    request.end({
-      hash: transaction.hash().toString('hex'),
-    })
-  },
-)
+  request.end({
+    hash: transaction.hash().toString('hex'),
+  })
+}

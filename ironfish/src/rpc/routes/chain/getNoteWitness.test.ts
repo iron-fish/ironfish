@@ -6,7 +6,7 @@ import { Witness } from '../../../merkletree'
 import { NoteEncrypted } from '../../../primitives/noteEncrypted'
 import { useMinerBlockFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
-import { GetNoteWitnessResponse } from './getNoteWitness'
+import { Response as GetNoteWitnessResponse } from './getNoteWitness'
 
 describe('Route chain/getNoteWitness', () => {
   const routeTest = createRouteTest()

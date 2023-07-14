@@ -5,7 +5,7 @@ import { useBlockWithTx, useMinerBlockFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { ERROR_CODES } from '../../adapters'
 import { RpcRequestError } from '../../clients/errors'
-import { GetBlockResponse } from './getBlock'
+import { Response as GetBlockResponse } from './getBlock'
 
 describe('Route chain/getBlock', () => {
   const routeTest = createRouteTest()

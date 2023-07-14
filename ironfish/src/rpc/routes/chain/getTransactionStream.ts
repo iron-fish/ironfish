@@ -4,13 +4,14 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { ChainProcessor } from '../../../chainProcessor'
+import { IronfishNode } from '../../../node'
 import { Block } from '../../../primitives/block'
 import { BlockHeader } from '../../../primitives/blockheader'
 import { CurrencyUtils } from '../../../utils'
 import { PromiseUtils } from '../../../utils/promise'
 import { isValidIncomingViewKey } from '../../../wallet/validator'
 import { ValidationError } from '../../adapters/errors'
-import { ApiNamespace, router } from '../router'
+import { RpcRequest } from '../../request'
 
 interface Note {
   assetId: string
@@ -78,9 +79,9 @@ const TransactionSchema = yup
   })
   .required()
 
-export type GetTransactionStreamRequest = { incomingViewKey: string; head?: string | null }
+export type Request = { incomingViewKey: string; head?: string | null }
 
-export type GetTransactionStreamResponse = {
+export type Response = {
   type: 'connected' | 'disconnected' | 'fork'
   head: {
     sequence: number
@@ -94,159 +95,158 @@ export type GetTransactionStreamResponse = {
   transactions: Transaction[]
 }
 
-export const GetTransactionStreamRequestSchema: yup.ObjectSchema<GetTransactionStreamRequest> =
-  yup
-    .object({
-      incomingViewKey: yup.string().required(),
-      head: yup.string().nullable().optional(),
-    })
-    .required()
-export const GetTransactionStreamResponseSchema: yup.ObjectSchema<GetTransactionStreamResponse> =
-  yup
-    .object({
-      transactions: yup.array().of(TransactionSchema).required(),
-      type: yup.string().oneOf(['connected', 'disconnected', 'fork']).required(),
-      block: yup
-        .object({
-          hash: yup.string().required(),
-          sequence: yup.number().required(),
-          timestamp: yup.number().required(),
-          previousBlockHash: yup.string().required(),
-        })
-        .defined(),
-      head: yup
-        .object({
-          sequence: yup.number().required(),
-        })
-        .defined(),
-    })
-    .defined()
+export const RequestSchema: yup.ObjectSchema<Request> = yup
+  .object({
+    incomingViewKey: yup.string().required(),
+    head: yup.string().nullable().optional(),
+  })
+  .required()
 
-router.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamResponse>(
-  `${ApiNamespace.chain}/getTransactionStream`,
-  GetTransactionStreamRequestSchema,
-  async (request, node): Promise<void> => {
-    if (!isValidIncomingViewKey(request.data.incomingViewKey)) {
-      throw new ValidationError(`incomingViewKey is not valid`)
-    }
+export const ResponseSchema: yup.ObjectSchema<Response> = yup
+  .object({
+    transactions: yup.array().of(TransactionSchema).required(),
+    type: yup.string().oneOf(['connected', 'disconnected', 'fork']).required(),
+    block: yup
+      .object({
+        hash: yup.string().required(),
+        sequence: yup.number().required(),
+        timestamp: yup.number().required(),
+        previousBlockHash: yup.string().required(),
+      })
+      .defined(),
+    head: yup
+      .object({
+        sequence: yup.number().required(),
+      })
+      .defined(),
+  })
+  .defined()
 
-    const head = request.data.head ? Buffer.from(request.data.head, 'hex') : null
+export const route = 'getTransactionStream'
+export const handle = async (
+  request: RpcRequest<Request, Response>,
+  node: IronfishNode,
+): Promise<void> => {
+  if (!isValidIncomingViewKey(request.data.incomingViewKey)) {
+    throw new ValidationError(`incomingViewKey is not valid`)
+  }
 
-    if (head && !(await node.chain.hasBlock(head))) {
-      throw new ValidationError(
-        `Block with hash ${String(request.data.head)} was not found in the chain`,
-      )
-    }
+  const head = request.data.head ? Buffer.from(request.data.head, 'hex') : null
 
-    const processor = new ChainProcessor({
-      chain: node.chain,
-      logger: node.logger,
-      head: head,
-    })
+  if (head && !(await node.chain.hasBlock(head))) {
+    throw new ValidationError(
+      `Block with hash ${String(request.data.head)} was not found in the chain`,
+    )
+  }
 
-    const processBlock = async (
-      block: Block,
-      type: 'connected' | 'disconnected' | 'fork',
-    ): Promise<void> => {
-      const transactions: Transaction[] = []
+  const processor = new ChainProcessor({
+    chain: node.chain,
+    logger: node.logger,
+    head: head,
+  })
 
-      for (const tx of block.transactions) {
-        const notes = new Array<Note>()
-        const mints = new Array<Mint>()
-        const burns = new Array<Burn>()
+  const processBlock = async (
+    block: Block,
+    type: 'connected' | 'disconnected' | 'fork',
+  ): Promise<void> => {
+    const transactions: Transaction[] = []
 
-        for (const note of tx.notes) {
-          const decryptedNote = note.decryptNoteForOwner(request.data.incomingViewKey)
+    for (const tx of block.transactions) {
+      const notes = new Array<Note>()
+      const mints = new Array<Mint>()
+      const burns = new Array<Burn>()
 
-          if (decryptedNote) {
-            const assetValue = await node.chain.getAssetById(decryptedNote.assetId())
-            notes.push({
-              value: CurrencyUtils.encode(decryptedNote.value()),
-              memo: decryptedNote.memo(),
-              assetId: decryptedNote.assetId().toString('hex'),
-              assetName: assetValue?.name.toString('hex') || '',
-              hash: decryptedNote.hash().toString('hex'),
-            })
-          }
-        }
+      for (const note of tx.notes) {
+        const decryptedNote = note.decryptNoteForOwner(request.data.incomingViewKey)
 
-        for (const burn of tx.burns) {
-          const assetValue = await node.chain.getAssetById(burn.assetId)
-          burns.push({
-            value: CurrencyUtils.encode(burn.value),
-            assetId: burn.assetId.toString('hex'),
+        if (decryptedNote) {
+          const assetValue = await node.chain.getAssetById(decryptedNote.assetId())
+          notes.push({
+            value: CurrencyUtils.encode(decryptedNote.value()),
+            memo: decryptedNote.memo(),
+            assetId: decryptedNote.assetId().toString('hex'),
             assetName: assetValue?.name.toString('hex') || '',
-          })
-        }
-
-        for (const mint of tx.mints) {
-          mints.push({
-            value: CurrencyUtils.encode(mint.value),
-            assetId: mint.asset.id().toString('hex'),
-            assetName: mint.asset.name().toString('hex'),
-          })
-        }
-
-        if (notes.length || burns.length || mints.length) {
-          transactions.push({
-            hash: tx.hash().toString('hex'),
-            isMinersFee: tx.isMinersFee(),
-            notes: notes,
-            burns: burns,
-            mints: mints,
+            hash: decryptedNote.hash().toString('hex'),
           })
         }
       }
 
-      request.stream({
-        type,
-        transactions,
-        block: {
-          hash: block.header.hash.toString('hex'),
-          sequence: block.header.sequence,
-          timestamp: block.header.timestamp.valueOf(),
-          previousBlockHash: block.header.previousBlockHash.toString('hex'),
-        },
-        head: {
-          sequence: node.chain.head.sequence,
-        },
-      })
+      for (const burn of tx.burns) {
+        const assetValue = await node.chain.getAssetById(burn.assetId)
+        burns.push({
+          value: CurrencyUtils.encode(burn.value),
+          assetId: burn.assetId.toString('hex'),
+          assetName: assetValue?.name.toString('hex') || '',
+        })
+      }
+
+      for (const mint of tx.mints) {
+        mints.push({
+          value: CurrencyUtils.encode(mint.value),
+          assetId: mint.asset.id().toString('hex'),
+          assetName: mint.asset.name().toString('hex'),
+        })
+      }
+
+      if (notes.length || burns.length || mints.length) {
+        transactions.push({
+          hash: tx.hash().toString('hex'),
+          isMinersFee: tx.isMinersFee(),
+          notes: notes,
+          burns: burns,
+          mints: mints,
+        })
+      }
     }
 
-    const onAdd = async (header: BlockHeader) => {
-      const block = await node.chain.getBlock(header)
-      Assert.isNotNull(block)
-      await processBlock(block, 'connected')
-    }
-
-    const onRemove = async (header: BlockHeader) => {
-      const block = await node.chain.getBlock(header)
-      Assert.isNotNull(block)
-      await processBlock(block, 'disconnected')
-    }
-
-    const onFork = async (block: Block) => {
-      await processBlock(block, 'fork')
-    }
-
-    const abortController = new AbortController()
-
-    processor.onAdd.on(onAdd)
-    processor.onRemove.on(onRemove)
-    node.chain.onForkBlock.on(onFork)
-
-    request.onClose.on(() => {
-      abortController.abort()
-      processor.onAdd.off(onAdd)
-      processor.onRemove.off(onRemove)
-      node.chain.onForkBlock.off(onFork)
+    request.stream({
+      type,
+      transactions,
+      block: {
+        hash: block.header.hash.toString('hex'),
+        sequence: block.header.sequence,
+        timestamp: block.header.timestamp.valueOf(),
+        previousBlockHash: block.header.previousBlockHash.toString('hex'),
+      },
+      head: {
+        sequence: node.chain.head.sequence,
+      },
     })
+  }
 
-    while (!request.closed) {
-      await processor.update({ signal: abortController.signal })
-      await PromiseUtils.sleep(1000)
-    }
+  const onAdd = async (header: BlockHeader) => {
+    const block = await node.chain.getBlock(header)
+    Assert.isNotNull(block)
+    await processBlock(block, 'connected')
+  }
 
-    request.end()
-  },
-)
+  const onRemove = async (header: BlockHeader) => {
+    const block = await node.chain.getBlock(header)
+    Assert.isNotNull(block)
+    await processBlock(block, 'disconnected')
+  }
+
+  const onFork = async (block: Block) => {
+    await processBlock(block, 'fork')
+  }
+
+  const abortController = new AbortController()
+
+  processor.onAdd.on(onAdd)
+  processor.onRemove.on(onRemove)
+  node.chain.onForkBlock.on(onFork)
+
+  request.onClose.on(() => {
+    abortController.abort()
+    processor.onAdd.off(onAdd)
+    processor.onRemove.off(onRemove)
+    node.chain.onForkBlock.off(onFork)
+  })
+
+  while (!request.closed) {
+    await processor.update({ signal: abortController.signal })
+    await PromiseUtils.sleep(1000)
+  }
+
+  request.end()
+}

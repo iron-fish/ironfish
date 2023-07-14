@@ -3,16 +3,17 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
+import { IronfishNode } from '../../../node'
 import { GENESIS_BLOCK_SEQUENCE } from '../../../primitives'
 import { ValidationError } from '../../adapters'
-import { ApiNamespace, router } from '../router'
+import { RpcRequest } from '../../request'
 
-export type GetNoteWitnessRequest = {
+export type Request = {
   index: number
   confirmations?: number
 }
 
-export type GetNoteWitnessResponse = {
+export type Response = {
   treeSize: number
   rootHash: string
   authPath: {
@@ -21,14 +22,14 @@ export type GetNoteWitnessResponse = {
   }[]
 }
 
-export const GetNoteWitnessRequestSchema: yup.ObjectSchema<GetNoteWitnessRequest> = yup
+export const RequestSchema: yup.ObjectSchema<Request> = yup
   .object({
     index: yup.number().min(0).defined(),
     confirmations: yup.number().min(0),
   })
   .defined()
 
-export const GetNoteWitnessResponseSchema: yup.ObjectSchema<GetNoteWitnessResponse> = yup
+export const ResponseSchema: yup.ObjectSchema<Response> = yup
   .object({
     treeSize: yup.number().defined(),
     rootHash: yup.string().defined(),
@@ -45,42 +46,42 @@ export const GetNoteWitnessResponseSchema: yup.ObjectSchema<GetNoteWitnessRespon
   })
   .defined()
 
-router.register<typeof GetNoteWitnessRequestSchema, GetNoteWitnessResponse>(
-  `${ApiNamespace.chain}/getNoteWitness`,
-  GetNoteWitnessRequestSchema,
-  async (request, node): Promise<void> => {
-    const { chain } = node
+export const route = 'getNoteWitness'
+export const handle = async (
+  request: RpcRequest<Request, Response>,
+  node: IronfishNode,
+): Promise<void> => {
+  const { chain } = node
 
-    const confirmations = request.data.confirmations ?? node.config.get('confirmations')
+  const confirmations = request.data.confirmations ?? node.config.get('confirmations')
 
-    const maxConfirmedSequence = Math.max(
-      chain.head.sequence - confirmations,
-      GENESIS_BLOCK_SEQUENCE,
+  const maxConfirmedSequence = Math.max(
+    chain.head.sequence - confirmations,
+    GENESIS_BLOCK_SEQUENCE,
+  )
+  const maxConfirmedHeader = await chain.getHeaderAtSequence(maxConfirmedSequence)
+
+  Assert.isNotNull(maxConfirmedHeader)
+  Assert.isNotNull(maxConfirmedHeader?.noteSize)
+
+  const witness = await chain.notes.witness(request.data.index, maxConfirmedHeader.noteSize)
+
+  if (witness === null) {
+    throw new ValidationError(
+      `No confirmed notes exist with index ${request.data.index} in tree of size ${maxConfirmedHeader.noteSize}`,
     )
-    const maxConfirmedHeader = await chain.getHeaderAtSequence(maxConfirmedSequence)
+  }
 
-    Assert.isNotNull(maxConfirmedHeader)
-    Assert.isNotNull(maxConfirmedHeader?.noteSize)
-
-    const witness = await chain.notes.witness(request.data.index, maxConfirmedHeader.noteSize)
-
-    if (witness === null) {
-      throw new ValidationError(
-        `No confirmed notes exist with index ${request.data.index} in tree of size ${maxConfirmedHeader.noteSize}`,
-      )
+  const authPath = witness.authenticationPath.map((step) => {
+    return {
+      side: step.side,
+      hashOfSibling: step.hashOfSibling.toString('hex'),
     }
+  })
 
-    const authPath = witness.authenticationPath.map((step) => {
-      return {
-        side: step.side,
-        hashOfSibling: step.hashOfSibling.toString('hex'),
-      }
-    })
-
-    request.end({
-      treeSize: witness.treeSize(),
-      rootHash: witness.rootHash.toString('hex'),
-      authPath,
-    })
-  },
-)
+  request.end({
+    treeSize: witness.treeSize(),
+    rootHash: witness.rootHash.toString('hex'),
+    authPath,
+  })
+}

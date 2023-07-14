@@ -2,98 +2,97 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { IronfishNode } from '../../../node'
 import { BigIntUtils } from '../../../utils'
 import { ValidationError } from '../../adapters'
-import { ApiNamespace, router } from '../router'
+import { RpcRequest } from '../../request'
 
-export type GetNetworkHashPowerRequest = {
+export type Request = {
   blocks?: number | null // number of blocks to look back
   sequence?: number | null // the sequence of the latest block from when to estimate the network speed
 }
 
-export type GetNetworkHashPowerResponse = {
+export type Response = {
   hashesPerSecond: number
   blocks: number // The actual number of blocks used in the hash rate calculation
   sequence: number // The actual sequence of the latest block used in hash rate calculation
 }
 
-export const GetNetworkHashPowerRequestSchema: yup.ObjectSchema<GetNetworkHashPowerRequest> =
-  yup
-    .object({
-      blocks: yup.number().nullable().optional(),
-      sequence: yup.number().nullable().optional(),
-    })
-    .defined()
+export const RequestSchema: yup.ObjectSchema<Request> = yup
+  .object({
+    blocks: yup.number().nullable().optional(),
+    sequence: yup.number().nullable().optional(),
+  })
+  .defined()
 
-export const GetNetworkHashPowerResponseSchema: yup.ObjectSchema<GetNetworkHashPowerResponse> =
-  yup
-    .object({
-      hashesPerSecond: yup.number().defined(),
-      blocks: yup.number().defined(),
-      sequence: yup.number().defined(),
-    })
-    .defined()
+export const ResponseSchema: yup.ObjectSchema<Response> = yup
+  .object({
+    hashesPerSecond: yup.number().defined(),
+    blocks: yup.number().defined(),
+    sequence: yup.number().defined(),
+  })
+  .defined()
 
-router.register<typeof GetNetworkHashPowerRequestSchema, GetNetworkHashPowerResponse>(
-  `${ApiNamespace.chain}/getNetworkHashPower`,
-  GetNetworkHashPowerRequestSchema,
-  async (request, node): Promise<void> => {
-    let blocks = request.data?.blocks ?? 120
-    let sequence = request.data?.sequence ?? -1
+export const route = 'getNetworkHashPower'
+export const handle = async (
+  request: RpcRequest<Request, Response>,
+  node: IronfishNode,
+): Promise<void> => {
+  let blocks = request.data?.blocks ?? 120
+  let sequence = request.data?.sequence ?? -1
 
-    if (blocks < 0) {
-      throw new ValidationError('[blocks] value must be greater than 0')
+  if (blocks < 0) {
+    throw new ValidationError('[blocks] value must be greater than 0')
+  }
+
+  let endBlock = node.chain.head
+
+  // If sequence is negative, it's relative to the head
+  if (sequence < 0 && Math.abs(sequence) < node.chain.head.sequence) {
+    sequence = node.chain.head.sequence + sequence
+  }
+
+  // estimate network hps at specified sequence
+  // if the sequence is out of bounds, use the head as the last block
+  if (sequence > 0 && sequence < node.chain.head.sequence) {
+    const blockAtSequence = await node.chain.getHeaderAtSequence(sequence)
+    if (!blockAtSequence) {
+      throw new Error(`No end block found at sequence ${sequence}`)
     }
+    endBlock = blockAtSequence
+  }
 
-    let endBlock = node.chain.head
+  // Genesis block has sequence 1 - clamp blocks to prevent going out-of-bounds
+  if (blocks >= endBlock.sequence) {
+    blocks = endBlock.sequence - 1
+  }
 
-    // If sequence is negative, it's relative to the head
-    if (sequence < 0 && Math.abs(sequence) < node.chain.head.sequence) {
-      sequence = node.chain.head.sequence + sequence
-    }
+  const startBlock = await node.chain.getHeaderAtSequence(endBlock.sequence - blocks)
+  if (!startBlock) {
+    throw new Error(`Failure to find start block ${endBlock.sequence - blocks}`)
+  }
 
-    // estimate network hps at specified sequence
-    // if the sequence is out of bounds, use the head as the last block
-    if (sequence > 0 && sequence < node.chain.head.sequence) {
-      const blockAtSequence = await node.chain.getHeaderAtSequence(sequence)
-      if (!blockAtSequence) {
-        throw new Error(`No end block found at sequence ${sequence}`)
-      }
-      endBlock = blockAtSequence
-    }
+  const startTime = startBlock.timestamp.getTime()
+  const endTime = endBlock.timestamp.getTime()
 
-    // Genesis block has sequence 1 - clamp blocks to prevent going out-of-bounds
-    if (blocks >= endBlock.sequence) {
-      blocks = endBlock.sequence - 1
-    }
-
-    const startBlock = await node.chain.getHeaderAtSequence(endBlock.sequence - blocks)
-    if (!startBlock) {
-      throw new Error(`Failure to find start block ${endBlock.sequence - blocks}`)
-    }
-
-    const startTime = startBlock.timestamp.getTime()
-    const endTime = endBlock.timestamp.getTime()
-
-    // Don't divide by 0
-    if (startTime === endTime) {
-      request.end({
-        hashesPerSecond: 0,
-        blocks: blocks,
-        sequence: endBlock.sequence,
-      })
-      return
-    }
-
-    const workDifference = endBlock.work - startBlock.work
-    const timeDifference = BigInt(endTime - startTime) // in milliseconds
-
-    const hashesPerSecond = BigIntUtils.divide(workDifference, timeDifference) * 1000
-
+  // Don't divide by 0
+  if (startTime === endTime) {
     request.end({
-      hashesPerSecond,
-      blocks,
+      hashesPerSecond: 0,
+      blocks: blocks,
       sequence: endBlock.sequence,
     })
-  },
-)
+    return
+  }
+
+  const workDifference = endBlock.work - startBlock.work
+  const timeDifference = BigInt(endTime - startTime) // in milliseconds
+
+  const hashesPerSecond = BigIntUtils.divide(workDifference, timeDifference) * 1000
+
+  request.end({
+    hashesPerSecond,
+    blocks,
+    sequence: endBlock.sequence,
+  })
+}

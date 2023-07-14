@@ -3,15 +3,16 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { ASSET_ID_LENGTH } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
+import { IronfishNode } from '../../../node'
 import { CurrencyUtils } from '../../../utils'
 import { ValidationError } from '../../adapters'
-import { ApiNamespace, router } from '../router'
+import { RpcRequest } from '../../request'
 
-export type GetAssetRequest = {
+export type Request = {
   id: string
 }
 
-export type GetAssetResponse = {
+export type Response = {
   createdTransactionHash: string
   id: string
   metadata: string
@@ -20,14 +21,14 @@ export type GetAssetResponse = {
   supply: string
 }
 
-export const GetAssetRequestSchema: yup.ObjectSchema<GetAssetRequest> = yup
+export const RequestSchema: yup.ObjectSchema<Request> = yup
   .object()
   .shape({
     id: yup.string(),
   })
   .defined()
 
-export const GetAssetResponse: yup.ObjectSchema<GetAssetResponse> = yup
+export const Response: yup.ObjectSchema<Response> = yup
   .object({
     createdTransactionHash: yup.string().defined(),
     id: yup.string().defined(),
@@ -38,31 +39,31 @@ export const GetAssetResponse: yup.ObjectSchema<GetAssetResponse> = yup
   })
   .defined()
 
-router.register<typeof GetAssetRequestSchema, GetAssetResponse>(
-  `${ApiNamespace.chain}/getAsset`,
-  GetAssetRequestSchema,
-  async (request, node): Promise<void> => {
-    const id = Buffer.from(request.data.id, 'hex')
+export const route = 'getAsset'
+export const handle = async (
+  request: RpcRequest<Request, Response>,
+  node: IronfishNode,
+): Promise<void> => {
+  const id = Buffer.from(request.data.id, 'hex')
 
-    if (id.byteLength !== ASSET_ID_LENGTH) {
-      throw new ValidationError(
-        `Asset identifier is invalid length, expected ${ASSET_ID_LENGTH} but got ${id.byteLength}`,
-      )
-    }
+  if (id.byteLength !== ASSET_ID_LENGTH) {
+    throw new ValidationError(
+      `Asset identifier is invalid length, expected ${ASSET_ID_LENGTH} but got ${id.byteLength}`,
+    )
+  }
 
-    const asset = await node.chain.getAssetById(id)
+  const asset = await node.chain.getAssetById(id)
 
-    if (!asset) {
-      throw new ValidationError(`No asset found with identifier ${request.data.id}`)
-    }
+  if (!asset) {
+    throw new ValidationError(`No asset found with identifier ${request.data.id}`)
+  }
 
-    request.end({
-      createdTransactionHash: asset.createdTransactionHash.toString('hex'),
-      id: asset.id.toString('hex'),
-      metadata: asset.metadata.toString('hex'),
-      name: asset.name.toString('hex'),
-      owner: asset.owner.toString('hex'),
-      supply: CurrencyUtils.encode(asset.supply),
-    })
-  },
-)
+  request.end({
+    createdTransactionHash: asset.createdTransactionHash.toString('hex'),
+    id: asset.id.toString('hex'),
+    metadata: asset.metadata.toString('hex'),
+    name: asset.name.toString('hex'),
+    owner: asset.owner.toString('hex'),
+    supply: CurrencyUtils.encode(asset.supply),
+  })
+}

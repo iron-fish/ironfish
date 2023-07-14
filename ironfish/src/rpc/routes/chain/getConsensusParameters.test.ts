@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { createRouteTest } from '../../../testUtilities/routeTest'
-import { GetConsensusParametersResponse } from './getConsensusParameters'
+import { Response as GetConsensusParametersResponse } from './getConsensusParameters'
 
 describe('Route chain.getConsensusParameters', () => {
   const routeTest = createRouteTest()

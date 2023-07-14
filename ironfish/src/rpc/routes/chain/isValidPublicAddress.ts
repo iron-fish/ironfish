@@ -3,36 +3,31 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { isValidPublicAddress } from '../../../wallet/validator'
-import { ApiNamespace, router } from '../router'
+import { RpcRequest } from '../../request'
 
-export type IsValidPublicAddressRequest = {
+export type Request = {
   address: string
 }
 
-export type IsValidPublicAddressResponse = {
+export type Response = {
   valid: boolean
 }
 
-export const IsValidPublicAddressRequestSchema: yup.ObjectSchema<IsValidPublicAddressRequest> =
-  yup
-    .object({
-      address: yup.string().defined(),
-    })
-    .defined()
+export const route = 'isValidPublicAddress'
+export const RequestSchema: yup.ObjectSchema<Request> = yup
+  .object({
+    address: yup.string().defined(),
+  })
+  .defined()
 
-export const IsValidPublicAddressResponseSchema: yup.ObjectSchema<IsValidPublicAddressResponse> =
-  yup
-    .object({
-      valid: yup.boolean().defined(),
-    })
-    .defined()
+export const ResponseSchema: yup.ObjectSchema<Response> = yup
+  .object({
+    valid: yup.boolean().defined(),
+  })
+  .defined()
 
-router.register<typeof IsValidPublicAddressRequestSchema, IsValidPublicAddressResponse>(
-  `${ApiNamespace.chain}/isValidPublicAddress`,
-  IsValidPublicAddressRequestSchema,
-  (request): void => {
-    request.end({
-      valid: isValidPublicAddress(request.data.address),
-    })
-  },
-)
+export const handle = (request: RpcRequest<Request, Response>): void => {
+  request.end({
+    valid: isValidPublicAddress(request.data.address),
+  })
+}

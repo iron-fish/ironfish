@@ -11,24 +11,19 @@ import {
   ApiNamespace,
   BlockTemplateStreamRequest,
   BlockTemplateStreamResponse,
-  BroadcastTransactionRequest,
-  BroadcastTransactionResponse,
+  BroadcastTransaction,
   BurnAssetRequest,
   BurnAssetResponse,
   CreateAccountRequest,
   CreateAccountResponse,
   CreateTransactionRequest,
   CreateTransactionResponse,
-  EstimateFeeRateRequest,
-  EstimateFeeRateResponse,
-  EstimateFeeRatesRequest,
-  EstimateFeeRatesResponse,
+  EstimateFeeRate,
+  EstimateFeeRates,
   ExportAccountRequest,
   ExportAccountResponse,
-  ExportChainStreamRequest,
-  ExportChainStreamResponse,
-  FollowChainStreamRequest,
-  FollowChainStreamResponse,
+  ExportChainStream,
+  FollowChainStream,
   GetAccountNotesStreamRequest,
   GetAccountNotesStreamResponse,
   GetAccountsRequest,
@@ -39,8 +34,7 @@ import {
   GetAccountTransactionResponse,
   GetAccountTransactionsRequest,
   GetAccountTransactionsResponse,
-  GetAssetRequest,
-  GetAssetResponse,
+  GetAsset,
   GetAssetsRequest,
   GetAssetsResponse,
   GetBalanceRequest,
@@ -49,32 +43,25 @@ import {
   GetBalancesResponse,
   GetBannedPeersRequest,
   GetBannedPeersResponse,
-  GetBlockRequest,
-  GetBlockResponse,
-  GetChainInfoRequest,
-  GetChainInfoResponse,
+  GetBlock,
+  GetChainInfo,
   GetConfigRequest,
   GetConfigResponse,
-  GetConsensusParametersRequest,
-  GetConsensusParametersResponse,
+  GetConsensusParameters,
   GetDefaultAccountRequest,
   GetDefaultAccountResponse,
-  GetDifficultyRequest,
-  GetDifficultyResponse,
+  GetDifficulty,
   GetFundsRequest,
   GetFundsResponse,
   GetLogStreamResponse,
   GetMempoolStatusResponse,
   GetMempoolTransactionResponse,
   GetMempoolTransactionsRequest,
-  GetNetworkHashPowerRequest,
-  GetNetworkHashPowerResponse,
-  GetNetworkInfoRequest,
-  GetNetworkInfoResponse,
+  GetNetworkHashPower,
+  GetNetworkInfo,
   GetNodeStatusRequest,
   GetNodeStatusResponse,
-  GetNoteWitnessRequest,
-  GetNoteWitnessResponse,
+  GetNoteWitness,
   GetPeerMessagesRequest,
   GetPeerMessagesResponse,
   GetPeerRequest,
@@ -85,14 +72,13 @@ import {
   GetPublicKeyResponse,
   GetRpcStatusRequest,
   GetRpcStatusResponse,
-  GetTransactionRequest,
-  GetTransactionResponse,
-  GetTransactionStreamRequest,
-  GetTransactionStreamResponse,
+  GetTransaction,
+  GetTransactionStream,
   GetWorkersStatusRequest,
   GetWorkersStatusResponse,
   ImportAccountRequest,
   ImportResponse,
+  IsValidPublicAddress,
   MintAssetRequest,
   MintAssetResponse,
   OnGossipRequest,
@@ -113,8 +99,7 @@ import {
   SendTransactionResponse,
   SetConfigRequest,
   SetConfigResponse,
-  ShowChainRequest,
-  ShowChainResponse,
+  ShowChain,
   StopNodeResponse,
   SubmitBlockRequest,
   SubmitBlockResponse,
@@ -125,10 +110,6 @@ import {
   UseAccountRequest,
   UseAccountResponse,
 } from '../routes'
-import {
-  IsValidPublicAddressRequest,
-  IsValidPublicAddressResponse,
-} from '../routes/chain/isValidPublicAddress'
 import { GetNotesRequest, GetNotesResponse } from '../routes/wallet/getNotes'
 
 export abstract class RpcClient {
@@ -565,149 +546,149 @@ export abstract class RpcClient {
 
   chain = {
     estimateFeeRates: (
-      params?: EstimateFeeRatesRequest,
-    ): Promise<RpcResponseEnded<EstimateFeeRatesResponse>> => {
-      return this.request<EstimateFeeRatesResponse>(
+      params?: EstimateFeeRates.Request,
+    ): Promise<RpcResponseEnded<EstimateFeeRates.Response>> => {
+      return this.request<EstimateFeeRates.Response>(
         `${ApiNamespace.chain}/estimateFeeRates`,
         params,
       ).waitForEnd()
     },
 
     estimateFeeRate: (
-      params?: EstimateFeeRateRequest,
-    ): Promise<RpcResponseEnded<EstimateFeeRateResponse>> => {
-      return this.request<EstimateFeeRateResponse>(
+      params?: EstimateFeeRate.Request,
+    ): Promise<RpcResponseEnded<EstimateFeeRate.Response>> => {
+      return this.request<EstimateFeeRate.Response>(
         `${ApiNamespace.chain}/estimateFeeRate`,
         params,
       ).waitForEnd()
     },
 
     getChainInfo: (
-      params: GetChainInfoRequest = undefined,
-    ): Promise<RpcResponseEnded<GetChainInfoResponse>> => {
-      return this.request<GetChainInfoResponse>(
+      params: GetChainInfo.Request = undefined,
+    ): Promise<RpcResponseEnded<GetChainInfo.Response>> => {
+      return this.request<GetChainInfo.Response>(
         `${ApiNamespace.chain}/getChainInfo`,
         params,
       ).waitForEnd()
     },
 
     exportChainStream: (
-      params: ExportChainStreamRequest = undefined,
-    ): RpcResponse<void, ExportChainStreamResponse> => {
-      return this.request<void, ExportChainStreamResponse>(
+      params: ExportChainStream.Request = undefined,
+    ): RpcResponse<void, ExportChainStream.Response> => {
+      return this.request<void, ExportChainStream.Response>(
         `${ApiNamespace.chain}/exportChainStream`,
         params,
       )
     },
 
     followChainStream: (
-      params: FollowChainStreamRequest = undefined,
-    ): RpcResponse<void, FollowChainStreamResponse> => {
-      return this.request<void, FollowChainStreamResponse>(
+      params: FollowChainStream.Request = undefined,
+    ): RpcResponse<void, FollowChainStream.Response> => {
+      return this.request<void, FollowChainStream.Response>(
         `${ApiNamespace.chain}/followChainStream`,
         params,
       )
     },
 
-    getBlock: (params: GetBlockRequest): Promise<RpcResponseEnded<GetBlockResponse>> => {
-      return this.request<GetBlockResponse>(
+    getBlock: (params: GetBlock.Request): Promise<RpcResponseEnded<GetBlock.Response>> => {
+      return this.request<GetBlock.Response>(
         `${ApiNamespace.chain}/getBlock`,
         params,
       ).waitForEnd()
     },
 
     getDifficulty: (
-      params: GetDifficultyRequest = undefined,
-    ): Promise<RpcResponseEnded<GetDifficultyResponse>> => {
-      return this.request<GetDifficultyResponse>(
+      params: GetDifficulty.Request = undefined,
+    ): Promise<RpcResponseEnded<GetDifficulty.Response>> => {
+      return this.request<GetDifficulty.Response>(
         `${ApiNamespace.chain}/getDifficulty`,
         params,
       ).waitForEnd()
     },
 
     getNoteWitness: (
-      params: GetNoteWitnessRequest,
-    ): Promise<RpcResponseEnded<GetNoteWitnessResponse>> => {
-      return this.request<GetNoteWitnessResponse>(
+      params: GetNoteWitness.Request,
+    ): Promise<RpcResponseEnded<GetNoteWitness.Response>> => {
+      return this.request<GetNoteWitness.Response>(
         `${ApiNamespace.chain}/getNoteWitness`,
         params,
       ).waitForEnd()
     },
 
     getNetworkHashPower: (
-      params: GetNetworkHashPowerRequest,
-    ): Promise<RpcResponseEnded<GetNetworkHashPowerResponse>> => {
-      return this.request<GetNetworkHashPowerResponse>(
+      params: GetNetworkHashPower.Request,
+    ): Promise<RpcResponseEnded<GetNetworkHashPower.Response>> => {
+      return this.request<GetNetworkHashPower.Response>(
         `${ApiNamespace.chain}/getNetworkHashPower`,
         params,
       ).waitForEnd()
     },
 
     showChain: (
-      params: ShowChainRequest = undefined,
-    ): Promise<RpcResponseEnded<ShowChainResponse>> => {
-      return this.request<ShowChainResponse>(
+      params: ShowChain.Request = undefined,
+    ): Promise<RpcResponseEnded<ShowChain.Response>> => {
+      return this.request<ShowChain.Response>(
         `${ApiNamespace.chain}/showChain`,
         params,
       ).waitForEnd()
     },
 
     getTransactionStream: (
-      params: GetTransactionStreamRequest,
-    ): RpcResponse<void, GetTransactionStreamResponse> => {
-      return this.request<void, GetTransactionStreamResponse>(
+      params: GetTransactionStream.Request,
+    ): RpcResponse<void, GetTransactionStream.Response> => {
+      return this.request<void, GetTransactionStream.Response>(
         `${ApiNamespace.chain}/getTransactionStream`,
         params,
       )
     },
 
     getTransaction: (
-      params: GetTransactionRequest,
-    ): RpcResponse<void, GetTransactionResponse> => {
-      return this.request<void, GetTransactionResponse>(
+      params: GetTransaction.Request,
+    ): RpcResponse<void, GetTransaction.Response> => {
+      return this.request<void, GetTransaction.Response>(
         `${ApiNamespace.chain}/getTransaction`,
         params,
       )
     },
 
     getConsensusParameters: (
-      params: GetConsensusParametersRequest = undefined,
-    ): Promise<RpcResponseEnded<GetConsensusParametersResponse>> => {
-      return this.request<GetConsensusParametersResponse>(
+      params: GetConsensusParameters.Request = undefined,
+    ): Promise<RpcResponseEnded<GetConsensusParameters.Response>> => {
+      return this.request<GetConsensusParameters.Response>(
         `${ApiNamespace.chain}/getConsensusParameters`,
         params,
       ).waitForEnd()
     },
 
-    getAsset: (params: GetAssetRequest): Promise<RpcResponseEnded<GetAssetResponse>> => {
-      return this.request<GetAssetResponse>(
+    getAsset: (params: GetAsset.Request): Promise<RpcResponseEnded<GetAsset.Response>> => {
+      return this.request<GetAsset.Response>(
         `${ApiNamespace.chain}/getAsset`,
         params,
       ).waitForEnd()
     },
 
     getNetworkInfo: (
-      params?: GetNetworkInfoRequest,
-    ): Promise<RpcResponse<GetNetworkInfoResponse>> => {
-      return this.request<GetNetworkInfoResponse>(
+      params?: GetNetworkInfo.Request,
+    ): Promise<RpcResponse<GetNetworkInfo.Response>> => {
+      return this.request<GetNetworkInfo.Response>(
         `${ApiNamespace.chain}/getNetworkInfo`,
         params,
       ).waitForEnd()
     },
 
     isValidPublicAddress: (
-      params: IsValidPublicAddressRequest,
-    ): Promise<RpcResponse<IsValidPublicAddressResponse>> => {
-      return this.request<IsValidPublicAddressResponse>(
+      params: IsValidPublicAddress.Request,
+    ): Promise<RpcResponse<IsValidPublicAddress.Response>> => {
+      return this.request<IsValidPublicAddress.Response>(
         `${ApiNamespace.chain}/isValidPublicAddress`,
         params,
       ).waitForEnd()
     },
 
     broadcastTransaction: (
-      params: BroadcastTransactionRequest,
-    ): Promise<RpcResponse<BroadcastTransactionResponse>> => {
-      return this.request<BroadcastTransactionResponse>(
+      params: BroadcastTransaction.Request,
+    ): Promise<RpcResponse<BroadcastTransaction.Response>> => {
+      return this.request<BroadcastTransaction.Response>(
         `${ApiNamespace.chain}/broadcastTransaction`,
         params,
       ).waitForEnd()

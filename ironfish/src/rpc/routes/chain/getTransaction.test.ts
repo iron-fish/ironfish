@@ -6,7 +6,7 @@ import { createRouteTest } from '../../../testUtilities/routeTest'
 import { CurrencyUtils } from '../../../utils'
 import { RpcRequestError } from '../../clients'
 import { RpcSpend } from '../wallet/types'
-import { GetTransactionResponse } from './getTransaction'
+import { Response as GetTransactionResponse } from './getTransaction'
 
 describe('Route chain/getTransaction', () => {
   const routeTest = createRouteTest()

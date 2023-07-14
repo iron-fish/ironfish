@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import {
-  FollowChainStreamResponse,
+  FollowChainStream,
   Meter,
   RpcClient,
   TimeUtils,
@@ -106,7 +106,7 @@ export default class Sync extends IronfishCommand {
     const speed = new Meter()
     speed.start()
 
-    const buffer = new Array<FollowChainStreamResponse>()
+    const buffer = new Array<FollowChainStream.Response>()
 
     async function commit(): Promise<void> {
       await api.blocks(buffer)

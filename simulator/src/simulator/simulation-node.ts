@@ -7,7 +7,7 @@ import {
   createRootLogger,
   DEV_GENESIS_ACCOUNT,
   Event,
-  FollowChainStreamResponse,
+  FollowChainStream,
   Logger,
   NodeFileProvider,
   PromiseUtils,
@@ -112,7 +112,7 @@ export class SimulationNode {
   /**
    *  @event Emits when new blocks are added to the chain
    */
-  onBlock: Event<[FollowChainStreamResponse]> = new Event()
+  onBlock: Event<[FollowChainStream.Response]> = new Event()
 
   /**
    * The last error encountered by the node. This is useful for debugging
@@ -387,9 +387,9 @@ export class SimulationNode {
   async waitForTransactionConfirmation(
     transactionHash: string,
     expirationSequence?: number,
-  ): Promise<FollowChainStreamResponse['block'] | undefined> {
+  ): Promise<FollowChainStream.Response['block'] | undefined> {
     return new Promise((resolve) => {
-      const checkBlock = (resp: FollowChainStreamResponse) => {
+      const checkBlock = (resp: FollowChainStream.Response) => {
         const hasTransation = resp.block.transactions.find(
           (t) => t.hash.toLowerCase() === transactionHash,
         )

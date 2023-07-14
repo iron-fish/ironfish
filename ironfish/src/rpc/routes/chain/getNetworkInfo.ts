@@ -2,29 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { ApiNamespace, router } from '../router'
+import { IronfishNode } from '../../../node'
+import { RpcRequest } from '../../request'
 
-export type GetNetworkInfoRequest = undefined
-export type GetNetworkInfoResponse = {
+export type Request = undefined
+export type Response = {
   networkId: number
 }
 
-export const GetNetworkInfoRequestSchema: yup.MixedSchema<GetNetworkInfoRequest> = yup
-  .mixed()
-  .oneOf([undefined] as const)
+export const RequestSchema: yup.MixedSchema<Request> = yup.mixed().oneOf([undefined] as const)
 
-export const GetNetworkInfoResponseSchema: yup.ObjectSchema<GetNetworkInfoResponse> = yup
+export const GetNetworkInfoResponseSchema: yup.ObjectSchema<Response> = yup
   .object({
     networkId: yup.number().defined(),
   })
   .defined()
 
-router.register<typeof GetNetworkInfoRequestSchema, GetNetworkInfoResponse>(
-  `${ApiNamespace.chain}/getNetworkInfo`,
-  GetNetworkInfoRequestSchema,
-  (request, node): void => {
-    request.end({
-      networkId: node.internal.get('networkId'),
-    })
-  },
-)
+export const route = 'getNetworkInfo'
+export const handle = (request: RpcRequest<Request, Response>, node: IronfishNode): void => {
+  request.end({
+    networkId: node.internal.get('networkId'),
+  })
+}

@@ -5,7 +5,7 @@
 import axios, { AxiosError, AxiosRequestConfig } from 'axios'
 import { getTransactionSize } from './network/utils/serializers'
 import { Transaction } from './primitives'
-import { FollowChainStreamResponse } from './rpc/routes/chain/followChainStream'
+import { FollowChainStream } from './rpc/routes'
 import { BlockHashSerdeInstance } from './serde'
 import { Metric } from './telemetry'
 import { BufferUtils } from './utils'
@@ -118,7 +118,7 @@ export class WebApi {
     await axios.post(`${this.host}/multi_asset`, { operations: multiAssets }, options)
   }
 
-  async blocks(blocks: FollowChainStreamResponse[]): Promise<void> {
+  async blocks(blocks: FollowChainStream.Response[]): Promise<void> {
     this.requireToken()
 
     const serialized = blocks.map(({ type, block }) => ({

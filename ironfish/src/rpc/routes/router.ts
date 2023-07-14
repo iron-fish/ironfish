@@ -48,9 +48,23 @@ export function parseRoute(
   return [n, m]
 }
 
+export type RouteFile<TRequest, TResponse> = {
+  handle: RouteHandler<YupSchemaResult<YupSchema<TRequest>>, TResponse>
+  RequestSchema: YupSchema<TRequest>
+  route: string
+}
+
 export class Router {
   routes = new Map<string, Map<string, { handler: RouteHandler; schema: YupSchema }>>()
   server: RpcServer | null = null
+
+  registerRouteFile<TRequest, TResponse>(
+    routeFile: RouteFile<TRequest, TResponse>,
+    namespace: string,
+  ): void {
+    const { route, RequestSchema, handle } = routeFile
+    this.register(`${namespace}/${route}`, RequestSchema, handle)
+  }
 
   register<TRequestSchema extends YupSchema, TResponse>(
     route: string,

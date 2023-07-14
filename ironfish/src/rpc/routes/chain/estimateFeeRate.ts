@@ -3,33 +3,31 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { PRIORITY_LEVELS, PriorityLevel } from '../../../memPool/feeEstimator'
+import { IronfishNode } from '../../../node'
 import { CurrencyUtils } from '../../../utils'
-import { ApiNamespace, router } from '../router'
+import { RpcRequest } from '../../request'
 
-export type EstimateFeeRateRequest = { priority?: PriorityLevel } | undefined
+export type Request = { priority?: PriorityLevel } | undefined
 
-export type EstimateFeeRateResponse = {
+export type Response = {
   rate: string
 }
 
-export const EstimateFeeRateRequestSchema: yup.ObjectSchema<EstimateFeeRateRequest> = yup
+export const RequestSchema: yup.ObjectSchema<Request> = yup
   .object({
     priority: yup.string().oneOf(PRIORITY_LEVELS),
   })
   .optional()
 
-export const EstimateFeeRateResponseSchema: yup.ObjectSchema<EstimateFeeRateResponse> = yup
+export const ResponseSchema: yup.ObjectSchema<Response> = yup
   .object({
     rate: yup.string(),
   })
   .defined()
 
-router.register<typeof EstimateFeeRateRequestSchema, EstimateFeeRateResponse>(
-  `${ApiNamespace.chain}/estimateFeeRate`,
-  EstimateFeeRateRequestSchema,
-  (request, node): void => {
-    const priority = request.data?.priority ?? 'average'
-    const rate = node.memPool.feeEstimator.estimateFeeRate(priority)
-    request.end({ rate: CurrencyUtils.encode(rate) })
-  },
-)
+export const route = 'estimateFeeRate'
+export const handle = (request: RpcRequest<Request, Response>, node: IronfishNode): void => {
+  const priority = request.data?.priority ?? 'average'
+  const rate = node.memPool.feeEstimator.estimateFeeRate(priority)
+  request.end({ rate: CurrencyUtils.encode(rate) })
+}

@@ -3,9 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
+import { IronfishNode } from '../../../node'
 import { GENESIS_BLOCK_SEQUENCE } from '../../../primitives/block'
 import { BlockHashSerdeInstance } from '../../../serde'
-import { ApiNamespace, router } from '../router'
+import { RpcRequest } from '../../request'
 
 export type BlockIdentifier = { index: string; hash: string }
 
@@ -16,14 +17,12 @@ export interface ChainInfo {
   currentBlockTimestamp: number
 }
 
-export type GetChainInfoRequest = Record<string, never> | undefined
-export type GetChainInfoResponse = ChainInfo
+export type Request = Record<string, never> | undefined
+export type Response = ChainInfo
 
-export const GetChainInfoRequestSchema: yup.MixedSchema<GetChainInfoRequest> = yup
-  .mixed()
-  .oneOf([undefined] as const)
+export const RequestSchema: yup.MixedSchema<Request> = yup.mixed().oneOf([undefined] as const)
 
-export const GetChainInfoResponseSchema: yup.ObjectSchema<GetChainInfoResponse> = yup
+export const ResponseSchema: yup.ObjectSchema<Response> = yup
   .object({
     currentBlockIdentifier: yup
       .object({ index: yup.string().defined(), hash: yup.string().defined() })
@@ -38,41 +37,35 @@ export const GetChainInfoResponseSchema: yup.ObjectSchema<GetChainInfoResponse> 
   })
   .defined()
 
-/**
- * Get current, heaviest and genesis block identifiers
- */
-router.register<typeof GetChainInfoRequestSchema, GetChainInfoResponse>(
-  `${ApiNamespace.chain}/getChainInfo`,
-  GetChainInfoRequestSchema,
-  (request, node): void => {
-    Assert.isNotNull(node.chain.genesis, 'no genesis')
+export const route = 'getChainInfo'
+export const handle = (request: RpcRequest<Request, Response>, node: IronfishNode): void => {
+  Assert.isNotNull(node.chain.genesis, 'no genesis')
 
-    const latestHeader = node.chain.latest
-    const heaviestHeader = node.chain.head
+  const latestHeader = node.chain.latest
+  const heaviestHeader = node.chain.head
 
-    const oldestBlockIdentifier = {} as BlockIdentifier
-    if (heaviestHeader) {
-      oldestBlockIdentifier.index = heaviestHeader.sequence.toString()
-      oldestBlockIdentifier.hash = BlockHashSerdeInstance.serialize(heaviestHeader.hash)
-    }
+  const oldestBlockIdentifier = {} as BlockIdentifier
+  if (heaviestHeader) {
+    oldestBlockIdentifier.index = heaviestHeader.sequence.toString()
+    oldestBlockIdentifier.hash = BlockHashSerdeInstance.serialize(heaviestHeader.hash)
+  }
 
-    let currentBlockTimestamp = Number()
-    const currentBlockIdentifier = {} as BlockIdentifier
-    if (latestHeader) {
-      currentBlockTimestamp = Number(latestHeader.timestamp)
-      currentBlockIdentifier.index = latestHeader.sequence.toString()
-      currentBlockIdentifier.hash = BlockHashSerdeInstance.serialize(latestHeader.hash)
-    }
+  let currentBlockTimestamp = Number()
+  const currentBlockIdentifier = {} as BlockIdentifier
+  if (latestHeader) {
+    currentBlockTimestamp = Number(latestHeader.timestamp)
+    currentBlockIdentifier.index = latestHeader.sequence.toString()
+    currentBlockIdentifier.hash = BlockHashSerdeInstance.serialize(latestHeader.hash)
+  }
 
-    const genesisBlockIdentifier = {} as BlockIdentifier
-    genesisBlockIdentifier.index = GENESIS_BLOCK_SEQUENCE.toString()
-    genesisBlockIdentifier.hash = BlockHashSerdeInstance.serialize(node.chain.genesis.hash)
+  const genesisBlockIdentifier = {} as BlockIdentifier
+  genesisBlockIdentifier.index = GENESIS_BLOCK_SEQUENCE.toString()
+  genesisBlockIdentifier.hash = BlockHashSerdeInstance.serialize(node.chain.genesis.hash)
 
-    request.end({
-      currentBlockIdentifier,
-      oldestBlockIdentifier,
-      genesisBlockIdentifier,
-      currentBlockTimestamp,
-    })
-  },
-)
+  request.end({
+    currentBlockIdentifier,
+    oldestBlockIdentifier,
+    genesisBlockIdentifier,
+    currentBlockTimestamp,
+  })
+}

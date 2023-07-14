@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { createRouteTest } from '../../../testUtilities/routeTest'
-import { GetChainInfoResponse } from './getChainInfo'
+import { Response as GetChainInfoResponse } from './getChainInfo'
 
 describe('Route chain.getChainInfo', () => {
   const routeTest = createRouteTest()

@@ -3,17 +3,18 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
+import { IronfishNode } from '../../../node'
 import { BlockchainUtils } from '../../../utils/blockchain'
-import { ApiNamespace, router } from '../router'
+import { RpcRequest } from '../../request'
 
-export type ExportChainStreamRequest =
+export type Request =
   | {
       start?: number | null
       stop?: number | null
     }
   | undefined
 
-export type ExportChainStreamResponse = {
+export type Response = {
   start: number
   stop: number
   block?: {
@@ -30,14 +31,14 @@ export type ExportChainStreamResponse = {
   }
 }
 
-export const ExportChainStreamRequestSchema: yup.ObjectSchema<ExportChainStreamRequest> = yup
+export const RequestSchema: yup.ObjectSchema<Request> = yup
   .object({
     start: yup.number().nullable().optional(),
     stop: yup.number().nullable().optional(),
   })
   .optional()
 
-export const ExportChainStreamResponseSchema: yup.ObjectSchema<ExportChainStreamResponse> = yup
+export const ResponseSchema: yup.ObjectSchema<Response> = yup
   .object({
     start: yup.number().defined(),
     stop: yup.number().defined(),
@@ -58,43 +59,43 @@ export const ExportChainStreamResponseSchema: yup.ObjectSchema<ExportChainStream
   })
   .defined()
 
-router.register<typeof ExportChainStreamRequestSchema, ExportChainStreamResponse>(
-  `${ApiNamespace.chain}/exportChainStream`,
-  ExportChainStreamRequestSchema,
-  async (request, node): Promise<void> => {
-    Assert.isNotNull(node.chain.head, 'head')
-    Assert.isNotNull(node.chain.latest, 'latest')
+export const route = 'exportChainStream'
+export const handle = async (
+  request: RpcRequest<Request, Response>,
+  node: IronfishNode,
+): Promise<void> => {
+  Assert.isNotNull(node.chain.head, 'head')
+  Assert.isNotNull(node.chain.latest, 'latest')
 
-    const { start, stop } = BlockchainUtils.getBlockRange(node.chain, {
-      start: request.data?.start,
-      stop: request.data?.stop,
-    })
+  const { start, stop } = BlockchainUtils.getBlockRange(node.chain, {
+    start: request.data?.start,
+    stop: request.data?.stop,
+  })
 
-    request.stream({ start, stop })
+  request.stream({ start, stop })
 
-    for (let i = start; i <= stop; ++i) {
-      const blocks = await node.chain.getHeadersAtSequence(i)
+  for (let i = start; i <= stop; ++i) {
+    const blocks = await node.chain.getHeadersAtSequence(i)
 
-      for (const block of blocks) {
-        const isMain = await node.chain.isHeadChain(block)
+    for (const block of blocks) {
+      const isMain = await node.chain.isHeadChain(block)
 
-        const result = {
-          main: isMain,
-          hash: block.hash.toString('hex'),
-          seq: block.sequence,
-          prev: block.previousBlockHash.toString('hex'),
-          graffiti: block.graffiti.toString('ascii'),
-          timestamp: block.timestamp.getTime(),
-          work: block.work.toString(),
-          difficulty: block.target.toDifficulty().toString(),
-          head: block.hash.equals(node.chain.head.hash),
-          latest: block.hash.equals(node.chain.latest.hash),
-        }
-
-        request.stream({ start, stop, block: result })
+      const result = {
+        main: isMain,
+        hash: block.hash.toString('hex'),
+        seq: block.sequence,
+        prev: block.previousBlockHash.toString('hex'),
+        graffiti: block.graffiti.toString('ascii'),
+        timestamp: block.timestamp.getTime(),
+        work: block.work.toString(),
+        difficulty: block.target.toDifficulty().toString(),
+        head: block.hash.equals(node.chain.head.hash),
+        latest: block.hash.equals(node.chain.latest.hash),
       }
-    }
 
-    request.end()
-  },
-)
+      request.stream({ start, stop, block: result })
+    }
+  }
+
+  request.end()
+}
