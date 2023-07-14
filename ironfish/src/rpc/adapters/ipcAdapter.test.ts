@@ -57,7 +57,7 @@ describe('IpcAdapter', () => {
   })
 
   it('should send and receive message', async () => {
-    ipc.router?.register('foo/bar', yup.string(), (request) => {
+    ipc.router?.routes.register('foo/bar', yup.string(), (request) => {
       request.end(request.data)
     })
 
@@ -69,7 +69,7 @@ describe('IpcAdapter', () => {
   })
 
   it('should stream message', async () => {
-    ipc.router?.register('foo/bar', yup.object({}), (request) => {
+    ipc.router?.routes.register('foo/bar', yup.object({}), (request) => {
       request.stream('hello 1')
       request.stream('hello 2')
       request.end()
@@ -89,7 +89,7 @@ describe('IpcAdapter', () => {
   it('should not crash on disconnect while streaming', async () => {
     const [waitPromise, waitResolve] = PromiseUtils.split<void>()
 
-    ipc.router?.register('foo/bar', yup.object({}), async () => {
+    ipc.router?.routes.register('foo/bar', yup.object({}), async () => {
       await waitPromise
     })
 
@@ -106,7 +106,7 @@ describe('IpcAdapter', () => {
   })
 
   it('should handle errors', async () => {
-    ipc.router?.register('foo/bar', yup.object({}), () => {
+    ipc.router?.routes.register('foo/bar', yup.object({}), () => {
       throw new ValidationError('hello error', 402, 'hello-error' as ERROR_CODES)
     })
 
@@ -129,7 +129,7 @@ describe('IpcAdapter', () => {
     // But send this instead
     const body = undefined
 
-    ipc.router?.register('foo/bar', schema, (res) => res.end())
+    ipc.router?.routes.register('foo/bar', schema, (res) => res.end())
 
     await ipc.start()
     await client.connect()
