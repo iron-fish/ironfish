@@ -373,7 +373,7 @@ describe('Accounts', () => {
     })
 
     // Expiring transactions should not yet remove the transaction
-    await node.wallet.expireTransactions()
+    await node.wallet.expireTransactions(node.chain.head.sequence)
     await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(2000000000),
       unconfirmed: BigInt(2000000000),
@@ -390,8 +390,7 @@ describe('Accounts', () => {
     expect(addResult2.isAdded).toBeTruthy()
 
     // Expiring transactions should now remove the transaction
-    await node.wallet.updateHead()
-    await node.wallet.expireTransactions()
+    await node.wallet.expireTransactions(newBlock2.header.sequence)
     await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(2000000000),
       unconfirmed: BigInt(2000000000),
@@ -456,7 +455,7 @@ describe('Accounts', () => {
     await expect(account.hasPendingTransaction(transaction.hash())).resolves.toBeTruthy()
 
     // Expiring transactions should not yet remove the transaction
-    await node.wallet.expireTransactions()
+    await node.wallet.expireTransactions(node.chain.head.sequence)
     await expect(account.hasPendingTransaction(transaction.hash())).resolves.toBeTruthy()
 
     await node.wallet.close()
@@ -473,8 +472,7 @@ describe('Accounts', () => {
     expect(addResult2.isAdded).toBeTruthy()
 
     // Expiring transactions should now remove the transaction
-    await node.wallet.updateHead()
-    await node.wallet.expireTransactions()
+    await node.wallet.expireTransactions(newBlock2.header.sequence)
     await expect(account.hasPendingTransaction(transaction.hash())).resolves.toBeFalsy()
   }, 600000)
 
