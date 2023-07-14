@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { Assert } from '../../../assert'
 import { Connection, PeerNetwork } from '../../../network'
 import { NetworkMessageType } from '../../../network/types'
 import { IJSON } from '../../../serde'
@@ -60,7 +61,9 @@ export const GetPeerMessagesResponseSchema: yup.ObjectSchema<GetPeerMessagesResp
 router.register<typeof GetPeerMessagesRequestSchema, GetPeerMessagesResponse>(
   `${ApiNamespace.peer}/getPeerMessages`,
   GetPeerMessagesRequestSchema,
-  (request, node): void => {
+  (request, { node }): void => {
+    Assert.isNotUndefined(node)
+
     const peerNetwork = node.peerNetwork
 
     if (!peerNetwork) {

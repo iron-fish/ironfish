@@ -125,7 +125,8 @@ export const GetTransactionStreamResponseSchema: yup.ObjectSchema<GetTransaction
 router.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamResponse>(
   `${ApiNamespace.chain}/getTransactionStream`,
   GetTransactionStreamRequestSchema,
-  async (request, node): Promise<void> => {
+  async (request, { node }): Promise<void> => {
+    Assert.isNotUndefined(node)
     if (!isValidIncomingViewKey(request.data.incomingViewKey)) {
       throw new ValidationError(`incomingViewKey is not valid`)
     }

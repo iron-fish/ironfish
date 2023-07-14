@@ -28,7 +28,8 @@ export const GetFundsResponseSchema: yup.ObjectSchema<GetFundsResponse> = yup
 router.register<typeof GetFundsRequestSchema, GetFundsResponse>(
   `${ApiNamespace.faucet}/getFunds`,
   GetFundsRequestSchema,
-  async (request, node): Promise<void> => {
+  async (request, { node }): Promise<void> => {
+    Assert.isNotUndefined(node)
     // check node network id
     const networkId = node.internal.get('networkId')
 

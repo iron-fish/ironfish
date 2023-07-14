@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { Assert } from '../../../assert'
 import { BlockHeader } from '../../../primitives'
 import { ApiNamespace, router } from '../router'
 import { RpcBlockHeader, RpcBlockHeaderSchema, serializeRpcBlockHeader } from './types'
@@ -21,7 +22,9 @@ export const OnGossipResponseSchema: yup.ObjectSchema<OnGossipResponse> = yup
 router.register<typeof OnGossipRequestSchema, OnGossipResponse>(
   `${ApiNamespace.event}/onGossip`,
   OnGossipRequestSchema,
-  (request, node): void => {
+  (request, { node }): void => {
+    Assert.isNotUndefined(node)
+
     function onGossip(header: BlockHeader) {
       const serialized = serializeRpcBlockHeader(header)
       request.stream({ blockHeader: serialized })

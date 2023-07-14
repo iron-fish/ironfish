@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { Assert } from '../../../assert'
 import { IronfishNode } from '../../../node'
 import { GENESIS_BLOCK_SEQUENCE } from '../../../primitives'
 import { TransactionStatus, TransactionType } from '../../../wallet'
@@ -98,7 +99,9 @@ export const GetAccountTransactionsResponseSchema: yup.ObjectSchema<GetAccountTr
 router.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactionsResponse>(
   `${ApiNamespace.wallet}/getAccountTransactions`,
   GetAccountTransactionsRequestSchema,
-  async (request, node): Promise<void> => {
+  async (request, { node }): Promise<void> => {
+    Assert.isNotUndefined(node)
+
     const account = getAccount(node.wallet, request.data.account)
 
     const headSequence = (await account.getHead())?.sequence ?? null

@@ -11,15 +11,12 @@ export class RpcServer {
   readonly node: IronfishNode
   readonly adapters: IRpcAdapter[] = []
 
-  private readonly router: Router
   private _isRunning = false
   private _startPromise: Promise<unknown> | null = null
   logger: Logger
 
   constructor(node: IronfishNode, logger: Logger = createRootLogger()) {
     this.node = node
-    this.router = router
-    this.router.server = this
     this.logger = logger.withTag('rpcserver')
   }
 
@@ -29,7 +26,10 @@ export class RpcServer {
 
   /** Creates a new router from this RpcServer with the attached routes filtered by namespaces */
   getRouter(namespaces: ApiNamespace[]): Router {
-    return this.router.filter(namespaces)
+    const newRouter = router.filter(namespaces)
+    newRouter.server = this
+    newRouter.context = { node: this.node }
+    return newRouter
   }
 
   /** Starts the RPC server and tells any attached adapters to starts serving requests to the routing layer */

@@ -61,7 +61,8 @@ export const ExportChainStreamResponseSchema: yup.ObjectSchema<ExportChainStream
 router.register<typeof ExportChainStreamRequestSchema, ExportChainStreamResponse>(
   `${ApiNamespace.chain}/exportChainStream`,
   ExportChainStreamRequestSchema,
-  async (request, node): Promise<void> => {
+  async (request, { node }): Promise<void> => {
+    Assert.isNotUndefined(node)
     Assert.isNotNull(node.chain.head, 'head')
     Assert.isNotNull(node.chain.latest, 'latest')
 

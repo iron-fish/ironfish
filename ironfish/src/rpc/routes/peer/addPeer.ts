@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { Assert } from '../../../assert'
 import { DEFAULT_WEBSOCKET_PORT } from '../../../fileStores/config'
 import { ApiNamespace, router } from '../router'
 
@@ -33,7 +34,9 @@ export const AddPeerResponseSchema: yup.ObjectSchema<AddPeerResponse> = yup
 router.register<typeof AddPeerRequestSchema, AddPeerResponse>(
   `${ApiNamespace.peer}/addPeer`,
   AddPeerRequestSchema,
-  (request, node): void => {
+  (request, { node }): void => {
+    Assert.isNotUndefined(node)
+
     const peerManager = node.peerNetwork.peerManager
     const { host, port, whitelist } = request.data
 

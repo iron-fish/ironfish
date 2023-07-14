@@ -102,7 +102,8 @@ export const CreateTransactionResponseSchema: yup.ObjectSchema<CreateTransaction
 router.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse>(
   `${ApiNamespace.wallet}/createTransaction`,
   CreateTransactionRequestSchema,
-  async (request, node): Promise<void> => {
+  async (request, { node }): Promise<void> => {
+    Assert.isNotUndefined(node)
     const account = getAccount(node.wallet, request.data.account)
 
     const params: Parameters<Wallet['createTransaction']>[0] = {
