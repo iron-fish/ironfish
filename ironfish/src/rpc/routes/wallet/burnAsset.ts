@@ -55,8 +55,8 @@ router.register<typeof BurnAssetRequestSchema, BurnAssetResponse>(
     const value = CurrencyUtils.decode(request.data.value)
 
     const assetId = Buffer.from(request.data.assetId, 'hex')
-    const asset = await node.chain.getAssetById(assetId)
-    Assert.isNotNull(asset)
+    const asset = await account.getAsset(assetId)
+    Assert.isNotUndefined(asset)
 
     const transaction = await node.wallet.burn(
       account,
