@@ -139,7 +139,8 @@ export const FollowChainStreamResponseSchema: yup.ObjectSchema<FollowChainStream
 router.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse>(
   `${ApiNamespace.chain}/followChainStream`,
   FollowChainStreamRequestSchema,
-  async (request, node): Promise<void> => {
+  async (request, { node }): Promise<void> => {
+    Assert.isNotUndefined(node)
     const head = request.data?.head ? Buffer.from(request.data.head, 'hex') : null
 
     const processor = new ChainProcessor({

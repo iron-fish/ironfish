@@ -35,7 +35,8 @@ export const GetConsensusParametersResponseSchema: yup.ObjectSchema<GetConsensus
 router.register<typeof GetConsensusParametersRequestSchema, GetConsensusParametersResponse>(
   `${ApiNamespace.chain}/getConsensusParameters`,
   GetConsensusParametersRequestSchema,
-  (request, node): void => {
+  (request, { node }): void => {
+    Assert.isNotUndefined(node)
     Assert.isNotNull(node.chain.consensus, 'no consensus parameters')
 
     const consensusParameters = node.chain.consensus.parameters

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { Assert } from '../../../assert'
 import { Config, ConfigOptions, ConfigOptionsSchema } from '../../../fileStores/config'
 import { ValidationError } from '../../adapters/errors'
 import { ApiNamespace, router } from '../router'
@@ -19,7 +20,9 @@ export const UploadConfigResponseSchema: yup.ObjectSchema<UploadConfigResponse> 
 router.register<typeof UploadConfigRequestSchema, UploadConfigResponse>(
   `${ApiNamespace.config}/uploadConfig`,
   UploadConfigRequestSchema,
-  async (request, node): Promise<void> => {
+  async (request, { node }): Promise<void> => {
+    Assert.isNotUndefined(node)
+
     clearConfig(node.config)
 
     for (const key of Object.keys(request.data.config)) {

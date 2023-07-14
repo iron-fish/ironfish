@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { Assert } from '../../../assert'
 import { TransactionStatus, TransactionType } from '../../../wallet'
 import { ApiNamespace, router } from '../router'
 import { RpcSpend, RpcSpendSchema, RpcWalletNote, RpcWalletNoteSchema } from './types'
@@ -89,7 +90,9 @@ export const GetAccountTransactionResponseSchema: yup.ObjectSchema<GetAccountTra
 router.register<typeof GetAccountTransactionRequestSchema, GetAccountTransactionResponse>(
   `${ApiNamespace.wallet}/getAccountTransaction`,
   GetAccountTransactionRequestSchema,
-  async (request, node): Promise<void> => {
+  async (request, { node }): Promise<void> => {
+    Assert.isNotUndefined(node)
+
     const account = getAccount(node.wallet, request.data.account)
 
     const transactionHash = Buffer.from(request.data.hash, 'hex')

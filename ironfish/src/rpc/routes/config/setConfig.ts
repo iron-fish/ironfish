@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { Assert } from '../../../assert'
 import { ConfigOptions, ConfigOptionsSchema } from '../../../fileStores/config'
 import { ApiNamespace, router } from '../router'
 import { setUnknownConfigValue } from './uploadConfig'
@@ -21,7 +22,9 @@ export const SetConfigResponseSchema: yup.ObjectSchema<SetConfigResponse> = Conf
 router.register<typeof SetConfigRequestSchema, SetConfigResponse>(
   `${ApiNamespace.config}/setConfig`,
   SetConfigRequestSchema,
-  async (request, node): Promise<void> => {
+  async (request, { node }): Promise<void> => {
+    Assert.isNotUndefined(node)
+
     setUnknownConfigValue(node.config, request.data.name, request.data.value)
     await node.config.save()
     request.end()

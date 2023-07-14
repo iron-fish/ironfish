@@ -5,6 +5,7 @@ import { Assert } from '../../assert'
 import { IronfishNode } from '../../node'
 import { YupSchema, YupSchemaResult, YupUtils } from '../../utils'
 import { StrEnumUtils } from '../../utils/enums'
+import { Wallet } from '../../wallet'
 import { ERROR_CODES } from '../adapters'
 import { ResponseError, ValidationError } from '../adapters/errors'
 import { RpcRequest } from '../request'
@@ -26,9 +27,11 @@ export enum ApiNamespace {
 
 export const ALL_API_NAMESPACES = StrEnumUtils.getValues(ApiNamespace)
 
+export type RequestContext = { node?: IronfishNode; wallet?: Wallet }
+
 export type RouteHandler<TRequest = unknown, TResponse = unknown> = (
   request: RpcRequest<TRequest, TResponse>,
-  node: IronfishNode,
+  context: RequestContext,
 ) => Promise<void> | void
 
 export class RouteNotFoundError extends ResponseError {
@@ -50,6 +53,7 @@ export function parseRoute(
 
 export class Router {
   routes = new Map<string, Map<string, { handler: RouteHandler; schema: YupSchema }>>()
+  context: RequestContext = {}
   server: RpcServer | null = null
 
   register<TRequestSchema extends YupSchema, TResponse>(
@@ -96,10 +100,8 @@ export class Router {
     }
     request.data = result
 
-    Assert.isNotNull(this.server)
-
     try {
-      await handler(request, this.server.node)
+      await handler(request, this.context)
     } catch (e: unknown) {
       if (e instanceof ResponseError) {
         throw e

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { Assert } from '../../../assert'
 import { LanguageKey, LanguageUtils } from '../../../utils'
 import { encodeAccount } from '../../../wallet/account/encoder/account'
 import { AccountFormat } from '../../../wallet/account/encoder/encoder'
@@ -37,7 +38,9 @@ export const ExportAccountResponseSchema: yup.ObjectSchema<ExportAccountResponse
 router.register<typeof ExportAccountRequestSchema, ExportAccountResponse>(
   `${ApiNamespace.wallet}/exportAccount`,
   ExportAccountRequestSchema,
-  (request, node): void => {
+  (request, { node }): void => {
+    Assert.isNotUndefined(node)
+
     const account = getAccount(node.wallet, request.data.account)
     const { id: _, ...accountInfo } = account.serialize()
     if (request.data.viewOnly) {

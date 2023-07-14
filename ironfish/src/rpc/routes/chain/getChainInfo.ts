@@ -44,7 +44,9 @@ export const GetChainInfoResponseSchema: yup.ObjectSchema<GetChainInfoResponse> 
 router.register<typeof GetChainInfoRequestSchema, GetChainInfoResponse>(
   `${ApiNamespace.chain}/getChainInfo`,
   GetChainInfoRequestSchema,
-  (request, node): void => {
+  (request, { node }): void => {
+    Assert.isNotUndefined(node)
+
     Assert.isNotNull(node.chain.genesis, 'no genesis')
 
     const latestHeader = node.chain.latest

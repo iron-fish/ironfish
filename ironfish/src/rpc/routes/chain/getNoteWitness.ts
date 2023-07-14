@@ -48,7 +48,8 @@ export const GetNoteWitnessResponseSchema: yup.ObjectSchema<GetNoteWitnessRespon
 router.register<typeof GetNoteWitnessRequestSchema, GetNoteWitnessResponse>(
   `${ApiNamespace.chain}/getNoteWitness`,
   GetNoteWitnessRequestSchema,
-  async (request, node): Promise<void> => {
+  async (request, { node }): Promise<void> => {
+    Assert.isNotUndefined(node)
     const { chain } = node
 
     const confirmations = request.data.confirmations ?? node.config.get('confirmations')

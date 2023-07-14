@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { getActiveReqs, isActive } from 'libuv-monitor'
 import * as yup from 'yup'
+import { Assert } from '../../../assert'
 import { IronfishNode } from '../../../node'
 import { MathUtils, PromiseUtils } from '../../../utils'
 import { ApiNamespace, router } from '../router'
@@ -254,7 +255,9 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetNodeStatusResponse> = 
 router.register<typeof GetStatusRequestSchema, GetNodeStatusResponse>(
   `${ApiNamespace.node}/getStatus`,
   GetStatusRequestSchema,
-  async (request, node): Promise<void> => {
+  async (request, { node }): Promise<void> => {
+    Assert.isNotUndefined(node)
+
     const status = getStatus(node)
 
     if (!request.data?.stream) {

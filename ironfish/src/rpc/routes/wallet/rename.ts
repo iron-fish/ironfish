@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { Assert } from '../../../assert'
 import { ApiNamespace, router } from '../router'
 import { getAccount } from './utils'
 
@@ -22,7 +23,9 @@ export const RenameAccountResponseSchema: yup.MixedSchema<RenameAccountResponse>
 router.register<typeof RenameAccountRequestSchema, RenameAccountResponse>(
   `${ApiNamespace.wallet}/rename`,
   RenameAccountRequestSchema,
-  async (request, node): Promise<void> => {
+  async (request, { node }): Promise<void> => {
+    Assert.isNotUndefined(node)
+
     const account = getAccount(node.wallet, request.data.account)
     await account.setName(request.data.newName)
     request.end()
