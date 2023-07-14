@@ -161,7 +161,7 @@ const streamTransaction = async (
 ): Promise<void> => {
   const serializedTransaction = serializeRpcAccountTransaction(transaction)
 
-  const assetBalanceDeltas = await getAssetBalanceDeltas(node, transaction)
+  const assetBalanceDeltas = await getAssetBalanceDeltas(account, transaction)
 
   let notes = undefined
   if (request.data.notes) {
