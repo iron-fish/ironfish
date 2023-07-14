@@ -5,7 +5,7 @@ import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { getFeeRate } from '../../../memPool'
 import { Transaction } from '../../../primitives'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 
 export type MinMax = {
   min?: number
@@ -55,7 +55,7 @@ export const MempoolTransactionResponseSchema: yup.ObjectSchema<GetMempoolTransa
     })
     .defined()
 
-router.register<typeof MempoolTransactionsRequestSchema, GetMempoolTransactionResponse>(
+routes.register<typeof MempoolTransactionsRequestSchema, GetMempoolTransactionResponse>(
   `${ApiNamespace.mempool}/getTransactions`,
   MempoolTransactionsRequestSchema,
   (request, { node }): void => {

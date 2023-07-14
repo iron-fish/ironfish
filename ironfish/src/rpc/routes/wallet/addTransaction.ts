@@ -6,7 +6,7 @@ import { Assert } from '../../../assert'
 import { Transaction } from '../../../primitives'
 import { AsyncUtils } from '../../../utils'
 import { ValidationError } from '../../adapters'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 
 export type AddTransactionRequest = {
   transaction: string
@@ -34,7 +34,7 @@ export const AddTransactionResponseSchema: yup.ObjectSchema<AddTransactionRespon
   })
   .defined()
 
-router.register<typeof AddTransactionRequestSchema, AddTransactionResponse>(
+routes.register<typeof AddTransactionRequestSchema, AddTransactionResponse>(
   `${ApiNamespace.wallet}/addTransaction`,
   AddTransactionRequestSchema,
   async (request, { node }): Promise<void> => {

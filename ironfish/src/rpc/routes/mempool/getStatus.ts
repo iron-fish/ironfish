@@ -5,7 +5,7 @@ import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { IronfishNode } from '../../../node'
 import { PromiseUtils } from '../../../utils'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 
 export type GetMempoolStatusRequest =
   | undefined
@@ -48,7 +48,7 @@ export const GetMempoolStatusResponseSchema: yup.ObjectSchema<GetMempoolStatusRe
   })
   .defined()
 
-router.register<typeof GetMempoolStatusRequestSchema, GetMempoolStatusResponse>(
+routes.register<typeof GetMempoolStatusRequestSchema, GetMempoolStatusResponse>(
   `${ApiNamespace.mempool}/getStatus`,
   GetMempoolStatusRequestSchema,
   async (request, { node }): Promise<void> => {

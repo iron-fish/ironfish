@@ -4,7 +4,7 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { SerializedBlockTemplate } from '../../../serde/BlockTemplateSerde'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 
 export type BlockTemplateStreamRequest = Record<string, never> | undefined
 export type BlockTemplateStreamResponse = SerializedBlockTemplate
@@ -41,7 +41,7 @@ export const BlockTemplateStreamResponseSchema: yup.ObjectSchema<BlockTemplateSt
     .required()
     .defined()
 
-router.register<typeof BlockTemplateStreamRequestSchema, BlockTemplateStreamResponse>(
+routes.register<typeof BlockTemplateStreamRequestSchema, BlockTemplateStreamResponse>(
   `${ApiNamespace.miner}/blockTemplateStream`,
   BlockTemplateStreamRequestSchema,
   (request, { node }): void => {

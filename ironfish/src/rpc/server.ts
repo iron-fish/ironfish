@@ -5,7 +5,7 @@
 import { InternalStore } from '../fileStores'
 import { createRootLogger, Logger } from '../logger'
 import { IRpcAdapter } from './adapters'
-import { ApiNamespace, RequestContext, Router, router } from './routes'
+import { ApiNamespace, RequestContext, Router, routes } from './routes'
 
 export class RpcServer {
   readonly internal: InternalStore
@@ -32,10 +32,7 @@ export class RpcServer {
 
   /** Creates a new router from this RpcServer with the attached routes filtered by namespaces */
   getRouter(namespaces: ApiNamespace[]): Router {
-    const newRouter = router.filter(namespaces)
-    newRouter.server = this
-    newRouter.context = this.context
-    return newRouter
+    return new Router(routes.filter(namespaces), this)
   }
 
   /** Starts the RPC server and tells any attached adapters to starts serving requests to the routing layer */

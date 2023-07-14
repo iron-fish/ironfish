@@ -5,7 +5,7 @@ import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { BigIntUtils } from '../../../utils'
 import { ValidationError } from '../../adapters'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 
 export type GetNetworkHashPowerRequest = {
   blocks?: number | null // number of blocks to look back
@@ -35,7 +35,7 @@ export const GetNetworkHashPowerResponseSchema: yup.ObjectSchema<GetNetworkHashP
     })
     .defined()
 
-router.register<typeof GetNetworkHashPowerRequestSchema, GetNetworkHashPowerResponse>(
+routes.register<typeof GetNetworkHashPowerRequestSchema, GetNetworkHashPowerResponse>(
   `${ApiNamespace.chain}/getNetworkHashPower`,
   GetNetworkHashPowerRequestSchema,
   async (request, { node }): Promise<void> => {

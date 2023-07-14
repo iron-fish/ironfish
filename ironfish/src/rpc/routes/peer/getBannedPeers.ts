@@ -4,7 +4,7 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { PeerNetwork } from '../../../network'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 
 export type BannedPeerResponse = {
   identity: string
@@ -43,7 +43,7 @@ export const GetBannedPeersResponseSchema: yup.ObjectSchema<GetBannedPeersRespon
   })
   .defined()
 
-router.register<typeof GetBannedPeersRequestSchema, GetBannedPeersResponse>(
+routes.register<typeof GetBannedPeersRequestSchema, GetBannedPeersResponse>(
   `${ApiNamespace.peer}/getBannedPeers`,
   GetBannedPeersRequestSchema,
   (request, { node }): void => {

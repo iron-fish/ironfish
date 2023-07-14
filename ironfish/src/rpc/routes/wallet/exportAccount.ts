@@ -6,7 +6,7 @@ import { Assert } from '../../../assert'
 import { LanguageKey, LanguageUtils } from '../../../utils'
 import { encodeAccount } from '../../../wallet/account/encoder/account'
 import { AccountFormat } from '../../../wallet/account/encoder/encoder'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 import { RpcAccountImport } from './types'
 import { getAccount } from './utils'
 
@@ -35,7 +35,7 @@ export const ExportAccountResponseSchema: yup.ObjectSchema<ExportAccountResponse
   })
   .defined()
 
-router.register<typeof ExportAccountRequestSchema, ExportAccountResponse>(
+routes.register<typeof ExportAccountRequestSchema, ExportAccountResponse>(
   `${ApiNamespace.wallet}/exportAccount`,
   ExportAccountRequestSchema,
   (request, { node }): void => {

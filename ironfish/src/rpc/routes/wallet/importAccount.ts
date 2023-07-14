@@ -5,7 +5,7 @@ import { v4 as uuid } from 'uuid'
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { decodeAccount } from '../../../wallet/account/encoder/account'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 import { RpcAccountImport } from './types'
 import { deserializeRpcAccountImport } from './utils'
 
@@ -37,7 +37,7 @@ export const ImportAccountResponseSchema: yup.ObjectSchema<ImportResponse> = yup
   })
   .defined()
 
-router.register<typeof ImportAccountRequestSchema, ImportResponse>(
+routes.register<typeof ImportAccountRequestSchema, ImportResponse>(
   `${ApiNamespace.wallet}/importAccount`,
   ImportAccountRequestSchema,
   async (request, { node }): Promise<void> => {

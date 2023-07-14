@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 import { RpcWalletNote, RpcWalletNoteSchema } from './types'
 import { getAccount, serializeRpcWalletNote } from './utils'
 
@@ -69,7 +69,7 @@ export const GetNotesResponseSchema: yup.ObjectSchema<GetNotesResponse> = yup
   })
   .defined()
 
-router.register<typeof GetNotesRequestSchema, GetNotesResponse>(
+routes.register<typeof GetNotesRequestSchema, GetNotesResponse>(
   `${ApiNamespace.wallet}/getNotes`,
   GetNotesRequestSchema,
   async (request, { node }): Promise<void> => {

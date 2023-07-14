@@ -9,7 +9,7 @@ import { TransactionStatus, TransactionType } from '../../../wallet'
 import { Account } from '../../../wallet/account/account'
 import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
 import { RpcRequest } from '../../request'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 import { RpcSpend, RpcSpendSchema, RpcWalletNote, RpcWalletNoteSchema } from './types'
 import {
   getAccount,
@@ -96,7 +96,7 @@ export const GetAccountTransactionsResponseSchema: yup.ObjectSchema<GetAccountTr
     })
     .defined()
 
-router.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactionsResponse>(
+routes.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactionsResponse>(
   `${ApiNamespace.wallet}/getAccountTransactions`,
   GetAccountTransactionsRequestSchema,
   async (request, { node }): Promise<void> => {

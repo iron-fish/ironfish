@@ -5,7 +5,7 @@ import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { GENESIS_BLOCK_SEQUENCE } from '../../../primitives'
 import { ValidationError } from '../../adapters/errors'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 
 export type RescanAccountRequest = { follow?: boolean; from?: number }
 export type RescanAccountResponse = { sequence: number; startedAt: number; endSequence: number }
@@ -25,7 +25,7 @@ export const RescanAccountResponseSchema: yup.ObjectSchema<RescanAccountResponse
   })
   .defined()
 
-router.register<typeof RescanAccountRequestSchema, RescanAccountResponse>(
+routes.register<typeof RescanAccountRequestSchema, RescanAccountResponse>(
   `${ApiNamespace.wallet}/rescanAccount`,
   RescanAccountRequestSchema,
   async (request, { node }): Promise<void> => {

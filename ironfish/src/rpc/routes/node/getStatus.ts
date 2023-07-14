@@ -6,7 +6,7 @@ import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { IronfishNode } from '../../../node'
 import { MathUtils, PromiseUtils } from '../../../utils'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 
 export type GetNodeStatusRequest =
   | undefined
@@ -252,7 +252,7 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetNodeStatusResponse> = 
   })
   .defined()
 
-router.register<typeof GetStatusRequestSchema, GetNodeStatusResponse>(
+routes.register<typeof GetStatusRequestSchema, GetNodeStatusResponse>(
   `${ApiNamespace.node}/getStatus`,
   GetStatusRequestSchema,
   async (request, { node }): Promise<void> => {

@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 export type StopNodeRequest = undefined
@@ -17,7 +17,7 @@ export const StopNodeResponseSchema: yup.MixedSchema<StopNodeRequest> = yup
   .mixed()
   .oneOf([undefined] as const)
 
-router.register<typeof StopNodeRequestSchema, StopNodeResponse>(
+routes.register<typeof StopNodeRequestSchema, StopNodeResponse>(
   `${ApiNamespace.node}/stopNode`,
   StopNodeRequestSchema,
   async (request, { node }): Promise<void> => {

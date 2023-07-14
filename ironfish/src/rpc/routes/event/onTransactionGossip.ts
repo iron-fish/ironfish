@@ -4,7 +4,7 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { Transaction } from '../../../primitives'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 export type OnTransactionGossipRequest = {} | undefined
@@ -23,7 +23,7 @@ export const OnTransactionGossipResponseSchema: yup.ObjectSchema<OnTransactionGo
     })
     .defined()
 
-router.register<typeof OnTransactionGossipRequestSchema, OnTransactionGossipResponse>(
+routes.register<typeof OnTransactionGossipRequestSchema, OnTransactionGossipResponse>(
   `${ApiNamespace.event}/onTransactionGossip`,
   OnTransactionGossipRequestSchema,
   (request, { node }): void => {

@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 
 export type GetNetworkInfoRequest = undefined
 export type GetNetworkInfoResponse = {
@@ -20,7 +20,7 @@ export const GetNetworkInfoResponseSchema: yup.ObjectSchema<GetNetworkInfoRespon
   })
   .defined()
 
-router.register<typeof GetNetworkInfoRequestSchema, GetNetworkInfoResponse>(
+routes.register<typeof GetNetworkInfoRequestSchema, GetNetworkInfoResponse>(
   `${ApiNamespace.chain}/getNetworkInfo`,
   GetNetworkInfoRequestSchema,
   (request, { node }): void => {

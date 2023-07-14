@@ -4,7 +4,7 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { ERROR_CODES, ValidationError } from '../../adapters'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 
 export type CreateAccountRequest = { name: string; default?: boolean }
 export type CreateAccountResponse = {
@@ -28,7 +28,7 @@ export const CreateAccountResponseSchema: yup.ObjectSchema<CreateAccountResponse
   })
   .defined()
 
-router.register<typeof CreateAccountRequestSchema, CreateAccountResponse>(
+routes.register<typeof CreateAccountRequestSchema, CreateAccountResponse>(
   `${ApiNamespace.wallet}/create`,
   CreateAccountRequestSchema,
   async (request, { node }): Promise<void> => {

@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 import { getAccount } from './utils'
 
 export type UseAccountRequest = { account: string }
@@ -19,7 +19,7 @@ export const UseAccountResponseSchema: yup.MixedSchema<UseAccountResponse> = yup
   .mixed()
   .oneOf([undefined] as const)
 
-router.register<typeof UseAccountRequestSchema, UseAccountResponse>(
+routes.register<typeof UseAccountRequestSchema, UseAccountResponse>(
   `${ApiNamespace.wallet}/use`,
   UseAccountRequestSchema,
   async (request, { node }): Promise<void> => {

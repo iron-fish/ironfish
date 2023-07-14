@@ -4,7 +4,7 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { BlockHeader } from '../../../primitives'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 import { RpcBlockHeader, RpcBlockHeaderSchema, serializeRpcBlockHeader } from './types'
 
 export type OnGossipRequest = undefined
@@ -19,7 +19,7 @@ export const OnGossipResponseSchema: yup.ObjectSchema<OnGossipResponse> = yup
   })
   .defined()
 
-router.register<typeof OnGossipRequestSchema, OnGossipResponse>(
+routes.register<typeof OnGossipRequestSchema, OnGossipResponse>(
   `${ApiNamespace.event}/onGossip`,
   OnGossipRequestSchema,
   (request, { node }): void => {

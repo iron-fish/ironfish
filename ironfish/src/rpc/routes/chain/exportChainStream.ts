@@ -4,7 +4,7 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { BlockchainUtils } from '../../../utils/blockchain'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 
 export type ExportChainStreamRequest =
   | {
@@ -58,7 +58,7 @@ export const ExportChainStreamResponseSchema: yup.ObjectSchema<ExportChainStream
   })
   .defined()
 
-router.register<typeof ExportChainStreamRequestSchema, ExportChainStreamResponse>(
+routes.register<typeof ExportChainStreamRequestSchema, ExportChainStreamResponse>(
   `${ApiNamespace.chain}/exportChainStream`,
   ExportChainStreamRequestSchema,
   async (request, { node }): Promise<void> => {
