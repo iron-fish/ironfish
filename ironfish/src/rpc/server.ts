@@ -2,21 +2,27 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { InternalStore } from '../fileStores'
 import { createRootLogger, Logger } from '../logger'
-import { IronfishNode } from '../node'
 import { IRpcAdapter } from './adapters'
-import { ApiNamespace, Router, router } from './routes'
+import { ApiNamespace, RequestContext, Router, router } from './routes'
 
 export class RpcServer {
-  readonly node: IronfishNode
+  readonly internal: InternalStore
+  readonly context: RequestContext
   readonly adapters: IRpcAdapter[] = []
 
   private _isRunning = false
   private _startPromise: Promise<unknown> | null = null
   logger: Logger
 
-  constructor(node: IronfishNode, logger: Logger = createRootLogger()) {
-    this.node = node
+  constructor(
+    context: RequestContext,
+    internal: InternalStore,
+    logger: Logger = createRootLogger(),
+  ) {
+    this.context = context
+    this.internal = internal
     this.logger = logger.withTag('rpcserver')
   }
 
@@ -28,7 +34,7 @@ export class RpcServer {
   getRouter(namespaces: ApiNamespace[]): Router {
     const newRouter = router.filter(namespaces)
     newRouter.server = this
-    newRouter.context = { node: this.node }
+    newRouter.context = this.context
     return newRouter
   }
 
@@ -84,7 +90,7 @@ export class RpcServer {
       return false
     }
 
-    const rpcAuthToken = this.node.internal.get('rpcAuthToken')
+    const rpcAuthToken = this.internal.get('rpcAuthToken')
 
     if (!rpcAuthToken) {
       this.logger.debug(`Missing RPC Auth token in internal.json config.`)

@@ -27,7 +27,7 @@ export enum ApiNamespace {
 
 export const ALL_API_NAMESPACES = StrEnumUtils.getValues(ApiNamespace)
 
-type RequestContext = { node?: IronfishNode; wallet?: Wallet }
+export type RequestContext = { node?: IronfishNode; wallet?: Wallet }
 
 export type RouteHandler<TRequest = unknown, TResponse = unknown> = (
   request: RpcRequest<TRequest, TResponse>,
