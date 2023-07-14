@@ -39,7 +39,7 @@ router.register<typeof GetAccountNotesStreamRequestSchema, GetAccountNotesStream
           break
         }
 
-        const asset = await node.chain.getAssetById(note.assetId())
+        const asset = await account.getAsset(note.assetId())
 
         request.stream({
           value: CurrencyUtils.encode(note.value()),
