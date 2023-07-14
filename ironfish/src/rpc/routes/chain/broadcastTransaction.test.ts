@@ -22,6 +22,20 @@ describe('Route chain/broadcastTransaction', () => {
     expect(broadcastSpy).toHaveBeenCalled()
   })
 
+  it('should add the transaction to the mempool', async () => {
+    const transaction = await useMinersTxFixture(routeTest.wallet)
+
+    const acceptSpy = jest.spyOn(routeTest.node.memPool, 'acceptTransaction')
+
+    const response = await routeTest.client.chain.broadcastTransaction({
+      transaction: transaction.serialize().toString('hex'),
+    })
+
+    expect(response.status).toBe(200)
+    expect(response.content?.hash).toEqual(transaction.hash().toString('hex'))
+    expect(acceptSpy).toHaveBeenCalled()
+  })
+
   it("should return an error if the transaction won't deserialize", async () => {
     await expect(
       routeTest.client.chain.broadcastTransaction({
