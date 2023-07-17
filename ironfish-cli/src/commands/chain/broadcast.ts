@@ -26,7 +26,7 @@ export class BroadcastCommand extends IronfishCommand {
 
     CliUx.ux.action.start(`Broadcasting transaction`)
     const client = await this.sdk.connectRpc()
-    const response = await client.broadcastTransaction({ transaction })
+    const response = await client.chain.broadcastTransaction({ transaction })
     if (response.content) {
       CliUx.ux.action.stop(`Transaction broadcasted: ${response.content.hash}`)
     }

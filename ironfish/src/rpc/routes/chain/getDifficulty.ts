@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { Assert } from '../../../assert'
 import { ValidationError } from '../../adapters'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 
 export type GetDifficultyRequest =
   | {
@@ -31,10 +32,12 @@ export const GetDifficultyResponseSchema: yup.ObjectSchema<GetDifficultyResponse
   })
   .defined()
 
-router.register<typeof GetDifficultyRequestSchema, GetDifficultyResponse>(
+routes.register<typeof GetDifficultyRequestSchema, GetDifficultyResponse>(
   `${ApiNamespace.chain}/getDifficulty`,
   GetDifficultyRequestSchema,
-  async (request, node): Promise<void> => {
+  async (request, { node }): Promise<void> => {
+    Assert.isNotUndefined(node)
+
     let sequence = node.chain.head.sequence
     let block = node.chain.head
 

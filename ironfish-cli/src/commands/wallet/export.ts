@@ -1,11 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { spendingKeyToWords } from '@ironfish/rust-nodejs'
-import { Assert, Bech32m, ErrorUtils, LanguageKey, LanguageUtils } from '@ironfish/sdk'
+import { AccountFormat, ErrorUtils, LanguageUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import fs from 'fs'
-import inquirer from 'inquirer'
 import jsonColorizer from 'json-colorizer'
 import path from 'path'
 import { IronfishCommand } from '../../command'
@@ -64,52 +62,23 @@ export class ExportCommand extends IronfishCommand {
       flags.mnemonic = true
     }
 
+    const format = flags.mnemonic
+      ? AccountFormat.Mnemonic
+      : flags.json
+      ? AccountFormat.JSON
+      : AccountFormat.Bech32
+
     const client = await this.sdk.connectRpc(local)
-    const response = await client.wallet.exportAccount({ account: account, viewOnly: viewOnly })
-    let output
+    const response = await client.wallet.exportAccount({
+      account,
+      viewOnly,
+      format,
+      language: flags.language,
+    })
 
-    if (flags.mnemonic) {
-      let languageCode = flags.language ? LanguageUtils.LANGUAGES[flags.language] : null
-
-      if (languageCode == null) {
-        languageCode = LanguageUtils.inferLanguageCode()
-
-        if (languageCode !== null) {
-          CliUx.ux.info(
-            `Detected Language as '${LanguageUtils.languageCodeToKey(
-              languageCode,
-            )}', exporting:`,
-          )
-        }
-      }
-
-      if (languageCode == null) {
-        CliUx.ux.info(`Could not detect your language, please select language for export`)
-        const response = await inquirer.prompt<{
-          language: LanguageKey
-        }>([
-          {
-            name: 'language',
-            message: `Select your language`,
-            type: 'list',
-            choices: LanguageUtils.LANGUAGE_KEYS,
-          },
-        ])
-        languageCode = LanguageUtils.LANGUAGES[response.language]
-      }
-      Assert.isTruthy(
-        response.content.account.spendingKey,
-        'The account you are trying to export does not have a spending key, therefore a mnemonic cannot be generated for it',
-      )
-      output = spendingKeyToWords(response.content.account.spendingKey, languageCode)
-    } else if (flags.json) {
-      output = JSON.stringify(response.content.account, undefined, '    ')
-
-      if (color && flags.json && !exportPath) {
-        output = jsonColorizer(output)
-      }
-    } else {
-      output = Bech32m.encode(JSON.stringify(response.content.account), 'ironfishaccount00000')
+    let output = response.content.account as string
+    if (color && flags.json && !exportPath) {
+      output = jsonColorizer(output)
     }
 
     if (exportPath) {
@@ -135,7 +104,7 @@ export class ExportCommand extends IronfishCommand {
         }
 
         await fs.promises.writeFile(resolved, output)
-        this.log(`Exported account ${response.content.account.name} to ${resolved}`)
+        this.log(`Exported account ${account} to ${resolved}`)
       } catch (err: unknown) {
         if (ErrorUtils.isNoEntityError(err)) {
           await fs.promises.mkdir(path.dirname(resolved), { recursive: true })

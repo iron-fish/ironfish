@@ -2,11 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { Assert } from '../../../assert'
 import { BlockHeader } from '../../../primitives'
 import { GENESIS_BLOCK_SEQUENCE } from '../../../primitives/block'
 import { BufferUtils } from '../../../utils'
 import { ValidationError } from '../../adapters'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 
 export type GetBlockRequest = {
   search?: string
@@ -85,10 +86,12 @@ export const GetBlockResponseSchema: yup.ObjectSchema<GetBlockResponse> = yup
   })
   .defined()
 
-router.register<typeof GetBlockRequestSchema, GetBlockResponse>(
+routes.register<typeof GetBlockRequestSchema, GetBlockResponse>(
   `${ApiNamespace.chain}/getBlock`,
   GetBlockRequestSchema,
-  async (request, node): Promise<void> => {
+  async (request, { node }): Promise<void> => {
+    Assert.isNotUndefined(node)
+
     let header: BlockHeader | null = null
     let error = ''
 

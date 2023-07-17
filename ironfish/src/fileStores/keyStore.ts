@@ -139,6 +139,13 @@ export class KeyStore<TSchema extends Record<string, unknown>> {
     }
   }
 
+  setMany(params: Partial<TSchema>): void {
+    for (const key in params) {
+      const value = params[key] as TSchema[keyof TSchema]
+      this.set(key, value)
+    }
+  }
+
   setOverride<T extends keyof TSchema>(key: T, value: TSchema[T]): void {
     const previousValue = this.config[key]
 

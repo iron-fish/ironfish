@@ -33,7 +33,7 @@ export class FileStore<T extends Record<string, unknown>> {
 
   async save(data: PartialRecursive<T>): Promise<void> {
     const json = JSON.stringify(data, undefined, '    ')
-    await this.files.mkdir(this.dataDir, { recursive: true })
+    await this.files.mkdir(path.dirname(this.configPath), { recursive: true })
     await this.files.writeFile(this.configPath, json)
   }
 }

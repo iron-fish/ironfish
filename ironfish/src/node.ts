@@ -13,6 +13,7 @@ import {
   DEFAULT_DATA_DIR,
   HostsStore,
   InternalStore,
+  VerifiedAssetsCacheStore,
 } from './fileStores'
 import { FileSystem } from './fileSystems'
 import { createRootLogger, Logger } from './logger'
@@ -73,6 +74,7 @@ export class IronfishNode {
     privateIdentity,
     hostsStore,
     networkId,
+    verifiedAssetsCache,
   }: {
     pkg: Package
     files: FileSystem
@@ -89,6 +91,7 @@ export class IronfishNode {
     privateIdentity?: PrivateIdentity
     hostsStore: HostsStore
     networkId: number
+    verifiedAssetsCache: VerifiedAssetsCacheStore
   }) {
     this.files = files
     this.config = config
@@ -100,7 +103,7 @@ export class IronfishNode {
     this.miningManager = new MiningManager({ chain, memPool, node: this, metrics })
     this.memPool = memPool
     this.workerPool = workerPool
-    this.rpc = new RpcServer(this)
+    this.rpc = new RpcServer({ node: this, wallet }, internal)
     this.logger = logger
     this.pkg = pkg
 
@@ -151,10 +154,6 @@ export class IronfishNode {
       incomingWebSocketWhitelist: config.getArray('incomingWebSocketWhitelist'),
     })
 
-    this.wallet.onTransactionCreated.on((transaction) => {
-      this.telemetry.submitNewTransactionCreated(transaction, new Date())
-    })
-
     this.miningManager.onNewBlock.on((block) => {
       this.telemetry.submitBlockMined(block)
     })
@@ -174,6 +173,7 @@ export class IronfishNode {
 
     this.assetsVerifier = new AssetsVerifier({
       apiUrl: config.get('assetVerificationApi'),
+      cache: verifiedAssetsCache,
       logger,
     })
 
@@ -220,6 +220,9 @@ export class IronfishNode {
 
     const hostsStore = new HostsStore(files, dataDir)
     await hostsStore.load()
+
+    const verifiedAssetsCache = new VerifiedAssetsCacheStore(files, dataDir)
+    await verifiedAssetsCache.load()
 
     let workers = config.get('nodeWorkers')
     if (workers === -1) {
@@ -308,6 +311,7 @@ export class IronfishNode {
       privateIdentity,
       hostsStore,
       networkId: networkDefinition.id,
+      verifiedAssetsCache,
     })
   }
 
