@@ -39,7 +39,6 @@ export class IronfishNode {
   strategy: Strategy
   config: Config
   internal: InternalStore
-  wallet: Wallet
   logger: Logger
   miningManager: MiningManager
   metrics: MetricsMonitor
@@ -96,7 +95,6 @@ export class IronfishNode {
     this.files = files
     this.config = config
     this.internal = internal
-    this.wallet = wallet
     this.chain = chain
     this.strategy = strategy
     this.metrics = metrics
@@ -325,17 +323,14 @@ export class IronfishNode {
 
     try {
       await this.chain.open()
-      await this.wallet.open()
     } catch (e) {
       await this.chain.close()
-      await this.wallet.close()
       throw e
     }
   }
 
   async closeDB(): Promise<void> {
     await this.chain.close()
-    await this.wallet.close()
   }
 
   async start(): Promise<void> {
@@ -354,7 +349,6 @@ export class IronfishNode {
       this.metrics.start()
     }
 
-    await this.wallet.start()
     this.peerNetwork.start()
 
     if (this.config.get('enableRpc')) {
@@ -376,7 +370,6 @@ export class IronfishNode {
 
   async shutdown(): Promise<void> {
     await Promise.allSettled([
-      this.wallet.stop(),
       this.syncer.stop(),
       this.peerNetwork.stop(),
       this.rpc.stop(),
