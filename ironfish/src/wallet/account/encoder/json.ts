@@ -4,7 +4,7 @@
 import { RpcAccountImport } from '../../../rpc/routes/wallet/types'
 import { validateAccount } from '../../validator'
 import { AccountImport } from '../../walletdb/accountValue'
-import { AccountDecodingOptions, AccountEncoder } from './encoder'
+import { AccountDecodingOptions, AccountEncoder, DecodeFailed } from './encoder'
 
 export class JsonEncoder implements AccountEncoder {
   encode(value: AccountImport): string {
@@ -19,18 +19,26 @@ export class JsonEncoder implements AccountEncoder {
   }
 
   decode(value: string, options?: AccountDecodingOptions): AccountImport {
-    const account = JSON.parse(value) as RpcAccountImport
-    const updatedAccount = {
-      ...account,
-      name: options?.name ? options.name : account.name,
-      createdAt: account.createdAt
-        ? {
-            hash: Buffer.from(account.createdAt.hash, 'hex'),
-            sequence: account.createdAt.sequence,
-          }
-        : null,
-    } as AccountImport
-    validateAccount(updatedAccount)
-    return updatedAccount
+    let account: RpcAccountImport
+    try {
+      account = JSON.parse(value) as RpcAccountImport
+      if (account.createdAt && !account.createdAt.hash) {
+        account.createdAt = null
+      }
+      const accountImport = {
+        ...account,
+        name: options?.name ? options.name : account.name,
+        createdAt: account.createdAt
+          ? {
+              hash: Buffer.from(account.createdAt.hash, 'hex'),
+              sequence: account.createdAt.sequence,
+            }
+          : null,
+      }
+      validateAccount(accountImport)
+      return accountImport
+    } catch (e) {
+      throw new DecodeFailed(`Invalid JSON: ${(e as Error).message}`, this.constructor.name)
+    }
   }
 }

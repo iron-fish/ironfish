@@ -2,13 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { Assert } from '../../../assert'
 import { IronfishNode } from '../../../node'
 import { GENESIS_BLOCK_SEQUENCE } from '../../../primitives'
 import { TransactionStatus, TransactionType } from '../../../wallet'
 import { Account } from '../../../wallet/account/account'
 import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
 import { RpcRequest } from '../../request'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 import { RpcSpend, RpcSpendSchema, RpcWalletNote, RpcWalletNoteSchema } from './types'
 import {
   getAccount,
@@ -95,11 +96,13 @@ export const GetAccountTransactionsResponseSchema: yup.ObjectSchema<GetAccountTr
     })
     .defined()
 
-router.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactionsResponse>(
+routes.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactionsResponse>(
   `${ApiNamespace.wallet}/getAccountTransactions`,
   GetAccountTransactionsRequestSchema,
-  async (request, node): Promise<void> => {
-    const account = getAccount(node, request.data.account)
+  async (request, { node }): Promise<void> => {
+    Assert.isNotUndefined(node)
+
+    const account = getAccount(node.wallet, request.data.account)
 
     const headSequence = (await account.getHead())?.sequence ?? null
 
@@ -161,7 +164,7 @@ const streamTransaction = async (
 ): Promise<void> => {
   const serializedTransaction = serializeRpcAccountTransaction(transaction)
 
-  const assetBalanceDeltas = await getAssetBalanceDeltas(node, transaction)
+  const assetBalanceDeltas = await getAssetBalanceDeltas(account, transaction)
 
   let notes = undefined
   if (request.data.notes) {
