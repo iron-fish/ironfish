@@ -703,6 +703,15 @@ export abstract class RpcClient {
         params,
       ).waitForEnd()
     },
+
+    broadcastTransaction: (
+      params: BroadcastTransactionRequest,
+    ): Promise<RpcResponse<BroadcastTransactionResponse>> => {
+      return this.request<BroadcastTransactionResponse>(
+        `${ApiNamespace.chain}/broadcastTransaction`,
+        params,
+      ).waitForEnd()
+    },
   }
 
   config = {
@@ -739,14 +748,5 @@ export abstract class RpcClient {
         params,
       ).waitForEnd()
     },
-  }
-
-  async broadcastTransaction(
-    params: BroadcastTransactionRequest,
-  ): Promise<RpcResponse<BroadcastTransactionResponse>> {
-    return this.request<BroadcastTransactionResponse>(
-      `${ApiNamespace.chain}/broadcastTransaction`,
-      params,
-    ).waitForEnd()
   }
 }

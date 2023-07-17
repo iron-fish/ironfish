@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { Assert } from '../../../assert'
 import { ApiNamespace, router } from '../router'
 import { getAccount } from './utils'
 
@@ -21,8 +22,10 @@ export const UseAccountResponseSchema: yup.MixedSchema<UseAccountResponse> = yup
 router.register<typeof UseAccountRequestSchema, UseAccountResponse>(
   `${ApiNamespace.wallet}/use`,
   UseAccountRequestSchema,
-  async (request, node): Promise<void> => {
-    const account = getAccount(node, request.data.account)
+  async (request, { node }): Promise<void> => {
+    Assert.isNotUndefined(node)
+
+    const account = getAccount(node.wallet, request.data.account)
     await node.wallet.setDefaultAccount(account.name)
     request.end()
   },

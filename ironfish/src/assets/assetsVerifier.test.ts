@@ -38,15 +38,15 @@ describe('AssetsVerifier', () => {
     nock('https://test')
       .get('/assets/verified')
       .reply(200, {
-        data: [{ identifier: '0123' }],
+        assets: [{ identifier: '0123' }],
       })
       .get('/assets/verified')
       .reply(200, {
-        data: [{ identifier: '4567' }],
+        assets: [{ identifier: '4567' }],
       })
       .get('/assets/verified')
       .reply(200, {
-        data: [{ identifier: '89ab' }],
+        assets: [{ identifier: '89ab' }],
       })
 
     const assetsVerifier = new AssetsVerifier({
@@ -87,7 +87,7 @@ describe('AssetsVerifier', () => {
     nock('https://test')
       .get('/assets/verified')
       .reply(200, {
-        data: [{ identifier: '0123' }],
+        assets: [{ identifier: '0123' }],
       })
 
     const assetsVerifier = new AssetsVerifier({
@@ -110,7 +110,7 @@ describe('AssetsVerifier', () => {
       .reply(
         200,
         {
-          data: [{ identifier: '0123' }],
+          assets: [{ identifier: '0123' }],
         },
         { 'last-modified': 'some-date' },
       )
@@ -145,30 +145,6 @@ describe('AssetsVerifier', () => {
       expect(assetsVerifier.verify('4567')).toStrictEqual({ status: 'unknown' })
     })
 
-    it("returns 'unknown' after being stopped", async () => {
-      nock('https://test')
-        .get('/assets/verified')
-        .reply(200, {
-          data: [{ identifier: '0123' }],
-        })
-
-      const assetsVerifier = new AssetsVerifier({
-        apiUrl: 'https://test/assets/verified',
-      })
-      const refresh = jest.spyOn(assetsVerifier as any, 'refresh')
-
-      assetsVerifier.start()
-      await waitForRefreshToFinish(refresh)
-
-      expect(assetsVerifier.verify('0123')).toStrictEqual({ status: 'verified' })
-      expect(assetsVerifier.verify('4567')).toStrictEqual({ status: 'unverified' })
-
-      assetsVerifier.stop()
-
-      expect(assetsVerifier.verify('0123')).toStrictEqual({ status: 'unknown' })
-      expect(assetsVerifier.verify('4567')).toStrictEqual({ status: 'unknown' })
-    })
-
     it("returns 'unknown' when the API is unreachable", async () => {
       nock('https://test').get('/assets/verified').reply(500)
 
@@ -179,7 +155,7 @@ describe('AssetsVerifier', () => {
       const warn = jest.spyOn(assetsVerifier['logger'], 'warn')
 
       assetsVerifier.start()
-      await waitForRefreshToFinish(refresh)
+      await expect(waitForRefreshToFinish(refresh)).rejects.toThrow()
 
       expect(warn).toHaveBeenCalledWith(
         'Error while fetching verified assets: Request failed with status code 500',
@@ -192,7 +168,7 @@ describe('AssetsVerifier', () => {
       nock('https://test')
         .get('/assets/verified')
         .reply(200, {
-          data: [{ identifier: '0123' }],
+          assets: [{ identifier: '0123' }],
         })
 
       const assetsVerifier = new AssetsVerifier({
@@ -210,7 +186,7 @@ describe('AssetsVerifier', () => {
       nock('https://test')
         .get('/assets/verified')
         .reply(200, {
-          data: [{ identifier: '0123' }],
+          assets: [{ identifier: '0123' }],
         })
 
       const assetsVerifier = new AssetsVerifier({
@@ -228,7 +204,7 @@ describe('AssetsVerifier', () => {
       nock('https://test')
         .get('/assets/verified')
         .reply(200, {
-          data: [{ identifier: '0123' }],
+          assets: [{ identifier: '0123' }],
         })
         .get('/assets/verified')
         .reply(500)
@@ -247,11 +223,35 @@ describe('AssetsVerifier', () => {
       expect(assetsVerifier.verify('4567')).toStrictEqual({ status: 'unverified' })
 
       jest.runOnlyPendingTimers()
-      await waitForRefreshToFinish(refresh)
+      await expect(waitForRefreshToFinish(refresh)).rejects.toThrow()
 
       expect(warn).toHaveBeenCalledWith(
         'Error while fetching verified assets: Request failed with status code 500',
       )
+      expect(assetsVerifier.verify('0123')).toStrictEqual({ status: 'verified' })
+      expect(assetsVerifier.verify('4567')).toStrictEqual({ status: 'unverified' })
+    })
+
+    it('uses the in-memory cache after being stopped', async () => {
+      nock('https://test')
+        .get('/assets/verified')
+        .reply(200, {
+          assets: [{ identifier: '0123' }],
+        })
+
+      const assetsVerifier = new AssetsVerifier({
+        apiUrl: 'https://test/assets/verified',
+      })
+      const refresh = jest.spyOn(assetsVerifier as any, 'refresh')
+
+      assetsVerifier.start()
+      await waitForRefreshToFinish(refresh)
+
+      expect(assetsVerifier.verify('0123')).toStrictEqual({ status: 'verified' })
+      expect(assetsVerifier.verify('4567')).toStrictEqual({ status: 'unverified' })
+
+      assetsVerifier.stop()
+
       expect(assetsVerifier.verify('0123')).toStrictEqual({ status: 'verified' })
       expect(assetsVerifier.verify('4567')).toStrictEqual({ status: 'unverified' })
     })
@@ -262,6 +262,8 @@ describe('AssetsVerifier', () => {
       const cache = Object.create(
         VerifiedAssetsCacheStore.prototype,
       ) as VerifiedAssetsCacheStore
+      jest.spyOn(cache, 'setMany').mockReturnValue(undefined)
+      jest.spyOn(cache, 'save').mockResolvedValue(undefined)
       cache.config = {
         apiUrl: 'https://test/assets/verified',
         assetIds: ['0123'],
@@ -270,7 +272,7 @@ describe('AssetsVerifier', () => {
       nock('https://test')
         .get('/assets/verified')
         .reply(200, {
-          data: [{ identifier: '4567' }],
+          assets: [{ identifier: '4567' }],
         })
 
       const assetsVerifier = new AssetsVerifier({
@@ -291,6 +293,8 @@ describe('AssetsVerifier', () => {
       const cache = Object.create(
         VerifiedAssetsCacheStore.prototype,
       ) as VerifiedAssetsCacheStore
+      jest.spyOn(cache, 'setMany').mockReturnValue(undefined)
+      jest.spyOn(cache, 'save').mockResolvedValue(undefined)
       cache.config = {
         apiUrl: 'https://foo.test/assets/verified',
         assetIds: ['0123'],
@@ -299,7 +303,7 @@ describe('AssetsVerifier', () => {
       nock('https://bar.test')
         .get('/assets/verified')
         .reply(200, {
-          data: [{ identifier: '4567' }],
+          assets: [{ identifier: '4567' }],
         })
 
       const assetsVerifier = new AssetsVerifier({
@@ -327,13 +331,13 @@ describe('AssetsVerifier', () => {
       nock('https://test')
         .get('/assets/verified')
         .reply(200, {
-          data: [{ identifier: '0123' }],
+          assets: [{ identifier: '0123' }],
         })
         .get('/assets/verified')
         .reply(
           200,
           {
-            data: [{ identifier: '4567' }],
+            assets: [{ identifier: '4567' }],
           },
           { 'last-modified': 'some-date' },
         )

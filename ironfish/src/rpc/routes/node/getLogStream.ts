@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { ConsolaReporterLogObject } from 'consola'
 import * as yup from 'yup'
+import { Assert } from '../../../assert'
 import { InterceptReporter } from '../../../logger'
 import { IJSON } from '../../../serde'
 import { ApiNamespace, router } from '../router'
@@ -36,7 +37,9 @@ export const GetLogStreamResponseSchema: yup.ObjectSchema<GetLogStreamResponse> 
 router.register<typeof GetLogStreamRequestSchema, GetLogStreamResponse>(
   `${ApiNamespace.node}/getLogStream`,
   GetLogStreamRequestSchema,
-  (request, node): void => {
+  (request, { node }): void => {
+    Assert.isNotUndefined(node)
+
     const reporter = new InterceptReporter((logObj: ConsolaReporterLogObject): void => {
       request.stream({
         level: String(logObj.level),

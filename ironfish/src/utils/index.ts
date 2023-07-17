@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 export * from './asset'
+export * from './retry'
 export * from './array'
 export * from './async'
 export * from './bech32m'

@@ -54,8 +54,9 @@ export const MintAssetResponseSchema: yup.ObjectSchema<MintAssetResponse> = yup
 router.register<typeof MintAssetRequestSchema, MintAssetResponse>(
   `${ApiNamespace.wallet}/mintAsset`,
   MintAssetRequestSchema,
-  async (request, node): Promise<void> => {
-    const account = getAccount(node, request.data.account)
+  async (request, { node }): Promise<void> => {
+    Assert.isNotUndefined(node)
+    const account = getAccount(node.wallet, request.data.account)
 
     const fee = CurrencyUtils.decode(request.data.fee)
     const value = CurrencyUtils.decode(request.data.value)

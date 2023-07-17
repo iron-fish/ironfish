@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { Assert } from '../../../assert'
 import { CurrencyUtils } from '../../../utils'
 import { ApiNamespace, router } from '../router'
 
@@ -27,7 +28,9 @@ export const EstimateFeeRatesResponseSchema: yup.ObjectSchema<EstimateFeeRatesRe
 router.register<typeof EstimateFeeRatesRequestSchema, EstimateFeeRatesResponse>(
   `${ApiNamespace.chain}/estimateFeeRates`,
   EstimateFeeRatesRequestSchema,
-  (request, node): void => {
+  (request, { node }): void => {
+    Assert.isNotUndefined(node)
+
     const rates = node.memPool.feeEstimator.estimateFeeRates()
 
     request.end({

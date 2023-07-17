@@ -20,12 +20,12 @@ describe('Accounts utils', () => {
 
     it('should fail if account is not found with name', () => {
       expect(() => {
-        getAccount(routeTest.node, 'badAccount')
+        getAccount(routeTest.node.wallet, 'badAccount')
       }).toThrow('No account with name')
     })
 
     it('should pass if account is found with name', () => {
-      const result = getAccount(routeTest.node, name)
+      const result = getAccount(routeTest.node.wallet, name)
       expect(result.name).toEqual(name)
       expect(result.publicAddress).toEqual(publicAddress)
     })
@@ -34,13 +34,13 @@ describe('Accounts utils', () => {
       await routeTest.node.wallet.setDefaultAccount(null)
 
       expect(() => {
-        getAccount(routeTest.node)
+        getAccount(routeTest.node.wallet)
       }).toThrow('No account is currently active')
     })
 
     it('should pass if default account is found', async () => {
       await routeTest.node.wallet.setDefaultAccount(name)
-      const result = getAccount(routeTest.node)
+      const result = getAccount(routeTest.node.wallet)
       expect(result.name).toEqual(name)
       expect(result.publicAddress).toEqual(publicAddress)
     })

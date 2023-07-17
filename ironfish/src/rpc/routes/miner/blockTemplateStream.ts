@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { Assert } from '../../../assert'
 import { SerializedBlockTemplate } from '../../../serde/BlockTemplateSerde'
 import { ApiNamespace, router } from '../router'
 
@@ -43,7 +44,9 @@ export const BlockTemplateStreamResponseSchema: yup.ObjectSchema<BlockTemplateSt
 router.register<typeof BlockTemplateStreamRequestSchema, BlockTemplateStreamResponse>(
   `${ApiNamespace.miner}/blockTemplateStream`,
   BlockTemplateStreamRequestSchema,
-  (request, node): void => {
+  (request, { node }): void => {
+    Assert.isNotUndefined(node)
+
     if (!node.chain.synced && !node.config.get('miningForce')) {
       node.logger.info(
         'Miner connected while the node is syncing. Will not start mining until the node is synced',

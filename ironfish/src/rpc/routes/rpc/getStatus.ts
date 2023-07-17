@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { Assert } from '../../../assert'
 import { IronfishNode } from '../../../node'
 import { PromiseUtils } from '../../../utils'
 import { RpcHttpAdapter, RpcIpcAdapter } from '../../adapters'
@@ -62,7 +63,9 @@ export const GetRpcStatusResponseSchema: yup.ObjectSchema<GetRpcStatusResponse> 
 router.register<typeof GetRpcStatusRequestSchema, GetRpcStatusResponse>(
   `${ApiNamespace.rpc}/getStatus`,
   GetRpcStatusRequestSchema,
-  async (request, node): Promise<void> => {
+  async (request, { node }): Promise<void> => {
+    Assert.isNotUndefined(node)
+
     const jobs = await getRpcStatus(node)
 
     if (!request.data?.stream) {

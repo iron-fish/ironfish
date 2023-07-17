@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { Assert } from '../../../assert'
 import { TransactionStatus, TransactionType } from '../../../wallet'
 import { ApiNamespace, router } from '../router'
 import { RpcSpend, RpcSpendSchema, RpcWalletNote, RpcWalletNoteSchema } from './types'
@@ -89,8 +90,10 @@ export const GetAccountTransactionResponseSchema: yup.ObjectSchema<GetAccountTra
 router.register<typeof GetAccountTransactionRequestSchema, GetAccountTransactionResponse>(
   `${ApiNamespace.wallet}/getAccountTransaction`,
   GetAccountTransactionRequestSchema,
-  async (request, node): Promise<void> => {
-    const account = getAccount(node, request.data.account)
+  async (request, { node }): Promise<void> => {
+    Assert.isNotUndefined(node)
+
+    const account = getAccount(node.wallet, request.data.account)
 
     const transactionHash = Buffer.from(request.data.hash, 'hex')
 
@@ -105,7 +108,7 @@ router.register<typeof GetAccountTransactionRequestSchema, GetAccountTransaction
 
     const serializedTransaction = serializeRpcAccountTransaction(transaction)
 
-    const assetBalanceDeltas = await getAssetBalanceDeltas(node, transaction)
+    const assetBalanceDeltas = await getAssetBalanceDeltas(account, transaction)
 
     const notes = await getAccountDecryptedNotes(node, account, transaction)
 

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { Assert } from '../../../assert'
 import { PeerNetwork } from '../../../network'
 import { ApiNamespace, router } from '../router'
 
@@ -45,7 +46,9 @@ export const GetBannedPeersResponseSchema: yup.ObjectSchema<GetBannedPeersRespon
 router.register<typeof GetBannedPeersRequestSchema, GetBannedPeersResponse>(
   `${ApiNamespace.peer}/getBannedPeers`,
   GetBannedPeersRequestSchema,
-  (request, node): void => {
+  (request, { node }): void => {
+    Assert.isNotUndefined(node)
+
     const peerNetwork = node.peerNetwork
 
     const peers = getPeers(peerNetwork)
