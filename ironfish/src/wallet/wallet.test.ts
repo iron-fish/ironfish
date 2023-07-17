@@ -99,7 +99,7 @@ describe('Accounts', () => {
     nodeA.wallet['rebroadcastAfter'] = 1
     nodeA.wallet['isStarted'] = true
     nodeA.chain['synced'] = true
-    await nodeA.wallet.rebroadcastTransactions()
+    await nodeA.wallet.rebroadcastTransactions(nodeA.chain.head.sequence)
     expect(broadcastSpy).toHaveBeenCalledTimes(0)
 
     // It should now be planned to be processed at head + 1
@@ -1298,7 +1298,7 @@ describe('Accounts', () => {
 
       const broadcastSpy = jest.spyOn(node.wallet, 'broadcastTransaction')
 
-      await node.wallet.rebroadcastTransactions()
+      await node.wallet.rebroadcastTransactions(node.chain.head.sequence)
 
       expect(broadcastSpy).toHaveBeenCalledTimes(0)
     })
