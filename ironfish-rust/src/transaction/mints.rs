@@ -76,7 +76,7 @@ impl MintBuilder {
 
 /// The publicly visible values of a mint description in a transaction.
 /// These fields get serialized when computing the transaction hash and are used
-/// to prove that the owner has knowledge of these values.
+/// to prove that the creator has knowledge of these values.
 pub struct UnsignedMintDescription {
     /// Used to add randomness to signature generation. Referred to as `ar` in
     /// the literature.
@@ -124,7 +124,7 @@ impl UnsignedMintDescription {
 /// asset on Iron Fish
 #[derive(Clone)]
 pub struct MintDescription {
-    /// Proof that the mint was valid for the provided owner and asset
+    /// Proof that the mint was valid for the provided creator and asset
     pub proof: groth16::Proof<Bls12>,
 
     /// Asset which is being minted
@@ -133,7 +133,7 @@ pub struct MintDescription {
     /// Amount of asset to mint
     pub value: u64,
 
-    /// Signature of the owner authorizing the mint action. This value is
+    /// Signature of the creator authorizing the mint action. This value is
     /// calculated after the transaction is signed since the value is dependent
     /// on the binding signature key
     pub authorizing_signature: redjubjub::Signature,
@@ -172,10 +172,10 @@ impl MintDescription {
         public_inputs[0] = randomized_public_key_point.get_u();
         public_inputs[1] = randomized_public_key_point.get_v();
 
-        let owner_public_address_point =
+        let creator_public_address_point =
             ExtendedPoint::from(self.asset.creator.transmission_key).to_affine();
-        public_inputs[2] = owner_public_address_point.get_u();
-        public_inputs[3] = owner_public_address_point.get_v();
+        public_inputs[2] = creator_public_address_point.get_u();
+        public_inputs[3] = creator_public_address_point.get_v();
 
         public_inputs
     }
@@ -264,11 +264,11 @@ mod test {
     /// generation key
     fn test_mint_builder() {
         let key = SaplingKey::generate_key();
-        let owner = key.public_address();
+        let creator = key.public_address();
         let name = "name";
         let metadata = "{ 'token_identifier': '0x123' }";
 
-        let asset = Asset::new(owner, name, metadata).unwrap();
+        let asset = Asset::new(creator, name, metadata).unwrap();
 
         let value = 5;
 
@@ -313,11 +313,11 @@ mod test {
     #[test]
     fn test_mint_description_serialization() {
         let key = SaplingKey::generate_key();
-        let owner = key.public_address();
+        let creator = key.public_address();
         let name = "name";
         let metadata = "{ 'token_identifier': '0x123' }";
 
-        let asset = Asset::new(owner, name, metadata).unwrap();
+        let asset = Asset::new(creator, name, metadata).unwrap();
 
         let value = 5;
 
@@ -388,12 +388,12 @@ mod test {
     #[test]
     fn test_mint_invalid_id() {
         let key = SaplingKey::generate_key();
-        let owner = key.public_address();
+        let creator = key.public_address();
         let name = "name";
         let metadata = "{ 'token_identifier': '0x123' }";
 
-        let asset = Asset::new(owner, name, metadata).unwrap();
-        let fake_asset = Asset::new(owner, name, "").unwrap();
+        let asset = Asset::new(creator, name, metadata).unwrap();
+        let fake_asset = Asset::new(creator, name, "").unwrap();
 
         let value = 5;
 

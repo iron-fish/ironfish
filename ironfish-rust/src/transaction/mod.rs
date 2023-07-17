@@ -614,7 +614,7 @@ impl Transaction {
     ///  *  Each of the output proofs has the inputs it says it has
     ///  *  Each of the mint proofs has the inputs it says it has
     ///  *  Each of the spend proofs was signed by the owner
-    ///  *  Each of the mint proofs was signed by the owner
+    ///  *  Each of the mint proofs was signed by the creator
     ///  *  The entire transaction was signed with a binding signature
     ///     containing those proofs (and only those proofs)
     ///

@@ -42,7 +42,7 @@ export type FollowChainStreamResponse = {
         id: string
         metadata: string
         name: string
-        owner: string
+        creator: string
         value: string
       }>
       burns: Array<{
@@ -111,7 +111,7 @@ export const FollowChainStreamResponseSchema: yup.ObjectSchema<FollowChainStream
                         id: yup.string().defined(),
                         metadata: yup.string().defined(),
                         name: yup.string().defined(),
-                        owner: yup.string().defined(),
+                        creator: yup.string().defined(),
                         value: yup.string().defined(),
                       })
                       .defined(),
@@ -167,7 +167,7 @@ routes.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
               id: mint.asset.id().toString('hex'),
               metadata: BufferUtils.toHuman(mint.asset.metadata()),
               name: BufferUtils.toHuman(mint.asset.name()),
-              owner: mint.asset.creator().toString('hex'),
+              creator: mint.asset.creator().toString('hex'),
               value: mint.value.toString(),
             })),
             burns: transaction.burns.map((burn) => ({

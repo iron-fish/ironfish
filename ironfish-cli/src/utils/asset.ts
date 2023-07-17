@@ -75,7 +75,7 @@ export async function selectAsset(
   options: {
     action: string
     showNativeAsset: boolean
-    showNonOwnerAsset: boolean
+    showNonCreatorAsset: boolean
     showSingleAssetChoice: boolean
     confirmations?: number
   },
@@ -97,7 +97,7 @@ export async function selectAsset(
     balances = balances.filter((b) => b.assetId !== Asset.nativeId().toString('hex'))
   }
 
-  if (!options.showNonOwnerAsset) {
+  if (!options.showNonCreatorAsset) {
     const accountResponse = await client.wallet.getAccountPublicKey({
       account: account,
     })

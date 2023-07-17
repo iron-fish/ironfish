@@ -53,7 +53,7 @@ export class AssetValueEncoding implements IDatabaseEncoding<AssetValue> {
     size += ASSET_METADATA_LENGTH // metadata
     size += ASSET_NAME_LENGTH // name
     size += 1 // nonce
-    size += PUBLIC_ADDRESS_LENGTH // owner
+    size += PUBLIC_ADDRESS_LENGTH // creator
     size += bufio.sizeVarBytes(BigIntUtils.toBytesLE(value.supply)) // supply
     return size
   }
