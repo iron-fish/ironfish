@@ -43,6 +43,7 @@ import { DecryptedNoteValue } from './walletdb/decryptedNoteValue'
 import { HeadValue } from './walletdb/headValue'
 import { TransactionValue } from './walletdb/transactionValue'
 import { WalletDB } from './walletdb/walletdb'
+import { WalletNodeClient } from './walletNodeClient'
 
 export enum AssetStatus {
   CONFIRMED = 'confirmed',
@@ -81,6 +82,7 @@ export class Wallet {
   readonly chain: Blockchain
   readonly chainProcessor: ChainProcessor
   readonly memPool: MemPool
+  readonly nodeClient: WalletNodeClient
   private readonly config: Config
 
   protected rebroadcastAfter: number
@@ -979,7 +981,7 @@ export class Wallet {
 
     if (broadcast) {
       await this.addPendingTransaction(transaction)
-      this.memPool.acceptTransaction(transaction)
+      this.nodeClient.mempool.acceptTransaction(transaction)
       this.broadcastTransaction(transaction)
       this.onTransactionCreated.emit(transaction)
     }
