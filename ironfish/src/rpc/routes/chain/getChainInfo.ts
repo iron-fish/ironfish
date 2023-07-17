@@ -5,7 +5,7 @@ import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { GENESIS_BLOCK_SEQUENCE } from '../../../primitives/block'
 import { BlockHashSerdeInstance } from '../../../serde'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 
 export type BlockIdentifier = { index: string; hash: string }
 
@@ -41,10 +41,12 @@ export const GetChainInfoResponseSchema: yup.ObjectSchema<GetChainInfoResponse> 
 /**
  * Get current, heaviest and genesis block identifiers
  */
-router.register<typeof GetChainInfoRequestSchema, GetChainInfoResponse>(
+routes.register<typeof GetChainInfoRequestSchema, GetChainInfoResponse>(
   `${ApiNamespace.chain}/getChainInfo`,
   GetChainInfoRequestSchema,
-  (request, node): void => {
+  (request, { node }): void => {
+    Assert.isNotUndefined(node)
+
     Assert.isNotNull(node.chain.genesis, 'no genesis')
 
     const latestHeader = node.chain.latest

@@ -2,17 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { Assert } from '../../../assert'
 import { LanguageKey, LanguageUtils } from '../../../utils'
 import { encodeAccount } from '../../../wallet/account/encoder/account'
-import { Format } from '../../../wallet/account/encoder/encoder'
-import { ApiNamespace, router } from '../router'
+import { AccountFormat } from '../../../wallet/account/encoder/encoder'
+import { ApiNamespace, routes } from '../router'
 import { RpcAccountImport } from './types'
 import { getAccount } from './utils'
 
 export type ExportAccountRequest = {
   account?: string
   viewOnly?: boolean
-  format?: Format
+  format?: AccountFormat
   language?: LanguageKey
 }
 export type ExportAccountResponse = {
@@ -23,7 +24,7 @@ export const ExportAccountRequestSchema: yup.ObjectSchema<ExportAccountRequest> 
   .object({
     account: yup.string().trim(),
     viewOnly: yup.boolean().optional().default(false),
-    format: yup.string().oneOf(Object.values(Format)).optional(),
+    format: yup.string().oneOf(Object.values(AccountFormat)).optional(),
     language: yup.string().oneOf(LanguageUtils.LANGUAGE_KEYS).optional(),
   })
   .defined()
@@ -34,11 +35,13 @@ export const ExportAccountResponseSchema: yup.ObjectSchema<ExportAccountResponse
   })
   .defined()
 
-router.register<typeof ExportAccountRequestSchema, ExportAccountResponse>(
+routes.register<typeof ExportAccountRequestSchema, ExportAccountResponse>(
   `${ApiNamespace.wallet}/exportAccount`,
   ExportAccountRequestSchema,
-  (request, node): void => {
-    const account = getAccount(node, request.data.account)
+  (request, { node }): void => {
+    Assert.isNotUndefined(node)
+
+    const account = getAccount(node.wallet, request.data.account)
     const { id: _, ...accountInfo } = account.serialize()
     if (request.data.viewOnly) {
       accountInfo.spendingKey = null

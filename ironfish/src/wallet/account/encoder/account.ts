@@ -5,7 +5,12 @@ import { Assert } from '../../../assert'
 import { AccountImport } from '../../walletdb/accountValue'
 import { Bech32Encoder } from './bech32'
 import { Bech32JsonEncoder } from './bech32json'
-import { AccountDecodingOptions, AccountEncodingOptions, Format } from './encoder'
+import {
+  AccountDecodingOptions,
+  AccountEncodingOptions,
+  AccountFormat,
+  DecodeFailed,
+} from './encoder'
 import { JsonEncoder } from './json'
 import { MnemonicEncoder } from './mnemonic'
 import { SpendingKeyEncoder } from './spendingKey'
@@ -20,17 +25,17 @@ const ENCODER_VERSIONS = [
 
 export function encodeAccount(
   value: AccountImport,
-  format: Format,
+  format: AccountFormat,
   options: AccountEncodingOptions = {},
 ): string {
   switch (format) {
-    case Format.JSON:
+    case AccountFormat.JSON:
       return new JsonEncoder().encode(value)
-    case Format.Bech32:
+    case AccountFormat.Bech32:
       return new Bech32Encoder().encode(value)
-    case Format.SpendingKey:
+    case AccountFormat.SpendingKey:
       return new SpendingKeyEncoder().encode(value)
-    case Format.Mnemonic:
+    case AccountFormat.Mnemonic:
       return new MnemonicEncoder().encode(value, options)
     default:
       return Assert.isUnreachable(format)
@@ -41,16 +46,24 @@ export function decodeAccount(
   value: string,
   options: AccountDecodingOptions = {},
 ): AccountImport {
-  let decoded = null
+  const errors: DecodeFailed[] = []
+
   for (const encoder of ENCODER_VERSIONS) {
     try {
-      decoded = new encoder().decode(value, options)
+      const decoded = new encoder().decode(value, options)
+
+      if (decoded) {
+        return decoded
+      }
     } catch (e) {
-      continue
-    }
-    if (decoded) {
-      return decoded
+      if (e instanceof DecodeFailed) {
+        errors.push(e)
+      } else {
+        throw e
+      }
     }
   }
-  throw new Error('Account could not be decoded')
+
+  const errorString = errors.map((error) => `${error.decoder}: ${error.message}`).join('\n')
+  throw new Error(`Account could not be decoded, decoder errors:\n${errorString} `)
 }

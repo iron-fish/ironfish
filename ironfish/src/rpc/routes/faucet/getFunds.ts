@@ -6,7 +6,7 @@ import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { WebApi } from '../../../webApi'
 import { ERROR_CODES, ResponseError } from '../../adapters'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 import { getAccount } from '../wallet/utils'
 
 export type GetFundsRequest = { account?: string; email?: string }
@@ -25,10 +25,11 @@ export const GetFundsResponseSchema: yup.ObjectSchema<GetFundsResponse> = yup
   })
   .defined()
 
-router.register<typeof GetFundsRequestSchema, GetFundsResponse>(
+routes.register<typeof GetFundsRequestSchema, GetFundsResponse>(
   `${ApiNamespace.faucet}/getFunds`,
   GetFundsRequestSchema,
-  async (request, node): Promise<void> => {
+  async (request, { node }): Promise<void> => {
+    Assert.isNotUndefined(node)
     // check node network id
     const networkId = node.internal.get('networkId')
 
@@ -37,7 +38,7 @@ router.register<typeof GetFundsRequestSchema, GetFundsResponse>(
       throw new ResponseError('This endpoint is only available for testnet.', ERROR_CODES.ERROR)
     }
 
-    const account = getAccount(node, request.data.account)
+    const account = getAccount(node.wallet, request.data.account)
 
     const api = new WebApi({
       getFundsEndpoint: node.config.get('getFundsApi'),

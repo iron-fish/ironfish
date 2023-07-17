@@ -6,7 +6,7 @@ import { useAccountFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { Account } from '../../../wallet'
 import { Bech32Encoder } from '../../../wallet/account/encoder/bech32'
-import { Format } from '../../../wallet/account/encoder/encoder'
+import { AccountFormat } from '../../../wallet/account/encoder/encoder'
 import { JsonEncoder } from '../../../wallet/account/encoder/json'
 import { MnemonicEncoder } from '../../../wallet/account/encoder/mnemonic'
 import { SpendingKeyEncoder } from '../../../wallet/account/encoder/spendingKey'
@@ -69,7 +69,7 @@ describe('Route wallet/exportAccount', () => {
     const response = await routeTest.client
       .request<ExportAccountResponse>('wallet/exportAccount', {
         account: account.name,
-        format: Format.JSON,
+        format: AccountFormat.JSON,
       })
       .waitForEnd()
 
@@ -83,7 +83,7 @@ describe('Route wallet/exportAccount', () => {
     const response = await routeTest.client
       .request<ExportAccountResponse>('wallet/exportAccount', {
         account: account.name,
-        format: Format.Bech32,
+        format: AccountFormat.Bech32,
       })
       .waitForEnd()
 
@@ -95,7 +95,7 @@ describe('Route wallet/exportAccount', () => {
     const response = await routeTest.client
       .request<ExportAccountResponse>('wallet/exportAccount', {
         account: account.name,
-        format: Format.SpendingKey,
+        format: AccountFormat.SpendingKey,
       })
       .waitForEnd()
 
@@ -108,7 +108,7 @@ describe('Route wallet/exportAccount', () => {
       routeTest.client
         .request<ExportAccountResponse>('wallet/exportAccount', {
           account: account.name,
-          format: Format.SpendingKey,
+          format: AccountFormat.SpendingKey,
           viewOnly: true,
         })
         .waitForEnd(),
@@ -119,7 +119,7 @@ describe('Route wallet/exportAccount', () => {
     const response = await routeTest.client
       .request<ExportAccountResponse>('wallet/exportAccount', {
         account: account.name,
-        format: Format.Mnemonic,
+        format: AccountFormat.Mnemonic,
       })
       .waitForEnd()
 
@@ -132,7 +132,7 @@ describe('Route wallet/exportAccount', () => {
       routeTest.client
         .request<ExportAccountResponse>('wallet/exportAccount', {
           account: account.name,
-          format: Format.Mnemonic,
+          format: AccountFormat.Mnemonic,
           viewOnly: true,
         })
         .waitForEnd(),

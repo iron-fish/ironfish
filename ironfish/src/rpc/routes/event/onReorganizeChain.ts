@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { Assert } from '../../../assert'
 import { BlockHeader } from '../../../primitives'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 import { RpcBlockHeader, RpcBlockHeaderSchema, serializeRpcBlockHeader } from './types'
 
 export type OnReorganizeChainRequest = undefined
@@ -24,10 +25,12 @@ export const OnReorganizeChainResponseSchema: yup.ObjectSchema<OnReorganizeChain
   })
   .defined()
 
-router.register<typeof OnReorganizeChainRequestSchema, OnReorganizeChainResponse>(
+routes.register<typeof OnReorganizeChainRequestSchema, OnReorganizeChainResponse>(
   `${ApiNamespace.event}/onReorganizeChain`,
   OnReorganizeChainRequestSchema,
-  (request, node): void => {
+  (request, { node }): void => {
+    Assert.isNotUndefined(node)
+
     function onReorganizeChain(oldHead: BlockHeader, newHead: BlockHeader, fork: BlockHeader) {
       request.stream({
         oldHead: serializeRpcBlockHeader(oldHead),

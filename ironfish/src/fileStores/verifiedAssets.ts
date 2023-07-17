@@ -17,7 +17,7 @@ export const VerifiedAssetsCacheOptionsDefaults: VerifiedAssetsCacheOptions = {
   assetIds: [],
 }
 
-export const VERIFIED_ASSETS_CACHE_FILE_NAME = path.join('cache', 'verified-assets.json')
+export const VERIFIED_ASSETS_CACHE_FILE_NAME = path.join('temp', 'verified-assets.json')
 
 export class VerifiedAssetsCacheStore extends KeyStore<VerifiedAssetsCacheOptions> {
   logger: Logger
