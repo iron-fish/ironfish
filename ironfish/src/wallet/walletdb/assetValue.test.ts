@@ -20,7 +20,7 @@ describe('AssetValueEncoding', () => {
       metadata: asset.metadata(),
       name: asset.name(),
       nonce: asset.nonce(),
-      owner: asset.owner(),
+      creator: asset.creator(),
       sequence: null,
       supply: BigInt(100),
     }

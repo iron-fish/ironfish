@@ -65,7 +65,7 @@ routes.register<typeof GetAssetsRequestSchema, GetAssetsResponse>(
         id: asset.id.toString('hex'),
         metadata: asset.metadata.toString('hex'),
         name: asset.name.toString('hex'),
-        owner: asset.owner.toString('hex'),
+        owner: asset.creator.toString('hex'),
         status: await node.wallet.getAssetStatus(account, asset, {
           confirmations: request.data.confirmations,
         }),

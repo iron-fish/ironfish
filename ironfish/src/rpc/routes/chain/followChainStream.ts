@@ -167,7 +167,7 @@ routes.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
               id: mint.asset.id().toString('hex'),
               metadata: BufferUtils.toHuman(mint.asset.metadata()),
               name: BufferUtils.toHuman(mint.asset.name()),
-              owner: mint.asset.owner().toString('hex'),
+              owner: mint.asset.creator().toString('hex'),
               value: mint.value.toString(),
             })),
             burns: transaction.burns.map((burn) => ({

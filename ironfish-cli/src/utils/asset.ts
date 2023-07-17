@@ -102,7 +102,7 @@ export async function selectAsset(
       account: account,
     })
 
-    balances = balances.filter((b) => b.assetOwner === accountResponse.content.publicKey)
+    balances = balances.filter((b) => b.assetCreator === accountResponse.content.publicKey)
   }
 
   if (balances.length === 0) {
