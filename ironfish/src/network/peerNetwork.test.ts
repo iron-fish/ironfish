@@ -198,7 +198,7 @@ describe('PeerNetwork', () => {
 
       await expect(node.chain).toAddBlock(block)
 
-      await node.chain.transactions.put(block.header.hash, {
+      await node.chain.putTransaction(block.header.hash, {
         transactions: [transaction1, transaction2, transaction3],
       })
 
@@ -278,7 +278,7 @@ describe('PeerNetwork', () => {
 
       await expect(node.chain).toAddBlock(block)
 
-      await node.chain.transactions.put(block.header.hash, {
+      await node.chain.putTransaction(block.header.hash, {
         transactions: [transaction1, transaction2, transaction3],
       })
 

@@ -11,8 +11,9 @@ import {
   StringEncoding,
 } from '../../storage'
 import { createDB } from '../../storage/utils'
-import { HeadersSchema, MetaSchema } from '../schema'
+import { HeadersSchema, MetaSchema, TransactionsSchema } from '../schema'
 import { HeaderEncoding, HeaderValue } from './headers'
+import { TransactionsValue, TransactionsValueEncoding } from './transactions'
 
 export const VERSION_DATABASE_CHAIN = 14
 
@@ -25,6 +26,8 @@ export class BlockchainDB {
   headers: IDatabaseStore<HeadersSchema>
   // Contains flat fields
   meta: IDatabaseStore<MetaSchema>
+  // BlockHash -> BlockHeader
+  transactions: IDatabaseStore<TransactionsSchema>
 
   constructor(options: { location: string; files: FileSystem }) {
     this.location = options.location
@@ -43,6 +46,13 @@ export class BlockchainDB {
       name: 'bm',
       keyEncoding: new StringEncoding<'head' | 'latest'>(),
       valueEncoding: BUFFER_ENCODING,
+    })
+
+    // BlockHash -> Transaction[]
+    this.transactions = this.db.addStore({
+      name: 'bt',
+      keyEncoding: BUFFER_ENCODING,
+      valueEncoding: new TransactionsValueEncoding(),
     })
   }
 
@@ -88,5 +98,32 @@ export class BlockchainDB {
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     return this.meta.put(key, value, tx)
+  }
+
+  async getTransactions(
+    blockHash: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<TransactionsValue | undefined> {
+    return this.transactions.get(blockHash, tx)
+  }
+
+  async addTransaction(
+    hash: Buffer,
+    value: TransactionsValue,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    return this.transactions.add(hash, value, tx)
+  }
+
+  async putTransaction(
+    hash: Buffer,
+    value: TransactionsValue,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    return this.transactions.put(hash, value, tx)
+  }
+
+  async deleteTransaction(hash: Buffer, tx?: IDatabaseTransaction): Promise<void> {
+    return this.transactions.del(hash, tx)
   }
 }
