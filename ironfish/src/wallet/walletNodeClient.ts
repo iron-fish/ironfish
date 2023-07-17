@@ -1,4 +1,7 @@
-import { Transaction } from "../primitives/transaction"
+import { AssetValue } from "../blockchain/database/assetValue"
+import { Witness } from "../merkletree"
+import { BlockHeader, Transaction } from "../primitives"
+import { NoteEncrypted } from "../primitives/noteEncrypted"
 
 export abstract class WalletNodeClient {
   // abstract(
@@ -7,11 +10,17 @@ export abstract class WalletNodeClient {
   //   options?: { timeoutMs?: number | null },
   // ): RpcResponse<TEnd, TStream>
 
-  abstract mempool = {
-    acceptTransaction(transaction: Transaction): void {}
+  abstract mempool: {
+    acceptTransaction: (transaction: Transaction) => void
   }
 
-  abstract chain = {
-    hasBlock
+  abstract chain: {
+    broadcastTransaction: (transaction: Transaction) => void
+    getAssetById: (id: Buffer) => Promise<AssetValue | null>
+    getHeader: (hash: Buffer) => Promise<BlockHeader | null>
+    getHeaderAtSequence: (sequence: number) => Promise<BlockHeader | null>
+    getNoteWitness: (index: number, size?: number) => Promise<Witness<NoteEncrypted, Buffer, Buffer, Buffer> | null>
+    hasBlock: (hash: Buffer) => Promise<boolean>
+    head: () => Promise<{ hash: Buffer, sequence: number}>
   }
 }

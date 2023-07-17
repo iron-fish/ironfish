@@ -246,13 +246,13 @@ export class Wallet {
         continue
       }
 
-      if (!(await this.chain.hasBlock(account.createdAt.hash))) {
+      if (!(await this.nodeClient.chain.hasBlock(account.createdAt.hash))) {
         await this.resetAccount(account, { resetCreatedAt: true })
       }
     }
 
     if (this.chainProcessor.hash) {
-      const hasHeadBlock = await this.chain.hasBlock(this.chainProcessor.hash)
+      const hasHeadBlock = await this.nodeClient.chain.hasBlock(this.chainProcessor.hash)
 
       if (!hasHeadBlock) {
         this.logger.error(
@@ -479,7 +479,8 @@ export class Wallet {
     tx?: IDatabaseTransaction,
   ): Promise<AssetBalances> {
     const assetBalanceDeltas = new AssetBalances()
-    const transactions = await this.chain.getBlockTransactions(blockHeader)
+    // TODO(hugh, rohan): this is a hack and will be removed when we refactor the chain processor
+    const transactions = await this.chainProcessor.chain.getBlockTransactions(blockHeader)
 
     for (const { transaction, initialNoteIndex } of transactions) {
       if (scan && scan.isAborted) {
@@ -521,7 +522,7 @@ export class Wallet {
       const asset = await this.walletDb.getAsset(account, note.assetId(), tx)
 
       if (!asset) {
-        const chainAsset = await this.chain.getAssetById(note.assetId())
+        const chainAsset = await this.nodeClient.chain.getAssetById(note.assetId())
         Assert.isNotNull(chainAsset, 'Asset must be non-null in the chain')
         await account.saveAssetFromChain(
           chainAsset.createdTransactionHash,
@@ -554,7 +555,9 @@ export class Wallet {
       const assetBalanceDeltas = new AssetBalances()
 
       await this.walletDb.db.transaction(async (tx) => {
-        const transactions = await this.chain.getBlockTransactions(header)
+        // TODO(hugh, rohan): this is a hack and will be removed when we
+        // refactor the chain processor
+        const transactions = await this.chainProcessor.chain.getBlockTransactions(header)
 
         for (const { transaction } of transactions.slice().reverse()) {
           const transactionDeltas = await account.disconnectTransaction(header, transaction, tx)
@@ -608,7 +611,8 @@ export class Wallet {
     for (const account of accounts) {
       const decryptedNotes = decryptedNotesByAccountId.get(account.id) ?? []
 
-      await account.addPendingTransaction(transaction, decryptedNotes, this.chain.head.sequence)
+      const head = await this.nodeClient.chain.head()
+      await account.addPendingTransaction(transaction, decryptedNotes, head.sequence)
       await this.upsertAssetsFromDecryptedNotes(account, decryptedNotes)
     }
   }
@@ -633,16 +637,18 @@ export class Wallet {
     const startHash = await this.getEarliestHeadHash()
 
     // Priority: fromHeader > startHeader > genesisBlock
-    const beginHash = fromHash ? fromHash : startHash ? startHash : this.chain.genesis.hash
-    const beginHeader = await this.chain.getHeader(beginHash)
+    // TODO(hugh, rohan): this is a hack and will be removed when we refactor the chain processor
+    const beginHash = fromHash ? fromHash : startHash ? startHash : this.chainProcessor.chain.genesis.hash
+    const beginHeader = await this.nodeClient.chain.getHeader(beginHash)
 
     Assert.isNotNull(
       beginHeader,
       `scanTransactions: No header found for start hash ${beginHash.toString('hex')}`,
     )
 
-    const endHash = this.chainProcessor.hash || this.chain.head.hash
-    const endHeader = await this.chain.getHeader(endHash)
+    const head = await this.nodeClient.chain.head()
+    const endHash = this.chainProcessor.hash || head.hash
+    const endHeader = await this.nodeClient.chain.getHeader(endHash)
 
     Assert.isNotNull(
       endHeader,
@@ -663,7 +669,8 @@ export class Wallet {
     )
 
     // Go through every transaction in the chain and add notes that we can decrypt
-    for await (const blockHeader of this.chain.iterateBlockHeaders(
+    // TODO(hugh, rohan): this is a hack and will be removed when we refactor the chainProcessor
+    for await (const blockHeader of this.chainProcessor.chain.iterateBlockHeaders(
       beginHash,
       endHash,
       undefined,
@@ -785,7 +792,7 @@ export class Wallet {
     let mintData: MintData
 
     if ('assetId' in options) {
-      const asset = await this.chain.getAssetById(options.assetId)
+      const asset = await this.nodeClient.chain.getAssetById(options.assetId)
       if (!asset) {
         throw new Error(
           `Asset not found. Cannot mint for identifier '${options.assetId.toString('hex')}'`,
@@ -861,8 +868,8 @@ export class Wallet {
     expirationDelta?: number
     confirmations?: number
   }): Promise<RawTransaction> {
-    const heaviestHead = this.chain.head
-    if (heaviestHead === null) {
+    const head = await this.nodeClient.chain.head()
+    if (head === null) {
       throw new Error('You must have a genesis block to create a transaction')
     }
 
@@ -873,10 +880,10 @@ export class Wallet {
     const confirmations = options.confirmations ?? this.config.get('confirmations')
 
     const maxConfirmedSequence = Math.max(
-      heaviestHead.sequence - confirmations,
+      head.sequence - confirmations,
       GENESIS_BLOCK_SEQUENCE,
     )
-    const maxConfirmedHeader = await this.chain.getHeaderAtSequence(maxConfirmedSequence)
+    const maxConfirmedHeader = await this.nodeClient.chain.getHeaderAtSequence(maxConfirmedSequence)
 
     Assert.isNotNull(maxConfirmedHeader)
     Assert.isNotNull(maxConfirmedHeader.noteSize)
@@ -886,11 +893,11 @@ export class Wallet {
     const expirationDelta =
       options.expirationDelta ?? this.config.get('transactionExpirationDelta')
 
-    const expiration = options.expiration ?? heaviestHead.sequence + expirationDelta
+    const expiration = options.expiration ?? head.sequence + expirationDelta
 
-    if (isExpiredSequence(expiration, this.chain.head.sequence)) {
+    if (isExpiredSequence(expiration, head.sequence)) {
       throw new Error(
-        `Invalid expiration sequence for transaction ${expiration} vs ${this.chain.head.sequence}`,
+        `Invalid expiration sequence for transaction ${expiration} vs ${head.sequence}`,
       )
     }
 
@@ -974,6 +981,7 @@ export class Wallet {
 
     const transaction = await this.workerPool.postTransaction(options.transaction, spendingKey)
 
+    // TODO(hugh, rohan): move verification to node process
     const verify = this.chain.verifier.verifyCreatedTransaction(transaction)
     if (!verify.valid) {
       throw new Error(`Invalid transaction, reason: ${String(verify.reason)}`)
@@ -982,7 +990,7 @@ export class Wallet {
     if (broadcast) {
       await this.addPendingTransaction(transaction)
       this.nodeClient.mempool.acceptTransaction(transaction)
-      this.broadcastTransaction(transaction)
+      this.nodeClient.chain.broadcastTransaction(transaction)
       this.onTransactionCreated.emit(transaction)
     }
 
@@ -1061,7 +1069,7 @@ export class Wallet {
         .toString('hex')} is missing an index and cannot be spent.`,
     )
 
-    const witness = await this.chain.notes.witness(note.index, treeSize)
+    const witness = await this.nodeClient.chain.getNoteWitness(note.index, treeSize)
 
     Assert.isNotNull(
       witness,
@@ -1157,6 +1165,7 @@ export class Wallet {
 
         let isValid = true
         await this.walletDb.db.transaction(async (tx) => {
+          // TODO(hugh, rohan): move verification to node process
           const verify = await this.chain.verifier.verifyTransactionAdd(transaction)
 
           // We still update this even if it's not valid to prevent constantly
@@ -1185,7 +1194,7 @@ export class Wallet {
         if (!isValid) {
           continue
         }
-        this.broadcastTransaction(transaction)
+        this.nodeClient.chain.broadcastTransaction(transaction)
       }
     }
   }
@@ -1360,7 +1369,7 @@ export class Wallet {
     validateAccount(accountValue)
 
     let createdAt = accountValue.createdAt
-    if (createdAt !== null && !(await this.chain.hasBlock(createdAt.hash))) {
+    if (createdAt !== null && !(await this.nodeClient.chain.hasBlock(createdAt.hash))) {
       this.logger.debug(
         `Account ${accountValue.name} createdAt block ${createdAt.hash.toString('hex')} (${
           createdAt.sequence
