@@ -3,9 +3,15 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { FileSystem } from '../../fileSystems'
 import { BlockHeader } from '../../primitives'
-import { BUFFER_ENCODING, IDatabase, IDatabaseStore, IDatabaseTransaction } from '../../storage'
+import {
+  BUFFER_ENCODING,
+  IDatabase,
+  IDatabaseStore,
+  IDatabaseTransaction,
+  StringEncoding,
+} from '../../storage'
 import { createDB } from '../../storage/utils'
-import { HeadersSchema } from '../schema'
+import { HeadersSchema, MetaSchema } from '../schema'
 import { HeaderEncoding, HeaderValue } from './headers'
 
 export const VERSION_DATABASE_CHAIN = 14
@@ -17,6 +23,8 @@ export class BlockchainDB {
 
   // BlockHash -> BlockHeader
   headers: IDatabaseStore<HeadersSchema>
+  // Contains flat fields
+  meta: IDatabaseStore<MetaSchema>
 
   constructor(options: { location: string; files: FileSystem }) {
     this.location = options.location
@@ -28,6 +36,13 @@ export class BlockchainDB {
       name: 'bh',
       keyEncoding: BUFFER_ENCODING,
       valueEncoding: new HeaderEncoding(),
+    })
+
+    // Flat Fields
+    this.meta = this.db.addStore({
+      name: 'bm',
+      keyEncoding: new StringEncoding<'head' | 'latest'>(),
+      valueEncoding: BUFFER_ENCODING,
     })
   }
 
@@ -58,5 +73,20 @@ export class BlockchainDB {
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     return this.headers.put(hash, header, tx)
+  }
+
+  async getMetaHash(
+    key: 'head' | 'latest',
+    tx?: IDatabaseTransaction,
+  ): Promise<Buffer | undefined> {
+    return this.meta.get(key, tx)
+  }
+
+  async putMetaHash(
+    key: 'head' | 'latest',
+    value: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    return this.meta.put(key, value, tx)
   }
 }
