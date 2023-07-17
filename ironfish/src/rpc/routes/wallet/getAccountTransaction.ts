@@ -4,7 +4,7 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { TransactionStatus, TransactionType } from '../../../wallet'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 import { RpcSpend, RpcSpendSchema, RpcWalletNote, RpcWalletNoteSchema } from './types'
 import {
   getAccount,
@@ -87,7 +87,7 @@ export const GetAccountTransactionResponseSchema: yup.ObjectSchema<GetAccountTra
     })
     .defined()
 
-router.register<typeof GetAccountTransactionRequestSchema, GetAccountTransactionResponse>(
+routes.register<typeof GetAccountTransactionRequestSchema, GetAccountTransactionResponse>(
   `${ApiNamespace.wallet}/getAccountTransaction`,
   GetAccountTransactionRequestSchema,
   async (request, { node }): Promise<void> => {

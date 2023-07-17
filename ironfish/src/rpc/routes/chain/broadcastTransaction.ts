@@ -6,7 +6,7 @@ import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { Transaction } from '../../../primitives'
 import { ValidationError } from '../../adapters'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 
 export type BroadcastTransactionRequest = {
   transaction: string
@@ -30,7 +30,7 @@ export const BroadcastTransactionResponseSchema: yup.ObjectSchema<BroadcastTrans
     })
     .defined()
 
-router.register<typeof BroadcastTransactionRequestSchema, BroadcastTransactionResponse>(
+routes.register<typeof BroadcastTransactionRequestSchema, BroadcastTransactionResponse>(
   `${ApiNamespace.chain}/broadcastTransaction`,
   BroadcastTransactionRequestSchema,
   (request, { node }): void => {

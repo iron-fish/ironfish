@@ -4,7 +4,7 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { BlockHeader } from '../../../primitives'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 import { RpcBlockHeader, RpcBlockHeaderSchema, serializeRpcBlockHeader } from './types'
 
 export type OnReorganizeChainRequest = undefined
@@ -25,7 +25,7 @@ export const OnReorganizeChainResponseSchema: yup.ObjectSchema<OnReorganizeChain
   })
   .defined()
 
-router.register<typeof OnReorganizeChainRequestSchema, OnReorganizeChainResponse>(
+routes.register<typeof OnReorganizeChainRequestSchema, OnReorganizeChainResponse>(
   `${ApiNamespace.event}/onReorganizeChain`,
   OnReorganizeChainRequestSchema,
   (request, { node }): void => {

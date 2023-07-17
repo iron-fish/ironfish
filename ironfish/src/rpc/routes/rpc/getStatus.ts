@@ -7,7 +7,7 @@ import { IronfishNode } from '../../../node'
 import { PromiseUtils } from '../../../utils'
 import { RpcHttpAdapter, RpcIpcAdapter } from '../../adapters'
 import { RpcSocketAdapter } from '../../adapters/socketAdapter/socketAdapter'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 
 export type GetRpcStatusRequest =
   | undefined
@@ -60,7 +60,7 @@ export const GetRpcStatusResponseSchema: yup.ObjectSchema<GetRpcStatusResponse> 
   })
   .defined()
 
-router.register<typeof GetRpcStatusRequestSchema, GetRpcStatusResponse>(
+routes.register<typeof GetRpcStatusRequestSchema, GetRpcStatusResponse>(
   `${ApiNamespace.rpc}/getStatus`,
   GetRpcStatusRequestSchema,
   async (request, { node }): Promise<void> => {

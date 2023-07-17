@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 
 interface ConsensusParameters {
   allowedBlockFuturesSeconds: number
@@ -32,7 +32,7 @@ export const GetConsensusParametersResponseSchema: yup.ObjectSchema<GetConsensus
     })
     .defined()
 
-router.register<typeof GetConsensusParametersRequestSchema, GetConsensusParametersResponse>(
+routes.register<typeof GetConsensusParametersRequestSchema, GetConsensusParametersResponse>(
   `${ApiNamespace.chain}/getConsensusParameters`,
   GetConsensusParametersRequestSchema,
   (request, { node }): void => {

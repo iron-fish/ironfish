@@ -4,7 +4,7 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { ValidationError } from '../../adapters'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 
 export type GetDifficultyRequest =
   | {
@@ -32,7 +32,7 @@ export const GetDifficultyResponseSchema: yup.ObjectSchema<GetDifficultyResponse
   })
   .defined()
 
-router.register<typeof GetDifficultyRequestSchema, GetDifficultyResponse>(
+routes.register<typeof GetDifficultyRequestSchema, GetDifficultyResponse>(
   `${ApiNamespace.chain}/getDifficulty`,
   GetDifficultyRequestSchema,
   async (request, { node }): Promise<void> => {

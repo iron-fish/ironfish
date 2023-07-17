@@ -4,7 +4,7 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { CurrencyUtils, YupUtils } from '../../../utils'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 import { getAccount } from './utils'
 
 export interface BurnAssetRequest {
@@ -45,7 +45,7 @@ export const BurnAssetResponseSchema: yup.ObjectSchema<BurnAssetResponse> = yup
   })
   .defined()
 
-router.register<typeof BurnAssetRequestSchema, BurnAssetResponse>(
+routes.register<typeof BurnAssetRequestSchema, BurnAssetResponse>(
   `${ApiNamespace.wallet}/burnAsset`,
   BurnAssetRequestSchema,
   async (request, { node }): Promise<void> => {

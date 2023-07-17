@@ -6,7 +6,7 @@ import { Assert } from '../../../assert'
 import { Connection, PeerNetwork } from '../../../network'
 import { NetworkMessageType } from '../../../network/types'
 import { IJSON } from '../../../serde'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 
 type PeerMessage = {
   brokeringPeerDisplayName?: string
@@ -58,7 +58,7 @@ export const GetPeerMessagesResponseSchema: yup.ObjectSchema<GetPeerMessagesResp
   })
   .defined()
 
-router.register<typeof GetPeerMessagesRequestSchema, GetPeerMessagesResponse>(
+routes.register<typeof GetPeerMessagesRequestSchema, GetPeerMessagesResponse>(
   `${ApiNamespace.peer}/getPeerMessages`,
   GetPeerMessagesRequestSchema,
   (request, { node }): void => {

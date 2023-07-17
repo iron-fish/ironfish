@@ -6,7 +6,7 @@ import { Assert } from '../../../assert'
 import { IronfishNode } from '../../../node'
 import { MathUtils } from '../../../utils'
 import { WorkerMessageType } from '../../../workerPool/tasks/workerMessage'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 
 export type GetWorkersStatusRequest =
   | undefined
@@ -63,7 +63,7 @@ export const GetWorkersStatusResponseSchema: yup.ObjectSchema<GetWorkersStatusRe
   })
   .defined()
 
-router.register<typeof GetWorkersStatusRequestSchema, GetWorkersStatusResponse>(
+routes.register<typeof GetWorkersStatusRequestSchema, GetWorkersStatusResponse>(
   `${ApiNamespace.worker}/getStatus`,
   GetWorkersStatusRequestSchema,
   (request, { node }): void => {

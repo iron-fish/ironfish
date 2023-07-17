@@ -5,7 +5,7 @@ import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { AssetVerification } from '../../../assets'
 import { CurrencyUtils } from '../../../utils'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 import { getAccount } from './utils'
 
 export type GetAssetsRequest = {
@@ -47,7 +47,7 @@ export const GetAssetsResponseSchema: yup.ObjectSchema<GetAssetsResponse> = yup
   })
   .defined()
 
-router.register<typeof GetAssetsRequestSchema, GetAssetsResponse>(
+routes.register<typeof GetAssetsRequestSchema, GetAssetsResponse>(
   `${ApiNamespace.wallet}/getAssets`,
   GetAssetsRequestSchema,
   async (request, { node }): Promise<void> => {

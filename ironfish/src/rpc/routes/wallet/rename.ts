@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 import { getAccount } from './utils'
 
 export type RenameAccountRequest = { account: string; newName: string }
@@ -20,7 +20,7 @@ export const RenameAccountResponseSchema: yup.MixedSchema<RenameAccountResponse>
   .mixed()
   .oneOf([undefined] as const)
 
-router.register<typeof RenameAccountRequestSchema, RenameAccountResponse>(
+routes.register<typeof RenameAccountRequestSchema, RenameAccountResponse>(
   `${ApiNamespace.wallet}/rename`,
   RenameAccountRequestSchema,
   async (request, { node }): Promise<void> => {

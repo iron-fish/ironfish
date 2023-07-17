@@ -4,7 +4,7 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { Account } from '../../../wallet'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 export type GetAccountsRequest = { default?: boolean; displayName?: boolean } | undefined
@@ -23,7 +23,7 @@ export const GetAccountsResponseSchema: yup.ObjectSchema<GetAccountsResponse> = 
   })
   .defined()
 
-router.register<typeof GetAccountsRequestSchema, GetAccountsResponse>(
+routes.register<typeof GetAccountsRequestSchema, GetAccountsResponse>(
   `${ApiNamespace.wallet}/getAccounts`,
   GetAccountsRequestSchema,
   (request, { node }): void => {

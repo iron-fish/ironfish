@@ -6,7 +6,7 @@ import { Assert } from '../../../assert'
 import { BlockHashSerdeInstance } from '../../../serde'
 import { CurrencyUtils } from '../../../utils'
 import { NotFoundError, ValidationError } from '../../adapters'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 import { RpcSpend, RpcSpendSchema } from '../wallet/types'
 import { RpcNote, RpcNoteSchema } from './types'
 
@@ -78,7 +78,7 @@ export const GetTransactionResponseSchema: yup.ObjectSchema<GetTransactionRespon
   })
   .defined()
 
-router.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
+routes.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
   `${ApiNamespace.chain}/getTransaction`,
   GetTransactionRequestSchema,
   async (request, { node }): Promise<void> => {

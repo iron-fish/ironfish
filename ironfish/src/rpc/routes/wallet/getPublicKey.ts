@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 import { getAccount } from './utils'
 
 export type GetPublicKeyRequest = { account?: string }
@@ -22,7 +22,7 @@ export const GetPublicKeyResponseSchema: yup.ObjectSchema<GetPublicKeyResponse> 
   })
   .defined()
 
-router.register<typeof GetPublicKeyRequestSchema, GetPublicKeyResponse>(
+routes.register<typeof GetPublicKeyRequestSchema, GetPublicKeyResponse>(
   `${ApiNamespace.wallet}/getPublicKey`,
   GetPublicKeyRequestSchema,
   (request, { node }): void => {

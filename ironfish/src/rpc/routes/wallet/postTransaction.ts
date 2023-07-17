@@ -4,7 +4,7 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { RawTransactionSerde } from '../../../primitives/rawTransaction'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 import { getAccount } from './utils'
 
 export type PostTransactionRequest = {
@@ -33,7 +33,7 @@ export const PostTransactionResponseSchema: yup.ObjectSchema<PostTransactionResp
   })
   .defined()
 
-router.register<typeof PostTransactionRequestSchema, PostTransactionResponse>(
+routes.register<typeof PostTransactionRequestSchema, PostTransactionResponse>(
   `${ApiNamespace.wallet}/postTransaction`,
   PostTransactionRequestSchema,
   async (request, { node }): Promise<void> => {

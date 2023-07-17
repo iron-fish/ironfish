@@ -6,7 +6,7 @@ import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { CurrencyUtils } from '../../../utils'
 import { ValidationError } from '../../adapters'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 
 export type GetAssetRequest = {
   id: string
@@ -39,7 +39,7 @@ export const GetAssetResponse: yup.ObjectSchema<GetAssetResponse> = yup
   })
   .defined()
 
-router.register<typeof GetAssetRequestSchema, GetAssetResponse>(
+routes.register<typeof GetAssetRequestSchema, GetAssetResponse>(
   `${ApiNamespace.chain}/getAsset`,
   GetAssetRequestSchema,
   async (request, { node }): Promise<void> => {
