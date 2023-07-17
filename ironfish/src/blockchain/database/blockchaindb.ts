@@ -1,18 +1,27 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Assert } from '../../assert'
 import { FileSystem } from '../../fileSystems'
 import { BlockHeader } from '../../primitives'
+import { BlockHash } from '../../primitives/blockheader'
 import {
   BUFFER_ENCODING,
   IDatabase,
   IDatabaseStore,
   IDatabaseTransaction,
   StringEncoding,
+  U32_ENCODING,
 } from '../../storage'
 import { createDB } from '../../storage/utils'
-import { HeadersSchema, MetaSchema, TransactionsSchema } from '../schema'
+import {
+  HeadersSchema,
+  MetaSchema,
+  SequenceToHashesSchema,
+  TransactionsSchema,
+} from '../schema'
 import { HeaderEncoding, HeaderValue } from './headers'
+import { SequenceToHashesValueEncoding } from './sequenceToHashes'
 import { TransactionsValue, TransactionsValueEncoding } from './transactions'
 
 export const VERSION_DATABASE_CHAIN = 14
@@ -28,6 +37,8 @@ export class BlockchainDB {
   meta: IDatabaseStore<MetaSchema>
   // BlockHash -> BlockHeader
   transactions: IDatabaseStore<TransactionsSchema>
+  // Sequence -> BlockHash[]
+  sequenceToHashes: IDatabaseStore<SequenceToHashesSchema>
 
   constructor(options: { location: string; files: FileSystem }) {
     this.location = options.location
@@ -53,6 +64,13 @@ export class BlockchainDB {
       name: 'bt',
       keyEncoding: BUFFER_ENCODING,
       valueEncoding: new TransactionsValueEncoding(),
+    })
+
+    // number -> BlockHash[]
+    this.sequenceToHashes = this.db.addStore({
+      name: 'bs',
+      keyEncoding: U32_ENCODING,
+      valueEncoding: new SequenceToHashesValueEncoding(),
     })
   }
 
@@ -125,5 +143,50 @@ export class BlockchainDB {
 
   async deleteTransaction(hash: Buffer, tx?: IDatabaseTransaction): Promise<void> {
     return this.transactions.del(hash, tx)
+  }
+
+  async getBlockHashesAtSequence(
+    sequence: number,
+    tx?: IDatabaseTransaction,
+  ): Promise<BlockHash[]> {
+    const hashes = await this.sequenceToHashes.get(sequence, tx)
+    if (!hashes) {
+      return []
+    }
+
+    return hashes.hashes
+  }
+
+  async getBlockHeadersAtSequence(
+    sequence: number,
+    tx?: IDatabaseTransaction,
+  ): Promise<BlockHeader[]> {
+    const hashes = await this.sequenceToHashes.get(sequence, tx)
+
+    if (!hashes) {
+      return []
+    }
+
+    const headers = await Promise.all(
+      hashes.hashes.map(async (h) => {
+        const header = await this.getBlockHeader(h, tx)
+        Assert.isNotUndefined(header)
+        return header
+      }),
+    )
+
+    return headers
+  }
+
+  async deleteSequenceToHashes(sequence: number, tx?: IDatabaseTransaction): Promise<void> {
+    return this.sequenceToHashes.del(sequence, tx)
+  }
+
+  async putSequenceToHashes(
+    sequence: number,
+    hashes: Buffer[],
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    return this.sequenceToHashes.put(sequence, { hashes }, tx)
   }
 }
