@@ -5,7 +5,7 @@ import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { Config, ConfigOptions, ConfigOptionsSchema } from '../../../fileStores/config'
 import { ValidationError } from '../../adapters/errors'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 
 export type UploadConfigRequest = { config: Record<string, unknown> }
 export type UploadConfigResponse = Partial<ConfigOptions>
@@ -17,7 +17,7 @@ export const UploadConfigRequestSchema: yup.ObjectSchema<UploadConfigRequest> = 
 export const UploadConfigResponseSchema: yup.ObjectSchema<UploadConfigResponse> =
   ConfigOptionsSchema
 
-router.register<typeof UploadConfigRequestSchema, UploadConfigResponse>(
+routes.register<typeof UploadConfigRequestSchema, UploadConfigResponse>(
   `${ApiNamespace.config}/uploadConfig`,
   UploadConfigRequestSchema,
   async (request, { node }): Promise<void> => {

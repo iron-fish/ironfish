@@ -5,7 +5,7 @@ import { Asset } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { AssetVerification } from '../../../assets'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 import { getAccount } from './utils'
 
 export type GetBalanceRequest =
@@ -58,7 +58,7 @@ export const GetBalanceResponseSchema: yup.ObjectSchema<GetBalanceResponse> = yu
   })
   .defined()
 
-router.register<typeof GetBalanceRequestSchema, GetBalanceResponse>(
+routes.register<typeof GetBalanceRequestSchema, GetBalanceResponse>(
   `${ApiNamespace.wallet}/getBalance`,
   GetBalanceRequestSchema,
   async (request, { node }): Promise<void> => {

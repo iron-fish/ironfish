@@ -6,7 +6,7 @@ import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { IronfishNode } from '../../../node'
 import { MathUtils, PromiseUtils } from '../../../utils'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 
 export type GetNodeStatusRequest =
   | undefined
@@ -252,7 +252,7 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetNodeStatusResponse> = 
   })
   .defined()
 
-router.register<typeof GetStatusRequestSchema, GetNodeStatusResponse>(
+routes.register<typeof GetStatusRequestSchema, GetNodeStatusResponse>(
   `${ApiNamespace.node}/getStatus`,
   GetStatusRequestSchema,
   async (request, { node }): Promise<void> => {
@@ -350,11 +350,11 @@ async function getStatus(node: IronfishNode): Promise<GetNodeStatusResponse> {
       },
     },
     blockSyncer: {
-      status: node.syncer.state,
+      status: node.peerNetwork.syncer.state,
       syncing: {
         blockSpeed: MathUtils.round(node.chain.addSpeed.average, 2),
-        speed: MathUtils.round(node.syncer.speed.rollingRate1m, 2),
-        downloadSpeed: MathUtils.round(node.syncer.downloadSpeed.average, 2),
+        speed: MathUtils.round(node.peerNetwork.syncer.speed.rollingRate1m, 2),
+        downloadSpeed: MathUtils.round(node.peerNetwork.syncer.downloadSpeed.average, 2),
         progress: node.chain.getProgress(),
       },
     },

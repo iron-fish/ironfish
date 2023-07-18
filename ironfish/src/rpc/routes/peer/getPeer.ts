@@ -4,7 +4,7 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { Connection, PeerNetwork } from '../../../network'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 import { PeerResponse } from './getPeers'
 
 type ConnectionState = Connection['state']['type'] | ''
@@ -58,7 +58,7 @@ export const GetPeerResponseSchema: yup.ObjectSchema<GetPeerResponse> = yup
   })
   .defined()
 
-router.register<typeof GetPeerRequestSchema, GetPeerResponse>(
+routes.register<typeof GetPeerRequestSchema, GetPeerResponse>(
   `${ApiNamespace.peer}/getPeer`,
   GetPeerRequestSchema,
   (request, { node }): void => {

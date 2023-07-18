@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 import { renderChain } from './utils'
 
 export type ShowChainRequest =
@@ -33,7 +33,7 @@ export const ShowChainResponseSchema: yup.ObjectSchema<ShowChainResponse> = yup
 /**
  * Render the chain as ani ASCII graph of the block chain
  */
-router.register<typeof ShowChainRequestSchema, ShowChainResponse>(
+routes.register<typeof ShowChainRequestSchema, ShowChainResponse>(
   `${ApiNamespace.chain}/showChain`,
   ShowChainRequestSchema,
   async (request, { node }): Promise<void> => {

@@ -4,7 +4,7 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { ConfigOptions, ConfigOptionsSchema } from '../../../fileStores/config'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 import { setUnknownConfigValue } from './uploadConfig'
 
 export type SetConfigRequest = { name: string; value: unknown }
@@ -19,7 +19,7 @@ export const SetConfigRequestSchema: yup.ObjectSchema<SetConfigRequest> = yup
 
 export const SetConfigResponseSchema: yup.ObjectSchema<SetConfigResponse> = ConfigOptionsSchema
 
-router.register<typeof SetConfigRequestSchema, SetConfigResponse>(
+routes.register<typeof SetConfigRequestSchema, SetConfigResponse>(
   `${ApiNamespace.config}/setConfig`,
   SetConfigRequestSchema,
   async (request, { node }): Promise<void> => {

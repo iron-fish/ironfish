@@ -6,7 +6,7 @@ import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { InterceptReporter } from '../../../logger'
 import { IJSON } from '../../../serde'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 export type GetLogStreamRequest = {} | undefined
@@ -34,7 +34,7 @@ export const GetLogStreamResponseSchema: yup.ObjectSchema<GetLogStreamResponse> 
   })
   .defined()
 
-router.register<typeof GetLogStreamRequestSchema, GetLogStreamResponse>(
+routes.register<typeof GetLogStreamRequestSchema, GetLogStreamResponse>(
   `${ApiNamespace.node}/getLogStream`,
   GetLogStreamRequestSchema,
   (request, { node }): void => {

@@ -3,19 +3,19 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import LRU from 'blru'
-import { IronfishNode } from '../node'
 import { Transaction } from '../primitives/transaction'
+import { Strategy } from '../strategy'
 import { SpendingAccount } from '../wallet'
 
 export class MinersFeeCache {
-  private readonly node: IronfishNode
+  private readonly strategy: Strategy
   private readonly cache: LRU<string, Promise<Transaction>> = new LRU<
     string,
     Promise<Transaction>
   >(5)
 
-  constructor(options: { node: IronfishNode }) {
-    this.node = options.node
+  constructor(options: { strategy: Strategy }) {
+    this.strategy = options.strategy
   }
 
   /**
@@ -34,7 +34,7 @@ export class MinersFeeCache {
       return cached
     }
 
-    const minersFeePromise = this.node.strategy.createMinersFee(
+    const minersFeePromise = this.strategy.createMinersFee(
       BigInt(0),
       sequence,
       account.spendingKey,
@@ -48,7 +48,7 @@ export class MinersFeeCache {
   startCreatingEmptyMinersFee(sequence: number, account: SpendingAccount): void {
     const key = `${sequence}-${account.publicAddress}`
 
-    const minersFeePromise = this.node.strategy.createMinersFee(
+    const minersFeePromise = this.strategy.createMinersFee(
       BigInt(0),
       sequence,
       account.spendingKey,

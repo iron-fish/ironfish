@@ -78,7 +78,7 @@ export function mockMiningManager(): any {
   }
 }
 
-function mockMempool(): unknown {
+export function mockMempool(): any {
   return {
     acceptTransaction: jest.fn(),
     exists: jest.fn().mockReturnValue(false),

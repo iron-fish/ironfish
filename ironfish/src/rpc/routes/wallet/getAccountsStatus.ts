@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 
 export type GetAccountStatusRequest = { account?: string }
 
@@ -39,7 +39,7 @@ export const GetAccountStatusResponseSchema: yup.ObjectSchema<GetAccountStatusRe
   })
   .defined()
 
-router.register<typeof GetAccountStatusRequestSchema, GetAccountStatusResponse>(
+routes.register<typeof GetAccountStatusRequestSchema, GetAccountStatusResponse>(
   `${ApiNamespace.wallet}/getAccountsStatus`,
   GetAccountStatusRequestSchema,
   async (request, { node }): Promise<void> => {

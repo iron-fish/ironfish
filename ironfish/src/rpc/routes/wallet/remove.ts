@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 import { getAccount } from './utils'
 
 export type RemoveAccountRequest = { account: string; confirm?: boolean; wait?: boolean }
@@ -23,7 +23,7 @@ export const RemoveAccountResponseSchema: yup.ObjectSchema<RemoveAccountResponse
   })
   .defined()
 
-router.register<typeof RemoveAccountRequestSchema, RemoveAccountResponse>(
+routes.register<typeof RemoveAccountRequestSchema, RemoveAccountResponse>(
   `${ApiNamespace.wallet}/remove`,
   RemoveAccountRequestSchema,
   async (request, { node }): Promise<void> => {

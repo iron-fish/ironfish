@@ -4,7 +4,7 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { CurrencyUtils } from '../../../utils'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 import { RpcWalletNote, RpcWalletNoteSchema } from './types'
 import { getAccount } from './utils'
 
@@ -22,7 +22,7 @@ export const GetAccountNotesStreamRequestSchema: yup.ObjectSchema<GetAccountNote
 export const GetAccountNotesStreamResponseSchema: yup.ObjectSchema<GetAccountNotesStreamResponse> =
   RpcWalletNoteSchema
 
-router.register<typeof GetAccountNotesStreamRequestSchema, GetAccountNotesStreamResponse>(
+routes.register<typeof GetAccountNotesStreamRequestSchema, GetAccountNotesStreamResponse>(
   `${ApiNamespace.wallet}/getAccountNotesStream`,
   GetAccountNotesStreamRequestSchema,
   async (request, { node }): Promise<void> => {

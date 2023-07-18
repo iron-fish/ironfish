@@ -12,16 +12,18 @@ import { Event } from '../event'
 import { DEFAULT_WEBSOCKET_PORT } from '../fileStores/config'
 import { HostsStore } from '../fileStores/hosts'
 import { createRootLogger, Logger } from '../logger'
+import { MemPool } from '../memPool'
 import { MetricsMonitor } from '../metrics'
-import { IronfishNode } from '../node'
 import { IronfishPKG } from '../package'
 import { Platform } from '../platform'
 import { GENESIS_BLOCK_SEQUENCE, Transaction } from '../primitives'
 import { Block, CompactBlock } from '../primitives/block'
 import { BlockHash, BlockHeader } from '../primitives/blockheader'
 import { TransactionHash } from '../primitives/transaction'
+import { Syncer } from '../syncer'
 import { Telemetry } from '../telemetry'
 import { ArrayUtils, BenchUtils, BlockchainUtils, CompactBlockUtils, HRTime } from '../utils'
+import { WorkerPool } from '../workerPool'
 import { BlockFetcher } from './blockFetcher'
 import { Identity, PrivateIdentity } from './identity'
 import { CannotSatisfyRequest } from './messages/cannotSatisfyRequest'
@@ -119,10 +121,14 @@ export class PeerNetwork {
   private readonly logger: Logger
   private readonly metrics: MetricsMonitor
   private readonly telemetry: Telemetry
-  private readonly node: IronfishNode
   private readonly chain: Blockchain
+  readonly syncer: Syncer
+  private readonly memPool: MemPool
+  private readonly workerPool: WorkerPool
   private readonly requests: Map<RpcId, RpcRequest>
   private readonly enableSyncing: boolean
+
+  private readonly walletAddPendingTransaction: (transaction: Transaction) => Promise<void>
 
   private readonly blockFetcher: BlockFetcher
   private readonly transactionFetcher: TransactionFetcher
@@ -169,20 +175,25 @@ export class PeerNetwork {
     logger?: Logger
     metrics?: MetricsMonitor
     telemetry: Telemetry
-    node: IronfishNode
     chain: Blockchain
     hostsStore: HostsStore
+    blocksPerMessage: number
+    memPool: MemPool
+    workerPool: WorkerPool
+    walletAddPendingTransaction: (transaction: Transaction) => Promise<void>
+    walletOnBroadcastTransaction: Event<[transaction: Transaction]>
     incomingWebSocketWhitelist?: string[]
   }) {
     this.networkId = options.networkId
     this.enableSyncing = options.enableSyncing ?? true
-    this.node = options.node
     this.chain = options.chain
     this.logger = (options.logger || createRootLogger()).withTag('peernetwork')
     this.metrics = options.metrics || new MetricsMonitor({ logger: this.logger })
     this.telemetry = options.telemetry
     this.bootstrapNodes = options.bootstrapNodes || []
     this.incomingWebSocketWhitelist = options.incomingWebSocketWhitelist || []
+    this.memPool = options.memPool
+    this.workerPool = options.workerPool
 
     this.localPeer = new LocalPeer(
       options.identity,
@@ -252,12 +263,30 @@ export class PeerNetwork {
       }
     })
 
-    this.node.miningManager.onNewBlock.on((block) => {
-      this.broadcastBlock(block)
-      this.broadcastBlockHash(block.header)
+    this.syncer = new Syncer({
+      chain: this.chain,
+      metrics: this.metrics,
+      logger: this.logger,
+      telemetry: this.telemetry,
+      peerNetwork: this,
+      blocksPerMessage: options.blocksPerMessage,
     })
 
-    this.node.wallet.onBroadcastTransaction.on((transaction) => {
+    this.onIsReadyChanged.on((isReady: boolean) => {
+      if (isReady) {
+        this.logger.info(`Connected to the Iron Fish network`)
+
+        if (this.enableSyncing) {
+          void this.syncer.start()
+        }
+      } else {
+        this.logger.info(`Not connected to the Iron Fish network`)
+        void this.syncer.stop()
+      }
+    })
+
+    this.walletAddPendingTransaction = options.walletAddPendingTransaction
+    options.walletOnBroadcastTransaction.on((transaction) => {
       this.broadcastTransaction(transaction)
     })
   }
@@ -325,16 +354,6 @@ export class PeerNetwork {
       this.peerManager.onDisconnect.on((peer: Peer) => {
         this.logger.debug(`Disconnected from ${String(peer.state.identity)}`)
       })
-
-      this.onIsReadyChanged.on((isReady: boolean) => {
-        if (isReady) {
-          this.logger.info(`Connected to the Iron Fish network`)
-          this.node.onPeerNetworkReady()
-        } else {
-          this.logger.info(`Not connected to the Iron Fish network`)
-          this.node.onPeerNetworkNotReady()
-        }
-      })
     }
 
     // Start up the PeerManager
@@ -372,6 +391,7 @@ export class PeerNetwork {
    */
   async stop(): Promise<void> {
     this.started = false
+    await this.syncer.stop()
     this.peerConnectionManager.stop()
     await this.peerManager.stop()
     this.webSocketServer?.close()
@@ -383,7 +403,7 @@ export class PeerNetwork {
   /**
    * Send a compact block to a sqrt subset of peers who haven't yet received the block
    */
-  private broadcastBlock(block: Block): void {
+  broadcastBlock(block: Block): void {
     const hash = block.header.hash
 
     const peersToSendToArray = ArrayUtils.shuffle([...this.connectedPeersWithoutBlock(hash)])
@@ -403,7 +423,7 @@ export class PeerNetwork {
   /**
    * Send a block hash to all connected peers who haven't yet received the block.
    */
-  private broadcastBlockHash(header: BlockHeader): void {
+  broadcastBlockHash(header: BlockHeader): void {
     const hashMessage = new NewBlockHashesMessage([
       { hash: header.hash, sequence: header.sequence },
     ])
@@ -759,7 +779,7 @@ export class PeerNetwork {
     if (prevHeader === null) {
       this.chain.addOrphan(block.header)
       this.blockFetcher.removeBlock(block.header.hash)
-      this.node.syncer.startSync(peer)
+      this.syncer.startSync(peer)
       return
     }
 
@@ -817,7 +837,7 @@ export class PeerNetwork {
     if (prevHeader === null) {
       this.chain.addOrphan(header)
       this.blockFetcher.removeBlock(header.hash)
-      this.node.syncer.startSync(peer)
+      this.syncer.startSync(peer)
       return
     }
 
@@ -833,10 +853,7 @@ export class PeerNetwork {
     }
 
     // check if we're missing transactions
-    const result = CompactBlockUtils.assembleTransactionsFromMempool(
-      this.node.memPool,
-      compactBlock,
-    )
+    const result = CompactBlockUtils.assembleTransactionsFromMempool(this.memPool, compactBlock)
 
     if (!result.ok) {
       peer.punish(BAN_SCORE.MAX)
@@ -891,13 +908,13 @@ export class PeerNetwork {
       // once. It could still be downloaded and forwarded to peers who have joined
       // since that initial gossip, but since it is a low feeRate and
       // other peer mempools are likely at capacity too, just drop it
-      if (this.node.memPool.recentlyEvicted(hash)) {
+      if (this.memPool.recentlyEvicted(hash)) {
         continue
       }
 
       // If the transaction is already in the mempool we don't need to request
       // the full transaction. Just broadcast it
-      const transaction = this.node.memPool.get(hash)
+      const transaction = this.memPool.get(hash)
       if (transaction) {
         this.broadcastTransaction(transaction)
       } else {
@@ -1031,7 +1048,7 @@ export class PeerNetwork {
     const transactions: Transaction[] = []
 
     for (const hash of message.transactionHashes) {
-      const transaction = this.node.memPool.get(hash)
+      const transaction = this.memPool.get(hash)
       if (transaction) {
         transactions.push(transaction)
       }
@@ -1186,7 +1203,7 @@ export class PeerNetwork {
     if (prevHeader === null) {
       this.chain.addOrphan(block.header)
       this.blockFetcher.removeBlock(block.header.hash)
-      this.node.syncer.startSync(peer)
+      this.syncer.startSync(peer)
       return
     }
 
@@ -1222,7 +1239,7 @@ export class PeerNetwork {
     }
 
     // add the block to the chain
-    const result = await this.node.syncer.addBlock(peer, block)
+    const result = await this.syncer.addBlock(peer, block)
 
     // We should have checked if the block is an orphan or duplicate already, so we
     // don't have to handle those cases here. If there was a verification error, the
@@ -1235,7 +1252,7 @@ export class PeerNetwork {
   private shouldProcessNewBlocks(): boolean {
     // We drop blocks when we are still initially syncing as they
     // will become loose blocks and we can't verify them
-    if (!this.chain.synced && this.node.syncer.loader) {
+    if (!this.chain.synced && this.syncer.loader) {
       return false
     }
 
@@ -1252,13 +1269,13 @@ export class PeerNetwork {
     // TODO(rohanjadvani): However, it's okay to accept transactions if you are
     // not synced and not syncing. We should update this logic after syncing
     // becomes more reliable
-    if (!this.node.chain.synced) {
+    if (!this.chain.synced) {
       return false
     }
 
     // TODO: We may want to remove this so that transactions still propagate
     // even with a full worker pool
-    if (this.node.workerPool.saturated) {
+    if (this.workerPool.saturated) {
       return false
     }
 
@@ -1302,7 +1319,7 @@ export class PeerNetwork {
 
     // If transaction is already in mempool that means it's been synced to the
     // wallet and the mempool so all that is left is to broadcast
-    if (this.node.memPool.exists(hash)) {
+    if (this.memPool.exists(hash)) {
       this.broadcastTransaction(transaction)
       this.transactionFetcher.removeTransaction(hash)
       return
@@ -1322,7 +1339,7 @@ export class PeerNetwork {
       return
     }
 
-    const accepted = this.node.memPool.acceptTransaction(transaction)
+    const accepted = this.memPool.acceptTransaction(transaction)
 
     // At this point the only reasons a transaction is not accepted would be
     // overlapping nullifiers or it's expired. In both cases don't broadcast
@@ -1333,7 +1350,7 @@ export class PeerNetwork {
 
     // Sync every transaction to the wallet, since senders and recipients may want to know
     // about pending transactions even if they're not accepted to the mempool.
-    await this.node.wallet.addPendingTransaction(transaction)
+    await this.walletAddPendingTransaction(transaction)
 
     this.transactionFetcher.removeTransaction(hash)
   }

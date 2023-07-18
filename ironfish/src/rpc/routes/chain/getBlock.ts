@@ -7,7 +7,7 @@ import { BlockHeader } from '../../../primitives'
 import { GENESIS_BLOCK_SEQUENCE } from '../../../primitives/block'
 import { BufferUtils } from '../../../utils'
 import { ValidationError } from '../../adapters'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 
 export type GetBlockRequest = {
   search?: string
@@ -86,7 +86,7 @@ export const GetBlockResponseSchema: yup.ObjectSchema<GetBlockResponse> = yup
   })
   .defined()
 
-router.register<typeof GetBlockRequestSchema, GetBlockResponse>(
+routes.register<typeof GetBlockRequestSchema, GetBlockResponse>(
   `${ApiNamespace.chain}/getBlock`,
   GetBlockRequestSchema,
   async (request, { node }): Promise<void> => {

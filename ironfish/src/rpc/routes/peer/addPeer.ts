@@ -4,7 +4,7 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { DEFAULT_WEBSOCKET_PORT } from '../../../fileStores/config'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 
 export type AddPeerRequest = {
   host: string
@@ -31,7 +31,7 @@ export const AddPeerResponseSchema: yup.ObjectSchema<AddPeerResponse> = yup
   })
   .defined()
 
-router.register<typeof AddPeerRequestSchema, AddPeerResponse>(
+routes.register<typeof AddPeerRequestSchema, AddPeerResponse>(
   `${ApiNamespace.peer}/addPeer`,
   AddPeerRequestSchema,
   (request, { node }): void => {
