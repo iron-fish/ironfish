@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import type { IDatabaseEncoding } from '../../storage/database/types'
 import {
   ASSET_ID_LENGTH,
   ASSET_METADATA_LENGTH,
@@ -9,7 +8,8 @@ import {
   PUBLIC_ADDRESS_LENGTH,
 } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
-import { BigIntUtils } from '../../utils'
+import { IDatabaseEncoding } from '../../../../storage'
+import { BigIntUtils } from '../../../../utils'
 
 export interface AssetValue {
   createdTransactionHash: Buffer
@@ -18,7 +18,6 @@ export interface AssetValue {
   name: Buffer
   nonce: number
   creator: Buffer
-  owner: Buffer
   supply: bigint
 }
 
@@ -31,7 +30,6 @@ export class AssetValueEncoding implements IDatabaseEncoding<AssetValue> {
     bw.writeBytes(value.name)
     bw.writeU8(value.nonce)
     bw.writeBytes(value.creator)
-    bw.writeBytes(value.owner)
     bw.writeVarBytes(BigIntUtils.toBytesLE(value.supply))
     return bw.render()
   }
@@ -44,9 +42,8 @@ export class AssetValueEncoding implements IDatabaseEncoding<AssetValue> {
     const name = reader.readBytes(ASSET_NAME_LENGTH)
     const nonce = reader.readU8()
     const creator = reader.readBytes(PUBLIC_ADDRESS_LENGTH)
-    const owner = reader.readBytes(PUBLIC_ADDRESS_LENGTH)
     const supply = BigIntUtils.fromBytesLE(reader.readVarBytes())
-    return { createdTransactionHash, id, metadata, name, nonce, creator, owner, supply }
+    return { createdTransactionHash, id, metadata, name, nonce, creator, supply }
   }
 
   getSize(value: AssetValue): number {
@@ -57,7 +54,6 @@ export class AssetValueEncoding implements IDatabaseEncoding<AssetValue> {
     size += ASSET_NAME_LENGTH // name
     size += 1 // nonce
     size += PUBLIC_ADDRESS_LENGTH // creator
-    size += PUBLIC_ADDRESS_LENGTH // owner
     size += bufio.sizeVarBytes(BigIntUtils.toBytesLE(value.supply)) // supply
     return size
   }

@@ -20,6 +20,7 @@ describe('AssetValueEncoding', () => {
       name: asset.name(),
       nonce: asset.nonce(),
       creator: asset.creator(),
+      owner: asset.creator(),
       supply: BigInt(100),
     }
     const buffer = encoder.serialize(value)

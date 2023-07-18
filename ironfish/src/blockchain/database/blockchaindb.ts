@@ -24,7 +24,7 @@ import { HeaderEncoding, HeaderValue } from './headers'
 import { SequenceToHashesValueEncoding } from './sequenceToHashes'
 import { TransactionsValue, TransactionsValueEncoding } from './transactions'
 
-export const VERSION_DATABASE_CHAIN = 14
+export const VERSION_DATABASE_CHAIN = 28
 
 export class BlockchainDB {
   db: IDatabase
