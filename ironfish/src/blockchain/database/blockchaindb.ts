@@ -15,10 +15,7 @@ import {
 } from '../../storage'
 import { createDB } from '../../storage/utils'
 import {
-<<<<<<< HEAD
   AssetSchema,
-=======
->>>>>>> staging
   HashToNextSchema,
   HeadersSchema,
   MetaSchema,
@@ -50,11 +47,8 @@ export class BlockchainDB {
   sequenceToHash: IDatabaseStore<SequenceToHashSchema>
   // BlockHash -> BlockHash
   hashToNextHash: IDatabaseStore<HashToNextSchema>
-<<<<<<< HEAD
   // Asset Identifier -> Asset
   assets: IDatabaseStore<AssetSchema>
-=======
->>>>>>> staging
 
   constructor(options: { location: string; files: FileSystem }) {
     this.location = options.location
@@ -101,15 +95,12 @@ export class BlockchainDB {
       keyEncoding: BUFFER_ENCODING,
       valueEncoding: BUFFER_ENCODING,
     })
-<<<<<<< HEAD
 
     this.assets = this.db.addStore({
       name: 'bA',
       keyEncoding: BUFFER_ENCODING,
       valueEncoding: new AssetValueEncoding(),
     })
-=======
->>>>>>> staging
   }
 
   async open(): Promise<void> {
