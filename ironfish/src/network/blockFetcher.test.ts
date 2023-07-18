@@ -372,7 +372,7 @@ describe('BlockFetcher', () => {
   })
 
   it('ignores new messages when the block was previously marked as an orphan', async () => {
-    const { peerNetwork, chain, node } = nodeTest
+    const { peerNetwork, chain } = nodeTest
 
     // Create an orphan block by adding 5 blocks, removing 5 blocks then adding 5 new blocks
     // We want to have an orphan that is also not ahead of the current chain
@@ -386,7 +386,7 @@ describe('BlockFetcher', () => {
       await chain.addBlock(block)
     }
 
-    const syncSpy = jest.spyOn(node.syncer, 'startSync')
+    const syncSpy = jest.spyOn(peerNetwork.syncer, 'startSync')
 
     const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 4)
 

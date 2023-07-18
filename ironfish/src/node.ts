@@ -27,9 +27,9 @@ import { IsomorphicWebSocketConstructor } from './network/types'
 import { getNetworkDefinition } from './networkDefinition'
 import { Package } from './package'
 import { Platform } from './platform'
+import { Transaction } from './primitives'
 import { RpcServer } from './rpc/server'
 import { Strategy } from './strategy'
-import { Syncer } from './syncer'
 import { Telemetry } from './telemetry/telemetry'
 import { Wallet, WalletDB } from './wallet'
 import { WorkerPool } from './workerPool'
@@ -49,7 +49,6 @@ export class IronfishNode {
   files: FileSystem
   rpc: RpcServer
   peerNetwork: PeerNetwork
-  syncer: Syncer
   pkg: Package
   telemetry: Telemetry
   assetsVerifier: AssetsVerifier
@@ -145,13 +144,22 @@ export class IronfishNode {
       bootstrapNodes: config.getArray('bootstrapNodes'),
       stunServers: config.getArray('p2pStunServers'),
       webSocket: webSocket,
-      node: this,
       chain: chain,
       metrics: this.metrics,
       hostsStore: hostsStore,
       logger: logger,
       telemetry: this.telemetry,
       incomingWebSocketWhitelist: config.getArray('incomingWebSocketWhitelist'),
+      miningManager: this.miningManager,
+      blocksPerMessage: config.get('blocksPerMessage'),
+      memPool,
+      workerPool,
+      // TODO(hugh, rohan): Clean up after the node clients are created for the wallet
+      // `walletAddPendingTransaction` will be removed once we can pull from the mempool
+      walletAddPendingTransaction: (transaction: Transaction) =>
+        wallet.addPendingTransaction(transaction),
+      // `walletOnBroadcastTransaction` will be removed once the node client encapsulates the peer network
+      walletOnBroadcastTransaction: wallet.onBroadcastTransaction,
     })
 
     this.miningManager.onNewBlock.on((block) => {
@@ -160,15 +168,6 @@ export class IronfishNode {
 
     this.peerNetwork.onTransactionAccepted.on((transaction, received) => {
       this.telemetry.submitNewTransactionSeen(transaction, received)
-    })
-
-    this.syncer = new Syncer({
-      chain,
-      metrics,
-      logger,
-      telemetry: this.telemetry,
-      peerNetwork: this.peerNetwork,
-      blocksPerMessage: config.get('blocksPerMessage'),
     })
 
     this.assetsVerifier = new AssetsVerifier({
@@ -377,7 +376,6 @@ export class IronfishNode {
   async shutdown(): Promise<void> {
     await Promise.allSettled([
       this.wallet.stop(),
-      this.syncer.stop(),
       this.peerNetwork.stop(),
       this.rpc.stop(),
       this.assetsVerifier.stop(),
@@ -393,16 +391,6 @@ export class IronfishNode {
     }
 
     this.started = false
-  }
-
-  onPeerNetworkReady(): void {
-    if (this.config.get('enableSyncing')) {
-      void this.syncer.start()
-    }
-  }
-
-  onPeerNetworkNotReady(): void {
-    void this.syncer.stop()
   }
 
   async onConfigChange<Key extends keyof ConfigOptions>(
