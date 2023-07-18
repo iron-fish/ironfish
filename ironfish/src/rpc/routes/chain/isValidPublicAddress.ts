@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { isValidPublicAddress } from '../../../wallet/validator'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 
 export type IsValidPublicAddressRequest = {
   address: string
@@ -27,7 +27,7 @@ export const IsValidPublicAddressResponseSchema: yup.ObjectSchema<IsValidPublicA
     })
     .defined()
 
-router.register<typeof IsValidPublicAddressRequestSchema, IsValidPublicAddressResponse>(
+routes.register<typeof IsValidPublicAddressRequestSchema, IsValidPublicAddressResponse>(
   `${ApiNamespace.chain}/isValidPublicAddress`,
   IsValidPublicAddressRequestSchema,
   (request): void => {

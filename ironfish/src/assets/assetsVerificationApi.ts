@@ -1,10 +1,12 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import axios, { AxiosError } from 'axios'
+import axios, { AxiosAdapter, AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios'
+import { readFile } from 'node:fs/promises'
+import url, { URL } from 'url'
 
 type GetVerifiedAssetsResponse = {
-  data: Array<{ identifier: string }>
+  assets: Array<{ identifier: string }>
 }
 
 type GetVerifiedAssetsRequestHeaders = {
@@ -56,12 +58,14 @@ export type ExportedVerifiedAssets = {
 
 export class AssetsVerificationApi {
   private readonly timeout: number
+  private readonly adapter?: AxiosAdapter
 
   readonly url: string
 
   constructor(options?: { url?: string; timeout?: number }) {
-    this.url = options?.url || 'https://api.ironfish.network/assets?verified=true'
+    this.url = options?.url || 'https://api.ironfish.network/assets/verified'
     this.timeout = options?.timeout ?? 30 * 1000 // 30 seconds
+    this.adapter = isFileUrl(this.url) ? axiosFileAdapter : axios.defaults.adapter
   }
 
   async getVerifiedAssets(): Promise<VerifiedAssets> {
@@ -83,6 +87,7 @@ export class AssetsVerificationApi {
       .get<GetVerifiedAssetsResponse>(this.url, {
         headers: headers,
         timeout: this.timeout,
+        adapter: this.adapter,
       })
       .then(
         (response: {
@@ -90,7 +95,7 @@ export class AssetsVerificationApi {
           headers: GetVerifiedAssetsResponseHeaders
         }) => {
           verifiedAssets['assetIds'].clear()
-          response.data.data.forEach(({ identifier }) => {
+          response.data.assets.forEach(({ identifier }) => {
             return verifiedAssets['assetIds'].add(identifier)
           })
           verifiedAssets['lastModified'] = response.headers['last-modified']
@@ -104,4 +109,29 @@ export class AssetsVerificationApi {
         throw error
       })
   }
+}
+
+const isFileUrl = (url: string): boolean => {
+  const parsedUrl = new URL(url)
+  return parsedUrl.protocol === 'file:'
+}
+
+const axiosFileAdapter = (
+  config: AxiosRequestConfig,
+): Promise<AxiosResponse<GetVerifiedAssetsResponse>> => {
+  if (!config.url) {
+    return Promise.reject(new Error('url is undefined'))
+  }
+
+  const path = url.fileURLToPath(config.url)
+
+  return readFile(path, { encoding: 'utf8' })
+    .then(JSON.parse)
+    .then((data: GetVerifiedAssetsResponse) => ({
+      data,
+      status: 0,
+      statusText: '',
+      headers: {},
+      config: config,
+    }))
 }

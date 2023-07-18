@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
+import { Assert } from '../../../assert'
 import { AssetVerification } from '../../../assets'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 import { getAccount } from './utils'
 
 export type GetBalanceRequest =
@@ -57,13 +58,15 @@ export const GetBalanceResponseSchema: yup.ObjectSchema<GetBalanceResponse> = yu
   })
   .defined()
 
-router.register<typeof GetBalanceRequestSchema, GetBalanceResponse>(
+routes.register<typeof GetBalanceRequestSchema, GetBalanceResponse>(
   `${ApiNamespace.wallet}/getBalance`,
   GetBalanceRequestSchema,
-  async (request, node): Promise<void> => {
+  async (request, { node }): Promise<void> => {
+    Assert.isNotUndefined(node)
+
     const confirmations = request.data?.confirmations ?? node.config.get('confirmations')
 
-    const account = getAccount(node, request.data?.account)
+    const account = getAccount(node.wallet, request.data?.account)
 
     let assetId = Asset.nativeId()
     if (request.data?.assetId) {

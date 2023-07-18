@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { ErrorUtils, Format, LanguageUtils } from '@ironfish/sdk'
+import { AccountFormat, ErrorUtils, LanguageUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import fs from 'fs'
 import jsonColorizer from 'json-colorizer'
@@ -62,7 +62,11 @@ export class ExportCommand extends IronfishCommand {
       flags.mnemonic = true
     }
 
-    const format = flags.mnemonic ? Format.Mnemonic : flags.json ? Format.JSON : Format.Bech32
+    const format = flags.mnemonic
+      ? AccountFormat.Mnemonic
+      : flags.json
+      ? AccountFormat.JSON
+      : AccountFormat.Bech32
 
     const client = await this.sdk.connectRpc(local)
     const response = await client.wallet.exportAccount({

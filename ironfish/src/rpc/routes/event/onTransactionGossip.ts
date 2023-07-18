@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { Assert } from '../../../assert'
 import { Transaction } from '../../../primitives'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 export type OnTransactionGossipRequest = {} | undefined
@@ -22,10 +23,12 @@ export const OnTransactionGossipResponseSchema: yup.ObjectSchema<OnTransactionGo
     })
     .defined()
 
-router.register<typeof OnTransactionGossipRequestSchema, OnTransactionGossipResponse>(
+routes.register<typeof OnTransactionGossipRequestSchema, OnTransactionGossipResponse>(
   `${ApiNamespace.event}/onTransactionGossip`,
   OnTransactionGossipRequestSchema,
-  (request, node): void => {
+  (request, { node }): void => {
+    Assert.isNotUndefined(node)
+
     const onTransactionGossip = (transaction: Transaction) => {
       request.stream({
         serializedTransaction: transaction.serialize().toString('hex'),

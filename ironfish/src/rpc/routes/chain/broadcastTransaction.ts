@@ -3,9 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import * as yup from 'yup'
+import { Assert } from '../../../assert'
 import { Transaction } from '../../../primitives'
 import { ValidationError } from '../../adapters'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 
 export type BroadcastTransactionRequest = {
   transaction: string
@@ -29,10 +30,12 @@ export const BroadcastTransactionResponseSchema: yup.ObjectSchema<BroadcastTrans
     })
     .defined()
 
-router.register<typeof BroadcastTransactionRequestSchema, BroadcastTransactionResponse>(
+routes.register<typeof BroadcastTransactionRequestSchema, BroadcastTransactionResponse>(
   `${ApiNamespace.chain}/broadcastTransaction`,
   BroadcastTransactionRequestSchema,
-  (request, node): void => {
+  (request, { node }): void => {
+    Assert.isNotUndefined(node)
+
     const data = Buffer.from(request.data.transaction, 'hex')
     const transaction = new Transaction(data)
 
@@ -41,6 +44,7 @@ router.register<typeof BroadcastTransactionRequestSchema, BroadcastTransactionRe
       throw new ValidationError(`Invalid transaction, reason: ${String(verify.reason)}`)
     }
 
+    node.memPool.acceptTransaction(transaction)
     node.peerNetwork.broadcastTransaction(transaction)
 
     request.end({
