@@ -131,6 +131,7 @@ export class Wallet {
 
       await this.connectBlock(header)
       await this.expireTransactions(header.sequence)
+      await this.rebroadcastTransactions(header.sequence)
     })
 
     this.chainProcessor.onRemove.on(async (header) => {
@@ -294,7 +295,6 @@ export class Wallet {
     this.eventLoopResolve = resolve
 
     await this.updateHead()
-    await this.rebroadcastTransactions()
     await this.cleanupDeletedAccounts()
 
     if (this.isStarted) {
@@ -1126,31 +1126,13 @@ export class Wallet {
     this.onBroadcastTransaction.emit(transaction)
   }
 
-  async rebroadcastTransactions(): Promise<void> {
-    if (!this.isStarted) {
-      return
-    }
-
-    if (!this.chain.synced) {
-      return
-    }
-
-    if (this.chainProcessor.hash === null) {
-      return
-    }
-
-    const head = await this.chain.getHeader(this.chainProcessor.hash)
-
-    if (head === null) {
-      return
-    }
-
+  async rebroadcastTransactions(sequence: number): Promise<void> {
     for (const account of this.accounts.values()) {
       if (this.eventLoopAbortController.signal.aborted) {
         return
       }
 
-      for await (const transactionInfo of account.getPendingTransactions(head.sequence)) {
+      for await (const transactionInfo of account.getPendingTransactions(sequence)) {
         if (this.eventLoopAbortController.signal.aborted) {
           return
         }
@@ -1167,7 +1149,7 @@ export class Wallet {
         // watch to see what transactions node continuously send out, then you can
         // know those transactions are theres. This should be randomized and made
         // less, predictable later to help prevent that attack.
-        if (head.sequence - submittedSequence < this.rebroadcastAfter) {
+        if (sequence - submittedSequence < this.rebroadcastAfter) {
           continue
         }
 
@@ -1183,7 +1165,7 @@ export class Wallet {
             transactionHash,
             {
               ...transactionInfo,
-              submittedSequence: head.sequence,
+              submittedSequence: sequence,
             },
             tx,
           )
@@ -1193,7 +1175,7 @@ export class Wallet {
             this.logger.debug(
               `Ignoring invalid transaction during rebroadcast ${transactionHash.toString(
                 'hex',
-              )}, reason ${String(verify.reason)} seq: ${head.sequence}`,
+              )}, reason ${String(verify.reason)} seq: ${sequence}`,
             )
           }
         })
