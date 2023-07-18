@@ -7,23 +7,25 @@ import { Assert } from '../assert'
 import { Blockchain, HeadChangedError } from '../blockchain'
 import { isExpiredSequence } from '../consensus'
 import { Event } from '../event'
+import { Logger } from '../logger'
 import { MemPool } from '../memPool'
 import { MetricsMonitor } from '../metrics'
+import { PeerNetwork } from '../network'
 import {
   getBlockSize,
   getBlockWithMinersFeeSize,
   getTransactionSize,
   MINERS_FEE_TRANSACTION_SIZE_BYTES,
 } from '../network/utils/serializers'
-import { IronfishNode } from '../node'
 import { Block } from '../primitives/block'
 import { isBlockHeavier } from '../primitives/blockheader'
 import { Transaction } from '../primitives/transaction'
 import { BlockTemplateSerde, SerializedBlockTemplate } from '../serde'
+import { Strategy } from '../strategy'
 import { ErrorUtils } from '../utils'
 import { BenchUtils } from '../utils/bench'
 import { GraffitiUtils } from '../utils/graffiti'
-import { SpendingAccount } from '../wallet'
+import { SpendingAccount, Wallet } from '../wallet'
 import { MinersFeeCache } from './minersFeeCache'
 
 export enum MINED_RESULT {
@@ -35,11 +37,16 @@ export enum MINED_RESULT {
 }
 
 export class MiningManager {
+  private readonly blockGraffiti: string
   private readonly chain: Blockchain
+  private readonly logger: Logger
   private readonly memPool: MemPool
-  private readonly node: IronfishNode
   private readonly metrics: MetricsMonitor
+  private readonly miningForce: boolean
   private readonly minersFeeCache: MinersFeeCache
+  private readonly peerNetwork: PeerNetwork
+  private readonly strategy: Strategy
+  private readonly wallet: Wallet
 
   blocksMined = 0
 
@@ -52,16 +59,26 @@ export class MiningManager {
   }
 
   constructor(options: {
+    blockGraffiti: string
     chain: Blockchain
-    node: IronfishNode
+    logger: Logger
+    strategy: Strategy
     memPool: MemPool
     metrics: MetricsMonitor
+    miningForce: boolean
+    peerNetwork: PeerNetwork
+    wallet: Wallet
   }) {
-    this.node = options.node
+    this.blockGraffiti = options.blockGraffiti
     this.memPool = options.memPool
     this.chain = options.chain
     this.metrics = options.metrics
-    this.minersFeeCache = new MinersFeeCache({ node: this.node })
+    this.strategy = options.strategy
+    this.minersFeeCache = new MinersFeeCache({ strategy: this.strategy })
+    this.miningForce = options.miningForce
+    this.peerNetwork = options.peerNetwork
+    this.logger = options.logger
+    this.wallet = options.wallet
 
     this.chain.onConnectBlock.on(
       (block) =>
@@ -73,13 +90,13 @@ export class MiningManager {
 
   handleOnConnectBlockError(error: unknown, block: Block): void {
     if (error instanceof HeadChangedError) {
-      this.node.logger.debug(
+      this.logger.debug(
         `Chain head changed while creating block template for sequence ${
           block.header.sequence + 1
         }`,
       )
     } else {
-      this.node.logger.error(`Error creating block template: ${ErrorUtils.renderError(error)}`)
+      this.logger.error(`Error creating block template: ${ErrorUtils.renderError(error)}`)
     }
   }
 
@@ -145,12 +162,12 @@ export class MiningManager {
     }
 
     // If we mine when we're not synced, then we will mine a fork no one cares about
-    if (!this.node.chain.synced && !this.node.config.get('miningForce')) {
+    if (!this.chain.synced && !this.miningForce) {
       return
     }
 
     // If we mine when we're not connected to anyone, then no one will get our blocks
-    if (!this.node.peerNetwork.isReady && !this.node.config.get('miningForce')) {
+    if (!this.peerNetwork.isReady && !this.miningForce) {
       return
     }
 
@@ -159,14 +176,14 @@ export class MiningManager {
       return
     }
 
-    const account = this.node.wallet.getDefaultAccount()
+    const account = this.wallet.getDefaultAccount()
     if (!account) {
-      this.node.logger.info('Cannot mine without an account')
+      this.logger.info('Cannot mine without an account')
       return
     }
 
     if (!account.isSpendingAccount()) {
-      this.node.logger.info('Account must have spending key in order to mine')
+      this.logger.info('Account must have spending key in order to mine')
       return
     }
 
@@ -290,7 +307,7 @@ export class MiningManager {
       currBlockSize = newBlockSize
 
       // Calculate the final fee for the miner of this block
-      minersFee = await this.node.strategy.createMinersFee(
+      minersFee = await this.strategy.createMinersFee(
         totalFees,
         newBlockSequence,
         account.spendingKey,
@@ -299,7 +316,7 @@ export class MiningManager {
       minersFee = await this.minersFeeCache.createEmptyMinersFee(newBlockSequence, account)
     }
 
-    this.node.logger.debug(
+    this.logger.debug(
       `Constructed miner's reward transaction for account ${account.displayName}, block sequence ${newBlockSequence}`,
     )
 
@@ -314,7 +331,7 @@ export class MiningManager {
     const newBlock = await this.chain.newBlock(
       transactions,
       minersFee,
-      GraffitiUtils.fromString(this.node.config.get('blockGraffiti')),
+      GraffitiUtils.fromString(this.blockGraffiti),
       currentBlock.header,
       false,
     )
@@ -325,7 +342,7 @@ export class MiningManager {
       'Incorrect block size calculated during block creation',
     )
 
-    this.node.logger.debug(
+    this.logger.debug(
       `Current block template ${newBlock.header.sequence}, has ${newBlock.transactions.length} transactions`,
     )
 
@@ -336,14 +353,14 @@ export class MiningManager {
     const block = BlockTemplateSerde.deserialize(blockTemplate)
 
     const blockDisplay = `${block.header.hash.toString('hex')} (${block.header.sequence})`
-    if (!block.header.previousBlockHash.equals(this.node.chain.head.hash)) {
-      const previous = await this.node.chain.getPrevious(block.header)
+    if (!block.header.previousBlockHash.equals(this.chain.head.hash)) {
+      const previous = await this.chain.getPrevious(block.header)
 
       const work = block.header.target.toDifficulty()
       block.header.work = (previous ? previous.work : BigInt(0)) + work
 
-      if (!isBlockHeavier(block.header, this.node.chain.head)) {
-        this.node.logger.info(
+      if (!isBlockHeavier(block.header, this.chain.head)) {
+        this.logger.info(
           `Discarding mined block ${blockDisplay} that no longer attaches to heaviest head`,
         )
 
@@ -351,23 +368,23 @@ export class MiningManager {
       }
     }
 
-    const { isAdded, reason, isFork } = await this.node.chain.addBlock(block)
+    const { isAdded, reason, isFork } = await this.chain.addBlock(block)
 
     if (!isAdded) {
-      this.node.logger.info(
+      this.logger.info(
         `Failed to add mined block ${blockDisplay} to chain with reason ${String(reason)}`,
       )
       return MINED_RESULT.ADD_FAILED
     }
 
     if (isFork) {
-      this.node.logger.info(
+      this.logger.info(
         `Failed to add mined block ${blockDisplay} to main chain. Block was added as a fork`,
       )
       return MINED_RESULT.FORK
     }
 
-    this.node.logger.info(
+    this.logger.info(
       `Successfully mined block ${blockDisplay} with ${block.transactions.length} transactions`,
     )
 

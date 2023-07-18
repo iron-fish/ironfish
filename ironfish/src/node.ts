@@ -100,7 +100,6 @@ export class IronfishNode {
     this.chain = chain
     this.strategy = strategy
     this.metrics = metrics
-    this.miningManager = new MiningManager({ chain, memPool, node: this, metrics })
     this.memPool = memPool
     this.workerPool = workerPool
     this.rpc = new RpcServer({ node: this, wallet }, internal)
@@ -154,6 +153,17 @@ export class IronfishNode {
       incomingWebSocketWhitelist: config.getArray('incomingWebSocketWhitelist'),
     })
 
+    this.miningManager = new MiningManager({
+      chain,
+      memPool,
+      metrics,
+      blockGraffiti: config.get('blockGraffiti'),
+      logger: this.logger,
+      miningForce: config.get('miningForce'),
+      peerNetwork: this.peerNetwork,
+      strategy: this.strategy,
+      wallet: this.wallet,
+    })
     this.miningManager.onNewBlock.on((block) => {
       this.telemetry.submitBlockMined(block)
     })
