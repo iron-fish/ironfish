@@ -15,6 +15,7 @@ import {
 } from '../../storage'
 import { createDB } from '../../storage/utils'
 import {
+  AssetSchema,
   HashToNextSchema,
   HeadersSchema,
   MetaSchema,
@@ -22,6 +23,7 @@ import {
   SequenceToHashSchema,
   TransactionsSchema,
 } from '../schema'
+import { AssetValue, AssetValueEncoding } from './assetValue'
 import { HeaderEncoding, HeaderValue } from './headers'
 import { SequenceToHashesValueEncoding } from './sequenceToHashes'
 import { TransactionsValue, TransactionsValueEncoding } from './transactions'
@@ -45,6 +47,8 @@ export class BlockchainDB {
   sequenceToHash: IDatabaseStore<SequenceToHashSchema>
   // BlockHash -> BlockHash
   hashToNextHash: IDatabaseStore<HashToNextSchema>
+  // Asset Identifier -> Asset
+  assets: IDatabaseStore<AssetSchema>
 
   constructor(options: { location: string; files: FileSystem }) {
     this.location = options.location
@@ -90,6 +94,12 @@ export class BlockchainDB {
       name: 'bH',
       keyEncoding: BUFFER_ENCODING,
       valueEncoding: BUFFER_ENCODING,
+    })
+
+    this.assets = this.db.addStore({
+      name: 'bA',
+      keyEncoding: BUFFER_ENCODING,
+      valueEncoding: new AssetValueEncoding(),
     })
   }
 
@@ -258,5 +268,21 @@ export class BlockchainDB {
 
   async clearHashToNextHash(tx?: IDatabaseTransaction): Promise<void> {
     return this.hashToNextHash.clear(tx)
+  }
+
+  async getAsset(assetId: Buffer, tx?: IDatabaseTransaction): Promise<AssetValue | undefined> {
+    return this.assets.get(assetId, tx)
+  }
+
+  async putAsset(
+    assetId: Buffer,
+    assetValue: AssetValue,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    return this.assets.put(assetId, assetValue, tx)
+  }
+
+  async deleteAsset(assetId: Buffer, tx?: IDatabaseTransaction): Promise<void> {
+    return this.assets.del(assetId, tx)
   }
 }

@@ -1068,7 +1068,7 @@ describe('Blockchain', () => {
         ])
         await expect(node.chain).toAddBlock(block)
 
-        const mintedAsset = await node.chain.assets.get(asset.id())
+        const mintedAsset = await node.chain.getAssetById(asset.id())
 
         expect(mintedAsset).toEqual({
           createdTransactionHash: mint.hash(),
@@ -1110,7 +1110,7 @@ describe('Blockchain', () => {
         const blockB = await burnAsset(node, account, 3, asset, burnValue, noteToBurn)
         await expect(node.chain).toAddBlock(blockB)
 
-        const mintedAsset = await node.chain.assets.get(asset.id())
+        const mintedAsset = await node.chain.getAssetById(asset.id())
         expect(mintedAsset).toMatchObject({
           createdTransactionHash: mintTransaction.hash(),
           supply: mintValue - burnValue,
@@ -1147,7 +1147,7 @@ describe('Blockchain', () => {
         })
         await expect(node.chain).toAddBlock(blockB)
 
-        const mintedAsset = await node.chain.assets.get(asset.id())
+        const mintedAsset = await node.chain.getAssetById(asset.id())
         expect(mintedAsset).toEqual({
           createdTransactionHash: mintTransactionA.hash(),
           id: asset.id(),
@@ -1180,8 +1180,8 @@ describe('Blockchain', () => {
 
         await node.chain.removeBlock(block.header.hash)
 
-        const mintedAsset = await node.chain.assets.get(asset.id())
-        expect(mintedAsset).toBeUndefined()
+        const mintedAsset = await node.chain.getAssetById(asset.id())
+        expect(mintedAsset).toBeNull()
       })
     })
 
@@ -1215,7 +1215,7 @@ describe('Blockchain', () => {
 
         await node.chain.removeBlock(blockB.header.hash)
 
-        const mintedAsset = await node.chain.assets.get(asset.id())
+        const mintedAsset = await node.chain.getAssetById(asset.id())
         expect(mintedAsset).toMatchObject({
           supply: mintValueA,
         })
@@ -1247,7 +1247,7 @@ describe('Blockchain', () => {
 
         await node.chain.removeBlock(blockB.header.hash)
 
-        const mintedAsset = await node.chain.assets.get(asset.id())
+        const mintedAsset = await node.chain.getAssetById(asset.id())
         expect(mintedAsset).toMatchObject({
           supply: mintValue,
         })
@@ -1279,7 +1279,7 @@ describe('Blockchain', () => {
         // hack, the posted transaction would raise an exception, which is a
         // separate flow to test for. We should never hit this case; this is a
         // sanity check.
-        await node.chain.assets.del(assetId)
+        await node.chain.blockchainDb.deleteAsset(assetId)
 
         const burnValue = BigInt(3)
         const noteToBurn = blockA.transactions[1].getNote(0)
@@ -1309,14 +1309,14 @@ describe('Blockchain', () => {
         })
         await expect(node.chain).toAddBlock(blockA)
 
-        const record = await node.chain.assets.get(assetId)
-        Assert.isNotUndefined(record)
+        const record = await node.chain.getAssetById(assetId)
+        Assert.isNotNull(record)
         // Perform a hack where we adjust the supply in the DB to be lower than
         // what was previously minted. This is done to check what happens if a
         // burn is processed but the DB does not have enough supply for a given
         // burn. Without this, the posted transaction would raise an invalid
         // balance exception, which is a separate flow to test for.
-        await node.chain.assets.put(assetId, {
+        await node.chain.blockchainDb.putAsset(assetId, {
           ...record,
           supply: BigInt(1),
         })
@@ -1348,8 +1348,8 @@ describe('Blockchain', () => {
         })
         await expect(node.chain).toAddBlock(blockA)
         // Check first mint value
-        let record = await node.chain.assets.get(assetId)
-        Assert.isNotUndefined(record)
+        let record = await node.chain.getAssetById(assetId)
+        Assert.isNotNull(record)
         expect(record).toMatchObject({
           createdTransactionHash: blockA.transactions[1].hash(),
           supply: mintValueA,
@@ -1366,8 +1366,8 @@ describe('Blockchain', () => {
         })
         await expect(node.chain).toAddBlock(blockB)
         // Check aggregate mint value
-        record = await node.chain.assets.get(assetId)
-        Assert.isNotUndefined(record)
+        record = await node.chain.getAssetById(assetId)
+        Assert.isNotNull(record)
         expect(record).toMatchObject({
           createdTransactionHash: blockA.transactions[1].hash(),
           supply: mintValueA + mintValueB,
@@ -1379,8 +1379,8 @@ describe('Blockchain', () => {
         const blockC = await burnAsset(node, account, 4, asset, burnValueC, noteToBurnC)
         await expect(node.chain).toAddBlock(blockC)
         // Check value after burn
-        record = await node.chain.assets.get(assetId)
-        Assert.isNotUndefined(record)
+        record = await node.chain.getAssetById(assetId)
+        Assert.isNotNull(record)
         expect(record).toMatchObject({
           createdTransactionHash: blockA.transactions[1].hash(),
           supply: mintValueA + mintValueB - burnValueC,
@@ -1389,8 +1389,8 @@ describe('Blockchain', () => {
         // 4. Roll back the burn from Block C (Step 3 above)
         await node.chain.removeBlock(blockC.header.hash)
         // Check value after burn roll back
-        record = await node.chain.assets.get(assetId)
-        Assert.isNotUndefined(record)
+        record = await node.chain.getAssetById(assetId)
+        Assert.isNotNull(record)
         expect(record).toMatchObject({
           createdTransactionHash: blockA.transactions[1].hash(),
           supply: mintValueA + mintValueB,
@@ -1402,8 +1402,8 @@ describe('Blockchain', () => {
         const blockD = await burnAsset(node, account, 4, asset, burnValueD, noteToBurnD)
         await expect(node.chain).toAddBlock(blockD)
         // Check aggregate mint value
-        record = await node.chain.assets.get(assetId)
-        Assert.isNotUndefined(record)
+        record = await node.chain.getAssetById(assetId)
+        Assert.isNotNull(record)
         expect(record).toMatchObject({
           createdTransactionHash: blockA.transactions[1].hash(),
           supply: mintValueA + mintValueB - burnValueD,
@@ -1420,8 +1420,8 @@ describe('Blockchain', () => {
         })
         await expect(node.chain).toAddBlock(blockE)
         // Check aggregate mint value
-        record = await node.chain.assets.get(assetId)
-        Assert.isNotUndefined(record)
+        record = await node.chain.getAssetById(assetId)
+        Assert.isNotNull(record)
         expect(record).toMatchObject({
           createdTransactionHash: blockA.transactions[1].hash(),
           supply: mintValueA + mintValueB - burnValueD + mintValueE,
@@ -1430,8 +1430,8 @@ describe('Blockchain', () => {
         // 7. Roll back the mint from Block E (Step 6 above)
         await node.chain.removeBlock(blockE.header.hash)
         // Check value after burn roll back
-        record = await node.chain.assets.get(assetId)
-        Assert.isNotUndefined(record)
+        record = await node.chain.getAssetById(assetId)
+        Assert.isNotNull(record)
         expect(record).toMatchObject({
           createdTransactionHash: blockA.transactions[1].hash(),
           supply: mintValueA + mintValueB - burnValueD,
@@ -1462,8 +1462,8 @@ describe('Blockchain', () => {
         await nodeA.chain.addBlock(blockA1)
 
         // Verify Node A has the asset
-        let record = await nodeA.chain.assets.get(assetId)
-        Assert.isNotUndefined(record)
+        let record = await nodeA.chain.getAssetById(assetId)
+        Assert.isNotNull(record)
         expect(record).toMatchObject({
           createdTransactionHash: blockA1.transactions[1].hash(),
           supply: mintValue,
@@ -1475,8 +1475,8 @@ describe('Blockchain', () => {
         await nodeB.chain.addBlock(blockB2)
 
         // Verify Node B does not have the asset
-        record = await nodeB.chain.assets.get(assetId)
-        expect(record).toBeUndefined()
+        record = await nodeB.chain.getAssetById(assetId)
+        expect(record).toBeNull()
 
         // Reorganize the chain on Node A
         await nodeA.chain.addBlock(blockB1)
@@ -1484,8 +1484,8 @@ describe('Blockchain', () => {
 
         // Verify Node A no longer has the asset from Block A1
         expect(nodeA.chain.head.hash.equals(blockB2.header.hash)).toBe(true)
-        record = await nodeA.chain.assets.get(assetId)
-        expect(record).toBeUndefined()
+        record = await nodeA.chain.getAssetById(assetId)
+        expect(record).toBeNull()
       })
     })
 
@@ -1509,8 +1509,8 @@ describe('Blockchain', () => {
         await node.wallet.updateHead()
 
         // Verify Node A has the asset
-        const record = await node.chain.assets.get(assetId)
-        Assert.isNotUndefined(record)
+        const record = await node.chain.getAssetById(assetId)
+        Assert.isNotNull(record)
         expect(record).toMatchObject({
           createdTransactionHash: block.transactions[1].hash(),
           supply: mintValue,
