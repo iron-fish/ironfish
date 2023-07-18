@@ -96,7 +96,7 @@ export class NodeTest {
     const chain = node.chain
     const wallet = node.wallet
     const peerNetwork = node.peerNetwork
-    const syncer = node.syncer
+    const syncer = peerNetwork.syncer
     const verifier = node.chain.verifier
     const workerPool = node.workerPool
 
