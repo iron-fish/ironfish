@@ -103,6 +103,7 @@ export class Wallet {
     logger = createRootLogger(),
     rebroadcastAfter,
     workerPool,
+    nodeClient,
   }: {
     chain: Blockchain
     config: Config
@@ -111,6 +112,7 @@ export class Wallet {
     logger?: Logger
     rebroadcastAfter?: number
     workerPool: WorkerPool
+    nodeClient: WalletNodeClient
   }) {
     this.chain = chain
     this.config = config
@@ -121,6 +123,7 @@ export class Wallet {
     this.rebroadcastAfter = rebroadcastAfter ?? 10
     this.createTransactionMutex = new Mutex()
     this.eventLoopAbortController = new AbortController()
+    this.nodeClient = nodeClient
 
     this.chainProcessor = new ChainProcessor({
       logger: this.logger,
@@ -990,7 +993,7 @@ export class Wallet {
     if (broadcast) {
       await this.addPendingTransaction(transaction)
       this.nodeClient.mempool.acceptTransaction(transaction)
-      this.nodeClient.chain.broadcastTransaction(transaction)
+      this.nodeClient.peer.broadcastTransaction(transaction)
       this.onTransactionCreated.emit(transaction)
     }
 
@@ -1194,7 +1197,7 @@ export class Wallet {
         if (!isValid) {
           continue
         }
-        this.nodeClient.chain.broadcastTransaction(transaction)
+        this.nodeClient.peer.broadcastTransaction(transaction)
       }
     }
   }

@@ -32,6 +32,7 @@ import { Strategy } from './strategy'
 import { Syncer } from './syncer'
 import { Telemetry } from './telemetry/telemetry'
 import { Wallet, WalletDB } from './wallet'
+import { LocalWalletNodeClient } from './wallet/localWalletNodeClient'
 import { WorkerPool } from './workerPool'
 
 export class IronfishNode {
@@ -285,6 +286,12 @@ export class IronfishNode {
       location: config.walletDatabasePath,
       workerPool,
       files,
+    })
+
+    const localWalletNodeClient = new LocalWalletNodeClient({
+      chain,
+      memPool,
+      peerNetwork,
     })
 
     const wallet = new Wallet({
