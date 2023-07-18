@@ -14,6 +14,7 @@ import { VerificationResultReason } from '../consensus/verifier'
 import { Event } from '../event'
 import { Block, Transaction } from '../primitives'
 import { CompactBlock } from '../primitives/block'
+import { BlockTemplateSerde } from '../serde'
 import {
   useAccountFixture,
   useBlockWithTx,
@@ -21,12 +22,7 @@ import {
   useMinersTxFixture,
   useTxFixture,
 } from '../testUtilities'
-import {
-  mockChain,
-  mockMempool,
-  mockTelemetry,
-  mockWorkerPool,
-} from '../testUtilities/mocks'
+import { mockChain, mockMempool, mockTelemetry, mockWorkerPool } from '../testUtilities/mocks'
 import { createNodeTest } from '../testUtilities/nodeTest'
 import { parseNetworkMessage } from './messageRegistry'
 import { CannotSatisfyRequest } from './messages/cannotSatisfyRequest'
@@ -779,6 +775,8 @@ describe('PeerNetwork', () => {
         const { peerNetwork, node, chain } = nodeTest
 
         const block = await useMinerBlockFixture(chain)
+        const previousBlock = await chain.getBlock(block.header.previousBlockHash)
+        Assert.isNotNull(previousBlock)
 
         // Create 10 peers on the current version
         const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 10)
@@ -786,7 +784,9 @@ describe('PeerNetwork', () => {
           peer.version = VERSION_PROTOCOL
         }
 
-        await node.miningManager.onNewBlock.emitAsync(block)
+        await node.miningManager.submitBlockTemplate(
+          BlockTemplateSerde.serialize(block, previousBlock),
+        )
 
         const sentHash = peers.filter(({ sendSpy }) => {
           return (
