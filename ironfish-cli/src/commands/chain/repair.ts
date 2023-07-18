@@ -90,7 +90,7 @@ export default class RepairChain extends IronfishCommand {
     CliUx.ux.action.stop()
 
     CliUx.ux.action.start('Clearing Sequence to hash table')
-    await node.chain.sequenceToHash.clear()
+    await node.chain.clearSequenceToHash()
     CliUx.ux.action.stop()
 
     const total = Number(node.chain.head.sequence)
@@ -105,7 +105,7 @@ export default class RepairChain extends IronfishCommand {
     })
 
     while (head && head.sequence > BigInt(0)) {
-      await node.chain.sequenceToHash.put(head.sequence, head.hash)
+      await node.chain.putSequenceToHash(head.sequence, head.hash)
       await node.chain.hashToNextHash.put(head.previousBlockHash, head.hash)
 
       head = await node.chain.getHeader(head.previousBlockHash)
