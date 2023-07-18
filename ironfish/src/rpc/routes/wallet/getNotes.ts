@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { ApiNamespace, router } from '../router'
+import { Assert } from '../../../assert'
+import { ApiNamespace, routes } from '../router'
 import { RpcWalletNote, RpcWalletNoteSchema } from './types'
 import { getAccount, serializeRpcWalletNote } from './utils'
 
@@ -68,11 +69,13 @@ export const GetNotesResponseSchema: yup.ObjectSchema<GetNotesResponse> = yup
   })
   .defined()
 
-router.register<typeof GetNotesRequestSchema, GetNotesResponse>(
+routes.register<typeof GetNotesRequestSchema, GetNotesResponse>(
   `${ApiNamespace.wallet}/getNotes`,
   GetNotesRequestSchema,
-  async (request, node): Promise<void> => {
-    const account = getAccount(node, request.data.account)
+  async (request, { node }): Promise<void> => {
+    Assert.isNotUndefined(node)
+
+    const account = getAccount(node.wallet, request.data.account)
     const pageSize = request.data.pageSize ?? DEFAULT_PAGE_SIZE
     const pageCursor = request.data.pageCursor
 

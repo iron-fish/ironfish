@@ -2,9 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { Assert } from '../../../assert'
 import { getFeeRate } from '../../../memPool'
 import { Transaction } from '../../../primitives'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 
 export type MinMax = {
   min?: number
@@ -54,10 +55,12 @@ export const MempoolTransactionResponseSchema: yup.ObjectSchema<GetMempoolTransa
     })
     .defined()
 
-router.register<typeof MempoolTransactionsRequestSchema, GetMempoolTransactionResponse>(
+routes.register<typeof MempoolTransactionsRequestSchema, GetMempoolTransactionResponse>(
   `${ApiNamespace.mempool}/getTransactions`,
   MempoolTransactionsRequestSchema,
-  (request, node): void => {
+  (request, { node }): void => {
+    Assert.isNotUndefined(node)
+
     let position = 0
     let streamed = 0
 

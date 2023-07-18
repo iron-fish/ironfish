@@ -21,7 +21,7 @@ describe('MemoryClient', () => {
     const client = new RpcMemoryClient(createRootLogger(), await sdk.node())
 
     const allowedNamespaces = ALL_API_NAMESPACES
-    const loadedNamespaces = [...(client.router?.routes.keys() || [])]
+    const loadedNamespaces = [...(client.router?.routes.routes.keys() || [])]
     expect([...allowedNamespaces.values()].sort()).toMatchObject(loadedNamespaces.sort())
   })
 })

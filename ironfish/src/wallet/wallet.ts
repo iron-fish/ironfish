@@ -130,6 +130,7 @@ export class Wallet {
       this.logger.debug(`AccountHead ADD: ${Number(header.sequence) - 1} => ${header.sequence}`)
 
       await this.connectBlock(header)
+      await this.expireTransactions(header.sequence)
     })
 
     this.chainProcessor.onRemove.on(async (header) => {
@@ -293,7 +294,6 @@ export class Wallet {
     this.eventLoopResolve = resolve
 
     await this.updateHead()
-    await this.expireTransactions()
     await this.rebroadcastTransactions()
     await this.cleanupDeletedAccounts()
 
@@ -1206,31 +1206,13 @@ export class Wallet {
     }
   }
 
-  async expireTransactions(): Promise<void> {
-    if (!this.isStarted) {
-      return
-    }
-
-    if (!this.chain.synced) {
-      return
-    }
-
-    if (this.chainProcessor.hash === null) {
-      return
-    }
-
-    const head = await this.chain.getHeader(this.chainProcessor.hash)
-
-    if (head === null) {
-      return
-    }
-
+  async expireTransactions(sequence: number): Promise<void> {
     for (const account of this.accounts.values()) {
       if (this.eventLoopAbortController.signal.aborted) {
         return
       }
 
-      for await (const { transaction } of account.getExpiredTransactions(head.sequence)) {
+      for await (const { transaction } of account.getExpiredTransactions(sequence)) {
         if (this.eventLoopAbortController.signal.aborted) {
           return
         }

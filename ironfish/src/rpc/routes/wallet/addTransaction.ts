@@ -2,10 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { Assert } from '../../../assert'
 import { Transaction } from '../../../primitives'
 import { AsyncUtils } from '../../../utils'
 import { ValidationError } from '../../adapters'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 
 export type AddTransactionRequest = {
   transaction: string
@@ -33,10 +34,12 @@ export const AddTransactionResponseSchema: yup.ObjectSchema<AddTransactionRespon
   })
   .defined()
 
-router.register<typeof AddTransactionRequestSchema, AddTransactionResponse>(
+routes.register<typeof AddTransactionRequestSchema, AddTransactionResponse>(
   `${ApiNamespace.wallet}/addTransaction`,
   AddTransactionRequestSchema,
-  async (request, node): Promise<void> => {
+  async (request, { node }): Promise<void> => {
+    Assert.isNotUndefined(node)
+
     const data = Buffer.from(request.data.transaction, 'hex')
     const transaction = new Transaction(data)
 

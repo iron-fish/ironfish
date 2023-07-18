@@ -103,7 +103,7 @@ export class IronfishNode {
     this.miningManager = new MiningManager({ chain, memPool, node: this, metrics })
     this.memPool = memPool
     this.workerPool = workerPool
-    this.rpc = new RpcServer(this)
+    this.rpc = new RpcServer({ node: this, wallet }, internal)
     this.logger = logger
     this.pkg = pkg
 
@@ -152,10 +152,6 @@ export class IronfishNode {
       logger: logger,
       telemetry: this.telemetry,
       incomingWebSocketWhitelist: config.getArray('incomingWebSocketWhitelist'),
-    })
-
-    this.wallet.onTransactionCreated.on((transaction) => {
-      this.telemetry.submitNewTransactionCreated(transaction, new Date())
     })
 
     this.miningManager.onNewBlock.on((block) => {
