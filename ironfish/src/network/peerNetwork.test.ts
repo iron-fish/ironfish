@@ -11,6 +11,7 @@ import net from 'net'
 import ws from 'ws'
 import { Assert } from '../assert'
 import { VerificationResultReason } from '../consensus/verifier'
+import { Event } from '../event'
 import { Block, Transaction } from '../primitives'
 import { CompactBlock } from '../primitives/block'
 import {
@@ -20,6 +21,13 @@ import {
   useMinersTxFixture,
   useTxFixture,
 } from '../testUtilities'
+import {
+  mockChain,
+  mockMempool,
+  mockMiningManager,
+  mockTelemetry,
+  mockWorkerPool,
+} from '../testUtilities/mocks'
 import { createNodeTest } from '../testUtilities/nodeTest'
 import { parseNetworkMessage } from './messageRegistry'
 import { CannotSatisfyRequest } from './messages/cannotSatisfyRequest'
@@ -40,6 +48,7 @@ import {
   PooledTransactionsRequest,
   PooledTransactionsResponse,
 } from './messages/pooledTransactions'
+import { PeerNetwork } from './peerNetwork'
 import { Peer } from './peers/peer'
 import {
   expectGetBlockHeadersResponseToMatch,
@@ -48,6 +57,8 @@ import {
   expectGetCompactBlockResponseToMatch,
   getConnectedPeer,
   getConnectedPeersWithSpies,
+  mockHostsStore,
+  mockPrivateIdentity,
   peerMessage,
 } from './testUtilities'
 import { NetworkMessageType } from './types'
@@ -92,13 +103,16 @@ describe('PeerNetwork', () => {
   })
 
   describe('when peers connect', () => {
+    const nodeTest = createNodeTest(false, {
+      config: {
+        minPeers: 1,
+        networkId: 1,
+        bootstrapNodes: [],
+      },
+    })
+
     it('changes isReady', async () => {
-      const { peerNetwork } = createNodeTest(false, {
-        config: {
-          minPeers: 1,
-          networkId: 1,
-        },
-      })
+      const { peerNetwork } = nodeTest
 
       expect(peerNetwork.isReady).toBe(false)
 
@@ -127,16 +141,28 @@ describe('PeerNetwork', () => {
     it('rejects websocket connections', async () => {
       const wsActual = jest.requireActual<typeof WSWebSocket>('ws')
 
-      const { peerNetwork } = createNodeTest(false, {
-        config: {
-          maxPeers: 0,
-          minPeers: 1,
-          networkId: 1,
-          peerPort: 0,
+      const peerNetwork = new PeerNetwork({
+        identity: mockPrivateIdentity('local'),
+        agent: 'sdk/1/cli',
+        webSocket: wsActual,
+        chain: mockChain(),
+        listen: true,
+        port: 0,
+        minPeers: 1,
+        maxPeers: 0,
+        hostsStore: mockHostsStore(),
+        telemetry: mockTelemetry(),
+        networkId: 1,
+        miningManager: mockMiningManager(),
+        blocksPerMessage: 1,
+        memPool: mockMempool(),
+        workerPool: mockWorkerPool(),
+        walletAddPendingTransaction: (): Promise<void> => {
+          return Promise.resolve()
         },
+        walletOnBroadcastTransaction: new Event<[transaction: Transaction]>(),
+        incomingWebSocketWhitelist: undefined,
       })
-      // TODO(hugh, rohan)
-      // peerNetwork.webSocket = jest.requireActual<typeof WSWebSocket>('ws')
 
       const rejectSpy = jest
         .spyOn(peerNetwork.peerManager, 'shouldRejectDisconnectedPeers')
