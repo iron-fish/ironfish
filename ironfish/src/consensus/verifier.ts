@@ -553,7 +553,7 @@ export class Verifier {
     tx?: IDatabaseTransaction,
   ): Promise<VerificationResult> {
     return this.chain.db.withTransaction(tx, async (tx) => {
-      if (await this.chain.transactionHashToBlockHash.has(transaction.hash(), tx)) {
+      if (await this.chain.transactionHashHasBlock(transaction.hash(), tx)) {
         return { valid: false, reason: VerificationResultReason.DUPLICATE_TRANSACTION }
       }
 

@@ -5,6 +5,7 @@ import { Assert } from '../../assert'
 import { FileSystem } from '../../fileSystems'
 import { BlockHeader } from '../../primitives'
 import { BlockHash } from '../../primitives/blockheader'
+import { TransactionHash } from '../../primitives/transaction'
 import {
   BUFFER_ENCODING,
   IDatabase,
@@ -21,6 +22,7 @@ import {
   MetaSchema,
   SequenceToHashesSchema,
   SequenceToHashSchema,
+  TransactionHashToBlockHashSchema,
   TransactionsSchema,
 } from '../schema'
 import { AssetValue, AssetValueEncoding } from './assetValue'
@@ -49,6 +51,8 @@ export class BlockchainDB {
   hashToNextHash: IDatabaseStore<HashToNextSchema>
   // Asset Identifier -> Asset
   assets: IDatabaseStore<AssetSchema>
+  // TransactionHash -> BlockHash
+  transactionHashToBlockHash: IDatabaseStore<TransactionHashToBlockHashSchema>
 
   constructor(options: { location: string; files: FileSystem }) {
     this.location = options.location
@@ -100,6 +104,12 @@ export class BlockchainDB {
       name: 'bA',
       keyEncoding: BUFFER_ENCODING,
       valueEncoding: new AssetValueEncoding(),
+    })
+
+    this.transactionHashToBlockHash = this.db.addStore({
+      name: 'tb',
+      keyEncoding: BUFFER_ENCODING,
+      valueEncoding: BUFFER_ENCODING,
     })
   }
 
@@ -284,5 +294,34 @@ export class BlockchainDB {
 
   async deleteAsset(assetId: Buffer, tx?: IDatabaseTransaction): Promise<void> {
     return this.assets.del(assetId, tx)
+  }
+
+  async getBlockHashByTransactionHash(
+    transactionHash: TransactionHash,
+    tx?: IDatabaseTransaction,
+  ): Promise<BlockHash | undefined> {
+    return this.transactionHashToBlockHash.get(transactionHash, tx)
+  }
+
+  async transactionHashHasBlock(
+    transactionHash: TransactionHash,
+    tx?: IDatabaseTransaction,
+  ): Promise<boolean> {
+    return this.transactionHashToBlockHash.has(transactionHash, tx)
+  }
+
+  async putTransactionHashToBlockHash(
+    transactionHash: Buffer,
+    blockHash: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    return this.transactionHashToBlockHash.put(transactionHash, blockHash, tx)
+  }
+
+  async deleteTransactionHashToBlockHash(
+    transactionHash: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    return this.transactionHashToBlockHash.del(transactionHash, tx)
   }
 }
