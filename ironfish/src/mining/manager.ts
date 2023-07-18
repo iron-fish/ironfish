@@ -7,6 +7,7 @@ import { Assert } from '../assert'
 import { Blockchain, HeadChangedError } from '../blockchain'
 import { isExpiredSequence } from '../consensus'
 import { Event } from '../event'
+import { Config } from '../fileStores'
 import { Logger } from '../logger'
 import { MemPool } from '../memPool'
 import { MetricsMonitor } from '../metrics'
@@ -37,12 +38,11 @@ export enum MINED_RESULT {
 }
 
 export class MiningManager {
-  private readonly blockGraffiti: string
   private readonly chain: Blockchain
+  private readonly config: Config
   private readonly logger: Logger
   private readonly memPool: MemPool
   private readonly metrics: MetricsMonitor
-  private readonly miningForce: boolean
   private readonly minersFeeCache: MinersFeeCache
   private readonly peerNetwork: PeerNetwork
   private readonly strategy: Strategy
@@ -59,26 +59,24 @@ export class MiningManager {
   }
 
   constructor(options: {
-    blockGraffiti: string
     chain: Blockchain
+    config: Config
     logger: Logger
-    strategy: Strategy
     memPool: MemPool
     metrics: MetricsMonitor
-    miningForce: boolean
     peerNetwork: PeerNetwork
+    strategy: Strategy
     wallet: Wallet
   }) {
-    this.blockGraffiti = options.blockGraffiti
-    this.memPool = options.memPool
     this.chain = options.chain
-    this.metrics = options.metrics
-    this.strategy = options.strategy
-    this.minersFeeCache = new MinersFeeCache({ strategy: this.strategy })
-    this.miningForce = options.miningForce
-    this.peerNetwork = options.peerNetwork
+    this.config = options.config
     this.logger = options.logger
+    this.memPool = options.memPool
+    this.metrics = options.metrics
+    this.peerNetwork = options.peerNetwork
+    this.strategy = options.strategy
     this.wallet = options.wallet
+    this.minersFeeCache = new MinersFeeCache({ strategy: this.strategy })
 
     this.chain.onConnectBlock.on(
       (block) =>
@@ -162,12 +160,12 @@ export class MiningManager {
     }
 
     // If we mine when we're not synced, then we will mine a fork no one cares about
-    if (!this.chain.synced && !this.miningForce) {
+    if (!this.chain.synced && !this.config.get('miningForce')) {
       return
     }
 
     // If we mine when we're not connected to anyone, then no one will get our blocks
-    if (!this.peerNetwork.isReady && !this.miningForce) {
+    if (!this.peerNetwork.isReady && !this.config.get('miningForce')) {
       return
     }
 
@@ -331,7 +329,7 @@ export class MiningManager {
     const newBlock = await this.chain.newBlock(
       transactions,
       minersFee,
-      GraffitiUtils.fromString(this.blockGraffiti),
+      GraffitiUtils.fromString(this.config.get('blockGraffiti')),
       currentBlock.header,
       false,
     )
