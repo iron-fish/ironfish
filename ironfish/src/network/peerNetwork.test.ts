@@ -24,7 +24,6 @@ import {
 import {
   mockChain,
   mockMempool,
-  mockMiningManager,
   mockTelemetry,
   mockWorkerPool,
 } from '../testUtilities/mocks'
@@ -153,7 +152,6 @@ describe('PeerNetwork', () => {
         hostsStore: mockHostsStore(),
         telemetry: mockTelemetry(),
         networkId: 1,
-        miningManager: mockMiningManager(),
         blocksPerMessage: 1,
         memPool: mockMempool(),
         workerPool: mockWorkerPool(),

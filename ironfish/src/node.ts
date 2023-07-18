@@ -149,7 +149,6 @@ export class IronfishNode {
       logger: logger,
       telemetry: this.telemetry,
       incomingWebSocketWhitelist: config.getArray('incomingWebSocketWhitelist'),
-      miningManager: this.miningManager,
       blocksPerMessage: config.get('blocksPerMessage'),
       memPool,
       workerPool,
@@ -172,6 +171,7 @@ export class IronfishNode {
       strategy: this.strategy,
       wallet: this.wallet,
     })
+
     this.miningManager.onNewBlock.on((block) => {
       this.telemetry.submitBlockMined(block)
     })

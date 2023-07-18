@@ -391,6 +391,9 @@ export class MiningManager {
     this.blocksMined++
     this.onNewBlock.emit(block)
 
+    this.peerNetwork.broadcastBlock(block)
+    this.peerNetwork.broadcastBlockHash(block.header)
+
     return MINED_RESULT.SUCCESS
   }
 }

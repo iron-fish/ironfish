@@ -14,7 +14,6 @@ import { HostsStore } from '../fileStores/hosts'
 import { createRootLogger, Logger } from '../logger'
 import { MemPool } from '../memPool'
 import { MetricsMonitor } from '../metrics'
-import { MiningManager } from '../mining'
 import { IronfishPKG } from '../package'
 import { Platform } from '../platform'
 import { GENESIS_BLOCK_SEQUENCE, Transaction } from '../primitives'
@@ -123,7 +122,6 @@ export class PeerNetwork {
   private readonly metrics: MetricsMonitor
   private readonly telemetry: Telemetry
   private readonly chain: Blockchain
-  private readonly miningManager: MiningManager
   readonly syncer: Syncer
   private readonly memPool: MemPool
   private readonly workerPool: WorkerPool
@@ -179,7 +177,6 @@ export class PeerNetwork {
     telemetry: Telemetry
     chain: Blockchain
     hostsStore: HostsStore
-    miningManager: MiningManager
     blocksPerMessage: number
     memPool: MemPool
     workerPool: WorkerPool
@@ -195,7 +192,6 @@ export class PeerNetwork {
     this.telemetry = options.telemetry
     this.bootstrapNodes = options.bootstrapNodes || []
     this.incomingWebSocketWhitelist = options.incomingWebSocketWhitelist || []
-    this.miningManager = options.miningManager
     this.memPool = options.memPool
     this.workerPool = options.workerPool
 
@@ -265,11 +261,6 @@ export class PeerNetwork {
       for (const transaction of block.transactions) {
         this.recentlyAddedToChain.remove(transaction.hash())
       }
-    })
-
-    this.miningManager.onNewBlock.on((block) => {
-      this.broadcastBlock(block)
-      this.broadcastBlockHash(block.header)
     })
 
     this.syncer = new Syncer({
@@ -412,7 +403,7 @@ export class PeerNetwork {
   /**
    * Send a compact block to a sqrt subset of peers who haven't yet received the block
    */
-  private broadcastBlock(block: Block): void {
+  broadcastBlock(block: Block): void {
     const hash = block.header.hash
 
     const peersToSendToArray = ArrayUtils.shuffle([...this.connectedPeersWithoutBlock(hash)])
@@ -432,7 +423,7 @@ export class PeerNetwork {
   /**
    * Send a block hash to all connected peers who haven't yet received the block.
    */
-  private broadcastBlockHash(header: BlockHeader): void {
+  broadcastBlockHash(header: BlockHeader): void {
     const hashMessage = new NewBlockHashesMessage([
       { hash: header.hash, sequence: header.sequence },
     ])
