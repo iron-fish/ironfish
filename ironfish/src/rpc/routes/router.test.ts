@@ -9,7 +9,9 @@ describe('Router', () => {
 
   it('should use yup schema', async () => {
     const schema = yup.string().default('default')
-    routeTest.client.router.register('foo/bar', schema, (request) => request.end(request.data))
+    routeTest.client.router.routes.register('foo/bar', schema, (request) =>
+      request.end(request.data),
+    )
 
     // should use default value from the schema
     let response = await routeTest.client.request('foo/bar').waitForEnd()

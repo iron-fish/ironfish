@@ -14,7 +14,7 @@ import { CurrencyUtils, YupUtils } from '../../../utils'
 import { Wallet } from '../../../wallet'
 import { NotEnoughFundsError } from '../../../wallet/errors'
 import { ERROR_CODES, ValidationError } from '../../adapters/errors'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 import { getAccount } from './utils'
 
 export type CreateTransactionRequest = {
@@ -99,11 +99,12 @@ export const CreateTransactionResponseSchema: yup.ObjectSchema<CreateTransaction
   })
   .defined()
 
-router.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse>(
+routes.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse>(
   `${ApiNamespace.wallet}/createTransaction`,
   CreateTransactionRequestSchema,
-  async (request, node): Promise<void> => {
-    const account = getAccount(node, request.data.account)
+  async (request, { node }): Promise<void> => {
+    Assert.isNotUndefined(node)
+    const account = getAccount(node.wallet, request.data.account)
 
     const params: Parameters<Wallet['createTransaction']>[0] = {
       account: account,

@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import fs from 'fs'
 import nock from 'nock'
 import { AssetsVerificationApi } from './assetsVerificationApi'
 
@@ -19,7 +20,7 @@ describe('Assets Verification API Client', () => {
       nock('https://test')
         .get('/assets/verified')
         .reply(200, {
-          data: [{ identifier: '0123' }, { identifier: 'abcd' }],
+          assets: [{ identifier: '0123' }, { identifier: 'abcd' }],
         })
 
       const api = new AssetsVerificationApi({
@@ -38,7 +39,7 @@ describe('Assets Verification API Client', () => {
       nock('https://test')
         .get('/assets/verified')
         .reply(200, {
-          data: [
+          assets: [
             { identifier: '0123', extra: 'should be ignored' },
             { identifier: 'abcd', extra: 'should be ignored' },
           ],
@@ -57,11 +58,11 @@ describe('Assets Verification API Client', () => {
       nock('https://test')
         .get('/assets/verified')
         .reply(200, {
-          data: [{ identifier: '0123' }, { identifier: 'abcd' }],
+          assets: [{ identifier: '0123' }, { identifier: 'abcd' }],
         })
         .get('/assets/verified')
         .reply(200, {
-          data: [{ identifier: '4567' }, { identifier: '0123' }],
+          assets: [{ identifier: '4567' }, { identifier: '0123' }],
         })
 
       const api = new AssetsVerificationApi({
@@ -83,7 +84,7 @@ describe('Assets Verification API Client', () => {
         .reply(
           200,
           {
-            data: [{ identifier: '0123' }, { identifier: 'abcd' }],
+            assets: [{ identifier: '0123' }, { identifier: 'abcd' }],
           },
           {
             'last-modified': lastModified,
@@ -122,7 +123,7 @@ describe('Assets Verification API Client', () => {
         .get('/assets/verified')
         .delayConnection(2000)
         .reply(200, {
-          data: [{ identifier: '0123' }, { identifier: 'abcd' }],
+          assets: [{ identifier: '0123' }, { identifier: 'abcd' }],
         })
 
       const api = new AssetsVerificationApi({
@@ -137,7 +138,7 @@ describe('Assets Verification API Client', () => {
         .get('/assets/verified')
         .delay(2000)
         .reply(200, {
-          data: [{ identifier: '0123' }, { identifier: 'abcd' }],
+          assets: [{ identifier: '0123' }, { identifier: 'abcd' }],
         })
 
       const api = new AssetsVerificationApi({
@@ -145,6 +146,21 @@ describe('Assets Verification API Client', () => {
         timeout: 1000,
       })
       await expect(api.getVerifiedAssets()).rejects.toThrow('timeout of 1000ms exceeded')
+    })
+
+    it('supports file:// URIs', async () => {
+      const contents = JSON.stringify({
+        assets: [{ identifier: '0123' }, { identifier: 'abcd' }],
+      })
+      const readFileSpy = jest.spyOn(fs.promises, 'readFile').mockResolvedValue(contents)
+
+      const api = new AssetsVerificationApi({
+        url: 'file:///some/where',
+      })
+      const verifiedAssets = await api.getVerifiedAssets()
+
+      expect(verifiedAssets['assetIds']).toStrictEqual(new Set(['0123', 'abcd']))
+      expect(readFileSpy).toHaveBeenCalledWith('/some/where', { encoding: 'utf8' })
     })
   })
 })

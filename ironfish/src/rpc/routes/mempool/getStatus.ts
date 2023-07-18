@@ -2,9 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { Assert } from '../../../assert'
 import { IronfishNode } from '../../../node'
 import { PromiseUtils } from '../../../utils'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 
 export type GetMempoolStatusRequest =
   | undefined
@@ -47,10 +48,12 @@ export const GetMempoolStatusResponseSchema: yup.ObjectSchema<GetMempoolStatusRe
   })
   .defined()
 
-router.register<typeof GetMempoolStatusRequestSchema, GetMempoolStatusResponse>(
+routes.register<typeof GetMempoolStatusRequestSchema, GetMempoolStatusResponse>(
   `${ApiNamespace.mempool}/getStatus`,
   GetMempoolStatusRequestSchema,
-  async (request, node): Promise<void> => {
+  async (request, { node }): Promise<void> => {
+    Assert.isNotUndefined(node)
+
     const status = getStatus(node)
 
     if (!request.data?.stream) {

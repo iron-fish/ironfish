@@ -64,7 +64,7 @@ describe('TcpAdapter', () => {
     Assert.isNotUndefined(tcp)
     Assert.isNotNull(tcp.router)
 
-    tcp.router.register('foo/bar', yup.string(), (request) => {
+    tcp.router.routes.register('foo/bar', yup.string(), (request) => {
       request.end(request.data)
     })
 
@@ -79,7 +79,7 @@ describe('TcpAdapter', () => {
     Assert.isNotUndefined(tcp)
     Assert.isNotNull(tcp?.router)
 
-    tcp.router.register('foo/bar', yup.object({}), (request) => {
+    tcp.router.routes.register('foo/bar', yup.object({}), (request) => {
       request.stream('hello 1')
       request.stream('hello 2')
       request.end()
@@ -100,7 +100,7 @@ describe('TcpAdapter', () => {
     Assert.isNotUndefined(tcp)
     Assert.isNotNull(tcp?.router)
 
-    tcp.router.register('foo/bar', yup.object({}), () => {
+    tcp.router.routes.register('foo/bar', yup.object({}), () => {
       throw new ValidationError('hello error', 402, 'hello-error' as ERROR_CODES)
     })
 
@@ -126,7 +126,7 @@ describe('TcpAdapter', () => {
     // But send this instead
     const body = undefined
 
-    tcp.router.register('foo/bar', schema, (res) => res.end())
+    tcp.router.routes.register('foo/bar', schema, (res) => res.end())
 
     client = new RpcTcpClient('localhost', 0)
     await client.connect()
@@ -147,7 +147,7 @@ describe('TcpAdapter', () => {
 
     Assert.isNotNull(tcp.router)
 
-    tcp.router.register('foo/bar', yup.string(), (request) => {
+    tcp.router.routes.register('foo/bar', yup.string(), (request) => {
       request.end(request.data)
     })
 
@@ -164,7 +164,7 @@ describe('TcpAdapter', () => {
 
     Assert.isNotNull(tcp.router)
 
-    tcp.router.register('foo/bar', yup.string(), (request) => {
+    tcp.router.routes.register('foo/bar', yup.string(), (request) => {
       request.end(request.data)
     })
 
@@ -188,7 +188,7 @@ describe('TcpAdapter', () => {
 
     Assert.isNotNull(tcp.router)
 
-    tcp.router.register('foo/bar', yup.string(), (request) => {
+    tcp.router.routes.register('foo/bar', yup.string(), (request) => {
       request.end(request.data)
     })
 

@@ -8,7 +8,7 @@ import { getBlockSize, getTransactionSize } from '../../../network/utils/seriali
 import { Block, BlockHeader } from '../../../primitives'
 import { BlockHashSerdeInstance } from '../../../serde'
 import { BufferUtils, PromiseUtils } from '../../../utils'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 
 export type FollowChainStreamRequest =
   | {
@@ -136,10 +136,11 @@ export const FollowChainStreamResponseSchema: yup.ObjectSchema<FollowChainStream
   })
   .defined()
 
-router.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse>(
+routes.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse>(
   `${ApiNamespace.chain}/followChainStream`,
   FollowChainStreamRequestSchema,
-  async (request, node): Promise<void> => {
+  async (request, { node }): Promise<void> => {
+    Assert.isNotUndefined(node)
     const head = request.data?.head ? Buffer.from(request.data.head, 'hex') : null
 
     const processor = new ChainProcessor({

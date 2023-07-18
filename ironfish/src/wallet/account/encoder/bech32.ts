@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { PUBLIC_ADDRESS_LENGTH } from '@ironfish/rust-nodejs'
-import bufio from 'bufio'
+import bufio, { EncodingError } from 'bufio'
 import { Bech32m } from '../../../utils'
 import { AccountImport, KEY_LENGTH, VIEW_KEY_LENGTH } from '../../walletdb/accountValue'
 import { ACCOUNT_SCHEMA_VERSION } from '../account'
-import { AccountDecodingOptions, AccountEncoder } from './encoder'
+import { AccountDecodingOptions, AccountEncoder, DecodeFailed, DecodeInvalid } from './encoder'
 
 export const BECH32_ACCOUNT_PREFIX = 'ifaccount'
 export class Bech32Encoder implements AccountEncoder {
@@ -37,39 +37,60 @@ export class Bech32Encoder implements AccountEncoder {
   }
 
   decode(value: string, options?: AccountDecodingOptions): AccountImport {
-    const [hexEncoding, _] = Bech32m.decode(value)
+    const [hexEncoding, err] = Bech32m.decode(value)
 
-    if (hexEncoding === null) {
-      throw new Error(`Could not decode account ${value} using bech32`)
-    }
-
-    const buffer = Buffer.from(hexEncoding, 'hex')
-
-    const reader = bufio.read(buffer, true)
-
-    const version = reader.readU16()
-
-    if (version !== this.VERSION) {
-      throw new Error(
-        `Encoded account version ${version} does not match encoder version ${this.VERSION}`,
+    if (!hexEncoding) {
+      throw new DecodeFailed(
+        `Could not decode account ${value} using bech32: ${err?.message || ''}`,
+        this.constructor.name,
       )
     }
 
-    const name = reader.readVarString('utf8')
-    const viewKey = reader.readBytes(VIEW_KEY_LENGTH).toString('hex')
-    const incomingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
-    const outgoingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
-    const publicAddress = reader.readBytes(PUBLIC_ADDRESS_LENGTH).toString('hex')
-
-    const hasSpendingKey = reader.readU8() === 1
-    const spendingKey = hasSpendingKey ? reader.readBytes(KEY_LENGTH).toString('hex') : null
-
-    const hasCreatedAt = reader.readU8() === 1
+    let name: string
+    let viewKey: string
+    let incomingViewKey: string
+    let outgoingViewKey: string
+    let publicAddress: string
+    let spendingKey: string | null
     let createdAt = null
-    if (hasCreatedAt) {
-      const hash = reader.readBytes(32)
-      const sequence = reader.readU32()
-      createdAt = { hash, sequence }
+
+    try {
+      const buffer = Buffer.from(hexEncoding, 'hex')
+
+      const reader = bufio.read(buffer, true)
+
+      const version = reader.readU16()
+
+      if (version !== this.VERSION) {
+        throw new DecodeInvalid(
+          `Encoded account version ${version} does not match encoder version ${this.VERSION}`,
+        )
+      }
+
+      name = reader.readVarString('utf8')
+      viewKey = reader.readBytes(VIEW_KEY_LENGTH).toString('hex')
+      incomingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
+      outgoingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
+      publicAddress = reader.readBytes(PUBLIC_ADDRESS_LENGTH).toString('hex')
+
+      const hasSpendingKey = reader.readU8() === 1
+      spendingKey = hasSpendingKey ? reader.readBytes(KEY_LENGTH).toString('hex') : null
+
+      const hasCreatedAt = reader.readU8() === 1
+
+      if (hasCreatedAt) {
+        const hash = reader.readBytes(32)
+        const sequence = reader.readU32()
+        createdAt = { hash, sequence }
+      }
+    } catch (e) {
+      if (e instanceof EncodingError) {
+        throw new DecodeFailed(
+          `Bufio decoding failed while using bech32 encoder: ${e.message}`,
+          this.constructor.name,
+        )
+      }
+      throw e
     }
 
     return {
