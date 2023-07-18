@@ -5,6 +5,7 @@ import { VerifiedAssetsCacheStore } from '../fileStores/verifiedAssets'
 import { createRootLogger, Logger } from '../logger'
 import { ErrorUtils } from '../utils'
 import { SetIntervalToken } from '../utils'
+import { Retry } from '../utils'
 import { AssetsVerificationApi, VerifiedAssets } from './assetsVerificationApi'
 
 export type AssetVerification = {
@@ -17,6 +18,11 @@ export class AssetsVerifier {
   private readonly logger: Logger
   private readonly api: AssetsVerificationApi
   private readonly cache?: VerifiedAssetsCacheStore
+  private readonly retry = new Retry({
+    delay: 60 * 1000, // 1 minute
+    jitter: 0.2, // 20%
+    maxDelay: 60 * 60 * 1000, // 1 hour
+  })
 
   private started: boolean
   private refreshToken?: SetIntervalToken
@@ -59,7 +65,7 @@ export class AssetsVerifier {
   }
 
   private async refreshLoop(): Promise<void> {
-    await this.refresh()
+    await this.retry.try(this.refresh.bind(this))
 
     this.refreshToken = setTimeout(() => {
       void this.refreshLoop()
@@ -80,6 +86,7 @@ export class AssetsVerifier {
       }
     } catch (error) {
       this.logger.warn(`Error while fetching verified assets: ${ErrorUtils.renderError(error)}`)
+      throw error
     }
   }
 
@@ -95,9 +102,11 @@ export class AssetsVerifier {
   }
 
   verify(assetId: Buffer | string): AssetVerification {
-    if (!this.started || !this.verifiedAssets) {
+    if (!this.verifiedAssets) {
       return { status: 'unknown' }
-    } else if (this.verifiedAssets.isVerified(assetId)) {
+    }
+
+    if (this.verifiedAssets.isVerified(assetId)) {
       return { status: 'verified' }
     } else {
       return { status: 'unverified' }

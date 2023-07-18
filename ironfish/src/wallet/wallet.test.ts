@@ -705,7 +705,7 @@ describe('Accounts', () => {
 
       const expireSpy = jest.spyOn(accountA, 'expireTransaction')
 
-      await node.wallet.expireTransactions()
+      await node.wallet.expireTransactions(block1.header.sequence)
 
       expect(expireSpy).toHaveBeenCalledTimes(0)
     })
@@ -726,7 +726,7 @@ describe('Accounts', () => {
 
       const expireSpy = jest.spyOn(accountA, 'expireTransaction')
 
-      await node.wallet.expireTransactions()
+      await node.wallet.expireTransactions(block1.header.sequence)
 
       expect(expireSpy).toHaveBeenCalledTimes(0)
     })
@@ -747,31 +747,28 @@ describe('Accounts', () => {
       const tx = await useTxFixture(node.wallet, accountA, accountB, undefined, undefined, 3)
 
       const block3 = await useMinerBlockFixture(node.chain, 3, accountA, node.wallet)
-      await node.chain.addBlock(block3)
 
       await accountA.getTransaction(tx.hash())
 
-      await node.wallet.updateHead()
-
       let expiredA = await AsyncUtils.materialize(
-        accountA.getExpiredTransactions(node.chain.head.sequence),
+        accountA.getExpiredTransactions(block3.header.sequence),
       )
       expect(expiredA.length).toEqual(1)
 
       let expiredB = await AsyncUtils.materialize(
-        accountB.getExpiredTransactions(node.chain.head.sequence),
+        accountB.getExpiredTransactions(block3.header.sequence),
       )
       expect(expiredB.length).toEqual(1)
 
-      await node.wallet.expireTransactions()
+      await node.wallet.expireTransactions(block3.header.sequence)
 
       expiredA = await AsyncUtils.materialize(
-        accountA.getExpiredTransactions(node.chain.head.sequence),
+        accountA.getExpiredTransactions(block3.header.sequence),
       )
       expect(expiredA.length).toEqual(0)
 
       expiredB = await AsyncUtils.materialize(
-        accountB.getExpiredTransactions(node.chain.head.sequence),
+        accountB.getExpiredTransactions(block3.header.sequence),
       )
       expect(expiredB.length).toEqual(0)
     })
@@ -799,22 +796,19 @@ describe('Accounts', () => {
       )
 
       const block3 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
-      await node.chain.addBlock(block3)
 
-      await node.wallet.updateHead()
+      const expireTransactionSpy = jest.spyOn(accountA, 'expireTransaction')
 
-      const expireSpy = jest.spyOn(accountA, 'expireTransaction')
+      await node.wallet.expireTransactions(block3.header.sequence)
 
-      await node.wallet.expireTransactions()
+      expect(expireTransactionSpy).toHaveBeenCalledTimes(1)
+      expect(expireTransactionSpy).toHaveBeenCalledWith(transaction)
 
-      expect(expireSpy).toHaveBeenCalledTimes(1)
-      expect(expireSpy).toHaveBeenCalledWith(transaction)
+      expireTransactionSpy.mockClear()
 
-      expireSpy.mockClear()
+      await node.wallet.expireTransactions(block3.header.sequence)
 
-      await node.wallet.expireTransactions()
-
-      expect(expireSpy).toHaveBeenCalledTimes(0)
+      expect(expireTransactionSpy).toHaveBeenCalledTimes(0)
     })
   })
 

@@ -2,9 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { Assert } from '../../../assert'
 import { PRIORITY_LEVELS, PriorityLevel } from '../../../memPool/feeEstimator'
 import { CurrencyUtils } from '../../../utils'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 
 export type EstimateFeeRateRequest = { priority?: PriorityLevel } | undefined
 
@@ -24,10 +25,12 @@ export const EstimateFeeRateResponseSchema: yup.ObjectSchema<EstimateFeeRateResp
   })
   .defined()
 
-router.register<typeof EstimateFeeRateRequestSchema, EstimateFeeRateResponse>(
+routes.register<typeof EstimateFeeRateRequestSchema, EstimateFeeRateResponse>(
   `${ApiNamespace.chain}/estimateFeeRate`,
   EstimateFeeRateRequestSchema,
-  (request, node): void => {
+  (request, { node }): void => {
+    Assert.isNotUndefined(node)
+
     const priority = request.data?.priority ?? 'average'
     const rate = node.memPool.feeEstimator.estimateFeeRate(priority)
     request.end({ rate: CurrencyUtils.encode(rate) })

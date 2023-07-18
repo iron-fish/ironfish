@@ -1451,14 +1451,6 @@ export class Blockchain {
     const asset = await this.blockchainDb.getAsset(assetId)
     return asset || null
   }
-
-  async putAsset(assetId: Buffer, asset: AssetValue, tx?: IDatabaseTransaction): Promise<void> {
-    return this.blockchainDb.putAsset(assetId, asset, tx)
-  }
-
-  async deleteAsset(assetId: Buffer, tx?: IDatabaseTransaction): Promise<void> {
-    return this.blockchainDb.deleteAsset(assetId, tx)
-  }
 }
 
 export class VerifyError extends Error {
