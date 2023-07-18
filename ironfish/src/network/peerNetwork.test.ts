@@ -11,7 +11,6 @@ import net from 'net'
 import ws from 'ws'
 import { Assert } from '../assert'
 import { VerificationResultReason } from '../consensus/verifier'
-import { Event } from '../event'
 import { Block, Transaction } from '../primitives'
 import { CompactBlock } from '../primitives/block'
 import { BlockTemplateSerde } from '../serde'
@@ -151,10 +150,6 @@ describe('PeerNetwork', () => {
         blocksPerMessage: 1,
         memPool: mockMempool(),
         workerPool: mockWorkerPool(),
-        walletAddPendingTransaction: (): Promise<void> => {
-          return Promise.resolve()
-        },
-        walletOnBroadcastTransaction: new Event<[transaction: Transaction]>(),
         incomingWebSocketWhitelist: undefined,
       })
 

@@ -27,7 +27,6 @@ import { IsomorphicWebSocketConstructor } from './network/types'
 import { getNetworkDefinition } from './networkDefinition'
 import { Package } from './package'
 import { Platform } from './platform'
-import { Transaction } from './primitives'
 import { RpcServer } from './rpc/server'
 import { Strategy } from './strategy'
 import { Telemetry } from './telemetry/telemetry'
@@ -70,10 +69,8 @@ export class IronfishNode {
     memPool,
     workerPool,
     logger,
-    webSocket,
-    privateIdentity,
-    hostsStore,
-    networkId,
+    peerNetwork,
+    telemetry,
     verifiedAssetsCache,
   }: {
     pkg: Package
@@ -92,6 +89,8 @@ export class IronfishNode {
     hostsStore: HostsStore
     networkId: number
     verifiedAssetsCache: VerifiedAssetsCacheStore
+    peerNetwork: PeerNetwork
+    telemetry: Telemetry
   }) {
     this.files = files
     this.config = config
@@ -105,61 +104,10 @@ export class IronfishNode {
     this.rpc = new RpcServer({ node: this, wallet }, internal)
     this.logger = logger
     this.pkg = pkg
+    this.telemetry = telemetry
+    this.peerNetwork = peerNetwork
 
     this.migrator = new Migrator({ node: this, logger })
-
-    const identity = privateIdentity || new BoxKeyPair()
-
-    this.telemetry = new Telemetry({
-      chain,
-      logger,
-      config,
-      metrics,
-      workerPool,
-      localPeerIdentity: privateIdentityToIdentity(identity),
-      defaultTags: [
-        { name: 'version', value: pkg.version },
-        { name: 'agent', value: Platform.getAgent(pkg) },
-      ],
-      defaultFields: [
-        { name: 'node_id', type: 'string', value: internal.get('telemetryNodeId') },
-        { name: 'session_id', type: 'string', value: uuid() },
-      ],
-      networkId,
-    })
-
-    this.peerNetwork = new PeerNetwork({
-      networkId,
-      identity: identity,
-      agent: Platform.getAgent(pkg),
-      port: config.get('peerPort'),
-      name: config.get('nodeName'),
-      maxPeers: config.get('maxPeers'),
-      minPeers: config.get('minPeers'),
-      listen: config.get('enableListenP2P'),
-      enableSyncing: config.get('enableSyncing'),
-      targetPeers: config.get('targetPeers'),
-      logPeerMessages: config.get('logPeerMessages'),
-      simulateLatency: config.get('p2pSimulateLatency'),
-      bootstrapNodes: config.getArray('bootstrapNodes'),
-      stunServers: config.getArray('p2pStunServers'),
-      webSocket: webSocket,
-      chain: chain,
-      metrics: this.metrics,
-      hostsStore: hostsStore,
-      logger: logger,
-      telemetry: this.telemetry,
-      incomingWebSocketWhitelist: config.getArray('incomingWebSocketWhitelist'),
-      blocksPerMessage: config.get('blocksPerMessage'),
-      memPool,
-      workerPool,
-      // TODO(hugh, rohan): Clean up after the node clients are created for the wallet
-      // `walletAddPendingTransaction` will be removed once we can pull from the mempool
-      walletAddPendingTransaction: (transaction: Transaction) =>
-        wallet.addPendingTransaction(transaction),
-      // `walletOnBroadcastTransaction` will be removed once the node client encapsulates the peer network
-      walletOnBroadcastTransaction: wallet.onBroadcastTransaction,
-    })
 
     this.miningManager = new MiningManager({
       chain,
@@ -176,8 +124,14 @@ export class IronfishNode {
       this.telemetry.submitBlockMined(block)
     })
 
-    this.peerNetwork.onTransactionAccepted.on((transaction, received) => {
-      this.telemetry.submitNewTransactionSeen(transaction, received)
+    this.peerNetwork.onTransactionAccepted.on((transaction, received, accepted) => {
+      if (accepted) {
+        this.telemetry.submitNewTransactionSeen(transaction, received)
+      }
+
+      // Sync every transaction to the wallet, since senders and recipients may want to know
+      // about pending transactions even if they're not accepted to the mempool.
+      void this.wallet.addPendingTransaction(transaction)
     })
 
     this.assetsVerifier = new AssetsVerifier({
@@ -296,6 +250,52 @@ export class IronfishNode {
       files,
     })
 
+    const identity = privateIdentity || new BoxKeyPair()
+    const telemetry = new Telemetry({
+      chain,
+      logger,
+      config,
+      metrics,
+      workerPool,
+      localPeerIdentity: privateIdentityToIdentity(identity),
+      defaultTags: [
+        { name: 'version', value: pkg.version },
+        { name: 'agent', value: Platform.getAgent(pkg) },
+      ],
+      defaultFields: [
+        { name: 'node_id', type: 'string', value: internal.get('telemetryNodeId') },
+        { name: 'session_id', type: 'string', value: uuid() },
+      ],
+      networkId: networkDefinition.id,
+    })
+
+    const peerNetwork = new PeerNetwork({
+      networkId: networkDefinition.id,
+      identity: identity,
+      agent: Platform.getAgent(pkg),
+      port: config.get('peerPort'),
+      name: config.get('nodeName'),
+      maxPeers: config.get('maxPeers'),
+      minPeers: config.get('minPeers'),
+      listen: config.get('enableListenP2P'),
+      enableSyncing: config.get('enableSyncing'),
+      targetPeers: config.get('targetPeers'),
+      logPeerMessages: config.get('logPeerMessages'),
+      simulateLatency: config.get('p2pSimulateLatency'),
+      bootstrapNodes: config.getArray('bootstrapNodes'),
+      stunServers: config.getArray('p2pStunServers'),
+      webSocket,
+      chain,
+      metrics,
+      hostsStore,
+      logger,
+      telemetry,
+      incomingWebSocketWhitelist: config.getArray('incomingWebSocketWhitelist'),
+      blocksPerMessage: config.get('blocksPerMessage'),
+      memPool,
+      workerPool,
+    })
+
     const localWalletNodeClient = new LocalWalletNodeClient({
       chain,
       memPool,
@@ -308,6 +308,7 @@ export class IronfishNode {
       memPool,
       database: walletDB,
       workerPool,
+      nodeClient: localWalletNodeClient,
     })
 
     return new IronfishNode({
@@ -327,6 +328,8 @@ export class IronfishNode {
       hostsStore,
       networkId: networkDefinition.id,
       verifiedAssetsCache,
+      telemetry,
+      peerNetwork,
     })
   }
 

@@ -109,7 +109,9 @@ export class PeerNetwork {
   readonly localPeer: LocalPeer
   readonly peerManager: PeerManager
   readonly onIsReadyChanged = new Event<[boolean]>()
-  readonly onTransactionAccepted = new Event<[transaction: Transaction, received: Date]>()
+  readonly onTransactionAccepted = new Event<
+    [transaction: Transaction, received: Date, accepted: boolean]
+  >()
   readonly onBlockGossipReceived = new Event<[BlockHeader]>()
   readonly onTransactionGossipReceived = new Event<[Transaction]>()
 
@@ -127,8 +129,6 @@ export class PeerNetwork {
   private readonly workerPool: WorkerPool
   private readonly requests: Map<RpcId, RpcRequest>
   private readonly enableSyncing: boolean
-
-  private readonly walletAddPendingTransaction: (transaction: Transaction) => Promise<void>
 
   private readonly blockFetcher: BlockFetcher
   private readonly transactionFetcher: TransactionFetcher
@@ -180,8 +180,6 @@ export class PeerNetwork {
     blocksPerMessage: number
     memPool: MemPool
     workerPool: WorkerPool
-    walletAddPendingTransaction: (transaction: Transaction) => Promise<void>
-    walletOnBroadcastTransaction: Event<[transaction: Transaction]>
     incomingWebSocketWhitelist?: string[]
   }) {
     this.networkId = options.networkId
@@ -283,11 +281,6 @@ export class PeerNetwork {
         this.logger.info(`Not connected to the Iron Fish network`)
         void this.syncer.stop()
       }
-    })
-
-    this.walletAddPendingTransaction = options.walletAddPendingTransaction
-    options.walletOnBroadcastTransaction.on((transaction) => {
-      this.broadcastTransaction(transaction)
     })
   }
 
@@ -1340,18 +1333,13 @@ export class PeerNetwork {
     }
 
     const accepted = this.memPool.acceptTransaction(transaction)
-
     // At this point the only reasons a transaction is not accepted would be
     // overlapping nullifiers or it's expired. In both cases don't broadcast
     if (accepted) {
-      this.onTransactionAccepted.emit(transaction, received)
       this.broadcastTransaction(transaction)
     }
 
-    // Sync every transaction to the wallet, since senders and recipients may want to know
-    // about pending transactions even if they're not accepted to the mempool.
-    await this.walletAddPendingTransaction(transaction)
-
+    this.onTransactionAccepted.emit(transaction, received, accepted)
     this.transactionFetcher.removeTransaction(hash)
   }
 }

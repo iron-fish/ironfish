@@ -70,7 +70,6 @@ export class Wallet {
   readonly onAccountImported = new Event<[account: Account]>()
   readonly onAccountRemoved = new Event<[account: Account]>()
   readonly onBroadcastTransaction = new Event<[transaction: Transaction]>()
-  readonly onTransactionCreated = new Event<[transaction: Transaction]>()
 
   scan: ScanState | null = null
   updateHeadState: ScanState | null = null
@@ -641,7 +640,11 @@ export class Wallet {
 
     // Priority: fromHeader > startHeader > genesisBlock
     // TODO(hugh, rohan): this is a hack and will be removed when we refactor the chain processor
-    const beginHash = fromHash ? fromHash : startHash ? startHash : this.chainProcessor.chain.genesis.hash
+    const beginHash = fromHash
+      ? fromHash
+      : startHash
+      ? startHash
+      : this.chainProcessor.chain.genesis.hash
     const beginHeader = await this.nodeClient.chain.getHeader(beginHash)
 
     Assert.isNotNull(
@@ -882,11 +885,10 @@ export class Wallet {
 
     const confirmations = options.confirmations ?? this.config.get('confirmations')
 
-    const maxConfirmedSequence = Math.max(
-      head.sequence - confirmations,
-      GENESIS_BLOCK_SEQUENCE,
+    const maxConfirmedSequence = Math.max(head.sequence - confirmations, GENESIS_BLOCK_SEQUENCE)
+    const maxConfirmedHeader = await this.nodeClient.chain.getHeaderAtSequence(
+      maxConfirmedSequence,
     )
-    const maxConfirmedHeader = await this.nodeClient.chain.getHeaderAtSequence(maxConfirmedSequence)
 
     Assert.isNotNull(maxConfirmedHeader)
     Assert.isNotNull(maxConfirmedHeader.noteSize)
@@ -994,7 +996,6 @@ export class Wallet {
       await this.addPendingTransaction(transaction)
       this.nodeClient.mempool.acceptTransaction(transaction)
       this.nodeClient.peer.broadcastTransaction(transaction)
-      this.onTransactionCreated.emit(transaction)
     }
 
     return transaction
