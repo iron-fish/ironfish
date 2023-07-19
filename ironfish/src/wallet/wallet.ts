@@ -6,6 +6,7 @@ import { BufferMap, BufferSet } from 'buffer-map'
 import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
+import { AssetValue as ChainAssetValue } from '../blockchain/database/assetValue'
 import { ChainProcessor } from '../chainProcessor'
 import { isExpiredSequence } from '../consensus'
 import { Event } from '../event'
@@ -13,15 +14,18 @@ import { Config } from '../fileStores'
 import { createRootLogger, Logger } from '../logger'
 import { MemPool } from '../memPool'
 import { getFee } from '../memPool/feeEstimator'
+import { NoteHasher } from '../merkletree'
+import { Side } from '../merkletree/merkletree'
 import { Witness } from '../merkletree/witness'
 import { Mutex } from '../mutex'
 import { GENESIS_BLOCK_SEQUENCE } from '../primitives'
 import { BlockHeader } from '../primitives/blockheader'
 import { BurnDescription } from '../primitives/burnDescription'
 import { Note } from '../primitives/note'
-import { NoteEncrypted, NoteEncryptedHash, SerializedNoteEncrypted, SerializedNoteEncryptedHash } from '../primitives/noteEncrypted'
+import { NoteEncrypted } from '../primitives/noteEncrypted'
 import { MintData, RawTransaction } from '../primitives/rawTransaction'
 import { Transaction } from '../primitives/transaction'
+import { RpcClient } from '../rpc'
 import { IDatabaseTransaction } from '../storage/database/transaction'
 import {
   AsyncUtils,
@@ -43,10 +47,6 @@ import { DecryptedNoteValue } from './walletdb/decryptedNoteValue'
 import { HeadValue } from './walletdb/headValue'
 import { TransactionValue } from './walletdb/transactionValue'
 import { WalletDB } from './walletdb/walletdb'
-import { AssetValue as ChainAssetValue } from '../blockchain/database/assetValue'
-import { RpcClient } from '../rpc'
-import { Side } from '../merkletree/merkletree'
-import { NoteHasher } from '../merkletree'
 
 export enum AssetStatus {
   CONFIRMED = 'confirmed',
@@ -83,6 +83,7 @@ export class Wallet {
   readonly logger: Logger
   readonly workerPool: WorkerPool
   readonly chainProcessor: ChainProcessor
+  readonly memPool: MemPool
   readonly nodeClient: RpcClient
   private readonly config: Config
 
@@ -99,11 +100,12 @@ export class Wallet {
   constructor({
     chain,
     config,
+    memPool,
     database,
     logger = createRootLogger(),
     rebroadcastAfter,
     workerPool,
-    nodeClient
+    nodeClient,
   }: {
     chain: Blockchain
     config: Config
@@ -116,6 +118,7 @@ export class Wallet {
   }) {
     this.config = config
     this.logger = logger.withTag('accounts')
+    this.memPool = memPool
     this.walletDb = database
     this.workerPool = workerPool
     this.nodeClient = nodeClient
@@ -639,7 +642,7 @@ export class Wallet {
     // Priority: fromHeader > startHeader > genesisBlock
     const genesis = await this.getChainGenesis()
     const beginHash = fromHash ? fromHash : startHash ? startHash : genesis.hash
-    const beginHeader = await this.nodeClient.chain(beginHash)
+    const beginHeader = await this.chainProcessor.chain.getHeader(beginHash)
 
     Assert.isNotNull(
       beginHeader,
@@ -648,7 +651,7 @@ export class Wallet {
 
     const head = await this.getChainHead()
     const endHash = this.chainProcessor.hash || head.hash
-    const endHeader = await this.chain.getHeader(endHash)
+    const endHeader = await this.chainProcessor.chain.getHeader(endHash)
 
     Assert.isNotNull(
       endHeader,
@@ -669,7 +672,7 @@ export class Wallet {
     )
 
     // Go through every transaction in the chain and add notes that we can decrypt
-    for await (const blockHeader of this.chain.iterateBlockHeaders(
+    for await (const blockHeader of this.chainProcessor.chain.iterateBlockHeaders(
       beginHash,
       endHash,
       undefined,
@@ -791,7 +794,7 @@ export class Wallet {
     let mintData: MintData
 
     if ('assetId' in options) {
-      const asset = await this.chainGetAsset(options.assetId)
+      const asset = await this.getChainAsset(options.assetId)
       if (!asset) {
         throw new Error(
           `Asset not found. Cannot mint for identifier '${options.assetId.toString('hex')}'`,
@@ -883,7 +886,7 @@ export class Wallet {
 
     const expiration = options.expiration ?? heaviestHead.sequence + expirationDelta
 
-    const head = await this.getChainHead();
+    const head = await this.getChainHead()
     if (isExpiredSequence(expiration, head.sequence)) {
       throw new Error(
         `Invalid expiration sequence for transaction ${expiration} vs ${head.sequence}`,
@@ -968,7 +971,7 @@ export class Wallet {
 
     const transaction = await this.workerPool.postTransaction(options.transaction, spendingKey)
 
-    const verify = this.chain.verifier.verifyCreatedTransaction(transaction)
+    const verify = this.chainProcessor.chain.verifier.verifyCreatedTransaction(transaction)
     if (!verify.valid) {
       throw new Error(`Invalid transaction, reason: ${String(verify.reason)}`)
     }
@@ -1004,7 +1007,7 @@ export class Wallet {
         }`,
       )
 
-      const witness = await this.getNoteWitness(decryptedNote, options.notesTreeSize)
+      const witness = await this.getNoteWitness(decryptedNote, options.confirmations)
 
       const assetId = decryptedNote.note.assetId()
 
@@ -1044,6 +1047,7 @@ export class Wallet {
 
   async getNoteWitness(
     note: DecryptedNoteValue,
+    confirmations?: number,
   ): Promise<Witness<NoteEncrypted, Buffer, Buffer, Buffer>> {
     Assert.isNotNull(
       note.index,
@@ -1052,14 +1056,17 @@ export class Wallet {
         .toString('hex')} is missing an index and cannot be spent.`,
     )
 
-    const response = await this.nodeClient.chain.getNoteWitness({index: note.index, confirmations: this.config.get('confirmations')})
+    const response = await this.nodeClient.chain.getNoteWitness({
+      index: note.index,
+      confirmations: confirmations ?? this.config.get('confirmations'),
+    })
     const witness = new Witness(
-      response.content.treeSize, 
-      Buffer.from(response.content.rootHash, 'hex'), 
+      response.content.treeSize,
+      Buffer.from(response.content.rootHash, 'hex'),
       response.content.authPath.map((o) => ({
         hashOfSibling: Buffer.from(o.hashOfSibling, 'hex'),
         side: o.side === 'Left' ? Side.Left : Side.Right,
-      })), 
+      })),
       new NoteHasher(),
     )
 
@@ -1109,7 +1116,7 @@ export class Wallet {
         continue
       }
 
-      const witness = await this.getNoteWitness(unspentNote)
+      const witness = await this.getNoteWitness(unspentNote, confirmations)
 
       amountSpent += unspentNote.note.value()
 
@@ -1156,7 +1163,9 @@ export class Wallet {
 
         let isValid = true
         await this.walletDb.db.transaction(async (tx) => {
-          const verify = await this.chain.verifier.verifyTransactionAdd(transaction)
+          const verify = await this.chainProcessor.chain.verifier.verifyTransactionAdd(
+            transaction,
+          )
 
           // We still update this even if it's not valid to prevent constantly
           // reprocessing valid transaction every block. Give them a few blocks to
@@ -1596,7 +1605,7 @@ export class Wallet {
 
   private async getChainAsset(id: Buffer): Promise<ChainAssetValue> {
     const response = await this.nodeClient.chain.getAsset({
-      id: id.toString('hex')
+      id: id.toString('hex'),
     })
     return {
       createdTransactionHash: Buffer.from(response.content.createdTransactionHash, 'hex'),
@@ -1609,23 +1618,25 @@ export class Wallet {
     }
   }
 
-  private async getChainGenesis(): Promise<{ hash: Buffer, sequence: number }> {
+  private async getChainGenesis(): Promise<{ hash: Buffer; sequence: number }> {
     const response = await this.nodeClient.chain.getChainInfo()
     return {
       hash: Buffer.from(response.content.genesisBlockIdentifier.hash, 'hex'),
-      sequence: Number(response.content.genesisBlockIdentifier.index)
+      sequence: Number(response.content.genesisBlockIdentifier.index),
     }
   }
 
-  private async getChainHead(): Promise<{ hash: Buffer, sequence: number }> {
+  private async getChainHead(): Promise<{ hash: Buffer; sequence: number }> {
     const response = await this.nodeClient.chain.getChainInfo()
     return {
       hash: Buffer.from(response.content.oldestBlockIdentifier.hash, 'hex'),
-      sequence: Number(response.content.oldestBlockIdentifier.index)
+      sequence: Number(response.content.oldestBlockIdentifier.index),
     }
   }
 
-  private async getChainMaxConfirmedNoteSizeAtSequence(sequence: number): Promise<number | null> {
+  private async getChainMaxConfirmedNoteSizeAtSequence(
+    sequence: number,
+  ): Promise<number | null> {
     try {
       const response = await this.nodeClient.chain.getBlock({ sequence })
       return response.content.block.noteSize

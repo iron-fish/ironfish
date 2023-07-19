@@ -27,13 +27,13 @@ import { IsomorphicWebSocketConstructor } from './network/types'
 import { getNetworkDefinition } from './networkDefinition'
 import { Package } from './package'
 import { Platform } from './platform'
+import { RpcMemoryClient } from './rpc'
 import { RpcServer } from './rpc/server'
 import { Strategy } from './strategy'
 import { Syncer } from './syncer'
 import { Telemetry } from './telemetry/telemetry'
 import { Wallet, WalletDB } from './wallet'
 import { WorkerPool } from './workerPool'
-import { RpcMemoryClient } from './rpc'
 
 export class IronfishNode {
   chain: Blockchain
@@ -296,7 +296,7 @@ export class IronfishNode {
       memPool,
       database: walletDB,
       workerPool,
-      nodeClient: memoryClient
+      nodeClient: memoryClient,
     })
 
     const node = new IronfishNode({

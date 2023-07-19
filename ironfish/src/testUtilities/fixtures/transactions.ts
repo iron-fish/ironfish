@@ -113,9 +113,9 @@ export async function useMinersTxFixture(
     Assert.isNotUndefined(to)
     Assert.isNotNull(to.spendingKey)
 
-    return wallet.chain.strategy.createMinersFee(
+    return wallet.chainProcessor.chain.strategy.createMinersFee(
       BigInt(amount),
-      sequence || wallet.chain.head.sequence + 1,
+      sequence || wallet.chainProcessor.chain.head.sequence + 1,
       to.spendingKey,
     )
   })
