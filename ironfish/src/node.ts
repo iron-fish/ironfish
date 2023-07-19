@@ -33,6 +33,7 @@ import { Syncer } from './syncer'
 import { Telemetry } from './telemetry/telemetry'
 import { Wallet, WalletDB } from './wallet'
 import { WorkerPool } from './workerPool'
+import { RpcMemoryClient } from './rpc'
 
 export class IronfishNode {
   chain: Blockchain
@@ -287,15 +288,18 @@ export class IronfishNode {
       files,
     })
 
+    const memoryClient = new RpcMemoryClient(logger)
+
     const wallet = new Wallet({
       chain,
       config,
       memPool,
       database: walletDB,
       workerPool,
+      nodeClient: memoryClient
     })
 
-    return new IronfishNode({
+    const node = new IronfishNode({
       pkg,
       chain,
       strategy,
@@ -313,6 +317,9 @@ export class IronfishNode {
       networkId: networkDefinition.id,
       verifiedAssetsCache,
     })
+    memoryClient.setNode(node)
+
+    return node
   }
 
   async openDB(): Promise<void> {
