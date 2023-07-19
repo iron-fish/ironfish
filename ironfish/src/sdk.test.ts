@@ -133,8 +133,8 @@ describe('IronfishSdk', () => {
         expect(openDb).toHaveBeenCalledTimes(1)
         expect(client).toBeInstanceOf(RpcMemoryClient)
         const memoryClient = client as RpcMemoryClient
-        Assert.isNotNull(memoryClient._node)
-        expect(memoryClient._node).toBe(node)
+        Assert.isNotUndefined(memoryClient.router)
+        expect(memoryClient.router.server.context.node).toBe(node)
       })
     })
 
