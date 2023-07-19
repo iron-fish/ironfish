@@ -43,6 +43,8 @@ import { DecryptedNoteValue } from './walletdb/decryptedNoteValue'
 import { HeadValue } from './walletdb/headValue'
 import { TransactionValue } from './walletdb/transactionValue'
 import { WalletDB } from './walletdb/walletdb'
+import { AssetValue as ChainAssetValue } from '../blockchain/database/assetValue'
+import { RpcClient } from '../rpc'
 
 export enum AssetStatus {
   CONFIRMED = 'confirmed',
@@ -78,9 +80,8 @@ export class Wallet {
   readonly walletDb: WalletDB
   readonly logger: Logger
   readonly workerPool: WorkerPool
-  readonly chain: Blockchain
   readonly chainProcessor: ChainProcessor
-  readonly memPool: MemPool
+  readonly nodeClient: RpcClient
   private readonly config: Config
 
   protected rebroadcastAfter: number
@@ -96,11 +97,11 @@ export class Wallet {
   constructor({
     chain,
     config,
-    memPool,
     database,
     logger = createRootLogger(),
     rebroadcastAfter,
     workerPool,
+    nodeClient
   }: {
     chain: Blockchain
     config: Config
@@ -109,13 +110,13 @@ export class Wallet {
     logger?: Logger
     rebroadcastAfter?: number
     workerPool: WorkerPool
+    nodeClient: RpcClient
   }) {
-    this.chain = chain
     this.config = config
     this.logger = logger.withTag('accounts')
-    this.memPool = memPool
     this.walletDb = database
     this.workerPool = workerPool
+    this.nodeClient = nodeClient
     this.rebroadcastAfter = rebroadcastAfter ?? 10
     this.createTransactionMutex = new Mutex()
     this.eventLoopAbortController = new AbortController()
@@ -244,13 +245,13 @@ export class Wallet {
         continue
       }
 
-      if (!(await this.chain.hasBlock(account.createdAt.hash))) {
+      if (!(await this.chainHasBlock(account.createdAt.hash))) {
         await this.resetAccount(account, { resetCreatedAt: true })
       }
     }
 
     if (this.chainProcessor.hash) {
-      const hasHeadBlock = await this.chain.hasBlock(this.chainProcessor.hash)
+      const hasHeadBlock = await this.chainHasBlock(this.chainProcessor.hash)
 
       if (!hasHeadBlock) {
         this.logger.error(
@@ -477,7 +478,8 @@ export class Wallet {
     tx?: IDatabaseTransaction,
   ): Promise<AssetBalances> {
     const assetBalanceDeltas = new AssetBalances()
-    const transactions = await this.chain.getBlockTransactions(blockHeader)
+    // TODO: This is a temporary measure until full blocks are returned
+    const transactions = await this.chainProcessor.chain.getBlockTransactions(blockHeader)
 
     for (const { transaction, initialNoteIndex } of transactions) {
       if (scan && scan.isAborted) {
@@ -519,7 +521,7 @@ export class Wallet {
       const asset = await this.walletDb.getAsset(account, note.assetId(), tx)
 
       if (!asset) {
-        const chainAsset = await this.chain.getAssetById(note.assetId())
+        const chainAsset = await this.chainGetAsset(note.assetId())
         Assert.isNotNull(chainAsset, 'Asset must be non-null in the chain')
         await account.saveAssetFromChain(
           chainAsset.createdTransactionHash,
@@ -1577,6 +1579,34 @@ export class Wallet {
   protected assertNotHasAccount(account: Account): void {
     if (this.accountExists(account.name)) {
       throw new Error(`No account found with name ${account.name}`)
+    }
+  }
+
+  private async chainHasBlock(hash: Buffer): Promise<boolean> {
+    try {
+      await this.nodeClient.chain.getBlock({ hash: hash.toString('hex') })
+      return true
+    } catch (error) {
+      if (error instanceof Error) {
+        this.logger.error(error.message)
+      }
+
+      return false
+    }
+  }
+
+  private async chainGetAsset(id: Buffer): Promise<ChainAssetValue> {
+    const response = await this.nodeClient.chain.getAsset({
+      id: id.toString('hex')
+    })
+    return {
+      createdTransactionHash: Buffer.from(response.content.createdTransactionHash, 'hex'),
+      id: Buffer.from(response.content.createdTransactionHash, 'hex'),
+      metadata: Buffer.from(response.content.createdTransactionHash, 'hex'),
+      name: Buffer.from(response.content.createdTransactionHash, 'hex'),
+      nonce: Buffer.from(response.content.createdTransactionHash, 'hex'),
+      owner: Buffer.from(response.content.createdTransactionHash, 'hex'),
+      supply: Buffer.from(response.content.createdTransactionHash, 'hex'),
     }
   }
 }
