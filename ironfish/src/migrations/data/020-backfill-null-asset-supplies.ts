@@ -31,7 +31,7 @@ export class Migration020 extends Migration {
       let assetCount = 0
       logger.info(`  Clearing assets for account ${account.name}`)
       for await (const asset of account.getAssets(tx)) {
-        if (asset.owner.toString('hex') !== account.publicAddress) {
+        if (asset.creator.toString('hex') !== account.publicAddress) {
           continue
         }
 

@@ -111,7 +111,7 @@ export class Burn extends IronfishCommand {
       const asset = await selectAsset(client, account, {
         action: 'burn',
         showNativeAsset: false,
-        showNonOwnerAsset: true,
+        showNonCreatorAsset: true,
         showSingleAssetChoice: true,
         confirmations: flags.confirmations,
       })

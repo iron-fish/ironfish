@@ -81,11 +81,11 @@ mod test {
     #[test]
     fn test_burn_builder() {
         let key = SaplingKey::generate_key();
-        let owner = key.public_address();
+        let creator = key.public_address();
         let name = "name";
         let metadata = "{ 'token_identifier': '0x123' }";
 
-        let asset = Asset::new(owner, name, metadata).unwrap();
+        let asset = Asset::new(creator, name, metadata).unwrap();
         let value = 5;
 
         let builder = BurnBuilder::new(asset.id, value);
@@ -97,11 +97,11 @@ mod test {
     #[test]
     fn test_burn_description_serialization() {
         let key = SaplingKey::generate_key();
-        let owner = key.public_address();
+        let creator = key.public_address();
         let name = "name";
         let metadata = "{ 'token_identifier': '0x123' }";
 
-        let asset = Asset::new(owner, name, metadata).unwrap();
+        let asset = Asset::new(creator, name, metadata).unwrap();
         let value = 5;
 
         let builder = BurnBuilder::new(asset.id, value);

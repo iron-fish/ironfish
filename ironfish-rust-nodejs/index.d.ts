@@ -27,7 +27,6 @@ export function triggerSegfault(): void
 export const ASSET_ID_LENGTH: number
 export const ASSET_METADATA_LENGTH: number
 export const ASSET_NAME_LENGTH: number
-export const ASSET_OWNER_LENGTH: number
 export const ASSET_LENGTH: number
 export const NOTE_ENCRYPTION_KEY_LENGTH: number
 export const MAC_LENGTH: number
@@ -87,11 +86,11 @@ export class RollingFilter {
 }
 export type NativeAsset = Asset
 export class Asset {
-  constructor(ownerPublicAddress: string, name: string, metadata: string)
+  constructor(creatorPublicAddress: string, name: string, metadata: string)
   metadata(): Buffer
   name(): Buffer
   nonce(): number
-  owner(): Buffer
+  creator(): Buffer
   static nativeId(): Buffer
   id(): Buffer
   serialize(): Buffer

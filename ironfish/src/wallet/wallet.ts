@@ -538,7 +538,7 @@ export class Wallet {
           chainAsset.metadata,
           chainAsset.name,
           chainAsset.nonce,
-          chainAsset.owner,
+          chainAsset.creator,
           blockHeader,
           tx,
         )
