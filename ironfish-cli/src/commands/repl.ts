@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { NodeUtils, RpcMemoryClient } from '@ironfish/sdk'
+import { ALL_API_NAMESPACES, NodeUtils, RpcMemoryClient } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import fs from 'fs/promises'
 import repl from 'node:repl'
@@ -33,7 +33,7 @@ export default class Repl extends IronfishCommand {
     const { flags } = await this.parse(Repl)
 
     const node = await this.sdk.node()
-    const client = new RpcMemoryClient(this.logger, node)
+    const client = new RpcMemoryClient(this.logger, node.rpc.getRouter(ALL_API_NAMESPACES))
 
     if (flags.opendb) {
       await NodeUtils.waitForOpen(node)
