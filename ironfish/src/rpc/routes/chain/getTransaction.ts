@@ -7,8 +7,7 @@ import { BlockHashSerdeInstance } from '../../../serde'
 import { CurrencyUtils } from '../../../utils'
 import { NotFoundError, ValidationError } from '../../adapters'
 import { ApiNamespace, routes } from '../router'
-import { RpcSpend, RpcSpendSchema } from '../wallet/types'
-import { RpcNote, RpcNoteSchema } from './types'
+import { RpcNote, RpcNoteSchema, RpcSpend, RpcSpendSchema } from './types'
 
 export type GetTransactionRequest = { transactionHash: string; blockHash?: string }
 

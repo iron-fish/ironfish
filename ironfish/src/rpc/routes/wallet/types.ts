@@ -65,20 +65,6 @@ export const RpcWalletNoteSchema: yup.ObjectSchema<RpcWalletNote> = yup
   })
   .defined()
 
-export type RpcSpend = {
-  nullifier: string
-  commitment: string
-  size: number
-}
-
-export const RpcSpendSchema: yup.ObjectSchema<RpcSpend> = yup
-  .object({
-    nullifier: yup.string().defined(),
-    commitment: yup.string().defined(),
-    size: yup.number().defined(),
-  })
-  .defined()
-
 export type RpcAccountImport = Omit<AccountImport, 'createdAt'> & {
   createdAt: { hash: string; sequence: number } | null
 }
