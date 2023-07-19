@@ -700,7 +700,7 @@ describe('Accounts', () => {
         metadata: asset.metadata(),
         name: asset.name(),
         nonce: asset.nonce(),
-        owner: asset.owner(),
+        creator: asset.creator(),
         sequence: mintBlock.header.sequence,
         supply: value,
       })
@@ -735,7 +735,7 @@ describe('Accounts', () => {
         metadata: asset.metadata(),
         name: asset.name(),
         nonce: asset.nonce(),
-        owner: asset.owner(),
+        creator: asset.creator(),
         sequence: null,
         supply: BigInt(0),
       })
@@ -760,7 +760,7 @@ describe('Accounts', () => {
         metadata: asset.metadata(),
         name: asset.name(),
         nonce: asset.nonce(),
-        owner: asset.owner(),
+        creator: asset.creator(),
         sequence: secondMintBlock.header.sequence,
         supply: secondMintValue,
       })
@@ -806,7 +806,7 @@ describe('Accounts', () => {
         metadata: asset.metadata(),
         name: asset.name(),
         nonce: asset.nonce(),
-        owner: asset.owner(),
+        creator: asset.creator(),
         sequence: mintBlock.header.sequence,
         supply: mintValue - burnValue,
       })
@@ -844,7 +844,7 @@ describe('Accounts', () => {
         metadata: asset.metadata(),
         name: asset.name(),
         nonce: asset.nonce(),
-        owner: asset.owner(),
+        creator: asset.creator(),
         sequence: block.header.sequence,
         supply: null,
       })
@@ -1176,7 +1176,7 @@ describe('Accounts', () => {
         metadata: asset.metadata(),
         name: asset.name(),
         nonce: asset.nonce(),
-        owner: asset.owner(),
+        creator: asset.creator(),
         sequence: firstMintBlock.header.sequence,
         supply: firstMintValue + secondMintValue,
       })
@@ -1192,7 +1192,7 @@ describe('Accounts', () => {
         metadata: asset.metadata(),
         name: asset.name(),
         nonce: asset.nonce(),
-        owner: asset.owner(),
+        creator: asset.creator(),
         sequence: firstMintBlock.header.sequence,
         supply: firstMintValue,
       })
@@ -1210,7 +1210,7 @@ describe('Accounts', () => {
         metadata: asset.metadata(),
         name: asset.name(),
         nonce: asset.nonce(),
-        owner: asset.owner(),
+        creator: asset.creator(),
         sequence: null,
         supply: BigInt(0),
       })
@@ -1272,7 +1272,7 @@ describe('Accounts', () => {
         id: asset.id(),
         metadata: asset.metadata(),
         name: asset.name(),
-        owner: asset.owner(),
+        creator: asset.creator(),
         supply: mintValue - burnValue,
       })
 
@@ -1282,7 +1282,7 @@ describe('Accounts', () => {
         id: asset.id(),
         metadata: asset.metadata(),
         name: asset.name(),
-        owner: asset.owner(),
+        creator: asset.creator(),
         supply: mintValue,
       })
 
@@ -1310,7 +1310,7 @@ describe('Accounts', () => {
         metadata: asset.metadata(),
         name: asset.name(),
         nonce: asset.nonce(),
-        owner: asset.owner(),
+        creator: asset.creator(),
         sequence: block.header.sequence,
         supply: null,
       })
