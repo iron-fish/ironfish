@@ -11,7 +11,6 @@ import { isExpiredSequence } from '../consensus'
 import { Event } from '../event'
 import { Config } from '../fileStores'
 import { createRootLogger, Logger } from '../logger'
-import { MemPool } from '../memPool'
 import { getFee } from '../memPool/feeEstimator'
 import { Witness } from '../merkletree/witness'
 import { Mutex } from '../mutex'
@@ -81,7 +80,6 @@ export class Wallet {
   readonly workerPool: WorkerPool
   readonly chain: Blockchain
   readonly chainProcessor: ChainProcessor
-  readonly memPool: MemPool
   readonly nodeClient: RpcClient
   private readonly config: Config
 
@@ -98,7 +96,6 @@ export class Wallet {
   constructor({
     chain,
     config,
-    memPool,
     database,
     logger = createRootLogger(),
     rebroadcastAfter,
@@ -108,7 +105,6 @@ export class Wallet {
     chain: Blockchain
     config: Config
     database: WalletDB
-    memPool: MemPool
     logger?: Logger
     rebroadcastAfter?: number
     workerPool: WorkerPool
@@ -117,7 +113,6 @@ export class Wallet {
     this.chain = chain
     this.config = config
     this.logger = logger.withTag('accounts')
-    this.memPool = memPool
     this.walletDb = database
     this.workerPool = workerPool
     this.nodeClient = nodeClient
@@ -984,7 +979,9 @@ export class Wallet {
 
     if (broadcast) {
       await this.addPendingTransaction(transaction)
-      this.memPool.acceptTransaction(transaction)
+      await this.nodeClient.mempool.acceptTransaction({
+        transaction: transaction.serialize().toString('hex'),
+      })
       this.broadcastTransaction(transaction)
       this.onTransactionCreated.emit(transaction)
     }
