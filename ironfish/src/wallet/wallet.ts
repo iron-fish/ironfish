@@ -249,13 +249,13 @@ export class Wallet {
         continue
       }
 
-      if (!(await this.chain.hasBlock(account.createdAt.hash))) {
+      if (!(await this.chainHasBlock(account.createdAt.hash))) {
         await this.resetAccount(account, { resetCreatedAt: true })
       }
     }
 
     if (this.chainProcessor.hash) {
-      const hasHeadBlock = await this.chain.hasBlock(this.chainProcessor.hash)
+      const hasHeadBlock = await this.chainHasBlock(this.chainProcessor.hash)
 
       if (!hasHeadBlock) {
         this.logger.error(
@@ -1363,7 +1363,7 @@ export class Wallet {
     validateAccount(accountValue)
 
     let createdAt = accountValue.createdAt
-    if (createdAt !== null && !(await this.chain.hasBlock(createdAt.hash))) {
+    if (createdAt !== null && !(await this.chainHasBlock(createdAt.hash))) {
       this.logger.debug(
         `Account ${accountValue.name} createdAt block ${createdAt.hash.toString('hex')} (${
           createdAt.sequence
@@ -1582,6 +1582,19 @@ export class Wallet {
   protected assertNotHasAccount(account: Account): void {
     if (this.accountExists(account.name)) {
       throw new Error(`No account found with name ${account.name}`)
+    }
+  }
+
+  private async chainHasBlock(hash: Buffer): Promise<boolean> {
+    try {
+      await this.nodeClient.chain.getBlock({ hash: hash.toString('hex') })
+      return true
+    } catch (error) {
+      if (error instanceof Error) {
+        this.logger.error(error.message)
+      }
+
+      return false
     }
   }
 }
