@@ -20,7 +20,7 @@ describe('Route event/onTransactionGossip', () => {
 
     const response = await routeTest.client.request('event/onTransactionGossip').waitForRoute()
 
-    node.peerNetwork.onTransactionGossipReceived.emit(transaction)
+    node.peerNetwork.onTransactionGossipReceived.emit(transaction, true)
 
     const { value } = await response.contentStream().next()
 
