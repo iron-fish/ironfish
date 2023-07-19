@@ -22,6 +22,7 @@ import { Note } from '../primitives/note'
 import { NoteEncrypted } from '../primitives/noteEncrypted'
 import { MintData, RawTransaction } from '../primitives/rawTransaction'
 import { Transaction } from '../primitives/transaction'
+import { RpcClient } from '../rpc'
 import { IDatabaseTransaction } from '../storage/database/transaction'
 import {
   AsyncUtils,
@@ -81,6 +82,7 @@ export class Wallet {
   readonly chain: Blockchain
   readonly chainProcessor: ChainProcessor
   readonly memPool: MemPool
+  readonly nodeClient: RpcClient
   private readonly config: Config
 
   protected rebroadcastAfter: number
@@ -101,6 +103,7 @@ export class Wallet {
     logger = createRootLogger(),
     rebroadcastAfter,
     workerPool,
+    nodeClient,
   }: {
     chain: Blockchain
     config: Config
@@ -109,6 +112,7 @@ export class Wallet {
     logger?: Logger
     rebroadcastAfter?: number
     workerPool: WorkerPool
+    nodeClient: RpcClient
   }) {
     this.chain = chain
     this.config = config
@@ -116,6 +120,7 @@ export class Wallet {
     this.memPool = memPool
     this.walletDb = database
     this.workerPool = workerPool
+    this.nodeClient = nodeClient
     this.rebroadcastAfter = rebroadcastAfter ?? 10
     this.createTransactionMutex = new Mutex()
     this.eventLoopAbortController = new AbortController()
