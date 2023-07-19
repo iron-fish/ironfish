@@ -12,6 +12,7 @@ export type AcceptTransactionRequest = {
 
 export type AcceptTransactionResponse = {
   accepted: boolean
+  reason?: string
 }
 
 export const AcceptTransactionRequestSchema: yup.ObjectSchema<AcceptTransactionRequest> = yup
@@ -23,17 +24,27 @@ export const AcceptTransactionRequestSchema: yup.ObjectSchema<AcceptTransactionR
 export const AcceptTransactionResponseSchema: yup.ObjectSchema<AcceptTransactionResponse> = yup
   .object({
     accepted: yup.boolean().defined(),
+    reason: yup.string().optional(),
   })
   .defined()
 
 routes.register<typeof AcceptTransactionRequestSchema, AcceptTransactionResponse>(
   `${ApiNamespace.mempool}/acceptTransaction`,
   AcceptTransactionRequestSchema,
-  (request, { node }): void => {
+  async (request, { node }): Promise<void> => {
     Assert.isNotUndefined(node)
 
     const data = Buffer.from(request.data.transaction, 'hex')
     const transaction = new Transaction(data)
+
+    const verify = await node.chain.verifier.verifyNewTransaction(transaction)
+    if (!verify.valid) {
+      request.end({
+        accepted: false,
+        reason: String(verify.reason),
+      })
+      return
+    }
 
     const accepted = node.memPool.acceptTransaction(transaction)
     request.end({
