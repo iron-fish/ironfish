@@ -13,6 +13,8 @@ import { Config } from '../fileStores'
 import { createRootLogger, Logger } from '../logger'
 import { MemPool } from '../memPool'
 import { getFee } from '../memPool/feeEstimator'
+import { NoteHasher } from '../merkletree'
+import { Side } from '../merkletree/merkletree'
 import { Witness } from '../merkletree/witness'
 import { Mutex } from '../mutex'
 import { GENESIS_BLOCK_SEQUENCE } from '../primitives'
@@ -875,17 +877,6 @@ export class Wallet {
 
     const confirmations = options.confirmations ?? this.config.get('confirmations')
 
-    const maxConfirmedSequence = Math.max(
-      heaviestHead.sequence - confirmations,
-      GENESIS_BLOCK_SEQUENCE,
-    )
-    const maxConfirmedHeader = await this.chain.getHeaderAtSequence(maxConfirmedSequence)
-
-    Assert.isNotNull(maxConfirmedHeader)
-    Assert.isNotNull(maxConfirmedHeader.noteSize)
-
-    const notesTreeSize = maxConfirmedHeader.noteSize
-
     const expirationDelta =
       options.expirationDelta ?? this.config.get('transactionExpirationDelta')
 
@@ -943,7 +934,6 @@ export class Wallet {
         account: options.account,
         notes: options.notes,
         confirmations: confirmations,
-        notesTreeSize: notesTreeSize,
       })
 
       if (options.feeRate) {
@@ -954,7 +944,6 @@ export class Wallet {
           account: options.account,
           notes: options.notes,
           confirmations: confirmations,
-          notesTreeSize: notesTreeSize,
         })
       }
 
@@ -998,7 +987,6 @@ export class Wallet {
       account: Account
       notes?: Buffer[]
       confirmations: number
-      notesTreeSize: number
     },
   ): Promise<void> {
     const needed = this.buildAmountsNeeded(raw, { fee: raw.fee })
@@ -1014,7 +1002,7 @@ export class Wallet {
         }`,
       )
 
-      const witness = await this.getNoteWitness(decryptedNote, options.notesTreeSize)
+      const witness = await this.getNoteWitness(decryptedNote, options.confirmations)
 
       const assetId = decryptedNote.note.assetId()
 
@@ -1044,7 +1032,6 @@ export class Wallet {
         assetAmountSpent,
         assetNotesSpent,
         options.confirmations,
-        options.notesTreeSize,
       )
 
       if (amountSpent < assetAmountNeeded) {
@@ -1055,7 +1042,7 @@ export class Wallet {
 
   async getNoteWitness(
     note: DecryptedNoteValue,
-    treeSize: number,
+    confirmations?: number,
   ): Promise<Witness<NoteEncrypted, Buffer, Buffer, Buffer>> {
     Assert.isNotNull(
       note.index,
@@ -1064,7 +1051,19 @@ export class Wallet {
         .toString('hex')} is missing an index and cannot be spent.`,
     )
 
-    const witness = await this.chain.notes.witness(note.index, treeSize)
+    const response = await this.nodeClient.chain.getNoteWitness({
+      index: note.index,
+      confirmations: confirmations ?? this.config.get('confirmations'),
+    })
+    const witness = new Witness(
+      response.content.treeSize,
+      Buffer.from(response.content.rootHash, 'hex'),
+      response.content.authPath.map((node) => ({
+        hashOfSibling: Buffer.from(node.hashOfSibling, 'hex'),
+        side: node.side === 'Left' ? Side.Left : Side.Right,
+      })),
+      new NoteHasher(),
+    )
 
     Assert.isNotNull(
       witness,
@@ -1104,7 +1103,6 @@ export class Wallet {
     amountSpent: bigint,
     notesSpent: BufferSet,
     confirmations: number,
-    notesTreeSize: number,
   ): Promise<bigint> {
     for await (const unspentNote of sender.getUnspentNotes(assetId, {
       confirmations,
@@ -1113,7 +1111,7 @@ export class Wallet {
         continue
       }
 
-      const witness = await this.getNoteWitness(unspentNote, notesTreeSize)
+      const witness = await this.getNoteWitness(unspentNote, confirmations)
 
       amountSpent += unspentNote.note.value()
 
