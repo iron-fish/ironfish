@@ -4,8 +4,9 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { TransactionStatus, TransactionType } from '../../../wallet'
+import { RpcSpend, RpcSpendSchema } from '../chain'
 import { ApiNamespace, routes } from '../router'
-import { RpcSpend, RpcSpendSchema, RpcWalletNote, RpcWalletNoteSchema } from './types'
+import { RpcWalletNote, RpcWalletNoteSchema } from './types'
 import {
   getAccount,
   getAccountDecryptedNotes,
