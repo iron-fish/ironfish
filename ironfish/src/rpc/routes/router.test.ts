@@ -11,7 +11,7 @@ describe('Router', () => {
   it('should use yup schema', async () => {
     const schema = yup.string().default('default')
     const router = routeTest.client.router
-    Assert.isNotNull(router)
+    Assert.isNotUndefined(router)
     router.routes.register('foo/bar', schema, (request) => request.end(request.data))
 
     // should use default value from the schema
