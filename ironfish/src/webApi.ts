@@ -160,7 +160,7 @@ export class WebApi {
           id: mint.asset.id().toString('hex'),
           metadata: BufferUtils.toHuman(mint.asset.metadata()),
           name: BufferUtils.toHuman(mint.asset.name()),
-          // TODO(mat): Rename this when the API is updated; will need to be released together
+          // TODO(mat) IFL-1357: Rename this when the API is updated; will need to be released together
           owner: mint.asset.creator().toString('hex'),
           value: mint.value.toString(),
         })),
