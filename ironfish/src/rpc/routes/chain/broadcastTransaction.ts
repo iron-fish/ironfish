@@ -44,7 +44,6 @@ routes.register<typeof BroadcastTransactionRequestSchema, BroadcastTransactionRe
       throw new ValidationError(`Invalid transaction, reason: ${String(verify.reason)}`)
     }
 
-    node.memPool.acceptTransaction(transaction)
     node.peerNetwork.broadcastTransaction(transaction)
 
     request.end({
