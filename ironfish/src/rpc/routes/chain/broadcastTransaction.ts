@@ -33,13 +33,13 @@ export const BroadcastTransactionResponseSchema: yup.ObjectSchema<BroadcastTrans
 routes.register<typeof BroadcastTransactionRequestSchema, BroadcastTransactionResponse>(
   `${ApiNamespace.chain}/broadcastTransaction`,
   BroadcastTransactionRequestSchema,
-  (request, { node }): void => {
+  async (request, { node }): Promise<void> => {
     Assert.isNotUndefined(node)
 
     const data = Buffer.from(request.data.transaction, 'hex')
     const transaction = new Transaction(data)
 
-    const verify = node.chain.verifier.verifyCreatedTransaction(transaction)
+    const verify = await node.chain.verifier.verifyNewTransaction(transaction)
     if (!verify.valid) {
       throw new ValidationError(`Invalid transaction, reason: ${String(verify.reason)}`)
     }
