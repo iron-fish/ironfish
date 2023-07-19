@@ -158,6 +158,12 @@ export class IronfishNode {
       this.telemetry.submitBlockMined(block)
     })
 
+    this.peerNetwork.onTransactionGossipReceived.on((transaction, valid) => {
+      if (valid) {
+        void wallet.addPendingTransaction(transaction)
+      }
+    })
+
     this.peerNetwork.onTransactionAccepted.on((transaction, received) => {
       this.telemetry.submitNewTransactionSeen(transaction, received)
     })

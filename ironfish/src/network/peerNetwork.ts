@@ -109,7 +109,7 @@ export class PeerNetwork {
   readonly onIsReadyChanged = new Event<[boolean]>()
   readonly onTransactionAccepted = new Event<[transaction: Transaction, received: Date]>()
   readonly onBlockGossipReceived = new Event<[BlockHeader]>()
-  readonly onTransactionGossipReceived = new Event<[Transaction]>()
+  readonly onTransactionGossipReceived = new Event<[transaction: Transaction, valid: boolean]>()
 
   private started = false
   private readonly minPeers: number
@@ -1308,15 +1308,15 @@ export class PeerNetwork {
       return
     }
 
-    // Emit event even for invalid transactions
-    this.onTransactionGossipReceived.emit(transaction)
-
     // Check that the transaction is valid
     const { valid, reason } = await this.chain.verifier.verifyNewTransaction(transaction)
 
+    // Tell other systems like the wallet and block explorer syncer
+    // about new transactions from the network
+    this.onTransactionGossipReceived.emit(transaction, valid)
+
     if (!valid) {
       Assert.isNotUndefined(reason)
-      // Logging hash because unsignedHash is slow
       this.logger.debug(`Invalid transaction '${hash.toString('hex')}': ${reason}`)
       this.transactionFetcher.removeTransaction(hash)
       return
@@ -1330,10 +1330,6 @@ export class PeerNetwork {
       this.onTransactionAccepted.emit(transaction, received)
       this.broadcastTransaction(transaction)
     }
-
-    // Sync every transaction to the wallet, since senders and recipients may want to know
-    // about pending transactions even if they're not accepted to the mempool.
-    await this.node.wallet.addPendingTransaction(transaction)
 
     this.transactionFetcher.removeTransaction(hash)
   }
