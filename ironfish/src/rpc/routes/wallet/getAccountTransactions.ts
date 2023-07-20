@@ -3,9 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
-import { IronfishNode } from '../../../node'
 import { GENESIS_BLOCK_SEQUENCE } from '../../../primitives'
-import { TransactionStatus, TransactionType } from '../../../wallet'
+import { TransactionStatus, TransactionType, Wallet } from '../../../wallet'
 import { Account } from '../../../wallet/account/account'
 import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
 import { RpcRequest } from '../../request'
@@ -118,7 +117,7 @@ routes.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
       const transaction = await account.getTransaction(hashBuffer)
 
       if (transaction) {
-        await streamTransaction(request, node, account, transaction, options)
+        await streamTransaction(request, node.wallet, account, transaction, options)
       }
       request.end()
       return
@@ -145,7 +144,7 @@ routes.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
         break
       }
 
-      await streamTransaction(request, node, account, transaction, options)
+      await streamTransaction(request, node.wallet, account, transaction, options)
       count++
     }
 
@@ -155,7 +154,7 @@ routes.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
 
 const streamTransaction = async (
   request: RpcRequest<GetAccountTransactionsRequest, GetAccountTransactionsResponse>,
-  node: IronfishNode,
+  wallet: Wallet,
   account: Account,
   transaction: TransactionValue,
   options: {
@@ -169,7 +168,7 @@ const streamTransaction = async (
 
   let notes = undefined
   if (request.data.notes) {
-    notes = await getAccountDecryptedNotes(node, account, transaction)
+    notes = await getAccountDecryptedNotes(wallet.workerPool, account, transaction)
   }
 
   let spends = undefined
@@ -181,8 +180,8 @@ const streamTransaction = async (
     }))
   }
 
-  const status = await node.wallet.getTransactionStatus(account, transaction, options)
-  const type = await node.wallet.getTransactionType(account, transaction)
+  const status = await wallet.getTransactionStatus(account, transaction, options)
+  const type = await wallet.getTransactionType(account, transaction)
 
   const serialized = {
     ...serializedTransaction,

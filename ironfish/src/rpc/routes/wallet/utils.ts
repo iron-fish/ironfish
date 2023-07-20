@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { IronfishNode } from '../../../node'
 import { Note } from '../../../primitives'
 import { CurrencyUtils } from '../../../utils'
 import { Account, Wallet } from '../../../wallet'
@@ -9,6 +8,7 @@ import { AccountImport } from '../../../wallet/walletdb/accountValue'
 import { AssetValue } from '../../../wallet/walletdb/assetValue'
 import { DecryptedNoteValue } from '../../../wallet/walletdb/decryptedNoteValue'
 import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
+import { WorkerPool } from '../../../workerPool'
 import { ValidationError } from '../../adapters'
 import {
   RcpAccountAssetBalanceDelta,
@@ -88,7 +88,7 @@ export async function getAssetBalanceDeltas(
 }
 
 export async function getTransactionNotes(
-  node: IronfishNode,
+  workerPool: WorkerPool,
   account: Account,
   transaction: TransactionValue,
 ): Promise<Array<DecryptedNoteValue>> {
@@ -124,7 +124,7 @@ export async function getTransactionNotes(
   }
 
   if (accountHasSpend && decryptNotesPayloads.length > 0) {
-    const decryptedSends = await node.workerPool.decryptNotes(decryptNotesPayloads)
+    const decryptedSends = await workerPool.decryptNotes(decryptNotesPayloads)
 
     for (const note of decryptedSends) {
       if (note === null) {
@@ -148,11 +148,11 @@ export async function getTransactionNotes(
 }
 
 export async function getAccountDecryptedNotes(
-  node: IronfishNode,
+  workerPool: WorkerPool,
   account: Account,
   transaction: TransactionValue,
 ): Promise<RpcWalletNote[]> {
-  const notes = await getTransactionNotes(node, account, transaction)
+  const notes = await getTransactionNotes(workerPool, account, transaction)
 
   const serializedNotes: RpcWalletNote[] = []
 
