@@ -7,7 +7,7 @@ import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { ChainProcessor } from '../chainProcessor'
-import { isExpiredSequence } from '../consensus'
+import { Consensus, isExpiredSequence, Verifier } from '../consensus'
 import { Event } from '../event'
 import { Config } from '../fileStores'
 import { createRootLogger, Logger } from '../logger'
@@ -86,6 +86,7 @@ export class Wallet {
   readonly memPool: MemPool
   readonly nodeClient: RpcClient
   private readonly config: Config
+  readonly consensus: Consensus
 
   protected rebroadcastAfter: number
   protected defaultAccount: string | null = null
@@ -105,6 +106,7 @@ export class Wallet {
     logger = createRootLogger(),
     rebroadcastAfter,
     workerPool,
+    consensus,
     nodeClient,
   }: {
     chain: Blockchain
@@ -114,6 +116,7 @@ export class Wallet {
     logger?: Logger
     rebroadcastAfter?: number
     workerPool: WorkerPool
+    consensus: Consensus
     nodeClient: RpcClient
   }) {
     this.chain = chain
@@ -122,6 +125,7 @@ export class Wallet {
     this.memPool = memPool
     this.walletDb = database
     this.workerPool = workerPool
+    this.consensus = consensus
     this.nodeClient = nodeClient
     this.rebroadcastAfter = rebroadcastAfter ?? 10
     this.createTransactionMutex = new Mutex()
@@ -966,7 +970,8 @@ export class Wallet {
 
     const transaction = await this.workerPool.postTransaction(options.transaction, spendingKey)
 
-    const verify = this.chain.verifier.verifyCreatedTransaction(transaction)
+    const verify = Verifier.verifyCreatedTransaction(transaction, this.consensus)
+
     if (!verify.valid) {
       throw new Error(`Invalid transaction, reason: ${String(verify.reason)}`)
     }

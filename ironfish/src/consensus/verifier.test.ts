@@ -29,7 +29,7 @@ import {
   useTxSpendsFixture,
 } from '../testUtilities'
 import { useFixture } from '../testUtilities/fixtures/fixture'
-import { VerificationResultReason } from './verifier'
+import { VerificationResultReason, Verifier } from './verifier'
 
 describe('Verifier', () => {
   describe('Transaction', () => {
@@ -83,7 +83,7 @@ describe('Verifier', () => {
       const { transaction } = await useTxSpendsFixture(nodeTest.node)
       nodeTest.chain.consensus.parameters.maxBlockSizeBytes = getBlockWithMinersFeeSize()
 
-      const result = nodeTest.chain.verifier.verifyCreatedTransaction(transaction)
+      const result = Verifier.verifyCreatedTransaction(transaction, nodeTest.chain.consensus)
 
       expect(result).toEqual({
         reason: VerificationResultReason.MAX_TRANSACTION_SIZE_EXCEEDED,
@@ -110,7 +110,7 @@ describe('Verifier', () => {
 
       jest.spyOn(transaction.mints[0].asset, 'name').mockReturnValue(Buffer.alloc(32, 0))
 
-      const result = nodeTest.chain.verifier.verifyCreatedTransaction(transaction)
+      const result = Verifier.verifyCreatedTransaction(transaction, nodeTest.chain.consensus)
 
       expect(result).toEqual({
         reason: VerificationResultReason.INVALID_ASSET_NAME,
@@ -132,7 +132,7 @@ describe('Verifier', () => {
         burns: [{ assetId: Asset.nativeId(), value: BigInt(5) }],
       })
 
-      const result = nodeTest.chain.verifier.verifyCreatedTransaction(transaction)
+      const result = Verifier.verifyCreatedTransaction(transaction, nodeTest.chain.consensus)
 
       expect(result).toEqual({
         reason: VerificationResultReason.NATIVE_BURN,
@@ -152,7 +152,7 @@ describe('Verifier', () => {
 
       nodeTest.chain.consensus.parameters.minFee = txnFee + 1
 
-      const result = nodeTest.chain.verifier.verifyCreatedTransaction(transaction)
+      const result = Verifier.verifyCreatedTransaction(transaction, nodeTest.chain.consensus)
 
       expect(result).toEqual({
         reason: VerificationResultReason.MINIMUM_FEE_NOT_MET,
