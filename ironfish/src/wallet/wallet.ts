@@ -86,7 +86,7 @@ export class Wallet {
   readonly memPool: MemPool
   readonly nodeClient: RpcClient
   private readonly config: Config
-  private readonly consensus: Consensus
+  readonly consensus: Consensus
 
   protected rebroadcastAfter: number
   protected defaultAccount: string | null = null
