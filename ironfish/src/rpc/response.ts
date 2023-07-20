@@ -43,6 +43,14 @@ export class RpcResponse<TEnd = unknown, TStream = unknown> {
     return this as RpcResponseEnded<TEnd>
   }
 
+  close(): void {
+    this.stream.close()
+
+    if (this.timeout) {
+      clearTimeout(this.timeout)
+    }
+  }
+
   /*
    * Returns a generator of stream results. If a disconnect error occurs during
    * the streaming request it just causes the generator to end, the error is
