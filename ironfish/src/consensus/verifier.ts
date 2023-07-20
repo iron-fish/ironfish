@@ -21,6 +21,7 @@ import { Transaction } from '../primitives/transaction'
 import { IDatabaseTransaction } from '../storage'
 import { BufferUtils } from '../utils/buffer'
 import { WorkerPool } from '../workerPool'
+import { Consensus } from './consensus'
 import { isExpiredSequence } from './utils'
 
 export class Verifier {
@@ -93,12 +94,12 @@ export class Verifier {
 
       transactionHashes.add(tx.hash())
 
-      const mintVerify = this.verifyMints(tx.mints)
+      const mintVerify = Verifier.verifyMints(tx.mints)
       if (!mintVerify.valid) {
         return mintVerify
       }
 
-      const burnVerify = this.verifyBurns(tx.burns)
+      const burnVerify = Verifier.verifyBurns(tx.burns)
       if (!burnVerify.valid) {
         return burnVerify
       }
@@ -224,7 +225,11 @@ export class Verifier {
    * the mempool and rebroadcasted to the network.
    */
   async verifyNewTransaction(transaction: Transaction): Promise<VerificationResult> {
-    let verificationResult = this.verifyCreatedTransaction(transaction)
+    let verificationResult = Verifier.verifyCreatedTransaction(
+      transaction,
+      this.chain.consensus,
+    )
+
     if (!verificationResult.valid) {
       return verificationResult
     }
@@ -280,18 +285,18 @@ export class Verifier {
    * Verify that a transaction created by the account can be accepted into the mempool
    * and rebroadcasted to the network.
    */
-  verifyCreatedTransaction(transaction: Transaction): VerificationResult {
+  static verifyCreatedTransaction(
+    transaction: Transaction,
+    consensus: Consensus,
+  ): VerificationResult {
     if (
       getTransactionSize(transaction) >
-      Verifier.getMaxTransactionBytes(this.chain.consensus.parameters.maxBlockSizeBytes)
+      Verifier.getMaxTransactionBytes(consensus.parameters.maxBlockSizeBytes)
     ) {
       return { valid: false, reason: VerificationResultReason.MAX_TRANSACTION_SIZE_EXCEEDED }
     }
 
-    if (
-      !transaction.isMinersFee() &&
-      transaction.fee() < this.chain.consensus.parameters.minFee
-    ) {
+    if (!transaction.isMinersFee() && transaction.fee() < consensus.parameters.minFee) {
       return {
         valid: false,
         reason: VerificationResultReason.MINIMUM_FEE_NOT_MET,
@@ -426,7 +431,7 @@ export class Verifier {
     block: Block,
     tx?: IDatabaseTransaction,
   ): Promise<VerificationResult> {
-    const result = this.verifyInternalNullifiers(block.spends())
+    const result = Verifier.verifyInternalNullifiers(block.spends())
     if (!result.valid) {
       return result
     }
@@ -502,7 +507,7 @@ export class Verifier {
     })
   }
 
-  verifyMints(mints: MintDescription[]): VerificationResult {
+  static verifyMints(mints: MintDescription[]): VerificationResult {
     for (const mint of mints) {
       const humanName = BufferUtils.toHuman(mint.asset.name())
       if (humanName.length === 0) {
@@ -513,7 +518,7 @@ export class Verifier {
     return { valid: true }
   }
 
-  verifyBurns(burns: BurnDescription[]): VerificationResult {
+  static verifyBurns(burns: BurnDescription[]): VerificationResult {
     for (const burn of burns) {
       if (burn.assetId.equals(Asset.nativeId())) {
         return { valid: false, reason: VerificationResultReason.NATIVE_BURN }
@@ -528,7 +533,7 @@ export class Verifier {
    * the same nullifier as any other in the group. Should be checked at both the
    * block and transaction level.
    */
-  verifyInternalNullifiers(spends: Iterable<Spend>): VerificationResult {
+  static verifyInternalNullifiers(spends: Iterable<Spend>): VerificationResult {
     const nullifiers = new BufferSet()
     for (const spend of spends) {
       if (nullifiers.has(spend.nullifier)) {

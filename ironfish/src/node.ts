@@ -302,6 +302,7 @@ export class IronfishNode {
       memPool,
       database: walletDB,
       workerPool,
+      consensus,
       nodeClient: memoryClient,
     })
 
