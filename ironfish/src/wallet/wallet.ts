@@ -974,7 +974,7 @@ export class Wallet {
     if (broadcast) {
       await this.addPendingTransaction(transaction)
       this.memPool.acceptTransaction(transaction)
-      this.broadcastTransaction(transaction)
+      this.onBroadcastTransaction.emit(transaction)
       this.onTransactionCreated.emit(transaction)
     }
 
@@ -1186,7 +1186,7 @@ export class Wallet {
         if (!isValid) {
           continue
         }
-        this.broadcastTransaction(transaction)
+        this.onBroadcastTransaction.emit(transaction)
       }
     }
   }

@@ -155,6 +155,10 @@ export class IronfishNode {
       incomingWebSocketWhitelist: config.getArray('incomingWebSocketWhitelist'),
     })
 
+    wallet.onBroadcastTransaction.on((transaction) => {
+      this.peerNetwork.broadcastTransaction(transaction)
+    })
+
     this.miningManager.onNewBlock.on((block) => {
       this.telemetry.submitBlockMined(block)
     })
