@@ -5,7 +5,7 @@ import { Asset } from '@ironfish/rust-nodejs'
 import { BufferMap } from 'buffer-map'
 import MurmurHash3 from 'imurmurhash'
 import { Assert } from '../../assert'
-import { BlockHeader, Transaction } from '../../primitives'
+import { Transaction } from '../../primitives'
 import { GENESIS_BLOCK_SEQUENCE } from '../../primitives/block'
 import { Note } from '../../primitives/note'
 import { DatabaseKeyRange, IDatabaseTransaction } from '../../storage'
@@ -13,6 +13,7 @@ import { StorageUtils } from '../../storage/database/utils'
 import { WithNonNull } from '../../utils'
 import { DecryptedNote } from '../../workerPool/tasks/decryptNotes'
 import { AssetBalances } from '../assetBalances'
+import { WalletBlockHeader } from '../remoteChainProcessor'
 import { AccountValue } from '../walletdb/accountValue'
 import { AssetValue } from '../walletdb/assetValue'
 import { BalanceValue } from '../walletdb/balanceValue'
@@ -141,7 +142,7 @@ export class Account {
   }
 
   async connectTransaction(
-    blockHeader: BlockHeader,
+    blockHeader: WalletBlockHeader,
     transaction: Transaction,
     decryptedNotes: Array<DecryptedNote>,
     tx?: IDatabaseTransaction,
@@ -426,7 +427,7 @@ export class Account {
   }
 
   private async deleteDisconnectedMintsFromAssetsStore(
-    blockHeader: BlockHeader,
+    blockHeader: WalletBlockHeader,
     transaction: Transaction,
     tx: IDatabaseTransaction,
   ): Promise<void> {
@@ -559,7 +560,7 @@ export class Account {
   }
 
   async disconnectTransaction(
-    blockHeader: BlockHeader,
+    blockHeader: WalletBlockHeader,
     transaction: Transaction,
     tx?: IDatabaseTransaction,
   ): Promise<AssetBalances> {

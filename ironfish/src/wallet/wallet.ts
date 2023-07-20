@@ -6,7 +6,6 @@ import { BufferMap, BufferSet } from 'buffer-map'
 import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
-import { ChainProcessor } from '../chainProcessor'
 import { Consensus, isExpiredSequence, Verifier } from '../consensus'
 import { Event } from '../event'
 import { Config } from '../fileStores'
@@ -17,7 +16,6 @@ import { Side } from '../merkletree/merkletree'
 import { Witness } from '../merkletree/witness'
 import { Mutex } from '../mutex'
 import { GENESIS_BLOCK_SEQUENCE } from '../primitives'
-import { BlockHeader } from '../primitives/blockheader'
 import { BurnDescription } from '../primitives/burnDescription'
 import { Note } from '../primitives/note'
 import { NoteEncrypted } from '../primitives/noteEncrypted'
@@ -39,6 +37,8 @@ import { Account, ACCOUNT_SCHEMA_VERSION } from './account/account'
 import { AssetBalances } from './assetBalances'
 import { NotEnoughFundsError } from './errors'
 import { MintAssetOptions } from './interfaces/mintAssetOptions'
+import { WalletBlockHeader, WalletBlockTransaction } from './remoteChainProcessor'
+import { RemoteChainProcessor } from './remoteChainProcessor'
 import { validateAccount } from './validator'
 import { AccountValue } from './walletdb/accountValue'
 import { AssetValue } from './walletdb/assetValue'
@@ -80,7 +80,7 @@ export class Wallet {
   readonly logger: Logger
   readonly workerPool: WorkerPool
   readonly chain: Blockchain
-  readonly chainProcessor: ChainProcessor
+  readonly chainProcessor: RemoteChainProcessor
   readonly nodeClient: RpcClient
   private readonly config: Config
   readonly consensus: Consensus
@@ -125,24 +125,24 @@ export class Wallet {
     this.createTransactionMutex = new Mutex()
     this.eventLoopAbortController = new AbortController()
 
-    this.chainProcessor = new ChainProcessor({
+    this.chainProcessor = new RemoteChainProcessor({
       logger: this.logger,
-      chain: chain,
+      nodeClient: this.nodeClient,
       head: null,
     })
 
-    this.chainProcessor.onAdd.on(async (header) => {
+    this.chainProcessor.onAdd.on(async ({ header, transactions }) => {
       this.logger.debug(`AccountHead ADD: ${Number(header.sequence) - 1} => ${header.sequence}`)
 
-      await this.connectBlock(header)
+      await this.connectBlock(header, transactions)
       await this.expireTransactions(header.sequence)
       await this.rebroadcastTransactions(header.sequence)
     })
 
-    this.chainProcessor.onRemove.on(async (header) => {
+    this.chainProcessor.onRemove.on(async ({ header, transactions }) => {
       this.logger.debug(`AccountHead DEL: ${header.sequence} => ${Number(header.sequence) - 1}`)
 
-      await this.disconnectBlock(header)
+      await this.disconnectBlock(header, transactions)
     })
   }
 
@@ -394,7 +394,11 @@ export class Wallet {
     return decryptedNotes
   }
 
-  async connectBlock(blockHeader: BlockHeader, scan?: ScanState): Promise<void> {
+  async connectBlock(
+    blockHeader: WalletBlockHeader,
+    transactions: WalletBlockTransaction[],
+    scan?: ScanState,
+  ): Promise<void> {
     const accounts = await AsyncUtils.filter(this.listAccounts(), async (account) => {
       const accountHead = await account.getHead()
 
@@ -420,6 +424,7 @@ export class Wallet {
         if (shouldDecrypt) {
           assetBalanceDeltas = await this.connectBlockTransactions(
             blockHeader,
+            transactions,
             account,
             scan,
             tx,
@@ -447,7 +452,7 @@ export class Wallet {
   }
 
   async shouldDecryptForAccount(
-    blockHeader: BlockHeader,
+    blockHeader: WalletBlockHeader,
     account: Account,
     scan?: ScanState,
   ): Promise<boolean> {
@@ -476,13 +481,13 @@ export class Wallet {
   }
 
   private async connectBlockTransactions(
-    blockHeader: BlockHeader,
+    blockHeader: WalletBlockHeader,
+    transactions: WalletBlockTransaction[],
     account: Account,
     scan?: ScanState,
     tx?: IDatabaseTransaction,
   ): Promise<AssetBalances> {
     const assetBalanceDeltas = new AssetBalances()
-    const transactions = await this.chain.getBlockTransactions(blockHeader)
 
     for (const { transaction, initialNoteIndex } of transactions) {
       if (scan && scan.isAborted) {
@@ -516,7 +521,7 @@ export class Wallet {
   private async upsertAssetsFromDecryptedNotes(
     account: Account,
     decryptedNotes: DecryptedNote[],
-    blockHeader?: BlockHeader,
+    blockHeader?: WalletBlockHeader,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     for (const { serializedNote } of decryptedNotes) {
@@ -546,7 +551,10 @@ export class Wallet {
     }
   }
 
-  async disconnectBlock(header: BlockHeader): Promise<void> {
+  async disconnectBlock(
+    header: WalletBlockHeader,
+    transactions: WalletBlockTransaction[],
+  ): Promise<void> {
     const accounts = await AsyncUtils.filter(this.listAccounts(), async (account) => {
       const accountHead = await account.getHead()
 
@@ -557,8 +565,6 @@ export class Wallet {
       const assetBalanceDeltas = new AssetBalances()
 
       await this.walletDb.db.transaction(async (tx) => {
-        const transactions = await this.chain.getBlockTransactions(header)
-
         for (const { transaction } of transactions.slice().reverse()) {
           const transactionDeltas = await account.disconnectTransaction(header, transaction, tx)
 
@@ -672,7 +678,8 @@ export class Wallet {
       undefined,
       false,
     )) {
-      await this.connectBlock(blockHeader, scan)
+      const transactions = await this.chain.getBlockTransactions(blockHeader)
+      await this.connectBlock(blockHeader, transactions, scan)
       scan.signal(blockHeader.sequence)
     }
 
