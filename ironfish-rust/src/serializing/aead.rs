@@ -42,7 +42,6 @@ pub(crate) fn decrypt<const SIZE: usize>(
     ciphertext: &[u8],
 ) -> Result<[u8; SIZE], IronfishError> {
     let decryptor = ChaCha20Poly1305::new(Key::from_slice(key));
-
     let mut plaintext = [0u8; SIZE];
     plaintext.copy_from_slice(&ciphertext[..SIZE]);
 
@@ -63,6 +62,10 @@ mod test {
     use rand::Rng;
 
     use crate::{note::ENCRYPTED_NOTE_SIZE, serializing::aead};
+    use chacha20::ChaCha20;
+    use chacha20::cipher::KeyIvInit;
+    use chacha20::cipher::StreamCipherSeek;
+    use chacha20::cipher::StreamCipher;
 
     use super::{decrypt, encrypt};
 
@@ -80,4 +83,30 @@ mod test {
             decrypt(key, &encrypted_text[..]).expect("Should successfully decrypt plaintext");
         assert_eq!(decrypted_plaintext, plaintext);
     }
+
+    #[test]
+    fn test_partial_decrypt() {
+        let key = b"an example very very secret key.";
+        const SIZE: usize = ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE;
+        let mut plaintext = [0u8; ENCRYPTED_NOTE_SIZE];
+        // Fill with random bytes to emulate expected plaintext
+        rand::thread_rng().fill(&mut plaintext[..]);
+        let mut truncated_decrypted_text = [0u8; 52];
+        truncated_decrypted_text.copy_from_slice(&plaintext[..52]);
+    
+        // Encrypt the plaintext
+        let encrypted_text: [u8; SIZE] =
+            encrypt(key, &plaintext[..]).expect("Should successfully encrypt plaintext");
+    
+        // Truncate the encrypted byte array
+        let mut truncated_encrypted_text = [0u8; 52];
+        truncated_encrypted_text.copy_from_slice(&encrypted_text[..52]);
+    
+        let mut keystream = ChaCha20::new(key.as_ref().into(), [0u8; 12][..].into());
+        keystream.seek(64);
+        keystream.apply_keystream(&mut truncated_encrypted_text);
+        
+        assert!(truncated_encrypted_text == truncated_decrypted_text);
+    }
+    
 }
