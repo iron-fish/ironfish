@@ -169,7 +169,7 @@ const streamTransaction = async (
 
   let notes = undefined
   if (request.data.notes) {
-    notes = await getAccountDecryptedNotes(node, account, transaction)
+    notes = await getAccountDecryptedNotes(node.workerPool, account, transaction)
   }
 
   let spends = undefined

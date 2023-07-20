@@ -111,7 +111,7 @@ routes.register<typeof GetAccountTransactionRequestSchema, GetAccountTransaction
 
     const assetBalanceDeltas = await getAssetBalanceDeltas(account, transaction)
 
-    const notes = await getAccountDecryptedNotes(node, account, transaction)
+    const notes = await getAccountDecryptedNotes(node.workerPool, account, transaction)
 
     const spends = transaction.transaction.spends.map((spend) => ({
       nullifier: spend.nullifier.toString('hex'),

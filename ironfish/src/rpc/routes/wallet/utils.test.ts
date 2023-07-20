@@ -64,11 +64,19 @@ describe('Accounts utils', () => {
       Assert.isNotUndefined(transactionValue)
 
       // accountA should have both notes since it sent the transaction
-      const accountANotes = await getAccountDecryptedNotes(node, accountA, transactionValue)
+      const accountANotes = await getAccountDecryptedNotes(
+        node.workerPool,
+        accountA,
+        transactionValue,
+      )
       expect(accountANotes.length).toEqual(2)
 
       // accountB should only have one note since it received the transaction
-      const accountBNotes = await getAccountDecryptedNotes(node, accountB, transactionValue)
+      const accountBNotes = await getAccountDecryptedNotes(
+        node.workerPool,
+        accountB,
+        transactionValue,
+      )
       expect(accountBNotes.length).toEqual(1)
     })
     it('should not decrypt notes that the account did not send and did not receive', async () => {
@@ -88,7 +96,11 @@ describe('Accounts utils', () => {
       const decryptSpy = jest.spyOn(node.workerPool, 'decryptNotes')
 
       // accountB should only have one note since it received the transaction
-      const accountBNotes = await getAccountDecryptedNotes(node, accountB, transactionValue)
+      const accountBNotes = await getAccountDecryptedNotes(
+        node.workerPool,
+        accountB,
+        transactionValue,
+      )
       expect(accountBNotes.length).toEqual(1)
 
       // accountB did not send the transaction and has already decrypted the
