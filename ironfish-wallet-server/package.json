@@ -5,13 +5,7 @@
   "author": "Iron Fish <contact@ironfish.network> (https://ironfish.network)",
   "homepage": "https://github.com/iron-fish/ironfish#readme",
   "license": "MPL-2.0",
-  "main": "lib/ironfish-wallet-server.js",
-  "files": [
-    "dist/**/*.js",
-    "dist/**/*.d.ts",
-    "dist/**/*.d.ts.map",
-    "dist/**/*.json"
-  ],
+  "main": "dist/server.js",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/iron-fish/ironfish.git"

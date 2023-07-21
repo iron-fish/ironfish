@@ -1,8 +1,33 @@
 {
-  "extends": "../config/tsconfig.base.json",
   "compilerOptions": {
-    "outDir": "build"
+    "baseUrl": ".",
+    "paths": {},
+    "target": "ES2021",
+    "outDir": "dist",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "incremental": true,
+    "declaration": true,
+    "newLine": "lf",
+    "strict": true,
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noPropertyAccessFromIndexSignature": true,
+    // "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "removeComments": true,
+    "sourceMap": true,
+    "forceConsistentCasingInFileNames": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true
   },
-  "include": ["src", "package.json"],
-  "exclude": ["src/**/*.test.*"],
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "src/models"],
+  "references": [
+    { "path": "src/models" }
+  ]
 }
