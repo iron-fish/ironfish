@@ -4,8 +4,13 @@
 
 /* eslint-disable no-console */
 
+import { Asset } from '@ironfish/rust-nodejs'
 import path from 'path'
 import { v4 as uuid } from 'uuid'
+import { Assert } from '../assert'
+import { Transaction } from '../primitives'
+import { Account, Wallet } from '../wallet'
+import { createRawTransaction } from './helpers/transaction'
 
 export const TEST_DATA_DIR = path.join(process.cwd(), 'testdbs')
 
@@ -33,6 +38,32 @@ export function writeTestReport(
     console.info(`[TEST RESULTS: ${testName}]`)
     consoleReport.forEach((v, k) => console.info(`${k}: ${v}`))
   }
+}
+
+export async function splitNotes(
+  account: Account,
+  numOutputs: number,
+  wallet: Wallet,
+): Promise<Transaction> {
+  const outputs: { publicAddress: string; amount: bigint; memo: string; assetId: Buffer }[] = []
+  for (let i = 0; i < numOutputs; i++) {
+    outputs.push({
+      publicAddress: account.publicAddress,
+      amount: BigInt(1),
+      memo: '',
+      assetId: Asset.nativeId(),
+    })
+  }
+
+  const transaction = await createRawTransaction({
+    wallet: wallet,
+    from: account,
+    amount: BigInt(outputs.length),
+    outputs,
+  })
+
+  Assert.isNotNull(account.spendingKey)
+  return transaction.post(account.spendingKey)
 }
 
 /**
