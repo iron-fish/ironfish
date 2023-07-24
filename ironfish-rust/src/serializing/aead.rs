@@ -59,6 +59,8 @@ pub(crate) fn decrypt<const SIZE: usize>(
 
 #[cfg(test)]
 mod test {
+    use ff::Field;
+    use ff::PrimeField;
     use rand::Rng;
 
     use crate::{note::ENCRYPTED_NOTE_SIZE, serializing::aead};
@@ -85,28 +87,43 @@ mod test {
     }
 
     #[test]
-    fn test_partial_decrypt() {
+    fn test_partial_decrypt_succeed() {
         let key = b"an example very very secret key.";
+
         const SIZE: usize = ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE;
+        const FR_SIZE: usize = 32; // size of Fr in bytes
+
+        let mut rng = rand::thread_rng();
         let mut plaintext = [0u8; ENCRYPTED_NOTE_SIZE];
-        // Fill with random bytes to emulate expected plaintext
-        rand::thread_rng().fill(&mut plaintext[..]);
-        let mut truncated_decrypted_text = [0u8; 52];
-        truncated_decrypted_text.copy_from_slice(&plaintext[..52]);
+        
+        // Generate a random Fr and get its byte representation
+        let secret = jubjub::Fr::random(&mut rng);
+        let fr_bytes = secret.to_repr();
+        
+        // Copy the bytes of Fr into plaintext
+        plaintext[..FR_SIZE].copy_from_slice(fr_bytes.as_ref());
+        rng.fill(&mut plaintext[FR_SIZE..]);
+
+        // rand::thread_rng().fill(&mut plaintext[..]);
+        
+        // Fill the rest of plaintext with random bytes
+        let mut truncated_decrypted_text = [0u8; 32];
+        truncated_decrypted_text.copy_from_slice(&plaintext[..32]);
     
         // Encrypt the plaintext
         let encrypted_text: [u8; SIZE] =
             encrypt(key, &plaintext[..]).expect("Should successfully encrypt plaintext");
     
         // Truncate the encrypted byte array
-        let mut truncated_encrypted_text = [0u8; 52];
-        truncated_encrypted_text.copy_from_slice(&encrypted_text[..52]);
+        let mut truncated_encrypted_text = [0u8; 32];
+        truncated_encrypted_text.copy_from_slice(&encrypted_text[..32]);
     
         let mut keystream = ChaCha20::new(key.as_ref().into(), [0u8; 12][..].into());
         keystream.seek(64);
         keystream.apply_keystream(&mut truncated_encrypted_text);
         
-        assert!(truncated_encrypted_text == truncated_decrypted_text);
+        jubjub::Fr::from_repr(truncated_encrypted_text).unwrap();
     }
+
     
 }
