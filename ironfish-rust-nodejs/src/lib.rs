@@ -5,8 +5,10 @@
 use std::fmt::Display;
 
 use ironfish::keys::Language;
+use ironfish::note::Fr;
 use ironfish::PublicAddress;
 use ironfish::SaplingKey;
+use ironfish::serializing::hex_to_bytes;
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 
@@ -83,6 +85,7 @@ pub fn spending_key_to_words(private_key: String, language_code: LanguageCode) -
     Ok(mnemonic.into_phrase())
 }
 
+
 #[napi]
 pub fn words_to_spending_key(words: String, language_code: LanguageCode) -> Result<String> {
     let key = SaplingKey::from_words(words, language_code.into()).map_err(to_napi_err)?;
@@ -105,6 +108,17 @@ pub fn generate_key_from_private_key(private_key: String) -> Result<Key> {
 #[napi]
 pub fn initialize_sapling() {
     let _ = sapling_bls12::SAPLING.clone();
+}
+
+#[napi]
+pub fn is_valid_randomness(hex_bytes: String) -> bool {
+    match hex_to_bytes(&hex_bytes) {
+        Ok(bytes) => {
+            let randomness = ironfish::note::Fr::from_bytes(&bytes);
+            randomness.is_some().into()
+        }
+        Err(_) => false
+    }
 }
 
 #[napi(constructor)]

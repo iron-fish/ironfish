@@ -22,6 +22,7 @@ use ironfish_zkp::{
     Nullifier,
 };
 use jubjub::SubgroupPoint;
+pub use jubjub::Fr;
 use rand::thread_rng;
 use std::{fmt, io, io::Read};
 pub const ENCRYPTED_NOTE_SIZE: usize =
@@ -251,7 +252,6 @@ impl<'a> Note {
 
         bytes_to_encrypt[..SCALAR_SIZE].clone_from_slice(self.randomness.to_repr().as_ref());
         index += SCALAR_SIZE;
-
         LittleEndian::write_u64_into(
             &[self.value],
             &mut bytes_to_encrypt[index..(index + AMOUNT_VALUE_SIZE)],

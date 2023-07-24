@@ -95,9 +95,11 @@ routes.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
             size: getTransactionSize(transaction),
             fee: Number(transaction.fee()),
             expiration: transaction.expiration(),
-            notes: transaction.notes.map((note) => ({
-              commitment: note.hash().toString('hex'),
-            })),
+            notes: transaction.notes.map((note) => {
+              return {
+                commitment: note.hash().toString('hex'),
+              }
+            }),
             spends: transaction.spends.map((spend) => ({
               nullifier: spend.nullifier.toString('hex'),
               commitment: spend.commitment.toString('hex'),
