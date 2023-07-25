@@ -256,10 +256,6 @@ export class PeerNetwork {
       this.broadcastBlock(block)
       this.broadcastBlockHash(block.header)
     })
-
-    this.node.wallet.onBroadcastTransaction.on((transaction) => {
-      this.broadcastTransaction(transaction)
-    })
   }
 
   start(): void {

@@ -29,6 +29,7 @@ import { IDatabaseTransaction } from '../storage/database/transaction'
 import {
   AsyncUtils,
   BufferUtils,
+  ErrorUtils,
   PromiseResolve,
   PromiseUtils,
   SetTimeoutToken,
@@ -71,7 +72,6 @@ export enum TransactionType {
 export class Wallet {
   readonly onAccountImported = new Event<[account: Account]>()
   readonly onAccountRemoved = new Event<[account: Account]>()
-  readonly onBroadcastTransaction = new Event<[transaction: Transaction]>()
   readonly onTransactionCreated = new Event<[transaction: Transaction]>()
 
   scan: ScanState | null = null
@@ -979,7 +979,7 @@ export class Wallet {
     if (broadcast) {
       await this.addPendingTransaction(transaction)
       this.memPool.acceptTransaction(transaction)
-      this.broadcastTransaction(transaction)
+      await this.broadcastTransaction(transaction)
       this.onTransactionCreated.emit(transaction)
     }
 
@@ -1130,8 +1130,25 @@ export class Wallet {
     return amountSpent
   }
 
-  broadcastTransaction(transaction: Transaction): void {
-    this.onBroadcastTransaction.emit(transaction)
+  async broadcastTransaction(
+    transaction: Transaction,
+  ): Promise<{ accepted: boolean; broadcasted: boolean }> {
+    try {
+      const response = await this.nodeClient.chain.broadcastTransaction({
+        transaction: transaction.serialize().toString('hex'),
+      })
+      Assert.isNotNull(response.content)
+
+      return { accepted: response.content.accepted, broadcasted: true }
+    } catch (e: unknown) {
+      this.logger.warn(
+        `Failed to broadcast transaction ${transaction
+          .hash()
+          .toString('hex')}: ${ErrorUtils.renderError(e)}`,
+      )
+
+      return { accepted: false, broadcasted: false }
+    }
   }
 
   async rebroadcastTransactions(sequence: number): Promise<void> {
@@ -1191,7 +1208,7 @@ export class Wallet {
         if (!isValid) {
           continue
         }
-        this.broadcastTransaction(transaction)
+        await this.broadcastTransaction(transaction)
       }
     }
   }
