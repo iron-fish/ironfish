@@ -747,6 +747,25 @@ describe('Blockchain', () => {
     })
   })
 
+  it('should create a block', async () => {
+    const { node, chain, wallet } = await nodeTest.createSetup()
+
+    const accountA = await useAccountFixture(node.wallet, 'accountA')
+
+    const block2 = await useMinerBlockFixture(chain, undefined, accountA)
+    await expect(chain).toAddBlock(block2)
+
+    await node.wallet.updateHead()
+
+    const minersFeeTx = await useMinersTxFixture(wallet, accountA, undefined, 0)
+    const tx = await useTxFixture(node.wallet, accountA, accountA)
+
+    const newBlock = await chain.newBlock([tx], minersFeeTx, undefined, chain.head)
+    expect(Date.parse(newBlock.header.timestamp.toUTCString())).toBeGreaterThan(
+      Date.parse(chain.head.timestamp.toUTCString()),
+    )
+  })
+
   it('reject block with null previous hash', async () => {
     const { node } = await nodeTest.createSetup()
     const block = await useMinerBlockFixture(node.chain)

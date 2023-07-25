@@ -886,7 +886,8 @@ export class Blockchain {
       let previousBlockHash
       let previousSequence
       let target
-      const timestamp = new Date(Date.now())
+      let timestamp
+      const currentTime = Date.now()
 
       const originalNoteSize = await this.notes.size(tx)
 
@@ -894,6 +895,7 @@ export class Blockchain {
         previousBlockHash = GENESIS_BLOCK_PREVIOUS
         previousSequence = 0
         target = Target.maxTarget()
+        timestamp = new Date(currentTime)
       } else {
         const heaviestHead = this.head
 
@@ -910,6 +912,10 @@ export class Blockchain {
         if (previous && !previous.hash.equals(previousBlockHash)) {
           throw new HeadChangedError(`Can't create a block not attached to the chain head`)
         }
+
+        timestamp = new Date(
+          Math.max(currentTime, Date.parse(heaviestHead.timestamp.toUTCString()) + 1),
+        )
 
         target = Target.calculateTarget(
           timestamp,
