@@ -241,7 +241,7 @@ export class Verifier {
     }
 
     try {
-      verificationResult = await this.workerPool.verify(transaction)
+      verificationResult = await this.workerPool.verifyTransactions([transaction])
     } catch {
       verificationResult = { valid: false, reason: VerificationResultReason.VERIFY_TRANSACTION }
     }
@@ -296,7 +296,7 @@ export class Verifier {
       return { valid: false, reason: VerificationResultReason.MAX_TRANSACTION_SIZE_EXCEEDED }
     }
 
-    if (!transaction.isMinersFee() && transaction.fee() < consensus.parameters.minFee) {
+    if (transaction.fee() < consensus.parameters.minFee) {
       return {
         valid: false,
         reason: VerificationResultReason.MINIMUM_FEE_NOT_MET,
@@ -354,7 +354,7 @@ export class Verifier {
       return validity
     }
 
-    validity = await this.workerPool.verify(transaction)
+    validity = await this.workerPool.verifyTransactions([transaction])
     return validity
   }
 

@@ -23,11 +23,6 @@ import { PostTransactionRequest, PostTransactionResponse } from './tasks/postTra
 import { SleepRequest } from './tasks/sleep'
 import { SubmitTelemetryRequest } from './tasks/submitTelemetry'
 import {
-  VerifyTransactionOptions,
-  VerifyTransactionRequest,
-  VerifyTransactionResponse,
-} from './tasks/verifyTransaction'
-import {
   VerifyTransactionsRequest,
   VerifyTransactionsResponse,
 } from './tasks/verifyTransactions'
@@ -57,7 +52,6 @@ export class WorkerPool {
     [WorkerMessageType.PostTransaction, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.Sleep, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.SubmitTelemetry, { complete: 0, error: 0, queue: 0, execute: 0 }],
-    [WorkerMessageType.VerifyTransaction, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.VerifyTransactions, { complete: 0, error: 0, queue: 0, execute: 0 }],
   ])
 
@@ -151,25 +145,6 @@ export class WorkerPool {
     }
 
     return response.transaction
-  }
-
-  async verify(
-    transaction: Transaction,
-    options?: VerifyTransactionOptions,
-  ): Promise<VerificationResult> {
-    const request: VerifyTransactionRequest = new VerifyTransactionRequest(
-      transaction.serialize(),
-      options,
-    )
-
-    const response = await this.execute(request).result()
-    if (!(response instanceof VerifyTransactionResponse)) {
-      throw new Error('Invalid response')
-    }
-
-    return response.verified
-      ? { valid: true }
-      : { valid: false, reason: VerificationResultReason.ERROR }
   }
 
   async verifyTransactions(transactions: Array<Transaction>): Promise<VerificationResult> {
