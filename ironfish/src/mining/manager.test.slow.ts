@@ -55,12 +55,14 @@ describe('Mining manager', () => {
       await expect(chain).toAddBlock(block)
 
       const currentHeadHash = chain.head.hash.toString('hex')
+      const currentHeadTimestamp = Date.parse(chain.head.timestamp.toUTCString())
 
       // Wait for the first block template
       const template = (await collectTemplates(miningManager, 1))[0]
 
       expect(template.header.previousBlockHash).toBe(currentHeadHash)
       expect(template.transactions).toHaveLength(1)
+      expect(template.header.timestamp).toBeGreaterThan(currentHeadTimestamp)
 
       const minersFee = new Transaction(Buffer.from(template.transactions[0], 'hex'))
       expect(isTransactionMine(minersFee, account)).toBe(true)
