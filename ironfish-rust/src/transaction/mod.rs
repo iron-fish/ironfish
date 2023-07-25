@@ -775,12 +775,16 @@ fn calculate_value_balance(
 
 /// A convenience wrapper method around [`batch_verify_transactions`] for single
 /// transactions
-pub fn verify_transaction(transaction: &Transaction) -> Result<(), IronfishError> {
-    batch_verify_transactions(iter::once(transaction))
+pub fn verify_transaction(
+    transaction: &Transaction,
+    mint_owners: &[PublicAddress],
+) -> Result<(), IronfishError> {
+    batch_verify_transactions(iter::once(transaction), mint_owners)
 }
 
 fn internal_batch_verify_transactions<'a>(
     transactions: impl IntoIterator<Item = &'a Transaction>,
+    mint_owners: &[PublicAddress],
     spend_verifying_key: &PreparedVerifyingKey<Bls12>,
     output_verifying_key: &PreparedVerifyingKey<Bls12>,
     mint_verifying_key: &PreparedVerifyingKey<Bls12>,
@@ -841,9 +845,13 @@ fn internal_batch_verify_transactions<'a>(
         for mint in transaction.mints.iter() {
             mint.partial_verify()?;
 
+            let owner = mint_owners
+                .get(mint_proofs.len())
+                .ok_or(IronfishError::InvalidPublicAddress)?;
+
             mint_proofs.push(&mint.proof);
             mint_public_inputs.push(
-                mint.public_inputs(transaction.randomized_public_key())
+                mint.public_inputs(transaction.randomized_public_key(), owner)
                     .to_vec(),
             );
 
@@ -901,9 +909,11 @@ fn internal_batch_verify_transactions<'a>(
 ///
 pub fn batch_verify_transactions<'a>(
     transactions: impl IntoIterator<Item = &'a Transaction>,
+    mint_owners: &[PublicAddress],
 ) -> Result<(), IronfishError> {
     internal_batch_verify_transactions(
         transactions,
+        mint_owners,
         &SAPLING.spend_verifying_key,
         &SAPLING.output_verifying_key,
         &SAPLING.mint_verifying_key,

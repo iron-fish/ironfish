@@ -3,7 +3,7 @@ use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
 use ironfish::{
     assets::{asset::Asset, asset_identifier::NATIVE_ASSET},
     test_util::make_fake_witness,
-    transaction::{batch_verify_transactions, verify_transaction},
+    transaction::batch_verify_transactions,
     Note, ProposedTransaction, SaplingKey, Transaction,
 };
 
@@ -79,35 +79,6 @@ pub fn all_descriptions(c: &mut Criterion) {
     });
 }
 
-pub fn verify(c: &mut Criterion) {
-    c.bench_function("transaction::verify", |b| {
-        b.iter_batched(
-            // Setup
-            || {
-                let key = SaplingKey::generate_key();
-                let public_address = key.public_address();
-
-                let spend_note = Note::new(public_address, 42, "", NATIVE_ASSET, public_address);
-                let witness = make_fake_witness(&spend_note);
-
-                let out_note = Note::new(public_address, 41, "", NATIVE_ASSET, public_address);
-
-                let mut proposed = ProposedTransaction::new(key);
-
-                proposed.add_spend(spend_note, &witness).unwrap();
-                proposed.add_output(out_note).unwrap();
-
-                proposed.post(None, 1).unwrap()
-            },
-            // Benchmark
-            |tx| {
-                verify_transaction(&tx).unwrap();
-            },
-            BatchSize::LargeInput,
-        );
-    });
-}
-
 pub fn batch_verify(c: &mut Criterion) {
     c.bench_function("transaction::batch_verify", |b| {
         b.iter_batched(
@@ -139,7 +110,7 @@ pub fn batch_verify(c: &mut Criterion) {
             },
             // Benchmark
             |transactions| {
-                batch_verify_transactions(transactions.iter()).unwrap();
+                batch_verify_transactions(transactions.iter(), &[]).unwrap();
             },
             BatchSize::LargeInput,
         );
@@ -149,7 +120,7 @@ pub fn batch_verify(c: &mut Criterion) {
 criterion_group! {
     name = slow_benches;
     config = slow_config();
-    targets = simple, all_descriptions, verify
+    targets = simple, all_descriptions
 }
 criterion_group! {
     name = very_slow_benches;

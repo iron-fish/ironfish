@@ -81,7 +81,7 @@ impl MintBuilder {
 
         verify_mint_proof(
             &mint_description.proof,
-            &mint_description.public_inputs(randomized_public_key),
+            &mint_description.public_inputs(randomized_public_key, &spender_key.public_address()),
         )?;
 
         Ok(UnsignedMintDescription {
@@ -186,17 +186,20 @@ impl MintDescription {
         Ok(())
     }
 
-    pub fn public_inputs(&self, randomized_public_key: &redjubjub::PublicKey) -> [Scalar; 4] {
+    pub fn public_inputs(
+        &self,
+        randomized_public_key: &redjubjub::PublicKey,
+        owner: &PublicAddress,
+    ) -> [Scalar; 4] {
         let mut public_inputs = [Scalar::zero(); 4];
 
         let randomized_public_key_point = randomized_public_key.0.to_affine();
         public_inputs[0] = randomized_public_key_point.get_u();
         public_inputs[1] = randomized_public_key_point.get_v();
 
-        let creator_public_address_point =
-            ExtendedPoint::from(self.asset.creator.transmission_key).to_affine();
-        public_inputs[2] = creator_public_address_point.get_u();
-        public_inputs[3] = creator_public_address_point.get_v();
+        let owner_public_address_point = ExtendedPoint::from(owner.transmission_key).to_affine();
+        public_inputs[2] = owner_public_address_point.get_u();
+        public_inputs[3] = owner_public_address_point.get_v();
 
         public_inputs
     }
@@ -340,7 +343,7 @@ mod test {
 
         verify_mint_proof(
             &description.proof,
-            &description.public_inputs(&randomized_public_key),
+            &description.public_inputs(&randomized_public_key, &creator),
         )
         .expect("proof should check out");
 
@@ -358,7 +361,7 @@ mod test {
 
         assert!(verify_mint_proof(
             &description.proof,
-            &description.public_inputs(&other_randomized_public_key),
+            &description.public_inputs(&other_randomized_public_key, &asset.creator),
         )
         .is_err());
 
@@ -379,7 +382,7 @@ mod test {
         let value = 5;
         let mint = MintBuilder::new(asset, value);
 
-        test_mint_description_serialization(TransactionVersion::V1, &key, &mint);
+        test_mint_description_serialization(TransactionVersion::V1, &key, &mint, &creator);
     }
 
     #[test]
@@ -395,7 +398,7 @@ mod test {
         let mint = MintBuilder::new(asset, value);
         assert_eq!(mint.transfer_ownership_to, None);
 
-        test_mint_description_serialization(TransactionVersion::V2, &key, &mint);
+        test_mint_description_serialization(TransactionVersion::V2, &key, &mint, &creator);
     }
 
     #[test]
@@ -416,13 +419,14 @@ mod test {
             .unwrap(),
         );
 
-        test_mint_description_serialization(TransactionVersion::V2, &key, &mint);
+        test_mint_description_serialization(TransactionVersion::V2, &key, &mint, &creator);
     }
 
     fn test_mint_description_serialization(
         version: TransactionVersion,
         key: &SaplingKey,
         mint: &MintBuilder,
+        owner: &PublicAddress,
     ) {
         let public_key_randomness = jubjub::Fr::random(thread_rng());
         let randomized_public_key = redjubjub::PublicKey(key.view_key.authorizing_key.into())
@@ -441,7 +445,7 @@ mod test {
 
         verify_mint_proof(
             &description.proof,
-            &description.public_inputs(&randomized_public_key),
+            &description.public_inputs(&randomized_public_key, owner),
         )
         .expect("proof should check out");
 

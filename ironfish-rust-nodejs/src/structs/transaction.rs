@@ -6,6 +6,7 @@ use std::cell::RefCell;
 use std::convert::TryInto;
 
 use ironfish::assets::asset_identifier::AssetIdentifier;
+use ironfish::keys::PUBLIC_ADDRESS_SIZE;
 use ironfish::transaction::{
     batch_verify_transactions, TRANSACTION_EXPIRATION_SIZE, TRANSACTION_FEE_SIZE,
     TRANSACTION_PUBLIC_KEY_SIZE, TRANSACTION_SIGNATURE_SIZE,
@@ -293,8 +294,20 @@ impl NativeTransaction {
 }
 
 #[napi]
-pub fn verify_transactions(serialized_transactions: Vec<JsBuffer>) -> Result<bool> {
-    let mut transactions: Vec<Transaction> = vec![];
+pub fn verify_transactions(
+    serialized_transactions: Vec<JsBuffer>,
+    serialized_mint_owners: Vec<JsBuffer>,
+) -> Result<bool> {
+    let mut mint_owners: Vec<PublicAddress> = Vec::with_capacity(serialized_mint_owners.len());
+
+    for owner_bytes in serialized_mint_owners {
+        let mut buf = [0u8; PUBLIC_ADDRESS_SIZE];
+        buf.copy_from_slice(owner_bytes.into_value()?.as_ref());
+        // TODO: Introduce a PublicAddress.from_bytes_unchecked
+        mint_owners.push(PublicAddress::new(&buf).map_err(to_napi_err)?);
+    }
+
+    let mut transactions: Vec<Transaction> = Vec::with_capacity(serialized_transactions.len());
 
     for tx_bytes in serialized_transactions {
         let buf = tx_bytes.into_value()?;
@@ -304,5 +317,5 @@ pub fn verify_transactions(serialized_transactions: Vec<JsBuffer>) -> Result<boo
         }
     }
 
-    Ok(batch_verify_transactions(transactions.iter()).is_ok())
+    Ok(batch_verify_transactions(transactions.iter(), &mint_owners).is_ok())
 }

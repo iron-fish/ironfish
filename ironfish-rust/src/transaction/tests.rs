@@ -32,12 +32,13 @@ use rand::thread_rng;
 #[test]
 fn test_transaction() {
     let spender_key = SaplingKey::generate_key();
+    let spender_address = spender_key.public_address();
     let receiver_key = SaplingKey::generate_key();
     let sender_key = SaplingKey::generate_key();
 
     // Native asset
     let in_note = Note::new(
-        spender_key.public_address(),
+        spender_address,
         42,
         "",
         NATIVE_ASSET,
@@ -48,7 +49,7 @@ fn test_transaction() {
         40,
         "",
         NATIVE_ASSET,
-        spender_key.public_address(),
+        spender_address,
     );
 
     let witness = make_fake_witness(&in_note);
@@ -57,18 +58,15 @@ fn test_transaction() {
     let mint_value = 5;
     let burn_value = 2;
 
-    let asset = Asset::new(
-        spender_key.public_address(),
-        "Testcoin",
-        "A really cool coin",
-    )
-    .expect("should be able to create an asset");
+    let asset = Asset::new(spender_address, "Testcoin", "A really cool coin")
+        .expect("should be able to create an asset");
+
     let mint_out_note = Note::new(
         receiver_key.public_address(),
         2,
         "",
         *asset.id(),
-        spender_key.public_address(),
+        spender_address,
     );
 
     let mut transaction = ProposedTransaction::new(spender_key);
@@ -96,7 +94,8 @@ fn test_transaction() {
     let public_transaction = transaction
         .post(None, 1)
         .expect("should be able to post transaction");
-    verify_transaction(&public_transaction).expect("Should be able to verify transaction");
+    verify_transaction(&public_transaction, &[spender_address])
+        .expect("Should be able to verify transaction");
     assert_eq!(public_transaction.fee(), 1);
 
     // 4 outputs:
@@ -155,12 +154,14 @@ fn test_transaction() {
 #[test]
 fn test_transaction_simple() {
     let spender_key = SaplingKey::generate_key();
+    let spender_address = spender_key.public_address();
+    let spender_incoming_view_key = spender_key.incoming_viewing_key.clone();
+
     let receiver_key = SaplingKey::generate_key();
     let sender_key = SaplingKey::generate_key();
-    let spender_key_clone = spender_key.clone();
 
     let in_note = Note::new(
-        spender_key.public_address(),
+        spender_address,
         42,
         "",
         NATIVE_ASSET,
@@ -171,7 +172,7 @@ fn test_transaction_simple() {
         40,
         "",
         NATIVE_ASSET,
-        spender_key.public_address(),
+        spender_address,
     );
     let witness = make_fake_witness(&in_note);
 
@@ -184,7 +185,8 @@ fn test_transaction_simple() {
     let public_transaction = transaction
         .post(None, 1)
         .expect("should be able to post transaction");
-    verify_transaction(&public_transaction).expect("Should be able to verify transaction");
+    verify_transaction(&public_transaction, &[spender_address])
+        .expect("Should be able to verify transaction");
     assert_eq!(public_transaction.fee(), 1);
 
     // A change note was created
@@ -195,15 +197,16 @@ fn test_transaction_simple() {
 
     let received_note = public_transaction.outputs[1]
         .merkle_note()
-        .decrypt_note_for_owner(&spender_key_clone.incoming_viewing_key)
+        .decrypt_note_for_owner(&spender_incoming_view_key)
         .unwrap();
-    assert_eq!(received_note.sender, spender_key_clone.public_address());
+    assert_eq!(received_note.sender, spender_address);
 }
 
 #[test]
 fn test_miners_fee() {
     let spender_key = SaplingKey::generate_key();
     let receiver_key = SaplingKey::generate_key();
+
     let out_note = Note::new(
         receiver_key.public_address(),
         42,
@@ -211,11 +214,15 @@ fn test_miners_fee() {
         NATIVE_ASSET,
         spender_key.public_address(),
     );
+
     let mut transaction = ProposedTransaction::new(spender_key);
+
     transaction.add_output(out_note).unwrap();
+
     let posted_transaction = transaction
         .post_miners_fee()
         .expect("it is a valid miner's fee");
+
     assert_eq!(posted_transaction.fee, -42);
     assert_eq!(
         &posted_transaction
@@ -231,9 +238,11 @@ fn test_miners_fee() {
 #[test]
 fn test_transaction_signature() {
     let spender_key = SaplingKey::generate_key();
-    let receiver_key = SaplingKey::generate_key();
     let spender_address = spender_key.public_address();
+
+    let receiver_key = SaplingKey::generate_key();
     let receiver_address = receiver_key.public_address();
+
     let sender_key = SaplingKey::generate_key();
 
     let mut transaction = ProposedTransaction::new(spender_key);
@@ -270,6 +279,8 @@ fn test_transaction_signature() {
 #[test]
 fn test_transaction_created_with_version_1() {
     let spender_key = SaplingKey::generate_key();
+    let spender_address = spender_key.public_address();
+
     let receiver_key = SaplingKey::generate_key();
     let sender_key = SaplingKey::generate_key();
 
@@ -302,7 +313,8 @@ fn test_transaction_created_with_version_1() {
 
     assert_eq!(public_transaction.version, TransactionVersion::V1);
 
-    verify_transaction(&public_transaction).expect("version 1 transactions should be valid");
+    verify_transaction(&public_transaction, &[spender_address])
+        .expect("version 1 transactions should be valid");
 }
 
 #[test]
@@ -482,10 +494,14 @@ fn test_batch_verify_wrong_params() {
     // END TRANSACTION CREATION
     //
 
-    batch_verify_transactions([&transaction1, &transaction2])
-        .expect("Should verify using Sapling params");
+    batch_verify_transactions(
+        [&transaction1, &transaction2],
+        &[asset1.creator, asset2.creator],
+    )
+    .expect("Should verify using Sapling params");
     internal_batch_verify_transactions(
         [&transaction1, &transaction2],
+        &[asset1.creator, asset2.creator],
         &wrong_spend_vk,
         &SAPLING.output_verifying_key,
         &SAPLING.mint_verifying_key,
@@ -493,6 +509,7 @@ fn test_batch_verify_wrong_params() {
     .expect_err("Should not verify if spend verifying key is wrong");
     internal_batch_verify_transactions(
         [&transaction1, &transaction2],
+        &[asset1.creator, asset2.creator],
         &SAPLING.spend_verifying_key,
         &wrong_output_vk,
         &SAPLING.mint_verifying_key,
@@ -500,6 +517,7 @@ fn test_batch_verify_wrong_params() {
     .expect_err("Should not verify if output verifying key is wrong");
     internal_batch_verify_transactions(
         [&transaction1, &transaction2],
+        &[asset1.creator, asset2.creator],
         &SAPLING.spend_verifying_key,
         &SAPLING.output_verifying_key,
         &wrong_mint_vk,
@@ -573,14 +591,20 @@ fn test_batch_verify() {
 
     let transaction2 = proposed_transaction2.post(None, 0).unwrap();
 
-    batch_verify_transactions([&transaction1, &transaction2])
-        .expect("should be able to verify transaction");
+    batch_verify_transactions(
+        [&transaction1, &transaction2],
+        &[asset1.creator, asset2.creator],
+    )
+    .expect("should be able to verify transaction");
 
     let mut bad_transaction = transaction1.clone();
     bad_transaction.randomized_public_key = other_randomized_public_key;
 
     assert!(matches!(
-        batch_verify_transactions([&bad_transaction, &transaction2]),
+        batch_verify_transactions(
+            [&bad_transaction, &transaction2],
+            &[asset1.creator, asset1.creator],
+        ),
         Err(IronfishError::VerificationFailed)
     ));
 
@@ -588,7 +612,10 @@ fn test_batch_verify() {
     bad_transaction.spends[0].value_commitment = ExtendedPoint::random(thread_rng());
 
     assert!(matches!(
-        batch_verify_transactions([&bad_transaction, &transaction2]),
+        batch_verify_transactions(
+            [&bad_transaction, &transaction2],
+            &[asset1.creator, asset2.creator],
+        ),
         Err(IronfishError::VerificationFailed)
     ));
 
@@ -596,7 +623,10 @@ fn test_batch_verify() {
     bad_transaction.outputs[0].proof = bad_transaction.outputs[1].proof.clone();
 
     assert!(matches!(
-        batch_verify_transactions([&bad_transaction, &transaction2]),
+        batch_verify_transactions(
+            [&bad_transaction, &transaction2],
+            &[asset1.creator, asset2.creator],
+        ),
         Err(IronfishError::VerificationFailed)
     ));
 
@@ -604,7 +634,10 @@ fn test_batch_verify() {
     bad_transaction.mints[0].value = 999;
 
     assert!(matches!(
-        batch_verify_transactions([&bad_transaction, &transaction2]),
+        batch_verify_transactions(
+            [&bad_transaction, &transaction2],
+            &[asset1.creator, asset2.creator],
+        ),
         Err(IronfishError::VerificationFailed)
     ));
 }

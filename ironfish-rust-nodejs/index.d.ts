@@ -48,7 +48,7 @@ export const TRANSACTION_PUBLIC_KEY_RANDOMNESS_LENGTH: number
 export const TRANSACTION_EXPIRATION_LENGTH: number
 export const TRANSACTION_FEE_LENGTH: number
 export const TRANSACTION_VERSION: number
-export function verifyTransactions(serializedTransactions: Array<Buffer>): boolean
+export function verifyTransactions(serializedTransactions: Array<Buffer>, serializedMintOwners: Array<Buffer>): boolean
 export const enum LanguageCode {
   English = 0,
   ChineseSimplified = 1,
