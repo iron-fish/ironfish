@@ -48,7 +48,7 @@ describe('Route chain/getBlock', () => {
       if (!(e instanceof RpcRequestError)) {
         throw e
       }
-      expect(e.status).toBe(400)
+      expect(e.status).toBe(404)
       expect(e.code).toBe(ERROR_CODES.VALIDATION)
       expect(e.message).toContain('No block found with hash')
     }
@@ -86,7 +86,7 @@ describe('Route chain/getBlock', () => {
       if (!(e instanceof RpcRequestError)) {
         throw e
       }
-      expect(e.status).toBe(400)
+      expect(e.status).toBe(404)
       expect(e.code).toBe(ERROR_CODES.VALIDATION)
       expect(e.message).toContain('No block found with sequence')
     }
@@ -102,7 +102,7 @@ describe('Route chain/getBlock', () => {
       if (!(e instanceof RpcRequestError)) {
         throw e
       }
-      expect(e.status).toBe(400)
+      expect(e.status).toBe(404)
       expect(e.code).toBe(ERROR_CODES.VALIDATION)
       expect(e.message).toContain('No block with header')
     }
