@@ -1396,7 +1396,9 @@ describe('Accounts', () => {
           mints: [mintData],
         })
 
-        expect(transaction.mints).toEqual([{ asset: asset, value: mintValue }])
+        expect(transaction.mints).toEqual([
+          { asset: asset, value: mintValue, transferOwnershipTo: null },
+        ])
       })
 
       it('adds balance for the asset from the wallet', async () => {

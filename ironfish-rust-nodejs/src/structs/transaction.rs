@@ -44,7 +44,7 @@ pub const TRANSACTION_EXPIRATION_LENGTH: u32 = TRANSACTION_EXPIRATION_SIZE as u3
 pub const TRANSACTION_FEE_LENGTH: u32 = TRANSACTION_FEE_SIZE as u32;
 
 #[napi]
-pub const TRANSACTION_VERSION: u8 = TX_VERSION;
+pub const TRANSACTION_VERSION: u8 = TX_VERSION.as_u8();
 
 #[napi(js_name = "TransactionPosted")]
 pub struct NativeTransactionPosted {
