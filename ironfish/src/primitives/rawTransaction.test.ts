@@ -58,7 +58,7 @@ describe('RawTransaction', () => {
     })
 
     const posted = raw.post(account.spendingKey)
-    expect(posted.takeReference().verify()).toBe(true)
+    expect(await nodeTest.workerPool.verifyTransactions([posted])).toEqual({ valid: true })
     expect(posted.fee()).toEqual(5n)
     expect(posted.expiration()).toEqual(10)
     expect(posted.notes.length).toEqual(3)

@@ -609,19 +609,6 @@ impl Transaction {
         Ok(())
     }
 
-    /// Validate the transaction. Confirms that:
-    ///  *  Each of the spend proofs has the inputs it says it does
-    ///  *  Each of the output proofs has the inputs it says it has
-    ///  *  Each of the mint proofs has the inputs it says it has
-    ///  *  Each of the spend proofs was signed by the owner
-    ///  *  Each of the mint proofs was signed by the creator
-    ///  *  The entire transaction was signed with a binding signature
-    ///     containing those proofs (and only those proofs)
-    ///
-    pub fn verify(&self) -> Result<(), IronfishError> {
-        batch_verify_transactions(iter::once(self))
-    }
-
     /// Get an iterator over the spends in this transaction. Each spend
     /// is by reference
     pub fn iter_spends(&self) -> Iter<SpendDescription> {
@@ -780,6 +767,21 @@ fn calculate_value_balance(
     Ok(value_balance_point)
 }
 
+/// A convenience wrapper method around [`batch_verify_transactions`] for single
+/// transactions
+pub fn verify_transaction(transaction: &Transaction) -> Result<(), IronfishError> {
+    batch_verify_transactions(iter::once(transaction))
+}
+
+/// Validate the transaction. Confirms that:
+///  *  Each of the spend proofs has the inputs it says it has
+///  *  Each of the output proofs has the inputs it says it has
+///  *  Each of the mint proofs has the inputs it says it has
+///  *  Each of the spend proofs was signed by the owner
+///  *  Each of the mint proofs was signed by the owner
+///  *  The entire transaction was signed with a binding signature
+///     containing those proofs (and only those proofs)
+///
 pub fn batch_verify_transactions<'a>(
     transactions: impl IntoIterator<Item = &'a Transaction>,
 ) -> Result<(), IronfishError> {

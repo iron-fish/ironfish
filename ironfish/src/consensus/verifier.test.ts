@@ -55,7 +55,7 @@ describe('Verifier', () => {
       )
 
       expect(result).toEqual({
-        reason: VerificationResultReason.ERROR,
+        reason: VerificationResultReason.MINIMUM_FEE_NOT_MET,
         valid: false,
       })
     })
