@@ -71,7 +71,6 @@ export enum TransactionType {
 export class Wallet {
   readonly onAccountImported = new Event<[account: Account]>()
   readonly onAccountRemoved = new Event<[account: Account]>()
-  readonly onBroadcastTransaction = new Event<[transaction: Transaction]>()
   readonly onTransactionCreated = new Event<[transaction: Transaction]>()
 
   scan: ScanState | null = null
@@ -979,7 +978,7 @@ export class Wallet {
     if (broadcast) {
       await this.addPendingTransaction(transaction)
       this.memPool.acceptTransaction(transaction)
-      this.broadcastTransaction(transaction)
+      await this.broadcastTransaction(transaction)
       this.onTransactionCreated.emit(transaction)
     }
 
@@ -1130,8 +1129,10 @@ export class Wallet {
     return amountSpent
   }
 
-  broadcastTransaction(transaction: Transaction): void {
-    this.onBroadcastTransaction.emit(transaction)
+  async broadcastTransaction(transaction: Transaction): Promise<void> {
+    await this.nodeClient.chain.broadcastTransaction({
+      transaction: transaction.serialize().toString('hex'),
+    })
   }
 
   async rebroadcastTransactions(sequence: number): Promise<void> {
@@ -1191,7 +1192,7 @@ export class Wallet {
         if (!isValid) {
           continue
         }
-        this.broadcastTransaction(transaction)
+        await this.broadcastTransaction(transaction)
       }
     }
   }

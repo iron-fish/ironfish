@@ -1268,7 +1268,7 @@ describe('PeerNetwork', () => {
         const accountB = await useAccountFixture(wallet, 'accountB')
         const { transaction } = await useBlockWithTx(node, accountA, accountB)
 
-        await wallet.onBroadcastTransaction.emitAsync(transaction)
+        await wallet.broadcastTransaction(transaction)
 
         const sentHash = peers.filter(({ sendSpy }) => {
           return (
