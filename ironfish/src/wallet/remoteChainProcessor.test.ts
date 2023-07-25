@@ -15,7 +15,7 @@ describe('RemoteChainProcessor', () => {
       hash: blockHeader.hash,
       previousBlockHash: blockHeader.previousBlockHash,
       sequence: blockHeader.sequence,
-      timestamp: blockHeader.timestamp
+      timestamp: blockHeader.timestamp,
     }
   }
 
