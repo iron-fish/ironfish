@@ -328,7 +328,7 @@ fn test_transaction_version_is_checked() {
         .expect("should be able to post transaction");
 
     verify_transaction(&public_transaction)
-        .expect("non version 1 transactions should not be valid");
+        .expect_err("non version 1 transactions should not be valid");
 }
 
 #[test]
