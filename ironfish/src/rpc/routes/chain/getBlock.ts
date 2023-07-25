@@ -6,7 +6,7 @@ import { Assert } from '../../../assert'
 import { BlockHeader } from '../../../primitives'
 import { GENESIS_BLOCK_SEQUENCE } from '../../../primitives/block'
 import { BufferUtils } from '../../../utils'
-import { ValidationError } from '../../adapters'
+import { NotFoundError, ValidationError } from '../../adapters'
 import { ApiNamespace, routes } from '../router'
 
 export type GetBlockRequest = {
@@ -128,7 +128,7 @@ routes.register<typeof GetBlockRequestSchema, GetBlockResponse>(
     }
 
     if (!header) {
-      throw new ValidationError(error)
+      throw new NotFoundError(error)
     }
 
     if (header.noteSize === null) {

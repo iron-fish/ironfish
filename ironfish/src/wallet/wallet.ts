@@ -27,6 +27,7 @@ import { IDatabaseTransaction } from '../storage/database/transaction'
 import {
   AsyncUtils,
   BufferUtils,
+  ErrorUtils,
   PromiseResolve,
   PromiseUtils,
   SetTimeoutToken,
@@ -1589,12 +1590,13 @@ export class Wallet {
     try {
       await this.nodeClient.chain.getBlock({ hash: hash.toString('hex') })
       return true
-    } catch (error) {
-      if (error instanceof Error) {
-        this.logger.error(error.message)
+    } catch (error: unknown) {
+      if (ErrorUtils.isNotFoundError(error)) {
+        return false
       }
 
-      return false
+      this.logger.error(ErrorUtils.renderError(error, true))
+      throw error
     }
   }
 }
