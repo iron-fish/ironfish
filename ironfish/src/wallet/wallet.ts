@@ -1129,10 +1129,21 @@ export class Wallet {
     return amountSpent
   }
 
-  async broadcastTransaction(transaction: Transaction): Promise<void> {
-    await this.nodeClient.chain.broadcastTransaction({
-      transaction: transaction.serialize().toString('hex'),
-    })
+  async broadcastTransaction(
+    transaction: Transaction,
+  ): Promise<{ accepted: boolean; broadcasted: boolean }> {
+    try {
+      const response = await this.nodeClient.chain.broadcastTransaction({
+        transaction: transaction.serialize().toString('hex'),
+      })
+      Assert.isNotNull(response.content)
+
+      return { accepted: response.content.accepted, broadcasted: true }
+    } catch (e: unknown) {
+      this.logger.warn(`Failed to broadcast transaction ${transaction.hash().toString('hex')}`)
+
+      return { accepted: false, broadcasted: false }
+    }
   }
 
   async rebroadcastTransactions(sequence: number): Promise<void> {
