@@ -1264,6 +1264,8 @@ describe('PeerNetwork', () => {
           peer.version = VERSION_PROTOCOL
         }
 
+        jest.spyOn(peerNetwork, 'isReady', 'get').mockReturnValue(true)
+
         const accountA = await useAccountFixture(wallet, 'accountA')
         const accountB = await useAccountFixture(wallet, 'accountB')
         const { transaction } = await useBlockWithTx(node, accountA, accountB)
