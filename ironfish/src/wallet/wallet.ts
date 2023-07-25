@@ -29,6 +29,7 @@ import { IDatabaseTransaction } from '../storage/database/transaction'
 import {
   AsyncUtils,
   BufferUtils,
+  ErrorUtils,
   PromiseResolve,
   PromiseUtils,
   SetTimeoutToken,
@@ -1140,7 +1141,11 @@ export class Wallet {
 
       return { accepted: response.content.accepted, broadcasted: true }
     } catch (e: unknown) {
-      this.logger.warn(`Failed to broadcast transaction ${transaction.hash().toString('hex')}`)
+      this.logger.warn(
+        `Failed to broadcast transaction ${transaction
+          .hash()
+          .toString('hex')}: ${ErrorUtils.renderError(e)}`,
+      )
 
       return { accepted: false, broadcasted: false }
     }
