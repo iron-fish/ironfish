@@ -14,6 +14,7 @@ export type BroadcastTransactionRequest = {
 
 export type BroadcastTransactionResponse = {
   hash: string
+  accepted: boolean
 }
 
 export const BroadcastTransactionRequestSchema: yup.ObjectSchema<BroadcastTransactionRequest> =
@@ -27,6 +28,7 @@ export const BroadcastTransactionResponseSchema: yup.ObjectSchema<BroadcastTrans
   yup
     .object({
       hash: yup.string().defined(),
+      accepted: yup.boolean().defined(),
     })
     .defined()
 
@@ -44,9 +46,11 @@ routes.register<typeof BroadcastTransactionRequestSchema, BroadcastTransactionRe
       throw new ValidationError(`Invalid transaction, reason: ${String(verify.reason)}`)
     }
 
+    const accepted = node.memPool.acceptTransaction(transaction)
     node.peerNetwork.broadcastTransaction(transaction)
 
     request.end({
+      accepted,
       hash: transaction.hash().toString('hex'),
     })
   },
