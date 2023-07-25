@@ -250,13 +250,13 @@ export class Wallet {
         continue
       }
 
-      if (!(await this.chainHasBlock(account.createdAt.hash))) {
+      if (!(await this.chain.hasBlock(account.createdAt.hash))) {
         await this.resetAccount(account, { resetCreatedAt: true })
       }
     }
 
     if (this.chainProcessor.hash) {
-      const hasHeadBlock = await this.chainHasBlock(this.chainProcessor.hash)
+      const hasHeadBlock = await this.chain.hasBlock(this.chainProcessor.hash)
 
       if (!hasHeadBlock) {
         this.logger.error(
@@ -1594,6 +1594,8 @@ export class Wallet {
       if (ErrorUtils.isNotFoundError(error)) {
         return false
       }
+
+      // TODO(rohanjadvani): Add retry logic once the remote client is set up
 
       this.logger.error(ErrorUtils.renderError(error, true))
       throw error
