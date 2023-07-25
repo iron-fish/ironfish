@@ -4,8 +4,5 @@
 
 ## Usage
 
-```
-const ironfishWalletServer = require('ironfish-wallet-server');
-
-// TODO: DEMONSTRATE API
-```
+- `yarn build` - Codegen protobuf models.
+- `yarn serve` - Start gRPC server.
