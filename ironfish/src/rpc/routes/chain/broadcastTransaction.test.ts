@@ -12,8 +12,29 @@ import { createRouteTest } from '../../../testUtilities/routeTest'
 describe('Route chain/broadcastTransaction', () => {
   const routeTest = createRouteTest()
 
+  it('throws an error when the peer network is not ready', async () => {
+    const { node } = routeTest
+
+    const account = await useAccountFixture(node.wallet)
+    const block2 = await useMinerBlockFixture(node.chain, 2, account)
+
+    await node.chain.addBlock(block2)
+    await node.wallet.updateHead()
+
+    const transaction = await useTxFixture(node.wallet, account, account)
+
+    jest.spyOn(routeTest.peerNetwork, 'isReady', 'get').mockImplementationOnce(() => false)
+
+    await expect(
+      routeTest.client.chain.broadcastTransaction({
+        transaction: transaction.serialize().toString('hex'),
+      }),
+    ).rejects.toThrow('')
+  })
+
   it('should broadcast a transaction', async () => {
     const { node } = routeTest
+    jest.spyOn(routeTest.peerNetwork, 'isReady', 'get').mockImplementationOnce(() => true)
 
     const account = await useAccountFixture(node.wallet)
     const block2 = await useMinerBlockFixture(node.chain, 2, account)
@@ -35,6 +56,7 @@ describe('Route chain/broadcastTransaction', () => {
   })
 
   it("should return an error if the transaction won't deserialize", async () => {
+    jest.spyOn(routeTest.peerNetwork, 'isReady', 'get').mockImplementationOnce(() => true)
     await expect(
       routeTest.client.chain.broadcastTransaction({
         transaction: '0xdeadbeef',
@@ -44,6 +66,7 @@ describe('Route chain/broadcastTransaction', () => {
 
   it('should not broadcast double spend transactions', async () => {
     const { node } = routeTest
+    jest.spyOn(routeTest.peerNetwork, 'isReady', 'get').mockImplementationOnce(() => true)
 
     const account = await useAccountFixture(node.wallet)
     const block2 = await useMinerBlockFixture(node.chain, 2, account)
@@ -73,6 +96,7 @@ describe('Route chain/broadcastTransaction', () => {
 
   it('should add transaction to mempool and return the result', async () => {
     const { node } = routeTest
+    jest.spyOn(routeTest.peerNetwork, 'isReady', 'get').mockImplementationOnce(() => true)
 
     const account = await useAccountFixture(node.wallet)
     const block2 = await useMinerBlockFixture(node.chain, 2, account)

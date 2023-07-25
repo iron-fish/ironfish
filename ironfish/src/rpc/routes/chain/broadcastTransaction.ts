@@ -38,6 +38,10 @@ routes.register<typeof BroadcastTransactionRequestSchema, BroadcastTransactionRe
   async (request, { node }): Promise<void> => {
     Assert.isNotUndefined(node)
 
+    if (!node.peerNetwork.isReady) {
+      throw new ValidationError('Cannot broadcast transaction. Peer network is not ready')
+    }
+
     const data = Buffer.from(request.data.transaction, 'hex')
     const transaction = new Transaction(data)
 
