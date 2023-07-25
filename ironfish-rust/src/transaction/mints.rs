@@ -371,6 +371,55 @@ mod test {
     }
 
     #[test]
+    fn test_mint_different_owner_and_creator() {
+        let creator_key = SaplingKey::generate_key();
+        let creator_address = creator_key.public_address();
+
+        let owner_key = SaplingKey::generate_key();
+        let owner_address = owner_key.public_address();
+
+        let name = "name";
+        let metadata = "{ 'token_identifier': '0x123' }";
+
+        let asset = Asset::new(creator_address, name, metadata).unwrap();
+
+        let value = 5;
+
+        let public_key_randomness = jubjub::Fr::random(thread_rng());
+        let randomized_public_key = redjubjub::PublicKey(owner_key.view_key.authorizing_key.into())
+            .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);
+
+        let mint = MintBuilder::new(asset, value);
+        let unsigned_mint = mint
+            .build(&owner_key, &public_key_randomness, &randomized_public_key)
+            .expect("should build valid mint description");
+
+        // Signature comes from the transaction, normally
+        let sig_hash = [0u8; 32];
+
+        let description = unsigned_mint
+            .sign(&owner_key, &sig_hash)
+            .expect("should be able to sign proof");
+
+        verify_mint_proof(
+            &description.proof,
+            &description.public_inputs(&randomized_public_key, &owner_address),
+        )
+        .expect("proof should check out");
+
+        description
+            .verify_signature(&sig_hash, &randomized_public_key)
+            .expect("should be able to verify signature");
+
+        let creator_randomized_public_key =
+            redjubjub::PublicKey(creator_key.view_key.authorizing_key.into())
+                .randomize(jubjub::Fr::random(thread_rng()), *SPENDING_KEY_GENERATOR);
+        assert!(description
+            .verify_signature(&sig_hash, &creator_randomized_public_key)
+            .is_err());
+    }
+
+    #[test]
     fn test_mint_description_serialization_v1() {
         let key = SaplingKey::generate_key();
         let creator = key.public_address();

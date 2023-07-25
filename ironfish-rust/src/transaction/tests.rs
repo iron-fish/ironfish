@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#[cfg(test)]
-use super::internal_batch_verify_transactions;
-use super::{ProposedTransaction, Transaction};
+use super::{
+    batch_verify_transactions, internal_batch_verify_transactions, ProposedTransaction, Transaction,
+};
 use crate::{
     assets::{asset::Asset, asset_identifier::NATIVE_ASSET},
     errors::IronfishError,
@@ -14,8 +14,8 @@ use crate::{
     sapling_bls12::SAPLING,
     test_util::make_fake_witness,
     transaction::{
-        batch_verify_transactions, verify_transaction, TransactionVersion,
-        TRANSACTION_EXPIRATION_SIZE, TRANSACTION_FEE_SIZE, TRANSACTION_SIGNATURE_SIZE,
+        verify_transaction, TransactionVersion, TRANSACTION_EXPIRATION_SIZE, TRANSACTION_FEE_SIZE,
+        TRANSACTION_SIGNATURE_SIZE,
     },
 };
 
@@ -640,4 +640,51 @@ fn test_batch_verify() {
         ),
         Err(IronfishError::VerificationFailed)
     ));
+}
+
+#[test]
+fn test_mint_multiple_owners() {
+    // Batch verify 2 transactions:
+    // Transaction 1 has 2 mints by the creator
+    // Transaction 2 has 1 mint by a new owner
+
+    let creator_key = SaplingKey::generate_key();
+    let creator_address = creator_key.public_address();
+
+    let new_owner_key = SaplingKey::generate_key();
+    let new_owner_address = new_owner_key.public_address();
+
+    let receiver_key = SaplingKey::generate_key();
+    let receiver_address = receiver_key.public_address();
+
+    let asset = Asset::new(creator_address, "Testcoin", "").unwrap();
+
+    let value = 5;
+
+    let mint_out_note1 = Note::new(receiver_address, value, "", *asset.id(), creator_address);
+    let mint_out_note2 = Note::new(receiver_address, value, "", *asset.id(), creator_address);
+    let mint_out_note3 = Note::new(receiver_address, value, "", *asset.id(), new_owner_address);
+
+    let mut proposed_transaction1 = ProposedTransaction::new(creator_key);
+
+    proposed_transaction1.add_mint(asset, value).unwrap();
+    proposed_transaction1.add_mint(asset, value).unwrap();
+
+    proposed_transaction1.add_output(mint_out_note1).unwrap();
+    proposed_transaction1.add_output(mint_out_note2).unwrap();
+
+    let mut proposed_transaction2 = ProposedTransaction::new(new_owner_key);
+
+    proposed_transaction2.add_mint(asset, value).unwrap();
+
+    proposed_transaction2.add_output(mint_out_note3).unwrap();
+
+    let transaction1 = proposed_transaction1.post(None, 0).unwrap();
+    let transaction2 = proposed_transaction2.post(None, 0).unwrap();
+
+    batch_verify_transactions(
+        &[transaction1, transaction2],
+        &[creator_address, creator_address, new_owner_address],
+    )
+    .expect("should be able to batch verify mints with changing owners");
 }
