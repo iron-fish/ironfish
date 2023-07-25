@@ -1178,13 +1178,7 @@ export class Wallet {
           continue
         }
 
-        let isValid = true
         await this.walletDb.db.transaction(async (tx) => {
-          const verify = await this.chain.verifier.verifyTransactionAdd(transaction)
-
-          // We still update this even if it's not valid to prevent constantly
-          // reprocessing valid transaction every block. Give them a few blocks to
-          // try to become valid.
           await this.walletDb.saveTransaction(
             account,
             transactionHash,
@@ -1194,20 +1188,8 @@ export class Wallet {
             },
             tx,
           )
-
-          if (!verify.valid) {
-            isValid = false
-            this.logger.debug(
-              `Ignoring invalid transaction during rebroadcast ${transactionHash.toString(
-                'hex',
-              )}, reason ${String(verify.reason)} seq: ${sequence}`,
-            )
-          }
         })
 
-        if (!isValid) {
-          continue
-        }
         await this.broadcastTransaction(transaction)
       }
     }
