@@ -19,6 +19,7 @@ import { MintDescription } from '../primitives/mintDescription'
 import { Target } from '../primitives/target'
 import { Transaction } from '../primitives/transaction'
 import { IDatabaseTransaction } from '../storage'
+import { BlockchainUtils } from '../utils'
 import { BufferUtils } from '../utils/buffer'
 import { WorkerPool } from '../workerPool'
 import { Consensus } from './consensus'
@@ -47,6 +48,7 @@ export class Verifier {
   async verifyBlock(
     block: Block,
     options: { verifyTarget?: boolean } = { verifyTarget: true },
+    tx?: IDatabaseTransaction,
   ): Promise<VerificationResult> {
     if (getBlockSize(block) > this.chain.consensus.parameters.maxBlockSizeBytes) {
       return { valid: false, reason: VerificationResultReason.MAX_BLOCK_SIZE_EXCEEDED }
@@ -76,7 +78,9 @@ export class Verifier {
 
     let transactionBatch = []
     let runningNotesCount = 0
+    let mintOwners = []
     const transactionHashes = new BufferSet()
+    const assetOwners = await BlockchainUtils.getAssetOwners(this.chain, block.mints(), tx)
     for (const [idx, tx] of block.transactions.entries()) {
       if (isExpiredSequence(tx.expiration(), block.header.sequence)) {
         return {
@@ -104,15 +108,34 @@ export class Verifier {
         return burnVerify
       }
 
+      for (const mint of tx.mints) {
+        const assetId = mint.asset.id()
+        const assetOwner = assetOwners.get(assetId)
+
+        if (assetOwner) {
+          mintOwners.push(assetOwner)
+        } else {
+          // The first time this asset has been minted, so it is not in the database yet
+          const creator = mint.asset.creator()
+          mintOwners.push(creator)
+          assetOwners.set(assetId, creator)
+        }
+
+        // TODO: Update assetOwners if ownership is transferred when IFL-1326 is done
+      }
+
       transactionBatch.push(tx)
 
       runningNotesCount += tx.notes.length
 
       if (runningNotesCount >= notesLimit || idx === block.transactions.length - 1) {
-        verificationPromises.push(this.workerPool.verifyTransactions(transactionBatch))
+        verificationPromises.push(
+          this.workerPool.verifyTransactions(transactionBatch, mintOwners),
+        )
 
         transactionBatch = []
         runningNotesCount = 0
+        mintOwners = []
       }
     }
 
@@ -224,7 +247,10 @@ export class Verifier {
    * Verify that a new transaction received over the network can be accepted into
    * the mempool and rebroadcasted to the network.
    */
-  async verifyNewTransaction(transaction: Transaction): Promise<VerificationResult> {
+  async verifyNewTransaction(
+    transaction: Transaction,
+    tx?: IDatabaseTransaction,
+  ): Promise<VerificationResult> {
     let verificationResult = Verifier.verifyCreatedTransaction(
       transaction,
       this.chain.consensus,
@@ -240,8 +266,29 @@ export class Verifier {
       return { valid: false, reason: VerificationResultReason.INVALID_TRANSACTION_VERSION }
     }
 
+    // TODO: Pass db tx, this will deadlock
+    const assetOwners = await BlockchainUtils.getAssetOwners(this.chain, transaction.mints, tx)
+    const mintOwners: Buffer[] = []
+
+    for (const mint of transaction.mints) {
+      const assetId = mint.asset.id()
+      const assetOwner = assetOwners.get(assetId)
+
+      if (assetOwner) {
+        mintOwners.push(assetOwner)
+      } else {
+        // The first time this asset has been minted, so it is not in the database yet
+        const creator = mint.asset.creator()
+        mintOwners.push(creator)
+        // Still want to set the owner in the map for subsequent mints
+        assetOwners.set(assetId, creator)
+      }
+
+      // TODO: Update assetOwners if ownership is transferred when IFL-1326 is done
+    }
+
     try {
-      verificationResult = await this.workerPool.verifyTransactions([transaction])
+      verificationResult = await this.workerPool.verifyTransactions([transaction], mintOwners)
     } catch {
       verificationResult = { valid: false, reason: VerificationResultReason.VERIFY_TRANSACTION }
     }
@@ -354,7 +401,26 @@ export class Verifier {
       return validity
     }
 
-    validity = await this.workerPool.verifyTransactions([transaction])
+    const assetOwners = await BlockchainUtils.getAssetOwners(this.chain, transaction.mints, tx)
+    const mintOwners: Buffer[] = []
+
+    for (const mint of transaction.mints) {
+      const assetId = mint.asset.id()
+      const assetOwner = assetOwners.get(assetId)
+
+      if (assetOwner) {
+        mintOwners.push(assetOwner)
+      } else {
+        // The first time this asset has been minted, so it is not in the database yet
+        const creator = mint.asset.creator()
+        mintOwners.push(creator)
+        assetOwners.set(assetId, creator)
+      }
+
+      // TODO: Update assetOwners if ownership is transferred when IFL-1326 is done
+    }
+
+    validity = await this.workerPool.verifyTransactions([transaction], mintOwners)
     return validity
   }
 
@@ -378,7 +444,11 @@ export class Verifier {
   }
 
   // TODO: Rename to verifyBlock but merge verifyBlock into this
-  async verifyBlockAdd(block: Block, prev: BlockHeader | null): Promise<VerificationResult> {
+  async verifyBlockAdd(
+    block: Block,
+    prev: BlockHeader | null,
+    tx?: IDatabaseTransaction,
+  ): Promise<VerificationResult> {
     if (block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
       return { valid: true }
     }
@@ -392,7 +462,7 @@ export class Verifier {
       return verification
     }
 
-    verification = await this.verifyBlock(block)
+    verification = await this.verifyBlock(block, {}, tx)
     if (!verification.valid) {
       return verification
     }

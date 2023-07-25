@@ -147,9 +147,12 @@ export class WorkerPool {
     return response.transaction
   }
 
-  async verifyTransactions(transactions: Array<Transaction>): Promise<VerificationResult> {
+  async verifyTransactions(
+    transactions: Transaction[],
+    mintOwners: Buffer[],
+  ): Promise<VerificationResult> {
     const txs = transactions.map((tx) => tx.serialize())
-    const request: VerifyTransactionsRequest = new VerifyTransactionsRequest(txs)
+    const request: VerifyTransactionsRequest = new VerifyTransactionsRequest(txs, mintOwners)
 
     const response = await this.execute(request).result()
     if (!(response instanceof VerifyTransactionsResponse)) {

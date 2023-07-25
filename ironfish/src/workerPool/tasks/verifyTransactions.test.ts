@@ -16,7 +16,7 @@ import {
 describe('VerifyTransactionsRequest', () => {
   it('serializes the object to a buffer and deserializes to the original object', () => {
     const mockTransactionPosted = Buffer.from('')
-    const request = new VerifyTransactionsRequest([mockTransactionPosted])
+    const request = new VerifyTransactionsRequest([mockTransactionPosted], [])
     const buffer = serializePayloadToBuffer(request)
     const deserializedRequest = VerifyTransactionsRequest.deserializePayload(
       request.jobId,
@@ -47,7 +47,7 @@ describe('VerifyTransactionsTask', () => {
       const transaction = await useMinersTxFixture(nodeTest.node, account)
 
       const task = new VerifyTransactionsTask()
-      const request = new VerifyTransactionsRequest([transaction.serialize()])
+      const request = new VerifyTransactionsRequest([transaction.serialize()], [])
 
       const response = task.execute(request)
       expect(response).toEqual(new VerifyTransactionsResponse(true, request.jobId))

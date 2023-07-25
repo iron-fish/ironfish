@@ -114,7 +114,7 @@ describe('Demonstrate the Sapling API', () => {
     it('Can verify the miner transaction', async () => {
       const serializedTransaction = minerTransaction.serialize()
       const deserializedTransaction = new Transaction(serializedTransaction)
-      expect(await workerPool.verifyTransactions([deserializedTransaction])).toEqual({
+      expect(await workerPool.verifyTransactions([deserializedTransaction], [])).toEqual({
         valid: true,
       })
     })
@@ -158,7 +158,7 @@ describe('Demonstrate the Sapling API', () => {
 
     it('Can verify the transaction', async () => {
       const transaction = new Transaction(publicTransaction.serialize())
-      expect(await workerPool.verifyTransactions([transaction])).toEqual({
+      expect(await workerPool.verifyTransactions([transaction], [])).toEqual({
         valid: true,
       })
       for (let i = 0; i < publicTransaction.notesLength(); i++) {
@@ -187,7 +187,7 @@ describe('Demonstrate the Sapling API', () => {
       const minersFee = await strategy.createMinersFee(0n, 0, generateKey().spendingKey)
 
       expect(minersFee['transactionPosted']).toBeNull()
-      expect(await workerPool.verifyTransactions([minersFee])).toEqual({ valid: true })
+      expect(await workerPool.verifyTransactions([minersFee], [])).toEqual({ valid: true })
       expect(minersFee['transactionPosted']).toBeNull()
     })
 
@@ -310,7 +310,9 @@ describe('Demonstrate the Sapling API', () => {
 
       const postedTransaction = new Transaction(transaction.post(undefined, 1n))
       expect(postedTransaction).toBeTruthy()
-      expect(await workerPool.verifyTransactions([postedTransaction])).toEqual({ valid: true })
+      expect(await workerPool.verifyTransactions([postedTransaction], [])).toEqual({
+        valid: true,
+      })
     })
   })
 })

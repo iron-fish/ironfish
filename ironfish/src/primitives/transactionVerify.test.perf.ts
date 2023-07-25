@@ -104,8 +104,13 @@ describe('Verify Transaction', () => {
   ): Promise<Results> {
     const tx = await createPostedTransaction(account, numSpends, numOutputs, numMints, numBurns)
 
+    const mintOwners: Buffer[] = []
+    for (let i = 0; i < numMints; i++) {
+      mintOwners.push(asset.creator())
+    }
+
     const start = BenchUtils.start()
-    const verifyResult = await workerPool.verifyTransactions([tx])
+    const verifyResult = await workerPool.verifyTransactions([tx], mintOwners)
     const elapsed = BenchUtils.end(start)
 
     expect(verifyResult).toBeTruthy()

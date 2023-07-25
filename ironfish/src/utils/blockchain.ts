@@ -2,9 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { BufferMap } from 'buffer-map'
 import { Blockchain } from '../blockchain'
 import { BlockHeader } from '../primitives'
 import { GENESIS_BLOCK_SEQUENCE } from '../primitives/block'
+import { MintDescription } from '../primitives/mintDescription'
+import { IDatabaseTransaction } from '../storage'
 
 export function getBlockRange(
   chain: Blockchain,
@@ -50,4 +53,33 @@ async function blockHeaderBySequenceOrHash(
   return await chain.getHeaderAtSequence(start)
 }
 
-export const BlockchainUtils = { getBlockRange, blockHeaderBySequenceOrHash }
+async function getAssetOwners(
+  chain: Blockchain,
+  mints: Iterable<MintDescription>,
+  tx?: IDatabaseTransaction,
+): Promise<BufferMap<Buffer>> {
+  const assetOwners: BufferMap<Buffer> = new BufferMap()
+
+  await chain.db.withTransaction(tx, async (tx) => {
+    for (const { asset } of mints) {
+      const assetId = asset.id()
+
+      if (assetOwners.has(assetId)) {
+        continue
+      }
+
+      const assetValue = await chain.getAssetById(assetId, tx)
+      if (assetValue) {
+        assetOwners.set(assetId, assetValue.owner)
+      }
+    }
+  })
+
+  return assetOwners
+}
+
+export const BlockchainUtils = {
+  blockHeaderBySequenceOrHash,
+  getAssetOwners,
+  getBlockRange,
+}
