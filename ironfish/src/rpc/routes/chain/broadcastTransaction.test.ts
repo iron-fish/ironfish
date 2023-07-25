@@ -70,4 +70,27 @@ describe('Route chain/broadcastTransaction', () => {
       }),
     ).rejects.toThrow()
   })
+
+  it('should add transaction to mempool and return the result', async () => {
+    const { node } = routeTest
+
+    const account = await useAccountFixture(node.wallet)
+    const block2 = await useMinerBlockFixture(node.chain, 2, account)
+
+    await node.chain.addBlock(block2)
+    await node.wallet.updateHead()
+
+    const transaction = await useTxFixture(node.wallet, account, account)
+
+    const acceptSpy = jest.spyOn(routeTest.node.memPool, 'acceptTransaction')
+
+    const response = await routeTest.client.chain.broadcastTransaction({
+      transaction: transaction.serialize().toString('hex'),
+    })
+
+    expect(response.status).toBe(200)
+    expect(response.content?.hash).toEqual(transaction.hash().toString('hex'))
+    expect(response.content?.accepted).toBe(true)
+    expect(acceptSpy).toHaveBeenCalled()
+  })
 })
