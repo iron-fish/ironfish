@@ -4,6 +4,8 @@
 import { Logger } from '../../logger'
 import { RpcResponse, RpcResponseEnded } from '../response'
 import {
+  AcceptTransactionRequest,
+  AcceptTransactionResponse,
   AddPeerRequest,
   AddPeerResponse,
   AddTransactionRequest,
@@ -372,6 +374,15 @@ export abstract class RpcClient {
   }
 
   mempool = {
+    acceptTransaction: (
+      params: AcceptTransactionRequest,
+    ): Promise<RpcResponseEnded<AcceptTransactionResponse>> => {
+      return this.request<AcceptTransactionResponse>(
+        `${ApiNamespace.mempool}/acceptTransaction`,
+        params,
+      ).waitForEnd()
+    },
+
     getMempoolTransactionsStream: (
       params: GetMempoolTransactionsRequest,
     ): RpcResponse<void, GetMempoolTransactionResponse> => {
