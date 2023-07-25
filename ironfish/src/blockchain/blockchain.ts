@@ -51,7 +51,7 @@ import { BlockchainDB } from './database/blockchaindb'
 import { TransactionsValue } from './database/transactions'
 import { NullifierSet } from './nullifierSet/nullifierSet'
 
-export const VERSION_DATABASE_CHAIN = 14
+export const VERSION_DATABASE_CHAIN = 28
 
 export class Blockchain {
   db: IDatabase
@@ -1317,7 +1317,8 @@ export class Blockchain {
           metadata: asset.metadata(),
           name: asset.name(),
           nonce: asset.nonce(),
-          owner: asset.owner(),
+          creator: asset.creator(),
+          owner: asset.creator(),
           supply: supply + value,
         },
         tx,
@@ -1345,6 +1346,7 @@ export class Blockchain {
           metadata: existingAsset.metadata,
           name: existingAsset.name,
           nonce: existingAsset.nonce,
+          creator: existingAsset.creator,
           owner: existingAsset.owner,
           supply,
         },
@@ -1372,6 +1374,7 @@ export class Blockchain {
           metadata: existingAsset.metadata,
           name: existingAsset.name,
           nonce: existingAsset.nonce,
+          creator: existingAsset.creator,
           owner: existingAsset.owner,
           supply,
         },
@@ -1409,7 +1412,8 @@ export class Blockchain {
             metadata: asset.metadata(),
             name: asset.name(),
             nonce: asset.nonce(),
-            owner: asset.owner(),
+            creator: asset.creator(),
+            owner: asset.creator(),
             supply,
           },
           tx,
@@ -1443,6 +1447,7 @@ export class Blockchain {
         metadata: Buffer.from('Native asset of Iron Fish blockchain', 'utf8'),
         name: Buffer.from('$IRON', 'utf8'),
         nonce: 0,
+        creator: Buffer.from('Iron Fish', 'utf8'),
         owner: Buffer.from('Iron Fish', 'utf8'),
         supply: 0n,
       }

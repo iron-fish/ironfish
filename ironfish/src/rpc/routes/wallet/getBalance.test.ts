@@ -29,7 +29,7 @@ describe('Route wallet/getBalance', () => {
           return {
             assetId: Asset.nativeId(),
             assetName: Buffer.from('$IRON', 'utf8'),
-            assetOwner: Buffer.from('Iron Fish', 'utf8'),
+            assetCreator: Buffer.from('Iron Fish', 'utf8'),
             assetVerification: { status: 'unknown' },
             confirmed: BigInt(2000000000),
             unconfirmed: BigInt(2000000000),
@@ -76,7 +76,7 @@ describe('Route wallet/getBalance', () => {
           return {
             assetId: asset.id(),
             assetName: asset.name(),
-            assetOwner: asset.owner(),
+            assetCreator: asset.creator(),
             assetVerification: { status: 'unknown' },
             confirmed: BigInt(8),
             unconfirmed: BigInt(8),
@@ -123,7 +123,7 @@ describe('Route wallet/getBalance', () => {
           return {
             assetId: Asset.nativeId(),
             assetName: Buffer.from('$IRON', 'utf8'),
-            assetOwner: Buffer.from('Iron Fish', 'utf8'),
+            assetCreator: Buffer.from('Iron Fish', 'utf8'),
             assetVerification: { status: 'unknown' },
             confirmed: BigInt(2000000000),
             unconfirmed: BigInt(2000000000),

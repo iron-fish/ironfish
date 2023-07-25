@@ -20,7 +20,7 @@ export type RpcMint = {
   id: string
   metadata: string
   name: string
-  owner: string
+  creator: string
   value: string
 }
 
@@ -29,7 +29,7 @@ export const RpcMintSchema: yup.ObjectSchema<RpcMint> = yup
     id: yup.string().defined(),
     metadata: yup.string().defined(),
     name: yup.string().defined(),
-    owner: yup.string().defined(),
+    creator: yup.string().defined(),
     value: yup.string().defined(),
   })
   .defined()

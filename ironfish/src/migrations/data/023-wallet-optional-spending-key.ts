@@ -6,6 +6,7 @@ import { IronfishNode } from '../../node'
 import { IDatabase, IDatabaseTransaction } from '../../storage'
 import { Migration } from '../migration'
 import { GetStores } from './023-wallet-optional-spending-key/stores'
+
 export class Migration023 extends Migration {
   path = __filename
 
