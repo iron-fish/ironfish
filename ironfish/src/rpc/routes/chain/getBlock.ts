@@ -137,7 +137,7 @@ routes.register<typeof GetBlockRequestSchema, GetBlockResponse>(
 
     const block = await node.chain.getBlock(header)
     if (!block) {
-      throw new ValidationError(`No block with header ${header.hash.toString('hex')}`)
+      throw new NotFoundError(`No block with header ${header.hash.toString('hex')}`)
     }
 
     const transactions: GetBlockResponse['block']['transactions'] = []
