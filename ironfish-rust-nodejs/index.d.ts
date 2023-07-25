@@ -154,7 +154,6 @@ export type NativeTransactionPosted = TransactionPosted
 export class TransactionPosted {
   constructor(jsBytes: Buffer)
   serialize(): Buffer
-  verify(): boolean
   notesLength(): number
   getNote(index: number): Buffer
   spendsLength(): number

@@ -10,7 +10,10 @@ use crate::{
     merkle_note::NOTE_ENCRYPTION_MINER_KEYS,
     note::Note,
     test_util::make_fake_witness,
-    transaction::{TRANSACTION_EXPIRATION_SIZE, TRANSACTION_FEE_SIZE, TRANSACTION_SIGNATURE_SIZE},
+    transaction::{
+        verify_transaction, TRANSACTION_EXPIRATION_SIZE, TRANSACTION_FEE_SIZE,
+        TRANSACTION_SIGNATURE_SIZE,
+    },
 };
 
 use ironfish_zkp::redjubjub::Signature;
@@ -82,9 +85,7 @@ fn test_transaction() {
     let public_transaction = transaction
         .post(None, 1)
         .expect("should be able to post transaction");
-    public_transaction
-        .verify()
-        .expect("Should be able to verify transaction");
+    verify_transaction(&public_transaction).expect("Should be able to verify transaction");
     assert_eq!(public_transaction.fee(), 1);
 
     // 4 outputs:
@@ -172,9 +173,7 @@ fn test_transaction_simple() {
     let public_transaction = transaction
         .post(None, 1)
         .expect("should be able to post transaction");
-    public_transaction
-        .verify()
-        .expect("Should be able to verify transaction");
+    verify_transaction(&public_transaction).expect("Should be able to verify transaction");
     assert_eq!(public_transaction.fee(), 1);
 
     // A change note was created
@@ -292,9 +291,7 @@ fn test_transaction_created_with_version_1() {
 
     assert_eq!(public_transaction.version, 1);
 
-    public_transaction
-        .verify()
-        .expect("version 1 transactions should be valid");
+    verify_transaction(&public_transaction).expect("version 1 transactions should be valid");
 }
 
 #[test]
@@ -330,9 +327,8 @@ fn test_transaction_version_is_checked() {
         .post(None, 1)
         .expect("should be able to post transaction");
 
-    public_transaction
-        .verify()
-        .expect_err("non version 1 transactions should not be valid");
+    verify_transaction(&public_transaction)
+        .expect("non version 1 transactions should not be valid");
 }
 
 #[test]
