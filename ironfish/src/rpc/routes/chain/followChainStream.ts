@@ -85,38 +85,34 @@ routes.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
     })
 
     const send = (block: Block, type: 'connected' | 'disconnected' | 'fork') => {
-      const transactions = block.transactions.map((transaction) => {
-        return transaction.withReference(() => {
-          return {
-            ...(request.data?.serialized
-              ? { serialized: transaction.serialize().toString('hex') }
-              : {}),
-            hash: BlockHashSerdeInstance.serialize(transaction.hash()),
-            size: getTransactionSize(transaction),
-            fee: Number(transaction.fee()),
-            expiration: transaction.expiration(),
-            notes: transaction.notes.map((note) => ({
-              commitment: note.hash().toString('hex'),
-            })),
-            spends: transaction.spends.map((spend) => ({
-              nullifier: spend.nullifier.toString('hex'),
-              commitment: spend.commitment.toString('hex'),
-              size: spend.size,
-            })),
-            mints: transaction.mints.map((mint) => ({
-              id: mint.asset.id().toString('hex'),
-              metadata: BufferUtils.toHuman(mint.asset.metadata()),
-              name: BufferUtils.toHuman(mint.asset.name()),
-              creator: mint.asset.creator().toString('hex'),
-              value: mint.value.toString(),
-            })),
-            burns: transaction.burns.map((burn) => ({
-              id: burn.assetId.toString('hex'),
-              value: burn.value.toString(),
-            })),
-          }
-        })
-      })
+      const transactions = block.transactions.map((transaction) => ({
+        ...(request.data?.serialized
+          ? { serialized: transaction.serialize().toString('hex') }
+          : {}),
+        hash: BlockHashSerdeInstance.serialize(transaction.hash()),
+        size: getTransactionSize(transaction),
+        fee: Number(transaction.fee()),
+        expiration: transaction.expiration(),
+        notes: transaction.notes.map((note) => ({
+          commitment: note.hash().toString('hex'),
+        })),
+        spends: transaction.spends.map((spend) => ({
+          nullifier: spend.nullifier.toString('hex'),
+          commitment: spend.commitment.toString('hex'),
+          size: spend.size,
+        })),
+        mints: transaction.mints.map((mint) => ({
+          id: mint.asset.id().toString('hex'),
+          metadata: BufferUtils.toHuman(mint.asset.metadata()),
+          name: BufferUtils.toHuman(mint.asset.name()),
+          creator: mint.asset.creator().toString('hex'),
+          value: mint.value.toString(),
+        })),
+        burns: transaction.burns.map((burn) => ({
+          id: burn.assetId.toString('hex'),
+          value: burn.value.toString(),
+        })),
+      }))
 
       request.stream({
         type: type,
