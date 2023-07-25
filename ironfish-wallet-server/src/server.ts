@@ -2,18 +2,17 @@ import "source-map-support/register";
 import { Server, ServerCredentials } from "@grpc/grpc-js";
 
 import { HealthCheckResponse_ServingStatus } from "./models/health";
-import { Greeter, GreeterService } from "./services/Greeter";
 import { Health, HealthService, healthStatus } from "./services/Health";
+import { LightStreamer, LightStreamerService } from "./services/LightStreamer";
 import { logger } from "./utils";
 
-// Do not use @grpc/proto-loader
 const server = new Server({
   "grpc.max_receive_message_length": -1,
   "grpc.max_send_message_length": -1,
 });
 
-server.addService(GreeterService, new Greeter());
 server.addService(HealthService, new Health());
+server.addService(LightStreamerService, new LightStreamer());
 server.bindAsync(
   "0.0.0.0:50051",
   ServerCredentials.createInsecure(),
@@ -27,8 +26,7 @@ server.bindAsync(
   }
 );
 
-// Change service health status
 healthStatus.set(
-  "helloworld.Greeter",
+  "lightstreamer.LightStreamer",
   HealthCheckResponse_ServingStatus.NOT_SERVING
 );
