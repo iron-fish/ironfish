@@ -13,7 +13,7 @@ import {
 } from '@ironfish/rust-nodejs'
 import { Assert } from '../assert'
 import { getBlockSize, getBlockWithMinersFeeSize } from '../network/utils/serializers'
-import { BlockHeader, Transaction } from '../primitives'
+import { Block, BlockHeader, Transaction } from '../primitives'
 import { transactionCommitment } from '../primitives/blockheader'
 import { Target } from '../primitives/target'
 import { SerializedTransaction } from '../primitives/transaction'
@@ -370,6 +370,157 @@ describe('Verifier', () => {
       const block = await useMinerBlockFixture(nodeTest.chain)
       const verification = await nodeTest.chain.verifier.verifyBlock(block)
       expect(verification.valid).toBe(true)
+    })
+  })
+
+  describe('Before postive block mine time activation', () => {
+    const nodeTest = createNodeTest()
+    let block: Block
+    let header: BlockHeader
+    let prevHeader: BlockHeader
+
+    beforeAll(async () => {
+      const { chain } = await nodeTest.createSetup()
+      block = await useMinerBlockFixture(
+        chain,
+        chain.consensus.parameters.disallowNegativeBlockMineTime - 1,
+      )
+      header = block.header
+      const previousBlock = block.header.previousBlockHash
+      const previousHeader = await chain.getHeader(previousBlock)
+      Assert.isNotNull(previousHeader)
+      prevHeader = previousHeader
+    })
+
+    it('fails validation when timestamp is too low', async () => {
+      const previousBlockTime = Date.parse(prevHeader.timestamp.toUTCString())
+      jest.spyOn(global.Date, 'now').mockImplementationOnce(() => previousBlockTime + 1 * 1000)
+      header.timestamp = new Date(
+        previousBlockTime -
+          (nodeTest.chain.consensus.parameters.allowedBlockFutureSeconds + 2) * 1000,
+      )
+
+      expect(await nodeTest.verifier.verifyBlockAdd(block, prevHeader)).toMatchObject({
+        reason: VerificationResultReason.BLOCK_TOO_OLD,
+        valid: false,
+      })
+    })
+
+    it('fails validation when timestamp is too far in the future', async () => {
+      const previousBlockTime = Date.parse(prevHeader.timestamp.toUTCString())
+      jest.spyOn(global.Date, 'now').mockImplementationOnce(() => previousBlockTime + 40 * 1000)
+      header.timestamp = new Date(
+        previousBlockTime +
+          (nodeTest.chain.consensus.parameters.allowedBlockFutureSeconds + 42) * 1000,
+      )
+
+      expect(await nodeTest.verifier.verifyBlockAdd(block, prevHeader)).toMatchObject({
+        reason: VerificationResultReason.TOO_FAR_IN_FUTURE,
+        valid: false,
+      })
+    })
+
+    it('pass validation when timestamp is smaller than previous block', async () => {
+      const previousBlockTime = Date.parse(prevHeader.timestamp.toUTCString())
+      jest.spyOn(global.Date, 'now').mockImplementationOnce(() => previousBlockTime + 1 * 1000)
+      header.timestamp = new Date(previousBlockTime - 1 * 1000)
+
+      expect(await nodeTest.verifier.verifyBlockAdd(block, prevHeader)).toMatchObject({
+        valid: true,
+      })
+    })
+
+    it('pass validation when timestamp is greater than previous block', async () => {
+      const previousBlockTime = Date.parse(prevHeader.timestamp.toUTCString())
+      jest.spyOn(global.Date, 'now').mockImplementationOnce(() => previousBlockTime + 1 * 1000)
+      header.timestamp = new Date(previousBlockTime + 1 * 1000)
+
+      expect(await nodeTest.verifier.verifyBlockAdd(block, prevHeader)).toMatchObject({
+        valid: true,
+      })
+    })
+  })
+
+  describe('After postive block mine time activation', () => {
+    const nodeTest = createNodeTest()
+    let currentBlock: Block
+    let header: BlockHeader
+    let prevHeader: BlockHeader
+
+    beforeAll(async () => {
+      const { chain } = await nodeTest.createSetup()
+      const previousBlock = await useMinerBlockFixture(
+        chain,
+        chain.consensus.parameters.disallowNegativeBlockMineTime - 1,
+      )
+      await chain.addBlock(previousBlock)
+
+      prevHeader = previousBlock.header
+      currentBlock = await useMinerBlockFixture(
+        chain,
+        chain.consensus.parameters.disallowNegativeBlockMineTime,
+      )
+      header = currentBlock.header
+    })
+
+    it('fails validation when timestamp is too low', async () => {
+      const previousBlockTime = Date.parse(prevHeader.timestamp.toUTCString())
+      jest.spyOn(global.Date, 'now').mockImplementationOnce(() => previousBlockTime + 1 * 1000)
+      header.timestamp = new Date(
+        previousBlockTime -
+          (nodeTest.chain.consensus.parameters.allowedBlockFutureSeconds + 2) * 1000,
+      )
+
+      expect(await nodeTest.verifier.verifyBlockAdd(currentBlock, prevHeader)).toMatchObject({
+        reason: VerificationResultReason.BLOCK_TOO_OLD,
+        valid: false,
+      })
+    })
+
+    it('fails validation when timestamp is too far in the future', async () => {
+      const previousBlockTime = Date.parse(prevHeader.timestamp.toUTCString())
+      jest.spyOn(global.Date, 'now').mockImplementationOnce(() => previousBlockTime + 40 * 1000)
+      header.timestamp = new Date(
+        previousBlockTime +
+          (nodeTest.chain.consensus.parameters.allowedBlockFutureSeconds + 42) * 1000,
+      )
+
+      expect(await nodeTest.verifier.verifyBlockAdd(currentBlock, prevHeader)).toMatchObject({
+        reason: VerificationResultReason.TOO_FAR_IN_FUTURE,
+        valid: false,
+      })
+    })
+
+    it('fails validation when timestamp is smaller than previous block', async () => {
+      const previousBlockTime = Date.parse(prevHeader.timestamp.toUTCString())
+      jest.spyOn(global.Date, 'now').mockImplementationOnce(() => previousBlockTime + 1 * 1000)
+      header.timestamp = new Date(previousBlockTime - 1 * 1000)
+
+      expect(await nodeTest.verifier.verifyBlockAdd(currentBlock, prevHeader)).toMatchObject({
+        reason: VerificationResultReason.BLOCK_TOO_OLD,
+        valid: false,
+      })
+    })
+
+    it('fails validation when timestamp is same as previous block', async () => {
+      const previousBlockTime = Date.parse(prevHeader.timestamp.toUTCString())
+      jest.spyOn(global.Date, 'now').mockImplementationOnce(() => previousBlockTime + 1 * 1000)
+      header.timestamp = new Date(previousBlockTime)
+
+      expect(await nodeTest.verifier.verifyBlockAdd(currentBlock, prevHeader)).toMatchObject({
+        reason: VerificationResultReason.BLOCK_TOO_OLD,
+        valid: false,
+      })
+    })
+
+    it('pass validation when timestamp is greater than previous block', async () => {
+      const previousBlockTime = Date.parse(prevHeader.timestamp.toUTCString())
+      jest.spyOn(global.Date, 'now').mockImplementationOnce(() => previousBlockTime + 1 * 1000)
+      header.timestamp = new Date(previousBlockTime + 1 * 1000)
+
+      expect(await nodeTest.verifier.verifyBlockAdd(currentBlock, prevHeader)).toMatchObject({
+        valid: true,
+      })
     })
   })
 

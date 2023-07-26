@@ -156,6 +156,9 @@ const MAINNET_GENESIS = `{
   ]
 }`
 
+// disallowNegativeBlockMineTime activation date is approximately 26-07-2024 00:56. This is not the
+// actual date, it's an placeholder for the testnet release.
+// TODO: @ygao76 update this once the change is ready to release to testnet.
 export const TESTNET = `{
   "id": 0,
   "bootstrapNodes": ["1.test.bn.ironfish.network", "2.test.bn.ironfish.network"],
@@ -166,10 +169,14 @@ export const TESTNET = `{
       "targetBlockTimeInSeconds": 60,
       "targetBucketTimeInSeconds": 10,
       "maxBlockSizeBytes": 524288,
-      "minFee": 1
+      "minFee": 1,
+      "disallowNegativeBlockMineTime": 649976
   }
 }`
 
+// disallowNegativeBlockMineTime activation date is approximately 26-07-2024 00:50. This is not the
+// actual date, it's an placeholder for the next hardfork.
+// TODO: @ygao76 update this once the hard fork date is finalized.
 export const MAINNET = `
  {
     "id": 1,
@@ -181,7 +188,8 @@ export const MAINNET = `
         "targetBlockTimeInSeconds": 60,
         "targetBucketTimeInSeconds": 10,
         "maxBlockSizeBytes": 524288,
-        "minFee": 1
+        "minFee": 1,
+        "disallowNegativeBlockMineTime": 665429
     }
 }`
 
@@ -196,6 +204,7 @@ export const DEVNET = `
         "targetBlockTimeInSeconds": 60,
         "targetBucketTimeInSeconds": 10,
         "maxBlockSizeBytes": 524288,
-        "minFee": 0
+        "minFee": 0,
+        "disallowNegativeBlockMineTime": 3
     }
 }`

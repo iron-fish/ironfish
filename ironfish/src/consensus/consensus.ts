@@ -33,6 +33,12 @@ export type ConsensusParameters = {
    * The minimum fee that a transaction must have to be accepted
    */
   minFee: number
+
+  /**
+   * Before upgrade we had negative block mine time in block headers. After this
+   * block we do a check to disallow negative block mine time.
+   */
+  disallowNegativeBlockMineTime: number
 }
 
 export class Consensus {
