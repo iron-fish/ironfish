@@ -1,11 +1,14 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Asset } from '@ironfish/rust-nodejs'
+import { MintData } from '../../primitives/rawTransaction'
 import {
   createNodeTest,
   serializePayloadToBuffer,
   useAccountFixture,
   useMinersTxFixture,
+  usePostTxFixture,
 } from '../../testUtilities'
 import {
   VerifyTransactionsRequest,
@@ -42,12 +45,31 @@ describe('VerifyTransactionsTask', () => {
   const nodeTest = createNodeTest()
 
   describe('execute', () => {
-    it('verifies the transaction', async () => {
-      const account = await useAccountFixture(nodeTest.wallet)
-      const transaction = await useMinersTxFixture(nodeTest.node, account)
+    it('verifies transactions', async () => {
+      const { node, wallet } = nodeTest
+
+      const account = await useAccountFixture(wallet)
+      const asset = new Asset(account.publicAddress, 'testcoin', '')
+      const transaction1 = await useMinersTxFixture(node, account)
+
+      const mint: MintData = {
+        name: asset.name().toString('hex'),
+        metadata: asset.metadata().toString('hex'),
+        value: 5n,
+      }
+
+      const transaction2 = await usePostTxFixture({
+        node,
+        wallet,
+        from: account,
+        mints: [mint],
+      })
 
       const task = new VerifyTransactionsTask()
-      const request = new VerifyTransactionsRequest([transaction.serialize()], [])
+      const request = new VerifyTransactionsRequest(
+        [transaction1.serialize(), transaction2.serialize()],
+        [asset.creator()],
+      )
 
       const response = task.execute(request)
       expect(response).toEqual(new VerifyTransactionsResponse(true, request.jobId))
