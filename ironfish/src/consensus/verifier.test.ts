@@ -393,7 +393,7 @@ describe('Verifier', () => {
     })
 
     it('fails validation when timestamp is too low', async () => {
-      const previousBlockTime = Date.parse(prevHeader.timestamp.toUTCString())
+      const previousBlockTime = prevHeader.timestamp.getTime()
       jest.spyOn(global.Date, 'now').mockImplementationOnce(() => previousBlockTime + 1 * 1000)
       header.timestamp = new Date(
         previousBlockTime -
@@ -407,7 +407,7 @@ describe('Verifier', () => {
     })
 
     it('fails validation when timestamp is too far in the future', async () => {
-      const previousBlockTime = Date.parse(prevHeader.timestamp.toUTCString())
+      const previousBlockTime = prevHeader.timestamp.getTime()
       jest.spyOn(global.Date, 'now').mockImplementationOnce(() => previousBlockTime + 40 * 1000)
       header.timestamp = new Date(
         previousBlockTime +
@@ -421,7 +421,7 @@ describe('Verifier', () => {
     })
 
     it('pass validation when timestamp is smaller than previous block', async () => {
-      const previousBlockTime = Date.parse(prevHeader.timestamp.toUTCString())
+      const previousBlockTime = prevHeader.timestamp.getTime()
       jest.spyOn(global.Date, 'now').mockImplementationOnce(() => previousBlockTime + 1 * 1000)
       header.timestamp = new Date(previousBlockTime - 1 * 1000)
 
@@ -431,7 +431,7 @@ describe('Verifier', () => {
     })
 
     it('pass validation when timestamp is greater than previous block', async () => {
-      const previousBlockTime = Date.parse(prevHeader.timestamp.toUTCString())
+      const previousBlockTime = prevHeader.timestamp.getTime()
       jest.spyOn(global.Date, 'now').mockImplementationOnce(() => previousBlockTime + 1 * 1000)
       header.timestamp = new Date(previousBlockTime + 1 * 1000)
 
@@ -464,10 +464,11 @@ describe('Verifier', () => {
     })
 
     it('fails validation when timestamp is too low', async () => {
-      const previousBlockTime = Date.parse(prevHeader.timestamp.toUTCString())
-      jest.spyOn(global.Date, 'now').mockImplementationOnce(() => previousBlockTime + 1 * 1000)
+      jest
+        .spyOn(global.Date, 'now')
+        .mockImplementationOnce(() => prevHeader.timestamp.getTime() + 1 * 1000)
       header.timestamp = new Date(
-        previousBlockTime -
+        prevHeader.timestamp.getTime() -
           (nodeTest.chain.consensus.parameters.allowedBlockFutureSeconds + 2) * 1000,
       )
 
@@ -478,10 +479,11 @@ describe('Verifier', () => {
     })
 
     it('fails validation when timestamp is too far in the future', async () => {
-      const previousBlockTime = Date.parse(prevHeader.timestamp.toUTCString())
-      jest.spyOn(global.Date, 'now').mockImplementationOnce(() => previousBlockTime + 40 * 1000)
+      jest
+        .spyOn(global.Date, 'now')
+        .mockImplementationOnce(() => prevHeader.timestamp.getTime() + 40 * 1000)
       header.timestamp = new Date(
-        previousBlockTime +
+        prevHeader.timestamp.getTime() +
           (nodeTest.chain.consensus.parameters.allowedBlockFutureSeconds + 42) * 1000,
       )
 
@@ -492,9 +494,10 @@ describe('Verifier', () => {
     })
 
     it('fails validation when timestamp is smaller than previous block', async () => {
-      const previousBlockTime = Date.parse(prevHeader.timestamp.toUTCString())
-      jest.spyOn(global.Date, 'now').mockImplementationOnce(() => previousBlockTime + 1 * 1000)
-      header.timestamp = new Date(previousBlockTime - 1 * 1000)
+      jest
+        .spyOn(global.Date, 'now')
+        .mockImplementationOnce(() => prevHeader.timestamp.getTime() + 1 * 1000)
+      header.timestamp = new Date(prevHeader.timestamp.getTime() - 1 * 1000)
 
       expect(await nodeTest.verifier.verifyBlockAdd(currentBlock, prevHeader)).toMatchObject({
         reason: VerificationResultReason.BLOCK_TOO_OLD,
@@ -503,9 +506,10 @@ describe('Verifier', () => {
     })
 
     it('fails validation when timestamp is same as previous block', async () => {
-      const previousBlockTime = Date.parse(prevHeader.timestamp.toUTCString())
-      jest.spyOn(global.Date, 'now').mockImplementationOnce(() => previousBlockTime + 1 * 1000)
-      header.timestamp = new Date(previousBlockTime)
+      jest
+        .spyOn(global.Date, 'now')
+        .mockImplementationOnce(() => prevHeader.timestamp.getTime() + 1 * 1000)
+      header.timestamp = new Date(prevHeader.timestamp.getTime())
 
       expect(await nodeTest.verifier.verifyBlockAdd(currentBlock, prevHeader)).toMatchObject({
         reason: VerificationResultReason.BLOCK_TOO_OLD,
@@ -514,9 +518,10 @@ describe('Verifier', () => {
     })
 
     it('pass validation when timestamp is greater than previous block', async () => {
-      const previousBlockTime = Date.parse(prevHeader.timestamp.toUTCString())
-      jest.spyOn(global.Date, 'now').mockImplementationOnce(() => previousBlockTime + 1 * 1000)
-      header.timestamp = new Date(previousBlockTime + 1 * 1000)
+      jest
+        .spyOn(global.Date, 'now')
+        .mockImplementationOnce(() => prevHeader.timestamp.getTime() + 1 * 1000)
+      header.timestamp = new Date(prevHeader.timestamp.getTime() + 1 * 1000)
 
       expect(await nodeTest.verifier.verifyBlockAdd(currentBlock, prevHeader)).toMatchObject({
         valid: true,
