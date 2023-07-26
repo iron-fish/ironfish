@@ -5,7 +5,7 @@
 import { BufferMap } from 'buffer-map'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
-import { Consensus, isExpiredSequence } from '../consensus'
+import { Consensus, isExpiredSequence, Verifier } from '../consensus'
 import { createRootLogger, Logger } from '../logger'
 import { MetricsMonitor } from '../metrics'
 import { getTransactionSize } from '../network/utils/serializers'
@@ -266,7 +266,7 @@ export class MemPool {
       return false
     }
 
-    const { valid } = this.chain.verifier.verifyInternalNullifiers(transaction.spends)
+    const { valid } = Verifier.verifyInternalNullifiers(transaction.spends)
     if (!valid) {
       return false
     }

@@ -28,11 +28,6 @@ use super::witness::JsWitness;
 use super::{NativeAsset, ENCRYPTED_NOTE_LENGTH};
 use ironfish::transaction::outputs::PROOF_SIZE;
 
-#[napi(js_name = "TransactionPosted")]
-pub struct NativeTransactionPosted {
-    transaction: Transaction,
-}
-
 #[napi]
 pub const PROOF_LENGTH: u32 = PROOF_SIZE;
 
@@ -51,6 +46,11 @@ pub const TRANSACTION_FEE_LENGTH: u32 = TRANSACTION_FEE_SIZE as u32;
 #[napi]
 pub const TRANSACTION_VERSION: u8 = TX_VERSION;
 
+#[napi(js_name = "TransactionPosted")]
+pub struct NativeTransactionPosted {
+    transaction: Transaction,
+}
+
 #[napi]
 impl NativeTransactionPosted {
     #[napi(constructor)]
@@ -68,14 +68,6 @@ impl NativeTransactionPosted {
         self.transaction.write(&mut vec).map_err(to_napi_err)?;
 
         Ok(Buffer::from(vec))
-    }
-
-    #[napi]
-    pub fn verify(&self) -> bool {
-        match self.transaction.verify() {
-            Ok(_) => true,
-            Err(_e) => false,
-        }
     }
 
     #[napi]

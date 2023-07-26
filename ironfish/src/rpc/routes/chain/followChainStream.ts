@@ -9,10 +9,12 @@ import { Block, BlockHeader } from '../../../primitives'
 import { BlockHashSerdeInstance } from '../../../serde'
 import { BufferUtils, PromiseUtils } from '../../../utils'
 import { ApiNamespace, routes } from '../router'
+import { RpcTransaction, RpcTransactionSchema } from './types'
 
 export type FollowChainStreamRequest =
   | {
       head?: string | null
+      serialized?: boolean
     }
   | undefined
 
@@ -31,31 +33,15 @@ export type FollowChainStreamResponse = {
     timestamp: number
     work: string
     main: boolean
-    transactions: Array<{
-      hash: string
-      size: number
-      fee: number
-      expiration: number
-      notes: Array<{ commitment: string }>
-      spends: Array<{ nullifier: string }>
-      mints: Array<{
-        id: string
-        metadata: string
-        name: string
-        owner: string
-        value: string
-      }>
-      burns: Array<{
-        id: string
-        value: string
-      }>
-    }>
+    noteSize: number | null
+    transactions: RpcTransaction[]
   }
 }
 
 export const FollowChainStreamRequestSchema: yup.ObjectSchema<FollowChainStreamRequest> = yup
   .object({
     head: yup.string().nullable().optional(),
+    serialized: yup.boolean().optional(),
   })
   .optional()
 
@@ -78,59 +64,8 @@ export const FollowChainStreamResponseSchema: yup.ObjectSchema<FollowChainStream
         work: yup.string().defined(),
         main: yup.boolean().defined(),
         difficulty: yup.string().defined(),
-        transactions: yup
-          .array(
-            yup
-              .object({
-                hash: yup.string().defined(),
-                size: yup.number().defined(),
-                fee: yup.number().defined(),
-                expiration: yup.number().defined(),
-                notes: yup
-                  .array(
-                    yup
-                      .object({
-                        commitment: yup.string().defined(),
-                      })
-                      .defined(),
-                  )
-                  .defined(),
-                spends: yup
-                  .array(
-                    yup
-                      .object({
-                        nullifier: yup.string().defined(),
-                      })
-                      .defined(),
-                  )
-                  .defined(),
-                mints: yup
-                  .array(
-                    yup
-                      .object({
-                        id: yup.string().defined(),
-                        metadata: yup.string().defined(),
-                        name: yup.string().defined(),
-                        owner: yup.string().defined(),
-                        value: yup.string().defined(),
-                      })
-                      .defined(),
-                  )
-                  .defined(),
-                burns: yup
-                  .array(
-                    yup
-                      .object({
-                        id: yup.string().defined(),
-                        value: yup.string().defined(),
-                      })
-                      .defined(),
-                  )
-                  .defined(),
-              })
-              .defined(),
-          )
-          .defined(),
+        noteSize: yup.number().nullable().defined(),
+        transactions: yup.array(RpcTransactionSchema).defined(),
       })
       .defined(),
   })
@@ -150,33 +85,34 @@ routes.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
     })
 
     const send = (block: Block, type: 'connected' | 'disconnected' | 'fork') => {
-      const transactions = block.transactions.map((transaction) => {
-        return transaction.withReference(() => {
-          return {
-            hash: BlockHashSerdeInstance.serialize(transaction.hash()),
-            size: getTransactionSize(transaction),
-            fee: Number(transaction.fee()),
-            expiration: transaction.expiration(),
-            notes: transaction.notes.map((note) => ({
-              commitment: note.hash().toString('hex'),
-            })),
-            spends: transaction.spends.map((spend) => ({
-              nullifier: spend.nullifier.toString('hex'),
-            })),
-            mints: transaction.mints.map((mint) => ({
-              id: mint.asset.id().toString('hex'),
-              metadata: BufferUtils.toHuman(mint.asset.metadata()),
-              name: BufferUtils.toHuman(mint.asset.name()),
-              owner: mint.asset.owner().toString('hex'),
-              value: mint.value.toString(),
-            })),
-            burns: transaction.burns.map((burn) => ({
-              id: burn.assetId.toString('hex'),
-              value: burn.value.toString(),
-            })),
-          }
-        })
-      })
+      const transactions = block.transactions.map((transaction) => ({
+        ...(request.data?.serialized
+          ? { serialized: transaction.serialize().toString('hex') }
+          : {}),
+        hash: BlockHashSerdeInstance.serialize(transaction.hash()),
+        size: getTransactionSize(transaction),
+        fee: Number(transaction.fee()),
+        expiration: transaction.expiration(),
+        notes: transaction.notes.map((note) => ({
+          commitment: note.hash().toString('hex'),
+        })),
+        spends: transaction.spends.map((spend) => ({
+          nullifier: spend.nullifier.toString('hex'),
+          commitment: spend.commitment.toString('hex'),
+          size: spend.size,
+        })),
+        mints: transaction.mints.map((mint) => ({
+          id: mint.asset.id().toString('hex'),
+          metadata: BufferUtils.toHuman(mint.asset.metadata()),
+          name: BufferUtils.toHuman(mint.asset.name()),
+          creator: mint.asset.creator().toString('hex'),
+          value: mint.value.toString(),
+        })),
+        burns: transaction.burns.map((burn) => ({
+          id: burn.assetId.toString('hex'),
+          value: burn.value.toString(),
+        })),
+      }))
 
       request.stream({
         type: type,
@@ -193,6 +129,7 @@ routes.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
           main: type === 'connected',
           timestamp: block.header.timestamp.valueOf(),
           difficulty: block.header.target.toDifficulty().toString(),
+          noteSize: block.header.noteSize,
           transactions,
         },
       })

@@ -5,8 +5,8 @@ import { useMinerBlockFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { CurrencyUtils } from '../../../utils'
 import { RpcRequestError } from '../../clients'
-import { RpcSpend } from '../wallet/types'
 import { GetTransactionResponse } from './getTransaction'
+import { RpcSpend } from './types'
 
 describe('Route chain/getTransaction', () => {
   const routeTest = createRouteTest()

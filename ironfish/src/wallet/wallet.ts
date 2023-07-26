@@ -7,12 +7,13 @@ import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { ChainProcessor } from '../chainProcessor'
-import { isExpiredSequence } from '../consensus'
+import { Consensus, isExpiredSequence, Verifier } from '../consensus'
 import { Event } from '../event'
 import { Config } from '../fileStores'
 import { createRootLogger, Logger } from '../logger'
-import { MemPool } from '../memPool'
 import { getFee } from '../memPool/feeEstimator'
+import { NoteHasher } from '../merkletree'
+import { Side } from '../merkletree/merkletree'
 import { Witness } from '../merkletree/witness'
 import { Mutex } from '../mutex'
 import { GENESIS_BLOCK_SEQUENCE } from '../primitives'
@@ -22,10 +23,12 @@ import { Note } from '../primitives/note'
 import { NoteEncrypted } from '../primitives/noteEncrypted'
 import { MintData, RawTransaction } from '../primitives/rawTransaction'
 import { Transaction } from '../primitives/transaction'
+import { RpcClient } from '../rpc'
 import { IDatabaseTransaction } from '../storage/database/transaction'
 import {
   AsyncUtils,
   BufferUtils,
+  ErrorUtils,
   PromiseResolve,
   PromiseUtils,
   SetTimeoutToken,
@@ -68,8 +71,6 @@ export enum TransactionType {
 export class Wallet {
   readonly onAccountImported = new Event<[account: Account]>()
   readonly onAccountRemoved = new Event<[account: Account]>()
-  readonly onBroadcastTransaction = new Event<[transaction: Transaction]>()
-  readonly onTransactionCreated = new Event<[transaction: Transaction]>()
 
   scan: ScanState | null = null
   updateHeadState: ScanState | null = null
@@ -80,8 +81,9 @@ export class Wallet {
   readonly workerPool: WorkerPool
   readonly chain: Blockchain
   readonly chainProcessor: ChainProcessor
-  readonly memPool: MemPool
+  readonly nodeClient: RpcClient
   private readonly config: Config
+  readonly consensus: Consensus
 
   protected rebroadcastAfter: number
   protected defaultAccount: string | null = null
@@ -96,26 +98,29 @@ export class Wallet {
   constructor({
     chain,
     config,
-    memPool,
     database,
     logger = createRootLogger(),
     rebroadcastAfter,
     workerPool,
+    consensus,
+    nodeClient,
   }: {
     chain: Blockchain
     config: Config
     database: WalletDB
-    memPool: MemPool
     logger?: Logger
     rebroadcastAfter?: number
     workerPool: WorkerPool
+    consensus: Consensus
+    nodeClient: RpcClient
   }) {
     this.chain = chain
     this.config = config
     this.logger = logger.withTag('accounts')
-    this.memPool = memPool
     this.walletDb = database
     this.workerPool = workerPool
+    this.consensus = consensus
+    this.nodeClient = nodeClient
     this.rebroadcastAfter = rebroadcastAfter ?? 10
     this.createTransactionMutex = new Mutex()
     this.eventLoopAbortController = new AbortController()
@@ -131,6 +136,7 @@ export class Wallet {
 
       await this.connectBlock(header)
       await this.expireTransactions(header.sequence)
+      await this.rebroadcastTransactions(header.sequence)
     })
 
     this.chainProcessor.onRemove.on(async (header) => {
@@ -294,7 +300,6 @@ export class Wallet {
     this.eventLoopResolve = resolve
 
     await this.updateHead()
-    await this.rebroadcastTransactions()
     await this.cleanupDeletedAccounts()
 
     if (this.isStarted) {
@@ -527,7 +532,7 @@ export class Wallet {
           chainAsset.metadata,
           chainAsset.name,
           chainAsset.nonce,
-          chainAsset.owner,
+          chainAsset.creator,
           blockHeader,
           tx,
         )
@@ -870,17 +875,6 @@ export class Wallet {
 
     const confirmations = options.confirmations ?? this.config.get('confirmations')
 
-    const maxConfirmedSequence = Math.max(
-      heaviestHead.sequence - confirmations,
-      GENESIS_BLOCK_SEQUENCE,
-    )
-    const maxConfirmedHeader = await this.chain.getHeaderAtSequence(maxConfirmedSequence)
-
-    Assert.isNotNull(maxConfirmedHeader)
-    Assert.isNotNull(maxConfirmedHeader.noteSize)
-
-    const notesTreeSize = maxConfirmedHeader.noteSize
-
     const expirationDelta =
       options.expirationDelta ?? this.config.get('transactionExpirationDelta')
 
@@ -938,7 +932,6 @@ export class Wallet {
         account: options.account,
         notes: options.notes,
         confirmations: confirmations,
-        notesTreeSize: notesTreeSize,
       })
 
       if (options.feeRate) {
@@ -949,7 +942,6 @@ export class Wallet {
           account: options.account,
           notes: options.notes,
           confirmations: confirmations,
-          notesTreeSize: notesTreeSize,
         })
       }
 
@@ -972,16 +964,15 @@ export class Wallet {
 
     const transaction = await this.workerPool.postTransaction(options.transaction, spendingKey)
 
-    const verify = this.chain.verifier.verifyCreatedTransaction(transaction)
+    const verify = Verifier.verifyCreatedTransaction(transaction, this.consensus)
+
     if (!verify.valid) {
       throw new Error(`Invalid transaction, reason: ${String(verify.reason)}`)
     }
 
     if (broadcast) {
       await this.addPendingTransaction(transaction)
-      this.memPool.acceptTransaction(transaction)
-      this.broadcastTransaction(transaction)
-      this.onTransactionCreated.emit(transaction)
+      await this.broadcastTransaction(transaction)
     }
 
     return transaction
@@ -993,7 +984,6 @@ export class Wallet {
       account: Account
       notes?: Buffer[]
       confirmations: number
-      notesTreeSize: number
     },
   ): Promise<void> {
     const needed = this.buildAmountsNeeded(raw, { fee: raw.fee })
@@ -1009,7 +999,7 @@ export class Wallet {
         }`,
       )
 
-      const witness = await this.getNoteWitness(decryptedNote, options.notesTreeSize)
+      const witness = await this.getNoteWitness(decryptedNote, options.confirmations)
 
       const assetId = decryptedNote.note.assetId()
 
@@ -1039,7 +1029,6 @@ export class Wallet {
         assetAmountSpent,
         assetNotesSpent,
         options.confirmations,
-        options.notesTreeSize,
       )
 
       if (amountSpent < assetAmountNeeded) {
@@ -1050,7 +1039,7 @@ export class Wallet {
 
   async getNoteWitness(
     note: DecryptedNoteValue,
-    treeSize: number,
+    confirmations?: number,
   ): Promise<Witness<NoteEncrypted, Buffer, Buffer, Buffer>> {
     Assert.isNotNull(
       note.index,
@@ -1059,7 +1048,19 @@ export class Wallet {
         .toString('hex')} is missing an index and cannot be spent.`,
     )
 
-    const witness = await this.chain.getNoteWitness(note.index, treeSize)
+    const response = await this.nodeClient.chain.getNoteWitness({
+      index: note.index,
+      confirmations: confirmations ?? this.config.get('confirmations'),
+    })
+    const witness = new Witness(
+      response.content.treeSize,
+      Buffer.from(response.content.rootHash, 'hex'),
+      response.content.authPath.map((node) => ({
+        hashOfSibling: Buffer.from(node.hashOfSibling, 'hex'),
+        side: node.side === 'Left' ? Side.Left : Side.Right,
+      })),
+      new NoteHasher(),
+    )
 
     Assert.isNotNull(
       witness,
@@ -1099,7 +1100,6 @@ export class Wallet {
     amountSpent: bigint,
     notesSpent: BufferSet,
     confirmations: number,
-    notesTreeSize: number,
   ): Promise<bigint> {
     for await (const unspentNote of sender.getUnspentNotes(assetId, {
       confirmations,
@@ -1108,7 +1108,7 @@ export class Wallet {
         continue
       }
 
-      const witness = await this.getNoteWitness(unspentNote, notesTreeSize)
+      const witness = await this.getNoteWitness(unspentNote, confirmations)
 
       amountSpent += unspentNote.note.value()
 
@@ -1122,35 +1122,34 @@ export class Wallet {
     return amountSpent
   }
 
-  broadcastTransaction(transaction: Transaction): void {
-    this.onBroadcastTransaction.emit(transaction)
+  async broadcastTransaction(
+    transaction: Transaction,
+  ): Promise<{ accepted: boolean; broadcasted: boolean }> {
+    try {
+      const response = await this.nodeClient.chain.broadcastTransaction({
+        transaction: transaction.serialize().toString('hex'),
+      })
+      Assert.isNotNull(response.content)
+
+      return { accepted: response.content.accepted, broadcasted: true }
+    } catch (e: unknown) {
+      this.logger.warn(
+        `Failed to broadcast transaction ${transaction
+          .hash()
+          .toString('hex')}: ${ErrorUtils.renderError(e)}`,
+      )
+
+      return { accepted: false, broadcasted: false }
+    }
   }
 
-  async rebroadcastTransactions(): Promise<void> {
-    if (!this.isStarted) {
-      return
-    }
-
-    if (!this.chain.synced) {
-      return
-    }
-
-    if (this.chainProcessor.hash === null) {
-      return
-    }
-
-    const head = await this.chain.getHeader(this.chainProcessor.hash)
-
-    if (head === null) {
-      return
-    }
-
+  async rebroadcastTransactions(sequence: number): Promise<void> {
     for (const account of this.accounts.values()) {
       if (this.eventLoopAbortController.signal.aborted) {
         return
       }
 
-      for await (const transactionInfo of account.getPendingTransactions(head.sequence)) {
+      for await (const transactionInfo of account.getPendingTransactions(sequence)) {
         if (this.eventLoopAbortController.signal.aborted) {
           return
         }
@@ -1167,7 +1166,7 @@ export class Wallet {
         // watch to see what transactions node continuously send out, then you can
         // know those transactions are theres. This should be randomized and made
         // less, predictable later to help prevent that attack.
-        if (head.sequence - submittedSequence < this.rebroadcastAfter) {
+        if (sequence - submittedSequence < this.rebroadcastAfter) {
           continue
         }
 
@@ -1183,7 +1182,7 @@ export class Wallet {
             transactionHash,
             {
               ...transactionInfo,
-              submittedSequence: head.sequence,
+              submittedSequence: sequence,
             },
             tx,
           )
@@ -1193,7 +1192,7 @@ export class Wallet {
             this.logger.debug(
               `Ignoring invalid transaction during rebroadcast ${transactionHash.toString(
                 'hex',
-              )}, reason ${String(verify.reason)} seq: ${head.sequence}`,
+              )}, reason ${String(verify.reason)} seq: ${sequence}`,
             )
           }
         })
@@ -1201,7 +1200,7 @@ export class Wallet {
         if (!isValid) {
           continue
         }
-        this.broadcastTransaction(transaction)
+        await this.broadcastTransaction(transaction)
       }
     }
   }

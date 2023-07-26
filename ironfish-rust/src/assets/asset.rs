@@ -24,8 +24,8 @@ pub struct Asset {
     /// Metadata fields for the asset (ex. chain, network, token identifier)
     pub(crate) metadata: [u8; METADATA_LENGTH],
 
-    /// The owner who created the asset. Has permissions to mint
-    pub(crate) owner: PublicAddress,
+    /// The address of the account that created the asset. Has permissions to mint
+    pub(crate) creator: PublicAddress,
 
     /// The random byte used to ensure we get a valid asset identifier
     pub(crate) nonce: u8,
@@ -36,7 +36,7 @@ pub struct Asset {
 
 impl Asset {
     /// Create a new AssetType from a public address, name, chain, and network
-    pub fn new(owner: PublicAddress, name: &str, metadata: &str) -> Result<Asset, IronfishError> {
+    pub fn new(creator: PublicAddress, name: &str, metadata: &str) -> Result<Asset, IronfishError> {
         let trimmed_name = name.trim();
         if trimmed_name.is_empty() {
             return Err(IronfishError::InvalidData);
@@ -47,7 +47,7 @@ impl Asset {
 
         let mut nonce = 0u8;
         loop {
-            if let Ok(asset) = Asset::new_with_nonce(owner, name_bytes, metadata_bytes, nonce) {
+            if let Ok(asset) = Asset::new_with_nonce(creator, name_bytes, metadata_bytes, nonce) {
                 return Ok(asset);
             }
             nonce = nonce.checked_add(1).ok_or(IronfishError::RandomnessError)?;
@@ -55,7 +55,7 @@ impl Asset {
     }
 
     pub fn new_with_nonce(
-        owner: PublicAddress,
+        creator: PublicAddress,
         name: [u8; NAME_LENGTH],
         metadata: [u8; METADATA_LENGTH],
         nonce: u8,
@@ -66,7 +66,7 @@ impl Asset {
             .personal(ASSET_ID_PERSONALIZATION)
             .to_state()
             .update(GH_FIRST_BLOCK)
-            .update(&owner.public_address())
+            .update(&creator.public_address())
             .update(&name)
             .update(&metadata)
             .update(std::slice::from_ref(&nonce))
@@ -77,7 +77,7 @@ impl Asset {
 
         // If the asset id is valid, this asset is valid
         Ok(Asset {
-            owner,
+            creator,
             name,
             metadata,
             nonce,
@@ -97,8 +97,8 @@ impl Asset {
         self.nonce
     }
 
-    pub fn owner(&self) -> [u8; PUBLIC_ADDRESS_SIZE] {
-        self.owner.public_address()
+    pub fn creator(&self) -> [u8; PUBLIC_ADDRESS_SIZE] {
+        self.creator.public_address()
     }
 
     pub fn id(&self) -> &AssetIdentifier {
@@ -114,7 +114,7 @@ impl Asset {
     }
 
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
-        let owner = PublicAddress::read(&mut reader)?;
+        let creator = PublicAddress::read(&mut reader)?;
 
         let mut name = [0; NAME_LENGTH];
         reader.read_exact(&mut name[..])?;
@@ -124,12 +124,12 @@ impl Asset {
 
         let nonce = reader.read_u8()?;
 
-        Asset::new_with_nonce(owner, name, metadata, nonce)
+        Asset::new_with_nonce(creator, name, metadata, nonce)
     }
 
     /// Stow the bytes of this struct in the given writer.
     pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
-        self.owner.write(&mut writer)?;
+        self.creator.write(&mut writer)?;
         writer.write_all(&self.name)?;
         writer.write_all(&self.metadata)?;
         writer.write_u8(self.nonce)?;
@@ -147,13 +147,13 @@ mod test {
     #[test]
     fn test_asset_new() {
         let key = SaplingKey::generate_key();
-        let owner = key.public_address();
+        let creator = key.public_address();
         let name = "name";
         let metadata = "{ 'token_identifier': '0x123' }";
 
-        let asset = Asset::new(owner, name, metadata).expect("can create an asset");
+        let asset = Asset::new(creator, name, metadata).expect("can create an asset");
 
-        assert_eq!(asset.owner, owner);
+        assert_eq!(asset.creator, creator);
         assert_eq!(asset.name, str_to_array(name));
         assert_eq!(asset.metadata, str_to_array(metadata));
     }
@@ -161,16 +161,16 @@ mod test {
     #[test]
     fn test_asset_name_must_be_set() {
         let key = SaplingKey::generate_key();
-        let owner = key.public_address();
+        let creator = key.public_address();
         let metadata = "";
 
-        let bad_asset1 = Asset::new(owner, "", metadata);
+        let bad_asset1 = Asset::new(creator, "", metadata);
         assert!(bad_asset1.is_err());
 
-        let bad_asset2 = Asset::new(owner, "   ", metadata);
+        let bad_asset2 = Asset::new(creator, "   ", metadata);
         assert!(bad_asset2.is_err());
 
-        let good_asset = Asset::new(owner, "foo", metadata);
+        let good_asset = Asset::new(creator, "foo", metadata);
         assert!(good_asset.is_ok());
     }
 
@@ -180,16 +180,16 @@ mod test {
             81, 229, 109, 20, 111, 174, 52, 91, 120, 215, 34, 107, 174, 123, 78, 102, 189, 188,
             226, 7, 173, 7, 76, 135, 130, 203, 71, 131, 62, 219, 240, 68,
         ];
-        let owner = PublicAddress::new(&public_address).unwrap();
+        let creator = PublicAddress::new(&public_address).unwrap();
 
         let name = str_to_array("name");
         let metadata = str_to_array("{ 'token_identifier': '0x123' }");
         let nonce = 1;
 
         let asset =
-            Asset::new_with_nonce(owner, name, metadata, nonce).expect("can create an asset");
+            Asset::new_with_nonce(creator, name, metadata, nonce).expect("can create an asset");
 
-        assert_eq!(asset.owner, owner);
+        assert_eq!(asset.creator, creator);
         assert_eq!(asset.name, name);
         assert_eq!(asset.metadata, metadata);
     }
@@ -201,12 +201,12 @@ mod test {
             81, 229, 109, 20, 111, 174, 52, 91, 120, 215, 34, 107, 174, 123, 78, 102, 189, 188,
             226, 7, 173, 7, 76, 135, 130, 203, 71, 131, 62, 219, 240, 68,
         ];
-        let owner = PublicAddress::new(&public_address).unwrap();
+        let creator = PublicAddress::new(&public_address).unwrap();
 
         let name = str_to_array("name");
         let metadata = str_to_array("{ 'token_identifier': '0x123' }");
 
-        let asset_res = Asset::new_with_nonce(owner, name, metadata, nonce);
+        let asset_res = Asset::new_with_nonce(creator, name, metadata, nonce);
 
         assert!(asset_res.is_err());
     }

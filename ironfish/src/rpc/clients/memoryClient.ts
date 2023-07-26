@@ -1,21 +1,18 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Assert } from '../../assert'
 import { Logger } from '../../logger'
-import { IronfishNode } from '../../node'
 import { MemoryResponse, RpcMemoryAdapter } from '../adapters'
-import { ALL_API_NAMESPACES, Router } from '../routes'
+import { Router } from '../routes'
 import { RpcClient } from './client'
 
 export class RpcMemoryClient extends RpcClient {
-  _node: IronfishNode
-  router: Router
+  router?: Router
 
-  constructor(logger: Logger, node: IronfishNode) {
+  constructor(logger: Logger, router?: Router) {
     super(logger)
-
-    this.router = node.rpc.getRouter(ALL_API_NAMESPACES)
-    this._node = node
+    this.router = router
   }
 
   request<TEnd = unknown, TStream = unknown>(
@@ -25,6 +22,7 @@ export class RpcMemoryClient extends RpcClient {
       timeoutMs?: number | null
     } = {},
   ): MemoryResponse<TEnd, TStream> {
+    Assert.isNotUndefined(this.router)
     if (options.timeoutMs) {
       throw new Error(`MemoryAdapter does not support timeoutMs`)
     }

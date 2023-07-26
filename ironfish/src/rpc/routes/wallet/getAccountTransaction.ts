@@ -4,8 +4,9 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { TransactionStatus, TransactionType } from '../../../wallet'
+import { RpcSpend, RpcSpendSchema } from '../chain'
 import { ApiNamespace, routes } from '../router'
-import { RpcSpend, RpcSpendSchema, RpcWalletNote, RpcWalletNoteSchema } from './types'
+import { RpcWalletNote, RpcWalletNoteSchema } from './types'
 import {
   getAccount,
   getAccountDecryptedNotes,
@@ -110,7 +111,7 @@ routes.register<typeof GetAccountTransactionRequestSchema, GetAccountTransaction
 
     const assetBalanceDeltas = await getAssetBalanceDeltas(account, transaction)
 
-    const notes = await getAccountDecryptedNotes(node, account, transaction)
+    const notes = await getAccountDecryptedNotes(node.wallet.workerPool, account, transaction)
 
     const spends = transaction.transaction.spends.map((spend) => ({
       nullifier: spend.nullifier.toString('hex'),

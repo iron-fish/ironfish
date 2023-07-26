@@ -27,6 +27,7 @@ import { IsomorphicWebSocketConstructor } from './network/types'
 import { getNetworkDefinition } from './networkDefinition'
 import { Package } from './package'
 import { Platform } from './platform'
+import { ALL_API_NAMESPACES, RpcMemoryClient } from './rpc'
 import { RpcServer } from './rpc/server'
 import { Strategy } from './strategy'
 import { Syncer } from './syncer'
@@ -158,6 +159,12 @@ export class IronfishNode {
       this.telemetry.submitBlockMined(block)
     })
 
+    this.peerNetwork.onTransactionGossipReceived.on((transaction, valid) => {
+      if (valid) {
+        void wallet.addPendingTransaction(transaction)
+      }
+    })
+
     this.peerNetwork.onTransactionAccepted.on((transaction, received) => {
       this.telemetry.submitNewTransactionSeen(transaction, received)
     })
@@ -287,15 +294,18 @@ export class IronfishNode {
       files,
     })
 
+    const memoryClient = new RpcMemoryClient(logger)
+
     const wallet = new Wallet({
       chain,
       config,
-      memPool,
       database: walletDB,
       workerPool,
+      consensus,
+      nodeClient: memoryClient,
     })
 
-    return new IronfishNode({
+    const node = new IronfishNode({
       pkg,
       chain,
       strategy,
@@ -313,6 +323,10 @@ export class IronfishNode {
       networkId: networkDefinition.id,
       verifiedAssetsCache,
     })
+
+    memoryClient.router = node.rpc.getRouter(ALL_API_NAMESPACES)
+
+    return node
   }
 
   async openDB(): Promise<void> {

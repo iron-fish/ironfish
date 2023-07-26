@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
+import { Verifier } from '../../../consensus'
 import { Transaction } from '../../../primitives'
 import { AsyncUtils } from '../../../utils'
 import { ValidationError } from '../../adapters'
@@ -43,7 +44,8 @@ routes.register<typeof AddTransactionRequestSchema, AddTransactionResponse>(
     const data = Buffer.from(request.data.transaction, 'hex')
     const transaction = new Transaction(data)
 
-    const verify = node.chain.verifier.verifyCreatedTransaction(transaction)
+    const verify = Verifier.verifyCreatedTransaction(transaction, node.wallet.consensus)
+
     if (!verify.valid) {
       throw new ValidationError(`Invalid transaction, reason: ${String(verify.reason)}`, 400)
     }
@@ -63,7 +65,7 @@ routes.register<typeof AddTransactionRequestSchema, AddTransactionResponse>(
     const accepted = node.memPool.acceptTransaction(transaction)
 
     if (request.data.broadcast) {
-      node.wallet.broadcastTransaction(transaction)
+      await node.wallet.broadcastTransaction(transaction)
     }
 
     request.end({

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Asset, DECRYPTED_NOTE_LENGTH, initSignalHandler, LanguageCode, spendingKeyToWords, wordsToSpendingKey } from '..'
+import { Asset, DECRYPTED_NOTE_LENGTH, initSignalHandler, LanguageCode, spendingKeyToWords, verifyTransactions, wordsToSpendingKey } from '..'
 import {
   initializeSapling,
   generateKey,
@@ -70,7 +70,7 @@ describe('Demonstrate the Sapling API', () => {
     expect(postedTransaction.spendsLength()).toBe(0)
     expect(postedTransaction.hash().byteLength).toBe(32)
     expect(postedTransaction.transactionSignature().byteLength).toBe(64)
-    expect(postedTransaction.verify()).toBe(true)
+    expect(verifyTransactions([postedTransaction.serialize()])).toBe(true)
 
     const encryptedNote = new NoteEncrypted(postedTransaction.getNote(0))
     expect(encryptedNote.hash().byteLength).toBe(32)
@@ -136,7 +136,7 @@ describe('Demonstrate the Sapling API', () => {
     expect(postedTransaction.spendsLength()).toEqual(1)
     expect(postedTransaction.hash().byteLength).toEqual(32)
     expect(postedTransaction.transactionSignature().byteLength).toEqual(64)
-    expect(postedTransaction.verify()).toBe(true)
+    expect(verifyTransactions([postedTransaction.serialize()])).toBe(true)
   })
 })
 
