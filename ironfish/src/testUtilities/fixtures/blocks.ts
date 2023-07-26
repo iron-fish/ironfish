@@ -351,6 +351,7 @@ export async function useTxSpendsFixture(
     account?: Account
     expiration?: number
     restore?: boolean
+    fee?: bigint
   },
 ): Promise<{ account: Account; transaction: Transaction }> {
   const account = options?.account ?? (await useAccountFixture(node.wallet))
@@ -365,7 +366,7 @@ export async function useTxSpendsFixture(
     account,
     account,
     undefined,
-    undefined,
+    options?.fee,
     options?.expiration,
     options?.restore,
   )

@@ -3,9 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { ASSET_ID_LENGTH } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
+import { Assert } from '../../../assert'
 import { CurrencyUtils } from '../../../utils'
 import { ValidationError } from '../../adapters'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 
 export type GetAssetRequest = {
   id: string
@@ -16,7 +17,8 @@ export type GetAssetResponse = {
   id: string
   metadata: string
   name: string
-  owner: string
+  nonce: number
+  creator: string
   supply: string
 }
 
@@ -33,15 +35,18 @@ export const GetAssetResponse: yup.ObjectSchema<GetAssetResponse> = yup
     id: yup.string().defined(),
     metadata: yup.string().defined(),
     name: yup.string().defined(),
-    owner: yup.string().defined(),
+    nonce: yup.number().defined(),
+    creator: yup.string().defined(),
     supply: yup.string().defined(),
   })
   .defined()
 
-router.register<typeof GetAssetRequestSchema, GetAssetResponse>(
+routes.register<typeof GetAssetRequestSchema, GetAssetResponse>(
   `${ApiNamespace.chain}/getAsset`,
   GetAssetRequestSchema,
-  async (request, node): Promise<void> => {
+  async (request, { node }): Promise<void> => {
+    Assert.isNotUndefined(node)
+
     const id = Buffer.from(request.data.id, 'hex')
 
     if (id.byteLength !== ASSET_ID_LENGTH) {
@@ -61,7 +66,8 @@ router.register<typeof GetAssetRequestSchema, GetAssetResponse>(
       id: asset.id.toString('hex'),
       metadata: asset.metadata.toString('hex'),
       name: asset.name.toString('hex'),
-      owner: asset.owner.toString('hex'),
+      nonce: asset.nonce,
+      creator: asset.creator.toString('hex'),
       supply: CurrencyUtils.encode(asset.supply),
     })
   },

@@ -2,9 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { Assert } from '../../../assert'
 import { AssetVerification } from '../../../assets'
 import { CurrencyUtils } from '../../../utils'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 import { getAccount } from './utils'
 
 export interface GetBalancesRequest {
@@ -17,7 +18,7 @@ export interface GetBalancesResponse {
   balances: {
     assetId: string
     assetName: string
-    assetOwner: string
+    assetCreator: string
     assetVerification: AssetVerification
     confirmed: string
     unconfirmed: string
@@ -48,7 +49,7 @@ export const GetBalancesResponseSchema: yup.ObjectSchema<GetBalancesResponse> = 
           .shape({
             assetId: yup.string().defined(),
             assetName: yup.string().defined(),
-            assetOwner: yup.string().defined(),
+            assetCreator: yup.string().defined(),
             assetVerification: yup
               .object({
                 status: yup.string().oneOf(['verified', 'unverified', 'unknown']).defined(),
@@ -69,11 +70,13 @@ export const GetBalancesResponseSchema: yup.ObjectSchema<GetBalancesResponse> = 
   })
   .defined()
 
-router.register<typeof GetBalancesRequestSchema, GetBalancesResponse>(
+routes.register<typeof GetBalancesRequestSchema, GetBalancesResponse>(
   `${ApiNamespace.wallet}/getBalances`,
   GetBalancesRequestSchema,
-  async (request, node): Promise<void> => {
-    const account = getAccount(node, request.data.account)
+  async (request, { node }): Promise<void> => {
+    Assert.isNotUndefined(node)
+
+    const account = getAccount(node.wallet, request.data.account)
 
     const balances = []
     for await (const balance of node.wallet.getBalances(account, request.data.confirmations)) {
@@ -86,7 +89,7 @@ router.register<typeof GetBalancesRequestSchema, GetBalancesResponse>(
       balances.push({
         assetId: balance.assetId.toString('hex'),
         assetName: asset?.name.toString('hex') ?? '',
-        assetOwner: asset?.owner.toString('hex') ?? '',
+        assetCreator: asset?.creator.toString('hex') ?? '',
         assetVerification: node.assetsVerifier.verify(balance.assetId),
         blockHash: balance.blockHash?.toString('hex') ?? null,
         confirmed: CurrencyUtils.encode(balance.confirmed),

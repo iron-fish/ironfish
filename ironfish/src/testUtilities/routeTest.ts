@@ -6,6 +6,7 @@ import { Verifier } from '../consensus'
 import { createRootLogger } from '../logger'
 import { PeerNetwork } from '../network/peerNetwork'
 import { IronfishNode } from '../node'
+import { ALL_API_NAMESPACES } from '../rpc'
 import { RpcMemoryAdapter } from '../rpc/adapters'
 import { RpcMemoryClient } from '../rpc/clients'
 import { IronfishSdk } from '../sdk'
@@ -39,7 +40,7 @@ export class RouteTest extends NodeTest {
     const setup = await super.createSetup()
 
     const logger = createRootLogger().withTag('memoryclient')
-    const client = new RpcMemoryClient(logger, setup.node)
+    const client = new RpcMemoryClient(logger, setup.node.rpc.getRouter(ALL_API_NAMESPACES))
 
     return { ...setup, client }
   }

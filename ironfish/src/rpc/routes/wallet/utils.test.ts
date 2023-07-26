@@ -20,12 +20,12 @@ describe('Accounts utils', () => {
 
     it('should fail if account is not found with name', () => {
       expect(() => {
-        getAccount(routeTest.node, 'badAccount')
+        getAccount(routeTest.node.wallet, 'badAccount')
       }).toThrow('No account with name')
     })
 
     it('should pass if account is found with name', () => {
-      const result = getAccount(routeTest.node, name)
+      const result = getAccount(routeTest.node.wallet, name)
       expect(result.name).toEqual(name)
       expect(result.publicAddress).toEqual(publicAddress)
     })
@@ -34,13 +34,13 @@ describe('Accounts utils', () => {
       await routeTest.node.wallet.setDefaultAccount(null)
 
       expect(() => {
-        getAccount(routeTest.node)
+        getAccount(routeTest.node.wallet)
       }).toThrow('No account is currently active')
     })
 
     it('should pass if default account is found', async () => {
       await routeTest.node.wallet.setDefaultAccount(name)
-      const result = getAccount(routeTest.node)
+      const result = getAccount(routeTest.node.wallet)
       expect(result.name).toEqual(name)
       expect(result.publicAddress).toEqual(publicAddress)
     })
@@ -64,11 +64,19 @@ describe('Accounts utils', () => {
       Assert.isNotUndefined(transactionValue)
 
       // accountA should have both notes since it sent the transaction
-      const accountANotes = await getAccountDecryptedNotes(node, accountA, transactionValue)
+      const accountANotes = await getAccountDecryptedNotes(
+        node.workerPool,
+        accountA,
+        transactionValue,
+      )
       expect(accountANotes.length).toEqual(2)
 
       // accountB should only have one note since it received the transaction
-      const accountBNotes = await getAccountDecryptedNotes(node, accountB, transactionValue)
+      const accountBNotes = await getAccountDecryptedNotes(
+        node.workerPool,
+        accountB,
+        transactionValue,
+      )
       expect(accountBNotes.length).toEqual(1)
     })
     it('should not decrypt notes that the account did not send and did not receive', async () => {
@@ -88,7 +96,11 @@ describe('Accounts utils', () => {
       const decryptSpy = jest.spyOn(node.workerPool, 'decryptNotes')
 
       // accountB should only have one note since it received the transaction
-      const accountBNotes = await getAccountDecryptedNotes(node, accountB, transactionValue)
+      const accountBNotes = await getAccountDecryptedNotes(
+        node.workerPool,
+        accountB,
+        transactionValue,
+      )
       expect(accountBNotes.length).toEqual(1)
 
       // accountB did not send the transaction and has already decrypted the

@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Bech32m } from '../../../utils'
 import { AccountImport } from '../../walletdb/accountValue'
-import { AccountDecodingOptions, AccountEncoder } from './encoder'
+import { AccountDecodingOptions, AccountEncoder, DecodeFailed } from './encoder'
 import { JsonEncoder } from './json'
 export class Bech32JsonEncoder implements AccountEncoder {
   /**
@@ -14,9 +14,12 @@ export class Bech32JsonEncoder implements AccountEncoder {
   }
 
   decode(value: string, options?: AccountDecodingOptions): AccountImport {
-    const [decoded, _] = Bech32m.decode(value)
+    const [decoded, err] = Bech32m.decode(value)
     if (!decoded) {
-      throw new Error('Invalid bech32 JSON encoding')
+      throw new DecodeFailed(
+        `Invalid bech32 JSON encoding: ${err?.message || ''}`,
+        this.constructor.name,
+      )
     }
     const accountImport = new JsonEncoder().decode(decoded)
     return {

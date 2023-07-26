@@ -55,10 +55,8 @@ export class Migration019 extends Migration {
             chainAsset.id,
             chainAsset.metadata,
             chainAsset.name,
-            // TODO(mat): This is a band-aid to get things green, we'll probably
-            // delete this migration as part of network reset
             chainAsset.nonce,
-            chainAsset.owner,
+            chainAsset.creator,
             { hash, sequence },
             tx,
           )

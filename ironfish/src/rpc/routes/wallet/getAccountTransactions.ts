@@ -2,14 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { IronfishNode } from '../../../node'
+import { Assert } from '../../../assert'
 import { GENESIS_BLOCK_SEQUENCE } from '../../../primitives'
-import { TransactionStatus, TransactionType } from '../../../wallet'
+import { TransactionStatus, TransactionType, Wallet } from '../../../wallet'
 import { Account } from '../../../wallet/account/account'
 import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
 import { RpcRequest } from '../../request'
-import { ApiNamespace, router } from '../router'
-import { RpcSpend, RpcSpendSchema, RpcWalletNote, RpcWalletNoteSchema } from './types'
+import { RpcSpend, RpcSpendSchema } from '../chain'
+import { ApiNamespace, routes } from '../router'
+import { RpcWalletNote, RpcWalletNoteSchema } from './types'
 import {
   getAccount,
   getAccountDecryptedNotes,
@@ -95,11 +96,13 @@ export const GetAccountTransactionsResponseSchema: yup.ObjectSchema<GetAccountTr
     })
     .defined()
 
-router.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactionsResponse>(
+routes.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactionsResponse>(
   `${ApiNamespace.wallet}/getAccountTransactions`,
   GetAccountTransactionsRequestSchema,
-  async (request, node): Promise<void> => {
-    const account = getAccount(node, request.data.account)
+  async (request, { node }): Promise<void> => {
+    Assert.isNotUndefined(node)
+
+    const account = getAccount(node.wallet, request.data.account)
 
     const headSequence = (await account.getHead())?.sequence ?? null
 
@@ -114,7 +117,7 @@ router.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
       const transaction = await account.getTransaction(hashBuffer)
 
       if (transaction) {
-        await streamTransaction(request, node, account, transaction, options)
+        await streamTransaction(request, node.wallet, account, transaction, options)
       }
       request.end()
       return
@@ -141,7 +144,7 @@ router.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
         break
       }
 
-      await streamTransaction(request, node, account, transaction, options)
+      await streamTransaction(request, node.wallet, account, transaction, options)
       count++
     }
 
@@ -151,7 +154,7 @@ router.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
 
 const streamTransaction = async (
   request: RpcRequest<GetAccountTransactionsRequest, GetAccountTransactionsResponse>,
-  node: IronfishNode,
+  wallet: Wallet,
   account: Account,
   transaction: TransactionValue,
   options: {
@@ -161,11 +164,11 @@ const streamTransaction = async (
 ): Promise<void> => {
   const serializedTransaction = serializeRpcAccountTransaction(transaction)
 
-  const assetBalanceDeltas = await getAssetBalanceDeltas(node, transaction)
+  const assetBalanceDeltas = await getAssetBalanceDeltas(account, transaction)
 
   let notes = undefined
   if (request.data.notes) {
-    notes = await getAccountDecryptedNotes(node, account, transaction)
+    notes = await getAccountDecryptedNotes(wallet.workerPool, account, transaction)
   }
 
   let spends = undefined
@@ -177,8 +180,8 @@ const streamTransaction = async (
     }))
   }
 
-  const status = await node.wallet.getTransactionStatus(account, transaction, options)
-  const type = await node.wallet.getTransactionType(account, transaction)
+  const status = await wallet.getTransactionStatus(account, transaction, options)
+  const type = await wallet.getTransactionType(account, transaction)
 
   const serialized = {
     ...serializedTransaction,

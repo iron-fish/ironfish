@@ -79,6 +79,11 @@ export class MemoryResponse<TEnd, TStream> extends RpcResponse<TEnd, TStream> {
     super(promise, stream, timeout)
   }
 
+  close(): void {
+    Assert.isNotNull(this.request)
+    this.request.close()
+  }
+
   end(...args: Parameters<RpcRequest['end']>): ReturnType<RpcRequest['end']> {
     Assert.isNotNull(this.request)
     return this.request.end(args)

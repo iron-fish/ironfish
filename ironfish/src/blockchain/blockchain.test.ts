@@ -1082,7 +1082,8 @@ describe('Blockchain', () => {
           metadata: asset.metadata(),
           name: asset.name(),
           nonce: asset.nonce(),
-          owner: asset.owner(),
+          creator: asset.creator(),
+          owner: asset.creator(),
           supply: 10n,
         })
       })
@@ -1160,7 +1161,8 @@ describe('Blockchain', () => {
           metadata: asset.metadata(),
           name: asset.name(),
           nonce: asset.nonce(),
-          owner: asset.owner(),
+          creator: asset.creator(),
+          owner: asset.creator(),
           supply: mintValueA + mintValueB,
         })
       })
@@ -1285,7 +1287,7 @@ describe('Blockchain', () => {
         // hack, the posted transaction would raise an exception, which is a
         // separate flow to test for. We should never hit this case; this is a
         // sanity check.
-        await node.chain.deleteAsset(assetId)
+        await node.chain.blockchainDb.deleteAsset(assetId)
 
         const burnValue = BigInt(3)
         const noteToBurn = blockA.transactions[1].getNote(0)
@@ -1322,7 +1324,7 @@ describe('Blockchain', () => {
         // burn is processed but the DB does not have enough supply for a given
         // burn. Without this, the posted transaction would raise an invalid
         // balance exception, which is a separate flow to test for.
-        await node.chain.putAsset(assetId, {
+        await node.chain.blockchainDb.putAsset(assetId, {
           ...record,
           supply: BigInt(1),
         })

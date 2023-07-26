@@ -2,9 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { Assert } from '../../../assert'
 import { BigIntUtils } from '../../../utils'
 import { ValidationError } from '../../adapters'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 
 export type GetNetworkHashPowerRequest = {
   blocks?: number | null // number of blocks to look back
@@ -34,10 +35,12 @@ export const GetNetworkHashPowerResponseSchema: yup.ObjectSchema<GetNetworkHashP
     })
     .defined()
 
-router.register<typeof GetNetworkHashPowerRequestSchema, GetNetworkHashPowerResponse>(
+routes.register<typeof GetNetworkHashPowerRequestSchema, GetNetworkHashPowerResponse>(
   `${ApiNamespace.chain}/getNetworkHashPower`,
   GetNetworkHashPowerRequestSchema,
-  async (request, node): Promise<void> => {
+  async (request, { node }): Promise<void> => {
+    Assert.isNotUndefined(node)
+
     let blocks = request.data?.blocks ?? 120
     let sequence = request.data?.sequence ?? -1
 

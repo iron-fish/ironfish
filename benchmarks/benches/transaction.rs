@@ -3,7 +3,7 @@ use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
 use ironfish::{
     assets::{asset::Asset, asset_identifier::NATIVE_ASSET},
     test_util::make_fake_witness,
-    transaction::batch_verify_transactions,
+    transaction::{batch_verify_transactions, verify_transaction},
     Note, ProposedTransaction, SaplingKey, Transaction,
 };
 
@@ -101,7 +101,7 @@ pub fn verify(c: &mut Criterion) {
             },
             // Benchmark
             |tx| {
-                tx.verify().unwrap();
+                verify_transaction(&tx).unwrap();
             },
             BatchSize::LargeInput,
         );

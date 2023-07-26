@@ -1,14 +1,14 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { IronfishNode } from '../../../node'
 import { Note } from '../../../primitives'
 import { CurrencyUtils } from '../../../utils'
-import { Account } from '../../../wallet'
+import { Account, Wallet } from '../../../wallet'
 import { AccountImport } from '../../../wallet/walletdb/accountValue'
 import { AssetValue } from '../../../wallet/walletdb/assetValue'
 import { DecryptedNoteValue } from '../../../wallet/walletdb/decryptedNoteValue'
 import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
+import { WorkerPool } from '../../../workerPool'
 import { ValidationError } from '../../adapters'
 import {
   RcpAccountAssetBalanceDelta,
@@ -17,16 +17,16 @@ import {
   RpcWalletNote,
 } from './types'
 
-export function getAccount(node: IronfishNode, name?: string): Account {
+export function getAccount(wallet: Wallet, name?: string): Account {
   if (name) {
-    const account = node.wallet.getAccountByName(name)
+    const account = wallet.getAccountByName(name)
     if (account) {
       return account
     }
     throw new ValidationError(`No account with name ${name}`)
   }
 
-  const defaultAccount = node.wallet.getDefaultAccount()
+  const defaultAccount = wallet.getDefaultAccount()
   if (defaultAccount) {
     return defaultAccount
   }
@@ -68,15 +68,13 @@ export function deserializeRpcAccountImport(accountImport: RpcAccountImport): Ac
 }
 
 export async function getAssetBalanceDeltas(
-  node: IronfishNode,
+  account: Account,
   transaction: TransactionValue,
 ): Promise<RcpAccountAssetBalanceDelta[]> {
   const assetBalanceDeltas = new Array<RcpAccountAssetBalanceDelta>()
 
   for (const [assetId, delta] of transaction.assetBalanceDeltas.entries()) {
-    // TODO: update to use wallet assets store
-    const asset = await node.chain.getAssetById(assetId)
-
+    const asset = await account.getAsset(assetId)
     const assetName = asset?.name.toString('hex') ?? ''
 
     assetBalanceDeltas.push({
@@ -90,7 +88,7 @@ export async function getAssetBalanceDeltas(
 }
 
 export async function getTransactionNotes(
-  node: IronfishNode,
+  workerPool: WorkerPool,
   account: Account,
   transaction: TransactionValue,
 ): Promise<Array<DecryptedNoteValue>> {
@@ -126,7 +124,7 @@ export async function getTransactionNotes(
   }
 
   if (accountHasSpend && decryptNotesPayloads.length > 0) {
-    const decryptedSends = await node.workerPool.decryptNotes(decryptNotesPayloads)
+    const decryptedSends = await workerPool.decryptNotes(decryptNotesPayloads)
 
     for (const note of decryptedSends) {
       if (note === null) {
@@ -150,11 +148,11 @@ export async function getTransactionNotes(
 }
 
 export async function getAccountDecryptedNotes(
-  node: IronfishNode,
+  workerPool: WorkerPool,
   account: Account,
   transaction: TransactionValue,
 ): Promise<RpcWalletNote[]> {
-  const notes = await getTransactionNotes(node, account, transaction)
+  const notes = await getTransactionNotes(workerPool, account, transaction)
 
   const serializedNotes: RpcWalletNote[] = []
 

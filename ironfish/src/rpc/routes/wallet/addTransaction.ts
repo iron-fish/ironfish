@@ -2,10 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { Assert } from '../../../assert'
+import { Verifier } from '../../../consensus'
 import { Transaction } from '../../../primitives'
 import { AsyncUtils } from '../../../utils'
 import { ValidationError } from '../../adapters'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 
 export type AddTransactionRequest = {
   transaction: string
@@ -33,14 +35,17 @@ export const AddTransactionResponseSchema: yup.ObjectSchema<AddTransactionRespon
   })
   .defined()
 
-router.register<typeof AddTransactionRequestSchema, AddTransactionResponse>(
+routes.register<typeof AddTransactionRequestSchema, AddTransactionResponse>(
   `${ApiNamespace.wallet}/addTransaction`,
   AddTransactionRequestSchema,
-  async (request, node): Promise<void> => {
+  async (request, { node }): Promise<void> => {
+    Assert.isNotUndefined(node)
+
     const data = Buffer.from(request.data.transaction, 'hex')
     const transaction = new Transaction(data)
 
-    const verify = node.chain.verifier.verifyCreatedTransaction(transaction)
+    const verify = Verifier.verifyCreatedTransaction(transaction, node.wallet.consensus)
+
     if (!verify.valid) {
       throw new ValidationError(`Invalid transaction, reason: ${String(verify.reason)}`, 400)
     }
@@ -60,7 +65,7 @@ router.register<typeof AddTransactionRequestSchema, AddTransactionResponse>(
     const accepted = node.memPool.acceptTransaction(transaction)
 
     if (request.data.broadcast) {
-      node.wallet.broadcastTransaction(transaction)
+      await node.wallet.broadcastTransaction(transaction)
     }
 
     request.end({

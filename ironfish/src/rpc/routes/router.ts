@@ -5,6 +5,7 @@ import { Assert } from '../../assert'
 import { IronfishNode } from '../../node'
 import { YupSchema, YupSchemaResult, YupUtils } from '../../utils'
 import { StrEnumUtils } from '../../utils/enums'
+import { Wallet } from '../../wallet'
 import { ERROR_CODES } from '../adapters'
 import { ResponseError, ValidationError } from '../adapters/errors'
 import { RpcRequest } from '../request'
@@ -26,9 +27,11 @@ export enum ApiNamespace {
 
 export const ALL_API_NAMESPACES = StrEnumUtils.getValues(ApiNamespace)
 
+export type RequestContext = { node?: IronfishNode; wallet?: Wallet }
+
 export type RouteHandler<TRequest = unknown, TResponse = unknown> = (
   request: RpcRequest<TRequest, TResponse>,
-  node: IronfishNode,
+  context: RequestContext,
 ) => Promise<void> | void
 
 export class RouteNotFoundError extends ResponseError {
@@ -49,8 +52,58 @@ export function parseRoute(
 }
 
 export class Router {
+  routes = new Routes()
+  server: RpcServer
+
+  constructor(routes: Routes, server: RpcServer) {
+    this.routes = routes
+    this.server = server
+  }
+
+  async route(route: string, request: RpcRequest): Promise<void> {
+    const [namespace, method] = route.split('/')
+
+    const methodRoute = this.routes.get(namespace, method)
+    if (!methodRoute) {
+      throw new RouteNotFoundError(route, namespace, method)
+    }
+
+    const { handler, schema } = methodRoute
+
+    const { result, error } = await YupUtils.tryValidate(schema, request.data)
+    if (error) {
+      throw new ValidationError(error.message, 400)
+    }
+    request.data = result
+
+    try {
+      await handler(request, this.server.context)
+    } catch (e: unknown) {
+      if (e instanceof ResponseError) {
+        throw e
+      }
+      if (e instanceof Error) {
+        throw new ResponseError(e)
+      }
+      throw e
+    }
+  }
+}
+
+class Routes {
   routes = new Map<string, Map<string, { handler: RouteHandler; schema: YupSchema }>>()
-  server: RpcServer | null = null
+
+  get(
+    namespace: string,
+    method: string,
+  ): { handler: RouteHandler; schema: YupSchema } | undefined {
+    const namespaceRoutes = this.routes.get(namespace)
+    if (!namespaceRoutes) {
+      return undefined
+    }
+
+    return namespaceRoutes.get(method)
+  }
 
   register<TRequestSchema extends YupSchema, TResponse>(
     route: string,
@@ -75,46 +128,9 @@ export class Router {
     })
   }
 
-  async route(route: string, request: RpcRequest): Promise<void> {
-    const [namespace, method] = route.split('/')
-
-    const namespaceRoutes = this.routes.get(namespace)
-    if (!namespaceRoutes) {
-      throw new RouteNotFoundError(route, namespace, method)
-    }
-
-    const methodRoute = namespaceRoutes.get(method)
-    if (!methodRoute) {
-      throw new RouteNotFoundError(route, namespace, method)
-    }
-
-    const { handler, schema } = methodRoute
-
-    const { result, error } = await YupUtils.tryValidate(schema, request.data)
-    if (error) {
-      throw new ValidationError(error.message, 400)
-    }
-    request.data = result
-
-    Assert.isNotNull(this.server)
-
-    try {
-      await handler(request, this.server.node)
-    } catch (e: unknown) {
-      if (e instanceof ResponseError) {
-        throw e
-      }
-      if (e instanceof Error) {
-        throw new ResponseError(e)
-      }
-      throw e
-    }
-  }
-
-  filter(namespaces: string[]): Router {
+  filter(namespaces: string[]): Routes {
     const set = new Set(namespaces)
-    const copy = new Router()
-    copy.server = this.server
+    const copy = new Routes()
 
     for (const [key, value] of this.routes) {
       if (set.has(key)) {
@@ -126,4 +142,4 @@ export class Router {
   }
 }
 
-export const router = new Router()
+export const routes = new Routes()

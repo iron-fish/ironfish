@@ -887,11 +887,15 @@ describe('PeerNetwork', () => {
 
         const verifyNewTransactionSpy = jest.spyOn(node.chain.verifier, 'verifyNewTransaction')
 
-        const addPendingTransaction = jest.spyOn(node.wallet, 'addPendingTransaction')
-
         const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 5)
         const { peer: peerWithTransaction } = peers[0]
         const peersWithoutTransaction = peers.slice(1)
+
+        // Don't sync incoming transactions to wallet since its done async and will
+        // attempt to update the wallet after the test has finished
+        peerNetwork.onTransactionGossipReceived.clear()
+        const onTransactionGossipReceivedSpy = jest.fn()
+        peerNetwork.onTransactionGossipReceived.on(onTransactionGossipReceivedSpy)
 
         await peerNetwork.peerManager.onMessage.emitAsync(
           peerWithTransaction,
@@ -912,7 +916,7 @@ describe('PeerNetwork', () => {
 
         expect(memPool.get(transaction.hash())).toBeDefined()
 
-        expect(addPendingTransaction).toHaveBeenCalledTimes(1)
+        expect(onTransactionGossipReceivedSpy).toHaveBeenCalledTimes(1)
 
         for (const { peer } of peers) {
           expect(peer.state.identity).not.toBeNull()
@@ -943,7 +947,7 @@ describe('PeerNetwork', () => {
 
         expect(memPool.get(transaction.hash())).toBeDefined()
 
-        expect(addPendingTransaction).toHaveBeenCalledTimes(1)
+        expect(onTransactionGossipReceivedSpy).toHaveBeenCalledTimes(1)
       })
 
       it('does not sync or gossip double-spent transactions', async () => {
@@ -1150,11 +1154,16 @@ describe('PeerNetwork', () => {
         await chain.removeBlock(chain.head.hash)
 
         const verifyNewTransactionSpy = jest.spyOn(node.chain.verifier, 'verifyNewTransaction')
-        const addPendingTransaction = jest.spyOn(node.wallet, 'addPendingTransaction')
 
         const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 5)
         const { peer: peerWithTransaction } = peers[0]
         const peersWithoutTransaction = peers.slice(1)
+
+        // Don't sync incoming transactions to wallet since its done async and will
+        // attempt to update the wallet after the test has finished
+        peerNetwork.onTransactionGossipReceived.clear()
+        const onTransactionGossipReceivedSpy = jest.fn()
+        peerNetwork.onTransactionGossipReceived.on(onTransactionGossipReceivedSpy)
 
         await peerNetwork.peerManager.onMessage.emitAsync(
           peerWithTransaction,
@@ -1168,7 +1177,7 @@ describe('PeerNetwork', () => {
         })
 
         expect(memPool.get(transaction.hash())).toBeDefined()
-        expect(addPendingTransaction).toHaveBeenCalledTimes(1)
+        expect(onTransactionGossipReceivedSpy).toHaveBeenCalledTimes(1)
         for (const { sendSpy } of peersWithoutTransaction) {
           const transactionMessages = sendSpy.mock.calls.filter(([message]) => {
             return (
@@ -1255,11 +1264,13 @@ describe('PeerNetwork', () => {
           peer.version = VERSION_PROTOCOL
         }
 
+        jest.spyOn(peerNetwork, 'isReady', 'get').mockReturnValue(true)
+
         const accountA = await useAccountFixture(wallet, 'accountA')
         const accountB = await useAccountFixture(wallet, 'accountB')
         const { transaction } = await useBlockWithTx(node, accountA, accountB)
 
-        await wallet.onBroadcastTransaction.emitAsync(transaction)
+        await wallet.broadcastTransaction(transaction)
 
         const sentHash = peers.filter(({ sendSpy }) => {
           return (

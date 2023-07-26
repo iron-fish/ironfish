@@ -10,7 +10,7 @@ import { CurrencyUtils } from '../../../utils'
 import { PromiseUtils } from '../../../utils/promise'
 import { isValidIncomingViewKey } from '../../../wallet/validator'
 import { ValidationError } from '../../adapters/errors'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 
 interface Note {
   assetId: string
@@ -122,10 +122,11 @@ export const GetTransactionStreamResponseSchema: yup.ObjectSchema<GetTransaction
     })
     .defined()
 
-router.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamResponse>(
+routes.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamResponse>(
   `${ApiNamespace.chain}/getTransactionStream`,
   GetTransactionStreamRequestSchema,
-  async (request, node): Promise<void> => {
+  async (request, { node }): Promise<void> => {
+    Assert.isNotUndefined(node)
     if (!isValidIncomingViewKey(request.data.incomingViewKey)) {
       throw new ValidationError(`incomingViewKey is not valid`)
     }

@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { ApiNamespace, router } from '../router'
+import { Assert } from '../../../assert'
+import { ApiNamespace, routes } from '../router'
 
 export type GetNetworkInfoRequest = undefined
 export type GetNetworkInfoResponse = {
@@ -19,10 +20,12 @@ export const GetNetworkInfoResponseSchema: yup.ObjectSchema<GetNetworkInfoRespon
   })
   .defined()
 
-router.register<typeof GetNetworkInfoRequestSchema, GetNetworkInfoResponse>(
+routes.register<typeof GetNetworkInfoRequestSchema, GetNetworkInfoResponse>(
   `${ApiNamespace.chain}/getNetworkInfo`,
   GetNetworkInfoRequestSchema,
-  (request, node): void => {
+  (request, { node }): void => {
+    Assert.isNotUndefined(node)
+
     request.end({
       networkId: node.internal.get('networkId'),
     })

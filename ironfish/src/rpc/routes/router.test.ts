@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { Assert } from '../../assert'
 import { createRouteTest } from '../../testUtilities/routeTest'
 
 describe('Router', () => {
@@ -9,7 +10,9 @@ describe('Router', () => {
 
   it('should use yup schema', async () => {
     const schema = yup.string().default('default')
-    routeTest.client.router.register('foo/bar', schema, (request) => request.end(request.data))
+    const router = routeTest.client.router
+    Assert.isNotUndefined(router)
+    router.routes.register('foo/bar', schema, (request) => request.end(request.data))
 
     // should use default value from the schema
     let response = await routeTest.client.request('foo/bar').waitForEnd()

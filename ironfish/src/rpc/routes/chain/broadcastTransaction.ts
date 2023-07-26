@@ -3,9 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import * as yup from 'yup'
+import { Assert } from '../../../assert'
 import { Transaction } from '../../../primitives'
 import { ValidationError } from '../../adapters'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 
 export type BroadcastTransactionRequest = {
   transaction: string
@@ -13,6 +14,7 @@ export type BroadcastTransactionRequest = {
 
 export type BroadcastTransactionResponse = {
   hash: string
+  accepted: boolean
 }
 
 export const BroadcastTransactionRequestSchema: yup.ObjectSchema<BroadcastTransactionRequest> =
@@ -26,24 +28,33 @@ export const BroadcastTransactionResponseSchema: yup.ObjectSchema<BroadcastTrans
   yup
     .object({
       hash: yup.string().defined(),
+      accepted: yup.boolean().defined(),
     })
     .defined()
 
-router.register<typeof BroadcastTransactionRequestSchema, BroadcastTransactionResponse>(
+routes.register<typeof BroadcastTransactionRequestSchema, BroadcastTransactionResponse>(
   `${ApiNamespace.chain}/broadcastTransaction`,
   BroadcastTransactionRequestSchema,
-  (request, node): void => {
+  async (request, { node }): Promise<void> => {
+    Assert.isNotUndefined(node)
+
+    if (!node.peerNetwork.isReady) {
+      throw new ValidationError('Cannot broadcast transaction. Peer network is not ready')
+    }
+
     const data = Buffer.from(request.data.transaction, 'hex')
     const transaction = new Transaction(data)
 
-    const verify = node.chain.verifier.verifyCreatedTransaction(transaction)
+    const verify = await node.chain.verifier.verifyNewTransaction(transaction)
     if (!verify.valid) {
       throw new ValidationError(`Invalid transaction, reason: ${String(verify.reason)}`)
     }
 
+    const accepted = node.memPool.acceptTransaction(transaction)
     node.peerNetwork.broadcastTransaction(transaction)
 
     request.end({
+      accepted,
       hash: transaction.hash().toString('hex'),
     })
   },

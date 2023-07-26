@@ -5,7 +5,7 @@ import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { GENESIS_BLOCK_SEQUENCE } from '../../../primitives'
 import { ValidationError } from '../../adapters'
-import { ApiNamespace, router } from '../router'
+import { ApiNamespace, routes } from '../router'
 
 export type GetNoteWitnessRequest = {
   index: number
@@ -45,10 +45,11 @@ export const GetNoteWitnessResponseSchema: yup.ObjectSchema<GetNoteWitnessRespon
   })
   .defined()
 
-router.register<typeof GetNoteWitnessRequestSchema, GetNoteWitnessResponse>(
+routes.register<typeof GetNoteWitnessRequestSchema, GetNoteWitnessResponse>(
   `${ApiNamespace.chain}/getNoteWitness`,
   GetNoteWitnessRequestSchema,
-  async (request, node): Promise<void> => {
+  async (request, { node }): Promise<void> => {
+    Assert.isNotUndefined(node)
     const { chain } = node
 
     const confirmations = request.data.confirmations ?? node.config.get('confirmations')

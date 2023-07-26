@@ -89,8 +89,8 @@ export class AssetsCommand extends IronfishCommand {
             minWidth: 16,
             get: (row) => row.supply ?? 'NULL',
           },
-          owner: {
-            header: 'Owner',
+          creator: {
+            header: 'Creator',
             minWidth: PUBLIC_ADDRESS_LENGTH + 1,
           },
         },

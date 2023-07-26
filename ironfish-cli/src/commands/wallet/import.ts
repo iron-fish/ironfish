@@ -1,19 +1,10 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { generateKeyFromPrivateKey, wordsToSpendingKey } from '@ironfish/rust-nodejs'
-import {
-  ACCOUNT_SCHEMA_VERSION,
-  Bech32m,
-  JSONUtils,
-  LanguageUtils,
-  PromiseUtils,
-} from '@ironfish/sdk'
-import { RpcAccountImport } from '@ironfish/sdk/src/rpc/routes/wallet/types'
+import { PromiseUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { CommandFlags } from '../../types'
 
 export class ImportCommand extends IronfishCommand {
   static description = `Import an account`
@@ -48,48 +39,43 @@ export class ImportCommand extends IronfishCommand {
 
     const client = await this.sdk.connectRpc()
 
-    let account: RpcAccountImport
+    let account: string
     if (blob) {
-      account = await this.stringToRpcAccountImport(blob, flags)
+      account = blob
     } else if (flags.path) {
-      account = await this.importFile(flags.path, flags)
+      account = await this.importFile(flags.path)
     } else if (process.stdin.isTTY) {
-      account = await this.importTTY(flags)
+      account = await this.importTTY()
     } else if (!process.stdin.isTTY) {
-      account = await this.importPipe(flags)
+      account = await this.importPipe()
     } else {
       CliUx.ux.error(`Invalid import type`)
     }
 
-    if (!account.version) {
-      account.version = ACCOUNT_SCHEMA_VERSION
-    }
-
-    if (!account.createdAt) {
-      account.createdAt = null
-    }
-
     const accountsResponse = await client.wallet.getAccounts()
     const duplicateAccount = accountsResponse.content.accounts.find(
-      (accountName) => accountName === account.name,
+      (accountName) => accountName === flags.name,
     )
     // Offer the user to use a different name if a duplicate is found
-    if (duplicateAccount && account.name) {
+    if (duplicateAccount && flags.name) {
       this.log()
-      this.log(`Found existing account with name '${account.name}'`)
+      this.log(`Found existing account with name '${flags.name}'`)
 
       const name = await CliUx.ux.prompt('Enter a different name for the account', {
         required: true,
       })
-      if (name === account.name) {
+      if (name === flags.name) {
         this.error(`Entered the same name: '${name}'`)
       }
 
-      account.name = name
+      flags.name = name
     }
 
-    const rescan = flags.rescan
-    const result = await client.wallet.importAccount({ account, rescan })
+    const result = await client.wallet.importAccount({
+      account,
+      rescan: flags.rescan,
+      name: flags.name,
+    })
 
     const { name, isDefaultAccount } = result.content
     this.log(`Account ${name} imported.`)
@@ -101,113 +87,13 @@ export class ImportCommand extends IronfishCommand {
     }
   }
 
-  static mnemonicWordsToKey(mnemonic: string): string | null {
-    let spendingKey: string | null = null
-    // There is no way to export size from MnemonicType in Rust (imperative)
-    if (mnemonic.trim().split(/\s+/).length !== 24) {
-      return null
-    }
-    for (const language of LanguageUtils.LANGUAGE_VALUES) {
-      try {
-        spendingKey = wordsToSpendingKey(mnemonic.trim(), language)
-        return spendingKey
-      } catch (e) {
-        continue
-      }
-    }
-    CliUx.ux.error(
-      `Detected mnemonic input, but the import failed.
-      Please verify the input text or use a different method to import wallet`,
-    )
-  }
-
-  static verifySpendingKey(spendingKey: string): string | null {
-    try {
-      return generateKeyFromPrivateKey(spendingKey)?.spendingKey ?? null
-    } catch (e) {
-      return null
-    }
-  }
-
-  async stringToRpcAccountImport(
-    data: string,
-    flags: CommandFlags<typeof ImportCommand>,
-  ): Promise<RpcAccountImport> {
-    // bech32 encoded json
-    const [decoded, _] = Bech32m.decode(data)
-    if (decoded) {
-      let data = JSONUtils.parse<RpcAccountImport>(decoded)
-
-      if (data.spendingKey) {
-        data = {
-          ...data,
-          ...generateKeyFromPrivateKey(data.spendingKey),
-        }
-      }
-
-      if (data.version === 1) {
-        data.createdAt = null
-        data.version = 2
-      }
-
-      if (flags.name) {
-        data.name = flags.name
-      }
-
-      return data
-    }
-
-    // mnemonic or explicit spending key
-    const spendingKey =
-      ImportCommand.mnemonicWordsToKey(data) || ImportCommand.verifySpendingKey(data)
-
-    if (spendingKey) {
-      const name =
-        flags.name ||
-        (await CliUx.ux.prompt('Enter a new account name', {
-          required: true,
-        }))
-
-      const key = generateKeyFromPrivateKey(spendingKey)
-      return { name, version: ACCOUNT_SCHEMA_VERSION, createdAt: null, ...key }
-    }
-
-    // raw json
-    try {
-      let json = JSONUtils.parse<RpcAccountImport>(data)
-
-      if (json.spendingKey) {
-        json = {
-          ...json,
-          ...generateKeyFromPrivateKey(json.spendingKey),
-        }
-      }
-
-      if (json.version === 1) {
-        json.createdAt = null
-        json.version = 2
-      }
-
-      if (flags.name) {
-        json.name = flags.name
-      }
-
-      return json
-    } catch (e) {
-      CliUx.ux.error(`Import failed for the given input: ${data}`)
-    }
-  }
-
-  async importFile(
-    path: string,
-    flags: CommandFlags<typeof ImportCommand>,
-  ): Promise<RpcAccountImport> {
+  async importFile(path: string): Promise<string> {
     const resolved = this.sdk.fileSystem.resolve(path)
     const data = await this.sdk.fileSystem.readFile(resolved)
-    return this.stringToRpcAccountImport(data.trim(), flags)
+    return data.trim()
   }
 
-  async importPipe(flags: CommandFlags<typeof ImportCommand>): Promise<RpcAccountImport> {
+  async importPipe(): Promise<string> {
     let data = ''
 
     const onData = (dataIn: string): void => {
@@ -223,10 +109,10 @@ export class ImportCommand extends IronfishCommand {
 
     process.stdin.off('data', onData)
 
-    return this.stringToRpcAccountImport(data, flags)
+    return data
   }
 
-  async importTTY(flags: CommandFlags<typeof ImportCommand>): Promise<RpcAccountImport> {
+  async importTTY(): Promise<string> {
     const userInput = await CliUx.ux.prompt(
       'Paste the output of wallet:export, or your spending key',
       {
@@ -234,6 +120,6 @@ export class ImportCommand extends IronfishCommand {
       },
     )
 
-    return await this.stringToRpcAccountImport(userInput, flags)
+    return userInput.trim()
   }
 }

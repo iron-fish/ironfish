@@ -7,7 +7,6 @@ import { DecryptNotesTask } from './decryptNotes'
 import { PostTransactionTask } from './postTransaction'
 import { SleepTask } from './sleep'
 import { SubmitTelemetryTask } from './submitTelemetry'
-import { VerifyTransactionTask } from './verifyTransaction'
 import { VerifyTransactionsTask } from './verifyTransactions'
 import { WorkerMessage, WorkerMessageType } from './workerMessage'
 import { WorkerTask } from './workerTask'
@@ -20,7 +19,6 @@ export const handlers: Record<WorkerMessageType, WorkerTask | undefined> = {
   [WorkerMessageType.JobError]: undefined,
   [WorkerMessageType.Sleep]: SleepTask.getInstance(),
   [WorkerMessageType.SubmitTelemetry]: SubmitTelemetryTask.getInstance(),
-  [WorkerMessageType.VerifyTransaction]: VerifyTransactionTask.getInstance(),
   [WorkerMessageType.VerifyTransactions]: VerifyTransactionsTask.getInstance(),
 }
 

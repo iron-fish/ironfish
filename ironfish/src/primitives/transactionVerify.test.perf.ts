@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Asset, TransactionPosted as NativeTransactionPosted } from '@ironfish/rust-nodejs'
+import { Asset } from '@ironfish/rust-nodejs'
 import { Assert } from '../assert'
 import { writeTestReport } from '../testUtilities'
 import {
@@ -15,8 +15,10 @@ import { createNodeTest } from '../testUtilities/nodeTest'
 import { BigIntUtils, CurrencyUtils } from '../utils'
 import { BenchUtils } from '../utils/bench'
 import { Account, Wallet } from '../wallet'
+import { WorkerPool } from '../workerPool'
 import { BurnDescription } from './burnDescription'
 import { MintData } from './rawTransaction'
+import { Transaction } from './transaction'
 
 type Results = {
   spends: number
@@ -43,18 +45,22 @@ describe('Verify Transaction', () => {
   let account: Account
   let wallet: Wallet
   let asset: Asset
+  let workerPool: WorkerPool
 
   beforeAll(async () => {
     const { node } = await nodeTest.createSetup()
 
     account = await useAccountFixture(node.wallet, 'test')
     wallet = node.wallet
+    workerPool = node.workerPool
+
     // Generate enough notes for the tests
     for (let i = 0; i < Math.max(...TEST_AMOUNTS.map((t) => t.spends)); i++) {
       const block = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
       await node.chain.addBlock(block)
       await node.wallet.updateHead()
     }
+
     // Generate asset for the tests
     asset = new Asset(account.publicAddress, 'test', '')
     const block = await useMintBlockFixture({
@@ -99,7 +105,7 @@ describe('Verify Transaction', () => {
     const tx = await createPostedTransaction(account, numSpends, numOutputs, numMints, numBurns)
 
     const start = BenchUtils.start()
-    const verifyResult = tx.verify()
+    const verifyResult = await workerPool.verifyTransactions([tx])
     const elapsed = BenchUtils.end(start)
 
     expect(verifyResult).toBeTruthy()
@@ -113,7 +119,7 @@ describe('Verify Transaction', () => {
     numOutputs: number,
     numMints: number,
     numBurns: number,
-  ): Promise<NativeTransactionPosted> {
+  ): Promise<Transaction> {
     const spendAmount = BigInt(numSpends) * CurrencyUtils.decodeIron(20)
     const outputAmount = BigIntUtils.divide(spendAmount, BigInt(numOutputs))
 
@@ -157,6 +163,6 @@ describe('Verify Transaction', () => {
     Assert.isNotNull(account.spendingKey)
     const posted = rawTx.post(account.spendingKey)
 
-    return new NativeTransactionPosted(posted.serialize())
+    return new Transaction(posted.serialize())
   }
 })
