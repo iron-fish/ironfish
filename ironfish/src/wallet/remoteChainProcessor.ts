@@ -89,7 +89,7 @@ export class RemoteChainProcessor {
     Assert.isNotNull(response.block.noteSize)
     let initialNoteIndex = response.block.noteSize
 
-    for (const rpcTransaction of response.block.transactions.reverse()) {
+    for (const rpcTransaction of response.block.transactions.slice().reverse()) {
       Assert.isNotUndefined(rpcTransaction.serialized)
       const transaction = new Transaction(Buffer.from(rpcTransaction.serialized, 'hex'))
       initialNoteIndex -= transaction.notes.length
@@ -100,6 +100,6 @@ export class RemoteChainProcessor {
       })
     }
 
-    return transactions.reverse()
+    return transactions.slice().reverse()
   }
 }
