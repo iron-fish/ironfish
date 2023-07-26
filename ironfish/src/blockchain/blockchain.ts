@@ -913,9 +913,7 @@ export class Blockchain {
           throw new HeadChangedError(`Can't create a block not attached to the chain head`)
         }
 
-        timestamp = new Date(
-          Math.max(currentTime, Date.parse(heaviestHead.timestamp.toUTCString()) + 1),
-        )
+        timestamp = new Date(Math.max(currentTime, heaviestHead.timestamp.getTime() + 1))
 
         target = Target.calculateTarget(
           timestamp,

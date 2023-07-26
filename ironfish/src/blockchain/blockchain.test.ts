@@ -747,7 +747,7 @@ describe('Blockchain', () => {
     })
   })
 
-  it('should create a block', async () => {
+  it('should create a block successfully', async () => {
     const { node, chain, wallet } = await nodeTest.createSetup()
 
     const accountA = await useAccountFixture(node.wallet, 'accountA')
@@ -761,9 +761,55 @@ describe('Blockchain', () => {
     const tx = await useTxFixture(node.wallet, accountA, accountA)
 
     const newBlock = await chain.newBlock([tx], minersFeeTx, undefined, chain.head)
-    expect(Date.parse(newBlock.header.timestamp.toUTCString())).toBeGreaterThan(
-      Date.parse(chain.head.timestamp.toUTCString()),
-    )
+    expect(newBlock.transactions.length).toEqual(2)
+    expect(newBlock.transactions[0]).toEqual(minersFeeTx)
+    expect(newBlock.transactions[1]).toEqual(tx)
+    expect(newBlock.header.sequence).toBeDefined()
+    expect(newBlock.header.target.targetValue).toBeDefined()
+    expect(newBlock.header.noteSize).toBeDefined()
+    expect(newBlock.header.timestamp.getTime()).toBeGreaterThan(chain.head.timestamp.getTime())
+  })
+
+  it('should create a block when clock is behind', async () => {
+    const { node, chain, wallet } = await nodeTest.createSetup()
+
+    const accountA = await useAccountFixture(node.wallet, 'accountA')
+
+    const block2 = await useMinerBlockFixture(chain, undefined, accountA)
+    await expect(chain).toAddBlock(block2)
+
+    await node.wallet.updateHead()
+
+    const minersFeeTx = await useMinersTxFixture(wallet, accountA, undefined, 0)
+    const tx = await useTxFixture(node.wallet, accountA, accountA)
+
+    jest
+      .spyOn(global.Date, 'now')
+      .mockImplementationOnce(() => chain.head.timestamp.getTime() - 2000)
+
+    const newBlock = await chain.newBlock([tx], minersFeeTx, undefined, chain.head)
+    expect(newBlock.header.timestamp.getTime()).toEqual(chain.head.timestamp.getTime() + 1)
+  })
+
+  it('should create a block when clock is in the future', async () => {
+    const { node, chain, wallet } = await nodeTest.createSetup()
+
+    const accountA = await useAccountFixture(node.wallet, 'accountA')
+
+    const block2 = await useMinerBlockFixture(chain, undefined, accountA)
+    await expect(chain).toAddBlock(block2)
+
+    await node.wallet.updateHead()
+
+    const minersFeeTx = await useMinersTxFixture(wallet, accountA, undefined, 0)
+    const tx = await useTxFixture(node.wallet, accountA, accountA)
+
+    jest
+      .spyOn(global.Date, 'now')
+      .mockImplementationOnce(() => chain.head.timestamp.getTime() + 2000)
+
+    const newBlock = await chain.newBlock([tx], minersFeeTx, undefined, chain.head)
+    expect(newBlock.header.timestamp.getTime()).toEqual(chain.head.timestamp.getTime() + 2000)
   })
 
   it('reject block with null previous hash', async () => {
