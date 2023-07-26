@@ -56,6 +56,10 @@ function isNodeError(error: unknown): error is Error & { code: string } {
   return error instanceof Error && 'code' in error && typeof error['code'] === 'string'
 }
 
+function isNotFoundError(error: unknown): error is Error & { code: 'not-found' } {
+  return isNodeError(error) && error.code === 'not-found'
+}
+
 export const ErrorUtils = {
   renderError,
   isConnectRefusedError,
@@ -63,4 +67,5 @@ export const ErrorUtils = {
   isConnectTimeOutError,
   isNoEntityError,
   isNodeError,
+  isNotFoundError,
 }

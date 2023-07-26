@@ -1364,7 +1364,7 @@ export class Wallet {
     validateAccount(accountValue)
 
     let createdAt = accountValue.createdAt
-    if (createdAt !== null && !(await this.chain.hasBlock(createdAt.hash))) {
+    if (createdAt !== null && !(await this.chainHasBlock(createdAt.hash))) {
       this.logger.debug(
         `Account ${accountValue.name} createdAt block ${createdAt.hash.toString('hex')} (${
           createdAt.sequence
@@ -1583,6 +1583,22 @@ export class Wallet {
   protected assertNotHasAccount(account: Account): void {
     if (this.accountExists(account.name)) {
       throw new Error(`No account found with name ${account.name}`)
+    }
+  }
+
+  private async chainHasBlock(hash: Buffer): Promise<boolean> {
+    try {
+      await this.nodeClient.chain.getBlock({ hash: hash.toString('hex') })
+      return true
+    } catch (error: unknown) {
+      if (ErrorUtils.isNotFoundError(error)) {
+        return false
+      }
+
+      // TODO(rohanjadvani): Add retry logic once the remote client is set up
+
+      this.logger.error(ErrorUtils.renderError(error, true))
+      throw error
     }
   }
 }
