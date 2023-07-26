@@ -272,6 +272,7 @@ export class Wallet {
     }
 
     void this.eventLoop()
+    this.logger.debug('Started wallet')
   }
 
   async stop(): Promise<void> {
@@ -288,6 +289,7 @@ export class Wallet {
     this.eventLoopAbortController.abort()
 
     await this.eventLoopPromise
+    this.logger.debug('Stopped wallet')
   }
 
   async eventLoop(): Promise<void> {

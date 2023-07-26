@@ -368,7 +368,10 @@ export class IronfishNode {
       this.metrics.start()
     }
 
-    await this.wallet.start()
+    if (this.config.get('walletScanningEnabled')) {
+      await this.wallet.start()
+    }
+
     this.peerNetwork.start()
 
     if (this.config.get('enableRpc')) {
@@ -455,6 +458,13 @@ export class IronfishNode {
           this.assetsVerifier.stop()
         }
         break
+      }
+      case 'walletScanningEnabled': {
+        if (newValue) {
+          await this.wallet.start()
+        } else {
+          await this.wallet.stop()
+        }
       }
     }
   }
