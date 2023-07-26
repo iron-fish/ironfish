@@ -34,7 +34,7 @@ export function processMintOwners(
       mintOwners.push(creator)
     }
 
-    // TODO: Update assetOwners if ownership is transferred when IFL-1326 is done
+    // TODO(IFL-1404): Update assetOwners if ownership is transferred
   }
 
   return mintOwners

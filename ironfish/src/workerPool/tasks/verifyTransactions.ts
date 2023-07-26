@@ -54,7 +54,7 @@ export class VerifyTransactionsRequest extends WorkerMessage {
     }
 
     size += 8 // mintOwners length
-    size += PUBLIC_ADDRESS_LENGTH & this.mintOwners.length
+    size += PUBLIC_ADDRESS_LENGTH * this.mintOwners.length
 
     return size
   }

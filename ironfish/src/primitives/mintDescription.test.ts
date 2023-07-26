@@ -24,10 +24,10 @@ describe('mintDescription', () => {
       const asset2 = new Asset(account2.publicAddress, 'testcoin', '')
 
       const mints: MintDescription[] = [
-        { asset: asset1, value: 10n },
-        { asset: asset2, value: 50n },
-        { asset: asset1, value: 50n },
-        { asset: asset2, value: 10n },
+        { asset: asset1, value: 10n, transferOwnershipTo: null },
+        { asset: asset2, value: 50n, transferOwnershipTo: null },
+        { asset: asset1, value: 50n, transferOwnershipTo: null },
+        { asset: asset2, value: 10n, transferOwnershipTo: null },
       ]
 
       const assetOwners: BufferMap<Buffer> = new BufferMap()
@@ -54,8 +54,8 @@ describe('mintDescription', () => {
       const asset = new Asset(account.publicAddress, 'testcoin', '')
 
       const mints: MintDescription[] = [
-        { asset: asset, value: 10n },
-        { asset: asset, value: 10n },
+        { asset: asset, value: 10n, transferOwnershipTo: null },
+        { asset: asset, value: 10n, transferOwnershipTo: null },
       ]
 
       // Intentionally leaving empty
@@ -76,7 +76,7 @@ describe('mintDescription', () => {
 
       const asset = new Asset(account.publicAddress, 'testcoin', '')
 
-      const mints: MintDescription[] = [{ asset: asset, value: 10n }]
+      const mints: MintDescription[] = [{ asset: asset, value: 10n, transferOwnershipTo: null }]
 
       const assetOwners: BufferMap<Buffer> = new BufferMap()
 

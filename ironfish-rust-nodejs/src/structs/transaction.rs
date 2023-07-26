@@ -303,7 +303,6 @@ pub fn verify_transactions(
     for owner_bytes in serialized_mint_owners {
         let mut buf = [0u8; PUBLIC_ADDRESS_SIZE];
         buf.copy_from_slice(owner_bytes.into_value()?.as_ref());
-        // TODO: Introduce a PublicAddress.from_bytes_unchecked
         mint_owners.push(PublicAddress::new(&buf).map_err(to_napi_err)?);
     }
 
