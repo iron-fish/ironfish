@@ -11,7 +11,6 @@ import { Consensus, isExpiredSequence, Verifier } from '../consensus'
 import { Event } from '../event'
 import { Config } from '../fileStores'
 import { createRootLogger, Logger } from '../logger'
-import { MemPool } from '../memPool'
 import { getFee } from '../memPool/feeEstimator'
 import { NoteHasher } from '../merkletree'
 import { Side } from '../merkletree/merkletree'
@@ -99,7 +98,6 @@ export class Wallet {
   constructor({
     chain,
     config,
-    memPool,
     database,
     logger = createRootLogger(),
     rebroadcastAfter,
@@ -110,7 +108,6 @@ export class Wallet {
     chain: Blockchain
     config: Config
     database: WalletDB
-    memPool: MemPool
     logger?: Logger
     rebroadcastAfter?: number
     workerPool: WorkerPool
