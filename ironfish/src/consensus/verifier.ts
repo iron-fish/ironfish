@@ -15,7 +15,7 @@ import { Spend } from '../primitives'
 import { Block, GENESIS_BLOCK_SEQUENCE } from '../primitives/block'
 import { BlockHeader, transactionCommitment } from '../primitives/blockheader'
 import { BurnDescription } from '../primitives/burnDescription'
-import { MintDescription } from '../primitives/mintDescription'
+import { MintDescription, processMintOwners } from '../primitives/mintDescription'
 import { Target } from '../primitives/target'
 import { Transaction } from '../primitives/transaction'
 import { IDatabaseTransaction } from '../storage'
@@ -78,7 +78,6 @@ export class Verifier {
 
     let transactionBatch = []
     let runningNotesCount = 0
-    let mintOwners = []
     const transactionHashes = new BufferSet()
     const assetOwners = await BlockchainUtils.getAssetOwners(this.chain, block.mints(), tx)
     for (const [idx, tx] of block.transactions.entries()) {
@@ -108,34 +107,20 @@ export class Verifier {
         return burnVerify
       }
 
-      for (const mint of tx.mints) {
-        const assetId = mint.asset.id()
-        const assetOwner = assetOwners.get(assetId)
-
-        if (assetOwner) {
-          mintOwners.push(assetOwner)
-        } else {
-          // The first time this asset has been minted, so it is not in the database yet
-          const creator = mint.asset.creator()
-          mintOwners.push(creator)
-          assetOwners.set(assetId, creator)
-        }
-
-        // TODO: Update assetOwners if ownership is transferred when IFL-1326 is done
-      }
-
       transactionBatch.push(tx)
 
       runningNotesCount += tx.notes.length
 
       if (runningNotesCount >= notesLimit || idx === block.transactions.length - 1) {
+        const mintOwners: Buffer[] = []
+        transactionBatch.forEach((t) => processMintOwners(t.mints, assetOwners, mintOwners))
+
         verificationPromises.push(
           this.workerPool.verifyTransactions(transactionBatch, mintOwners),
         )
 
         transactionBatch = []
         runningNotesCount = 0
-        mintOwners = []
       }
     }
 
@@ -266,26 +251,8 @@ export class Verifier {
       return { valid: false, reason: VerificationResultReason.INVALID_TRANSACTION_VERSION }
     }
 
-    // TODO: Pass db tx, this will deadlock
     const assetOwners = await BlockchainUtils.getAssetOwners(this.chain, transaction.mints, tx)
-    const mintOwners: Buffer[] = []
-
-    for (const mint of transaction.mints) {
-      const assetId = mint.asset.id()
-      const assetOwner = assetOwners.get(assetId)
-
-      if (assetOwner) {
-        mintOwners.push(assetOwner)
-      } else {
-        // The first time this asset has been minted, so it is not in the database yet
-        const creator = mint.asset.creator()
-        mintOwners.push(creator)
-        // Still want to set the owner in the map for subsequent mints
-        assetOwners.set(assetId, creator)
-      }
-
-      // TODO: Update assetOwners if ownership is transferred when IFL-1326 is done
-    }
+    const mintOwners = processMintOwners(transaction.mints, assetOwners)
 
     try {
       verificationResult = await this.workerPool.verifyTransactions([transaction], mintOwners)
@@ -402,23 +369,7 @@ export class Verifier {
     }
 
     const assetOwners = await BlockchainUtils.getAssetOwners(this.chain, transaction.mints, tx)
-    const mintOwners: Buffer[] = []
-
-    for (const mint of transaction.mints) {
-      const assetId = mint.asset.id()
-      const assetOwner = assetOwners.get(assetId)
-
-      if (assetOwner) {
-        mintOwners.push(assetOwner)
-      } else {
-        // The first time this asset has been minted, so it is not in the database yet
-        const creator = mint.asset.creator()
-        mintOwners.push(creator)
-        assetOwners.set(assetId, creator)
-      }
-
-      // TODO: Update assetOwners if ownership is transferred when IFL-1326 is done
-    }
+    const mintOwners = processMintOwners(transaction.mints, assetOwners)
 
     validity = await this.workerPool.verifyTransactions([transaction], mintOwners)
     return validity

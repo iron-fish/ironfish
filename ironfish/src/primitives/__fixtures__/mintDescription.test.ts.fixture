@@ -1,0 +1,52 @@
+{
+  "mintDescription processMintOwners should create an array matching the length of the provided mints": [
+    {
+      "version": 2,
+      "id": "171920ca-a808-468f-a8e1-c02cd667d2ad",
+      "name": "account1",
+      "spendingKey": "333630c01feef10be53a8a04b6ead4013438bb1c991c7f29bd73f7e40c356f05",
+      "viewKey": "a6fbe6de3e7aea68a0eae2599548f9d44b1a625af197293a956754682ac64dd1ffcc255da71b41eff36e77564afc594b1a20aac3c41465e1c23abdd88b2387ed",
+      "incomingViewKey": "4adb290c5c45c53e6468bc45ea4a45ffd8378a85f26045c7ca678e04f4a01a04",
+      "outgoingViewKey": "f59a65b127b3a070c3752a6a59ba00aa7849347a2a193ca8c05850762ae9c29a",
+      "publicAddress": "ce3aec575b438bdfd20a8d67a6a840f242022057c13b7e5320d19dcad80a57dc",
+      "createdAt": null
+    },
+    {
+      "version": 2,
+      "id": "c5ef0df4-b3de-41f5-a2b1-c272b0ecd612",
+      "name": "account2",
+      "spendingKey": "4c67b757439acc614ede203ac83d402543402b38f57fa8d6a07321a764a39546",
+      "viewKey": "3ccbf5b63ea4ff016c5b2941303c56ae68cefc8ee077c5f19ff6efbc8bf4eb67c008ddd95791231a71cdf756e73554d42ac56c8951bc9f51b1d8213dd4abb483",
+      "incomingViewKey": "fc1ee2ceba77b1c419b61c491a5006fb1e8903994a5c5e76b9d0fbc64e03e001",
+      "outgoingViewKey": "c2ee1b707b96e2e80b7a81c35f1c74d09a653dbc3e1aa9fe14ead07fa03cd3d1",
+      "publicAddress": "85fe997c7600ce9ee07b989eebf826ac4eb17fa7b05027c0321a1b976c1431a4",
+      "createdAt": null
+    }
+  ],
+  "mintDescription processMintOwners should update the asset owner map if there is a missing owner": [
+    {
+      "version": 2,
+      "id": "e7731b4b-15d7-45fe-9e23-29a12ffa7ccb",
+      "name": "account",
+      "spendingKey": "f301bca418fc24727338e02425b17953b5efce747cbaa189a0558f73c3842f5b",
+      "viewKey": "4a913523488db2bedb4fe9d74652e11dd9b2daba4e362de1711f4a7f8785204f8d4faee028df803342b37027db21b05187e307d95d57c58bde4834cad51613a0",
+      "incomingViewKey": "581674141c2fe11470da86ae592c34c4136786a505e9184c6606d8f6a8946607",
+      "outgoingViewKey": "e1ed13bd8b62141c980c9613839629dc9df11bd2d3538ec6cff2396529c130f3",
+      "publicAddress": "09baa022a4eefd62e772c9ee1df9b89fe248620a4d2a312d1f7a591ff088c24c",
+      "createdAt": null
+    }
+  ],
+  "mintDescription processMintOwners should update the existing mint owners if provided": [
+    {
+      "version": 2,
+      "id": "75ede17c-6748-49b2-b66f-dd907ee9521b",
+      "name": "account",
+      "spendingKey": "8ad53b16fe9cc3094c25613783990cd9a02ed3c9912a4c24a746007551e117ae",
+      "viewKey": "75f1fb51e7e0fabe029b8e927caf6122d51bad155ec8cd08dc9ba765682f24cd037d3b5dba0a2949c40027637a68d3c59e9ccae408593157fc87490a12becf53",
+      "incomingViewKey": "7858f35307e58e238e2ab4deca64b9aba8ea45b2ac590972544d63013eb94f02",
+      "outgoingViewKey": "c524a88d979502cf1e3974ed05b2404a8176ea08e7013d4bf921b4e9a4b16c07",
+      "publicAddress": "af685672a74dec7d2ccc720d4d3a3dd24e46bef27b074ad18fb514b208e6ddb2",
+      "createdAt": null
+    }
+  ]
+}
