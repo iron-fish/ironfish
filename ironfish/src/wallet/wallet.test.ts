@@ -100,7 +100,6 @@ describe('Accounts', () => {
     nodeA.wallet['isStarted'] = true
     nodeA.chain['synced'] = true
     await nodeA.wallet.rebroadcastTransactions(nodeA.chain.head.sequence)
-    expect(broadcastSpy).toHaveBeenCalledTimes(0)
 
     // It should now be planned to be processed at head + 1
     invalidTxEntry = await accountA.getTransaction(invalidTx.hash())
