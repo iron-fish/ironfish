@@ -639,57 +639,34 @@ export class Wallet {
     // but setting this.scan is our lock so updating the head doesn't run again
     await this.updateHeadState?.wait()
 
-    const startHash = await this.getEarliestHeadHash()
+    const startHash = fromHash ?? (await this.getEarliestHeadHash())
 
-    // Priority: fromHeader > startHeader > genesisBlock
-    const beginHash = fromHash ? fromHash : startHash ? startHash : this.chain.genesis.hash
-    const beginHeader = await this.chain.getHeader(beginHash)
+    // Fetch current chain head sequence
+    const chainInfo = await this.nodeClient.chain.getChainInfo()
+    scan.endSequence = Number(chainInfo.content.oldestBlockIdentifier.index)
 
-    Assert.isNotNull(
-      beginHeader,
-      `scanTransactions: No header found for start hash ${beginHash.toString('hex')}`,
-    )
+    this.logger.info(`Scan starting from block ${startHash?.toString('hex') ?? 'null'}`)
 
-    const endHash = this.chainProcessor.hash || this.chain.head.hash
-    const endHeader = await this.chain.getHeader(endHash)
+    const scanProcessor = new RemoteChainProcessor({
+      logger: this.logger,
+      nodeClient: this.nodeClient,
+      head: startHash,
+    })
 
-    Assert.isNotNull(
-      endHeader,
-      `scanTransactions: No header found for end hash ${endHash.toString('hex')}`,
-    )
+    scanProcessor.onAdd.on(async ({ header, transactions }) => {
+      await this.connectBlock(header, transactions, scan)
+      scan.signal(header.sequence)
+    })
 
-    scan.sequence = beginHeader.sequence
-    scan.endSequence = endHeader.sequence
+    scanProcessor.onRemove.on(async ({ header, transactions }) => {
+      await this.disconnectBlock(header, transactions)
+    })
 
-    if (scan.isAborted || beginHash.equals(endHash)) {
-      scan.signalComplete()
-      this.scan = null
-      return
-    }
+    await scanProcessor.update({ signal: scan.abortController.signal })
 
-    this.logger.info(
-      `Scan starting from block ${beginHash.toString('hex')} (${beginHeader.sequence})`,
-    )
-
-    // Go through every transaction in the chain and add notes that we can decrypt
-    for await (const blockHeader of this.chain.iterateBlockHeaders(
-      beginHash,
-      endHash,
-      undefined,
-      false,
-    )) {
-      const transactions = await this.chain.getBlockTransactions(blockHeader)
-      await this.connectBlock(blockHeader, transactions, scan)
-      scan.signal(blockHeader.sequence)
-    }
-
-    if (this.chainProcessor.hash === null) {
-      const latestHead = await this.getLatestHead()
-      Assert.isNotNull(latestHead, `scanTransactions: No latest head found`)
-
-      this.chainProcessor.hash = latestHead.hash
-      this.chainProcessor.sequence = latestHead.sequence
-    }
+    // Update chainProcessor following scan
+    this.chainProcessor.hash = scanProcessor.hash
+    this.chainProcessor.sequence = scanProcessor.sequence
 
     this.logger.info(
       `Finished scanning for transactions after ${Math.floor(

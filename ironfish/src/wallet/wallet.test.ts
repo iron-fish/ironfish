@@ -361,9 +361,9 @@ describe('Accounts', () => {
       const block2 = await useMinerBlockFixture(chain)
       await expect(chain).toAddBlock(block2)
 
-      // Should only scan up to the current processor head block1
+      // Should update the chain processor to block2
       await wallet.scanTransactions()
-      expect(wallet['chainProcessor']['hash']?.equals(block1.header.hash)).toBe(true)
+      expect(wallet['chainProcessor']['hash']?.equals(block2.header.hash)).toBe(true)
 
       // Now with a reset chain processor should go to end of chain
       await wallet.reset()
