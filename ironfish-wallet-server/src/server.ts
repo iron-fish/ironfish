@@ -1,8 +1,6 @@
 import "source-map-support/register";
 import { Server, ServerCredentials } from "@grpc/grpc-js";
-
-import { HealthCheckResponse_ServingStatus } from "./models/health";
-import { Health, HealthService, healthStatus } from "./services/Health";
+import { Health, HealthService } from "./services/Health";
 import { LightStreamer, LightStreamerService } from "./services/LightStreamer";
 import { logger } from "./utils";
 
@@ -24,9 +22,4 @@ server.bindAsync(
     logger.info(`gRPC:Server:${bindPort}`, new Date().toLocaleString());
     server.start();
   }
-);
-
-healthStatus.set(
-  "lightstreamer.LightStreamer",
-  HealthCheckResponse_ServingStatus.NOT_SERVING
 );
