@@ -6,12 +6,13 @@
 use super::{ProposedTransaction, Transaction};
 use crate::{
     assets::{asset::Asset, asset_identifier::NATIVE_ASSET},
+    errors::IronfishError,
     keys::SaplingKey,
     merkle_note::NOTE_ENCRYPTION_MINER_KEYS,
     note::Note,
     test_util::make_fake_witness,
     transaction::{
-        verify_transaction, TRANSACTION_EXPIRATION_SIZE, TRANSACTION_FEE_SIZE,
+        verify_transaction, TransactionVersion, TRANSACTION_EXPIRATION_SIZE, TRANSACTION_FEE_SIZE,
         TRANSACTION_SIGNATURE_SIZE,
     },
 };
@@ -283,52 +284,47 @@ fn test_transaction_created_with_version_1() {
     transaction.add_spend(in_note, &witness).unwrap();
     transaction.add_output(out_note).unwrap();
 
-    assert_eq!(transaction.version, 1);
+    assert_eq!(transaction.version, TransactionVersion::V1);
 
     let public_transaction = transaction
         .post(None, 1)
         .expect("should be able to post transaction");
 
-    assert_eq!(public_transaction.version, 1);
+    assert_eq!(public_transaction.version, TransactionVersion::V1);
 
     verify_transaction(&public_transaction).expect("version 1 transactions should be valid");
 }
 
 #[test]
 fn test_transaction_version_is_checked() {
-    let spender_key = SaplingKey::generate_key();
-    let receiver_key = SaplingKey::generate_key();
-    let sender_key = SaplingKey::generate_key();
+    fn assert_invalid_version(result: Result<Transaction, IronfishError>) {
+        match result {
+            Ok(_) => panic!("expected an error"),
+            Err(IronfishError::InvalidTransactionVersion) => (),
+            Err(ref err) => panic!("expected InvalidTransactionVersion, got {:?} instead", err),
+        }
+    }
 
-    let in_note = Note::new(
-        spender_key.public_address(),
-        42,
-        "",
-        NATIVE_ASSET,
-        sender_key.public_address(),
-    );
+    let mut transaction = [0u8; 256];
 
-    let out_note = Note::new(
-        receiver_key.public_address(),
-        40,
-        "",
-        NATIVE_ASSET,
-        spender_key.public_address(),
-    );
-    let witness = make_fake_witness(&in_note);
+    let valid_versions = [1u8, 2u8];
+    let invalid_versions = (u8::MIN..=u8::MAX)
+        .into_iter()
+        .filter(|v| !valid_versions.contains(v))
+        .collect::<Vec<u8>>();
+    assert_eq!(invalid_versions.len(), 254);
 
-    let mut transaction = ProposedTransaction::new(spender_key);
-    transaction.add_spend(in_note, &witness).unwrap();
-    transaction.add_output(out_note).unwrap();
+    // Verify that valid versions are correctly deserialized
+    for version in valid_versions {
+        transaction[0] = version;
+        assert!(Transaction::read(&transaction[..]).is_ok());
+    }
 
-    transaction.version = 2;
-
-    let public_transaction = transaction
-        .post(None, 1)
-        .expect("should be able to post transaction");
-
-    verify_transaction(&public_transaction)
-        .expect_err("non version 1 transactions should not be valid");
+    // Verify that invalid versions result in InvalidTransactionVersion upon deserialization
+    for version in invalid_versions {
+        transaction[0] = version;
+        assert_invalid_version(Transaction::read(&transaction[..]));
+    }
 }
 
 #[test]

@@ -6,4 +6,5 @@ import { Asset } from '@ironfish/rust-nodejs'
 export interface MintDescription {
   asset: Asset
   value: bigint
+  transferOwnershipTo: string | null
 }

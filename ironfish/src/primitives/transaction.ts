@@ -8,6 +8,7 @@ import {
   ASSET_LENGTH,
   ENCRYPTED_NOTE_LENGTH,
   PROOF_LENGTH,
+  PUBLIC_ADDRESS_LENGTH,
   TRANSACTION_PUBLIC_KEY_RANDOMNESS_LENGTH,
   TRANSACTION_SIGNATURE_LENGTH,
   TransactionPosted,
@@ -23,6 +24,24 @@ export type TransactionHash = Buffer
 
 export type SerializedTransaction = Buffer
 
+export enum TransactionVersion {
+  V1 = 1,
+  V2 = 2,
+}
+
+const hasMintTransferOwnershipTo = (version: TransactionVersion) => {
+  return version >= TransactionVersion.V2
+}
+
+export class UnsupportedVersionError extends Error {
+  readonly version: number
+
+  constructor(version: number) {
+    super(`Unsupported transaction version: ${version}`)
+    this.version = version
+  }
+}
+
 export class Transaction {
   private readonly transactionPostedSerialized: Buffer
 
@@ -31,7 +50,7 @@ export class Transaction {
   public readonly mints: MintDescription[]
   public readonly burns: BurnDescription[]
 
-  private readonly _version: number
+  private readonly _version: TransactionVersion
   private readonly _fee: bigint
   private readonly _expiration: number
   private readonly _signature: Buffer
@@ -47,6 +66,9 @@ export class Transaction {
     const reader = bufio.read(this.transactionPostedSerialized, true)
 
     this._version = reader.readU8() // 1
+    if (this._version < 1 || this._version > 2) {
+      throw new UnsupportedVersionError(this._version)
+    }
     const _spendsLength = reader.readU64() // 8
     const _notesLength = reader.readU64() // 8
     const _mintsLength = reader.readU64() // 8
@@ -95,10 +117,17 @@ export class Transaction {
       const asset = Asset.deserialize(reader.readBytes(ASSET_LENGTH))
       const value = reader.readBigU64()
 
+      let transferOwnershipTo = null
+      if (hasMintTransferOwnershipTo(this._version)) {
+        if (reader.readU8()) {
+          transferOwnershipTo = reader.readBytes(PUBLIC_ADDRESS_LENGTH).toString('hex')
+        }
+      }
+
       // authorizing signature
       reader.seek(TRANSACTION_SIGNATURE_LENGTH)
 
-      return { asset, value }
+      return { asset, value, transferOwnershipTo }
     })
 
     this.burns = Array.from({ length: _burnsLength }, () => {
@@ -119,7 +148,7 @@ export class Transaction {
    * The transaction serialization version. This can be incremented when
    * changes need to be made to the transaction format
    */
-  version(): number {
+  version(): TransactionVersion {
     return this._version
   }
 
