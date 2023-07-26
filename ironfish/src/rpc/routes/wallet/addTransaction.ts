@@ -62,10 +62,10 @@ routes.register<typeof AddTransactionRequestSchema, AddTransactionResponse>(
       )
     }
 
-    const accepted = node.memPool.acceptTransaction(transaction)
-
+    let accepted = false
     if (request.data.broadcast) {
-      await node.wallet.broadcastTransaction(transaction)
+      const result = await node.wallet.broadcastTransaction(transaction)
+      accepted = result.accepted
     }
 
     request.end({
