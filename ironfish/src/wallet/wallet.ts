@@ -72,7 +72,6 @@ export enum TransactionType {
 export class Wallet {
   readonly onAccountImported = new Event<[account: Account]>()
   readonly onAccountRemoved = new Event<[account: Account]>()
-  readonly onTransactionCreated = new Event<[transaction: Transaction]>()
 
   scan: ScanState | null = null
   updateHeadState: ScanState | null = null
@@ -83,7 +82,6 @@ export class Wallet {
   readonly workerPool: WorkerPool
   readonly chain: Blockchain
   readonly chainProcessor: ChainProcessor
-  readonly memPool: MemPool
   readonly nodeClient: RpcClient
   private readonly config: Config
   readonly consensus: Consensus
@@ -122,7 +120,6 @@ export class Wallet {
     this.chain = chain
     this.config = config
     this.logger = logger.withTag('accounts')
-    this.memPool = memPool
     this.walletDb = database
     this.workerPool = workerPool
     this.consensus = consensus
@@ -978,9 +975,7 @@ export class Wallet {
 
     if (broadcast) {
       await this.addPendingTransaction(transaction)
-      this.memPool.acceptTransaction(transaction)
       await this.broadcastTransaction(transaction)
-      this.onTransactionCreated.emit(transaction)
     }
 
     return transaction
