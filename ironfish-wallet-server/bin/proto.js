@@ -13,6 +13,7 @@ rimrafSync(`${MODEL_DIR}/*`, {
 
 // https://github.com/stephenh/ts-proto/blob/main/README.markdown#supported-options
 const tsProtoOpt = [
+  "context=true",
   "outputServices=grpc-js",
   "env=node",
   "useOptionals=messages",
