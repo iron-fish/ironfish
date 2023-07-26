@@ -299,7 +299,6 @@ export class IronfishNode {
     const wallet = new Wallet({
       chain,
       config,
-      memPool,
       database: walletDB,
       workerPool,
       consensus,

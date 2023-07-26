@@ -11,7 +11,6 @@ import { Consensus, isExpiredSequence, Verifier } from '../consensus'
 import { Event } from '../event'
 import { Config } from '../fileStores'
 import { createRootLogger, Logger } from '../logger'
-import { MemPool } from '../memPool'
 import { getFee } from '../memPool/feeEstimator'
 import { NoteHasher } from '../merkletree'
 import { Side } from '../merkletree/merkletree'
@@ -72,7 +71,6 @@ export enum TransactionType {
 export class Wallet {
   readonly onAccountImported = new Event<[account: Account]>()
   readonly onAccountRemoved = new Event<[account: Account]>()
-  readonly onTransactionCreated = new Event<[transaction: Transaction]>()
 
   scan: ScanState | null = null
   updateHeadState: ScanState | null = null
@@ -83,7 +81,6 @@ export class Wallet {
   readonly workerPool: WorkerPool
   readonly chain: Blockchain
   readonly chainProcessor: ChainProcessor
-  readonly memPool: MemPool
   readonly nodeClient: RpcClient
   private readonly config: Config
   readonly consensus: Consensus
@@ -101,7 +98,6 @@ export class Wallet {
   constructor({
     chain,
     config,
-    memPool,
     database,
     logger = createRootLogger(),
     rebroadcastAfter,
@@ -112,7 +108,6 @@ export class Wallet {
     chain: Blockchain
     config: Config
     database: WalletDB
-    memPool: MemPool
     logger?: Logger
     rebroadcastAfter?: number
     workerPool: WorkerPool
@@ -122,7 +117,6 @@ export class Wallet {
     this.chain = chain
     this.config = config
     this.logger = logger.withTag('accounts')
-    this.memPool = memPool
     this.walletDb = database
     this.workerPool = workerPool
     this.consensus = consensus
@@ -978,9 +972,7 @@ export class Wallet {
 
     if (broadcast) {
       await this.addPendingTransaction(transaction)
-      this.memPool.acceptTransaction(transaction)
       await this.broadcastTransaction(transaction)
-      this.onTransactionCreated.emit(transaction)
     }
 
     return transaction
