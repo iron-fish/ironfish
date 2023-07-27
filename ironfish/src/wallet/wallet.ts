@@ -1565,7 +1565,7 @@ export class Wallet {
     }
   }
 
-  private async chainHasBlock(hash: Buffer): Promise<boolean> {
+  async chainHasBlock(hash: Buffer): Promise<boolean> {
     try {
       await this.nodeClient.chain.getBlock({ hash: hash.toString('hex') })
       return true
