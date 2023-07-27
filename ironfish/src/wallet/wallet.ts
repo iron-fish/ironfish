@@ -614,10 +614,12 @@ export class Wallet {
       accounts,
     )
 
+    const head = await this.getChainHead()
+
     for (const account of accounts) {
       const decryptedNotes = decryptedNotesByAccountId.get(account.id) ?? []
 
-      await account.addPendingTransaction(transaction, decryptedNotes, this.chain.head.sequence)
+      await account.addPendingTransaction(transaction, decryptedNotes, head.sequence)
       await this.upsertAssetsFromDecryptedNotes(account, decryptedNotes)
     }
   }
@@ -848,7 +850,7 @@ export class Wallet {
     expirationDelta?: number
     confirmations?: number
   }): Promise<RawTransaction> {
-    const heaviestHead = this.chain.head
+    const heaviestHead = await this.getChainHead()
     if (heaviestHead === null) {
       throw new Error('You must have a genesis block to create a transaction')
     }
@@ -864,9 +866,9 @@ export class Wallet {
 
     const expiration = options.expiration ?? heaviestHead.sequence + expirationDelta
 
-    if (isExpiredSequence(expiration, this.chain.head.sequence)) {
+    if (isExpiredSequence(expiration, heaviestHead.sequence)) {
       throw new Error(
-        `Invalid expiration sequence for transaction ${expiration} vs ${this.chain.head.sequence}`,
+        `Invalid expiration sequence for transaction ${expiration} vs ${heaviestHead.sequence}`,
       )
     }
 
@@ -1602,6 +1604,19 @@ export class Wallet {
         return null
       }
 
+      this.logger.error(ErrorUtils.renderError(error, true))
+      throw error
+    }
+  }
+
+  private async getChainHead(): Promise<{ hash: Buffer; sequence: number }> {
+    try {
+      const response = await this.nodeClient.chain.getChainInfo()
+      return {
+        hash: Buffer.from(response.content.oldestBlockIdentifier.hash, 'hex'),
+        sequence: Number(response.content.oldestBlockIdentifier.index),
+      }
+    } catch (error: unknown) {
       this.logger.error(ErrorUtils.renderError(error, true))
       throw error
     }
