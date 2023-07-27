@@ -5,7 +5,7 @@ import { ASSET_ID_LENGTH } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { CurrencyUtils } from '../../../utils'
-import { ValidationError } from '../../adapters'
+import { NotFoundError, ValidationError } from '../../adapters'
 import { ApiNamespace, routes } from '../router'
 
 export type GetAssetRequest = {
@@ -56,9 +56,8 @@ routes.register<typeof GetAssetRequestSchema, GetAssetResponse>(
     }
 
     const asset = await node.chain.getAssetById(id)
-
     if (!asset) {
-      throw new ValidationError(`No asset found with identifier ${request.data.id}`)
+      throw new NotFoundError(`No asset found with identifier ${request.data.id}`)
     }
 
     request.end({
