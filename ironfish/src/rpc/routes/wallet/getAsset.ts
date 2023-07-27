@@ -4,6 +4,7 @@
 import { ASSET_ID_LENGTH } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
+import { AssetVerification } from '../../../assets'
 import { CurrencyUtils } from '../../../utils'
 import { NotFoundError, ValidationError } from '../../adapters'
 import { ApiNamespace, routes } from '../router'
@@ -23,11 +24,9 @@ export type GetWalletAssetResponse = {
   name: string
   nonce: number
   status: string
+  verification: AssetVerification
   // Populated for assets the account owns
   supply: string | null
-  // Populated once the asset has been added to the main chain
-  blockHash: string | null
-  sequence: number | null
 }
 
 export const GetWalletAssetRequestSchema: yup.ObjectSchema<GetWalletAssetRequest> = yup
@@ -48,9 +47,10 @@ export const GetWalletAssetResponse: yup.ObjectSchema<GetWalletAssetResponse> = 
     name: yup.string().defined(),
     nonce: yup.number().defined(),
     status: yup.string().defined(),
+    verification: yup
+      .object({ status: yup.string().oneOf(['verified', 'unverified', 'unknown']).defined() })
+      .defined(),
     supply: yup.string().nullable().defined(),
-    blockHash: yup.string().nullable().defined(),
-    sequence: yup.number().nullable().defined(),
   })
   .defined()
 
@@ -85,8 +85,7 @@ routes.register<typeof GetWalletAssetRequestSchema, GetWalletAssetResponse>(
         confirmations: request.data.confirmations,
       }),
       supply: asset.supply ? CurrencyUtils.encode(asset.supply) : null,
-      blockHash: asset.blockHash ? asset.blockHash.toString('hex') : null,
-      sequence: asset.sequence ? asset.sequence : null,
+      verification: node.assetsVerifier.verify(asset.id),
     })
   },
 )
