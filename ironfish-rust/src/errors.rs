@@ -27,6 +27,7 @@ pub enum IronfishError {
     InvalidDecryptionKey,
     InvalidDiversificationPoint,
     InvalidEntropy,
+    InvalidEphemeralPublicKey,
     InvalidLanguageEncoding,
     InvalidMinersFeeTransaction,
     InvalidMnemonicString,

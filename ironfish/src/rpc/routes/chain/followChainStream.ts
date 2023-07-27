@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { isValidRandomness } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { ChainProcessor } from '../../../chainProcessor'
@@ -84,11 +83,8 @@ routes.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
       logger: node.logger,
       head: head,
     })
-    let successFr = 0
-    let failFr = 0
 
     const send = (block: Block, type: 'connected' | 'disconnected' | 'fork') => {
-      console.log(`seq: ${block.header.sequence} success: ${successFr}, fail ${failFr}`)
       const transactions = block.transactions.map((transaction) => {
         return transaction.withReference(() => {
           return {
@@ -99,18 +95,9 @@ routes.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
             size: getTransactionSize(transaction),
             fee: Number(transaction.fee()),
             expiration: transaction.expiration(),
-            notes: transaction.notes.map((note) => {
-              // get 32 bytes after first 64 bytes for test, need also to decrypt with chacha20, see rust/src/serializing/aead
-              // will likely need a second rust method for partial decryption
-              if (isValidRandomness(note.serialize().toString('hex'))) {
-                successFr += 1
-              } else {
-                failFr += 1
-              }
-              return {
-                commitment: note.hash().toString('hex'),
-              }
-            }),
+            notes: transaction.notes.map((note) => ({
+              commitment: note.hash().toString('hex'),
+            })),
             spends: transaction.spends.map((spend) => ({
               nullifier: spend.nullifier.toString('hex'),
               commitment: spend.commitment.toString('hex'),

@@ -72,6 +72,7 @@ export function spendingKeyToWords(privateKey: string, languageCode: LanguageCod
 export function wordsToSpendingKey(words: string, languageCode: LanguageCode): string
 export function generateKeyFromPrivateKey(privateKey: string): Key
 export function initializeSapling(): void
+export function partialDecrypt(sharedSecretKey: string, ciphertext: string): string
 export function isValidRandomness(hexBytes: string): boolean
 export function isValidPublicAddress(hexAddress: string): boolean
 export class BoxKeyPair {
@@ -204,6 +205,11 @@ export class Transaction {
    */
   post(changeGoesTo: string | undefined | null, intendedTransactionFee: bigint): Buffer
   setExpiration(sequence: number): void
+}
+export type Incoming = IncomingViewKey
+export class IncomingViewKey {
+  constructor(hex: string)
+  sharedSecretKey(ephermalPublicKey: string): string
 }
 export class FoundBlockResult {
   randomness: string

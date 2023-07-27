@@ -61,6 +61,25 @@ pub fn hex_to_bytes<const SIZE: usize>(hex: &str) -> Result<[u8; SIZE], Ironfish
     Ok(bytes)
 }
 
+/// Output the hexadecimal String as byte vec
+pub fn hex_to_bytes_vec(hex: &str) -> Result<Vec<u8>, IronfishError> {
+    if hex.len() % 2 != 0 {
+        return Err(IronfishError::InvalidData);
+    }
+
+    let mut bytes = Vec::with_capacity(hex.len() / 2);
+
+    let hex_iter = hex.as_bytes().chunks_exact(2);
+
+    for hex in hex_iter {
+        let byte = hex_to_u8(hex[0])? << 4 | hex_to_u8(hex[1])?;
+        bytes.push(byte);
+    }
+
+    Ok(bytes)
+}
+
+
 #[inline]
 fn hex_to_u8(char: u8) -> Result<u8, IronfishError> {
     match char {

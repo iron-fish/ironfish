@@ -79,6 +79,19 @@ impl IncomingViewKey {
         PublicAddress::from_view_key(self)
     }
 
+    pub fn shared_secret_key(&self, ephemeral_public_key: [u8; 32]) -> Result<[u8; 32], IronfishError> {
+        let subgroup_result = SubgroupPoint::from_bytes(&ephemeral_public_key);
+       
+        if subgroup_result.is_some().into() {
+            let point = subgroup_result.unwrap();
+            let shared_secret = self.shared_secret(&point);
+            Ok(shared_secret)
+        } else {
+            Err(IronfishError::InvalidEphemeralPublicKey)
+        }
+    }
+    
+
     /// Calculate the shared secret key given the ephemeral public key that was
     /// created for a transaction.
     pub(crate) fn shared_secret(&self, ephemeral_public_key: &SubgroupPoint) -> [u8; 32] {

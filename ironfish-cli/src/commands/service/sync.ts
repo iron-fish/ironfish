@@ -55,16 +55,46 @@ export default class Sync extends IronfishCommand {
   async start(): Promise<void> {
     const { flags, args } = await this.parse(Sync)
 
+    const apiHost = (flags.endpoint || process.env.IRONFISH_API_HOST || '').trim()
+    const apiToken = (flags.token || process.env.IRONFISH_API_TOKEN || '').trim()
+
+    if (!apiHost) {
+      this.log(
+        `No api host found to upload blocks and transactions to. You must set IRONFISH_API_HOST env variable or pass --endpoint flag.`,
+      )
+      this.exit(1)
+    }
+
+    if (!apiToken) {
+      this.log(
+        `No api token found to auth with the API. You must set IRONFISH_API_TOKEN env variable or pass --token flag.`,
+      )
+      this.exit(1)
+    }
+
     this.log('Connecting to node...')
 
     const client = await this.sdk.connectRpc()
 
+    const api = new WebApi({ host: apiHost, token: apiToken })
+
     const head = args.head as string | null
 
-    await this.syncBlocks(client, head, flags.maxUpload)
+    void this.syncTransactionGossip(client, api, flags.maxUpload)
+    await this.syncBlocks(client, api, head, flags.maxUpload)
   }
 
-  async syncBlocks(client: RpcClient, head: string | null, maxUpload: number): Promise<void> {
+  async syncBlocks(
+    client: RpcClient,
+    api: WebApi,
+    head: string | null,
+    maxUpload: number,
+  ): Promise<void> {
+    if (!head) {
+      this.log(`Fetching head from ${api.host}`)
+      head = await api.headBlocks()
+    }
+
     if (head) {
       this.log(`Starting from head ${head}`)
     }
@@ -75,6 +105,11 @@ export default class Sync extends IronfishCommand {
     speed.start()
 
     const buffer = new Array<FollowChainStreamResponse>()
+
+    async function commit(): Promise<void> {
+      await api.blocks(buffer)
+      buffer.length = 0
+    }
 
     for await (const content of response.contentStream()) {
       buffer.push(content)
@@ -99,7 +134,13 @@ export default class Sync extends IronfishCommand {
             : ''
         }`,
       )
+
+      if (committing) {
+        await commit()
+      }
     }
+
+    await commit()
   }
 
   async syncTransactionGossip(

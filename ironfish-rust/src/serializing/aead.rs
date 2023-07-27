@@ -63,19 +63,20 @@ pub(crate) fn decrypt<const SIZE: usize>(
 }
 
 
-/// WARNING: 
-/// 1. There is no MAC tag check here, so this is not secure.
-/// 2. There is no guarantee the encrypted text is valid, it will return a "value" whether the key is valid or not
+/// WARNING:
+/// 1. Decryption can only occur for 1-n bytes, not n-m bytes 
+/// 2. There is no MAC tag check here, so this is not secure.
+/// 3. There is no guarantee the encrypted text is valid, it will return a "value" whether the key is valid or not
 /// 
 /// this is a partial decryption, and should only be used for cases where
 /// potential tampering is not a concern. For example, trial decryption of
 /// a note for determining if that note is relevant to an account, where the full ciphertext
 /// will subsequently be downloaded 
-pub(crate) fn decrypt_partial<const SIZE: usize>(
+pub fn decrypt_partial(
     key: &[u8; 32],
-    truncated_ciphertext: &[u8; SIZE],
-) -> [u8; SIZE] {
-    let mut truncated_encrypted_text = [0u8; SIZE];
+    truncated_ciphertext: &Vec<u8>,
+) -> Vec<u8> {
+    let mut truncated_encrypted_text = truncated_ciphertext.clone();
     truncated_encrypted_text.copy_from_slice(&truncated_ciphertext[..]);
 
     let mut keystream = ChaCha20::new(key.as_ref().into(), [0u8; 12][..].into());
@@ -135,7 +136,7 @@ mod test {
         let mut truncated_encrypted_text = [0u8; FR_SIZE];
         truncated_encrypted_text.copy_from_slice(&encrypted_text[..FR_SIZE]);
 
-        let truncated_decrypted_text = decrypt_partial(key, &truncated_encrypted_text);
+        let truncated_decrypted_text: [u8; 32] = decrypt_partial(key, &truncated_encrypted_text.to_vec()).try_into().expect("should have 32 bytes");
         jubjub::Fr::from_repr(truncated_decrypted_text).unwrap();
     }
 }

@@ -19,3 +19,6 @@ pub use transaction::*;
 
 mod witness;
 pub use witness::*;
+
+mod key;
+pub use key::*;

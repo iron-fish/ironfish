@@ -5,10 +5,11 @@
 use std::fmt::Display;
 
 use ironfish::keys::Language;
-use ironfish::note::Fr;
 use ironfish::PublicAddress;
 use ironfish::SaplingKey;
+use ironfish::serializing::bytes_to_hex;
 use ironfish::serializing::hex_to_bytes;
+use ironfish::serializing::hex_to_bytes_vec;
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 
@@ -108,6 +109,16 @@ pub fn generate_key_from_private_key(private_key: String) -> Result<Key> {
 #[napi]
 pub fn initialize_sapling() {
     let _ = sapling_bls12::SAPLING.clone();
+}
+
+
+// WARNING: see warning of decrypt_partial()
+#[napi]
+pub fn partial_decrypt(key: String, ciphertext: String) -> Result<String> {
+    let key_bytes = hex_to_bytes(&key).map_err(to_napi_err)?;
+    let ciphertext_bytes = hex_to_bytes_vec(&ciphertext).map_err(to_napi_err)?;
+    let plaintext = ironfish::serializing::aead::decrypt_partial(&key_bytes, &ciphertext_bytes);
+    Ok(bytes_to_hex(&plaintext))
 }
 
 #[napi]
