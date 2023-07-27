@@ -529,7 +529,7 @@ export class Wallet {
       const asset = await this.walletDb.getAsset(account, note.assetId(), tx)
 
       if (!asset) {
-        const chainAsset = await this.chain.getAssetById(note.assetId())
+        const chainAsset = await this.getChainAsset(note.assetId())
         Assert.isNotNull(chainAsset, 'Asset must be non-null in the chain')
         await account.saveAssetFromChain(
           chainAsset.createdTransactionHash,
@@ -772,7 +772,7 @@ export class Wallet {
     let mintData: MintData
 
     if ('assetId' in options) {
-      const asset = await this.chain.getAssetById(options.assetId)
+      const asset = await this.getChainAsset(options.assetId)
       if (!asset) {
         throw new Error(
           `Asset not found. Cannot mint for identifier '${options.assetId.toString('hex')}'`,
@@ -1574,6 +1574,30 @@ export class Wallet {
 
       // TODO(rohanjadvani): Add retry logic once the remote client is set up
 
+      this.logger.error(ErrorUtils.renderError(error, true))
+      throw error
+    }
+  }
+
+  private async getChainAsset(id: Buffer): Promise<{
+    createdTransactionHash: Buffer
+    creator: Buffer
+    id: Buffer
+    metadata: Buffer
+    name: Buffer
+    nonce: number
+  }> {
+    try {
+      const response = await this.nodeClient.chain.getAsset({ id: id.toString('hex') })
+      return {
+        createdTransactionHash: Buffer.from(response.content.createdTransactionHash, 'hex'),
+        creator: Buffer.from(response.content.creator, 'hex'),
+        id: Buffer.from(response.content.id, 'hex'),
+        metadata: Buffer.from(response.content.metadata, 'hex'),
+        name: Buffer.from(response.content.name, 'hex'),
+        nonce: response.content.nonce,
+      }
+    } catch (error: unknown) {
       this.logger.error(ErrorUtils.renderError(error, true))
       throw error
     }
