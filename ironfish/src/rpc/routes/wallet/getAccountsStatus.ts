@@ -54,17 +54,13 @@ routes.register<typeof GetAccountStatusRequestSchema, GetAccountStatusResponse>(
     const accountsInfo: GetAccountStatusResponse['accounts'] = []
     for (const account of node.wallet.listAccounts()) {
       const head = heads.get(account.id)
-      const blockResponse = head?.hash
-        ? await node.wallet.nodeClient.chain.getBlock({
-            hash: head.hash.toString('hex'),
-          })
-        : null
+      const headInChain = head?.hash ? await node.wallet.chainHasBlock(head.hash) : false
 
       accountsInfo.push({
         name: account.name,
         id: account.id,
         headHash: head?.hash.toString('hex') || 'NULL',
-        headInChain: !!blockResponse?.content.block,
+        headInChain,
         sequence: head?.sequence || 'NULL',
       })
     }
