@@ -5,7 +5,7 @@
 import { Asset } from '@ironfish/rust-nodejs'
 import { Assert } from '../../../assert'
 import { useAccountFixture, useMinersTxFixture } from '../../../testUtilities/fixtures'
-import { createRouteTest, RouteTest } from '../../../testUtilities/routeTest'
+import { createRouteTest } from '../../../testUtilities/routeTest'
 import { NotEnoughFundsError } from '../../../wallet/errors'
 import { ERROR_CODES } from '../../adapters'
 
@@ -41,14 +41,6 @@ const TEST_PARAMS_MULTI = {
   fee: BigInt(1).toString(),
 }
 
-// Get the number of blocks that the current chain head is behind
-function numBlocksBehind(routeTest: RouteTest): number {
-  const secondsBehind = (Date.now() - routeTest.chain.head.timestamp.valueOf()) / 1000
-  return Math.floor(
-    secondsBehind / routeTest.wallet.consensus.parameters.targetBlockTimeInSeconds,
-  )
-}
-
 describe('Route wallet/sendTransaction', () => {
   const routeTest = createRouteTest(true)
 
@@ -66,8 +58,7 @@ describe('Route wallet/sendTransaction', () => {
   })
 
   it('throws if the chain is outdated', async () => {
-    // Set config such that the current chain head qualifies as outdated
-    routeTest.wallet.config.set('maxSyncedAgeBlocks', numBlocksBehind(routeTest) - 10)
+    routeTest.chain.synced = false
 
     await expect(routeTest.client.wallet.sendTransaction(TEST_PARAMS)).rejects.toThrow(
       'Your node must be synced with the Iron Fish network to send a transaction. Please try again later',
@@ -75,8 +66,7 @@ describe('Route wallet/sendTransaction', () => {
   })
 
   it('throws if not enough funds', async () => {
-    // Set config such that the current chain head is synced
-    routeTest.wallet.config.set('maxSyncedAgeBlocks', numBlocksBehind(routeTest) + 10)
+    routeTest.chain.synced = true
 
     await expect(routeTest.client.wallet.sendTransaction(TEST_PARAMS)).rejects.toThrow(
       expect.objectContaining({
@@ -100,8 +90,7 @@ describe('Route wallet/sendTransaction', () => {
   })
 
   it('throws if the available balance is too low', async () => {
-    // Set config such that the current chain head is synced
-    routeTest.wallet.config.set('maxSyncedAgeBlocks', numBlocksBehind(routeTest) + 10)
+    routeTest.chain.synced = true
 
     jest.spyOn(routeTest.node.wallet, 'getBalance').mockResolvedValueOnce({
       unconfirmed: BigInt(11),
@@ -147,8 +136,7 @@ describe('Route wallet/sendTransaction', () => {
   })
 
   it('throws if send throws NotEnoughFundsError', async () => {
-    // Set config such that the current chain head is synced
-    routeTest.wallet.config.set('maxSyncedAgeBlocks', numBlocksBehind(routeTest) + 10)
+    routeTest.chain.synced = true
 
     await useAccountFixture(routeTest.node.wallet, 'account-throw-error')
 
@@ -175,8 +163,7 @@ describe('Route wallet/sendTransaction', () => {
   })
 
   it('calls the send method on the node with single recipient', async () => {
-    // Set config such that the current chain head is synced
-    routeTest.wallet.config.set('maxSyncedAgeBlocks', numBlocksBehind(routeTest) + 10)
+    routeTest.chain.synced = true
 
     const account = await useAccountFixture(routeTest.node.wallet, 'account')
     const tx = await useMinersTxFixture(routeTest.node.wallet, account)
@@ -198,8 +185,7 @@ describe('Route wallet/sendTransaction', () => {
   })
 
   it('calls the send method on the node with multiple recipient', async () => {
-    // Set config such that the current chain head is synced
-    routeTest.wallet.config.set('maxSyncedAgeBlocks', numBlocksBehind(routeTest) + 10)
+    routeTest.chain.synced = true
 
     const account = await useAccountFixture(routeTest.node.wallet, 'account_multi-output')
     const tx = await useMinersTxFixture(routeTest.node.wallet, account)
@@ -224,8 +210,7 @@ describe('Route wallet/sendTransaction', () => {
     const account = await useAccountFixture(routeTest.node.wallet, 'expiration')
     const tx = await useMinersTxFixture(routeTest.node.wallet, account)
 
-    // Set config such that the current chain head is synced
-    routeTest.wallet.config.set('maxSyncedAgeBlocks', numBlocksBehind(routeTest) + 10)
+    routeTest.chain.synced = true
 
     jest.spyOn(routeTest.node.wallet, 'getBalance').mockResolvedValue({
       unconfirmed: BigInt(100000),
