@@ -193,8 +193,8 @@ describe('PeerNetwork', () => {
       const account = await useAccountFixture(node.wallet, 'accountA')
       const block = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
       const transaction1 = block.transactions[0]
-      const transaction2 = await useMinersTxFixture(node.wallet, account)
-      const transaction3 = await useMinersTxFixture(node.wallet, account)
+      const transaction2 = await useMinersTxFixture(node, account)
+      const transaction3 = await useMinersTxFixture(node, account)
 
       await expect(node.chain).toAddBlock(block)
 
@@ -273,8 +273,8 @@ describe('PeerNetwork', () => {
       const account = await useAccountFixture(node.wallet, 'accountA')
       const block = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
       const transaction1 = block.transactions[0]
-      const transaction2 = await useMinersTxFixture(node.wallet, account)
-      const transaction3 = await useMinersTxFixture(node.wallet, account)
+      const transaction2 = await useMinersTxFixture(node, account)
+      const transaction3 = await useMinersTxFixture(node, account)
 
       await expect(node.chain).toAddBlock(block)
 

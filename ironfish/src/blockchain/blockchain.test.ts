@@ -587,7 +587,7 @@ describe('Blockchain', () => {
 
     it(`throws if the notes tree size is greater than the previous block's note tree size`, async () => {
       const account = await useAccountFixture(nodeTest.wallet)
-      const tx = await useMinersTxFixture(nodeTest.wallet, account)
+      const tx = await useMinersTxFixture(nodeTest.node, account)
       const block = await useMinerBlockFixture(nodeTest.chain)
 
       await nodeTest.chain.notes.add(tx.getNote(0))
@@ -599,7 +599,7 @@ describe('Blockchain', () => {
   })
 
   it('newBlock throws an error if the provided transactions are invalid', async () => {
-    const minersFee = await useMinersTxFixture(nodeTest.wallet)
+    const minersFee = await useMinersTxFixture(nodeTest.node)
 
     jest.spyOn(nodeTest.verifier['workerPool'], 'verifyTransactions').mockResolvedValue({
       valid: false,
@@ -748,7 +748,7 @@ describe('Blockchain', () => {
   })
 
   it('should create a block successfully', async () => {
-    const { node, chain, wallet } = await nodeTest.createSetup()
+    const { node, chain } = await nodeTest.createSetup()
 
     const accountA = await useAccountFixture(node.wallet, 'accountA')
 
@@ -757,7 +757,7 @@ describe('Blockchain', () => {
 
     await node.wallet.updateHead()
 
-    const minersFeeTx = await useMinersTxFixture(wallet, accountA, undefined, 0)
+    const minersFeeTx = await useMinersTxFixture(node, accountA, undefined, 0)
     const tx = await useTxFixture(node.wallet, accountA, accountA)
 
     const newBlock = await chain.newBlock([tx], minersFeeTx, undefined, chain.head)
@@ -771,7 +771,7 @@ describe('Blockchain', () => {
   })
 
   it('should create a block when clock is behind', async () => {
-    const { node, chain, wallet } = await nodeTest.createSetup()
+    const { node, chain } = await nodeTest.createSetup()
 
     const accountA = await useAccountFixture(node.wallet, 'accountA')
 
@@ -780,7 +780,7 @@ describe('Blockchain', () => {
 
     await node.wallet.updateHead()
 
-    const minersFeeTx = await useMinersTxFixture(wallet, accountA, undefined, 0)
+    const minersFeeTx = await useMinersTxFixture(node, accountA, undefined, 0)
     const tx = await useTxFixture(node.wallet, accountA, accountA)
 
     jest
@@ -792,7 +792,7 @@ describe('Blockchain', () => {
   })
 
   it('should create a block when clock is in the future', async () => {
-    const { node, chain, wallet } = await nodeTest.createSetup()
+    const { node, chain } = await nodeTest.createSetup()
 
     const accountA = await useAccountFixture(node.wallet, 'accountA')
 
@@ -801,7 +801,7 @@ describe('Blockchain', () => {
 
     await node.wallet.updateHead()
 
-    const minersFeeTx = await useMinersTxFixture(wallet, accountA, undefined, 0)
+    const minersFeeTx = await useMinersTxFixture(node, accountA, undefined, 0)
     const tx = await useTxFixture(node.wallet, accountA, accountA)
 
     jest
@@ -897,7 +897,7 @@ describe('Blockchain', () => {
 
     const asset = new Asset(accountA.publicAddress, 'test asset', '')
 
-    const minersFeeTx = await useMinersTxFixture(wallet, accountA, undefined, 1)
+    const minersFeeTx = await useMinersTxFixture(node, accountA, undefined, 1)
     const tx = await useTxFixture(wallet, accountA, accountA, async () => {
       return await wallet.mint(accountA, {
         fee: 0n,
