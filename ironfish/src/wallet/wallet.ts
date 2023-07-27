@@ -249,13 +249,13 @@ export class Wallet {
         continue
       }
 
-      if (!(await this.chain.hasBlock(account.createdAt.hash))) {
+      if (!(await this.chainHasBlock(account.createdAt.hash))) {
         await this.resetAccount(account, { resetCreatedAt: true })
       }
     }
 
     if (this.chainProcessor.hash) {
-      const hasHeadBlock = await this.chain.hasBlock(this.chainProcessor.hash)
+      const hasHeadBlock = await this.chainHasBlock(this.chainProcessor.hash)
 
       if (!hasHeadBlock) {
         this.logger.error(
