@@ -29,8 +29,10 @@ export enum TransactionVersion {
   V2 = 2,
 }
 
-const hasMintTransferOwnershipTo = (version: TransactionVersion) => {
-  return version >= TransactionVersion.V2
+export class TransactionFeatures {
+  static hasMintTransferOwnershipTo(version: TransactionVersion): boolean {
+    return version >= TransactionVersion.V2
+  }
 }
 
 export class UnsupportedVersionError extends Error {
@@ -118,7 +120,7 @@ export class Transaction {
       const value = reader.readBigU64()
 
       let transferOwnershipTo = null
-      if (hasMintTransferOwnershipTo(this._version)) {
+      if (TransactionFeatures.hasMintTransferOwnershipTo(this._version)) {
         if (reader.readU8()) {
           transferOwnershipTo = reader.readBytes(PUBLIC_ADDRESS_LENGTH).toString('hex')
         }

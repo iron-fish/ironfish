@@ -165,13 +165,13 @@ export class TransactionPosted {
 }
 export type NativeTransaction = Transaction
 export class Transaction {
-  constructor(spenderHexKey: string)
+  constructor(spenderHexKey: string, version?: number | undefined | null)
   /** Create a proof of a new note owned by the recipient in this transaction. */
   output(note: Note): void
   /** Spend the note owned by spender_hex_key at the given witness location. */
   spend(note: Note, witness: object): void
   /** Mint a new asset with a given value as part of this transaction. */
-  mint(asset: Asset, value: bigint): void
+  mint(asset: Asset, value: bigint, transferOwnershipTo?: string | undefined | null): void
   /** Burn some supply of a given asset and value as part of this transaction. */
   burn(assetIdJsBytes: Buffer, value: bigint): void
   /**
