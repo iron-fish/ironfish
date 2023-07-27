@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
+import { HeadValue } from '../../../wallet/walletdb/headValue'
 import { ApiNamespace, routes } from '../router'
 
 export type GetAccountStatusRequest = { account?: string }
@@ -45,22 +46,26 @@ routes.register<typeof GetAccountStatusRequestSchema, GetAccountStatusResponse>(
   async (request, { node }): Promise<void> => {
     Assert.isNotUndefined(node)
 
-    const headHashes = new Map<string, Buffer | null>()
+    const heads = new Map<string, HeadValue | null>()
     for await (const { accountId, head } of node.wallet.walletDb.loadHeads()) {
-      headHashes.set(accountId, head?.hash ?? null)
+      heads.set(accountId, head)
     }
+
     const accountsInfo: GetAccountStatusResponse['accounts'] = []
     for (const account of node.wallet.listAccounts()) {
-      const headHash = headHashes.get(account.id)
-      const blockHeader = headHash ? await node.chain.getHeader(headHash) : null
-      const headInChain = !!blockHeader
-      const headSequence = blockHeader?.sequence || 'NULL'
+      const head = heads.get(account.id)
+      const blockResponse = head?.hash
+        ? await node.wallet.nodeClient.chain.getBlock({
+            hash: head.hash.toString('hex'),
+          })
+        : null
+
       accountsInfo.push({
         name: account.name,
         id: account.id,
-        headHash: headHash ? headHash.toString('hex') : 'NULL',
-        headInChain: headInChain,
-        sequence: headSequence,
+        headHash: head?.hash.toString('hex') || 'NULL',
+        headInChain: !!blockResponse?.content.block,
+        sequence: head?.sequence || 'NULL',
       })
     }
 
