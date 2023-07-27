@@ -72,13 +72,18 @@ routes.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
 
     const account = getAccount(node.wallet, request.data.account)
 
-    if (!node.peerNetwork.isReady) {
-      throw new ValidationError(
-        `Your node must be connected to the Iron Fish network to send a transaction`,
-      )
-    }
+    const chainInfo = await node.wallet.nodeClient.chain.getChainInfo()
+    const headHash = chainInfo.content.oldestBlockIdentifier.hash
+    const headBlock = await node.wallet.nodeClient.chain.getBlock({ hash: headHash })
 
-    if (!node.chain.synced) {
+    const maxSyncedAgeMs =
+      node.wallet.config.get('maxSyncedAgeBlocks') *
+      node.wallet.consensus.parameters.targetBlockTimeInSeconds *
+      1000
+
+    const isSynced = headBlock.content.block.timestamp.valueOf() >= Date.now() - maxSyncedAgeMs
+
+    if (!isSynced) {
       throw new ValidationError(
         `Your node must be synced with the Iron Fish network to send a transaction. Please try again later`,
       )

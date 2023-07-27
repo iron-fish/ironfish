@@ -82,7 +82,7 @@ export class Wallet {
   readonly chain: Blockchain
   readonly chainProcessor: RemoteChainProcessor
   readonly nodeClient: RpcClient
-  private readonly config: Config
+  readonly config: Config
   readonly consensus: Consensus
 
   protected rebroadcastAfter: number
