@@ -7,15 +7,15 @@ use std::convert::TryInto;
 
 use ironfish::assets::asset_identifier::AssetIdentifier;
 use ironfish::transaction::{
-    batch_verify_transactions, TRANSACTION_EXPIRATION_SIZE, TRANSACTION_FEE_SIZE,
-    TRANSACTION_PUBLIC_KEY_SIZE, TRANSACTION_SIGNATURE_SIZE,
+    batch_verify_transactions, TransactionVersion, TRANSACTION_EXPIRATION_SIZE,
+    TRANSACTION_FEE_SIZE, TRANSACTION_PUBLIC_KEY_SIZE, TRANSACTION_SIGNATURE_SIZE,
 };
 use ironfish::{
     MerkleNoteHash, ProposedTransaction, PublicAddress, SaplingKey, Transaction,
     TRANSACTION_VERSION as TX_VERSION,
 };
 use napi::{
-    bindgen_prelude::{i64n, BigInt, Buffer, Env, Object, Result, Undefined},
+    bindgen_prelude::{i64n, BigInt, Buffer, Env, Error, Object, Result, Undefined},
     JsBuffer,
 };
 use napi_derive::napi;
@@ -167,10 +167,25 @@ pub struct NativeTransaction {
 #[napi]
 impl NativeTransaction {
     #[napi(constructor)]
-    pub fn new(spender_hex_key: String) -> Result<NativeTransaction> {
+    pub fn new(spender_hex_key: String, version: Option<u8>) -> Result<Self> {
         let spender_key = SaplingKey::from_hex(&spender_hex_key).map_err(to_napi_err)?;
+        let transaction = match version {
+            None => ProposedTransaction::new(spender_key),
+            Some(version) => {
+                let version = TransactionVersion::from_u8(version)
+                    .ok_or_else(|| Error::from_reason(format!("unsupported version: {version}")))?;
+                ProposedTransaction::with_version(spender_key, version)
+            }
+        };
+        Ok(NativeTransaction { transaction })
+    }
+
+    pub fn with_version(spender_hex_key: String, version: u8) -> Result<Self> {
+        let spender_key = SaplingKey::from_hex(&spender_hex_key).map_err(to_napi_err)?;
+        let version = TransactionVersion::from_u8(version)
+            .ok_or_else(|| Error::from_reason(format!("unsupported version: {version}")))?;
         Ok(NativeTransaction {
-            transaction: ProposedTransaction::new(spender_key),
+            transaction: ProposedTransaction::with_version(spender_key, version),
         })
     }
 
@@ -201,11 +216,25 @@ impl NativeTransaction {
 
     /// Mint a new asset with a given value as part of this transaction.
     #[napi]
-    pub fn mint(&mut self, asset: &NativeAsset, value: BigInt) -> Result<()> {
+    pub fn mint(
+        &mut self,
+        asset: &NativeAsset,
+        value: BigInt,
+        transfer_ownership_to: Option<&str>,
+    ) -> Result<()> {
         let value_u64 = value.get_u64().1;
-        self.transaction
-            .add_mint(asset.asset, value_u64)
-            .map_err(to_napi_err)?;
+        match transfer_ownership_to {
+            None => self
+                .transaction
+                .add_mint(asset.asset, value_u64)
+                .map_err(to_napi_err)?,
+            Some(new_owner) => {
+                let new_owner = PublicAddress::from_hex(new_owner).map_err(to_napi_err)?;
+                self.transaction
+                    .add_mint_with_new_owner(asset.asset, value_u64, new_owner)
+                    .map_err(to_napi_err)?;
+            }
+        }
 
         Ok(())
     }
