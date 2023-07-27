@@ -192,8 +192,8 @@ export class Burn extends IronfishCommand {
     CliUx.ux.action.stop()
 
     const assetResponse = await client.wallet.getAsset({
-      id: assetId,
       account,
+      id: assetId,
       confirmations: flags.confirmations,
     })
     const assetName = BufferUtils.toHuman(Buffer.from(assetResponse.content.name, 'hex'))
