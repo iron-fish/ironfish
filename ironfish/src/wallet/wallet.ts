@@ -1586,7 +1586,7 @@ export class Wallet {
     metadata: Buffer
     name: Buffer
     nonce: number
-  }> {
+  } | null> {
     try {
       const response = await this.nodeClient.chain.getAsset({ id: id.toString('hex') })
       return {
@@ -1598,6 +1598,10 @@ export class Wallet {
         nonce: response.content.nonce,
       }
     } catch (error: unknown) {
+      if (ErrorUtils.isNotFoundError(error)) {
+        return null
+      }
+
       this.logger.error(ErrorUtils.renderError(error, true))
       throw error
     }
