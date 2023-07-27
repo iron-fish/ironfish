@@ -48,7 +48,7 @@ describe('Block', () => {
 
   it('check block equality', async () => {
     const account = await useAccountFixture(nodeTest.node.wallet, 'account')
-    const tx = await useMinersTxFixture(nodeTest.node.wallet, account)
+    const tx = await useMinersTxFixture(nodeTest.node, account)
     const { block: block1 } = await useBlockWithTx(nodeTest.node, account, account)
 
     // Header change

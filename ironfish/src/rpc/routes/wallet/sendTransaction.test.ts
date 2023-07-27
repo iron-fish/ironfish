@@ -179,7 +179,7 @@ describe('Route wallet/sendTransaction', () => {
     routeTest.chain.synced = true
 
     const account = await useAccountFixture(routeTest.node.wallet, 'account')
-    const tx = await useMinersTxFixture(routeTest.node.wallet, account)
+    const tx = await useMinersTxFixture(routeTest.node, account)
 
     jest.spyOn(routeTest.node.wallet, 'send').mockResolvedValue(tx)
     jest.spyOn(routeTest.node.wallet, 'getBalance').mockResolvedValueOnce({
@@ -202,7 +202,7 @@ describe('Route wallet/sendTransaction', () => {
     routeTest.chain.synced = true
 
     const account = await useAccountFixture(routeTest.node.wallet, 'account_multi-output')
-    const tx = await useMinersTxFixture(routeTest.node.wallet, account)
+    const tx = await useMinersTxFixture(routeTest.node, account)
 
     jest.spyOn(routeTest.node.wallet, 'send').mockResolvedValue(tx)
     jest.spyOn(routeTest.node.wallet, 'getBalance').mockResolvedValueOnce({
@@ -222,7 +222,7 @@ describe('Route wallet/sendTransaction', () => {
 
   it('lets you configure the expiration and confirmations', async () => {
     const account = await useAccountFixture(routeTest.node.wallet, 'expiration')
-    const tx = await useMinersTxFixture(routeTest.node.wallet, account)
+    const tx = await useMinersTxFixture(routeTest.node, account)
 
     routeTest.node.peerNetwork['_isReady'] = true
     routeTest.chain.synced = true

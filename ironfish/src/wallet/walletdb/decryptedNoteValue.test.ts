@@ -19,7 +19,7 @@ describe('DecryptedNoteValueEncoding', () => {
       const encoder = new DecryptedNoteValueEncoding()
 
       const account = await useAccountFixture(nodeTest.wallet)
-      const transaction = await useMinersTxFixture(nodeTest.wallet, account)
+      const transaction = await useMinersTxFixture(nodeTest.node, account)
       const note = transaction.getNote(0).decryptNoteForOwner(account.incomingViewKey)
       Assert.isNotUndefined(note)
 
@@ -44,7 +44,7 @@ describe('DecryptedNoteValueEncoding', () => {
       const encoder = new DecryptedNoteValueEncoding()
 
       const account = await useAccountFixture(nodeTest.wallet)
-      const transaction = await useMinersTxFixture(nodeTest.wallet, account)
+      const transaction = await useMinersTxFixture(nodeTest.node, account)
       const note = transaction.getNote(0).decryptNoteForOwner(account.incomingViewKey)
       Assert.isNotUndefined(note)
 

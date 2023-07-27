@@ -99,7 +99,7 @@ describe('DecryptNotesTask', () => {
   describe('execute', () => {
     it('posts the miners fee transaction', async () => {
       const account = await useAccountFixture(nodeTest.wallet)
-      const transaction = await useMinersTxFixture(nodeTest.wallet, account)
+      const transaction = await useMinersTxFixture(nodeTest.node, account)
 
       const task = new DecryptNotesTask()
       const index = 2

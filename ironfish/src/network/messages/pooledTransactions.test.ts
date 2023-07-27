@@ -44,7 +44,7 @@ describe('PooledTransactionsResponse', () => {
 
   it('serializes the object into a buffer and deserializes to the original object', async () => {
     const { account, transaction: transactionA } = await useTxSpendsFixture(nodeTest.node)
-    const transactionB = await useMinersTxFixture(nodeTest.node.wallet, account)
+    const transactionB = await useMinersTxFixture(nodeTest.node, account)
 
     const rpcId = 53242
     const transactions = [transactionA, transactionB]

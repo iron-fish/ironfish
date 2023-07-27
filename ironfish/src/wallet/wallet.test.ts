@@ -816,7 +816,7 @@ describe('Accounts', () => {
       node.wallet['isStarted'] = true
 
       const account = await useAccountFixture(node.wallet)
-      const tx = await useMinersTxFixture(node.wallet, account)
+      const tx = await useMinersTxFixture(node, account)
       await node.wallet.addPendingTransaction(tx)
 
       await expect(
