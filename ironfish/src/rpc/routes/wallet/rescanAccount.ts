@@ -46,20 +46,20 @@ routes.register<typeof RescanAccountRequestSchema, RescanAccountResponse>(
 
       let fromHash = undefined
       if (request.data.from && request.data.from > GENESIS_BLOCK_SEQUENCE) {
-        const header = await node.chain.getHeaderAtSequence(request.data.from)
+        const response = await node.wallet.chainGetBlock({ sequence: request.data.from })
 
-        if (header === null) {
+        if (response === null) {
           throw new ValidationError(
             `No block header found in the chain at sequence ${request.data.from}`,
           )
         }
 
-        fromHash = header.hash
+        fromHash = Buffer.from(response.block.hash, 'hex')
 
         for (const account of node.wallet.listAccounts()) {
           await account.updateHead({
-            hash: header.previousBlockHash,
-            sequence: header.sequence - 1,
+            hash: Buffer.from(response.block.previousBlockHash, 'hex'),
+            sequence: response.block.sequence - 1,
           })
         }
       }

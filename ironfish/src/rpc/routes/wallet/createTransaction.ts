@@ -176,6 +176,7 @@ routes.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
     } else if (request.data.feeRate) {
       params.feeRate = CurrencyUtils.decode(request.data.feeRate)
     } else {
+      //TODO
       params.feeRate = node.memPool.feeEstimator.estimateFeeRate('average')
     }
 

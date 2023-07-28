@@ -22,7 +22,7 @@ import { Note } from '../primitives/note'
 import { NoteEncrypted } from '../primitives/noteEncrypted'
 import { MintData, RawTransaction } from '../primitives/rawTransaction'
 import { Transaction } from '../primitives/transaction'
-import { RpcClient } from '../rpc'
+import { GetBlockRequest, GetBlockResponse, RpcClient } from '../rpc'
 import { IDatabaseTransaction } from '../storage/database/transaction'
 import {
   AsyncUtils,
@@ -1571,12 +1571,15 @@ export class Wallet {
   }
 
   async chainHasBlock(hash: Buffer): Promise<boolean> {
+    return (await this.chainGetBlock({ hash: hash.toString('hex') })) === null
+  }
+
+  async chainGetBlock(request: GetBlockRequest): Promise<GetBlockResponse | null> {
     try {
-      await this.nodeClient.chain.getBlock({ hash: hash.toString('hex') })
-      return true
+      return (await this.nodeClient.chain.getBlock(request)).content
     } catch (error: unknown) {
       if (ErrorUtils.isNotFoundError(error)) {
-        return false
+        return null
       }
 
       // TODO(rohanjadvani): Add retry logic once the remote client is set up
