@@ -6,7 +6,6 @@ import { BufferMap, BufferSet } from 'buffer-map'
 import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
 import { AssetsVerifier } from '../assets'
-import { Blockchain } from '../blockchain'
 import { Consensus, isExpiredSequence, Verifier } from '../consensus'
 import { Event } from '../event'
 import { Config } from '../fileStores'
@@ -80,7 +79,6 @@ export class Wallet {
   readonly walletDb: WalletDB
   readonly logger: Logger
   readonly workerPool: WorkerPool
-  readonly chain: Blockchain
   readonly chainProcessor: RemoteChainProcessor
   readonly nodeClient: RpcClient
   private readonly config: Config
@@ -98,7 +96,6 @@ export class Wallet {
   private eventLoopResolve: PromiseResolve<void> | null = null
 
   constructor({
-    chain,
     config,
     database,
     logger = createRootLogger(),
@@ -108,7 +105,6 @@ export class Wallet {
     nodeClient,
     assetsVerifier,
   }: {
-    chain: Blockchain
     config: Config
     database: WalletDB
     logger?: Logger
@@ -118,7 +114,6 @@ export class Wallet {
     nodeClient: RpcClient
     assetsVerifier: AssetsVerifier
   }) {
-    this.chain = chain
     this.config = config
     this.logger = logger.withTag('accounts')
     this.walletDb = database

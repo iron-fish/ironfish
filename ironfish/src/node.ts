@@ -299,7 +299,6 @@ export class IronfishNode {
     const memoryClient = new RpcMemoryClient(logger)
 
     const wallet = new Wallet({
-      chain,
       config,
       database: walletDB,
       workerPool,
