@@ -1571,7 +1571,7 @@ export class Wallet {
   }
 
   async chainHasBlock(hash: Buffer): Promise<boolean> {
-    return (await this.chainGetBlock({ hash: hash.toString('hex') })) === null
+    return (await this.chainGetBlock({ hash: hash.toString('hex') })) !== null
   }
 
   async chainGetBlock(request: GetBlockRequest): Promise<GetBlockResponse | null> {
