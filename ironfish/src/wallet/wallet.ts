@@ -5,6 +5,7 @@ import { Asset, generateKey, Note as NativeNote } from '@ironfish/rust-nodejs'
 import { BufferMap, BufferSet } from 'buffer-map'
 import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
+import { AssetsVerifier } from '../assets'
 import { Blockchain } from '../blockchain'
 import { Consensus, isExpiredSequence, Verifier } from '../consensus'
 import { Event } from '../event'
@@ -84,6 +85,7 @@ export class Wallet {
   readonly nodeClient: RpcClient
   private readonly config: Config
   readonly consensus: Consensus
+  readonly assetsVerifier: AssetsVerifier
 
   protected rebroadcastAfter: number
   protected defaultAccount: string | null = null
@@ -104,6 +106,7 @@ export class Wallet {
     workerPool,
     consensus,
     nodeClient,
+    assetsVerifier,
   }: {
     chain: Blockchain
     config: Config
@@ -113,6 +116,7 @@ export class Wallet {
     workerPool: WorkerPool
     consensus: Consensus
     nodeClient: RpcClient
+    assetsVerifier: AssetsVerifier
   }) {
     this.chain = chain
     this.config = config
@@ -121,6 +125,7 @@ export class Wallet {
     this.workerPool = workerPool
     this.consensus = consensus
     this.nodeClient = nodeClient
+    this.assetsVerifier = assetsVerifier
     this.rebroadcastAfter = rebroadcastAfter ?? 10
     this.createTransactionMutex = new Mutex()
     this.eventLoopAbortController = new AbortController()
@@ -1565,7 +1570,7 @@ export class Wallet {
     }
   }
 
-  private async chainHasBlock(hash: Buffer): Promise<boolean> {
+  async chainHasBlock(hash: Buffer): Promise<boolean> {
     try {
       await this.nodeClient.chain.getBlock({ hash: hash.toString('hex') })
       return true

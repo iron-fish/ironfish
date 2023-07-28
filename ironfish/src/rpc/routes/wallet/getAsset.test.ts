@@ -117,8 +117,7 @@ describe('Route chain.getAsset', () => {
       nonce: asset.nonce(),
       status: AssetStatus.UNKNOWN,
       supply: null,
-      blockHash: null,
-      sequence: null,
+      verification: { status: 'unknown' },
     })
   })
 
@@ -150,8 +149,7 @@ describe('Route chain.getAsset', () => {
       nonce: asset.nonce(),
       status: AssetStatus.CONFIRMED,
       supply: value.toString(),
-      blockHash: mintBlock.header.hash.toString('hex'),
-      sequence: mintBlock.header.sequence,
+      verification: { status: 'unknown' },
     })
   })
 })

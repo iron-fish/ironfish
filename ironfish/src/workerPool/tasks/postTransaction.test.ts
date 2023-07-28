@@ -50,7 +50,7 @@ describe('PostTransactionResponse', () => {
   const nodeTest = createNodeTest()
 
   it('serializes the object into a buffer and deserializes to the original object', async () => {
-    const transaction = await useMinersTxFixture(nodeTest.wallet)
+    const transaction = await useMinersTxFixture(nodeTest.node)
 
     const response = new PostTransactionResponse(transaction, 0)
     const serialized = serializePayloadToBuffer(response)

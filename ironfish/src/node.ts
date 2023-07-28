@@ -75,7 +75,7 @@ export class IronfishNode {
     privateIdentity,
     hostsStore,
     networkId,
-    verifiedAssetsCache,
+    assetsVerifier,
   }: {
     pkg: Package
     files: FileSystem
@@ -92,7 +92,7 @@ export class IronfishNode {
     privateIdentity?: PrivateIdentity
     hostsStore: HostsStore
     networkId: number
-    verifiedAssetsCache: VerifiedAssetsCacheStore
+    assetsVerifier: AssetsVerifier
   }) {
     this.files = files
     this.config = config
@@ -178,11 +178,7 @@ export class IronfishNode {
       blocksPerMessage: config.get('blocksPerMessage'),
     })
 
-    this.assetsVerifier = new AssetsVerifier({
-      apiUrl: config.get('assetVerificationApi'),
-      cache: verifiedAssetsCache,
-      logger,
-    })
+    this.assetsVerifier = assetsVerifier
 
     this.config.onConfigChange.on((key, value) => this.onConfigChange(key, value))
   }
@@ -230,6 +226,12 @@ export class IronfishNode {
 
     const verifiedAssetsCache = new VerifiedAssetsCacheStore(files, dataDir)
     await verifiedAssetsCache.load()
+
+    const assetsVerifier = new AssetsVerifier({
+      apiUrl: config.get('assetVerificationApi'),
+      cache: verifiedAssetsCache,
+      logger,
+    })
 
     let workers = config.get('nodeWorkers')
     if (workers === -1) {
@@ -303,6 +305,7 @@ export class IronfishNode {
       workerPool,
       consensus,
       nodeClient: memoryClient,
+      assetsVerifier,
     })
 
     const node = new IronfishNode({
@@ -321,7 +324,7 @@ export class IronfishNode {
       privateIdentity,
       hostsStore,
       networkId: networkDefinition.id,
-      verifiedAssetsCache,
+      assetsVerifier,
     })
 
     memoryClient.router = node.rpc.getRouter(ALL_API_NAMESPACES)

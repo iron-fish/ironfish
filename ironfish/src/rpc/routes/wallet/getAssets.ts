@@ -70,7 +70,7 @@ routes.register<typeof GetAssetsRequestSchema, GetAssetsResponse>(
           confirmations: request.data.confirmations,
         }),
         supply: asset.supply !== null ? CurrencyUtils.encode(asset.supply) : undefined,
-        verification: node.assetsVerifier.verify(asset.id),
+        verification: node.wallet.assetsVerifier.verify(asset.id),
       })
     }
 

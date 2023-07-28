@@ -57,16 +57,7 @@ describe('Route wallet/sendTransaction', () => {
     ).rejects.toThrow('No account with name AccountDoesNotExist')
   })
 
-  it('throws if not connected to network', async () => {
-    routeTest.node.peerNetwork['_isReady'] = false
-
-    await expect(routeTest.client.wallet.sendTransaction(TEST_PARAMS)).rejects.toThrow(
-      'Your node must be connected to the Iron Fish network to send a transaction',
-    )
-  })
-
   it('throws if the chain is outdated', async () => {
-    routeTest.node.peerNetwork['_isReady'] = true
     routeTest.chain.synced = false
 
     await expect(routeTest.client.wallet.sendTransaction(TEST_PARAMS)).rejects.toThrow(
@@ -75,7 +66,6 @@ describe('Route wallet/sendTransaction', () => {
   })
 
   it('throws if not enough funds', async () => {
-    routeTest.node.peerNetwork['_isReady'] = true
     routeTest.chain.synced = true
 
     await expect(routeTest.client.wallet.sendTransaction(TEST_PARAMS)).rejects.toThrow(
@@ -100,7 +90,6 @@ describe('Route wallet/sendTransaction', () => {
   })
 
   it('throws if the available balance is too low', async () => {
-    routeTest.node.peerNetwork['_isReady'] = true
     routeTest.chain.synced = true
 
     jest.spyOn(routeTest.node.wallet, 'getBalance').mockResolvedValueOnce({
@@ -147,7 +136,6 @@ describe('Route wallet/sendTransaction', () => {
   })
 
   it('throws if send throws NotEnoughFundsError', async () => {
-    routeTest.node.peerNetwork['_isReady'] = true
     routeTest.chain.synced = true
 
     await useAccountFixture(routeTest.node.wallet, 'account-throw-error')
@@ -175,11 +163,10 @@ describe('Route wallet/sendTransaction', () => {
   })
 
   it('calls the send method on the node with single recipient', async () => {
-    routeTest.node.peerNetwork['_isReady'] = true
     routeTest.chain.synced = true
 
     const account = await useAccountFixture(routeTest.node.wallet, 'account')
-    const tx = await useMinersTxFixture(routeTest.node.wallet, account)
+    const tx = await useMinersTxFixture(routeTest.node, account)
 
     jest.spyOn(routeTest.node.wallet, 'send').mockResolvedValue(tx)
     jest.spyOn(routeTest.node.wallet, 'getBalance').mockResolvedValueOnce({
@@ -198,11 +185,10 @@ describe('Route wallet/sendTransaction', () => {
   })
 
   it('calls the send method on the node with multiple recipient', async () => {
-    routeTest.node.peerNetwork['_isReady'] = true
     routeTest.chain.synced = true
 
     const account = await useAccountFixture(routeTest.node.wallet, 'account_multi-output')
-    const tx = await useMinersTxFixture(routeTest.node.wallet, account)
+    const tx = await useMinersTxFixture(routeTest.node, account)
 
     jest.spyOn(routeTest.node.wallet, 'send').mockResolvedValue(tx)
     jest.spyOn(routeTest.node.wallet, 'getBalance').mockResolvedValueOnce({
@@ -222,9 +208,8 @@ describe('Route wallet/sendTransaction', () => {
 
   it('lets you configure the expiration and confirmations', async () => {
     const account = await useAccountFixture(routeTest.node.wallet, 'expiration')
-    const tx = await useMinersTxFixture(routeTest.node.wallet, account)
+    const tx = await useMinersTxFixture(routeTest.node, account)
 
-    routeTest.node.peerNetwork['_isReady'] = true
     routeTest.chain.synced = true
 
     jest.spyOn(routeTest.node.wallet, 'getBalance').mockResolvedValue({

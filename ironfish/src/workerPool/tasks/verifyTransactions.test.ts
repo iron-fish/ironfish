@@ -44,7 +44,7 @@ describe('VerifyTransactionsTask', () => {
   describe('execute', () => {
     it('verifies the transaction', async () => {
       const account = await useAccountFixture(nodeTest.wallet)
-      const transaction = await useMinersTxFixture(nodeTest.wallet, account)
+      const transaction = await useMinersTxFixture(nodeTest.node, account)
 
       const task = new VerifyTransactionsTask()
       const request = new VerifyTransactionsRequest([transaction.serialize()])

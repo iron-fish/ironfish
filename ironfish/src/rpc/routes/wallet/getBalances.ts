@@ -90,7 +90,7 @@ routes.register<typeof GetBalancesRequestSchema, GetBalancesResponse>(
         assetId: balance.assetId.toString('hex'),
         assetName: asset?.name.toString('hex') ?? '',
         assetCreator: asset?.creator.toString('hex') ?? '',
-        assetVerification: node.assetsVerifier.verify(balance.assetId),
+        assetVerification: node.wallet.assetsVerifier.verify(balance.assetId),
         blockHash: balance.blockHash?.toString('hex') ?? null,
         confirmed: CurrencyUtils.encode(balance.confirmed),
         sequence: balance.sequence,
