@@ -24,7 +24,7 @@ export async function selectFee(options: {
   confirmations?: number
   logger: Logger
 }): Promise<RawTransaction> {
-  const feeRates = await options.client.chain.estimateFeeRates()
+  const feeRates = await options.client.wallet.estimateFeeRates()
 
   const [slow, average, fast] = [
     await getTxWithFee(
