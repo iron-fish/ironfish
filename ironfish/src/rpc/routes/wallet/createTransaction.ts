@@ -176,7 +176,10 @@ routes.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
     } else if (request.data.feeRate) {
       params.feeRate = CurrencyUtils.decode(request.data.feeRate)
     } else {
-      params.feeRate = node.memPool.feeEstimator.estimateFeeRate('average')
+      const avgFeeRateResponse = await node.wallet.nodeClient.chain.estimateFeeRate({
+        priority: 'average',
+      })
+      params.feeRate = CurrencyUtils.decode(avgFeeRateResponse.content.rate)
     }
 
     if (request.data.notes) {
