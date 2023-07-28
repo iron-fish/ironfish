@@ -381,6 +381,15 @@ export abstract class RpcClient {
         params,
       ).waitForEnd()
     },
+
+    estimateFeeRates: (
+      params?: EstimateFeeRatesRequest,
+    ): Promise<RpcResponseEnded<EstimateFeeRatesResponse>> => {
+      return this.request<EstimateFeeRatesResponse>(
+        `${ApiNamespace.wallet}/estimateFeeRates`,
+        params,
+      ).waitForEnd()
+    },
   }
 
   mempool = {
