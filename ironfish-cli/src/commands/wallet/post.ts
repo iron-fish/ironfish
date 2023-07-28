@@ -78,13 +78,13 @@ export class PostCommand extends IronfishCommand {
     const posted = new Transaction(Buffer.from(response.content.transaction, 'hex'))
 
     if (response.content.accepted === false) {
-      this.log(
+      this.warn(
         `Transaction '${posted.hash().toString('hex')}' was not accepted into the mempool`,
       )
     }
 
     if (response.content.broadcasted === false) {
-      this.log(`Transaction '${posted.hash().toString('hex')}' failed to broadcast`)
+      this.warn(`Transaction '${posted.hash().toString('hex')}' failed to broadcast`)
     }
 
     this.log(`Posted transaction with hash ${posted.hash().toString('hex')}\n`)
