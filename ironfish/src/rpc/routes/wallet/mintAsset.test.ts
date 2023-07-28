@@ -66,10 +66,11 @@ describe('Route wallet/mintAsset', () => {
           fee: 0n,
           expiration: 0,
         })
-        return wallet.post({
+        const { transaction } = await wallet.post({
           transaction: raw,
           account,
         })
+        return transaction
       })
 
       jest.spyOn(wallet, 'mint').mockResolvedValueOnce(mintTransaction)

@@ -229,6 +229,16 @@ export class Send extends IronfishCommand {
 
     CliUx.ux.action.stop()
 
+    if (response.content.accepted === false) {
+      this.warn(
+        `Transaction '${transaction.hash().toString('hex')}' was not accepted into the mempool`,
+      )
+    }
+
+    if (response.content.broadcasted === false) {
+      this.warn(`Transaction '${transaction.hash().toString('hex')}' failed to broadcast`)
+    }
+
     this.log(`Sent ${CurrencyUtils.renderIron(amount, true, assetId)} to ${to} from ${from}`)
     this.log(`Hash: ${transaction.hash().toString('hex')}`)
     this.log(`Fee: ${CurrencyUtils.renderIron(transaction.fee(), true)}`)
