@@ -764,10 +764,11 @@ export class Wallet {
       confirmations: options.confirmations ?? undefined,
     })
 
-    return this.post({
+    const { transaction } = await this.post({
       transaction: raw,
       account: options.account,
     })
+    return transaction
   }
 
   async mint(account: Account, options: MintAssetOptions): Promise<Transaction> {
@@ -803,10 +804,11 @@ export class Wallet {
       confirmations: options.confirmations,
     })
 
-    return this.post({
+    const { transaction } = await this.post({
       transaction: raw,
       account,
     })
+    return transaction
   }
 
   async burn(
@@ -827,10 +829,11 @@ export class Wallet {
       confirmations,
     })
 
-    return this.post({
+    const { transaction } = await this.post({
       transaction: raw,
       account,
     })
+    return transaction
   }
 
   async createTransaction(options: {
@@ -942,7 +945,11 @@ export class Wallet {
     spendingKey?: string
     account?: Account
     broadcast?: boolean
-  }): Promise<Transaction> {
+  }): Promise<{
+    transaction: Transaction
+    accepted?: boolean
+    broadcasted?: boolean
+  }> {
     const broadcast = options.broadcast ?? true
 
     const spendingKey = options.account?.spendingKey ?? options.spendingKey
@@ -956,12 +963,14 @@ export class Wallet {
       throw new Error(`Invalid transaction, reason: ${String(verify.reason)}`)
     }
 
+    let accepted
+    let broadcasted
     if (broadcast) {
       await this.addPendingTransaction(transaction)
-      await this.broadcastTransaction(transaction)
+      ;({ accepted, broadcasted } = await this.broadcastTransaction(transaction))
     }
 
-    return transaction
+    return { accepted, broadcasted, transaction }
   }
 
   async fund(
