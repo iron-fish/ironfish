@@ -102,7 +102,7 @@ export class Send extends IronfishCommand {
     const client = await this.sdk.connectRpc()
 
     if (!flags.offline) {
-      const status = await client.node.getStatus()
+      const status = await client.wallet.getNodeStatus()
 
       if (!status.content.blockchain.synced) {
         this.error(
