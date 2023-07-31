@@ -12,10 +12,8 @@ import { Event } from '../event'
 import { Config } from '../fileStores'
 import { FileSystem } from '../fileSystems'
 import { createRootLogger, Logger } from '../logger'
-import { MerkleTree } from '../merkletree'
-import { LeafEncoding } from '../merkletree/database/leaves'
-import { NodeEncoding } from '../merkletree/database/nodes'
-import { NoteHasher } from '../merkletree/hasher'
+import { Witness } from '../merkletree'
+import { LeavesSchema } from '../merkletree/schema'
 import { MetricsMonitor } from '../metrics'
 import { RollingAverage } from '../metrics/rollingAverage'
 import { BAN_SCORE } from '../network/peers/peer'
@@ -34,15 +32,10 @@ import {
   isBlockLater,
   transactionCommitment,
 } from '../primitives/blockheader'
-import {
-  NoteEncrypted,
-  NoteEncryptedHash,
-  SerializedNoteEncrypted,
-  SerializedNoteEncryptedHash,
-} from '../primitives/noteEncrypted'
+import { NoteEncrypted, NoteEncryptedHash } from '../primitives/noteEncrypted'
 import { Target } from '../primitives/target'
 import { Transaction, TransactionHash } from '../primitives/transaction'
-import { BUFFER_ENCODING, IDatabase, IDatabaseTransaction } from '../storage'
+import { IDatabase, IDatabaseTransaction, SchemaValue } from '../storage'
 import { Strategy } from '../strategy'
 import { AsyncUtils, BenchUtils, HashUtils } from '../utils'
 import { WorkerPool } from '../workerPool'
@@ -68,12 +61,6 @@ export class Blockchain {
 
   synced = false
   opened = false
-  notes: MerkleTree<
-    NoteEncrypted,
-    NoteEncryptedHash,
-    SerializedNoteEncrypted,
-    SerializedNoteEncryptedHash
-  >
   nullifiers: NullifierSet
 
   addSpeed: RollingAverage
@@ -168,17 +155,6 @@ export class Blockchain {
     // TODO(rohanjadvani): This is temporary to reduce pull request sizes and
     // will be removed once all stores are migrated
     this.db = this.blockchainDb.db
-
-    this.notes = new MerkleTree({
-      hasher: new NoteHasher(),
-      leafIndexKeyEncoding: BUFFER_ENCODING,
-      leafEncoding: new LeafEncoding(),
-      nodeEncoding: new NodeEncoding(),
-      db: this.db,
-      name: 'n',
-      depth: 32,
-      defaultValue: Buffer.alloc(32),
-    })
 
     this.nullifiers = new NullifierSet({ db: this.db, name: 'u' })
   }
@@ -600,7 +576,7 @@ export class Blockchain {
 
     await this.saveConnect(block, prev, tx)
     await tx.update()
-    this.notes.pastRootTxCommitted(tx)
+    this.blockchainDb.cachePastRootHashes(tx)
 
     this.head = block.header
     await this.onConnectBlock.emitAsync(block, tx)
@@ -633,7 +609,7 @@ export class Blockchain {
     }
 
     await tx.update()
-    this.notes.pastRootTxCommitted(tx)
+    this.blockchainDb.cachePastRootHashes(tx)
 
     if (!this.hasGenesisBlock || isBlockLater(block.header, this.latest)) {
       this.latest = block.header
@@ -693,7 +669,7 @@ export class Blockchain {
     }
 
     await tx.update()
-    this.notes.pastRootTxCommitted(tx)
+    this.blockchainDb.cachePastRootHashes(tx)
 
     if (!this.hasGenesisBlock || isBlockLater(block.header, this.latest)) {
       this.latest = block.header
@@ -889,7 +865,7 @@ export class Blockchain {
       let timestamp
       const currentTime = Date.now()
 
-      const originalNoteSize = await this.notes.size(tx)
+      const originalNoteSize = await this.blockchainDb.getNotesSize(tx)
 
       if (!this.hasGenesisBlock) {
         previousBlockHash = GENESIS_BLOCK_PREVIOUS
@@ -931,10 +907,10 @@ export class Blockchain {
         }
       }
 
-      await this.notes.addBatch(blockNotes, tx)
+      await this.blockchainDb.addNotesBatch(blockNotes, tx)
 
-      const noteCommitment = await this.notes.rootHash(tx)
-      const noteSize = await this.notes.size(tx)
+      const noteCommitment = await this.blockchainDb.getNotesRootHash(tx)
+      const noteSize = await this.blockchainDb.getNotesSize(tx)
 
       graffiti = graffiti ? graffiti : Buffer.alloc(32)
 
@@ -1060,6 +1036,55 @@ export class Blockchain {
 
   async clearHashToNextHash(tx?: IDatabaseTransaction): Promise<void> {
     return this.blockchainDb.clearHashToNextHash(tx)
+  }
+
+  async getNoteWitness(
+    treeIndex: number,
+    size?: number,
+    tx?: IDatabaseTransaction,
+  ): Promise<Witness<NoteEncrypted, Buffer, Buffer, Buffer> | null> {
+    return this.blockchainDb.getNoteWitness(treeIndex, size, tx)
+  }
+
+  async getNotesSize(tx?: IDatabaseTransaction): Promise<number> {
+    return this.blockchainDb.getNotesSize(tx)
+  }
+
+  async getNotesLeaf(
+    index: number,
+    tx?: IDatabaseTransaction,
+  ): Promise<SchemaValue<LeavesSchema<NoteEncryptedHash>>> {
+    return this.blockchainDb.getNotesLeaf(index, tx)
+  }
+
+  async addNote(note: NoteEncrypted, tx?: IDatabaseTransaction): Promise<void> {
+    return this.blockchainDb.addNote(note, tx)
+  }
+
+  async getNotesPastRoot(
+    pastSize: number,
+    tx?: IDatabaseTransaction,
+  ): Promise<NoteEncryptedHash> {
+    return this.blockchainDb.getNotesPastRoot(pastSize, tx)
+  }
+
+  async getLeavesIndex(hash: Buffer, tx?: IDatabaseTransaction): Promise<number | undefined> {
+    return this.blockchainDb.getLeavesIndex(hash, tx)
+  }
+
+  async getNotesRootHash(tx?: IDatabaseTransaction): Promise<Buffer> {
+    return this.blockchainDb.getNotesRootHash(tx)
+  }
+
+  async addNotesBatch(
+    notes: Iterable<NoteEncrypted>,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    return this.blockchainDb.addNotesBatch(notes, tx)
+  }
+
+  async truncateNotes(pastSize: number, tx?: IDatabaseTransaction): Promise<void> {
+    return this.blockchainDb.truncateNotes(pastSize, tx)
   }
 
   async removeBlock(hash: Buffer): Promise<void> {
@@ -1215,11 +1240,11 @@ export class Blockchain {
 
     Assert.isEqual(
       prevNotesSize,
-      await this.notes.size(tx),
+      await this.blockchainDb.getNotesSize(tx),
       'Notes tree must match previous block header',
     )
 
-    await this.notes.addBatch(block.notes(), tx)
+    await this.blockchainDb.addNotesBatch(block.notes(), tx)
     await this.nullifiers.connectBlock(block, tx)
 
     for (const transaction of block.transactions) {
@@ -1261,7 +1286,7 @@ export class Blockchain {
     Assert.isNotNull(prev.noteSize)
 
     await Promise.all([
-      this.notes.truncate(prev.noteSize, tx),
+      this.blockchainDb.truncateNotes(prev.noteSize, tx),
       this.nullifiers.disconnectBlock(block, tx),
     ])
 

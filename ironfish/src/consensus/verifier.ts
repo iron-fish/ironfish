@@ -326,7 +326,7 @@ export class Verifier {
     tx?: IDatabaseTransaction,
   ): Promise<VerificationResult> {
     return this.chain.db.withTransaction(tx, async (tx) => {
-      const notesSize = await this.chain.notes.size(tx)
+      const notesSize = await this.chain.getNotesSize(tx)
 
       for (const spend of transaction.spends) {
         const reason = await this.verifySpend(spend, notesSize, tx)
@@ -469,7 +469,7 @@ export class Verifier {
     }
 
     try {
-      const realSpendRoot = await this.chain.notes.pastRoot(spend.size, tx)
+      const realSpendRoot = await this.chain.getNotesPastRoot(spend.size, tx)
       if (!spend.commitment.equals(realSpendRoot)) {
         return VerificationResultReason.INVALID_SPEND
       }
@@ -493,7 +493,7 @@ export class Verifier {
       const header = block.header
 
       Assert.isNotNull(header.noteSize)
-      const noteRoot = await this.chain.notes.pastRoot(header.noteSize, tx)
+      const noteRoot = await this.chain.getNotesPastRoot(header.noteSize, tx)
       if (!noteRoot.equals(header.noteCommitment)) {
         return { valid: false, reason: VerificationResultReason.NOTE_COMMITMENT }
       }
