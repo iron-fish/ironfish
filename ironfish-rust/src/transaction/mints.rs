@@ -355,6 +355,13 @@ mod test {
 
         let other_randomized_public_key = redjubjub::PublicKey(key.view_key.authorizing_key.into())
             .randomize(jubjub::Fr::random(thread_rng()), *SPENDING_KEY_GENERATOR);
+
+        assert!(verify_mint_proof(
+            &description.proof,
+            &description.public_inputs(&other_randomized_public_key),
+        )
+        .is_err());
+
         assert!(description
             .verify_signature(&sig_hash, &other_randomized_public_key)
             .is_err());
