@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use blstrs::Bls12;
 use ff::Field;
 use outputs::OutputBuilder;
 use spends::{SpendBuilder, UnsignedSpendDescription};
@@ -20,7 +21,7 @@ use crate::{
     OutputDescription, SpendDescription,
 };
 
-use bellperson::groth16::verify_proofs_batch;
+use bellperson::groth16::{verify_proofs_batch, PreparedVerifyingKey};
 use blake2b_simd::Params as Blake2b;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use group::GroupEncoding;
@@ -778,17 +779,11 @@ pub fn verify_transaction(transaction: &Transaction) -> Result<(), IronfishError
     batch_verify_transactions(iter::once(transaction))
 }
 
-/// Validate the transaction. Confirms that:
-///  *  Each of the spend proofs has the inputs it says it has
-///  *  Each of the output proofs has the inputs it says it has
-///  *  Each of the mint proofs has the inputs it says it has
-///  *  Each of the spend proofs was signed by the owner
-///  *  Each of the mint proofs was signed by the owner
-///  *  The entire transaction was signed with a binding signature
-///     containing those proofs (and only those proofs)
-///
-pub fn batch_verify_transactions<'a>(
+fn internal_batch_verify_transactions<'a>(
     transactions: impl IntoIterator<Item = &'a Transaction>,
+    spend_verifying_key: &PreparedVerifyingKey<Bls12>,
+    output_verifying_key: &PreparedVerifyingKey<Bls12>,
+    mint_verifying_key: &PreparedVerifyingKey<Bls12>,
 ) -> Result<(), IronfishError> {
     let mut spend_proofs = vec![];
     let mut spend_public_inputs = vec![];
@@ -861,30 +856,56 @@ pub fn batch_verify_transactions<'a>(
         transaction.verify_binding_signature(&binding_verification_key)?;
     }
 
-    if !spend_proofs.is_empty() {
-        verify_proofs_batch(
-            &SAPLING.spend_verifying_key,
+    if !spend_proofs.is_empty()
+        && !verify_proofs_batch(
+            spend_verifying_key,
             &mut OsRng,
             &spend_proofs[..],
             &spend_public_inputs[..],
-        )?;
+        )?
+    {
+        return Err(IronfishError::VerificationFailed);
     }
-    if !output_proofs.is_empty() {
-        verify_proofs_batch(
-            &SAPLING.output_verifying_key,
+    if !output_proofs.is_empty()
+        && !verify_proofs_batch(
+            output_verifying_key,
             &mut OsRng,
             &output_proofs[..],
             &output_public_inputs[..],
-        )?;
+        )?
+    {
+        return Err(IronfishError::VerificationFailed);
     }
-    if !mint_proofs.is_empty() {
-        verify_proofs_batch(
-            &SAPLING.mint_verifying_key,
+    if !mint_proofs.is_empty()
+        && !verify_proofs_batch(
+            mint_verifying_key,
             &mut OsRng,
             &mint_proofs[..],
             &mint_public_inputs[..],
-        )?;
+        )?
+    {
+        return Err(IronfishError::VerificationFailed);
     }
 
     Ok(())
+}
+
+/// Validate the transaction. Confirms that:
+///  *  Each of the spend proofs has the inputs it says it has
+///  *  Each of the output proofs has the inputs it says it has
+///  *  Each of the mint proofs has the inputs it says it has
+///  *  Each of the spend proofs was signed by the owner
+///  *  Each of the mint proofs was signed by the owner
+///  *  The entire transaction was signed with a binding signature
+///     containing those proofs (and only those proofs)
+///
+pub fn batch_verify_transactions<'a>(
+    transactions: impl IntoIterator<Item = &'a Transaction>,
+) -> Result<(), IronfishError> {
+    internal_batch_verify_transactions(
+        transactions,
+        &SAPLING.spend_verifying_key,
+        &SAPLING.output_verifying_key,
+        &SAPLING.mint_verifying_key,
+    )
 }
