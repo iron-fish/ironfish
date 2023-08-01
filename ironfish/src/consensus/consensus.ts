@@ -35,10 +35,10 @@ export type ConsensusParameters = {
   minFee: number
 
   /**
-   * Before upgrade we had negative block mine time in block headers. After this
-   * block we do a check to disallow negative block mine time.
+   * Before upgrade we have block timestamp smaller than previous block. After this
+   * block we enforce the block timestamps in the sequential order as the block sequences.
    */
-  disallowNegativeBlockMineTime: number
+  enforceSequentialBlockTime: number
 }
 
 export class Consensus {

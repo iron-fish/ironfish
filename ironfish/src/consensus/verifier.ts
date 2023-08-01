@@ -203,7 +203,7 @@ export class Verifier {
 
     if (
       this.chain.consensus.isActive(
-        this.chain.consensus.parameters.disallowNegativeBlockMineTime,
+        this.chain.consensus.parameters.enforceSequentialBlockTime,
         current.sequence,
       )
     ) {

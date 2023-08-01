@@ -529,12 +529,12 @@ describe('Verifier', () => {
 
       beforeAll(async () => {
         const { chain, verifier: verifierTest } = await nodeTest.createSetup()
-        chain.consensus.parameters.disallowNegativeBlockMineTime = 3
+        chain.consensus.parameters.enforceSequentialBlockTime = 3
         verifier = verifierTest
         verifier.chain = chain
         block = await useMinerBlockFixture(
           chain,
-          chain.consensus.parameters.disallowNegativeBlockMineTime - 1,
+          chain.consensus.parameters.enforceSequentialBlockTime - 1,
         )
         header = block.header
         const previousBlock = block.header.previousBlockHash
@@ -601,20 +601,20 @@ describe('Verifier', () => {
 
       beforeAll(async () => {
         const { chain, verifier: verifierTest } = await nodeTest.createSetup()
-        chain.consensus.parameters.disallowNegativeBlockMineTime = 3
+        chain.consensus.parameters.enforceSequentialBlockTime = 3
         verifier = verifierTest
         verifier.chain = chain
 
         const previousBlock = await useMinerBlockFixture(
           chain,
-          chain.consensus.parameters.disallowNegativeBlockMineTime - 1,
+          chain.consensus.parameters.enforceSequentialBlockTime - 1,
         )
         await chain.addBlock(previousBlock)
 
         prevHeader = previousBlock.header
         currentBlock = await useMinerBlockFixture(
           chain,
-          chain.consensus.parameters.disallowNegativeBlockMineTime,
+          chain.consensus.parameters.enforceSequentialBlockTime,
         )
         header = currentBlock.header
       })
