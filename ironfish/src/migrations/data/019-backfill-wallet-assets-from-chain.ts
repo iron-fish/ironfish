@@ -9,6 +9,7 @@ import { IronfishNode } from '../../node'
 import { BUFFER_ENCODING, IDatabase, IDatabaseStore, IDatabaseTransaction } from '../../storage'
 import { createDB } from '../../storage/utils'
 import { BufferUtils } from '../../utils'
+import { Account } from '../../wallet'
 import { Migration } from '../migration'
 import { GetOldAccounts } from './021-add-version-to-accounts/schemaOld'
 
@@ -25,28 +26,44 @@ export class Migration019 extends Migration {
     tx: IDatabaseTransaction | undefined,
     logger: Logger,
   ): Promise<void> {
-    const chainDb = createDB({ location: node.config.chainDatabasePath })
-    await chainDb.open()
-
-    const chainAssets: IDatabaseStore<AssetSchema> = chainDb.addStore({
-      name: 'bA',
-      keyEncoding: BUFFER_ENCODING,
-      valueEncoding: new AssetValueEncoding(),
-    })
-
     const accounts = await GetOldAccounts(node, _db, tx)
 
     logger.info(`Backfilling assets for ${accounts.length} accounts`)
 
+    const assetsToBackfill: {
+      account: Account
+      assets: { id: Buffer; sequence: number | null; hash: Buffer | null }[]
+    }[] = []
+
     for (const account of accounts) {
-      logger.info('')
-      logger.info(`  Backfilling assets for account ${account.name}`)
+      const assets = []
 
       for await (const { note, sequence, blockHash: hash } of account.getNotes()) {
         const asset = await node.wallet.walletDb.getAsset(account, note.assetId(), tx)
-
         if (!asset) {
-          const chainAsset = await chainAssets.get(note.assetId())
+          assets.push({ id: note.assetId(), sequence, hash })
+        }
+      }
+
+      assetsToBackfill.push({ account, assets })
+    }
+
+    if (assetsToBackfill.length) {
+      const chainDb = createDB({ location: node.config.chainDatabasePath })
+      await chainDb.open()
+
+      const chainAssets: IDatabaseStore<AssetSchema> = chainDb.addStore({
+        name: 'bA',
+        keyEncoding: BUFFER_ENCODING,
+        valueEncoding: new AssetValueEncoding(),
+      })
+
+      for (const { account, assets } of assetsToBackfill) {
+        logger.info('')
+        logger.info(`  Backfilling assets for account ${account.name}`)
+
+        for (const { id, hash, sequence } of assets) {
+          const chainAsset = await chainAssets.get(id)
           Assert.isNotUndefined(chainAsset, 'Asset must be non-null in the chain')
 
           logger.info(`    Backfilling ${BufferUtils.toHuman(chainAsset.name)} from chain`)
@@ -61,12 +78,13 @@ export class Migration019 extends Migration {
             tx,
           )
         }
+
+        logger.info(`  Completed backfilling assets for account ${account.name}`)
       }
 
-      logger.info(`  Completed backfilling assets for account ${account.name}`)
+      await chainDb.close()
     }
 
-    await chainDb.close()
     logger.info('')
   }
 
