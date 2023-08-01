@@ -4,8 +4,8 @@
 
 import { FileSystem } from '../fileSystems'
 import { Logger } from '../logger'
-import { IronfishNode } from '../node'
 import { IDatabase, IDatabaseTransaction } from '../storage'
+import { Node } from '../utils'
 
 export abstract class Migration {
   id = 0
@@ -24,10 +24,10 @@ export abstract class Migration {
     return this
   }
 
-  abstract prepare(node: IronfishNode): Promise<IDatabase> | IDatabase
+  abstract prepare(node: Node): Promise<IDatabase> | IDatabase
 
   abstract forward(
-    node: IronfishNode,
+    node: Node,
     db: IDatabase,
     tx: IDatabaseTransaction | undefined,
     logger: Logger,
@@ -35,7 +35,7 @@ export abstract class Migration {
   ): Promise<void>
 
   abstract backward(
-    node: IronfishNode,
+    node: Node,
     db: IDatabase,
     tx: IDatabaseTransaction | undefined,
     logger: Logger,

@@ -3,20 +3,20 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Logger } from '../../logger'
-import { IronfishNode } from '../../node'
 import { IDatabase, IDatabaseTransaction } from '../../storage'
+import { Node } from '../../utils'
 import { Migration } from '../migration'
 import { GetOldAccounts } from './021-add-version-to-accounts/schemaOld'
 
 export class Migration016 extends Migration {
   path = __filename
 
-  prepare(node: IronfishNode): IDatabase {
+  prepare(node: Node): IDatabase {
     return node.wallet.walletDb.db
   }
 
   async forward(
-    node: IronfishNode,
+    node: Node,
     db: IDatabase,
     tx: IDatabaseTransaction | undefined,
     logger: Logger,
@@ -49,7 +49,7 @@ export class Migration016 extends Migration {
     }
   }
 
-  async backward(node: IronfishNode): Promise<void> {
+  async backward(node: Node): Promise<void> {
     await node.wallet.walletDb.sequenceToTransactionHash.clear()
   }
 }

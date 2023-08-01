@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Logger } from '../../logger'
-import { IronfishNode } from '../../node'
 import { IDatabase, IDatabaseTransaction } from '../../storage'
 import { createDB } from '../../storage/utils'
+import { Node } from '../../utils'
 import { Account } from '../../wallet'
 import { Migration } from '../migration'
 import { GetStores } from './025-backfill-wallet-nullifier-to-transaction-hash/stores'
@@ -12,12 +12,12 @@ import { GetStores } from './025-backfill-wallet-nullifier-to-transaction-hash/s
 export class Migration025 extends Migration {
   path = __filename
 
-  prepare(node: IronfishNode): IDatabase {
+  prepare(node: Node): IDatabase {
     return createDB({ location: node.config.walletDatabasePath })
   }
 
   async forward(
-    node: IronfishNode,
+    node: Node,
     db: IDatabase,
     _tx: IDatabaseTransaction | undefined,
     logger: Logger,
@@ -90,7 +90,7 @@ export class Migration025 extends Migration {
   }
 
   async backward(
-    _node: IronfishNode,
+    _node: Node,
     db: IDatabase,
     tx: IDatabaseTransaction | undefined,
     logger: Logger,

@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Logger } from '../../logger'
-import { IronfishNode } from '../../node'
 import { IDatabase, IDatabaseTransaction } from '../../storage'
 import { createDB } from '../../storage/utils'
+import { Node } from '../../utils'
 import { Account } from '../../wallet'
 import { Migration } from '../migration'
 import { GetStores } from './026-timestamp-to-transactions/stores'
@@ -12,12 +12,12 @@ import { GetStores } from './026-timestamp-to-transactions/stores'
 export class Migration026 extends Migration {
   path = __filename
 
-  prepare(node: IronfishNode): IDatabase {
+  prepare(node: Node): IDatabase {
     return createDB({ location: node.config.walletDatabasePath })
   }
 
   async forward(
-    node: IronfishNode,
+    node: Node,
     db: IDatabase,
     _tx: IDatabaseTransaction | undefined,
     logger: Logger,
@@ -67,7 +67,7 @@ export class Migration026 extends Migration {
     logger.info('')
   }
 
-  async backward(node: IronfishNode, db: IDatabase): Promise<void> {
+  async backward(node: Node, db: IDatabase): Promise<void> {
     const accounts = []
     const stores = GetStores(db)
 
