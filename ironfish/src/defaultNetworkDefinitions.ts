@@ -205,6 +205,6 @@ export const DEVNET = `
         "targetBucketTimeInSeconds": 10,
         "maxBlockSizeBytes": 524288,
         "minFee": 0,
-        "disallowNegativeBlockMineTime": 3
+        "disallowNegativeBlockMineTime": 1
     }
 }`

@@ -525,9 +525,13 @@ describe('Verifier', () => {
       let block: Block
       let header: BlockHeader
       let prevHeader: BlockHeader
+      let verifier: Verifier
 
       beforeAll(async () => {
-        const { chain } = await nodeTest.createSetup()
+        const { chain, verifier: verifierTest } = await nodeTest.createSetup()
+        chain.consensus.parameters.disallowNegativeBlockMineTime = 3
+        verifier = verifierTest
+        verifier.chain = chain
         block = await useMinerBlockFixture(
           chain,
           chain.consensus.parameters.disallowNegativeBlockMineTime - 1,
@@ -545,7 +549,7 @@ describe('Verifier', () => {
             (nodeTest.chain.consensus.parameters.allowedBlockFutureSeconds + 2) * 1000,
         )
 
-        expect(await nodeTest.verifier.verifyBlockAdd(block, prevHeader)).toMatchObject({
+        expect(await verifier.verifyBlockAdd(block, prevHeader)).toMatchObject({
           reason: VerificationResultReason.BLOCK_TOO_OLD,
           valid: false,
         })
@@ -560,7 +564,7 @@ describe('Verifier', () => {
             (nodeTest.chain.consensus.parameters.allowedBlockFutureSeconds + 42) * 1000,
         )
 
-        expect(await nodeTest.verifier.verifyBlockAdd(block, prevHeader)).toMatchObject({
+        expect(await verifier.verifyBlockAdd(block, prevHeader)).toMatchObject({
           reason: VerificationResultReason.TOO_FAR_IN_FUTURE,
           valid: false,
         })
@@ -571,8 +575,7 @@ describe('Verifier', () => {
           .spyOn(global.Date, 'now')
           .mockImplementationOnce(() => prevHeader.timestamp.getTime() + 1 * 1000)
         header.timestamp = new Date(prevHeader.timestamp.getTime() - 1 * 1000)
-
-        expect(await nodeTest.verifier.verifyBlockAdd(block, prevHeader)).toMatchObject({
+        expect(await verifier.verifyBlockAdd(block, prevHeader)).toMatchObject({
           valid: true,
         })
       })
@@ -583,7 +586,7 @@ describe('Verifier', () => {
           .mockImplementationOnce(() => prevHeader.timestamp.getTime() + 1 * 1000)
         header.timestamp = new Date(prevHeader.timestamp.getTime() + 1 * 1000)
 
-        expect(await nodeTest.verifier.verifyBlockAdd(block, prevHeader)).toMatchObject({
+        expect(await verifier.verifyBlockAdd(block, prevHeader)).toMatchObject({
           valid: true,
         })
       })
@@ -594,9 +597,14 @@ describe('Verifier', () => {
       let currentBlock: Block
       let header: BlockHeader
       let prevHeader: BlockHeader
+      let verifier: Verifier
 
       beforeAll(async () => {
-        const { chain } = await nodeTest.createSetup()
+        const { chain, verifier: verifierTest } = await nodeTest.createSetup()
+        chain.consensus.parameters.disallowNegativeBlockMineTime = 3
+        verifier = verifierTest
+        verifier.chain = chain
+
         const previousBlock = await useMinerBlockFixture(
           chain,
           chain.consensus.parameters.disallowNegativeBlockMineTime - 1,
@@ -617,7 +625,7 @@ describe('Verifier', () => {
             (nodeTest.chain.consensus.parameters.allowedBlockFutureSeconds + 2) * 1000,
         )
 
-        expect(await nodeTest.verifier.verifyBlockAdd(currentBlock, prevHeader)).toMatchObject({
+        expect(await verifier.verifyBlockAdd(currentBlock, prevHeader)).toMatchObject({
           reason: VerificationResultReason.BLOCK_TOO_OLD,
           valid: false,
         })
@@ -632,7 +640,7 @@ describe('Verifier', () => {
             (nodeTest.chain.consensus.parameters.allowedBlockFutureSeconds + 42) * 1000,
         )
 
-        expect(await nodeTest.verifier.verifyBlockAdd(currentBlock, prevHeader)).toMatchObject({
+        expect(await verifier.verifyBlockAdd(currentBlock, prevHeader)).toMatchObject({
           reason: VerificationResultReason.TOO_FAR_IN_FUTURE,
           valid: false,
         })
@@ -641,7 +649,7 @@ describe('Verifier', () => {
       it('fails validation when timestamp is smaller than previous block', async () => {
         header.timestamp = new Date(prevHeader.timestamp.getTime() - 1 * 1000)
 
-        expect(await nodeTest.verifier.verifyBlockAdd(currentBlock, prevHeader)).toMatchObject({
+        expect(await verifier.verifyBlockAdd(currentBlock, prevHeader)).toMatchObject({
           reason: VerificationResultReason.BLOCK_TOO_OLD,
           valid: false,
         })
@@ -650,7 +658,7 @@ describe('Verifier', () => {
       it('fails validation when timestamp is same as previous block', async () => {
         header.timestamp = new Date(prevHeader.timestamp.getTime())
 
-        expect(await nodeTest.verifier.verifyBlockAdd(currentBlock, prevHeader)).toMatchObject({
+        expect(await verifier.verifyBlockAdd(currentBlock, prevHeader)).toMatchObject({
           reason: VerificationResultReason.BLOCK_TOO_OLD,
           valid: false,
         })
@@ -662,7 +670,7 @@ describe('Verifier', () => {
           .mockImplementationOnce(() => prevHeader.timestamp.getTime() + 1 * 1000)
         header.timestamp = new Date(prevHeader.timestamp.getTime() + 1 * 1000)
 
-        expect(await nodeTest.verifier.verifyBlockAdd(currentBlock, prevHeader)).toMatchObject({
+        expect(await verifier.verifyBlockAdd(currentBlock, prevHeader)).toMatchObject({
           valid: true,
         })
       })
