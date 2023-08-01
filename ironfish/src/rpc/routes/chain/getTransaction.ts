@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
+import { IronfishNode } from '../../../node'
 import { BlockHashSerdeInstance } from '../../../serde'
 import { CurrencyUtils } from '../../../utils'
 import { NotFoundError, ValidationError } from '../../adapters'
@@ -80,8 +81,8 @@ export const GetTransactionResponseSchema: yup.ObjectSchema<GetTransactionRespon
 routes.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
   `${ApiNamespace.chain}/getTransaction`,
   GetTransactionRequestSchema,
-  async (request, { node }): Promise<void> => {
-    Assert.isNotUndefined(node)
+  async (request, node): Promise<void> => {
+    Assert.isInstanceOf(node, IronfishNode)
 
     if (!request.data.transactionHash) {
       throw new ValidationError(`Missing transaction hash`)

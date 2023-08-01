@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
+import { IronfishNode } from '../../../node'
 import { SerializedBlockTemplate } from '../../../serde/BlockTemplateSerde'
 import { ApiNamespace, routes } from '../router'
 
@@ -44,8 +45,8 @@ export const BlockTemplateStreamResponseSchema: yup.ObjectSchema<BlockTemplateSt
 routes.register<typeof BlockTemplateStreamRequestSchema, BlockTemplateStreamResponse>(
   `${ApiNamespace.miner}/blockTemplateStream`,
   BlockTemplateStreamRequestSchema,
-  (request, { node }): void => {
-    Assert.isNotUndefined(node)
+  (request, node): void => {
+    Assert.isInstanceOf(node, IronfishNode)
 
     if (!node.chain.synced && !node.config.get('miningForce')) {
       node.logger.info(

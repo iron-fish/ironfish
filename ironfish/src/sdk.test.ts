@@ -134,7 +134,7 @@ describe('IronfishSdk', () => {
         expect(client).toBeInstanceOf(RpcMemoryClient)
         const memoryClient = client as RpcMemoryClient
         Assert.isNotUndefined(memoryClient.router)
-        expect(memoryClient.router.server.context.node).toBe(node)
+        expect(memoryClient.router.server.context).toBe(node)
       })
     })
 

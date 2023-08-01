@@ -48,8 +48,7 @@ export const BurnAssetResponseSchema: yup.ObjectSchema<BurnAssetResponse> = yup
 routes.register<typeof BurnAssetRequestSchema, BurnAssetResponse>(
   `${ApiNamespace.wallet}/burnAsset`,
   BurnAssetRequestSchema,
-  async (request, { node }): Promise<void> => {
-    Assert.isNotUndefined(node)
+  async (request, node): Promise<void> => {
     const account = getAccount(node.wallet, request.data.account)
 
     const fee = CurrencyUtils.decode(request.data.fee)

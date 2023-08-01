@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { Assert } from '../../../assert'
 import { HeadValue } from '../../../wallet/walletdb/headValue'
 import { ApiNamespace, routes } from '../router'
 
@@ -43,9 +42,7 @@ export const GetAccountStatusResponseSchema: yup.ObjectSchema<GetAccountStatusRe
 routes.register<typeof GetAccountStatusRequestSchema, GetAccountStatusResponse>(
   `${ApiNamespace.wallet}/getAccountsStatus`,
   GetAccountStatusRequestSchema,
-  async (request, { node }): Promise<void> => {
-    Assert.isNotUndefined(node)
-
+  async (request, node): Promise<void> => {
     const heads = new Map<string, HeadValue | null>()
     for await (const { accountId, head } of node.wallet.walletDb.loadHeads()) {
       heads.set(accountId, head)
