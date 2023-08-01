@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
+import { IronfishNode } from '../../../node'
 import { ApiNamespace, routes } from '../router'
 
 interface ConsensusParameters {
@@ -35,8 +36,8 @@ export const GetConsensusParametersResponseSchema: yup.ObjectSchema<GetConsensus
 routes.register<typeof GetConsensusParametersRequestSchema, GetConsensusParametersResponse>(
   `${ApiNamespace.chain}/getConsensusParameters`,
   GetConsensusParametersRequestSchema,
-  (request, { node }): void => {
-    Assert.isNotUndefined(node)
+  (request, node): void => {
+    Assert.isInstanceOf(node, IronfishNode)
     Assert.isNotNull(node.chain.consensus, 'no consensus parameters')
 
     const consensusParameters = node.chain.consensus.parameters

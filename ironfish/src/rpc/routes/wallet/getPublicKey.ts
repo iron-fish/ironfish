@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { Assert } from '../../../assert'
 import { ApiNamespace, routes } from '../router'
 import { getAccount } from './utils'
 
@@ -25,9 +24,7 @@ export const GetPublicKeyResponseSchema: yup.ObjectSchema<GetPublicKeyResponse> 
 routes.register<typeof GetPublicKeyRequestSchema, GetPublicKeyResponse>(
   `${ApiNamespace.wallet}/getPublicKey`,
   GetPublicKeyRequestSchema,
-  (request, { node }): void => {
-    Assert.isNotUndefined(node)
-
+  (request, node): void => {
     const account = getAccount(node.wallet, request.data.account)
 
     request.end({

@@ -5,7 +5,7 @@ import { Assert } from '../../assert'
 import { IronfishNode } from '../../node'
 import { YupSchema, YupSchemaResult, YupUtils } from '../../utils'
 import { StrEnumUtils } from '../../utils/enums'
-import { Wallet } from '../../wallet'
+import { WalletNode } from '../../walletNode'
 import { ERROR_CODES } from '../adapters'
 import { ResponseError, ValidationError } from '../adapters/errors'
 import { RpcRequest } from '../request'
@@ -27,7 +27,7 @@ export enum ApiNamespace {
 
 export const ALL_API_NAMESPACES = StrEnumUtils.getValues(ApiNamespace)
 
-export type RequestContext = { node?: IronfishNode; wallet?: Wallet }
+export type RequestContext = IronfishNode | WalletNode
 
 export type RouteHandler<TRequest = unknown, TResponse = unknown> = (
   request: RpcRequest<TRequest, TResponse>,

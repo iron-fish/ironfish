@@ -5,6 +5,7 @@ import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { Connection, PeerNetwork } from '../../../network'
 import { NetworkMessageType } from '../../../network/types'
+import { IronfishNode } from '../../../node'
 import { IJSON } from '../../../serde'
 import { ApiNamespace, routes } from '../router'
 
@@ -61,8 +62,8 @@ export const GetPeerMessagesResponseSchema: yup.ObjectSchema<GetPeerMessagesResp
 routes.register<typeof GetPeerMessagesRequestSchema, GetPeerMessagesResponse>(
   `${ApiNamespace.peer}/getPeerMessages`,
   GetPeerMessagesRequestSchema,
-  (request, { node }): void => {
-    Assert.isNotUndefined(node)
+  (request, node): void => {
+    Assert.isInstanceOf(node, IronfishNode)
 
     const peerNetwork = node.peerNetwork
 

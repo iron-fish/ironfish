@@ -2,11 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { Assert } from '../../../assert'
-import { IronfishNode } from '../../../node'
 import { PromiseUtils } from '../../../utils'
 import { RpcHttpAdapter, RpcIpcAdapter } from '../../adapters'
 import { RpcSocketAdapter } from '../../adapters/socketAdapter/socketAdapter'
+import { RpcServer } from '../../server'
 import { ApiNamespace, routes } from '../router'
 
 export type GetRpcStatusRequest =
@@ -63,10 +62,8 @@ export const GetRpcStatusResponseSchema: yup.ObjectSchema<GetRpcStatusResponse> 
 routes.register<typeof GetRpcStatusRequestSchema, GetRpcStatusResponse>(
   `${ApiNamespace.rpc}/getStatus`,
   GetRpcStatusRequestSchema,
-  async (request, { node }): Promise<void> => {
-    Assert.isNotUndefined(node)
-
-    const jobs = await getRpcStatus(node)
+  async (request, node): Promise<void> => {
+    const jobs = await getRpcStatus(node.rpc)
 
     if (!request.data?.stream) {
       request.end(jobs)
@@ -76,20 +73,20 @@ routes.register<typeof GetRpcStatusRequestSchema, GetRpcStatusResponse>(
     request.stream(jobs)
 
     while (!request.closed) {
-      const jobs = await getRpcStatus(node)
+      const jobs = await getRpcStatus(node.rpc)
       request.stream(jobs)
       await PromiseUtils.sleep(1000)
     }
   },
 )
 
-async function getRpcStatus(node: IronfishNode): Promise<GetRpcStatusResponse> {
+async function getRpcStatus(rpc: RpcServer): Promise<GetRpcStatusResponse> {
   const result: GetRpcStatusResponse = {
-    started: node.rpc.isRunning,
+    started: rpc.isRunning,
     adapters: [],
   }
 
-  for (const adapter of node.rpc.adapters) {
+  for (const adapter of rpc.adapters) {
     if (
       !(adapter instanceof RpcIpcAdapter) &&
       !(adapter instanceof RpcSocketAdapter) &&

@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { ASSET_ID_LENGTH } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
-import { Assert } from '../../../assert'
 import { AssetVerification } from '../../../assets'
 import { CurrencyUtils } from '../../../utils'
 import { NotFoundError, ValidationError } from '../../adapters'
@@ -57,9 +56,7 @@ export const GetWalletAssetResponse: yup.ObjectSchema<GetWalletAssetResponse> = 
 routes.register<typeof GetWalletAssetRequestSchema, GetWalletAssetResponse>(
   `${ApiNamespace.wallet}/getAsset`,
   GetWalletAssetRequestSchema,
-  async (request, { node }): Promise<void> => {
-    Assert.isNotUndefined(node)
-
+  async (request, node): Promise<void> => {
     const account = getAccount(node.wallet, request.data.account)
 
     const id = Buffer.from(request.data.id, 'hex')

@@ -5,6 +5,7 @@ import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { ChainProcessor } from '../../../chainProcessor'
 import { getBlockSize, getTransactionSize } from '../../../network/utils/serializers'
+import { IronfishNode } from '../../../node'
 import { Block, BlockHeader } from '../../../primitives'
 import { BlockHashSerdeInstance } from '../../../serde'
 import { BufferUtils, PromiseUtils } from '../../../utils'
@@ -76,8 +77,8 @@ export const FollowChainStreamResponseSchema: yup.ObjectSchema<FollowChainStream
 routes.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse>(
   `${ApiNamespace.chain}/followChainStream`,
   FollowChainStreamRequestSchema,
-  async (request, { node }): Promise<void> => {
-    Assert.isNotUndefined(node)
+  async (request, node): Promise<void> => {
+    Assert.isInstanceOf(node, IronfishNode)
     const head = request.data?.head ? Buffer.from(request.data.head, 'hex') : null
 
     const processor = new ChainProcessor({
