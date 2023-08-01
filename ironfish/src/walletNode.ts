@@ -4,6 +4,7 @@
 
 import { AssetsVerifier } from './assets'
 import { Config } from './fileStores'
+import { FileSystem } from './fileSystems'
 import { Logger } from './logger'
 import { RpcServer } from './rpc'
 import { Wallet } from './wallet/wallet'
@@ -16,4 +17,5 @@ export type WalletNode = {
   assetsVerifier: AssetsVerifier
   workerPool: WorkerPool
   rpc: RpcServer
+  files: FileSystem
 }

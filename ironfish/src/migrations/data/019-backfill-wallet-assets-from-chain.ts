@@ -8,7 +8,7 @@ import { Logger } from '../../logger'
 import { IronfishNode } from '../../node'
 import { BUFFER_ENCODING, IDatabase, IDatabaseStore, IDatabaseTransaction } from '../../storage'
 import { createDB } from '../../storage/utils'
-import { BufferUtils } from '../../utils'
+import { BufferUtils, Node } from '../../utils'
 import { Account } from '../../wallet'
 import { Migration } from '../migration'
 import { GetOldAccounts } from './021-add-version-to-accounts/schemaOld'
@@ -16,12 +16,12 @@ import { GetOldAccounts } from './021-add-version-to-accounts/schemaOld'
 export class Migration019 extends Migration {
   path = __filename
 
-  prepare(node: IronfishNode): IDatabase {
+  prepare(node: Node): IDatabase {
     return node.wallet.walletDb.db
   }
 
   async forward(
-    node: IronfishNode,
+    node: Node,
     _db: IDatabase,
     tx: IDatabaseTransaction | undefined,
     logger: Logger,
@@ -49,6 +49,7 @@ export class Migration019 extends Migration {
     }
 
     if (assetsToBackfill.length) {
+      Assert.isInstanceOf(node, IronfishNode)
       const chainDb = createDB({ location: node.config.chainDatabasePath })
       await chainDb.open()
 
