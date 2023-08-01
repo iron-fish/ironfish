@@ -1833,6 +1833,7 @@ describe('Accounts', () => {
         name: asset.name(),
         nonce: asset.nonce(),
         creator: Buffer.from(accountA.publicAddress, 'hex'),
+        owner: Buffer.from(accountA.publicAddress, 'hex'),
         sequence: mintBlock.header.sequence,
         supply: value,
       })
@@ -1844,6 +1845,7 @@ describe('Accounts', () => {
         name: asset.name(),
         nonce: asset.nonce(),
         creator: Buffer.from(accountA.publicAddress, 'hex'),
+        owner: Buffer.from(accountA.publicAddress, 'hex'),
         sequence: block.header.sequence,
         supply: null,
       })
