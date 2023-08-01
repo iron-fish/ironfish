@@ -20,6 +20,7 @@ export type GetAssetResponse = {
   name: string
   nonce: number
   creator: string
+  owner: string
   supply: string
 }
 
@@ -38,6 +39,7 @@ export const GetAssetResponse: yup.ObjectSchema<GetAssetResponse> = yup
     name: yup.string().defined(),
     nonce: yup.number().defined(),
     creator: yup.string().defined(),
+    owner: yup.string().defined(),
     supply: yup.string().defined(),
   })
   .defined()
@@ -68,6 +70,7 @@ routes.register<typeof GetAssetRequestSchema, GetAssetResponse>(
       name: asset.name.toString('hex'),
       nonce: asset.nonce,
       creator: asset.creator.toString('hex'),
+      owner: asset.owner.toString('hex'),
       supply: CurrencyUtils.encode(asset.supply),
     })
   },
