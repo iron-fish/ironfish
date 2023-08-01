@@ -142,10 +142,4 @@ class Routes {
   }
 }
 
-export function isFullNode(x: unknown, message?: string): asserts x is IronfishNode {
-  if (!(x instanceof IronfishNode)) {
-    throw new Error(message || `Expected value to be an IronfishNode but was ${typeof x}`)
-  }
-}
-
 export const routes = new Routes()
