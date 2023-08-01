@@ -74,5 +74,36 @@ describe('VerifyTransactionsTask', () => {
       const response = task.execute(request)
       expect(response).toEqual(new VerifyTransactionsResponse(true, request.jobId))
     })
+
+    it('fails verification if using the wrong mint owners', async () => {
+      const { node, wallet } = nodeTest
+
+      const account = await useAccountFixture(wallet)
+      const other_account = await useAccountFixture(wallet, 'other account')
+      const asset = new Asset(account.publicAddress, 'testcoin', '')
+      const transaction1 = await useMinersTxFixture(node, account)
+
+      const mint: MintData = {
+        name: asset.name().toString('hex'),
+        metadata: asset.metadata().toString('hex'),
+        value: 5n,
+      }
+
+      const transaction2 = await usePostTxFixture({
+        node,
+        wallet,
+        from: account,
+        mints: [mint],
+      })
+
+      const task = new VerifyTransactionsTask()
+      const request = new VerifyTransactionsRequest(
+        [transaction1.serialize(), transaction2.serialize()],
+        [Buffer.from(other_account.publicAddress, 'hex')],
+      )
+
+      const response = task.execute(request)
+      expect(response).toEqual(new VerifyTransactionsResponse(false, request.jobId))
+    })
   })
 })

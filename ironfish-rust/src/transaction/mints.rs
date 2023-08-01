@@ -414,9 +414,16 @@ mod test {
         let creator_randomized_public_key =
             redjubjub::PublicKey(creator_key.view_key.authorizing_key.into())
                 .randomize(jubjub::Fr::random(thread_rng()), *SPENDING_KEY_GENERATOR);
+
         assert!(description
             .verify_signature(&sig_hash, &creator_randomized_public_key)
             .is_err());
+
+        verify_mint_proof(
+            &description.proof,
+            &description.public_inputs(&randomized_public_key, &creator_address),
+        )
+        .expect_err("proof should not validate when using the wrong owner address");
     }
 
     #[test]

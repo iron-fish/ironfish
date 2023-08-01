@@ -334,6 +334,39 @@ describe('Verifier', () => {
       })
     })
 
+    it('rejects a block with an invalid asset owner for a mint', async () => {
+      const accountA = await useAccountFixture(nodeTest.node.wallet, 'accountA')
+      const asset = new Asset(accountA.publicAddress, 'testcoin', '')
+
+      // Mint as accountA
+      const block = await useMintBlockFixture({
+        node: nodeTest.node,
+        account: accountA,
+        asset,
+        value: BigInt(5),
+      })
+
+      // Create a new account to ensure this account was not used to create the mint
+      const accountB = await useAccountFixture(nodeTest.node.wallet, 'accountB')
+
+      // Set the owner as accountB in the asset database
+      await nodeTest.chain.blockchainDb.putAsset(asset.id(), {
+        createdTransactionHash: Buffer.alloc(32, '0'),
+        id: asset.id(),
+        metadata: asset.metadata(),
+        name: asset.name(),
+        nonce: asset.nonce(),
+        creator: Buffer.from(accountA.publicAddress, 'hex'),
+        owner: Buffer.from(accountB.publicAddress, 'hex'),
+        supply: 1n,
+      })
+
+      expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
+        reason: VerificationResultReason.ERROR,
+        valid: false,
+      })
+    })
+
     it('rejects a block with an invalid burn', async () => {
       const account = await useAccountFixture(nodeTest.node.wallet)
       const asset = new Asset(account.publicAddress, 'testcoin', '')
@@ -369,6 +402,49 @@ describe('Verifier', () => {
     it('accepts a valid block', async () => {
       const block = await useMinerBlockFixture(nodeTest.chain)
       const verification = await nodeTest.chain.verifier.verifyBlock(block)
+      expect(verification.valid).toBe(true)
+    })
+
+    it('accepts a valid mint', async () => {
+      const account = await useAccountFixture(nodeTest.node.wallet)
+      const asset = new Asset(account.publicAddress, 'testcoin', '')
+
+      const block = await useMintBlockFixture({
+        node: nodeTest.node,
+        account,
+        asset,
+        value: BigInt(5),
+      })
+
+      const verification = await nodeTest.chain.verifier.verifyBlock(block)
+      expect(verification.valid).toBe(true)
+    })
+
+    it('accepts a valid burn', async () => {
+      const account = await useAccountFixture(nodeTest.node.wallet)
+      const asset = new Asset(account.publicAddress, 'testcoin', '')
+
+      const blockA = await useMinerBlockFixture(nodeTest.chain, 2, account)
+      await expect(nodeTest.node.chain).toAddBlock(blockA)
+      await nodeTest.node.wallet.updateHead()
+
+      const blockB = await useMintBlockFixture({
+        node: nodeTest.node,
+        account,
+        asset,
+        value: BigInt(5),
+      })
+      await expect(nodeTest.node.chain).toAddBlock(blockB)
+      await nodeTest.node.wallet.updateHead()
+
+      const blockC = await useBurnBlockFixture({
+        node: nodeTest.node,
+        account,
+        asset,
+        value: BigInt(5),
+      })
+
+      const verification = await nodeTest.chain.verifier.verifyBlock(blockC)
       expect(verification.valid).toBe(true)
     })
   })

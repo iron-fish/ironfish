@@ -70,7 +70,7 @@ describe('Demonstrate the Sapling API', () => {
     expect(postedTransaction.spendsLength()).toBe(0)
     expect(postedTransaction.hash().byteLength).toBe(32)
     expect(postedTransaction.transactionSignature().byteLength).toBe(64)
-    expect(verifyTransactions([postedTransaction.serialize()])).toBe(true)
+    expect(verifyTransactions([postedTransaction.serialize()], [])).toBe(true)
 
     const encryptedNote = new NoteEncrypted(postedTransaction.getNote(0))
     expect(encryptedNote.hash().byteLength).toBe(32)
@@ -136,7 +136,7 @@ describe('Demonstrate the Sapling API', () => {
     expect(postedTransaction.spendsLength()).toEqual(1)
     expect(postedTransaction.hash().byteLength).toEqual(32)
     expect(postedTransaction.transactionSignature().byteLength).toEqual(64)
-    expect(verifyTransactions([postedTransaction.serialize()])).toBe(true)
+    expect(verifyTransactions([postedTransaction.serialize()], [])).toBe(true)
   })
 })
 
