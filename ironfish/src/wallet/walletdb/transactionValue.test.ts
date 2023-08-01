@@ -19,7 +19,7 @@ describe('TransactionValueEncoding', () => {
     it('serializes the object into a buffer and deserializes to the original object', async () => {
       const encoder = new TransactionValueEncoding()
 
-      const transaction = await useMinersTxFixture(nodeTest.wallet)
+      const transaction = await useMinersTxFixture(nodeTest.node)
 
       const assetBalanceDeltas = new BufferMap<bigint>()
       assetBalanceDeltas.set(Asset.nativeId(), -transaction.fee())
@@ -42,7 +42,7 @@ describe('TransactionValueEncoding', () => {
     it('serializes the object into a buffer and deserializes to the original object', async () => {
       const encoder = new TransactionValueEncoding()
 
-      const transaction = await useMinersTxFixture(nodeTest.wallet)
+      const transaction = await useMinersTxFixture(nodeTest.node)
 
       const assetBalanceDeltas = new BufferMap<bigint>()
       assetBalanceDeltas.set(Asset.nativeId(), -transaction.fee())
@@ -65,7 +65,7 @@ describe('TransactionValueEncoding', () => {
     it('serializes the object into a buffer and deserializes to the original object', async () => {
       const encoder = new TransactionValueEncoding()
 
-      const transaction = await useMinersTxFixture(nodeTest.wallet)
+      const transaction = await useMinersTxFixture(nodeTest.node)
 
       const assetBalanceDeltas = new BufferMap<bigint>()
       assetBalanceDeltas.set(Asset.nativeId(), -transaction.fee())
@@ -88,7 +88,7 @@ describe('TransactionValueEncoding', () => {
     it('serializes the object into a buffer and deserializes to the original object', async () => {
       const encoder = new TransactionValueEncoding()
 
-      const transaction = await useMinersTxFixture(nodeTest.wallet)
+      const transaction = await useMinersTxFixture(nodeTest.node)
 
       const value: TransactionValue = {
         transaction,
@@ -110,7 +110,7 @@ describe('TransactionValueEncoding', () => {
 
       const encoder = new TransactionValueEncoding()
 
-      const transaction = await useMinersTxFixture(nodeTest.wallet)
+      const transaction = await useMinersTxFixture(nodeTest.node)
 
       const assetBalanceDeltas = new BufferMap<bigint>()
 
@@ -139,7 +139,7 @@ describe('TransactionValueEncoding', () => {
     it('serializes the object into a buffer and deserializes to the original object', async () => {
       const encoder = new TransactionValueEncoding()
 
-      const transaction = await useMinersTxFixture(nodeTest.wallet)
+      const transaction = await useMinersTxFixture(nodeTest.node)
 
       const assetBalanceDeltas = new BufferMap<bigint>()
       assetBalanceDeltas.set(Asset.nativeId(), -transaction.fee())
@@ -163,7 +163,7 @@ describe('TransactionValueEncoding', () => {
     it('serializes the object into a buffer and deserializes to the original object', async () => {
       const encoder = new TransactionValueEncoding()
 
-      const transaction = await useMinersTxFixture(nodeTest.wallet)
+      const transaction = await useMinersTxFixture(nodeTest.node)
 
       const assetBalanceDeltas = new BufferMap<bigint>()
       assetBalanceDeltas.set(Asset.nativeId(), -20n)

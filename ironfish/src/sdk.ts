@@ -261,7 +261,10 @@ export class IronfishSdk {
     }
 
     const node = await this.node()
-    const clientMemory = new RpcMemoryClient(this.logger, node)
+    const clientMemory = new RpcMemoryClient(
+      this.logger,
+      node.rpc.getRouter(ALL_API_NAMESPACES),
+    )
     await NodeUtils.waitForOpen(node)
     return clientMemory
   }

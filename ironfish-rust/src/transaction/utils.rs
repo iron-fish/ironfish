@@ -13,7 +13,9 @@ pub(crate) fn verify_spend_proof(
     proof: &groth16::Proof<Bls12>,
     inputs: &[blstrs::Scalar],
 ) -> Result<(), IronfishError> {
-    groth16::verify_proof(&SAPLING.spend_verifying_key, proof, inputs)?;
+    if !groth16::verify_proof(&SAPLING.spend_verifying_key, proof, inputs)? {
+        return Err(IronfishError::VerificationFailed);
+    }
 
     Ok(())
 }
@@ -25,7 +27,9 @@ pub(crate) fn verify_output_proof(
     proof: &groth16::Proof<Bls12>,
     inputs: &[blstrs::Scalar],
 ) -> Result<(), IronfishError> {
-    groth16::verify_proof(&SAPLING.output_verifying_key, proof, inputs)?;
+    if !groth16::verify_proof(&SAPLING.output_verifying_key, proof, inputs)? {
+        return Err(IronfishError::VerificationFailed);
+    }
 
     Ok(())
 }
@@ -37,7 +41,9 @@ pub(crate) fn verify_mint_proof(
     proof: &groth16::Proof<Bls12>,
     inputs: &[blstrs::Scalar],
 ) -> Result<(), IronfishError> {
-    groth16::verify_proof(&SAPLING.mint_verifying_key, proof, inputs)?;
+    if !groth16::verify_proof(&SAPLING.mint_verifying_key, proof, inputs)? {
+        return Err(IronfishError::VerificationFailed);
+    }
 
     Ok(())
 }

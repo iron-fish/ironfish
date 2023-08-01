@@ -385,6 +385,74 @@ mod test {
     use rand::{thread_rng, Rng};
 
     #[test]
+    fn test_spend_builder() {
+        let key = SaplingKey::generate_key();
+        let public_address = key.public_address();
+        let sender_key = SaplingKey::generate_key();
+
+        let public_key_randomness = jubjub::Fr::random(thread_rng());
+        let randomized_public_key = redjubjub::PublicKey(key.view_key.authorizing_key.into())
+            .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);
+
+        let other_public_key_randomness = jubjub::Fr::random(thread_rng());
+        let other_randomized_public_key =
+            redjubjub::PublicKey(sender_key.view_key.authorizing_key.into())
+                .randomize(other_public_key_randomness, *SPENDING_KEY_GENERATOR);
+
+        let note_randomness = random();
+
+        let note = Note::new(
+            public_address,
+            note_randomness,
+            "",
+            NATIVE_ASSET,
+            sender_key.public_address(),
+        );
+        let witness = make_fake_witness(&note);
+
+        let spend = SpendBuilder::new(note, &witness);
+
+        // signature comes from transaction, normally
+        let mut sig_hash = [0u8; 32];
+        thread_rng().fill(&mut sig_hash[..]);
+
+        let unsigned_proof = spend
+            .build(&key, &public_key_randomness, &randomized_public_key)
+            .expect("should be able to build proof");
+
+        verify_spend_proof(
+            &unsigned_proof.description.proof,
+            &unsigned_proof
+                .description
+                .public_inputs(&randomized_public_key),
+        )
+        .expect("should be able to verify proof");
+
+        // Wrong spender key
+        assert!(spend
+            .build(&sender_key, &public_key_randomness, &randomized_public_key)
+            .is_err());
+
+        // Wrong public key randomness
+        assert!(spend
+            .build(&key, &other_public_key_randomness, &randomized_public_key)
+            .is_err());
+
+        // Wrong randomized public key
+        assert!(spend
+            .build(&key, &public_key_randomness, &other_randomized_public_key)
+            .is_err());
+
+        assert!(verify_spend_proof(
+            &unsigned_proof.description.proof,
+            &unsigned_proof
+                .description
+                .public_inputs(&other_randomized_public_key),
+        )
+        .is_err());
+    }
+
+    #[test]
     fn test_spend_round_trip() {
         let key = SaplingKey::generate_key();
         let public_address = key.public_address();

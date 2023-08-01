@@ -27,6 +27,7 @@ import { IsomorphicWebSocketConstructor } from './network/types'
 import { getNetworkDefinition } from './networkDefinition'
 import { Package } from './package'
 import { Platform } from './platform'
+import { ALL_API_NAMESPACES, RpcMemoryClient } from './rpc'
 import { RpcServer } from './rpc/server'
 import { Strategy } from './strategy'
 import { Syncer } from './syncer'
@@ -74,7 +75,7 @@ export class IronfishNode {
     privateIdentity,
     hostsStore,
     networkId,
-    verifiedAssetsCache,
+    assetsVerifier,
   }: {
     pkg: Package
     files: FileSystem
@@ -91,7 +92,7 @@ export class IronfishNode {
     privateIdentity?: PrivateIdentity
     hostsStore: HostsStore
     networkId: number
-    verifiedAssetsCache: VerifiedAssetsCacheStore
+    assetsVerifier: AssetsVerifier
   }) {
     this.files = files
     this.config = config
@@ -158,6 +159,12 @@ export class IronfishNode {
       this.telemetry.submitBlockMined(block)
     })
 
+    this.peerNetwork.onTransactionGossipReceived.on((transaction, valid) => {
+      if (valid) {
+        void wallet.addPendingTransaction(transaction)
+      }
+    })
+
     this.peerNetwork.onTransactionAccepted.on((transaction, received) => {
       this.telemetry.submitNewTransactionSeen(transaction, received)
     })
@@ -171,11 +178,7 @@ export class IronfishNode {
       blocksPerMessage: config.get('blocksPerMessage'),
     })
 
-    this.assetsVerifier = new AssetsVerifier({
-      apiUrl: config.get('assetVerificationApi'),
-      cache: verifiedAssetsCache,
-      logger,
-    })
+    this.assetsVerifier = assetsVerifier
 
     this.config.onConfigChange.on((key, value) => this.onConfigChange(key, value))
   }
@@ -223,6 +226,12 @@ export class IronfishNode {
 
     const verifiedAssetsCache = new VerifiedAssetsCacheStore(files, dataDir)
     await verifiedAssetsCache.load()
+
+    const assetsVerifier = new AssetsVerifier({
+      apiUrl: config.get('assetVerificationApi'),
+      cache: verifiedAssetsCache,
+      logger,
+    })
 
     let workers = config.get('nodeWorkers')
     if (workers === -1) {
@@ -287,15 +296,18 @@ export class IronfishNode {
       files,
     })
 
+    const memoryClient = new RpcMemoryClient(logger)
+
     const wallet = new Wallet({
-      chain,
       config,
-      memPool,
       database: walletDB,
       workerPool,
+      consensus,
+      nodeClient: memoryClient,
+      assetsVerifier,
     })
 
-    return new IronfishNode({
+    const node = new IronfishNode({
       pkg,
       chain,
       strategy,
@@ -311,8 +323,12 @@ export class IronfishNode {
       privateIdentity,
       hostsStore,
       networkId: networkDefinition.id,
-      verifiedAssetsCache,
+      assetsVerifier,
     })
+
+    memoryClient.router = node.rpc.getRouter(ALL_API_NAMESPACES)
+
+    return node
   }
 
   async openDB(): Promise<void> {

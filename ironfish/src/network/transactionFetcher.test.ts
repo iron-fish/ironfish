@@ -60,6 +60,10 @@ describe('TransactionFetcher', () => {
   it('does not send a request for a transaction if received NewTransactionsMessage from another peer within 500ms', async () => {
     const { peerNetwork, chain, node } = nodeTest
 
+    // Don't sync incoming transactions to wallet since its done async and will
+    // attempt to update the wallet after the test has finished
+    peerNetwork.onTransactionGossipReceived.clear()
+
     chain.synced = true
     const { transaction } = await getValidTransactionOnBlock(node)
 
@@ -92,6 +96,10 @@ describe('TransactionFetcher', () => {
 
   it('handles transaction response when the fetcher sends a request', async () => {
     const { peerNetwork, chain, node } = nodeTest
+
+    // Don't sync incoming transactions to wallet since its done async and will
+    // attempt to update the wallet after the test has finished
+    peerNetwork.onTransactionGossipReceived.clear()
 
     chain.synced = true
     const { transaction } = await getValidTransactionOnBlock(node)

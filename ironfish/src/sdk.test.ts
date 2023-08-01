@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import os from 'os'
+import { Assert } from './assert'
 import { Config, DEFAULT_DATA_DIR } from './fileStores'
 import { NodeFileProvider } from './fileSystems'
 import { IronfishNode } from './node'
@@ -131,7 +132,9 @@ describe('IronfishSdk', () => {
 
         expect(openDb).toHaveBeenCalledTimes(1)
         expect(client).toBeInstanceOf(RpcMemoryClient)
-        expect((client as RpcMemoryClient)._node).toBe(node)
+        const memoryClient = client as RpcMemoryClient
+        Assert.isNotUndefined(memoryClient.router)
+        expect(memoryClient.router.server.context.node).toBe(node)
       })
     })
 

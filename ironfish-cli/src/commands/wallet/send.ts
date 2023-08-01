@@ -115,7 +115,7 @@ export class Send extends IronfishCommand {
       const asset = await selectAsset(client, from, {
         action: 'send',
         showNativeAsset: true,
-        showNonOwnerAsset: true,
+        showNonCreatorAsset: true,
         showSingleAssetChoice: false,
         confirmations: flags.confirmations,
       })
@@ -228,6 +228,16 @@ export class Send extends IronfishCommand {
     const transaction = new Transaction(bytes)
 
     CliUx.ux.action.stop()
+
+    if (response.content.accepted === false) {
+      this.warn(
+        `Transaction '${transaction.hash().toString('hex')}' was not accepted into the mempool`,
+      )
+    }
+
+    if (response.content.broadcasted === false) {
+      this.warn(`Transaction '${transaction.hash().toString('hex')}' failed to broadcast`)
+    }
 
     this.log(`Sent ${CurrencyUtils.renderIron(amount, true, assetId)} to ${to} from ${from}`)
     this.log(`Hash: ${transaction.hash().toString('hex')}`)

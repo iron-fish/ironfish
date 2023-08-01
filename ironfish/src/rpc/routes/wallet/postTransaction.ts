@@ -14,6 +14,8 @@ export type PostTransactionRequest = {
 }
 
 export type PostTransactionResponse = {
+  accepted?: boolean
+  broadcasted?: boolean
   hash: string
   transaction: string
 }
@@ -28,6 +30,8 @@ export const PostTransactionRequestSchema: yup.ObjectSchema<PostTransactionReque
 
 export const PostTransactionResponseSchema: yup.ObjectSchema<PostTransactionResponse> = yup
   .object({
+    accepted: yup.bool().optional(),
+    broadcasted: yup.bool().optional(),
     hash: yup.string().defined(),
     transaction: yup.string().defined(),
   })
@@ -44,7 +48,7 @@ routes.register<typeof PostTransactionRequestSchema, PostTransactionResponse>(
     const bytes = Buffer.from(request.data.transaction, 'hex')
     const raw = RawTransactionSerde.deserialize(bytes)
 
-    const transaction = await node.wallet.post({
+    const { accepted, broadcasted, transaction } = await node.wallet.post({
       transaction: raw,
       account,
       broadcast: request.data.broadcast,
@@ -52,6 +56,8 @@ routes.register<typeof PostTransactionRequestSchema, PostTransactionResponse>(
 
     const serialized = transaction.serialize()
     request.end({
+      accepted,
+      broadcasted,
       hash: transaction.hash().toString('hex'),
       transaction: serialized.toString('hex'),
     })

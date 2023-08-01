@@ -32,7 +32,10 @@ describe('Route wallet/addTransaction', () => {
     await routeTest.wallet.addPendingTransaction(transaction)
     await expect(account.hasTransaction(transaction.hash())).resolves.toBe(true)
 
-    const broadcastSpy = jest.spyOn(routeTest.wallet, 'broadcastTransaction')
+    const broadcastSpy = jest.spyOn(routeTest.peerNetwork, 'broadcastTransaction')
+    const mempoolAddSpy = jest.spyOn(routeTest.node.memPool, 'acceptTransaction')
+
+    jest.spyOn(routeTest.peerNetwork, 'isReady', 'get').mockImplementationOnce(() => true)
 
     // Add it again
     const response = await routeTest.client.wallet.addTransaction({
@@ -44,6 +47,7 @@ describe('Route wallet/addTransaction', () => {
     expect(response.content.accepted).toBe(true)
     expect(response.content.hash).toBe(transaction.hash().toString('hex'))
     expect(broadcastSpy).toHaveBeenCalled()
+    expect(mempoolAddSpy).toHaveBeenCalled()
   })
 
   it("should return an error if the transaction won't deserialize", async () => {

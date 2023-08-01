@@ -37,7 +37,7 @@ describe('NewCompactBlockMessage', () => {
   // eslint-disable-next-line jest/expect-expect
   it('serializes the object into a buffer and deserializes to the original object', async () => {
     const { account, transaction: transactionA } = await useTxSpendsFixture(nodeTest.node)
-    const transactionB = await useMinersTxFixture(nodeTest.node.wallet, account)
+    const transactionB = await useMinersTxFixture(nodeTest.node, account)
 
     const compactBlock: CompactBlock = {
       header: new BlockHeader(

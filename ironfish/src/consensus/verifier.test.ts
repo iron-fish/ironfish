@@ -29,7 +29,7 @@ import {
   useTxSpendsFixture,
 } from '../testUtilities'
 import { useFixture } from '../testUtilities/fixtures/fixture'
-import { VerificationResultReason } from './verifier'
+import { VerificationResultReason, Verifier } from './verifier'
 
 describe('Verifier', () => {
   describe('Transaction', () => {
@@ -47,7 +47,7 @@ describe('Verifier', () => {
     })
 
     it('returns false on miners transactions', async () => {
-      const tx = await useMinersTxFixture(nodeTest.wallet)
+      const tx = await useMinersTxFixture(nodeTest.node)
       const serialized = tx.serialize()
 
       const result = await nodeTest.chain.verifier.verifyNewTransaction(
@@ -55,7 +55,7 @@ describe('Verifier', () => {
       )
 
       expect(result).toEqual({
-        reason: VerificationResultReason.ERROR,
+        reason: VerificationResultReason.MINIMUM_FEE_NOT_MET,
         valid: false,
       })
     })
@@ -83,7 +83,7 @@ describe('Verifier', () => {
       const { transaction } = await useTxSpendsFixture(nodeTest.node)
       nodeTest.chain.consensus.parameters.maxBlockSizeBytes = getBlockWithMinersFeeSize()
 
-      const result = nodeTest.chain.verifier.verifyCreatedTransaction(transaction)
+      const result = Verifier.verifyCreatedTransaction(transaction, nodeTest.chain.consensus)
 
       expect(result).toEqual({
         reason: VerificationResultReason.MAX_TRANSACTION_SIZE_EXCEEDED,
@@ -110,7 +110,7 @@ describe('Verifier', () => {
 
       jest.spyOn(transaction.mints[0].asset, 'name').mockReturnValue(Buffer.alloc(32, 0))
 
-      const result = nodeTest.chain.verifier.verifyCreatedTransaction(transaction)
+      const result = Verifier.verifyCreatedTransaction(transaction, nodeTest.chain.consensus)
 
       expect(result).toEqual({
         reason: VerificationResultReason.INVALID_ASSET_NAME,
@@ -132,7 +132,7 @@ describe('Verifier', () => {
         burns: [{ assetId: Asset.nativeId(), value: BigInt(5) }],
       })
 
-      const result = nodeTest.chain.verifier.verifyCreatedTransaction(transaction)
+      const result = Verifier.verifyCreatedTransaction(transaction, nodeTest.chain.consensus)
 
       expect(result).toEqual({
         reason: VerificationResultReason.NATIVE_BURN,
@@ -152,7 +152,7 @@ describe('Verifier', () => {
 
       nodeTest.chain.consensus.parameters.minFee = txnFee + 1
 
-      const result = nodeTest.chain.verifier.verifyCreatedTransaction(transaction)
+      const result = Verifier.verifyCreatedTransaction(transaction, nodeTest.chain.consensus)
 
       expect(result).toEqual({
         reason: VerificationResultReason.MINIMUM_FEE_NOT_MET,
@@ -205,7 +205,7 @@ describe('Verifier', () => {
     it('rejects a block with miners fee as second transaction', async () => {
       const account = await useAccountFixture(nodeTest.node.wallet, 'accountA')
       const { block } = await useBlockWithTx(nodeTest.node)
-      block.transactions[1] = await useMinersTxFixture(nodeTest.wallet, account, undefined, 0)
+      block.transactions[1] = await useMinersTxFixture(nodeTest.node, account, undefined, 0)
       block.header.transactionCommitment = transactionCommitment(block.transactions)
 
       expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
@@ -451,7 +451,7 @@ describe('Verifier', () => {
       })
 
       jest
-        .spyOn(nodeTest.chain.notes, 'getCount')
+        .spyOn(nodeTest.chain['blockchainDb'].notes, 'getCount')
         .mockImplementationOnce(() => Promise.resolve(0))
 
       expect(await nodeTest.verifier.verifyConnectedSpends(block)).toEqual({

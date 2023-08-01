@@ -2,14 +2,47 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { useMinersTxFixture } from '../../../testUtilities/fixtures'
+import {
+  useAccountFixture,
+  useMinerBlockFixture,
+  useTxFixture,
+} from '../../../testUtilities/fixtures'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 
 describe('Route chain/broadcastTransaction', () => {
   const routeTest = createRouteTest()
 
+  it('throws an error when the peer network is not ready', async () => {
+    const { node } = routeTest
+
+    const account = await useAccountFixture(node.wallet)
+    const block2 = await useMinerBlockFixture(node.chain, 2, account)
+
+    await node.chain.addBlock(block2)
+    await node.wallet.updateHead()
+
+    const transaction = await useTxFixture(node.wallet, account, account)
+
+    jest.spyOn(routeTest.peerNetwork, 'isReady', 'get').mockImplementationOnce(() => false)
+
+    await expect(
+      routeTest.client.chain.broadcastTransaction({
+        transaction: transaction.serialize().toString('hex'),
+      }),
+    ).rejects.toThrow('')
+  })
+
   it('should broadcast a transaction', async () => {
-    const transaction = await useMinersTxFixture(routeTest.wallet)
+    const { node } = routeTest
+    jest.spyOn(routeTest.peerNetwork, 'isReady', 'get').mockImplementationOnce(() => true)
+
+    const account = await useAccountFixture(node.wallet)
+    const block2 = await useMinerBlockFixture(node.chain, 2, account)
+
+    await node.chain.addBlock(block2)
+    await node.wallet.updateHead()
+
+    const transaction = await useTxFixture(node.wallet, account, account)
 
     const broadcastSpy = jest.spyOn(routeTest.peerNetwork, 'broadcastTransaction')
 
@@ -22,8 +55,56 @@ describe('Route chain/broadcastTransaction', () => {
     expect(broadcastSpy).toHaveBeenCalled()
   })
 
-  it('should add the transaction to the mempool', async () => {
-    const transaction = await useMinersTxFixture(routeTest.wallet)
+  it("should return an error if the transaction won't deserialize", async () => {
+    jest.spyOn(routeTest.peerNetwork, 'isReady', 'get').mockImplementationOnce(() => true)
+    await expect(
+      routeTest.client.chain.broadcastTransaction({
+        transaction: '0xdeadbeef',
+      }),
+    ).rejects.toThrow('Out of bounds read')
+  })
+
+  it('should not broadcast double spend transactions', async () => {
+    const { node } = routeTest
+    jest.spyOn(routeTest.peerNetwork, 'isReady', 'get').mockImplementationOnce(() => true)
+
+    const account = await useAccountFixture(node.wallet)
+    const block2 = await useMinerBlockFixture(node.chain, 2, account)
+
+    await node.chain.addBlock(block2)
+    await node.wallet.updateHead()
+
+    const transaction = await useTxFixture(node.wallet, account, account)
+
+    // add transaction to the chain
+    const block3 = await useMinerBlockFixture(node.chain, 3, undefined, undefined, [
+      transaction,
+    ])
+    await node.chain.addBlock(block3)
+
+    // delete transaction, create duplicate transaction
+    await account.deleteTransaction(transaction)
+
+    const doubleSpendTransaction = await useTxFixture(node.wallet, account, account)
+
+    await expect(
+      routeTest.client.chain.broadcastTransaction({
+        transaction: doubleSpendTransaction.serialize().toString('hex'),
+      }),
+    ).rejects.toThrow()
+  })
+
+  it('should add transaction to mempool and return the result', async () => {
+    const { node } = routeTest
+    jest.spyOn(routeTest.peerNetwork, 'isReady', 'get').mockImplementationOnce(() => true)
+
+    const account = await useAccountFixture(node.wallet)
+    const block2 = await useMinerBlockFixture(node.chain, 2, account)
+
+    await node.chain.addBlock(block2)
+    await node.wallet.updateHead()
+
+    const transaction = await useTxFixture(node.wallet, account, account)
 
     const acceptSpy = jest.spyOn(routeTest.node.memPool, 'acceptTransaction')
 
@@ -33,14 +114,7 @@ describe('Route chain/broadcastTransaction', () => {
 
     expect(response.status).toBe(200)
     expect(response.content?.hash).toEqual(transaction.hash().toString('hex'))
+    expect(response.content?.accepted).toBe(true)
     expect(acceptSpy).toHaveBeenCalled()
-  })
-
-  it("should return an error if the transaction won't deserialize", async () => {
-    await expect(
-      routeTest.client.chain.broadcastTransaction({
-        transaction: '0xdeadbeef',
-      }),
-    ).rejects.toThrow('Out of bounds read')
   })
 })

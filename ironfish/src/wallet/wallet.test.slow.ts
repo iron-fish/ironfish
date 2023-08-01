@@ -512,7 +512,7 @@ describe('Accounts', () => {
         expiration: 0,
       })
 
-      const transaction = await nodeA.wallet.post({
+      const { transaction } = await nodeA.wallet.post({
         transaction: raw,
         account: accountA,
       })
@@ -743,7 +743,7 @@ describe('Accounts', () => {
           expiration: 0,
         })
 
-        const transaction = await nodeA.wallet.post({
+        const { transaction } = await nodeA.wallet.post({
           transaction: raw,
           account: accountA,
         })
@@ -856,7 +856,7 @@ describe('Accounts', () => {
           expiration: 0,
         })
 
-        const transaction = await nodeB.wallet.post({
+        const { transaction } = await nodeA.wallet.post({
           transaction: raw,
           account: accountANodeB,
         })

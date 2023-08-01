@@ -4,6 +4,8 @@
 import { Logger } from '../../logger'
 import { RpcResponse, RpcResponseEnded } from '../response'
 import {
+  AcceptTransactionRequest,
+  AcceptTransactionResponse,
   AddPeerRequest,
   AddPeerResponse,
   AddTransactionRequest,
@@ -129,6 +131,7 @@ import {
   IsValidPublicAddressRequest,
   IsValidPublicAddressResponse,
 } from '../routes/chain/isValidPublicAddress'
+import { GetWalletAssetRequest, GetWalletAssetResponse } from '../routes/wallet/getAsset'
 import { GetNotesRequest, GetNotesResponse } from '../routes/wallet/getNotes'
 
 export abstract class RpcClient {
@@ -316,6 +319,15 @@ export abstract class RpcClient {
       ).waitForEnd()
     },
 
+    getAsset: (
+      params: GetWalletAssetRequest,
+    ): Promise<RpcResponseEnded<GetWalletAssetResponse>> => {
+      return this.request<GetWalletAssetResponse>(
+        `${ApiNamespace.wallet}/getAsset`,
+        params,
+      ).waitForEnd()
+    },
+
     mintAsset: (params: MintAssetRequest): Promise<RpcResponseEnded<MintAssetResponse>> => {
       return this.request<MintAssetResponse>(
         `${ApiNamespace.wallet}/mintAsset`,
@@ -369,9 +381,27 @@ export abstract class RpcClient {
         params,
       ).waitForEnd()
     },
+
+    estimateFeeRates: (
+      params?: EstimateFeeRatesRequest,
+    ): Promise<RpcResponseEnded<EstimateFeeRatesResponse>> => {
+      return this.request<EstimateFeeRatesResponse>(
+        `${ApiNamespace.wallet}/estimateFeeRates`,
+        params,
+      ).waitForEnd()
+    },
   }
 
   mempool = {
+    acceptTransaction: (
+      params: AcceptTransactionRequest,
+    ): Promise<RpcResponseEnded<AcceptTransactionResponse>> => {
+      return this.request<AcceptTransactionResponse>(
+        `${ApiNamespace.mempool}/acceptTransaction`,
+        params,
+      ).waitForEnd()
+    },
+
     getMempoolTransactionsStream: (
       params: GetMempoolTransactionsRequest,
     ): RpcResponse<void, GetMempoolTransactionResponse> => {

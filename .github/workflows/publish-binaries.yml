@@ -1,0 +1,94 @@
+name: Build @ironfish binaries
+
+on:
+  release:
+    types:
+      - published
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        settings:
+          - host: macos-latest
+            arch: x86_64
+            system: apple
+
+          - host: windows-latest
+            arch: x86_64
+            system: windows
+
+          # requires 20.04 because ironfish depends on openssl 1.1.1, new ubuntu only allows 3.x
+          - host: ubuntu-20.04
+            arch: x86_64
+            system: linux
+          
+          - host: [self-hosted, macOS, ARM64]
+            arch: arm64
+            system: apple
+
+          # currently no way to build arm64
+          # - host: ubuntu-20.04
+          #   arch: aarch64
+          #   system: linux
+          
+
+          # - host: ubuntu-20.04
+          #   target: aarch64-apple-darwin
+
+    name: Build ${{ matrix.settings.system }} ${{ matrix.settings.arch }}
+    runs-on: ${{ matrix.settings.host }}
+    steps:
+
+      - name: clean selfhosted node_modules
+        if: matrix.settings.system == 'apple' && matrix.settings.arch == 'arm64'
+        run: |
+          cd $GITHUB_WORKSPACE
+          find . -name . -o -prune -exec rm -rf -- {} +
+
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.12.1'
+
+      - name: npm init
+        run: npm init -y
+      
+      - name: install dependencies
+        run: npm install ironfish caxa@3.0.1
+
+      - name: caxa package
+        id: caxa
+        run: |
+          npx caxa --uncompression-message "Running the CLI for the first time may take a while, please wait..." --input . --output "${{ matrix.settings.system != 'windows' && 'ironfish' || 'ironfish.exe' }}" -- "{{caxa}}/node_modules/.bin/node" "--enable-source-maps" "{{caxa}}/node_modules/ironfish/bin/run"
+          echo "RELEASE_NAME=ironfish-${{ matrix.settings.system }}-${{ matrix.settings.arch }}-${{ github.event.release.tag_name }}.zip"
+      
+      - name: set paths
+        id: set_paths
+        shell: bash
+        run: |
+          echo "zip=ironfish-${{ matrix.settings.system }}-${{ matrix.settings.arch }}-${{ github.event.release.tag_name }}.zip" >> $GITHUB_OUTPUT
+          echo "binary=${{ matrix.settings.system != 'windows' && 'ironfish' || 'ironfish.exe' }}" >> $GITHUB_OUTPUT
+
+      - name: chmod binary
+        if: matrix.settings.system != 'windows'
+        run: chmod +x ${{ steps.set_paths.outputs.binary }}
+
+      - name: Zip binary
+        uses: thedoctor0/zip-release@0.7.1
+        with:
+          type: 'zip'
+          filename: ${{ steps.set_paths.outputs.zip }}
+          path: ${{ steps.set_paths.outputs.binary }}
+
+      - name: Upload Release Asset
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: "${{ github.event.release.upload_url }}?name=${{ steps.set_paths.outputs.zip }}"
+          asset_path: ${{ steps.set_paths.outputs.zip }}
+          asset_name: ${{ steps.set_paths.outputs.zip }}
+          asset_content_type: application/zip

@@ -86,11 +86,11 @@ export default class RepairChain extends IronfishCommand {
     Assert.isNotNull(node.chain.head)
 
     CliUx.ux.action.start('Clearing hash to next hash table')
-    await node.chain.hashToNextHash.clear()
+    await node.chain.clearHashToNextHash()
     CliUx.ux.action.stop()
 
     CliUx.ux.action.start('Clearing Sequence to hash table')
-    await node.chain.sequenceToHash.clear()
+    await node.chain.clearSequenceToHash()
     CliUx.ux.action.stop()
 
     const total = Number(node.chain.head.sequence)
@@ -105,8 +105,8 @@ export default class RepairChain extends IronfishCommand {
     })
 
     while (head && head.sequence > BigInt(0)) {
-      await node.chain.sequenceToHash.put(head.sequence, head.hash)
-      await node.chain.hashToNextHash.put(head.previousBlockHash, head.hash)
+      await node.chain.putSequenceToHash(head.sequence, head.hash)
+      await node.chain.putNextHash(head.previousBlockHash, head.hash)
 
       head = await node.chain.getHeader(head.previousBlockHash)
 
@@ -130,7 +130,7 @@ export default class RepairChain extends IronfishCommand {
   ): Promise<void> {
     Assert.isNotNull(node.chain.head)
 
-    const noNotes = (await node.chain.notes.size()) === 0
+    const noNotes = (await node.chain.getNotesSize()) === 0
     const noNullifiers = (await node.chain.nullifiers.size()) === 0
     const headBlock = await node.chain.getBlock(node.chain.head)
     Assert.isNotNull(headBlock)
@@ -155,7 +155,7 @@ export default class RepairChain extends IronfishCommand {
     const noteSize = prev && prev.noteSize !== null ? prev.noteSize : 0
 
     CliUx.ux.action.start('Clearing notes MerkleTree')
-    await node.chain.notes.truncate(noteSize)
+    await node.chain.truncateNotes(noteSize)
     CliUx.ux.action.stop()
 
     CliUx.ux.action.start('Clearing nullifier set')

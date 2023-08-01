@@ -86,6 +86,7 @@ export class RawTransaction {
     for (const output of this.outputs) {
       assetTotals.increment(output.note.assetId(), output.note.value())
     }
+    assetTotals.increment(Asset.nativeId(), this.fee)
     for (const [, value] of assetTotals) {
       if (value !== 0n) {
         size += PROOF_LENGTH + NoteEncrypted.size

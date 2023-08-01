@@ -12,10 +12,8 @@ import { Event } from '../event'
 import { Config } from '../fileStores'
 import { FileSystem } from '../fileSystems'
 import { createRootLogger, Logger } from '../logger'
-import { MerkleTree } from '../merkletree'
-import { LeafEncoding } from '../merkletree/database/leaves'
-import { NodeEncoding } from '../merkletree/database/nodes'
-import { NoteHasher } from '../merkletree/hasher'
+import { Witness } from '../merkletree'
+import { LeavesSchema } from '../merkletree/schema'
 import { MetricsMonitor } from '../metrics'
 import { RollingAverage } from '../metrics/rollingAverage'
 import { BAN_SCORE } from '../network/peers/peer'
@@ -34,36 +32,19 @@ import {
   isBlockLater,
   transactionCommitment,
 } from '../primitives/blockheader'
-import {
-  NoteEncrypted,
-  NoteEncryptedHash,
-  SerializedNoteEncrypted,
-  SerializedNoteEncryptedHash,
-} from '../primitives/noteEncrypted'
+import { NoteEncrypted, NoteEncryptedHash } from '../primitives/noteEncrypted'
 import { Target } from '../primitives/target'
 import { Transaction, TransactionHash } from '../primitives/transaction'
-import {
-  BUFFER_ENCODING,
-  IDatabase,
-  IDatabaseStore,
-  IDatabaseTransaction,
-  U32_ENCODING,
-} from '../storage'
+import { IDatabase, IDatabaseTransaction, SchemaValue } from '../storage'
 import { Strategy } from '../strategy'
 import { AsyncUtils, BenchUtils, HashUtils } from '../utils'
 import { WorkerPool } from '../workerPool'
-import { AssetValue, AssetValueEncoding } from './database/assetValue'
+import { AssetValue } from './database/assetValue'
 import { BlockchainDB } from './database/blockchaindb'
 import { TransactionsValue } from './database/transactions'
 import { NullifierSet } from './nullifierSet/nullifierSet'
-import {
-  AssetSchema,
-  HashToNextSchema,
-  SequenceToHashSchema,
-  TransactionHashToBlockHashSchema,
-} from './schema'
 
-export const VERSION_DATABASE_CHAIN = 14
+export const VERSION_DATABASE_CHAIN = 28
 
 export class Blockchain {
   db: IDatabase
@@ -80,12 +61,6 @@ export class Blockchain {
 
   synced = false
   opened = false
-  notes: MerkleTree<
-    NoteEncrypted,
-    NoteEncryptedHash,
-    SerializedNoteEncrypted,
-    SerializedNoteEncryptedHash
-  >
   nullifiers: NullifierSet
 
   addSpeed: RollingAverage
@@ -94,15 +69,6 @@ export class Blockchain {
   logAllBlockAdd: boolean
   // Whether to seed the chain with a genesis block when opening the database.
   autoSeed: boolean
-
-  // Sequence -> BlockHash
-  sequenceToHash: IDatabaseStore<SequenceToHashSchema>
-  // BlockHash -> BlockHash
-  hashToNextHash: IDatabaseStore<HashToNextSchema>
-  // Asset Identifier -> Asset
-  assets: IDatabaseStore<AssetSchema>
-  // TransactionHash -> BlockHash
-  transactionHashToBlockHash: IDatabaseStore<TransactionHashToBlockHashSchema>
 
   // When ever the blockchain becomes synced
   onSynced = new Event<[]>()
@@ -189,42 +155,6 @@ export class Blockchain {
     // TODO(rohanjadvani): This is temporary to reduce pull request sizes and
     // will be removed once all stores are migrated
     this.db = this.blockchainDb.db
-
-    // number -> BlockHash
-    this.sequenceToHash = this.db.addStore({
-      name: 'bS',
-      keyEncoding: U32_ENCODING,
-      valueEncoding: BUFFER_ENCODING,
-    })
-
-    this.hashToNextHash = this.db.addStore({
-      name: 'bH',
-      keyEncoding: BUFFER_ENCODING,
-      valueEncoding: BUFFER_ENCODING,
-    })
-
-    this.assets = this.db.addStore({
-      name: 'bA',
-      keyEncoding: BUFFER_ENCODING,
-      valueEncoding: new AssetValueEncoding(),
-    })
-
-    this.transactionHashToBlockHash = this.db.addStore({
-      name: 'tb',
-      keyEncoding: BUFFER_ENCODING,
-      valueEncoding: BUFFER_ENCODING,
-    })
-
-    this.notes = new MerkleTree({
-      hasher: new NoteHasher(),
-      leafIndexKeyEncoding: BUFFER_ENCODING,
-      leafEncoding: new LeafEncoding(),
-      nodeEncoding: new NodeEncoding(),
-      db: this.db,
-      name: 'n',
-      depth: 32,
-      defaultValue: Buffer.alloc(32),
-    })
 
     this.nullifiers = new NullifierSet({ db: this.db, name: 'u' })
   }
@@ -646,7 +576,7 @@ export class Blockchain {
 
     await this.saveConnect(block, prev, tx)
     await tx.update()
-    this.notes.pastRootTxCommitted(tx)
+    this.blockchainDb.cachePastRootHashes(tx)
 
     this.head = block.header
     await this.onConnectBlock.emitAsync(block, tx)
@@ -679,7 +609,7 @@ export class Blockchain {
     }
 
     await tx.update()
-    this.notes.pastRootTxCommitted(tx)
+    this.blockchainDb.cachePastRootHashes(tx)
 
     if (!this.hasGenesisBlock || isBlockLater(block.header, this.latest)) {
       this.latest = block.header
@@ -739,7 +669,7 @@ export class Blockchain {
     }
 
     await tx.update()
-    this.notes.pastRootTxCommitted(tx)
+    this.blockchainDb.cachePastRootHashes(tx)
 
     if (!this.hasGenesisBlock || isBlockLater(block.header, this.latest)) {
       this.latest = block.header
@@ -893,6 +823,18 @@ export class Blockchain {
     return this.blockchainDb.putTransaction(hash, value, tx)
   }
 
+  async clearSequenceToHash(tx?: IDatabaseTransaction): Promise<void> {
+    return this.blockchainDb.clearSequenceToHash(tx)
+  }
+
+  async putSequenceToHash(
+    sequence: number,
+    hash: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    return this.blockchainDb.putSequenceToHash(sequence, hash, tx)
+  }
+
   /**
    * Create a new block on the chain.
    *
@@ -920,14 +862,16 @@ export class Blockchain {
       let previousBlockHash
       let previousSequence
       let target
-      const timestamp = new Date(Date.now())
+      let timestamp
+      const currentTime = Date.now()
 
-      const originalNoteSize = await this.notes.size(tx)
+      const originalNoteSize = await this.blockchainDb.getNotesSize(tx)
 
       if (!this.hasGenesisBlock) {
         previousBlockHash = GENESIS_BLOCK_PREVIOUS
         previousSequence = 0
         target = Target.maxTarget()
+        timestamp = new Date(currentTime)
       } else {
         const heaviestHead = this.head
 
@@ -945,6 +889,8 @@ export class Blockchain {
           throw new HeadChangedError(`Can't create a block not attached to the chain head`)
         }
 
+        timestamp = new Date(Math.max(currentTime, heaviestHead.timestamp.getTime() + 1))
+
         target = Target.calculateTarget(
           timestamp,
           heaviestHead.timestamp,
@@ -961,10 +907,10 @@ export class Blockchain {
         }
       }
 
-      await this.notes.addBatch(blockNotes, tx)
+      await this.blockchainDb.addNotesBatch(blockNotes, tx)
 
-      const noteCommitment = await this.notes.rootHash(tx)
-      const noteSize = await this.notes.size(tx)
+      const noteCommitment = await this.blockchainDb.getNotesRootHash(tx)
+      const noteSize = await this.blockchainDb.getNotesSize(tx)
 
       graffiti = graffiti ? graffiti : Buffer.alloc(32)
 
@@ -1014,7 +960,7 @@ export class Blockchain {
   }
 
   async getNextHash(hash: BlockHash, tx?: IDatabaseTransaction): Promise<BlockHash | null> {
-    const next = await this.hashToNextHash.get(hash, tx)
+    const next = await this.blockchainDb.getNextHash(hash, tx)
     return next || null
   }
 
@@ -1025,7 +971,7 @@ export class Blockchain {
     sequence: number,
     tx?: IDatabaseTransaction,
   ): Promise<BlockHash | null> {
-    const hash = await this.sequenceToHash.get(sequence, tx)
+    const hash = await this.blockchainDb.getBlockHashAtSequence(sequence, tx)
     return hash || null
   }
 
@@ -1033,15 +979,22 @@ export class Blockchain {
     transactionHash: TransactionHash,
     tx?: IDatabaseTransaction,
   ): Promise<BlockHash | null> {
-    const hash = await this.transactionHashToBlockHash.get(transactionHash, tx)
+    const hash = await this.blockchainDb.getBlockHashByTransactionHash(transactionHash, tx)
     return hash || null
+  }
+
+  async transactionHashHasBlock(
+    transactionHash: TransactionHash,
+    tx?: IDatabaseTransaction,
+  ): Promise<boolean> {
+    return this.blockchainDb.transactionHashHasBlock(transactionHash, tx)
   }
 
   /**
    * Gets the header of the block at the sequence on the head chain
    */
   async getHeaderAtSequence(sequence: number): Promise<BlockHeader | null> {
-    const hash = await this.sequenceToHash.get(sequence)
+    const hash = await this.blockchainDb.getBlockHashAtSequence(sequence)
 
     if (!hash) {
       return null
@@ -1075,6 +1028,63 @@ export class Blockchain {
     }
 
     return this.getHeader(hash, tx)
+  }
+
+  async putNextHash(hash: Buffer, nextHash: Buffer, tx?: IDatabaseTransaction): Promise<void> {
+    return this.blockchainDb.putNextHash(hash, nextHash, tx)
+  }
+
+  async clearHashToNextHash(tx?: IDatabaseTransaction): Promise<void> {
+    return this.blockchainDb.clearHashToNextHash(tx)
+  }
+
+  async getNoteWitness(
+    treeIndex: number,
+    size?: number,
+    tx?: IDatabaseTransaction,
+  ): Promise<Witness<NoteEncrypted, Buffer, Buffer, Buffer> | null> {
+    return this.blockchainDb.getNoteWitness(treeIndex, size, tx)
+  }
+
+  async getNotesSize(tx?: IDatabaseTransaction): Promise<number> {
+    return this.blockchainDb.getNotesSize(tx)
+  }
+
+  async getNotesLeaf(
+    index: number,
+    tx?: IDatabaseTransaction,
+  ): Promise<SchemaValue<LeavesSchema<NoteEncryptedHash>>> {
+    return this.blockchainDb.getNotesLeaf(index, tx)
+  }
+
+  async addNote(note: NoteEncrypted, tx?: IDatabaseTransaction): Promise<void> {
+    return this.blockchainDb.addNote(note, tx)
+  }
+
+  async getNotesPastRoot(
+    pastSize: number,
+    tx?: IDatabaseTransaction,
+  ): Promise<NoteEncryptedHash> {
+    return this.blockchainDb.getNotesPastRoot(pastSize, tx)
+  }
+
+  async getLeavesIndex(hash: Buffer, tx?: IDatabaseTransaction): Promise<number | undefined> {
+    return this.blockchainDb.getLeavesIndex(hash, tx)
+  }
+
+  async getNotesRootHash(tx?: IDatabaseTransaction): Promise<Buffer> {
+    return this.blockchainDb.getNotesRootHash(tx)
+  }
+
+  async addNotesBatch(
+    notes: Iterable<NoteEncrypted>,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    return this.blockchainDb.addNotesBatch(notes, tx)
+  }
+
+  async truncateNotes(pastSize: number, tx?: IDatabaseTransaction): Promise<void> {
+    return this.blockchainDb.truncateNotes(pastSize, tx)
   }
 
   async removeBlock(hash: Buffer): Promise<void> {
@@ -1214,10 +1224,10 @@ export class Blockchain {
     }
 
     if (prev) {
-      await this.hashToNextHash.put(prev.hash, block.header.hash, tx)
+      await this.blockchainDb.putNextHash(prev.hash, block.header.hash, tx)
     }
 
-    await this.sequenceToHash.put(block.header.sequence, block.header.hash, tx)
+    await this.blockchainDb.putSequenceToHash(block.header.sequence, block.header.hash, tx)
     await this.blockchainDb.putMetaHash('head', block.header.hash, tx)
 
     // If the tree sizes don't match the previous block, we can't verify if the tree
@@ -1230,17 +1240,21 @@ export class Blockchain {
 
     Assert.isEqual(
       prevNotesSize,
-      await this.notes.size(tx),
+      await this.blockchainDb.getNotesSize(tx),
       'Notes tree must match previous block header',
     )
 
-    await this.notes.addBatch(block.notes(), tx)
+    await this.blockchainDb.addNotesBatch(block.notes(), tx)
     await this.nullifiers.connectBlock(block, tx)
 
     for (const transaction of block.transactions) {
       await this.saveConnectedMintsToAssetsStore(transaction, tx)
       await this.saveConnectedBurnsToAssetsStore(transaction, tx)
-      await this.transactionHashToBlockHash.put(transaction.hash(), block.header.hash, tx)
+      await this.blockchainDb.putTransactionHashToBlockHash(
+        transaction.hash(),
+        block.header.hash,
+        tx,
+      )
     }
 
     const verify = await this.verifier.verifyConnectedBlock(block, tx)
@@ -1263,16 +1277,16 @@ export class Blockchain {
     for (const transaction of block.transactions.slice().reverse()) {
       await this.deleteDisconnectedBurnsFromAssetsStore(transaction, tx)
       await this.deleteDisconnectedMintsFromAssetsStore(transaction, tx)
-      await this.transactionHashToBlockHash.del(transaction.hash(), tx)
+      await this.blockchainDb.deleteTransactionHashToBlockHash(transaction.hash(), tx)
     }
 
-    await this.hashToNextHash.del(prev.hash, tx)
-    await this.sequenceToHash.del(block.header.sequence, tx)
+    await this.blockchainDb.deleteNextHash(prev.hash, tx)
+    await this.blockchainDb.deleteSequenceToHash(block.header.sequence, tx)
 
     Assert.isNotNull(prev.noteSize)
 
     await Promise.all([
-      this.notes.truncate(prev.noteSize, tx),
+      this.blockchainDb.truncateNotes(prev.noteSize, tx),
       this.nullifiers.disconnectBlock(block, tx),
     ])
 
@@ -1315,7 +1329,7 @@ export class Blockchain {
   ): Promise<void> {
     for (const { asset, value } of transaction.mints) {
       const assetId = asset.id()
-      const existingAsset = await this.assets.get(assetId, tx)
+      const existingAsset = await this.blockchainDb.getAsset(assetId, tx)
 
       let createdTransactionHash = transaction.hash()
       let supply = BigInt(0)
@@ -1324,7 +1338,7 @@ export class Blockchain {
         supply = existingAsset.supply
       }
 
-      await this.assets.put(
+      await this.blockchainDb.putAsset(
         assetId,
         {
           createdTransactionHash,
@@ -1332,7 +1346,8 @@ export class Blockchain {
           metadata: asset.metadata(),
           name: asset.name(),
           nonce: asset.nonce(),
-          owner: asset.owner(),
+          creator: asset.creator(),
+          owner: asset.creator(),
           supply: supply + value,
         },
         tx,
@@ -1345,14 +1360,14 @@ export class Blockchain {
     tx: IDatabaseTransaction,
   ): Promise<void> {
     for (const { assetId, value } of transaction.burns) {
-      const existingAsset = await this.assets.get(assetId, tx)
+      const existingAsset = await this.blockchainDb.getAsset(assetId, tx)
       Assert.isNotUndefined(existingAsset, 'Cannot burn undefined asset from the database')
 
       const existingSupply = existingAsset.supply
       const supply = existingSupply - value
       Assert.isTrue(supply >= BigInt(0), 'Invalid burn value')
 
-      await this.assets.put(
+      await this.blockchainDb.putAsset(
         assetId,
         {
           createdTransactionHash: existingAsset.createdTransactionHash,
@@ -1360,6 +1375,7 @@ export class Blockchain {
           metadata: existingAsset.metadata,
           name: existingAsset.name,
           nonce: existingAsset.nonce,
+          creator: existingAsset.creator,
           owner: existingAsset.owner,
           supply,
         },
@@ -1373,13 +1389,13 @@ export class Blockchain {
     tx: IDatabaseTransaction,
   ): Promise<void> {
     for (const { assetId, value } of transaction.burns.slice().reverse()) {
-      const existingAsset = await this.assets.get(assetId, tx)
+      const existingAsset = await this.blockchainDb.getAsset(assetId, tx)
       Assert.isNotUndefined(existingAsset)
 
       const existingSupply = existingAsset.supply
       const supply = existingSupply + value
 
-      await this.assets.put(
+      await this.blockchainDb.putAsset(
         assetId,
         {
           createdTransactionHash: existingAsset.createdTransactionHash,
@@ -1387,6 +1403,7 @@ export class Blockchain {
           metadata: existingAsset.metadata,
           name: existingAsset.name,
           nonce: existingAsset.nonce,
+          creator: existingAsset.creator,
           owner: existingAsset.owner,
           supply,
         },
@@ -1401,7 +1418,7 @@ export class Blockchain {
   ): Promise<void> {
     for (const { asset, value } of transaction.mints.slice().reverse()) {
       const assetId = asset.id()
-      const existingAsset = await this.assets.get(assetId, tx)
+      const existingAsset = await this.blockchainDb.getAsset(assetId, tx)
       Assert.isNotUndefined(existingAsset)
 
       const existingSupply = existingAsset.supply
@@ -1414,9 +1431,9 @@ export class Blockchain {
         transaction.hash().equals(existingAsset.createdTransactionHash) &&
         supply === BigInt(0)
       ) {
-        await this.assets.del(assetId, tx)
+        await this.blockchainDb.deleteAsset(assetId, tx)
       } else {
-        await this.assets.put(
+        await this.blockchainDb.putAsset(
           assetId,
           {
             createdTransactionHash: existingAsset.createdTransactionHash,
@@ -1424,7 +1441,8 @@ export class Blockchain {
             metadata: asset.metadata(),
             name: asset.name(),
             nonce: asset.nonce(),
-            owner: asset.owner(),
+            creator: asset.creator(),
+            owner: asset.creator(),
             supply,
           },
           tx,
@@ -1458,12 +1476,13 @@ export class Blockchain {
         metadata: Buffer.from('Native asset of Iron Fish blockchain', 'utf8'),
         name: Buffer.from('$IRON', 'utf8'),
         nonce: 0,
+        creator: Buffer.from('Iron Fish', 'utf8'),
         owner: Buffer.from('Iron Fish', 'utf8'),
         supply: 0n,
       }
     }
 
-    const asset = await this.assets.get(assetId)
+    const asset = await this.blockchainDb.getAsset(assetId)
     return asset || null
   }
 }

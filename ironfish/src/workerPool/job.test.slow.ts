@@ -24,7 +24,7 @@ describe('Worker Pool', () => {
     expect(workerPool.completed).toBe(1)
   })
 
-  it('verify', async () => {
+  it('verifyTransactions', async () => {
     const { workerPool } = nodeTest
 
     workerPool.start()
@@ -35,7 +35,7 @@ describe('Worker Pool', () => {
     const genesis = await nodeTest.node.chain.getBlock(nodeTest.node.chain.head.hash)
     Assert.isNotNull(genesis)
     const transaction = genesis.transactions[0]
-    const result = await workerPool.verify(transaction, { verifyFees: false })
+    const result = await workerPool.verifyTransactions([transaction])
 
     expect(result.valid).toBe(true)
     expect(workerPool.completed).toBe(1)

@@ -15,6 +15,7 @@ import { MerkleTree } from './merkletree'
 import { LeafEncoding } from './merkletree/database/leaves'
 import { NodeEncoding } from './merkletree/database/nodes'
 import { NoteHasher } from './merkletree/hasher'
+import { Transaction } from './primitives'
 import { Note } from './primitives/note'
 import { NoteEncrypted, NoteEncryptedHash } from './primitives/noteEncrypted'
 import { BUFFER_ENCODING, IDatabase } from './storage'
@@ -84,12 +85,14 @@ describe('Demonstrate the Sapling API', () => {
   let minerTransaction: NativeTransactionPosted
   let transaction: NativeTransaction
   let publicTransaction: NativeTransactionPosted
+  let workerPool: WorkerPool
 
   beforeAll(async () => {
     // Pay the cost of setting up Sapling and the DB outside of any test
     tree = await makeStrategyTree()
     spenderKey = generateKey()
     receiverKey = generateKey()
+    workerPool = new WorkerPool()
   })
 
   describe('Can transact between two accounts', () => {
@@ -108,10 +111,12 @@ describe('Demonstrate the Sapling API', () => {
     it('Has miner owner address as the miner reward sender address', () =>
       expect(minerNote.sender()).toBe(minerNote.owner()))
 
-    it('Can verify the miner transaction', () => {
+    it('Can verify the miner transaction', async () => {
       const serializedTransaction = minerTransaction.serialize()
-      const deserializedTransaction = new NativeTransactionPosted(serializedTransaction)
-      expect(deserializedTransaction.verify()).toBeTruthy()
+      const deserializedTransaction = new Transaction(serializedTransaction)
+      expect(await workerPool.verifyTransactions([deserializedTransaction])).toEqual({
+        valid: true,
+      })
     })
 
     it('Can add the miner transaction note to the tree', async () => {
@@ -147,11 +152,15 @@ describe('Demonstrate the Sapling API', () => {
       transaction.output(outputNote)
 
       publicTransaction = new NativeTransactionPosted(transaction.post(null, 0n))
+
       expect(publicTransaction).toBeTruthy()
     })
 
     it('Can verify the transaction', async () => {
-      expect(publicTransaction.verify()).toBeTruthy()
+      const transaction = new Transaction(publicTransaction.serialize())
+      expect(await workerPool.verifyTransactions([transaction])).toEqual({
+        valid: true,
+      })
       for (let i = 0; i < publicTransaction.notesLength(); i++) {
         const note = Buffer.from(publicTransaction.getNote(i))
         await tree.add(new NoteEncrypted(note))
@@ -171,7 +180,6 @@ describe('Demonstrate the Sapling API', () => {
   describe('Serializes and deserializes transactions', () => {
     it('Does not hold a posted transaction if no references are taken', async () => {
       // Generate a miner's fee transaction
-      const workerPool = new WorkerPool()
       const strategy = new Strategy({
         workerPool,
         consensus: new TestnetConsensus(consensusParameters),
@@ -179,14 +187,14 @@ describe('Demonstrate the Sapling API', () => {
       const minersFee = await strategy.createMinersFee(0n, 0, generateKey().spendingKey)
 
       expect(minersFee['transactionPosted']).toBeNull()
-      expect(await workerPool.verify(minersFee, { verifyFees: false })).toEqual({ valid: true })
+      expect(await workerPool.verifyTransactions([minersFee])).toEqual({ valid: true })
       expect(minersFee['transactionPosted']).toBeNull()
     })
 
     it('Holds a posted transaction if a reference is taken', async () => {
       // Generate a miner's fee transaction
       const strategy = new Strategy({
-        workerPool: new WorkerPool(),
+        workerPool,
         consensus: new TestnetConsensus(consensusParameters),
       })
 
@@ -210,7 +218,7 @@ describe('Demonstrate the Sapling API', () => {
       // Generate a miner's fee transaction
       const key = generateKey()
       const strategy = new Strategy({
-        workerPool: new WorkerPool(),
+        workerPool,
         consensus: new TestnetConsensus(consensusParameters),
       })
       const minersFee = await strategy.createMinersFee(0n, 0, key.spendingKey)
@@ -300,9 +308,9 @@ describe('Demonstrate the Sapling API', () => {
       transaction.output(noteForSpender)
       transaction.output(receiverNoteToSelf)
 
-      const postedTransaction = new NativeTransactionPosted(transaction.post(undefined, 1n))
+      const postedTransaction = new Transaction(transaction.post(undefined, 1n))
       expect(postedTransaction).toBeTruthy()
-      expect(postedTransaction.verify()).toBeTruthy()
+      expect(await workerPool.verifyTransactions([postedTransaction])).toEqual({ valid: true })
     })
   })
 })

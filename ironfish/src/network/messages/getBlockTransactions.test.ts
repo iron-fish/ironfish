@@ -32,7 +32,7 @@ describe('GetBlockTransactionsResponse', () => {
 
   it('serializes the object into a buffer and deserializes to the original object', async () => {
     const { account, transaction: transactionA } = await useTxSpendsFixture(nodeTest.node)
-    const transactionB = await useMinersTxFixture(nodeTest.node.wallet, account)
+    const transactionB = await useMinersTxFixture(nodeTest.node, account)
 
     const rpcId = 0
     const blockHash = Buffer.alloc(32, 1)

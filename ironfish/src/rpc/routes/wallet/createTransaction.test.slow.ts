@@ -36,10 +36,11 @@ describe('Route wallet/createTransaction', () => {
             expiration: 0,
           })
 
-          return routeTest.node.wallet.post({
+          const { transaction } = await routeTest.node.wallet.post({
             transaction: raw,
             account: sender,
           })
+          return transaction
         },
       )
 

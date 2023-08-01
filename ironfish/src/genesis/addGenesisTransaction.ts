@@ -62,7 +62,7 @@ export async function addGenesisTransaction(
         continue
       }
 
-      witness = await node.chain.notes.witness(initialNoteIndex + noteIndex)
+      witness = await node.chain.getNoteWitness(initialNoteIndex + noteIndex)
       note = decryptedNote.takeReference()
       decryptedNote.returnReference()
       break
@@ -122,11 +122,11 @@ export async function addGenesisTransaction(
   genesisBlock.transactions.push(postedTransaction)
 
   // Add the new notes to the merkle tree
-  await node.chain.notes.addBatch(postedTransaction.notes)
+  await node.chain.addNotesBatch(postedTransaction.notes)
 
   // Generate a new block header for the new genesis block
-  const noteCommitment = await node.chain.notes.rootHash()
-  const noteSize = await node.chain.notes.size()
+  const noteCommitment = await node.chain.getNotesRootHash()
+  const noteSize = await node.chain.getNotesSize()
   const newGenesisHeader = new BlockHeader(
     1,
     genesisBlock.header.previousBlockHash,

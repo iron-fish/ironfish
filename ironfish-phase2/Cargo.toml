@@ -4,7 +4,7 @@ version = "0.2.2"
 authors = ["Sean Bowe <ewillbefull@gmail.com>", "Iron Fish <contact@ironfish.network> (https://ironfish.network)"]
 description = "Library for performing MPCs for creating zk-SNARK public parameters"
 homepage = "https://github.com/iron-fish/ironfish"
-license = "MIT/Apache-2.0"
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/iron-fish/ironfish"
 
 publish = false

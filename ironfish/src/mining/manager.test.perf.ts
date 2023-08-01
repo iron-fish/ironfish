@@ -2,19 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Asset } from '@ironfish/rust-nodejs'
 import { Assert } from '../assert'
 import { Block, Transaction } from '../primitives'
 import {
   createNodeTest,
+  splitNotes,
   useAccountFixture,
   useMinerBlockFixture,
   useTxFixture,
   writeTestReport,
 } from '../testUtilities'
-import { createRawTransaction } from '../testUtilities/helpers/transaction'
 import { BenchUtils } from '../utils'
-import { Account, SpendingAccount, Wallet } from '../wallet'
+import { Account, SpendingAccount } from '../wallet'
 
 type Results = { mempoolSize: number; numTransactions: number; elapsed: number }
 
@@ -124,33 +123,6 @@ describe('MiningManager', () => {
     expect(blockTemplate.transactions.length).toEqual(mempoolSize + 1)
 
     return { mempoolSize, numTransactions: blockTemplate.transactions.length, elapsed }
-  }
-
-  async function splitNotes(
-    account: Account,
-    numOutputs: number,
-    wallet: Wallet,
-  ): Promise<Transaction> {
-    const outputs: { publicAddress: string; amount: bigint; memo: string; assetId: Buffer }[] =
-      []
-    for (let i = 0; i < numOutputs; i++) {
-      outputs.push({
-        publicAddress: account.publicAddress,
-        amount: BigInt(1),
-        memo: '',
-        assetId: Asset.nativeId(),
-      })
-    }
-
-    const transaction = await createRawTransaction({
-      wallet: wallet,
-      from: account,
-      amount: BigInt(outputs.length),
-      outputs,
-    })
-
-    Assert.isNotNull(account.spendingKey)
-    return transaction.post(account.spendingKey)
   }
 })
 

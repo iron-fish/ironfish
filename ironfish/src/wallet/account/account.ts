@@ -5,7 +5,7 @@ import { Asset } from '@ironfish/rust-nodejs'
 import { BufferMap } from 'buffer-map'
 import MurmurHash3 from 'imurmurhash'
 import { Assert } from '../../assert'
-import { BlockHeader, Transaction } from '../../primitives'
+import { Transaction } from '../../primitives'
 import { GENESIS_BLOCK_SEQUENCE } from '../../primitives/block'
 import { Note } from '../../primitives/note'
 import { DatabaseKeyRange, IDatabaseTransaction } from '../../storage'
@@ -13,6 +13,7 @@ import { StorageUtils } from '../../storage/database/utils'
 import { WithNonNull } from '../../utils'
 import { DecryptedNote } from '../../workerPool/tasks/decryptNotes'
 import { AssetBalances } from '../assetBalances'
+import { WalletBlockHeader } from '../remoteChainProcessor'
 import { AccountValue } from '../walletdb/accountValue'
 import { AssetValue } from '../walletdb/assetValue'
 import { BalanceValue } from '../walletdb/balanceValue'
@@ -141,7 +142,7 @@ export class Account {
   }
 
   async connectTransaction(
-    blockHeader: BlockHeader,
+    blockHeader: WalletBlockHeader,
     transaction: Transaction,
     decryptedNotes: Array<DecryptedNote>,
     tx?: IDatabaseTransaction,
@@ -241,7 +242,7 @@ export class Account {
     metadata: Buffer,
     name: Buffer,
     nonce: number,
-    owner: Buffer,
+    creator: Buffer,
     blockHeader?: { hash: Buffer | null; sequence: number | null },
     tx?: IDatabaseTransaction,
   ): Promise<void> {
@@ -259,7 +260,7 @@ export class Account {
         metadata,
         name,
         nonce,
-        owner,
+        creator,
         sequence: blockHeader?.sequence ?? null,
         supply: null,
       },
@@ -287,7 +288,7 @@ export class Account {
         metadata: assetValue.metadata,
         name: assetValue.name,
         nonce: assetValue.nonce,
-        owner: assetValue.owner,
+        creator: assetValue.creator,
         sequence: blockHeader.sequence,
         supply: assetValue.supply,
       },
@@ -300,8 +301,8 @@ export class Account {
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     for (const { asset, value } of transaction.mints) {
-      // Only store the asset for the owner
-      if (asset.owner().toString('hex') !== this.publicAddress) {
+      // Only store the asset for the creator
+      if (asset.creator().toString('hex') !== this.publicAddress) {
         continue
       }
 
@@ -336,7 +337,7 @@ export class Account {
           metadata: asset.metadata(),
           name: asset.name(),
           nonce: asset.nonce(),
-          owner: asset.owner(),
+          creator: asset.creator(),
           sequence,
           supply,
         },
@@ -355,9 +356,9 @@ export class Account {
         continue
       }
 
-      // Verify the owner matches before processing a burn since an account can
-      // burn assets it does not own
-      if (existingAsset.owner.toString('hex') !== this.publicAddress) {
+      // Verify the creator matches before processing a burn since an account
+      // can burn assets it does not own
+      if (existingAsset.creator.toString('hex') !== this.publicAddress) {
         continue
       }
 
@@ -376,7 +377,7 @@ export class Account {
           metadata: existingAsset.metadata,
           name: existingAsset.name,
           nonce: existingAsset.nonce,
-          owner: existingAsset.owner,
+          creator: existingAsset.creator,
           sequence: existingAsset.sequence,
           supply,
         },
@@ -395,9 +396,9 @@ export class Account {
         continue
       }
 
-      // Verify the owner matches before processing a burn since an account can
-      // burn assets it does not own
-      if (existingAsset.owner.toString('hex') !== this.publicAddress) {
+      // Verify the creator matches before processing a burn since an account
+      // can burn assets it does not own
+      if (existingAsset.creator.toString('hex') !== this.publicAddress) {
         continue
       }
 
@@ -416,7 +417,7 @@ export class Account {
           metadata: existingAsset.metadata,
           name: existingAsset.name,
           nonce: existingAsset.nonce,
-          owner: existingAsset.owner,
+          creator: existingAsset.creator,
           sequence: existingAsset.sequence,
           supply,
         },
@@ -426,13 +427,13 @@ export class Account {
   }
 
   private async deleteDisconnectedMintsFromAssetsStore(
-    blockHeader: BlockHeader,
+    blockHeader: WalletBlockHeader,
     transaction: Transaction,
     tx: IDatabaseTransaction,
   ): Promise<void> {
     for (const { asset, value } of transaction.mints.slice().reverse()) {
-      // Only update the mint for the owner
-      if (asset.owner().toString('hex') !== this.publicAddress) {
+      // Only update the mint for the creator
+      if (asset.creator().toString('hex') !== this.publicAddress) {
         continue
       }
 
@@ -463,7 +464,7 @@ export class Account {
           metadata: asset.metadata(),
           name: asset.name(),
           nonce: asset.nonce(),
-          owner: asset.owner(),
+          creator: asset.creator(),
           sequence,
           supply,
         },
@@ -559,7 +560,7 @@ export class Account {
   }
 
   async disconnectTransaction(
-    blockHeader: BlockHeader,
+    blockHeader: WalletBlockHeader,
     transaction: Transaction,
     tx?: IDatabaseTransaction,
   ): Promise<AssetBalances> {
@@ -809,8 +810,8 @@ export class Account {
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     for (const { asset } of transaction.mints.slice().reverse()) {
-      // Only update the mint for the owner
-      if (asset.owner().toString('hex') !== this.publicAddress) {
+      // Only update the mint for the creator
+      if (asset.creator().toString('hex') !== this.publicAddress) {
         continue
       }
 

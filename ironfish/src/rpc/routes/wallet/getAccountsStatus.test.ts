@@ -6,6 +6,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { v4 as uuid } from 'uuid'
+import { Assert } from '../../../assert'
+import { useMinerBlockFixture } from '../../../testUtilities/fixtures'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 
 describe('Route wallet/getAccountsStatus', () => {
@@ -26,6 +28,33 @@ describe('Route wallet/getAccountsStatus', () => {
           headHash: 'NULL',
           headInChain: false,
           sequence: 'NULL',
+        },
+      ],
+    })
+  })
+
+  it('should return account head and sequence', async () => {
+    const account = routeTest.wallet.getDefaultAccount()
+    Assert.isNotNull(account)
+
+    const block = await useMinerBlockFixture(routeTest.chain, 2, account, routeTest.wallet)
+
+    await expect(routeTest.chain).toAddBlock(block)
+    await routeTest.wallet.updateHead()
+
+    const response = await routeTest.client
+      .request<any>('wallet/getAccountsStatus', {})
+      .waitForEnd()
+
+    expect(response.status).toBe(200)
+    expect(response.content).toMatchObject({
+      accounts: [
+        {
+          name: account.name,
+          id: account.id,
+          headHash: routeTest.chain.head.hash.toString('hex'),
+          headInChain: true,
+          sequence: routeTest.chain.head.sequence,
         },
       ],
     })

@@ -3,28 +3,45 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../../assert'
 import { FileSystem } from '../../fileSystems'
+import { MerkleTree, NoteHasher, Witness } from '../../merkletree'
+import { LeafEncoding } from '../../merkletree/database/leaves'
+import { NodeEncoding } from '../../merkletree/database/nodes'
+import { LeavesSchema } from '../../merkletree/schema'
 import { BlockHeader } from '../../primitives'
 import { BlockHash } from '../../primitives/blockheader'
+import {
+  NoteEncrypted,
+  NoteEncryptedHash,
+  SerializedNoteEncrypted,
+  SerializedNoteEncryptedHash,
+} from '../../primitives/noteEncrypted'
+import { TransactionHash } from '../../primitives/transaction'
 import {
   BUFFER_ENCODING,
   IDatabase,
   IDatabaseStore,
   IDatabaseTransaction,
+  SchemaValue,
   StringEncoding,
   U32_ENCODING,
 } from '../../storage'
 import { createDB } from '../../storage/utils'
 import {
+  AssetSchema,
+  HashToNextSchema,
   HeadersSchema,
   MetaSchema,
   SequenceToHashesSchema,
+  SequenceToHashSchema,
+  TransactionHashToBlockHashSchema,
   TransactionsSchema,
 } from '../schema'
+import { AssetValue, AssetValueEncoding } from './assetValue'
 import { HeaderEncoding, HeaderValue } from './headers'
 import { SequenceToHashesValueEncoding } from './sequenceToHashes'
 import { TransactionsValue, TransactionsValueEncoding } from './transactions'
 
-export const VERSION_DATABASE_CHAIN = 14
+export const VERSION_DATABASE_CHAIN = 28
 
 export class BlockchainDB {
   db: IDatabase
@@ -39,6 +56,21 @@ export class BlockchainDB {
   transactions: IDatabaseStore<TransactionsSchema>
   // Sequence -> BlockHash[]
   sequenceToHashes: IDatabaseStore<SequenceToHashesSchema>
+  // Sequence -> BlockHash
+  sequenceToHash: IDatabaseStore<SequenceToHashSchema>
+  // BlockHash -> BlockHash
+  hashToNextHash: IDatabaseStore<HashToNextSchema>
+  // Asset Identifier -> Asset
+  assets: IDatabaseStore<AssetSchema>
+  // TransactionHash -> BlockHash
+  transactionHashToBlockHash: IDatabaseStore<TransactionHashToBlockHashSchema>
+
+  notes: MerkleTree<
+    NoteEncrypted,
+    NoteEncryptedHash,
+    SerializedNoteEncrypted,
+    SerializedNoteEncryptedHash
+  >
 
   constructor(options: { location: string; files: FileSystem }) {
     this.location = options.location
@@ -71,6 +103,42 @@ export class BlockchainDB {
       name: 'bs',
       keyEncoding: U32_ENCODING,
       valueEncoding: new SequenceToHashesValueEncoding(),
+    })
+
+    // number -> BlockHash
+    this.sequenceToHash = this.db.addStore({
+      name: 'bS',
+      keyEncoding: U32_ENCODING,
+      valueEncoding: BUFFER_ENCODING,
+    })
+
+    this.hashToNextHash = this.db.addStore({
+      name: 'bH',
+      keyEncoding: BUFFER_ENCODING,
+      valueEncoding: BUFFER_ENCODING,
+    })
+
+    this.assets = this.db.addStore({
+      name: 'bA',
+      keyEncoding: BUFFER_ENCODING,
+      valueEncoding: new AssetValueEncoding(),
+    })
+
+    this.transactionHashToBlockHash = this.db.addStore({
+      name: 'tb',
+      keyEncoding: BUFFER_ENCODING,
+      valueEncoding: BUFFER_ENCODING,
+    })
+
+    this.notes = new MerkleTree({
+      hasher: new NoteHasher(),
+      leafIndexKeyEncoding: BUFFER_ENCODING,
+      leafEncoding: new LeafEncoding(),
+      nodeEncoding: new NodeEncoding(),
+      db: this.db,
+      name: 'n',
+      depth: 32,
+      defaultValue: Buffer.alloc(32),
     })
   }
 
@@ -188,5 +256,159 @@ export class BlockchainDB {
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     return this.sequenceToHashes.put(sequence, { hashes }, tx)
+  }
+
+  async getBlockHashAtSequence(
+    sequence: number,
+    tx?: IDatabaseTransaction,
+  ): Promise<BlockHash | undefined> {
+    return this.sequenceToHash.get(sequence, tx)
+  }
+
+  async getBlockHeaderAtSequence(sequence: number): Promise<BlockHeader | undefined> {
+    const hash = await this.sequenceToHash.get(sequence)
+    if (!hash) {
+      return undefined
+    }
+
+    return this.getBlockHeader(hash)
+  }
+
+  async putSequenceToHash(
+    sequence: number,
+    hash: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    return this.sequenceToHash.put(sequence, hash, tx)
+  }
+
+  async deleteSequenceToHash(sequence: number, tx?: IDatabaseTransaction): Promise<void> {
+    return this.sequenceToHash.del(sequence, tx)
+  }
+
+  async clearSequenceToHash(tx?: IDatabaseTransaction): Promise<void> {
+    return this.sequenceToHash.clear(tx)
+  }
+
+  async getNextHash(
+    hash: BlockHash,
+    tx?: IDatabaseTransaction,
+  ): Promise<BlockHash | undefined> {
+    return this.hashToNextHash.get(hash, tx)
+  }
+
+  async putNextHash(hash: Buffer, nextHash: Buffer, tx?: IDatabaseTransaction): Promise<void> {
+    return this.hashToNextHash.put(hash, nextHash, tx)
+  }
+
+  async deleteNextHash(hash: Buffer, tx?: IDatabaseTransaction): Promise<void> {
+    return this.hashToNextHash.del(hash, tx)
+  }
+
+  async clearHashToNextHash(tx?: IDatabaseTransaction): Promise<void> {
+    return this.hashToNextHash.clear(tx)
+  }
+
+  async getAsset(assetId: Buffer, tx?: IDatabaseTransaction): Promise<AssetValue | undefined> {
+    return this.assets.get(assetId, tx)
+  }
+
+  async putAsset(
+    assetId: Buffer,
+    assetValue: AssetValue,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    return this.assets.put(assetId, assetValue, tx)
+  }
+
+  async deleteAsset(assetId: Buffer, tx?: IDatabaseTransaction): Promise<void> {
+    return this.assets.del(assetId, tx)
+  }
+
+  async getBlockHashByTransactionHash(
+    transactionHash: TransactionHash,
+    tx?: IDatabaseTransaction,
+  ): Promise<BlockHash | undefined> {
+    return this.transactionHashToBlockHash.get(transactionHash, tx)
+  }
+
+  async transactionHashHasBlock(
+    transactionHash: TransactionHash,
+    tx?: IDatabaseTransaction,
+  ): Promise<boolean> {
+    return this.transactionHashToBlockHash.has(transactionHash, tx)
+  }
+
+  async putTransactionHashToBlockHash(
+    transactionHash: Buffer,
+    blockHash: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    return this.transactionHashToBlockHash.put(transactionHash, blockHash, tx)
+  }
+
+  async deleteTransactionHashToBlockHash(
+    transactionHash: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    return this.transactionHashToBlockHash.del(transactionHash, tx)
+  }
+
+  async addNotesBatch(
+    notes: Iterable<NoteEncrypted>,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    return this.notes.addBatch(notes, tx)
+  }
+
+  async addNote(note: NoteEncrypted, tx?: IDatabaseTransaction): Promise<void> {
+    return this.notes.add(note, tx)
+  }
+
+  async getNotesPastRoot(
+    pastSize: number,
+    tx?: IDatabaseTransaction,
+  ): Promise<NoteEncryptedHash> {
+    return this.notes.pastRoot(pastSize, tx)
+  }
+
+  async getNotesSize(tx?: IDatabaseTransaction): Promise<number> {
+    return this.notes.size(tx)
+  }
+
+  async getNotesRootHash(tx?: IDatabaseTransaction): Promise<Buffer> {
+    return this.notes.rootHash(tx)
+  }
+
+  async truncateNotes(pastSize: number, tx?: IDatabaseTransaction): Promise<void> {
+    return this.notes.truncate(pastSize, tx)
+  }
+
+  cachePastRootHashes(tx: IDatabaseTransaction): void {
+    return this.notes.pastRootTxCommitted(tx)
+  }
+
+  async getNoteWitness(
+    treeIndex: number,
+    size?: number,
+    tx?: IDatabaseTransaction,
+  ): Promise<Witness<
+    NoteEncrypted,
+    NoteEncryptedHash,
+    SerializedNoteEncrypted,
+    SerializedNoteEncryptedHash
+  > | null> {
+    return this.notes.witness(treeIndex, size, tx)
+  }
+
+  async getLeavesIndex(hash: Buffer, tx?: IDatabaseTransaction): Promise<number | undefined> {
+    return this.notes.leavesIndex.get(hash, tx)
+  }
+
+  async getNotesLeaf(
+    index: number,
+    tx?: IDatabaseTransaction,
+  ): Promise<SchemaValue<LeavesSchema<NoteEncryptedHash>>> {
+    return this.notes.getLeaf(index, tx)
   }
 }
