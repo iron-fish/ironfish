@@ -10,7 +10,7 @@ import { PromiseUtils } from './promise'
 /**
  * Try to open the node DB's and wait until they can be opened
  */
-async function waitForOpen(node: FullNode, abort?: null | (() => boolean)): Promise<void> {
+async function waitForOpen(node: IronfishNode, abort?: null | (() => boolean)): Promise<void> {
   let logged = false
 
   while (!abort || !abort()) {
