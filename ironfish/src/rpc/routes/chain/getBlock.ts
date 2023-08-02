@@ -15,6 +15,7 @@ export type GetBlockRequest = {
   hash?: string
   sequence?: number
   confirmations?: number
+  serialized?: boolean
 }
 
 export type GetBlockResponse = {
@@ -33,6 +34,7 @@ export type GetBlockResponse = {
       signature: string
       notes: number
       spends: number
+      serialized?: string
     }>
   }
   metadata: {
@@ -48,6 +50,7 @@ export const GetBlockRequestSchema: yup.ObjectSchema<GetBlockRequest> = yup
     hash: yup.string(),
     sequence: yup.number(),
     confirmations: yup.number().min(0).optional(),
+    serialized: yup.boolean().optional(),
   })
   .defined()
 
@@ -72,6 +75,7 @@ export const GetBlockResponseSchema: yup.ObjectSchema<GetBlockResponse> = yup
                 signature: yup.string().defined(),
                 notes: yup.number().defined(),
                 spends: yup.number().defined(),
+                serialized: yup.string().optional(),
               })
               .defined(),
           )
@@ -152,6 +156,7 @@ routes.register<typeof GetBlockRequestSchema, GetBlockResponse>(
         fee: fee.toString(),
         spends: tx.spends.length,
         notes: tx.notes.length,
+        ...(request.data?.serialized ? { serialized: tx.serialize().toString('hex') } : {}),
       })
     }
 

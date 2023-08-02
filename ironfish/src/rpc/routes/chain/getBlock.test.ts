@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Assert } from '../../../assert'
 import { useBlockWithTx, useMinerBlockFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { ERROR_CODES } from '../../adapters'
@@ -164,5 +165,20 @@ describe('Route chain/getBlock', () => {
         confirmed: false,
       },
     })
+  })
+
+  it('serializes transactions when requested', async () => {
+    const { node } = routeTest
+
+    const { block, transaction } = await useBlockWithTx(node)
+    await expect(node.chain).toAddBlock(block)
+
+    const response = await routeTest.client
+      .request<GetBlockResponse>('chain/getBlock', { search: '3', serialized: true })
+      .waitForEnd()
+
+    const serialized = response.content.block.transactions[1].serialized
+    Assert.isNotUndefined(serialized)
+    expect(Buffer.from(serialized, 'hex')).toEqual(transaction.serialize())
   })
 })
