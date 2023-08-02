@@ -155,7 +155,6 @@ export class WalletNode {
       workerPool,
       consensus,
       nodeClient,
-      assetsVerifier,
     })
 
     const node = new WalletNode({
