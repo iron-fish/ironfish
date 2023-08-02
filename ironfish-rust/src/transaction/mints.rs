@@ -74,6 +74,7 @@ impl MintBuilder {
             proof,
             asset: self.asset,
             value: self.value,
+            owner: spender_key.public_address(),
             transfer_ownership_to: self.transfer_ownership_to,
             authorizing_signature: blank_signature,
         };
@@ -150,6 +151,10 @@ pub struct MintDescription {
     /// Amount of asset to mint. May be zero
     pub value: u64,
 
+    /// Address of the account that is the current owner, used as part of the
+    /// proof. For V1 transactions, this is always the asset creator
+    pub owner: PublicAddress,
+
     /// Address of the account that will be authorized to perform future
     /// mints/burns for this asset after this transaction is executed
     pub transfer_ownership_to: Option<PublicAddress>,
@@ -193,10 +198,9 @@ impl MintDescription {
         public_inputs[0] = randomized_public_key_point.get_u();
         public_inputs[1] = randomized_public_key_point.get_v();
 
-        let creator_public_address_point =
-            ExtendedPoint::from(self.asset.creator.transmission_key).to_affine();
-        public_inputs[2] = creator_public_address_point.get_u();
-        public_inputs[3] = creator_public_address_point.get_v();
+        let public_address_point = ExtendedPoint::from(self.owner.transmission_key).to_affine();
+        public_inputs[2] = public_address_point.get_u();
+        public_inputs[3] = public_address_point.get_v();
 
         public_inputs
     }
@@ -240,6 +244,8 @@ impl MintDescription {
         self.asset.write(&mut writer)?;
         writer.write_u64::<LittleEndian>(self.value)?;
         if version.has_mint_transfer_ownership_to() {
+            self.owner.write(&mut writer)?;
+
             if let Some(ref transfer_ownership_to) = self.transfer_ownership_to {
                 writer.write_u8(1)?;
                 transfer_ownership_to.write(&mut writer)?;
@@ -260,21 +266,28 @@ impl MintDescription {
         let proof = groth16::Proof::read(&mut reader)?;
         let asset = Asset::read(&mut reader)?;
         let value = reader.read_u64::<LittleEndian>()?;
-        let transfer_ownership_to = if version.has_mint_transfer_ownership_to() {
-            if reader.read_u8()? != 0 {
+
+        let owner: PublicAddress;
+        let transfer_ownership_to;
+        if version.has_mint_transfer_ownership_to() {
+            owner = PublicAddress::read(&mut reader)?;
+            transfer_ownership_to = if reader.read_u8()? != 0 {
                 Some(PublicAddress::read(&mut reader)?)
             } else {
                 None
             }
         } else {
-            None
-        };
+            owner = asset.creator;
+            transfer_ownership_to = None;
+        }
+
         let authorizing_signature = redjubjub::Signature::read(&mut reader)?;
 
         Ok(MintDescription {
             proof,
             asset,
             value,
+            owner,
             transfer_ownership_to,
             authorizing_signature,
         })
@@ -301,6 +314,7 @@ mod test {
 
     use crate::{
         assets::asset::Asset,
+        errors::IronfishError,
         transaction::{
             mints::{MintBuilder, MintDescription},
             utils::verify_mint_proof,
@@ -368,6 +382,29 @@ mod test {
     }
 
     #[test]
+    fn test_mint_description_v1_invalid_owner() {
+        let key = SaplingKey::generate_key();
+        let creator = key.public_address();
+        let owner_key = SaplingKey::generate_key();
+        let name = "name";
+        let metadata = "{ 'token_identifier': '0x123' }";
+
+        let asset = Asset::new(creator, name, metadata).unwrap();
+
+        let public_key_randomness = jubjub::Fr::random(thread_rng());
+        let randomized_public_key = redjubjub::PublicKey(key.view_key.authorizing_key.into())
+            .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);
+
+        let value = 5;
+        let mint = MintBuilder::new(asset, value);
+
+        assert!(matches!(
+            mint.build(&owner_key, &public_key_randomness, &randomized_public_key),
+            Err(IronfishError::VerificationFailed)
+        ))
+    }
+
+    #[test]
     fn test_mint_description_serialization_v1() {
         let key = SaplingKey::generate_key();
         let creator = key.public_address();
@@ -379,7 +416,9 @@ mod test {
         let value = 5;
         let mint = MintBuilder::new(asset, value);
 
-        test_mint_description_serialization(TransactionVersion::V1, &key, &mint);
+        let description = test_mint_description_serialization(TransactionVersion::V1, &key, &mint);
+
+        assert_eq!(description.owner, creator);
     }
 
     #[test]
@@ -419,11 +458,48 @@ mod test {
         test_mint_description_serialization(TransactionVersion::V2, &key, &mint);
     }
 
+    #[test]
+    fn test_mint_description_serialization_v2_with_creator_owner() {
+        let key = SaplingKey::generate_key();
+        let creator = key.public_address();
+        let name = "name";
+        let metadata = "{ 'token_identifier': '0x123' }";
+
+        let asset = Asset::new(creator, name, metadata).unwrap();
+
+        let value = 5;
+        let mint = MintBuilder::new(asset, value);
+
+        let description = test_mint_description_serialization(TransactionVersion::V2, &key, &mint);
+
+        assert_eq!(description.owner, creator);
+    }
+
+    #[test]
+    fn test_mint_description_serialization_v2_with_different_owner() {
+        let key = SaplingKey::generate_key();
+        let creator = key.public_address();
+        let owner_key = SaplingKey::generate_key();
+        let owner = owner_key.public_address();
+        let name = "name";
+        let metadata = "{ 'token_identifier': '0x123' }";
+
+        let asset = Asset::new(creator, name, metadata).unwrap();
+
+        let value = 5;
+        let mint = MintBuilder::new(asset, value);
+
+        let description =
+            test_mint_description_serialization(TransactionVersion::V2, &owner_key, &mint);
+
+        assert_eq!(description.owner, owner);
+    }
+
     fn test_mint_description_serialization(
         version: TransactionVersion,
         key: &SaplingKey,
         mint: &MintBuilder,
-    ) {
+    ) -> MintDescription {
         let public_key_randomness = jubjub::Fr::random(thread_rng());
         let randomized_public_key = redjubjub::PublicKey(key.view_key.authorizing_key.into())
             .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);
@@ -462,6 +538,10 @@ mod test {
         assert_eq!(description.value, deserialized_description.value);
         assert_eq!(description.value, mint.value);
 
+        // Owner
+        assert_eq!(description.owner, deserialized_description.owner);
+        assert_eq!(description.owner, key.public_address());
+
         // Ownership transfer
         assert_eq!(
             description.transfer_ownership_to,
@@ -495,6 +575,8 @@ mod test {
             .write(&mut reserialized_description, version)
             .expect("should be able to serialize proof again");
         assert_eq!(serialized_description, reserialized_description);
+
+        deserialized_description
     }
 
     #[test]

@@ -1386,7 +1386,12 @@ describe('Accounts', () => {
         })
 
         expect(transaction.mints).toEqual([
-          { asset: asset, value: mintValue, transferOwnershipTo: null },
+          {
+            asset: asset,
+            value: mintValue,
+            owner: asset.creator(),
+            transferOwnershipTo: null,
+          },
         ])
       })
 

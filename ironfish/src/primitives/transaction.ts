@@ -119,17 +119,22 @@ export class Transaction {
       const asset = Asset.deserialize(reader.readBytes(ASSET_LENGTH))
       const value = reader.readBigU64()
 
+      let owner = null
       let transferOwnershipTo = null
       if (TransactionFeatures.hasMintTransferOwnershipTo(this._version)) {
+        owner = reader.readBytes(PUBLIC_ADDRESS_LENGTH)
+
         if (reader.readU8()) {
           transferOwnershipTo = reader.readBytes(PUBLIC_ADDRESS_LENGTH).toString('hex')
         }
+      } else {
+        owner = asset.creator()
       }
 
       // authorizing signature
       reader.seek(TRANSACTION_SIGNATURE_LENGTH)
 
-      return { asset, value, transferOwnershipTo }
+      return { asset, value, owner, transferOwnershipTo }
     })
 
     this.burns = Array.from({ length: _burnsLength }, () => {
