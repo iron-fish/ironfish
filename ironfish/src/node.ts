@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { BoxKeyPair } from '@ironfish/rust-nodejs'
-import os from 'os'
 import { v4 as uuid } from 'uuid'
 import { AssetsVerifier } from './assets'
 import { Blockchain } from './blockchain'
@@ -33,7 +32,7 @@ import { Strategy } from './strategy'
 import { Syncer } from './syncer'
 import { Telemetry } from './telemetry/telemetry'
 import { Wallet, WalletDB } from './wallet'
-import { WorkerPool } from './workerPool'
+import { calculateWorkers, WorkerPool } from './workerPool'
 
 export class IronfishNode {
   chain: Blockchain
@@ -233,16 +232,9 @@ export class IronfishNode {
       logger,
     })
 
-    let workers = config.get('nodeWorkers')
-    if (workers === -1) {
-      workers = os.cpus().length - 1
+    const numWorkers = calculateWorkers(config.get('nodeWorkers'), config.get('nodeWorkersMax'))
 
-      const maxWorkers = config.get('nodeWorkersMax')
-      if (maxWorkers !== -1) {
-        workers = Math.min(workers, maxWorkers)
-      }
-    }
-    const workerPool = new WorkerPool({ metrics, numWorkers: workers })
+    const workerPool = new WorkerPool({ metrics, numWorkers })
 
     metrics = metrics || new MetricsMonitor({ logger })
 
