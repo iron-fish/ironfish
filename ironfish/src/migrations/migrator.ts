@@ -25,8 +25,8 @@ export class Migrator {
     this.migrations = MIGRATIONS.map((m) => {
       return new m().init(options.node.files)
     })
-      .sort((a, b) => a.id - b.id)
       .filter((migration) => whitelistedDBs.includes(migration.database))
+      .sort((a, b) => a.id - b.id)
   }
 
   /**
