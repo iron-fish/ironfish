@@ -74,6 +74,9 @@ export class RawTransaction {
         let mintSize =
           PROOF_LENGTH + ASSET_LENGTH + AMOUNT_VALUE_LENGTH + TRANSACTION_SIGNATURE_LENGTH
         if (TransactionFeatures.hasMintTransferOwnershipTo(this.version)) {
+          mintSize += PUBLIC_ADDRESS_LENGTH // owner
+
+          // transferOwnershipTo
           mintSize += 1
           if (mint.transferOwnershipTo) {
             mintSize += PUBLIC_ADDRESS_LENGTH
