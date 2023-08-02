@@ -33,7 +33,7 @@ import { RpcIpcClient } from './rpc/clients/ipcClient'
 import { RpcMemoryClient } from './rpc/clients/memoryClient'
 import { RpcTcpClient } from './rpc/clients/tcpClient'
 import { RpcTlsClient } from './rpc/clients/tlsClient'
-import { ALL_API_NAMESPACES } from './rpc/routes/router'
+import { ALL_API_NAMESPACES, ApiNamespace } from './rpc/routes/router'
 import { Strategy } from './strategy'
 import { NodeUtils } from './utils'
 import { WalletNode } from './walletNode'
@@ -288,8 +288,12 @@ export class IronfishSdk {
           this.logger,
         )
       }
-    } else {
+    } else if (this.config.get('walletNodeIpcEnabled')) {
       nodeClient = new RpcIpcClient(this.config.get('walletNodeIpcPath'), this.logger)
+    } else {
+      throw new Error(`Cannot start the wallet: no node connection configuration specified.
+
+Use 'ironfish config:set' to connect to a node via TCP, TLS, or IPC.`)
     }
 
     const node = await WalletNode.init({
@@ -304,9 +308,16 @@ export class IronfishSdk {
       nodeClient,
     })
 
+    const namespaces = [
+      ApiNamespace.config,
+      ApiNamespace.rpc,
+      ApiNamespace.wallet,
+      ApiNamespace.worker,
+    ]
+
     if (this.config.get('enableRpcIpc')) {
       await node.rpc.mount(
-        new RpcIpcAdapter(this.config.get('ipcPath'), this.logger, ALL_API_NAMESPACES),
+        new RpcIpcAdapter(this.config.get('ipcPath'), this.logger, namespaces),
       )
     }
 
@@ -316,7 +327,7 @@ export class IronfishSdk {
           this.config.get('rpcHttpHost'),
           this.config.get('rpcHttpPort'),
           this.logger,
-          ALL_API_NAMESPACES,
+          namespaces,
         ),
       )
     }
@@ -332,7 +343,7 @@ export class IronfishSdk {
             this.config.get('tlsCertPath'),
             node,
             this.logger,
-            ALL_API_NAMESPACES,
+            namespaces,
           ),
         )
       } else {
@@ -341,7 +352,7 @@ export class IronfishSdk {
             this.config.get('rpcTcpHost'),
             this.config.get('rpcTcpPort'),
             this.logger,
-            ALL_API_NAMESPACES,
+            namespaces,
           ),
         )
       }
