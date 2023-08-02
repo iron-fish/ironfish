@@ -38,8 +38,8 @@ describe('Blockchain', () => {
     expect(chain.latest.hash).toEqualHash(genesis.header.hash)
     expect(chain.isEmpty).toBe(false)
     expect(chain.hasGenesisBlock).toBe(true)
-    expect(await chain.getNotesSize()).toBeGreaterThan(0)
-    expect(await chain.getNullifiersSize()).toBeGreaterThan(0)
+    expect(await chain.notes.size()).toBeGreaterThan(0)
+    expect(await chain.nullifiers.size()).toBeGreaterThan(0)
     expect(await chain.getPrevious(genesis.header)).toBe(null)
     expect(await chain.getNext(genesis.header)).toBe(null)
   })
@@ -455,7 +455,7 @@ describe('Blockchain', () => {
 
     await expect(node.chain).toAddBlock(blockA3)
     expect(node.chain.head?.hash).toEqualBuffer(blockA3.header.hash)
-    expect(await node.chain.getNotesSize()).toBe(blockA3.header.noteSize)
+    expect(await node.chain.notes.size()).toBe(blockA3.header.noteSize)
   })
 
   describe('MerkleTree + Nullifier Set', () => {
@@ -474,10 +474,10 @@ describe('Blockchain', () => {
       const accountB = await useAccountFixture(nodeB.wallet, 'accountB')
 
       // Counts before adding any blocks
-      const countNoteA = await nodeA.chain.getNotesSize()
-      const countNullifierA = await nodeA.chain.getNullifiersSize()
-      const countNoteB = await nodeB.chain.getNotesSize()
-      const countNullifierB = await nodeB.chain.getNullifiersSize()
+      const countNoteA = await nodeA.chain.notes.size()
+      const countNullifierA = await nodeA.chain.nullifiers.size()
+      const countNoteB = await nodeB.chain.notes.size()
+      const countNullifierB = await nodeB.chain.nullifiers.size()
 
       // Create nodeA blocks
       const blockA1 = await useMinerBlockFixture(nodeA.chain, undefined, accountA)
@@ -524,32 +524,30 @@ describe('Blockchain', () => {
       expect(txB3.spends.length).toBe(1)
 
       // Check nodeA has notes from blockA1, blockA2
-      expect(await nodeA.chain.getNotesSize()).toBe(countNoteA + 4)
-      let addedNoteA1 = (await nodeA.chain.getNotesLeaf(countNoteA + 0)).merkleHash
-      let addedNoteA2 = (await nodeA.chain.getNotesLeaf(countNoteA + 1)).merkleHash
-      let addedNoteA3 = (await nodeA.chain.getNotesLeaf(countNoteA + 2)).merkleHash
-      let addedNoteA4 = (await nodeA.chain.getNotesLeaf(countNoteA + 3)).merkleHash
+      expect(await nodeA.chain.notes.size()).toBe(countNoteA + 4)
+      let addedNoteA1 = (await nodeA.chain.notes.getLeaf(countNoteA + 0)).merkleHash
+      let addedNoteA2 = (await nodeA.chain.notes.getLeaf(countNoteA + 1)).merkleHash
+      let addedNoteA3 = (await nodeA.chain.notes.getLeaf(countNoteA + 2)).merkleHash
+      let addedNoteA4 = (await nodeA.chain.notes.getLeaf(countNoteA + 3)).merkleHash
       expect(addedNoteA1.equals(minersFeeA1.getNote(0).hash())).toBe(true)
       expect(addedNoteA2.equals(minersFeeA2.getNote(0).hash())).toBe(true)
       expect(addedNoteA3.equals(txA2.getNote(0).hash())).toBe(true)
       expect(addedNoteA4.equals(txA2.getNote(1).hash())).toBe(true)
 
       // Check nodeA has nullifiers from blockA2
-      expect(await nodeA.chain.getNullifiersSize()).toBe(countNullifierA + 1)
+      expect(await nodeA.chain.nullifiers.size()).toBe(countNullifierA + 1)
 
-      let addedNullifierA1 = await nodeA.chain.getTransactionHashByNullifier(
-        txA2.getSpend(0).nullifier,
-      )
+      let addedNullifierA1 = await nodeA.chain.nullifiers.get(txA2.getSpend(0).nullifier)
       expect(addedNullifierA1).toBeDefined()
       expect(addedNullifierA1?.equals(txA2.hash())).toBe(true)
 
       // Check nodeB has notes from blockB1, blockB2, blockB3
-      expect(await nodeB.chain.getNotesSize()).toBe(countNoteB + 5)
-      const addedNoteB1 = (await nodeB.chain.getNotesLeaf(countNoteB + 0)).merkleHash
-      const addedNoteB2 = (await nodeB.chain.getNotesLeaf(countNoteB + 1)).merkleHash
-      const addedNoteB3 = (await nodeB.chain.getNotesLeaf(countNoteB + 2)).merkleHash
-      const addedNoteB4 = (await nodeB.chain.getNotesLeaf(countNoteB + 3)).merkleHash
-      const addedNoteB5 = (await nodeB.chain.getNotesLeaf(countNoteB + 4)).merkleHash
+      expect(await nodeB.chain.notes.size()).toBe(countNoteB + 5)
+      const addedNoteB1 = (await nodeB.chain.notes.getLeaf(countNoteB + 0)).merkleHash
+      const addedNoteB2 = (await nodeB.chain.notes.getLeaf(countNoteB + 1)).merkleHash
+      const addedNoteB3 = (await nodeB.chain.notes.getLeaf(countNoteB + 2)).merkleHash
+      const addedNoteB4 = (await nodeB.chain.notes.getLeaf(countNoteB + 3)).merkleHash
+      const addedNoteB5 = (await nodeB.chain.notes.getLeaf(countNoteB + 4)).merkleHash
       expect(addedNoteB1.equals(minersFeeB1.getNote(0).hash())).toBe(true)
       expect(addedNoteB2.equals(minersFeeB2.getNote(0).hash())).toBe(true)
       expect(addedNoteB3.equals(minersFeeB3.getNote(0).hash())).toBe(true)
@@ -557,10 +555,8 @@ describe('Blockchain', () => {
       expect(addedNoteB5.equals(txB3.getNote(1).hash())).toBe(true)
 
       // Check nodeB has nullifiers from blockB3
-      expect(await nodeB.chain.getNullifiersSize()).toBe(countNullifierB + 1)
-      const addedNullifierB1 = await nodeB.chain.getTransactionHashByNullifier(
-        txB3.getSpend(0).nullifier,
-      )
+      expect(await nodeB.chain.nullifiers.size()).toBe(countNullifierB + 1)
+      const addedNullifierB1 = await nodeB.chain.nullifiers.get(txB3.getSpend(0).nullifier)
       expect(addedNullifierB1).toBeDefined()
       expect(addedNullifierB1?.equals(txB3.hash())).toBe(true)
 
@@ -570,12 +566,12 @@ describe('Blockchain', () => {
       await nodeA.chain.addBlock(blockB3)
 
       // Check nodeA's chain has removed blockA1 notes and added blockB1, blockB2, blockB3
-      expect(await nodeA.chain.getNotesSize()).toBe(countNoteA + 5)
-      addedNoteA1 = (await nodeA.chain.getNotesLeaf(countNoteA + 0)).merkleHash
-      addedNoteA2 = (await nodeA.chain.getNotesLeaf(countNoteA + 1)).merkleHash
-      addedNoteA3 = (await nodeA.chain.getNotesLeaf(countNoteA + 2)).merkleHash
-      addedNoteA4 = (await nodeA.chain.getNotesLeaf(countNoteA + 3)).merkleHash
-      const addedNoteA5 = (await nodeA.chain.getNotesLeaf(countNoteA + 4)).merkleHash
+      expect(await nodeA.chain.notes.size()).toBe(countNoteA + 5)
+      addedNoteA1 = (await nodeA.chain.notes.getLeaf(countNoteA + 0)).merkleHash
+      addedNoteA2 = (await nodeA.chain.notes.getLeaf(countNoteA + 1)).merkleHash
+      addedNoteA3 = (await nodeA.chain.notes.getLeaf(countNoteA + 2)).merkleHash
+      addedNoteA4 = (await nodeA.chain.notes.getLeaf(countNoteA + 3)).merkleHash
+      const addedNoteA5 = (await nodeA.chain.notes.getLeaf(countNoteA + 4)).merkleHash
       expect(addedNoteA1.equals(minersFeeB1.getNote(0).hash())).toBe(true)
       expect(addedNoteA2.equals(minersFeeB2.getNote(0).hash())).toBe(true)
       expect(addedNoteA3.equals(minersFeeB3.getNote(0).hash())).toBe(true)
@@ -583,10 +579,8 @@ describe('Blockchain', () => {
       expect(addedNoteA5.equals(txB3.getNote(1).hash())).toBe(true)
 
       // Check nodeA's chain has removed blockA2 nullifiers and added blockB3
-      expect(await nodeA.chain.getNullifiersSize()).toBe(countNullifierA + 1)
-      addedNullifierA1 = await nodeA.chain.getTransactionHashByNullifier(
-        txB3.getSpend(0).nullifier,
-      )
+      expect(await nodeA.chain.nullifiers.size()).toBe(countNullifierA + 1)
+      addedNullifierA1 = await nodeA.chain.nullifiers.get(txB3.getSpend(0).nullifier)
       expect(addedNullifierA1).toBeDefined()
       expect(addedNullifierA1?.equals(txB3.hash())).toBe(true)
     }, 300000)
@@ -596,7 +590,7 @@ describe('Blockchain', () => {
       const tx = await useMinersTxFixture(nodeTest.node, account)
       const block = await useMinerBlockFixture(nodeTest.chain)
 
-      await nodeTest.chain.addNote(tx.getNote(0))
+      await nodeTest.chain.notes.add(tx.getNote(0))
 
       await expect(nodeTest.chain.addBlock(block)).rejects.toThrow(
         'Notes tree must match previous block header',
@@ -1595,7 +1589,7 @@ describe('Blockchain', () => {
 
           Assert.isNotUndefined(note)
           Assert.isNotNull(note.index)
-          const witness = await node.chain.getNoteWitness(note.index)
+          const witness = await node.chain.notes.witness(note.index)
           Assert.isNotNull(witness)
 
           const rawBurn = new RawTransaction()

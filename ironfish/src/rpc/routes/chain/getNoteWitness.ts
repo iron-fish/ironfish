@@ -64,7 +64,7 @@ routes.register<typeof GetNoteWitnessRequestSchema, GetNoteWitnessResponse>(
     Assert.isNotNull(maxConfirmedHeader)
     Assert.isNotNull(maxConfirmedHeader?.noteSize)
 
-    const witness = await chain.getNoteWitness(request.data.index, maxConfirmedHeader.noteSize)
+    const witness = await chain.notes.witness(request.data.index, maxConfirmedHeader.noteSize)
 
     if (witness === null) {
       throw new ValidationError(

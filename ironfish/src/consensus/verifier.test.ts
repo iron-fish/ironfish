@@ -451,7 +451,7 @@ describe('Verifier', () => {
       })
 
       jest
-        .spyOn(nodeTest.chain['blockchainDb'].notes, 'getCount')
+        .spyOn(nodeTest.chain.notes, 'getCount')
         .mockImplementationOnce(() => Promise.resolve(0))
 
       expect(await nodeTest.verifier.verifyConnectedSpends(block)).toEqual({

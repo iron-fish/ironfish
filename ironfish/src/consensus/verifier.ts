@@ -259,7 +259,7 @@ export class Verifier {
         // (and spends) can eventually become valid if the chain forks to them.
         // Calculating the notes rootHash is also expensive at the time of writing, so performance test
         // before verifying the rootHash on spends.
-        if (await this.chain.hasNullifier(spend.nullifier, tx)) {
+        if (await this.chain.nullifiers.get(spend.nullifier, tx)) {
           return VerificationResultReason.DOUBLE_SPEND
         }
       }
@@ -326,7 +326,7 @@ export class Verifier {
     tx?: IDatabaseTransaction,
   ): Promise<VerificationResult> {
     return this.chain.blockchainDb.db.withTransaction(tx, async (tx) => {
-      const notesSize = await this.chain.getNotesSize(tx)
+      const notesSize = await this.chain.notes.size(tx)
 
       for (const spend of transaction.spends) {
         const reason = await this.verifySpend(spend, notesSize, tx)
@@ -335,7 +335,7 @@ export class Verifier {
           return { valid: false, reason }
         }
 
-        if (await this.chain.hasNullifier(spend.nullifier, tx)) {
+        if (await this.chain.nullifiers.get(spend.nullifier, tx)) {
           return { valid: false, reason: VerificationResultReason.DOUBLE_SPEND }
         }
       }
@@ -437,7 +437,7 @@ export class Verifier {
     }
 
     for (const spend of block.spends()) {
-      if (await this.chain.hasNullifier(spend.nullifier, tx)) {
+      if (await this.chain.nullifiers.get(spend.nullifier, tx)) {
         return { valid: false, reason: VerificationResultReason.DOUBLE_SPEND }
       }
     }
@@ -469,7 +469,7 @@ export class Verifier {
     }
 
     try {
-      const realSpendRoot = await this.chain.getNotesPastRoot(spend.size, tx)
+      const realSpendRoot = await this.chain.notes.pastRoot(spend.size, tx)
       if (!spend.commitment.equals(realSpendRoot)) {
         return VerificationResultReason.INVALID_SPEND
       }
@@ -493,7 +493,7 @@ export class Verifier {
       const header = block.header
 
       Assert.isNotNull(header.noteSize)
-      const noteRoot = await this.chain.getNotesPastRoot(header.noteSize, tx)
+      const noteRoot = await this.chain.notes.pastRoot(header.noteSize, tx)
       if (!noteRoot.equals(header.noteCommitment)) {
         return { valid: false, reason: VerificationResultReason.NOTE_COMMITMENT }
       }

@@ -20,7 +20,7 @@ describe('Route chain/getNoteWitness', () => {
     const block2 = await useMinerBlockFixture(chain)
     await expect(chain).toAddBlock(block2)
 
-    const noteSize = await chain.getNotesSize()
+    const noteSize = await chain.notes.size()
 
     for (const index of Array.from(Array(noteSize).keys())) {
       const response = await routeTest.client
@@ -28,7 +28,7 @@ describe('Route chain/getNoteWitness', () => {
         .waitForEnd()
 
       const witness: Witness<NoteEncrypted, Buffer, Buffer, Buffer> | null =
-        await chain.getNoteWitness(index)
+        await chain.notes.witness(index)
       Assert.isNotNull(witness)
 
       expect(response.content.rootHash).toEqual(witness.rootHash.toString('hex'))
@@ -66,7 +66,7 @@ describe('Route chain/getNoteWitness', () => {
         .waitForEnd()
 
       const witness: Witness<NoteEncrypted, Buffer, Buffer, Buffer> | null =
-        await chain.getNoteWitness(index, noteSize)
+        await chain.notes.witness(index, noteSize)
       Assert.isNotNull(witness)
 
       expect(response.content.rootHash).toEqual(witness.rootHash.toString('hex'))

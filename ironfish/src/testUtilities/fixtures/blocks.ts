@@ -157,9 +157,9 @@ export async function useBlockWithRawTxFixture(
       notesToSpend.map(async (n) => {
         const note = n.decryptNoteForOwner(sender.incomingViewKey)
         Assert.isNotUndefined(note)
-        const treeIndex = await chain.getLeavesIndex(n.hash())
+        const treeIndex = await chain.notes.leavesIndex.get(n.hash())
         Assert.isNotUndefined(treeIndex)
-        const witness = await chain.getNoteWitness(treeIndex)
+        const witness = await chain.notes.witness(treeIndex)
         Assert.isNotNull(witness)
 
         return {

@@ -136,8 +136,8 @@ export default class Benchmark extends IronfishCommand {
     if (endingHeader.noteSize === null) {
       return this.error(`Header should have a noteSize`)
     }
-    const nodeNotesHash = await node.chain.getNotesPastRoot(endingHeader.noteSize)
-    const tempNodeNotesHash = await tempNode.chain.getNotesRootHash()
+    const nodeNotesHash = await node.chain.notes.pastRoot(endingHeader.noteSize)
+    const tempNodeNotesHash = await tempNode.chain.notes.rootHash()
     if (!nodeNotesHash.equals(tempNodeNotesHash)) {
       throw new Error('/!\\ Note tree hashes were not consistent /!\\')
     }
