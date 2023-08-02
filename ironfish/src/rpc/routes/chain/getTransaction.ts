@@ -24,6 +24,8 @@ export type GetTransactionResponse = {
   mints: {
     assetId: string
     value: string
+    name: string
+    metadata: string
   }[]
   burns: {
     assetId: string
@@ -60,6 +62,8 @@ export const GetTransactionResponseSchema: yup.ObjectSchema<GetTransactionRespon
           .object({
             assetId: yup.string().defined(),
             value: yup.string().defined(),
+            name: yup.string().defined(),
+            metadata: yup.string().defined(),
           })
           .defined(),
       )
@@ -136,6 +140,8 @@ routes.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
       mints: transaction.mints.map((mint) => ({
         assetId: mint.asset.id().toString('hex'),
         value: CurrencyUtils.encode(mint.value),
+        name: mint.asset.name().toString('hex'),
+        metadata: mint.asset.metadata().toString('hex'),
       })),
       burns: transaction.burns.map((burn) => ({
         assetId: burn.assetId.toString('hex'),
