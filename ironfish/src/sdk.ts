@@ -271,7 +271,7 @@ export class IronfishSdk {
   }
 
   async walletNode(): Promise<WalletNode> {
-    let nodeClient: RpcClient
+    let nodeClient: RpcSocketClient
 
     if (this.config.get('walletNodeTcpEnabled')) {
       if (this.config.get('walletNodeTlsEnabled')) {
