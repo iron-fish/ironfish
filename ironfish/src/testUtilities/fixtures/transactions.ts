@@ -41,7 +41,7 @@ export async function usePostTxFixture(options: {
   return useTxFixture(
     options.wallet,
     options.from,
-    options.from,
+    options.to || options.from,
     async () => {
       const raw = await createRawTransaction(options)
       Assert.isNotNull(options.from.spendingKey)
