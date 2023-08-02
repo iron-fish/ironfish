@@ -17,13 +17,16 @@ export class Migrator {
   readonly logger: Logger
   readonly migrations: Migration[]
 
-  constructor(options: { node: IronfishNode; logger: Logger }) {
+  constructor(options: { node: IronfishNode; logger: Logger; databases?: Database[] }) {
     this.node = options.node
     this.logger = options.logger.withTag('migrator')
 
+    const whitelistedDBs = options?.databases ?? StrEnumUtils.getValues(Database)
     this.migrations = MIGRATIONS.map((m) => {
       return new m().init(options.node.files)
-    }).sort((a, b) => a.id - b.id)
+    })
+      .filter((migration) => whitelistedDBs.includes(migration.database))
+      .sort((a, b) => a.id - b.id)
   }
 
   /**
@@ -105,9 +108,7 @@ export class Migrator {
     quiet?: boolean
     quietNoop?: boolean
     dryRun?: boolean
-    databases?: Database[]
   }): Promise<void> {
-    const whitelistedDBs = options?.databases ?? StrEnumUtils.getValues(Database)
     const dryRun = options?.dryRun ?? false
     const logger = this.logger.create({})
 
@@ -121,10 +122,7 @@ export class Migrator {
       status.push([migration, applied])
     }
 
-    const unapplied = status
-      .filter(([, applied]) => !applied)
-      .filter(([migration]) => whitelistedDBs.includes(migration.database))
-      .map(([migration]) => migration)
+    const unapplied = status.filter(([, applied]) => !applied).map(([migration]) => migration)
 
     if (unapplied.length === 0) {
       if (!options?.quietNoop) {

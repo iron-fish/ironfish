@@ -77,7 +77,7 @@ export class WalletNode {
     this.logger = logger
     this.pkg = pkg
 
-    this.migrator = new Migrator({ node: this, logger })
+    this.migrator = new Migrator({ node: this, logger, databases: [Database.WALLET] })
 
     this.assetsVerifier = assetsVerifier
 
@@ -182,7 +182,6 @@ export class WalletNode {
       await this.migrator.migrate({
         quiet: !migrate,
         quietNoop: true,
-        databases: [Database.WALLET],
       })
     }
 
