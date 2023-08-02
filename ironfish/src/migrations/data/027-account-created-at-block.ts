@@ -5,11 +5,12 @@ import { Logger } from '../../logger'
 import { IDatabase, IDatabaseTransaction } from '../../storage'
 import { createDB } from '../../storage/utils'
 import { Node } from '../../utils'
-import { Migration } from '../migration'
+import { Database, Migration } from '../migration'
 import { GetStores } from './027-account-created-at-block/stores'
 
 export class Migration027 extends Migration {
   path = __filename
+  database = Database.WALLET
 
   prepare(node: Node): IDatabase {
     return createDB({ location: node.config.walletDatabasePath })

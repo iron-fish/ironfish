@@ -14,11 +14,12 @@ import {
   U32_ENCODING_BE,
 } from '../../storage'
 import { Node } from '../../utils'
-import { Migration } from '../migration'
+import { Database, Migration } from '../migration'
 import { GetOldAccounts } from './021-add-version-to-accounts/schemaOld'
 
 export class Migration017 extends Migration {
   path = __filename
+  database = Database.WALLET
 
   prepare(node: Node): IDatabase {
     return node.wallet.walletDb.db

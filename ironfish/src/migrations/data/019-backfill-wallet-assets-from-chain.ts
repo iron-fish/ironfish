@@ -10,11 +10,12 @@ import { BUFFER_ENCODING, IDatabase, IDatabaseStore, IDatabaseTransaction } from
 import { createDB } from '../../storage/utils'
 import { BufferUtils, Node } from '../../utils'
 import { Account } from '../../wallet'
-import { Migration } from '../migration'
+import { Database, Migration } from '../migration'
 import { GetOldAccounts } from './021-add-version-to-accounts/schemaOld'
 
 export class Migration019 extends Migration {
   path = __filename
+  database = Database.WALLET
 
   prepare(node: Node): IDatabase {
     return node.wallet.walletDb.db

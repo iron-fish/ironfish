@@ -7,10 +7,11 @@ import { IronfishNode } from '../../node'
 import { IDatabase } from '../../storage'
 import { createDB } from '../../storage/utils'
 import { Node } from '../../utils'
-import { Migration } from '../migration'
+import { Database, Migration } from '../migration'
 
 export class Migration014 extends Migration {
   path = __filename
+  database = Database.BLOCKCHAIN
 
   async prepare(node: Node): Promise<IDatabase> {
     Assert.isInstanceOf(node, IronfishNode)

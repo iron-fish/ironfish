@@ -6,11 +6,12 @@ import { Logger } from '../../logger'
 import { IDatabase, IDatabaseTransaction } from '../../storage'
 import { createDB } from '../../storage/utils'
 import { Node } from '../../utils'
-import { Migration } from '../migration'
+import { Database, Migration } from '../migration'
 import { GetStores } from './000-template/stores'
 
 export class Migration000 extends Migration {
   path = __filename
+  database = Database.WALLET
 
   prepare(node: Node): IDatabase {
     /* replace line below with node.chain.location if applying migration to the blockchain

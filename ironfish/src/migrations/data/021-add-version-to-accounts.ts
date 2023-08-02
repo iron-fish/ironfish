@@ -4,12 +4,13 @@
 import { Logger } from '../../logger'
 import { IDatabase, IDatabaseTransaction } from '../../storage'
 import { Node } from '../../utils'
-import { Migration } from '../migration'
+import { Database, Migration } from '../migration'
 import { GetNewStores } from './021-add-version-to-accounts/schemaNew'
 import { GetOldStores } from './021-add-version-to-accounts/schemaOld'
 
 export class Migration021 extends Migration {
   path = __filename
+  database = Database.WALLET
 
   prepare(node: Node): IDatabase {
     return node.wallet.walletDb.db
