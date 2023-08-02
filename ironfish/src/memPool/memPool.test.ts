@@ -4,7 +4,7 @@
 import { Assert } from '../assert'
 import * as ConsensusUtils from '../consensus/utils'
 import { getTransactionSize } from '../network/utils/serializers'
-import { IronfishNode } from '../node'
+import { FullNode } from '../node'
 import { Transaction } from '../primitives'
 import {
   createNodeTest,
@@ -19,12 +19,7 @@ import { mempoolEntryComparator } from './memPool'
 
 // Creates transactions out of the list of fees and adds them to the wallet
 // but not the mempool
-async function createTransactions(
-  node: IronfishNode,
-  from: Account,
-  to: Account,
-  fees: number[],
-) {
+async function createTransactions(node: FullNode, from: Account, to: Account, fees: number[]) {
   const transactions: Transaction[] = []
 
   for (const fee of fees) {

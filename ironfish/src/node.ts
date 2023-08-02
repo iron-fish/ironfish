@@ -34,7 +34,7 @@ import { Telemetry } from './telemetry/telemetry'
 import { Wallet, WalletDB } from './wallet'
 import { calculateWorkers, WorkerPool } from './workerPool'
 
-export class IronfishNode {
+export class FullNode {
   chain: Blockchain
   strategy: Strategy
   config: Config
@@ -206,7 +206,7 @@ export class IronfishNode {
     strategyClass: typeof Strategy | null
     webSocket: IsomorphicWebSocketConstructor
     privateIdentity?: PrivateIdentity
-  }): Promise<IronfishNode> {
+  }): Promise<FullNode> {
     logger = logger.withTag('ironfishnode')
     dataDir = dataDir || DEFAULT_DATA_DIR
 
@@ -299,7 +299,7 @@ export class IronfishNode {
       assetsVerifier,
     })
 
-    const node = new IronfishNode({
+    const node = new FullNode({
       pkg,
       chain,
       strategy,

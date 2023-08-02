@@ -4,7 +4,7 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { getFeeRate } from '../../../memPool'
-import { IronfishNode } from '../../../node'
+import { FullNode } from '../../../node'
 import { Transaction } from '../../../primitives'
 import { ApiNamespace, routes } from '../router'
 
@@ -60,7 +60,7 @@ routes.register<typeof MempoolTransactionsRequestSchema, GetMempoolTransactionRe
   `${ApiNamespace.mempool}/getTransactions`,
   MempoolTransactionsRequestSchema,
   (request, node): void => {
-    Assert.isInstanceOf(node, IronfishNode)
+    Assert.isInstanceOf(node, FullNode)
 
     let position = 0
     let streamed = 0

@@ -4,7 +4,7 @@
 import {
   Assert,
   Blockchain,
-  IronfishNode,
+  FullNode,
   Meter,
   NodeUtils,
   TimeUtils,
@@ -50,7 +50,7 @@ export default class Rewind extends IronfishCommand {
 
 export const rewindChainTo = async (
   command: Command,
-  node: IronfishNode,
+  node: FullNode,
   to: number,
   from?: number,
 ): Promise<void> => {

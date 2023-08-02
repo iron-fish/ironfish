@@ -4,7 +4,7 @@
 
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
-import { IronfishNode } from '../../../node'
+import { FullNode } from '../../../node'
 import { Transaction } from '../../../primitives'
 import { ValidationError } from '../../adapters'
 import { ApiNamespace, routes } from '../router'
@@ -37,7 +37,7 @@ routes.register<typeof BroadcastTransactionRequestSchema, BroadcastTransactionRe
   `${ApiNamespace.chain}/broadcastTransaction`,
   BroadcastTransactionRequestSchema,
   async (request, node): Promise<void> => {
-    Assert.isInstanceOf(node, IronfishNode)
+    Assert.isInstanceOf(node, FullNode)
 
     if (!node.peerNetwork.isReady) {
       throw new ValidationError('Cannot broadcast transaction. Peer network is not ready')

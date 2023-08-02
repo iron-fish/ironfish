@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
-import { IronfishNode } from '../../../node'
+import { FullNode } from '../../../node'
 import { ApiNamespace, routes } from '../router'
 import { renderChain } from './utils'
 
@@ -38,7 +38,7 @@ routes.register<typeof ShowChainRequestSchema, ShowChainResponse>(
   `${ApiNamespace.chain}/showChain`,
   ShowChainRequestSchema,
   async (request, node): Promise<void> => {
-    Assert.isInstanceOf(node, IronfishNode)
+    Assert.isInstanceOf(node, FullNode)
 
     const content = await renderChain(node.chain, request.data?.start, request.data?.stop, {
       indent: '  ',

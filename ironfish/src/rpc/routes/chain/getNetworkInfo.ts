@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
-import { IronfishNode } from '../../../node'
+import { FullNode } from '../../../node'
 import { ApiNamespace, routes } from '../router'
 
 export type GetNetworkInfoRequest = undefined
@@ -25,7 +25,7 @@ routes.register<typeof GetNetworkInfoRequestSchema, GetNetworkInfoResponse>(
   `${ApiNamespace.chain}/getNetworkInfo`,
   GetNetworkInfoRequestSchema,
   (request, node): void => {
-    Assert.isInstanceOf(node, IronfishNode)
+    Assert.isInstanceOf(node, FullNode)
 
     request.end({
       networkId: node.internal.get('networkId'),

@@ -4,7 +4,7 @@
 import { generateKeyFromPrivateKey } from '@ironfish/rust-nodejs'
 import { Logger } from '../../logger'
 import { IDatabase, IDatabaseTransaction } from '../../storage'
-import { Node } from '../../utils'
+import { IronfishNode } from '../../utils'
 import { Database, Migration } from '../migration'
 import { GetNewStores } from './022-add-view-key-account/schemaNew'
 import { GetOldStores } from './022-add-view-key-account/schemaOld'
@@ -13,12 +13,12 @@ export class Migration022 extends Migration {
   path = __filename
   database = Database.WALLET
 
-  prepare(node: Node): IDatabase {
+  prepare(node: IronfishNode): IDatabase {
     return node.wallet.walletDb.db
   }
 
   async forward(
-    node: Node,
+    node: IronfishNode,
     db: IDatabase,
     tx: IDatabaseTransaction | undefined,
     logger: Logger,
@@ -45,7 +45,7 @@ export class Migration022 extends Migration {
   }
 
   async backward(
-    node: Node,
+    node: IronfishNode,
     db: IDatabase,
     tx: IDatabaseTransaction | undefined,
     logger: Logger,

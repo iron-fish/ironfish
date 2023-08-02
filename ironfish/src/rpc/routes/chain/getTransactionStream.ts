@@ -4,7 +4,7 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { ChainProcessor } from '../../../chainProcessor'
-import { IronfishNode } from '../../../node'
+import { FullNode } from '../../../node'
 import { Block } from '../../../primitives/block'
 import { BlockHeader } from '../../../primitives/blockheader'
 import { CurrencyUtils } from '../../../utils'
@@ -127,7 +127,7 @@ routes.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
   `${ApiNamespace.chain}/getTransactionStream`,
   GetTransactionStreamRequestSchema,
   async (request, node): Promise<void> => {
-    Assert.isInstanceOf(node, IronfishNode)
+    Assert.isInstanceOf(node, FullNode)
 
     if (!isValidIncomingViewKey(request.data.incomingViewKey)) {
       throw new ValidationError(`incomingViewKey is not valid`)

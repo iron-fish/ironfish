@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
-import { IronfishNode } from '../../../node'
+import { FullNode } from '../../../node'
 import { ApiNamespace, routes } from '../router'
 
 // eslint-disable-next-line @typescript-eslint/ban-types
@@ -22,7 +22,7 @@ routes.register<typeof StopNodeRequestSchema, StopNodeResponse>(
   `${ApiNamespace.node}/stopNode`,
   StopNodeRequestSchema,
   async (request, node): Promise<void> => {
-    Assert.isInstanceOf(node, IronfishNode)
+    Assert.isInstanceOf(node, FullNode)
 
     node.logger.withTag('stopnode').info('Shutting down')
     request.end()

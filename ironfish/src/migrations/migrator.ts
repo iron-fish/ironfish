@@ -7,17 +7,17 @@ import { LogLevel } from 'consola'
 import { Assert } from '../assert'
 import { Logger } from '../logger'
 import { IDatabaseTransaction } from '../storage/database/transaction'
-import { Node, StrEnumUtils } from '../utils'
+import { IronfishNode, StrEnumUtils } from '../utils'
 import { ErrorUtils } from '../utils/error'
 import { MIGRATIONS } from './data'
 import { Database, Migration } from './migration'
 
 export class Migrator {
-  readonly node: Node
+  readonly node: IronfishNode
   readonly logger: Logger
   readonly migrations: Migration[]
 
-  constructor(options: { node: Node; logger: Logger }) {
+  constructor(options: { node: IronfishNode; logger: Logger }) {
     this.node = options.node
     this.logger = options.logger.withTag('migrator')
 

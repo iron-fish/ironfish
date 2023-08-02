@@ -5,7 +5,7 @@
 import { Asset, generateKey, Note as NativeNote } from '@ironfish/rust-nodejs'
 import { Assert } from '../assert'
 import { VerificationResultReason } from '../consensus'
-import { IronfishNode } from '../node'
+import { FullNode } from '../node'
 import { Block, Note } from '../primitives'
 import { NoteEncrypted } from '../primitives/noteEncrypted'
 import { RawTransaction } from '../primitives/rawTransaction'
@@ -1096,7 +1096,7 @@ describe('Blockchain', () => {
 
   describe('asset updates', () => {
     async function burnAsset(
-      node: IronfishNode,
+      node: FullNode,
       account: Account,
       sequence: number,
       asset: Asset,

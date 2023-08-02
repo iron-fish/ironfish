@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
-import { IronfishNode } from '../../../node'
+import { FullNode } from '../../../node'
 import { BlockchainUtils } from '../../../utils/blockchain'
 import { ApiNamespace, routes } from '../router'
 
@@ -63,7 +63,7 @@ routes.register<typeof ExportChainStreamRequestSchema, ExportChainStreamResponse
   `${ApiNamespace.chain}/exportChainStream`,
   ExportChainStreamRequestSchema,
   async (request, node): Promise<void> => {
-    Assert.isInstanceOf(node, IronfishNode)
+    Assert.isInstanceOf(node, FullNode)
     Assert.isNotNull(node.chain.head, 'head')
     Assert.isNotNull(node.chain.latest, 'latest')
 

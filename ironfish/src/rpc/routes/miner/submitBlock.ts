@@ -4,7 +4,7 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { MINED_RESULT } from '../../../mining/manager'
-import { IronfishNode } from '../../../node'
+import { FullNode } from '../../../node'
 import { SerializedBlockTemplate } from '../../../serde'
 import { ApiNamespace, routes } from '../router'
 
@@ -65,7 +65,7 @@ routes.register<typeof SubmitBlockRequestSchema, SubmitBlockResponse>(
   `${ApiNamespace.miner}/submitBlock`,
   SubmitBlockRequestSchema,
   async (request, node): Promise<void> => {
-    Assert.isInstanceOf(node, IronfishNode)
+    Assert.isInstanceOf(node, FullNode)
 
     const result = await node.miningManager.submitBlockTemplate(request.data)
 

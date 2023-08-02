@@ -6,7 +6,7 @@ import {
   DatabaseOpenError,
   ErrorUtils,
   FileUtils,
-  IronfishNode,
+  FullNode,
   IronfishPKG,
 } from '@ironfish/sdk'
 import { execSync } from 'child_process'
@@ -51,7 +51,7 @@ export default class Debug extends IronfishCommand {
     this.display(output)
   }
 
-  baseOutput(node: IronfishNode): Map<string, string> {
+  baseOutput(node: FullNode): Map<string, string> {
     const cpus = os.cpus()
     const cpuNames = [...new Set(cpus.map((c) => c.model))]
     const cpuThreads = cpus.length
@@ -91,7 +91,7 @@ export default class Debug extends IronfishCommand {
     ])
   }
 
-  async outputRequiringDB(node: IronfishNode): Promise<Map<string, string>> {
+  async outputRequiringDB(node: FullNode): Promise<Map<string, string>> {
     const output = new Map<string, string>()
 
     const headHashes = new Map<string, Buffer | null>()

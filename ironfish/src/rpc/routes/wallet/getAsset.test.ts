@@ -4,7 +4,7 @@
 
 import '../../../testUtilities/matchers'
 import { Asset } from '@ironfish/rust-nodejs'
-import { IronfishNode } from '../../../node'
+import { FullNode } from '../../../node'
 import { Block, Transaction } from '../../../primitives'
 import {
   useAccountFixture,
@@ -26,7 +26,7 @@ describe('Route chain.getAsset', () => {
   }: {
     name: string
     value: bigint
-    node: IronfishNode
+    node: FullNode
     account: SpendingAccount
   }): Promise<{ asset: Asset; pendingMint: Transaction }> => {
     const asset = new Asset(account.publicAddress, name, 'metadata')
@@ -54,7 +54,7 @@ describe('Route chain.getAsset', () => {
   }: {
     name: string
     value: bigint
-    node: IronfishNode
+    node: FullNode
     account: SpendingAccount
   }): Promise<{ asset: Asset; mintBlock: Block }> => {
     const asset = new Asset(account.publicAddress, name, 'metadata')

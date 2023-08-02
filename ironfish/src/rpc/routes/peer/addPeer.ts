@@ -4,7 +4,7 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { DEFAULT_WEBSOCKET_PORT } from '../../../fileStores/config'
-import { IronfishNode } from '../../../node'
+import { FullNode } from '../../../node'
 import { ApiNamespace, routes } from '../router'
 
 export type AddPeerRequest = {
@@ -36,7 +36,7 @@ routes.register<typeof AddPeerRequestSchema, AddPeerResponse>(
   `${ApiNamespace.peer}/addPeer`,
   AddPeerRequestSchema,
   (request, node): void => {
-    Assert.isInstanceOf(node, IronfishNode)
+    Assert.isInstanceOf(node, FullNode)
 
     const peerManager = node.peerNetwork.peerManager
     const { host, port, whitelist } = request.data

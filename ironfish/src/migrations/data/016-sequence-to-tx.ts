@@ -4,7 +4,7 @@
 
 import { Logger } from '../../logger'
 import { IDatabase, IDatabaseTransaction } from '../../storage'
-import { Node } from '../../utils'
+import { IronfishNode } from '../../utils'
 import { Database, Migration } from '../migration'
 import { GetOldAccounts } from './021-add-version-to-accounts/schemaOld'
 
@@ -12,12 +12,12 @@ export class Migration016 extends Migration {
   path = __filename
   database = Database.WALLET
 
-  prepare(node: Node): IDatabase {
+  prepare(node: IronfishNode): IDatabase {
     return node.wallet.walletDb.db
   }
 
   async forward(
-    node: Node,
+    node: IronfishNode,
     db: IDatabase,
     tx: IDatabaseTransaction | undefined,
     logger: Logger,
@@ -50,7 +50,7 @@ export class Migration016 extends Migration {
     }
   }
 
-  async backward(node: Node): Promise<void> {
+  async backward(node: IronfishNode): Promise<void> {
     await node.wallet.walletDb.sequenceToTransactionHash.clear()
   }
 }

@@ -8,7 +8,7 @@ import {
   Transaction as NativeTransaction,
 } from '@ironfish/rust-nodejs'
 import { Logger } from '../logger'
-import { IronfishNode } from '../node'
+import { FullNode } from '../node'
 import { Block, BlockHeader } from '../primitives'
 import { transactionCommitment } from '../primitives/blockheader'
 import { Transaction } from '../primitives/transaction'
@@ -17,7 +17,7 @@ import { Account } from '../wallet'
 import { GenesisBlockAllocation } from './makeGenesisBlock'
 
 export async function addGenesisTransaction(
-  node: IronfishNode,
+  node: FullNode,
   account: Account,
   allocations: GenesisBlockAllocation[],
   logger: Logger,

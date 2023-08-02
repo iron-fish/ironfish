@@ -15,7 +15,7 @@ import {
   getTransactionSize,
   MINERS_FEE_TRANSACTION_SIZE_BYTES,
 } from '../network/utils/serializers'
-import { IronfishNode } from '../node'
+import { FullNode } from '../node'
 import { Block } from '../primitives/block'
 import { isBlockHeavier } from '../primitives/blockheader'
 import { Transaction } from '../primitives/transaction'
@@ -37,7 +37,7 @@ export enum MINED_RESULT {
 export class MiningManager {
   private readonly chain: Blockchain
   private readonly memPool: MemPool
-  private readonly node: IronfishNode
+  private readonly node: FullNode
   private readonly metrics: MetricsMonitor
   private readonly minersFeeCache: MinersFeeCache
 
@@ -53,7 +53,7 @@ export class MiningManager {
 
   constructor(options: {
     chain: Blockchain
-    node: IronfishNode
+    node: FullNode
     memPool: MemPool
     metrics: MetricsMonitor
   }) {

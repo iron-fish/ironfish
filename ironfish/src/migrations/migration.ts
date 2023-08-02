@@ -5,7 +5,7 @@
 import { FileSystem } from '../fileSystems'
 import { Logger } from '../logger'
 import { IDatabase, IDatabaseTransaction } from '../storage'
-import { Node } from '../utils'
+import { IronfishNode } from '../utils'
 
 export enum Database {
   WALLET = 'wallet',
@@ -30,10 +30,10 @@ export abstract class Migration {
     return this
   }
 
-  abstract prepare(node: Node): Promise<IDatabase> | IDatabase
+  abstract prepare(node: IronfishNode): Promise<IDatabase> | IDatabase
 
   abstract forward(
-    node: Node,
+    node: IronfishNode,
     db: IDatabase,
     tx: IDatabaseTransaction | undefined,
     logger: Logger,
@@ -41,7 +41,7 @@ export abstract class Migration {
   ): Promise<void>
 
   abstract backward(
-    node: Node,
+    node: IronfishNode,
     db: IDatabase,
     tx: IDatabaseTransaction | undefined,
     logger: Logger,

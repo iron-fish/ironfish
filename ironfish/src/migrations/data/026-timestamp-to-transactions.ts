@@ -4,7 +4,7 @@
 import { Logger } from '../../logger'
 import { IDatabase, IDatabaseTransaction } from '../../storage'
 import { createDB } from '../../storage/utils'
-import { Node } from '../../utils'
+import { IronfishNode } from '../../utils'
 import { Account } from '../../wallet'
 import { Database, Migration } from '../migration'
 import { GetStores } from './026-timestamp-to-transactions/stores'
@@ -13,12 +13,12 @@ export class Migration026 extends Migration {
   path = __filename
   database = Database.WALLET
 
-  prepare(node: Node): IDatabase {
+  prepare(node: IronfishNode): IDatabase {
     return createDB({ location: node.config.walletDatabasePath })
   }
 
   async forward(
-    node: Node,
+    node: IronfishNode,
     db: IDatabase,
     _tx: IDatabaseTransaction | undefined,
     logger: Logger,
@@ -68,7 +68,7 @@ export class Migration026 extends Migration {
     logger.info('')
   }
 
-  async backward(node: Node, db: IDatabase): Promise<void> {
+  async backward(node: IronfishNode, db: IDatabase): Promise<void> {
     const accounts = []
     const stores = GetStores(db)
 

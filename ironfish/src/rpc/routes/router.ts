@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../../assert'
-import { Node, YupSchema, YupSchemaResult, YupUtils } from '../../utils'
+import { IronfishNode, YupSchema, YupSchemaResult, YupUtils } from '../../utils'
 import { StrEnumUtils } from '../../utils/enums'
 import { ERROR_CODES } from '../adapters'
 import { ResponseError, ValidationError } from '../adapters/errors'
@@ -25,7 +25,7 @@ export enum ApiNamespace {
 
 export const ALL_API_NAMESPACES = StrEnumUtils.getValues(ApiNamespace)
 
-export type RequestContext = Node
+export type RequestContext = IronfishNode
 
 export type RouteHandler<TRequest = unknown, TResponse = unknown> = (
   request: RpcRequest<TRequest, TResponse>,

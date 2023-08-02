@@ -22,7 +22,7 @@ import { MetricsMonitor } from './metrics'
 import { PrivateIdentity } from './network/identity'
 import { IsomorphicWebSocketConstructor } from './network/types'
 import { WebSocketClient } from './network/webSocketClient'
-import { IronfishNode } from './node'
+import { FullNode } from './node'
 import { IronfishPKG, Package } from './package'
 import { Platform } from './platform'
 import { RpcHttpAdapter, RpcSocketClient, RpcTlsAdapter } from './rpc'
@@ -182,10 +182,10 @@ export class IronfishSdk {
   }: {
     autoSeed?: boolean
     privateIdentity?: PrivateIdentity
-  } = {}): Promise<IronfishNode> {
+  } = {}): Promise<FullNode> {
     const webSocket = WebSocketClient as IsomorphicWebSocketConstructor
 
-    const node = await IronfishNode.init({
+    const node = await FullNode.init({
       pkg: this.pkg,
       config: this.config,
       internal: this.internal,

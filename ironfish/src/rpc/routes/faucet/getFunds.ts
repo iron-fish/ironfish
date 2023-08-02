@@ -4,7 +4,7 @@
 import { AxiosError } from 'axios'
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
-import { IronfishNode } from '../../../node'
+import { FullNode } from '../../../node'
 import { WebApi } from '../../../webApi'
 import { ERROR_CODES, ResponseError } from '../../adapters'
 import { ApiNamespace, routes } from '../router'
@@ -30,7 +30,7 @@ routes.register<typeof GetFundsRequestSchema, GetFundsResponse>(
   `${ApiNamespace.faucet}/getFunds`,
   GetFundsRequestSchema,
   async (request, node): Promise<void> => {
-    Assert.isInstanceOf(node, IronfishNode)
+    Assert.isInstanceOf(node, FullNode)
     // check node network id
     const networkId = node.internal.get('networkId')
 

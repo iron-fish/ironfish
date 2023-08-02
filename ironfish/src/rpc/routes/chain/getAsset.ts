@@ -4,7 +4,7 @@
 import { ASSET_ID_LENGTH } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
-import { IronfishNode } from '../../../node'
+import { FullNode } from '../../../node'
 import { CurrencyUtils } from '../../../utils'
 import { NotFoundError, ValidationError } from '../../adapters'
 import { ApiNamespace, routes } from '../router'
@@ -46,7 +46,7 @@ routes.register<typeof GetAssetRequestSchema, GetAssetResponse>(
   `${ApiNamespace.chain}/getAsset`,
   GetAssetRequestSchema,
   async (request, node): Promise<void> => {
-    Assert.isInstanceOf(node, IronfishNode)
+    Assert.isInstanceOf(node, FullNode)
 
     const id = Buffer.from(request.data.id, 'hex')
 

@@ -3,18 +3,18 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Assert } from '../../assert'
-import { IronfishNode } from '../../node'
+import { FullNode } from '../../node'
 import { IDatabase } from '../../storage'
 import { createDB } from '../../storage/utils'
-import { Node } from '../../utils'
+import { IronfishNode } from '../../utils'
 import { Database, Migration } from '../migration'
 
 export class Migration014 extends Migration {
   path = __filename
   database = Database.BLOCKCHAIN
 
-  async prepare(node: Node): Promise<IDatabase> {
-    Assert.isInstanceOf(node, IronfishNode)
+  async prepare(node: IronfishNode): Promise<IDatabase> {
+    Assert.isInstanceOf(node, FullNode)
     await node.files.mkdir(node.chain.location, { recursive: true })
     return createDB({ location: node.chain.location })
   }
