@@ -2,10 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset, generateKey, Note as NativeNote } from '@ironfish/rust-nodejs'
-import { Witness } from '../merkletree'
-import { NoteHasher } from '../merkletree/hasher'
-import { Side } from '../merkletree/merkletree'
-import { useAccountFixture, useTxFixture } from '../testUtilities'
+import { makeFakeWitness, useAccountFixture, useTxFixture } from '../testUtilities'
 import { createNodeTest } from '../testUtilities/nodeTest'
 import { SpendingAccount } from '../wallet'
 import { Note } from './note'
@@ -47,27 +44,17 @@ function createTestRawTransaction(
     raw.fee = 1337n
   }
 
-  const witness = new Witness(
-    0,
-    Buffer.alloc(32, 1),
-    [
-      { side: Side.Left, hashOfSibling: Buffer.alloc(32, 2) },
-      { side: Side.Right, hashOfSibling: Buffer.alloc(32, 3) },
-      { side: Side.Left, hashOfSibling: Buffer.alloc(32, 4) },
-      { side: Side.Right, hashOfSibling: Buffer.alloc(32, 5) },
-    ],
-    new NoteHasher(),
-  )
-
   const note = new Note(
     new NativeNote(
-      generateKey().publicAddress,
+      account.publicAddress,
       123456789n,
       'some memo',
       Asset.nativeId(),
-      account.publicAddress,
+      generateKey().publicAddress,
     ).serialize(),
   )
+
+  const witness = makeFakeWitness(note)
 
   raw.spends.push({ note, witness })
 
@@ -111,26 +98,29 @@ function createTestRawTransaction(
 
     const burnNoteA = new Note(
       new NativeNote(
-        generateKey().publicAddress,
+        account.publicAddress,
         123456789n,
         'some memo',
         TEST_ASSET_ID_1,
-        account.publicAddress,
+        generateKey().publicAddress,
       ).serialize(),
     )
 
     const burnNoteB = new Note(
       new NativeNote(
-        generateKey().publicAddress,
+        account.publicAddress,
         123456789n,
         'some memo',
         TEST_ASSET_ID_2,
-        account.publicAddress,
+        generateKey().publicAddress,
       ).serialize(),
     )
 
-    raw.spends.push({ note: burnNoteA, witness })
-    raw.spends.push({ note: burnNoteB, witness })
+    const burnNoteAWitness = makeFakeWitness(burnNoteA)
+    const burnNoteBWitness = makeFakeWitness(burnNoteB)
+
+    raw.spends.push({ note: burnNoteA, witness: burnNoteAWitness })
+    raw.spends.push({ note: burnNoteB, witness: burnNoteBWitness })
   }
 
   if (options.withOutputs) {
