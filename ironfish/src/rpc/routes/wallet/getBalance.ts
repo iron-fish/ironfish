@@ -77,7 +77,7 @@ routes.register<typeof GetBalanceRequestSchema, GetBalanceResponse>(
     request.end({
       account: account.name,
       assetId: assetId.toString('hex'),
-      assetVerification: node.wallet.assetsVerifier.verify(assetId),
+      assetVerification: node.assetsVerifier.verify(assetId),
       confirmed: balance.confirmed.toString(),
       unconfirmed: balance.unconfirmed.toString(),
       unconfirmedCount: balance.unconfirmedCount,

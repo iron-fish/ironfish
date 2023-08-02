@@ -5,7 +5,6 @@ import { Asset, generateKey, Note as NativeNote } from '@ironfish/rust-nodejs'
 import { BufferMap, BufferSet } from 'buffer-map'
 import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
-import { AssetsVerifier } from '../assets'
 import { Consensus, isExpiredSequence, Verifier } from '../consensus'
 import { Event } from '../event'
 import { Config } from '../fileStores'
@@ -77,13 +76,12 @@ export class Wallet {
 
   protected readonly accounts = new Map<string, Account>()
   readonly walletDb: WalletDB
-  readonly logger: Logger
+  private readonly logger: Logger
   readonly workerPool: WorkerPool
   readonly chainProcessor: RemoteChainProcessor
   readonly nodeClient: RpcClient
   private readonly config: Config
-  readonly consensus: Consensus
-  readonly assetsVerifier: AssetsVerifier
+  private readonly consensus: Consensus
 
   protected rebroadcastAfter: number
   protected defaultAccount: string | null = null
@@ -103,7 +101,6 @@ export class Wallet {
     workerPool,
     consensus,
     nodeClient,
-    assetsVerifier,
   }: {
     config: Config
     database: WalletDB
@@ -112,7 +109,6 @@ export class Wallet {
     workerPool: WorkerPool
     consensus: Consensus
     nodeClient: RpcClient
-    assetsVerifier: AssetsVerifier
   }) {
     this.config = config
     this.logger = logger.withTag('accounts')
@@ -120,7 +116,6 @@ export class Wallet {
     this.workerPool = workerPool
     this.consensus = consensus
     this.nodeClient = nodeClient
-    this.assetsVerifier = assetsVerifier
     this.rebroadcastAfter = rebroadcastAfter ?? 10
     this.createTransactionMutex = new Mutex()
     this.eventLoopAbortController = new AbortController()

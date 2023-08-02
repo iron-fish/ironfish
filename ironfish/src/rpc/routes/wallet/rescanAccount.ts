@@ -65,7 +65,7 @@ routes.register<typeof RescanAccountRequestSchema, RescanAccountResponse>(
       scan = node.wallet.scan
 
       if (!scan) {
-        node.wallet.logger.warn(`Attempted to start accounts scan but one did not start.`)
+        node.logger.warn(`Attempted to start accounts scan but one did not start.`)
       }
     }
 

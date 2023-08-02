@@ -296,7 +296,6 @@ export class FullNode {
       workerPool,
       consensus,
       nodeClient: memoryClient,
-      assetsVerifier,
     })
 
     const node = new FullNode({

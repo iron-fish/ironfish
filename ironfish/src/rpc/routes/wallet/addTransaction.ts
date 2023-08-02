@@ -41,7 +41,7 @@ routes.register<typeof AddTransactionRequestSchema, AddTransactionResponse>(
     const data = Buffer.from(request.data.transaction, 'hex')
     const transaction = new Transaction(data)
 
-    const verify = Verifier.verifyCreatedTransaction(transaction, node.wallet.consensus)
+    const verify = Verifier.verifyCreatedTransaction(transaction, node.strategy.consensus)
 
     if (!verify.valid) {
       throw new ValidationError(`Invalid transaction, reason: ${String(verify.reason)}`, 400)
