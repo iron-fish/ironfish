@@ -66,7 +66,7 @@ export type RpcTransaction = {
   size: number
   fee: number
   expiration: number
-  notes: { commitment: string }[]
+  notes: { serialized?: string; commitment: string }[]
   spends: RpcSpend[]
   mints: RpcMint[]
   burns: RpcBurn[]
@@ -84,6 +84,7 @@ export const RpcTransactionSchema: yup.ObjectSchema<RpcTransaction> = yup
         yup
           .object({
             commitment: yup.string().defined(),
+            serialized: yup.string().optional(),
           })
           .defined(),
       )
