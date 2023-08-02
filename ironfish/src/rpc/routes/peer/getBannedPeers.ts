@@ -4,6 +4,7 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { PeerNetwork } from '../../../network'
+import { IronfishNode } from '../../../node'
 import { ApiNamespace, routes } from '../router'
 
 export type BannedPeerResponse = {
@@ -46,8 +47,8 @@ export const GetBannedPeersResponseSchema: yup.ObjectSchema<GetBannedPeersRespon
 routes.register<typeof GetBannedPeersRequestSchema, GetBannedPeersResponse>(
   `${ApiNamespace.peer}/getBannedPeers`,
   GetBannedPeersRequestSchema,
-  (request, { node }): void => {
-    Assert.isNotUndefined(node)
+  (request, node): void => {
+    Assert.isInstanceOf(node, IronfishNode)
 
     const peerNetwork = node.peerNetwork
 

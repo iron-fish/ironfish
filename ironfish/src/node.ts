@@ -59,7 +59,7 @@ export class IronfishNode {
   shutdownPromise: Promise<void> | null = null
   shutdownResolve: (() => void) | null = null
 
-  private constructor({
+  constructor({
     pkg,
     chain,
     files,
@@ -75,7 +75,7 @@ export class IronfishNode {
     privateIdentity,
     hostsStore,
     networkId,
-    verifiedAssetsCache,
+    assetsVerifier,
   }: {
     pkg: Package
     files: FileSystem
@@ -92,7 +92,7 @@ export class IronfishNode {
     privateIdentity?: PrivateIdentity
     hostsStore: HostsStore
     networkId: number
-    verifiedAssetsCache: VerifiedAssetsCacheStore
+    assetsVerifier: AssetsVerifier
   }) {
     this.files = files
     this.config = config
@@ -104,7 +104,7 @@ export class IronfishNode {
     this.miningManager = new MiningManager({ chain, memPool, node: this, metrics })
     this.memPool = memPool
     this.workerPool = workerPool
-    this.rpc = new RpcServer({ node: this, wallet }, internal)
+    this.rpc = new RpcServer(this, internal)
     this.logger = logger
     this.pkg = pkg
 
@@ -178,11 +178,7 @@ export class IronfishNode {
       blocksPerMessage: config.get('blocksPerMessage'),
     })
 
-    this.assetsVerifier = new AssetsVerifier({
-      apiUrl: config.get('assetVerificationApi'),
-      cache: verifiedAssetsCache,
-      logger,
-    })
+    this.assetsVerifier = assetsVerifier
 
     this.config.onConfigChange.on((key, value) => this.onConfigChange(key, value))
   }
@@ -230,6 +226,12 @@ export class IronfishNode {
 
     const verifiedAssetsCache = new VerifiedAssetsCacheStore(files, dataDir)
     await verifiedAssetsCache.load()
+
+    const assetsVerifier = new AssetsVerifier({
+      apiUrl: config.get('assetVerificationApi'),
+      cache: verifiedAssetsCache,
+      logger,
+    })
 
     let workers = config.get('nodeWorkers')
     if (workers === -1) {
@@ -297,12 +299,12 @@ export class IronfishNode {
     const memoryClient = new RpcMemoryClient(logger)
 
     const wallet = new Wallet({
-      chain,
       config,
       database: walletDB,
       workerPool,
       consensus,
       nodeClient: memoryClient,
+      assetsVerifier,
     })
 
     const node = new IronfishNode({
@@ -321,7 +323,7 @@ export class IronfishNode {
       privateIdentity,
       hostsStore,
       networkId: networkDefinition.id,
-      verifiedAssetsCache,
+      assetsVerifier,
     })
 
     memoryClient.router = node.rpc.getRouter(ALL_API_NAMESPACES)

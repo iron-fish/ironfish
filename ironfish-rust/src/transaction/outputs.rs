@@ -290,6 +290,74 @@ mod test {
     }
 
     #[test]
+    fn test_output_builder() {
+        let spender_key = SaplingKey::generate_key();
+        let receiver_key = SaplingKey::generate_key();
+
+        let public_key_randomness = jubjub::Fr::random(thread_rng());
+        let randomized_public_key =
+            redjubjub::PublicKey(spender_key.view_key.authorizing_key.into())
+                .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);
+
+        let other_public_key_randomness = jubjub::Fr::random(thread_rng());
+        let other_randomized_public_key =
+            redjubjub::PublicKey(receiver_key.view_key.authorizing_key.into())
+                .randomize(other_public_key_randomness, *SPENDING_KEY_GENERATOR);
+
+        let note = Note::new(
+            receiver_key.public_address(),
+            42,
+            "",
+            NATIVE_ASSET,
+            spender_key.public_address(),
+        );
+
+        let output = OutputBuilder::new(note);
+        let description = output
+            .build(&spender_key, &public_key_randomness, &randomized_public_key)
+            .expect("should be able to build output proof");
+
+        verify_output_proof(
+            &description.proof,
+            &description.public_inputs(&randomized_public_key),
+        )
+        .expect("should be able to verify proof");
+
+        // Wrong spender key
+        assert!(output
+            .build(
+                &receiver_key,
+                &public_key_randomness,
+                &randomized_public_key
+            )
+            .is_err());
+
+        // Wrong public key randomness
+        assert!(output
+            .build(
+                &spender_key,
+                &other_public_key_randomness,
+                &randomized_public_key
+            )
+            .is_err());
+
+        // Wrong randomized public key
+        assert!(output
+            .build(
+                &spender_key,
+                &public_key_randomness,
+                &other_randomized_public_key
+            )
+            .is_err());
+
+        assert!(verify_output_proof(
+            &description.proof,
+            &description.public_inputs(&other_randomized_public_key),
+        )
+        .is_err());
+    }
+
+    #[test]
     fn test_output_round_trip() {
         let spender_key = SaplingKey::generate_key();
         let receiver_key = SaplingKey::generate_key();

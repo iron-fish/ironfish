@@ -5,6 +5,7 @@ import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { ChainProcessor } from '../../../chainProcessor'
 import { getBlockSize, getTransactionSize } from '../../../network/utils/serializers'
+import { IronfishNode } from '../../../node'
 import { Block, BlockHeader } from '../../../primitives'
 import { BlockHashSerdeInstance } from '../../../serde'
 import { BufferUtils, PromiseUtils } from '../../../utils'
@@ -15,6 +16,7 @@ export type FollowChainStreamRequest =
   | {
       head?: string | null
       serialized?: boolean
+      wait?: boolean
     }
   | undefined
 
@@ -42,6 +44,7 @@ export const FollowChainStreamRequestSchema: yup.ObjectSchema<FollowChainStreamR
   .object({
     head: yup.string().nullable().optional(),
     serialized: yup.boolean().optional(),
+    wait: yup.boolean().optional().default(true),
   })
   .optional()
 
@@ -74,8 +77,8 @@ export const FollowChainStreamResponseSchema: yup.ObjectSchema<FollowChainStream
 routes.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse>(
   `${ApiNamespace.chain}/followChainStream`,
   FollowChainStreamRequestSchema,
-  async (request, { node }): Promise<void> => {
-    Assert.isNotUndefined(node)
+  async (request, node): Promise<void> => {
+    Assert.isInstanceOf(node, IronfishNode)
     const head = request.data?.head ? Buffer.from(request.data.head, 'hex') : null
 
     const processor = new ChainProcessor({
@@ -135,6 +138,13 @@ routes.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
       })
     }
 
+    const onClose = () => {
+      abortController.abort()
+      processor.onAdd.clear()
+      processor.onRemove.clear()
+      node.chain.onForkBlock.clear()
+    }
+
     const onAdd = async (header: BlockHeader) => {
       const block = await node.chain.getBlock(header)
       Assert.isNotNull(block)
@@ -156,15 +166,16 @@ routes.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
     node.chain.onForkBlock.on(onFork)
     const abortController = new AbortController()
 
-    request.onClose.on(() => {
-      abortController.abort()
-      processor.onAdd.off(onAdd)
-      processor.onRemove.off(onRemove)
-      node.chain.onForkBlock.off(onFork)
-    })
+    request.onClose.on(onClose)
 
     while (!request.closed) {
       await processor.update({ signal: abortController.signal })
+
+      if (!request.data?.wait) {
+        onClose()
+        request.end()
+      }
+
       await PromiseUtils.sleep(1000)
     }
 

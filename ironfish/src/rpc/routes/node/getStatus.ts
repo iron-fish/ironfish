@@ -255,8 +255,8 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetNodeStatusResponse> = 
 routes.register<typeof GetStatusRequestSchema, GetNodeStatusResponse>(
   `${ApiNamespace.node}/getStatus`,
   GetStatusRequestSchema,
-  async (request, { node }): Promise<void> => {
-    Assert.isNotUndefined(node)
+  async (request, node): Promise<void> => {
+    Assert.isInstanceOf(node, IronfishNode)
 
     const status = getStatus(node)
 

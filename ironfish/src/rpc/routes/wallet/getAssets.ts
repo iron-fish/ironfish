@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { Assert } from '../../../assert'
 import { AssetVerification } from '../../../assets'
 import { CurrencyUtils } from '../../../utils'
 import { ApiNamespace, routes } from '../router'
@@ -50,9 +49,7 @@ export const GetAssetsResponseSchema: yup.ObjectSchema<GetAssetsResponse> = yup
 routes.register<typeof GetAssetsRequestSchema, GetAssetsResponse>(
   `${ApiNamespace.wallet}/getAssets`,
   GetAssetsRequestSchema,
-  async (request, { node }): Promise<void> => {
-    Assert.isNotUndefined(node)
-
+  async (request, node): Promise<void> => {
     const account = getAccount(node.wallet, request.data.account)
 
     for await (const asset of account.getAssets()) {
@@ -70,7 +67,7 @@ routes.register<typeof GetAssetsRequestSchema, GetAssetsResponse>(
           confirmations: request.data.confirmations,
         }),
         supply: asset.supply !== null ? CurrencyUtils.encode(asset.supply) : undefined,
-        verification: node.assetsVerifier.verify(asset.id),
+        verification: node.wallet.assetsVerifier.verify(asset.id),
       })
     }
 

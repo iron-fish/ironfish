@@ -106,14 +106,11 @@ describe('Route wallet/rescanAccount', () => {
     const chain = routeTest.node.chain
 
     const block2 = await useMinerBlockFixture(chain, 2)
+    await expect(chain).toAddBlock(block2)
 
     const scanTransactions = jest
       .spyOn(routeTest.node.wallet, 'scanTransactions')
       .mockReturnValue(Promise.resolve())
-
-    const getHeaderAtSequence = jest
-      .spyOn(routeTest.node.chain, 'getHeaderAtSequence')
-      .mockReturnValue(Promise.resolve(block2.header))
 
     const updateHead = jest.spyOn(account, 'updateHead').mockReturnValue(Promise.resolve())
 
@@ -125,7 +122,6 @@ describe('Route wallet/rescanAccount', () => {
       .waitForEnd()
 
     expect(reset).toHaveBeenCalledTimes(1)
-    expect(getHeaderAtSequence).toHaveBeenCalledWith(2)
     expect(updateHead).toHaveBeenCalledWith({
       hash: block2.header.previousBlockHash,
       sequence: 1,

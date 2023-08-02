@@ -47,7 +47,7 @@ describe('Verifier', () => {
     })
 
     it('returns false on miners transactions', async () => {
-      const tx = await useMinersTxFixture(nodeTest.wallet)
+      const tx = await useMinersTxFixture(nodeTest.node)
       const serialized = tx.serialize()
 
       const result = await nodeTest.chain.verifier.verifyNewTransaction(
@@ -205,7 +205,7 @@ describe('Verifier', () => {
     it('rejects a block with miners fee as second transaction', async () => {
       const account = await useAccountFixture(nodeTest.node.wallet, 'accountA')
       const { block } = await useBlockWithTx(nodeTest.node)
-      block.transactions[1] = await useMinersTxFixture(nodeTest.wallet, account, undefined, 0)
+      block.transactions[1] = await useMinersTxFixture(nodeTest.node, account, undefined, 0)
       block.header.transactionCommitment = transactionCommitment(block.transactions)
 
       expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({

@@ -100,22 +100,22 @@ export async function useTxFixture(
 }
 
 export async function useMinersTxFixture(
-  wallet: Wallet,
+  node: IronfishNode,
   to?: Account,
   sequence?: number,
   amount = 0,
 ): Promise<Transaction> {
   if (!to) {
-    to = await useAccountFixture(wallet)
+    to = await useAccountFixture(node.wallet)
   }
 
-  return useTxFixture(wallet, to, to, () => {
+  return useTxFixture(node.wallet, to, to, () => {
     Assert.isNotUndefined(to)
     Assert.isNotNull(to.spendingKey)
 
-    return wallet.chain.strategy.createMinersFee(
+    return node.chain.strategy.createMinersFee(
       BigInt(amount),
-      sequence || wallet.chain.head.sequence + 1,
+      sequence || node.chain.head.sequence + 1,
       to.spendingKey,
     )
   })

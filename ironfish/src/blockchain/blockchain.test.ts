@@ -593,7 +593,7 @@ describe('Blockchain', () => {
 
     it(`throws if the notes tree size is greater than the previous block's note tree size`, async () => {
       const account = await useAccountFixture(nodeTest.wallet)
-      const tx = await useMinersTxFixture(nodeTest.wallet, account)
+      const tx = await useMinersTxFixture(nodeTest.node, account)
       const block = await useMinerBlockFixture(nodeTest.chain)
 
       await nodeTest.chain.addNote(tx.getNote(0))
@@ -605,7 +605,7 @@ describe('Blockchain', () => {
   })
 
   it('newBlock throws an error if the provided transactions are invalid', async () => {
-    const minersFee = await useMinersTxFixture(nodeTest.wallet)
+    const minersFee = await useMinersTxFixture(nodeTest.node)
 
     jest.spyOn(nodeTest.verifier['workerPool'], 'verifyTransactions').mockResolvedValue({
       valid: false,
@@ -753,6 +753,71 @@ describe('Blockchain', () => {
     })
   })
 
+  it('should create a block successfully', async () => {
+    const { node, chain } = await nodeTest.createSetup()
+
+    const accountA = await useAccountFixture(node.wallet, 'accountA')
+
+    const block2 = await useMinerBlockFixture(chain, undefined, accountA)
+    await expect(chain).toAddBlock(block2)
+
+    await node.wallet.updateHead()
+
+    const minersFeeTx = await useMinersTxFixture(node, accountA, undefined, 0)
+    const tx = await useTxFixture(node.wallet, accountA, accountA)
+
+    const newBlock = await chain.newBlock([tx], minersFeeTx, undefined, chain.head)
+    expect(newBlock.transactions.length).toEqual(2)
+    expect(newBlock.transactions[0]).toEqual(minersFeeTx)
+    expect(newBlock.transactions[1]).toEqual(tx)
+    expect(newBlock.header.sequence).toBeDefined()
+    expect(newBlock.header.target.targetValue).toBeDefined()
+    expect(newBlock.header.noteSize).toBeDefined()
+    expect(newBlock.header.timestamp.getTime()).toBeGreaterThan(chain.head.timestamp.getTime())
+  })
+
+  it('should create a block when clock is behind', async () => {
+    const { node, chain } = await nodeTest.createSetup()
+
+    const accountA = await useAccountFixture(node.wallet, 'accountA')
+
+    const block2 = await useMinerBlockFixture(chain, undefined, accountA)
+    await expect(chain).toAddBlock(block2)
+
+    await node.wallet.updateHead()
+
+    const minersFeeTx = await useMinersTxFixture(node, accountA, undefined, 0)
+    const tx = await useTxFixture(node.wallet, accountA, accountA)
+
+    jest
+      .spyOn(global.Date, 'now')
+      .mockImplementationOnce(() => chain.head.timestamp.getTime() - 2000)
+
+    const newBlock = await chain.newBlock([tx], minersFeeTx, undefined, chain.head)
+    expect(newBlock.header.timestamp.getTime()).toEqual(chain.head.timestamp.getTime() + 1)
+  })
+
+  it('should create a block when clock is in the future', async () => {
+    const { node, chain } = await nodeTest.createSetup()
+
+    const accountA = await useAccountFixture(node.wallet, 'accountA')
+
+    const block2 = await useMinerBlockFixture(chain, undefined, accountA)
+    await expect(chain).toAddBlock(block2)
+
+    await node.wallet.updateHead()
+
+    const minersFeeTx = await useMinersTxFixture(node, accountA, undefined, 0)
+    const tx = await useTxFixture(node.wallet, accountA, accountA)
+
+    jest
+      .spyOn(global.Date, 'now')
+      .mockImplementationOnce(() => chain.head.timestamp.getTime() + 2000)
+
+    const newBlock = await chain.newBlock([tx], minersFeeTx, undefined, chain.head)
+    expect(newBlock.header.timestamp.getTime()).toEqual(chain.head.timestamp.getTime() + 2000)
+  })
+
   it('reject block with null previous hash', async () => {
     const { node } = await nodeTest.createSetup()
     const block = await useMinerBlockFixture(node.chain)
@@ -838,7 +903,7 @@ describe('Blockchain', () => {
 
     const asset = new Asset(accountA.publicAddress, 'test asset', '')
 
-    const minersFeeTx = await useMinersTxFixture(wallet, accountA, undefined, 1)
+    const minersFeeTx = await useMinersTxFixture(node, accountA, undefined, 1)
     const tx = await useTxFixture(wallet, accountA, accountA, async () => {
       return await wallet.mint(accountA, {
         fee: 0n,

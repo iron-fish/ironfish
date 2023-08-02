@@ -51,8 +51,8 @@ export const GetMempoolStatusResponseSchema: yup.ObjectSchema<GetMempoolStatusRe
 routes.register<typeof GetMempoolStatusRequestSchema, GetMempoolStatusResponse>(
   `${ApiNamespace.mempool}/getStatus`,
   GetMempoolStatusRequestSchema,
-  async (request, { node }): Promise<void> => {
-    Assert.isNotUndefined(node)
+  async (request, node): Promise<void> => {
+    Assert.isInstanceOf(node, IronfishNode)
 
     const status = getStatus(node)
 

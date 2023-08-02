@@ -131,6 +131,7 @@ import {
   IsValidPublicAddressRequest,
   IsValidPublicAddressResponse,
 } from '../routes/chain/isValidPublicAddress'
+import { GetWalletAssetRequest, GetWalletAssetResponse } from '../routes/wallet/getAsset'
 import { GetNotesRequest, GetNotesResponse } from '../routes/wallet/getNotes'
 
 export abstract class RpcClient {
@@ -318,6 +319,15 @@ export abstract class RpcClient {
       ).waitForEnd()
     },
 
+    getAsset: (
+      params: GetWalletAssetRequest,
+    ): Promise<RpcResponseEnded<GetWalletAssetResponse>> => {
+      return this.request<GetWalletAssetResponse>(
+        `${ApiNamespace.wallet}/getAsset`,
+        params,
+      ).waitForEnd()
+    },
+
     mintAsset: (params: MintAssetRequest): Promise<RpcResponseEnded<MintAssetResponse>> => {
       return this.request<MintAssetResponse>(
         `${ApiNamespace.wallet}/mintAsset`,
@@ -370,6 +380,30 @@ export abstract class RpcClient {
         `${ApiNamespace.wallet}/createTransaction`,
         params,
       ).waitForEnd()
+    },
+
+    estimateFeeRates: (
+      params?: EstimateFeeRatesRequest,
+    ): Promise<RpcResponseEnded<EstimateFeeRatesResponse>> => {
+      return this.request<EstimateFeeRatesResponse>(
+        `${ApiNamespace.wallet}/estimateFeeRates`,
+        params,
+      ).waitForEnd()
+    },
+
+    getNodeStatus: (
+      params: GetNodeStatusRequest = undefined,
+    ): Promise<RpcResponseEnded<GetNodeStatusResponse>> => {
+      return this.request<GetNodeStatusResponse>(
+        `${ApiNamespace.wallet}/getNodeStatus`,
+        params,
+      ).waitForEnd()
+    },
+
+    getNodeStatusStream: (): RpcResponse<void, GetNodeStatusResponse> => {
+      return this.request<void, GetNodeStatusResponse>(`${ApiNamespace.wallet}/getNodeStatus`, {
+        stream: true,
+      })
     },
   }
 

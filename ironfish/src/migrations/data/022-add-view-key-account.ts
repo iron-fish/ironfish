@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { generateKeyFromPrivateKey } from '@ironfish/rust-nodejs'
 import { Logger } from '../../logger'
-import { IronfishNode } from '../../node'
 import { IDatabase, IDatabaseTransaction } from '../../storage'
+import { Node } from '../../utils'
 import { Migration } from '../migration'
 import { GetNewStores } from './022-add-view-key-account/schemaNew'
 import { GetOldStores } from './022-add-view-key-account/schemaOld'
@@ -12,12 +12,12 @@ import { GetOldStores } from './022-add-view-key-account/schemaOld'
 export class Migration022 extends Migration {
   path = __filename
 
-  prepare(node: IronfishNode): IDatabase {
+  prepare(node: Node): IDatabase {
     return node.wallet.walletDb.db
   }
 
   async forward(
-    node: IronfishNode,
+    node: Node,
     db: IDatabase,
     tx: IDatabaseTransaction | undefined,
     logger: Logger,
@@ -44,7 +44,7 @@ export class Migration022 extends Migration {
   }
 
   async backward(
-    node: IronfishNode,
+    node: Node,
     db: IDatabase,
     tx: IDatabaseTransaction | undefined,
     logger: Logger,

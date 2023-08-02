@@ -1,6 +1,6 @@
 [package]
 name = "ironfish"
-version = "0.2.0"
+version = "0.3.0"
 license = "MPL-2.0"
 
 description = "Rust crate for interacting with transactions on the Iron Fish chain"

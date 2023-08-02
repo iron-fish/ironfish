@@ -4,6 +4,7 @@
 
 import { IronfishNode } from '../node'
 import { DatabaseIsLockedError } from '../storage/database/errors'
+import { WalletNode } from '../walletNode'
 import { PromiseUtils } from './promise'
 
 /**
@@ -35,3 +36,5 @@ async function waitForOpen(node: IronfishNode, abort?: null | (() => boolean)): 
 }
 
 export const NodeUtils = { waitForOpen }
+
+export type Node = IronfishNode | WalletNode

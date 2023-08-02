@@ -3,20 +3,31 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #[cfg(test)]
+use super::internal_batch_verify_transactions;
 use super::{ProposedTransaction, Transaction};
 use crate::{
     assets::{asset::Asset, asset_identifier::NATIVE_ASSET},
+    errors::IronfishError,
     keys::SaplingKey,
     merkle_note::NOTE_ENCRYPTION_MINER_KEYS,
     note::Note,
+    sapling_bls12::SAPLING,
     test_util::make_fake_witness,
     transaction::{
-        verify_transaction, TRANSACTION_EXPIRATION_SIZE, TRANSACTION_FEE_SIZE,
-        TRANSACTION_SIGNATURE_SIZE,
+        batch_verify_transactions, verify_transaction, TransactionVersion,
+        TRANSACTION_EXPIRATION_SIZE, TRANSACTION_FEE_SIZE, TRANSACTION_SIGNATURE_SIZE,
     },
 };
 
-use ironfish_zkp::redjubjub::Signature;
+use ff::Field;
+use group::Group;
+use ironfish_zkp::{
+    constants::{ASSET_ID_LENGTH, SPENDING_KEY_GENERATOR, TREE_DEPTH},
+    proofs::{MintAsset, Output, Spend},
+    redjubjub::{self, Signature},
+};
+use jubjub::ExtendedPoint;
+use rand::thread_rng;
 
 #[test]
 fn test_transaction() {
@@ -283,52 +294,47 @@ fn test_transaction_created_with_version_1() {
     transaction.add_spend(in_note, &witness).unwrap();
     transaction.add_output(out_note).unwrap();
 
-    assert_eq!(transaction.version, 1);
+    assert_eq!(transaction.version, TransactionVersion::V1);
 
     let public_transaction = transaction
         .post(None, 1)
         .expect("should be able to post transaction");
 
-    assert_eq!(public_transaction.version, 1);
+    assert_eq!(public_transaction.version, TransactionVersion::V1);
 
     verify_transaction(&public_transaction).expect("version 1 transactions should be valid");
 }
 
 #[test]
 fn test_transaction_version_is_checked() {
-    let spender_key = SaplingKey::generate_key();
-    let receiver_key = SaplingKey::generate_key();
-    let sender_key = SaplingKey::generate_key();
+    fn assert_invalid_version(result: Result<Transaction, IronfishError>) {
+        match result {
+            Ok(_) => panic!("expected an error"),
+            Err(IronfishError::InvalidTransactionVersion) => (),
+            Err(ref err) => panic!("expected InvalidTransactionVersion, got {:?} instead", err),
+        }
+    }
 
-    let in_note = Note::new(
-        spender_key.public_address(),
-        42,
-        "",
-        NATIVE_ASSET,
-        sender_key.public_address(),
-    );
+    let mut transaction = [0u8; 256];
 
-    let out_note = Note::new(
-        receiver_key.public_address(),
-        40,
-        "",
-        NATIVE_ASSET,
-        spender_key.public_address(),
-    );
-    let witness = make_fake_witness(&in_note);
+    let valid_versions = [1u8, 2u8];
+    let invalid_versions = (u8::MIN..=u8::MAX)
+        .into_iter()
+        .filter(|v| !valid_versions.contains(v))
+        .collect::<Vec<u8>>();
+    assert_eq!(invalid_versions.len(), 254);
 
-    let mut transaction = ProposedTransaction::new(spender_key);
-    transaction.add_spend(in_note, &witness).unwrap();
-    transaction.add_output(out_note).unwrap();
+    // Verify that valid versions are correctly deserialized
+    for version in valid_versions {
+        transaction[0] = version;
+        assert!(Transaction::read(&transaction[..]).is_ok());
+    }
 
-    transaction.version = 2;
-
-    let public_transaction = transaction
-        .post(None, 1)
-        .expect("should be able to post transaction");
-
-    verify_transaction(&public_transaction)
-        .expect_err("non version 1 transactions should not be valid");
+    // Verify that invalid versions result in InvalidTransactionVersion upon deserialization
+    for version in invalid_versions {
+        transaction[0] = version;
+        assert_invalid_version(Transaction::read(&transaction[..]));
+    }
 }
 
 #[test]
@@ -361,4 +367,244 @@ fn test_transaction_value_overflows() {
 
     // burn
     assert!(tx.add_burn(asset.id, overflow_value).is_err());
+}
+
+#[test]
+fn test_batch_verify_wrong_params() {
+    let rng = &mut thread_rng();
+
+    let wrong_spend_params =
+        bellperson::groth16::generate_random_parameters::<blstrs::Bls12, _, _>(
+            Spend {
+                value_commitment: None,
+                proof_generation_key: None,
+                payment_address: None,
+                commitment_randomness: None,
+                ar: None,
+                auth_path: vec![None; TREE_DEPTH],
+                anchor: None,
+                sender_address: None,
+            },
+            rng,
+        )
+        .unwrap();
+
+    let wrong_output_params =
+        bellperson::groth16::generate_random_parameters::<blstrs::Bls12, _, _>(
+            Output {
+                value_commitment: None,
+                payment_address: None,
+                commitment_randomness: None,
+                esk: None,
+                asset_id: [0; ASSET_ID_LENGTH],
+                ar: None,
+                proof_generation_key: None,
+            },
+            rng,
+        )
+        .unwrap();
+
+    let wrong_mint_params = bellperson::groth16::generate_random_parameters::<blstrs::Bls12, _, _>(
+        MintAsset {
+            proof_generation_key: None,
+            public_key_randomness: None,
+        },
+        rng,
+    )
+    .unwrap();
+
+    let wrong_spend_vk = bellperson::groth16::prepare_verifying_key(&wrong_spend_params.vk);
+    let wrong_output_vk = bellperson::groth16::prepare_verifying_key(&wrong_output_params.vk);
+    let wrong_mint_vk = bellperson::groth16::prepare_verifying_key(&wrong_mint_params.vk);
+
+    //
+    // TRANSACTION GENERATION
+    //
+    let key = SaplingKey::generate_key();
+    let other_key = SaplingKey::generate_key();
+
+    // Native asset
+    let in_note = Note::new(
+        key.public_address(),
+        42,
+        "",
+        NATIVE_ASSET,
+        key.public_address(),
+    );
+    let out_note = Note::new(
+        key.public_address(),
+        40,
+        "",
+        NATIVE_ASSET,
+        key.public_address(),
+    );
+
+    let witness = make_fake_witness(&in_note);
+
+    // Custom asset
+    let mint_value = 5;
+    let burn_value = 2;
+
+    let asset1 = Asset::new(key.public_address(), "Testcoin", "A really cool coin")
+        .expect("should be able to create an asset");
+
+    let asset2 = Asset::new(other_key.public_address(), "Othercoin", "").unwrap();
+
+    let mint_out_note = Note::new(
+        key.public_address(),
+        2,
+        "",
+        *asset1.id(),
+        key.public_address(),
+    );
+
+    let mut proposed_transaction1 = ProposedTransaction::new(key);
+
+    proposed_transaction1.add_spend(in_note, &witness).unwrap();
+    proposed_transaction1.add_output(out_note).unwrap();
+
+    proposed_transaction1.add_mint(asset1, mint_value).unwrap();
+    proposed_transaction1.add_output(mint_out_note).unwrap();
+
+    proposed_transaction1
+        .add_burn(asset1.id, burn_value)
+        .unwrap();
+
+    let transaction1 = proposed_transaction1
+        .post(None, 1)
+        .expect("should be able to post transaction");
+
+    let mut proposed_transaction2 = ProposedTransaction::new(other_key);
+    proposed_transaction2.add_mint(asset2, 5).unwrap();
+
+    let transaction2 = proposed_transaction2.post(None, 0).unwrap();
+    //
+    // END TRANSACTION CREATION
+    //
+
+    batch_verify_transactions([&transaction1, &transaction2])
+        .expect("Should verify using Sapling params");
+    internal_batch_verify_transactions(
+        [&transaction1, &transaction2],
+        &wrong_spend_vk,
+        &SAPLING.output_verifying_key,
+        &SAPLING.mint_verifying_key,
+    )
+    .expect_err("Should not verify if spend verifying key is wrong");
+    internal_batch_verify_transactions(
+        [&transaction1, &transaction2],
+        &SAPLING.spend_verifying_key,
+        &wrong_output_vk,
+        &SAPLING.mint_verifying_key,
+    )
+    .expect_err("Should not verify if output verifying key is wrong");
+    internal_batch_verify_transactions(
+        [&transaction1, &transaction2],
+        &SAPLING.spend_verifying_key,
+        &SAPLING.output_verifying_key,
+        &wrong_mint_vk,
+    )
+    .expect_err("Should not verify if mint verifying key is wrong");
+}
+
+#[test]
+fn test_batch_verify() {
+    let key = SaplingKey::generate_key();
+    let other_key = SaplingKey::generate_key();
+
+    let public_key_randomness = jubjub::Fr::random(thread_rng());
+    let other_randomized_public_key =
+        redjubjub::PublicKey(other_key.view_key.authorizing_key.into())
+            .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);
+
+    // Native asset
+    let in_note = Note::new(
+        key.public_address(),
+        42,
+        "",
+        NATIVE_ASSET,
+        key.public_address(),
+    );
+    let out_note = Note::new(
+        key.public_address(),
+        40,
+        "",
+        NATIVE_ASSET,
+        key.public_address(),
+    );
+
+    let witness = make_fake_witness(&in_note);
+
+    // Custom asset
+    let mint_value = 5;
+    let burn_value = 2;
+
+    let asset1 = Asset::new(key.public_address(), "Testcoin", "A really cool coin")
+        .expect("should be able to create an asset");
+
+    let asset2 = Asset::new(other_key.public_address(), "Othercoin", "").unwrap();
+
+    let mint_out_note = Note::new(
+        key.public_address(),
+        2,
+        "",
+        *asset1.id(),
+        key.public_address(),
+    );
+
+    let mut proposed_transaction1 = ProposedTransaction::new(key);
+
+    proposed_transaction1.add_spend(in_note, &witness).unwrap();
+    proposed_transaction1.add_output(out_note).unwrap();
+
+    proposed_transaction1.add_mint(asset1, mint_value).unwrap();
+    proposed_transaction1.add_output(mint_out_note).unwrap();
+
+    proposed_transaction1
+        .add_burn(asset1.id, burn_value)
+        .unwrap();
+
+    let transaction1 = proposed_transaction1
+        .post(None, 1)
+        .expect("should be able to post transaction");
+
+    let mut proposed_transaction2 = ProposedTransaction::new(other_key);
+    proposed_transaction2.add_mint(asset2, 5).unwrap();
+
+    let transaction2 = proposed_transaction2.post(None, 0).unwrap();
+
+    batch_verify_transactions([&transaction1, &transaction2])
+        .expect("should be able to verify transaction");
+
+    let mut bad_transaction = transaction1.clone();
+    bad_transaction.randomized_public_key = other_randomized_public_key;
+
+    assert!(matches!(
+        batch_verify_transactions([&bad_transaction, &transaction2]),
+        Err(IronfishError::VerificationFailed)
+    ));
+
+    let mut bad_transaction = transaction1.clone();
+    bad_transaction.spends[0].value_commitment = ExtendedPoint::random(thread_rng());
+
+    assert!(matches!(
+        batch_verify_transactions([&bad_transaction, &transaction2]),
+        Err(IronfishError::VerificationFailed)
+    ));
+
+    let mut bad_transaction = transaction1.clone();
+    bad_transaction.outputs[0].proof = bad_transaction.outputs[1].proof.clone();
+
+    assert!(matches!(
+        batch_verify_transactions([&bad_transaction, &transaction2]),
+        Err(IronfishError::VerificationFailed)
+    ));
+
+    let mut bad_transaction = transaction1;
+    bad_transaction.mints[0].value = 999;
+
+    assert!(matches!(
+        batch_verify_transactions([&bad_transaction, &transaction2]),
+        Err(IronfishError::VerificationFailed)
+    ));
 }

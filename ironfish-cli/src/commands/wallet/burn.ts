@@ -82,7 +82,7 @@ export class Burn extends IronfishCommand {
     const client = await this.sdk.connectRpc()
 
     if (!flags.offline) {
-      const status = await client.node.getStatus()
+      const status = await client.wallet.getNodeStatus()
       if (!status.content.blockchain.synced) {
         this.log(
           `Your node must be synced with the Iron Fish network to send a transaction. Please try again later`,
@@ -191,7 +191,21 @@ export class Burn extends IronfishCommand {
 
     CliUx.ux.action.stop()
 
-    const assetResponse = await client.chain.getAsset({ id: assetId })
+    if (response.content.accepted === false) {
+      this.warn(
+        `Transaction '${transaction.hash().toString('hex')}' was not accepted into the mempool`,
+      )
+    }
+
+    if (response.content.broadcasted === false) {
+      this.warn(`Transaction '${transaction.hash().toString('hex')}' failed to broadcast`)
+    }
+
+    const assetResponse = await client.wallet.getAsset({
+      account,
+      id: assetId,
+      confirmations: flags.confirmations,
+    })
     const assetName = BufferUtils.toHuman(Buffer.from(assetResponse.content.name, 'hex'))
 
     this.log(`Burned asset ${assetName} from ${account}`)

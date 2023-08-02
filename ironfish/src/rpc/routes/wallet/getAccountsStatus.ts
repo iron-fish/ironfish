@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { Assert } from '../../../assert'
+import { HeadValue } from '../../../wallet/walletdb/headValue'
 import { ApiNamespace, routes } from '../router'
 
 export type GetAccountStatusRequest = { account?: string }
@@ -42,25 +42,23 @@ export const GetAccountStatusResponseSchema: yup.ObjectSchema<GetAccountStatusRe
 routes.register<typeof GetAccountStatusRequestSchema, GetAccountStatusResponse>(
   `${ApiNamespace.wallet}/getAccountsStatus`,
   GetAccountStatusRequestSchema,
-  async (request, { node }): Promise<void> => {
-    Assert.isNotUndefined(node)
-
-    const headHashes = new Map<string, Buffer | null>()
+  async (request, node): Promise<void> => {
+    const heads = new Map<string, HeadValue | null>()
     for await (const { accountId, head } of node.wallet.walletDb.loadHeads()) {
-      headHashes.set(accountId, head?.hash ?? null)
+      heads.set(accountId, head)
     }
+
     const accountsInfo: GetAccountStatusResponse['accounts'] = []
     for (const account of node.wallet.listAccounts()) {
-      const headHash = headHashes.get(account.id)
-      const blockHeader = headHash ? await node.chain.getHeader(headHash) : null
-      const headInChain = !!blockHeader
-      const headSequence = blockHeader?.sequence || 'NULL'
+      const head = heads.get(account.id)
+      const headInChain = head?.hash ? await node.wallet.chainHasBlock(head.hash) : false
+
       accountsInfo.push({
         name: account.name,
         id: account.id,
-        headHash: headHash ? headHash.toString('hex') : 'NULL',
-        headInChain: headInChain,
-        sequence: headSequence,
+        headHash: head?.hash.toString('hex') || 'NULL',
+        headInChain,
+        sequence: head?.sequence || 'NULL',
       })
     }
 

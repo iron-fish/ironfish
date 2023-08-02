@@ -5,6 +5,7 @@ import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { Connection, PeerNetwork } from '../../../network'
 import { Features } from '../../../network/peers/peerFeatures'
+import { IronfishNode } from '../../../node'
 import { ApiNamespace, routes } from '../router'
 
 type ConnectionState = Connection['state']['type'] | ''
@@ -88,8 +89,8 @@ export const GetPeersResponseSchema: yup.ObjectSchema<GetPeersResponse> = yup
 routes.register<typeof GetPeersRequestSchema, GetPeersResponse>(
   `${ApiNamespace.peer}/getPeers`,
   GetPeersRequestSchema,
-  (request, { node }): void => {
-    Assert.isNotUndefined(node)
+  (request, node): void => {
+    Assert.isInstanceOf(node, IronfishNode)
 
     const peerNetwork = node.peerNetwork
 

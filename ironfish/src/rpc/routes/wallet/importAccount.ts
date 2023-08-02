@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { v4 as uuid } from 'uuid'
 import * as yup from 'yup'
-import { Assert } from '../../../assert'
 import { decodeAccount } from '../../../wallet/account/encoder/account'
 import { ApiNamespace, routes } from '../router'
 import { RpcAccountImport } from './types'
@@ -40,9 +39,7 @@ export const ImportAccountResponseSchema: yup.ObjectSchema<ImportResponse> = yup
 routes.register<typeof ImportAccountRequestSchema, ImportResponse>(
   `${ApiNamespace.wallet}/importAccount`,
   ImportAccountRequestSchema,
-  async (request, { node }): Promise<void> => {
-    Assert.isNotUndefined(node)
-
+  async (request, node): Promise<void> => {
     let accountImport = null
     if (typeof request.data.account === 'string') {
       accountImport = decodeAccount(request.data.account, {
