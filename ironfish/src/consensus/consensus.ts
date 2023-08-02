@@ -42,6 +42,13 @@ export type ConsensusParameters = {
    * The block height that enables the use of V2 transactions instead of V1
    */
   enableAssetOwnership: ActivationSequence
+
+  /**
+   * Before upgrade we have block timestamp smaller than previous block. After this
+   * block we enforce the block timestamps in the sequential order as the block sequences.
+   */
+  enforceSequentialBlockTime: number
+
 }
 
 export class Consensus {

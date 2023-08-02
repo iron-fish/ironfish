@@ -218,11 +218,22 @@ export class Verifier {
     }
 
     if (
-      current.timestamp.getTime() <
-      previousHeader.timestamp.getTime() -
-        this.chain.consensus.parameters.allowedBlockFutureSeconds * 1000
+      this.chain.consensus.isActive(
+        this.chain.consensus.parameters.enforceSequentialBlockTime,
+        current.sequence,
+      )
     ) {
-      return { valid: false, reason: VerificationResultReason.BLOCK_TOO_OLD }
+      if (current.timestamp.getTime() <= previousHeader.timestamp.getTime()) {
+        return { valid: false, reason: VerificationResultReason.BLOCK_TOO_OLD }
+      }
+    } else {
+      if (
+        current.timestamp.getTime() <
+        previousHeader.timestamp.getTime() -
+          this.chain.consensus.parameters.allowedBlockFutureSeconds * 1000
+      ) {
+        return { valid: false, reason: VerificationResultReason.BLOCK_TOO_OLD }
+      }
     }
 
     if (current.sequence !== previousHeader.sequence + 1) {

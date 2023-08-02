@@ -48,6 +48,7 @@ export const networkDefinitionSchema: yup.ObjectSchema<NetworkDefinition> = yup
         maxBlockSizeBytes: yup.number().integer().defined(),
         minFee: yup.number().integer().defined(),
         enableAssetOwnership: yup.mixed<ActivationSequence>().defined(),
+        enforceSequentialBlockTime: yup.number().integer().defined(),
       })
       .defined(),
   })
