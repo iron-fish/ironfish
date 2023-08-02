@@ -7,9 +7,15 @@ import { Logger } from '../logger'
 import { IDatabase, IDatabaseTransaction } from '../storage'
 import { Node } from '../utils'
 
+export enum Database {
+  WALLET = 'wallet',
+  BLOCKCHAIN = 'blockchain',
+}
+
 export abstract class Migration {
   id = 0
   name = ''
+  abstract database: Database
 
   abstract path: string
 

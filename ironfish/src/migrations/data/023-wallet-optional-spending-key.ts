@@ -4,11 +4,12 @@
 import { Logger } from '../../logger'
 import { IDatabase, IDatabaseTransaction } from '../../storage'
 import { Node } from '../../utils'
-import { Migration } from '../migration'
+import { Database, Migration } from '../migration'
 import { GetStores } from './023-wallet-optional-spending-key/stores'
 
 export class Migration023 extends Migration {
   path = __filename
+  database = Database.WALLET
 
   prepare(node: Node): IDatabase {
     return node.wallet.walletDb.db
