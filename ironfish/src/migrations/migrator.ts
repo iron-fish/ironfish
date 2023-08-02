@@ -16,10 +16,12 @@ export class Migrator {
   readonly node: IronfishNode
   readonly logger: Logger
   readonly migrations: Migration[]
+  readonly whitelistedDBs: Database[]
 
-  constructor(options: { node: IronfishNode; logger: Logger }) {
+  constructor(options: { node: IronfishNode; logger: Logger; databases?: Database[] }) {
     this.node = options.node
     this.logger = options.logger.withTag('migrator')
+    this.whitelistedDBs = options?.databases ?? StrEnumUtils.getValues(Database)
 
     this.migrations = MIGRATIONS.map((m) => {
       return new m().init(options.node.files)
@@ -31,7 +33,7 @@ export class Migrator {
    */
   async isInitial(): Promise<boolean> {
     for (const migration of this.migrations) {
-      if (await this.isEmpty(migration)) {
+      if (this.whitelistedDBs.includes(migration.database) && (await this.isEmpty(migration))) {
         return true
       }
     }
@@ -71,6 +73,10 @@ export class Migrator {
     const migrations = this.migrations.slice().reverse()
 
     for (const migration of migrations) {
+      if (!this.whitelistedDBs.includes(migration.database)) {
+        continue
+      }
+
       const applied = await this.isApplied(migration)
 
       if (applied) {
@@ -105,9 +111,7 @@ export class Migrator {
     quiet?: boolean
     quietNoop?: boolean
     dryRun?: boolean
-    databases?: Database[]
   }): Promise<void> {
-    const whitelistedDBs = options?.databases ?? StrEnumUtils.getValues(Database)
     const dryRun = options?.dryRun ?? false
     const logger = this.logger.create({})
 
@@ -123,7 +127,7 @@ export class Migrator {
 
     const unapplied = status
       .filter(([, applied]) => !applied)
-      .filter(([migration]) => whitelistedDBs.includes(migration.database))
+      .filter(([migration]) => this.whitelistedDBs.includes(migration.database))
       .map(([migration]) => migration)
 
     if (unapplied.length === 0) {
@@ -180,6 +184,10 @@ export class Migrator {
     this.logger.info('Checking migrations:')
 
     for (const migration of this.migrations) {
+      if (!this.whitelistedDBs.includes(migration.database)) {
+        continue
+      }
+
       process.stdout.write(`  Checking ${migration.name.slice(0, 35)}...`.padEnd(50, ' '))
 
       try {
