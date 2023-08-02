@@ -39,7 +39,7 @@ export class DatabaseVersionError extends DatabaseOpenError {
         ? `Your database needs to be upgraded (v${current} vs v${version}).\n` +
             `Run "ironfish migrations:start" or "ironfish start --upgrade"\n`
         : `Your database is newer than your node.\n` +
-            `Your database is ${version} and your node is ${current}.\n`,
+            `Your database is ${current} and your node is ${version}.\n`,
     )
 
     this.version = current
