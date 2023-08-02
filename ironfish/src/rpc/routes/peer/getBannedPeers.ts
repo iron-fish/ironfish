@@ -4,7 +4,7 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { PeerNetwork } from '../../../network'
-import { IronfishNode } from '../../../node'
+import { FullNode } from '../../../node'
 import { ApiNamespace, routes } from '../router'
 
 export type BannedPeerResponse = {
@@ -48,7 +48,7 @@ routes.register<typeof GetBannedPeersRequestSchema, GetBannedPeersResponse>(
   `${ApiNamespace.peer}/getBannedPeers`,
   GetBannedPeersRequestSchema,
   (request, node): void => {
-    Assert.isInstanceOf(node, IronfishNode)
+    Assert.isInstanceOf(node, FullNode)
 
     const peerNetwork = node.peerNetwork
 

@@ -4,14 +4,14 @@
 
 import { IDatabase } from '../../storage'
 import { createDB } from '../../storage/utils'
-import { Node } from '../../utils'
+import { IronfishNode } from '../../utils'
 import { Database, Migration } from '../migration'
 
 export class Migration015 extends Migration {
   path = __filename
   database = Database.WALLET
 
-  async prepare(node: Node): Promise<IDatabase> {
+  async prepare(node: IronfishNode): Promise<IDatabase> {
     await node.files.mkdir(node.config.walletDatabasePath, { recursive: true })
     return createDB({ location: node.config.walletDatabasePath })
   }

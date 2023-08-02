@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
-import { IronfishNode } from '../../../node'
+import { FullNode } from '../../../node'
 import { GENESIS_BLOCK_SEQUENCE } from '../../../primitives'
 import { ValidationError } from '../../adapters'
 import { ApiNamespace, routes } from '../router'
@@ -50,7 +50,7 @@ routes.register<typeof GetNoteWitnessRequestSchema, GetNoteWitnessResponse>(
   `${ApiNamespace.chain}/getNoteWitness`,
   GetNoteWitnessRequestSchema,
   async (request, node): Promise<void> => {
-    Assert.isInstanceOf(node, IronfishNode)
+    Assert.isInstanceOf(node, FullNode)
     const { chain } = node
 
     const confirmations = request.data.confirmations ?? node.config.get('confirmations')

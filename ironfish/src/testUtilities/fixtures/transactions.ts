@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
 import { Assert } from '../../assert'
-import { IronfishNode } from '../../node'
+import { FullNode } from '../../node'
 import { BurnDescription } from '../../primitives/burnDescription'
 import { MintData } from '../../primitives/rawTransaction'
 import { SerializedTransaction, Transaction } from '../../primitives/transaction'
@@ -20,7 +20,7 @@ export async function restoreTransactionFixtureToAccounts(
 }
 
 export async function usePostTxFixture(options: {
-  node: IronfishNode
+  node: FullNode
   wallet: Wallet
   from: Account
   to?: Account
@@ -100,7 +100,7 @@ export async function useTxFixture(
 }
 
 export async function useMinersTxFixture(
-  node: IronfishNode,
+  node: FullNode,
   to?: Account,
   sequence?: number,
   amount = 0,

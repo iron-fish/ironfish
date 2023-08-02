@@ -5,7 +5,7 @@ import os from 'os'
 import { Assert } from './assert'
 import { Config, DEFAULT_DATA_DIR } from './fileStores'
 import { NodeFileProvider } from './fileSystems'
-import { IronfishNode } from './node'
+import { FullNode } from './node'
 import { Platform } from './platform'
 import {
   ALL_API_NAMESPACES,
@@ -89,7 +89,7 @@ describe('IronfishSdk', () => {
 
       const node = await sdk.node()
 
-      expect(node).toBeInstanceOf(IronfishNode)
+      expect(node).toBeInstanceOf(FullNode)
       expect(node.files).toBe(fileSystem)
       expect(node.config).toBe(sdk.config)
       expect(node.wallet).toBeInstanceOf(Wallet)

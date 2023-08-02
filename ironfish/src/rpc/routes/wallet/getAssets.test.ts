@@ -4,7 +4,7 @@
 
 import '../../../testUtilities/matchers'
 import { Asset } from '@ironfish/rust-nodejs'
-import { IronfishNode } from '../../../node'
+import { FullNode } from '../../../node'
 import { Block } from '../../../primitives/block'
 import { Transaction } from '../../../primitives/transaction'
 import {
@@ -29,7 +29,7 @@ describe('Route wallet/getAssets', () => {
   }: {
     name: string
     value: bigint
-    node: IronfishNode
+    node: FullNode
     account: SpendingAccount
   }): Promise<{ asset: Asset; pendingMint: Transaction }> => {
     const asset = new Asset(account.publicAddress, name, 'metadata')
@@ -57,7 +57,7 @@ describe('Route wallet/getAssets', () => {
   }: {
     name: string
     value: bigint
-    node: IronfishNode
+    node: FullNode
     account: SpendingAccount
   }): Promise<{ asset: Asset; mintBlock: Block }> => {
     const asset = new Asset(account.publicAddress, name, 'metadata')

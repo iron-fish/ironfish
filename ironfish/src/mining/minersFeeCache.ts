@@ -3,18 +3,18 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import LRU from 'blru'
-import { IronfishNode } from '../node'
+import { FullNode } from '../node'
 import { Transaction } from '../primitives/transaction'
 import { SpendingAccount } from '../wallet'
 
 export class MinersFeeCache {
-  private readonly node: IronfishNode
+  private readonly node: FullNode
   private readonly cache: LRU<string, Promise<Transaction>> = new LRU<
     string,
     Promise<Transaction>
   >(5)
 
-  constructor(options: { node: IronfishNode }) {
+  constructor(options: { node: FullNode }) {
     this.node = options.node
   }
 

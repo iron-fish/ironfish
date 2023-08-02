@@ -4,7 +4,7 @@
 
 import { blake3 } from '@napi-rs/blake-hash'
 import { v4 as uuid } from 'uuid'
-import { IronfishNode } from '../node'
+import { FullNode } from '../node'
 import { createNodeTest, useAccountFixture, useBlockWithTx } from '../testUtilities'
 import { NetworkMessage } from './messages/networkMessage'
 import { NewPooledTransactionHashes } from './messages/newPooledTransactionHashes'
@@ -19,7 +19,7 @@ import { VERSION_PROTOCOL } from './version'
 jest.mock('ws')
 jest.useFakeTimers()
 
-const getValidTransactionOnBlock = async (node: IronfishNode) => {
+const getValidTransactionOnBlock = async (node: FullNode) => {
   const accountA = await useAccountFixture(node.wallet, 'accountA')
   const accountB = await useAccountFixture(node.wallet, 'accountB')
   const { transaction, block } = await useBlockWithTx(node, accountA, accountB)

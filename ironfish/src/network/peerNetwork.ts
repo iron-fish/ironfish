@@ -13,7 +13,7 @@ import { DEFAULT_WEBSOCKET_PORT } from '../fileStores/config'
 import { HostsStore } from '../fileStores/hosts'
 import { createRootLogger, Logger } from '../logger'
 import { MetricsMonitor } from '../metrics'
-import { IronfishNode } from '../node'
+import { FullNode } from '../node'
 import { IronfishPKG } from '../package'
 import { Platform } from '../platform'
 import { GENESIS_BLOCK_SEQUENCE, Transaction } from '../primitives'
@@ -119,7 +119,7 @@ export class PeerNetwork {
   private readonly logger: Logger
   private readonly metrics: MetricsMonitor
   private readonly telemetry: Telemetry
-  private readonly node: IronfishNode
+  private readonly node: FullNode
   private readonly chain: Blockchain
   private readonly requests: Map<RpcId, RpcRequest>
   private readonly enableSyncing: boolean
@@ -169,7 +169,7 @@ export class PeerNetwork {
     logger?: Logger
     metrics?: MetricsMonitor
     telemetry: Telemetry
-    node: IronfishNode
+    node: FullNode
     chain: Blockchain
     hostsStore: HostsStore
     incomingWebSocketWhitelist?: string[]

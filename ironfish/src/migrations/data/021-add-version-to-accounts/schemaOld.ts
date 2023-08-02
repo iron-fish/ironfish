@@ -10,7 +10,7 @@ import {
   IDatabaseTransaction,
   StringEncoding,
 } from '../../../storage'
-import { Node } from '../../../utils'
+import { IronfishNode } from '../../../utils'
 import { Account } from '../../../wallet'
 
 const KEY_LENGTH = 32
@@ -85,7 +85,7 @@ export function GetOldStores(db: IDatabase): {
 }
 
 export async function GetOldAccounts(
-  node: Node,
+  node: IronfishNode,
   db: IDatabase,
   tx?: IDatabaseTransaction,
 ): Promise<Account[]> {

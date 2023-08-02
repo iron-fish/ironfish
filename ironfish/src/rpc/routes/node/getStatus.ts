@@ -4,7 +4,7 @@
 import { getActiveReqs, isActive } from 'libuv-monitor'
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
-import { IronfishNode } from '../../../node'
+import { FullNode } from '../../../node'
 import { MathUtils, PromiseUtils } from '../../../utils'
 import { ApiNamespace, routes } from '../router'
 
@@ -256,7 +256,7 @@ routes.register<typeof GetStatusRequestSchema, GetNodeStatusResponse>(
   `${ApiNamespace.node}/getStatus`,
   GetStatusRequestSchema,
   async (request, node): Promise<void> => {
-    Assert.isInstanceOf(node, IronfishNode)
+    Assert.isInstanceOf(node, FullNode)
 
     const status = getStatus(node)
 
@@ -280,7 +280,7 @@ routes.register<typeof GetStatusRequestSchema, GetNodeStatusResponse>(
   },
 )
 
-async function getStatus(node: IronfishNode): Promise<GetNodeStatusResponse> {
+async function getStatus(node: FullNode): Promise<GetNodeStatusResponse> {
   let accountsScanning
   if (node.wallet.scan !== null) {
     accountsScanning = {

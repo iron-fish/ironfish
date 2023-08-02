@@ -5,10 +5,10 @@ import { Assert } from '../../assert'
 import { AssetValueEncoding } from '../../blockchain/database/assetValue'
 import { AssetSchema } from '../../blockchain/schema'
 import { Logger } from '../../logger'
-import { IronfishNode } from '../../node'
+import { FullNode } from '../../node'
 import { BUFFER_ENCODING, IDatabase, IDatabaseStore, IDatabaseTransaction } from '../../storage'
 import { createDB } from '../../storage/utils'
-import { BufferUtils, Node } from '../../utils'
+import { BufferUtils, IronfishNode } from '../../utils'
 import { Account } from '../../wallet'
 import { Database, Migration } from '../migration'
 import { GetOldAccounts } from './021-add-version-to-accounts/schemaOld'
@@ -17,12 +17,12 @@ export class Migration019 extends Migration {
   path = __filename
   database = Database.WALLET
 
-  prepare(node: Node): IDatabase {
+  prepare(node: IronfishNode): IDatabase {
     return node.wallet.walletDb.db
   }
 
   async forward(
-    node: Node,
+    node: IronfishNode,
     _db: IDatabase,
     tx: IDatabaseTransaction | undefined,
     logger: Logger,
@@ -50,7 +50,7 @@ export class Migration019 extends Migration {
     }
 
     if (assetsToBackfill.length) {
-      Assert.isInstanceOf(node, IronfishNode)
+      Assert.isInstanceOf(node, FullNode)
       const chainDb = createDB({ location: node.config.chainDatabasePath })
       await chainDb.open()
 

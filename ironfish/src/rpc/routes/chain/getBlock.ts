@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
-import { IronfishNode } from '../../../node'
+import { FullNode } from '../../../node'
 import { BlockHeader } from '../../../primitives'
 import { GENESIS_BLOCK_SEQUENCE } from '../../../primitives/block'
 import { BufferUtils } from '../../../utils'
@@ -91,7 +91,7 @@ routes.register<typeof GetBlockRequestSchema, GetBlockResponse>(
   `${ApiNamespace.chain}/getBlock`,
   GetBlockRequestSchema,
   async (request, node): Promise<void> => {
-    Assert.isInstanceOf(node, IronfishNode)
+    Assert.isInstanceOf(node, FullNode)
 
     let header: BlockHeader | null = null
     let error = ''

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { IronfishNode } from '../node'
+import { FullNode } from '../node'
 import { DatabaseIsLockedError } from '../storage/database/errors'
 import { WalletNode } from '../walletNode'
 import { PromiseUtils } from './promise'
@@ -10,7 +10,7 @@ import { PromiseUtils } from './promise'
 /**
  * Try to open the node DB's and wait until they can be opened
  */
-async function waitForOpen(node: IronfishNode, abort?: null | (() => boolean)): Promise<void> {
+async function waitForOpen(node: FullNode, abort?: null | (() => boolean)): Promise<void> {
   let logged = false
 
   while (!abort || !abort()) {
@@ -37,4 +37,4 @@ async function waitForOpen(node: IronfishNode, abort?: null | (() => boolean)): 
 
 export const NodeUtils = { waitForOpen }
 
-export type Node = IronfishNode | WalletNode
+export type IronfishNode = FullNode | WalletNode

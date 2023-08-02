@@ -6,7 +6,7 @@ import { Blockchain } from '../blockchain'
 import { Verifier } from '../consensus/verifier'
 import { ConfigOptions } from '../fileStores/config'
 import { PeerNetwork } from '../network'
-import { IronfishNode } from '../node'
+import { FullNode } from '../node'
 import { IronfishSdk } from '../sdk'
 import { Syncer } from '../syncer'
 import { Wallet } from '../wallet'
@@ -30,7 +30,7 @@ export class NodeTest {
   options: NodeTestOptions
 
   sdk!: IronfishSdk
-  node!: IronfishNode
+  node!: FullNode
   strategy!: TestStrategy
   verifier!: Verifier
   chain!: Blockchain
@@ -41,7 +41,7 @@ export class NodeTest {
 
   setups = new Array<{
     sdk: IronfishSdk
-    node: IronfishNode
+    node: FullNode
     strategy: TestStrategy
     chain: Blockchain
     wallet: Wallet
@@ -56,7 +56,7 @@ export class NodeTest {
 
   async createSetup(options?: NodeTestOptions): Promise<{
     sdk: IronfishSdk
-    node: IronfishNode
+    node: FullNode
     strategy: TestStrategy
     verifier: Verifier
     chain: Blockchain

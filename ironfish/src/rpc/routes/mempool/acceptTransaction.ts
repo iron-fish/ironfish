@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
-import { IronfishNode } from '../../../node'
+import { FullNode } from '../../../node'
 import { Transaction } from '../../../primitives'
 import { ApiNamespace, routes } from '../router'
 
@@ -33,7 +33,7 @@ routes.register<typeof AcceptTransactionRequestSchema, AcceptTransactionResponse
   `${ApiNamespace.mempool}/acceptTransaction`,
   AcceptTransactionRequestSchema,
   async (request, node): Promise<void> => {
-    Assert.isInstanceOf(node, IronfishNode)
+    Assert.isInstanceOf(node, FullNode)
 
     const data = Buffer.from(request.data.transaction, 'hex')
     const transaction = new Transaction(data)

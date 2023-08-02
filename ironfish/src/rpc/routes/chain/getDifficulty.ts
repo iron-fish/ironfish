@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
-import { IronfishNode } from '../../../node'
+import { FullNode } from '../../../node'
 import { ValidationError } from '../../adapters'
 import { ApiNamespace, routes } from '../router'
 
@@ -37,7 +37,7 @@ routes.register<typeof GetDifficultyRequestSchema, GetDifficultyResponse>(
   `${ApiNamespace.chain}/getDifficulty`,
   GetDifficultyRequestSchema,
   async (request, node): Promise<void> => {
-    Assert.isInstanceOf(node, IronfishNode)
+    Assert.isInstanceOf(node, FullNode)
 
     let sequence = node.chain.head.sequence
     let block = node.chain.head

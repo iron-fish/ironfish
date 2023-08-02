@@ -5,7 +5,7 @@ import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { Connection, PeerNetwork } from '../../../network'
 import { NetworkMessageType } from '../../../network/types'
-import { IronfishNode } from '../../../node'
+import { FullNode } from '../../../node'
 import { IJSON } from '../../../serde'
 import { ApiNamespace, routes } from '../router'
 
@@ -63,7 +63,7 @@ routes.register<typeof GetPeerMessagesRequestSchema, GetPeerMessagesResponse>(
   `${ApiNamespace.peer}/getPeerMessages`,
   GetPeerMessagesRequestSchema,
   (request, node): void => {
-    Assert.isInstanceOf(node, IronfishNode)
+    Assert.isInstanceOf(node, FullNode)
 
     const peerNetwork = node.peerNetwork
 

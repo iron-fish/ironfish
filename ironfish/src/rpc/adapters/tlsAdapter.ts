@@ -6,7 +6,7 @@ import net from 'net'
 import tls from 'tls'
 import { FileSystem } from '../../fileSystems'
 import { createRootLogger, Logger } from '../../logger'
-import { IronfishNode } from '../../node'
+import { FullNode } from '../../node'
 import { TlsUtils } from '../../utils/tls'
 import { ApiNamespace } from '../routes'
 import { RpcSocketAdapter } from './socketAdapter/socketAdapter'
@@ -15,7 +15,7 @@ export class RpcTlsAdapter extends RpcSocketAdapter {
   readonly fileSystem: FileSystem
   readonly nodeKeyPath: string
   readonly nodeCertPath: string
-  node: IronfishNode
+  node: FullNode
 
   constructor(
     host: string,
@@ -23,7 +23,7 @@ export class RpcTlsAdapter extends RpcSocketAdapter {
     fileSystem: FileSystem,
     nodeKeyPath: string,
     nodeCertPath: string,
-    node: IronfishNode,
+    node: FullNode,
     logger: Logger = createRootLogger(),
     namespaces: ApiNamespace[],
   ) {

@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
-import { IronfishNode } from '../../../node'
+import { FullNode } from '../../../node'
 import { BlockHeader } from '../../../primitives'
 import { ApiNamespace, routes } from '../router'
 import { RpcBlockHeader, RpcBlockHeaderSchema, serializeRpcBlockHeader } from './types'
@@ -24,7 +24,7 @@ routes.register<typeof OnGossipRequestSchema, OnGossipResponse>(
   `${ApiNamespace.event}/onGossip`,
   OnGossipRequestSchema,
   (request, node): void => {
-    Assert.isInstanceOf(node, IronfishNode)
+    Assert.isInstanceOf(node, FullNode)
 
     function onGossip(header: BlockHeader) {
       const serialized = serializeRpcBlockHeader(header)
