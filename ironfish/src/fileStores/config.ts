@@ -279,6 +279,21 @@ export type ConfigOptions = {
    * Always allow incoming connections from these IPs even if the node is at maxPeers
    */
   incomingWebSocketWhitelist: string[]
+
+  /**
+   * Enable standalone wallet process to connect to a node via IPC
+   */
+  walletNodeIpcEnabled: boolean
+  walletNodeIpcPath: string
+
+  /**
+   * Enable stanalone wallet process to connect to a node via TCP
+   */
+  walletNodeTcpEnabled: boolean
+  walletNodeTcpHost: string
+  walletNodeTcpPort: number
+  walletNodeTlsEnabled: boolean
+  walletNodeRpcAuthToken: string
 }
 
 export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
@@ -358,6 +373,13 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     memPoolRecentlyEvictedCacheSize: yup.number().integer(),
     networkDefinitionPath: yup.string().trim(),
     incomingWebSocketWhitelist: yup.array(yup.string().trim().defined()),
+    walletNodeIpcEnabled: yup.boolean(),
+    walletNodeIpcPath: yup.string(),
+    walletNodeTcpEnabled: yup.boolean(),
+    walletNodeTcpHost: yup.string(),
+    walletNodeTcpPort: yup.number(),
+    walletNodeTlsEnabled: yup.boolean(),
+    walletNodeRpcAuthToken: yup.string(),
   })
   .defined()
 
@@ -451,6 +473,13 @@ export class Config extends KeyStore<ConfigOptions> {
       memPoolRecentlyEvictedCacheSize: 60000,
       networkDefinitionPath: files.resolve(files.join(dataDir, 'network.json')),
       incomingWebSocketWhitelist: [],
+      walletNodeIpcEnabled: true,
+      walletNodeIpcPath: files.resolve(files.join(dataDir, 'ironfish.ipc')),
+      walletNodeTcpEnabled: false,
+      walletNodeTcpHost: 'localhost',
+      walletNodeTcpPort: 8020,
+      walletNodeTlsEnabled: true,
+      walletNodeRpcAuthToken: '',
     }
   }
 }
