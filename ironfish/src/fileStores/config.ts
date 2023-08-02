@@ -307,6 +307,11 @@ export type ConfigOptions = {
   walletNodeHttpPort: number
 
   /**
+   * Enable standalone wallet process RPC server
+   */
+  walletEnableRpc: boolean
+
+  /**
    * Enable IPC connections to a standalone wallet RPC server
    */
   walletEnableRpcIpc: boolean
@@ -339,6 +344,11 @@ export type ConfigOptions = {
    */
   walletWorkers: number
   walletWorkersMax: number
+
+  /**
+   * Enable metrics monitor for standalone wallet
+   */
+  walletEnableMetrics: boolean
 }
 
 export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
@@ -428,6 +438,7 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     walletNodeHttpEnabled: yup.boolean(),
     walletNodeHttpHost: yup.string(),
     walletNodeHttpPort: yup.number(),
+    walletEnableRpc: yup.boolean(),
     walletEnableRpcIpc: yup.boolean(),
     walletRpcIpcPath: yup.string(),
     walletEnableRpcTcp: yup.boolean(),
@@ -441,6 +452,7 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     walletRpcHttpPort: yup.number(),
     walletWorkers: yup.number(),
     walletWorkersMax: yup.number(),
+    walletEnableMetrics: yup.boolean(),
   })
   .defined()
 
@@ -544,6 +556,7 @@ export class Config extends KeyStore<ConfigOptions> {
       walletNodeHttpEnabled: false,
       walletNodeHttpHost: 'localhost',
       walletNodeHttpPort: 8021,
+      walletEnableRpc: true,
       walletEnableRpcIpc: true,
       walletRpcIpcPath: files.resolve(files.join(dataDir, 'ironfish.wallet.ipc')),
       walletEnableRpcTcp: false,
@@ -557,6 +570,7 @@ export class Config extends KeyStore<ConfigOptions> {
       walletRpcHttpPort: 8023,
       walletWorkers: -1,
       walletWorkersMax: 6,
+      walletEnableMetrics: true,
     }
   }
 }
