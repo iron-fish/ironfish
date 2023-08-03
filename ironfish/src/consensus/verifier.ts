@@ -623,6 +623,8 @@ export class Verifier {
         if (transferOwnershipTo) {
           const newOwner = Buffer.from(transferOwnershipTo, 'hex')
           assetOwners.set(assetId, newOwner)
+        } else if (!assetOwners.has(assetId)) {
+          assetOwners.set(assetId, existingAssetOwner)
         }
       }
 
