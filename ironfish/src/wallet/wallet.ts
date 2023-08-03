@@ -235,20 +235,6 @@ export class Wallet {
     }
     this.isStarted = true
 
-    for (const account of this.listAccounts()) {
-      if (account.createdAt === null || this.chainProcessor.sequence === null) {
-        continue
-      }
-
-      if (account.createdAt.sequence > this.chainProcessor.sequence) {
-        continue
-      }
-
-      if (!(await this.chainHasBlock(account.createdAt.hash))) {
-        await this.resetAccount(account, { resetCreatedAt: true })
-      }
-    }
-
     if (this.chainProcessor.hash) {
       const hasHeadBlock = await this.chainHasBlock(this.chainProcessor.hash)
 
@@ -258,6 +244,25 @@ export class Wallet {
             'hex',
           )}, but node's chain does not contain that block. Unable to sync from node without rescan.`,
         )
+      }
+    }
+
+    const chainHead = await this.getChainHead()
+
+    for (const account of this.listAccounts()) {
+      if (account.createdAt === null) {
+        continue
+      }
+
+      if (account.createdAt.sequence > chainHead.sequence) {
+        continue
+      }
+
+      if (!(await this.chainHasBlock(account.createdAt.hash))) {
+        this.logger.warn(
+          `Account ${account.name} createdAt refers to a block that is not on the node's chain. Resetting to null.`,
+        )
+        await account.updateCreatedAt(null)
       }
     }
 
@@ -404,7 +409,7 @@ export class Wallet {
     })
 
     for (const account of accounts) {
-      const shouldDecrypt = await this.shouldDecryptForAccount(blockHeader, account, scan)
+      const shouldDecrypt = await this.shouldDecryptForAccount(blockHeader, account)
 
       if (scan && scan.isAborted) {
         scan.signalComplete()
@@ -448,30 +453,26 @@ export class Wallet {
   async shouldDecryptForAccount(
     blockHeader: WalletBlockHeader,
     account: Account,
-    scan?: ScanState,
   ): Promise<boolean> {
     if (account.createdAt === null) {
       return true
     }
 
-    if (account.createdAt.sequence < blockHeader.sequence) {
-      return true
+    if (account.createdAt.sequence > blockHeader.sequence) {
+      return false
     }
 
-    if (account.createdAt.sequence === blockHeader.sequence) {
-      if (!account.createdAt.hash.equals(blockHeader.hash)) {
-        // account.createdAt is refers to a block that is not on the main chain
-        await this.resetAccount(account, { resetCreatedAt: true })
-        await scan?.abort()
-        void this.scanTransactions()
-
-        return false
-      }
-
-      return true
+    if (
+      account.createdAt.sequence === blockHeader.sequence &&
+      !account.createdAt.hash.equals(blockHeader.hash)
+    ) {
+      this.logger.warn(
+        `Account ${account.name} createdAt refers to a block that is not on the node's chain. Resetting to null.`,
+      )
+      await account.updateCreatedAt(null)
     }
 
-    return false
+    return true
   }
 
   private async connectBlockTransactions(
