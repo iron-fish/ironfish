@@ -32,7 +32,7 @@ export class RpcServer {
 
   /** Creates a new router from this RpcServer with the attached routes filtered by namespaces */
   getRouter(namespaces: ApiNamespace[]): Router {
-    return new Router(routes.filter(namespaces), this)
+    return new Router(routes.filter(namespaces), this.context)
   }
 
   /** Starts the RPC server and tells any attached adapters to starts serving requests to the routing layer */

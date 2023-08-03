@@ -34,6 +34,7 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
   listen: net.ListenOptions
   server: net.Server | null = null
   router: Router | null = null
+  rpcServer: RpcServer | null = null
   namespaces: ApiNamespace[]
   enableAuthentication = true
 
@@ -146,8 +147,9 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
     this.logger.debug(`SocketAdapter stopped: ${this.describe()}`)
   }
 
-  attach(server: RpcServer): void {
-    this.router = server.getRouter(this.namespaces)
+  attach(rpcServer: RpcServer): void {
+    this.rpcServer = rpcServer
+    this.router = rpcServer.getRouter(this.namespaces)
   }
 
   async waitForAllToDisconnect(): Promise<void> {
@@ -227,13 +229,13 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
       client.requests.set(requestId, request)
 
       try {
-        if (this.router == null || this.router.server == null) {
+        if (this.router == null || this.rpcServer == null) {
           throw new ResponseError('Tried to connect to unmounted adapter')
         }
 
         // Authentication
         if (this.enableAuthentication) {
-          const isAuthenticated = this.router.server.authenticate(message.auth)
+          const isAuthenticated = this.rpcServer.authenticate(message.auth)
 
           if (!isAuthenticated) {
             const error = message.auth

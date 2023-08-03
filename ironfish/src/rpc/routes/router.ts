@@ -7,7 +7,6 @@ import { StrEnumUtils } from '../../utils/enums'
 import { ERROR_CODES } from '../adapters'
 import { ResponseError, ValidationError } from '../adapters/errors'
 import { RpcRequest } from '../request'
-import { RpcServer } from '../server'
 
 export enum ApiNamespace {
   chain = 'chain',
@@ -51,11 +50,11 @@ export function parseRoute(
 
 export class Router {
   routes = new Routes()
-  server: RpcServer
+  context: RequestContext
 
-  constructor(routes: Routes, server: RpcServer) {
+  constructor(routes: Routes, context: RequestContext) {
     this.routes = routes
-    this.server = server
+    this.context = context
   }
 
   async route(route: string, request: RpcRequest): Promise<void> {
@@ -75,7 +74,7 @@ export class Router {
     request.data = result
 
     try {
-      await handler(request, this.server.context)
+      await handler(request, this.context)
     } catch (e: unknown) {
       if (e instanceof ResponseError) {
         throw e

@@ -27,6 +27,7 @@ export type HttpRpcError = {
 export class RpcHttpAdapter implements IRpcAdapter {
   server: http.Server | null = null
   router: Router | null = null
+  rpcServer: RpcServer | null = null
 
   readonly host: string
   readonly port: number
@@ -60,8 +61,9 @@ export class RpcHttpAdapter implements IRpcAdapter {
     this.requests = new Map()
   }
 
-  attach(server: RpcServer): void | Promise<void> {
-    this.router = server.getRouter(this.namespaces)
+  attach(rpcServer: RpcServer): void | Promise<void> {
+    this.rpcServer = rpcServer
+    this.router = rpcServer.getRouter(this.namespaces)
   }
 
   start(): Promise<void> {
@@ -164,7 +166,7 @@ export class RpcHttpAdapter implements IRpcAdapter {
     response: http.ServerResponse,
     requestId: string,
   ): Promise<void> {
-    if (this.router === null || this.router.server === null) {
+    if (this.router === null || this.rpcServer === null) {
       throw new ResponseError('Tried to connect to unmounted adapter')
     }
 
