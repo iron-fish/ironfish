@@ -8,7 +8,6 @@ import {
   Config,
   ConfigOptions,
   DEFAULT_DATA_DIR,
-  HostsStore,
   InternalStore,
   VerifiedAssetsCacheStore,
 } from './fileStores'
@@ -127,9 +126,6 @@ export class WalletNode {
       internal = new InternalStore(files, dataDir)
       await internal.load()
     }
-
-    const hostsStore = new HostsStore(files, dataDir)
-    await hostsStore.load()
 
     const verifiedAssetsCache = new VerifiedAssetsCacheStore(files, dataDir)
     await verifiedAssetsCache.load()
