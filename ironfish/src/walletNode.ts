@@ -19,9 +19,10 @@ import { Migrator } from './migrations'
 import { Database } from './migrations/migration'
 import { getNetworkDefinition } from './networkDefinition'
 import { Package } from './package'
-import { RpcClient } from './rpc'
+import { RpcSocketClient } from './rpc'
 import { RpcServer } from './rpc/server'
 import { Strategy } from './strategy'
+import { SetTimeoutToken } from './utils'
 import { Wallet, WalletDB } from './wallet'
 import { calculateWorkers, WorkerPool } from './workerPool'
 
@@ -38,10 +39,14 @@ export class WalletNode {
   rpc: RpcServer
   pkg: Package
   assetsVerifier: AssetsVerifier
+  nodeClient: RpcSocketClient
 
   started = false
   shutdownPromise: Promise<void> | null = null
   shutdownResolve: (() => void) | null = null
+
+  private nodeClientConnectionWarned: boolean
+  private nodeClientConnectionTimeout: SetTimeoutToken | null
 
   constructor({
     pkg,
@@ -54,6 +59,7 @@ export class WalletNode {
     workerPool,
     logger,
     assetsVerifier,
+    nodeClient,
   }: {
     pkg: Package
     files: FileSystem
@@ -65,6 +71,7 @@ export class WalletNode {
     workerPool: WorkerPool
     logger: Logger
     assetsVerifier: AssetsVerifier
+    nodeClient: RpcSocketClient
   }) {
     this.files = files
     this.config = config
@@ -76,10 +83,13 @@ export class WalletNode {
     this.rpc = new RpcServer(this, internal)
     this.logger = logger
     this.pkg = pkg
+    this.nodeClient = nodeClient
+    this.assetsVerifier = assetsVerifier
 
     this.migrator = new Migrator({ node: this, logger, databases: [Database.WALLET] })
 
-    this.assetsVerifier = assetsVerifier
+    this.nodeClientConnectionWarned = false
+    this.nodeClientConnectionTimeout = null
 
     this.config.onConfigChange.on((key, value) => this.onConfigChange(key, value))
   }
@@ -103,7 +113,7 @@ export class WalletNode {
     metrics?: MetricsMonitor
     files: FileSystem
     strategyClass: typeof Strategy | null
-    nodeClient: RpcClient
+    nodeClient: RpcSocketClient
   }): Promise<WalletNode> {
     logger = logger.withTag('walletnode')
     dataDir = dataDir || DEFAULT_DATA_DIR
@@ -157,7 +167,7 @@ export class WalletNode {
       nodeClient,
     })
 
-    const node = new WalletNode({
+    return new WalletNode({
       pkg,
       strategy,
       files,
@@ -168,9 +178,8 @@ export class WalletNode {
       workerPool,
       logger,
       assetsVerifier,
+      nodeClient,
     })
-
-    return node
   }
 
   async openDB(): Promise<void> {
@@ -217,6 +226,36 @@ export class WalletNode {
     if (this.config.get('enableAssetVerification')) {
       this.assetsVerifier.start()
     }
+
+    this.nodeClient.onClose.on(this.onDisconnectRpc)
+    await this.startConnectingRpc()
+  }
+
+  private async startConnectingRpc(): Promise<void> {
+    if (!this.started) {
+      return
+    }
+
+    const connected = await this.nodeClient.tryConnect()
+    if (!connected) {
+      if (!this.nodeClientConnectionWarned) {
+        this.logger.warn(
+          `Failed to connect to node on ${this.nodeClient.describe()}, retrying...`,
+        )
+        this.nodeClientConnectionWarned = true
+      }
+
+      this.nodeClientConnectionTimeout = setTimeout(() => void this.startConnectingRpc(), 5000)
+      return
+    }
+
+    this.nodeClientConnectionWarned = false
+    this.logger.info('Successfully connected to node')
+  }
+
+  private onDisconnectRpc = (): void => {
+    this.logger.info('Disconnected from node unexpectedly. Reconnecting.')
+    void this.startConnectingRpc()
   }
 
   async waitForShutdown(): Promise<void> {
@@ -224,6 +263,13 @@ export class WalletNode {
   }
 
   async shutdown(): Promise<void> {
+    this.nodeClient.onClose.off(this.onDisconnectRpc)
+    this.nodeClient.close()
+
+    if (this.nodeClientConnectionTimeout) {
+      clearTimeout(this.nodeClientConnectionTimeout)
+    }
+
     await Promise.allSettled([
       this.wallet.stop(),
       this.rpc.stop(),
