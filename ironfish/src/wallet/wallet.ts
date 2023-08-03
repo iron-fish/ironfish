@@ -467,9 +467,12 @@ export class Wallet {
       !account.createdAt.hash.equals(blockHeader.hash)
     ) {
       this.logger.warn(
-        `Account ${account.name} createdAt refers to a block that is not on the node's chain. Resetting to null.`,
+        `Account ${account.name} createdAt refers to a block that is not on the node's chain. Stopping scan for this account.`,
       )
       await account.updateCreatedAt(null)
+      // Sets head to null to avoid connecting blocks for this account
+      await account.updateHead(null)
+      return false
     }
 
     return true

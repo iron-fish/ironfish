@@ -2733,7 +2733,7 @@ describe('Accounts', () => {
       const block = await useMinerBlockFixture(node.chain, 2)
 
       await expect(node.wallet.shouldDecryptForAccount(block.header, account)).resolves.toBe(
-        true,
+        false,
       )
 
       expect(resetAccount).not.toHaveBeenCalled()
