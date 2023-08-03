@@ -31,7 +31,7 @@
     "test:update": "lerna run test -- -u",
     "test:update:changed": "lerna run --since origin/master --include-dependents test -- -u",
     "test:slow": "lerna run test:slow",
-    "test:slow:coverage": "lerna run test:slow --stream -- --collect-coverage --testPathIgnorePatterns",
+    "test:slow:coverage": "lerna run test:slow --stream -- --testPathIgnorePatterns --collect-coverage",
     "test:perf:report": "lerna run test:perf:report",
     "typecheck": "lerna exec -- tsc --noEmit",
     "typecheck:changed": "lerna exec --since origin/master --include-dependents -- tsc --noEmit",

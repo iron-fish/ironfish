@@ -47,7 +47,7 @@
     "start": "yarn build && yarn start:js",
     "start:js": "cross-env OCLIF_TS_NODE=0 IRONFISH_DEBUG=1 node --expose-gc --inspect=:0 --inspect-publish-uid=http --enable-source-maps bin/run",
     "test": "yarn clean && tsc -b && tsc -b tsconfig.test.json && jest --passWithNoTests",
-    "test:coverage:html": "tsc -b tsconfig.test.json && jest --passWithNoTests --coverage --coverage-reporters html --testPathIgnorePatterns",
+    "test:coverage:html": "tsc -b tsconfig.test.json && jest --passWithNoTests --testPathIgnorePatterns --coverage --coverage-reporters html",
     "test:watch": "tsc -b tsconfig.test.json && jest --watch --coverage false",
     "postpack": "rimraf oclif.manifest.json",
     "clean": "rimraf build",
