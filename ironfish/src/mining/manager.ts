@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { BufferSet } from 'buffer-map'
+import { BufferMap, BufferSet } from 'buffer-map'
 import { Assert } from '../assert'
 import { Blockchain, HeadChangedError } from '../blockchain'
 import { isExpiredSequence } from '../consensus'
@@ -223,6 +223,7 @@ export class MiningManager {
     // Fetch pending transactions
     const blockTransactions: Transaction[] = []
     const nullifiers = new BufferSet()
+    const assetOwners = new BufferMap<Buffer>()
     let totalTransactionFees = BigInt(0)
     for (const transaction of this.memPool.orderedTransactions()) {
       // Skip transactions that would cause the block to exceed the max size
@@ -247,6 +248,24 @@ export class MiningManager {
 
       for (const spend of transaction.spends) {
         nullifiers.add(spend.nullifier)
+      }
+
+      if (transaction.mints.length) {
+        const mintOwnerResult = await this.chain.verifier.verifyMintOwnersIncremental(
+          transaction.mints,
+          assetOwners,
+        )
+
+        // If the transaction is valid with the state of this new block
+        // template, we need to update the assetOwners map with the latest state
+        // of the owners, accounting for new mints and ownership transfer
+        if (mintOwnerResult.valid) {
+          for (const [assetId, assetOwner] of mintOwnerResult.assetOwners.entries()) {
+            assetOwners.set(assetId, assetOwner)
+          }
+        } else {
+          continue
+        }
       }
 
       currBlockSize += transactionSize

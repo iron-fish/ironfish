@@ -578,21 +578,32 @@ export class Verifier {
 
   /**
    * Validates that the given owner for each mint is the correct owner based on
-   * the current state of the chain
+   * the current state of the chain and returns the state of the asset owners
+   * after processing the mints, taking into account new mints and ownership
+   * transfers. Takes an optional existing BufferMap to use as a starting point.
    */
-  verifyMintOwners(
+  async verifyMintOwnersIncremental(
     mints: Iterable<MintDescription>,
+    lastKnownAssetOwners?: BufferMap<Buffer>,
     tx?: IDatabaseTransaction,
-  ): Promise<VerificationResult> {
+  ): Promise<{ valid: boolean; assetOwners: BufferMap<Buffer> }> {
     const assetOwners = new BufferMap<Buffer>()
-
-    const invalidReason = { valid: false, reason: VerificationResultReason.INVALID_MINT_OWNER }
 
     return this.chain.blockchainDb.db.withTransaction(tx, async (tx) => {
       for (const { asset, owner, transferOwnershipTo } of mints) {
         const assetId = asset.id()
 
         let existingAssetOwner = assetOwners.get(assetId)
+
+        // This asset has not yet been seen in the given Iterable, so we attempt
+        // to look up the owner from the last known asset owners map, if it was
+        // provided.
+        if (!existingAssetOwner && lastKnownAssetOwners) {
+          const lastKnownOwner = lastKnownAssetOwners.get(assetId)
+          if (lastKnownOwner) {
+            existingAssetOwner = lastKnownOwner
+          }
+        }
 
         // This asset has not yet been seen in the given Iterable, so we attempt
         // to look up the owner from the chain database
@@ -610,14 +621,14 @@ export class Verifier {
           const creator = asset.creator()
 
           if (!creator.equals(owner)) {
-            return invalidReason
+            return { valid: false, assetOwners }
           }
 
           existingAssetOwner = creator
         }
 
         if (!existingAssetOwner.equals(owner)) {
-          return invalidReason
+          return { valid: false, assetOwners }
         }
 
         if (transferOwnershipTo) {
@@ -628,8 +639,24 @@ export class Verifier {
         }
       }
 
-      return { valid: true }
+      return { valid: true, assetOwners }
     })
+  }
+
+  /**
+   * Validates that the given owner for each mint is the correct owner based on
+   * the current state of the chain
+   */
+  async verifyMintOwners(
+    mints: Iterable<MintDescription>,
+    tx?: IDatabaseTransaction,
+  ): Promise<VerificationResult> {
+    const { valid } = await this.verifyMintOwnersIncremental(mints, undefined, tx)
+    if (valid) {
+      return { valid: true }
+    } else {
+      return { valid: false, reason: VerificationResultReason.INVALID_MINT_OWNER }
+    }
   }
 }
 

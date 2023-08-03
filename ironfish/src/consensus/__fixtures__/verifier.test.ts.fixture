@@ -1600,5 +1600,461 @@
       "publicAddress": "b266915970cd0309f4cebea83616fd9136f938d05be5d6d35d05af33b9011530",
       "createdAt": null
     }
+  ],
+  "Verifier verifyMintOwnersIncremental rejects initial mint when owner does not match creator": [
+    {
+      "version": 2,
+      "id": "05e21394-077c-49ee-ae9d-bfe2cce81b56",
+      "name": "accountA",
+      "spendingKey": "0e01e8275df107e9589fe0cb7e3c45f0ff14ca6603d8cb8c6fb50b7791df09a3",
+      "viewKey": "6b124ad4ee65930aeff09fbfc2c97e49212bec8d2c1eda23ea3091f8e5e6b3d7e0f36337d593466e30283b3577b02ce7157921d6837dfaa48dfab7764d9f9a92",
+      "incomingViewKey": "2041dd6cfe6dccd7ceffb6b62a810beb828bf8ad89e168731ace4c5fa4975c04",
+      "outgoingViewKey": "0beda2fb8509d6522ba1a708867e7f66d182a33a8c63f62b3dd49b72b47a393d",
+      "publicAddress": "a8b43623e7aca570f9c7a0f87976bc895f0ed702aaf2a71838a1dd60423e70ac",
+      "createdAt": null
+    },
+    {
+      "version": 2,
+      "id": "db14478b-8a14-4172-9dd6-d00f5c7fc659",
+      "name": "accountB",
+      "spendingKey": "58c9c63ed38f9e9ee24a19ab691aac63309d5202669b886ed2a07e68319bf017",
+      "viewKey": "7dad0654d67fb65b25083ad758d25b58119606854d2ca3712967aa5f73cc890da3f295dd3d2408a53df3cffa102ff64997bf36db8744f2d410600830c99236d9",
+      "incomingViewKey": "b2edb92c904371b84eb3dfc1bce0c190df2403fd437f0deb84f33a5429846702",
+      "outgoingViewKey": "a11793ed2558d4aa0f81c802012882a64e22725760237a3c4ba2d25bab2bbd01",
+      "publicAddress": "b076fcd2b85b02b4ec4dd861bd43088dd826e0a2640a824c9e684b07d0e47e2d",
+      "createdAt": null
+    }
+  ],
+  "Verifier verifyMintOwnersIncremental rejects mint when owner does not match asset db": [
+    {
+      "version": 2,
+      "id": "274d7c71-a1e7-437e-89b9-f13a086b47a7",
+      "name": "accountA",
+      "spendingKey": "5cf3a9b7157e928fd626948df303b083486168b9d8d2de44ba5119734e7e52f8",
+      "viewKey": "e164b4267675b6bfd9f11fe4a8cc885369f9fbaca6453e5f388c21894543f131b3d104464b0a18a8e3c6ce0ca0c14cb0ab0e59855d2e0bf72d7c2325e0834b70",
+      "incomingViewKey": "5c4ce82dd86a291ba40d2d4818188ed93fe93235aaf0819bb8a582174d5feb05",
+      "outgoingViewKey": "fb1b5bc23a1331f544669b99130b13cea4300c1e2cfea414eea21490df22ddd9",
+      "publicAddress": "45478c8789f41e3ee99c9604b45059374a9c42671846d99aed0d535f401ad7ca",
+      "createdAt": null
+    },
+    {
+      "version": 2,
+      "id": "66d49e55-b023-4067-955d-41a0c83068ba",
+      "name": "accountB",
+      "spendingKey": "9f1ac99b5552c9cb3c42a4da57db0cb279d1207a862fa1f7e6c796068d716f4d",
+      "viewKey": "303ef5434df4683d0dd1a1593461dd34180bdd0f0b82f79f865be40bcfc8bd60ca155c5f24c6425a831a858f881835dca34f015ce91289b489c8fdb85371bbc7",
+      "incomingViewKey": "fec165f37de6580a6f9584101faaf43f96585bca6a8c83e91f66e48667d0a807",
+      "outgoingViewKey": "4d6d835bcd97ea9f6c0b70ba8bc1ac6aee034cc14c102ffb640adcf87122fdd6",
+      "publicAddress": "d3ef05cc81ddc42099db85aefe014ff22c49d6fd1a86965d4353b8b4133d4ec2",
+      "createdAt": null
+    }
+  ],
+  "Verifier verifyMintOwnersIncremental rejects subsequent mint with different owner": [
+    {
+      "version": 2,
+      "id": "addb1557-f305-4c4c-9e2e-5879b1e8575f",
+      "name": "accountA",
+      "spendingKey": "bbb7f79097ed54b663c7ded2df6d2a3edbaeba591443d8c07f69df08cf8e529d",
+      "viewKey": "6533e75433c4c72da1ba23f9317a25ea53a52a8df6c11d064f60024b63e662abe4942c04ccad188f5ac1d0fb28cb19c39800f34a30b9aa390f78036e0d15f1cf",
+      "incomingViewKey": "2ae18f025a91a7a30a078f99515c227760a6fbc5e2e6d8cacd1171f66d16ac04",
+      "outgoingViewKey": "89ae850caf31be9fdfcccf68eaf625407a99b11c61d9ce6a8c79576e747f8302",
+      "publicAddress": "775326a2790c0a449a935dc19b5e0bedc4018d78cdf8dd62b7f88f9c3f3c37dc",
+      "createdAt": null
+    },
+    {
+      "version": 2,
+      "id": "ce691015-f716-4ee1-afeb-7a6d6e945fd0",
+      "name": "accountB",
+      "spendingKey": "5b36029b09c80a6d5497b753324714124db5d45da8e285da5ac84cfc99d8e33f",
+      "viewKey": "d51a1bdd49d4c45aacb28a2a2eb72bc47d51985ef91594c4b79345a3d44530c6db6ccbfcb428d29695f65c86139f4456d65c48eb03a290c77759711b6a0cc1da",
+      "incomingViewKey": "34906f881172fd0ff91f79e5c1db6b9b443c3181d62273256a4ab7a503a45202",
+      "outgoingViewKey": "e852d7f96b815b1f11b31906b20188ddbe571dd4fe35c839f1877c9d5bc9f5ea",
+      "publicAddress": "44523b2ba72a1dcfac60d25adcd26fa927c16e9e9c5d1acb2ead74afc9248f51",
+      "createdAt": null
+    }
+  ],
+  "Verifier verifyMintOwnersIncremental rejects mints using the old owner if the owner changes": [
+    {
+      "version": 2,
+      "id": "0938bf3e-7570-4763-b141-804ac18c3fcd",
+      "name": "accountA",
+      "spendingKey": "8ccd815544dc87055d59ea52b213fd2e2a6d30a9a92d4940d4adfe839323a753",
+      "viewKey": "91f9365deb2c331cf7547d69e82614a2db8fd76aad722210d5536059a654711fa987d56da828a19619e9a1944911f21e8651d1ed086311d70378ce9f602bda61",
+      "incomingViewKey": "072e38439e7e7798af82a6cef65ce969f7f6ea314679897b8d29af890d048b01",
+      "outgoingViewKey": "7195870eb953d9c03fb8c422a3a72a9eca99f705831fd4c6aadb2ea7114da9d5",
+      "publicAddress": "e6029557deab4225b63a8daa3124e306f04581b0897dcfe75dba38f845908a39",
+      "createdAt": null
+    },
+    {
+      "version": 2,
+      "id": "4c6ac9f8-550c-42b1-b4b3-95bf4cadf22f",
+      "name": "accountB",
+      "spendingKey": "cf107b9b44f29224bdb892b89987cfa34790f43de35234b3ddf863569923db92",
+      "viewKey": "26068aa7b5e00a40ab5aed1b61d2b852274e07424290044640be8f9d7f9fbe8b6847a77096bbc2f8279879b87a54875f228dc0ee6e6c4710f710c36cb7681568",
+      "incomingViewKey": "53685970c19a75bc2a5589fcef06ba25cea38514f788bae9486f827efbc05c03",
+      "outgoingViewKey": "2412ea2dc574f3e7d051ac2ce280c2664114eec5f7350731878518cbb556cd24",
+      "publicAddress": "3c3c296fab534109753e12c5133dcb3898b56108fce18e0fd33a1a41879fa85b",
+      "createdAt": null
+    }
+  ],
+  "Verifier verifyMintOwnersIncremental accepts a valid initial mint": [
+    {
+      "version": 2,
+      "id": "ed98dd5d-5801-4173-8f8c-f40229c51f0c",
+      "name": "accountA",
+      "spendingKey": "d2eeda41d6e0cc927ada6493484a246c08989236d250279c1a057ed7c633dec5",
+      "viewKey": "bf9495026ad39cb8e6cd62a34922fc19818a0c3760f639cf0fabe2296a789dee0f8df1c0402ec8bc9e1d75120f86aab7d746ec737d91579c0b8174d5c7bd930b",
+      "incomingViewKey": "a07a3a44395970cb8e05e612ed698dae17041650d3d86351010d7ac2cf920c06",
+      "outgoingViewKey": "ee7f47d05d16394feb60792abf70b39708a57f88195b53bc9c740f279aa3c515",
+      "publicAddress": "2177765bf81eeb7bef8a02e939a512ae16f1c973b54b70503c572e8b89273aca",
+      "createdAt": null
+    },
+    {
+      "version": 2,
+      "id": "489d339e-48e4-4afe-aaeb-b1377039db3b",
+      "name": "accountB",
+      "spendingKey": "144cd2fde5965fd788729bbc7043b03a2c42223453d87624cdfa91ce2a6a7479",
+      "viewKey": "2d45d6b9f4c367afdec92c863ecf8a5b05a9c10a77ab8d908c7e028e1bb07d08e1703ff1de5b860835c23c3c274127c96f7d2847f895b33dad08913cac6d3b0e",
+      "incomingViewKey": "f6012a52d908b7e5eabb6851352679e9f461455ee922c4f53c9c519570ba8607",
+      "outgoingViewKey": "9c5eb544e0f9710f54a326a61481d530c1954d89c04a22d69ce66e7307d35105",
+      "publicAddress": "6f7207d5e3970d3cb7127e7804f6ecba52b5d7e0f80e7dc964f139afe598f388",
+      "createdAt": null
+    }
+  ],
+  "Verifier verifyMintOwnersIncremental accepts a valid mint": [
+    {
+      "version": 2,
+      "id": "bcf8a0f0-ec1f-4fc1-8de9-a7fc17f54f63",
+      "name": "accountA",
+      "spendingKey": "0b7b461debcd95ea7d74057e0988c0283cf1c33a1342932019d4090021163c1d",
+      "viewKey": "cf35d98c6690e2b8ed5e97e2186e1f645ac4bdad158bec4d55db499b69f755d42098ffaf8fc6eecb9bb0fa8868929f45ccb8f3d31ef3917a16c307a2b14df9a0",
+      "incomingViewKey": "f1a3f5038186aea981e1cd447e17c53a70d325f986ba1aca76fb6b13235b5300",
+      "outgoingViewKey": "4da1305f42d1989b2b4d53a94864a66d58783e6686f1376e3eea5ea16be13ed9",
+      "publicAddress": "e0e607d2b60b217018dcbbdf23adaf4f744a601bf5dfd9586c393cbd1ba43488",
+      "createdAt": null
+    },
+    {
+      "version": 2,
+      "id": "7dd44498-bdc0-4d40-9dd3-657209c07cef",
+      "name": "accountB",
+      "spendingKey": "ec7a0e0c4f11b148dd02b6554141f5fb21d6d56452b59933f9a46402ed2c11ac",
+      "viewKey": "5d8436e0843da28b04d901cb7068cbc3a4364d8ebc644bcd2d2fcc09695d87dedf57b803699b804c6feffcf4afe5138342839a3b6a7cf898612a9365b855a7c4",
+      "incomingViewKey": "af4836ec6f3b34de26e9830b170d39aacd893ed4666bb0ea4ef124b72dcabb07",
+      "outgoingViewKey": "8fc45547dfae102e1204fdf00b9ca0f224c81370f2f7427b950def5c089d5f89",
+      "publicAddress": "2cf1e7ba29128d0ecd65bad91929c10c152c67aae67b057f9060474f2595086a",
+      "createdAt": null
+    }
+  ],
+  "Verifier verifyMintOwnersIncremental accepts multiple valid mints": [
+    {
+      "version": 2,
+      "id": "892fb45f-728e-474b-9d92-d35f81b7aaa2",
+      "name": "accountA",
+      "spendingKey": "db8a250f624240738714a1cf585ddc38368c0bcda1368cee6124598bae5e1a42",
+      "viewKey": "d3935ce5137925cccdff3529562c77c9c7ff14a1b095d617eb47702777b9b20634c2c2b5a5b56236f7e6abf85bf0edcdad7d37735095fa86a9766ae2c43c988b",
+      "incomingViewKey": "4263b4e38cd2cd9f1ae5083303831757b26a97d690949147c6a3d4bcbbabd601",
+      "outgoingViewKey": "fa01616febd441171073aa8ccecb4de1ca0bcadd1e9d03c4956bd94b3d97de32",
+      "publicAddress": "08ce07dc9479b34bdd73785a0c6ca30c25550cbb40f2b689a50aa529274606a4",
+      "createdAt": null
+    },
+    {
+      "version": 2,
+      "id": "b808e9c0-4b14-412a-87a2-f30e455738e0",
+      "name": "accountB",
+      "spendingKey": "71be22c8c752569313a172afb97bb5e59ecb79df5e0289b335ffb1e71b9a3dc2",
+      "viewKey": "81a87965a8260dd9e91657105ccc8dced80f2493bc55d48312b5f70ba8b044a708c9e7c3bcb65e123a6fe8133b2e01c7cf7f0a259a2a7d2a2aab005379783b48",
+      "incomingViewKey": "8a01b5f029cd289d32a0254d82d91292e63e153daab1a6f82187032a03eded02",
+      "outgoingViewKey": "0abbb2f2ccd18c01b840676a5fdbc95ac2b79e490925d342d19f7ca2fc5f07c5",
+      "publicAddress": "aae48d778fe3aad1bf9bd6993180284ef9dafea4a7f15c413e2993567dcf0cf3",
+      "createdAt": null
+    }
+  ],
+  "Verifier mint owners verifyMintOwnersIncremental rejects initial mint when owner does not match creator": [
+    {
+      "version": 2,
+      "id": "18641f75-6b70-4cc1-a1ef-e3d026e0aa3a",
+      "name": "accountA",
+      "spendingKey": "72f527e7fac768ac5cedc74ffed744f2c4f6f5b16bfc3fdcff9da2e63eac75ab",
+      "viewKey": "3d0c111d74b7548dc94d9abc54df4b7a5f692099ebaf496a1c4d82bb81032d6160b7a4081c8e546628b1f60ec05549199b7de771473538d2c3dbd4f389d54fc5",
+      "incomingViewKey": "532c35a9b5e19bdbc120c7d9d5703f517bb848bad4801e99d1d660070955e800",
+      "outgoingViewKey": "c29c84c7a2e9dde23cce67bf117121327037f77d0ceb979a768f402ef06037e4",
+      "publicAddress": "67ad6062cb2959c43b49cca35e9c2a1a05d57fedcfc35d176a912841d06a2b2a",
+      "createdAt": null
+    },
+    {
+      "version": 2,
+      "id": "353622d2-f6bb-4e3f-89e0-d22c62032257",
+      "name": "accountB",
+      "spendingKey": "87626b41881e70b881bf91501e089d9aba0b4cd41754ed4f8dc5ed149c0babe7",
+      "viewKey": "8f76785a7187c8c8f24292209d8eda3e99996be0af6e14f2a23e0195ffa85c916b92410d02f20b0f46f8ffeeab8268f06054f27b41109fac4ee32c5057c9a833",
+      "incomingViewKey": "9399bde2f01c6204dc022fd0e6062689fd838bd4a9dcdd1eee256ee456eb6c01",
+      "outgoingViewKey": "526644c4bb679af0ab59d3e92e5f494fd2a008d946791b717f82ad54ca98dda0",
+      "publicAddress": "ec3cb8287fc604aefd48da3bf3b14daaddbc8ebbdb479c4e00e7aeadf7520086",
+      "createdAt": null
+    }
+  ],
+  "Verifier mint owners verifyMintOwnersIncremental rejects mint when owner does not match asset db": [
+    {
+      "version": 2,
+      "id": "64453d14-78a6-48bf-8e98-4e628588eefe",
+      "name": "accountA",
+      "spendingKey": "1a5b78ede255f5171035da931066f215efda34ae1047429e0d8a09d3310d7db0",
+      "viewKey": "e600fc23297342265bdd305da354fa9287a8b65a09fd110c949d1ab9778c970e32edf218f1fa85e8a3419a7784ea94e950313237be84d28d72785542b4e7f522",
+      "incomingViewKey": "b1dbd925c5be019785db8c07d11220ba4eb910c6612413868e54ae7ff4250303",
+      "outgoingViewKey": "f65fa184c011cefc462541b57dd79a7c7c1c1ff4e5d6475404fdb630254dbdae",
+      "publicAddress": "4444592d7aebfe32b6c79a069a61470ce6f8f4b5259843357fca6949d25652b0",
+      "createdAt": null
+    },
+    {
+      "version": 2,
+      "id": "ecb9fd18-7c06-44fc-8b2c-058df8d64425",
+      "name": "accountB",
+      "spendingKey": "d7edbb1fc616bb927960cb3001c1a4cc3a349e00c5eea7d5b8e9957971f04737",
+      "viewKey": "7cf20a05653658ad4c66f90b5228dfe3493f55b59dec02efd954bf63ee5ce6692360a535c81c311625fab1b709aa48625784f4b4b3c03fb36e572882ef3f6a8c",
+      "incomingViewKey": "1dffd3f972d550385f38c6c1a8442908e4ed48625ca7992e41ef594b10eee004",
+      "outgoingViewKey": "dcca4bf671a5051e0133ebbb27e6630278b7312c6f687f3283a95921cfdf6b48",
+      "publicAddress": "e5b130b5beee4fac7d98af2ceb6af3474204371c0c644ed715fd98aa482f53ad",
+      "createdAt": null
+    }
+  ],
+  "Verifier mint owners verifyMintOwnersIncremental rejects subsequent mint with different owner": [
+    {
+      "version": 2,
+      "id": "b5306f26-b8b6-48b4-bf7d-a16fc4c8596c",
+      "name": "accountA",
+      "spendingKey": "04b0905abeb13e6a26dccff192158f396b50f3f0111ae03194339f473264a161",
+      "viewKey": "d3ea43f760aa369023a17105c51c49b598f137518ac73d3435fceebe0a9f8402ff4e4a0b90c50e22bc391a34289aede061262156e06d4bbfa701c1de90c44066",
+      "incomingViewKey": "268e1fa9839a4a1be9436278896c3dcb01e6243e00d5348528bdca6e2c4cc607",
+      "outgoingViewKey": "096c326d5cb48c721023ca0e0e1708d58f2a76abbd1da9b06c5f99fc328f75a1",
+      "publicAddress": "bdd7e0dd7098ca8e0e1b72dc78306f3c72e93b22740f37a3f654c38e794535dd",
+      "createdAt": null
+    },
+    {
+      "version": 2,
+      "id": "a79066d7-9992-4735-a950-962790f8b04e",
+      "name": "accountB",
+      "spendingKey": "14c92d7d26bf30659056a65ff1aa3f03f267d63e7fd8f51065b63e7ab5bb7313",
+      "viewKey": "ef23b29e2502aaffce5cb28f503e6156807d680290cf598ff7cd865155f1d5db2b3de8d7b82d4fa6bedf5b1f6ff480d1f16f9eecdec6d12eda5452c14984c672",
+      "incomingViewKey": "3d4bbdb5feb4f47d43034dcf517cc39d2ca26514d58c3956d864e7c7f4e27607",
+      "outgoingViewKey": "b4b62605e4b1cee1fd39f8ed0b20516f8cac1694c4b55b1d0b9f69a3ae1f2ddf",
+      "publicAddress": "3cae96b50a18c7e6e7705a998882cf205902671d0c2edc397f4dc61b05f32f87",
+      "createdAt": null
+    }
+  ],
+  "Verifier mint owners verifyMintOwnersIncremental rejects mints using the old owner if the owner changes": [
+    {
+      "version": 2,
+      "id": "793dae5f-dc8f-4c9f-80c7-a86d34ba18c1",
+      "name": "accountA",
+      "spendingKey": "f422386afe35353ab1f5f164ea2f586a2af5401e029635c3c10df85f0125cf03",
+      "viewKey": "c82b32cc9c2acb9bd8571c537f05a77c3dc0c38b84033ad73f5ae5e7ecfa9b69ceb75a0820a67143b875cac141d4655ecd1d8eefbe5671381c6b7ac54ff8d4cf",
+      "incomingViewKey": "7a83be673c98d409ddc5f28a1fb6d52f64a43ec978462a110b5c981db85ea601",
+      "outgoingViewKey": "747e27249840421c39a8738b0c381ded4fab3866bd3a1e07fa8a274229a184cc",
+      "publicAddress": "323634afffb509cd6d85b4afe9733a53a353b89a3ed17dc6fcdc7e28b6ea9ce6",
+      "createdAt": null
+    },
+    {
+      "version": 2,
+      "id": "8af296f3-518b-45f4-9d92-8f022cc98235",
+      "name": "accountB",
+      "spendingKey": "32b05989870ebcae7cc72df990d3bfc9f7a9a37b6bd60d626630e79d86c63654",
+      "viewKey": "983ee40e29ba4d8eb198aa7c185ba8fc71e5e7a0cadb5c2549eae81c89f4b4c2fe615ecb1b2c123680e479d54d899b4766f8a05c2c356a44a8e3cff86b961f6a",
+      "incomingViewKey": "fa4a5dcb434ee15264c1cd720cb72578a9795a893bef400060e20e38f86d0604",
+      "outgoingViewKey": "8e7b35cad68a55324c589838cb2606c07bd897a45207d89cf930bbaa6c44bea7",
+      "publicAddress": "f186c74a5be32593086b24b95bcfeef24eba6e34177bfa9039b6167cfa757d05",
+      "createdAt": null
+    }
+  ],
+  "Verifier mint owners verifyMintOwnersIncremental accepts a valid initial mint": [
+    {
+      "version": 2,
+      "id": "32fe72c0-be2c-4c08-a683-dd502fec0a37",
+      "name": "accountA",
+      "spendingKey": "7d1cc086cbab395b81211cc46750ae9e52600d4085e5f5023da00b992292908e",
+      "viewKey": "43634e9946c914ec8b7348864e03cc94c776759d6bec77132e6ecd0bb6aa6bb85bdcc1fc84cdf0a18ed6987fb894d199b83658f0a8842772ba4d16a57f2f4fa0",
+      "incomingViewKey": "43a05bd7cc1fd81c889ad2eb2b15fe21aa0bf1775dfea80c354a01647b44bc04",
+      "outgoingViewKey": "7b470c63e325005644a8e51218184d8647148495f58c75bc1af99394e5547b2e",
+      "publicAddress": "f17563de1155a8240cac2942c89a7d681d81094fab61948b4a3debe1ef15ac99",
+      "createdAt": null
+    },
+    {
+      "version": 2,
+      "id": "80d3ded2-e0da-4754-a26b-30ce9615a872",
+      "name": "accountB",
+      "spendingKey": "923128302e97eec634a0c8d191d777607d40bdf9c355ecbab61b6ff605d32d5d",
+      "viewKey": "1c07eb640772824cddae807586aa655015833e05d57e1dca06adfecdafb99820926b52ce28903ea5da2a8576c1036628d1a708c217b15e2273ed5e1fc2863409",
+      "incomingViewKey": "3ed7a4cdbd6594c59321a3af0604e41a9d260f46ab96f14744bc786232560906",
+      "outgoingViewKey": "f6b149b0237e747d1ab5212761a7452f86ec2c053122f2184cae37f401c57646",
+      "publicAddress": "0f8959dbb5d409368d4b604ba64015fcad14ee7988fe6df3115b8e994b59d6dd",
+      "createdAt": null
+    }
+  ],
+  "Verifier mint owners verifyMintOwnersIncremental accepts a valid mint": [
+    {
+      "version": 2,
+      "id": "e73fa5b4-a91d-41c8-b65b-389e6f7bb5f2",
+      "name": "accountA",
+      "spendingKey": "696c56babff852639e54c294558c54e557fd8bec54b1a5a1a917f761d45b74e3",
+      "viewKey": "a1fa63b9904cb7c8673190c06253d2c246c7ca3bd4bbd48e323ef1c3ae218e1cc07a9b9f45f0c0e091146a7756aa78fdc5ede1e137c5dcc7ce449e2e6f70e0d6",
+      "incomingViewKey": "4cab31ba4f687016ccfcace6530b7498866a63e2ed4da13223a0c54f72d04900",
+      "outgoingViewKey": "900f2b52c2b8fc3e9178bd1113d0075b191500cd43b9af9b5fa6adcd501cc8d5",
+      "publicAddress": "3a46947fe18587efb50c069ab57e4540f3861437ee2797b0c6f91cb163251097",
+      "createdAt": null
+    },
+    {
+      "version": 2,
+      "id": "661d05cf-879d-4e77-ae7f-ffe6d659f67e",
+      "name": "accountB",
+      "spendingKey": "245ccc8f5bcf0ed5a578ef2d1ad53c489a15c1c1ddc9c16c4dd3ed179fdb5a41",
+      "viewKey": "0eba87b2c28b0b8a31d3a4f92cb8ec7b2af2505b76a311f56b8a47ac0279991113272bc7f85bcefd9a9be2e58f5005b76cdab5db334d456ea821d8076be943c5",
+      "incomingViewKey": "9aea0bf852ed28e4e9769be8923d062e1f3bae1ed27e0580b20fbd12310e9905",
+      "outgoingViewKey": "097f095642beafff1e080157b639c27d5af06d5e38c120a074f940e9631d876c",
+      "publicAddress": "13c414498d2b5d4fdcf2be64d560e3e7389b22fcfbfd4bfb0a590c4164df6501",
+      "createdAt": null
+    }
+  ],
+  "Verifier mint owners verifyMintOwnersIncremental accepts multiple valid mints": [
+    {
+      "version": 2,
+      "id": "ccd2a6fb-acca-4c66-bb92-76edbb374322",
+      "name": "accountA",
+      "spendingKey": "d658581b928e85629b125e01140655c4c35d6b84e5b1ad11884c65714486d7ce",
+      "viewKey": "ba4e76fd3a8d08b15d125730bd8727eac433c90009faf760bf19c352959fd1d8d1aaac41bc5e8f50cabee13b1cda8ac44e151aaf8c504f5740e53dc29ef0fc1a",
+      "incomingViewKey": "abc48703828c9a0b5d745987ae64eb485d6c05df7199d918b736ab977c13ed07",
+      "outgoingViewKey": "4e9df4360aee69f45413444179cf5104489908a92b1ede30e00e10a0d94650e4",
+      "publicAddress": "4197d2e1e65b46a3d9dd26b7655b960687e961d86e8fe9ea5a8b6000ece8bb95",
+      "createdAt": null
+    },
+    {
+      "version": 2,
+      "id": "2708dbe8-05aa-4c58-bd31-7a5b389f24e1",
+      "name": "accountB",
+      "spendingKey": "6477ea3d1c1102052b358775b099945c67d7be44a87d911bd8bdfbed1cdc50d6",
+      "viewKey": "d562f5ea1ee64fc5f894fb57ec91fb110efa52baf7eb507108669e984959431b7ca15acfc1e4580f87975b1fd89cbe14751b93a22587b5c60bcf58e21d5c0115",
+      "incomingViewKey": "7d03a5e1f0cefd69525db3037191be59a6f49c85040f2479e7f06ddd37a64203",
+      "outgoingViewKey": "8fa41aa260a9ad22ca7b1347db6406295e0b3601a20996b32373a9cb58c2b4cf",
+      "publicAddress": "ad8dfaf9a764d847a93e315ff66783b2939dfb67a92c3dc5d42a5e80a07f19c5",
+      "createdAt": null
+    }
+  ],
+  "Verifier mint owners verifyMintOwners should reject with the correct error when mint is invalid": [
+    {
+      "version": 2,
+      "id": "e44b5529-0c4d-4ad9-bbd8-927b5140a2a4",
+      "name": "accountA",
+      "spendingKey": "c4d07fcc170ae4f84788a9b77fd0aa3d4db05b8a29e23b8009f7caf30430c335",
+      "viewKey": "3fcb60f7ad5708942a5dc31910503c695a114d4b6a3ad25eea1161e0c1a7589b8ecdb8e2fc046dc9b37f963ae92b2c634fc3d60e9d8a9333cfe9fc587af498c1",
+      "incomingViewKey": "153394ed8cfec61d2b7eecec6ca6494f43ec44d7a8f3c93c0c6ffcffd294af01",
+      "outgoingViewKey": "e5a36605d6e685d427f4e143e939b1026e871e68e848d7d1b923fa870123bc64",
+      "publicAddress": "6f50120bd320258a37f42403becb2c39eb4825c84ad134c647e93a15d4755950",
+      "createdAt": null
+    },
+    {
+      "version": 2,
+      "id": "d1fda2cd-9bb8-458f-a44a-78bddced4dfe",
+      "name": "accountB",
+      "spendingKey": "5c38ed8c07ab17724d881fd151841f589ad63b80d2b97fbbe7a47c6ad91fb71f",
+      "viewKey": "15fce77357c6cf0e64b39c8dec95b30a4da13b683c153a32961cebc9bcac2ad34e6d5630bd38d56e3d0e4a21495d7e7dbf4162e3dbe274d920161c3c7bd574a5",
+      "incomingViewKey": "f159cb64554daaa39895dd87b538a73e0225d0366d151b8400b8898abc3ef403",
+      "outgoingViewKey": "a9aa5245fa3e0209221d453f2ef32cb278109988f9f48b8dcfcadb7e0086dac2",
+      "publicAddress": "3715baf95773cce924f2986f4790be7be3e48c24aab5a7a8b8d0f37c8ec61be1",
+      "createdAt": null
+    }
+  ],
+  "Verifier mint owners verifyMintOwners should accept when mint is valid": [
+    {
+      "version": 2,
+      "id": "e8db04f8-c756-47a9-aa8e-9e7e1b6a1a20",
+      "name": "accountA",
+      "spendingKey": "b062d94717616962afd56871a50be57fd0b37d472260af1b7e527be39398e195",
+      "viewKey": "ec95b51a58a4610a1fddfb18c61ea169ae1a15f4b061ab91ef2ec9d102c53e6770f38c51056cea7f3e8855bf00aee37552740a8c10409ec0ff135dbe0c352523",
+      "incomingViewKey": "1bc1a4fecca3306e824879cbe84e715af200717090dd9b1394bdcbd48844ed04",
+      "outgoingViewKey": "aad19e642ff3aeb55d83dd64808835c14ef936157ea8b8f1062112fe35141215",
+      "publicAddress": "2d0c2e857f5fe0b795af2da4f002616e26cbf91e40f8f378bd7aa8180299bcc8",
+      "createdAt": null
+    },
+    {
+      "version": 2,
+      "id": "ac83d07d-7418-40b9-9fa0-2a57d8644fc8",
+      "name": "accountB",
+      "spendingKey": "cea2c82b78ce52f0141019aaea31c0ab2e4156e27fd6a1c6de8166ad0a121525",
+      "viewKey": "12688a3523d50d9f03636f151b2fcfdeb739beed0952a0366da00fae7fd68836fc3092cbeaf49797d4f7d6c724eb5c004e4440a11e690633d5b9ebe446cf6ea1",
+      "incomingViewKey": "60116d2964a97798a74eda78133b0307f6bc1e11803a56454e413f025cec4102",
+      "outgoingViewKey": "86cf7c738f42d226a7998dd7e9b20100da6509237d763eb500912968ab7ccf73",
+      "publicAddress": "27bc62f9de3bed720d2908565504fa0b8ec486fad30716c2221777631e1a6ede",
+      "createdAt": null
+    }
+  ],
+  "Verifier mint owners verifyMintOwnersIncremental rejects mints using an invalid owner as defined by the passed in owners map": [
+    {
+      "version": 2,
+      "id": "5c77abfa-b5d9-476c-b6ae-8ecd8a1a7683",
+      "name": "accountA",
+      "spendingKey": "52693c6d1aa0ad4dd510684b730f97d65a850d7e7b708915601fc516b68a55bb",
+      "viewKey": "74ff56cf9dc44f2efbc4ccab05881752003c86da390d921202b1d25280c3d9a9d9486eaa921e795565d47fdd2385956f529b64d46e949352c4b5bb7767fb6638",
+      "incomingViewKey": "0edc2aa4045bbd46de477e2ec9ff6853959151e2a133e4535a0a7b132cecf104",
+      "outgoingViewKey": "3d2f269eed92ca9e4c4ab33879572bae237898d266139a5c006bda480f5f76ab",
+      "publicAddress": "3ddd7781697287645136b4e45c38eaa189534bcedc45470d8452ec59ee46be71",
+      "createdAt": null
+    },
+    {
+      "version": 2,
+      "id": "8fa621ed-c162-4cee-9cc7-33173d71b4f5",
+      "name": "accountB",
+      "spendingKey": "ea36c6de8c98a7bf62209a35dca33b0eba7bd1c2e7bb18b68dec5278eb96487a",
+      "viewKey": "085403e48247b539c3631db1975e6f0722b3d0028f7236f8d23dd51f1aba37c68096b0f408ae886d3f4c08f376422edd745ad88ac23f00d3474c0e61e4ec7ab0",
+      "incomingViewKey": "8b48c8ab89d9c24ddab7c417e74690101ececc8d46c66d68f7a6848427a2c704",
+      "outgoingViewKey": "9fb8ee3de1da843120b5d6a22f4bf95dc44440eaefe770603848879ad035bf32",
+      "publicAddress": "a1d94f6773f99502130e2b86b847ee4b19857b59920d704f0d06476ef4e685a0",
+      "createdAt": null
+    }
+  ],
+  "Verifier mint owners verifyMintOwnersIncremental rejects mints using an invalid owner based on the passed in owners map": [
+    {
+      "version": 2,
+      "id": "53078958-9908-4c5f-9e99-caa7ee9f6fed",
+      "name": "accountA",
+      "spendingKey": "ede29227e2687ce76970ff1bf24afb6bb016670c3bad66ef9e2eeccf638bfdca",
+      "viewKey": "2757042b81e73320457fe94aa9ed7c39d50a190b529c90f4e620bfa75082cc5260169e3596d1dac8b4f920afa3c60c36a7b8913e093499434334c59c7a7b5936",
+      "incomingViewKey": "dd391988ab312d14ba30d681195324edf5f764514a38421d023b5a8aa2206803",
+      "outgoingViewKey": "b0ea071076dc718cc03c29f8285472b21ebe2f268d80212319ff4ed0927cd0dd",
+      "publicAddress": "27f913d8b25ae7d1f521a029d08a6651f15e58bfb055420551c5c34dd7b50373",
+      "createdAt": null
+    },
+    {
+      "version": 2,
+      "id": "0df70d58-be54-4551-88d7-e62467ddb826",
+      "name": "accountB",
+      "spendingKey": "ca8fdc3a848fe78fe7aa16e7a2f73383181f9ec17f84aaa92c3ecb6f43697d23",
+      "viewKey": "0abd075a77e47b42fa1035a3be95ea7543e01154b666d865c9d931be13c8b34a0df690d9e992eebf2197d2103550bba199d91759c4ffbdeadff1b3bbe5c6b612",
+      "incomingViewKey": "bd698044434a264d124015f4405632609a4bba1969cbcc24e57ca8c5018d2e02",
+      "outgoingViewKey": "fa03dd44bbe1e7ae9c1b17b7860e0b5c07fbe0954adea5b11befcf1b82bc9c60",
+      "publicAddress": "e24ae671744544ee3760d01b3ba5b0d8da48b9f9d5a04f9893ca81fe8e111098",
+      "createdAt": null
+    }
+  ],
+  "Verifier mint owners verifyMintOwnersIncremental accepts mints that are valid based on the passed in owners map": [
+    {
+      "version": 2,
+      "id": "8829b43a-bcbf-49c4-99ae-9e19c6ab0023",
+      "name": "accountA",
+      "spendingKey": "df66402b288878cfc2b20d67c7cb5496a7daca1d0273b76865a2952a80b388a7",
+      "viewKey": "a267c982a4fc122090c3d02e40c4d3adb9aba693e1ed6b2b3a6c5308318dcfbe79a9d1039c9e699939f87b7c74b5cc6ee4bf3ae63aa587a86ea903c7f44c1091",
+      "incomingViewKey": "ddec95cac9e8d541c9f4c940ec1e1844936d3bca0dee701a1a5c8d836c41b303",
+      "outgoingViewKey": "20eada68d8a4db5075985b68494e088b2bb7bc2a8965f250f35572b655dd5a2c",
+      "publicAddress": "bb243e3bf89c1fe0cbe586fad6e99abf7d416d3a097e43b5b95a0a8919137cc3",
+      "createdAt": null
+    },
+    {
+      "version": 2,
+      "id": "a84b5a13-978a-435c-8755-015affe54bd3",
+      "name": "accountB",
+      "spendingKey": "8cd28be04edd5f6e79c0bfd3946c1af0162b06399d481008837466fe33b36380",
+      "viewKey": "7b02b156875629305bdaa1ae126664ffdc4acb2a13ecb74487bea4785e9af848349193c7740d344624851b400fe4fd9f9a29b3bf405a938260c18453f8c64b00",
+      "incomingViewKey": "de349a570f857127cef686834c077d093288150aa19563a97281da784b044701",
+      "outgoingViewKey": "28ba1b2a7223156dfb32f12626a30a5278321c451f80f3c54074f5c712aa3955",
+      "publicAddress": "31a7bb8f5c6fed5a02b725cea71b9c85571896b2b6253b171b3e096c2e733e63",
+      "createdAt": null
+    }
   ]
 }
