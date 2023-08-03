@@ -24,17 +24,13 @@ import { AssetStatus, ScanState } from './wallet'
 describe('Accounts', () => {
   const nodeTest = createNodeTest()
 
-  it('should reset when chain processor head does not exist in chain', async () => {
+  it('should throw an error when chain processor head does not exist in chain', async () => {
     const { node, strategy } = nodeTest
     strategy.disableMiningReward()
 
-    const resetSpy = jest.spyOn(node.wallet, 'reset').mockImplementation()
-    jest.spyOn(node.wallet, 'eventLoop').mockImplementation(() => Promise.resolve())
-
     node.wallet['chainProcessor'].hash = Buffer.from('0')
 
-    await node.wallet.start()
-    expect(resetSpy).toHaveBeenCalledTimes(1)
+    await expect(node.wallet.start()).rejects.toThrow()
   })
 
   it('should handle transaction created on fork', async () => {

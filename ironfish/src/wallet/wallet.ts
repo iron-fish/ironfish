@@ -253,12 +253,11 @@ export class Wallet {
       const hasHeadBlock = await this.chainHasBlock(this.chainProcessor.hash)
 
       if (!hasHeadBlock) {
-        this.logger.error(
-          `Resetting accounts database because accounts head was not found in chain: ${this.chainProcessor.hash.toString(
+        throw new Error(
+          `Wallet has scanned to block ${this.chainProcessor.hash.toString(
             'hex',
-          )}`,
+          )}, but node's chain does not contain that block. Unable to sync from node without rescan.`,
         )
-        await this.reset()
       }
     }
 
