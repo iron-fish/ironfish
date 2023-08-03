@@ -611,12 +611,16 @@ describe('Verifier', () => {
     let value: bigint
     let invalidReason: { valid: boolean; reason: VerificationResultReason }
 
-    function mintDescription(asset: Asset, ownerAccount: Account): MintDescription {
+    function mintDescription(
+      asset: Asset,
+      ownerAccount: Account,
+      transferOwnershipTo?: Account,
+    ): MintDescription {
       return {
         asset,
         value,
         owner: Buffer.from(ownerAccount.publicAddress, 'hex'),
-        transferOwnershipTo: null,
+        transferOwnershipTo: transferOwnershipTo ? transferOwnershipTo.publicAddress : null,
       }
     }
 
@@ -670,6 +674,15 @@ describe('Verifier', () => {
       ).resolves.toEqual(invalidReason)
     })
 
+    it('rejects mints using the old owner if the owner changes', async () => {
+      const mint1Valid = mintDescription(assetA, accountA)
+      const mint2ChangeOwner = mintDescription(assetA, accountA, accountB)
+      const mint3OldOwner = mintDescription(assetA, accountA)
+      await expect(
+        verifier.verifyMintOwners([mint1Valid, mint2ChangeOwner, mint3OldOwner]),
+      ).resolves.toEqual(invalidReason)
+    })
+
     it('accepts a valid initial mint', async () => {
       const mint = mintDescription(assetA, accountA)
       await expect(verifier.verifyMintOwners([mint])).resolves.toEqual({ valid: true })
@@ -685,7 +698,11 @@ describe('Verifier', () => {
       const mint1 = mintDescription(assetA, accountA)
       const mint2 = mintDescription(assetB, accountB)
       const mint3 = mintDescription(assetA, accountA)
-      await expect(verifier.verifyMintOwners([mint1, mint2, mint3])).resolves.toEqual({
+      const mint4ChangeOwner = mintDescription(assetB, accountB, accountA)
+      const mint5NewOwner = mintDescription(assetB, accountA)
+      await expect(
+        verifier.verifyMintOwners([mint1, mint2, mint3, mint4ChangeOwner, mint5NewOwner]),
+      ).resolves.toEqual({
         valid: true,
       })
     })

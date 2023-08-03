@@ -589,7 +589,7 @@ export class Verifier {
     const invalidReason = { valid: false, reason: VerificationResultReason.INVALID_MINT_OWNER }
 
     return this.chain.blockchainDb.db.withTransaction(tx, async (tx) => {
-      for (const { asset, owner } of mints) {
+      for (const { asset, owner, transferOwnershipTo } of mints) {
         const assetId = asset.id()
 
         let existingAssetOwner = assetOwners.get(assetId)
@@ -620,7 +620,10 @@ export class Verifier {
           return invalidReason
         }
 
-        // TODO(IFL-1404): Update owner based on transferOwnershipTo
+        if (transferOwnershipTo) {
+          const newOwner = Buffer.from(transferOwnershipTo, 'hex')
+          assetOwners.set(assetId, newOwner)
+        }
       }
 
       return { valid: true }
