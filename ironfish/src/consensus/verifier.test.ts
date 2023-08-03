@@ -15,6 +15,7 @@ import { Assert } from '../assert'
 import { getBlockSize, getBlockWithMinersFeeSize } from '../network/utils/serializers'
 import { BlockHeader, Transaction } from '../primitives'
 import { transactionCommitment } from '../primitives/blockheader'
+import { MintDescription } from '../primitives/mintDescription'
 import { Target } from '../primitives/target'
 import { SerializedTransaction } from '../primitives/transaction'
 import {
@@ -29,6 +30,7 @@ import {
   useTxSpendsFixture,
 } from '../testUtilities'
 import { useFixture } from '../testUtilities/fixtures/fixture'
+import { Account, Wallet } from '../wallet'
 import { VerificationResultReason, Verifier } from './verifier'
 
 describe('Verifier', () => {
@@ -366,6 +368,28 @@ describe('Verifier', () => {
       })
     })
 
+    it('rejects a block with an invalid mint owner', async () => {
+      // Canary test to ensure verifyBlock is testing mint owners, specific
+      // verifyMintOwner logic has tests below
+      const account = await useAccountFixture(nodeTest.node.wallet)
+      const accountB = await useAccountFixture(nodeTest.node.wallet, 'accountB')
+      const asset = new Asset(account.publicAddress, 'testcoin', '')
+
+      const block = await useMintBlockFixture({
+        node: nodeTest.node,
+        account,
+        asset,
+        value: BigInt(5),
+      })
+
+      block.transactions[1].mints[0].owner = Buffer.from(accountB.publicAddress, 'hex')
+
+      expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
+        reason: VerificationResultReason.INVALID_MINT_OWNER,
+        valid: false,
+      })
+    })
+
     it('accepts a valid block', async () => {
       const block = await useMinerBlockFixture(nodeTest.chain)
       const verification = await nodeTest.chain.verifier.verifyBlock(block)
@@ -572,6 +596,98 @@ describe('Verifier', () => {
           reason: VerificationResultReason.NOTE_COMMITMENT,
         },
       )
+    })
+  })
+
+  describe('verifyMintOwners', () => {
+    const nodeTest = createNodeTest()
+
+    let wallet: Wallet
+    let verifier: Verifier
+    let accountA: Account
+    let accountB: Account
+    let assetA: Asset
+    let assetB: Asset
+    let value: bigint
+    let invalidReason: { valid: boolean; reason: VerificationResultReason }
+
+    function mintDescription(asset: Asset, ownerAccount: Account): MintDescription {
+      return {
+        asset,
+        value,
+        owner: Buffer.from(ownerAccount.publicAddress, 'hex'),
+        transferOwnershipTo: null,
+      }
+    }
+
+    function mockChainAsset(asset: Asset, ownerAccount: Account) {
+      return jest.spyOn(verifier.chain, 'getAssetById').mockImplementationOnce(() =>
+        Promise.resolve({
+          createdTransactionHash: Buffer.alloc(32, 0),
+          id: asset.id(),
+          metadata: asset.metadata(),
+          name: asset.name(),
+          nonce: asset.nonce(),
+          creator: asset.creator(),
+          owner: Buffer.from(ownerAccount.publicAddress, 'hex'),
+          supply: 9999n,
+        }),
+      )
+    }
+
+    beforeEach(async () => {
+      const { wallet: w, verifier: v } = nodeTest
+
+      wallet = w
+      verifier = v
+
+      accountA = await useAccountFixture(wallet, 'accountA')
+      accountB = await useAccountFixture(wallet, 'accountB')
+
+      assetA = new Asset(accountA.publicAddress, 'testcoin', '')
+      assetB = new Asset(accountB.publicAddress, 'testcoin', '')
+      value = 5n
+
+      invalidReason = { valid: false, reason: VerificationResultReason.INVALID_MINT_OWNER }
+    })
+
+    it('rejects initial mint when owner does not match creator', async () => {
+      const mint = mintDescription(assetA, accountB)
+      await expect(verifier.verifyMintOwners([mint])).resolves.toEqual(invalidReason)
+    })
+
+    it('rejects mint when owner does not match asset db', async () => {
+      mockChainAsset(assetA, accountA)
+      const mint = mintDescription(assetA, accountB)
+      await expect(verifier.verifyMintOwners([mint])).resolves.toEqual(invalidReason)
+    })
+
+    it('rejects subsequent mint with different owner', async () => {
+      const mint1Valid = mintDescription(assetA, accountA)
+      const mint2DifferentOwner = mintDescription(assetA, accountB)
+      await expect(
+        verifier.verifyMintOwners([mint1Valid, mint2DifferentOwner]),
+      ).resolves.toEqual(invalidReason)
+    })
+
+    it('accepts a valid initial mint', async () => {
+      const mint = mintDescription(assetA, accountA)
+      await expect(verifier.verifyMintOwners([mint])).resolves.toEqual({ valid: true })
+    })
+
+    it('accepts a valid mint', async () => {
+      mockChainAsset(assetA, accountA)
+      const mint = mintDescription(assetA, accountA)
+      await expect(verifier.verifyMintOwners([mint])).resolves.toEqual({ valid: true })
+    })
+
+    it('accepts multiple valid mints', async () => {
+      const mint1 = mintDescription(assetA, accountA)
+      const mint2 = mintDescription(assetB, accountB)
+      const mint3 = mintDescription(assetA, accountA)
+      await expect(verifier.verifyMintOwners([mint1, mint2, mint3])).resolves.toEqual({
+        valid: true,
+      })
     })
   })
 })
