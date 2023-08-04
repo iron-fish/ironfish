@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import type { IDatabaseEncoding } from '../../storage/database/types'
+import type { IDatabaseEncoding } from '../../../../storage/database/types'
 import {
   ASSET_ID_LENGTH,
   ASSET_METADATA_LENGTH,
@@ -9,7 +9,7 @@ import {
   PUBLIC_ADDRESS_LENGTH,
 } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
-import { BigIntUtils } from '../../utils'
+import { BigIntUtils } from '../../../../utils'
 
 export interface AssetValue {
   createdTransactionHash: Buffer
