@@ -19,7 +19,7 @@ import {
 } from '../testUtilities'
 import { AsyncUtils } from '../utils'
 import { Account, TransactionStatus, TransactionType } from '../wallet'
-import { AssetStatus, ScanState } from './wallet'
+import { AssetStatus } from './wallet'
 
 describe('Accounts', () => {
   const nodeTest = createNodeTest()
@@ -264,17 +264,12 @@ describe('Accounts', () => {
       // set accountA's createdAt block off the chain
       await accountA.updateCreatedAt({ hash: Buffer.alloc(32), sequence: 1 })
 
-      const resetAccountSpy = jest.spyOn(node.wallet, 'resetAccount')
       jest.spyOn(node.wallet, 'scanTransactions').mockReturnValue(Promise.resolve())
       jest.spyOn(node.wallet, 'eventLoop').mockReturnValue(Promise.resolve())
 
-      // set chainProcessor sequence
-      node.wallet.chainProcessor.sequence = 1
-
       await node.wallet.start()
 
-      expect(resetAccountSpy).toHaveBeenCalledTimes(1)
-      expect(resetAccountSpy).toHaveBeenCalledWith(accountA, { resetCreatedAt: true })
+      expect(accountA.createdAt).toBeNull()
     })
 
     it('should not reset account.createdAt if its sequence is ahead of the chainProcessor', async () => {
@@ -2727,38 +2722,23 @@ describe('Accounts', () => {
       )
     })
 
-    it('should reset the account and createdAt if the account was created on a different chain', async () => {
+    it('should set the account createdAt if the account was created on a different chain', async () => {
       const { node } = nodeTest
 
-      let account: Account | null = await useAccountFixture(node.wallet)
+      const account = await useAccountFixture(node.wallet)
 
       // set createdAt at fake block at sequence 2
       await account.updateCreatedAt({ hash: Buffer.alloc(32), sequence: 2 })
 
       const resetAccount = jest.spyOn(node.wallet, 'resetAccount')
 
-      const scanTransactions = jest
-        .spyOn(node.wallet, 'scanTransactions')
-        .mockReturnValue(Promise.resolve())
-
-      const scan = new ScanState()
-
-      // mock scan wait to return immediately
-      jest.spyOn(scan, 'wait').mockReturnValue(Promise.resolve())
-
       const block = await useMinerBlockFixture(node.chain, 2)
 
-      await expect(
-        node.wallet.shouldDecryptForAccount(block.header, account, scan),
-      ).resolves.toBe(false)
+      await expect(node.wallet.shouldDecryptForAccount(block.header, account)).resolves.toBe(
+        false,
+      )
 
-      expect(resetAccount).toHaveBeenCalledTimes(1)
-      expect(scanTransactions).toHaveBeenCalledTimes(1)
-      expect(scan.isAborted).toBe(true)
-
-      // load account again because resetAccount creates new Account instance
-      account = node.wallet.getAccountByName(account.name)
-      Assert.isNotNull(account)
+      expect(resetAccount).not.toHaveBeenCalled()
 
       expect(account.createdAt).toBeNull()
     })
