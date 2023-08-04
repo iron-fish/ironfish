@@ -246,34 +246,6 @@ export class IronfishSdk {
     return node
   }
 
-  async connectRpcConfig(
-    forceLocal = false,
-    forceRemote = false,
-  ): Promise<Pick<RpcClient, 'config'>> {
-    forceRemote = forceRemote || this.config.get('enableRpcTcp')
-
-    if (!forceLocal) {
-      if (forceRemote) {
-        await this.client.connect()
-        return this.client
-      }
-
-      const connected = await this.client.tryConnect()
-      if (connected) {
-        return this.client
-      }
-    }
-
-    // This connection uses a wallet node since that is the most granular type
-    // of node available. This can be refactored in the future if needed.
-    const node = await this.walletNode()
-    const clientMemory = new RpcMemoryClient(
-      this.logger,
-      node.rpc.getRouter([ApiNamespace.config]),
-    )
-    return clientMemory
-  }
-
   async connectRpc(forceLocal = false, forceRemote = false): Promise<RpcClient> {
     forceRemote = forceRemote || this.config.get('enableRpcTcp')
 
