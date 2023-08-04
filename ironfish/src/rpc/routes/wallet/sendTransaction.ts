@@ -69,9 +69,9 @@ routes.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
   async (request, node): Promise<void> => {
     const account = getAccount(node.wallet, request.data.account)
 
-    const synced = (await node.wallet.nodeClient.node.getStatus()).content?.blockchain.synced
+    const status = await node.wallet.nodeClient.node.getStatus()
 
-    if (!synced) {
+    if (!status.content.blockchain.synced) {
       throw new ValidationError(
         `Your node must be synced with the Iron Fish network to send a transaction. Please try again later`,
       )
