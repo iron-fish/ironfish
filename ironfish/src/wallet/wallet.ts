@@ -87,6 +87,7 @@ export class Wallet {
   protected defaultAccount: string | null = null
   protected isStarted = false
   protected isOpen = false
+  protected isSyncingTransactionGossip = false
   protected eventLoopTimeout: SetTimeoutToken | null = null
   private readonly createTransactionMutex: Mutex
   private readonly eventLoopAbortController: AbortController
@@ -294,6 +295,7 @@ export class Wallet {
     this.eventLoopResolve = resolve
 
     await this.updateHead()
+    void this.syncTransactionGossip()
     await this.cleanupDeletedAccounts()
 
     if (this.isStarted) {
@@ -303,6 +305,27 @@ export class Wallet {
     resolve()
     this.eventLoopPromise = null
     this.eventLoopResolve = null
+  }
+
+  async syncTransactionGossip(): Promise<void> {
+    if (this.isSyncingTransactionGossip) {
+      return
+    }
+
+    try {
+      const response = this.nodeClient.event.onTransactionGossipStream()
+
+      this.isSyncingTransactionGossip = true
+
+      for await (const content of response.contentStream()) {
+        const transaction = new Transaction(Buffer.from(content.serializedTransaction, 'hex'))
+        await this.addPendingTransaction(transaction)
+      }
+    } catch (e: unknown) {
+      this.logger.error(`Error syncing transaction gossip: ${ErrorUtils.renderError(e)}`)
+    } finally {
+      this.isSyncingTransactionGossip = false
+    }
   }
 
   async reset(): Promise<void> {
