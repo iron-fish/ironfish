@@ -76,6 +76,7 @@ export class Migration019 extends Migration {
             chainAsset.name,
             chainAsset.nonce,
             chainAsset.creator,
+            chainAsset.creator,
             { hash, sequence },
             tx,
           )

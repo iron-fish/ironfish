@@ -16,6 +16,7 @@ import { Witness } from '../merkletree/witness'
 import { Mutex } from '../mutex'
 import { GENESIS_BLOCK_SEQUENCE } from '../primitives'
 import { BurnDescription } from '../primitives/burnDescription'
+import { MintDescription } from '../primitives/mintDescription'
 import { Note } from '../primitives/note'
 import { NoteEncrypted } from '../primitives/noteEncrypted'
 import { MintData, RawTransaction } from '../primitives/rawTransaction'
@@ -524,6 +525,8 @@ export class Wallet {
         return assetBalanceDeltas
       }
 
+      await this.prefetchAssetsFromMints(account, transaction.mints, tx)
+
       const decryptedNotesByAccountId = await this.decryptNotes(
         transaction,
         initialNoteIndex,
@@ -568,6 +571,7 @@ export class Wallet {
           chainAsset.name,
           chainAsset.nonce,
           chainAsset.creator,
+          chainAsset.owner,
           blockHeader,
           tx,
         )
@@ -576,6 +580,45 @@ export class Wallet {
           asset,
           { hash: blockHeader.hash, sequence: blockHeader.sequence },
           tx,
+        )
+      }
+    }
+  }
+
+  private async prefetchAssetsFromMints(
+    account: Account,
+    mints: MintDescription[],
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    for (const mint of mints) {
+      const shouldSaveAsset = await account.shouldSaveAsset(mint, tx)
+      if (!shouldSaveAsset) {
+        continue
+      }
+
+      // If this account is not the creator of the asset and it is the first
+      // time this asset has been relevant to this account, there is a good
+      // chance it existed prior to this transaction.
+      const isCreator = mint.asset.creator().toString('hex') === account.publicAddress
+      const assetExists = await this.walletDb.hasAsset(account, mint.asset.id(), tx)
+      if (!isCreator && !assetExists) {
+        const chainAsset = await this.getChainAsset(mint.asset.id())
+        if (!chainAsset) {
+          continue
+        }
+
+        await account.saveAssetFromChain(
+          chainAsset.createdTransactionHash,
+          chainAsset.id,
+          chainAsset.metadata,
+          chainAsset.name,
+          chainAsset.nonce,
+          chainAsset.creator,
+          chainAsset.owner,
+          // TODO:
+          // chainAsset.supply,
+          // chainAsset.blockHash,
+          // chainAsset.sequence,
         )
       }
     }
@@ -649,6 +692,8 @@ export class Wallet {
     for (const account of accounts) {
       const decryptedNotes = decryptedNotesByAccountId.get(account.id) ?? []
 
+      // TODO: This function probably needs a tx, all 3 of these are DB operations
+      await this.prefetchAssetsFromMints(account, transaction.mints, undefined)
       await account.addPendingTransaction(transaction, decryptedNotes, head.sequence)
       await this.upsertAssetsFromDecryptedNotes(account, decryptedNotes)
     }
@@ -1649,6 +1694,7 @@ export class Wallet {
     metadata: Buffer
     name: Buffer
     nonce: number
+    owner: Buffer
   } | null> {
     try {
       Assert.isNotNull(this.nodeClient)
@@ -1660,6 +1706,7 @@ export class Wallet {
         metadata: Buffer.from(response.content.metadata, 'hex'),
         name: Buffer.from(response.content.name, 'hex'),
         nonce: response.content.nonce,
+        owner: Buffer.from(response.content.owner, 'hex'),
       }
     } catch (error: unknown) {
       if (ErrorUtils.isNotFoundError(error)) {

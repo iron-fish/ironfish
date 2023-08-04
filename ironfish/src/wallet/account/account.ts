@@ -7,6 +7,7 @@ import MurmurHash3 from 'imurmurhash'
 import { Assert } from '../../assert'
 import { Transaction } from '../../primitives'
 import { GENESIS_BLOCK_SEQUENCE } from '../../primitives/block'
+import { MintDescription } from '../../primitives/mintDescription'
 import { Note } from '../../primitives/note'
 import { DatabaseKeyRange, IDatabaseTransaction } from '../../storage'
 import { StorageUtils } from '../../storage/database/utils'
@@ -243,6 +244,7 @@ export class Account {
     name: Buffer,
     nonce: number,
     creator: Buffer,
+    owner: Buffer,
     blockHeader?: { hash: Buffer | null; sequence: number | null },
     tx?: IDatabaseTransaction,
   ): Promise<void> {
@@ -261,7 +263,7 @@ export class Account {
         name,
         nonce,
         creator,
-        owner: creator,
+        owner,
         sequence: blockHeader?.sequence ?? null,
         supply: null,
       },
@@ -290,7 +292,7 @@ export class Account {
         name: assetValue.name,
         nonce: assetValue.nonce,
         creator: assetValue.creator,
-        owner: assetValue.creator,
+        owner: assetValue.owner, // TODO: Do a pass on all creator/owner fields
         sequence: blockHeader.sequence,
         supply: assetValue.supply,
       },
@@ -302,9 +304,11 @@ export class Account {
     { blockHash, sequence, transaction }: TransactionValue,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    for (const { asset, value } of transaction.mints) {
-      // Only store the asset for the creator
-      if (asset.creator().toString('hex') !== this.publicAddress) {
+    for (const mint of transaction.mints) {
+      const { asset, value } = mint
+
+      const shouldSaveAsset = await this.shouldSaveAsset(mint, tx)
+      if (!shouldSaveAsset) {
         continue
       }
 
@@ -436,9 +440,11 @@ export class Account {
     transaction: Transaction,
     tx: IDatabaseTransaction,
   ): Promise<void> {
-    for (const { asset, value } of transaction.mints.slice().reverse()) {
-      // Only update the mint for the creator
-      if (asset.creator().toString('hex') !== this.publicAddress) {
+    for (const mint of transaction.mints.slice().reverse()) {
+      const { asset, value } = mint
+
+      const shouldSaveAsset = await this.shouldSaveAsset(mint, tx)
+      if (!shouldSaveAsset) {
         continue
       }
 
@@ -815,9 +821,11 @@ export class Account {
     transaction: Transaction,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    for (const { asset } of transaction.mints.slice().reverse()) {
-      // Only update the mint for the creator
-      if (asset.creator().toString('hex') !== this.publicAddress) {
+    for (const mint of transaction.mints.slice().reverse()) {
+      const { asset } = mint
+
+      const shouldSaveAsset = await this.shouldSaveAsset(mint, tx)
+      if (!shouldSaveAsset) {
         continue
       }
 
@@ -1189,6 +1197,18 @@ export class Account {
     }
 
     return notes
+  }
+
+  async shouldSaveAsset(mint: MintDescription, tx?: IDatabaseTransaction): Promise<boolean> {
+    const isCreator = mint.asset.creator().toString('hex') === this.publicAddress
+    // TODO: Once PR-4159 merges. Don't forget to add to the return statement
+    // const isOwner = mint.owner.toString('hex') === this.publicAddress
+    const isBecomingOwner = mint.transferOwnershipTo === this.publicAddress
+    // If the account has ever saved this asset before, it should continue to
+    // do so. This account was most likely a previous owner of this asset
+    const assetAlreadyStored = await this.walletDb.hasAsset(this, mint.asset.id(), tx)
+
+    return isCreator || isBecomingOwner || assetAlreadyStored
   }
 }
 

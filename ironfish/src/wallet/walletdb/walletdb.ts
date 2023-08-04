@@ -1172,6 +1172,14 @@ export class WalletDB {
     await this.assets.del([account.prefix, assetId], tx)
   }
 
+  async hasAsset(
+    account: Account,
+    assetId: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<boolean> {
+    return this.assets.has([account.prefix, assetId], tx)
+  }
+
   async getTransactionHashFromNullifier(
     account: Account,
     nullifier: Buffer,
