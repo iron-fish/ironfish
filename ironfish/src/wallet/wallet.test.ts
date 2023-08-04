@@ -1900,6 +1900,70 @@ describe('Accounts', () => {
       })
     })
 
+    // TODO: This test can't happen until consensus params is done
+    it.skip('should save assets from the chain that the account becomes owner of', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+      const accountB = await useAccountFixture(node.wallet, 'b')
+
+      const minerBlock = await useMinerBlockFixture(
+        node.chain,
+        undefined,
+        accountA,
+        node.wallet,
+      )
+      await expect(node.chain).toAddBlock(minerBlock)
+      await node.wallet.updateHead()
+
+      const asset = new Asset(accountA.publicAddress, 'fakeasset', 'metadata')
+      const value = BigInt(10)
+      const mintBlock = await useMintBlockFixture({
+        node,
+        account: accountA,
+        asset,
+        value,
+        sequence: 3,
+      })
+      await expect(node.chain).toAddBlock(mintBlock)
+      await node.wallet.updateHead()
+
+      const secondValue = 5n
+      const transaction = await usePostTxFixture({
+        node,
+        wallet: node.wallet,
+        from: accountA,
+        mints: [
+          {
+            name: asset.name().toString('hex'),
+            metadata: asset.metadata().toString('hex'),
+            value: secondValue,
+            transferOwnershipTo: accountB.publicAddress,
+          },
+        ],
+      })
+      const block = await useMinerBlockFixture(node.chain, undefined, undefined, undefined, [
+        transaction,
+      ])
+      await expect(node.chain).toAddBlock(block)
+      await node.wallet.updateHead()
+
+      const assetValue = {
+        blockHash: mintBlock.header.hash,
+        createdTransactionHash: mintBlock.transactions[1].hash(),
+        id: asset.id(),
+        metadata: asset.metadata(),
+        name: asset.name(),
+        nonce: asset.nonce(),
+        creator: Buffer.from(accountA.publicAddress, 'hex'),
+        owner: Buffer.from(accountA.publicAddress, 'hex'),
+        sequence: mintBlock.header.sequence,
+        supply: value + secondValue,
+      }
+      expect(await accountA['walletDb'].getAsset(accountA, asset.id())).toEqual(assetValue)
+      expect(await accountB['walletDb'].getAsset(accountB, asset.id())).toEqual(assetValue)
+    })
+
     it('should add transactions to accounts if the account spends, but does not receive notes', async () => {
       const { node } = await nodeTest.createSetup()
       const { node: node2 } = await nodeTest.createSetup()
