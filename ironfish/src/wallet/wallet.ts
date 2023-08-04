@@ -572,6 +572,7 @@ export class Wallet {
           chainAsset.nonce,
           chainAsset.creator,
           chainAsset.owner,
+          undefined,
           blockHeader,
           tx,
         )
@@ -615,8 +616,8 @@ export class Wallet {
           chainAsset.nonce,
           chainAsset.creator,
           chainAsset.owner,
-          // TODO:
-          // chainAsset.supply,
+          chainAsset.supply,
+          // TODO?:
           // chainAsset.blockHash,
           // chainAsset.sequence,
         )
@@ -1695,6 +1696,7 @@ export class Wallet {
     name: Buffer
     nonce: number
     owner: Buffer
+    supply: bigint
   } | null> {
     try {
       Assert.isNotNull(this.nodeClient)
@@ -1707,6 +1709,7 @@ export class Wallet {
         name: Buffer.from(response.content.name, 'hex'),
         nonce: response.content.nonce,
         owner: Buffer.from(response.content.owner, 'hex'),
+        supply: BigInt(response.content.supply),
       }
     } catch (error: unknown) {
       if (ErrorUtils.isNotFoundError(error)) {
