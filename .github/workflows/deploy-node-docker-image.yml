@@ -10,6 +10,10 @@ on:
         description: 'GitHub:testnet'
         type: boolean
         default: false
+      github_tag_git_sha:
+        description: 'GitHub:{GIT_SHA}'
+        type: boolean
+        default: false
       aws_tag_mainnet:
         description: 'AWS:mainnet'
         type: boolean
@@ -83,6 +87,12 @@ jobs:
         run: |
           docker tag ironfish ghcr.io/iron-fish/ironfish:testnet
           docker push ghcr.io/iron-fish/ironfish:testnet
+      
+      - name: Deploy Node Image to GitHub:${{ github.sha }}
+        if: ${{ inputs.github_tag_git_sha }}
+        run: |
+          docker tag ironfish ghcr.io/iron-fish/ironfish:${{ github.sha }}
+          docker push ghcr.io/iron-fish/ironfish:${{ github.sha }}
 
       - name: Deploy Node Image to AWS:mainnet
         if: ${{ inputs.aws_tag_mainnet }}
