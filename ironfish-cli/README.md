@@ -101,3 +101,27 @@ yarn start start --datadir ~/.ironfish2 --port 9034 --bootstrap ws://localhost:9
 # in tab 4
 yarn start miners:start --datadir ~/.ironfish2
 ```
+
+**Running a Development Node**
+
+```bash
+# in tab 1
+yarn start start --networkId=2 --datadir ~/.ironfish-dev 
+
+# in tab 2
+yarn start miners:start --datadir ~/.ironfish-dev
+
+# in tab 3, to check the status of the node
+yarn start status --datadir ~/.ironfish-dev 
+
+# in tab 3, to check the wallet balance
+yarn start wallet:balance --datadir ~/.ironfish-dev 
+```
+
+[More information on local mining and testing](https://ironfish.network/developers/documentation/integration_local)
+
+
+## Documentation
+
+[CLI Commands](https://ironfish.network/use/get-started/cli-commands)
+
