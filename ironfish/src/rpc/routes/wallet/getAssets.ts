@@ -18,6 +18,7 @@ export type GetAssetsResponse = {
   metadata: string
   name: string
   creator: string
+  nonce: number
   status: string
   supply?: string
   verification: AssetVerification
@@ -39,6 +40,7 @@ export const GetAssetsResponseSchema: yup.ObjectSchema<GetAssetsResponse> = yup
     name: yup.string().defined(),
     creator: yup.string().defined(),
     status: yup.string().defined(),
+    nonce: yup.number().defined(),
     supply: yup.string().optional(),
     verification: yup
       .object({ status: yup.string().oneOf(['verified', 'unverified', 'unknown']).defined() })
@@ -63,6 +65,7 @@ routes.register<typeof GetAssetsRequestSchema, GetAssetsResponse>(
         metadata: asset.metadata.toString('hex'),
         name: asset.name.toString('hex'),
         creator: asset.creator.toString('hex'),
+        nonce: asset.nonce,
         status: await node.wallet.getAssetStatus(account, asset, {
           confirmations: request.data.confirmations,
         }),
