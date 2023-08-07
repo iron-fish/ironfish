@@ -18,6 +18,7 @@ export type GetAssetsResponse = {
   metadata: string
   name: string
   creator: string
+  owner: string
   nonce: number
   status: string
   supply?: string
@@ -39,6 +40,7 @@ export const GetAssetsResponseSchema: yup.ObjectSchema<GetAssetsResponse> = yup
     metadata: yup.string().defined(),
     name: yup.string().defined(),
     creator: yup.string().defined(),
+    owner: yup.string().defined(),
     status: yup.string().defined(),
     nonce: yup.number().defined(),
     supply: yup.string().optional(),
@@ -65,6 +67,7 @@ routes.register<typeof GetAssetsRequestSchema, GetAssetsResponse>(
         metadata: asset.metadata.toString('hex'),
         name: asset.name.toString('hex'),
         creator: asset.creator.toString('hex'),
+        owner: asset.owner.toString('hex'),
         nonce: asset.nonce,
         status: await node.wallet.getAssetStatus(account, asset, {
           confirmations: request.data.confirmations,

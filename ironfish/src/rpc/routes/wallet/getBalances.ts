@@ -18,6 +18,7 @@ export interface GetBalancesResponse {
     assetId: string
     assetName: string
     assetCreator: string
+    assetOwner: string
     assetVerification: AssetVerification
     confirmed: string
     unconfirmed: string
@@ -49,6 +50,7 @@ export const GetBalancesResponseSchema: yup.ObjectSchema<GetBalancesResponse> = 
             assetId: yup.string().defined(),
             assetName: yup.string().defined(),
             assetCreator: yup.string().defined(),
+            assetOwner: yup.string().defined(),
             assetVerification: yup
               .object({
                 status: yup.string().oneOf(['verified', 'unverified', 'unknown']).defined(),
@@ -87,6 +89,7 @@ routes.register<typeof GetBalancesRequestSchema, GetBalancesResponse>(
         assetId: balance.assetId.toString('hex'),
         assetName: asset?.name.toString('hex') ?? '',
         assetCreator: asset?.creator.toString('hex') ?? '',
+        assetOwner: asset?.owner.toString('hex') ?? '',
         assetVerification: node.assetsVerifier.verify(balance.assetId),
         blockHash: balance.blockHash?.toString('hex') ?? null,
         confirmed: CurrencyUtils.encode(balance.confirmed),

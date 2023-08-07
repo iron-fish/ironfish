@@ -18,6 +18,7 @@ export type GetWalletAssetRequest = {
 export type GetWalletAssetResponse = {
   createdTransactionHash: string
   creator: string
+  owner: string
   id: string
   metadata: string
   name: string
@@ -41,6 +42,7 @@ export const GetWalletAssetResponse: yup.ObjectSchema<GetWalletAssetResponse> = 
   .object({
     createdTransactionHash: yup.string().defined(),
     creator: yup.string().defined(),
+    owner: yup.string().defined(),
     id: yup.string().defined(),
     metadata: yup.string().defined(),
     name: yup.string().defined(),
@@ -74,6 +76,7 @@ routes.register<typeof GetWalletAssetRequestSchema, GetWalletAssetResponse>(
     request.end({
       createdTransactionHash: asset.createdTransactionHash.toString('hex'),
       creator: asset.creator.toString('hex'),
+      owner: asset.owner.toString('hex'),
       id: asset.id.toString('hex'),
       metadata: asset.metadata.toString('hex'),
       name: asset.name.toString('hex'),

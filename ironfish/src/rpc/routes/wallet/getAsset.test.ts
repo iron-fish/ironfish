@@ -111,6 +111,7 @@ describe('Route chain.getAsset', () => {
     expect(response.content).toEqual({
       createdTransactionHash: pendingMint.hash().toString('hex'),
       creator: account.publicAddress,
+      owner: account.publicAddress,
       id: asset.id().toString('hex'),
       metadata: asset.metadata().toString('hex'),
       name: asset.name().toString('hex'),
@@ -143,6 +144,7 @@ describe('Route chain.getAsset', () => {
     expect(response.content).toEqual({
       createdTransactionHash: mintBlock.transactions[1].hash().toString('hex'),
       creator: account.publicAddress,
+      owner: account.publicAddress,
       id: asset.id().toString('hex'),
       metadata: asset.metadata().toString('hex'),
       name: asset.name().toString('hex'),
