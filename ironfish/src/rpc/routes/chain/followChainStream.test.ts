@@ -62,4 +62,29 @@ describe('Route chain/followChainStream', () => {
       },
     })
   })
+
+  it('ends the stream if the limit is reached', async () => {
+    const { chain } = routeTest
+    await chain.open()
+
+    const blockA1 = await useMinerBlockFixture(chain)
+
+    await expect(chain).toAddBlock(blockA1)
+
+    const blockA2 = await useMinerBlockFixture(chain)
+
+    await expect(chain).toAddBlock(blockA2)
+
+    chainStream = routeTest.client.request('chain/followChainStream', { limit: 1 })
+
+    let streamed = await chainStream.contentStream().next()
+    expect(streamed?.value).toMatchObject({
+      type: 'connected',
+      block: { hash: chain.genesis.hash.toString('hex') },
+    })
+
+    streamed = await chainStream.contentStream().next()
+    expect(streamed?.value).toBeUndefined()
+    expect(streamed?.done).toBe(true)
+  })
 })
