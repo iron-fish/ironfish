@@ -129,6 +129,7 @@ export class Wallet {
       logger: this.logger,
       nodeClient: this.nodeClient,
       head: null,
+      maxQueueSize: this.config.get('walletSyncingMaxQueueSize'),
     })
 
     this.chainProcessor.onAdd.on(async ({ header, transactions }) => {
@@ -644,8 +645,8 @@ export class Wallet {
     const startHash = fromHash ?? (await this.getEarliestHeadHash())
 
     // Fetch current chain head sequence
-    const chainInfo = await this.nodeClient.chain.getChainInfo()
-    scan.endSequence = Number(chainInfo.content.oldestBlockIdentifier.index)
+    const chainHead = await this.getChainHead()
+    scan.endSequence = chainHead.sequence
 
     this.logger.info(`Scan starting from block ${startHash?.toString('hex') ?? 'null'}`)
 
@@ -653,6 +654,7 @@ export class Wallet {
       logger: this.logger,
       nodeClient: this.nodeClient,
       head: startHash,
+      maxQueueSize: this.config.get('walletSyncingMaxQueueSize'),
     })
 
     scanProcessor.onAdd.on(async ({ header, transactions }) => {
@@ -664,7 +666,11 @@ export class Wallet {
       await this.disconnectBlock(header, transactions)
     })
 
-    await scanProcessor.update({ signal: scan.abortController.signal })
+    let hashChanged = false
+    do {
+      hashChanged = (await scanProcessor.update({ signal: scan.abortController.signal }))
+        .hashChanged
+    } while (hashChanged)
 
     // Update chainProcessor following scan
     this.chainProcessor.hash = scanProcessor.hash
