@@ -692,8 +692,8 @@ export class Wallet {
     await scanProcessor.update({ signal: scan.abortController.signal })
 
     while (!BufferUtils.equalsNullable(scanProcessor.hash, currentHash)) {
-      await scanProcessor.update({ signal: scan.abortController.signal })
       currentHash = scanProcessor.hash
+      await scanProcessor.update({ signal: scan.abortController.signal })
     }
 
     // Update chainProcessor following scan
