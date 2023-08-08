@@ -141,7 +141,7 @@ routes.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
         },
       })
 
-      if (request.data?.limit && streamed++ >= request.data.limit) {
+      if (request.data?.limit && ++streamed >= request.data.limit) {
         onClose()
         request.end()
       }
