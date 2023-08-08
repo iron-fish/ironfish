@@ -70,7 +70,7 @@ export function compareAssets(
 }
 
 export async function selectAsset(
-  client: RpcClient,
+  client: Pick<RpcClient, 'wallet'>,
   account: string | undefined,
   options: {
     action: string
