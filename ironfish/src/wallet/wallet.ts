@@ -687,13 +687,11 @@ export class Wallet {
       await this.disconnectBlock(header, transactions)
     })
 
-    let currentHash = scanProcessor.hash
+    let { hashChanged } = await scanProcessor.update({ signal: scan.abortController.signal })
 
-    await scanProcessor.update({ signal: scan.abortController.signal })
-
-    while (!BufferUtils.equalsNullable(scanProcessor.hash, currentHash)) {
-      currentHash = scanProcessor.hash
-      await scanProcessor.update({ signal: scan.abortController.signal })
+    while (hashChanged) {
+      const result = await scanProcessor.update({ signal: scan.abortController.signal })
+      hashChanged = result.hashChanged
     }
 
     // Update chainProcessor following scan

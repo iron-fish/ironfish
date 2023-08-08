@@ -22,7 +22,7 @@ export type RpcResponseEnded<TEnd> = Exclude<RpcResponse<TEnd>, 'content'> & { c
 
 export class RpcResponse<TEnd = unknown, TStream = unknown> {
   private promise: Promise<TEnd>
-  private stream: Stream<TStream>
+  stream: Stream<TStream>
   private timeout: SetTimeoutToken | null
 
   status = 0
