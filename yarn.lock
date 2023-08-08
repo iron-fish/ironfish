@@ -2823,26 +2823,6 @@
     semver "^7.3.5"
     tar "^6.1.11"
 
-"@mgeist/libuv-monitor-darwin-arm64@0.0.5":
-  version "0.0.5"
-  resolved "https://registry.yarnpkg.com/@mgeist/libuv-monitor-darwin-arm64/-/libuv-monitor-darwin-arm64-0.0.5.tgz#b12abf98c21531aa1551f1e215d26b05acb91b8f"
-  integrity sha512-6NAFV/qc0LBlADddDKSxXiHQLwMi08Z0d+VsbhmXNoT+jY1P3zAILV8/sjiRqpmdsk40/sw6bERTYaPJAHhp2Q==
-
-"@mgeist/libuv-monitor-darwin-x64@0.0.5":
-  version "0.0.5"
-  resolved "https://registry.yarnpkg.com/@mgeist/libuv-monitor-darwin-x64/-/libuv-monitor-darwin-x64-0.0.5.tgz#a78c6656df0f410b9a27c0b1e66f5f1b0efe2a2c"
-  integrity sha512-AQ1PynXr6nokFmH1odMrr6+xpjNiEHR0HvMZ/zwY4LrTslX196j6effVvAtuMWe3Rc18LRwpvXHSVQ+uDB8coQ==
-
-"@mgeist/libuv-monitor-linux-arm64@0.0.5":
-  version "0.0.5"
-  resolved "https://registry.yarnpkg.com/@mgeist/libuv-monitor-linux-arm64/-/libuv-monitor-linux-arm64-0.0.5.tgz#db3aa925cf434904ebbb2b37767e89cc511745e7"
-  integrity sha512-jCjrh+eHjsuuNVA7rQgGfMuk1xK8ZT5ek2agGVGmAGnQz+csppHH1MZHDCow23y22gQl9zcyhv6THsVYvTHFAg==
-
-"@mgeist/libuv-monitor-linux-x64@0.0.5":
-  version "0.0.5"
-  resolved "https://registry.yarnpkg.com/@mgeist/libuv-monitor-linux-x64/-/libuv-monitor-linux-x64-0.0.5.tgz#0c0131e50553a4d3cb6d8a1d2fa7250a8f361bbb"
-  integrity sha512-3pkn9m6xLyNmoECZbNDq2niX5a5OX5DLjvqsFMZglC/8Sz3a38qyPnyOwnjXrVcEF+DB46a2BQqEAPlphuEM8A==
-
 "@napi-rs/blake-hash-android-arm64@1.3.3":
   version "1.3.3"
   resolved "https://registry.yarnpkg.com/@napi-rs/blake-hash-android-arm64/-/blake-hash-android-arm64-1.3.3.tgz#407de789cee0ad32f1d7401f1c69a0346649d783"
@@ -8408,16 +8388,6 @@ libnpmpublish@^6.0.4:
     npm-registry-fetch "^13.0.0"
     semver "^7.3.7"
     ssri "^9.0.0"
-
-libuv-monitor@0.0.5:
-  version "0.0.5"
-  resolved "https://registry.yarnpkg.com/libuv-monitor/-/libuv-monitor-0.0.5.tgz#9daf0fb43abcd020d5302cd07ecf57226a0b52d4"
-  integrity sha512-se7RwDO/WN4ilFj7lRMhyCSqhDL3i6dj+CAAZyHPjy4LsNDWymS/51xaCKYGg1zrqMCbp4Ywy21PTR1hK758Iw==
-  optionalDependencies:
-    "@mgeist/libuv-monitor-darwin-arm64" "0.0.5"
-    "@mgeist/libuv-monitor-darwin-x64" "0.0.5"
-    "@mgeist/libuv-monitor-linux-arm64" "0.0.5"
-    "@mgeist/libuv-monitor-linux-x64" "0.0.5"
 
 lines-and-columns@^1.1.6:
   version "1.1.6"
