@@ -333,7 +333,7 @@ export class Wallet {
 
       for await (const content of response.contentStream()) {
         // Start dropping trasactions if we have too many to process
-        if (response.bufferSize() > this.config.get('walletPendingTxsMaxQueueSize')) {
+        if (response.bufferSize() > this.config.get('walletGossipTransactionsMaxQueueSize')) {
           continue
         }
 

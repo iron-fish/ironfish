@@ -285,7 +285,7 @@ export type ConfigOptions = {
    * When the wallet listens for incoming unconfirmed transactions, limit the
    * number of transactions the wallet can queue up before it starts dropping them.
    */
-  walletPendingTxsMaxQueueSize: number
+  walletGossipTransactionsMaxQueueSize: number
 
   /**
    * Enable standalone wallet process to connect to a node via IPC
