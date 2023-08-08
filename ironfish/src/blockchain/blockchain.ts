@@ -363,6 +363,10 @@ export class Blockchain {
     let [base, fork] =
       headerA.sequence < headerB.sequence ? [headerA, headerB] : [headerB, headerA]
 
+    if ((await this.isHeadChain(base, tx)) && (await this.isHeadChain(fork, tx))) {
+      return base
+    }
+
     while (!base.hash.equals(fork.hash)) {
       // Move
       while (fork.sequence > base.sequence) {
