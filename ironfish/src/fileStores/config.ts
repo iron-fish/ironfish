@@ -339,6 +339,7 @@ export type ConfigOptions = {
    */
   walletWorkers: number
   walletWorkersMax: number
+  walletSyncingMaxQueueSize: number
 }
 
 export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
@@ -441,6 +442,7 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     walletRpcHttpPort: yup.number(),
     walletWorkers: yup.number(),
     walletWorkersMax: yup.number(),
+    walletSyncingMaxQueueSize: yup.number(),
   })
   .defined()
 
@@ -557,6 +559,7 @@ export class Config extends KeyStore<ConfigOptions> {
       walletRpcHttpPort: 8023,
       walletWorkers: -1,
       walletWorkersMax: 6,
+      walletSyncingMaxQueueSize: 100,
     }
   }
 }

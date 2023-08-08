@@ -25,16 +25,23 @@ export class RemoteChainProcessor {
   sequence: number | null = null
   logger: Logger
   nodeClient: RpcClient
+  maxQueueSize: number
 
   onAdd = new Event<[{ header: WalletBlockHeader; transactions: WalletBlockTransaction[] }]>()
   onRemove = new Event<
     [{ header: WalletBlockHeader; transactions: WalletBlockTransaction[] }]
   >()
 
-  constructor(options: { logger: Logger; nodeClient: RpcClient; head: Buffer | null }) {
+  constructor(options: {
+    logger: Logger
+    nodeClient: RpcClient
+    head: Buffer | null
+    maxQueueSize: number
+  }) {
     this.logger = options.logger
     this.nodeClient = options.nodeClient
     this.hash = options.head
+    this.maxQueueSize = options.maxQueueSize
   }
 
   async update({ signal }: { signal?: AbortSignal } = {}): Promise<{ hashChanged: boolean }> {
@@ -42,6 +49,7 @@ export class RemoteChainProcessor {
       head: this.hash?.toString('hex') ?? null,
       serialized: true,
       wait: false,
+      limit: this.maxQueueSize,
     })
 
     const oldHash = this.hash

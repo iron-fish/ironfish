@@ -16,6 +16,7 @@ export type FollowChainStreamRequest =
       head?: string | null
       serialized?: boolean
       wait?: boolean
+      limit?: number
     }
   | undefined
 
@@ -44,6 +45,7 @@ export const FollowChainStreamRequestSchema: yup.ObjectSchema<FollowChainStreamR
     head: yup.string().nullable().optional(),
     serialized: yup.boolean().optional(),
     wait: yup.boolean().optional().default(true),
+    limit: yup.number().optional(),
   })
   .optional()
 
@@ -85,6 +87,8 @@ routes.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
       logger: node.logger,
       head: head,
     })
+
+    let streamed = 0
 
     const send = (block: Block, type: 'connected' | 'disconnected' | 'fork') => {
       const transactions = block.transactions.map((transaction) => ({
@@ -135,6 +139,11 @@ routes.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
           transactions,
         },
       })
+
+      if (request.data?.limit && ++streamed >= request.data.limit) {
+        onClose()
+        request.end()
+      }
     }
 
     const onClose = () => {
