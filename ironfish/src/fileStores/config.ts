@@ -294,6 +294,7 @@ export type ConfigOptions = {
   walletNodeTcpPort: number
   walletNodeTlsEnabled: boolean
   walletNodeRpcAuthToken: string
+  walletSyncingMaxQueueSize: number
 }
 
 export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
@@ -380,6 +381,7 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     walletNodeTcpPort: yup.number(),
     walletNodeTlsEnabled: yup.boolean(),
     walletNodeRpcAuthToken: yup.string(),
+    walletSyncingMaxQueueSize: yup.number(),
   })
   .defined()
 
@@ -480,6 +482,7 @@ export class Config extends KeyStore<ConfigOptions> {
       walletNodeTcpPort: 8020,
       walletNodeTlsEnabled: true,
       walletNodeRpcAuthToken: '',
+      walletSyncingMaxQueueSize: 100,
     }
   }
 }

@@ -43,6 +43,7 @@ describe('RemoteChainProcessor', () => {
       logger: nodeA.logger,
       head: chain.genesis.hash,
       nodeClient: client,
+      maxQueueSize: 10,
     })
 
     const onEvent: jest.Mock<void, [WalletBlockHeader, 'add' | 'remove']> = jest.fn()
@@ -97,6 +98,7 @@ describe('RemoteChainProcessor', () => {
       logger: node.logger,
       head: chain.genesis.hash,
       nodeClient: client,
+      maxQueueSize: 10,
     })
 
     const onEvent: jest.Mock<void, [WalletBlockHeader, 'add' | 'remove']> = jest.fn()
@@ -140,6 +142,7 @@ describe('RemoteChainProcessor', () => {
       logger: node.logger,
       head: chain.genesis.hash,
       nodeClient: client,
+      maxQueueSize: 10,
     })
 
     const blockA1 = await useMinerBlockFixture(chain)
