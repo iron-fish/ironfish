@@ -114,7 +114,7 @@ routes.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
           name: BufferUtils.toHuman(mint.asset.name()),
           creator: mint.asset.creator().toString('hex'),
           value: mint.value.toString(),
-          transferOwnershipTo: mint.transferOwnershipTo ? mint.transferOwnershipTo : undefined,
+          transferOwnershipTo: mint.transferOwnershipTo?.toString('hex'),
         })),
         burns: transaction.burns.map((burn) => ({
           id: burn.assetId.toString('hex'),

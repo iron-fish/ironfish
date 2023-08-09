@@ -7,5 +7,5 @@ export interface MintDescription {
   asset: Asset
   value: bigint
   owner: Buffer
-  transferOwnershipTo: string | null
+  transferOwnershipTo: Buffer | null
 }
