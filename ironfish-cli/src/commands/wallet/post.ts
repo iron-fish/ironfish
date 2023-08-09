@@ -55,7 +55,7 @@ export class PostCommand extends IronfishCommand {
     const serialized = Buffer.from(transaction, 'hex')
     const raw = RawTransactionSerde.deserialize(serialized)
 
-    const client = await this.sdk.connectRpc()
+    const client = await this.sdk.connectWalletRpc()
 
     if (!flags.confirm) {
       const confirm = await this.confirm(client, raw, flags.account)
@@ -95,7 +95,11 @@ export class PostCommand extends IronfishCommand {
     }
   }
 
-  async confirm(client: RpcClient, raw: RawTransaction, account?: string): Promise<boolean> {
+  async confirm(
+    client: Pick<RpcClient, 'wallet'>,
+    raw: RawTransaction,
+    account?: string,
+  ): Promise<boolean> {
     if (!account) {
       const response = await client.wallet.getDefaultAccount()
 

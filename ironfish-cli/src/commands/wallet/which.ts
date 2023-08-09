@@ -23,7 +23,7 @@ export class WhichCommand extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(WhichCommand)
 
-    const client = await this.sdk.connectRpc()
+    const client = await this.sdk.connectWalletRpc()
 
     const {
       content: {

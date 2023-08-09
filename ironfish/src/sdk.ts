@@ -360,4 +360,35 @@ Use 'ironfish config:set' to connect to a node via TCP, TLS, or IPC.`)
 
     return node
   }
+
+  async connectWalletRpc(
+    forceLocal = false,
+    forceRemote = false,
+  ): Promise<Pick<RpcClient, 'config' | 'rpc' | 'wallet' | 'worker'>> {
+    forceRemote = forceRemote || this.config.get('enableRpcTcp')
+
+    if (!forceLocal) {
+      if (forceRemote) {
+        await this.client.connect()
+        return this.client
+      }
+
+      const connected = await this.client.tryConnect()
+      if (connected) {
+        return this.client
+      }
+    }
+
+    const namespaces = [
+      ApiNamespace.config,
+      ApiNamespace.rpc,
+      ApiNamespace.wallet,
+      ApiNamespace.worker,
+    ]
+
+    const node = await this.walletNode()
+    const clientMemory = new RpcMemoryClient(this.logger, node.rpc.getRouter(namespaces))
+    await NodeUtils.waitForOpen(node)
+    return clientMemory
+  }
 }

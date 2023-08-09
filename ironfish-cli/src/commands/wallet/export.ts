@@ -68,7 +68,7 @@ export class ExportCommand extends IronfishCommand {
       ? AccountFormat.JSON
       : AccountFormat.Bech32
 
-    const client = await this.sdk.connectRpc(local)
+    const client = await this.sdk.connectWalletRpc(local)
     const response = await client.wallet.exportAccount({
       account,
       viewOnly,
