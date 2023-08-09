@@ -129,11 +129,12 @@ export default class WalletStart extends IronfishCommand {
       return startDoneResolve()
     }
 
+    await node.start()
+
     if (node.internal.get('isFirstRun')) {
       await this.firstRun(node)
     }
 
-    await node.start()
     this.node = node
 
     startDoneResolve()

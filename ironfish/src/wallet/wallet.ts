@@ -130,7 +130,7 @@ export class Wallet {
     })
 
     this.chainProcessor.onAdd.on(async ({ header, transactions }) => {
-      if (Number(header.sequence) % 20 === 0) {
+      if (Number(header.sequence) % this.config.get('walletSyncingMaxQueueSize') === 0) {
         this.logger.info(
           'Added block' +
             ` seq: ${Number(header.sequence)},` +
