@@ -123,9 +123,8 @@ export class Transaction {
       let transferOwnershipTo = null
       if (TransactionFeatures.hasMintTransferOwnershipTo(this._version)) {
         owner = reader.readBytes(PUBLIC_ADDRESS_LENGTH)
-
         if (reader.readU8()) {
-          transferOwnershipTo = reader.readBytes(PUBLIC_ADDRESS_LENGTH).toString('hex')
+          transferOwnershipTo = reader.readBytes(PUBLIC_ADDRESS_LENGTH)
         }
       } else {
         owner = asset.creator()
