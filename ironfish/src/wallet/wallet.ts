@@ -1315,13 +1315,7 @@ export class Wallet {
 
     const key = generateKey()
 
-    let createdAt = null
-    if (this.chainProcessor.hash && this.chainProcessor.sequence) {
-      createdAt = {
-        hash: this.chainProcessor.hash,
-        sequence: this.chainProcessor.sequence,
-      }
-    }
+    const createdAt = await this.getChainHead()
 
     const account = new Account({
       version: ACCOUNT_SCHEMA_VERSION,
@@ -1338,7 +1332,7 @@ export class Wallet {
 
     await this.walletDb.db.transaction(async (tx) => {
       await this.walletDb.setAccount(account, tx)
-      await this.skipRescan(account, tx)
+      await account.updateHead(createdAt, tx)
     })
 
     this.accounts.set(account.id, account)
