@@ -110,11 +110,6 @@ export default class Start extends IronfishCommand {
       description:
         'Path to a JSON file containing the network definition of a custom network to connect to',
     }),
-    disableWalletSync: Flags.boolean({
-      allowNo: false,
-      default: undefined,
-      description: 'Disable wallet sync',
-    }),
   }
 
   node: IronfishNode | null = null
@@ -145,7 +140,6 @@ export default class Start extends IronfishCommand {
       upgrade,
       networkId,
       customNetwork,
-      disableWalletSync,
     } = flags
 
     this.log(JSON.stringify(flags))
@@ -175,11 +169,8 @@ export default class Start extends IronfishCommand {
     if (listen !== undefined && listen !== this.sdk.config.get('enableListenP2P')) {
       this.sdk.config.setOverride('enableListenP2P', listen)
     }
-    if (
-      disableWalletSync !== undefined &&
-      disableWalletSync !== this.sdk.config.get('disableWalletSync')
-    ) {
-      this.sdk.config.setOverride('disableWalletSync', disableWalletSync)
+    if (this.sdk.config.get('disableWalletSync') === undefined) {
+      this.sdk.config.setOverride('disableWalletSync', false)
     }
     if (forceMining !== undefined && forceMining !== this.sdk.config.get('miningForce')) {
       this.sdk.config.setOverride('miningForce', forceMining)
@@ -225,7 +216,7 @@ export default class Start extends IronfishCommand {
     const blockGraffiti = this.sdk.config.get('blockGraffiti').trim() || null
     const peerPort = this.sdk.config.get('peerPort')
     const bootstraps = this.sdk.config.getArray('bootstrapNodes')
-    const disableWalletSyncSetting = this.sdk.config.get('disableWalletSync')
+    const disableWalletSync = this.sdk.config.get('disableWalletSync')
 
     this.log(`\n${ONE_FISH_IMAGE}`)
     this.log(`Version       ${node.pkg.version} @ ${node.pkg.git}`)
@@ -234,7 +225,7 @@ export default class Start extends IronfishCommand {
     this.log(`Peer Identity ${node.peerNetwork.localPeer.publicIdentity}`)
     this.log(`Peer Agent    ${node.peerNetwork.localPeer.agent}`)
     this.log(`Peer Port     ${peerPort}`)
-    this.log(`WalletSync    ${disableWalletSyncSetting ? 'DISABLED' : 'ENABLED'}`)
+    this.log(`WalletSync    ${disableWalletSync ? 'DISABLED' : 'ENABLED'}`)
     this.log(`Bootstrap     ${bootstraps.join(',') || 'NONE'}`)
     if (inspector.url()) {
       this.log(`Inspector     ${String(inspector.url())}`)
