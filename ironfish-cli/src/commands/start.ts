@@ -166,9 +166,6 @@ export default class Start extends IronfishCommand {
     if (listen !== undefined && listen !== this.sdk.config.get('enableListenP2P')) {
       this.sdk.config.setOverride('enableListenP2P', listen)
     }
-    if (this.sdk.config.get('disableWalletSync') === undefined) {
-      this.sdk.config.setOverride('disableWalletSync', false)
-    }
     if (forceMining !== undefined && forceMining !== this.sdk.config.get('miningForce')) {
       this.sdk.config.setOverride('miningForce', forceMining)
     }
