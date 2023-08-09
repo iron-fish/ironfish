@@ -275,27 +275,29 @@ export class IronfishSdk {
   ): Promise<WalletNode> {
     let nodeClient: RpcSocketClient | null = null
 
-    if (this.config.get('walletNodeTcpEnabled')) {
-      if (this.config.get('walletNodeTlsEnabled')) {
-        nodeClient = new RpcTlsClient(
-          this.config.get('walletNodeTcpHost'),
-          this.config.get('walletNodeTcpPort'),
-          this.logger,
-          this.config.get('walletNodeRpcAuthToken'),
-        )
+    if (options.connectNodeClient) {
+      if (this.config.get('walletNodeTcpEnabled')) {
+        if (this.config.get('walletNodeTlsEnabled')) {
+          nodeClient = new RpcTlsClient(
+            this.config.get('walletNodeTcpHost'),
+            this.config.get('walletNodeTcpPort'),
+            this.logger,
+            this.config.get('walletNodeRpcAuthToken'),
+          )
+        } else {
+          nodeClient = new RpcTcpClient(
+            this.config.get('walletNodeTcpHost'),
+            this.config.get('walletNodeTcpPort'),
+            this.logger,
+          )
+        }
+      } else if (this.config.get('walletNodeIpcEnabled')) {
+        nodeClient = new RpcIpcClient(this.config.get('walletNodeIpcPath'), this.logger)
       } else {
-        nodeClient = new RpcTcpClient(
-          this.config.get('walletNodeTcpHost'),
-          this.config.get('walletNodeTcpPort'),
-          this.logger,
-        )
-      }
-    } else if (this.config.get('walletNodeIpcEnabled')) {
-      nodeClient = new RpcIpcClient(this.config.get('walletNodeIpcPath'), this.logger)
-    } else if (options.connectNodeClient) {
-      throw new Error(`Cannot start the wallet: no node connection configuration specified.
+        throw new Error(`Cannot start the wallet: no node connection configuration specified.
 
-Use 'ironfish config:set' to connect to a node via TCP, TLS, or IPC.`)
+  Use 'ironfish config:set' to connect to a node via TCP, TLS, or IPC.`)
+      }
     }
 
     const node = await WalletNode.init({
