@@ -612,7 +612,7 @@ export class Blockchain {
     prev: BlockHeader | null,
     tx: IDatabaseTransaction,
   ): Promise<void> {
-    const verifyBlockAdd = this.verifier.verifyBlockAdd(block, prev).catch((_) => {
+    const verifyBlockAdd = this.verifier.verifyBlockAdd(block, prev, tx).catch((_) => {
       return { valid: false, reason: VerificationResultReason.ERROR }
     })
 
@@ -673,7 +673,7 @@ export class Blockchain {
       await this.reorganizeChain(prev, tx)
     }
 
-    const verifyBlock = this.verifier.verifyBlockAdd(block, prev).catch((_) => {
+    const verifyBlock = this.verifier.verifyBlockAdd(block, prev, tx).catch((_) => {
       return { valid: false, reason: VerificationResultReason.ERROR }
     })
 
@@ -956,7 +956,7 @@ export class Blockchain {
       if (verifyBlock && !previousBlockHash.equals(GENESIS_BLOCK_PREVIOUS)) {
         // since we're creating a block that hasn't been mined yet, don't
         // verify target because it'll always fail target check here
-        const verification = await this.verifier.verifyBlock(block, { verifyTarget: false })
+        const verification = await this.verifier.verifyBlock(block, { verifyTarget: false }, tx)
 
         if (!verification.valid) {
           throw new Error(verification.reason)
@@ -1444,7 +1444,7 @@ export class Blockchain {
     this.onSynced.emit()
   }
 
-  async getAssetById(assetId: Buffer): Promise<AssetValue | null> {
+  async getAssetById(assetId: Buffer, tx?: IDatabaseTransaction): Promise<AssetValue | null> {
     if (Asset.nativeId().equals(assetId)) {
       return {
         createdTransactionHash: GENESIS_BLOCK_PREVIOUS,
@@ -1458,7 +1458,7 @@ export class Blockchain {
       }
     }
 
-    const asset = await this.blockchainDb.getAsset(assetId)
+    const asset = await this.blockchainDb.getAsset(assetId, tx)
     return asset || null
   }
 }

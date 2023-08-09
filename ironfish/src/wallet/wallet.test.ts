@@ -801,6 +801,34 @@ describe('Accounts', () => {
     })
   })
 
+  describe('createAccount', () => {
+    it('should set createdAt to the chain head', async () => {
+      const node = nodeTest.node
+
+      const block2 = await useMinerBlockFixture(node.chain, 2)
+      await node.chain.addBlock(block2)
+
+      const account = await node.wallet.createAccount('test')
+
+      expect(account.createdAt?.hash).toEqualHash(block2.header.hash)
+      expect(account.createdAt?.sequence).toEqual(block2.header.sequence)
+    })
+
+    it('should set account head to the chain head', async () => {
+      const node = nodeTest.node
+
+      const block2 = await useMinerBlockFixture(node.chain, 2)
+      await node.chain.addBlock(block2)
+
+      const account = await node.wallet.createAccount('test')
+
+      const head = await account.getHead()
+
+      expect(head?.hash).toEqualHash(block2.header.hash)
+      expect(head?.sequence).toEqual(block2.header.sequence)
+    })
+  })
+
   describe('removeAccount', () => {
     it('should delete account', async () => {
       const node = nodeTest.node
@@ -1386,7 +1414,12 @@ describe('Accounts', () => {
         })
 
         expect(transaction.mints).toEqual([
-          { asset: asset, value: mintValue, transferOwnershipTo: null },
+          {
+            asset: asset,
+            value: mintValue,
+            owner: asset.creator(),
+            transferOwnershipTo: null,
+          },
         ])
       })
 

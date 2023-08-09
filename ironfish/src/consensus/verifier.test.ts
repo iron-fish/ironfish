@@ -11,10 +11,12 @@ import {
   Note as NativeNote,
   Transaction as NativeTransaction,
 } from '@ironfish/rust-nodejs'
+import { BufferMap } from 'buffer-map'
 import { Assert } from '../assert'
 import { getBlockSize, getBlockWithMinersFeeSize } from '../network/utils/serializers'
 import { BlockHeader, Transaction } from '../primitives'
 import { transactionCommitment } from '../primitives/blockheader'
+import { MintDescription } from '../primitives/mintDescription'
 import { Target } from '../primitives/target'
 import { SerializedTransaction } from '../primitives/transaction'
 import {
@@ -29,6 +31,7 @@ import {
   useTxSpendsFixture,
 } from '../testUtilities'
 import { useFixture } from '../testUtilities/fixtures/fixture'
+import { Account, Wallet } from '../wallet'
 import { VerificationResultReason, Verifier } from './verifier'
 
 describe('Verifier', () => {
@@ -366,6 +369,28 @@ describe('Verifier', () => {
       })
     })
 
+    it('rejects a block with an invalid mint owner', async () => {
+      // Canary test to ensure verifyBlock is testing mint owners, specific
+      // verifyMintOwner logic has tests below
+      const account = await useAccountFixture(nodeTest.node.wallet)
+      const accountB = await useAccountFixture(nodeTest.node.wallet, 'accountB')
+      const asset = new Asset(account.publicAddress, 'testcoin', '')
+
+      const block = await useMintBlockFixture({
+        node: nodeTest.node,
+        account,
+        asset,
+        value: BigInt(5),
+      })
+
+      block.transactions[1].mints[0].owner = Buffer.from(accountB.publicAddress, 'hex')
+
+      expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
+        reason: VerificationResultReason.INVALID_MINT_OWNER,
+        valid: false,
+      })
+    })
+
     it('accepts a valid block', async () => {
       const block = await useMinerBlockFixture(nodeTest.chain)
       const verification = await nodeTest.chain.verifier.verifyBlock(block)
@@ -572,6 +597,188 @@ describe('Verifier', () => {
           reason: VerificationResultReason.NOTE_COMMITMENT,
         },
       )
+    })
+  })
+
+  describe('mint owners', () => {
+    const nodeTest = createNodeTest()
+
+    let wallet: Wallet
+    let verifier: Verifier
+    let accountA: Account
+    let accountB: Account
+    let assetA: Asset
+    let assetB: Asset
+    let value: bigint
+
+    beforeEach(async () => {
+      const { wallet: w, verifier: v } = nodeTest
+
+      wallet = w
+      verifier = v
+
+      accountA = await useAccountFixture(wallet, 'accountA')
+      accountB = await useAccountFixture(wallet, 'accountB')
+
+      assetA = new Asset(accountA.publicAddress, 'testcoin', '')
+      assetB = new Asset(accountB.publicAddress, 'testcoin', '')
+      value = 5n
+    })
+
+    function mintDescription(
+      asset: Asset,
+      ownerAccount: Account,
+      transferOwnershipTo?: Account,
+    ): MintDescription {
+      return {
+        asset,
+        value,
+        owner: Buffer.from(ownerAccount.publicAddress, 'hex'),
+        transferOwnershipTo: transferOwnershipTo ? transferOwnershipTo.publicAddress : null,
+      }
+    }
+
+    function mockChainAsset(asset: Asset, ownerAccount: Account) {
+      return jest.spyOn(verifier.chain, 'getAssetById').mockImplementationOnce(() =>
+        Promise.resolve({
+          createdTransactionHash: Buffer.alloc(32, 0),
+          id: asset.id(),
+          metadata: asset.metadata(),
+          name: asset.name(),
+          nonce: asset.nonce(),
+          creator: asset.creator(),
+          owner: Buffer.from(ownerAccount.publicAddress, 'hex'),
+          supply: 9999n,
+        }),
+      )
+    }
+
+    describe('verifyMintOwnersIncremental', () => {
+      async function expectValid(
+        mints: MintDescription[],
+        lastKnownAssetOwners?: BufferMap<Buffer>,
+        expectedAssetOwnersState?: BufferMap<Buffer>,
+      ): Promise<void> {
+        const result = await verifier.verifyMintOwnersIncremental(mints, lastKnownAssetOwners)
+        expect(result.valid).toEqual(true)
+        if (expectedAssetOwnersState) {
+          expect(result.assetOwners.size).toEqual(expectedAssetOwnersState.size)
+          for (const [assetId, assetOwner] of result.assetOwners.entries()) {
+            const expected = expectedAssetOwnersState.get(assetId)
+            expect(assetOwner).toEqual(expected)
+          }
+        }
+      }
+
+      async function expectInvalid(
+        mints: MintDescription[],
+        lastKnownAssetOwners?: BufferMap<Buffer>,
+      ): Promise<void> {
+        const result = await verifier.verifyMintOwnersIncremental(mints, lastKnownAssetOwners)
+        expect(result.valid).toEqual(false)
+      }
+
+      function createAssetOwners(
+        ownersArray: Array<Array<Asset | Account>>,
+      ): BufferMap<Buffer> {
+        const assetOwners = new BufferMap<Buffer>()
+        for (const [asset, ownerAccount] of ownersArray) {
+          Assert.isInstanceOf(asset, Asset)
+          Assert.isInstanceOf(ownerAccount, Account)
+          assetOwners.set(asset.id(), Buffer.from(ownerAccount.publicAddress, 'hex'))
+        }
+
+        return assetOwners
+      }
+
+      it('rejects initial mint when owner does not match creator', async () => {
+        const mint = mintDescription(assetA, accountB)
+        await expectInvalid([mint])
+      })
+
+      it('rejects mint when owner does not match asset db', async () => {
+        mockChainAsset(assetA, accountA)
+        const mint = mintDescription(assetA, accountB)
+        await expectInvalid([mint])
+      })
+
+      it('rejects subsequent mint with different owner', async () => {
+        const mint1Valid = mintDescription(assetA, accountA)
+        const mint2DifferentOwner = mintDescription(assetA, accountB)
+        await expectInvalid([mint1Valid, mint2DifferentOwner])
+      })
+
+      it('rejects mints using the old owner if the owner changes', async () => {
+        const mint1Valid = mintDescription(assetA, accountA)
+        const mint2ChangeOwner = mintDescription(assetA, accountA, accountB)
+        const mint3OldOwner = mintDescription(assetA, accountA)
+        await expectInvalid([mint1Valid, mint2ChangeOwner, mint3OldOwner])
+      })
+
+      it('rejects mints using an invalid owner based on the passed in owners map', async () => {
+        const mint1ChangeOwner = mintDescription(assetA, accountA, accountB)
+        const lastKnownAssetOwners = createAssetOwners([[assetA, accountB]])
+        await expectInvalid([mint1ChangeOwner], lastKnownAssetOwners)
+      })
+
+      it('accepts a valid initial mint', async () => {
+        const mint = mintDescription(assetA, accountA)
+        const expectedOwners = createAssetOwners([[assetA, accountA]])
+        await expectValid([mint], undefined, expectedOwners)
+      })
+
+      it('accepts a valid mint', async () => {
+        mockChainAsset(assetA, accountA)
+        const mint = mintDescription(assetA, accountA)
+        const expectedOwners = createAssetOwners([[assetA, accountA]])
+        await expectValid([mint], undefined, expectedOwners)
+      })
+
+      it('accepts multiple valid mints', async () => {
+        const mint1 = mintDescription(assetA, accountA)
+        const mint2 = mintDescription(assetB, accountB)
+        const mint3 = mintDescription(assetA, accountA)
+        const mint4ChangeOwner = mintDescription(assetB, accountB, accountA)
+        const mint5NewOwner = mintDescription(assetB, accountA)
+
+        const expectedOwners = createAssetOwners([
+          [assetA, accountA],
+          [assetB, accountA],
+        ])
+
+        await expectValid(
+          [mint1, mint2, mint3, mint4ChangeOwner, mint5NewOwner],
+          undefined,
+          expectedOwners,
+        )
+      })
+
+      it('accepts mints that are valid based on the passed in owners map', async () => {
+        const mint1 = mintDescription(assetA, accountB)
+        const mint2 = mintDescription(assetA, accountB, accountA)
+        const mint3 = mintDescription(assetA, accountA)
+        const lastKnownAssetOwners = createAssetOwners([[assetA, accountB]])
+        const expectedOwners = createAssetOwners([[assetA, accountA]])
+
+        await expectValid([mint1, mint2, mint3], lastKnownAssetOwners, expectedOwners)
+      })
+    })
+
+    describe('verifyMintOwners', () => {
+      it('should reject with the correct error when mint is invalid', async () => {
+        const mint = mintDescription(assetA, accountB)
+        await expect(verifier.verifyMintOwners([mint])).resolves.toEqual({
+          valid: false,
+          reason: VerificationResultReason.INVALID_MINT_OWNER,
+        })
+      })
+
+      it('should accept when mint is valid', async () => {
+        const mint = mintDescription(assetA, accountA)
+        await expect(verifier.verifyMintOwners([mint])).resolves.toEqual({
+          valid: true,
+        })
+      })
     })
   })
 })
