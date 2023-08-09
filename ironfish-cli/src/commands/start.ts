@@ -142,9 +142,6 @@ export default class Start extends IronfishCommand {
       customNetwork,
     } = flags
 
-    this.log(JSON.stringify(flags))
-    this.log(this.sdk.config.get('disableWalletSync').toString())
-
     if (bootstrap !== undefined) {
       // Parse comma-separated bootstrap nodes
       const bootstrapNodes = bootstrap
@@ -216,7 +213,6 @@ export default class Start extends IronfishCommand {
     const blockGraffiti = this.sdk.config.get('blockGraffiti').trim() || null
     const peerPort = this.sdk.config.get('peerPort')
     const bootstraps = this.sdk.config.getArray('bootstrapNodes')
-    const disableWalletSync = this.sdk.config.get('disableWalletSync')
 
     this.log(`\n${ONE_FISH_IMAGE}`)
     this.log(`Version       ${node.pkg.version} @ ${node.pkg.git}`)
@@ -225,7 +221,6 @@ export default class Start extends IronfishCommand {
     this.log(`Peer Identity ${node.peerNetwork.localPeer.publicIdentity}`)
     this.log(`Peer Agent    ${node.peerNetwork.localPeer.agent}`)
     this.log(`Peer Port     ${peerPort}`)
-    this.log(`WalletSync    ${disableWalletSync ? 'DISABLED' : 'ENABLED'}`)
     this.log(`Bootstrap     ${bootstraps.join(',') || 'NONE'}`)
     if (inspector.url()) {
       this.log(`Inspector     ${String(inspector.url())}`)

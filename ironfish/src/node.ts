@@ -356,7 +356,6 @@ export class FullNode {
     }
 
     await this.wallet.start()
-
     this.peerNetwork.start()
 
     if (this.config.get('enableRpc')) {
