@@ -31,7 +31,7 @@ export class TransactionAddCommand extends IronfishCommand {
     const transaction = args.transaction as string
 
     CliUx.ux.action.start(`Adding transaction`)
-    const client = await this.sdk.connectWalletRpc()
+    const client = await this.sdk.connectWalletRpc({ connectNodeClient: flags.broadcast })
     const response = await client.wallet.addTransaction({
       transaction,
       broadcast: flags.broadcast,

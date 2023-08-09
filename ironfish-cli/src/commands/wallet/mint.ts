@@ -91,7 +91,7 @@ export class Mint extends IronfishCommand {
 
   async start(): Promise<void> {
     const { flags } = await this.parse(Mint)
-    const client = await this.sdk.connectWalletRpc()
+    const client = await this.sdk.connectWalletRpc({ connectNodeClient: flags.offline })
 
     if (!flags.offline) {
       const status = await client.wallet.getNodeStatus()

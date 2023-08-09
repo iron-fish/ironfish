@@ -363,13 +363,18 @@ Use 'ironfish config:set' to connect to a node via TCP, TLS, or IPC.`)
     return node
   }
 
-  async connectWalletRpc(
-    forceLocal = false,
-    forceRemote = false,
-  ): Promise<Pick<RpcClient, 'config' | 'rpc' | 'wallet' | 'worker'>> {
-    forceRemote = forceRemote || this.config.get('enableRpcTcp')
+  async connectWalletRpc(options: {
+    forceLocal?: boolean
+    forceRemote?: boolean
+    connectNodeClient?: boolean
+  } = {
+    forceLocal: false,
+    forceRemote: false,
+    connectNodeClient: false 
+  }): Promise<Pick<RpcClient, 'config' | 'rpc' | 'wallet' | 'worker'>> {
+    const forceRemote = options.forceRemote || this.config.get('enableRpcTcp')
 
-    if (!forceLocal) {
+    if (!options.forceLocal) {
       if (forceRemote) {
         await this.client.connect()
         return this.client
@@ -388,7 +393,7 @@ Use 'ironfish config:set' to connect to a node via TCP, TLS, or IPC.`)
       ApiNamespace.worker,
     ]
 
-    const node = await this.walletNode({ connectNodeClient: !forceLocal })
+    const node = await this.walletNode({ connectNodeClient: !!options.connectNodeClient })
     const clientMemory = new RpcMemoryClient(this.logger, node.rpc.getRouter(namespaces))
     await NodeUtils.waitForOpen(node)
     return clientMemory
