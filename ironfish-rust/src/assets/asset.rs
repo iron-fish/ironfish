@@ -16,7 +16,7 @@ pub const ID_LENGTH: usize = ASSET_ID_LENGTH;
 
 /// Describes all the fields necessary for creating and transacting with an
 /// asset on the Iron Fish network
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub struct Asset {
     /// Name of the asset
     pub(crate) name: [u8; NAME_LENGTH],
@@ -140,9 +140,11 @@ impl Asset {
 
 #[cfg(test)]
 mod test {
+    use hex_literal::hex;
+
     use crate::{util::str_to_array, PublicAddress, SaplingKey};
 
-    use super::Asset;
+    use super::{Asset, ASSET_LENGTH};
 
     #[test]
     fn test_asset_new() {
@@ -209,5 +211,42 @@ mod test {
         let asset_res = Asset::new_with_nonce(creator, name, metadata, nonce);
 
         assert!(asset_res.is_err());
+    }
+
+    #[test]
+    fn test_serialization() {
+        let creator_address =
+            hex!("51e56d146fae345b78d7226bae7b4e66bdbce207ad074c8782cb47833edbf044");
+        let creator = PublicAddress::new(&creator_address).unwrap();
+
+        let nonce = 0;
+        let name = str_to_array("name");
+        let metadata = str_to_array("{ 'token_identifier': '0x123' }");
+
+        let asset = Asset::new_with_nonce(creator, name, metadata, nonce).unwrap();
+
+        let mut buf = Vec::new();
+        asset.write(&mut buf).unwrap();
+
+        assert_eq!(
+            buf,
+            hex!(
+                // creator
+                "51e56d146fae345b78d7226bae7b4e66bdbce207ad074c8782cb47833edbf044"
+                // name
+                "6e616d6500000000000000000000000000000000000000000000000000000000"
+                // metadata
+                "7b2027746f6b656e5f6964656e746966696572273a2027307831323327207d00"
+                "0000000000000000000000000000000000000000000000000000000000000000"
+                "0000000000000000000000000000000000000000000000000000000000000000"
+                // nonce
+                "00"
+            )
+        );
+
+        assert_eq!(buf.len(), ASSET_LENGTH);
+
+        let deserialized = Asset::read(&buf[..]).unwrap();
+        assert_eq!(asset, deserialized);
     }
 }
