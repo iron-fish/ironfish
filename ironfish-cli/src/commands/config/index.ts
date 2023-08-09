@@ -6,6 +6,7 @@ import jsonColorizer from 'json-colorizer'
 import { IronfishCommand } from '../../command'
 import { ColorFlag, ColorFlagKey } from '../../flags'
 import { RemoteFlags } from '../../flags'
+import { connectRpcConfig } from '../../utils/clients'
 
 export class ShowCommand extends IronfishCommand {
   static description = `Print out the entire config`
@@ -25,7 +26,7 @@ export class ShowCommand extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(ShowCommand)
 
-    const client = await this.sdk.connectRpc(flags.local)
+    const client = await connectRpcConfig(this.sdk, flags.local)
     const response = await client.config.getConfig({ user: flags.user })
 
     let output = JSON.stringify(response.content, undefined, '   ')
