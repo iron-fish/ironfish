@@ -1325,12 +1325,9 @@ export class Wallet {
 
     const key = generateKey()
 
-    let createdAt = null
-    if (this.chainProcessor.hash && this.chainProcessor.sequence) {
-      createdAt = {
-        hash: this.chainProcessor.hash,
-        sequence: this.chainProcessor.sequence,
-      }
+    let createdAt: HeadValue | null = null
+    if (this.nodeClient) {
+      createdAt = await this.getChainHead()
     }
 
     const account = new Account({
