@@ -175,6 +175,7 @@ routes.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
     } else if (request.data.feeRate) {
       params.feeRate = CurrencyUtils.decode(request.data.feeRate)
     } else {
+      Assert.isNotNull(node.wallet.nodeClient)
       const avgFeeRateResponse = await node.wallet.nodeClient.chain.estimateFeeRate({
         priority: 'average',
       })

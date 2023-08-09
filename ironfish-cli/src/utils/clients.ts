@@ -24,7 +24,7 @@ export async function connectRpcConfig(
 
   // This connection uses a wallet node since that is the most granular type
   // of node available. This can be refactored in the future if needed.
-  const node = await sdk.walletNode()
+  const node = await sdk.walletNode({ connectNodeClient: false })
   const clientMemory = new RpcMemoryClient(
     sdk.logger,
     node.rpc.getRouter([ApiNamespace.config]),

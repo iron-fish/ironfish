@@ -24,7 +24,7 @@ export class RemoteChainProcessor {
   hash: Buffer | null = null
   sequence: number | null = null
   logger: Logger
-  nodeClient: RpcClient
+  nodeClient: RpcClient | null
   maxQueueSize: number
 
   onAdd = new Event<[{ header: WalletBlockHeader; transactions: WalletBlockTransaction[] }]>()
@@ -34,7 +34,7 @@ export class RemoteChainProcessor {
 
   constructor(options: {
     logger: Logger
-    nodeClient: RpcClient
+    nodeClient: RpcClient | null
     head: Buffer | null
     maxQueueSize: number
   }) {
@@ -45,6 +45,7 @@ export class RemoteChainProcessor {
   }
 
   async update({ signal }: { signal?: AbortSignal } = {}): Promise<{ hashChanged: boolean }> {
+    Assert.isNotNull(this.nodeClient)
     const chainStream = this.nodeClient.chain.followChainStream({
       head: this.hash?.toString('hex') ?? null,
       serialized: true,

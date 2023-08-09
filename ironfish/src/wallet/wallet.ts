@@ -80,7 +80,7 @@ export class Wallet {
   private readonly logger: Logger
   readonly workerPool: WorkerPool
   readonly chainProcessor: RemoteChainProcessor
-  readonly nodeClient: RpcClient
+  readonly nodeClient: RpcClient | null
   private readonly config: Config
   private readonly consensus: Consensus
 
@@ -110,14 +110,14 @@ export class Wallet {
     rebroadcastAfter?: number
     workerPool: WorkerPool
     consensus: Consensus
-    nodeClient: RpcClient
+    nodeClient: RpcClient | null
   }) {
     this.config = config
     this.logger = logger.withTag('accounts')
     this.walletDb = database
     this.workerPool = workerPool
     this.consensus = consensus
-    this.nodeClient = nodeClient
+    this.nodeClient = nodeClient || null
     this.rebroadcastAfter = rebroadcastAfter ?? 10
     this.createTransactionMutex = new Mutex()
     this.eventLoopAbortController = new AbortController()
@@ -326,6 +326,7 @@ export class Wallet {
     }
 
     try {
+      Assert.isNotNull(this.nodeClient)
       const response = this.nodeClient.event.onTransactionGossipStream()
 
       this.isSyncingTransactionGossip = true
@@ -1077,6 +1078,7 @@ export class Wallet {
         .toString('hex')} is missing an index and cannot be spent.`,
     )
 
+    Assert.isNotNull(this.nodeClient)
     const response = await this.nodeClient.chain.getNoteWitness({
       index: note.index,
       confirmations: confirmations ?? this.config.get('confirmations'),
@@ -1155,6 +1157,7 @@ export class Wallet {
     transaction: Transaction,
   ): Promise<{ accepted: boolean; broadcasted: boolean }> {
     try {
+      Assert.isNotNull(this.nodeClient)
       const response = await this.nodeClient.chain.broadcastTransaction({
         transaction: transaction.serialize().toString('hex'),
       })
@@ -1614,13 +1617,12 @@ export class Wallet {
 
   async chainGetBlock(request: GetBlockRequest): Promise<GetBlockResponse | null> {
     try {
+      Assert.isNotNull(this.nodeClient)
       return (await this.nodeClient.chain.getBlock(request)).content
     } catch (error: unknown) {
       if (ErrorUtils.isNotFoundError(error)) {
         return null
       }
-
-      // TODO(rohanjadvani): Add retry logic once the remote client is set up
 
       this.logger.error(ErrorUtils.renderError(error, true))
       throw error
@@ -1636,6 +1638,7 @@ export class Wallet {
     nonce: number
   } | null> {
     try {
+      Assert.isNotNull(this.nodeClient)
       const response = await this.nodeClient.chain.getAsset({ id: id.toString('hex') })
       return {
         createdTransactionHash: Buffer.from(response.content.createdTransactionHash, 'hex'),
@@ -1657,6 +1660,7 @@ export class Wallet {
 
   private async getChainHead(): Promise<{ hash: Buffer; sequence: number }> {
     try {
+      Assert.isNotNull(this.nodeClient)
       const response = await this.nodeClient.chain.getChainInfo()
       return {
         hash: Buffer.from(response.content.oldestBlockIdentifier.hash, 'hex'),

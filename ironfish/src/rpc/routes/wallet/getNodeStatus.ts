@@ -10,6 +10,7 @@ routes.register<typeof GetStatusRequestSchema, GetNodeStatusResponse>(
   GetStatusRequestSchema,
   async (request, { wallet }): Promise<void> => {
     Assert.isNotUndefined(wallet)
+    Assert.isNotNull(wallet.nodeClient)
 
     if (!request.data?.stream) {
       const status = await wallet.nodeClient.node.getStatus()
