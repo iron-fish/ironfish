@@ -355,7 +355,13 @@ export class FullNode {
       this.metrics.start()
     }
 
-    await this.wallet.start()
+    if (!this.config.get('disableWalletSync')) {
+      this.logger.log('enabled')
+      await this.wallet.start()
+    } else {
+      this.logger.log('disabled')
+    }
+
     this.peerNetwork.start()
 
     if (this.config.get('enableRpc')) {
