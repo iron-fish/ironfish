@@ -476,7 +476,7 @@ export class Config extends KeyStore<ConfigOptions> {
       networkDefinitionPath: files.resolve(files.join(dataDir, 'network.json')),
       incomingWebSocketWhitelist: [],
       walletNodeIpcEnabled: true,
-      walletNodeIpcPath: files.resolve(files.join(dataDir, 'ironfish.ipc')),
+      walletNodeIpcPath: '',
       walletNodeTcpEnabled: false,
       walletNodeTcpHost: 'localhost',
       walletNodeTcpPort: 8020,

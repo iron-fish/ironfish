@@ -26,6 +26,7 @@ import {
   AsyncUtils,
   BufferUtils,
   ErrorUtils,
+  HashUtils,
   PromiseResolve,
   PromiseUtils,
   SetTimeoutToken,
@@ -129,7 +130,13 @@ export class Wallet {
     })
 
     this.chainProcessor.onAdd.on(async ({ header, transactions }) => {
-      this.logger.debug(`AccountHead ADD: ${Number(header.sequence) - 1} => ${header.sequence}`)
+      if (Number(header.sequence) % 20 === 0) {
+        this.logger.info(
+          'Added block' +
+            ` seq: ${Number(header.sequence)},` +
+            ` hash: ${HashUtils.renderHash(header.hash)}`,
+        )
+      }
 
       await this.connectBlock(header, transactions)
       await this.expireTransactions(header.sequence)

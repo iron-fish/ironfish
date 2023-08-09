@@ -213,8 +213,6 @@ export class WalletNode {
       this.metrics.start()
     }
 
-    await this.wallet.start()
-
     if (this.config.get('enableRpc')) {
       await this.rpc.start()
     }
@@ -247,10 +245,13 @@ export class WalletNode {
 
     this.nodeClientConnectionWarned = false
     this.logger.info('Successfully connected to node')
+
+    await this.wallet.start()
   }
 
   private onDisconnectRpc = (): void => {
     this.logger.info('Disconnected from node unexpectedly. Reconnecting.')
+    void this.wallet.stop()
     void this.startConnectingRpc()
   }
 
