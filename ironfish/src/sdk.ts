@@ -363,15 +363,17 @@ Use 'ironfish config:set' to connect to a node via TCP, TLS, or IPC.`)
     return node
   }
 
-  async connectWalletRpc(options: {
-    forceLocal?: boolean
-    forceRemote?: boolean
-    connectNodeClient?: boolean
-  } = {
-    forceLocal: false,
-    forceRemote: false,
-    connectNodeClient: false 
-  }): Promise<Pick<RpcClient, 'config' | 'rpc' | 'wallet' | 'worker'>> {
+  async connectWalletRpc(
+    options: {
+      forceLocal?: boolean
+      forceRemote?: boolean
+      connectNodeClient?: boolean
+    } = {
+      forceLocal: false,
+      forceRemote: false,
+      connectNodeClient: false,
+    },
+  ): Promise<Pick<RpcClient, 'config' | 'rpc' | 'wallet' | 'worker'>> {
     const forceRemote = options.forceRemote || this.config.get('enableRpcTcp')
 
     if (!options.forceLocal) {
