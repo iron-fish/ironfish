@@ -35,7 +35,7 @@ export default class PruneCommand extends IronfishCommand {
     const { flags } = await this.parse(PruneCommand)
 
     CliUx.ux.action.start(`Opening node`)
-    const node = await this.sdk.walletNode()
+    const node = await this.sdk.walletNode({ connectNodeClient: false })
     await NodeUtils.waitForOpen(node)
     CliUx.ux.action.stop('Done.')
 
