@@ -218,7 +218,6 @@ export default class Start extends IronfishCommand {
     this.log(`Graffiti      ${blockGraffiti || 'NONE'}`)
     this.log(`Peer Identity ${node.peerNetwork.localPeer.publicIdentity}`)
     this.log(`Peer Agent    ${node.peerNetwork.localPeer.agent}`)
-    this.log(`Peer Agent    ${node.peerNetwork.localPeer.agent}`)
     this.log(`Peer Port     ${peerPort}`)
     this.log(`Wallet        ${walletEnabled ? 'ENABLED' : 'DISABLED'}`)
     this.log(`Bootstrap     ${bootstraps.join(',') || 'NONE'}`)
