@@ -430,6 +430,14 @@ export class FullNode {
         }
         break
       }
+      case 'enableWallet': {
+        if (newValue) {
+          await this.wallet.start()
+        } else {
+          await this.wallet.stop()
+        }
+        break
+      }
       case 'enableRpc': {
         if (newValue) {
           await this.rpc.start()
