@@ -186,9 +186,13 @@ impl MerkleNote {
     ) -> Result<Note, IronfishError> {
         let shared_secret = owner_view_key.shared_secret(&self.ephemeral_public_key);
         let note =
-            Note::from_owner_encrypted(owner_view_key, &shared_secret, &self.encrypted_note)?;
-        note.verify_commitment(self.note_commitment)?;
-        Ok(note)
+            Note::from_owner_encrypted(owner_view_key, &shared_secret, &self.encrypted_note).unwrap();
+        // note.verify_commitment(self.note_commitment)?;
+        let mut truncated_encrypted_text = [0u8; 32];
+        truncated_encrypted_text.copy_from_slice(&self.encrypted_note[..32]);
+        let partial: [u8; 32] = aead::decrypt_partial(&shared_secret, &truncated_encrypted_text.to_vec()).try_into().unwrap();
+        jubjub::Fr::from_bytes(&partial).unwrap();
+        Err(IronfishError::VerificationFailed)
     }
 
     pub fn decrypt_note_for_spender(
@@ -208,9 +212,13 @@ impl MerkleNote {
         let secret_key = read_scalar(&note_encryption_keys[32..])?;
         let shared_key = shared_secret(&secret_key, &transmission_key, &self.ephemeral_public_key);
         let note =
-            Note::from_spender_encrypted(transmission_key, &shared_key, &self.encrypted_note)?;
-        note.verify_commitment(self.note_commitment)?;
-        Ok(note)
+            Note::from_spender_encrypted(transmission_key, &shared_key, &self.encrypted_note).unwrap();
+        let mut truncated_encrypted_text = [0u8; 32];
+        truncated_encrypted_text.copy_from_slice(&self.encrypted_note[..32]);
+        let partial: [u8; 32] = aead::decrypt_partial(&shared_key, &truncated_encrypted_text.to_vec()).try_into().unwrap();
+        jubjub::Fr::from_bytes(&partial).unwrap();
+        // note.verify_commitment(self.note_commitment)?;
+        Err(IronfishError::VerificationFailed)
     }
 }
 

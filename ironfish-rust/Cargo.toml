@@ -38,6 +38,7 @@ blake2s_simd = "1.0.0"
 blake3 = "1.3.1"
 blstrs = { version = "0.6.0", features = ["portable"] }
 byteorder = "1.4.3"
+chacha20 = "0.9.1"
 chacha20poly1305 = "0.9.0"
 crypto_box = { version = "0.8", features = ["std"] }
 ff = "0.12.0"

@@ -28,7 +28,7 @@ pub fn decrypt_note_for_spender(c: &mut Criterion) {
             },
             // Benchmark
             |(ovk, merkle_note)| {
-                merkle_note.decrypt_note_for_spender(&ovk).unwrap();
+                merkle_note.decrypt_note_for_spender(&ovk).unwrap_err();
             },
             BatchSize::SmallInput,
         );
@@ -59,7 +59,7 @@ pub fn decrypt_note_for_owner(c: &mut Criterion) {
             },
             // Benchmark
             |(ivk, merkle_note)| {
-                merkle_note.decrypt_note_for_owner(&ivk).unwrap();
+                merkle_note.decrypt_note_for_owner(&ivk).unwrap_err();
             },
             BatchSize::SmallInput,
         );
