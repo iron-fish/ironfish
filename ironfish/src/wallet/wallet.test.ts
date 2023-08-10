@@ -288,6 +288,19 @@ describe('Accounts', () => {
 
       expect(resetAccountSpy).toHaveBeenCalledTimes(0)
     })
+
+    it('should set chainProcessor hash and sequence', async () => {
+      const { node } = await nodeTest.createSetup()
+      await useAccountFixture(node.wallet, 'a')
+
+      expect(node.wallet.chainProcessor.hash).toBeNull()
+      expect(node.wallet.chainProcessor.sequence).toBeNull()
+
+      await node.wallet.start()
+
+      expect(node.wallet.chainProcessor.hash).not.toBeNull()
+      expect(node.wallet.chainProcessor.sequence).not.toBeNull()
+    })
   })
 
   describe('scanTransactions', () => {
@@ -2670,31 +2683,6 @@ describe('Accounts', () => {
       await expect(node.wallet.getTransactionType(accountB, transactionValue)).resolves.toEqual(
         TransactionType.RECEIVE,
       )
-    })
-  })
-
-  describe('load', () => {
-    it('should set chainProcessor hash and sequence', async () => {
-      const { node } = await nodeTest.createSetup()
-
-      const accountA = await useAccountFixture(node.wallet, 'a')
-
-      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
-      await expect(node.chain).toAddBlock(blockA1)
-      await node.wallet.updateHead()
-
-      expect(node.wallet.chainProcessor.hash).toEqualHash(blockA1.header.hash)
-      expect(node.wallet.chainProcessor.sequence).toEqual(blockA1.header.sequence)
-
-      node.wallet['unload']()
-
-      expect(node.wallet.chainProcessor.hash).toBeNull()
-      expect(node.wallet.chainProcessor.sequence).toBeNull()
-
-      await node.wallet['load']()
-
-      expect(node.wallet.chainProcessor.hash).toEqualHash(blockA1.header.hash)
-      expect(node.wallet.chainProcessor.sequence).toEqual(blockA1.header.sequence)
     })
   })
 

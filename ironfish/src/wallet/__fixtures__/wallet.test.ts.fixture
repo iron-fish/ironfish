@@ -5786,45 +5786,6 @@
       ]
     }
   ],
-  "Accounts load should set chainProcessor hash and sequence": [
-    {
-      "version": 2,
-      "id": "5940b8e5-f56f-4f21-ac0c-09071c563bda",
-      "name": "a",
-      "spendingKey": "61a8ec364e1ad70eb74e19b1202921d1724f20107d355aea49e94306022d4c3d",
-      "viewKey": "d3c6dfbc26e945f3eb5d4a3d492b6ff625dff57b83c0a534e4340322862be9d225351bb7149337c2feb8dd5ee979aac20e6436656652b700096af7c5bd86aeb7",
-      "incomingViewKey": "995728de7f03ee7a7a8a4a8d49fcc1e20b8dc11f978ccdefe81c382536822706",
-      "outgoingViewKey": "fc0048cbad6e916adecf6e85d23ae9b5ed8f0d87e10ff077eaf6deb866f5f8d2",
-      "publicAddress": "d786bf1a0b3581cbdb77875fb4c1ed99c11c8a55b08bc0d4f419ab5a4793cb6d",
-      "createdAt": null
-    },
-    {
-      "header": {
-        "sequence": 2,
-        "previousBlockHash": "88B6FA8D745A4E53BDA001318E60B04EE2E4EE06A38095688D58049CB6F15ACA",
-        "noteCommitment": {
-          "type": "Buffer",
-          "data": "base64:C7nSAzTxCvsn1Q+3DyVCB2h2u6OPV4KB64o/BqQdXws="
-        },
-        "transactionCommitment": {
-          "type": "Buffer",
-          "data": "base64:gZ9KB4NubQewC6N0r2jRuhwvenbDhPc+5E5lSqSCnSQ="
-        },
-        "target": "883423532389192164791648750371459257913741948437809479060803100646309888",
-        "randomness": "0",
-        "timestamp": 1689803111412,
-        "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
-        "noteSize": 4,
-        "work": "0"
-      },
-      "transactions": [
-        {
-          "type": "Buffer",
-          "data": "base64:AQAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzKiP////8AAAAAgnxO8vUtzRqQgmcC9Wt0qtGcQSvfWcltbzNuvmNzURGnTlWKwh1KIQdOzxxAVQ0pA4wDdS7jILzzzOhJljPrWFF34jOdF/gjDsrX9YpOiWuJz6pj+pC2kgkBLYPkiwiLPSO2FU2pdlL3FlRJd7Tm5SE+5vMFQcRhF/Rkmsnb2AoToaFFwaVOH2k1ujeSgsTropH5PWxy+y4+Md9AB/WDdm68qNRSwgG5OMTb4l3qmAqq5MGIf8N6saptNm9TezMvXQolThhYVa7hkNeiy6txU6SBHIk4lW/tPpb623V2tW+kgTrMQ6btoVpKKd0CadaWiQGqQvkhevfu29MoouoBWGPNeSszmJcSEXTX5on5F5xWRZrQWk+g5Tc+0r+GTZIyzyAA52mhVo48NKAjiwfddqiDZY0ZgvNlZ+VjuSlRUSzEpi7KZCdvrVX1qnbkkFJftBqqqEusRnDBgVnymtN2lsudyg3QNG1kCXUEBrfRXxko6L0H7LJoNyEeyN6UX3i2s+ZQ683HXRgXpet142u79Sq4h9ca2QkVLSAi3o9b/ttgK11qId5E45Ilzz5TqRw1foHyuGFZ7latdaxIBR+nXTWhxCJqoyD8nCYvT9jHUHXTymEwgUuznklyb24gRmlzaCBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwLDYOniwKcwqvr2uYR5o+XhYU0UvziXdwOk2dKem1ubYvQt0kNtJSxIbgeShc8geo7MN3CftGSKv+sst1Q5XKCQ=="
-        }
-      ]
-    }
-  ],
   "Accounts shouldDecryptForAccount should return true for an account with null createdAt": [
     {
       "version": 2,
@@ -6087,6 +6048,25 @@
           "data": "base64:AQAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzKiP////8AAAAAdMtHv5XOH91Jm3mj7LKzkBTET3NbRCImP3YldCIXHe2tgp6Hi6zCrzdt2rU4o8sut9wD928wkkMHVag+tYn3FHBoRY4u3jSbht11KwwaxiaqlNTTmzFT93BwfYCR6XInwq+rLtRJ7qfT8Oc/QqqAZiaEtn+Becwf8oH2wjEgN4gZ5N79ep8wm+9BYR/enjqyngrseLubYcyKjYh44v8PQa0g/6n7ozDe0wftEk8xtyyPywupj7LFkoyWBZWqhYrECe7GmdRQcjLGwme0pmWpI+HviRQR3j+6NqQ481DzbfkkrjXUQdR0YEtApUZ/QzgwHJ3uWdQ39On0gHGSNZfMRZv3IBVNmoMAqqMzTCRmFVEvOjiiee96uPQ/nzodar1l90TcjHhZMqORjDW7qXaTg8cuWIBdAgQA6PWo0eZOr5kBbIrJROvpxu8a5uSNcFzpkliDFZxeBa5Lkco3AGKx3NtcjWByEodnOmCDOSE027ETh/aAeAA0+TDJhmiBRj+I6kmRaghp2MqRFkHezJkvbK+N5fpNaDR1Ogy2LyOJCRxsIPof90v1+hiUyTyr2kAm/soi3y5qWTPr8w7gESfWQS04NHu7cacx1/nGlft0N+K1o98LJZ6EG0lyb24gRmlzaCBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwRMBsRYotdrL8Yv3Syni8kR8I85q11GejCsYJ/231mCTse28+DNHtVasx3w9SCMUotXw2G95KM43IP83tNRwqDg=="
         }
       ]
+    }
+  ],
+  "Accounts start should set chainProcessor hash and sequence": [
+    {
+      "version": 2,
+      "id": "c11ad4b4-41b3-42d8-b9b1-ca89e87626cb",
+      "name": "a",
+      "spendingKey": "7e954f01b346848e4af1d1350da2f62ac3ea2815b94b03aaa0fa46a46532c1e8",
+      "viewKey": "310591f7d5115040456f5353dbbeaade684ba0746dff364b00261707f8a2e1ad0dcc724e34d2660c541a32a0e7d9a6bceda288a4e547890020c33794f3548d87",
+      "incomingViewKey": "5d91c313324e28d517ba577d442b3535a48b6f7398330fc86214aac6d00b8502",
+      "outgoingViewKey": "a4d4ced6b783dbc2f9c275a3ddbc12882bc67443eafb6ef2c0666a4712866dc8",
+      "publicAddress": "e7fde25fdc20879108b8b99854bf2f6c002265a0ad2f4cbb0e64d031db57f26c",
+      "createdAt": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:iLb6jXRaTlO9oAExjmCwTuLk7gajgJVojVgEnLbxWso="
+        },
+        "sequence": 1
+      }
     }
   ]
 }
