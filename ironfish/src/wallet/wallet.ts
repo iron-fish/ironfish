@@ -151,7 +151,7 @@ export class Wallet {
   }
 
   async updateHead(): Promise<void> {
-    if (this.scan || this.updateHeadState || this.accounts.size === 0) {
+    if (this.scan || this.updateHeadState || this.accounts.size === 0 || !this.isStarted) {
       return
     }
 
@@ -657,6 +657,11 @@ export class Wallet {
   async scanTransactions(fromHash?: Buffer): Promise<void> {
     if (!this.isOpen) {
       throw new Error('Cannot start a scan if accounts are not loaded')
+    }
+
+    if (!this.isStarted) {
+      this.logger.info('Skipping Scan, wallet is not started.')
+      return
     }
 
     if (this.scan) {
