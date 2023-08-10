@@ -397,6 +397,13 @@ export class IronfishSdk {
       ApiNamespace.worker,
     ]
 
+    if (options.connectNodeClient && (await this.isFullNodeContext())) {
+      const node = await this.node()
+      const clientMemory = new RpcMemoryClient(this.logger, node.rpc.getRouter(namespaces))
+      await NodeUtils.waitForOpen(node)
+      return clientMemory
+    }
+
     const node = await this.walletNode({ connectNodeClient: !!options.connectNodeClient })
     const clientMemory = new RpcMemoryClient(this.logger, node.rpc.getRouter(namespaces))
 
@@ -406,5 +413,10 @@ export class IronfishSdk {
     }
 
     return clientMemory
+  }
+
+  private async isFullNodeContext(): Promise<boolean> {
+    const chainDatabasePath = this.fileSystem.resolve(this.config.chainDatabasePath)
+    return this.fileSystem.exists(chainDatabasePath)
   }
 }
