@@ -12,7 +12,7 @@ export type GetAccountStatusResponse = {
     name: string
     id: string
     headHash: string
-    headInChain: boolean
+    headInChain?: boolean
     sequence: string | number
   }>
 }
@@ -30,7 +30,7 @@ export const GetAccountStatusResponseSchema: yup.ObjectSchema<GetAccountStatusRe
             name: yup.string().defined(),
             id: yup.string().defined(),
             headHash: yup.string().defined(),
-            headInChain: yup.boolean().defined(),
+            headInChain: yup.boolean().optional(),
             sequence: yup.string().defined(),
           })
           .defined(),
@@ -51,7 +51,11 @@ routes.register<typeof GetAccountStatusRequestSchema, GetAccountStatusResponse>(
     const accountsInfo: GetAccountStatusResponse['accounts'] = []
     for (const account of node.wallet.listAccounts()) {
       const head = heads.get(account.id)
-      const headInChain = head?.hash ? await node.wallet.chainHasBlock(head.hash) : false
+
+      let headInChain = undefined
+      if (node.wallet.nodeClient) {
+        headInChain = head?.hash ? await node.wallet.chainHasBlock(head.hash) : false
+      }
 
       accountsInfo.push({
         name: account.name,
