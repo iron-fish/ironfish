@@ -313,7 +313,6 @@ describe('Accounts', () => {
 
       expect(resetAccountSpy).toHaveBeenCalledTimes(0)
     })
-
   })
 
   describe('scanTransactions', () => {
