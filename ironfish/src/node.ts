@@ -357,8 +357,6 @@ export class FullNode {
 
     if (this.config.get('enableWallet')) {
       await this.wallet.start()
-    } else {
-      this.logger.info('Wallet is disabled')
     }
 
     this.peerNetwork.start()
