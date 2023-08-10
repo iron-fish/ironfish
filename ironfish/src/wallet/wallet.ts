@@ -210,6 +210,12 @@ export class Wallet {
       this.accounts.set(account.id, account)
     }
 
+    const latestHead = await this.getLatestHead()
+    if (latestHead) {
+      this.chainProcessor.hash = latestHead.hash
+      this.chainProcessor.sequence = latestHead.sequence
+    }
+
     const meta = await this.walletDb.loadAccountsMeta()
     this.defaultAccount = meta.defaultAccountId
   }
@@ -237,12 +243,6 @@ export class Wallet {
       return
     }
     this.isStarted = true
-
-    const latestHead = await this.getLatestHead()
-    if (latestHead) {
-      this.chainProcessor.hash = latestHead.hash
-      this.chainProcessor.sequence = latestHead.sequence
-    }
 
     if (this.chainProcessor.hash) {
       const hasHeadBlock = await this.chainHasBlock(this.chainProcessor.hash)
