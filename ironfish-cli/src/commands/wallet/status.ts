@@ -17,7 +17,7 @@ export class StatusCommand extends IronfishCommand {
     const { args, flags } = await this.parse(StatusCommand)
     const account = args.account as string | undefined
 
-    const client = await this.sdk.connectWalletRpc()
+    const client = await this.sdk.connectWalletRpc({ connectNodeClient: true })
 
     const response = await client.wallet.getAccountsStatus({
       account: account,
