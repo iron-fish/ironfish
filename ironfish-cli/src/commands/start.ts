@@ -202,6 +202,12 @@ export default class Start extends IronfishCommand {
       await this.sdk.internal.save()
     }
 
+    if ((await this.sdk.nodeContext()) === 'walletnode') {
+      throw new Error(
+        'Cannot start a full node on a data directory configured with a standalone wallet',
+      )
+    }
+
     const privateIdentity = this.getPrivateIdentity()
 
     const node = await this.sdk.node({ privateIdentity: privateIdentity })

@@ -296,7 +296,7 @@ export class IronfishSdk {
       } else {
         throw new Error(`Cannot start the wallet: no node connection configuration specified.
 
-  Use 'ironfish config:set' to connect to a node via TCP, TLS, or IPC.`)
+Use 'ironfish config:set' to connect to a node via TCP, TLS, or IPC.\n`)
       }
     }
 
@@ -397,7 +397,7 @@ export class IronfishSdk {
       ApiNamespace.worker,
     ]
 
-    if (options.connectNodeClient && (await this.isFullNodeContext())) {
+    if (options.connectNodeClient && (await this.nodeContext()) === 'fullnode') {
       const node = await this.node()
       const clientMemory = new RpcMemoryClient(this.logger, node.rpc.getRouter(namespaces))
       await NodeUtils.waitForOpen(node)
@@ -415,8 +415,17 @@ export class IronfishSdk {
     return clientMemory
   }
 
-  private async isFullNodeContext(): Promise<boolean> {
+  async nodeContext(): Promise<'fullnode' | 'walletnode' | 'unknown'> {
     const chainDatabasePath = this.fileSystem.resolve(this.config.chainDatabasePath)
-    return this.fileSystem.exists(chainDatabasePath)
+    if (await this.fileSystem.exists(chainDatabasePath)) {
+      return 'fullnode'
+    }
+
+    const walletDatabasePath = this.fileSystem.resolve(this.config.walletDatabasePath)
+    if (await this.fileSystem.exists(walletDatabasePath)) {
+      return 'walletnode'
+    }
+
+    return 'unknown'
   }
 }
