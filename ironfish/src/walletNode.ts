@@ -239,6 +239,7 @@ export class WalletNode {
         this.logger.warn(
           `Failed to connect to node on ${this.nodeClient.describe()}, retrying...`,
         )
+        this.logger.warn('')
         this.nodeClientConnectionWarned = true
       }
 
@@ -255,6 +256,7 @@ export class WalletNode {
   }
 
   private onDisconnectRpc = (startWallet?: boolean): void => {
+    this.logger.info('')
     this.logger.info('Disconnected from node unexpectedly. Reconnecting.')
     void this.wallet.stop()
 
