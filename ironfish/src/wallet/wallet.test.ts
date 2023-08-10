@@ -291,15 +291,26 @@ describe('Accounts', () => {
 
     it('should set chainProcessor hash and sequence', async () => {
       const { node } = await nodeTest.createSetup()
-      await useAccountFixture(node.wallet, 'a')
+      const account = await useAccountFixture(node.wallet, 'a')
+
+      const block = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
+      await expect(node.chain).toAddBlock(block)
+
+      await node.wallet.walletDb.saveHead(account, {
+        hash: block.header.hash,
+        sequence: block.header.sequence,
+      })
 
       expect(node.wallet.chainProcessor.hash).toBeNull()
       expect(node.wallet.chainProcessor.sequence).toBeNull()
 
+      jest.spyOn(node.wallet, 'scanTransactions').mockReturnValue(Promise.resolve())
+      jest.spyOn(node.wallet, 'eventLoop').mockReturnValue(Promise.resolve())
+
       await node.wallet.start()
 
-      expect(node.wallet.chainProcessor.hash).not.toBeNull()
-      expect(node.wallet.chainProcessor.sequence).not.toBeNull()
+      expect(node.wallet.chainProcessor.hash).toEqualHash(block.header.hash)
+      expect(node.wallet.chainProcessor.sequence).toBe(block.header.sequence)
     })
   })
 
