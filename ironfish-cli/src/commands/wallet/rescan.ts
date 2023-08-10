@@ -44,7 +44,6 @@ export class RescanCommand extends IronfishCommand {
     } else {
       client = await this.sdk.connectWalletRpc({
         connectNodeClient: true,
-        forceRemote: true,
       })
     }
 

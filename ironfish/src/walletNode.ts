@@ -222,16 +222,16 @@ export class WalletNode {
       this.assetsVerifier.start()
     }
 
-    Assert.isNotNull(this.nodeClient)
-    this.nodeClient.onClose.on(this.onDisconnectRpc)
-    await this.startConnectingRpc()
+    await this.connectRpc(true)
   }
 
-  private async startConnectingRpc(): Promise<void> {
-    if (!this.started) {
-      return
-    }
+  async connectRpc(startWallet?: boolean): Promise<void> {
+    Assert.isNotNull(this.nodeClient)
+    this.nodeClient.onClose.on(() => this.onDisconnectRpc(startWallet))
+    await this.startConnectingRpc(startWallet)
+  }
 
+  private async startConnectingRpc(startWallet?: boolean): Promise<void> {
     Assert.isNotNull(this.nodeClient)
     const connected = await this.nodeClient.tryConnect()
     if (!connected) {
@@ -249,13 +249,16 @@ export class WalletNode {
     this.nodeClientConnectionWarned = false
     this.logger.info('Successfully connected to node')
 
-    await this.wallet.start()
+    if (startWallet) {
+      await this.wallet.start()
+    }
   }
 
-  private onDisconnectRpc = (): void => {
+  private onDisconnectRpc = (startWallet?: boolean): void => {
     this.logger.info('Disconnected from node unexpectedly. Reconnecting.')
     void this.wallet.stop()
-    void this.startConnectingRpc()
+
+    void this.startConnectingRpc(startWallet)
   }
 
   async waitForShutdown(): Promise<void> {

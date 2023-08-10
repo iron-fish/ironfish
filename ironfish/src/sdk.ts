@@ -399,7 +399,12 @@ export class IronfishSdk {
 
     const node = await this.walletNode({ connectNodeClient: !!options.connectNodeClient })
     const clientMemory = new RpcMemoryClient(this.logger, node.rpc.getRouter(namespaces))
+
     await NodeUtils.waitForOpen(node)
+    if (options.connectNodeClient) {
+      await node.connectRpc()
+    }
+
     return clientMemory
   }
 }
