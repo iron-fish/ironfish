@@ -54,7 +54,7 @@ routes.register<typeof ImportAccountRequestSchema, ImportResponse>(
       ...accountImport,
     })
 
-    if (request.data.rescan) {
+    if (request.data.rescan && node.wallet.nodeClient) {
       void node.wallet.scanTransactions()
     } else {
       await node.wallet.skipRescan(account)

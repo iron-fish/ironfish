@@ -1392,6 +1392,16 @@ export class Wallet {
     validateAccount(accountValue)
 
     let createdAt = accountValue.createdAt
+
+    if (createdAt && !this.nodeClient) {
+      this.logger.debug(
+        `Wallet not connected to node to verify that account createdAt block ${createdAt.hash.toString(
+          'hex',
+        )} (${createdAt.sequence}) in chain. Setting createdAt to null`,
+      )
+      createdAt = null
+    }
+
     if (createdAt !== null && !(await this.chainHasBlock(createdAt.hash))) {
       this.logger.debug(
         `Account ${accountValue.name} createdAt block ${createdAt.hash.toString('hex')} (${
