@@ -634,7 +634,9 @@ describe('Verifier', () => {
         asset,
         value,
         owner: Buffer.from(ownerAccount.publicAddress, 'hex'),
-        transferOwnershipTo: transferOwnershipTo ? transferOwnershipTo.publicAddress : null,
+        transferOwnershipTo: transferOwnershipTo
+          ? Buffer.from(transferOwnershipTo.publicAddress, 'hex')
+          : null,
       }
     }
 

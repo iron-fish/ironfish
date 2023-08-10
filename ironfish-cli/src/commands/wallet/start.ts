@@ -112,6 +112,12 @@ export default class WalletStart extends IronfishCommand {
       this.sdk.config.setOverride('customNetwork', customNetwork)
     }
 
+    if ((await this.sdk.nodeContext()) === 'fullnode') {
+      throw new Error(
+        'Cannot start a standalone wallet on a data directory configured with a full node',
+      )
+    }
+
     const node = await this.sdk.walletNode()
     const nodeName = this.sdk.config.get('nodeName').trim() || null
 
