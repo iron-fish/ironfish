@@ -95,6 +95,7 @@ export async function useMintBlockFixture(options: {
   account: Account
   asset: Asset
   value: bigint
+  transferOwnershipTo?: string
   sequence?: number
 }): Promise<Block> {
   if (!options.sequence) {
@@ -111,6 +112,7 @@ export async function useMintBlockFixture(options: {
         name: options.asset.name().toString('utf8'),
         metadata: options.asset.metadata().toString('utf8'),
         value: options.value,
+        transferOwnershipTo: options.transferOwnershipTo,
       },
     ],
   })
