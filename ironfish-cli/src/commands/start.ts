@@ -210,6 +210,7 @@ export default class Start extends IronfishCommand {
     const blockGraffiti = this.sdk.config.get('blockGraffiti').trim() || null
     const peerPort = this.sdk.config.get('peerPort')
     const bootstraps = this.sdk.config.getArray('bootstrapNodes')
+    const walletEnabled = this.sdk.config.get('enableWallet')
 
     this.log(`\n${ONE_FISH_IMAGE}`)
     this.log(`Version       ${node.pkg.version} @ ${node.pkg.git}`)
@@ -217,7 +218,9 @@ export default class Start extends IronfishCommand {
     this.log(`Graffiti      ${blockGraffiti || 'NONE'}`)
     this.log(`Peer Identity ${node.peerNetwork.localPeer.publicIdentity}`)
     this.log(`Peer Agent    ${node.peerNetwork.localPeer.agent}`)
+    this.log(`Peer Agent    ${node.peerNetwork.localPeer.agent}`)
     this.log(`Peer Port     ${peerPort}`)
+    this.log(`Wallet        ${walletEnabled ? 'ENABLED' : 'DISABLED'}`)
     this.log(`Bootstrap     ${bootstraps.join(',') || 'NONE'}`)
     if (inspector.url()) {
       this.log(`Inspector     ${String(inspector.url())}`)
