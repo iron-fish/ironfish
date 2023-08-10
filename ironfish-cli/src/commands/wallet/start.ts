@@ -28,6 +28,7 @@ import {
   RpcUseTcpFlagKey,
   VerboseFlag,
   VerboseFlagKey,
+  WalletRemoteFlags,
 } from '../../flags'
 import { ONE_FISH_IMAGE } from '../../images'
 
@@ -38,6 +39,7 @@ export default class WalletStart extends IronfishCommand {
   static description = 'Start the wallet node'
 
   static flags = {
+    ...WalletRemoteFlags,
     [VerboseFlagKey]: VerboseFlag,
     [ConfigFlagKey]: ConfigFlag,
     [DataDirFlagKey]: DataDirFlag,

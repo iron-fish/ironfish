@@ -3,13 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
-import { RemoteFlags } from '../../../flags'
+import { RemoteFlags, WalletRemoteFlags } from '../../../flags'
 
 export class TransactionAddCommand extends IronfishCommand {
   static description = `Add a transaction to your wallet`
 
   static flags = {
     ...RemoteFlags,
+    ...WalletRemoteFlags,
     broadcast: Flags.boolean({
       default: true,
       allowNo: true,

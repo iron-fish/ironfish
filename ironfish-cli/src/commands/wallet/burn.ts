@@ -11,7 +11,7 @@ import {
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
-import { IronFlag, RemoteFlags } from '../../flags'
+import { IronFlag, RemoteFlags, WalletRemoteFlags } from '../../flags'
 import { selectAsset } from '../../utils/asset'
 import { promptCurrency } from '../../utils/currency'
 import { selectFee } from '../../utils/fees'
@@ -28,6 +28,7 @@ export class Burn extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
+    ...WalletRemoteFlags,
     account: Flags.string({
       char: 'f',
       description: 'The account to burn from',

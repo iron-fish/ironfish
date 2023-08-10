@@ -121,11 +121,60 @@ remoteFlags[RpcUseHttpFlagKey] = RpcUseHttpFlag as unknown as CompletableOptionF
 remoteFlags[RpcTcpTlsFlagKey] = RpcTcpTlsFlag as unknown as CompletableOptionFlag
 remoteFlags[RpcAuthFlagKey] = RpcAuthFlag as unknown as CompletableOptionFlag
 
-/**
- * These flags should usually be used on any command that uses an
- * RPC client to connect to a node to run the command
- */
 export const RemoteFlags = remoteFlags
+
+/**
+ * These flags should be usually used for a standalone wallet that connects to a
+ * remote node.
+ */
+export const WalletNodeUseIpcFlagKey = 'node.rpc.ipc'
+export const WalletNodeIpcPathFlagKey = 'node.rpc.ipc.path'
+export const WalletNodeUseTcpFlagKey = 'node.rpc.tcp'
+export const WalletNodeTcpHostFlagKey = 'node.rpc.tcp.host'
+export const WalletNodeTcpPortFlagKey = 'node.rpc.tcp.port'
+export const WalletNodeTcpTlsFlagKey = 'node.rpc.tcp.tls'
+export const WalletNodeAuthFlagKey = 'node.rpc.auth'
+
+export const WalletNodeUseIpcFlag = Flags.boolean({
+  allowNo: true,
+  description: 'Connect to the node client using IPC',
+})
+
+export const WalletNodeIpcPathFlag = Flags.string({
+  description: 'The IPC path of the node client',
+})
+
+export const WalletNodeUseTcpFlag = Flags.boolean({
+  allowNo: true,
+  description: 'Connect to the node client using TCP',
+})
+
+export const WalletNodeTcpHostFlag = Flags.string({
+  description: 'The TCP host of the node client',
+})
+
+export const WalletNodeTcpPortFlag = Flags.integer({
+  description: 'The TCP port of the node client',
+})
+
+export const WalletNodeTcpTlsFlag = Flags.boolean({
+  allowNo: true,
+  description: 'Connect to the node client using TLS',
+})
+
+export const WalletNodeAuthFlag = Flags.string({
+  description: 'The RPC authorization token for the node client',
+})
+
+export const WalletRemoteFlags: Record<string, CompletableOptionFlag> = {
+  [WalletNodeUseIpcFlagKey]: WalletNodeUseIpcFlag as unknown as CompletableOptionFlag,
+  [WalletNodeIpcPathFlagKey]: WalletNodeIpcPathFlag as unknown as CompletableOptionFlag,
+  [WalletNodeUseTcpFlagKey]: WalletNodeUseTcpFlag as unknown as CompletableOptionFlag,
+  [WalletNodeTcpHostFlagKey]: WalletNodeTcpHostFlag as unknown as CompletableOptionFlag,
+  [WalletNodeTcpPortFlagKey]: WalletNodeTcpPortFlag as unknown as CompletableOptionFlag,
+  [WalletNodeTcpTlsFlagKey]: WalletNodeTcpTlsFlag as unknown as CompletableOptionFlag,
+  [WalletNodeAuthFlagKey]: WalletNodeAuthFlag as unknown as CompletableOptionFlag,
+}
 
 export type IronOpts = { minimum?: bigint; flagName: string }
 
