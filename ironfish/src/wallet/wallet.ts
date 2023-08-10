@@ -1348,6 +1348,12 @@ export class Wallet {
       await account.updateHead(createdAt, tx)
     })
 
+    // If this is the first account, set the chainProcessor state
+    if (this.accounts.size === 0 && createdAt) {
+      this.chainProcessor.hash = createdAt.hash
+      this.chainProcessor.sequence = createdAt.sequence
+    }
+
     this.accounts.set(account.id, account)
 
     if (setDefault) {
