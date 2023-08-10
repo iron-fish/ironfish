@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { Assert } from './assert'
 import { AssetsVerifier } from './assets'
 import { TestnetConsensus } from './consensus'
 import {
@@ -38,7 +39,7 @@ export class WalletNode {
   rpc: RpcServer
   pkg: Package
   assetsVerifier: AssetsVerifier
-  nodeClient: RpcSocketClient
+  nodeClient: RpcSocketClient | null
 
   started = false
   shutdownPromise: Promise<void> | null = null
@@ -70,7 +71,7 @@ export class WalletNode {
     workerPool: WorkerPool
     logger: Logger
     assetsVerifier: AssetsVerifier
-    nodeClient: RpcSocketClient
+    nodeClient: RpcSocketClient | null
   }) {
     this.files = files
     this.config = config
@@ -112,7 +113,7 @@ export class WalletNode {
     metrics?: MetricsMonitor
     files: FileSystem
     strategyClass: typeof Strategy | null
-    nodeClient: RpcSocketClient
+    nodeClient: RpcSocketClient | null
   }): Promise<WalletNode> {
     logger = logger.withTag('walletnode')
     dataDir = dataDir || DEFAULT_DATA_DIR
@@ -213,8 +214,6 @@ export class WalletNode {
       this.metrics.start()
     }
 
-    await this.wallet.start()
-
     if (this.config.get('enableRpc')) {
       await this.rpc.start()
     }
@@ -223,21 +222,24 @@ export class WalletNode {
       this.assetsVerifier.start()
     }
 
-    this.nodeClient.onClose.on(this.onDisconnectRpc)
-    await this.startConnectingRpc()
+    await this.connectRpc(true)
   }
 
-  private async startConnectingRpc(): Promise<void> {
-    if (!this.started) {
-      return
-    }
+  async connectRpc(startWallet?: boolean): Promise<void> {
+    Assert.isNotNull(this.nodeClient)
+    this.nodeClient.onClose.on(() => this.onDisconnectRpc(startWallet))
+    await this.startConnectingRpc(startWallet)
+  }
 
+  private async startConnectingRpc(startWallet?: boolean): Promise<void> {
+    Assert.isNotNull(this.nodeClient)
     const connected = await this.nodeClient.tryConnect()
     if (!connected) {
       if (!this.nodeClientConnectionWarned) {
         this.logger.warn(
           `Failed to connect to node on ${this.nodeClient.describe()}, retrying...`,
         )
+        this.logger.warn('')
         this.nodeClientConnectionWarned = true
       }
 
@@ -247,11 +249,18 @@ export class WalletNode {
 
     this.nodeClientConnectionWarned = false
     this.logger.info('Successfully connected to node')
+
+    if (startWallet) {
+      await this.wallet.start()
+    }
   }
 
-  private onDisconnectRpc = (): void => {
+  private onDisconnectRpc = (startWallet?: boolean): void => {
+    this.logger.info('')
     this.logger.info('Disconnected from node unexpectedly. Reconnecting.')
-    void this.startConnectingRpc()
+    void this.wallet.stop()
+
+    void this.startConnectingRpc(startWallet)
   }
 
   async waitForShutdown(): Promise<void> {
@@ -259,6 +268,7 @@ export class WalletNode {
   }
 
   async shutdown(): Promise<void> {
+    Assert.isNotNull(this.nodeClient)
     this.nodeClient.onClose.off(this.onDisconnectRpc)
     this.nodeClient.close()
 

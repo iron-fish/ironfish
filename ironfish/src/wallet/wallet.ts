@@ -26,6 +26,7 @@ import {
   AsyncUtils,
   BufferUtils,
   ErrorUtils,
+  HashUtils,
   PromiseResolve,
   PromiseUtils,
   SetTimeoutToken,
@@ -79,7 +80,7 @@ export class Wallet {
   private readonly logger: Logger
   readonly workerPool: WorkerPool
   readonly chainProcessor: RemoteChainProcessor
-  readonly nodeClient: RpcClient
+  readonly nodeClient: RpcClient | null
   private readonly config: Config
   private readonly consensus: Consensus
 
@@ -109,14 +110,14 @@ export class Wallet {
     rebroadcastAfter?: number
     workerPool: WorkerPool
     consensus: Consensus
-    nodeClient: RpcClient
+    nodeClient: RpcClient | null
   }) {
     this.config = config
     this.logger = logger.withTag('accounts')
     this.walletDb = database
     this.workerPool = workerPool
     this.consensus = consensus
-    this.nodeClient = nodeClient
+    this.nodeClient = nodeClient || null
     this.rebroadcastAfter = rebroadcastAfter ?? 10
     this.createTransactionMutex = new Mutex()
     this.eventLoopAbortController = new AbortController()
@@ -129,7 +130,13 @@ export class Wallet {
     })
 
     this.chainProcessor.onAdd.on(async ({ header, transactions }) => {
-      this.logger.debug(`AccountHead ADD: ${Number(header.sequence) - 1} => ${header.sequence}`)
+      if (Number(header.sequence) % this.config.get('walletSyncingMaxQueueSize') === 0) {
+        this.logger.info(
+          'Added block' +
+            ` seq: ${Number(header.sequence)},` +
+            ` hash: ${HashUtils.renderHash(header.hash)}`,
+        )
+      }
 
       await this.connectBlock(header, transactions)
       await this.expireTransactions(header.sequence)
@@ -205,12 +212,6 @@ export class Wallet {
 
     const meta = await this.walletDb.loadAccountsMeta()
     this.defaultAccount = meta.defaultAccountId
-
-    const latestHead = await this.getLatestHead()
-    if (latestHead) {
-      this.chainProcessor.hash = latestHead.hash
-      this.chainProcessor.sequence = latestHead.sequence
-    }
   }
 
   private unload(): void {
@@ -236,6 +237,12 @@ export class Wallet {
       return
     }
     this.isStarted = true
+
+    const latestHead = await this.getLatestHead()
+    if (latestHead) {
+      this.chainProcessor.hash = latestHead.hash
+      this.chainProcessor.sequence = latestHead.sequence
+    }
 
     if (this.chainProcessor.hash) {
       const hasHeadBlock = await this.chainHasBlock(this.chainProcessor.hash)
@@ -319,6 +326,7 @@ export class Wallet {
     }
 
     try {
+      Assert.isNotNull(this.nodeClient)
       const response = this.nodeClient.event.onTransactionGossipStream()
 
       this.isSyncingTransactionGossip = true
@@ -1070,6 +1078,7 @@ export class Wallet {
         .toString('hex')} is missing an index and cannot be spent.`,
     )
 
+    Assert.isNotNull(this.nodeClient)
     const response = await this.nodeClient.chain.getNoteWitness({
       index: note.index,
       confirmations: confirmations ?? this.config.get('confirmations'),
@@ -1148,6 +1157,7 @@ export class Wallet {
     transaction: Transaction,
   ): Promise<{ accepted: boolean; broadcasted: boolean }> {
     try {
+      Assert.isNotNull(this.nodeClient)
       const response = await this.nodeClient.chain.broadcastTransaction({
         transaction: transaction.serialize().toString('hex'),
       })
@@ -1315,7 +1325,10 @@ export class Wallet {
 
     const key = generateKey()
 
-    const createdAt = await this.getChainHead()
+    let createdAt: HeadValue | null = null
+    if (this.nodeClient) {
+      createdAt = await this.getChainHead()
+    }
 
     const account = new Account({
       version: ACCOUNT_SCHEMA_VERSION,
@@ -1334,6 +1347,12 @@ export class Wallet {
       await this.walletDb.setAccount(account, tx)
       await account.updateHead(createdAt, tx)
     })
+
+    // If this is the first account, set the chainProcessor state
+    if (this.accounts.size === 0 && createdAt) {
+      this.chainProcessor.hash = createdAt.hash
+      this.chainProcessor.sequence = createdAt.sequence
+    }
 
     this.accounts.set(account.id, account)
 
@@ -1601,13 +1620,12 @@ export class Wallet {
 
   async chainGetBlock(request: GetBlockRequest): Promise<GetBlockResponse | null> {
     try {
+      Assert.isNotNull(this.nodeClient)
       return (await this.nodeClient.chain.getBlock(request)).content
     } catch (error: unknown) {
       if (ErrorUtils.isNotFoundError(error)) {
         return null
       }
-
-      // TODO(rohanjadvani): Add retry logic once the remote client is set up
 
       this.logger.error(ErrorUtils.renderError(error, true))
       throw error
@@ -1623,6 +1641,7 @@ export class Wallet {
     nonce: number
   } | null> {
     try {
+      Assert.isNotNull(this.nodeClient)
       const response = await this.nodeClient.chain.getAsset({ id: id.toString('hex') })
       return {
         createdTransactionHash: Buffer.from(response.content.createdTransactionHash, 'hex'),
@@ -1644,6 +1663,7 @@ export class Wallet {
 
   private async getChainHead(): Promise<{ hash: Buffer; sequence: number }> {
     try {
+      Assert.isNotNull(this.nodeClient)
       const response = await this.nodeClient.chain.getChainInfo()
       return {
         hash: Buffer.from(response.content.oldestBlockIdentifier.hash, 'hex'),

@@ -4,6 +4,7 @@
 import { Asset, MEMO_LENGTH } from '@ironfish/rust-nodejs'
 import { BufferMap } from 'buffer-map'
 import * as yup from 'yup'
+import { Assert } from '../../../assert'
 import { CurrencyUtils, YupUtils } from '../../../utils'
 import { Wallet } from '../../../wallet'
 import { NotEnoughFundsError } from '../../../wallet/errors'
@@ -67,6 +68,7 @@ routes.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
   `${ApiNamespace.wallet}/sendTransaction`,
   SendTransactionRequestSchema,
   async (request, node): Promise<void> => {
+    Assert.isNotNull(node.wallet.nodeClient)
     const account = getAccount(node.wallet, request.data.account)
 
     const status = await node.wallet.nodeClient.node.getStatus()
