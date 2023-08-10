@@ -80,6 +80,7 @@ export class NodeTest {
     sdk.config.setOverride('enableTelemetry', false)
     sdk.config.setOverride('enableAssetVerification', false)
     sdk.config.setOverride('confirmations', 0)
+    sdk.config.setOverride('enableWallet', true)
 
     // Allow tests to override default settings
     if (options?.config) {

@@ -6094,5 +6094,24 @@
         }
       ]
     }
+  ],
+  "Accounts scanTransactions should not scan if wallet is not started": [
+    {
+      "version": 2,
+      "id": "70a742ee-0b74-4e89-abbb-c9ee79a57401",
+      "name": "accountA",
+      "spendingKey": "22d339362d8cffca4bbb36803ca28eedf1556258e27499772ebfbbfe98d23712",
+      "viewKey": "4cf00419d229ed02c1196396d21debfe99886c2e720b070b25dc5f6f18b0b8ada4422d3c12f9659316ab5e61f5f204b51f8cdcc3c0e2c7f842accfce4453ac6e",
+      "incomingViewKey": "63ab2627065a8b6aa54d91abba61a2e8ad8bc39513e1fac807c1334c8b0e0e00",
+      "outgoingViewKey": "0f18c4b385335e0146826c662011864304c563461c9a6ef668c0a458db646a90",
+      "publicAddress": "da8324ae84d726a0cd4ef56633cd98ac16b32be75b4dd82c1a5d3bc8c7554346",
+      "createdAt": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:iLb6jXRaTlO9oAExjmCwTuLk7gajgJVojVgEnLbxWso="
+        },
+        "sequence": 1
+      }
+    }
   ]
 }
