@@ -32,7 +32,7 @@ export type ConfigOptions = {
    */
   p2pStunServers: string[]
   databaseMigrate: boolean
-  disableWalletSync: boolean
+  enableWalletSync: boolean
   editor: string
   enableListenP2P: boolean
   enableLogFile: boolean
@@ -303,7 +303,7 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     bootstrapNodes: yup.array().of(yup.string().defined()),
     p2pStunServers: yup.array().of(yup.string().defined()),
     databaseMigrate: yup.boolean(),
-    disableWalletSync: yup.boolean(),
+    enableWalletSync: yup.boolean(),
     editor: yup.string().trim(),
     enableListenP2P: yup.boolean(),
     enableLogFile: yup.boolean(),
@@ -411,7 +411,7 @@ export class Config extends KeyStore<ConfigOptions> {
       bootstrapNodes: [],
       p2pStunServers: ['stun:stun.l.google.com:19302', 'stun:global.stun.twilio.com:3478'],
       databaseMigrate: false,
-      disableWalletSync: false,
+      enableWalletSync: true,
       transactionExpirationDelta: 15,
       editor: '',
       enableListenP2P: true,
