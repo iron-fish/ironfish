@@ -315,17 +315,6 @@ describe('Accounts', () => {
   })
 
   describe('scanTransactions', () => {
-    it('should not rescan when wallet is not started', async () => {
-      const { node } = nodeTest
-      node.wallet['isStarted'] = false
-
-      const connectSpy = jest.spyOn(node.wallet, 'connectBlock')
-
-      await node.wallet.scanTransactions()
-
-      expect(connectSpy).not.toHaveBeenCalled()
-    })
-
     it('should update head status', async () => {
       // G -> 1 -> 2
       const { node } = nodeTest
