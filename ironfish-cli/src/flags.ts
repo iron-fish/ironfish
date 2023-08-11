@@ -127,13 +127,13 @@ export const RemoteFlags = remoteFlags
  * These flags should be usually used for a standalone wallet that connects to a
  * remote node.
  */
-export const WalletNodeUseIpcFlagKey = 'node.rpc.ipc'
-export const WalletNodeIpcPathFlagKey = 'node.rpc.ipc.path'
-export const WalletNodeUseTcpFlagKey = 'node.rpc.tcp'
-export const WalletNodeTcpHostFlagKey = 'node.rpc.tcp.host'
-export const WalletNodeTcpPortFlagKey = 'node.rpc.tcp.port'
-export const WalletNodeTcpTlsFlagKey = 'node.rpc.tcp.tls'
-export const WalletNodeAuthFlagKey = 'node.rpc.auth'
+export const WalletNodeUseIpcFlagKey = 'node.ipc'
+export const WalletNodeIpcPathFlagKey = 'node.ipc.path'
+export const WalletNodeUseTcpFlagKey = 'node.tcp'
+export const WalletNodeTcpHostFlagKey = 'node.tcp.host'
+export const WalletNodeTcpPortFlagKey = 'node.tcp.port'
+export const WalletNodeTcpTlsFlagKey = 'node.tcp.tls'
+export const WalletNodeAuthFlagKey = 'node.auth'
 
 export const WalletNodeUseIpcFlag = Flags.boolean({
   allowNo: true,

@@ -188,19 +188,19 @@ export abstract class IronfishCommand extends Command {
       internalOverrides.rpcAuthToken = rpcAuthFlag
     }
 
-    const walletNodeRpcUseIpcFlag = getFlag(flags, WalletNodeUseIpcFlagKey)
-    if (typeof walletNodeRpcUseIpcFlag === 'boolean') {
-      configOverrides.walletNodeIpcEnabled = walletNodeRpcUseIpcFlag
+    const walletNodeUseIpcFlag = getFlag(flags, WalletNodeUseIpcFlagKey)
+    if (typeof walletNodeUseIpcFlag === 'boolean') {
+      configOverrides.walletNodeIpcEnabled = walletNodeUseIpcFlag
     }
 
-    const walletNodeRpcIpcPathFlag = getFlag(flags, WalletNodeIpcPathFlagKey)
-    if (typeof walletNodeRpcIpcPathFlag === 'string') {
-      configOverrides.walletNodeIpcPath = walletNodeRpcIpcPathFlag
+    const walletNodeIpcPathFlag = getFlag(flags, WalletNodeIpcPathFlagKey)
+    if (typeof walletNodeIpcPathFlag === 'string') {
+      configOverrides.walletNodeIpcPath = walletNodeIpcPathFlag
     }
 
-    const walletNodeRpcUseTcpFlag = getFlag(flags, WalletNodeUseTcpFlagKey)
-    if (typeof walletNodeRpcUseTcpFlag === 'boolean') {
-      configOverrides.walletNodeTcpEnabled = walletNodeRpcUseTcpFlag
+    const walletNodeUseTcpFlag = getFlag(flags, WalletNodeUseTcpFlagKey)
+    if (typeof walletNodeUseTcpFlag === 'boolean') {
+      configOverrides.walletNodeTcpEnabled = walletNodeUseTcpFlag
     }
 
     const walletNodeTcpHostFlag = getFlag(flags, WalletNodeTcpHostFlagKey)
@@ -208,9 +208,9 @@ export abstract class IronfishCommand extends Command {
       configOverrides.walletNodeTcpHost = walletNodeTcpHostFlag
     }
 
-    const walletNodeRpcTcpPortFlag = getFlag(flags, WalletNodeTcpPortFlagKey)
-    if (typeof walletNodeRpcTcpPortFlag === 'number') {
-      configOverrides.walletNodeTcpPort = walletNodeRpcTcpPortFlag
+    const walletNodeTcpPortFlag = getFlag(flags, WalletNodeTcpPortFlagKey)
+    if (typeof walletNodeTcpPortFlag === 'number') {
+      configOverrides.walletNodeTcpPort = walletNodeTcpPortFlag
     }
 
     const walletNodeTcpTlsFlag = getFlag(flags, WalletNodeTcpTlsFlagKey)
