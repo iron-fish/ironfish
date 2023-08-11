@@ -37,7 +37,7 @@ export class WatchTxCommand extends IronfishCommand {
     const hash = args.hash as string
     const account = args.account as string | undefined
 
-    const client = await this.sdk.connectWalletRpc()
+    const client = await this.sdk.connectRpc()
 
     await watchTransaction({
       client,

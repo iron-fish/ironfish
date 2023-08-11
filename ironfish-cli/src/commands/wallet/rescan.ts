@@ -38,10 +38,7 @@ export class RescanCommand extends IronfishCommand {
       this.error('You cannot pass both --local and --no-follow')
     }
 
-    const client = await this.sdk.connectWalletRpc({
-      connectNodeClient: true,
-      forceLocal: local,
-    })
+    const client = await this.sdk.connectRpc(local)
 
     CliUx.ux.action.start('Asking node to start scanning', undefined, {
       stdout: true,
