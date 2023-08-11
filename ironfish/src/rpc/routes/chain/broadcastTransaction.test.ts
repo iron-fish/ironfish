@@ -12,7 +12,7 @@ import { createRouteTest } from '../../../testUtilities/routeTest'
 describe('Route chain/broadcastTransaction', () => {
   const routeTest = createRouteTest()
 
-  it('throws an error when the peer network is not ready', async () => {
+  it('does not broadcast when the peer network is not ready', async () => {
     const { node } = routeTest
 
     const account = await useAccountFixture(node.wallet)
@@ -25,11 +25,16 @@ describe('Route chain/broadcastTransaction', () => {
 
     jest.spyOn(routeTest.peerNetwork, 'isReady', 'get').mockImplementationOnce(() => false)
 
-    await expect(
-      routeTest.client.chain.broadcastTransaction({
-        transaction: transaction.serialize().toString('hex'),
-      }),
-    ).rejects.toThrow('')
+    const broadcastSpy = jest.spyOn(routeTest.peerNetwork, 'broadcastTransaction')
+
+    const response = await routeTest.client.chain.broadcastTransaction({
+      transaction: transaction.serialize().toString('hex'),
+    })
+
+    expect(response.status).toBe(200)
+    expect(response.content?.hash).toEqual(transaction.hash().toString('hex'))
+    expect(response.content?.broadcasted).toEqual(false)
+    expect(broadcastSpy).not.toHaveBeenCalled()
   })
 
   it('should broadcast a transaction', async () => {

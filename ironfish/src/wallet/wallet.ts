@@ -1163,7 +1163,7 @@ export class Wallet {
       })
       Assert.isNotNull(response.content)
 
-      return { accepted: response.content.accepted, broadcasted: true }
+      return { accepted: response.content.accepted, broadcasted: response.content.broadcasted }
     } catch (e: unknown) {
       this.logger.warn(
         `Failed to broadcast transaction ${transaction
