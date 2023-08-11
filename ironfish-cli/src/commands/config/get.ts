@@ -6,7 +6,6 @@ import { Flags } from '@oclif/core'
 import jsonColorizer from 'json-colorizer'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { connectRpcConfig } from '../../utils/clients'
 
 export class GetCommand extends IronfishCommand {
   static description = `Print out one config value`
@@ -45,7 +44,7 @@ export class GetCommand extends IronfishCommand {
     const { args, flags } = await this.parse(GetCommand)
     const name = (args.name as string).trim()
 
-    const client = await connectRpcConfig(this.sdk, flags.local)
+    const client = await this.sdk.connectRpc(flags.local)
 
     const response = await client.config.getConfig({
       user: flags.user,

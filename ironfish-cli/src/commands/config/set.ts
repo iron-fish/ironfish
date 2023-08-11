@@ -4,7 +4,6 @@
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { connectRpcConfig } from '../../utils/clients'
 
 export class SetCommand extends IronfishCommand {
   static description = `Set a value in the config`
@@ -41,7 +40,7 @@ export class SetCommand extends IronfishCommand {
     const name = args.name as string
     const value = args.value as string
 
-    const client = await connectRpcConfig(this.sdk, flags.local)
+    const client = await this.sdk.connectRpc(flags.local)
     await client.config.setConfig({ name, value })
 
     this.exit(0)
