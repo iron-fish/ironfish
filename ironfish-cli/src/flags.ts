@@ -121,6 +121,10 @@ remoteFlags[RpcUseHttpFlagKey] = RpcUseHttpFlag as unknown as CompletableOptionF
 remoteFlags[RpcTcpTlsFlagKey] = RpcTcpTlsFlag as unknown as CompletableOptionFlag
 remoteFlags[RpcAuthFlagKey] = RpcAuthFlag as unknown as CompletableOptionFlag
 
+/**
+ * These flags should usually be used on any command that uses an
+ * RPC client to connect to a node to run the command
+ */
 export const RemoteFlags = remoteFlags
 
 /**
