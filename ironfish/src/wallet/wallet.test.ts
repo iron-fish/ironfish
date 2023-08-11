@@ -255,6 +255,31 @@ describe('Accounts', () => {
     expect(await accountA.getNoteHash(forkSpendNullifier)).toBeUndefined()
   })
 
+  describe('load', () => {
+    it('should set chainProcessor hash and sequence', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA1)
+      await node.wallet.updateHead()
+
+      expect(node.wallet.chainProcessor.hash).toEqualHash(blockA1.header.hash)
+      expect(node.wallet.chainProcessor.sequence).toEqual(blockA1.header.sequence)
+
+      node.wallet['unload']()
+
+      expect(node.wallet.chainProcessor.hash).toBeNull()
+      expect(node.wallet.chainProcessor.sequence).toBeNull()
+
+      await node.wallet['load']()
+
+      expect(node.wallet.chainProcessor.hash).toEqualHash(blockA1.header.hash)
+      expect(node.wallet.chainProcessor.sequence).toEqual(blockA1.header.sequence)
+    })
+  })
+
   describe('start', () => {
     it('should reset account.createdAt if not in chain', async () => {
       const { node } = await nodeTest.createSetup()
@@ -287,30 +312,6 @@ describe('Accounts', () => {
       await node.wallet.start()
 
       expect(resetAccountSpy).toHaveBeenCalledTimes(0)
-    })
-
-    it('should set chainProcessor hash and sequence', async () => {
-      const { node } = await nodeTest.createSetup()
-      const account = await useAccountFixture(node.wallet, 'a')
-
-      const block = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
-      await expect(node.chain).toAddBlock(block)
-
-      await node.wallet.walletDb.saveHead(account, {
-        hash: block.header.hash,
-        sequence: block.header.sequence,
-      })
-
-      expect(node.wallet.chainProcessor.hash).toBeNull()
-      expect(node.wallet.chainProcessor.sequence).toBeNull()
-
-      jest.spyOn(node.wallet, 'scanTransactions').mockReturnValue(Promise.resolve())
-      jest.spyOn(node.wallet, 'eventLoop').mockReturnValue(Promise.resolve())
-
-      await node.wallet.start()
-
-      expect(node.wallet.chainProcessor.hash).toEqualHash(block.header.hash)
-      expect(node.wallet.chainProcessor.sequence).toBe(block.header.sequence)
     })
   })
 
