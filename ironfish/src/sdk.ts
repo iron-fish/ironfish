@@ -364,18 +364,4 @@ Use 'ironfish config:set' to connect to a node via TCP, TLS, or IPC.\n`)
 
     return node
   }
-
-  async nodeContext(): Promise<'fullnode' | 'walletnode' | 'unknown'> {
-    const chainDatabasePath = this.fileSystem.resolve(this.config.chainDatabasePath)
-    if (await this.fileSystem.exists(chainDatabasePath)) {
-      return 'fullnode'
-    }
-
-    const walletDatabasePath = this.fileSystem.resolve(this.config.walletDatabasePath)
-    if (await this.fileSystem.exists(walletDatabasePath)) {
-      return 'walletnode'
-    }
-
-    return 'unknown'
-  }
 }
