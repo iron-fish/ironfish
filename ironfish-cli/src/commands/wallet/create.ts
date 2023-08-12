@@ -32,7 +32,7 @@ export class CreateCommand extends IronfishCommand {
       })
     }
 
-    const client = await this.sdk.connectWalletRpc()
+    const client = await this.sdk.connectRpc()
 
     this.log(`Creating account ${name}`)
     const result = await client.wallet.createAccount({ name })

@@ -33,7 +33,7 @@ export class TransactionCommand extends IronfishCommand {
     const hash = args.hash as string
     const account = args.account as string | undefined
 
-    const client = await this.sdk.connectWalletRpc()
+    const client = await this.sdk.connectRpc()
 
     const response = await client.wallet.getAccountTransaction({ account, hash })
 

@@ -4,7 +4,6 @@
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { connectRpcConfig } from '../../utils/clients'
 
 export class UnsetCommand extends IronfishCommand {
   static description = `Unset a value in the config and fall back to default`
@@ -32,7 +31,7 @@ export class UnsetCommand extends IronfishCommand {
     const { args, flags } = await this.parse(UnsetCommand)
     const name = args.name as string
 
-    const client = await connectRpcConfig(this.sdk, flags.local)
+    const client = await this.sdk.connectRpc(flags.local)
     await client.config.unsetConfig({ name })
 
     this.exit(0)
