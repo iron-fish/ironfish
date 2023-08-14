@@ -2056,5 +2056,33 @@
       "publicAddress": "31a7bb8f5c6fed5a02b725cea71b9c85571896b2b6253b171b3e096c2e733e63",
       "createdAt": null
     }
+  ],
+  "Verifier Block rejects a block with a transaction containing an invalid version": [
+    {
+      "header": {
+        "sequence": 2,
+        "previousBlockHash": "88B6FA8D745A4E53BDA001318E60B04EE2E4EE06A38095688D58049CB6F15ACA",
+        "noteCommitment": {
+          "type": "Buffer",
+          "data": "base64:dQsqfZwZFhbSE+wfxEIXbQGpVrAKw5RlqWmKzhzWmT8="
+        },
+        "transactionCommitment": {
+          "type": "Buffer",
+          "data": "base64:3qfcj/0UoFjYWZoWy39Mt5b66gRjB6axJocJT+4yJeg="
+        },
+        "target": "883423532389192164791648750371459257913741948437809479060803100646309888",
+        "randomness": "0",
+        "timestamp": 1692045736061,
+        "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
+        "noteSize": 4,
+        "work": "0"
+      },
+      "transactions": [
+        {
+          "type": "Buffer",
+          "data": "base64:AQAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzKiP////8AAAAAnUhFxx6lk6Qi8IhOkXnmurYmRzxLX8H8H/5AzM3LGD+iWBNm6KiNaoFsfgxzGu0zEVHDrBge1P00ZCZH2GotpMqCWgbGg6o4rlIp2TW4T3mMfacQvXpzGj9jB+L9HPBMIC3NqQoXUhQYvYt2LUsWF7LzqhaZvD/XFopXLXpCrrkWjj2eaY+InB7Kf1GccgMBgCA8AHY7bmuIWpeh6Y/Tbe/e9sDy+4m/G6AIsNwJ4nWFNqSxieGKTBQD0CoZyJc9GjLwKnwcaKL+tiWhPsXpOotHlWgqnRky/hopFun1aKQd6+AK90JUj/Co6+Ssa4JKyUGAHre1zAdelXznVrN5P3xL8T3NA5+M/Nzn1lruOXrd6qLsKkBhmqPZ0RNRYspzSHIohvoY6asGcHVPllnoGnBSL0oOQ+DT+Hmi7jud5ZmsWAUnxpH+8LttEzY4l63eJhe+4nH0Pq6VSEQSvaWHFWOiNJc+wCHKDItbo5bkwA1fr5Wri86mwz9UGkToL+Lw9yGYYtTU9jp56SqxrcWQXm9A4kcrupF7r0eyLoqGd6ZVIjflNpYY9cYUbhzJ3MNprCh2ti4HuRJXTKNBCPkUomSvgdyQyNyRu0iH3WLJTilWuI8nOKltSElyb24gRmlzaCBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAw/eWvtk+2F759C3yg/r4ws2JRflnEQyh5oYGkhqA4bZUAoFJ9XwVKdTQPNTKNJll4mkKrOLQYwmIy4DKp/THDAA=="
+        }
+      ]
+    }
   ]
 }
