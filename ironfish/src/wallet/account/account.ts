@@ -1202,14 +1202,16 @@ export class Account {
 
   async shouldSaveAsset(mint: MintDescription, tx?: IDatabaseTransaction): Promise<boolean> {
     const isCreator = mint.asset.creator().toString('hex') === this.publicAddress
-    // TODO: Once PR-4159 merges. Don't forget to add to the return statement
-    // const isOwner = mint.owner.toString('hex') === this.publicAddress
-    const isBecomingOwner = mint.transferOwnershipTo === this.publicAddress
+    const isOwner = mint.owner.toString('hex') === this.publicAddress
+    const isBecomingOwner = mint.transferOwnershipTo?.toString('hex') === this.publicAddress
+
+    if (isCreator || isOwner || isBecomingOwner) {
+      return true
+    }
+
     // If the account has ever saved this asset before, it should continue to
     // do so. This account was most likely a previous owner of this asset
-    const assetAlreadyStored = await this.walletDb.hasAsset(this, mint.asset.id(), tx)
-
-    return isCreator || isBecomingOwner || assetAlreadyStored
+    return this.walletDb.hasAsset(this, mint.asset.id(), tx)
   }
 }
 
