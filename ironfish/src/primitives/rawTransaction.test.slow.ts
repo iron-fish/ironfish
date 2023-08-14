@@ -32,9 +32,7 @@ function createTestRawTransaction(
   version: TransactionVersion,
   options: Partial<TestRawTransactionOptions>,
 ): RawTransaction {
-  const raw = new RawTransaction()
-
-  raw.version = version
+  const raw = new RawTransaction(version)
 
   if (options.withExpiration) {
     raw.expiration = 123

@@ -12,10 +12,10 @@ import {
   TRANSACTION_FEE_LENGTH,
   TRANSACTION_PUBLIC_KEY_RANDOMNESS_LENGTH,
   TRANSACTION_SIGNATURE_LENGTH,
-  TRANSACTION_VERSION,
 } from '@ironfish/rust-nodejs'
 import { Asset, ASSET_ID_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
+import { Assert } from '../assert'
 import { Witness } from '../merkletree'
 import { NoteHasher } from '../merkletree/hasher'
 import { Side } from '../merkletree/merkletree'
@@ -40,7 +40,7 @@ export interface MintData {
 }
 
 export class RawTransaction {
-  version: TransactionVersion = TRANSACTION_VERSION
+  version: TransactionVersion
   expiration: number | null = null
   fee = 0n
   mints: MintData[] = []
@@ -56,6 +56,10 @@ export class RawTransaction {
       SerializedNoteEncryptedHash
     >
   }[] = []
+
+  constructor(version: TransactionVersion) {
+    this.version = version
+  }
 
   postedSize(_publicAddress: string): number {
     let size = 0
@@ -164,6 +168,8 @@ export class RawTransactionSerde {
   static serialize(raw: RawTransaction): Buffer {
     const bw = bufio.write(this.getSize(raw))
 
+    bw.writeU8(raw.version)
+
     bw.writeBigU64(raw.fee)
 
     bw.writeU64(raw.spends.length)
@@ -197,6 +203,19 @@ export class RawTransactionSerde {
       bw.writeVarString(mint.name, 'utf8')
       bw.writeVarString(mint.metadata, 'utf8')
       bw.writeBigU64(mint.value)
+      if (TransactionFeatures.hasMintTransferOwnershipTo(raw.version)) {
+        if (mint.transferOwnershipTo) {
+          bw.writeU8(1)
+          bw.writeBytes(Buffer.from(mint.transferOwnershipTo, 'hex'))
+        } else {
+          bw.writeU8(0)
+        }
+      } else {
+        Assert.isUndefined(
+          mint.transferOwnershipTo,
+          'Expected transferOwnershipTo to be undefined',
+        )
+      }
     }
 
     bw.writeU64(raw.burns.length)
@@ -216,7 +235,9 @@ export class RawTransactionSerde {
   static deserialize(buffer: Buffer): RawTransaction {
     const reader = bufio.read(buffer, true)
 
-    const raw = new RawTransaction()
+    const version = reader.readU8()
+
+    const raw = new RawTransaction(version)
     raw.fee = reader.readBigU64()
 
     const spendsLength = reader.readU64()
@@ -250,7 +271,15 @@ export class RawTransactionSerde {
       const name = reader.readVarString('utf8')
       const metadata = reader.readVarString('utf8')
       const value = reader.readBigU64()
-      raw.mints.push({ creator, name, metadata, value })
+
+      let transferOwnershipTo = undefined
+      if (TransactionFeatures.hasMintTransferOwnershipTo(raw.version)) {
+        if (reader.readU8()) {
+          transferOwnershipTo = reader.readBytes(PUBLIC_ADDRESS_LENGTH).toString('hex')
+        }
+      }
+
+      raw.mints.push({ creator, name, metadata, value, transferOwnershipTo })
     }
 
     const burnsLength = reader.readU64()
@@ -270,6 +299,8 @@ export class RawTransactionSerde {
 
   static getSize(raw: RawTransaction): number {
     let size = 0
+
+    size += 1 // raw.version
 
     size += TRANSACTION_FEE_LENGTH // raw.fee
 
@@ -297,6 +328,13 @@ export class RawTransactionSerde {
       size += bufio.sizeVarString(mint.name, 'utf8')
       size += bufio.sizeVarString(mint.metadata, 'utf8')
       size += AMOUNT_VALUE_LENGTH // mint.value
+
+      if (TransactionFeatures.hasMintTransferOwnershipTo(raw.version)) {
+        size += 1
+        if (mint.transferOwnershipTo) {
+          size += PUBLIC_ADDRESS_LENGTH
+        }
+      }
     }
 
     size += 8 // raw.burns.length

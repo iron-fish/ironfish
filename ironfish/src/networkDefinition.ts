@@ -47,6 +47,7 @@ export const networkDefinitionSchema: yup.ObjectSchema<NetworkDefinition> = yup
         targetBucketTimeInSeconds: yup.number().integer().defined(),
         maxBlockSizeBytes: yup.number().integer().defined(),
         minFee: yup.number().integer().defined(),
+        enableAssetOwnership: yup.number().integer().defined(),
       })
       .defined(),
   })

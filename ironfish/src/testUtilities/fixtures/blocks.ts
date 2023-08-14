@@ -170,7 +170,8 @@ export async function useBlockWithRawTxFixture(
       }),
     )
 
-    const raw = new RawTransaction()
+    const transactionVersion = chain.consensus.getActiveTransactionVersion(sequence)
+    const raw = new RawTransaction(transactionVersion)
     raw.expiration = 0
     raw.mints = mints
     raw.burns = burns
