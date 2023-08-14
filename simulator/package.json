@@ -46,7 +46,7 @@
     "start": "cd .. && yarn build && cd simulator && yarn start:js start",
     "stop": "yarn build && yarn start:js stop",
     "test": "yarn clean && tsc -b && tsc -b tsconfig.test.json && jest --passWithNoTests",
-    "test:coverage:html": "tsc -b tsconfig.test.json && jest --passWithNoTests --coverage --coverage-reporters html --testPathIgnorePatterns",
+    "test:coverage:html": "tsc -b tsconfig.test.json && jest --passWithNoTests --testPathIgnorePatterns --coverage --coverage-reporters html",
     "test:watch": "tsc -b tsconfig.test.json && jest --watch --coverage false",
     "postpack": "rimraf oclif.manifest.json",
     "clean": "rimraf build",

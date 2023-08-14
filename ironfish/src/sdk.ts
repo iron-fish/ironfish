@@ -22,7 +22,7 @@ import { MetricsMonitor } from './metrics'
 import { PrivateIdentity } from './network/identity'
 import { IsomorphicWebSocketConstructor } from './network/types'
 import { WebSocketClient } from './network/webSocketClient'
-import { IronfishNode } from './node'
+import { FullNode } from './node'
 import { IronfishPKG, Package } from './package'
 import { Platform } from './platform'
 import { RpcHttpAdapter, RpcSocketClient, RpcTlsAdapter } from './rpc'
@@ -33,9 +33,10 @@ import { RpcIpcClient } from './rpc/clients/ipcClient'
 import { RpcMemoryClient } from './rpc/clients/memoryClient'
 import { RpcTcpClient } from './rpc/clients/tcpClient'
 import { RpcTlsClient } from './rpc/clients/tlsClient'
-import { ALL_API_NAMESPACES } from './rpc/routes/router'
+import { ALL_API_NAMESPACES, ApiNamespace } from './rpc/routes/router'
 import { Strategy } from './strategy'
 import { NodeUtils } from './utils'
+import { WalletNode } from './walletNode'
 
 export class IronfishSdk {
   pkg: Package
@@ -182,10 +183,10 @@ export class IronfishSdk {
   }: {
     autoSeed?: boolean
     privateIdentity?: PrivateIdentity
-  } = {}): Promise<IronfishNode> {
+  } = {}): Promise<FullNode> {
     const webSocket = WebSocketClient as IsomorphicWebSocketConstructor
 
-    const node = await IronfishNode.init({
+    const node = await FullNode.init({
       pkg: this.pkg,
       config: this.config,
       internal: this.internal,
@@ -267,5 +268,100 @@ export class IronfishSdk {
     )
     await NodeUtils.waitForOpen(node)
     return clientMemory
+  }
+
+  async walletNode(
+    options: { connectNodeClient: boolean } = { connectNodeClient: true },
+  ): Promise<WalletNode> {
+    let nodeClient: RpcSocketClient | null = null
+
+    if (options.connectNodeClient) {
+      if (this.config.get('walletNodeTcpEnabled')) {
+        if (this.config.get('walletNodeTlsEnabled')) {
+          nodeClient = new RpcTlsClient(
+            this.config.get('walletNodeTcpHost'),
+            this.config.get('walletNodeTcpPort'),
+            this.logger,
+            this.config.get('walletNodeRpcAuthToken'),
+          )
+        } else {
+          nodeClient = new RpcTcpClient(
+            this.config.get('walletNodeTcpHost'),
+            this.config.get('walletNodeTcpPort'),
+            this.logger,
+          )
+        }
+      } else if (this.config.get('walletNodeIpcEnabled')) {
+        nodeClient = new RpcIpcClient(this.config.get('walletNodeIpcPath'), this.logger)
+      } else {
+        throw new Error(`Cannot start the wallet: no node connection configuration specified.
+
+Use 'ironfish config:set' to connect to a node via TCP, TLS, or IPC.\n`)
+      }
+    }
+
+    const node = await WalletNode.init({
+      pkg: this.pkg,
+      config: this.config,
+      internal: this.internal,
+      files: this.fileSystem,
+      logger: this.logger,
+      metrics: this.metrics,
+      strategyClass: this.strategyClass,
+      dataDir: this.dataDir,
+      nodeClient,
+    })
+
+    const namespaces = [
+      ApiNamespace.config,
+      ApiNamespace.rpc,
+      ApiNamespace.wallet,
+      ApiNamespace.worker,
+    ]
+
+    if (this.config.get('enableRpcIpc')) {
+      await node.rpc.mount(
+        new RpcIpcAdapter(this.config.get('ipcPath'), this.logger, namespaces),
+      )
+    }
+
+    if (this.config.get('enableRpcHttp')) {
+      await node.rpc.mount(
+        new RpcHttpAdapter(
+          this.config.get('rpcHttpHost'),
+          this.config.get('rpcHttpPort'),
+          this.logger,
+          namespaces,
+        ),
+      )
+    }
+
+    if (this.config.get('enableRpcTcp')) {
+      if (this.config.get('enableRpcTls')) {
+        await node.rpc.mount(
+          new RpcTlsAdapter(
+            this.config.get('rpcTcpHost'),
+            this.config.get('rpcTcpPort'),
+            this.fileSystem,
+            this.config.get('tlsKeyPath'),
+            this.config.get('tlsCertPath'),
+            node,
+            this.logger,
+            namespaces,
+          ),
+        )
+      } else {
+        await node.rpc.mount(
+          new RpcTcpAdapter(
+            this.config.get('rpcTcpHost'),
+            this.config.get('rpcTcpPort'),
+            this.logger,
+            namespaces,
+          ),
+        )
+      }
+    }
+
+    return node
   }
 }

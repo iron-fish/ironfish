@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { Assert } from '../../../assert'
 import { ConfigOptions, ConfigOptionsSchema } from '../../../fileStores/config'
 import { ValidationError } from '../../adapters/errors'
 import { ApiNamespace, routes } from '../router'
@@ -22,9 +21,7 @@ export const GetConfigResponseSchema: yup.ObjectSchema<GetConfigResponse> = Conf
 routes.register<typeof GetConfigRequestSchema, GetConfigResponse>(
   `${ApiNamespace.config}/getConfig`,
   GetConfigRequestSchema,
-  (request, { node }): void => {
-    Assert.isNotUndefined(node)
-
+  (request, node): void => {
     if (request.data?.name && !(request.data.name in node.config.defaults)) {
       throw new ValidationError(`No config option ${String(request.data.name)}`)
     }

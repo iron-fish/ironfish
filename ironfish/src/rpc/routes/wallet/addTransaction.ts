@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { Assert } from '../../../assert'
 import { Verifier } from '../../../consensus'
 import { Transaction } from '../../../primitives'
 import { AsyncUtils } from '../../../utils'
@@ -38,13 +37,11 @@ export const AddTransactionResponseSchema: yup.ObjectSchema<AddTransactionRespon
 routes.register<typeof AddTransactionRequestSchema, AddTransactionResponse>(
   `${ApiNamespace.wallet}/addTransaction`,
   AddTransactionRequestSchema,
-  async (request, { node }): Promise<void> => {
-    Assert.isNotUndefined(node)
-
+  async (request, node): Promise<void> => {
     const data = Buffer.from(request.data.transaction, 'hex')
     const transaction = new Transaction(data)
 
-    const verify = Verifier.verifyCreatedTransaction(transaction, node.wallet.consensus)
+    const verify = Verifier.verifyCreatedTransaction(transaction, node.strategy.consensus)
 
     if (!verify.valid) {
       throw new ValidationError(`Invalid transaction, reason: ${String(verify.reason)}`, 400)

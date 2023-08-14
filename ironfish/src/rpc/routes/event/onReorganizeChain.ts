@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
+import { FullNode } from '../../../node'
 import { BlockHeader } from '../../../primitives'
 import { ApiNamespace, routes } from '../router'
 import { RpcBlockHeader, RpcBlockHeaderSchema, serializeRpcBlockHeader } from './types'
@@ -28,8 +29,8 @@ export const OnReorganizeChainResponseSchema: yup.ObjectSchema<OnReorganizeChain
 routes.register<typeof OnReorganizeChainRequestSchema, OnReorganizeChainResponse>(
   `${ApiNamespace.event}/onReorganizeChain`,
   OnReorganizeChainRequestSchema,
-  (request, { node }): void => {
-    Assert.isNotUndefined(node)
+  (request, node): void => {
+    Assert.isInstanceOf(node, FullNode)
 
     function onReorganizeChain(oldHead: BlockHeader, newHead: BlockHeader, fork: BlockHeader) {
       request.stream({

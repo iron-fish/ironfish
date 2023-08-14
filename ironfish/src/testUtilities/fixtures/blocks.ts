@@ -4,7 +4,7 @@
 import { Asset, generateKey, Note as NativeNote } from '@ironfish/rust-nodejs'
 import { Assert } from '../../assert'
 import { Blockchain } from '../../blockchain'
-import { IronfishNode } from '../../node'
+import { FullNode } from '../../node'
 import { Block, BlockSerde, SerializedBlock } from '../../primitives/block'
 import { BurnDescription } from '../../primitives/burnDescription'
 import { Note } from '../../primitives/note'
@@ -91,7 +91,7 @@ export async function useMinerBlockFixture(
 }
 
 export async function useMintBlockFixture(options: {
-  node: IronfishNode
+  node: FullNode
   account: Account
   asset: Asset
   value: bigint
@@ -120,7 +120,7 @@ export async function useMintBlockFixture(options: {
 }
 
 export async function useBurnBlockFixture(options: {
-  node: IronfishNode
+  node: FullNode
   account: Account
   asset: Asset
   value: bigint
@@ -157,9 +157,9 @@ export async function useBlockWithRawTxFixture(
       notesToSpend.map(async (n) => {
         const note = n.decryptNoteForOwner(sender.incomingViewKey)
         Assert.isNotUndefined(note)
-        const treeIndex = await chain.getLeavesIndex(n.hash())
+        const treeIndex = await chain.notes.leavesIndex.get(n.hash())
         Assert.isNotUndefined(treeIndex)
-        const witness = await chain.getNoteWitness(treeIndex)
+        const witness = await chain.notes.witness(treeIndex)
         Assert.isNotNull(witness)
 
         return {
@@ -208,7 +208,7 @@ export async function useBlockWithRawTxFixture(
  * Returned block has 1 spend, 3 notes
  */
 export async function useBlockWithTx(
-  node: IronfishNode,
+  node: FullNode,
   from?: Account,
   to?: Account,
   useFee = true,
@@ -280,7 +280,7 @@ export async function useBlockWithTx(
  * Returned block has {@link numTransactions} transactions
  */
 export async function useBlockWithTxs(
-  node: IronfishNode,
+  node: FullNode,
   numTransactions: number,
   from?: Account,
 ): Promise<{
@@ -346,7 +346,7 @@ export async function useBlockWithTxs(
 }
 
 export async function useTxSpendsFixture(
-  node: IronfishNode,
+  node: FullNode,
   options?: {
     account?: Account
     expiration?: number

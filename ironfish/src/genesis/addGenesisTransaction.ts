@@ -8,7 +8,7 @@ import {
   Transaction as NativeTransaction,
 } from '@ironfish/rust-nodejs'
 import { Logger } from '../logger'
-import { IronfishNode } from '../node'
+import { FullNode } from '../node'
 import { Block, BlockHeader } from '../primitives'
 import { transactionCommitment } from '../primitives/blockheader'
 import { Transaction } from '../primitives/transaction'
@@ -17,7 +17,7 @@ import { Account } from '../wallet'
 import { GenesisBlockAllocation } from './makeGenesisBlock'
 
 export async function addGenesisTransaction(
-  node: IronfishNode,
+  node: FullNode,
   account: Account,
   allocations: GenesisBlockAllocation[],
   logger: Logger,
@@ -53,7 +53,7 @@ export async function addGenesisTransaction(
         account.viewKey,
         BigInt(initialNoteIndex + noteIndex),
       )
-      if (await node.chain.nullifiers.contains(nullifier)) {
+      if (await node.chain.nullifiers.get(nullifier)) {
         continue
       }
 
@@ -62,7 +62,7 @@ export async function addGenesisTransaction(
         continue
       }
 
-      witness = await node.chain.getNoteWitness(initialNoteIndex + noteIndex)
+      witness = await node.chain.notes.witness(initialNoteIndex + noteIndex)
       note = decryptedNote.takeReference()
       decryptedNote.returnReference()
       break
@@ -122,11 +122,11 @@ export async function addGenesisTransaction(
   genesisBlock.transactions.push(postedTransaction)
 
   // Add the new notes to the merkle tree
-  await node.chain.addNotesBatch(postedTransaction.notes)
+  await node.chain.notes.addBatch(postedTransaction.notes)
 
   // Generate a new block header for the new genesis block
-  const noteCommitment = await node.chain.getNotesRootHash()
-  const noteSize = await node.chain.getNotesSize()
+  const noteCommitment = await node.chain.notes.rootHash()
+  const noteSize = await node.chain.notes.size()
   const newGenesisHeader = new BlockHeader(
     1,
     genesisBlock.header.previousBlockHash,

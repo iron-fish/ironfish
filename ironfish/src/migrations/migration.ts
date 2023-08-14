@@ -4,12 +4,18 @@
 
 import { FileSystem } from '../fileSystems'
 import { Logger } from '../logger'
-import { IronfishNode } from '../node'
 import { IDatabase, IDatabaseTransaction } from '../storage'
+import { IronfishNode } from '../utils'
+
+export enum Database {
+  WALLET = 'wallet',
+  BLOCKCHAIN = 'blockchain',
+}
 
 export abstract class Migration {
   id = 0
   name = ''
+  abstract database: Database
 
   abstract path: string
 

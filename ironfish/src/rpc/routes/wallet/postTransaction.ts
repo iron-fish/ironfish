@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { Assert } from '../../../assert'
 import { RawTransactionSerde } from '../../../primitives/rawTransaction'
 import { ApiNamespace, routes } from '../router'
 import { getAccount } from './utils'
@@ -40,9 +39,7 @@ export const PostTransactionResponseSchema: yup.ObjectSchema<PostTransactionResp
 routes.register<typeof PostTransactionRequestSchema, PostTransactionResponse>(
   `${ApiNamespace.wallet}/postTransaction`,
   PostTransactionRequestSchema,
-  async (request, { node }): Promise<void> => {
-    Assert.isNotUndefined(node)
-
+  async (request, node): Promise<void> => {
     const account = getAccount(node.wallet, request.data.account)
 
     const bytes = Buffer.from(request.data.transaction, 'hex')

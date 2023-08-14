@@ -102,8 +102,7 @@ export const CreateTransactionResponseSchema: yup.ObjectSchema<CreateTransaction
 routes.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse>(
   `${ApiNamespace.wallet}/createTransaction`,
   CreateTransactionRequestSchema,
-  async (request, { node }): Promise<void> => {
-    Assert.isNotUndefined(node)
+  async (request, node): Promise<void> => {
     const account = getAccount(node.wallet, request.data.account)
 
     const params: Parameters<Wallet['createTransaction']>[0] = {
@@ -176,6 +175,7 @@ routes.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
     } else if (request.data.feeRate) {
       params.feeRate = CurrencyUtils.decode(request.data.feeRate)
     } else {
+      Assert.isNotNull(node.wallet.nodeClient)
       const avgFeeRateResponse = await node.wallet.nodeClient.chain.estimateFeeRate({
         priority: 'average',
       })

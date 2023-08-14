@@ -1,13 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import {
-  Assert,
-  BlockHeader,
-  IDatabaseTransaction,
-  IronfishNode,
-  TimeUtils,
-} from '@ironfish/sdk'
+import { Assert, BlockHeader, FullNode, IDatabaseTransaction, TimeUtils } from '@ironfish/sdk'
 import { Meter } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
@@ -82,7 +76,7 @@ export default class RepairChain extends IronfishCommand {
     this.log('Repair complete.')
   }
 
-  async repairChain(node: IronfishNode, speed: Meter, progress: ProgressBar): Promise<void> {
+  async repairChain(node: FullNode, speed: Meter, progress: ProgressBar): Promise<void> {
     Assert.isNotNull(node.chain.head)
 
     CliUx.ux.action.start('Clearing hash to next hash table')
@@ -123,14 +117,14 @@ export default class RepairChain extends IronfishCommand {
   }
 
   async repairTrees(
-    node: IronfishNode,
+    node: FullNode,
     speed: Meter,
     progress: ProgressBar,
     force: boolean,
   ): Promise<void> {
     Assert.isNotNull(node.chain.head)
 
-    const noNotes = (await node.chain.getNotesSize()) === 0
+    const noNotes = (await node.chain.notes.size()) === 0
     const noNullifiers = (await node.chain.nullifiers.size()) === 0
     const headBlock = await node.chain.getBlock(node.chain.head)
     Assert.isNotNull(headBlock)
@@ -155,7 +149,7 @@ export default class RepairChain extends IronfishCommand {
     const noteSize = prev && prev.noteSize !== null ? prev.noteSize : 0
 
     CliUx.ux.action.start('Clearing notes MerkleTree')
-    await node.chain.truncateNotes(noteSize)
+    await node.chain.notes.truncate(noteSize)
     CliUx.ux.action.stop()
 
     CliUx.ux.action.start('Clearing nullifier set')
@@ -172,7 +166,7 @@ export default class RepairChain extends IronfishCommand {
 
     while (block) {
       if (tx === null) {
-        tx = node.chain.db.transaction()
+        tx = node.chain.blockchainDb.db.transaction()
       }
 
       await node.chain.saveConnect(block, prev || null, tx)

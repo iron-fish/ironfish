@@ -32,6 +32,7 @@ export type ConfigOptions = {
    */
   p2pStunServers: string[]
   databaseMigrate: boolean
+  enableWallet: boolean
   editor: string
   enableListenP2P: boolean
   enableLogFile: boolean
@@ -281,11 +282,6 @@ export type ConfigOptions = {
   incomingWebSocketWhitelist: string[]
 
   /**
-   * Enable the node's in-process wallet to scan blocks and mempool transactions
-   */
-  walletScanningEnabled: boolean
-
-  /**
    * Enable standalone wallet process to connect to a node via IPC
    */
   walletNodeIpcEnabled: boolean
@@ -298,47 +294,7 @@ export type ConfigOptions = {
   walletNodeTcpHost: string
   walletNodeTcpPort: number
   walletNodeTlsEnabled: boolean
-
-  /**
-   * Enable standalone wallet process to connect to a node via HTTP
-   */
-  walletNodeHttpEnabled: boolean
-  walletNodeHttpHost: string
-  walletNodeHttpPort: number
-
-  /**
-   * Enable IPC connections to a standalone wallet RPC server
-   */
-  walletEnableRpcIpc: boolean
-  walletRpcIpcPath: string
-
-  /**
-   * Enable TCP connections to a standalone wallet RPC server
-   */
-  walletEnableRpcTcp: boolean
-  walletRpcTcpHost: string
-  walletRpcTcpPort: number
-
-  /**
-   * Enable TLS for TCP connections to a standalone wallet RPC server
-   */
-  walletEnableRpcTls: boolean
-  walletTlsKeyPath: string
-  walletTlsCertPath: string
-
-  /**
-   * Enable HTTP connections to a standalone wallet RPC server
-   */
-  walletEnableRpcHttp: boolean
-  walletRpcHttpHost: string
-  walletRpcHttpPort: number
-
-  /**
-   * The number of CPU workers to use in the worker pool of a standalone wallet
-   * process. See config "nodeWorkers"
-   */
-  walletWorkers: number
-  walletWorkersMax: number
+  walletNodeRpcAuthToken: string
   walletSyncingMaxQueueSize: number
 }
 
@@ -347,6 +303,7 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     bootstrapNodes: yup.array().of(yup.string().defined()),
     p2pStunServers: yup.array().of(yup.string().defined()),
     databaseMigrate: yup.boolean(),
+    enableWallet: yup.boolean(),
     editor: yup.string().trim(),
     enableListenP2P: yup.boolean(),
     enableLogFile: yup.boolean(),
@@ -419,29 +376,13 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     memPoolRecentlyEvictedCacheSize: yup.number().integer(),
     networkDefinitionPath: yup.string().trim(),
     incomingWebSocketWhitelist: yup.array(yup.string().trim().defined()),
-    walletScanningEnabled: yup.boolean(),
     walletNodeIpcEnabled: yup.boolean(),
     walletNodeIpcPath: yup.string(),
     walletNodeTcpEnabled: yup.boolean(),
     walletNodeTcpHost: yup.string(),
     walletNodeTcpPort: yup.number(),
     walletNodeTlsEnabled: yup.boolean(),
-    walletNodeHttpEnabled: yup.boolean(),
-    walletNodeHttpHost: yup.string(),
-    walletNodeHttpPort: yup.number(),
-    walletEnableRpcIpc: yup.boolean(),
-    walletRpcIpcPath: yup.string(),
-    walletEnableRpcTcp: yup.boolean(),
-    walletRpcTcpHost: yup.string(),
-    walletRpcTcpPort: yup.number(),
-    walletEnableRpcTls: yup.boolean(),
-    walletTlsKeyPath: yup.string(),
-    walletTlsCertPath: yup.string(),
-    walletEnableRpcHttp: yup.boolean(),
-    walletRpcHttpHost: yup.string(),
-    walletRpcHttpPort: yup.number(),
-    walletWorkers: yup.number(),
-    walletWorkersMax: yup.number(),
+    walletNodeRpcAuthToken: yup.string(),
     walletSyncingMaxQueueSize: yup.number(),
   })
   .defined()
@@ -470,6 +411,7 @@ export class Config extends KeyStore<ConfigOptions> {
       bootstrapNodes: [],
       p2pStunServers: ['stun:stun.l.google.com:19302', 'stun:global.stun.twilio.com:3478'],
       databaseMigrate: false,
+      enableWallet: true,
       transactionExpirationDelta: 15,
       editor: '',
       enableListenP2P: true,
@@ -536,29 +478,13 @@ export class Config extends KeyStore<ConfigOptions> {
       memPoolRecentlyEvictedCacheSize: 60000,
       networkDefinitionPath: files.resolve(files.join(dataDir, 'network.json')),
       incomingWebSocketWhitelist: [],
-      walletScanningEnabled: true,
-      walletNodeIpcEnabled: true,
-      walletNodeIpcPath: files.resolve(files.join(dataDir, 'ironfish.ipc')),
+      walletNodeIpcEnabled: false,
+      walletNodeIpcPath: '',
       walletNodeTcpEnabled: false,
-      walletNodeTcpHost: 'localhost',
+      walletNodeTcpHost: '',
       walletNodeTcpPort: 8020,
       walletNodeTlsEnabled: true,
-      walletNodeHttpEnabled: false,
-      walletNodeHttpHost: 'localhost',
-      walletNodeHttpPort: 8021,
-      walletEnableRpcIpc: true,
-      walletRpcIpcPath: files.resolve(files.join(dataDir, 'ironfish.wallet.ipc')),
-      walletEnableRpcTcp: false,
-      walletRpcTcpHost: 'localhost',
-      walletRpcTcpPort: 8022,
-      walletEnableRpcTls: true,
-      walletTlsKeyPath: files.resolve(files.join(dataDir, 'certs', 'wallet-key.pem')),
-      walletTlsCertPath: files.resolve(files.join(dataDir, 'certs', 'wallet-cert.pem')),
-      walletEnableRpcHttp: false,
-      walletRpcHttpHost: 'localhost',
-      walletRpcHttpPort: 8023,
-      walletWorkers: -1,
-      walletWorkersMax: 6,
+      walletNodeRpcAuthToken: '',
       walletSyncingMaxQueueSize: 100,
     }
   }

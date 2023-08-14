@@ -4,6 +4,7 @@
 
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
+import { FullNode } from '../../../node'
 import { Transaction } from '../../../primitives'
 import { ValidationError } from '../../adapters'
 import { ApiNamespace, routes } from '../router'
@@ -15,6 +16,7 @@ export type BroadcastTransactionRequest = {
 export type BroadcastTransactionResponse = {
   hash: string
   accepted: boolean
+  broadcasted: boolean
 }
 
 export const BroadcastTransactionRequestSchema: yup.ObjectSchema<BroadcastTransactionRequest> =
@@ -29,18 +31,15 @@ export const BroadcastTransactionResponseSchema: yup.ObjectSchema<BroadcastTrans
     .object({
       hash: yup.string().defined(),
       accepted: yup.boolean().defined(),
+      broadcasted: yup.boolean().defined(),
     })
     .defined()
 
 routes.register<typeof BroadcastTransactionRequestSchema, BroadcastTransactionResponse>(
   `${ApiNamespace.chain}/broadcastTransaction`,
   BroadcastTransactionRequestSchema,
-  async (request, { node }): Promise<void> => {
-    Assert.isNotUndefined(node)
-
-    if (!node.peerNetwork.isReady) {
-      throw new ValidationError('Cannot broadcast transaction. Peer network is not ready')
-    }
+  async (request, node): Promise<void> => {
+    Assert.isInstanceOf(node, FullNode)
 
     const data = Buffer.from(request.data.transaction, 'hex')
     const transaction = new Transaction(data)
@@ -51,10 +50,16 @@ routes.register<typeof BroadcastTransactionRequestSchema, BroadcastTransactionRe
     }
 
     const accepted = node.memPool.acceptTransaction(transaction)
-    node.peerNetwork.broadcastTransaction(transaction)
+
+    let broadcasted = false
+    if (node.peerNetwork.isReady) {
+      node.peerNetwork.broadcastTransaction(transaction)
+      broadcasted = true
+    }
 
     request.end({
       accepted,
+      broadcasted,
       hash: transaction.hash().toString('hex'),
     })
   },

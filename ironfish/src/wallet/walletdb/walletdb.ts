@@ -37,7 +37,7 @@ import { HeadValue, NullableHeadValueEncoding } from './headValue'
 import { AccountsDBMeta, MetaValue, MetaValueEncoding } from './metaValue'
 import { TransactionValue, TransactionValueEncoding } from './transactionValue'
 
-const VERSION_DATABASE_ACCOUNTS = 27
+const VERSION_DATABASE_ACCOUNTS = 29
 
 const getAccountsDBMetaDefaults = (): AccountsDBMeta => ({
   defaultAccountId: null,
@@ -1147,6 +1147,7 @@ export class WalletDB {
         name: Buffer.from('$IRON', 'utf8'),
         nonce: 0,
         creator: Buffer.from('Iron Fish', 'utf8'),
+        owner: Buffer.from('Iron Fish', 'utf8'),
         blockHash: null,
         sequence: null,
         supply: null,

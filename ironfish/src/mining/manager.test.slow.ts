@@ -10,6 +10,7 @@ import {
   createNodeTest,
   useAccountFixture,
   useMinerBlockFixture,
+  usePostTxFixture,
   useTxFixture,
 } from '../testUtilities'
 import { isTransactionMine } from '../testUtilities/helpers/transaction'
@@ -179,6 +180,104 @@ describe('Mining manager', () => {
       const fullTemplate2 = templates2.find((t) => t.transactions.length > 1)
 
       expect(fullTemplate2).toBeUndefined()
+    })
+
+    it('should only add mints with valid owners', async () => {
+      const { node, chain, wallet } = nodeTest
+
+      const accountA = await useAccountFixture(wallet, 'accountA')
+      const accountB = await useAccountFixture(wallet, 'accountB')
+      await wallet.setDefaultAccount(accountA.name)
+
+      for (let i = 0; i < 4; i++) {
+        const block = await useMinerBlockFixture(chain, undefined, accountA)
+        await expect(chain).toAddBlock(block)
+      }
+      await wallet.updateHead()
+
+      // Initial mint of an asset, sets the asset owner in the internal state
+      const mintTx1 = await usePostTxFixture({
+        node,
+        wallet,
+        from: accountA,
+        fee: 3n,
+        mints: [
+          {
+            name: 'Testcoin',
+            metadata: '',
+            value: 5n,
+          },
+        ],
+      })
+
+      // Second mint of this asset, has incorrect owner
+      const mintTx2 = await usePostTxFixture({
+        node,
+        wallet,
+        from: accountA,
+        fee: 2n,
+        mints: [
+          {
+            name: 'Testcoin',
+            metadata: '',
+            value: 5n,
+          },
+        ],
+      })
+      mintTx2.mints[0].owner = Buffer.from(accountB.publicAddress, 'hex')
+
+      // Third mint of this asset, has valid owner but lowest fee, ensuring it
+      // is included after the previous invalid mint is skipped over
+      const mintTx3 = await usePostTxFixture({
+        node,
+        wallet,
+        from: accountA,
+        fee: 1n,
+        mints: [
+          {
+            name: 'Testcoin',
+            metadata: '',
+            value: 5n,
+          },
+        ],
+      })
+
+      // Mint of an unrelated asset, should be included with no issues
+      const mintTx4 = await usePostTxFixture({
+        node,
+        wallet,
+        from: accountA,
+        fee: 1n,
+        mints: [
+          {
+            name: 'Othercoin',
+            metadata: '',
+            value: 5n,
+          },
+        ],
+      })
+
+      expect(node.memPool.acceptTransaction(mintTx1)).toEqual(true)
+      expect(node.memPool.acceptTransaction(mintTx2)).toEqual(true)
+      expect(node.memPool.acceptTransaction(mintTx3)).toEqual(true)
+      expect(node.memPool.acceptTransaction(mintTx4)).toEqual(true)
+
+      // Wait for the first 2 block templates
+      const templates = await collectTemplates(node.miningManager, 2)
+      const fullTemplate = templates.find((t) => t.transactions.length > 1)
+
+      Assert.isNotUndefined(fullTemplate)
+      expect(fullTemplate.transactions).toHaveLength(4)
+      // Mint 1 has the highest fee, so it should be picked up first
+      expect(fullTemplate.transactions[1]).toEqual(mintTx1.serialize().toString('hex'))
+      // Mint 2 has an invalid owner, so it should be skipped
+      expect(fullTemplate.transactions[2]).toEqual(mintTx3.serialize().toString('hex'))
+      // Mint of a different asset, should be picked up
+      expect(fullTemplate.transactions[3]).toEqual(mintTx4.serialize().toString('hex'))
+
+      await expect(node.miningManager.submitBlockTemplate(fullTemplate)).resolves.toEqual(
+        MINED_RESULT.SUCCESS,
+      )
     })
 
     it('should stop adding transactions before block size exceeds maxBlockSizeBytes', async () => {

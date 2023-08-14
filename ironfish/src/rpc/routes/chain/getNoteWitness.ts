@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
+import { FullNode } from '../../../node'
 import { GENESIS_BLOCK_SEQUENCE } from '../../../primitives'
 import { ValidationError } from '../../adapters'
 import { ApiNamespace, routes } from '../router'
@@ -48,8 +49,8 @@ export const GetNoteWitnessResponseSchema: yup.ObjectSchema<GetNoteWitnessRespon
 routes.register<typeof GetNoteWitnessRequestSchema, GetNoteWitnessResponse>(
   `${ApiNamespace.chain}/getNoteWitness`,
   GetNoteWitnessRequestSchema,
-  async (request, { node }): Promise<void> => {
-    Assert.isNotUndefined(node)
+  async (request, node): Promise<void> => {
+    Assert.isInstanceOf(node, FullNode)
     const { chain } = node
 
     const confirmations = request.data.confirmations ?? node.config.get('confirmations')
@@ -63,7 +64,7 @@ routes.register<typeof GetNoteWitnessRequestSchema, GetNoteWitnessResponse>(
     Assert.isNotNull(maxConfirmedHeader)
     Assert.isNotNull(maxConfirmedHeader?.noteSize)
 
-    const witness = await chain.getNoteWitness(request.data.index, maxConfirmedHeader.noteSize)
+    const witness = await chain.notes.witness(request.data.index, maxConfirmedHeader.noteSize)
 
     if (witness === null) {
       throw new ValidationError(

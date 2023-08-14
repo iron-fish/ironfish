@@ -5,6 +5,7 @@ import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { ChainProcessor } from '../../../chainProcessor'
 import { getBlockSize, getTransactionSize } from '../../../network/utils/serializers'
+import { FullNode } from '../../../node'
 import { Block, BlockHeader } from '../../../primitives'
 import { BlockHashSerdeInstance } from '../../../serde'
 import { BufferUtils, PromiseUtils } from '../../../utils'
@@ -78,8 +79,8 @@ export const FollowChainStreamResponseSchema: yup.ObjectSchema<FollowChainStream
 routes.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse>(
   `${ApiNamespace.chain}/followChainStream`,
   FollowChainStreamRequestSchema,
-  async (request, { node }): Promise<void> => {
-    Assert.isNotUndefined(node)
+  async (request, node): Promise<void> => {
+    Assert.isInstanceOf(node, FullNode)
     const head = request.data?.head ? Buffer.from(request.data.head, 'hex') : null
 
     const processor = new ChainProcessor({
@@ -113,6 +114,7 @@ routes.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
           name: BufferUtils.toHuman(mint.asset.name()),
           creator: mint.asset.creator().toString('hex'),
           value: mint.value.toString(),
+          transferOwnershipTo: mint.transferOwnershipTo?.toString('hex'),
         })),
         burns: transaction.burns.map((burn) => ({
           id: burn.assetId.toString('hex'),

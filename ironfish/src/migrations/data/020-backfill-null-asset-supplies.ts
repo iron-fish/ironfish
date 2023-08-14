@@ -2,14 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Logger } from '../../logger'
-import { IronfishNode } from '../../node'
 import { IDatabase, IDatabaseTransaction } from '../../storage'
-import { BufferUtils } from '../../utils'
-import { Migration } from '../migration'
+import { BufferUtils, IronfishNode } from '../../utils'
+import { Database, Migration } from '../migration'
 import { GetOldAccounts } from './021-add-version-to-accounts/schemaOld'
 
 export class Migration020 extends Migration {
   path = __filename
+  database = Database.WALLET
 
   prepare(node: IronfishNode): IDatabase {
     return node.wallet.walletDb.db

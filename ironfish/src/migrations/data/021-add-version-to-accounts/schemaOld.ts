@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { generateKeyFromPrivateKey, PUBLIC_ADDRESS_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
-import { IronfishNode } from '../../../node'
 import {
   IDatabase,
   IDatabaseEncoding,
@@ -11,6 +10,7 @@ import {
   IDatabaseTransaction,
   StringEncoding,
 } from '../../../storage'
+import { IronfishNode } from '../../../utils'
 import { Account } from '../../../wallet'
 
 const KEY_LENGTH = 32

@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { Assert } from '../../../assert'
 import { HeadValue } from '../../../wallet/walletdb/headValue'
 import { ApiNamespace, routes } from '../router'
 
@@ -13,7 +12,7 @@ export type GetAccountStatusResponse = {
     name: string
     id: string
     headHash: string
-    headInChain: boolean
+    headInChain?: boolean
     sequence: string | number
   }>
 }
@@ -31,7 +30,7 @@ export const GetAccountStatusResponseSchema: yup.ObjectSchema<GetAccountStatusRe
             name: yup.string().defined(),
             id: yup.string().defined(),
             headHash: yup.string().defined(),
-            headInChain: yup.boolean().defined(),
+            headInChain: yup.boolean().optional(),
             sequence: yup.string().defined(),
           })
           .defined(),
@@ -43,9 +42,7 @@ export const GetAccountStatusResponseSchema: yup.ObjectSchema<GetAccountStatusRe
 routes.register<typeof GetAccountStatusRequestSchema, GetAccountStatusResponse>(
   `${ApiNamespace.wallet}/getAccountsStatus`,
   GetAccountStatusRequestSchema,
-  async (request, { node }): Promise<void> => {
-    Assert.isNotUndefined(node)
-
+  async (request, node): Promise<void> => {
     const heads = new Map<string, HeadValue | null>()
     for await (const { accountId, head } of node.wallet.walletDb.loadHeads()) {
       heads.set(accountId, head)
@@ -54,7 +51,11 @@ routes.register<typeof GetAccountStatusRequestSchema, GetAccountStatusResponse>(
     const accountsInfo: GetAccountStatusResponse['accounts'] = []
     for (const account of node.wallet.listAccounts()) {
       const head = heads.get(account.id)
-      const headInChain = head?.hash ? await node.wallet.chainHasBlock(head.hash) : false
+
+      let headInChain = undefined
+      if (node.wallet.nodeClient) {
+        headInChain = head?.hash ? await node.wallet.chainHasBlock(head.hash) : false
+      }
 
       accountsInfo.push({
         name: account.name,

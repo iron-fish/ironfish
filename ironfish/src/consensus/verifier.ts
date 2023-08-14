@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Asset, TRANSACTION_VERSION } from '@ironfish/rust-nodejs'
-import { BufferSet } from 'buffer-map'
+import { BufferMap, BufferSet } from 'buffer-map'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import {
@@ -47,6 +47,7 @@ export class Verifier {
   async verifyBlock(
     block: Block,
     options: { verifyTarget?: boolean } = { verifyTarget: true },
+    tx?: IDatabaseTransaction,
   ): Promise<VerificationResult> {
     if (getBlockSize(block) > this.chain.consensus.parameters.maxBlockSizeBytes) {
       return { valid: false, reason: VerificationResultReason.MAX_BLOCK_SIZE_EXCEEDED }
@@ -68,6 +69,11 @@ export class Verifier {
     // Require the miner's fee transaction
     if (!minersFeeTransaction || !minersFeeTransaction.isMinersFee()) {
       return { valid: false, reason: VerificationResultReason.MINERS_FEE_EXPECTED }
+    }
+
+    const mintOwnersValid = await this.verifyMintOwners(block.mints(), tx)
+    if (!mintOwnersValid.valid) {
+      return mintOwnersValid
     }
 
     // Verify the transactions
@@ -250,7 +256,7 @@ export class Verifier {
       return verificationResult
     }
 
-    const reason = await this.chain.db.withTransaction(null, async (tx) => {
+    const reason = await this.chain.blockchainDb.db.withTransaction(null, async (tx) => {
       for (const spend of transaction.spends) {
         // If the spend references a larger tree size, allow it, so it's possible to
         // store transactions made while the node is a few blocks behind
@@ -325,8 +331,8 @@ export class Verifier {
     transaction: Transaction,
     tx?: IDatabaseTransaction,
   ): Promise<VerificationResult> {
-    return this.chain.db.withTransaction(tx, async (tx) => {
-      const notesSize = await this.chain.getNotesSize(tx)
+    return this.chain.blockchainDb.db.withTransaction(tx, async (tx) => {
+      const notesSize = await this.chain.notes.size(tx)
 
       for (const spend of transaction.spends) {
         const reason = await this.verifySpend(spend, notesSize, tx)
@@ -378,7 +384,11 @@ export class Verifier {
   }
 
   // TODO: Rename to verifyBlock but merge verifyBlock into this
-  async verifyBlockAdd(block: Block, prev: BlockHeader | null): Promise<VerificationResult> {
+  async verifyBlockAdd(
+    block: Block,
+    prev: BlockHeader | null,
+    tx?: IDatabaseTransaction,
+  ): Promise<VerificationResult> {
     if (block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
       return { valid: true }
     }
@@ -392,7 +402,7 @@ export class Verifier {
       return verification
     }
 
-    verification = await this.verifyBlock(block)
+    verification = await this.verifyBlock(block, {}, tx)
     if (!verification.valid) {
       return verification
     }
@@ -409,7 +419,7 @@ export class Verifier {
     block: Block,
     tx?: IDatabaseTransaction,
   ): Promise<VerificationResult> {
-    return this.chain.db.withTransaction(tx, async (tx) => {
+    return this.chain.blockchainDb.db.withTransaction(tx, async (tx) => {
       const previousNotesSize = block.header.noteSize
       Assert.isNotNull(previousNotesSize)
 
@@ -469,7 +479,7 @@ export class Verifier {
     }
 
     try {
-      const realSpendRoot = await this.chain.getNotesPastRoot(spend.size, tx)
+      const realSpendRoot = await this.chain.notes.pastRoot(spend.size, tx)
       if (!spend.commitment.equals(realSpendRoot)) {
         return VerificationResultReason.INVALID_SPEND
       }
@@ -489,11 +499,11 @@ export class Verifier {
     block: Block,
     tx?: IDatabaseTransaction,
   ): Promise<VerificationResult> {
-    return this.chain.db.withTransaction(tx, async (tx) => {
+    return this.chain.blockchainDb.db.withTransaction(tx, async (tx) => {
       const header = block.header
 
       Assert.isNotNull(header.noteSize)
-      const noteRoot = await this.chain.getNotesPastRoot(header.noteSize, tx)
+      const noteRoot = await this.chain.notes.pastRoot(header.noteSize, tx)
       if (!noteRoot.equals(header.noteCommitment)) {
         return { valid: false, reason: VerificationResultReason.NOTE_COMMITMENT }
       }
@@ -557,13 +567,95 @@ export class Verifier {
     transaction: Transaction,
     tx?: IDatabaseTransaction,
   ): Promise<VerificationResult> {
-    return this.chain.db.withTransaction(tx, async (tx) => {
+    return this.chain.blockchainDb.db.withTransaction(tx, async (tx) => {
       if (await this.chain.transactionHashHasBlock(transaction.hash(), tx)) {
         return { valid: false, reason: VerificationResultReason.DUPLICATE_TRANSACTION }
       }
 
       return { valid: true }
     })
+  }
+
+  /**
+   * Validates that the given owner for each mint is the correct owner based on
+   * the current state of the chain and returns the state of the asset owners
+   * after processing the mints, taking into account new mints and ownership
+   * transfers. Takes an optional existing BufferMap to use as a starting point.
+   */
+  async verifyMintOwnersIncremental(
+    mints: Iterable<MintDescription>,
+    lastKnownAssetOwners?: BufferMap<Buffer>,
+    tx?: IDatabaseTransaction,
+  ): Promise<{ valid: boolean; assetOwners: BufferMap<Buffer> }> {
+    const assetOwners = new BufferMap<Buffer>()
+
+    return this.chain.blockchainDb.db.withTransaction(tx, async (tx) => {
+      for (const { asset, owner, transferOwnershipTo } of mints) {
+        const assetId = asset.id()
+
+        let existingAssetOwner = assetOwners.get(assetId)
+
+        // This asset has not yet been seen in the given Iterable, so we attempt
+        // to look up the owner from the last known asset owners map, if it was
+        // provided.
+        if (!existingAssetOwner && lastKnownAssetOwners) {
+          const lastKnownOwner = lastKnownAssetOwners.get(assetId)
+          if (lastKnownOwner) {
+            existingAssetOwner = lastKnownOwner
+          }
+        }
+
+        // This asset has not yet been seen in the given Iterable, so we attempt
+        // to look up the owner from the chain database
+        if (!existingAssetOwner) {
+          const assetValue = await this.chain.getAssetById(assetId, tx)
+          if (assetValue) {
+            existingAssetOwner = assetValue.owner
+          }
+        }
+
+        // This asset has not yet been seen in the given Iterable, nor does it
+        // exist on the chain. Since this is the initial mint of this asset, the
+        // owner must be the creator
+        if (!existingAssetOwner) {
+          const creator = asset.creator()
+
+          if (!creator.equals(owner)) {
+            return { valid: false, assetOwners }
+          }
+
+          existingAssetOwner = creator
+        }
+
+        if (!existingAssetOwner.equals(owner)) {
+          return { valid: false, assetOwners }
+        }
+
+        if (transferOwnershipTo) {
+          assetOwners.set(assetId, transferOwnershipTo)
+        } else if (!assetOwners.has(assetId)) {
+          assetOwners.set(assetId, existingAssetOwner)
+        }
+      }
+
+      return { valid: true, assetOwners }
+    })
+  }
+
+  /**
+   * Validates that the given owner for each mint is the correct owner based on
+   * the current state of the chain
+   */
+  async verifyMintOwners(
+    mints: Iterable<MintDescription>,
+    tx?: IDatabaseTransaction,
+  ): Promise<VerificationResult> {
+    const { valid } = await this.verifyMintOwnersIncremental(mints, undefined, tx)
+    if (valid) {
+      return { valid: true }
+    } else {
+      return { valid: false, reason: VerificationResultReason.INVALID_MINT_OWNER }
+    }
   }
 }
 
@@ -572,14 +664,15 @@ export enum VerificationResultReason {
   DESERIALIZATION = 'Failed to deserialize',
   DOUBLE_SPEND = 'Double spend',
   DUPLICATE = 'Duplicate',
-  ERROR = 'Error',
   DUPLICATE_TRANSACTION = 'Transaction is a duplicate',
+  ERROR = 'Error',
   GOSSIPED_GENESIS_BLOCK = 'Peer gossiped its genesis block',
   GRAFFITI = 'Graffiti field is not 32 bytes in length',
   HASH_NOT_MEET_TARGET = 'Hash does not meet target',
   INVALID_ASSET_NAME = 'Asset name is blank',
   INVALID_GENESIS_BLOCK = 'Peer is using a different genesis block',
   INVALID_MINERS_FEE = "Miner's fee is incorrect",
+  INVALID_MINT_OWNER = 'Mint owner is not consistent with chain state',
   INVALID_PARENT = 'Invalid_parent',
   INVALID_SPEND = 'Invalid spend',
   INVALID_TARGET = 'Invalid target',

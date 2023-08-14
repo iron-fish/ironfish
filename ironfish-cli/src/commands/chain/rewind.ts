@@ -4,7 +4,7 @@
 import {
   Assert,
   Blockchain,
-  IronfishNode,
+  FullNode,
   Meter,
   NodeUtils,
   TimeUtils,
@@ -50,7 +50,7 @@ export default class Rewind extends IronfishCommand {
 
 export const rewindChainTo = async (
   command: Command,
-  node: IronfishNode,
+  node: FullNode,
   to: number,
   from?: number,
 ): Promise<void> => {
@@ -98,7 +98,7 @@ async function disconnectBlocks(chain: Blockchain, toDisconnect: number): Promis
 
     Assert.isNotNull(headBlock)
 
-    await chain.db.transaction(async (tx) => {
+    await chain.blockchainDb.db.transaction(async (tx) => {
       await chain.disconnect(headBlock, tx)
     })
 

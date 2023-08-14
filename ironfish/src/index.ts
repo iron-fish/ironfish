@@ -6,11 +6,8 @@ export * from './assert'
 export * from './assets'
 export * from './blockchain'
 export * from './consensus'
-export {
-  DEV_GENESIS_ACCOUNT,
-  defaultNetworkName,
-  isDefaultNetworkId,
-} from './defaultNetworkDefinitions'
+export { defaultNetworkName, isDefaultNetworkId } from './defaultNetworkDefinitions'
+export { DEV_GENESIS_ACCOUNT } from './genesisBlocks/devnet'
 export * from './chainProcessor'
 export * from './event'
 export * from './fileStores'

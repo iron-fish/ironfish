@@ -7,11 +7,13 @@ import {
   ASSET_LENGTH,
   generateKeyFromPrivateKey,
   PROOF_LENGTH,
+  PUBLIC_ADDRESS_LENGTH,
   Transaction as NativeTransaction,
   TRANSACTION_EXPIRATION_LENGTH,
   TRANSACTION_FEE_LENGTH,
   TRANSACTION_PUBLIC_KEY_RANDOMNESS_LENGTH,
   TRANSACTION_SIGNATURE_LENGTH,
+  TRANSACTION_VERSION,
 } from '@ironfish/rust-nodejs'
 import { Asset, ASSET_ID_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
@@ -24,7 +26,7 @@ import { BurnDescription } from './burnDescription'
 import { Note } from './note'
 import { NoteEncrypted, NoteEncryptedHash, SerializedNoteEncryptedHash } from './noteEncrypted'
 import { SPEND_SERIALIZED_SIZE_IN_BYTE } from './spend'
-import { Transaction } from './transaction'
+import { Transaction, TransactionFeatures, TransactionVersion } from './transaction'
 
 // Needed for constructing a witness when creating transactions
 const noteHasher = new NoteHasher()
@@ -34,9 +36,11 @@ export interface MintData {
   name: string
   metadata: string
   value: bigint
+  transferOwnershipTo?: string
 }
 
 export class RawTransaction {
+  version: TransactionVersion = TRANSACTION_VERSION
   expiration: number | null = null
   fee = 0n
   mints: MintData[] = []
@@ -65,9 +69,22 @@ export class RawTransaction {
     size += TRANSACTION_PUBLIC_KEY_RANDOMNESS_LENGTH // public key randomness
     size += this.spends.length * SPEND_SERIALIZED_SIZE_IN_BYTE
     size += this.outputs.length * (PROOF_LENGTH + NoteEncrypted.size)
-    size +=
-      this.mints.length *
-      (PROOF_LENGTH + ASSET_LENGTH + AMOUNT_VALUE_LENGTH + TRANSACTION_SIGNATURE_LENGTH)
+    size += this.mints
+      .map((mint) => {
+        let mintSize =
+          PROOF_LENGTH + ASSET_LENGTH + AMOUNT_VALUE_LENGTH + TRANSACTION_SIGNATURE_LENGTH
+        if (TransactionFeatures.hasMintTransferOwnershipTo(this.version)) {
+          mintSize += PUBLIC_ADDRESS_LENGTH // owner
+
+          // transferOwnershipTo
+          mintSize += 1
+          if (mint.transferOwnershipTo) {
+            mintSize += PUBLIC_ADDRESS_LENGTH
+          }
+        }
+        return mintSize
+      })
+      .reduce((size, mintSize) => size + mintSize, 0)
     size += this.burns.length * (ASSET_ID_LENGTH + 8)
     size += TRANSACTION_SIGNATURE_LENGTH // signature
 
@@ -96,7 +113,7 @@ export class RawTransaction {
   }
 
   post(spendingKey: string): Transaction {
-    const builder = new NativeTransaction(spendingKey)
+    const builder = new NativeTransaction(spendingKey, this.version)
     for (const spend of this.spends) {
       builder.spend(spend.note.takeReference(), spend.witness)
       spend.note.returnReference()
@@ -118,7 +135,7 @@ export class RawTransaction {
       const key = generateKeyFromPrivateKey(spendingKey)
       const asset = new Asset(key.publicAddress, mint.name, mint.metadata)
 
-      builder.mint(asset, mint.value)
+      builder.mint(asset, mint.value, mint.transferOwnershipTo)
     }
 
     for (const burn of this.burns) {

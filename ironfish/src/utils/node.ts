@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { IronfishNode } from '../node'
+import { FullNode } from '../node'
 import { DatabaseIsLockedError } from '../storage/database/errors'
+import { WalletNode } from '../walletNode'
 import { PromiseUtils } from './promise'
 
 /**
@@ -35,3 +36,5 @@ async function waitForOpen(node: IronfishNode, abort?: null | (() => boolean)): 
 }
 
 export const NodeUtils = { waitForOpen }
+
+export type IronfishNode = FullNode | WalletNode

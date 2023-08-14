@@ -5,7 +5,6 @@ import { Asset, generateKey, Note as NativeNote } from '@ironfish/rust-nodejs'
 import { BufferMap, BufferSet } from 'buffer-map'
 import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
-import { AssetsVerifier } from '../assets'
 import { Consensus, isExpiredSequence, Verifier } from '../consensus'
 import { Event } from '../event'
 import { Config } from '../fileStores'
@@ -27,6 +26,7 @@ import {
   AsyncUtils,
   BufferUtils,
   ErrorUtils,
+  HashUtils,
   PromiseResolve,
   PromiseUtils,
   SetTimeoutToken,
@@ -77,18 +77,18 @@ export class Wallet {
 
   protected readonly accounts = new Map<string, Account>()
   readonly walletDb: WalletDB
-  readonly logger: Logger
+  private readonly logger: Logger
   readonly workerPool: WorkerPool
   readonly chainProcessor: RemoteChainProcessor
-  readonly nodeClient: RpcClient
+  readonly nodeClient: RpcClient | null
   private readonly config: Config
-  readonly consensus: Consensus
-  readonly assetsVerifier: AssetsVerifier
+  private readonly consensus: Consensus
 
   protected rebroadcastAfter: number
   protected defaultAccount: string | null = null
   protected isStarted = false
   protected isOpen = false
+  protected isSyncingTransactionGossip = false
   protected eventLoopTimeout: SetTimeoutToken | null = null
   private readonly createTransactionMutex: Mutex
   private readonly eventLoopAbortController: AbortController
@@ -103,7 +103,6 @@ export class Wallet {
     workerPool,
     consensus,
     nodeClient,
-    assetsVerifier,
   }: {
     config: Config
     database: WalletDB
@@ -111,16 +110,14 @@ export class Wallet {
     rebroadcastAfter?: number
     workerPool: WorkerPool
     consensus: Consensus
-    nodeClient: RpcClient
-    assetsVerifier: AssetsVerifier
+    nodeClient: RpcClient | null
   }) {
     this.config = config
     this.logger = logger.withTag('accounts')
     this.walletDb = database
     this.workerPool = workerPool
     this.consensus = consensus
-    this.nodeClient = nodeClient
-    this.assetsVerifier = assetsVerifier
+    this.nodeClient = nodeClient || null
     this.rebroadcastAfter = rebroadcastAfter ?? 10
     this.createTransactionMutex = new Mutex()
     this.eventLoopAbortController = new AbortController()
@@ -133,7 +130,13 @@ export class Wallet {
     })
 
     this.chainProcessor.onAdd.on(async ({ header, transactions }) => {
-      this.logger.debug(`AccountHead ADD: ${Number(header.sequence) - 1} => ${header.sequence}`)
+      if (Number(header.sequence) % this.config.get('walletSyncingMaxQueueSize') === 0) {
+        this.logger.info(
+          'Added block' +
+            ` seq: ${Number(header.sequence)},` +
+            ` hash: ${HashUtils.renderHash(header.hash)}`,
+        )
+      }
 
       await this.connectBlock(header, transactions)
       await this.expireTransactions(header.sequence)
@@ -207,14 +210,14 @@ export class Wallet {
       this.accounts.set(account.id, account)
     }
 
-    const meta = await this.walletDb.loadAccountsMeta()
-    this.defaultAccount = meta.defaultAccountId
-
     const latestHead = await this.getLatestHead()
     if (latestHead) {
       this.chainProcessor.hash = latestHead.hash
       this.chainProcessor.sequence = latestHead.sequence
     }
+
+    const meta = await this.walletDb.loadAccountsMeta()
+    this.defaultAccount = meta.defaultAccountId
   }
 
   private unload(): void {
@@ -241,30 +244,34 @@ export class Wallet {
     }
     this.isStarted = true
 
-    for (const account of this.listAccounts()) {
-      if (account.createdAt === null || this.chainProcessor.sequence === null) {
-        continue
-      }
-
-      if (account.createdAt.sequence > this.chainProcessor.sequence) {
-        continue
-      }
-
-      if (!(await this.chainHasBlock(account.createdAt.hash))) {
-        await this.resetAccount(account, { resetCreatedAt: true })
-      }
-    }
-
     if (this.chainProcessor.hash) {
       const hasHeadBlock = await this.chainHasBlock(this.chainProcessor.hash)
 
       if (!hasHeadBlock) {
-        this.logger.error(
-          `Resetting accounts database because accounts head was not found in chain: ${this.chainProcessor.hash.toString(
+        throw new Error(
+          `Wallet has scanned to block ${this.chainProcessor.hash.toString(
             'hex',
-          )}`,
+          )}, but node's chain does not contain that block. Unable to sync from node without rescan.`,
         )
-        await this.reset()
+      }
+    }
+
+    const chainHead = await this.getChainHead()
+
+    for (const account of this.listAccounts()) {
+      if (account.createdAt === null) {
+        continue
+      }
+
+      if (account.createdAt.sequence > chainHead.sequence) {
+        continue
+      }
+
+      if (!(await this.chainHasBlock(account.createdAt.hash))) {
+        this.logger.warn(
+          `Account ${account.name} createdAt refers to a block that is not on the node's chain. Resetting to null.`,
+        )
+        await account.updateCreatedAt(null)
       }
     }
 
@@ -301,6 +308,7 @@ export class Wallet {
     this.eventLoopResolve = resolve
 
     await this.updateHead()
+    void this.syncTransactionGossip()
     await this.cleanupDeletedAccounts()
 
     if (this.isStarted) {
@@ -310,6 +318,28 @@ export class Wallet {
     resolve()
     this.eventLoopPromise = null
     this.eventLoopResolve = null
+  }
+
+  async syncTransactionGossip(): Promise<void> {
+    if (this.isSyncingTransactionGossip) {
+      return
+    }
+
+    try {
+      Assert.isNotNull(this.nodeClient)
+      const response = this.nodeClient.event.onTransactionGossipStream()
+
+      this.isSyncingTransactionGossip = true
+
+      for await (const content of response.contentStream()) {
+        const transaction = new Transaction(Buffer.from(content.serializedTransaction, 'hex'))
+        await this.addPendingTransaction(transaction)
+      }
+    } catch (e: unknown) {
+      this.logger.error(`Error syncing transaction gossip: ${ErrorUtils.renderError(e)}`)
+    } finally {
+      this.isSyncingTransactionGossip = false
+    }
   }
 
   async reset(): Promise<void> {
@@ -411,7 +441,7 @@ export class Wallet {
     })
 
     for (const account of accounts) {
-      const shouldDecrypt = await this.shouldDecryptForAccount(blockHeader, account, scan)
+      const shouldDecrypt = await this.shouldDecryptForAccount(blockHeader, account)
 
       if (scan && scan.isAborted) {
         scan.signalComplete()
@@ -455,30 +485,29 @@ export class Wallet {
   async shouldDecryptForAccount(
     blockHeader: WalletBlockHeader,
     account: Account,
-    scan?: ScanState,
   ): Promise<boolean> {
     if (account.createdAt === null) {
       return true
     }
 
-    if (account.createdAt.sequence < blockHeader.sequence) {
-      return true
+    if (account.createdAt.sequence > blockHeader.sequence) {
+      return false
     }
 
-    if (account.createdAt.sequence === blockHeader.sequence) {
-      if (!account.createdAt.hash.equals(blockHeader.hash)) {
-        // account.createdAt is refers to a block that is not on the main chain
-        await this.resetAccount(account, { resetCreatedAt: true })
-        await scan?.abort()
-        void this.scanTransactions()
-
-        return false
-      }
-
-      return true
+    if (
+      account.createdAt.sequence === blockHeader.sequence &&
+      !account.createdAt.hash.equals(blockHeader.hash)
+    ) {
+      this.logger.warn(
+        `Account ${account.name} createdAt refers to a block that is not on the node's chain. Stopping scan for this account.`,
+      )
+      await account.updateCreatedAt(null)
+      // Sets head to null to avoid connecting blocks for this account
+      await account.updateHead(null)
+      return false
     }
 
-    return false
+    return true
   }
 
   private async connectBlockTransactions(
@@ -1049,6 +1078,7 @@ export class Wallet {
         .toString('hex')} is missing an index and cannot be spent.`,
     )
 
+    Assert.isNotNull(this.nodeClient)
     const response = await this.nodeClient.chain.getNoteWitness({
       index: note.index,
       confirmations: confirmations ?? this.config.get('confirmations'),
@@ -1127,12 +1157,13 @@ export class Wallet {
     transaction: Transaction,
   ): Promise<{ accepted: boolean; broadcasted: boolean }> {
     try {
+      Assert.isNotNull(this.nodeClient)
       const response = await this.nodeClient.chain.broadcastTransaction({
         transaction: transaction.serialize().toString('hex'),
       })
       Assert.isNotNull(response.content)
 
-      return { accepted: response.content.accepted, broadcasted: true }
+      return { accepted: response.content.accepted, broadcasted: response.content.broadcasted }
     } catch (e: unknown) {
       this.logger.warn(
         `Failed to broadcast transaction ${transaction
@@ -1294,12 +1325,9 @@ export class Wallet {
 
     const key = generateKey()
 
-    let createdAt = null
-    if (this.chainProcessor.hash && this.chainProcessor.sequence) {
-      createdAt = {
-        hash: this.chainProcessor.hash,
-        sequence: this.chainProcessor.sequence,
-      }
+    let createdAt: HeadValue | null = null
+    if (this.nodeClient) {
+      createdAt = await this.getChainHead()
     }
 
     const account = new Account({
@@ -1317,8 +1345,14 @@ export class Wallet {
 
     await this.walletDb.db.transaction(async (tx) => {
       await this.walletDb.setAccount(account, tx)
-      await this.skipRescan(account, tx)
+      await account.updateHead(createdAt, tx)
     })
+
+    // If this is the first account, set the chainProcessor state
+    if (this.accounts.size === 0 && createdAt) {
+      this.chainProcessor.hash = createdAt.hash
+      this.chainProcessor.sequence = createdAt.sequence
+    }
 
     this.accounts.set(account.id, account)
 
@@ -1358,6 +1392,16 @@ export class Wallet {
     validateAccount(accountValue)
 
     let createdAt = accountValue.createdAt
+
+    if (createdAt && !this.nodeClient) {
+      this.logger.debug(
+        `Wallet not connected to node to verify that account createdAt block ${createdAt.hash.toString(
+          'hex',
+        )} (${createdAt.sequence}) in chain. Setting createdAt to null`,
+      )
+      createdAt = null
+    }
+
     if (createdAt !== null && !(await this.chainHasBlock(createdAt.hash))) {
       this.logger.debug(
         `Account ${accountValue.name} createdAt block ${createdAt.hash.toString('hex')} (${
@@ -1586,13 +1630,12 @@ export class Wallet {
 
   async chainGetBlock(request: GetBlockRequest): Promise<GetBlockResponse | null> {
     try {
+      Assert.isNotNull(this.nodeClient)
       return (await this.nodeClient.chain.getBlock(request)).content
     } catch (error: unknown) {
       if (ErrorUtils.isNotFoundError(error)) {
         return null
       }
-
-      // TODO(rohanjadvani): Add retry logic once the remote client is set up
 
       this.logger.error(ErrorUtils.renderError(error, true))
       throw error
@@ -1608,6 +1651,7 @@ export class Wallet {
     nonce: number
   } | null> {
     try {
+      Assert.isNotNull(this.nodeClient)
       const response = await this.nodeClient.chain.getAsset({ id: id.toString('hex') })
       return {
         createdTransactionHash: Buffer.from(response.content.createdTransactionHash, 'hex'),
@@ -1629,6 +1673,7 @@ export class Wallet {
 
   private async getChainHead(): Promise<{ hash: Buffer; sequence: number }> {
     try {
+      Assert.isNotNull(this.nodeClient)
       const response = await this.nodeClient.chain.getChainInfo()
       return {
         hash: Buffer.from(response.content.oldestBlockIdentifier.hash, 'hex'),

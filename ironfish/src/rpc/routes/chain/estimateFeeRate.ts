@@ -4,6 +4,7 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { PRIORITY_LEVELS, PriorityLevel } from '../../../memPool/feeEstimator'
+import { FullNode } from '../../../node'
 import { CurrencyUtils } from '../../../utils'
 import { ApiNamespace, routes } from '../router'
 
@@ -28,8 +29,8 @@ export const EstimateFeeRateResponseSchema: yup.ObjectSchema<EstimateFeeRateResp
 routes.register<typeof EstimateFeeRateRequestSchema, EstimateFeeRateResponse>(
   `${ApiNamespace.chain}/estimateFeeRate`,
   EstimateFeeRateRequestSchema,
-  (request, { node }): void => {
-    Assert.isNotUndefined(node)
+  (request, node): void => {
+    Assert.isInstanceOf(node, FullNode)
 
     const priority = request.data?.priority ?? 'average'
     const rate = node.memPool.feeEstimator.estimateFeeRate(priority)

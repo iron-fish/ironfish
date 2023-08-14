@@ -11,10 +11,9 @@ import { ApiNamespace, routes } from '../router'
 routes.register<typeof EstimateFeeRatesRequestSchema, EstimateFeeRatesResponse>(
   `${ApiNamespace.wallet}/estimateFeeRates`,
   EstimateFeeRatesRequestSchema,
-  async (request, { wallet }): Promise<void> => {
-    Assert.isNotUndefined(wallet)
-
-    const rates = await wallet.nodeClient.chain.estimateFeeRates()
+  async (request, node): Promise<void> => {
+    Assert.isNotNull(node.wallet.nodeClient)
+    const rates = await node.wallet.nodeClient.chain.estimateFeeRates()
 
     request.end({ ...rates.content })
   },

@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { BoxKeyPair } from '@ironfish/rust-nodejs'
-import os from 'os'
 import { v4 as uuid } from 'uuid'
 import { AssetsVerifier } from './assets'
 import { Blockchain } from './blockchain'
@@ -33,9 +32,9 @@ import { Strategy } from './strategy'
 import { Syncer } from './syncer'
 import { Telemetry } from './telemetry/telemetry'
 import { Wallet, WalletDB } from './wallet'
-import { WorkerPool } from './workerPool'
+import { calculateWorkers, WorkerPool } from './workerPool'
 
-export class IronfishNode {
+export class FullNode {
   chain: Blockchain
   strategy: Strategy
   config: Config
@@ -59,7 +58,7 @@ export class IronfishNode {
   shutdownPromise: Promise<void> | null = null
   shutdownResolve: (() => void) | null = null
 
-  private constructor({
+  constructor({
     pkg,
     chain,
     files,
@@ -104,7 +103,7 @@ export class IronfishNode {
     this.miningManager = new MiningManager({ chain, memPool, node: this, metrics })
     this.memPool = memPool
     this.workerPool = workerPool
-    this.rpc = new RpcServer({ node: this, wallet }, internal)
+    this.rpc = new RpcServer(this, internal)
     this.logger = logger
     this.pkg = pkg
 
@@ -159,12 +158,6 @@ export class IronfishNode {
       this.telemetry.submitBlockMined(block)
     })
 
-    this.peerNetwork.onTransactionGossipReceived.on((transaction, valid) => {
-      if (valid) {
-        void wallet.addPendingTransaction(transaction)
-      }
-    })
-
     this.peerNetwork.onTransactionAccepted.on((transaction, received) => {
       this.telemetry.submitNewTransactionSeen(transaction, received)
     })
@@ -207,7 +200,7 @@ export class IronfishNode {
     strategyClass: typeof Strategy | null
     webSocket: IsomorphicWebSocketConstructor
     privateIdentity?: PrivateIdentity
-  }): Promise<IronfishNode> {
+  }): Promise<FullNode> {
     logger = logger.withTag('ironfishnode')
     dataDir = dataDir || DEFAULT_DATA_DIR
 
@@ -233,16 +226,9 @@ export class IronfishNode {
       logger,
     })
 
-    let workers = config.get('nodeWorkers')
-    if (workers === -1) {
-      workers = os.cpus().length - 1
+    const numWorkers = calculateWorkers(config.get('nodeWorkers'), config.get('nodeWorkersMax'))
 
-      const maxWorkers = config.get('nodeWorkersMax')
-      if (maxWorkers !== -1) {
-        workers = Math.min(workers, maxWorkers)
-      }
-    }
-    const workerPool = new WorkerPool({ metrics, numWorkers: workers })
+    const workerPool = new WorkerPool({ metrics, numWorkers })
 
     metrics = metrics || new MetricsMonitor({ logger })
 
@@ -304,10 +290,9 @@ export class IronfishNode {
       workerPool,
       consensus,
       nodeClient: memoryClient,
-      assetsVerifier,
     })
 
-    const node = new IronfishNode({
+    const node = new FullNode({
       pkg,
       chain,
       strategy,

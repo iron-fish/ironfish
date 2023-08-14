@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { ASSET_ID_LENGTH } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
-import { Assert } from '../../../assert'
 import { AssetVerification } from '../../../assets'
 import { CurrencyUtils } from '../../../utils'
 import { NotFoundError, ValidationError } from '../../adapters'
@@ -19,6 +18,7 @@ export type GetWalletAssetRequest = {
 export type GetWalletAssetResponse = {
   createdTransactionHash: string
   creator: string
+  owner: string
   id: string
   metadata: string
   name: string
@@ -42,6 +42,7 @@ export const GetWalletAssetResponse: yup.ObjectSchema<GetWalletAssetResponse> = 
   .object({
     createdTransactionHash: yup.string().defined(),
     creator: yup.string().defined(),
+    owner: yup.string().defined(),
     id: yup.string().defined(),
     metadata: yup.string().defined(),
     name: yup.string().defined(),
@@ -57,9 +58,7 @@ export const GetWalletAssetResponse: yup.ObjectSchema<GetWalletAssetResponse> = 
 routes.register<typeof GetWalletAssetRequestSchema, GetWalletAssetResponse>(
   `${ApiNamespace.wallet}/getAsset`,
   GetWalletAssetRequestSchema,
-  async (request, { node }): Promise<void> => {
-    Assert.isNotUndefined(node)
-
+  async (request, node): Promise<void> => {
     const account = getAccount(node.wallet, request.data.account)
 
     const id = Buffer.from(request.data.id, 'hex')
@@ -77,6 +76,7 @@ routes.register<typeof GetWalletAssetRequestSchema, GetWalletAssetResponse>(
     request.end({
       createdTransactionHash: asset.createdTransactionHash.toString('hex'),
       creator: asset.creator.toString('hex'),
+      owner: asset.owner.toString('hex'),
       id: asset.id.toString('hex'),
       metadata: asset.metadata.toString('hex'),
       name: asset.name.toString('hex'),

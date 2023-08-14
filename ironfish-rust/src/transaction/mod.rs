@@ -123,9 +123,13 @@ pub struct ProposedTransaction {
 }
 
 impl ProposedTransaction {
-    pub fn new(spender_key: SaplingKey) -> ProposedTransaction {
+    pub fn new(spender_key: SaplingKey) -> Self {
+        Self::with_version(spender_key, TRANSACTION_VERSION)
+    }
+
+    pub fn with_version(spender_key: SaplingKey, version: TransactionVersion) -> Self {
         ProposedTransaction {
-            version: TRANSACTION_VERSION,
+            version,
             spends: vec![],
             outputs: vec![],
             mints: vec![],
@@ -166,6 +170,21 @@ impl ProposedTransaction {
         self.value_balances.add(asset.id(), value.try_into()?)?;
 
         self.mints.push(MintBuilder::new(asset, value));
+
+        Ok(())
+    }
+
+    pub fn add_mint_with_new_owner(
+        &mut self,
+        asset: Asset,
+        value: u64,
+        new_owner: PublicAddress,
+    ) -> Result<(), IronfishError> {
+        self.value_balances.add(asset.id(), value.try_into()?)?;
+
+        let mut mint_builder = MintBuilder::new(asset, value);
+        mint_builder.transfer_ownership_to(new_owner);
+        self.mints.push(mint_builder);
 
         Ok(())
     }

@@ -8,7 +8,7 @@ import os from 'os'
 import * as yup from 'yup'
 import { Assert } from '../../assert'
 import { createRootLogger, Logger } from '../../logger'
-import { IronfishNode } from '../../node'
+import { FullNode } from '../../node'
 import { IronfishSdk } from '../../sdk'
 import { RpcRequestError } from '../clients'
 import { RpcTcpClient } from '../clients/tcpClient'
@@ -20,7 +20,7 @@ describe('TcpAdapter', () => {
   let tcp: RpcTcpAdapter | undefined
   let sdk: IronfishSdk
   let client: RpcTcpClient | undefined
-  let node: IronfishNode
+  let node: FullNode
   let logger: Logger
   let mitm: ReturnType<typeof Mitm>
 

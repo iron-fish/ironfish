@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { IronfishNode } from '../node'
+import { FullNode } from '../node'
 import { Transaction } from '../primitives'
 import { splitNotes, useAccountFixture, useTxFixture, writeTestReport } from '../testUtilities'
 import { useMinerBlockFixture } from '../testUtilities/fixtures/blocks'
@@ -11,7 +11,7 @@ import { Account } from '../wallet'
 
 describe('Verify Block', () => {
   const nodeTest = createNodeTest()
-  const nodeArrays = new Array<IronfishNode>()
+  const nodeArrays = new Array<FullNode>()
   const testCount = 5
   let account: Account
   const transactions: Transaction[] = []

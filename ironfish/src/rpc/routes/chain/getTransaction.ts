@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
+import { FullNode } from '../../../node'
 import { BlockHashSerdeInstance } from '../../../serde'
 import { CurrencyUtils } from '../../../utils'
 import { NotFoundError, ValidationError } from '../../adapters'
@@ -23,6 +24,8 @@ export type GetTransactionResponse = {
   mints: {
     assetId: string
     value: string
+    name: string
+    metadata: string
   }[]
   burns: {
     assetId: string
@@ -59,6 +62,8 @@ export const GetTransactionResponseSchema: yup.ObjectSchema<GetTransactionRespon
           .object({
             assetId: yup.string().defined(),
             value: yup.string().defined(),
+            name: yup.string().defined(),
+            metadata: yup.string().defined(),
           })
           .defined(),
       )
@@ -80,8 +85,8 @@ export const GetTransactionResponseSchema: yup.ObjectSchema<GetTransactionRespon
 routes.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
   `${ApiNamespace.chain}/getTransaction`,
   GetTransactionRequestSchema,
-  async (request, { node }): Promise<void> => {
-    Assert.isNotUndefined(node)
+  async (request, node): Promise<void> => {
+    Assert.isInstanceOf(node, FullNode)
 
     if (!request.data.transactionHash) {
       throw new ValidationError(`Missing transaction hash`)
@@ -135,6 +140,8 @@ routes.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
       mints: transaction.mints.map((mint) => ({
         assetId: mint.asset.id().toString('hex'),
         value: CurrencyUtils.encode(mint.value),
+        name: mint.asset.name().toString('hex'),
+        metadata: mint.asset.metadata().toString('hex'),
       })),
       burns: transaction.burns.map((burn) => ({
         assetId: burn.assetId.toString('hex'),

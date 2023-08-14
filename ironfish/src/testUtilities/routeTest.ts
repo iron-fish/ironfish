@@ -5,7 +5,7 @@ import { Blockchain } from '../blockchain'
 import { Verifier } from '../consensus'
 import { createRootLogger } from '../logger'
 import { PeerNetwork } from '../network/peerNetwork'
-import { IronfishNode } from '../node'
+import { FullNode } from '../node'
 import { ALL_API_NAMESPACES } from '../rpc'
 import { RpcMemoryAdapter } from '../rpc/adapters'
 import { RpcMemoryClient } from '../rpc/clients'
@@ -27,7 +27,7 @@ export class RouteTest extends NodeTest {
 
   async createSetup(): Promise<{
     sdk: IronfishSdk
-    node: IronfishNode
+    node: FullNode
     strategy: TestStrategy
     verifier: Verifier
     chain: Blockchain

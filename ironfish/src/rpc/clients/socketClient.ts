@@ -352,11 +352,11 @@ export abstract class RpcSocketClient extends RpcClient {
   }
 
   describe(): string {
-    if (this.connectTo.path) {
-      return this.connectTo.path
+    if (this.connectTo.path !== undefined) {
+      return `path: '${this.connectTo.path}'`
     }
 
-    if (this.connectTo.host && this.connectTo.port) {
+    if (this.connectTo.host !== undefined && this.connectTo.port !== undefined) {
       return `${this.connectTo.host}:${this.connectTo.port}`
     }
 

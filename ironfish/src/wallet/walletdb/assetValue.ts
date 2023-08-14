@@ -18,6 +18,7 @@ export interface AssetValue {
   name: Buffer
   nonce: number
   creator: Buffer
+  owner: Buffer
   // Populated for assets the account owns
   supply: bigint | null
   // Populated once the asset has been added to the main chain
@@ -53,6 +54,7 @@ export class AssetValueEncoding implements IDatabaseEncoding<AssetValue> {
     bw.writeBytes(value.name)
     bw.writeU8(value.nonce)
     bw.writeBytes(value.creator)
+    bw.writeBytes(value.owner)
     return bw.render()
   }
 
@@ -85,6 +87,7 @@ export class AssetValueEncoding implements IDatabaseEncoding<AssetValue> {
     const name = reader.readBytes(ASSET_NAME_LENGTH)
     const nonce = reader.readU8()
     const creator = reader.readBytes(PUBLIC_ADDRESS_LENGTH)
+    const owner = reader.readBytes(PUBLIC_ADDRESS_LENGTH)
     return {
       blockHash,
       createdTransactionHash,
@@ -93,6 +96,7 @@ export class AssetValueEncoding implements IDatabaseEncoding<AssetValue> {
       name,
       nonce,
       creator,
+      owner,
       sequence,
       supply,
     }
@@ -120,6 +124,7 @@ export class AssetValueEncoding implements IDatabaseEncoding<AssetValue> {
     size += ASSET_NAME_LENGTH // name
     size += 1 // nonce
     size += PUBLIC_ADDRESS_LENGTH // creator
+    size += PUBLIC_ADDRESS_LENGTH // owner
     return size
   }
 }
