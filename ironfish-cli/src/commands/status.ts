@@ -199,11 +199,7 @@ function renderStatus(content: GetNodeStatusResponse, debugOutput: boolean): str
     ? [cores, current, rollingAvg].join(', ')
     : [cores, current].join(', ')
 
-  const uvMonitorData = content.misc.uvMonitorActive
-    ? `STARTED - ${content.misc.uvActiveReqs}`
-    : 'STOPPED'
-
-  let output = `\
+  return `\
 Version              ${content.node.version} @ ${content.node.git}
 Node                 ${nodeStatus}
 Node Name            ${content.node.nodeName}
@@ -221,10 +217,4 @@ Accounts             ${accountStatus}
 Telemetry            ${telemetryStatus}
 Workers              ${workersStatus}
 `
-
-  if (debugOutput) {
-    output += `UV Active Reqs       ${uvMonitorData}\n`
-  }
-
-  return output
 }
