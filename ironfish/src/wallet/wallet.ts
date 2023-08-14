@@ -924,7 +924,12 @@ export class Wallet {
         throw new Error('Your account must finish scanning before sending a transaction.')
       }
 
-      const raw = new RawTransaction()
+      // TODO(IFL-1527): This should select the transaction based on some amount
+      // ahead of the head, instead of just 1
+      const transactionVersion = this.consensus.getActiveTransactionVersion(
+        heaviestHead.sequence + 1,
+      )
+      const raw = new RawTransaction(transactionVersion)
       raw.expiration = expiration
 
       if (options.mints) {
