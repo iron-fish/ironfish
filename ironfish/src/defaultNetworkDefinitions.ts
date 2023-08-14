@@ -21,7 +21,9 @@ export function defaultNetworkName(networkId: number): string | undefined {
   }
 }
 
-export const TESTNET = `{
+// TODO(IFL-1523): Update proper activation sequence for enableAssetOwnership
+export const TESTNET = `
+{
   "id": 0,
   "bootstrapNodes": ["1.test.bn.ironfish.network", "2.test.bn.ironfish.network"],
   "genesis": ${TESTNET_GENESIS},
@@ -31,12 +33,14 @@ export const TESTNET = `{
       "targetBlockTimeInSeconds": 60,
       "targetBucketTimeInSeconds": 10,
       "maxBlockSizeBytes": 524288,
-      "minFee": 1
+      "minFee": 1,
+      "enableAssetOwnership": 9999999
   }
 }`
 
+// TODO(IFL-1523): Update proper activation sequence for enableAssetOwnership
 export const MAINNET = `
- {
+{
     "id": 1,
     "bootstrapNodes": ["1.main.bn.ironfish.network", "2.main.bn.ironfish.network"],
     "genesis": ${MAINNET_GENESIS},
@@ -46,10 +50,12 @@ export const MAINNET = `
         "targetBlockTimeInSeconds": 60,
         "targetBucketTimeInSeconds": 10,
         "maxBlockSizeBytes": 524288,
-        "minFee": 1
+        "minFee": 1,
+        "enableAssetOwnership": 9999999
     }
 }`
 
+// TODO(IFL-1523): Update proper activation sequence for enableAssetOwnership
 export const DEVNET = `
 {
     "id": 2,
@@ -61,6 +67,7 @@ export const DEVNET = `
         "targetBlockTimeInSeconds": 60,
         "targetBucketTimeInSeconds": 10,
         "maxBlockSizeBytes": 524288,
-        "minFee": 0
+        "minFee": 0,
+        "enableAssetOwnership": 9999999
     }
 }`
