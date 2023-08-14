@@ -9,6 +9,7 @@ import { FullNode } from '../node'
 import { Block, Note } from '../primitives'
 import { NoteEncrypted } from '../primitives/noteEncrypted'
 import { RawTransaction } from '../primitives/rawTransaction'
+import { TransactionVersion } from '../primitives/transaction'
 import {
   createNodeTest,
   useAccountFixture,
@@ -1593,11 +1594,11 @@ describe('Blockchain', () => {
           const witness = await node.chain.notes.witness(note.index)
           Assert.isNotNull(witness)
 
-          const rawBurn = new RawTransaction()
+          const rawBurn = new RawTransaction(TransactionVersion.V2)
           rawBurn.spends = [{ note: note.note, witness }]
           rawBurn.burns = [{ assetId, value: BigInt(2) }]
 
-          const rawSend = new RawTransaction()
+          const rawSend = new RawTransaction(TransactionVersion.V2)
           rawSend.spends = [{ note: note.note, witness }]
           rawSend.outputs = [
             {

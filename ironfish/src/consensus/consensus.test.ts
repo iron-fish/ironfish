@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { TransactionVersion } from '../primitives/transaction'
 import { Consensus, ConsensusParameters } from './consensus'
 
 describe('Consensus', () => {
@@ -12,6 +13,7 @@ describe('Consensus', () => {
     targetBucketTimeInSeconds: 4,
     maxBlockSizeBytes: 5,
     minFee: 6,
+    enableAssetOwnership: 7,
   }
 
   let consensus: Consensus
@@ -45,5 +47,12 @@ describe('Consensus', () => {
       expect(consensus.isActive(upgradeSequence, -1)).toBe(true)
       expect(consensus.isActive(upgradeSequence, 0)).toBe(true)
     })
+  })
+
+  it('getActiveTransactionVersion', () => {
+    expect(consensus.getActiveTransactionVersion(5)).toEqual(TransactionVersion.V1)
+    expect(consensus.getActiveTransactionVersion(6)).toEqual(TransactionVersion.V1)
+    expect(consensus.getActiveTransactionVersion(7)).toEqual(TransactionVersion.V2)
+    expect(consensus.getActiveTransactionVersion(8)).toEqual(TransactionVersion.V2)
   })
 })

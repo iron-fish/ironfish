@@ -31,6 +31,7 @@ import {
   PromiseResolve,
   PromiseUtils,
   SetTimeoutToken,
+  TransactionUtils,
 } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { DecryptedNote, DecryptNoteOptions } from '../workerPool/tasks/decryptNotes'
@@ -1000,7 +1001,13 @@ export class Wallet {
         throw new Error('Your account must finish scanning before sending a transaction.')
       }
 
-      const raw = new RawTransaction()
+      const transactionVersionSequenceDelta = TransactionUtils.versionSequenceDelta(
+        expiration ? expiration - heaviestHead.sequence : expiration,
+      )
+      const transactionVersion = this.consensus.getActiveTransactionVersion(
+        heaviestHead.sequence + transactionVersionSequenceDelta,
+      )
+      const raw = new RawTransaction(transactionVersion)
       raw.expiration = expiration
 
       if (options.mints) {

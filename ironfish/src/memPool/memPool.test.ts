@@ -6,6 +6,7 @@ import * as ConsensusUtils from '../consensus/utils'
 import { getTransactionSize } from '../network/utils/serializers'
 import { FullNode } from '../node'
 import { Transaction } from '../primitives'
+import { TransactionVersion } from '../primitives/transaction'
 import {
   createNodeTest,
   useAccountFixture,
@@ -259,6 +260,20 @@ describe('MemPool', () => {
       })
     })
 
+    describe('with an expired version', () => {
+      const nodeTest = createNodeTest()
+
+      it('returns false', async () => {
+        const { node, wallet } = nodeTest
+        const account = await useAccountFixture(wallet)
+        const { transaction } = await useBlockWithTx(node, account)
+
+        jest.spyOn(transaction, 'version').mockReturnValue(TransactionVersion.V1)
+
+        expect(node.memPool.acceptTransaction(transaction)).toBe(false)
+      })
+    })
+
     describe('with an existing nullifier in a transaction in the mempool', () => {
       const nodeTest = createNodeTest()
 
@@ -368,6 +383,17 @@ describe('MemPool', () => {
         expect(memPool.exists(transaction.hash())).toBe(true)
         expect([...memPool.orderedTransactions()]).toContainEqual(transaction)
       })
+
+      it('adds the transaction to the transaction version priority queue', async () => {
+        const { node } = nodeTest
+        const { wallet, memPool } = node
+        const account = await useAccountFixture(wallet)
+        const { transaction } = await useBlockWithTx(node, account)
+
+        expect(memPool.acceptTransaction(transaction)).toEqual(true)
+
+        expect(memPool['versionQueue'].has(transaction.hash().toString('hex'))).toEqual(true)
+      })
     })
   })
 
@@ -456,6 +482,46 @@ describe('MemPool', () => {
       expect(memPool.get(transactionB.hash())).toBeDefined()
       expect([...memPool.orderedTransactions()]).not.toContainEqual(transactionA)
       expect([...memPool.orderedTransactions()]).toContainEqual(transactionB)
+    })
+
+    it('removes transactions with an expired version from the mempool', async () => {
+      const { node, chain, wallet } = nodeTest
+      const { memPool } = node
+      const account = await useAccountFixture(wallet)
+
+      // Enable V1 transactions to setup the test transactions
+      chain.consensus.parameters.enableAssetOwnership = 999999
+
+      const block1 = await useMinerBlockFixture(chain, undefined, account)
+      await expect(chain).toAddBlock(block1)
+      await wallet.updateHead()
+
+      const block2 = await useMinerBlockFixture(chain, undefined, account)
+      await expect(chain).toAddBlock(block2)
+      await wallet.updateHead()
+
+      const transaction1 = await useTxFixture(wallet, account, account)
+      expect(memPool.acceptTransaction(transaction1)).toBe(true)
+
+      // Re-enable V2 transactions
+      chain.consensus.parameters.enableAssetOwnership = 1
+
+      const transaction2 = await useTxFixture(wallet, account, account)
+      expect(memPool.acceptTransaction(transaction2)).toBe(true)
+
+      expect(memPool.get(transaction1.hash())).toBeDefined()
+      expect(memPool.get(transaction2.hash())).toBeDefined()
+      expect(memPool['versionQueue'].size()).toEqual(2)
+
+      const block3 = await useMinerBlockFixture(chain)
+      await expect(chain).toAddBlock(block3)
+
+      expect(memPool.exists(transaction1.hash())).toBe(false)
+      expect(memPool.get(transaction1.hash())).toBeUndefined()
+      expect(memPool['versionQueue'].has(transaction1.hash().toString('hex'))).toEqual(false)
+      expect(memPool['versionQueue'].has(transaction2.hash().toString('hex'))).toEqual(true)
+      expect([...memPool.orderedTransactions()]).not.toContainEqual(transaction1)
+      expect([...memPool.orderedTransactions()]).toContainEqual(transaction2)
     })
   })
 
