@@ -1,28 +1,21 @@
 {
-  "Route wallet/rename rename existing account": [
-    {
-      "version": 2,
-      "id": "b7531b48-ac9e-40db-9b95-74d0088d9fd6",
-      "name": "existingAccount",
-      "spendingKey": "c83d17e5a78407fa51136636211f2871ca28b70b0481ecb9db24ae171f6f751b",
-      "viewKey": "9c28e7ebb1ddf4203d8765186b5f55d1c72470d3fdfaab1212bce30bfad9d10c8193d0ec835095d6c6e80bfc3bc670940ecce4d6e463e5482097db3a07d92459",
-      "incomingViewKey": "4b2548afe4369f0d88dd358cf491efd7a8e918c5f795944fe3ad30492bab5703",
-      "outgoingViewKey": "76fa2c35107a241b04d1986cce47bc3b56ba228558e6ee58af5d6fe7c1ec02b0",
-      "publicAddress": "3b9568789efceb08e8d977cb7b6ad7cbde509539e59d81df284d936eaa069d82",
-      "createdAt": null
-    }
-  ],
   "Route wallet/rename renames existing account": [
     {
       "version": 2,
-      "id": "849a9316-0b0f-4e34-8e8e-ecf3a6014687",
+      "id": "30eb721f-e56b-4d10-9103-8d6c965feee4",
       "name": "existingAccount",
-      "spendingKey": "6138f2ed243b1ad8f73df2b2bbc3a096da20bc5448c36160c4505502ad0e853f",
-      "viewKey": "c019d627fc6cace0c8f62025b900a9eaf1ca3cd45e9fc9a6ab651226e05e292630f4e38aac4ac1960579626269c15fe1efdc76a2595e43cdb7fb177880cab1cc",
-      "incomingViewKey": "5c6ad3fc9a3ee1ae6395ddc721e75eac6e7c7313c7e6e0a0ffc72bbce18ab201",
-      "outgoingViewKey": "361e6b24ad3fe79adb54d338dd14ba4ee2d489f46543b59b70007b3e52343a97",
-      "publicAddress": "8a94f1851509119394b683d54ca1768443c7cb8538c74f679146ee1edbfa0344",
-      "createdAt": null
+      "spendingKey": "02abde6a81eb319d2d41efb7c1101afbb31688d89e7d936268d98a65761894f8",
+      "viewKey": "39ed8977d894a73a10caafd058eb8e5d055a7ca287c5ee11a33c8ba6e82e6242fe205f0bfecbb477eacccf1b8179bddb8056b773f628ea0dac96d30fcec61c85",
+      "incomingViewKey": "c374d3d4dfd5327e796b5ababbb00e7f9eb2ec5a926c312174219823d8256300",
+      "outgoingViewKey": "3be5ba40e5b23f382f8a7c7b8fced7e844565745de76f9294b1f4f13871f8f1f",
+      "publicAddress": "2586088c4c10601e59d94bd3e21b6d811b5b5c8cf912f365327598a21faf2169",
+      "createdAt": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:iLb6jXRaTlO9oAExjmCwTuLk7gajgJVojVgEnLbxWso="
+        },
+        "sequence": 1
+      }
     }
   ]
 }
