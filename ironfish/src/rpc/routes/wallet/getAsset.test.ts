@@ -116,7 +116,7 @@ describe('Route chain.getAsset', () => {
       metadata: asset.metadata().toString('hex'),
       name: asset.name().toString('hex'),
       nonce: asset.nonce(),
-      status: AssetStatus.UNKNOWN,
+      status: AssetStatus.PENDING,
       supply: null,
       verification: { status: 'unknown' },
     })
