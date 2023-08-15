@@ -69,7 +69,7 @@ const consensusParameters: ConsensusParameters = {
   targetBucketTimeInSeconds: 10,
   maxBlockSizeBytes: 512 * 1024,
   minFee: 1,
-  enableAssetOwnership: 9999999,
+  enableAssetOwnership: 1,
 }
 
 /**

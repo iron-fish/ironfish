@@ -68,6 +68,6 @@ export const DEVNET = `
         "targetBucketTimeInSeconds": 10,
         "maxBlockSizeBytes": 524288,
         "minFee": 0,
-        "enableAssetOwnership": 9999999
+        "enableAssetOwnership": 1
     }
 }`
