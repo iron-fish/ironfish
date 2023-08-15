@@ -407,7 +407,6 @@ describe('Accounts', () => {
     it('should not scan if wallet is not enabled', async () => {
       const { node, wallet } = nodeTest
       node.config.set('enableWallet', false)
-      wallet['isStarted'] = false
 
       await useAccountFixture(wallet, 'accountA')
 
