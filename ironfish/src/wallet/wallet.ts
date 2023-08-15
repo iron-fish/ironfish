@@ -659,7 +659,7 @@ export class Wallet {
       throw new Error('Cannot start a scan if accounts are not loaded')
     }
 
-    if (!this.isStarted) {
+    if (!this.config.get('enableWallet')) {
       this.logger.info('Skipping Scan, wallet is not started.')
       return
     }
