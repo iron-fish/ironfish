@@ -200,7 +200,7 @@ describe('Mining manager', () => {
         node,
         wallet,
         from: accountA,
-        fee: 3n,
+        fee: 20n,
         mints: [
           {
             name: 'Testcoin',
@@ -215,7 +215,7 @@ describe('Mining manager', () => {
         node,
         wallet,
         from: accountA,
-        fee: 2n,
+        fee: 15n,
         mints: [
           {
             name: 'Testcoin',
@@ -232,7 +232,7 @@ describe('Mining manager', () => {
         node,
         wallet,
         from: accountA,
-        fee: 1n,
+        fee: 5n,
         mints: [
           {
             name: 'Testcoin',
