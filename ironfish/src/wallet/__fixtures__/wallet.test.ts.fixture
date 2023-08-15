@@ -6113,5 +6113,43 @@
         "sequence": 1
       }
     }
+  ],
+  "Accounts scanTransactions should scan if wallet is not started": [
+    {
+      "version": 2,
+      "id": "b5204827-5539-436c-ab65-885205989a0f",
+      "name": "accountA",
+      "spendingKey": "467282c85b2ebd088ae86e4b5e6477d1a7239663ff9cdcb151bcb372371324e0",
+      "viewKey": "e0f2f1c9c8dbbee5d0feb823b7a801a8a518a3c0808dd5a52207eb57a858664dd3cb3f9f04b24eddda863fda42354fece4387b7c33240cb4e09b3d16a8edcc04",
+      "incomingViewKey": "17abd5ccf381774676a6cf50e1ff8f159d3bb0a8ad767968aacc63e3044fae04",
+      "outgoingViewKey": "de693c84859292bf5c09465184902d3c5e3945d75fa684bf879406b87a97c018",
+      "publicAddress": "a558556a210167e980a1b5f9f64cfbf05410915844ca23bfba6b165d3f0df739",
+      "createdAt": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:iLb6jXRaTlO9oAExjmCwTuLk7gajgJVojVgEnLbxWso="
+        },
+        "sequence": 1
+      }
+    }
+  ],
+  "Accounts scanTransactions should not scan if wallet is not enabled": [
+    {
+      "version": 2,
+      "id": "1c2f56d9-e587-42d0-99a4-bdc95c73011a",
+      "name": "accountA",
+      "spendingKey": "a233612805e807cb2dbcc9a92ee18de0f60daad43334437fa73b034398f08c2d",
+      "viewKey": "dfd3dbda6348a068fa838af8e93037b0898008173e1abaf458396588e5522ed393d4c3e3981c749329abe0a1ec0636535f4b48637547338cc1beafdb31f60f6e",
+      "incomingViewKey": "c59b824050bb15c96f1cf559206d56d69c9da8ff8c34c09f08536d7ece54ff01",
+      "outgoingViewKey": "b321c697b3acc84745fe55cd7dfd1d649f1c503fa4a5dea648bf79248e9f6221",
+      "publicAddress": "3882b78cbbc57b1ea043ade883f2d3c4790b3af84eb1f471b0a361c439c365a7",
+      "createdAt": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:iLb6jXRaTlO9oAExjmCwTuLk7gajgJVojVgEnLbxWso="
+        },
+        "sequence": 1
+      }
+    }
   ]
 }

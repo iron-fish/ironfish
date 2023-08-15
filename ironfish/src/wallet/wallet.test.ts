@@ -391,11 +391,27 @@ describe('Accounts', () => {
       expect(wallet['chainProcessor']['hash']?.equals(block2.header.hash)).toBe(true)
     })
 
-    it('should not scan if wallet is not started', async () => {
+    it('should scan if wallet is not started', async () => {
       const { wallet } = nodeTest
+      wallet['isStarted'] = false
 
       await useAccountFixture(wallet, 'accountA')
+
+      const connectSpy = jest.spyOn(wallet, 'connectBlock')
+
+      await expect(wallet.shouldRescan()).resolves.toBe(false)
+
+      await wallet.scanTransactions()
+
+      expect(connectSpy).toHaveBeenCalled()
+    })
+
+    it('should not scan if wallet is not enabled', async () => {
+      const { node, wallet } = nodeTest
+      node.config.set('enableWallet', false)
       wallet['isStarted'] = false
+
+      await useAccountFixture(wallet, 'accountA')
 
       const connectSpy = jest.spyOn(wallet, 'connectBlock')
 
@@ -404,6 +420,15 @@ describe('Accounts', () => {
       await wallet.scanTransactions()
 
       expect(connectSpy).not.toHaveBeenCalled()
+
+      // and when the wallet is enabled, the scan should happen
+
+      node.config.set('enableWallet', true)
+
+      await expect(wallet.shouldRescan()).resolves.toBe(false)
+      await wallet.scanTransactions()
+
+      expect(connectSpy).toHaveBeenCalled()
     })
 
     it('should not scan if all accounts are up to date', async () => {
