@@ -96,6 +96,8 @@ describe('Route chain.getAsset', () => {
     const minerBlock = await useMinerBlockFixture(node.chain, undefined, account)
     await expect(node.chain).toAddBlock(minerBlock)
 
+    await node.wallet.updateHead()
+
     const value = 10n
     const { asset, pendingMint } = await createPendingAsset({
       account,
