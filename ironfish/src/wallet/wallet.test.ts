@@ -318,7 +318,6 @@ describe('Accounts', () => {
     it('should update head status', async () => {
       // G -> 1 -> 2
       const { node } = nodeTest
-      node.wallet['isStarted'] = true
 
       const accountA = await useAccountFixture(node.wallet, 'accountA')
 
@@ -364,7 +363,6 @@ describe('Accounts', () => {
 
     it('should rescan and update chain processor', async () => {
       const { chain, wallet } = nodeTest
-      wallet['isStarted'] = true
 
       await useAccountFixture(wallet, 'accountA')
 
