@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Asset } from '@ironfish/rust-nodejs'
 import { Assert } from '../assert'
 import * as ConsensusUtils from '../consensus/utils'
 import { getTransactionSize } from '../network/utils/serializers'
@@ -138,6 +139,46 @@ describe('MemPool', () => {
 
   describe('orderedTransactions', () => {
     const nodeTest = createNodeTest()
+
+    it.only('returns transactions sorted by fee rate determinsitically', async () => {
+      const account = await useAccountFixture(nodeTest.wallet, 'account')
+
+      const block = await useMinerBlockFixture(
+        nodeTest.chain,
+        undefined,
+        account,
+        nodeTest.wallet,
+      )
+      await expect(nodeTest.chain).toAddBlock(block)
+      await nodeTest.wallet.updateHead()
+
+      const outputs = Array(10).fill({
+        publicAddress: account.publicAddress,
+        amount: 1n,
+        assetId: Asset.nativeId(),
+        memo: '',
+      })
+
+      const tx1 = (await nodeTest.wallet.createTransaction({ account, outputs, fee: 4n })).post(
+        account.spendingKey,
+      )
+      const tx2 = (await nodeTest.wallet.createTransaction({ account, outputs, fee: 3n })).post(
+        account.spendingKey,
+      )
+      const tx3 = (await nodeTest.wallet.createTransaction({ account, outputs, fee: 2n })).post(
+        account.spendingKey,
+      )
+      const tx4 = (await nodeTest.wallet.createTransaction({ account, outputs, fee: 1n })).post(
+        account.spendingKey,
+      )
+
+      // 1, 1, 1, 1
+      console.log(getFeeRate(tx1), getFeeRate(tx2), getFeeRate(tx3), getFeeRate(tx4))
+
+      expect(getFeeRate(tx1)).toBeGreaterThan(getFeeRate(tx2))
+      expect(getFeeRate(tx2)).toBeGreaterThan(getFeeRate(tx3))
+      expect(getFeeRate(tx3)).toBeGreaterThan(getFeeRate(tx4))
+    }, 60000)
 
     it('returns transactions from the node mempool sorted by fee rate', async () => {
       const { node } = nodeTest
