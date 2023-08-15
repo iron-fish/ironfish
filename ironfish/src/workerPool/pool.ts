@@ -8,7 +8,7 @@ import { VerificationResult, VerificationResultReason } from '../consensus'
 import { createRootLogger, Logger } from '../logger'
 import { Meter, MetricsMonitor } from '../metrics'
 import { RawTransaction } from '../primitives/rawTransaction'
-import { Transaction } from '../primitives/transaction'
+import { Transaction, TransactionVersion } from '../primitives/transaction'
 import { Metric } from '../telemetry/interfaces/metric'
 import { WorkerMessageStats } from './interfaces/workerMessageStats'
 import { Job } from './job'
@@ -121,8 +121,13 @@ export class WorkerPool {
     await Promise.all(workers.map((w) => w.stop()))
   }
 
-  async createMinersFee(spendKey: string, amount: bigint, memo: string): Promise<Transaction> {
-    const request = new CreateMinersFeeRequest(amount, memo, spendKey)
+  async createMinersFee(
+    spendKey: string,
+    amount: bigint,
+    memo: string,
+    transactionVersion: TransactionVersion,
+  ): Promise<Transaction> {
+    const request = new CreateMinersFeeRequest(amount, memo, spendKey, transactionVersion)
 
     const response = await this.execute(request).result()
 
