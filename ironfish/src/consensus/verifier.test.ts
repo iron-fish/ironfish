@@ -18,7 +18,7 @@ import { BlockHeader, Transaction } from '../primitives'
 import { transactionCommitment } from '../primitives/blockheader'
 import { MintDescription } from '../primitives/mintDescription'
 import { Target } from '../primitives/target'
-import { SerializedTransaction } from '../primitives/transaction'
+import { SerializedTransaction, TransactionVersion } from '../primitives/transaction'
 import {
   createNodeTest,
   useAccountFixture,
@@ -387,6 +387,18 @@ describe('Verifier', () => {
 
       expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
         reason: VerificationResultReason.INVALID_MINT_OWNER,
+        valid: false,
+      })
+    })
+
+    it('rejects a block with a transaction containing an invalid version', async () => {
+      const block = await useMinerBlockFixture(nodeTest.chain)
+      jest
+        .spyOn(block.transactions[0], 'version')
+        .mockImplementation(() => TransactionVersion.V2)
+
+      expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
+        reason: VerificationResultReason.INVALID_TRANSACTION_VERSION,
         valid: false,
       })
     })

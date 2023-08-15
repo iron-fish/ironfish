@@ -84,6 +84,13 @@ export class Verifier {
     let runningNotesCount = 0
     const transactionHashes = new BufferSet()
     for (const [idx, tx] of block.transactions.entries()) {
+      if (tx.version() !== TRANSACTION_VERSION) {
+        return {
+          valid: false,
+          reason: VerificationResultReason.INVALID_TRANSACTION_VERSION,
+        }
+      }
+
       if (isExpiredSequence(tx.expiration(), block.header.sequence)) {
         return {
           valid: false,
