@@ -25,9 +25,9 @@ describe('Route wallet/getAccountsStatus', () => {
         {
           name: account.name,
           id: account.id,
-          headHash: 'NULL',
-          headInChain: false,
-          sequence: 'NULL',
+          headHash: routeTest.chain.head.hash.toString('hex'),
+          headInChain: true,
+          sequence: routeTest.chain.head.sequence,
         },
       ],
     })

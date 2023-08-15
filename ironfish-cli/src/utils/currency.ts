@@ -7,7 +7,7 @@ import { Assert, CurrencyUtils, Logger, RpcClient } from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
 
 export async function promptCurrency(options: {
-  client: RpcClient
+  client: Pick<RpcClient, 'wallet'>
   text: string
   logger: Logger
   required: true
@@ -20,7 +20,7 @@ export async function promptCurrency(options: {
 }): Promise<bigint>
 
 export async function promptCurrency(options: {
-  client: RpcClient
+  client: Pick<RpcClient, 'wallet'>
   text: string
   logger: Logger
   required?: boolean

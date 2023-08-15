@@ -4,6 +4,7 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { Connection, PeerNetwork } from '../../../network'
+import { FullNode } from '../../../node'
 import { ApiNamespace, routes } from '../router'
 import { PeerResponse } from './getPeers'
 
@@ -61,8 +62,8 @@ export const GetPeerResponseSchema: yup.ObjectSchema<GetPeerResponse> = yup
 routes.register<typeof GetPeerRequestSchema, GetPeerResponse>(
   `${ApiNamespace.peer}/getPeer`,
   GetPeerRequestSchema,
-  (request, { node }): void => {
-    Assert.isNotUndefined(node)
+  (request, node): void => {
+    Assert.isInstanceOf(node, FullNode)
 
     const peerNetwork = node.peerNetwork
 

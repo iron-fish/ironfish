@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
-import { IronfishNode } from '../../../node'
+import { FullNode } from '../../../node'
 import { PromiseUtils } from '../../../utils'
 import { ApiNamespace, routes } from '../router'
 
@@ -51,8 +51,8 @@ export const GetMempoolStatusResponseSchema: yup.ObjectSchema<GetMempoolStatusRe
 routes.register<typeof GetMempoolStatusRequestSchema, GetMempoolStatusResponse>(
   `${ApiNamespace.mempool}/getStatus`,
   GetMempoolStatusRequestSchema,
-  async (request, { node }): Promise<void> => {
-    Assert.isNotUndefined(node)
+  async (request, node): Promise<void> => {
+    Assert.isInstanceOf(node, FullNode)
 
     const status = getStatus(node)
 
@@ -76,7 +76,7 @@ routes.register<typeof GetMempoolStatusRequestSchema, GetMempoolStatusResponse>(
   },
 )
 
-function getStatus(node: IronfishNode): GetMempoolStatusResponse {
+function getStatus(node: FullNode): GetMempoolStatusResponse {
   const { memPool, metrics } = node
 
   return {

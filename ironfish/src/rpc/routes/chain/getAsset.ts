@@ -4,6 +4,7 @@
 import { ASSET_ID_LENGTH } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
+import { FullNode } from '../../../node'
 import { CurrencyUtils } from '../../../utils'
 import { NotFoundError, ValidationError } from '../../adapters'
 import { ApiNamespace, routes } from '../router'
@@ -19,6 +20,7 @@ export type GetAssetResponse = {
   name: string
   nonce: number
   creator: string
+  owner: string
   supply: string
 }
 
@@ -37,6 +39,7 @@ export const GetAssetResponse: yup.ObjectSchema<GetAssetResponse> = yup
     name: yup.string().defined(),
     nonce: yup.number().defined(),
     creator: yup.string().defined(),
+    owner: yup.string().defined(),
     supply: yup.string().defined(),
   })
   .defined()
@@ -44,8 +47,8 @@ export const GetAssetResponse: yup.ObjectSchema<GetAssetResponse> = yup
 routes.register<typeof GetAssetRequestSchema, GetAssetResponse>(
   `${ApiNamespace.chain}/getAsset`,
   GetAssetRequestSchema,
-  async (request, { node }): Promise<void> => {
-    Assert.isNotUndefined(node)
+  async (request, node): Promise<void> => {
+    Assert.isInstanceOf(node, FullNode)
 
     const id = Buffer.from(request.data.id, 'hex')
 
@@ -67,6 +70,7 @@ routes.register<typeof GetAssetRequestSchema, GetAssetResponse>(
       name: asset.name.toString('hex'),
       nonce: asset.nonce,
       creator: asset.creator.toString('hex'),
+      owner: asset.owner.toString('hex'),
       supply: CurrencyUtils.encode(asset.supply),
     })
   },

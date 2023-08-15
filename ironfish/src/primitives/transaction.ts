@@ -29,8 +29,10 @@ export enum TransactionVersion {
   V2 = 2,
 }
 
-const hasMintTransferOwnershipTo = (version: TransactionVersion) => {
-  return version >= TransactionVersion.V2
+export class TransactionFeatures {
+  static hasMintTransferOwnershipTo(version: TransactionVersion): boolean {
+    return version >= TransactionVersion.V2
+  }
 }
 
 export class UnsupportedVersionError extends Error {
@@ -117,17 +119,21 @@ export class Transaction {
       const asset = Asset.deserialize(reader.readBytes(ASSET_LENGTH))
       const value = reader.readBigU64()
 
+      let owner = null
       let transferOwnershipTo = null
-      if (hasMintTransferOwnershipTo(this._version)) {
+      if (TransactionFeatures.hasMintTransferOwnershipTo(this._version)) {
+        owner = reader.readBytes(PUBLIC_ADDRESS_LENGTH)
         if (reader.readU8()) {
-          transferOwnershipTo = reader.readBytes(PUBLIC_ADDRESS_LENGTH).toString('hex')
+          transferOwnershipTo = reader.readBytes(PUBLIC_ADDRESS_LENGTH)
         }
+      } else {
+        owner = asset.creator()
       }
 
       // authorizing signature
       reader.seek(TRANSACTION_SIGNATURE_LENGTH)
 
-      return { asset, value, transferOwnershipTo }
+      return { asset, value, owner, transferOwnershipTo }
     })
 
     this.burns = Array.from({ length: _burnsLength }, () => {

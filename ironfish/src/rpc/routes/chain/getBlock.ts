@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
+import { FullNode } from '../../../node'
 import { BlockHeader } from '../../../primitives'
 import { GENESIS_BLOCK_SEQUENCE } from '../../../primitives/block'
 import { BufferUtils } from '../../../utils'
@@ -14,6 +15,7 @@ export type GetBlockRequest = {
   hash?: string
   sequence?: number
   confirmations?: number
+  serialized?: boolean
 }
 
 export type GetBlockResponse = {
@@ -32,6 +34,7 @@ export type GetBlockResponse = {
       signature: string
       notes: number
       spends: number
+      serialized?: string
     }>
   }
   metadata: {
@@ -47,6 +50,7 @@ export const GetBlockRequestSchema: yup.ObjectSchema<GetBlockRequest> = yup
     hash: yup.string(),
     sequence: yup.number(),
     confirmations: yup.number().min(0).optional(),
+    serialized: yup.boolean().optional(),
   })
   .defined()
 
@@ -71,6 +75,7 @@ export const GetBlockResponseSchema: yup.ObjectSchema<GetBlockResponse> = yup
                 signature: yup.string().defined(),
                 notes: yup.number().defined(),
                 spends: yup.number().defined(),
+                serialized: yup.string().optional(),
               })
               .defined(),
           )
@@ -89,8 +94,8 @@ export const GetBlockResponseSchema: yup.ObjectSchema<GetBlockResponse> = yup
 routes.register<typeof GetBlockRequestSchema, GetBlockResponse>(
   `${ApiNamespace.chain}/getBlock`,
   GetBlockRequestSchema,
-  async (request, { node }): Promise<void> => {
-    Assert.isNotUndefined(node)
+  async (request, node): Promise<void> => {
+    Assert.isInstanceOf(node, FullNode)
 
     let header: BlockHeader | null = null
     let error = ''
@@ -151,6 +156,7 @@ routes.register<typeof GetBlockRequestSchema, GetBlockResponse>(
         fee: fee.toString(),
         spends: tx.spends.length,
         notes: tx.notes.length,
+        ...(request.data?.serialized ? { serialized: tx.serialize().toString('hex') } : {}),
       })
     }
 

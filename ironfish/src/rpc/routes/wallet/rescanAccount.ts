@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { Assert } from '../../../assert'
 import { GENESIS_BLOCK_SEQUENCE } from '../../../primitives'
 import { ValidationError } from '../../adapters/errors'
 import { ApiNamespace, routes } from '../router'
@@ -28,9 +27,7 @@ export const RescanAccountResponseSchema: yup.ObjectSchema<RescanAccountResponse
 routes.register<typeof RescanAccountRequestSchema, RescanAccountResponse>(
   `${ApiNamespace.wallet}/rescanAccount`,
   RescanAccountRequestSchema,
-  async (request, { node }): Promise<void> => {
-    Assert.isNotUndefined(node)
-
+  async (request, node): Promise<void> => {
     let scan = node.wallet.scan
 
     if (scan && !request.data.follow) {
@@ -68,7 +65,7 @@ routes.register<typeof RescanAccountRequestSchema, RescanAccountResponse>(
       scan = node.wallet.scan
 
       if (!scan) {
-        node.wallet.logger.warn(`Attempted to start accounts scan but one did not start.`)
+        node.logger.warn(`Attempted to start accounts scan but one did not start.`)
       }
     }
 

@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
+import { FullNode } from '../../../node'
 import { BlockHeader } from '../../../primitives'
 import { ApiNamespace, routes } from '../router'
 import { RpcBlockHeader, RpcBlockHeaderSchema, serializeRpcBlockHeader } from './types'
@@ -22,8 +23,8 @@ export const OnGossipResponseSchema: yup.ObjectSchema<OnGossipResponse> = yup
 routes.register<typeof OnGossipRequestSchema, OnGossipResponse>(
   `${ApiNamespace.event}/onGossip`,
   OnGossipRequestSchema,
-  (request, { node }): void => {
-    Assert.isNotUndefined(node)
+  (request, node): void => {
+    Assert.isInstanceOf(node, FullNode)
 
     function onGossip(header: BlockHeader) {
       const serialized = serializeRpcBlockHeader(header)

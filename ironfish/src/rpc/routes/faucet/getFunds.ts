@@ -4,6 +4,7 @@
 import { AxiosError } from 'axios'
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
+import { FullNode } from '../../../node'
 import { WebApi } from '../../../webApi'
 import { ERROR_CODES, ResponseError } from '../../adapters'
 import { ApiNamespace, routes } from '../router'
@@ -28,8 +29,8 @@ export const GetFundsResponseSchema: yup.ObjectSchema<GetFundsResponse> = yup
 routes.register<typeof GetFundsRequestSchema, GetFundsResponse>(
   `${ApiNamespace.faucet}/getFunds`,
   GetFundsRequestSchema,
-  async (request, { node }): Promise<void> => {
-    Assert.isNotUndefined(node)
+  async (request, node): Promise<void> => {
+    Assert.isInstanceOf(node, FullNode)
     // check node network id
     const networkId = node.internal.get('networkId')
 

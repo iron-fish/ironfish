@@ -1,6 +1,6 @@
 {
   "name": "@ironfish/rust-nodejs-win32-x64-msvc",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "os": [
     "win32"
   ],

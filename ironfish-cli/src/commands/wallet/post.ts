@@ -95,7 +95,11 @@ export class PostCommand extends IronfishCommand {
     }
   }
 
-  async confirm(client: RpcClient, raw: RawTransaction, account?: string): Promise<boolean> {
+  async confirm(
+    client: Pick<RpcClient, 'wallet'>,
+    raw: RawTransaction,
+    account?: string,
+  ): Promise<boolean> {
     if (!account) {
       const response = await client.wallet.getDefaultAccount()
 

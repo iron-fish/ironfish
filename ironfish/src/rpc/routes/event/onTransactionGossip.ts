@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
+import { FullNode } from '../../../node'
 import { Transaction } from '../../../primitives'
 import { ApiNamespace, routes } from '../router'
 
@@ -26,8 +27,8 @@ export const OnTransactionGossipResponseSchema: yup.ObjectSchema<OnTransactionGo
 routes.register<typeof OnTransactionGossipRequestSchema, OnTransactionGossipResponse>(
   `${ApiNamespace.event}/onTransactionGossip`,
   OnTransactionGossipRequestSchema,
-  (request, { node }): void => {
-    Assert.isNotUndefined(node)
+  (request, node): void => {
+    Assert.isInstanceOf(node, FullNode)
 
     const onTransactionGossip = (transaction: Transaction) => {
       request.stream({

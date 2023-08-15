@@ -2,9 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { Assert } from '../../../assert'
-import { IronfishNode } from '../../../node'
 import { MathUtils } from '../../../utils'
+import { WorkerPool } from '../../../workerPool'
 import { WorkerMessageType } from '../../../workerPool/tasks/workerMessage'
 import { ApiNamespace, routes } from '../router'
 
@@ -66,10 +65,8 @@ export const GetWorkersStatusResponseSchema: yup.ObjectSchema<GetWorkersStatusRe
 routes.register<typeof GetWorkersStatusRequestSchema, GetWorkersStatusResponse>(
   `${ApiNamespace.worker}/getStatus`,
   GetWorkersStatusRequestSchema,
-  (request, { node }): void => {
-    Assert.isNotUndefined(node)
-
-    const jobs = getWorkersStatus(node)
+  (request, node): void => {
+    const jobs = getWorkersStatus(node.workerPool)
 
     if (!request.data?.stream) {
       request.end(jobs)
@@ -79,7 +76,7 @@ routes.register<typeof GetWorkersStatusRequestSchema, GetWorkersStatusResponse>(
     request.stream(jobs)
 
     const interval = setInterval(() => {
-      const jobs = getWorkersStatus(node)
+      const jobs = getWorkersStatus(node.workerPool)
       request.stream(jobs)
     }, 1000)
 
@@ -89,28 +86,28 @@ routes.register<typeof GetWorkersStatusRequestSchema, GetWorkersStatusResponse>(
   },
 )
 
-function getWorkersStatus(node: IronfishNode): GetWorkersStatusResponse {
+function getWorkersStatus(workerPool: WorkerPool): GetWorkersStatusResponse {
   const result: GetWorkersStatusResponse['jobs'] = []
 
-  for (const type of node.workerPool.stats.keys()) {
+  for (const type of workerPool.stats.keys()) {
     if (type === WorkerMessageType.JobAborted || type === WorkerMessageType.Sleep) {
       continue
     }
 
-    const job = node.workerPool.stats.get(type)
+    const job = workerPool.stats.get(type)
 
     if (job) {
       result.push({ name: WorkerMessageType[type], ...job })
     }
   }
   return {
-    started: node.workerPool.started,
-    workers: node.workerPool.workers.length,
-    executing: node.workerPool.executing,
-    queued: node.workerPool.queued,
-    capacity: node.workerPool.capacity,
-    change: MathUtils.round(node.workerPool.change?.rate5s ?? 0, 2),
-    speed: MathUtils.round(node.workerPool.speed?.rate5s ?? 0, 2),
+    started: workerPool.started,
+    workers: workerPool.workers.length,
+    executing: workerPool.executing,
+    queued: workerPool.queued,
+    capacity: workerPool.capacity,
+    change: MathUtils.round(workerPool.change?.rate5s ?? 0, 2),
+    speed: MathUtils.round(workerPool.speed?.rate5s ?? 0, 2),
     jobs: result,
   }
 }

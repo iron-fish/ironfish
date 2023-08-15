@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { Assert } from '../../../assert'
 import { Account } from '../../../wallet'
 import { ApiNamespace, routes } from '../router'
 
@@ -26,9 +25,7 @@ export const GetAccountsResponseSchema: yup.ObjectSchema<GetAccountsResponse> = 
 routes.register<typeof GetAccountsRequestSchema, GetAccountsResponse>(
   `${ApiNamespace.wallet}/getAccounts`,
   GetAccountsRequestSchema,
-  (request, { node }): void => {
-    Assert.isNotUndefined(node)
-
+  (request, node): void => {
     let accounts: Account[] = []
 
     if (request.data?.default) {

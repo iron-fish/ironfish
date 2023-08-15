@@ -2,14 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset, generateKey, Note as NativeNote } from '@ironfish/rust-nodejs'
-import { Witness } from '../merkletree'
-import { NoteHasher } from '../merkletree/hasher'
-import { Side } from '../merkletree/merkletree'
-import { useAccountFixture, useTxFixture } from '../testUtilities'
+import { makeFakeWitness, useAccountFixture, useTxFixture } from '../testUtilities'
 import { createNodeTest } from '../testUtilities/nodeTest'
 import { SpendingAccount } from '../wallet'
 import { Note } from './note'
 import { RawTransaction } from './rawTransaction'
+import { TransactionVersion } from './transaction'
 
 const TEST_ASSET_ID_1: Buffer = Buffer.from(
   'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaac',
@@ -26,13 +24,17 @@ type TestRawTransactionOptions = {
   withMints: boolean
   withBurns: boolean
   withOutputs: boolean
+  withTransferAssetOwnership: boolean
 }
 
 function createTestRawTransaction(
   account: SpendingAccount,
+  version: TransactionVersion,
   options: Partial<TestRawTransactionOptions>,
 ): RawTransaction {
   const raw = new RawTransaction()
+
+  raw.version = version
 
   if (options.withExpiration) {
     raw.expiration = 123
@@ -42,27 +44,17 @@ function createTestRawTransaction(
     raw.fee = 1337n
   }
 
-  const witness = new Witness(
-    0,
-    Buffer.alloc(32, 1),
-    [
-      { side: Side.Left, hashOfSibling: Buffer.alloc(32, 2) },
-      { side: Side.Right, hashOfSibling: Buffer.alloc(32, 3) },
-      { side: Side.Left, hashOfSibling: Buffer.alloc(32, 4) },
-      { side: Side.Right, hashOfSibling: Buffer.alloc(32, 5) },
-    ],
-    new NoteHasher(),
-  )
-
   const note = new Note(
     new NativeNote(
-      generateKey().publicAddress,
+      account.publicAddress,
       123456789n,
       'some memo',
       Asset.nativeId(),
-      account.publicAddress,
+      generateKey().publicAddress,
     ).serialize(),
   )
+
+  const witness = makeFakeWitness(note)
 
   raw.spends.push({ note, witness })
 
@@ -79,6 +71,21 @@ function createTestRawTransaction(
     })
   }
 
+  if (options.withTransferAssetOwnership) {
+    raw.mints.push({
+      name: 'yet another asset',
+      metadata: 'this adds zero tokens but transfer ownership',
+      value: 0n,
+      transferOwnershipTo: '62c14bfa032aa955b0f3f1dbf83c06007efb0b574f1945320276a7babf1775d7',
+    })
+    raw.mints.push({
+      name: 'additional asset',
+      metadata: 'this adds new tokens and transfers ownership at the same time',
+      value: 789n,
+      transferOwnershipTo: 'ad04d990138f5401cddba1f42850fdb668e5880f9f26d70c79820a179b319537',
+    })
+  }
+
   if (options.withBurns) {
     raw.burns.push({
       assetId: TEST_ASSET_ID_1,
@@ -91,26 +98,29 @@ function createTestRawTransaction(
 
     const burnNoteA = new Note(
       new NativeNote(
-        generateKey().publicAddress,
+        account.publicAddress,
         123456789n,
         'some memo',
         TEST_ASSET_ID_1,
-        account.publicAddress,
+        generateKey().publicAddress,
       ).serialize(),
     )
 
     const burnNoteB = new Note(
       new NativeNote(
-        generateKey().publicAddress,
+        account.publicAddress,
         123456789n,
         'some memo',
         TEST_ASSET_ID_2,
-        account.publicAddress,
+        generateKey().publicAddress,
       ).serialize(),
     )
 
-    raw.spends.push({ note: burnNoteA, witness })
-    raw.spends.push({ note: burnNoteB, witness })
+    const burnNoteAWitness = makeFakeWitness(burnNoteA)
+    const burnNoteBWitness = makeFakeWitness(burnNoteB)
+
+    raw.spends.push({ note: burnNoteA, witness: burnNoteAWitness })
+    raw.spends.push({ note: burnNoteB, witness: burnNoteBWitness })
   }
 
   if (options.withOutputs) {
@@ -191,7 +201,42 @@ describe('RawTransaction', () => {
         it(describeTestOptions(options), async () => {
           const account = await useAccountFixture(nodeTest.wallet)
 
-          const raw = createTestRawTransaction(account, options)
+          const raw = createTestRawTransaction(account, TransactionVersion.V1, options)
+          const serialized = (
+            await useTxFixture(
+              nodeTest.wallet,
+              account,
+              account,
+              () => {
+                return raw.post(account.spendingKey)
+              },
+              undefined,
+              undefined,
+              false,
+            )
+          ).serialize()
+
+          expect(raw.postedSize(account.publicAddress)).toEqual(serialized.byteLength)
+        })
+      })
+    })
+
+    describe('v2', () => {
+      const flags = [
+        'withExpiration',
+        'withFee',
+        'withMints',
+        'withBurns',
+        'withOutputs',
+        'withTransferAssetOwnership',
+      ] as const
+
+      testOptionCombinations(flags).forEach((options) => {
+        // eslint-disable-next-line jest/valid-title
+        it(describeTestOptions(options), async () => {
+          const account = await useAccountFixture(nodeTest.wallet)
+
+          const raw = createTestRawTransaction(account, TransactionVersion.V2, options)
           const serialized = (
             await useTxFixture(
               nodeTest.wallet,

@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
+import { FullNode } from '../../../node'
 import { BigIntUtils } from '../../../utils'
 import { ValidationError } from '../../adapters'
 import { ApiNamespace, routes } from '../router'
@@ -38,8 +39,8 @@ export const GetNetworkHashPowerResponseSchema: yup.ObjectSchema<GetNetworkHashP
 routes.register<typeof GetNetworkHashPowerRequestSchema, GetNetworkHashPowerResponse>(
   `${ApiNamespace.chain}/getNetworkHashPower`,
   GetNetworkHashPowerRequestSchema,
-  async (request, { node }): Promise<void> => {
-    Assert.isNotUndefined(node)
+  async (request, node): Promise<void> => {
+    Assert.isInstanceOf(node, FullNode)
 
     let blocks = request.data?.blocks ?? 120
     let sequence = request.data?.sequence ?? -1

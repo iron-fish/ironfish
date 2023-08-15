@@ -2,14 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Logger } from '../../logger'
-import { IronfishNode } from '../../node'
 import { IDatabase, IDatabaseTransaction } from '../../storage'
 import { createDB } from '../../storage/utils'
-import { Migration } from '../migration'
+import { IronfishNode } from '../../utils'
+import { Database, Migration } from '../migration'
 import { GetStores } from './028-backfill-assets-owner/stores'
 
 export class Migration028 extends Migration {
   path = __filename
+  database = Database.BLOCKCHAIN
 
   prepare(node: IronfishNode): IDatabase {
     return createDB({ location: node.config.chainDatabasePath })

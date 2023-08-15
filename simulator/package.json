@@ -46,7 +46,7 @@
     "start": "cd .. && yarn build && cd simulator && yarn start:js start",
     "stop": "yarn build && yarn start:js stop",
     "test": "yarn clean && tsc -b && tsc -b tsconfig.test.json && jest --passWithNoTests",
-    "test:coverage:html": "tsc -b tsconfig.test.json && jest --passWithNoTests --coverage --coverage-reporters html --testPathIgnorePatterns",
+    "test:coverage:html": "tsc -b tsconfig.test.json && jest --passWithNoTests --testPathIgnorePatterns --coverage --coverage-reporters html",
     "test:watch": "tsc -b tsconfig.test.json && jest --watch --coverage false",
     "postpack": "rimraf oclif.manifest.json",
     "clean": "rimraf build",
@@ -56,7 +56,7 @@
     "docs:open": "open docs/index.html"
   },
   "dependencies": {
-    "@ironfish/sdk": "1.7.1",
+    "@ironfish/sdk": "1.8.0",
     "@oclif/core": "1.23.1",
     "@oclif/plugin-help": "5.1.12",
     "@oclif/plugin-not-found": "2.3.1",

@@ -390,6 +390,21 @@ export abstract class RpcClient {
         params,
       ).waitForEnd()
     },
+
+    getNodeStatus: (
+      params: GetNodeStatusRequest = undefined,
+    ): Promise<RpcResponseEnded<GetNodeStatusResponse>> => {
+      return this.request<GetNodeStatusResponse>(
+        `${ApiNamespace.wallet}/getNodeStatus`,
+        params,
+      ).waitForEnd()
+    },
+
+    getNodeStatusStream: (): RpcResponse<void, GetNodeStatusResponse> => {
+      return this.request<void, GetNodeStatusResponse>(`${ApiNamespace.wallet}/getNodeStatus`, {
+        stream: true,
+      })
+    },
   }
 
   mempool = {

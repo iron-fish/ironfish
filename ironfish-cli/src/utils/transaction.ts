@@ -13,7 +13,7 @@ import {
 import { CliUx } from '@oclif/core'
 
 export async function watchTransaction(options: {
-  client: RpcClient
+  client: Pick<RpcClient, 'wallet'>
   hash: string
   account?: string
   confirmations?: number

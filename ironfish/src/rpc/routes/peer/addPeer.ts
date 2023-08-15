@@ -4,6 +4,7 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { DEFAULT_WEBSOCKET_PORT } from '../../../fileStores/config'
+import { FullNode } from '../../../node'
 import { ApiNamespace, routes } from '../router'
 
 export type AddPeerRequest = {
@@ -34,8 +35,8 @@ export const AddPeerResponseSchema: yup.ObjectSchema<AddPeerResponse> = yup
 routes.register<typeof AddPeerRequestSchema, AddPeerResponse>(
   `${ApiNamespace.peer}/addPeer`,
   AddPeerRequestSchema,
-  (request, { node }): void => {
-    Assert.isNotUndefined(node)
+  (request, node): void => {
+    Assert.isInstanceOf(node, FullNode)
 
     const peerManager = node.peerNetwork.peerManager
     const { host, port, whitelist } = request.data

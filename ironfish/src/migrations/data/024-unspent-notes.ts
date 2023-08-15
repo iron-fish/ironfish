@@ -3,15 +3,16 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Logger } from '../../logger'
-import { IronfishNode } from '../../node'
 import { IDatabase, IDatabaseTransaction } from '../../storage'
 import { createDB } from '../../storage/utils'
+import { IronfishNode } from '../../utils'
 import { Account } from '../../wallet'
-import { Migration } from '../migration'
+import { Database, Migration } from '../migration'
 import { GetStores } from './024-unspent-notes/stores'
 
 export class Migration024 extends Migration {
   path = __filename
+  database = Database.WALLET
 
   prepare(node: IronfishNode): IDatabase {
     return createDB({ location: node.config.walletDatabasePath })

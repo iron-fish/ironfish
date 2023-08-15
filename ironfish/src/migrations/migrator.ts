@@ -6,24 +6,27 @@
 import { LogLevel } from 'consola'
 import { Assert } from '../assert'
 import { Logger } from '../logger'
-import { IronfishNode } from '../node'
 import { IDatabaseTransaction } from '../storage/database/transaction'
+import { IronfishNode, StrEnumUtils } from '../utils'
 import { ErrorUtils } from '../utils/error'
 import { MIGRATIONS } from './data'
-import { Migration } from './migration'
+import { Database, Migration } from './migration'
 
 export class Migrator {
   readonly node: IronfishNode
   readonly logger: Logger
   readonly migrations: Migration[]
 
-  constructor(options: { node: IronfishNode; logger: Logger }) {
+  constructor(options: { node: IronfishNode; logger: Logger; databases?: Database[] }) {
     this.node = options.node
     this.logger = options.logger.withTag('migrator')
 
+    const whitelistedDBs = options?.databases ?? StrEnumUtils.getValues(Database)
     this.migrations = MIGRATIONS.map((m) => {
       return new m().init(options.node.files)
-    }).sort((a, b) => a.id - b.id)
+    })
+      .filter((migration) => whitelistedDBs.includes(migration.database))
+      .sort((a, b) => a.id - b.id)
   }
 
   /**

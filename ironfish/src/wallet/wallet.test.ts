@@ -19,22 +19,18 @@ import {
 } from '../testUtilities'
 import { AsyncUtils } from '../utils'
 import { Account, TransactionStatus, TransactionType } from '../wallet'
-import { AssetStatus, ScanState } from './wallet'
+import { AssetStatus } from './wallet'
 
 describe('Accounts', () => {
   const nodeTest = createNodeTest()
 
-  it('should reset when chain processor head does not exist in chain', async () => {
+  it('should throw an error when chain processor head does not exist in chain', async () => {
     const { node, strategy } = nodeTest
     strategy.disableMiningReward()
 
-    const resetSpy = jest.spyOn(node.wallet, 'reset').mockImplementation()
-    jest.spyOn(node.wallet, 'eventLoop').mockImplementation(() => Promise.resolve())
-
     node.wallet['chainProcessor'].hash = Buffer.from('0')
 
-    await node.wallet.start()
-    expect(resetSpy).toHaveBeenCalledTimes(1)
+    await expect(node.wallet.start()).rejects.toThrow()
   })
 
   it('should handle transaction created on fork', async () => {
@@ -259,6 +255,31 @@ describe('Accounts', () => {
     expect(await accountA.getNoteHash(forkSpendNullifier)).toBeUndefined()
   })
 
+  describe('load', () => {
+    it('should set chainProcessor hash and sequence', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA1)
+      await node.wallet.updateHead()
+
+      expect(node.wallet.chainProcessor.hash).toEqualHash(blockA1.header.hash)
+      expect(node.wallet.chainProcessor.sequence).toEqual(blockA1.header.sequence)
+
+      node.wallet['unload']()
+
+      expect(node.wallet.chainProcessor.hash).toBeNull()
+      expect(node.wallet.chainProcessor.sequence).toBeNull()
+
+      await node.wallet['load']()
+
+      expect(node.wallet.chainProcessor.hash).toEqualHash(blockA1.header.hash)
+      expect(node.wallet.chainProcessor.sequence).toEqual(blockA1.header.sequence)
+    })
+  })
+
   describe('start', () => {
     it('should reset account.createdAt if not in chain', async () => {
       const { node } = await nodeTest.createSetup()
@@ -268,17 +289,12 @@ describe('Accounts', () => {
       // set accountA's createdAt block off the chain
       await accountA.updateCreatedAt({ hash: Buffer.alloc(32), sequence: 1 })
 
-      const resetAccountSpy = jest.spyOn(node.wallet, 'resetAccount')
       jest.spyOn(node.wallet, 'scanTransactions').mockReturnValue(Promise.resolve())
       jest.spyOn(node.wallet, 'eventLoop').mockReturnValue(Promise.resolve())
 
-      // set chainProcessor sequence
-      node.wallet.chainProcessor.sequence = 1
-
       await node.wallet.start()
 
-      expect(resetAccountSpy).toHaveBeenCalledTimes(1)
-      expect(resetAccountSpy).toHaveBeenCalledWith(accountA, { resetCreatedAt: true })
+      expect(accountA.createdAt).toBeNull()
     })
 
     it('should not reset account.createdAt if its sequence is ahead of the chainProcessor', async () => {
@@ -807,6 +823,34 @@ describe('Accounts', () => {
       await node.wallet.expireTransactions(block3.header.sequence)
 
       expect(expireTransactionSpy).toHaveBeenCalledTimes(0)
+    })
+  })
+
+  describe('createAccount', () => {
+    it('should set createdAt to the chain head', async () => {
+      const node = nodeTest.node
+
+      const block2 = await useMinerBlockFixture(node.chain, 2)
+      await node.chain.addBlock(block2)
+
+      const account = await node.wallet.createAccount('test')
+
+      expect(account.createdAt?.hash).toEqualHash(block2.header.hash)
+      expect(account.createdAt?.sequence).toEqual(block2.header.sequence)
+    })
+
+    it('should set account head to the chain head', async () => {
+      const node = nodeTest.node
+
+      const block2 = await useMinerBlockFixture(node.chain, 2)
+      await node.chain.addBlock(block2)
+
+      const account = await node.wallet.createAccount('test')
+
+      const head = await account.getHead()
+
+      expect(head?.hash).toEqualHash(block2.header.hash)
+      expect(head?.sequence).toEqual(block2.header.sequence)
     })
   })
 
@@ -1395,7 +1439,12 @@ describe('Accounts', () => {
         })
 
         expect(transaction.mints).toEqual([
-          { asset: asset, value: mintValue, transferOwnershipTo: null },
+          {
+            asset: asset,
+            value: mintValue,
+            owner: asset.creator(),
+            transferOwnershipTo: null,
+          },
         ])
       })
 
@@ -1833,6 +1882,7 @@ describe('Accounts', () => {
         name: asset.name(),
         nonce: asset.nonce(),
         creator: Buffer.from(accountA.publicAddress, 'hex'),
+        owner: Buffer.from(accountA.publicAddress, 'hex'),
         sequence: mintBlock.header.sequence,
         supply: value,
       })
@@ -1844,6 +1894,7 @@ describe('Accounts', () => {
         name: asset.name(),
         nonce: asset.nonce(),
         creator: Buffer.from(accountA.publicAddress, 'hex'),
+        owner: Buffer.from(accountA.publicAddress, 'hex'),
         sequence: block.header.sequence,
         supply: null,
       })
@@ -2051,7 +2102,7 @@ describe('Accounts', () => {
       expect(transactionValue?.blockHash).toEqualHash(blockA2.header.hash)
       expect(transactionValue?.sequence).toEqual(blockA2.header.sequence)
 
-      await node.chain.db.transaction(async (tx) => {
+      await node.chain.blockchainDb.db.transaction(async (tx) => {
         await node.chain.disconnect(blockA2, tx)
       })
 
@@ -2083,7 +2134,7 @@ describe('Accounts', () => {
 
       expect(accountAHead?.hash).toEqualHash(blockA2.header.hash)
 
-      await node.chain.db.transaction(async (tx) => {
+      await node.chain.blockchainDb.db.transaction(async (tx) => {
         await node.chain.disconnect(blockA2, tx)
       })
 
@@ -2115,7 +2166,7 @@ describe('Accounts', () => {
       const balanceAfterConnect = await accountA.getUnconfirmedBalance(Asset.nativeId())
       expect(balanceAfterConnect.unconfirmed).toEqual(1999999998n)
 
-      await node.chain.db.transaction(async (tx) => {
+      await node.chain.blockchainDb.db.transaction(async (tx) => {
         await node.chain.disconnect(blockA2, tx)
       })
 
@@ -2647,31 +2698,6 @@ describe('Accounts', () => {
     })
   })
 
-  describe('load', () => {
-    it('should set chainProcessor hash and sequence', async () => {
-      const { node } = await nodeTest.createSetup()
-
-      const accountA = await useAccountFixture(node.wallet, 'a')
-
-      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
-      await expect(node.chain).toAddBlock(blockA1)
-      await node.wallet.updateHead()
-
-      expect(node.wallet.chainProcessor.hash).toEqualHash(blockA1.header.hash)
-      expect(node.wallet.chainProcessor.sequence).toEqual(blockA1.header.sequence)
-
-      node.wallet['unload']()
-
-      expect(node.wallet.chainProcessor.hash).toBeNull()
-      expect(node.wallet.chainProcessor.sequence).toBeNull()
-
-      await node.wallet['load']()
-
-      expect(node.wallet.chainProcessor.hash).toEqualHash(blockA1.header.hash)
-      expect(node.wallet.chainProcessor.sequence).toEqual(blockA1.header.sequence)
-    })
-  })
-
   describe('shouldDecryptForAccount', () => {
     it('should return true for an account with null createdAt', async () => {
       const { node } = nodeTest
@@ -2729,38 +2755,23 @@ describe('Accounts', () => {
       )
     })
 
-    it('should reset the account and createdAt if the account was created on a different chain', async () => {
+    it('should set the account createdAt if the account was created on a different chain', async () => {
       const { node } = nodeTest
 
-      let account: Account | null = await useAccountFixture(node.wallet)
+      const account = await useAccountFixture(node.wallet)
 
       // set createdAt at fake block at sequence 2
       await account.updateCreatedAt({ hash: Buffer.alloc(32), sequence: 2 })
 
       const resetAccount = jest.spyOn(node.wallet, 'resetAccount')
 
-      const scanTransactions = jest
-        .spyOn(node.wallet, 'scanTransactions')
-        .mockReturnValue(Promise.resolve())
-
-      const scan = new ScanState()
-
-      // mock scan wait to return immediately
-      jest.spyOn(scan, 'wait').mockReturnValue(Promise.resolve())
-
       const block = await useMinerBlockFixture(node.chain, 2)
 
-      await expect(
-        node.wallet.shouldDecryptForAccount(block.header, account, scan),
-      ).resolves.toBe(false)
+      await expect(node.wallet.shouldDecryptForAccount(block.header, account)).resolves.toBe(
+        false,
+      )
 
-      expect(resetAccount).toHaveBeenCalledTimes(1)
-      expect(scanTransactions).toHaveBeenCalledTimes(1)
-      expect(scan.isAborted).toBe(true)
-
-      // load account again because resetAccount creates new Account instance
-      account = node.wallet.getAccountByName(account.name)
-      Assert.isNotNull(account)
+      expect(resetAccount).not.toHaveBeenCalled()
 
       expect(account.createdAt).toBeNull()
     })

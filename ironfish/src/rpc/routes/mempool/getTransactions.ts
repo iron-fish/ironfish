@@ -4,6 +4,7 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { getFeeRate } from '../../../memPool'
+import { FullNode } from '../../../node'
 import { Transaction } from '../../../primitives'
 import { ApiNamespace, routes } from '../router'
 
@@ -58,8 +59,8 @@ export const MempoolTransactionResponseSchema: yup.ObjectSchema<GetMempoolTransa
 routes.register<typeof MempoolTransactionsRequestSchema, GetMempoolTransactionResponse>(
   `${ApiNamespace.mempool}/getTransactions`,
   MempoolTransactionsRequestSchema,
-  (request, { node }): void => {
-    Assert.isNotUndefined(node)
+  (request, node): void => {
+    Assert.isInstanceOf(node, FullNode)
 
     let position = 0
     let streamed = 0

@@ -18,7 +18,7 @@ import inquirer from 'inquirer'
 import { promptCurrency } from './currency'
 
 export async function selectFee(options: {
-  client: RpcClient
+  client: Pick<RpcClient, 'wallet'>
   transaction: CreateTransactionRequest
   account?: string
   confirmations?: number
@@ -92,7 +92,7 @@ export async function selectFee(options: {
 }
 
 async function getTxWithFee(
-  client: RpcClient,
+  client: Pick<RpcClient, 'wallet'>,
   params: CreateTransactionRequest,
   feeRate: bigint,
 ): Promise<RawTransaction | null> {

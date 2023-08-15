@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { Assert } from '../../../assert'
 import { ApiNamespace, routes } from '../router'
 import { getAccount } from './utils'
 
@@ -26,9 +25,7 @@ export const RemoveAccountResponseSchema: yup.ObjectSchema<RemoveAccountResponse
 routes.register<typeof RemoveAccountRequestSchema, RemoveAccountResponse>(
   `${ApiNamespace.wallet}/remove`,
   RemoveAccountRequestSchema,
-  async (request, { node }): Promise<void> => {
-    Assert.isNotUndefined(node)
-
+  async (request, node): Promise<void> => {
     const account = getAccount(node.wallet, request.data.account)
 
     if (!request.data.confirm) {

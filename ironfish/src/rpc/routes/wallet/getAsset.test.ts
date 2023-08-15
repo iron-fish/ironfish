@@ -4,7 +4,7 @@
 
 import '../../../testUtilities/matchers'
 import { Asset } from '@ironfish/rust-nodejs'
-import { IronfishNode } from '../../../node'
+import { FullNode } from '../../../node'
 import { Block, Transaction } from '../../../primitives'
 import {
   useAccountFixture,
@@ -26,7 +26,7 @@ describe('Route chain.getAsset', () => {
   }: {
     name: string
     value: bigint
-    node: IronfishNode
+    node: FullNode
     account: SpendingAccount
   }): Promise<{ asset: Asset; pendingMint: Transaction }> => {
     const asset = new Asset(account.publicAddress, name, 'metadata')
@@ -54,7 +54,7 @@ describe('Route chain.getAsset', () => {
   }: {
     name: string
     value: bigint
-    node: IronfishNode
+    node: FullNode
     account: SpendingAccount
   }): Promise<{ asset: Asset; mintBlock: Block }> => {
     const asset = new Asset(account.publicAddress, name, 'metadata')
@@ -111,6 +111,7 @@ describe('Route chain.getAsset', () => {
     expect(response.content).toEqual({
       createdTransactionHash: pendingMint.hash().toString('hex'),
       creator: account.publicAddress,
+      owner: account.publicAddress,
       id: asset.id().toString('hex'),
       metadata: asset.metadata().toString('hex'),
       name: asset.name().toString('hex'),
@@ -143,6 +144,7 @@ describe('Route chain.getAsset', () => {
     expect(response.content).toEqual({
       createdTransactionHash: mintBlock.transactions[1].hash().toString('hex'),
       creator: account.publicAddress,
+      owner: account.publicAddress,
       id: asset.id().toString('hex'),
       metadata: asset.metadata().toString('hex'),
       name: asset.name().toString('hex'),

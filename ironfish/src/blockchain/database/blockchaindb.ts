@@ -3,25 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../../assert'
 import { FileSystem } from '../../fileSystems'
-import { MerkleTree, NoteHasher, Witness } from '../../merkletree'
-import { LeafEncoding } from '../../merkletree/database/leaves'
-import { NodeEncoding } from '../../merkletree/database/nodes'
-import { LeavesSchema } from '../../merkletree/schema'
 import { BlockHeader } from '../../primitives'
 import { BlockHash } from '../../primitives/blockheader'
-import {
-  NoteEncrypted,
-  NoteEncryptedHash,
-  SerializedNoteEncrypted,
-  SerializedNoteEncryptedHash,
-} from '../../primitives/noteEncrypted'
 import { TransactionHash } from '../../primitives/transaction'
 import {
   BUFFER_ENCODING,
   IDatabase,
   IDatabaseStore,
   IDatabaseTransaction,
-  SchemaValue,
   StringEncoding,
   U32_ENCODING,
 } from '../../storage'
@@ -64,13 +53,6 @@ export class BlockchainDB {
   assets: IDatabaseStore<AssetSchema>
   // TransactionHash -> BlockHash
   transactionHashToBlockHash: IDatabaseStore<TransactionHashToBlockHashSchema>
-
-  notes: MerkleTree<
-    NoteEncrypted,
-    NoteEncryptedHash,
-    SerializedNoteEncrypted,
-    SerializedNoteEncryptedHash
-  >
 
   constructor(options: { location: string; files: FileSystem }) {
     this.location = options.location
@@ -128,17 +110,6 @@ export class BlockchainDB {
       name: 'tb',
       keyEncoding: BUFFER_ENCODING,
       valueEncoding: BUFFER_ENCODING,
-    })
-
-    this.notes = new MerkleTree({
-      hasher: new NoteHasher(),
-      leafIndexKeyEncoding: BUFFER_ENCODING,
-      leafEncoding: new LeafEncoding(),
-      nodeEncoding: new NodeEncoding(),
-      db: this.db,
-      name: 'n',
-      depth: 32,
-      defaultValue: Buffer.alloc(32),
     })
   }
 
@@ -354,61 +325,19 @@ export class BlockchainDB {
     return this.transactionHashToBlockHash.del(transactionHash, tx)
   }
 
-  async addNotesBatch(
-    notes: Iterable<NoteEncrypted>,
-    tx?: IDatabaseTransaction,
-  ): Promise<void> {
-    return this.notes.addBatch(notes, tx)
+  async compact(): Promise<void> {
+    return this.db.compact()
   }
 
-  async addNote(note: NoteEncrypted, tx?: IDatabaseTransaction): Promise<void> {
-    return this.notes.add(note, tx)
+  async getVersion(): Promise<number> {
+    return this.db.getVersion()
   }
 
-  async getNotesPastRoot(
-    pastSize: number,
-    tx?: IDatabaseTransaction,
-  ): Promise<NoteEncryptedHash> {
-    return this.notes.pastRoot(pastSize, tx)
+  transaction(): IDatabaseTransaction {
+    return this.db.transaction()
   }
 
-  async getNotesSize(tx?: IDatabaseTransaction): Promise<number> {
-    return this.notes.size(tx)
-  }
-
-  async getNotesRootHash(tx?: IDatabaseTransaction): Promise<Buffer> {
-    return this.notes.rootHash(tx)
-  }
-
-  async truncateNotes(pastSize: number, tx?: IDatabaseTransaction): Promise<void> {
-    return this.notes.truncate(pastSize, tx)
-  }
-
-  cachePastRootHashes(tx: IDatabaseTransaction): void {
-    return this.notes.pastRootTxCommitted(tx)
-  }
-
-  async getNoteWitness(
-    treeIndex: number,
-    size?: number,
-    tx?: IDatabaseTransaction,
-  ): Promise<Witness<
-    NoteEncrypted,
-    NoteEncryptedHash,
-    SerializedNoteEncrypted,
-    SerializedNoteEncryptedHash
-  > | null> {
-    return this.notes.witness(treeIndex, size, tx)
-  }
-
-  async getLeavesIndex(hash: Buffer, tx?: IDatabaseTransaction): Promise<number | undefined> {
-    return this.notes.leavesIndex.get(hash, tx)
-  }
-
-  async getNotesLeaf(
-    index: number,
-    tx?: IDatabaseTransaction,
-  ): Promise<SchemaValue<LeavesSchema<NoteEncryptedHash>>> {
-    return this.notes.getLeaf(index, tx)
+  async size(): Promise<number> {
+    return this.db.size()
   }
 }

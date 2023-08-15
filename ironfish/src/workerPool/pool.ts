@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import _ from 'lodash'
+import os from 'os'
 import { VerificationResult, VerificationResultReason } from '../consensus'
 import { createRootLogger, Logger } from '../logger'
 import { Meter, MetricsMonitor } from '../metrics'
@@ -280,4 +281,21 @@ export class WorkerPool {
         break
     }
   }
+}
+
+/**
+ * Calculates the number of workers to use based on machine's number of cpus
+ */
+export function calculateWorkers(nodeWorkers: number, nodeWorkersMax: number): number {
+  let workers = nodeWorkers
+  if (workers === -1) {
+    workers = os.cpus().length - 1
+
+    const maxWorkers = nodeWorkersMax
+    if (maxWorkers !== -1) {
+      workers = Math.min(workers, maxWorkers)
+    }
+  }
+
+  return workers
 }

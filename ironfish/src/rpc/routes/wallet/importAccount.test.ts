@@ -14,6 +14,12 @@ import { ImportResponse } from './importAccount'
 describe('Route wallet/importAccount', () => {
   const routeTest = createRouteTest(true)
 
+  beforeAll(() => {
+    jest
+      .spyOn(routeTest.node.wallet, 'scanTransactions')
+      .mockImplementation(async () => Promise.resolve())
+  })
+
   it('should import a view only account that has no spending key', async () => {
     const key = generateKey()
 

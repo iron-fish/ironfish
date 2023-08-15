@@ -7,7 +7,7 @@
 import { Asset } from '@ironfish/rust-nodejs'
 import _ from 'lodash'
 import { Assert } from '../assert'
-import { IronfishNode } from '../node'
+import { FullNode } from '../node'
 import { Block } from '../primitives'
 import {
   createNodeTest,
@@ -22,7 +22,7 @@ describe('Blockchain', () => {
   const nodeTest = createNodeTest()
   const blocksA = new Array<Block>()
   const blocksB = new Array<Block>()
-  const nodeArrays = new Array<IronfishNode>()
+  const nodeArrays = new Array<FullNode>()
   const testCount = 5
 
   beforeAll(async () => {

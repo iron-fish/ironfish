@@ -22,6 +22,7 @@ export type RpcMint = {
   name: string
   creator: string
   value: string
+  transferOwnershipTo?: string
 }
 
 export const RpcMintSchema: yup.ObjectSchema<RpcMint> = yup
@@ -31,6 +32,7 @@ export const RpcMintSchema: yup.ObjectSchema<RpcMint> = yup
     name: yup.string().defined(),
     creator: yup.string().defined(),
     value: yup.string().defined(),
+    transferOwnershipTo: yup.string().optional(),
   })
   .defined()
 

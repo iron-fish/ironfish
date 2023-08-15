@@ -23,6 +23,7 @@ describe('Route chain.getAsset', () => {
     expect(response.content.metadata).toBe(asset.metadata.toString('hex'))
     expect(response.content.nonce).toBe(asset.nonce)
     expect(response.content.creator).toBe(asset.creator.toString('hex'))
+    expect(response.content.owner).toBe(asset.owner.toString('hex'))
     expect(response.content.supply).toBe(CurrencyUtils.encode(asset.supply))
     expect(response.content.createdTransactionHash).toBe(
       asset.createdTransactionHash.toString('hex'),

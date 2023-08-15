@@ -78,7 +78,7 @@ export default class Snapshot extends IronfishCommand {
     await NodeUtils.waitForOpen(node)
 
     CliUx.ux.action.start(`Compacting chain database`)
-    await node.chain.db.compact()
+    await node.chain.blockchainDb.compact()
     CliUx.ux.action.stop()
 
     const chainDatabasePath = this.sdk.fileSystem.resolve(this.sdk.config.chainDatabasePath)
@@ -140,7 +140,7 @@ export default class Snapshot extends IronfishCommand {
         file_name: snapshotKeyName,
         file_size: fileSize,
         timestamp,
-        database_version: await node.chain.db.getVersion(),
+        database_version: await node.chain.blockchainDb.getVersion(),
       }
 
       await fsAsync

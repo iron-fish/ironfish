@@ -17,6 +17,7 @@ import { Migration025 } from './025-backfill-wallet-nullifier-to-transaction-has
 import { Migration026 } from './026-timestamp-to-transactions'
 import { Migration027 } from './027-account-created-at-block'
 import { Migration028 } from './028-backfill-assets-owner'
+import { Migration029 } from './029-backfill-assets-owner-wallet'
 
 export const MIGRATIONS = [
   Migration014,
@@ -34,4 +35,5 @@ export const MIGRATIONS = [
   Migration026,
   Migration027,
   Migration028,
+  Migration029,
 ]
