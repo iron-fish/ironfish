@@ -113,7 +113,7 @@ export default class Start extends IronfishCommand {
     enableWallet: Flags.boolean({
       allowNo: true,
       default: false,
-      description: 'Enable the wallet from syncing with the blockchain and decrypting notes.',
+      description: `Enable the node's wallet to scan transactions and decrypt notes from the blockchain`,
     }),
   }
 
