@@ -332,7 +332,7 @@ impl ProposedTransaction {
             &output_descriptions,
             &unsigned_mints,
             &burn_descriptions,
-        );
+        )?;
 
         // Create and verify binding signature keys
         let (binding_signature_private_key, binding_signature_public_key) =
@@ -380,51 +380,43 @@ impl ProposedTransaction {
         outputs: &[OutputDescription],
         mints: &[UnsignedMintDescription],
         burns: &[BurnDescription],
-    ) -> [u8; 32] {
+    ) -> Result<[u8; 32], IronfishError> {
         let mut hasher = Blake2b::new()
             .hash_length(32)
             .personal(SIGNATURE_HASH_PERSONALIZATION)
             .to_state();
 
         hasher.update(TRANSACTION_SIGNATURE_VERSION);
-        self.version.write(&mut hasher).unwrap();
-        hasher.write_u32::<LittleEndian>(self.expiration).unwrap();
-        hasher
-            .write_i64::<LittleEndian>(*self.value_balances.fee())
-            .unwrap();
+        self.version.write(&mut hasher)?;
+        hasher.write_u32::<LittleEndian>(self.expiration)?;
+        hasher.write_i64::<LittleEndian>(*self.value_balances.fee())?;
 
         let randomized_public_key =
             redjubjub::PublicKey(self.spender_key.view_key.authorizing_key.into())
                 .randomize(self.public_key_randomness, *SPENDING_KEY_GENERATOR);
 
-        hasher
-            .write_all(&randomized_public_key.0.to_bytes())
-            .unwrap();
+        hasher.write_all(&randomized_public_key.0.to_bytes())?;
 
         for spend in spends {
-            spend
-                .description
-                .serialize_signature_fields(&mut hasher)
-                .unwrap();
+            spend.description.serialize_signature_fields(&mut hasher)?;
         }
 
         for output in outputs {
-            output.serialize_signature_fields(&mut hasher).unwrap();
+            output.serialize_signature_fields(&mut hasher)?;
         }
 
         for mint in mints {
             mint.description
-                .serialize_signature_fields(&mut hasher, self.version)
-                .unwrap();
+                .serialize_signature_fields(&mut hasher, self.version)?;
         }
 
         for burn in burns {
-            burn.serialize_signature_fields(&mut hasher).unwrap();
+            burn.serialize_signature_fields(&mut hasher)?;
         }
 
         let mut hash_result = [0; 32];
         hash_result[..].clone_from_slice(hasher.finalize().as_ref());
-        hash_result
+        Ok(hash_result)
     }
 
     /// The binding signature ties up all the randomness generated with the
@@ -685,39 +677,36 @@ impl Transaction {
     /// Calculate a hash of the transaction data. This hash was signed by the
     /// private keys when the transaction was constructed, and will now be
     /// reconstructed to verify the signature.
-    pub fn transaction_signature_hash(&self) -> [u8; 32] {
+    pub fn transaction_signature_hash(&self) -> Result<[u8; 32], IronfishError> {
         let mut hasher = Blake2b::new()
             .hash_length(32)
             .personal(SIGNATURE_HASH_PERSONALIZATION)
             .to_state();
         hasher.update(TRANSACTION_SIGNATURE_VERSION);
-        self.version.write(&mut hasher).unwrap();
-        hasher.write_u32::<LittleEndian>(self.expiration).unwrap();
-        hasher.write_i64::<LittleEndian>(self.fee).unwrap();
-        hasher
-            .write_all(&self.randomized_public_key.0.to_bytes())
-            .unwrap();
+        self.version.write(&mut hasher)?;
+        hasher.write_u32::<LittleEndian>(self.expiration)?;
+        hasher.write_i64::<LittleEndian>(self.fee)?;
+        hasher.write_all(&self.randomized_public_key.0.to_bytes())?;
 
         for spend in self.spends.iter() {
-            spend.serialize_signature_fields(&mut hasher).unwrap();
+            spend.serialize_signature_fields(&mut hasher)?;
         }
 
         for output in self.outputs.iter() {
-            output.serialize_signature_fields(&mut hasher).unwrap();
+            output.serialize_signature_fields(&mut hasher)?;
         }
 
         for mint in self.mints.iter() {
-            mint.serialize_signature_fields(&mut hasher, self.version)
-                .unwrap();
+            mint.serialize_signature_fields(&mut hasher, self.version)?;
         }
 
         for burn in self.burns.iter() {
-            burn.serialize_signature_fields(&mut hasher).unwrap();
+            burn.serialize_signature_fields(&mut hasher)?;
         }
 
         let mut hash_result = [0; 32];
         hash_result[..].clone_from_slice(hasher.finalize().as_ref());
-        hash_result
+        Ok(hash_result)
     }
 
     /// Confirm that this transaction was signed by the values it contains.
@@ -731,7 +720,7 @@ impl Transaction {
 
         let mut data_to_verify_signature = [0; 64];
         data_to_verify_signature[..32].copy_from_slice(&value_balance.to_bytes());
-        data_to_verify_signature[32..].copy_from_slice(&self.transaction_signature_hash());
+        data_to_verify_signature[32..].copy_from_slice(&self.transaction_signature_hash()?);
 
         if !redjubjub::PublicKey(value_balance).verify(
             &data_to_verify_signature,
@@ -818,7 +807,7 @@ fn internal_batch_verify_transactions<'a>(
         // guarantee they are part of this transaction, unmodified.
         let mut binding_verification_key = ExtendedPoint::identity();
 
-        let hash_to_verify_signature = transaction.transaction_signature_hash();
+        let hash_to_verify_signature = transaction.transaction_signature_hash()?;
 
         for spend in transaction.spends.iter() {
             spend.partial_verify()?;
