@@ -104,6 +104,9 @@ export type GetNodeStatusResponse = {
       sequence: number
     }
   }
+  wallet: {
+    enabled: boolean
+  }
 }
 
 export const GetStatusRequestSchema: yup.ObjectSchema<GetNodeStatusRequest> = yup
@@ -238,6 +241,11 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetNodeStatusResponse> = 
           .optional(),
       })
       .defined(),
+    wallet: yup
+      .object({
+        enabled: yup.boolean().defined(),
+      })
+      .defined(),
   })
   .defined()
 
@@ -367,6 +375,9 @@ async function getStatus(node: FullNode): Promise<GetNodeStatusResponse> {
         hash: node.wallet.chainProcessor.hash?.toString('hex') ?? '',
         sequence: node.wallet.chainProcessor.sequence ?? -1,
       },
+    },
+    wallet: {
+      enabled: node.wallet.enabled,
     },
   }
 

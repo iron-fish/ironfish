@@ -191,6 +191,7 @@ function renderStatus(content: GetNodeStatusResponse, debugOutput: boolean): str
       accountStatus += ` - ${content.accounts.scanning.sequence} / ${content.accounts.scanning.endSequence}`
     }
   }
+  const walletEnabled: boolean = content.wallet.enabled
 
   const cores = `Cores: ${content.cpu.cores}`
   const current = `Current: ${content.cpu.percentCurrent.toFixed(1)}%`
@@ -202,6 +203,7 @@ function renderStatus(content: GetNodeStatusResponse, debugOutput: boolean): str
   return `\
 Version              ${content.node.version} @ ${content.node.git}
 Node                 ${nodeStatus}
+Wallet               ${walletEnabled ? 'ENABLED' : 'DISABLED'}  
 Node Name            ${content.node.nodeName}
 Peer ID              ${content.peerNetwork.publicIdentity}
 Block Graffiti       ${blockGraffiti}

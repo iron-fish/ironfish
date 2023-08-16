@@ -432,8 +432,10 @@ export class FullNode {
       }
       case 'enableWallet': {
         if (newValue) {
+          this.wallet.enabled = true
           await this.wallet.start()
         } else {
+          this.wallet.enabled = false
           await this.wallet.stop()
         }
         break
