@@ -110,6 +110,11 @@ export default class Start extends IronfishCommand {
       description:
         'Path to a JSON file containing the network definition of a custom network to connect to',
     }),
+    enableWallet: Flags.boolean({
+      allowNo: true,
+      default: false,
+      description: 'Enable the wallet from syncing with the blockchain and decrypting notes.',
+    }),
   }
 
   node: IronfishNode | null = null
@@ -140,6 +145,7 @@ export default class Start extends IronfishCommand {
       upgrade,
       networkId,
       customNetwork,
+      enableWallet,
     } = flags
 
     if (bootstrap !== undefined) {
@@ -200,6 +206,9 @@ export default class Start extends IronfishCommand {
     if (!this.sdk.internal.get('telemetryNodeId')) {
       this.sdk.internal.set('telemetryNodeId', uuid())
       await this.sdk.internal.save()
+    }
+    if (enableWallet !== undefined && enableWallet !== this.sdk.config.get('enableWallet')) {
+      this.sdk.config.setOverride('enableWallet', enableWallet)
     }
 
     const privateIdentity = this.getPrivateIdentity()
