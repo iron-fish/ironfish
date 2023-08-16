@@ -355,7 +355,10 @@ export class FullNode {
       this.metrics.start()
     }
 
-    await this.wallet.start()
+    if (this.config.get('enableWallet')) {
+      await this.wallet.start()
+    }
+
     this.peerNetwork.start()
 
     if (this.config.get('enableRpc')) {
@@ -424,6 +427,14 @@ export class FullNode {
           this.metrics.start()
         } else {
           this.metrics.stop()
+        }
+        break
+      }
+      case 'enableWallet': {
+        if (newValue) {
+          await this.wallet.start()
+        } else {
+          await this.wallet.stop()
         }
         break
       }
