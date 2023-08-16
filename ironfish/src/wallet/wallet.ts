@@ -74,7 +74,6 @@ export class Wallet {
 
   scan: ScanState | null = null
   updateHeadState: ScanState | null = null
-  enabled: boolean
 
   protected readonly accounts = new Map<string, Account>()
   readonly walletDb: WalletDB
@@ -122,7 +121,6 @@ export class Wallet {
     this.rebroadcastAfter = rebroadcastAfter ?? 10
     this.createTransactionMutex = new Mutex()
     this.eventLoopAbortController = new AbortController()
-    this.enabled = config.get('enableWallet')
 
     this.chainProcessor = new RemoteChainProcessor({
       logger: this.logger,
@@ -150,6 +148,10 @@ export class Wallet {
 
       await this.disconnectBlock(header, transactions)
     })
+  }
+
+  isEnabled(): boolean {
+    return this.config.get('enableWallet')
   }
 
   async updateHead(): Promise<void> {
