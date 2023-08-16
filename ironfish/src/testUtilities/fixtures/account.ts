@@ -7,12 +7,13 @@ import { FixtureGenerate, useFixture } from './fixture'
 export function useAccountFixture(
   wallet: Wallet,
   generate: FixtureGenerate<SpendingAccount> | string = 'test',
+  options?: { setCreatedAt?: boolean; setDefault?: boolean },
 ): Promise<SpendingAccount> {
   if (typeof generate === 'string') {
     const name = generate
 
     generate = async (): Promise<SpendingAccount> => {
-      const account = await wallet.createAccount(name)
+      const account = await wallet.createAccount(name, options)
       AssertSpending(account)
       return account
     }

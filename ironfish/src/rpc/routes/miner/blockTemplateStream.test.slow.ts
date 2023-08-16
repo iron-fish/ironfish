@@ -18,7 +18,7 @@ describe('Block template stream', () => {
   it('creates a new block to be mined when chain head changes', async () => {
     const node = routeTest.node
     const { chain, miningManager } = routeTest.node
-    const account = await node.wallet.createAccount('testAccount', true)
+    const account = await node.wallet.createAccount('testAccount', { setDefault: true })
 
     routeTest.node.config.set('miningForce', true)
 

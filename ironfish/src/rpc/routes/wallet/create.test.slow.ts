@@ -19,7 +19,7 @@ describe('Route wallet/create', () => {
   })
 
   it('should create an account', async () => {
-    await routeTest.node.wallet.createAccount('existingAccount', true)
+    await routeTest.node.wallet.createAccount('existingAccount', { setDefault: true })
 
     const name = uuid()
 
@@ -74,7 +74,7 @@ describe('Route wallet/create', () => {
       .spyOn(routeTest.node.wallet, 'scanTransactions')
       .mockReturnValue(Promise.resolve())
 
-    await routeTest.node.wallet.createAccount('existingAccount', true)
+    await routeTest.node.wallet.createAccount('existingAccount', { setDefault: true })
 
     const name = uuid()
 
