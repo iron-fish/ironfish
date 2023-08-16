@@ -16,7 +16,7 @@ describe('Route faucet.getFunds', () => {
 
   beforeEach(async () => {
     accountName = 'test' + Math.random().toString()
-    const account = await routeTest.node.wallet.createAccount(accountName, true)
+    const account = await routeTest.node.wallet.createAccount(accountName, { setDefault: true })
     publicAddress = account.publicAddress
     routeTest.node.internal.set('networkId', 0)
   })

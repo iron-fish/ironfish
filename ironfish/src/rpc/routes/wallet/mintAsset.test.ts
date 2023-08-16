@@ -10,7 +10,7 @@ describe('Route wallet/mintAsset', () => {
   const routeTest = createRouteTest(true)
 
   beforeAll(async () => {
-    await routeTest.node.wallet.createAccount('account', true)
+    await routeTest.node.wallet.createAccount('account', { setDefault: true })
   })
 
   describe('with an invalid fee', () => {

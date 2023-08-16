@@ -1323,7 +1323,13 @@ export class Wallet {
     return TransactionType.RECEIVE
   }
 
-  async createAccount(name: string, setDefault = false): Promise<Account> {
+  async createAccount(
+    name: string,
+    options: { setCreatedAt?: boolean; setDefault?: boolean } = {
+      setCreatedAt: true,
+      setDefault: false,
+    },
+  ): Promise<Account> {
     if (this.getAccountByName(name)) {
       throw new Error(`Account already exists with the name ${name}`)
     }
@@ -1331,8 +1337,12 @@ export class Wallet {
     const key = generateKey()
 
     let createdAt: HeadValue | null = null
-    if (this.nodeClient) {
-      createdAt = await this.getChainHead()
+    if (options.setCreatedAt && this.nodeClient) {
+      try {
+        createdAt = await this.getChainHead()
+      } catch {
+        this.logger.warn('Failed to fetch chain head from node client')
+      }
     }
 
     const account = new Account({
@@ -1361,7 +1371,7 @@ export class Wallet {
 
     this.accounts.set(account.id, account)
 
-    if (setDefault) {
+    if (options.setDefault) {
       await this.setDefaultAccount(account.name)
     }
 

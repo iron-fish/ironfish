@@ -682,7 +682,9 @@ describe('Accounts', () => {
       const { node: nodeA } = await nodeTest.createSetup()
       const { node: nodeB } = await nodeTest.createSetup()
 
-      const accountA = await useAccountFixture(nodeA.wallet, 'accountA')
+      const accountA = await useAccountFixture(nodeA.wallet, 'accountA', {
+        setCreatedAt: false,
+      })
       expect(accountA.createdAt).toBe(null)
 
       // create blocks and add them to both chains
@@ -711,7 +713,9 @@ describe('Accounts', () => {
       const { node: nodeA } = await nodeTest.createSetup()
       const { node: nodeB } = await nodeTest.createSetup()
 
-      const accountA = await useAccountFixture(nodeA.wallet, 'accountA')
+      const accountA = await useAccountFixture(nodeA.wallet, 'accountA', {
+        setCreatedAt: false,
+      })
       expect(accountA.createdAt).toBe(null)
 
       // create blocks but only add them to one chain
@@ -1985,7 +1989,7 @@ describe('Accounts', () => {
     it('should set null account.createdAt for the first on-chain transaction of an account', async () => {
       const { node } = await nodeTest.createSetup()
 
-      const accountA = await useAccountFixture(node.wallet, 'accountA')
+      const accountA = await useAccountFixture(node.wallet, 'accountA', { setCreatedAt: false })
 
       expect(accountA.createdAt).toBeNull()
 
@@ -2000,8 +2004,8 @@ describe('Accounts', () => {
     it('should not set account.createdAt if the account has no transaction on the block', async () => {
       const { node } = await nodeTest.createSetup()
 
-      const accountA = await useAccountFixture(node.wallet, 'accountA')
-      const accountB = await useAccountFixture(node.wallet, 'accountB')
+      const accountA = await useAccountFixture(node.wallet, 'accountA', { setCreatedAt: false })
+      const accountB = await useAccountFixture(node.wallet, 'accountB', { setCreatedAt: false })
 
       expect(accountA.createdAt).toBeNull()
       expect(accountB.createdAt).toBeNull()
@@ -2016,7 +2020,7 @@ describe('Accounts', () => {
     it('should not set account.createdAt if it is not null', async () => {
       const { node } = await nodeTest.createSetup()
 
-      const accountA = await useAccountFixture(node.wallet, 'accountA')
+      const accountA = await useAccountFixture(node.wallet, 'accountA', { setCreatedAt: false })
 
       expect(accountA.createdAt).toBeNull()
 

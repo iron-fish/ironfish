@@ -45,7 +45,7 @@ describe('Route wallet/sendTransaction', () => {
   const routeTest = createRouteTest(true)
 
   beforeAll(async () => {
-    await routeTest.node.wallet.createAccount('existingAccount', true)
+    await routeTest.node.wallet.createAccount('existingAccount', { setDefault: true })
   })
 
   it('throws if account does not exist', async () => {
