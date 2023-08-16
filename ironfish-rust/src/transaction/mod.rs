@@ -814,12 +814,6 @@ fn internal_batch_verify_transactions<'a>(
     let mut mint_public_inputs = vec![];
 
     for transaction in transactions {
-        // Currently only support version 1 transactions, the version
-        // field is here for future updates
-        if transaction.version != TRANSACTION_VERSION {
-            return Err(IronfishError::InvalidTransactionVersion);
-        }
-
         // Context to accumulate a signature of all the spends and outputs and
         // guarantee they are part of this transaction, unmodified.
         let mut binding_verification_key = ExtendedPoint::identity();
