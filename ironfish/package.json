@@ -24,6 +24,7 @@
     "@fast-csv/format": "4.3.5",
     "@ironfish/rust-nodejs": "1.7.0",
     "@napi-rs/blake-hash": "1.3.3",
+    "@oclif/plugin-plugins": "3.2.6",
     "axios": "0.21.4",
     "bech32": "2.0.0",
     "blru": "0.1.6",
