@@ -377,7 +377,7 @@ async function getStatus(node: FullNode): Promise<GetNodeStatusResponse> {
       },
     },
     wallet: {
-      enabled: node.wallet.isEnabled(),
+      enabled: node.config.get('enableWallet'),
     },
   }
 

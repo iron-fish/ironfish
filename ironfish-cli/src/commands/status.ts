@@ -191,7 +191,12 @@ function renderStatus(content: GetNodeStatusResponse, debugOutput: boolean): str
       accountStatus += ` - ${content.accounts.scanning.sequence} / ${content.accounts.scanning.endSequence}`
     }
   }
+
   const walletEnabled: boolean = content.wallet.enabled
+
+  if (!walletEnabled) {
+    accountStatus += ` (DISABLED)`
+  }
 
   const cores = `Cores: ${content.cpu.cores}`
   const current = `Current: ${content.cpu.percentCurrent.toFixed(1)}%`

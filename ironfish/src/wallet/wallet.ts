@@ -150,10 +150,6 @@ export class Wallet {
     })
   }
 
-  isEnabled(): boolean {
-    return this.config.get('enableWallet')
-  }
-
   async updateHead(): Promise<void> {
     if (this.scan || this.updateHeadState || this.accounts.size === 0) {
       return
