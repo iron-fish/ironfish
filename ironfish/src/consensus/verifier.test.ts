@@ -391,15 +391,65 @@ describe('Verifier', () => {
       })
     })
 
-    it('rejects a block with a transaction containing an invalid version', async () => {
-      const block = await useMinerBlockFixture(nodeTest.chain)
-      jest
-        .spyOn(block.transactions[0], 'version')
-        .mockImplementation(() => TransactionVersion.V2)
+    describe('rejects a block with a transaction containing an invalid version', () => {
+      it('while transaction v1 is active', async () => {
+        const { chain, verifier } = await nodeTest.createSetup()
+        // Enable asset ownership to generate a v2 transaction
+        chain.consensus.parameters.enableAssetOwnership = 1
 
-      expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
-        reason: VerificationResultReason.INVALID_TRANSACTION_VERSION,
-        valid: false,
+        const block = await useMinerBlockFixture(chain)
+        expect(block.transactions[0].version()).toEqual(TransactionVersion.V2)
+
+        // Deactivate asset ownership so the blockchain expects v1 transactions
+        chain.consensus.parameters.enableAssetOwnership = Number.MAX_SAFE_INTEGER
+
+        expect(await verifier.verifyBlock(block)).toMatchObject({
+          reason: VerificationResultReason.INVALID_TRANSACTION_VERSION,
+          valid: false,
+        })
+      })
+
+      it('while v2 is active', async () => {
+        const { chain, verifier } = await nodeTest.createSetup()
+        // Deactivate asset ownership to generate a v1 transaction
+        chain.consensus.parameters.enableAssetOwnership = Number.MAX_SAFE_INTEGER
+
+        const block = await useMinerBlockFixture(chain)
+        expect(block.transactions[0].version()).toEqual(TransactionVersion.V1)
+
+        // Enable asset ownership to so the blockchain expects v2 transactions
+        chain.consensus.parameters.enableAssetOwnership = 1
+
+        expect(await verifier.verifyBlock(block)).toMatchObject({
+          reason: VerificationResultReason.INVALID_TRANSACTION_VERSION,
+          valid: false,
+        })
+      })
+    })
+
+    describe('accepts a block with a transaction containing a valid version', () => {
+      it('while transaction v1 is active', async () => {
+        const { chain, verifier } = await nodeTest.createSetup()
+        chain.consensus.parameters.enableAssetOwnership = 999999
+
+        const block = await useMinerBlockFixture(chain)
+        expect(block.transactions[0].version()).toEqual(TransactionVersion.V1)
+
+        expect(await verifier.verifyBlock(block)).toMatchObject({
+          valid: true,
+        })
+      })
+
+      it('while transaction v2 is active', async () => {
+        const { chain, verifier } = await nodeTest.createSetup()
+        chain.consensus.parameters.enableAssetOwnership = 1
+
+        const block = await useMinerBlockFixture(chain)
+        expect(block.transactions[0].version()).toEqual(TransactionVersion.V2)
+
+        expect(await verifier.verifyBlock(block)).toMatchObject({
+          valid: true,
+        })
       })
     })
 
