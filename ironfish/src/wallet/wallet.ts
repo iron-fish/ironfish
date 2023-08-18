@@ -30,6 +30,7 @@ import {
   PromiseResolve,
   PromiseUtils,
   SetTimeoutToken,
+  TransactionUtils,
 } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { DecryptedNote, DecryptNoteOptions } from '../workerPool/tasks/decryptNotes'
@@ -924,10 +925,11 @@ export class Wallet {
         throw new Error('Your account must finish scanning before sending a transaction.')
       }
 
-      // TODO(IFL-1527): This should select the transaction based on some amount
-      // ahead of the head, instead of just 1
+      const transactionVersionDelta = TransactionUtils.versionSequenceDelta(
+        expirationDelta ?? heaviestHead.sequence - expiration,
+      )
       const transactionVersion = this.consensus.getActiveTransactionVersion(
-        heaviestHead.sequence + 1,
+        heaviestHead.sequence + transactionVersionDelta,
       )
       const raw = new RawTransaction(transactionVersion)
       raw.expiration = expiration
