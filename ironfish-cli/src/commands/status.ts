@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import {
+  Assert,
   defaultNetworkName,
   FileUtils,
   GetNodeStatusResponse,
   PromiseUtils,
   TimeUtils,
 } from '@ironfish/sdk'
-import { Assert } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import blessed from 'blessed'
 import { IronfishCommand } from '../command'
@@ -208,7 +208,6 @@ function renderStatus(content: GetNodeStatusResponse, debugOutput: boolean): str
   return `\
 Version              ${content.node.version} @ ${content.node.git}
 Node                 ${nodeStatus}
-Wallet               ${walletEnabled ? 'ENABLED' : 'DISABLED'}  
 Node Name            ${content.node.nodeName}
 Peer ID              ${content.peerNetwork.publicIdentity}
 Block Graffiti       ${blockGraffiti}
