@@ -193,7 +193,7 @@ function renderStatus(content: GetNodeStatusResponse, debugOutput: boolean): str
   }
 
   if (!content.accounts.enabled) {
-    accountStatus += accountStatus.length === 0 ? `(DISABLED)` : ` (DISABLED)`
+    accountStatus += accountStatus.length === 0 ? `DISABLED` : ` (DISABLED)`
   }
 
   const cores = `Cores: ${content.cpu.cores}`
