@@ -192,9 +192,7 @@ function renderStatus(content: GetNodeStatusResponse, debugOutput: boolean): str
     }
   }
 
-  const walletEnabled: boolean = content.wallet.enabled
-
-  if (!walletEnabled) {
+  if (!content.accounts.enabled) {
     accountStatus += ` (DISABLED)`
   }
 
