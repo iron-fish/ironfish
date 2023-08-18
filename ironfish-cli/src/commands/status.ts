@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import {
+  Assert,
   defaultNetworkName,
   FileUtils,
   GetNodeStatusResponse,
   PromiseUtils,
   TimeUtils,
 } from '@ironfish/sdk'
-import { Assert } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import blessed from 'blessed'
 import { IronfishCommand } from '../command'
@@ -190,6 +190,10 @@ function renderStatus(content: GetNodeStatusResponse, debugOutput: boolean): str
     if (content.accounts.scanning.sequence !== -1) {
       accountStatus += ` - ${content.accounts.scanning.sequence} / ${content.accounts.scanning.endSequence}`
     }
+  }
+
+  if (!content.accounts.enabled) {
+    accountStatus += ` (DISABLED)`
   }
 
   const cores = `Cores: ${content.cpu.cores}`
