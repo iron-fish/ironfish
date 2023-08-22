@@ -157,6 +157,7 @@ routes.register<typeof GetBlockRequestSchema, GetBlockResponse>(
           id: burn.assetId.toString('hex'),
           value: burn.value.toString(),
         })),
+        signature: tx.transactionSignature().toString('hex'),
         ...(request.data?.serialized ? { serialized: tx.serialize().toString('hex') } : {}),
       })
     }
