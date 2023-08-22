@@ -9,8 +9,8 @@ import { createRouteTest } from '../../../testUtilities/routeTest'
 import { encodeAccount } from '../../../wallet/account/encoder/account'
 import { Bech32JsonEncoder } from '../../../wallet/account/encoder/bech32json'
 import { AccountFormat } from '../../../wallet/account/encoder/encoder'
+import { RpcClient } from '../../clients'
 import { ImportResponse } from './importAccount'
-import { RpcClient } from '../..'
 
 describe('Route wallet/importAccount', () => {
   const routeTest = createRouteTest(true)
