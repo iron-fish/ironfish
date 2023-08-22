@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset, generateKeyFromPrivateKey, Note, Transaction } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
+import { TransactionVersion } from '../../primitives/transaction'
 import { BigIntUtils } from '../../utils'
 import { WorkerMessage, WorkerMessageType } from './workerMessage'
 import { WorkerTask } from './workerTask'
@@ -11,18 +12,27 @@ export class CreateMinersFeeRequest extends WorkerMessage {
   readonly amount: bigint
   readonly memo: string
   readonly spendKey: string
+  readonly transactionVersion: TransactionVersion
 
-  constructor(amount: bigint, memo: string, spendKey: string, jobId?: number) {
+  constructor(
+    amount: bigint,
+    memo: string,
+    spendKey: string,
+    transactionVersion: TransactionVersion,
+    jobId?: number,
+  ) {
     super(WorkerMessageType.CreateMinersFee, jobId)
     this.amount = amount
     this.memo = memo
     this.spendKey = spendKey
+    this.transactionVersion = transactionVersion
   }
 
   serializePayload(bw: bufio.StaticWriter | bufio.BufferWriter): void {
     bw.writeVarBytes(BigIntUtils.toBytesBE(this.amount))
     bw.writeVarString(this.memo, 'utf8')
     bw.writeVarString(this.spendKey, 'utf8')
+    bw.writeU8(this.transactionVersion)
   }
 
   static deserializePayload(jobId: number, buffer: Buffer): CreateMinersFeeRequest {
@@ -30,14 +40,16 @@ export class CreateMinersFeeRequest extends WorkerMessage {
     const amount = BigIntUtils.fromBytesBE(reader.readVarBytes())
     const memo = reader.readVarString('utf8')
     const spendKey = reader.readVarString('utf8')
-    return new CreateMinersFeeRequest(amount, memo, spendKey, jobId)
+    const transactionVersion = reader.readU8()
+    return new CreateMinersFeeRequest(amount, memo, spendKey, transactionVersion, jobId)
   }
 
   getSize(): number {
     return (
       bufio.sizeVarBytes(BigIntUtils.toBytesBE(this.amount)) +
       bufio.sizeVarString(this.memo, 'utf8') +
-      bufio.sizeVarString(this.spendKey, 'utf8')
+      bufio.sizeVarString(this.spendKey, 'utf8') +
+      1 // transactionVersion
     )
   }
 }
@@ -73,7 +85,13 @@ export class CreateMinersFeeTask extends WorkerTask {
     return CreateMinersFeeTask.instance
   }
 
-  execute({ amount, memo, spendKey, jobId }: CreateMinersFeeRequest): CreateMinersFeeResponse {
+  execute({
+    amount,
+    memo,
+    spendKey,
+    transactionVersion,
+    jobId,
+  }: CreateMinersFeeRequest): CreateMinersFeeResponse {
     // Generate a public address from the miner's spending key
     const minerPublicAddress = generateKeyFromPrivateKey(spendKey).publicAddress
     const minerNote = new Note(
@@ -84,7 +102,7 @@ export class CreateMinersFeeTask extends WorkerTask {
       minerPublicAddress,
     )
 
-    const transaction = new Transaction(spendKey)
+    const transaction = new Transaction(spendKey, transactionVersion)
     transaction.output(minerNote)
 
     const serializedTransactionPosted = transaction.post_miners_fee()

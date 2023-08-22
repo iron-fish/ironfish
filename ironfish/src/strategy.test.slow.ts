@@ -18,6 +18,7 @@ import { NoteHasher } from './merkletree/hasher'
 import { Transaction } from './primitives'
 import { Note } from './primitives/note'
 import { NoteEncrypted, NoteEncryptedHash } from './primitives/noteEncrypted'
+import { TransactionVersion } from './primitives/transaction'
 import { BUFFER_ENCODING, IDatabase } from './storage'
 import { Strategy } from './strategy'
 import { makeDb, makeDbName } from './testUtilities/helpers/storage'
@@ -244,6 +245,27 @@ describe('Demonstrate the Sapling API', () => {
       expect(decryptedNote['note']).toBeNull()
       expect(decryptedNote.value()).toBe(2000000000n)
       expect(decryptedNote['note']).toBeNull()
+    })
+
+    it('Creates transactions with the correct version based on the sequence', async () => {
+      const key = generateKey()
+      const strategy = new Strategy({
+        workerPool,
+        consensus: new TestnetConsensus(consensusParameters),
+      })
+      const minersFee1 = await strategy.createMinersFee(
+        0n,
+        consensusParameters.enableAssetOwnership - 1,
+        key.spendingKey,
+      )
+      expect(minersFee1.version()).toEqual(TransactionVersion.V1)
+
+      const minersFee2 = await strategy.createMinersFee(
+        0n,
+        consensusParameters.enableAssetOwnership,
+        key.spendingKey,
+      )
+      expect(minersFee2.version()).toEqual(TransactionVersion.V2)
     })
   })
 
