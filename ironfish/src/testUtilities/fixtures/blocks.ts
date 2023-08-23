@@ -10,7 +10,7 @@ import { BurnDescription } from '../../primitives/burnDescription'
 import { Note } from '../../primitives/note'
 import { NoteEncrypted } from '../../primitives/noteEncrypted'
 import { MintData, RawTransaction } from '../../primitives/rawTransaction'
-import { Transaction } from '../../primitives/transaction'
+import { Transaction, TransactionVersion } from '../../primitives/transaction'
 import { Account, Wallet } from '../../wallet'
 import { WorkerPool } from '../../workerPool/pool'
 import { useAccountFixture } from './account'
@@ -169,7 +169,7 @@ export async function useBlockWithRawTxFixture(
       }),
     )
 
-    const raw = new RawTransaction()
+    const raw = new RawTransaction(TransactionVersion.V1)
     raw.expiration = 0
     raw.mints = mints
     raw.burns = burns

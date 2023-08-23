@@ -6,6 +6,7 @@ import { BufferMap, BufferSet } from 'buffer-map'
 import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
 import { VerificationResultReason } from '../consensus'
+import { TransactionVersion } from '../primitives/transaction'
 import {
   createNodeTest,
   useAccountFixture,
@@ -1144,6 +1145,27 @@ describe('Accounts', () => {
 
       const reorgVerification = await nodeA.chain.verifier.verifyTransactionAdd(transaction)
       expect(reorgVerification.valid).toBe(true)
+    })
+
+    it('should create transactions with the correct version', async () => {
+      const { chain, wallet } = nodeTest
+      chain.consensus.parameters.enableAssetOwnership = 4
+
+      const account = await useAccountFixture(wallet)
+
+      const block = await useMinerBlockFixture(chain, undefined, account, wallet)
+      await expect(chain).toAddBlock(block)
+      await wallet.updateHead()
+
+      expect(chain.head.sequence).toEqual(2)
+
+      const raw1 = await wallet.createTransaction({ account, fee: 0n })
+      expect(raw1.version).toEqual(TransactionVersion.V1)
+
+      chain.consensus.parameters.enableAssetOwnership = 3
+
+      const raw2 = await wallet.createTransaction({ account, fee: 0n })
+      expect(raw2.version).toEqual(TransactionVersion.V2)
     })
   })
 
