@@ -332,12 +332,17 @@ export class Wallet {
       this.isSyncingTransactionGossip = true
 
       for await (const content of response.contentStream()) {
+        const transaction = new Transaction(Buffer.from(content.serializedTransaction, 'hex'))
+
         // Start dropping trasactions if we have too many to process
         if (response.bufferSize() > this.config.get('walletGossipTransactionsMaxQueueSize')) {
+          const hash = transaction.hash().toString('hex')
+          this.logger.info(
+            `Too many gossiped transactions to process. Dropping transaction ${hash}`,
+          )
           continue
         }
 
-        const transaction = new Transaction(Buffer.from(content.serializedTransaction, 'hex'))
         await this.addPendingTransaction(transaction)
       }
     } catch (e: unknown) {
