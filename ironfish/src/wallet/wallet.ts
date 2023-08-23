@@ -332,6 +332,10 @@ export class Wallet {
       this.isSyncingTransactionGossip = true
 
       for await (const content of response.contentStream()) {
+        if (!content.valid) {
+          continue
+        }
+
         const transaction = new Transaction(Buffer.from(content.serializedTransaction, 'hex'))
         await this.addPendingTransaction(transaction)
       }

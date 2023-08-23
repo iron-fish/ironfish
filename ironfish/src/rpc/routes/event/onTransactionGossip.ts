@@ -12,6 +12,7 @@ export type OnTransactionGossipRequest = {} | undefined
 
 export type OnTransactionGossipResponse = {
   serializedTransaction: string
+  valid: boolean
 }
 
 export const OnTransactionGossipRequestSchema: yup.ObjectSchema<OnTransactionGossipRequest> =
@@ -21,6 +22,7 @@ export const OnTransactionGossipResponseSchema: yup.ObjectSchema<OnTransactionGo
   yup
     .object({
       serializedTransaction: yup.string().defined(),
+      valid: yup.boolean().defined(),
     })
     .defined()
 
@@ -30,9 +32,10 @@ routes.register<typeof OnTransactionGossipRequestSchema, OnTransactionGossipResp
   (request, node): void => {
     Assert.isInstanceOf(node, FullNode)
 
-    const onTransactionGossip = (transaction: Transaction) => {
+    const onTransactionGossip = (transaction: Transaction, valid: boolean) => {
       request.stream({
         serializedTransaction: transaction.serialize().toString('hex'),
+        valid,
       })
     }
 
