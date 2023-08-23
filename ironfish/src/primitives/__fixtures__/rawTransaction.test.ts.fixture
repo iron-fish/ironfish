@@ -256,5 +256,24 @@
         "sequence": 1
       }
     }
+  ],
+  "RawTransactionSerde throws an error if a v2 field is provided on a v1 transaction": [
+    {
+      "version": 2,
+      "id": "667008cf-703b-4467-b003-f00af1213cb9",
+      "name": "test",
+      "spendingKey": "19ec38c5c0559a7a7abae8bfeb78245cca50b8832df73f884b384a38ad4cf11d",
+      "viewKey": "e62f82e18afd440953cb1d2176de53e80ed3c4db6e6fece9a3f52d1bd00b72d5ee6b542913b3fb5546cb93bad95923c3e9ea0b01509be0f692e48de4cf238c49",
+      "incomingViewKey": "097cad1217ea94d7249b452c281dcc29564402c4c9e3f7fa0222d270a5f45004",
+      "outgoingViewKey": "125d14d8574f812fe85bee2b63779e8c42c144c91e0d0be62c006e7a02da0c32",
+      "publicAddress": "85eced881cc667afb81e9a1f03bab4d226fcd4077d7e7d4eec140b5d568edaec",
+      "createdAt": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:iLb6jXRaTlO9oAExjmCwTuLk7gajgJVojVgEnLbxWso="
+        },
+        "sequence": 1
+      }
+    }
   ]
 }

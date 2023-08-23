@@ -181,6 +181,24 @@ describe('RawTransaction', () => {
 describe('RawTransactionSerde', () => {
   const nodeTest = createNodeTest()
 
+  it('throws an error if a v2 field is provided on a v1 transaction', async () => {
+    const account = await useAccountFixture(nodeTest.wallet)
+
+    const raw = new RawTransaction(TransactionVersion.V1)
+    raw.mints = [
+      {
+        name: 'asset',
+        metadata: 'metadata',
+        value: 5n,
+        transferOwnershipTo: account.publicAddress,
+      },
+    ]
+
+    expect(() => RawTransactionSerde.serialize(raw)).toThrow(
+      'Expected transferOwnershipTo to be undefined',
+    )
+  })
+
   it('serializes and deserializes a v1 transaction', async () => {
     const account = await useAccountFixture(nodeTest.wallet)
     const asset = new Asset(account.publicAddress, 'asset', 'metadata')

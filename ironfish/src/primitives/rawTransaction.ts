@@ -16,6 +16,7 @@ import {
 } from '@ironfish/rust-nodejs'
 import { Asset, ASSET_ID_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
+import { Assert } from '../assert'
 import { Witness } from '../merkletree'
 import { NoteHasher } from '../merkletree/hasher'
 import { Side } from '../merkletree/merkletree'
@@ -209,6 +210,11 @@ export class RawTransactionSerde {
         } else {
           bw.writeU8(0)
         }
+      } else {
+        Assert.isUndefined(
+          mint.transferOwnershipTo,
+          'Expected transferOwnershipTo to be undefined',
+        )
       }
     }
 
