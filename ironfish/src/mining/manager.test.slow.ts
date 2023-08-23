@@ -306,7 +306,7 @@ describe('Mining manager', () => {
           },
         ],
       })
-      jest.spyOn(mintTx1, 'version').mockImplementation(() => TransactionVersion.V2)
+      jest.spyOn(mintTx1, 'version').mockImplementation(() => TransactionVersion.V1)
 
       const mintTx2 = await usePostTxFixture({
         node,
