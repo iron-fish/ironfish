@@ -26,7 +26,6 @@ pub use {
     note::Note,
     transaction::{
         outputs::OutputDescription, spends::SpendDescription, ProposedTransaction, Transaction,
-        TRANSACTION_VERSION,
     },
 };
 

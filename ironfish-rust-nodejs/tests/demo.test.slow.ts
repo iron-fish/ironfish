@@ -58,7 +58,7 @@ describe('Demonstrate the Sapling API', () => {
   it(`Should create a miner's fee transaction`, () => {
     const key = generateKey()
 
-    const transaction = new Transaction(key.spendingKey)
+    const transaction = new Transaction(key.spendingKey, 2)
     const note = new Note(key.publicAddress, 20n, 'test', Asset.nativeId(), key.publicAddress)
     transaction.output(note)
 
@@ -95,13 +95,13 @@ describe('Demonstrate the Sapling API', () => {
     const key = generateKey()
     const recipientKey = generateKey()
 
-    const minersFeeTransaction = new Transaction(key.spendingKey)
+    const minersFeeTransaction = new Transaction(key.spendingKey, 2)
     const minersFeeNote = new Note(key.publicAddress, 20n, 'miner', Asset.nativeId(), key.publicAddress)
     minersFeeTransaction.output(minersFeeNote)
 
     const postedMinersFeeTransaction = new TransactionPosted(minersFeeTransaction.post_miners_fee())
 
-    const transaction = new Transaction(key.spendingKey)
+    const transaction = new Transaction(key.spendingKey, 2)
     transaction.setExpiration(10)
     const encryptedNote = new NoteEncrypted(postedMinersFeeTransaction.getNote(0))
     const decryptedNote = Note.deserialize(encryptedNote.decryptNoteForOwner(key.incomingViewKey)!)

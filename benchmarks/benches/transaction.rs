@@ -3,7 +3,7 @@ use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
 use ironfish::{
     assets::{asset::Asset, asset_identifier::NATIVE_ASSET},
     test_util::make_fake_witness,
-    transaction::{batch_verify_transactions, verify_transaction},
+    transaction::{batch_verify_transactions, verify_transaction, TransactionVersion},
     Note, ProposedTransaction, SaplingKey, Transaction,
 };
 
@@ -24,7 +24,7 @@ pub fn simple(c: &mut Criterion) {
             },
             // Benchmark
             |(key, spend_note, witness, out_note)| {
-                let mut proposed = ProposedTransaction::new(key);
+                let mut proposed = ProposedTransaction::new(key, TransactionVersion::V2);
 
                 proposed.add_spend(spend_note, &witness).unwrap();
                 proposed.add_output(out_note).unwrap();
@@ -60,7 +60,7 @@ pub fn all_descriptions(c: &mut Criterion) {
             |(key, spend_note, witness, out_note, asset)| {
                 let asset_value = 10;
 
-                let mut proposed = ProposedTransaction::new(key);
+                let mut proposed = ProposedTransaction::new(key, TransactionVersion::V2);
 
                 proposed.add_spend(spend_note, &witness).unwrap();
                 proposed.add_output(out_note).unwrap();
@@ -92,7 +92,7 @@ pub fn verify(c: &mut Criterion) {
 
                 let out_note = Note::new(public_address, 41, "", NATIVE_ASSET, public_address);
 
-                let mut proposed = ProposedTransaction::new(key);
+                let mut proposed = ProposedTransaction::new(key, TransactionVersion::V2);
 
                 proposed.add_spend(spend_note, &witness).unwrap();
                 proposed.add_output(out_note).unwrap();
@@ -127,7 +127,7 @@ pub fn batch_verify(c: &mut Criterion) {
 
                     let out_note = Note::new(public_address, 41, "", NATIVE_ASSET, public_address);
 
-                    let mut proposed = ProposedTransaction::new(key);
+                    let mut proposed = ProposedTransaction::new(key, TransactionVersion::V2);
 
                     proposed.add_spend(spend_note, &witness).unwrap();
                     proposed.add_output(out_note).unwrap();
