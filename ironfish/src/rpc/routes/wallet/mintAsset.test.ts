@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
-import { useAccountFixture, useTxFixture } from '../../../testUtilities'
+import { useAccountFixture, useMinerBlockFixture, useTxFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { CurrencyUtils } from '../../../utils'
 
@@ -50,6 +50,10 @@ describe('Route wallet/mintAsset', () => {
       const node = routeTest.node
       const wallet = node.wallet
       const account = await useAccountFixture(wallet)
+
+      const block = await useMinerBlockFixture(routeTest.chain, undefined, account, node.wallet)
+      await expect(node.chain).toAddBlock(block)
+      await node.wallet.updateHead()
 
       const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
       const mintData = {

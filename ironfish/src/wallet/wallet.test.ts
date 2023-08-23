@@ -390,26 +390,14 @@ describe('Accounts', () => {
       expect(wallet['chainProcessor']['hash']?.equals(block2.header.hash)).toBe(true)
     })
 
-    it('should scan if wallet is not started', async () => {
-      const { wallet } = nodeTest
-      wallet['isStarted'] = false
+    it('should not scan if wallet is disabled', async () => {
+      const { wallet, chain } = await nodeTest.createSetup({ config: { enableWallet: false } })
+      await useAccountFixture(wallet)
 
-      await useAccountFixture(wallet, 'accountA')
+      const block1 = await useMinerBlockFixture(chain)
+      await expect(chain).toAddBlock(block1)
 
-      const connectSpy = jest.spyOn(wallet, 'connectBlock')
-
-      await expect(wallet.shouldRescan()).resolves.toBe(false)
-
-      await wallet.scanTransactions()
-
-      expect(connectSpy).toHaveBeenCalled()
-    })
-
-    it('should not scan if wallet is not enabled', async () => {
-      const { node, wallet } = nodeTest
-      node.config.set('enableWallet', false)
-
-      await useAccountFixture(wallet, 'accountA')
+      expect(wallet['chainProcessor']['hash']).toBeNull()
 
       const connectSpy = jest.spyOn(wallet, 'connectBlock')
 
@@ -418,15 +406,6 @@ describe('Accounts', () => {
       await wallet.scanTransactions()
 
       expect(connectSpy).not.toHaveBeenCalled()
-
-      // and when the wallet is enabled, the scan should happen
-
-      node.config.set('enableWallet', true)
-
-      await expect(wallet.shouldRescan()).resolves.toBe(false)
-      await wallet.scanTransactions()
-
-      expect(connectSpy).toHaveBeenCalled()
     })
 
     it('should not scan if all accounts are up to date', async () => {

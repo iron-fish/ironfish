@@ -110,6 +110,11 @@ export default class Start extends IronfishCommand {
       description:
         'Path to a JSON file containing the network definition of a custom network to connect to',
     }),
+    wallet: Flags.boolean({
+      allowNo: true,
+      default: true,
+      description: `Enable the node's wallet to scan transactions and decrypt notes from the blockchain`,
+    }),
   }
 
   node: IronfishNode | null = null
@@ -140,6 +145,7 @@ export default class Start extends IronfishCommand {
       upgrade,
       networkId,
       customNetwork,
+      wallet,
     } = flags
 
     if (bootstrap !== undefined) {
@@ -168,6 +174,9 @@ export default class Start extends IronfishCommand {
     }
     if (forceMining !== undefined && forceMining !== this.sdk.config.get('miningForce')) {
       this.sdk.config.setOverride('miningForce', forceMining)
+    }
+    if (wallet !== undefined && wallet !== this.sdk.config.get('enableWallet')) {
+      this.sdk.config.setOverride('enableWallet', wallet)
     }
     if (
       logPeerMessages !== undefined &&

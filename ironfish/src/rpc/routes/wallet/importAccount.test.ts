@@ -9,6 +9,7 @@ import { createRouteTest } from '../../../testUtilities/routeTest'
 import { encodeAccount } from '../../../wallet/account/encoder/account'
 import { Bech32JsonEncoder } from '../../../wallet/account/encoder/bech32json'
 import { AccountFormat } from '../../../wallet/account/encoder/encoder'
+import { RpcClient } from '../../clients'
 import { ImportResponse } from './importAccount'
 
 describe('Route wallet/importAccount', () => {
@@ -71,6 +72,53 @@ describe('Route wallet/importAccount', () => {
     expect(response.content).toMatchObject({
       name: accountName,
       isDefaultAccount: false, // This is false because the default account is already imported in a previous test
+    })
+  })
+
+  describe('import rescanning', () => {
+    let nodeClient: RpcClient | null = null
+
+    beforeAll(() => {
+      nodeClient = routeTest.node.wallet.nodeClient
+    })
+
+    afterEach(() => {
+      // restore nodeClient to original value
+      Object.defineProperty(routeTest.node.wallet, 'nodeClient', { value: nodeClient })
+    })
+
+    it('should not skip rescan if nodeClient is null', async () => {
+      const key = generateKey()
+
+      // set nodeClient to null
+      Object.defineProperty(routeTest.node.wallet, 'nodeClient', { value: null })
+
+      const skipRescanSpy = jest.spyOn(routeTest.node.wallet, 'skipRescan')
+
+      const accountName = 'baz'
+      const response = await routeTest.client
+        .request<ImportResponse>('wallet/importAccount', {
+          account: {
+            name: accountName,
+            viewKey: key.viewKey,
+            spendingKey: key.spendingKey,
+            publicAddress: key.publicAddress,
+            incomingViewKey: key.incomingViewKey,
+            outgoingViewKey: key.outgoingViewKey,
+            version: 1,
+            createdAt: null,
+          },
+          // set rescan to true so that skipRescan should not be called
+          rescan: true,
+        })
+        .waitForEnd()
+
+      expect(response.status).toBe(200)
+      expect(response.content).toMatchObject({
+        name: accountName,
+      })
+
+      expect(skipRescanSpy).not.toHaveBeenCalled()
     })
   })
 
