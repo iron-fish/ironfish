@@ -16,6 +16,7 @@ import { Witness } from '../merkletree/witness'
 import { Mutex } from '../mutex'
 import { GENESIS_BLOCK_SEQUENCE } from '../primitives'
 import { BurnDescription } from '../primitives/burnDescription'
+import { MintDescription } from '../primitives/mintDescription'
 import { Note } from '../primitives/note'
 import { NoteEncrypted } from '../primitives/noteEncrypted'
 import { MintData, RawTransaction } from '../primitives/rawTransaction'
@@ -567,35 +568,86 @@ export class Wallet {
   private async upsertAssetsFromDecryptedNotes(
     account: Account,
     decryptedNotes: DecryptedNote[],
-    blockHeader?: WalletBlockHeader,
+    blockHeader: WalletBlockHeader,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     for (const { serializedNote } of decryptedNotes) {
       const note = new Note(serializedNote)
-      const asset = await this.walletDb.getAsset(account, note.assetId(), tx)
+      const asset = await this.getOrBackfillAsset(account, note.assetId(), false, tx)
+      Assert.isNotNull(asset, 'Asset must be non-null in the chain')
+      await account.updateAssetWithBlockHeader(asset, blockHeader, tx)
+    }
+  }
 
-      if (!asset) {
-        const chainAsset = await this.getChainAsset(note.assetId())
-        Assert.isNotNull(chainAsset, 'Asset must be non-null in the chain')
-        await account.saveAssetFromChain(
-          chainAsset.createdTransactionHash,
-          chainAsset.id,
-          chainAsset.metadata,
-          chainAsset.name,
-          chainAsset.nonce,
-          chainAsset.creator,
-          chainAsset.owner,
-          blockHeader,
-          tx,
-        )
-      } else if (blockHeader) {
-        await account.updateAssetWithBlockHeader(
-          asset,
-          { hash: blockHeader.hash, sequence: blockHeader.sequence },
-          tx,
-        )
+  /**
+   * Ensures that the wallet db contains information about the assets involved
+   * in the given notes and mints.
+   *
+   * This method checks that each asset is in the wallet db and, if it cannot
+   * be found, then the information is copied from the chain db into the wallet
+   * db.
+   */
+  private async backfillAssets(
+    account: Account,
+    decryptedNotes: DecryptedNote[],
+    mints: MintDescription[],
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    const backfilled = new BufferSet()
+    for (const { serializedNote } of decryptedNotes) {
+      const note = new Note(serializedNote)
+      const assetId = note.assetId()
+      if (!backfilled.has(assetId)) {
+        await this.getOrBackfillAsset(account, assetId, false, tx)
+        backfilled.add(assetId)
       }
     }
+    for (const { asset } of mints) {
+      const assetId = asset.id()
+      if (!backfilled.has(assetId)) {
+        await this.getOrBackfillAsset(account, assetId, true, tx)
+        backfilled.add(assetId)
+      }
+    }
+  }
+
+  private async getOrBackfillAsset(
+    account: Account,
+    assetId: Buffer,
+    onlyIfOwned: boolean,
+    tx?: IDatabaseTransaction,
+  ): Promise<AssetValue | null> {
+    const asset = await this.walletDb.getAsset(account, assetId, tx)
+
+    // If the asset is not known to the wallet db, backfill it from the chain db.
+    if (!asset) {
+      const chainAsset = await this.getChainAsset(assetId)
+      if (!chainAsset) {
+        return null
+      }
+      if (onlyIfOwned && chainAsset.owner.toString('hex') !== account.publicAddress) {
+        return null
+      }
+      await account.saveAssetFromChain(
+        chainAsset.createdTransactionHash,
+        chainAsset.id,
+        chainAsset.metadata,
+        chainAsset.name,
+        chainAsset.nonce,
+        chainAsset.creator,
+        chainAsset.owner,
+        undefined,
+        tx,
+      )
+      return {
+        blockHash: null,
+        sequence: null,
+        supply: null,
+        ...chainAsset,
+      }
+    }
+
+    return asset
   }
 
   async disconnectBlock(
@@ -666,8 +718,8 @@ export class Wallet {
     for (const account of accounts) {
       const decryptedNotes = decryptedNotesByAccountId.get(account.id) ?? []
 
+      await this.backfillAssets(account, decryptedNotes, transaction.mints)
       await account.addPendingTransaction(transaction, decryptedNotes, head.sequence)
-      await this.upsertAssetsFromDecryptedNotes(account, decryptedNotes)
     }
   }
 
