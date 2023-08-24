@@ -337,6 +337,16 @@ export class Wallet {
         }
 
         const transaction = new Transaction(Buffer.from(content.serializedTransaction, 'hex'))
+
+        // Start dropping trasactions if we have too many to process
+        if (response.bufferSize() > this.config.get('walletGossipTransactionsMaxQueueSize')) {
+          const hash = transaction.hash().toString('hex')
+          this.logger.info(
+            `Too many gossiped transactions to process. Dropping transaction ${hash}`,
+          )
+          continue
+        }
+
         await this.addPendingTransaction(transaction)
       }
     } catch (e: unknown) {
