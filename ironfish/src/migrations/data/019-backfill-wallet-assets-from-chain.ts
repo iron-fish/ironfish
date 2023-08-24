@@ -76,6 +76,9 @@ export class Migration019 extends Migration {
             chainAsset.name,
             chainAsset.nonce,
             chainAsset.creator,
+            // this migration was created before asset ownership, therefore
+            // owner and creator are the same in the context of this migration
+            chainAsset.creator,
             { hash, sequence },
             tx,
           )

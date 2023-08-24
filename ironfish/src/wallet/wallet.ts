@@ -568,6 +568,7 @@ export class Wallet {
           chainAsset.name,
           chainAsset.nonce,
           chainAsset.creator,
+          chainAsset.owner,
           blockHeader,
           tx,
         )
@@ -1660,6 +1661,7 @@ export class Wallet {
   private async getChainAsset(id: Buffer): Promise<{
     createdTransactionHash: Buffer
     creator: Buffer
+    owner: Buffer
     id: Buffer
     metadata: Buffer
     name: Buffer
@@ -1671,6 +1673,7 @@ export class Wallet {
       return {
         createdTransactionHash: Buffer.from(response.content.createdTransactionHash, 'hex'),
         creator: Buffer.from(response.content.creator, 'hex'),
+        owner: Buffer.from(response.content.owner, 'hex'),
         id: Buffer.from(response.content.id, 'hex'),
         metadata: Buffer.from(response.content.metadata, 'hex'),
         name: Buffer.from(response.content.name, 'hex'),
