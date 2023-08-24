@@ -19,6 +19,7 @@ import { Migrator } from './migrations'
 import { Database } from './migrations/migration'
 import { getNetworkDefinition } from './networkDefinition'
 import { Package } from './package'
+import { BlockHeaderSerde } from './primitives/blockheader'
 import { RpcSocketClient } from './rpc'
 import { RpcServer } from './rpc/server'
 import { Strategy } from './strategy'
@@ -203,6 +204,7 @@ export class WalletNode {
   }
 
   async start(): Promise<void> {
+    this.logger.info('Starting wallet node...')
     this.shutdownPromise = new Promise((r) => (this.shutdownResolve = r))
     this.started = true
 
@@ -223,6 +225,30 @@ export class WalletNode {
     }
 
     await this.connectRpc(true)
+    await this.verifyGenesisBlockHash()
+  }
+
+  async verifyGenesisBlockHash(): Promise<void> {
+    const networkDefinition = await getNetworkDefinition(this.config, this.internal, this.files)
+
+    Assert.isNotNull(this.nodeClient)
+
+    const response = await this.nodeClient.chain.getChainInfo()
+
+    const nodeGenesisHash = Buffer.from(response.content.genesisBlockIdentifier.hash, 'hex')
+    const walletGenesisHeader = BlockHeaderSerde.deserialize(networkDefinition.genesis.header)
+
+    if (walletGenesisHeader.hash.equals(nodeGenesisHash)) {
+      this.logger.info('Verified genesis block hash')
+    } else {
+      throw new Error(
+        `Cannot sync from this node because the node's genesis block hash ${nodeGenesisHash.toString(
+          'hex',
+        )} does not match the wallet's genesis block hash ${walletGenesisHeader.hash.toString(
+          'hex',
+        )}`,
+      )
+    }
   }
 
   async connectRpc(startWallet?: boolean): Promise<void> {
