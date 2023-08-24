@@ -5,6 +5,7 @@ import { Asset, ASSET_ID_LENGTH, generateKey } from '@ironfish/rust-nodejs'
 import { BufferMap, BufferSet } from 'buffer-map'
 import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
+import { Blockchain } from '../blockchain'
 import { VerificationResultReason } from '../consensus'
 import { TransactionVersion } from '../primitives/transaction'
 import {
@@ -20,7 +21,7 @@ import {
 } from '../testUtilities'
 import { AsyncUtils } from '../utils'
 import { Account, TransactionStatus, TransactionType } from '../wallet'
-import { AssetStatus } from './wallet'
+import { AssetStatus, Wallet } from './wallet'
 
 describe('Accounts', () => {
   const nodeTest = createNodeTest()
@@ -1147,25 +1148,60 @@ describe('Accounts', () => {
       expect(reorgVerification.valid).toBe(true)
     })
 
-    it('should create transactions with the correct version', async () => {
-      const { chain, wallet } = nodeTest
-      chain.consensus.parameters.enableAssetOwnership = 4
+    describe('should create transactions with the correct version', () => {
+      const preservedNodeTest = createNodeTest(true)
+      let chain: Blockchain
+      let wallet: Wallet
+      let account: Account
 
-      const account = await useAccountFixture(wallet)
+      const testPermutations = [
+        { delta: 50, expectedVersion: TransactionVersion.V1 },
+        { delta: 25, expectedVersion: TransactionVersion.V1 },
+        { delta: 10, expectedVersion: TransactionVersion.V1 },
+        { delta: 3, expectedVersion: TransactionVersion.V2 },
+        { delta: 1, expectedVersion: TransactionVersion.V2 },
+      ]
 
-      const block = await useMinerBlockFixture(chain, undefined, account, wallet)
-      await expect(chain).toAddBlock(block)
-      await wallet.updateHead()
+      beforeAll(async () => {
+        const { chain: testChain, wallet: testWallet } = await preservedNodeTest.createSetup()
+        chain = testChain
+        wallet = testWallet
 
-      expect(chain.head.sequence).toEqual(2)
+        chain.consensus.parameters.enableAssetOwnership = 999999
+        account = await useAccountFixture(wallet, 'test')
 
-      const raw1 = await wallet.createTransaction({ account, fee: 0n })
-      expect(raw1.version).toEqual(TransactionVersion.V1)
+        const block = await useMinerBlockFixture(chain, undefined, account, wallet)
+        const { isAdded } = await chain.addBlock(block)
+        Assert.isTrue(isAdded)
+        await wallet.updateHead()
 
-      chain.consensus.parameters.enableAssetOwnership = 3
+        Assert.isEqual(chain.head.sequence, 2)
+      })
 
-      const raw2 = await wallet.createTransaction({ account, fee: 0n })
-      expect(raw2.version).toEqual(TransactionVersion.V2)
+      testPermutations.forEach(({ delta, expectedVersion }) => {
+        it(`delta: ${delta}, expectedVersion: ${expectedVersion}`, async () => {
+          // transaction version change happening `delta` blocks ahead of the chain
+          chain.consensus.parameters.enableAssetOwnership = chain.head.sequence + delta
+
+          // default expiration
+          let tx = await wallet.createTransaction({ account, fee: 0n })
+          expect(tx.version).toEqual(expectedVersion)
+
+          tx = await wallet.createTransaction({
+            account,
+            fee: 0n,
+            expirationDelta: delta,
+          })
+          expect(tx.version).toEqual(expectedVersion)
+
+          tx = await wallet.createTransaction({
+            account,
+            fee: 0n,
+            expiration: chain.head.sequence + delta,
+          })
+          expect(tx.version).toEqual(expectedVersion)
+        })
+      })
     })
   })
 
