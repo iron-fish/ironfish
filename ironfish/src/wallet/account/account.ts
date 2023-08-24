@@ -243,6 +243,7 @@ export class Account {
     name: Buffer,
     nonce: number,
     creator: Buffer,
+    owner: Buffer,
     blockHeader?: { hash: Buffer | null; sequence: number | null },
     tx?: IDatabaseTransaction,
   ): Promise<void> {
@@ -261,7 +262,7 @@ export class Account {
         name,
         nonce,
         creator,
-        owner: creator,
+        owner,
         sequence: blockHeader?.sequence ?? null,
         supply: null,
       },
