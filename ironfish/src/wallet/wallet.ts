@@ -925,11 +925,11 @@ export class Wallet {
         throw new Error('Your account must finish scanning before sending a transaction.')
       }
 
-      const transactionVersionDelta = TransactionUtils.versionSequenceDelta(
-        expirationDelta ?? heaviestHead.sequence - expiration,
+      const transactionVersionSequenceDelta = TransactionUtils.versionSequenceDelta(
+        expiration ? expiration - heaviestHead.sequence : expiration,
       )
       const transactionVersion = this.consensus.getActiveTransactionVersion(
-        heaviestHead.sequence + transactionVersionDelta,
+        heaviestHead.sequence + transactionVersionSequenceDelta,
       )
       const raw = new RawTransaction(transactionVersion)
       raw.expiration = expiration

@@ -6,22 +6,19 @@ import { TransactionUtils } from './transaction'
 
 describe('TransactionUtils', () => {
   describe('versionSequenceDelta', () => {
-    const maxVersionDelta = 10
-    const minVersionDelta = 3
+    const maxSequenceDelta = 10
+    const minSequenceDelta = 4
     const testPermutations = [
-      { expirationDelta: undefined, expectedSequenceDelta: maxVersionDelta },
-      { expirationDelta: -2, expectedSequenceDelta: 1 },
-      { expirationDelta: -1, expectedSequenceDelta: 1 },
-      { expirationDelta: 0, expectedSequenceDelta: maxVersionDelta },
+      { expirationDelta: 0, expectedSequenceDelta: maxSequenceDelta },
       { expirationDelta: 1, expectedSequenceDelta: 1 },
       { expirationDelta: 2, expectedSequenceDelta: 2 },
-      { expirationDelta: 3, expectedSequenceDelta: minVersionDelta },
-      { expirationDelta: 4, expectedSequenceDelta: minVersionDelta },
-      { expirationDelta: 5, expectedSequenceDelta: minVersionDelta },
-      { expirationDelta: 6, expectedSequenceDelta: minVersionDelta },
-      { expirationDelta: 7, expectedSequenceDelta: minVersionDelta },
-      { expirationDelta: 8, expectedSequenceDelta: 4 },
-      { expirationDelta: 9, expectedSequenceDelta: 4 },
+      { expirationDelta: 3, expectedSequenceDelta: 3 },
+      { expirationDelta: 4, expectedSequenceDelta: minSequenceDelta },
+      { expirationDelta: 5, expectedSequenceDelta: minSequenceDelta },
+      { expirationDelta: 6, expectedSequenceDelta: minSequenceDelta },
+      { expirationDelta: 7, expectedSequenceDelta: minSequenceDelta },
+      { expirationDelta: 8, expectedSequenceDelta: minSequenceDelta },
+      { expirationDelta: 9, expectedSequenceDelta: minSequenceDelta },
       { expirationDelta: 10, expectedSequenceDelta: 5 },
       { expirationDelta: 11, expectedSequenceDelta: 5 },
       { expirationDelta: 12, expectedSequenceDelta: 6 },
@@ -32,18 +29,23 @@ describe('TransactionUtils', () => {
       { expirationDelta: 17, expectedSequenceDelta: 8 },
       { expirationDelta: 18, expectedSequenceDelta: 9 },
       { expirationDelta: 19, expectedSequenceDelta: 9 },
-      { expirationDelta: 20, expectedSequenceDelta: maxVersionDelta },
+      { expirationDelta: 20, expectedSequenceDelta: maxSequenceDelta },
     ]
     // Sanity check higher values
     for (let i = 21; i < 100; i++) {
-      testPermutations.push({ expirationDelta: i, expectedSequenceDelta: maxVersionDelta })
+      testPermutations.push({ expirationDelta: i, expectedSequenceDelta: maxSequenceDelta })
     }
     testPermutations.forEach(({ expirationDelta, expectedSequenceDelta }) => {
-      it(`expirationDelta: ${expirationDelta ?? 'undefined'}`, () => {
+      it(`expirationDelta: ${expirationDelta}`, () => {
         expect(TransactionUtils.versionSequenceDelta(expirationDelta)).toEqual(
           expectedSequenceDelta,
         )
       })
+    })
+
+    it('throws an error if a negative number is given', () => {
+      const error = 'Expected expirationDelta to be greater than or equal to 0'
+      expect(() => TransactionUtils.versionSequenceDelta(-1)).toThrow(error)
     })
   })
 })
