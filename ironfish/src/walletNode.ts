@@ -204,7 +204,6 @@ export class WalletNode {
   }
 
   async start(): Promise<void> {
-    this.logger.info('Starting wallet node...')
     this.shutdownPromise = new Promise((r) => (this.shutdownResolve = r))
     this.started = true
 
