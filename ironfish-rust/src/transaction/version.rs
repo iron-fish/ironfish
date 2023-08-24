@@ -35,6 +35,10 @@ impl TransactionVersion {
         }
     }
 
+    pub const fn latest() -> Self {
+        Self::V2
+    }
+
     pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
         writer.write_u8((*self).into())?;
         Ok(())

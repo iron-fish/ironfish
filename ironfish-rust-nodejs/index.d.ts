@@ -47,6 +47,7 @@ export const TRANSACTION_SIGNATURE_LENGTH: number
 export const TRANSACTION_PUBLIC_KEY_RANDOMNESS_LENGTH: number
 export const TRANSACTION_EXPIRATION_LENGTH: number
 export const TRANSACTION_FEE_LENGTH: number
+export const LATEST_TRANSACTION_VERSION: number
 export function verifyTransactions(serializedTransactions: Array<Buffer>): boolean
 export const enum LanguageCode {
   English = 0,

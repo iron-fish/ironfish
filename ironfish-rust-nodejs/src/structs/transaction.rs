@@ -7,8 +7,8 @@ use std::convert::TryInto;
 
 use ironfish::assets::asset_identifier::AssetIdentifier;
 use ironfish::transaction::{
-    batch_verify_transactions, TRANSACTION_EXPIRATION_SIZE, TRANSACTION_FEE_SIZE,
-    TRANSACTION_PUBLIC_KEY_SIZE, TRANSACTION_SIGNATURE_SIZE,
+    batch_verify_transactions, TransactionVersion, TRANSACTION_EXPIRATION_SIZE,
+    TRANSACTION_FEE_SIZE, TRANSACTION_PUBLIC_KEY_SIZE, TRANSACTION_SIGNATURE_SIZE,
 };
 use ironfish::{MerkleNoteHash, ProposedTransaction, PublicAddress, SaplingKey, Transaction};
 use napi::{
@@ -39,6 +39,9 @@ pub const TRANSACTION_EXPIRATION_LENGTH: u32 = TRANSACTION_EXPIRATION_SIZE as u3
 
 #[napi]
 pub const TRANSACTION_FEE_LENGTH: u32 = TRANSACTION_FEE_SIZE as u32;
+
+#[napi]
+pub const LATEST_TRANSACTION_VERSION: u8 = TransactionVersion::latest() as u8;
 
 #[napi(js_name = "TransactionPosted")]
 pub struct NativeTransactionPosted {

@@ -6,6 +6,7 @@ import {
   generateKey,
   generateKeyFromPrivateKey,
   Key,
+  LATEST_TRANSACTION_VERSION,
   Note as NativeNote,
   Transaction as NativeTransaction,
   TransactionPosted as NativeTransactionPosted,
@@ -103,7 +104,10 @@ describe('Demonstrate the Sapling API', () => {
 
       minerNote = new NativeNote(owner, 42n, '', Asset.nativeId(), owner)
 
-      const transaction = new NativeTransaction(spenderKey.spendingKey, TransactionVersion.V2)
+      const transaction = new NativeTransaction(
+        spenderKey.spendingKey,
+        LATEST_TRANSACTION_VERSION,
+      )
       transaction.output(minerNote)
       minerTransaction = new NativeTransactionPosted(transaction.post_miners_fee())
       expect(minerTransaction).toBeTruthy()
@@ -131,7 +135,7 @@ describe('Demonstrate the Sapling API', () => {
     })
 
     it('Can create a simple transaction', () => {
-      transaction = new NativeTransaction(spenderKey.spendingKey, TransactionVersion.V2)
+      transaction = new NativeTransaction(spenderKey.spendingKey, LATEST_TRANSACTION_VERSION)
       expect(transaction).toBeTruthy()
     })
 
@@ -299,7 +303,7 @@ describe('Demonstrate the Sapling API', () => {
     })
 
     it('Can create and post a transaction', async () => {
-      transaction = new NativeTransaction(receiverKey.spendingKey, TransactionVersion.V2)
+      transaction = new NativeTransaction(receiverKey.spendingKey, LATEST_TRANSACTION_VERSION)
 
       const witness = await tree.witness(receiverWitnessIndex)
       if (witness === null) {

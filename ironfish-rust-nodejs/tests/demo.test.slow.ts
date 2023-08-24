@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Asset, DECRYPTED_NOTE_LENGTH, initSignalHandler, LanguageCode, spendingKeyToWords, verifyTransactions, wordsToSpendingKey } from '..'
+import { Asset, DECRYPTED_NOTE_LENGTH, initSignalHandler, LanguageCode, LATEST_TRANSACTION_VERSION, spendingKeyToWords, verifyTransactions, wordsToSpendingKey } from '..'
 import {
   initializeSapling,
   generateKey,
@@ -58,7 +58,7 @@ describe('Demonstrate the Sapling API', () => {
   it(`Should create a miner's fee transaction`, () => {
     const key = generateKey()
 
-    const transaction = new Transaction(key.spendingKey, 2)
+    const transaction = new Transaction(key.spendingKey, LATEST_TRANSACTION_VERSION)
     const note = new Note(key.publicAddress, 20n, 'test', Asset.nativeId(), key.publicAddress)
     transaction.output(note)
 
@@ -95,13 +95,13 @@ describe('Demonstrate the Sapling API', () => {
     const key = generateKey()
     const recipientKey = generateKey()
 
-    const minersFeeTransaction = new Transaction(key.spendingKey, 2)
+    const minersFeeTransaction = new Transaction(key.spendingKey, LATEST_TRANSACTION_VERSION)
     const minersFeeNote = new Note(key.publicAddress, 20n, 'miner', Asset.nativeId(), key.publicAddress)
     minersFeeTransaction.output(minersFeeNote)
 
     const postedMinersFeeTransaction = new TransactionPosted(minersFeeTransaction.post_miners_fee())
 
-    const transaction = new Transaction(key.spendingKey, 2)
+    const transaction = new Transaction(key.spendingKey, LATEST_TRANSACTION_VERSION)
     transaction.setExpiration(10)
     const encryptedNote = new NoteEncrypted(postedMinersFeeTransaction.getNote(0))
     const decryptedNote = Note.deserialize(encryptedNote.decryptNoteForOwner(key.incomingViewKey)!)
