@@ -8,6 +8,7 @@ import '../testUtilities/matchers/blockchain'
 import {
   Asset,
   generateKey,
+  LATEST_TRANSACTION_VERSION,
   Note as NativeNote,
   Transaction as NativeTransaction,
 } from '@ironfish/rust-nodejs'
@@ -240,7 +241,7 @@ describe('Verifier', () => {
             Asset.nativeId(),
             owner,
           )
-          const transaction = new NativeTransaction(key.spendingKey)
+          const transaction = new NativeTransaction(key.spendingKey, LATEST_TRANSACTION_VERSION)
           transaction.output(minerNote1)
           transaction.output(minerNote2)
           return new Transaction(transaction._postMinersFeeUnchecked())
