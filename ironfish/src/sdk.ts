@@ -314,6 +314,7 @@ Use 'ironfish config:set' to connect to a node via TCP, TLS, or IPC.\n`)
 
     const namespaces = [
       ApiNamespace.config,
+      ApiNamespace.faucet,
       ApiNamespace.rpc,
       ApiNamespace.wallet,
       ApiNamespace.worker,
