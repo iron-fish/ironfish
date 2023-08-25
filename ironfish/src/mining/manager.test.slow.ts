@@ -284,6 +284,9 @@ describe('Mining manager', () => {
     it('should not add transactions with an incorrect version', async () => {
       const { node, chain, wallet } = nodeTest
 
+      // Enable V1 transactions
+      chain.consensus.parameters.enableAssetOwnership = 999999
+
       const account = await useAccountFixture(wallet, 'account')
       await wallet.setDefaultAccount(account.name)
 
@@ -306,7 +309,11 @@ describe('Mining manager', () => {
           },
         ],
       })
-      jest.spyOn(mintTx1, 'version').mockImplementation(() => TransactionVersion.V1)
+      expect(mintTx1.version()).toEqual(TransactionVersion.V1)
+      expect(node.memPool.acceptTransaction(mintTx1)).toEqual(true)
+
+      // Enable V2 transactions
+      chain.consensus.parameters.enableAssetOwnership = 1
 
       const mintTx2 = await usePostTxFixture({
         node,
@@ -322,7 +329,6 @@ describe('Mining manager', () => {
         ],
       })
 
-      expect(node.memPool.acceptTransaction(mintTx1)).toEqual(true)
       expect(node.memPool.acceptTransaction(mintTx2)).toEqual(true)
 
       // Wait for the first 2 block templates
