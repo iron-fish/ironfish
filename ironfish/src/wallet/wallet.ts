@@ -333,7 +333,21 @@ export class Wallet {
       this.isSyncingTransactionGossip = true
 
       for await (const content of response.contentStream()) {
+        if (!content.valid) {
+          continue
+        }
+
         const transaction = new Transaction(Buffer.from(content.serializedTransaction, 'hex'))
+
+        // Start dropping trasactions if we have too many to process
+        if (response.bufferSize() > this.config.get('walletGossipTransactionsMaxQueueSize')) {
+          const hash = transaction.hash().toString('hex')
+          this.logger.info(
+            `Too many gossiped transactions to process. Dropping transaction ${hash}`,
+          )
+          continue
+        }
+
         await this.addPendingTransaction(transaction)
       }
     } catch (e: unknown) {
@@ -569,6 +583,7 @@ export class Wallet {
           chainAsset.name,
           chainAsset.nonce,
           chainAsset.creator,
+          chainAsset.owner,
           blockHeader,
           tx,
         )
@@ -1667,6 +1682,7 @@ export class Wallet {
   private async getChainAsset(id: Buffer): Promise<{
     createdTransactionHash: Buffer
     creator: Buffer
+    owner: Buffer
     id: Buffer
     metadata: Buffer
     name: Buffer
@@ -1678,6 +1694,7 @@ export class Wallet {
       return {
         createdTransactionHash: Buffer.from(response.content.createdTransactionHash, 'hex'),
         creator: Buffer.from(response.content.creator, 'hex'),
+        owner: Buffer.from(response.content.owner, 'hex'),
         id: Buffer.from(response.content.id, 'hex'),
         metadata: Buffer.from(response.content.metadata, 'hex'),
         name: Buffer.from(response.content.name, 'hex'),

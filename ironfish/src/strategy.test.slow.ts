@@ -252,10 +252,12 @@ describe('Demonstrate the Sapling API', () => {
     })
 
     it('Creates transactions with the correct version based on the sequence', async () => {
+      const modifiedParams = consensusParameters
+      modifiedParams.enableAssetOwnership = 10
       const key = generateKey()
       const strategy = new Strategy({
         workerPool,
-        consensus: new TestnetConsensus(consensusParameters),
+        consensus: new TestnetConsensus(modifiedParams),
       })
       const minersFee1 = await strategy.createMinersFee(
         0n,

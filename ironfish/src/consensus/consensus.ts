@@ -50,7 +50,7 @@ export class Consensus {
   }
 
   isActive(upgrade: number, sequence: number): boolean {
-    return sequence >= upgrade
+    return Math.max(1, sequence) >= upgrade
   }
 
   getActiveTransactionVersion(sequence: number): TransactionVersion {

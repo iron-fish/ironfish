@@ -282,6 +282,12 @@ export type ConfigOptions = {
   incomingWebSocketWhitelist: string[]
 
   /**
+   * When the wallet listens for incoming unconfirmed transactions, limit the
+   * number of transactions the wallet can queue up before it starts dropping them.
+   */
+  walletGossipTransactionsMaxQueueSize: number
+
+  /**
    * Enable standalone wallet process to connect to a node via IPC
    */
   walletNodeIpcEnabled: boolean
@@ -376,6 +382,7 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     memPoolRecentlyEvictedCacheSize: yup.number().integer(),
     networkDefinitionPath: yup.string().trim(),
     incomingWebSocketWhitelist: yup.array(yup.string().trim().defined()),
+    walletGossipTransactionsMaxQueueSize: yup.number(),
     walletNodeIpcEnabled: yup.boolean(),
     walletNodeIpcPath: yup.string(),
     walletNodeTcpEnabled: yup.boolean(),
@@ -480,6 +487,7 @@ export class Config extends KeyStore<ConfigOptions> {
       incomingWebSocketWhitelist: [],
       walletNodeIpcEnabled: false,
       walletNodeIpcPath: '',
+      walletGossipTransactionsMaxQueueSize: 1000,
       walletNodeTcpEnabled: false,
       walletNodeTcpHost: '',
       walletNodeTcpPort: 8020,
