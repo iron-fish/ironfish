@@ -318,6 +318,7 @@ Use 'ironfish config:set' to connect to a node via TCP, TLS, or IPC.\n`)
       ApiNamespace.rpc,
       ApiNamespace.wallet,
       ApiNamespace.worker,
+      ApiNamespace.node,
     ]
 
     if (this.config.get('enableRpcIpc')) {
