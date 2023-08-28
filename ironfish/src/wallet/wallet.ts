@@ -669,7 +669,7 @@ export class Wallet {
     }
   }
 
-  async scanTransactions(fromHash?: Buffer): Promise<void> {
+  async scanTransactions(fromHash?: Buffer, force?: boolean): Promise<void> {
     if (!this.isOpen) {
       throw new Error('Cannot start a scan if accounts are not loaded')
     }
@@ -680,8 +680,13 @@ export class Wallet {
     }
 
     if (this.scan) {
-      this.logger.info('Skipping Scan, already scanning.')
-      return
+      if (force) {
+        this.logger.info('Aborting scan in progress and starting new scan.')
+        await this.scan.abort()
+      } else {
+        this.logger.info('Skipping Scan, already scanning.')
+        return
+      }
     }
 
     const scan = new ScanState()
