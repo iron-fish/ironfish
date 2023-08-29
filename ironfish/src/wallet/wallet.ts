@@ -161,15 +161,17 @@ export class Wallet {
     this.updateHeadState = scan
 
     try {
-      const { hashChanged } = await this.chainProcessor.update({
-        signal: scan.abortController.signal,
-      })
-
-      if (hashChanged) {
-        this.logger.debug(
-          `Updated Accounts Head: ${String(this.chainProcessor.hash?.toString('hex'))}`,
-        )
-      }
+      let hashChanged = false
+      do {
+        hashChanged = (
+          await this.chainProcessor.update({ signal: scan.abortController.signal })
+        ).hashChanged
+        if (hashChanged) {
+          this.logger.debug(
+            `Updated Accounts Head: ${String(this.chainProcessor.hash?.toString('hex'))}`,
+          )
+        }
+      } while (hashChanged)
     } finally {
       scan.signalComplete()
       this.updateHeadState = null
