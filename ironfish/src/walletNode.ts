@@ -268,7 +268,7 @@ export class WalletNode {
         this.nodeClientConnectionWarned = true
       }
 
-      this.nodeClientConnectionTimeout = setTimeout(() => void this.startConnectingRpc(), 5000)
+      this.nodeClientConnectionTimeout = setTimeout(() => void this.startConnectingRpc(startWallet), 5000)
       return
     }
 
