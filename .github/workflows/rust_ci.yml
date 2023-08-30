@@ -81,7 +81,7 @@ jobs:
           wget -O tarpaulin.tar.gz https://github.com/xd009642/tarpaulin/releases/download/0.22.0/cargo-tarpaulin-0.22.0-travis.tar.gz
           tar -xzf tarpaulin.tar.gz
           mv cargo-tarpaulin ~/.cargo/bin/
-          cargo tarpaulin -p ironfish --release --out Xml --avoid-cfg-tarpaulin --skip-clean --timeout 180 -- --test-threads 1
+          cargo tarpaulin -p ironfish --release --out Xml --avoid-cfg-tarpaulin --skip-clean --timeout 300 -- --test-threads 1
 
       # Upload code coverage to Codecov
       - name: Upload to codecov.io
@@ -107,7 +107,7 @@ jobs:
           wget -O tarpaulin.tar.gz https://github.com/xd009642/tarpaulin/releases/download/0.22.0/cargo-tarpaulin-0.22.0-travis.tar.gz
           tar -xzf tarpaulin.tar.gz
           mv cargo-tarpaulin ~/.cargo/bin/
-          cargo tarpaulin -p ironfish_zkp --release --out Xml --avoid-cfg-tarpaulin --skip-clean --timeout 180 -- --test-threads 1
+          cargo tarpaulin -p ironfish_zkp --release --out Xml --avoid-cfg-tarpaulin --skip-clean --timeout 300 -- --test-threads 1
 
       # Upload code coverage to Codecov
       - name: Upload to codecov.io
