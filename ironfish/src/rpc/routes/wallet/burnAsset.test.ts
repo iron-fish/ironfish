@@ -4,6 +4,7 @@
 import { Asset } from '@ironfish/rust-nodejs'
 import {
   useAccountFixture,
+  useMinerBlockFixture,
   useMintBlockFixture,
   usePostTxFixture,
 } from '../../../testUtilities'
@@ -14,7 +15,7 @@ describe('Route wallet/burnAsset', () => {
   const routeTest = createRouteTest(true)
 
   beforeAll(async () => {
-    await routeTest.node.wallet.createAccount('account', true)
+    await routeTest.node.wallet.createAccount('account', { setDefault: true })
   })
 
   describe('with an invalid fee', () => {
@@ -53,10 +54,14 @@ describe('Route wallet/burnAsset', () => {
       const wallet = node.wallet
       const account = await useAccountFixture(wallet)
 
+      const block = await useMinerBlockFixture(routeTest.chain, undefined, account, node.wallet)
+      await expect(node.chain).toAddBlock(block)
+      await node.wallet.updateHead()
+
       const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
       const assetId = asset.id()
       const value = BigInt(10)
-      const mintBlock = await useMintBlockFixture({ node, account, asset, value, sequence: 3 })
+      const mintBlock = await useMintBlockFixture({ node, account, asset, value })
       await expect(node.chain).toAddBlock(mintBlock)
       await node.wallet.updateHead()
 

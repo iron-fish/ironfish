@@ -147,10 +147,13 @@ impl NativeTransactionPosted {
     }
 
     #[napi]
-    pub fn hash(&self) -> Buffer {
-        let hash = self.transaction.transaction_signature_hash();
+    pub fn hash(&self) -> Result<Buffer> {
+        let hash = self
+            .transaction
+            .transaction_signature_hash()
+            .map_err(to_napi_err)?;
 
-        Buffer::from(hash.as_ref())
+        Ok(Buffer::from(hash.as_ref()))
     }
 
     #[napi]

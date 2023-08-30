@@ -390,6 +390,24 @@ describe('Accounts', () => {
       expect(wallet['chainProcessor']['hash']?.equals(block2.header.hash)).toBe(true)
     })
 
+    it('should not scan if wallet is disabled', async () => {
+      const { wallet, chain } = await nodeTest.createSetup({ config: { enableWallet: false } })
+      await useAccountFixture(wallet)
+
+      const block1 = await useMinerBlockFixture(chain)
+      await expect(chain).toAddBlock(block1)
+
+      expect(wallet['chainProcessor']['hash']).toBeNull()
+
+      const connectSpy = jest.spyOn(wallet, 'connectBlock')
+
+      await expect(wallet.shouldRescan()).resolves.toBe(false)
+
+      await wallet.scanTransactions()
+
+      expect(connectSpy).not.toHaveBeenCalled()
+    })
+
     it('should not scan if all accounts are up to date', async () => {
       const { chain, wallet } = nodeTest
 
@@ -643,7 +661,9 @@ describe('Accounts', () => {
       const { node: nodeA } = await nodeTest.createSetup()
       const { node: nodeB } = await nodeTest.createSetup()
 
-      const accountA = await useAccountFixture(nodeA.wallet, 'accountA')
+      const accountA = await useAccountFixture(nodeA.wallet, 'accountA', {
+        setCreatedAt: false,
+      })
       expect(accountA.createdAt).toBe(null)
 
       // create blocks and add them to both chains
@@ -672,7 +692,9 @@ describe('Accounts', () => {
       const { node: nodeA } = await nodeTest.createSetup()
       const { node: nodeB } = await nodeTest.createSetup()
 
-      const accountA = await useAccountFixture(nodeA.wallet, 'accountA')
+      const accountA = await useAccountFixture(nodeA.wallet, 'accountA', {
+        setCreatedAt: false,
+      })
       expect(accountA.createdAt).toBe(null)
 
       // create blocks but only add them to one chain
@@ -1946,7 +1968,7 @@ describe('Accounts', () => {
     it('should set null account.createdAt for the first on-chain transaction of an account', async () => {
       const { node } = await nodeTest.createSetup()
 
-      const accountA = await useAccountFixture(node.wallet, 'accountA')
+      const accountA = await useAccountFixture(node.wallet, 'accountA', { setCreatedAt: false })
 
       expect(accountA.createdAt).toBeNull()
 
@@ -1961,8 +1983,8 @@ describe('Accounts', () => {
     it('should not set account.createdAt if the account has no transaction on the block', async () => {
       const { node } = await nodeTest.createSetup()
 
-      const accountA = await useAccountFixture(node.wallet, 'accountA')
-      const accountB = await useAccountFixture(node.wallet, 'accountB')
+      const accountA = await useAccountFixture(node.wallet, 'accountA', { setCreatedAt: false })
+      const accountB = await useAccountFixture(node.wallet, 'accountB', { setCreatedAt: false })
 
       expect(accountA.createdAt).toBeNull()
       expect(accountB.createdAt).toBeNull()
@@ -1977,7 +1999,7 @@ describe('Accounts', () => {
     it('should not set account.createdAt if it is not null', async () => {
       const { node } = await nodeTest.createSetup()
 
-      const accountA = await useAccountFixture(node.wallet, 'accountA')
+      const accountA = await useAccountFixture(node.wallet, 'accountA', { setCreatedAt: false })
 
       expect(accountA.createdAt).toBeNull()
 
@@ -2774,6 +2796,35 @@ describe('Accounts', () => {
       expect(resetAccount).not.toHaveBeenCalled()
 
       expect(account.createdAt).toBeNull()
+    })
+  })
+
+  describe('updateHead', () => {
+    it('should update until the chainProcessor reaches the chain head', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      // create an account so that the wallet will sync
+      await useAccountFixture(node.wallet, 'a')
+
+      const block2 = await useMinerBlockFixture(node.chain, undefined)
+      await expect(node.chain).toAddBlock(block2)
+      const block3 = await useMinerBlockFixture(node.chain, undefined)
+      await expect(node.chain).toAddBlock(block3)
+
+      expect(node.chain.head.hash).toEqualHash(block3.header.hash)
+
+      // set max syncing queue to 1 so that wallet only fetches one block at a time
+      node.wallet.chainProcessor.maxQueueSize = 1
+
+      const updateSpy = jest.spyOn(node.wallet.chainProcessor, 'update')
+
+      await node.wallet.updateHead()
+
+      // chainProcessor should sync all the way to head with one call to updateHead
+      expect(node.wallet.chainProcessor.hash).toEqualHash(node.chain.head.hash)
+
+      // one call for each block and a fourth to find that hash doesn't change
+      expect(updateSpy).toHaveBeenCalledTimes(4)
     })
   })
 })

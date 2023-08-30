@@ -19,41 +19,6 @@ type FaucetTransaction = {
   completed_at: string | null
 }
 
-export const MultiAsssetTransactionTypes = [
-  'MULTI_ASSET_TRANSFER',
-  'MULTI_ASSET_BURN',
-  'MULTI_ASSET_MINT',
-]
-export type MultiAssetTypes = typeof MultiAsssetTransactionTypes[number]
-
-export type ApiMultiAssetUpload = {
-  type: 'connected' | 'disconnected' | 'fork'
-  block: {
-    hash: string
-    previousBlockHash: string
-    timestamp: number
-    sequence: number
-  }
-  transactions: {
-    hash: string
-    multiAssets: {
-      type: MultiAssetTypes
-      assetName: string
-    }[]
-  }[]
-}
-
-type ApiUser = {
-  id: number
-  country_code: string
-  graffiti: string
-  verified: boolean
-  node_uptime_count: number
-  node_uptime_threshold: number
-  total_points: number
-  rank: number
-}
-
 /**
  *  The API should be compatible with the Ironfish API here
  *  used to host our Facuet, BlockExplorer, and other things.
@@ -76,26 +41,6 @@ export class WebApi {
     this.getFundsEndpoint = options?.getFundsEndpoint || null
   }
 
-  async getMultiAssetAddress(): Promise<string> {
-    const response = await axios.get<{ address: string }>(`${this.host}/deposits/address`)
-    return response.data.address
-  }
-
-  async headMultiAsset(): Promise<string | null> {
-    const response = await axios
-      .get<{ block_hash: string }>(`${this.host}/multi_asset/head`)
-      .catch((e) => {
-        // The API returns 404 for no head
-        if (IsAxiosError(e) && e.response?.status === 404) {
-          return null
-        }
-
-        throw e
-      })
-
-    return response?.data.block_hash || null
-  }
-
   async headBlocks(): Promise<string | null> {
     const response = await axios
       .get<{ hash: string }>(`${this.host}/blocks/head`)
@@ -109,13 +54,6 @@ export class WebApi {
       })
 
     return response?.data.hash || null
-  }
-
-  async uploadMultiAsset(multiAssets: ApiMultiAssetUpload[]): Promise<void> {
-    this.requireToken()
-
-    const options = this.options({ 'Content-Type': 'application/json' })
-    await axios.post(`${this.host}/multi_asset`, { operations: multiAssets }, options)
   }
 
   async blocks(blocks: FollowChainStreamResponse[]): Promise<void> {
@@ -210,33 +148,6 @@ export class WebApi {
     )
 
     return response.data.data
-  }
-
-  async getUser(id: number): Promise<ApiUser | null> {
-    return await axios
-      .get<ApiUser>(`${this.host}/users/${id}`, this.options())
-      .then((r) => r.data)
-      .catch(() => null)
-  }
-
-  async findUser(params: { graffiti: string; with_rank?: boolean }): Promise<ApiUser | null> {
-    const options = this.options()
-    options.params = params
-    return await axios
-      .get<ApiUser>(`${this.host}/users/find`, options)
-      .then((r) => r.data)
-      .catch((error: AxiosError<{ code: string; message?: string }>) => {
-        if (error.response) {
-          const { status } = error.response
-          if (status >= 500 && status <= 599) {
-            throw new Error(
-              `API request to fetch user '${params.graffiti}' failed with status code: ${status}`,
-            )
-          }
-        }
-
-        return null
-      })
   }
 
   async startFaucetTransaction(id: number): Promise<FaucetTransaction> {

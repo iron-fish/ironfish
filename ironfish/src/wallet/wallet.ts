@@ -161,15 +161,17 @@ export class Wallet {
     this.updateHeadState = scan
 
     try {
-      const { hashChanged } = await this.chainProcessor.update({
-        signal: scan.abortController.signal,
-      })
-
-      if (hashChanged) {
-        this.logger.debug(
-          `Updated Accounts Head: ${String(this.chainProcessor.hash?.toString('hex'))}`,
-        )
-      }
+      let hashChanged = false
+      do {
+        hashChanged = (
+          await this.chainProcessor.update({ signal: scan.abortController.signal })
+        ).hashChanged
+        if (hashChanged) {
+          this.logger.debug(
+            `Updated Accounts Head: ${String(this.chainProcessor.hash?.toString('hex'))}`,
+          )
+        }
+      } while (hashChanged)
     } finally {
       scan.signalComplete()
       this.updateHeadState = null
@@ -332,7 +334,21 @@ export class Wallet {
       this.isSyncingTransactionGossip = true
 
       for await (const content of response.contentStream()) {
+        if (!content.valid) {
+          continue
+        }
+
         const transaction = new Transaction(Buffer.from(content.serializedTransaction, 'hex'))
+
+        // Start dropping trasactions if we have too many to process
+        if (response.bufferSize() > this.config.get('walletGossipTransactionsMaxQueueSize')) {
+          const hash = transaction.hash().toString('hex')
+          this.logger.info(
+            `Too many gossiped transactions to process. Dropping transaction ${hash}`,
+          )
+          continue
+        }
+
         await this.addPendingTransaction(transaction)
       }
     } catch (e: unknown) {
@@ -568,6 +584,7 @@ export class Wallet {
           chainAsset.name,
           chainAsset.nonce,
           chainAsset.creator,
+          chainAsset.owner,
           blockHeader,
           tx,
         )
@@ -654,14 +671,24 @@ export class Wallet {
     }
   }
 
-  async scanTransactions(fromHash?: Buffer): Promise<void> {
+  async scanTransactions(fromHash?: Buffer, force?: boolean): Promise<void> {
     if (!this.isOpen) {
       throw new Error('Cannot start a scan if accounts are not loaded')
     }
 
-    if (this.scan) {
-      this.logger.info('Skipping Scan, already scanning.')
+    if (!this.config.get('enableWallet')) {
+      this.logger.info('Skipping Scan, wallet is not started.')
       return
+    }
+
+    if (this.scan) {
+      if (force) {
+        this.logger.info('Aborting scan in progress and starting new scan.')
+        await this.scan.abort()
+      } else {
+        this.logger.info('Skipping Scan, already scanning.')
+        return
+      }
     }
 
     const scan = new ScanState()
@@ -1318,7 +1345,13 @@ export class Wallet {
     return TransactionType.RECEIVE
   }
 
-  async createAccount(name: string, setDefault = false): Promise<Account> {
+  async createAccount(
+    name: string,
+    options: { setCreatedAt?: boolean; setDefault?: boolean } = {
+      setCreatedAt: true,
+      setDefault: false,
+    },
+  ): Promise<Account> {
     if (this.getAccountByName(name)) {
       throw new Error(`Account already exists with the name ${name}`)
     }
@@ -1326,8 +1359,12 @@ export class Wallet {
     const key = generateKey()
 
     let createdAt: HeadValue | null = null
-    if (this.nodeClient) {
-      createdAt = await this.getChainHead()
+    if (options.setCreatedAt && this.nodeClient) {
+      try {
+        createdAt = await this.getChainHead()
+      } catch {
+        this.logger.warn('Failed to fetch chain head from node client')
+      }
     }
 
     const account = new Account({
@@ -1356,7 +1393,7 @@ export class Wallet {
 
     this.accounts.set(account.id, account)
 
-    if (setDefault) {
+    if (options.setDefault) {
       await this.setDefaultAccount(account.name)
     }
 
@@ -1645,6 +1682,7 @@ export class Wallet {
   private async getChainAsset(id: Buffer): Promise<{
     createdTransactionHash: Buffer
     creator: Buffer
+    owner: Buffer
     id: Buffer
     metadata: Buffer
     name: Buffer
@@ -1656,6 +1694,7 @@ export class Wallet {
       return {
         createdTransactionHash: Buffer.from(response.content.createdTransactionHash, 'hex'),
         creator: Buffer.from(response.content.creator, 'hex'),
+        owner: Buffer.from(response.content.owner, 'hex'),
         id: Buffer.from(response.content.id, 'hex'),
         metadata: Buffer.from(response.content.metadata, 'hex'),
         name: Buffer.from(response.content.name, 'hex'),

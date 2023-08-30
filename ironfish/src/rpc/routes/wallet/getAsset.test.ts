@@ -96,6 +96,8 @@ describe('Route chain.getAsset', () => {
     const minerBlock = await useMinerBlockFixture(node.chain, undefined, account)
     await expect(node.chain).toAddBlock(minerBlock)
 
+    await node.wallet.updateHead()
+
     const value = 10n
     const { asset, pendingMint } = await createPendingAsset({
       account,
@@ -116,7 +118,7 @@ describe('Route chain.getAsset', () => {
       metadata: asset.metadata().toString('hex'),
       name: asset.name().toString('hex'),
       nonce: asset.nonce(),
-      status: AssetStatus.UNKNOWN,
+      status: AssetStatus.PENDING,
       supply: null,
       verification: { status: 'unknown' },
     })

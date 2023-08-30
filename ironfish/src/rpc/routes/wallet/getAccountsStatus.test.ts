@@ -14,7 +14,10 @@ describe('Route wallet/getAccountsStatus', () => {
   const routeTest = createRouteTest(true)
 
   it('should return account status information', async () => {
-    const account = await routeTest.node.wallet.createAccount(uuid(), true)
+    const account = await routeTest.node.wallet.createAccount(uuid(), {
+      setCreatedAt: true,
+      setDefault: true,
+    })
     const response = await routeTest.client
       .request<any>('wallet/getAccountsStatus', {})
       .waitForEnd()

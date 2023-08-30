@@ -43,6 +43,10 @@ export class RpcResponse<TEnd = unknown, TStream = unknown> {
     return this as RpcResponseEnded<TEnd>
   }
 
+  bufferSize(): number {
+    return this.stream.buffer.length
+  }
+
   /*
    * Returns a generator of stream results. If a disconnect error occurs during
    * the streaming request it just causes the generator to end, the error is

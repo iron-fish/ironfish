@@ -110,6 +110,11 @@ export default class Start extends IronfishCommand {
       description:
         'Path to a JSON file containing the network definition of a custom network to connect to',
     }),
+    wallet: Flags.boolean({
+      allowNo: true,
+      default: true,
+      description: `Enable the node's wallet to scan transactions and decrypt notes from the blockchain`,
+    }),
   }
 
   node: IronfishNode | null = null
@@ -140,6 +145,7 @@ export default class Start extends IronfishCommand {
       upgrade,
       networkId,
       customNetwork,
+      wallet,
     } = flags
 
     if (bootstrap !== undefined) {
@@ -168,6 +174,9 @@ export default class Start extends IronfishCommand {
     }
     if (forceMining !== undefined && forceMining !== this.sdk.config.get('miningForce')) {
       this.sdk.config.setOverride('miningForce', forceMining)
+    }
+    if (wallet !== undefined && wallet !== this.sdk.config.get('enableWallet')) {
+      this.sdk.config.setOverride('enableWallet', wallet)
     }
     if (
       logPeerMessages !== undefined &&
@@ -210,6 +219,7 @@ export default class Start extends IronfishCommand {
     const blockGraffiti = this.sdk.config.get('blockGraffiti').trim() || null
     const peerPort = this.sdk.config.get('peerPort')
     const bootstraps = this.sdk.config.getArray('bootstrapNodes')
+    const walletEnabled = this.sdk.config.get('enableWallet')
 
     this.log(`\n${ONE_FISH_IMAGE}`)
     this.log(`Version       ${node.pkg.version} @ ${node.pkg.git}`)
@@ -218,6 +228,7 @@ export default class Start extends IronfishCommand {
     this.log(`Peer Identity ${node.peerNetwork.localPeer.publicIdentity}`)
     this.log(`Peer Agent    ${node.peerNetwork.localPeer.agent}`)
     this.log(`Peer Port     ${peerPort}`)
+    this.log(`Wallet        ${walletEnabled ? 'ENABLED' : 'DISABLED'}`)
     this.log(`Bootstrap     ${bootstraps.join(',') || 'NONE'}`)
     if (inspector.url()) {
       this.log(`Inspector     ${String(inspector.url())}`)
@@ -296,7 +307,9 @@ export default class Start extends IronfishCommand {
    */
   async setDefaultAccount(node: IronfishNode): Promise<void> {
     if (!node.wallet.accountExists(DEFAULT_ACCOUNT_NAME)) {
-      const account = await node.wallet.createAccount(DEFAULT_ACCOUNT_NAME, true)
+      const account = await node.wallet.createAccount(DEFAULT_ACCOUNT_NAME, {
+        setDefault: true,
+      })
 
       this.log(`New default account created: ${account.name}`)
       this.log(`Account's public address: ${account.publicAddress}`)
