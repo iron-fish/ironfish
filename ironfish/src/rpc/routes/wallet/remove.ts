@@ -29,6 +29,11 @@ routes.register<typeof RemoveAccountRequestSchema, RemoveAccountResponse>(
     const account = getAccount(node.wallet, request.data.account)
 
     if (!request.data.confirm) {
+      if (!(await node.wallet.isAccountUpToDate(account))) {
+        request.end({ needsConfirm: true })
+        return
+      }
+
       const balances = await account.getUnconfirmedBalances()
 
       for (const [_, { unconfirmed }] of balances) {
