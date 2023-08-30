@@ -2798,4 +2798,33 @@ describe('Accounts', () => {
       expect(account.createdAt).toBeNull()
     })
   })
+
+  describe('updateHead', () => {
+    it('should update until the chainProcessor reaches the chain head', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      // create an account so that the wallet will sync
+      await useAccountFixture(node.wallet, 'a')
+
+      const block2 = await useMinerBlockFixture(node.chain, undefined)
+      await expect(node.chain).toAddBlock(block2)
+      const block3 = await useMinerBlockFixture(node.chain, undefined)
+      await expect(node.chain).toAddBlock(block3)
+
+      expect(node.chain.head.hash).toEqualHash(block3.header.hash)
+
+      // set max syncing queue to 1 so that wallet only fetches one block at a time
+      node.wallet.chainProcessor.maxQueueSize = 1
+
+      const updateSpy = jest.spyOn(node.wallet.chainProcessor, 'update')
+
+      await node.wallet.updateHead()
+
+      // chainProcessor should sync all the way to head with one call to updateHead
+      expect(node.wallet.chainProcessor.hash).toEqualHash(node.chain.head.hash)
+
+      // one call for each block and a fourth to find that hash doesn't change
+      expect(updateSpy).toHaveBeenCalledTimes(4)
+    })
+  })
 })
