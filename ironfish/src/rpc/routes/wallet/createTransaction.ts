@@ -133,6 +133,7 @@ routes.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
           throw new ValidationError('Must provide name or identifier to mint')
         }
 
+        let creator = account.publicAddress
         let name = mint.name
         let metadata = mint.metadata ?? ''
 
@@ -144,14 +145,17 @@ routes.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
             throw new ValidationError(`Error minting: Asset ${mint.assetId} not found.`)
           }
 
+          creator = asset.creator.toString('hex')
           name = asset.name.toString('utf8')
           metadata = asset.metadata.toString('utf8')
         }
 
+        Assert.isNotUndefined(creator)
         Assert.isNotUndefined(name)
         Assert.isNotUndefined(metadata)
 
         params.mints.push({
+          creator,
           name,
           metadata,
           value: CurrencyUtils.decode(mint.value),

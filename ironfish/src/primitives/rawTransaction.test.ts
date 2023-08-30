@@ -41,6 +41,7 @@ describe('RawTransaction', () => {
     }
 
     const mint: MintData = {
+      creator: asset.creator().toString('hex'),
       name: asset.name().toString('utf8'),
       metadata: asset.metadata().toString('utf8'),
       value: 1n,
@@ -105,6 +106,7 @@ describe('RawTransaction', () => {
     await nodeTest.wallet.updateHead()
 
     const mint = {
+      creator: account.publicAddress,
       name: assetName,
       metadata: '',
       value: BigInt(500_000_000_000_000_000n),
@@ -215,11 +217,13 @@ describe('RawTransactionSerde', () => {
 
     raw.mints = [
       {
+        creator: account.publicAddress,
         name: assetName,
         metadata: assetMetadata,
         value: 5n,
       },
       {
+        creator: account.publicAddress,
         name: assetName,
         metadata: assetMetadata,
         value: 4n,
@@ -274,11 +278,13 @@ describe('RawTransactionSerde', () => {
 
     raw.mints = [
       {
+        creator: '0000',
         name: assetName,
         metadata: assetMetadata,
         value: 5n,
       },
       {
+        creator: '0000',
         name: assetName,
         metadata: assetMetadata,
         value: 4n,

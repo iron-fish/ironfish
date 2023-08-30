@@ -1452,6 +1452,7 @@ describe('Accounts', () => {
         from: accountA,
         mints: [
           {
+            creator: asset.creator().toString('hex'),
             name: asset.name().toString('utf8'),
             metadata: asset.metadata().toString('utf8'),
             value: 10n,

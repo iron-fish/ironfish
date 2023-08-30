@@ -98,6 +98,7 @@ describe('Verifier', () => {
       const account = await useAccountFixture(nodeTest.node.wallet)
       const asset = new Asset(account.publicAddress, 'testcoin', '')
       const mintData = {
+        creator: asset.creator().toString('hex'),
         name: asset.name().toString('utf8'),
         metadata: asset.metadata().toString('utf8'),
         value: 5n,

@@ -81,8 +81,8 @@ routes.register<typeof MintAssetRequestSchema, MintAssetResponse>(
       options = {
         expiration: request.data.expiration,
         fee,
-        metadata: metadata,
         name: request.data.name,
+        metadata: metadata,
         expirationDelta,
         value,
         confirmations: request.data.confirmations,

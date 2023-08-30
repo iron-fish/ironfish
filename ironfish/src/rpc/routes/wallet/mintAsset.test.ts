@@ -57,6 +57,7 @@ describe('Route wallet/mintAsset', () => {
 
       const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
       const mintData = {
+        creator: asset.creator().toString('hex'),
         name: asset.name().toString('utf8'),
         metadata: asset.metadata().toString('utf8'),
         value: 10n,
