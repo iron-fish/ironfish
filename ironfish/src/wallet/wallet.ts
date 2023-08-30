@@ -845,12 +845,14 @@ export class Wallet {
       }
 
       mintData = {
+        creator: asset.creator.toString('hex'),
         name: asset.name.toString('utf8'),
         metadata: asset.metadata.toString('utf8'),
         value: options.value,
       }
     } else {
       mintData = {
+        creator: account.publicAddress,
         name: options.name,
         metadata: options.metadata,
         value: options.value,

@@ -1447,6 +1447,7 @@ describe('Accounts', () => {
         const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
         const mintValue = BigInt(10)
         const mintData = {
+          creator: asset.creator().toString('hex'),
           name: asset.name().toString('utf8'),
           metadata: asset.metadata().toString('utf8'),
           value: mintValue,

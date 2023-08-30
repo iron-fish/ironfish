@@ -137,6 +137,7 @@ describe('Verify Transaction', () => {
     const mints: MintData[] = []
     for (let i = 0; i < numMints; i++) {
       mints.push({
+        creator: account.publicAddress,
         name: asset.name().toString('utf8'),
         metadata: asset.metadata().toString('utf8'),
         value: 2n,

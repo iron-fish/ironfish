@@ -5,7 +5,6 @@
 import {
   AMOUNT_VALUE_LENGTH,
   ASSET_LENGTH,
-  generateKeyFromPrivateKey,
   PROOF_LENGTH,
   PUBLIC_ADDRESS_LENGTH,
   Transaction as NativeTransaction,
@@ -33,6 +32,7 @@ const noteHasher = new NoteHasher()
 const MAX_MINT_OR_BURN_VALUE = BigInt(100_000_000_000_000_000n)
 
 export interface MintData {
+  creator: string
   name: string
   metadata: string
   value: bigint
@@ -57,7 +57,7 @@ export class RawTransaction {
     >
   }[] = []
 
-  postedSize(publicAddress: string): number {
+  postedSize(_publicAddress: string): number {
     let size = 0
     size += 1 // version
     size += 8 // spends length
@@ -91,7 +91,7 @@ export class RawTransaction {
     // Each asset might have a change note, which would need to be accounted for
     const assetTotals = new AssetBalances()
     for (const mint of this.mints) {
-      const asset = new Asset(publicAddress, mint.name, mint.metadata)
+      const asset = new Asset(mint.creator, mint.name, mint.metadata)
       assetTotals.increment(asset.id(), mint.value)
     }
     for (const burn of this.burns) {
@@ -132,8 +132,7 @@ export class RawTransaction {
           )} exceededs maximum ${CurrencyUtils.renderIron(MAX_MINT_OR_BURN_VALUE)}. `,
         )
       }
-      const key = generateKeyFromPrivateKey(spendingKey)
-      const asset = new Asset(key.publicAddress, mint.name, mint.metadata)
+      const asset = new Asset(mint.creator, mint.name, mint.metadata)
 
       builder.mint(asset, mint.value, mint.transferOwnershipTo)
     }
@@ -194,6 +193,7 @@ export class RawTransactionSerde {
 
     bw.writeU64(raw.mints.length)
     for (const mint of raw.mints) {
+      bw.writeVarString(mint.creator, 'utf8')
       bw.writeVarString(mint.name, 'utf8')
       bw.writeVarString(mint.metadata, 'utf8')
       bw.writeBigU64(mint.value)
@@ -246,10 +246,11 @@ export class RawTransactionSerde {
 
     const mintsLength = reader.readU64()
     for (let i = 0; i < mintsLength; i++) {
+      const creator = reader.readVarString('utf8')
       const name = reader.readVarString('utf8')
       const metadata = reader.readVarString('utf8')
       const value = reader.readBigU64()
-      raw.mints.push({ name, metadata, value })
+      raw.mints.push({ creator, name, metadata, value })
     }
 
     const burnsLength = reader.readU64()
@@ -292,6 +293,7 @@ export class RawTransactionSerde {
 
     size += 8 // raw.mints.length
     for (const mint of raw.mints) {
+      size += bufio.sizeVarString(mint.creator, 'utf8')
       size += bufio.sizeVarString(mint.name, 'utf8')
       size += bufio.sizeVarString(mint.metadata, 'utf8')
       size += AMOUNT_VALUE_LENGTH // mint.value

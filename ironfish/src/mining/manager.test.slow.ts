@@ -203,6 +203,7 @@ describe('Mining manager', () => {
         fee: 20n,
         mints: [
           {
+            creator: accountA.publicAddress,
             name: 'Testcoin',
             metadata: '',
             value: 5n,
@@ -218,6 +219,7 @@ describe('Mining manager', () => {
         fee: 15n,
         mints: [
           {
+            creator: accountA.publicAddress,
             name: 'Testcoin',
             metadata: '',
             value: 5n,
@@ -235,6 +237,7 @@ describe('Mining manager', () => {
         fee: 5n,
         mints: [
           {
+            creator: accountA.publicAddress,
             name: 'Testcoin',
             metadata: '',
             value: 5n,
@@ -250,6 +253,7 @@ describe('Mining manager', () => {
         fee: 1n,
         mints: [
           {
+            creator: accountA.publicAddress,
             name: 'Othercoin',
             metadata: '',
             value: 5n,
