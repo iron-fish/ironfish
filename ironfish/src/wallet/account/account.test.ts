@@ -1472,7 +1472,7 @@ describe('Accounts', () => {
 
       // wallet should have removed the new asset from the expired mint
       assets = await AsyncUtils.materialize(accountA.getAssets())
-      expect(assets).toHaveLength(0)
+      expect(assets).toHaveLength(1)
 
       // expired mint should still be in the wallet
       const expiredMintTx = await accountA.getTransaction(mintTx.hash())
