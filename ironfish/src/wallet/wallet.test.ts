@@ -2807,12 +2807,16 @@ describe('Accounts', () => {
       // create an account so that the wallet will sync
       await useAccountFixture(node.wallet, 'a')
 
+      // update wallet to genesis block
+      await node.wallet.updateHead()
+
       const block2 = await useMinerBlockFixture(node.chain, undefined)
       await expect(node.chain).toAddBlock(block2)
       const block3 = await useMinerBlockFixture(node.chain, undefined)
       await expect(node.chain).toAddBlock(block3)
 
       expect(node.chain.head.hash).toEqualHash(block3.header.hash)
+      expect(node.wallet.chainProcessor.hash).toEqualHash(node.chain.genesis.hash)
 
       // set max syncing queue to 1 so that wallet only fetches one block at a time
       node.wallet.chainProcessor.maxQueueSize = 1
@@ -2824,8 +2828,8 @@ describe('Accounts', () => {
       // chainProcessor should sync all the way to head with one call to updateHead
       expect(node.wallet.chainProcessor.hash).toEqualHash(node.chain.head.hash)
 
-      // one call for each block and a fourth to find that hash doesn't change
-      expect(updateSpy).toHaveBeenCalledTimes(4)
+      // one call for each block and a third to find that hash doesn't change
+      expect(updateSpy).toHaveBeenCalledTimes(3)
     })
   })
 })
