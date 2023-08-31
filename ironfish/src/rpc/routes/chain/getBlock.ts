@@ -3,12 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
+import { getBlockSize, getTransactionSize } from '../../../network/utils/serializers'
 import { FullNode } from '../../../node'
 import { BlockHeader } from '../../../primitives'
 import { GENESIS_BLOCK_SEQUENCE } from '../../../primitives/block'
 import { BufferUtils } from '../../../utils'
 import { NotFoundError, ValidationError } from '../../adapters'
 import { ApiNamespace, routes } from '../router'
+import { RpcTransaction, RpcTransactionSchema } from './types'
 
 export type GetBlockRequest = {
   search?: string
@@ -25,17 +27,11 @@ export type GetBlockResponse = {
     hash: string
     previousBlockHash: string
     sequence: number
+    size: number
     timestamp: number
     noteSize: number
     noteCommitment: string
-    transactions: Array<{
-      fee: string
-      hash: string
-      signature: string
-      notes: number
-      spends: number
-      serialized?: string
-    }>
+    transactions: RpcTransaction[]
   }
   metadata: {
     main: boolean
@@ -63,23 +59,11 @@ export const GetBlockResponseSchema: yup.ObjectSchema<GetBlockResponse> = yup
         hash: yup.string().defined(),
         previousBlockHash: yup.string().defined(),
         sequence: yup.number().defined(),
+        size: yup.number().defined(),
         timestamp: yup.number().defined(),
         noteSize: yup.number().defined(),
         noteCommitment: yup.string().defined(),
-        transactions: yup
-          .array(
-            yup
-              .object({
-                fee: yup.string().defined(),
-                hash: yup.string().defined(),
-                signature: yup.string().defined(),
-                notes: yup.number().defined(),
-                spends: yup.number().defined(),
-                serialized: yup.string().optional(),
-              })
-              .defined(),
-          )
-          .defined(),
+        transactions: yup.array(RpcTransactionSchema).defined(),
       })
       .defined(),
     metadata: yup
@@ -148,14 +132,32 @@ routes.register<typeof GetBlockRequestSchema, GetBlockResponse>(
     const transactions: GetBlockResponse['block']['transactions'] = []
 
     for (const tx of block.transactions) {
-      const fee = tx.fee()
-
       transactions.push({
-        signature: tx.transactionSignature().toString('hex'),
         hash: tx.hash().toString('hex'),
-        fee: fee.toString(),
-        spends: tx.spends.length,
-        notes: tx.notes.length,
+        size: getTransactionSize(tx),
+        fee: Number(tx.fee()),
+        expiration: tx.expiration(),
+        notes: tx.notes.map((note) => ({
+          commitment: note.hash().toString('hex'),
+        })),
+        spends: tx.spends.map((spend) => ({
+          nullifier: spend.nullifier.toString('hex'),
+          commitment: spend.commitment.toString('hex'),
+          size: spend.size,
+        })),
+        mints: tx.mints.map((mint) => ({
+          id: mint.asset.id().toString('hex'),
+          metadata: BufferUtils.toHuman(mint.asset.metadata()),
+          name: BufferUtils.toHuman(mint.asset.name()),
+          creator: mint.asset.creator().toString('hex'),
+          value: mint.value.toString(),
+          transferOwnershipTo: mint.transferOwnershipTo?.toString('hex'),
+        })),
+        burns: tx.burns.map((burn) => ({
+          id: burn.assetId.toString('hex'),
+          value: burn.value.toString(),
+        })),
+        signature: tx.transactionSignature().toString('hex'),
         ...(request.data?.serialized ? { serialized: tx.serialize().toString('hex') } : {}),
       })
     }
@@ -170,6 +172,7 @@ routes.register<typeof GetBlockRequestSchema, GetBlockResponse>(
         hash: header.hash.toString('hex'),
         previousBlockHash: header.previousBlockHash.toString('hex'),
         sequence: Number(header.sequence),
+        size: getBlockSize(block),
         timestamp: header.timestamp.valueOf(),
         noteSize: header.noteSize,
         noteCommitment: header.noteCommitment.toString('hex'),
