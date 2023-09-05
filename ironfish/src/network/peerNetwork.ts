@@ -1198,14 +1198,13 @@ export class PeerNetwork {
       return
     }
 
-    const firstPeer = this.blockFetcher.firstSeenBy(block.header.hash)
-
     // Mark that we've assembled a full block in the block fetcher
     this.blockFetcher.receivedFullBlock(block, peer)
 
     this.broadcastBlock(block)
 
     // log that we've validated the block enough to gossip it
+    const firstPeer = this.blockFetcher.firstSeenBy(block.header.hash)
     this.telemetry.submitNewBlockSeen(block, new Date(), firstPeer)
 
     // verify the full block

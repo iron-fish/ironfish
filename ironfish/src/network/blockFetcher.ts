@@ -223,7 +223,7 @@ export class BlockFetcher {
       peer: peer.state.identity,
       compactBlock,
       sources: currentState ? currentState.sources : new Set<Identity>(),
-      firstSeenBy: currentState?.firstSeenBy ?? peer.state.identity,
+      firstSeenBy: currentState ? currentState.firstSeenBy : peer.state.identity,
     })
     return true
   }
