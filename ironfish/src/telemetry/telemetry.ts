@@ -403,7 +403,7 @@ export class Telemetry {
     })
   }
 
-  submitNewBlockSeen(block: Block, seenAt: Date, peerId?: Identity): void {
+  submitNewBlockSeen(block: Block, seenAt: Date, peerId: Identity | null): void {
     this.submit({
       measurement: 'block_propagation',
       timestamp: seenAt,
@@ -422,7 +422,7 @@ export class Telemetry {
         {
           name: 'firstSeenBy',
           type: 'string',
-          value: peerId || '',
+          value: peerId ?? '',
         },
         {
           name: 'sequence',

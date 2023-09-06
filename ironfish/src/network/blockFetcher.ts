@@ -73,7 +73,7 @@ type BlockState =
   | {
       action: 'PROCESSING_FULL_BLOCK'
       block: Block
-      firstSeenBy?: Identity
+      firstSeenBy: Identity | null
     }
 
 export class BlockFetcher {
@@ -231,9 +231,9 @@ export class BlockFetcher {
   /**
    * Return the first peer that notified us of this block
    */
-  firstSeenBy(hash: BlockHash): Identity | undefined {
+  firstSeenBy(hash: BlockHash): Identity | null {
     const currentState = this.pending.get(hash)
-    return currentState?.firstSeenBy
+    return currentState ? currentState.firstSeenBy : null
   }
 
   requestBlockTransactions(
@@ -389,7 +389,7 @@ export class BlockFetcher {
       this.pending.set(hash, {
         action: 'PROCESSING_FULL_BLOCK',
         block,
-        firstSeenBy: currentState?.firstSeenBy ?? peer.state.identity ?? undefined,
+        firstSeenBy: currentState?.firstSeenBy ?? peer.state.identity ?? null,
       })
     }
   }
