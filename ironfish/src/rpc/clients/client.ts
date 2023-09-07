@@ -17,6 +17,8 @@ import {
   BroadcastTransactionResponse,
   BurnAssetRequest,
   BurnAssetResponse,
+  BurnAssetV2Request,
+  BurnAssetV2Response,
   CreateAccountRequest,
   CreateAccountResponse,
   CreateTransactionRequest,
@@ -404,6 +406,15 @@ export abstract class RpcClient {
       return this.request<void, GetNodeStatusResponse>(`${ApiNamespace.wallet}/getNodeStatus`, {
         stream: true,
       })
+    },
+  }
+
+  'v2/wallet' = {
+    burnAsset: (params: BurnAssetV2Request): Promise<RpcResponseEnded<BurnAssetV2Response>> => {
+      return this.request<BurnAssetV2Response>(
+        `${ApiNamespace.walletV2}/burnAsset`,
+        params,
+      ).waitForEnd()
     },
   }
 

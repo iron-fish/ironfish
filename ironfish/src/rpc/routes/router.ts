@@ -18,8 +18,10 @@ export enum ApiNamespace {
   node = 'node',
   peer = 'peer',
   wallet = 'wallet',
+  walletV2 = 'v2/wallet',
   worker = 'worker',
   rpc = 'rpc',
+  v2 = 'v2',
   mempool = 'mempool',
 }
 

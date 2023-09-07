@@ -24,7 +24,7 @@ export interface BurnAssetV2Response {
   value: string
 }
 
-export const BurnAssetRequestSchema: yup.ObjectSchema<BurnAssetV2Request> = yup
+export const BurnAssetRequestV2Schema: yup.ObjectSchema<BurnAssetV2Request> = yup
   .object({
     account: yup.string().required(),
     assetId: yup.string().required(),
@@ -36,7 +36,7 @@ export const BurnAssetRequestSchema: yup.ObjectSchema<BurnAssetV2Request> = yup
   })
   .defined()
 
-export const BurnAssetResponseSchema: yup.ObjectSchema<BurnAssetV2Response> = yup
+export const BurnAssetResponseV2Schema: yup.ObjectSchema<BurnAssetV2Response> = yup
   .object({
     asset: RpcAssetSchema.required(),
     assetId: yup.string().required(),
@@ -46,9 +46,9 @@ export const BurnAssetResponseSchema: yup.ObjectSchema<BurnAssetV2Response> = yu
   })
   .defined()
 
-routes.register<typeof BurnAssetRequestSchema, BurnAssetV2Response>(
-  `${ApiNamespace.wallet}/burnAsset`,
-  BurnAssetRequestSchema,
+routes.register<typeof BurnAssetRequestV2Schema, BurnAssetV2Response>(
+  `${ApiNamespace.walletV2}/burnAsset`,
+  BurnAssetRequestV2Schema,
   async (request, node): Promise<void> => {
     const account = getAccount(node.wallet, request.data.account)
 
