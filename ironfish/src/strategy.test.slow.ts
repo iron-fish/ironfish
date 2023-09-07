@@ -261,14 +261,14 @@ describe('Demonstrate the Sapling API', () => {
       })
       const minersFee1 = await strategy.createMinersFee(
         0n,
-        consensusParameters.enableAssetOwnership - 1,
+        consensusParameters.enableAssetOwnership || 1 - 1,
         key.spendingKey,
       )
       expect(minersFee1.version()).toEqual(TransactionVersion.V1)
 
       const minersFee2 = await strategy.createMinersFee(
         0n,
-        consensusParameters.enableAssetOwnership,
+        consensusParameters.enableAssetOwnership || 1,
         key.spendingKey,
       )
       expect(minersFee2.version()).toEqual(TransactionVersion.V2)

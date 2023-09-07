@@ -39,7 +39,7 @@ export type ConsensusParameters = {
   /**
    * The block height that enables the use of V2 transactions instead of V1
    */
-  enableAssetOwnership: number
+  enableAssetOwnership: number | null
 }
 
 export class Consensus {
@@ -49,7 +49,10 @@ export class Consensus {
     this.parameters = parameters
   }
 
-  isActive(upgrade: number, sequence: number): boolean {
+  isActive(upgrade: number | null, sequence: number): boolean {
+    if (upgrade === null) {
+      return false
+    }
     return Math.max(1, sequence) >= upgrade
   }
 

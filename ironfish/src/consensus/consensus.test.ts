@@ -55,4 +55,18 @@ describe('Consensus', () => {
     expect(consensus.getActiveTransactionVersion(7)).toEqual(TransactionVersion.V2)
     expect(consensus.getActiveTransactionVersion(8)).toEqual(TransactionVersion.V2)
   })
+
+  it('when activation flag is null', () => {
+    consensus = new Consensus({
+      allowedBlockFutureSeconds: 1,
+      genesisSupplyInIron: 2,
+      targetBlockTimeInSeconds: 3,
+      targetBucketTimeInSeconds: 4,
+      maxBlockSizeBytes: 5,
+      minFee: 6,
+      enableAssetOwnership: null,
+    })
+    expect(consensus.getActiveTransactionVersion(5)).toEqual(TransactionVersion.V1)
+    expect(consensus.isActive(consensus.parameters.enableAssetOwnership, 3)).toBe(false)
+  })
 })
