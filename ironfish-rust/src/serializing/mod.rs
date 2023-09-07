@@ -4,7 +4,7 @@
 
 pub mod aead;
 
-use crate::errors::IronfishError;
+use crate::errors::{IronfishError, IronfishErrorKind};
 
 /// Helper functions to convert pairing parts to bytes
 ///
@@ -22,14 +22,16 @@ pub(crate) fn read_scalar<F: PrimeField, R: io::Read>(mut reader: R) -> Result<F
     let mut fr_repr = F::Repr::default();
     reader.read_exact(fr_repr.as_mut())?;
 
-    Option::from(F::from_repr(fr_repr)).ok_or(IronfishError::InvalidData)
+    Option::from(F::from_repr(fr_repr))
+        .ok_or_else(|| IronfishError::new(IronfishErrorKind::InvalidData))
 }
 
 pub(crate) fn read_point<G: GroupEncoding, R: io::Read>(mut reader: R) -> Result<G, IronfishError> {
     let mut point_repr = G::Repr::default();
     reader.read_exact(point_repr.as_mut())?;
 
-    Option::from(G::from_bytes(&point_repr)).ok_or(IronfishError::InvalidData)
+    Option::from(G::from_bytes(&point_repr))
+        .ok_or_else(|| IronfishError::new(IronfishErrorKind::InvalidData))
 }
 
 /// Output the bytes as a hexadecimal String
@@ -47,7 +49,7 @@ pub fn bytes_to_hex(bytes: &[u8]) -> String {
 /// Output the hexadecimal String as bytes
 pub fn hex_to_bytes<const SIZE: usize>(hex: &str) -> Result<[u8; SIZE], IronfishError> {
     if hex.len() != SIZE * 2 {
-        return Err(IronfishError::InvalidData);
+        return Err(IronfishError::new(IronfishErrorKind::InvalidData));
     }
 
     let mut bytes = [0; SIZE];
@@ -67,7 +69,7 @@ fn hex_to_u8(char: u8) -> Result<u8, IronfishError> {
         b'0'..=b'9' => Ok(char - b'0'),
         b'a'..=b'f' => Ok(char - b'a' + 10),
         b'A'..=b'F' => Ok(char - b'A' + 10),
-        _ => Err(IronfishError::InvalidData),
+        _ => Err(IronfishError::new(IronfishErrorKind::InvalidData)),
     }
 }
 

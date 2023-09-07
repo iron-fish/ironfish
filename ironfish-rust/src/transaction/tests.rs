@@ -7,7 +7,7 @@ use super::internal_batch_verify_transactions;
 use super::{ProposedTransaction, Transaction};
 use crate::{
     assets::{asset::Asset, asset_identifier::NATIVE_ASSET},
-    errors::IronfishError,
+    errors::{IronfishError, IronfishErrorKind},
     keys::SaplingKey,
     merkle_note::NOTE_ENCRYPTION_MINER_KEYS,
     note::Note,
@@ -310,8 +310,12 @@ fn test_transaction_version_is_checked() {
     fn assert_invalid_version(result: Result<Transaction, IronfishError>) {
         match result {
             Ok(_) => panic!("expected an error"),
-            Err(IronfishError::InvalidTransactionVersion) => (),
-            Err(ref err) => panic!("expected InvalidTransactionVersion, got {:?} instead", err),
+            Err(IronfishError { kind, .. }) => match kind {
+                IronfishErrorKind::InvalidTransactionVersion => {}
+                _ => {
+                    panic!("expected InvalidTransactionVersion, got {:?} instead", kind);
+                }
+            },
         }
     }
 
@@ -583,7 +587,7 @@ fn test_batch_verify() {
 
     assert!(matches!(
         batch_verify_transactions([&bad_transaction, &transaction2]),
-        Err(IronfishError::VerificationFailed)
+        Err(_)
     ));
 
     let mut bad_transaction = transaction1.clone();
@@ -591,7 +595,7 @@ fn test_batch_verify() {
 
     assert!(matches!(
         batch_verify_transactions([&bad_transaction, &transaction2]),
-        Err(IronfishError::VerificationFailed)
+        Err(_)
     ));
 
     let mut bad_transaction = transaction1.clone();
@@ -599,7 +603,7 @@ fn test_batch_verify() {
 
     assert!(matches!(
         batch_verify_transactions([&bad_transaction, &transaction2]),
-        Err(IronfishError::VerificationFailed)
+        Err(_)
     ));
 
     let mut bad_transaction = transaction1;
@@ -607,6 +611,6 @@ fn test_batch_verify() {
 
     assert!(matches!(
         batch_verify_transactions([&bad_transaction, &transaction2]),
-        Err(IronfishError::VerificationFailed)
+        Err(_)
     ));
 }

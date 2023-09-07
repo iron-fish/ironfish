@@ -2,11 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::backtrace::Backtrace;
+use std::backtrace::BacktraceStatus;
 use std::error::Error;
 use std::fmt;
 use std::io;
 use std::num;
 use std::string;
+
+#[derive(Debug)]
+pub struct IronfishError {
+    pub kind: IronfishErrorKind,
+    pub source: Option<Box<dyn Error>>,
+    pub backtrace: Backtrace,
+}
 
 /// Error type to handle all errors within the code and dependency-raised
 /// errors. This serves 2 purposes. The first is to keep a consistent error type
@@ -14,9 +23,9 @@ use std::string;
 /// types. The second is to give a singular type to convert into NAPI errors to
 /// be raised on the Javascript side.
 #[derive(Debug)]
-pub enum IronfishError {
-    BellpersonSynthesis(bellperson::SynthesisError),
-    CryptoBox(crypto_box::aead::Error),
+pub enum IronfishErrorKind {
+    BellpersonSynthesis,
+    CryptoBox,
     IllegalValue,
     InconsistentWitness,
     InvalidAssetIdentifier,
@@ -39,48 +48,78 @@ pub enum IronfishError {
     InvalidTransactionVersion,
     InvalidViewingKey,
     InvalidWord,
-    Io(io::Error),
+    Io,
     IsSmallOrder,
     RandomnessError,
-    TryFromInt(num::TryFromIntError),
-    Utf8(string::FromUtf8Error),
+    TryFromInt,
+    Utf8,
     VerificationFailed,
+}
+
+impl IronfishError {
+    pub fn new(kind: IronfishErrorKind) -> Self {
+        Self {
+            kind,
+            source: None,
+            backtrace: Backtrace::capture(),
+        }
+    }
+
+    pub fn new_with_source<E>(kind: IronfishErrorKind, source: E) -> Self
+    where
+        E: Into<Box<dyn Error>>,
+    {
+        Self {
+            kind,
+            source: Some(source.into()),
+            backtrace: Backtrace::capture(),
+        }
+    }
 }
 
 impl Error for IronfishError {}
 
 impl fmt::Display for IronfishError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self)
+        let has_backtrace = self.backtrace.status() == BacktraceStatus::Captured;
+        write!(f, "{:?}", self.kind)?;
+        if let Some(source) = &self.source {
+            write!(f, "\nCaused by: \n{}", source)?;
+        }
+        if has_backtrace {
+            write!(f, "\nBacktrace:\n{:2}", self.backtrace)
+        } else {
+            write!(f, "\nTo enable Rust backtraces, use RUST_BACKTRACE=1")
+        }
     }
 }
 
 impl From<io::Error> for IronfishError {
     fn from(e: io::Error) -> IronfishError {
-        IronfishError::Io(e)
+        IronfishError::new_with_source(IronfishErrorKind::Io, e)
     }
 }
 
 impl From<crypto_box::aead::Error> for IronfishError {
     fn from(e: crypto_box::aead::Error) -> IronfishError {
-        IronfishError::CryptoBox(e)
+        IronfishError::new_with_source(IronfishErrorKind::CryptoBox, e)
     }
 }
 
 impl From<string::FromUtf8Error> for IronfishError {
     fn from(e: string::FromUtf8Error) -> IronfishError {
-        IronfishError::Utf8(e)
+        IronfishError::new_with_source(IronfishErrorKind::Utf8, e)
     }
 }
 
 impl From<bellperson::SynthesisError> for IronfishError {
     fn from(e: bellperson::SynthesisError) -> IronfishError {
-        IronfishError::BellpersonSynthesis(e)
+        IronfishError::new_with_source(IronfishErrorKind::BellpersonSynthesis, e)
     }
 }
 
 impl From<num::TryFromIntError> for IronfishError {
     fn from(e: num::TryFromIntError) -> IronfishError {
-        IronfishError::TryFromInt(e)
+        IronfishError::new_with_source(IronfishErrorKind::TryFromInt, e)
     }
 }
