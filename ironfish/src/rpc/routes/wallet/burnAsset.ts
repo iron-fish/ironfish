@@ -17,9 +17,44 @@ export interface BurnAssetRequest {
   confirmations?: number
 }
 
+export interface RpcAsset {
+  id: string
+  metadata: string
+  name: string
+  nonce: number
+  creator: string
+  owner: string
+  createdTransactionHash: string
+  supply?: string // Populated for assets the account owns
+  blockHash?: string // Populated once the asset has been added to the main chain
+  sequence?: number // Populated once the asset has been added to the main chain
+}
+
+export const RpcAssetSchema: yup.ObjectSchema<RpcAsset> = yup
+  .object({
+    id: yup.string().required(),
+    metadata: yup.string().required(),
+    name: yup.string().required(),
+    nonce: yup.number().required(),
+    creator: yup.string().required(),
+    owner: yup.string().required(),
+    createdTransactionHash: yup.string().required(),
+    supply: yup.string().optional(),
+    blockHash: yup.string().optional(),
+    sequence: yup.number().optional(),
+  })
+  .defined()
+
 export interface BurnAssetResponse {
+  asset: RpcAsset
+  /**
+   * @deprecated Please use `asset.id` instead
+   */
   assetId: string
   hash: string
+  /**
+   * @deprecated Please use `asset.name` instead
+   */
   name: string
   value: string
 }
@@ -38,6 +73,7 @@ export const BurnAssetRequestSchema: yup.ObjectSchema<BurnAssetRequest> = yup
 
 export const BurnAssetResponseSchema: yup.ObjectSchema<BurnAssetResponse> = yup
   .object({
+    asset: RpcAssetSchema.required(),
     assetId: yup.string().required(),
     hash: yup.string().required(),
     name: yup.string().required(),
@@ -71,6 +107,18 @@ routes.register<typeof BurnAssetRequestSchema, BurnAssetResponse>(
     const burn = transaction.burns[0]
 
     request.end({
+      asset: {
+        id: asset.id.toString('hex'),
+        metadata: asset.metadata.toString('hex'),
+        name: asset.name.toString('hex'),
+        nonce: asset.nonce,
+        creator: asset.creator.toString('hex'),
+        owner: asset.owner.toString('hex'),
+        createdTransactionHash: asset.createdTransactionHash.toString('hex'),
+        supply: asset.supply?.toString(),
+        blockHash: asset.blockHash?.toString('hex'),
+        sequence: asset.sequence || undefined,
+      },
       assetId: burn.assetId.toString('hex'),
       hash: transaction.hash().toString('hex'),
       name: asset.name.toString('hex'),
