@@ -74,6 +74,10 @@ describe('Route wallet/burnAsset', () => {
       })
       jest.spyOn(wallet, 'burn').mockResolvedValueOnce(burnTransaction)
 
+      const accountAsset = await account.getAsset(assetId)
+
+      expect(accountAsset).toBeDefined()
+
       const response = await routeTest.client.wallet.burnAsset({
         account: account.name,
         assetId: assetId.toString('hex'),
@@ -82,6 +86,18 @@ describe('Route wallet/burnAsset', () => {
       })
 
       expect(response.content).toEqual({
+        asset: {
+          id: asset.id().toString('hex'),
+          metadata: asset.metadata().toString('hex'),
+          name: asset.name().toString('hex'),
+          creator: asset.creator().toString('hex'),
+          nonce: accountAsset?.nonce ?? null,
+          owner: accountAsset?.owner?.toString('hex') ?? null,
+          sequence: accountAsset?.sequence ?? null,
+          supply: accountAsset?.supply?.toString() ?? null,
+          blockHash: accountAsset?.blockHash?.toString('hex') ?? null,
+          createdTransactionHash: accountAsset?.createdTransactionHash?.toString('hex') ?? null,
+        },
         assetId: asset.id().toString('hex'),
         name: asset.name().toString('hex'),
         hash: burnTransaction.hash().toString('hex'),
