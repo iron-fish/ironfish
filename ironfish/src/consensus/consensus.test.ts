@@ -64,7 +64,7 @@ describe('Consensus', () => {
       targetBucketTimeInSeconds: 4,
       maxBlockSizeBytes: 5,
       minFee: 6,
-      enableAssetOwnership: null,
+      enableAssetOwnership: 'never',
     })
     expect(consensus.getActiveTransactionVersion(5)).toEqual(TransactionVersion.V1)
     expect(consensus.isActive(consensus.parameters.enableAssetOwnership, 3)).toBe(false)

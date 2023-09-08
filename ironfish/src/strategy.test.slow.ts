@@ -11,6 +11,7 @@ import {
   Transaction as NativeTransaction,
   TransactionPosted as NativeTransactionPosted,
 } from '@ironfish/rust-nodejs'
+import { Assert } from './assert'
 import { ConsensusParameters, TestnetConsensus } from './consensus'
 import { MerkleTree } from './merkletree'
 import { LeafEncoding } from './merkletree/database/leaves'
@@ -259,16 +260,19 @@ describe('Demonstrate the Sapling API', () => {
         workerPool,
         consensus: new TestnetConsensus(modifiedParams),
       })
+
+      Assert.isTrue(typeof consensusParameters.enableAssetOwnership === 'number')
+      const enableAssetOwnershipSequence = Number(consensusParameters.enableAssetOwnership)
       const minersFee1 = await strategy.createMinersFee(
         0n,
-        (consensusParameters.enableAssetOwnership || 1) - 1,
+        enableAssetOwnershipSequence - 1,
         key.spendingKey,
       )
       expect(minersFee1.version()).toEqual(TransactionVersion.V1)
 
       const minersFee2 = await strategy.createMinersFee(
         0n,
-        consensusParameters.enableAssetOwnership || 1,
+        enableAssetOwnershipSequence,
         key.spendingKey,
       )
       expect(minersFee2.version()).toEqual(TransactionVersion.V2)
