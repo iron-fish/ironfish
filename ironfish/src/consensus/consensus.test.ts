@@ -14,6 +14,7 @@ describe('Consensus', () => {
     maxBlockSizeBytes: 5,
     minFee: 6,
     enableAssetOwnership: 7,
+    enforceSequentialBlockTime: 1,
   }
 
   let consensus: Consensus
