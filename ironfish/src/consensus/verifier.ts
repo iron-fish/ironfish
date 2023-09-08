@@ -278,6 +278,11 @@ export class Verifier {
       if (reason) {
         return reason
       }
+
+      const { reason: mintOwnersReason } = await this.verifyMintOwners(transaction.mints, tx)
+      if (mintOwnersReason) {
+        return mintOwnersReason
+      }
     })
 
     if (reason) {

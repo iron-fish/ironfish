@@ -100,6 +100,14 @@ export class AssetsCommand extends IronfishCommand {
                 ? BufferUtils.toHuman(Buffer.from(row.creator, 'hex'))
                 : row.creator,
           },
+          owner: {
+            header: 'Owner',
+            minWidth: PUBLIC_ADDRESS_LENGTH + 1,
+            get: (row) =>
+              row.id === Asset.nativeId().toString('hex')
+                ? BufferUtils.toHuman(Buffer.from(row.owner, 'hex'))
+                : row.owner,
+          },
         },
         {
           printLine: this.log.bind(this),
