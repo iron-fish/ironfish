@@ -6,6 +6,7 @@ import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { CurrencyUtils, YupUtils } from '../../../utils'
 import { MintAssetOptions } from '../../../wallet/interfaces/mintAssetOptions'
+import { constructRpcAsset, RpcAsset, RpcAssetSchema } from '../../types'
 import { ApiNamespace, routes } from '../router'
 import { getAccount } from './utils'
 
@@ -22,8 +23,15 @@ export interface MintAssetRequest {
 }
 
 export interface MintAssetResponse {
+  asset: RpcAsset
+  /**
+   * @deprecated Please use `asset.id` instead
+   */
   assetId: string
   hash: string
+  /**
+   * @deprecated Please use `asset.name` instead
+   */
   name: string
   value: string
 }
@@ -44,6 +52,7 @@ export const MintAssetRequestSchema: yup.ObjectSchema<MintAssetRequest> = yup
 
 export const MintAssetResponseSchema: yup.ObjectSchema<MintAssetResponse> = yup
   .object({
+    asset: RpcAssetSchema.defined(),
     assetId: yup.string().required(),
     hash: yup.string().required(),
     name: yup.string().required(),
@@ -94,6 +103,7 @@ routes.register<typeof MintAssetRequestSchema, MintAssetResponse>(
     const mint = transaction.mints[0]
 
     request.end({
+      asset: constructRpcAsset(mint.asset),
       assetId: mint.asset.id().toString('hex'),
       hash: transaction.hash().toString('hex'),
       name: mint.asset.name().toString('hex'),
