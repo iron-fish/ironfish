@@ -4,7 +4,6 @@
 import { Asset } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
 import { AssetVerification } from '../../../assets'
-import { RpcAssetSchema } from '../../types'
 import { ApiNamespace, routes } from '../router'
 import { getAccount } from './utils'
 
@@ -46,7 +45,6 @@ export const GetBalanceResponseSchema: yup.ObjectSchema<GetBalanceResponse> = yu
   .object({
     account: yup.string().defined(),
     assetId: yup.string().defined(),
-    asset: RpcAssetSchema.optional(),
     assetVerification: yup
       .object({ status: yup.string().oneOf(['verified', 'unverified', 'unknown']).defined() })
       .defined(),

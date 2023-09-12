@@ -4,7 +4,6 @@
 import * as yup from 'yup'
 import { AssetVerification } from '../../../assets'
 import { CurrencyUtils } from '../../../utils'
-import { RpcAssetSchema } from '../../types'
 import { ApiNamespace, routes } from '../router'
 import { getAccount } from './utils'
 
@@ -60,7 +59,6 @@ export const GetBalancesResponseSchema: yup.ObjectSchema<GetBalancesResponse> = 
         yup
           .object()
           .shape({
-            asset: RpcAssetSchema.defined(),
             assetId: yup.string().defined(),
             assetName: yup.string().defined(),
             assetCreator: yup.string().defined(),

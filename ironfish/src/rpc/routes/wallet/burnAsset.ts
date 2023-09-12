@@ -86,7 +86,6 @@ routes.register<typeof BurnAssetRequestSchema, BurnAssetResponse>(
         name: asset.name.toString('hex'),
         nonce: asset.nonce,
         creator: asset.creator.toString('hex'),
-        owner: asset.owner.toString('hex'),
       },
       assetId: burn.assetId.toString('hex'),
       hash: transaction.hash().toString('hex'),

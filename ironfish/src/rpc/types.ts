@@ -10,7 +10,6 @@ export type RpcAsset = {
   name: string
   nonce: number
   creator: string
-  owner?: string
 }
 
 export const RpcAssetSchema: yup.ObjectSchema<RpcAsset> = yup
@@ -20,6 +19,5 @@ export const RpcAssetSchema: yup.ObjectSchema<RpcAsset> = yup
     name: yup.string().required(),
     nonce: yup.number().required(),
     creator: yup.string().required(),
-    owner: yup.string().optional(),
   })
   .defined()
