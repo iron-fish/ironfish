@@ -4,7 +4,7 @@
 import * as yup from 'yup'
 import { AssetVerification } from '../../../assets'
 import { CurrencyUtils } from '../../../utils'
-import { constructRpcAsset, RpcAsset, RpcAssetSchema } from '../../types'
+import { constructRpcAsset, RpcAssetSchema } from '../../types'
 import { ApiNamespace, routes } from '../router'
 import { getAccount } from './utils'
 
@@ -16,14 +16,13 @@ export interface GetBalancesRequest {
 export interface GetBalancesResponse {
   account: string
   balances: {
-    asset?: RpcAsset
     assetId: string
     /**
-     * @deprecated Please use `asset.name` instead
+     * @deprecated Please use getAsset endpoint to get this information
      */
     assetName: string
     /**
-     * @deprecated Please use `asset.creator` instead
+     * @deprecated Please use getAsset endpoint to get this information
      */
     assetCreator: string
     /**

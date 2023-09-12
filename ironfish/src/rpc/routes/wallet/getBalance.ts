@@ -4,7 +4,7 @@
 import { Asset } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
 import { AssetVerification } from '../../../assets'
-import { constructRpcAsset, RpcAsset, RpcAssetSchema } from '../../types'
+import { RpcAssetSchema } from '../../types'
 import { ApiNamespace, routes } from '../router'
 import { getAccount } from './utils'
 
@@ -19,7 +19,6 @@ export type GetBalanceRequest =
 export type GetBalanceResponse = {
   account: string
   assetId: string
-  asset?: RpcAsset
   /**
    * @deprecated Please use getAsset endpoint to get this information
    * */
@@ -85,7 +84,6 @@ routes.register<typeof GetBalanceRequestSchema, GetBalanceResponse>(
     request.end({
       account: account.name,
       assetId: assetId.toString('hex'),
-      asset: asset ? constructRpcAsset(asset) : undefined,
       assetVerification: node.assetsVerifier.verify(assetId),
       confirmed: balance.confirmed.toString(),
       unconfirmed: balance.unconfirmed.toString(),

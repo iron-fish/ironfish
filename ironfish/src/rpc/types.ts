@@ -7,7 +7,7 @@ import { Asset } from '../../../ironfish-rust-nodejs'
 import { AssetValue as BlochcainAssetValue } from '../blockchain/database/assetValue'
 import { AssetValue as WalletAssetValue } from '../wallet/walletdb/assetValue'
 
-export interface RpcAsset {
+export type RpcAsset = {
   id: string
   metadata: string
   name: string
