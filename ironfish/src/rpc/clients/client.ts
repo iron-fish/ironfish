@@ -217,7 +217,7 @@ export abstract class RpcClient {
       params: RemoveAccountRequest,
     ): Promise<RpcResponseEnded<RemoveAccountResponse>> => {
       return this.request<RemoveAccountResponse>(
-        `${ApiNamespace.wallet}/remove`,
+        `${ApiNamespace.wallet}/removeAccount`,
         params,
       ).waitForEnd()
     },
