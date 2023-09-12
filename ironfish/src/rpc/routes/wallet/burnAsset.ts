@@ -4,7 +4,7 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { CurrencyUtils, YupUtils } from '../../../utils'
-import { constructRpcAsset, RpcAsset, RpcAssetSchema } from '../../types'
+import { RpcAsset, RpcAssetSchema } from '../../types'
 import { ApiNamespace, routes } from '../router'
 import { getAccount } from './utils'
 
@@ -80,7 +80,14 @@ routes.register<typeof BurnAssetRequestSchema, BurnAssetResponse>(
     const burn = transaction.burns[0]
 
     request.end({
-      asset: constructRpcAsset(asset),
+      asset: {
+        id: asset.id.toString('hex'),
+        metadata: asset.metadata.toString('hex'),
+        name: asset.name.toString('hex'),
+        nonce: asset.nonce,
+        creator: asset.creator.toString('hex'),
+        owner: asset.owner.toString('hex'),
+      },
       assetId: burn.assetId.toString('hex'),
       hash: transaction.hash().toString('hex'),
       name: asset.name.toString('hex'),
