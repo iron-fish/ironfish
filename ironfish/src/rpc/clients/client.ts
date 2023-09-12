@@ -195,7 +195,7 @@ export abstract class RpcClient {
       params: CreateAccountRequest,
     ): Promise<RpcResponseEnded<CreateAccountResponse>> => {
       return this.request<CreateAccountResponse>(
-        `${ApiNamespace.wallet}/create`,
+        `${ApiNamespace.wallet}/createAccount`,
         params,
       ).waitForEnd()
     },
