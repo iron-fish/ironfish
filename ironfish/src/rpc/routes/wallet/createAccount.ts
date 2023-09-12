@@ -1,10 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import * as yup from 'yup'
 import { ERROR_CODES, ValidationError } from '../../adapters'
 import { ApiNamespace, routes } from '../router'
-import { CreateAccountRequestSchema, CreateAccountResponse } from '../wallet'
-
 /**
  * Our endpoints follow the verbObject naming convention, where the verb is the
  * HTTP verb and the object is the object being acted upon. For example,
@@ -15,6 +14,28 @@ import { CreateAccountRequestSchema, CreateAccountResponse } from '../wallet'
  *
  * Hence, we're adding a new createAccount endpoint and will eventually sunset the create endpoint.
  */
+
+export type CreateAccountRequest = { name: string; default?: boolean }
+export type CreateAccountResponse = {
+  name: string
+  publicAddress: string
+  isDefaultAccount: boolean
+}
+
+export const CreateAccountRequestSchema: yup.ObjectSchema<CreateAccountRequest> = yup
+  .object({
+    name: yup.string().defined(),
+    default: yup.boolean().optional(),
+  })
+  .defined()
+
+export const CreateAccountResponseSchema: yup.ObjectSchema<CreateAccountResponse> = yup
+  .object({
+    name: yup.string().defined(),
+    publicAddress: yup.string().defined(),
+    isDefaultAccount: yup.boolean().defined(),
+  })
+  .defined()
 
 routes.register<typeof CreateAccountRequestSchema, CreateAccountResponse>(
   `${ApiNamespace.wallet}/createAccount`,
