@@ -4,7 +4,7 @@
 
 import * as yup from 'yup'
 import { AccountImport } from '../../../wallet/walletdb/accountValue'
-import { RpcAsset, RpcAssetSchema } from '../../types'
+import { RpcAssetSchema } from '../../types'
 
 export type RpcAccountTransaction = {
   hash: string
@@ -41,7 +41,6 @@ export const RcpAccountAssetBalanceDeltaSchema: yup.ObjectSchema<RcpAccountAsset
 export type RpcWalletNote = {
   value: string
   assetId: string
-  asset?: RpcAsset
   /**
    * @deprecated Please use `asset.name` instead
    */

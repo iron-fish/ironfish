@@ -94,7 +94,7 @@ describe('Route wallet/mintAsset', () => {
           metadata: asset.metadata().toString('hex'),
           name: asset.name().toString('hex'),
           creator: asset.creator().toString('hex'),
-          nonce: asset.nonce() ?? null,
+          nonce: asset.nonce(),
         },
         assetId: asset.id().toString('hex'),
         hash: mintTransaction.hash().toString('hex'),
