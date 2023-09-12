@@ -79,8 +79,6 @@ routes.register<typeof GetBalanceRequestSchema, GetBalanceResponse>(
       confirmations,
     })
 
-    const asset = await account.getAsset(assetId)
-
     request.end({
       account: account.name,
       assetId: assetId.toString('hex'),
