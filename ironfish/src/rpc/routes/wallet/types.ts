@@ -23,7 +23,7 @@ export type RpcAccountTransaction = {
 export type RcpAccountAssetBalanceDelta = {
   assetId: string
   /**
-   * @deprecated Please use `asset.name` instead
+   * @deprecated Please use the getAsset RPC to fetch additional asset details
    */
   assetName: string
   delta: string
