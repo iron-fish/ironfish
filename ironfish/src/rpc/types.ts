@@ -36,13 +36,23 @@ export const RpcAssetSchema: yup.ObjectSchema<RpcAsset> = yup
   .defined()
 
 export const constructRpcAsset = (
-  asset: Asset | WalletAssetValue | BlochcainAssetValue,
+  asset: WalletAssetValue | BlochcainAssetValue | Readonly<WalletAssetValue>,
 ): RpcAsset => {
   return {
     id: asset.id.toString('hex'),
     metadata: asset.metadata.toString('hex'),
     name: asset.name.toString('hex'),
-    nonce: typeof asset.nonce === 'number' ? asset.nonce : asset.nonce(),
+    nonce: asset.nonce,
     creator: asset.creator.toString('hex'),
+  }
+}
+
+export const constructRpcAssetFromAsset = (asset: Asset): RpcAsset => {
+  return {
+    id: asset.id().toString('hex'),
+    metadata: asset.metadata().toString('hex'),
+    name: asset.name().toString('hex'),
+    nonce: asset.nonce(),
+    creator: asset.creator().toString('hex'),
   }
 }

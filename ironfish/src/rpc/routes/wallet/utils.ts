@@ -10,6 +10,7 @@ import { DecryptedNoteValue } from '../../../wallet/walletdb/decryptedNoteValue'
 import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
 import { WorkerPool } from '../../../workerPool'
 import { ValidationError } from '../../adapters'
+import { constructRpcAsset } from '../../types'
 import {
   RcpAccountAssetBalanceDelta,
   RpcAccountImport,
@@ -173,6 +174,7 @@ export function serializeRpcWalletNote(
   return {
     value: CurrencyUtils.encode(note.note.value()),
     assetId: note.note.assetId().toString('hex'),
+    asset: asset ? constructRpcAsset(asset) : undefined,
     assetName: asset?.name.toString('hex') || '',
     memo: note.note.memo(),
     owner: note.note.owner(),

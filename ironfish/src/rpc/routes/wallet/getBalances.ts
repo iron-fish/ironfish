@@ -4,6 +4,7 @@
 import * as yup from 'yup'
 import { AssetVerification } from '../../../assets'
 import { CurrencyUtils } from '../../../utils'
+import { constructRpcAsset, RpcAsset, RpcAssetSchema } from '../../types'
 import { ApiNamespace, routes } from '../router'
 import { getAccount } from './utils'
 
@@ -15,8 +16,15 @@ export interface GetBalancesRequest {
 export interface GetBalancesResponse {
   account: string
   balances: {
+    asset?: RpcAsset
     assetId: string
+    /**
+     * @deprecated Please use `asset.name` instead
+     */
     assetName: string
+    /**
+     * @deprecated Please use `asset.creator` instead
+     */
     assetCreator: string
     assetOwner: string
     assetVerification: AssetVerification
@@ -47,6 +55,7 @@ export const GetBalancesResponseSchema: yup.ObjectSchema<GetBalancesResponse> = 
         yup
           .object()
           .shape({
+            asset: RpcAssetSchema.defined(),
             assetId: yup.string().defined(),
             assetName: yup.string().defined(),
             assetCreator: yup.string().defined(),
@@ -86,6 +95,7 @@ routes.register<typeof GetBalancesRequestSchema, GetBalancesResponse>(
       const asset = await account.getAsset(balance.assetId)
 
       balances.push({
+        asset: asset ? constructRpcAsset(asset) : undefined,
         assetId: balance.assetId.toString('hex'),
         assetName: asset?.name.toString('hex') ?? '',
         assetCreator: asset?.creator.toString('hex') ?? '',

@@ -89,6 +89,13 @@ describe('Route wallet/mintAsset', () => {
       })
 
       expect(response.content).toEqual({
+        asset: {
+          id: asset.id().toString('hex'),
+          metadata: asset.metadata().toString('hex'),
+          name: asset.name().toString('hex'),
+          creator: asset.creator().toString('hex'),
+          nonce: asset.nonce() ?? null,
+        },
         assetId: asset.id().toString('hex'),
         hash: mintTransaction.hash().toString('hex'),
         name: asset.name().toString('hex'),
