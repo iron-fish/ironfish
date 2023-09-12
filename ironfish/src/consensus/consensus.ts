@@ -4,6 +4,8 @@
 
 import { TransactionVersion } from '../primitives/transaction'
 
+export type ActivationSequence = number | 'never'
+
 export type ConsensusParameters = {
   /**
    * When adding a block, the block can be this amount of seconds into the future
@@ -39,7 +41,7 @@ export type ConsensusParameters = {
   /**
    * The block height that enables the use of V2 transactions instead of V1
    */
-  enableAssetOwnership: number
+  enableAssetOwnership: ActivationSequence
 }
 
 export class Consensus {
@@ -49,7 +51,10 @@ export class Consensus {
     this.parameters = parameters
   }
 
-  isActive(upgrade: number, sequence: number): boolean {
+  isActive(upgrade: ActivationSequence, sequence: number): boolean {
+    if (upgrade === 'never') {
+      return false
+    }
     return Math.max(1, sequence) >= upgrade
   }
 
