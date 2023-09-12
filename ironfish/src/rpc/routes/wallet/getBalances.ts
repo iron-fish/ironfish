@@ -26,7 +26,13 @@ export interface GetBalancesResponse {
      * @deprecated Please use `asset.creator` instead
      */
     assetCreator: string
+    /**
+     * @deprecated Please use getAsset endpoint to get this information
+     * */
     assetOwner: string
+    /**
+     * @deprecated Please use getAsset endpoint to get this information
+     * */
     assetVerification: AssetVerification
     confirmed: string
     unconfirmed: string

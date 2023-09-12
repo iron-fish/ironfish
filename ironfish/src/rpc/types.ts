@@ -13,15 +13,6 @@ export interface RpcAsset {
   name: string
   nonce: number
   creator: string
-  // chain?: {
-  //   owner?: string
-  //   supply?: string // Populated for assets the account owns
-  //   blockHash: string
-  //   blockSequence: number
-  //   createdAtTransactionHash?: string // Populated once the asset has been added to the main chain
-  //   createdAtblockHash?: string // Populated once the asset has been added to the main chain
-  //   createdAtSequence?: number // Populated once the asset has been added to the main chain
-  // }
 }
 
 export const RpcAssetSchema: yup.ObjectSchema<RpcAsset> = yup
