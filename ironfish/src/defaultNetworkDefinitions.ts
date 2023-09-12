@@ -36,7 +36,7 @@ export const TESTNET = `{
       "targetBucketTimeInSeconds": 10,
       "maxBlockSizeBytes": 524288,
       "minFee": 1,
-      "enableAssetOwnership": 9999999
+      "enableAssetOwnership": 9999999,
       "enforceSequentialBlockTime": 649976
   }
 }`
@@ -57,7 +57,7 @@ export const MAINNET = `
         "targetBucketTimeInSeconds": 10,
         "maxBlockSizeBytes": 524288,
         "minFee": 1,
-        "enableAssetOwnership": 9999999
+        "enableAssetOwnership": 9999999,
         "enforceSequentialBlockTime": 665429
     }
 }`
@@ -75,7 +75,7 @@ export const DEVNET = `
         "targetBucketTimeInSeconds": 10,
         "maxBlockSizeBytes": 524288,
         "minFee": 0,
-        "enableAssetOwnership": 1
+        "enableAssetOwnership": 1,
         "enforceSequentialBlockTime": 1
     }
 }`
