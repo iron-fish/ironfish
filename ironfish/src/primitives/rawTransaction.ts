@@ -213,7 +213,7 @@ export class RawTransactionSerde {
       } else {
         Assert.isUndefined(
           mint.transferOwnershipTo,
-          'Expected transferOwnershipTo to be undefined',
+          'Version 1 transactions cannot contain transferOwnershipTo',
         )
       }
     }
