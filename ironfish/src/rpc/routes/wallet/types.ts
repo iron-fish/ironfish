@@ -29,6 +29,15 @@ export type RcpAccountAssetBalanceDelta = {
   delta: string
 }
 
+export const RcpAccountAssetBalanceDeltaSchema: yup.ObjectSchema<RcpAccountAssetBalanceDelta> =
+  yup
+    .object({
+      assetId: yup.string().defined(),
+      assetName: yup.string().defined(),
+      delta: yup.string().defined(),
+    })
+    .defined()
+
 export type RpcWalletNote = {
   value: string
   assetId: string
