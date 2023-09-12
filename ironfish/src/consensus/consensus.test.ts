@@ -57,7 +57,7 @@ describe('Consensus', () => {
     expect(consensus.getActiveTransactionVersion(8)).toEqual(TransactionVersion.V2)
   })
 
-  it('when activation flag is null', () => {
+  it('when activation flag is never', () => {
     consensus = new Consensus({
       allowedBlockFutureSeconds: 1,
       genesisSupplyInIron: 2,
@@ -66,8 +66,10 @@ describe('Consensus', () => {
       maxBlockSizeBytes: 5,
       minFee: 6,
       enableAssetOwnership: 'never',
+      enforceSequentialBlockTime: 'never',
     })
     expect(consensus.getActiveTransactionVersion(5)).toEqual(TransactionVersion.V1)
     expect(consensus.isActive(consensus.parameters.enableAssetOwnership, 3)).toBe(false)
+    expect(consensus.isActive(consensus.parameters.enforceSequentialBlockTime, 3)).toBe(false)
   })
 })

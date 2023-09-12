@@ -37,7 +37,7 @@ export const TESTNET = `{
       "maxBlockSizeBytes": 524288,
       "minFee": 1,
       "enableAssetOwnership": 9999999,
-      "enforceSequentialBlockTime": 649976
+      "enforceSequentialBlockTime": "never"
   }
 }`
 
@@ -58,7 +58,7 @@ export const MAINNET = `
         "maxBlockSizeBytes": 524288,
         "minFee": 1,
         "enableAssetOwnership": 9999999,
-        "enforceSequentialBlockTime": 665429
+        "enforceSequentialBlockTime": "never"
     }
 }`
 

@@ -47,8 +47,7 @@ export type ConsensusParameters = {
    * Before upgrade we have block timestamp smaller than previous block. After this
    * block we enforce the block timestamps in the sequential order as the block sequences.
    */
-  enforceSequentialBlockTime: number
-
+  enforceSequentialBlockTime: ActivationSequence
 }
 
 export class Consensus {
