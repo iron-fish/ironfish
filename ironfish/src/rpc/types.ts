@@ -54,36 +54,3 @@ export const RpcEncryptedNoteSchema: yup.ObjectSchema<RpcEncryptedNote> = yup
     serialized: yup.string().defined(),
   })
   .defined()
-
-export type RpcNote = {
-  assetId: string
-  owner: string
-  sender: string
-  hash: string
-  value: string
-  memo: string
-  transactionHash: string
-  /**
-   * @deprecated Please use getAsset endpoint to get this information
-   */
-  assetName: string
-  /**
-   * @deprecated Please use hash instead
-   */
-  noteHash: string
-}
-
-export const RpcNoteSchema = yup
-  .object()
-  .shape({
-    assetId: yup.string().required(),
-    assetName: yup.string().required(),
-    hash: yup.string().required(),
-    value: yup.string().required(),
-    memo: yup.string().required(),
-    owner: yup.string().required(),
-    sender: yup.string().required(),
-    transactionHash: yup.string().required(),
-    noteHash: yup.string().required(),
-  })
-  .required()

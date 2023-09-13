@@ -4,7 +4,6 @@
 
 import * as yup from 'yup'
 import { AccountImport } from '../../../wallet/walletdb/accountValue'
-import { RpcNote } from '../../types'
 
 export type RpcAccountTransaction = {
   hash: string
@@ -38,7 +37,22 @@ export const RcpAccountAssetBalanceDeltaSchema: yup.ObjectSchema<RcpAccountAsset
     })
     .defined()
 
-export type RpcWalletNote = RpcNote & {
+export type RpcWalletNote = {
+  assetId: string
+  owner: string
+  sender: string
+  hash: string
+  value: string
+  memo: string
+  transactionHash: string
+  /**
+   * @deprecated Please use getAsset endpoint to get this information
+   */
+  assetName: string
+  /**
+   * @deprecated Please use hash instead
+   */
+  noteHash: string
   index: number | null
   nullifier: string | null
   spent: boolean
