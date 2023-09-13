@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { BufferMap } from 'buffer-map'
+import Decimal from 'decimal.js'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { Consensus, isExpiredSequence, Verifier } from '../consensus'
@@ -11,13 +12,13 @@ import { MetricsMonitor } from '../metrics'
 import { getTransactionSize } from '../network/utils/serializers'
 import { Block, BlockHeader } from '../primitives'
 import { Transaction, TransactionHash } from '../primitives/transaction'
-import { FeeEstimator, getFeeRate } from './feeEstimator'
+import { FeeEstimator, getPreciseFeeRate } from './feeEstimator'
 import { PriorityQueue } from './priorityQueue'
 import { RecentlyEvictedCache } from './recentlyEvictedCache'
 
 interface MempoolEntry {
   hash: TransactionHash
-  feeRate: bigint
+  feeRate: Decimal
 }
 
 interface ExpirationMempoolEntry {
@@ -34,8 +35,8 @@ export function mempoolEntryComparator(
   firstTransaction: MempoolEntry,
   secondTransaction: MempoolEntry,
 ): boolean {
-  if (firstTransaction.feeRate !== secondTransaction.feeRate) {
-    return firstTransaction.feeRate > secondTransaction.feeRate
+  if (!firstTransaction.feeRate.eq(secondTransaction.feeRate)) {
+    return firstTransaction.feeRate.greaterThan(secondTransaction.feeRate)
   }
 
   return firstTransaction.hash.compare(secondTransaction.hash) > 0
@@ -330,8 +331,8 @@ export class MemPool {
       this.nullifiers.set(spend.nullifier, hash)
     }
 
-    this.feeRateQueue.add({ hash, feeRate: getFeeRate(transaction) })
-    this.evictionQueue.add({ hash, feeRate: getFeeRate(transaction) })
+    this.feeRateQueue.add({ hash, feeRate: getPreciseFeeRate(transaction) })
+    this.evictionQueue.add({ hash, feeRate: getPreciseFeeRate(transaction) })
     this.versionQueue.add({ hash, version: transaction.version() })
     if (transaction.expiration() > 0) {
       this.expirationQueue.add({ expiration: transaction.expiration(), hash })
@@ -411,7 +412,7 @@ export class MemPool {
       // currently in the mempool.
       this.recentlyEvictedCache.add(
         transaction.hash(),
-        getFeeRate(transaction),
+        getPreciseFeeRate(transaction),
         this.chain.head.sequence,
         this.sizeInBlocks(),
       )
