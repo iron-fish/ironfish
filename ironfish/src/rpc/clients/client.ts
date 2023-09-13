@@ -131,7 +131,7 @@ import {
   IsValidPublicAddressRequest,
   IsValidPublicAddressResponse,
 } from '../routes/chain/isValidPublicAddress'
-import { GetWalletAssetRequest } from '../routes/wallet/getAsset'
+import { GetWalletAssetRequest, GetWalletAssetResponse } from '../routes/wallet/getAsset'
 import { GetNotesRequest, GetNotesResponse } from '../routes/wallet/getNotes'
 
 export abstract class RpcClient {
@@ -319,8 +319,10 @@ export abstract class RpcClient {
       ).waitForEnd()
     },
 
-    getAsset: (params: GetWalletAssetRequest): Promise<RpcResponseEnded<GetAssetResponse>> => {
-      return this.request<GetAssetResponse>(
+    getAsset: (
+      params: GetWalletAssetRequest,
+    ): Promise<RpcResponseEnded<GetWalletAssetResponse>> => {
+      return this.request<GetWalletAssetResponse>(
         `${ApiNamespace.wallet}/getAsset`,
         params,
       ).waitForEnd()
