@@ -1,15 +1,40 @@
 {
-  "CreateMinersFeeTask execute posts the miners fee transaction": [
+  "CreateMinersFeeTask execute posts a v1 miners fee transaction": [
     {
       "version": 2,
-      "id": "a4d3495a-1891-4215-abae-93862570cbb3",
+      "id": "6714f467-cf47-4d54-a514-384105b89e0a",
       "name": "test",
-      "spendingKey": "8306524e60e405148e5bc09f363cf0f3c339ae3fcd457e20701c22008bdba65e",
-      "viewKey": "02046d1d2b17c46c967982d428f77a7c644718030492306ae80e249fdbe4f1a25cda6c1dc4ef0b2f37c6736add2cde5a830acda97a17ef38325ad573d8060c6a",
-      "incomingViewKey": "e11149da3836fbf01d1f94d0615b09e9188964e0898ff3ecfff54cf8ee3a0306",
-      "outgoingViewKey": "1a0a700d11e4855bfaa7f0598e0196b2a40b45d60b2e9fb17ba0b8a5a79cfe05",
-      "publicAddress": "fa33928f5d763857d348ec990e46728e8d2cb1e47c1cb72a68ce64b2b2a3641f",
-      "createdAt": null
+      "spendingKey": "2b77e04c465291719b9da5c84a28d5460bc8a9aaac689d44b60a0fec61ea4ff0",
+      "viewKey": "f77ed001341d0952c01fef79ec7d915ef82cc522c9472587a9eaa00d100d45c3ec828757b65fe9f17d11c804befeb9858dcb08efe979596704be2fbfa5b54c2f",
+      "incomingViewKey": "6f0e35fa075227563472cc08c1c4e163f0af4afebd8096294b1ff60025899404",
+      "outgoingViewKey": "89b9aaa7fead9b28a606aadac23337d0619221667b18077c4474f21b4f64d1cc",
+      "publicAddress": "0bde9790f12f16602edb5e14f7a263f0af9128221beb3225169442e6857257a9",
+      "createdAt": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:iLb6jXRaTlO9oAExjmCwTuLk7gajgJVojVgEnLbxWso="
+        },
+        "sequence": 1
+      }
+    }
+  ],
+  "CreateMinersFeeTask execute posts a v2 miners fee transaction": [
+    {
+      "version": 2,
+      "id": "062919c9-10d8-40a4-9732-3e5cdf95a37c",
+      "name": "test",
+      "spendingKey": "339d32f75d8ea68d0b6ab03a3c9b2d548d5b3c9c9627c2c92c6a18934efd29d0",
+      "viewKey": "20eb0c3d51ac06fde6179bfa5a52a3f719d11db417e673308f90f76ebcd4390f42e12da96278ab8200e7946fab80304d0f643880eef65d520779f9bbdda23eba",
+      "incomingViewKey": "cc0f4f8a294b1a447d30a58cb15a68a780eae5fd6039303a134ea04482ef4403",
+      "outgoingViewKey": "c434eeeee4142f22d88e08096bdd1158fb4710243b518c711ec3eb42b76ca555",
+      "publicAddress": "e68b3a7a055430628141b2cd459f29c74493c2428549c6ba8a2bc486eba5ca2e",
+      "createdAt": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:iLb6jXRaTlO9oAExjmCwTuLk7gajgJVojVgEnLbxWso="
+        },
+        "sequence": 1
+      }
     }
   ]
 }

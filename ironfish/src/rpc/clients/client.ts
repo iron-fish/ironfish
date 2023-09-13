@@ -201,14 +201,17 @@ export abstract class RpcClient {
     },
 
     useAccount: (params: UseAccountRequest): Promise<RpcResponseEnded<UseAccountResponse>> => {
-      return this.request<UseAccountResponse>(`${ApiNamespace.wallet}/use`, params).waitForEnd()
+      return this.request<UseAccountResponse>(
+        `${ApiNamespace.wallet}/useAccount`,
+        params,
+      ).waitForEnd()
     },
 
     renameAccount: (
       params: RenameAccountRequest,
     ): Promise<RpcResponseEnded<RenameAccountResponse>> => {
       return this.request<RenameAccountResponse>(
-        `${ApiNamespace.wallet}/rename`,
+        `${ApiNamespace.wallet}/renameAccount`,
         params,
       ).waitForEnd()
     },

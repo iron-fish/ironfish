@@ -25,6 +25,11 @@ interface ExpirationMempoolEntry {
   hash: TransactionHash
 }
 
+interface VersionMempoolEntry {
+  version: number
+  hash: TransactionHash
+}
+
 export function mempoolEntryComparator(
   firstTransaction: MempoolEntry,
   secondTransaction: MempoolEntry,
@@ -44,6 +49,7 @@ export class MemPool {
   private readonly feeRateQueue: PriorityQueue<MempoolEntry>
   private readonly evictionQueue: PriorityQueue<MempoolEntry>
   private readonly expirationQueue: PriorityQueue<ExpirationMempoolEntry>
+  private readonly versionQueue: PriorityQueue<VersionMempoolEntry>
 
   private readonly recentlyEvictedCache: RecentlyEvictedCache
 
@@ -86,6 +92,11 @@ export class MemPool {
 
     this.expirationQueue = new PriorityQueue<ExpirationMempoolEntry>(
       (t1, t2) => t1.expiration < t2.expiration,
+      (t) => t.hash.toString('hex'),
+    )
+
+    this.versionQueue = new PriorityQueue<VersionMempoolEntry>(
+      (t1, t2) => t1.version < t2.version,
       (t) => t.hash.toString('hex'),
     )
 
@@ -194,8 +205,16 @@ export class MemPool {
       return false
     }
 
-    const added = this.addTransaction(transaction)
+    const minTransactionVersion = this.chain.consensus.getActiveTransactionVersion(
+      this.chain.head.sequence - this.chain.config.get('confirmations'),
+    )
+    const version = transaction.version()
+    if (version < minTransactionVersion) {
+      this.logger.debug(`Invalid transaction '${hash}': version too old ${version}`)
+      return false
+    }
 
+    const added = this.addTransaction(transaction)
     if (!added) {
       return false
     }
@@ -227,6 +246,24 @@ export class MemPool {
       }
 
       nextExpired = this.expirationQueue.peek()
+    }
+
+    const minTransactionVersion = this.chain.consensus.getActiveTransactionVersion(
+      this.chain.head.sequence - this.chain.config.get('confirmations'),
+    )
+    let nextVersioned = this.versionQueue.peek()
+    while (nextVersioned && nextVersioned.version < minTransactionVersion) {
+      const transaction = this.get(nextVersioned.hash)
+      if (!transaction) {
+        continue
+      }
+
+      const didDelete = this.deleteTransaction(transaction)
+      if (didDelete) {
+        deletedTransactions++
+      }
+
+      nextVersioned = this.versionQueue.peek()
     }
 
     if (deletedTransactions) {
@@ -295,6 +332,7 @@ export class MemPool {
 
     this.feeRateQueue.add({ hash, feeRate: getFeeRate(transaction) })
     this.evictionQueue.add({ hash, feeRate: getFeeRate(transaction) })
+    this.versionQueue.add({ hash, version: transaction.version() })
     if (transaction.expiration() > 0) {
       this.expirationQueue.add({ expiration: transaction.expiration(), hash })
     }
@@ -410,6 +448,7 @@ export class MemPool {
     this.feeRateQueue.remove(hashAsString)
     this.evictionQueue.remove(hashAsString)
     this.expirationQueue.remove(hashAsString)
+    this.versionQueue.remove(hashAsString)
 
     this.updateMetrics()
 

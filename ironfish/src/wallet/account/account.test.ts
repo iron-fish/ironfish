@@ -769,6 +769,51 @@ describe('Accounts', () => {
       })
     })
 
+    it('should correctly update the asset store from a mint description with ownership transfer', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+      const accountB = await useAccountFixture(node.wallet, 'accountB')
+
+      const asset = new Asset(accountA.publicAddress, 'mint-asset', 'metadata')
+      const value = BigInt(10)
+      const mintBlock = await useMintBlockFixture({
+        node,
+        account: accountA,
+        asset,
+        value,
+        transferOwnershipTo: accountB.publicAddress,
+      })
+      await expect(node.chain).toAddBlock(mintBlock)
+      await node.wallet.updateHead()
+
+      expect(await accountA['walletDb'].getAsset(accountA, asset.id())).toEqual({
+        blockHash: mintBlock.header.hash,
+        createdTransactionHash: mintBlock.transactions[1].hash(),
+        id: asset.id(),
+        metadata: asset.metadata(),
+        name: asset.name(),
+        nonce: asset.nonce(),
+        creator: Buffer.from(accountA.publicAddress, 'hex'),
+        owner: Buffer.from(accountB.publicAddress, 'hex'),
+        sequence: mintBlock.header.sequence,
+        supply: null,
+      })
+
+      expect(await accountA['walletDb'].getAsset(accountB, asset.id())).toEqual({
+        blockHash: mintBlock.header.hash,
+        createdTransactionHash: mintBlock.transactions[1].hash(),
+        id: asset.id(),
+        metadata: asset.metadata(),
+        name: asset.name(),
+        nonce: asset.nonce(),
+        creator: Buffer.from(accountA.publicAddress, 'hex'),
+        owner: Buffer.from(accountB.publicAddress, 'hex'),
+        sequence: mintBlock.header.sequence,
+        supply: value,
+      })
+    })
+
     it('should correctly update the asset store from a burn description', async () => {
       const { node } = nodeTest
 
@@ -1229,6 +1274,144 @@ describe('Accounts', () => {
       expect(await accountB['walletDb'].getAsset(accountB, asset.id())).toBeUndefined()
     })
 
+    it('should correctly update the asset store from a mint description with ownership transfer', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+      const accountB = await useAccountFixture(node.wallet, 'accountB')
+
+      const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+
+      const asset = new Asset(accountA.publicAddress, 'mint-asset', 'metadata')
+      const firstMintValue = BigInt(10)
+      const firstMintBlock = await useMintBlockFixture({
+        node,
+        account: accountA,
+        asset,
+        value: firstMintValue,
+        transferOwnershipTo: accountB.publicAddress,
+        sequence: 3,
+      })
+      await expect(node.chain).toAddBlock(firstMintBlock)
+      await node.wallet.updateHead()
+
+      const secondMintValue = BigInt(5)
+      const secondMintBlock = await useMintBlockFixture({
+        node,
+        account: accountB,
+        asset,
+        value: secondMintValue,
+        sequence: 4,
+      })
+      await expect(node.chain).toAddBlock(secondMintBlock)
+      await node.wallet.updateHead()
+
+      // Check the aggregate from both mints
+      expect(await accountA['walletDb'].getAsset(accountA, asset.id())).toEqual({
+        blockHash: firstMintBlock.header.hash,
+        createdTransactionHash: firstMintBlock.transactions[1].hash(),
+        id: asset.id(),
+        metadata: asset.metadata(),
+        name: asset.name(),
+        nonce: asset.nonce(),
+        creator: Buffer.from(accountA.publicAddress, 'hex'),
+        owner: Buffer.from(accountB.publicAddress, 'hex'),
+        sequence: firstMintBlock.header.sequence,
+        supply: null,
+      })
+
+      expect(await accountB['walletDb'].getAsset(accountB, asset.id())).toEqual({
+        blockHash: firstMintBlock.header.hash,
+        createdTransactionHash: firstMintBlock.transactions[1].hash(),
+        id: asset.id(),
+        metadata: asset.metadata(),
+        name: asset.name(),
+        nonce: asset.nonce(),
+        creator: Buffer.from(accountA.publicAddress, 'hex'),
+        owner: Buffer.from(accountB.publicAddress, 'hex'),
+        sequence: firstMintBlock.header.sequence,
+        supply: firstMintValue + secondMintValue,
+      })
+
+      await accountA.disconnectTransaction(
+        secondMintBlock.header,
+        secondMintBlock.transactions[1],
+      )
+      expect(await accountA['walletDb'].getAsset(accountA, asset.id())).toEqual({
+        blockHash: firstMintBlock.header.hash,
+        createdTransactionHash: firstMintBlock.transactions[1].hash(),
+        id: asset.id(),
+        metadata: asset.metadata(),
+        name: asset.name(),
+        nonce: asset.nonce(),
+        creator: Buffer.from(accountA.publicAddress, 'hex'),
+        owner: Buffer.from(accountB.publicAddress, 'hex'),
+        sequence: firstMintBlock.header.sequence,
+        supply: null,
+      })
+
+      await accountB.disconnectTransaction(
+        secondMintBlock.header,
+        secondMintBlock.transactions[1],
+      )
+      expect(await accountB['walletDb'].getAsset(accountB, asset.id())).toEqual({
+        blockHash: firstMintBlock.header.hash,
+        createdTransactionHash: firstMintBlock.transactions[1].hash(),
+        id: asset.id(),
+        metadata: asset.metadata(),
+        name: asset.name(),
+        nonce: asset.nonce(),
+        creator: Buffer.from(accountA.publicAddress, 'hex'),
+        owner: Buffer.from(accountB.publicAddress, 'hex'),
+        sequence: firstMintBlock.header.sequence,
+        supply: firstMintValue,
+      })
+
+      // Verify that the owner went back to the creator after disconnecting the
+      // first mint
+      await accountA.disconnectTransaction(
+        firstMintBlock.header,
+        firstMintBlock.transactions[1],
+      )
+      expect(await accountA['walletDb'].getAsset(accountA, asset.id())).toEqual({
+        blockHash: null,
+        createdTransactionHash: firstMintBlock.transactions[1].hash(),
+        id: asset.id(),
+        metadata: asset.metadata(),
+        name: asset.name(),
+        nonce: asset.nonce(),
+        creator: Buffer.from(accountA.publicAddress, 'hex'),
+        owner: Buffer.from(accountA.publicAddress, 'hex'),
+        sequence: null,
+        supply: null,
+      })
+
+      await accountB.disconnectTransaction(
+        firstMintBlock.header,
+        firstMintBlock.transactions[1],
+      )
+      expect(await accountA['walletDb'].getAsset(accountB, asset.id())).toEqual({
+        blockHash: null,
+        createdTransactionHash: firstMintBlock.transactions[1].hash(),
+        id: asset.id(),
+        metadata: asset.metadata(),
+        name: asset.name(),
+        nonce: asset.nonce(),
+        creator: Buffer.from(accountA.publicAddress, 'hex'),
+        owner: Buffer.from(accountA.publicAddress, 'hex'),
+        sequence: null,
+        supply: null,
+      })
+
+      // Expiration of the first mint will delete the record
+      await accountA.expireTransaction(firstMintBlock.transactions[1])
+      expect(await accountA['walletDb'].getAsset(accountA, asset.id())).toBeUndefined()
+      await accountB.expireTransaction(firstMintBlock.transactions[1])
+      expect(await accountB['walletDb'].getAsset(accountB, asset.id())).toBeUndefined()
+    })
+
     it('should correctly update the asset store from a burn description', async () => {
       const { node } = nodeTest
 
@@ -1463,15 +1646,16 @@ describe('Accounts', () => {
 
       // wallet should have the new asset
       let assets = await AsyncUtils.materialize(accountA.getAssets())
-      expect(assets).toHaveLength(1)
-      expect(assets[0].id).toEqualBuffer(asset.id())
+      expect(assets).toHaveLength(2)
+      expect(assets[0].id).toEqualBuffer(Asset.nativeId())
+      expect(assets[1].id).toEqualBuffer(asset.id())
 
       // expire the mint transaction
       await accountA.expireTransaction(mintTx)
 
       // wallet should have removed the new asset from the expired mint
       assets = await AsyncUtils.materialize(accountA.getAssets())
-      expect(assets).toHaveLength(0)
+      expect(assets).toHaveLength(1)
 
       // expired mint should still be in the wallet
       const expiredMintTx = await accountA.getTransaction(mintTx.hash())

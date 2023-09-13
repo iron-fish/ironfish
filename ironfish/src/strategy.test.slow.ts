@@ -6,10 +6,12 @@ import {
   generateKey,
   generateKeyFromPrivateKey,
   Key,
+  LATEST_TRANSACTION_VERSION,
   Note as NativeNote,
   Transaction as NativeTransaction,
   TransactionPosted as NativeTransactionPosted,
 } from '@ironfish/rust-nodejs'
+import { Assert } from './assert'
 import { ConsensusParameters, TestnetConsensus } from './consensus'
 import { MerkleTree } from './merkletree'
 import { LeafEncoding } from './merkletree/database/leaves'
@@ -18,6 +20,7 @@ import { NoteHasher } from './merkletree/hasher'
 import { Transaction } from './primitives'
 import { Note } from './primitives/note'
 import { NoteEncrypted, NoteEncryptedHash } from './primitives/noteEncrypted'
+import { TransactionVersion } from './primitives/transaction'
 import { BUFFER_ENCODING, IDatabase } from './storage'
 import { Strategy } from './strategy'
 import { makeDb, makeDbName } from './testUtilities/helpers/storage'
@@ -68,6 +71,7 @@ const consensusParameters: ConsensusParameters = {
   targetBucketTimeInSeconds: 10,
   maxBlockSizeBytes: 512 * 1024,
   minFee: 1,
+  enableAssetOwnership: 1,
 }
 
 /**
@@ -101,7 +105,10 @@ describe('Demonstrate the Sapling API', () => {
 
       minerNote = new NativeNote(owner, 42n, '', Asset.nativeId(), owner)
 
-      const transaction = new NativeTransaction(spenderKey.spendingKey)
+      const transaction = new NativeTransaction(
+        spenderKey.spendingKey,
+        LATEST_TRANSACTION_VERSION,
+      )
       transaction.output(minerNote)
       minerTransaction = new NativeTransactionPosted(transaction.post_miners_fee())
       expect(minerTransaction).toBeTruthy()
@@ -129,7 +136,7 @@ describe('Demonstrate the Sapling API', () => {
     })
 
     it('Can create a simple transaction', () => {
-      transaction = new NativeTransaction(spenderKey.spendingKey)
+      transaction = new NativeTransaction(spenderKey.spendingKey, LATEST_TRANSACTION_VERSION)
       expect(transaction).toBeTruthy()
     })
 
@@ -244,6 +251,32 @@ describe('Demonstrate the Sapling API', () => {
       expect(decryptedNote.value()).toBe(2000000000n)
       expect(decryptedNote['note']).toBeNull()
     })
+
+    it('Creates transactions with the correct version based on the sequence', async () => {
+      const modifiedParams = consensusParameters
+      modifiedParams.enableAssetOwnership = 1234
+      const key = generateKey()
+      const strategy = new Strategy({
+        workerPool,
+        consensus: new TestnetConsensus(modifiedParams),
+      })
+
+      Assert.isTrue(typeof consensusParameters.enableAssetOwnership === 'number')
+      const enableAssetOwnershipSequence = Number(consensusParameters.enableAssetOwnership)
+      const minersFee1 = await strategy.createMinersFee(
+        0n,
+        enableAssetOwnershipSequence - 1,
+        key.spendingKey,
+      )
+      expect(minersFee1.version()).toEqual(TransactionVersion.V1)
+
+      const minersFee2 = await strategy.createMinersFee(
+        0n,
+        enableAssetOwnershipSequence,
+        key.spendingKey,
+      )
+      expect(minersFee2.version()).toEqual(TransactionVersion.V2)
+    })
   })
 
   describe('Finding notes to spend', () => {
@@ -276,7 +309,7 @@ describe('Demonstrate the Sapling API', () => {
     })
 
     it('Can create and post a transaction', async () => {
-      transaction = new NativeTransaction(receiverKey.spendingKey)
+      transaction = new NativeTransaction(receiverKey.spendingKey, LATEST_TRANSACTION_VERSION)
 
       const witness = await tree.witness(receiverWitnessIndex)
       if (witness === null) {

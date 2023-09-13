@@ -63,7 +63,6 @@ pub use version::TransactionVersion;
 
 const SIGNATURE_HASH_PERSONALIZATION: &[u8; 8] = b"IFsighsh";
 const TRANSACTION_SIGNATURE_VERSION: &[u8; 1] = &[0];
-pub const TRANSACTION_VERSION: TransactionVersion = TransactionVersion::V1;
 pub const TRANSACTION_SIGNATURE_SIZE: usize = 64;
 pub const TRANSACTION_PUBLIC_KEY_SIZE: usize = 32;
 pub const TRANSACTION_EXPIRATION_SIZE: usize = 4;
@@ -123,12 +122,8 @@ pub struct ProposedTransaction {
 }
 
 impl ProposedTransaction {
-    pub fn new(spender_key: SaplingKey) -> Self {
-        Self::with_version(spender_key, TRANSACTION_VERSION)
-    }
-
-    pub fn with_version(spender_key: SaplingKey, version: TransactionVersion) -> Self {
-        ProposedTransaction {
+    pub fn new(spender_key: SaplingKey, version: TransactionVersion) -> Self {
+        Self {
             version,
             spends: vec![],
             outputs: vec![],

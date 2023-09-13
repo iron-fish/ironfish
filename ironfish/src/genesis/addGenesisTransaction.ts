@@ -11,7 +11,7 @@ import { Logger } from '../logger'
 import { FullNode } from '../node'
 import { Block, BlockHeader } from '../primitives'
 import { transactionCommitment } from '../primitives/blockheader'
-import { Transaction } from '../primitives/transaction'
+import { Transaction, TransactionVersion } from '../primitives/transaction'
 import { CurrencyUtils } from '../utils'
 import { Account } from '../wallet'
 import { GenesisBlockAllocation } from './makeGenesisBlock'
@@ -88,7 +88,7 @@ export async function addGenesisTransaction(
   }
 
   // Create the new transaction to be appended to the new genesis block
-  const transaction = new NativeTransaction(account.spendingKey)
+  const transaction = new NativeTransaction(account.spendingKey, TransactionVersion.V2)
   logger.info(`  Generating a spend for ${allocationSumInIron} coins...`)
   transaction.spend(note, witness)
 

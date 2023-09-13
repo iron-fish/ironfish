@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { ConsensusParameters } from './consensus'
+import { ActivationSequence, ConsensusParameters } from './consensus'
 import { DEVNET, isDefaultNetworkId, MAINNET, TESTNET } from './defaultNetworkDefinitions'
 import { Config, InternalStore } from './fileStores'
 import { FileSystem } from './fileSystems'
@@ -47,6 +47,7 @@ export const networkDefinitionSchema: yup.ObjectSchema<NetworkDefinition> = yup
         targetBucketTimeInSeconds: yup.number().integer().defined(),
         maxBlockSizeBytes: yup.number().integer().defined(),
         minFee: yup.number().integer().defined(),
+        enableAssetOwnership: yup.mixed<ActivationSequence>().defined(),
       })
       .defined(),
   })

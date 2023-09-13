@@ -4,10 +4,8 @@
 import { Asset, generateKey, Note as NativeNote } from '@ironfish/rust-nodejs'
 import { BufferMap } from 'buffer-map'
 import { Assert } from '../assert'
-import { Witness } from '../merkletree'
-import { NoteHasher } from '../merkletree/hasher'
-import { Side } from '../merkletree/merkletree'
 import { IsNoteWitnessEqual } from '../merkletree/witness'
+import { makeFakeWitness } from '../testUtilities'
 import {
   useAccountFixture,
   useMinerBlockFixture,
@@ -17,6 +15,7 @@ import { createRawTransaction } from '../testUtilities/helpers/transaction'
 import { createNodeTest } from '../testUtilities/nodeTest'
 import { Note } from './note'
 import { MintData, RawTransaction, RawTransactionSerde } from './rawTransaction'
+import { TransactionVersion } from './transaction'
 
 describe('RawTransaction', () => {
   const nodeTest = createNodeTest()
@@ -184,7 +183,26 @@ describe('RawTransaction', () => {
 describe('RawTransactionSerde', () => {
   const nodeTest = createNodeTest()
 
-  it('serializes and deserializes a block', async () => {
+  it('throws an error if a v2 field is provided on a v1 transaction', async () => {
+    const account = await useAccountFixture(nodeTest.wallet)
+
+    const raw = new RawTransaction(TransactionVersion.V1)
+    raw.mints = [
+      {
+        creator: account.publicAddress,
+        name: 'asset',
+        metadata: 'metadata',
+        value: 5n,
+        transferOwnershipTo: account.publicAddress,
+      },
+    ]
+
+    expect(() => RawTransactionSerde.serialize(raw)).toThrow(
+      'Version 1 transactions cannot contain transferOwnershipTo',
+    )
+  })
+
+  it('serializes and deserializes a v1 transaction', async () => {
     const account = await useAccountFixture(nodeTest.wallet)
     const asset = new Asset(account.publicAddress, 'asset', 'metadata')
     const assetName = 'asset'
@@ -200,18 +218,9 @@ describe('RawTransactionSerde', () => {
       ).serialize(),
     )
 
-    const witness = new Witness(
-      0,
-      Buffer.alloc(32, 1),
-      [
-        { side: Side.Left, hashOfSibling: Buffer.alloc(32, 1) },
-        { side: Side.Right, hashOfSibling: Buffer.alloc(32, 2) },
-        { side: Side.Left, hashOfSibling: Buffer.alloc(32, 3) },
-      ],
-      new NoteHasher(),
-    )
+    const witness = makeFakeWitness(note)
 
-    const raw = new RawTransaction()
+    const raw = new RawTransaction(TransactionVersion.V1)
     raw.expiration = 60
     raw.fee = 1337n
 
@@ -254,6 +263,7 @@ describe('RawTransactionSerde', () => {
     })
 
     expect(RawTransactionSerde.serialize(deserialized).equals(serialized)).toBe(true)
+    expect(deserialized.version).toEqual(TransactionVersion.V1)
     expect(deserialized.outputs[0].note).toEqual(raw.outputs[0].note)
     expect(deserialized.burns[0].assetId).toEqual(asset.id())
     expect(deserialized.burns[0].value).toEqual(5n)
@@ -265,7 +275,86 @@ describe('RawTransactionSerde', () => {
     expect(deserialized.mints[1].metadata).toEqual(assetMetadata)
     expect(deserialized.mints[1].value).toEqual(4n)
 
+    expect(deserialized.spends[0].note).toEqual(raw.spends[0].note)
+    expect(IsNoteWitnessEqual(deserialized.spends[0].witness, raw.spends[0].witness)).toBe(true)
+  })
+
+  it('serializes and deserializes a v2 transaction', async () => {
+    const accountA = await useAccountFixture(nodeTest.wallet, 'accountA')
+    const accountB = await useAccountFixture(nodeTest.wallet, 'accountB')
+    const asset = new Asset(accountA.publicAddress, 'asset', 'metadata')
+    const assetName = 'asset'
+    const assetMetadata = 'metadata'
+
+    const note = new Note(
+      new NativeNote(
+        generateKey().publicAddress,
+        5n,
+        'memo',
+        asset.id(),
+        accountA.publicAddress,
+      ).serialize(),
+    )
+
+    const witness = makeFakeWitness(note)
+
+    const raw = new RawTransaction(TransactionVersion.V2)
+    raw.expiration = 60
+    raw.fee = 1337n
+
+    raw.mints = [
+      {
+        creator: accountA.publicAddress,
+        name: assetName,
+        metadata: assetMetadata,
+        value: 5n,
+      },
+      {
+        creator: accountA.publicAddress,
+        name: assetName,
+        metadata: assetMetadata,
+        value: 4n,
+        transferOwnershipTo: accountB.publicAddress,
+      },
+    ]
+
+    raw.burns = [
+      {
+        assetId: asset.id(),
+        value: 5n,
+      },
+    ]
+
+    raw.outputs = [
+      {
+        note: note,
+      },
+    ]
+
+    raw.spends = [{ note, witness }]
+
+    const serialized = RawTransactionSerde.serialize(raw)
+    const deserialized = RawTransactionSerde.deserialize(serialized)
+
+    expect(deserialized).toMatchObject({
+      expiration: raw.expiration,
+      fee: raw.fee,
+    })
+
+    expect(RawTransactionSerde.serialize(deserialized).equals(serialized)).toBe(true)
+    expect(deserialized.version).toEqual(TransactionVersion.V2)
+    expect(deserialized.outputs[0].note).toEqual(raw.outputs[0].note)
+    expect(deserialized.burns[0].assetId).toEqual(asset.id())
+    expect(deserialized.burns[0].value).toEqual(5n)
+    expect(deserialized.mints[0].name).toEqual(assetName)
+    expect(deserialized.mints[0].metadata).toEqual(assetMetadata)
     expect(deserialized.mints[0].value).toEqual(5n)
+
+    expect(deserialized.mints[1].name).toEqual(assetName)
+    expect(deserialized.mints[1].metadata).toEqual(assetMetadata)
+    expect(deserialized.mints[1].value).toEqual(4n)
+    expect(deserialized.mints[1].transferOwnershipTo).toEqual(accountB.publicAddress)
+
     expect(deserialized.spends[0].note).toEqual(raw.spends[0].note)
     expect(IsNoteWitnessEqual(deserialized.spends[0].witness, raw.spends[0].witness)).toBe(true)
   })
@@ -274,7 +363,7 @@ describe('RawTransactionSerde', () => {
     const assetName = '吉锕涩偶讷'
     const assetMetadata = '💪💎🚀'
 
-    const raw = new RawTransaction()
+    const raw = new RawTransaction(TransactionVersion.V1)
 
     raw.mints = [
       {
