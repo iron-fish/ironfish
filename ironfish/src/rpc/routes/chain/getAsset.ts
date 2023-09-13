@@ -27,6 +27,14 @@ export const GetAssetRequestSchema: yup.ObjectSchema<GetAssetRequest> = yup
 
 export const GetAssetResponse: yup.ObjectSchema<GetAssetResponse> = RpcAssetSchema.defined()
 
+/**
+ * Note: This logic will be deprecated when we move the field `status` from the Asset response object. The status field has
+ * more to do with the transaction than the asset itself.
+ *
+ * @param node: FullNode
+ * @param asset: AssetValue
+ * @returns Promise<AssetStatus>
+ */
 async function getAssetStatus(node: FullNode, asset: AssetValue): Promise<AssetStatus> {
   const blockHash = await node.chain.getBlockHashByTransactionHash(asset.createdTransactionHash)
   if (!blockHash) {
