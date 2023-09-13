@@ -71,3 +71,5 @@ export const RpcNoteSchema = yup
     noteHash: yup.string().required(),
   })
   .required()
+
+export const RpcBlock = {}

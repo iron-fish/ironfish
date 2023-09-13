@@ -7,19 +7,11 @@ import { BlockHeader } from '../primitives/blockheader'
 import { NoteEncryptedHashSerde } from '../primitives/noteEncrypted'
 import { Target } from '../primitives/target'
 import { Transaction } from '../primitives/transaction'
+import { RpcBlockHeader } from '../rpc'
 import { BigIntUtils } from '../utils'
 
 export type SerializedBlockTemplate = {
-  header: {
-    sequence: number
-    previousBlockHash: string
-    noteCommitment: string
-    transactionCommitment: string
-    target: string
-    randomness: string
-    timestamp: number
-    graffiti: string
-  }
+  header: RpcBlockHeader
   transactions: string[]
   previousBlockInfo?: {
     target: string
@@ -30,6 +22,8 @@ export type SerializedBlockTemplate = {
 export class BlockTemplateSerde {
   static serialize(block: Block, previousBlock: Block): SerializedBlockTemplate {
     const header = {
+      hash: block.header.hash.toString('hex'),
+      difficulty: block.header.target.toDifficulty().toString(),
       sequence: block.header.sequence,
       previousBlockHash: block.header.previousBlockHash.toString('hex'),
       noteCommitment: block.header.noteCommitment.toString('hex'),

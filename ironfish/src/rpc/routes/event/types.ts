@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { BlockHeader } from '../../../primitives'
+import { BigIntUtils } from '../../../utils'
 
 export type RpcBlockHeader = {
   hash: string
@@ -11,6 +12,10 @@ export type RpcBlockHeader = {
   timestamp: number
   difficulty: string
   graffiti: string
+  noteCommitment: string
+  transactionCommitment: string
+  target: string
+  randomness: string
 }
 
 export function serializeRpcBlockHeader(header: BlockHeader): RpcBlockHeader {
@@ -21,6 +26,10 @@ export function serializeRpcBlockHeader(header: BlockHeader): RpcBlockHeader {
     timestamp: header.timestamp.valueOf(),
     difficulty: header.target.toDifficulty().toString(),
     graffiti: header.graffiti.toString('hex'),
+    noteCommitment: header.noteCommitment.toString('hex'),
+    transactionCommitment: header.transactionCommitment.toString('hex'),
+    target: BigIntUtils.writeBigU256BE(header.target.asBigInt()).toString('hex'),
+    randomness: BigIntUtils.writeBigU64BE(header.randomness).toString('hex'),
   }
 }
 
@@ -33,5 +42,9 @@ export const RpcBlockHeaderSchema: yup.ObjectSchema<RpcBlockHeader> = yup
     transactions: yup.array().defined(),
     difficulty: yup.string().defined(),
     graffiti: yup.string().defined(),
+    noteCommitment: yup.string().defined(),
+    transactionCommitment: yup.string().defined(),
+    target: yup.string().defined(),
+    randomness: yup.string().defined(),
   })
   .defined()

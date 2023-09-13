@@ -5,6 +5,7 @@ import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { FullNode } from '../../../node'
 import { SerializedBlockTemplate } from '../../../serde/BlockTemplateSerde'
+import { RpcBlockHeaderSchema } from '../event/types'
 import { ApiNamespace, routes } from '../router'
 
 export type BlockTemplateStreamRequest = Record<string, never> | undefined
@@ -17,19 +18,7 @@ export const BlockTemplateStreamRequestSchema: yup.MixedSchema<BlockTemplateStre
 export const BlockTemplateStreamResponseSchema: yup.ObjectSchema<BlockTemplateStreamResponse> =
   yup
     .object({
-      header: yup
-        .object({
-          sequence: yup.number().required(),
-          previousBlockHash: yup.string().required(),
-          noteCommitment: yup.string().required(),
-          transactionCommitment: yup.string().required(),
-          target: yup.string().required(),
-          randomness: yup.string().required(),
-          timestamp: yup.number().required(),
-          graffiti: yup.string().required(),
-        })
-        .required()
-        .defined(),
+      header: RpcBlockHeaderSchema.defined(),
       transactions: yup.array().of(yup.string().required()).required().defined(),
       previousBlockInfo: yup
         .object({
