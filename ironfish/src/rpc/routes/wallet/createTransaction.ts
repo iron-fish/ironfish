@@ -30,6 +30,7 @@ export type CreateTransactionRequest = {
     name?: string
     metadata?: string
     value: string
+    transferOwnershipTo?: string
   }[]
   burns?: {
     assetId: string
@@ -70,6 +71,7 @@ export const CreateTransactionRequestSchema: yup.ObjectSchema<CreateTransactionR
             name: yup.string().optional().max(ASSET_NAME_LENGTH),
             metadata: yup.string().optional().max(ASSET_METADATA_LENGTH),
             value: YupUtils.currency({ min: 1n }).defined(),
+            transferOwnershipTo: yup.string().optional(),
           })
           .defined(),
       )
@@ -158,6 +160,7 @@ routes.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
           creator,
           name,
           metadata,
+          transferOwnershipTo: mint.transferOwnershipTo,
           value: CurrencyUtils.decode(mint.value),
         })
       }

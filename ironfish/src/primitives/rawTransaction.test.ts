@@ -198,7 +198,7 @@ describe('RawTransactionSerde', () => {
     ]
 
     expect(() => RawTransactionSerde.serialize(raw)).toThrow(
-      'Expected transferOwnershipTo to be undefined',
+      'Version 1 transactions cannot contain transferOwnershipTo',
     )
   })
 
