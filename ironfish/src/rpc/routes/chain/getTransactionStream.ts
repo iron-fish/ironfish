@@ -14,6 +14,16 @@ import { ValidationError } from '../../adapters/errors'
 import { RpcNote, RpcNoteSchema } from '../../types'
 import { ApiNamespace, routes } from '../router'
 
+interface Note {
+  assetId: string
+  /**
+   * @deprecated Please use getAsset endpoint to get this information
+   */
+  assetName: string
+  hash: string
+  value: string
+  memo: string
+}
 interface Mint {
   assetId: string
   /**

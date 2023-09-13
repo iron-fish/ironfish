@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import * as yup from 'yup'
+import { AssetVerification } from '../assets'
 
 export type RpcAsset = {
   id: string
@@ -10,6 +11,14 @@ export type RpcAsset = {
   name: string
   nonce: number
   creator: string
+  verification: AssetVerification
+  createdTransactionHash: string
+  owner: string
+  /**
+   * @deprecated query for the transaction to find it's status
+   */
+  status: string
+  supply?: string
 }
 
 export const RpcAssetSchema: yup.ObjectSchema<RpcAsset> = yup
@@ -19,6 +28,13 @@ export const RpcAssetSchema: yup.ObjectSchema<RpcAsset> = yup
     name: yup.string().required(),
     nonce: yup.number().required(),
     creator: yup.string().required(),
+    verification: yup
+      .object({ status: yup.string().oneOf(['verified', 'unverified', 'unknown']).defined() })
+      .defined(),
+    status: yup.string().defined(),
+    supply: yup.string().optional(),
+    owner: yup.string().defined(),
+    createdTransactionHash: yup.string().defined(),
   })
   .defined()
 

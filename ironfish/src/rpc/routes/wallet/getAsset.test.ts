@@ -4,6 +4,7 @@
 
 import '../../../testUtilities/matchers'
 import { Asset } from '@ironfish/rust-nodejs'
+import { Assert } from '../../../assert'
 import { FullNode } from '../../../node'
 import { Block, Transaction } from '../../../primitives'
 import {
@@ -111,6 +112,11 @@ describe('Route chain.getAsset', () => {
       id: asset.id().toString('hex'),
       account: account.name,
     })
+
+    const accountAsset = await account.getAsset(asset.id())
+
+    Assert.isNotUndefined(accountAsset)
+
     expect(response.content).toEqual({
       createdTransactionHash: pendingMint.hash().toString('hex'),
       creator: account.publicAddress,
@@ -119,9 +125,10 @@ describe('Route chain.getAsset', () => {
       metadata: asset.metadata().toString('hex'),
       name: asset.name().toString('hex'),
       nonce: asset.nonce(),
-      status: AssetStatus.PENDING,
-      supply: null,
-      verification: { status: 'unknown' },
+      status: await node.wallet.getAssetStatus(account, accountAsset, {
+        confirmations: 0,
+      }),
+      verification: node.assetsVerifier.verify(asset.id()),
     })
   })
 

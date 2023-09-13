@@ -341,11 +341,10 @@ export class Account {
       // block hash, created transaction hash, and sequence for the database
       // upsert. Adjust supply from the current record.
       if (existingAsset && existingAsset.blockHash && existingAsset.sequence) {
-        Assert.isNotNull(existingAsset.supply, 'Supply should be non-null for asset')
         blockHash = existingAsset.blockHash
         createdTransactionHash = existingAsset.createdTransactionHash
         sequence = existingAsset.sequence
-        supply += existingAsset.supply
+        supply += existingAsset.supply ?? 0n
       }
 
       // Only store the supply for the owner
