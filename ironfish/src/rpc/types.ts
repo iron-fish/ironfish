@@ -14,6 +14,9 @@ export type RpcAsset = {
   verification: AssetVerification
   createdTransactionHash: string
   owner: string
+  /**
+   * @deprecated query for the transaction to find it's status
+   */
   status: string
   supply?: string
 }

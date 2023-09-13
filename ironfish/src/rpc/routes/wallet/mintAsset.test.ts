@@ -83,8 +83,6 @@ describe('Route wallet/mintAsset', () => {
 
       const accountAsset = await account.getAsset(asset.id())
 
-      expect(accountAsset).toBeDefined()
-
       Assert.isNotUndefined(accountAsset)
 
       const response = await routeTest.client.wallet.mintAsset({

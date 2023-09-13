@@ -4,12 +4,13 @@
 import { ASSET_ID_LENGTH } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
+import { AssetValue } from '../../../blockchain/database/assetValue'
 import { FullNode } from '../../../node'
 import { CurrencyUtils } from '../../../utils'
+import { AssetStatus } from '../../../wallet'
 import { NotFoundError, ValidationError } from '../../adapters'
 import { RpcAsset, RpcAssetSchema } from '../../types'
 import { ApiNamespace, routes } from '../router'
-import { getAccount } from '../wallet/utils'
 
 export type GetAssetRequest = {
   id: string
@@ -26,6 +27,24 @@ export const GetAssetRequestSchema: yup.ObjectSchema<GetAssetRequest> = yup
 
 export const GetAssetResponse: yup.ObjectSchema<GetAssetResponse> = RpcAssetSchema.defined()
 
+async function getAssetStatus(node: FullNode, asset: AssetValue): Promise<AssetStatus> {
+  const blockHash = await node.chain.getBlockHashByTransactionHash(asset.createdTransactionHash)
+  if (!blockHash) {
+    return AssetStatus.UNKNOWN
+  }
+
+  const blockHeader = await node.chain.getHeader(blockHash)
+
+  if (!blockHeader) {
+    return AssetStatus.UNKNOWN
+  }
+
+  return blockHeader.sequence + node.chain.config.get('confirmations') <
+    node.chain.head.sequence
+    ? AssetStatus.CONFIRMED
+    : AssetStatus.UNCONFIRMED
+}
+
 routes.register<typeof GetAssetRequestSchema, GetAssetResponse>(
   `${ApiNamespace.chain}/getAsset`,
   GetAssetRequestSchema,
@@ -40,9 +59,7 @@ routes.register<typeof GetAssetRequestSchema, GetAssetResponse>(
       )
     }
 
-    const account = getAccount(node.wallet)
-    const asset = await account.getAsset(id)
-
+    const asset = await node.chain.getAssetById(id)
     if (!asset) {
       throw new NotFoundError(`No asset found with identifier ${request.data.id}`)
     }
@@ -55,8 +72,8 @@ routes.register<typeof GetAssetRequestSchema, GetAssetResponse>(
       nonce: asset.nonce,
       creator: asset.creator.toString('hex'),
       owner: asset.owner.toString('hex'),
-      supply: asset.supply ? CurrencyUtils.encode(asset.supply) : undefined,
-      status: await node.wallet.getAssetStatus(account, asset),
+      supply: CurrencyUtils.encode(asset.supply),
+      status: await getAssetStatus(node, asset),
       verification: node.assetsVerifier.verify(asset.id),
     })
   },
