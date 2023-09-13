@@ -7,8 +7,9 @@ import { FullNode } from '../../../node'
 import { BlockHashSerdeInstance } from '../../../serde'
 import { CurrencyUtils } from '../../../utils'
 import { NotFoundError, ValidationError } from '../../adapters'
+import { RpcEncryptedNote, RpcEncryptedNoteSchema } from '../../types'
 import { ApiNamespace, routes } from '../router'
-import { RpcNote, RpcNoteSchema, RpcSpend, RpcSpendSchema } from './types'
+import { RpcSpend, RpcSpendSchema } from './types'
 
 export type GetTransactionRequest = { transactionHash: string; blockHash?: string }
 
@@ -20,7 +21,7 @@ export type GetTransactionResponse = {
   spendsCount: number
   signature: string
   spends: RpcSpend[]
-  notes: RpcNote[]
+  notes: RpcEncryptedNote[]
   mints: {
     assetId: string
     value: string
@@ -55,7 +56,7 @@ export const GetTransactionResponseSchema: yup.ObjectSchema<GetTransactionRespon
     signature: yup.string().defined(),
     notesEncrypted: yup.array(yup.string().defined()).defined(),
     spends: yup.array(RpcSpendSchema).defined(),
-    notes: yup.array(RpcNoteSchema).defined(),
+    notes: yup.array(RpcEncryptedNoteSchema).defined(),
     mints: yup
       .array(
         yup
@@ -134,6 +135,7 @@ routes.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
       signature: transaction.transactionSignature().toString('hex'),
       notesEncrypted: transaction.notes.map((note) => note.serialize().toString('hex')),
       notes: transaction.notes.map((note) => ({
+        commitment: note.hash().toString('hex'),
         hash: note.hash().toString('hex'),
         serialized: note.serialize().toString('hex'),
       })),

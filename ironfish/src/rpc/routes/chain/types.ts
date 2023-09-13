@@ -3,18 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import * as yup from 'yup'
-
-export type RpcNote = {
-  hash: string
-  serialized: string
-}
-
-export const RpcNoteSchema: yup.ObjectSchema<RpcNote> = yup
-  .object({
-    hash: yup.string().defined(),
-    serialized: yup.string().defined(),
-  })
-  .defined()
+import { RpcEncryptedNote, RpcEncryptedNoteSchema } from '../../types'
 
 export type RpcMint = {
   id: string
@@ -68,7 +57,7 @@ export type RpcTransaction = {
   size: number
   fee: number
   expiration: number
-  notes: { commitment: string }[]
+  notes: RpcEncryptedNote[]
   spends: RpcSpend[]
   mints: RpcMint[]
   burns: RpcBurn[]
@@ -82,15 +71,7 @@ export const RpcTransactionSchema: yup.ObjectSchema<RpcTransaction> = yup
     size: yup.number().defined(),
     fee: yup.number().defined(),
     expiration: yup.number().defined(),
-    notes: yup
-      .array(
-        yup
-          .object({
-            commitment: yup.string().defined(),
-          })
-          .defined(),
-      )
-      .defined(),
+    notes: yup.array(RpcEncryptedNoteSchema).defined(),
     spends: yup.array(RpcSpendSchema).defined(),
     mints: yup.array(RpcMintSchema).defined(),
     burns: yup.array(RpcBurnSchema).defined(),

@@ -102,6 +102,8 @@ routes.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
         expiration: transaction.expiration(),
         notes: transaction.notes.map((note) => ({
           commitment: note.hash().toString('hex'),
+          hash: note.hash().toString('hex'),
+          serialized: note.serialize().toString('hex'),
         })),
         spends: transaction.spends.map((spend) => ({
           nullifier: spend.nullifier.toString('hex'),
