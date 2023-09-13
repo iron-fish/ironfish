@@ -8,8 +8,7 @@ import { getAccount } from './utils'
 /**
  * NOTE: This endpoint will be deprecated in favor of `POST /wallet/useAccount` because
  * this endpoint does not follow the convention that all of our endpoints should follow which
- * is the verbObject naming convention, where the verb is the HTTP verb and the object is the
- * object being acted upon. For example, `POST /wallet/burnAsset` burns an asset.
+ * is the verbObject naming convention. For example, `POST /wallet/burnAsset` burns an asset.
  */
 
 routes.register<typeof UseAccountRequestSchema, UseAccountResponse>(

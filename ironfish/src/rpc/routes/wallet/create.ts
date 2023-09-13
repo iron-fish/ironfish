@@ -5,8 +5,7 @@
 /**
  * NOTE: This endpoint will be deprecated in favor of `POST /wallet/createAccount` because
  * this endpoint does not follow the convention that all of our endpoints should follow which
- * is the verbObject naming convention, where the verb is the HTTP verb and the object is the
- * object being acted upon. For example, `POST /wallet/burnAsset` burns an asset.
+ * is the verbObject naming convention. For example, `POST /wallet/burnAsset` burns an asset.
  */
 
 import { ERROR_CODES, ValidationError } from '../../adapters'
