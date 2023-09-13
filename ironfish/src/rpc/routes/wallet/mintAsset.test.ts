@@ -80,6 +80,14 @@ describe('Route wallet/mintAsset', () => {
 
       jest.spyOn(wallet, 'mint').mockResolvedValueOnce(mintTransaction)
 
+      const accountAsset = await account.getAsset(asset.id())
+
+      expect(accountAsset).toBeDefined()
+
+      if (!accountAsset) {
+        throw new Error('accountAsset is undefined')
+      }
+
       const response = await routeTest.client.wallet.mintAsset({
         account: account.name,
         fee: '1',
@@ -95,6 +103,13 @@ describe('Route wallet/mintAsset', () => {
           name: asset.name().toString('hex'),
           creator: asset.creator().toString('hex'),
           nonce: asset.nonce(),
+          supply: undefined,
+          owner: accountAsset.owner.toString('hex'),
+          createdTransactionHash: accountAsset.createdTransactionHash.toString('hex'),
+          status: await node.wallet.getAssetStatus(account, accountAsset, {
+            confirmations: 0,
+          }),
+          verification: node.assetsVerifier.verify(asset.id()),
         },
         assetId: asset.id().toString('hex'),
         hash: mintTransaction.hash().toString('hex'),

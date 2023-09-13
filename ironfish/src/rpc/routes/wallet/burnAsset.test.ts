@@ -78,6 +78,10 @@ describe('Route wallet/burnAsset', () => {
 
       expect(accountAsset).toBeDefined()
 
+      if (!accountAsset) {
+        throw new Error('accountAsset is undefined')
+      }
+
       const response = await routeTest.client.wallet.burnAsset({
         account: account.name,
         assetId: assetId.toString('hex'),
@@ -91,7 +95,13 @@ describe('Route wallet/burnAsset', () => {
           metadata: asset.metadata().toString('hex'),
           name: asset.name().toString('hex'),
           creator: asset.creator().toString('hex'),
-          nonce: accountAsset?.nonce ?? null,
+          nonce: accountAsset.nonce ?? null,
+          owner: accountAsset.owner.toString('hex') ?? '',
+          status: await node.wallet.getAssetStatus(account, accountAsset, {
+            confirmations: 0,
+          }),
+          verification: node.assetsVerifier.verify(asset.id()),
+          createdTransactionHash: accountAsset.createdTransactionHash.toString('hex') ?? null,
         },
         assetId: asset.id().toString('hex'),
         name: asset.name().toString('hex'),

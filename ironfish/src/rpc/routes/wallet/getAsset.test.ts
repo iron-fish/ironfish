@@ -111,6 +111,15 @@ describe('Route chain.getAsset', () => {
       id: asset.id().toString('hex'),
       account: account.name,
     })
+
+    const accountAsset = await account.getAsset(asset.id())
+
+    expect(accountAsset).toBeDefined()
+
+    if (!accountAsset) {
+      throw new Error('accountAsset is undefined')
+    }
+
     expect(response.content).toEqual({
       createdTransactionHash: pendingMint.hash().toString('hex'),
       creator: account.publicAddress,
@@ -119,9 +128,10 @@ describe('Route chain.getAsset', () => {
       metadata: asset.metadata().toString('hex'),
       name: asset.name().toString('hex'),
       nonce: asset.nonce(),
-      status: AssetStatus.PENDING,
-      supply: undefined,
-      verification: { status: 'unknown' },
+      status: await node.wallet.getAssetStatus(account, accountAsset, {
+        confirmations: 0,
+      }),
+      verification: node.assetsVerifier.verify(asset.id()),
     })
   })
 
