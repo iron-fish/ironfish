@@ -1,16 +1,16 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { ApiNamespace, routes } from '../router'
-import { RemoveAccountRequestSchema, RemoveAccountResponse } from './removeAccount'
-import { getAccount } from './utils'
 
 /**
  * NOTE: This endpoint will be deprecated in favor of `POST /wallet/useAccount` because
  * this endpoint does not follow the convention that all of our endpoints should follow which
- * is the verbObject naming convention, where the verb is the HTTP verb and the object is the
- * object being acted upon. For example, `POST /wallet/burnAsset` burns an asset.
+ * is the verbObject naming convention. For example, `POST /wallet/burnAsset` burns an asset.
  */
+
+import { ApiNamespace, routes } from '../router'
+import { RemoveAccountRequestSchema, RemoveAccountResponse } from './removeAccount'
+import { getAccount } from './utils'
 
 routes.register<typeof RemoveAccountRequestSchema, RemoveAccountResponse>(
   `${ApiNamespace.wallet}/remove`,
