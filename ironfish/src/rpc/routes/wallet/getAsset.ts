@@ -15,6 +15,8 @@ export type GetWalletAssetRequest = {
   id: string
 }
 
+export type GetWalletAssetResponse = RpcAsset
+
 export const GetWalletAssetRequestSchema: yup.ObjectSchema<GetWalletAssetRequest> = yup
   .object()
   .shape({
@@ -24,9 +26,10 @@ export const GetWalletAssetRequestSchema: yup.ObjectSchema<GetWalletAssetRequest
   })
   .defined()
 
-export const GetWalletAssetResponse: yup.ObjectSchema<RpcAsset> = RpcAssetSchema.defined()
+export const GetWalletAssetResponse: yup.ObjectSchema<GetWalletAssetResponse> =
+  RpcAssetSchema.defined()
 
-routes.register<typeof GetWalletAssetRequestSchema, RpcAsset>(
+routes.register<typeof GetWalletAssetRequestSchema, GetWalletAssetResponse>(
   `${ApiNamespace.wallet}/getAsset`,
   GetWalletAssetRequestSchema,
   async (request, node): Promise<void> => {
