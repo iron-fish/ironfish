@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
+import { Assert } from '../../../assert'
 import { useAccountFixture, useMinerBlockFixture, useTxFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { CurrencyUtils } from '../../../utils'
@@ -84,9 +85,7 @@ describe('Route wallet/mintAsset', () => {
 
       expect(accountAsset).toBeDefined()
 
-      if (!accountAsset) {
-        throw new Error('accountAsset is undefined')
-      }
+      Assert.isNotUndefined(accountAsset)
 
       const response = await routeTest.client.wallet.mintAsset({
         account: account.name,

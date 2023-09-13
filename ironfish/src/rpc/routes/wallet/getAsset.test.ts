@@ -4,6 +4,7 @@
 
 import '../../../testUtilities/matchers'
 import { Asset } from '@ironfish/rust-nodejs'
+import { Assert } from '../../../assert'
 import { FullNode } from '../../../node'
 import { Block, Transaction } from '../../../primitives'
 import {
@@ -116,9 +117,7 @@ describe('Route chain.getAsset', () => {
 
     expect(accountAsset).toBeDefined()
 
-    if (!accountAsset) {
-      throw new Error('accountAsset is undefined')
-    }
+    Assert.isNotUndefined(accountAsset)
 
     expect(response.content).toEqual({
       createdTransactionHash: pendingMint.hash().toString('hex'),
