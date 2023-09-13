@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
+import { Assert } from '../../../assert'
 import {
   useAccountFixture,
   useMinerBlockFixture,
@@ -74,6 +75,10 @@ describe('Route wallet/burnAsset', () => {
       })
       jest.spyOn(wallet, 'burn').mockResolvedValueOnce(burnTransaction)
 
+      const accountAsset = await account.getAsset(assetId)
+
+      Assert.isNotUndefined(accountAsset)
+
       const response = await routeTest.client.wallet.burnAsset({
         account: account.name,
         assetId: assetId.toString('hex'),
@@ -82,6 +87,19 @@ describe('Route wallet/burnAsset', () => {
       })
 
       expect(response.content).toEqual({
+        asset: {
+          id: asset.id().toString('hex'),
+          metadata: asset.metadata().toString('hex'),
+          name: asset.name().toString('hex'),
+          creator: asset.creator().toString('hex'),
+          nonce: accountAsset.nonce ?? null,
+          owner: accountAsset.owner.toString('hex') ?? '',
+          status: await node.wallet.getAssetStatus(account, accountAsset, {
+            confirmations: 0,
+          }),
+          verification: node.assetsVerifier.verify(asset.id()),
+          createdTransactionHash: accountAsset.createdTransactionHash.toString('hex') ?? null,
+        },
         assetId: asset.id().toString('hex'),
         name: asset.name().toString('hex'),
         hash: burnTransaction.hash().toString('hex'),

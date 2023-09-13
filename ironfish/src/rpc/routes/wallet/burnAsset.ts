@@ -4,6 +4,7 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { CurrencyUtils, YupUtils } from '../../../utils'
+import { RpcAsset, RpcAssetSchema } from '../../types'
 import { ApiNamespace, routes } from '../router'
 import { getAccount } from './utils'
 
@@ -18,8 +19,15 @@ export interface BurnAssetRequest {
 }
 
 export interface BurnAssetResponse {
+  asset: RpcAsset
+  /**
+   * @deprecated Please use `asset.id` instead
+   */
   assetId: string
   hash: string
+  /**
+   * @deprecated Please use `asset.name` instead
+   */
   name: string
   value: string
 }
@@ -38,6 +46,7 @@ export const BurnAssetRequestSchema: yup.ObjectSchema<BurnAssetRequest> = yup
 
 export const BurnAssetResponseSchema: yup.ObjectSchema<BurnAssetResponse> = yup
   .object({
+    asset: RpcAssetSchema.required(),
     assetId: yup.string().required(),
     hash: yup.string().required(),
     name: yup.string().required(),
@@ -71,6 +80,19 @@ routes.register<typeof BurnAssetRequestSchema, BurnAssetResponse>(
     const burn = transaction.burns[0]
 
     request.end({
+      asset: {
+        id: asset.id.toString('hex'),
+        metadata: asset.metadata.toString('hex'),
+        name: asset.name.toString('hex'),
+        nonce: asset.nonce,
+        creator: asset.creator.toString('hex'),
+        owner: asset.owner.toString('hex'),
+        verification: node.assetsVerifier.verify(asset.id),
+        status: await node.wallet.getAssetStatus(account, asset, {
+          confirmations: request.data.confirmations,
+        }),
+        createdTransactionHash: asset.createdTransactionHash.toString('hex'),
+      },
       assetId: burn.assetId.toString('hex'),
       hash: transaction.hash().toString('hex'),
       name: asset.name.toString('hex'),

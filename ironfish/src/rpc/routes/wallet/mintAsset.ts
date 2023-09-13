@@ -6,6 +6,7 @@ import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { CurrencyUtils, YupUtils } from '../../../utils'
 import { MintAssetOptions } from '../../../wallet/interfaces/mintAssetOptions'
+import { RpcAsset, RpcAssetSchema } from '../../types'
 import { ApiNamespace, routes } from '../router'
 import { getAccount } from './utils'
 
@@ -22,8 +23,15 @@ export interface MintAssetRequest {
 }
 
 export interface MintAssetResponse {
+  asset: RpcAsset
+  /**
+   * @deprecated Please use `asset.id` instead
+   */
   assetId: string
   hash: string
+  /**
+   * @deprecated Please use `asset.name` instead
+   */
   name: string
   value: string
 }
@@ -44,6 +52,7 @@ export const MintAssetRequestSchema: yup.ObjectSchema<MintAssetRequest> = yup
 
 export const MintAssetResponseSchema: yup.ObjectSchema<MintAssetResponse> = yup
   .object({
+    asset: RpcAssetSchema.defined(),
     assetId: yup.string().required(),
     hash: yup.string().required(),
     name: yup.string().required(),
@@ -93,10 +102,26 @@ routes.register<typeof MintAssetRequestSchema, MintAssetResponse>(
     Assert.isEqual(transaction.mints.length, 1)
     const mint = transaction.mints[0]
 
+    const asset = await account.getAsset(mint.asset.id())
+    Assert.isNotUndefined(asset)
+
     request.end({
-      assetId: mint.asset.id().toString('hex'),
+      asset: {
+        id: asset.id.toString('hex'),
+        metadata: asset.metadata.toString('hex'),
+        name: asset.name.toString('hex'),
+        nonce: asset.nonce,
+        creator: asset.creator.toString('hex'),
+        owner: asset.owner.toString('hex'),
+        verification: node.assetsVerifier.verify(mint.asset.id()),
+        status: await node.wallet.getAssetStatus(account, asset, {
+          confirmations: request.data.confirmations,
+        }),
+        createdTransactionHash: asset.createdTransactionHash.toString('hex'),
+      },
+      assetId: asset.id.toString('hex'),
       hash: transaction.hash().toString('hex'),
-      name: mint.asset.name().toString('hex'),
+      name: asset.name.toString('hex'),
       value: mint.value.toString(),
     })
   },

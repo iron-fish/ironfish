@@ -16,9 +16,21 @@ export interface GetBalancesResponse {
   account: string
   balances: {
     assetId: string
+    /**
+     * @deprecated Please use getAsset endpoint to get this information
+     */
     assetName: string
+    /**
+     * @deprecated Please use getAsset endpoint to get this information
+     */
     assetCreator: string
+    /**
+     * @deprecated Please use getAsset endpoint to get this information
+     * */
     assetOwner: string
+    /**
+     * @deprecated Please use getAsset endpoint to get this information
+     * */
     assetVerification: AssetVerification
     confirmed: string
     unconfirmed: string

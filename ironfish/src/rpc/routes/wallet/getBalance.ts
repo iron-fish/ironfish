@@ -18,6 +18,9 @@ export type GetBalanceRequest =
 export type GetBalanceResponse = {
   account: string
   assetId: string
+  /**
+   * @deprecated Please use getAsset endpoint to get this information
+   * */
   assetVerification: AssetVerification
   confirmed: string
   unconfirmed: string

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
+import { Assert } from '../../../assert'
 import { useAccountFixture, useMinerBlockFixture, useTxFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { CurrencyUtils } from '../../../utils'
@@ -80,6 +81,10 @@ describe('Route wallet/mintAsset', () => {
 
       jest.spyOn(wallet, 'mint').mockResolvedValueOnce(mintTransaction)
 
+      const accountAsset = await account.getAsset(asset.id())
+
+      Assert.isNotUndefined(accountAsset)
+
       const response = await routeTest.client.wallet.mintAsset({
         account: account.name,
         fee: '1',
@@ -89,6 +94,20 @@ describe('Route wallet/mintAsset', () => {
       })
 
       expect(response.content).toEqual({
+        asset: {
+          id: asset.id().toString('hex'),
+          metadata: asset.metadata().toString('hex'),
+          name: asset.name().toString('hex'),
+          creator: asset.creator().toString('hex'),
+          nonce: asset.nonce(),
+          supply: undefined,
+          owner: accountAsset.owner.toString('hex'),
+          createdTransactionHash: accountAsset.createdTransactionHash.toString('hex'),
+          status: await node.wallet.getAssetStatus(account, accountAsset, {
+            confirmations: 0,
+          }),
+          verification: node.assetsVerifier.verify(asset.id()),
+        },
         assetId: asset.id().toString('hex'),
         hash: mintTransaction.hash().toString('hex'),
         name: asset.name().toString('hex'),
