@@ -1,20 +1,26 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-
-/**
- * NOTE: This endpoint will be deprecated in favor of `POST /wallet/renameAccount` because
- * this endpoint does not follow the convention that all of our endpoints should follow which
- * is the verbObject naming convention, where the verb is the HTTP verb and the object is the
- * object being acted upon. For example, `POST /wallet/burnAsset` burns an asset.
- */
-
+import * as yup from 'yup'
 import { ApiNamespace, routes } from '../router'
-import { RenameAccountRequestSchema, RenameAccountResponse } from '../wallet'
 import { getAccount } from './utils'
 
+export type RenameAccountRequest = { account: string; newName: string }
+export type RenameAccountResponse = undefined
+
+export const RenameAccountRequestSchema: yup.ObjectSchema<RenameAccountRequest> = yup
+  .object({
+    account: yup.string().defined(),
+    newName: yup.string().defined(),
+  })
+  .defined()
+
+export const RenameAccountResponseSchema: yup.MixedSchema<RenameAccountResponse> = yup
+  .mixed()
+  .oneOf([undefined] as const)
+
 routes.register<typeof RenameAccountRequestSchema, RenameAccountResponse>(
-  `${ApiNamespace.wallet}/rename`,
+  `${ApiNamespace.wallet}/renameAccount`,
   RenameAccountRequestSchema,
   async (request, node): Promise<void> => {
     const account = getAccount(node.wallet, request.data.account)

@@ -211,7 +211,7 @@ export abstract class RpcClient {
       params: RenameAccountRequest,
     ): Promise<RpcResponseEnded<RenameAccountResponse>> => {
       return this.request<RenameAccountResponse>(
-        `${ApiNamespace.wallet}/rename`,
+        `${ApiNamespace.wallet}/renameAccount`,
         params,
       ).waitForEnd()
     },
