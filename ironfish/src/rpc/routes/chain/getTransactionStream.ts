@@ -154,11 +154,15 @@ routes.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
             const assetValue = await node.chain.getAssetById(decryptedNote.assetId())
 
             notes.push({
+              sender: decryptedNote.sender().toString(),
               value: CurrencyUtils.encode(decryptedNote.value()),
               memo: decryptedNote.memo(),
+              owner: decryptedNote.owner().toString(),
               assetId: decryptedNote.assetId().toString('hex'),
               assetName: assetValue?.name.toString('hex') || '',
               hash: decryptedNote.hash().toString('hex'),
+              noteHash: decryptedNote.hash().toString('hex'),
+              transactionHash: tx.hash().toString('hex'),
             })
           }
         }
