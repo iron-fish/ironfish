@@ -5,6 +5,7 @@
 export * from './addTransaction'
 export * from './burnAsset'
 export * from './create'
+export * from './createAccount'
 export * from './createTransaction'
 export * from './estimateFeeRates'
 export * from './exportAccount'
