@@ -11,7 +11,6 @@ import { CurrencyUtils } from '../../../utils'
 import { PromiseUtils } from '../../../utils/promise'
 import { isValidIncomingViewKey } from '../../../wallet/validator'
 import { ValidationError } from '../../adapters/errors'
-import { RpcNote, RpcNoteSchema } from '../../types'
 import { ApiNamespace, routes } from '../router'
 
 interface Note {
@@ -44,10 +43,22 @@ interface Burn {
 interface Transaction {
   hash: string
   isMinersFee: boolean
-  notes: RpcNote[]
+  notes: Note[]
   mints: Mint[]
   burns: Burn[]
 }
+
+const NoteSchema = yup
+
+  .object()
+  .shape({
+    assetId: yup.string().required(),
+    assetName: yup.string().required(),
+    hash: yup.string().required(),
+    value: yup.string().required(),
+    memo: yup.string().required(),
+  })
+  .required()
 
 const MintSchema = yup
   .object()
@@ -72,7 +83,7 @@ const TransactionSchema = yup
   .shape({
     hash: yup.string().required(),
     isMinersFee: yup.boolean().required(),
-    notes: yup.array().of(RpcNoteSchema).required(),
+    notes: yup.array().of(NoteSchema).required(),
     mints: yup.array().of(MintSchema).required(),
     burns: yup.array().of(BurnSchema).required(),
   })
@@ -153,7 +164,7 @@ routes.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
       const transactions: Transaction[] = []
 
       for (const tx of block.transactions) {
-        const notes = new Array<RpcNote>()
+        const notes = new Array<Note>()
         const mints = new Array<Mint>()
         const burns = new Array<Burn>()
 
@@ -164,15 +175,11 @@ routes.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
             const assetValue = await node.chain.getAssetById(decryptedNote.assetId())
 
             notes.push({
-              sender: decryptedNote.sender().toString(),
               value: CurrencyUtils.encode(decryptedNote.value()),
               memo: decryptedNote.memo(),
-              owner: decryptedNote.owner().toString(),
               assetId: decryptedNote.assetId().toString('hex'),
               assetName: assetValue?.name.toString('hex') || '',
               hash: decryptedNote.hash().toString('hex'),
-              noteHash: decryptedNote.hash().toString('hex'),
-              transactionHash: tx.hash().toString('hex'),
             })
           }
         }
