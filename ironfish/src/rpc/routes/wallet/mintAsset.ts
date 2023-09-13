@@ -107,11 +107,11 @@ routes.register<typeof MintAssetRequestSchema, MintAssetResponse>(
 
     request.end({
       asset: {
-        id: mint.asset.id().toString('hex'),
-        metadata: mint.asset.metadata().toString('hex'),
-        name: mint.asset.name().toString('hex'),
-        nonce: mint.asset.nonce(),
-        creator: mint.asset.creator().toString('hex'),
+        id: asset.id.toString('hex'),
+        metadata: asset.metadata.toString('hex'),
+        name: asset.name.toString('hex'),
+        nonce: asset.nonce,
+        creator: asset.creator.toString('hex'),
         owner: asset.owner.toString('hex'),
         verification: node.assetsVerifier.verify(mint.asset.id()),
         status: await node.wallet.getAssetStatus(account, asset, {
@@ -119,10 +119,9 @@ routes.register<typeof MintAssetRequestSchema, MintAssetResponse>(
         }),
         createdTransactionHash: asset.createdTransactionHash.toString('hex'),
       },
-      assetId: mint.asset.id().toString('hex'),
+      assetId: asset.id.toString('hex'),
       hash: transaction.hash().toString('hex'),
-      name: mint.asset.name().toString('hex'),
-
+      name: asset.name.toString('hex'),
       value: mint.value.toString(),
     })
   },
