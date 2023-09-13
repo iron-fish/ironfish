@@ -115,8 +115,6 @@ describe('Route chain.getAsset', () => {
 
     const accountAsset = await account.getAsset(asset.id())
 
-    expect(accountAsset).toBeDefined()
-
     Assert.isNotUndefined(accountAsset)
 
     expect(response.content).toEqual({
