@@ -49,7 +49,6 @@ interface Transaction {
 }
 
 const NoteSchema = yup
-
   .object()
   .shape({
     assetId: yup.string().required(),
@@ -173,7 +172,6 @@ routes.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
 
           if (decryptedNote) {
             const assetValue = await node.chain.getAssetById(decryptedNote.assetId())
-
             notes.push({
               value: CurrencyUtils.encode(decryptedNote.value()),
               memo: decryptedNote.memo(),
