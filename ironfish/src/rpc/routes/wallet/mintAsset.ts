@@ -102,6 +102,9 @@ routes.register<typeof MintAssetRequestSchema, MintAssetResponse>(
     Assert.isEqual(transaction.mints.length, 1)
     const mint = transaction.mints[0]
 
+    const asset = await account.getAsset(mint.asset.id())
+    Assert.isNotUndefined(asset)
+
     request.end({
       asset: {
         id: mint.asset.id().toString('hex'),
@@ -109,10 +112,17 @@ routes.register<typeof MintAssetRequestSchema, MintAssetResponse>(
         name: mint.asset.name().toString('hex'),
         nonce: mint.asset.nonce(),
         creator: mint.asset.creator().toString('hex'),
+        owner: asset.owner.toString('hex'),
+        verification: node.assetsVerifier.verify(mint.asset.id()),
+        status: await node.wallet.getAssetStatus(account, asset, {
+          confirmations: request.data.confirmations,
+        }),
+        createdTransactionHash: asset.createdTransactionHash.toString('hex'),
       },
       assetId: mint.asset.id().toString('hex'),
       hash: transaction.hash().toString('hex'),
       name: mint.asset.name().toString('hex'),
+
       value: mint.value.toString(),
     })
   },

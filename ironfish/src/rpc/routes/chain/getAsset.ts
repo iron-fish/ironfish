@@ -7,22 +7,14 @@ import { Assert } from '../../../assert'
 import { FullNode } from '../../../node'
 import { CurrencyUtils } from '../../../utils'
 import { NotFoundError, ValidationError } from '../../adapters'
+import { RpcAsset } from '../../types'
 import { ApiNamespace, routes } from '../router'
 
 export type GetAssetRequest = {
   id: string
 }
 
-export type GetAssetResponse = {
-  createdTransactionHash: string
-  id: string
-  metadata: string
-  name: string
-  nonce: number
-  creator: string
-  owner: string
-  supply: string
-}
+export type GetAssetResponse = Omit<RpcAsset, 'status'>
 
 export const GetAssetRequestSchema: yup.ObjectSchema<GetAssetRequest> = yup
   .object()
@@ -33,14 +25,18 @@ export const GetAssetRequestSchema: yup.ObjectSchema<GetAssetRequest> = yup
 
 export const GetAssetResponse: yup.ObjectSchema<GetAssetResponse> = yup
   .object({
-    createdTransactionHash: yup.string().defined(),
-    id: yup.string().defined(),
-    metadata: yup.string().defined(),
-    name: yup.string().defined(),
-    nonce: yup.number().defined(),
-    creator: yup.string().defined(),
+    id: yup.string().required(),
+    metadata: yup.string().required(),
+    name: yup.string().required(),
+    nonce: yup.number().required(),
+    creator: yup.string().required(),
+    verification: yup
+      .object({ status: yup.string().oneOf(['verified', 'unverified', 'unknown']).defined() })
+      .defined(),
+    // status: yup.string().defined(), // This field is the only difference between this object and RPCAsset
+    supply: yup.string().optional(),
     owner: yup.string().defined(),
-    supply: yup.string().defined(),
+    createdTransactionHash: yup.string().defined(),
   })
   .defined()
 
@@ -72,6 +68,7 @@ routes.register<typeof GetAssetRequestSchema, GetAssetResponse>(
       creator: asset.creator.toString('hex'),
       owner: asset.owner.toString('hex'),
       supply: CurrencyUtils.encode(asset.supply),
+      verification: node.assetsVerifier.verify(asset.id),
     })
   },
 )

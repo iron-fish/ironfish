@@ -120,7 +120,7 @@ describe('Route chain.getAsset', () => {
       name: asset.name().toString('hex'),
       nonce: asset.nonce(),
       status: AssetStatus.PENDING,
-      supply: null,
+      supply: undefined,
       verification: { status: 'unknown' },
     })
   })

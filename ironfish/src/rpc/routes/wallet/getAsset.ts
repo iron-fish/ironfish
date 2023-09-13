@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { ASSET_ID_LENGTH } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
-import { AssetVerification } from '../../../assets'
 import { CurrencyUtils } from '../../../utils'
 import { NotFoundError, ValidationError } from '../../adapters'
+import { RpcAsset, RpcAssetSchema } from '../../types'
 import { ApiNamespace, routes } from '../router'
 import { getAccount } from './utils'
 
@@ -13,20 +13,6 @@ export type GetWalletAssetRequest = {
   account?: string
   confirmations?: number
   id: string
-}
-
-export type GetWalletAssetResponse = {
-  createdTransactionHash: string
-  creator: string
-  owner: string
-  id: string
-  metadata: string
-  name: string
-  nonce: number
-  status: string
-  verification: AssetVerification
-  // Populated for assets the account owns
-  supply: string | null
 }
 
 export const GetWalletAssetRequestSchema: yup.ObjectSchema<GetWalletAssetRequest> = yup
@@ -38,24 +24,9 @@ export const GetWalletAssetRequestSchema: yup.ObjectSchema<GetWalletAssetRequest
   })
   .defined()
 
-export const GetWalletAssetResponse: yup.ObjectSchema<GetWalletAssetResponse> = yup
-  .object({
-    createdTransactionHash: yup.string().defined(),
-    creator: yup.string().defined(),
-    owner: yup.string().defined(),
-    id: yup.string().defined(),
-    metadata: yup.string().defined(),
-    name: yup.string().defined(),
-    nonce: yup.number().defined(),
-    status: yup.string().defined(),
-    verification: yup
-      .object({ status: yup.string().oneOf(['verified', 'unverified', 'unknown']).defined() })
-      .defined(),
-    supply: yup.string().nullable().defined(),
-  })
-  .defined()
+export const GetWalletAssetResponse: yup.ObjectSchema<RpcAsset> = RpcAssetSchema.defined()
 
-routes.register<typeof GetWalletAssetRequestSchema, GetWalletAssetResponse>(
+routes.register<typeof GetWalletAssetRequestSchema, RpcAsset>(
   `${ApiNamespace.wallet}/getAsset`,
   GetWalletAssetRequestSchema,
   async (request, node): Promise<void> => {
@@ -84,7 +55,7 @@ routes.register<typeof GetWalletAssetRequestSchema, GetWalletAssetResponse>(
       status: await node.wallet.getAssetStatus(account, asset, {
         confirmations: request.data.confirmations,
       }),
-      supply: asset.supply ? CurrencyUtils.encode(asset.supply) : null,
+      supply: asset.supply ? CurrencyUtils.encode(asset.supply) : undefined,
       verification: node.assetsVerifier.verify(asset.id),
     })
   },
