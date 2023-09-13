@@ -7,14 +7,15 @@ import { Assert } from '../../../assert'
 import { FullNode } from '../../../node'
 import { CurrencyUtils } from '../../../utils'
 import { NotFoundError, ValidationError } from '../../adapters'
-import { RpcAsset } from '../../types'
+import { RpcAsset, RpcAssetSchema } from '../../types'
 import { ApiNamespace, routes } from '../router'
+import { getAccount } from '../wallet/utils'
 
 export type GetAssetRequest = {
   id: string
 }
 
-export type GetAssetResponse = Omit<RpcAsset, 'status'>
+export type GetAssetResponse = RpcAsset
 
 export const GetAssetRequestSchema: yup.ObjectSchema<GetAssetRequest> = yup
   .object()
@@ -23,22 +24,7 @@ export const GetAssetRequestSchema: yup.ObjectSchema<GetAssetRequest> = yup
   })
   .defined()
 
-export const GetAssetResponse: yup.ObjectSchema<GetAssetResponse> = yup
-  .object({
-    id: yup.string().required(),
-    metadata: yup.string().required(),
-    name: yup.string().required(),
-    nonce: yup.number().required(),
-    creator: yup.string().required(),
-    verification: yup
-      .object({ status: yup.string().oneOf(['verified', 'unverified', 'unknown']).defined() })
-      .defined(),
-    // status: yup.string().defined(), // This field is the only difference between this object and RPCAsset
-    supply: yup.string().optional(),
-    owner: yup.string().defined(),
-    createdTransactionHash: yup.string().defined(),
-  })
-  .defined()
+export const GetAssetResponse: yup.ObjectSchema<GetAssetResponse> = RpcAssetSchema.defined()
 
 routes.register<typeof GetAssetRequestSchema, GetAssetResponse>(
   `${ApiNamespace.chain}/getAsset`,
@@ -54,7 +40,9 @@ routes.register<typeof GetAssetRequestSchema, GetAssetResponse>(
       )
     }
 
-    const asset = await node.chain.getAssetById(id)
+    const account = getAccount(node.wallet)
+    const asset = await account.getAsset(id)
+
     if (!asset) {
       throw new NotFoundError(`No asset found with identifier ${request.data.id}`)
     }
@@ -67,7 +55,8 @@ routes.register<typeof GetAssetRequestSchema, GetAssetResponse>(
       nonce: asset.nonce,
       creator: asset.creator.toString('hex'),
       owner: asset.owner.toString('hex'),
-      supply: CurrencyUtils.encode(asset.supply),
+      supply: asset.supply ? CurrencyUtils.encode(asset.supply) : undefined,
+      status: await node.wallet.getAssetStatus(account, asset),
       verification: node.assetsVerifier.verify(asset.id),
     })
   },
