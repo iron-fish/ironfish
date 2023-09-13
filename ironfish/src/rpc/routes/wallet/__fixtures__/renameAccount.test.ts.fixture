@@ -1,0 +1,21 @@
+{
+  "Route wallet/renameAccount renames existing account": [
+    {
+      "version": 2,
+      "id": "3761eedb-7599-4263-af71-aad542508892",
+      "name": "existingAccount",
+      "spendingKey": "f2788932ac7bb23eb1924c3f05ea1b803c5e79c7c04c48d0eca6dd3519591a08",
+      "viewKey": "a556879fb974f51b214bdb3bb289cc2a0647871e82dd7d21bdd05866795a3e9ae910fcfdeb19896e8d3910928a1b84d7bf6826cb26ba4407edc1961944f9f2ee",
+      "incomingViewKey": "8f7e829b904849f256b87f727c890edd3434c9b4c151e40bae2738d60f516e03",
+      "outgoingViewKey": "bb37ec5802026cd687d1bd285c004a7a2f1753d6f3c7bf79d4699089c7fe3ce9",
+      "publicAddress": "14b09b3f8929ce36da8673447a26c3455f6377d4d82add102d6f7f4e4b774a4c",
+      "createdAt": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:iLb6jXRaTlO9oAExjmCwTuLk7gajgJVojVgEnLbxWso="
+        },
+        "sequence": 1
+      }
+    }
+  ]
+}
