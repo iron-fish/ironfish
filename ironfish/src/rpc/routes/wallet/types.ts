@@ -5,6 +5,7 @@
 import * as yup from 'yup'
 import { TransactionStatus, TransactionType } from '../../../wallet'
 import { AccountImport } from '../../../wallet/walletdb/accountValue'
+import { RpcSpend, RpcSpendSchema } from '../chain'
 
 export type RcpAccountAssetBalanceDelta = {
   assetId: string
@@ -23,46 +24,6 @@ export const RcpAccountAssetBalanceDeltaSchema: yup.ObjectSchema<RcpAccountAsset
       delta: yup.string().defined(),
     })
     .defined()
-
-export type RpcAccountTransaction = {
-  hash: string
-  fee: string
-  blockHash?: string
-  blockSequence?: number
-
-  notesCount: number
-  spendsCount: number
-  mintsCount: number
-  burnsCount: number
-  expiration: number
-  timestamp: number
-  submittedSequence: number
-  confirmations: number
-
-  type: TransactionType
-  status: TransactionStatus
-  assetBalanceDeltas: RcpAccountAssetBalanceDelta[]
-}
-
-export const RpcAccountTransactionSchema: yup.ObjectSchema<RpcAccountTransaction> = yup
-  .object({
-    hash: yup.string().defined(),
-    fee: yup.string().defined(),
-    blockHash: yup.string(),
-    blockSequence: yup.number(),
-    notesCount: yup.number().defined(),
-    spendsCount: yup.number().defined(),
-    mintsCount: yup.number().defined(),
-    burnsCount: yup.number().defined(),
-    expiration: yup.number().defined(),
-    timestamp: yup.number().defined(),
-    submittedSequence: yup.number().defined(),
-    status: yup.string().oneOf(Object.values(TransactionStatus)).defined(),
-    confirmations: yup.number().defined(),
-    type: yup.string().oneOf(Object.values(TransactionType)).defined(),
-    assetBalanceDeltas: yup.array(RcpAccountAssetBalanceDeltaSchema).defined(),
-  })
-  .defined()
 
 export type RpcWalletNote = {
   value: string
@@ -104,6 +65,51 @@ export const RpcWalletNoteSchema: yup.ObjectSchema<RpcWalletNote> = yup
     spent: yup.boolean().defined(),
     isOwner: yup.boolean().defined(),
     hash: yup.string().defined(),
+  })
+  .defined()
+
+export type RpcAccountTransaction = {
+  hash: string
+  fee: string
+  blockHash?: string
+  blockSequence?: number
+
+  notesCount: number
+  spendsCount: number
+  mintsCount: number
+  burnsCount: number
+  expiration: number
+  timestamp: number
+  submittedSequence: number
+  confirmations: number
+
+  type: TransactionType
+  status: TransactionStatus
+  assetBalanceDeltas: RcpAccountAssetBalanceDelta[]
+
+  notes?: RpcWalletNote[]
+  spends?: RpcSpend[]
+}
+
+export const RpcAccountTransactionSchema: yup.ObjectSchema<RpcAccountTransaction> = yup
+  .object({
+    hash: yup.string().defined(),
+    fee: yup.string().defined(),
+    blockHash: yup.string(),
+    blockSequence: yup.number(),
+    notesCount: yup.number().defined(),
+    spendsCount: yup.number().defined(),
+    mintsCount: yup.number().defined(),
+    burnsCount: yup.number().defined(),
+    expiration: yup.number().defined(),
+    timestamp: yup.number().defined(),
+    submittedSequence: yup.number().defined(),
+    status: yup.string().oneOf(Object.values(TransactionStatus)).defined(),
+    confirmations: yup.number().defined(),
+    type: yup.string().oneOf(Object.values(TransactionType)).defined(),
+    assetBalanceDeltas: yup.array(RcpAccountAssetBalanceDeltaSchema).defined(),
+    notes: yup.array(RpcWalletNoteSchema).optional(),
+    spends: yup.array(RpcSpendSchema).optional(),
   })
   .defined()
 

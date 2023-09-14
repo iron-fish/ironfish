@@ -7,10 +7,8 @@ import { IronfishNode } from '../../../utils'
 import { Account } from '../../../wallet/account/account'
 import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
 import { RpcRequest } from '../../request'
-import { RpcSpend, RpcSpendSchema } from '../chain'
 import { ApiNamespace, routes } from '../router'
 import { RpcAccountTransaction, RpcAccountTransactionSchema } from '../wallet/types'
-import { RpcWalletNote, RpcWalletNoteSchema } from './types'
 import {
   getAccount,
   getAccountDecryptedNotes,
@@ -29,11 +27,6 @@ export type GetAccountTransactionsRequest = {
   spends?: boolean
 }
 
-export type GetAccountTransactionsResponse = RpcAccountTransaction & {
-  notes?: RpcWalletNote[]
-  spends?: RpcSpend[]
-}
-
 export const GetAccountTransactionsRequestSchema: yup.ObjectSchema<GetAccountTransactionsRequest> =
   yup
     .object({
@@ -48,15 +41,10 @@ export const GetAccountTransactionsRequestSchema: yup.ObjectSchema<GetAccountTra
     })
     .defined()
 
+export type GetAccountTransactionsResponse = RpcAccountTransaction
+
 export const GetAccountTransactionsResponseSchema: yup.ObjectSchema<GetAccountTransactionsResponse> =
-  RpcAccountTransactionSchema.concat(
-    yup
-      .object({
-        notes: yup.array(RpcWalletNoteSchema).defined(),
-        spends: yup.array(RpcSpendSchema).defined(),
-      })
-      .defined(),
-  )
+  RpcAccountTransactionSchema.defined()
 
 routes.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactionsResponse>(
   `${ApiNamespace.wallet}/getAccountTransactions`,

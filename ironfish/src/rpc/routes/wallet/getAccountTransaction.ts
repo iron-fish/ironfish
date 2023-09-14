@@ -2,26 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { RpcSpend, RpcSpendSchema } from '../chain'
 import { ApiNamespace, routes } from '../router'
 import { RpcAccountTransaction, RpcAccountTransactionSchema } from '../wallet/types'
-import { RpcWalletNote, RpcWalletNoteSchema } from './types'
 import { getAccount, getAccountDecryptedNotes, serializeRpcAccountTransaction } from './utils'
 
 export type GetAccountTransactionRequest = {
   hash: string
   account?: string
   confirmations?: number
+  notes?: boolean
+  spends?: boolean
 }
 
 export type GetAccountTransactionResponse = {
   account: string
-  transaction:
-    | (RpcAccountTransaction & {
-        notes: RpcWalletNote[]
-        spends: RpcSpend[]
-      })
-    | null
+  transaction: RpcAccountTransaction | null
 }
 
 export const GetAccountTransactionRequestSchema: yup.ObjectSchema<GetAccountTransactionRequest> =
@@ -30,6 +25,8 @@ export const GetAccountTransactionRequestSchema: yup.ObjectSchema<GetAccountTran
       account: yup.string(),
       hash: yup.string().defined(),
       confirmations: yup.string(),
+      notes: yup.boolean().notRequired().default(true),
+      spends: yup.boolean().notRequired().default(true),
     })
     .defined()
 
@@ -37,14 +34,7 @@ export const GetAccountTransactionResponseSchema: yup.ObjectSchema<GetAccountTra
   yup
     .object({
       account: yup.string().defined(),
-      transaction: RpcAccountTransactionSchema.concat(
-        yup
-          .object({
-            notes: yup.array(RpcWalletNoteSchema).defined(),
-            spends: yup.array(RpcSpendSchema).defined(),
-          })
-          .defined(),
-      ),
+      transaction: RpcAccountTransactionSchema.defined().nullable(),
     })
     .defined()
 
@@ -72,13 +62,17 @@ routes.register<typeof GetAccountTransactionRequestSchema, GetAccountTransaction
       request.data.confirmations,
     )
 
-    const notes = await getAccountDecryptedNotes(node.workerPool, account, transaction)
+    const notes = request.data.notes
+      ? await getAccountDecryptedNotes(node.workerPool, account, transaction)
+      : undefined
 
-    const spends = transaction.transaction.spends.map((spend) => ({
-      nullifier: spend.nullifier.toString('hex'),
-      commitment: spend.commitment.toString('hex'),
-      size: spend.size,
-    }))
+    const spends = request.data.spends
+      ? transaction.transaction.spends.map((spend) => ({
+          nullifier: spend.nullifier.toString('hex'),
+          commitment: spend.commitment.toString('hex'),
+          size: spend.size,
+        }))
+      : undefined
 
     const serialized = {
       ...serializedTransaction,
