@@ -29,6 +29,7 @@ export type FollowChainStreamResponse = {
   }
   block: RpcBlockHeader & {
     size: number
+    work: string
     main: boolean
     transactions: RpcTransaction[]
   }
@@ -56,6 +57,7 @@ export const FollowChainStreamResponseSchema: yup.ObjectSchema<FollowChainStream
         .object({
           main: yup.boolean().defined(),
           size: yup.number().defined(),
+          work: yup.string().defined(),
           transactions: yup.array(RpcTransactionSchema).defined(),
         })
         .defined(),

@@ -160,7 +160,6 @@ routes.register<typeof GetBlockRequestSchema, GetBlockResponse>(
       block: {
         ...blockHeaderResponse,
         size: getBlockSize(block),
-        work: block.header.work.toString(),
         transactions,
       },
       metadata: {
