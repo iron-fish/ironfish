@@ -71,9 +71,6 @@ export const RpcWalletNoteSchema: yup.ObjectSchema<RpcWalletNote> = yup
 export type RpcAccountTransaction = {
   hash: string
   fee: string
-  blockHash?: string
-  blockSequence?: number
-
   notesCount: number
   spendsCount: number
   mintsCount: number
@@ -81,12 +78,15 @@ export type RpcAccountTransaction = {
   expiration: number
   timestamp: number
   submittedSequence: number
+  /**
+   * @deprecated This is configuarable via the node config, a setting that the user can pass, so doesn't need to be returned
+   */
   confirmations: number
-
   type: TransactionType
   status: TransactionStatus
   assetBalanceDeltas: RcpAccountAssetBalanceDelta[]
-
+  blockHash?: string
+  blockSequence?: number
   notes?: RpcWalletNote[]
   spends?: RpcSpend[]
 }
