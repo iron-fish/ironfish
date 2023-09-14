@@ -87,8 +87,8 @@ export function serializeRpcBlockHeader(header: BlockHeader): RpcBlockHeader {
     graffiti: header.graffiti.toString('hex'),
     noteCommitment: header.noteCommitment.toString('hex'),
     transactionCommitment: header.transactionCommitment.toString('hex'),
-    target: BigIntUtils.writeBigU256BE(header.target.asBigInt()).toString('hex'),
-    randomness: BigIntUtils.writeBigU64BE(header.randomness).toString('hex'),
+    target: BigIntUtils.writeBigU256BE(header.target.asBigInt()).toString(),
+    randomness: BigIntUtils.writeBigU64BE(header.randomness).toString(),
     work: header.work.toString(),
     noteSize: header.noteSize ?? undefined,
   }
