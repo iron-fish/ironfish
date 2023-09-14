@@ -2,21 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { TransactionStatus, TransactionType } from '../../../wallet'
 import { RpcSpend, RpcSpendSchema } from '../chain'
 import { ApiNamespace, routes } from '../router'
-import {
-  RcpAccountAssetBalanceDelta,
-  RcpAccountAssetBalanceDeltaSchema,
-  RpcWalletNote,
-  RpcWalletNoteSchema,
-} from './types'
-import {
-  getAccount,
-  getAccountDecryptedNotes,
-  getAssetBalanceDeltas,
-  serializeRpcAccountTransaction,
-} from './utils'
+import { RpcAccountTransaction, RpcAccountTransactionSchema } from '../wallet/types'
+import { RpcWalletNote, RpcWalletNoteSchema } from './types'
+import { getAccount, getAccountDecryptedNotes, serializeRpcAccountTransaction } from './utils'
 
 export type GetAccountTransactionRequest = {
   hash: string
@@ -26,24 +16,12 @@ export type GetAccountTransactionRequest = {
 
 export type GetAccountTransactionResponse = {
   account: string
-  transaction: {
-    hash: string
-    status: TransactionStatus
-    confirmations: number
-    type: TransactionType
-    fee: string
-    blockHash?: string
-    blockSequence?: number
-    notesCount: number
-    spendsCount: number
-    mintsCount: number
-    burnsCount: number
-    timestamp: number
-    submittedSequence: number
-    assetBalanceDeltas: RcpAccountAssetBalanceDelta[]
-    notes: RpcWalletNote[]
-    spends: RpcSpend[]
-  } | null
+  transaction:
+    | (RpcAccountTransaction & {
+        notes: RpcWalletNote[]
+        spends: RpcSpend[]
+      })
+    | null
 }
 
 export const GetAccountTransactionRequestSchema: yup.ObjectSchema<GetAccountTransactionRequest> =
@@ -59,26 +37,14 @@ export const GetAccountTransactionResponseSchema: yup.ObjectSchema<GetAccountTra
   yup
     .object({
       account: yup.string().defined(),
-      transaction: yup
-        .object({
-          hash: yup.string().required(),
-          status: yup.string().oneOf(Object.values(TransactionStatus)).defined(),
-          confirmations: yup.number().defined(),
-          type: yup.string().oneOf(Object.values(TransactionType)).defined(),
-          fee: yup.string().defined(),
-          blockHash: yup.string().optional(),
-          blockSequence: yup.number().optional(),
-          notesCount: yup.number().defined(),
-          spendsCount: yup.number().defined(),
-          mintsCount: yup.number().defined(),
-          burnsCount: yup.number().defined(),
-          timestamp: yup.number().defined(),
-          submittedSequence: yup.number().defined(),
-          assetBalanceDeltas: yup.array(RcpAccountAssetBalanceDeltaSchema).defined(),
-          notes: yup.array(RpcWalletNoteSchema).defined(),
-          spends: yup.array(RpcSpendSchema).defined(),
-        })
-        .defined(),
+      transaction: RpcAccountTransactionSchema.concat(
+        yup
+          .object({
+            notes: yup.array(RpcWalletNoteSchema).defined(),
+            spends: yup.array(RpcSpendSchema).defined(),
+          })
+          .defined(),
+      ),
     })
     .defined()
 
@@ -99,9 +65,12 @@ routes.register<typeof GetAccountTransactionRequestSchema, GetAccountTransaction
       })
     }
 
-    const serializedTransaction = serializeRpcAccountTransaction(transaction)
-
-    const assetBalanceDeltas = await getAssetBalanceDeltas(account, transaction)
+    const serializedTransaction = await serializeRpcAccountTransaction(
+      node,
+      account,
+      transaction,
+      request.data.confirmations,
+    )
 
     const notes = await getAccountDecryptedNotes(node.workerPool, account, transaction)
 
@@ -111,22 +80,10 @@ routes.register<typeof GetAccountTransactionRequestSchema, GetAccountTransaction
       size: spend.size,
     }))
 
-    const confirmations = request.data.confirmations ?? node.config.get('confirmations')
-
-    const status = await node.wallet.getTransactionStatus(account, transaction, {
-      confirmations,
-    })
-
-    const type = await node.wallet.getTransactionType(account, transaction)
-
     const serialized = {
       ...serializedTransaction,
-      assetBalanceDeltas,
       notes,
       spends,
-      status,
-      type,
-      confirmations,
     }
 
     request.end({

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Note } from '../../../primitives'
-import { CurrencyUtils } from '../../../utils'
+import { CurrencyUtils, IronfishNode } from '../../../utils'
 import { Account, Wallet } from '../../../wallet'
 import { AccountImport } from '../../../wallet/walletdb/accountValue'
 import { AssetValue } from '../../../wallet/walletdb/assetValue'
@@ -37,9 +37,19 @@ export function getAccount(wallet: Wallet, name?: string): Account {
   )
 }
 
-export function serializeRpcAccountTransaction(
+export async function serializeRpcAccountTransaction(
+  node: IronfishNode,
+  account: Account,
   transaction: TransactionValue,
-): RpcAccountTransaction {
+  _confirmations: number | undefined,
+): Promise<RpcAccountTransaction> {
+  const assetBalanceDeltas = await getAssetBalanceDeltas(account, transaction)
+  const type = await node.wallet.getTransactionType(account, transaction)
+  const confirmations = _confirmations ?? node.config.get('confirmations')
+  const status = await node.wallet.getTransactionStatus(account, transaction, {
+    confirmations,
+  })
+
   return {
     hash: transaction.transaction.hash().toString('hex'),
     fee: transaction.transaction.fee().toString(),
@@ -52,6 +62,10 @@ export function serializeRpcAccountTransaction(
     expiration: transaction.transaction.expiration(),
     timestamp: transaction.timestamp.getTime(),
     submittedSequence: transaction.submittedSequence,
+    type,
+    status,
+    assetBalanceDeltas,
+    confirmations,
   }
 }
 
