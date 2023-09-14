@@ -12,6 +12,7 @@ export interface BurnAssetRequest {
   account: string
   assetId: string
   fee: string
+  feeRate?: string
   value: string
   expiration?: number
   expirationDelta?: number
@@ -63,6 +64,10 @@ routes.register<typeof BurnAssetRequestSchema, BurnAssetResponse>(
     const fee = CurrencyUtils.decode(request.data.fee)
     const value = CurrencyUtils.decode(request.data.value)
 
+    const feeRate: bigint | undefined = request.data.feeRate
+      ? CurrencyUtils.decode(request.data.feeRate)
+      : undefined
+
     const assetId = Buffer.from(request.data.assetId, 'hex')
     const asset = await account.getAsset(assetId)
     Assert.isNotUndefined(asset)
@@ -73,6 +78,7 @@ routes.register<typeof BurnAssetRequestSchema, BurnAssetResponse>(
       value,
       fee,
       request.data.expirationDelta ?? node.config.get('transactionExpirationDelta'),
+      feeRate,
       request.data.expiration,
       request.data.confirmations,
     )
