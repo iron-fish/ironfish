@@ -57,7 +57,6 @@ export const RpcWalletTransactionSchema: yup.ObjectSchema<RpcWalletTransaction> 
     expiration: yup.number().defined(),
     timestamp: yup.number().defined(),
     submittedSequence: yup.number().defined(),
-
     status: yup.string().oneOf(Object.values(TransactionStatus)).defined(),
     confirmations: yup.number().defined(),
     type: yup.string().oneOf(Object.values(TransactionType)).defined(),

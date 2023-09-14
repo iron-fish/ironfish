@@ -52,16 +52,18 @@ export const RpcSpendSchema: yup.ObjectSchema<RpcSpend> = yup
   .defined()
 
 export type RpcTransaction = {
-  serialized?: string
   hash: string
   size: number
   fee: number
   expiration: number
+
   notes: RpcEncryptedNote[]
   spends: RpcSpend[]
   mints: RpcMint[]
   burns: RpcBurn[]
+
   signature?: string
+  serialized?: string
 }
 
 export const RpcTransactionSchema: yup.ObjectSchema<RpcTransaction> = yup
