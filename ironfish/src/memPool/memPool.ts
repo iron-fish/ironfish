@@ -36,7 +36,7 @@ export function mempoolEntryComparator(
   secondTransaction: MempoolEntry,
 ): boolean {
   if (!firstTransaction.feeRate.eq(secondTransaction.feeRate)) {
-    return firstTransaction.feeRate.greaterThan(secondTransaction.feeRate)
+    return firstTransaction.feeRate.gt(secondTransaction.feeRate)
   }
 
   return firstTransaction.hash.compare(secondTransaction.hash) > 0
