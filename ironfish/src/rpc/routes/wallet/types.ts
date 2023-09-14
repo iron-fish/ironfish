@@ -47,7 +47,7 @@ export type RpcWalletNote = {
   memo: string
   sender: string
   owner: string
-  hash: string
+  noteHash: string
   transactionHash: string
   index: number | null
   nullifier: string | null
@@ -57,9 +57,9 @@ export type RpcWalletNote = {
    */
   isOwner: boolean
   /**
-   * @deprecated Please use `hash` instead
+   * @deprecated Please use `noteHash` instead
    */
-  noteHash: string
+  hash: string
 }
 
 export const RpcWalletNoteSchema: yup.ObjectSchema<RpcWalletNote> = yup
