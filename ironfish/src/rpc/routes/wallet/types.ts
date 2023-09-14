@@ -24,7 +24,7 @@ export const RcpAccountAssetBalanceDeltaSchema: yup.ObjectSchema<RcpAccountAsset
     })
     .defined()
 
-export type RpcAccountTransaction = {
+export type RpcWalletTransaction = {
   hash: string
   fee: string
   blockHash?: string
@@ -44,7 +44,7 @@ export type RpcAccountTransaction = {
   assetBalanceDeltas: RcpAccountAssetBalanceDelta[]
 }
 
-export const RpcAccountTransactionSchema: yup.ObjectSchema<RpcAccountTransaction> = yup
+export const RpcWalletTransactionSchema: yup.ObjectSchema<RpcWalletTransaction> = yup
   .object({
     hash: yup.string().defined(),
     fee: yup.string().defined(),

@@ -4,7 +4,7 @@
 import * as yup from 'yup'
 import { RpcSpend, RpcSpendSchema } from '../chain'
 import { ApiNamespace, routes } from '../router'
-import { RpcAccountTransaction, RpcAccountTransactionSchema } from '../wallet/types'
+import { RpcWalletTransaction, RpcWalletTransactionSchema } from '../wallet/types'
 import { RpcWalletNote, RpcWalletNoteSchema } from './types'
 import { getAccount, getAccountDecryptedNotes, serializeRpcAccountTransaction } from './utils'
 
@@ -17,7 +17,7 @@ export type GetAccountTransactionRequest = {
 export type GetAccountTransactionResponse = {
   account: string
   transaction:
-    | (RpcAccountTransaction & {
+    | (RpcWalletTransaction & {
         notes: RpcWalletNote[]
         spends: RpcSpend[]
       })
@@ -37,7 +37,7 @@ export const GetAccountTransactionResponseSchema: yup.ObjectSchema<GetAccountTra
   yup
     .object({
       account: yup.string().defined(),
-      transaction: RpcAccountTransactionSchema.concat(
+      transaction: RpcWalletTransactionSchema.concat(
         yup
           .object({
             notes: yup.array(RpcWalletNoteSchema).defined(),
