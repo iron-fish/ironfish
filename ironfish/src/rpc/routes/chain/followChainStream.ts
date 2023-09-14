@@ -9,6 +9,7 @@ import { FullNode } from '../../../node'
 import { Block, BlockHeader } from '../../../primitives'
 import { BlockHashSerdeInstance } from '../../../serde'
 import { BufferUtils, PromiseUtils } from '../../../utils'
+import { RpcBlockHeader, RpcBlockHeaderSchema, serializeRpcBlockHeader } from '../../types'
 import { ApiNamespace, routes } from '../router'
 import { RpcTransaction, RpcTransactionSchema } from './types'
 
@@ -26,17 +27,9 @@ export type FollowChainStreamResponse = {
   head: {
     sequence: number
   }
-  block: {
-    hash: string
-    sequence: number
-    previous: string
-    graffiti: string
-    difficulty: string
+  block: RpcBlockHeader & {
     size: number
-    timestamp: number
-    work: string
     main: boolean
-    noteSize: number | null
     transactions: RpcTransaction[]
   }
 }
@@ -58,21 +51,15 @@ export const FollowChainStreamResponseSchema: yup.ObjectSchema<FollowChainStream
         sequence: yup.number().defined(),
       })
       .defined(),
-    block: yup
-      .object({
-        hash: yup.string().defined(),
-        sequence: yup.number().defined(),
-        previous: yup.string().defined(),
-        timestamp: yup.number().defined(),
-        graffiti: yup.string().defined(),
-        size: yup.number().defined(),
-        work: yup.string().defined(),
-        main: yup.boolean().defined(),
-        difficulty: yup.string().defined(),
-        noteSize: yup.number().nullable().defined(),
-        transactions: yup.array(RpcTransactionSchema).defined(),
-      })
-      .defined(),
+    block: RpcBlockHeaderSchema.concat(
+      yup
+        .object({
+          main: yup.boolean().defined(),
+          size: yup.number().defined(),
+          transactions: yup.array(RpcTransactionSchema).defined(),
+        })
+        .defined(),
+    ).defined(),
   })
   .defined()
 
@@ -124,22 +111,17 @@ routes.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
         })),
       }))
 
+      const blockHeaderResponse = serializeRpcBlockHeader(block.header)
+
       request.stream({
         type: type,
         head: {
           sequence: node.chain.head.sequence,
         },
         block: {
-          hash: block.header.hash.toString('hex'),
-          sequence: block.header.sequence,
-          previous: block.header.previousBlockHash.toString('hex'),
-          graffiti: BufferUtils.toHuman(block.header.graffiti),
+          ...blockHeaderResponse,
           size: getBlockSize(block),
-          work: block.header.work.toString(),
           main: type === 'connected',
-          timestamp: block.header.timestamp.valueOf(),
-          difficulty: block.header.target.toDifficulty().toString(),
-          noteSize: block.header.noteSize,
           transactions,
         },
       })
