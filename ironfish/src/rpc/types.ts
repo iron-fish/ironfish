@@ -73,7 +73,7 @@ export type RpcBlockHeader = {
   timestamp: number
   graffiti: string
   work: string
-  noteSize?: number
+  noteSize: number | null
 }
 
 export function serializeRpcBlockHeader(header: BlockHeader): RpcBlockHeader {
@@ -90,7 +90,7 @@ export function serializeRpcBlockHeader(header: BlockHeader): RpcBlockHeader {
     target: BigIntUtils.writeBigU256BE(header.target.asBigInt()).toString(),
     randomness: BigIntUtils.writeBigU64BE(header.randomness).toString(),
     work: header.work.toString(),
-    noteSize: header.noteSize ?? undefined,
+    noteSize: header.noteSize ?? null,
   }
 }
 
@@ -109,6 +109,6 @@ export const RpcBlockHeaderSchema: yup.ObjectSchema<RpcBlockHeader> = yup
     target: yup.string().defined(),
     randomness: yup.string().defined(),
     work: yup.string().defined(),
-    noteSize: yup.number().optional(),
+    noteSize: yup.number().nullable().defined(),
   })
   .defined()

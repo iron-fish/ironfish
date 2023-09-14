@@ -97,7 +97,6 @@ export class RemoteChainProcessor {
 
     Assert.isNotNull(response.block.noteSize)
     let initialNoteIndex = response.block.noteSize
-    Assert.isNotUndefined(initialNoteIndex)
 
     for (const rpcTransaction of response.block.transactions.slice().reverse()) {
       Assert.isNotUndefined(rpcTransaction.serialized)
