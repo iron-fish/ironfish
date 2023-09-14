@@ -38,8 +38,6 @@ export class TransactionCommand extends IronfishCommand {
     const response = await client.wallet.getAccountTransaction({
       account,
       hash,
-      notes: true,
-      spends: true,
     })
 
     if (!response.content.transaction) {
@@ -47,6 +45,7 @@ export class TransactionCommand extends IronfishCommand {
       return
     }
 
+    // by default the notes and spends should be returned
     Assert.isNotUndefined(response.content.transaction.notes)
     Assert.isNotUndefined(response.content.transaction.spends)
 
