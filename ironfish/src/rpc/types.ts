@@ -59,6 +59,10 @@ export const RpcEncryptedNoteSchema: yup.ObjectSchema<RpcEncryptedNote> = yup
 
 export type RpcBlockHeader = {
   hash: string
+  /**
+   * @deprecated Please use previousBlockHash instead
+   */
+  previous: string
   sequence: number
   previousBlockHash: string
   difficulty: string
@@ -68,11 +72,14 @@ export type RpcBlockHeader = {
   randomness: string
   timestamp: number
   graffiti: string
+  work: string
+  noteSize?: number
 }
 
 export function serializeRpcBlockHeader(header: BlockHeader): RpcBlockHeader {
   return {
     hash: header.hash.toString('hex'),
+    previous: header.previousBlockHash.toString('hex'),
     sequence: Number(header.sequence),
     previousBlockHash: header.previousBlockHash.toString('hex'),
     timestamp: header.timestamp.valueOf(),
@@ -82,12 +89,15 @@ export function serializeRpcBlockHeader(header: BlockHeader): RpcBlockHeader {
     transactionCommitment: header.transactionCommitment.toString('hex'),
     target: BigIntUtils.writeBigU256BE(header.target.asBigInt()).toString('hex'),
     randomness: BigIntUtils.writeBigU64BE(header.randomness).toString('hex'),
+    work: header.work.toString(),
+    noteSize: header.noteSize ?? undefined,
   }
 }
 
 export const RpcBlockHeaderSchema: yup.ObjectSchema<RpcBlockHeader> = yup
   .object({
     hash: yup.string().defined(),
+    previous: yup.string().defined(),
     sequence: yup.number().defined(),
     previousBlockHash: yup.string().defined(),
     timestamp: yup.number().defined(),
@@ -98,5 +108,7 @@ export const RpcBlockHeaderSchema: yup.ObjectSchema<RpcBlockHeader> = yup
     transactionCommitment: yup.string().defined(),
     target: yup.string().defined(),
     randomness: yup.string().defined(),
+    work: yup.string().defined(),
+    noteSize: yup.number().optional(),
   })
   .defined()

@@ -9,6 +9,7 @@ import { BlockHeader } from '../../../primitives'
 import { GENESIS_BLOCK_SEQUENCE } from '../../../primitives/block'
 import { BufferUtils } from '../../../utils'
 import { NotFoundError, ValidationError } from '../../adapters'
+import { RpcBlockHeader, RpcBlockHeaderSchema, serializeRpcBlockHeader } from '../../types'
 import { ApiNamespace, routes } from '../router'
 import { RpcTransaction, RpcTransactionSchema } from './types'
 
@@ -21,16 +22,8 @@ export type GetBlockRequest = {
 }
 
 export type GetBlockResponse = {
-  block: {
-    graffiti: string
-    difficulty: string
-    hash: string
-    previousBlockHash: string
-    sequence: number
+  block: RpcBlockHeader & {
     size: number
-    timestamp: number
-    noteSize: number
-    noteCommitment: string
     transactions: RpcTransaction[]
   }
   metadata: {
@@ -52,20 +45,14 @@ export const GetBlockRequestSchema: yup.ObjectSchema<GetBlockRequest> = yup
 
 export const GetBlockResponseSchema: yup.ObjectSchema<GetBlockResponse> = yup
   .object({
-    block: yup
-      .object({
-        graffiti: yup.string().defined(),
-        difficulty: yup.string().defined(),
-        hash: yup.string().defined(),
-        previousBlockHash: yup.string().defined(),
-        sequence: yup.number().defined(),
-        size: yup.number().defined(),
-        timestamp: yup.number().defined(),
-        noteSize: yup.number().defined(),
-        noteCommitment: yup.string().defined(),
-        transactions: yup.array(RpcTransactionSchema).defined(),
-      })
-      .defined(),
+    block: RpcBlockHeaderSchema.concat(
+      yup
+        .object({
+          size: yup.number().defined(),
+          transactions: yup.array(RpcTransactionSchema).defined(),
+        })
+        .defined(),
+    ).defined(),
     metadata: yup
       .object({
         main: yup.boolean().defined(),
@@ -167,18 +154,14 @@ routes.register<typeof GetBlockRequestSchema, GetBlockResponse>(
     const main = await node.chain.isHeadChain(header)
     const confirmed = node.chain.head.sequence - header.sequence >= confirmations
 
+    const blockHeaderResponse = serializeRpcBlockHeader(header)
+
     request.end({
       block: {
-        graffiti: BufferUtils.toHuman(header.graffiti),
-        difficulty: header.target.toDifficulty().toString(),
-        hash: header.hash.toString('hex'),
-        previousBlockHash: header.previousBlockHash.toString('hex'),
-        sequence: Number(header.sequence),
+        ...blockHeaderResponse,
         size: getBlockSize(block),
-        timestamp: header.timestamp.valueOf(),
-        noteSize: header.noteSize,
-        noteCommitment: header.noteCommitment.toString('hex'),
-        transactions: transactions,
+        work: block.header.work.toString(),
+        transactions,
       },
       metadata: {
         main: main,

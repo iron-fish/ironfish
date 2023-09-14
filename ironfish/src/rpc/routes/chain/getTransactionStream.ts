@@ -11,6 +11,7 @@ import { CurrencyUtils } from '../../../utils'
 import { PromiseUtils } from '../../../utils/promise'
 import { isValidIncomingViewKey } from '../../../wallet/validator'
 import { ValidationError } from '../../adapters/errors'
+import { RpcBlockHeader, RpcBlockHeaderSchema, serializeRpcBlockHeader } from '../../types'
 import { ApiNamespace, routes } from '../router'
 
 interface Note {
@@ -95,12 +96,7 @@ export type GetTransactionStreamResponse = {
   head: {
     sequence: number
   }
-  block: {
-    hash: string
-    previousBlockHash: string
-    sequence: number
-    timestamp: number
-  }
+  block: RpcBlockHeader
   transactions: Transaction[]
 }
 
@@ -116,14 +112,7 @@ export const GetTransactionStreamResponseSchema: yup.ObjectSchema<GetTransaction
     .object({
       transactions: yup.array().of(TransactionSchema).required(),
       type: yup.string().oneOf(['connected', 'disconnected', 'fork']).required(),
-      block: yup
-        .object({
-          hash: yup.string().required(),
-          sequence: yup.number().required(),
-          timestamp: yup.number().required(),
-          previousBlockHash: yup.string().required(),
-        })
-        .defined(),
+      block: RpcBlockHeaderSchema.defined(),
       head: yup
         .object({
           sequence: yup.number().required(),
@@ -213,12 +202,7 @@ routes.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
       request.stream({
         type,
         transactions,
-        block: {
-          hash: block.header.hash.toString('hex'),
-          sequence: block.header.sequence,
-          timestamp: block.header.timestamp.valueOf(),
-          previousBlockHash: block.header.previousBlockHash.toString('hex'),
-        },
+        block: serializeRpcBlockHeader(block.header),
         head: {
           sequence: node.chain.head.sequence,
         },
