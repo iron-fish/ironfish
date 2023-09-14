@@ -37,3 +37,20 @@ export const RpcAssetSchema: yup.ObjectSchema<RpcAsset> = yup
     createdTransactionHash: yup.string().defined(),
   })
   .defined()
+
+export type RpcEncryptedNote = {
+  /**
+   * @deprecated Please use hash instead
+   */
+  commitment: string
+  hash: string
+  serialized: string
+}
+
+export const RpcEncryptedNoteSchema: yup.ObjectSchema<RpcEncryptedNote> = yup
+  .object({
+    commitment: yup.string().defined(),
+    hash: yup.string().defined(),
+    serialized: yup.string().defined(),
+  })
+  .defined()

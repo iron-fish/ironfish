@@ -139,6 +139,8 @@ routes.register<typeof GetBlockRequestSchema, GetBlockResponse>(
         expiration: tx.expiration(),
         notes: tx.notes.map((note) => ({
           commitment: note.hash().toString('hex'),
+          hash: note.hash().toString('hex'),
+          serialized: note.serialize().toString('hex'),
         })),
         spends: tx.spends.map((spend) => ({
           nullifier: spend.nullifier.toString('hex'),
