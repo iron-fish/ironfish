@@ -38,21 +38,17 @@ export const RcpAccountAssetBalanceDeltaSchema: yup.ObjectSchema<RcpAccountAsset
     .defined()
 
 export type RpcWalletNote = {
-  assetId: string
-  owner: string
-  sender: string
-  hash: string
   value: string
-  memo: string
-  transactionHash: string
+  assetId: string
   /**
-   * @deprecated Please use getAsset endpoint to get this information
+   * @deprecated Please use `asset.name` instead
    */
   assetName: string
-  /**
-   * @deprecated Please use hash instead
-   */
-  noteHash: string
+  memo: string
+  sender: string
+  owner: string
+  hash: string
+  transactionHash: string
   index: number | null
   nullifier: string | null
   spent: boolean
@@ -60,6 +56,10 @@ export type RpcWalletNote = {
    * @deprecated Please use `owner` address instead
    */
   isOwner: boolean
+  /**
+   * @deprecated Please use `hash` instead
+   */
+  noteHash: string
 }
 
 export const RpcWalletNoteSchema: yup.ObjectSchema<RpcWalletNote> = yup
