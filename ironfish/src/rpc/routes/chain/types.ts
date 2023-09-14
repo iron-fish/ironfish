@@ -3,7 +3,18 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import * as yup from 'yup'
-import { RpcEncryptedNote, RpcEncryptedNoteSchema } from '../../types'
+
+export type RpcNote = {
+  hash: string
+  serialized: string
+}
+
+export const RpcNoteSchema: yup.ObjectSchema<RpcNote> = yup
+  .object({
+    hash: yup.string().defined(),
+    serialized: yup.string().defined(),
+  })
+  .defined()
 
 export type RpcMint = {
   id: string
@@ -52,18 +63,16 @@ export const RpcSpendSchema: yup.ObjectSchema<RpcSpend> = yup
   .defined()
 
 export type RpcTransaction = {
+  serialized?: string
   hash: string
   size: number
   fee: number
   expiration: number
-
-  notes: RpcEncryptedNote[]
+  notes: { commitment: string }[]
   spends: RpcSpend[]
   mints: RpcMint[]
   burns: RpcBurn[]
-
   signature?: string
-  serialized?: string
 }
 
 export const RpcTransactionSchema: yup.ObjectSchema<RpcTransaction> = yup
@@ -73,7 +82,15 @@ export const RpcTransactionSchema: yup.ObjectSchema<RpcTransaction> = yup
     size: yup.number().defined(),
     fee: yup.number().defined(),
     expiration: yup.number().defined(),
-    notes: yup.array(RpcEncryptedNoteSchema).defined(),
+    notes: yup
+      .array(
+        yup
+          .object({
+            commitment: yup.string().defined(),
+          })
+          .defined(),
+      )
+      .defined(),
     spends: yup.array(RpcSpendSchema).defined(),
     mints: yup.array(RpcMintSchema).defined(),
     burns: yup.array(RpcBurnSchema).defined(),
