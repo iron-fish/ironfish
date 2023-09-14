@@ -11,6 +11,7 @@ import { TransactionVersion } from '../primitives/transaction'
 import {
   createNodeTest,
   useAccountFixture,
+  useBlockWithCustomTxs,
   useBlockWithTx,
   useMinerBlockFixture,
   useTxFixture,
@@ -142,41 +143,35 @@ describe('MemPool', () => {
     const nodeTest = createNodeTest()
 
     it('returns transactions sorted by fee rate determinsitically', async () => {
-      const account = await useAccountFixture(nodeTest.wallet, 'account')
-
-      const block = await useMinerBlockFixture(
-        nodeTest.chain,
-        undefined,
-        account,
-        nodeTest.wallet,
-      )
-      await expect(nodeTest.chain).toAddBlock(block)
-      await nodeTest.wallet.updateHead()
+      const from = await useAccountFixture(nodeTest.wallet, 'account')
 
       const outputs = Array(10).fill({
-        publicAddress: account.publicAddress,
+        publicAddress: from.publicAddress,
         amount: 1n,
         assetId: Asset.nativeId(),
         memo: '',
       })
 
-      const tx1 = (await nodeTest.wallet.createTransaction({ account, outputs, fee: 4n })).post(
-        account.spendingKey,
-      )
-      const tx2 = (await nodeTest.wallet.createTransaction({ account, outputs, fee: 3n })).post(
-        account.spendingKey,
-      )
-      const tx3 = (await nodeTest.wallet.createTransaction({ account, outputs, fee: 2n })).post(
-        account.spendingKey,
-      )
-      const tx4 = (await nodeTest.wallet.createTransaction({ account, outputs, fee: 1n })).post(
-        account.spendingKey,
-      )
+      const transactionInputs = [
+        { from, fee: 1n, outputs },
+        { from, fee: 2n, outputs },
+        { from, fee: 3n, outputs },
+        { from, fee: 4n, outputs },
+      ]
+      const { transactions } = await useBlockWithCustomTxs(nodeTest.node, transactionInputs)
 
-      expect(getPreciseFeeRate(tx1).gt(getPreciseFeeRate(tx2))).toBe(true)
-      expect(getPreciseFeeRate(tx2).gt(getPreciseFeeRate(tx3))).toBe(true)
-      expect(getPreciseFeeRate(tx3).gt(getPreciseFeeRate(tx4))).toBe(true)
-    }, 60000)
+      for (const transaction of transactions) {
+        nodeTest.node.memPool.acceptTransaction(transaction)
+      }
+
+      const orderedTransactions = [...nodeTest.node.memPool.orderedTransactions()]
+
+      expect(orderedTransactions.length).toEqual(4)
+      expect(orderedTransactions[0].hash()).toEqual(transactions[3].hash())
+      expect(orderedTransactions[1].hash()).toEqual(transactions[2].hash())
+      expect(orderedTransactions[2].hash()).toEqual(transactions[1].hash())
+      expect(orderedTransactions[3].hash()).toEqual(transactions[0].hash())
+    })
 
     it('returns transactions from the node mempool sorted by fee rate', async () => {
       const { node } = nodeTest
