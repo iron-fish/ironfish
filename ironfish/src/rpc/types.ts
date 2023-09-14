@@ -5,7 +5,6 @@
 import * as yup from 'yup'
 import { AssetVerification } from '../assets'
 import { BlockHeader } from '../primitives'
-import { BigIntUtils } from '../utils'
 
 export type RpcAsset = {
   id: string
@@ -87,8 +86,8 @@ export function serializeRpcBlockHeader(header: BlockHeader): RpcBlockHeader {
     graffiti: header.graffiti.toString('hex'),
     noteCommitment: header.noteCommitment.toString('hex'),
     transactionCommitment: header.transactionCommitment.toString('hex'),
-    target: BigIntUtils.writeBigU256BE(header.target.asBigInt()).toString(),
-    randomness: BigIntUtils.writeBigU64BE(header.randomness).toString(),
+    target: header.target.asBigInt().toString(),
+    randomness: header.randomness.toString(),
     work: header.work.toString(),
     noteSize: header.noteSize ?? null,
   }
