@@ -100,7 +100,6 @@ export const RpcBlockHeaderSchema: yup.ObjectSchema<RpcBlockHeader> = yup
     sequence: yup.number().defined(),
     previousBlockHash: yup.string().defined(),
     timestamp: yup.number().defined(),
-    transactions: yup.array().defined(),
     difficulty: yup.string().defined(),
     graffiti: yup.string().defined(),
     noteCommitment: yup.string().defined(),

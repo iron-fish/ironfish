@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { BufferUtils, CurrencyUtils, TimeUtils } from '@ironfish/sdk'
+import { Assert, BufferUtils, CurrencyUtils, TimeUtils } from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
@@ -35,12 +35,19 @@ export class TransactionCommand extends IronfishCommand {
 
     const client = await this.sdk.connectRpc()
 
-    const response = await client.wallet.getAccountTransaction({ account, hash })
+    const response = await client.wallet.getAccountTransaction({
+      account,
+      hash,
+    })
 
     if (!response.content.transaction) {
       this.log(`No transaction found by hash ${hash}`)
       return
     }
+
+    // by default the notes and spends should be returned
+    Assert.isNotUndefined(response.content.transaction.notes)
+    Assert.isNotUndefined(response.content.transaction.spends)
 
     this.log(`Transaction: ${hash}`)
     this.log(`Account: ${response.content.account}`)

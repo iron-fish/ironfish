@@ -3,18 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { GENESIS_BLOCK_SEQUENCE } from '../../../primitives'
-import { TransactionStatus, TransactionType, Wallet } from '../../../wallet'
+import { IronfishNode } from '../../../utils'
 import { Account } from '../../../wallet/account/account'
 import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
 import { RpcRequest } from '../../request'
-import { RpcSpend, RpcSpendSchema } from '../chain'
 import { ApiNamespace, routes } from '../router'
-import {
-  RcpAccountAssetBalanceDelta,
-  RcpAccountAssetBalanceDeltaSchema,
-  RpcWalletNote,
-  RpcWalletNoteSchema,
-} from './types'
+import { RpcAccountTransaction, RpcAccountTransactionSchema } from '../wallet/types'
 import {
   getAccount,
   getAccountDecryptedNotes,
@@ -33,26 +27,6 @@ export type GetAccountTransactionsRequest = {
   spends?: boolean
 }
 
-export type GetAccountTransactionsResponse = {
-  hash: string
-  status: TransactionStatus
-  type: TransactionType
-  confirmations: number
-  fee: string
-  blockHash?: string
-  blockSequence?: number
-  notesCount: number
-  spendsCount: number
-  mintsCount: number
-  burnsCount: number
-  expiration: number
-  timestamp: number
-  submittedSequence: number
-  assetBalanceDeltas: RcpAccountAssetBalanceDelta[]
-  notes?: RpcWalletNote[]
-  spends?: RpcSpend[]
-}
-
 export const GetAccountTransactionsRequestSchema: yup.ObjectSchema<GetAccountTransactionsRequest> =
   yup
     .object({
@@ -67,28 +41,10 @@ export const GetAccountTransactionsRequestSchema: yup.ObjectSchema<GetAccountTra
     })
     .defined()
 
+export type GetAccountTransactionsResponse = RpcAccountTransaction
+
 export const GetAccountTransactionsResponseSchema: yup.ObjectSchema<GetAccountTransactionsResponse> =
-  yup
-    .object({
-      hash: yup.string().defined(),
-      status: yup.string().oneOf(Object.values(TransactionStatus)).defined(),
-      confirmations: yup.number().defined(),
-      type: yup.string().oneOf(Object.values(TransactionType)).defined(),
-      fee: yup.string().defined(),
-      blockHash: yup.string().optional(),
-      blockSequence: yup.number().optional(),
-      notesCount: yup.number().defined(),
-      spendsCount: yup.number().defined(),
-      mintsCount: yup.number().defined(),
-      burnsCount: yup.number().defined(),
-      expiration: yup.number().defined(),
-      timestamp: yup.number().defined(),
-      submittedSequence: yup.number().defined(),
-      assetBalanceDeltas: yup.array(RcpAccountAssetBalanceDeltaSchema).defined(),
-      notes: yup.array(RpcWalletNoteSchema).defined(),
-      spends: yup.array(RpcSpendSchema).defined(),
-    })
-    .defined()
+  RpcAccountTransactionSchema.defined()
 
 routes.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactionsResponse>(
   `${ApiNamespace.wallet}/getAccountTransactions`,
@@ -109,7 +65,7 @@ routes.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
       const transaction = await account.getTransaction(hashBuffer)
 
       if (transaction) {
-        await streamTransaction(request, node.wallet, account, transaction, options)
+        await streamTransaction(request, node, account, transaction, options)
       }
       request.end()
       return
@@ -136,7 +92,7 @@ routes.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
         break
       }
 
-      await streamTransaction(request, node.wallet, account, transaction, options)
+      await streamTransaction(request, node, account, transaction, options)
       count++
     }
 
@@ -146,7 +102,7 @@ routes.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
 
 const streamTransaction = async (
   request: RpcRequest<GetAccountTransactionsRequest, GetAccountTransactionsResponse>,
-  wallet: Wallet,
+  node: IronfishNode,
   account: Account,
   transaction: TransactionValue,
   options: {
@@ -154,7 +110,14 @@ const streamTransaction = async (
     confirmations: number
   },
 ): Promise<void> => {
-  const serializedTransaction = serializeRpcAccountTransaction(transaction)
+  const wallet = node.wallet
+
+  const serializedTransaction = await serializeRpcAccountTransaction(
+    node,
+    account,
+    transaction,
+    options.confirmations,
+  )
 
   const assetBalanceDeltas = await getAssetBalanceDeltas(account, transaction)
 
@@ -172,15 +135,9 @@ const streamTransaction = async (
     }))
   }
 
-  const status = await wallet.getTransactionStatus(account, transaction, options)
-  const type = await wallet.getTransactionType(account, transaction)
-
   const serialized = {
     ...serializedTransaction,
     assetBalanceDeltas,
-    status,
-    confirmations: options.confirmations,
-    type,
     notes,
     spends,
   }
