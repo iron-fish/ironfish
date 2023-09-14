@@ -13,8 +13,8 @@ import { ValidationError } from '../../adapters'
 import {
   RcpAccountAssetBalanceDelta,
   RpcAccountImport,
+  RpcAccountTransaction,
   RpcWalletNote,
-  RpcWalletTransaction,
 } from './types'
 
 export function getAccount(wallet: Wallet, name?: string): Account {
@@ -42,7 +42,7 @@ export async function serializeRpcAccountTransaction(
   account: Account,
   transaction: TransactionValue,
   _confirmations: number | undefined,
-): Promise<RpcWalletTransaction> {
+): Promise<RpcAccountTransaction> {
   const assetBalanceDeltas = await getAssetBalanceDeltas(account, transaction)
   const type = await node.wallet.getTransactionType(account, transaction)
   const confirmations = _confirmations ?? node.config.get('confirmations')
