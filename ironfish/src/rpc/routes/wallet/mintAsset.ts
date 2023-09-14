@@ -68,10 +68,9 @@ routes.register<typeof MintAssetRequestSchema, MintAssetResponse>(
     const account = getAccount(node.wallet, request.data.account)
 
     const fee = CurrencyUtils.decode(request.data.fee)
-    let feeRate: bigint | undefined
-    if (request.data.feeRate) {
-      feeRate = CurrencyUtils.decode(request.data.feeRate)
-    }
+    const feeRate: bigint | undefined = request.data.feeRate
+      ? CurrencyUtils.decode(request.data.feeRate)
+      : undefined
     const value = CurrencyUtils.decode(request.data.value)
 
     const expirationDelta =
