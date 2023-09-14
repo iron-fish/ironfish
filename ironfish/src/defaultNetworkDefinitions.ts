@@ -22,8 +22,10 @@ export function defaultNetworkName(networkId: number): string | undefined {
 }
 
 // TODO(IFL-1523): Update proper activation sequence for enableAssetOwnership
-export const TESTNET = `
-{
+// enforceSequentialBlockTime activation date is approximately 26-07-2024 00:56. This is not the
+// actual date, it's an placeholder for the testnet release.
+// TODO: @ygao76 update this once the change is ready to release to testnet.
+export const TESTNET = `{
   "id": 0,
   "bootstrapNodes": ["1.test.bn.ironfish.network", "2.test.bn.ironfish.network"],
   "genesis": ${TESTNET_GENESIS},
@@ -34,11 +36,15 @@ export const TESTNET = `
       "targetBucketTimeInSeconds": 10,
       "maxBlockSizeBytes": 524288,
       "minFee": 1,
-      "enableAssetOwnership": 9999999
+      "enableAssetOwnership": 9999999,
+      "enforceSequentialBlockTime": "never"
   }
 }`
 
 // TODO(IFL-1523): Update proper activation sequence for enableAssetOwnership
+// enforceSequentialBlockTime activation date is approximately 26-07-2024 00:50. This is not the
+// actual date, it's an placeholder for the next hardfork.
+// TODO: @ygao76 update this once the hard fork date is finalized.
 export const MAINNET = `
 {
     "id": 1,
@@ -51,7 +57,8 @@ export const MAINNET = `
         "targetBucketTimeInSeconds": 10,
         "maxBlockSizeBytes": 524288,
         "minFee": 1,
-        "enableAssetOwnership": 9999999
+        "enableAssetOwnership": 9999999,
+        "enforceSequentialBlockTime": "never"
     }
 }`
 
@@ -68,6 +75,7 @@ export const DEVNET = `
         "targetBucketTimeInSeconds": 10,
         "maxBlockSizeBytes": 524288,
         "minFee": 0,
-        "enableAssetOwnership": 1
+        "enableAssetOwnership": 1,
+        "enforceSequentialBlockTime": 1
     }
 }`
