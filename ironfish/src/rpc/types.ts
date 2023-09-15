@@ -121,7 +121,7 @@ export const RpcBlockSchema: yup.ObjectSchema<RpcBlock> = RpcBlockHeaderSchema.c
   yup
     .object({
       size: yup.number().defined(),
-      transactions: yup.array().of(RpcTransactionSchema).defined(),
+      transactions: yup.array(RpcTransactionSchema).defined(),
     })
     .defined(),
 )
