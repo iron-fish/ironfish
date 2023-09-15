@@ -68,7 +68,7 @@ export class WebApi {
       difficulty: block.difficulty,
       size: block.size,
       graffiti: block.graffiti,
-      main: block.main,
+      main: type === 'connected',
       transactions: block.transactions,
       work: block.work,
     }))

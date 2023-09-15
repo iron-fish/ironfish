@@ -27,6 +27,9 @@ export type FollowChainStreamResponse = {
     sequence: number
   }
   block: RpcBlock & {
+    /**
+     * @deprecated this can be derived from the type
+     */
     main: boolean
   }
 }
