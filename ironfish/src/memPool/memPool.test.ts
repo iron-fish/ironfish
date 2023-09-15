@@ -17,7 +17,7 @@ import {
   useTxFixture,
 } from '../testUtilities'
 import { Account } from '../wallet'
-import { getFeeRate, getPreciseFeeRate } from './feeEstimator'
+import { getPreciseFeeRate } from './feeEstimator'
 import { mempoolEntryComparator } from './memPool'
 
 // Creates transactions out of the list of fees and adds them to the wallet
@@ -142,7 +142,7 @@ describe('MemPool', () => {
   describe('orderedTransactions', () => {
     const nodeTest = createNodeTest()
 
-    it('returns transactions sorted by fee rate determinsitically', async () => {
+    it('returns transactions sorted by fee rate deterministically', async () => {
       const from = await useAccountFixture(nodeTest.wallet, 'account')
 
       const outputs = Array(10).fill({
@@ -208,8 +208,8 @@ describe('MemPool', () => {
       // add transaction to wallet to avoid spending same notes
       await wallet.addPendingTransaction(transactionC)
 
-      expect(getFeeRate(transactionA)).toBeGreaterThan(getFeeRate(transactionB))
-      expect(getFeeRate(transactionB)).toBeGreaterThan(getFeeRate(transactionC))
+      expect(getPreciseFeeRate(transactionA).gt(getPreciseFeeRate(transactionB))).toBe(true)
+      expect(getPreciseFeeRate(transactionB).gt(getPreciseFeeRate(transactionC))).toBe(true)
 
       expect(memPool.acceptTransaction(transactionB)).toBe(true)
       expect(memPool.acceptTransaction(transactionA)).toBe(true)
