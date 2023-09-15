@@ -39,8 +39,11 @@ import { Account, ACCOUNT_SCHEMA_VERSION } from './account/account'
 import { AssetBalances } from './assetBalances'
 import { NotEnoughFundsError } from './errors'
 import { MintAssetOptions } from './interfaces/mintAssetOptions'
-import { WalletBlockHeader, WalletBlockTransaction } from './remoteChainProcessor'
-import { RemoteChainProcessor } from './remoteChainProcessor'
+import {
+  RemoteChainProcessor,
+  WalletBlockHeader,
+  WalletBlockTransaction,
+} from './remoteChainProcessor'
 import { validateAccount } from './validator'
 import { AccountValue } from './walletdb/accountValue'
 import { AssetValue } from './walletdb/assetValue'
@@ -918,6 +921,7 @@ export class Wallet {
       account,
       mints: [mintData],
       fee: options.fee,
+      feeRate: options.feeRate,
       expirationDelta: options.expirationDelta,
       expiration: options.expiration,
       confirmations: options.confirmations,
@@ -934,8 +938,9 @@ export class Wallet {
     account: Account,
     assetId: Buffer,
     value: bigint,
-    fee: bigint,
     expirationDelta: number,
+    fee?: bigint,
+    feeRate?: bigint,
     expiration?: number,
     confirmations?: number,
   ): Promise<Transaction> {
@@ -943,6 +948,7 @@ export class Wallet {
       account,
       burns: [{ assetId, value }],
       fee,
+      feeRate,
       expirationDelta,
       expiration,
       confirmations,
