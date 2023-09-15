@@ -11,7 +11,7 @@ import { ApiNamespace, routes } from '../router'
 import { getAccount } from './utils'
 
 export interface MintAssetRequest {
-  account: string
+  account?: string
   fee: string
   value: string
   assetId?: string

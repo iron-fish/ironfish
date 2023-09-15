@@ -13,7 +13,7 @@ import { ApiNamespace, routes } from '../router'
 import { getAccount } from './utils'
 
 export type SendTransactionRequest = {
-  account: string
+  account?: string
   outputs: {
     publicAddress: string
     amount: string
