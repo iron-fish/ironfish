@@ -5,6 +5,7 @@
 import * as yup from 'yup'
 import { AssetVerification } from '../assets'
 import { BlockHeader } from '../primitives'
+import { RpcTransaction, RpcTransactionSchema } from './routes'
 
 export type RpcAsset = {
   id: string
@@ -110,3 +111,17 @@ export const RpcBlockHeaderSchema: yup.ObjectSchema<RpcBlockHeader> = yup
     noteSize: yup.number().nullable().defined(),
   })
   .defined()
+
+export type RpcBlock = RpcBlockHeader & {
+  size: number
+  transactions: RpcTransaction[]
+}
+
+export const RpcBlockSchema: yup.ObjectSchema<RpcBlock> = RpcBlockHeaderSchema.concat(
+  yup
+    .object({
+      size: yup.number().defined(),
+      transactions: yup.array(RpcTransactionSchema).defined(),
+    })
+    .defined(),
+)
