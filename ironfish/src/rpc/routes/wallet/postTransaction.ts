@@ -7,7 +7,7 @@ import { ApiNamespace, routes } from '../router'
 import { getAccount } from './utils'
 
 export type PostTransactionRequest = {
-  account?: string
+  account: string
   transaction: string
   broadcast?: boolean
 }
@@ -21,7 +21,7 @@ export type PostTransactionResponse = {
 
 export const PostTransactionRequestSchema: yup.ObjectSchema<PostTransactionRequest> = yup
   .object({
-    account: yup.string().trim(),
+    account: yup.string().trim().defined(),
     transaction: yup.string().defined(),
     broadcast: yup.boolean().optional(),
   })
