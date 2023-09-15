@@ -70,6 +70,13 @@ export enum TransactionType {
   MINER = 'miner',
 }
 
+export type TransactionOutput = {
+  publicAddress: string
+  amount: bigint
+  memo: string
+  assetId: Buffer
+}
+
 export class Wallet {
   readonly onAccountImported = new Event<[account: Account]>()
   readonly onAccountRemoved = new Event<[account: Account]>()
@@ -857,12 +864,7 @@ export class Wallet {
 
   async send(options: {
     account: Account
-    outputs: {
-      publicAddress: string
-      amount: bigint
-      memo: string
-      assetId: Buffer
-    }[]
+    outputs: TransactionOutput[]
     fee?: bigint
     feeRate?: bigint
     expirationDelta?: number
@@ -956,12 +958,7 @@ export class Wallet {
   async createTransaction(options: {
     account: Account
     notes?: Buffer[]
-    outputs?: {
-      publicAddress: string
-      amount: bigint
-      memo: string
-      assetId: Buffer
-    }[]
+    outputs?: TransactionOutput[]
     mints?: MintData[]
     burns?: BurnDescription[]
     fee?: bigint
