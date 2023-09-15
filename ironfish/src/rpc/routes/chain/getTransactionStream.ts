@@ -11,7 +11,15 @@ import { CurrencyUtils } from '../../../utils'
 import { PromiseUtils } from '../../../utils/promise'
 import { isValidIncomingViewKey } from '../../../wallet/validator'
 import { ValidationError } from '../../adapters/errors'
-import { RpcBlockHeader, RpcBlockHeaderSchema, serializeRpcBlockHeader } from '../../types'
+import {
+  RpcBlockHeader,
+  RpcBlockHeaderSchema,
+  RpcBurn,
+  RpcBurnSchema,
+  RpcMint,
+  RpcMintSchema,
+  serializeRpcBlockHeader,
+} from '../../types'
 import { ApiNamespace, routes } from '../router'
 
 interface Note {
@@ -24,29 +32,13 @@ interface Note {
   value: string
   memo: string
 }
-interface Mint {
-  assetId: string
-  /**
-   * @deprecated Please use getAsset endpoint to get this information
-   */
-  assetName: string
-  value: string
-}
-interface Burn {
-  assetId: string
-  /**
-   * @deprecated Please use getAsset endpoint to get this information
-   */
-  assetName: string
-  value: string
-}
 
 interface Transaction {
   hash: string
   isMinersFee: boolean
   notes: Note[]
-  mints: Mint[]
-  burns: Burn[]
+  mints: RpcMint[]
+  burns: RpcBurn[]
 }
 
 const NoteSchema = yup
@@ -60,32 +52,14 @@ const NoteSchema = yup
   })
   .required()
 
-const MintSchema = yup
-  .object()
-  .shape({
-    assetId: yup.string().required(),
-    assetName: yup.string().required(),
-    value: yup.string().required(),
-  })
-  .required()
-
-const BurnSchema = yup
-  .object()
-  .shape({
-    assetId: yup.string().required(),
-    assetName: yup.string().required(),
-    value: yup.string().required(),
-  })
-  .required()
-
 const TransactionSchema = yup
   .object()
   .shape({
     hash: yup.string().required(),
     isMinersFee: yup.boolean().required(),
     notes: yup.array().of(NoteSchema).required(),
-    mints: yup.array().of(MintSchema).required(),
-    burns: yup.array().of(BurnSchema).required(),
+    mints: yup.array().of(RpcMintSchema).required(),
+    burns: yup.array().of(RpcBurnSchema).required(),
   })
   .required()
 

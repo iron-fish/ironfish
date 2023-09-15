@@ -3,39 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import * as yup from 'yup'
-import { RpcEncryptedNote, RpcEncryptedNoteSchema } from '../../types'
-
-export type RpcMint = {
-  id: string
-  metadata: string
-  name: string
-  creator: string
-  value: string
-  transferOwnershipTo?: string
-}
-
-export const RpcMintSchema: yup.ObjectSchema<RpcMint> = yup
-  .object({
-    id: yup.string().defined(),
-    metadata: yup.string().defined(),
-    name: yup.string().defined(),
-    creator: yup.string().defined(),
-    value: yup.string().defined(),
-    transferOwnershipTo: yup.string().optional(),
-  })
-  .defined()
-
-export type RpcBurn = {
-  id: string
-  value: string
-}
-
-export const RpcBurnSchema: yup.ObjectSchema<RpcBurn> = yup
-  .object({
-    id: yup.string().defined(),
-    value: yup.string().defined(),
-  })
-  .defined()
+import {
+  RpcBurn,
+  RpcBurnSchema,
+  RpcEncryptedNote,
+  RpcEncryptedNoteSchema,
+  RpcMint,
+  RpcMintSchema,
+} from '../../types'
 
 export type RpcSpend = {
   nullifier: string

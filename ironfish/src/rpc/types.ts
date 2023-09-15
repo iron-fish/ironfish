@@ -6,6 +6,69 @@ import * as yup from 'yup'
 import { AssetVerification } from '../assets'
 import { BlockHeader } from '../primitives'
 
+export type RpcBurn = {
+  id: string
+
+  assetId: string
+  /**
+   * @deprecated Please use getAsset endpoint to get this information
+   */
+  assetName: string
+  value: string
+}
+
+export const RpcBurnSchema: yup.ObjectSchema<RpcBurn> = yup
+  .object({
+    id: yup.string().defined(),
+    assetId: yup.string().defined(),
+    assetName: yup.string().defined(),
+    value: yup.string().defined(),
+  })
+  .defined()
+
+export type RpcMint = {
+  assetId: string
+  /**
+   * @deprecated Please use assetId instead
+   */
+
+  id: string
+  /**
+   * @deprecated Please use getAsset endpoint to get this information
+   */
+  assetName: string
+  /**
+   * @deprecated Please use getAsset endpoint to get this information
+   */
+  metadata: string
+  /**
+   * @deprecated Please use getAsset endpoint to get this information
+   */
+  name: string
+  /**
+   * @deprecated Please use getAsset endpoint to get this information
+   */
+  creator: string
+  /**
+   * @deprecated Please use getAsset endpoint to get this information
+   */
+  transferOwnershipTo?: string
+  value: string
+}
+
+export const RpcMintSchema: yup.ObjectSchema<RpcMint> = yup
+  .object({
+    id: yup.string().defined(),
+    metadata: yup.string().defined(),
+    name: yup.string().defined(),
+    creator: yup.string().defined(),
+    value: yup.string().defined(),
+    transferOwnershipTo: yup.string().optional(),
+    assetId: yup.string().defined(),
+    assetName: yup.string().defined(),
+  })
+  .defined()
+
 export type RpcAsset = {
   id: string
   metadata: string
