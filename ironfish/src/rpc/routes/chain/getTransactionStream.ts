@@ -127,8 +127,8 @@ routes.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
 
       for (const tx of block.transactions) {
         const notes = new Array<Note>()
-        const mints = new Array<Mint>()
-        const burns = new Array<Burn>()
+        const mints = new Array<RpcMint>()
+        const burns = new Array<RpcBurn>()
 
         for (const note of tx.notes) {
           const decryptedNote = note.decryptNoteForOwner(request.data.incomingViewKey)
@@ -149,6 +149,7 @@ routes.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
           const assetValue = await node.chain.getAssetById(burn.assetId)
           burns.push({
             value: CurrencyUtils.encode(burn.value),
+            id: burn.assetId.toString('hex'),
             assetId: burn.assetId.toString('hex'),
             assetName: assetValue?.name.toString('hex') || '',
           })
@@ -159,6 +160,11 @@ routes.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
             value: CurrencyUtils.encode(mint.value),
             assetId: mint.asset.id().toString('hex'),
             assetName: mint.asset.name().toString('hex'),
+            id: mint.asset.id().toString('hex'),
+            name: mint.asset.name().toString('hex'),
+            creator: mint.asset.creator().toString('hex'),
+            metadata: mint.asset.metadata().toString('hex'),
+            transferOwnershipTo: mint.transferOwnershipTo?.toString('hex'),
           })
         }
 

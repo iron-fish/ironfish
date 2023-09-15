@@ -120,12 +120,18 @@ routes.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
       })),
       mints: transaction.mints.map((mint) => ({
         assetId: mint.asset.id().toString('hex'),
+        id: mint.asset.id().toString('hex'),
+        assetName: mint.asset.name().toString('hex'),
         value: CurrencyUtils.encode(mint.value),
         name: mint.asset.name().toString('hex'),
         metadata: mint.asset.metadata().toString('hex'),
+        creator: mint.asset.creator().toString('hex'),
+        transferOwnershipTo: mint.transferOwnershipTo?.toString('hex'),
       })),
       burns: transaction.burns.map((burn) => ({
         assetId: burn.assetId.toString('hex'),
+        id: burn.assetId.toString('hex'),
+        assetName: '',
         value: CurrencyUtils.encode(burn.value),
       })),
       spends: transaction.spends.map((spend) => ({
