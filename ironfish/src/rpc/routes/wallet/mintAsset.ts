@@ -12,7 +12,7 @@ import { getAccount } from './utils'
 
 export interface MintAssetRequest {
   account: string
-  fee: string
+  fee?: string
   feeRate?: string
   value: string
   assetId?: string
@@ -67,7 +67,10 @@ routes.register<typeof MintAssetRequestSchema, MintAssetResponse>(
   async (request, node): Promise<void> => {
     const account = getAccount(node.wallet, request.data.account)
 
-    const fee = CurrencyUtils.decode(request.data.fee)
+    const fee: bigint | undefined = request.data.fee
+      ? CurrencyUtils.decode(request.data.fee)
+      : undefined
+
     const feeRate: bigint | undefined = request.data.feeRate
       ? CurrencyUtils.decode(request.data.feeRate)
       : undefined
