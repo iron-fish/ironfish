@@ -100,8 +100,11 @@ describe('Route wallet/burnAsset', () => {
           verification: node.assetsVerifier.verify(asset.id()),
           createdTransactionHash: accountAsset.createdTransactionHash.toString('hex') ?? null,
         },
+        id: asset.id().toString('hex'),
         assetId: asset.id().toString('hex'),
         name: asset.name().toString('hex'),
+        assetName: asset.name().toString('hex'),
+        transactionHash: burnTransaction.hash().toString('hex'),
         hash: burnTransaction.hash().toString('hex'),
         value: burnTransaction.burns[0].value.toString(),
       })
