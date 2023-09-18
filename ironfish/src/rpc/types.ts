@@ -35,7 +35,6 @@ export type RpcMint = {
   /**
    * @deprecated Please use assetId instead
    */
-
   id: string
   /**
    * @deprecated Please use getAsset endpoint to get this information
