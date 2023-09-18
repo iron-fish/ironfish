@@ -39,11 +39,11 @@ export const MintAssetRequestSchema: yup.ObjectSchema<MintAssetRequest> = yup
 
 export type MintAssetResponse = RpcMint & {
   asset: RpcAsset
+  transactionHash: string
   /**
    * @deprecated Please use `transactionHash` instead
    */
   hash: string
-  transactionHash: string
 }
 
 export const MintAssetResponseSchema: yup.ObjectSchema<MintAssetResponse> =

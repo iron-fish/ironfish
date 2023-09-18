@@ -33,12 +33,15 @@ export const BurnAssetRequestSchema: yup.ObjectSchema<BurnAssetRequest> = yup
 
 export type BurnAssetResponse = RpcBurn & {
   asset: RpcAsset
+  transactionHash: string
   /**
    * @deprecated Please use `transactionHash` instead
    */
   hash: string
+  /**
+   * @deprecated Please use `asset.name` instead
+   */
   name: string
-  transactionHash: string
 }
 
 export const BurnAssetResponseSchema: yup.ObjectSchema<BurnAssetResponse> =
