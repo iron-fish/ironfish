@@ -76,8 +76,9 @@ export class BalancesCommand extends IronfishCommand {
             logWarn: this.warn.bind(this),
           }),
       },
-      assetId: {
+      'asset.id': {
         header: 'Asset Id',
+        get: (row) => row.asset.id,
       },
       available: {
         header: 'Available Balance',
