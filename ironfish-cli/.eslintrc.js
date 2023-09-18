@@ -8,7 +8,7 @@ module.exports = {
   },
   rules: {
     'jest/no-standalone-expect': 'off',
-    'deprecation/deprecation': 'off',
+    'deprecation/deprecation': 'off', // enable this to warn or error to show deprecated code usage
   },
   plugins: ['deprecation'],
 }
