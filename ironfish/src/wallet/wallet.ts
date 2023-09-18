@@ -39,8 +39,11 @@ import { Account, ACCOUNT_SCHEMA_VERSION } from './account/account'
 import { AssetBalances } from './assetBalances'
 import { NotEnoughFundsError } from './errors'
 import { MintAssetOptions } from './interfaces/mintAssetOptions'
-import { WalletBlockHeader, WalletBlockTransaction } from './remoteChainProcessor'
-import { RemoteChainProcessor } from './remoteChainProcessor'
+import {
+  RemoteChainProcessor,
+  WalletBlockHeader,
+  WalletBlockTransaction,
+} from './remoteChainProcessor'
 import { validateAccount } from './validator'
 import { AccountValue } from './walletdb/accountValue'
 import { AssetValue } from './walletdb/assetValue'
@@ -68,6 +71,13 @@ export enum TransactionType {
   SEND = 'send',
   RECEIVE = 'receive',
   MINER = 'miner',
+}
+
+export type TransactionOutput = {
+  publicAddress: string
+  amount: bigint
+  memo: string
+  assetId: Buffer
 }
 
 export class Wallet {
@@ -857,12 +867,7 @@ export class Wallet {
 
   async send(options: {
     account: Account
-    outputs: {
-      publicAddress: string
-      amount: bigint
-      memo: string
-      assetId: Buffer
-    }[]
+    outputs: TransactionOutput[]
     fee?: bigint
     feeRate?: bigint
     expirationDelta?: number
@@ -916,6 +921,7 @@ export class Wallet {
       account,
       mints: [mintData],
       fee: options.fee,
+      feeRate: options.feeRate,
       expirationDelta: options.expirationDelta,
       expiration: options.expiration,
       confirmations: options.confirmations,
@@ -932,8 +938,9 @@ export class Wallet {
     account: Account,
     assetId: Buffer,
     value: bigint,
-    fee: bigint,
     expirationDelta: number,
+    fee?: bigint,
+    feeRate?: bigint,
     expiration?: number,
     confirmations?: number,
   ): Promise<Transaction> {
@@ -941,6 +948,7 @@ export class Wallet {
       account,
       burns: [{ assetId, value }],
       fee,
+      feeRate,
       expirationDelta,
       expiration,
       confirmations,
@@ -956,12 +964,7 @@ export class Wallet {
   async createTransaction(options: {
     account: Account
     notes?: Buffer[]
-    outputs?: {
-      publicAddress: string
-      amount: bigint
-      memo: string
-      assetId: Buffer
-    }[]
+    outputs?: TransactionOutput[]
     mints?: MintData[]
     burns?: BurnDescription[]
     fee?: bigint

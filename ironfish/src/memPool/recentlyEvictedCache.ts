@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import Decimal from 'decimal.js'
 import { Logger } from '../logger'
 import { MetricsMonitor } from '../metrics'
 import { TransactionHash } from '../primitives/transaction'
@@ -8,7 +9,7 @@ import { PriorityQueue } from './priorityQueue'
 
 interface EvictionQueueEntry {
   hash: TransactionHash
-  feeRate: bigint
+  feeRate: Decimal
 }
 
 interface RemoveAtSequenceQueueEntry {
@@ -149,7 +150,7 @@ export class RecentlyEvictedCache {
    */
   add(
     transactionHash: TransactionHash,
-    feeRate: bigint,
+    feeRate: Decimal,
     currentBlockSequence: number,
     maxAge: number,
   ): boolean {

@@ -11,7 +11,7 @@ import { Note } from '../../primitives/note'
 import { NoteEncrypted } from '../../primitives/noteEncrypted'
 import { MintData, RawTransaction } from '../../primitives/rawTransaction'
 import { Transaction } from '../../primitives/transaction'
-import { Account, SpendingAccount, Wallet } from '../../wallet'
+import { Account, SpendingAccount, TransactionOutput, Wallet } from '../../wallet'
 import { WorkerPool } from '../../workerPool/pool'
 import { useAccountFixture } from './account'
 import { FixtureGenerate, useFixture } from './fixture'
@@ -285,7 +285,12 @@ export async function useBlockWithTx(
  */
 export async function useBlockWithCustomTxs(
   node: FullNode,
-  transactionInputs: { fee?: bigint; to?: SpendingAccount; from: SpendingAccount }[],
+  transactionInputs: {
+    fee?: bigint
+    to?: SpendingAccount
+    from: SpendingAccount
+    outputs: TransactionOutput[]
+  }[],
 ): Promise<{
   block: Block
   transactions: Transaction[]
@@ -302,10 +307,10 @@ export async function useBlockWithCustomTxs(
     node.chain,
     async () => {
       const transactions: Transaction[] = []
-      for (const { fee, to, from } of transactionInputs) {
+      for (const { fee, to, from, outputs } of transactionInputs) {
         const raw = await node.wallet.createTransaction({
           account: from,
-          outputs: [
+          outputs: outputs ?? [
             {
               publicAddress: to?.publicAddress ?? from.publicAddress,
               amount: BigInt(1),

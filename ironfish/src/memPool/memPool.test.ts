@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Asset } from '@ironfish/rust-nodejs'
 import { Assert } from '../assert'
 import * as ConsensusUtils from '../consensus/utils'
 import { getTransactionSize } from '../network/utils/serializers'
@@ -10,12 +11,13 @@ import { TransactionVersion } from '../primitives/transaction'
 import {
   createNodeTest,
   useAccountFixture,
+  useBlockWithCustomTxs,
   useBlockWithTx,
   useMinerBlockFixture,
   useTxFixture,
 } from '../testUtilities'
 import { Account } from '../wallet'
-import { getFeeRate } from './feeEstimator'
+import { getPreciseFeeRate } from './feeEstimator'
 import { mempoolEntryComparator } from './memPool'
 
 // Creates transactions out of the list of fees and adds them to the wallet
@@ -140,6 +142,37 @@ describe('MemPool', () => {
   describe('orderedTransactions', () => {
     const nodeTest = createNodeTest()
 
+    it('returns transactions sorted by fee rate deterministically', async () => {
+      const from = await useAccountFixture(nodeTest.wallet, 'account')
+
+      const outputs = Array(10).fill({
+        publicAddress: from.publicAddress,
+        amount: 1n,
+        assetId: Asset.nativeId(),
+        memo: '',
+      })
+
+      const transactionInputs = [
+        { from, fee: 1n, outputs },
+        { from, fee: 2n, outputs },
+        { from, fee: 3n, outputs },
+        { from, fee: 4n, outputs },
+      ]
+      const { transactions } = await useBlockWithCustomTxs(nodeTest.node, transactionInputs)
+
+      for (const transaction of transactions) {
+        nodeTest.node.memPool.acceptTransaction(transaction)
+      }
+
+      const orderedTransactions = [...nodeTest.node.memPool.orderedTransactions()]
+
+      expect(orderedTransactions.length).toEqual(4)
+      expect(orderedTransactions[0].hash()).toEqual(transactions[3].hash())
+      expect(orderedTransactions[1].hash()).toEqual(transactions[2].hash())
+      expect(orderedTransactions[2].hash()).toEqual(transactions[1].hash())
+      expect(orderedTransactions[3].hash()).toEqual(transactions[0].hash())
+    })
+
     it('returns transactions from the node mempool sorted by fee rate', async () => {
       const { node } = nodeTest
       const { wallet, memPool } = node
@@ -175,8 +208,8 @@ describe('MemPool', () => {
       // add transaction to wallet to avoid spending same notes
       await wallet.addPendingTransaction(transactionC)
 
-      expect(getFeeRate(transactionA)).toBeGreaterThan(getFeeRate(transactionB))
-      expect(getFeeRate(transactionB)).toBeGreaterThan(getFeeRate(transactionC))
+      expect(getPreciseFeeRate(transactionA).gt(getPreciseFeeRate(transactionB))).toBe(true)
+      expect(getPreciseFeeRate(transactionB).gt(getPreciseFeeRate(transactionC))).toBe(true)
 
       expect(memPool.acceptTransaction(transactionB)).toBe(true)
       expect(memPool.acceptTransaction(transactionA)).toBe(true)
@@ -734,8 +767,8 @@ describe('MemPool', () => {
 function memPoolSort(transactions: Transaction[]): Transaction[] {
   return [...transactions].sort((t1, t2) => {
     const greater = mempoolEntryComparator(
-      { hash: t1.hash(), feeRate: getFeeRate(t1) },
-      { hash: t2.hash(), feeRate: getFeeRate(t2) },
+      { hash: t1.hash(), feeRate: getPreciseFeeRate(t1) },
+      { hash: t2.hash(), feeRate: getPreciseFeeRate(t2) },
     )
     return greater ? -1 : 1
   })

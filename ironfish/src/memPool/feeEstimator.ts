@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import Decimal from 'decimal.js'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { Consensus } from '../consensus'
@@ -229,6 +230,13 @@ export function getFeeRate(transaction: Transaction): bigint {
   const rate = (transaction.fee() * BigInt(1000)) / BigInt(getTransactionSize(transaction))
 
   return rate > 0 ? rate : BigInt(1)
+}
+
+export function getPreciseFeeRate(transaction: Transaction): Decimal {
+  const kb = new Decimal(getTransactionSize(transaction) / 1000)
+  const fee = new Decimal(transaction.fee().toString())
+
+  return fee.dividedBy(kb)
 }
 
 function getPercentileEntry<T>(sortedList: T[], percentile: number): T | undefined {

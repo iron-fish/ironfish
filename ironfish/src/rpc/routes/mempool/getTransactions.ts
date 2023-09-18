@@ -1,9 +1,10 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import Decimal from 'decimal.js'
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
-import { getFeeRate } from '../../../memPool'
+import { getPreciseFeeRate } from '../../../memPool'
 import { FullNode } from '../../../node'
 import { Transaction } from '../../../primitives'
 import { ApiNamespace, routes } from '../router'
@@ -72,7 +73,7 @@ routes.register<typeof MempoolTransactionsRequestSchema, GetMempoolTransactionRe
         request.data?.position?.max !== undefined && position > request.data.position.max
       const underFeeRate =
         request.data?.feeRate?.min !== undefined &&
-        getFeeRate(transaction) < request.data.feeRate.min
+        getPreciseFeeRate(transaction).lt(new Decimal(request.data.feeRate.min))
       const overLimit = request.data?.limit !== undefined && streamed >= request.data.limit
 
       // If there are no more viable transactions to send we can just return early
@@ -112,9 +113,9 @@ function includeTransaction(
     (request.fee?.max === undefined || transaction.fee() <= BigInt(request.fee.max)) &&
     (request.fee?.min === undefined || transaction.fee() >= BigInt(request.fee.min)) &&
     (request.feeRate?.max === undefined ||
-      getFeeRate(transaction) <= BigInt(request.feeRate.max)) &&
+      getPreciseFeeRate(transaction).lte(new Decimal(request.feeRate.max))) &&
     (request.feeRate?.min === undefined ||
-      getFeeRate(transaction) >= BigInt(request.feeRate.min)) &&
+      getPreciseFeeRate(transaction).gte(new Decimal(request.feeRate.min))) &&
     (request.expiration?.max === undefined ||
       transaction.expiration() <= request.expiration.max) &&
     (request.expiration?.min === undefined ||
