@@ -9,9 +9,8 @@ import { BlockHeader } from '../../../primitives'
 import { GENESIS_BLOCK_SEQUENCE } from '../../../primitives/block'
 import { BufferUtils } from '../../../utils'
 import { NotFoundError, ValidationError } from '../../adapters'
-import { RpcBlockHeader, RpcBlockHeaderSchema, serializeRpcBlockHeader } from '../../types'
+import { RpcBlock, RpcBlockSchema, serializeRpcBlockHeader } from '../../types'
 import { ApiNamespace, routes } from '../router'
-import { RpcTransaction, RpcTransactionSchema } from './types'
 
 export type GetBlockRequest = {
   search?: string
@@ -22,10 +21,7 @@ export type GetBlockRequest = {
 }
 
 export type GetBlockResponse = {
-  block: RpcBlockHeader & {
-    size: number
-    transactions: RpcTransaction[]
-  }
+  block: RpcBlock
   metadata: {
     main: boolean
     confirmed: boolean
@@ -45,14 +41,7 @@ export const GetBlockRequestSchema: yup.ObjectSchema<GetBlockRequest> = yup
 
 export const GetBlockResponseSchema: yup.ObjectSchema<GetBlockResponse> = yup
   .object({
-    block: RpcBlockHeaderSchema.concat(
-      yup
-        .object({
-          size: yup.number().defined(),
-          transactions: yup.array(RpcTransactionSchema).defined(),
-        })
-        .defined(),
-    ).defined(),
+    block: RpcBlockSchema.defined(),
     metadata: yup
       .object({
         main: yup.boolean().defined(),

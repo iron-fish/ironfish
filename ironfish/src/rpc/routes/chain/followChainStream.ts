@@ -9,9 +9,8 @@ import { FullNode } from '../../../node'
 import { Block, BlockHeader } from '../../../primitives'
 import { BlockHashSerdeInstance } from '../../../serde'
 import { BufferUtils, PromiseUtils } from '../../../utils'
-import { RpcBlockHeader, RpcBlockHeaderSchema, serializeRpcBlockHeader } from '../../types'
+import { RpcBlock, RpcBlockSchema, serializeRpcBlockHeader } from '../../types'
 import { ApiNamespace, routes } from '../router'
-import { RpcTransaction, RpcTransactionSchema } from './types'
 
 export type FollowChainStreamRequest =
   | {
@@ -27,10 +26,11 @@ export type FollowChainStreamResponse = {
   head: {
     sequence: number
   }
-  block: RpcBlockHeader & {
-    size: number
+  block: RpcBlock & {
+    /**
+     * @deprecated this can be derived from the type
+     */
     main: boolean
-    transactions: RpcTransaction[]
   }
 }
 
@@ -51,15 +51,13 @@ export const FollowChainStreamResponseSchema: yup.ObjectSchema<FollowChainStream
         sequence: yup.number().defined(),
       })
       .defined(),
-    block: RpcBlockHeaderSchema.concat(
+    block: RpcBlockSchema.concat(
       yup
         .object({
           main: yup.boolean().defined(),
-          size: yup.number().defined(),
-          transactions: yup.array(RpcTransactionSchema).defined(),
         })
         .defined(),
-    ).defined(),
+    ),
   })
   .defined()
 

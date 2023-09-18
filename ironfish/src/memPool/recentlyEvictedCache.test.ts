@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { randomBytes } from 'crypto'
+import Decimal from 'decimal.js'
 import { createRootLogger } from '../logger'
 import { MetricsMonitor } from '../metrics'
 import { mempoolEntryComparator } from './memPool'
@@ -17,7 +18,7 @@ describe('RecentlyEvictedCache', () => {
     const hash = randomBytes(32)
     return {
       hash: hash,
-      feeRate: BigInt(i),
+      feeRate: new Decimal(i),
       sequence: i,
       hashAsString: hash.toString('hex'),
       maxAge: 5,
@@ -38,7 +39,7 @@ describe('RecentlyEvictedCache', () => {
     const hash = randomBytes(32)
     return {
       hash: hash,
-      feeRate: BigInt(randomFeeRates[i]),
+      feeRate: new Decimal(randomFeeRates[i]),
       sequence: randomSequences[i],
       hashAsString: hash.toString('hex'),
       maxAge: randomAges[i],
@@ -133,7 +134,9 @@ describe('RecentlyEvictedCache', () => {
         added.push({ hash, feeRate, sequence, hashAsString, maxAge })
         expect(testCache.size()).toEqual(Math.min(added.length, 5))
 
-        const expected = added.sort((t1, t2) => Number(t1.feeRate - t2.feeRate)).slice(0, 5)
+        const expected = added
+          .sort((t1, t2) => Number(t1.feeRate.minus(t2.feeRate)))
+          .slice(0, 5)
 
         for (const { hashAsString } of expected) {
           expect(testCache.has(hashAsString)).toEqual(true)
@@ -208,7 +211,7 @@ describe('RecentlyEvictedCache', () => {
 
       // only txns with expiration sequences after the min sequence should remain in the cache
       let expected = added
-        .sort((t1, t2) => Number(t1.feeRate - t2.feeRate))
+        .sort((t1, t2) => Number(t1.feeRate.minus(t2.feeRate)))
         .slice(0, 5)
         .filter(({ sequence, maxAge }) => sequence > minSequence - maxAge)
 
@@ -233,7 +236,7 @@ describe('RecentlyEvictedCache', () => {
       testCache.flush(minSequence)
 
       expected = added
-        .sort((t1, t2) => Number(t1.feeRate - t2.feeRate))
+        .sort((t1, t2) => Number(t1.feeRate.minus(t2.feeRate)))
         .slice(0, 5)
         .filter(({ sequence, maxAge }) => sequence > minSequence - maxAge)
 

@@ -9,9 +9,10 @@ import { ApiNamespace, routes } from '../router'
 import { getAccount } from './utils'
 
 export interface BurnAssetRequest {
-  account: string
+  account?: string
   assetId: string
-  fee: string
+  fee?: string
+  feeRate?: string
   value: string
   expiration?: number
   expirationDelta?: number
@@ -58,8 +59,15 @@ routes.register<typeof BurnAssetRequestSchema, BurnAssetResponse>(
   async (request, node): Promise<void> => {
     const account = getAccount(node.wallet, request.data.account)
 
-    const fee = CurrencyUtils.decode(request.data.fee)
+    const fee: bigint | undefined = request.data.fee
+      ? CurrencyUtils.decode(request.data.fee)
+      : undefined
+
     const value = CurrencyUtils.decode(request.data.value)
+
+    const feeRate: bigint | undefined = request.data.feeRate
+      ? CurrencyUtils.decode(request.data.feeRate)
+      : undefined
 
     const assetId = Buffer.from(request.data.assetId, 'hex')
     const asset = await account.getAsset(assetId)
@@ -69,8 +77,9 @@ routes.register<typeof BurnAssetRequestSchema, BurnAssetResponse>(
       account,
       assetId,
       value,
-      fee,
       request.data.expirationDelta ?? node.config.get('transactionExpirationDelta'),
+      fee,
+      feeRate,
       request.data.expiration,
       request.data.confirmations,
     )
