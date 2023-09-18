@@ -52,6 +52,7 @@ export class BalancesCommand extends IronfishCommand {
         const asset = await client.wallet.getAsset({
           account,
           id: element.assetId,
+          confirmations: flags.confirmations,
         })
 
         balancesWithAssets.push({
