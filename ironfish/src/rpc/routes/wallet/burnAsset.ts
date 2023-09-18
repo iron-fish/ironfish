@@ -9,7 +9,7 @@ import { ApiNamespace, routes } from '../router'
 import { getAccount } from './utils'
 
 export interface BurnAssetRequest {
-  account: string
+  account?: string
   assetId: string
   fee?: string
   feeRate?: string
