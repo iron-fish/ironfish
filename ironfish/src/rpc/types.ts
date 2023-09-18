@@ -7,8 +7,10 @@ import { AssetVerification } from '../assets'
 import { BlockHeader } from '../primitives'
 
 export type RpcBurn = {
+  /**
+   * @deprecated Please use getAsset endpoint to get this information
+   */
   id: string
-
   assetId: string
   /**
    * @deprecated Please use getAsset endpoint to get this information
@@ -28,6 +30,8 @@ export const RpcBurnSchema: yup.ObjectSchema<RpcBurn> = yup
 
 export type RpcMint = {
   assetId: string
+  transferOwnershipTo?: string
+  value: string
   /**
    * @deprecated Please use assetId instead
    */
@@ -49,11 +53,6 @@ export type RpcMint = {
    * @deprecated Please use getAsset endpoint to get this information
    */
   creator: string
-  /**
-   * @deprecated Please use getAsset endpoint to get this information
-   */
-  transferOwnershipTo?: string
-  value: string
 }
 
 export const RpcMintSchema: yup.ObjectSchema<RpcMint> = yup
