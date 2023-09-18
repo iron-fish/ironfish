@@ -4,7 +4,7 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { CurrencyUtils, YupUtils } from '../../../utils'
-import { RpcAsset, RpcAssetSchema } from '../../types'
+import { RpcAsset, RpcAssetSchema, RpcBurn, RpcBurnSchema } from '../../types'
 import { ApiNamespace, routes } from '../router'
 import { getAccount } from './utils'
 
@@ -19,20 +19,6 @@ export interface BurnAssetRequest {
   confirmations?: number
 }
 
-export interface BurnAssetResponse {
-  asset: RpcAsset
-  /**
-   * @deprecated Please use `asset.id` instead
-   */
-  assetId: string
-  hash: string
-  /**
-   * @deprecated Please use `asset.name` instead
-   */
-  name: string
-  value: string
-}
-
 export const BurnAssetRequestSchema: yup.ObjectSchema<BurnAssetRequest> = yup
   .object({
     account: yup.string().required(),
@@ -45,15 +31,30 @@ export const BurnAssetRequestSchema: yup.ObjectSchema<BurnAssetRequest> = yup
   })
   .defined()
 
-export const BurnAssetResponseSchema: yup.ObjectSchema<BurnAssetResponse> = yup
-  .object({
-    asset: RpcAssetSchema.required(),
-    assetId: yup.string().required(),
-    hash: yup.string().required(),
-    name: yup.string().required(),
-    value: yup.string().required(),
-  })
-  .defined()
+export type BurnAssetResponse = RpcBurn & {
+  asset: RpcAsset
+  transactionHash: string
+  /**
+   * @deprecated Please use `transactionHash` instead
+   */
+  hash: string
+  /**
+   * @deprecated Please use `asset.name` instead
+   */
+  name: string
+}
+
+export const BurnAssetResponseSchema: yup.ObjectSchema<BurnAssetResponse> =
+  RpcBurnSchema.concat(
+    yup
+      .object({
+        name: yup.string().defined(),
+        asset: RpcAssetSchema.defined(),
+        hash: yup.string().defined(),
+        transactionHash: yup.string().defined(),
+      })
+      .defined(),
+  ).defined()
 
 routes.register<typeof BurnAssetRequestSchema, BurnAssetResponse>(
   `${ApiNamespace.wallet}/burnAsset`,
@@ -102,9 +103,12 @@ routes.register<typeof BurnAssetRequestSchema, BurnAssetResponse>(
         }),
         createdTransactionHash: asset.createdTransactionHash.toString('hex'),
       },
+      id: burn.assetId.toString('hex'),
       assetId: burn.assetId.toString('hex'),
       hash: transaction.hash().toString('hex'),
       name: asset.name.toString('hex'),
+      assetName: asset.name.toString('hex'),
+      transactionHash: transaction.hash().toString('hex'),
       value: CurrencyUtils.encode(burn.value),
     })
   },

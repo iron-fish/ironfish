@@ -6,7 +6,7 @@ import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { CurrencyUtils, YupUtils } from '../../../utils'
 import { MintAssetOptions } from '../../../wallet/interfaces/mintAssetOptions'
-import { RpcAsset, RpcAssetSchema } from '../../types'
+import { RpcAsset, RpcAssetSchema, RpcMint, RpcMintSchema } from '../../types'
 import { ApiNamespace, routes } from '../router'
 import { getAccount } from './utils'
 
@@ -23,20 +23,6 @@ export interface MintAssetRequest {
   name?: string
 }
 
-export interface MintAssetResponse {
-  asset: RpcAsset
-  /**
-   * @deprecated Please use `asset.id` instead
-   */
-  assetId: string
-  hash: string
-  /**
-   * @deprecated Please use `asset.name` instead
-   */
-  name: string
-  value: string
-}
-
 export const MintAssetRequestSchema: yup.ObjectSchema<MintAssetRequest> = yup
   .object({
     account: yup.string().required(),
@@ -51,15 +37,25 @@ export const MintAssetRequestSchema: yup.ObjectSchema<MintAssetRequest> = yup
   })
   .defined()
 
-export const MintAssetResponseSchema: yup.ObjectSchema<MintAssetResponse> = yup
-  .object({
-    asset: RpcAssetSchema.defined(),
-    assetId: yup.string().required(),
-    hash: yup.string().required(),
-    name: yup.string().required(),
-    value: yup.string().required(),
-  })
-  .defined()
+export type MintAssetResponse = RpcMint & {
+  asset: RpcAsset
+  transactionHash: string
+  /**
+   * @deprecated Please use `transactionHash` instead
+   */
+  hash: string
+}
+
+export const MintAssetResponseSchema: yup.ObjectSchema<MintAssetResponse> =
+  RpcMintSchema.concat(
+    yup
+      .object({
+        asset: RpcAssetSchema.defined(),
+        hash: yup.string().defined(),
+        transactionHash: yup.string().defined(),
+      })
+      .defined(),
+  ).defined()
 
 routes.register<typeof MintAssetRequestSchema, MintAssetResponse>(
   `${ApiNamespace.wallet}/mintAsset`,
@@ -130,8 +126,14 @@ routes.register<typeof MintAssetRequestSchema, MintAssetResponse>(
       },
       assetId: asset.id.toString('hex'),
       hash: transaction.hash().toString('hex'),
+      transactionHash: transaction.hash().toString('hex'),
       name: asset.name.toString('hex'),
       value: mint.value.toString(),
+      id: mint.asset.id().toString('hex'),
+      assetName: mint.asset.name().toString('hex'),
+      metadata: mint.asset.metadata().toString('hex'),
+      creator: mint.asset.creator().toString('hex'),
+      transferOwnershipTo: mint.transferOwnershipTo?.toString('hex'),
     })
   },
 )

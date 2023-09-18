@@ -108,9 +108,14 @@ describe('Route wallet/mintAsset', () => {
           }),
           verification: node.assetsVerifier.verify(asset.id()),
         },
+        id: asset.id().toString('hex'),
+        creator: asset.creator().toString('hex'),
         assetId: asset.id().toString('hex'),
+        metadata: asset.metadata().toString('hex'),
+        transactionHash: mintTransaction.hash().toString('hex'),
         hash: mintTransaction.hash().toString('hex'),
         name: asset.name().toString('hex'),
+        assetName: asset.name().toString('hex'),
         value: mintTransaction.mints[0].value.toString(),
       })
     })
