@@ -1,11 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { CurrencyUtils, GetBalancesResponse } from '@ironfish/sdk'
+import { CurrencyUtils, GetBalancesResponse, RpcAsset } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { compareAssets, renderAssetNameFromHex } from '../../utils'
+
+type BalancesWithAssets = { asset: RpcAsset; balance: GetBalancesResponse['balances'][number] }
 
 export class BalancesCommand extends IronfishCommand {
   static description = `Display the account's balances for all assets`
@@ -43,12 +45,32 @@ export class BalancesCommand extends IronfishCommand {
     })
     this.log(`Account: ${response.content.account}`)
 
-    let columns: CliUx.Table.table.Columns<GetBalancesResponse['balances'][number]> = {
+    const balancesWithAssets: BalancesWithAssets[] = []
+
+    await Promise.all(
+      response.content.balances.map(async (element) => {
+        const asset = await client.wallet.getAsset({
+          account,
+          id: element.assetId,
+        })
+
+        balancesWithAssets.push({
+          balance: element,
+          asset: asset.content,
+        })
+
+        const name = renderAssetNameFromHex(asset.content.name)
+
+        this.log(`Asset: ${name}`)
+      }),
+    )
+
+    let columns: CliUx.Table.table.Columns<BalancesWithAssets> = {
       assetName: {
         header: 'Asset Name',
         get: (row) =>
-          renderAssetNameFromHex(row.assetName, {
-            verification: row.assetVerification,
+          renderAssetNameFromHex(row.asset.name, {
+            verification: row.asset.verification,
             outputType: flags.output,
             verbose: !!flags.verbose,
             logWarn: this.warn.bind(this),
@@ -59,7 +81,7 @@ export class BalancesCommand extends IronfishCommand {
       },
       available: {
         header: 'Available Balance',
-        get: (row) => CurrencyUtils.renderIron(row.available),
+        get: (row) => CurrencyUtils.renderIron(row.balance.available),
       },
     }
 
@@ -68,36 +90,36 @@ export class BalancesCommand extends IronfishCommand {
         ...columns,
         confirmed: {
           header: 'Confirmed Balance',
-          get: (row) => CurrencyUtils.renderIron(row.confirmed),
+          get: (row) => CurrencyUtils.renderIron(row.balance.confirmed),
         },
         unconfirmed: {
           header: 'Unconfirmed Balance',
-          get: (row) => CurrencyUtils.renderIron(row.unconfirmed),
+          get: (row) => CurrencyUtils.renderIron(row.balance.unconfirmed),
         },
         pending: {
           header: 'Pending Balance',
-          get: (row) => CurrencyUtils.renderIron(row.pending),
+          get: (row) => CurrencyUtils.renderIron(row.balance.pending),
         },
         blockHash: {
           header: 'Head Hash',
-          get: (row) => row.blockHash || 'NULL',
+          get: (row) => row.balance.blockHash || 'NULL',
         },
         sequence: {
           header: 'Head Sequence',
-          get: (row) => row.sequence || 'NULL',
+          get: (row) => row.balance.blockHash || 'NULL',
         },
       }
     }
 
-    response.content.balances.sort((left, right) =>
+    balancesWithAssets.sort((left, right) =>
       compareAssets(
-        left.assetName,
-        left.assetVerification,
-        right.assetName,
-        right.assetVerification,
+        left.asset.name,
+        left.asset.verification,
+        right.asset.name,
+        right.asset.verification,
       ),
     )
 
-    CliUx.ux.table(response.content.balances, columns, flags)
+    CliUx.ux.table(balancesWithAssets, columns, flags)
   }
 }
