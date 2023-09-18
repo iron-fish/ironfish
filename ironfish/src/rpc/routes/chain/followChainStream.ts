@@ -102,10 +102,14 @@ routes.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
           creator: mint.asset.creator().toString('hex'),
           value: mint.value.toString(),
           transferOwnershipTo: mint.transferOwnershipTo?.toString('hex'),
+          assetId: mint.asset.id().toString('hex'),
+          assetName: mint.asset.name().toString('hex'),
         })),
         burns: transaction.burns.map((burn) => ({
           id: burn.assetId.toString('hex'),
+          assetId: burn.assetId.toString('hex'),
           value: burn.value.toString(),
+          assetName: '',
         })),
       }))
 

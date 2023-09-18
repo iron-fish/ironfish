@@ -7,7 +7,14 @@ import { FullNode } from '../../../node'
 import { BlockHashSerdeInstance } from '../../../serde'
 import { CurrencyUtils } from '../../../utils'
 import { NotFoundError, ValidationError } from '../../adapters'
-import { RpcEncryptedNote, RpcEncryptedNoteSchema } from '../../types'
+import {
+  RpcBurn,
+  RpcBurnSchema,
+  RpcEncryptedNote,
+  RpcEncryptedNoteSchema,
+  RpcMint,
+  RpcMintSchema,
+} from '../../types'
 import { ApiNamespace, routes } from '../router'
 import { RpcSpend, RpcSpendSchema } from './types'
 
@@ -22,16 +29,8 @@ export type GetTransactionResponse = {
   signature: string
   spends: RpcSpend[]
   notes: RpcEncryptedNote[]
-  mints: {
-    assetId: string
-    value: string
-    name: string
-    metadata: string
-  }[]
-  burns: {
-    assetId: string
-    value: string
-  }[]
+  mints: RpcMint[]
+  burns: RpcBurn[]
   blockHash: string
   /**
    * @deprecated Please use `notes` instead
@@ -57,28 +56,8 @@ export const GetTransactionResponseSchema: yup.ObjectSchema<GetTransactionRespon
     notesEncrypted: yup.array(yup.string().defined()).defined(),
     spends: yup.array(RpcSpendSchema).defined(),
     notes: yup.array(RpcEncryptedNoteSchema).defined(),
-    mints: yup
-      .array(
-        yup
-          .object({
-            assetId: yup.string().defined(),
-            value: yup.string().defined(),
-            name: yup.string().defined(),
-            metadata: yup.string().defined(),
-          })
-          .defined(),
-      )
-      .defined(),
-    burns: yup
-      .array(
-        yup
-          .object({
-            assetId: yup.string().defined(),
-            value: yup.string().defined(),
-          })
-          .defined(),
-      )
-      .defined(),
+    mints: yup.array(RpcMintSchema).defined(),
+    burns: yup.array(RpcBurnSchema).defined(),
     blockHash: yup.string().defined(),
   })
   .defined()
@@ -141,12 +120,18 @@ routes.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
       })),
       mints: transaction.mints.map((mint) => ({
         assetId: mint.asset.id().toString('hex'),
+        id: mint.asset.id().toString('hex'),
+        assetName: mint.asset.name().toString('hex'),
         value: CurrencyUtils.encode(mint.value),
         name: mint.asset.name().toString('hex'),
         metadata: mint.asset.metadata().toString('hex'),
+        creator: mint.asset.creator().toString('hex'),
+        transferOwnershipTo: mint.transferOwnershipTo?.toString('hex'),
       })),
       burns: transaction.burns.map((burn) => ({
         assetId: burn.assetId.toString('hex'),
+        id: burn.assetId.toString('hex'),
+        assetName: '',
         value: CurrencyUtils.encode(burn.value),
       })),
       spends: transaction.spends.map((spend) => ({
