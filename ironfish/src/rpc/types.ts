@@ -7,16 +7,16 @@ import { AssetVerification } from '../assets'
 import { BlockHeader } from '../primitives'
 
 export type RpcBurn = {
+  assetId: string
+  value: string
   /**
    * @deprecated Please use getAsset endpoint to get this information
    */
   id: string
-  assetId: string
   /**
    * @deprecated Please use getAsset endpoint to get this information
    */
   assetName: string
-  value: string
 }
 
 export const RpcBurnSchema: yup.ObjectSchema<RpcBurn> = yup
