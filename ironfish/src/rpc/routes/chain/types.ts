@@ -27,7 +27,7 @@ export const RpcSpendSchema: yup.ObjectSchema<RpcSpend> = yup
   .defined()
 
 export type RpcTransaction = {
-  serialized?: string
+  serialized: string
   hash: string
   size: number
   fee: number
@@ -41,7 +41,7 @@ export type RpcTransaction = {
 
 export const RpcTransactionSchema: yup.ObjectSchema<RpcTransaction> = yup
   .object({
-    serialized: yup.string().optional(),
+    serialized: yup.string().defined(),
     hash: yup.string().defined(),
     size: yup.number().defined(),
     fee: yup.number().defined(),

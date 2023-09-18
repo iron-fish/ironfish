@@ -109,6 +109,7 @@ routes.register<typeof GetBlockRequestSchema, GetBlockResponse>(
 
     for (const tx of block.transactions) {
       transactions.push({
+        serialized: tx.serialize().toString('hex'),
         hash: tx.hash().toString('hex'),
         size: getTransactionSize(tx),
         fee: Number(tx.fee()),

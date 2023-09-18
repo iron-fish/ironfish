@@ -51,6 +51,7 @@ export async function serializeRpcAccountTransaction(
   })
 
   return {
+    serialized: transaction.transaction.serialize().toString('hex'),
     hash: transaction.transaction.hash().toString('hex'),
     fee: transaction.transaction.fee().toString(),
     blockHash: transaction.blockHash?.toString('hex'),
