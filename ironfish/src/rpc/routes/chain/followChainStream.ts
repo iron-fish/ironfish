@@ -15,6 +15,9 @@ import { ApiNamespace, routes } from '../router'
 export type FollowChainStreamRequest =
   | {
       head?: string | null
+      /**
+       * @deprecated the serialized transaction will always be returned
+       */
       serialized?: boolean
       wait?: boolean
       limit?: number

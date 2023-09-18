@@ -141,7 +141,6 @@ routes.register<typeof GetBlockRequestSchema, GetBlockResponse>(
           assetName: '',
         })),
         signature: tx.transactionSignature().toString('hex'),
-        ...(request.data?.serialized ? { serialized: tx.serialize().toString('hex') } : {}),
       })
     }
 
