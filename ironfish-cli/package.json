@@ -43,6 +43,7 @@
   "scripts": {
     "build": "tsc -b",
     "lint": "tsc -b && eslint --ext .ts,.tsx,.js,.jsx src/",
+    "lint:deprecated": "yarn lint --rule \"deprecation/deprecation: warn\"",
     "lint:fix": "tsc -b && eslint --ext .ts,.tsx,.js,.jsx src/ --fix",
     "start:dev": "node start",
     "start": "yarn build && yarn start:js",
