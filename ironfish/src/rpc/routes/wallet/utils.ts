@@ -42,6 +42,7 @@ export async function serializeRpcAccountTransaction(
   account: Account,
   transaction: TransactionValue,
   _confirmations: number | undefined,
+  _returnSerialized = false,
 ): Promise<RpcAccountTransaction> {
   const assetBalanceDeltas = await getAssetBalanceDeltas(account, transaction)
   const type = await node.wallet.getTransactionType(account, transaction)
@@ -51,6 +52,10 @@ export async function serializeRpcAccountTransaction(
   })
 
   return {
+    serialized: _returnSerialized
+      ? transaction.transaction.serialize().toString('hex')
+      : undefined,
+    signature: transaction.transaction.transactionSignature().toString('hex'),
     hash: transaction.transaction.hash().toString('hex'),
     fee: transaction.transaction.fee().toString(),
     blockHash: transaction.blockHash?.toString('hex'),
