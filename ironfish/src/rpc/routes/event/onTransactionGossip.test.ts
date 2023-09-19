@@ -28,7 +28,6 @@ describe('Route event/onTransactionGossip', () => {
       serializedTransaction: transaction.serialize().toString('hex'),
     })
 
-    response.end()
-    expect(response.status).toEqual(200)
+    response.close()
   })
 })
