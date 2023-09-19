@@ -188,7 +188,7 @@ impl MintDescription {
             &self.authorizing_signature,
             *SPENDING_KEY_GENERATOR,
         ) {
-            return Err(IronfishError::new(IronfishErrorKind::VerificationFailed));
+            return Err(IronfishError::new(IronfishErrorKind::InvalidMintSignature));
         }
 
         Ok(())
@@ -321,6 +321,7 @@ mod test {
 
     use crate::{
         assets::asset::Asset,
+        errors::IronfishErrorKind,
         transaction::{
             mints::{MintBuilder, MintDescription},
             utils::verify_mint_proof,
@@ -406,7 +407,7 @@ mod test {
 
         assert!(matches!(
             mint.build(&owner_key, &public_key_randomness, &randomized_public_key),
-            Err(_)
+            Err(e) if matches!(e.kind, IronfishErrorKind::InvalidMintProof)
         ))
     }
 

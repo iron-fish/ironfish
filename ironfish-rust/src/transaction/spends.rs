@@ -286,7 +286,7 @@ impl SpendDescription {
             &self.authorizing_signature,
             *SPENDING_KEY_GENERATOR,
         ) {
-            return Err(IronfishError::new(IronfishErrorKind::VerificationFailed));
+            return Err(IronfishError::new(IronfishErrorKind::InvalidSpendSignature));
         }
 
         Ok(())

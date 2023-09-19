@@ -724,7 +724,7 @@ impl Transaction {
             &self.binding_signature,
             *VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
         ) {
-            return Err(IronfishError::new(IronfishErrorKind::VerificationFailed));
+            return Err(IronfishError::new(IronfishErrorKind::InvalidSignature));
         }
 
         Ok(())
@@ -863,7 +863,7 @@ fn internal_batch_verify_transactions<'a>(
             &spend_public_inputs[..],
         )?
     {
-        return Err(IronfishError::new(IronfishErrorKind::VerificationFailed));
+        return Err(IronfishError::new(IronfishErrorKind::InvalidSpendProof));
     }
     if !output_proofs.is_empty()
         && !verify_proofs_batch(
@@ -873,7 +873,7 @@ fn internal_batch_verify_transactions<'a>(
             &output_public_inputs[..],
         )?
     {
-        return Err(IronfishError::new(IronfishErrorKind::VerificationFailed));
+        return Err(IronfishError::new(IronfishErrorKind::InvalidOutputProof));
     }
     if !mint_proofs.is_empty()
         && !verify_proofs_batch(
@@ -883,7 +883,7 @@ fn internal_batch_verify_transactions<'a>(
             &mint_public_inputs[..],
         )?
     {
-        return Err(IronfishError::new(IronfishErrorKind::VerificationFailed));
+        return Err(IronfishError::new(IronfishErrorKind::InvalidOutputProof));
     }
 
     Ok(())

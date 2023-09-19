@@ -17,7 +17,7 @@ pub(crate) fn verify_spend_proof(
     inputs: &[blstrs::Scalar],
 ) -> Result<(), IronfishError> {
     if !groth16::verify_proof(&SAPLING.spend_verifying_key, proof, inputs)? {
-        return Err(IronfishError::new(IronfishErrorKind::VerificationFailed));
+        return Err(IronfishError::new(IronfishErrorKind::InvalidSpendProof));
     }
 
     Ok(())
@@ -31,7 +31,7 @@ pub(crate) fn verify_output_proof(
     inputs: &[blstrs::Scalar],
 ) -> Result<(), IronfishError> {
     if !groth16::verify_proof(&SAPLING.output_verifying_key, proof, inputs)? {
-        return Err(IronfishError::new(IronfishErrorKind::VerificationFailed));
+        return Err(IronfishError::new(IronfishErrorKind::InvalidOutputProof));
     }
 
     Ok(())
@@ -45,7 +45,7 @@ pub(crate) fn verify_mint_proof(
     inputs: &[blstrs::Scalar],
 ) -> Result<(), IronfishError> {
     if !groth16::verify_proof(&SAPLING.mint_verifying_key, proof, inputs)? {
-        return Err(IronfishError::new(IronfishErrorKind::VerificationFailed));
+        return Err(IronfishError::new(IronfishErrorKind::InvalidMintProof));
     }
 
     Ok(())

@@ -38,12 +38,18 @@ pub enum IronfishErrorKind {
     InvalidEntropy,
     InvalidLanguageEncoding,
     InvalidMinersFeeTransaction,
+    InvalidMintProof,
+    InvalidMintSignature,
     InvalidMnemonicString,
     InvalidNonceLength,
     InvalidNullifierDerivingKey,
+    InvalidOutputProof,
     InvalidPaymentAddress,
     InvalidPublicAddress,
+    InvalidSignature,
     InvalidSigningKey,
+    InvalidSpendProof,
+    InvalidSpendSignature,
     InvalidTransaction,
     InvalidTransactionVersion,
     InvalidViewingKey,
@@ -53,7 +59,6 @@ pub enum IronfishErrorKind {
     RandomnessError,
     TryFromInt,
     Utf8,
-    VerificationFailed,
 }
 
 impl IronfishError {
