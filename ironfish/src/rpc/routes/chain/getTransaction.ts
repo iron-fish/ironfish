@@ -24,7 +24,13 @@ export type GetTransactionResponse = {
   fee: string
   expiration: number
   noteSize: number
+  /**
+   * @deprecated Please use `notes.length` instead
+   */
   notesCount: number
+  /**
+   * @deprecated Please use `spends.length` instead
+   */
   spendsCount: number
   signature: string
   spends: RpcSpend[]
