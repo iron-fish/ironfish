@@ -22,13 +22,11 @@ export default class Rewind extends IronfishCommand {
   static args = [
     {
       name: 'to',
-      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: true,
       description: 'The block sequence to rewind to',
     },
     {
       name: 'from',
-      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: false,
       description: 'The sequence to start removing blocks from',
     },

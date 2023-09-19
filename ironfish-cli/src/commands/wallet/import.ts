@@ -27,7 +27,6 @@ export class ImportCommand extends IronfishCommand {
   static args = [
     {
       name: 'blob',
-      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: false,
       description: 'The copy-pasted output of wallet:export; or, a raw spending key',
     },

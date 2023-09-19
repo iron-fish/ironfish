@@ -13,7 +13,6 @@ export abstract class Start extends Command {
   static args = [
     {
       name: 'simulation',
-      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: true,
       description: `The name of the simulation to run, one of: ${Object.keys(SIMULATIONS).join(
         ', ',

@@ -11,7 +11,6 @@ export class UnsetCommand extends IronfishCommand {
   static args = [
     {
       name: 'name',
-      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: true,
       description: 'Name of the config item',
     },

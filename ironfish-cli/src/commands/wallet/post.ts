@@ -43,7 +43,6 @@ export class PostCommand extends IronfishCommand {
     {
       name: 'transaction',
       required: true,
-      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       description: 'The raw transaction in hex encoding',
     },
   ]

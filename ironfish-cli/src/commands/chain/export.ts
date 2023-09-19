@@ -16,7 +16,6 @@ export default class Export extends IronfishCommand {
     ...RemoteFlags,
     path: Flags.string({
       char: 'p',
-      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: false,
       description: 'The path to export the chain to',
     }),

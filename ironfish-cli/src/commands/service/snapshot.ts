@@ -42,13 +42,11 @@ export default class Snapshot extends IronfishCommand {
     }),
     path: Flags.string({
       char: 'p',
-      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: false,
       description: 'The local path where the snapshot will be saved',
     }),
     webhook: Flags.string({
       char: 'w',
-      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: false,
       description: 'Webhook to notify on successful snapshot upload',
     }),

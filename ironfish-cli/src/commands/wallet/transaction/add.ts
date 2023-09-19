@@ -21,7 +21,6 @@ export class TransactionAddCommand extends IronfishCommand {
     {
       name: 'transaction',
       required: true,
-      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       description: 'The transaction in hex encoding',
     },
   ]

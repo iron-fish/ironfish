@@ -16,13 +16,11 @@ export class TransactionCommand extends IronfishCommand {
   static args = [
     {
       name: 'hash',
-      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: true,
       description: 'Hash of the transaction',
     },
     {
       name: 'account',
-      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: false,
       description: 'Name of the account',
     },
