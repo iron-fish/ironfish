@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::errors::IronfishError;
+use crate::errors::{IronfishError, IronfishErrorKind};
 use chacha20poly1305::aead::{AeadInPlace, NewAead};
 use chacha20poly1305::{ChaCha20Poly1305, Key, Nonce};
 
@@ -28,7 +28,7 @@ pub(crate) fn encrypt<const SIZE: usize>(
             &[],
             &mut encrypted_output[..plaintext.len()],
         )
-        .map_err(|_| IronfishError::InvalidSigningKey)?;
+        .map_err(|_| IronfishError::new(IronfishErrorKind::InvalidSigningKey))?;
     encrypted_output[plaintext.len()..].copy_from_slice(&tag);
 
     Ok(encrypted_output)
@@ -53,7 +53,7 @@ pub(crate) fn decrypt<const SIZE: usize>(
             &mut plaintext,
             ciphertext[SIZE..].into(),
         )
-        .map_err(|_| IronfishError::InvalidDecryptionKey)?;
+        .map_err(|_| IronfishError::new(IronfishErrorKind::InvalidDecryptionKey))?;
 
     Ok(plaintext)
 }

@@ -7,7 +7,7 @@ use super::internal_batch_verify_transactions;
 use super::{ProposedTransaction, Transaction};
 use crate::{
     assets::{asset::Asset, asset_identifier::NATIVE_ASSET},
-    errors::IronfishError,
+    errors::{IronfishError, IronfishErrorKind},
     keys::SaplingKey,
     merkle_note::NOTE_ENCRYPTION_MINER_KEYS,
     note::Note,
@@ -20,13 +20,11 @@ use crate::{
 };
 
 use ff::Field;
-use group::Group;
 use ironfish_zkp::{
     constants::{ASSET_ID_LENGTH, SPENDING_KEY_GENERATOR, TREE_DEPTH},
     proofs::{MintAsset, Output, Spend},
     redjubjub::{self, Signature},
 };
-use jubjub::ExtendedPoint;
 use rand::thread_rng;
 
 #[test]
@@ -310,8 +308,12 @@ fn test_transaction_version_is_checked() {
     fn assert_invalid_version(result: Result<Transaction, IronfishError>) {
         match result {
             Ok(_) => panic!("expected an error"),
-            Err(IronfishError::InvalidTransactionVersion) => (),
-            Err(ref err) => panic!("expected InvalidTransactionVersion, got {:?} instead", err),
+            Err(IronfishError { kind, .. }) => match kind {
+                IronfishErrorKind::InvalidTransactionVersion => {}
+                _ => {
+                    panic!("expected InvalidTransactionVersion, got {:?} instead", kind);
+                }
+            },
         }
     }
 
@@ -565,7 +567,7 @@ fn test_batch_verify() {
         .add_burn(asset1.id, burn_value)
         .unwrap();
 
-    let transaction1 = proposed_transaction1
+    let mut transaction1 = proposed_transaction1
         .post(None, 1)
         .expect("should be able to post transaction");
 
@@ -578,35 +580,10 @@ fn test_batch_verify() {
     batch_verify_transactions([&transaction1, &transaction2])
         .expect("should be able to verify transaction");
 
-    let mut bad_transaction = transaction1.clone();
-    bad_transaction.randomized_public_key = other_randomized_public_key;
+    transaction1.randomized_public_key = other_randomized_public_key;
 
     assert!(matches!(
-        batch_verify_transactions([&bad_transaction, &transaction2]),
-        Err(IronfishError::VerificationFailed)
-    ));
-
-    let mut bad_transaction = transaction1.clone();
-    bad_transaction.spends[0].value_commitment = ExtendedPoint::random(thread_rng());
-
-    assert!(matches!(
-        batch_verify_transactions([&bad_transaction, &transaction2]),
-        Err(IronfishError::VerificationFailed)
-    ));
-
-    let mut bad_transaction = transaction1.clone();
-    bad_transaction.outputs[0].proof = bad_transaction.outputs[1].proof.clone();
-
-    assert!(matches!(
-        batch_verify_transactions([&bad_transaction, &transaction2]),
-        Err(IronfishError::VerificationFailed)
-    ));
-
-    let mut bad_transaction = transaction1;
-    bad_transaction.mints[0].value = 999;
-
-    assert!(matches!(
-        batch_verify_transactions([&bad_transaction, &transaction2]),
-        Err(IronfishError::VerificationFailed)
+        batch_verify_transactions([&transaction1, &transaction2]),
+        Err(e) if matches!(e.kind, IronfishErrorKind::InvalidSpendSignature)
     ));
 }

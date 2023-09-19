@@ -18,8 +18,11 @@ use jubjub::ExtendedPoint;
 use rand::thread_rng;
 
 use crate::{
-    assets::asset::Asset, errors::IronfishError, sapling_bls12::SAPLING,
-    transaction::TransactionVersion, PublicAddress, SaplingKey,
+    assets::asset::Asset,
+    errors::{IronfishError, IronfishErrorKind},
+    sapling_bls12::SAPLING,
+    transaction::TransactionVersion,
+    PublicAddress, SaplingKey,
 };
 
 use super::utils::verify_mint_proof;
@@ -121,7 +124,7 @@ impl UnsignedMintDescription {
                 .randomize(self.public_key_randomness, *SPENDING_KEY_GENERATOR);
 
         if randomized_public_key.0 != transaction_randomized_public_key.0 {
-            return Err(IronfishError::InvalidSigningKey);
+            return Err(IronfishError::new(IronfishErrorKind::InvalidSigningKey));
         }
 
         let mut data_to_be_signed = [0; 64];
@@ -174,7 +177,7 @@ impl MintDescription {
         randomized_public_key: &redjubjub::PublicKey,
     ) -> Result<(), IronfishError> {
         if randomized_public_key.0.is_small_order().into() {
-            return Err(IronfishError::IsSmallOrder);
+            return Err(IronfishError::new(IronfishErrorKind::IsSmallOrder));
         }
         let mut data_to_be_signed = [0; 64];
         data_to_be_signed[..32].copy_from_slice(&randomized_public_key.0.to_bytes());
@@ -185,7 +188,7 @@ impl MintDescription {
             &self.authorizing_signature,
             *SPENDING_KEY_GENERATOR,
         ) {
-            return Err(IronfishError::VerificationFailed);
+            return Err(IronfishError::new(IronfishErrorKind::InvalidMintSignature));
         }
 
         Ok(())
@@ -224,7 +227,9 @@ impl MintDescription {
             self.asset.nonce,
         )?;
         if asset.id != self.asset.id {
-            return Err(IronfishError::InvalidAssetIdentifier);
+            return Err(IronfishError::new(
+                IronfishErrorKind::InvalidAssetIdentifier,
+            ));
         }
 
         Ok(())
@@ -253,7 +258,9 @@ impl MintDescription {
                 writer.write_u8(0)?;
             }
         } else if self.transfer_ownership_to.is_some() {
-            return Err(IronfishError::InvalidTransactionVersion);
+            return Err(IronfishError::new(
+                IronfishErrorKind::InvalidTransactionVersion,
+            ));
         }
 
         Ok(())
@@ -314,7 +321,7 @@ mod test {
 
     use crate::{
         assets::asset::Asset,
-        errors::IronfishError,
+        errors::IronfishErrorKind,
         transaction::{
             mints::{MintBuilder, MintDescription},
             utils::verify_mint_proof,
@@ -400,7 +407,7 @@ mod test {
 
         assert!(matches!(
             mint.build(&owner_key, &public_key_randomness, &randomized_public_key),
-            Err(IronfishError::VerificationFailed)
+            Err(e) if matches!(e.kind, IronfishErrorKind::InvalidMintProof)
         ))
     }
 
