@@ -61,8 +61,10 @@ routes.register<typeof GetAccountTransactionRequestSchema, GetAccountTransaction
       node,
       account,
       transaction,
-      request.data.confirmations,
-      request.data.serialized,
+      {
+        confirmations: request.data.confirmations,
+        serialized: request.data.serialized,
+      },
     )
 
     const notes = request.data.notes
