@@ -9,6 +9,7 @@ import { getAccount, getAccountDecryptedNotes, serializeRpcAccountTransaction } 
 export type GetAccountTransactionRequest = {
   hash: string
   account?: string
+  serialized?: boolean
   confirmations?: number
   notes?: boolean
   spends?: boolean
@@ -25,6 +26,7 @@ export const GetAccountTransactionRequestSchema: yup.ObjectSchema<GetAccountTran
       account: yup.string(),
       hash: yup.string().defined(),
       confirmations: yup.string(),
+      serialized: yup.boolean().notRequired().default(false),
       notes: yup.boolean().notRequired().default(true),
       spends: yup.boolean().notRequired().default(true),
     })
@@ -60,6 +62,7 @@ routes.register<typeof GetAccountTransactionRequestSchema, GetAccountTransaction
       account,
       transaction,
       request.data.confirmations,
+      request.data.serialized,
     )
 
     const notes = request.data.notes
