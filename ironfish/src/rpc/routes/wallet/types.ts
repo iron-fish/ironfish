@@ -7,7 +7,7 @@ import { TransactionStatus, TransactionType } from '../../../wallet'
 import { RpcBurn, RpcBurnSchema, RpcMint, RpcMintSchema } from '../../types'
 import { RpcSpend, RpcSpendSchema } from '../chain'
 
-export type RcpAccountAssetBalanceDelta = {
+export type RpcAccountAssetBalanceDelta = {
   assetId: string
   delta: string
   /**
@@ -16,7 +16,7 @@ export type RcpAccountAssetBalanceDelta = {
   assetName: string
 }
 
-export const RcpAccountAssetBalanceDeltaSchema: yup.ObjectSchema<RcpAccountAssetBalanceDelta> =
+export const RcpAccountAssetBalanceDeltaSchema: yup.ObjectSchema<RpcAccountAssetBalanceDelta> =
   yup
     .object({
       assetId: yup.string().defined(),
@@ -77,7 +77,7 @@ export type RpcWalletTransaction = {
   submittedSequence: number
   type: TransactionType
   status: TransactionStatus
-  assetBalanceDeltas: RcpAccountAssetBalanceDelta[]
+  assetBalanceDeltas: RpcAccountAssetBalanceDelta[]
   burns: RpcBurn[]
   mints: RpcMint[]
   serialized?: string

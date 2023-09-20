@@ -11,7 +11,7 @@ import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
 import { WorkerPool } from '../../../workerPool'
 import { ValidationError } from '../../adapters'
 import {
-  RcpAccountAssetBalanceDelta,
+  RpcAccountAssetBalanceDelta,
   RpcAccountImport,
   RpcWalletNote,
   RpcWalletTransaction,
@@ -107,8 +107,8 @@ export function deserializeRpcAccountImport(accountImport: RpcAccountImport): Ac
 export async function getAssetBalanceDeltas(
   account: Account,
   transaction: TransactionValue,
-): Promise<RcpAccountAssetBalanceDelta[]> {
-  const assetBalanceDeltas = new Array<RcpAccountAssetBalanceDelta>()
+): Promise<RpcAccountAssetBalanceDelta[]> {
+  const assetBalanceDeltas = new Array<RpcAccountAssetBalanceDelta>()
 
   for (const [assetId, delta] of transaction.assetBalanceDeltas.entries()) {
     const asset = await account.getAsset(assetId)
