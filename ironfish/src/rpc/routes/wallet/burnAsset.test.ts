@@ -11,6 +11,7 @@ import {
 } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { CurrencyUtils } from '../../../utils'
+import { serializeRpcWalletTransaction } from './utils'
 
 describe('Route wallet/burnAsset', () => {
   const routeTest = createRouteTest(true)
@@ -86,6 +87,9 @@ describe('Route wallet/burnAsset', () => {
         value: CurrencyUtils.encode(value),
       })
 
+      const walletTransaction = await account.getTransaction(burnTransaction.hash())
+      Assert.isNotUndefined(walletTransaction)
+
       expect(response.content).toEqual({
         asset: {
           id: asset.id().toString('hex'),
@@ -100,11 +104,11 @@ describe('Route wallet/burnAsset', () => {
           verification: node.assetsVerifier.verify(asset.id()),
           createdTransactionHash: accountAsset.createdTransactionHash.toString('hex') ?? null,
         },
+        transaction: await serializeRpcWalletTransaction(node, account, walletTransaction),
         id: asset.id().toString('hex'),
         assetId: asset.id().toString('hex'),
         name: asset.name().toString('hex'),
         assetName: asset.name().toString('hex'),
-        transactionHash: burnTransaction.hash().toString('hex'),
         hash: burnTransaction.hash().toString('hex'),
         value: burnTransaction.burns[0].value.toString(),
       })

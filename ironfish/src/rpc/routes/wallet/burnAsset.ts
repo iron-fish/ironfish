@@ -6,7 +6,8 @@ import { Assert } from '../../../assert'
 import { CurrencyUtils, YupUtils } from '../../../utils'
 import { RpcAsset, RpcAssetSchema, RpcBurn, RpcBurnSchema } from '../../types'
 import { ApiNamespace, routes } from '../router'
-import { getAccount } from './utils'
+import { RpcWalletTransaction, RpcWalletTransactionSchema } from './types'
+import { getAccount, serializeRpcWalletTransaction } from './utils'
 
 export interface BurnAssetRequest {
   account?: string
@@ -33,9 +34,9 @@ export const BurnAssetRequestSchema: yup.ObjectSchema<BurnAssetRequest> = yup
 
 export type BurnAssetResponse = RpcBurn & {
   asset: RpcAsset
-  transactionHash: string
+  transaction: RpcWalletTransaction
   /**
-   * @deprecated Please use `transactionHash` instead
+   * @deprecated Please use `transaction.hash` instead
    */
   hash: string
   /**
@@ -48,10 +49,10 @@ export const BurnAssetResponseSchema: yup.ObjectSchema<BurnAssetResponse> =
   RpcBurnSchema.concat(
     yup
       .object({
-        name: yup.string().defined(),
         asset: RpcAssetSchema.defined(),
+        transaction: RpcWalletTransactionSchema.defined(),
+        name: yup.string().defined(),
         hash: yup.string().defined(),
-        transactionHash: yup.string().defined(),
       })
       .defined(),
   ).defined()
@@ -89,6 +90,9 @@ routes.register<typeof BurnAssetRequestSchema, BurnAssetResponse>(
     Assert.isEqual(transaction.burns.length, 1)
     const burn = transaction.burns[0]
 
+    const transactionValue = await account.getTransaction(transaction.hash())
+    Assert.isNotUndefined(transactionValue)
+
     request.end({
       asset: {
         id: asset.id.toString('hex'),
@@ -103,12 +107,12 @@ routes.register<typeof BurnAssetRequestSchema, BurnAssetResponse>(
         }),
         createdTransactionHash: asset.createdTransactionHash.toString('hex'),
       },
+      transaction: await serializeRpcWalletTransaction(node, account, transactionValue),
       id: burn.assetId.toString('hex'),
       assetId: burn.assetId.toString('hex'),
       hash: transaction.hash().toString('hex'),
       name: asset.name.toString('hex'),
       assetName: asset.name.toString('hex'),
-      transactionHash: transaction.hash().toString('hex'),
       value: CurrencyUtils.encode(burn.value),
     })
   },
