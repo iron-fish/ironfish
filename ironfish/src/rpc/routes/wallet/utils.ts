@@ -42,8 +42,8 @@ export async function serializeRpcAccountTransaction(
   account: Account,
   transaction: TransactionValue,
   options?: {
-    confirmations: number | undefined
-    serialized: boolean | undefined
+    confirmations?: number
+    serialized?: boolean
   },
 ): Promise<RpcAccountTransaction> {
   const assetBalanceDeltas = await getAssetBalanceDeltas(account, transaction)
