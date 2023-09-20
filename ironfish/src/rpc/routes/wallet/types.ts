@@ -134,7 +134,6 @@ export const RpcWalletTransactionSchema: yup.ObjectSchema<RpcWalletTransaction> 
   .defined()
 
 export type RpcAccountImport = {
-  id: string
   version: number
   name: string
   viewKey: string
@@ -147,7 +146,6 @@ export type RpcAccountImport = {
 
 export const RpcAccountImportSchema: yup.ObjectSchema<RpcAccountImport> = yup
   .object({
-    id: yup.string().defined(),
     name: yup.string().defined(),
     spendingKey: yup.string().nullable().defined(),
     viewKey: yup.string().defined(),
