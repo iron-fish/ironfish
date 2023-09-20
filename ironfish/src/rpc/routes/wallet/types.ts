@@ -112,8 +112,7 @@ export const RpcAccountTransactionSchema: yup.ObjectSchema<RpcAccountTransaction
     blockHash: yup.string(),
     blockSequence: yup.number(),
     signature: yup.string().defined(),
-    
-    : yup.string().optional(),
+    serialized: yup.string().optional(),
     notesCount: yup.number().defined(),
     spendsCount: yup.number().defined(),
     mintsCount: yup.number().defined(),
