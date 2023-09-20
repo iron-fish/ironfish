@@ -205,7 +205,7 @@ export default class Download extends IronfishCommand {
         url: snapshotUrl,
         cancelToken: idleCancelSource.token,
         headers: {
-          ...(canAcceptRanges
+          ...(canAcceptRanges && downloaded > 0
             ? { range: `bytes=${downloaded}-${manifest.file_size - 1}` }
             : {}),
         },
