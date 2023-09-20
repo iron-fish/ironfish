@@ -162,7 +162,7 @@ export default class Download extends IronfishCommand {
 
       bar.start(manifest.file_size, 0, {
         fileSize,
-        downloadedSize: downloaded.toString(),
+        downloadedSize: FileUtils.formatFileSize(downloaded),
         speed: '0',
         estimate: TimeUtils.renderEstimate(0, 0, 0),
       })
@@ -181,92 +181,96 @@ export default class Download extends IronfishCommand {
         })
       }
 
-      const writer = fs.createWriteStream(snapshotPath, { flags: canAcceptRanges ? 'a' : 'w' })
-
-      const idleTimeout = 30000
-      let idleLastChunk = Date.now()
-      const idleCancelSource = axios.CancelToken.source()
-
-      const idleInterval = setInterval(() => {
-        const timeSinceLastChunk = Date.now() - idleLastChunk
-
-        if (timeSinceLastChunk > idleTimeout) {
-          clearInterval(idleInterval)
-
-          idleCancelSource.cancel(
-            `Download timed out after ${TimeUtils.renderSpan(timeSinceLastChunk)}`,
-          )
-        }
-      }, idleTimeout)
-
-      const response: { data: IncomingMessage } = await axios({
-        method: 'GET',
-        responseType: 'stream',
-        url: snapshotUrl,
-        cancelToken: idleCancelSource.token,
-        headers: {
-          ...(canAcceptRanges && downloaded > 0
-            ? { range: `bytes=${downloaded}-${manifest.file_size - 1}` }
-            : {}),
-        },
-      })
-
-      await new Promise<void>((resolve, reject) => {
-        const onWriterError = (e: unknown) => {
-          writer.removeListener('close', onWriterClose)
-          writer.removeListener('error', onWriterError)
-          reject(e)
-        }
-
-        const onWriterClose = () => {
-          writer.removeListener('close', onWriterClose)
-          writer.removeListener('error', onWriterError)
-          resolve()
-        }
-
-        writer.on('error', onWriterError)
-        writer.on('close', onWriterClose)
-
-        response.data.on('error', (e) => {
-          writer.destroy(e)
+      if (downloaded < manifest.file_size) {
+        const writer = fs.createWriteStream(snapshotPath, {
+          flags: canAcceptRanges ? 'a' : 'w',
         })
 
-        response.data.on('end', () => {
-          writer.close()
-        })
+        const idleTimeout = 30000
+        let idleLastChunk = Date.now()
+        const idleCancelSource = axios.CancelToken.source()
 
-        response.data.on('data', (chunk: Buffer) => {
-          writer.write(chunk)
-          hasher.write(chunk)
+        const idleInterval = setInterval(() => {
+          const timeSinceLastChunk = Date.now() - idleLastChunk
 
-          downloaded += chunk.length
-          speed.add(chunk.length)
-          idleLastChunk = Date.now()
+          if (timeSinceLastChunk > idleTimeout) {
+            clearInterval(idleInterval)
 
-          bar.update(downloaded, {
-            downloadedSize: FileUtils.formatFileSize(downloaded),
-            speed: FileUtils.formatFileSize(speed.rate1s),
-            estimate: TimeUtils.renderEstimate(downloaded, manifest.file_size, speed.rate1m),
-          })
-        })
-      })
-        .catch((error) => {
-          bar.stop()
-          speed.stop()
-
-          if (idleCancelSource.token.reason?.message) {
-            this.logger.error(idleCancelSource.token.reason?.message)
-          } else {
-            this.logger.error(
-              `Error while downloading snapshot file: ${ErrorUtils.renderError(error)}`,
+            idleCancelSource.cancel(
+              `Download timed out after ${TimeUtils.renderSpan(timeSinceLastChunk)}`,
             )
           }
+        }, idleTimeout)
 
-          this.exit(1)
+        const response: { data: IncomingMessage } = await axios({
+          method: 'GET',
+          responseType: 'stream',
+          url: snapshotUrl,
+          cancelToken: idleCancelSource.token,
+          headers: {
+            ...(canAcceptRanges && downloaded > 0
+              ? { range: `bytes=${downloaded}-${manifest.file_size - 1}` }
+              : {}),
+          },
         })
-        .finally(() => {
-          clearInterval(idleInterval)
+
+        await new Promise<void>((resolve, reject) => {
+          const onWriterError = (e: unknown) => {
+            writer.removeListener('close', onWriterClose)
+            writer.removeListener('error', onWriterError)
+            reject(e)
+          }
+
+          const onWriterClose = () => {
+            writer.removeListener('close', onWriterClose)
+            writer.removeListener('error', onWriterError)
+            resolve()
+          }
+
+          writer.on('error', onWriterError)
+          writer.on('close', onWriterClose)
+
+          response.data.on('error', (e) => {
+            writer.destroy(e)
+          })
+
+          response.data.on('end', () => {
+            writer.close()
+          })
+
+          response.data.on('data', (chunk: Buffer) => {
+            writer.write(chunk)
+            hasher.write(chunk)
+
+            downloaded += chunk.length
+            speed.add(chunk.length)
+            idleLastChunk = Date.now()
+
+            bar.update(downloaded, {
+              downloadedSize: FileUtils.formatFileSize(downloaded),
+              speed: FileUtils.formatFileSize(speed.rate1s),
+              estimate: TimeUtils.renderEstimate(downloaded, manifest.file_size, speed.rate1m),
+            })
+          })
         })
+          .catch((error) => {
+            bar.stop()
+            speed.stop()
+
+            if (idleCancelSource.token.reason?.message) {
+              this.logger.error(idleCancelSource.token.reason?.message)
+            } else {
+              this.logger.error(
+                `Error while downloading snapshot file: ${ErrorUtils.renderError(error)}`,
+              )
+            }
+
+            this.exit(1)
+          })
+          .finally(() => {
+            clearInterval(idleInterval)
+          })
+      }
 
       bar.stop()
       speed.stop()
@@ -274,6 +278,9 @@ export default class Download extends IronfishCommand {
       const checksum = hasher.digest().toString('hex')
       if (checksum !== manifest.checksum) {
         this.log('Snapshot checksum does not match.')
+        if (flags.cleanup) {
+          await fsAsync.rm(snapshotPath)
+        }
         this.exit(0)
       }
     }
