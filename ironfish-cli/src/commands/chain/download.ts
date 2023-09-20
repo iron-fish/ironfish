@@ -134,57 +134,35 @@ export default class Download extends IronfishCommand {
       await fsAsync.mkdir(this.sdk.config.tempDir, { recursive: true })
       snapshotPath = flags.outputPath || path.join(this.sdk.config.tempDir, manifest.file_name)
 
-      // Check if we can resume a previous download, and update the downloaded size if so
-      const headResult = await axios.head(snapshotUrl)
-      const canAcceptRanges =
-        (headResult.headers as Record<string, string>)['accept-ranges'] === 'bytes'
-
       let downloaded = 0
-      if (canAcceptRanges) {
-        try {
-          const statResult = await fsAsync.stat(snapshotPath)
-          if (statResult.isFile()) {
-            downloaded = statResult.size
-          }
-        } catch {
-          downloaded = 0
+      try {
+        const statResult = await fsAsync.stat(snapshotPath)
+        if (statResult.isFile()) {
+          downloaded = statResult.size
         }
-      }
-
-      this.log(`Downloading snapshot from ${snapshotUrl} to ${snapshotPath}`)
-
-      const bar = CliUx.ux.progress({
-        barCompleteChar: '\u2588',
-        barIncompleteChar: '\u2591',
-        format:
-          'Downloading snapshot: [{bar}] {percentage}% | {downloadedSize} / {fileSize} | {speed}/s | ETA: {estimate}',
-      }) as ProgressBar
-
-      bar.start(manifest.file_size, 0, {
-        fileSize,
-        downloadedSize: FileUtils.formatFileSize(downloaded),
-        speed: '0',
-        estimate: TimeUtils.renderEstimate(0, 0, 0),
-      })
-
-      const speed = new Meter()
-      speed.start()
-
-      const hasher = crypto.createHash('sha256')
-
-      if (downloaded > 0) {
-        await new Promise<void>((resolve, reject) => {
-          const stream = fs.createReadStream(snapshotPath)
-          stream.on('end', resolve)
-          stream.on('error', reject)
-          stream.pipe(hasher, { end: false })
-        })
+      } catch {
+        downloaded = 0
       }
 
       if (downloaded < manifest.file_size) {
-        const writer = fs.createWriteStream(snapshotPath, {
-          flags: canAcceptRanges ? 'a' : 'w',
+        this.log(`Downloading snapshot from ${snapshotUrl} to ${snapshotPath}`)
+
+        const bar = CliUx.ux.progress({
+          barCompleteChar: '\u2588',
+          barIncompleteChar: '\u2591',
+          format:
+            'Downloading snapshot: [{bar}] {percentage}% | {downloadedSize} / {fileSize} | {speed}/s | ETA: {estimate}',
+        }) as ProgressBar
+
+        bar.start(manifest.file_size, 0, {
+          fileSize,
+          downloadedSize: FileUtils.formatFileSize(downloaded),
+          speed: '0',
+          estimate: TimeUtils.renderEstimate(0, 0, 0),
         })
+
+        const speed = new Meter()
+        speed.start()
 
         const idleTimeout = 30000
         let idleLastChunk = Date.now()
@@ -208,11 +186,14 @@ export default class Download extends IronfishCommand {
           url: snapshotUrl,
           cancelToken: idleCancelSource.token,
           headers: {
-            ...(canAcceptRanges && downloaded > 0
-              ? { range: `bytes=${downloaded}-${manifest.file_size - 1}` }
-              : {}),
+            range: `bytes=${downloaded}-${manifest.file_size - 1}`,
           },
         })
+
+        const writer = fs.createWriteStream(snapshotPath, {
+          flags: response.data.statusCode === 206 ? 'a' : 'w',
+        })
+        downloaded = response.data.statusCode === 206 ? downloaded : 0
 
         await new Promise<void>((resolve, reject) => {
           const onWriterError = (e: unknown) => {
@@ -240,7 +221,6 @@ export default class Download extends IronfishCommand {
 
           response.data.on('data', (chunk: Buffer) => {
             writer.write(chunk)
-            hasher.write(chunk)
 
             downloaded += chunk.length
             speed.add(chunk.length)
@@ -270,10 +250,19 @@ export default class Download extends IronfishCommand {
           .finally(() => {
             clearInterval(idleInterval)
           })
+
+        bar.stop()
+        speed.stop()
       }
 
-      bar.stop()
-      speed.stop()
+      this.log('Verifying snapshot checksum...')
+      const hasher = crypto.createHash('sha256')
+      await new Promise<void>((resolve, reject) => {
+        const stream = fs.createReadStream(snapshotPath)
+        stream.on('end', resolve)
+        stream.on('error', reject)
+        stream.pipe(hasher, { end: false })
+      })
 
       const checksum = hasher.digest().toString('hex')
       if (checksum !== manifest.checksum) {
