@@ -3,27 +3,19 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
+import { getTransactionSize } from '../../../network/utils/serializers'
 import { FullNode } from '../../../node'
 import { BlockHashSerdeInstance } from '../../../serde'
 import { CurrencyUtils } from '../../../utils'
 import { NotFoundError, ValidationError } from '../../adapters'
-import {
-  RpcBurn,
-  RpcBurnSchema,
-  RpcEncryptedNote,
-  RpcEncryptedNoteSchema,
-  RpcMint,
-  RpcMintSchema,
-} from '../../types'
 import { ApiNamespace, routes } from '../router'
-import { RpcSpend, RpcSpendSchema } from './types'
+import { RpcTransaction, RpcTransactionSchema } from './types'
 
 export type GetTransactionRequest = { transactionHash: string; blockHash?: string }
 
-export type GetTransactionResponse = {
-  fee: string
-  expiration: number
+export type GetTransactionResponse = RpcTransaction & {
   noteSize: number
+  blockHash: string
   /**
    * @deprecated Please use `notes.length` instead
    */
@@ -32,12 +24,6 @@ export type GetTransactionResponse = {
    * @deprecated Please use `spends.length` instead
    */
   spendsCount: number
-  signature: string
-  spends: RpcSpend[]
-  notes: RpcEncryptedNote[]
-  mints: RpcMint[]
-  burns: RpcBurn[]
-  blockHash: string
   /**
    * @deprecated Please use `notes` instead
    */
@@ -51,22 +37,18 @@ export const GetTransactionRequestSchema: yup.ObjectSchema<GetTransactionRequest
   })
   .defined()
 
-export const GetTransactionResponseSchema: yup.ObjectSchema<GetTransactionResponse> = yup
-  .object({
-    fee: yup.string().defined(),
-    expiration: yup.number().defined(),
-    noteSize: yup.number().defined(),
-    notesCount: yup.number().defined(),
-    spendsCount: yup.number().defined(),
-    signature: yup.string().defined(),
-    notesEncrypted: yup.array(yup.string().defined()).defined(),
-    spends: yup.array(RpcSpendSchema).defined(),
-    notes: yup.array(RpcEncryptedNoteSchema).defined(),
-    mints: yup.array(RpcMintSchema).defined(),
-    burns: yup.array(RpcBurnSchema).defined(),
-    blockHash: yup.string().defined(),
-  })
-  .defined()
+export const GetTransactionResponseSchema: yup.ObjectSchema<GetTransactionResponse> =
+  RpcTransactionSchema.concat(
+    yup
+      .object({
+        notesCount: yup.number().defined(),
+        spendsCount: yup.number().defined(),
+        notesEncrypted: yup.array(yup.string().defined()).defined(),
+        noteSize: yup.number().defined(),
+        blockHash: yup.string().defined(),
+      })
+      .defined(),
+  )
 
 routes.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
   `${ApiNamespace.chain}/getTransaction`,
@@ -112,8 +94,10 @@ routes.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
     const { transaction, initialNoteIndex } = foundTransaction
 
     const rawTransaction: GetTransactionResponse = {
-      fee: transaction.fee().toString(),
+      fee: Number(transaction.fee()),
       expiration: transaction.expiration(),
+      hash: transaction.hash().toString('hex'),
+      size: getTransactionSize(transaction),
       noteSize: initialNoteIndex + transaction.notes.length,
       notesCount: transaction.notes.length,
       spendsCount: transaction.spends.length,
