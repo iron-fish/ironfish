@@ -25,11 +25,11 @@ export const RcpAccountAssetBalanceDeltaSchema: yup.ObjectSchema<RcpAccountAsset
     })
     .defined()
 
-export type RpcWalletNote = {
+export type RpcAccountNote = {
   value: string
   assetId: string
   /**
-   * @deprecated Please use `asset.name` instead
+   * @deprecated Please use getAsset endpoint to get this information
    */
   assetName: string
   memo: string
@@ -50,7 +50,7 @@ export type RpcWalletNote = {
   hash: string
 }
 
-export const RpcWalletNoteSchema: yup.ObjectSchema<RpcWalletNote> = yup
+export const RpcWalletNoteSchema: yup.ObjectSchema<RpcAccountNote> = yup
   .object({
     value: yup.string().defined(),
     assetId: yup.string().defined(),
@@ -101,7 +101,7 @@ export type RpcAccountTransaction = {
   assetBalanceDeltas: RcpAccountAssetBalanceDelta[]
   blockHash?: string
   blockSequence?: number
-  notes?: RpcWalletNote[]
+  notes?: RpcAccountNote[]
   spends?: RpcSpend[]
 }
 

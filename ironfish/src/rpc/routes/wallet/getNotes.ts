@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { ApiNamespace, routes } from '../router'
-import { RpcWalletNote, RpcWalletNoteSchema } from './types'
+import { RpcAccountNote, RpcWalletNoteSchema } from './types'
 import { getAccount, serializeRpcWalletNote } from './utils'
 
 const DEFAULT_PAGE_SIZE = 100
@@ -33,7 +33,7 @@ export type GetNotesRequest = {
 }
 
 export type GetNotesResponse = {
-  notes: Array<RpcWalletNote>
+  notes: Array<RpcAccountNote>
   nextPageCursor: string | null
 }
 
@@ -109,7 +109,7 @@ routes.register<typeof GetNotesRequestSchema, GetNotesResponse>(
   },
 )
 
-function includeNote(note: RpcWalletNote, filter: GetNotesRequestFilter): boolean {
+function includeNote(note: RpcAccountNote, filter: GetNotesRequestFilter): boolean {
   return (
     (filter.value?.min === undefined || BigInt(note.value) >= BigInt(filter.value.min)) &&
     (filter.value?.max === undefined || BigInt(note.value) <= BigInt(filter.value.max)) &&

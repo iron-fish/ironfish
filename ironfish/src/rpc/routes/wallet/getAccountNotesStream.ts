@@ -4,12 +4,12 @@
 import * as yup from 'yup'
 import { CurrencyUtils } from '../../../utils'
 import { ApiNamespace, routes } from '../router'
-import { RpcWalletNote, RpcWalletNoteSchema } from './types'
+import { RpcAccountNote, RpcWalletNoteSchema } from './types'
 import { getAccount } from './utils'
 
 export type GetAccountNotesStreamRequest = { account?: string }
 
-export type GetAccountNotesStreamResponse = RpcWalletNote
+export type GetAccountNotesStreamResponse = RpcAccountNote
 
 export const GetAccountNotesStreamRequestSchema: yup.ObjectSchema<GetAccountNotesStreamRequest> =
   yup

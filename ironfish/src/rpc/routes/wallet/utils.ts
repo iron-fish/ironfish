@@ -13,8 +13,8 @@ import { ValidationError } from '../../adapters'
 import {
   RcpAccountAssetBalanceDelta,
   RpcAccountImport,
+  RpcAccountNote,
   RpcAccountTransaction,
-  RpcWalletNote,
 } from './types'
 
 export function getAccount(wallet: Wallet, name?: string): Account {
@@ -172,10 +172,10 @@ export async function getAccountDecryptedNotes(
   workerPool: WorkerPool,
   account: Account,
   transaction: TransactionValue,
-): Promise<RpcWalletNote[]> {
+): Promise<RpcAccountNote[]> {
   const notes = await getTransactionNotes(workerPool, account, transaction)
 
-  const serializedNotes: RpcWalletNote[] = []
+  const serializedNotes: RpcAccountNote[] = []
 
   for await (const decryptedNote of notes) {
     const asset = await account.getAsset(decryptedNote.note.assetId())
@@ -190,7 +190,7 @@ export function serializeRpcWalletNote(
   note: DecryptedNoteValue,
   publicAddress: string,
   asset?: AssetValue,
-): RpcWalletNote {
+): RpcAccountNote {
   return {
     value: CurrencyUtils.encode(note.note.value()),
     assetId: note.note.assetId().toString('hex'),
