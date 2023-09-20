@@ -8,7 +8,8 @@ import { CurrencyUtils, YupUtils } from '../../../utils'
 import { MintAssetOptions } from '../../../wallet/interfaces/mintAssetOptions'
 import { RpcAsset, RpcAssetSchema, RpcMint, RpcMintSchema } from '../../types'
 import { ApiNamespace, routes } from '../router'
-import { getAccount } from './utils'
+import { RpcWalletTransaction, RpcWalletTransactionSchema } from './types'
+import { getAccount, serializeRpcWalletTransaction } from './utils'
 
 export interface MintAssetRequest {
   account?: string
@@ -39,9 +40,9 @@ export const MintAssetRequestSchema: yup.ObjectSchema<MintAssetRequest> = yup
 
 export type MintAssetResponse = RpcMint & {
   asset: RpcAsset
-  transactionHash: string
+  transaction: RpcWalletTransaction
   /**
-   * @deprecated Please use `transactionHash` instead
+   * @deprecated Please use `transaction.hash` instead
    */
   hash: string
 }
@@ -51,8 +52,8 @@ export const MintAssetResponseSchema: yup.ObjectSchema<MintAssetResponse> =
     yup
       .object({
         asset: RpcAssetSchema.defined(),
+        transaction: RpcWalletTransactionSchema.defined(),
         hash: yup.string().defined(),
-        transactionHash: yup.string().defined(),
       })
       .defined(),
   ).defined()
@@ -110,6 +111,9 @@ routes.register<typeof MintAssetRequestSchema, MintAssetResponse>(
     const asset = await account.getAsset(mint.asset.id())
     Assert.isNotUndefined(asset)
 
+    const transactionValue = await account.getTransaction(transaction.hash())
+    Assert.isNotUndefined(transactionValue)
+
     request.end({
       asset: {
         id: asset.id.toString('hex'),
@@ -124,9 +128,9 @@ routes.register<typeof MintAssetRequestSchema, MintAssetResponse>(
         }),
         createdTransactionHash: asset.createdTransactionHash.toString('hex'),
       },
+      transaction: await serializeRpcWalletTransaction(node, account, transactionValue),
       assetId: asset.id.toString('hex'),
       hash: transaction.hash().toString('hex'),
-      transactionHash: transaction.hash().toString('hex'),
       name: asset.name.toString('hex'),
       value: mint.value.toString(),
       id: mint.asset.id().toString('hex'),

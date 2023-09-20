@@ -6,6 +6,7 @@ import { Assert } from '../../../assert'
 import { useAccountFixture, useMinerBlockFixture, useTxFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { CurrencyUtils } from '../../../utils'
+import { serializeRpcWalletTransaction } from './utils'
 
 describe('Route wallet/mintAsset', () => {
   const routeTest = createRouteTest(true)
@@ -93,6 +94,9 @@ describe('Route wallet/mintAsset', () => {
         value: CurrencyUtils.encode(mintData.value),
       })
 
+      const walletTransaction = await account.getTransaction(mintTransaction.hash())
+      Assert.isNotUndefined(walletTransaction)
+
       expect(response.content).toEqual({
         asset: {
           id: asset.id().toString('hex'),
@@ -108,11 +112,11 @@ describe('Route wallet/mintAsset', () => {
           }),
           verification: node.assetsVerifier.verify(asset.id()),
         },
+        transaction: await serializeRpcWalletTransaction(node, account, walletTransaction),
         id: asset.id().toString('hex'),
         creator: asset.creator().toString('hex'),
         assetId: asset.id().toString('hex'),
         metadata: asset.metadata().toString('hex'),
-        transactionHash: mintTransaction.hash().toString('hex'),
         hash: mintTransaction.hash().toString('hex'),
         name: asset.name().toString('hex'),
         assetName: asset.name().toString('hex'),
