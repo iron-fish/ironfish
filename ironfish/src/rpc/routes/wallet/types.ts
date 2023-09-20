@@ -4,43 +4,42 @@
 
 import * as yup from 'yup'
 import { TransactionStatus, TransactionType } from '../../../wallet'
-import { AccountImport } from '../../../wallet/walletdb/accountValue'
 import { RpcBurn, RpcBurnSchema, RpcMint, RpcMintSchema } from '../../types'
 import { RpcSpend, RpcSpendSchema } from '../chain'
 
 export type RcpAccountAssetBalanceDelta = {
   assetId: string
+  delta: string
   /**
    * @deprecated Please use the getAsset RPC to fetch additional asset details
    */
   assetName: string
-  delta: string
 }
 
 export const RcpAccountAssetBalanceDeltaSchema: yup.ObjectSchema<RcpAccountAssetBalanceDelta> =
   yup
     .object({
       assetId: yup.string().defined(),
-      assetName: yup.string().defined(),
       delta: yup.string().defined(),
+      assetName: yup.string().defined(),
     })
     .defined()
 
 export type RpcWalletNote = {
-  value: string
   assetId: string
-  /**
-   * @deprecated Please use `asset.name` instead
-   */
-  assetName: string
+  value: string
   memo: string
   sender: string
   owner: string
   noteHash: string
   transactionHash: string
+  spent: boolean
   index: number | null
   nullifier: string | null
-  spent: boolean
+  /**
+   * @deprecated Please use `asset.name` instead
+   */
+  assetName: string
   /**
    * @deprecated Please use `owner` address instead
    */
@@ -73,7 +72,19 @@ export type RpcWalletTransaction = {
   hash: string
   fee: string
   signature: string
+  expiration: number
+  timestamp: number
+  submittedSequence: number
+  type: TransactionType
+  status: TransactionStatus
+  assetBalanceDeltas: RcpAccountAssetBalanceDelta[]
+  burns: RpcBurn[]
+  mints: RpcMint[]
   serialized?: string
+  blockHash?: string
+  blockSequence?: number
+  notes?: RpcWalletNote[]
+  spends?: RpcSpend[]
   /**
    * @deprecated Please use `notes.length` instead
    */
@@ -90,22 +101,10 @@ export type RpcWalletTransaction = {
    * @deprecated Please use `burns.length` instead
    */
   burnsCount: number
-  expiration: number
-  timestamp: number
-  submittedSequence: number
   /**
    * @deprecated This is configuarable via the node config, a setting that the user can pass, so doesn't need to be returned
    */
   confirmations: number
-  type: TransactionType
-  status: TransactionStatus
-  assetBalanceDeltas: RcpAccountAssetBalanceDelta[]
-  blockHash?: string
-  blockSequence?: number
-  notes?: RpcWalletNote[]
-  spends?: RpcSpend[]
-  burns: RpcBurn[]
-  mints: RpcMint[]
 }
 
 export const RpcWalletTransactionSchema: yup.ObjectSchema<RpcWalletTransaction> = yup
@@ -134,12 +133,21 @@ export const RpcWalletTransactionSchema: yup.ObjectSchema<RpcWalletTransaction> 
   })
   .defined()
 
-export type RpcAccountImport = Omit<AccountImport, 'createdAt'> & {
+export type RpcAccountImport = {
+  id: string
+  version: number
+  name: string
+  viewKey: string
+  incomingViewKey: string
+  outgoingViewKey: string
+  publicAddress: string
+  spendingKey: string | null
   createdAt: { hash: string; sequence: number } | null
 }
 
 export const RpcAccountImportSchema: yup.ObjectSchema<RpcAccountImport> = yup
   .object({
+    id: yup.string().defined(),
     name: yup.string().defined(),
     spendingKey: yup.string().nullable().defined(),
     viewKey: yup.string().defined(),

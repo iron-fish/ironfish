@@ -27,29 +27,29 @@ export const RpcSpendSchema: yup.ObjectSchema<RpcSpend> = yup
   .defined()
 
 export type RpcTransaction = {
-  serialized?: string
   hash: string
   size: number
   fee: number
   expiration: number
+  signature: string
   notes: RpcEncryptedNote[]
   spends: RpcSpend[]
   mints: RpcMint[]
   burns: RpcBurn[]
-  signature: string
+  serialized?: string
 }
 
 export const RpcTransactionSchema: yup.ObjectSchema<RpcTransaction> = yup
   .object({
-    serialized: yup.string().optional(),
     hash: yup.string().defined(),
     size: yup.number().defined(),
     fee: yup.number().defined(),
     expiration: yup.number().defined(),
+    signature: yup.string().defined(),
     notes: yup.array(RpcEncryptedNoteSchema).defined(),
     spends: yup.array(RpcSpendSchema).defined(),
     mints: yup.array(RpcMintSchema).defined(),
     burns: yup.array(RpcBurnSchema).defined(),
-    signature: yup.string().defined(),
+    serialized: yup.string().optional(),
   })
   .defined()
