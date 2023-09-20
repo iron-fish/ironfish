@@ -67,13 +67,13 @@ export default class Status extends IronfishCommand {
         continue
       }
 
-      const response = this.sdk.client.node.getStatusStream()
-
-      for await (const value of response.contentStream()) {
+      while(true) {
+        const value = await this.sdk.client.node.getStatus()
         statusText.clearBaseLine(0)
-        statusText.setContent(renderStatus(value, flags.all))
+        statusText.setContent(renderStatus(value.content, flags.all))
         screen.render()
-        previousResponse = value
+        previousResponse = value.content
+        await PromiseUtils.sleep(1000)
       }
     }
   }
