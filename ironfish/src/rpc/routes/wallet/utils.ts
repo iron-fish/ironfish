@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Note } from '../../../primitives'
-import { CurrencyUtils, IronfishNode } from '../../../utils'
+import { BufferUtils, CurrencyUtils, IronfishNode } from '../../../utils'
 import { Account, Wallet } from '../../../wallet'
 import { AccountImport } from '../../../wallet/walletdb/accountValue'
 import { AssetValue } from '../../../wallet/walletdb/assetValue'
@@ -69,6 +69,22 @@ export async function serializeRpcAccountTransaction(
     expiration: transaction.transaction.expiration(),
     timestamp: transaction.timestamp.getTime(),
     submittedSequence: transaction.submittedSequence,
+    mints: transaction.transaction.mints.map((mint) => ({
+      id: mint.asset.id().toString('hex'),
+      metadata: BufferUtils.toHuman(mint.asset.metadata()),
+      name: BufferUtils.toHuman(mint.asset.name()),
+      creator: mint.asset.creator().toString('hex'),
+      value: mint.value.toString(),
+      transferOwnershipTo: mint.transferOwnershipTo?.toString('hex'),
+      assetId: mint.asset.id().toString('hex'),
+      assetName: mint.asset.name().toString('hex'),
+    })),
+    burns: transaction.transaction.burns.map((burn) => ({
+      id: burn.assetId.toString('hex'),
+      assetId: burn.assetId.toString('hex'),
+      value: burn.value.toString(),
+      assetName: '',
+    })),
     type,
     status,
     assetBalanceDeltas,

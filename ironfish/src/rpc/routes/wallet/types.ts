@@ -5,6 +5,7 @@
 import * as yup from 'yup'
 import { TransactionStatus, TransactionType } from '../../../wallet'
 import { AccountImport } from '../../../wallet/walletdb/accountValue'
+import { RpcBurn, RpcBurnSchema, RpcMint, RpcMintSchema } from '../../types'
 import { RpcSpend, RpcSpendSchema } from '../chain'
 
 export type RcpAccountAssetBalanceDelta = {
@@ -103,6 +104,8 @@ export type RpcAccountTransaction = {
   blockSequence?: number
   notes?: RpcWalletNote[]
   spends?: RpcSpend[]
+  burns: RpcBurn[]
+  mints: RpcMint[]
 }
 
 export const RpcAccountTransactionSchema: yup.ObjectSchema<RpcAccountTransaction> = yup
@@ -126,6 +129,8 @@ export const RpcAccountTransactionSchema: yup.ObjectSchema<RpcAccountTransaction
     assetBalanceDeltas: yup.array(RcpAccountAssetBalanceDeltaSchema).defined(),
     notes: yup.array(RpcWalletNoteSchema).optional(),
     spends: yup.array(RpcSpendSchema).optional(),
+    mints: yup.array(RpcMintSchema).defined(),
+    burns: yup.array(RpcBurnSchema).defined(),
   })
   .defined()
 
