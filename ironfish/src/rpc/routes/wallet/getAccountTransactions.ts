@@ -25,6 +25,7 @@ export type GetAccountTransactionsRequest = {
   confirmations?: number
   notes?: boolean
   spends?: boolean
+  serialized?: boolean
 }
 
 export const GetAccountTransactionsRequestSchema: yup.ObjectSchema<GetAccountTransactionsRequest> =
@@ -38,6 +39,7 @@ export const GetAccountTransactionsRequestSchema: yup.ObjectSchema<GetAccountTra
       confirmations: yup.number().notRequired(),
       notes: yup.boolean().notRequired().default(false),
       spends: yup.boolean().notRequired().default(false),
+      serialized: yup.boolean().notRequired().default(false),
     })
     .defined()
 
@@ -116,7 +118,10 @@ const streamTransaction = async (
     node,
     account,
     transaction,
-    options.confirmations,
+    {
+      confirmations: options.confirmations,
+      serialized: request.data.serialized,
+    },
   )
 
   const assetBalanceDeltas = await getAssetBalanceDeltas(account, transaction)

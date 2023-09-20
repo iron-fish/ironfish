@@ -36,7 +36,7 @@ export type RpcTransaction = {
   spends: RpcSpend[]
   mints: RpcMint[]
   burns: RpcBurn[]
-  signature?: string
+  signature: string
 }
 
 export const RpcTransactionSchema: yup.ObjectSchema<RpcTransaction> = yup
@@ -50,6 +50,6 @@ export const RpcTransactionSchema: yup.ObjectSchema<RpcTransaction> = yup
     spends: yup.array(RpcSpendSchema).defined(),
     mints: yup.array(RpcMintSchema).defined(),
     burns: yup.array(RpcBurnSchema).defined(),
-    signature: yup.string().optional(),
+    signature: yup.string().defined(),
   })
   .defined()

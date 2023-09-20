@@ -78,9 +78,10 @@ routes.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
 
     const send = (block: Block, type: 'connected' | 'disconnected' | 'fork') => {
       const transactions = block.transactions.map((transaction) => ({
-        ...(request.data?.serialized
-          ? { serialized: transaction.serialize().toString('hex') }
-          : {}),
+        serialized: request.data?.serialized
+          ? transaction.serialize().toString('hex')
+          : undefined,
+        signature: transaction.transactionSignature().toString('hex'),
         hash: BlockHashSerdeInstance.serialize(transaction.hash()),
         size: getTransactionSize(transaction),
         fee: Number(transaction.fee()),

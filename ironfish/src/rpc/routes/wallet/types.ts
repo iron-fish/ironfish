@@ -71,9 +71,23 @@ export const RpcWalletNoteSchema: yup.ObjectSchema<RpcWalletNote> = yup
 export type RpcAccountTransaction = {
   hash: string
   fee: string
+  signature: string
+  serialized?: string
+  /**
+   * @deprecated Please use `notes.length` instead
+   */
   notesCount: number
+  /**
+   * @deprecated Please use `spends.length` instead
+   */
   spendsCount: number
+  /**
+   * @deprecated Please use `mints.length` instead
+   */
   mintsCount: number
+  /**
+   * @deprecated Please use `burns.length` instead
+   */
   burnsCount: number
   expiration: number
   timestamp: number
@@ -97,6 +111,8 @@ export const RpcAccountTransactionSchema: yup.ObjectSchema<RpcAccountTransaction
     fee: yup.string().defined(),
     blockHash: yup.string(),
     blockSequence: yup.number(),
+    signature: yup.string().defined(),
+    serialized: yup.string().optional(),
     notesCount: yup.number().defined(),
     spendsCount: yup.number().defined(),
     mintsCount: yup.number().defined(),
