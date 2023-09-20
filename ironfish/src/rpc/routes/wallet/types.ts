@@ -73,9 +73,21 @@ export type RpcAccountTransaction = {
   fee: string
   signature: string
   serialized?: string
+  /**
+   * @deprecated Please use `notes.length` instead
+   */
   notesCount: number
+  /**
+   * @deprecated Please use `spends.length` instead
+   */
   spendsCount: number
+  /**
+   * @deprecated Please use `mints.length` instead
+   */
   mintsCount: number
+  /**
+   * @deprecated Please use `burns.length` instead
+   */
   burnsCount: number
   expiration: number
   timestamp: number

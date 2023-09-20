@@ -118,8 +118,10 @@ const streamTransaction = async (
     node,
     account,
     transaction,
-    options.confirmations,
-    request.data.serialized,
+    {
+      confirmations: options.confirmations,
+      serialized: request.data.serialized,
+    },
   )
 
   const assetBalanceDeltas = await getAssetBalanceDeltas(account, transaction)

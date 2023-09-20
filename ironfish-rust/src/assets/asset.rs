@@ -1,7 +1,12 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-use crate::{errors::IronfishError, keys::PUBLIC_ADDRESS_SIZE, util::str_to_array, PublicAddress};
+use crate::{
+    errors::{IronfishError, IronfishErrorKind},
+    keys::PUBLIC_ADDRESS_SIZE,
+    util::str_to_array,
+    PublicAddress,
+};
 use byteorder::{ReadBytesExt, WriteBytesExt};
 use ironfish_zkp::constants::{ASSET_ID_LENGTH, ASSET_ID_PERSONALIZATION, GH_FIRST_BLOCK};
 use jubjub::{ExtendedPoint, SubgroupPoint};
@@ -39,7 +44,7 @@ impl Asset {
     pub fn new(creator: PublicAddress, name: &str, metadata: &str) -> Result<Asset, IronfishError> {
         let trimmed_name = name.trim();
         if trimmed_name.is_empty() {
-            return Err(IronfishError::InvalidData);
+            return Err(IronfishError::new(IronfishErrorKind::InvalidData));
         }
 
         let name_bytes = str_to_array(trimmed_name);
@@ -50,7 +55,9 @@ impl Asset {
             if let Ok(asset) = Asset::new_with_nonce(creator, name_bytes, metadata_bytes, nonce) {
                 return Ok(asset);
             }
-            nonce = nonce.checked_add(1).ok_or(IronfishError::RandomnessError)?;
+            nonce = nonce
+                .checked_add(1)
+                .ok_or_else(|| IronfishError::new(IronfishErrorKind::RandomnessError))?;
         }
     }
 
