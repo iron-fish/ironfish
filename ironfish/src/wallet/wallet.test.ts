@@ -394,7 +394,6 @@ describe('Accounts', () => {
 
     it('should not scan if wallet is disabled', async () => {
       const { wallet, chain } = await nodeTest.createSetup({ config: { enableWallet: false } })
-      await useAccountFixture(wallet)
 
       const block1 = await useMinerBlockFixture(chain)
       await expect(chain).toAddBlock(block1)
