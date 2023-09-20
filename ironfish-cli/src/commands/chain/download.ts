@@ -85,7 +85,7 @@ export default class Download extends IronfishCommand {
       }
     }
 
-    let snapshotPath
+    let snapshotPath: string
 
     if (flags.path) {
       snapshotPath = this.sdk.fileSystem.resolve(flags.path)
@@ -131,23 +131,24 @@ export default class Download extends IronfishCommand {
         snapshotUrl = url.toString()
       }
 
-      const headResult = await axios.head(snapshotUrl)
-      const acceptRangesHeader = headResult.headers['accept-ranges']
-      const contentLengthHeader = BigInt(headResult.headers['content-length'])
-      const canAcceptRanges = acceptRangesHeader === 'bytes'
-      console.log(contentLengthHeader, manifest.file_size)
-
       await fsAsync.mkdir(this.sdk.config.tempDir, { recursive: true })
       snapshotPath = flags.outputPath || path.join(this.sdk.config.tempDir, manifest.file_name)
 
-      let size = 0
-      try {
-        const statResult = await fsAsync.stat(snapshotPath)
-        if (statResult.isFile()) {
-          size = statResult.size
+      // Check if we can resume a previous download, and update the downloaded size if so
+      const headResult = await axios.head(snapshotUrl)
+      const canAcceptRanges =
+        (headResult.headers as Record<string, string>)['accept-ranges'] === 'bytes'
+
+      let downloaded = 0
+      if (canAcceptRanges) {
+        try {
+          const statResult = await fsAsync.stat(snapshotPath)
+          if (statResult.isFile()) {
+            downloaded = statResult.size
+          }
+        } catch {
+          downloaded = 0
         }
-      } catch {
-        size = 0
       }
 
       this.log(`Downloading snapshot from ${snapshotUrl} to ${snapshotPath}`)
@@ -161,7 +162,7 @@ export default class Download extends IronfishCommand {
 
       bar.start(manifest.file_size, 0, {
         fileSize,
-        downloadedSize: '0',
+        downloadedSize: downloaded.toString(),
         speed: '0',
         estimate: TimeUtils.renderEstimate(0, 0, 0),
       })
@@ -169,9 +170,17 @@ export default class Download extends IronfishCommand {
       const speed = new Meter()
       speed.start()
 
-      let downloaded = size
-
       const hasher = crypto.createHash('sha256')
+
+      if (downloaded > 0) {
+        await new Promise<void>((resolve, reject) => {
+          const stream = fs.createReadStream(snapshotPath)
+          stream.on('end', resolve)
+          stream.on('error', reject)
+          stream.pipe(hasher, { end: false })
+        })
+      }
+
       const writer = fs.createWriteStream(snapshotPath, { flags: canAcceptRanges ? 'a' : 'w' })
 
       const idleTimeout = 30000
@@ -196,8 +205,10 @@ export default class Download extends IronfishCommand {
         url: snapshotUrl,
         cancelToken: idleCancelSource.token,
         headers: {
-          ...(canAcceptRanges ? { 'range': `bytes=${size}-${contentLengthHeader - 1n}` } : {}),
-        }
+          ...(canAcceptRanges
+            ? { range: `bytes=${downloaded}-${manifest.file_size - 1}` }
+            : {}),
+        },
       })
 
       await new Promise<void>((resolve, reject) => {
