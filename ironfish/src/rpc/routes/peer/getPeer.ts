@@ -3,12 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
-import { Connection, PeerNetwork } from '../../../network'
+import { PeerNetwork } from '../../../network'
 import { FullNode } from '../../../node'
+import { ConnectionState, RpcPeerResponse, RpcPeerResponseSchema } from '../../types'
 import { ApiNamespace, routes } from '../router'
-import { PeerResponse } from './getPeers'
-
-type ConnectionState = Connection['state']['type'] | ''
 
 export type GetPeerRequest = {
   identity: string
@@ -16,7 +14,7 @@ export type GetPeerRequest = {
 }
 
 export type GetPeerResponse = {
-  peer: PeerResponse | null
+  peer: RpcPeerResponse | null
 }
 
 export const GetPeerRequestSchema: yup.ObjectSchema<GetPeerRequest> = yup
@@ -28,34 +26,7 @@ export const GetPeerRequestSchema: yup.ObjectSchema<GetPeerRequest> = yup
 
 export const GetPeerResponseSchema: yup.ObjectSchema<GetPeerResponse> = yup
   .object({
-    peer: yup
-      .object({
-        state: yup.string().defined(),
-        address: yup.string().nullable().defined(),
-        port: yup.number().nullable().defined(),
-        identity: yup.string().nullable().defined(),
-        name: yup.string().nullable().defined(),
-        head: yup.string().nullable().defined(),
-        work: yup.string().nullable().defined(),
-        sequence: yup.number().nullable().defined(),
-        version: yup.number().nullable().defined(),
-        agent: yup.string().nullable().defined(),
-        error: yup.string().nullable().defined(),
-        connections: yup.number().defined(),
-        connectionWebSocket: yup.string<ConnectionState>().defined(),
-        connectionWebSocketError: yup.string().defined(),
-        connectionWebRTC: yup.string<ConnectionState>().defined(),
-        connectionWebRTCError: yup.string().defined(),
-        networkId: yup.number().nullable().defined(),
-        genesisBlockHash: yup.string().nullable().defined(),
-        features: yup
-          .object({
-            syncing: yup.boolean().defined(),
-          })
-          .nullable()
-          .defined(),
-      })
-      .defined(),
+    peer: RpcPeerResponseSchema.nullable().defined(),
   })
   .defined()
 
@@ -92,7 +63,7 @@ routes.register<typeof GetPeerRequestSchema, GetPeerResponse>(
   },
 )
 
-function getPeer(network: PeerNetwork, identity: string): PeerResponse | null {
+function getPeer(network: PeerNetwork, identity: string): RpcPeerResponse | null {
   for (const peer of network.peerManager.peers) {
     if (peer.state.identity !== null && peer.state.identity.includes(identity)) {
       let connections = 0
