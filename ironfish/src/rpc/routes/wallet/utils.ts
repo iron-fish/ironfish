@@ -13,8 +13,8 @@ import { ValidationError } from '../../adapters'
 import {
   RcpAccountAssetBalanceDelta,
   RpcAccountImport,
-  RpcAccountTransaction,
   RpcWalletNote,
+  RpcWalletTransaction,
 } from './types'
 
 export function getAccount(wallet: Wallet, name?: string): Account {
@@ -37,7 +37,7 @@ export function getAccount(wallet: Wallet, name?: string): Account {
   )
 }
 
-export async function serializeRpcAccountTransaction(
+export async function serializeRpcWalletTransaction(
   node: IronfishNode,
   account: Account,
   transaction: TransactionValue,
@@ -45,7 +45,7 @@ export async function serializeRpcAccountTransaction(
     confirmations?: number
     serialized?: boolean
   },
-): Promise<RpcAccountTransaction> {
+): Promise<RpcWalletTransaction> {
   const assetBalanceDeltas = await getAssetBalanceDeltas(account, transaction)
   const type = await node.wallet.getTransactionType(account, transaction)
   const confirmations = options?.confirmations ?? node.config.get('confirmations')

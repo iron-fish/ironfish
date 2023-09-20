@@ -69,7 +69,7 @@ export const RpcWalletNoteSchema: yup.ObjectSchema<RpcWalletNote> = yup
   })
   .defined()
 
-export type RpcAccountTransaction = {
+export type RpcWalletTransaction = {
   hash: string
   fee: string
   signature: string
@@ -108,7 +108,7 @@ export type RpcAccountTransaction = {
   mints: RpcMint[]
 }
 
-export const RpcAccountTransactionSchema: yup.ObjectSchema<RpcAccountTransaction> = yup
+export const RpcWalletTransactionSchema: yup.ObjectSchema<RpcWalletTransaction> = yup
   .object({
     hash: yup.string().defined(),
     fee: yup.string().defined(),
