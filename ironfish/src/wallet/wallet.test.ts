@@ -394,7 +394,9 @@ describe('Accounts', () => {
 
     it('should not scan if wallet is disabled', async () => {
       const { wallet, chain } = await nodeTest.createSetup({ config: { enableWallet: false } })
-      await useAccountFixture(wallet)
+
+      // Create a new account but don't give it an account birthday so the wallet head does not update
+      await useAccountFixture(wallet, 'test', { setCreatedAt: false })
 
       const block1 = await useMinerBlockFixture(chain)
       await expect(chain).toAddBlock(block1)
