@@ -4,7 +4,7 @@
 import * as yup from 'yup'
 import { ApiNamespace, routes } from '../router'
 import { RpcAccountNote, RpcWalletNoteSchema } from './types'
-import { getAccount, serializeRpcWalletNote } from './utils'
+import { getAccount, serializeRpcAccountNote } from './utils'
 
 const DEFAULT_PAGE_SIZE = 100
 
@@ -93,7 +93,7 @@ routes.register<typeof GetNotesRequestSchema, GetNotesResponse>(
 
       const asset = await account.getAsset(decryptedNote.note.assetId())
 
-      const note = serializeRpcWalletNote(decryptedNote, account.publicAddress, asset)
+      const note = serializeRpcAccountNote(decryptedNote, account.publicAddress, asset)
 
       if (!includeNote(note, request.data.filter ?? {})) {
         continue

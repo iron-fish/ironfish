@@ -10,13 +10,13 @@ import { createRouteTest } from '../../../testUtilities/routeTest'
 import { Account } from '../../../wallet'
 import { RpcResponseEnded } from '../../response'
 import { GetNotesResponse } from './getNotes'
-import { RpcWalletNote } from './types'
-import { serializeRpcWalletNote } from './utils'
+import { RpcAccountNote } from './types'
+import { serializeRpcAccountNote } from './utils'
 
 describe('Route wallet/getNotes', () => {
   const routeTest = createRouteTest(true)
   let account: Account
-  let accountNotesByHash: BufferMap<RpcWalletNote>
+  let accountNotesByHash: BufferMap<RpcAccountNote>
   let transaction: Transaction
 
   beforeAll(async () => {
@@ -36,7 +36,7 @@ describe('Route wallet/getNotes', () => {
 
     const asset = await account.getAsset(Asset.nativeId())
 
-    accountNotesByHash = new BufferMap<RpcWalletNote>()
+    accountNotesByHash = new BufferMap<RpcAccountNote>()
     for (const transaction of [...previous.transactions, ...block.transactions]) {
       for (const note of transaction.notes) {
         const decryptedNote = await account.getDecryptedNote(note.hash())
@@ -47,7 +47,7 @@ describe('Route wallet/getNotes', () => {
 
         accountNotesByHash.set(
           note.hash(),
-          serializeRpcWalletNote(decryptedNote, account.publicAddress, asset),
+          serializeRpcAccountNote(decryptedNote, account.publicAddress, asset),
         )
       }
     }
@@ -244,7 +244,7 @@ describe('Route wallet/getNotes', () => {
     expect(response.status).toBe(200)
     expect(response.content.notes.length).toBe(2)
     for (const note of response.content.notes) {
-      const accountNote: RpcWalletNote | undefined = accountNotesByHash.get(
+      const accountNote: RpcAccountNote | undefined = accountNotesByHash.get(
         Buffer.from(note.noteHash, 'hex'),
       )
       Assert.isNotUndefined(accountNote)

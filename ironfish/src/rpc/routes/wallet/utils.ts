@@ -180,13 +180,13 @@ export async function getAccountDecryptedNotes(
   for await (const decryptedNote of notes) {
     const asset = await account.getAsset(decryptedNote.note.assetId())
 
-    serializedNotes.push(serializeRpcWalletNote(decryptedNote, account.publicAddress, asset))
+    serializedNotes.push(serializeRpcAccountNote(decryptedNote, account.publicAddress, asset))
   }
 
   return serializedNotes
 }
 
-export function serializeRpcWalletNote(
+export function serializeRpcAccountNote(
   note: DecryptedNoteValue,
   publicAddress: string,
   asset?: AssetValue,
