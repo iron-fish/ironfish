@@ -41,16 +41,23 @@ export async function serializeRpcAccountTransaction(
   node: IronfishNode,
   account: Account,
   transaction: TransactionValue,
-  _confirmations: number | undefined,
+  options?: {
+    confirmations?: number
+    serialized?: boolean
+  },
 ): Promise<RpcAccountTransaction> {
   const assetBalanceDeltas = await getAssetBalanceDeltas(account, transaction)
   const type = await node.wallet.getTransactionType(account, transaction)
-  const confirmations = _confirmations ?? node.config.get('confirmations')
+  const confirmations = options?.confirmations ?? node.config.get('confirmations')
   const status = await node.wallet.getTransactionStatus(account, transaction, {
     confirmations,
   })
 
   return {
+    serialized: options?.serialized
+      ? transaction.transaction.serialize().toString('hex')
+      : undefined,
+    signature: transaction.transaction.transactionSignature().toString('hex'),
     hash: transaction.transaction.hash().toString('hex'),
     fee: transaction.transaction.fee().toString(),
     blockHash: transaction.blockHash?.toString('hex'),
