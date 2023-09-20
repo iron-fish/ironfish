@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-use crate::errors::IronfishError;
+use crate::errors::{IronfishError, IronfishErrorKind};
 use group::cofactor::CofactorGroup;
 use ironfish_zkp::{constants::ASSET_ID_LENGTH, util::asset_hash_to_point};
 use jubjub::{ExtendedPoint, SubgroupPoint};
@@ -58,7 +58,9 @@ impl TryFrom<[u8; ASSET_ID_LENGTH]> for AssetIdentifier {
             return Ok(Self(byte_array));
         }
 
-        Err(IronfishError::InvalidAssetIdentifier)
+        Err(IronfishError::new(
+            IronfishErrorKind::InvalidAssetIdentifier,
+        ))
     }
 }
 
