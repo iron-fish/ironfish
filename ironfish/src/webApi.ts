@@ -178,6 +178,31 @@ export class WebApi {
     await axios.post(`${this.host}/telemetry`, payload)
   }
 
+  async getBridgeHead(): Promise<string | undefined> {
+    this.requireToken()
+
+    const response = await axios
+      .get<{ hash: string }>(`${this.host}/bridge/head`)
+      .catch((e) => {
+        // The API returns 404 for no head
+        if (IsAxiosError(e) && e.response?.status === 404) {
+          return null
+        }
+
+        throw e
+      })
+
+    return response?.data.hash
+  }
+
+  async setBridgeHead(head: string): Promise<void> {
+    this.requireToken()
+
+    const options = this.options({ 'Content-Type': 'application/json' })
+
+    await axios.post(`${this.host}/bridge/head`, { head }, options)
+  }
+
   options(headers: Record<string, string> = {}): AxiosRequestConfig {
     return {
       headers: {
