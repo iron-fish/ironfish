@@ -19,7 +19,7 @@ export type GetBannedPeersRequest =
     }
 
 export type GetBannedPeersResponse = {
-  peers: Array<BannedPeerResponse>
+  peers: BannedPeerResponse[]
 }
 
 export const GetBannedPeersRequestSchema: yup.ObjectSchema<GetBannedPeersRequest> = yup
