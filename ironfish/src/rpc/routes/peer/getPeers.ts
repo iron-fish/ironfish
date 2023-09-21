@@ -15,7 +15,7 @@ export type GetPeersRequest =
     }
 
 export type GetPeersResponse = {
-  peers: Array<RpcPeerResponse>
+  peers: RpcPeerResponse[]
 }
 
 export const GetPeersRequestSchema: yup.ObjectSchema<GetPeersRequest> = yup
