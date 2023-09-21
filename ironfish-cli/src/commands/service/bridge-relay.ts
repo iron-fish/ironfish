@@ -38,18 +38,15 @@ export default class BridgeRelay extends IronfishCommand {
       description: 'Minimum number of block confirmations needed to process deposits',
       required: false,
     }),
+    fromHead: Flags.string({
+      char: 'f',
+      description: 'The block hash to start following at',
+      required: false,
+    }),
   }
 
-  static args = [
-    {
-      name: 'head',
-      required: false,
-      description: 'The block hash to start following at',
-    },
-  ]
-
   async start(): Promise<void> {
-    const { flags, args } = await this.parse(BridgeRelay)
+    const { flags } = await this.parse(BridgeRelay)
 
     if (!flags.endpoint) {
       this.log(
@@ -69,14 +66,14 @@ export default class BridgeRelay extends IronfishCommand {
 
     const confirmations = flags.confirmations ?? this.sdk.config.get('confirmations')
 
-    await this.syncBlocks(api, flags.incomingViewKey, confirmations, args.head)
+    await this.syncBlocks(api, flags.incomingViewKey, confirmations, flags.fromHead)
   }
 
   async syncBlocks(
     api: WebApi,
     incomingViewKey: string,
     confirmations: number,
-    head: string | null,
+    head?: string,
   ): Promise<void> {
     this.log('Connecting to node...')
     const client = await this.sdk.connectRpc()
