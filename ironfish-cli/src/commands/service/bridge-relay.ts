@@ -27,7 +27,7 @@ export default class BridgeRelay extends IronfishCommand {
       parse: (input: string) => Promise.resolve(input.trim()),
       env: 'IRONFISH_API_TOKEN',
     }),
-    viewKey: Flags.string({
+    incomingViewKey: Flags.string({
       char: 'k',
       description: 'View key to watch transactions with',
       parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
@@ -69,19 +69,19 @@ export default class BridgeRelay extends IronfishCommand {
 
     const confirmations = flags.confirmations ?? this.sdk.config.get('confirmations')
 
-    await this.syncBlocks(api, flags.viewKey, confirmations, args.head)
+    await this.syncBlocks(api, flags.incomingViewKey, confirmations, args.head)
   }
 
   async syncBlocks(
     api: WebApi,
-    viewKey: string,
+    incomingViewKey: string,
     confirmations: number,
     head: string | null,
   ): Promise<void> {
     this.log('Connecting to node...')
     const client = await this.sdk.connectRpc()
 
-    this.log('Watching with view key:', viewKey)
+    this.log('Watching with view key:', incomingViewKey)
 
     // TODO: track chain state of relay in API
     if (!head) {
@@ -91,7 +91,7 @@ export default class BridgeRelay extends IronfishCommand {
     this.log(`Starting from head ${head}`)
 
     const response = client.chain.getTransactionStream({
-      incomingViewKey: viewKey,
+      incomingViewKey: incomingViewKey,
       head,
     })
 
