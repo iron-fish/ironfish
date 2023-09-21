@@ -108,22 +108,14 @@ export default class BridgeRelay extends IronfishCommand {
         buffer.pop()
       }
 
-      const committing = buffer.length > confirmations
-
-      this.log(
+      this.logger.debug(
         `${content.type}: ${content.block.hash} - ${content.block.sequence}${
-          committing
-            ? ' - ' +
-              TimeUtils.renderEstimate(
-                content.block.sequence,
-                content.head.sequence,
-                speed.rate5m,
-              )
-            : ''
+          ' - ' +
+          TimeUtils.renderEstimate(content.block.sequence, content.head.sequence, speed.rate5m)
         }`,
       )
 
-      if (committing) {
+      if (buffer.length > confirmations) {
         const response = buffer.shift()
         Assert.isNotUndefined(response)
         this.commit(api, response)
