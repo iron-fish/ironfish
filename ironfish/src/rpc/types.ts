@@ -33,8 +33,8 @@ export const RpcBurnSchema: yup.ObjectSchema<RpcBurn> = yup
 
 export type RpcMint = {
   assetId: string
-  transferOwnershipTo?: string
   value: string
+  transferOwnershipTo?: string
   /**
    * @deprecated Please use assetId instead
    */
@@ -59,31 +59,31 @@ export type RpcMint = {
 
 export const RpcMintSchema: yup.ObjectSchema<RpcMint> = yup
   .object({
+    assetId: yup.string().defined(),
+    value: yup.string().defined(),
+    transferOwnershipTo: yup.string().optional(),
     id: yup.string().defined(),
     metadata: yup.string().defined(),
     name: yup.string().defined(),
     creator: yup.string().defined(),
-    value: yup.string().defined(),
-    transferOwnershipTo: yup.string().optional(),
-    assetId: yup.string().defined(),
     assetName: yup.string().defined(),
   })
   .defined()
 
 export type RpcAsset = {
   id: string
-  metadata: string
   name: string
   nonce: number
-  creator: string
-  verification: AssetVerification
-  createdTransactionHash: string
   owner: string
+  creator: string
+  metadata: string
+  createdTransactionHash: string
+  verification: AssetVerification
+  supply?: string
   /**
    * @deprecated query for the transaction to find it's status
    */
   status: string
-  supply?: string
 }
 
 export const RpcAssetSchema: yup.ObjectSchema<RpcAsset> = yup
@@ -104,12 +104,12 @@ export const RpcAssetSchema: yup.ObjectSchema<RpcAsset> = yup
   .defined()
 
 export type RpcEncryptedNote = {
+  hash: string
+  serialized: string
   /**
    * @deprecated Please use hash instead
    */
   commitment: string
-  hash: string
-  serialized: string
 }
 
 export const RpcEncryptedNoteSchema: yup.ObjectSchema<RpcEncryptedNote> = yup
@@ -122,10 +122,6 @@ export const RpcEncryptedNoteSchema: yup.ObjectSchema<RpcEncryptedNote> = yup
 
 export type RpcBlockHeader = {
   hash: string
-  /**
-   * @deprecated Please use previousBlockHash instead
-   */
-  previous: string
   sequence: number
   previousBlockHash: string
   difficulty: string
@@ -137,6 +133,10 @@ export type RpcBlockHeader = {
   graffiti: string
   work: string
   noteSize: number | null
+  /**
+   * @deprecated Please use previousBlockHash instead
+   */
+  previous: string
 }
 
 export function serializeRpcBlockHeader(header: BlockHeader): RpcBlockHeader {
@@ -193,6 +193,11 @@ export type ConnectionState = Connection['state']['type'] | ''
 
 export type RpcPeerResponse = {
   state: string
+  connectionWebSocket: ConnectionState
+  connectionWebSocketError: string
+  connectionWebRTC: ConnectionState
+  connectionWebRTCError: string
+  connections: number
   identity: string | null
   version: number | null
   head: string | null
@@ -203,11 +208,6 @@ export type RpcPeerResponse = {
   address: string | null
   port: number | null
   error: string | null
-  connections: number
-  connectionWebSocket: ConnectionState
-  connectionWebSocketError: string
-  connectionWebRTC: ConnectionState
-  connectionWebRTCError: string
   networkId: number | null
   genesisBlockHash: string | null
   features: Features | null

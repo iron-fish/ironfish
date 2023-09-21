@@ -19,6 +19,9 @@ export type ExportChainStreamResponse = {
   start: number
   stop: number
   block?: RpcBlockHeader & {
+    main: boolean
+    head: boolean
+    latest: boolean
     /**
      * @deprecated Please use sequence instead
      */
@@ -27,10 +30,6 @@ export type ExportChainStreamResponse = {
      * @deprecated Please use previousBlockHash instead
      */
     prev: string
-
-    main: boolean
-    head: boolean
-    latest: boolean
   }
 }
 

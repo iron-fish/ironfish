@@ -33,7 +33,7 @@ export type GetNotesRequest = {
 }
 
 export type GetNotesResponse = {
-  notes: Array<RpcWalletNote>
+  notes: RpcWalletNote[]
   nextPageCursor: string | null
 }
 
