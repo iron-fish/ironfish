@@ -190,10 +190,11 @@ export default class Download extends IronfishCommand {
           },
         })
 
+        const resumingDownload = response.data.statusCode === 206
         const writer = fs.createWriteStream(snapshotPath, {
-          flags: response.data.statusCode === 206 ? 'a' : 'w',
+          flags: resumingDownload ? 'a' : 'w',
         })
-        downloaded = response.data.statusCode === 206 ? downloaded : 0
+        downloaded = resumingDownload ? downloaded : 0
 
         await new Promise<void>((resolve, reject) => {
           const onWriterError = (e: unknown) => {
