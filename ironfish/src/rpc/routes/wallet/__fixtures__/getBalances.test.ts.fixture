@@ -2,17 +2,17 @@
   "Route wallet/getBalances with a valid account streams balances for all assets owned by the account": [
     {
       "version": 2,
-      "id": "bc735540-7dcc-44fe-b18d-d7e19434ba8d",
+      "id": "847df9de-9ff2-4293-961d-9955dd5633bd",
       "name": "accountA",
-      "spendingKey": "df465f574b989fb647d8215104ba79b4e3966e8f317cd1a20256b81043b8b987",
-      "viewKey": "4c9c308844ecd628ca1fa4f0e68e6131bf2cb23a06354b18579d9ff918b0ba5fa50a071fc3a80265f90e06e55bad4b9559e7e7b4074a35ef92ad941bd17a924d",
-      "incomingViewKey": "b79cc8005cec2b09c79eca5d132bb79c62face40ee0352e08a7c9aa397aa4f06",
-      "outgoingViewKey": "3f6f19cc733c0ef3c018953a97669eb3b0ac48de1718567b659761f0cfb3cb8e",
-      "publicAddress": "c429b407d08c1f79afa0325cff34f19e2b33e37b359186208c68a469d9824a72",
+      "spendingKey": "5c86a0f06fa013f35d3decdd1b2a3c8fd5be9d5a7744ad2d622a3c3eae6dd144",
+      "viewKey": "065b9c02d30039288d26a4332b197ad1878900adcd77947cef408cc012533f2bbb1afe16a0e834bd903f148d5e4f04de5818e6295870999d2190f995f3edbb49",
+      "incomingViewKey": "e7b8e318a06d28ede9f4f05ce1fb24681077b4409b46380371f07b9849d21b03",
+      "outgoingViewKey": "102c28bea3b025ebe90ccaa28d7d971c7e64c955ddb53191fcf3f659ae38016e",
+      "publicAddress": "d97de3be545d5a9c337bf7194435048c3e5d772914a47a6a3b4b64602699626b",
       "createdAt": {
         "hash": {
           "type": "Buffer",
-          "data": "base64:iLb6jXRaTlO9oAExjmCwTuLk7gajgJVojVgEnLbxWso="
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
         },
         "sequence": 1
       }
@@ -21,17 +21,17 @@
   "Route wallet/getBalances with a valid account returns asset verification information": [
     {
       "version": 2,
-      "id": "473a260e-5533-4f91-87ed-4a52f1360202",
+      "id": "319016b7-d04e-43f2-927f-33e3d6fbeef2",
       "name": "accountB",
-      "spendingKey": "7de2707bf37c3be26088d34babf2960dabc7753a4beb1bb80a2e2024993bbd85",
-      "viewKey": "5f191d5d0c02933fe94d7c0396c259c5713004ede0ab1409dc2720c668009c50275fd48c940f1160d92173e1f69ec76266cdc5241089034b4e0fd40bafbc5002",
-      "incomingViewKey": "a8f2b1a1a3d517d4912c4c2d5465fed967ccebfa8d0c5db56a869bfb97366407",
-      "outgoingViewKey": "22cc74df9da189e006297721e8c6e7751dff3e9a1472bac2cba49eb58a90b926",
-      "publicAddress": "6a9fee2dd52b8660cd7d50c5acf34ae6f4f3e7848a2cdd5390d616a18da7ff6d",
+      "spendingKey": "0a591ac2eeb8ce2d706390bf7cebe41bd430118ffb9fb8a9dfd27e3a013c930c",
+      "viewKey": "9fd188240f5c3c330ea0ebf197e408a3893b557206f8035145337226da9440d4dc77611be7de09570fa16b62f8631ae83b462a70606b3b1cc77eb3279343e350",
+      "incomingViewKey": "b5ea06a0c50b9934bcf79d8bef1c085d1543d98f7f93359788646369e1306a03",
+      "outgoingViewKey": "04d59920d66c4b9ec22d93656fe088e5d4003ab032ce3b41452fb9b3949916bb",
+      "publicAddress": "33019b1f30714ec97ca6ab71ceb961496be857d9c3df10096ea20842509f6a46",
       "createdAt": {
         "hash": {
           "type": "Buffer",
-          "data": "base64:iLb6jXRaTlO9oAExjmCwTuLk7gajgJVojVgEnLbxWso="
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
         },
         "sequence": 1
       }

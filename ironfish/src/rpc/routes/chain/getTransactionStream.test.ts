@@ -87,6 +87,7 @@ describe('Route chain.getTransactionStream', () => {
         ]),
       }),
     )
-    response.end()
+
+    response.close()
   })
 })

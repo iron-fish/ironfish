@@ -8,13 +8,13 @@ import { ApiNamespace, routes } from '../router'
 export type GetAccountStatusRequest = { account?: string }
 
 export type GetAccountStatusResponse = {
-  accounts: Array<{
+  accounts: {
     name: string
     id: string
     headHash: string
     headInChain?: boolean
     sequence: string | number
-  }>
+  }[]
 }
 
 export const GetAccountStatusRequestSchema: yup.ObjectSchema<GetAccountStatusRequest> = yup

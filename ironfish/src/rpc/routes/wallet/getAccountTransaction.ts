@@ -3,12 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { ApiNamespace, routes } from '../router'
-import { RpcAccountTransaction, RpcAccountTransactionSchema } from '../wallet/types'
-import { getAccount, getAccountDecryptedNotes, serializeRpcAccountTransaction } from './utils'
+import { RpcWalletTransaction, RpcWalletTransactionSchema } from '../wallet/types'
+import { getAccount, getAccountDecryptedNotes, serializeRpcWalletTransaction } from './utils'
 
 export type GetAccountTransactionRequest = {
   hash: string
   account?: string
+  serialized?: boolean
   confirmations?: number
   notes?: boolean
   spends?: boolean
@@ -16,7 +17,7 @@ export type GetAccountTransactionRequest = {
 
 export type GetAccountTransactionResponse = {
   account: string
-  transaction: RpcAccountTransaction | null
+  transaction: RpcWalletTransaction | null
 }
 
 export const GetAccountTransactionRequestSchema: yup.ObjectSchema<GetAccountTransactionRequest> =
@@ -25,6 +26,7 @@ export const GetAccountTransactionRequestSchema: yup.ObjectSchema<GetAccountTran
       account: yup.string(),
       hash: yup.string().defined(),
       confirmations: yup.string(),
+      serialized: yup.boolean().notRequired().default(false),
       notes: yup.boolean().notRequired().default(true),
       spends: yup.boolean().notRequired().default(true),
     })
@@ -34,7 +36,7 @@ export const GetAccountTransactionResponseSchema: yup.ObjectSchema<GetAccountTra
   yup
     .object({
       account: yup.string().defined(),
-      transaction: RpcAccountTransactionSchema.defined().nullable(),
+      transaction: RpcWalletTransactionSchema.defined().nullable(),
     })
     .defined()
 
@@ -55,11 +57,14 @@ routes.register<typeof GetAccountTransactionRequestSchema, GetAccountTransaction
       })
     }
 
-    const serializedTransaction = await serializeRpcAccountTransaction(
+    const serializedTransaction = await serializeRpcWalletTransaction(
       node,
       account,
       transaction,
-      request.data.confirmations,
+      {
+        confirmations: request.data.confirmations,
+        serialized: request.data.serialized,
+      },
     )
 
     const notes = request.data.notes

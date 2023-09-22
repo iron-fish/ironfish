@@ -370,15 +370,18 @@ export class Wallet {
     }
   }
 
-  async reset(): Promise<void> {
-    await this.resetAccounts()
+  async reset(options?: { resetCreatedAt?: boolean }): Promise<void> {
+    await this.resetAccounts(options)
 
     this.chainProcessor.hash = null
   }
 
-  private async resetAccounts(tx?: IDatabaseTransaction): Promise<void> {
+  private async resetAccounts(options?: {
+    tx?: IDatabaseTransaction
+    resetCreatedAt?: boolean
+  }): Promise<void> {
     for (const account of this.listAccounts()) {
-      await this.resetAccount(account, { tx })
+      await this.resetAccount(account, options)
     }
   }
 

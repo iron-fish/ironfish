@@ -8,12 +8,12 @@ import { Account } from '../../../wallet/account/account'
 import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
 import { RpcRequest } from '../../request'
 import { ApiNamespace, routes } from '../router'
-import { RpcAccountTransaction, RpcAccountTransactionSchema } from '../wallet/types'
+import { RpcWalletTransaction, RpcWalletTransactionSchema } from '../wallet/types'
 import {
   getAccount,
   getAccountDecryptedNotes,
   getAssetBalanceDeltas,
-  serializeRpcAccountTransaction,
+  serializeRpcWalletTransaction,
 } from './utils'
 
 export type GetAccountTransactionsRequest = {
@@ -25,6 +25,7 @@ export type GetAccountTransactionsRequest = {
   confirmations?: number
   notes?: boolean
   spends?: boolean
+  serialized?: boolean
 }
 
 export const GetAccountTransactionsRequestSchema: yup.ObjectSchema<GetAccountTransactionsRequest> =
@@ -38,13 +39,14 @@ export const GetAccountTransactionsRequestSchema: yup.ObjectSchema<GetAccountTra
       confirmations: yup.number().notRequired(),
       notes: yup.boolean().notRequired().default(false),
       spends: yup.boolean().notRequired().default(false),
+      serialized: yup.boolean().notRequired().default(false),
     })
     .defined()
 
-export type GetAccountTransactionsResponse = RpcAccountTransaction
+export type GetAccountTransactionsResponse = RpcWalletTransaction
 
 export const GetAccountTransactionsResponseSchema: yup.ObjectSchema<GetAccountTransactionsResponse> =
-  RpcAccountTransactionSchema.defined()
+  RpcWalletTransactionSchema.defined()
 
 routes.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactionsResponse>(
   `${ApiNamespace.wallet}/getAccountTransactions`,
@@ -112,11 +114,14 @@ const streamTransaction = async (
 ): Promise<void> => {
   const wallet = node.wallet
 
-  const serializedTransaction = await serializeRpcAccountTransaction(
+  const serializedTransaction = await serializeRpcWalletTransaction(
     node,
     account,
     transaction,
-    options.confirmations,
+    {
+      confirmations: options.confirmations,
+      serialized: request.data.serialized,
+    },
   )
 
   const assetBalanceDeltas = await getAssetBalanceDeltas(account, transaction)

@@ -31,6 +31,7 @@
     "chai": "4.2.0",
     "cross-env": "7.0.3",
     "eslint-config-ironfish": "*",
+    "eslint-plugin-deprecation": "2.0.0",
     "jest": "29.3.1",
     "jest-jasmine2": "29.3.1",
     "oclif": "2.6.0",
@@ -42,6 +43,7 @@
   "scripts": {
     "build": "tsc -b",
     "lint": "tsc -b && eslint --ext .ts,.tsx,.js,.jsx src/",
+    "lint:deprecated": "yarn lint --rule \"deprecation/deprecation: warn\"",
     "lint:fix": "tsc -b && eslint --ext .ts,.tsx,.js,.jsx src/ --fix",
     "start:dev": "node start",
     "start": "yarn build && yarn start:js",
