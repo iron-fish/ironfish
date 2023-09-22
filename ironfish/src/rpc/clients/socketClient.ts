@@ -286,10 +286,11 @@ export abstract class RpcSocketClient extends RpcClient {
     this.isConnected = true
     this.client.on('data', this.onClientData)
     this.client.on('close', this.onClientClose)
+    this.client.on('error', this.onSocketError)
   }
 
   protected onClientData = (data: Buffer): void =>
-    void this.onData(data).catch((e) => this.onError(e))
+    void this.onData(data).catch((e) => this.onError(e)) // recoverable
 
   protected onData = async (data: Buffer): Promise<void> => {
     this.messageBuffer.write(data)
@@ -314,7 +315,7 @@ export abstract class RpcSocketClient extends RpcClient {
         }
         case 'error':
         case 'malformedRequest': {
-          this.onError(data)
+          this.onError(data) // recoverable
           break
         }
       }
@@ -328,6 +329,7 @@ export abstract class RpcSocketClient extends RpcClient {
     if (this.client) {
       this.client.off('data', this.onClientData)
       this.client.off('close', this.onClientClose)
+      this.client.off('error', this.onError)
       this.client = null
     }
 
@@ -347,8 +349,13 @@ export abstract class RpcSocketClient extends RpcClient {
     this.handleStream(data).catch((e) => this.onError(e))
   }
 
-  protected onError(error: unknown): void {
+  protected onError = (error: unknown): void => {
     this.logger.error(ErrorUtils.renderError(error))
+  }
+
+  protected onSocketError = (error: unknown): void => {
+    this.logger.error(ErrorUtils.renderError(error))
+    this.onClientClose()
   }
 
   describe(): string {
