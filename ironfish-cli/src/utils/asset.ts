@@ -3,8 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Asset } from '@ironfish/rust-nodejs'
-import { BufferUtils, CurrencyUtils, RpcClient, StringUtils } from '@ironfish/sdk'
-import { AssetVerification } from '@ironfish/sdk'
+import {
+  AssetVerification,
+  BufferUtils,
+  CurrencyUtils,
+  RpcClient,
+  StringUtils,
+} from '@ironfish/sdk'
 import chalk from 'chalk'
 import inquirer from 'inquirer'
 
@@ -102,7 +107,15 @@ export async function selectAsset(
       account: account,
     })
 
-    balances = balances.filter((b) => b.assetCreator === accountResponse.content.publicKey)
+    balances = await Promise.all(
+      balances.filter(async (b) => {
+        const asset = await client.wallet.getAsset({
+          id: b.assetId,
+        })
+
+        return asset.content.creator === accountResponse.content.publicKey
+      }),
+    )
   }
 
   if (balances.length === 0) {
@@ -111,25 +124,36 @@ export async function selectAsset(
 
   if (balances.length === 1 && !options.showSingleAssetChoice) {
     // If there's only one available asset, showing the choices is unnecessary
+
+    const asset = await client.wallet.getAsset({
+      id: balances[0].assetId,
+    })
+
     return {
       id: balances[0].assetId,
-      name: balances[0].assetName,
+      name: asset.content.name,
     }
   }
 
-  const choices = balances.map((balance) => {
-    const assetName = BufferUtils.toHuman(Buffer.from(balance.assetName, 'hex'))
-    const name = `${balance.assetId} (${assetName}) (${CurrencyUtils.renderIron(
-      balance.available,
-    )})`
+  const choices = Promise.all(
+    balances.map(async (balance) => {
+      const asset = await client.wallet.getAsset({
+        id: balance.assetId,
+      })
 
-    const value = {
-      id: balance.assetId,
-      name: balance.assetName,
-    }
+      const assetName = BufferUtils.toHuman(Buffer.from(asset.content.name, 'hex'))
+      const name = `${balance.assetId} (${assetName}) (${CurrencyUtils.renderIron(
+        balance.available,
+      )})`
 
-    return { value, name }
-  })
+      const value = {
+        id: balance.assetId,
+        name: asset.content.name,
+      }
+
+      return { value, name }
+    }),
+  )
 
   const response = await inquirer.prompt<{
     asset: {
