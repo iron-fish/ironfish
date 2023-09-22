@@ -36,8 +36,8 @@ export const TESTNET = `{
       "targetBucketTimeInSeconds": 10,
       "maxBlockSizeBytes": 524288,
       "minFee": 1,
-      "enableAssetOwnership": 9999999,
-      "enforceSequentialBlockTime": "never"
+      "enableAssetOwnership": 246468,
+      "enforceSequentialBlockTime": 246468
   }
 }`
 
@@ -57,7 +57,7 @@ export const MAINNET = `
         "targetBucketTimeInSeconds": 10,
         "maxBlockSizeBytes": 524288,
         "minFee": 1,
-        "enableAssetOwnership": 9999999,
+        "enableAssetOwnership": "never",
         "enforceSequentialBlockTime": "never"
     }
 }`
