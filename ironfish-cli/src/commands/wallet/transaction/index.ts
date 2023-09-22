@@ -59,10 +59,10 @@ export class TransactionCommand extends IronfishCommand {
       this.log(`Block Hash: ${response.content.transaction.blockHash}`)
       this.log(`Block Sequence: ${response.content.transaction.blockSequence}`)
     }
-    this.log(`Notes Count: ${response.content.transaction.notesCount}`)
-    this.log(`Spends Count: ${response.content.transaction.spendsCount}`)
-    this.log(`Mints Count: ${response.content.transaction.mintsCount}`)
-    this.log(`Burns Count: ${response.content.transaction.burnsCount}`)
+    this.log(`Notes Count: ${response.content.transaction.notes.length}`)
+    this.log(`Spends Count: ${response.content.transaction.spends.length}`)
+    this.log(`Mints Count: ${response.content.transaction.mints.length}`)
+    this.log(`Burns Count: ${response.content.transaction.burns.length}`)
     this.log(`Sender: ${response.content.transaction.notes[0].sender}`)
 
     if (response.content.transaction.notes.length > 0) {
@@ -94,7 +94,7 @@ export class TransactionCommand extends IronfishCommand {
       })
     }
 
-    if (response.content.transaction.spendsCount > 0) {
+    if (response.content.transaction.spends.length > 0) {
       this.log(`\n---Spends---\n`)
       CliUx.ux.table(response.content.transaction.spends, {
         size: {
