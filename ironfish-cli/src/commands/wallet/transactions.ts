@@ -7,10 +7,7 @@ import {
   CurrencyUtils,
   GetAccountTransactionsResponse,
   PartialRecursive,
-  RpcAccountAssetBalanceDelta,
   RpcAsset,
-  RpcClient,
-  RpcWalletNote,
   TransactionType,
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
@@ -90,13 +87,16 @@ export class TransactionsCommand extends IronfishCommand {
     for await (const transaction of response.contentStream()) {
       let transactionRows: PartialRecursive<TransactionRow>[]
       if (flags.notes) {
-        const assetLookup = await this.fetchAssetsFromTransaction(client, transaction, 'notes')
+        Assert.isNotUndefined(transaction.notes)
+        const assetLookup = await getAssetsByIDs(
+          client,
+          transaction.notes.map((n) => n.assetId) || [],
+        )
         transactionRows = this.getTransactionRowsByNote(assetLookup, transaction, format)
       } else {
-        const assetLookup = await this.fetchAssetsFromTransaction(
+        const assetLookup = await getAssetsByIDs(
           client,
-          transaction,
-          'assetBalanceDeltas',
+          transaction.assetBalanceDeltas.map((d) => d.assetId),
         )
         transactionRows = this.getTransactionRows(assetLookup, transaction, format)
       }
@@ -225,21 +225,6 @@ export class TransactionsCommand extends IronfishCommand {
     }
 
     return transactionRows
-  }
-
-  async fetchAssetsFromTransaction(
-    client: RpcClient,
-    transaction: GetAccountTransactionsResponse,
-    key: 'notes' | 'assetBalanceDeltas',
-  ): Promise<{ [key: string]: RpcAsset }> {
-    const transactionSubArray: RpcAccountAssetBalanceDelta[] | RpcWalletNote[] | undefined =
-      transaction[key]
-    Assert.isNotUndefined(transactionSubArray)
-
-    return getAssetsByIDs(
-      client,
-      transactionSubArray.map((d) => d.assetId),
-    )
   }
 
   getColumns(
