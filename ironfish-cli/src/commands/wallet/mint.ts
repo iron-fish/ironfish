@@ -43,6 +43,12 @@ export class Mint extends IronfishCommand {
       minimum: 1n,
       flagName: 'fee',
     }),
+    feeRate: IronFlag({
+      char: 'r',
+      description: 'The fee rate amount in IRON/Kilobyte',
+      minimum: 1n,
+      flagName: 'fee rate',
+    }),
     amount: IronFlag({
       char: 'a',
       description: 'Amount of coins to mint in IRON',
@@ -210,13 +216,13 @@ export class Mint extends IronfishCommand {
         },
       ],
       fee: flags.fee ? CurrencyUtils.encode(flags.fee) : null,
+      feeRate: flags.feeRate ? CurrencyUtils.encode(flags.feeRate) : null,
       expiration: flags.expiration,
       confirmations: flags.confirmations,
     }
 
     let raw: RawTransaction
-
-    if (params.fee === null) {
+    if (params.fee === null && params.feeRate === null) {
       raw = await selectFee({
         client,
         transaction: params,
