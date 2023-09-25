@@ -47,24 +47,18 @@ export class BalancesCommand extends IronfishCommand {
 
     const assetBalancePairs: AssetBalancePairs[] = []
 
-    await Promise.all(
-      response.content.balances.map(async (element) => {
-        const asset = await client.wallet.getAsset({
-          account,
-          id: element.assetId,
-          confirmations: flags.confirmations,
-        })
+    for (const balance of response.content.balances) {
+      const asset = await client.wallet.getAsset({
+        account,
+        id: balance.assetId,
+        confirmations: flags.confirmations,
+      })
 
-        assetBalancePairs.push({
-          balance: element,
-          asset: asset.content,
-        })
-
-        const name = renderAssetNameFromHex(asset.content.name)
-
-        this.log(`Asset: ${name}`)
-      }),
-    )
+      assetBalancePairs.push({
+        balance,
+        asset: asset.content,
+      })
+    }
 
     let columns: CliUx.Table.table.Columns<AssetBalancePairs> = {
       assetName: {
