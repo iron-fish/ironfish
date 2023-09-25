@@ -37,7 +37,7 @@ export type RpcWalletNote = {
   index: number | null
   nullifier: string | null
   /**
-   * @deprecated Please use `asset.name` instead
+   * @deprecated Please use getAsset endpoint to get this information
    */
   assetName: string
   /**
