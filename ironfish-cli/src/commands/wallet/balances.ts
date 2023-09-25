@@ -7,7 +7,7 @@ import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { compareAssets, renderAssetNameFromHex } from '../../utils'
 
-type BalancesWithAssets = { asset: RpcAsset; balance: GetBalancesResponse['balances'][number] }
+type AssetBalancePairs = { asset: RpcAsset; balance: GetBalancesResponse['balances'][number] }
 
 export class BalancesCommand extends IronfishCommand {
   static description = `Display the account's balances for all assets`
@@ -45,7 +45,7 @@ export class BalancesCommand extends IronfishCommand {
     })
     this.log(`Account: ${response.content.account}`)
 
-    const balancesWithAssets: BalancesWithAssets[] = []
+    const balancesWithAssets: AssetBalancePairs[] = []
 
     await Promise.all(
       response.content.balances.map(async (element) => {
@@ -66,12 +66,12 @@ export class BalancesCommand extends IronfishCommand {
       }),
     )
 
-    let columns: CliUx.Table.table.Columns<BalancesWithAssets> = {
+    let columns: CliUx.Table.table.Columns<AssetBalancePairs> = {
       assetName: {
         header: 'Asset Name',
-        get: (row) =>
-          renderAssetNameFromHex(row.asset.name, {
-            verification: row.asset.verification,
+        get: ({ asset }) =>
+          renderAssetNameFromHex(asset.name, {
+            verification: asset.verification,
             outputType: flags.output,
             verbose: !!flags.verbose,
             logWarn: this.warn.bind(this),
@@ -79,11 +79,11 @@ export class BalancesCommand extends IronfishCommand {
       },
       'asset.id': {
         header: 'Asset Id',
-        get: (row) => row.asset.id,
+        get: ({ asset }) => asset.id,
       },
       available: {
         header: 'Available Balance',
-        get: (row) => CurrencyUtils.renderIron(row.balance.available),
+        get: ({ balance }) => CurrencyUtils.renderIron(balance.available),
       },
     }
 
@@ -92,23 +92,23 @@ export class BalancesCommand extends IronfishCommand {
         ...columns,
         confirmed: {
           header: 'Confirmed Balance',
-          get: (row) => CurrencyUtils.renderIron(row.balance.confirmed),
+          get: ({ balance }) => CurrencyUtils.renderIron(balance.confirmed),
         },
         unconfirmed: {
           header: 'Unconfirmed Balance',
-          get: (row) => CurrencyUtils.renderIron(row.balance.unconfirmed),
+          get: ({ balance }) => CurrencyUtils.renderIron(balance.unconfirmed),
         },
         pending: {
           header: 'Pending Balance',
-          get: (row) => CurrencyUtils.renderIron(row.balance.pending),
+          get: ({ balance }) => CurrencyUtils.renderIron(balance.pending),
         },
         blockHash: {
           header: 'Head Hash',
-          get: (row) => row.balance.blockHash || 'NULL',
+          get: ({ balance }) => balance.blockHash || 'NULL',
         },
         sequence: {
           header: 'Head Sequence',
-          get: (row) => row.balance.blockHash || 'NULL',
+          get: ({ balance }) => balance.blockHash || 'NULL',
         },
       }
     }
