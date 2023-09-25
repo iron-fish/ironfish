@@ -67,7 +67,8 @@ export default class Status extends IronfishCommand {
         continue
       }
 
-      while(true) {
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
         const value = await this.sdk.client.node.getStatus()
         statusText.clearBaseLine(0)
         statusText.setContent(renderStatus(value.content, flags.all))
