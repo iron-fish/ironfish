@@ -8,7 +8,7 @@ import {
   ASSET_NAME_LENGTH,
   PUBLIC_ADDRESS_LENGTH,
 } from '@ironfish/rust-nodejs'
-import { AssetStatus, BufferUtils } from '@ironfish/sdk'
+import { Assert, AssetStatus, BufferUtils } from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -58,6 +58,20 @@ export class AssetsCommand extends IronfishCommand {
     let showHeader = !flags['no-header']
 
     for await (const asset of response.contentStream()) {
+      let status: string
+
+      if (Asset.nativeId().toString('hex') === asset.id) {
+        status = AssetStatus.CONFIRMED
+      } else {
+        const transaction = await client.wallet.getAccountTransaction({
+          hash: asset.createdTransactionHash,
+        })
+
+        Assert.isNotNull(transaction.content.transaction)
+
+        status = transaction.content.transaction.status
+      }
+
       CliUx.ux.table(
         [asset],
         {
@@ -84,8 +98,7 @@ export class AssetsCommand extends IronfishCommand {
           status: {
             header: 'Status',
             minWidth: 12,
-            get: (row) =>
-              row.id === Asset.nativeId().toString('hex') ? AssetStatus.CONFIRMED : row.status,
+            get: (row) => status,
           },
           supply: {
             header: 'Supply',
