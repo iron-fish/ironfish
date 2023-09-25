@@ -182,7 +182,7 @@ export class WebApi {
     this.requireToken()
 
     const response = await axios
-      .get<{ hash: string }>(`${this.host}/bridge/head`)
+      .get<{ hash: string }>(`${this.host}/bridge/head`, this.options())
       .catch((e) => {
         // The API returns 404 for no head
         if (IsAxiosError(e) && e.response?.status === 404) {
