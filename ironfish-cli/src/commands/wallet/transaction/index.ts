@@ -1,7 +1,14 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Assert, BufferUtils, CurrencyUtils, TimeUtils } from '@ironfish/sdk'
+import {
+  Assert,
+  BufferUtils,
+  CurrencyUtils,
+  RpcAsset,
+  RpcWalletNote,
+  TimeUtils,
+} from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
@@ -68,28 +75,44 @@ export class TransactionCommand extends IronfishCommand {
     if (response.content.transaction.notes.length > 0) {
       this.log(`\n---Notes---\n`)
 
-      CliUx.ux.table(response.content.transaction.notes, {
+      const noteAssetPairs: {
+        note: RpcWalletNote
+        asset: RpcAsset
+      }[] = []
+
+      for (const note of response.content.transaction.notes) {
+        const asset = await client.wallet.getAsset({
+          id: note.assetId,
+        })
+
+        noteAssetPairs.push({
+          note,
+          asset: asset.content,
+        })
+      }
+
+      CliUx.ux.table(noteAssetPairs, {
         amount: {
           header: 'Amount',
-          get: (note) => CurrencyUtils.renderIron(note.value),
+          get: ({ note }) => CurrencyUtils.renderIron(note.value),
         },
         assetName: {
           header: 'Asset Name',
-          get: (note) => BufferUtils.toHuman(Buffer.from(note.assetName, 'hex')),
+          get: ({ asset }) => BufferUtils.toHuman(Buffer.from(asset.name, 'hex')),
         },
         assetId: {
           header: 'Asset Id',
         },
         isSpent: {
           header: 'Spent',
-          get: (note) => (!note.owner ? '?' : note.spent ? `✔` : `x`),
+          get: ({ note }) => (!note.owner ? '?' : note.spent ? `✔` : `x`),
         },
         memo: {
           header: 'Memo',
         },
         owner: {
           header: 'Owner Address',
-          get: (note) => note.owner,
+          get: ({ note }) => note.owner,
         },
       })
     }
