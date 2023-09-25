@@ -45,7 +45,7 @@ export class BalancesCommand extends IronfishCommand {
     })
     this.log(`Account: ${response.content.account}`)
 
-    const balancesWithAssets: AssetBalancePairs[] = []
+    const assetBalancePairs: AssetBalancePairs[] = []
 
     await Promise.all(
       response.content.balances.map(async (element) => {
@@ -55,7 +55,7 @@ export class BalancesCommand extends IronfishCommand {
           confirmations: flags.confirmations,
         })
 
-        balancesWithAssets.push({
+        assetBalancePairs.push({
           balance: element,
           asset: asset.content,
         })
@@ -113,7 +113,7 @@ export class BalancesCommand extends IronfishCommand {
       }
     }
 
-    balancesWithAssets.sort((left, right) =>
+    assetBalancePairs.sort((left, right) =>
       compareAssets(
         left.asset.name,
         left.asset.verification,
@@ -122,6 +122,6 @@ export class BalancesCommand extends IronfishCommand {
       ),
     )
 
-    CliUx.ux.table(balancesWithAssets, columns, flags)
+    CliUx.ux.table(assetBalancePairs, columns, flags)
   }
 }
