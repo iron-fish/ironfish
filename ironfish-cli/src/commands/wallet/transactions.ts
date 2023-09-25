@@ -7,8 +7,10 @@ import {
   CurrencyUtils,
   GetAccountTransactionsResponse,
   PartialRecursive,
+  RpcAccountAssetBalanceDelta,
   RpcAsset,
   RpcClient,
+  RpcWalletNote,
   TransactionType,
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
@@ -181,12 +183,14 @@ export class TransactionsCommand extends IronfishCommand {
     transaction: GetAccountTransactionsResponse,
     key: 'notes' | 'assetBalanceDeltas',
   ): Promise<{ [key: string]: RpcAsset }> {
-    const iterate = transaction[key]
-    Assert.isNotUndefined(iterate)
+    const transactionSubArray: RpcAccountAssetBalanceDelta[] | RpcWalletNote[] | undefined =
+      transaction[key]
+
+    Assert.isNotUndefined(transactionSubArray)
 
     const assetIdSet = new Set<string>()
 
-    for (const { assetId } of iterate) {
+    for (const { assetId } of transactionSubArray) {
       assetIdSet.add(assetId)
     }
 
