@@ -7,6 +7,7 @@ import {
   AssetVerification,
   BufferUtils,
   CurrencyUtils,
+  RpcAsset,
   RpcClient,
   StringUtils,
 } from '@ironfish/sdk'
@@ -98,6 +99,11 @@ export async function selectAsset(
 
   let balances = balancesResponse.content.balances
 
+  const assetLookup = await getAssetsByIDs(
+    client,
+    balances.map((b) => b.assetId),
+  )
+
   if (!options.showNativeAsset) {
     balances = balances.filter((b) => b.assetId !== Asset.nativeId().toString('hex'))
   }
@@ -107,17 +113,9 @@ export async function selectAsset(
       account: account,
     })
 
-    const filteredBalances = []
-    for (const balance of balances) {
-      const asset = await client.wallet.getAsset({
-        id: balance.assetId,
-      })
-      if (asset.content.creator === accountResponse.content.publicKey) {
-        filteredBalances.push(balance)
-      }
-    }
-
-    balances = filteredBalances
+    balances = balances.filter(
+      (b) => assetLookup[b.assetId].creator === accountResponse.content.publicKey,
+    )
   }
 
   if (balances.length === 0) {
@@ -169,4 +167,17 @@ export async function selectAsset(
   ])
 
   return response.asset
+}
+
+export async function getAssetsByIDs(
+  client: Pick<RpcClient, 'wallet'>,
+  assetIds: string[],
+): Promise<{ [key: string]: RpcAsset }> {
+  assetIds = [...new Set(assetIds)]
+  const assets = await Promise.all(assetIds.map((id) => client.wallet.getAsset({ id })))
+  const assetLookup: { [key: string]: RpcAsset } = {}
+  assets.forEach((asset) => {
+    assetLookup[asset.content.id] = asset.content
+  })
+  return assetLookup
 }
