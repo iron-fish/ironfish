@@ -59,16 +59,13 @@ export class AssetsCommand extends IronfishCommand {
 
     for await (const asset of response.contentStream()) {
       let status: string
-
       if (Asset.nativeId().toString('hex') === asset.id) {
         status = AssetStatus.CONFIRMED
       } else {
         const transaction = await client.wallet.getAccountTransaction({
           hash: asset.createdTransactionHash,
         })
-
         Assert.isNotNull(transaction.content.transaction)
-
         status = transaction.content.transaction.status
       }
 
