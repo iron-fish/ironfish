@@ -7,6 +7,8 @@ import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { compareAssets, renderAssetNameFromHex } from '../../utils'
 
+type AssetBalancePairs = { asset: RpcAsset; balance: GetBalancesResponse['balances'][number] }
+
 export class BalancesCommand extends IronfishCommand {
   static description = `Display the account's balances for all assets`
 
@@ -43,10 +45,7 @@ export class BalancesCommand extends IronfishCommand {
     })
     this.log(`Account: ${response.content.account}`)
 
-    const assetBalancePairs: {
-      asset: RpcAsset
-      balance: GetBalancesResponse['balances'][number]
-    }[] = []
+    const assetBalancePairs: AssetBalancePairs[] = []
 
     for (const balance of response.content.balances) {
       const asset = await client.wallet.getAsset({
