@@ -217,6 +217,33 @@ export class WebApi {
     await axios.post(`${this.host}/bridge/send`, { sends }, this.options())
   }
 
+  async createDeposit(payload: {
+    asset: string
+    source_address: string
+    destination_address: string
+  }): Promise<{ [keyof: string]: number }> {
+    this.requireToken()
+
+    const response = await axios.post<{ [keyof: string]: number }>(
+      `${this.host}/bridge/create`,
+      {
+        requests: [
+          {
+            ...payload,
+            source_chain: 'IRONFISH',
+            destination_chain: 'ETHEREUM',
+            source_transaction: null,
+            destination_transaction: null,
+            status: 'PENDING',
+          },
+        ],
+      },
+      this.options(),
+    )
+
+    return response.data
+  }
+
   options(headers: Record<string, string> = {}): AxiosRequestConfig {
     return {
       headers: {
