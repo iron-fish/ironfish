@@ -137,7 +137,6 @@ export class TransactionsCommand extends IronfishCommand {
 
     for (const [index, { assetId, delta }] of assetBalanceDeltas.entries()) {
       const asset = assetLookup[assetId]
-
       let amount = BigInt(delta)
 
       if (assetId === Asset.nativeId().toString('hex')) {
@@ -178,37 +177,6 @@ export class TransactionsCommand extends IronfishCommand {
     return transactionRows
   }
 
-  async fetchAssetsFromTransaction(
-    client: RpcClient,
-    transaction: GetAccountTransactionsResponse,
-    key: 'notes' | 'assetBalanceDeltas',
-  ): Promise<{ [key: string]: RpcAsset }> {
-    const transactionSubArray: RpcAccountAssetBalanceDelta[] | RpcWalletNote[] | undefined =
-      transaction[key]
-
-    Assert.isNotUndefined(transactionSubArray)
-
-    const assetIdSet = new Set<string>()
-
-    for (const { assetId } of transactionSubArray) {
-      assetIdSet.add(assetId)
-    }
-
-    const assetIds = Array.from(assetIdSet)
-
-    const assets: { [key: string]: RpcAsset } = {}
-
-    for (const assetId of assetIds) {
-      const asset = await client.wallet.getAsset({
-        id: assetId,
-      })
-
-      assets[assetId] = asset.content
-    }
-
-    return assets
-  }
-
   getTransactionRowsByNote(
     assetLookup: { [key: string]: RpcAsset },
     transaction: GetAccountTransactionsResponse,
@@ -228,9 +196,7 @@ export class TransactionsCommand extends IronfishCommand {
     for (const [index, note] of notes.entries()) {
       const amount = BigInt(note.value)
       const assetId = note.assetId
-
       const assetName = assetLookup[note.assetId].name
-
       const sender = note.sender
       const recipient = note.owner
 
@@ -261,6 +227,32 @@ export class TransactionsCommand extends IronfishCommand {
     }
 
     return transactionRows
+  }
+
+  async fetchAssetsFromTransaction(
+    client: RpcClient,
+    transaction: GetAccountTransactionsResponse,
+    key: 'notes' | 'assetBalanceDeltas',
+  ): Promise<{ [key: string]: RpcAsset }> {
+    const transactionSubArray: RpcAccountAssetBalanceDelta[] | RpcWalletNote[] | undefined =
+      transaction[key]
+    Assert.isNotUndefined(transactionSubArray)
+
+    const assetIdSet = new Set<string>()
+    for (const { assetId } of transactionSubArray) {
+      assetIdSet.add(assetId)
+    }
+
+    const assetIds = Array.from(assetIdSet)
+    const assets: { [key: string]: RpcAsset } = {}
+    for (const assetId of assetIds) {
+      const asset = await client.wallet.getAsset({
+        id: assetId,
+      })
+      assets[assetId] = asset.content
+    }
+
+    return assets
   }
 
   getColumns(
