@@ -125,32 +125,25 @@ export async function selectAsset(
   if (balances.length === 1 && !options.showSingleAssetChoice) {
     // If there's only one available asset, showing the choices is unnecessary
 
-    const asset = await client.wallet.getAsset({
-      id: balances[0].assetId,
-    })
-
     return {
       id: balances[0].assetId,
-      name: asset.content.name,
+      name: assetLookup[balances[0].assetId].name,
     }
   }
 
-  const choices = []
-
-  for (const balance of balances) {
-    const asset = await client.wallet.getAsset({
-      id: balance.assetId,
-    })
-    const assetName = BufferUtils.toHuman(Buffer.from(asset.content.name, 'hex'))
+  const choices = balances.map((balance) => {
+    const assetName = BufferUtils.toHuman(Buffer.from(balance.assetName, 'hex'))
     const name = `${balance.assetId} (${assetName}) (${CurrencyUtils.renderIron(
       balance.available,
     )})`
+
     const value = {
       id: balance.assetId,
-      name: asset.content.name,
+      name: assetLookup[balance.assetId].name,
     }
-    choices.push({ value, name })
-  }
+
+    return { value, name }
+  })
 
   const response = await inquirer.prompt<{
     asset: {
