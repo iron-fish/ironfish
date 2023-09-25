@@ -107,15 +107,17 @@ export async function selectAsset(
       account: account,
     })
 
-    balances = await Promise.all(
-      balances.filter(async (b) => {
-        const asset = await client.wallet.getAsset({
-          id: b.assetId,
-        })
+    const filteredBalances = []
+    for (const balance of balances) {
+      const asset = await client.wallet.getAsset({
+        id: balance.assetId,
+      })
+      if (asset.content.creator === accountResponse.content.publicKey) {
+        filteredBalances.push(balance)
+      }
+    }
 
-        return asset.content.creator === accountResponse.content.publicKey
-      }),
-    )
+    balances = filteredBalances
   }
 
   if (balances.length === 0) {
@@ -135,25 +137,22 @@ export async function selectAsset(
     }
   }
 
-  const choices = Promise.all(
-    balances.map(async (balance) => {
-      const asset = await client.wallet.getAsset({
-        id: balance.assetId,
-      })
+  const choices = []
 
-      const assetName = BufferUtils.toHuman(Buffer.from(asset.content.name, 'hex'))
-      const name = `${balance.assetId} (${assetName}) (${CurrencyUtils.renderIron(
-        balance.available,
-      )})`
-
-      const value = {
-        id: balance.assetId,
-        name: asset.content.name,
-      }
-
-      return { value, name }
-    }),
-  )
+  for (const balance of balances) {
+    const asset = await client.wallet.getAsset({
+      id: balance.assetId,
+    })
+    const assetName = BufferUtils.toHuman(Buffer.from(asset.content.name, 'hex'))
+    const name = `${balance.assetId} (${assetName}) (${CurrencyUtils.renderIron(
+      balance.available,
+    )})`
+    const value = {
+      id: balance.assetId,
+      name: asset.content.name,
+    }
+    choices.push({ value, name })
+  }
 
   const response = await inquirer.prompt<{
     asset: {
