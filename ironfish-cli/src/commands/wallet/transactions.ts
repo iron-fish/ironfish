@@ -7,6 +7,7 @@ import {
   CurrencyUtils,
   GetAccountTransactionsResponse,
   PartialRecursive,
+  RpcAsset,
   RpcClient,
   TransactionType,
 } from '@ironfish/sdk'
@@ -84,9 +85,21 @@ export class TransactionsCommand extends IronfishCommand {
     let hasTransactions = false
 
     for await (const transaction of response.contentStream()) {
-      const transactionRows = flags.notes
-        ? await this.getTransactionRowsByNote(client, transaction, format)
-        : await this.getTransactionRows(client, transaction, format)
+      let transactionRows: PartialRecursive<TransactionRow>[]
+
+      if (flags.notes) {
+        const assetLookup = await this.fetchAssetsFromTransaction(client, transaction, 'notes')
+
+        transactionRows = this.getTransactionRowsByNote(assetLookup, transaction, format)
+      } else {
+        const assetLookup = await this.fetchAssetsFromTransaction(
+          client,
+          transaction,
+          'assetBalanceDeltas',
+        )
+
+        transactionRows = this.getTransactionRows(assetLookup, transaction, format)
+      }
 
       CliUx.ux.table(transactionRows, columns, {
         printLine: this.log.bind(this),
@@ -103,11 +116,11 @@ export class TransactionsCommand extends IronfishCommand {
     }
   }
 
-  async getTransactionRows(
-    client: RpcClient,
+  getTransactionRows(
+    assetLookup: { [key: string]: RpcAsset },
     transaction: GetAccountTransactionsResponse,
     format: Format,
-  ): Promise<PartialRecursive<TransactionRow>[]> {
+  ): PartialRecursive<TransactionRow>[] {
     const nativeAssetId = Asset.nativeId().toString('hex')
 
     const assetBalanceDeltas = transaction.assetBalanceDeltas.sort((d) =>
@@ -121,9 +134,7 @@ export class TransactionsCommand extends IronfishCommand {
     let assetCount = assetBalanceDeltas.length
 
     for (const [index, { assetId, delta }] of assetBalanceDeltas.entries()) {
-      const asset = await client.wallet.getAsset({
-        id: assetId,
-      })
+      const asset = assetLookup[assetId]
 
       let amount = BigInt(delta)
 
@@ -148,7 +159,7 @@ export class TransactionsCommand extends IronfishCommand {
           ...transaction,
           group,
           assetId,
-          assetName: asset.content.name,
+          assetName: asset.name,
           amount,
           feePaid,
         })
@@ -156,7 +167,7 @@ export class TransactionsCommand extends IronfishCommand {
         transactionRows.push({
           group,
           assetId,
-          assetName: asset.content.name,
+          assetName: asset.name,
           amount,
         })
       }
@@ -165,11 +176,40 @@ export class TransactionsCommand extends IronfishCommand {
     return transactionRows
   }
 
-  async getTransactionRowsByNote(
+  async fetchAssetsFromTransaction(
     client: RpcClient,
     transaction: GetAccountTransactionsResponse,
+    key: 'notes' | 'assetBalanceDeltas',
+  ): Promise<{ [key: string]: RpcAsset }> {
+    const iterate = transaction[key]
+    Assert.isNotUndefined(iterate)
+
+    const assetIdSet = new Set<string>()
+
+    for (const { assetId } of iterate) {
+      assetIdSet.add(assetId)
+    }
+
+    const assetIds = Array.from(assetIdSet)
+
+    const assets: { [key: string]: RpcAsset } = {}
+
+    for (const assetId of assetIds) {
+      const asset = await client.wallet.getAsset({
+        id: assetId,
+      })
+
+      assets[assetId] = asset.content
+    }
+
+    return assets
+  }
+
+  getTransactionRowsByNote(
+    assetLookup: { [key: string]: RpcAsset },
+    transaction: GetAccountTransactionsResponse,
     format: Format,
-  ): Promise<PartialRecursive<TransactionRow>[]> {
+  ): PartialRecursive<TransactionRow>[] {
     Assert.isNotUndefined(transaction.notes)
     const transactionRows = []
 
@@ -185,11 +225,7 @@ export class TransactionsCommand extends IronfishCommand {
       const amount = BigInt(note.value)
       const assetId = note.assetId
 
-      const asset = await client.wallet.getAsset({
-        id: assetId,
-      })
-
-      const assetName = asset.content.name
+      const assetName = assetLookup[note.assetId].name
 
       const sender = note.sender
       const recipient = note.owner
