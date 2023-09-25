@@ -95,7 +95,7 @@ export class AssetsCommand extends IronfishCommand {
           status: {
             header: 'Status',
             minWidth: 12,
-            get: (row) => status,
+            get: () => status,
           },
           supply: {
             header: 'Supply',
