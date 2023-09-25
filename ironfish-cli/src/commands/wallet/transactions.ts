@@ -88,10 +88,8 @@ export class TransactionsCommand extends IronfishCommand {
 
     for await (const transaction of response.contentStream()) {
       let transactionRows: PartialRecursive<TransactionRow>[]
-
       if (flags.notes) {
         const assetLookup = await this.fetchAssetsFromTransaction(client, transaction, 'notes')
-
         transactionRows = this.getTransactionRowsByNote(assetLookup, transaction, format)
       } else {
         const assetLookup = await this.fetchAssetsFromTransaction(
@@ -99,7 +97,6 @@ export class TransactionsCommand extends IronfishCommand {
           transaction,
           'assetBalanceDeltas',
         )
-
         transactionRows = this.getTransactionRows(assetLookup, transaction, format)
       }
 
