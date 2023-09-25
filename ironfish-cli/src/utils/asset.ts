@@ -103,7 +103,6 @@ export async function selectAsset(
     client,
     balances.map((b) => b.assetId),
   )
-
   if (!options.showNativeAsset) {
     balances = balances.filter((b) => b.assetId !== Asset.nativeId().toString('hex'))
   }
@@ -124,7 +123,6 @@ export async function selectAsset(
 
   if (balances.length === 1 && !options.showSingleAssetChoice) {
     // If there's only one available asset, showing the choices is unnecessary
-
     return {
       id: balances[0].assetId,
       name: assetLookup[balances[0].assetId].name,

@@ -16,6 +16,7 @@ import {
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
+import { getAssetsByIDs } from '../../utils'
 import { Format, TableCols } from '../../utils/table'
 
 const { sort: _, ...tableFlags } = CliUx.ux.table.flags()
@@ -235,21 +236,10 @@ export class TransactionsCommand extends IronfishCommand {
       transaction[key]
     Assert.isNotUndefined(transactionSubArray)
 
-    const assetIdSet = new Set<string>()
-    for (const { assetId } of transactionSubArray) {
-      assetIdSet.add(assetId)
-    }
-
-    const assetIds = Array.from(assetIdSet)
-    const assets: { [key: string]: RpcAsset } = {}
-    for (const assetId of assetIds) {
-      const asset = await client.wallet.getAsset({
-        id: assetId,
-      })
-      assets[assetId] = asset.content
-    }
-
-    return assets
+    return getAssetsByIDs(
+      client,
+      transactionSubArray.map((d) => d.assetId),
+    )
   }
 
   getColumns(
