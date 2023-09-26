@@ -1359,6 +1359,17 @@ export class Wallet {
     }
   }
 
+  /**
+   * Note: This logic will be deprecated when we move the field `status` from the Asset response object. The status field has
+   * more to do with the transaction than the asset itself.
+   *
+   * The getTransactionStatus field above is more relevant.
+   *
+   * @param account Account
+   * @param assetValue AssetValue
+   * @param options: { headSequence?: number | null;  confirmations?: number}
+   * @returns Promise<AssetStatus>
+   */
   async getAssetStatus(
     account: Account,
     assetValue: AssetValue,
