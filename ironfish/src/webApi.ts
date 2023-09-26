@@ -234,7 +234,7 @@ export class WebApi {
             destination_chain: 'ETHEREUM',
             source_transaction: null,
             destination_transaction: null,
-            status: 'PENDING',
+            status: 'CREATED',
           },
         ],
       },
