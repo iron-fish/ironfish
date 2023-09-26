@@ -2,14 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
-import { WebApi } from '@ironfish/sdk'
-import { Flags } from '@oclif/core'
+import { CurrencyUtils, SendTransactionRequest, WebApi } from '@ironfish/sdk'
+import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
+import { IronFlag, RemoteFlags } from '../../../flags'
+import { promptCurrency } from '../../../utils/currency'
 
 export class Deposit extends IronfishCommand {
   static description = `Deposit coins to the bridge`
 
   static flags = {
+    ...RemoteFlags,
     endpoint: Flags.string({
       char: 'e',
       description: 'API host to sync to',
@@ -22,13 +25,43 @@ export class Deposit extends IronfishCommand {
       parse: (input: string) => Promise.resolve(input.trim()),
       env: 'IRONFISH_API_TOKEN',
     }),
+    account: Flags.string({
+      char: 'f',
+      description: 'The account to deposit from',
+    }),
+    to: Flags.string({
+      char: 't',
+      description: 'The public address of the bridge account',
+    }),
+    amount: IronFlag({
+      char: 'a',
+      description: 'Amount to deposit',
+      flagName: 'amount',
+    }),
+    fee: IronFlag({
+      char: 'o',
+      description: 'The fee amount in IRON',
+      minimum: 1n,
+      flagName: 'fee',
+    }),
+    confirm: Flags.boolean({
+      default: false,
+      description: 'Confirm without asking',
+    }),
+    expiration: Flags.integer({
+      char: 'x',
+      description:
+        'The block sequence after which the transaction will be removed from the mempool. Set to 0 for no expiration.',
+    }),
+    confirmations: Flags.integer({
+      char: 'c',
+      description:
+        'Minimum number of block confirmations needed to include a note. Set to 0 to include all blocks.',
+      required: false,
+    }),
     assetId: Flags.string({
       char: 'i',
       description: 'The identifier for the asset to deposit',
-    }),
-    source: Flags.string({
-      description: 'Iron Fish public address to deposit from',
-      required: true,
     }),
     dest: Flags.string({
       description: 'Eth public address to deposit to',
@@ -55,16 +88,93 @@ export class Deposit extends IronfishCommand {
 
     const api = new WebApi({ host: flags.endpoint, token: flags.token })
 
+    const client = await this.sdk.connectRpc()
+
+    const publicKey = (await client.wallet.getAccountPublicKey({ account: flags.account }))
+      .content.publicKey
+
+    const account =
+      flags.account ?? (await client.wallet.getDefaultAccount()).content.account?.name
+
     const assetId = flags.assetId ?? Asset.nativeId().toString('hex')
+
+    let to = flags.to
+    if (!to) {
+      to = await CliUx.ux.prompt('Enter the public Iron Fish address of the bridge', {
+        required: true,
+      })
+    }
+
+    let amount = flags.amount
+    if (amount == null) {
+      amount = await promptCurrency({
+        client: client,
+        required: true,
+        text: 'Enter the amount',
+        minimum: 1n,
+        logger: this.logger,
+        balance: {
+          account,
+          confirmations: flags.confirmations,
+          assetId,
+        },
+      })
+    }
+
+    let fee = flags.fee
+    if (!fee) {
+      fee = await promptCurrency({
+        client: client,
+        required: true,
+        text: 'Enter the transaction fee in $IRON',
+        minimum: 1n,
+        default: '0.00000001',
+        logger: this.logger,
+      })
+    }
 
     const response = await api.createDeposit({
       asset: assetId,
-      source_address: flags.source,
+      source_address: publicKey,
       destination_address: flags.dest,
     })
 
-    const depositId = response[flags.source]
+    const depositId = response[publicKey]
 
-    this.log(`Deposit memo: ${depositId}`)
+    const params: SendTransactionRequest = {
+      account,
+      outputs: [
+        {
+          publicAddress: to,
+          amount: CurrencyUtils.encode(amount),
+          memo: depositId.toString(),
+          assetId,
+        },
+      ],
+      fee: CurrencyUtils.encode(fee),
+      expiration: flags.expiration,
+      confirmations: flags.confirmations,
+    }
+
+    this.log(
+      `\nDepost transaction:\n` +
+        `From address:      ${publicKey}\n` +
+        `To bridge address: ${to}\n` +
+        `Memo:              ${depositId}\n` +
+        `Amount:            ${amount}\n` +
+        `Transaction fee:   ${fee}`,
+    )
+
+    if (!flags.confirm && !(await CliUx.ux.confirm('\nConfirm deposit [Y/N]'))) {
+      this.error('Deposit aborted.')
+    }
+
+    CliUx.ux.action.start('Sending deposit transaction')
+
+    const sendResponse = await client.wallet.sendTransaction(params)
+
+    CliUx.ux.action.stop()
+
+    this.log(`Deposit transaction hash: ${sendResponse.content.hash}`)
   }
 }
