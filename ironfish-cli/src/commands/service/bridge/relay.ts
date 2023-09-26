@@ -80,11 +80,13 @@ export default class BridgeRelay extends IronfishCommand {
 
     this.log('Watching with view key:', incomingViewKey)
 
-    // TODO: track chain state of relay in API
+    head = head ?? (await api.getBridgeHead())
+
     if (!head) {
       const chainInfo = await client.chain.getChainInfo()
       head = chainInfo.content.genesisBlockIdentifier.hash
     }
+
     this.log(`Starting from head ${head}`)
 
     const response = client.chain.getTransactionStream({
@@ -115,12 +117,12 @@ export default class BridgeRelay extends IronfishCommand {
       if (buffer.length > confirmations) {
         const response = buffer.shift()
         Assert.isNotUndefined(response)
-        this.commit(api, response)
+        await this.commit(api, response)
       }
     }
   }
 
-  commit(api: WebApi, response: GetTransactionStreamResponse): void {
+  async commit(api: WebApi, response: GetTransactionStreamResponse): Promise<void> {
     Assert.isNotUndefined(response)
 
     const transactions = response.transactions
@@ -132,5 +134,7 @@ export default class BridgeRelay extends IronfishCommand {
         // TODO: call Eth bridge contract to mint
       }
     }
+
+    await api.setBridgeHead(response.block.hash)
   }
 }
