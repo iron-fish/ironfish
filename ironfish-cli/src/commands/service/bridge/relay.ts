@@ -125,15 +125,24 @@ export default class BridgeRelay extends IronfishCommand {
   async commit(api: WebApi, response: GetTransactionStreamResponse): Promise<void> {
     Assert.isNotUndefined(response)
 
+    const sends = []
+
     const transactions = response.transactions
 
     for (const transaction of transactions) {
       for (const note of transaction.notes) {
-        this.log(`Processing deposit ${note.memo}, from transaction ${transaction.hash}`)
-        // TODO: get Eth deposit address from API
-        // TODO: call Eth bridge contract to mint
+        this.log(`Received deposit ${note.memo} in transaction ${transaction.hash}`)
+        sends.push({
+          id: note.memo,
+          amount: note.value,
+          asset: note.assetId,
+          source_address: note.sender,
+          source_transaction: transaction.hash,
+        })
       }
     }
+
+    await api.sendBridgeDeposits(sends)
 
     await api.setBridgeHead(response.block.hash)
   }

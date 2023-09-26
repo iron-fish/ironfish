@@ -31,6 +31,7 @@ interface Note {
   hash: string
   value: string
   memo: string
+  sender: string
 }
 
 interface Transaction {
@@ -49,6 +50,7 @@ const NoteSchema = yup
     hash: yup.string().required(),
     value: yup.string().required(),
     memo: yup.string().required(),
+    sender: yup.string().required(),
   })
   .required()
 
@@ -141,6 +143,7 @@ routes.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
               assetId: decryptedNote.assetId().toString('hex'),
               assetName: assetValue?.name.toString('hex') || '',
               hash: decryptedNote.hash().toString('hex'),
+              sender: decryptedNote.sender(),
             })
           }
         }

@@ -203,6 +203,20 @@ export class WebApi {
     await axios.post(`${this.host}/bridge/head`, { head }, options)
   }
 
+  async sendBridgeDeposits(
+    sends: {
+      id: string
+      amount: string
+      asset: string
+      source_address: string
+      source_transaction: string
+    }[],
+  ): Promise<void> {
+    this.requireToken()
+
+    await axios.post(`${this.host}/bridge/send`, { sends }, this.options())
+  }
+
   options(headers: Record<string, string> = {}): AxiosRequestConfig {
     return {
       headers: {
