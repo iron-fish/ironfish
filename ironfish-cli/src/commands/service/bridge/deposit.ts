@@ -98,12 +98,7 @@ export class Deposit extends IronfishCommand {
 
     const assetId = flags.assetId ?? Asset.nativeId().toString('hex')
 
-    let to = flags.to
-    if (!to) {
-      to = await CliUx.ux.prompt('Enter the public Iron Fish address of the bridge', {
-        required: true,
-      })
-    }
+    const to = flags.to ?? (await api.getBridgeAddress())
 
     let amount = flags.amount
     if (amount == null) {

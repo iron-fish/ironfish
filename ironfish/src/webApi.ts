@@ -245,6 +245,11 @@ export class WebApi {
     return response.data
   }
 
+  async getBridgeAddress(): Promise<string> {
+    const response = await axios.get<{ address: string }>(`${this.host}/bridge/address`)
+    return response.data.address
+  }
+
   options(headers: Record<string, string> = {}): AxiosRequestConfig {
     return {
       headers: {
