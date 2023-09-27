@@ -218,6 +218,7 @@ export class WebApi {
   }
 
   async createDeposit(payload: {
+    amount: string
     asset: string
     source_address: string
     destination_address: string

@@ -134,6 +134,7 @@ export class Deposit extends IronfishCommand {
     }
 
     const response = await api.createDeposit({
+      amount: amount.toString(),
       asset: assetId,
       source_address: publicKey,
       destination_address: flags.dest,
