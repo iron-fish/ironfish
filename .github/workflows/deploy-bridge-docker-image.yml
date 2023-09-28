@@ -1,0 +1,44 @@
+name: Deploy Bridge Prototype Node Docker Image
+on:
+  push:
+    branches:
+      - bridge-prototype
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  Deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v3
+
+      - name: Login to GitHub Registry
+        run: echo ${GITHUB_TOKEN} | docker login -u ${GITHUB_USER} --password-stdin ghcr.io
+        env:
+          GITHUB_USER: ${{ secrets.BREW_GITHUB_USERNAME }}
+          GITHUB_TOKEN: ${{ secrets.BREW_GITHUB_TOKEN }}
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Login to AWS Registry
+        run: aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $AWS_REGISTRY_URL
+        env:
+          AWS_REGISTRY_URL: ${{ secrets.AWS_NODE_REGISTRY_URL }}
+
+      - name: Build Node Image
+        run: ./ironfish-cli/scripts/build-docker.sh
+
+      - name: Deploy Node Image to AWS:${{ github.ref_name }}
+        run: |
+          docker tag ironfish ${{ secrets.AWS_NODE_REGISTRY_URL }}/ironfish:${{ github.ref_name }}
+          docker push ${{ secrets.AWS_NODE_REGISTRY_URL }}/ironfish:${{ github.ref_name }}
