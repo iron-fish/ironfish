@@ -17,6 +17,7 @@ export async function promptCurrency(options: {
     assetId?: string
     confirmations?: number
   }
+  default?: string
 }): Promise<bigint>
 
 export async function promptCurrency(options: {
@@ -30,6 +31,7 @@ export async function promptCurrency(options: {
     assetId?: string
     confirmations?: number
   }
+  default?: string
 }): Promise<bigint | null> {
   let text = options.text
 
@@ -47,6 +49,7 @@ export async function promptCurrency(options: {
   while (true) {
     const input = await CliUx.ux.prompt(text, {
       required: options.required,
+      default: options.default,
     })
 
     if (!input) {
