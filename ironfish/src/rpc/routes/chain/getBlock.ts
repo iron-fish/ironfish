@@ -3,11 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
+import { getBlockSize, getTransactionSize } from '../../../network/utils/serializers'
 import { FullNode } from '../../../node'
 import { BlockHeader } from '../../../primitives'
 import { GENESIS_BLOCK_SEQUENCE } from '../../../primitives/block'
 import { BufferUtils } from '../../../utils'
 import { NotFoundError, ValidationError } from '../../adapters'
+import { RpcBlock, RpcBlockSchema, serializeRpcBlockHeader } from '../../types'
 import { ApiNamespace, routes } from '../router'
 
 export type GetBlockRequest = {
@@ -19,24 +21,7 @@ export type GetBlockRequest = {
 }
 
 export type GetBlockResponse = {
-  block: {
-    graffiti: string
-    difficulty: string
-    hash: string
-    previousBlockHash: string
-    sequence: number
-    timestamp: number
-    noteSize: number
-    noteCommitment: string
-    transactions: Array<{
-      fee: string
-      hash: string
-      signature: string
-      notes: number
-      spends: number
-      serialized?: string
-    }>
-  }
+  block: RpcBlock
   metadata: {
     main: boolean
     confirmed: boolean
@@ -56,32 +41,7 @@ export const GetBlockRequestSchema: yup.ObjectSchema<GetBlockRequest> = yup
 
 export const GetBlockResponseSchema: yup.ObjectSchema<GetBlockResponse> = yup
   .object({
-    block: yup
-      .object({
-        graffiti: yup.string().defined(),
-        difficulty: yup.string().defined(),
-        hash: yup.string().defined(),
-        previousBlockHash: yup.string().defined(),
-        sequence: yup.number().defined(),
-        timestamp: yup.number().defined(),
-        noteSize: yup.number().defined(),
-        noteCommitment: yup.string().defined(),
-        transactions: yup
-          .array(
-            yup
-              .object({
-                fee: yup.string().defined(),
-                hash: yup.string().defined(),
-                signature: yup.string().defined(),
-                notes: yup.number().defined(),
-                spends: yup.number().defined(),
-                serialized: yup.string().optional(),
-              })
-              .defined(),
-          )
-          .defined(),
-      })
-      .defined(),
+    block: RpcBlockSchema.defined(),
     metadata: yup
       .object({
         main: yup.boolean().defined(),
@@ -148,14 +108,38 @@ routes.register<typeof GetBlockRequestSchema, GetBlockResponse>(
     const transactions: GetBlockResponse['block']['transactions'] = []
 
     for (const tx of block.transactions) {
-      const fee = tx.fee()
-
       transactions.push({
-        signature: tx.transactionSignature().toString('hex'),
         hash: tx.hash().toString('hex'),
-        fee: fee.toString(),
-        spends: tx.spends.length,
-        notes: tx.notes.length,
+        size: getTransactionSize(tx),
+        fee: Number(tx.fee()),
+        expiration: tx.expiration(),
+        notes: tx.notes.map((note) => ({
+          commitment: note.hash().toString('hex'),
+          hash: note.hash().toString('hex'),
+          serialized: note.serialize().toString('hex'),
+        })),
+        spends: tx.spends.map((spend) => ({
+          nullifier: spend.nullifier.toString('hex'),
+          commitment: spend.commitment.toString('hex'),
+          size: spend.size,
+        })),
+        mints: tx.mints.map((mint) => ({
+          id: mint.asset.id().toString('hex'),
+          metadata: BufferUtils.toHuman(mint.asset.metadata()),
+          name: BufferUtils.toHuman(mint.asset.name()),
+          creator: mint.asset.creator().toString('hex'),
+          value: mint.value.toString(),
+          transferOwnershipTo: mint.transferOwnershipTo?.toString('hex'),
+          assetId: mint.asset.id().toString('hex'),
+          assetName: mint.asset.name().toString('hex'),
+        })),
+        burns: tx.burns.map((burn) => ({
+          id: burn.assetId.toString('hex'),
+          value: burn.value.toString(),
+          assetId: burn.assetId.toString('hex'),
+          assetName: '',
+        })),
+        signature: tx.transactionSignature().toString('hex'),
         ...(request.data?.serialized ? { serialized: tx.serialize().toString('hex') } : {}),
       })
     }
@@ -163,17 +147,13 @@ routes.register<typeof GetBlockRequestSchema, GetBlockResponse>(
     const main = await node.chain.isHeadChain(header)
     const confirmed = node.chain.head.sequence - header.sequence >= confirmations
 
+    const blockHeaderResponse = serializeRpcBlockHeader(header)
+
     request.end({
       block: {
-        graffiti: BufferUtils.toHuman(header.graffiti),
-        difficulty: header.target.toDifficulty().toString(),
-        hash: header.hash.toString('hex'),
-        previousBlockHash: header.previousBlockHash.toString('hex'),
-        sequence: Number(header.sequence),
-        timestamp: header.timestamp.valueOf(),
-        noteSize: header.noteSize,
-        noteCommitment: header.noteCommitment.toString('hex'),
-        transactions: transactions,
+        ...blockHeaderResponse,
+        size: getBlockSize(block),
+        transactions,
       },
       metadata: {
         main: main,

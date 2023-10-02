@@ -8,13 +8,14 @@ import '../testUtilities/matchers/blockchain'
 import {
   Asset,
   generateKey,
+  LATEST_TRANSACTION_VERSION,
   Note as NativeNote,
   Transaction as NativeTransaction,
 } from '@ironfish/rust-nodejs'
 import { BufferMap } from 'buffer-map'
 import { Assert } from '../assert'
 import { getBlockSize, getBlockWithMinersFeeSize } from '../network/utils/serializers'
-import { BlockHeader, Transaction } from '../primitives'
+import { Block, BlockHeader, Transaction } from '../primitives'
 import { transactionCommitment } from '../primitives/blockheader'
 import { MintDescription } from '../primitives/mintDescription'
 import { Target } from '../primitives/target'
@@ -98,6 +99,7 @@ describe('Verifier', () => {
       const account = await useAccountFixture(nodeTest.node.wallet)
       const asset = new Asset(account.publicAddress, 'testcoin', '')
       const mintData = {
+        creator: asset.creator().toString('hex'),
         name: asset.name().toString('utf8'),
         metadata: asset.metadata().toString('utf8'),
         value: 5n,
@@ -240,7 +242,7 @@ describe('Verifier', () => {
             Asset.nativeId(),
             owner,
           )
-          const transaction = new NativeTransaction(key.spendingKey)
+          const transaction = new NativeTransaction(key.spendingKey, LATEST_TRANSACTION_VERSION)
           transaction.output(minerNote1)
           transaction.output(minerNote2)
           return new Transaction(transaction._postMinersFeeUnchecked())
@@ -391,15 +393,65 @@ describe('Verifier', () => {
       })
     })
 
-    it('rejects a block with a transaction containing an invalid version', async () => {
-      const block = await useMinerBlockFixture(nodeTest.chain)
-      jest
-        .spyOn(block.transactions[0], 'version')
-        .mockImplementation(() => TransactionVersion.V2)
+    describe('rejects a block with a transaction containing an invalid version', () => {
+      it('while transaction v1 is active', async () => {
+        const { chain, verifier } = await nodeTest.createSetup()
+        // Enable asset ownership to generate a v2 transaction
+        chain.consensus.parameters.enableAssetOwnership = 1
 
-      expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
-        reason: VerificationResultReason.INVALID_TRANSACTION_VERSION,
-        valid: false,
+        const block = await useMinerBlockFixture(chain)
+        expect(block.transactions[0].version()).toEqual(TransactionVersion.V2)
+
+        // Deactivate asset ownership so the blockchain expects v1 transactions
+        chain.consensus.parameters.enableAssetOwnership = Number.MAX_SAFE_INTEGER
+
+        expect(await verifier.verifyBlock(block)).toMatchObject({
+          reason: VerificationResultReason.INVALID_TRANSACTION_VERSION,
+          valid: false,
+        })
+      })
+
+      it('while v2 is active', async () => {
+        const { chain, verifier } = await nodeTest.createSetup()
+        // Deactivate asset ownership to generate a v1 transaction
+        chain.consensus.parameters.enableAssetOwnership = Number.MAX_SAFE_INTEGER
+
+        const block = await useMinerBlockFixture(chain)
+        expect(block.transactions[0].version()).toEqual(TransactionVersion.V1)
+
+        // Enable asset ownership to so the blockchain expects v2 transactions
+        chain.consensus.parameters.enableAssetOwnership = 1
+
+        expect(await verifier.verifyBlock(block)).toMatchObject({
+          reason: VerificationResultReason.INVALID_TRANSACTION_VERSION,
+          valid: false,
+        })
+      })
+    })
+
+    describe('accepts a block with a transaction containing a valid version', () => {
+      it('while transaction v1 is active', async () => {
+        const { chain, verifier } = await nodeTest.createSetup()
+        chain.consensus.parameters.enableAssetOwnership = 999999
+
+        const block = await useMinerBlockFixture(chain)
+        expect(block.transactions[0].version()).toEqual(TransactionVersion.V1)
+
+        expect(await verifier.verifyBlock(block)).toMatchObject({
+          valid: true,
+        })
+      })
+
+      it('while transaction v2 is active', async () => {
+        const { chain, verifier } = await nodeTest.createSetup()
+        chain.consensus.parameters.enableAssetOwnership = 1
+
+        const block = await useMinerBlockFixture(chain)
+        expect(block.transactions[0].version()).toEqual(TransactionVersion.V2)
+
+        expect(await verifier.verifyBlock(block)).toMatchObject({
+          valid: true,
+        })
       })
     })
 
@@ -427,16 +479,6 @@ describe('Verifier', () => {
 
       expect(nodeTest.verifier.verifyBlockHeader(header)).toMatchObject({
         reason: VerificationResultReason.HASH_NOT_MEET_TARGET,
-        valid: false,
-      })
-    })
-
-    it('fails validation when timestamp is in future', () => {
-      jest.spyOn(global.Date, 'now').mockImplementationOnce(() => 1598467858637)
-      header.timestamp = new Date(1598467898637)
-
-      expect(nodeTest.verifier.verifyBlockHeader(header)).toMatchObject({
-        reason: VerificationResultReason.TOO_FAR_IN_FUTURE,
         valid: false,
       })
     })
@@ -555,18 +597,6 @@ describe('Verifier', () => {
       })
     })
 
-    it('Is invalid when the timestamp is in past', async () => {
-      const block = await useMinerBlockFixture(nodeTest.chain)
-      block.header.timestamp = new Date(0)
-
-      expect(
-        nodeTest.verifier.verifyBlockHeaderContextual(block.header, nodeTest.chain.genesis),
-      ).toMatchObject({
-        valid: false,
-        reason: VerificationResultReason.BLOCK_TOO_OLD,
-      })
-    })
-
     it('Is invalid when the sequence is wrong', async () => {
       const block = await useMinerBlockFixture(nodeTest.chain)
       block.header.sequence = 9999
@@ -576,6 +606,162 @@ describe('Verifier', () => {
       ).toMatchObject({
         valid: false,
         reason: VerificationResultReason.SEQUENCE_OUT_OF_ORDER,
+      })
+    })
+
+    describe('Before postive block mine time activation', () => {
+      const nodeTest = createNodeTest()
+      let block: Block
+      let header: BlockHeader
+      let prevHeader: BlockHeader
+      let verifier: Verifier
+
+      beforeAll(async () => {
+        const { chain, verifier: verifierTest } = await nodeTest.createSetup()
+        chain.consensus.parameters.enforceSequentialBlockTime = 3
+        verifier = verifierTest
+        verifier.chain = chain
+        block = await useMinerBlockFixture(
+          chain,
+          chain.consensus.parameters.enforceSequentialBlockTime - 1,
+        )
+        header = block.header
+        const previousBlock = block.header.previousBlockHash
+        const previousHeader = await chain.getHeader(previousBlock)
+        Assert.isNotNull(previousHeader)
+        prevHeader = previousHeader
+      })
+
+      it('fails validation when timestamp is too low', async () => {
+        header.timestamp = new Date(
+          prevHeader.timestamp.getTime() -
+            (nodeTest.chain.consensus.parameters.allowedBlockFutureSeconds + 2) * 1000,
+        )
+
+        expect(await verifier.verifyBlockAdd(block, prevHeader)).toMatchObject({
+          reason: VerificationResultReason.BLOCK_TOO_OLD,
+          valid: false,
+        })
+      })
+
+      it('fails validation when timestamp is too far in the future', async () => {
+        jest
+          .spyOn(global.Date, 'now')
+          .mockImplementationOnce(() => prevHeader.timestamp.getTime() + 40 * 1000)
+        header.timestamp = new Date(
+          prevHeader.timestamp.getTime() +
+            (nodeTest.chain.consensus.parameters.allowedBlockFutureSeconds + 42) * 1000,
+        )
+
+        expect(await verifier.verifyBlockAdd(block, prevHeader)).toMatchObject({
+          reason: VerificationResultReason.TOO_FAR_IN_FUTURE,
+          valid: false,
+        })
+      })
+
+      it('pass validation when timestamp is smaller than previous block', async () => {
+        jest
+          .spyOn(global.Date, 'now')
+          .mockImplementationOnce(() => prevHeader.timestamp.getTime() + 1 * 1000)
+        header.timestamp = new Date(prevHeader.timestamp.getTime() - 1 * 1000)
+        expect(await verifier.verifyBlockAdd(block, prevHeader)).toMatchObject({
+          valid: true,
+        })
+      })
+
+      it('pass validation when timestamp is greater than previous block', async () => {
+        jest
+          .spyOn(global.Date, 'now')
+          .mockImplementationOnce(() => prevHeader.timestamp.getTime() + 1 * 1000)
+        header.timestamp = new Date(prevHeader.timestamp.getTime() + 1 * 1000)
+
+        expect(await verifier.verifyBlockAdd(block, prevHeader)).toMatchObject({
+          valid: true,
+        })
+      })
+    })
+
+    describe('After postive block mine time activation', () => {
+      const nodeTest = createNodeTest()
+      let currentBlock: Block
+      let header: BlockHeader
+      let prevHeader: BlockHeader
+      let verifier: Verifier
+
+      beforeAll(async () => {
+        const { chain, verifier: verifierTest } = await nodeTest.createSetup()
+        chain.consensus.parameters.enforceSequentialBlockTime = 3
+        verifier = verifierTest
+        verifier.chain = chain
+
+        const previousBlock = await useMinerBlockFixture(
+          chain,
+          chain.consensus.parameters.enforceSequentialBlockTime - 1,
+        )
+        await chain.addBlock(previousBlock)
+
+        prevHeader = previousBlock.header
+        currentBlock = await useMinerBlockFixture(
+          chain,
+          chain.consensus.parameters.enforceSequentialBlockTime,
+        )
+        header = currentBlock.header
+      })
+
+      it('fails validation when timestamp is too low', async () => {
+        header.timestamp = new Date(
+          prevHeader.timestamp.getTime() -
+            (nodeTest.chain.consensus.parameters.allowedBlockFutureSeconds + 2) * 1000,
+        )
+
+        expect(await verifier.verifyBlockAdd(currentBlock, prevHeader)).toMatchObject({
+          reason: VerificationResultReason.BLOCK_TOO_OLD,
+          valid: false,
+        })
+      })
+
+      it('fails validation when timestamp is too far in the future', async () => {
+        jest
+          .spyOn(global.Date, 'now')
+          .mockImplementationOnce(() => prevHeader.timestamp.getTime() + 40 * 1000)
+        header.timestamp = new Date(
+          prevHeader.timestamp.getTime() +
+            (nodeTest.chain.consensus.parameters.allowedBlockFutureSeconds + 42) * 1000,
+        )
+
+        expect(await verifier.verifyBlockAdd(currentBlock, prevHeader)).toMatchObject({
+          reason: VerificationResultReason.TOO_FAR_IN_FUTURE,
+          valid: false,
+        })
+      })
+
+      it('fails validation when timestamp is smaller than previous block', async () => {
+        header.timestamp = new Date(prevHeader.timestamp.getTime() - 1 * 1000)
+
+        expect(await verifier.verifyBlockAdd(currentBlock, prevHeader)).toMatchObject({
+          reason: VerificationResultReason.BLOCK_TOO_OLD,
+          valid: false,
+        })
+      })
+
+      it('fails validation when timestamp is same as previous block', async () => {
+        header.timestamp = new Date(prevHeader.timestamp.getTime())
+
+        expect(await verifier.verifyBlockAdd(currentBlock, prevHeader)).toMatchObject({
+          reason: VerificationResultReason.BLOCK_TOO_OLD,
+          valid: false,
+        })
+      })
+
+      it('pass validation when timestamp is greater than previous block', async () => {
+        jest
+          .spyOn(global.Date, 'now')
+          .mockImplementationOnce(() => prevHeader.timestamp.getTime() + 1 * 1000)
+        header.timestamp = new Date(prevHeader.timestamp.getTime() + 1 * 1000)
+
+        expect(await verifier.verifyBlockAdd(currentBlock, prevHeader)).toMatchObject({
+          valid: true,
+        })
       })
     })
   })

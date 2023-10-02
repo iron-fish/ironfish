@@ -31,7 +31,7 @@ export default class GenesisBlockCommand extends IronfishCommand {
       description: 'The name of the account to use for keys to assign the genesis block to',
     }),
     difficulty: Flags.string({
-      default: Target.minDifficulty().toString(),
+      default: (Target.minDifficulty() * 100n).toString(),
       description: 'The initial difficulty to start the chain with',
     }),
     memo: Flags.string({

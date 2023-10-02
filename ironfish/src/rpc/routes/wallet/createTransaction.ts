@@ -18,7 +18,7 @@ import { ApiNamespace, routes } from '../router'
 import { getAccount } from './utils'
 
 export type CreateTransactionRequest = {
-  account: string
+  account?: string
   outputs: {
     publicAddress: string
     amount: string
@@ -30,6 +30,7 @@ export type CreateTransactionRequest = {
     name?: string
     metadata?: string
     value: string
+    transferOwnershipTo?: string
   }[]
   burns?: {
     assetId: string
@@ -70,6 +71,7 @@ export const CreateTransactionRequestSchema: yup.ObjectSchema<CreateTransactionR
             name: yup.string().optional().max(ASSET_NAME_LENGTH),
             metadata: yup.string().optional().max(ASSET_METADATA_LENGTH),
             value: YupUtils.currency({ min: 1n }).defined(),
+            transferOwnershipTo: yup.string().optional(),
           })
           .defined(),
       )
@@ -133,6 +135,7 @@ routes.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
           throw new ValidationError('Must provide name or identifier to mint')
         }
 
+        let creator = account.publicAddress
         let name = mint.name
         let metadata = mint.metadata ?? ''
 
@@ -144,16 +147,20 @@ routes.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
             throw new ValidationError(`Error minting: Asset ${mint.assetId} not found.`)
           }
 
+          creator = asset.creator.toString('hex')
           name = asset.name.toString('utf8')
           metadata = asset.metadata.toString('utf8')
         }
 
+        Assert.isNotUndefined(creator)
         Assert.isNotUndefined(name)
         Assert.isNotUndefined(metadata)
 
         params.mints.push({
+          creator,
           name,
           metadata,
+          transferOwnershipTo: mint.transferOwnershipTo,
           value: CurrencyUtils.decode(mint.value),
         })
       }

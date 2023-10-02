@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { TransactionVersion } from '../primitives/transaction'
 import { Consensus, ConsensusParameters } from './consensus'
 
 describe('Consensus', () => {
@@ -12,6 +13,8 @@ describe('Consensus', () => {
     targetBucketTimeInSeconds: 4,
     maxBlockSizeBytes: 5,
     minFee: 6,
+    enableAssetOwnership: 7,
+    enforceSequentialBlockTime: 1,
   }
 
   let consensus: Consensus
@@ -45,5 +48,28 @@ describe('Consensus', () => {
       expect(consensus.isActive(upgradeSequence, -1)).toBe(true)
       expect(consensus.isActive(upgradeSequence, 0)).toBe(true)
     })
+  })
+
+  it('getActiveTransactionVersion', () => {
+    expect(consensus.getActiveTransactionVersion(5)).toEqual(TransactionVersion.V1)
+    expect(consensus.getActiveTransactionVersion(6)).toEqual(TransactionVersion.V1)
+    expect(consensus.getActiveTransactionVersion(7)).toEqual(TransactionVersion.V2)
+    expect(consensus.getActiveTransactionVersion(8)).toEqual(TransactionVersion.V2)
+  })
+
+  it('when activation flag is never', () => {
+    consensus = new Consensus({
+      allowedBlockFutureSeconds: 1,
+      genesisSupplyInIron: 2,
+      targetBlockTimeInSeconds: 3,
+      targetBucketTimeInSeconds: 4,
+      maxBlockSizeBytes: 5,
+      minFee: 6,
+      enableAssetOwnership: 'never',
+      enforceSequentialBlockTime: 'never',
+    })
+    expect(consensus.getActiveTransactionVersion(5)).toEqual(TransactionVersion.V1)
+    expect(consensus.isActive(consensus.parameters.enableAssetOwnership, 3)).toBe(false)
+    expect(consensus.isActive(consensus.parameters.enforceSequentialBlockTime, 3)).toBe(false)
   })
 })

@@ -5,7 +5,7 @@ use std::collections::{hash_map, HashMap};
 
 use crate::{
     assets::asset_identifier::{AssetIdentifier, NATIVE_ASSET},
-    errors::IronfishError,
+    errors::{IronfishError, IronfishErrorKind},
 };
 
 pub struct ValueBalances {
@@ -25,7 +25,7 @@ impl ValueBalances {
         let current_value = self.values.entry(*asset_id).or_insert(0);
         let new_value = current_value
             .checked_add(value)
-            .ok_or(IronfishError::InvalidBalance)?;
+            .ok_or_else(|| IronfishError::new(IronfishErrorKind::InvalidBalance))?;
 
         *current_value = new_value;
 
@@ -40,7 +40,7 @@ impl ValueBalances {
         let current_value = self.values.entry(*asset_id).or_insert(0);
         let new_value = current_value
             .checked_sub(value)
-            .ok_or(IronfishError::InvalidBalance)?;
+            .ok_or_else(|| IronfishError::new(IronfishErrorKind::InvalidBalance))?;
 
         *current_value = new_value;
 

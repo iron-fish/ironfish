@@ -1,31 +1,16 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import * as yup from 'yup'
+
+/**
+ * NOTE: This endpoint will be deprecated in favor of `POST /wallet/createAccount` because
+ * this endpoint does not follow the convention that all of our endpoints should follow which
+ * is the verbObject naming convention. For example, `POST /wallet/burnAsset` burns an asset.
+ */
+
 import { ERROR_CODES, ValidationError } from '../../adapters'
 import { ApiNamespace, routes } from '../router'
-
-export type CreateAccountRequest = { name: string; default?: boolean }
-export type CreateAccountResponse = {
-  name: string
-  publicAddress: string
-  isDefaultAccount: boolean
-}
-
-export const CreateAccountRequestSchema: yup.ObjectSchema<CreateAccountRequest> = yup
-  .object({
-    name: yup.string().defined(),
-    default: yup.boolean().optional(),
-  })
-  .defined()
-
-export const CreateAccountResponseSchema: yup.ObjectSchema<CreateAccountResponse> = yup
-  .object({
-    name: yup.string().defined(),
-    publicAddress: yup.string().defined(),
-    isDefaultAccount: yup.boolean().defined(),
-  })
-  .defined()
+import { CreateAccountRequestSchema, CreateAccountResponse } from '../wallet'
 
 routes.register<typeof CreateAccountRequestSchema, CreateAccountResponse>(
   `${ApiNamespace.wallet}/create`,

@@ -74,20 +74,17 @@ export default class Reset extends IronfishCommand {
       fsAsync.rm(hostFilePath, { recursive: true, force: true }),
     ])
 
+    let networkChanged = false
     if (flags.networkId != null && flags.networkId !== existingId) {
       this.sdk.internal.set('networkId', flags.networkId)
+      networkChanged = true
     }
     this.sdk.internal.set('isFirstRun', true)
     await this.sdk.internal.save()
 
     const node = await this.sdk.node()
-    const walletDb = node.wallet.walletDb
-
-    await walletDb.db.open()
-
-    for (const store of walletDb.cacheStores) {
-      await store.clear()
-    }
+    await node.wallet.open()
+    await node.wallet.reset({ resetCreatedAt: networkChanged })
 
     CliUx.ux.action.stop('Databases deleted successfully')
   }

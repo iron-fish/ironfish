@@ -61,6 +61,7 @@ describe('Route wallet/getAccountTransactions', () => {
       from: account,
       mints: [
         {
+          creator: asset.creator().toString('hex'),
           name: asset.name().toString('utf8'),
           metadata: asset.metadata().toString('utf8'),
           value: BigInt(10),

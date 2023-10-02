@@ -5,7 +5,9 @@ import { Asset, ASSET_ID_LENGTH, generateKey } from '@ironfish/rust-nodejs'
 import { BufferMap, BufferSet } from 'buffer-map'
 import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
+import { Blockchain } from '../blockchain'
 import { VerificationResultReason } from '../consensus'
+import { TransactionVersion } from '../primitives/transaction'
 import {
   createNodeTest,
   useAccountFixture,
@@ -19,7 +21,7 @@ import {
 } from '../testUtilities'
 import { AsyncUtils } from '../utils'
 import { Account, TransactionStatus, TransactionType } from '../wallet'
-import { AssetStatus } from './wallet'
+import { AssetStatus, Wallet } from './wallet'
 
 describe('Accounts', () => {
   const nodeTest = createNodeTest()
@@ -392,7 +394,9 @@ describe('Accounts', () => {
 
     it('should not scan if wallet is disabled', async () => {
       const { wallet, chain } = await nodeTest.createSetup({ config: { enableWallet: false } })
-      await useAccountFixture(wallet)
+
+      // Create a new account but don't give it an account birthday so the wallet head does not update
+      await useAccountFixture(wallet, 'test', { setCreatedAt: false })
 
       const block1 = await useMinerBlockFixture(chain)
       await expect(chain).toAddBlock(block1)
@@ -1145,6 +1149,62 @@ describe('Accounts', () => {
       const reorgVerification = await nodeA.chain.verifier.verifyTransactionAdd(transaction)
       expect(reorgVerification.valid).toBe(true)
     })
+
+    describe('should create transactions with the correct version', () => {
+      const preservedNodeTest = createNodeTest(true)
+      let chain: Blockchain
+      let wallet: Wallet
+      let account: Account
+
+      const testPermutations = [
+        { delta: 50, expectedVersion: TransactionVersion.V1 },
+        { delta: 25, expectedVersion: TransactionVersion.V1 },
+        { delta: 10, expectedVersion: TransactionVersion.V1 },
+        { delta: 3, expectedVersion: TransactionVersion.V2 },
+        { delta: 1, expectedVersion: TransactionVersion.V2 },
+      ]
+
+      beforeAll(async () => {
+        const { chain: testChain, wallet: testWallet } = await preservedNodeTest.createSetup()
+        chain = testChain
+        wallet = testWallet
+
+        chain.consensus.parameters.enableAssetOwnership = 999999
+        account = await useAccountFixture(wallet, 'test')
+
+        const block = await useMinerBlockFixture(chain, undefined, account, wallet)
+        const { isAdded } = await chain.addBlock(block)
+        Assert.isTrue(isAdded)
+        await wallet.updateHead()
+
+        Assert.isEqual(chain.head.sequence, 2)
+      })
+
+      testPermutations.forEach(({ delta, expectedVersion }) => {
+        it(`delta: ${delta}, expectedVersion: ${expectedVersion}`, async () => {
+          // transaction version change happening `delta` blocks ahead of the chain
+          chain.consensus.parameters.enableAssetOwnership = chain.head.sequence + delta
+
+          // default expiration
+          let tx = await wallet.createTransaction({ account, fee: 0n })
+          expect(tx.version).toEqual(expectedVersion)
+
+          tx = await wallet.createTransaction({
+            account,
+            fee: 0n,
+            expirationDelta: delta,
+          })
+          expect(tx.version).toEqual(expectedVersion)
+
+          tx = await wallet.createTransaction({
+            account,
+            fee: 0n,
+            expiration: chain.head.sequence + delta,
+          })
+          expect(tx.version).toEqual(expectedVersion)
+        })
+      })
+    })
   })
 
   describe('getTransactionStatus', () => {
@@ -1447,6 +1507,7 @@ describe('Accounts', () => {
         const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
         const mintValue = BigInt(10)
         const mintData = {
+          creator: asset.creator().toString('hex'),
           name: asset.name().toString('utf8'),
           metadata: asset.metadata().toString('utf8'),
           value: mintValue,
@@ -2806,12 +2867,16 @@ describe('Accounts', () => {
       // create an account so that the wallet will sync
       await useAccountFixture(node.wallet, 'a')
 
+      // update wallet to genesis block
+      await node.wallet.updateHead()
+
       const block2 = await useMinerBlockFixture(node.chain, undefined)
       await expect(node.chain).toAddBlock(block2)
       const block3 = await useMinerBlockFixture(node.chain, undefined)
       await expect(node.chain).toAddBlock(block3)
 
       expect(node.chain.head.hash).toEqualHash(block3.header.hash)
+      expect(node.wallet.chainProcessor.hash).toEqualHash(node.chain.genesis.hash)
 
       // set max syncing queue to 1 so that wallet only fetches one block at a time
       node.wallet.chainProcessor.maxQueueSize = 1
@@ -2823,8 +2888,8 @@ describe('Accounts', () => {
       // chainProcessor should sync all the way to head with one call to updateHead
       expect(node.wallet.chainProcessor.hash).toEqualHash(node.chain.head.hash)
 
-      // one call for each block and a fourth to find that hash doesn't change
-      expect(updateSpy).toHaveBeenCalledTimes(4)
+      // one call for each block and a third to find that hash doesn't change
+      expect(updateSpy).toHaveBeenCalledTimes(3)
     })
   })
 })
