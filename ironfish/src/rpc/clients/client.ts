@@ -1,16 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Logger } from '../../logger'
-import { RpcResponse, RpcResponseEnded } from '../response'
-import {
+import type {
   AcceptTransactionRequest,
   AcceptTransactionResponse,
   AddPeerRequest,
   AddPeerResponse,
   AddTransactionRequest,
   AddTransactionResponse,
-  ApiNamespace,
   BlockTemplateStreamRequest,
   BlockTemplateStreamResponse,
   BroadcastTransactionRequest,
@@ -75,6 +72,8 @@ import {
   GetNetworkInfoResponse,
   GetNodeStatusRequest,
   GetNodeStatusResponse,
+  GetNotesRequest,
+  GetNotesResponse,
   GetNoteWitnessRequest,
   GetNoteWitnessResponse,
   GetPeerMessagesRequest,
@@ -91,10 +90,14 @@ import {
   GetTransactionResponse,
   GetTransactionStreamRequest,
   GetTransactionStreamResponse,
+  GetWalletAssetRequest,
+  GetWalletAssetResponse,
   GetWorkersStatusRequest,
   GetWorkersStatusResponse,
   ImportAccountRequest,
   ImportResponse,
+  IsValidPublicAddressRequest,
+  IsValidPublicAddressResponse,
   MintAssetRequest,
   MintAssetResponse,
   OnGossipRequest,
@@ -127,20 +130,10 @@ import {
   UseAccountRequest,
   UseAccountResponse,
 } from '../routes'
-import {
-  IsValidPublicAddressRequest,
-  IsValidPublicAddressResponse,
-} from '../routes/chain/isValidPublicAddress'
-import { GetWalletAssetRequest, GetWalletAssetResponse } from '../routes/wallet/getAsset'
-import { GetNotesRequest, GetNotesResponse } from '../routes/wallet/getNotes'
+import { RpcResponse, RpcResponseEnded } from '../response'
+import { ApiNamespace } from '../routes'
 
 export abstract class RpcClient {
-  readonly logger: Logger
-
-  constructor(logger: Logger) {
-    this.logger = logger
-  }
-
   abstract request<TEnd = unknown, TStream = unknown>(
     route: string,
     data?: unknown,

@@ -4,7 +4,7 @@
 import net from 'net'
 import { Assert } from '../../assert'
 import { Event } from '../../event'
-import { createRootLogger, Logger } from '../../logger'
+import { Logger } from '../../logger'
 import { ErrorUtils, PromiseUtils, SetTimeoutToken, YupUtils } from '../../utils'
 import {
   MESSAGE_DELIMITER,
@@ -37,12 +37,14 @@ export abstract class RpcSocketClient extends RpcClient {
   readonly connectTo: RpcSocketClientConnectionInfo
   readonly authToken: string | null = null
   readonly messageBuffer: MessageBuffer
+  protected readonly logger: Logger
 
   client: net.Socket | null = null
   isConnected = false
 
-  constructor(connectTo: RpcSocketClientConnectionInfo, logger?: Logger, authToken?: string) {
-    super(logger ?? createRootLogger())
+  constructor(connectTo: RpcSocketClientConnectionInfo, logger: Logger, authToken?: string) {
+    super()
+    this.logger = logger
     this.connectTo = connectTo
     this.authToken = authToken ?? null
     this.messageBuffer = new MessageBuffer()
