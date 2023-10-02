@@ -4,8 +4,8 @@
 import { Assert } from '../../../assert'
 import { ValidationError } from '../../adapters'
 import { RpcSocketClient } from '../../clients'
-import { GetNodeStatusResponse, GetStatusRequestSchema } from '../node/getStatus'
 import { ApiNamespace } from '../namespaces'
+import { GetNodeStatusResponse, GetStatusRequestSchema } from '../node/getStatus'
 import { routes } from '../router'
 
 routes.register<typeof GetStatusRequestSchema, GetNodeStatusResponse>(
