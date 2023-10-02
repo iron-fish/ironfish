@@ -195,23 +195,20 @@ export abstract class RpcClient {
       params: CreateAccountRequest,
     ): Promise<RpcResponseEnded<CreateAccountResponse>> => {
       return this.request<CreateAccountResponse>(
-        `${ApiNamespace.wallet}/createAccount`,
+        `${ApiNamespace.wallet}/create`,
         params,
       ).waitForEnd()
     },
 
     useAccount: (params: UseAccountRequest): Promise<RpcResponseEnded<UseAccountResponse>> => {
-      return this.request<UseAccountResponse>(
-        `${ApiNamespace.wallet}/useAccount`,
-        params,
-      ).waitForEnd()
+      return this.request<UseAccountResponse>(`${ApiNamespace.wallet}/use`, params).waitForEnd()
     },
 
     renameAccount: (
       params: RenameAccountRequest,
     ): Promise<RpcResponseEnded<RenameAccountResponse>> => {
       return this.request<RenameAccountResponse>(
-        `${ApiNamespace.wallet}/renameAccount`,
+        `${ApiNamespace.wallet}/rename`,
         params,
       ).waitForEnd()
     },
@@ -220,7 +217,7 @@ export abstract class RpcClient {
       params: RemoveAccountRequest,
     ): Promise<RpcResponseEnded<RemoveAccountResponse>> => {
       return this.request<RemoveAccountResponse>(
-        `${ApiNamespace.wallet}/removeAccount`,
+        `${ApiNamespace.wallet}/remove`,
         params,
       ).waitForEnd()
     },

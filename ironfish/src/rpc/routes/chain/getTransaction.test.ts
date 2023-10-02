@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { useMinerBlockFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
+import { CurrencyUtils } from '../../../utils'
 import { RpcRequestError } from '../../clients'
 import { GetTransactionResponse } from './getTransaction'
 import { RpcSpend } from './types'
@@ -42,7 +43,7 @@ describe('Route chain/getTransaction', () => {
     }))
 
     expect(response.content).toMatchObject({
-      fee: Number(transaction.fee()),
+      fee: CurrencyUtils.encode(transaction.fee()),
       expiration: transaction.expiration(),
       notesCount: 1,
       spendsCount: 0,
@@ -88,7 +89,7 @@ describe('Route chain/getTransaction', () => {
     }))
 
     expect(response.content).toMatchObject({
-      fee: Number(transaction.fee()),
+      fee: CurrencyUtils.encode(transaction.fee()),
       expiration: transaction.expiration(),
       notesCount: 1,
       spendsCount: 0,

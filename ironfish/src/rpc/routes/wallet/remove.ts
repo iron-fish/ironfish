@@ -1,16 +1,26 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-
-/**
- * NOTE: This endpoint will be deprecated in favor of `POST /wallet/useAccount` because
- * this endpoint does not follow the convention that all of our endpoints should follow which
- * is the verbObject naming convention. For example, `POST /wallet/burnAsset` burns an asset.
- */
-
+import * as yup from 'yup'
 import { ApiNamespace, routes } from '../router'
-import { RemoveAccountRequestSchema, RemoveAccountResponse } from './removeAccount'
 import { getAccount } from './utils'
+
+export type RemoveAccountRequest = { account: string; confirm?: boolean; wait?: boolean }
+export type RemoveAccountResponse = { needsConfirm?: boolean }
+
+export const RemoveAccountRequestSchema: yup.ObjectSchema<RemoveAccountRequest> = yup
+  .object({
+    account: yup.string().defined(),
+    confirm: yup.boolean().optional(),
+    wait: yup.boolean().optional(),
+  })
+  .defined()
+
+export const RemoveAccountResponseSchema: yup.ObjectSchema<RemoveAccountResponse> = yup
+  .object({
+    needsConfirm: yup.boolean().optional(),
+  })
+  .defined()
 
 routes.register<typeof RemoveAccountRequestSchema, RemoveAccountResponse>(
   `${ApiNamespace.wallet}/remove`,

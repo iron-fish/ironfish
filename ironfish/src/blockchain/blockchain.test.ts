@@ -9,7 +9,6 @@ import { FullNode } from '../node'
 import { Block, Note } from '../primitives'
 import { NoteEncrypted } from '../primitives/noteEncrypted'
 import { RawTransaction } from '../primitives/rawTransaction'
-import { TransactionVersion } from '../primitives/transaction'
 import {
   createNodeTest,
   useAccountFixture,
@@ -1117,7 +1116,6 @@ describe('Blockchain', () => {
 
         const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
         const mintData = {
-          creator: asset.creator().toString('hex'),
           name: asset.name().toString('utf8'),
           metadata: asset.metadata().toString('utf8'),
           value: 10n,
@@ -1146,60 +1144,6 @@ describe('Blockchain', () => {
           creator: asset.creator(),
           owner: asset.creator(),
           supply: 10n,
-        })
-      })
-
-      describe('with transferOwnershipTo', () => {
-        it('changes the ownership of an asset in the database', async () => {
-          const { node: nodeA } = await nodeTest.createSetup()
-          const { node: nodeB } = await nodeTest.createSetup()
-          const accountA = await useAccountFixture(nodeA.wallet, 'accountA')
-          const accountB = await useAccountFixture(nodeB.wallet, 'accountB')
-          expect(accountA.publicAddress).not.toEqual(accountB.publicAddress)
-
-          const asset = new Asset(accountA.publicAddress, 'mint-asset', 'metadata')
-          const assetId = asset.id()
-
-          // Mint an asset from accountA. Initially, both the owner and creator
-          // should be set to accountA
-
-          const block1 = await useMintBlockFixture({
-            node: nodeA,
-            account: accountA,
-            asset,
-            value: 10n,
-          })
-          await expect(nodeA.chain).toAddBlock(block1)
-          await expect(nodeB.chain).toAddBlock(block1)
-
-          const mintedAsset1 = await nodeA.chain.getAssetById(assetId)
-          expect(mintedAsset1).toEqual(await nodeB.chain.getAssetById(assetId))
-          expect(mintedAsset1).toMatchObject({
-            creator: Buffer.from(accountA.publicAddress, 'hex'),
-            owner: Buffer.from(accountA.publicAddress, 'hex'),
-            supply: 10n,
-          })
-
-          // Now change the ownership of the asset from accountA to accountB.
-          // Creator should stay the same, but owner should change
-
-          const block2 = await useMintBlockFixture({
-            node: nodeA,
-            account: accountA,
-            asset,
-            value: 20n,
-            transferOwnershipTo: accountB.publicAddress,
-          })
-          await expect(nodeA.chain).toAddBlock(block2)
-          await expect(nodeB.chain).toAddBlock(block2)
-
-          const mintedAsset2 = await nodeA.chain.getAssetById(assetId)
-          expect(mintedAsset2).toEqual(await nodeB.chain.getAssetById(assetId))
-          expect(mintedAsset2).toMatchObject({
-            creator: Buffer.from(accountA.publicAddress, 'hex'),
-            owner: Buffer.from(accountB.publicAddress, 'hex'),
-            supply: 30n,
-          })
         })
       })
     })
@@ -1341,47 +1285,6 @@ describe('Blockchain', () => {
         const mintedAsset = await node.chain.getAssetById(asset.id())
         expect(mintedAsset).toMatchObject({
           supply: mintValueA,
-        })
-      })
-
-      it('should restore the original owner', async () => {
-        const { node: nodeA } = await nodeTest.createSetup()
-        const { node: nodeB } = await nodeTest.createSetup()
-        const accountA = await useAccountFixture(nodeA.wallet, 'accountA')
-        const accountB = await useAccountFixture(nodeB.wallet, 'accountB')
-        expect(accountA.publicAddress).not.toEqual(accountB.publicAddress)
-
-        const asset = new Asset(accountA.publicAddress, 'mint-asset', 'metadata')
-        const assetId = asset.id()
-
-        const block1 = await useMintBlockFixture({
-          node: nodeA,
-          account: accountA,
-          asset,
-          value: 10n,
-        })
-        await expect(nodeA.chain).toAddBlock(block1)
-        await expect(nodeB.chain).toAddBlock(block1)
-
-        const block2 = await useMintBlockFixture({
-          node: nodeA,
-          account: accountA,
-          asset,
-          value: 20n,
-          transferOwnershipTo: accountB.publicAddress,
-        })
-        await expect(nodeA.chain).toAddBlock(block2)
-        await expect(nodeB.chain).toAddBlock(block2)
-
-        await nodeA.chain.removeBlock(block2.header.hash)
-        await nodeB.chain.removeBlock(block2.header.hash)
-
-        const mintedAsset = await nodeA.chain.getAssetById(assetId)
-        expect(mintedAsset).toEqual(await nodeB.chain.getAssetById(assetId))
-        expect(mintedAsset).toMatchObject({
-          creator: Buffer.from(accountA.publicAddress, 'hex'),
-          owner: Buffer.from(accountA.publicAddress, 'hex'),
-          supply: 10n,
         })
       })
     })
@@ -1689,11 +1592,11 @@ describe('Blockchain', () => {
           const witness = await node.chain.notes.witness(note.index)
           Assert.isNotNull(witness)
 
-          const rawBurn = new RawTransaction(TransactionVersion.V2)
+          const rawBurn = new RawTransaction()
           rawBurn.spends = [{ note: note.note, witness }]
           rawBurn.burns = [{ assetId, value: BigInt(2) }]
 
-          const rawSend = new RawTransaction(TransactionVersion.V2)
+          const rawSend = new RawTransaction()
           rawSend.spends = [{ note: note.note, witness }]
           rawSend.outputs = [
             {

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::errors::{IronfishError, IronfishErrorKind};
+use crate::errors::IronfishError;
 use crate::serializing::{bytes_to_hex, hex_to_bytes, read_scalar};
 
 pub use bip39::Language;
@@ -81,7 +81,7 @@ impl SaplingKey {
             jubjub::Fr::from_bytes_wide(&Self::convert_key(spending_key, 0));
 
         if spend_authorizing_key == jubjub::Fr::zero() {
-            return Err(IronfishError::new(IronfishErrorKind::IllegalValue));
+            return Err(IronfishError::IllegalValue);
         }
 
         let proof_authorizing_key =
@@ -123,7 +123,7 @@ impl SaplingKey {
     /// Load a key from a string of hexadecimal digits
     pub fn from_hex(value: &str) -> Result<Self, IronfishError> {
         match hex_to_bytes(value) {
-            Err(_) => Err(IronfishError::new(IronfishErrorKind::InvalidPaymentAddress)),
+            Err(_) => Err(IronfishError::InvalidPaymentAddress),
             Ok(bytes) => Self::new(bytes),
         }
     }
@@ -151,7 +151,7 @@ impl SaplingKey {
     pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
         let num_bytes_written = writer.write(&self.spending_key)?;
         if num_bytes_written != SPEND_KEY_SIZE {
-            return Err(IronfishError::new(IronfishErrorKind::InvalidData));
+            return Err(IronfishError::InvalidData);
         }
 
         Ok(())
@@ -176,13 +176,13 @@ impl SaplingKey {
     /// using bip-32 and bip-39 if desired.
     pub fn to_words(&self, language: Language) -> Result<Mnemonic, IronfishError> {
         Mnemonic::from_entropy(&self.spending_key, language)
-            .map_err(|_| IronfishError::new(IronfishErrorKind::InvalidEntropy))
+            .map_err(|_| IronfishError::InvalidEntropy)
     }
 
     /// Takes a bip-39 phrase as a string and turns it into a SaplingKey instance
     pub fn from_words(words: String, language: Language) -> Result<Self, IronfishError> {
         let mnemonic = Mnemonic::from_phrase(&words, language)
-            .map_err(|_| IronfishError::new(IronfishErrorKind::InvalidMnemonicString))?;
+            .map_err(|_| IronfishError::InvalidMnemonicString)?;
         let bytes = mnemonic.entropy();
         let mut byte_arr = [0; SPEND_KEY_SIZE];
         byte_arr.clone_from_slice(&bytes[0..SPEND_KEY_SIZE]);
@@ -261,7 +261,7 @@ impl SaplingKey {
         // Drop the last five bits, so it can be interpreted as a scalar.
         hash_result[31] &= 0b0000_0111;
         if hash_result == [0; 32] {
-            return Err(IronfishError::new(IronfishErrorKind::InvalidViewingKey));
+            return Err(IronfishError::InvalidViewingKey);
         }
         let scalar = read_scalar(&hash_result[..])?;
         Ok(scalar)

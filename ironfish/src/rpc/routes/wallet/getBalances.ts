@@ -16,6 +16,10 @@ export interface GetBalancesResponse {
   account: string
   balances: {
     assetId: string
+    assetName: string
+    assetCreator: string
+    assetOwner: string
+    assetVerification: AssetVerification
     confirmed: string
     unconfirmed: string
     unconfirmedCount: number
@@ -24,22 +28,6 @@ export interface GetBalancesResponse {
     available: string
     blockHash: string | null
     sequence: number | null
-    /**
-     * @deprecated Please use getAsset endpoint to get this information
-     */
-    assetName: string
-    /**
-     * @deprecated Please use getAsset endpoint to get this information
-     */
-    assetCreator: string
-    /**
-     * @deprecated Please use getAsset endpoint to get this information
-     * */
-    assetOwner: string
-    /**
-     * @deprecated Please use getAsset endpoint to get this information
-     * */
-    assetVerification: AssetVerification
   }[]
 }
 

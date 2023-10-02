@@ -16,8 +16,6 @@ describe('Miners reward', () => {
     targetBucketTimeInSeconds: 10,
     maxBlockSizeBytes: 512 * 1024,
     minFee: 1,
-    enableAssetOwnership: 1,
-    enforceSequentialBlockTime: 3,
   }
 
   beforeAll(() => {

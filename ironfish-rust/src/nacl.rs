@@ -9,7 +9,7 @@ use crypto_box::{
 };
 use rand::RngCore;
 
-use crate::errors::{IronfishError, IronfishErrorKind};
+use crate::errors::IronfishError;
 
 pub const KEY_LENGTH: usize = crypto_box::KEY_SIZE;
 pub const NONCE_LENGTH: usize = 24;
@@ -57,7 +57,7 @@ pub fn unbox_message(
     recipient_secret_key: [u8; KEY_LENGTH],
 ) -> Result<String, IronfishError> {
     if nonce.len() != NONCE_LENGTH {
-        return Err(IronfishError::new(IronfishErrorKind::InvalidNonceLength));
+        return Err(IronfishError::InvalidNonceLength);
     }
 
     let nonce = GenericArray::from_slice(nonce);

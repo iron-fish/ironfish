@@ -3,10 +3,34 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
-import { PeerNetwork } from '../../../network'
+import { Connection, PeerNetwork } from '../../../network'
+import { Features } from '../../../network/peers/peerFeatures'
 import { FullNode } from '../../../node'
-import { ConnectionState, RpcPeerResponse, RpcPeerResponseSchema } from '../../types'
 import { ApiNamespace, routes } from '../router'
+
+type ConnectionState = Connection['state']['type'] | ''
+
+export type PeerResponse = {
+  state: string
+  identity: string | null
+  version: number | null
+  head: string | null
+  sequence: number | null
+  work: string | null
+  agent: string | null
+  name: string | null
+  address: string | null
+  port: number | null
+  error: string | null
+  connections: number
+  connectionWebSocket: ConnectionState
+  connectionWebSocketError: string
+  connectionWebRTC: ConnectionState
+  connectionWebRTCError: string
+  networkId: number | null
+  genesisBlockHash: string | null
+  features: Features | null
+}
 
 export type GetPeersRequest =
   | undefined
@@ -15,7 +39,7 @@ export type GetPeersRequest =
     }
 
 export type GetPeersResponse = {
-  peers: RpcPeerResponse[]
+  peers: Array<PeerResponse>
 }
 
 export const GetPeersRequestSchema: yup.ObjectSchema<GetPeersRequest> = yup
@@ -27,7 +51,38 @@ export const GetPeersRequestSchema: yup.ObjectSchema<GetPeersRequest> = yup
 
 export const GetPeersResponseSchema: yup.ObjectSchema<GetPeersResponse> = yup
   .object({
-    peers: yup.array(RpcPeerResponseSchema).defined(),
+    peers: yup
+      .array(
+        yup
+          .object({
+            state: yup.string().defined(),
+            address: yup.string().nullable().defined(),
+            port: yup.number().nullable().defined(),
+            identity: yup.string().nullable().defined(),
+            name: yup.string().nullable().defined(),
+            head: yup.string().nullable().defined(),
+            work: yup.string().nullable().defined(),
+            sequence: yup.number().nullable().defined(),
+            version: yup.number().nullable().defined(),
+            agent: yup.string().nullable().defined(),
+            error: yup.string().nullable().defined(),
+            connections: yup.number().defined(),
+            connectionWebSocket: yup.string<ConnectionState>().defined(),
+            connectionWebSocketError: yup.string().defined(),
+            connectionWebRTC: yup.string<ConnectionState>().defined(),
+            connectionWebRTCError: yup.string().defined(),
+            networkId: yup.number().nullable().defined(),
+            genesisBlockHash: yup.string().nullable().defined(),
+            features: yup
+              .object({
+                syncing: yup.boolean().defined(),
+              })
+              .nullable()
+              .defined(),
+          })
+          .defined(),
+      )
+      .defined(),
   })
   .defined()
 
@@ -64,8 +119,8 @@ routes.register<typeof GetPeersRequestSchema, GetPeersResponse>(
   },
 )
 
-function getPeers(network: PeerNetwork): RpcPeerResponse[] {
-  const result: RpcPeerResponse[] = []
+function getPeers(network: PeerNetwork): PeerResponse[] {
+  const result: PeerResponse[] = []
 
   for (const peer of network.peerManager.peers) {
     let connections = 0

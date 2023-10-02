@@ -1140,33 +1140,27 @@ export class WalletDB {
     tx?: IDatabaseTransaction,
   ): Promise<AssetValue | undefined> {
     if (assetId.equals(Asset.nativeId())) {
-      return this.nativeAssetValue()
+      return {
+        createdTransactionHash: GENESIS_BLOCK_PREVIOUS,
+        id: Asset.nativeId(),
+        metadata: Buffer.from('Native asset of Iron Fish blockchain', 'utf8'),
+        name: Buffer.from('$IRON', 'utf8'),
+        nonce: 0,
+        creator: Buffer.from('Iron Fish', 'utf8'),
+        owner: Buffer.from('Iron Fish', 'utf8'),
+        blockHash: null,
+        sequence: null,
+        supply: null,
+      }
     }
     return this.assets.get([account.prefix, assetId], tx)
   }
 
   async *loadAssets(account: Account, tx?: IDatabaseTransaction): AsyncGenerator<AssetValue> {
-    yield this.nativeAssetValue()
-
     for await (const asset of this.assets.getAllValuesIter(tx, account.prefixRange, {
       ordered: true,
     })) {
       yield asset
-    }
-  }
-
-  private nativeAssetValue(): AssetValue {
-    return {
-      createdTransactionHash: GENESIS_BLOCK_PREVIOUS,
-      id: Asset.nativeId(),
-      metadata: Buffer.from('Native asset of Iron Fish blockchain', 'utf8'),
-      name: Buffer.from('$IRON', 'utf8'),
-      nonce: 0,
-      creator: Buffer.from('Iron Fish', 'utf8'),
-      owner: Buffer.from('Iron Fish', 'utf8'),
-      blockHash: null,
-      sequence: null,
-      supply: null,
     }
   }
 

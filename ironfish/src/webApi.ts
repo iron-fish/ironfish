@@ -68,7 +68,7 @@ export class WebApi {
       difficulty: block.difficulty,
       size: block.size,
       graffiti: block.graffiti,
-      main: type === 'connected',
+      main: block.main,
       transactions: block.transactions,
       work: block.work,
     }))
@@ -98,8 +98,8 @@ export class WebApi {
           id: mint.asset.id().toString('hex'),
           metadata: BufferUtils.toHuman(mint.asset.metadata()),
           name: BufferUtils.toHuman(mint.asset.name()),
-          creator: mint.asset.creator().toString('hex'),
-          owner: mint.owner.toString('hex'),
+          // TODO(mat) IFL-1357: Rename this when the API is updated; will need to be released together
+          owner: mint.asset.creator().toString('hex'),
           value: mint.value.toString(),
         })),
         burns: transaction.burns.map((burn) => ({

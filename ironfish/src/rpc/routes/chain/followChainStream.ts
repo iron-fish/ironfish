@@ -9,8 +9,8 @@ import { FullNode } from '../../../node'
 import { Block, BlockHeader } from '../../../primitives'
 import { BlockHashSerdeInstance } from '../../../serde'
 import { BufferUtils, PromiseUtils } from '../../../utils'
-import { RpcBlock, RpcBlockSchema, serializeRpcBlockHeader } from '../../types'
 import { ApiNamespace, routes } from '../router'
+import { RpcTransaction, RpcTransactionSchema } from './types'
 
 export type FollowChainStreamRequest =
   | {
@@ -26,11 +26,18 @@ export type FollowChainStreamResponse = {
   head: {
     sequence: number
   }
-  block: RpcBlock & {
-    /**
-     * @deprecated this can be derived from the type
-     */
+  block: {
+    hash: string
+    sequence: number
+    previous: string
+    graffiti: string
+    difficulty: string
+    size: number
+    timestamp: number
+    work: string
     main: boolean
+    noteSize: number | null
+    transactions: RpcTransaction[]
   }
 }
 
@@ -51,13 +58,21 @@ export const FollowChainStreamResponseSchema: yup.ObjectSchema<FollowChainStream
         sequence: yup.number().defined(),
       })
       .defined(),
-    block: RpcBlockSchema.concat(
-      yup
-        .object({
-          main: yup.boolean().defined(),
-        })
-        .defined(),
-    ),
+    block: yup
+      .object({
+        hash: yup.string().defined(),
+        sequence: yup.number().defined(),
+        previous: yup.string().defined(),
+        timestamp: yup.number().defined(),
+        graffiti: yup.string().defined(),
+        size: yup.number().defined(),
+        work: yup.string().defined(),
+        main: yup.boolean().defined(),
+        difficulty: yup.string().defined(),
+        noteSize: yup.number().nullable().defined(),
+        transactions: yup.array(RpcTransactionSchema).defined(),
+      })
+      .defined(),
   })
   .defined()
 
@@ -78,18 +93,15 @@ routes.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
 
     const send = (block: Block, type: 'connected' | 'disconnected' | 'fork') => {
       const transactions = block.transactions.map((transaction) => ({
-        serialized: request.data?.serialized
-          ? transaction.serialize().toString('hex')
-          : undefined,
-        signature: transaction.transactionSignature().toString('hex'),
+        ...(request.data?.serialized
+          ? { serialized: transaction.serialize().toString('hex') }
+          : {}),
         hash: BlockHashSerdeInstance.serialize(transaction.hash()),
         size: getTransactionSize(transaction),
         fee: Number(transaction.fee()),
         expiration: transaction.expiration(),
         notes: transaction.notes.map((note) => ({
           commitment: note.hash().toString('hex'),
-          hash: note.hash().toString('hex'),
-          serialized: note.serialize().toString('hex'),
         })),
         spends: transaction.spends.map((spend) => ({
           nullifier: spend.nullifier.toString('hex'),
@@ -103,18 +115,12 @@ routes.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
           creator: mint.asset.creator().toString('hex'),
           value: mint.value.toString(),
           transferOwnershipTo: mint.transferOwnershipTo?.toString('hex'),
-          assetId: mint.asset.id().toString('hex'),
-          assetName: mint.asset.name().toString('hex'),
         })),
         burns: transaction.burns.map((burn) => ({
           id: burn.assetId.toString('hex'),
-          assetId: burn.assetId.toString('hex'),
           value: burn.value.toString(),
-          assetName: '',
         })),
       }))
-
-      const blockHeaderResponse = serializeRpcBlockHeader(block.header)
 
       request.stream({
         type: type,
@@ -122,9 +128,16 @@ routes.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
           sequence: node.chain.head.sequence,
         },
         block: {
-          ...blockHeaderResponse,
+          hash: block.header.hash.toString('hex'),
+          sequence: block.header.sequence,
+          previous: block.header.previousBlockHash.toString('hex'),
+          graffiti: BufferUtils.toHuman(block.header.graffiti),
           size: getBlockSize(block),
+          work: block.header.work.toString(),
           main: type === 'connected',
+          timestamp: block.header.timestamp.valueOf(),
+          difficulty: block.header.target.toDifficulty().toString(),
+          noteSize: block.header.noteSize,
           transactions,
         },
       })

@@ -3,11 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::{
-    assets::asset_identifier::AssetIdentifier,
-    errors::{IronfishError, IronfishErrorKind},
-    keys::PUBLIC_ADDRESS_SIZE,
-    util::str_to_array,
-    ViewKey,
+    assets::asset_identifier::AssetIdentifier, errors::IronfishError, keys::PUBLIC_ADDRESS_SIZE,
+    util::str_to_array, ViewKey,
 };
 
 use super::{
@@ -333,7 +330,7 @@ impl<'a> Note {
         if commitment == self.commitment_point() {
             Ok(())
         } else {
-            Err(IronfishError::new(IronfishErrorKind::InvalidCommitment))
+            Err(IronfishError::InvalidCommitment)
         }
     }
 

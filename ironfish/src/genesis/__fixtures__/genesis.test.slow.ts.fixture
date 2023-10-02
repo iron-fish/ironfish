@@ -2,48 +2,48 @@
   "Create genesis block Can generate a valid genesis block": [
     {
       "version": 2,
-      "id": "d83df599-516d-4b44-886c-eb779e5a871a",
+      "id": "3430c612-2556-461b-9170-b5d4b2317840",
       "name": "test",
-      "spendingKey": "13bd3b20b3a882ec5079f7c3df899ca892f18f385c9a7956460891a1a56ff4ee",
-      "viewKey": "27929b91f79114b010c6b7be247f1f785a83ecaeae0e8492b0d188a8906457890c4f0505e17214b1e735523f9b7417d6247a0bc5bace20a81bd142e5af248413",
-      "incomingViewKey": "f389febdb908087af40b313b200b550de17e9b0bb5ac6835283774972611c100",
-      "outgoingViewKey": "cbde5c39a96175e5fe971be07e3e0c15c5e6898dfc3104feb5cec7e1b29e3e17",
-      "publicAddress": "dde921710f53d47e3a5e009fc8795df8e596e9bdd15c457734b33c817b92fee8",
+      "spendingKey": "fa9d573a216216b84e0d8eefd559efd249620e1d17e7cf1e2cecde921a47119d",
+      "viewKey": "b9d03514c53c7c4b86b7f9eba88f72af6af8b1db052495243ebe6fdea6c630bca1f644fb34fdd0abd65fd4d7ab20ea7501da3ead5910d05cace3fdf1c0d3238d",
+      "incomingViewKey": "ce6fd6a691d4ff526f5e94961086273f2af6387a6b4652548c153106944b8500",
+      "outgoingViewKey": "691ecada387adc4d18505645c09b0af8e148dd92fbda3d3c33ea034364551788",
+      "publicAddress": "56ae8955e7660b48b4f11547a989bc06b0ebdf5bedee82c557d4c62b2f6dcf72",
       "createdAt": null
     }
   ],
   "addGenesisTransaction Can create a new genesis block with an added transaction": [
     {
       "version": 2,
-      "id": "d7b2d207-5d94-47e4-84da-b6fe0c7d3e0c",
+      "id": "b3a57b8c-5750-45b5-a643-7544eed41112",
       "name": "account1",
-      "spendingKey": "b0aa58f8e200aa2661a062af92e9678ff6169f4773620a3611125dda547db42f",
-      "viewKey": "c2ec1285ccc88da4c7e6e9514c1600ff7e5122b82400abb1ffcb7ad57f4f229344e80a860635e7aae172a45f2fd01e99f66439156a28f8b1d0a05a962c26c1a0",
-      "incomingViewKey": "6ec1c3fb30df6e0f2736edf0b8ee53e75f767681f968dd629ef3ee234c7c5204",
-      "outgoingViewKey": "a7ff3698a870436acb7dcd0c427741c26f25e6a40bdb32444098307727a8087f",
-      "publicAddress": "59d7877eac4e0803b9d71e90029dfb2bcbc4066428c97327487a8ac6cb6d672c",
+      "spendingKey": "32856e2d55e2dd4b06168f7d04c6720c980d4dc9438dcbb92eec81957d11c8f3",
+      "viewKey": "980493692f5061f18295ba40fc905e482c2225783a4c72f09482661eb0bc2448b3b75323fd35a5ab0f9b9a34bfa5fc68c2517eb0b7994010e2bfaf49fc9438bd",
+      "incomingViewKey": "241479f156d76922f5981c14690b80d7180457ecb959810f0015f54af333fc00",
+      "outgoingViewKey": "7467c44995086f235416ede5d5b37417048232a7c4497f2e11fba5e651e87cc3",
+      "publicAddress": "3e47a42bd26fd2bce6f7793d77c656329f865f63fdd2af57606627a191b89170",
       "createdAt": null
     },
     {
       "version": 2,
-      "id": "3c837829-f3b7-4dc6-987f-dc2ad1adc402",
+      "id": "39e5507c-2145-4bce-b0a5-d12f53cbc2e7",
       "name": "account2",
-      "spendingKey": "b96a596660507af40cd11d2a040bc114169a8a33ca88a54284c01cba4bede498",
-      "viewKey": "b7cd0155b8a7be63b2afd3c8366154e4c6e32a69767260dc01712db628215367300694c69175b4aa21012fe4b3efb04b7eb9b5e80b6d6fd9b4e4bf48f53cc2d6",
-      "incomingViewKey": "abd9b58d920ce93b194239ca5fd2ab8b41c19a15f785cb3c25480752e29b5d01",
-      "outgoingViewKey": "cb3a7f42592c0d230779565116464ac050da1180b7751733f85426d48557792e",
-      "publicAddress": "27fd940af4f145243a44328224380638c45d3e23cdb51df084321553f9507173",
+      "spendingKey": "0a07ac6737eb879f3cb1d4afc90f1721565322cf2a671ca3e41e6ef7b6596c76",
+      "viewKey": "e623673d2d81ab8a523dc69a6ab0048e66e72bb1df43add147262e0a01d9fe00262ef3b89685bbf780766c8be14801036547111f22462225fc40c290336c6020",
+      "incomingViewKey": "02269f083ad709db6466490b37a0d32aa33e73510af0ad73002deb3770d42c04",
+      "outgoingViewKey": "93c158620540a118cdb4d756a2941264621d2d046a83b8a8ae188863dcceb390",
+      "publicAddress": "0cecf355ee66d88ff761fe14f5b2bff9847552a62357f315ca9d8131e9fd05ef",
       "createdAt": null
     },
     {
       "version": 2,
-      "id": "a03ba32d-7fde-4b61-9411-b9d31f2f9f7e",
+      "id": "cb1fe310-0281-4865-b29f-65b05e490172",
       "name": "account3",
-      "spendingKey": "df27cb8887e51f0e7cd347d939508035d11de2e3e038cfdc1c4e3fad56f07c18",
-      "viewKey": "2a18f0beb0358185b3c8f228e2b521b7a79e411fe8e0d0da6b0743a43f3b9a50cd03d89c38bad27058f31ba181d7691d09dd1fc56fcc964551f6bdbc5f88cb65",
-      "incomingViewKey": "a7f69baaaefe09cb18954e5adb25093e0dcae6f42271c859bb7d2a77138e9504",
-      "outgoingViewKey": "89e8ee9bd62ee7165f7297fc3c4dc352e685a84176a4de4c5520f37d7e26eec6",
-      "publicAddress": "cc917ca07a474f8cf3bb00ead87525223950ae4a410079947b59348d5b9bf226",
+      "spendingKey": "7e25df73cd0549147d5f13253cb4d0a740212d824d99cd793bd14b6610609afa",
+      "viewKey": "bfc3088de9027c19cf2d34ef47c5a1b57ac88a2d594d4cb4b1a9a4a02cff211d809e652b6d876236e9101b08fd9bb8214d9b826a99e631453c165fe756806ec7",
+      "incomingViewKey": "ce3b2983dcaf76dac65e38f509150fdcc816d34c92afab7c667fc4b1e7584f02",
+      "outgoingViewKey": "e7eaad87fc005112a37a0a4ea7f9f364452eb72c9e5cac74fbd8d9f1041abcf9",
+      "publicAddress": "0308cc658ff5a8cce4239d613a50c795b47365402792683b968c11ebad7d8226",
       "createdAt": null
     }
   ]

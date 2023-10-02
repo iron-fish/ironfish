@@ -13,7 +13,7 @@ use crate::{
         asset::Asset,
         asset_identifier::{AssetIdentifier, NATIVE_ASSET},
     },
-    errors::{IronfishError, IronfishErrorKind},
+    errors::IronfishError,
     keys::{PublicAddress, SaplingKey},
     note::Note,
     sapling_bls12::SAPLING,
@@ -63,6 +63,7 @@ pub use version::TransactionVersion;
 
 const SIGNATURE_HASH_PERSONALIZATION: &[u8; 8] = b"IFsighsh";
 const TRANSACTION_SIGNATURE_VERSION: &[u8; 1] = &[0];
+pub const TRANSACTION_VERSION: TransactionVersion = TransactionVersion::V1;
 pub const TRANSACTION_SIGNATURE_SIZE: usize = 64;
 pub const TRANSACTION_PUBLIC_KEY_SIZE: usize = 32;
 pub const TRANSACTION_EXPIRATION_SIZE: usize = 4;
@@ -122,8 +123,12 @@ pub struct ProposedTransaction {
 }
 
 impl ProposedTransaction {
-    pub fn new(spender_key: SaplingKey, version: TransactionVersion) -> Self {
-        Self {
+    pub fn new(spender_key: SaplingKey) -> Self {
+        Self::with_version(spender_key, TRANSACTION_VERSION)
+    }
+
+    pub fn with_version(spender_key: SaplingKey, version: TransactionVersion) -> Self {
+        ProposedTransaction {
             version,
             spends: vec![],
             outputs: vec![],
@@ -218,7 +223,7 @@ impl ProposedTransaction {
             };
 
             if change_amount < 0 {
-                return Err(IronfishError::new(IronfishErrorKind::InvalidBalance));
+                return Err(IronfishError::InvalidBalance);
             }
             if change_amount > 0 {
                 let change_address =
@@ -253,9 +258,7 @@ impl ProposedTransaction {
             || !self.mints.is_empty()
             || !self.burns.is_empty()
         {
-            return Err(IronfishError::new(
-                IronfishErrorKind::InvalidMinersFeeTransaction,
-            ));
+            return Err(IronfishError::InvalidMinersFeeTransaction);
         }
         self.post_miners_fee_unchecked()
     }
@@ -472,7 +475,7 @@ impl ProposedTransaction {
         // the final value balance point. The binding verification key is how verifiers
         // check the consistency of the values in a transaction.
         if value_balance != public_key.0 {
-            return Err(IronfishError::new(IronfishErrorKind::InvalidBalance));
+            return Err(IronfishError::InvalidBalance);
         }
 
         Ok((private_key, public_key))
@@ -724,7 +727,7 @@ impl Transaction {
             &self.binding_signature,
             *VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
         ) {
-            return Err(IronfishError::new(IronfishErrorKind::InvalidSignature));
+            return Err(IronfishError::VerificationFailed);
         }
 
         Ok(())
@@ -739,7 +742,7 @@ fn fee_to_point(value: i64) -> Result<ExtendedPoint, IronfishError> {
     let is_negative = value.is_negative();
     let abs = match value.checked_abs() {
         Some(a) => a as u64,
-        None => return Err(IronfishError::new(IronfishErrorKind::IllegalValue)),
+        None => return Err(IronfishError::IllegalValue),
     };
 
     let mut value_balance = *NATIVE_VALUE_COMMITMENT_GENERATOR * jubjub::Fr::from(abs);
@@ -863,7 +866,7 @@ fn internal_batch_verify_transactions<'a>(
             &spend_public_inputs[..],
         )?
     {
-        return Err(IronfishError::new(IronfishErrorKind::InvalidSpendProof));
+        return Err(IronfishError::VerificationFailed);
     }
     if !output_proofs.is_empty()
         && !verify_proofs_batch(
@@ -873,7 +876,7 @@ fn internal_batch_verify_transactions<'a>(
             &output_public_inputs[..],
         )?
     {
-        return Err(IronfishError::new(IronfishErrorKind::InvalidOutputProof));
+        return Err(IronfishError::VerificationFailed);
     }
     if !mint_proofs.is_empty()
         && !verify_proofs_batch(
@@ -883,7 +886,7 @@ fn internal_batch_verify_transactions<'a>(
             &mint_public_inputs[..],
         )?
     {
-        return Err(IronfishError::new(IronfishErrorKind::InvalidOutputProof));
+        return Err(IronfishError::VerificationFailed);
     }
 
     Ok(())

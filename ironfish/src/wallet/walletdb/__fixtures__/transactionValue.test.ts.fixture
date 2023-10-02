@@ -2,179 +2,131 @@
   "TransactionValueEncoding with a null block hash and sequence serializes the object into a buffer and deserializes to the original object": [
     {
       "version": 2,
-      "id": "ceeae90d-44f7-4970-9d99-0ed27d795add",
+      "id": "8329037b-5116-41a6-95cc-3fb2ac267ac3",
       "name": "test",
-      "spendingKey": "161430aca2067adff327657c12f4d3a0a1de12e2b525c9d49a7b99334cd96707",
-      "viewKey": "1714ca672e383f65846c854a615dc49b849550c79b60310634a2b8345e1f921a7a2f933bf0b860338a87533c98c0c7b54070d4e2d867b1ceb765cff2756bea3b",
-      "incomingViewKey": "902d5a9d28f529671c5e3077f41c7a9e77627103b3a9a8a9e49da8f442269600",
-      "outgoingViewKey": "8df46582440477a898bcc0c4baeeca133500fb4cbc0af8e92a7889d785d65efa",
-      "publicAddress": "42f810d8178d8ecd622bac182176073208cd36679c354d4987f0ae54a55c09b4",
-      "createdAt": {
-        "hash": {
-          "type": "Buffer",
-          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
-        },
-        "sequence": 1
-      }
+      "spendingKey": "b3c57b8ceb0f1e7f30f6136c958426f7f1627d1a24b2bbaa90cf960cb9f1a34c",
+      "viewKey": "8f447c5bafffcba0b7d25fffc0d70ac6ed61bc228896ebd4d2689de5061cf6e4ad28a4a9068c824a9bc006d3ed4c4d88e1fc4024f4e759e626e7e1111c31f252",
+      "incomingViewKey": "5adcc9a29b892711c1a4353d8e7c972b7e9e3e455aad41f7cb2ccd6d683beb02",
+      "outgoingViewKey": "6296f9790d3f4b61c38cf4fc9a0b056172711e5a8224c73f6fe74cae7ba6d4d9",
+      "publicAddress": "6c4050e2eb74091610ec71be4f567ca554e232b0648c1f9fcee5f04995b9f3ef",
+      "createdAt": null
     },
     {
       "type": "Buffer",
-      "data": "base64:AgAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzKiP////8AAAAAJm5tQgbaat8QEQneFQFUolmXmYYvxl4RbVPpSgmLBU6oBAYRVVB/C+kztMA/8oS2gIIhrZ9/1oR1yEmjATINdmR4YBJ6lj917dpYbhbs1xiA5viUek9V5u/L/SAhY2WYkbf8oMt+uqFcNEpRRzoJTfvKULVvFF0Pm98UMHV7fagA9WOpEXRzJOHR62Bax4OW2t/Q3Uw5gzRDAf3BK8V83rnDZqLMa/kf9wQNSiU5kWWtVSO+5gmSD55lEL55cgy26M366CsHByXv3X0aFDFClf2giJSkUujHHXVfkJNtD0fO+KzDC2l0Sr9LPny9XeGMlq8MP9I79/ak1MBW2iWNI9kKTQ/7KV4r+x18yIHrdR481afP/t8EhhsfM3QW64ATMwWTACCtyIAbwIVCY8zX/d+Cb6DCEXBoeaz8AMrqjWyo+EJyhEuWBw+qTI03fE3EJ3JXyqabapxQ7mOfl+EY3qI73LhdSIyLtghk+a5I0xoNrU+QdXJlkB3dMmpoJdUomYO3CVmUDhhqkKOLE3VAtYTa058qov49g/AcjdB3CjbayRq8ekl/5lI+g60DHDw934F5JVZrt+911LHin1sbMNlgmpt093yS0M0IEbO+DTas1+331s+iCklyb24gRmlzaCBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwJKf/apBYk36AY8CcBt+vGOPNtOfTK+vMUne3s34TnB2GNoGyQ45Vw48gglXu6DUMvNOBKkwhvwymm40xg05qBw=="
+      "data": "base64:AQAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzKiP////8AAAAAlmCtoKe9xDz4BuVKdmSUhCVAVoLtgQszzU2UdqxHHjq42iJa02ACTUEEy3p+wRbCgTA5MGUmu1eVcts8JvQ7PahIo/g0KgrSwEB8pcSHYXCVGIMgcyqUW2OyNDajXmHqV23mDeeVTjpuFDq1tbuU+2VK+7JAEBlpK/15YMGeTr4KoYl2TFl1Qwwp6zUCEow4DyybC2jKue3ufNJG9k9k/fxA8vcJEoJx+9n2HGTP5Zq0Ojb3go3TpgxZTSBuUVkhgXIEDBU56q3xf1r7n4mfw/nElu+EmJF4LzXJtKW2qqm44aJCbT0yi4hoPsU8XaUqdGlvCctovbJJ21x/WTqNmXCuM8raay/FXtAyn3n1K3LfqT3OZ+Oo0U6scCUSeqpdoT494L1bIQSiCTX1dZJI9Ibv03FUDqnqDBt77khj/aSp+ewxJW6CH4uvlxLLwAq/dkoudjz1XNPxqQsAVs049AJFTp6+rfRrrDc4iYZWgaQOThx10pOXezJBid/C5VMIW/hALX1ruNYzu8sbmQHODI0TDh4qdLdSrIZLg6UmivsKVUoZeHtRCccrzXsytdzbIHFtkbBZQ49MYgY+j8ANVTy3gy7blfkgn5M/B/fZfb2TwXo+VrPK30lyb24gRmlzaCBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwl3OLe2MsZb31J35jp1HMlFh5oRK/byhGL80biWk84zlCr98DKP8DM63IoMOLp2L1nCOz4JtBi7Xrget2aAdDDA=="
     }
   ],
   "TransactionValueEncoding with a null block hash serializes the object into a buffer and deserializes to the original object": [
     {
       "version": 2,
-      "id": "fbf63f80-f624-48b4-8cd8-5c5a64420bb1",
+      "id": "a7703cf5-678f-456e-aac0-5a13a31d4e1a",
       "name": "test",
-      "spendingKey": "d61b8e87f9bcb6d5ddb777b8d15c3c7dde37ca33f252cc9f8e8a7e783b7c495f",
-      "viewKey": "496ac2cdb09a480561cec2296f03325b13a93e2a9a05109eab638afb01030b8a9953d93cb155fd6007130cf1ab55e58eafee6e36808dbde4ce55add2630f16bc",
-      "incomingViewKey": "6822a96cc175e9a145e96576633dd7b5bca06708ac3ae302cfdb950930b68b06",
-      "outgoingViewKey": "45db4a55128f717fd65b537d05463ed9fb16b6d7a7500e927532f2f9c4db4699",
-      "publicAddress": "2313409e9d2ac73426fa910ae56daaca2c6b687497cddcb747dc73d970739356",
-      "createdAt": {
-        "hash": {
-          "type": "Buffer",
-          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
-        },
-        "sequence": 1
-      }
+      "spendingKey": "ab22391a04defe2fce1db7b0e4b3e50d00b3ed0c3cb79558b94d63851cc5d510",
+      "viewKey": "62cddcc41ccc82ee0cfc2ec3c1b709ed8f14d0f500f4c7a2559f801fb32a75258d77c6df4e130df9d22d067a16c0885a12260a32a49b9b7ebf25e3f58fe31bdf",
+      "incomingViewKey": "e2e23a9296336bd897868f32c8625045ba7c97ab55322401963ebe0eaaf45000",
+      "outgoingViewKey": "863090c768bd448b1433705cb8a16cb86f43fc96a9470fff637bc8d3a59dc0b5",
+      "publicAddress": "2c6e01666a6fbeb05c46ddd16df04e85f168623492d28a15c662b9e32ad8d33f",
+      "createdAt": null
     },
     {
       "type": "Buffer",
-      "data": "base64:AgAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzKiP////8AAAAAFwdEfKn6+j4TDLkI79yJfxW8ALWHBQeW+0cvEyYvWs60iZCo0872tqHKgH1PUSkrLa/Fe0u2br5bINxy9pJtAKwCqJc9t19HoW17jDiTg46y+QGKbZw+BKD0FbHnkdYtL0jDSVpI56KcbB9HP/eXMs90n5fSCl0Z8lKXPCKjQ/wD3jfGdh8a8TfhB1kGvjHOpGzPOSLyIAE6R4xoIqIq/e5uvtvdabN1/7tRK5N5wUSPNmS6cYLkufFw1aeSyfYUmWkDjUZzDni6VuQdzW+EZ2fNBeqCnapgMxoMUA9yiQSy1CdrPQaa7Az67M1jpgYscghrZs+d0X0kH8kUlcWhk6Cq+coVCKxP2RQW8ltYBVO5iqMcGJPLVAW5wMNmH29wCFpS9c8kimpwBHz3290wYkiVYdcJUO+ekfS4C9/Q2ja0FrHuEUjE0U8Ki32n8jmZNpr1DQNpQN6o0VS9DvENWuZVkq5XPlRhTbd5nAuKFTZRuyYZwnQjGpPnle7P1gg9a9HApSC4Twkz9ZM5BNnr1tZlTd6hNmq52TgOWXVovpeNi3fAVVv5e9OSXZe6faGoAkY/7oV9Ql3LLkOnEbQYNVYIWz6LCCF3JXBdoKalErFgBJRhaVqhM0lyb24gRmlzaCBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwmAuBIOpfJKdJKnscH0xW4XWNdzcMLkIdDXSxEZrkJRGe7ZiylLVQLZAUj1mM3H1WMmK1YB8Jnx7ysf4bETJUBw=="
+      "data": "base64:AQAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzKiP////8AAAAA1jbhPcWnJiCOrwaQcuHgR33lvLqkkBRlCtzMW8A/c82Ww/DSY0Yllvt8sAOrA+9JY9yQCnWDU0mmyB869KVpOYZyklCZ0nV7CR9+31m6XReBC9qmc1keXru+DZ3YNBRBunC9KrLzFEAGA4w+jA7OHKElCNB2Cs7tQKQ5KlkVeNwJ194OMKcDhxUEizeo5P3w2dL0NfDCCHLVyER/cakA1ydo8u9d+NzSLU6lznhcGfioRHhAS9S3nK4povJS0dlu6gHay7DQXzM7dFVsEnhAR4HSUKhc0EJOJyo9bTcyEhIotOuueMs3G13TO3Ev3J0anoLs2nTaiz0G95zBWgxzIC54X/uBSt/1wT18cACBk/ppPhoeXJ5kp/wt1NvHtbYlaOXdPE9gv8xvG/sfnLK/3YgkQImrjbLTbFmmuxbIo2X5Q+EkImMqCZF03CA8XWa+4Ojq+Gqp4UueSVUOzfo6Kkp2R30sjMfrr7lHR466AORM2a0HtoL9NZgwIK/RIfOdr25Ss+Yva683ggdRmr4l6Zx1I8/iGDOuN6o2JuuuQ1uldYKu/EytuV2+Sj9o/MgACHqWssB9ZlAiTRRovt/VqUWXD53GIxy8lrHZisPI+N48z0CsHm3zjUlyb24gRmlzaCBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwFkzrRTwzYbNYAOYdpYWO4ky7+kUTECYtTlvwScXlHII8yW86IcA1wTZHDvXb9lDf8n6Ed10J8z7mcqrVXzdQCg=="
     }
   ],
   "TransactionValueEncoding with a null sequence serializes the object into a buffer and deserializes to the original object": [
     {
       "version": 2,
-      "id": "5563b25c-255b-465c-9b9e-91de8aad3bc1",
+      "id": "0ba47808-aad6-4336-89e8-8106b8036a37",
       "name": "test",
-      "spendingKey": "bfb7f5f4c5d18bf9718bea7937dc7ea66ff676e20970a6615a5af8d9a4dd3be4",
-      "viewKey": "3ed8a43b5af94a80f4a982126b0b730452b58b00998bbb000915dae44b85456c2be3e1cdd150a9697e6512601bc9a8e3562428b75244d381a21cdaf2a5b91514",
-      "incomingViewKey": "ca5e2deb49d04472553d250540a2e0fa3e71da483460421f04d51eeb169d3804",
-      "outgoingViewKey": "8b0980660ea7c7164bf8cfcbe6b0eec0391a9a782f86da1cc57ee7b8a7b572b2",
-      "publicAddress": "82e2c4b9124defa92b0ad922b7c8b40910e8042d8edbea1597779bdc9233266f",
-      "createdAt": {
-        "hash": {
-          "type": "Buffer",
-          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
-        },
-        "sequence": 1
-      }
+      "spendingKey": "a88e306bb64a54d772ec1131a57d47824adea1810c12e3a252cc15df4f0ad276",
+      "viewKey": "0401b18ef6f4d892d88eaa5a83b5010cb56f3e3a007e537b382f86ccdf41cf345caacd85d63b75ac16e395024b321abf2fe9f767fbf38092d6833211d1231a97",
+      "incomingViewKey": "40eef366a656ce757263e697e693a384c1f84921e66a70e9995d34f652463007",
+      "outgoingViewKey": "6acd200841627436e8e2c1db377b7c1680fca9723539239d47c170ec43271d7b",
+      "publicAddress": "d906026cb7dce5c3dad5a6a9c45776b8ff7e9d98c18a9ba36a648b1a5ad216a6",
+      "createdAt": null
     },
     {
       "type": "Buffer",
-      "data": "base64:AgAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzKiP////8AAAAAXD0POoNoIQuOo4IKEDeJM+Q8sGgk9GcShSbpV8hE7r+QB2bkuohrK28jq4dujm2r08Ecm5hf48hVoq4ks8Hmgsqt6QqF34Tyq/nETFvxFYiWFxnaALRP8GrKkvqBVgk93t9qedidLM9fw1Jlxp5Bm/JUfyVbnD03wbsig1ghX/ANHaDfReSQdqY6u3JHyRNi+L2yvwVsSgx6DxD1ofOyGwZ0di3c6SQDmRzqOYa/KCyDG9czF1bFYYWTY/8pTAZN93824xW6IhHLLgSNlPftt1z96P/5qU+D9yjPSPID6wAhgkKpJG5kMyGemZYt2TAIsBGCLMQZWwe2BVVtup2tZeUhsrXk24z9xxUNXBaFcbkRkc3kUTTbb78tZfPdyJ9bvFMX1guQniDQXdnKY1IJlFwFfot0JMANB3S2TevfT4Iq6XxffCZKXsGZBgu7Ke5dUCg5MLnT+RoVFcAqWFxM4zBWlax7Swdgix8U399ac0xxImBqPEyXDTSLcZMBdQUa8eZTBwwRHSxnAjyFO9Dah3HRFkpC10pchAI7evuokoaQk3YGuMd/winavr4mVHU8GHdH7wb7fLOlrNZOaSrZgEiDR6ZhiXDAidCl439qALMNGMDn26KXzUlyb24gRmlzaCBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwqxn5Iz1sFX/0/+ikye8hri2pKMNmewA8Zlrf8txyAizxT9rcMk0K0LSoRoa6e22edmWdD6jNRhv61zMlyJYqDg=="
+      "data": "base64:AQAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzKiP////8AAAAAqGu69Uu1hwsKO1+AVsOCJFA3I79YNCcvRpS+r5Y0ns6OQEYqtoZ5HJYmVLSE9hShXO1nhjY73z8faWXxU51PMI0ur822tz7Oi2X0Qz/ZxPqBegv+j6Ceh7LTbc3kvNwkl7YPxQWdp2Ly/5Pt1MPzksM+9yWF6SkidUv2qCR6D1YUD+IaE7gzRZ0GEGidWAnyBOeDp/YRAwvKiXd5LXlbvEC1atVSelsmdibHDoUR43azeFfpi1DRo0luTtEnf3EiCMbBBTuolT5S8XA5SiyOJSemkPjXWk63gglLn44gUYVOu0Hpm14O50xjSdtH4p8r7YOM6fWzJ8XEcqIrdJRaFBo1XnXTTztLxZl+JOVjhRPRlqLIQonS/bIKK1eY7b81tupQvK89Y+DcgC3Lt6NUMfoRzDytGIpFRF1oirDSKyDFoQs++EfLhDyPzPOTVpuWdOuGix2bUC9aACuhK/X2/ycU60g+xTNKCqfot/qL4J81reeNxd2UYFD1LShlM7JD1E32na1l1al43p88O7RUk5ptXBcXmrEFu9oIHoRYpnZpmDevPlfTvC/rbMDgJbVodeRJMzhU4MCL5ECZZ82MfeI5a4BQkWhg4Vn1Ec0dabE8foT4mrpZTUlyb24gRmlzaCBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwVza7fbGw0mX+SMkqUmRCuNbnX5Z9oDNvRLa+xqukXCghsFl3vo//T/kIG7umAAHmrDCg6KvzYr5XMxt52FgPCw=="
     }
   ],
   "TransactionValueEncoding with empty asset balance deltas serializes the object into a buffer and deserializes to the original object": [
     {
       "version": 2,
-      "id": "26aca1ba-602c-4e6e-9628-ea4ab63e5551",
+      "id": "d0fd99b7-fe6f-4637-81c1-4a5342064dfb",
       "name": "test",
-      "spendingKey": "c8830020565d8a09dd0d55f825d16ac9ba34706e88ddb341371765f3d194860b",
-      "viewKey": "6765ac8c6fe4e27611762b1bc0e40930ab0b81700654030ae7401c095554dd8aee6d341eee3092410153f640118bae62a791bd106dd853f37ff532bb8f00ab87",
-      "incomingViewKey": "4968a79d68e1657d5f69188394f872151280048ce5d691ec37ae372f9c9cfa06",
-      "outgoingViewKey": "10dc1972e9cb1a3c4ad8d7e3d048b929311b7290124d6c0911d6419603648fea",
-      "publicAddress": "f07409f2dd4543a85427dee97827e170b07a0c00f65ea74b311b0187f23e0c70",
-      "createdAt": {
-        "hash": {
-          "type": "Buffer",
-          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
-        },
-        "sequence": 1
-      }
+      "spendingKey": "485c1d7eaf7dc90e4d029f8205301f903052dd3a6235a2e1186002ac53eab065",
+      "viewKey": "4e5e6a85886c2c9d39f177bfe79153d80c47990cf28e4db35242f5cfae6aac394c2b7f9f1a6b6751510cd771f1a6d29a4ac5a69688ddfffb29f527edb762a56c",
+      "incomingViewKey": "522b3f4f18c38da5bfffbe2f440a94686493f8e122d703a4074ef86afbf62103",
+      "outgoingViewKey": "b18a3a0af86c1bee8b4443e2e4b1fe873866fa550948235aa71e23992fd7017c",
+      "publicAddress": "3ca7be358e7fbd10b541003821474d1273ceff68f746e0488fe29a4790740e6c",
+      "createdAt": null
     },
     {
       "type": "Buffer",
-      "data": "base64:AgAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzKiP////8AAAAAGIF3sTDbSmPpsf/P6Wt7jSrIwEqHaSoRy2ZySHhlKkG3X/quc8SNivhpQthWkuLZlfLCfB/rdrf+Zh7R38oUWyaMTkoxdzdwYXkujPoTtOGY91O8zJ+xcEKuDknyYCQGlCOvqFdYscfuhx+Vr5n+xR5WtUCIXGM0jjJlK/WAU7cJzfeU1Om9y83dosZuz+mIUjY5Z0dNlkCnA4SYcKzEqJNIBjMbyYauE7pegF5w8FWItvWGXzfM6XLRLubLuAz9BbtohIhyUBN6PQh0eSt1JTZAEOujH2iqU/1jCtfw7kaMoIGytffWyrPxITdzjLU3t9Ep0EToc9a5q7KzsgcQAjBb7wKYMl+6x4xBSWvjxSRkWLg+YWu1GuKaOnYZWP0Q1DrlO2GcKqAVbgSiD5DRQM/LEJYLHP0sP0+P5YhJLuu61GHY3HfRVNgdyX1y2h3jT9mwOs3IjpP65fZhhGatw53L1n9njvRXQoaZXaK2KjtJKnaTa3k3j+AoGpxV6vuoHOtJ7gpcYRqfFv9p6eQT/UHlnz7wBuyeG0x1DX/U4SLK+AHAWEzd6/k2+o3WLbayWbl75FrdZmaCwRA22nWACDfBk7mdF9+ICU509C0DgWS2HB8L2DgjUklyb24gRmlzaCBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwXEFWFZALW8wBpYCg8F2VRWtsFGDGOQMjzdwaSPCP6alr/S2CVQINC6iPMFFVqB6hnkeoD95AUa27U7T7hEFMAg=="
+      "data": "base64:AQAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzKiP////8AAAAAiyyKBr2XT8lJJ/FlNVz7UdfeYxRcyU8QWe1WrWo7idGnZ3lETeoxKSWicT0SMwUyzzCK2Y6O5o+gfK+2yWGOMInvtsvU/obDIqmRhrUTHoaGnFDz1eRMMyhaoKjAwKF9pTf7zF1TEcG00SGNXAyYopgadXuCwb9Sovb4mfH6ynUXJfHG+rblge+u01PWLF5qDUxvLdk7APhA01a/x0EeyE473sds+sXWeHuvts1VOGqqhiJdCsWXDa6CwcjuE2JwGs2xUpnVSXU6XiRun1ZOMK8+iJ7PJIcp7sDV/NLHyFdeaN1Xw4AtbPodySosbs0wtmyHZTZzy7nqOZqy/7SBknDMZj0PGKrZxFiP76DpGiU1Wcg+2kar+cDgENIJbTNZI2wfLe6m6byJYXNNOIE31wB+7zwQDGGdgTGSXOe+AkNTbuXxyz7B612pTVi4u3rysZFg7lgX4jjDqIGkNiwb2Ux3aYSuzNBClNVN9rBDBMpAKisMDTcTskJo9NJe4pptp9R3NGZAM8Akq5MCTW2lV2GMwzEGfm1QvPlNxGD60egZBAquACSF+Pg+E3p6RDJXhrFUoF0h99UATQGM+YOf2GhGNNLBxXgmYhBiS64Z3XmFMfqy2cqtaklyb24gRmlzaCBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwe0gh31VIOJ4v1JiqJAbXGZKF721sc3DshLd/+gH4MGOxnShhU7cMVt9JVxmmvSGBUUdVFNNJjbIFcbqIGLqmCg=="
     }
   ],
   "TransactionValueEncoding with multiple assets serializes the object into a buffer and deserializes to the original object": [
     {
       "version": 2,
-      "id": "8de4f1dc-0c41-49fa-9bb4-6847f1cfab43",
+      "id": "81134bed-a588-4fef-ae04-3e98739edc55",
       "name": "test",
-      "spendingKey": "6a90c4bfcc97c6417c6e1e61fc6abf89351e3f610224a66c844388ee4cb12e4d",
-      "viewKey": "9addf72077786a606288139faa73c36684bb316a884955a130027bc2b37e49d9ff61019ab14c5f2c29e1c8711e2990b7da69657d2514705b896ae67fa37b8360",
-      "incomingViewKey": "516f3b706b483fe678edf19f3ab0d07c6645acaa040358e96d1269162708d703",
-      "outgoingViewKey": "12b528af4d6afd4a06de64df16db5c146a30a62c84bc79c3a360fe7426f56824",
-      "publicAddress": "ec5207319f66ff8f2ff5b3c693fa319cdde077d4b7ebd34c97e060f259f52272",
-      "createdAt": {
-        "hash": {
-          "type": "Buffer",
-          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
-        },
-        "sequence": 1
-      }
+      "spendingKey": "e4a66898504dd90ab3a9fe6c8e18a4fd641ca7247ab274ef3b8560f04daf0136",
+      "viewKey": "29d0061203beef157d2d4d46bb50e6128d35229d696cd2c3729b1b4105199912cc148c69a53a596676d050b776cf731b07f864be35cc5def1f77c5e25838133f",
+      "incomingViewKey": "7d88a1acebc30eb9ff5920a5ad77dcd8dff476781451935464c54701bc0f2307",
+      "outgoingViewKey": "16912d66b264c33f63e5ea9f9176fa5a04a3ddc2396880faa9810c4d361fdfbb",
+      "publicAddress": "9a6d456b140cad4e8fda1ad11e6bf548c2259c5f55a4bd71c203f8f1eab371d6",
+      "createdAt": null
     },
     {
       "type": "Buffer",
-      "data": "base64:AgAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzKiP////8AAAAAIVm0+efRsvJCX5sCr9XdfmlEAGsO+Q9S2jdqYYqwQZGiUSL0krJAZ31UENXg4iSG7mwXhhyYAKcWxn71+9ECXjCKiSzNJutfe1wEKpMH5yuIw3p1oZNNHQMxeEoaXgnaEdGEhw44jn2WuI6I/i0wTCD2gdEAO8HcPq0Sg/mOKEYQ0EUFXaD+1X1JFl2V82i0z0k72xZzfQNayyPc08s4YbiZXmFo0EBArUcN3t4vctOoC9UNgFavQvugNftB+94LfwrkQDELJgE6oXIE0/wqFg/zUExgkRpTcwPJyS72dwbGpRTLWNlWeQwqnp4Lk10BhFpAL1194eHuP/WmUSiqAQ/EpYoEImIZKx8t6JBZJLxQUHfeNAyiPsfwLrbGshxe+CJAtSuekIh+W99jZ/5pDaroR3bQyEw35qjgPTi9ApJi/Esjm3OCABNNCdqAHXbNRRsXMFcVucTX45rIBw/RDRxKZXW4AyTJHo43Nf/VUp/n+spL+yTHsT0oKy/2ZvXsOyERoBq9+ulSEdpOiUOko/KcePH8ibqWks1ZuWSPZOFQ9LOXhO7Gg/7O/NqZue4YmmwQpCe0X+mN1hH5IGyUqQuOP3Tik6FVWSEiibyuZuqvAEHxeBL53Elyb24gRmlzaCBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwuBV2EHzv+vIlURGMGdwT+uEtoM5+i/GjXySB5E3TxMx0yPsxdaf/VYTMVSPbG6rzMTUFSAZuEse+rs10RDs6Aw=="
+      "data": "base64:AQAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzKiP////8AAAAAdi81Szk1EfyjVRgQtJald0oobKn1QTIP0WGinTtUjkGFZOHpFR0NPtYSON6nCz+ct1hDTlshXWFoYW74bvMT5PRbhqdD6lWVCHhUdFvN9XqI/b3llj8upVTsGbQXBzuEzMxbzSM4Hhea4C6Jv5meWEHGGYCtD9I4SipdWdiwlQkKE9K2kkqVc5yeIUmcE3OWRI+eu8V0sXD8espYkGuulvlE3qDEoxlzsbRnBiXCeG6qiGIanvfNlkcZ9hY9gNeoTBFozNjaDVCCOPnxU2cApx2ZVqXBP3G2E6OTj2B5XnAW5N2GTKA3VsoEcmwQxfaITWdxQk9IodwM2wTjbfXoO97D9if4nm5GuH/+2mo0nwjiz1HrfYFkWTIhIHKxSjwb+PV5wKHr/uKkU+l5b8kPQHcBhMRo2hY2Vq8fDWflVWB0xG36DkvhtReLZV0lH0GmGk/amkktwjqVyOObxTlIZb0MnyMqdh2dKF+esV1WY9BU9kt2vsFePG0TMTpT5BnKhOXIe8FioWdypqHBiRoSAAqYee1wI5zCbB2nutRGBsve6fOQ0zjQZg2C6q8/JZy67iDM+gCa2GiF8BreiZmadrMjx818KZQ7QxJrogc2M+ErFZrehYMxtklyb24gRmlzaCBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAw5CIgC3T7cRl5EBqCJrS0B/37xdnOV3dNcUkHvbF5P0L+fE7FEO1offR0LPUMy0U/lSHtBXfxI35thhLhivmkBg=="
     },
     {
       "version": 2,
-      "id": "46e01e1e-a67d-40c2-a451-15ac5b5eb91b",
+      "id": "0c9c876b-70b3-4fee-85b0-ea16f9ea7bda",
       "name": "accountA",
-      "spendingKey": "0cb2da4cfda45a69ebb80da94c63a56c16b8d9552eed97a0ad600a349c57b7ad",
-      "viewKey": "55b6ff0a15ce1bbf6a5140819ef3756443af8c9d82a90171298073158862b32992d7b74d6d4823b9964f1f2d82e437e471e4b3909e8e49f700ac36819b560b5a",
-      "incomingViewKey": "be220c42a60e4603ed28985940fa519b3a155d2963399d9fee8f40dc9f820801",
-      "outgoingViewKey": "267ff2d623a48913c4146bcede0867b131a87d2c3233cf5ab1535f0b8ede6f65",
-      "publicAddress": "63ad94b9764d28cda6be9c9defe60317c395734ffa8e142cea14a3c9774486d6",
-      "createdAt": {
-        "hash": {
-          "type": "Buffer",
-          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
-        },
-        "sequence": 1
-      }
+      "spendingKey": "15d547495ea68fd50c06b7c4ab66a437c44f2a4d98c606823c7039bff0851735",
+      "viewKey": "bf4f8858181dfcba065d5df9c9f8bc88728d489901787579996fb841b9250572f04a7cef47c6658378adf226f1bb466ff7354cc2be574306d4f0ef3b7f88aecc",
+      "incomingViewKey": "7db060598fefb373edd1675e90a369fe76b45edb6e17653f33c77b9414a07102",
+      "outgoingViewKey": "351cdadcd89a3c13fe07d56ca07d45e01767129ca0cd86d40d3c14f137257b1e",
+      "publicAddress": "104dba0b77a8b97700ab6625952ccf921b5a2867b09d7d6cd343b3fcd0c53b33",
+      "createdAt": null
     }
   ],
   "TransactionValueEncoding with all fields defined serializes the object into a buffer and deserializes to the original object": [
     {
       "version": 2,
-      "id": "586f2c2b-6e78-4ca7-b414-3b7a40c6192d",
+      "id": "9a0e389b-5203-4d86-8f91-ed7a5d0e6c0d",
       "name": "test",
-      "spendingKey": "1ba8dd75fb1300b4d0144c2add28847ddcdd8c1e73d0bc5d4c0b4ff96905e5c2",
-      "viewKey": "f124aab46177e5f0d61dca3f5db89006f618cef0f1d73beb53add7b468ade0b8f014796a8c842c4022a669795cf43f4ccbbc4554a396fb44e2d68bb15c98f3cb",
-      "incomingViewKey": "592771ea73b0081cff6a62e3c40623984ba0255defe2f8cb6e89586cedd48304",
-      "outgoingViewKey": "9c36d2e60399a5b5774db2928920d02bcb404ff2a3ed013210818ac39aacaccc",
-      "publicAddress": "838ab48e574cd483feceea214051ef0c0a54359bdefe2256ce7e27bffb22833b",
-      "createdAt": {
-        "hash": {
-          "type": "Buffer",
-          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
-        },
-        "sequence": 1
-      }
+      "spendingKey": "a89651c3283723a6c7ca8f847557c4038969b901e1507a5043d7f2b92e06f83b",
+      "viewKey": "0180ee84972bbe8be4b9360eb49941131e67156a3b410e7ca0e8f7a32ae580c40cff6b6750d0577be43cfe5c86184d84d4fb86a2522447b5e2cd8929211954e8",
+      "incomingViewKey": "9fce46baf82b4e97320b5b70e6d026990233dd589b0902f052490d5ec623be01",
+      "outgoingViewKey": "1417d8fed8ab5ff7b38225e500cb6451f6c141e722c7a5fe904949e9111bfd0f",
+      "publicAddress": "b2dbf7612692e9ded9f96c3b165c4381883a4cb61b133b3431edb6eb8df48938",
+      "createdAt": null
     },
     {
       "type": "Buffer",
-      "data": "base64:AgAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzKiP////8AAAAAZCnEqPy82ks0zQt/jTX9yVi0OKwfkcJHGBOKDsB7Z7yAajAtMwHbNaaXZ3svh0aiIH+3zbMZ/1FEOeERanqTLUeFksgBnOc7+esVPa0D/7a1s1EZrsBzQZ+FZMQrNZ+uplfFpkTdl0BNDm9o+t33SkL3HuBtRiE0SG5Hqg3mB6wMDXvT41NwCf38DsVt4RuQxFdThswo9zJtX0/4glj2A+dwHdj/Sp/YJypbt6rZguCYd92HMV5ixgM4VUljktcVh32s3Idl4XSIh3JFjD1zY2Ecp3QGTN3dfOnnAKUVVn2obHvW/yUVN4hg756sJZNaGjTHHTagFJWr6FVCgVSHiNIiP25xt+HXLDxXQWOLH/Ph9zn0Zln678sBwkG73jhc0cVsD2WVcD3mj1hPSgxeJq1Xh+Q/xouaciRwdoecjdDUHXNc+LUXGIywzj1RuJ/2oWrUs6GetTSCFYZiu/XdsI/3Rls3Y7SjgAjlqF7IHw40+VNHpZROGmCRsmmffz3/CeDxwIiUQ/dMqEi+JRFu+D6n1dwF0YIQTqXQdtn7Qm+xmR7IUfNll+CK9TJmqzX8lKO6MJ/uQoNxpysenYryrlc0Dq3EZ7zJ+U2xPM+bnFx08n51sdWKLUlyb24gRmlzaCBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwmVjoqHcVC9MdxwhF+aMfXcf5qTvxj01q1rMdPBTRTyvwLl0nrsRPYPRVh/hnaNmwieTeM/PwONZFG42jNrpEDg=="
+      "data": "base64:AQAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzKiP////8AAAAAJwaT7NfZDjDKJ1WbDPGbB1OlnWDzHBP9+fUOeJ59OhqrQJ1pMjneN8epsuhZM6C3OpAODnW1DaRrClmghloMxM0vFDeKncFcb/6e/cXQOjC5u98RWV3uTsJoPe+g+AjjkjIOKJi9XAqJrOBWJTOM2w9Y3FlPUri9uc5ylyStkCwDO1i9lbPRZfH3kTUPa3lukxoA9PHP8VUYCA+ef0/0kFv1qADTJqvoKJTZeGK0WN6J45/CorS2yNKXAew6HlSvDqcKGm5+2dvxY6USE7+qVBQjvl6PrIDZyxJ3KciFc0qku0rBbC78cV1vX6SQ4iqc58BwpIav8ifeP2z49u6wss4KMOzTU/ROBxczgHu60aSpWb6UTtf13UhnB5tJWvZsII2JvDljillo7ac1LC09xj7KkNYz4i1GYWHuBQIu2GhJDH7luVwI5VuM2PBo4Aow+HhrnHuA8Gn/3TrNe/IYWopH2fkJsHhQr6TYWhGPNGVOvKMpv2YozqYltGoSzD5Ozv7vRaE0fNb2utvrB2GKh/DALKJ+NOoFkoW9fS9P4OcYGfXWYuRYObaS5cKFPTX0Lq0OsRgkSZM4tiKNu/BDRAm6kcLe8rXCsrexFt7SoH15JJ0Xf4sZk0lyb24gRmlzaCBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwXucMM9qVTQHlLGZSo3c+/4La0meiHka2ziF+XwA9BQpyjAvrGdPPeWfj4p7mA1FXJxflL9vvTpOUIU/Bqs4zBw=="
     }
   ],
   "TransactionValueEncoding with negative balance delta serializes the object into a buffer and deserializes to the original object": [
     {
       "version": 2,
-      "id": "bf708486-b546-45e5-9d36-e3c70bcdd615",
+      "id": "d40cb2c9-1096-47e1-ab31-cab454c9dab0",
       "name": "test",
-      "spendingKey": "0c68053a5f78436f114b69d7f4c2bd41403fa85c1beedb9d5beaf3e3f5dd13b7",
-      "viewKey": "ea09a29fc5be96220a4a542763c7f45043a05982ae633e2e6415768ccf9b2da0230e9c615639a8717f2169fa2a15fcdb9aeb01a858ad5365f47c9e48b5d252f1",
-      "incomingViewKey": "9638308196ccf67a40927d4d25266a237d90c2f53439468923076d02420d4f01",
-      "outgoingViewKey": "e70a9946c82793437f73810aa8bb3ea1afc66374d281a0e9dc1c008d724a79a6",
-      "publicAddress": "4c692f283c227d247b477fea4a9f45929ed4ae987d713da50faa102d0cb21194",
-      "createdAt": {
-        "hash": {
-          "type": "Buffer",
-          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
-        },
-        "sequence": 1
-      }
+      "spendingKey": "5afcb3c07ca55fb805afa7ad47a00f115076d8b1b469ad1aaeef06b37bdc98b8",
+      "viewKey": "6c90bf46748375cae0d82cad45ab4a367a24ab162ce4c49a0552ca2490250d1060d206d6c77e6c9de7dbe553099b79093b65727de658503044881c16442ee6e7",
+      "incomingViewKey": "0d652ca715a9ae68a9b1b04382d0fb8f89621cffb5cf5eaa6a4a80de6e741000",
+      "outgoingViewKey": "bccc543101081b24844784cef2eb062153cded7e532ab62478a50bad7c680f86",
+      "publicAddress": "1f4a87ef060499ea2650d0d3fff163c7f252e5667985a85d50d92e69178acf30",
+      "createdAt": null
     },
     {
       "type": "Buffer",
-      "data": "base64:AgAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzKiP////8AAAAAxt77ID/Imhdk2/Apol6V9TFzrCwI5JLQxJ1PAPIJzI2DPn8/ud10NJUY/YafnxHQj3KDtA4RXISnmMKUO52QmNpLHuEG/JnLZheybsgOWdOkm4QKzhboyJm4IT8R71tOnG7Th6igeXXNfEVVm2sxjUNPvgmEmrLelUYcRZxJFScYJuIjICbAXb88p0seXI9YjzfLjKTCs4Ic2pRWLe3z0jhOFtHtnzntu7U9uqBsisuVW9XYlgRnrclJ47wEwGHDx2wJLoNvhNA2AQiEYfAd4062SRL10VWoi4I/FnTP51NXLFQAbbilsv7DppEXx7bp7E0D6Qu8DlVp1R/edMnPkEiNfZm+9bSiwrJHPs2u9txIP3wILv4g4QkqTBdADwcpEKp0o8j50TD5YZHFJ5VnjxRfWcImK9z9V9eR/I1bb1wj1BluSYWD3F+GkWderoPLCdgrXtB6/fjs6PJeLg0Fqq2arGPxEuuCJxRgh0BGkAeqEUGfMrcxJ/ri/DcQ//cyp8KNXkyI5BcbJDapk4GXXJAu8GIeX0ppyshgiN7FFJ9NTW28lt3OKFlRA6Qj43ZSOl76BuHPR3rBqJgjPaWC9ECv+gepzJcy9RtrYqKZbYnjqYx8gKTzUklyb24gRmlzaCBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwZdfNEDA4RSdYIEZGe2E0QwZZOrJkHS1LzxkgmLZwRMwRrV3saZgNrJtyaQRezGLfrYaMJvaUlY2JBcAFGUPsDQ=="
+      "data": "base64:AQAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzKiP////8AAAAAzXOQXTFLeGNWLOG5UWikaZ5L36ZyBhwtnq2UvCV076anPy6dl1CyrC8vAJtP0pTVMhmef57c0QQbaShTjtHnqWSuQc1I8RLx2gsqHerfMzqpTE4TcNi0K8TO73Zd7iWFJbpqaa+4iagAlV+x8SahsEqjVvbULZJE02ombHoBSHAUb03Njlnkj8dwdmBisgtQ9XTI2rR21xNCUUZko8xerDAKLWixCRGpLs3dfSltNba5trCQkVWo2kKHY8M53xyBrEfp7GP8lj2zuYlZ/+UVckfJHnn1NSXMgeP0KcjzOQK3lby5kiKTapGw1IYMAOSIbArmPo/l05bIICVH6fPdqL4ONzn6+Lo9cmphTXCmULqLjCughVar8ds8jauZYIQao0hfvEvcAcPDmY4pkxRTTW1K6drSeqylIlykQkAWjC08YTiMsAE7DcxtLHuAYftjInjbUEEcMIiu9kcF0p2V1DJNk3HH0ZKxJPnTide1FkeIgfUKhoICywL/zXz23U+a+YxyQ7iV1STJaS8sA/enBo8gwZImqXO8kblxnbG3y2WURrc3QZM9VmqbMLefDnL9Oq6bdO35mqM/YJSvQVr4kz0BQ8YVD+WDHlkAoY2NgXxXP7X7+jOVDUlyb24gRmlzaCBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMeR3kCbEDVn3jvRlU+qLqEOUnrL+uwDqXUfSzzsBR7cozNTAKlihOd/wZxTKbzwpAUgf3PdUgLen6pg8c2x4CA=="
     }
   ]
 }

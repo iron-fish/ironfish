@@ -26,7 +26,7 @@ export type GetPeerMessagesRequest = {
 }
 
 export type GetPeerMessagesResponse = {
-  messages: PeerMessage[]
+  messages: Array<PeerMessage>
 }
 
 export const GetPeerMessagesRequestSchema: yup.ObjectSchema<GetPeerMessagesRequest> = yup
@@ -92,7 +92,7 @@ routes.register<typeof GetPeerMessagesRequestSchema, GetPeerMessagesResponse>(
   },
 )
 
-function getPeerMessages(network: PeerNetwork, identity: string): PeerMessage[] {
+function getPeerMessages(network: PeerNetwork, identity: string): Array<PeerMessage> {
   for (const peer of network.peerManager.peers) {
     if (peer.state.identity !== null && peer.state.identity.includes(identity)) {
       return peer.loggedMessages.map((msg) => ({

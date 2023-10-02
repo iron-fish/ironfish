@@ -5,7 +5,6 @@ import { Assert } from '../assert'
 import { VerificationResultReason } from '../consensus'
 import { getBlockWithMinersFeeSize, getTransactionSize } from '../network/utils/serializers'
 import { Target, Transaction } from '../primitives'
-import { TransactionVersion } from '../primitives/transaction'
 import { BlockTemplateSerde, SerializedBlockTemplate } from '../serde'
 import {
   createNodeTest,
@@ -204,7 +203,6 @@ describe('Mining manager', () => {
         fee: 20n,
         mints: [
           {
-            creator: accountA.publicAddress,
             name: 'Testcoin',
             metadata: '',
             value: 5n,
@@ -220,7 +218,6 @@ describe('Mining manager', () => {
         fee: 15n,
         mints: [
           {
-            creator: accountA.publicAddress,
             name: 'Testcoin',
             metadata: '',
             value: 5n,
@@ -238,7 +235,6 @@ describe('Mining manager', () => {
         fee: 5n,
         mints: [
           {
-            creator: accountA.publicAddress,
             name: 'Testcoin',
             metadata: '',
             value: 5n,
@@ -254,7 +250,6 @@ describe('Mining manager', () => {
         fee: 1n,
         mints: [
           {
-            creator: accountA.publicAddress,
             name: 'Othercoin',
             metadata: '',
             value: 5n,
@@ -283,67 +278,6 @@ describe('Mining manager', () => {
       await expect(node.miningManager.submitBlockTemplate(fullTemplate)).resolves.toEqual(
         MINED_RESULT.SUCCESS,
       )
-    })
-
-    it('should not add transactions with an incorrect version', async () => {
-      const { node, chain, wallet } = nodeTest
-
-      // Enable V1 transactions
-      chain.consensus.parameters.enableAssetOwnership = 999999
-
-      const account = await useAccountFixture(wallet, 'account')
-      await wallet.setDefaultAccount(account.name)
-
-      for (let i = 0; i < 2; i++) {
-        const block = await useMinerBlockFixture(chain, undefined, account)
-        await expect(chain).toAddBlock(block)
-      }
-      await wallet.updateHead()
-
-      const mintTx1 = await usePostTxFixture({
-        node,
-        wallet,
-        from: account,
-        fee: 3n,
-        mints: [
-          {
-            creator: account.publicAddress,
-            name: 'Testcoin',
-            metadata: '',
-            value: 5n,
-          },
-        ],
-      })
-      expect(mintTx1.version()).toEqual(TransactionVersion.V1)
-      expect(node.memPool.acceptTransaction(mintTx1)).toEqual(true)
-
-      // Enable V2 transactions
-      chain.consensus.parameters.enableAssetOwnership = 1
-
-      const mintTx2 = await usePostTxFixture({
-        node,
-        wallet,
-        from: account,
-        fee: 1n,
-        mints: [
-          {
-            creator: account.publicAddress,
-            name: 'Testcoin2',
-            metadata: '',
-            value: 5n,
-          },
-        ],
-      })
-
-      expect(node.memPool.acceptTransaction(mintTx2)).toEqual(true)
-
-      // Wait for the first 2 block templates
-      const templates = await collectTemplates(node.miningManager, 2)
-      const fullTemplate = templates.find((t) => t.transactions.length > 1)
-
-      Assert.isNotUndefined(fullTemplate)
-      expect(fullTemplate.transactions).toHaveLength(2)
-      expect(fullTemplate.transactions[1]).toEqual(mintTx2.serialize().toString('hex'))
     })
 
     it('should stop adding transactions before block size exceeds maxBlockSizeBytes', async () => {

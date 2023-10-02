@@ -18,6 +18,9 @@ describe('Route node/getLogStream', () => {
     routeTest.node.logger.info('Hello', { foo: 2 })
     const { value } = await response.contentStream().next()
 
+    response.end()
+    expect(response.status).toBe(200)
+
     expect(value).toMatchObject({
       level: LogLevel.Info.toString(),
       tag: expect.stringContaining('ironfishnode'),
@@ -25,8 +28,6 @@ describe('Route node/getLogStream', () => {
       args: '["Hello",{"foo":2}]',
       date: expect.anything(),
     })
-
-    response.close()
   })
 
   it('should encode bigints', async () => {
@@ -40,6 +41,9 @@ describe('Route node/getLogStream', () => {
     routeTest.node.logger.info(`${BigInt(2)}`)
     const { value } = await response.contentStream().next()
 
+    response.end()
+    expect(response.status).toBe(200)
+
     expect(value).toMatchObject({
       level: LogLevel.Info.toString(),
       tag: expect.stringContaining('ironfishnode'),
@@ -47,7 +51,5 @@ describe('Route node/getLogStream', () => {
       args: '["2"]',
       date: expect.anything(),
     })
-
-    response.close()
   })
 })

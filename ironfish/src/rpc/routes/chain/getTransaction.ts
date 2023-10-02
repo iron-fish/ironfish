@@ -3,27 +3,35 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
-import { getTransactionSize } from '../../../network/utils/serializers'
 import { FullNode } from '../../../node'
 import { BlockHashSerdeInstance } from '../../../serde'
 import { CurrencyUtils } from '../../../utils'
 import { NotFoundError, ValidationError } from '../../adapters'
 import { ApiNamespace, routes } from '../router'
-import { RpcTransaction, RpcTransactionSchema } from './types'
+import { RpcNote, RpcNoteSchema, RpcSpend, RpcSpendSchema } from './types'
 
 export type GetTransactionRequest = { transactionHash: string; blockHash?: string }
 
-export type GetTransactionResponse = RpcTransaction & {
+export type GetTransactionResponse = {
+  fee: string
+  expiration: number
   noteSize: number
-  blockHash: string
-  /**
-   * @deprecated Please use `notes.length` instead
-   */
   notesCount: number
-  /**
-   * @deprecated Please use `spends.length` instead
-   */
   spendsCount: number
+  signature: string
+  spends: RpcSpend[]
+  notes: RpcNote[]
+  mints: {
+    assetId: string
+    value: string
+    name: string
+    metadata: string
+  }[]
+  burns: {
+    assetId: string
+    value: string
+  }[]
+  blockHash: string
   /**
    * @deprecated Please use `notes` instead
    */
@@ -37,18 +45,42 @@ export const GetTransactionRequestSchema: yup.ObjectSchema<GetTransactionRequest
   })
   .defined()
 
-export const GetTransactionResponseSchema: yup.ObjectSchema<GetTransactionResponse> =
-  RpcTransactionSchema.concat(
-    yup
-      .object({
-        notesCount: yup.number().defined(),
-        spendsCount: yup.number().defined(),
-        notesEncrypted: yup.array(yup.string().defined()).defined(),
-        noteSize: yup.number().defined(),
-        blockHash: yup.string().defined(),
-      })
+export const GetTransactionResponseSchema: yup.ObjectSchema<GetTransactionResponse> = yup
+  .object({
+    fee: yup.string().defined(),
+    expiration: yup.number().defined(),
+    noteSize: yup.number().defined(),
+    notesCount: yup.number().defined(),
+    spendsCount: yup.number().defined(),
+    signature: yup.string().defined(),
+    notesEncrypted: yup.array(yup.string().defined()).defined(),
+    spends: yup.array(RpcSpendSchema).defined(),
+    notes: yup.array(RpcNoteSchema).defined(),
+    mints: yup
+      .array(
+        yup
+          .object({
+            assetId: yup.string().defined(),
+            value: yup.string().defined(),
+            name: yup.string().defined(),
+            metadata: yup.string().defined(),
+          })
+          .defined(),
+      )
       .defined(),
-  )
+    burns: yup
+      .array(
+        yup
+          .object({
+            assetId: yup.string().defined(),
+            value: yup.string().defined(),
+          })
+          .defined(),
+      )
+      .defined(),
+    blockHash: yup.string().defined(),
+  })
+  .defined()
 
 routes.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
   `${ApiNamespace.chain}/getTransaction`,
@@ -94,34 +126,25 @@ routes.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
     const { transaction, initialNoteIndex } = foundTransaction
 
     const rawTransaction: GetTransactionResponse = {
-      fee: Number(transaction.fee()),
+      fee: transaction.fee().toString(),
       expiration: transaction.expiration(),
-      hash: transaction.hash().toString('hex'),
-      size: getTransactionSize(transaction),
       noteSize: initialNoteIndex + transaction.notes.length,
       notesCount: transaction.notes.length,
       spendsCount: transaction.spends.length,
       signature: transaction.transactionSignature().toString('hex'),
       notesEncrypted: transaction.notes.map((note) => note.serialize().toString('hex')),
       notes: transaction.notes.map((note) => ({
-        commitment: note.hash().toString('hex'),
         hash: note.hash().toString('hex'),
         serialized: note.serialize().toString('hex'),
       })),
       mints: transaction.mints.map((mint) => ({
         assetId: mint.asset.id().toString('hex'),
-        id: mint.asset.id().toString('hex'),
-        assetName: mint.asset.name().toString('hex'),
         value: CurrencyUtils.encode(mint.value),
         name: mint.asset.name().toString('hex'),
         metadata: mint.asset.metadata().toString('hex'),
-        creator: mint.asset.creator().toString('hex'),
-        transferOwnershipTo: mint.transferOwnershipTo?.toString('hex'),
       })),
       burns: transaction.burns.map((burn) => ({
         assetId: burn.assetId.toString('hex'),
-        id: burn.assetId.toString('hex'),
-        assetName: '',
         value: CurrencyUtils.encode(burn.value),
       })),
       spends: transaction.spends.map((spend) => ({

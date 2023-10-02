@@ -84,6 +84,11 @@ export class MemoryResponse<TEnd, TStream> extends RpcResponse<TEnd, TStream> {
     this.request.close()
   }
 
+  end(...args: Parameters<RpcRequest['end']>): ReturnType<RpcRequest['end']> {
+    Assert.isNotNull(this.request)
+    return this.request.end(args)
+  }
+
   async waitForRoute(): Promise<MemoryResponse<TEnd, TStream>> {
     if (this.routePromise) {
       await this.routePromise

@@ -88,8 +88,6 @@ export class Strategy {
     // transaction fees and the mining reward
     const amount = totalTransactionFees + BigInt(this.miningReward(blockSequence))
 
-    const transactionVersion = this.consensus.getActiveTransactionVersion(blockSequence)
-
-    return this.workerPool.createMinersFee(minerSpendKey, amount, '', transactionVersion)
+    return this.workerPool.createMinersFee(minerSpendKey, amount, '')
   }
 }

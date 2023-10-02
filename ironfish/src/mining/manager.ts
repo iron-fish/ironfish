@@ -219,7 +219,6 @@ export class MiningManager {
     newBlockSize: number
   }> {
     const startTime = BenchUtils.start()
-    const transactionVersion = this.chain.consensus.getActiveTransactionVersion(sequence)
 
     // Fetch pending transactions
     const blockTransactions: Transaction[] = []
@@ -227,10 +226,6 @@ export class MiningManager {
     const assetOwners = new BufferMap<Buffer>()
     let totalTransactionFees = BigInt(0)
     for (const transaction of this.memPool.orderedTransactions()) {
-      if (transaction.version() !== transactionVersion) {
-        continue
-      }
-
       // Skip transactions that would cause the block to exceed the max size
       const transactionSize = getTransactionSize(transaction)
       if (currBlockSize + transactionSize > this.chain.consensus.parameters.maxBlockSizeBytes) {

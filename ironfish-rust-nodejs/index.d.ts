@@ -47,7 +47,7 @@ export const TRANSACTION_SIGNATURE_LENGTH: number
 export const TRANSACTION_PUBLIC_KEY_RANDOMNESS_LENGTH: number
 export const TRANSACTION_EXPIRATION_LENGTH: number
 export const TRANSACTION_FEE_LENGTH: number
-export const LATEST_TRANSACTION_VERSION: number
+export const TRANSACTION_VERSION: number
 export function verifyTransactions(serializedTransactions: Array<Buffer>): boolean
 export const enum LanguageCode {
   English = 0,
@@ -165,7 +165,7 @@ export class TransactionPosted {
 }
 export type NativeTransaction = Transaction
 export class Transaction {
-  constructor(spenderHexKey: string, version: number)
+  constructor(spenderHexKey: string, version?: number | undefined | null)
   /** Create a proof of a new note owned by the recipient in this transaction. */
   output(note: Note): void
   /** Spend the note owned by spender_hex_key at the given witness location. */

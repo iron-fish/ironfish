@@ -1,12 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-use crate::{
-    errors::{IronfishError, IronfishErrorKind},
-    keys::PUBLIC_ADDRESS_SIZE,
-    util::str_to_array,
-    PublicAddress,
-};
+use crate::{errors::IronfishError, keys::PUBLIC_ADDRESS_SIZE, util::str_to_array, PublicAddress};
 use byteorder::{ReadBytesExt, WriteBytesExt};
 use ironfish_zkp::constants::{ASSET_ID_LENGTH, ASSET_ID_PERSONALIZATION, GH_FIRST_BLOCK};
 use jubjub::{ExtendedPoint, SubgroupPoint};
@@ -21,7 +16,7 @@ pub const ID_LENGTH: usize = ASSET_ID_LENGTH;
 
 /// Describes all the fields necessary for creating and transacting with an
 /// asset on the Iron Fish network
-#[derive(Clone, Copy, PartialEq, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct Asset {
     /// Name of the asset
     pub(crate) name: [u8; NAME_LENGTH],
@@ -44,7 +39,7 @@ impl Asset {
     pub fn new(creator: PublicAddress, name: &str, metadata: &str) -> Result<Asset, IronfishError> {
         let trimmed_name = name.trim();
         if trimmed_name.is_empty() {
-            return Err(IronfishError::new(IronfishErrorKind::InvalidData));
+            return Err(IronfishError::InvalidData);
         }
 
         let name_bytes = str_to_array(trimmed_name);
@@ -55,9 +50,7 @@ impl Asset {
             if let Ok(asset) = Asset::new_with_nonce(creator, name_bytes, metadata_bytes, nonce) {
                 return Ok(asset);
             }
-            nonce = nonce
-                .checked_add(1)
-                .ok_or_else(|| IronfishError::new(IronfishErrorKind::RandomnessError))?;
+            nonce = nonce.checked_add(1).ok_or(IronfishError::RandomnessError)?;
         }
     }
 
@@ -147,11 +140,9 @@ impl Asset {
 
 #[cfg(test)]
 mod test {
-    use hex_literal::hex;
-
     use crate::{util::str_to_array, PublicAddress, SaplingKey};
 
-    use super::{Asset, ASSET_LENGTH};
+    use super::Asset;
 
     #[test]
     fn test_asset_new() {
@@ -218,42 +209,5 @@ mod test {
         let asset_res = Asset::new_with_nonce(creator, name, metadata, nonce);
 
         assert!(asset_res.is_err());
-    }
-
-    #[test]
-    fn test_serialization() {
-        let creator_address =
-            hex!("51e56d146fae345b78d7226bae7b4e66bdbce207ad074c8782cb47833edbf044");
-        let creator = PublicAddress::new(&creator_address).unwrap();
-
-        let nonce = 0;
-        let name = str_to_array("name");
-        let metadata = str_to_array("{ 'token_identifier': '0x123' }");
-
-        let asset = Asset::new_with_nonce(creator, name, metadata, nonce).unwrap();
-
-        let mut buf = Vec::new();
-        asset.write(&mut buf).unwrap();
-
-        assert_eq!(
-            buf,
-            hex!(
-                // creator
-                "51e56d146fae345b78d7226bae7b4e66bdbce207ad074c8782cb47833edbf044"
-                // name
-                "6e616d6500000000000000000000000000000000000000000000000000000000"
-                // metadata
-                "7b2027746f6b656e5f6964656e746966696572273a2027307831323327207d00"
-                "0000000000000000000000000000000000000000000000000000000000000000"
-                "0000000000000000000000000000000000000000000000000000000000000000"
-                // nonce
-                "00"
-            )
-        );
-
-        assert_eq!(buf.len(), ASSET_LENGTH);
-
-        let deserialized = Asset::read(&buf[..]).unwrap();
-        assert_eq!(asset, deserialized);
     }
 }

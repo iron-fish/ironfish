@@ -4,10 +4,7 @@
 use bellperson::groth16;
 use blstrs::Bls12;
 
-use crate::{
-    errors::{IronfishError, IronfishErrorKind},
-    sapling_bls12::SAPLING,
-};
+use crate::{errors::IronfishError, sapling_bls12::SAPLING};
 
 /// Helper function for verifying spend proof internally. Note that this is not
 /// called by verifiers as part of transaction verification. See
@@ -17,7 +14,7 @@ pub(crate) fn verify_spend_proof(
     inputs: &[blstrs::Scalar],
 ) -> Result<(), IronfishError> {
     if !groth16::verify_proof(&SAPLING.spend_verifying_key, proof, inputs)? {
-        return Err(IronfishError::new(IronfishErrorKind::InvalidSpendProof));
+        return Err(IronfishError::VerificationFailed);
     }
 
     Ok(())
@@ -31,7 +28,7 @@ pub(crate) fn verify_output_proof(
     inputs: &[blstrs::Scalar],
 ) -> Result<(), IronfishError> {
     if !groth16::verify_proof(&SAPLING.output_verifying_key, proof, inputs)? {
-        return Err(IronfishError::new(IronfishErrorKind::InvalidOutputProof));
+        return Err(IronfishError::VerificationFailed);
     }
 
     Ok(())
@@ -45,7 +42,7 @@ pub(crate) fn verify_mint_proof(
     inputs: &[blstrs::Scalar],
 ) -> Result<(), IronfishError> {
     if !groth16::verify_proof(&SAPLING.mint_verifying_key, proof, inputs)? {
-        return Err(IronfishError::new(IronfishErrorKind::InvalidMintProof));
+        return Err(IronfishError::VerificationFailed);
     }
 
     Ok(())

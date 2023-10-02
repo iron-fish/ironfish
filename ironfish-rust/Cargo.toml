@@ -50,9 +50,6 @@ rand = "0.8.5"
 tiny-bip39 = "0.8"
 xxhash-rust = { version = "0.8.5", features = ["xxh3"] }
 
-[dev-dependencies]
-hex-literal = "0.4"
-
 [build-dependencies]
 hex = "0.4"
 reqwest = { optional = true, version = "0.11", features = ["blocking"] }

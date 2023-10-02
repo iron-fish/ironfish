@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import {
-  Asset,
   ASSET_ID_LENGTH,
   ASSET_METADATA_LENGTH,
   ASSET_NAME_LENGTH,
@@ -81,8 +80,9 @@ export class AssetsCommand extends IronfishCommand {
             width: assetMetadataWidth,
             get: (row) => BufferUtils.toHuman(Buffer.from(row.metadata, 'hex')),
           }),
-          createdTransactionHash: {
-            header: 'Created Transaction Hash',
+          status: {
+            header: 'Status',
+            minWidth: 12,
           },
           supply: {
             header: 'Supply',
@@ -92,18 +92,6 @@ export class AssetsCommand extends IronfishCommand {
           creator: {
             header: 'Creator',
             minWidth: PUBLIC_ADDRESS_LENGTH + 1,
-            get: (row) =>
-              row.id === Asset.nativeId().toString('hex')
-                ? BufferUtils.toHuman(Buffer.from(row.creator, 'hex'))
-                : row.creator,
-          },
-          owner: {
-            header: 'Owner',
-            minWidth: PUBLIC_ADDRESS_LENGTH + 1,
-            get: (row) =>
-              row.id === Asset.nativeId().toString('hex')
-                ? BufferUtils.toHuman(Buffer.from(row.owner, 'hex'))
-                : row.owner,
           },
         },
         {

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::errors::{IronfishError, IronfishErrorKind};
+use crate::errors::IronfishError;
 use byteorder::{ReadBytesExt, WriteBytesExt};
 use std::io;
 
@@ -35,10 +35,6 @@ impl TransactionVersion {
         }
     }
 
-    pub const fn latest() -> Self {
-        Self::V2
-    }
-
     pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
         writer.write_u8((*self).into())?;
         Ok(())
@@ -60,8 +56,7 @@ impl TryFrom<u8> for TransactionVersion {
 
     #[inline]
     fn try_from(value: u8) -> Result<Self, Self::Error> {
-        Self::from_u8(value)
-            .ok_or_else(|| IronfishError::new(IronfishErrorKind::InvalidTransactionVersion))
+        Self::from_u8(value).ok_or(IronfishError::InvalidTransactionVersion)
     }
 }
 

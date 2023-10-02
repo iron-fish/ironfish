@@ -7,13 +7,11 @@ import {
   CurrencyUtils,
   GetAccountTransactionsResponse,
   PartialRecursive,
-  RpcAsset,
   TransactionType,
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { getAssetsByIDs } from '../../utils'
 import { Format, TableCols } from '../../utils/table'
 
 const { sort: _, ...tableFlags } = CliUx.ux.table.flags()
@@ -85,21 +83,9 @@ export class TransactionsCommand extends IronfishCommand {
     let hasTransactions = false
 
     for await (const transaction of response.contentStream()) {
-      let transactionRows: PartialRecursive<TransactionRow>[]
-      if (flags.notes) {
-        Assert.isNotUndefined(transaction.notes)
-        const assetLookup = await getAssetsByIDs(
-          client,
-          transaction.notes.map((n) => n.assetId) || [],
-        )
-        transactionRows = this.getTransactionRowsByNote(assetLookup, transaction, format)
-      } else {
-        const assetLookup = await getAssetsByIDs(
-          client,
-          transaction.assetBalanceDeltas.map((d) => d.assetId),
-        )
-        transactionRows = this.getTransactionRows(assetLookup, transaction, format)
-      }
+      const transactionRows = flags.notes
+        ? this.getTransactionRowsByNote(transaction, format)
+        : this.getTransactionRows(transaction, format)
 
       CliUx.ux.table(transactionRows, columns, {
         printLine: this.log.bind(this),
@@ -117,7 +103,6 @@ export class TransactionsCommand extends IronfishCommand {
   }
 
   getTransactionRows(
-    assetLookup: { [key: string]: RpcAsset },
     transaction: GetAccountTransactionsResponse,
     format: Format,
   ): PartialRecursive<TransactionRow>[] {
@@ -133,8 +118,7 @@ export class TransactionsCommand extends IronfishCommand {
 
     let assetCount = assetBalanceDeltas.length
 
-    for (const [index, { assetId, delta }] of assetBalanceDeltas.entries()) {
-      const asset = assetLookup[assetId]
+    for (const [index, { assetId, assetName, delta }] of assetBalanceDeltas.entries()) {
       let amount = BigInt(delta)
 
       if (assetId === Asset.nativeId().toString('hex')) {
@@ -158,7 +142,7 @@ export class TransactionsCommand extends IronfishCommand {
           ...transaction,
           group,
           assetId,
-          assetName: asset.name,
+          assetName,
           amount,
           feePaid,
         })
@@ -166,7 +150,7 @@ export class TransactionsCommand extends IronfishCommand {
         transactionRows.push({
           group,
           assetId,
-          assetName: asset.name,
+          assetName,
           amount,
         })
       }
@@ -176,7 +160,6 @@ export class TransactionsCommand extends IronfishCommand {
   }
 
   getTransactionRowsByNote(
-    assetLookup: { [key: string]: RpcAsset },
     transaction: GetAccountTransactionsResponse,
     format: Format,
   ): PartialRecursive<TransactionRow>[] {
@@ -194,7 +177,7 @@ export class TransactionsCommand extends IronfishCommand {
     for (const [index, note] of notes.entries()) {
       const amount = BigInt(note.value)
       const assetId = note.assetId
-      const assetName = assetLookup[note.assetId].name
+      const assetName = note.assetName
       const sender = note.sender
       const recipient = note.owner
 

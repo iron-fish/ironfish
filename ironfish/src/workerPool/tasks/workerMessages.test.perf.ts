@@ -5,7 +5,6 @@
 /* eslint-disable no-console */
 
 import { Assert } from '../../assert'
-import { TransactionVersion } from '../../primitives/transaction'
 import {
   createNodeTest,
   useAccountFixture,
@@ -35,7 +34,6 @@ describe('WorkerMessages', () => {
       CurrencyUtils.decodeIron(20),
       'hello world memo',
       account.spendingKey,
-      TransactionVersion.V1,
     )
 
     const expectedLength = message.getSize() + WORKER_MESSAGE_HEADER_SIZE

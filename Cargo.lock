@@ -1162,12 +1162,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "hex-literal"
-version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6fe2267d4ed49bc07b63801559be28c718ea06c4738b7a03c94df7386d2cde46"
-
-[[package]]
 name = "hex-literal-impl"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1346,7 +1340,6 @@ dependencies = [
  "ff 0.12.1",
  "group 0.12.1",
  "hex",
- "hex-literal 0.4.1",
  "ironfish_zkp",
  "jubjub 0.9.0 (git+https://github.com/iron-fish/jubjub.git?branch=blstrs)",
  "lazy_static",
@@ -1392,7 +1385,7 @@ version = "0.2.0"
 dependencies = [
  "blake2",
  "byteorder",
- "hex-literal 0.1.4",
+ "hex-literal",
  "ironfish-phase2",
  "ironfish_zkp",
  "pairing 0.23.0",

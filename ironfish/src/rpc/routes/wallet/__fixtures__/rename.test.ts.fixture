@@ -1,21 +1,28 @@
 {
+  "Route wallet/rename rename existing account": [
+    {
+      "version": 2,
+      "id": "b7531b48-ac9e-40db-9b95-74d0088d9fd6",
+      "name": "existingAccount",
+      "spendingKey": "c83d17e5a78407fa51136636211f2871ca28b70b0481ecb9db24ae171f6f751b",
+      "viewKey": "9c28e7ebb1ddf4203d8765186b5f55d1c72470d3fdfaab1212bce30bfad9d10c8193d0ec835095d6c6e80bfc3bc670940ecce4d6e463e5482097db3a07d92459",
+      "incomingViewKey": "4b2548afe4369f0d88dd358cf491efd7a8e918c5f795944fe3ad30492bab5703",
+      "outgoingViewKey": "76fa2c35107a241b04d1986cce47bc3b56ba228558e6ee58af5d6fe7c1ec02b0",
+      "publicAddress": "3b9568789efceb08e8d977cb7b6ad7cbde509539e59d81df284d936eaa069d82",
+      "createdAt": null
+    }
+  ],
   "Route wallet/rename renames existing account": [
     {
       "version": 2,
-      "id": "82502796-7f03-4333-919c-e2434bc1bac0",
+      "id": "849a9316-0b0f-4e34-8e8e-ecf3a6014687",
       "name": "existingAccount",
-      "spendingKey": "970d0218d99f749651336c47b5503dd5f16abaa7c02c6d5e1792db5ff3c198a8",
-      "viewKey": "00893212dbff9d3ca39cef8cd6b4b8ed3ba722fe6af2efebaf6711fad1ca13b8348c27f98a1c12be9e3fade03094f061b80b350052f7c34ca7b57295e3440c58",
-      "incomingViewKey": "bff752a5542f8048e6b0192b58fed5cc1e3cf125173f7ff4386c4dfa2d83e100",
-      "outgoingViewKey": "b98baddb11961db362568f8c4923dda404dcd8c7a9d03e33475af5b0f7ca0a45",
-      "publicAddress": "62c1ab78169681583029933bf9688cae97c4626df2fdd8f0d411b0f5044227e7",
-      "createdAt": {
-        "hash": {
-          "type": "Buffer",
-          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
-        },
-        "sequence": 1
-      }
+      "spendingKey": "6138f2ed243b1ad8f73df2b2bbc3a096da20bc5448c36160c4505502ad0e853f",
+      "viewKey": "c019d627fc6cace0c8f62025b900a9eaf1ca3cd45e9fc9a6ab651226e05e292630f4e38aac4ac1960579626269c15fe1efdc76a2595e43cdb7fb177880cab1cc",
+      "incomingViewKey": "5c6ad3fc9a3ee1ae6395ddc721e75eac6e7c7313c7e6e0a0ffc72bbce18ab201",
+      "outgoingViewKey": "361e6b24ad3fe79adb54d338dd14ba4ee2d489f46543b59b70007b3e52343a97",
+      "publicAddress": "8a94f1851509119394b683d54ca1768443c7cb8538c74f679146ee1edbfa0344",
+      "createdAt": null
     }
   ]
 }

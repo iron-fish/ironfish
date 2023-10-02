@@ -35,7 +35,6 @@ type BlockState =
       action: 'COMPACT_BLOCK_REQUEST_SCHEDULED'
       timeout: NodeJS.Timeout
       sources: Set<Identity> // Set of peers that have sent us the hash or compact block
-      firstSeenBy: Identity
     }
   | {
       action: 'COMPACT_BLOCK_REQUEST_IN_FLIGHT'
@@ -43,14 +42,12 @@ type BlockState =
       timeout: NodeJS.Timeout
       clearDisconnectHandler: () => void
       sources: Set<Identity> // Set of peers that have sent us the hash or compact block
-      firstSeenBy: Identity
     }
   | {
       action: 'PROCESSING_COMPACT_BLOCK'
       peer: Identity
       compactBlock: CompactBlock
       sources: Set<Identity> // Set of peers that have sent us the hash or compact block
-      firstSeenBy: Identity
     }
   | {
       action: 'TRANSACTION_REQUEST_IN_FLIGHT'
@@ -60,7 +57,6 @@ type BlockState =
       timeout: NodeJS.Timeout
       clearDisconnectHandler: () => void
       sources: Set<Identity> // Set of peers that have sent us the hash or compact block
-      firstSeenBy: Identity
     }
   | {
       action: 'FULL_BLOCK_REQUEST_IN_FLIGHT'
@@ -68,12 +64,10 @@ type BlockState =
       timeout: NodeJS.Timeout
       clearDisconnectHandler: () => void
       sources: Set<Identity> // Set of peers that have sent us the hash or compact block
-      firstSeenBy: Identity
     }
   | {
       action: 'PROCESSING_FULL_BLOCK'
       block: Block
-      firstSeenBy: Identity | null
     }
 
 export class BlockFetcher {
@@ -116,7 +110,6 @@ export class BlockFetcher {
       action: 'COMPACT_BLOCK_REQUEST_SCHEDULED',
       timeout,
       sources,
-      firstSeenBy: peer.state.identity,
     })
   }
 
@@ -180,7 +173,6 @@ export class BlockFetcher {
       timeout,
       clearDisconnectHandler,
       sources: currentState.sources,
-      firstSeenBy: currentState.firstSeenBy,
     })
   }
 
@@ -223,17 +215,8 @@ export class BlockFetcher {
       peer: peer.state.identity,
       compactBlock,
       sources: currentState ? currentState.sources : new Set<Identity>(),
-      firstSeenBy: currentState ? currentState.firstSeenBy : peer.state.identity,
     })
     return true
-  }
-
-  /**
-   * Return the first peer that notified us of this block
-   */
-  firstSeenBy(hash: BlockHash): Identity | null {
-    const currentState = this.pending.get(hash)
-    return currentState ? currentState.firstSeenBy : null
   }
 
   requestBlockTransactions(
@@ -284,7 +267,6 @@ export class BlockFetcher {
       timeout,
       clearDisconnectHandler,
       sources: currentState.sources,
-      firstSeenBy: currentState.firstSeenBy,
     })
 
     return
@@ -320,7 +302,6 @@ export class BlockFetcher {
     this.pending.set(hash, {
       action: 'PROCESSING_FULL_BLOCK',
       block,
-      firstSeenBy: currentState.firstSeenBy,
     })
 
     return block
@@ -372,14 +353,13 @@ export class BlockFetcher {
       timeout,
       clearDisconnectHandler,
       sources: currentState.sources,
-      firstSeenBy: currentState.firstSeenBy,
     })
   }
 
   /**
    * Called when a block has been assembled from a compact block
    * but has not yet been validated and added to the chain. */
-  receivedFullBlock(block: Block, peer: Peer): void {
+  receivedFullBlock(block: Block): void {
     const hash = block.header.hash
 
     const currentState = this.pending.get(hash)
@@ -389,7 +369,6 @@ export class BlockFetcher {
       this.pending.set(hash, {
         action: 'PROCESSING_FULL_BLOCK',
         block,
-        firstSeenBy: currentState?.firstSeenBy ?? peer.state.identity ?? null,
       })
     }
   }

@@ -36,9 +36,9 @@ describe('Block template stream', () => {
     await expect(chain).toAddBlock(previous)
     await flushTimeout()
 
-    expect(createNewBlockTemplateSpy).toHaveBeenCalledTimes(1)
+    response.end()
 
-    response.close()
+    expect(createNewBlockTemplateSpy).toHaveBeenCalledTimes(1)
   })
 
   it('does not crash on expired transactions if the chain head changes rapidly', async () => {

@@ -1303,29 +1303,16 @@ export class Blockchain {
     transaction: Transaction,
     tx: IDatabaseTransaction,
   ): Promise<void> {
-    for (const {
-      asset,
-      value,
-      owner: currentOwner,
-      transferOwnershipTo,
-    } of transaction.mints) {
+    for (const { asset, value } of transaction.mints) {
       const assetId = asset.id()
       const existingAsset = await this.blockchainDb.getAsset(assetId, tx)
 
       let createdTransactionHash = transaction.hash()
       let supply = BigInt(0)
-
       if (existingAsset) {
         createdTransactionHash = existingAsset.createdTransactionHash
         supply = existingAsset.supply
-        Assert.bufferEquals(
-          existingAsset.owner,
-          currentOwner,
-          'Stored owner does not match owner on the transaction',
-        )
       }
-
-      const updatedOwner = transferOwnershipTo || currentOwner
 
       await this.blockchainDb.putAsset(
         assetId,
@@ -1336,7 +1323,7 @@ export class Blockchain {
           name: asset.name(),
           nonce: asset.nonce(),
           creator: asset.creator(),
-          owner: updatedOwner,
+          owner: asset.creator(),
           supply: supply + value,
         },
         tx,
@@ -1405,14 +1392,10 @@ export class Blockchain {
     transaction: Transaction,
     tx: IDatabaseTransaction,
   ): Promise<void> {
-    for (const { asset, value, owner: originalOwner, transferOwnershipTo } of transaction.mints
-      .slice()
-      .reverse()) {
+    for (const { asset, value } of transaction.mints.slice().reverse()) {
       const assetId = asset.id()
-      const updatedOwner = transferOwnershipTo || originalOwner
       const existingAsset = await this.blockchainDb.getAsset(assetId, tx)
       Assert.isNotUndefined(existingAsset)
-      Assert.bufferEquals(existingAsset.owner, updatedOwner)
 
       const existingSupply = existingAsset.supply
       const supply = existingSupply - value
@@ -1435,7 +1418,7 @@ export class Blockchain {
             name: asset.name(),
             nonce: asset.nonce(),
             creator: asset.creator(),
-            owner: originalOwner,
+            owner: asset.creator(),
             supply,
           },
           tx,

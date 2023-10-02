@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::{
-    errors::{IronfishError, IronfishErrorKind},
+    errors::IronfishError,
     keys::SaplingKey,
     merkle_note::{position as witness_position, sapling_auth_path},
     note::Note,
@@ -171,7 +171,7 @@ impl UnsignedSpendDescription {
                 .randomize(self.public_key_randomness, *SPENDING_KEY_GENERATOR);
 
         if randomized_public_key.0 != transaction_randomized_public_key.0 {
-            return Err(IronfishError::new(IronfishErrorKind::InvalidSigningKey));
+            return Err(IronfishError::InvalidSigningKey);
         }
 
         let mut data_to_be_signed = [0; 64];
@@ -275,7 +275,7 @@ impl SpendDescription {
         randomized_public_key: &redjubjub::PublicKey,
     ) -> Result<(), IronfishError> {
         if randomized_public_key.0.is_small_order().into() {
-            return Err(IronfishError::new(IronfishErrorKind::IsSmallOrder));
+            return Err(IronfishError::IsSmallOrder);
         }
         let mut data_to_be_signed = [0; 64];
         data_to_be_signed[..32].copy_from_slice(&randomized_public_key.0.to_bytes());
@@ -286,7 +286,7 @@ impl SpendDescription {
             &self.authorizing_signature,
             *SPENDING_KEY_GENERATOR,
         ) {
-            return Err(IronfishError::new(IronfishErrorKind::InvalidSpendSignature));
+            return Err(IronfishError::VerificationFailed);
         }
 
         Ok(())
@@ -305,7 +305,7 @@ impl SpendDescription {
 
     fn verify_not_small_order(&self) -> Result<(), IronfishError> {
         if self.value_commitment.is_small_order().into() {
-            return Err(IronfishError::new(IronfishErrorKind::IsSmallOrder));
+            return Err(IronfishError::IsSmallOrder);
         }
 
         Ok(())

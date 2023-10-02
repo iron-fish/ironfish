@@ -128,7 +128,7 @@ describe('Route chain/getBlock', () => {
       },
     })
 
-    expect(response.content.block.transactions[0].fee).toBe(-2000000001)
+    expect(response.content.block.transactions[0].fee).toBe('-2000000001')
   })
 
   it('has block confirmation status', async () => {

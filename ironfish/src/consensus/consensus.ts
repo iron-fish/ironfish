@@ -2,10 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { TransactionVersion } from '../primitives/transaction'
-
-export type ActivationSequence = number | 'never'
-
 export type ConsensusParameters = {
   /**
    * When adding a block, the block can be this amount of seconds into the future
@@ -37,17 +33,6 @@ export type ConsensusParameters = {
    * The minimum fee that a transaction must have to be accepted
    */
   minFee: number
-
-  /**
-   * The block height that enables the use of V2 transactions instead of V1
-   */
-  enableAssetOwnership: ActivationSequence
-
-  /**
-   * Before upgrade we have block timestamp smaller than previous block. After this
-   * block we enforce the block timestamps in the sequential order as the block sequences.
-   */
-  enforceSequentialBlockTime: ActivationSequence
 }
 
 export class Consensus {
@@ -57,19 +42,8 @@ export class Consensus {
     this.parameters = parameters
   }
 
-  isActive(upgrade: ActivationSequence, sequence: number): boolean {
-    if (upgrade === 'never') {
-      return false
-    }
+  isActive(upgrade: number, sequence: number): boolean {
     return Math.max(1, sequence) >= upgrade
-  }
-
-  getActiveTransactionVersion(sequence: number): TransactionVersion {
-    if (this.isActive(this.parameters.enableAssetOwnership, sequence)) {
-      return TransactionVersion.V2
-    } else {
-      return TransactionVersion.V1
-    }
   }
 }
 

@@ -1,6 +1,6 @@
 {
   "name": "@ironfish/sdk",
-  "version": "1.10.0",
+  "version": "1.9.0",
   "description": "SDK for running and interacting with an Iron Fish node",
   "author": "Iron Fish <contact@ironfish.network> (https://ironfish.network)",
   "main": "build/src/index.js",
@@ -22,7 +22,7 @@
   "dependencies": {
     "@ethersproject/bignumber": "5.7.0",
     "@fast-csv/format": "4.3.5",
-    "@ironfish/rust-nodejs": "1.9.0",
+    "@ironfish/rust-nodejs": "1.8.0",
     "@napi-rs/blake-hash": "1.3.3",
     "axios": "0.21.4",
     "bech32": "2.0.0",
@@ -34,7 +34,6 @@
     "colors": "1.4.0",
     "consola": "2.15.0",
     "date-fns": "2.16.1",
-    "decimal.js": "10.4.3",
     "fastpriorityqueue": "0.7.1",
     "imurmurhash": "0.1.4",
     "level-errors": "2.0.1",

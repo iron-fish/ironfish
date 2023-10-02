@@ -165,7 +165,6 @@ describe('Transaction', () => {
       ],
       mints: [
         {
-          creator: account.publicAddress,
           name: assetName,
           metadata,
           value: amount,

@@ -17,7 +17,6 @@ describe('Route wallet/createTransaction', () => {
 
     const asset = new Asset(sender.publicAddress, 'new-asset', 'metadata')
     const mintData = {
-      creator: asset.creator().toString('hex'),
       name: asset.name().toString('utf8'),
       metadata: asset.metadata().toString('utf8'),
       value: 10n,

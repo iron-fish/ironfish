@@ -55,17 +55,9 @@ export class BalanceCommand extends IronfishCommand {
       confirmations: flags.confirmations,
     })
 
-    const asset = (
-      await client.wallet.getAsset({
-        account,
-        id: response.content.assetId,
-        confirmations: flags.confirmations,
-      })
-    ).content
-
     const assetId = response.content.assetId
     const assetName = renderAssetName(isNativeIdentifier(assetId) ? '$IRON' : assetId, {
-      verification: asset.verification,
+      verification: response.content.assetVerification,
       verbose: !!flags.verbose,
       logWarn: this.warn.bind(this),
     })

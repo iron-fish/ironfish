@@ -39,7 +39,6 @@ describe('Route wallet/getAssets', () => {
       from: account,
       mints: [
         {
-          creator: asset.creator().toString('hex'),
           name: asset.name().toString(),
           metadata: asset.metadata().toString(),
           value,

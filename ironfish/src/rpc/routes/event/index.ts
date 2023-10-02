@@ -5,3 +5,4 @@
 export * from './onGossip'
 export * from './onReorganizeChain'
 export * from './onTransactionGossip'
+export { RpcBlockHeader } from './types'

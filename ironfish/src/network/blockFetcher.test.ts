@@ -464,42 +464,4 @@ describe('BlockFetcher', () => {
 
     await peerNetwork.stop()
   })
-
-  it('correctly sends the first peer to send us a block to telemetry', async () => {
-    const { peerNetwork, chain, node } = nodeTest
-
-    const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 50)
-
-    const newBlock = await useMinerBlockFixture(chain)
-
-    // Accept transactions into mempool so the node can fill the compact block
-    // without an additional request
-    for (const transaction of newBlock.transactions.slice(1)) {
-      node.memPool.acceptTransaction(transaction)
-    }
-
-    for (const { peer } of peers) {
-      await peerNetwork.peerManager.onMessage.emitAsync(...newHashMessageEvent(peer, newBlock))
-    }
-
-    jest.runOnlyPendingTimers()
-
-    const telemetrySpy = jest.spyOn(node.telemetry, 'submitNewBlockSeen')
-
-    const sentPeers = peers.filter(({ sendSpy }) => sendSpy.mock.calls.length > 0)
-    const call = sentPeers[0].sendSpy.mock.calls[0][0] as GetCompactBlockRequest
-
-    const message = new GetCompactBlockResponse(newBlock.toCompactBlock(), call.rpcId)
-    for (const { peer } of sentPeers) {
-      await peerNetwork.peerManager.onMessage.emitAsync(...peerMessage(peer, message))
-    }
-
-    expect(telemetrySpy).toHaveBeenCalledWith(
-      newBlock,
-      expect.any(Date),
-      peers[0].peer.state.identity,
-    )
-
-    await peerNetwork.stop()
-  })
 })

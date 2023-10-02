@@ -85,7 +85,7 @@ export default class Download extends IronfishCommand {
       }
     }
 
-    let snapshotPath: string
+    let snapshotPath
 
     if (flags.path) {
       snapshotPath = this.sdk.fileSystem.resolve(flags.path)
@@ -134,143 +134,116 @@ export default class Download extends IronfishCommand {
       await fsAsync.mkdir(this.sdk.config.tempDir, { recursive: true })
       snapshotPath = flags.outputPath || path.join(this.sdk.config.tempDir, manifest.file_name)
 
+      this.log(`Downloading snapshot from ${snapshotUrl} to ${snapshotPath}`)
+
+      const bar = CliUx.ux.progress({
+        barCompleteChar: '\u2588',
+        barIncompleteChar: '\u2591',
+        format:
+          'Downloading snapshot: [{bar}] {percentage}% | {downloadedSize} / {fileSize} | {speed}/s | ETA: {estimate}',
+      }) as ProgressBar
+
+      bar.start(manifest.file_size, 0, {
+        fileSize,
+        downloadedSize: '0',
+        speed: '0',
+        estimate: TimeUtils.renderEstimate(0, 0, 0),
+      })
+
+      const speed = new Meter()
+      speed.start()
+
       let downloaded = 0
-      try {
-        const statResult = await fsAsync.stat(snapshotPath)
-        if (statResult.isFile()) {
-          downloaded = statResult.size
+
+      const hasher = crypto.createHash('sha256')
+      const writer = fs.createWriteStream(snapshotPath, { flags: 'w' })
+
+      const idleTimeout = 30000
+      let idleLastChunk = Date.now()
+      const idleCancelSource = axios.CancelToken.source()
+
+      const idleInterval = setInterval(() => {
+        const timeSinceLastChunk = Date.now() - idleLastChunk
+
+        if (timeSinceLastChunk > idleTimeout) {
+          clearInterval(idleInterval)
+
+          idleCancelSource.cancel(
+            `Download timed out after ${TimeUtils.renderSpan(timeSinceLastChunk)}`,
+          )
         }
-      } catch {
-        downloaded = 0
-      }
+      }, idleTimeout)
 
-      if (downloaded < manifest.file_size) {
-        this.log(`Downloading snapshot from ${snapshotUrl} to ${snapshotPath}`)
+      const response: { data: IncomingMessage } = await axios({
+        method: 'GET',
+        responseType: 'stream',
+        url: snapshotUrl,
+        cancelToken: idleCancelSource.token,
+      })
 
-        const bar = CliUx.ux.progress({
-          barCompleteChar: '\u2588',
-          barIncompleteChar: '\u2591',
-          format:
-            'Downloading snapshot: [{bar}] {percentage}% | {downloadedSize} / {fileSize} | {speed}/s | ETA: {estimate}',
-        }) as ProgressBar
+      await new Promise<void>((resolve, reject) => {
+        const onWriterError = (e: unknown) => {
+          writer.removeListener('close', onWriterClose)
+          writer.removeListener('error', onWriterError)
+          reject(e)
+        }
 
-        bar.start(manifest.file_size, 0, {
-          fileSize,
-          downloadedSize: FileUtils.formatFileSize(downloaded),
-          speed: '0',
-          estimate: TimeUtils.renderEstimate(0, 0, 0),
+        const onWriterClose = () => {
+          writer.removeListener('close', onWriterClose)
+          writer.removeListener('error', onWriterError)
+          resolve()
+        }
+
+        writer.on('error', onWriterError)
+        writer.on('close', onWriterClose)
+
+        response.data.on('error', (e) => {
+          writer.destroy(e)
         })
 
-        const speed = new Meter()
-        speed.start()
+        response.data.on('end', () => {
+          writer.close()
+        })
 
-        const idleTimeout = 30000
-        let idleLastChunk = Date.now()
-        const idleCancelSource = axios.CancelToken.source()
+        response.data.on('data', (chunk: Buffer) => {
+          writer.write(chunk)
+          hasher.write(chunk)
 
-        const idleInterval = setInterval(() => {
-          const timeSinceLastChunk = Date.now() - idleLastChunk
+          downloaded += chunk.length
+          speed.add(chunk.length)
+          idleLastChunk = Date.now()
 
-          if (timeSinceLastChunk > idleTimeout) {
-            clearInterval(idleInterval)
+          bar.update(downloaded, {
+            downloadedSize: FileUtils.formatFileSize(downloaded),
+            speed: FileUtils.formatFileSize(speed.rate1s),
+            estimate: TimeUtils.renderEstimate(downloaded, manifest.file_size, speed.rate1m),
+          })
+        })
+      })
+        .catch((error) => {
+          bar.stop()
+          speed.stop()
 
-            idleCancelSource.cancel(
-              `Download timed out after ${TimeUtils.renderSpan(timeSinceLastChunk)}`,
+          if (idleCancelSource.token.reason?.message) {
+            this.logger.error(idleCancelSource.token.reason?.message)
+          } else {
+            this.logger.error(
+              `Error while downloading snapshot file: ${ErrorUtils.renderError(error)}`,
             )
           }
-        }, idleTimeout)
 
-        const response: { data: IncomingMessage } = await axios({
-          method: 'GET',
-          responseType: 'stream',
-          url: snapshotUrl,
-          cancelToken: idleCancelSource.token,
-          headers: {
-            range: `bytes=${downloaded}-`,
-          },
+          this.exit(1)
+        })
+        .finally(() => {
+          clearInterval(idleInterval)
         })
 
-        const resumingDownload = response.data.statusCode === 206
-        const writer = fs.createWriteStream(snapshotPath, {
-          flags: resumingDownload ? 'a' : 'w',
-        })
-        downloaded = resumingDownload ? downloaded : 0
-
-        await new Promise<void>((resolve, reject) => {
-          const onWriterError = (e: unknown) => {
-            writer.removeListener('close', onWriterClose)
-            writer.removeListener('error', onWriterError)
-            reject(e)
-          }
-
-          const onWriterClose = () => {
-            writer.removeListener('close', onWriterClose)
-            writer.removeListener('error', onWriterError)
-            resolve()
-          }
-
-          writer.on('error', onWriterError)
-          writer.on('close', onWriterClose)
-
-          response.data.on('error', (e) => {
-            writer.destroy(e)
-          })
-
-          response.data.on('end', () => {
-            writer.close()
-          })
-
-          response.data.on('data', (chunk: Buffer) => {
-            writer.write(chunk)
-
-            downloaded += chunk.length
-            speed.add(chunk.length)
-            idleLastChunk = Date.now()
-
-            bar.update(downloaded, {
-              downloadedSize: FileUtils.formatFileSize(downloaded),
-              speed: FileUtils.formatFileSize(speed.rate1s),
-              estimate: TimeUtils.renderEstimate(downloaded, manifest.file_size, speed.rate1m),
-            })
-          })
-        })
-          .catch((error) => {
-            bar.stop()
-            speed.stop()
-
-            if (idleCancelSource.token.reason?.message) {
-              this.logger.error(idleCancelSource.token.reason?.message)
-            } else {
-              this.logger.error(
-                `Error while downloading snapshot file: ${ErrorUtils.renderError(error)}`,
-              )
-            }
-
-            this.exit(1)
-          })
-          .finally(() => {
-            clearInterval(idleInterval)
-          })
-
-        bar.stop()
-        speed.stop()
-      }
-
-      this.log('Verifying snapshot checksum...')
-      const hasher = crypto.createHash('sha256')
-      await new Promise<void>((resolve, reject) => {
-        const stream = fs.createReadStream(snapshotPath)
-        stream.on('end', resolve)
-        stream.on('error', reject)
-        stream.pipe(hasher, { end: false })
-      })
+      bar.stop()
+      speed.stop()
 
       const checksum = hasher.digest().toString('hex')
       if (checksum !== manifest.checksum) {
         this.log('Snapshot checksum does not match.')
-        if (flags.cleanup) {
-          await fsAsync.rm(snapshotPath)
-        }
         this.exit(0)
       }
     }

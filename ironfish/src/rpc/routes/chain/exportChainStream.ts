@@ -5,7 +5,6 @@ import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { FullNode } from '../../../node'
 import { BlockchainUtils } from '../../../utils/blockchain'
-import { RpcBlockHeader, RpcBlockHeaderSchema, serializeRpcBlockHeader } from '../../types'
 import { ApiNamespace, routes } from '../router'
 
 export type ExportChainStreamRequest =
@@ -18,18 +17,17 @@ export type ExportChainStreamRequest =
 export type ExportChainStreamResponse = {
   start: number
   stop: number
-  block?: RpcBlockHeader & {
+  block?: {
+    hash: string
+    seq: number
+    prev: string
     main: boolean
+    graffiti: string
+    timestamp: number
+    work: string
+    difficulty: string
     head: boolean
     latest: boolean
-    /**
-     * @deprecated Please use sequence instead
-     */
-    seq: number
-    /**
-     * @deprecated Please use previousBlockHash instead
-     */
-    prev: string
   }
 }
 
@@ -44,17 +42,20 @@ export const ExportChainStreamResponseSchema: yup.ObjectSchema<ExportChainStream
   .object({
     start: yup.number().defined(),
     stop: yup.number().defined(),
-    block: RpcBlockHeaderSchema.concat(
-      yup
-        .object({
-          seq: yup.number().defined(),
-          main: yup.boolean().defined(),
-          prev: yup.string().defined(),
-          head: yup.boolean().defined(),
-          latest: yup.boolean().defined(),
-        })
-        .defined(),
-    ).optional(),
+    block: yup
+      .object({
+        hash: yup.string().defined(),
+        seq: yup.number().defined(),
+        prev: yup.string().defined(),
+        main: yup.boolean().defined(),
+        graffiti: yup.string().defined(),
+        timestamp: yup.number().defined(),
+        work: yup.string().defined(),
+        difficulty: yup.string().defined(),
+        head: yup.boolean().defined(),
+        latest: yup.boolean().defined(),
+      })
+      .optional(),
   })
   .defined()
 
@@ -79,16 +80,20 @@ routes.register<typeof ExportChainStreamRequestSchema, ExportChainStreamResponse
       for (const block of blocks) {
         const isMain = await node.chain.isHeadChain(block)
 
-        const blockResult = {
-          ...serializeRpcBlockHeader(block),
+        const result = {
           main: isMain,
+          hash: block.hash.toString('hex'),
           seq: block.sequence,
           prev: block.previousBlockHash.toString('hex'),
+          graffiti: block.graffiti.toString('ascii'),
+          timestamp: block.timestamp.getTime(),
+          work: block.work.toString(),
+          difficulty: block.target.toDifficulty().toString(),
           head: block.hash.equals(node.chain.head.hash),
           latest: block.hash.equals(node.chain.latest.hash),
         }
 
-        request.stream({ start, stop, block: blockResult })
+        request.stream({ start, stop, block: result })
       }
     }
 

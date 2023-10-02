@@ -12,7 +12,7 @@ import { Blockchain } from '../blockchain'
 import { Logger } from '../logger'
 import { Block } from '../primitives'
 import { Target } from '../primitives/target'
-import { Transaction, TransactionVersion } from '../primitives/transaction'
+import { Transaction } from '../primitives/transaction'
 import { CurrencyUtils } from '../utils'
 import { GraffitiUtils } from '../utils/graffiti'
 
@@ -77,10 +77,7 @@ export async function makeGenesisBlock(
     minersFeeKey.publicAddress,
   )
 
-  const minersFeeTransaction = new NativeTransaction(
-    minersFeeKey.spendingKey,
-    TransactionVersion.V2,
-  )
+  const minersFeeTransaction = new NativeTransaction(minersFeeKey.spendingKey)
   minersFeeTransaction.output(note)
   const postedMinersFeeTransaction = new Transaction(minersFeeTransaction.post_miners_fee())
 
@@ -91,10 +88,7 @@ export async function makeGenesisBlock(
    *
    */
   logger.info(`Generating an initial transaction with ${allocationSumInIron} coins...`)
-  const initialTransaction = new NativeTransaction(
-    genesisKey.spendingKey,
-    TransactionVersion.V2,
-  )
+  const initialTransaction = new NativeTransaction(genesisKey.spendingKey)
 
   logger.info('  Generating the output...')
   initialTransaction.output(genesisNote)
@@ -130,7 +124,7 @@ export async function makeGenesisBlock(
    *
    */
   logger.info('Generating a transaction for distributing allocations...')
-  const transaction = new NativeTransaction(genesisKey.spendingKey, TransactionVersion.V2)
+  const transaction = new NativeTransaction(genesisKey.spendingKey)
   logger.info(`  Generating a spend for ${allocationSumInIron} coins...`)
   transaction.spend(genesisNote, witness)
 

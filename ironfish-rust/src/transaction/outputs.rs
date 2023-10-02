@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::{
-    errors::{IronfishError, IronfishErrorKind},
+    errors::IronfishError,
     keys::{EphemeralKeyPair, SaplingKey},
     merkle_note::MerkleNote,
     note::Note,
@@ -166,7 +166,7 @@ impl OutputDescription {
                 .is_small_order()
                 .into()
         {
-            return Err(IronfishError::new(IronfishErrorKind::IsSmallOrder));
+            return Err(IronfishError::IsSmallOrder);
         }
 
         Ok(())

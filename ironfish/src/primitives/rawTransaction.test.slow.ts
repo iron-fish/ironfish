@@ -32,7 +32,9 @@ function createTestRawTransaction(
   version: TransactionVersion,
   options: Partial<TestRawTransactionOptions>,
 ): RawTransaction {
-  const raw = new RawTransaction(version)
+  const raw = new RawTransaction()
+
+  raw.version = version
 
   if (options.withExpiration) {
     raw.expiration = 123
@@ -58,13 +60,11 @@ function createTestRawTransaction(
 
   if (options.withMints) {
     raw.mints.push({
-      creator: account.publicAddress,
       name: 'an asset',
       metadata: 'some metadata',
       value: 123n,
     })
     raw.mints.push({
-      creator: account.publicAddress,
       name: 'another asset',
       metadata: 'some other metadata',
       value: 456n,
@@ -73,14 +73,12 @@ function createTestRawTransaction(
 
   if (options.withTransferAssetOwnership) {
     raw.mints.push({
-      creator: account.publicAddress,
       name: 'yet another asset',
       metadata: 'this adds zero tokens but transfer ownership',
       value: 0n,
       transferOwnershipTo: '62c14bfa032aa955b0f3f1dbf83c06007efb0b574f1945320276a7babf1775d7',
     })
     raw.mints.push({
-      creator: account.publicAddress,
       name: 'additional asset',
       metadata: 'this adds new tokens and transfers ownership at the same time',
       value: 789n,

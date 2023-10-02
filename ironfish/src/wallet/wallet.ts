@@ -16,7 +16,6 @@ import { Witness } from '../merkletree/witness'
 import { Mutex } from '../mutex'
 import { GENESIS_BLOCK_SEQUENCE } from '../primitives'
 import { BurnDescription } from '../primitives/burnDescription'
-import { MintDescription } from '../primitives/mintDescription'
 import { Note } from '../primitives/note'
 import { NoteEncrypted } from '../primitives/noteEncrypted'
 import { MintData, RawTransaction } from '../primitives/rawTransaction'
@@ -31,7 +30,6 @@ import {
   PromiseResolve,
   PromiseUtils,
   SetTimeoutToken,
-  TransactionUtils,
 } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { DecryptedNote, DecryptNoteOptions } from '../workerPool/tasks/decryptNotes'
@@ -39,11 +37,8 @@ import { Account, ACCOUNT_SCHEMA_VERSION } from './account/account'
 import { AssetBalances } from './assetBalances'
 import { NotEnoughFundsError } from './errors'
 import { MintAssetOptions } from './interfaces/mintAssetOptions'
-import {
-  RemoteChainProcessor,
-  WalletBlockHeader,
-  WalletBlockTransaction,
-} from './remoteChainProcessor'
+import { WalletBlockHeader, WalletBlockTransaction } from './remoteChainProcessor'
+import { RemoteChainProcessor } from './remoteChainProcessor'
 import { validateAccount } from './validator'
 import { AccountValue } from './walletdb/accountValue'
 import { AssetValue } from './walletdb/assetValue'
@@ -71,13 +66,6 @@ export enum TransactionType {
   SEND = 'send',
   RECEIVE = 'receive',
   MINER = 'miner',
-}
-
-export type TransactionOutput = {
-  publicAddress: string
-  amount: bigint
-  memo: string
-  assetId: Buffer
 }
 
 export class Wallet {
@@ -370,18 +358,15 @@ export class Wallet {
     }
   }
 
-  async reset(options?: { resetCreatedAt?: boolean }): Promise<void> {
-    await this.resetAccounts(options)
+  async reset(): Promise<void> {
+    await this.resetAccounts()
 
     this.chainProcessor.hash = null
   }
 
-  private async resetAccounts(options?: {
-    tx?: IDatabaseTransaction
-    resetCreatedAt?: boolean
-  }): Promise<void> {
+  private async resetAccounts(tx?: IDatabaseTransaction): Promise<void> {
     for (const account of this.listAccounts()) {
-      await this.resetAccount(account, options)
+      await this.resetAccount(account, { tx })
     }
   }
 
@@ -582,86 +567,35 @@ export class Wallet {
   private async upsertAssetsFromDecryptedNotes(
     account: Account,
     decryptedNotes: DecryptedNote[],
-    blockHeader: WalletBlockHeader,
+    blockHeader?: WalletBlockHeader,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     for (const { serializedNote } of decryptedNotes) {
       const note = new Note(serializedNote)
-      const asset = await this.getOrBackfillAsset(account, note.assetId(), false, tx)
-      Assert.isNotNull(asset, 'Asset must be non-null in the chain')
-      await account.updateAssetWithBlockHeader(asset, blockHeader, tx)
-    }
-  }
+      const asset = await this.walletDb.getAsset(account, note.assetId(), tx)
 
-  /**
-   * Ensures that the wallet db contains information about the assets involved
-   * in the given notes and mints.
-   *
-   * This method checks that each asset is in the wallet db and, if it cannot
-   * be found, then the information is copied from the chain db into the wallet
-   * db.
-   */
-  private async backfillAssets(
-    account: Account,
-    decryptedNotes: DecryptedNote[],
-    mints: MintDescription[],
-    tx?: IDatabaseTransaction,
-  ): Promise<void> {
-    const backfilled = new BufferSet()
-    for (const { serializedNote } of decryptedNotes) {
-      const note = new Note(serializedNote)
-      const assetId = note.assetId()
-      if (!backfilled.has(assetId)) {
-        await this.getOrBackfillAsset(account, assetId, false, tx)
-        backfilled.add(assetId)
+      if (!asset) {
+        const chainAsset = await this.getChainAsset(note.assetId())
+        Assert.isNotNull(chainAsset, 'Asset must be non-null in the chain')
+        await account.saveAssetFromChain(
+          chainAsset.createdTransactionHash,
+          chainAsset.id,
+          chainAsset.metadata,
+          chainAsset.name,
+          chainAsset.nonce,
+          chainAsset.creator,
+          chainAsset.owner,
+          blockHeader,
+          tx,
+        )
+      } else if (blockHeader) {
+        await account.updateAssetWithBlockHeader(
+          asset,
+          { hash: blockHeader.hash, sequence: blockHeader.sequence },
+          tx,
+        )
       }
     }
-    for (const { asset } of mints) {
-      const assetId = asset.id()
-      if (!backfilled.has(assetId)) {
-        await this.getOrBackfillAsset(account, assetId, true, tx)
-        backfilled.add(assetId)
-      }
-    }
-  }
-
-  private async getOrBackfillAsset(
-    account: Account,
-    assetId: Buffer,
-    onlyIfOwned: boolean,
-    tx?: IDatabaseTransaction,
-  ): Promise<AssetValue | null> {
-    const asset = await this.walletDb.getAsset(account, assetId, tx)
-
-    // If the asset is not known to the wallet db, backfill it from the chain db.
-    if (!asset) {
-      const chainAsset = await this.getChainAsset(assetId)
-      if (!chainAsset) {
-        return null
-      }
-      if (onlyIfOwned && chainAsset.owner.toString('hex') !== account.publicAddress) {
-        return null
-      }
-      await account.saveAssetFromChain(
-        chainAsset.createdTransactionHash,
-        chainAsset.id,
-        chainAsset.metadata,
-        chainAsset.name,
-        chainAsset.nonce,
-        chainAsset.creator,
-        chainAsset.owner,
-        undefined,
-        tx,
-      )
-      return {
-        blockHash: null,
-        sequence: null,
-        supply: null,
-        ...chainAsset,
-      }
-    }
-
-    return asset
   }
 
   async disconnectBlock(
@@ -732,8 +666,8 @@ export class Wallet {
     for (const account of accounts) {
       const decryptedNotes = decryptedNotesByAccountId.get(account.id) ?? []
 
-      await this.backfillAssets(account, decryptedNotes, transaction.mints)
       await account.addPendingTransaction(transaction, decryptedNotes, head.sequence)
+      await this.upsertAssetsFromDecryptedNotes(account, decryptedNotes)
     }
   }
 
@@ -870,7 +804,12 @@ export class Wallet {
 
   async send(options: {
     account: Account
-    outputs: TransactionOutput[]
+    outputs: {
+      publicAddress: string
+      amount: bigint
+      memo: string
+      assetId: Buffer
+    }[]
     fee?: bigint
     feeRate?: bigint
     expirationDelta?: number
@@ -906,14 +845,12 @@ export class Wallet {
       }
 
       mintData = {
-        creator: asset.creator.toString('hex'),
         name: asset.name.toString('utf8'),
         metadata: asset.metadata.toString('utf8'),
         value: options.value,
       }
     } else {
       mintData = {
-        creator: account.publicAddress,
         name: options.name,
         metadata: options.metadata,
         value: options.value,
@@ -924,7 +861,6 @@ export class Wallet {
       account,
       mints: [mintData],
       fee: options.fee,
-      feeRate: options.feeRate,
       expirationDelta: options.expirationDelta,
       expiration: options.expiration,
       confirmations: options.confirmations,
@@ -941,9 +877,8 @@ export class Wallet {
     account: Account,
     assetId: Buffer,
     value: bigint,
+    fee: bigint,
     expirationDelta: number,
-    fee?: bigint,
-    feeRate?: bigint,
     expiration?: number,
     confirmations?: number,
   ): Promise<Transaction> {
@@ -951,7 +886,6 @@ export class Wallet {
       account,
       burns: [{ assetId, value }],
       fee,
-      feeRate,
       expirationDelta,
       expiration,
       confirmations,
@@ -967,7 +901,12 @@ export class Wallet {
   async createTransaction(options: {
     account: Account
     notes?: Buffer[]
-    outputs?: TransactionOutput[]
+    outputs?: {
+      publicAddress: string
+      amount: bigint
+      memo: string
+      assetId: Buffer
+    }[]
     mints?: MintData[]
     burns?: BurnDescription[]
     fee?: bigint
@@ -1007,13 +946,7 @@ export class Wallet {
         throw new Error('Your account must finish scanning before sending a transaction.')
       }
 
-      const transactionVersionSequenceDelta = TransactionUtils.versionSequenceDelta(
-        expiration ? expiration - heaviestHead.sequence : expiration,
-      )
-      const transactionVersion = this.consensus.getActiveTransactionVersion(
-        heaviestHead.sequence + transactionVersionSequenceDelta,
-      )
-      const raw = new RawTransaction(transactionVersion)
+      const raw = new RawTransaction()
       raw.expiration = expiration
 
       if (options.mints) {
@@ -1359,17 +1292,6 @@ export class Wallet {
     }
   }
 
-  /**
-   * Note: This logic will be deprecated when we move the field `status` from the Asset response object. The status field has
-   * more to do with the transaction than the asset itself.
-   *
-   * The getTransactionStatus field above is more relevant.
-   *
-   * @param account Account
-   * @param assetValue AssetValue
-   * @param options: { headSequence?: number | null;  confirmations?: number}
-   * @returns Promise<AssetStatus>
-   */
   async getAssetStatus(
     account: Account,
     assetValue: AssetValue,

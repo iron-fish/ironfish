@@ -5,11 +5,8 @@ import {
   BufferUtils,
   CreateTransactionRequest,
   CurrencyUtils,
-  ErrorUtils,
-  isValidPublicAddress,
   RawTransaction,
   RawTransactionSerde,
-  RpcClient,
   Transaction,
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
@@ -28,7 +25,6 @@ export class Mint extends IronfishCommand {
     '$ ironfish wallet:mint --assetId 618c098d8d008c9f78f6155947014901a019d9ec17160dc0f0d1bb1c764b29b4 --amount 1000',
     '$ ironfish wallet:mint --assetId 618c098d8d008c9f78f6155947014901a019d9ec17160dc0f0d1bb1c764b29b4 --amount 1000 --account otheraccount',
     '$ ironfish wallet:mint --assetId 618c098d8d008c9f78f6155947014901a019d9ec17160dc0f0d1bb1c764b29b4 --amount 1000 --account otheraccount --fee 0.00000001',
-    '$ ironfish wallet:mint --assetId 618c098d8d008c9f78f6155947014901a019d9ec17160dc0f0d1bb1c764b29b4 --amount 1000 --transferOwnershipTo 0000000000000000000000000000000000000000000000000000000000000000',
   ]
 
   static flags = {
@@ -42,12 +38,6 @@ export class Mint extends IronfishCommand {
       description: 'The fee amount in IRON',
       minimum: 1n,
       flagName: 'fee',
-    }),
-    feeRate: IronFlag({
-      char: 'r',
-      description: 'The fee rate amount in IRON/Kilobyte',
-      minimum: 1n,
-      flagName: 'fee rate',
     }),
     amount: IronFlag({
       char: 'a',
@@ -97,10 +87,6 @@ export class Mint extends IronfishCommand {
       default: false,
       description: 'Wait for the transaction to be confirmed',
     }),
-    transferOwnershipTo: Flags.string({
-      description: 'The public address of the account to transfer ownership of this asset to.',
-      required: false,
-    }),
   }
 
   async start(): Promise<void> {
@@ -130,9 +116,6 @@ export class Mint extends IronfishCommand {
 
       account = response.content.account.name
     }
-
-    const publicKeyResponse = await client.wallet.getAccountPublicKey({ account })
-    const accountPublicKey = publicKeyResponse.content.publicKey
 
     if (flags.expiration !== undefined && flags.expiration < 0) {
       this.log('Expiration sequence must be non-negative')
@@ -179,13 +162,6 @@ export class Mint extends IronfishCommand {
       assetId = asset.id
     }
 
-    if (assetId) {
-      const isAssetOwner = await this.isAssetOwner(client, assetId, accountPublicKey)
-      if (!isAssetOwner) {
-        this.error(`The account '${account}' does not own this asset.`)
-      }
-    }
-
     let amount = flags.amount
     if (!amount) {
       amount = await promptCurrency({
@@ -197,12 +173,6 @@ export class Mint extends IronfishCommand {
       })
     }
 
-    if (flags.transferOwnershipTo) {
-      if (!isValidPublicAddress(flags.transferOwnershipTo)) {
-        this.error('transferOwnershipTo must be a valid public address')
-      }
-    }
-
     const params: CreateTransactionRequest = {
       account,
       outputs: [],
@@ -212,17 +182,16 @@ export class Mint extends IronfishCommand {
           name,
           metadata,
           value: CurrencyUtils.encode(amount),
-          transferOwnershipTo: flags.transferOwnershipTo,
         },
       ],
       fee: flags.fee ? CurrencyUtils.encode(flags.fee) : null,
-      feeRate: flags.feeRate ? CurrencyUtils.encode(flags.feeRate) : null,
       expiration: flags.expiration,
       confirmations: flags.confirmations,
     }
 
     let raw: RawTransaction
-    if (params.fee === null && params.feeRate === null) {
+
+    if (params.fee === null) {
       raw = await selectFee({
         client,
         transaction: params,
@@ -245,15 +214,7 @@ export class Mint extends IronfishCommand {
 
     if (
       !flags.confirm &&
-      !(await this.confirm(
-        account,
-        amount,
-        raw.fee,
-        assetId,
-        name,
-        metadata,
-        flags.transferOwnershipTo,
-      ))
+      !(await this.confirm(account, amount, raw.fee, assetId, name, metadata))
     ) {
       this.error('Transaction aborted.')
     }
@@ -318,7 +279,6 @@ export class Mint extends IronfishCommand {
     assetId?: string,
     name?: string,
     metadata?: string,
-    transferOwnershipTo?: string,
   ): Promise<boolean> {
     const nameString = name ? `\nName: ${name}` : ''
     const metadataString = metadata ? `\nMetadata: ${metadata}` : ''
@@ -328,34 +288,6 @@ export class Mint extends IronfishCommand {
     this.log(`Amount: ${CurrencyUtils.renderIron(amount, !!assetId, assetId)}`)
     this.log(`Fee: ${CurrencyUtils.renderIron(fee, true)}`)
 
-    if (transferOwnershipTo) {
-      this.log(
-        `Ownership of this asset will be transferred to ${transferOwnershipTo}. The current account will no longer have any permission to mint or modify this asset. This cannot be undone.`,
-      )
-    }
-
     return CliUx.ux.confirm('Do you confirm (Y/N)?')
-  }
-
-  async isAssetOwner(
-    client: RpcClient,
-    assetId: string,
-    ownerPublicKey: string,
-  ): Promise<boolean> {
-    try {
-      const assetResponse = await client.chain.getAsset({ id: assetId })
-      if (assetResponse.content.owner === ownerPublicKey) {
-        return true
-      }
-    } catch (e) {
-      if (ErrorUtils.isNotFoundError(e)) {
-        // Asset doesn't exist yet, so this account would be the creator and owner for the initial mint
-        return true
-      } else {
-        throw e
-      }
-    }
-
-    return false
   }
 }

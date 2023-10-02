@@ -37,12 +37,3 @@ jobs:
 
       - name: Run slow tests
         run: JEST_TIMEOUT=1000000000 yarn test:slow:coverage --maxWorkers=2 --workerIdleMemoryLimit=2000MB
-
-      - name: Report Status
-        if: always()
-        uses: ravsamhq/notify-slack-action@master
-        with:
-          status: ${{ job.status }}
-          notify_when: 'failure'
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.GITHUB_ACTIONS_SLACK_WEBHOOK }}

@@ -8,5 +8,3 @@
 *.png -text
 *.params -text
 mainnet-parameters/params -text
-
-*.pdf binary

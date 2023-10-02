@@ -10,9 +10,12 @@ use ironfish::transaction::{
     batch_verify_transactions, TransactionVersion, TRANSACTION_EXPIRATION_SIZE,
     TRANSACTION_FEE_SIZE, TRANSACTION_PUBLIC_KEY_SIZE, TRANSACTION_SIGNATURE_SIZE,
 };
-use ironfish::{MerkleNoteHash, ProposedTransaction, PublicAddress, SaplingKey, Transaction};
+use ironfish::{
+    MerkleNoteHash, ProposedTransaction, PublicAddress, SaplingKey, Transaction,
+    TRANSACTION_VERSION as TX_VERSION,
+};
 use napi::{
-    bindgen_prelude::{i64n, BigInt, Buffer, Env, Object, Result, Undefined},
+    bindgen_prelude::{i64n, BigInt, Buffer, Env, Error, Object, Result, Undefined},
     JsBuffer,
 };
 use napi_derive::napi;
@@ -41,7 +44,7 @@ pub const TRANSACTION_EXPIRATION_LENGTH: u32 = TRANSACTION_EXPIRATION_SIZE as u3
 pub const TRANSACTION_FEE_LENGTH: u32 = TRANSACTION_FEE_SIZE as u32;
 
 #[napi]
-pub const LATEST_TRANSACTION_VERSION: u8 = TransactionVersion::latest() as u8;
+pub const TRANSACTION_VERSION: u8 = TX_VERSION.as_u8();
 
 #[napi(js_name = "TransactionPosted")]
 pub struct NativeTransactionPosted {
@@ -167,12 +170,26 @@ pub struct NativeTransaction {
 #[napi]
 impl NativeTransaction {
     #[napi(constructor)]
-    pub fn new(spender_hex_key: String, version: u8) -> Result<Self> {
+    pub fn new(spender_hex_key: String, version: Option<u8>) -> Result<Self> {
         let spender_key = SaplingKey::from_hex(&spender_hex_key).map_err(to_napi_err)?;
-        let tx_version = version.try_into().map_err(to_napi_err)?;
-        let transaction = ProposedTransaction::new(spender_key, tx_version);
-
+        let transaction = match version {
+            None => ProposedTransaction::new(spender_key),
+            Some(version) => {
+                let version = TransactionVersion::from_u8(version)
+                    .ok_or_else(|| Error::from_reason(format!("unsupported version: {version}")))?;
+                ProposedTransaction::with_version(spender_key, version)
+            }
+        };
         Ok(NativeTransaction { transaction })
+    }
+
+    pub fn with_version(spender_hex_key: String, version: u8) -> Result<Self> {
+        let spender_key = SaplingKey::from_hex(&spender_hex_key).map_err(to_napi_err)?;
+        let version = TransactionVersion::from_u8(version)
+            .ok_or_else(|| Error::from_reason(format!("unsupported version: {version}")))?;
+        Ok(NativeTransaction {
+            transaction: ProposedTransaction::with_version(spender_key, version),
+        })
     }
 
     /// Create a proof of a new note owned by the recipient in this transaction.
