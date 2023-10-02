@@ -153,7 +153,7 @@ export class Deposit extends IronfishCommand {
     }
 
     this.log(
-      `\nDepost transaction:\n` +
+      `\nDeposit transaction:\n` +
         `From address:      ${publicKey}\n` +
         `To bridge address: ${to}\n` +
         `Memo:              ${depositId}\n` +
