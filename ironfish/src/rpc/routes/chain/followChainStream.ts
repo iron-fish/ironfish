@@ -10,7 +10,8 @@ import { Block, BlockHeader } from '../../../primitives'
 import { BlockHashSerdeInstance } from '../../../serde'
 import { BufferUtils, PromiseUtils } from '../../../utils'
 import { RpcBlock, RpcBlockSchema, serializeRpcBlockHeader } from '../../types'
-import { ApiNamespace, routes } from '../router'
+import { ApiNamespace } from '../namespaces'
+import { routes } from '../router'
 
 export type FollowChainStreamRequest =
   | {

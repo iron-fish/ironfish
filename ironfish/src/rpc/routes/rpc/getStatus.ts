@@ -6,7 +6,8 @@ import { PromiseUtils } from '../../../utils'
 import { RpcHttpAdapter, RpcIpcAdapter } from '../../adapters'
 import { RpcSocketAdapter } from '../../adapters/socketAdapter/socketAdapter'
 import { RpcServer } from '../../server'
-import { ApiNamespace, routes } from '../router'
+import { ApiNamespace } from '../namespaces'
+import { routes } from '../router'
 
 export type GetRpcStatusRequest =
   | undefined

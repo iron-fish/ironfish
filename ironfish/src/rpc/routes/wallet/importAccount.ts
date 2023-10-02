@@ -4,7 +4,8 @@
 import { v4 as uuid } from 'uuid'
 import * as yup from 'yup'
 import { decodeAccount } from '../../../wallet/account/encoder/account'
-import { ApiNamespace, routes } from '../router'
+import { ApiNamespace } from '../namespaces'
+import { routes } from '../router'
 import { RpcAccountImport } from './types'
 import { deserializeRpcAccountImport } from './utils'
 

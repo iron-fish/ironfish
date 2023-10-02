@@ -3,7 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Account } from '../../../wallet'
-import { ApiNamespace, routes } from '../router'
+import { ApiNamespace } from '../namespaces'
+import { routes } from '../router'
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 export type GetAccountsRequest = { default?: boolean; displayName?: boolean } | undefined

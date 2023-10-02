@@ -7,7 +7,8 @@ import { Connection, PeerNetwork } from '../../../network'
 import { NetworkMessageType } from '../../../network/types'
 import { FullNode } from '../../../node'
 import { IJSON } from '../../../serde'
-import { ApiNamespace, routes } from '../router'
+import { ApiNamespace } from '../namespaces'
+import { routes } from '../router'
 
 type PeerMessage = {
   brokeringPeerDisplayName?: string

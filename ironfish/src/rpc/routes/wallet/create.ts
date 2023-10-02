@@ -9,7 +9,8 @@
  */
 
 import { ERROR_CODES, ValidationError } from '../../adapters'
-import { ApiNamespace, routes } from '../router'
+import { ApiNamespace } from '../namespaces'
+import { routes } from '../router'
 import { CreateAccountRequestSchema, CreateAccountResponse } from '../wallet'
 
 routes.register<typeof CreateAccountRequestSchema, CreateAccountResponse>(

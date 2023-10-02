@@ -4,7 +4,8 @@
 import { Asset } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
 import { AssetVerification } from '../../../assets'
-import { ApiNamespace, routes } from '../router'
+import { ApiNamespace } from '../namespaces'
+import { routes } from '../router'
 import { getAccount } from './utils'
 
 export type GetBalanceRequest =

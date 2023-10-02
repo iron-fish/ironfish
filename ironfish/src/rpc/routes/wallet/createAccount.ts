@@ -3,7 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { ERROR_CODES, ValidationError } from '../../adapters'
-import { ApiNamespace, routes } from '../router'
+import { ApiNamespace } from '../namespaces'
+import { routes } from '../router'
 /**
  * Our endpoints follow the verbObject naming convention, where the verb is the
  * HTTP verb and the object is the object being acted upon. For example,

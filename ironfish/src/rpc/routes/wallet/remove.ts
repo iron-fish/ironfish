@@ -8,7 +8,8 @@
  * is the verbObject naming convention. For example, `POST /wallet/burnAsset` burns an asset.
  */
 
-import { ApiNamespace, routes } from '../router'
+import { ApiNamespace } from '../namespaces'
+import { routes } from '../router'
 import { RemoveAccountRequestSchema, RemoveAccountResponse } from './removeAccount'
 import { getAccount } from './utils'
 

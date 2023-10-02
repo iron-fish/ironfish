@@ -5,7 +5,8 @@ import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { FullNode } from '../../../node'
 import { Transaction } from '../../../primitives'
-import { ApiNamespace, routes } from '../router'
+import { ApiNamespace } from '../namespaces'
+import { routes } from '../router'
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 export type OnTransactionGossipRequest = {} | undefined

@@ -3,7 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { RawTransactionSerde } from '../../../primitives/rawTransaction'
-import { ApiNamespace, routes } from '../router'
+import { ApiNamespace } from '../namespaces'
+import { routes } from '../router'
 import { getAccount } from './utils'
 
 export type PostTransactionRequest = {
