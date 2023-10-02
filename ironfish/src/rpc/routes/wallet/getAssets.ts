@@ -4,7 +4,8 @@
 import * as yup from 'yup'
 import { CurrencyUtils } from '../../../utils'
 import { RpcAsset, RpcAssetSchema } from '../../types'
-import { ApiNamespace, routes } from '../router'
+import { ApiNamespace } from '../namespaces'
+import { routes } from '../router'
 import { getAccount } from './utils'
 
 export type GetAssetsRequest = {

@@ -6,7 +6,8 @@ import { Verifier } from '../../../consensus'
 import { Transaction } from '../../../primitives'
 import { AsyncUtils } from '../../../utils'
 import { ValidationError } from '../../adapters'
-import { ApiNamespace, routes } from '../router'
+import { ApiNamespace } from '../namespaces'
+import { routes } from '../router'
 
 export type AddTransactionRequest = {
   transaction: string

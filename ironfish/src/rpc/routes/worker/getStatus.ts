@@ -5,7 +5,8 @@ import * as yup from 'yup'
 import { MathUtils } from '../../../utils'
 import { WorkerPool } from '../../../workerPool'
 import { WorkerMessageType } from '../../../workerPool/tasks/workerMessage'
-import { ApiNamespace, routes } from '../router'
+import { ApiNamespace } from '../namespaces'
+import { routes } from '../router'
 
 export type GetWorkersStatusRequest =
   | undefined

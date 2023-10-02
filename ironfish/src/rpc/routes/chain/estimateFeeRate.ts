@@ -6,7 +6,8 @@ import { Assert } from '../../../assert'
 import { PRIORITY_LEVELS, PriorityLevel } from '../../../memPool/feeEstimator'
 import { FullNode } from '../../../node'
 import { CurrencyUtils } from '../../../utils'
-import { ApiNamespace, routes } from '../router'
+import { ApiNamespace } from '../namespaces'
+import { routes } from '../router'
 
 export type EstimateFeeRateRequest = { priority?: PriorityLevel } | undefined
 

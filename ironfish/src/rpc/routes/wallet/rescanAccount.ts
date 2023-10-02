@@ -4,7 +4,8 @@
 import * as yup from 'yup'
 import { GENESIS_BLOCK_SEQUENCE } from '../../../primitives'
 import { ValidationError } from '../../adapters/errors'
-import { ApiNamespace, routes } from '../router'
+import { ApiNamespace } from '../namespaces'
+import { routes } from '../router'
 
 export type RescanAccountRequest = { follow?: boolean; from?: number }
 export type RescanAccountResponse = { sequence: number; startedAt: number; endSequence: number }

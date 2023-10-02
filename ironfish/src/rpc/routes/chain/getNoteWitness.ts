@@ -6,7 +6,8 @@ import { Assert } from '../../../assert'
 import { FullNode } from '../../../node'
 import { GENESIS_BLOCK_SEQUENCE } from '../../../primitives'
 import { ValidationError } from '../../adapters'
-import { ApiNamespace, routes } from '../router'
+import { ApiNamespace } from '../namespaces'
+import { routes } from '../router'
 
 export type GetNoteWitnessRequest = {
   index: number

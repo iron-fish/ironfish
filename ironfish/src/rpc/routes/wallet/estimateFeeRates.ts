@@ -6,7 +6,8 @@ import {
   EstimateFeeRatesRequestSchema,
   EstimateFeeRatesResponse,
 } from '../chain/estimateFeeRates'
-import { ApiNamespace, routes } from '../router'
+import { ApiNamespace } from '../namespaces'
+import { routes } from '../router'
 
 routes.register<typeof EstimateFeeRatesRequestSchema, EstimateFeeRatesResponse>(
   `${ApiNamespace.wallet}/estimateFeeRates`,

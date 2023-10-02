@@ -5,7 +5,8 @@ import { ConsolaReporterLogObject } from 'consola'
 import * as yup from 'yup'
 import { InterceptReporter } from '../../../logger'
 import { IJSON } from '../../../serde'
-import { ApiNamespace, routes } from '../router'
+import { ApiNamespace } from '../namespaces'
+import { routes } from '../router'
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 export type GetLogStreamRequest = {} | undefined
