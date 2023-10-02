@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import type { RpcResponse, RpcResponseEnded } from '../response'
 import type {
   AcceptTransactionRequest,
   AcceptTransactionResponse,
@@ -130,8 +131,7 @@ import type {
   UseAccountRequest,
   UseAccountResponse,
 } from '../routes'
-import { RpcResponse, RpcResponseEnded } from '../response'
-import { ApiNamespace } from '../routes'
+import { ApiNamespace } from '../routes/namespaces'
 
 export abstract class RpcClient {
   abstract request<TEnd = unknown, TStream = unknown>(

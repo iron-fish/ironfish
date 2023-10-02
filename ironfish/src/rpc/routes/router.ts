@@ -8,20 +8,7 @@ import { ERROR_CODES } from '../adapters'
 import { ResponseError, ValidationError } from '../adapters/errors'
 import { RpcRequest } from '../request'
 import { RpcServer } from '../server'
-
-export enum ApiNamespace {
-  chain = 'chain',
-  config = 'config',
-  event = 'event',
-  faucet = 'faucet',
-  miner = 'miner',
-  node = 'node',
-  peer = 'peer',
-  wallet = 'wallet',
-  worker = 'worker',
-  rpc = 'rpc',
-  mempool = 'mempool',
-}
+import { ApiNamespace } from './namespaces'
 
 export const ALL_API_NAMESPACES = StrEnumUtils.getValues(ApiNamespace)
 
