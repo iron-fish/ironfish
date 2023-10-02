@@ -59,10 +59,6 @@ export class Deposit extends IronfishCommand {
         'Minimum number of block confirmations needed to include a note. Set to 0 to include all blocks.',
       required: false,
     }),
-    assetId: Flags.string({
-      char: 'i',
-      description: 'The identifier for the asset to deposit',
-    }),
     dest: Flags.string({
       description: 'Eth public address to deposit to',
       required: true,
@@ -96,7 +92,7 @@ export class Deposit extends IronfishCommand {
     const account =
       flags.account ?? (await client.wallet.getDefaultAccount()).content.account?.name
 
-    const assetId = flags.assetId ?? Asset.nativeId().toString('hex')
+    const assetId = Asset.nativeId().toString('hex')
 
     const to = flags.to ?? (await api.getBridgeAddress())
 
