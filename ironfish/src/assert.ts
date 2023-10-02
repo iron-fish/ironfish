@@ -91,4 +91,13 @@ export class Assert {
       throw new Error(`We must have forgotten a falsey value: ${String(x)}`)
     }
   }
+
+  static bufferEquals(x: Buffer, y: Buffer, message?: string): void {
+    if (!x.equals(y)) {
+      // Not including the buffer contents in the message because they can
+      // potentially be huge (also choosing the proper encoding may be a
+      // problem)
+      throw new Error(message || 'Expected buffers to have the same contents')
+    }
+  }
 }

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Note } from '../../../primitives'
-import { CurrencyUtils } from '../../../utils'
+import { BufferUtils, CurrencyUtils, IronfishNode } from '../../../utils'
 import { Account, Wallet } from '../../../wallet'
 import { AccountImport } from '../../../wallet/walletdb/accountValue'
 import { AssetValue } from '../../../wallet/walletdb/assetValue'
@@ -11,10 +11,10 @@ import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
 import { WorkerPool } from '../../../workerPool'
 import { ValidationError } from '../../adapters'
 import {
-  RcpAccountAssetBalanceDelta,
+  RpcAccountAssetBalanceDelta,
   RpcAccountImport,
-  RpcAccountTransaction,
   RpcWalletNote,
+  RpcWalletTransaction,
 } from './types'
 
 export function getAccount(wallet: Wallet, name?: string): Account {
@@ -37,10 +37,27 @@ export function getAccount(wallet: Wallet, name?: string): Account {
   )
 }
 
-export function serializeRpcAccountTransaction(
+export async function serializeRpcWalletTransaction(
+  node: IronfishNode,
+  account: Account,
   transaction: TransactionValue,
-): RpcAccountTransaction {
+  options?: {
+    confirmations?: number
+    serialized?: boolean
+  },
+): Promise<RpcWalletTransaction> {
+  const assetBalanceDeltas = await getAssetBalanceDeltas(account, transaction)
+  const type = await node.wallet.getTransactionType(account, transaction)
+  const confirmations = options?.confirmations ?? node.config.get('confirmations')
+  const status = await node.wallet.getTransactionStatus(account, transaction, {
+    confirmations,
+  })
+
   return {
+    serialized: options?.serialized
+      ? transaction.transaction.serialize().toString('hex')
+      : undefined,
+    signature: transaction.transaction.transactionSignature().toString('hex'),
     hash: transaction.transaction.hash().toString('hex'),
     fee: transaction.transaction.fee().toString(),
     blockHash: transaction.blockHash?.toString('hex'),
@@ -52,6 +69,26 @@ export function serializeRpcAccountTransaction(
     expiration: transaction.transaction.expiration(),
     timestamp: transaction.timestamp.getTime(),
     submittedSequence: transaction.submittedSequence,
+    mints: transaction.transaction.mints.map((mint) => ({
+      id: mint.asset.id().toString('hex'),
+      metadata: BufferUtils.toHuman(mint.asset.metadata()),
+      name: BufferUtils.toHuman(mint.asset.name()),
+      creator: mint.asset.creator().toString('hex'),
+      value: mint.value.toString(),
+      transferOwnershipTo: mint.transferOwnershipTo?.toString('hex'),
+      assetId: mint.asset.id().toString('hex'),
+      assetName: mint.asset.name().toString('hex'),
+    })),
+    burns: transaction.transaction.burns.map((burn) => ({
+      id: burn.assetId.toString('hex'),
+      assetId: burn.assetId.toString('hex'),
+      value: burn.value.toString(),
+      assetName: '',
+    })),
+    type,
+    status,
+    assetBalanceDeltas,
+    confirmations,
   }
 }
 
@@ -70,8 +107,8 @@ export function deserializeRpcAccountImport(accountImport: RpcAccountImport): Ac
 export async function getAssetBalanceDeltas(
   account: Account,
   transaction: TransactionValue,
-): Promise<RcpAccountAssetBalanceDelta[]> {
-  const assetBalanceDeltas = new Array<RcpAccountAssetBalanceDelta>()
+): Promise<RpcAccountAssetBalanceDelta[]> {
+  const assetBalanceDeltas = new Array<RpcAccountAssetBalanceDelta>()
 
   for (const [assetId, delta] of transaction.assetBalanceDeltas.entries()) {
     const asset = await account.getAsset(assetId)

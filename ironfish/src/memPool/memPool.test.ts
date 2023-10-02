@@ -1,20 +1,23 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Asset } from '@ironfish/rust-nodejs'
 import { Assert } from '../assert'
 import * as ConsensusUtils from '../consensus/utils'
 import { getTransactionSize } from '../network/utils/serializers'
 import { FullNode } from '../node'
 import { Transaction } from '../primitives'
+import { TransactionVersion } from '../primitives/transaction'
 import {
   createNodeTest,
   useAccountFixture,
+  useBlockWithCustomTxs,
   useBlockWithTx,
   useMinerBlockFixture,
   useTxFixture,
 } from '../testUtilities'
 import { Account } from '../wallet'
-import { getFeeRate } from './feeEstimator'
+import { getPreciseFeeRate } from './feeEstimator'
 import { mempoolEntryComparator } from './memPool'
 
 // Creates transactions out of the list of fees and adds them to the wallet
@@ -139,6 +142,37 @@ describe('MemPool', () => {
   describe('orderedTransactions', () => {
     const nodeTest = createNodeTest()
 
+    it('returns transactions sorted by fee rate deterministically', async () => {
+      const from = await useAccountFixture(nodeTest.wallet, 'account')
+
+      const outputs = Array(10).fill({
+        publicAddress: from.publicAddress,
+        amount: 1n,
+        assetId: Asset.nativeId(),
+        memo: '',
+      })
+
+      const transactionInputs = [
+        { from, fee: 1n, outputs },
+        { from, fee: 2n, outputs },
+        { from, fee: 3n, outputs },
+        { from, fee: 4n, outputs },
+      ]
+      const { transactions } = await useBlockWithCustomTxs(nodeTest.node, transactionInputs)
+
+      for (const transaction of transactions) {
+        nodeTest.node.memPool.acceptTransaction(transaction)
+      }
+
+      const orderedTransactions = [...nodeTest.node.memPool.orderedTransactions()]
+
+      expect(orderedTransactions.length).toEqual(4)
+      expect(orderedTransactions[0].hash()).toEqual(transactions[3].hash())
+      expect(orderedTransactions[1].hash()).toEqual(transactions[2].hash())
+      expect(orderedTransactions[2].hash()).toEqual(transactions[1].hash())
+      expect(orderedTransactions[3].hash()).toEqual(transactions[0].hash())
+    })
+
     it('returns transactions from the node mempool sorted by fee rate', async () => {
       const { node } = nodeTest
       const { wallet, memPool } = node
@@ -174,8 +208,8 @@ describe('MemPool', () => {
       // add transaction to wallet to avoid spending same notes
       await wallet.addPendingTransaction(transactionC)
 
-      expect(getFeeRate(transactionA)).toBeGreaterThan(getFeeRate(transactionB))
-      expect(getFeeRate(transactionB)).toBeGreaterThan(getFeeRate(transactionC))
+      expect(getPreciseFeeRate(transactionA).gt(getPreciseFeeRate(transactionB))).toBe(true)
+      expect(getPreciseFeeRate(transactionB).gt(getPreciseFeeRate(transactionC))).toBe(true)
 
       expect(memPool.acceptTransaction(transactionB)).toBe(true)
       expect(memPool.acceptTransaction(transactionA)).toBe(true)
@@ -256,6 +290,20 @@ describe('MemPool', () => {
         expect(memPool.acceptTransaction(transaction)).toBe(false)
         expect(isExpiredSequenceSpy).toHaveBeenCalledTimes(1)
         expect(isExpiredSequenceSpy).toHaveLastReturnedWith(true)
+      })
+    })
+
+    describe('with an expired version', () => {
+      const nodeTest = createNodeTest()
+
+      it('returns false', async () => {
+        const { node, wallet } = nodeTest
+        const account = await useAccountFixture(wallet)
+        const { transaction } = await useBlockWithTx(node, account)
+
+        jest.spyOn(transaction, 'version').mockReturnValue(TransactionVersion.V1)
+
+        expect(node.memPool.acceptTransaction(transaction)).toBe(false)
       })
     })
 
@@ -368,6 +416,17 @@ describe('MemPool', () => {
         expect(memPool.exists(transaction.hash())).toBe(true)
         expect([...memPool.orderedTransactions()]).toContainEqual(transaction)
       })
+
+      it('adds the transaction to the transaction version priority queue', async () => {
+        const { node } = nodeTest
+        const { wallet, memPool } = node
+        const account = await useAccountFixture(wallet)
+        const { transaction } = await useBlockWithTx(node, account)
+
+        expect(memPool.acceptTransaction(transaction)).toEqual(true)
+
+        expect(memPool['versionQueue'].has(transaction.hash().toString('hex'))).toEqual(true)
+      })
     })
   })
 
@@ -456,6 +515,46 @@ describe('MemPool', () => {
       expect(memPool.get(transactionB.hash())).toBeDefined()
       expect([...memPool.orderedTransactions()]).not.toContainEqual(transactionA)
       expect([...memPool.orderedTransactions()]).toContainEqual(transactionB)
+    })
+
+    it('removes transactions with an expired version from the mempool', async () => {
+      const { node, chain, wallet } = nodeTest
+      const { memPool } = node
+      const account = await useAccountFixture(wallet)
+
+      // Enable V1 transactions to setup the test transactions
+      chain.consensus.parameters.enableAssetOwnership = 999999
+
+      const block1 = await useMinerBlockFixture(chain, undefined, account)
+      await expect(chain).toAddBlock(block1)
+      await wallet.updateHead()
+
+      const block2 = await useMinerBlockFixture(chain, undefined, account)
+      await expect(chain).toAddBlock(block2)
+      await wallet.updateHead()
+
+      const transaction1 = await useTxFixture(wallet, account, account)
+      expect(memPool.acceptTransaction(transaction1)).toBe(true)
+
+      // Re-enable V2 transactions
+      chain.consensus.parameters.enableAssetOwnership = 1
+
+      const transaction2 = await useTxFixture(wallet, account, account)
+      expect(memPool.acceptTransaction(transaction2)).toBe(true)
+
+      expect(memPool.get(transaction1.hash())).toBeDefined()
+      expect(memPool.get(transaction2.hash())).toBeDefined()
+      expect(memPool['versionQueue'].size()).toEqual(2)
+
+      const block3 = await useMinerBlockFixture(chain)
+      await expect(chain).toAddBlock(block3)
+
+      expect(memPool.exists(transaction1.hash())).toBe(false)
+      expect(memPool.get(transaction1.hash())).toBeUndefined()
+      expect(memPool['versionQueue'].has(transaction1.hash().toString('hex'))).toEqual(false)
+      expect(memPool['versionQueue'].has(transaction2.hash().toString('hex'))).toEqual(true)
+      expect([...memPool.orderedTransactions()]).not.toContainEqual(transaction1)
+      expect([...memPool.orderedTransactions()]).toContainEqual(transaction2)
     })
   })
 
@@ -668,8 +767,8 @@ describe('MemPool', () => {
 function memPoolSort(transactions: Transaction[]): Transaction[] {
   return [...transactions].sort((t1, t2) => {
     const greater = mempoolEntryComparator(
-      { hash: t1.hash(), feeRate: getFeeRate(t1) },
-      { hash: t2.hash(), feeRate: getFeeRate(t2) },
+      { hash: t1.hash(), feeRate: getPreciseFeeRate(t1) },
+      { hash: t2.hash(), feeRate: getPreciseFeeRate(t2) },
     )
     return greater ? -1 : 1
   })

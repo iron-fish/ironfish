@@ -11,7 +11,7 @@ import { Note } from '../../primitives/note'
 import { NoteEncrypted } from '../../primitives/noteEncrypted'
 import { MintData, RawTransaction } from '../../primitives/rawTransaction'
 import { Transaction } from '../../primitives/transaction'
-import { Account, Wallet } from '../../wallet'
+import { Account, SpendingAccount, TransactionOutput, Wallet } from '../../wallet'
 import { WorkerPool } from '../../workerPool/pool'
 import { useAccountFixture } from './account'
 import { FixtureGenerate, useFixture } from './fixture'
@@ -95,6 +95,7 @@ export async function useMintBlockFixture(options: {
   account: Account
   asset: Asset
   value: bigint
+  transferOwnershipTo?: string
   sequence?: number
 }): Promise<Block> {
   if (!options.sequence) {
@@ -107,9 +108,11 @@ export async function useMintBlockFixture(options: {
     from: options.account,
     mints: [
       {
+        creator: options.asset.creator().toString('hex'),
         name: options.asset.name().toString('utf8'),
         metadata: options.asset.metadata().toString('utf8'),
         value: options.value,
+        transferOwnershipTo: options.transferOwnershipTo,
       },
     ],
   })
@@ -169,7 +172,8 @@ export async function useBlockWithRawTxFixture(
       }),
     )
 
-    const raw = new RawTransaction()
+    const transactionVersion = chain.consensus.getActiveTransactionVersion(sequence)
+    const raw = new RawTransaction(transactionVersion)
     raw.expiration = 0
     raw.mints = mints
     raw.burns = burns
@@ -273,29 +277,27 @@ export async function useBlockWithTx(
 }
 
 /**
- * Produces a block with a multiple transaction that have 1 spend, and 3 notes
- * It first produces {@link numTransactions} blocks all with mining fees to fund
+ * Produces a block with a multiple transaction that match the details of transactionInputs list
+ * It first produces {@link transactionInputs.length} blocks all with mining fees to fund
  * the transactions
  *
- * Returned block has {@link numTransactions} transactions
+ * Returned block with transactions matching the inputs in {@link transactionInputs}
  */
-export async function useBlockWithTxs(
+export async function useBlockWithCustomTxs(
   node: FullNode,
-  numTransactions: number,
-  from?: Account,
+  transactionInputs: {
+    fee?: bigint
+    to?: SpendingAccount
+    from: SpendingAccount
+    outputs: TransactionOutput[]
+  }[],
 ): Promise<{
-  account: Account
   block: Block
   transactions: Transaction[]
 }> {
-  if (!from) {
-    from = await useAccountFixture(node.wallet, 'test')
-  }
-  const to = from
-
-  let previous
-  for (let i = 0; i < numTransactions; i++) {
-    previous = await useMinerBlockFixture(node.chain, node.chain.head.sequence + 1, from)
+  // Fund each account that wants to send a transaction with a mined block
+  for (const { from } of transactionInputs) {
+    const previous = await useMinerBlockFixture(node.chain, node.chain.head.sequence + 1, from)
     await node.chain.addBlock(previous)
   }
 
@@ -305,25 +307,22 @@ export async function useBlockWithTxs(
     node.chain,
     async () => {
       const transactions: Transaction[] = []
-      for (let i = 0; i < numTransactions; i++) {
-        Assert.isNotUndefined(from)
-
+      for (const { fee, to, from, outputs } of transactionInputs) {
         const raw = await node.wallet.createTransaction({
           account: from,
-          outputs: [
+          outputs: outputs ?? [
             {
-              publicAddress: to.publicAddress,
+              publicAddress: to?.publicAddress ?? from.publicAddress,
               amount: BigInt(1),
               memo: '',
               assetId: Asset.nativeId(),
             },
           ],
-          fee: 1n,
+          fee: fee ?? 1n,
           expiration: 0,
           expirationDelta: 0,
         })
 
-        Assert.isNotNull(from.spendingKey)
         const transaction = await node.workerPool.postTransaction(raw, from.spendingKey)
 
         await node.wallet.addPendingTransaction(transaction)
@@ -342,7 +341,35 @@ export async function useBlockWithTxs(
     node.wallet,
   )
 
-  return { block, account: from, transactions: block.transactions.slice(1) }
+  return { block, transactions: block.transactions.slice(1) }
+}
+
+/**
+ * Produces a block with a multiple transaction that have 1 spend, and 3 notes
+ * It first produces {@link numTransactions} blocks all with mining fees to fund
+ * the transactions
+ *
+ * Returned block has {@link numTransactions} transactions
+ */
+export async function useBlockWithTxs(
+  node: FullNode,
+  numTransactions: number,
+  from?: Account,
+): Promise<{
+  account: Account
+  block: Block
+  transactions: Transaction[]
+}> {
+  if (!from) {
+    from = await useAccountFixture(node.wallet, 'test')
+  }
+
+  const { block, transactions } = await useBlockWithCustomTxs(
+    node,
+    Array(numTransactions).fill({ from }),
+  )
+
+  return { block, transactions, account: from }
 }
 
 export async function useTxSpendsFixture(

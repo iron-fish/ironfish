@@ -21,13 +21,13 @@ export type GetWorkersStatusResponse = {
   executing: number
   change: number
   speed: number
-  jobs: Array<{
+  jobs: {
     name: string
     complete: number
     execute: number
     queue: number
     error: number
-  }>
+  }[]
 }
 
 export const GetWorkersStatusRequestSchema: yup.ObjectSchema<GetWorkersStatusRequest> = yup

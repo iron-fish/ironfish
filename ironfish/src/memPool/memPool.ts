@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { BufferMap } from 'buffer-map'
+import Decimal from 'decimal.js'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { Consensus, isExpiredSequence, Verifier } from '../consensus'
@@ -11,13 +12,13 @@ import { MetricsMonitor } from '../metrics'
 import { getTransactionSize } from '../network/utils/serializers'
 import { Block, BlockHeader } from '../primitives'
 import { Transaction, TransactionHash } from '../primitives/transaction'
-import { FeeEstimator, getFeeRate } from './feeEstimator'
+import { FeeEstimator, getPreciseFeeRate } from './feeEstimator'
 import { PriorityQueue } from './priorityQueue'
 import { RecentlyEvictedCache } from './recentlyEvictedCache'
 
 interface MempoolEntry {
   hash: TransactionHash
-  feeRate: bigint
+  feeRate: Decimal
 }
 
 interface ExpirationMempoolEntry {
@@ -25,12 +26,17 @@ interface ExpirationMempoolEntry {
   hash: TransactionHash
 }
 
+interface VersionMempoolEntry {
+  version: number
+  hash: TransactionHash
+}
+
 export function mempoolEntryComparator(
   firstTransaction: MempoolEntry,
   secondTransaction: MempoolEntry,
 ): boolean {
-  if (firstTransaction.feeRate !== secondTransaction.feeRate) {
-    return firstTransaction.feeRate > secondTransaction.feeRate
+  if (!firstTransaction.feeRate.eq(secondTransaction.feeRate)) {
+    return firstTransaction.feeRate.gt(secondTransaction.feeRate)
   }
 
   return firstTransaction.hash.compare(secondTransaction.hash) > 0
@@ -44,6 +50,7 @@ export class MemPool {
   private readonly feeRateQueue: PriorityQueue<MempoolEntry>
   private readonly evictionQueue: PriorityQueue<MempoolEntry>
   private readonly expirationQueue: PriorityQueue<ExpirationMempoolEntry>
+  private readonly versionQueue: PriorityQueue<VersionMempoolEntry>
 
   private readonly recentlyEvictedCache: RecentlyEvictedCache
 
@@ -86,6 +93,11 @@ export class MemPool {
 
     this.expirationQueue = new PriorityQueue<ExpirationMempoolEntry>(
       (t1, t2) => t1.expiration < t2.expiration,
+      (t) => t.hash.toString('hex'),
+    )
+
+    this.versionQueue = new PriorityQueue<VersionMempoolEntry>(
+      (t1, t2) => t1.version < t2.version,
       (t) => t.hash.toString('hex'),
     )
 
@@ -194,8 +206,16 @@ export class MemPool {
       return false
     }
 
-    const added = this.addTransaction(transaction)
+    const minTransactionVersion = this.chain.consensus.getActiveTransactionVersion(
+      this.chain.head.sequence - this.chain.config.get('confirmations'),
+    )
+    const version = transaction.version()
+    if (version < minTransactionVersion) {
+      this.logger.debug(`Invalid transaction '${hash}': version too old ${version}`)
+      return false
+    }
 
+    const added = this.addTransaction(transaction)
     if (!added) {
       return false
     }
@@ -227,6 +247,24 @@ export class MemPool {
       }
 
       nextExpired = this.expirationQueue.peek()
+    }
+
+    const minTransactionVersion = this.chain.consensus.getActiveTransactionVersion(
+      this.chain.head.sequence - this.chain.config.get('confirmations'),
+    )
+    let nextVersioned = this.versionQueue.peek()
+    while (nextVersioned && nextVersioned.version < minTransactionVersion) {
+      const transaction = this.get(nextVersioned.hash)
+      if (!transaction) {
+        continue
+      }
+
+      const didDelete = this.deleteTransaction(transaction)
+      if (didDelete) {
+        deletedTransactions++
+      }
+
+      nextVersioned = this.versionQueue.peek()
     }
 
     if (deletedTransactions) {
@@ -293,8 +331,9 @@ export class MemPool {
       this.nullifiers.set(spend.nullifier, hash)
     }
 
-    this.feeRateQueue.add({ hash, feeRate: getFeeRate(transaction) })
-    this.evictionQueue.add({ hash, feeRate: getFeeRate(transaction) })
+    this.feeRateQueue.add({ hash, feeRate: getPreciseFeeRate(transaction) })
+    this.evictionQueue.add({ hash, feeRate: getPreciseFeeRate(transaction) })
+    this.versionQueue.add({ hash, version: transaction.version() })
     if (transaction.expiration() > 0) {
       this.expirationQueue.add({ expiration: transaction.expiration(), hash })
     }
@@ -373,7 +412,7 @@ export class MemPool {
       // currently in the mempool.
       this.recentlyEvictedCache.add(
         transaction.hash(),
-        getFeeRate(transaction),
+        getPreciseFeeRate(transaction),
         this.chain.head.sequence,
         this.sizeInBlocks(),
       )
@@ -410,6 +449,7 @@ export class MemPool {
     this.feeRateQueue.remove(hashAsString)
     this.evictionQueue.remove(hashAsString)
     this.expirationQueue.remove(hashAsString)
+    this.versionQueue.remove(hashAsString)
 
     this.updateMetrics()
 

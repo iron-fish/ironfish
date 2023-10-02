@@ -18,7 +18,6 @@ export type GetBalanceRequest =
 export type GetBalanceResponse = {
   account: string
   assetId: string
-  assetVerification: AssetVerification
   confirmed: string
   unconfirmed: string
   unconfirmedCount: number
@@ -28,6 +27,10 @@ export type GetBalanceResponse = {
   confirmations: number
   blockHash: string | null
   sequence: number | null
+  /**
+   * @deprecated Please use getAsset endpoint to get this information
+   * */
+  assetVerification: AssetVerification
 }
 
 export const GetBalanceRequestSchema: yup.ObjectSchema<GetBalanceRequest> = yup

@@ -6,12 +6,15 @@ import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { CurrencyUtils, YupUtils } from '../../../utils'
 import { MintAssetOptions } from '../../../wallet/interfaces/mintAssetOptions'
+import { RpcAsset, RpcAssetSchema, RpcMint, RpcMintSchema } from '../../types'
 import { ApiNamespace, routes } from '../router'
-import { getAccount } from './utils'
+import { RpcWalletTransaction, RpcWalletTransactionSchema } from './types'
+import { getAccount, serializeRpcWalletTransaction } from './utils'
 
 export interface MintAssetRequest {
-  account: string
-  fee: string
+  account?: string
+  fee?: string
+  feeRate?: string
   value: string
   assetId?: string
   expiration?: number
@@ -19,13 +22,6 @@ export interface MintAssetRequest {
   confirmations?: number
   metadata?: string
   name?: string
-}
-
-export interface MintAssetResponse {
-  assetId: string
-  hash: string
-  name: string
-  value: string
 }
 
 export const MintAssetRequestSchema: yup.ObjectSchema<MintAssetRequest> = yup
@@ -42,14 +38,25 @@ export const MintAssetRequestSchema: yup.ObjectSchema<MintAssetRequest> = yup
   })
   .defined()
 
-export const MintAssetResponseSchema: yup.ObjectSchema<MintAssetResponse> = yup
-  .object({
-    assetId: yup.string().required(),
-    hash: yup.string().required(),
-    name: yup.string().required(),
-    value: yup.string().required(),
-  })
-  .defined()
+export type MintAssetResponse = RpcMint & {
+  asset: RpcAsset
+  transaction: RpcWalletTransaction
+  /**
+   * @deprecated Please use `transaction.hash` instead
+   */
+  hash: string
+}
+
+export const MintAssetResponseSchema: yup.ObjectSchema<MintAssetResponse> =
+  RpcMintSchema.concat(
+    yup
+      .object({
+        asset: RpcAssetSchema.defined(),
+        transaction: RpcWalletTransactionSchema.defined(),
+        hash: yup.string().defined(),
+      })
+      .defined(),
+  ).defined()
 
 routes.register<typeof MintAssetRequestSchema, MintAssetResponse>(
   `${ApiNamespace.wallet}/mintAsset`,
@@ -57,7 +64,13 @@ routes.register<typeof MintAssetRequestSchema, MintAssetResponse>(
   async (request, node): Promise<void> => {
     const account = getAccount(node.wallet, request.data.account)
 
-    const fee = CurrencyUtils.decode(request.data.fee)
+    const fee: bigint | undefined = request.data.fee
+      ? CurrencyUtils.decode(request.data.fee)
+      : undefined
+
+    const feeRate: bigint | undefined = request.data.feeRate
+      ? CurrencyUtils.decode(request.data.feeRate)
+      : undefined
     const value = CurrencyUtils.decode(request.data.value)
 
     const expirationDelta =
@@ -69,6 +82,7 @@ routes.register<typeof MintAssetRequestSchema, MintAssetResponse>(
         assetId: Buffer.from(request.data.assetId, 'hex'),
         expiration: request.data.expiration,
         fee,
+        feeRate,
         expirationDelta,
         value,
         confirmations: request.data.confirmations,
@@ -81,8 +95,9 @@ routes.register<typeof MintAssetRequestSchema, MintAssetResponse>(
       options = {
         expiration: request.data.expiration,
         fee,
-        metadata: metadata,
+        feeRate,
         name: request.data.name,
+        metadata: metadata,
         expirationDelta,
         value,
         confirmations: request.data.confirmations,
@@ -93,11 +108,36 @@ routes.register<typeof MintAssetRequestSchema, MintAssetResponse>(
     Assert.isEqual(transaction.mints.length, 1)
     const mint = transaction.mints[0]
 
+    const asset = await account.getAsset(mint.asset.id())
+    Assert.isNotUndefined(asset)
+
+    const transactionValue = await account.getTransaction(transaction.hash())
+    Assert.isNotUndefined(transactionValue)
+
     request.end({
-      assetId: mint.asset.id().toString('hex'),
+      asset: {
+        id: asset.id.toString('hex'),
+        metadata: asset.metadata.toString('hex'),
+        name: asset.name.toString('hex'),
+        nonce: asset.nonce,
+        creator: asset.creator.toString('hex'),
+        owner: asset.owner.toString('hex'),
+        verification: node.assetsVerifier.verify(mint.asset.id()),
+        status: await node.wallet.getAssetStatus(account, asset, {
+          confirmations: request.data.confirmations,
+        }),
+        createdTransactionHash: asset.createdTransactionHash.toString('hex'),
+      },
+      transaction: await serializeRpcWalletTransaction(node, account, transactionValue),
+      assetId: asset.id.toString('hex'),
       hash: transaction.hash().toString('hex'),
-      name: mint.asset.name().toString('hex'),
+      name: asset.name.toString('hex'),
       value: mint.value.toString(),
+      id: mint.asset.id().toString('hex'),
+      assetName: mint.asset.name().toString('hex'),
+      metadata: mint.asset.metadata().toString('hex'),
+      creator: mint.asset.creator().toString('hex'),
+      transferOwnershipTo: mint.transferOwnershipTo?.toString('hex'),
     })
   },
 )

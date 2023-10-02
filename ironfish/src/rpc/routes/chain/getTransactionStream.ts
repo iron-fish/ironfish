@@ -11,32 +11,34 @@ import { CurrencyUtils } from '../../../utils'
 import { PromiseUtils } from '../../../utils/promise'
 import { isValidIncomingViewKey } from '../../../wallet/validator'
 import { ValidationError } from '../../adapters/errors'
+import {
+  RpcBlockHeader,
+  RpcBlockHeaderSchema,
+  RpcBurn,
+  RpcBurnSchema,
+  RpcMint,
+  RpcMintSchema,
+  serializeRpcBlockHeader,
+} from '../../types'
 import { ApiNamespace, routes } from '../router'
 
 interface Note {
   assetId: string
+  /**
+   * @deprecated Please use getAsset endpoint to get this information
+   */
   assetName: string
   hash: string
   value: string
   memo: string
-}
-interface Mint {
-  assetId: string
-  assetName: string
-  value: string
-}
-interface Burn {
-  assetId: string
-  assetName: string
-  value: string
 }
 
 interface Transaction {
   hash: string
   isMinersFee: boolean
   notes: Note[]
-  mints: Mint[]
-  burns: Burn[]
+  mints: RpcMint[]
+  burns: RpcBurn[]
 }
 
 const NoteSchema = yup
@@ -50,32 +52,14 @@ const NoteSchema = yup
   })
   .required()
 
-const MintSchema = yup
-  .object()
-  .shape({
-    assetId: yup.string().required(),
-    assetName: yup.string().required(),
-    value: yup.string().required(),
-  })
-  .required()
-
-const BurnSchema = yup
-  .object()
-  .shape({
-    assetId: yup.string().required(),
-    assetName: yup.string().required(),
-    value: yup.string().required(),
-  })
-  .required()
-
 const TransactionSchema = yup
   .object()
   .shape({
     hash: yup.string().required(),
     isMinersFee: yup.boolean().required(),
     notes: yup.array().of(NoteSchema).required(),
-    mints: yup.array().of(MintSchema).required(),
-    burns: yup.array().of(BurnSchema).required(),
+    mints: yup.array().of(RpcMintSchema).required(),
+    burns: yup.array().of(RpcBurnSchema).required(),
   })
   .required()
 
@@ -86,12 +70,7 @@ export type GetTransactionStreamResponse = {
   head: {
     sequence: number
   }
-  block: {
-    hash: string
-    previousBlockHash: string
-    sequence: number
-    timestamp: number
-  }
+  block: RpcBlockHeader
   transactions: Transaction[]
 }
 
@@ -107,14 +86,7 @@ export const GetTransactionStreamResponseSchema: yup.ObjectSchema<GetTransaction
     .object({
       transactions: yup.array().of(TransactionSchema).required(),
       type: yup.string().oneOf(['connected', 'disconnected', 'fork']).required(),
-      block: yup
-        .object({
-          hash: yup.string().required(),
-          sequence: yup.number().required(),
-          timestamp: yup.number().required(),
-          previousBlockHash: yup.string().required(),
-        })
-        .defined(),
+      block: RpcBlockHeaderSchema.defined(),
       head: yup
         .object({
           sequence: yup.number().required(),
@@ -155,8 +127,8 @@ routes.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
 
       for (const tx of block.transactions) {
         const notes = new Array<Note>()
-        const mints = new Array<Mint>()
-        const burns = new Array<Burn>()
+        const mints = new Array<RpcMint>()
+        const burns = new Array<RpcBurn>()
 
         for (const note of tx.notes) {
           const decryptedNote = note.decryptNoteForOwner(request.data.incomingViewKey)
@@ -177,6 +149,7 @@ routes.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
           const assetValue = await node.chain.getAssetById(burn.assetId)
           burns.push({
             value: CurrencyUtils.encode(burn.value),
+            id: burn.assetId.toString('hex'),
             assetId: burn.assetId.toString('hex'),
             assetName: assetValue?.name.toString('hex') || '',
           })
@@ -187,6 +160,11 @@ routes.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
             value: CurrencyUtils.encode(mint.value),
             assetId: mint.asset.id().toString('hex'),
             assetName: mint.asset.name().toString('hex'),
+            id: mint.asset.id().toString('hex'),
+            name: mint.asset.name().toString('hex'),
+            creator: mint.asset.creator().toString('hex'),
+            metadata: mint.asset.metadata().toString('hex'),
+            transferOwnershipTo: mint.transferOwnershipTo?.toString('hex'),
           })
         }
 
@@ -204,12 +182,7 @@ routes.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
       request.stream({
         type,
         transactions,
-        block: {
-          hash: block.header.hash.toString('hex'),
-          sequence: block.header.sequence,
-          timestamp: block.header.timestamp.valueOf(),
-          previousBlockHash: block.header.previousBlockHash.toString('hex'),
-        },
+        block: serializeRpcBlockHeader(block.header),
         head: {
           sequence: node.chain.head.sequence,
         },

@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Transaction, TransactionVersion } from '../../primitives/transaction'
 import {
   createNodeTest,
   serializePayloadToBuffer,
@@ -12,24 +13,14 @@ import {
   CreateMinersFeeTask,
 } from './createMinersFee'
 
-const mockSerializedTransaction = Buffer.from('foobar')
-const postMinersFee = jest.fn().mockImplementationOnce(() => mockSerializedTransaction)
-
-jest.mock('@ironfish/rust-nodejs', () => {
-  const module =
-    jest.requireActual<typeof import('@ironfish/rust-nodejs')>('@ironfish/rust-nodejs')
-  return {
-    ...module,
-    Transaction: jest.fn().mockImplementation(() => ({
-      post_miners_fee: postMinersFee,
-      output: jest.fn(),
-    })),
-  }
-})
-
 describe('CreateMinersFeeRequest', () => {
   it('serializes the object to a buffer and deserializes to the original object', () => {
-    const request = new CreateMinersFeeRequest(BigInt(0), 'memo', 'spendKey')
+    const request = new CreateMinersFeeRequest(
+      BigInt(0),
+      'memo',
+      'spendKey',
+      TransactionVersion.V1,
+    )
     const buffer = serializePayloadToBuffer(request)
     const deserializedRequest = CreateMinersFeeRequest.deserializePayload(request.jobId, buffer)
     expect(deserializedRequest).toEqual(request)
@@ -52,19 +43,34 @@ describe('CreateMinersFeeTask', () => {
   const nodeTest = createNodeTest()
 
   describe('execute', () => {
-    it('posts the miners fee transaction', async () => {
+    it('posts a v1 miners fee transaction', async () => {
       const account = await useAccountFixture(nodeTest.wallet)
-
-      const task = new CreateMinersFeeTask()
-      const memo = 'memo'
-      const spendingKey = account.spendingKey
-      const request = new CreateMinersFeeRequest(BigInt(0), memo, spendingKey)
-      const response = task.execute(request)
-
-      expect(postMinersFee).toHaveBeenCalled()
-      expect(response).toEqual(
-        new CreateMinersFeeResponse(mockSerializedTransaction, request.jobId),
+      const request = new CreateMinersFeeRequest(
+        BigInt(0),
+        'memo',
+        account.spendingKey,
+        TransactionVersion.V1,
       )
+      const response = new CreateMinersFeeTask().execute(request)
+
+      const transaction = new Transaction(Buffer.from(response.serializedTransactionPosted))
+      expect(transaction.notes.length).toEqual(1)
+      expect(transaction.version()).toEqual(TransactionVersion.V1)
+    })
+
+    it('posts a v2 miners fee transaction', async () => {
+      const account = await useAccountFixture(nodeTest.wallet)
+      const request = new CreateMinersFeeRequest(
+        BigInt(0),
+        'memo',
+        account.spendingKey,
+        TransactionVersion.V2,
+      )
+      const response = new CreateMinersFeeTask().execute(request)
+
+      const transaction = new Transaction(Buffer.from(response.serializedTransactionPosted))
+      expect(transaction.notes.length).toEqual(1)
+      expect(transaction.version()).toEqual(TransactionVersion.V2)
     })
   })
 })

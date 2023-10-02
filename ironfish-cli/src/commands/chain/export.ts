@@ -67,7 +67,7 @@ export default class Export extends IronfishCommand {
 
     for await (const result of stream.contentStream()) {
       results.push(result.block)
-      progress.update((result.block?.seq || 0) - start + 1)
+      progress.update((result.block?.sequence || 0) - start + 1)
     }
 
     progress.stop()

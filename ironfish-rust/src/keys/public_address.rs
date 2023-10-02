@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::{
-    errors::IronfishError,
+    errors::{IronfishError, IronfishErrorKind},
     serializing::{bytes_to_hex, hex_to_bytes},
 };
 use group::GroupEncoding;
@@ -58,7 +58,7 @@ impl PublicAddress {
     /// or it fails.
     pub fn from_hex(value: &str) -> Result<Self, IronfishError> {
         match hex_to_bytes(value) {
-            Err(_) => Err(IronfishError::InvalidPublicAddress),
+            Err(_) => Err(IronfishError::new(IronfishErrorKind::InvalidPublicAddress)),
             Ok(bytes) => Self::new(&bytes),
         }
     }
@@ -90,7 +90,7 @@ impl PublicAddress {
         if transmission_key_non_prime.is_some().into() {
             Ok(transmission_key_non_prime.unwrap())
         } else {
-            Err(IronfishError::InvalidPaymentAddress)
+            Err(IronfishError::new(IronfishErrorKind::InvalidPaymentAddress))
         }
     }
 }
