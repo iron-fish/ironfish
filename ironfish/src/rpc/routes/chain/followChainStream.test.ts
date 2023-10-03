@@ -80,10 +80,14 @@ describe('Route chain/followChainStream', () => {
     let streamed = await chainStream.contentStream().next()
     expect(streamed?.value).toMatchObject({
       type: 'connected',
-      block: { hash: chain.genesis.hash.toString('hex') },
+      block: {
+        hash: chain.genesis.hash.toString('hex'),
+        graffiti: 'genesis', // hex value would have been 67656e6573697300000000000000000000000000000000000000000000000000
+      },
     })
 
     streamed = await chainStream.contentStream().next()
+
     expect(streamed?.value).toBeUndefined()
     expect(streamed?.done).toBe(true)
   })
