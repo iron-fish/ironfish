@@ -7,6 +7,7 @@ import { AssetVerification } from '../assets'
 import { Connection } from '../network'
 import { Features } from '../network/peers/peerFeatures'
 import { BlockHeader } from '../primitives'
+import { BufferUtils } from '../utils'
 import { RpcTransaction, RpcTransactionSchema } from './routes'
 
 export type RpcBurn = {
@@ -147,7 +148,7 @@ export function serializeRpcBlockHeader(header: BlockHeader): RpcBlockHeader {
     previousBlockHash: header.previousBlockHash.toString('hex'),
     timestamp: header.timestamp.valueOf(),
     difficulty: header.target.toDifficulty().toString(),
-    graffiti: header.graffiti.toString('hex'),
+    graffiti: BufferUtils.toHuman(header.graffiti),
     noteCommitment: header.noteCommitment.toString('hex'),
     transactionCommitment: header.transactionCommitment.toString('hex'),
     target: header.target.asBigInt().toString(),
