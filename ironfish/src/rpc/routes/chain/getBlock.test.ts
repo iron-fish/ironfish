@@ -35,7 +35,7 @@ describe('Route chain/getBlock', () => {
       block: {
         hash: hash2,
         sequence: 3,
-        graffiti: '',
+        graffiti: '', // hex value would have been 0000000000000000000000000000000000000000000000000000000000000000
       },
     })
 
