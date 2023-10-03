@@ -9,7 +9,7 @@ import { BlockHeader } from '../../../primitives'
 import { GENESIS_BLOCK_SEQUENCE } from '../../../primitives/block'
 import { BufferUtils } from '../../../utils'
 import { NotFoundError, ValidationError } from '../../adapters'
-import { RpcBlock, RpcBlockSchema } from '../../types'
+import { RpcBlock, RpcBlockSchema, serializeRpcBlockHeader } from '../../types'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 
@@ -148,21 +148,11 @@ routes.register<typeof GetBlockRequestSchema, GetBlockResponse>(
     const main = await node.chain.isHeadChain(header)
     const confirmed = node.chain.head.sequence - header.sequence >= confirmations
 
+    const blockHeaderResponse = serializeRpcBlockHeader(header)
+
     request.end({
       block: {
-        hash: header.hash.toString('hex'),
-        previous: header.previousBlockHash.toString('hex'),
-        sequence: Number(header.sequence),
-        previousBlockHash: header.previousBlockHash.toString('hex'),
-        timestamp: header.timestamp.valueOf(),
-        difficulty: header.target.toDifficulty().toString(),
-        graffiti: 'genesis',
-        noteCommitment: header.noteCommitment.toString('hex'),
-        transactionCommitment: header.transactionCommitment.toString('hex'),
-        target: header.target.asBigInt().toString(),
-        randomness: header.randomness.toString(),
-        work: header.work.toString(),
-        noteSize: header.noteSize ?? null,
+        ...blockHeaderResponse,
         size: getBlockSize(block),
         transactions,
       },
