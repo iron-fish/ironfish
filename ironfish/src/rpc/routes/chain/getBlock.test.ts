@@ -35,6 +35,7 @@ describe('Route chain/getBlock', () => {
       block: {
         hash: hash2,
         sequence: 3,
+        graffiti: '',
       },
     })
 
@@ -75,6 +76,7 @@ describe('Route chain/getBlock', () => {
       block: {
         hash: hash2,
         sequence: 3,
+        graffiti: '',
       },
     })
 
@@ -146,6 +148,7 @@ describe('Route chain/getBlock', () => {
       block: {
         hash: hash,
         sequence: 3,
+        graffiti: '',
       },
       metadata: {
         confirmed: true,
