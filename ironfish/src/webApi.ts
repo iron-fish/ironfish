@@ -19,6 +19,19 @@ type FaucetTransaction = {
   completed_at: string | null
 }
 
+type BridgeRequest = {
+  id: string
+  asset: string
+  source_address: string
+  destination_address: string
+  amount: string
+  source_chain: string
+  destination_chain: string
+  source_transaction?: string
+  destination_transaction?: string
+  status: string
+}
+
 /**
  *  The API should be compatible with the Ironfish API here
  *  used to host our Facuet, BlockExplorer, and other things.
@@ -248,6 +261,34 @@ export class WebApi {
   async getBridgeAddress(): Promise<string> {
     const response = await axios.get<{ address: string }>(`${this.host}/bridge/address`)
     return response.data.address
+  }
+
+  async getBridgeNextWIronRequests(count?: number): Promise<Array<BridgeRequest>> {
+    this.requireToken()
+
+    const response = await axios.get<{ data: Array<BridgeRequest> }>(
+      `${this.host}/bridge/next_wiron_requests/`,
+      {
+        ...this.options(),
+        params: { count },
+      },
+    )
+
+    return response.data.data
+  }
+
+  async updateWIronRequests(
+    payload: Array<{ id: string; destination_transaction: string; status: string }>,
+  ): Promise<{ [keyof: string]: { status: string } }> {
+    this.requireToken()
+
+    const response = await axios.post<{ [keyof: string]: { status: string } }>(
+      `${this.host}/bridge/update_wiron_requests/`,
+      { transactions: payload },
+      this.options(),
+    )
+
+    return response.data
   }
 
   options(headers: Record<string, string> = {}): AxiosRequestConfig {
