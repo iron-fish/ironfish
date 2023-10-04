@@ -29,7 +29,19 @@ export default class BridgeRelay extends IronfishCommand {
     }),
     incomingViewKey: Flags.string({
       char: 'k',
-      description: 'View key to watch transactions with',
+      description: 'Incoming view key to watch transactions with',
+      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
+      required: true,
+    }),
+    outgoingViewKey: Flags.string({
+      char: 'o',
+      description: 'Outgoing view key to watch transactions with',
+      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
+      required: true,
+    }),
+    address: Flags.string({
+      char: 'a',
+      description: 'Public address of the bridge',
       parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: true,
     }),
@@ -66,19 +78,29 @@ export default class BridgeRelay extends IronfishCommand {
 
     const confirmations = flags.confirmations ?? this.sdk.config.get('confirmations')
 
-    await this.syncBlocks(api, flags.incomingViewKey, confirmations, flags.fromHead)
+    await this.syncBlocks(
+      api,
+      flags.incomingViewKey,
+      flags.outgoingViewKey,
+      flags.address,
+      confirmations,
+      flags.fromHead,
+    )
   }
 
   async syncBlocks(
     api: WebApi,
     incomingViewKey: string,
+    outgoingViewKey: string,
+    bridgeAddress: string,
     confirmations: number,
     head?: string,
   ): Promise<void> {
     this.log('Connecting to node...')
     const client = await this.sdk.connectRpc()
 
-    this.log('Watching with view key:', incomingViewKey)
+    this.log('Watching with incoming view key:', incomingViewKey)
+    this.log('Watching with outgoing view key:', outgoingViewKey)
 
     head = head ?? (await api.getBridgeHead())
 
@@ -90,7 +112,8 @@ export default class BridgeRelay extends IronfishCommand {
     this.log(`Starting from head ${head}`)
 
     const response = client.chain.getTransactionStream({
-      incomingViewKey: incomingViewKey,
+      incomingViewKey,
+      outgoingViewKey,
       head,
     })
 
@@ -117,32 +140,55 @@ export default class BridgeRelay extends IronfishCommand {
       if (buffer.length > confirmations) {
         const response = buffer.shift()
         Assert.isNotUndefined(response)
-        await this.commit(api, response)
+        await this.commit(api, response, bridgeAddress)
       }
     }
   }
 
-  async commit(api: WebApi, response: GetTransactionStreamResponse): Promise<void> {
+  async commit(
+    api: WebApi,
+    response: GetTransactionStreamResponse,
+    bridgeAddress: string,
+  ): Promise<void> {
     Assert.isNotUndefined(response)
 
     const sends = []
+    const confirms = []
 
     const transactions = response.transactions
 
     for (const transaction of transactions) {
       for (const note of transaction.notes) {
-        this.log(`Received deposit ${note.memo} in transaction ${transaction.hash}`)
-        sends.push({
-          id: Number(note.memo),
-          amount: note.value,
-          asset: note.assetId,
-          source_address: note.sender,
-          source_transaction: transaction.hash,
-        })
+        if (!note.memo) {
+          continue
+        }
+
+        if (note.sender === bridgeAddress) {
+          confirms.push({
+            id: Number(note.memo),
+            destination_transaction: transaction.hash,
+            status: 'CONFIRMED',
+          })
+        } else {
+          this.log(`Received deposit ${note.memo} in transaction ${transaction.hash}`)
+          sends.push({
+            id: Number(note.memo),
+            amount: note.value,
+            asset: note.assetId,
+            source_address: note.sender,
+            source_transaction: transaction.hash,
+          })
+        }
       }
     }
 
-    await api.sendBridgeDeposits(sends)
+    if (confirms.length > 0) {
+      await api.updateWIronRequests(confirms)
+    }
+
+    if (sends.length > 0) {
+      await api.sendBridgeDeposits(sends)
+    }
 
     await api.setBridgeHead(response.block.hash)
   }

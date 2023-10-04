@@ -9,7 +9,7 @@ import { Block } from '../../../primitives/block'
 import { BlockHeader } from '../../../primitives/blockheader'
 import { CurrencyUtils } from '../../../utils'
 import { PromiseUtils } from '../../../utils/promise'
-import { isValidIncomingViewKey } from '../../../wallet/validator'
+import { isValidIncomingViewKey, isValidOutgoingViewKey } from '../../../wallet/validator'
 import { ValidationError } from '../../adapters/errors'
 import {
   RpcBlockHeader,
@@ -65,7 +65,11 @@ const TransactionSchema = yup
   })
   .required()
 
-export type GetTransactionStreamRequest = { incomingViewKey: string; head?: string | null }
+export type GetTransactionStreamRequest = {
+  incomingViewKey: string
+  outgoingViewKey?: string
+  head?: string | null
+}
 
 export type GetTransactionStreamResponse = {
   type: 'connected' | 'disconnected' | 'fork'
@@ -80,6 +84,7 @@ export const GetTransactionStreamRequestSchema: yup.ObjectSchema<GetTransactionS
   yup
     .object({
       incomingViewKey: yup.string().required(),
+      outgoingViewKey: yup.string().optional(),
       head: yup.string().nullable().optional(),
     })
     .required()
@@ -105,6 +110,10 @@ routes.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
 
     if (!isValidIncomingViewKey(request.data.incomingViewKey)) {
       throw new ValidationError(`incomingViewKey is not valid`)
+    }
+
+    if (request.data.outgoingViewKey && !isValidOutgoingViewKey(request.data.outgoingViewKey)) {
+      throw new ValidationError(`outgoingViewKey is not valid`)
     }
 
     const head = request.data.head ? Buffer.from(request.data.head, 'hex') : null
@@ -133,7 +142,11 @@ routes.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
         const burns = new Array<RpcBurn>()
 
         for (const note of tx.notes) {
-          const decryptedNote = note.decryptNoteForOwner(request.data.incomingViewKey)
+          let decryptedNote = note.decryptNoteForOwner(request.data.incomingViewKey)
+
+          if (!decryptedNote && request.data.outgoingViewKey) {
+            decryptedNote = note.decryptNoteForSpender(request.data.outgoingViewKey)
+          }
 
           if (decryptedNote) {
             const assetValue = await node.chain.getAssetById(decryptedNote.assetId())
