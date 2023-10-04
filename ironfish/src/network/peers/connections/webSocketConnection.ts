@@ -29,23 +29,13 @@ export class WebSocketConnection extends Connection {
     direction: ConnectionDirection,
     logger: Logger,
     metrics?: MetricsMonitor,
-    options: { simulateLatency?: number; hostname?: string; port?: number } = {},
+    options: { hostname?: string; port?: number } = {},
   ) {
-    super(
-      ConnectionType.WebSocket,
-      direction,
-      logger.withTag('WebSocketConnection'),
-      metrics,
-      options,
-    )
+    super(ConnectionType.WebSocket, direction, logger.withTag('WebSocketConnection'), metrics)
 
     this.socket = socket
     this.hostname = options.hostname
     this.port = options.port
-
-    if (this.simulateLatency) {
-      this.addLatencyWrapper()
-    }
 
     if (this.socket.readyState === this.socket.OPEN) {
       this.setState({ type: 'WAITING_FOR_IDENTITY' })
