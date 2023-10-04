@@ -212,7 +212,7 @@ export default class Release extends IronfishCommand {
       updatePayload.push({
         id: request.id,
         destination_transaction: tx.content.hash,
-        status: 'PENDING_ON_DESTINATION_CHAIN',
+        status: 'PENDING_IRON_RELEASE_TRANSACTION_CONFIRMATION',
       })
     }
 
