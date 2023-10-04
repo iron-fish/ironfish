@@ -20,7 +20,7 @@ type FaucetTransaction = {
 }
 
 type BridgeRequest = {
-  id: string
+  id: number
   asset: string
   source_address: string
   destination_address: string
@@ -278,11 +278,11 @@ export class WebApi {
   }
 
   async updateWIronRequests(
-    payload: Array<{ id: string; destination_transaction: string; status: string }>,
+    payload: Array<{ id: number; destination_transaction: string; status: string }>,
   ): Promise<{ [keyof: string]: { status: string } }> {
     this.requireToken()
 
-    const response = await axios.post<{ [keyof: string]: { status: string } }>(
+    const response = await axios.post<{ [keyof: number]: { status: string } }>(
       `${this.host}/bridge/update_wiron_requests/`,
       { transactions: payload },
       this.options(),

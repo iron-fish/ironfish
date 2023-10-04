@@ -186,7 +186,7 @@ export default class Release extends IronfishCommand {
       return {
         publicAddress: req.destination_address,
         amount: req.amount,
-        memo: req.id,
+        memo: req.id.toString(),
         assetId: Asset.nativeId().toString('hex'),
       }
     })
