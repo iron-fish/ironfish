@@ -56,6 +56,12 @@ export class WebApi {
     return response?.data.hash || null
   }
 
+  async updateBlockGraffiti(hash: string, graffiti: string): Promise<void> {
+    this.requireToken()
+    const options = this.options({ 'Content-Type': 'application/json' })
+    await axios.post(`${this.host}/blocks/update_graffiti`, { hash, graffiti }, options)
+  }
+
   async blocks(blocks: FollowChainStreamResponse[]): Promise<void> {
     this.requireToken()
 
