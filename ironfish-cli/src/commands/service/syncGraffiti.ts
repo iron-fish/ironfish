@@ -95,11 +95,8 @@ export default class SyncGraffiti extends IronfishCommand {
 
     for await (const content of response.contentStream()) {
       // We're done syncing if we greater than the stop sequence entered
-
       const block = content.block
-
       buffer.push(content)
-
       if (block.sequence >= stopSequence) {
         break
       }
@@ -108,7 +105,6 @@ export default class SyncGraffiti extends IronfishCommand {
 
       if (committing) {
         this.log(`updating: ${buffer.length}`)
-
         await commit()
       }
     }
