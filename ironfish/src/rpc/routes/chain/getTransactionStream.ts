@@ -10,9 +10,13 @@ import { BlockHeader } from '../../../primitives/blockheader'
 import { BufferUtils, CurrencyUtils } from '../../../utils'
 import { PromiseUtils } from '../../../utils/promise'
 import { isValidIncomingViewKey, isValidOutgoingViewKey } from '../../../wallet/validator'
+<<<<<<< HEAD
 import { RpcValidationError } from '../../adapters/errors'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
+=======
+import { ValidationError } from '../../adapters/errors'
+>>>>>>> a8d7e26f (updates bridge relay to watch for confirmed release transactions (#4336))
 import {
   RpcBlockHeader,
   RpcBlockHeaderSchema,
@@ -70,7 +74,10 @@ export type GetTransactionStreamRequest = {
   incomingViewKey: string
   outgoingViewKey?: string
   head?: string | null
+<<<<<<< HEAD
   memoAsHex?: boolean
+=======
+>>>>>>> a8d7e26f (updates bridge relay to watch for confirmed release transactions (#4336))
 }
 
 export type GetTransactionStreamResponse = {
@@ -117,6 +124,10 @@ routes.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
 
     if (request.data.outgoingViewKey && !isValidOutgoingViewKey(request.data.outgoingViewKey)) {
       throw new RpcValidationError(`outgoingViewKey is not valid`)
+    }
+
+    if (request.data.outgoingViewKey && !isValidOutgoingViewKey(request.data.outgoingViewKey)) {
+      throw new ValidationError(`outgoingViewKey is not valid`)
     }
 
     const head = request.data.head ? Buffer.from(request.data.head, 'hex') : null
