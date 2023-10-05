@@ -293,7 +293,7 @@ export type ConfigOptions = {
   walletNodeIpcPath: string
 
   /**
-   * Enable stanalone wallet process to connect to a node via TCP
+   * Enable standalone wallet process to connect to a node via TCP
    */
   walletNodeTcpEnabled: boolean
   walletNodeTcpHost: string
