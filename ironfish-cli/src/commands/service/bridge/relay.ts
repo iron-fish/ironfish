@@ -133,7 +133,7 @@ export default class BridgeRelay extends IronfishCommand {
       for (const note of transaction.notes) {
         this.log(`Received deposit ${note.memo} in transaction ${transaction.hash}`)
         sends.push({
-          id: note.memo,
+          id: Number(note.memo),
           amount: note.value,
           asset: note.assetId,
           source_address: note.sender,

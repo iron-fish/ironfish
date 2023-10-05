@@ -205,7 +205,7 @@ export class WebApi {
 
   async sendBridgeDeposits(
     sends: {
-      id: string
+      id: number
       amount: string
       asset: string
       source_address: string
