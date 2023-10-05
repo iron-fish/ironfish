@@ -26,9 +26,6 @@ jobs:
 
       - name: Install packages
         run: yarn --non-interactive --ignore-scripts
-      
-      - name: Build
-        run: yarn build
 
       # Necessary since `--frozen-lockfile` does not work properly in yarn 1.x.
       # https://github.com/yarnpkg/yarn/issues/5840
