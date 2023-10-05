@@ -164,6 +164,9 @@ export default class BridgeRelay extends IronfishCommand {
         }
 
         if (note.sender === bridgeAddress) {
+          this.log(
+            `Confirmed release of bridge request ${note.memo} in transaction ${transaction.hash}`,
+          )
           confirms.push({
             id: Number(note.memo),
             destination_transaction: transaction.hash,
