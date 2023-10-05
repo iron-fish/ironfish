@@ -575,10 +575,6 @@ export class PeerManager {
     peer.close()
   }
 
-  getPeersWithConnection(): ReadonlyArray<Peer> {
-    return this.peers.filter((p) => p.state.type !== 'DISCONNECTED')
-  }
-
   getConnectedPeers(): ReadonlyArray<Peer> {
     return [...this.identifiedPeers.values()].filter((p) => {
       return p.state.type === 'CONNECTED'
@@ -590,14 +586,14 @@ export class PeerManager {
    * than the target amount of peers
    */
   canCreateNewConnections(): boolean {
-    return this.getPeersWithConnection().length < this.targetPeers
+    return this.getConnectedPeers().length < this.targetPeers
   }
 
   /**
    * True if we should reject connections from disconnected Peers.
    */
   shouldRejectDisconnectedPeers(): boolean {
-    return this.getPeersWithConnection().length >= this.maxPeers
+    return this.getConnectedPeers().length >= this.maxPeers
   }
 
   /** For a given peer, try to find a peer that's connected to that peer
