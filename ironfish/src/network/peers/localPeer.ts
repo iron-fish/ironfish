@@ -33,8 +33,6 @@ export class LocalPeer {
   port: number | null
   // optional a human readable name for the node
   name: string | null
-  // simulated latency in MS that gets added to connection.send
-  simulateLatency = 0
 
   constructor(
     identity: PrivateIdentity,

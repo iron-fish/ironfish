@@ -59,19 +59,14 @@ export class WebRtcConnection extends Connection {
     initiator: boolean,
     logger: Logger,
     metrics?: MetricsMonitor,
-    options: { simulateLatency?: number; stunServers?: string[] } = {},
+    options: { stunServers?: string[] } = {},
   ) {
     super(
       ConnectionType.WebRtc,
       initiator ? ConnectionDirection.Outbound : ConnectionDirection.Inbound,
       logger.withTag('webrtcconnection'),
       metrics,
-      options,
     )
-
-    if (this.simulateLatency) {
-      this.addLatencyWrapper()
-    }
 
     this.peer = new nodeDataChannel.PeerConnection('peer', {
       iceServers: options.stunServers ?? [],

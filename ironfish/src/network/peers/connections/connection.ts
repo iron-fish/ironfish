@@ -50,12 +50,6 @@ export abstract class Connection {
   private handshakeTimeout: SetTimeoutToken | null = null
 
   /**
-   * If set will simulate a random amount of latency up to this number
-   */
-  protected readonly simulateLatency: number = 0
-  protected readonly simulateLatencyQueue: Array<NetworkMessage>
-
-  /**
    * The last error received (if any), regardless of the current state of the connection.
    */
   protected _error: unknown | null
@@ -105,15 +99,12 @@ export abstract class Connection {
     direction: ConnectionDirection,
     logger: Logger,
     metrics?: MetricsMonitor,
-    options: { simulateLatency?: number } = {},
   ) {
     this.type = type
     this.direction = direction
     this.logger = logger
     this.metrics = metrics || null
     this._error = null
-    this.simulateLatency = options.simulateLatency || 0
-    this.simulateLatencyQueue = []
   }
 
   send(object: NetworkMessage): boolean {
@@ -202,40 +193,6 @@ export abstract class Connection {
     }
 
     this.onStateChanged.emit()
-  }
-
-  /**
-   * Replaces the connection.send() function with one that randomly delays outbound messages
-   */
-  protected addLatencyWrapper(): void {
-    if (!this.simulateLatency) {
-      return
-    }
-    const originalSend = this.send.bind(this)
-
-    const wrapper = (
-      ...args: Parameters<typeof originalSend>
-    ): ReturnType<typeof originalSend> => {
-      const message = args[0]
-      this.simulateLatencyQueue.push(message)
-
-      let latency = Math.random() * (this.simulateLatency || 0)
-      if (args[0].type === NetworkMessageType.Disconnecting) {
-        latency = 0
-      }
-
-      setTimeout(() => {
-        const toSend = this.simulateLatencyQueue.shift()
-        if (this.state.type !== 'DISCONNECTED' && toSend) {
-          originalSend(toSend)
-        }
-      }, latency)
-
-      // TODO: Not currently possible to propagate connection errors from sending
-      return true
-    }
-
-    this.send = wrapper
   }
 
   shouldLogMessageType(messageType: NetworkMessageType): boolean {

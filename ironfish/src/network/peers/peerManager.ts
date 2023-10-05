@@ -312,7 +312,6 @@ export class PeerManager {
     port: number | null,
   ): WebSocketConnection {
     const connection = new WebSocketConnection(ws, direction, this.logger, this.metrics, {
-      simulateLatency: this.localPeer.simulateLatency,
       hostname: hostname || undefined,
       port: port || undefined,
     })
@@ -330,7 +329,6 @@ export class PeerManager {
    */
   private initWebRtcConnection(peer: Peer, initiator: boolean): WebRtcConnection {
     const connection = new WebRtcConnection(initiator, this.logger, this.metrics, {
-      simulateLatency: this.localPeer.simulateLatency,
       stunServers: this.stunServers,
     })
 

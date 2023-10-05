@@ -165,7 +165,6 @@ export class PeerNetwork {
     targetPeers?: number
     enableSyncing?: boolean
     logPeerMessages?: boolean
-    simulateLatency?: number
     logger?: Logger
     metrics?: MetricsMonitor
     telemetry: Telemetry
@@ -196,7 +195,6 @@ export class PeerNetwork {
 
     this.localPeer.port = options.port === undefined ? null : options.port
     this.localPeer.name = options.name || null
-    this.localPeer.simulateLatency = options.simulateLatency || 0
 
     const maxPeers = options.maxPeers || 10000
     const targetPeers = options.targetPeers || 50
