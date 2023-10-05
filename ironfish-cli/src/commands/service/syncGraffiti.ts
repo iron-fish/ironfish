@@ -29,7 +29,7 @@ export default class SyncGraffiti extends IronfishCommand {
     }),
     head: Flags.string({
       char: 's',
-      required: true,
+      required: false,
       description: 'The block hash to start updating from',
     }),
     stopSequence: Flags.integer({
@@ -71,10 +71,10 @@ export default class SyncGraffiti extends IronfishCommand {
   async syncBlockGraffiti(
     client: RpcClient,
     api: WebApi,
-    head: string,
+    head: string | undefined,
     stopSequence: number,
   ): Promise<void> {
-    this.log(`Starting from head ${head}`)
+    this.log(`Starting from head ${head ? head : 'undefined'}`)
 
     const response = client.chain.followChainStream(head ? { head } : undefined)
 
@@ -84,8 +84,8 @@ export default class SyncGraffiti extends IronfishCommand {
       if (block.sequence >= stopSequence) {
         break
       }
-
       await api.updateBlockGraffiti(block.hash, block.graffiti)
+      this.log('Updated graffiti for block ' + block.hash)
     }
   }
 }
