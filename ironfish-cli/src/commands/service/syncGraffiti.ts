@@ -85,7 +85,6 @@ export default class SyncGraffiti extends IronfishCommand {
         break
       }
       await api.updateBlockGraffiti(block.hash, block.graffiti)
-      this.log('Updated graffiti for block ' + block.hash)
     }
   }
 }
