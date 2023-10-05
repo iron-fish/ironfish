@@ -3,7 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { ConfigOptions, ConfigOptionsSchema } from '../../../fileStores/config'
-import { ApiNamespace, routes } from '../router'
+import { ApiNamespace } from '../namespaces'
+import { routes } from '../router'
 import { setUnknownConfigValue } from './uploadConfig'
 
 export type SetConfigRequest = { name: string; value: unknown }

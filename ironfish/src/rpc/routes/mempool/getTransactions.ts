@@ -7,7 +7,8 @@ import { Assert } from '../../../assert'
 import { getPreciseFeeRate } from '../../../memPool'
 import { FullNode } from '../../../node'
 import { Transaction } from '../../../primitives'
-import { ApiNamespace, routes } from '../router'
+import { ApiNamespace } from '../namespaces'
+import { routes } from '../router'
 
 export type MinMax = {
   min?: number

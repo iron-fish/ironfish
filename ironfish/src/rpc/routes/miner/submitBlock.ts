@@ -6,7 +6,8 @@ import { Assert } from '../../../assert'
 import { MINED_RESULT } from '../../../mining/manager'
 import { FullNode } from '../../../node'
 import { SerializedBlockTemplate } from '../../../serde'
-import { ApiNamespace, routes } from '../router'
+import { ApiNamespace } from '../namespaces'
+import { routes } from '../router'
 
 export type SubmitBlockRequest = SerializedBlockTemplate
 

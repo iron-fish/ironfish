@@ -6,7 +6,8 @@ import { Assert } from '../../../assert'
 import { PeerNetwork } from '../../../network'
 import { FullNode } from '../../../node'
 import { ConnectionState, RpcPeerResponse, RpcPeerResponseSchema } from '../../types'
-import { ApiNamespace, routes } from '../router'
+import { ApiNamespace } from '../namespaces'
+import { routes } from '../router'
 
 export type GetPeersRequest =
   | undefined

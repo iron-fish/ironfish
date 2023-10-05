@@ -6,7 +6,8 @@ import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { WebApi } from '../../../webApi'
 import { ERROR_CODES, ResponseError } from '../../adapters'
-import { ApiNamespace, routes } from '../router'
+import { ApiNamespace } from '../namespaces'
+import { routes } from '../router'
 import { getAccount } from '../wallet/utils'
 
 export type GetFundsRequest = { account?: string; email?: string }

@@ -6,7 +6,8 @@ import { Assert } from '../../../assert'
 import { FullNode } from '../../../node'
 import { BlockchainUtils } from '../../../utils/blockchain'
 import { RpcBlockHeader, RpcBlockHeaderSchema, serializeRpcBlockHeader } from '../../types'
-import { ApiNamespace, routes } from '../router'
+import { ApiNamespace } from '../namespaces'
+import { routes } from '../router'
 
 export type ExportChainStreamRequest =
   | {

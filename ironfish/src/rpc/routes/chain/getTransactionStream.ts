@@ -20,7 +20,8 @@ import {
   RpcMintSchema,
   serializeRpcBlockHeader,
 } from '../../types'
-import { ApiNamespace, routes } from '../router'
+import { ApiNamespace } from '../namespaces'
+import { routes } from '../router'
 
 interface Note {
   assetId: string

@@ -5,7 +5,8 @@ import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { DEFAULT_WEBSOCKET_PORT } from '../../../fileStores/config'
 import { FullNode } from '../../../node'
-import { ApiNamespace, routes } from '../router'
+import { ApiNamespace } from '../namespaces'
+import { routes } from '../router'
 
 export type AddPeerRequest = {
   host: string

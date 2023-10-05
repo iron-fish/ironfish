@@ -10,7 +10,8 @@ import { CurrencyUtils } from '../../../utils'
 import { AssetStatus } from '../../../wallet'
 import { NotFoundError, ValidationError } from '../../adapters'
 import { RpcAsset, RpcAssetSchema } from '../../types'
-import { ApiNamespace, routes } from '../router'
+import { ApiNamespace } from '../namespaces'
+import { routes } from '../router'
 
 export type GetAssetRequest = {
   id: string

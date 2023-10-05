@@ -4,7 +4,8 @@
 import * as yup from 'yup'
 import { ConfigOptions, ConfigOptionsSchema } from '../../../fileStores/config'
 import { ValidationError } from '../../adapters/errors'
-import { ApiNamespace, routes } from '../router'
+import { ApiNamespace } from '../namespaces'
+import { routes } from '../router'
 
 export type GetConfigRequest = { user?: boolean; name?: string } | undefined
 export type GetConfigResponse = Partial<ConfigOptions>

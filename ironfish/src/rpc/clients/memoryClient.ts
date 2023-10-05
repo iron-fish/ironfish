@@ -11,7 +11,7 @@ export class RpcMemoryClient extends RpcClient {
   router?: Router
 
   constructor(logger: Logger, router?: Router) {
-    super(logger)
+    super()
     this.router = router
   }
 

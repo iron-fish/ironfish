@@ -7,7 +7,8 @@ import { Assert } from '../../../assert'
 import { FullNode } from '../../../node'
 import { Transaction } from '../../../primitives'
 import { ValidationError } from '../../adapters'
-import { ApiNamespace, routes } from '../router'
+import { ApiNamespace } from '../namespaces'
+import { routes } from '../router'
 
 export type BroadcastTransactionRequest = {
   transaction: string

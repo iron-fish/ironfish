@@ -7,7 +7,8 @@ import { IronfishNode } from '../../../utils'
 import { Account } from '../../../wallet/account/account'
 import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
 import { RpcRequest } from '../../request'
-import { ApiNamespace, routes } from '../router'
+import { ApiNamespace } from '../namespaces'
+import { routes } from '../router'
 import { RpcWalletTransaction, RpcWalletTransactionSchema } from '../wallet/types'
 import {
   getAccount,
