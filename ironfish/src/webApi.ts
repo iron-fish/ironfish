@@ -56,6 +56,25 @@ export class WebApi {
     return response?.data.hash || null
   }
 
+  async batchUpdateBlockGraffiti(blocks: FollowChainStreamResponse[]): Promise<void> {
+    this.requireToken()
+
+    const updates: {
+      hash: string
+      graffiti: string
+    }[] = []
+
+    for (const { block } of blocks) {
+      updates.push({
+        hash: block.hash,
+        graffiti: block.graffiti,
+      })
+    }
+
+    const options = this.options({ 'Content-Type': 'application/json' })
+    await axios.post(`${this.host}/blocks/batch_update_graffiti/`, { updates }, options)
+  }
+
   async updateBlockGraffiti(hash: string, graffiti: string): Promise<void> {
     this.requireToken()
     const options = this.options({ 'Content-Type': 'application/json' })

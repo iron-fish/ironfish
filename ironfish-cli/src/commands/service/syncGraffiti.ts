@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { RpcClient, WebApi } from '@ironfish/sdk'
+import { FollowChainStreamResponse, RpcClient, WebApi } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -37,6 +37,12 @@ export default class SyncGraffiti extends IronfishCommand {
       required: true,
       description: 'Block sequence up to which to sync',
     }),
+    maxUpload: Flags.integer({
+      char: 'm',
+      required: false,
+      default: isNaN(Number(process.env.MAX_UPLOAD)) ? 200 : Number(process.env.MAX_UPLOAD),
+      description: 'The max number of blocks or transactions to sync in one batch',
+    }),
   }
 
   async start(): Promise<void> {
@@ -65,26 +71,49 @@ export default class SyncGraffiti extends IronfishCommand {
 
     const api = new WebApi({ host: apiHost, token: apiToken })
 
-    await this.syncBlockGraffiti(client, api, flags.head, flags.stopSequence)
+    await this.syncBlockGraffiti(client, api, flags.stopSequence, flags.maxUpload, flags.head)
   }
 
   async syncBlockGraffiti(
     client: RpcClient,
     api: WebApi,
-    head: string | undefined,
     stopSequence: number,
+    maxUpload: number,
+    head: string | undefined,
   ): Promise<void> {
     this.log(`Starting from head ${head ? head : 'undefined'}`)
 
     const response = client.chain.followChainStream(head ? { head } : undefined)
+    const buffer = new Array<FollowChainStreamResponse>()
+
+    this.log('Syncing graffiti...')
+
+    async function commit(): Promise<void> {
+      await api.batchUpdateBlockGraffiti(buffer)
+      buffer.length = 0
+    }
 
     for await (const content of response.contentStream()) {
       // We're done syncing if we greater than the stop sequence entered
+
       const block = content.block
+
+      buffer.push(content)
+
       if (block.sequence >= stopSequence) {
         break
       }
-      await api.updateBlockGraffiti(block.hash, block.graffiti)
+
+      const committing = buffer.length === maxUpload
+
+      if (committing) {
+        this.log(`updating: ${buffer.length}`)
+
+        await commit()
+      }
     }
+
+    this.log(`final update: ${buffer.length}`)
+    await commit()
   }
 }
