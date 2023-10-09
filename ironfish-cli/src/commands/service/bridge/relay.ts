@@ -163,19 +163,25 @@ export default class BridgeRelay extends IronfishCommand {
           continue
         }
 
+        const requestId = Number(note.memo)
+
+        if (isNaN(requestId)) {
+          continue
+        }
+
         if (note.sender === bridgeAddress) {
           this.log(
             `Confirmed release of bridge request ${note.memo} in transaction ${transaction.hash}`,
           )
           confirms.push({
-            id: Number(note.memo),
+            id: requestId,
             destination_transaction: transaction.hash,
             status: 'CONFIRMED',
           })
         } else {
           this.log(`Received deposit ${note.memo} in transaction ${transaction.hash}`)
           sends.push({
-            id: Number(note.memo),
+            id: requestId,
             amount: note.value,
             asset: note.assetId,
             source_address: note.sender,
