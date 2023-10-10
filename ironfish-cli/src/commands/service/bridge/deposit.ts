@@ -64,7 +64,7 @@ export class Deposit extends IronfishCommand {
       description: 'ETH public address to deposit to',
       parse: (input: string): Promise<string> => {
         return new Promise((resolve, reject) => {
-          if (!isAddress(input)) {
+          if (isAddress(input)) {
             if (input.startsWith('0x')) {
               resolve(input.slice(2))
             } else {
