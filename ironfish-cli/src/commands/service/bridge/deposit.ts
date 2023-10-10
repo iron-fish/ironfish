@@ -61,7 +61,6 @@ export class Deposit extends IronfishCommand {
     }),
     dest: Flags.string({
       description: 'Eth public address to deposit to',
-      required: true,
     }),
   }
 
@@ -96,6 +95,13 @@ export class Deposit extends IronfishCommand {
 
     const to = flags.to ?? (await api.getBridgeAddress())
 
+    let dest = flags.dest
+    if (dest == null) {
+      dest = await CliUx.ux.prompt('Enter an ETH address to send WIRON to on Sepolia testnet', {
+        required: true,
+      })
+    }
+
     let amount = flags.amount
     if (amount == null) {
       amount = await promptCurrency({
@@ -128,7 +134,7 @@ export class Deposit extends IronfishCommand {
       amount: amount.toString(),
       asset: assetId,
       source_address: publicKey,
-      destination_address: flags.dest,
+      destination_address: dest,
     })
 
     const depositId = response[publicKey]
