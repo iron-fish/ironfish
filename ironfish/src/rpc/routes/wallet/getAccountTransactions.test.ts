@@ -212,9 +212,7 @@ describe('Route wallet/getAccountTransactions', () => {
 
     const reverseSort: GetAccountTransactionsRequest = {
       account: account.name,
-      sort: {
-        reverse: true,
-      },
+      reverse: true,
     }
 
     const reverseSortResponse = routeTest.client.request<
@@ -232,9 +230,7 @@ describe('Route wallet/getAccountTransactions', () => {
 
     const forwardSort: GetAccountTransactionsRequest = {
       account: account.name,
-      sort: {
-        reverse: false,
-      },
+      reverse: false,
     }
 
     const forwardSortResponse = routeTest.client.request<
