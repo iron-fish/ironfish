@@ -72,7 +72,6 @@ export class AddressManager {
   }
 
   private deduplicateAddresses(addresses: PeerAddress[]): PeerAddress[] {
-    // do it by identity + address + port
     const dedupedAddresses: PeerAddress[] = []
     const seenIdentities = new Set<string>()
 
