@@ -27,6 +27,9 @@ export type GetAccountTransactionsRequest = {
   notes?: boolean
   spends?: boolean
   serialized?: boolean
+  sort?: {
+    reverse?: boolean
+  }
 }
 
 export const GetAccountTransactionsRequestSchema: yup.ObjectSchema<GetAccountTransactionsRequest> =
@@ -41,6 +44,11 @@ export const GetAccountTransactionsRequestSchema: yup.ObjectSchema<GetAccountTra
       notes: yup.boolean().notRequired().default(false),
       spends: yup.boolean().notRequired().default(false),
       serialized: yup.boolean().notRequired().default(false),
+      sort: yup
+        .object({
+          reverse: yup.boolean().notRequired(),
+        })
+        .notRequired(),
     })
     .defined()
 
@@ -77,9 +85,11 @@ routes.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
     let count = 0
     let offset = 0
 
+    const reverse = request.data.sort?.reverse ?? true
+
     const transactions = request.data.sequence
       ? account.getTransactionsBySequence(request.data.sequence)
-      : account.getTransactionsByTime()
+      : account.getTransactionsByTime(undefined, { reverse })
 
     for await (const transaction of transactions) {
       if (request.closed) {
