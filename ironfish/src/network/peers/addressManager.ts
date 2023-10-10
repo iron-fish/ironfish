@@ -14,10 +14,12 @@ import { PeerManager } from './peerManager'
 export class AddressManager {
   hostsStore: HostsStore
   peerManager: PeerManager
+  startingPeerAddresses: PeerAddress[] = []
 
   constructor(hostsStore: HostsStore, peerManager: PeerManager) {
     this.hostsStore = hostsStore
     this.peerManager = peerManager
+    this.startingPeerAddresses = this.hostsStore.getArray('priorPeers')
   }
 
   get priorConnectedPeerAddresses(): ReadonlyArray<Readonly<PeerAddress>> {
@@ -69,6 +71,27 @@ export class AddressManager {
     this.hostsStore.set('priorPeers', filteredPriorConnected)
   }
 
+  private deduplicateAddresses(addresses: PeerAddress[]): PeerAddress[] {
+    // do it by identity + address + port
+    const dedupedAddresses: PeerAddress[] = []
+    const seenIdentities = new Set<string>()
+
+    for (const address of addresses) {
+      if (address.identity === null) {
+        continue
+      }
+
+      if (seenIdentities.has(address.identity)) {
+        continue
+      }
+
+      seenIdentities.add(address.identity)
+      dedupedAddresses.push(address)
+    }
+
+    return dedupedAddresses
+  }
+
   /**
    * Persist all currently connected peers to disk
    */
@@ -88,7 +111,12 @@ export class AddressManager {
         return []
       }
     })
-    this.hostsStore.set('priorPeers', inUsePeerAddresses)
+    const newPeers = this.deduplicateAddresses([
+      ...this.startingPeerAddresses,
+      ...inUsePeerAddresses,
+    ])
+
+    this.hostsStore.set('priorPeers', newPeers)
     await this.hostsStore.save()
   }
 }
