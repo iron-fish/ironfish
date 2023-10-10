@@ -97,7 +97,7 @@ export class Deposit extends IronfishCommand {
 
     let dest = flags.dest
     if (dest == null) {
-      dest = await CliUx.ux.prompt('Enter an Eth address to send WIRON to', { required: true })
+      dest = await CliUx.ux.prompt('Enter an ETH address to send WIRON to on Sepolia testnet', { required: true })
     }
 
     let amount = flags.amount
