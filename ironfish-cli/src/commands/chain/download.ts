@@ -1,35 +1,18 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import {
-  ErrorUtils,
-  FileUtils,
-  Meter,
-  NodeUtils,
-  TimeUtils,
-  VERSION_DATABASE_CHAIN,
-} from '@ironfish/sdk'
+import { ErrorUtils, FileUtils, Meter, NodeUtils, TimeUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
-import axios from 'axios'
-import crypto from 'crypto'
-import fs from 'fs'
 import fsAsync from 'fs/promises'
-import { IncomingMessage } from 'http'
-import path from 'path'
-import tar from 'tar'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
-import { SnapshotManifest } from '../../snapshot'
+import { DownloadedSnapshot, getDefaultManifestUrl, SnapshotDownloader } from '../../snapshot'
 import { ProgressBar } from '../../types'
-import { UrlUtils } from '../../utils/url'
 
 export default class Download extends IronfishCommand {
   static hidden = false
 
   static description = `Download and import a chain snapshot`
-
-  static defaultMainnetManifestUrl = `https://snapshots.ironfish.network/manifest.json`
-  static defaultTestnetManifestUrl = `https://testnet.snapshots.ironfish.network/manifest.json`
 
   static flags = {
     ...LocalFlags,
@@ -44,11 +27,11 @@ export default class Download extends IronfishCommand {
       required: false,
       description: 'Path to a downloaded snapshot file to import',
     }),
-    outputPath: Flags.string({
+    output: Flags.string({
       char: 'o',
       parse: (input: string) => Promise.resolve(input.trim()),
       required: false,
-      description: 'Output path to download the snapshot file to',
+      description: 'Output folder to download the snapshot file to',
     }),
     confirm: Flags.boolean({
       default: false,
@@ -67,49 +50,37 @@ export default class Download extends IronfishCommand {
 
     const node = await this.sdk.node()
     await NodeUtils.waitForOpen(node)
+    const nodeChainDBVersion = await node.chain.blockchainDb.getVersion()
+    const headSequence = node.chain.head.sequence
+    await node.closeDB()
 
-    const networkId = node.internal.get('networkId')
-
-    let manifestUrl = ''
-    if (flags.manifestUrl) {
-      manifestUrl = flags.manifestUrl
-    } else {
-      if (networkId === 0) {
-        // testnet
-        manifestUrl = Download.defaultTestnetManifestUrl
-      } else if (networkId === 1) {
-        manifestUrl = Download.defaultMainnetManifestUrl
-      } else {
-        this.log(`Manifest url for the snapshots are not available for network ID ${networkId}`)
-        this.exit(1)
-      }
-    }
-
-    let snapshotPath: string
-
+    let downloadedSnapshot: DownloadedSnapshot
     if (flags.path) {
-      snapshotPath = this.sdk.fileSystem.resolve(flags.path)
+      downloadedSnapshot = new DownloadedSnapshot(this.sdk, flags.path)
     } else {
-      if (!manifestUrl || manifestUrl === '') {
-        this.log(`Cannot download snapshot without manifest URL`)
-        this.exit(1)
+      const networkId = this.sdk.internal.get('networkId')
+      const manifestUrl = flags.manifestUrl ?? getDefaultManifestUrl(networkId)
+      if (!manifestUrl) {
+        this.log(`Manifest url for the snapshots are not available for network ID ${networkId}`)
+        return this.exit(1)
       }
 
-      const manifest = (await axios.get<SnapshotManifest>(manifestUrl)).data
-
-      if (manifest.database_version > VERSION_DATABASE_CHAIN) {
-        this.log(
-          `This snapshot is from a later database version (${manifest.database_version}) than your node (${VERSION_DATABASE_CHAIN}). Aborting import.`,
-        )
-        this.exit(1)
+      let dest = flags.output
+      if (!dest) {
+        await fsAsync.mkdir(this.sdk.config.tempDir, { recursive: true })
+        dest = this.sdk.config.tempDir
       }
+
+      const Downloader = new SnapshotDownloader(manifestUrl, dest, nodeChainDBVersion)
+
+      const manifest = await Downloader.manifest()
 
       const fileSize = FileUtils.formatFileSize(manifest.file_size)
       const spaceRequired = FileUtils.formatFileSize(manifest.file_size * 2)
 
       if (!flags.confirm) {
         const confirm = await CliUx.ux.confirm(
-          `Download ${fileSize} snapshot to update from block ${node.chain.head.sequence} to ${manifest.block_sequence}? ` +
+          `Download ${fileSize} snapshot to update from block ${headSequence} to ${manifest.block_sequence}? ` +
             `\nAt least ${spaceRequired} of free disk space is required to download and unzip the snapshot file.` +
             `\nAre you sure? (Y)es / (N)o`,
         )
@@ -119,194 +90,51 @@ export default class Download extends IronfishCommand {
         }
       }
 
-      let snapshotUrl = UrlUtils.tryParseUrl(manifest.file_name)?.toString()
+      const snapshotUrl = await Downloader.snapshotURL()
+      const snapshotPath = await Downloader.snapshotPath()
+      this.log(`Downloading snapshot from ${snapshotUrl} to ${snapshotPath}`)
 
-      if (!snapshotUrl) {
-        // Snapshot URL is not absolute so use a relative URL from the manifest
-        const url = new URL(manifestUrl)
-        const parts = UrlUtils.splitPathName(url.pathname)
-        parts.pop()
-        parts.push(manifest.file_name)
-        url.pathname = UrlUtils.joinPathName(parts)
-        snapshotUrl = url.toString()
-      }
+      const bar = CliUx.ux.progress({
+        barCompleteChar: '\u2588',
+        barIncompleteChar: '\u2591',
+        format:
+          'Downloading snapshot: [{bar}] {percentage}% | {downloadedSize} / {fileSize} | {speed}/s | ETA: {estimate}',
+      }) as ProgressBar
 
-      await fsAsync.mkdir(this.sdk.config.tempDir, { recursive: true })
-      snapshotPath = flags.outputPath || path.join(this.sdk.config.tempDir, manifest.file_name)
-
-      let downloaded = 0
-      try {
-        const statResult = await fsAsync.stat(snapshotPath)
-        if (statResult.isFile()) {
-          downloaded = statResult.size
-        }
-      } catch {
-        downloaded = 0
-      }
-
-      if (downloaded < manifest.file_size) {
-        this.log(`Downloading snapshot from ${snapshotUrl} to ${snapshotPath}`)
-
-        const bar = CliUx.ux.progress({
-          barCompleteChar: '\u2588',
-          barIncompleteChar: '\u2591',
-          format:
-            'Downloading snapshot: [{bar}] {percentage}% | {downloadedSize} / {fileSize} | {speed}/s | ETA: {estimate}',
-        }) as ProgressBar
-
-        bar.start(manifest.file_size, 0, {
-          fileSize,
-          downloadedSize: FileUtils.formatFileSize(downloaded),
-          speed: '0',
-          estimate: TimeUtils.renderEstimate(0, 0, 0),
-        })
-
-        const speed = new Meter()
-        speed.start()
-
-        const idleTimeout = 30000
-        let idleLastChunk = Date.now()
-        const idleCancelSource = axios.CancelToken.source()
-
-        const idleInterval = setInterval(() => {
-          const timeSinceLastChunk = Date.now() - idleLastChunk
-
-          if (timeSinceLastChunk > idleTimeout) {
-            clearInterval(idleInterval)
-
-            idleCancelSource.cancel(
-              `Download timed out after ${TimeUtils.renderSpan(timeSinceLastChunk)}`,
-            )
-          }
-        }, idleTimeout)
-
-        const response: { data: IncomingMessage } = await axios({
-          method: 'GET',
-          responseType: 'stream',
-          url: snapshotUrl,
-          cancelToken: idleCancelSource.token,
-          headers: {
-            range: `bytes=${downloaded}-`,
-          },
-        })
-
-        const resumingDownload = response.data.statusCode === 206
-        const writer = fs.createWriteStream(snapshotPath, {
-          flags: resumingDownload ? 'a' : 'w',
-        })
-        downloaded = resumingDownload ? downloaded : 0
-
-        await new Promise<void>((resolve, reject) => {
-          const onWriterError = (e: unknown) => {
-            writer.removeListener('close', onWriterClose)
-            writer.removeListener('error', onWriterError)
-            reject(e)
-          }
-
-          const onWriterClose = () => {
-            writer.removeListener('close', onWriterClose)
-            writer.removeListener('error', onWriterError)
-            resolve()
-          }
-
-          writer.on('error', onWriterError)
-          writer.on('close', onWriterClose)
-
-          response.data.on('error', (e) => {
-            writer.destroy(e)
-          })
-
-          response.data.on('end', () => {
-            writer.close()
-          })
-
-          response.data.on('data', (chunk: Buffer) => {
-            writer.write(chunk)
-
-            downloaded += chunk.length
-            speed.add(chunk.length)
-            idleLastChunk = Date.now()
-
-            bar.update(downloaded, {
-              downloadedSize: FileUtils.formatFileSize(downloaded),
-              speed: FileUtils.formatFileSize(speed.rate1s),
-              estimate: TimeUtils.renderEstimate(downloaded, manifest.file_size, speed.rate1m),
-            })
-          })
-        })
-          .catch((error) => {
-            bar.stop()
-            speed.stop()
-
-            if (idleCancelSource.token.reason?.message) {
-              this.logger.error(idleCancelSource.token.reason?.message)
-            } else {
-              this.logger.error(
-                `Error while downloading snapshot file: ${ErrorUtils.renderError(error)}`,
-              )
-            }
-
-            this.exit(1)
-          })
-          .finally(() => {
-            clearInterval(idleInterval)
-          })
-
-        bar.stop()
-        speed.stop()
-      }
-
-      this.log('Verifying snapshot checksum...')
-      const hasher = crypto.createHash('sha256')
-      await new Promise<void>((resolve, reject) => {
-        const stream = fs.createReadStream(snapshotPath)
-        stream.on('end', resolve)
-        stream.on('error', reject)
-        stream.pipe(hasher, { end: false })
+      bar.start(manifest.file_size, 0, {
+        fileSize,
+        downloadedSize: FileUtils.formatFileSize(0),
+        speed: '0',
+        estimate: TimeUtils.renderEstimate(0, 0, 0),
       })
 
-      const checksum = hasher.digest().toString('hex')
-      if (checksum !== manifest.checksum) {
+      const speed = new Meter()
+      speed.start()
+
+      await Downloader.download((prev, curr) => {
+        speed.add(curr - prev)
+
+        bar.update(curr, {
+          downloadedSize: FileUtils.formatFileSize(curr),
+          speed: FileUtils.formatFileSize(speed.rate1s),
+          estimate: TimeUtils.renderEstimate(curr, manifest.file_size, speed.rate1m),
+        })
+      }).catch((error) => {
+        bar.stop()
+        speed.stop()
+        this.logger.error(ErrorUtils.renderError(error))
+
+        this.exit(1)
+      })
+
+      const path = await Downloader.verifyChecksum({ cleanup: flags.cleanup })
+      if (!path) {
         this.log('Snapshot checksum does not match.')
-        if (flags.cleanup) {
-          await fsAsync.rm(snapshotPath)
-        }
-        this.exit(0)
+        return this.exit(0)
       }
+
+      downloadedSnapshot = new DownloadedSnapshot(this.sdk, path)
     }
-
-    // use a standard name, 'snapshot', for the unzipped database
-    const snapshotDatabasePath = this.sdk.fileSystem.join(this.sdk.config.tempDir, 'snapshot')
-    await fsAsync.mkdir(snapshotDatabasePath, { recursive: true })
-    await this.unzip(snapshotPath, snapshotDatabasePath)
-
-    const chainDatabasePath = this.sdk.fileSystem.resolve(this.sdk.config.chainDatabasePath)
-
-    // chainDatabasePath must be empty before unzipping snapshot
-    // chain DB must be closed before deleting it (fixes an error on Windows)
-    CliUx.ux.action.start(
-      `Removing existing chain data at ${chainDatabasePath} before importing snapshot`,
-    )
-    await node.closeDB()
-    await fsAsync.rm(chainDatabasePath, { recursive: true, force: true, maxRetries: 10 })
-    CliUx.ux.action.stop('done')
-
-    CliUx.ux.action.start(
-      `Moving snapshot files from ${snapshotDatabasePath} to ${chainDatabasePath}`,
-    )
-    await fsAsync.rename(snapshotDatabasePath, chainDatabasePath)
-    CliUx.ux.action.stop('done')
-
-    if (flags.cleanup) {
-      CliUx.ux.action.start(`Cleaning up snapshot file at ${snapshotPath}`)
-      await fsAsync.rm(snapshotPath)
-      CliUx.ux.action.stop('done')
-    }
-  }
-
-  async unzip(source: string, dest: string): Promise<void> {
-    let totalEntries = 0
-    let extracted = 0
 
     const progressBar = CliUx.ux.progress({
       barCompleteChar: '\u2588',
@@ -315,34 +143,37 @@ export default class Download extends IronfishCommand {
         'Unzipping snapshot: [{bar}] {percentage}% | {value} / {total} entries | {speed}/s | ETA: {estimate}',
     }) as ProgressBar
 
-    const speed = new Meter()
-
-    progressBar.start(totalEntries, 0, {
+    progressBar.start(0, 0, {
       speed: '0',
       estimate: TimeUtils.renderEstimate(0, 0, 0),
     })
+
+    const speed = new Meter()
     speed.start()
 
-    tar.list({
-      file: source,
-      onentry: (_) => progressBar.setTotal(++totalEntries),
-    })
-
-    await tar.extract({
-      file: source,
-      C: dest,
-      strip: 1,
-      strict: true,
-      onentry: (_) => {
-        speed.add(1)
-        progressBar.update(++extracted, {
+    await downloadedSnapshot.unzip(
+      (totalEntries: number, prevExtracted: number, currExtracted: number) => {
+        progressBar.setTotal(totalEntries)
+        speed.add(currExtracted - prevExtracted)
+        progressBar.update(currExtracted, {
           speed: speed.rate1s.toFixed(2),
-          estimate: TimeUtils.renderEstimate(extracted, totalEntries, speed.rate1m),
+          estimate: TimeUtils.renderEstimate(currExtracted, totalEntries, speed.rate1m),
         })
       },
-    })
+    )
 
-    progressBar.stop()
-    speed.stop()
+    CliUx.ux.action.start(
+      `Replacing existing chain data at ${downloadedSnapshot.chainDatabasePath} before importing snapshot`,
+    )
+
+    await downloadedSnapshot.replaceDatabase()
+
+    CliUx.ux.action.stop('done')
+
+    if (flags.cleanup) {
+      CliUx.ux.action.start(`Cleaning up snapshot file at ${downloadedSnapshot.file}`)
+      await fsAsync.rm(downloadedSnapshot.file)
+      CliUx.ux.action.stop('done')
+    }
   }
 }
