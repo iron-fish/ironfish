@@ -11,7 +11,10 @@ import {
 } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { AsyncUtils } from '../../../utils'
-import { GetAccountTransactionsResponse } from './getAccountTransactions'
+import {
+  GetAccountTransactionsRequest,
+  GetAccountTransactionsResponse,
+} from './getAccountTransactions'
 
 describe('Route wallet/getAccountTransactions', () => {
   const routeTest = createRouteTest(true)
@@ -176,5 +179,71 @@ describe('Route wallet/getAccountTransactions', () => {
     const got = spendTxn.spends
 
     expect(got).toEqual(expected)
+  })
+
+  it('sorts transactions when sort is passed', async () => {
+    const node = routeTest.node
+    const account = await useAccountFixture(node.wallet, 'default-sort')
+
+    const blockA = await useMinerBlockFixture(routeTest.chain, undefined, account, node.wallet)
+    await expect(node.chain).toAddBlock(blockA)
+    await node.wallet.updateHead()
+
+    const blockB = await useMinerBlockFixture(routeTest.chain, undefined, account, node.wallet)
+    await expect(node.chain).toAddBlock(blockB)
+    await node.wallet.updateHead()
+
+    const defaultSort: GetAccountTransactionsRequest = {
+      account: account.name,
+    }
+
+    const defaultSortResponse = routeTest.client.request<
+      unknown,
+      GetAccountTransactionsResponse
+    >('wallet/getAccountTransactions', defaultSort)
+
+    const defaultSortTransactions = await AsyncUtils.materialize(
+      defaultSortResponse.contentStream(),
+    )
+    expect(defaultSortTransactions).toHaveLength(2)
+    expect(defaultSortTransactions[0].timestamp).toBeGreaterThan(
+      defaultSortTransactions[1].timestamp,
+    )
+
+    const reverseSort: GetAccountTransactionsRequest = {
+      account: account.name,
+      reverse: true,
+    }
+
+    const reverseSortResponse = routeTest.client.request<
+      unknown,
+      GetAccountTransactionsResponse
+    >('wallet/getAccountTransactions', reverseSort)
+
+    const reverseSortTransactions = await AsyncUtils.materialize(
+      reverseSortResponse.contentStream(),
+    )
+    expect(reverseSortTransactions).toHaveLength(2)
+    expect(reverseSortTransactions[0].timestamp).toBeGreaterThan(
+      reverseSortTransactions[1].timestamp,
+    )
+
+    const forwardSort: GetAccountTransactionsRequest = {
+      account: account.name,
+      reverse: false,
+    }
+
+    const forwardSortResponse = routeTest.client.request<
+      unknown,
+      GetAccountTransactionsResponse
+    >('wallet/getAccountTransactions', forwardSort)
+
+    const forwardSortTransactions = await AsyncUtils.materialize(
+      forwardSortResponse.contentStream(),
+    )
+    expect(forwardSortTransactions).toHaveLength(2)
+    expect(forwardSortTransactions[0].timestamp).toBeLessThan(
+      forwardSortTransactions[1].timestamp,
+    )
   })
 })

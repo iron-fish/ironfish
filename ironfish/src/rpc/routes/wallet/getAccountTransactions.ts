@@ -23,6 +23,7 @@ export type GetAccountTransactionsRequest = {
   sequence?: number
   limit?: number
   offset?: number
+  reverse?: boolean
   confirmations?: number
   notes?: boolean
   spends?: boolean
@@ -37,6 +38,7 @@ export const GetAccountTransactionsRequestSchema: yup.ObjectSchema<GetAccountTra
       sequence: yup.number().min(GENESIS_BLOCK_SEQUENCE).notRequired(),
       limit: yup.number().notRequired(),
       offset: yup.number().notRequired(),
+      reverse: yup.boolean().notRequired().default(true),
       confirmations: yup.number().notRequired(),
       notes: yup.boolean().notRequired().default(false),
       spends: yup.boolean().notRequired().default(false),
@@ -79,7 +81,7 @@ routes.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
 
     const transactions = request.data.sequence
       ? account.getTransactionsBySequence(request.data.sequence)
-      : account.getTransactionsByTime()
+      : account.getTransactionsByTime(undefined, { reverse: request.data.reverse })
 
     for await (const transaction of transactions) {
       if (request.closed) {
