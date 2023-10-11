@@ -2,30 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
-import { CurrencyUtils, SendTransactionRequest, WebApi } from '@ironfish/sdk'
+import { CurrencyUtils, SendTransactionRequest } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { isAddress } from 'web3-validator'
 import { IronfishCommand } from '../../../command'
 import { IronFlag, RemoteFlags } from '../../../flags'
 import { promptCurrency } from '../../../utils/currency'
 
+const DEFAULT_BRIDGE_ADDRESS =
+  '1d1a1fb9fafd7de32c7f02115207d6fe9df1272f5b4bedbbfa1330eba88c5ce2'
+
 export class Deposit extends IronfishCommand {
   static description = `Deposit coins to the bridge`
 
   static flags = {
     ...RemoteFlags,
-    endpoint: Flags.string({
-      char: 'e',
-      description: 'API host to sync to',
-      parse: (input: string) => Promise.resolve(input.trim()),
-      env: 'IRONFISH_API_HOST',
-    }),
-    token: Flags.string({
-      char: 't',
-      description: 'API token to authenticate with',
-      parse: (input: string) => Promise.resolve(input.trim()),
-      env: 'IRONFISH_API_TOKEN',
-    }),
     account: Flags.string({
       char: 'f',
       description: 'The account to deposit from',
@@ -33,6 +24,7 @@ export class Deposit extends IronfishCommand {
     to: Flags.string({
       char: 't',
       description: 'The public address of the bridge account',
+      default: DEFAULT_BRIDGE_ADDRESS,
     }),
     amount: IronFlag({
       char: 'a',
@@ -81,22 +73,6 @@ export class Deposit extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(Deposit)
 
-    if (!flags.endpoint) {
-      this.log(
-        `No api host set. You must set IRONFISH_API_HOST env variable or pass --endpoint flag.`,
-      )
-      this.exit(1)
-    }
-
-    if (!flags.token) {
-      this.log(
-        `No api token set. You must set IRONFISH_API_TOKEN env variable or pass --token flag.`,
-      )
-      this.exit(1)
-    }
-
-    const api = new WebApi({ host: flags.endpoint, token: flags.token })
-
     const client = await this.sdk.connectRpc()
 
     const publicKey = (await client.wallet.getAccountPublicKey({ account: flags.account }))
@@ -106,8 +82,6 @@ export class Deposit extends IronfishCommand {
       flags.account ?? (await client.wallet.getDefaultAccount()).content.account?.name
 
     const assetId = Asset.nativeId().toString('hex')
-
-    const to = flags.to ?? (await api.getBridgeAddress())
 
     let dest = flags.dest
     if (!dest) {
@@ -165,7 +139,7 @@ export class Deposit extends IronfishCommand {
       account,
       outputs: [
         {
-          publicAddress: to,
+          publicAddress: flags.to,
           amount: CurrencyUtils.encode(amount),
           memo,
           assetId,
@@ -179,7 +153,7 @@ export class Deposit extends IronfishCommand {
     this.log(
       `\nDeposit transaction:\n` +
         `From address:      ${publicKey}\n` +
-        `To bridge address: ${to}\n` +
+        `To bridge address: ${flags.to}\n` +
         `To ETH address:    ${dest}\n` +
         `Amount:            ${amount}\n` +
         `Transaction fee:   ${fee}`,
