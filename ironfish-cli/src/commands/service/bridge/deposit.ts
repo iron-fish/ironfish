@@ -4,6 +4,7 @@
 import { Asset } from '@ironfish/rust-nodejs'
 import { CurrencyUtils, SendTransactionRequest, WebApi } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
+import { isAddress } from 'web3-validator'
 import { IronfishCommand } from '../../../command'
 import { IronFlag, RemoteFlags } from '../../../flags'
 import { promptCurrency } from '../../../utils/currency'
@@ -60,7 +61,20 @@ export class Deposit extends IronfishCommand {
       required: false,
     }),
     dest: Flags.string({
-      description: 'Eth public address to deposit to',
+      description: 'ETH public address to deposit to',
+      parse: (input: string): Promise<string> => {
+        return new Promise((resolve, reject) => {
+          if (isAddress(input)) {
+            if (input.startsWith('0x')) {
+              resolve(input.slice(2))
+            } else {
+              resolve(input)
+            }
+          }
+
+          reject(Error(`${input} is not a valid ETH address`))
+        })
+      },
     }),
   }
 
@@ -96,10 +110,25 @@ export class Deposit extends IronfishCommand {
     const to = flags.to ?? (await api.getBridgeAddress())
 
     let dest = flags.dest
-    if (dest == null) {
-      dest = await CliUx.ux.prompt('Enter an ETH address to send WIRON to on Sepolia testnet', {
-        required: true,
-      })
+    if (!dest) {
+      while (!dest) {
+        dest = await CliUx.ux.prompt(
+          'Enter an ETH address to send WIRON to on Sepolia testnet',
+          {
+            required: true,
+          },
+        )
+
+        if (!isAddress(dest)) {
+          this.log(`${dest} is not a valid ETH address`)
+          dest = undefined
+          continue
+        }
+
+        if (dest.startsWith('0x')) {
+          dest = dest.slice(2)
+        }
+      }
     }
 
     let amount = flags.amount
@@ -130,14 +159,7 @@ export class Deposit extends IronfishCommand {
       })
     }
 
-    const response = await api.createDeposit({
-      amount: amount.toString(),
-      asset: assetId,
-      source_address: publicKey,
-      destination_address: dest,
-    })
-
-    const depositId = response[publicKey]
+    const memo = this.encodeEthAddress(dest)
 
     const params: SendTransactionRequest = {
       account,
@@ -145,7 +167,7 @@ export class Deposit extends IronfishCommand {
         {
           publicAddress: to,
           amount: CurrencyUtils.encode(amount),
-          memo: depositId.toString(),
+          memo,
           assetId,
         },
       ],
@@ -158,7 +180,7 @@ export class Deposit extends IronfishCommand {
       `\nDeposit transaction:\n` +
         `From address:      ${publicKey}\n` +
         `To bridge address: ${to}\n` +
-        `Memo:              ${depositId}\n` +
+        `To ETH address:    ${dest}\n` +
         `Amount:            ${amount}\n` +
         `Transaction fee:   ${fee}`,
     )
@@ -174,5 +196,9 @@ export class Deposit extends IronfishCommand {
     CliUx.ux.action.stop()
 
     this.log(`Deposit transaction hash: ${sendResponse.content.hash}`)
+  }
+
+  encodeEthAddress(address: string): string {
+    return Buffer.from(address, 'hex').toString('base64')
   }
 }
