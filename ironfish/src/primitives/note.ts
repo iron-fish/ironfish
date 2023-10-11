@@ -93,6 +93,10 @@ export class Note {
     return BufferUtils.toHuman(this._memo)
   }
 
+  memoHex(): string {
+    return this._memo.toString('hex')
+  }
+
   assetId(): Buffer {
     return this._assetId
   }

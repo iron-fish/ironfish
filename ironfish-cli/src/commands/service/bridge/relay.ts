@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert, GetTransactionStreamResponse, Meter, TimeUtils, WebApi } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
+import { isAddress } from 'web3-validator'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 
@@ -163,13 +164,13 @@ export default class BridgeRelay extends IronfishCommand {
           continue
         }
 
-        const requestId = Number(note.memo)
-
-        if (isNaN(requestId)) {
-          continue
-        }
-
         if (note.sender === bridgeAddress) {
+          const requestId = Number(note.memo)
+
+          if (isNaN(requestId)) {
+            continue
+          }
+
           this.log(
             `Confirmed release of bridge request ${note.memo} in transaction ${transaction.hash}`,
           )
@@ -179,13 +180,26 @@ export default class BridgeRelay extends IronfishCommand {
             status: 'CONFIRMED',
           })
         } else {
-          this.log(`Received deposit ${note.memo} in transaction ${transaction.hash}`)
+          const ethAddress = this.decodeEthAddress(note.memoHex)
+
+          if (!isAddress(ethAddress)) {
+            this.log(
+              `Received deposit for invalid ETH address ${ethAddress} in transaction ${transaction.hash}`,
+            )
+            continue
+          }
+
+          this.log(
+            `Received deposit for ETH address ${ethAddress} in transaction ${transaction.hash}`,
+          )
           sends.push({
-            id: requestId,
             amount: note.value,
             asset: note.assetId,
             source_address: note.sender,
+            source_chain: 'IRONFISH',
             source_transaction: transaction.hash,
+            destination_address: ethAddress,
+            destination_chain: 'ETHEREUM',
           })
         }
       }
@@ -200,5 +214,9 @@ export default class BridgeRelay extends IronfishCommand {
     }
 
     await api.setBridgeHead(response.block.hash)
+  }
+
+  decodeEthAddress(memoHex: string): string {
+    return Buffer.from(Buffer.from(memoHex, 'hex').toString('utf8'), 'base64').toString('hex')
   }
 }
