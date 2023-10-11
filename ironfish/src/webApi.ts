@@ -230,11 +230,6 @@ export class WebApi {
     await axios.post(`${this.host}/bridge/send`, { sends }, this.options())
   }
 
-  async getBridgeAddress(): Promise<string> {
-    const response = await axios.get<{ address: string }>(`${this.host}/bridge/address`)
-    return response.data.address
-  }
-
   async getBridgeNextWIronRequests(count?: number): Promise<Array<BridgeRequest>> {
     this.requireToken()
 
