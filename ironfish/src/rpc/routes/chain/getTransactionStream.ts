@@ -36,6 +36,8 @@ interface Note {
   hash: string
   value: string
   memo: string
+  // unsanitized hex string representation of the memo
+  memoHex: string
   sender: string
 }
 
@@ -55,6 +57,7 @@ const NoteSchema = yup
     hash: yup.string().required(),
     value: yup.string().required(),
     memo: yup.string().required(),
+    memoHex: yup.string().required(),
     sender: yup.string().required(),
   })
   .required()
@@ -170,7 +173,12 @@ routes.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
             const assetValue = await node.chain.getAssetById(decryptedNote.assetId())
             notes.push({
               value: CurrencyUtils.encode(decryptedNote.value()),
+<<<<<<< HEAD
               memo,
+=======
+              memo: decryptedNote.memo(),
+              memoHex: decryptedNote.memoHex(),
+>>>>>>> 10e77e8a (updates relay service to decode eth address from memo (#4353))
               assetId: decryptedNote.assetId().toString('hex'),
               assetName: assetValue?.name.toString('hex') || '',
               hash: decryptedNote.hash().toString('hex'),

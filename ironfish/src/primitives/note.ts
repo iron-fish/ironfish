@@ -92,6 +92,10 @@ export class Note {
     return this._memo
   }
 
+  memoHex(): string {
+    return this._memo.toString('hex')
+  }
+
   assetId(): Buffer {
     return this._assetId
   }

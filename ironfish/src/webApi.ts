@@ -218,11 +218,13 @@ export class WebApi {
 
   async sendBridgeDeposits(
     sends: {
-      id: number
       amount: string
       asset: string
       source_address: string
+      source_chain: string
       source_transaction: string
+      destination_address: string
+      destination_chain: string
     }[],
   ): Promise<void> {
     this.requireToken()
