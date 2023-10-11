@@ -79,7 +79,8 @@
     "json-colorizer": "2.2.2",
     "supports-hyperlinks": "2.2.0",
     "tar": "6.1.11",
-    "uuid": "8.3.2"
+    "uuid": "8.3.2",
+    "web3-validator": "2.0.2"
   },
   "oclif": {
     "macos": {
