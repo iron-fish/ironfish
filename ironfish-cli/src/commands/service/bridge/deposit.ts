@@ -199,7 +199,6 @@ export class Deposit extends IronfishCommand {
   }
 
   encodeEthAddress(address: string): string {
-    const buffer = Buffer.from(address, 'hex')
-    return buffer.toString('binary')
+    return Buffer.from(address, 'hex').toString('base64')
   }
 }
