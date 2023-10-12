@@ -232,16 +232,16 @@ export class MiningPool {
       return
     }
 
-    const eventLoopStartTime = new Date().getTime()
+    // const eventLoopStartTime = new Date().getTime()
 
     await this.shares.rolloverPayoutPeriod()
     await this.updateUnconfirmedBlocks()
     await this.updateUnconfirmedPayoutTransactions()
     await this.shares.createNewPayout()
 
-    const eventLoopEndTime = new Date().getTime()
-    const eventLoopDuration = eventLoopEndTime - eventLoopStartTime
-    this.logger.debug(`Mining pool event loop took ${eventLoopDuration} milliseconds`)
+    // const eventLoopEndTime = new Date().getTime()
+    // const eventLoopDuration = eventLoopEndTime - eventLoopStartTime
+    // this.logger.debug(`Mining pool event loop took ${eventLoopDuration} milliseconds`)
 
     this.eventLoopTimeout = setTimeout(() => void this.eventLoop(), EVENT_LOOP_MS)
   }
@@ -334,6 +334,14 @@ export class MiningPool {
         this.webhooks.map((w) =>
           w.poolSubmittedBlock(hashedHeaderHex, hashRate, this.stratum.subscribed),
         )
+
+        const date = new Date()
+        date.setTime(date.getTime() + 10 * 60 * 1000)
+        this.stratum.peers.ban(client, {
+          message: `Delaying`,
+          until: date.getTime(),
+        })
+        return { error: null }
       } else {
         this.logger.info(`Block was rejected: ${result.content.reason}`)
       }
