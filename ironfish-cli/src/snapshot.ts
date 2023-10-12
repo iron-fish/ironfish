@@ -37,11 +37,8 @@ export const getDefaultManifestUrl = (networkId: number): string | null => {
 const tryParseUrl = (url: string): URL | null => {
   try {
     return new URL(url)
-  } catch (e) {
-    if (e instanceof TypeError && ErrorUtils.isNodeError(e) && e.code === 'ERR_INVALID_URL') {
-      return null
-    }
-    throw e
+  } catch (_) {
+    return null
   }
 }
 
@@ -71,51 +68,6 @@ async function matchesChecksum(file: string, checksum: string): Promise<boolean>
 
   const fileCheckSum = hasher.digest().toString('hex')
   return fileCheckSum === checksum
-}
-
-export class DownloadedSnapshot {
-  private sdk: IronfishSdk
-  readonly file: string
-
-  constructor(sdk: IronfishSdk, file: string) {
-    this.sdk = sdk
-    this.file = file
-  }
-
-  get chainDatabasePath(): string {
-    return this.sdk.fileSystem.resolve(this.sdk.config.chainDatabasePath)
-  }
-
-  get snapshotDatabasePath(): string {
-    return this.sdk.fileSystem.join(this.sdk.config.tempDir, 'snapshot')
-  }
-
-  async unzip(
-    onEntry: (totalEntries: number, prevExtracted: number, currExtracted: number) => void,
-  ): Promise<void> {
-    await fsAsync.mkdir(this.snapshotDatabasePath, { recursive: true })
-
-    let totalEntries = 0
-    let extracted = 0
-
-    tar.list({
-      file: this.file,
-      onentry: (_) => onEntry(++totalEntries, extracted, extracted),
-    })
-
-    await tar.extract({
-      file: this.file,
-      C: this.snapshotDatabasePath,
-      strip: 1,
-      strict: true,
-      onentry: (_) => onEntry(++totalEntries, extracted, ++extracted),
-    })
-  }
-
-  async replaceDatabase(): Promise<void> {
-    await fsAsync.rm(this.chainDatabasePath, { recursive: true, force: true, maxRetries: 10 })
-    await fsAsync.rename(this.snapshotDatabasePath, this.chainDatabasePath)
-  }
 }
 
 export class SnapshotDownloader {
@@ -265,5 +217,50 @@ export class SnapshotDownloader {
     }
 
     return destination
+  }
+}
+
+export class DownloadedSnapshot {
+  private sdk: IronfishSdk
+  readonly file: string
+
+  constructor(sdk: IronfishSdk, file: string) {
+    this.sdk = sdk
+    this.file = file
+  }
+
+  get chainDatabasePath(): string {
+    return this.sdk.fileSystem.resolve(this.sdk.config.chainDatabasePath)
+  }
+
+  get snapshotDatabasePath(): string {
+    return this.sdk.fileSystem.join(this.sdk.config.tempDir, 'snapshot')
+  }
+
+  async unzip(
+    onEntry: (totalEntries: number, prevExtracted: number, currExtracted: number) => void,
+  ): Promise<void> {
+    await fsAsync.mkdir(this.snapshotDatabasePath, { recursive: true })
+
+    let totalEntries = 0
+    let extracted = 0
+
+    tar.list({
+      file: this.file,
+      onentry: (_) => onEntry(++totalEntries, extracted, extracted),
+    })
+
+    await tar.extract({
+      file: this.file,
+      C: this.snapshotDatabasePath,
+      strip: 1,
+      strict: true,
+      onentry: (_) => onEntry(totalEntries, extracted, ++extracted),
+    })
+  }
+
+  async replaceDatabase(): Promise<void> {
+    await fsAsync.rm(this.chainDatabasePath, { recursive: true, force: true, maxRetries: 10 })
+    await fsAsync.rename(this.snapshotDatabasePath, this.chainDatabasePath)
   }
 }
