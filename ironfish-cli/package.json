@@ -62,7 +62,7 @@
     "@aws-sdk/client-secrets-manager": "3",
     "@aws-sdk/s3-request-presigner": "3",
     "@ironfish/rust-nodejs": "1.9.0",
-    "@ironfish/sdk": "1.10.0",
+    "@ironfish/sdk": "1.10.1",
     "@oclif/core": "1.23.1",
     "@oclif/plugin-help": "5.1.12",
     "@oclif/plugin-not-found": "2.3.1",

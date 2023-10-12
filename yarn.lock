@@ -1652,41 +1652,6 @@
   resolved "https://registry.yarnpkg.com/@hutson/parse-repository-url/-/parse-repository-url-3.0.2.tgz#98c23c950a3d9b6c8f0daed06da6c3af06981340"
   integrity sha512-H9XAx3hc0BQHY6l+IFSWHDySypcXsvsuLhgYLUGywmJ5pswRVQJUHpOsobnLYp2ZUaUlKiKDrgWWhosOwAEM8Q==
 
-"@ironfish/sdk@1.10.0":
-  version "1.10.0"
-  resolved "https://registry.yarnpkg.com/@ironfish/sdk/-/sdk-1.10.0.tgz#615f9ad5a07a1952e2ac62de3ea5dc0b9a701743"
-  integrity sha512-xI1/kfDKwXX3wJuKtpx5UlbpXTvATMM6P8sPhdnyKYW1FMAiOzLcv5lj6ZC09ip8zwBdfL6/bZJjWiDAh1JEhw==
-  dependencies:
-    "@ethersproject/bignumber" "5.7.0"
-    "@fast-csv/format" "4.3.5"
-    "@ironfish/rust-nodejs" "1.9.0"
-    "@napi-rs/blake-hash" "1.3.3"
-    axios "0.21.4"
-    bech32 "2.0.0"
-    blru "0.1.6"
-    buffer "6.0.3"
-    buffer-json "2.0.0"
-    buffer-map "0.0.7"
-    bufio "1.2.0"
-    colors "1.4.0"
-    consola "2.15.0"
-    date-fns "2.16.1"
-    decimal.js "10.4.3"
-    fastpriorityqueue "0.7.1"
-    imurmurhash "0.1.4"
-    level-errors "2.0.1"
-    leveldown "5.6.0"
-    levelup "4.4.0"
-    lodash "4.17.21"
-    node-datachannel "0.4.0"
-    node-forge "1.3.1"
-    parse-json "5.2.0"
-    sqlite "4.0.23"
-    sqlite3 "5.1.6"
-    uuid "8.3.2"
-    ws "8.12.1"
-    yup "0.29.3"
-
 "@isaacs/string-locale-compare@^1.1.0":
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/@isaacs/string-locale-compare/-/string-locale-compare-1.1.0.tgz#291c227e93fd407a96ecd59879a35809120e432b"
