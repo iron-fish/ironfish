@@ -30,7 +30,7 @@ import { GetBlockHeadersRequest, GetBlockHeadersResponse } from './messages/getB
 import { GetBlocksRequest, GetBlocksResponse } from './messages/getBlocks'
 import {
   GetBlockTransactionsRequest,
-  GetBlockTransactionsResponse
+  GetBlockTransactionsResponse,
 } from './messages/getBlockTransactions'
 import { GetCompactBlockRequest, GetCompactBlockResponse } from './messages/getCompactBlock'
 import { displayNetworkMessageType, NetworkMessage } from './messages/networkMessage'
@@ -40,16 +40,18 @@ import { NewPooledTransactionHashes } from './messages/newPooledTransactionHashe
 import { NewTransactionsMessage } from './messages/newTransactions'
 import {
   PooledTransactionsRequest,
-  PooledTransactionsResponse
+  PooledTransactionsResponse,
 } from './messages/pooledTransactions'
 import {
-  Direction, RpcId,
-  RpcNetworkMessage, RPC_TIMEOUT_MILLIS
+  Direction,
+  RPC_TIMEOUT_MILLIS,
+  RpcId,
+  RpcNetworkMessage,
 } from './messages/rpcNetworkMessage'
 import {
   CannotSatisfyRequestError,
   NetworkError,
-  RequestTimeoutError
+  RequestTimeoutError,
 } from './peers/connections'
 import { LocalPeer } from './peers/localPeer'
 import { BAN_SCORE, KnownBlockHashesValue, Peer } from './peers/peer'
@@ -64,7 +66,7 @@ import {
   MAX_HEADER_LOOKUPS,
   MAX_REQUESTED_HEADERS,
   SOFT_MAX_MESSAGE_SIZE,
-  VERSION_PROTOCOL
+  VERSION_PROTOCOL,
 } from './version'
 import { WebSocketServer } from './webSocketServer'
 
