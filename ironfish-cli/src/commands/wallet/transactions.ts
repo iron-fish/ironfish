@@ -91,12 +91,16 @@ export class TransactionsCommand extends IronfishCommand {
         const assetLookup = await getAssetsByIDs(
           client,
           transaction.notes.map((n) => n.assetId) || [],
+          account,
+          flags.confirmations,
         )
         transactionRows = this.getTransactionRowsByNote(assetLookup, transaction, format)
       } else {
         const assetLookup = await getAssetsByIDs(
           client,
           transaction.assetBalanceDeltas.map((d) => d.assetId),
+          account,
+          flags.confirmations,
         )
         transactionRows = this.getTransactionRows(assetLookup, transaction, format)
       }
