@@ -156,3 +156,16 @@ export const parseIron = (input: string, opts: IronOpts): Promise<bigint> => {
     }
   })
 }
+
+export const HexFlag = Flags.custom<string>({
+  parse: async (input, _ctx, opts) => {
+    const hexRegex = /^[0-9A-Fa-f]+$/g
+    if (!hexRegex.test(input)) {
+      throw new Error(
+        `The value provided for ${opts.name} is an invalid format. It must be a hex string.`,
+      )
+    }
+
+    return Promise.resolve(input)
+  },
+})
