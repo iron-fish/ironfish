@@ -331,7 +331,7 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     // to parse logPrefix
     logPrefix: yup.string(),
     blockGraffiti: yup.string(),
-    nodeName: yup.string(),
+    nodeName: yup.string().max(32),
     nodeWorkers: yup.number().integer().min(-1),
     nodeWorkersMax: yup.number().integer().min(-1),
     peerPort: YupUtils.isPort,
