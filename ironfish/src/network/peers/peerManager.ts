@@ -24,7 +24,6 @@ import { SignalRequestMessage } from '../messages/signalRequest'
 import { IsomorphicWebSocket } from '../types'
 import { parseUrl } from '../utils'
 import { VERSION_PROTOCOL_MIN } from '../version'
-import { AddressManager } from './addressManager'
 import { ConnectionRetry } from './connectionRetry'
 import {
   Connection,
@@ -73,8 +72,6 @@ export class PeerManager {
 
   peerCandidates: PeerCandidates = new PeerCandidates()
 
-  addressManager: AddressManager
-
   /**
    * setInterval handle for requestPeerList, which sends out peer lists and
    * requests for peer lists
@@ -91,12 +88,6 @@ export class PeerManager {
    * no longer care about
    */
   private disposePeersHandle: SetIntervalToken | undefined
-
-  /**
-   * setInterval handle for peer address persistence, which saves connected
-   * peers to disk
-   */
-  private savePeerAddressesHandle: SetIntervalToken | undefined
 
   /**
    * Event fired when a new connection is successfully opened. Sends some identifying
@@ -157,7 +148,6 @@ export class PeerManager {
     this.maxPeers = maxPeers
     this.targetPeers = Math.min(targetPeers, maxPeers)
     this.logPeerMessages = logPeerMessages
-    this.addressManager = new AddressManager(hostsStore, this)
   }
 
   /**
@@ -784,18 +774,17 @@ export class PeerManager {
   start(): void {
     this.requestPeerListHandle = setInterval(() => this.requestPeerList(), 60000)
     this.disposePeersHandle = setInterval(() => this.disposePeers(), 2000)
-    this.savePeerAddressesHandle = setInterval(() => void this.addressManager.save(), 60000)
+    // RAHUL: Should save peer addresses here
   }
 
   /**
    * Call when shutting down the PeerManager to clean up
    * outstanding connections.
    */
-  async stop(): Promise<void> {
+  stop(): void {
     this.requestPeerListHandle && clearInterval(this.requestPeerListHandle)
     this.disposePeersHandle && clearInterval(this.disposePeersHandle)
-    this.savePeerAddressesHandle && clearInterval(this.savePeerAddressesHandle)
-    await this.addressManager.save()
+    // RAHUL: Should save peer addresses here
     for (const peer of this.peers) {
       this.disconnect(peer, DisconnectingReason.ShuttingDown, 0)
     }
@@ -807,30 +796,6 @@ export class PeerManager {
     for (const peer of this.getConnectedPeers()) {
       peer.send(peerListRequest)
     }
-  }
-
-  /**
-   * Gets a random disconnected peer address and returns a peer created from
-   * said address
-   */
-  createRandomDisconnectedPeer(): Peer | null {
-    const connectedPeers = Array.from(this.identifiedPeers.values()).flatMap((peer) => {
-      if (peer.state.type !== 'DISCONNECTED' && peer.state.identity !== null) {
-        return peer.state.identity
-      } else {
-        return []
-      }
-    })
-
-    const peerAddress = this.addressManager.getRandomDisconnectedPeerAddress(connectedPeers)
-    if (!peerAddress) {
-      return null
-    }
-
-    const peer = this.getOrCreatePeer(peerAddress.identity)
-    peer.setWebSocketAddress(peerAddress.address, peerAddress.port)
-    peer.name = peerAddress.name || null
-    return peer
   }
 
   private disposePeers(): void {
@@ -846,8 +811,6 @@ export class PeerManager {
    */
   tryDisposePeer(peer: Peer): boolean {
     if (peer.state.type === 'DISCONNECTED') {
-      this.addressManager.removePeerAddress(peer)
-
       peer.dispose()
       if (peer.state.identity && this.identifiedPeers.get(peer.state.identity) === peer) {
         this.identifiedPeers.delete(peer.state.identity)
