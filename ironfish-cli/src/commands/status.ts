@@ -75,9 +75,6 @@ export default class Status extends IronfishCommand {
           value = await this.sdk.client.node.getStatus()
         } catch (e) {
           value = null
-        }
-
-        if (value === null) {
           break
         }
 
