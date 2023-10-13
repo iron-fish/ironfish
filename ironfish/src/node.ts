@@ -100,7 +100,13 @@ export class FullNode {
     this.chain = chain
     this.strategy = strategy
     this.metrics = metrics
-    this.miningManager = new MiningManager({ chain, memPool, node: this, metrics })
+    this.miningManager = new MiningManager({
+      chain,
+      memPool,
+      node: this,
+      metrics,
+      preemptiveBlockMining: config.get('preemptiveBlockMining'),
+    })
     this.memPool = memPool
     this.workerPool = workerPool
     this.rpc = new RpcServer(this, internal)
