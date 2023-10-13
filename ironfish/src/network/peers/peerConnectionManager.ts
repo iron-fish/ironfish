@@ -89,7 +89,7 @@ export class PeerConnectionManager {
         break
       }
 
-      const peerCandidate = this.peerManager.peerCandidates.get(peerCandidateIdentity)
+      const peerCandidate = this.peerManager.identifiedPeers.get(peerCandidateIdentity)
 
       if (peerCandidate) {
         const peer = this.peerManager.getOrCreatePeer(peerCandidateIdentity)
