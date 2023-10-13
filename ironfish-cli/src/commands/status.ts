@@ -7,6 +7,7 @@ import {
   FileUtils,
   GetNodeStatusResponse,
   PromiseUtils,
+  RpcResponseEnded,
   TimeUtils,
 } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
@@ -69,9 +70,12 @@ export default class Status extends IronfishCommand {
 
       // eslint-disable-next-line no-constant-condition
       while (true) {
-        const value = await this.sdk.client.node.getStatus().catch((_) => {
-          return null
-        })
+        let value: RpcResponseEnded<GetNodeStatusResponse> | null = null
+        try {
+          value = await this.sdk.client.node.getStatus()
+        } catch (e) {
+          value = null
+        }
 
         if (value === null) {
           break
