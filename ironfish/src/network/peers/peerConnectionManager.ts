@@ -84,14 +84,17 @@ export class PeerConnectionManager {
 
     let connectAttempts = 0
 
-    for (const peerCandidateIdentity of this.peerManager.peerCandidates.shufflePeerCandidates()) {
+    for (const [
+      peerCandidateIdentity,
+      peerCandidate,
+    ] of this.peerManager.peerCandidates.shufflePeerCandidates()) {
       if (connectAttempts >= CONNECT_ATTEMPTS_MAX) {
         break
       }
 
-      const peerCandidate = this.peerManager.identifiedPeers.get(peerCandidateIdentity)
+      const identifiedPeer = this.peerManager.identifiedPeers.get(peerCandidateIdentity)
 
-      if (peerCandidate) {
+      if (identifiedPeer) {
         const peer = this.peerManager.getOrCreatePeer(peerCandidateIdentity)
         peer.name = peerCandidate.name ?? null
         peer.setWebSocketAddress(peerCandidate.address, peerCandidate.port)
