@@ -89,17 +89,16 @@ export class PeerConnectionManager {
         break
       }
 
-      if (!this.peerManager.identifiedPeers.has(peerCandidateIdentity)) {
-        const val = this.peerManager.peerCandidates.get(peerCandidateIdentity)
-        if (val) {
-          const peer = this.peerManager.getOrCreatePeer(peerCandidateIdentity)
-          peer.name = val.name ?? null
-          peer.setWebSocketAddress(val.address, val.port)
-          if (this.connectToEligiblePeers(peer)) {
-            connectAttempts++
-          } else {
-            this.peerManager.tryDisposePeer(peer)
-          }
+      const peerCandidate = this.peerManager.peerCandidates.get(peerCandidateIdentity)
+
+      if (peerCandidate) {
+        const peer = this.peerManager.getOrCreatePeer(peerCandidateIdentity)
+        peer.name = peerCandidate.name ?? null
+        peer.setWebSocketAddress(peerCandidate.address, peerCandidate.port)
+        if (this.connectToEligiblePeers(peer)) {
+          connectAttempts++
+        } else {
+          this.peerManager.tryDisposePeer(peer)
         }
       }
     }
