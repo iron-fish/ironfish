@@ -7,7 +7,6 @@ import {
   FileUtils,
   GetNodeStatusResponse,
   PromiseUtils,
-  RpcResponseEnded,
   TimeUtils,
 } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
@@ -70,18 +69,15 @@ export default class Status extends IronfishCommand {
 
       // eslint-disable-next-line no-constant-condition
       while (true) {
-        let value: RpcResponseEnded<GetNodeStatusResponse> | null = null
         try {
-          value = await this.sdk.client.node.getStatus()
+          previousResponse = (await this.sdk.client.node.getStatus()).content
         } catch (e) {
-          value = null
           break
         }
 
         statusText.clearBaseLine(0)
-        statusText.setContent(renderStatus(value.content, flags.all))
+        statusText.setContent(renderStatus(previousResponse, flags.all))
         screen.render()
-        previousResponse = value.content
         await PromiseUtils.sleep(1000)
       }
     }
