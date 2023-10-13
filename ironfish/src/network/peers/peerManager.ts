@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import type { SignalData } from './connections/webRtcConnection'
 import { Event } from '../../event'
 import { HostsStore } from '../../fileStores/hosts'
 import { createRootLogger, Logger } from '../../logger'
@@ -11,7 +12,7 @@ import {
   canInitiateWebRTC,
   canKeepDuplicateConnection,
   Identity,
-  isIdentity
+  isIdentity,
 } from '../identity'
 import { DisconnectingMessage, DisconnectingReason } from '../messages/disconnecting'
 import { IdentifyMessage } from '../messages/identify'
@@ -31,9 +32,8 @@ import {
   ConnectionType,
   NetworkError,
   WebRtcConnection,
-  WebSocketConnection
+  WebSocketConnection,
 } from './connections'
-import type { SignalData } from './connections/webRtcConnection'
 import { LocalPeer } from './localPeer'
 import { Peer } from './peer'
 import { PeerCandidates } from './peerCandidates'
