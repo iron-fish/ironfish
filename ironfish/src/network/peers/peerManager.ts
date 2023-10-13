@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import type { SignalData } from './connections/webRtcConnection'
 import { Event } from '../../event'
 import { HostsStore } from '../../fileStores/hosts'
 import { createRootLogger, Logger } from '../../logger'
@@ -12,7 +11,7 @@ import {
   canInitiateWebRTC,
   canKeepDuplicateConnection,
   Identity,
-  isIdentity,
+  isIdentity
 } from '../identity'
 import { DisconnectingMessage, DisconnectingReason } from '../messages/disconnecting'
 import { IdentifyMessage } from '../messages/identify'
@@ -32,8 +31,9 @@ import {
   ConnectionType,
   NetworkError,
   WebRtcConnection,
-  WebSocketConnection,
+  WebSocketConnection
 } from './connections'
+import type { SignalData } from './connections/webRtcConnection'
 import { LocalPeer } from './localPeer'
 import { Peer } from './peer'
 import { PeerCandidates } from './peerCandidates'
@@ -705,11 +705,8 @@ export class PeerManager {
    */
   getOrCreatePeer(identity: Identity | null): Peer {
     // If we already have a Peer with this identity, return it
-    if (identity !== null) {
-      const identifiedPeer = this.identifiedPeers.get(identity)
-      if (identifiedPeer) {
-        return identifiedPeer
-      }
+    if (identity !== null && this.identifiedPeers.has(identity)) {
+      return this.identifiedPeers.get(identity) as Peer
     }
 
     // Create the new peer
