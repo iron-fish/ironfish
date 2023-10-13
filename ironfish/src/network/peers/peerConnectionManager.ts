@@ -92,9 +92,7 @@ export class PeerConnectionManager {
         break
       }
 
-      const identifiedPeer = this.peerManager.identifiedPeers.get(peerCandidateIdentity)
-
-      if (identifiedPeer) {
+      if (!this.peerManager.identifiedPeers.get(peerCandidateIdentity)) {
         const peer = this.peerManager.getOrCreatePeer(peerCandidateIdentity)
         peer.name = peerCandidate.name ?? null
         peer.setWebSocketAddress(peerCandidate.address, peerCandidate.port)
