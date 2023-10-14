@@ -774,7 +774,6 @@ export class PeerManager {
   start(): void {
     this.requestPeerListHandle = setInterval(() => this.requestPeerList(), 60000)
     this.disposePeersHandle = setInterval(() => this.disposePeers(), 2000)
-    // RAHUL: Should save peer addresses here
   }
 
   /**
@@ -784,7 +783,6 @@ export class PeerManager {
   stop(): void {
     this.requestPeerListHandle && clearInterval(this.requestPeerListHandle)
     this.disposePeersHandle && clearInterval(this.disposePeersHandle)
-    // RAHUL: Should save peer addresses here
     for (const peer of this.peers) {
       this.disconnect(peer, DisconnectingReason.ShuttingDown, 0)
     }
