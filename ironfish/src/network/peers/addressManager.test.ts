@@ -118,9 +118,8 @@ describe('AddressManager', () => {
       }
 
       await addressManager.save()
-      expect(addressManager.priorConnectedPeerAddresses.length).toEqual(1)
       expect(addressManager.priorConnectedPeerAddresses).toContainEqual(address)
-      expect(addressManager.priorConnectedPeerAddresses).toContainEqual(address2)
+      expect(addressManager.priorConnectedPeerAddresses).not.toContainEqual(address2)
     })
   })
 })
