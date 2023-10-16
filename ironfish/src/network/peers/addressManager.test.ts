@@ -7,8 +7,11 @@ import {
   getConnectedPeer,
   getConnectingPeer,
   getDisconnectedPeer,
+  getSignalingWebRtcPeer,
   mockHostsStore,
+  mockIdentity,
   mockLocalPeer,
+  webRtcCanInitiateIdentity,
 } from '../testUtilities'
 import { AddressManager } from './addressManager'
 import { Peer } from './peer'
@@ -90,11 +93,15 @@ describe('AddressManager', () => {
   })
 
   describe('save', () => {
-    it('save should persist connected peers', async () => {
+    it('save should persist connected peers via websocket', async () => {
       const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
       const addressManager = new AddressManager(mockHostsStore(), pm)
       addressManager.hostsStore = mockHostsStore()
       const { peer: connectedPeer } = getConnectedPeer(pm)
+      const brokerIdentity = mockIdentity('brokering')
+      const peerIdentity = webRtcCanInitiateIdentity()
+      const { peer: signalingPeer } = getSignalingWebRtcPeer(pm, brokerIdentity, peerIdentity)
+
       getConnectingPeer(pm)
       getDisconnectedPeer(pm)
       const address: PeerAddress = {
@@ -103,9 +110,17 @@ describe('AddressManager', () => {
         identity: connectedPeer.state.identity,
         name: connectedPeer.name,
       }
+      const address2: PeerAddress = {
+        address: signalingPeer.address,
+        port: signalingPeer.port,
+        identity: signalingPeer.state.identity,
+        name: signalingPeer.name,
+      }
 
       await addressManager.save()
+      expect(addressManager.priorConnectedPeerAddresses.length).toEqual(1)
       expect(addressManager.priorConnectedPeerAddresses).toContainEqual(address)
+      expect(addressManager.priorConnectedPeerAddresses).toContainEqual(address2)
     })
   })
 })
