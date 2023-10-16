@@ -910,6 +910,7 @@ export class Wallet {
         name: asset.name.toString('utf8'),
         metadata: asset.metadata.toString('utf8'),
         value: options.value,
+        transferOwnershipTo: options.transferOwnershipTo,
       }
     } else {
       mintData = {
@@ -917,6 +918,7 @@ export class Wallet {
         name: options.name,
         metadata: options.metadata,
         value: options.value,
+        transferOwnershipTo: options.transferOwnershipTo,
       }
     }
 
