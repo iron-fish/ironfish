@@ -6,6 +6,7 @@ import { Flags } from '@oclif/core'
 import { isAddress } from 'web3-validator'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
+import { Asset } from '@ironfish/rust-nodejs'
 
 export default class BridgeRelay extends IronfishCommand {
   static hidden = true
@@ -154,6 +155,7 @@ export default class BridgeRelay extends IronfishCommand {
     Assert.isNotUndefined(response)
 
     const sends = []
+    const burns = []
     const confirms = []
 
     const transactions = response.transactions
@@ -190,9 +192,9 @@ export default class BridgeRelay extends IronfishCommand {
           }
 
           this.log(
-            `Received deposit for ETH address ${ethAddress} in transaction ${transaction.hash}`,
+            `Received transaction for ETH address ${ethAddress} and asset ${note.assetId} in transaction ${transaction.hash}`,
           )
-          sends.push({
+          const bridgeRequest = {
             amount: note.value,
             asset: note.assetId,
             source_address: note.sender,
@@ -200,7 +202,13 @@ export default class BridgeRelay extends IronfishCommand {
             source_transaction: transaction.hash,
             destination_address: ethAddress,
             destination_chain: 'ETHEREUM',
-          })
+          }
+
+          if (note.assetId === Asset.nativeId().toString('hex')) {
+            sends.push(bridgeRequest)
+          } else {
+            burns.push(bridgeRequest)
+          }
         }
       }
     }
@@ -211,6 +219,10 @@ export default class BridgeRelay extends IronfishCommand {
 
     if (sends.length > 0) {
       await api.sendBridgeDeposits(sends)
+    }
+
+    if (burns.length > 0) {
+      await api.bridgeBurn(burns)
     }
 
     await api.setBridgeHead(response.block.hash)
