@@ -1,11 +1,16 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { ASSET_METADATA_LENGTH, ASSET_NAME_LENGTH } from '@ironfish/rust-nodejs'
+import {
+  ASSET_METADATA_LENGTH,
+  ASSET_NAME_LENGTH,
+  isValidPublicAddress,
+} from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { CurrencyUtils, YupUtils } from '../../../utils'
 import { MintAssetOptions } from '../../../wallet/interfaces/mintAssetOptions'
+import { ValidationError } from '../../adapters'
 import { RpcAsset, RpcAssetSchema, RpcMint, RpcMintSchema } from '../../types'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
@@ -23,6 +28,7 @@ export interface MintAssetRequest {
   confirmations?: number
   metadata?: string
   name?: string
+  transferOwnershipTo?: string
 }
 
 export const MintAssetRequestSchema: yup.ObjectSchema<MintAssetRequest> = yup
@@ -36,6 +42,7 @@ export const MintAssetRequestSchema: yup.ObjectSchema<MintAssetRequest> = yup
     confirmations: yup.number().optional(),
     metadata: yup.string().optional().max(ASSET_METADATA_LENGTH),
     name: yup.string().optional().max(ASSET_NAME_LENGTH),
+    transferOwnershipTo: yup.string().optional(),
   })
   .defined()
 
@@ -77,6 +84,13 @@ routes.register<typeof MintAssetRequestSchema, MintAssetResponse>(
     const expirationDelta =
       request.data.expirationDelta ?? node.config.get('transactionExpirationDelta')
 
+    if (
+      request.data.transferOwnershipTo &&
+      !isValidPublicAddress(request.data.transferOwnershipTo)
+    ) {
+      throw new ValidationError('transferOwnershipTo must be a valid public address')
+    }
+
     let options: MintAssetOptions
     if (request.data.assetId) {
       options = {
@@ -87,6 +101,7 @@ routes.register<typeof MintAssetRequestSchema, MintAssetResponse>(
         expirationDelta,
         value,
         confirmations: request.data.confirmations,
+        transferOwnershipTo: request.data.transferOwnershipTo,
       }
     } else {
       Assert.isNotUndefined(request.data.name, 'Must provide name or identifier to mint')
@@ -102,6 +117,7 @@ routes.register<typeof MintAssetRequestSchema, MintAssetResponse>(
         expirationDelta,
         value,
         confirmations: request.data.confirmations,
+        transferOwnershipTo: request.data.transferOwnershipTo,
       }
     }
 
