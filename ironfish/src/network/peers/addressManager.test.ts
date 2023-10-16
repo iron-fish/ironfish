@@ -7,7 +7,6 @@ import {
   getConnectedPeer,
   getConnectingPeer,
   getDisconnectedPeer,
-  getInboundConnectedPeer,
   getSignalingWebRtcPeer,
   mockHostsStore,
   mockIdentity,
@@ -15,6 +14,7 @@ import {
   webRtcCanInitiateIdentity,
 } from '../testUtilities'
 import { AddressManager } from './addressManager'
+import { ConnectionDirection } from './connections'
 import { Peer } from './peer'
 import { PeerAddress } from './peerAddress'
 import { PeerManager } from './peerManager'
@@ -125,7 +125,11 @@ describe('AddressManager', () => {
       expect(addressManager.priorConnectedPeerAddresses).not.toContainEqual(address2)
 
       // inboundWebSocketPeer
-      const { peer: inboundWebSocketPeer } = getInboundConnectedPeer(pm)
+      const { peer: inboundWebSocketPeer } = getConnectedPeer(
+        pm,
+        undefined,
+        ConnectionDirection.Inbound,
+      )
       const address3: PeerAddress = {
         address: inboundWebSocketPeer.address,
         port: inboundWebSocketPeer.port,
