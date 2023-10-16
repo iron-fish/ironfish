@@ -135,7 +135,7 @@ export default class Release extends IronfishCommand {
       return
     }
 
-    const unprocessedReleaseRequests = await api.getBridgeNextWIronRequests(
+    const unprocessedReleaseRequests = await api.getBridgeNextReleaseRequests(
       MAX_RECIPIENTS_PER_TRANSACTION,
     )
 
@@ -216,6 +216,6 @@ export default class Release extends IronfishCommand {
       })
     }
 
-    await api.updateWIronRequests(updatePayload)
+    await api.updateBridgeRequests(updatePayload)
   }
 }

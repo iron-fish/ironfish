@@ -206,7 +206,7 @@ export default class BridgeRelay extends IronfishCommand {
     }
 
     if (confirms.length > 0) {
-      await api.updateWIronRequests(confirms)
+      await api.updateBridgeRequests(confirms)
     }
 
     if (sends.length > 0) {
