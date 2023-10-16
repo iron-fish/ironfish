@@ -4,6 +4,7 @@
 import { HostsStore } from '../../fileStores'
 import { ArrayUtils } from '../../utils'
 import { Peer } from '../peers/peer'
+import { ConnectionDirection } from './connections'
 import { PeerAddress } from './peerAddress'
 import { PeerManager } from './peerManager'
 
@@ -77,7 +78,11 @@ export class AddressManager {
     // successfully established an outbound Websocket connection at
     // least once.
     const inUsePeerAddresses: PeerAddress[] = this.peerManager.peers.flatMap((peer) => {
-      if (peer.state.type === 'CONNECTED') {
+      if (
+        peer.state.type === 'CONNECTED' &&
+        peer.state.connections.webSocket &&
+        peer.state.connections.webSocket.direction === ConnectionDirection.Outbound
+      ) {
         return {
           address: peer.address,
           port: peer.port,
