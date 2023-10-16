@@ -7,6 +7,7 @@ import {
   getConnectedPeer,
   getConnectingPeer,
   getDisconnectedPeer,
+  getInboundConnectedPeer,
   getSignalingWebRtcPeer,
   mockHostsStore,
   mockIdentity,
@@ -93,23 +94,26 @@ describe('AddressManager', () => {
   })
 
   describe('save', () => {
-    it('save should persist connected peers via websocket', async () => {
+    it('save should persist connected peers via outbound websocket', async () => {
       const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
       const addressManager = new AddressManager(mockHostsStore(), pm)
-      addressManager.hostsStore = mockHostsStore()
-      const { peer: connectedPeer } = getConnectedPeer(pm)
-      const brokerIdentity = mockIdentity('brokering')
-      const peerIdentity = webRtcCanInitiateIdentity()
-      const { peer: signalingPeer } = getSignalingWebRtcPeer(pm, brokerIdentity, peerIdentity)
 
-      getConnectingPeer(pm)
-      getDisconnectedPeer(pm)
+      // outbound websocker peer
+      const { peer: connectedPeer } = getConnectedPeer(pm)
       const address: PeerAddress = {
         address: connectedPeer.address,
         port: connectedPeer.port,
         identity: connectedPeer.state.identity,
         name: connectedPeer.name,
       }
+      await addressManager.save()
+      expect(addressManager.priorConnectedPeerAddresses).toContainEqual(address)
+
+      // webRTC peer
+      const brokerIdentity = mockIdentity('brokering')
+      const peerIdentity = webRtcCanInitiateIdentity()
+      const { peer: signalingPeer } = getSignalingWebRtcPeer(pm, brokerIdentity, peerIdentity)
+
       const address2: PeerAddress = {
         address: signalingPeer.address,
         port: signalingPeer.port,
@@ -118,8 +122,21 @@ describe('AddressManager', () => {
       }
 
       await addressManager.save()
+      expect(addressManager.priorConnectedPeerAddresses).not.toContainEqual(address2)
+
+      // inboundWebSocketPeer
+      const { peer: inboundWebSocketPeer } = getInboundConnectedPeer(pm)
+      const address3: PeerAddress = {
+        address: inboundWebSocketPeer.address,
+        port: inboundWebSocketPeer.port,
+        identity: inboundWebSocketPeer.state.identity,
+        name: inboundWebSocketPeer.name,
+      }
+
+      await addressManager.save()
       expect(addressManager.priorConnectedPeerAddresses).toContainEqual(address)
       expect(addressManager.priorConnectedPeerAddresses).not.toContainEqual(address2)
+      expect(addressManager.priorConnectedPeerAddresses).not.toContainEqual(address3)
     })
   })
 })

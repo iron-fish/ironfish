@@ -101,6 +101,27 @@ export const getConnectedPeersWithSpies = (
   })
 }
 
+export function getInboundConnectedPeer(
+  pm: PeerManager,
+  identity?: string | Identity,
+): { peer: Peer; connection: WebSocketConnection } {
+  const { peer, connection } = getConnectingPeer(pm, ConnectionDirection.Inbound)
+
+  if (!identity) {
+    identity = jest.requireActual<typeof import('uuid')>('uuid').v4()
+  }
+
+  if (!isIdentity(identity)) {
+    identity = mockIdentity(identity)
+  }
+
+  connection.setState({ type: 'CONNECTED', identity })
+
+  peer.features = defaultFeatures()
+
+  return { peer, connection: connection }
+}
+
 export function getConnectedPeer(
   pm: PeerManager,
   identity?: string | Identity,
