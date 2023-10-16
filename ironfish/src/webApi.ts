@@ -232,11 +232,11 @@ export class WebApi {
     await axios.post(`${this.host}/bridge/send`, { sends }, this.options())
   }
 
-  async getBridgeNextWIronRequests(count?: number): Promise<Array<BridgeRequest>> {
+  async getBridgeNextReleaseRequests(count?: number): Promise<Array<BridgeRequest>> {
     this.requireToken()
 
     const response = await axios.get<{ data: Array<BridgeRequest> }>(
-      `${this.host}/bridge/next_wiron_requests/`,
+      `${this.host}/bridge/next_release_requests/`,
       {
         ...this.options(),
         params: { count },
@@ -246,13 +246,13 @@ export class WebApi {
     return response.data.data
   }
 
-  async updateWIronRequests(
+  async updateBridgeRequests(
     payload: Array<{ id: number; destination_transaction: string; status: string }>,
   ): Promise<{ [keyof: string]: { status: string } }> {
     this.requireToken()
 
     const response = await axios.post<{ [keyof: number]: { status: string } }>(
-      `${this.host}/bridge/update_wiron_requests/`,
+      `${this.host}/bridge/update_requests/`,
       { transactions: payload },
       this.options(),
     )
