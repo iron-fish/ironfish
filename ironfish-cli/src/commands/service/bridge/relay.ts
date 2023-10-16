@@ -1,12 +1,12 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Asset } from '@ironfish/rust-nodejs'
 import { Assert, GetTransactionStreamResponse, Meter, TimeUtils, WebApi } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { isAddress } from 'web3-validator'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
-import { Asset } from '@ironfish/rust-nodejs'
 
 export default class BridgeRelay extends IronfishCommand {
   static hidden = true
