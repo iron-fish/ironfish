@@ -97,6 +97,7 @@ export class AddressManager {
       ...addInfo,
     })
 
+    this.hostsStore.set('priorPeers', this.priorPeersFromDisk)
     await this.hostsStore.save()
   }
 
