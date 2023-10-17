@@ -126,7 +126,6 @@ export class PeerConnectionManager {
 
       if (this.peerManager.canConnectToWebSocket(peer)) {
         if (this.peerManager.connectToWebSocket(peer)) {
-          void this.peerManager.addressManager.addPeer(peer)
           return true
         }
       }
@@ -148,6 +147,7 @@ export class PeerConnectionManager {
       this.logger.debug(
         `Upgraded ${peer.displayName} to WebRTC, closing the WebSocket connection`,
       )
+
       peer.state.connections.webSocket.close()
     }
   }

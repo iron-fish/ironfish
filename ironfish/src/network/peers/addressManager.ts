@@ -14,13 +14,13 @@ import { PeerManager } from './peerManager'
 export class AddressManager {
   hostsStore: HostsStore
   peerManager: PeerManager
-  priorPeersFromDisk: PeerAddress[] = []
+  priorPeersFromDisk: any[] = []
 
   constructor(hostsStore: HostsStore, peerManager: PeerManager) {
     this.hostsStore = hostsStore
     this.peerManager = peerManager
     // load prior peers from disk
-    this.priorPeersFromDisk = this.hostsStore.getArray('priorPeers')
+    this.priorPeersFromDisk = this.hostsStore.getArray('priorPeers') || []
   }
 
   get priorConnectedPeerAddresses(): ReadonlyArray<Readonly<PeerAddress>> {
@@ -77,16 +77,8 @@ export class AddressManager {
       return
     }
 
-    const addInfo = { webSocket: {}, webRtc: {} }
-    if (peer.state.connections.webSocket) {
-      addInfo.webSocket = {
-        direction: peer.state.connections.webSocket.direction,
-      }
-    }
-    if (peer.state.connections.webRtc) {
-      addInfo.webRtc = {
-        direction: peer.state.connections.webRtc.direction,
-      }
+    if (!peer.state.connections.webSocket) {
+      return
     }
 
     this.priorPeersFromDisk.push({
@@ -94,7 +86,7 @@ export class AddressManager {
       port: peer.port,
       identity: peer.state.identity ?? null,
       name: peer.name ?? null,
-      ...addInfo,
+      direction: peer.state.connections.webSocket.direction,
     })
 
     this.hostsStore.set('priorPeers', this.priorPeersFromDisk)
