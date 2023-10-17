@@ -14,10 +14,13 @@ import { PeerManager } from './peerManager'
 export class AddressManager {
   hostsStore: HostsStore
   peerManager: PeerManager
+  priorPeersFromDisk: PeerAddress[] = []
 
   constructor(hostsStore: HostsStore, peerManager: PeerManager) {
     this.hostsStore = hostsStore
     this.peerManager = peerManager
+    // load prior peers from disk
+    this.priorPeersFromDisk = this.hostsStore.getArray('priorPeers')
   }
 
   get priorConnectedPeerAddresses(): ReadonlyArray<Readonly<PeerAddress>> {
@@ -98,7 +101,26 @@ export class AddressManager {
         return []
       }
     })
-    this.hostsStore.set('priorPeers', inUsePeerAddresses)
+    // append inUsePeerAddresses to priorPeersFromDisk
+    // identity field is the ID
+
+    const allPeers: PeerAddress[] = inUsePeerAddresses.concat(this.priorPeersFromDisk)
+
+    // remove duplicates
+    const uniquePeerIdentities = new Set<string>()
+    const uniquePeers = allPeers.filter((peer) => {
+      if (peer.identity === null) {
+        return false
+      }
+      if (uniquePeerIdentities.has(peer.identity)) {
+        return false
+      } else {
+        uniquePeerIdentities.add(peer.identity)
+        return true
+      }
+    })
+
+    this.hostsStore.set('priorPeers', uniquePeers)
     await this.hostsStore.save()
   }
 }
