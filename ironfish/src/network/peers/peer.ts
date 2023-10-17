@@ -412,6 +412,10 @@ export class Peer {
     return this.state.identity
   }
 
+  getIdentity(): Identity | null {
+    return this.state.identity
+  }
+
   /**
    * Get the peers connectable websocket address
    */

@@ -386,7 +386,7 @@ describe('BlockFetcher', () => {
       await chain.addBlock(block)
     }
 
-    const syncSpy = jest.spyOn(node.syncer, 'startSync')
+    const syncSpy = jest.spyOn(node.syncer, 'startSyncIfIdle')
 
     const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 4)
 

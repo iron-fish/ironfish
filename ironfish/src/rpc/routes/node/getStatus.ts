@@ -4,6 +4,7 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { FullNode } from '../../../node'
+import { SyncerState } from '../../../syncer'
 import { MathUtils, PromiseUtils } from '../../../utils'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
@@ -65,7 +66,7 @@ export type GetNodeStatusResponse = {
     dbSizeBytes: number
   }
   blockSyncer: {
-    status: 'stopped' | 'idle' | 'stopping' | 'syncing'
+    status: SyncerState
     syncing?: {
       blockSpeed: number
       speed: number

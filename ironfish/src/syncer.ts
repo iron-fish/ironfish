@@ -8,21 +8,24 @@ import { VerificationResultReason } from './consensus'
 import { createRootLogger, Logger } from './logger'
 import { Meter, MetricsMonitor } from './metrics'
 import { RollingAverage } from './metrics/rollingAverage'
-import { Peer, PeerNetwork } from './network'
+import { Identity, Peer, PeerNetwork } from './network'
 import { BAN_SCORE, PeerState } from './network/peers/peer'
 import { Block, GENESIS_BLOCK_SEQUENCE } from './primitives/block'
 import { BlockHeader } from './primitives/blockheader'
 import { Telemetry } from './telemetry'
-import { ErrorUtils, HashUtils, MathUtils, SetTimeoutToken } from './utils'
+import { BenchUtils, ErrorUtils, HashUtils, MathUtils, SetTimeoutToken } from './utils'
 import { ArrayUtils } from './utils/array'
 
 const SYNCER_TICK_MS = 10 * 1000
 const LINEAR_ANCESTOR_SEARCH = 3
 const REQUEST_BLOCKS_PER_MESSAGE = 20
+const MAX_MEASUREMENT_DELTA = 60 * 60 * 1000
 
 class AbortSyncingError extends Error {
   name = this.constructor.name
 }
+
+export type SyncerState = 'stopped' | 'idle' | 'stopping' | 'syncing' | 'measuring'
 
 export class Syncer {
   readonly peerNetwork: PeerNetwork
@@ -33,11 +36,14 @@ export class Syncer {
   readonly speed: Meter
   readonly downloadSpeed: RollingAverage
 
-  state: 'stopped' | 'idle' | 'stopping' | 'syncing'
+  state: SyncerState
   stopping: Promise<void> | null
   eventLoopTimeout: SetTimeoutToken | null
   loader: Peer | null = null
   blocksPerMessage: number
+  nextMeasureTime = 0
+  numberOfMeasurements = 0
+  lastLoaderIdentity: Identity | null = null
 
   constructor(options: {
     peerNetwork: PeerNetwork
@@ -71,8 +77,7 @@ export class Syncer {
     }
     this.state = 'idle'
 
-    this.eventLoop()
-    await Promise.resolve()
+    await this.eventLoop()
   }
 
   async stop(): Promise<void> {
@@ -99,21 +104,55 @@ export class Syncer {
     this.state = 'stopped'
   }
 
-  eventLoop(): void {
+  async eventLoop(): Promise<void> {
     if (this.state === 'stopped' || this.state === 'stopping') {
       return
     }
 
-    if (this.state === 'idle') {
-      this.findPeer()
+    const now = new Date().getTime()
+
+    switch (this.state) {
+      case 'idle': {
+        await this.findPeer(null)
+        this.nextMeasureTime = now + this.getNextMeasurementDelta()
+        break
+      }
+
+      case 'measuring': {
+        await this.findPeer(this.lastLoaderIdentity)
+        this.nextMeasureTime = now + this.getNextMeasurementDelta()
+        this.numberOfMeasurements += 1
+        break
+      }
+
+      case 'syncing': {
+        if (this.nextMeasureTime >= now) {
+          break
+        }
+
+        this.logger.info('Checking for a potentially better peer to sync from')
+
+        // If it is time to enter the measuring state, we stop syncing and set
+        // the state to measuring. This gives the syncer time to finish any
+        // in-flight requests
+        this.state = 'measuring'
+        if (this.loader) {
+          this.lastLoaderIdentity = this.loader.getIdentity()
+          await this.wait()
+        }
+        break
+      }
     }
 
-    this.eventLoopTimeout = setTimeout(() => this.eventLoop(), SYNCER_TICK_MS)
+    this.eventLoopTimeout = setTimeout(() => void this.eventLoop(), SYNCER_TICK_MS)
   }
 
-  findPeer(): void {
+  /**
+   * Chooses a peer to sync from based on measuring the connection of a random
+   * sampling of connected peers and begins syncing
+   */
+  async findPeer(currentPeerIdentity: Identity | null): Promise<void> {
     const head = this.chain.head
-
     if (!head) {
       return
     }
@@ -123,16 +162,90 @@ export class Syncer {
       .getConnectedPeers()
       .filter((peer) => peer.features?.syncing && peer.work && peer.work > head.work)
 
-    // Get a random peer with higher work. We do this to encourage
-    // peer diversity so the highest work peer isn't overwhelmed
-    // as well as helping to make sure we don't get stuck with unstable peers
-    if (peers.length > 0) {
-      const peer = ArrayUtils.sampleOrThrow(peers)
+    if (peers.length === 0) {
+      return
+    }
+
+    // If there is only one valid peer to sync from, there is no point in
+    // measuring the connection so begin syncing immediately
+    if (peers.length === 1) {
+      this.startSync(peers[0])
+      return
+    }
+
+    const syncCandidates = ArrayUtils.shuffle(peers).slice(0, 8)
+
+    // If we have been syncing from a peer, we want to include this peer in the
+    // measurement. This will allow us to maintain a connection to a strong peer
+    // if we have found one.
+    if (
+      currentPeerIdentity &&
+      !syncCandidates.find((p) => p.getIdentity() === currentPeerIdentity)
+    ) {
+      const currentPeer = this.peerNetwork.peerManager.getPeer(currentPeerIdentity)
+      if (currentPeer && currentPeer.state.type === 'CONNECTED') {
+        syncCandidates.push(currentPeer)
+      }
+    }
+
+    const peerRtt = new Map<Identity, number>()
+
+    // Measure how long it takes to fetch the genesis block header from each
+    // peer as an estimate of connection quality
+    for (const peer of syncCandidates) {
+      if (this.state === 'stopped' || this.state === 'stopping') {
+        return
+      }
+
+      const peerIdentity = peer.getIdentity()
+      if (peerIdentity == null) {
+        continue
+      }
+
+      const start = BenchUtils.start()
+      try {
+        const response = await this.peerNetwork.getBlockHeaders(peer, 1, 1)
+        if (response.headers.length !== 1) {
+          this.logger.warn(`Peer ${peer.displayName} sent the wrong number of block headers`)
+          peer.punish(BAN_SCORE.MAX, 'invalid response')
+          continue
+        }
+        if (!response.headers[0].hash.equals(this.chain.genesis.hash)) {
+          this.logger.warn(`Peer ${peer.displayName} sent the wrong block header`)
+          peer.punish(BAN_SCORE.MAX, 'invalid response')
+          continue
+        }
+      } catch (e) {
+        this.logger.debug(
+          `Error while trying to measure peer '${
+            peer.displayName
+          }', skipping this peer: ${ErrorUtils.renderError(e)}`,
+        )
+        continue
+      }
+      const rtt = BenchUtils.end(start)
+      peerRtt.set(peerIdentity, rtt)
+    }
+
+    // Sort the peers by the round-trip-time of the block header request and get
+    // the fastest one to sync from
+    const fastestCandidateIdentity = [...peerRtt.entries()].sort((a, b) => a[1] - b[1])[0][0]
+    if (!fastestCandidateIdentity) {
+      return
+    }
+    const peer = this.peerNetwork.peerManager.getPeer(fastestCandidateIdentity)
+    if (peer) {
       this.startSync(peer)
     }
   }
 
-  startSync(peer: Peer): void {
+  startSyncIfIdle(peer: Peer): void {
+    if (this.state === 'idle') {
+      this.startSync(peer)
+    }
+  }
+
+  protected startSync(peer: Peer): void {
     if (this.loader) {
       return
     }
@@ -287,7 +400,7 @@ export class Syncer {
       }
     }
 
-    // Then we try a binary search to fine the forking point between us and peer
+    // Then we try a binary search to find the forking point between us and peer
     let ancestorHash: Buffer | null = null
     let ancestorSequence: number | null = null
     let lower = Number(GENESIS_BLOCK_SEQUENCE)
@@ -516,11 +629,23 @@ export class Syncer {
   }
 
   /**
+   * Returns the amount of time to wait until the next sync candidate
+   * measurement in milliseconds
+   */
+  protected getNextMeasurementDelta(): number {
+    const delta = Math.min(
+      MAX_MEASUREMENT_DELTA,
+      60 * 1000 * 2 ** (this.numberOfMeasurements + 1),
+    )
+    return delta
+  }
+
+  /**
    * Throws AbortSyncingError which safely stops the syncing
    * with a peer if we should no longer sync from this peer
    */
   protected abort(peer: Peer): void {
-    if (this.loader !== peer) {
+    if (this.loader !== peer || this.state !== 'syncing') {
       throw new AbortSyncingError('abort syncing')
     }
   }
