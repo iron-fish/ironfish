@@ -72,6 +72,34 @@ export class AddressManager {
     this.hostsStore.set('priorPeers', filteredPriorConnected)
   }
 
+  async addPeer(peer: Peer): Promise<void> {
+    if (peer.state.type !== 'CONNECTED') {
+      return
+    }
+
+    const addInfo = { webSocket: {}, webRtc: {} }
+    if (peer.state.connections.webSocket) {
+      addInfo.webSocket = {
+        direction: peer.state.connections.webSocket.direction,
+      }
+    }
+    if (peer.state.connections.webRtc) {
+      addInfo.webRtc = {
+        direction: peer.state.connections.webRtc.direction,
+      }
+    }
+
+    this.priorPeersFromDisk.push({
+      address: peer.address,
+      port: peer.port,
+      identity: peer.state.identity ?? null,
+      name: peer.name ?? null,
+      ...addInfo,
+    })
+
+    await this.hostsStore.save()
+  }
+
   /**
    * Persist connected peers via outbound websocket connections to disk
    */
@@ -120,7 +148,6 @@ export class AddressManager {
       }
     })
 
-    this.hostsStore.set('priorPeers', uniquePeers)
-    await this.hostsStore.save()
+    await Promise.all([this.hostsStore.set('priorPeers', uniquePeers)])
   }
 }

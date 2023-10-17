@@ -126,6 +126,7 @@ export class PeerConnectionManager {
 
       if (this.peerManager.canConnectToWebSocket(peer)) {
         if (this.peerManager.connectToWebSocket(peer)) {
+          void this.peerManager.addressManager.addPeer(peer)
           return true
         }
       }
