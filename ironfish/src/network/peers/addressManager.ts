@@ -4,7 +4,6 @@
 import { HostsStore } from '../../fileStores'
 import { ArrayUtils } from '../../utils'
 import { Peer } from '../peers/peer'
-import { ConnectionDirection } from './connections'
 import { PeerAddress } from './peerAddress'
 import { PeerManager } from './peerManager'
 
@@ -75,16 +74,25 @@ export class AddressManager {
    */
   async save(): Promise<void> {
     const inUsePeerAddresses: PeerAddress[] = this.peerManager.peers.flatMap((peer) => {
-      if (
-        peer.state.type === 'CONNECTED' &&
-        peer.state.connections.webSocket &&
-        peer.state.connections.webSocket.direction === ConnectionDirection.Outbound
-      ) {
+      if (peer.state.type === 'CONNECTED') {
+        const addInfo = { webSocket: {}, webRtc: {} }
+        if (peer.state.connections.webSocket) {
+          addInfo.webSocket = {
+            direction: peer.state.connections.webSocket.direction,
+          }
+        }
+        if (peer.state.connections.webRtc) {
+          addInfo.webRtc = {
+            direction: peer.state.connections.webRtc.direction,
+          }
+        }
+
         return {
           address: peer.address,
           port: peer.port,
           identity: peer.state.identity ?? null,
           name: peer.name ?? null,
+          ...addInfo,
         }
       } else {
         return []
