@@ -783,13 +783,6 @@ export class PeerManager {
   }
 
   start(): void {
-    this.addressManager.peerIdentityMap.forEach((peerAddress, identity) => {
-      const peer = this.getOrCreatePeer(identity)
-      peer.setWebSocketAddress(peerAddress.address, peerAddress.port)
-      peer.name = peerAddress.name || null
-      this.peerCandidates.addFromPeer(peer)
-      // this.identifiedPeers.set(identity, peer)
-    })
     this.requestPeerListHandle = setInterval(() => this.requestPeerList(), 60000)
     this.disposePeersHandle = setInterval(() => this.disposePeers(), 2000)
   }
