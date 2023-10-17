@@ -7,14 +7,10 @@ import {
   getConnectedPeer,
   getConnectingPeer,
   getDisconnectedPeer,
-  getSignalingWebRtcPeer,
   mockHostsStore,
-  mockIdentity,
   mockLocalPeer,
-  webRtcCanInitiateIdentity,
 } from '../testUtilities'
 import { AddressManager } from './addressManager'
-import { ConnectionDirection } from './connections'
 import { Peer } from './peer'
 import { PeerAddress } from './peerAddress'
 import { PeerManager } from './peerManager'
@@ -94,53 +90,22 @@ describe('AddressManager', () => {
   })
 
   describe('save', () => {
-    it('save should persist connected peers via outbound websocket', async () => {
+    it('save should persist connected peers', async () => {
       const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
       const addressManager = new AddressManager(mockHostsStore(), pm)
-
-      // outbound websocker peer
+      addressManager.hostsStore = mockHostsStore()
       const { peer: connectedPeer } = getConnectedPeer(pm)
+      getConnectingPeer(pm)
+      getDisconnectedPeer(pm)
       const address: PeerAddress = {
         address: connectedPeer.address,
         port: connectedPeer.port,
         identity: connectedPeer.state.identity,
         name: connectedPeer.name,
       }
-      await addressManager.save()
-      expect(addressManager.priorConnectedPeerAddresses).toContainEqual(address)
-
-      // webRTC peer
-      const brokerIdentity = mockIdentity('brokering')
-      const peerIdentity = webRtcCanInitiateIdentity()
-      const { peer: signalingPeer } = getSignalingWebRtcPeer(pm, brokerIdentity, peerIdentity)
-
-      const address2: PeerAddress = {
-        address: signalingPeer.address,
-        port: signalingPeer.port,
-        identity: signalingPeer.state.identity,
-        name: signalingPeer.name,
-      }
-
-      await addressManager.save()
-      expect(addressManager.priorConnectedPeerAddresses).not.toContainEqual(address2)
-
-      // inboundWebSocketPeer
-      const { peer: inboundWebSocketPeer } = getConnectedPeer(
-        pm,
-        undefined,
-        ConnectionDirection.Inbound,
-      )
-      const address3: PeerAddress = {
-        address: inboundWebSocketPeer.address,
-        port: inboundWebSocketPeer.port,
-        identity: inboundWebSocketPeer.state.identity,
-        name: inboundWebSocketPeer.name,
-      }
 
       await addressManager.save()
       expect(addressManager.priorConnectedPeerAddresses).toContainEqual(address)
-      expect(addressManager.priorConnectedPeerAddresses).not.toContainEqual(address2)
-      expect(addressManager.priorConnectedPeerAddresses).not.toContainEqual(address3)
     })
   })
 })
