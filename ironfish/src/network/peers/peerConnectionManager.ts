@@ -147,7 +147,6 @@ export class PeerConnectionManager {
       this.logger.debug(
         `Upgraded ${peer.displayName} to WebRTC, closing the WebSocket connection`,
       )
-
       peer.state.connections.webSocket.close()
     }
   }
