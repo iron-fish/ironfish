@@ -341,7 +341,7 @@ export class PeerNetwork {
       if (!peerAddress.address || !peerAddress.port) {
         continue
       }
-      this.logger.log(
+      this.logger.debug(
         `Connecting to peer with identity: ${peerAddress.identity ?? 'none'} and name: ${
           peerAddress.name ?? 'none'
         } at address: ${peerAddress.address}:${peerAddress.port}`,
