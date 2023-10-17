@@ -8,4 +8,6 @@ export type PeerAddress = {
   port: number | null
   identity: Identity | null
   name: string | null
+  disposeAttempts: number
+  successfulConnections: number
 }

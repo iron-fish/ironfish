@@ -23,6 +23,12 @@ export class AddressManager {
     this.peerIdentityMap = new Map<string, PeerAddress>()
     for (const peer of this.hostsStore.getArray('priorPeers')) {
       if (peer.identity !== null) {
+        if (!('disposeAttempts' in peer)) {
+          peer.disposeAttempts = 0
+        }
+        if (!('successfulConnections' in peer)) {
+          peer.successfulConnections = 1
+        }
         this.peerIdentityMap.set(peer.identity, peer)
       }
     }
@@ -59,15 +65,24 @@ export class AddressManager {
    * Removes address associated with a peer from address stores
    */
   removePeerAddress(peer: Peer): void {
-    if (peer.state.identity) {
-      this.peerIdentityMap.delete(peer.state.identity)
+    const identity = peer.state.identity
+    if (!identity) {
+      return
     }
+    const peerAddress = this.peerIdentityMap.get(identity)
+
+    if (peerAddress) {
+      peerAddress.disposeAttempts += 1
+      this.peerIdentityMap.set(identity, peerAddress)
+    }
+
+    void this.save()
   }
 
   /**
    * Adds a peer to the address stores
    */
-  async addPeer(peer: Peer): Promise<void> {
+  addPeer(peer: Peer): void {
     if (peer.state.type !== 'CONNECTED') {
       return
     }
@@ -80,7 +95,11 @@ export class AddressManager {
       return
     }
 
-    if (this.peerIdentityMap.has(peer.state.identity)) {
+    const peerAddress = this.peerIdentityMap.get(peer.state.identity)
+
+    if (peerAddress) {
+      peerAddress.successfulConnections += 1
+      this.peerIdentityMap.set(peer.state.identity, peerAddress)
       return
     }
 
@@ -89,8 +108,14 @@ export class AddressManager {
       port: peer.port,
       identity: peer.state.identity,
       name: peer.name ?? null,
+      disposeAttempts: 0,
+      successfulConnections: 1,
     })
 
+    void this.save()
+  }
+
+  private async save(): Promise<void> {
     this.hostsStore.set('priorPeers', [...this.peerIdentityMap.values()])
     await this.hostsStore.save()
   }
