@@ -8,6 +8,7 @@ import { isAddress } from 'web3-validator'
 import { IronfishCommand } from '../../../command'
 import { IronFlag, RemoteFlags } from '../../../flags'
 import { promptCurrency } from '../../../utils/currency'
+import { selectAsset } from '../../../utils'
 
 const DEFAULT_BRIDGE_ADDRESS =
   '1d1a1fb9fafd7de32c7f02115207d6fe9df1272f5b4bedbbfa1330eba88c5ce2'
@@ -52,6 +53,10 @@ export class Deposit extends IronfishCommand {
         'Minimum number of block confirmations needed to include a note. Set to 0 to include all blocks.',
       required: false,
     }),
+    assetId: Flags.string({
+      char: 'i',
+      description: 'The identifier for the asset to use when sending',
+    }),
     dest: Flags.string({
       description: 'ETH public address to deposit to',
       parse: (input: string): Promise<string> => {
@@ -81,13 +86,39 @@ export class Deposit extends IronfishCommand {
     const account =
       flags.account ?? (await client.wallet.getDefaultAccount()).content.account?.name
 
-    const assetId = Asset.nativeId().toString('hex')
+    let assetId = flags.assetId
+    console.log(assetId)
+    let assetName: string | undefined = ''
+    if (assetId === undefined) {
+      console.log('foo')
+      const asset = await selectAsset(client, account, {
+        action: 'send',
+        showNativeAsset: true,
+        showNonCreatorAsset: true,
+        showSingleAssetChoice: false,
+        confirmations: flags.confirmations,
+      })
+
+      assetId = asset?.id
+      assetName = asset?.name
+
+      if (assetName) {
+        assetName = Buffer.from(assetName, 'hex').toString()
+      }
+
+      if (!assetId) {
+        assetId = Asset.nativeId().toString('hex')
+        assetName = '$IRON'
+      }
+
+      // TODO verify asset is of accepted type
+    }
 
     let dest = flags.dest
     if (!dest) {
       while (!dest) {
         dest = await CliUx.ux.prompt(
-          'Enter an ETH address to send WIRON to on Sepolia testnet',
+          'Enter an ETH address to send your asset to on Sepolia testnet',
           {
             required: true,
           },
@@ -156,6 +187,7 @@ export class Deposit extends IronfishCommand {
         `To bridge address: ${flags.to}\n` +
         `To ETH address:    ${dest}\n` +
         `Amount:            ${amount}\n` +
+        `Asset:             ${assetId} (${assetName})\n` +
         `Transaction fee:   ${fee}`,
     )
 
