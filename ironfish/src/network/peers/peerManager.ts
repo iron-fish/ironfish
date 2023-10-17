@@ -785,18 +785,16 @@ export class PeerManager {
   start(): void {
     this.requestPeerListHandle = setInterval(() => this.requestPeerList(), 60000)
     this.disposePeersHandle = setInterval(() => this.disposePeers(), 2000)
-    this.savePeerAddressesHandle = setInterval(() => void this.addressManager.save(), 5000)
   }
 
   /**
    * Call when shutting down the PeerManager to clean up
    * outstanding connections.
    */
-  async stop(): Promise<void> {
+  stop(): void {
     this.requestPeerListHandle && clearInterval(this.requestPeerListHandle)
     this.disposePeersHandle && clearInterval(this.disposePeersHandle)
     this.savePeerAddressesHandle && clearInterval(this.savePeerAddressesHandle)
-    await this.addressManager.save()
     for (const peer of this.peers) {
       this.disconnect(peer, DisconnectingReason.ShuttingDown, 0)
     }

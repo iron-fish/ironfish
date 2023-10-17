@@ -14,17 +14,22 @@ import { PeerManager } from './peerManager'
 export class AddressManager {
   hostsStore: HostsStore
   peerManager: PeerManager
-  priorPeersFromDisk: any[] = []
+  peerIdentityMap: Map<string, PeerAddress>
 
   constructor(hostsStore: HostsStore, peerManager: PeerManager) {
     this.hostsStore = hostsStore
     this.peerManager = peerManager
     // load prior peers from disk
-    this.priorPeersFromDisk = this.hostsStore.getArray('priorPeers') || []
+    this.peerIdentityMap = new Map<string, PeerAddress>()
+    for (const peer of this.hostsStore.getArray('priorPeers')) {
+      if (peer.identity !== null) {
+        this.peerIdentityMap.set(peer.identity, peer)
+      }
+    }
   }
 
   get priorConnectedPeerAddresses(): ReadonlyArray<Readonly<PeerAddress>> {
-    return this.hostsStore.getArray('priorPeers')
+    return [...this.peerIdentityMap.values()]
   }
 
   /**
@@ -39,10 +44,10 @@ export class AddressManager {
 
     const currentPeerIdentities = new Set(peerIdentities)
 
-    const disconnectedPriorAddresses = this.filterConnectedIdentities(
-      this.priorConnectedPeerAddresses,
-      currentPeerIdentities,
+    const disconnectedPriorAddresses = this.priorConnectedPeerAddresses.filter(
+      (address) => address.identity !== null && !currentPeerIdentities.has(address.identity),
     )
+
     if (disconnectedPriorAddresses.length) {
       return ArrayUtils.sampleOrThrow(disconnectedPriorAddresses)
     }
@@ -50,28 +55,18 @@ export class AddressManager {
     return null
   }
 
-  private filterConnectedIdentities(
-    priorConnectedAddresses: readonly Readonly<PeerAddress>[],
-    connectedPeerIdentities: Set<string>,
-  ): PeerAddress[] {
-    const disconnectedAddresses = priorConnectedAddresses.filter(
-      (address) => address.identity !== null && !connectedPeerIdentities.has(address.identity),
-    )
-
-    return disconnectedAddresses
-  }
-
   /**
    * Removes address associated with a peer from address stores
    */
   removePeerAddress(peer: Peer): void {
-    const filteredPriorConnected = this.priorConnectedPeerAddresses.filter(
-      (prior) => prior.identity !== peer.state.identity,
-    )
-
-    this.hostsStore.set('priorPeers', filteredPriorConnected)
+    if (peer.state.identity) {
+      this.peerIdentityMap.delete(peer.state.identity)
+    }
   }
 
+  /**
+   * Adds a peer to the address stores
+   */
   async addPeer(peer: Peer): Promise<void> {
     if (peer.state.type !== 'CONNECTED') {
       return
@@ -81,66 +76,22 @@ export class AddressManager {
       return
     }
 
-    this.priorPeersFromDisk.push({
+    if (peer.state.identity === null) {
+      return
+    }
+
+    if (this.peerIdentityMap.has(peer.state.identity)) {
+      return
+    }
+
+    this.peerIdentityMap.set(peer.state.identity, {
       address: peer.address,
       port: peer.port,
-      identity: peer.state.identity ?? null,
+      identity: peer.state.identity,
       name: peer.name ?? null,
-      direction: peer.state.connections.webSocket.direction,
     })
 
-    this.hostsStore.set('priorPeers', this.priorPeersFromDisk)
+    this.hostsStore.set('priorPeers', [...this.peerIdentityMap.values()])
     await this.hostsStore.save()
-  }
-
-  /**
-   * Persist connected peers via outbound websocket connections to disk
-   */
-  async save(): Promise<void> {
-    const inUsePeerAddresses: PeerAddress[] = this.peerManager.peers.flatMap((peer) => {
-      if (peer.state.type === 'CONNECTED') {
-        const addInfo = { webSocket: {}, webRtc: {} }
-        if (peer.state.connections.webSocket) {
-          addInfo.webSocket = {
-            direction: peer.state.connections.webSocket.direction,
-          }
-        }
-        if (peer.state.connections.webRtc) {
-          addInfo.webRtc = {
-            direction: peer.state.connections.webRtc.direction,
-          }
-        }
-
-        return {
-          address: peer.address,
-          port: peer.port,
-          identity: peer.state.identity ?? null,
-          name: peer.name ?? null,
-          ...addInfo,
-        }
-      } else {
-        return []
-      }
-    })
-    // append inUsePeerAddresses to priorPeersFromDisk
-    // identity field is the ID
-
-    const allPeers: PeerAddress[] = inUsePeerAddresses.concat(this.priorPeersFromDisk)
-
-    // remove duplicates
-    const uniquePeerIdentities = new Set<string>()
-    const uniquePeers = allPeers.filter((peer) => {
-      if (peer.identity === null) {
-        return false
-      }
-      if (uniquePeerIdentities.has(peer.identity)) {
-        return false
-      } else {
-        uniquePeerIdentities.add(peer.identity)
-        return true
-      }
-    })
-
-    await Promise.all([this.hostsStore.set('priorPeers', uniquePeers)])
   }
 }
