@@ -75,6 +75,7 @@ class MockHostsStore extends HostsStore {
         port: 9999,
         identity: null,
         name: null,
+        lastAddedTimestamp: Date.now(),
       },
     ])
   }

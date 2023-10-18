@@ -15,16 +15,16 @@ import { PeerManager } from './peerManager'
  * and provides functionality for persistence of said data.
  */
 export class AddressManager {
+  private LIMIT = 50
+
   private readonly logger: Logger
   hostsStore: HostsStore
   peerManager: PeerManager
   peerIdentityMap: Map<Identity, PeerAddress>
-  saveCount: number
 
   constructor(hostsStore: HostsStore, peerManager: PeerManager) {
     this.logger = createRootLogger().withTag('addressManager')
     this.hostsStore = hostsStore
-    this.saveCount = 0
     this.peerManager = peerManager
     // load prior peers from disk
     this.peerIdentityMap = new Map<string, PeerAddress>()
@@ -33,7 +33,25 @@ export class AddressManager {
         continue
       }
 
+      if (peer.lastAddedTimestamp === undefined) {
+        peer.lastAddedTimestamp = Date.now()
+      }
+
       this.peerIdentityMap.set(peer.identity, peer)
+    }
+
+    if (this.peerIdentityMap.size > this.LIMIT) {
+      this.logger.warn(
+        `Address manager loaded ${this.peerIdentityMap.size} peers, which is more than the limit of ${this.LIMIT}.`,
+      )
+      // remove the oldest peers
+      const oldestPeers = [...this.peerIdentityMap.entries()].sort(
+        (a, b) => a[1].lastAddedTimestamp - b[1].lastAddedTimestamp,
+      )
+      for (let i = 0; i < oldestPeers.length - this.LIMIT; i++) {
+        this.peerIdentityMap.delete(oldestPeers[i][0])
+      }
+      void this.save()
     }
   }
 
@@ -94,9 +112,21 @@ export class AddressManager {
     const peerAddress = this.peerIdentityMap.get(peer.state.identity)
 
     if (peerAddress) {
-      // reset failed attempts
+      peerAddress.lastAddedTimestamp = Date.now()
       this.peerIdentityMap.set(peer.state.identity, peerAddress)
       return
+    }
+
+    if (this.peerIdentityMap.size >= this.LIMIT) {
+      // remove the oldest peer
+      const oldestPeer = [...this.peerIdentityMap.entries()].sort(
+        (a, b) => a[1].lastAddedTimestamp - b[1].lastAddedTimestamp,
+      )[0]
+
+      if (oldestPeer) {
+        this.logger.log(`Removing oldest peer ${oldestPeer[0]} from address manager.`)
+        this.peerIdentityMap.delete(oldestPeer[0])
+      }
     }
 
     this.peerIdentityMap.set(peer.state.identity, {
@@ -104,14 +134,13 @@ export class AddressManager {
       port: peer.port,
       identity: peer.state.identity,
       name: peer.name ?? null,
+      lastAddedTimestamp: Date.now(),
     })
 
     void this.save()
   }
 
   private async save(): Promise<void> {
-    this.saveCount++
-    this.logger.log(`Saving address manager state ${this.saveCount}`)
     this.hostsStore.set('priorPeers', [...this.peerIdentityMap.values()])
     await this.hostsStore.save()
   }
