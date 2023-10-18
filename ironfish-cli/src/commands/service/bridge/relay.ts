@@ -154,13 +154,45 @@ export default class BridgeRelay extends IronfishCommand {
   ): Promise<void> {
     Assert.isNotUndefined(response)
 
+    const { requests: pendingBurnRequests } = await api.getBridgePendingBurnRequests()
+
+    const pendingBurnTransactions: Map<string, number[]> = new Map()
+    for (const request of pendingBurnRequests) {
+      Assert.isNotUndefined(request.source_burn_transaction)
+
+      const requestIds = pendingBurnTransactions.get(request.source_burn_transaction) ?? []
+
+      requestIds.push(request.id)
+      pendingBurnTransactions.set(request.source_burn_transaction, requestIds)
+    }
+
     const sends = []
     const burns = []
-    const confirms = []
+    const confirmedReleases = []
+    const confirmedBurns = []
 
     const transactions = response.transactions
 
     for (const transaction of transactions) {
+      if (pendingBurnTransactions.has(transaction.hash)) {
+        const requestIds = pendingBurnTransactions.get(transaction.hash) ?? []
+
+        this.log(
+          `Confirmed burn for request IDs [${requestIds.toString()}] in transaction ${
+            transaction.hash
+          }`,
+        )
+
+        for (const requestId of requestIds) {
+          confirmedBurns.push({
+            id: requestId,
+            status: 'PENDING_DESTINATION_RELEASE_TRANSACTION_CREATION',
+          })
+        }
+
+        continue
+      }
+
       for (const note of transaction.notes) {
         if (!note.memo) {
           continue
@@ -176,7 +208,7 @@ export default class BridgeRelay extends IronfishCommand {
           this.log(
             `Confirmed release of bridge request ${note.memo} in transaction ${transaction.hash}`,
           )
-          confirms.push({
+          confirmedReleases.push({
             id: requestId,
             destination_transaction: transaction.hash,
             status: 'CONFIRMED',
@@ -213,8 +245,12 @@ export default class BridgeRelay extends IronfishCommand {
       }
     }
 
-    if (confirms.length > 0) {
-      await api.updateBridgeRequests(confirms)
+    if (confirmedReleases.length > 0) {
+      await api.updateBridgeRequests(confirmedReleases)
+    }
+
+    if (confirmedBurns.length > 0) {
+      await api.updateBridgeRequests(confirmedBurns)
     }
 
     if (sends.length > 0) {
