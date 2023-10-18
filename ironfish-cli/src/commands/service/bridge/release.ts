@@ -125,7 +125,7 @@ export default class Release extends IronfishCommand {
     account: string,
     api: WebApi,
   ): Promise<void> {
-    const unprocessedReleaseRequests = await api.getBridgeNextReleaseRequests(
+    const { requests: unprocessedReleaseRequests } = await api.getBridgeNextReleaseRequests(
       MAX_RECIPIENTS_PER_TRANSACTION,
     )
 
@@ -211,7 +211,7 @@ export default class Release extends IronfishCommand {
     api: WebApi,
   ): Promise<void> {
     // TODO(hughy): group multiple requests into a single transaction
-    const nextBurnRequests = await api.getBridgeNextBurnRequests(1)
+    const { requests: nextBurnRequests } = await api.getBridgeNextBurnRequests(1)
 
     if (nextBurnRequests.length === 0) {
       this.log('No burn requests')
@@ -262,7 +262,7 @@ export default class Release extends IronfishCommand {
     account: string,
     api: WebApi,
   ): Promise<void> {
-    const nextMintRequests = await api.getBridgeNextMintRequests(1)
+    const { requests: nextMintRequests } = await api.getBridgeNextMintRequests(1)
     if (nextMintRequests.length === 0) {
       this.log('No mint requests')
       return

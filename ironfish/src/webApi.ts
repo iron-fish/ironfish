@@ -248,46 +248,53 @@ export class WebApi {
     await axios.post(`${this.host}/bridge/burn`, { burns }, this.options())
   }
 
-  async getBridgeNextReleaseRequests(count?: number): Promise<Array<BridgeRequest>> {
+  async getBridgeNextReleaseRequests(
+    count?: number,
+  ): Promise<{ requests: Array<BridgeRequest> }> {
     this.requireToken()
-
-    const response = await axios.get<{ data: Array<BridgeRequest> }>(
-      `${this.host}/bridge/next_release_requests/`,
+    const response = await axios.post<{ requests: Array<BridgeRequest> }>(
+      `${this.host}/bridge/retrieve/`,
       {
-        ...this.options(),
-        params: { count },
+        source_chain: 'ETHEREUM',
+        destination_chain: 'IRONFISH',
+        status: 'PENDING_DESTINATION_RELEASE_TRANSACTION_CREATION',
+        count: count ?? 1,
       },
+      this.options(),
     )
-
-    return response.data.data
+    return response.data
   }
 
-  async getBridgeNextMintRequests(count?: number): Promise<Array<BridgeRequest>> {
+  async getBridgeNextMintRequests(count?: number): Promise<{ requests: Array<BridgeRequest> }> {
     this.requireToken()
 
-    const response = await axios.get<{ data: Array<BridgeRequest> }>(
-      `${this.host}/bridge/next_mint_requests/`,
+    const response = await axios.post<{ requests: Array<BridgeRequest> }>(
+      `${this.host}/bridge/retrieve/`,
       {
-        ...this.options(),
-        params: { count },
+        source_chain: 'ETHEREUM',
+        destination_chain: 'IRONFISH',
+        status: 'PENDING_DESTINATION_MINT_TRANSACTION_CREATION',
+        count: count ?? 1,
       },
+      this.options(),
     )
-
-    return response.data.data
+    return response.data
   }
 
-  async getBridgeNextBurnRequests(count?: number): Promise<Array<BridgeRequest>> {
+  async getBridgeNextBurnRequests(count?: number): Promise<{ requests: Array<BridgeRequest> }> {
     this.requireToken()
 
-    const response = await axios.get<{ data: Array<BridgeRequest> }>(
-      `${this.host}/bridge/next_burn_requests/`,
+    const response = await axios.post<{ requests: Array<BridgeRequest> }>(
+      `${this.host}/bridge/retrieve/`,
       {
-        ...this.options(),
-        params: { count },
+        source_chain: 'IRONFISH',
+        destination_chain: 'ETHEREUM',
+        status: 'PENDING_SOURCE_BURN_TRANSACTION_CREATION',
+        count: count ?? 1,
       },
+      this.options(),
     )
-
-    return response.data.data
+    return response.data
   }
 
   async updateBridgeRequests(
