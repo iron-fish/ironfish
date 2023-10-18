@@ -763,7 +763,10 @@ export class PeerManager {
       }
     })
 
-    peer.onBanned.on((reason) => this.banPeer(peer, reason))
+    peer.onBanned.on((reason) => {
+      this.addressManager.removePeer(peer)
+      this.banPeer(peer, reason)
+    })
 
     return peer
   }
@@ -775,7 +778,6 @@ export class PeerManager {
       this.banned.set(identity, reason)
     }
 
-    this.addressManager.removePeer(peer)
     peer.close()
   }
 
