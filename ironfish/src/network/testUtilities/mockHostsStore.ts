@@ -75,8 +75,6 @@ class MockHostsStore extends HostsStore {
         port: 9999,
         identity: null,
         name: null,
-        disposeAttempts: 0,
-        successfulConnections: 1,
       },
     ])
   }

@@ -26,8 +26,6 @@ describe('AddressManager', () => {
       {
         address: '127.0.0.1',
         port: 9999,
-        disposeAttempts: 0,
-        successfulConnections: 1,
       },
     ])
   })
@@ -46,12 +44,10 @@ describe('AddressManager', () => {
         port: peer.port,
         identity: peer.state.identity,
         name: peer.name,
-        disposeAttempts: 0,
-        successfulConnections: 1,
       })
     }
     addressManager.hostsStore.set('priorPeers', allPeerAddresses)
-    addressManager.removePeerAddress(peer1)
+    addressManager.removePeer(peer1)
     expect(addressManager.priorConnectedPeerAddresses.length).toEqual(0)
   })
 
@@ -71,8 +67,6 @@ describe('AddressManager', () => {
         port: peer.port,
         identity: peer.state.identity,
         name: peer.name,
-        disposeAttempts: 0,
-        successfulConnections: 1,
       })
     }
 
@@ -109,8 +103,6 @@ describe('AddressManager', () => {
         port: connectedPeer.port,
         identity: connectedPeer.state.identity,
         name: connectedPeer.name,
-        successfulConnections: 1,
-        disposeAttempts: 0,
       }
 
       addressManager.addPeer(connectedPeer)
