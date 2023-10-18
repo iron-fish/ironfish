@@ -337,22 +337,6 @@ export class PeerNetwork {
     // Start up the PeerConnectionManager
     this.peerConnectionManager.start()
 
-    for (const peerAddress of this.peerManager.addressManager.priorConnectedPeerAddresses) {
-      if (!peerAddress.address || !peerAddress.port) {
-        continue
-      }
-      this.logger.debug(
-        `Connecting to peer with identity: ${peerAddress.identity ?? 'none'} and name: ${
-          peerAddress.name ?? 'none'
-        } at address: ${peerAddress.address}:${peerAddress.port}`,
-      )
-      this.peerManager.connectToWebSocketAddress({
-        host: peerAddress.address,
-        port: peerAddress.port,
-        whitelist: true,
-      })
-    }
-
     this.updateIsReady()
 
     for (const node of this.bootstrapNodes) {
@@ -371,6 +355,22 @@ export class PeerNetwork {
       this.peerManager.connectToWebSocketAddress({
         host: url.hostname,
         port,
+        whitelist: true,
+      })
+    }
+
+    for (const peerAddress of this.peerManager.addressManager.priorConnectedPeerAddresses) {
+      if (!peerAddress.address || !peerAddress.port) {
+        continue
+      }
+      this.logger.debug(
+        `Connecting to peer with identity: ${peerAddress.identity ?? 'none'} and name: ${
+          peerAddress.name ?? 'none'
+        } at address: ${peerAddress.address}:${peerAddress.port}`,
+      )
+      this.peerManager.connectToWebSocketAddress({
+        host: peerAddress.address,
+        port: peerAddress.port,
         whitelist: true,
       })
     }

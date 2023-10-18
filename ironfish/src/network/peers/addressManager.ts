@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { HostsStore } from '../../fileStores'
+import { createRootLogger, Logger } from '../../logger'
 import { ArrayUtils } from '../../utils'
 import { Identity } from '../identity'
 import { Peer } from '../peers/peer'
@@ -14,12 +15,16 @@ import { PeerManager } from './peerManager'
  * and provides functionality for persistence of said data.
  */
 export class AddressManager {
+  private readonly logger: Logger
   hostsStore: HostsStore
   peerManager: PeerManager
   peerIdentityMap: Map<Identity, PeerAddress>
+  saveCount: number
 
   constructor(hostsStore: HostsStore, peerManager: PeerManager) {
+    this.logger = createRootLogger().withTag('addressManager')
     this.hostsStore = hostsStore
+    this.saveCount = 0
     this.peerManager = peerManager
     // load prior peers from disk
     this.peerIdentityMap = new Map<string, PeerAddress>()
@@ -71,12 +76,6 @@ export class AddressManager {
     void this.save()
   }
 
-  incrementFailedAttemps(peer: Peer): void {
-    if (peer.state.identity === null) {
-      return
-    }
-  }
-
   /**
    * Adds a peer to the address stores
    */
@@ -111,6 +110,8 @@ export class AddressManager {
   }
 
   private async save(): Promise<void> {
+    this.saveCount++
+    this.logger.log(`Saving address manager state ${this.saveCount}`)
     this.hostsStore.set('priorPeers', [...this.peerIdentityMap.values()])
     await this.hostsStore.save()
   }
