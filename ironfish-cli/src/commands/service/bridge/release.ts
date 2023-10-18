@@ -2,7 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset, isValidPublicAddress } from '@ironfish/rust-nodejs'
-import { PromiseUtils, RpcConnectionError, RpcSocketClient, WebApi } from '@ironfish/sdk'
+import {
+  PromiseUtils,
+  RawTransactionSerde,
+  RpcConnectionError,
+  RpcSocketClient,
+  WebApi,
+} from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
@@ -110,6 +116,7 @@ export default class Release extends IronfishCommand {
       // TODO(hughy): balance transaction queueing
       await this.processNextReleaseTransaction(client, account, api)
       await this.processNextBurnTransaction(client, account, api)
+      await this.processNextMintTransaction(client, account, api)
     }
   }
 
@@ -246,6 +253,63 @@ export default class Release extends IronfishCommand {
         id: burnRequest.id,
         status: 'PENDING_SOURCE_BURN_TRANSACTION_CONFIRMATION',
         source_burn_transaction: tx.content.transaction.hash,
+      },
+    ])
+  }
+
+  async processNextMintTransaction(
+    client: RpcSocketClient,
+    account: string,
+    api: WebApi,
+  ): Promise<void> {
+    const nextMintRequests = await api.getBridgeNextMintRequests(1)
+    if (nextMintRequests.length === 0) {
+      this.log('No mint requests')
+      return
+    }
+
+    const mintRequest = nextMintRequests[0]
+
+    const createTransactionResponse = await client.wallet.createTransaction({
+      account,
+      outputs: [
+        {
+          amount: mintRequest.amount,
+          assetId: mintRequest.asset,
+          publicAddress: mintRequest.destination_address,
+          memo: 'Bridged asset',
+        },
+      ],
+      mints: [
+        {
+          value: mintRequest.amount,
+          assetId: mintRequest.asset,
+        },
+      ],
+      fee: '1',
+    })
+
+    const bytes = Buffer.from(createTransactionResponse.content.transaction, 'hex')
+    const raw = RawTransactionSerde.deserialize(bytes)
+    const mintTransactionResponse = await client.wallet.postTransaction({
+      account,
+      transaction: RawTransactionSerde.serialize(raw).toString('hex'),
+      broadcast: true,
+    })
+
+    this.log(
+      `Mint:
+        id: ${mintRequest.id}
+        asset: ${mintRequest.asset}
+        amount: ${mintRequest.amount}
+        transaction: ${mintTransactionResponse.content.hash}`,
+    )
+
+    await api.updateBridgeRequests([
+      {
+        id: mintRequest.id,
+        status: 'PENDING_SOURCE_MINT_TRANSACTION_CONFIRMATION',
+        destination_transaction: mintTransactionResponse.content.hash,
       },
     ])
   }
