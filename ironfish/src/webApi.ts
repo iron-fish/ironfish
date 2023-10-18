@@ -232,6 +232,22 @@ export class WebApi {
     await axios.post(`${this.host}/bridge/send`, { sends }, this.options())
   }
 
+  async bridgeBurn(
+    burns: {
+      amount: string
+      asset: string
+      source_address: string
+      source_chain: string
+      source_transaction: string
+      destination_address: string
+      destination_chain: string
+    }[],
+  ): Promise<void> {
+    this.requireToken()
+
+    await axios.post(`${this.host}/bridge/burn`, { burns }, this.options())
+  }
+
   async getBridgeNextReleaseRequests(count?: number): Promise<Array<BridgeRequest>> {
     this.requireToken()
 
