@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { HostsStore } from '../../fileStores'
 import { ArrayUtils } from '../../utils'
+import { Identity } from '../identity'
 import { Peer } from '../peers/peer'
 import { PeerAddress } from './peerAddress'
 import { PeerManager } from './peerManager'
@@ -14,7 +15,7 @@ import { PeerManager } from './peerManager'
 export class AddressManager {
   hostsStore: HostsStore
   peerManager: PeerManager
-  peerIdentityMap: Map<string, PeerAddress>
+  peerIdentityMap: Map<Identity, PeerAddress>
 
   constructor(hostsStore: HostsStore, peerManager: PeerManager) {
     this.hostsStore = hostsStore
@@ -22,15 +23,11 @@ export class AddressManager {
     // load prior peers from disk
     this.peerIdentityMap = new Map<string, PeerAddress>()
     for (const peer of this.hostsStore.getArray('priorPeers')) {
-      if (peer.identity !== null) {
-        if (!('disposeAttempts' in peer)) {
-          peer.disposeAttempts = 0
-        }
-        if (!('successfulConnections' in peer)) {
-          peer.successfulConnections = 1
-        }
-        this.peerIdentityMap.set(peer.identity, peer)
+      if (peer.identity === null) {
+        continue
       }
+
+      this.peerIdentityMap.set(peer.identity, peer)
     }
   }
 
@@ -64,19 +61,19 @@ export class AddressManager {
   /**
    * Removes address associated with a peer from address stores
    */
-  removePeerAddress(peer: Peer): void {
-    const identity = peer.state.identity
-    if (!identity) {
+  removePeer(peer: Peer): void {
+    if (peer.state.identity === null) {
       return
     }
-    const peerAddress = this.peerIdentityMap.get(identity)
 
-    if (peerAddress) {
-      peerAddress.disposeAttempts += 1
-      this.peerIdentityMap.set(identity, peerAddress)
-    }
-
+    this.peerIdentityMap.delete(peer.state.identity)
     void this.save()
+  }
+
+  incrementFailedAttemps(peer: Peer): void {
+    if (peer.state.identity === null) {
+      return
+    }
   }
 
   /**
@@ -98,7 +95,7 @@ export class AddressManager {
     const peerAddress = this.peerIdentityMap.get(peer.state.identity)
 
     if (peerAddress) {
-      peerAddress.successfulConnections += 1
+      // reset failed attempts
       this.peerIdentityMap.set(peer.state.identity, peerAddress)
       return
     }
@@ -108,8 +105,6 @@ export class AddressManager {
       port: peer.port,
       identity: peer.state.identity,
       name: peer.name ?? null,
-      disposeAttempts: 0,
-      successfulConnections: 1,
     })
 
     void this.save()

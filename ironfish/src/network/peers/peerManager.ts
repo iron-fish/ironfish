@@ -775,6 +775,7 @@ export class PeerManager {
       this.banned.set(identity, reason)
     }
 
+    this.addressManager.removePeer(peer)
     peer.close()
   }
 
@@ -845,8 +846,6 @@ export class PeerManager {
    */
   tryDisposePeer(peer: Peer): boolean {
     if (peer.state.type === 'DISCONNECTED') {
-      this.addressManager.removePeerAddress(peer)
-
       peer.dispose()
       if (peer.state.identity && this.identifiedPeers.get(peer.state.identity) === peer) {
         this.identifiedPeers.delete(peer.state.identity)
