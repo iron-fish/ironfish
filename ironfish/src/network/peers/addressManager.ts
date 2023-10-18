@@ -5,6 +5,7 @@ import { HostsStore } from '../../fileStores'
 import { ArrayUtils } from '../../utils'
 import { Identity } from '../identity'
 import { Peer } from '../peers/peer'
+import { ConnectionDirection } from './connections'
 import { PeerAddress } from './peerAddress'
 import { PeerManager } from './peerManager'
 
@@ -80,15 +81,14 @@ export class AddressManager {
    * Adds a peer to the address stores
    */
   addPeer(peer: Peer): void {
-    if (peer.state.type !== 'CONNECTED') {
+    if (peer.state.identity === null || peer.state.type !== 'CONNECTED') {
       return
     }
 
-    if (!peer.state.connections.webSocket) {
-      return
-    }
-
-    if (peer.state.identity === null) {
+    if (
+      !peer.state.connections.webSocket ||
+      peer.state.connections.webSocket.direction === ConnectionDirection.Inbound
+    ) {
       return
     }
 

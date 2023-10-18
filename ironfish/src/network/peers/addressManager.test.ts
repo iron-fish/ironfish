@@ -90,7 +90,7 @@ describe('AddressManager', () => {
   })
 
   describe('save', () => {
-    it('save should persist connected peers', async () => {
+    it('save should persist connected peers', () => {
       const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
       const addressManager = new AddressManager(mockHostsStore(), pm)
       addressManager.hostsStore = mockHostsStore()
