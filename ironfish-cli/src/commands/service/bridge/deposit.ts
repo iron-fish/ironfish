@@ -7,8 +7,8 @@ import { CliUx, Flags } from '@oclif/core'
 import { isAddress } from 'web3-validator'
 import { IronfishCommand } from '../../../command'
 import { IronFlag, RemoteFlags } from '../../../flags'
-import { promptCurrency } from '../../../utils/currency'
 import { selectAsset } from '../../../utils'
+import { promptCurrency } from '../../../utils/currency'
 
 const DEFAULT_BRIDGE_ADDRESS =
   '1d1a1fb9fafd7de32c7f02115207d6fe9df1272f5b4bedbbfa1330eba88c5ce2'
@@ -86,32 +86,18 @@ export class Deposit extends IronfishCommand {
     const account =
       flags.account ?? (await client.wallet.getDefaultAccount()).content.account?.name
 
-    let assetId = flags.assetId
-    console.log(assetId)
-    let assetName: string | undefined = ''
-    if (assetId === undefined) {
-      console.log('foo')
-      const asset = await selectAsset(client, account, {
-        action: 'send',
-        showNativeAsset: true,
-        showNonCreatorAsset: true,
-        showSingleAssetChoice: false,
-        confirmations: flags.confirmations,
-      })
-
-      assetId = asset?.id
-      assetName = asset?.name
-
-      if (assetName) {
-        assetName = Buffer.from(assetName, 'hex').toString()
-      }
-
-      if (!assetId) {
-        assetId = Asset.nativeId().toString('hex')
-        assetName = '$IRON'
-      }
-
-      // TODO verify asset is of accepted type
+    let asset: { id: string; name: string }
+    if (flags.assetId) {
+      asset = (await client.wallet.getAsset({ id: flags.assetId })).content
+    } else {
+      asset =
+        (await selectAsset(client, account, {
+          action: 'send',
+          showNativeAsset: true,
+          showNonCreatorAsset: true,
+          showSingleAssetChoice: false,
+          confirmations: flags.confirmations,
+        })) ?? (await client.wallet.getAsset({ id: Asset.nativeId().toString('hex') })).content
     }
 
     let dest = flags.dest
@@ -147,7 +133,7 @@ export class Deposit extends IronfishCommand {
         balance: {
           account,
           confirmations: flags.confirmations,
-          assetId,
+          assetId: asset.id,
         },
       })
     }
@@ -173,7 +159,7 @@ export class Deposit extends IronfishCommand {
           publicAddress: flags.to,
           amount: CurrencyUtils.encode(amount),
           memo,
-          assetId,
+          assetId: asset.id,
         },
       ],
       fee: CurrencyUtils.encode(fee),
@@ -187,7 +173,7 @@ export class Deposit extends IronfishCommand {
         `To bridge address: ${flags.to}\n` +
         `To ETH address:    ${dest}\n` +
         `Amount:            ${amount}\n` +
-        `Asset:             ${assetId} (${assetName})\n` +
+        `Asset:             ${asset.id} (${Buffer.from(asset.name, 'hex').toString()})\n` +
         `Transaction fee:   ${fee}`,
     )
 
