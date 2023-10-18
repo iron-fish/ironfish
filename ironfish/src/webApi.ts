@@ -262,8 +262,41 @@ export class WebApi {
     return response.data.data
   }
 
+  async getBridgeNextMintRequests(count?: number): Promise<Array<BridgeRequest>> {
+    this.requireToken()
+
+    const response = await axios.get<{ data: Array<BridgeRequest> }>(
+      `${this.host}/bridge/next_mint_requests/`,
+      {
+        ...this.options(),
+        params: { count },
+      },
+    )
+
+    return response.data.data
+  }
+
+  async getBridgeNextBurnRequests(count?: number): Promise<Array<BridgeRequest>> {
+    this.requireToken()
+
+    const response = await axios.get<{ data: Array<BridgeRequest> }>(
+      `${this.host}/bridge/next_burn_requests/`,
+      {
+        ...this.options(),
+        params: { count },
+      },
+    )
+
+    return response.data.data
+  }
+
   async updateBridgeRequests(
-    payload: Array<{ id: number; destination_transaction: string; status: string }>,
+    payload: Array<{
+      id: number
+      status: string
+      destination_transaction?: string
+      source_burn_transaction?: string
+    }>,
   ): Promise<{ [keyof: string]: { status: string } }> {
     this.requireToken()
 

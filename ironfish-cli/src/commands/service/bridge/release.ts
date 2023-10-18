@@ -2,7 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset, isValidPublicAddress } from '@ironfish/rust-nodejs'
-import { Meter, PromiseUtils, RpcConnectionError, RpcSocketClient, WebApi } from '@ironfish/sdk'
+import {
+  PromiseUtils,
+  RawTransactionSerde,
+  RpcConnectionError,
+  RpcSocketClient,
+  WebApi,
+} from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
@@ -61,12 +67,10 @@ export default class Release extends IronfishCommand {
 
     const client = this.sdk.client
 
-    const speed = new Meter()
-
     // eslint-disable-next-line no-constant-condition
     while (true) {
       try {
-        await this.startSyncing(client, api, speed, flags.account)
+        await this.startSyncing(client, api, flags.account)
       } catch (e) {
         if (e instanceof RpcConnectionError) {
           this.log('Connection error... retrying in 5 seconds')
@@ -79,12 +83,7 @@ export default class Release extends IronfishCommand {
     }
   }
 
-  async startSyncing(
-    client: RpcSocketClient,
-    api: WebApi,
-    speed: Meter,
-    account?: string,
-  ): Promise<void> {
+  async startSyncing(client: RpcSocketClient, api: WebApi, account?: string): Promise<void> {
     const connected = await client.tryConnect()
 
     if (!connected) {
@@ -108,40 +107,30 @@ export default class Release extends IronfishCommand {
     this.log(`Using account ${account}`)
 
     while (client.isConnected) {
-      speed.start()
-      speed.reset()
+      if (!(await this.walletIsReady(client, account))) {
+        this.log('Wallet not ready, waiting 5s')
+        await PromiseUtils.sleep(5000)
+        continue
+      }
 
-      await this.processNextTransaction(client, account, speed, api)
+      // TODO(hughy): balance transaction queueing
+      await this.processNextReleaseTransaction(client, account, api)
+      await this.processNextBurnTransaction(client, account, api)
+      await this.processNextMintTransaction(client, account, api)
     }
   }
 
-  async processNextTransaction(
+  async processNextReleaseTransaction(
     client: RpcSocketClient,
     account: string,
-    speed: Meter,
     api: WebApi,
   ): Promise<void> {
-    const status = await client.node.getStatus()
-
-    if (!status.content.blockchain.synced) {
-      this.log('Blockchain not synced, waiting 5s')
-      await PromiseUtils.sleep(5000)
-      return
-    }
-
-    if (!status.content.peerNetwork.isReady) {
-      this.log('Peer network not ready, waiting 5s')
-      await PromiseUtils.sleep(5000)
-      return
-    }
-
     const unprocessedReleaseRequests = await api.getBridgeNextReleaseRequests(
       MAX_RECIPIENTS_PER_TRANSACTION,
     )
 
     if (unprocessedReleaseRequests.length === 0) {
-      this.log('No bridge requests, waiting 5s')
-      await PromiseUtils.sleep(5000)
+      this.log('No release requests')
       return
     }
 
@@ -169,8 +158,7 @@ export default class Release extends IronfishCommand {
     }
 
     if (requestsToProcess.length === 0) {
-      this.log('No bridge requests, waiting 5s')
-      await PromiseUtils.sleep(5000)
+      this.log('Available balance too low to process release requests')
       return
     }
 
@@ -197,14 +185,12 @@ export default class Release extends IronfishCommand {
       fee: BigInt(requestsToProcess.length).toString(),
     })
 
-    speed.add(1)
-
     this.log(
-      `Sent: ${JSON.stringify(
+      `Release: ${JSON.stringify(
         requestsToProcess,
         ['id', 'destination_address', 'amount'],
         '   ',
-      )} ${tx.content.hash} (5m avg ${speed.rate5m.toFixed(2)})`,
+      )} ${tx.content.hash}`,
     )
 
     const updatePayload = []
@@ -217,5 +203,140 @@ export default class Release extends IronfishCommand {
     }
 
     await api.updateBridgeRequests(updatePayload)
+  }
+
+  async processNextBurnTransaction(
+    client: RpcSocketClient,
+    account: string,
+    api: WebApi,
+  ): Promise<void> {
+    // TODO(hughy): group multiple requests into a single transaction
+    const nextBurnRequests = await api.getBridgeNextBurnRequests(1)
+
+    if (nextBurnRequests.length === 0) {
+      this.log('No burn requests')
+      return
+    }
+
+    const burnRequest = nextBurnRequests[0]
+
+    const response = await client.wallet.getAccountBalance({
+      account,
+      assetId: burnRequest.asset,
+    })
+    const availableBalance = BigInt(response.content.available)
+
+    if (availableBalance < BigInt(burnRequest.amount)) {
+      this.log(
+        `Available balance too low to burn ${burnRequest.amount} of asset ${burnRequest.asset}`,
+      )
+      return
+    }
+
+    const tx = await client.wallet.burnAsset({
+      account,
+      assetId: burnRequest.asset,
+      value: burnRequest.amount,
+      fee: '1',
+    })
+
+    this.log(
+      `Burn:
+        id: ${burnRequest.id}
+        asset: ${burnRequest.asset}
+        amount: ${burnRequest.amount}
+        transaction: ${tx.content.transaction.hash}`,
+    )
+
+    await api.updateBridgeRequests([
+      {
+        id: burnRequest.id,
+        status: 'PENDING_SOURCE_BURN_TRANSACTION_CONFIRMATION',
+        source_burn_transaction: tx.content.transaction.hash,
+      },
+    ])
+  }
+
+  async processNextMintTransaction(
+    client: RpcSocketClient,
+    account: string,
+    api: WebApi,
+  ): Promise<void> {
+    const nextMintRequests = await api.getBridgeNextMintRequests(1)
+    if (nextMintRequests.length === 0) {
+      this.log('No mint requests')
+      return
+    }
+
+    const mintRequest = nextMintRequests[0]
+
+    const createTransactionResponse = await client.wallet.createTransaction({
+      account,
+      outputs: [
+        {
+          amount: mintRequest.amount,
+          assetId: mintRequest.asset,
+          publicAddress: mintRequest.destination_address,
+          memo: mintRequest.id.toString(),
+        },
+      ],
+      mints: [
+        {
+          value: mintRequest.amount,
+          assetId: mintRequest.asset,
+        },
+      ],
+      fee: '1',
+    })
+
+    const bytes = Buffer.from(createTransactionResponse.content.transaction, 'hex')
+    const raw = RawTransactionSerde.deserialize(bytes)
+    const mintTransactionResponse = await client.wallet.postTransaction({
+      account,
+      transaction: RawTransactionSerde.serialize(raw).toString('hex'),
+      broadcast: true,
+    })
+
+    this.log(
+      `Mint:
+        id: ${mintRequest.id}
+        asset: ${mintRequest.asset}
+        amount: ${mintRequest.amount}
+        transaction: ${mintTransactionResponse.content.hash}`,
+    )
+
+    await api.updateBridgeRequests([
+      {
+        id: mintRequest.id,
+        status: 'PENDING_SOURCE_MINT_TRANSACTION_CONFIRMATION',
+        destination_transaction: mintTransactionResponse.content.hash,
+      },
+    ])
+  }
+
+  async walletIsReady(client: RpcSocketClient, account: string): Promise<boolean> {
+    const status = await client.node.getStatus()
+
+    if (!status.content.blockchain.synced) {
+      this.log('Blockchain not synced')
+      return false
+    }
+
+    if (!status.content.peerNetwork.isReady) {
+      this.log('Peer network not ready')
+      return false
+    }
+
+    const balance = await client.wallet.getAccountBalance({
+      account,
+      assetId: Asset.nativeId().toString('hex'),
+    })
+
+    if (BigInt(balance.content.available) <= 0n) {
+      this.log('No balance available for transaction fees')
+      return false
+    }
+
+    return true
   }
 }
