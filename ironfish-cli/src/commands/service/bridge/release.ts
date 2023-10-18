@@ -277,7 +277,7 @@ export default class Release extends IronfishCommand {
           amount: mintRequest.amount,
           assetId: mintRequest.asset,
           publicAddress: mintRequest.destination_address,
-          memo: 'Bridged asset',
+          memo: mintRequest.id.toString(),
         },
       ],
       mints: [
