@@ -11,6 +11,7 @@ export type MintAssetOptions =
       expirationDelta: number
       expiration?: number
       confirmations?: number
+      transferOwnershipTo?: string
     }
   | {
       assetId: Buffer
@@ -20,4 +21,5 @@ export type MintAssetOptions =
       expirationDelta: number
       expiration?: number
       confirmations?: number
+      transferOwnershipTo?: string
     }

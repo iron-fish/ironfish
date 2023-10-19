@@ -140,6 +140,15 @@ export type ConfigOptions = {
    */
   minerBatchSize: number
 
+  /*
+   * Whether the mining manager should preemptively generate empty block
+   * templates, even if there are transactions in the mempool, with the goal of
+   * maximizing miner efficiency. This is enabled (true) by default. It may be
+   * disabled for testing purposes or when mining is small networks, with a low
+   * difficulty.
+   */
+  preemptiveBlockMining: boolean
+
   /**
    * The minimum number of block confirmations needed when computing account
    * balance.
@@ -293,7 +302,7 @@ export type ConfigOptions = {
   walletNodeIpcPath: string
 
   /**
-   * Enable stanalone wallet process to connect to a node via TCP
+   * Enable standalone wallet process to connect to a node via TCP
    */
   walletNodeTcpEnabled: boolean
   walletNodeTcpHost: string
@@ -331,7 +340,7 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     // to parse logPrefix
     logPrefix: yup.string(),
     blockGraffiti: yup.string(),
-    nodeName: yup.string(),
+    nodeName: yup.string().max(32),
     nodeWorkers: yup.number().integer().min(-1),
     nodeWorkersMax: yup.number().integer().min(-1),
     peerPort: YupUtils.isPort,
@@ -350,6 +359,7 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     transactionExpirationDelta: YupUtils.isPositiveInteger,
     blocksPerMessage: YupUtils.isPositiveInteger,
     minerBatchSize: YupUtils.isPositiveInteger,
+    preemptiveBlockMining: yup.boolean(),
     confirmations: YupUtils.isPositiveInteger,
     poolName: yup.string(),
     poolAccountName: yup.string().optional(),
@@ -456,6 +466,7 @@ export class Config extends KeyStore<ConfigOptions> {
       generateNewIdentity: false,
       blocksPerMessage: 25,
       minerBatchSize: 25000,
+      preemptiveBlockMining: true,
       poolName: 'Iron Fish Pool',
       poolAccountName: undefined,
       poolBanning: true,

@@ -40,6 +40,7 @@ export class MiningManager {
   private readonly node: FullNode
   private readonly metrics: MetricsMonitor
   private readonly minersFeeCache: MinersFeeCache
+  private readonly preemptiveBlockMining: boolean
 
   blocksMined = 0
 
@@ -56,12 +57,14 @@ export class MiningManager {
     node: FullNode
     memPool: MemPool
     metrics: MetricsMonitor
+    preemptiveBlockMining?: boolean
   }) {
     this.node = options.node
     this.memPool = options.memPool
     this.chain = options.chain
     this.metrics = options.metrics
     this.minersFeeCache = new MinersFeeCache({ node: this.node })
+    this.preemptiveBlockMining = options.preemptiveBlockMining ?? true
 
     this.chain.onConnectBlock.on(
       (block) =>
@@ -170,9 +173,15 @@ export class MiningManager {
       return
     }
 
+    // If preemptive block mining is enabled, stream an empty block template as
+    // soon as possible, so that miners do not spend idle time waiting for a
+    // valid block to mine. Otherwise, stream an empty block only if there are
+    // no pending transactions in the mempool.
     const emptyTemplate = await this.createNewBlockTemplate(currentBlock, account, false)
     this.metrics.mining_newEmptyBlockTemplate.add(BenchUtils.end(connectedAt))
-    this.streamBlockTemplate(currentBlock, emptyTemplate)
+    if (this.preemptiveBlockMining || !this.memPool.count()) {
+      this.streamBlockTemplate(currentBlock, emptyTemplate)
+    }
 
     // The head of the chain has changed, abort working on this template
     if (!this.chain.head.hash.equals(currentBlock.header.hash)) {

@@ -6,3 +6,5 @@ import { Asset } from '@ironfish/rust-nodejs'
 export function isNativeIdentifier(assetId: string): boolean {
   return Buffer.from(assetId, 'hex').equals(Asset.nativeId())
 }
+
+export const NativeAssetId = Asset.nativeId().toString('hex')

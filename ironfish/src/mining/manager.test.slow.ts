@@ -474,6 +474,47 @@ describe('Mining manager', () => {
 
       expect(templates[0]).toEqual(templates[2])
     })
+
+    describe('with preemptive block creation disabled', () => {
+      const nodeTest = createNodeTest(false, {
+        config: { miningForce: true, preemptiveBlockMining: false },
+      })
+
+      it('does not create empty blocks when there are transactions in the mempool', async () => {
+        const { node, chain } = nodeTest
+        const { miningManager } = node
+
+        const account = await useAccountFixture(nodeTest.node.wallet, 'account')
+        await nodeTest.node.wallet.setDefaultAccount(account.name)
+
+        const previous = await useMinerBlockFixture(chain, 2, account, node.wallet)
+        await expect(chain).toAddBlock(previous)
+        await node.wallet.updateHead()
+
+        const transaction = await useTxFixture(node.wallet, account, account)
+
+        expect(node.memPool.count()).toBe(0)
+        node.memPool.acceptTransaction(transaction)
+        expect(node.memPool.count()).toBe(1)
+
+        const block = await useMinerBlockFixture(chain, 2)
+        await expect(chain).toAddBlock(block)
+
+        // Wait for the first block template
+        const [fullTemplate] = await collectTemplates(miningManager, 1)
+
+        Assert.isNotUndefined(fullTemplate)
+
+        expect(fullTemplate.header.previousBlockHash).toBe(chain.head.hash.toString('hex'))
+        expect(fullTemplate.transactions).toHaveLength(2)
+
+        const minersFee = new Transaction(Buffer.from(fullTemplate.transactions[0], 'hex'))
+        expect(isTransactionMine(minersFee, account)).toBe(true)
+
+        expect(fullTemplate.transactions[1]).toEqual(transaction.serialize().toString('hex'))
+        expect(node.memPool.count()).toBe(1)
+      })
+    })
   })
 
   describe('submit block template', () => {

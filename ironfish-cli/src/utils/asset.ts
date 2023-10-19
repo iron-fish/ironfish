@@ -102,6 +102,8 @@ export async function selectAsset(
   const assetLookup = await getAssetsByIDs(
     client,
     balances.map((b) => b.assetId),
+    account,
+    options.confirmations,
   )
   if (!options.showNativeAsset) {
     balances = balances.filter((b) => b.assetId !== Asset.nativeId().toString('hex'))
@@ -164,9 +166,13 @@ export async function selectAsset(
 export async function getAssetsByIDs(
   client: Pick<RpcClient, 'wallet'>,
   assetIds: string[],
+  account: string | undefined,
+  confirmations: number | undefined,
 ): Promise<{ [key: string]: RpcAsset }> {
   assetIds = [...new Set(assetIds)]
-  const assets = await Promise.all(assetIds.map((id) => client.wallet.getAsset({ id })))
+  const assets = await Promise.all(
+    assetIds.map((id) => client.wallet.getAsset({ id, account, confirmations })),
+  )
   const assetLookup: { [key: string]: RpcAsset } = {}
   assets.forEach((asset) => {
     assetLookup[asset.content.id] = asset.content

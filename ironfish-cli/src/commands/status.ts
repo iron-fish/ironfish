@@ -69,11 +69,15 @@ export default class Status extends IronfishCommand {
 
       // eslint-disable-next-line no-constant-condition
       while (true) {
-        const value = await this.sdk.client.node.getStatus()
+        try {
+          previousResponse = (await this.sdk.client.node.getStatus()).content
+        } catch (e) {
+          break
+        }
+
         statusText.clearBaseLine(0)
-        statusText.setContent(renderStatus(value.content, flags.all))
+        statusText.setContent(renderStatus(previousResponse, flags.all))
         screen.render()
-        previousResponse = value.content
         await PromiseUtils.sleep(1000)
       }
     }

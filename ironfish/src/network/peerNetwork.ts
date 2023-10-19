@@ -226,7 +226,7 @@ export class PeerNetwork {
     this.requests = new Map<RpcId, RpcRequest>()
 
     if (options.name && options.name.length > 32) {
-      options.name = options.name.slice(32)
+      options.name = options.name.slice(0, 32)
     }
 
     this.blockFetcher = new BlockFetcher(this)
