@@ -211,7 +211,9 @@ export default class Release extends IronfishCommand {
     account: string,
     api: WebApi,
   ): Promise<void> {
-    const { requests: nextBurnRequests } = await api.getBridgeNextBurnRequests(MAX_RECIPIENTS_PER_TRANSACTION)
+    const { requests: nextBurnRequests } = await api.getBridgeNextBurnRequests(
+      MAX_RECIPIENTS_PER_TRANSACTION,
+    )
 
     if (nextBurnRequests.length === 0) {
       this.log('No burn requests')
@@ -283,7 +285,7 @@ export default class Release extends IronfishCommand {
     for (const request of pendingRequests) {
       updatePayload.push({
         id: request.id,
-        destination_transaction: tx.content.hash,
+        source_burn_transaction: tx.content.hash,
         status: 'PENDING_SOURCE_BURN_TRANSACTION_CONFIRMATION',
       })
     }
