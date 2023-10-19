@@ -9,6 +9,7 @@ import {
   RpcSocketClient,
   WebApi,
 } from '@ironfish/sdk'
+import { BurnDescription } from '@ironfish/sdk/src/primitives/burnDescription'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
@@ -210,51 +211,86 @@ export default class Release extends IronfishCommand {
     account: string,
     api: WebApi,
   ): Promise<void> {
-    // TODO(hughy): group multiple requests into a single transaction
-    const { requests: nextBurnRequests } = await api.getBridgeNextBurnRequests(1)
+    const { requests: nextBurnRequests } = await api.getBridgeNextBurnRequests(
+      MAX_RECIPIENTS_PER_TRANSACTION,
+    )
 
     if (nextBurnRequests.length === 0) {
       this.log('No burn requests')
       return
     }
 
-    const burnRequest = nextBurnRequests[0]
+    const pendingRequests = []
 
-    const response = await client.wallet.getAccountBalance({
-      account,
-      assetId: burnRequest.asset,
-    })
-    const availableBalance = BigInt(response.content.available)
+    const balancesResponse = await client.wallet.getAccountBalances({ account })
+    const availableBalances: Map<string, bigint> = new Map()
+    for (const balance of balancesResponse.content.balances) {
+      availableBalances.set(balance.assetId, BigInt(balance.available))
+    }
 
-    if (availableBalance < BigInt(burnRequest.amount)) {
-      this.log(
-        `Available balance too low to burn ${burnRequest.amount} of asset ${burnRequest.asset}`,
-      )
+    const burnDescriptions: Map<string, BurnDescription> = new Map()
+
+    for (const request of nextBurnRequests) {
+      const assetId = request.asset
+
+      const availableBalance = availableBalances.get(assetId) ?? 0n
+
+      const burnDescription = burnDescriptions.get(assetId) ?? {
+        assetId: Buffer.from(assetId, 'hex'),
+        value: 0n,
+      }
+
+      if (burnDescription.value + BigInt(request.amount) > availableBalance) {
+        continue
+      }
+
+      burnDescription.value += BigInt(request.amount)
+      burnDescriptions.set(assetId, burnDescription)
+      pendingRequests.push(request)
+    }
+
+    if (burnDescriptions.size === 0) {
+      this.log('Available balances too low to burn bridged assets')
       return
     }
 
-    const tx = await client.wallet.burnAsset({
+    const burns = []
+    for (const burn of burnDescriptions.values()) {
+      burns.push({
+        assetId: burn.assetId.toString('hex'),
+        value: burn.value.toString(),
+      })
+    }
+
+    const createTransactionResponse = await client.wallet.createTransaction({
       account,
-      assetId: burnRequest.asset,
-      value: burnRequest.amount,
+      outputs: [],
+      burns,
       fee: '1',
     })
 
+    const tx = await client.wallet.postTransaction({
+      account,
+      transaction: createTransactionResponse.content.transaction,
+      broadcast: true,
+    })
+
     this.log(
-      `Burn:
-        id: ${burnRequest.id}
-        asset: ${burnRequest.asset}
-        amount: ${burnRequest.amount}
-        transaction: ${tx.content.transaction.hash}`,
+      `Burn: ${JSON.stringify(pendingRequests, ['id', 'asset', 'amount'], '   ')} ${
+        tx.content.hash
+      }`,
     )
 
-    await api.updateBridgeRequests([
-      {
-        id: burnRequest.id,
+    const updatePayload = []
+    for (const request of pendingRequests) {
+      updatePayload.push({
+        id: request.id,
+        source_burn_transaction: tx.content.hash,
         status: 'PENDING_SOURCE_BURN_TRANSACTION_CONFIRMATION',
-        source_burn_transaction: tx.content.transaction.hash,
-      },
-    ])
+      })
+    }
+
+    await api.updateBridgeRequests(updatePayload)
   }
 
   async processNextMintTransaction(
