@@ -44,6 +44,7 @@ describe('AddressManager', () => {
         port: peer.port,
         identity: peer.state.identity,
         name: peer.name,
+        lastAddedTimestamp: Date.now(),
       })
     }
     addressManager.hostsStore.set('priorPeers', allPeerAddresses)
@@ -67,6 +68,7 @@ describe('AddressManager', () => {
         port: peer.port,
         identity: peer.state.identity,
         name: peer.name,
+        lastAddedTimestamp: Date.now(),
       })
     }
 
@@ -91,6 +93,10 @@ describe('AddressManager', () => {
 
   describe('save', () => {
     it('save should persist connected peers', () => {
+      // mock Date.now()
+      const now = Date.now()
+      Date.now = jest.fn(() => now)
+
       const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
       const addressManager = new AddressManager(mockHostsStore(), pm)
       addressManager.hostsStore = mockHostsStore()
@@ -103,6 +109,7 @@ describe('AddressManager', () => {
         port: connectedPeer.port,
         identity: connectedPeer.state.identity,
         name: connectedPeer.name,
+        lastAddedTimestamp: now,
       }
 
       addressManager.addPeer(connectedPeer)
