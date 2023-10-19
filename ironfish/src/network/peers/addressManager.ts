@@ -15,7 +15,9 @@ import { PeerManager } from './peerManager'
  * and provides functionality for persistence of said data.
  */
 export class AddressManager {
-  private LIMIT = 50
+  // we want a number that is larger than the steady state number of peers
+  // we connect to (max peers is 50).
+  private LIMIT = 200
 
   private readonly logger: Logger
   hostsStore: HostsStore
@@ -28,13 +30,14 @@ export class AddressManager {
     this.peerManager = peerManager
     // load prior peers from disk
     this.peerIdentityMap = new Map<string, PeerAddress>()
+    const currentTime = Date.now()
     for (const peer of this.hostsStore.getArray('priorPeers')) {
       if (peer.identity === null) {
         continue
       }
 
       if (peer.lastAddedTimestamp === undefined) {
-        peer.lastAddedTimestamp = Date.now()
+        peer.lastAddedTimestamp = currentTime
       }
 
       this.peerIdentityMap.set(peer.identity, peer)
@@ -51,8 +54,9 @@ export class AddressManager {
       for (let i = 0; i < oldestPeers.length - this.LIMIT; i++) {
         this.peerIdentityMap.delete(oldestPeers[i][0])
       }
-      void this.save()
     }
+
+    void this.save()
   }
 
   get priorConnectedPeerAddresses(): ReadonlyArray<Readonly<PeerAddress>> {
