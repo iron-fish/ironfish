@@ -308,7 +308,7 @@ export default class Release extends IronfishCommand {
     await api.updateBridgeRequests([
       {
         id: mintRequest.id,
-        status: 'PENDING_SOURCE_MINT_TRANSACTION_CONFIRMATION',
+        status: 'PENDING_DESTINATION_MINT_TRANSACTION_CONFIRMATION',
         destination_transaction: mintTransactionResponse.content.hash,
       },
     ])
