@@ -168,8 +168,8 @@ export default class BridgeRelay extends IronfishCommand {
 
     const sends = []
     const burns = []
-    const confirmedReleases = []
-    const confirmedBurns = []
+    const releases = []
+    const confirms = []
 
     const transactions = response.transactions
 
@@ -184,9 +184,8 @@ export default class BridgeRelay extends IronfishCommand {
         )
 
         for (const requestId of requestIds) {
-          confirmedBurns.push({
+          releases.push({
             id: requestId,
-            status: 'PENDING_DESTINATION_RELEASE_TRANSACTION_CREATION',
           })
         }
 
@@ -208,7 +207,7 @@ export default class BridgeRelay extends IronfishCommand {
           this.log(
             `Confirmed release of bridge request ${note.memo} in transaction ${transaction.hash}`,
           )
-          confirmedReleases.push({
+          confirms.push({
             id: requestId,
             destination_transaction: transaction.hash,
             status: 'CONFIRMED',
@@ -245,12 +244,12 @@ export default class BridgeRelay extends IronfishCommand {
       }
     }
 
-    if (confirmedReleases.length > 0) {
-      await api.updateBridgeRequests(confirmedReleases)
+    if (confirms.length > 0) {
+      await api.updateBridgeRequests(confirms)
     }
 
-    if (confirmedBurns.length > 0) {
-      await api.updateBridgeRequests(confirmedBurns)
+    if (releases.length > 0) {
+      await api.bridgeRelease(releases)
     }
 
     if (sends.length > 0) {

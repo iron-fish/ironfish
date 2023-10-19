@@ -249,6 +249,12 @@ export class WebApi {
     await axios.post(`${this.host}/bridge/burn`, { burns }, this.options())
   }
 
+  async bridgeRelease(releases: { id: number }[]): Promise<void> {
+    this.requireToken()
+
+    await axios.post(`${this.host}/bridge/release`, { releases }, this.options())
+  }
+
   async getBridgeNextReleaseRequests(
     count?: number,
   ): Promise<{ requests: Array<BridgeRequest> }> {
