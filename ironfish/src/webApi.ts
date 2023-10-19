@@ -29,6 +29,7 @@ type BridgeRequest = {
   destination_chain: string
   source_transaction?: string
   destination_transaction?: string
+  source_burn_transaction?: string
   status: string
 }
 
@@ -248,6 +249,12 @@ export class WebApi {
     await axios.post(`${this.host}/bridge/burn`, { burns }, this.options())
   }
 
+  async bridgeRelease(releases: { id: number }[]): Promise<void> {
+    this.requireToken()
+
+    await axios.post(`${this.host}/bridge/release`, { releases }, this.options())
+  }
+
   async getBridgeNextReleaseRequests(
     count?: number,
   ): Promise<{ requests: Array<BridgeRequest> }> {
@@ -294,6 +301,25 @@ export class WebApi {
       },
       this.options(),
     )
+    return response.data
+  }
+
+  async getBridgePendingBurnRequests(
+    count?: number,
+  ): Promise<{ requests: Array<BridgeRequest> }> {
+    this.requireToken()
+
+    const response = await axios.post<{ requests: Array<BridgeRequest> }>(
+      `${this.host}/bridge/retrieve`,
+      {
+        source_chain: 'IRONFISH',
+        destination_chain: 'ETHEREUM',
+        status: 'PENDING_SOURCE_BURN_TRANSACTION_CONFIRMATION',
+        count,
+      },
+      this.options(),
+    )
+
     return response.data
   }
 
