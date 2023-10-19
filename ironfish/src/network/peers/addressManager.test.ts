@@ -31,28 +31,22 @@ describe('AddressManager', () => {
   })
 
   it('removePeerAddress should remove a peer address', () => {
-    const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
-    const addressManager = new AddressManager(mockHostsStore(), pm)
-    addressManager.hostsStore = mockHostsStore()
+    const hostsStore = mockHostsStore()
+    const localPeer = mockLocalPeer()
+    const pm = new PeerManager(localPeer, hostsStore)
+    const addressManager = new AddressManager(hostsStore, pm)
+    expect(addressManager.priorConnectedPeerAddresses.length).toEqual(1)
     const { peer: peer1 } = getConnectedPeer(pm)
-    const allPeers: Peer[] = [peer1]
-    const allPeerAddresses: PeerAddress[] = []
-
-    for (const peer of allPeers) {
-      allPeerAddresses.push({
-        address: peer.address,
-        port: peer.port,
-        identity: peer.state.identity,
-        name: peer.name,
-        lastAddedTimestamp: Date.now(),
-      })
-    }
-    addressManager.hostsStore.set('priorPeers', allPeerAddresses)
+    addressManager.addPeer(peer1)
+    expect(addressManager.priorConnectedPeerAddresses.length).toEqual(2)
     addressManager.removePeer(peer1)
-    expect(addressManager.priorConnectedPeerAddresses.length).toEqual(0)
+    expect(addressManager.priorConnectedPeerAddresses.length).toEqual(1)
   })
 
   it('getRandomDisconnectedPeer should return a randomly-sampled disconnected peer', () => {
+    const now = Date.now()
+    Date.now = jest.fn(() => now)
+
     const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
     const addressManager = new AddressManager(mockHostsStore(), pm)
     addressManager.hostsStore = mockHostsStore()
@@ -60,16 +54,9 @@ describe('AddressManager', () => {
     const { peer: connectingPeer } = getConnectingPeer(pm)
     const disconnectedPeer = getDisconnectedPeer(pm)
     const nonDisconnectedPeers: Peer[] = [connectedPeer, connectingPeer]
-    const allPeerAddresses: PeerAddress[] = []
 
     for (const peer of [...nonDisconnectedPeers, disconnectedPeer]) {
-      allPeerAddresses.push({
-        address: peer.address,
-        port: peer.port,
-        identity: peer.state.identity,
-        name: peer.name,
-        lastAddedTimestamp: Date.now(),
-      })
+      addressManager.addPeer(peer)
     }
 
     const nonDisconnectedIdentities = nonDisconnectedPeers.flatMap((peer) => {
@@ -80,12 +67,10 @@ describe('AddressManager', () => {
       }
     })
 
-    addressManager.hostsStore.set('priorPeers', allPeerAddresses)
-
     const sample = addressManager.getRandomDisconnectedPeerAddress(nonDisconnectedIdentities)
     expect(sample).not.toBeNull()
     if (sample !== null) {
-      expect(allPeerAddresses).toContainEqual(sample)
+      expect(addressManager.priorConnectedPeerAddresses).toContainEqual(sample)
       expect(sample.address).toEqual(disconnectedPeer.address)
       expect(sample.port).toEqual(disconnectedPeer.port)
     }

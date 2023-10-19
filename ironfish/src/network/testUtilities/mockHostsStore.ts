@@ -73,7 +73,7 @@ class MockHostsStore extends HostsStore {
       {
         address: '127.0.0.1',
         port: 9999,
-        identity: null,
+        identity: 'defaultPeer',
         name: null,
         lastAddedTimestamp: Date.now(),
       },
