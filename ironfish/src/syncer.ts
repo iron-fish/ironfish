@@ -212,6 +212,10 @@ export class Syncer {
         break
       }
 
+      if (peer.state.type !== 'CONNECTED') {
+        continue
+      }
+
       const peerIdentity = peer.getIdentityOrThrow()
 
       const start = BenchUtils.start()
