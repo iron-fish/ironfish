@@ -95,7 +95,7 @@ export class AddressManager {
     }
 
     // If the address manager is full, remove the oldest peer
-    if (this.peerIdentityMap.size > this.LIMIT) {
+    if (this.peerIdentityMap.size >= this.LIMIT) {
       const oldestPeerIdentity = [...this.peerIdentityMap.entries()].sort(
         (a, b) => a[1].lastAddedTimestamp - b[1].lastAddedTimestamp,
       )[0][0]

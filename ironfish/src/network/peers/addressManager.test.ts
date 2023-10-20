@@ -85,6 +85,60 @@ describe('AddressManager', () => {
     expect(addressManager.priorConnectedPeerAddresses.length).toEqual(addressManager.LIMIT)
   })
 
+  it('addPeer should remove the oldest peer if the address manager is full', () => {
+    const oldestNow = Date.now()
+    Date.now = jest.fn(() => oldestNow)
+    const hostsStore = mockHostsStore()
+    const pm = new PeerManager(mockLocalPeer(), hostsStore)
+    const addressManager = new AddressManager(hostsStore, pm)
+
+    const { peer: oldestPeer } = getConnectedPeer(pm)
+    addressManager.addPeer(oldestPeer)
+    const oldestPeerAddress = {
+      address: oldestPeer.address,
+      port: oldestPeer.port,
+      identity: oldestPeer.state.identity,
+      name: oldestPeer.name,
+      lastAddedTimestamp: oldestNow,
+    }
+
+    expect(addressManager.priorConnectedPeerAddresses.length).toEqual(1)
+    expect(addressManager.priorConnectedPeerAddresses).toContainEqual(oldestPeerAddress)
+
+    const newNow = oldestNow + 1000
+    Date.now = jest.fn(() => newNow)
+
+    const { peer: newPeer } = getConnectedPeer(pm)
+    addressManager.addPeer(newPeer)
+    const newPeerAddress = {
+      address: newPeer.address,
+      port: newPeer.port,
+      identity: newPeer.state.identity,
+      name: newPeer.name,
+      lastAddedTimestamp: newNow,
+    }
+
+    expect(addressManager.priorConnectedPeerAddresses.length).toEqual(2)
+    expect(addressManager.priorConnectedPeerAddresses).toContainEqual(newPeerAddress)
+
+    // add 49 more peers
+    for (let i = 0; i < 49; i++) {
+      const randomIdentity = Math.random().toString(36).substring(7)
+      addressManager.addPeer({
+        ...newPeer,
+        state: {
+          ...newPeer.state,
+          identity: randomIdentity,
+        },
+      } as Peer)
+    }
+
+    expect(addressManager.priorConnectedPeerAddresses.length).toEqual(addressManager.LIMIT)
+    expect(addressManager.priorConnectedPeerAddresses).toContainEqual(newPeerAddress)
+    // the oldest peer should have been removed
+    expect(addressManager.priorConnectedPeerAddresses).not.toContainEqual(oldestPeerAddress)
+  })
+
   it('addPeer should update peer timestamp if it is already in the address manager', () => {
     const now = Date.now()
     const newNow = now + 1000
@@ -92,7 +146,6 @@ describe('AddressManager', () => {
     const hostsStore = mockHostsStore()
     const pm = new PeerManager(mockLocalPeer(), hostsStore)
     const addressManager = new AddressManager(hostsStore, pm)
-    addressManager.hostsStore = hostsStore
     const { peer } = getConnectedPeer(pm)
     addressManager.addPeer(peer)
     const peerAddress = {
