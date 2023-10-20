@@ -380,10 +380,10 @@ export class PeerNetwork {
    * Call close when shutting down the PeerNetwork to clean up
    * outstanding connections.
    */
-  stop(): void {
+  async stop(): Promise<void> {
     this.started = false
     this.peerConnectionManager.stop()
-    this.peerManager.stop()
+    await this.peerManager.stop()
     this.webSocketServer?.close()
     this.updateIsReady()
     this.blockFetcher.stop()

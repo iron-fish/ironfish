@@ -794,10 +794,11 @@ export class PeerManager {
    * Call when shutting down the PeerManager to clean up
    * outstanding connections.
    */
-  stop(): void {
+  async stop(): Promise<void> {
     this.requestPeerListHandle && clearInterval(this.requestPeerListHandle)
     this.disposePeersHandle && clearInterval(this.disposePeersHandle)
     this.savePeerAddressesHandle && clearInterval(this.savePeerAddressesHandle)
+    await this.addressManager.save()
     for (const peer of this.peers) {
       this.disconnect(peer, DisconnectingReason.ShuttingDown, 0)
     }
