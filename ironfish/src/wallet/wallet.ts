@@ -1216,6 +1216,12 @@ export class Wallet {
       amountsNeeded.set(burn.assetId, currentAmount + burn.value)
     }
 
+    for (const mint of raw.mints) {
+      const asset = new Asset(mint.creator, mint.name, mint.metadata)
+      const currentAmount = amountsNeeded.get(asset.id()) ?? 0n
+      amountsNeeded.set(asset.id(), currentAmount - mint.value)
+    }
+
     return amountsNeeded
   }
 

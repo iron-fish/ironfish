@@ -19,7 +19,7 @@ import {
   usePostTxFixture,
   useTxFixture,
 } from '../testUtilities'
-import { AsyncUtils } from '../utils'
+import { AsyncUtils, BufferUtils } from '../utils'
 import { Account, TransactionStatus, TransactionType } from '../wallet'
 import { AssetStatus, Wallet } from './wallet'
 
@@ -1204,6 +1204,48 @@ describe('Accounts', () => {
           expect(tx.version).toEqual(expectedVersion)
         })
       })
+    })
+
+    it('should not add spends if minted value equal to output value', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA1)
+      await node.wallet.updateHead()
+
+      // create and mint an asset
+      const asset = new Asset(accountA.publicAddress, 'mint-asset', 'metadata')
+      const blockA2 = await useMintBlockFixture({ node, account: accountA, asset, value: 10n })
+      await expect(node.chain).toAddBlock(blockA2)
+      await node.wallet.updateHead()
+
+      // create transaction to mint asset and send to another address
+      const rawTransaction = await node.wallet.createTransaction({
+        account: accountA,
+        mints: [
+          {
+            creator: accountA.publicAddress,
+            name: BufferUtils.toHuman(asset.name()),
+            metadata: BufferUtils.toHuman(asset.metadata()),
+            value: 20n,
+          },
+        ],
+        outputs: [
+          {
+            publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
+            amount: 20n,
+            memo: '',
+            assetId: asset.id(),
+          },
+        ],
+        expiration: 0,
+        fee: 0n,
+      })
+
+      // no spends needed
+      expect(rawTransaction.spends.length).toBe(0)
     })
   })
 
