@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { HostsStore } from '../../fileStores'
-import { createRootLogger, Logger } from '../../logger'
 import { ArrayUtils } from '../../utils'
 import { Identity } from '../identity'
 import { Peer } from '../peers/peer'
@@ -17,15 +16,13 @@ import { PeerManager } from './peerManager'
 export class AddressManager {
   // we want a number that is larger than the steady state number of peers
   // we connect to (max peers is 50).
-  private LIMIT = 200
+  LIMIT = 50
 
-  private readonly logger: Logger
   hostsStore: HostsStore
   peerManager: PeerManager
   peerIdentityMap: Map<Identity, PeerAddress>
 
   constructor(hostsStore: HostsStore, peerManager: PeerManager) {
-    this.logger = createRootLogger().withTag('addressManager')
     this.hostsStore = hostsStore
     this.peerManager = peerManager
     // load prior peers from disk
@@ -45,9 +42,9 @@ export class AddressManager {
         continue
       }
 
-      if (peer.lastAddedTimestamp === undefined) {
-        peer.lastAddedTimestamp = currentTime
-      }
+      // Backwards compatible change: if lastAddedTimestamp is undefined or null,
+      // set it to the current time.
+      peer.lastAddedTimestamp = peer.lastAddedTimestamp || currentTime
 
       this.peerIdentityMap.set(peer.identity, peer)
     }
@@ -95,7 +92,10 @@ export class AddressManager {
   }
 
   /**
-   * Adds a peer to the address stores
+   * Adds a peer with the following conditions:
+   * 1. Peer is connected
+   * 2. Identity is valid
+   * 3. Peer has an outbound websocket connection
    */
   addPeer(peer: Peer): void {
     if (peer.state.identity === null || peer.state.type !== 'CONNECTED') {
@@ -111,22 +111,20 @@ export class AddressManager {
 
     const peerAddress = this.peerIdentityMap.get(peer.state.identity)
 
+    // if the peer is already in the address manager, update the timestamp
     if (peerAddress) {
       peerAddress.lastAddedTimestamp = Date.now()
       this.peerIdentityMap.set(peer.state.identity, peerAddress)
       return
     }
 
-    if (this.peerIdentityMap.size >= this.LIMIT) {
-      // remove the oldest peer
-      const oldestPeer = [...this.peerIdentityMap.entries()].sort(
+    // If the address manager is full, remove the oldest peer
+    if (this.peerIdentityMap.size > this.LIMIT) {
+      const oldestPeerIdentity = [...this.peerIdentityMap.entries()].sort(
         (a, b) => a[1].lastAddedTimestamp - b[1].lastAddedTimestamp,
-      )[0]
+      )[0][0]
 
-      if (oldestPeer) {
-        this.logger.log(`Removing oldest peer ${oldestPeer[0]} from address manager.`)
-        this.peerIdentityMap.delete(oldestPeer[0])
-      }
+      this.peerIdentityMap.delete(oldestPeerIdentity)
     }
 
     this.peerIdentityMap.set(peer.state.identity, {
