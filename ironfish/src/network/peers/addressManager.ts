@@ -39,7 +39,6 @@ export class AddressManager {
     const disconnectedPriorAddresses = this.priorConnectedPeerAddresses.filter(
       (address) => address.identity !== null && !currentPeerIdentities.has(address.identity),
     )
-
     if (disconnectedPriorAddresses.length) {
       return ArrayUtils.sampleOrThrow(disconnectedPriorAddresses)
     }
