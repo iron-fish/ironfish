@@ -13,7 +13,14 @@ import { BAN_SCORE, PeerState } from './network/peers/peer'
 import { Block, GENESIS_BLOCK_SEQUENCE } from './primitives/block'
 import { BlockHeader } from './primitives/blockheader'
 import { Telemetry } from './telemetry'
-import { BenchUtils, ErrorUtils, HashUtils, MathUtils, SetTimeoutToken } from './utils'
+import {
+  BenchUtils,
+  ErrorUtils,
+  HashUtils,
+  MathUtils,
+  SetTimeoutToken,
+  TimeUtils,
+} from './utils'
 import { ArrayUtils } from './utils/array'
 
 const SYNCER_TICK_MS = 10 * 1000
@@ -155,6 +162,9 @@ export class Syncer {
       return
     }
 
+    this.logger.debug('Syncer is beginning peer candidate measurements')
+    const measurementStart = BenchUtils.start()
+
     // Find all allowed peers that have more work than we have
     const peers = this.peerNetwork.peerManager
       .getConnectedPeers()
@@ -240,6 +250,12 @@ export class Syncer {
       return
     }
     const peer = this.peerNetwork.peerManager.getPeer(fastestCandidateIdentity)
+
+    const measurementTime = BenchUtils.end(measurementStart)
+    this.logger.debug(
+      `Syncer took ${TimeUtils.renderSpan(measurementTime)} to measure peer candidates`,
+    )
+
     if (peer) {
       this.startSync(peer)
     }
