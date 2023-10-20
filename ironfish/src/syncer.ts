@@ -171,7 +171,7 @@ export class Syncer {
       return
     }
 
-    const syncCandidates = ArrayUtils.shuffle(peers).slice(0, 8)
+    const syncCandidates = ArrayUtils.shuffle(peers)
 
     // If we have been syncing from a peer, we want to include this peer in the
     // measurement. This will allow us to maintain a connection to a strong peer
@@ -190,9 +190,16 @@ export class Syncer {
 
     // Measure how long it takes to fetch the genesis block header from each
     // peer as an estimate of connection quality
+    let candidateCheckCount = 0
     for (const peer of syncCandidates) {
       if (this.state === 'stopped' || this.state === 'stopping') {
         return
+      }
+
+      // We only want to successfully measure so many candidates per measurement
+      // phase
+      if (candidateCheckCount > 8) {
+        break
       }
 
       const peerIdentity = peer.getIdentity()
@@ -223,6 +230,7 @@ export class Syncer {
       }
       const rtt = BenchUtils.end(start)
       peerRtt.set(peerIdentity, rtt)
+      candidateCheckCount += 1
     }
 
     // Sort the peers by the round-trip-time of the block header request and get
