@@ -177,7 +177,7 @@ export class MemPool {
 
       // The queue is cloned above, but this.transactions is not, so the
       // transaction may be removed from this.transactions while iterating.
-      if (transaction !== undefined) {
+      if (transaction) {
         yield transaction
       }
     }
