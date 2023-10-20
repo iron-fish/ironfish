@@ -47,23 +47,43 @@ describe('Route wallet/mintAsset', () => {
     })
   })
 
+  describe('with an invalid transferOwnershipTo', () => {
+    it('throws a validation error', async () => {
+      await expect(
+        routeTest.client.wallet.mintAsset({
+          account: 'account',
+          fee: '1',
+          metadata: '{ url: hello }',
+          name: 'fake-coin',
+          value: '100',
+          transferOwnershipTo: 'abcdefghijklmnopqrstuvwxyz',
+        }),
+      ).rejects.toThrow(
+        'Request failed (400) validation: transferOwnershipTo must be a valid public address',
+      )
+    })
+  })
+
   describe('with valid parameters', () => {
     it('returns the asset identifier and transaction hash', async () => {
       const node = routeTest.node
       const wallet = node.wallet
       const account = await useAccountFixture(wallet)
+      const accountB = await useAccountFixture(wallet, 'accountB')
 
       const block = await useMinerBlockFixture(routeTest.chain, undefined, account, node.wallet)
       await expect(node.chain).toAddBlock(block)
       await node.wallet.updateHead()
 
       const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
+      const newOwner = accountB.publicAddress
       const mintData = {
         creator: asset.creator().toString('hex'),
         name: asset.name().toString('utf8'),
         metadata: asset.metadata().toString('utf8'),
         value: 10n,
         isNewAsset: true,
+        transferOwnershipTo: newOwner,
       }
 
       const mintTransaction = await useTxFixture(wallet, account, account, async () => {
@@ -92,6 +112,7 @@ describe('Route wallet/mintAsset', () => {
         metadata: asset.metadata().toString('utf8'),
         name: asset.name().toString('utf8'),
         value: CurrencyUtils.encode(mintData.value),
+        transferOwnershipTo: newOwner,
       })
 
       const walletTransaction = await account.getTransaction(mintTransaction.hash())
@@ -121,6 +142,7 @@ describe('Route wallet/mintAsset', () => {
         name: asset.name().toString('hex'),
         assetName: asset.name().toString('hex'),
         value: mintTransaction.mints[0].value.toString(),
+        transferOwnershipTo: newOwner,
       })
     })
   })

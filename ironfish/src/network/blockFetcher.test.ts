@@ -468,7 +468,7 @@ describe('BlockFetcher', () => {
   it('correctly sends the first peer to send us a block to telemetry', async () => {
     const { peerNetwork, chain, node } = nodeTest
 
-    const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 50)
+    const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 45)
 
     const newBlock = await useMinerBlockFixture(chain)
 
