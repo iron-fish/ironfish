@@ -82,6 +82,10 @@ export class Peer {
     return this._state
   }
 
+  get identity(): Identity | null {
+    return this.state.identity
+  }
+
   get isSaturated(): boolean {
     return this.pendingRPC >= this.pendingRPCMax
   }
@@ -409,10 +413,6 @@ export class Peer {
     if (this.state.identity === null) {
       throw new Error('Called getIdentityOrThrow on an unidentified peer')
     }
-    return this.state.identity
-  }
-
-  getIdentity(): Identity | null {
     return this.state.identity
   }
 
