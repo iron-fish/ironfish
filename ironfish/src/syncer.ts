@@ -109,24 +109,22 @@ export class Syncer {
       return
     }
 
-    const now = new Date().getTime()
-
     switch (this.state) {
       case 'idle': {
         await this.findPeer(null)
-        this.nextMeasureTime = now + this.getNextMeasurementDelta()
         break
       }
 
       case 'measuring': {
         await this.findPeer(this.lastLoaderIdentity)
-        this.nextMeasureTime = now + this.getNextMeasurementDelta()
-        this.numberOfMeasurements += 1
+        if (this.loader) {
+          this.numberOfMeasurements += 1
+        }
         break
       }
 
       case 'syncing': {
-        if (this.nextMeasureTime >= now) {
+        if (this.nextMeasureTime >= performance.now()) {
           break
         }
 
@@ -251,6 +249,8 @@ export class Syncer {
     }
 
     Assert.isNotNull(peer.sequence)
+
+    this.nextMeasureTime = performance.now() + this.getNextMeasurementDelta()
 
     const work = peer.work ? ` work: +${(peer.work - this.chain.head.work).toString()},` : ''
     this.logger.info(
