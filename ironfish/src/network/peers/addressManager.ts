@@ -1,11 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { HostsStore } from '../../fileStores'
+import { HostsStore, WebSocketCandidate } from '../../fileStores'
 import { ArrayUtils } from '../../utils'
 import { Peer } from '../peers/peer'
 import { PeerAddress } from './peerAddress'
 import { PeerManager } from './peerManager'
+
+const MAX_WEBSOCKET_CANDIDATES = 25
 
 /**
  * AddressManager stores the necessary data for connecting to new peers
@@ -22,6 +24,10 @@ export class AddressManager {
 
   get priorConnectedPeerAddresses(): ReadonlyArray<Readonly<PeerAddress>> {
     return this.hostsStore.getArray('priorPeers')
+  }
+
+  get webSocketCandidates(): ReadonlyArray<Readonly<PeerAddress>> {
+    return this.hostsStore.getArray('wsCandidates')
   }
 
   /**
@@ -57,6 +63,25 @@ export class AddressManager {
     this.hostsStore.set('priorPeers', filteredPriorConnected)
   }
 
+  webSocketCandidatesToSave(): WebSocketCandidate[] {
+    const toSave: WebSocketCandidate[] = []
+    for (const candidate of this.peerManager.peerCandidates.webSocketCandidates()) {
+      if (toSave.length >= MAX_WEBSOCKET_CANDIDATES) {
+        break
+      }
+
+      toSave.push({
+        address: candidate.address,
+        port: candidate.port,
+        identity: candidate.identity,
+        name: candidate.name,
+        lastWebSocketConnectionTime: candidate.lastWebSocketConnectionTime,
+      })
+    }
+
+    return toSave
+  }
+
   /**
    * Persist all currently connected peers to disk
    */
@@ -76,7 +101,10 @@ export class AddressManager {
         return []
       }
     })
+    const wsCandidates = this.webSocketCandidatesToSave()
+
     this.hostsStore.set('priorPeers', inUsePeerAddresses)
+    this.hostsStore.set('wsCandidates', wsCandidates)
     await this.hostsStore.save()
   }
 }

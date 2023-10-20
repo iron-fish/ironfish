@@ -1,9 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { DEFAULT_DATA_DIR, HostsOptions, HostsStore } from '../../fileStores'
+import { DEFAULT_DATA_DIR, HostsStore } from '../../fileStores'
 import { FileSystem } from '../../fileSystems'
-import { PeerAddress } from '../peers/peerAddress'
 
 /**
  * Utility to create a fake HostsStore for use in
@@ -84,14 +83,6 @@ class MockHostsStore extends HostsStore {
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   async save(): Promise<void> {}
-
-  getArray(key: keyof HostsOptions): PeerAddress[] {
-    return super.getArray(key)
-  }
-
-  set(key: keyof HostsOptions, val: PeerAddress[]): void {
-    super.set(key, val)
-  }
 }
 
 export function mockHostsStore(): MockHostsStore {

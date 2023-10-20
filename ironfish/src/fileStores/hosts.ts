@@ -3,16 +3,27 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { FileSystem } from '../fileSystems'
 import { createRootLogger, Logger } from '../logger'
+import { Identity } from '../network'
 import { PeerAddress } from '../network/peers/peerAddress'
 import { ParseJsonError } from '../utils/json'
 import { KeyStore } from './keyStore'
 
+export type WebSocketCandidate = {
+  address: string | null
+  port: number | null
+  identity: Identity | null
+  name: string | null
+  lastWebSocketConnectionTime: number | null
+}
+
 export type HostsOptions = {
   priorPeers: PeerAddress[]
+  wsCandidates: WebSocketCandidate[]
 }
 
 export const HostOptionsDefaults: HostsOptions = {
   priorPeers: [],
+  wsCandidates: [],
 }
 
 export const HOST_FILE_NAME = 'hosts.json'
