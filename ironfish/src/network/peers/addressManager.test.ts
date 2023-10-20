@@ -59,6 +59,32 @@ describe('AddressManager', () => {
     expect(addressManager.priorConnectedPeerAddresses.length).toEqual(1)
   })
 
+  it('If more than LIMIT, then only load LIMIT peers', () => {
+    const hostsStore = mockHostsStore()
+    const pm = new PeerManager(mockLocalPeer(), hostsStore)
+    const { peer: connectedPeer } = getConnectedPeer(pm)
+    const peerAddress = {
+      address: connectedPeer.address,
+      port: connectedPeer.port,
+      identity: connectedPeer.state.identity,
+      name: connectedPeer.name,
+      lastAddedTimestamp: Date.now(),
+    }
+    hostsStore.set(
+      'priorPeers',
+      Array.from({ length: 60 }, () => {
+        const randomIdentity = Math.random().toString(36).substring(7)
+        return {
+          ...peerAddress,
+          identity: randomIdentity,
+        }
+      }),
+    )
+
+    const addressManager = new AddressManager(hostsStore, pm)
+    expect(addressManager.priorConnectedPeerAddresses.length).toEqual(addressManager.LIMIT)
+  })
+
   it('addPeer should update peer timestamp if it is already in the address manager', () => {
     const now = Date.now()
     const newNow = now + 1000

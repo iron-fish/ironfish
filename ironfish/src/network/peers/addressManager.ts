@@ -27,13 +27,13 @@ export class AddressManager {
     // load prior peers from disk
     this.peerIdentityMap = new Map<string, PeerAddress>()
     const currentTime = Date.now()
-    const priorPeers = this.hostsStore.getArray('priorPeers')
+    let priorPeers = this.hostsStore.getArray('priorPeers')
 
     // If there are more than 200 peers, we remove
     // extra peers from the list. This should only happen during
     // the first time the node is started as this change is implemented.
     if (priorPeers.length > this.LIMIT) {
-      priorPeers.slice(0, this.LIMIT)
+      priorPeers = priorPeers.slice(0, this.LIMIT)
     }
 
     for (const peer of priorPeers) {
