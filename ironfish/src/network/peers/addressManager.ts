@@ -36,26 +36,15 @@ export class AddressManager {
 
     const currentPeerIdentities = new Set(peerIdentities)
 
-    const disconnectedPriorAddresses = this.filterConnectedIdentities(
-      this.priorConnectedPeerAddresses,
-      currentPeerIdentities,
+    const disconnectedPriorAddresses = this.priorConnectedPeerAddresses.filter(
+      (address) => address.identity !== null && !currentPeerIdentities.has(address.identity),
     )
+
     if (disconnectedPriorAddresses.length) {
       return ArrayUtils.sampleOrThrow(disconnectedPriorAddresses)
     }
 
     return null
-  }
-
-  private filterConnectedIdentities(
-    priorConnectedAddresses: readonly Readonly<PeerAddress>[],
-    connectedPeerIdentities: Set<string>,
-  ): PeerAddress[] {
-    const disconnectedAddresses = priorConnectedAddresses.filter(
-      (address) => address.identity !== null && !connectedPeerIdentities.has(address.identity),
-    )
-
-    return disconnectedAddresses
   }
 
   /**
