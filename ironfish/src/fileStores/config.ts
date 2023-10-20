@@ -460,7 +460,7 @@ export class Config extends KeyStore<ConfigOptions> {
       maxPeers: 50,
       confirmations: 2,
       minPeers: 1,
-      targetPeers: 50,
+      targetPeers: 45,
       telemetryApi: '',
       assetVerificationApi: '',
       generateNewIdentity: false,
