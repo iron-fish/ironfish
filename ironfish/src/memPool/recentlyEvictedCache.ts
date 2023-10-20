@@ -5,7 +5,7 @@ import Decimal from 'decimal.js'
 import { Logger } from '../logger'
 import { MetricsMonitor } from '../metrics'
 import { TransactionHash } from '../primitives/transaction'
-import { PriorityQueue } from './priorityQueue'
+import { PriorityQueue } from '../utils/priorityQueue/priorityQueue'
 
 interface EvictionQueueEntry {
   hash: TransactionHash
