@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { randomBytes, randomInt } from 'crypto'
-import { PriorityQueue } from './priorityQueue'
+import { PriorityQueue } from './'
 import { Action, heapSort, Return, SimpleQueue } from './priorityQueueTestHelpers'
 
 const compareStringNumber = (a: [string, number], b: [string, number]) => {
