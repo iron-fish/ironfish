@@ -12,7 +12,7 @@ import { MetricsMonitor } from '../metrics'
 import { getTransactionSize } from '../network/utils/serializers'
 import { Block, BlockHeader } from '../primitives'
 import { Transaction, TransactionHash } from '../primitives/transaction'
-import { PriorityQueue } from '../utils/priorityQueue/priorityQueue'
+import { PriorityQueue } from '../utils/priorityQueue'
 import { FeeEstimator, getPreciseFeeRate } from './feeEstimator'
 import { RecentlyEvictedCache } from './recentlyEvictedCache'
 
