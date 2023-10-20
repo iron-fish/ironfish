@@ -31,7 +31,16 @@ export class AddressManager {
     // load prior peers from disk
     this.peerIdentityMap = new Map<string, PeerAddress>()
     const currentTime = Date.now()
-    for (const peer of this.hostsStore.getArray('priorPeers')) {
+    const priorPeers = this.hostsStore.getArray('priorPeers')
+
+    // If there are more than 200 peers, we remove
+    // extra peers from the list. This should only happen during
+    // the first time the node is started as this change is implemented.
+    if (priorPeers.length > this.LIMIT) {
+      priorPeers.slice(0, this.LIMIT)
+    }
+
+    for (const peer of priorPeers) {
       if (peer.identity === null) {
         continue
       }
@@ -41,19 +50,6 @@ export class AddressManager {
       }
 
       this.peerIdentityMap.set(peer.identity, peer)
-    }
-
-    if (this.peerIdentityMap.size > this.LIMIT) {
-      this.logger.warn(
-        `Address manager loaded ${this.peerIdentityMap.size} peers, which is more than the limit of ${this.LIMIT}.`,
-      )
-      // remove the oldest peers
-      const oldestPeers = [...this.peerIdentityMap.entries()].sort(
-        (a, b) => a[1].lastAddedTimestamp - b[1].lastAddedTimestamp,
-      )
-      for (let i = 0; i < oldestPeers.length - this.LIMIT; i++) {
-        this.peerIdentityMap.delete(oldestPeers[i][0])
-      }
     }
 
     void this.save()
