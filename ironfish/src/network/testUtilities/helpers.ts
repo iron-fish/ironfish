@@ -104,9 +104,8 @@ export const getConnectedPeersWithSpies = (
 export function getConnectedPeer(
   pm: PeerManager,
   identity?: string | Identity,
-  direction: ConnectionDirection = ConnectionDirection.Outbound,
 ): { peer: Peer; connection: WebSocketConnection } {
-  const { peer, connection } = getConnectingPeer(pm, direction)
+  const { peer, connection } = getConnectingPeer(pm)
 
   if (!identity) {
     identity = jest.requireActual<typeof import('uuid')>('uuid').v4()
