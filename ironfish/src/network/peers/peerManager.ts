@@ -811,30 +811,6 @@ export class PeerManager {
     }
   }
 
-  /**
-   * Gets a random disconnected peer address and returns a peer created from
-   * said address
-   */
-  createRandomDisconnectedPeer(): Peer | null {
-    const connectedPeers = Array.from(this.identifiedPeers.values()).flatMap((peer) => {
-      if (peer.state.type !== 'DISCONNECTED' && peer.state.identity !== null) {
-        return peer.state.identity
-      } else {
-        return []
-      }
-    })
-
-    const peerAddress = this.addressManager.getRandomDisconnectedPeerAddress(connectedPeers)
-    if (!peerAddress) {
-      return null
-    }
-
-    const peer = this.getOrCreatePeer(peerAddress.identity)
-    peer.setWebSocketAddress(peerAddress.address, peerAddress.port)
-    peer.name = peerAddress.name || null
-    return peer
-  }
-
   private disposePeers(): void {
     for (const p of this.peers) {
       this.tryDisposePeer(p)

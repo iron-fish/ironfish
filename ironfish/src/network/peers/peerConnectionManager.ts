@@ -104,15 +104,6 @@ export class PeerConnectionManager {
       }
     }
 
-    if (connectAttempts < CONNECT_ATTEMPTS_MAX && this.peerManager.canCreateNewConnections()) {
-      const peer = this.peerManager.createRandomDisconnectedPeer()
-      if (peer && this.connectToEligiblePeers(peer)) {
-        connectAttempts++
-      } else if (peer) {
-        this.peerManager.tryDisposePeer(peer)
-      }
-    }
-
     this.eventLoopTimer = setTimeout(() => this.eventLoop(), EVENT_LOOP_MS)
   }
 

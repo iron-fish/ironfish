@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { HostsStore } from '../../fileStores'
-import { ArrayUtils } from '../../utils'
 import { Identity } from '../identity'
 import { Peer } from '../peers/peer'
 import { ConnectionDirection } from './connections'
@@ -54,29 +53,6 @@ export class AddressManager {
 
   get priorConnectedPeerAddresses(): ReadonlyArray<Readonly<PeerAddress>> {
     return [...this.peerIdentityMap.values()]
-  }
-
-  /**
-   * Returns a peer address for a disconnected peer by using current peers to
-   * filter out peer addresses. It attempts to find a previously-connected
-   * peer address that is not part of an active connection.
-   */
-  getRandomDisconnectedPeerAddress(peerIdentities: string[]): PeerAddress | null {
-    if (this.priorConnectedPeerAddresses.length === 0) {
-      return null
-    }
-
-    const currentPeerIdentities = new Set(peerIdentities)
-
-    const disconnectedPriorAddresses = this.priorConnectedPeerAddresses.filter(
-      (address) => address.identity !== null && !currentPeerIdentities.has(address.identity),
-    )
-
-    if (disconnectedPriorAddresses.length) {
-      return ArrayUtils.sampleOrThrow(disconnectedPriorAddresses)
-    }
-
-    return null
   }
 
   /**

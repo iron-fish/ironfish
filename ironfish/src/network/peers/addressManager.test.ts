@@ -18,32 +18,20 @@ import { PeerManager } from './peerManager'
 jest.useFakeTimers()
 
 describe('AddressManager', () => {
-  it('constructor loads addresses from HostsStore', () => {
-    const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
-    const addressManager = new AddressManager(mockHostsStore(), pm)
-    addressManager.hostsStore = mockHostsStore()
-    expect(addressManager.priorConnectedPeerAddresses).toMatchObject([
-      {
-        address: '127.0.0.1',
-        port: 9999,
-      },
-    ])
-  })
-
   it('removePeerAddress should remove a peer address', () => {
     const hostsStore = mockHostsStore()
     const localPeer = mockLocalPeer()
     const pm = new PeerManager(localPeer, hostsStore)
     const addressManager = new AddressManager(hostsStore, pm)
-    expect(addressManager.priorConnectedPeerAddresses.length).toEqual(1)
+    expect(addressManager.priorConnectedPeerAddresses.length).toEqual(0)
     const { peer: peer1 } = getConnectedPeer(pm)
     addressManager.addPeer(peer1)
-    expect(addressManager.priorConnectedPeerAddresses.length).toEqual(2)
-    addressManager.removePeer(peer1)
     expect(addressManager.priorConnectedPeerAddresses.length).toEqual(1)
+    addressManager.removePeer(peer1)
+    expect(addressManager.priorConnectedPeerAddresses.length).toEqual(0)
   })
 
-  it('getRandomDisconnectedPeer should return a randomly-sampled disconnected peer', () => {
+  it('only connected peers get added to the address manager', () => {
     const now = Date.now()
     Date.now = jest.fn(() => now)
 
@@ -53,52 +41,45 @@ describe('AddressManager', () => {
     const { peer: connectedPeer } = getConnectedPeer(pm)
     const { peer: connectingPeer } = getConnectingPeer(pm)
     const disconnectedPeer = getDisconnectedPeer(pm)
-    const nonDisconnectedPeers: Peer[] = [connectedPeer, connectingPeer]
+    const allPeers: Peer[] = [connectedPeer, connectingPeer, disconnectedPeer]
 
-    for (const peer of [...nonDisconnectedPeers, disconnectedPeer]) {
+    for (const peer of allPeers) {
       addressManager.addPeer(peer)
     }
 
-    const nonDisconnectedIdentities = nonDisconnectedPeers.flatMap((peer) => {
-      if (peer.state.type !== 'DISCONNECTED' && peer.state.identity !== null) {
-        return peer.state.identity
-      } else {
-        return []
-      }
-    })
-
-    const sample = addressManager.getRandomDisconnectedPeerAddress(nonDisconnectedIdentities)
-    expect(sample).not.toBeNull()
-    if (sample !== null) {
-      expect(addressManager.priorConnectedPeerAddresses).toContainEqual(sample)
-      expect(sample.address).toEqual(disconnectedPeer.address)
-      expect(sample.port).toEqual(disconnectedPeer.port)
+    const connectedPeerAddress = {
+      address: connectedPeer.address,
+      port: connectedPeer.port,
+      identity: connectedPeer.state.identity,
+      name: connectedPeer.name,
+      lastAddedTimestamp: now,
     }
+
+    expect(addressManager.priorConnectedPeerAddresses).toContainEqual(connectedPeerAddress)
+    expect(addressManager.priorConnectedPeerAddresses.length).toEqual(1)
   })
 
-  describe('save', () => {
-    it('save should persist connected peers', () => {
-      // mock Date.now()
-      const now = Date.now()
-      Date.now = jest.fn(() => now)
+  it('save should persist connected peers', () => {
+    // mock Date.now()
+    const now = Date.now()
+    Date.now = jest.fn(() => now)
 
-      const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
-      const addressManager = new AddressManager(mockHostsStore(), pm)
-      addressManager.hostsStore = mockHostsStore()
-      const { peer: connectedPeer } = getConnectedPeer(pm)
-      getConnectingPeer(pm)
-      getDisconnectedPeer(pm)
+    const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
+    const addressManager = new AddressManager(mockHostsStore(), pm)
+    addressManager.hostsStore = mockHostsStore()
+    const { peer: connectedPeer } = getConnectedPeer(pm)
+    getConnectingPeer(pm)
+    getDisconnectedPeer(pm)
 
-      const address: PeerAddress = {
-        address: connectedPeer.address,
-        port: connectedPeer.port,
-        identity: connectedPeer.state.identity,
-        name: connectedPeer.name,
-        lastAddedTimestamp: now,
-      }
+    const address: PeerAddress = {
+      address: connectedPeer.address,
+      port: connectedPeer.port,
+      identity: connectedPeer.state.identity,
+      name: connectedPeer.name,
+      lastAddedTimestamp: now,
+    }
 
-      addressManager.addPeer(connectedPeer)
-      expect(addressManager.priorConnectedPeerAddresses).toContainEqual(address)
-    })
+    addressManager.addPeer(connectedPeer)
+    expect(addressManager.priorConnectedPeerAddresses).toContainEqual(address)
   })
 })

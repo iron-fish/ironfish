@@ -69,15 +69,7 @@ class MockFileSystem extends FileSystem {
 class MockHostsStore extends HostsStore {
   constructor() {
     super(new MockFileSystem(), DEFAULT_DATA_DIR)
-    super.set('priorPeers', [
-      {
-        address: '127.0.0.1',
-        port: 9999,
-        identity: 'defaultPeer',
-        name: null,
-        lastAddedTimestamp: Date.now(),
-      },
-    ])
+    super.set('priorPeers', [])
   }
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
