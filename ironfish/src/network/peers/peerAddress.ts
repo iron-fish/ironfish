@@ -4,9 +4,9 @@
 import { Identity } from '../identity'
 
 export type PeerAddress = {
-  address: string | null
-  port: number | null
-  identity: Identity | null
+  address: string
+  port: number
+  identity: Identity
   name: string | null
   lastAddedTimestamp: number
 }

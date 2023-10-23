@@ -37,13 +37,15 @@ export class AddressManager {
     }
 
     for (const peer of priorPeers) {
-      if (peer.identity === null) {
+      if (peer.identity === null || peer.address === null || peer.port === null) {
         continue
       }
 
       // Backwards compatible change: if lastAddedTimestamp is undefined or null,
       // set it to the current time.
-      peer.lastAddedTimestamp = peer.lastAddedTimestamp || currentTime
+      if (peer.lastAddedTimestamp === undefined) {
+        peer.lastAddedTimestamp = currentTime
+      }
 
       this.peerIdentityMap.set(peer.identity, peer)
     }
@@ -75,6 +77,10 @@ export class AddressManager {
    */
   addPeer(peer: Peer): void {
     if (peer.state.identity === null || peer.state.type !== 'CONNECTED') {
+      return
+    }
+
+    if (peer.address === null || peer.port === null) {
       return
     }
 

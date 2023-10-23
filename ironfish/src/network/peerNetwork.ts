@@ -360,18 +360,9 @@ export class PeerNetwork {
     }
 
     for (const peerAddress of this.peerManager.addressManager.priorConnectedPeerAddresses) {
-      if (!peerAddress.address || !peerAddress.port) {
-        continue
-      }
-      this.logger.debug(
-        `Connecting to peer with identity: ${peerAddress.identity ?? 'none'} and name: ${
-          peerAddress.name ?? 'none'
-        } at address: ${peerAddress.address}:${peerAddress.port}`,
-      )
       this.peerManager.connectToWebSocketAddress({
         host: peerAddress.address,
         port: peerAddress.port,
-        whitelist: true,
       })
     }
   }
