@@ -5,7 +5,7 @@ import { BufferMap } from 'buffer-map'
 import { Assert } from '../../../assert'
 import { useAccountFixture, useBlockWithTx } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
-import { AsyncUtils, CurrencyUtils } from '../../../utils'
+import { AsyncUtils, BufferUtils, CurrencyUtils } from '../../../utils'
 import { DecryptedNoteValue } from '../../../wallet/walletdb/decryptedNoteValue'
 
 describe('Route wallet/getAccountNotesStream', () => {
@@ -46,7 +46,7 @@ describe('Route wallet/getAccountNotesStream', () => {
 
       expect(note.value).toEqual(CurrencyUtils.encode(expectedNote.note.value()))
       expect(note.assetId).toEqual(expectedNote.note.assetId().toString('hex'))
-      expect(note.memo).toEqual(expectedNote.note.memo())
+      expect(note.memo).toEqual(BufferUtils.toHuman(expectedNote.note.memo()))
       expect(note.sender).toEqual(expectedNote.note.sender())
       expect(note.owner).toEqual(expectedNote.note.owner())
       expect(note.noteHash).toEqual(expectedNote.note.hash().toString('hex'))
