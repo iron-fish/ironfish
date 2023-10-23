@@ -10,7 +10,6 @@ export class UseCommand extends IronfishCommand {
   static args = [
     {
       name: 'account',
-      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: true,
       description: 'Name of the account',
     },
