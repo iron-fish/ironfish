@@ -244,12 +244,13 @@ export class Syncer {
       candidateCheckCount += 1
     }
 
+    if (peerRtt.size === 0) {
+      return
+    }
+
     // Sort the peers by the round-trip-time of the block header request and get
     // the fastest one to sync from
     const fastestCandidateIdentity = [...peerRtt.entries()].sort((a, b) => a[1] - b[1])[0][0]
-    if (!fastestCandidateIdentity) {
-      return
-    }
     const peer = this.peerNetwork.peerManager.getPeer(fastestCandidateIdentity)
 
     const measurementTime = BenchUtils.end(measurementStart)
