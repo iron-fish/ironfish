@@ -46,7 +46,6 @@ export class ListCommand extends IronfishCommand {
       char: 'n',
       default: false,
       description: 'Display node names',
-      hidden: true,
     }),
     features: Flags.boolean({
       default: false,
