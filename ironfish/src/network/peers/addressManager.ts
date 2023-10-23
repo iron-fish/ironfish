@@ -25,7 +25,17 @@ export class AddressManager {
     // load prior peers from disk
     this.peerIdentityMap = new Map<string, PeerAddress>()
     const currentTime = Date.now()
-    let priorPeers = this.hostsStore.getArray('priorPeers')
+    let priorPeers = this.hostsStore.getArray('priorPeers').filter((peer) => {
+      if (peer.identity === null || peer.address === null || peer.port === null) {
+        return false
+      }
+      // Backwards compatible change: if lastAddedTimestamp is undefined or null,
+      // set it to the current time.
+      if (peer.lastAddedTimestamp === undefined) {
+        peer.lastAddedTimestamp = currentTime
+      }
+      return true
+    })
 
     // If there are more than 50 peers, we remove
     // extra peers from the list. This should only happen during
@@ -35,16 +45,6 @@ export class AddressManager {
     }
 
     for (const peer of priorPeers) {
-      if (peer.identity === null || peer.address === null || peer.port === null) {
-        continue
-      }
-
-      // Backwards compatible change: if lastAddedTimestamp is undefined or null,
-      // set it to the current time.
-      if (peer.lastAddedTimestamp === undefined) {
-        peer.lastAddedTimestamp = currentTime
-      }
-
       this.peerIdentityMap.set(peer.identity, peer)
     }
 
