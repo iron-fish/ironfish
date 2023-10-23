@@ -27,6 +27,7 @@ const SYNCER_TICK_MS = 10 * 1000
 const LINEAR_ANCESTOR_SEARCH = 3
 const REQUEST_BLOCKS_PER_MESSAGE = 20
 const MAX_MEASUREMENT_DELTA = 60 * 60 * 1000
+const CANDIDATES_PER_MEASUREMENT = 8
 
 class AbortSyncingError extends Error {
   name = this.constructor.name
@@ -198,7 +199,6 @@ export class Syncer {
 
     // Measure how long it takes to fetch the genesis block header from each
     // peer as an estimate of connection quality
-    let candidateCheckCount = 0
     for (const peer of syncCandidates) {
       if (this.state === 'stopped' || this.state === 'stopping') {
         return
@@ -206,7 +206,7 @@ export class Syncer {
 
       // We only want to successfully measure so many candidates per measurement
       // phase
-      if (candidateCheckCount >= 8) {
+      if (peerRtt.size >= CANDIDATES_PER_MEASUREMENT) {
         break
       }
 
@@ -239,7 +239,6 @@ export class Syncer {
       }
       const rtt = BenchUtils.end(start)
       peerRtt.set(peerIdentity, rtt)
-      candidateCheckCount += 1
     }
 
     if (peerRtt.size === 0) {
