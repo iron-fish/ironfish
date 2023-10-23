@@ -24,7 +24,7 @@ export class AddressManager {
     this.peerManager = peerManager
     // load prior peers from disk
     this.peerIdentityMap = new Map<string, PeerAddress>()
-    const currentTime = Date.now()
+
     let priorPeers = this.hostsStore.getArray('priorPeers').filter((peer) => {
       if (peer.identity === null || peer.address === null || peer.port === null) {
         return false
@@ -32,7 +32,7 @@ export class AddressManager {
       // Backwards compatible change: if lastAddedTimestamp is undefined or null,
       // set it to the current time.
       if (peer.lastAddedTimestamp === undefined) {
-        peer.lastAddedTimestamp = currentTime
+        peer.lastAddedTimestamp = 0
       }
       return true
     })
@@ -95,6 +95,7 @@ export class AddressManager {
       peerAddress.port = peer.port
       peerAddress.lastAddedTimestamp = Date.now()
       this.peerIdentityMap.set(peer.state.identity, peerAddress)
+      void this.save()
       return
     }
 
