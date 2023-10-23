@@ -74,15 +74,12 @@ export class AddressManager {
    * 3. Peer has an outbound websocket connection
    */
   addPeer(peer: Peer): void {
-    if (peer.state.identity === null || peer.state.type !== 'CONNECTED') {
-      return
-    }
-
-    if (peer.address === null || peer.port === null) {
+    if (peer.state.identity === null || peer.address === null || peer.port === null) {
       return
     }
 
     if (
+      peer.state.type !== 'CONNECTED' ||
       !peer.state.connections.webSocket ||
       peer.state.connections.webSocket.direction === ConnectionDirection.Inbound
     ) {
