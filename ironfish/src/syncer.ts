@@ -181,18 +181,16 @@ export class Syncer {
       return
     }
 
-    const syncCandidates = ArrayUtils.shuffle(peers)
+    let syncCandidates = ArrayUtils.shuffle(peers)
 
     // If we have been syncing from a peer, we want to include this peer in the
     // measurement. This will allow us to maintain a connection to a strong peer
     // if we have found one.
-    if (
-      currentPeerIdentity &&
-      !syncCandidates.find((p) => p.state.identity === currentPeerIdentity)
-    ) {
+    if (currentPeerIdentity) {
       const currentPeer = this.peerNetwork.peerManager.getPeer(currentPeerIdentity)
-      if (currentPeer && currentPeer.state.type === 'CONNECTED') {
-        syncCandidates.push(currentPeer)
+      if (currentPeer) {
+        syncCandidates = syncCandidates.filter((p) => p.state.identity !== currentPeerIdentity)
+        syncCandidates.unshift(currentPeer)
       }
     }
 
