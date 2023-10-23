@@ -142,7 +142,7 @@ export class Syncer {
         // in-flight requests
         this.state = 'measuring'
         if (this.loader) {
-          this.lastLoaderIdentity = this.loader.identity
+          this.lastLoaderIdentity = this.loader.state.identity
           await this.wait()
         }
         break
@@ -188,7 +188,7 @@ export class Syncer {
     // if we have found one.
     if (
       currentPeerIdentity &&
-      !syncCandidates.find((p) => p.identity === currentPeerIdentity)
+      !syncCandidates.find((p) => p.state.identity === currentPeerIdentity)
     ) {
       const currentPeer = this.peerNetwork.peerManager.getPeer(currentPeerIdentity)
       if (currentPeer && currentPeer.state.type === 'CONNECTED') {

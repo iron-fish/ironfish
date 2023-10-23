@@ -82,10 +82,6 @@ export class Peer {
     return this._state
   }
 
-  get identity(): Identity | null {
-    return this.state.identity
-  }
-
   get isSaturated(): boolean {
     return this.pendingRPC >= this.pendingRPCMax
   }
