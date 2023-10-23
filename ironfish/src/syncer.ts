@@ -206,7 +206,7 @@ export class Syncer {
 
       // We only want to successfully measure so many candidates per measurement
       // phase
-      if (candidateCheckCount > 8) {
+      if (candidateCheckCount >= 8) {
         break
       }
 
