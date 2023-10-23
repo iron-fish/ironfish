@@ -359,6 +359,7 @@ export class PeerNetwork {
       })
     }
 
+    // Connect to prior websocket outbound connections that were saved to disk
     for (const peerAddress of this.peerManager.addressManager.priorConnectedPeerAddresses) {
       this.peerManager.connectToWebSocketAddress({
         host: peerAddress.address,
