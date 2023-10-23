@@ -10,7 +10,6 @@ import {
   RANDOMNESS_LENGTH,
 } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
-import { BufferUtils } from '../utils/buffer'
 import { NoteEncryptedHash } from './noteEncrypted'
 
 export class Note {
@@ -89,8 +88,8 @@ export class Note {
     return this._sender
   }
 
-  memo(): string {
-    return BufferUtils.toHuman(this._memo)
+  memo(): Buffer {
+    return this._memo
   }
 
   assetId(): Buffer {

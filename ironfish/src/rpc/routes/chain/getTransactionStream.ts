@@ -7,7 +7,7 @@ import { ChainProcessor } from '../../../chainProcessor'
 import { FullNode } from '../../../node'
 import { Block } from '../../../primitives/block'
 import { BlockHeader } from '../../../primitives/blockheader'
-import { CurrencyUtils } from '../../../utils'
+import { BufferUtils, CurrencyUtils } from '../../../utils'
 import { PromiseUtils } from '../../../utils/promise'
 import { isValidIncomingViewKey } from '../../../wallet/validator'
 import { ValidationError } from '../../adapters/errors'
@@ -138,7 +138,7 @@ routes.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
             const assetValue = await node.chain.getAssetById(decryptedNote.assetId())
             notes.push({
               value: CurrencyUtils.encode(decryptedNote.value()),
-              memo: decryptedNote.memo(),
+              memo: BufferUtils.toHuman(decryptedNote.memo()),
               assetId: decryptedNote.assetId().toString('hex'),
               assetName: assetValue?.name.toString('hex') || '',
               hash: decryptedNote.hash().toString('hex'),
