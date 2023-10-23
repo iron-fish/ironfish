@@ -18,7 +18,7 @@ import { PeerManager } from './peerManager'
 jest.useFakeTimers()
 
 describe('AddressManager', () => {
-  it('removePeerAddress should remove a peer address', () => {
+  it('removePeer should remove a peer address', () => {
     const hostsStore = mockHostsStore()
     const localPeer = mockLocalPeer()
     const pm = new PeerManager(localPeer, hostsStore)
@@ -167,7 +167,7 @@ describe('AddressManager', () => {
     })
   })
 
-  it('save should persist connected peers', () => {
+  it('save should persist connected peers', async () => {
     // mock Date.now()
     const now = Date.now()
     Date.now = jest.fn(() => now)
@@ -189,6 +189,7 @@ describe('AddressManager', () => {
     }
 
     addressManager.addPeer(connectedPeer)
+    await addressManager.save()
     expect(addressManager.priorConnectedPeerAddresses).toContainEqual(address)
   })
 })
