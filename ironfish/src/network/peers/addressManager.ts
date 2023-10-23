@@ -13,8 +13,6 @@ import { PeerManager } from './peerManager'
  * and provides functionality for persistence of said data.
  */
 export class AddressManager {
-  // we want a number that is larger than the steady state number of peers
-  // we connect to (max peers is 50).
   LIMIT = 50
 
   hostsStore: HostsStore
@@ -29,9 +27,9 @@ export class AddressManager {
     const currentTime = Date.now()
     let priorPeers = this.hostsStore.getArray('priorPeers')
 
-    // If there are more than 200 peers, we remove
+    // If there are more than 50 peers, we remove
     // extra peers from the list. This should only happen during
-    // the first time the node is started as this change is implemented.
+    // the first time the node is started after this change is implemented.
     if (priorPeers.length > this.LIMIT) {
       priorPeers = priorPeers.slice(0, this.LIMIT)
     }
@@ -93,8 +91,11 @@ export class AddressManager {
 
     const peerAddress = this.peerIdentityMap.get(peer.state.identity)
 
-    // if the peer is already in the address manager, update the timestamp
+    // if the peer is already in the address manager, update the timestamp,
+    // address and port
     if (peerAddress) {
+      peerAddress.address = peer.address
+      peerAddress.port = peer.port
       peerAddress.lastAddedTimestamp = Date.now()
       this.peerIdentityMap.set(peer.state.identity, peerAddress)
       return

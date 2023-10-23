@@ -64,8 +64,8 @@ describe('AddressManager', () => {
     const pm = new PeerManager(mockLocalPeer(), hostsStore)
     const { peer: connectedPeer } = getConnectedPeer(pm)
     const peerAddress = {
-      address: connectedPeer.address,
-      port: connectedPeer.port,
+      address: connectedPeer.address || '',
+      port: connectedPeer.port || 0,
       identity: connectedPeer.state.identity,
       name: connectedPeer.name,
       lastAddedTimestamp: Date.now(),
@@ -181,9 +181,9 @@ describe('AddressManager', () => {
     getDisconnectedPeer(pm)
 
     const address: PeerAddress = {
-      address: connectedPeer.address,
-      port: connectedPeer.port,
-      identity: connectedPeer.state.identity,
+      address: connectedPeer.address || '',
+      port: connectedPeer.port || 0,
+      identity: connectedPeer.state.identity || '',
       name: connectedPeer.name,
       lastAddedTimestamp: now,
     }
