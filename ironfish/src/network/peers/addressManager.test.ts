@@ -10,7 +10,7 @@ import {
   mockHostsStore,
   mockLocalPeer,
 } from '../testUtilities'
-import { AddressManager } from './addressManager'
+import { AddressManager, MAX_PEER_ADDRESSES } from './addressManager'
 import { Peer } from './peer'
 import { PeerAddress } from './peerAddress'
 import { PeerManager } from './peerManager'
@@ -59,7 +59,7 @@ describe('AddressManager', () => {
     expect(addressManager.priorConnectedPeerAddresses.length).toEqual(1)
   })
 
-  it('if more than LIMIT, then only load LIMIT peers', () => {
+  it('if more than MAX_PEER_ADDRESSES, then only load MAX_PEER_ADDRESSES peers', () => {
     const hostsStore = mockHostsStore()
     const pm = new PeerManager(mockLocalPeer(), hostsStore)
     const { peer: connectedPeer } = getConnectedPeer(pm)
@@ -82,7 +82,7 @@ describe('AddressManager', () => {
     )
 
     const addressManager = new AddressManager(hostsStore, pm)
-    expect(addressManager.priorConnectedPeerAddresses.length).toEqual(addressManager.LIMIT)
+    expect(addressManager.priorConnectedPeerAddresses.length).toEqual(MAX_PEER_ADDRESSES)
   })
 
   it('addPeer should remove the oldest peer if the address manager is full', () => {
@@ -133,7 +133,7 @@ describe('AddressManager', () => {
       } as Peer)
     }
 
-    expect(addressManager.priorConnectedPeerAddresses.length).toEqual(addressManager.LIMIT)
+    expect(addressManager.priorConnectedPeerAddresses.length).toEqual(MAX_PEER_ADDRESSES)
     expect(addressManager.priorConnectedPeerAddresses).toContainEqual(newPeerAddress)
     // The oldest peer should have been removed
     expect(addressManager.priorConnectedPeerAddresses).not.toContainEqual(oldestPeerAddress)

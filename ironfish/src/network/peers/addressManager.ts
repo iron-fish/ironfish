@@ -8,13 +8,13 @@ import { ConnectionDirection } from './connections'
 import { PeerAddress } from './peerAddress'
 import { PeerManager } from './peerManager'
 
+export const MAX_PEER_ADDRESSES = 50
+
 /**
  * AddressManager stores the necessary data for connecting to new peers
  * and provides functionality for persistence of said data.
  */
 export class AddressManager {
-  LIMIT = 50
-
   hostsStore: HostsStore
   peerManager: PeerManager
   private peerIdentityMap: Map<Identity, PeerAddress>
@@ -40,8 +40,8 @@ export class AddressManager {
     // If there are more than 50 peers, we remove
     // extra peers from the list. This should only happen during
     // the first time the node is started after this change is implemented.
-    if (priorPeers.length > this.LIMIT) {
-      priorPeers = priorPeers.slice(0, this.LIMIT)
+    if (priorPeers.length > MAX_PEER_ADDRESSES) {
+      priorPeers = priorPeers.slice(0, MAX_PEER_ADDRESSES)
     }
 
     for (const peer of priorPeers) {
@@ -100,7 +100,7 @@ export class AddressManager {
     }
 
     // If the address manager is full, remove the oldest peer
-    if (this.peerIdentityMap.size >= this.LIMIT) {
+    if (this.peerIdentityMap.size >= MAX_PEER_ADDRESSES) {
       const oldestPeerIdentity = [...this.peerIdentityMap.entries()].sort(
         (a, b) => a[1].lastAddedTimestamp - b[1].lastAddedTimestamp,
       )[0][0]
