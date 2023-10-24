@@ -59,7 +59,7 @@ describe('AddressManager', () => {
     expect(addressManager.priorConnectedPeerAddresses.length).toEqual(1)
   })
 
-  it('If more than LIMIT, then only load LIMIT peers', () => {
+  it('if more than LIMIT, then only load LIMIT peers', () => {
     const hostsStore = mockHostsStore()
     const pm = new PeerManager(mockLocalPeer(), hostsStore)
     const { peer: connectedPeer } = getConnectedPeer(pm)
