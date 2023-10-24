@@ -15,12 +15,10 @@ export const MAX_PEER_ADDRESSES = 50
  */
 export class AddressManager {
   hostsStore: HostsStore
-
   private peerIdentityMap: Map<Identity, PeerAddress>
 
   constructor(hostsStore: HostsStore) {
     this.hostsStore = hostsStore
-
     // Load prior peers from disk
     this.peerIdentityMap = new Map<string, PeerAddress>()
 
