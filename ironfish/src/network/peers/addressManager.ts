@@ -22,7 +22,7 @@ export class AddressManager {
   constructor(hostsStore: HostsStore, peerManager: PeerManager) {
     this.hostsStore = hostsStore
     this.peerManager = peerManager
-    // load prior peers from disk
+    // Load prior peers from disk
     this.peerIdentityMap = new Map<string, PeerAddress>()
 
     let priorPeers = this.hostsStore.getArray('priorPeers').filter((peer) => {
