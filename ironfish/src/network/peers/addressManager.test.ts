@@ -19,15 +19,39 @@ jest.useFakeTimers()
 
 describe('AddressManager', () => {
   it('removePeer should remove a peer address', () => {
+    const now = Date.now()
+    Date.now = jest.fn(() => now)
     const hostsStore = mockHostsStore()
     const localPeer = mockLocalPeer()
     const pm = new PeerManager(localPeer, hostsStore)
     const addressManager = new AddressManager(hostsStore, pm)
+
     expect(addressManager.priorConnectedPeerAddresses.length).toEqual(0)
+
     const { peer: peer1 } = getConnectedPeer(pm)
     addressManager.addPeer(peer1)
+
     expect(addressManager.priorConnectedPeerAddresses.length).toEqual(1)
+
+    const { peer: peer2 } = getConnectedPeer(pm)
+    addressManager.addPeer(peer2)
+
+    expect(addressManager.priorConnectedPeerAddresses.length).toEqual(2)
+
     addressManager.removePeer(peer1)
+    expect(addressManager.priorConnectedPeerAddresses.length).toEqual(1)
+
+    const peer2Address = {
+      address: peer2.address,
+      port: peer2.port,
+      identity: peer2.state.identity,
+      name: peer2.name,
+      lastAddedTimestamp: Date.now(),
+    }
+
+    expect(addressManager.priorConnectedPeerAddresses).toContainEqual(peer2Address)
+
+    addressManager.removePeer(peer2)
     expect(addressManager.priorConnectedPeerAddresses.length).toEqual(0)
   })
 
