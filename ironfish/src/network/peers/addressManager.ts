@@ -2,10 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { HostsStore } from '../../fileStores'
-import { ArrayUtils } from '../../utils'
+import { Identity } from '../identity'
 import { Peer } from '../peers/peer'
+import { ConnectionDirection } from './connections'
 import { PeerAddress } from './peerAddress'
 import { PeerManager } from './peerManager'
+
+export const MAX_PEER_ADDRESSES = 50
 
 /**
  * AddressManager stores the necessary data for connecting to new peers
@@ -14,69 +17,103 @@ import { PeerManager } from './peerManager'
 export class AddressManager {
   hostsStore: HostsStore
   peerManager: PeerManager
+  private peerIdentityMap: Map<Identity, PeerAddress>
 
   constructor(hostsStore: HostsStore, peerManager: PeerManager) {
     this.hostsStore = hostsStore
     this.peerManager = peerManager
+    // Load prior peers from disk
+    this.peerIdentityMap = new Map<string, PeerAddress>()
+
+    let priorPeers = this.hostsStore.getArray('priorPeers').filter((peer) => {
+      if (peer.identity === null || peer.address === null || peer.port === null) {
+        return false
+      }
+
+      peer.lastAddedTimestamp = peer.lastAddedTimestamp ?? 0
+
+      return true
+    })
+
+    if (priorPeers.length > MAX_PEER_ADDRESSES) {
+      priorPeers = priorPeers.slice(0, MAX_PEER_ADDRESSES)
+    }
+
+    for (const peer of priorPeers) {
+      this.peerIdentityMap.set(peer.identity, peer)
+    }
   }
 
   get priorConnectedPeerAddresses(): ReadonlyArray<Readonly<PeerAddress>> {
-    return this.hostsStore.getArray('priorPeers')
-  }
-
-  /**
-   * Returns a peer address for a disconnected peer by using current peers to
-   * filter out peer addresses. It attempts to find a previously-connected
-   * peer address that is not part of an active connection.
-   */
-  getRandomDisconnectedPeerAddress(peerIdentities: string[]): PeerAddress | null {
-    if (this.priorConnectedPeerAddresses.length === 0) {
-      return null
-    }
-
-    const currentPeerIdentities = new Set(peerIdentities)
-
-    const disconnectedPriorAddresses = this.priorConnectedPeerAddresses.filter(
-      (address) => address.identity !== null && !currentPeerIdentities.has(address.identity),
-    )
-    if (disconnectedPriorAddresses.length) {
-      return ArrayUtils.sampleOrThrow(disconnectedPriorAddresses)
-    }
-
-    return null
+    return [...this.peerIdentityMap.values()]
   }
 
   /**
    * Removes address associated with a peer from address stores
    */
-  removePeerAddress(peer: Peer): void {
-    const filteredPriorConnected = this.priorConnectedPeerAddresses.filter(
-      (prior) => prior.identity !== peer.state.identity,
-    )
+  async removePeer(peer: Peer): Promise<void> {
+    if (peer.state.identity === null) {
+      return
+    }
 
-    this.hostsStore.set('priorPeers', filteredPriorConnected)
+    this.peerIdentityMap.delete(peer.state.identity)
+    await this.save()
   }
 
   /**
-   * Persist all currently connected peers to disk
+   * Adds a peer with the following conditions:
+   * 1. Peer is connected
+   * 2. Identity is valid
+   * 3. Peer has an outbound websocket connection
    */
-  async save(): Promise<void> {
-    // TODO: Ideally, we would like persist peers with whom we've
-    // successfully established an outbound Websocket connection at
-    // least once.
-    const inUsePeerAddresses: PeerAddress[] = this.peerManager.peers.flatMap((peer) => {
-      if (peer.state.type === 'CONNECTED') {
-        return {
-          address: peer.address,
-          port: peer.port,
-          identity: peer.state.identity ?? null,
-          name: peer.name ?? null,
-        }
-      } else {
-        return []
-      }
+  async addPeer(peer: Peer): Promise<void> {
+    if (peer.state.identity === null || peer.address === null || peer.port === null) {
+      return
+    }
+
+    if (
+      peer.state.type !== 'CONNECTED' ||
+      !peer.state.connections.webSocket ||
+      peer.state.connections.webSocket.direction !== ConnectionDirection.Outbound
+    ) {
+      return
+    }
+
+    const peerAddress = this.peerIdentityMap.get(peer.state.identity)
+
+    // If the peer is already in the address manager, update the timestamp,
+    // address and port
+    if (peerAddress) {
+      peerAddress.address = peer.address
+      peerAddress.port = peer.port
+      peerAddress.lastAddedTimestamp = Date.now()
+      this.peerIdentityMap.set(peer.state.identity, peerAddress)
+      await this.save()
+      return
+    }
+
+    // If the address manager is full, remove the oldest peer
+    if (this.peerIdentityMap.size >= MAX_PEER_ADDRESSES) {
+      const oldestPeerIdentity = [...this.peerIdentityMap.entries()].sort(
+        (a, b) => a[1].lastAddedTimestamp - b[1].lastAddedTimestamp,
+      )[0][0]
+
+      this.peerIdentityMap.delete(oldestPeerIdentity)
+    }
+
+    this.peerIdentityMap.set(peer.state.identity, {
+      address: peer.address,
+      port: peer.port,
+      identity: peer.state.identity,
+      name: peer.name ?? null,
+      lastAddedTimestamp: Date.now(),
     })
-    this.hostsStore.set('priorPeers', inUsePeerAddresses)
+
+    await this.save()
+  }
+
+  async save(): Promise<void> {
+    this.hostsStore.set('priorPeers', [...this.peerIdentityMap.values()])
     await this.hostsStore.save()
   }
 }

@@ -743,6 +743,7 @@ export class PeerManager {
 
     peer.onStateChanged.on(({ prevState }) => {
       if (prevState.type !== 'CONNECTED' && peer.state.type === 'CONNECTED') {
+        void this.addressManager.addPeer(peer)
         this.peerCandidates.addFromPeer(peer)
         this.onConnect.emit(peer)
         this.onConnectedPeersChanged.emit()
@@ -762,7 +763,10 @@ export class PeerManager {
       }
     })
 
-    peer.onBanned.on((reason) => this.banPeer(peer, reason))
+    peer.onBanned.on((reason) => {
+      void this.addressManager.removePeer(peer)
+      this.banPeer(peer, reason)
+    })
 
     return peer
   }
@@ -784,7 +788,6 @@ export class PeerManager {
   start(): void {
     this.requestPeerListHandle = setInterval(() => this.requestPeerList(), 60000)
     this.disposePeersHandle = setInterval(() => this.disposePeers(), 2000)
-    this.savePeerAddressesHandle = setInterval(() => void this.addressManager.save(), 60000)
   }
 
   /**
@@ -809,30 +812,6 @@ export class PeerManager {
     }
   }
 
-  /**
-   * Gets a random disconnected peer address and returns a peer created from
-   * said address
-   */
-  createRandomDisconnectedPeer(): Peer | null {
-    const connectedPeers = Array.from(this.identifiedPeers.values()).flatMap((peer) => {
-      if (peer.state.type !== 'DISCONNECTED' && peer.state.identity !== null) {
-        return peer.state.identity
-      } else {
-        return []
-      }
-    })
-
-    const peerAddress = this.addressManager.getRandomDisconnectedPeerAddress(connectedPeers)
-    if (!peerAddress) {
-      return null
-    }
-
-    const peer = this.getOrCreatePeer(peerAddress.identity)
-    peer.setWebSocketAddress(peerAddress.address, peerAddress.port)
-    peer.name = peerAddress.name || null
-    return peer
-  }
-
   private disposePeers(): void {
     for (const p of this.peers) {
       this.tryDisposePeer(p)
@@ -846,8 +825,6 @@ export class PeerManager {
    */
   tryDisposePeer(peer: Peer): boolean {
     if (peer.state.type === 'DISCONNECTED') {
-      this.addressManager.removePeerAddress(peer)
-
       peer.dispose()
       if (peer.state.identity && this.identifiedPeers.get(peer.state.identity) === peer) {
         this.identifiedPeers.delete(peer.state.identity)
