@@ -360,6 +360,7 @@ export class PeerNetwork {
     }
 
     // Connect to prior websocket outbound connections that were saved to disk
+    // This should be replaced with populating from the peer candidates list [IFL-1786]
     for (const peerAddress of this.peerManager.addressManager.priorConnectedPeerAddresses) {
       this.peerManager.connectToWebSocketAddress({
         host: peerAddress.address,
