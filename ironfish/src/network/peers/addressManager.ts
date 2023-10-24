@@ -42,8 +42,6 @@ export class AddressManager {
     for (const peer of priorPeers) {
       this.peerIdentityMap.set(peer.identity, peer)
     }
-
-    void this.save()
   }
 
   get priorConnectedPeerAddresses(): ReadonlyArray<Readonly<PeerAddress>> {
