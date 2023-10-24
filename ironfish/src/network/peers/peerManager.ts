@@ -687,18 +687,6 @@ export class PeerManager {
   }
 
   /**
-   * Given an identity, fetch a Peer with that identity or throw an error
-   * @param identity A peer identity.
-   */
-  getPeerOrThrow(identity: Identity): Peer {
-    const peer = this.identifiedPeers.get(identity)
-    if (peer) {
-      return peer
-    }
-    throw new Error(`No peer found with identity ${identity}`)
-  }
-
-  /**
    * If a null identity is passed, creates a new Peer. If an identity is passed, returns the Peer
    * if we already have one with that identity, else creates a new Peer with that identity.
    * @param identity The identity of the peer to create, or null if the peer does not yet have one.
