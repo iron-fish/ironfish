@@ -88,7 +88,7 @@ export class AddressManager {
 
     const peerAddress = this.peerIdentityMap.get(peer.state.identity)
 
-    // if the peer is already in the address manager, update the timestamp,
+    // If the peer is already in the address manager, update the timestamp,
     // address and port
     if (peerAddress) {
       peerAddress.address = peer.address
