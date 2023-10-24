@@ -176,9 +176,6 @@ describe('AddressManager', () => {
     const addressManager = new AddressManager(hostsStore, pm)
     addressManager.hostsStore = hostsStore
     const { peer: connectedPeer } = getConnectedPeer(pm)
-    getConnectingPeer(pm)
-    getDisconnectedPeer(pm)
-
     const address: PeerAddress = {
       address: connectedPeer.address || '',
       port: connectedPeer.port || 0,
