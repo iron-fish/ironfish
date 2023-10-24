@@ -81,7 +81,7 @@ export class AddressManager {
     if (
       peer.state.type !== 'CONNECTED' ||
       !peer.state.connections.webSocket ||
-      peer.state.connections.webSocket.direction === ConnectionDirection.Inbound
+      peer.state.connections.webSocket.direction !== ConnectionDirection.Outbound
     ) {
       return
     }
