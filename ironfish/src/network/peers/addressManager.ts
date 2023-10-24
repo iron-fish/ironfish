@@ -53,13 +53,13 @@ export class AddressManager {
   /**
    * Removes address associated with a peer from address stores
    */
-  removePeer(peer: Peer): void {
+  async removePeer(peer: Peer): Promise<void> {
     if (peer.state.identity === null) {
       return
     }
 
     this.peerIdentityMap.delete(peer.state.identity)
-    void this.save()
+    await this.save()
   }
 
   /**
@@ -68,7 +68,7 @@ export class AddressManager {
    * 2. Identity is valid
    * 3. Peer has an outbound websocket connection
    */
-  addPeer(peer: Peer): void {
+  async addPeer(peer: Peer): Promise<void> {
     if (peer.state.identity === null || peer.address === null || peer.port === null) {
       return
     }
@@ -111,7 +111,7 @@ export class AddressManager {
       lastAddedTimestamp: Date.now(),
     })
 
-    void this.save()
+    await this.save()
   }
 
   async save(): Promise<void> {

@@ -743,7 +743,7 @@ export class PeerManager {
 
     peer.onStateChanged.on(({ prevState }) => {
       if (prevState.type !== 'CONNECTED' && peer.state.type === 'CONNECTED') {
-        this.addressManager.addPeer(peer)
+        void this.addressManager.addPeer(peer)
         this.peerCandidates.addFromPeer(peer)
         this.onConnect.emit(peer)
         this.onConnectedPeersChanged.emit()
@@ -764,7 +764,7 @@ export class PeerManager {
     })
 
     peer.onBanned.on((reason) => {
-      this.addressManager.removePeer(peer)
+      void this.addressManager.removePeer(peer)
       this.banPeer(peer, reason)
     })
 

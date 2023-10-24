@@ -27,7 +27,7 @@ describe('AddressManager', () => {
     jest.useRealTimers()
   })
 
-  it('removePeer should remove a peer address', () => {
+  it('removePeer should remove a peer address', async () => {
     const now = Date.now()
     jest.setSystemTime(now)
 
@@ -39,16 +39,16 @@ describe('AddressManager', () => {
     expect(addressManager.priorConnectedPeerAddresses.length).toEqual(0)
 
     const { peer: peer1 } = getConnectedPeer(pm)
-    addressManager.addPeer(peer1)
+    await addressManager.addPeer(peer1)
 
     expect(addressManager.priorConnectedPeerAddresses.length).toEqual(1)
 
     const { peer: peer2 } = getConnectedPeer(pm)
-    addressManager.addPeer(peer2)
+    await addressManager.addPeer(peer2)
 
     expect(addressManager.priorConnectedPeerAddresses.length).toEqual(2)
 
-    addressManager.removePeer(peer1)
+    await addressManager.removePeer(peer1)
     expect(addressManager.priorConnectedPeerAddresses.length).toEqual(1)
 
     const peer2Address = {
@@ -61,11 +61,49 @@ describe('AddressManager', () => {
 
     expect(addressManager.priorConnectedPeerAddresses).toContainEqual(peer2Address)
 
-    addressManager.removePeer(peer2)
+    await addressManager.removePeer(peer2)
     expect(addressManager.priorConnectedPeerAddresses.length).toEqual(0)
   })
 
-  it('only connected peers get added to the address manager', () => {
+  it('Confirming the functionality even when voiding the remove and add peer functions', () => {
+    const now = Date.now()
+    jest.setSystemTime(now)
+
+    const hostsStore = mockHostsStore()
+    const localPeer = mockLocalPeer()
+    const pm = new PeerManager(localPeer, hostsStore)
+    const addressManager = new AddressManager(hostsStore, pm)
+
+    expect(addressManager.priorConnectedPeerAddresses.length).toEqual(0)
+
+    const { peer: peer1 } = getConnectedPeer(pm)
+    void addressManager.addPeer(peer1)
+
+    expect(addressManager.priorConnectedPeerAddresses.length).toEqual(1)
+
+    const { peer: peer2 } = getConnectedPeer(pm)
+    void addressManager.addPeer(peer2)
+
+    expect(addressManager.priorConnectedPeerAddresses.length).toEqual(2)
+
+    void addressManager.removePeer(peer1)
+    expect(addressManager.priorConnectedPeerAddresses.length).toEqual(1)
+
+    const peer2Address = {
+      address: peer2.address,
+      port: peer2.port,
+      identity: peer2.state.identity,
+      name: peer2.name,
+      lastAddedTimestamp: now,
+    }
+
+    expect(addressManager.priorConnectedPeerAddresses).toContainEqual(peer2Address)
+
+    void addressManager.removePeer(peer2)
+    expect(addressManager.priorConnectedPeerAddresses.length).toEqual(0)
+  })
+
+  it('only connected peers get added to the address manager', async () => {
     const now = Date.now()
     jest.setSystemTime(now)
 
@@ -79,7 +117,7 @@ describe('AddressManager', () => {
     const allPeers: Peer[] = [connectedPeer, connectingPeer, disconnectedPeer]
 
     for (const peer of allPeers) {
-      addressManager.addPeer(peer)
+      await addressManager.addPeer(peer)
     }
 
     const connectedPeerAddress = {
@@ -120,7 +158,7 @@ describe('AddressManager', () => {
     expect(addressManager.priorConnectedPeerAddresses.length).toEqual(MAX_PEER_ADDRESSES)
   })
 
-  it('addPeer should remove the oldest peer if the address manager is full', () => {
+  it('addPeer should remove the oldest peer if the address manager is full', async () => {
     const oldestNow = Date.now()
     jest.setSystemTime(oldestNow)
 
@@ -129,7 +167,7 @@ describe('AddressManager', () => {
     const addressManager = new AddressManager(hostsStore, pm)
 
     const { peer: oldestPeer } = getConnectedPeer(pm)
-    addressManager.addPeer(oldestPeer)
+    await addressManager.addPeer(oldestPeer)
     const oldestPeerAddress = {
       address: oldestPeer.address,
       port: oldestPeer.port,
@@ -145,7 +183,7 @@ describe('AddressManager', () => {
     jest.setSystemTime(newNow)
 
     const { peer: newPeer } = getConnectedPeer(pm)
-    addressManager.addPeer(newPeer)
+    await addressManager.addPeer(newPeer)
     const newPeerAddress = {
       address: newPeer.address,
       port: newPeer.port,
@@ -159,7 +197,7 @@ describe('AddressManager', () => {
 
     for (let i = 0; i < MAX_PEER_ADDRESSES - 1; i++) {
       const randomIdentity = Math.random().toString(36).substring(7)
-      addressManager.addPeer({
+      await addressManager.addPeer({
         ...newPeer,
         state: {
           ...newPeer.state,
@@ -174,7 +212,7 @@ describe('AddressManager', () => {
     expect(addressManager.priorConnectedPeerAddresses).not.toContainEqual(oldestPeerAddress)
   })
 
-  it('addPeer should update peer timestamp if it is already in the address manager', () => {
+  it('addPeer should update peer timestamp if it is already in the address manager', async () => {
     const now = Date.now()
     const newNow = now + 1000
     jest.setSystemTime(now)
@@ -183,7 +221,7 @@ describe('AddressManager', () => {
     const pm = new PeerManager(mockLocalPeer(), hostsStore)
     const addressManager = new AddressManager(hostsStore, pm)
     const { peer } = getConnectedPeer(pm)
-    addressManager.addPeer(peer)
+    await addressManager.addPeer(peer)
     const peerAddress = {
       address: peer.address,
       port: peer.port,
@@ -195,7 +233,7 @@ describe('AddressManager', () => {
     expect(addressManager.priorConnectedPeerAddresses).toContainEqual(peerAddress)
 
     jest.setSystemTime(newNow)
-    addressManager.addPeer(peer)
+    await addressManager.addPeer(peer)
     expect(addressManager.priorConnectedPeerAddresses.length).toEqual(1)
     expect(addressManager.priorConnectedPeerAddresses).toContainEqual({
       ...peerAddress,
@@ -220,7 +258,7 @@ describe('AddressManager', () => {
       lastAddedTimestamp: now,
     }
 
-    addressManager.addPeer(connectedPeer)
+    await addressManager.addPeer(connectedPeer)
     await addressManager.save()
     expect(addressManager.priorConnectedPeerAddresses).toContainEqual(address)
   })
