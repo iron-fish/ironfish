@@ -119,7 +119,7 @@ export class AddressManager {
     void this.save()
   }
 
-  public async save(): Promise<void> {
+  async save(): Promise<void> {
     this.hostsStore.set('priorPeers', [...this.peerIdentityMap.values()])
     await this.hostsStore.save()
   }
