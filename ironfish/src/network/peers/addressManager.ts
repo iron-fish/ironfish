@@ -88,7 +88,7 @@ export class AddressManager {
       peerAddress.port = peer.port
       peerAddress.lastAddedTimestamp = Date.now()
       this.peerIdentityMap.set(peer.state.identity, peerAddress)
-      void this.save()
+      await this.save()
       return
     }
 
