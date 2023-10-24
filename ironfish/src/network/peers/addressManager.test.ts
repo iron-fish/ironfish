@@ -135,7 +135,7 @@ describe('AddressManager', () => {
 
     expect(addressManager.priorConnectedPeerAddresses.length).toEqual(addressManager.LIMIT)
     expect(addressManager.priorConnectedPeerAddresses).toContainEqual(newPeerAddress)
-    // the oldest peer should have been removed
+    // The oldest peer should have been removed
     expect(addressManager.priorConnectedPeerAddresses).not.toContainEqual(oldestPeerAddress)
   })
 
