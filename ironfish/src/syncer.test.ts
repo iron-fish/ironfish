@@ -7,7 +7,7 @@ import { BAN_SCORE } from './network/peers/peer'
 import { getConnectedPeer } from './network/testUtilities'
 import { useMinerBlockFixture } from './testUtilities/fixtures'
 import { createNodeTest } from './testUtilities/nodeTest'
-import { PromiseUtils } from './utils'
+import { ArrayUtils, BenchUtils, PromiseUtils } from './utils'
 
 describe('Syncer', () => {
   const nodeTest = createNodeTest()
@@ -22,28 +22,32 @@ describe('Syncer', () => {
     expect(syncer.state).toBe('stopped')
   })
 
-  it('should load from peer with more work', () => {
+  it('should load from peer with more work', async () => {
     const { chain, peerNetwork, syncer } = nodeTest
     Assert.isNotNull(chain.head)
 
-    const startSyncSpy = jest.spyOn(syncer, 'startSync').mockImplementation()
+    jest
+      .spyOn(peerNetwork, 'getBlockHeaders')
+      .mockReturnValueOnce(Promise.resolve({ headers: [chain.genesis], time: 0 }))
+    const syncFromSpy = jest.spyOn(syncer, 'syncFrom')
 
     // No peers connected to find
-    syncer.findPeer()
-    expect(startSyncSpy).not.toHaveBeenCalled()
+    await syncer.findPeer(null)
+    expect(syncFromSpy).not.toHaveBeenCalled()
 
     const { peer } = getConnectedPeer(peerNetwork.peerManager)
     peer.work = 0n
 
     // Peer does not have more work
-    syncer.findPeer()
-    expect(startSyncSpy).not.toHaveBeenCalled()
+    await syncer.findPeer(null)
+    expect(syncFromSpy).not.toHaveBeenCalled()
 
     peer.work = chain.head.work + 1n
+    peer.sequence = chain.head.sequence
 
     // Peer should have more work than us now
-    syncer.findPeer()
-    expect(startSyncSpy).toHaveBeenCalledWith(peer)
+    await syncer.findPeer(null)
+    expect(syncFromSpy).toHaveBeenCalledWith(peer)
   })
 
   it('should sync and then finish from peer', async () => {
@@ -54,11 +58,11 @@ describe('Syncer', () => {
     peer.sequence = 1
     peer.head = Buffer.from('')
 
-    const startSyncSpy = jest.spyOn(syncer, 'syncFrom')
+    const syncFromSpy = jest.spyOn(syncer, 'syncFrom')
 
     const [promise, resolve] = PromiseUtils.split<void>()
-    startSyncSpy.mockReturnValue(promise)
-    syncer.startSync(peer)
+    syncFromSpy.mockReturnValue(promise)
+    syncer['startSync'](peer)
 
     expect(syncer.stopping).not.toBe(null)
     expect(syncer.state).toEqual('syncing')
@@ -72,6 +76,32 @@ describe('Syncer', () => {
     expect(syncer.loader).toBe(null)
   })
 
+  it('should select the fastest peer to sync from', async () => {
+    const { chain, peerNetwork, syncer } = nodeTest
+
+    const { peer: peer1 } = getConnectedPeer(peerNetwork.peerManager)
+    peer1.work = chain.head.work + 1n
+    peer1.sequence = 2
+    peer1.head = Buffer.from('')
+
+    const { peer: peer2 } = getConnectedPeer(peerNetwork.peerManager)
+    peer2.work = chain.head.work + 1n
+    peer2.sequence = 2
+    peer2.head = Buffer.from('')
+
+    jest
+      .spyOn(peerNetwork, 'getBlockHeaders')
+      .mockReturnValue(Promise.resolve({ headers: [chain.genesis], time: 0 }))
+    jest.spyOn(ArrayUtils, 'shuffle').mockImplementationOnce(() => [peer1, peer2])
+    jest.spyOn(BenchUtils, 'end').mockImplementationOnce(() => 500)
+    jest.spyOn(BenchUtils, 'end').mockImplementationOnce(() => 200)
+
+    syncer.state = 'measuring'
+    await syncer.findPeer(null)
+
+    expect(syncer.loader).toEqual(peer2)
+  })
+
   it('should stop syncing on error', async () => {
     const { peerNetwork, syncer } = nodeTest
 
@@ -80,11 +110,11 @@ describe('Syncer', () => {
     peer.sequence = 1
     peer.head = Buffer.from('')
 
-    const startSyncSpy = jest.spyOn(syncer, 'syncFrom')
+    const syncFromSpy = jest.spyOn(syncer, 'syncFrom')
 
     const [promise, , reject] = PromiseUtils.split<void>()
-    startSyncSpy.mockResolvedValue(promise)
-    syncer.startSync(peer)
+    syncFromSpy.mockResolvedValue(promise)
+    syncer['startSync'](peer)
 
     expect(syncer.stopping).not.toBe(null)
     expect(syncer.state).toEqual('syncing')
@@ -110,11 +140,11 @@ describe('Syncer', () => {
     peer.sequence = 1
     peer.head = Buffer.from('')
 
-    const startSyncSpy = jest.spyOn(syncer, 'syncFrom')
+    const syncFromSpy = jest.spyOn(syncer, 'syncFrom')
 
     const [promise, resolve] = PromiseUtils.split<void>()
-    startSyncSpy.mockResolvedValue(promise)
-    syncer.startSync(peer)
+    syncFromSpy.mockResolvedValue(promise)
+    syncer['startSync'](peer)
 
     expect(syncer.stopping).not.toBe(null)
     expect(syncer.state).toEqual('syncing')
@@ -142,6 +172,7 @@ describe('Syncer', () => {
     Assert.isNotNull(genesis)
 
     syncer.blocksPerMessage = 1
+    syncer.state = 'syncing'
 
     const { node: nodeA } = await nodeTest.createSetup()
     const blockA1 = await useMinerBlockFixture(nodeA.chain)
@@ -213,11 +244,89 @@ describe('Syncer', () => {
     const peerPunished = jest.spyOn(peer, 'punish')
 
     syncer.loader = peer
+    syncer.state = 'syncing'
 
     await syncer.syncBlocks(peer, chain.genesis.hash, chain.genesis.sequence)
 
     expect(getBlocksSpy).toHaveBeenCalledTimes(1)
     expect(peerPunished).toHaveBeenCalledTimes(1)
     expect(peerPunished).toHaveBeenCalledWith(BAN_SCORE.MAX, expect.anything())
+  })
+
+  it('should switch states from syncing to measuring', async () => {
+    const { peerNetwork, syncer } = nodeTest
+
+    const { peer } = getConnectedPeer(peerNetwork.peerManager)
+    peer.work = 1n
+    peer.sequence = 1
+    peer.head = Buffer.from('')
+
+    const syncFromSpy = jest.spyOn(syncer, 'syncFrom')
+
+    const [promise, resolve] = PromiseUtils.split<void>()
+    syncFromSpy.mockResolvedValue(promise)
+    syncer['startSync'](peer)
+
+    // Set the nextMeasureTime to be less than now, which is the trigger to
+    // transition to measuring state
+    syncer.nextMeasureTime = 0
+    expect(syncer.nextMeasureTime).toBeLessThan(performance.now())
+
+    expect(syncer.state).toEqual('syncing')
+    expect(syncer.loader).toBe(peer)
+
+    resolve()
+    await syncer.eventLoop()
+
+    expect(syncer.state).toEqual('measuring')
+    expect(syncer.lastLoaderIdentity).toEqual(peer.state.identity)
+  })
+
+  it('should find a peer when in measuring state', async () => {
+    const { syncer } = nodeTest
+
+    const findPeerSpy = jest.spyOn(syncer, 'findPeer')
+
+    syncer.lastLoaderIdentity = 'foobar'
+    syncer.state = 'measuring'
+    await syncer.eventLoop()
+
+    expect(findPeerSpy).toHaveBeenCalledTimes(1)
+    expect(findPeerSpy).toHaveBeenCalledWith('foobar')
+  })
+
+  it('getNextMeasurementDelta', () => {
+    const { syncer } = nodeTest
+
+    const twoMinutes = 2 * 60 * 1000
+    const fourMinutes = twoMinutes * 2
+    const eightMinutes = fourMinutes * 2
+    const sixteenMinutes = eightMinutes * 2
+    const thirtyTwoMinutes = sixteenMinutes * 2
+    const sixtyMinutes = 60 * 60 * 1000
+
+    syncer.numberOfMeasurements = 0
+    expect(syncer['getNextMeasurementDelta']()).toEqual(twoMinutes)
+
+    syncer.numberOfMeasurements = 1
+    expect(syncer['getNextMeasurementDelta']()).toEqual(fourMinutes)
+
+    syncer.numberOfMeasurements = 2
+    expect(syncer['getNextMeasurementDelta']()).toEqual(eightMinutes)
+
+    syncer.numberOfMeasurements = 3
+    expect(syncer['getNextMeasurementDelta']()).toEqual(sixteenMinutes)
+
+    syncer.numberOfMeasurements = 4
+    expect(syncer['getNextMeasurementDelta']()).toEqual(thirtyTwoMinutes)
+
+    syncer.numberOfMeasurements = 5
+    expect(syncer['getNextMeasurementDelta']()).toEqual(sixtyMinutes)
+
+    syncer.numberOfMeasurements = 6
+    expect(syncer['getNextMeasurementDelta']()).toEqual(sixtyMinutes)
+
+    syncer.numberOfMeasurements = 100
+    expect(syncer['getNextMeasurementDelta']()).toEqual(sixtyMinutes)
   })
 })

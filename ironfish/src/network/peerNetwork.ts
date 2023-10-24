@@ -753,7 +753,7 @@ export class PeerNetwork {
     if (prevHeader === null) {
       this.chain.addOrphan(block.header)
       this.blockFetcher.removeBlock(block.header.hash)
-      this.node.syncer.startSync(peer)
+      this.node.syncer.startSyncIfIdle(peer)
       return
     }
 
@@ -811,7 +811,7 @@ export class PeerNetwork {
     if (prevHeader === null) {
       this.chain.addOrphan(header)
       this.blockFetcher.removeBlock(header.hash)
-      this.node.syncer.startSync(peer)
+      this.node.syncer.startSyncIfIdle(peer)
       return
     }
 
@@ -1180,7 +1180,7 @@ export class PeerNetwork {
     if (prevHeader === null) {
       this.chain.addOrphan(block.header)
       this.blockFetcher.removeBlock(block.header.hash)
-      this.node.syncer.startSync(peer)
+      this.node.syncer.startSyncIfIdle(peer)
       return
     }
 
