@@ -37,9 +37,6 @@ export class AddressManager {
       return true
     })
 
-    // If there are more than 50 peers, we remove
-    // extra peers from the list. This should only happen during
-    // the first time the node is started after this change is implemented.
     if (priorPeers.length > MAX_PEER_ADDRESSES) {
       priorPeers = priorPeers.slice(0, MAX_PEER_ADDRESSES)
     }
