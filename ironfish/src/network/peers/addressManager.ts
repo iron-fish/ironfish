@@ -29,11 +29,9 @@ export class AddressManager {
       if (peer.identity === null || peer.address === null || peer.port === null) {
         return false
       }
-      // Backwards compatible change: if lastAddedTimestamp is undefined or null,
-      // set it to the current time.
-      if (peer.lastAddedTimestamp === undefined) {
-        peer.lastAddedTimestamp = 0
-      }
+
+      peer.lastAddedTimestamp = peer.lastAddedTimestamp ?? 0
+
       return true
     })
 
