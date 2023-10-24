@@ -17,7 +17,7 @@ export class AddressManager {
 
   hostsStore: HostsStore
   peerManager: PeerManager
-  peerIdentityMap: Map<Identity, PeerAddress>
+  private peerIdentityMap: Map<Identity, PeerAddress>
 
   constructor(hostsStore: HostsStore, peerManager: PeerManager) {
     this.hostsStore = hostsStore
