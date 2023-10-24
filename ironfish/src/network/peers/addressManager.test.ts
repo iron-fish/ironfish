@@ -121,8 +121,7 @@ describe('AddressManager', () => {
     expect(addressManager.priorConnectedPeerAddresses.length).toEqual(2)
     expect(addressManager.priorConnectedPeerAddresses).toContainEqual(newPeerAddress)
 
-    // add 49 more peers
-    for (let i = 0; i < 49; i++) {
+    for (let i = 0; i < MAX_PEER_ADDRESSES - 1; i++) {
       const randomIdentity = Math.random().toString(36).substring(7)
       addressManager.addPeer({
         ...newPeer,
