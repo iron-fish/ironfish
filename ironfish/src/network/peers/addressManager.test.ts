@@ -168,7 +168,6 @@ describe('AddressManager', () => {
   })
 
   it('save should persist connected peers', async () => {
-    // mock Date.now()
     const now = Date.now()
     Date.now = jest.fn(() => now)
     const hostsStore = mockHostsStore()
