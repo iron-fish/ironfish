@@ -241,6 +241,13 @@ export class Syncer {
       peerRtt.set(peerIdentity, rtt)
     }
 
+    const measurementTime = BenchUtils.end(measurementStart)
+    this.logger.debug(
+      `Syncer took ${TimeUtils.renderSpan(measurementTime)} to measure peer candidates. Found ${
+        peerRtt.size
+      } suitable candidates`,
+    )
+
     if (peerRtt.size === 0) {
       return
     }
@@ -249,11 +256,6 @@ export class Syncer {
     // the fastest one to sync from
     const fastestCandidateIdentity = [...peerRtt.entries()].sort((a, b) => a[1] - b[1])[0][0]
     const peer = this.peerNetwork.peerManager.getPeer(fastestCandidateIdentity)
-
-    const measurementTime = BenchUtils.end(measurementStart)
-    this.logger.debug(
-      `Syncer took ${TimeUtils.renderSpan(measurementTime)} to measure peer candidates`,
-    )
 
     if (peer) {
       this.startSync(peer)
