@@ -72,7 +72,7 @@ describe('AddressManager', () => {
     }
     hostsStore.set(
       'priorPeers',
-      Array.from({ length: 60 }, () => {
+      Array.from({ length: MAX_PEER_ADDRESSES + 10 }, () => {
         const randomIdentity = Math.random().toString(36).substring(7)
         return {
           ...peerAddress,
