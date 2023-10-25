@@ -256,7 +256,7 @@ export class Peer {
     const webSocket =
       this.state.type !== 'DISCONNECTED' ? this.state.connections.webSocket : undefined
 
-    this.setState(this.computeStateFromConnections(webSocket, connection))
+    this.setState(webSocket, connection)
   }
 
   /**
@@ -273,7 +273,7 @@ export class Peer {
     const webSocket =
       this.state.type !== 'DISCONNECTED' ? this.state.connections.webSocket : undefined
 
-    this.setState(this.computeStateFromConnections(webSocket, connection))
+    this.setState(webSocket, connection)
 
     if (existingConnection) {
       const error = `Replacing duplicate WebRTC connection on ${this.displayName}`
@@ -296,7 +296,7 @@ export class Peer {
     const webRtc =
       this.state.type !== 'DISCONNECTED' ? this.state.connections.webRtc : undefined
 
-    this.setState(this.computeStateFromConnections(connection, webRtc))
+    this.setState(connection, webRtc)
   }
 
   /**
@@ -313,7 +313,7 @@ export class Peer {
     const webRtc =
       this.state.type !== 'DISCONNECTED' ? this.state.connections.webRtc : undefined
 
-    this.setState(this.computeStateFromConnections(connection, webRtc))
+    this.setState(connection, webRtc)
 
     if (existingConnection) {
       const error = `Replacing duplicate WebSocket connection on ${this.displayName}`
@@ -397,7 +397,7 @@ export class Peer {
     const webRtcConnection =
       connection === this.state.connections.webRtc ? undefined : this.state.connections.webRtc
 
-    this.setState(this.computeStateFromConnections(wsConnection, webRtcConnection))
+    this.setState(wsConnection, webRtcConnection)
 
     return connection
   }
@@ -623,12 +623,7 @@ export class Peer {
           if (connection instanceof WebSocketConnection && connection.hostname) {
             this.setWebSocketAddress(connection.hostname, connection.port || null)
           }
-          this.setState(
-            this.computeStateFromConnections(
-              this.state.connections.webSocket,
-              this.state.connections.webRtc,
-            ),
-          )
+          this.setState(this.state.connections.webSocket, this.state.connections.webRtc)
         }
       }
       this.connectionStateChangedHandlers.set(connection, stateChangedHandler)
@@ -640,7 +635,12 @@ export class Peer {
    * Changes the peer's state from this.state to nextState.
    * @param nextState The new peer state.
    */
-  private setState(nextState: PeerState): void {
+  private setState(
+    wsConnection: WebSocketConnection | undefined,
+    webRtcConnection: WebRtcConnection | undefined,
+  ): void {
+    const nextState = this.computeStateFromConnections(wsConnection, webRtcConnection)
+
     // Perform pre-transition actions
     const lastConState = this.getConnectionStateOrDefault(this.state)
     const nextConState = this.getConnectionStateOrDefault(nextState)
@@ -694,7 +694,7 @@ export class Peer {
     if (error !== undefined) {
       this._error = error
     }
-    this.setState({ type: 'DISCONNECTED', identity: this.state.identity })
+    this.setState(undefined, undefined)
   }
 
   /**
