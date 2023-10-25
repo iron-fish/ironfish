@@ -138,7 +138,8 @@ describe('connectToDisconnectedPeers', () => {
     const pcm = new PeerConnectionManager(pm, createRootLogger(), { maxPeers: 50 })
     pcm.start()
 
-    const peer = pm.getPeerOrThrow(peerIdentity)
+    const peer = pm.getPeer(peerIdentity)
+    Assert.isNotNull(peer)
     expect(peer.state).toEqual({
       type: 'CONNECTING',
       identity: peerIdentity,
