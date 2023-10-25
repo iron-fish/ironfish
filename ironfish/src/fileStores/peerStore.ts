@@ -13,6 +13,8 @@ export type PeerStoreOptions = {
 
 export const PeerStoreOptionsDefaults: PeerStoreOptions = {
   priorPeers: [],
+  // whitelisted peers can go here
+  // banned peers can go here
 }
 
 export const PEER_STORE_FILE_NAME = 'peers.json'
