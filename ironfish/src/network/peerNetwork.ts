@@ -10,7 +10,7 @@ import { Blockchain } from '../blockchain'
 import { VerificationResultReason } from '../consensus'
 import { Event } from '../event'
 import { DEFAULT_WEBSOCKET_PORT } from '../fileStores/config'
-import { HostsStore } from '../fileStores/hosts'
+import { PeerStore } from '../fileStores/peerStore'
 import { createRootLogger, Logger } from '../logger'
 import { MetricsMonitor } from '../metrics'
 import { FullNode } from '../node'
@@ -170,7 +170,7 @@ export class PeerNetwork {
     telemetry: Telemetry
     node: FullNode
     chain: Blockchain
-    hostsStore: HostsStore
+    peerStore: PeerStore
     incomingWebSocketWhitelist?: string[]
   }) {
     this.networkId = options.networkId
@@ -202,7 +202,7 @@ export class PeerNetwork {
 
     this.peerManager = new PeerManager(
       this.localPeer,
-      options.hostsStore,
+      options.peerStore,
       this.logger,
       this.metrics,
       maxPeers,
@@ -361,7 +361,7 @@ export class PeerNetwork {
 
     // Connect to prior websocket outbound connections that were saved to disk
     // This should be replaced with populating from the peer candidates list [IFL-1786]
-    for (const peerAddress of this.peerManager.addressManager.priorConnectedPeerAddresses) {
+    for (const peerAddress of this.peerManager.peerStoreManager.priorConnectedPeerAddresses) {
       this.peerManager.connectToWebSocketAddress({
         host: peerAddress.address,
         port: peerAddress.port,

@@ -50,7 +50,7 @@ import {
   expectGetCompactBlockResponseToMatch,
   getConnectedPeer,
   getConnectedPeersWithSpies,
-  mockHostsStore,
+  mockPeerStore,
   mockPrivateIdentity,
   peerMessage,
 } from './testUtilities'
@@ -104,7 +104,7 @@ describe('PeerNetwork', () => {
         node: mockNode(),
         chain: mockChain(),
         minPeers: 1,
-        hostsStore: mockHostsStore(),
+        peerStore: mockPeerStore(),
         telemetry: mockTelemetry(),
         networkId: 1,
       })
@@ -146,7 +146,7 @@ describe('PeerNetwork', () => {
         port: 0,
         minPeers: 1,
         maxPeers: 0,
-        hostsStore: mockHostsStore(),
+        peerStore: mockPeerStore(),
         telemetry: mockTelemetry(),
         networkId: 1,
       })

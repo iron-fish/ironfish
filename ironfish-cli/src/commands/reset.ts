@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { HOST_FILE_NAME, IronfishNode } from '@ironfish/sdk'
+import { IronfishNode, PEER_STORE_FILE_NAME } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import fsAsync from 'fs/promises'
 import { IronfishCommand } from '../command'
@@ -40,7 +40,7 @@ export default class Reset extends IronfishCommand {
     const chainDatabasePath = this.sdk.config.chainDatabasePath
     const hostFilePath: string = this.sdk.config.files.join(
       this.sdk.config.dataDir,
-      HOST_FILE_NAME,
+      PEER_STORE_FILE_NAME,
     )
 
     const existingId = this.sdk.internal.get('networkId')

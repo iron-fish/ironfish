@@ -1,28 +1,28 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { HostsStore } from '../../fileStores'
+import { PeerStore } from '../../fileStores'
 import { Identity } from '../identity'
-import { Peer } from '../peers/peer'
 import { ConnectionDirection } from './connections'
+import { Peer } from './peer'
 import { PeerAddress } from './peerAddress'
 
 export const MAX_PEER_ADDRESSES = 50
 
 /**
- * AddressManager stores the necessary data for connecting to new peers
- * and provides functionality for persistence of said data.
+ * PeerStoreManager stores the necessary data for connecting to peers on startup
+ * to speed up connecting to the network.
  */
-export class AddressManager {
-  hostsStore: HostsStore
+export class PeerStoreManager {
+  peerStore: PeerStore
   private peerIdentityMap: Map<Identity, PeerAddress>
 
-  constructor(hostsStore: HostsStore) {
-    this.hostsStore = hostsStore
+  constructor(peerStore: PeerStore) {
+    this.peerStore = peerStore
     // Load prior peers from disk
     this.peerIdentityMap = new Map<string, PeerAddress>()
 
-    let priorPeers = this.hostsStore.getArray('priorPeers').filter((peer) => {
+    let priorPeers = this.peerStore.getArray('priorPeers').filter((peer) => {
       if (peer.identity === null || peer.address === null || peer.port === null) {
         return false
       }
@@ -110,7 +110,7 @@ export class AddressManager {
   }
 
   async save(): Promise<void> {
-    this.hostsStore.set('priorPeers', [...this.peerIdentityMap.values()])
-    await this.hostsStore.save()
+    this.peerStore.set('priorPeers', [...this.peerIdentityMap.values()])
+    await this.peerStore.save()
   }
 }
