@@ -17,7 +17,7 @@ export const PeerStoreOptionsDefaults: PeerStoreOptions = {
   // banned peers can go here
 }
 
-// This name is left over from when this file used to be called HostsStore
+// This filename ("hosts.json") is left over from when this file used to be called HostsStore
 // We will likely change the name when we adding more functionality like storing
 // whitelisted peers, banned peers, etc.
 export const PEER_STORE_FILE_NAME = 'hosts.json'
