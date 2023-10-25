@@ -4,7 +4,7 @@
 
 import type { SignalData } from './connections/webRtcConnection'
 import { Event } from '../../event'
-import { HostsStore } from '../../fileStores/hosts'
+import { PeerStore } from '../../fileStores/peerStore'
 import { createRootLogger, Logger } from '../../logger'
 import { MetricsMonitor } from '../../metrics'
 import { ArrayUtils, SetIntervalToken } from '../../utils'
@@ -24,7 +24,6 @@ import { SignalRequestMessage } from '../messages/signalRequest'
 import { IsomorphicWebSocket } from '../types'
 import { parseUrl } from '../utils'
 import { VERSION_PROTOCOL_MIN } from '../version'
-import { AddressManager } from './addressManager'
 import { ConnectionRetry } from './connectionRetry'
 import {
   Connection,
@@ -37,6 +36,7 @@ import {
 import { LocalPeer } from './localPeer'
 import { Peer } from './peer'
 import { PeerCandidates } from './peerCandidates'
+import { PeerStoreManager } from './peerStoreManager'
 
 /**
  * The maximum number of attempts the client will make to find a brokering peer
@@ -73,7 +73,7 @@ export class PeerManager {
 
   peerCandidates: PeerCandidates = new PeerCandidates()
 
-  addressManager: AddressManager
+  peerStoreManager: PeerStoreManager
 
   /**
    * setInterval handle for requestPeerList, which sends out peer lists and
@@ -142,7 +142,7 @@ export class PeerManager {
 
   constructor(
     localPeer: LocalPeer,
-    hostsStore: HostsStore,
+    peerStore: PeerStore,
     logger: Logger = createRootLogger(),
     metrics?: MetricsMonitor,
     maxPeers = 10000,
@@ -157,7 +157,7 @@ export class PeerManager {
     this.maxPeers = maxPeers
     this.targetPeers = Math.min(targetPeers, maxPeers)
     this.logPeerMessages = logPeerMessages
-    this.addressManager = new AddressManager(hostsStore)
+    this.peerStoreManager = new PeerStoreManager(peerStore)
   }
 
   /**
@@ -731,7 +731,7 @@ export class PeerManager {
 
     peer.onStateChanged.on(({ prevState }) => {
       if (prevState.type !== 'CONNECTED' && peer.state.type === 'CONNECTED') {
-        void this.addressManager.addPeer(peer)
+        void this.peerStoreManager.addPeer(peer)
         this.peerCandidates.addFromPeer(peer)
         this.onConnect.emit(peer)
         this.onConnectedPeersChanged.emit()
@@ -752,7 +752,7 @@ export class PeerManager {
     })
 
     peer.onBanned.on((reason) => {
-      void this.addressManager.removePeer(peer)
+      void this.peerStoreManager.removePeer(peer)
       this.banPeer(peer, reason)
     })
 
@@ -786,7 +786,7 @@ export class PeerManager {
     this.requestPeerListHandle && clearInterval(this.requestPeerListHandle)
     this.disposePeersHandle && clearInterval(this.disposePeersHandle)
     this.savePeerAddressesHandle && clearInterval(this.savePeerAddressesHandle)
-    await this.addressManager.save()
+    await this.peerStoreManager.save()
     for (const peer of this.peers) {
       this.disconnect(peer, DisconnectingReason.ShuttingDown, 0)
     }

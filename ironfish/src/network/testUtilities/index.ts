@@ -4,8 +4,8 @@
 
 import '../../testUtilities/matchers'
 
-export * from './mockHostsStore'
+export * from './helpers'
 export * from './mockIdentity'
 export * from './mockLocalPeer'
+export * from './mockPeerStore'
 export * from './mockPrivateIdentity'
-export * from './helpers'
