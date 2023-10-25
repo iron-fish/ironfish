@@ -13,8 +13,6 @@ export type PeerStoreOptions = {
 
 export const PeerStoreOptionsDefaults: PeerStoreOptions = {
   priorPeers: [],
-  // whitelisted peers can go here
-  // banned peers can go here
 }
 
 // This filename ("hosts.json") is left over from when this file used to be called HostsStore
