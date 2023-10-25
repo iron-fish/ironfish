@@ -157,7 +157,7 @@ export class PeerManager {
     this.maxPeers = maxPeers
     this.targetPeers = Math.min(targetPeers, maxPeers)
     this.logPeerMessages = logPeerMessages
-    this.addressManager = new AddressManager(hostsStore, this)
+    this.addressManager = new AddressManager(hostsStore)
   }
 
   /**

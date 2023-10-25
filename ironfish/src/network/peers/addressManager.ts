@@ -6,7 +6,6 @@ import { Identity } from '../identity'
 import { Peer } from '../peers/peer'
 import { ConnectionDirection } from './connections'
 import { PeerAddress } from './peerAddress'
-import { PeerManager } from './peerManager'
 
 export const MAX_PEER_ADDRESSES = 50
 
@@ -16,12 +15,10 @@ export const MAX_PEER_ADDRESSES = 50
  */
 export class AddressManager {
   hostsStore: HostsStore
-  peerManager: PeerManager
   private peerIdentityMap: Map<Identity, PeerAddress>
 
-  constructor(hostsStore: HostsStore, peerManager: PeerManager) {
+  constructor(hostsStore: HostsStore) {
     this.hostsStore = hostsStore
-    this.peerManager = peerManager
     // Load prior peers from disk
     this.peerIdentityMap = new Map<string, PeerAddress>()
 

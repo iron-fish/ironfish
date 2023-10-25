@@ -34,7 +34,7 @@ describe('AddressManager', () => {
     const hostsStore = mockHostsStore()
     const localPeer = mockLocalPeer()
     const pm = new PeerManager(localPeer, hostsStore)
-    const addressManager = new AddressManager(hostsStore, pm)
+    const addressManager = new AddressManager(hostsStore)
 
     expect(addressManager.priorConnectedPeerAddresses.length).toEqual(0)
 
@@ -72,7 +72,7 @@ describe('AddressManager', () => {
     const hostsStore = mockHostsStore()
     const localPeer = mockLocalPeer()
     const pm = new PeerManager(localPeer, hostsStore)
-    const addressManager = new AddressManager(hostsStore, pm)
+    const addressManager = new AddressManager(hostsStore)
 
     expect(addressManager.priorConnectedPeerAddresses.length).toEqual(0)
 
@@ -109,7 +109,7 @@ describe('AddressManager', () => {
 
     const hostsStore = mockHostsStore()
     const pm = new PeerManager(mockLocalPeer(), hostsStore)
-    const addressManager = new AddressManager(hostsStore, pm)
+    const addressManager = new AddressManager(hostsStore)
     addressManager.hostsStore = hostsStore
     const { peer: connectedPeer } = getConnectedPeer(pm)
     const { peer: connectingPeer } = getConnectingPeer(pm)
@@ -154,7 +154,7 @@ describe('AddressManager', () => {
       }),
     )
 
-    const addressManager = new AddressManager(hostsStore, pm)
+    const addressManager = new AddressManager(hostsStore)
     expect(addressManager.priorConnectedPeerAddresses.length).toEqual(MAX_PEER_ADDRESSES)
   })
 
@@ -164,7 +164,7 @@ describe('AddressManager', () => {
 
     const hostsStore = mockHostsStore()
     const pm = new PeerManager(mockLocalPeer(), hostsStore)
-    const addressManager = new AddressManager(hostsStore, pm)
+    const addressManager = new AddressManager(hostsStore)
 
     const { peer: oldestPeer } = getConnectedPeer(pm)
     await addressManager.addPeer(oldestPeer)
@@ -219,7 +219,7 @@ describe('AddressManager', () => {
 
     const hostsStore = mockHostsStore()
     const pm = new PeerManager(mockLocalPeer(), hostsStore)
-    const addressManager = new AddressManager(hostsStore, pm)
+    const addressManager = new AddressManager(hostsStore)
     const { peer } = getConnectedPeer(pm)
     await addressManager.addPeer(peer)
     const peerAddress = {
@@ -247,7 +247,7 @@ describe('AddressManager', () => {
     const hostsStore = mockHostsStore()
 
     const pm = new PeerManager(mockLocalPeer(), hostsStore)
-    const addressManager = new AddressManager(hostsStore, pm)
+    const addressManager = new AddressManager(hostsStore)
     addressManager.hostsStore = hostsStore
     const { peer: connectedPeer } = getConnectedPeer(pm)
     const address: PeerAddress = {
