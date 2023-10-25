@@ -16,11 +16,17 @@ export const MAX_PEER_ADDRESSES = 50
 export class PeerStoreManager {
   peerStore: PeerStore
   private peerIdentityMap: Map<Identity, PeerAddress>
+  // According to the documentation: "It is unsafe to use filehandle.writeFile() multiple
+  // times on the same file without waiting for the promise to be fulfilled (or rejected)."
+  // https://nodejs.org/api/fs.html#filehandlewritefiledata-options
+  // This is a simple mutex to prevent multiple writes to the same file.
+  private isSavingMutex: boolean
 
   constructor(peerStore: PeerStore) {
     this.peerStore = peerStore
     // Load prior peers from disk
     this.peerIdentityMap = new Map<string, PeerAddress>()
+    this.isSavingMutex = false
 
     let priorPeers = this.peerStore.getArray('priorPeers').filter((peer) => {
       if (peer.identity === null || peer.address === null || peer.port === null) {
@@ -111,6 +117,12 @@ export class PeerStoreManager {
 
   async save(): Promise<void> {
     this.peerStore.set('priorPeers', [...this.peerIdentityMap.values()])
+
+    if (this.isSavingMutex) {
+      return
+    }
+    this.isSavingMutex = true
     await this.peerStore.save()
+    this.isSavingMutex = false
   }
 }

@@ -65,6 +65,27 @@ describe('PeerStoreManager', () => {
     expect(peerStoreManager.priorConnectedPeerAddresses.length).toEqual(0)
   })
 
+  it('testing isSaving mutex', async () => {
+    const hostsStore = mockPeerStore()
+    const saveSpy = jest.spyOn(hostsStore, 'save')
+
+    const peerStoreManager = new PeerStoreManager(hostsStore)
+
+    const promise1 = peerStoreManager.save()
+    const promise2 = peerStoreManager.save()
+    // should only be called once
+    expect(saveSpy).toHaveBeenCalledTimes(1)
+
+    await promise1
+    await promise2
+    // confirms that the second save was not called because of the mutex
+    expect(saveSpy).toHaveBeenCalledTimes(1)
+
+    await peerStoreManager.save()
+    await peerStoreManager.save()
+    expect(saveSpy).toHaveBeenCalledTimes(3)
+  })
+
   it('Confirming the functionality even when voiding the remove and add peer functions', () => {
     const now = Date.now()
     jest.setSystemTime(now)
