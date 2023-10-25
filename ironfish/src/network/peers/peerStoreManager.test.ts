@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 jest.mock('ws')
 
+import { PromiseUtils } from '../../utils'
 import {
   getConnectedPeer,
   getConnectingPeer,
@@ -65,15 +66,18 @@ describe('PeerStoreManager', () => {
     expect(peerStoreManager.priorConnectedPeerAddresses.length).toEqual(0)
   })
 
-  it('testing isSaving mutex', async () => {
+  it('isSaving mutex prevents save from being called multiple times', async () => {
+    const [promise, resolve] = PromiseUtils.split<void>()
     const hostsStore = mockPeerStore()
-    const saveSpy = jest.spyOn(hostsStore, 'save')
-
     const peerStoreManager = new PeerStoreManager(hostsStore)
 
+    const saveSpy = jest.spyOn(hostsStore, 'save')
+    saveSpy.mockReturnValue(promise)
     const promise1 = peerStoreManager.save()
     const promise2 = peerStoreManager.save()
     // should only be called once
+    expect(saveSpy).toHaveBeenCalledTimes(1)
+    resolve()
     expect(saveSpy).toHaveBeenCalledTimes(1)
 
     await promise1
@@ -83,6 +87,7 @@ describe('PeerStoreManager', () => {
 
     await peerStoreManager.save()
     await peerStoreManager.save()
+
     expect(saveSpy).toHaveBeenCalledTimes(3)
   })
 
