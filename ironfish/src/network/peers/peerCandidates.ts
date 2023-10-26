@@ -84,10 +84,6 @@ export class PeerCandidates {
     return this.map.has(identity)
   }
 
-  private set(identity: Identity, value: PeerCandidate): void {
-    this.map.set(identity, value)
-  }
-
   clear(): void {
     this.map.clear()
   }
