@@ -639,12 +639,12 @@ export class PeerManager {
 
     for (const neighbor of val.neighbors) {
       const neighborPeer = this.identifiedPeers.get(neighbor)
-      if (!neighborPeer || neighborPeer.state.type !== 'CONNECTED') {
-        val.neighbors.delete(neighbor)
-        continue
-      }
 
-      candidates.push(neighborPeer)
+      if (neighborPeer && neighborPeer.state.type === 'CONNECTED') {
+        candidates.push(neighborPeer)
+      } else {
+        val.neighbors.delete(neighbor)
+      }
     }
 
     return candidates
