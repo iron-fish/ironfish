@@ -6,7 +6,6 @@ import type { Logger } from '../../../logger'
 import colors from 'colors/safe'
 import { MetricsMonitor } from '../../../metrics'
 import { parseNetworkMessage } from '../../messageRegistry'
-import { displayNetworkMessageType } from '../../messages/networkMessage'
 import { IsomorphicWebSocket, IsomorphicWebSocketErrorEvent } from '../../types'
 import { Connection, ConnectionDirection, ConnectionType } from './connection'
 import { NetworkError } from './errors'
@@ -93,9 +92,7 @@ export class WebSocketConnection extends Connection {
 
       if (this.shouldLogMessageType(message.type)) {
         this.logger.debug(
-          `${colors.yellow('RECV')} ${this.displayName}: ${displayNetworkMessageType(
-            message.type,
-          )}`,
+          `${colors.yellow('RECV')} ${this.displayName}: ${message.displayType()}`,
         )
       }
 

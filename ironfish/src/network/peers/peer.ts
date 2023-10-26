@@ -10,7 +10,7 @@ import { createRootLogger, Logger } from '../../logger'
 import { MetricsMonitor } from '../../metrics'
 import { ErrorUtils } from '../../utils'
 import { Identity } from '../identity'
-import { displayNetworkMessageType, NetworkMessage } from '../messages/networkMessage'
+import { NetworkMessage } from '../messages/networkMessage'
 import { NetworkMessageType } from '../types'
 import { NetworkError, WebRtcConnection, WebSocketConnection } from './connections'
 import { Connection, ConnectionType } from './connections/connection'
@@ -487,9 +487,9 @@ export class Peer {
     // Return early if peer is not in state CONNECTED
     if (this.state.type !== 'CONNECTED') {
       this.logger.debug(
-        `Attempted to send a ${displayNetworkMessageType(message.type)} message to ${
-          this.displayName
-        } in state ${this.state.type}`,
+        `Attempted to send a ${message.displayType()} message to ${this.displayName} in state ${
+          this.state.type
+        }`,
       )
       return null
     }

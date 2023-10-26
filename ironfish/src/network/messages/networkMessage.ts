@@ -5,10 +5,6 @@ import bufio from 'bufio'
 import { Serializable } from '../../common/serializable'
 import { NetworkMessageType } from '../types'
 
-export function displayNetworkMessageType(type: NetworkMessageType): string {
-  return `${NetworkMessageType[type]} (${type})`
-}
-
 export abstract class NetworkMessage implements Serializable {
   readonly type: NetworkMessageType
 
@@ -31,5 +27,9 @@ export abstract class NetworkMessage implements Serializable {
     bw.writeU8(this.type)
     this.serializePayload(bw)
     return bw.render()
+  }
+
+  displayType(): string {
+    return `${NetworkMessageType[this.type]} (${this.type})`
   }
 }
