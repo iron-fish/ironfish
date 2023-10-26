@@ -163,7 +163,6 @@ export class Syncer {
       return
     }
 
-    this.logger.debug('Syncer is beginning peer candidate measurements')
     const measurementStart = BenchUtils.start()
 
     // Find all allowed peers that have more work than we have
@@ -174,6 +173,8 @@ export class Syncer {
     if (peers.length === 0) {
       return
     }
+
+    this.logger.debug('Syncer is beginning peer candidate measurements')
 
     // If there is only one valid peer to sync from, there is no point in
     // measuring the connection so begin syncing immediately
