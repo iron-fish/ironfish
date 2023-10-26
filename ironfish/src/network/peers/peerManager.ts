@@ -258,9 +258,9 @@ export class PeerManager {
     }
 
     // Make sure we can find at least one brokering peer before we create the connection
-    const brokeringPeer = this.getBrokeringPeer(peer)
+    const brokeringPeers = this.getBrokeringPeers(peer)
 
-    if (brokeringPeer === null) {
+    if (brokeringPeers.length === 0) {
       this.logger.debug(
         `Attempted to establish a WebRTC connection to ${peer.displayName}, but couldn't find a peer to broker the connection.`,
       )
@@ -286,6 +286,7 @@ export class PeerManager {
 
     const connection = this.initWebRtcConnection(peer, false)
     connection.setState({ type: 'REQUEST_SIGNALING' })
+    const brokeringPeer = ArrayUtils.shuffle(brokeringPeers)[0]
     brokeringPeer.send(signal)
     return true
   }
@@ -352,7 +353,10 @@ export class PeerManager {
 
       // Ensure one or more brokering peers exists before encrypting the signaling message,
       // but discard the brokering peer in case its state changes during encryption
-      if (this.getBrokeringPeer(peer) === null) {
+
+      const brokeringPeers = this.getBrokeringPeers(peer)
+
+      if (brokeringPeers.length === 0) {
         errorMessage = 'Cannot establish a WebRTC connection without a brokering peer'
       }
 
@@ -368,8 +372,12 @@ export class PeerManager {
         peer.getIdentityOrThrow(),
       )
 
-      for (let attempts = 0; attempts < MAX_WEBRTC_BROKERING_ATTEMPTS; attempts++) {
-        const brokeringPeer = this.getBrokeringPeer(peer)
+      const shuffledPeers = ArrayUtils.shuffle(brokeringPeers).slice(
+        0,
+        MAX_WEBRTC_BROKERING_ATTEMPTS,
+      )
+
+      for (const brokeringPeer of shuffledPeers) {
         if (brokeringPeer === null) {
           const message = 'Cannot establish a WebRTC connection without a brokering peer'
           this.logger.debug(message)
@@ -609,15 +617,15 @@ export class PeerManager {
   /** For a given peer, try to find a peer that's connected to that peer
    * including itself to broker a WebRTC connection to it
    * */
-  private getBrokeringPeer(peer: Peer): Peer | null {
+  private getBrokeringPeers(peer: Peer): Peer[] {
     if (peer.state.type === 'CONNECTED') {
       // Use the existing connection to the peer to broker the connection
-      return peer
+      return [peer]
     }
 
     if (peer.state.identity === null) {
       // Cannot find a brokering peer of an unidentified peer
-      return null
+      return []
     }
 
     // Find another peer to broker the connection
@@ -626,7 +634,7 @@ export class PeerManager {
     // The peer candidate map tracks any brokering peer candidates
     const val = this.peerCandidates.get(peer.state.identity)
     if (!val) {
-      return null
+      return []
     }
 
     for (const neighbor of val.neighbors) {
@@ -639,7 +647,7 @@ export class PeerManager {
       candidates.push(neighborPeer)
     }
 
-    return ArrayUtils.sample(candidates)
+    return candidates
   }
 
   /**
