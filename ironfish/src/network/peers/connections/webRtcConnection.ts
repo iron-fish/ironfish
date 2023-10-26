@@ -10,7 +10,6 @@ import { Event } from '../../../event'
 import { MetricsMonitor } from '../../../metrics'
 import { ErrorUtils } from '../../../utils'
 import { parseNetworkMessage } from '../../messageRegistry'
-import { displayNetworkMessageType } from '../../messages/networkMessage'
 import { MAX_MESSAGE_SIZE } from '../../version'
 import { Connection, ConnectionDirection, ConnectionType } from './connection'
 import { NetworkError } from './errors'
@@ -148,9 +147,7 @@ export class WebRtcConnection extends Connection {
 
       if (this.shouldLogMessageType(message.type)) {
         this.logger.debug(
-          `${colors.yellow('RECV')} ${this.displayName}: ${displayNetworkMessageType(
-            message.type,
-          )}`,
+          `${colors.yellow('RECV')} ${this.displayName}: ${message.displayType()}`,
         )
       }
 

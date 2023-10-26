@@ -33,7 +33,7 @@ import {
   GetBlockTransactionsResponse,
 } from './messages/getBlockTransactions'
 import { GetCompactBlockRequest, GetCompactBlockResponse } from './messages/getCompactBlock'
-import { displayNetworkMessageType, NetworkMessage } from './messages/networkMessage'
+import { NetworkMessage } from './messages/networkMessage'
 import { NewBlockHashesMessage } from './messages/newBlockHashes'
 import { NewCompactBlockMessage } from './messages/newCompactBlock'
 import { NewPooledTransactionHashes } from './messages/newPooledTransactionHashes'
@@ -508,9 +508,7 @@ export class PeerNetwork {
         if (request && request.peer.state.type === 'DISCONNECTED') {
           request.peer.onStateChanged.off(onConnectionStateChanged)
 
-          const errorMessage = `Connection closed while waiting for request ${displayNetworkMessageType(
-            message.type,
-          )}: ${rpcId}`
+          const errorMessage = `Connection closed while waiting for request ${message.displayType()}: ${rpcId}`
 
           request.reject(new NetworkError(errorMessage))
         }
@@ -527,9 +525,7 @@ export class PeerNetwork {
         }
         const errorMessage = `Closing connections to ${
           peer.displayName
-        } because RPC message of type ${displayNetworkMessageType(
-          message.type,
-        )} timed out after ${RPC_TIMEOUT_MILLIS} ms in request: ${rpcId}.`
+        } because RPC message of type ${message.displayType()} timed out after ${RPC_TIMEOUT_MILLIS} ms in request: ${rpcId}.`
         const error = new RequestTimeoutError(RPC_TIMEOUT_MILLIS, errorMessage)
         this.logger.debug(errorMessage)
         clearDisconnectHandler()
@@ -572,9 +568,9 @@ export class PeerNetwork {
       if (!connection) {
         return request.reject(
           new Error(
-            `${String(peer.state.identity)} did not send ${displayNetworkMessageType(
-              message.type,
-            )} in state ${peer.state.type}`,
+            `${String(peer.state.identity)} did not send ${message.displayType()} in state ${
+              peer.state.type
+            }`,
           ),
         )
       }
@@ -597,9 +593,7 @@ export class PeerNetwork {
 
     if (!(response instanceof GetBlockHeadersResponse)) {
       // TODO jspafford: disconnect peer, or handle it more properly
-      throw new Error(
-        `Invalid GetBlockHeadersResponse: ${displayNetworkMessageType(message.type)}`,
-      )
+      throw new Error(`Invalid GetBlockHeadersResponse: ${message.displayType()}`)
     }
 
     return { headers: response.headers, time: BenchUtils.end(begin) }
@@ -617,7 +611,7 @@ export class PeerNetwork {
 
     if (!(response instanceof GetBlocksResponse)) {
       // TODO jspafford: disconnect peer, or handle it more properly
-      throw new Error(`Invalid GetBlocksResponse: ${displayNetworkMessageType(message.type)}`)
+      throw new Error(`Invalid GetBlocksResponse: ${message.displayType()}`)
     }
 
     const exceededSoftLimit = response.getSize() >= SOFT_MAX_MESSAGE_SIZE
@@ -645,9 +639,7 @@ export class PeerNetwork {
       }
     } else {
       throw new Error(
-        `Invalid message for handling in peer network: '${displayNetworkMessageType(
-          message.type,
-        )}'`,
+        `Invalid message for handling in peer network: '${message.displayType()}'`,
       )
     }
   }
@@ -685,9 +677,7 @@ export class PeerNetwork {
         const asError = error as Error
         if (!(asError.name && asError.name === 'CannotSatisfyRequestError')) {
           this.logger.error(
-            `Unexpected error in ${displayNetworkMessageType(
-              rpcMessage.type,
-            )} handler: ${String(error)}`,
+            `Unexpected error in ${rpcMessage.displayType()} handler: ${String(error)}`,
           )
         }
         responseMessage = new CannotSatisfyRequest(rpcId)

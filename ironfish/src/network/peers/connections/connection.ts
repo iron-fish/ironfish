@@ -8,7 +8,7 @@ import { Event } from '../../../event'
 import { MetricsMonitor } from '../../../metrics'
 import { ErrorUtils, SetTimeoutToken } from '../../../utils'
 import { Identity } from '../../identity'
-import { displayNetworkMessageType, NetworkMessage } from '../../messages/networkMessage'
+import { NetworkMessage } from '../../messages/networkMessage'
 import { RPC_TIMEOUT_MILLIS } from '../../messages/rpcNetworkMessage'
 import { NetworkMessageType } from '../../types'
 import { MAX_MESSAGE_SIZE } from '../../version'
@@ -119,11 +119,7 @@ export abstract class Connection {
     }
 
     if (this.shouldLogMessageType(object.type)) {
-      this.logger.debug(
-        `${colors.yellow('SEND')} ${this.displayName}: ${displayNetworkMessageType(
-          object.type,
-        )}`,
-      )
+      this.logger.debug(`${colors.yellow('SEND')} ${this.displayName}: ${object.displayType()}`)
     }
 
     let sendResult
@@ -131,9 +127,9 @@ export abstract class Connection {
       sendResult = this._send(data)
     } catch (e) {
       this.logger.debug(
-        `Error occurred while sending ${displayNetworkMessageType(
-          object.type,
-        )} message in state ${this.state.type} ${ErrorUtils.renderError(e)}`,
+        `Error occurred while sending ${object.displayType()} message in state ${
+          this.state.type
+        } ${ErrorUtils.renderError(e)}`,
       )
       this.close(e)
       return false
