@@ -650,11 +650,7 @@ export class PeerManager {
       candidates.push(neighborPeer)
     }
 
-    if (candidates.length === 0) {
-      return null
-    }
-
-    return ArrayUtils.sampleOrThrow(candidates)
+    return ArrayUtils.sample(candidates)
   }
 
   /**
