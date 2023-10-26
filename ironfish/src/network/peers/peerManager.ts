@@ -393,6 +393,7 @@ export class PeerManager {
 
         // If sending the message failed, try again (the brokeringPeer's state may have changed)
         const sendResult = brokeringPeer.send(signal)
+
         if (sendResult !== null) {
           brokeringPeer.pushLoggedMessage(
             {
@@ -978,86 +979,31 @@ export class PeerManager {
       return
     }
 
-    const identity = message.identity
-    const version = message.version
-    const agent = message.agent
-    const port = message.port
-    const name = message.name
-    const networkId = message.networkId
-    const genesisBlockHash = message.genesisBlockHash
+    const { identity, version, agent, port, name, networkId, genesisBlockHash } = message
 
+    let error: string | null = null
     if (!isIdentity(identity)) {
-      this.logger.debug(
-        `Disconnecting from ${identity} - Identity does not match expected format`,
-      )
-      this.getConnectionRetry(
-        identity,
-        connection.type,
-        connection.direction,
-      )?.failedConnection()
-      peer.close(new Error(`Identity ${identity} does not match expected format`))
-      return
+      error = `Identity ${identity} does not match expected format`
+    } else if (version < VERSION_PROTOCOL_MIN) {
+      error = `Peer version ${version} is not compatible with our minimum: ${VERSION_PROTOCOL_MIN}`
+    } else if (networkId !== this.localPeer.networkId) {
+      error = `Peer is on network ${networkId} while we are on network ${this.localPeer.networkId}`
+    } else if (!genesisBlockHash.equals(this.localPeer.chain.genesis.hash)) {
+      error = 'Peer is using a different genesis block'
+    } else if (name && name.length > 32) {
+      error = `Peer name length exceeds 32: ${name.length}`
+    } else if (this.banned.has(identity)) {
+      error = 'Peer is banned'
     }
 
-    if (version < VERSION_PROTOCOL_MIN) {
-      const error = `Peer version ${version} is not compatible with our minimum: ${VERSION_PROTOCOL_MIN}`
+    if (error) {
       this.logger.debug(`Disconnecting from ${identity} - ${error}`)
-
       this.getConnectionRetry(
         identity,
         connection.type,
         connection.direction,
       )?.failedConnection()
       peer.close(new Error(error))
-      return
-    }
-
-    if (networkId !== this.localPeer.networkId) {
-      const error = `Peer is on network ${networkId} while we are on network ${this.localPeer.networkId}`
-      this.logger.debug(`Disconnecting from ${identity} - ${error}`)
-
-      this.getConnectionRetry(
-        identity,
-        connection.type,
-        connection.direction,
-      )?.failedConnection()
-      peer.close(new Error(error))
-      return
-    }
-
-    if (!genesisBlockHash.equals(this.localPeer.chain.genesis.hash)) {
-      const error = 'Peer is using a different genesis block'
-      this.logger.debug(`Disconnecting from ${identity} - ${error}`)
-
-      this.getConnectionRetry(
-        identity,
-        connection.type,
-        connection.direction,
-      )?.failedConnection()
-      peer.close(new Error(error))
-      return
-    }
-
-    if (this.banned.has(identity)) {
-      this.getConnectionRetry(
-        identity,
-        connection.type,
-        connection.direction,
-      )?.neverRetryConnecting()
-      peer.close(new Error('banned'))
-      return
-    }
-
-    if (name && name.length > 32) {
-      this.logger.debug(
-        `Disconnecting from ${identity} - Peer name length exceeds 32: ${name.length}}`,
-      )
-      this.getConnectionRetry(
-        identity,
-        connection.type,
-        connection.direction,
-      )?.failedConnection()
-      peer.close(new Error(`Peer name length exceeds 32: ${name.length}}`))
       return
     }
 
