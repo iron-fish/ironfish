@@ -992,8 +992,6 @@ export class PeerManager {
       error = 'Peer is using a different genesis block'
     } else if (name && name.length > 32) {
       error = `Peer name length exceeds 32: ${name.length}`
-    } else if (this.banned.has(identity)) {
-      error = 'Peer is banned'
     }
 
     if (error) {
@@ -1004,6 +1002,16 @@ export class PeerManager {
         connection.direction,
       )?.failedConnection()
       peer.close(new Error(error))
+      return
+    }
+
+    if (this.banned.has(identity)) {
+      this.getConnectionRetry(
+        identity,
+        connection.type,
+        connection.direction,
+      )?.neverRetryConnecting()
+      peer.close(new Error('banned'))
       return
     }
 
