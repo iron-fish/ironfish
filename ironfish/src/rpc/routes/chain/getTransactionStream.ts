@@ -7,7 +7,7 @@ import { ChainProcessor } from '../../../chainProcessor'
 import { FullNode } from '../../../node'
 import { Block } from '../../../primitives/block'
 import { BlockHeader } from '../../../primitives/blockheader'
-import { CurrencyUtils } from '../../../utils'
+import { BufferUtils, CurrencyUtils } from '../../../utils'
 import { PromiseUtils } from '../../../utils/promise'
 import { isValidIncomingViewKey, isValidOutgoingViewKey } from '../../../wallet/validator'
 import { ValidationError } from '../../adapters/errors'
@@ -51,7 +51,6 @@ const NoteSchema = yup
     hash: yup.string().required(),
     value: yup.string().required(),
     memo: yup.string().required(),
-    memoHex: yup.string().required(),
     sender: yup.string().required(),
   })
   .required()
@@ -71,6 +70,7 @@ export type GetTransactionStreamRequest = {
   incomingViewKey: string
   outgoingViewKey?: string
   head?: string | null
+  memoAsHex?: boolean
 }
 
 export type GetTransactionStreamResponse = {
@@ -88,6 +88,7 @@ export const GetTransactionStreamRequestSchema: yup.ObjectSchema<GetTransactionS
       incomingViewKey: yup.string().required(),
       outgoingViewKey: yup.string().optional(),
       head: yup.string().nullable().optional(),
+      memoAsHex: yup.boolean().optional().default(false),
     })
     .required()
 export const GetTransactionStreamResponseSchema: yup.ObjectSchema<GetTransactionStreamResponse> =
@@ -151,10 +152,14 @@ routes.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
           }
 
           if (decryptedNote) {
+            const memo = request.data.memoAsHex
+              ? decryptedNote?.memo().toString('hex')
+              : BufferUtils.toHuman(decryptedNote.memo())
+
             const assetValue = await node.chain.getAssetById(decryptedNote.assetId())
             notes.push({
               value: CurrencyUtils.encode(decryptedNote.value()),
-              memo: decryptedNote.memo().toString('hex'),
+              memo,
               assetId: decryptedNote.assetId().toString('hex'),
               assetName: assetValue?.name.toString('hex') || '',
               hash: decryptedNote.hash().toString('hex'),
