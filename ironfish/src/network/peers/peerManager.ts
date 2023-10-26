@@ -160,6 +160,25 @@ export class PeerManager {
     this.peerStoreManager = new PeerStoreManager(peerStore)
   }
 
+  start(): void {
+    this.requestPeerListHandle = setInterval(() => this.requestPeerList(), 60000)
+    this.disposePeersHandle = setInterval(() => this.disposePeers(), 2000)
+  }
+
+  /**
+   * Call when shutting down the PeerManager to clean up
+   * outstanding connections.
+   */
+  async stop(): Promise<void> {
+    this.requestPeerListHandle && clearInterval(this.requestPeerListHandle)
+    this.disposePeersHandle && clearInterval(this.disposePeersHandle)
+    this.savePeerAddressesHandle && clearInterval(this.savePeerAddressesHandle)
+    await this.peerStoreManager.save()
+    for (const peer of this.peers) {
+      this.disconnect(peer, DisconnectingReason.ShuttingDown, 0)
+    }
+  }
+
   /**
    * Connect to a websocket by its uri. Establish a connection and solicit
    * the server's Identity.
@@ -771,25 +790,6 @@ export class PeerManager {
 
   isBanned(peer: Peer): boolean {
     return !!peer.state.identity && this.banned.has(peer.state.identity)
-  }
-
-  start(): void {
-    this.requestPeerListHandle = setInterval(() => this.requestPeerList(), 60000)
-    this.disposePeersHandle = setInterval(() => this.disposePeers(), 2000)
-  }
-
-  /**
-   * Call when shutting down the PeerManager to clean up
-   * outstanding connections.
-   */
-  async stop(): Promise<void> {
-    this.requestPeerListHandle && clearInterval(this.requestPeerListHandle)
-    this.disposePeersHandle && clearInterval(this.disposePeersHandle)
-    this.savePeerAddressesHandle && clearInterval(this.savePeerAddressesHandle)
-    await this.peerStoreManager.save()
-    for (const peer of this.peers) {
-      this.disconnect(peer, DisconnectingReason.ShuttingDown, 0)
-    }
   }
 
   private requestPeerList() {
