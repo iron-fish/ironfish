@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+const MIN_NODE_VERSION = 18
+
 // the signal handler does not support windows yet
 if (process.platform !== 'win32') {
   require('@ironfish/rust-nodejs').initSignalHandler()
@@ -12,9 +14,9 @@ if (process.platform === 'win32' && process.arch === 'ia32') {
   process.exit(1)
 }
 
-if (process.versions.node.split('.')[0] !== '18') {
+if (Number(process.versions.node.split('.')[0]) < 18) {
   console.log(
-    `NodeJS version ${process.versions.node} is not compatible. Must have Node v18 installed: https://nodejs.org/en/download/`,
+    `NodeJS version ${process.versions.node} is not compatible. Must have at least Node v${MIN_NODE_VERSION} installed: https://nodejs.org/en/download/`,
   )
   process.exit(1)
 }

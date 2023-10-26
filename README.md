@@ -15,7 +15,7 @@ See https://ironfish.network
 
 The following steps should only be used to install if you are planning on contributing to the Iron Fish codebase. Otherwise, we **strongly** recommend using the installation methods here: https://ironfish.network/use/get-started/installation
 
-1. Install [Node.js 18.x](https://nodejs.org/en/download/)
+1. Install [Node.js LTS](https://nodejs.org/en/download/)
 1. Install [Rust](https://www.rust-lang.org/learn/get-started).
 1. Install [Yarn](https://classic.yarnpkg.com/en/docs/install).
 1. Windows:
