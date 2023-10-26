@@ -23,7 +23,7 @@ jobs:
           - host: ubuntu-20.04
             arch: x86_64
             system: linux
-          
+
           - host: [self-hosted, macOS, ARM64]
             arch: arm64
             system: apple
@@ -32,7 +32,6 @@ jobs:
           # - host: ubuntu-20.04
           #   arch: aarch64
           #   system: linux
-          
 
           # - host: ubuntu-20.04
           #   target: aarch64-apple-darwin
@@ -50,11 +49,11 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18.12.1'
+          node-version: 18
 
       - name: npm init
         run: npm init -y
-      
+
       - name: install dependencies
         run: npm install ironfish caxa@3.0.1
 
@@ -63,7 +62,7 @@ jobs:
         run: |
           npx caxa --uncompression-message "Running the CLI for the first time may take a while, please wait..." --input . --output "${{ matrix.settings.system != 'windows' && 'ironfish' || 'ironfish.exe' }}" -- "{{caxa}}/node_modules/.bin/node" "--enable-source-maps" "{{caxa}}/node_modules/ironfish/bin/run"
           echo "RELEASE_NAME=ironfish-${{ matrix.settings.system }}-${{ matrix.settings.arch }}-${{ github.event.release.tag_name }}.zip"
-      
+
       - name: set paths
         id: set_paths
         shell: bash
