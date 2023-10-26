@@ -19,8 +19,11 @@ function shuffle<T>(array: ReadonlyArray<T>): Array<T> {
   return sliceArr
 }
 
-function sampleOrThrow<T>(array: Array<T>): T {
-  Assert.isTrue(array.length > 0)
+function sample<T>(array: Array<T>): T | null {
+  if (array.length === 0) {
+    return null
+  }
+
   return array[Math.floor(Math.random() * array.length)]
 }
 
@@ -34,4 +37,4 @@ function remove<T>(array: Array<T>, item: T): boolean {
   return false
 }
 
-export const ArrayUtils = { shuffle, sampleOrThrow, remove }
+export const ArrayUtils = { shuffle, sample, remove }
