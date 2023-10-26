@@ -628,14 +628,14 @@ export class PeerManager {
       return []
     }
 
-    // Find another peer to broker the connection
-    const candidates = []
-
     // The peer candidate map tracks any brokering peer candidates
     const val = this.peerCandidates.get(peer.state.identity)
     if (!val) {
       return []
     }
+
+    // Find another peer to broker the connection
+    const candidates = []
 
     for (const neighbor of val.neighbors) {
       const neighborPeer = this.identifiedPeers.get(neighbor)
