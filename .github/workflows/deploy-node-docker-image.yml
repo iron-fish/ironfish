@@ -54,6 +54,9 @@ jobs:
         env:
           AWS_REGISTRY_URL: ${{ secrets.AWS_NODE_REGISTRY_URL }}
 
+      - name: Setup Docker Builder
+        run: docker buildx create --bootstrap --use
+
       - name: Build Node Image
         run: ./ironfish-cli/scripts/build-docker.sh
 

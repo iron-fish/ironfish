@@ -9,11 +9,11 @@ EOF
 
 echo "Building Docker Image"
 
-export DOCKER_BUILDKIT=1
-
-docker build . \
+docker buildx build . \
     --progress plain \
     --tag ironfish:latest \
+    --platform linux/amd64,linux/arm64,linux/arm/v7 \
+    --output type=image \
     --file ironfish-cli/Dockerfile
 
 docker run \

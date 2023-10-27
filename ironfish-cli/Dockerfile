@@ -1,15 +1,13 @@
 FROM node:18-bullseye as build
 ENV PATH="/root/.cargo/bin:${PATH}"
 
-RUN \
-    --mount=type=cache,target=/var/cache/apt \
-    apt-get update && \
-    apt-get install jq rsync -y
+RUN apt-get update && apt-get install jq rsync -y
 
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 
 COPY ./ /usr/src/ironfish
 
+RUN yarn config set network-timeout 300000
 RUN /usr/src/ironfish/ironfish-cli/scripts/build.sh
 
 FROM node:18-bullseye-slim
