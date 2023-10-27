@@ -32,16 +32,6 @@ export class PeerCandidates {
     return this.map.size
   }
 
-  getWsAddress(candidate: {
-    address: string | null
-    port: number | null
-  }): WebSocketAddress | null {
-    if (candidate.port !== null && candidate.address === null) {
-      throw new Error('Peer port is not null but address is null')
-    }
-    return candidate.address ? { host: candidate.address, port: candidate.port } : null
-  }
-
   addFromPeer(peer: Peer, neighbors = new Set<Identity>()): void {
     const address = peer.getWebSocketAddress()
     const addressPeerCandidate = this.map.get(address)

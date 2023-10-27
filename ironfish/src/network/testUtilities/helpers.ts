@@ -156,15 +156,9 @@ export function getSignalingWebRtcPeer(
   // we're not resetting pre-existing peer candidate data.
   Assert.isFalse(pm.peerCandidates.has(peerIdentity))
 
-  if (peer.port !== null && peer.address === null) {
-    throw new Error('Peer port is not null but address is null')
-  }
-
-  const wsAddress = peer.address ? { host: peer.address, port: peer.port } : null
-
   // Link the peers
   pm.peerCandidates.addFromPeerList(brokeringPeerIdentity, {
-    wsAddress,
+    wsAddress: peer.wsAddress,
     identity: peerIdentity,
   })
 

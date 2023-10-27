@@ -163,19 +163,20 @@ export class Peer {
     return identitySlice
   }
 
-  private _wsAddress: WebSocketAddress | null = null
+  wsAddress: WebSocketAddress | null = null
+
   /**
    * address associated with this peer
    */
   get address(): string | null {
-    return this._wsAddress?.host || null
+    return this.wsAddress?.host || null
   }
 
   /**
    * port associated with this peer
    */
   get port(): number | null {
-    return this._wsAddress?.port || null
+    return this.wsAddress?.port || null
   }
 
   /** how many outbound connections does the peer have */
