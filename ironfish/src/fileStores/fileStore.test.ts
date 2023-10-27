@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { NodeFileProvider } from '../fileSystems'
 import { getUniqueTestDataDir } from '../testUtilities'
+import { PromiseUtils } from '../utils'
 import { FileStore } from './fileStore'
 
 describe('FileStore', () => {
@@ -15,5 +16,34 @@ describe('FileStore', () => {
 
     const loaded = await store.load()
     expect(loaded).toMatchObject({ foo: 'hello' })
+  })
+
+  it('should prevent multiple writes to the file before the promise completes', async () => {
+    const dir = getUniqueTestDataDir()
+    const files = new NodeFileProvider()
+    const save = jest.spyOn(files, 'writeFile')
+    await files.init()
+    const store = new FileStore<{ foo: string }>(files, 'test', dir)
+
+    const [promise, resolve] = PromiseUtils.split<void>()
+    save.mockReturnValue(promise)
+
+    const promise1 = store.save({ foo: 'hello' })
+    const promise2 = store.save({ foo: 'hello' })
+    expect(save).toHaveBeenCalledTimes(0)
+
+    resolve()
+    expect(save).toHaveBeenCalledTimes(0)
+
+    await promise1
+    expect(save).toHaveBeenCalledTimes(1)
+
+    await promise2
+    expect(save).toHaveBeenCalledTimes(2)
+
+    await store.save({ foo: 'hello' })
+    await store.save({ foo: 'hello' })
+
+    expect(save).toHaveBeenCalledTimes(4)
   })
 })
