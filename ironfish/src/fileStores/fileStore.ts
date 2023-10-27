@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import path from 'path'
 import { FileSystem } from '../fileSystems'
+import { Mutex } from '../mutex'
 import { JSONUtils, PartialRecursive } from '../utils'
 
 export class FileStore<T extends Record<string, unknown>> {
@@ -10,6 +11,7 @@ export class FileStore<T extends Record<string, unknown>> {
   dataDir: string
   configPath: string
   configName: string
+  saveFileMutex = new Mutex()
 
   constructor(files: FileSystem, configName: string, dataDir: string) {
     this.files = files
@@ -33,7 +35,12 @@ export class FileStore<T extends Record<string, unknown>> {
 
   async save(data: PartialRecursive<T>): Promise<void> {
     const json = JSON.stringify(data, undefined, '    ')
-    await this.files.mkdir(path.dirname(this.configPath), { recursive: true })
-    await this.files.writeFile(this.configPath, json)
+    const unlock = await this.saveFileMutex.lock()
+    try {
+      await this.files.mkdir(path.dirname(this.configPath), { recursive: true })
+      await this.files.writeFile(this.configPath, json)
+    } finally {
+      unlock()
+    }
   }
 }
