@@ -445,7 +445,7 @@ export class Peer {
    * @param port Port to connect over. Must be null if address is null.
    */
   setWebSocketAddress(wsAddress: WebSocketAddress | null): void {
-    this._wsAddress = wsAddress
+    this.wsAddress = wsAddress
   }
 
   /**
