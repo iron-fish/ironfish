@@ -5,7 +5,7 @@ import { ArrayUtils } from '../../utils/array'
 import { Identity } from '../identity'
 import { Peer as PeerListPeer } from '../messages/peerList'
 import { ConnectionRetry } from './connectionRetry'
-import { Peer } from './peer'
+import { Peer, WebSocketAddress } from './peer'
 
 export type PeerCandidate = {
   name?: string
@@ -31,6 +31,16 @@ export class PeerCandidates {
 
   get size(): number {
     return this.map.size
+  }
+
+  getWsAddress(candidate: {
+    address: string | null
+    port: number | null
+  }): WebSocketAddress | null {
+    if (candidate.port !== null && candidate.address === null) {
+      throw new Error('Peer port is not null but address is null')
+    }
+    return candidate.address ? { host: candidate.address, port: candidate.port } : null
   }
 
   addFromPeer(peer: Peer, neighbors = new Set<Identity>()): void {
@@ -67,7 +77,7 @@ export class PeerCandidates {
       peerCandidateValue.neighbors.add(sendingPeerIdentity)
     } else {
       const tempPeer = new Peer(peerIdentity)
-      tempPeer.setWebSocketAddress(peer.address, peer.port)
+      tempPeer.setWebSocketAddress(this.getWsAddress(peer))
       this.addFromPeer(tempPeer, new Set([sendingPeerIdentity]))
     }
   }

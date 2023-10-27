@@ -68,6 +68,11 @@ export enum KnownBlockHashesValue {
   Sent = 2,
 }
 
+export type WebSocketAddress = {
+  host: string
+  port: number | null
+}
+
 export class Peer {
   readonly pendingRPCMax: number
   readonly logger: Logger
@@ -439,22 +444,9 @@ export class Peer {
    * @param address Hostname of the address, or null to remove the address.
    * @param port Port to connect over. Must be null if address is null.
    */
-  setWebSocketAddress(address: string | null, port: number | null): void {
-    if (address === null && port !== null) {
-      throw new Error(
-        `Called setWebSocketAddress on ${String(
-          this.state.identity,
-        )} with a port but no address`,
-      )
-    }
-
-    // Don't do anything if the address and port stay the same
-    if (address === this._address && port === this._port) {
-      return
-    }
-
-    this._address = address
-    this._port = port
+  setWebSocketAddress(wsAddress: WebSocketAddress | null): void {
+    this._address = wsAddress?.host || null
+    this._port = wsAddress?.port || null
   }
 
   /**
@@ -578,7 +570,7 @@ export class Peer {
       connection instanceof WebSocketConnection &&
       connection.hostname
     ) {
-      this.setWebSocketAddress(connection.hostname, connection.port || null)
+      this.setWebSocketAddress({ host: connection.hostname, port: connection.port || null })
     }
 
     // onMessage
@@ -621,7 +613,10 @@ export class Peer {
         if (connection.state.type === 'CONNECTED') {
           // If connection goes to connected, transition the peer to connected
           if (connection instanceof WebSocketConnection && connection.hostname) {
-            this.setWebSocketAddress(connection.hostname, connection.port || null)
+            this.setWebSocketAddress({
+              host: connection.hostname,
+              port: connection.port || null,
+            })
           }
           this.setState(this.state.connections.webSocket, this.state.connections.webRtc)
         }
