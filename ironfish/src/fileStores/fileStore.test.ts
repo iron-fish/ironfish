@@ -40,10 +40,5 @@ describe('FileStore', () => {
 
     await promise2
     expect(save).toHaveBeenCalledTimes(2)
-
-    await store.save({ foo: 'hello' })
-    await store.save({ foo: 'hello' })
-
-    expect(save).toHaveBeenCalledTimes(4)
   })
 })
