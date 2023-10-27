@@ -11,6 +11,12 @@ export class FileStore<T extends Record<string, unknown>> {
   dataDir: string
   configPath: string
   configName: string
+  // According to the documentation: "It is unsafe to use filehandle.writeFile() multiple
+  // times on the same file without waiting for the promise to be fulfilled (or rejected)."
+  // https://nodejs.org/api/fs.html#filehandlewritefiledata-options
+  // We have had several complaints especially from Windows users about the json file being corrupted.
+  // We call this function several places in our codebase without waiting for the promise to complete.
+  // This mutex is used to prevent multiple writes to the same file.
   saveFileMutex = new Mutex()
 
   constructor(files: FileSystem, configName: string, dataDir: string) {
