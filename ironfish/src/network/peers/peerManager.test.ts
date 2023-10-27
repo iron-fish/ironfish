@@ -379,18 +379,16 @@ describe('PeerManager', () => {
 
       // Link the peers
       pm.peerCandidates.addFromPeerList(peer2Identity, {
-        address: null,
-        port: null,
-        identity: Buffer.from(peer1Identity, 'base64'),
+        wsAddress: null,
+        identity: peer1Identity,
       })
       pm.peerCandidates.addFromPeerList(peer1Identity, {
-        address: null,
-        port: null,
-        identity: Buffer.from(peer2Identity, 'base64'),
+        wsAddress: null,
+        identity: peer2Identity,
       })
 
       // Verify peer2 is not connected
-      peer2.setWebSocketAddress('testuri', 9033)
+      peer2.setWebSocketAddress({ host: 'testuri', port: 9033 })
       expect(peer2.state).toEqual({
         type: 'DISCONNECTED',
         identity: peer2Identity,
@@ -418,14 +416,12 @@ describe('PeerManager', () => {
 
       // Link the peers
       peers.peerCandidates.addFromPeerList(targetPeer.getIdentityOrThrow(), {
-        address: null,
-        port: null,
-        identity: Buffer.from(brokeringPeer.getIdentityOrThrow(), 'base64'),
+        wsAddress: null,
+        identity: brokeringPeer.getIdentityOrThrow(),
       })
       peers.peerCandidates.addFromPeerList(brokeringPeer.getIdentityOrThrow(), {
-        address: null,
-        port: null,
-        identity: Buffer.from(targetPeer.getIdentityOrThrow(), 'base64'),
+        wsAddress: null,
+        identity: targetPeer.getIdentityOrThrow(),
       })
 
       peers.connectToWebRTC(targetPeer)
@@ -503,14 +499,12 @@ describe('PeerManager', () => {
 
       // Link the peers
       peers.peerCandidates.addFromPeerList(targetPeer.getIdentityOrThrow(), {
-        address: null,
-        port: null,
-        identity: Buffer.from(brokeringPeer.getIdentityOrThrow(), 'base64'),
+        wsAddress: null,
+        identity: brokeringPeer.getIdentityOrThrow(),
       })
       peers.peerCandidates.addFromPeerList(brokeringPeer.getIdentityOrThrow(), {
-        address: null,
-        port: null,
-        identity: Buffer.from(targetPeer.getIdentityOrThrow(), 'base64'),
+        wsAddress: null,
+        identity: targetPeer.getIdentityOrThrow(),
       })
 
       peers.connectToWebRTC(targetPeer)
@@ -585,7 +579,7 @@ describe('PeerManager', () => {
       // Add a second peer that's disconnected
       const peer2Identity = mockIdentity('peer2')
       const peer2 = pm.getOrCreatePeer(peer2Identity)
-      peer2.setWebSocketAddress('testuri.com', 9033)
+      peer2.setWebSocketAddress({ host: 'testuri.com', port: 9033 })
 
       // Mock the logger
       pm['logger'].mockTypes(() => jest.fn())

@@ -1445,7 +1445,19 @@ export class PeerManager {
         continue
       }
 
-      this.peerCandidates.addFromPeerList(peer.state.identity, connectedPeer)
+      if (connectedPeer.port !== null && connectedPeer.address === null) {
+        throw new Error('Peer port is not null but address is null')
+      }
+
+      const wsAddress = connectedPeer.address
+        ? { host: connectedPeer.address, port: connectedPeer.port }
+        : null
+
+      this.peerCandidates.addFromPeerList(peer.state.identity, {
+        identity,
+        name: connectedPeer.name,
+        wsAddress,
+      })
     }
   }
 }
