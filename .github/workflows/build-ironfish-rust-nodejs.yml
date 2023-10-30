@@ -51,7 +51,7 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18.12.1'
+          node-version: 18
           cache: yarn
 
       - name: Install Rust
@@ -121,7 +121,7 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18.12.1'
+          node-version: 18
 
       - name: Download artifacts
         uses: actions/download-artifact@v3
