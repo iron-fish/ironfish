@@ -190,7 +190,7 @@ export class PeerManager {
     forceConnect?: boolean
   }): Peer | undefined {
     const peer = this.getOrCreatePeer(null)
-    peer.setWebSocketAddress({ host: options.host, port: options.port })
+    peer.wsAddress = { host: options.host, port: options.port }
     peer.isWhitelisted = !!options.whitelist
 
     this.peerCandidates.addFromPeer(peer)
@@ -507,7 +507,7 @@ export class PeerManager {
       disconnectOk &&
       hasNoConnection &&
       retryOk &&
-      peer.address !== null
+      peer.wsAddress !== null
     )
   }
 
@@ -1027,7 +1027,7 @@ export class PeerManager {
         connection.type === ConnectionType.WebSocket &&
         connection.direction === ConnectionDirection.Outbound
       ) {
-        peer.setWebSocketAddress(null)
+        peer.wsAddress = null
       }
 
       const error = `Closing ${connection.type} connection from our own identity`
@@ -1060,17 +1060,16 @@ export class PeerManager {
         if (
           connection.type === ConnectionType.WebSocket &&
           connection.direction === ConnectionDirection.Outbound &&
-          originalPeer.address !== null
+          originalPeer.wsAddress !== null
         ) {
-          peer.setWebSocketAddress({ host: originalPeer.address, port: originalPeer.port })
+          peer.wsAddress = originalPeer.wsAddress
           const candidate = this.peerCandidates.get(message.identity)
           if (candidate) {
-            candidate.address = originalPeer.address
-            candidate.port = originalPeer.port
+            candidate.wsAddress = originalPeer.wsAddress
             // Reset ConnectionRetry since some component of the address changed
             candidate.websocketRetry.successfulConnection()
           }
-          originalPeer.setWebSocketAddress(null)
+          originalPeer.wsAddress = null
         }
         peer.setWebSocketConnection(connection)
       }
@@ -1443,10 +1442,6 @@ export class PeerManager {
       // Don't include banned peers
       if (this.banned.has(identity)) {
         continue
-      }
-
-      if (connectedPeer.port !== null && connectedPeer.address === null) {
-        throw new Error('Peer port is not null but address is null')
       }
 
       const wsAddress = connectedPeer.address

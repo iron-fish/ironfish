@@ -388,7 +388,7 @@ describe('PeerManager', () => {
       })
 
       // Verify peer2 is not connected
-      peer2.setWebSocketAddress({ host: 'testuri', port: 9033 })
+      peer2.wsAddress = { host: 'testuri', port: 9033 }
       expect(peer2.state).toEqual({
         type: 'DISCONNECTED',
         identity: peer2Identity,
@@ -579,7 +579,7 @@ describe('PeerManager', () => {
       // Add a second peer that's disconnected
       const peer2Identity = mockIdentity('peer2')
       const peer2 = pm.getOrCreatePeer(peer2Identity)
-      peer2.setWebSocketAddress({ host: 'testuri.com', port: 9033 })
+      peer2.wsAddress = { host: 'testuri.com', port: 9033 }
 
       // Mock the logger
       pm['logger'].mockTypes(() => jest.fn())

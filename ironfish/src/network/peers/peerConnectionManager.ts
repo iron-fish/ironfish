@@ -93,13 +93,9 @@ export class PeerConnectionManager {
         const val = this.peerManager.peerCandidates.get(peerCandidateIdentity)
         if (val) {
           const peer = this.peerManager.getOrCreatePeer(peerCandidateIdentity)
-          peer.name = val.name ?? null
 
-          if (val.port !== null && val.address === null) {
-            throw new Error('Peer port is not null but address is null')
-          }
-
-          peer.setWebSocketAddress(val.address ? { host: val.address, port: val.port } : null)
+          peer.name = val.name
+          peer.wsAddress = val.wsAddress
 
           if (this.connectToEligiblePeers(peer)) {
             connectAttempts++

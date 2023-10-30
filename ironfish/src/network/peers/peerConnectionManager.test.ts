@@ -42,7 +42,7 @@ describe('connectToDisconnectedPeers', () => {
     const pm = new PeerManager(mockLocalPeer(), mockPeerStore())
 
     const peer = pm.getOrCreatePeer(null)
-    peer.setWebSocketAddress({ host: 'testuri.com', port: 9033 })
+    peer.wsAddress = { host: 'testuri.com', port: 9033 }
     pm['tryDisposePeer'](peer)
 
     pm.peerCandidates.addFromPeer(peer)
@@ -64,7 +64,7 @@ describe('connectToDisconnectedPeers', () => {
 
     const identity = mockIdentity('peer')
     const peer = pm.getOrCreatePeer(identity)
-    peer.setWebSocketAddress({ host: 'testuri.com', port: 9033 })
+    peer.wsAddress = { host: 'testuri.com', port: 9033 }
     pm['tryDisposePeer'](peer)
 
     pm.peerCandidates.addFromPeer(peer)
@@ -94,7 +94,7 @@ describe('connectToDisconnectedPeers', () => {
 
     const identity = mockIdentity('peer')
     const createdPeer = peers.getOrCreatePeer(identity)
-    createdPeer.setWebSocketAddress({ host: 'testuri.com', port: 9033 })
+    createdPeer.wsAddress = { host: 'testuri.com', port: 9033 }
     peers['tryDisposePeer'](createdPeer)
 
     peers.peerCandidates.addFromPeer(createdPeer)

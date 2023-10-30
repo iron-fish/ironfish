@@ -163,6 +163,10 @@ export class Peer {
     return identitySlice
   }
 
+  /**
+   * The address by which the peer can be connected to over WebSockets.
+   * Setting this to null makes a peer unconnectable via WebSocket outbound connections.
+   */
   wsAddress: WebSocketAddress | null = null
 
   /**
@@ -439,16 +443,6 @@ export class Peer {
   }
 
   /**
-   * Sets the address and peer by which the peer can be connected to over WebSockets.
-   * Setting address and port to null makes a peer unconnectable via WebSocket outbound connections.
-   * @param address Hostname of the address, or null to remove the address.
-   * @param port Port to connect over. Must be null if address is null.
-   */
-  setWebSocketAddress(wsAddress: WebSocketAddress | null): void {
-    this.wsAddress = wsAddress
-  }
-
-  /**
    * Records number messages sent using a rolling average
    */
   private recordMessageSent() {
@@ -569,7 +563,7 @@ export class Peer {
       connection instanceof WebSocketConnection &&
       connection.hostname
     ) {
-      this.setWebSocketAddress({ host: connection.hostname, port: connection.port || null })
+      this.wsAddress = { host: connection.hostname, port: connection.port || null }
     }
 
     // onMessage
@@ -612,10 +606,7 @@ export class Peer {
         if (connection.state.type === 'CONNECTED') {
           // If connection goes to connected, transition the peer to connected
           if (connection instanceof WebSocketConnection && connection.hostname) {
-            this.setWebSocketAddress({
-              host: connection.hostname,
-              port: connection.port || null,
-            })
+            this.wsAddress = { host: connection.hostname, port: connection.port || null }
           }
           this.setState(this.state.connections.webSocket, this.state.connections.webRtc)
         }

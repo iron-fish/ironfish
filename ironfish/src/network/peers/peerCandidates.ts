@@ -7,9 +7,8 @@ import { ConnectionRetry } from './connectionRetry'
 import { Peer, WebSocketAddress } from './peer'
 
 export type PeerCandidate = {
-  name?: string
-  address: string | null
-  port: number | null
+  name: string | null
+  wsAddress: WebSocketAddress | null
   neighbors: Set<Identity>
   webRtcRetry: ConnectionRetry
   websocketRetry: ConnectionRetry
@@ -36,13 +35,13 @@ export class PeerCandidates {
     const address = peer.getWebSocketAddress()
     const addressPeerCandidate = this.map.get(address)
     const newPeerCandidate = {
-      address: peer.address,
-      port: peer.port,
+      wsAddress: peer.wsAddress,
       neighbors,
       webRtcRetry: new ConnectionRetry(peer.isWhitelisted),
       websocketRetry: new ConnectionRetry(peer.isWhitelisted),
       localRequestedDisconnectUntil: null,
       peerRequestedDisconnectUntil: null,
+      name: null,
     }
 
     if (peer.state.identity !== null) {
@@ -72,7 +71,7 @@ export class PeerCandidates {
       peerCandidateValue.neighbors.add(sendingPeerIdentity)
     } else {
       const tempPeer = new Peer(peer.identity)
-      tempPeer.setWebSocketAddress(peer.wsAddress)
+      tempPeer.wsAddress = peer.wsAddress
       this.addFromPeer(tempPeer, new Set([sendingPeerIdentity]))
     }
   }
