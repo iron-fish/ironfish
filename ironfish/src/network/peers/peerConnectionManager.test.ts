@@ -42,7 +42,7 @@ describe('connectToDisconnectedPeers', () => {
     const pm = new PeerManager(mockLocalPeer(), mockPeerStore())
 
     const peer = pm.getOrCreatePeer(null)
-    peer.setWebSocketAddress('testuri.com', 9033)
+    peer.setWebSocketAddress({ host: 'testuri.com', port: 9033 })
     pm['tryDisposePeer'](peer)
 
     pm.peerCandidates.addFromPeer(peer)
@@ -64,7 +64,7 @@ describe('connectToDisconnectedPeers', () => {
 
     const identity = mockIdentity('peer')
     const peer = pm.getOrCreatePeer(identity)
-    peer.setWebSocketAddress('testuri.com', 9033)
+    peer.setWebSocketAddress({ host: 'testuri.com', port: 9033 })
     pm['tryDisposePeer'](peer)
 
     pm.peerCandidates.addFromPeer(peer)
@@ -94,7 +94,7 @@ describe('connectToDisconnectedPeers', () => {
 
     const identity = mockIdentity('peer')
     const createdPeer = peers.getOrCreatePeer(identity)
-    createdPeer.setWebSocketAddress('testuri.com', 9033)
+    createdPeer.setWebSocketAddress({ host: 'testuri.com', port: 9033 })
     peers['tryDisposePeer'](createdPeer)
 
     peers.peerCandidates.addFromPeer(createdPeer)
@@ -125,14 +125,12 @@ describe('connectToDisconnectedPeers', () => {
     const { peer: brokeringPeer } = getConnectedPeer(pm, 'brokering')
     // Link the peers
     pm.peerCandidates.addFromPeerList(brokeringPeer.getIdentityOrThrow(), {
-      address: null,
-      port: null,
-      identity: Buffer.from(peerIdentity, 'base64'),
+      wsAddress: null,
+      identity: peerIdentity,
     })
     pm.peerCandidates.addFromPeerList(peerIdentity, {
-      address: null,
-      port: null,
-      identity: Buffer.from(brokeringPeer.getIdentityOrThrow(), 'base64'),
+      wsAddress: null,
+      identity: brokeringPeer.getIdentityOrThrow(),
     })
 
     const pcm = new PeerConnectionManager(pm, createRootLogger(), { maxPeers: 50 })

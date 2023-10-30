@@ -3,9 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { ArrayUtils } from '../../utils/array'
 import { Identity } from '../identity'
-import { Peer as PeerListPeer } from '../messages/peerList'
 import { ConnectionRetry } from './connectionRetry'
-import { Peer } from './peer'
+import { Peer, WebSocketAddress } from './peer'
 
 export type PeerCandidate = {
   name?: string
@@ -59,15 +58,21 @@ export class PeerCandidates {
     }
   }
 
-  addFromPeerList(sendingPeerIdentity: Identity, peer: PeerListPeer): void {
-    const peerIdentity = peer.identity.toString('base64')
-    const peerCandidateValue = this.map.get(peerIdentity)
+  addFromPeerList(
+    sendingPeerIdentity: Identity,
+    peer: {
+      identity: Identity
+      name?: string
+      wsAddress: WebSocketAddress | null
+    },
+  ): void {
+    const peerCandidateValue = this.map.get(peer.identity)
 
     if (peerCandidateValue) {
       peerCandidateValue.neighbors.add(sendingPeerIdentity)
     } else {
-      const tempPeer = new Peer(peerIdentity)
-      tempPeer.setWebSocketAddress(peer.address, peer.port)
+      const tempPeer = new Peer(peer.identity)
+      tempPeer.setWebSocketAddress(peer.wsAddress)
       this.addFromPeer(tempPeer, new Set([sendingPeerIdentity]))
     }
   }

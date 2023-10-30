@@ -190,7 +190,7 @@ export class PeerManager {
     forceConnect?: boolean
   }): Peer | undefined {
     const peer = this.getOrCreatePeer(null)
-    peer.setWebSocketAddress(options.host, options.port)
+    peer.setWebSocketAddress({ host: options.host, port: options.port })
     peer.isWhitelisted = !!options.whitelist
 
     this.peerCandidates.addFromPeer(peer)
@@ -1027,7 +1027,7 @@ export class PeerManager {
         connection.type === ConnectionType.WebSocket &&
         connection.direction === ConnectionDirection.Outbound
       ) {
-        peer.setWebSocketAddress(null, null)
+        peer.setWebSocketAddress(null)
       }
 
       const error = `Closing ${connection.type} connection from our own identity`
@@ -1062,7 +1062,7 @@ export class PeerManager {
           connection.direction === ConnectionDirection.Outbound &&
           originalPeer.address !== null
         ) {
-          peer.setWebSocketAddress(originalPeer.address, originalPeer.port)
+          peer.setWebSocketAddress({ host: originalPeer.address, port: originalPeer.port })
           const candidate = this.peerCandidates.get(message.identity)
           if (candidate) {
             candidate.address = originalPeer.address
@@ -1070,7 +1070,7 @@ export class PeerManager {
             // Reset ConnectionRetry since some component of the address changed
             candidate.websocketRetry.successfulConnection()
           }
-          originalPeer.setWebSocketAddress(null, null)
+          originalPeer.setWebSocketAddress(null)
         }
         peer.setWebSocketConnection(connection)
       }
@@ -1445,7 +1445,19 @@ export class PeerManager {
         continue
       }
 
-      this.peerCandidates.addFromPeerList(peer.state.identity, connectedPeer)
+      if (connectedPeer.port !== null && connectedPeer.address === null) {
+        throw new Error('Peer port is not null but address is null')
+      }
+
+      const wsAddress = connectedPeer.address
+        ? { host: connectedPeer.address, port: connectedPeer.port }
+        : null
+
+      this.peerCandidates.addFromPeerList(peer.state.identity, {
+        identity,
+        name: connectedPeer.name,
+        wsAddress,
+      })
     }
   }
 }

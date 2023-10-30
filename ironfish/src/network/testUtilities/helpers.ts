@@ -158,9 +158,8 @@ export function getSignalingWebRtcPeer(
 
   // Link the peers
   pm.peerCandidates.addFromPeerList(brokeringPeerIdentity, {
-    address: peer.address,
-    port: peer.port,
-    identity: Buffer.from(peerIdentity, 'base64'),
+    wsAddress: peer.wsAddress,
+    identity: peerIdentity,
   })
 
   // Verify peer2 is not connected
