@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { NodeFileProvider } from '../fileSystems'
 import { getUniqueTestDataDir } from '../testUtilities'
+import { flushTimeout } from '../testUtilities/helpers/tests'
 import { PromiseUtils } from '../utils'
 import { FileStore } from './fileStore'
 
@@ -21,24 +22,35 @@ describe('FileStore', () => {
   it('should prevent multiple writes to the file before the promise completes', async () => {
     const dir = getUniqueTestDataDir()
     const files = new NodeFileProvider()
-    const save = jest.spyOn(files, 'writeFile')
+    const writeFileSpy = jest.spyOn(files, 'writeFile')
     await files.init()
     const store = new FileStore<{ foo: string }>(files, 'test', dir)
 
-    const [promise, resolve] = PromiseUtils.split<void>()
-    save.mockReturnValue(promise)
+    const [promise1, resolve1] = PromiseUtils.split<void>()
+    const [promise2, resolve2] = PromiseUtils.split<void>()
+    writeFileSpy.mockReturnValueOnce(promise1)
+    writeFileSpy.mockReturnValueOnce(promise2)
 
-    const promise1 = store.save({ foo: 'hello' })
-    const promise2 = store.save({ foo: 'hello' })
-    expect(save).toHaveBeenCalledTimes(0)
+    const save1 = store.save({ foo: 'hello' })
+    const save2 = store.save({ foo: 'hello' })
 
-    resolve()
-    expect(save).toHaveBeenCalledTimes(0)
+    // Mutex starts unlocked, save1 is free to execute
+    // Flush multiple times to ensure all the promises settle as expected
+    await flushTimeout()
+    await flushTimeout()
+    expect(writeFileSpy).toHaveBeenCalledTimes(1)
 
-    await promise1
-    expect(save).toHaveBeenCalledTimes(1)
+    resolve1()
+    // Resolve the first promise, freeing the mutex and allowing save2 to
+    // execute
+    await flushTimeout()
+    await flushTimeout()
+    expect(writeFileSpy).toHaveBeenCalledTimes(2)
 
-    await promise2
-    expect(save).toHaveBeenCalledTimes(2)
+    await save1
+    resolve2()
+    await save2
+
+    expect(writeFileSpy).toHaveBeenCalledTimes(2)
   })
 })
