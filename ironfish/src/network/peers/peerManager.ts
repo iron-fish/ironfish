@@ -507,7 +507,7 @@ export class PeerManager {
       disconnectOk &&
       hasNoConnection &&
       retryOk &&
-      peer.address !== null
+      peer.wsAddress !== null
     )
   }
 
@@ -1060,7 +1060,7 @@ export class PeerManager {
         if (
           connection.type === ConnectionType.WebSocket &&
           connection.direction === ConnectionDirection.Outbound &&
-          originalPeer.address !== null
+          originalPeer.wsAddress !== null
         ) {
           peer.wsAddress = originalPeer.wsAddress
           const candidate = this.peerCandidates.get(message.identity)

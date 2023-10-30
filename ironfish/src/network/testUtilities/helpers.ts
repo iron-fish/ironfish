@@ -163,7 +163,7 @@ export function getSignalingWebRtcPeer(
   })
 
   // Verify peer2 is not connected
-  expect(peer.address).toBeNull()
+  expect(peer.wsAddress).toBeNull()
   expect(peer.state).toEqual({
     type: 'DISCONNECTED',
     identity: peerIdentity,
