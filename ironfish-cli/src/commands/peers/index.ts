@@ -115,16 +115,6 @@ function renderTable(
     },
   }
 
-  if (flags.direction) {
-    columns['direction'] = {
-      header: 'DIRECTION',
-      minWidth: 5,
-      get: (row: GetPeerResponsePeer) => {
-        return row.connectionDirection || '-'
-      },
-    }
-  }
-
   if (flags.names) {
     columns['name'] = {
       header: 'NAME',
@@ -171,6 +161,16 @@ function renderTable(
           .filter(Boolean)
           .sort()
           .join(',')
+      },
+    }
+  }
+
+  if (flags.direction) {
+    columns['direction'] = {
+      header: 'DIRECTION',
+      minWidth: 5,
+      get: (row: GetPeerResponsePeer) => {
+        return row.connectionDirection || '-'
       },
     }
   }
