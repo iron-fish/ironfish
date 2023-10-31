@@ -714,6 +714,12 @@ export class PeerManager {
     // Add the peer to peers. It's new, so it shouldn't exist there already
     this.peers.push(peer)
 
+    this.initPeerHandlers(peer)
+
+    return peer
+  }
+
+  private initPeerHandlers(peer: Peer) {
     // If the peer hasn't been identified, add it to identifiedPeers when the
     // peer connects, else do it now
     if (peer.state.identity === null) {
@@ -759,8 +765,6 @@ export class PeerManager {
       void this.peerStoreManager.removePeer(peer)
       this.banPeer(peer, reason)
     })
-
-    return peer
   }
 
   banPeer(peer: Peer, reason: string): void {
