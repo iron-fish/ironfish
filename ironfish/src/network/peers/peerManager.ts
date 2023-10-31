@@ -211,7 +211,7 @@ export class PeerManager {
     const address = peer.getWebSocketAddress()
     const alternateIdentity = peer.state.identity ?? address
 
-    const candidate = this.peerCandidates.get(alternateIdentity)
+    const candidate = alternateIdentity ? this.peerCandidates.get(alternateIdentity) : undefined
     if (candidate) {
       // If we're trying to connect to the peer, we don't care about limiting the peer's connections to us
       candidate.localRequestedDisconnectUntil = null
@@ -470,7 +470,7 @@ export class PeerManager {
     const isBanned = this.isBanned(peer)
 
     const alternateIdentity = peer.state.identity ?? peer.getWebSocketAddress()
-    const candidate = this.peerCandidates.get(alternateIdentity)
+    const candidate = alternateIdentity ? this.peerCandidates.get(alternateIdentity) : undefined
 
     const canEstablishNewConnection =
       peer.state.type !== 'DISCONNECTED' || this.canCreateNewConnections()

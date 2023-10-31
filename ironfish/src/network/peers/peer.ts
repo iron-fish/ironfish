@@ -424,22 +424,13 @@ export class Peer {
   /**
    * Get the peers connectable websocket address
    */
-  getWebSocketAddress(includeProtocol = true): string {
-    let address = ''
-
-    if (includeProtocol) {
-      address = 'ws://' + address
+  getWebSocketAddress(): string | null {
+    if (!this.wsAddress) {
+      return null
     }
 
-    if (this.address) {
-      address += this.address
-    }
-
-    if (this.port) {
-      address = address + ':' + String(this.port)
-    }
-
-    return address
+    const port = this.wsAddress.port ? `:${this.wsAddress.port}` : ''
+    return `ws://${this.wsAddress.host}${port}`
   }
 
   /**
