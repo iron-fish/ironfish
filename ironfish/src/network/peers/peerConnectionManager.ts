@@ -114,7 +114,11 @@ export class PeerConnectionManager {
       return false
     }
 
-    return this.peerManager.connectToWebRTC(peer) || this.peerManager.connectToWebSocket(peer)
+    if (this.peerManager.connectToWebRTC(peer)) {
+      return true
+    }
+
+    return this.peerManager.connectToWebSocket(peer)
   }
 
   /**
