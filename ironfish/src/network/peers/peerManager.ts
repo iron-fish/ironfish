@@ -697,11 +697,8 @@ export class PeerManager {
    */
   getOrCreatePeer(identity: Identity | null): Peer {
     // If we already have a Peer with this identity, return it
-    if (identity !== null) {
-      const identifiedPeer = this.identifiedPeers.get(identity)
-      if (identifiedPeer) {
-        return identifiedPeer
-      }
+    if (identity !== null && this.identifiedPeers.has(identity)) {
+      return this.identifiedPeers.get(identity) as Peer
     }
 
     // Create the new peer
@@ -714,16 +711,6 @@ export class PeerManager {
     // Add the peer to peers. It's new, so it shouldn't exist there already
     this.peers.push(peer)
 
-    this.initPeerHandlers(peer)
-
-    return peer
-  }
-
-  /**
-   * Set up event handlers that are common among all peers.
-   * @param connection An instance of a Peer.
-   */
-  private initPeerHandlers(peer: Peer) {
     // If the peer hasn't been identified, add it to identifiedPeers when the
     // peer connects, else do it now
     if (peer.state.identity === null) {
@@ -738,6 +725,16 @@ export class PeerManager {
       this.updateIdentifiedPeerMap(peer)
     }
 
+    this.initPeerHandlers(peer)
+
+    return peer
+  }
+
+  /**
+   * Set up event handlers that are common among all peers.
+   * @param connection An instance of a Peer.
+   */
+  private initPeerHandlers(peer: Peer) {
     // Bind Peer events to PeerManager events
     peer.onMessage.on((message, connection) => {
       this.handleMessage(peer, connection, message)
