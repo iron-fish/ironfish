@@ -197,6 +197,7 @@ export type RpcPeerResponse = {
   connectionWebSocketError: string
   connectionWebRTC: ConnectionState
   connectionWebRTCError: string
+  connectionDirection: string
   connections: number
   identity: string | null
   version: number | null
@@ -231,6 +232,7 @@ export const RpcPeerResponseSchema: yup.ObjectSchema<RpcPeerResponse> = yup
     connectionWebSocketError: yup.string().defined(),
     connectionWebRTC: yup.string<ConnectionState>().defined(),
     connectionWebRTCError: yup.string().defined(),
+    connectionDirection: yup.string().defined(),
     networkId: yup.number().nullable().defined(),
     genesisBlockHash: yup.string().nullable().defined(),
     features: yup

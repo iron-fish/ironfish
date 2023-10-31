@@ -183,6 +183,14 @@ function renderTable(
         return address
       },
     },
+    connectionDirection: {
+      header: 'DIRECTION',
+      minWidth: 5,
+      extended: true,
+      get: (row: GetPeerResponsePeer) => {
+        return row.connectionDirection || '-'
+      },
+    },
     connectionWebSocket: {
       header: 'SOCKET',
       minWidth: 4,

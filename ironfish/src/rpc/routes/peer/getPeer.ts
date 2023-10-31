@@ -72,16 +72,19 @@ function getPeer(network: PeerNetwork, identity: string): RpcPeerResponse | null
       let connectionWebSocket: ConnectionState = ''
       let connectionWebRTCError = ''
       let connectionWebSocketError = ''
+      let connectionDirection = ''
 
       if (peer.state.type !== 'DISCONNECTED') {
         if (peer.state.connections.webSocket) {
           connectionWebSocket = peer.state.connections.webSocket.state.type
           connectionWebSocketError = String(peer.state.connections.webSocket.error || '')
+          connectionDirection = peer.state.connections.webSocket.direction
         }
 
         if (peer.state.connections.webRtc) {
           connectionWebRTC = peer.state.connections.webRtc.state.type
           connectionWebRTCError = String(peer.state.connections.webRtc.error || '')
+          connectionDirection = peer.state.connections.webRtc.direction
         }
       }
 
@@ -105,13 +108,14 @@ function getPeer(network: PeerNetwork, identity: string): RpcPeerResponse | null
         sequence: peer.sequence !== null ? Number(peer.sequence) : null,
         connections: connections,
         error: peer.error !== null ? String(peer.error) : null,
-        connectionWebSocket: connectionWebSocket,
-        connectionWebSocketError: connectionWebSocketError,
-        connectionWebRTC: connectionWebRTC,
-        connectionWebRTCError: connectionWebRTCError,
         networkId: peer.networkId,
         genesisBlockHash: peer.genesisBlockHash?.toString('hex') || null,
         features: peer.features,
+        connectionWebSocket,
+        connectionWebSocketError,
+        connectionWebRTC,
+        connectionWebRTCError,
+        connectionDirection,
       }
     }
   }
