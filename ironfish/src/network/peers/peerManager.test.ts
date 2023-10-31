@@ -171,7 +171,9 @@ describe('PeerManager', () => {
 
       Assert.isNotUndefined(peer)
 
-      expect(peers.peerCandidates.get(peer.getWebSocketAddress())).not.toBeUndefined()
+      const address = peer.getWebSocketAddress()
+      const candidate = address ? peers.peerCandidates.get(address) : undefined
+      expect(candidate).not.toBeUndefined()
       if (peer.state.type === 'DISCONNECTED') {
         throw new Error('Peer should not be disconnected')
       }
@@ -198,7 +200,9 @@ describe('PeerManager', () => {
       })
       Assert.isNotUndefined(peer)
 
-      expect(peers.peerCandidates.get(peer.getWebSocketAddress())).not.toBeUndefined()
+      const address = peer.getWebSocketAddress()
+      const candidate = address ? peers.peerCandidates.get(address) : undefined
+      expect(candidate).not.toBeUndefined()
       peer.close()
 
       // Create a connected peer

@@ -33,7 +33,7 @@ export class PeerCandidates {
 
   addFromPeer(peer: Peer, neighbors = new Set<Identity>()): void {
     const address = peer.getWebSocketAddress()
-    const addressPeerCandidate = this.map.get(address)
+    const addressPeerCandidate = address ? this.map.get(address) : undefined
     const newPeerCandidate = {
       wsAddress: peer.wsAddress,
       neighbors,
@@ -45,14 +45,14 @@ export class PeerCandidates {
     }
 
     if (peer.state.identity !== null) {
-      if (addressPeerCandidate) {
+      if (addressPeerCandidate && address) {
         this.map.delete(address)
       }
 
       if (!this.map.has(peer.state.identity)) {
         this.map.set(peer.state.identity, addressPeerCandidate ?? newPeerCandidate)
       }
-    } else if (!addressPeerCandidate) {
+    } else if (address && !addressPeerCandidate) {
       this.map.set(address, newPeerCandidate)
     }
   }

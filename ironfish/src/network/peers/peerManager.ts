@@ -208,9 +208,10 @@ export class PeerManager {
       return false
     }
 
-    const alternateIdentity = peer.state.identity ?? peer.getWebSocketAddress()
+    const address = peer.getWebSocketAddress()
+    const alternateIdentity = peer.state.identity ?? address
 
-    const candidate = this.peerCandidates.get(alternateIdentity)
+    const candidate = alternateIdentity ? this.peerCandidates.get(alternateIdentity) : undefined
     if (candidate) {
       // If we're trying to connect to the peer, we don't care about limiting the peer's connections to us
       candidate.localRequestedDisconnectUntil = null
@@ -219,16 +220,8 @@ export class PeerManager {
       candidate.peerRequestedDisconnectUntil = null
     }
 
-    const address = peer.getWebSocketAddress()
     if (!address) {
-      if (peer.state.identity !== null) {
-        this.getConnectionRetry(
-          peer.state.identity,
-          ConnectionType.WebSocket,
-          ConnectionDirection.Outbound,
-        )?.failedConnection()
-      }
-
+      candidate?.websocketRetry.failedConnection()
       return false
     }
 
@@ -477,12 +470,12 @@ export class PeerManager {
     const isBanned = this.isBanned(peer)
 
     const alternateIdentity = peer.state.identity ?? peer.getWebSocketAddress()
+    const candidate = alternateIdentity ? this.peerCandidates.get(alternateIdentity) : undefined
 
     const canEstablishNewConnection =
       peer.state.type !== 'DISCONNECTED' || this.canCreateNewConnections()
 
-    const peerRequestedDisconnectUntil =
-      this.peerCandidates.get(alternateIdentity)?.peerRequestedDisconnectUntil ?? null
+    const peerRequestedDisconnectUntil = candidate?.peerRequestedDisconnectUntil ?? null
 
     const disconnectOk =
       peerRequestedDisconnectUntil === null || Date.now() >= peerRequestedDisconnectUntil
@@ -490,12 +483,7 @@ export class PeerManager {
     const hasNoConnection =
       peer.state.type === 'DISCONNECTED' || peer.state.connections.webSocket === null
 
-    const retryOk =
-      this.getConnectionRetry(
-        alternateIdentity,
-        ConnectionType.WebSocket,
-        ConnectionDirection.Outbound,
-      )?.canConnect ?? true
+    const retryOk = candidate?.websocketRetry.canConnect ?? true
 
     if (forceConnect) {
       return disconnectOk && !isBanned
