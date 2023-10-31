@@ -719,6 +719,10 @@ export class PeerManager {
     return peer
   }
 
+  /**
+   * Set up event handlers that are common among all peers.
+   * @param connection An instance of a Peer.
+   */
   private initPeerHandlers(peer: Peer) {
     // If the peer hasn't been identified, add it to identifiedPeers when the
     // peer connects, else do it now
