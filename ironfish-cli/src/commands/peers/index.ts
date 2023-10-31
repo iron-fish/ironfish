@@ -47,11 +47,6 @@ export class ListCommand extends IronfishCommand {
       default: false,
       description: 'Display node names',
     }),
-    direction: Flags.boolean({
-      char: 'c',
-      default: false,
-      description: 'Display connection direction',
-    }),
     features: Flags.boolean({
       default: false,
       description: 'Display features that the peers have enabled',
@@ -165,16 +160,6 @@ function renderTable(
     }
   }
 
-  if (flags.direction) {
-    columns['direction'] = {
-      header: 'DIRECTION',
-      minWidth: 5,
-      get: (row: GetPeerResponsePeer) => {
-        return row.connectionDirection || '-'
-      },
-    }
-  }
-
   columns = {
     ...columns,
     state: {
@@ -196,6 +181,14 @@ function renderTable(
           address += ':' + String(row.port)
         }
         return address
+      },
+    },
+    connectionDirection: {
+      header: 'DIRECTION',
+      minWidth: 5,
+      extended: true,
+      get: (row: GetPeerResponsePeer) => {
+        return row.connectionDirection || '-'
       },
     },
     connectionWebSocket: {
