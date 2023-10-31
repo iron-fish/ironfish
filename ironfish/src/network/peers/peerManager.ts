@@ -697,8 +697,11 @@ export class PeerManager {
    */
   getOrCreatePeer(identity: Identity | null): Peer {
     // If we already have a Peer with this identity, return it
-    if (identity !== null && this.identifiedPeers.has(identity)) {
-      return this.identifiedPeers.get(identity) as Peer
+    if (identity !== null) {
+      const identifiedPeer = this.identifiedPeers.get(identity)
+      if (identifiedPeer) {
+        return identifiedPeer
+      }
     }
 
     // Create the new peer
