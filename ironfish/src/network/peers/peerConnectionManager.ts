@@ -114,11 +114,7 @@ export class PeerConnectionManager {
       return false
     }
 
-    return (
-      (this.peerManager.canConnectToWebRTC(peer) && this.peerManager.connectToWebRTC(peer)) ||
-      (this.peerManager.canConnectToWebSocket(peer) &&
-        this.peerManager.connectToWebSocket(peer))
-    )
+    return this.peerManager.connectToWebRTC(peer) || this.peerManager.connectToWebSocket(peer)
   }
 
   /**
@@ -145,8 +141,7 @@ export class PeerConnectionManager {
   private attemptToEstablishWebRtcConnectionsToWSPeer(peer: Peer): boolean {
     if (
       peer.state.type === 'CONNECTED' &&
-      peer.state.connections.webSocket?.state.type === 'CONNECTED' &&
-      this.peerManager.canConnectToWebRTC(peer)
+      peer.state.connections.webSocket?.state.type === 'CONNECTED'
     ) {
       return this.peerManager.connectToWebRTC(peer)
     }
