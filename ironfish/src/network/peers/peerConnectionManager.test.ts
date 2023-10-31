@@ -14,6 +14,7 @@ import {
   webRtcCanInitiateIdentity,
   webRtcLocalIdentity,
 } from '../testUtilities'
+import { formatWebSocketAddress } from '../utils'
 import {
   ConnectionDirection,
   ConnectionType,
@@ -52,7 +53,7 @@ describe('connectToDisconnectedPeers', () => {
     expect(pm.peers.length).toBe(1)
     expect(pm.peers[0].state).toEqual({
       type: 'CONNECTING',
-      identity: peer.getWebSocketAddress(),
+      identity: formatWebSocketAddress(peer.wsAddress),
       connections: {
         webSocket: expect.any(WebSocketConnection),
       },

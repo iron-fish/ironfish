@@ -22,7 +22,7 @@ import { PeerListRequestMessage } from '../messages/peerListRequest'
 import { SignalMessage } from '../messages/signal'
 import { SignalRequestMessage } from '../messages/signalRequest'
 import { IsomorphicWebSocket } from '../types'
-import { parseUrl } from '../utils'
+import { formatWebSocketAddress, parseUrl } from '../utils'
 import { VERSION_PROTOCOL_MIN } from '../version'
 import { ConnectionRetry } from './connectionRetry'
 import {
@@ -208,7 +208,7 @@ export class PeerManager {
       return false
     }
 
-    const address = peer.getWebSocketAddress()
+    const address = formatWebSocketAddress(peer.wsAddress)
     const alternateIdentity = peer.state.identity ?? address
 
     const candidate = alternateIdentity ? this.peerCandidates.get(alternateIdentity) : undefined
@@ -469,7 +469,7 @@ export class PeerManager {
   canConnectToWebSocket(peer: Peer, forceConnect = false): boolean {
     const isBanned = this.isBanned(peer)
 
-    const alternateIdentity = peer.state.identity ?? peer.getWebSocketAddress()
+    const alternateIdentity = peer.state.identity ?? formatWebSocketAddress(peer.wsAddress)
     const candidate = alternateIdentity ? this.peerCandidates.get(alternateIdentity) : undefined
 
     const canEstablishNewConnection =
