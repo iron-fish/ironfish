@@ -84,24 +84,24 @@ export class PeerConnectionManager {
 
     let connectAttempts = 0
 
-    for (const peerCandidateIdentity of this.peerManager.peerCandidates.shufflePeerCandidates()) {
+    for (const [
+      peerCandidateIdentity,
+      peerCandidate,
+    ] of this.peerManager.peerCandidates.shufflePeerCandidates()) {
       if (connectAttempts >= CONNECT_ATTEMPTS_MAX) {
         break
       }
 
       if (!this.peerManager.identifiedPeers.has(peerCandidateIdentity)) {
-        const val = this.peerManager.peerCandidates.get(peerCandidateIdentity)
-        if (val) {
-          const peer = this.peerManager.getOrCreatePeer(peerCandidateIdentity)
+        const peer = this.peerManager.getOrCreatePeer(peerCandidateIdentity)
 
-          peer.name = val.name
-          peer.wsAddress = val.wsAddress
+        peer.name = peerCandidate.name
+        peer.wsAddress = peerCandidate.wsAddress
 
-          if (this.connectToEligiblePeers(peer)) {
-            connectAttempts++
-          } else {
-            this.peerManager.tryDisposePeer(peer)
-          }
+        if (this.connectToEligiblePeers(peer)) {
+          connectAttempts++
+        } else {
+          this.peerManager.tryDisposePeer(peer)
         }
       }
     }
@@ -110,21 +110,15 @@ export class PeerConnectionManager {
   }
 
   private connectToEligiblePeers(peer: Peer): boolean {
-    if (peer.state.type !== 'CONNECTED') {
-      if (this.peerManager.canConnectToWebRTC(peer)) {
-        if (this.peerManager.connectToWebRTC(peer)) {
-          return true
-        }
-      }
-
-      if (this.peerManager.canConnectToWebSocket(peer)) {
-        if (this.peerManager.connectToWebSocket(peer)) {
-          return true
-        }
-      }
+    if (peer.state.type === 'CONNECTED') {
+      return false
     }
 
-    return false
+    return (
+      (this.peerManager.canConnectToWebRTC(peer) && this.peerManager.connectToWebRTC(peer)) ||
+      (this.peerManager.canConnectToWebSocket(peer) &&
+        this.peerManager.connectToWebSocket(peer))
+    )
   }
 
   /**
