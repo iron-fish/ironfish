@@ -466,7 +466,7 @@ export class PeerManager {
     connection.onStateChanged.on(handler)
   }
 
-  protected canConnectToWebSocket(peer: Peer, forceConnect = false): boolean {
+  canConnectToWebSocket(peer: Peer, forceConnect = false): boolean {
     const isBanned = this.isBanned(peer)
 
     const alternateIdentity = peer.state.identity ?? peer.getWebSocketAddress()
@@ -499,7 +499,7 @@ export class PeerManager {
     )
   }
 
-  protected canConnectToWebRTC(peer: Peer, now = Date.now()): boolean {
+  canConnectToWebRTC(peer: Peer, now = Date.now()): boolean {
     if (this.isBanned(peer)) {
       return false
     }
