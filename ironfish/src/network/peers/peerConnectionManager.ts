@@ -94,6 +94,7 @@ export class PeerConnectionManager {
         if (!peerCandidate) {
           continue
         }
+
         const peer = this.peerManager.getOrCreatePeer(peerCandidateIdentity)
 
         peer.name = peerCandidate.name
