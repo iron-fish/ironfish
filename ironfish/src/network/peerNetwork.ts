@@ -310,13 +310,9 @@ export class PeerNetwork {
         }
 
         let wsAddress: WebSocketAddress | null = null
-
         if (address) {
           const url = parseUrl(address)
-
-          if (url.hostname) {
-            wsAddress = { host: url.hostname, port: url.port }
-          }
+          wsAddress = url.hostname ? { host: url.hostname, port: url.port } : null
         }
 
         this.peerManager.createPeerFromInboundWebSocketConnection(connection, wsAddress)
