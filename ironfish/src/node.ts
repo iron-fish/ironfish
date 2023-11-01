@@ -157,6 +157,7 @@ export class FullNode {
       logger: logger,
       telemetry: this.telemetry,
       incomingWebSocketWhitelist: config.getArray('incomingWebSocketWhitelist'),
+      keepOpenPeerSlot: config.get('keepOpenPeerSlot'),
     })
 
     this.miningManager.onNewBlock.on((block) => {
