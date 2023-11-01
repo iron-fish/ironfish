@@ -76,8 +76,8 @@ export class PeerCandidates {
     }
   }
 
-  shufflePeerCandidates(): [Identity, PeerCandidate][] {
-    return ArrayUtils.shuffle([...this.map.entries()])
+  shufflePeerCandidates(): Identity[] {
+    return ArrayUtils.shuffle([...this.map.keys()])
   }
 
   get(identity: Identity): PeerCandidate | undefined {

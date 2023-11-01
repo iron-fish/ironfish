@@ -84,15 +84,16 @@ export class PeerConnectionManager {
 
     let connectAttempts = 0
 
-    for (const [
-      peerCandidateIdentity,
-      peerCandidate,
-    ] of this.peerManager.peerCandidates.shufflePeerCandidates()) {
+    for (const peerCandidateIdentity of this.peerManager.peerCandidates.shufflePeerCandidates()) {
       if (connectAttempts >= CONNECT_ATTEMPTS_MAX) {
         break
       }
 
       if (!this.peerManager.identifiedPeers.has(peerCandidateIdentity)) {
+        const peerCandidate = this.peerManager.peerCandidates.get(peerCandidateIdentity)
+        if (!peerCandidate) {
+          continue
+        }
         const peer = this.peerManager.getOrCreatePeer(peerCandidateIdentity)
 
         peer.name = peerCandidate.name
