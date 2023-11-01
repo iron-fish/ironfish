@@ -739,6 +739,7 @@ export class PeerManager {
         this.peerCandidates.addFromPeer(peer)
         this.onConnect.emit(peer)
         this.onConnectedPeersChanged.emit()
+        peer.send(new PeerListRequestMessage())
       }
       if (prevState.type === 'CONNECTED' && peer.state.type !== 'CONNECTED') {
         this.onDisconnect.emit(peer)
@@ -746,12 +747,6 @@ export class PeerManager {
       }
       if (prevState.type !== 'DISCONNECTED' && peer.state.type === 'DISCONNECTED') {
         this.tryDisposePeer(peer)
-      }
-    })
-
-    peer.onStateChanged.on(({ prevState }) => {
-      if (prevState.type !== 'CONNECTED' && peer.state.type === 'CONNECTED') {
-        peer.send(new PeerListRequestMessage())
       }
     })
 
