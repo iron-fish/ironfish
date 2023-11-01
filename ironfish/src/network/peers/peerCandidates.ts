@@ -76,7 +76,7 @@ export class PeerCandidates {
     }
   }
 
-  shufflePeerCandidates(): string[] {
+  shufflePeerCandidates(): Identity[] {
     return ArrayUtils.shuffle([...this.map.keys()])
   }
 

@@ -90,18 +90,20 @@ export class PeerConnectionManager {
       }
 
       if (!this.peerManager.identifiedPeers.has(peerCandidateIdentity)) {
-        const val = this.peerManager.peerCandidates.get(peerCandidateIdentity)
-        if (val) {
-          const peer = this.peerManager.getOrCreatePeer(peerCandidateIdentity)
+        const peerCandidate = this.peerManager.peerCandidates.get(peerCandidateIdentity)
+        if (!peerCandidate) {
+          continue
+        }
 
-          peer.name = val.name
-          peer.wsAddress = val.wsAddress
+        const peer = this.peerManager.getOrCreatePeer(peerCandidateIdentity)
 
-          if (this.connectToEligiblePeers(peer)) {
-            connectAttempts++
-          } else {
-            this.peerManager.tryDisposePeer(peer)
-          }
+        peer.name = peerCandidate.name
+        peer.wsAddress = peerCandidate.wsAddress
+
+        if (this.connectToEligiblePeers(peer)) {
+          connectAttempts++
+        } else {
+          this.peerManager.tryDisposePeer(peer)
         }
       }
     }
@@ -110,21 +112,15 @@ export class PeerConnectionManager {
   }
 
   private connectToEligiblePeers(peer: Peer): boolean {
-    if (peer.state.type !== 'CONNECTED') {
-      if (this.peerManager.canConnectToWebRTC(peer)) {
-        if (this.peerManager.connectToWebRTC(peer)) {
-          return true
-        }
-      }
-
-      if (this.peerManager.canConnectToWebSocket(peer)) {
-        if (this.peerManager.connectToWebSocket(peer)) {
-          return true
-        }
-      }
+    if (peer.state.type === 'CONNECTED') {
+      return false
     }
 
-    return false
+    if (this.peerManager.connectToWebRTC(peer)) {
+      return true
+    }
+
+    return this.peerManager.connectToWebSocket(peer)
   }
 
   /**
@@ -151,8 +147,7 @@ export class PeerConnectionManager {
   private attemptToEstablishWebRtcConnectionsToWSPeer(peer: Peer): boolean {
     if (
       peer.state.type === 'CONNECTED' &&
-      peer.state.connections.webSocket?.state.type === 'CONNECTED' &&
-      this.peerManager.canConnectToWebRTC(peer)
+      peer.state.connections.webSocket?.state.type === 'CONNECTED'
     ) {
       return this.peerManager.connectToWebRTC(peer)
     }
