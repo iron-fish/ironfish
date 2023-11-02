@@ -1,17 +1,21 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Asset, generateKey } from '@ironfish/rust-nodejs'
+import { Asset, ASSET_ID_LENGTH, generateKey } from '@ironfish/rust-nodejs'
 import { Target } from '../primitives/target'
 import {
   createNodeTest,
   useAccountFixture,
   useBlockFixture,
+  useBurnBlockFixture,
   useMinerBlockFixture,
+  useMintBlockFixture,
+  usePostTxFixture,
+  useTxFixture,
 } from '../testUtilities'
 import { acceptsAllTarget } from '../testUtilities/helpers/blockchain'
 
-describe('Accounts', () => {
+describe('Wallet', () => {
   const nodeTest = createNodeTest()
   let targetMeetsSpy: jest.SpyInstance
   let targetSpy: jest.SpyInstance
@@ -931,6 +935,197 @@ describe('Accounts', () => {
     ).resolves.toMatchObject({
       confirmed: BigInt(0),
       unconfirmed: BigInt(0),
+    })
+  })
+
+  describe('mint', () => {
+    describe('for an identifier not stored in the database', () => {
+      it('throws a not found exception', async () => {
+        const { node } = await nodeTest.createSetup()
+        const account = await useAccountFixture(node.wallet)
+
+        const assetId = Buffer.alloc(ASSET_ID_LENGTH)
+        await expect(
+          node.wallet.mint(account, {
+            assetId,
+            fee: BigInt(0),
+            expirationDelta: node.config.get('transactionExpirationDelta'),
+            value: BigInt(1),
+          }),
+        ).rejects.toThrow(
+          `Asset not found. Cannot mint for identifier '${assetId.toString('hex')}'`,
+        )
+      })
+    })
+
+    describe('for a valid asset identifier', () => {
+      it('adds balance for the asset from the wallet', async () => {
+        const { node } = await nodeTest.createSetup()
+        const account = await useAccountFixture(node.wallet)
+
+        const mined = await useMinerBlockFixture(node.chain, 2, account)
+        await expect(node.chain).toAddBlock(mined)
+        await node.wallet.updateHead()
+
+        const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
+
+        const mintValueA = BigInt(2)
+        const mintBlockA = await useMintBlockFixture({
+          node,
+          account,
+          asset,
+          value: mintValueA,
+          sequence: 3,
+        })
+        await expect(node.chain).toAddBlock(mintBlockA)
+        await node.wallet.updateHead()
+
+        const mintValueB = BigInt(10)
+        const transaction = await useTxFixture(node.wallet, account, account, () => {
+          return node.wallet.mint(account, {
+            assetId: asset.id(),
+            fee: BigInt(0),
+            expirationDelta: node.config.get('transactionExpirationDelta'),
+            value: mintValueB,
+          })
+        })
+
+        const mintBlock = await node.chain.newBlock(
+          [transaction],
+          await node.strategy.createMinersFee(transaction.fee(), 4, generateKey().spendingKey),
+        )
+        await expect(node.chain).toAddBlock(mintBlock)
+        await node.wallet.updateHead()
+
+        expect(await node.wallet.getBalance(account, asset.id())).toMatchObject({
+          unconfirmed: BigInt(mintValueA + mintValueB),
+          unconfirmedCount: 0,
+          confirmed: BigInt(mintValueA + mintValueB),
+        })
+      })
+    })
+
+    describe('for a valid metadata and name', () => {
+      it('returns a transaction with matching mint descriptions', async () => {
+        const { node } = await nodeTest.createSetup()
+        const account = await useAccountFixture(node.wallet)
+
+        const mined = await useMinerBlockFixture(node.chain, 2, account)
+        await expect(node.chain).toAddBlock(mined)
+        await node.wallet.updateHead()
+
+        const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
+        const mintValue = BigInt(10)
+        const mintData = {
+          creator: asset.creator().toString('hex'),
+          name: asset.name().toString('utf8'),
+          metadata: asset.metadata().toString('utf8'),
+          value: mintValue,
+          isNewAsset: true,
+        }
+
+        const transaction = await usePostTxFixture({
+          node: node,
+          wallet: node.wallet,
+          from: account,
+          mints: [mintData],
+        })
+
+        expect(transaction.mints).toEqual([
+          {
+            asset: asset,
+            value: mintValue,
+            owner: asset.creator(),
+            transferOwnershipTo: null,
+          },
+        ])
+      })
+
+      it('adds balance for the asset from the wallet', async () => {
+        const { node } = await nodeTest.createSetup()
+        const account = await useAccountFixture(node.wallet)
+
+        const mined = await useMinerBlockFixture(node.chain, 2, account)
+        await expect(node.chain).toAddBlock(mined)
+        await node.wallet.updateHead()
+
+        const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
+        const value = BigInt(10)
+        const mintBlock = await useMintBlockFixture({
+          node,
+          account,
+          asset,
+          value,
+          sequence: 3,
+        })
+        await expect(node.chain).toAddBlock(mintBlock)
+        await node.wallet.updateHead()
+
+        expect(await node.wallet.getBalance(account, asset.id())).toMatchObject({
+          unconfirmed: BigInt(value),
+          unconfirmedCount: 0,
+          confirmed: BigInt(value),
+        })
+      })
+    })
+  })
+
+  describe('burn', () => {
+    it('returns a transaction with matching burn descriptions', async () => {
+      const { node } = await nodeTest.createSetup()
+      const account = await useAccountFixture(node.wallet)
+
+      const mined = await useMinerBlockFixture(node.chain, 2, account)
+      await expect(node.chain).toAddBlock(mined)
+      await node.wallet.updateHead()
+
+      const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
+      const value = BigInt(10)
+      const mintBlock = await useMintBlockFixture({ node, account, asset, value, sequence: 3 })
+      await expect(node.chain).toAddBlock(mintBlock)
+      await node.wallet.updateHead()
+
+      const burnValue = BigInt(2)
+      const transaction = await usePostTxFixture({
+        node: node,
+        wallet: node.wallet,
+        from: account,
+        burns: [{ assetId: asset.id(), value: burnValue }],
+      })
+
+      expect(transaction.burns).toEqual([{ assetId: asset.id(), value: burnValue }])
+    })
+
+    it('subtracts balance for the asset from the wallet', async () => {
+      const { node } = await nodeTest.createSetup()
+      const account = await useAccountFixture(node.wallet)
+
+      const mined = await useMinerBlockFixture(node.chain, 2, account)
+      await expect(node.chain).toAddBlock(mined)
+      await node.wallet.updateHead()
+
+      const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
+      const value = BigInt(10)
+      const mintBlock = await useMintBlockFixture({ node, account, asset, value, sequence: 3 })
+      await expect(node.chain).toAddBlock(mintBlock)
+      await node.wallet.updateHead()
+
+      const burnValue = BigInt(2)
+      const burnBlock = await useBurnBlockFixture({
+        node,
+        account,
+        asset,
+        value: burnValue,
+        sequence: 4,
+      })
+      await expect(node.chain).toAddBlock(burnBlock)
+      await node.wallet.updateHead()
+
+      expect(await node.wallet.getBalance(account, asset.id())).toMatchObject({
+        unconfirmed: BigInt(8),
+        unconfirmedCount: 0,
+        confirmed: BigInt(8),
+      })
     })
   })
 })
