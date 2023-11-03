@@ -22,6 +22,8 @@ export const DEFAULT_FEE_ESTIMATOR_MAX_BLOCK_HISTORY = 10
 export const DEFAULT_FEE_ESTIMATOR_PERCENTILE_SLOW = 10
 export const DEFAULT_FEE_ESTIMATOR_PERCENTILE_AVERAGE = 20
 export const DEFAULT_FEE_ESTIMATOR_PERCENTILE_FAST = 30
+export const DEFAULT_MAX_PEERS = 50
+export const DEFAULT_TARGET_PEERS = 45
 
 const MEGABYTES = 1000 * 1000
 
@@ -457,10 +459,10 @@ export class Config extends KeyStore<ConfigOptions> {
       tlsCertPath: files.resolve(files.join(dataDir, 'certs', 'node-cert.pem')),
       rpcHttpHost: 'localhost',
       rpcHttpPort: 8021,
-      maxPeers: 50,
+      maxPeers: DEFAULT_MAX_PEERS,
       confirmations: 2,
       minPeers: 1,
-      targetPeers: 45,
+      targetPeers: DEFAULT_TARGET_PEERS,
       telemetryApi: '',
       assetVerificationApi: '',
       generateNewIdentity: false,

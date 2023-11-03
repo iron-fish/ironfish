@@ -9,7 +9,11 @@ import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { VerificationResultReason } from '../consensus'
 import { Event } from '../event'
-import { DEFAULT_WEBSOCKET_PORT } from '../fileStores/config'
+import {
+  DEFAULT_MAX_PEERS,
+  DEFAULT_TARGET_PEERS,
+  DEFAULT_WEBSOCKET_PORT,
+} from '../fileStores/config'
 import { PeerStore } from '../fileStores/peerStore'
 import { createRootLogger, Logger } from '../logger'
 import { MetricsMonitor } from '../metrics'
@@ -196,8 +200,8 @@ export class PeerNetwork {
     this.localPeer.port = options.port === undefined ? null : options.port
     this.localPeer.name = options.name || null
 
-    const maxPeers = options.maxPeers || 10000
-    const targetPeers = options.targetPeers || 50
+    const maxPeers = options.maxPeers || DEFAULT_MAX_PEERS
+    const targetPeers = options.targetPeers || DEFAULT_TARGET_PEERS
     const logPeerMessages = options.logPeerMessages ?? false
 
     this.peerManager = new PeerManager(

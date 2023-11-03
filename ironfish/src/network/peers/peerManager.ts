@@ -4,6 +4,7 @@
 
 import type { SignalData } from './connections/webRtcConnection'
 import { Event } from '../../event'
+import { DEFAULT_MAX_PEERS, DEFAULT_TARGET_PEERS } from '../../fileStores'
 import { PeerStore } from '../../fileStores/peerStore'
 import { createRootLogger, Logger } from '../../logger'
 import { MetricsMonitor } from '../../metrics'
@@ -145,8 +146,8 @@ export class PeerManager {
     peerStore: PeerStore,
     logger: Logger = createRootLogger(),
     metrics?: MetricsMonitor,
-    maxPeers = 10000,
-    targetPeers = 50,
+    maxPeers = DEFAULT_MAX_PEERS,
+    targetPeers = DEFAULT_TARGET_PEERS,
     logPeerMessages = false,
     stunServers: string[] = [],
   ) {
