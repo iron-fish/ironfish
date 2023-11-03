@@ -30,7 +30,7 @@ export class NodeFileProvider extends FileSystem {
     options?: { mode?: fs.Mode; flag?: fs.OpenMode },
   ): Promise<void> {
     Assert.isNotNull(this.fs, `Must call FileSystem.init()`)
-    await this.fs.writeFile(path, data, options)
+    await this.writeTmpAndRename(path, data, options)
   }
 
   async readFile(path: string): Promise<string> {
@@ -103,5 +103,31 @@ export class NodeFileProvider extends FileSystem {
     }
 
     return filePath
+  }
+
+  private async writeAndFlushFile(
+    path: string,
+    data: string,
+    options?: { mode?: fs.Mode; flag?: fs.OpenMode },
+  ): Promise<void> {
+    Assert.isNotNull(this.fs, `Must call FileSystem.init()`)
+    const flag = options?.flag || 'w'
+    const mode = options?.mode || 0o666
+
+    const fd = await this.fs.open(path, flag, mode)
+    await fd.write(data)
+    await fd.sync()
+    await fd.close()
+  }
+
+  private async writeTmpAndRename(
+    path: string,
+    data: string,
+    options?: { mode?: fs.Mode; flag?: fs.OpenMode },
+  ): Promise<void> {
+    Assert.isNotNull(this.fs, `Must call FileSystem.init()`)
+    const tmpPath = path + '.tmp'
+    await this.writeAndFlushFile(tmpPath, data, options)
+    await this.fs.rename(tmpPath, path)
   }
 }
