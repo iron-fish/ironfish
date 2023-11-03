@@ -286,8 +286,10 @@ export class PeerManager {
 
     const connection = this.initWebRtcConnection(peer, false)
     connection.setState({ type: 'REQUEST_SIGNALING' })
-    const brokeringPeer = ArrayUtils.shuffle(brokeringPeers)[0]
+
+    const brokeringPeer = brokeringPeers[0]
     brokeringPeer.send(signal)
+
     return true
   }
 
@@ -372,12 +374,9 @@ export class PeerManager {
         peer.getIdentityOrThrow(),
       )
 
-      const shuffledPeers = ArrayUtils.shuffle(brokeringPeers).slice(
-        0,
-        MAX_WEBRTC_BROKERING_ATTEMPTS,
-      )
+      const limitedBrokeringPeers = brokeringPeers.slice(0, MAX_WEBRTC_BROKERING_ATTEMPTS)
 
-      for (const brokeringPeer of shuffledPeers) {
+      for (const brokeringPeer of limitedBrokeringPeers) {
         if (brokeringPeer === null) {
           const message = 'Cannot establish a WebRTC connection without a brokering peer'
           this.logger.debug(message)
@@ -647,7 +646,7 @@ export class PeerManager {
       }
     }
 
-    return candidates
+    return ArrayUtils.shuffle(candidates)
   }
 
   /**
