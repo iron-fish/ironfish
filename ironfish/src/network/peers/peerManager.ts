@@ -258,9 +258,9 @@ export class PeerManager {
     }
 
     // Make sure we can find at least one brokering peer before we create the connection
-    const brokeringPeers = this.getBrokeringPeers(peer)
+    const hasBrokeringPeers = this.hasBrokeringPeers(peer)
 
-    if (brokeringPeers.length === 0) {
+    if (!hasBrokeringPeers) {
       this.logger.debug(
         `Attempted to establish a WebRTC connection to ${peer.displayName}, but couldn't find a peer to broker the connection.`,
       )
@@ -286,6 +286,12 @@ export class PeerManager {
 
     const connection = this.initWebRtcConnection(peer, false)
     connection.setState({ type: 'REQUEST_SIGNALING' })
+
+    const brokeringPeers = this.getBrokeringPeers(peer)
+
+    if (brokeringPeers.length === 0) {
+      return false
+    }
 
     const brokeringPeer = brokeringPeers[0]
     brokeringPeer.send(signal)
@@ -356,9 +362,9 @@ export class PeerManager {
       // Ensure one or more brokering peers exists before encrypting the signaling message,
       // but discard the brokering peer in case its state changes during encryption
 
-      const brokeringPeers = this.getBrokeringPeers(peer)
+      const hasBrokeringPeers = this.hasBrokeringPeers(peer)
 
-      if (brokeringPeers.length === 0) {
+      if (!hasBrokeringPeers) {
         errorMessage = 'Cannot establish a WebRTC connection without a brokering peer'
       }
 
@@ -374,6 +380,7 @@ export class PeerManager {
         peer.getIdentityOrThrow(),
       )
 
+      const brokeringPeers = this.getBrokeringPeers(peer)
       const limitedBrokeringPeers = brokeringPeers.slice(0, MAX_WEBRTC_BROKERING_ATTEMPTS)
 
       for (const brokeringPeer of limitedBrokeringPeers) {
@@ -613,6 +620,32 @@ export class PeerManager {
     return this.getPeersWithConnection().length >= this.maxPeers
   }
 
+  private hasBrokeringPeers(peer: Peer): boolean {
+    if (peer.state.type === 'CONNECTED') {
+      return true
+    }
+
+    if (peer.state.identity === null || !this.peerCandidates.has(peer.state.identity)) {
+      return false
+    }
+
+    const peerCandidate = this.peerCandidates.get(peer.state.identity)
+
+    if (!peerCandidate) {
+      return false
+    }
+
+    for (const neighbor of peerCandidate.neighbors) {
+      const neighborPeer = this.identifiedPeers.get(neighbor)
+
+      if (neighborPeer && neighborPeer.state.type === 'CONNECTED') {
+        return true
+      }
+    }
+
+    return false
+  }
+
   /** For a given peer, try to find a peer that's connected to that peer
    * including itself to broker a WebRTC connection to it
    * */
@@ -628,21 +661,21 @@ export class PeerManager {
     }
 
     // The peer candidate map tracks any brokering peer candidates
-    const val = this.peerCandidates.get(peer.state.identity)
-    if (!val) {
+    const peerCandidate = this.peerCandidates.get(peer.state.identity)
+    if (!peerCandidate) {
       return []
     }
 
     // Find another peer to broker the connection
     const candidates = []
 
-    for (const neighbor of val.neighbors) {
+    for (const neighbor of peerCandidate.neighbors) {
       const neighborPeer = this.identifiedPeers.get(neighbor)
 
       if (neighborPeer && neighborPeer.state.type === 'CONNECTED') {
         candidates.push(neighborPeer)
       } else {
-        val.neighbors.delete(neighbor)
+        peerCandidate.neighbors.delete(neighbor)
       }
     }
 
