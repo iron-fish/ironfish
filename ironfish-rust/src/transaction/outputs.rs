@@ -84,7 +84,7 @@ impl OutputBuilder {
 
         let circuit = Output {
             value_commitment: Some(self.value_commitment.clone()),
-            payment_address: Some(self.note.owner.transmission_key),
+            payment_address: Some(self.note.owner.0),
             commitment_randomness: Some(self.note.randomness),
             esk: Some(*diffie_hellman_keys.secret()),
             asset_id: *self.note.asset_id().as_bytes(),

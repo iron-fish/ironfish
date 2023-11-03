@@ -201,7 +201,7 @@ impl MintDescription {
         public_inputs[0] = randomized_public_key_point.get_u();
         public_inputs[1] = randomized_public_key_point.get_v();
 
-        let public_address_point = ExtendedPoint::from(self.owner.transmission_key).to_affine();
+        let public_address_point = ExtendedPoint::from(self.owner.0).to_affine();
         public_inputs[2] = public_address_point.get_u();
         public_inputs[3] = public_address_point.get_v();
 

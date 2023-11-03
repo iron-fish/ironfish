@@ -99,12 +99,12 @@ impl SpendBuilder {
         let circuit = Spend {
             value_commitment: Some(self.value_commitment.clone()),
             proof_generation_key: Some(spender_key.sapling_proof_generation_key()),
-            payment_address: Some(self.note.owner.transmission_key),
+            payment_address: Some(self.note.owner.0),
             auth_path: self.auth_path.clone(),
             commitment_randomness: Some(self.note.randomness),
             anchor: Some(self.root_hash),
             ar: Some(*public_key_randomness),
-            sender_address: Some(self.note.sender.transmission_key),
+            sender_address: Some(self.note.sender.0),
         };
 
         // Proof that the spend was valid and successful for the provided owner
