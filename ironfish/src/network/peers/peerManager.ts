@@ -792,16 +792,18 @@ export class PeerManager {
    * @param peer The peer to evaluate
    */
   tryDisposePeer(peer: Peer): boolean {
-    if (peer.state.type === 'DISCONNECTED') {
-      peer.dispose()
-      if (peer.state.identity && this.identifiedPeers.get(peer.state.identity) === peer) {
-        this.identifiedPeers.delete(peer.state.identity)
-      }
-      this.peers = this.peers.filter((p) => p !== peer)
-
-      return true
+    if (peer.state.type !== 'DISCONNECTED') {
+      return false
     }
-    return false
+
+    peer.dispose()
+
+    if (peer.state.identity && this.identifiedPeers.get(peer.state.identity) === peer) {
+      this.identifiedPeers.delete(peer.state.identity)
+    }
+    this.peers = this.peers.filter((p) => p !== peer)
+
+    return true
   }
 
   getConnectionRetry(
@@ -815,13 +817,11 @@ export class PeerManager {
 
     const candidate = this.peerCandidates.get(identity)
 
-    if (type === ConnectionType.WebRtc) {
-      return candidate?.webRtcRetry ?? null
-    } else if (type === ConnectionType.WebSocket) {
-      return candidate?.websocketRetry ?? null
+    if (!candidate) {
+      return null
     }
 
-    return null
+    return type === ConnectionType.WebRtc ? candidate.webRtcRetry : candidate.websocketRetry
   }
 
   /**
