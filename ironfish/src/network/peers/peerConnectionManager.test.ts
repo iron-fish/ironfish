@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Assert } from '../../assert'
+import { DEFAULT_MAX_PEERS } from '../../fileStores'
 import { createRootLogger } from '../../logger'
 import {
   getConnectedPeer,
@@ -30,7 +31,9 @@ describe('connectToDisconnectedPeers', () => {
   it('should not connect to disconnected peers without an address or peers', () => {
     const pm = new PeerManager(mockLocalPeer(), mockPeerStore())
     const peer = pm.getOrCreatePeer(null)
-    const pcm = new PeerConnectionManager(pm, createRootLogger(), { maxPeers: 50 })
+    const pcm = new PeerConnectionManager(pm, createRootLogger(), {
+      maxPeers: DEFAULT_MAX_PEERS,
+    })
     pm['logger'].mockTypes(() => jest.fn())
     pcm.start()
     expect(peer.state).toEqual({
@@ -48,7 +51,9 @@ describe('connectToDisconnectedPeers', () => {
 
     pm.peerCandidates.addFromPeer(peer)
 
-    const pcm = new PeerConnectionManager(pm, createRootLogger(), { maxPeers: 50 })
+    const pcm = new PeerConnectionManager(pm, createRootLogger(), {
+      maxPeers: DEFAULT_MAX_PEERS,
+    })
     pcm.start()
     expect(pm.peers.length).toBe(1)
     expect(pm.peers[0].state).toEqual({
@@ -79,7 +84,9 @@ describe('connectToDisconnectedPeers', () => {
     Assert.isNotNull(retry)
     retry.neverRetryConnecting()
 
-    const pcm = new PeerConnectionManager(pm, createRootLogger(), { maxPeers: 50 })
+    const pcm = new PeerConnectionManager(pm, createRootLogger(), {
+      maxPeers: DEFAULT_MAX_PEERS,
+    })
     pcm.start()
 
     expect(pm.peers.length).toBe(1)
@@ -134,7 +141,9 @@ describe('connectToDisconnectedPeers', () => {
       identity: brokeringPeer.getIdentityOrThrow(),
     })
 
-    const pcm = new PeerConnectionManager(pm, createRootLogger(), { maxPeers: 50 })
+    const pcm = new PeerConnectionManager(pm, createRootLogger(), {
+      maxPeers: DEFAULT_MAX_PEERS,
+    })
     pcm.start()
 
     const peer = pm.getPeer(peerIdentity)
@@ -190,7 +199,9 @@ describe('maintainOneConnectionPerPeer', () => {
       },
     })
 
-    const pcm = new PeerConnectionManager(pm, createRootLogger(), { maxPeers: 50 })
+    const pcm = new PeerConnectionManager(pm, createRootLogger(), {
+      maxPeers: DEFAULT_MAX_PEERS,
+    })
     pcm.start()
 
     expect(peer.state).toEqual({
@@ -245,7 +256,9 @@ describe('maintainOneConnectionPerPeer', () => {
       },
     })
 
-    const pcm = new PeerConnectionManager(pm, createRootLogger(), { maxPeers: 50 })
+    const pcm = new PeerConnectionManager(pm, createRootLogger(), {
+      maxPeers: DEFAULT_MAX_PEERS,
+    })
     pcm.start()
 
     expect(peer.state).toEqual({
@@ -290,7 +303,9 @@ describe('attemptToEstablishWebRtcConnectionsToWSPeers', () => {
       },
     })
 
-    const pcm = new PeerConnectionManager(pm, createRootLogger(), { maxPeers: 50 })
+    const pcm = new PeerConnectionManager(pm, createRootLogger(), {
+      maxPeers: DEFAULT_MAX_PEERS,
+    })
     pcm.start()
 
     expect(peer.state).toEqual({
@@ -304,10 +319,50 @@ describe('attemptToEstablishWebRtcConnectionsToWSPeers', () => {
   })
 })
 
+describe('attemptNewConnections', () => {
+  it('should be called by the event loop', () => {
+    const pm = new PeerManager(mockLocalPeer(), mockPeerStore())
+    const pcm = new PeerConnectionManager(pm, createRootLogger(), {
+      maxPeers: DEFAULT_MAX_PEERS,
+    })
+    const attemptNewConnectionsSpy = jest.spyOn(pcm as any, 'attemptNewConnections')
+
+    expect(attemptNewConnectionsSpy).toHaveBeenCalledTimes(0)
+
+    pcm['eventLoop']()
+
+    expect(attemptNewConnectionsSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it('should only run if we can create new connections', () => {
+    const pm = new PeerManager(mockLocalPeer(), mockPeerStore())
+    const pcm = new PeerConnectionManager(pm, createRootLogger(), {
+      maxPeers: DEFAULT_MAX_PEERS,
+    })
+    jest
+      .spyOn(pm, 'canCreateNewConnections')
+      .mockImplementationOnce(() => false)
+      .mockImplementationOnce(() => true)
+    const shufflePeerCandidatesSpy = jest.spyOn(pm.peerCandidates, 'shufflePeerCandidates')
+
+    expect(shufflePeerCandidatesSpy).toHaveBeenCalledTimes(0)
+
+    pcm['attemptNewConnections']()
+
+    expect(shufflePeerCandidatesSpy).toHaveBeenCalledTimes(0)
+
+    pcm['attemptNewConnections']()
+
+    expect(shufflePeerCandidatesSpy).toHaveBeenCalledTimes(1)
+  })
+})
+
 describe('maintainMaxPeerCount', () => {
   it('should be called by the event loop', () => {
     const pm = new PeerManager(mockLocalPeer(), mockPeerStore())
-    const pcm = new PeerConnectionManager(pm, createRootLogger(), { maxPeers: 50 })
+    const pcm = new PeerConnectionManager(pm, createRootLogger(), {
+      maxPeers: DEFAULT_MAX_PEERS,
+    })
     const maintainMaxPeerCountSpy = jest.spyOn(pcm as any, 'maintainMaxPeerCount')
 
     expect(maintainMaxPeerCountSpy).toHaveBeenCalledTimes(0)
