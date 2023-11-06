@@ -63,8 +63,8 @@ import { PeerConnectionManager } from './peers/peerConnectionManager'
 import { PeerManager } from './peers/peerManager'
 import { TransactionFetcher } from './transactionFetcher'
 import { IsomorphicWebSocketConstructor } from './types'
-import { parseUrl } from './utils/parseUrl'
 import { getBlockSize } from './utils/serializers'
+import { parseUrl, WebSocketAddress } from './utils/url'
 import {
   MAX_BLOCK_LOOKUPS,
   MAX_HEADER_LOOKUPS,
@@ -315,7 +315,13 @@ export class PeerNetwork {
           return
         }
 
-        this.peerManager.createPeerFromInboundWebSocketConnection(connection, address)
+        let wsAddress: WebSocketAddress | null = null
+        if (address) {
+          const url = parseUrl(address)
+          wsAddress = url.hostname ? { host: url.hostname, port: url.port } : null
+        }
+
+        this.peerManager.createPeerFromInboundWebSocketConnection(connection, wsAddress)
       })
 
       this.peerManager.onConnect.on((peer: Peer) => {

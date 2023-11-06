@@ -2,6 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+export type WebSocketAddress = {
+  host: string
+  port: number | null
+}
+
 const PROTOCOL_SEPARATOR = '://'
 const PORT_SEPARATOR = ':'
 
@@ -40,4 +45,17 @@ export function parseUrl(url: string): {
   }
 
   return { protocol, hostname, port }
+}
+
+/**
+ * Format web socket address into a string
+ */
+export function formatWebSocketAddress(address: WebSocketAddress | null): string | null {
+  if (!address) {
+    return null
+  }
+
+  const { host, port } = address
+  const portString = port ? `${PORT_SEPARATOR}${port}` : ``
+  return `ws://${host}${portString}`
 }

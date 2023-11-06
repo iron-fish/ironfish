@@ -27,6 +27,7 @@ import {
   webRtcLocalIdentity,
 } from '../testUtilities'
 import { NetworkMessageType } from '../types'
+import { formatWebSocketAddress } from '../utils'
 import { VERSION_PROTOCOL, VERSION_PROTOCOL_MIN } from '../version'
 import {
   ConnectionDirection,
@@ -171,7 +172,7 @@ describe('PeerManager', () => {
 
       Assert.isNotUndefined(peer)
 
-      const address = peer.getWebSocketAddress()
+      const address = formatWebSocketAddress(peer.wsAddress)
       const candidate = address ? peers.peerCandidates.get(address) : undefined
       expect(candidate).not.toBeUndefined()
       if (peer.state.type === 'DISCONNECTED') {
@@ -200,7 +201,7 @@ describe('PeerManager', () => {
       })
       Assert.isNotUndefined(peer)
 
-      const address = peer.getWebSocketAddress()
+      const address = formatWebSocketAddress(peer.wsAddress)
       const candidate = address ? peers.peerCandidates.get(address) : undefined
       expect(candidate).not.toBeUndefined()
       peer.close()

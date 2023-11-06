@@ -12,6 +12,7 @@ import { ErrorUtils } from '../../utils'
 import { Identity } from '../identity'
 import { NetworkMessage } from '../messages/networkMessage'
 import { NetworkMessageType } from '../types'
+import { WebSocketAddress } from '../utils'
 import { NetworkError, WebRtcConnection, WebSocketConnection } from './connections'
 import { Connection, ConnectionType } from './connections/connection'
 import { Features } from './peerFeatures'
@@ -66,11 +67,6 @@ export type PeerState =
 export enum KnownBlockHashesValue {
   Received = 1,
   Sent = 2,
-}
-
-export type WebSocketAddress = {
-  host: string
-  port: number | null
 }
 
 export class Peer {
@@ -419,18 +415,6 @@ export class Peer {
       throw new Error('Called getIdentityOrThrow on an unidentified peer')
     }
     return this.state.identity
-  }
-
-  /**
-   * Get the peers connectable websocket address
-   */
-  getWebSocketAddress(): string | null {
-    if (!this.wsAddress) {
-      return null
-    }
-
-    const port = this.wsAddress.port ? `:${this.wsAddress.port}` : ''
-    return `ws://${this.wsAddress.host}${port}`
   }
 
   /**

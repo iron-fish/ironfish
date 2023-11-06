@@ -23,7 +23,7 @@ import { PeerListRequestMessage } from '../messages/peerListRequest'
 import { SignalMessage } from '../messages/signal'
 import { SignalRequestMessage } from '../messages/signalRequest'
 import { IsomorphicWebSocket } from '../types'
-import { parseUrl } from '../utils'
+import { formatWebSocketAddress, WebSocketAddress } from '../utils'
 import { VERSION_PROTOCOL_MIN } from '../version'
 import { ConnectionRetry } from './connectionRetry'
 import {
@@ -209,7 +209,7 @@ export class PeerManager {
       return false
     }
 
-    const address = peer.getWebSocketAddress()
+    const address = formatWebSocketAddress(peer.wsAddress)
     const alternateIdentity = peer.state.identity ?? address
 
     const candidate = alternateIdentity ? this.peerCandidates.get(alternateIdentity) : undefined
@@ -230,8 +230,7 @@ export class PeerManager {
       peer,
       new this.localPeer.webSocket(address),
       ConnectionDirection.Outbound,
-      peer.address,
-      peer.port,
+      peer.wsAddress,
     )
 
     return true
@@ -293,23 +292,11 @@ export class PeerManager {
 
   createPeerFromInboundWebSocketConnection(
     webSocket: IsomorphicWebSocket,
-    address: string | null,
+    wsAddress: WebSocketAddress | null,
   ): Peer {
     const peer = this.getOrCreatePeer(null)
 
-    let hostname: string | null = null
-    let port: number | null = null
-
-    if (address) {
-      const url = parseUrl(address)
-
-      if (url.hostname) {
-        hostname = url.hostname
-        port = url.port
-      }
-    }
-
-    this.initWebSocketConnection(peer, webSocket, ConnectionDirection.Inbound, hostname, port)
+    this.initWebSocketConnection(peer, webSocket, ConnectionDirection.Inbound, wsAddress)
 
     return peer
   }
@@ -321,12 +308,11 @@ export class PeerManager {
     peer: Peer,
     ws: IsomorphicWebSocket,
     direction: ConnectionDirection,
-    hostname: string | null,
-    port: number | null,
+    wsAddress: WebSocketAddress | null,
   ): WebSocketConnection {
     const connection = new WebSocketConnection(ws, direction, this.logger, this.metrics, {
-      hostname: hostname || undefined,
-      port: port || undefined,
+      hostname: wsAddress?.host,
+      port: wsAddress?.port || undefined,
     })
 
     this.initConnectionHandlers(peer, connection)
@@ -470,7 +456,7 @@ export class PeerManager {
   canConnectToWebSocket(peer: Peer, forceConnect = false): boolean {
     const isBanned = this.isBanned(peer)
 
-    const alternateIdentity = peer.state.identity ?? peer.getWebSocketAddress()
+    const alternateIdentity = peer.state.identity ?? formatWebSocketAddress(peer.wsAddress)
     const candidate = alternateIdentity ? this.peerCandidates.get(alternateIdentity) : undefined
 
     const canEstablishNewConnection =
