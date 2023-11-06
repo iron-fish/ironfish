@@ -78,11 +78,6 @@ describe('IronfishSdk', () => {
         configName: 'foo.config.json',
         dataDir: getUniqueTestDataDir(),
         fileSystem: fileSystem,
-        configOverrides: {
-          // TODO: It should be possible to test on the default network (mainnet)
-          // once the genesis block has been added.
-          networkId: 2,
-        },
       })
 
       const node = await sdk.node()
@@ -116,11 +111,6 @@ describe('IronfishSdk', () => {
       it('returns and connects `clientMemory` to a node', async () => {
         const sdk = await IronfishSdk.init({
           dataDir: getUniqueTestDataDir(),
-          configOverrides: {
-            // TODO: It should be possible to test on the default network (mainnet)
-            // once the genesis block has been added.
-            networkId: 2,
-          },
         })
         const node = await sdk.node()
         const openDb = jest.spyOn(node, 'openDB').mockImplementationOnce(async () => {})
@@ -174,9 +164,6 @@ describe('IronfishSdk', () => {
         dataDir: getUniqueTestDataDir(),
         configOverrides: {
           enableRpcIpc: true,
-          // TODO: It should be possible to test on the default network (mainnet)
-          // once the genesis block has been added.
-          networkId: 2,
         },
       })
 
@@ -194,9 +181,6 @@ describe('IronfishSdk', () => {
         configOverrides: {
           enableRpcTcp: true,
           enableRpcTls: false,
-          // TODO: It should be possible to test on the default network (mainnet)
-          // once the genesis block has been added.
-          networkId: 2,
         },
       })
 
