@@ -38,6 +38,7 @@ describe('FileStore', () => {
     // Flush multiple times to ensure all the promises settle as expected
     await flushTimeout()
     await flushTimeout()
+    await flushTimeout()
     expect(writeFileSpy).toHaveBeenCalledTimes(1)
 
     resolve1()
