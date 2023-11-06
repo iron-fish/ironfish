@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import os from 'os'
 import { Assert } from './assert'
 import { Config, DEFAULT_DATA_DIR } from './fileStores'
 import { NodeFileProvider } from './fileSystems'
@@ -17,13 +16,13 @@ import {
 import { RpcIpcClient } from './rpc/clients/ipcClient'
 import { RpcTcpClient } from './rpc/clients/tcpClient'
 import { IronfishSdk } from './sdk'
+import { getUniqueTestDataDir } from './testUtilities'
 import { Wallet } from './wallet'
 
 describe('IronfishSdk', () => {
   describe('init', () => {
     it('should initialize an SDK', async () => {
-      const dataDir = os.tmpdir()
-
+      const dataDir = getUniqueTestDataDir()
       const fileSystem = new NodeFileProvider()
       await fileSystem.init()
 
@@ -42,15 +41,13 @@ describe('IronfishSdk', () => {
     })
 
     it('should initialize an SDK/node with correct agent tag', async () => {
-      const dataDir = os.tmpdir()
-
       const fileSystem = new NodeFileProvider()
       await fileSystem.init()
 
       const sdk = await IronfishSdk.init({
         pkg: { name: 'node-app', license: 'MIT', version: '1.0.0', git: 'foo' },
         configName: 'foo.config.json',
-        dataDir: dataDir,
+        dataDir: getUniqueTestDataDir(),
         fileSystem: fileSystem,
       })
 
@@ -65,7 +62,8 @@ describe('IronfishSdk', () => {
     })
 
     it('should detect platform defaults', async () => {
-      const sdk = await IronfishSdk.init({ dataDir: os.tmpdir() })
+      const dataDir = getUniqueTestDataDir()
+      const sdk = await IronfishSdk.init({ dataDir })
       const runtime = Platform.getRuntime()
 
       expect(sdk.fileSystem).toBeInstanceOf(NodeFileProvider)
@@ -78,7 +76,7 @@ describe('IronfishSdk', () => {
 
       const sdk = await IronfishSdk.init({
         configName: 'foo.config.json',
-        dataDir: os.tmpdir(),
+        dataDir: getUniqueTestDataDir(),
         fileSystem: fileSystem,
         configOverrides: {
           // TODO: It should be possible to test on the default network (mainnet)
@@ -117,7 +115,7 @@ describe('IronfishSdk', () => {
     describe('when local is true', () => {
       it('returns and connects `clientMemory` to a node', async () => {
         const sdk = await IronfishSdk.init({
-          dataDir: os.tmpdir(),
+          dataDir: getUniqueTestDataDir(),
           configOverrides: {
             // TODO: It should be possible to test on the default network (mainnet)
             // once the genesis block has been added.
@@ -173,7 +171,7 @@ describe('IronfishSdk', () => {
   describe('RPC adapters', () => {
     it('should use all RPC namespaces for IPC', async () => {
       const sdk = await IronfishSdk.init({
-        dataDir: os.tmpdir(),
+        dataDir: getUniqueTestDataDir(),
         configOverrides: {
           enableRpcIpc: true,
           // TODO: It should be possible to test on the default network (mainnet)
@@ -192,7 +190,7 @@ describe('IronfishSdk', () => {
 
     it('should use all RPC namespaces for TCP', async () => {
       const sdk = await IronfishSdk.init({
-        dataDir: os.tmpdir(),
+        dataDir: getUniqueTestDataDir(),
         configOverrides: {
           enableRpcTcp: true,
           enableRpcTls: false,
