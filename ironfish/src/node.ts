@@ -10,8 +10,8 @@ import {
   Config,
   ConfigOptions,
   DEFAULT_DATA_DIR,
-  HostsStore,
   InternalStore,
+  PeerStore,
   VerifiedAssetsCacheStore,
 } from './fileStores'
 import { FileSystem } from './fileSystems'
@@ -72,7 +72,7 @@ export class FullNode {
     logger,
     webSocket,
     privateIdentity,
-    hostsStore,
+    peerStore,
     networkId,
     assetsVerifier,
   }: {
@@ -89,7 +89,7 @@ export class FullNode {
     logger: Logger
     webSocket: IsomorphicWebSocketConstructor
     privateIdentity?: PrivateIdentity
-    hostsStore: HostsStore
+    peerStore: PeerStore
     networkId: number
     assetsVerifier: AssetsVerifier
   }) {
@@ -153,10 +153,11 @@ export class FullNode {
       node: this,
       chain: chain,
       metrics: this.metrics,
-      hostsStore: hostsStore,
+      peerStore: peerStore,
       logger: logger,
       telemetry: this.telemetry,
       incomingWebSocketWhitelist: config.getArray('incomingWebSocketWhitelist'),
+      keepOpenPeerSlot: config.get('keepOpenPeerSlot'),
     })
 
     this.miningManager.onNewBlock.on((block) => {
@@ -219,8 +220,8 @@ export class FullNode {
       await internal.load()
     }
 
-    const hostsStore = new HostsStore(files, dataDir)
-    await hostsStore.load()
+    const peerStore = new PeerStore(files, dataDir)
+    await peerStore.load()
 
     const verifiedAssetsCache = new VerifiedAssetsCacheStore(files, dataDir)
     await verifiedAssetsCache.load()
@@ -311,7 +312,7 @@ export class FullNode {
       logger,
       webSocket,
       privateIdentity,
-      hostsStore,
+      peerStore,
       networkId: networkDefinition.id,
       assetsVerifier,
     })

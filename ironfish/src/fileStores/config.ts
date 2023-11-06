@@ -22,6 +22,9 @@ export const DEFAULT_FEE_ESTIMATOR_MAX_BLOCK_HISTORY = 10
 export const DEFAULT_FEE_ESTIMATOR_PERCENTILE_SLOW = 10
 export const DEFAULT_FEE_ESTIMATOR_PERCENTILE_AVERAGE = 20
 export const DEFAULT_FEE_ESTIMATOR_PERCENTILE_FAST = 30
+export const DEFAULT_MAX_PEERS = 50
+export const DEFAULT_TARGET_PEERS = 45
+export const DEFAULT_KEEP_OPEN_PEER_SLOT = false
 
 const MEGABYTES = 1000 * 1000
 
@@ -114,6 +117,12 @@ export type ConfigOptions = {
    * establish new connections when below this number.
    */
   targetPeers: number
+  /**
+   * If true, the node will disconnect from a peer if the number of connected
+   * peers is equal to maxPeers in order to always allow incoming connections.
+   */
+  keepOpenPeerSlot: boolean
+
   telemetryApi: string
   assetVerificationApi: string
 
@@ -353,6 +362,7 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     maxPeers: YupUtils.isPositiveInteger,
     minPeers: YupUtils.isPositiveInteger,
     targetPeers: yup.number().integer().min(1),
+    keepOpenPeerSlot: yup.boolean(),
     telemetryApi: yup.string(),
     assetVerificationApi: yup.string(),
     generateNewIdentity: yup.boolean(),
@@ -457,10 +467,11 @@ export class Config extends KeyStore<ConfigOptions> {
       tlsCertPath: files.resolve(files.join(dataDir, 'certs', 'node-cert.pem')),
       rpcHttpHost: 'localhost',
       rpcHttpPort: 8021,
-      maxPeers: 50,
+      maxPeers: DEFAULT_MAX_PEERS,
       confirmations: 2,
       minPeers: 1,
-      targetPeers: 50,
+      targetPeers: DEFAULT_TARGET_PEERS,
+      keepOpenPeerSlot: DEFAULT_KEEP_OPEN_PEER_SLOT,
       telemetryApi: '',
       assetVerificationApi: '',
       generateNewIdentity: false,

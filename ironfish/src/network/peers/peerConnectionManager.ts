@@ -3,8 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import type { Peer } from './peer'
+import { DEFAULT_KEEP_OPEN_PEER_SLOT } from '../../fileStores/config'
 import { createRootLogger, Logger } from '../../logger'
-import { SetTimeoutToken } from '../../utils'
+import { ArrayUtils, SetTimeoutToken } from '../../utils'
+import { DisconnectingReason } from '../messages/disconnecting'
 import { PeerManager } from './peerManager'
 
 /**
@@ -30,6 +32,7 @@ export class PeerConnectionManager {
   private readonly logger: Logger
   private readonly peerManager: PeerManager
   readonly maxPeers: number
+  readonly keepOpenPeerSlot: boolean
 
   private started = false
   private eventLoopTimer?: SetTimeoutToken
@@ -39,11 +42,13 @@ export class PeerConnectionManager {
     logger: Logger = createRootLogger(),
     options: {
       maxPeers: number
+      keepOpenPeerSlot?: boolean
     },
   ) {
     this.peerManager = peerManager
     this.logger = logger.withTag('peerconnectionmanager')
     this.maxPeers = options.maxPeers
+    this.keepOpenPeerSlot = options.keepOpenPeerSlot ?? DEFAULT_KEEP_OPEN_PEER_SLOT
   }
 
   /**
@@ -82,6 +87,21 @@ export class PeerConnectionManager {
       }
     }
 
+    this.attemptNewConnections()
+    this.maintainMaxPeerCount()
+
+    this.eventLoopTimer = setTimeout(() => this.eventLoop(), EVENT_LOOP_MS)
+  }
+
+  /**
+   * Attempts to connect to a number of peer candidates if it is eligible to
+   * create new connections
+   */
+  private attemptNewConnections(): void {
+    if (!this.peerManager.canCreateNewConnections()) {
+      return
+    }
+
     let connectAttempts = 0
 
     for (const peerCandidateIdentity of this.peerManager.peerCandidates.shufflePeerCandidates()) {
@@ -89,49 +109,70 @@ export class PeerConnectionManager {
         break
       }
 
-      if (!this.peerManager.identifiedPeers.has(peerCandidateIdentity)) {
-        const val = this.peerManager.peerCandidates.get(peerCandidateIdentity)
-        if (val) {
-          const peer = this.peerManager.getOrCreatePeer(peerCandidateIdentity)
-          peer.name = val.name ?? null
-          peer.setWebSocketAddress(val.address, val.port)
-          if (this.connectToEligiblePeers(peer)) {
-            connectAttempts++
-          } else {
-            this.peerManager.tryDisposePeer(peer)
-          }
-        }
+      if (this.peerManager.identifiedPeers.has(peerCandidateIdentity)) {
+        continue
       }
-    }
 
-    if (connectAttempts < CONNECT_ATTEMPTS_MAX && this.peerManager.canCreateNewConnections()) {
-      const peer = this.peerManager.createRandomDisconnectedPeer()
-      if (peer && this.connectToEligiblePeers(peer)) {
+      const peerCandidate = this.peerManager.peerCandidates.get(peerCandidateIdentity)
+      if (!peerCandidate) {
+        continue
+      }
+
+      const peer = this.peerManager.getOrCreatePeer(peerCandidateIdentity)
+
+      peer.name = peerCandidate.name
+      peer.wsAddress = peerCandidate.wsAddress
+
+      if (this.connectToEligiblePeers(peer)) {
         connectAttempts++
-      } else if (peer) {
+      } else {
         this.peerManager.tryDisposePeer(peer)
       }
     }
+  }
 
-    this.eventLoopTimer = setTimeout(() => this.eventLoop(), EVENT_LOOP_MS)
+  /**
+   * Maintain a maximum number of peers by disconnecting from peers if we are
+   * connected to more than we should be
+   */
+  private maintainMaxPeerCount(): void {
+    const connectedPeers = this.peerManager.getConnectedPeers()
+    const maxPeerCount = this.maxPeers - Number(this.keepOpenPeerSlot)
+
+    if (connectedPeers.length <= maxPeerCount) {
+      return
+    }
+
+    // Choose a random peer, but exclude the newest connections as they are
+    // least likely to have other peers
+    const sampleEnd = Math.floor(connectedPeers.length * 0.8)
+    const peersSlice = connectedPeers.slice(0, sampleEnd)
+    const peer = ArrayUtils.sample(peersSlice)
+    if (!peer) {
+      return
+    }
+
+    this.logger.debug(
+      `Disconnecting from peer ${peer.displayName} since we are above our peer limit`,
+    )
+
+    this.peerManager.disconnect(
+      peer,
+      DisconnectingReason.Congested,
+      this.peerManager.getCongestedDisconnectUntilTimestamp(),
+    )
   }
 
   private connectToEligiblePeers(peer: Peer): boolean {
-    if (peer.state.type !== 'CONNECTED') {
-      if (this.peerManager.canConnectToWebRTC(peer)) {
-        if (this.peerManager.connectToWebRTC(peer)) {
-          return true
-        }
-      }
-
-      if (this.peerManager.canConnectToWebSocket(peer)) {
-        if (this.peerManager.connectToWebSocket(peer)) {
-          return true
-        }
-      }
+    if (peer.state.type === 'CONNECTED') {
+      return false
     }
 
-    return false
+    if (this.peerManager.connectToWebRTC(peer)) {
+      return true
+    }
+
+    return this.peerManager.connectToWebSocket(peer)
   }
 
   /**
@@ -158,8 +199,7 @@ export class PeerConnectionManager {
   private attemptToEstablishWebRtcConnectionsToWSPeer(peer: Peer): boolean {
     if (
       peer.state.type === 'CONNECTED' &&
-      peer.state.connections.webSocket?.state.type === 'CONNECTED' &&
-      this.peerManager.canConnectToWebRTC(peer)
+      peer.state.connections.webSocket?.state.type === 'CONNECTED'
     ) {
       return this.peerManager.connectToWebRTC(peer)
     }

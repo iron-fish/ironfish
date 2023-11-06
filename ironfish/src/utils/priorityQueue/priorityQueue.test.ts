@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { randomBytes, randomInt } from 'crypto'
-import { PriorityQueue } from './priorityQueue'
+import { PriorityQueue } from './'
 import { Action, heapSort, Return, SimpleQueue } from './priorityQueueTestHelpers'
 
 const compareStringNumber = (a: [string, number], b: [string, number]) => {
@@ -30,6 +30,8 @@ describe('Priority Queue', () => {
       queue.add(item)
     }
 
+    const resultsFromSorted = [...queue.sorted()]
+
     const results: [string, number][] = []
     while (queue.size() > 0) {
       const next = queue.poll()
@@ -48,6 +50,8 @@ describe('Priority Queue', () => {
       ['6', 88],
       ['1', 99],
     ])
+
+    expect(results).toEqual(resultsFromSorted)
   })
 
   it('adds removes and polls items in order correctly', () => {
@@ -74,6 +78,8 @@ describe('Priority Queue', () => {
       queue.remove(queue.hash(item))
     }
 
+    const resultsFromSorted = [...queue.sorted()]
+
     const results: [string, number][] = []
     while (queue.size() > 0) {
       const next = queue.poll()
@@ -87,6 +93,8 @@ describe('Priority Queue', () => {
       ['6', 32],
       ['5', 37],
     ])
+
+    expect(results).toEqual(resultsFromSorted)
   })
 
   it('sorts random elements via `add` and `poll` correctly', () => {

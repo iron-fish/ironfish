@@ -3,14 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { ArrayUtils } from '../../utils/array'
 import { Identity } from '../identity'
-import { Peer as PeerListPeer } from '../messages/peerList'
+import { formatWebSocketAddress, WebSocketAddress } from '../utils'
 import { ConnectionRetry } from './connectionRetry'
 import { Peer } from './peer'
 
 export type PeerCandidate = {
-  name?: string
-  address: string | null
-  port: number | null
+  name: string | null
+  wsAddress: WebSocketAddress | null
   neighbors: Set<Identity>
   webRtcRetry: ConnectionRetry
   websocketRetry: ConnectionRetry
@@ -34,45 +33,51 @@ export class PeerCandidates {
   }
 
   addFromPeer(peer: Peer, neighbors = new Set<Identity>()): void {
-    const address = peer.getWebSocketAddress()
-    const addressPeerCandidate = this.map.get(address)
+    const address = formatWebSocketAddress(peer.wsAddress)
+    const addressPeerCandidate = address ? this.map.get(address) : undefined
     const newPeerCandidate = {
-      address: peer.address,
-      port: peer.port,
+      wsAddress: peer.wsAddress,
       neighbors,
       webRtcRetry: new ConnectionRetry(peer.isWhitelisted),
       websocketRetry: new ConnectionRetry(peer.isWhitelisted),
       localRequestedDisconnectUntil: null,
       peerRequestedDisconnectUntil: null,
+      name: null,
     }
 
     if (peer.state.identity !== null) {
-      if (addressPeerCandidate) {
+      if (addressPeerCandidate && address) {
         this.map.delete(address)
       }
 
       if (!this.map.has(peer.state.identity)) {
         this.map.set(peer.state.identity, addressPeerCandidate ?? newPeerCandidate)
       }
-    } else if (!addressPeerCandidate) {
+    } else if (address && !addressPeerCandidate) {
       this.map.set(address, newPeerCandidate)
     }
   }
 
-  addFromPeerList(sendingPeerIdentity: Identity, peer: PeerListPeer): void {
-    const peerIdentity = peer.identity.toString('base64')
-    const peerCandidateValue = this.map.get(peerIdentity)
+  addFromPeerList(
+    sendingPeerIdentity: Identity,
+    peer: {
+      identity: Identity
+      name?: string
+      wsAddress: WebSocketAddress | null
+    },
+  ): void {
+    const peerCandidateValue = this.map.get(peer.identity)
 
     if (peerCandidateValue) {
       peerCandidateValue.neighbors.add(sendingPeerIdentity)
     } else {
-      const tempPeer = new Peer(peerIdentity)
-      tempPeer.setWebSocketAddress(peer.address, peer.port)
+      const tempPeer = new Peer(peer.identity)
+      tempPeer.wsAddress = peer.wsAddress
       this.addFromPeer(tempPeer, new Set([sendingPeerIdentity]))
     }
   }
 
-  shufflePeerCandidates(): string[] {
+  shufflePeerCandidates(): Identity[] {
     return ArrayUtils.shuffle([...this.map.keys()])
   }
 
@@ -82,10 +87,6 @@ export class PeerCandidates {
 
   has(identity: Identity): boolean {
     return this.map.has(identity)
-  }
-
-  private set(identity: Identity, value: PeerCandidate): void {
-    this.map.set(identity, value)
   }
 
   clear(): void {

@@ -4,12 +4,12 @@
 /* eslint-disable jest/no-conditional-expect */
 import Mitm from 'mitm'
 import net from 'net'
-import os from 'os'
 import * as yup from 'yup'
 import { Assert } from '../../assert'
 import { createRootLogger, Logger } from '../../logger'
 import { FullNode } from '../../node'
 import { IronfishSdk } from '../../sdk'
+import { getUniqueTestDataDir } from '../../testUtilities'
 import { RpcRequestError } from '../clients'
 import { RpcTcpClient } from '../clients/tcpClient'
 import { ALL_API_NAMESPACES } from '../routes'
@@ -25,19 +25,15 @@ describe('TcpAdapter', () => {
   let mitm: ReturnType<typeof Mitm>
 
   beforeEach(async () => {
-    const dataDir = os.tmpdir()
     logger = createRootLogger().withTag('tcpadapter')
 
     sdk = await IronfishSdk.init({
-      dataDir,
+      dataDir: getUniqueTestDataDir(),
       configOverrides: {
         enableRpc: false,
         enableRpcIpc: false,
         enableRpcTcp: false,
         enableRpcTls: false,
-        // TODO: It should be possible to test on the default network (mainnet)
-        // once the genesis block has been added.
-        networkId: 2,
         rpcTcpPort: 0,
       },
       internalOverrides: {

@@ -1,10 +1,10 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import os from 'os'
 import * as yup from 'yup'
 import { Assert } from '../../assert'
 import { IronfishSdk } from '../../sdk'
+import { getUniqueTestDataDir } from '../../testUtilities'
 import { PromiseUtils } from '../../utils/promise'
 import { RpcRequestError } from '../clients'
 import { RpcIpcClient } from '../clients/ipcClient'
@@ -18,16 +18,11 @@ describe('IpcAdapter', () => {
   let client: RpcIpcClient
 
   beforeEach(async () => {
-    const dataDir = os.tmpdir()
-
     sdk = await IronfishSdk.init({
-      dataDir,
+      dataDir: getUniqueTestDataDir(),
       configOverrides: {
         enableRpc: false,
         enableRpcIpc: false,
-        // TODO: It should be possible to test on the default network (mainnet)
-        // once the genesis block has been added.
-        networkId: 2,
       },
     })
 

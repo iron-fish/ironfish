@@ -4,7 +4,8 @@
 
 import type { SignalData } from './connections/webRtcConnection'
 import { Event } from '../../event'
-import { HostsStore } from '../../fileStores/hosts'
+import { DEFAULT_MAX_PEERS, DEFAULT_TARGET_PEERS } from '../../fileStores'
+import { PeerStore } from '../../fileStores/peerStore'
 import { createRootLogger, Logger } from '../../logger'
 import { MetricsMonitor } from '../../metrics'
 import { ArrayUtils, SetIntervalToken } from '../../utils'
@@ -16,15 +17,14 @@ import {
 } from '../identity'
 import { DisconnectingMessage, DisconnectingReason } from '../messages/disconnecting'
 import { IdentifyMessage } from '../messages/identify'
-import { displayNetworkMessageType, NetworkMessage } from '../messages/networkMessage'
+import { NetworkMessage } from '../messages/networkMessage'
 import { PeerListMessage } from '../messages/peerList'
 import { PeerListRequestMessage } from '../messages/peerListRequest'
 import { SignalMessage } from '../messages/signal'
 import { SignalRequestMessage } from '../messages/signalRequest'
 import { IsomorphicWebSocket } from '../types'
-import { parseUrl } from '../utils'
+import { formatWebSocketAddress, WebSocketAddress } from '../utils'
 import { VERSION_PROTOCOL_MIN } from '../version'
-import { AddressManager } from './addressManager'
 import { ConnectionRetry } from './connectionRetry'
 import {
   Connection,
@@ -37,6 +37,7 @@ import {
 import { LocalPeer } from './localPeer'
 import { Peer } from './peer'
 import { PeerCandidates } from './peerCandidates'
+import { PeerStoreManager } from './peerStoreManager'
 
 /**
  * The maximum number of attempts the client will make to find a brokering peer
@@ -73,7 +74,7 @@ export class PeerManager {
 
   peerCandidates: PeerCandidates = new PeerCandidates()
 
-  addressManager: AddressManager
+  peerStoreManager: PeerStoreManager
 
   /**
    * setInterval handle for requestPeerList, which sends out peer lists and
@@ -142,11 +143,11 @@ export class PeerManager {
 
   constructor(
     localPeer: LocalPeer,
-    hostsStore: HostsStore,
+    peerStore: PeerStore,
     logger: Logger = createRootLogger(),
     metrics?: MetricsMonitor,
-    maxPeers = 10000,
-    targetPeers = 50,
+    maxPeers = DEFAULT_MAX_PEERS,
+    targetPeers = DEFAULT_TARGET_PEERS,
     logPeerMessages = false,
     stunServers: string[] = [],
   ) {
@@ -157,7 +158,26 @@ export class PeerManager {
     this.maxPeers = maxPeers
     this.targetPeers = Math.min(targetPeers, maxPeers)
     this.logPeerMessages = logPeerMessages
-    this.addressManager = new AddressManager(hostsStore, this)
+    this.peerStoreManager = new PeerStoreManager(peerStore)
+  }
+
+  start(): void {
+    this.requestPeerListHandle = setInterval(() => this.requestPeerList(), 60000)
+    this.disposePeersHandle = setInterval(() => this.disposePeers(), 2000)
+  }
+
+  /**
+   * Call when shutting down the PeerManager to clean up
+   * outstanding connections.
+   */
+  async stop(): Promise<void> {
+    this.requestPeerListHandle && clearInterval(this.requestPeerListHandle)
+    this.disposePeersHandle && clearInterval(this.disposePeersHandle)
+    this.savePeerAddressesHandle && clearInterval(this.savePeerAddressesHandle)
+    await this.peerStoreManager.save()
+    for (const peer of this.peers) {
+      this.disconnect(peer, DisconnectingReason.ShuttingDown, 0)
+    }
   }
 
   /**
@@ -171,7 +191,7 @@ export class PeerManager {
     forceConnect?: boolean
   }): Peer | undefined {
     const peer = this.getOrCreatePeer(null)
-    peer.setWebSocketAddress(options.host, options.port)
+    peer.wsAddress = { host: options.host, port: options.port }
     peer.isWhitelisted = !!options.whitelist
 
     this.peerCandidates.addFromPeer(peer)
@@ -189,9 +209,10 @@ export class PeerManager {
       return false
     }
 
-    const alternateIdentity = peer.state.identity ?? peer.getWebSocketAddress()
+    const address = formatWebSocketAddress(peer.wsAddress)
+    const alternateIdentity = peer.state.identity ?? address
 
-    const candidate = this.peerCandidates.get(alternateIdentity)
+    const candidate = alternateIdentity ? this.peerCandidates.get(alternateIdentity) : undefined
     if (candidate) {
       // If we're trying to connect to the peer, we don't care about limiting the peer's connections to us
       candidate.localRequestedDisconnectUntil = null
@@ -200,16 +221,8 @@ export class PeerManager {
       candidate.peerRequestedDisconnectUntil = null
     }
 
-    const address = peer.getWebSocketAddress()
     if (!address) {
-      if (peer.state.identity !== null) {
-        this.getConnectionRetry(
-          peer.state.identity,
-          ConnectionType.WebSocket,
-          ConnectionDirection.Outbound,
-        )?.failedConnection()
-      }
-
+      candidate?.websocketRetry.failedConnection()
       return false
     }
 
@@ -217,8 +230,7 @@ export class PeerManager {
       peer,
       new this.localPeer.webSocket(address),
       ConnectionDirection.Outbound,
-      peer.address,
-      peer.port,
+      peer.wsAddress,
     )
 
     return true
@@ -246,9 +258,9 @@ export class PeerManager {
     }
 
     // Make sure we can find at least one brokering peer before we create the connection
-    const brokeringPeer = this.getBrokeringPeer(peer)
+    const hasBrokeringPeers = this.hasBrokeringPeers(peer)
 
-    if (brokeringPeer === null) {
+    if (!hasBrokeringPeers) {
       this.logger.debug(
         `Attempted to establish a WebRTC connection to ${peer.displayName}, but couldn't find a peer to broker the connection.`,
       )
@@ -274,29 +286,26 @@ export class PeerManager {
 
     const connection = this.initWebRtcConnection(peer, false)
     connection.setState({ type: 'REQUEST_SIGNALING' })
+
+    const brokeringPeers = this.getBrokeringPeers(peer)
+
+    if (brokeringPeers.length === 0) {
+      return false
+    }
+
+    const brokeringPeer = brokeringPeers[0]
     brokeringPeer.send(signal)
+
     return true
   }
 
   createPeerFromInboundWebSocketConnection(
     webSocket: IsomorphicWebSocket,
-    address: string | null,
+    wsAddress: WebSocketAddress | null,
   ): Peer {
     const peer = this.getOrCreatePeer(null)
 
-    let hostname: string | null = null
-    let port: number | null = null
-
-    if (address) {
-      const url = parseUrl(address)
-
-      if (url.hostname) {
-        hostname = url.hostname
-        port = url.port
-      }
-    }
-
-    this.initWebSocketConnection(peer, webSocket, ConnectionDirection.Inbound, hostname, port)
+    this.initWebSocketConnection(peer, webSocket, ConnectionDirection.Inbound, wsAddress)
 
     return peer
   }
@@ -308,12 +317,11 @@ export class PeerManager {
     peer: Peer,
     ws: IsomorphicWebSocket,
     direction: ConnectionDirection,
-    hostname: string | null,
-    port: number | null,
+    wsAddress: WebSocketAddress | null,
   ): WebSocketConnection {
     const connection = new WebSocketConnection(ws, direction, this.logger, this.metrics, {
-      hostname: hostname || undefined,
-      port: port || undefined,
+      hostname: wsAddress?.host,
+      port: wsAddress?.port || undefined,
     })
 
     this.initConnectionHandlers(peer, connection)
@@ -340,7 +348,10 @@ export class PeerManager {
 
       // Ensure one or more brokering peers exists before encrypting the signaling message,
       // but discard the brokering peer in case its state changes during encryption
-      if (this.getBrokeringPeer(peer) === null) {
+
+      const hasBrokeringPeers = this.hasBrokeringPeers(peer)
+
+      if (!hasBrokeringPeers) {
         errorMessage = 'Cannot establish a WebRTC connection without a brokering peer'
       }
 
@@ -356,8 +367,10 @@ export class PeerManager {
         peer.getIdentityOrThrow(),
       )
 
-      for (let attempts = 0; attempts < MAX_WEBRTC_BROKERING_ATTEMPTS; attempts++) {
-        const brokeringPeer = this.getBrokeringPeer(peer)
+      const brokeringPeers = this.getBrokeringPeers(peer)
+      const limitedBrokeringPeers = brokeringPeers.slice(0, MAX_WEBRTC_BROKERING_ATTEMPTS)
+
+      for (const brokeringPeer of limitedBrokeringPeers) {
         if (brokeringPeer === null) {
           const message = 'Cannot establish a WebRTC connection without a brokering peer'
           this.logger.debug(message)
@@ -374,6 +387,7 @@ export class PeerManager {
 
         // If sending the message failed, try again (the brokeringPeer's state may have changed)
         const sendResult = brokeringPeer.send(signal)
+
         if (sendResult !== null) {
           brokeringPeer.pushLoggedMessage(
             {
@@ -456,13 +470,13 @@ export class PeerManager {
   canConnectToWebSocket(peer: Peer, forceConnect = false): boolean {
     const isBanned = this.isBanned(peer)
 
-    const alternateIdentity = peer.state.identity ?? peer.getWebSocketAddress()
+    const alternateIdentity = peer.state.identity ?? formatWebSocketAddress(peer.wsAddress)
+    const candidate = alternateIdentity ? this.peerCandidates.get(alternateIdentity) : undefined
 
     const canEstablishNewConnection =
       peer.state.type !== 'DISCONNECTED' || this.canCreateNewConnections()
 
-    const peerRequestedDisconnectUntil =
-      this.peerCandidates.get(alternateIdentity)?.peerRequestedDisconnectUntil ?? null
+    const peerRequestedDisconnectUntil = candidate?.peerRequestedDisconnectUntil ?? null
 
     const disconnectOk =
       peerRequestedDisconnectUntil === null || Date.now() >= peerRequestedDisconnectUntil
@@ -470,12 +484,7 @@ export class PeerManager {
     const hasNoConnection =
       peer.state.type === 'DISCONNECTED' || peer.state.connections.webSocket === null
 
-    const retryOk =
-      this.getConnectionRetry(
-        alternateIdentity,
-        ConnectionType.WebSocket,
-        ConnectionDirection.Outbound,
-      )?.canConnect ?? true
+    const retryOk = candidate?.websocketRetry.canConnect ?? true
 
     if (forceConnect) {
       return disconnectOk && !isBanned
@@ -487,7 +496,7 @@ export class PeerManager {
       disconnectOk &&
       hasNoConnection &&
       retryOk &&
-      peer.address !== null
+      peer.wsAddress !== null
     )
   }
 
@@ -573,10 +582,6 @@ export class PeerManager {
     peer.close()
   }
 
-  getPeersWithConnection(): ReadonlyArray<Peer> {
-    return this.peers.filter((p) => p.state.type !== 'DISCONNECTED')
-  }
-
   getConnectedPeers(): ReadonlyArray<Peer> {
     return [...this.identifiedPeers.values()].filter((p) => {
       return p.state.type === 'CONNECTED'
@@ -588,54 +593,76 @@ export class PeerManager {
    * than the target amount of peers
    */
   canCreateNewConnections(): boolean {
-    return this.getPeersWithConnection().length < this.targetPeers
+    return this.getConnectedPeers().length < this.targetPeers
   }
 
   /**
    * True if we should reject connections from disconnected Peers.
    */
   shouldRejectDisconnectedPeers(): boolean {
-    return this.getPeersWithConnection().length >= this.maxPeers
+    return this.getConnectedPeers().length >= this.maxPeers
+  }
+
+  private hasBrokeringPeers(peer: Peer): boolean {
+    if (peer.state.type === 'CONNECTED') {
+      return true
+    }
+
+    if (peer.state.identity === null || !this.peerCandidates.has(peer.state.identity)) {
+      return false
+    }
+
+    const peerCandidate = this.peerCandidates.get(peer.state.identity)
+
+    if (!peerCandidate) {
+      return false
+    }
+
+    for (const neighbor of peerCandidate.neighbors) {
+      const neighborPeer = this.identifiedPeers.get(neighbor)
+
+      if (neighborPeer && neighborPeer.state.type === 'CONNECTED') {
+        return true
+      }
+    }
+
+    return false
   }
 
   /** For a given peer, try to find a peer that's connected to that peer
    * including itself to broker a WebRTC connection to it
    * */
-  private getBrokeringPeer(peer: Peer): Peer | null {
+  private getBrokeringPeers(peer: Peer): Peer[] {
     if (peer.state.type === 'CONNECTED') {
       // Use the existing connection to the peer to broker the connection
-      return peer
+      return [peer]
     }
 
     if (peer.state.identity === null) {
       // Cannot find a brokering peer of an unidentified peer
-      return null
+      return []
+    }
+
+    // The peer candidate map tracks any brokering peer candidates
+    const peerCandidate = this.peerCandidates.get(peer.state.identity)
+    if (!peerCandidate) {
+      return []
     }
 
     // Find another peer to broker the connection
     const candidates = []
 
-    // The peer candidate map tracks any brokering peer candidates
-    const val = this.peerCandidates.get(peer.state.identity)
-    if (!val) {
-      return null
-    }
-
-    for (const neighbor of val.neighbors) {
+    for (const neighbor of peerCandidate.neighbors) {
       const neighborPeer = this.identifiedPeers.get(neighbor)
-      if (!neighborPeer || neighborPeer.state.type !== 'CONNECTED') {
-        val.neighbors.delete(neighbor)
-        continue
+
+      if (neighborPeer && neighborPeer.state.type === 'CONNECTED') {
+        candidates.push(neighborPeer)
+      } else {
+        peerCandidate.neighbors.delete(neighbor)
       }
-
-      candidates.push(neighborPeer)
     }
 
-    if (candidates.length === 0) {
-      return null
-    }
-
-    return ArrayUtils.sampleOrThrow(candidates)
+    return ArrayUtils.shuffle(candidates)
   }
 
   /**
@@ -687,18 +714,6 @@ export class PeerManager {
   }
 
   /**
-   * Given an identity, fetch a Peer with that identity or throw an error
-   * @param identity A peer identity.
-   */
-  getPeerOrThrow(identity: Identity): Peer {
-    const peer = this.identifiedPeers.get(identity)
-    if (peer) {
-      return peer
-    }
-    throw new Error(`No peer found with identity ${identity}`)
-  }
-
-  /**
    * If a null identity is passed, creates a new Peer. If an identity is passed, returns the Peer
    * if we already have one with that identity, else creates a new Peer with that identity.
    * @param identity The identity of the peer to create, or null if the peer does not yet have one.
@@ -743,9 +758,11 @@ export class PeerManager {
 
     peer.onStateChanged.on(({ prevState }) => {
       if (prevState.type !== 'CONNECTED' && peer.state.type === 'CONNECTED') {
+        void this.peerStoreManager.addPeer(peer)
         this.peerCandidates.addFromPeer(peer)
         this.onConnect.emit(peer)
         this.onConnectedPeersChanged.emit()
+        peer.send(new PeerListRequestMessage())
       }
       if (prevState.type === 'CONNECTED' && peer.state.type !== 'CONNECTED') {
         this.onDisconnect.emit(peer)
@@ -756,13 +773,10 @@ export class PeerManager {
       }
     })
 
-    peer.onStateChanged.on(({ prevState }) => {
-      if (prevState.type !== 'CONNECTED' && peer.state.type === 'CONNECTED') {
-        peer.send(new PeerListRequestMessage())
-      }
+    peer.onBanned.on((reason) => {
+      void this.peerStoreManager.removePeer(peer)
+      this.banPeer(peer, reason)
     })
-
-    peer.onBanned.on((reason) => this.banPeer(peer, reason))
 
     return peer
   }
@@ -781,56 +795,12 @@ export class PeerManager {
     return !!peer.state.identity && this.banned.has(peer.state.identity)
   }
 
-  start(): void {
-    this.requestPeerListHandle = setInterval(() => this.requestPeerList(), 60000)
-    this.disposePeersHandle = setInterval(() => this.disposePeers(), 2000)
-    this.savePeerAddressesHandle = setInterval(() => void this.addressManager.save(), 60000)
-  }
-
-  /**
-   * Call when shutting down the PeerManager to clean up
-   * outstanding connections.
-   */
-  async stop(): Promise<void> {
-    this.requestPeerListHandle && clearInterval(this.requestPeerListHandle)
-    this.disposePeersHandle && clearInterval(this.disposePeersHandle)
-    this.savePeerAddressesHandle && clearInterval(this.savePeerAddressesHandle)
-    await this.addressManager.save()
-    for (const peer of this.peers) {
-      this.disconnect(peer, DisconnectingReason.ShuttingDown, 0)
-    }
-  }
-
   private requestPeerList() {
     const peerListRequest = new PeerListRequestMessage()
 
     for (const peer of this.getConnectedPeers()) {
       peer.send(peerListRequest)
     }
-  }
-
-  /**
-   * Gets a random disconnected peer address and returns a peer created from
-   * said address
-   */
-  createRandomDisconnectedPeer(): Peer | null {
-    const connectedPeers = Array.from(this.identifiedPeers.values()).flatMap((peer) => {
-      if (peer.state.type !== 'DISCONNECTED' && peer.state.identity !== null) {
-        return peer.state.identity
-      } else {
-        return []
-      }
-    })
-
-    const peerAddress = this.addressManager.getRandomDisconnectedPeerAddress(connectedPeers)
-    if (!peerAddress) {
-      return null
-    }
-
-    const peer = this.getOrCreatePeer(peerAddress.identity)
-    peer.setWebSocketAddress(peerAddress.address, peerAddress.port)
-    peer.name = peerAddress.name || null
-    return peer
   }
 
   private disposePeers(): void {
@@ -845,18 +815,18 @@ export class PeerManager {
    * @param peer The peer to evaluate
    */
   tryDisposePeer(peer: Peer): boolean {
-    if (peer.state.type === 'DISCONNECTED') {
-      this.addressManager.removePeerAddress(peer)
-
-      peer.dispose()
-      if (peer.state.identity && this.identifiedPeers.get(peer.state.identity) === peer) {
-        this.identifiedPeers.delete(peer.state.identity)
-      }
-      this.peers = this.peers.filter((p) => p !== peer)
-
-      return true
+    if (peer.state.type !== 'DISCONNECTED') {
+      return false
     }
-    return false
+
+    peer.dispose()
+
+    if (peer.state.identity && this.identifiedPeers.get(peer.state.identity) === peer) {
+      this.identifiedPeers.delete(peer.state.identity)
+    }
+    this.peers = this.peers.filter((p) => p !== peer)
+
+    return true
   }
 
   getConnectionRetry(
@@ -870,13 +840,11 @@ export class PeerManager {
 
     const candidate = this.peerCandidates.get(identity)
 
-    if (type === ConnectionType.WebRtc) {
-      return candidate?.webRtcRetry ?? null
-    } else if (type === ConnectionType.WebSocket) {
-      return candidate?.websocketRetry ?? null
+    if (!candidate) {
+      return null
     }
 
-    return null
+    return type === ConnectionType.WebRtc ? candidate.webRtcRetry : candidate.websocketRetry
   }
 
   /**
@@ -900,9 +868,7 @@ export class PeerManager {
     } else {
       if (peer.state.identity === null) {
         this.logger.debug(
-          `Closing connection to unidentified peer that sent an unexpected message: ${displayNetworkMessageType(
-            message.type,
-          )}`,
+          `Closing connection to unidentified peer that sent an unexpected message: ${message.displayType()}`,
         )
         peer.close()
         return
@@ -1013,41 +979,29 @@ export class PeerManager {
       this.logger.debug(
         `Disconnecting from ${
           peer.displayName
-        } - Sent unexpected message ${displayNetworkMessageType(
-          message.type,
-        )} while waiting for identity`,
+        } - Sent unexpected message ${message.displayType()} while waiting for identity`,
       )
       peer.close()
       return
     }
 
-    const identity = message.identity
-    const version = message.version
-    const agent = message.agent
-    const port = message.port
-    const name = message.name
-    const networkId = message.networkId
-    const genesisBlockHash = message.genesisBlockHash
-
-    if (!isIdentity(identity)) {
-      this.logger.debug(
-        `Disconnecting from ${identity} - Identity does not match expected format`,
-      )
-      this.getConnectionRetry(
-        identity,
-        connection.type,
-        connection.direction,
-      )?.failedConnection()
-      peer.close(new Error(`Identity ${identity} does not match expected format`))
-      return
+    let error: string | null = null
+    if (!isIdentity(message.identity)) {
+      error = `Identity ${message.identity} does not match expected format`
+    } else if (message.version < VERSION_PROTOCOL_MIN) {
+      error = `Peer version ${message.version} is not compatible with our minimum: ${VERSION_PROTOCOL_MIN}`
+    } else if (message.networkId !== this.localPeer.networkId) {
+      error = `Peer is on network ${message.networkId} while we are on network ${this.localPeer.networkId}`
+    } else if (!message.genesisBlockHash.equals(this.localPeer.chain.genesis.hash)) {
+      error = 'Peer is using a different genesis block'
+    } else if (message.name && message.name.length > 32) {
+      error = `Peer name length exceeds 32: ${message.name.length}`
     }
 
-    if (version < VERSION_PROTOCOL_MIN) {
-      const error = `Peer version ${version} is not compatible with our minimum: ${VERSION_PROTOCOL_MIN}`
-      this.logger.debug(`Disconnecting from ${identity} - ${error}`)
-
+    if (error) {
+      this.logger.debug(`Disconnecting from ${message.identity} - ${error}`)
       this.getConnectionRetry(
-        identity,
+        message.identity,
         connection.type,
         connection.direction,
       )?.failedConnection()
@@ -1055,35 +1009,9 @@ export class PeerManager {
       return
     }
 
-    if (networkId !== this.localPeer.networkId) {
-      const error = `Peer is on network ${networkId} while we are on network ${this.localPeer.networkId}`
-      this.logger.debug(`Disconnecting from ${identity} - ${error}`)
-
+    if (this.banned.has(message.identity)) {
       this.getConnectionRetry(
-        identity,
-        connection.type,
-        connection.direction,
-      )?.failedConnection()
-      peer.close(new Error(error))
-      return
-    }
-
-    if (!genesisBlockHash.equals(this.localPeer.chain.genesis.hash)) {
-      const error = 'Peer is using a different genesis block'
-      this.logger.debug(`Disconnecting from ${identity} - ${error}`)
-
-      this.getConnectionRetry(
-        identity,
-        connection.type,
-        connection.direction,
-      )?.failedConnection()
-      peer.close(new Error(error))
-      return
-    }
-
-    if (this.banned.has(identity)) {
-      this.getConnectionRetry(
-        identity,
+        message.identity,
         connection.type,
         connection.direction,
       )?.neverRetryConnecting()
@@ -1091,25 +1019,12 @@ export class PeerManager {
       return
     }
 
-    if (name && name.length > 32) {
-      this.logger.debug(
-        `Disconnecting from ${identity} - Peer name length exceeds 32: ${name.length}}`,
-      )
-      this.getConnectionRetry(
-        identity,
-        connection.type,
-        connection.direction,
-      )?.failedConnection()
-      peer.close(new Error(`Peer name length exceeds 32: ${name.length}}`))
-      return
-    }
-
     // If we've connected to ourselves, get rid of the connection and take the address and port off the Peer.
     // This can happen if a node stops and starts with a different identity
-    if (identity === this.localPeer.publicIdentity) {
+    if (message.identity === this.localPeer.publicIdentity) {
       peer.removeConnection(connection)
       this.getConnectionRetry(
-        identity,
+        message.identity,
         connection.type,
         connection.direction,
       )?.neverRetryConnecting()
@@ -1118,7 +1033,7 @@ export class PeerManager {
         connection.type === ConnectionType.WebSocket &&
         connection.direction === ConnectionDirection.Outbound
       ) {
-        peer.setWebSocketAddress(null, null)
+        peer.wsAddress = null
       }
 
       const error = `Closing ${connection.type} connection from our own identity`
@@ -1130,20 +1045,20 @@ export class PeerManager {
 
     // If we already know the peer's identity and the new identity doesn't match, move the connection
     // to a Peer with the new identity.
-    if (peer.state.identity !== null && peer.state.identity !== identity) {
+    if (peer.state.identity !== null && peer.state.identity !== message.identity) {
       this.logger.debug(
-        `${peer.displayName} sent identity ${identity}, but already has identity ${peer.state.identity}`,
+        `${peer.displayName} sent identity ${message.identity}, but already has identity ${peer.state.identity}`,
       )
 
       peer.removeConnection(connection)
       this.getConnectionRetry(
-        identity,
+        message.identity,
         connection.type,
         connection.direction,
       )?.neverRetryConnecting()
 
       const originalPeer = peer
-      peer = this.getOrCreatePeer(identity)
+      peer = this.getOrCreatePeer(message.identity)
 
       if (connection instanceof WebRtcConnection) {
         peer.setWebRtcConnection(connection)
@@ -1151,23 +1066,22 @@ export class PeerManager {
         if (
           connection.type === ConnectionType.WebSocket &&
           connection.direction === ConnectionDirection.Outbound &&
-          originalPeer.address !== null
+          originalPeer.wsAddress !== null
         ) {
-          peer.setWebSocketAddress(originalPeer.address, originalPeer.port)
-          const candidate = this.peerCandidates.get(identity)
+          peer.wsAddress = originalPeer.wsAddress
+          const candidate = this.peerCandidates.get(message.identity)
           if (candidate) {
-            candidate.address = originalPeer.address
-            candidate.port = originalPeer.port
+            candidate.wsAddress = originalPeer.wsAddress
             // Reset ConnectionRetry since some component of the address changed
             candidate.websocketRetry.successfulConnection()
           }
-          originalPeer.setWebSocketAddress(null, null)
+          originalPeer.wsAddress = null
         }
         peer.setWebSocketConnection(connection)
       }
     }
 
-    const existingPeer = this.getPeer(identity)
+    const existingPeer = this.getPeer(message.identity)
 
     // Check if already have a duplicate websocket connection from this peer
     //
@@ -1185,7 +1099,7 @@ export class PeerManager {
       let connectionToClose = connection
 
       // We keep the other persons outbound connection
-      if (canKeepDuplicateConnection(identity, this.localPeer.publicIdentity)) {
+      if (canKeepDuplicateConnection(message.identity, this.localPeer.publicIdentity)) {
         if (connection.direction === ConnectionDirection.Outbound) {
           connectionToClose = connection
         } else if (existingConnection.direction === ConnectionDirection.Outbound) {
@@ -1194,7 +1108,7 @@ export class PeerManager {
       }
 
       // We keep our outbound connection
-      if (canKeepDuplicateConnection(this.localPeer.publicIdentity, identity)) {
+      if (canKeepDuplicateConnection(this.localPeer.publicIdentity, message.identity)) {
         if (connection.direction === ConnectionDirection.Inbound) {
           connectionToClose = connection
         } else if (existingConnection.direction === ConnectionDirection.Inbound) {
@@ -1219,12 +1133,12 @@ export class PeerManager {
       connection instanceof WebSocketConnection &&
       connection.direction === ConnectionDirection.Inbound
     ) {
-      connection.port = port || undefined
+      connection.port = message.port || undefined
     }
 
-    peer.name = name
-    peer.version = version
-    peer.agent = agent
+    peer.name = message.name
+    peer.version = message.version
+    peer.agent = message.agent
     peer.head = message.head
     peer.sequence = message.sequence
     peer.work = message.work
@@ -1235,11 +1149,11 @@ export class PeerManager {
     // If we've told the peer to stay disconnected, repeat
     // the disconnection time before closing the connection
     const localRequestedDisconnectUntil =
-      this.peerCandidates.get(identity)?.localRequestedDisconnectUntil ?? null
+      this.peerCandidates.get(message.identity)?.localRequestedDisconnectUntil ?? null
 
     if (localRequestedDisconnectUntil !== null && Date.now() < localRequestedDisconnectUntil) {
       const disconnectMessage = new DisconnectingMessage({
-        destinationIdentity: identity,
+        destinationIdentity: message.identity,
         disconnectUntil: localRequestedDisconnectUntil,
         reason: DisconnectingReason.Congested,
         sourceIdentity: this.localPeer.publicIdentity,
@@ -1247,7 +1161,7 @@ export class PeerManager {
       connection.send(disconnectMessage)
 
       const error = `Closing connection from ${
-        existingPeer?.displayName ?? identity
+        existingPeer?.displayName ?? message.identity
       } because they connected at ${Date.now()}, but we told them to disconnect until ${localRequestedDisconnectUntil}`
       this.logger.debug(error)
       connection.close(new NetworkError(error))
@@ -1255,7 +1169,7 @@ export class PeerManager {
     }
 
     // Identity has been successfully validated, update the peer's state
-    connection.setState({ type: 'CONNECTED', identity: identity })
+    connection.setState({ type: 'CONNECTED', identity: message.identity })
   }
 
   /**
@@ -1536,7 +1450,15 @@ export class PeerManager {
         continue
       }
 
-      this.peerCandidates.addFromPeerList(peer.state.identity, connectedPeer)
+      const wsAddress = connectedPeer.address
+        ? { host: connectedPeer.address, port: connectedPeer.port }
+        : null
+
+      this.peerCandidates.addFromPeerList(peer.state.identity, {
+        identity,
+        name: connectedPeer.name,
+        wsAddress,
+      })
     }
   }
 }

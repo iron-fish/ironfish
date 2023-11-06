@@ -18,15 +18,16 @@ import {
   getConnectingPeer,
   getSignalingWebRtcPeer,
   getWaitingForIdentityPeer,
-  mockHostsStore,
   mockIdentity,
   mockLocalPeer,
+  mockPeerStore,
   mockPrivateIdentity,
   webRtcCanInitiateIdentity,
   webRtcCannotInitiateIdentity,
   webRtcLocalIdentity,
 } from '../testUtilities'
 import { NetworkMessageType } from '../types'
+import { formatWebSocketAddress } from '../utils'
 import { VERSION_PROTOCOL, VERSION_PROTOCOL_MIN } from '../version'
 import {
   ConnectionDirection,
@@ -48,7 +49,7 @@ describe('PeerManager', () => {
 
   it('should handle duplicate connections from the same peer', () => {
     const localPeer = mockLocalPeer({ identity: webRtcLocalIdentity() })
-    const peers = new PeerManager(localPeer, mockHostsStore())
+    const peers = new PeerManager(localPeer, mockPeerStore())
 
     const { peer: peerOut, connection: connectionOut } = getWaitingForIdentityPeer(
       peers,
@@ -161,7 +162,7 @@ describe('PeerManager', () => {
 
   describe('Should remove peer candidates without identity when identity is found', () => {
     it('When peer becomes CONNECTED', () => {
-      const peers = new PeerManager(mockLocalPeer(), mockHostsStore())
+      const peers = new PeerManager(mockLocalPeer(), mockPeerStore())
 
       const peerIdentity = mockIdentity('peer')
       const peer = peers.connectToWebSocketAddress({
@@ -171,7 +172,9 @@ describe('PeerManager', () => {
 
       Assert.isNotUndefined(peer)
 
-      expect(peers.peerCandidates.get(peer.getWebSocketAddress())).not.toBeUndefined()
+      const address = formatWebSocketAddress(peer.wsAddress)
+      const candidate = address ? peers.peerCandidates.get(address) : undefined
+      expect(candidate).not.toBeUndefined()
       if (peer.state.type === 'DISCONNECTED') {
         throw new Error('Peer should not be disconnected')
       }
@@ -187,7 +190,7 @@ describe('PeerManager', () => {
     })
 
     it('When receiving a peer list with a matching address', () => {
-      const peers = new PeerManager(mockLocalPeer(), mockHostsStore())
+      const peers = new PeerManager(mockLocalPeer(), mockPeerStore())
 
       // Create a websocket peer
       const peerIdentity = mockIdentity('peer')
@@ -198,7 +201,9 @@ describe('PeerManager', () => {
       })
       Assert.isNotUndefined(peer)
 
-      expect(peers.peerCandidates.get(peer.getWebSocketAddress())).not.toBeUndefined()
+      const address = formatWebSocketAddress(peer.wsAddress)
+      const candidate = address ? peers.peerCandidates.get(address) : undefined
+      expect(candidate).not.toBeUndefined()
       peer.close()
 
       // Create a connected peer
@@ -225,7 +230,7 @@ describe('PeerManager', () => {
 
   it('Sends identity when a connection is successfully made', () => {
     const localIdentity = mockPrivateIdentity('local')
-    const pm = new PeerManager(mockLocalPeer({ identity: localIdentity }), mockHostsStore())
+    const pm = new PeerManager(mockLocalPeer({ identity: localIdentity }), mockPeerStore())
 
     const { peer, connection } = getConnectingPeer(pm)
 
@@ -253,7 +258,7 @@ describe('PeerManager', () => {
 
   it('should disconnect connection on CONNECTED', () => {
     const localPeer = mockLocalPeer()
-    const peers = new PeerManager(localPeer, mockHostsStore())
+    const peers = new PeerManager(localPeer, mockPeerStore())
 
     const { peer: peer1, connection: connection1 } = getConnectingPeer(peers)
     const { peer: peer2, connection: connection2 } = getWaitingForIdentityPeer(peers)
@@ -287,7 +292,7 @@ describe('PeerManager', () => {
   describe('banning', () => {
     it('Should add the peer identity to PeerManager.banned when banPeer is called', () => {
       const localPeer = mockLocalPeer()
-      const peers = new PeerManager(localPeer, mockHostsStore())
+      const peers = new PeerManager(localPeer, mockPeerStore())
 
       const { peer } = getConnectedPeer(peers)
 
@@ -298,7 +303,7 @@ describe('PeerManager', () => {
 
     it('Should add the peer identity to PeerManager.banned when punished with BAN_SCORE.MAX', () => {
       const localPeer = mockLocalPeer()
-      const peers = new PeerManager(localPeer, mockHostsStore())
+      const peers = new PeerManager(localPeer, mockPeerStore())
 
       const { peer } = getConnectedPeer(peers)
 
@@ -310,7 +315,7 @@ describe('PeerManager', () => {
 
   describe('connect', () => {
     it('Creates a peer and adds it to unidentifiedConnections', () => {
-      const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
+      const pm = new PeerManager(mockLocalPeer(), mockPeerStore())
       expect(pm.peers.length).toBe(0)
 
       const peer = pm.connectToWebSocketAddress({
@@ -340,7 +345,7 @@ describe('PeerManager', () => {
     it('Encrypts signaling data', async () => {
       const brokeringIdentity = mockIdentity('brokering')
 
-      const pm = new PeerManager(localPeer, mockHostsStore())
+      const pm = new PeerManager(localPeer, mockPeerStore())
       const { connection, brokeringPeer } = getSignalingWebRtcPeer(
         pm,
         brokeringIdentity,
@@ -371,7 +376,7 @@ describe('PeerManager', () => {
     it('Attempts to establish a WebSocket connection to a peer with a webSocketAddress', () => {
       const peer1Identity = mockIdentity('peer1')
       const peer2Identity = mockIdentity('peer2')
-      const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
+      const pm = new PeerManager(mockLocalPeer(), mockPeerStore())
 
       // Create the peers
       getConnectedPeer(pm, peer1Identity)
@@ -379,18 +384,16 @@ describe('PeerManager', () => {
 
       // Link the peers
       pm.peerCandidates.addFromPeerList(peer2Identity, {
-        address: null,
-        port: null,
-        identity: Buffer.from(peer1Identity, 'base64'),
+        wsAddress: null,
+        identity: peer1Identity,
       })
       pm.peerCandidates.addFromPeerList(peer1Identity, {
-        address: null,
-        port: null,
-        identity: Buffer.from(peer2Identity, 'base64'),
+        wsAddress: null,
+        identity: peer2Identity,
       })
 
       // Verify peer2 is not connected
-      peer2.setWebSocketAddress('testuri', 9033)
+      peer2.wsAddress = { host: 'testuri', port: 9033 }
       expect(peer2.state).toEqual({
         type: 'DISCONNECTED',
         identity: peer2Identity,
@@ -408,7 +411,7 @@ describe('PeerManager', () => {
     it('Attempts to establish a WebRTC connection through brokering peer', () => {
       const peers = new PeerManager(
         mockLocalPeer({ identity: webRtcLocalIdentity() }),
-        mockHostsStore(),
+        mockPeerStore(),
       )
 
       // Create the peers
@@ -418,14 +421,12 @@ describe('PeerManager', () => {
 
       // Link the peers
       peers.peerCandidates.addFromPeerList(targetPeer.getIdentityOrThrow(), {
-        address: null,
-        port: null,
-        identity: Buffer.from(brokeringPeer.getIdentityOrThrow(), 'base64'),
+        wsAddress: null,
+        identity: brokeringPeer.getIdentityOrThrow(),
       })
       peers.peerCandidates.addFromPeerList(brokeringPeer.getIdentityOrThrow(), {
-        address: null,
-        port: null,
-        identity: Buffer.from(targetPeer.getIdentityOrThrow(), 'base64'),
+        wsAddress: null,
+        identity: targetPeer.getIdentityOrThrow(),
       })
 
       peers.connectToWebRTC(targetPeer)
@@ -437,7 +438,7 @@ describe('PeerManager', () => {
     })
 
     it('Can establish a WebRTC connection to a peer using an existing WebSocket connection to the same peer', async () => {
-      const pm = new PeerManager(localPeer, mockHostsStore())
+      const pm = new PeerManager(localPeer, mockPeerStore())
 
       const { peer, connection } = getConnectedPeer(pm, webRtcCanInitiateIdentity())
 
@@ -489,7 +490,7 @@ describe('PeerManager', () => {
     it('Attempts to request WebRTC signaling through brokering peer', () => {
       const peers = new PeerManager(
         mockLocalPeer({ identity: webRtcLocalIdentity() }),
-        mockHostsStore(),
+        mockPeerStore(),
       )
 
       // Create the peer to broker the connection through
@@ -503,14 +504,12 @@ describe('PeerManager', () => {
 
       // Link the peers
       peers.peerCandidates.addFromPeerList(targetPeer.getIdentityOrThrow(), {
-        address: null,
-        port: null,
-        identity: Buffer.from(brokeringPeer.getIdentityOrThrow(), 'base64'),
+        wsAddress: null,
+        identity: brokeringPeer.getIdentityOrThrow(),
       })
       peers.peerCandidates.addFromPeerList(brokeringPeer.getIdentityOrThrow(), {
-        address: null,
-        port: null,
-        identity: Buffer.from(targetPeer.getIdentityOrThrow(), 'base64'),
+        wsAddress: null,
+        identity: targetPeer.getIdentityOrThrow(),
       })
 
       peers.connectToWebRTC(targetPeer)
@@ -533,7 +532,7 @@ describe('PeerManager', () => {
     })
 
     it('Does not create a connection if Peer has disconnectUntil set', () => {
-      const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
+      const pm = new PeerManager(mockLocalPeer(), mockPeerStore())
       const { peer } = getConnectedPeer(pm, 'peer')
       peer.close()
 
@@ -557,7 +556,7 @@ describe('PeerManager', () => {
     })
 
     it('Sets disconnectUntil to null if current time is after disconnectUntil', () => {
-      const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
+      const pm = new PeerManager(mockLocalPeer(), mockPeerStore())
       const { peer } = getConnectedPeer(pm, 'peer')
       peer.close()
 
@@ -577,7 +576,7 @@ describe('PeerManager', () => {
     })
 
     it('Does not create a connection to a disconnected Peer above targetPeers', () => {
-      const pm = new PeerManager(mockLocalPeer(), mockHostsStore(), undefined, undefined, 50, 1)
+      const pm = new PeerManager(mockLocalPeer(), mockPeerStore(), undefined, undefined, 50, 1)
 
       // Add one connected peer
       getConnectedPeer(pm, 'peer1')
@@ -585,7 +584,7 @@ describe('PeerManager', () => {
       // Add a second peer that's disconnected
       const peer2Identity = mockIdentity('peer2')
       const peer2 = pm.getOrCreatePeer(peer2Identity)
-      peer2.setWebSocketAddress('testuri.com', 9033)
+      peer2.wsAddress = { host: 'testuri.com', port: 9033 }
 
       // Mock the logger
       pm['logger'].mockTypes(() => jest.fn())
@@ -603,7 +602,7 @@ describe('PeerManager', () => {
   describe('create peers', () => {
     it('Returns the same peer when calling createPeer twice with the same identity', () => {
       const peerIdentity = mockIdentity('peer')
-      const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
+      const pm = new PeerManager(mockLocalPeer(), mockPeerStore())
 
       const peer1 = pm.getOrCreatePeer(peerIdentity)
       const peer1Again = pm.getOrCreatePeer(peerIdentity)
@@ -616,7 +615,7 @@ describe('PeerManager', () => {
     it('Merges peers when an unidentified peer connects with the same identity as an identified webrtc peer', () => {
       const brokerIdentity = mockIdentity('brokering')
       const peerIdentity = webRtcCanInitiateIdentity()
-      const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
+      const pm = new PeerManager(mockLocalPeer(), mockPeerStore())
 
       const { peer } = getSignalingWebRtcPeer(pm, brokerIdentity, peerIdentity)
 
@@ -682,7 +681,7 @@ describe('PeerManager', () => {
       const peerIdentity = webRtcCanInitiateIdentity()
       const pm = new PeerManager(
         mockLocalPeer({ identity: webRtcLocalIdentity() }),
-        mockHostsStore(),
+        mockPeerStore(),
       )
 
       const { peer, connection } = getConnectedPeer(pm, peerIdentity)
@@ -740,7 +739,7 @@ describe('PeerManager', () => {
   })
 
   it('Emits onConnectedPeersChanged when a peer enters CONNECTED or DISCONNECTED', () => {
-    const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
+    const pm = new PeerManager(mockLocalPeer(), mockPeerStore())
     const onConnectedPeersChangedMock = jest.fn()
     pm.onConnectedPeersChanged.on(onConnectedPeersChangedMock)
 
@@ -761,7 +760,7 @@ describe('PeerManager', () => {
   describe('Message: Identity', () => {
     it('Adds the peer to identifiedPeers after receiving a valid identity message', () => {
       const other = mockIdentity('other')
-      const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
+      const pm = new PeerManager(mockLocalPeer(), mockPeerStore())
 
       expect(pm.identifiedPeers.size).toBe(0)
       expect(pm.peers.length).toBe(0)
@@ -797,7 +796,7 @@ describe('PeerManager', () => {
 
     it('Closes the connection when versions do not match', () => {
       const other = mockPrivateIdentity('other')
-      const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
+      const pm = new PeerManager(mockLocalPeer(), mockPeerStore())
 
       const { peer, connection } = getWaitingForIdentityPeer(pm)
 
@@ -824,7 +823,7 @@ describe('PeerManager', () => {
     })
 
     it('Closes the connection when an identity message with an invalid public key is sent', () => {
-      const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
+      const pm = new PeerManager(mockLocalPeer(), mockPeerStore())
 
       const { peer, connection } = getWaitingForIdentityPeer(pm)
 
@@ -851,7 +850,7 @@ describe('PeerManager', () => {
 
     it('Closes the connection if an unidentified peer returns the local identity', () => {
       const localIdentity = mockPrivateIdentity('local')
-      const pm = new PeerManager(mockLocalPeer({ identity: localIdentity }), mockHostsStore())
+      const pm = new PeerManager(mockLocalPeer({ identity: localIdentity }), mockPeerStore())
 
       expect(pm.identifiedPeers.size).toBe(0)
       expect(pm.peers.length).toBe(0)
@@ -883,7 +882,7 @@ describe('PeerManager', () => {
     it('Closes the connection if an identified peer returns the local identity', () => {
       const localIdentity = mockPrivateIdentity('local')
       const peerIdentity = mockIdentity('peer1')
-      const pm = new PeerManager(mockLocalPeer({ identity: localIdentity }), mockHostsStore())
+      const pm = new PeerManager(mockLocalPeer({ identity: localIdentity }), mockPeerStore())
 
       const { peer: peer1, connection } = getWaitingForIdentityPeer(
         pm,
@@ -926,7 +925,7 @@ describe('PeerManager', () => {
     it('Moves the connection to another peer if it returns a different identity', () => {
       const peer1Identity = mockIdentity('peer1')
       const peer2Identity = mockIdentity('peer2')
-      const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
+      const pm = new PeerManager(mockLocalPeer(), mockPeerStore())
 
       const { peer: peer1, connection } = getWaitingForIdentityPeer(
         pm,
@@ -970,7 +969,7 @@ describe('PeerManager', () => {
     it('Closes the connection if the peer has disconnectUntil set', () => {
       const localIdentity = mockPrivateIdentity('local')
       const peerIdentity = mockIdentity('peer')
-      const pm = new PeerManager(mockLocalPeer({ identity: localIdentity }), mockHostsStore())
+      const pm = new PeerManager(mockLocalPeer({ identity: localIdentity }), mockPeerStore())
 
       const { peer } = getConnectedPeer(pm, peerIdentity)
       peer.close()
@@ -1018,7 +1017,7 @@ describe('PeerManager', () => {
 
     it('Closes the connection when network ids do not match', () => {
       const other = mockPrivateIdentity('other')
-      const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
+      const pm = new PeerManager(mockLocalPeer(), mockPeerStore())
 
       const { peer, connection } = getWaitingForIdentityPeer(pm)
 
@@ -1046,7 +1045,7 @@ describe('PeerManager', () => {
 
     it('Closes the connection when genesis block hashes do not match', () => {
       const other = mockPrivateIdentity('other')
-      const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
+      const pm = new PeerManager(mockLocalPeer(), mockPeerStore())
 
       const { peer, connection } = getWaitingForIdentityPeer(pm)
 
@@ -1076,7 +1075,7 @@ describe('PeerManager', () => {
 
   describe('Message: SignalRequest', () => {
     it('Forwards SignalRequest message intended for another peer', () => {
-      const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
+      const pm = new PeerManager(mockLocalPeer(), mockPeerStore())
 
       const { peer: destinationPeer } = getConnectedPeer(pm, webRtcCannotInitiateIdentity())
       const { connection: sourcePeerConnection, peer: sourcePeer } = getConnectedPeer(
@@ -1102,7 +1101,7 @@ describe('PeerManager', () => {
     })
 
     it('Drops SignalRequest message originating from an different peer than sourceIdentity', () => {
-      const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
+      const pm = new PeerManager(mockLocalPeer(), mockPeerStore())
 
       const { peer: peer1 } = getConnectedPeer(pm)
       const { peer: peer2 } = getConnectedPeer(pm)
@@ -1124,7 +1123,7 @@ describe('PeerManager', () => {
     it('reject SignalRequest when source peer should initiate', () => {
       const pm = new PeerManager(
         mockLocalPeer({ identity: webRtcLocalIdentity() }),
-        mockHostsStore(),
+        mockPeerStore(),
       )
       const initWebRtcConnectionMock = jest.fn()
       pm['initWebRtcConnection'] = initWebRtcConnectionMock
@@ -1148,7 +1147,7 @@ describe('PeerManager', () => {
     it('Initiates webRTC connection when request intended for local peer', () => {
       const pm = new PeerManager(
         mockLocalPeer({ identity: webRtcLocalIdentity() }),
-        mockHostsStore(),
+        mockPeerStore(),
       )
       const initWebRtcConnectionMock = jest.fn()
       pm['initWebRtcConnection'] = initWebRtcConnectionMock
@@ -1168,13 +1167,13 @@ describe('PeerManager', () => {
       peer.onMessage.emit(message, connection)
       expect(initWebRtcConnectionMock).toHaveBeenCalledTimes(1)
       expect(initWebRtcConnectionMock).toHaveBeenCalledWith(peer, true)
-      expect(pm['getBrokeringPeer'](peer)).toEqual(peer)
+      expect(pm['getBrokeringPeers'](peer)[0]).toEqual(peer)
     })
 
     it('Sends a disconnect message if we are at max peers', () => {
       const pm = new PeerManager(
         mockLocalPeer({ identity: webRtcLocalIdentity() }),
-        mockHostsStore(),
+        mockPeerStore(),
         undefined,
         undefined,
         1,
@@ -1204,7 +1203,7 @@ describe('PeerManager', () => {
     it('Does not send a disconnect message if we are at max peers but we have an existing connection to the peer', () => {
       const pm = new PeerManager(
         mockLocalPeer({ identity: webRtcLocalIdentity() }),
-        mockHostsStore(),
+        mockPeerStore(),
         undefined,
         undefined,
         2,
@@ -1230,7 +1229,7 @@ describe('PeerManager', () => {
     it('Forwards signaling messages intended for another peer', () => {
       const peer1Identity = mockIdentity('peer1')
       const peer2Identity = mockIdentity('peer2')
-      const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
+      const pm = new PeerManager(mockLocalPeer(), mockPeerStore())
 
       const { connection: peer1Connection, peer: peer1 } = getConnectedPeer(pm, peer1Identity)
       const { peer: peer2 } = getConnectedPeer(pm, peer2Identity)
@@ -1251,7 +1250,7 @@ describe('PeerManager', () => {
       const peer1Identity = mockIdentity('peer1')
       const peer2Identity = mockIdentity('peer2')
       const peer3Identity = mockIdentity('peer3')
-      const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
+      const pm = new PeerManager(mockLocalPeer(), mockPeerStore())
 
       const { peer: peer1 } = getConnectedPeer(pm, peer1Identity)
       const { peer: peer2 } = getConnectedPeer(pm, peer2Identity)
@@ -1274,7 +1273,7 @@ describe('PeerManager', () => {
     it('Sends a disconnect message if we are at max peers', () => {
       const pm = new PeerManager(
         mockLocalPeer({ identity: webRtcLocalIdentity() }),
-        mockHostsStore(),
+        mockPeerStore(),
         undefined,
         undefined,
         1,
@@ -1306,7 +1305,7 @@ describe('PeerManager', () => {
     it('Does not send a disconnect message if we are at max peers but we have an existing connection to the peer', () => {
       const pm = new PeerManager(
         mockLocalPeer({ identity: webRtcLocalIdentity() }),
-        mockHostsStore(),
+        mockPeerStore(),
         undefined,
         undefined,
         2,
@@ -1343,7 +1342,7 @@ describe('PeerManager', () => {
         }),
       })
 
-      const pm = new PeerManager(localPeer, mockHostsStore())
+      const pm = new PeerManager(localPeer, mockPeerStore())
 
       const { connection, brokeringConnection, brokeringPeer } = getSignalingWebRtcPeer(
         pm,
@@ -1378,7 +1377,7 @@ describe('PeerManager', () => {
 
       jest.spyOn(localPeer, 'unboxMessage').mockReturnValueOnce({ message: null })
 
-      const pm = new PeerManager(localPeer, mockHostsStore())
+      const pm = new PeerManager(localPeer, mockPeerStore())
       const { connection, brokeringConnection, brokeringPeer } = getSignalingWebRtcPeer(
         pm,
         brokeringPeerIdentity,
@@ -1407,7 +1406,7 @@ describe('PeerManager', () => {
       // Return something that's not JSON from the unboxMessage function
       jest.spyOn(localPeer, 'unboxMessage').mockReturnValueOnce({ message: 'test' })
 
-      const pm = new PeerManager(localPeer, mockHostsStore())
+      const pm = new PeerManager(localPeer, mockPeerStore())
       const { connection, brokeringConnection, brokeringPeer } = getSignalingWebRtcPeer(
         pm,
         brokeringPeerIdentity,
@@ -1435,7 +1434,7 @@ describe('PeerManager', () => {
     it('Sends a peer list message in response', () => {
       const peerIdentity = mockIdentity('peer')
 
-      const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
+      const pm = new PeerManager(mockLocalPeer(), mockPeerStore())
       const { connection, peer } = getConnectedPeer(pm, peerIdentity)
 
       expect(pm.peers.length).toBe(1)
@@ -1462,7 +1461,7 @@ describe('PeerManager', () => {
       const localIdentity = mockPrivateIdentity('local')
       const peerIdentity = mockIdentity('peer')
 
-      const pm = new PeerManager(mockLocalPeer({ identity: localIdentity }), mockHostsStore())
+      const pm = new PeerManager(mockLocalPeer({ identity: localIdentity }), mockPeerStore())
 
       const { connection, peer } = getConnectedPeer(pm, peerIdentity)
 
@@ -1481,7 +1480,7 @@ describe('PeerManager', () => {
       const peerIdentity = mockIdentity('peer')
       const newPeerIdentity = mockIdentity('new')
 
-      const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
+      const pm = new PeerManager(mockLocalPeer(), mockPeerStore())
 
       const { connection, peer } = getConnectedPeer(pm, peerIdentity)
 
@@ -1512,7 +1511,7 @@ describe('PeerManager', () => {
       const peer1Identity = mockIdentity('peer1')
       const peer2Identity = mockIdentity('peer2')
       const peer3Identity = mockIdentity('peer3')
-      const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
+      const pm = new PeerManager(mockLocalPeer(), mockPeerStore())
 
       const { peer: peer1 } = getConnectedPeer(pm, peer1Identity)
       const { peer: peer2 } = getConnectedPeer(pm, peer2Identity)
@@ -1534,7 +1533,7 @@ describe('PeerManager', () => {
 
     it('Should set peerRequestedDisconnectUntil on CONNECTED Peer when sender is not sourceIdentity', () => {
       const localPeer = mockLocalPeer({ identity: webRtcLocalIdentity() })
-      const pm = new PeerManager(localPeer, mockHostsStore())
+      const pm = new PeerManager(localPeer, mockPeerStore())
 
       const { peer, brokeringConnection, brokeringPeer } = getSignalingWebRtcPeer(
         pm,
@@ -1563,7 +1562,7 @@ describe('PeerManager', () => {
 
     it('Should set peerRequestedDisconnectUntil on CONNECTED Peer when sender is sourceIdentity', () => {
       const localPeer = mockLocalPeer()
-      const pm = new PeerManager(localPeer, mockHostsStore())
+      const pm = new PeerManager(localPeer, mockPeerStore())
       const peerIdentity = mockIdentity('peer')
       const { peer, connection } = getConnectedPeer(pm, peerIdentity)
 

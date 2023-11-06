@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { CurrencyUtils } from '../../../utils'
+import { BufferUtils, CurrencyUtils } from '../../../utils'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import { RpcWalletNote, RpcWalletNoteSchema } from './types'
@@ -46,7 +46,7 @@ routes.register<typeof GetAccountNotesStreamRequestSchema, GetAccountNotesStream
           value: CurrencyUtils.encode(note.value()),
           assetId: note.assetId().toString('hex'),
           assetName: asset?.name.toString('hex') || '',
-          memo: note.memo(),
+          memo: BufferUtils.toHuman(note.memo()),
           sender: note.sender(),
           owner: note.owner(),
           noteHash: note.hash().toString('hex'),

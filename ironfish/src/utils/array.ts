@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Assert } from '../assert'
-
 /**
  * Randomizes the order of elements in a given array and returns a new array.
  */
@@ -19,8 +17,11 @@ function shuffle<T>(array: ReadonlyArray<T>): Array<T> {
   return sliceArr
 }
 
-function sampleOrThrow<T>(array: Array<T>): T {
-  Assert.isTrue(array.length > 0)
+function sample<T>(array: ReadonlyArray<T>): T | null {
+  if (array.length === 0) {
+    return null
+  }
+
   return array[Math.floor(Math.random() * array.length)]
 }
 
@@ -34,4 +35,4 @@ function remove<T>(array: Array<T>, item: T): boolean {
   return false
 }
 
-export const ArrayUtils = { shuffle, sampleOrThrow, remove }
+export const ArrayUtils = { shuffle, sample, remove }

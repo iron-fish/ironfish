@@ -12,8 +12,8 @@ import { MetricsMonitor } from '../metrics'
 import { getTransactionSize } from '../network/utils/serializers'
 import { Block, BlockHeader } from '../primitives'
 import { Transaction, TransactionHash } from '../primitives/transaction'
+import { PriorityQueue } from '../utils'
 import { FeeEstimator, getPreciseFeeRate } from './feeEstimator'
-import { PriorityQueue } from './priorityQueue'
 import { RecentlyEvictedCache } from './recentlyEvictedCache'
 
 interface MempoolEntry {
@@ -171,22 +171,15 @@ export class MemPool {
     return this.transactions.get(hash)
   }
 
-  *orderedTransactions(): Generator<Transaction, void, unknown> {
-    const clone = this.feeRateQueue.clone()
-
-    while (clone.size() > 0) {
-      const feeAndHash = clone.poll()
-
-      Assert.isNotUndefined(feeAndHash)
-      const transaction = this.transactions.get(feeAndHash.hash)
+  *orderedTransactions(): Generator<Transaction, void> {
+    for (const { hash } of this.feeRateQueue.sorted()) {
+      const transaction = this.transactions.get(hash)
 
       // The queue is cloned above, but this.transactions is not, so the
       // transaction may be removed from this.transactions while iterating.
-      if (transaction === undefined) {
-        continue
+      if (transaction) {
+        yield transaction
       }
-
-      yield transaction
     }
   }
 

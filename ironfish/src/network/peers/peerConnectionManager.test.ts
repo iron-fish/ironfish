@@ -2,18 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-jest.mock('ws')
-
 import { Assert } from '../../assert'
+import { DEFAULT_MAX_PEERS } from '../../fileStores'
 import { createRootLogger } from '../../logger'
 import {
   getConnectedPeer,
-  mockHostsStore,
   mockIdentity,
   mockLocalPeer,
+  mockPeerStore,
   webRtcCanInitiateIdentity,
   webRtcLocalIdentity,
 } from '../testUtilities'
+import { formatWebSocketAddress } from '../utils'
 import {
   ConnectionDirection,
   ConnectionType,
@@ -23,13 +23,18 @@ import {
 import { PeerConnectionManager } from './peerConnectionManager'
 import { PeerManager } from './peerManager'
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+jest.mock('ws')
 jest.useFakeTimers()
 
 describe('connectToDisconnectedPeers', () => {
-  it('Should not connect to disconnected peers without an address or peers', () => {
-    const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
+  it('should not connect to disconnected peers without an address or peers', () => {
+    const pm = new PeerManager(mockLocalPeer(), mockPeerStore())
     const peer = pm.getOrCreatePeer(null)
-    const pcm = new PeerConnectionManager(pm, createRootLogger(), { maxPeers: 50 })
+    const pcm = new PeerConnectionManager(pm, createRootLogger(), {
+      maxPeers: DEFAULT_MAX_PEERS,
+    })
     pm['logger'].mockTypes(() => jest.fn())
     pcm.start()
     expect(peer.state).toEqual({
@@ -38,33 +43,35 @@ describe('connectToDisconnectedPeers', () => {
     })
   })
 
-  it('Should connect to disconnected unidentified peers with an address', () => {
-    const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
+  it('should connect to disconnected unidentified peers with an address', () => {
+    const pm = new PeerManager(mockLocalPeer(), mockPeerStore())
 
     const peer = pm.getOrCreatePeer(null)
-    peer.setWebSocketAddress('testuri.com', 9033)
+    peer.wsAddress = { host: 'testuri.com', port: 9033 }
     pm['tryDisposePeer'](peer)
 
     pm.peerCandidates.addFromPeer(peer)
 
-    const pcm = new PeerConnectionManager(pm, createRootLogger(), { maxPeers: 50 })
+    const pcm = new PeerConnectionManager(pm, createRootLogger(), {
+      maxPeers: DEFAULT_MAX_PEERS,
+    })
     pcm.start()
     expect(pm.peers.length).toBe(1)
     expect(pm.peers[0].state).toEqual({
       type: 'CONNECTING',
-      identity: peer.getWebSocketAddress(),
+      identity: formatWebSocketAddress(peer.wsAddress),
       connections: {
         webSocket: expect.any(WebSocketConnection),
       },
     })
   })
 
-  it('Should connect to disconnected identified peers with an address over WS', () => {
-    const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
+  it('should connect to disconnected identified peers with an address over WS', () => {
+    const pm = new PeerManager(mockLocalPeer(), mockPeerStore())
 
     const identity = mockIdentity('peer')
     const peer = pm.getOrCreatePeer(identity)
-    peer.setWebSocketAddress('testuri.com', 9033)
+    peer.wsAddress = { host: 'testuri.com', port: 9033 }
     pm['tryDisposePeer'](peer)
 
     pm.peerCandidates.addFromPeer(peer)
@@ -78,7 +85,9 @@ describe('connectToDisconnectedPeers', () => {
     Assert.isNotNull(retry)
     retry.neverRetryConnecting()
 
-    const pcm = new PeerConnectionManager(pm, createRootLogger(), { maxPeers: 50 })
+    const pcm = new PeerConnectionManager(pm, createRootLogger(), {
+      maxPeers: DEFAULT_MAX_PEERS,
+    })
     pcm.start()
 
     expect(pm.peers.length).toBe(1)
@@ -89,12 +98,12 @@ describe('connectToDisconnectedPeers', () => {
     })
   })
 
-  it('Should connect to webrtc and websockets', () => {
-    const peers = new PeerManager(mockLocalPeer(), mockHostsStore())
+  it('should connect to webrtc and websockets', () => {
+    const peers = new PeerManager(mockLocalPeer(), mockPeerStore())
 
     const identity = mockIdentity('peer')
     const createdPeer = peers.getOrCreatePeer(identity)
-    createdPeer.setWebSocketAddress('testuri.com', 9033)
+    createdPeer.wsAddress = { host: 'testuri.com', port: 9033 }
     peers['tryDisposePeer'](createdPeer)
 
     peers.peerCandidates.addFromPeer(createdPeer)
@@ -116,29 +125,30 @@ describe('connectToDisconnectedPeers', () => {
     })
   })
 
-  it('Should connect to known peers of connected peers', () => {
+  it('should connect to known peers of connected peers', () => {
     const peerIdentity = webRtcCanInitiateIdentity()
     const pm = new PeerManager(
       mockLocalPeer({ identity: webRtcLocalIdentity() }),
-      mockHostsStore(),
+      mockPeerStore(),
     )
     const { peer: brokeringPeer } = getConnectedPeer(pm, 'brokering')
     // Link the peers
     pm.peerCandidates.addFromPeerList(brokeringPeer.getIdentityOrThrow(), {
-      address: null,
-      port: null,
-      identity: Buffer.from(peerIdentity, 'base64'),
+      wsAddress: null,
+      identity: peerIdentity,
     })
     pm.peerCandidates.addFromPeerList(peerIdentity, {
-      address: null,
-      port: null,
-      identity: Buffer.from(brokeringPeer.getIdentityOrThrow(), 'base64'),
+      wsAddress: null,
+      identity: brokeringPeer.getIdentityOrThrow(),
     })
 
-    const pcm = new PeerConnectionManager(pm, createRootLogger(), { maxPeers: 50 })
+    const pcm = new PeerConnectionManager(pm, createRootLogger(), {
+      maxPeers: DEFAULT_MAX_PEERS,
+    })
     pcm.start()
 
-    const peer = pm.getPeerOrThrow(peerIdentity)
+    const peer = pm.getPeer(peerIdentity)
+    Assert.isNotNull(peer)
     expect(peer.state).toEqual({
       type: 'CONNECTING',
       identity: peerIdentity,
@@ -148,10 +158,10 @@ describe('connectToDisconnectedPeers', () => {
 })
 
 describe('maintainOneConnectionPerPeer', () => {
-  it('Should not close WS connection if the WebRTC connection is not in CONNECTED', () => {
+  it('should not close WS connection if the WebRTC connection is not in CONNECTED', () => {
     const pm = new PeerManager(
       mockLocalPeer({ identity: webRtcLocalIdentity() }),
-      mockHostsStore(),
+      mockPeerStore(),
     )
     const peer = pm.connectToWebSocketAddress({
       host: 'testuri',
@@ -190,7 +200,9 @@ describe('maintainOneConnectionPerPeer', () => {
       },
     })
 
-    const pcm = new PeerConnectionManager(pm, createRootLogger(), { maxPeers: 50 })
+    const pcm = new PeerConnectionManager(pm, createRootLogger(), {
+      maxPeers: DEFAULT_MAX_PEERS,
+    })
     pcm.start()
 
     expect(peer.state).toEqual({
@@ -203,10 +215,10 @@ describe('maintainOneConnectionPerPeer', () => {
     })
   })
 
-  it('Should close WebSocket connection if a peer has WS and WebRTC connections', () => {
+  it('should close WebSocket connection if a peer has WS and WebRTC connections', () => {
     const pm = new PeerManager(
       mockLocalPeer({ identity: webRtcLocalIdentity() }),
-      mockHostsStore(),
+      mockPeerStore(),
     )
     const peer = pm.connectToWebSocketAddress({
       host: 'testuri',
@@ -245,7 +257,9 @@ describe('maintainOneConnectionPerPeer', () => {
       },
     })
 
-    const pcm = new PeerConnectionManager(pm, createRootLogger(), { maxPeers: 50 })
+    const pcm = new PeerConnectionManager(pm, createRootLogger(), {
+      maxPeers: DEFAULT_MAX_PEERS,
+    })
     pcm.start()
 
     expect(peer.state).toEqual({
@@ -259,10 +273,10 @@ describe('maintainOneConnectionPerPeer', () => {
 })
 
 describe('attemptToEstablishWebRtcConnectionsToWSPeers', () => {
-  it('Should attempt to establish a WebRTC connection if we have a WebSocket connection', () => {
+  it('should attempt to establish a WebRTC connection if we have a WebSocket connection', () => {
     const pm = new PeerManager(
       mockLocalPeer({ identity: webRtcLocalIdentity() }),
-      mockHostsStore(),
+      mockPeerStore(),
     )
     const peer = pm.connectToWebSocketAddress({
       host: 'testuri',
@@ -290,7 +304,9 @@ describe('attemptToEstablishWebRtcConnectionsToWSPeers', () => {
       },
     })
 
-    const pcm = new PeerConnectionManager(pm, createRootLogger(), { maxPeers: 50 })
+    const pcm = new PeerConnectionManager(pm, createRootLogger(), {
+      maxPeers: DEFAULT_MAX_PEERS,
+    })
     pcm.start()
 
     expect(peer.state).toEqual({
@@ -300,6 +316,138 @@ describe('attemptToEstablishWebRtcConnectionsToWSPeers', () => {
         webRtc: expect.any(WebRtcConnection),
         webSocket: expect.any(WebSocketConnection),
       },
+    })
+  })
+})
+
+describe('attemptNewConnections', () => {
+  it('should be called by the event loop', () => {
+    const pm = new PeerManager(mockLocalPeer(), mockPeerStore())
+    const pcm = new PeerConnectionManager(pm, createRootLogger(), {
+      maxPeers: DEFAULT_MAX_PEERS,
+    })
+    const attemptNewConnectionsSpy = jest.spyOn(pcm as any, 'attemptNewConnections')
+
+    expect(attemptNewConnectionsSpy).toHaveBeenCalledTimes(0)
+
+    pcm['eventLoop']()
+
+    expect(attemptNewConnectionsSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it('should only run if we can create new connections', () => {
+    const pm = new PeerManager(mockLocalPeer(), mockPeerStore())
+    const pcm = new PeerConnectionManager(pm, createRootLogger(), {
+      maxPeers: DEFAULT_MAX_PEERS,
+    })
+    jest
+      .spyOn(pm, 'canCreateNewConnections')
+      .mockImplementationOnce(() => false)
+      .mockImplementationOnce(() => true)
+    const shufflePeerCandidatesSpy = jest.spyOn(pm.peerCandidates, 'shufflePeerCandidates')
+
+    expect(shufflePeerCandidatesSpy).toHaveBeenCalledTimes(0)
+
+    pcm['attemptNewConnections']()
+
+    expect(shufflePeerCandidatesSpy).toHaveBeenCalledTimes(0)
+
+    pcm['attemptNewConnections']()
+
+    expect(shufflePeerCandidatesSpy).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('maintainMaxPeerCount', () => {
+  it('should be called by the event loop', () => {
+    const pm = new PeerManager(mockLocalPeer(), mockPeerStore())
+    const pcm = new PeerConnectionManager(pm, createRootLogger(), {
+      maxPeers: DEFAULT_MAX_PEERS,
+    })
+    const maintainMaxPeerCountSpy = jest.spyOn(pcm as any, 'maintainMaxPeerCount')
+
+    expect(maintainMaxPeerCountSpy).toHaveBeenCalledTimes(0)
+
+    pcm['eventLoop']()
+
+    expect(maintainMaxPeerCountSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it('should not disconnect the newest peers', () => {
+    const maxPeers = 5
+
+    const pm = new PeerManager(mockLocalPeer(), mockPeerStore())
+    const pcm = new PeerConnectionManager(pm, createRootLogger(), { maxPeers })
+
+    for (let i = 0; i < maxPeers; i++) {
+      getConnectedPeer(pm)
+    }
+
+    // Add and disconnect many times to ensure we don't disconnect the latest
+    // peer while accounting for randomness
+    for (let i = 0; i < 100; i++) {
+      const latestPeer = getConnectedPeer(pm)
+      pcm['maintainMaxPeerCount']()
+      expect(latestPeer.connection.state.type).toEqual('CONNECTED')
+    }
+  })
+
+  describe('when keepOpenPeerSlot is false', () => {
+    it('should only disconnect a peer if it is above maxPeers', () => {
+      const maxPeers = 5
+
+      const pm = new PeerManager(mockLocalPeer(), mockPeerStore())
+      const pcm = new PeerConnectionManager(pm, createRootLogger(), { maxPeers })
+      const disconnectSpy = jest.spyOn(pm, 'disconnect')
+
+      expect(pcm.keepOpenPeerSlot).toEqual(false)
+
+      for (let i = 0; i < maxPeers; i++) {
+        getConnectedPeer(pm)
+      }
+
+      expect(disconnectSpy).toHaveBeenCalledTimes(0)
+
+      pcm['maintainMaxPeerCount']()
+
+      expect(disconnectSpy).toHaveBeenCalledTimes(0)
+
+      getConnectedPeer(pm)
+
+      pcm['maintainMaxPeerCount']()
+
+      expect(disconnectSpy).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe('when keepOpenPeerSlot is true', () => {
+    it('should only disconnect a peer if it is at maxPeers', () => {
+      const maxPeers = 5
+
+      const pm = new PeerManager(mockLocalPeer(), mockPeerStore())
+      const pcm = new PeerConnectionManager(pm, createRootLogger(), {
+        maxPeers,
+        keepOpenPeerSlot: true,
+      })
+      const disconnectSpy = jest.spyOn(pm, 'disconnect')
+
+      expect(pcm.keepOpenPeerSlot).toEqual(true)
+
+      for (let i = 0; i < maxPeers - 1; i++) {
+        getConnectedPeer(pm)
+      }
+
+      expect(disconnectSpy).toHaveBeenCalledTimes(0)
+
+      pcm['maintainMaxPeerCount']()
+
+      expect(disconnectSpy).toHaveBeenCalledTimes(0)
+
+      getConnectedPeer(pm)
+
+      pcm['maintainMaxPeerCount']()
+
+      expect(disconnectSpy).toHaveBeenCalledTimes(1)
     })
   })
 })

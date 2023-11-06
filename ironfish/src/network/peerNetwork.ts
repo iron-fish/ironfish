@@ -9,8 +9,12 @@ import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { VerificationResultReason } from '../consensus'
 import { Event } from '../event'
-import { DEFAULT_WEBSOCKET_PORT } from '../fileStores/config'
-import { HostsStore } from '../fileStores/hosts'
+import {
+  DEFAULT_MAX_PEERS,
+  DEFAULT_TARGET_PEERS,
+  DEFAULT_WEBSOCKET_PORT,
+} from '../fileStores/config'
+import { PeerStore } from '../fileStores/peerStore'
 import { createRootLogger, Logger } from '../logger'
 import { MetricsMonitor } from '../metrics'
 import { FullNode } from '../node'
@@ -33,7 +37,7 @@ import {
   GetBlockTransactionsResponse,
 } from './messages/getBlockTransactions'
 import { GetCompactBlockRequest, GetCompactBlockResponse } from './messages/getCompactBlock'
-import { displayNetworkMessageType, NetworkMessage } from './messages/networkMessage'
+import { NetworkMessage } from './messages/networkMessage'
 import { NewBlockHashesMessage } from './messages/newBlockHashes'
 import { NewCompactBlockMessage } from './messages/newCompactBlock'
 import { NewPooledTransactionHashes } from './messages/newPooledTransactionHashes'
@@ -59,8 +63,8 @@ import { PeerConnectionManager } from './peers/peerConnectionManager'
 import { PeerManager } from './peers/peerManager'
 import { TransactionFetcher } from './transactionFetcher'
 import { IsomorphicWebSocketConstructor } from './types'
-import { parseUrl } from './utils/parseUrl'
 import { getBlockSize } from './utils/serializers'
+import { parseUrl, WebSocketAddress } from './utils/url'
 import {
   MAX_BLOCK_LOOKUPS,
   MAX_HEADER_LOOKUPS,
@@ -170,8 +174,9 @@ export class PeerNetwork {
     telemetry: Telemetry
     node: FullNode
     chain: Blockchain
-    hostsStore: HostsStore
+    peerStore: PeerStore
     incomingWebSocketWhitelist?: string[]
+    keepOpenPeerSlot?: boolean
   }) {
     this.networkId = options.networkId
     this.enableSyncing = options.enableSyncing ?? true
@@ -196,13 +201,13 @@ export class PeerNetwork {
     this.localPeer.port = options.port === undefined ? null : options.port
     this.localPeer.name = options.name || null
 
-    const maxPeers = options.maxPeers || 10000
-    const targetPeers = options.targetPeers || 50
+    const maxPeers = options.maxPeers || DEFAULT_MAX_PEERS
+    const targetPeers = options.targetPeers || DEFAULT_TARGET_PEERS
     const logPeerMessages = options.logPeerMessages ?? false
 
     this.peerManager = new PeerManager(
       this.localPeer,
-      options.hostsStore,
+      options.peerStore,
       this.logger,
       this.metrics,
       maxPeers,
@@ -218,6 +223,7 @@ export class PeerNetwork {
 
     this.peerConnectionManager = new PeerConnectionManager(this.peerManager, this.logger, {
       maxPeers,
+      keepOpenPeerSlot: options.keepOpenPeerSlot,
     })
 
     this.minPeers = options.minPeers || 1
@@ -309,7 +315,13 @@ export class PeerNetwork {
           return
         }
 
-        this.peerManager.createPeerFromInboundWebSocketConnection(connection, address)
+        let wsAddress: WebSocketAddress | null = null
+        if (address) {
+          const url = parseUrl(address)
+          wsAddress = url.hostname ? { host: url.hostname, port: url.port } : null
+        }
+
+        this.peerManager.createPeerFromInboundWebSocketConnection(connection, wsAddress)
       })
 
       this.peerManager.onConnect.on((peer: Peer) => {
@@ -356,6 +368,15 @@ export class PeerNetwork {
         host: url.hostname,
         port,
         whitelist: true,
+      })
+    }
+
+    // Connect to prior websocket outbound connections that were saved to disk
+    // This should be replaced with populating from the peer candidates list [IFL-1786]
+    for (const peerAddress of this.peerManager.peerStoreManager.priorConnectedPeerAddresses) {
+      this.peerManager.connectToWebSocketAddress({
+        host: peerAddress.address,
+        port: peerAddress.port,
       })
     }
   }
@@ -499,9 +520,7 @@ export class PeerNetwork {
         if (request && request.peer.state.type === 'DISCONNECTED') {
           request.peer.onStateChanged.off(onConnectionStateChanged)
 
-          const errorMessage = `Connection closed while waiting for request ${displayNetworkMessageType(
-            message.type,
-          )}: ${rpcId}`
+          const errorMessage = `Connection closed while waiting for request ${message.displayType()}: ${rpcId}`
 
           request.reject(new NetworkError(errorMessage))
         }
@@ -518,9 +537,7 @@ export class PeerNetwork {
         }
         const errorMessage = `Closing connections to ${
           peer.displayName
-        } because RPC message of type ${displayNetworkMessageType(
-          message.type,
-        )} timed out after ${RPC_TIMEOUT_MILLIS} ms in request: ${rpcId}.`
+        } because RPC message of type ${message.displayType()} timed out after ${RPC_TIMEOUT_MILLIS} ms in request: ${rpcId}.`
         const error = new RequestTimeoutError(RPC_TIMEOUT_MILLIS, errorMessage)
         this.logger.debug(errorMessage)
         clearDisconnectHandler()
@@ -563,9 +580,9 @@ export class PeerNetwork {
       if (!connection) {
         return request.reject(
           new Error(
-            `${String(peer.state.identity)} did not send ${displayNetworkMessageType(
-              message.type,
-            )} in state ${peer.state.type}`,
+            `${String(peer.state.identity)} did not send ${message.displayType()} in state ${
+              peer.state.type
+            }`,
           ),
         )
       }
@@ -588,9 +605,7 @@ export class PeerNetwork {
 
     if (!(response instanceof GetBlockHeadersResponse)) {
       // TODO jspafford: disconnect peer, or handle it more properly
-      throw new Error(
-        `Invalid GetBlockHeadersResponse: ${displayNetworkMessageType(message.type)}`,
-      )
+      throw new Error(`Invalid GetBlockHeadersResponse: ${message.displayType()}`)
     }
 
     return { headers: response.headers, time: BenchUtils.end(begin) }
@@ -608,7 +623,7 @@ export class PeerNetwork {
 
     if (!(response instanceof GetBlocksResponse)) {
       // TODO jspafford: disconnect peer, or handle it more properly
-      throw new Error(`Invalid GetBlocksResponse: ${displayNetworkMessageType(message.type)}`)
+      throw new Error(`Invalid GetBlocksResponse: ${message.displayType()}`)
     }
 
     const exceededSoftLimit = response.getSize() >= SOFT_MAX_MESSAGE_SIZE
@@ -636,9 +651,7 @@ export class PeerNetwork {
       }
     } else {
       throw new Error(
-        `Invalid message for handling in peer network: '${displayNetworkMessageType(
-          message.type,
-        )}'`,
+        `Invalid message for handling in peer network: '${message.displayType()}'`,
       )
     }
   }
@@ -676,9 +689,7 @@ export class PeerNetwork {
         const asError = error as Error
         if (!(asError.name && asError.name === 'CannotSatisfyRequestError')) {
           this.logger.error(
-            `Unexpected error in ${displayNetworkMessageType(
-              rpcMessage.type,
-            )} handler: ${String(error)}`,
+            `Unexpected error in ${rpcMessage.displayType()} handler: ${String(error)}`,
           )
         }
         responseMessage = new CannotSatisfyRequest(rpcId)
@@ -753,7 +764,7 @@ export class PeerNetwork {
     if (prevHeader === null) {
       this.chain.addOrphan(block.header)
       this.blockFetcher.removeBlock(block.header.hash)
-      this.node.syncer.startSync(peer)
+      this.node.syncer.startSyncIfIdle(peer)
       return
     }
 
@@ -811,7 +822,7 @@ export class PeerNetwork {
     if (prevHeader === null) {
       this.chain.addOrphan(header)
       this.blockFetcher.removeBlock(header.hash)
-      this.node.syncer.startSync(peer)
+      this.node.syncer.startSyncIfIdle(peer)
       return
     }
 
@@ -1180,7 +1191,7 @@ export class PeerNetwork {
     if (prevHeader === null) {
       this.chain.addOrphan(block.header)
       this.blockFetcher.removeBlock(block.header.hash)
-      this.node.syncer.startSync(peer)
+      this.node.syncer.startSyncIfIdle(peer)
       return
     }
 

@@ -10,8 +10,9 @@ import { createRootLogger, Logger } from '../../logger'
 import { MetricsMonitor } from '../../metrics'
 import { ErrorUtils } from '../../utils'
 import { Identity } from '../identity'
-import { displayNetworkMessageType, NetworkMessage } from '../messages/networkMessage'
+import { NetworkMessage } from '../messages/networkMessage'
 import { NetworkMessageType } from '../types'
+import { WebSocketAddress } from '../utils'
 import { NetworkError, WebRtcConnection, WebSocketConnection } from './connections'
 import { Connection, ConnectionType } from './connections/connection'
 import { Features } from './peerFeatures'
@@ -159,19 +160,23 @@ export class Peer {
   }
 
   /**
+   * The address by which the peer can be connected to over WebSockets.
+   * Setting this to null makes a peer unconnectable via WebSocket outbound connections.
+   */
+  wsAddress: WebSocketAddress | null = null
+
+  /**
    * address associated with this peer
    */
-  private _address: string | null = null
   get address(): string | null {
-    return this._address
+    return this.wsAddress?.host || null
   }
 
   /**
    * port associated with this peer
    */
-  private _port: number | null = null
   get port(): number | null {
-    return this._port
+    return this.wsAddress?.port || null
   }
 
   /** how many outbound connections does the peer have */
@@ -256,7 +261,7 @@ export class Peer {
     const webSocket =
       this.state.type !== 'DISCONNECTED' ? this.state.connections.webSocket : undefined
 
-    this.setState(this.computeStateFromConnections(webSocket, connection))
+    this.setState(webSocket, connection)
   }
 
   /**
@@ -273,7 +278,7 @@ export class Peer {
     const webSocket =
       this.state.type !== 'DISCONNECTED' ? this.state.connections.webSocket : undefined
 
-    this.setState(this.computeStateFromConnections(webSocket, connection))
+    this.setState(webSocket, connection)
 
     if (existingConnection) {
       const error = `Replacing duplicate WebRTC connection on ${this.displayName}`
@@ -296,7 +301,7 @@ export class Peer {
     const webRtc =
       this.state.type !== 'DISCONNECTED' ? this.state.connections.webRtc : undefined
 
-    this.setState(this.computeStateFromConnections(connection, webRtc))
+    this.setState(connection, webRtc)
   }
 
   /**
@@ -313,7 +318,7 @@ export class Peer {
     const webRtc =
       this.state.type !== 'DISCONNECTED' ? this.state.connections.webRtc : undefined
 
-    this.setState(this.computeStateFromConnections(connection, webRtc))
+    this.setState(connection, webRtc)
 
     if (existingConnection) {
       const error = `Replacing duplicate WebSocket connection on ${this.displayName}`
@@ -397,7 +402,7 @@ export class Peer {
     const webRtcConnection =
       connection === this.state.connections.webRtc ? undefined : this.state.connections.webRtc
 
-    this.setState(this.computeStateFromConnections(wsConnection, webRtcConnection))
+    this.setState(wsConnection, webRtcConnection)
 
     return connection
   }
@@ -410,51 +415,6 @@ export class Peer {
       throw new Error('Called getIdentityOrThrow on an unidentified peer')
     }
     return this.state.identity
-  }
-
-  /**
-   * Get the peers connectable websocket address
-   */
-  getWebSocketAddress(includeProtocol = true): string {
-    let address = ''
-
-    if (includeProtocol) {
-      address = 'ws://' + address
-    }
-
-    if (this.address) {
-      address += this.address
-    }
-
-    if (this.port) {
-      address = address + ':' + String(this.port)
-    }
-
-    return address
-  }
-
-  /**
-   * Sets the address and peer by which the peer can be connected to over WebSockets.
-   * Setting address and port to null makes a peer unconnectable via WebSocket outbound connections.
-   * @param address Hostname of the address, or null to remove the address.
-   * @param port Port to connect over. Must be null if address is null.
-   */
-  setWebSocketAddress(address: string | null, port: number | null): void {
-    if (address === null && port !== null) {
-      throw new Error(
-        `Called setWebSocketAddress on ${String(
-          this.state.identity,
-        )} with a port but no address`,
-      )
-    }
-
-    // Don't do anything if the address and port stay the same
-    if (address === this._address && port === this._port) {
-      return
-    }
-
-    this._address = address
-    this._port = port
   }
 
   /**
@@ -487,9 +447,9 @@ export class Peer {
     // Return early if peer is not in state CONNECTED
     if (this.state.type !== 'CONNECTED') {
       this.logger.debug(
-        `Attempted to send a ${displayNetworkMessageType(message.type)} message to ${
-          this.displayName
-        } in state ${this.state.type}`,
+        `Attempted to send a ${message.displayType()} message to ${this.displayName} in state ${
+          this.state.type
+        }`,
       )
       return null
     }
@@ -578,7 +538,7 @@ export class Peer {
       connection instanceof WebSocketConnection &&
       connection.hostname
     ) {
-      this.setWebSocketAddress(connection.hostname, connection.port || null)
+      this.wsAddress = { host: connection.hostname, port: connection.port || null }
     }
 
     // onMessage
@@ -621,14 +581,9 @@ export class Peer {
         if (connection.state.type === 'CONNECTED') {
           // If connection goes to connected, transition the peer to connected
           if (connection instanceof WebSocketConnection && connection.hostname) {
-            this.setWebSocketAddress(connection.hostname, connection.port || null)
+            this.wsAddress = { host: connection.hostname, port: connection.port || null }
           }
-          this.setState(
-            this.computeStateFromConnections(
-              this.state.connections.webSocket,
-              this.state.connections.webRtc,
-            ),
-          )
+          this.setState(this.state.connections.webSocket, this.state.connections.webRtc)
         }
       }
       this.connectionStateChangedHandlers.set(connection, stateChangedHandler)
@@ -640,7 +595,12 @@ export class Peer {
    * Changes the peer's state from this.state to nextState.
    * @param nextState The new peer state.
    */
-  private setState(nextState: PeerState): void {
+  private setState(
+    wsConnection: WebSocketConnection | undefined,
+    webRtcConnection: WebRtcConnection | undefined,
+  ): void {
+    const nextState = this.computeStateFromConnections(wsConnection, webRtcConnection)
+
     // Perform pre-transition actions
     const lastConState = this.getConnectionStateOrDefault(this.state)
     const nextConState = this.getConnectionStateOrDefault(nextState)
@@ -694,7 +654,7 @@ export class Peer {
     if (error !== undefined) {
       this._error = error
     }
-    this.setState({ type: 'DISCONNECTED', identity: this.state.identity })
+    this.setState(undefined, undefined)
   }
 
   /**

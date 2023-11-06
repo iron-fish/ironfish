@@ -1,13 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { DEFAULT_DATA_DIR, HostsOptions, HostsStore } from '../../fileStores'
+import { DEFAULT_DATA_DIR, PeerStore, PeerStoreOptions } from '../../fileStores'
 import { FileSystem } from '../../fileSystems'
 import { PeerAddress } from '../peers/peerAddress'
 
 /**
- * Utility to create a fake HostsStore for use in
- * AddressManager and PeerManager
+ * Utility to create a fake PeerStore for use in
+ * PeerStoreManager and PeerManager
  */
 
 class MockFileSystem extends FileSystem {
@@ -66,17 +66,10 @@ class MockFileSystem extends FileSystem {
   }
 }
 
-class MockHostsStore extends HostsStore {
+class MockPeerStore extends PeerStore {
   constructor() {
     super(new MockFileSystem(), DEFAULT_DATA_DIR)
-    super.set('priorPeers', [
-      {
-        address: '127.0.0.1',
-        port: 9999,
-        identity: null,
-        name: null,
-      },
-    ])
+    super.set('priorPeers', [])
   }
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
@@ -85,17 +78,17 @@ class MockHostsStore extends HostsStore {
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   async save(): Promise<void> {}
 
-  getArray(key: keyof HostsOptions): PeerAddress[] {
+  getArray(key: keyof PeerStoreOptions): PeerAddress[] {
     return super.getArray(key)
   }
 
-  set(key: keyof HostsOptions, val: PeerAddress[]): void {
+  set(key: keyof PeerStoreOptions, val: PeerAddress[]): void {
     super.set(key, val)
   }
 }
 
-export function mockHostsStore(): MockHostsStore {
-  return new MockHostsStore()
+export function mockPeerStore(): MockPeerStore {
+  return new MockPeerStore()
 }
 
 export function mockFileSystem(): MockFileSystem {

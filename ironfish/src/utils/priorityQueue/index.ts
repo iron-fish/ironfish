@@ -206,6 +206,19 @@ export class PriorityQueue<T> {
     return 2 * index + 2
   }
 
+  /**
+   * Make a copy of the queue and generate the items in priority order
+   */
+  *sorted(): Generator<T, void> {
+    const clone = this.clone()
+
+    let item = clone.poll()
+    while (item !== undefined) {
+      yield item
+      item = clone.poll()
+    }
+  }
+
   print(index: number, toString: (item: T) => string): string {
     if (index >= this.size()) {
       return ''

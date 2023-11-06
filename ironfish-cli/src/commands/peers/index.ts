@@ -46,7 +46,6 @@ export class ListCommand extends IronfishCommand {
       char: 'n',
       default: false,
       description: 'Display node names',
-      hidden: true,
     }),
     features: Flags.boolean({
       default: false,
@@ -182,6 +181,14 @@ function renderTable(
           address += ':' + String(row.port)
         }
         return address
+      },
+    },
+    connectionDirection: {
+      header: 'DIRECTION',
+      minWidth: 5,
+      extended: true,
+      get: (row: GetPeerResponsePeer) => {
+        return row.connectionDirection || '-'
       },
     },
     connectionWebSocket: {

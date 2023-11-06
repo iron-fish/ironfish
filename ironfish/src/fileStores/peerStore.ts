@@ -7,21 +7,24 @@ import { PeerAddress } from '../network/peers/peerAddress'
 import { ParseJsonError } from '../utils/json'
 import { KeyStore } from './keyStore'
 
-export type HostsOptions = {
+export type PeerStoreOptions = {
   priorPeers: PeerAddress[]
 }
 
-export const HostOptionsDefaults: HostsOptions = {
+export const PeerStoreOptionsDefaults: PeerStoreOptions = {
   priorPeers: [],
 }
 
-export const HOST_FILE_NAME = 'hosts.json'
+// This filename ("hosts.json") is left over from when this file used to be called HostsStore
+// We will likely change the name when we adding more functionality like storing
+// whitelisted peers, banned peers, etc.
+export const PEER_STORE_FILE_NAME = 'hosts.json'
 
-export class HostsStore extends KeyStore<HostsOptions> {
+export class PeerStore extends KeyStore<PeerStoreOptions> {
   logger: Logger
 
   constructor(files: FileSystem, dataDir: string) {
-    super(files, HOST_FILE_NAME, HostOptionsDefaults, dataDir)
+    super(files, PEER_STORE_FILE_NAME, PeerStoreOptionsDefaults, dataDir)
     this.logger = createRootLogger()
   }
 
