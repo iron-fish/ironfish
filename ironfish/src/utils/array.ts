@@ -17,7 +17,7 @@ function shuffle<T>(array: ReadonlyArray<T>): Array<T> {
   return sliceArr
 }
 
-function sample<T>(array: Array<T>): T | null {
+function sample<T>(array: ReadonlyArray<T>): T | null {
   if (array.length === 0) {
     return null
   }

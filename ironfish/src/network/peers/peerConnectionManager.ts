@@ -3,8 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import type { Peer } from './peer'
+import { DEFAULT_KEEP_OPEN_PEER_SLOT } from '../../fileStores/config'
 import { createRootLogger, Logger } from '../../logger'
-import { SetTimeoutToken } from '../../utils'
+import { ArrayUtils, SetTimeoutToken } from '../../utils'
+import { DisconnectingReason } from '../messages/disconnecting'
 import { PeerManager } from './peerManager'
 
 /**
@@ -30,6 +32,7 @@ export class PeerConnectionManager {
   private readonly logger: Logger
   private readonly peerManager: PeerManager
   readonly maxPeers: number
+  readonly keepOpenPeerSlot: boolean
 
   private started = false
   private eventLoopTimer?: SetTimeoutToken
@@ -39,11 +42,13 @@ export class PeerConnectionManager {
     logger: Logger = createRootLogger(),
     options: {
       maxPeers: number
+      keepOpenPeerSlot?: boolean
     },
   ) {
     this.peerManager = peerManager
     this.logger = logger.withTag('peerconnectionmanager')
     this.maxPeers = options.maxPeers
+    this.keepOpenPeerSlot = options.keepOpenPeerSlot ?? DEFAULT_KEEP_OPEN_PEER_SLOT
   }
 
   /**
@@ -108,7 +113,41 @@ export class PeerConnectionManager {
       }
     }
 
+    this.maintainMaxPeerCount()
+
     this.eventLoopTimer = setTimeout(() => this.eventLoop(), EVENT_LOOP_MS)
+  }
+
+  /**
+   * Maintain a maximum number of peers by disconnecting from peers if we are
+   * connected to more than we should be
+   */
+  private maintainMaxPeerCount(): void {
+    const connectedPeers = this.peerManager.getConnectedPeers()
+    const maxPeerCount = this.maxPeers - Number(this.keepOpenPeerSlot)
+
+    if (connectedPeers.length <= maxPeerCount) {
+      return
+    }
+
+    // Choose a random peer, but exclude the newest connections as they are
+    // least likely to have other peers
+    const sampleEnd = Math.floor(connectedPeers.length * 0.8)
+    const peersSlice = connectedPeers.slice(0, sampleEnd)
+    const peer = ArrayUtils.sample(peersSlice)
+    if (!peer) {
+      return
+    }
+
+    this.logger.debug(
+      `Disconnecting from peer ${peer.displayName} since we are above our peer limit`,
+    )
+
+    this.peerManager.disconnect(
+      peer,
+      DisconnectingReason.Congested,
+      this.peerManager.getCongestedDisconnectUntilTimestamp(),
+    )
   }
 
   private connectToEligiblePeers(peer: Peer): boolean {

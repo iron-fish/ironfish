@@ -176,6 +176,7 @@ export class PeerNetwork {
     chain: Blockchain
     peerStore: PeerStore
     incomingWebSocketWhitelist?: string[]
+    keepOpenPeerSlot?: boolean
   }) {
     this.networkId = options.networkId
     this.enableSyncing = options.enableSyncing ?? true
@@ -222,6 +223,7 @@ export class PeerNetwork {
 
     this.peerConnectionManager = new PeerConnectionManager(this.peerManager, this.logger, {
       maxPeers,
+      keepOpenPeerSlot: options.keepOpenPeerSlot,
     })
 
     this.minPeers = options.minPeers || 1
