@@ -258,9 +258,9 @@ export class PeerManager {
     }
 
     // Make sure we can find at least one brokering peer before we create the connection
-    const brokeringPeer = this.getBrokeringPeer(peer)
+    const hasBrokeringPeers = this.hasBrokeringPeers(peer)
 
-    if (brokeringPeer === null) {
+    if (!hasBrokeringPeers) {
       this.logger.debug(
         `Attempted to establish a WebRTC connection to ${peer.displayName}, but couldn't find a peer to broker the connection.`,
       )
@@ -286,7 +286,16 @@ export class PeerManager {
 
     const connection = this.initWebRtcConnection(peer, false)
     connection.setState({ type: 'REQUEST_SIGNALING' })
+
+    const brokeringPeers = this.getBrokeringPeers(peer)
+
+    if (brokeringPeers.length === 0) {
+      return false
+    }
+
+    const brokeringPeer = brokeringPeers[0]
     brokeringPeer.send(signal)
+
     return true
   }
 
@@ -339,7 +348,10 @@ export class PeerManager {
 
       // Ensure one or more brokering peers exists before encrypting the signaling message,
       // but discard the brokering peer in case its state changes during encryption
-      if (this.getBrokeringPeer(peer) === null) {
+
+      const hasBrokeringPeers = this.hasBrokeringPeers(peer)
+
+      if (!hasBrokeringPeers) {
         errorMessage = 'Cannot establish a WebRTC connection without a brokering peer'
       }
 
@@ -355,8 +367,10 @@ export class PeerManager {
         peer.getIdentityOrThrow(),
       )
 
-      for (let attempts = 0; attempts < MAX_WEBRTC_BROKERING_ATTEMPTS; attempts++) {
-        const brokeringPeer = this.getBrokeringPeer(peer)
+      const brokeringPeers = this.getBrokeringPeers(peer)
+      const limitedBrokeringPeers = brokeringPeers.slice(0, MAX_WEBRTC_BROKERING_ATTEMPTS)
+
+      for (const brokeringPeer of limitedBrokeringPeers) {
         if (brokeringPeer === null) {
           const message = 'Cannot establish a WebRTC connection without a brokering peer'
           this.logger.debug(message)
@@ -589,40 +603,66 @@ export class PeerManager {
     return this.getConnectedPeers().length >= this.maxPeers
   }
 
+  private hasBrokeringPeers(peer: Peer): boolean {
+    if (peer.state.type === 'CONNECTED') {
+      return true
+    }
+
+    if (peer.state.identity === null || !this.peerCandidates.has(peer.state.identity)) {
+      return false
+    }
+
+    const peerCandidate = this.peerCandidates.get(peer.state.identity)
+
+    if (!peerCandidate) {
+      return false
+    }
+
+    for (const neighbor of peerCandidate.neighbors) {
+      const neighborPeer = this.identifiedPeers.get(neighbor)
+
+      if (neighborPeer && neighborPeer.state.type === 'CONNECTED') {
+        return true
+      }
+    }
+
+    return false
+  }
+
   /** For a given peer, try to find a peer that's connected to that peer
    * including itself to broker a WebRTC connection to it
    * */
-  private getBrokeringPeer(peer: Peer): Peer | null {
+  private getBrokeringPeers(peer: Peer): Peer[] {
     if (peer.state.type === 'CONNECTED') {
       // Use the existing connection to the peer to broker the connection
-      return peer
+      return [peer]
     }
 
     if (peer.state.identity === null) {
       // Cannot find a brokering peer of an unidentified peer
-      return null
+      return []
+    }
+
+    // The peer candidate map tracks any brokering peer candidates
+    const peerCandidate = this.peerCandidates.get(peer.state.identity)
+    if (!peerCandidate) {
+      return []
     }
 
     // Find another peer to broker the connection
     const candidates = []
 
-    // The peer candidate map tracks any brokering peer candidates
-    const val = this.peerCandidates.get(peer.state.identity)
-    if (!val) {
-      return null
-    }
-
-    for (const neighbor of val.neighbors) {
+    for (const neighbor of peerCandidate.neighbors) {
       const neighborPeer = this.identifiedPeers.get(neighbor)
-      if (!neighborPeer || neighborPeer.state.type !== 'CONNECTED') {
-        val.neighbors.delete(neighbor)
-        continue
-      }
 
-      candidates.push(neighborPeer)
+      if (neighborPeer && neighborPeer.state.type === 'CONNECTED') {
+        candidates.push(neighborPeer)
+      } else {
+        peerCandidate.neighbors.delete(neighbor)
+      }
     }
 
-    return ArrayUtils.sample(candidates)
+    return ArrayUtils.shuffle(candidates)
   }
 
   /**
