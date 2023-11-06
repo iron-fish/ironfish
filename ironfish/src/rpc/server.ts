@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { randomBytes } from 'crypto'
+import { randomBytes, timingSafeEqual } from 'crypto'
 import { InternalStore } from '../fileStores'
 import { createRootLogger, Logger } from '../logger'
 import { IRpcAdapter } from './adapters'
@@ -93,11 +93,12 @@ export class RpcServer {
     const rpcAuthToken = this.internal.get('rpcAuthToken')
 
     if (!rpcAuthToken) {
-      this.logger.debug(`Missing RPC Auth token in internal.json config.`)
       return false
     }
 
-    return requestAuthToken === rpcAuthToken
+    const userTokenBuffer = Buffer.from(requestAuthToken)
+    const authTokenBuffer = Buffer.from(rpcAuthToken)
+    return timingSafeEqual(userTokenBuffer, authTokenBuffer)
   }
 
   private async generateAuth(): Promise<void> {
