@@ -34,9 +34,6 @@ describe('TcpAdapter', () => {
         enableRpcIpc: false,
         enableRpcTcp: false,
         enableRpcTls: false,
-        // TODO: It should be possible to test on the default network (mainnet)
-        // once the genesis block has been added.
-        networkId: 2,
         rpcTcpPort: 0,
       },
       internalOverrides: {
