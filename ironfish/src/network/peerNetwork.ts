@@ -59,8 +59,8 @@ import { PeerConnectionManager } from './peers/peerConnectionManager'
 import { PeerManager } from './peers/peerManager'
 import { TransactionFetcher } from './transactionFetcher'
 import { IsomorphicWebSocketConstructor } from './types'
-import { parseUrl, WebSocketAddress } from './utils/parseUrl'
 import { getBlockSize } from './utils/serializers'
+import { parseUrl, WebSocketAddress } from './utils/url'
 import {
   MAX_BLOCK_LOOKUPS,
   MAX_HEADER_LOOKUPS,
