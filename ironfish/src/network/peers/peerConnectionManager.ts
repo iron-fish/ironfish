@@ -87,6 +87,21 @@ export class PeerConnectionManager {
       }
     }
 
+    this.attemptNewConnections()
+    this.maintainMaxPeerCount()
+
+    this.eventLoopTimer = setTimeout(() => this.eventLoop(), EVENT_LOOP_MS)
+  }
+
+  /**
+   * Attempts to connect to a number of peer candidates if it is eligible to
+   * create new connections
+   */
+  private attemptNewConnections(): void {
+    if (!this.peerManager.canCreateNewConnections()) {
+      return
+    }
+
     let connectAttempts = 0
 
     for (const peerCandidateIdentity of this.peerManager.peerCandidates.shufflePeerCandidates()) {
@@ -94,28 +109,26 @@ export class PeerConnectionManager {
         break
       }
 
-      if (!this.peerManager.identifiedPeers.has(peerCandidateIdentity)) {
-        const peerCandidate = this.peerManager.peerCandidates.get(peerCandidateIdentity)
-        if (!peerCandidate) {
-          continue
-        }
+      if (this.peerManager.identifiedPeers.has(peerCandidateIdentity)) {
+        continue
+      }
 
-        const peer = this.peerManager.getOrCreatePeer(peerCandidateIdentity)
+      const peerCandidate = this.peerManager.peerCandidates.get(peerCandidateIdentity)
+      if (!peerCandidate) {
+        continue
+      }
 
-        peer.name = peerCandidate.name
-        peer.wsAddress = peerCandidate.wsAddress
+      const peer = this.peerManager.getOrCreatePeer(peerCandidateIdentity)
 
-        if (this.connectToEligiblePeers(peer)) {
-          connectAttempts++
-        } else {
-          this.peerManager.tryDisposePeer(peer)
-        }
+      peer.name = peerCandidate.name
+      peer.wsAddress = peerCandidate.wsAddress
+
+      if (this.connectToEligiblePeers(peer)) {
+        connectAttempts++
+      } else {
+        this.peerManager.tryDisposePeer(peer)
       }
     }
-
-    this.maintainMaxPeerCount()
-
-    this.eventLoopTimer = setTimeout(() => this.eventLoop(), EVENT_LOOP_MS)
   }
 
   /**
