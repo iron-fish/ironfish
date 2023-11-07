@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { BoxKeyPair } from '@ironfish/rust-nodejs'
-import { Assert, IronfishNode, NodeUtils, PrivateIdentity, PromiseUtils } from '@ironfish/sdk'
+import { Assert, FullNode, NodeUtils, PrivateIdentity, PromiseUtils } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import inspector from 'node:inspector'
 import { v4 as uuid } from 'uuid'
@@ -120,7 +120,7 @@ export default class Start extends IronfishCommand {
     }),
   }
 
-  node: IronfishNode | null = null
+  node: FullNode | null = null
 
   /**
    * This promise is used to wait until start is finished beforer closeFromSignal continues
@@ -285,7 +285,7 @@ export default class Start extends IronfishCommand {
   /**
    * Information displayed the first time a node is running
    */
-  async firstRun(node: IronfishNode): Promise<void> {
+  async firstRun(node: FullNode): Promise<void> {
     this.log('')
     this.log('Thank you for installing the Iron Fish Node.')
 
@@ -308,7 +308,7 @@ export default class Start extends IronfishCommand {
   /**
    * Information displayed if there is no default account for the node
    */
-  async setDefaultAccount(node: IronfishNode): Promise<void> {
+  async setDefaultAccount(node: FullNode): Promise<void> {
     if (!node.wallet.accountExists(DEFAULT_ACCOUNT_NAME)) {
       const account = await node.wallet.createAccount(DEFAULT_ACCOUNT_NAME, {
         setDefault: true,
