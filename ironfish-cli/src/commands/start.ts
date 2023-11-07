@@ -1,8 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { BoxKeyPair } from '@ironfish/rust-nodejs'
-import { Assert, FullNode, NodeUtils, PrivateIdentity, PromiseUtils } from '@ironfish/sdk'
+import { Assert, FullNode, NodeUtils, PromiseUtils } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import inspector from 'node:inspector'
 import { v4 as uuid } from 'uuid'
@@ -214,9 +213,7 @@ export default class Start extends IronfishCommand {
       await this.sdk.internal.save()
     }
 
-    const privateIdentity = this.getPrivateIdentity()
-
-    const node = await this.sdk.node({ privateIdentity: privateIdentity })
+    const node = await this.sdk.node({ privateIdentity: this.sdk.getPrivateIdentity() })
 
     const nodeName = this.sdk.config.get('nodeName').trim() || null
     const blockGraffiti = this.sdk.config.get('blockGraffiti').trim() || null
@@ -323,16 +320,5 @@ export default class Start extends IronfishCommand {
 
     this.log('')
     await node.internal.save()
-  }
-
-  getPrivateIdentity(): PrivateIdentity | undefined {
-    const networkIdentity = this.sdk.internal.get('networkIdentity')
-    if (
-      !this.sdk.config.get('generateNewIdentity') &&
-      networkIdentity !== undefined &&
-      networkIdentity.length > 31
-    ) {
-      return BoxKeyPair.fromHex(networkIdentity)
-    }
   }
 }
