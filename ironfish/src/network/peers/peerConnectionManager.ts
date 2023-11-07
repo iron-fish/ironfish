@@ -74,15 +74,6 @@ export class PeerConnectionManager {
   }
 
   private eventLoop() {
-    console.log('=====================================')
-    console.log('this.peerManager.peers.length')
-    console.log(this.peerManager.peers.length)
-    console.log('this.peerManager.getConnectedPeers().length')
-    console.log(this.peerManager.getConnectedPeers().length)
-    console.log('this.peerManager.identifiedPeers.size')
-    console.log(this.peerManager.identifiedPeers.size)
-    console.log('this.peerManager.peerCandidates.size')
-    console.log(this.peerManager.peerCandidates.size)
     let upgradeAttempts = 0
     for (const peer of this.peerManager.peers()) {
       this.maintainOneConnectionPerPeer(peer)
