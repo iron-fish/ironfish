@@ -1,4 +1,4 @@
-FROM node:18-bullseye as build
+FROM node:20-bookworm as build
 ENV PATH="/root/.cargo/bin:${PATH}"
 
 RUN \
@@ -12,7 +12,7 @@ COPY ./ /usr/src/ironfish
 
 RUN /usr/src/ironfish/ironfish-cli/scripts/build.sh
 
-FROM node:18-bullseye-slim
+FROM node:20-bookworm-slim
 
 EXPOSE 8020:8020
 EXPOSE 9033:9033
