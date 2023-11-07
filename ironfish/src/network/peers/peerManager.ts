@@ -67,11 +67,6 @@ export class PeerManager {
   // Mapping of peer identity with reason they were banned
   readonly banned = new Map<Identity, string>()
 
-  /**
-   * List of all peers, including both unidentified and identified.
-   */
-  peers: Array<Peer> = []
-
   peerCandidates: PeerCandidates = new PeerCandidates()
 
   peerStoreManager: PeerStoreManager
@@ -175,7 +170,7 @@ export class PeerManager {
     this.disposePeersHandle && clearInterval(this.disposePeersHandle)
     this.savePeerAddressesHandle && clearInterval(this.savePeerAddressesHandle)
     await this.peerStoreManager.save()
-    for (const peer of this.peers) {
+    for (const peer of this.peers()) {
       this.disconnect(peer, DisconnectingReason.ShuttingDown, 0)
     }
   }
@@ -198,6 +193,12 @@ export class PeerManager {
 
     if (this.connectToWebSocket(peer, !!options.forceConnect)) {
       return peer
+    }
+  }
+
+  *peers(): Generator<Peer> {
+    for (const peer of this.identifiedPeers.values()) {
+      yield peer
     }
   }
 
@@ -734,9 +735,6 @@ export class PeerManager {
       metrics: this.metrics,
     })
 
-    // Add the peer to peers. It's new, so it shouldn't exist there already
-    this.peers.push(peer)
-
     // If the peer hasn't been identified, add it to identifiedPeers when the
     // peer connects, else do it now
     if (peer.state.identity === null) {
@@ -804,7 +802,7 @@ export class PeerManager {
   }
 
   private disposePeers(): void {
-    for (const p of this.peers) {
+    for (const p of this.peers()) {
       this.tryDisposePeer(p)
     }
   }
@@ -824,7 +822,6 @@ export class PeerManager {
     if (peer.state.identity && this.identifiedPeers.get(peer.state.identity) === peer) {
       this.identifiedPeers.delete(peer.state.identity)
     }
-    this.peers = this.peers.filter((p) => p !== peer)
 
     return true
   }

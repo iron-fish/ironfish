@@ -16,7 +16,7 @@ describe('Route peer/addPeer', () => {
       routeTest.node.peerNetwork.peerManager.peerCandidates.has('ws://testhost:9037'),
     ).toBe(true)
 
-    const matchingPeers = routeTest.node.peerNetwork.peerManager.peers.filter(
+    const matchingPeers = [...routeTest.node.peerNetwork.peerManager.peers()].filter(
       (p) => formatWebSocketAddress(p.wsAddress) === 'ws://testhost:9037',
     )
 

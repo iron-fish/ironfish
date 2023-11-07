@@ -56,8 +56,10 @@ describe('connectToDisconnectedPeers', () => {
       maxPeers: DEFAULT_MAX_PEERS,
     })
     pcm.start()
-    expect(pm.peers.length).toBe(1)
-    expect(pm.peers[0].state).toEqual({
+    const peers = [...pm.peers()]
+
+    expect(peers.length).toBe(1)
+    expect(peers[0].state).toEqual({
       type: 'CONNECTING',
       identity: formatWebSocketAddress(peer.wsAddress),
       connections: {
@@ -90,8 +92,10 @@ describe('connectToDisconnectedPeers', () => {
     })
     pcm.start()
 
-    expect(pm.peers.length).toBe(1)
-    expect(pm.peers[0].state).toEqual({
+    const peers = [...pm.peers()]
+
+    expect(peers.length).toBe(1)
+    expect(peers[0].state).toEqual({
       type: 'CONNECTING',
       identity: identity,
       connections: { webSocket: expect.any(WebSocketConnection) },
@@ -115,7 +119,7 @@ describe('connectToDisconnectedPeers', () => {
 
     // Check now that were connecting to websockets and webrtc failed
     expect(peers.peers.length).toBe(1)
-    const peer = peers.peers[0]
+    const peer = [...peers.peers()][0]
     expect(peers.canConnectToWebRTC(peer)).toBe(false)
     expect(peers.canConnectToWebSocket(peer)).toBe(false)
     expect(peer.state).toEqual({

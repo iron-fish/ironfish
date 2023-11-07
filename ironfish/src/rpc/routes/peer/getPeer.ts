@@ -65,7 +65,7 @@ routes.register<typeof GetPeerRequestSchema, GetPeerResponse>(
 )
 
 function getPeer(network: PeerNetwork, identity: string): RpcPeerResponse | null {
-  for (const peer of network.peerManager.peers) {
+  for (const peer of network.peerManager.peers()) {
     if (peer.state.identity !== null && peer.state.identity.includes(identity)) {
       let connections = 0
       let connectionWebRTC: ConnectionState = ''

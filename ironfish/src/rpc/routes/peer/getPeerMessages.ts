@@ -94,7 +94,7 @@ routes.register<typeof GetPeerMessagesRequestSchema, GetPeerMessagesResponse>(
 )
 
 function getPeerMessages(network: PeerNetwork, identity: string): PeerMessage[] {
-  for (const peer of network.peerManager.peers) {
+  for (const peer of network.peerManager.peers()) {
     if (peer.state.identity !== null && peer.state.identity.includes(identity)) {
       return peer.loggedMessages.map((msg) => ({
         ...msg,
