@@ -87,7 +87,7 @@ export class WalletNode {
     this.nodeClient = nodeClient
     this.assetsVerifier = assetsVerifier
 
-    this.migrator = new Migrator({ node: this, logger, databases: [Database.WALLET] })
+    this.migrator = new Migrator({ context: this, logger, databases: [Database.WALLET] })
 
     this.nodeClientConnectionWarned = false
     this.nodeClientConnectionTimeout = null

@@ -8,26 +8,26 @@ import { Logger } from '../../logger'
 import { FullNode } from '../../node'
 import { BUFFER_ENCODING, IDatabase, IDatabaseStore, IDatabaseTransaction } from '../../storage'
 import { createDB } from '../../storage/utils'
-import { BufferUtils, IronfishNode } from '../../utils'
+import { BufferUtils } from '../../utils'
 import { Account } from '../../wallet'
-import { Database, Migration } from '../migration'
+import { Database, Migration, MigrationContext } from '../migration'
 import { GetOldAccounts } from './021-add-version-to-accounts/schemaOld'
 
 export class Migration019 extends Migration {
   path = __filename
   database = Database.WALLET
 
-  prepare(node: IronfishNode): IDatabase {
-    return node.wallet.walletDb.db
+  prepare(context: MigrationContext): IDatabase {
+    return context.wallet.walletDb.db
   }
 
   async forward(
-    node: IronfishNode,
+    context: MigrationContext,
     _db: IDatabase,
     tx: IDatabaseTransaction | undefined,
     logger: Logger,
   ): Promise<void> {
-    const accounts = await GetOldAccounts(node, _db, tx)
+    const accounts = await GetOldAccounts(context, _db, tx)
 
     logger.info(`Backfilling assets for ${accounts.length} accounts`)
 
@@ -40,7 +40,7 @@ export class Migration019 extends Migration {
       const assets = []
 
       for await (const { note, sequence, blockHash: hash } of account.getNotes()) {
-        const asset = await node.wallet.walletDb.getAsset(account, note.assetId(), tx)
+        const asset = await context.wallet.walletDb.getAsset(account, note.assetId(), tx)
         if (!asset) {
           assets.push({ id: note.assetId(), sequence, hash })
         }
@@ -50,8 +50,8 @@ export class Migration019 extends Migration {
     }
 
     if (assetsToBackfill.length) {
-      Assert.isInstanceOf(node, FullNode)
-      const chainDb = createDB({ location: node.config.chainDatabasePath })
+      Assert.isInstanceOf(context, FullNode)
+      const chainDb = createDB({ location: context.config.chainDatabasePath })
       await chainDb.open()
 
       const chainAssets: IDatabaseStore<AssetSchema> = chainDb.addStore({

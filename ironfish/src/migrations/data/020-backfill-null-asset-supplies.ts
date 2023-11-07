@@ -3,25 +3,25 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Logger } from '../../logger'
 import { IDatabase, IDatabaseTransaction } from '../../storage'
-import { BufferUtils, IronfishNode } from '../../utils'
-import { Database, Migration } from '../migration'
+import { BufferUtils } from '../../utils'
+import { Database, Migration, MigrationContext } from '../migration'
 import { GetOldAccounts } from './021-add-version-to-accounts/schemaOld'
 
 export class Migration020 extends Migration {
   path = __filename
   database = Database.WALLET
 
-  prepare(node: IronfishNode): IDatabase {
-    return node.wallet.walletDb.db
+  prepare(context: MigrationContext): IDatabase {
+    return context.wallet.walletDb.db
   }
 
   async forward(
-    node: IronfishNode,
+    context: MigrationContext,
     _db: IDatabase,
     tx: IDatabaseTransaction | undefined,
     logger: Logger,
   ): Promise<void> {
-    const accounts = await GetOldAccounts(node, _db, tx)
+    const accounts = await GetOldAccounts(context, _db, tx)
 
     logger.info(`Backfilling assets for ${accounts.length} accounts`)
 
@@ -36,7 +36,7 @@ export class Migration020 extends Migration {
         }
 
         logger.info(`  Re-syncing asset ${BufferUtils.toHuman(asset.name)}`)
-        await node.wallet.walletDb.deleteAsset(account, asset.id, tx)
+        await context.wallet.walletDb.deleteAsset(account, asset.id, tx)
         assetCount++
       }
 

@@ -6,17 +6,16 @@ import { Assert } from '../../assert'
 import { FullNode } from '../../node'
 import { IDatabase } from '../../storage'
 import { createDB } from '../../storage/utils'
-import { IronfishNode } from '../../utils'
-import { Database, Migration } from '../migration'
+import { Database, Migration, MigrationContext } from '../migration'
 
 export class Migration014 extends Migration {
   path = __filename
   database = Database.BLOCKCHAIN
 
-  async prepare(node: IronfishNode): Promise<IDatabase> {
-    Assert.isInstanceOf(node, FullNode)
-    await node.files.mkdir(node.chain.location, { recursive: true })
-    return createDB({ location: node.chain.location })
+  async prepare(context: MigrationContext): Promise<IDatabase> {
+    Assert.isInstanceOf(context, FullNode)
+    await context.files.mkdir(context.chain.location, { recursive: true })
+    return createDB({ location: context.chain.location })
   }
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
