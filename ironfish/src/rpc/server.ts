@@ -96,8 +96,14 @@ export class RpcServer {
       return false
     }
 
-    const userTokenBuffer = Buffer.from(requestAuthToken)
-    const authTokenBuffer = Buffer.from(rpcAuthToken)
+    const maxLength = Math.max(requestAuthToken.length, rpcAuthToken.length)
+
+    const userTokenBuffer = Buffer.alloc(maxLength)
+    userTokenBuffer.write(requestAuthToken)
+
+    const authTokenBuffer = Buffer.alloc(maxLength)
+    authTokenBuffer.write(rpcAuthToken)
+
     return timingSafeEqual(userTokenBuffer, authTokenBuffer)
   }
 
