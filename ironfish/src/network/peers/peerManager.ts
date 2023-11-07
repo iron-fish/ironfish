@@ -319,10 +319,13 @@ export class PeerManager {
     direction: ConnectionDirection,
     wsAddress: WebSocketAddress | null,
   ): WebSocketConnection {
-    const connection = new WebSocketConnection(ws, direction, this.logger, this.metrics, {
-      hostname: wsAddress?.host,
-      port: wsAddress?.port || undefined,
-    })
+    const connection = new WebSocketConnection(
+      ws,
+      direction,
+      this.logger,
+      this.metrics,
+      wsAddress,
+    )
 
     this.initConnectionHandlers(peer, connection)
     peer.setWebSocketConnection(connection)
@@ -1133,7 +1136,7 @@ export class PeerManager {
       connection instanceof WebSocketConnection &&
       connection.direction === ConnectionDirection.Inbound
     ) {
-      connection.port = message.port || undefined
+      connection.port = message.port
     }
 
     peer.name = message.name

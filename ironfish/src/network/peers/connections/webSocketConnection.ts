@@ -7,6 +7,7 @@ import colors from 'colors/safe'
 import { MetricsMonitor } from '../../../metrics'
 import { parseNetworkMessage } from '../../messageRegistry'
 import { IsomorphicWebSocket, IsomorphicWebSocketErrorEvent } from '../../types'
+import { WebSocketAddress } from '../../utils'
 import { Connection, ConnectionDirection, ConnectionType } from './connection'
 import { NetworkError } from './errors'
 
@@ -17,24 +18,26 @@ import { NetworkError } from './errors'
 export class WebSocketConnection extends Connection {
   private readonly socket: IsomorphicWebSocket
 
-  // The hostname of the address that was used to establish the WebSocket connection, if any
-  readonly hostname?: string
+  private _address: WebSocketAddress | null
+  get address(): WebSocketAddress | null {
+    return this._address
+  }
 
-  // The port of the address that was used to establish the WebSocket connection, if any
-  port?: number
+  set port(port: number) {
+    this._address = this._address ? { host: this._address.host, port } : null
+  }
 
   constructor(
     socket: IsomorphicWebSocket,
     direction: ConnectionDirection,
     logger: Logger,
     metrics?: MetricsMonitor,
-    options: { hostname?: string; port?: number } = {},
+    address: WebSocketAddress | null = null,
   ) {
     super(ConnectionType.WebSocket, direction, logger.withTag('WebSocketConnection'), metrics)
 
     this.socket = socket
-    this.hostname = options.hostname
-    this.port = options.port
+    this._address = address
 
     if (this.socket.readyState === this.socket.OPEN) {
       this.setState({ type: 'WAITING_FOR_IDENTITY' })
