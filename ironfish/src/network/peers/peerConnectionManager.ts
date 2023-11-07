@@ -6,6 +6,7 @@ import type { Peer } from './peer'
 import { DEFAULT_KEEP_OPEN_PEER_SLOT } from '../../fileStores/config'
 import { createRootLogger, Logger } from '../../logger'
 import { ArrayUtils, SetTimeoutToken } from '../../utils'
+import { Identity } from '../identity'
 import { DisconnectingReason } from '../messages/disconnecting'
 import { PeerManager } from './peerManager'
 
@@ -75,7 +76,7 @@ export class PeerConnectionManager {
 
   private eventLoop() {
     let upgradeAttempts = 0
-    for (const peer of this.peerManager.peers) {
+    for (const peer of this.peerManager.identifiedPeers.values()) {
       this.maintainOneConnectionPerPeer(peer)
 
       if (upgradeAttempts >= UPGRADE_ATTEMPTS_MAX) {
@@ -89,8 +90,45 @@ export class PeerConnectionManager {
 
     this.attemptNewConnections()
     this.maintainMaxPeerCount()
+    this.validatePeersAndPeerIdentitesAreTheSame()
 
     this.eventLoopTimer = setTimeout(() => this.eventLoop(), EVENT_LOOP_MS)
+  }
+
+  private validatePeersAndPeerIdentitesAreTheSame() {
+    const peerMap = new Map<Identity, Peer>()
+    let nullIdentity = 0
+
+    this.peerManager.peers.map((peer) => {
+      if (peer.state.identity) {
+        peerMap.set(peer.state.identity, peer)
+      } else {
+        nullIdentity += 1
+      }
+    })
+
+    this.logger.log(`nullIdentity size: ${nullIdentity}`)
+
+    const identifiedPeers = this.peerManager.identifiedPeers
+
+    this.logger.log(`peerMap size: ${peerMap.size}`)
+    this.logger.log(`identifiedPeers size: ${identifiedPeers.size}`)
+    const equal = peerMap.size === identifiedPeers.size
+    this.logger.log(`they are equal: ${equal.toString()}`)
+
+    const peerMapKeys = Array.from(peerMap.keys())
+    const identifiedPeersKeys = Array.from(identifiedPeers.keys())
+
+    const keysEqual = peerMapKeys.every((key) => identifiedPeersKeys.includes(key))
+
+    this.logger.log(`keysEqual: ${keysEqual.toString()}`)
+
+    const peerMapValues = Array.from(peerMap.values())
+    const identifiedPeersValues = Array.from(identifiedPeers.values())
+
+    const valuesEqual = peerMapValues.every((value) => identifiedPeersValues.includes(value))
+
+    this.logger.log(`valuesEqual: ${valuesEqual.toString()}`)
   }
 
   /**

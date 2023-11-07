@@ -175,7 +175,7 @@ export class PeerManager {
     this.disposePeersHandle && clearInterval(this.disposePeersHandle)
     this.savePeerAddressesHandle && clearInterval(this.savePeerAddressesHandle)
     await this.peerStoreManager.save()
-    for (const peer of this.peers) {
+    for (const peer of this.identifiedPeers.values()) {
       this.disconnect(peer, DisconnectingReason.ShuttingDown, 0)
     }
   }
@@ -804,7 +804,7 @@ export class PeerManager {
   }
 
   private disposePeers(): void {
-    for (const p of this.peers) {
+    for (const p of this.identifiedPeers.values()) {
       this.tryDisposePeer(p)
     }
   }
@@ -824,7 +824,6 @@ export class PeerManager {
     if (peer.state.identity && this.identifiedPeers.get(peer.state.identity) === peer) {
       this.identifiedPeers.delete(peer.state.identity)
     }
-    this.peers = this.peers.filter((p) => p !== peer)
 
     return true
   }

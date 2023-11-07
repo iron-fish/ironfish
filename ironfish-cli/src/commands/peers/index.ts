@@ -229,6 +229,14 @@ function renderTable(
 
   let result = ''
 
+  peers.sort((a, b) => {
+    // connected
+    // connecting
+    // then disconnected
+
+    return a.state < b.state ? -1 : 1
+  })
+
   CliUx.ux.table(peers, columns, {
     printLine: (line) => (result += `${String(line)}\n`),
     ...flags,
