@@ -1,12 +1,10 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { randomBytes } from 'crypto'
 import net from 'net'
 import tls from 'tls'
 import { FileSystem } from '../../fileSystems'
 import { createRootLogger, Logger } from '../../logger'
-import { IronfishNode } from '../../utils'
 import { TlsUtils } from '../../utils/tls'
 import { ApiNamespace } from '../routes'
 import { RpcSocketAdapter } from './socketAdapter/socketAdapter'
@@ -15,7 +13,6 @@ export class RpcTlsAdapter extends RpcSocketAdapter {
   readonly fileSystem: FileSystem
   readonly nodeKeyPath: string
   readonly nodeCertPath: string
-  node: IronfishNode
 
   constructor(
     host: string,
@@ -23,7 +20,6 @@ export class RpcTlsAdapter extends RpcSocketAdapter {
     fileSystem: FileSystem,
     nodeKeyPath: string,
     nodeCertPath: string,
-    node: IronfishNode,
     logger: Logger = createRootLogger(),
     namespaces: ApiNamespace[],
   ) {
@@ -31,22 +27,10 @@ export class RpcTlsAdapter extends RpcSocketAdapter {
     this.fileSystem = fileSystem
     this.nodeKeyPath = nodeKeyPath
     this.nodeCertPath = nodeCertPath
-    this.node = node
     this.enableAuthentication = true
   }
 
   protected async createServer(): Promise<net.Server> {
-    const rpcAuthToken = this.node.internal.get('rpcAuthToken')
-
-    if (!rpcAuthToken || rpcAuthToken === '') {
-      this.logger.debug(
-        `Missing RPC Auth token in internal.json config. Automatically generating auth token.`,
-      )
-      const newPassword = randomBytes(32).toString('hex')
-      this.node.internal.set('rpcAuthToken', newPassword)
-      await this.node.internal.save()
-    }
-
     const options = await TlsUtils.getTlsOptions(
       this.fileSystem,
       this.nodeKeyPath,
