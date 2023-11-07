@@ -101,7 +101,7 @@ export class RpcServer {
       return false
     }
 
-    if (requestAuthToken.length >= AUTH_MAX_LENGTH) {
+    if (requestAuthToken.length > AUTH_MAX_LENGTH) {
       return false
     }
 
@@ -121,7 +121,7 @@ export class RpcServer {
     this.logger.debug(
       `Missing RPC Auth token in internal.json config. Automatically generating auth token.`,
     )
-    const newPassword = randomBytes(AUTH_MAX_LENGTH).toString('hex')
+    const newPassword = randomBytes(AUTH_MAX_LENGTH / 2).toString('hex')
     this.internal.set('rpcAuthToken', newPassword)
     await this.internal.save()
   }
