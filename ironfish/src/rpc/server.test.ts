@@ -6,9 +6,12 @@ import { createNodeTest } from '../testUtilities'
 describe('RpcServer', () => {
   const nodeTest = createNodeTest()
 
-  it('should authentiacte', () => {
-    nodeTest.node.rpc.internal.set('rpcAuthToken', 'foo')
+  it('should authentiacte', async () => {
+    nodeTest.node.rpc.internal.set('rpcAuthToken', 'ironfish')
+    await nodeTest.node.rpc.start()
+
     expect(nodeTest.node.rpc.authenticate('')).toBe(false)
     expect(nodeTest.node.rpc.authenticate('foobar')).toBe(false)
+    expect(nodeTest.node.rpc.authenticate('ironfish')).toBe(true)
   })
 })
