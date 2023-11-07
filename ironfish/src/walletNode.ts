@@ -140,7 +140,7 @@ export class WalletNode {
 
     const numWorkers = calculateWorkers(config.get('nodeWorkers'), config.get('nodeWorkersMax'))
 
-    const workerPool = new WorkerPool({ metrics, numWorkers })
+    const workerPool = new WorkerPool({ logger, metrics, numWorkers })
 
     metrics = metrics || new MetricsMonitor({ logger })
 

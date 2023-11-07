@@ -49,7 +49,7 @@ export class FeeEstimator {
     logger?: Logger
     percentiles?: PriorityLevelPercentiles
   }) {
-    this.logger = options.logger || createRootLogger().withTag('recentFeeCache')
+    this.logger = (options.logger ?? createRootLogger()).withTag('recentFeeCache')
     this.maxBlockHistory = options.maxBlockHistory ?? this.maxBlockHistory
     this.consensus = options.consensus
 
