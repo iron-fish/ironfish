@@ -5,23 +5,22 @@ import { generateKeyFromPrivateKey } from '@ironfish/rust-nodejs'
 import { Logger } from '../../logger'
 import { IDatabase, IDatabaseTransaction } from '../../storage'
 import { createDB } from '../../storage/utils'
-import { IronfishNode } from '../../utils'
-import { Database, Migration } from '../migration'
+import { Database, Migration, MigrationContext } from '../migration'
 import { GetStores } from './000-template/stores'
 
 export class Migration000 extends Migration {
   path = __filename
   database = Database.WALLET
 
-  prepare(node: IronfishNode): IDatabase {
+  prepare(context: MigrationContext): IDatabase {
     /* replace line below with node.chain.location if applying migration to the blockchain
      * database
      */
-    return createDB({ location: node.config.walletDatabasePath })
+    return createDB({ location: context.config.walletDatabasePath })
   }
 
   async forward(
-    node: IronfishNode,
+    context: MigrationContext,
     db: IDatabase,
     tx: IDatabaseTransaction | undefined,
     logger: Logger,
@@ -54,7 +53,7 @@ export class Migration000 extends Migration {
    * Writing a backwards migration is optional but suggested
    */
   async backward(
-    node: IronfishNode,
+    context: MigrationContext,
     db: IDatabase,
     tx: IDatabaseTransaction | undefined,
     logger: Logger,

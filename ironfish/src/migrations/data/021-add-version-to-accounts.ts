@@ -3,8 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Logger } from '../../logger'
 import { IDatabase, IDatabaseTransaction } from '../../storage'
-import { IronfishNode } from '../../utils'
-import { Database, Migration } from '../migration'
+import { Database, Migration, MigrationContext } from '../migration'
 import { GetNewStores } from './021-add-version-to-accounts/schemaNew'
 import { GetOldStores } from './021-add-version-to-accounts/schemaOld'
 
@@ -12,12 +11,12 @@ export class Migration021 extends Migration {
   path = __filename
   database = Database.WALLET
 
-  prepare(node: IronfishNode): IDatabase {
-    return node.wallet.walletDb.db
+  prepare(context: MigrationContext): IDatabase {
+    return context.wallet.walletDb.db
   }
 
   async forward(
-    node: IronfishNode,
+    context: MigrationContext,
     db: IDatabase,
     tx: IDatabaseTransaction | undefined,
     logger: Logger,
@@ -42,7 +41,7 @@ export class Migration021 extends Migration {
   }
 
   async backward(
-    node: IronfishNode,
+    context: MigrationContext,
     db: IDatabase,
     tx: IDatabaseTransaction | undefined,
     logger: Logger,

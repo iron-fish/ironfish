@@ -4,25 +4,24 @@
 
 import { Logger } from '../../logger'
 import { IDatabase, IDatabaseTransaction } from '../../storage'
-import { IronfishNode } from '../../utils'
-import { Database, Migration } from '../migration'
+import { Database, Migration, MigrationContext } from '../migration'
 import { GetOldAccounts } from './021-add-version-to-accounts/schemaOld'
 
 export class Migration016 extends Migration {
   path = __filename
   database = Database.WALLET
 
-  prepare(node: IronfishNode): IDatabase {
-    return node.wallet.walletDb.db
+  prepare(context: MigrationContext): IDatabase {
+    return context.wallet.walletDb.db
   }
 
   async forward(
-    node: IronfishNode,
+    context: MigrationContext,
     db: IDatabase,
     tx: IDatabaseTransaction | undefined,
     logger: Logger,
   ): Promise<void> {
-    const accounts = await GetOldAccounts(node, db, tx)
+    const accounts = await GetOldAccounts(context, db, tx)
 
     logger.info(`Indexing on-chain transactions for ${accounts.length} accounts`)
 
@@ -37,7 +36,7 @@ export class Migration016 extends Migration {
           continue
         }
 
-        await node.wallet.walletDb.saveSequenceToTransactionHash(
+        await context.wallet.walletDb.saveSequenceToTransactionHash(
           account,
           transaction.sequence,
           transaction.transaction.hash(),
@@ -50,7 +49,7 @@ export class Migration016 extends Migration {
     }
   }
 
-  async backward(node: IronfishNode): Promise<void> {
-    await node.wallet.walletDb.sequenceToTransactionHash.clear()
+  async backward(context: MigrationContext): Promise<void> {
+    await context.wallet.walletDb.sequenceToTransactionHash.clear()
   }
 }

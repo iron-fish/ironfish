@@ -113,7 +113,7 @@ export class FullNode {
     this.logger = logger
     this.pkg = pkg
 
-    this.migrator = new Migrator({ node: this, logger })
+    this.migrator = new Migrator({ context: this, logger })
 
     const identity = privateIdentity || new BoxKeyPair()
 

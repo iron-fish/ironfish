@@ -2,14 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { Config } from '../fileStores'
 import { FileSystem } from '../fileSystems'
 import { Logger } from '../logger'
 import { IDatabase, IDatabaseTransaction } from '../storage'
-import { IronfishNode } from '../utils'
+import { Wallet } from '../wallet'
 
 export enum Database {
   WALLET = 'wallet',
   BLOCKCHAIN = 'blockchain',
+}
+
+export type MigrationContext = {
+  config: Config
+  files: FileSystem
+  wallet: Wallet
 }
 
 export abstract class Migration {
@@ -30,10 +37,10 @@ export abstract class Migration {
     return this
   }
 
-  abstract prepare(node: IronfishNode): Promise<IDatabase> | IDatabase
+  abstract prepare(context: MigrationContext): Promise<IDatabase> | IDatabase
 
   abstract forward(
-    node: IronfishNode,
+    context: MigrationContext,
     db: IDatabase,
     tx: IDatabaseTransaction | undefined,
     logger: Logger,
@@ -41,7 +48,7 @@ export abstract class Migration {
   ): Promise<void>
 
   abstract backward(
-    node: IronfishNode,
+    context: MigrationContext,
     db: IDatabase,
     tx: IDatabaseTransaction | undefined,
     logger: Logger,

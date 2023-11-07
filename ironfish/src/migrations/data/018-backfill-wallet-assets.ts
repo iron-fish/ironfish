@@ -3,29 +3,28 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Logger } from '../../logger'
 import { IDatabase, IDatabaseTransaction } from '../../storage'
-import { IronfishNode } from '../../utils'
-import { Database, Migration } from '../migration'
+import { Database, Migration, MigrationContext } from '../migration'
 import { GetOldAccounts } from './021-add-version-to-accounts/schemaOld'
 
 export class Migration018 extends Migration {
   path = __filename
   database = Database.WALLET
 
-  prepare(node: IronfishNode): IDatabase {
-    return node.wallet.walletDb.db
+  prepare(context: MigrationContext): IDatabase {
+    return context.wallet.walletDb.db
   }
 
   async forward(
-    node: IronfishNode,
+    context: MigrationContext,
     _db: IDatabase,
     tx: IDatabaseTransaction | undefined,
     logger: Logger,
   ): Promise<void> {
     // Ensure there are no corrupted records for users who might have failed
     // running this migration
-    await node.wallet.walletDb.assets.clear()
+    await context.wallet.walletDb.assets.clear()
 
-    const accounts = await GetOldAccounts(node, _db, tx)
+    const accounts = await GetOldAccounts(context, _db, tx)
 
     logger.info(`Backfilling assets for ${accounts.length} accounts`)
 
@@ -50,7 +49,7 @@ export class Migration018 extends Migration {
     logger.info('')
   }
 
-  async backward(node: IronfishNode): Promise<void> {
-    await node.wallet.walletDb.assets.clear()
+  async backward(context: MigrationContext): Promise<void> {
+    await context.wallet.walletDb.assets.clear()
   }
 }

@@ -4,20 +4,19 @@
 import { Logger } from '../../logger'
 import { IDatabase, IDatabaseTransaction } from '../../storage'
 import { createDB } from '../../storage/utils'
-import { IronfishNode } from '../../utils'
-import { Database, Migration } from '../migration'
+import { Database, Migration, MigrationContext } from '../migration'
 import { GetStores } from './027-account-created-at-block/stores'
 
 export class Migration027 extends Migration {
   path = __filename
   database = Database.WALLET
 
-  prepare(node: IronfishNode): IDatabase {
-    return createDB({ location: node.config.walletDatabasePath })
+  prepare(context: MigrationContext): IDatabase {
+    return createDB({ location: context.config.walletDatabasePath })
   }
 
   async forward(
-    node: IronfishNode,
+    context: MigrationContext,
     db: IDatabase,
     tx: IDatabaseTransaction | undefined,
     logger: Logger,
@@ -34,7 +33,7 @@ export class Migration027 extends Migration {
   }
 
   async backward(
-    node: IronfishNode,
+    context: MigrationContext,
     db: IDatabase,
     tx: IDatabaseTransaction | undefined,
     logger: Logger,

@@ -7,23 +7,23 @@ import { LogLevel } from 'consola'
 import { Assert } from '../assert'
 import { Logger } from '../logger'
 import { IDatabaseTransaction } from '../storage/database/transaction'
-import { IronfishNode, StrEnumUtils } from '../utils'
+import { StrEnumUtils } from '../utils'
 import { ErrorUtils } from '../utils/error'
 import { MIGRATIONS } from './data'
-import { Database, Migration } from './migration'
+import { Database, Migration, MigrationContext } from './migration'
 
 export class Migrator {
-  readonly node: IronfishNode
+  readonly context: MigrationContext
   readonly logger: Logger
   readonly migrations: Migration[]
 
-  constructor(options: { node: IronfishNode; logger: Logger; databases?: Database[] }) {
-    this.node = options.node
+  constructor(options: { context: MigrationContext; logger: Logger; databases?: Database[] }) {
+    this.context = options.context
     this.logger = options.logger.withTag('migrator')
 
     const whitelistedDBs = options?.databases ?? StrEnumUtils.getValues(Database)
     this.migrations = MIGRATIONS.map((m) => {
-      return new m().init(options.node.files)
+      return new m().init(options.context.files)
     })
       .filter((migration) => whitelistedDBs.includes(migration.database))
       .sort((a, b) => a.id - b.id)
@@ -45,7 +45,7 @@ export class Migrator {
    * Returns true if the migration database is at version 0
    */
   async isEmpty(migration: Migration): Promise<boolean> {
-    const db = await migration.prepare(this.node)
+    const db = await migration.prepare(this.context)
 
     try {
       await db.open()
@@ -57,7 +57,7 @@ export class Migrator {
   }
 
   async isApplied(migration: Migration): Promise<boolean> {
-    const db = await migration.prepare(this.node)
+    const db = await migration.prepare(this.context)
 
     try {
       await db.open()
@@ -78,7 +78,7 @@ export class Migrator {
 
       if (applied) {
         this.logger.info(`Reverting ${migration.name}`)
-        const db = await migration.prepare(this.node)
+        const db = await migration.prepare(this.context)
 
         const childLogger = this.logger.withTag(migration.name)
         let tx: IDatabaseTransaction | null = null
@@ -87,7 +87,7 @@ export class Migrator {
           await db.open()
           tx = db.transaction()
 
-          await migration.backward(this.node, db, tx, childLogger, dryRun)
+          await migration.backward(this.context, db, tx, childLogger, dryRun)
           await db.putVersion(migration.id - 1, tx)
 
           if (dryRun) {
@@ -141,7 +141,7 @@ export class Migrator {
 
     for (const migration of unapplied) {
       logger.info(`Running ${migration.name}...`)
-      const db = await migration.prepare(this.node)
+      const db = await migration.prepare(this.context)
 
       const childLogger = logger.withTag(migration.name)
       let tx: IDatabaseTransaction | undefined = undefined
@@ -153,7 +153,7 @@ export class Migrator {
           tx = db.transaction()
         }
 
-        await migration.forward(this.node, db, tx, childLogger, dryRun)
+        await migration.forward(this.context, db, tx, childLogger, dryRun)
         await db.putVersion(migration.id, tx)
 
         if (dryRun) {
