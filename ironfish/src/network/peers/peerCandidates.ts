@@ -42,7 +42,7 @@ export class PeerCandidates {
       websocketRetry: new ConnectionRetry(peer.isWhitelisted),
       localRequestedDisconnectUntil: null,
       peerRequestedDisconnectUntil: null,
-      name: null,
+      name: peer.name,
     }
 
     if (peer.state.identity !== null) {
@@ -73,6 +73,7 @@ export class PeerCandidates {
     } else {
       const tempPeer = new Peer(peer.identity)
       tempPeer.wsAddress = peer.wsAddress
+      tempPeer.name = peer.name ?? null
       this.addFromPeer(tempPeer, new Set([sendingPeerIdentity]))
     }
   }
