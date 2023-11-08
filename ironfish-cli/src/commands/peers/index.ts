@@ -156,16 +156,7 @@ function renderTable(
     }
   }
 
-  let index = 1
-
   columns = {
-    index: {
-      header: '#',
-      minWidth: 2,
-      get: () => {
-        return String(index++)
-      },
-    },
     ...columns,
     state: {
       header: STATE_COLUMN_HEADER,
