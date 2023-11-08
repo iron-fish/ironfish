@@ -19,10 +19,7 @@ export class ListCommand extends IronfishCommand {
   static flags = {
     ...RemoteFlags,
     ...tableFlags,
-    sort: {
-      ...sort,
-      exclusive: ['follow'],
-    },
+    sort,
     follow: Flags.boolean({
       char: 'f',
       default: false,
@@ -58,10 +55,9 @@ export class ListCommand extends IronfishCommand {
 
   async start(): Promise<void> {
     const { flags } = await this.parse(ListCommand)
+    flags.sort = flags.sort ?? STATE_COLUMN_HEADER
 
     if (!flags.follow) {
-      flags.sort = flags.sort ?? STATE_COLUMN_HEADER
-
       await this.sdk.client.connect()
       const response = await this.sdk.client.peer.getPeers()
       this.log(renderTable(response.content, flags))
@@ -237,16 +233,6 @@ function renderTable(
   }
 
   let result = ''
-
-  peers.sort((a, b) => {
-    if (a.state !== b.state) {
-      //sorting peers by connected state: CONNECTED, CONNECTING, DISCONNECTED
-      return a.state < b.state ? -1 : 1
-    }
-
-    // will show inbound connections first if the state is the same
-    return (a.identity ?? '') > (b.identity ?? '') ? -1 : 1
-  })
 
   CliUx.ux.table(peers, columns, {
     printLine: (line) => (result += `${String(line)}\n`),
