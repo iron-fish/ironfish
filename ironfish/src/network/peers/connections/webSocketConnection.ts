@@ -24,7 +24,9 @@ export class WebSocketConnection extends Connection {
   }
 
   set port(port: number) {
-    this._address = this._address ? { host: this._address.host, port } : null
+    if (this._address) {
+      this._address.port = port
+    }
   }
 
   constructor(
