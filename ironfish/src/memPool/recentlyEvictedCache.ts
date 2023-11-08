@@ -203,7 +203,7 @@ export class RecentlyEvictedCache {
       toFlush = this.removeAtSequenceQueue.peek()
     }
 
-    this.logger?.debug(
+    this.logger.debug(
       `Flushed ${flushCount} transactions from RecentlyEvictedCache after adding block ${sequence}`,
     )
 

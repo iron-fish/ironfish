@@ -234,7 +234,7 @@ export class FullNode {
 
     const numWorkers = calculateWorkers(config.get('nodeWorkers'), config.get('nodeWorkersMax'))
 
-    const workerPool = new WorkerPool({ metrics, numWorkers })
+    const workerPool = new WorkerPool({ logger, metrics, numWorkers })
 
     metrics = metrics || new MetricsMonitor({ logger })
 
@@ -270,6 +270,7 @@ export class FullNode {
         average: config.get('feeEstimatorPercentileAverage'),
         fast: config.get('feeEstimatorPercentileFast'),
       },
+      logger,
     })
 
     const memPool = new MemPool({
@@ -296,6 +297,7 @@ export class FullNode {
       workerPool,
       consensus,
       nodeClient: memoryClient,
+      logger,
     })
 
     const node = new FullNode({
