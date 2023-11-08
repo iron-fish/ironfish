@@ -350,8 +350,11 @@ export class PeerNetwork {
     this.peerConnectionManager.start()
 
     this.updateIsReady()
-    this.connectToPriorWebsocketConnections()
-    this.connectToBootstrapNodes()
+    const priorWebSocketConnections = this.connectToPriorWebsocketConnections()
+    if (priorWebSocketConnections === 0) {
+      this.connectToBootstrapNodes()
+    }
+    // this.connectToBootstrapNodes()
   }
 
   /**
@@ -365,6 +368,7 @@ export class PeerNetwork {
         port: peerAddress.port,
       })
     }
+    return this.peerManager.getConnectedPeers().length
   }
 
   private connectToBootstrapNodes() {
