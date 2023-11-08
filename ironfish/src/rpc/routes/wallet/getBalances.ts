@@ -6,6 +6,7 @@ import { AssetVerification } from '../../../assets'
 import { CurrencyUtils } from '../../../utils'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
+import { AssertHasRpcContext } from '../rpcContext'
 import { getAccount } from './utils'
 
 export interface GetBalancesRequest {
@@ -87,11 +88,16 @@ export const GetBalancesResponseSchema: yup.ObjectSchema<GetBalancesResponse> = 
 routes.register<typeof GetBalancesRequestSchema, GetBalancesResponse>(
   `${ApiNamespace.wallet}/getBalances`,
   GetBalancesRequestSchema,
-  async (request, node): Promise<void> => {
-    const account = getAccount(node.wallet, request.data.account)
+  async (request, context): Promise<void> => {
+    AssertHasRpcContext(request, context, 'wallet', 'assetsVerifier')
+
+    const account = getAccount(context.wallet, request.data.account)
 
     const balances = []
-    for await (const balance of node.wallet.getBalances(account, request.data.confirmations)) {
+    for await (const balance of context.wallet.getBalances(
+      account,
+      request.data.confirmations,
+    )) {
       if (request.closed) {
         return
       }
@@ -103,7 +109,7 @@ routes.register<typeof GetBalancesRequestSchema, GetBalancesResponse>(
         assetName: asset?.name.toString('hex') ?? '',
         assetCreator: asset?.creator.toString('hex') ?? '',
         assetOwner: asset?.owner.toString('hex') ?? '',
-        assetVerification: node.assetsVerifier.verify(balance.assetId),
+        assetVerification: context.assetsVerifier.verify(balance.assetId),
         blockHash: balance.blockHash?.toString('hex') ?? null,
         confirmed: CurrencyUtils.encode(balance.confirmed),
         sequence: balance.sequence,

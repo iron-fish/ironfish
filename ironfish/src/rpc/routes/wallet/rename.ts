@@ -10,14 +10,17 @@
 
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
+import { AssertHasRpcContext } from '../rpcContext'
 import { RenameAccountRequestSchema, RenameAccountResponse } from '../wallet'
 import { getAccount } from './utils'
 
 routes.register<typeof RenameAccountRequestSchema, RenameAccountResponse>(
   `${ApiNamespace.wallet}/rename`,
   RenameAccountRequestSchema,
-  async (request, node): Promise<void> => {
-    const account = getAccount(node.wallet, request.data.account)
+  async (request, context): Promise<void> => {
+    AssertHasRpcContext(request, context, 'wallet')
+
+    const account = getAccount(context.wallet, request.data.account)
     await account.setName(request.data.newName)
     request.end()
   },

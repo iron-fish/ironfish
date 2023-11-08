@@ -8,6 +8,7 @@ import { AsyncUtils } from '../../../utils'
 import { ValidationError } from '../../adapters'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
+import { AssertHasRpcContext } from '../rpcContext'
 
 export type AddTransactionRequest = {
   transaction: string
@@ -38,19 +39,21 @@ export const AddTransactionResponseSchema: yup.ObjectSchema<AddTransactionRespon
 routes.register<typeof AddTransactionRequestSchema, AddTransactionResponse>(
   `${ApiNamespace.wallet}/addTransaction`,
   AddTransactionRequestSchema,
-  async (request, node): Promise<void> => {
+  async (request, context): Promise<void> => {
+    AssertHasRpcContext(request, context, 'strategy', 'wallet')
+
     const data = Buffer.from(request.data.transaction, 'hex')
     const transaction = new Transaction(data)
 
-    const verify = Verifier.verifyCreatedTransaction(transaction, node.strategy.consensus)
+    const verify = Verifier.verifyCreatedTransaction(transaction, context.strategy.consensus)
 
     if (!verify.valid) {
       throw new ValidationError(`Invalid transaction, reason: ${String(verify.reason)}`, 400)
     }
 
-    await node.wallet.addPendingTransaction(transaction)
+    await context.wallet.addPendingTransaction(transaction)
 
-    const accounts = await AsyncUtils.filter(node.wallet.listAccounts(), (account) =>
+    const accounts = await AsyncUtils.filter(context.wallet.listAccounts(), (account) =>
       account.hasTransaction(transaction.hash()),
     )
 
@@ -62,7 +65,7 @@ routes.register<typeof AddTransactionRequestSchema, AddTransactionResponse>(
 
     let accepted = false
     if (request.data.broadcast) {
-      const result = await node.wallet.broadcastTransaction(transaction)
+      const result = await context.wallet.broadcastTransaction(transaction)
       accepted = result.accepted
     }
 

@@ -16,6 +16,7 @@ import { NotEnoughFundsError } from '../../../wallet/errors'
 import { ERROR_CODES, ValidationError } from '../../adapters/errors'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
+import { AssertHasRpcContext } from '../rpcContext'
 import { getAccount } from './utils'
 
 export type CreateTransactionRequest = {
@@ -106,6 +107,8 @@ routes.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
   `${ApiNamespace.wallet}/createTransaction`,
   CreateTransactionRequestSchema,
   async (request, node): Promise<void> => {
+    AssertHasRpcContext(request, node, 'wallet')
+
     const account = getAccount(node.wallet, request.data.account)
 
     const params: Parameters<Wallet['createTransaction']>[0] = {

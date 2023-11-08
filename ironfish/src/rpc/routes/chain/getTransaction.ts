@@ -54,8 +54,8 @@ export const GetTransactionResponseSchema: yup.ObjectSchema<GetTransactionRespon
 routes.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
   `${ApiNamespace.chain}/getTransaction`,
   GetTransactionRequestSchema,
-  async (request, node): Promise<void> => {
-    Assert.isInstanceOf(node, FullNode)
+  async (request, context): Promise<void> => {
+    Assert.isInstanceOf(context, FullNode)
 
     if (!request.data.transactionHash) {
       throw new ValidationError(`Missing transaction hash`)
@@ -65,7 +65,7 @@ routes.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
 
     const blockHashBuffer = request.data.blockHash
       ? BlockHashSerdeInstance.deserialize(request.data.blockHash)
-      : await node.chain.getBlockHashByTransactionHash(transactionHashBuffer)
+      : await context.chain.getBlockHashByTransactionHash(transactionHashBuffer)
 
     if (!blockHashBuffer) {
       throw new NotFoundError(
@@ -73,14 +73,14 @@ routes.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
       )
     }
 
-    const blockHeader = await node.chain.getHeader(blockHashBuffer)
+    const blockHeader = await context.chain.getHeader(blockHashBuffer)
     if (!blockHeader) {
       throw new NotFoundError(
         `No block found for block hash ${blockHashBuffer.toString('hex')}`,
       )
     }
 
-    const transactions = await node.chain.getBlockTransactions(blockHeader)
+    const transactions = await context.chain.getBlockTransactions(blockHeader)
 
     const foundTransaction = transactions.find(({ transaction }) =>
       transaction.hash().equals(transactionHashBuffer),

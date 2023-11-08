@@ -11,6 +11,7 @@ import { NotEnoughFundsError } from '../../../wallet/errors'
 import { ERROR_CODES, ValidationError } from '../../adapters/errors'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
+import { AssertHasRpcContext } from '../rpcContext'
 import { getAccount } from './utils'
 
 export type SendTransactionRequest = {
@@ -68,11 +69,13 @@ export const SendTransactionResponseSchema: yup.ObjectSchema<SendTransactionResp
 routes.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
   `${ApiNamespace.wallet}/sendTransaction`,
   SendTransactionRequestSchema,
-  async (request, node): Promise<void> => {
-    Assert.isNotNull(node.wallet.nodeClient)
-    const account = getAccount(node.wallet, request.data.account)
+  async (request, context): Promise<void> => {
+    AssertHasRpcContext(request, context, 'wallet')
 
-    const status = await node.wallet.nodeClient.node.getStatus()
+    Assert.isNotNull(context.wallet.nodeClient)
+    const account = getAccount(context.wallet, request.data.account)
+
+    const status = await context.wallet.nodeClient.node.getStatus()
 
     if (!status.content.blockchain.synced) {
       throw new ValidationError(
@@ -113,7 +116,7 @@ routes.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
 
     // Check that the node has enough balance
     for (const [assetId, sum] of totalByAssetId) {
-      const balance = await node.wallet.getBalance(account, assetId, {
+      const balance = await context.wallet.getBalance(account, assetId, {
         confirmations: request.data.confirmations ?? undefined,
       })
 
@@ -127,7 +130,7 @@ routes.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
     }
 
     try {
-      const transaction = await node.wallet.send(params)
+      const transaction = await context.wallet.send(params)
 
       request.end({
         account: account.name,

@@ -4,6 +4,7 @@
 import * as yup from 'yup'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
+import { AssertHasRpcContext } from '../rpcContext'
 import { getAccount } from './utils'
 
 export type GetPublicKeyRequest = { account?: string }
@@ -26,6 +27,7 @@ routes.register<typeof GetPublicKeyRequestSchema, GetPublicKeyResponse>(
   `${ApiNamespace.wallet}/getPublicKey`,
   GetPublicKeyRequestSchema,
   (request, node): void => {
+    AssertHasRpcContext(request, node, 'wallet')
     const account = getAccount(node.wallet, request.data.account)
 
     request.end({

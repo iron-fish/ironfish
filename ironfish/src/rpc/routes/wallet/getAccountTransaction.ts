@@ -4,6 +4,7 @@
 import * as yup from 'yup'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
+import { AssertHasRpcContext } from '../rpcContext'
 import { RpcWalletTransaction, RpcWalletTransactionSchema } from '../wallet/types'
 import { getAccount, getAccountDecryptedNotes, serializeRpcWalletTransaction } from './utils'
 
@@ -45,6 +46,8 @@ routes.register<typeof GetAccountTransactionRequestSchema, GetAccountTransaction
   `${ApiNamespace.wallet}/getAccountTransaction`,
   GetAccountTransactionRequestSchema,
   async (request, node): Promise<void> => {
+    AssertHasRpcContext(request, node, 'wallet', 'config', 'workerPool')
+
     const account = getAccount(node.wallet, request.data.account)
 
     const transactionHash = Buffer.from(request.data.hash, 'hex')
@@ -59,7 +62,8 @@ routes.register<typeof GetAccountTransactionRequestSchema, GetAccountTransaction
     }
 
     const serializedTransaction = await serializeRpcWalletTransaction(
-      node,
+      node.config,
+      node.wallet,
       account,
       transaction,
       {

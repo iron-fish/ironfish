@@ -7,6 +7,7 @@ import { CurrencyUtils } from '../../../utils'
 import { NotFoundError, ValidationError } from '../../adapters'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
+import { AssertHasRpcContext } from '../rpcContext'
 import { RpcAsset, RpcAssetSchema } from '../types'
 import { getAccount } from './utils'
 
@@ -34,6 +35,8 @@ routes.register<typeof GetWalletAssetRequestSchema, GetWalletAssetResponse>(
   `${ApiNamespace.wallet}/getAsset`,
   GetWalletAssetRequestSchema,
   async (request, node): Promise<void> => {
+    AssertHasRpcContext(request, node, 'wallet', 'assetsVerifier')
+
     const account = getAccount(node.wallet, request.data.account)
 
     const id = Buffer.from(request.data.id, 'hex')

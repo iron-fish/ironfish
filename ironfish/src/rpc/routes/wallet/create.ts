@@ -11,15 +11,18 @@
 import { ERROR_CODES, ValidationError } from '../../adapters'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
+import { AssertHasRpcContext } from '../rpcContext'
 import { CreateAccountRequestSchema, CreateAccountResponse } from '../wallet'
 
 routes.register<typeof CreateAccountRequestSchema, CreateAccountResponse>(
   `${ApiNamespace.wallet}/create`,
   CreateAccountRequestSchema,
-  async (request, node): Promise<void> => {
+  async (request, context): Promise<void> => {
+    AssertHasRpcContext(request, context, 'wallet')
+
     const name = request.data.name
 
-    if (node.wallet.accountExists(name)) {
+    if (context.wallet.accountExists(name)) {
       throw new ValidationError(
         `There is already an account with the name ${name}`,
         400,
@@ -27,14 +30,14 @@ routes.register<typeof CreateAccountRequestSchema, CreateAccountResponse>(
       )
     }
 
-    const account = await node.wallet.createAccount(name)
-    if (node.wallet.nodeClient) {
-      void node.wallet.scanTransactions()
+    const account = await context.wallet.createAccount(name)
+    if (context.wallet.nodeClient) {
+      void context.wallet.scanTransactions()
     }
 
     let isDefaultAccount = false
-    if (!node.wallet.hasDefaultAccount || request.data.default) {
-      await node.wallet.setDefaultAccount(name)
+    if (!context.wallet.hasDefaultAccount || request.data.default) {
+      await context.wallet.setDefaultAccount(name)
       isDefaultAccount = true
     }
 

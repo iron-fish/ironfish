@@ -39,22 +39,22 @@ export const BroadcastTransactionResponseSchema: yup.ObjectSchema<BroadcastTrans
 routes.register<typeof BroadcastTransactionRequestSchema, BroadcastTransactionResponse>(
   `${ApiNamespace.chain}/broadcastTransaction`,
   BroadcastTransactionRequestSchema,
-  async (request, node): Promise<void> => {
-    Assert.isInstanceOf(node, FullNode)
+  async (request, context): Promise<void> => {
+    Assert.isInstanceOf(context, FullNode)
 
     const data = Buffer.from(request.data.transaction, 'hex')
     const transaction = new Transaction(data)
 
-    const verify = await node.chain.verifier.verifyNewTransaction(transaction)
+    const verify = await context.chain.verifier.verifyNewTransaction(transaction)
     if (!verify.valid) {
       throw new ValidationError(`Invalid transaction, reason: ${String(verify.reason)}`)
     }
 
-    const accepted = node.memPool.acceptTransaction(transaction)
+    const accepted = context.memPool.acceptTransaction(transaction)
 
     let broadcasted = false
-    if (node.peerNetwork.isReady) {
-      node.peerNetwork.broadcastTransaction(transaction)
+    if (context.peerNetwork.isReady) {
+      context.peerNetwork.broadcastTransaction(transaction)
       broadcasted = true
     }
 

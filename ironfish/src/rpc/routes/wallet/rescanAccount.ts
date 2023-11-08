@@ -6,6 +6,7 @@ import { GENESIS_BLOCK_SEQUENCE } from '../../../primitives'
 import { ValidationError } from '../../adapters/errors'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
+import { AssertHasRpcContext } from '../rpcContext'
 
 export type RescanAccountRequest = { follow?: boolean; from?: number }
 export type RescanAccountResponse = { sequence: number; startedAt: number; endSequence: number }
@@ -28,23 +29,25 @@ export const RescanAccountResponseSchema: yup.ObjectSchema<RescanAccountResponse
 routes.register<typeof RescanAccountRequestSchema, RescanAccountResponse>(
   `${ApiNamespace.wallet}/rescanAccount`,
   RescanAccountRequestSchema,
-  async (request, node): Promise<void> => {
-    let scan = node.wallet.scan
+  async (request, context): Promise<void> => {
+    AssertHasRpcContext(request, context, 'wallet', 'logger')
+
+    let scan = context.wallet.scan
 
     if (scan && !request.data.follow) {
       throw new ValidationError(`A transaction rescan is already running`)
     }
 
     if (!scan) {
-      if (node.wallet.updateHeadState) {
-        await node.wallet.updateHeadState.abort()
+      if (context.wallet.updateHeadState) {
+        await context.wallet.updateHeadState.abort()
       }
 
-      await node.wallet.reset()
+      await context.wallet.reset()
 
       let fromHash = undefined
       if (request.data.from && request.data.from > GENESIS_BLOCK_SEQUENCE) {
-        const response = await node.wallet.chainGetBlock({ sequence: request.data.from })
+        const response = await context.wallet.chainGetBlock({ sequence: request.data.from })
 
         if (response === null) {
           throw new ValidationError(
@@ -54,7 +57,7 @@ routes.register<typeof RescanAccountRequestSchema, RescanAccountResponse>(
 
         fromHash = Buffer.from(response.block.hash, 'hex')
 
-        for (const account of node.wallet.listAccounts()) {
+        for (const account of context.wallet.listAccounts()) {
           await account.updateHead({
             hash: Buffer.from(response.block.previousBlockHash, 'hex'),
             sequence: response.block.sequence - 1,
@@ -62,11 +65,11 @@ routes.register<typeof RescanAccountRequestSchema, RescanAccountResponse>(
         }
       }
 
-      void node.wallet.scanTransactions(fromHash)
-      scan = node.wallet.scan
+      void context.wallet.scanTransactions(fromHash)
+      scan = context.wallet.scan
 
       if (!scan) {
-        node.logger.warn(`Attempted to start accounts scan but one did not start.`)
+        context.logger.warn(`Attempted to start accounts scan but one did not start.`)
       }
     }
 

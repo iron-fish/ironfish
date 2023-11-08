@@ -1,8 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Config } from '../../../fileStores'
 import { Note } from '../../../primitives'
-import { BufferUtils, CurrencyUtils, IronfishNode } from '../../../utils'
+import { BufferUtils, CurrencyUtils } from '../../../utils'
 import { Account, Wallet } from '../../../wallet'
 import { AccountImport } from '../../../wallet/walletdb/accountValue'
 import { AssetValue } from '../../../wallet/walletdb/assetValue'
@@ -38,7 +39,8 @@ export function getAccount(wallet: Wallet, name?: string): Account {
 }
 
 export async function serializeRpcWalletTransaction(
-  node: IronfishNode,
+  config: Config,
+  wallet: Wallet,
   account: Account,
   transaction: TransactionValue,
   options?: {
@@ -47,9 +49,9 @@ export async function serializeRpcWalletTransaction(
   },
 ): Promise<RpcWalletTransaction> {
   const assetBalanceDeltas = await getAssetBalanceDeltas(account, transaction)
-  const type = await node.wallet.getTransactionType(account, transaction)
-  const confirmations = options?.confirmations ?? node.config.get('confirmations')
-  const status = await node.wallet.getTransactionStatus(account, transaction, {
+  const type = await wallet.getTransactionType(account, transaction)
+  const confirmations = options?.confirmations ?? config.get('confirmations')
+  const status = await wallet.getTransactionStatus(account, transaction, {
     confirmations,
   })
 
