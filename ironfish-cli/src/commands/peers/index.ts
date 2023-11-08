@@ -160,7 +160,16 @@ function renderTable(
     }
   }
 
+  let index = 1
+
   columns = {
+    index: {
+      header: '#',
+      minWidth: 2,
+      get: () => {
+        return String(index++)
+      },
+    },
     ...columns,
     state: {
       header: STATE_COLUMN_HEADER,
@@ -228,6 +237,17 @@ function renderTable(
   }
 
   let result = ''
+
+  //sorting peers by connected state: CONNECTED, CONNECTING, DISCONNECTED
+
+  peers.sort((a, b) => {
+    if (a.state !== b.state) {
+      return a.state < b.state ? -1 : 1
+    }
+
+    // will show inbound connections first
+    return (a.identity ?? '') > (b.identity ?? '') ? -1 : 1
+  })
 
   CliUx.ux.table(peers, columns, {
     printLine: (line) => (result += `${String(line)}\n`),
