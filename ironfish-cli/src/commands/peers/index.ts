@@ -238,14 +238,13 @@ function renderTable(
 
   let result = ''
 
-  //sorting peers by connected state: CONNECTED, CONNECTING, DISCONNECTED
-
   peers.sort((a, b) => {
     if (a.state !== b.state) {
+      //sorting peers by connected state: CONNECTED, CONNECTING, DISCONNECTED
       return a.state < b.state ? -1 : 1
     }
 
-    // will show inbound connections first
+    // will show inbound connections first if the state is the same
     return (a.identity ?? '') > (b.identity ?? '') ? -1 : 1
   })
 
