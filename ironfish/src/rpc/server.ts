@@ -30,6 +30,7 @@ export class RpcServer {
     this.internal = internal
     this.logger = logger.withTag('rpcserver')
 
+    this.loadAuth(this.internal.get('rpcAuthToken'))
     this.internal.onConfigChange.on(([key, value]) =>
       this.onConfigChange(key as keyof InternalOptions, value),
     )
@@ -113,17 +114,14 @@ export class RpcServer {
   private async generateAuth(): Promise<void> {
     const rpcAuthToken = this.internal.get('rpcAuthToken')
 
-    if (rpcAuthToken) {
-      this.loadAuth(this.internal.get('rpcAuthToken'))
-      return
+    if (!rpcAuthToken) {
+      this.logger.debug(
+        `Missing RPC Auth token in internal.json config. Automatically generating auth token.`,
+      )
+      const newPassword = randomBytes(AUTH_MAX_LENGTH / 2).toString('hex')
+      this.internal.set('rpcAuthToken', newPassword)
+      await this.internal.save()
     }
-
-    this.logger.debug(
-      `Missing RPC Auth token in internal.json config. Automatically generating auth token.`,
-    )
-    const newPassword = randomBytes(AUTH_MAX_LENGTH / 2).toString('hex')
-    this.internal.set('rpcAuthToken', newPassword)
-    await this.internal.save()
   }
 
   private onConfigChange<Key extends keyof InternalOptions>(
