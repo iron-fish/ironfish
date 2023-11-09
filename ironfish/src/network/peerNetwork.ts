@@ -268,21 +268,13 @@ export class PeerNetwork {
     }
     this.started = true
 
-    // Start the WebSocket server if possible
     this.startWebSocketServer()
-
-    // Start up the PeerManager
     this.peerManager.start()
-
-    // Start up the PeerConnectionManager
     this.peerConnectionManager.start()
 
     this.updateIsReady()
 
-    // Connect to bootstrap nodes
     this.connectToBootstrapNodes()
-
-    // Connect to prior websocket outbound connections that were saved to disk
     this.connectToPriorWebsocketConnections()
   }
 
