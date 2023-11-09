@@ -362,15 +362,6 @@ export class PeerNetwork {
     }
   }
 
-  private connectToPriorWebsocketConnections() {
-    for (const peerAddress of this.peerManager.peerStoreManager.priorConnectedPeerAddresses) {
-      this.peerManager.connectToWebSocketAddress({
-        host: peerAddress.address,
-        port: peerAddress.port,
-      })
-    }
-  }
-
   private connectToBootstrapNodes() {
     for (const node of this.bootstrapNodes) {
       const url = parseUrl(node)
@@ -389,6 +380,15 @@ export class PeerNetwork {
         host: url.hostname,
         port,
         whitelist: true,
+      })
+    }
+  }
+
+  private connectToPriorWebsocketConnections() {
+    for (const peerAddress of this.peerManager.peerStoreManager.priorConnectedPeerAddresses) {
+      this.peerManager.connectToWebSocketAddress({
+        host: peerAddress.address,
+        port: peerAddress.port,
       })
     }
   }
