@@ -392,6 +392,43 @@ describe('maintainMaxPeerCount', () => {
     }
   })
 
+  it('should not disconnect white-listed peers', () => {
+    const maxPeers = 5
+
+    const pm = new PeerManager(mockLocalPeer(), mockPeerStore())
+    const pcm = new PeerConnectionManager(pm, createRootLogger(), {
+      maxPeers,
+      keepOpenPeerSlot: true,
+    })
+
+    // Add 3 white-listed peers
+    const whitelistPeer1 = getConnectedPeer(pm)
+    whitelistPeer1.peer.isWhitelisted = true
+
+    const whitelistPeer2 = getConnectedPeer(pm)
+    whitelistPeer2.peer.isWhitelisted = true
+
+    const whitelistPeer3 = getConnectedPeer(pm)
+    whitelistPeer3.peer.isWhitelisted = true
+
+    // Add non-white-listed peer
+    getConnectedPeer(pm)
+
+    // Execute this test many times to ensure the logic is sound despite
+    // randomness being involved
+    for (let i = 0; i < 100; i++) {
+      // Add 5th peer who is not eligible to be disconnected this loop, but will
+      // be the only eligible peer next loop
+      getConnectedPeer(pm)
+
+      pcm['maintainMaxPeerCount']()
+    }
+
+    expect(whitelistPeer1.connection.state.type).toEqual('CONNECTED')
+    expect(whitelistPeer2.connection.state.type).toEqual('CONNECTED')
+    expect(whitelistPeer3.connection.state.type).toEqual('CONNECTED')
+  })
+
   describe('when keepOpenPeerSlot is false', () => {
     it('should only disconnect a peer if it is above maxPeers', () => {
       const maxPeers = 5
