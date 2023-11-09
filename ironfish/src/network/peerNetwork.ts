@@ -268,7 +268,17 @@ export class PeerNetwork {
     }
     this.started = true
 
-    // Start the WebSocket server if possible
+    this.startWebSocketServer()
+    this.peerManager.start()
+    this.peerConnectionManager.start()
+
+    this.updateIsReady()
+
+    this.connectToBootstrapNodes()
+    this.connectToPriorWebsocketConnections()
+  }
+
+  private startWebSocketServer() {
     if (this.listen && 'Server' in this.localPeer.webSocket && this.localPeer.port !== null) {
       this.webSocketServer = new WebSocketServer(
         this.localPeer.webSocket.Server,
@@ -342,15 +352,9 @@ export class PeerNetwork {
         }
       })
     }
+  }
 
-    // Start up the PeerManager
-    this.peerManager.start()
-
-    // Start up the PeerConnectionManager
-    this.peerConnectionManager.start()
-
-    this.updateIsReady()
-
+  private connectToBootstrapNodes() {
     for (const node of this.bootstrapNodes) {
       const url = parseUrl(node)
 
@@ -370,9 +374,9 @@ export class PeerNetwork {
         whitelist: true,
       })
     }
+  }
 
-    // Connect to prior websocket outbound connections that were saved to disk
-    // This should be replaced with populating from the peer candidates list [IFL-1786]
+  private connectToPriorWebsocketConnections() {
     for (const peerAddress of this.peerManager.peerStoreManager.priorConnectedPeerAddresses) {
       this.peerManager.connectToWebSocketAddress({
         host: peerAddress.address,
