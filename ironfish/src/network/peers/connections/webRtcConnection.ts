@@ -70,6 +70,8 @@ export class WebRtcConnection extends Connection {
     this.peer = new nodeDataChannel.PeerConnection('peer', {
       iceServers: options.stunServers ?? [],
       maxMessageSize: MAX_MESSAGE_SIZE,
+      portRangeBegin: 40000,
+      portRangeEnd: 45000,
     })
 
     this.setState({ type: 'CONNECTING' })
