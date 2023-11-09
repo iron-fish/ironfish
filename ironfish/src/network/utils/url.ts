@@ -51,10 +51,13 @@ export function parseUrl(url: string): {
  * Format web socket address into a string
  */
 export function formatWebSocketAddress(address: WebSocketAddress | null): string | null {
-  if (!address) {
-    return null
-  }
+  return address ? formatFullWebSocketAddress(address) : null
+}
 
+/**
+ * Format web socket address into a string
+ */
+export function formatFullWebSocketAddress(address: WebSocketAddress): string {
   const { host, port } = address
   const portString = port ? `${PORT_SEPARATOR}${port}` : ``
   return `ws://${host}${portString}`

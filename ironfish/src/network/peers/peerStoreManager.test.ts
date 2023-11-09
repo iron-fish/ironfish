@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 jest.mock('ws')
 
+import { PeerAddress } from '../../fileStores'
 import {
   getConnectedPeer,
   getConnectingPeer,
@@ -11,7 +12,6 @@ import {
   mockPeerStore,
 } from '../testUtilities'
 import { Peer } from './peer'
-import { PeerAddress } from './peerAddress'
 import { PeerManager } from './peerManager'
 import { MAX_PEER_ADDRESSES, PeerStoreManager } from './peerStoreManager'
 
@@ -253,7 +253,6 @@ describe('PeerStoreManager', () => {
     const address: PeerAddress = {
       address: connectedPeer.address || '',
       port: connectedPeer.port || 0,
-      identity: connectedPeer.state.identity || '',
       name: connectedPeer.name,
       lastAddedTimestamp: now,
     }

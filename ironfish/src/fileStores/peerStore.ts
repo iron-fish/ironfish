@@ -3,9 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { FileSystem } from '../fileSystems'
 import { createRootLogger, Logger } from '../logger'
-import { PeerAddress } from '../network/peers/peerAddress'
-import { ParseJsonError } from '../utils/json'
 import { KeyStore } from './keyStore'
+
+export type PeerAddress = {
+  address: string
+  port: number
+  name: string | null
+  lastAddedTimestamp: number
+}
 
 export type PeerStoreOptions = {
   priorPeers: PeerAddress[]
@@ -28,18 +33,19 @@ export class PeerStore extends KeyStore<PeerStoreOptions> {
     this.logger = createRootLogger()
   }
 
-  async load(): Promise<void> {
-    try {
-      await super.load()
-    } catch (e) {
-      if (e instanceof ParseJsonError) {
-        this.logger.debug(
-          `Error: Could not parse JSON at ${this.storage.configPath}, overwriting file.`,
-        )
-        await super.save()
-      } else {
-        throw e
+  getPriorPeers(): PeerAddress[] {
+    // Checking for null values in case the file is an older version
+    return this.getArray('priorPeers').filter((peer) => {
+      if (peer.address === null || peer.port === null) {
+        return []
       }
-    }
+
+      return {
+        address: peer.address,
+        port: peer.port,
+        name: peer.name,
+        lastAddedTimestamp: peer.lastAddedTimestamp ?? 0,
+      }
+    })
   }
 }

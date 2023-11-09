@@ -1,9 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { DEFAULT_DATA_DIR, PeerStore, PeerStoreOptions } from '../../fileStores'
+import { DEFAULT_DATA_DIR, PeerAddress, PeerStore, PeerStoreOptions } from '../../fileStores'
 import { FileSystem } from '../../fileSystems'
-import { PeerAddress } from '../peers/peerAddress'
 
 /**
  * Utility to create a fake PeerStore for use in

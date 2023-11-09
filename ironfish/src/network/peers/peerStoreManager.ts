@@ -1,11 +1,11 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { PeerStore } from '../../fileStores'
-import { Identity } from '../identity'
+import { PeerAddress, PeerStore } from '../../fileStores'
+import { PriorityQueue } from '../../utils'
+import { formatFullWebSocketAddress, formatWebSocketAddress } from '../utils/url'
 import { ConnectionDirection } from './connections'
 import { Peer } from './peer'
-import { PeerAddress } from './peerAddress'
 
 export const MAX_PEER_ADDRESSES = 50
 
@@ -15,60 +15,51 @@ export const MAX_PEER_ADDRESSES = 50
  */
 export class PeerStoreManager {
   peerStore: PeerStore
-  private peerIdentityMap: Map<Identity, PeerAddress>
+
+  // Sort the peers with the oldest peer at the front of the queue
+  private peers = new PriorityQueue<PeerAddress>(
+    (p1, p2) => p1.lastAddedTimestamp < p2.lastAddedTimestamp,
+    (p) => formatFullWebSocketAddress({ host: p.address, port: p.port }),
+  )
 
   constructor(peerStore: PeerStore) {
     this.peerStore = peerStore
+
     // Load prior peers from disk
-    this.peerIdentityMap = new Map<string, PeerAddress>()
+    for (const peer of this.peerStore.getPriorPeers()) {
+      const existing = this.peers.remove(this.peers.hash(peer))
 
-    let priorPeers = this.peerStore.getArray('priorPeers').filter((peer) => {
-      if (peer.identity === null || peer.address === null || peer.port === null) {
-        return false
+      if (existing && existing.lastAddedTimestamp > peer.lastAddedTimestamp) {
+        this.peers.add(existing)
+      } else {
+        this.peers.add(peer)
       }
-
-      peer.lastAddedTimestamp = peer.lastAddedTimestamp ?? 0
-
-      return true
-    })
-
-    if (priorPeers.length > MAX_PEER_ADDRESSES) {
-      priorPeers = priorPeers.slice(0, MAX_PEER_ADDRESSES)
-    }
-
-    for (const peer of priorPeers) {
-      this.peerIdentityMap.set(peer.identity, peer)
     }
   }
 
   get priorConnectedPeerAddresses(): ReadonlyArray<Readonly<PeerAddress>> {
-    return [...this.peerIdentityMap.values()]
+    return [...this.peers.sorted()]
   }
 
   /**
    * Removes address associated with a peer from address stores
    */
   async removePeer(peer: Peer): Promise<void> {
-    if (peer.state.identity === null) {
-      return
-    }
+    const toRemove = formatWebSocketAddress(peer.wsAddress)
 
-    this.peerIdentityMap.delete(peer.state.identity)
-    await this.save()
+    if (toRemove) {
+      this.peers.remove(toRemove)
+      await this.save()
+    }
   }
 
   /**
-   * Adds a peer with the following conditions:
-   * 1. Peer is connected
-   * 2. Identity is valid
-   * 3. Peer has an outbound websocket connection
+   * Adds a peer if the peer has an outbound websocket connection
    */
   async addPeer(peer: Peer): Promise<void> {
-    if (peer.state.identity === null || peer.address === null || peer.port === null) {
-      return
-    }
-
     if (
+      peer.wsAddress === null ||
+      peer.wsAddress.port === null ||
       peer.state.type !== 'CONNECTED' ||
       !peer.state.connections.webSocket ||
       peer.state.connections.webSocket.direction !== ConnectionDirection.Outbound
@@ -76,41 +67,26 @@ export class PeerStoreManager {
       return
     }
 
-    const peerAddress = this.peerIdentityMap.get(peer.state.identity)
-
-    // If the peer is already in the address manager, update the timestamp,
-    // address and port
-    if (peerAddress) {
-      peerAddress.address = peer.address
-      peerAddress.port = peer.port
-      peerAddress.lastAddedTimestamp = Date.now()
-      this.peerIdentityMap.set(peer.state.identity, peerAddress)
-      await this.save()
-      return
-    }
-
-    // If the address manager is full, remove the oldest peer
-    if (this.peerIdentityMap.size >= MAX_PEER_ADDRESSES) {
-      const oldestPeerIdentity = [...this.peerIdentityMap.entries()].sort(
-        (a, b) => a[1].lastAddedTimestamp - b[1].lastAddedTimestamp,
-      )[0][0]
-
-      this.peerIdentityMap.delete(oldestPeerIdentity)
-    }
-
-    this.peerIdentityMap.set(peer.state.identity, {
-      address: peer.address,
-      port: peer.port,
-      identity: peer.state.identity,
+    const newPeer = {
+      address: peer.wsAddress.host,
+      port: peer.wsAddress.port,
       name: peer.name ?? null,
       lastAddedTimestamp: Date.now(),
-    })
+    }
+
+    this.peers.remove(this.peers.hash(newPeer))
+    this.peers.add(newPeer)
+
+    // Make sure we don't store too many peers
+    while (this.peers.size() > MAX_PEER_ADDRESSES) {
+      this.peers.poll()
+    }
 
     await this.save()
   }
 
   async save(): Promise<void> {
-    this.peerStore.set('priorPeers', [...this.peerIdentityMap.values()])
+    this.peerStore.set('priorPeers', [...this.peers.sorted()])
     await this.peerStore.save()
   }
 }
