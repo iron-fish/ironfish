@@ -278,7 +278,11 @@ export class PeerNetwork {
     this.peerConnectionManager.start()
 
     this.updateIsReady()
+
+    // Connect to bootstrap nodes
     this.connectToBootstrapNodes()
+
+    // Connect to prior websocket outbound connections that were saved to disk
     this.connectToPriorWebsocketConnections()
   }
 
@@ -358,10 +362,6 @@ export class PeerNetwork {
     }
   }
 
-  /**
-   * Connect to prior websocket outbound connections that were saved to disk
-   * This should be replaced with populating from the peer candidates list [IFL-1786]
-   */
   private connectToPriorWebsocketConnections() {
     for (const peerAddress of this.peerManager.peerStoreManager.priorConnectedPeerAddresses) {
       this.peerManager.connectToWebSocketAddress({
