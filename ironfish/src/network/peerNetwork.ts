@@ -269,6 +269,20 @@ export class PeerNetwork {
     this.started = true
 
     // Start the WebSocket server if possible
+    this.startWebSocketServer()
+
+    // Start up the PeerManager
+    this.peerManager.start()
+
+    // Start up the PeerConnectionManager
+    this.peerConnectionManager.start()
+
+    this.updateIsReady()
+    this.connectToBootstrapNodes()
+    this.connectToPriorWebsocketConnections()
+  }
+
+  private startWebSocketServer() {
     if (this.listen && 'Server' in this.localPeer.webSocket && this.localPeer.port !== null) {
       this.webSocketServer = new WebSocketServer(
         this.localPeer.webSocket.Server,
@@ -342,19 +356,6 @@ export class PeerNetwork {
         }
       })
     }
-
-    // Start up the PeerManager
-    this.peerManager.start()
-
-    // Start up the PeerConnectionManager
-    this.peerConnectionManager.start()
-
-    this.updateIsReady()
-    const priorWebSocketConnections = this.connectToPriorWebsocketConnections()
-    if (priorWebSocketConnections === 0) {
-      this.connectToBootstrapNodes()
-    }
-    // this.connectToBootstrapNodes()
   }
 
   /**
@@ -368,7 +369,6 @@ export class PeerNetwork {
         port: peerAddress.port,
       })
     }
-    return this.peerManager.getConnectedPeers().length
   }
 
   private connectToBootstrapNodes() {
