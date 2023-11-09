@@ -30,9 +30,9 @@ export class PeerStoreManager {
       const existing = this.peers.remove(this.peers.hash(peer))
 
       if (existing && existing.lastAddedTimestamp > peer.lastAddedTimestamp) {
-        this.peers.add(existing)
+        this.insertPeerAddress(existing)
       } else {
-        this.peers.add(peer)
+        this.insertPeerAddress(peer)
       }
     }
   }
@@ -67,22 +67,24 @@ export class PeerStoreManager {
       return
     }
 
-    const newPeer = {
+    this.insertPeerAddress({
       address: peer.wsAddress.host,
       port: peer.wsAddress.port,
       name: peer.name ?? null,
       lastAddedTimestamp: Date.now(),
-    }
+    })
 
-    this.peers.remove(this.peers.hash(newPeer))
-    this.peers.add(newPeer)
+    await this.save()
+  }
+
+  private insertPeerAddress(peerAddress: PeerAddress) {
+    this.peers.remove(this.peers.hash(peerAddress))
+    this.peers.add(peerAddress)
 
     // Make sure we don't store too many peers
     while (this.peers.size() > MAX_PEER_ADDRESSES) {
       this.peers.poll()
     }
-
-    await this.save()
   }
 
   async save(): Promise<void> {
