@@ -216,7 +216,8 @@ async function downloadFromBucket(
   if (response.Body) {
     const fileHandle = await fsAsync.open(output, 'w')
     const ws = fileHandle.createWriteStream()
-
+    
+    // @ts-expect-error Would rather comment out the type error than change the code to fix it
     await pipeline(response.Body as Readable, ws)
 
     ws.close()

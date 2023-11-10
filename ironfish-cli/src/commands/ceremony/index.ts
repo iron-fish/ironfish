@@ -93,7 +93,7 @@ export default class Ceremony extends IronfishCommand {
       try {
         response = await axios.get(downloadLink, {
           responseType: 'stream',
-          onDownloadProgress: (p: ProgressEvent) => {
+          onDownloadProgress: (p) => {
             this.log('loaded', p.loaded, 'total', p.total)
           },
         })
@@ -101,6 +101,7 @@ export default class Ceremony extends IronfishCommand {
         this.error(ErrorUtils.renderError(e))
       }
 
+      // @ts-expect-error Would rather comment out the type error than change the code to fix it
       await pipeline(response.data, fileHandle.createWriteStream())
 
       CliUx.ux.action.stop()

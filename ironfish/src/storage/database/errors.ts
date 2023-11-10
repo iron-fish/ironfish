@@ -17,7 +17,7 @@ export class DuplicateKeyError extends Error {
 export class DatabaseOpenError extends Error {
   name = this.constructor.name
 
-  constructor(message?: string, error?: Error) {
+  constructor(message?: string, error?: { message: string; stack?: string }) {
     super(message ?? error?.message)
 
     if (error && error.stack) {

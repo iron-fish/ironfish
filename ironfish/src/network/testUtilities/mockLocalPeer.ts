@@ -6,9 +6,12 @@ import { Blockchain } from '../../blockchain'
 import { mockChain } from '../../testUtilities/mocks'
 import { PrivateIdentity } from '../identity'
 import { LocalPeer } from '../peers/localPeer'
+import { NodeDataChannelType } from '../types'
 import { VERSION_PROTOCOL } from '../version'
 import { WebSocketClient } from '../webSocketClient'
 import { mockPrivateIdentity } from './mockPrivateIdentity'
+
+const mockNodeDataChannel: NodeDataChannelType = {} as unknown as NodeDataChannelType
 
 /**
  * Utility to create a fake "keypair" for testing the network layer
@@ -24,5 +27,14 @@ export function mockLocalPeer({
   version?: number
   chain?: Blockchain
 } = {}): LocalPeer {
-  return new LocalPeer(identity, agent, version, chain || mockChain(), WebSocketClient, 0, true)
+  return new LocalPeer(
+    identity,
+    agent,
+    version,
+    chain || mockChain(),
+    WebSocketClient,
+    mockNodeDataChannel,
+    0,
+    true,
+  )
 }

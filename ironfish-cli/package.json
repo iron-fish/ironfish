@@ -26,7 +26,7 @@
     "@oclif/test": "2.1.0",
     "@types/blessed": "0.1.17",
     "@types/inquirer": "8.2.5",
-    "@types/node": "18.11.16",
+    "@types/node": "20.9.0",
     "@types/tar": "6.1.1",
     "chai": "4.2.0",
     "cross-env": "7.0.3",
@@ -37,7 +37,7 @@
     "oclif": "2.6.0",
     "rimraf": "^3.0.2",
     "tsc-watch": "4.2.9",
-    "typescript": "4.3.4",
+    "typescript": "4.7.4",
     "yarn": "^1.22.10"
   },
   "scripts": {
