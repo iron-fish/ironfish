@@ -2,11 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { randomBytes } from 'crypto'
+import { randomBytes, timingSafeEqual } from 'crypto'
+import { Assert } from '../assert'
 import { InternalStore } from '../fileStores'
 import { createRootLogger, Logger } from '../logger'
 import { IRpcAdapter } from './adapters'
 import { ApiNamespace, RequestContext, Router, routes } from './routes'
+
+const AUTH_MAX_LENGTH = 256
 
 export class RpcServer {
   readonly internal: InternalStore
@@ -15,7 +18,8 @@ export class RpcServer {
 
   private _isRunning = false
   private _startPromise: Promise<unknown> | null = null
-  logger: Logger
+  private logger: Logger
+  private authTokenBuffer = Buffer.alloc(0)
 
   constructor(
     context: RequestContext,
@@ -25,6 +29,15 @@ export class RpcServer {
     this.context = context
     this.internal = internal
     this.logger = logger.withTag('rpcserver')
+
+    this.loadAuth(this.internal.get('rpcAuthToken'))
+
+    this.internal.onConfigChange.on((key, value) => {
+      if (key === 'rpcAuthToken') {
+        Assert.isString(value)
+        this.loadAuth(value)
+      }
+    })
   }
 
   get isRunning(): boolean {
@@ -86,30 +99,38 @@ export class RpcServer {
   /** Authenticate the RPC request */
   authenticate(requestAuthToken: string | undefined | null): boolean {
     if (!requestAuthToken) {
-      this.logger.debug(`Missing Auth token in RPC request.`)
       return false
     }
 
-    const rpcAuthToken = this.internal.get('rpcAuthToken')
-
-    if (!rpcAuthToken) {
-      this.logger.debug(`Missing RPC Auth token in internal.json config.`)
+    if (!this.authTokenBuffer.byteLength) {
       return false
     }
 
-    return requestAuthToken === rpcAuthToken
+    if (requestAuthToken.length > AUTH_MAX_LENGTH) {
+      return false
+    }
+
+    const requestAuthBuffer = Buffer.alloc(AUTH_MAX_LENGTH)
+    requestAuthBuffer.write(requestAuthToken)
+    return timingSafeEqual(requestAuthBuffer, this.authTokenBuffer)
   }
 
   private async generateAuth(): Promise<void> {
     const rpcAuthToken = this.internal.get('rpcAuthToken')
 
-    if (rpcAuthToken) {
+    if (!rpcAuthToken) {
       this.logger.debug(
         `Missing RPC Auth token in internal.json config. Automatically generating auth token.`,
       )
-      const newPassword = randomBytes(32).toString('hex')
+      const newPassword = randomBytes(AUTH_MAX_LENGTH / 2).toString('hex')
       this.internal.set('rpcAuthToken', newPassword)
       await this.internal.save()
     }
+  }
+
+  private loadAuth(token: string): void {
+    const buffer = Buffer.alloc(AUTH_MAX_LENGTH)
+    buffer.write(token)
+    this.authTokenBuffer = buffer
   }
 }
