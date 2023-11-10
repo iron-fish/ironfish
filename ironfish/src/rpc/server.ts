@@ -4,7 +4,7 @@
 
 import { randomBytes, timingSafeEqual } from 'crypto'
 import { Assert } from '../assert'
-import { InternalOptions, InternalStore } from '../fileStores'
+import { InternalStore } from '../fileStores'
 import { createRootLogger, Logger } from '../logger'
 import { IRpcAdapter } from './adapters'
 import { ApiNamespace, RequestContext, Router, routes } from './routes'
@@ -31,9 +31,13 @@ export class RpcServer {
     this.logger = logger.withTag('rpcserver')
 
     this.loadAuth(this.internal.get('rpcAuthToken'))
-    this.internal.onConfigChange.on(([key, value]) =>
-      this.onConfigChange(key as keyof InternalOptions, value),
-    )
+
+    this.internal.onConfigChange.on((key, value) => {
+      if (key === 'rpcAuthToken') {
+        Assert.isString(value)
+        this.loadAuth(value)
+      }
+    })
   }
 
   get isRunning(): boolean {
@@ -121,16 +125,6 @@ export class RpcServer {
       const newPassword = randomBytes(AUTH_MAX_LENGTH / 2).toString('hex')
       this.internal.set('rpcAuthToken', newPassword)
       await this.internal.save()
-    }
-  }
-
-  private onConfigChange<Key extends keyof InternalOptions>(
-    key: Key,
-    newValue: InternalOptions[Key],
-  ): void {
-    if (key === 'rpcAuthToken') {
-      Assert.isInstanceOf(newValue, String)
-      this.loadAuth(newValue)
     }
   }
 
