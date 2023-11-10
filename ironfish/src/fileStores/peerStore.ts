@@ -35,7 +35,7 @@ export class PeerStore extends KeyStore<PeerStoreOptions> {
 
   getPriorPeers(): PeerAddress[] {
     // Checking for null values in case the file is an older version
-    return this.getArray('priorPeers').filter((peer) => {
+    return this.getArray('priorPeers').flatMap((peer) => {
       if (peer.address === null || peer.port === null) {
         return []
       }
