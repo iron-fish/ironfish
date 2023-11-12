@@ -200,8 +200,10 @@ export class WebRtcConnection extends Connection {
     try {
       sent = this.datachannel.sendMessageBinary(data)
     } catch (e) {
-      this.logger.debug(`Datachannel error occurred while sending message: ${JSON.stringify(e)}`)
-      this.close()
+      this.logger.debug(
+        `Datachannel error occurred while sending message: ${JSON.stringify(e)}`,
+      )
+      this.close(e)
       sent = false
     }
 

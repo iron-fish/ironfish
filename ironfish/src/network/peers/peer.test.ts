@@ -113,8 +113,8 @@ it('Times out WebRTC handshake', async () => {
   expect(peer.state.type).toEqual('CONNECTED')
 })
 
-describe('Handles WebRTC message send failure', () => {
-  it('Handles failure if WebRTC is only connection', async () => {
+describe('Handles message send failure', () => {
+  it('Disconnects peer on error in _send', async () => {
     const nodeDataChannel = await import('node-datachannel')
 
     const connection = new WebRtcConnection(nodeDataChannel, true, createRootLogger())
@@ -122,21 +122,37 @@ describe('Handles WebRTC message send failure', () => {
 
     const peer = new Peer(null)
 
-    // Time out requesting signaling
     connection.setState({ type: 'CONNECTED', identity: mockIdentity('peer') })
     peer.setWebRtcConnection(connection)
-    if (!connection['datachannel']) {
-      throw new Error('Should have datachannel')
-    }
-    jest.spyOn(connection['datachannel'], 'sendMessageBinary').mockImplementation(() => {
-      throw new Error('Error')
+    const sendSpy = jest.spyOn(connection, '_send').mockImplementation(() => {
+      throw new Error()
     })
-    jest.spyOn(connection['datachannel'], 'isOpen').mockImplementation(() => true)
+
+    expect(peer.state.type).toEqual('CONNECTED')
+    const result = peer.send(new PeerListRequestMessage())
+    expect(sendSpy).toHaveBeenCalledTimes(1)
+    expect(result).toBeNull()
+    expect(peer.state.type).toEqual('DISCONNECTED')
+  })
+
+  it('Leaves peer connected if _send returns false', () => {
+    const connection = new WebSocketConnection(
+      new ws(''),
+      ConnectionDirection.Outbound,
+      createRootLogger(),
+    )
+    expect(connection.state.type).toEqual('CONNECTING')
+
+    const peer = new Peer(null)
+
+    connection.setState({ type: 'CONNECTED', identity: mockIdentity('peer') })
+    peer.setWebSocketConnection(connection)
+    jest.spyOn(connection, '_send').mockReturnValue(false)
 
     expect(peer.state.type).toEqual('CONNECTED')
     const result = peer.send(new PeerListRequestMessage())
     expect(result).toBeNull()
-    expect(peer.state.type).toEqual('DISCONNECTED')
+    expect(peer.state.type).toEqual('CONNECTED')
   })
 
   it('Falls back to WebSockets if available and WebRTC send fails', async () => {
@@ -157,11 +173,7 @@ describe('Handles WebRTC message send failure', () => {
     peer.setWebRtcConnection(wrtcConnection)
     peer.setWebSocketConnection(wsConnection)
 
-    if (wrtcConnection['datachannel']) {
-      jest.spyOn(wrtcConnection['datachannel'], 'sendMessage').mockImplementation(() => {
-        throw new Error('Error')
-      })
-    }
+    jest.spyOn(wrtcConnection, '_send').mockReturnValue(false)
 
     const wsSendSpy = jest.spyOn(wsConnection, 'send')
     const message = new PeerListRequestMessage()
