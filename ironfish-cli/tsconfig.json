@@ -1,7 +1,7 @@
 {
   "extends": "../config/tsconfig.base.json",
   "compilerOptions": {
-    "lib": ["ES2022"],
+    "lib": ["ES2020"],
     "outDir": "build",
     "rootDir": "./",
     "tsBuildInfoFile": "./build/tsconfig.tsbuildinfo"

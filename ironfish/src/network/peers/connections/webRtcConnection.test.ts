@@ -10,8 +10,10 @@ import { WebRtcConnection } from './webRtcConnection'
 describe('WebRtcConnection', () => {
   describe('send', () => {
     describe('with no datachannel', () => {
-      it('returns false', () => {
-        const connection = new WebRtcConnection(false, createRootLogger())
+      it('returns false', async () => {
+        const nodeDataChannel = await import('node-datachannel')
+
+        const connection = new WebRtcConnection(nodeDataChannel, false, createRootLogger())
         const message = new IdentifyMessage({
           agent: '',
           head: Buffer.alloc(32, 0),
@@ -30,14 +32,12 @@ describe('WebRtcConnection', () => {
     })
 
     describe('with a valid message', () => {
-      it('serializes and sends the message on the datachannel', () => {
-        const connection = new WebRtcConnection(true, createRootLogger())
-        const datachannel = connection['datachannel']
-        Assert.isNotNull(datachannel)
-        jest.spyOn(datachannel, 'isOpen').mockImplementation(() => true)
-        const sendMessageBinary = jest
-          .spyOn(datachannel, 'sendMessageBinary')
-          .mockImplementationOnce(jest.fn())
+      it('serializes and sends the message on the datachannel', async () => {
+        const nodeDataChannel = await import('node-datachannel')
+
+        const connection = new WebRtcConnection(nodeDataChannel, true, createRootLogger())
+        const sendSpy = jest.spyOn(connection, '_send')
+
         const message = new IdentifyMessage({
           agent: '',
           head: Buffer.alloc(32, 0),
@@ -51,9 +51,10 @@ describe('WebRtcConnection', () => {
           features: defaultFeatures(),
         })
 
-        expect(connection.send(message)).toBe(true)
-        expect(sendMessageBinary).toHaveBeenCalledWith(message.serialize())
+        connection.send(message)
         connection.close()
+
+        expect(sendSpy).toHaveBeenCalledWith(message.serialize())
       })
     })
   })

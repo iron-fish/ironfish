@@ -51,10 +51,12 @@ describe('setWebSocketConnection', () => {
 })
 
 describe('setWebRtcConnection', () => {
-  it('Changes to CONNECTING when in DISCONNECTED', () => {
+  it('Changes to CONNECTING when in DISCONNECTED', async () => {
+    const nodeDataChannel = await import('node-datachannel')
+
     const identity = mockIdentity('peer')
     const peer = new Peer(identity)
-    const connection = new WebRtcConnection(false, createRootLogger())
+    const connection = new WebRtcConnection(nodeDataChannel, false, createRootLogger())
 
     peer.setWebRtcConnection(connection)
     expect(peer.state).toEqual({
@@ -65,8 +67,10 @@ describe('setWebRtcConnection', () => {
   })
 })
 
-it('Times out WebRTC handshake', () => {
-  const connection = new WebRtcConnection(false, createRootLogger())
+it('Times out WebRTC handshake', async () => {
+  const nodeDataChannel = await import('node-datachannel')
+
+  const connection = new WebRtcConnection(nodeDataChannel, false, createRootLogger())
   expect(connection.state.type).toEqual('CONNECTING')
 
   const peer = new Peer(null)
@@ -110,8 +114,10 @@ it('Times out WebRTC handshake', () => {
 })
 
 describe('Handles WebRTC message send failure', () => {
-  it('Handles failure if WebRTC is only connection', () => {
-    const connection = new WebRtcConnection(true, createRootLogger())
+  it('Handles failure if WebRTC is only connection', async () => {
+    const nodeDataChannel = await import('node-datachannel')
+
+    const connection = new WebRtcConnection(nodeDataChannel, true, createRootLogger())
     expect(connection.state.type).toEqual('CONNECTING')
 
     const peer = new Peer(null)
@@ -133,8 +139,10 @@ describe('Handles WebRTC message send failure', () => {
     expect(peer.state.type).toEqual('DISCONNECTED')
   })
 
-  it('Falls back to WebSockets if available and WebRTC send fails', () => {
-    const wrtcConnection = new WebRtcConnection(true, createRootLogger())
+  it('Falls back to WebSockets if available and WebRTC send fails', async () => {
+    const nodeDataChannel = await import('node-datachannel')
+
+    const wrtcConnection = new WebRtcConnection(nodeDataChannel, true, createRootLogger())
     const wsConnection = new WebSocketConnection(
       new ws(''),
       ConnectionDirection.Outbound,
@@ -235,7 +243,9 @@ it('Transitions to CONNECTED when adding a connection with state CONNECTED', () 
   })
 })
 
-it('Stays in CONNECTED when adding an additional connection', () => {
+it('Stays in CONNECTED when adding an additional connection', async () => {
+  const nodeDataChannel = await import('node-datachannel')
+
   const identity = mockIdentity('peer')
   const peer = new Peer(null)
   const connection = new WebSocketConnection(
@@ -253,7 +263,7 @@ it('Stays in CONNECTED when adding an additional connection', () => {
   connection.setState({ type: 'CONNECTED', identity })
 
   // Add in an additional connection
-  const wrtcConnection = new WebRtcConnection(true, createRootLogger())
+  const wrtcConnection = new WebRtcConnection(nodeDataChannel, true, createRootLogger())
   peer.setWebRtcConnection(wrtcConnection)
   expect(wrtcConnection.state.type).not.toBe('CONNECTED')
 
@@ -265,7 +275,9 @@ it('Stays in CONNECTED when adding an additional connection', () => {
 })
 
 describe('Stays in CONNECTED when one connection disconnects', () => {
-  it('WebSocket disconnects', () => {
+  it('WebSocket disconnects', async () => {
+    const nodeDataChannel = await import('node-datachannel')
+
     const identity = mockIdentity('peer')
     const peer = new Peer(null)
 
@@ -279,7 +291,7 @@ describe('Stays in CONNECTED when one connection disconnects', () => {
     connection.setState({ type: 'CONNECTED', identity })
 
     // Add a CONNECTED WebRTC connection
-    const wrtcConnection = new WebRtcConnection(true, createRootLogger())
+    const wrtcConnection = new WebRtcConnection(nodeDataChannel, true, createRootLogger())
     peer.setWebRtcConnection(wrtcConnection)
     wrtcConnection.setState({ type: 'CONNECTED', identity })
 
@@ -294,7 +306,9 @@ describe('Stays in CONNECTED when one connection disconnects', () => {
     })
   })
 
-  it('WebRTC disconnects', () => {
+  it('WebRTC disconnects', async () => {
+    const nodeDataChannel = await import('node-datachannel')
+
     const identity = mockIdentity('peer')
     const peer = new Peer(null)
 
@@ -308,7 +322,7 @@ describe('Stays in CONNECTED when one connection disconnects', () => {
     connection.setState({ type: 'CONNECTED', identity })
 
     // Add a CONNECTED WebRTC connection
-    const wrtcConnection = new WebRtcConnection(true, createRootLogger())
+    const wrtcConnection = new WebRtcConnection(nodeDataChannel, true, createRootLogger())
     peer.setWebRtcConnection(wrtcConnection)
     wrtcConnection.setState({ type: 'CONNECTED', identity })
 

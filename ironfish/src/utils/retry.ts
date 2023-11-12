@@ -25,17 +25,17 @@ export class Retry {
     })
   }
 
-  private tryExecutor<T, E>(
+  private tryExecutor<T>(
     fn: () => Promise<T>,
     resolve: (result: T) => void,
-    reject: (error: E) => void,
+    reject: (error: unknown) => void,
   ) {
     fn()
       .then((result) => {
         this.reset()
         resolve(result)
       })
-      .catch((error) => {
+      .catch((error: unknown) => {
         if (this.shouldRetry()) {
           setTimeout(() => {
             this.tryExecutor(fn, resolve, reject)

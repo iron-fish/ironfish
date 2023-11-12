@@ -18,7 +18,7 @@ import { NetworkError } from './errors'
 
 export type SignalData =
   | {
-      type: DescriptionType,
+      type: DescriptionType
       sdp: string
     }
   | CandidateSignal
@@ -196,15 +196,16 @@ export class WebRtcConnection extends Connection {
       return false
     }
 
-    if (!this.datachannel.isOpen()) {
-      this.logger.debug('Datachannel no longer open, closing connection')
+    let sent = false
+    try {
+      sent = this.datachannel.sendMessageBinary(data)
+    } catch (e) {
+      this.logger.debug(`Datachannel error occurred while sending message: ${JSON.stringify(e)}`)
       this.close()
-      return false
+      sent = false
     }
 
-    this.datachannel.sendMessageBinary(data)
-
-    return true
+    return sent
   }
 
   /**

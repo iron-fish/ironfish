@@ -162,7 +162,7 @@ export class NullableStringEncoding implements IDatabaseEncoding<string | null> 
 
 export class ArrayEncoding<T extends IJsonSerializable[]> extends JsonEncoding<T> {}
 
-export class BigIntLEEncoding implements IDatabaseEncoding<BigInt> {
+export class BigIntLEEncoding implements IDatabaseEncoding<bigint> {
   serialize(value: bigint): Buffer {
     return BigIntUtils.toBytesLE(value)
   }
@@ -172,7 +172,7 @@ export class BigIntLEEncoding implements IDatabaseEncoding<BigInt> {
   }
 }
 
-export class BigU64BEEncoding implements IDatabaseEncoding<BigInt> {
+export class BigU64BEEncoding implements IDatabaseEncoding<bigint> {
   serialize(value: bigint): Buffer {
     const buffer = bufio.write(8)
     buffer.writeBigU64BE(value)
