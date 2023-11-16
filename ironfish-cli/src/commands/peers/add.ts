@@ -53,6 +53,11 @@ export class AddCommand extends IronfishCommand {
 
     if (response.content.added) {
       this.log(`Successfully added peer ${request.host}:${request.port}`)
+    } else if (response.content.error !== undefined) {
+      this.log(
+        `Failed to add peer ${request.host}:${request.port} because: ${response.content.error}`,
+      )
+      this.exit(0)
     } else {
       this.log(`Could not add peer ${request.host}:${request.port}`)
       this.exit(0)

@@ -4,7 +4,10 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { DEFAULT_WEBSOCKET_PORT } from '../../../fileStores/config'
+import { Peer } from '../../../network'
+import { PeerState } from '../../../network/peers/peer'
 import { FullNode } from '../../../node'
+import { ErrorUtils } from '../../../utils'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 
@@ -16,6 +19,7 @@ export type AddPeerRequest = {
 
 export type AddPeerResponse = {
   added: boolean
+  error?: string
 }
 
 export const AddPeerRequestSchema: yup.ObjectSchema<AddPeerRequest> = yup
@@ -49,6 +53,33 @@ routes.register<typeof AddPeerRequestSchema, AddPeerResponse>(
       forceConnect: true,
     })
 
-    request.end({ added: peer !== undefined })
+    if (peer === undefined) {
+      request.end({ added: false })
+      return
+    }
+
+    const onPeerStateChange = ({
+      peer,
+      state,
+      prevState,
+    }: {
+      peer: Peer
+      state: PeerState
+      prevState: PeerState
+    }) => {
+      if (prevState.type !== 'CONNECTED' && state.type === 'CONNECTED') {
+        request.end({ added: true })
+        peer.onStateChanged.off(onPeerStateChange)
+      } else if (peer.error) {
+        request.end({ added: false, error: ErrorUtils.renderError(peer.error) })
+        peer.onStateChanged.off(onPeerStateChange)
+      }
+    }
+
+    peer.onStateChanged.on(onPeerStateChange)
+
+    request.onClose.on(() => {
+      peer.onStateChanged.off(onPeerStateChange)
+    })
   },
 )
