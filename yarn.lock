@@ -10664,11 +10664,6 @@ tsconfig-paths@^4.1.2:
     minimist "^1.2.6"
     strip-bom "^3.0.0"
 
-tsimportlib@0.0.5:
-  version "0.0.5"
-  resolved "https://registry.yarnpkg.com/tsimportlib/-/tsimportlib-0.0.5.tgz#6ba8497a19b7dd5a9198209d9b167c9eb84d7fb1"
-  integrity sha512-qWQv/C3YB4Pwj77Z2HlORfy5EsWHcSYt66VQlMM0xZiKXwtoe1SxfpzmHX62sdJgzU6esrBGtyRIlx6O2OFPrQ==
-
 tslib@^1.11.1, tslib@^1.8.1, tslib@^1.9.0:
   version "1.14.1"
   resolved "https://registry.yarnpkg.com/tslib/-/tslib-1.14.1.tgz#cf2d38bdc34a134bcaf1091c41f6619e2f672d00"
