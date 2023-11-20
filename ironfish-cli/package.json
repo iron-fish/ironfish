@@ -33,6 +33,7 @@
     "eslint-config-ironfish": "*",
     "eslint-plugin-deprecation": "2.0.0",
     "jest": "29.7.0",
+    "jest-jasmine2": "29.7.0",
     "oclif": "2.6.0",
     "rimraf": "^3.0.2",
     "tsc-watch": "4.2.9",
