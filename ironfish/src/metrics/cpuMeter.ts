@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import os from 'os'
-import { HRTime } from '../utils'
+import { HRTime, SetIntervalToken } from '../utils'
 import { RollingAverage } from './rollingAverage'
 
 /**
@@ -16,7 +16,7 @@ export class CPUMeter {
   private _current = 0
   private _intervalMs: number
   private _started = false
-  private _interval: NodeJS.Timer | null = null
+  private _interval: SetIntervalToken | null = null
   private _lastReading: {
     time: HRTime
     osCpu: os.CpuInfo[]
