@@ -536,9 +536,9 @@ export class Peer {
     if (
       connection.state.type === 'CONNECTED' &&
       connection instanceof WebSocketConnection &&
-      connection.hostname
+      connection.address
     ) {
-      this.wsAddress = { host: connection.hostname, port: connection.port || null }
+      this.wsAddress = connection.address
     }
 
     // onMessage
@@ -580,8 +580,8 @@ export class Peer {
 
         if (connection.state.type === 'CONNECTED') {
           // If connection goes to connected, transition the peer to connected
-          if (connection instanceof WebSocketConnection && connection.hostname) {
-            this.wsAddress = { host: connection.hostname, port: connection.port || null }
+          if (connection instanceof WebSocketConnection && connection.address) {
+            this.wsAddress = connection.address
           }
           this.setState(this.state.connections.webSocket, this.state.connections.webRtc)
         }
