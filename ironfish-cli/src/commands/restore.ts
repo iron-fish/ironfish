@@ -130,7 +130,6 @@ async function downloadFileTo(
 
   data.on('error', (err) => reject(err))
   data.on('end', () => resolve())
-  // @ts-expect-error Would rather comment out the type error than change the code to fix it
   data.pipe(writer)
 
   return promise

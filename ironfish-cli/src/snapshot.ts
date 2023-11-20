@@ -63,7 +63,6 @@ async function matchesChecksum(file: string, checksum: string): Promise<boolean>
     const stream = fs.createReadStream(file)
     stream.on('end', resolve)
     stream.on('error', reject)
-    // @ts-expect-error Would rather comment out the type error than change the code to fix it
     stream.pipe(hasher, { end: false })
   })
 
