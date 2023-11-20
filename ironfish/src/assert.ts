@@ -77,17 +77,11 @@ export class Assert {
     }
   }
 
-  static isTruthy<T>(
+  static isTruthy<T extends unknown>(
     x: T,
     message?: string,
-  ): asserts x is Exclude<T, null | undefined | 0 | false | '' | 0n> {
-    const isFalsey =
-      typeof x === 'undefined' ||
-      (typeof x === 'object' && x === null) ||
-      (typeof x === 'number' && x === 0) ||
-      (typeof x === 'boolean' && x === false) ||
-      (typeof x === 'string' && x === '') ||
-      (typeof x === 'bigint' && x === 0n)
+  ): asserts x is Exclude<T, null | undefined | 0 | false | ''> {
+    const isFalsey = x == null || x === 0 || x === '' || x === false
 
     if (isFalsey) {
       throw new Error(message || `Expected value to be truthy`)

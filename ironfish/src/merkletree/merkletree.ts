@@ -882,7 +882,7 @@ export class MerkleTree<
         newHash = this.hasher.combineHash(element.depth + 1, element.hash, element.hash)
       } else {
         newHash =
-          node.side === Side.Left
+          node.side === 'Left'
             ? this.hasher.combineHash(element.depth + 1, element.hash, node.hashOfSibling)
             : this.hasher.combineHash(element.depth + 1, node.hashOfSibling, element.hash)
       }

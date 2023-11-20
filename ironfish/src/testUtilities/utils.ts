@@ -9,7 +9,6 @@ import path from 'path'
 import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
 import { Transaction } from '../primitives'
-import { SetTimeoutToken } from '../utils/types'
 import { Account, Wallet } from '../wallet'
 import { createRawTransaction } from './helpers/transaction'
 
@@ -89,7 +88,7 @@ export function mockImplementationShuffle<TArgs extends unknown[], TResult>(
 ): () => void {
   type PromiseResolve = (result: Promise<TResult>) => void
   const buffer: [TArgs, PromiseResolve][] = []
-  let lastTimeout: SetTimeoutToken | null = null
+  let lastTimeout: number | null = null
   let lastSend: number | null = null
 
   mock.mockImplementation((...args: TArgs): Promise<TResult> => {
@@ -118,7 +117,7 @@ export function mockImplementationShuffle<TArgs extends unknown[], TResult>(
       }
 
       // Start the debounce timer
-      lastTimeout = setTimeout(send, time)
+      lastTimeout = setTimeout(send, time) as unknown as number
     })
 
     return promise.then((r) => r)
