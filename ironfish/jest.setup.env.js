@@ -4,28 +4,6 @@
 const consola = require('consola')
 const { initializeSapling } = require('@ironfish/rust-nodejs')
 
-// jest.mock('node-datachannel', () => {
-//   return {
-//     PeerConnection: class {
-//       onLocalDescription() {}
-//       onLocalCandidate() {}
-//       onDataChannel() {}
-//       createDataChannel() {
-//         return {
-//           onOpen: () => {},
-//           onError: () => {},
-//           onClosed: () => {},
-//           onMessage: () => {},
-//           close: () => {},
-//           isOpen: () => {},
-//           sendMessage: () => {},
-//           sendMessageBinary: (_buffer) => {},
-//         }
-//       }
-//     },
-//   }
-// })
-
 beforeAll(() => {
   // This causes Sapling to be initialized, which is 1 time 2 second cost for each test suite
   if (process.env.TEST_INIT_RUST) {
