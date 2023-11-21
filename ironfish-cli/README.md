@@ -2,8 +2,6 @@
 
 The main entry point for an Iron Fish CLI that is capable of mining blocks and spending notes. It's created using the [oclif CLI framework](https://oclif.io)
 
-dummy test
-
 ## Starting the CLI
 
 If you're still in the `ironfish` directory in your terminal window, run `cd ironfish-cli`.
