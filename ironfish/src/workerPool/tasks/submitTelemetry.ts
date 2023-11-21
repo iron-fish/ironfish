@@ -1,11 +1,11 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import axios from 'axios'
 import bufio from 'bufio'
 import { Tag } from '../../telemetry'
 import { Metric } from '../../telemetry/interfaces/metric'
 import { BufferUtils } from '../../utils/buffer'
-import { WebApi } from '../../webApi'
 import { WorkerMessage, WorkerMessageType } from './workerMessage'
 import { WorkerTask } from './workerTask'
 
@@ -206,8 +206,10 @@ export class SubmitTelemetryTask extends WorkerTask {
     graffiti,
     apiHost,
   }: SubmitTelemetryRequest): Promise<SubmitTelemetryResponse> {
-    const api = new WebApi({ host: apiHost })
-    await api.submitTelemetry({ points, graffiti: BufferUtils.toHuman(graffiti) })
+    await axios.post(`${apiHost}/telemetry`, {
+      points,
+      graffiti: BufferUtils.toHuman(graffiti),
+    })
     return new SubmitTelemetryResponse(jobId)
   }
 }
