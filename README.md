@@ -7,6 +7,8 @@
 [![Node CI Regenerate Fixtures](https://github.com/iron-fish/ironfish/actions/workflows/ci-regenerate-fixtures.yml/badge.svg)](https://github.com/iron-fish/ironfish/actions/workflows/ci-regenerate-fixtures.yml)
 [![codecov](https://codecov.io/gh/iron-fish/ironfish/branch/master/graph/badge.svg?token=fOjPFN18xZ)](https://codecov.io/gh/iron-fish/ironfish)
 
+asdfasdf
+
 Iron Fish is a Layer 1 blockchain that provides the strongest privacy guarantees on every single transaction. Leveraging zero-knowledge proofs (zk-SNARKs), and the highest industry standards for encryption.
 
 See https://ironfish.network
