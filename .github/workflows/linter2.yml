@@ -1,0 +1,39 @@
+name: Vuln test
+
+on:
+  pull_request:
+    branches:
+      - '**'
+  push:
+    branches:
+      - master
+
+jobs:
+  lint:
+    name: Lint
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v3
+
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: 'yarn'
+
+      - name: Install packages
+        run: yarn --non-interactive --ignore-scripts
+
+      # Necessary since `--frozen-lockfile` does not work properly in yarn 1.x.
+      # https://github.com/yarnpkg/yarn/issues/5840
+      - name: Check for lockfile changes
+        run: |
+          if [[ $(git status | grep yarn.lock) ]]; then
+            echo "yarn.lock has outstanding updates, please check them in."
+            exit 1
+          fi
+      - name: Lint
+        run: yarn lint
