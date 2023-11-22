@@ -617,7 +617,7 @@ describe('PeerManager', () => {
       const peerIdentity = webRtcCanInitiateIdentity()
       const pm = new PeerManager(mockLocalPeer(), mockPeerStore())
 
-      const { peer } = getSignalingWebRtcPeer(pm, brokerIdentity, peerIdentity)
+      const { peer, connection } = getSignalingWebRtcPeer(pm, brokerIdentity, peerIdentity)
 
       if (peer.state.type === 'DISCONNECTED') {
         throw new Error('Peer should not be DISCONNECTED')
@@ -626,6 +626,7 @@ describe('PeerManager', () => {
         throw new Error('Peer should have a WebRTC connection')
       }
 
+      jest.spyOn(connection, '_send').mockReturnValue(true)
       peer.state.connections.webRtc.setState({
         type: 'CONNECTED',
         identity: peerIdentity,
