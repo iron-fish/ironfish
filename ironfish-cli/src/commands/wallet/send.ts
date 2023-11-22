@@ -212,7 +212,29 @@ export class Send extends IronfishCommand {
       raw = RawTransactionSerde.deserialize(bytes)
     }
 
+    if (flags.notes) {
+      const includedNotes = flags.notes
+
+      this.log('checking notes')
+      this.log(includedNotes.join('\n'))
+
+      const notesFromRawTransaction = raw.spends.map((s) => s.note.hash().toString('hex'))
+      this.log('notes from raw transaction')
+      this.log(notesFromRawTransaction.join('\n'))
+      const extraNotes = notesFromRawTransaction.filter((n) => !includedNotes.includes(n))
+      if (includedNotes.length !== notesFromRawTransaction.length || extraNotes.length > 0) {
+        // error because notes that weren't specified were included
+        this.error(
+          `The transaction was created with notes that were not specified: ${extraNotes.join(
+            ', ',
+          )}`,
+        )
+      }
+    }
+
     if (flags.rawTransaction) {
+      // this.log('spends')
+      // this.log(raw.spends.map((s) => s.note.hash().toString('hex')).join('\n'))
       this.log('Raw Transaction')
       this.log(RawTransactionSerde.serialize(raw).toString('hex'))
       this.log(`Run "ironfish wallet:post" to post the raw transaction. `)
