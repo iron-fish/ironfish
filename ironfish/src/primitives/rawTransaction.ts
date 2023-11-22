@@ -39,6 +39,16 @@ export interface MintData {
   transferOwnershipTo?: string
 }
 
+export type RawTransactionSpend = {
+  note: Note
+  witness: Witness<
+    NoteEncrypted,
+    NoteEncryptedHash,
+    NoteEncryptedHash,
+    SerializedNoteEncryptedHash
+  >
+}
+
 export class RawTransaction {
   version: TransactionVersion
   expiration: number | null = null
@@ -46,16 +56,7 @@ export class RawTransaction {
   mints: MintData[] = []
   burns: BurnDescription[] = []
   outputs: { note: Note }[] = []
-
-  spends: {
-    note: Note
-    witness: Witness<
-      NoteEncrypted,
-      NoteEncryptedHash,
-      NoteEncryptedHash,
-      SerializedNoteEncryptedHash
-    >
-  }[] = []
+  spends: RawTransactionSpend[] = []
 
   constructor(version: TransactionVersion) {
     this.version = version

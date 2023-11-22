@@ -19,7 +19,7 @@ import { BurnDescription } from '../primitives/burnDescription'
 import { MintDescription } from '../primitives/mintDescription'
 import { Note } from '../primitives/note'
 import { NoteEncrypted } from '../primitives/noteEncrypted'
-import { MintData, RawTransaction } from '../primitives/rawTransaction'
+import { MintData, RawTransaction, RawTransactionSpend } from '../primitives/rawTransaction'
 import { Transaction } from '../primitives/transaction'
 import { GetBlockRequest, GetBlockResponse, RpcClient } from '../rpc'
 import { IDatabaseTransaction } from '../storage/database/transaction'
@@ -1048,21 +1048,29 @@ export class Wallet {
         raw.fee = getFee(options.feeRate, raw.postedSize(options.account.publicAddress))
       }
 
-      await this.fund(raw, {
+      const amountsNeeded = this.buildAmountsNeeded(raw)
+
+      const spends = await this.fund(amountsNeeded, {
         account: options.account,
         notes: options.notes,
         confirmations: confirmations,
       })
 
+      raw.spends.push(...spends)
+
       if (options.feeRate) {
         raw.fee = getFee(options.feeRate, raw.postedSize(options.account.publicAddress))
         raw.spends = []
 
-        await this.fund(raw, {
+        const amountsNeeded = this.buildAmountsNeeded(raw)
+
+        const feeRateSpends = await this.fund(amountsNeeded, {
           account: options.account,
           notes: options.notes,
           confirmations: confirmations,
         })
+
+        raw.spends.push(...feeRateSpends)
       }
 
       return raw
@@ -1105,16 +1113,16 @@ export class Wallet {
   }
 
   async fund(
-    raw: RawTransaction,
+    needed: BufferMap<bigint>,
     options: {
       account: Account
       notes?: Buffer[]
       confirmations: number
     },
-  ): Promise<void> {
-    const needed = this.buildAmountsNeeded(raw, { fee: raw.fee })
+  ): Promise<RawTransactionSpend[]> {
     const spent = new BufferMap<bigint>()
     const notesSpent = new BufferMap<BufferSet>()
+    const finalSpends: RawTransactionSpend[] = []
 
     for (const noteHash of options.notes ?? []) {
       const decryptedNote = await options.account.getDecryptedNote(noteHash)
@@ -1136,7 +1144,7 @@ export class Wallet {
       assetNotesSpent.add(noteHash)
       notesSpent.set(assetId, assetNotesSpent)
 
-      raw.spends.push({ note: decryptedNote.note, witness })
+      finalSpends.push({ note: decryptedNote.note, witness })
     }
 
     for (const [assetId, assetAmountNeeded] of needed.entries()) {
@@ -1147,8 +1155,7 @@ export class Wallet {
         continue
       }
 
-      const amountSpent = await this.addSpendsForAsset(
-        raw,
+      const [amountSpent, spends] = await this.addSpendsForAsset(
         options.account,
         assetId,
         assetAmountNeeded,
@@ -1157,10 +1164,14 @@ export class Wallet {
         options.confirmations,
       )
 
+      finalSpends.push(...spends)
+
       if (amountSpent < assetAmountNeeded) {
         throw new NotEnoughFundsError(assetId, amountSpent, assetAmountNeeded)
       }
     }
+
+    return finalSpends
   }
 
   async getNoteWitness(
@@ -1197,14 +1208,9 @@ export class Wallet {
     return witness
   }
 
-  private buildAmountsNeeded(
-    raw: RawTransaction,
-    options: {
-      fee: bigint
-    },
-  ): BufferMap<bigint> {
+  private buildAmountsNeeded(raw: RawTransaction): BufferMap<bigint> {
     const amountsNeeded = new BufferMap<bigint>()
-    amountsNeeded.set(Asset.nativeId(), options.fee)
+    amountsNeeded.set(Asset.nativeId(), raw.fee)
 
     for (const output of raw.outputs) {
       const currentAmount = amountsNeeded.get(output.note.assetId()) ?? 0n
@@ -1226,14 +1232,15 @@ export class Wallet {
   }
 
   async addSpendsForAsset(
-    raw: RawTransaction,
     sender: Account,
     assetId: Buffer,
     amountNeeded: bigint,
     amountSpent: bigint,
     notesSpent: BufferSet,
     confirmations: number,
-  ): Promise<bigint> {
+  ): Promise<[bigint, RawTransactionSpend[]]> {
+    const spends: RawTransactionSpend[] = []
+
     for await (const unspentNote of sender.getUnspentNotes(assetId, {
       confirmations,
     })) {
@@ -1245,14 +1252,14 @@ export class Wallet {
 
       amountSpent += unspentNote.note.value()
 
-      raw.spends.push({ note: unspentNote.note, witness })
+      spends.push({ note: unspentNote.note, witness })
 
       if (amountSpent >= amountNeeded) {
         break
       }
     }
 
-    return amountSpent
+    return [amountSpent, spends]
   }
 
   async broadcastTransaction(
