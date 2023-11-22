@@ -56,7 +56,7 @@ export class NotesCommand extends IronfishCommand {
               if (row.spent === undefined) {
                 return '-'
               } else {
-                return row.spent ? `✔` : ``
+                return row.spent ? `true` : `false`
               }
             },
           },
