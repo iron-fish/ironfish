@@ -92,10 +92,6 @@ export class TransactionCommand extends IronfishCommand {
       }
 
       CliUx.ux.table(noteAssetPairs, {
-        id: {
-          header: 'Note Hash',
-          get: ({ note }) => note.noteHash,
-        },
         amount: {
           header: 'Amount',
           get: ({ note }) => CurrencyUtils.renderIron(note.value),
