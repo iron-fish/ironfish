@@ -19,7 +19,12 @@ import { BurnDescription } from '../primitives/burnDescription'
 import { MintDescription } from '../primitives/mintDescription'
 import { Note } from '../primitives/note'
 import { NoteEncrypted } from '../primitives/noteEncrypted'
-import { MintData, RawTransaction, RawTransactionSpend } from '../primitives/rawTransaction'
+import {
+  MintData,
+  NoteSet,
+  RawTransaction,
+  RawTransactionSpend,
+} from '../primitives/rawTransaction'
 import { Transaction } from '../primitives/transaction'
 import { GetBlockRequest, GetBlockResponse, RpcClient } from '../rpc'
 import { IDatabaseTransaction } from '../storage/database/transaction'
@@ -1120,11 +1125,13 @@ export class Wallet {
       confirmations: number
     },
   ): Promise<RawTransactionSpend[]> {
-    const spent = new BufferMap<bigint>()
-    const notesSpent = new BufferMap<BufferSet>()
-    const finalSpends: RawTransactionSpend[] = []
+    const noteSet = new NoteSet()
 
     for (const noteHash of options.notes ?? []) {
+      if (noteSet.has(noteHash)) {
+        continue
+      }
+
       const decryptedNote = await options.account.getDecryptedNote(noteHash)
       Assert.isNotUndefined(
         decryptedNote,
@@ -1133,45 +1140,35 @@ export class Wallet {
         }`,
       )
 
-      const witness = await this.getNoteWitness(decryptedNote, options.confirmations)
-
-      const assetId = decryptedNote.note.assetId()
-
-      const assetAmountSpent = spent.get(assetId) ?? 0n
-      spent.set(assetId, assetAmountSpent + decryptedNote.note.value())
-
-      const assetNotesSpent = notesSpent.get(assetId) ?? new BufferSet()
-      assetNotesSpent.add(noteHash)
-      notesSpent.set(assetId, assetNotesSpent)
-
-      finalSpends.push({ note: decryptedNote.note, witness })
+      noteSet.add(decryptedNote)
     }
 
     for (const [assetId, assetAmountNeeded] of needed.entries()) {
-      const assetAmountSpent = spent.get(assetId) ?? 0n
-      const assetNotesSpent = notesSpent.get(assetId) ?? new BufferSet()
-
-      if (assetAmountSpent >= assetAmountNeeded) {
+      if (noteSet.balance(assetId) >= assetAmountNeeded) {
         continue
       }
 
-      const [amountSpent, spends] = await this.addSpendsForAsset(
-        options.account,
-        assetId,
-        assetAmountNeeded,
-        assetAmountSpent,
-        assetNotesSpent,
-        options.confirmations,
-      )
+      for await (const unspentNote of options.account.getUnspentNotes(assetId, {
+        confirmations: options.confirmations,
+      })) {
+        noteSet.add(unspentNote)
 
-      finalSpends.push(...spends)
+        if (noteSet.balance(assetId) >= assetAmountNeeded) {
+          break
+        }
+      }
 
-      if (amountSpent < assetAmountNeeded) {
-        throw new NotEnoughFundsError(assetId, amountSpent, assetAmountNeeded)
+      if (noteSet.balance(assetId) < assetAmountNeeded) {
+        throw new NotEnoughFundsError(assetId, noteSet.balance(assetId), assetAmountNeeded)
       }
     }
 
-    return finalSpends
+    return Promise.all(
+      [...noteSet.notes.values()].map(async (note) => {
+        const witness = await this.getNoteWitness(note, options.confirmations)
+        return { note: note.note, witness }
+      }),
+    )
   }
 
   async getNoteWitness(
@@ -1229,37 +1226,6 @@ export class Wallet {
     }
 
     return amountsNeeded
-  }
-
-  async addSpendsForAsset(
-    sender: Account,
-    assetId: Buffer,
-    amountNeeded: bigint,
-    amountSpent: bigint,
-    notesSpent: BufferSet,
-    confirmations: number,
-  ): Promise<[bigint, RawTransactionSpend[]]> {
-    const spends: RawTransactionSpend[] = []
-
-    for await (const unspentNote of sender.getUnspentNotes(assetId, {
-      confirmations,
-    })) {
-      if (notesSpent.has(unspentNote.note.hash())) {
-        continue
-      }
-
-      const witness = await this.getNoteWitness(unspentNote, confirmations)
-
-      amountSpent += unspentNote.note.value()
-
-      spends.push({ note: unspentNote.note, witness })
-
-      if (amountSpent >= amountNeeded) {
-        break
-      }
-    }
-
-    return [amountSpent, spends]
   }
 
   async broadcastTransaction(

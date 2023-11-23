@@ -14,6 +14,7 @@ import {
   TRANSACTION_SIGNATURE_LENGTH,
 } from '@ironfish/rust-nodejs'
 import { Asset, ASSET_ID_LENGTH } from '@ironfish/rust-nodejs'
+import { BufferMap } from 'buffer-map'
 import bufio from 'bufio'
 import { Assert } from '../assert'
 import { Witness } from '../merkletree'
@@ -21,6 +22,7 @@ import { NoteHasher } from '../merkletree/hasher'
 import { Side } from '../merkletree/merkletree'
 import { CurrencyUtils } from '../utils/currency'
 import { AssetBalances } from '../wallet/assetBalances'
+import { DecryptedNoteValue } from '../wallet/walletdb/decryptedNoteValue'
 import { BurnDescription } from './burnDescription'
 import { Note } from './note'
 import { NoteEncrypted, NoteEncryptedHash, SerializedNoteEncryptedHash } from './noteEncrypted'
@@ -47,6 +49,34 @@ export type RawTransactionSpend = {
     NoteEncryptedHash,
     SerializedNoteEncryptedHash
   >
+}
+
+export class NoteSet {
+  balances = new BufferMap<bigint>()
+  notes = new BufferMap<DecryptedNoteValue>()
+
+  add(decryptedNote: DecryptedNoteValue): boolean {
+    const noteHash = decryptedNote.note.hash()
+    if (this.has(noteHash)) {
+      return false
+    }
+
+    this.notes.set(noteHash, decryptedNote)
+
+    const assetId = decryptedNote.note.assetId()
+    const value = decryptedNote.note.value()
+    this.balances.set(assetId, (this.balances.get(assetId) ?? 0n) + value)
+
+    return true
+  }
+
+  has(noteHash: Buffer): boolean {
+    return this.notes.has(noteHash)
+  }
+
+  balance(assetId: Buffer): bigint {
+    return this.balances.get(assetId) ?? 0n
+  }
 }
 
 export class RawTransaction {
