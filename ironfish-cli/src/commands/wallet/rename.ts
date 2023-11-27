@@ -10,13 +10,11 @@ export class RenameCommand extends IronfishCommand {
   static args = [
     {
       name: 'account',
-      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: true,
       description: 'Name of the account to rename',
     },
     {
       name: 'new-name',
-      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: true,
       description: 'New name to assign to the account',
     },

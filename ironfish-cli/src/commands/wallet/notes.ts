@@ -19,7 +19,6 @@ export class NotesCommand extends IronfishCommand {
   static args = [
     {
       name: 'account',
-      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: false,
       description: 'Name of the account to get notes for',
     },

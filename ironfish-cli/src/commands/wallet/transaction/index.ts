@@ -29,7 +29,6 @@ export class TransactionCommand extends IronfishCommand {
     },
     {
       name: 'account',
-      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: false,
       description: 'Name of the account',
     },
