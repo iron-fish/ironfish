@@ -38,10 +38,10 @@ export const ShowChainResponseSchema: yup.ObjectSchema<ShowChainResponse> = yup
 routes.register<typeof ShowChainRequestSchema, ShowChainResponse>(
   `${ApiNamespace.chain}/showChain`,
   ShowChainRequestSchema,
-  async (request, node): Promise<void> => {
-    Assert.isInstanceOf(node, FullNode)
+  async (request, context): Promise<void> => {
+    Assert.isInstanceOf(context, FullNode)
 
-    const content = await renderChain(node.chain, request.data?.start, request.data?.stop, {
+    const content = await renderChain(context.chain, request.data?.start, request.data?.stop, {
       indent: '  ',
       work: false,
     })

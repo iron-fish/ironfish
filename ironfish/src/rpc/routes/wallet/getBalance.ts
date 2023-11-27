@@ -6,6 +6,7 @@ import * as yup from 'yup'
 import { AssetVerification } from '../../../assets'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
+import { AssertHasRpcContext } from '../rpcContext'
 import { getAccount } from './utils'
 
 export type GetBalanceRequest =
@@ -65,6 +66,8 @@ routes.register<typeof GetBalanceRequestSchema, GetBalanceResponse>(
   `${ApiNamespace.wallet}/getBalance`,
   GetBalanceRequestSchema,
   async (request, node): Promise<void> => {
+    AssertHasRpcContext(request, node, 'wallet', 'config', 'assetsVerifier')
+
     const confirmations = request.data?.confirmations ?? node.config.get('confirmations')
 
     const account = getAccount(node.wallet, request.data?.account)

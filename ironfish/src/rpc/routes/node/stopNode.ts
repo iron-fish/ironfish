@@ -4,6 +4,7 @@
 import * as yup from 'yup'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
+import { AssertHasRpcContext } from '../rpcContext'
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 export type StopNodeRequest = undefined
@@ -20,9 +21,11 @@ export const StopNodeResponseSchema: yup.MixedSchema<StopNodeRequest> = yup
 routes.register<typeof StopNodeRequestSchema, StopNodeResponse>(
   `${ApiNamespace.node}/stopNode`,
   StopNodeRequestSchema,
-  async (request, node): Promise<void> => {
-    node.logger.withTag('stopnode').info('Shutting down')
+  async (request, context): Promise<void> => {
+    AssertHasRpcContext(request, context, 'shutdown', 'logger')
+
+    context.logger.withTag('stopnode').info('Shutting down')
     request.end()
-    await node.shutdown()
+    await context.shutdown()
   },
 )

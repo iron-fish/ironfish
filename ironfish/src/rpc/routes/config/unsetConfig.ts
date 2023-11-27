@@ -5,6 +5,7 @@ import * as yup from 'yup'
 import { ConfigOptions, ConfigOptionsSchema } from '../../../fileStores/config'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
+import { AssertHasRpcContext } from '../rpcContext'
 import { setUnknownConfigValue } from './uploadConfig'
 
 export type UnsetConfigRequest = { name: string }
@@ -22,9 +23,11 @@ export const UnsetConfigResponseSchema: yup.ObjectSchema<UnsetConfigResponse> =
 routes.register<typeof UnsetConfigRequestSchema, UnsetConfigResponse>(
   `${ApiNamespace.config}/unsetConfig`,
   UnsetConfigRequestSchema,
-  async (request, node): Promise<void> => {
-    setUnknownConfigValue(node.config, request.data.name)
-    await node.config.save()
+  async (request, context): Promise<void> => {
+    AssertHasRpcContext(request, context, 'config')
+
+    setUnknownConfigValue(context.config, request.data.name)
+    await context.config.save()
     request.end()
   },
 )

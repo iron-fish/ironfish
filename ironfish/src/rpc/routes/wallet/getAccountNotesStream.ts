@@ -5,6 +5,7 @@ import * as yup from 'yup'
 import { BufferUtils, CurrencyUtils } from '../../../utils'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
+import { AssertHasRpcContext } from '../rpcContext'
 import { RpcWalletNote, RpcWalletNoteSchema } from './types'
 import { getAccount } from './utils'
 
@@ -25,8 +26,10 @@ export const GetAccountNotesStreamResponseSchema: yup.ObjectSchema<GetAccountNot
 routes.register<typeof GetAccountNotesStreamRequestSchema, GetAccountNotesStreamResponse>(
   `${ApiNamespace.wallet}/getAccountNotesStream`,
   GetAccountNotesStreamRequestSchema,
-  async (request, node): Promise<void> => {
-    const account = getAccount(node.wallet, request.data.account)
+  async (request, context): Promise<void> => {
+    AssertHasRpcContext(request, context, 'wallet')
+
+    const account = getAccount(context.wallet, request.data.account)
 
     for await (const transaction of account.getTransactionsByTime()) {
       if (request.closed) {

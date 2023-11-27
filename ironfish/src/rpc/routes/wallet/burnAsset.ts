@@ -6,6 +6,7 @@ import { Assert } from '../../../assert'
 import { CurrencyUtils, YupUtils } from '../../../utils'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
+import { AssertHasRpcContext } from '../rpcContext'
 import { RpcAsset, RpcAssetSchema, RpcBurn, RpcBurnSchema } from '../types'
 import { RpcWalletTransaction, RpcWalletTransactionSchema } from './types'
 import { getAccount, serializeRpcWalletTransaction } from './utils'
@@ -61,8 +62,10 @@ export const BurnAssetResponseSchema: yup.ObjectSchema<BurnAssetResponse> =
 routes.register<typeof BurnAssetRequestSchema, BurnAssetResponse>(
   `${ApiNamespace.wallet}/burnAsset`,
   BurnAssetRequestSchema,
-  async (request, node): Promise<void> => {
-    const account = getAccount(node.wallet, request.data.account)
+  async (request, context): Promise<void> => {
+    AssertHasRpcContext(request, context, 'wallet', 'assetsVerifier', 'config')
+
+    const account = getAccount(context.wallet, request.data.account)
 
     const fee: bigint | undefined = request.data.fee
       ? CurrencyUtils.decode(request.data.fee)
@@ -78,11 +81,11 @@ routes.register<typeof BurnAssetRequestSchema, BurnAssetResponse>(
     const asset = await account.getAsset(assetId)
     Assert.isNotUndefined(asset)
 
-    const transaction = await node.wallet.burn(
+    const transaction = await context.wallet.burn(
       account,
       assetId,
       value,
-      request.data.expirationDelta ?? node.config.get('transactionExpirationDelta'),
+      request.data.expirationDelta ?? context.config.get('transactionExpirationDelta'),
       fee,
       feeRate,
       request.data.expiration,
@@ -102,13 +105,18 @@ routes.register<typeof BurnAssetRequestSchema, BurnAssetResponse>(
         nonce: asset.nonce,
         creator: asset.creator.toString('hex'),
         owner: asset.owner.toString('hex'),
-        verification: node.assetsVerifier.verify(asset.id),
-        status: await node.wallet.getAssetStatus(account, asset, {
+        verification: context.assetsVerifier.verify(asset.id),
+        status: await context.wallet.getAssetStatus(account, asset, {
           confirmations: request.data.confirmations,
         }),
         createdTransactionHash: asset.createdTransactionHash.toString('hex'),
       },
-      transaction: await serializeRpcWalletTransaction(node, account, transactionValue),
+      transaction: await serializeRpcWalletTransaction(
+        context.config,
+        context.wallet,
+        account,
+        transactionValue,
+      ),
       id: burn.assetId.toString('hex'),
       assetId: burn.assetId.toString('hex'),
       hash: transaction.hash().toString('hex'),

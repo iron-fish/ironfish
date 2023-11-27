@@ -6,6 +6,7 @@ import { ConfigOptions, ConfigOptionsSchema } from '../../../fileStores/config'
 import { ValidationError } from '../../adapters/errors'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
+import { AssertHasRpcContext } from '../rpcContext'
 
 export type GetConfigRequest = { user?: boolean; name?: string } | undefined
 export type GetConfigResponse = Partial<ConfigOptions>
@@ -22,14 +23,16 @@ export const GetConfigResponseSchema: yup.ObjectSchema<GetConfigResponse> = Conf
 routes.register<typeof GetConfigRequestSchema, GetConfigResponse>(
   `${ApiNamespace.config}/getConfig`,
   GetConfigRequestSchema,
-  (request, node): void => {
-    if (request.data?.name && !(request.data.name in node.config.defaults)) {
+  (request, context): void => {
+    AssertHasRpcContext(request, context, 'config')
+
+    if (request.data?.name && !(request.data.name in context.config.defaults)) {
       throw new ValidationError(`No config option ${String(request.data.name)}`)
     }
 
     let pickKeys: string[] | undefined = undefined
     if (!request.data?.user) {
-      pickKeys = Object.keys(node.config.defaults)
+      pickKeys = Object.keys(context.config.defaults)
     }
     if (request.data?.name) {
       pickKeys = [request.data.name]
@@ -37,8 +40,8 @@ routes.register<typeof GetConfigRequestSchema, GetConfigResponse>(
 
     const data = (
       request.data?.user
-        ? JSON.parse(JSON.stringify(node.config.loaded))
-        : JSON.parse(JSON.stringify(node.config.config, pickKeys))
+        ? JSON.parse(JSON.stringify(context.config.loaded))
+        : JSON.parse(JSON.stringify(context.config.config, pickKeys))
     ) as GetConfigResponse
 
     request.end(data)

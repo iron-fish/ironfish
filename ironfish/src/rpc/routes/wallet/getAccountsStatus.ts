@@ -5,6 +5,7 @@ import * as yup from 'yup'
 import { HeadValue } from '../../../wallet/walletdb/headValue'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
+import { AssertHasRpcContext } from '../rpcContext'
 
 export type GetAccountStatusRequest = { account?: string }
 
@@ -45,6 +46,8 @@ routes.register<typeof GetAccountStatusRequestSchema, GetAccountStatusResponse>(
   GetAccountStatusRequestSchema,
   async (request, node): Promise<void> => {
     const heads = new Map<string, HeadValue | null>()
+    AssertHasRpcContext(request, node, 'wallet')
+
     for await (const { accountId, head } of node.wallet.walletDb.loadHeads()) {
       heads.set(accountId, head)
     }

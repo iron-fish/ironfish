@@ -6,6 +6,7 @@ import * as yup from 'yup'
 import { decodeAccount } from '../../../wallet/account/encoder/account'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
+import { AssertHasRpcContext } from '../rpcContext'
 import { RpcAccountImport } from './types'
 import { deserializeRpcAccountImport } from './utils'
 
@@ -40,7 +41,9 @@ export const ImportAccountResponseSchema: yup.ObjectSchema<ImportResponse> = yup
 routes.register<typeof ImportAccountRequestSchema, ImportResponse>(
   `${ApiNamespace.wallet}/importAccount`,
   ImportAccountRequestSchema,
-  async (request, node): Promise<void> => {
+  async (request, context): Promise<void> => {
+    AssertHasRpcContext(request, context, 'wallet')
+
     let accountImport = null
     if (typeof request.data.account === 'string') {
       accountImport = decodeAccount(request.data.account, {
@@ -50,22 +53,22 @@ routes.register<typeof ImportAccountRequestSchema, ImportResponse>(
       accountImport = deserializeRpcAccountImport(request.data.account)
     }
 
-    const account = await node.wallet.importAccount({
+    const account = await context.wallet.importAccount({
       id: uuid(),
       ...accountImport,
     })
 
     if (request.data.rescan) {
-      if (node.wallet.nodeClient) {
-        void node.wallet.scanTransactions(undefined, true)
+      if (context.wallet.nodeClient) {
+        void context.wallet.scanTransactions(undefined, true)
       }
     } else {
-      await node.wallet.skipRescan(account)
+      await context.wallet.skipRescan(account)
     }
 
     let isDefaultAccount = false
-    if (!node.wallet.hasDefaultAccount) {
-      await node.wallet.setDefaultAccount(account.name)
+    if (!context.wallet.hasDefaultAccount) {
+      await context.wallet.setDefaultAccount(account.name)
       isDefaultAccount = true
     }
 

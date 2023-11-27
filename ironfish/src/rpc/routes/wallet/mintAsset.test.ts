@@ -133,7 +133,12 @@ describe('Route wallet/mintAsset', () => {
           }),
           verification: node.assetsVerifier.verify(asset.id()),
         },
-        transaction: await serializeRpcWalletTransaction(node, account, walletTransaction),
+        transaction: await serializeRpcWalletTransaction(
+          node.config,
+          node.wallet,
+          account,
+          walletTransaction,
+        ),
         id: asset.id().toString('hex'),
         creator: asset.creator().toString('hex'),
         assetId: asset.id().toString('hex'),

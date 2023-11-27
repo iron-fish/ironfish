@@ -40,8 +40,8 @@ export const GetNetworkHashPowerResponseSchema: yup.ObjectSchema<GetNetworkHashP
 routes.register<typeof GetNetworkHashPowerRequestSchema, GetNetworkHashPowerResponse>(
   `${ApiNamespace.chain}/getNetworkHashPower`,
   GetNetworkHashPowerRequestSchema,
-  async (request, node): Promise<void> => {
-    Assert.isInstanceOf(node, FullNode)
+  async (request, context): Promise<void> => {
+    Assert.isInstanceOf(context, FullNode)
 
     let blocks = request.data?.blocks ?? 120
     let sequence = request.data?.sequence ?? -1
@@ -50,17 +50,17 @@ routes.register<typeof GetNetworkHashPowerRequestSchema, GetNetworkHashPowerResp
       throw new ValidationError('[blocks] value must be greater than 0')
     }
 
-    let endBlock = node.chain.head
+    let endBlock = context.chain.head
 
     // If sequence is negative, it's relative to the head
-    if (sequence < 0 && Math.abs(sequence) < node.chain.head.sequence) {
-      sequence = node.chain.head.sequence + sequence
+    if (sequence < 0 && Math.abs(sequence) < context.chain.head.sequence) {
+      sequence = context.chain.head.sequence + sequence
     }
 
     // estimate network hps at specified sequence
     // if the sequence is out of bounds, use the head as the last block
-    if (sequence > 0 && sequence < node.chain.head.sequence) {
-      const blockAtSequence = await node.chain.getHeaderAtSequence(sequence)
+    if (sequence > 0 && sequence < context.chain.head.sequence) {
+      const blockAtSequence = await context.chain.getHeaderAtSequence(sequence)
       if (!blockAtSequence) {
         throw new Error(`No end block found at sequence ${sequence}`)
       }
@@ -72,7 +72,7 @@ routes.register<typeof GetNetworkHashPowerRequestSchema, GetNetworkHashPowerResp
       blocks = endBlock.sequence - 1
     }
 
-    const startBlock = await node.chain.getHeaderAtSequence(endBlock.sequence - blocks)
+    const startBlock = await context.chain.getHeaderAtSequence(endBlock.sequence - blocks)
     if (!startBlock) {
       throw new Error(`Failure to find start block ${endBlock.sequence - blocks}`)
     }

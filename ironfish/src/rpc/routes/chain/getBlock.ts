@@ -55,13 +55,13 @@ export const GetBlockResponseSchema: yup.ObjectSchema<GetBlockResponse> = yup
 routes.register<typeof GetBlockRequestSchema, GetBlockResponse>(
   `${ApiNamespace.chain}/getBlock`,
   GetBlockRequestSchema,
-  async (request, node): Promise<void> => {
-    Assert.isInstanceOf(node, FullNode)
+  async (request, context): Promise<void> => {
+    Assert.isInstanceOf(context, FullNode)
 
     let header: BlockHeader | null = null
     let error = ''
 
-    const confirmations = request.data.confirmations ?? node.config.get('confirmations')
+    const confirmations = request.data.confirmations ?? context.config.get('confirmations')
 
     if (request.data.search) {
       const search = request.data.search.trim()
@@ -77,19 +77,19 @@ routes.register<typeof GetBlockRequestSchema, GetBlockResponse>(
     // Use negative numbers to start from the head of the chain
     if (request.data.sequence && request.data.sequence < 0) {
       request.data.sequence = Math.max(
-        node.chain.head.sequence + request.data.sequence + 1,
+        context.chain.head.sequence + request.data.sequence + 1,
         GENESIS_BLOCK_SEQUENCE,
       )
     }
 
     if (request.data.hash) {
       const hash = Buffer.from(request.data.hash, 'hex')
-      header = await node.chain.getHeader(hash)
+      header = await context.chain.getHeader(hash)
       error = `No block found with hash ${request.data.hash}`
     }
 
     if (request.data.sequence && !header) {
-      header = await node.chain.getHeaderAtSequence(request.data.sequence)
+      header = await context.chain.getHeaderAtSequence(request.data.sequence)
       error = `No block found with sequence ${request.data.sequence}`
     }
 
@@ -101,7 +101,7 @@ routes.register<typeof GetBlockRequestSchema, GetBlockResponse>(
       throw new ValidationError('Block header was saved to database without a note size')
     }
 
-    const block = await node.chain.getBlock(header)
+    const block = await context.chain.getBlock(header)
     if (!block) {
       throw new NotFoundError(`No block with header ${header.hash.toString('hex')}`)
     }
@@ -145,8 +145,8 @@ routes.register<typeof GetBlockRequestSchema, GetBlockResponse>(
       })
     }
 
-    const main = await node.chain.isHeadChain(header)
-    const confirmed = node.chain.head.sequence - header.sequence >= confirmations
+    const main = await context.chain.isHeadChain(header)
+    const confirmed = context.chain.head.sequence - header.sequence >= confirmations
 
     const blockHeaderResponse = serializeRpcBlockHeader(header)
 

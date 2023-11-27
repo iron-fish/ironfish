@@ -100,4 +100,16 @@ export class Assert {
       throw new Error(message || 'Expected buffers to have the same contents')
     }
   }
+
+  static hasKeys<TObj extends Record<string, unknown>, TKeys extends keyof TObj>(
+    obj: TObj,
+    keys: TKeys[],
+    message?: string,
+  ): asserts obj is TKeys extends keyof TObj ? Required<Pick<TObj, TKeys>> : never {
+    const missing = keys.filter((key) => !(key in obj))
+
+    if (missing.length) {
+      throw new Error(message || `Expected value to have keys ${String(missing)}`)
+    }
+  }
 }

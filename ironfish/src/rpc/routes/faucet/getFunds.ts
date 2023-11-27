@@ -7,6 +7,7 @@ import { Assert } from '../../../assert'
 import { ERROR_CODES, ResponseError } from '../../adapters'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
+import { AssertHasRpcContext } from '../rpcContext'
 import { getAccount } from '../wallet/utils'
 
 export type GetFundsRequest = { account?: string; email?: string }
@@ -28,18 +29,20 @@ export const GetFundsResponseSchema: yup.ObjectSchema<GetFundsResponse> = yup
 routes.register<typeof GetFundsRequestSchema, GetFundsResponse>(
   `${ApiNamespace.faucet}/getFunds`,
   GetFundsRequestSchema,
-  async (request, node): Promise<void> => {
+  async (request, context): Promise<void> => {
+    AssertHasRpcContext(request, context, 'internal', 'config', 'wallet')
+
     // check node network id
-    const networkId = node.internal.get('networkId')
+    const networkId = context.internal.get('networkId')
 
     if (networkId !== 0) {
       // not testnet
       throw new ResponseError('This endpoint is only available for testnet.', ERROR_CODES.ERROR)
     }
 
-    const account = getAccount(node.wallet, request.data.account)
+    const account = getAccount(context.wallet, request.data.account)
 
-    const getFundsEndpoint = node.config.get('getFundsApi')
+    const getFundsEndpoint = context.config.get('getFundsApi')
 
     const response = await getFunds(getFundsEndpoint, {
       email: request.data.email,

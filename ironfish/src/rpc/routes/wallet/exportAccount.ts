@@ -7,6 +7,7 @@ import { encodeAccount } from '../../../wallet/account/encoder/account'
 import { AccountFormat } from '../../../wallet/account/encoder/encoder'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
+import { AssertHasRpcContext } from '../rpcContext'
 import { RpcAccountImport } from './types'
 import { getAccount } from './utils'
 
@@ -39,6 +40,8 @@ routes.register<typeof ExportAccountRequestSchema, ExportAccountResponse>(
   `${ApiNamespace.wallet}/exportAccount`,
   ExportAccountRequestSchema,
   (request, node): void => {
+    AssertHasRpcContext(request, node, 'wallet')
+
     const account = getAccount(node.wallet, request.data.account)
     const { id: _, ...accountInfo } = account.serialize()
     if (request.data.viewOnly) {

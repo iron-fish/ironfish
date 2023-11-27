@@ -6,6 +6,7 @@ import { Config, ConfigOptions, ConfigOptionsSchema } from '../../../fileStores/
 import { ValidationError } from '../../adapters/errors'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
+import { AssertHasRpcContext } from '../rpcContext'
 
 export type UploadConfigRequest = { config: Record<string, unknown> }
 export type UploadConfigResponse = Partial<ConfigOptions>
@@ -20,16 +21,18 @@ export const UploadConfigResponseSchema: yup.ObjectSchema<UploadConfigResponse> 
 routes.register<typeof UploadConfigRequestSchema, UploadConfigResponse>(
   `${ApiNamespace.config}/uploadConfig`,
   UploadConfigRequestSchema,
-  async (request, node): Promise<void> => {
-    clearConfig(node.config)
+  async (request, context): Promise<void> => {
+    AssertHasRpcContext(request, context, 'config')
+
+    clearConfig(context.config)
 
     for (const key of Object.keys(request.data.config)) {
       if (Object.prototype.hasOwnProperty.call(request.data.config, key)) {
-        setUnknownConfigValue(node.config, key, request.data.config[key], true)
+        setUnknownConfigValue(context.config, key, request.data.config[key], true)
       }
     }
 
-    await node.config.save()
+    await context.config.save()
     request.end()
   },
 )

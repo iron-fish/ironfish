@@ -7,13 +7,13 @@ import { Assert } from '../assert'
 import { InternalStore } from '../fileStores'
 import { createRootLogger, Logger } from '../logger'
 import { IRpcAdapter } from './adapters'
-import { ApiNamespace, RequestContext, Router, routes } from './routes'
+import { ApiNamespace, Router, routes, RpcContext } from './routes'
 
 const AUTH_MAX_LENGTH = 256
 
 export class RpcServer {
   readonly internal: InternalStore
-  readonly context: RequestContext
+  readonly context: RpcContext
   readonly adapters: IRpcAdapter[] = []
 
   private _isRunning = false
@@ -22,7 +22,7 @@ export class RpcServer {
   private authTokenBuffer = Buffer.alloc(0)
 
   constructor(
-    context: RequestContext,
+    context: RpcContext,
     internal: InternalStore,
     logger: Logger = createRootLogger(),
   ) {

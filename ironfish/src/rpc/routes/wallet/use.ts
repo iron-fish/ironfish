@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
+import { AssertHasRpcContext } from '../rpcContext'
 import { UseAccountRequestSchema, UseAccountResponse } from './useAccount'
 import { getAccount } from './utils'
 
@@ -15,9 +16,11 @@ import { getAccount } from './utils'
 routes.register<typeof UseAccountRequestSchema, UseAccountResponse>(
   `${ApiNamespace.wallet}/use`,
   UseAccountRequestSchema,
-  async (request, node): Promise<void> => {
-    const account = getAccount(node.wallet, request.data.account)
-    await node.wallet.setDefaultAccount(account.name)
+  async (request, context): Promise<void> => {
+    AssertHasRpcContext(request, context, 'wallet')
+
+    const account = getAccount(context.wallet, request.data.account)
+    await context.wallet.setDefaultAccount(account.name)
     request.end()
   },
 )
