@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { CurrencyUtils } from '../../../utils'
-import { RpcAsset, RpcAssetSchema } from '../../types'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
+import { RpcAsset, RpcAssetSchema } from '../types'
 import { getAccount } from './utils'
 
 export type GetAssetsRequest = {

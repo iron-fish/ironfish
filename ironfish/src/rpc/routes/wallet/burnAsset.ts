@@ -4,9 +4,9 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { CurrencyUtils, YupUtils } from '../../../utils'
-import { RpcAsset, RpcAssetSchema, RpcBurn, RpcBurnSchema } from '../../types'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
+import { RpcAsset, RpcAssetSchema, RpcBurn, RpcBurnSchema } from '../types'
 import { RpcWalletTransaction, RpcWalletTransactionSchema } from './types'
 import { getAccount, serializeRpcWalletTransaction } from './utils'
 

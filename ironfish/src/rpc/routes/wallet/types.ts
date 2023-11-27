@@ -4,8 +4,8 @@
 
 import * as yup from 'yup'
 import { TransactionStatus, TransactionType } from '../../../wallet'
-import { RpcBurn, RpcBurnSchema, RpcMint, RpcMintSchema } from '../../types'
 import { RpcSpend, RpcSpendSchema } from '../chain'
+import { RpcBurn, RpcBurnSchema, RpcMint, RpcMintSchema } from '../types'
 
 export type RpcAccountAssetBalanceDelta = {
   assetId: string

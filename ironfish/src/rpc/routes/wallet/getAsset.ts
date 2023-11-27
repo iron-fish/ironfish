@@ -5,9 +5,9 @@ import { ASSET_ID_LENGTH } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
 import { CurrencyUtils } from '../../../utils'
 import { NotFoundError, ValidationError } from '../../adapters'
-import { RpcAsset, RpcAssetSchema } from '../../types'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
+import { RpcAsset, RpcAssetSchema } from '../types'
 import { getAccount } from './utils'
 
 export type GetWalletAssetRequest = {

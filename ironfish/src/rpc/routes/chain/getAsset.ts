@@ -9,9 +9,9 @@ import { FullNode } from '../../../node'
 import { CurrencyUtils } from '../../../utils'
 import { AssetStatus } from '../../../wallet'
 import { NotFoundError, ValidationError } from '../../adapters'
-import { RpcAsset, RpcAssetSchema } from '../../types'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
+import { RpcAsset, RpcAssetSchema } from '../types'
 
 export type GetAssetRequest = {
   id: string

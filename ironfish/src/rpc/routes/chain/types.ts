@@ -10,7 +10,7 @@ import {
   RpcEncryptedNoteSchema,
   RpcMint,
   RpcMintSchema,
-} from '../../types'
+} from '../types'
 
 export type RpcSpend = {
   nullifier: string

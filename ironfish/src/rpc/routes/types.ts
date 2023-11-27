@@ -3,11 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import * as yup from 'yup'
-import { AssetVerification } from '../assets'
-import { Connection } from '../network'
-import { Features } from '../network/peers/peerFeatures'
-import { BlockHeader } from '../primitives'
-import { RpcTransaction, RpcTransactionSchema } from './routes'
+import { AssetVerification } from '../../assets'
+import { Connection } from '../../network'
+import { Features } from '../../network/peers/peerFeatures'
+import { BlockHeader } from '../../primitives'
+import { RpcTransaction, RpcTransactionSchema } from './chain/types'
 
 export type RpcBurn = {
   assetId: string
