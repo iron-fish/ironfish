@@ -5,9 +5,9 @@ import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { PeerNetwork } from '../../../network'
 import { FullNode } from '../../../node'
-import { ConnectionState, RpcPeerResponse, RpcPeerResponseSchema } from '../../types'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
+import { ConnectionState, RpcPeerResponse, RpcPeerResponseSchema } from '../types'
 
 export type GetPeerRequest = {
   identity: string

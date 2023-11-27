@@ -5,9 +5,9 @@ import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { FullNode } from '../../../node'
 import { BlockchainUtils } from '../../../utils/blockchain'
-import { RpcBlockHeader, RpcBlockHeaderSchema, serializeRpcBlockHeader } from '../../types'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
+import { RpcBlockHeader, RpcBlockHeaderSchema, serializeRpcBlockHeader } from '../types'
 
 export type ExportChainStreamRequest =
   | {
