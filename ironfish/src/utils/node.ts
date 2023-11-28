@@ -15,6 +15,7 @@ async function waitForOpen(node: FullNode, abort?: null | (() => boolean)): Prom
   while (!abort || !abort()) {
     try {
       await node.openDB()
+      return
     } catch (e) {
       if (e instanceof DatabaseIsLockedError) {
         if (!logged) {
