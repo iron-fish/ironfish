@@ -171,7 +171,7 @@ export class Target {
    * Return whether or not this target meets the requirements of the given target,
    * which is to say, this has a lower numeric value then the provided one.
    */
-  static meets(hashValue: BigInt, target: Target): boolean {
+  static meets(hashValue: bigint, target: Target): boolean {
     return hashValue <= target.targetValue
   }
 

@@ -24,7 +24,7 @@ import { mockIdentity } from './mockIdentity'
 export function getConnectingPeer(
   pm: PeerManager,
   direction = ConnectionDirection.Outbound,
-  identity?: string | Identity,
+  identity?: string,
 ): { peer: Peer; connection: WebSocketConnection } {
   let peer: Peer | undefined
 
@@ -71,7 +71,7 @@ export function getConnectingPeer(
 export function getWaitingForIdentityPeer(
   pm: PeerManager,
   direction = ConnectionDirection.Outbound,
-  identity?: string | Identity,
+  identity?: string,
 ): { peer: Peer; connection: WebSocketConnection } {
   const { peer, connection } = getConnectingPeer(pm, direction, identity)
   connection.setState({ type: 'WAITING_FOR_IDENTITY' })
@@ -103,7 +103,7 @@ export const getConnectedPeersWithSpies = (
 
 export function getConnectedPeer(
   pm: PeerManager,
-  identity?: string | Identity,
+  identity?: string,
 ): { peer: Peer; connection: WebSocketConnection } {
   const { peer, connection } = getConnectingPeer(pm)
 
@@ -122,7 +122,7 @@ export function getConnectedPeer(
   return { peer, connection: connection }
 }
 
-export function getDisconnectedPeer(pm: PeerManager, identity?: string | Identity): Peer {
+export function getDisconnectedPeer(pm: PeerManager, identity?: string): Peer {
   if (!identity) {
     identity = jest.requireActual<typeof import('uuid')>('uuid').v4()
   }

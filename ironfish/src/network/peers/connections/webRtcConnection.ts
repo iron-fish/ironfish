@@ -3,20 +3,22 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import type { Logger } from '../../../logger'
+// @ts-expect-error Allow type-only import https://github.com/microsoft/TypeScript/issues/49721
+import type { DataChannel, DescriptionType, PeerConnection } from 'node-datachannel'
 import colors from 'colors/safe'
-import nodeDataChannel from 'node-datachannel'
 import { Assert } from '../../../assert'
 import { Event } from '../../../event'
 import { MetricsMonitor } from '../../../metrics'
 import { ErrorUtils } from '../../../utils'
 import { parseNetworkMessage } from '../../messageRegistry'
+import { NodeDataChannelType } from '../../types'
 import { MAX_MESSAGE_SIZE } from '../../version'
 import { Connection, ConnectionDirection, ConnectionType } from './connection'
 import { NetworkError } from './errors'
 
 export type SignalData =
   | {
-      type: nodeDataChannel.DescriptionType
+      type: DescriptionType
       sdp: string
     }
   | CandidateSignal
@@ -35,8 +37,8 @@ type CandidateSignal = {
  * LooseMessages instead of strings/data.
  */
 export class WebRtcConnection extends Connection {
-  private readonly peer: nodeDataChannel.PeerConnection
-  private datachannel: nodeDataChannel.DataChannel | null = null
+  private readonly peer: PeerConnection
+  private datachannel: DataChannel | null = null
 
   /**
    * True if we've received an SDP message from the peer.
@@ -55,6 +57,7 @@ export class WebRtcConnection extends Connection {
   onSignal = new Event<[SignalData]>()
 
   constructor(
+    nodeDataChannel: NodeDataChannelType,
     initiator: boolean,
     logger: Logger,
     metrics?: MetricsMonitor,
@@ -102,7 +105,7 @@ export class WebRtcConnection extends Connection {
       })
     })
 
-    this.peer.onDataChannel((dc: nodeDataChannel.DataChannel) => {
+    this.peer.onDataChannel((dc: DataChannel) => {
       Assert.isNull(this.datachannel)
       this.initializeDataChannel(dc)
     })
@@ -112,7 +115,7 @@ export class WebRtcConnection extends Connection {
     }
   }
 
-  initializeDataChannel(dc: nodeDataChannel.DataChannel): void {
+  initializeDataChannel(dc: DataChannel): void {
     this.datachannel = dc
 
     this.datachannel.onOpen(() => {
@@ -199,9 +202,7 @@ export class WebRtcConnection extends Connection {
       return false
     }
 
-    this.datachannel.sendMessageBinary(data)
-
-    return true
+    return this.datachannel.sendMessageBinary(data)
   }
 
   /**

@@ -93,7 +93,11 @@ export default class Ceremony extends IronfishCommand {
       try {
         response = await axios.get(downloadLink, {
           responseType: 'stream',
-          onDownloadProgress: (p: ProgressEvent) => {
+          onDownloadProgress: (p: {
+            readonly lengthComputable: boolean
+            readonly loaded: number
+            readonly total: number
+          }) => {
             this.log('loaded', p.loaded, 'total', p.total)
           },
         })

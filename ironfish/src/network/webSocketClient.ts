@@ -12,7 +12,7 @@ import { WEBSOCKET_OPTIONS } from './webSocketServer'
  */
 export class WebSocketClient extends WSWebSocket {
   constructor(
-    address: string | URL,
+    address: string,
     protocols?: string | string[],
     options?: WSWebSocket.ClientOptions | http.ClientRequestArgs,
   ) {

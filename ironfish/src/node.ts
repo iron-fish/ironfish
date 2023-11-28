@@ -22,7 +22,7 @@ import { MetricsMonitor } from './metrics'
 import { Migrator } from './migrations'
 import { MiningManager } from './mining'
 import { PeerNetwork, PrivateIdentity, privateIdentityToIdentity } from './network'
-import { IsomorphicWebSocketConstructor } from './network/types'
+import { IsomorphicWebSocketConstructor, NodeDataChannelType } from './network/types'
 import { getNetworkDefinition } from './networkDefinition'
 import { Package } from './package'
 import { Platform } from './platform'
@@ -71,6 +71,7 @@ export class FullNode {
     workerPool,
     logger,
     webSocket,
+    nodeDataChannel,
     privateIdentity,
     peerStore,
     networkId,
@@ -88,6 +89,7 @@ export class FullNode {
     workerPool: WorkerPool
     logger: Logger
     webSocket: IsomorphicWebSocketConstructor
+    nodeDataChannel: NodeDataChannelType
     privateIdentity?: PrivateIdentity
     peerStore: PeerStore
     networkId: number
@@ -150,6 +152,7 @@ export class FullNode {
       bootstrapNodes: config.getArray('bootstrapNodes'),
       stunServers: config.getArray('p2pStunServers'),
       webSocket: webSocket,
+      nodeDataChannel: nodeDataChannel,
       node: this,
       chain: chain,
       metrics: this.metrics,
@@ -300,6 +303,8 @@ export class FullNode {
       logger,
     })
 
+    const nodeDataChannel = await import('node-datachannel')
+
     const node = new FullNode({
       pkg,
       chain,
@@ -313,6 +318,7 @@ export class FullNode {
       workerPool,
       logger,
       webSocket,
+      nodeDataChannel,
       privateIdentity,
       peerStore,
       networkId: networkDefinition.id,

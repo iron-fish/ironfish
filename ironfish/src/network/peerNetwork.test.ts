@@ -97,10 +97,13 @@ describe('PeerNetwork', () => {
 
   describe('when peers connect', () => {
     it('changes isReady', async () => {
+      const dc = await import('node-datachannel')
+
       const peerNetwork = new PeerNetwork({
         identity: mockPrivateIdentity('local'),
         agent: 'sdk/1/cli',
         webSocket: ws,
+        nodeDataChannel: dc,
         node: mockNode(),
         chain: mockChain(),
         minPeers: 1,
@@ -135,11 +138,13 @@ describe('PeerNetwork', () => {
   describe('when at max peers', () => {
     it('rejects websocket connections', async () => {
       const wsActual = jest.requireActual<typeof WSWebSocket>('ws')
+      const dc = await import('node-datachannel')
 
       const peerNetwork = new PeerNetwork({
         identity: mockPrivateIdentity('local'),
         agent: 'sdk/1/cli',
         webSocket: wsActual,
+        nodeDataChannel: dc,
         node: mockNode(),
         chain: mockChain(),
         listen: true,

@@ -1,6 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+// @ts-expect-error Allow type-only import https://github.com/microsoft/TypeScript/issues/49721
+import type nodeDataChannel from 'node-datachannel'
 import type { ErrorEvent as WSErrorEvent } from 'ws'
 import { WebSocketClient } from './webSocketClient'
 
@@ -34,6 +36,7 @@ export enum NetworkMessageType {
   NewTransactions = 83,
 }
 
+export type NodeDataChannelType = typeof nodeDataChannel
 export type IsomorphicWebSocketConstructor = typeof WebSocket | typeof WebSocketClient
 export type IsomorphicWebSocket = WebSocket | WebSocketClient
 export type IsomorphicWebSocketErrorEvent = WSErrorEvent

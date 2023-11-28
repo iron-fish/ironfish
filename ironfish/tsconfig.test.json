@@ -5,5 +5,4 @@
     "tsBuildInfoFile": "./build/tsconfig.tsbuildinfo"
   },
   "include": ["src", "package.json"],
-  "references": [],
 }
