@@ -36,7 +36,6 @@ import {
 } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { DecryptedNote, DecryptNoteOptions } from '../workerPool/tasks/decryptNotes'
-import { AccountValue } from '.'
 import { Account, ACCOUNT_SCHEMA_VERSION } from './account/account'
 import { AssetBalances } from './assetBalances'
 import { NotEnoughFundsError } from './errors'
@@ -47,6 +46,7 @@ import {
   WalletBlockTransaction,
 } from './remoteChainProcessor'
 import { validateAccount } from './validator'
+import { AccountValue } from './walletdb/accountValue'
 import { AssetValue } from './walletdb/assetValue'
 import { DecryptedNoteValue } from './walletdb/decryptedNoteValue'
 import { HeadValue } from './walletdb/headValue'
