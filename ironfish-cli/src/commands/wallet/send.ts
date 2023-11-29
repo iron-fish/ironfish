@@ -90,6 +90,11 @@ export class Send extends IronfishCommand {
       default: false,
       description: 'Allow offline transaction creation',
     }),
+    notes: Flags.string({
+      char: 'n',
+      description: 'The notes to include in the transaction',
+      multiple: true,
+    }),
   }
 
   async start(): Promise<void> {
@@ -189,6 +194,7 @@ export class Send extends IronfishCommand {
       feeRate: flags.feeRate ? CurrencyUtils.encode(flags.feeRate) : null,
       expiration: flags.expiration,
       confirmations: flags.confirmations,
+      notes: flags.notes,
     }
 
     let raw: RawTransaction
