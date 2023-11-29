@@ -5,6 +5,7 @@ import * as yup from 'yup'
 import { ERROR_CODES, ValidationError } from '../../adapters'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
+import { AssertHasRpcContext } from '../rpcContext'
 /**
  * Our endpoints follow the verbObject naming convention, where the verb is the
  * HTTP verb and the object is the object being acted upon. For example,
@@ -41,10 +42,12 @@ export const CreateAccountResponseSchema: yup.ObjectSchema<CreateAccountResponse
 routes.register<typeof CreateAccountRequestSchema, CreateAccountResponse>(
   `${ApiNamespace.wallet}/createAccount`,
   CreateAccountRequestSchema,
-  async (request, node): Promise<void> => {
+  async (request, context): Promise<void> => {
+    AssertHasRpcContext(request, context, 'wallet')
+
     const name = request.data.name
 
-    if (node.wallet.accountExists(name)) {
+    if (context.wallet.accountExists(name)) {
       throw new ValidationError(
         `There is already an account with the name ${name}`,
         400,
@@ -52,14 +55,14 @@ routes.register<typeof CreateAccountRequestSchema, CreateAccountResponse>(
       )
     }
 
-    const account = await node.wallet.createAccount(name)
-    if (node.wallet.nodeClient) {
-      void node.wallet.scanTransactions()
+    const account = await context.wallet.createAccount(name)
+    if (context.wallet.nodeClient) {
+      void context.wallet.scanTransactions()
     }
 
     let isDefaultAccount = false
-    if (!node.wallet.hasDefaultAccount || request.data.default) {
-      await node.wallet.setDefaultAccount(name)
+    if (!context.wallet.hasDefaultAccount || request.data.default) {
+      await context.wallet.setDefaultAccount(name)
       isDefaultAccount = true
     }
 

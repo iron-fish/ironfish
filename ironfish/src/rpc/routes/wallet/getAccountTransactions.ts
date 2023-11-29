@@ -2,13 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { Config } from '../../../fileStores'
 import { GENESIS_BLOCK_SEQUENCE } from '../../../primitives'
-import { IronfishNode } from '../../../utils'
+import { Wallet } from '../../../wallet'
 import { Account } from '../../../wallet/account/account'
 import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
 import { RpcRequest } from '../../request'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
+import { AssertHasRpcContext } from '../rpcContext'
 import { RpcWalletTransaction, RpcWalletTransactionSchema } from '../wallet/types'
 import {
   getAccount,
@@ -55,6 +57,8 @@ routes.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
   `${ApiNamespace.wallet}/getAccountTransactions`,
   GetAccountTransactionsRequestSchema,
   async (request, node): Promise<void> => {
+    AssertHasRpcContext(request, node, 'wallet', 'config')
+
     const account = getAccount(node.wallet, request.data.account)
 
     const headSequence = (await account.getHead())?.sequence ?? null
@@ -70,7 +74,14 @@ routes.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
       const transaction = await account.getTransaction(hashBuffer)
 
       if (transaction) {
-        await streamTransaction(request, node, account, transaction, options)
+        await streamTransaction(
+          request,
+          node.config,
+          node.wallet,
+          account,
+          transaction,
+          options,
+        )
       }
       request.end()
       return
@@ -97,7 +108,7 @@ routes.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
         break
       }
 
-      await streamTransaction(request, node, account, transaction, options)
+      await streamTransaction(request, node.config, node.wallet, account, transaction, options)
       count++
     }
 
@@ -107,7 +118,8 @@ routes.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
 
 const streamTransaction = async (
   request: RpcRequest<GetAccountTransactionsRequest, GetAccountTransactionsResponse>,
-  node: IronfishNode,
+  config: Config,
+  wallet: Wallet,
   account: Account,
   transaction: TransactionValue,
   options: {
@@ -115,10 +127,9 @@ const streamTransaction = async (
     confirmations: number
   },
 ): Promise<void> => {
-  const wallet = node.wallet
-
   const serializedTransaction = await serializeRpcWalletTransaction(
-    node,
+    config,
+    wallet,
     account,
     transaction,
     {

@@ -1,14 +1,35 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-
+/* eslint-disable @typescript-eslint/no-empty-function */
 import { Blockchain } from '../../blockchain'
 import { mockChain } from '../../testUtilities/mocks'
 import { PrivateIdentity } from '../identity'
 import { LocalPeer } from '../peers/localPeer'
+import { NodeDataChannelType } from '../types'
 import { VERSION_PROTOCOL } from '../version'
 import { WebSocketClient } from '../webSocketClient'
 import { mockPrivateIdentity } from './mockPrivateIdentity'
+
+const mockNodeDataChannel: NodeDataChannelType = {
+  PeerConnection: class {
+    onLocalDescription() {}
+    onLocalCandidate() {}
+    onDataChannel() {}
+    createDataChannel() {
+      return {
+        onOpen: () => {},
+        onError: () => {},
+        onClosed: () => {},
+        onMessage: () => {},
+        close: () => {},
+        isOpen: () => {},
+        sendMessage: () => {},
+        sendMessageBinary: () => {},
+      }
+    }
+  },
+} as unknown as NodeDataChannelType
 
 /**
  * Utility to create a fake "keypair" for testing the network layer
@@ -24,5 +45,14 @@ export function mockLocalPeer({
   version?: number
   chain?: Blockchain
 } = {}): LocalPeer {
-  return new LocalPeer(identity, agent, version, chain || mockChain(), WebSocketClient, 0, true)
+  return new LocalPeer(
+    identity,
+    agent,
+    version,
+    chain || mockChain(),
+    WebSocketClient,
+    mockNodeDataChannel,
+    0,
+    true,
+  )
 }

@@ -62,7 +62,7 @@ import { BAN_SCORE, KnownBlockHashesValue, Peer } from './peers/peer'
 import { PeerConnectionManager } from './peers/peerConnectionManager'
 import { PeerManager } from './peers/peerManager'
 import { TransactionFetcher } from './transactionFetcher'
-import { IsomorphicWebSocketConstructor } from './types'
+import { IsomorphicWebSocketConstructor, NodeDataChannelType } from './types'
 import { getBlockSize } from './utils/serializers'
 import { parseUrl, WebSocketAddress } from './utils/url'
 import {
@@ -159,6 +159,7 @@ export class PeerNetwork {
     identity: PrivateIdentity
     agent?: string
     webSocket: IsomorphicWebSocketConstructor
+    nodeDataChannel: NodeDataChannelType
     listen?: boolean
     port?: number
     bootstrapNodes?: string[]
@@ -194,6 +195,7 @@ export class PeerNetwork {
       VERSION_PROTOCOL,
       options.chain,
       options.webSocket,
+      options.nodeDataChannel,
       options.networkId,
       this.enableSyncing,
     )
@@ -268,7 +270,17 @@ export class PeerNetwork {
     }
     this.started = true
 
-    // Start the WebSocket server if possible
+    this.startWebSocketServer()
+    this.peerManager.start()
+    this.peerConnectionManager.start()
+
+    this.updateIsReady()
+
+    this.connectToBootstrapNodes()
+    this.connectToPriorWebsocketConnections()
+  }
+
+  private startWebSocketServer() {
     if (this.listen && 'Server' in this.localPeer.webSocket && this.localPeer.port !== null) {
       this.webSocketServer = new WebSocketServer(
         this.localPeer.webSocket.Server,
@@ -342,15 +354,9 @@ export class PeerNetwork {
         }
       })
     }
+  }
 
-    // Start up the PeerManager
-    this.peerManager.start()
-
-    // Start up the PeerConnectionManager
-    this.peerConnectionManager.start()
-
-    this.updateIsReady()
-
+  private connectToBootstrapNodes() {
     for (const node of this.bootstrapNodes) {
       const url = parseUrl(node)
 
@@ -370,9 +376,9 @@ export class PeerNetwork {
         whitelist: true,
       })
     }
+  }
 
-    // Connect to prior websocket outbound connections that were saved to disk
-    // This should be replaced with populating from the peer candidates list [IFL-1786]
+  private connectToPriorWebsocketConnections() {
     for (const peerAddress of this.peerManager.peerStoreManager.priorConnectedPeerAddresses) {
       this.peerManager.connectToWebSocketAddress({
         host: peerAddress.address,

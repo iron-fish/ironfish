@@ -22,7 +22,7 @@ import { PeerListMessage } from '../messages/peerList'
 import { PeerListRequestMessage } from '../messages/peerListRequest'
 import { SignalMessage } from '../messages/signal'
 import { SignalRequestMessage } from '../messages/signalRequest'
-import { IsomorphicWebSocket } from '../types'
+import { IsomorphicWebSocket, NodeDataChannelType } from '../types'
 import { formatWebSocketAddress, WebSocketAddress } from '../utils'
 import { VERSION_PROTOCOL_MIN } from '../version'
 import { ConnectionRetry } from './connectionRetry'
@@ -275,7 +275,7 @@ export class PeerManager {
     }
 
     if (canInitiateWebRTC(this.localPeer.publicIdentity, peer.state.identity)) {
-      this.initWebRtcConnection(peer, true)
+      this.initWebRtcConnection(peer, this.localPeer.nodeDataChannel, true)
       return true
     }
 
@@ -284,7 +284,7 @@ export class PeerManager {
       destinationIdentity: peer.state.identity,
     })
 
-    const connection = this.initWebRtcConnection(peer, false)
+    const connection = this.initWebRtcConnection(peer, this.localPeer.nodeDataChannel, false)
     connection.setState({ type: 'REQUEST_SIGNALING' })
 
     const brokeringPeers = this.getBrokeringPeers(peer)
@@ -319,10 +319,13 @@ export class PeerManager {
     direction: ConnectionDirection,
     wsAddress: WebSocketAddress | null,
   ): WebSocketConnection {
-    const connection = new WebSocketConnection(ws, direction, this.logger, this.metrics, {
-      hostname: wsAddress?.host,
-      port: wsAddress?.port || undefined,
-    })
+    const connection = new WebSocketConnection(
+      ws,
+      direction,
+      this.logger,
+      this.metrics,
+      wsAddress,
+    )
 
     this.initConnectionHandlers(peer, connection)
     peer.setWebSocketConnection(connection)
@@ -335,10 +338,20 @@ export class PeerManager {
    * @param peer The peer to establish a connection with
    * @param initiator Set to true if we are initiating a connection with `peer`
    */
-  private initWebRtcConnection(peer: Peer, initiator: boolean): WebRtcConnection {
-    const connection = new WebRtcConnection(initiator, this.logger, this.metrics, {
-      stunServers: this.stunServers,
-    })
+  private initWebRtcConnection(
+    peer: Peer,
+    nodeDataChannel: NodeDataChannelType,
+    initiator: boolean,
+  ): WebRtcConnection {
+    const connection = new WebRtcConnection(
+      nodeDataChannel,
+      initiator,
+      this.logger,
+      this.metrics,
+      {
+        stunServers: this.stunServers,
+      },
+    )
 
     connection.onSignal.on((data) => {
       let errorMessage
@@ -1133,7 +1146,7 @@ export class PeerManager {
       connection instanceof WebSocketConnection &&
       connection.direction === ConnectionDirection.Inbound
     ) {
-      connection.port = message.port || undefined
+      connection.port = message.port
     }
 
     peer.name = message.name
@@ -1258,7 +1271,7 @@ export class PeerManager {
       return
     }
 
-    this.initWebRtcConnection(targetPeer, true)
+    this.initWebRtcConnection(targetPeer, this.localPeer.nodeDataChannel, true)
   }
 
   /**
@@ -1363,7 +1376,11 @@ export class PeerManager {
         return
       }
 
-      signalingConnection = this.initWebRtcConnection(signalingPeer, false)
+      signalingConnection = this.initWebRtcConnection(
+        signalingPeer,
+        this.localPeer.nodeDataChannel,
+        false,
+      )
     } else {
       signalingConnection = signalingPeer.state.connections.webRtc
     }

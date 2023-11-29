@@ -7,6 +7,7 @@ import { InterceptReporter } from '../../../logger'
 import { IJSON } from '../../../serde'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
+import { AssertHasRpcContext } from '../rpcContext'
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 export type GetLogStreamRequest = {} | undefined
@@ -37,7 +38,9 @@ export const GetLogStreamResponseSchema: yup.ObjectSchema<GetLogStreamResponse> 
 routes.register<typeof GetLogStreamRequestSchema, GetLogStreamResponse>(
   `${ApiNamespace.node}/getLogStream`,
   GetLogStreamRequestSchema,
-  (request, node): void => {
+  (request, context): void => {
+    AssertHasRpcContext(request, context, 'logger')
+
     const reporter = new InterceptReporter((logObj: ConsolaReporterLogObject): void => {
       request.stream({
         level: String(logObj.level),
@@ -48,10 +51,10 @@ routes.register<typeof GetLogStreamRequestSchema, GetLogStreamResponse>(
       })
     })
 
-    node.logger.addReporter(reporter)
+    context.logger.addReporter(reporter)
 
     request.onClose.on(() => {
-      node.logger.removeReporter(reporter)
+      context.logger.removeReporter(reporter)
     })
   },
 )

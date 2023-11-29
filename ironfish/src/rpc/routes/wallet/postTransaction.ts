@@ -5,6 +5,7 @@ import * as yup from 'yup'
 import { RawTransactionSerde } from '../../../primitives/rawTransaction'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
+import { AssertHasRpcContext } from '../rpcContext'
 import { getAccount } from './utils'
 
 export type PostTransactionRequest = {
@@ -40,13 +41,15 @@ export const PostTransactionResponseSchema: yup.ObjectSchema<PostTransactionResp
 routes.register<typeof PostTransactionRequestSchema, PostTransactionResponse>(
   `${ApiNamespace.wallet}/postTransaction`,
   PostTransactionRequestSchema,
-  async (request, node): Promise<void> => {
-    const account = getAccount(node.wallet, request.data.account)
+  async (request, context): Promise<void> => {
+    AssertHasRpcContext(request, context, 'wallet')
+
+    const account = getAccount(context.wallet, request.data.account)
 
     const bytes = Buffer.from(request.data.transaction, 'hex')
     const raw = RawTransactionSerde.deserialize(bytes)
 
-    const { accepted, broadcasted, transaction } = await node.wallet.post({
+    const { accepted, broadcasted, transaction } = await context.wallet.post({
       transaction: raw,
       account,
       broadcast: request.data.broadcast,

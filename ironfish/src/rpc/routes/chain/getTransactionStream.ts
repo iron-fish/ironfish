@@ -11,6 +11,8 @@ import { BufferUtils, CurrencyUtils } from '../../../utils'
 import { PromiseUtils } from '../../../utils/promise'
 import { isValidIncomingViewKey, isValidOutgoingViewKey } from '../../../wallet/validator'
 import { ValidationError } from '../../adapters/errors'
+import { ApiNamespace } from '../namespaces'
+import { routes } from '../router'
 import {
   RpcBlockHeader,
   RpcBlockHeaderSchema,
@@ -19,9 +21,7 @@ import {
   RpcMint,
   RpcMintSchema,
   serializeRpcBlockHeader,
-} from '../../types'
-import { ApiNamespace } from '../namespaces'
-import { routes } from '../router'
+} from '../types'
 
 interface Note {
   assetId: string

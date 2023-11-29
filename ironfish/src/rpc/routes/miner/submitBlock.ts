@@ -65,10 +65,10 @@ export const SubmitBlockResponseSchema: yup.ObjectSchema<SubmitBlockResponse> = 
 routes.register<typeof SubmitBlockRequestSchema, SubmitBlockResponse>(
   `${ApiNamespace.miner}/submitBlock`,
   SubmitBlockRequestSchema,
-  async (request, node): Promise<void> => {
-    Assert.isInstanceOf(node, FullNode)
+  async (request, context): Promise<void> => {
+    Assert.isInstanceOf(context, FullNode)
 
-    const result = await node.miningManager.submitBlockTemplate(request.data)
+    const result = await context.miningManager.submitBlockTemplate(request.data)
 
     request.end({
       added: result === MINED_RESULT.SUCCESS,

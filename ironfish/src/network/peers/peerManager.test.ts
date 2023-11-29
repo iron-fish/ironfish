@@ -617,7 +617,7 @@ describe('PeerManager', () => {
       const peerIdentity = webRtcCanInitiateIdentity()
       const pm = new PeerManager(mockLocalPeer(), mockPeerStore())
 
-      const { peer } = getSignalingWebRtcPeer(pm, brokerIdentity, peerIdentity)
+      const { peer, connection } = getSignalingWebRtcPeer(pm, brokerIdentity, peerIdentity)
 
       if (peer.state.type === 'DISCONNECTED') {
         throw new Error('Peer should not be DISCONNECTED')
@@ -625,19 +625,12 @@ describe('PeerManager', () => {
       if (!peer.state.connections.webRtc) {
         throw new Error('Peer should have a WebRTC connection')
       }
-      const webRtcConnection = peer.state.connections.webRtc
 
-      // TODO: webRtcConnection.datachannel never actually opens during a test
-      // so when peer.send() gets called as part of the onConnect event, it
-      // closes the webRTC connection. For now, we'll mock the close function,
-      // but in the future, we should mock the datachannel class to make tests
-      // more robust -- deekerno
-      const closeSpy = jest.spyOn(webRtcConnection, 'close').mockImplementationOnce(() => {})
-      webRtcConnection.setState({
+      jest.spyOn(connection, '_send').mockReturnValue(true)
+      peer.state.connections.webRtc.setState({
         type: 'CONNECTED',
         identity: peerIdentity,
       })
-      expect(closeSpy).toHaveBeenCalledTimes(1)
 
       expect(pm.peers.length).toBe(2)
       expect(pm.identifiedPeers.size).toBe(2)
@@ -668,7 +661,7 @@ describe('PeerManager', () => {
         identity: peerIdentity,
         connections: {
           webSocket: unidentifiedConnection,
-          webRtc: webRtcConnection,
+          webRtc: peer.state.connections.webRtc,
         },
       })
       expect(unidentifiedPeer.state).toEqual({
@@ -1166,7 +1159,7 @@ describe('PeerManager', () => {
 
       peer.onMessage.emit(message, connection)
       expect(initWebRtcConnectionMock).toHaveBeenCalledTimes(1)
-      expect(initWebRtcConnectionMock).toHaveBeenCalledWith(peer, true)
+      expect(initWebRtcConnectionMock).toHaveBeenCalledWith(peer, expect.anything(), true)
       expect(pm['getBrokeringPeers'](peer)[0]).toEqual(peer)
     })
 

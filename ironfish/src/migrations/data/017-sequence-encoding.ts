@@ -13,25 +13,24 @@ import {
   PrefixEncoding,
   U32_ENCODING_BE,
 } from '../../storage'
-import { IronfishNode } from '../../utils'
-import { Database, Migration } from '../migration'
+import { Database, Migration, MigrationContext } from '../migration'
 import { GetOldAccounts } from './021-add-version-to-accounts/schemaOld'
 
 export class Migration017 extends Migration {
   path = __filename
   database = Database.WALLET
 
-  prepare(node: IronfishNode): IDatabase {
-    return node.wallet.walletDb.db
+  prepare(context: MigrationContext): IDatabase {
+    return context.wallet.walletDb.db
   }
 
   async forward(
-    node: IronfishNode,
+    context: MigrationContext,
     db: IDatabase,
     tx: IDatabaseTransaction | undefined,
     logger: Logger,
   ): Promise<void> {
-    const accounts = await GetOldAccounts(node, db, tx)
+    const accounts = await GetOldAccounts(context, db, tx)
 
     logger.info(`Re-indexing transactions for ${accounts.length} accounts`)
     logger.info('')
@@ -41,7 +40,7 @@ export class Migration017 extends Migration {
 
       logger.info(`Indexing on-chain transactions for account ${account.name}`)
       for await (const transactionValue of account.getTransactions()) {
-        await node.wallet.walletDb.saveTransaction(
+        await context.wallet.walletDb.saveTransaction(
           account,
           transactionValue.transaction.hash(),
           transactionValue,
@@ -63,8 +62,8 @@ export class Migration017 extends Migration {
     await pendingTransactionHashes.clear()
   }
 
-  async backward(node: IronfishNode, db: IDatabase): Promise<void> {
-    const accounts = await GetOldAccounts(node, db)
+  async backward(context: MigrationContext, db: IDatabase): Promise<void> {
+    const accounts = await GetOldAccounts(context, db)
 
     const { sequenceToNoteHash, sequenceToTransactionHash, pendingTransactionHashes } =
       this.getOldStores(db)
@@ -99,9 +98,9 @@ export class Migration017 extends Migration {
       }
     }
 
-    await node.wallet.walletDb.sequenceToNoteHash.clear()
-    await node.wallet.walletDb.sequenceToTransactionHash.clear()
-    await node.wallet.walletDb.pendingTransactionHashes.clear()
+    await context.wallet.walletDb.sequenceToNoteHash.clear()
+    await context.wallet.walletDb.sequenceToTransactionHash.clear()
+    await context.wallet.walletDb.pendingTransactionHashes.clear()
   }
 
   getOldStores(db: IDatabase): {

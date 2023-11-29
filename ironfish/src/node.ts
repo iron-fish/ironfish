@@ -22,7 +22,7 @@ import { MetricsMonitor } from './metrics'
 import { Migrator } from './migrations'
 import { MiningManager } from './mining'
 import { PeerNetwork, PrivateIdentity, privateIdentityToIdentity } from './network'
-import { IsomorphicWebSocketConstructor } from './network/types'
+import { IsomorphicWebSocketConstructor, NodeDataChannelType } from './network/types'
 import { getNetworkDefinition } from './networkDefinition'
 import { Package } from './package'
 import { Platform } from './platform'
@@ -71,6 +71,7 @@ export class FullNode {
     workerPool,
     logger,
     webSocket,
+    nodeDataChannel,
     privateIdentity,
     peerStore,
     networkId,
@@ -88,6 +89,7 @@ export class FullNode {
     workerPool: WorkerPool
     logger: Logger
     webSocket: IsomorphicWebSocketConstructor
+    nodeDataChannel: NodeDataChannelType
     privateIdentity?: PrivateIdentity
     peerStore: PeerStore
     networkId: number
@@ -113,7 +115,7 @@ export class FullNode {
     this.logger = logger
     this.pkg = pkg
 
-    this.migrator = new Migrator({ node: this, logger })
+    this.migrator = new Migrator({ context: this, logger })
 
     const identity = privateIdentity || new BoxKeyPair()
 
@@ -150,6 +152,7 @@ export class FullNode {
       bootstrapNodes: config.getArray('bootstrapNodes'),
       stunServers: config.getArray('p2pStunServers'),
       webSocket: webSocket,
+      nodeDataChannel: nodeDataChannel,
       node: this,
       chain: chain,
       metrics: this.metrics,
@@ -234,7 +237,7 @@ export class FullNode {
 
     const numWorkers = calculateWorkers(config.get('nodeWorkers'), config.get('nodeWorkersMax'))
 
-    const workerPool = new WorkerPool({ metrics, numWorkers })
+    const workerPool = new WorkerPool({ logger, metrics, numWorkers })
 
     metrics = metrics || new MetricsMonitor({ logger })
 
@@ -270,6 +273,7 @@ export class FullNode {
         average: config.get('feeEstimatorPercentileAverage'),
         fast: config.get('feeEstimatorPercentileFast'),
       },
+      logger,
     })
 
     const memPool = new MemPool({
@@ -296,7 +300,10 @@ export class FullNode {
       workerPool,
       consensus,
       nodeClient: memoryClient,
+      logger,
     })
+
+    const nodeDataChannel = await import('node-datachannel')
 
     const node = new FullNode({
       pkg,
@@ -311,6 +318,7 @@ export class FullNode {
       workerPool,
       logger,
       webSocket,
+      nodeDataChannel,
       privateIdentity,
       peerStore,
       networkId: networkDefinition.id,

@@ -5,6 +5,7 @@ import * as yup from 'yup'
 import { Account } from '../../../wallet'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
+import { AssertHasRpcContext } from '../rpcContext'
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 export type GetAccountsRequest = { default?: boolean; displayName?: boolean } | undefined
@@ -27,6 +28,8 @@ routes.register<typeof GetAccountsRequestSchema, GetAccountsResponse>(
   `${ApiNamespace.wallet}/getAccounts`,
   GetAccountsRequestSchema,
   (request, node): void => {
+    AssertHasRpcContext(request, node, 'wallet')
+
     let accounts: Account[] = []
 
     if (request.data?.default) {

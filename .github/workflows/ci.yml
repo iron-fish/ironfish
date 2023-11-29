@@ -39,13 +39,9 @@ jobs:
       - name: Lint
         run: yarn lint
 
-  test-matrix:
-    name: Test Matrix
+  test:
+    name: Test
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [18, 20]
-        test-type: ["test", "test:slow"]
 
     steps:
       - name: Check out Git repository
@@ -54,7 +50,8 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: ${{ matrix.version }}
+          # Tests will only run on Node v20 due to https://github.com/nodejs/node/issues/35889
+          node-version: 20
           cache: 'yarn'
 
       - name: Cache Rust
@@ -66,7 +63,7 @@ jobs:
         run: yarn --non-interactive --frozen-lockfile
 
       - name: Run tests
-        run: yarn ${{ matrix.test-type}}:coverage --maxWorkers=2 --workerIdleMemoryLimit=2000MB
+        run: yarn test:coverage --maxWorkers=2 --workerIdleMemoryLimit=2000MB
 
       - name: Check for missing fixtures
         run: |
@@ -79,13 +76,39 @@ jobs:
         if: github.repository == 'iron-fish/ironfish'
         run: CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }} ROOT_PATH=$GITHUB_WORKSPACE/ yarn coverage:upload
 
-  # This is a workaround to have status checks on jobs that use a matrix.
-  # See: https://github.com/orgs/community/discussions/26822
-  test:
-    if: ${{ always() }}
+  testslow:
+    name: Slow Tests
     runs-on: ubuntu-latest
-    name: Test
-    needs: [test-matrix]
+
     steps:
-      - run: exit 1
-        if: ${{ !contains(needs.*.result, 'success')}}
+      - name: Check out Git repository
+        uses: actions/checkout@v3
+
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          # Tests will only run on Node v20 due to https://github.com/nodejs/node/issues/35889
+          node-version: 20
+          cache: 'yarn'
+
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: nodejs
+
+      - name: Install packages
+        run: yarn --non-interactive --frozen-lockfile
+
+      - name: Run slow tests & coverage
+        run: yarn test:slow:coverage --maxWorkers=2 --workerIdleMemoryLimit=2000MB
+
+      - name: Check for missing fixtures
+        run: |
+          if [[ $(git status | grep fixture) ]]; then
+            echo "New test fixtures have not been checked in, please check them in."
+            exit 1
+          fi
+
+      - name: Upload coverage
+        if: github.repository == 'iron-fish/ironfish'
+        run: CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }} ROOT_PATH=$GITHUB_WORKSPACE/ yarn coverage:upload

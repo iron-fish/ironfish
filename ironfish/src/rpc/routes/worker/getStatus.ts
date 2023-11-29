@@ -7,6 +7,7 @@ import { WorkerPool } from '../../../workerPool'
 import { WorkerMessageType } from '../../../workerPool/tasks/workerMessage'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
+import { AssertHasRpcContext } from '../rpcContext'
 
 export type GetWorkersStatusRequest =
   | undefined
@@ -66,8 +67,10 @@ export const GetWorkersStatusResponseSchema: yup.ObjectSchema<GetWorkersStatusRe
 routes.register<typeof GetWorkersStatusRequestSchema, GetWorkersStatusResponse>(
   `${ApiNamespace.worker}/getStatus`,
   GetWorkersStatusRequestSchema,
-  (request, node): void => {
-    const jobs = getWorkersStatus(node.workerPool)
+  (request, context): void => {
+    AssertHasRpcContext(request, context, 'workerPool')
+
+    const jobs = getWorkersStatus(context.workerPool)
 
     if (!request.data?.stream) {
       request.end(jobs)
@@ -77,7 +80,7 @@ routes.register<typeof GetWorkersStatusRequestSchema, GetWorkersStatusResponse>(
     request.stream(jobs)
 
     const interval = setInterval(() => {
-      const jobs = getWorkersStatus(node.workerPool)
+      const jobs = getWorkersStatus(context.workerPool)
       request.stream(jobs)
     }, 1000)
 

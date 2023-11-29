@@ -11,9 +11,10 @@ import { Assert } from '../../../assert'
 import { CurrencyUtils, YupUtils } from '../../../utils'
 import { MintAssetOptions } from '../../../wallet/interfaces/mintAssetOptions'
 import { ValidationError } from '../../adapters'
-import { RpcAsset, RpcAssetSchema, RpcMint, RpcMintSchema } from '../../types'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
+import { AssertHasRpcContext } from '../rpcContext'
+import { RpcAsset, RpcAssetSchema, RpcMint, RpcMintSchema } from '../types'
 import { RpcWalletTransaction, RpcWalletTransactionSchema } from './types'
 import { getAccount, serializeRpcWalletTransaction } from './utils'
 
@@ -69,8 +70,11 @@ export const MintAssetResponseSchema: yup.ObjectSchema<MintAssetResponse> =
 routes.register<typeof MintAssetRequestSchema, MintAssetResponse>(
   `${ApiNamespace.wallet}/mintAsset`,
   MintAssetRequestSchema,
-  async (request, node): Promise<void> => {
-    const account = getAccount(node.wallet, request.data.account)
+  async (request, context): Promise<void> => {
+    AssertHasRpcContext(request, context, 'config', 'assetsVerifier', 'wallet')
+
+    Assert.isNotUndefined(context.wallet)
+    const account = getAccount(context.wallet, request.data.account)
 
     const fee: bigint | undefined = request.data.fee
       ? CurrencyUtils.decode(request.data.fee)
@@ -82,7 +86,7 @@ routes.register<typeof MintAssetRequestSchema, MintAssetResponse>(
     const value = CurrencyUtils.decode(request.data.value)
 
     const expirationDelta =
-      request.data.expirationDelta ?? node.config.get('transactionExpirationDelta')
+      request.data.expirationDelta ?? context.config.get('transactionExpirationDelta')
 
     if (
       request.data.transferOwnershipTo &&
@@ -121,7 +125,7 @@ routes.register<typeof MintAssetRequestSchema, MintAssetResponse>(
       }
     }
 
-    const transaction = await node.wallet.mint(account, options)
+    const transaction = await context.wallet.mint(account, options)
     Assert.isEqual(transaction.mints.length, 1)
     const mint = transaction.mints[0]
 
@@ -139,13 +143,18 @@ routes.register<typeof MintAssetRequestSchema, MintAssetResponse>(
         nonce: asset.nonce,
         creator: asset.creator.toString('hex'),
         owner: asset.owner.toString('hex'),
-        verification: node.assetsVerifier.verify(mint.asset.id()),
-        status: await node.wallet.getAssetStatus(account, asset, {
+        verification: context.assetsVerifier.verify(mint.asset.id()),
+        status: await context.wallet.getAssetStatus(account, asset, {
           confirmations: request.data.confirmations,
         }),
         createdTransactionHash: asset.createdTransactionHash.toString('hex'),
       },
-      transaction: await serializeRpcWalletTransaction(node, account, transactionValue),
+      transaction: await serializeRpcWalletTransaction(
+        context.config,
+        context.wallet,
+        account,
+        transactionValue,
+      ),
       assetId: asset.id.toString('hex'),
       hash: transaction.hash().toString('hex'),
       name: asset.name.toString('hex'),

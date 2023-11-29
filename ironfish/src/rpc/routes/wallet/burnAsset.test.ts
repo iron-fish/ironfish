@@ -104,7 +104,12 @@ describe('Route wallet/burnAsset', () => {
           verification: node.assetsVerifier.verify(asset.id()),
           createdTransactionHash: accountAsset.createdTransactionHash.toString('hex') ?? null,
         },
-        transaction: await serializeRpcWalletTransaction(node, account, walletTransaction),
+        transaction: await serializeRpcWalletTransaction(
+          node.config,
+          node.wallet,
+          account,
+          walletTransaction,
+        ),
         id: asset.id().toString('hex'),
         assetId: asset.id().toString('hex'),
         name: asset.name().toString('hex'),

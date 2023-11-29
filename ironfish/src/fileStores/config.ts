@@ -305,19 +305,8 @@ export type ConfigOptions = {
   walletGossipTransactionsMaxQueueSize: number
 
   /**
-   * Enable standalone wallet process to connect to a node via IPC
+   * The max number of transactions to process at one time when syncing
    */
-  walletNodeIpcEnabled: boolean
-  walletNodeIpcPath: string
-
-  /**
-   * Enable standalone wallet process to connect to a node via TCP
-   */
-  walletNodeTcpEnabled: boolean
-  walletNodeTcpHost: string
-  walletNodeTcpPort: number
-  walletNodeTlsEnabled: boolean
-  walletNodeRpcAuthToken: string
   walletSyncingMaxQueueSize: number
 }
 
@@ -401,13 +390,6 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     networkDefinitionPath: yup.string().trim(),
     incomingWebSocketWhitelist: yup.array(yup.string().trim().defined()),
     walletGossipTransactionsMaxQueueSize: yup.number(),
-    walletNodeIpcEnabled: yup.boolean(),
-    walletNodeIpcPath: yup.string(),
-    walletNodeTcpEnabled: yup.boolean(),
-    walletNodeTcpHost: yup.string(),
-    walletNodeTcpPort: yup.number(),
-    walletNodeTlsEnabled: yup.boolean(),
-    walletNodeRpcAuthToken: yup.string(),
     walletSyncingMaxQueueSize: yup.number(),
   })
   .defined()
@@ -504,14 +486,7 @@ export class Config extends KeyStore<ConfigOptions> {
       memPoolRecentlyEvictedCacheSize: 60000,
       networkDefinitionPath: files.resolve(files.join(dataDir, 'network.json')),
       incomingWebSocketWhitelist: [],
-      walletNodeIpcEnabled: false,
-      walletNodeIpcPath: '',
       walletGossipTransactionsMaxQueueSize: 1000,
-      walletNodeTcpEnabled: false,
-      walletNodeTcpHost: '',
-      walletNodeTcpPort: 8020,
-      walletNodeTlsEnabled: true,
-      walletNodeRpcAuthToken: '',
       walletSyncingMaxQueueSize: 100,
     }
   }

@@ -4,6 +4,7 @@
 import * as yup from 'yup'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
+import { AssertHasRpcContext } from '../rpcContext'
 import { getAccount } from './utils'
 
 export type RemoveAccountRequest = { account: string; confirm?: boolean; wait?: boolean }
@@ -26,11 +27,13 @@ export const RemoveAccountResponseSchema: yup.ObjectSchema<RemoveAccountResponse
 routes.register<typeof RemoveAccountRequestSchema, RemoveAccountResponse>(
   `${ApiNamespace.wallet}/removeAccount`,
   RemoveAccountRequestSchema,
-  async (request, node): Promise<void> => {
-    const account = getAccount(node.wallet, request.data.account)
+  async (request, context): Promise<void> => {
+    AssertHasRpcContext(request, context, 'wallet')
+
+    const account = getAccount(context.wallet, request.data.account)
 
     if (!request.data.confirm) {
-      if (!(await node.wallet.isAccountUpToDate(account))) {
+      if (!(await context.wallet.isAccountUpToDate(account))) {
         request.end({ needsConfirm: true })
         return
       }
@@ -44,9 +47,9 @@ routes.register<typeof RemoveAccountRequestSchema, RemoveAccountResponse>(
         }
       }
     }
-    await node.wallet.removeAccountByName(account.name)
+    await context.wallet.removeAccountByName(account.name)
     if (request.data.wait) {
-      await node.wallet.forceCleanupDeletedAccounts()
+      await context.wallet.forceCleanupDeletedAccounts()
     }
     request.end({})
   },

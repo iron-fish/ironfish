@@ -9,9 +9,9 @@ import { FullNode } from '../../../node'
 import { Block, BlockHeader } from '../../../primitives'
 import { BlockHashSerdeInstance } from '../../../serde'
 import { BufferUtils, PromiseUtils } from '../../../utils'
-import { RpcBlock, RpcBlockSchema, serializeRpcBlockHeader } from '../../types'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
+import { RpcBlock, RpcBlockSchema, serializeRpcBlockHeader } from '../types'
 
 export type FollowChainStreamRequest =
   | {
@@ -65,13 +65,13 @@ export const FollowChainStreamResponseSchema: yup.ObjectSchema<FollowChainStream
 routes.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse>(
   `${ApiNamespace.chain}/followChainStream`,
   FollowChainStreamRequestSchema,
-  async (request, node): Promise<void> => {
-    Assert.isInstanceOf(node, FullNode)
+  async (request, context): Promise<void> => {
+    Assert.isInstanceOf(context, FullNode)
     const head = request.data?.head ? Buffer.from(request.data.head, 'hex') : null
 
     const processor = new ChainProcessor({
-      chain: node.chain,
-      logger: node.logger,
+      chain: context.chain,
+      logger: context.logger,
       head: head,
     })
 
@@ -120,7 +120,7 @@ routes.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
       request.stream({
         type: type,
         head: {
-          sequence: node.chain.head.sequence,
+          sequence: context.chain.head.sequence,
         },
         block: {
           ...blockHeaderResponse,
@@ -140,17 +140,17 @@ routes.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
       abortController.abort()
       processor.onAdd.clear()
       processor.onRemove.clear()
-      node.chain.onForkBlock.clear()
+      context.chain.onForkBlock.clear()
     }
 
     const onAdd = async (header: BlockHeader) => {
-      const block = await node.chain.getBlock(header)
+      const block = await context.chain.getBlock(header)
       Assert.isNotNull(block)
       send(block, 'connected')
     }
 
     const onRemove = async (header: BlockHeader) => {
-      const block = await node.chain.getBlock(header)
+      const block = await context.chain.getBlock(header)
       Assert.isNotNull(block)
       send(block, 'disconnected')
     }
@@ -161,7 +161,7 @@ routes.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
 
     processor.onAdd.on(onAdd)
     processor.onRemove.on(onRemove)
-    node.chain.onForkBlock.on(onFork)
+    context.chain.onForkBlock.on(onFork)
     const abortController = new AbortController()
 
     request.onClose.on(onClose)

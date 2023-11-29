@@ -38,8 +38,8 @@ describe('Telemetry', () => {
     telemetry.start()
   })
 
-  afterEach(() => {
-    telemetry?.stop()
+  afterEach(async () => {
+    await telemetry?.stop()
   })
 
   describe('stop', () => {

@@ -37,14 +37,10 @@ describe('Route faucet.getFunds', () => {
       // Response gives back string for ID
       expect(response).toMatchObject({ status: 200, content: { id: '5' } })
 
-      expect(axios.post).toHaveBeenCalledWith(
-        'foo.com',
-        {
-          email,
-          public_key: publicAddress,
-        },
-        expect.anything(),
-      )
+      expect(axios.post).toHaveBeenCalledWith('foo.com', {
+        email,
+        public_key: publicAddress,
+      })
     })
   })
 

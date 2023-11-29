@@ -4,6 +4,7 @@
 import * as yup from 'yup'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
+import { AssertHasRpcContext } from '../rpcContext'
 import { getAccount } from './utils'
 
 export type RenameAccountRequest = { account: string; newName: string }
@@ -23,8 +24,10 @@ export const RenameAccountResponseSchema: yup.MixedSchema<RenameAccountResponse>
 routes.register<typeof RenameAccountRequestSchema, RenameAccountResponse>(
   `${ApiNamespace.wallet}/renameAccount`,
   RenameAccountRequestSchema,
-  async (request, node): Promise<void> => {
-    const account = getAccount(node.wallet, request.data.account)
+  async (request, context): Promise<void> => {
+    AssertHasRpcContext(request, context, 'wallet')
+
+    const account = getAccount(context.wallet, request.data.account)
     await account.setName(request.data.newName)
     request.end()
   },

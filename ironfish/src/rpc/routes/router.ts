@@ -2,21 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../../assert'
-import { IronfishNode, YupSchema, YupSchemaResult, YupUtils } from '../../utils'
+import { YupSchema, YupSchemaResult, YupUtils } from '../../utils'
 import { StrEnumUtils } from '../../utils/enums'
 import { ERROR_CODES } from '../adapters'
 import { ResponseError, ValidationError } from '../adapters/errors'
 import { RpcRequest } from '../request'
 import { RpcServer } from '../server'
 import { ApiNamespace } from './namespaces'
+import { RpcContext } from './rpcContext'
 
 export const ALL_API_NAMESPACES = StrEnumUtils.getValues(ApiNamespace)
 
-export type RequestContext = IronfishNode
-
 export type RouteHandler<TRequest = unknown, TResponse = unknown> = (
   request: RpcRequest<TRequest, TResponse>,
-  context: RequestContext,
+  context: RpcContext,
 ) => Promise<void> | void
 
 export class RouteNotFoundError extends ResponseError {

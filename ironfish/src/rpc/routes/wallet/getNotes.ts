@@ -4,6 +4,7 @@
 import * as yup from 'yup'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
+import { AssertHasRpcContext } from '../rpcContext'
 import { RpcWalletNote, RpcWalletNoteSchema } from './types'
 import { getAccount, serializeRpcWalletNote } from './utils'
 
@@ -72,8 +73,10 @@ export const GetNotesResponseSchema: yup.ObjectSchema<GetNotesResponse> = yup
 routes.register<typeof GetNotesRequestSchema, GetNotesResponse>(
   `${ApiNamespace.wallet}/getNotes`,
   GetNotesRequestSchema,
-  async (request, node): Promise<void> => {
-    const account = getAccount(node.wallet, request.data.account)
+  async (request, context): Promise<void> => {
+    AssertHasRpcContext(request, context, 'wallet')
+
+    const account = getAccount(context.wallet, request.data.account)
     const pageSize = request.data.pageSize ?? DEFAULT_PAGE_SIZE
     const pageCursor = request.data.pageCursor
 
@@ -84,7 +87,7 @@ routes.register<typeof GetNotesRequestSchema, GetNotesResponse>(
 
     for await (const decryptedNote of account.getNotes(keyRange)) {
       if (notes.length === pageSize) {
-        nextPageCursor = node.wallet.walletDb.decryptedNotes.keyEncoding.serialize([
+        nextPageCursor = context.wallet.walletDb.decryptedNotes.keyEncoding.serialize([
           account.prefix,
           decryptedNote.hash,
         ])

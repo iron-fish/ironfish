@@ -143,10 +143,11 @@ export class PeerConnectionManager {
       return
     }
 
-    // Choose a random peer, but exclude the newest connections as they are
-    // least likely to have other peers
+    // Choose a random peer with some exceptions:
+    // - Exclude the most recent peer connections as they are more likely to have fewer peers
+    // - Exclude white-listed nodes
     const sampleEnd = Math.floor(connectedPeers.length * 0.8)
-    const peersSlice = connectedPeers.slice(0, sampleEnd)
+    const peersSlice = connectedPeers.slice(0, sampleEnd).filter((p) => !p.isWhitelisted)
     const peer = ArrayUtils.sample(peersSlice)
     if (!peer) {
       return

@@ -8,6 +8,7 @@ import { RpcSocketAdapter } from '../../adapters/socketAdapter/socketAdapter'
 import { RpcServer } from '../../server'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
+import { AssertHasRpcContext } from '../rpcContext'
 
 export type GetRpcStatusRequest =
   | undefined
@@ -63,8 +64,10 @@ export const GetRpcStatusResponseSchema: yup.ObjectSchema<GetRpcStatusResponse> 
 routes.register<typeof GetRpcStatusRequestSchema, GetRpcStatusResponse>(
   `${ApiNamespace.rpc}/getStatus`,
   GetRpcStatusRequestSchema,
-  async (request, node): Promise<void> => {
-    const jobs = await getRpcStatus(node.rpc)
+  async (request, context): Promise<void> => {
+    AssertHasRpcContext(request, context, 'rpc')
+
+    const jobs = await getRpcStatus(context.rpc)
 
     if (!request.data?.stream) {
       request.end(jobs)
@@ -74,7 +77,7 @@ routes.register<typeof GetRpcStatusRequestSchema, GetRpcStatusResponse>(
     request.stream(jobs)
 
     while (!request.closed) {
-      const jobs = await getRpcStatus(node.rpc)
+      const jobs = await getRpcStatus(context.rpc)
       request.stream(jobs)
       await PromiseUtils.sleep(1000)
     }

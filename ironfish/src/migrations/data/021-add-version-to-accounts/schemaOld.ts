@@ -10,8 +10,8 @@ import {
   IDatabaseTransaction,
   StringEncoding,
 } from '../../../storage'
-import { IronfishNode } from '../../../utils'
 import { Account } from '../../../wallet'
+import { MigrationContext } from '../../migration'
 
 const KEY_LENGTH = 32
 
@@ -85,7 +85,7 @@ export function GetOldStores(db: IDatabase): {
 }
 
 export async function GetOldAccounts(
-  node: IronfishNode,
+  context: MigrationContext,
   db: IDatabase,
   tx?: IDatabaseTransaction,
 ): Promise<Account[]> {
@@ -101,7 +101,7 @@ export async function GetOldAccounts(
         version: 1,
         viewKey: key.viewKey,
         createdAt: null,
-        walletDb: node.wallet.walletDb,
+        walletDb: context.wallet.walletDb,
       }),
     )
   }

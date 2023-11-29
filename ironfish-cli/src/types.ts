@@ -5,11 +5,11 @@
 import { Interfaces } from '@oclif/core'
 
 export interface ProgressBar {
-  progress: VoidFunction
+  progress: () => void
   getTotal(): number
   setTotal(totalValue: number): void
   start(totalValue?: number, startValue?: number, payload?: Record<string, unknown>): void
-  stop: VoidFunction
+  stop: () => void
   update(currentValue?: number, payload?: Record<string, unknown>): void
   update(payload?: Record<string, unknown>): void
   increment(delta?: number, payload?: Record<string, unknown>): void

@@ -39,7 +39,7 @@ By default, the log level is set to only display info.
 Change the `logLevel` in the config file, from `*:info` to `*:debug` if you want verbose logs.
 
 ### IronfishSDK
-This project contains the IronfishSdk, which is just a simple wrapper around the ironfish components like IronfishNode, Blockchain, Config, Accounts. You can use the individual components whenever you feel like it, though the SDK is aimed at making usage easier.
+This project contains the IronfishSdk, which is just a simple wrapper around the ironfish components like Blockchain, Config, Accounts. You can use the individual components whenever you feel like it, though the SDK is aimed at making usage easier.
 
 #### SDK Example
 

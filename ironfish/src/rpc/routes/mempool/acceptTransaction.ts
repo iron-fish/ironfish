@@ -33,13 +33,13 @@ export const AcceptTransactionResponseSchema: yup.ObjectSchema<AcceptTransaction
 routes.register<typeof AcceptTransactionRequestSchema, AcceptTransactionResponse>(
   `${ApiNamespace.mempool}/acceptTransaction`,
   AcceptTransactionRequestSchema,
-  async (request, node): Promise<void> => {
-    Assert.isInstanceOf(node, FullNode)
+  async (request, context): Promise<void> => {
+    Assert.isInstanceOf(context, FullNode)
 
     const data = Buffer.from(request.data.transaction, 'hex')
     const transaction = new Transaction(data)
 
-    const verify = await node.chain.verifier.verifyNewTransaction(transaction)
+    const verify = await context.chain.verifier.verifyNewTransaction(transaction)
     if (!verify.valid) {
       request.end({
         accepted: false,
@@ -48,7 +48,7 @@ routes.register<typeof AcceptTransactionRequestSchema, AcceptTransactionResponse
       return
     }
 
-    const accepted = node.memPool.acceptTransaction(transaction)
+    const accepted = context.memPool.acceptTransaction(transaction)
     request.end({
       accepted,
     })
