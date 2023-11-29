@@ -21,7 +21,7 @@ import { Note } from '../primitives/note'
 import { NoteEncrypted } from '../primitives/noteEncrypted'
 import { MintData, RawTransaction } from '../primitives/rawTransaction'
 import { Transaction } from '../primitives/transaction'
-import { RpcClient } from '../rpc'
+import { GetBlockRequest, GetBlockResponse, RpcClient } from '../rpc'
 import { IDatabaseTransaction } from '../storage/database/transaction'
 import {
   ArrayUtils,
@@ -36,6 +36,7 @@ import {
 } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { DecryptedNote, DecryptNoteOptions } from '../workerPool/tasks/decryptNotes'
+import { AccountValue } from '.'
 import { Account, ACCOUNT_SCHEMA_VERSION } from './account/account'
 import { AssetBalances } from './assetBalances'
 import { NotEnoughFundsError } from './errors'
@@ -49,6 +50,7 @@ import { validateAccount } from './validator'
 import { AssetValue } from './walletdb/assetValue'
 import { DecryptedNoteValue } from './walletdb/decryptedNoteValue'
 import { HeadValue } from './walletdb/headValue'
+import { TransactionValue } from './walletdb/transactionValue'
 import { WalletDB } from './walletdb/walletdb'
 
 export enum AssetStatus {
