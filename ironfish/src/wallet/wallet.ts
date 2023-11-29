@@ -21,9 +21,10 @@ import { Note } from '../primitives/note'
 import { NoteEncrypted } from '../primitives/noteEncrypted'
 import { MintData, RawTransaction } from '../primitives/rawTransaction'
 import { Transaction } from '../primitives/transaction'
-import { GetBlockRequest, GetBlockResponse, RpcClient } from '../rpc'
+import { RpcClient } from '../rpc'
 import { IDatabaseTransaction } from '../storage/database/transaction'
 import {
+  ArrayUtils,
   AsyncUtils,
   BufferUtils,
   ErrorUtils,
@@ -45,11 +46,9 @@ import {
   WalletBlockTransaction,
 } from './remoteChainProcessor'
 import { validateAccount } from './validator'
-import { AccountValue } from './walletdb/accountValue'
 import { AssetValue } from './walletdb/assetValue'
 import { DecryptedNoteValue } from './walletdb/decryptedNoteValue'
 import { HeadValue } from './walletdb/headValue'
-import { TransactionValue } from './walletdb/transactionValue'
 import { WalletDB } from './walletdb/walletdb'
 
 export enum AssetStatus {
@@ -1063,6 +1062,22 @@ export class Wallet {
           notes: options.notes,
           confirmations: confirmations,
         })
+      }
+
+      if (options.notes) {
+        const notesFromConstructedTransaction = raw.spends.map((s) =>
+          s.note.hash().toString('hex'),
+        )
+        const notesFromInput = options.notes.map((n) => n.toString('hex'))
+
+        const isSuperset = ArrayUtils.isSuperset(
+          notesFromInput,
+          notesFromConstructedTransaction,
+        )
+
+        if (!isSuperset) {
+          throw new Error('The transaction could not be constructed with the provided notes.')
+        }
       }
 
       return raw

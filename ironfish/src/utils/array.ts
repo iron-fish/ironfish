@@ -35,4 +35,8 @@ function remove<T>(array: Array<T>, item: T): boolean {
   return false
 }
 
-export const ArrayUtils = { shuffle, sample, remove }
+function isSuperset<T>(superset: T[], subset: T[]): boolean {
+  return subset.every((element) => superset.includes(element))
+}
+
+export const ArrayUtils = { shuffle, sample, remove, isSuperset }
