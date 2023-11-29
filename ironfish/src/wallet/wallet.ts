@@ -38,7 +38,7 @@ import { WorkerPool } from '../workerPool'
 import { DecryptedNote, DecryptNoteOptions } from '../workerPool/tasks/decryptNotes'
 import { Account, ACCOUNT_SCHEMA_VERSION } from './account/account'
 import { AssetBalances } from './assetBalances'
-import { NotEnoughFundsError } from './errors'
+import { NotEnoughFundsError, NoteSpent } from './errors'
 import { MintAssetOptions } from './interfaces/mintAssetOptions'
 import {
   RemoteChainProcessor,
@@ -1141,6 +1141,10 @@ export class Wallet {
           options.account.name
         }`,
       )
+
+      if (decryptedNote.spent) {
+        throw new NoteSpent(decryptedNote.note.hash())
+      }
 
       const witness = await this.getNoteWitness(decryptedNote, options.confirmations)
 

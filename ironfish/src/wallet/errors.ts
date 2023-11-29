@@ -18,3 +18,12 @@ export class NotEnoughFundsError extends Error {
     )} available to spend. Please fund your account and/or wait for any pending transactions to be confirmed.'`
   }
 }
+
+export class NoteSpent extends Error {
+  name = this.constructor.name
+
+  constructor(noteHash: Buffer) {
+    super()
+    this.message = `Note ${noteHash.toString('hex')} has already been spent`
+  }
+}
