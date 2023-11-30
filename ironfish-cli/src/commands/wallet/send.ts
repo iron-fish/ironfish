@@ -18,7 +18,7 @@ import { promptCurrency } from '../../utils/currency'
 import { selectFee } from '../../utils/fees'
 import { watchTransaction } from '../../utils/transaction'
 
-type TransactionConfirmationOutput = {
+type TransactionSummaryOutput = {
   amount: string
   to: string
   from: string
@@ -108,76 +108,80 @@ export class Send extends IronfishCommand {
     }),
   }
 
-  renderConfirmationTable(
+  renderSummaryTable(
     transaction: RawTransaction,
-    memo: string,
+    assetId: string,
+    amount: bigint,
     from: string,
     to: string,
-    amount: string,
+    memo: string,
   ): void {
-    const columns: CliUx.Table.table.Columns<TransactionConfirmationOutput> = {
+    const amountString = CurrencyUtils.renderIron(amount, true, assetId)
+    const feeString = CurrencyUtils.renderIron(transaction.fee, true)
+
+    const columns: CliUx.Table.table.Columns<TransactionSummaryOutput> = {
       account: {
         header: 'ACCOUNT',
-        get: (row: TransactionConfirmationOutput) => {
+        get: (row: TransactionSummaryOutput) => {
           return row.from
         },
       },
       amount: {
         header: 'AMOUNT',
-        get: (row: TransactionConfirmationOutput) => {
+        get: (row: TransactionSummaryOutput) => {
           return row.amount
         },
       },
       to: {
         header: 'TO',
-        get: (row: TransactionConfirmationOutput) => {
+        get: (row: TransactionSummaryOutput) => {
           return row.to
         },
       },
       memo: {
         header: 'MEMO',
-        get: (row: TransactionConfirmationOutput) => {
+        get: (row: TransactionSummaryOutput) => {
           return row.memo
         },
       },
       fee: {
         header: 'FEE',
-        get: (row: TransactionConfirmationOutput) => {
+        get: (row: TransactionSummaryOutput) => {
           return row.fee
         },
       },
       outputs: {
         header: 'OUTPUTS',
-        get: (row: TransactionConfirmationOutput) => {
+        get: (row: TransactionSummaryOutput) => {
           return row.outputs
         },
       },
       spends: {
         header: 'SPENDS',
-        get: (row: TransactionConfirmationOutput) => {
+        get: (row: TransactionSummaryOutput) => {
           return row.spends
         },
       },
       expiration: {
         header: 'EXPIRATION',
-        get: (row: TransactionConfirmationOutput) => {
+        get: (row: TransactionSummaryOutput) => {
           return row.expiration
         },
       },
       version: {
         header: 'VERSION',
-        get: (row: TransactionConfirmationOutput) => {
+        get: (row: TransactionSummaryOutput) => {
           return row.version
         },
       },
     }
 
-    const transactionOutput: TransactionConfirmationOutput = {
-      amount: amount,
+    const transactionOutput: TransactionSummaryOutput = {
+      amount: amountString,
       to: to,
       from: from,
       memo: memo,
-      fee: CurrencyUtils.renderIron(transaction.fee, true),
+      fee: feeString,
       outputs: transaction.outputs.length,
       spends: transaction.spends.length,
       expiration: transaction.expiration ? transaction.expiration.toString() : '',
@@ -311,11 +315,13 @@ export class Send extends IronfishCommand {
       this.exit(0)
     }
 
-    if (
-      !flags.confirm &&
-      !(await this.confirm(raw, assetId, amount, raw.fee, from, to, memo))
-    ) {
-      this.error('Transaction aborted.')
+    this.renderSummaryTable(raw, assetId, amount, from, to, memo)
+
+    if (flags.confirm) {
+      const confirmed = await CliUx.ux.confirm('Do you confirm (Y/N)?')
+      if (!confirmed) {
+        this.error('Transaction aborted.')
+      }
     }
 
     CliUx.ux.action.start('Sending the transaction')
@@ -360,36 +366,5 @@ export class Send extends IronfishCommand {
         hash: transaction.hash().toString('hex'),
       })
     }
-  }
-
-  async confirm(
-    transaction: RawTransaction,
-    assetId: string,
-    amount: bigint,
-    fee: bigint,
-    from: string,
-    to: string,
-    memo: string,
-  ): Promise<boolean> {
-    this.log(
-      `You are about to send a transaction: ${CurrencyUtils.renderIron(
-        amount,
-        true,
-        assetId,
-      )} plus a transaction fee of ${CurrencyUtils.renderIron(
-        fee,
-        true,
-      )} to ${to} from the account "${from}" with the memo "${memo}"`,
-    )
-
-    this.renderConfirmationTable(
-      transaction,
-      memo,
-      from,
-      to,
-      CurrencyUtils.renderIron(amount, true, assetId),
-    )
-
-    return await CliUx.ux.confirm('Do you confirm (Y/N)?')
   }
 }
