@@ -311,7 +311,10 @@ export class Send extends IronfishCommand {
       this.exit(0)
     }
 
-    if (!flags.confirm && !(await this.confirm(assetId, amount, raw.fee, from, to, memo))) {
+    if (
+      !flags.confirm &&
+      !(await this.confirm(raw, assetId, amount, raw.fee, from, to, memo))
+    ) {
       this.error('Transaction aborted.')
     }
 
@@ -360,6 +363,7 @@ export class Send extends IronfishCommand {
   }
 
   async confirm(
+    transaction: RawTransaction,
     assetId: string,
     amount: bigint,
     fee: bigint,
