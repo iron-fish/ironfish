@@ -317,7 +317,7 @@ export class Send extends IronfishCommand {
 
     this.renderSummaryTable(raw, assetId, amount, from, to, memo)
 
-    if (flags.confirm) {
+    if (!flags.confirm) {
       const confirmed = await CliUx.ux.confirm('Do you confirm (Y/N)?')
       if (!confirmed) {
         this.error('Transaction aborted.')
