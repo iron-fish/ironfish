@@ -18,6 +18,17 @@ import { promptCurrency } from '../../utils/currency'
 import { selectFee } from '../../utils/fees'
 import { watchTransaction } from '../../utils/transaction'
 
+type TransactionConfirmationOutput = {
+  amount: string
+  to: string
+  from: string
+  memo: string
+  fee: string
+  outputs: number
+  spends: number
+  expiration: string
+  version: number
+}
 export class Send extends IronfishCommand {
   static description = `Send coins to another account`
 
