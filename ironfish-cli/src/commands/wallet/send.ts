@@ -382,6 +382,14 @@ export class Send extends IronfishCommand {
       )} to ${to} from the account "${from}" with the memo "${memo}"`,
     )
 
+    this.renderConfirmationTable(
+      transaction,
+      memo,
+      from,
+      to,
+      CurrencyUtils.renderIron(amount, true, assetId),
+    )
+
     return await CliUx.ux.confirm('Do you confirm (Y/N)?')
   }
 }
