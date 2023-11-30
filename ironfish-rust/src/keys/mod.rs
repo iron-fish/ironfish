@@ -189,6 +189,10 @@ impl SaplingKey {
         Self::new(byte_arr)
     }
 
+    pub fn spend_authorizing_key(&self) -> &jubjub::Fr {
+        &self.spend_authorizing_key
+    }
+
     /// Retrieve the publicly visible outgoing viewing key
     pub fn outgoing_view_key(&self) -> &OutgoingViewKey {
         &self.outgoing_viewing_key

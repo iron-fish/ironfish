@@ -279,6 +279,59 @@ impl ProposedTransaction {
         self.expiration = sequence;
     }
 
+    pub fn data_to_sign(&self) -> Result<[u8; 32], IronfishError> {
+        // Generate randomized public key
+
+        // The public key after randomization has been applied. This is used
+        // during signature verification. Referred to as `rk` in the literature
+        // Calculated from the authorizing key and the public_key_randomness.
+        let randomized_public_key =
+            redjubjub::PublicKey(self.spender_key.view_key.authorizing_key.into())
+                .randomize(self.public_key_randomness, *SPENDING_KEY_GENERATOR);
+
+        // Build descriptions
+        let mut unsigned_spends = Vec::with_capacity(self.spends.len());
+        for spend in &self.spends {
+            unsigned_spends.push(spend.build(
+                &self.spender_key,
+                &self.public_key_randomness,
+                &randomized_public_key,
+            )?);
+        }
+
+        let mut output_descriptions = Vec::with_capacity(self.outputs.len());
+        for output in &self.outputs {
+            output_descriptions.push(output.build(
+                &self.spender_key,
+                &self.public_key_randomness,
+                &randomized_public_key,
+            )?);
+        }
+
+        let mut unsigned_mints = Vec::with_capacity(self.mints.len());
+        for mint in &self.mints {
+            unsigned_mints.push(mint.build(
+                &self.spender_key,
+                &self.public_key_randomness,
+                &randomized_public_key,
+            )?);
+        }
+
+        let mut burn_descriptions = Vec::with_capacity(self.burns.len());
+        for burn in &self.burns {
+            burn_descriptions.push(burn.build());
+        }
+
+        // Create the transaction signature hash
+        let data_to_sign = self.transaction_signature_hash(
+            &unsigned_spends,
+            &output_descriptions,
+            &unsigned_mints,
+            &burn_descriptions,
+        )?;
+        Ok(data_to_sign)
+    }
+
     // Post transaction without much validation.
     fn _partial_post(&self) -> Result<Transaction, IronfishError> {
         // Generate randomized public key
