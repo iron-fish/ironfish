@@ -108,6 +108,87 @@ export class Send extends IronfishCommand {
     }),
   }
 
+  renderConfirmationTable(
+    transaction: RawTransaction,
+    memo: string,
+    from: string,
+    to: string,
+    amount: string,
+  ): void {
+    const columns: CliUx.Table.table.Columns<TransactionConfirmationOutput> = {
+      account: {
+        header: 'ACCOUNT',
+        get: (row: TransactionConfirmationOutput) => {
+          return row.from
+        },
+      },
+      amount: {
+        header: 'AMOUNT',
+        get: (row: TransactionConfirmationOutput) => {
+          return row.amount
+        },
+      },
+      to: {
+        header: 'TO',
+        get: (row: TransactionConfirmationOutput) => {
+          return row.to
+        },
+      },
+      memo: {
+        header: 'MEMO',
+        get: (row: TransactionConfirmationOutput) => {
+          return row.memo
+        },
+      },
+      fee: {
+        header: 'FEE',
+        get: (row: TransactionConfirmationOutput) => {
+          return row.fee
+        },
+      },
+      outputs: {
+        header: 'OUTPUTS',
+        get: (row: TransactionConfirmationOutput) => {
+          return row.outputs
+        },
+      },
+      spends: {
+        header: 'SPENDS',
+        get: (row: TransactionConfirmationOutput) => {
+          return row.spends
+        },
+      },
+      expiration: {
+        header: 'EXPIRATION',
+        get: (row: TransactionConfirmationOutput) => {
+          return row.expiration
+        },
+      },
+      version: {
+        header: 'VERSION',
+        get: (row: TransactionConfirmationOutput) => {
+          return row.version
+        },
+      },
+    }
+
+    const transactionOutput: TransactionConfirmationOutput = {
+      amount: amount,
+      to: to,
+      from: from,
+      memo: memo,
+      fee: CurrencyUtils.renderIron(transaction.fee, true),
+      outputs: transaction.outputs.length,
+      spends: transaction.spends.length,
+      expiration: transaction.expiration ? transaction.expiration.toString() : '',
+      version: transaction.version,
+    }
+
+    CliUx.ux.table([transactionOutput], columns, {
+      printLine: (line) => this.log(line),
+    })
+  }
+
   async start(): Promise<void> {
     const { flags } = await this.parse(Send)
     let amount = flags.amount
