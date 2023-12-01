@@ -2,6 +2,27 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::BTreeMap;
+use std::collections::HashMap;
+use std::convert::TryInto;
+
+use frost::keys::IdentifierList;
+use frost::keys::KeyPackage;
+use frost::keys::PublicKeyPackage;
+use frost::keys::SecretShare;
+use frost::round1::SigningCommitments;
+use frost::round1::SigningNonces;
+use frost::round2::SignatureShare;
+use frost::Error;
+use frost::Identifier;
+use frost::SigningKey;
+use frost::SigningPackage;
+use rand::rngs::ThreadRng;
+use reddsa::frost::redjubjub as frost;
+use reddsa::frost::redjubjub::aggregate;
+use reddsa::frost::redjubjub::round2::Randomizer;
+use reddsa::frost::redjubjub::RandomizedParams;
+
 use blstrs::Bls12;
 use ff::Field;
 use outputs::OutputBuilder;
@@ -67,6 +88,12 @@ pub const TRANSACTION_SIGNATURE_SIZE: usize = 64;
 pub const TRANSACTION_PUBLIC_KEY_SIZE: usize = 32;
 pub const TRANSACTION_EXPIRATION_SIZE: usize = 4;
 pub const TRANSACTION_FEE_SIZE: usize = 8;
+
+pub struct SecretShareConfig {
+    pub min_signers: u16,
+    pub max_signers: u16,
+    pub secret: Vec<u8>,
+}
 
 /// A collection of spend and output proofs that can be signed and verified.
 /// In general, all the spent values should add up to all the output values.
@@ -398,6 +425,149 @@ impl ProposedTransaction {
         let mut mint_descriptions = Vec::with_capacity(unsigned_mints.len());
         for mint in unsigned_mints.drain(0..) {
             mint_descriptions.push(mint.sign(&spender_key, &data_to_sign)?);
+        }
+
+        Ok(Transaction {
+            version: self.version,
+            expiration: self.expiration,
+            fee: *self.value_balances.fee(),
+            spends: spend_descriptions,
+            outputs: output_descriptions,
+            mints: mint_descriptions,
+            burns: burn_descriptions,
+            binding_signature,
+            randomized_public_key,
+        })
+    }
+
+    fn _partial_post_frost(&self) -> Result<Transaction, IronfishError> {
+        // This would be a spending key that owns an asset
+        let ask = self.spender_key.spend_authorizing_key();
+
+        // Configure how many signatures are needed
+        let secret = ask.to_bytes().to_vec();
+        let secret_config = SecretShareConfig {
+            min_signers: 2,
+            max_signers: 3,
+            secret,
+        };
+
+        // Split the spend authorizing key into shares for the signers
+        let mut rng = thread_rng();
+        let (shares, pubkeys) =
+            split_secret(&secret_config, IdentifierList::Default, &mut rng).unwrap();
+        let key_packages = key_package(&shares);
+
+        // Save the nonces and get commitments to aggregate by the coordinator
+        let (nonces, commitments) = round_one(secret_config.min_signers, &mut rng, &key_packages);
+
+        // Generate randomized public key
+
+        // The public key after randomization has been applied. This is used
+        // during signature verification. Referred to as `rk` in the literature
+        // Calculated from the authorizing key and the public_key_randomness.
+        let randomized_public_key =
+            redjubjub::PublicKey::read(pubkeys.verifying_key().serialize().as_ref())?
+                .randomize(self.public_key_randomness, *SPENDING_KEY_GENERATOR);
+
+        // Build descriptions
+        let mut unsigned_spends = Vec::with_capacity(self.spends.len());
+        for spend in &self.spends {
+            unsigned_spends.push(spend.build(
+                &self.spender_key,
+                &self.public_key_randomness,
+                &randomized_public_key,
+            )?);
+        }
+
+        let mut output_descriptions = Vec::with_capacity(self.outputs.len());
+        for output in &self.outputs {
+            output_descriptions.push(output.build(
+                &self.spender_key,
+                &self.public_key_randomness,
+                &randomized_public_key,
+            )?);
+        }
+
+        let mut unsigned_mints = Vec::with_capacity(self.mints.len());
+        for mint in &self.mints {
+            unsigned_mints.push(mint.build(
+                &self.spender_key,
+                &self.public_key_randomness,
+                &randomized_public_key,
+            )?);
+        }
+
+        let mut burn_descriptions = Vec::with_capacity(self.burns.len());
+        for burn in &self.burns {
+            burn_descriptions.push(burn.build());
+        }
+
+        // Create the transaction signature hash
+        let data_to_sign = self.transaction_signature_hash(
+            &unsigned_spends,
+            &output_descriptions,
+            &unsigned_mints,
+            &burn_descriptions,
+        )?;
+
+        let mut authorizing_signature_message = [0u8; 64];
+        authorizing_signature_message[..32].copy_from_slice(&randomized_public_key.0.to_bytes());
+        authorizing_signature_message[32..].copy_from_slice(&data_to_sign[..]);
+
+        let randomizer = Randomizer::deserialize(&self.public_key_randomness.to_bytes()).unwrap();
+        let randomized_params =
+            RandomizedParams::from_randomizer(pubkeys.verifying_key(), randomizer);
+
+        // Coordinator generates randomized params on the fly
+        let authorizing_signing_package =
+            frost::SigningPackage::new(commitments.clone(), &authorizing_signature_message);
+
+        // Use the previously saved nonces and commitments to aggregate a signature
+        let (authorizing_signing_package, authorizing_signature_shares) = round_two(
+            nonces,
+            &key_packages,
+            authorizing_signing_package,
+            randomizer,
+        );
+        let authorizing_group_signature = aggregate(
+            &authorizing_signing_package,
+            &authorizing_signature_shares,
+            &pubkeys,
+            &randomized_params,
+        )
+        .unwrap();
+
+        // Verify the signature with the public keys
+        let verify_signature = randomized_params
+            .randomized_verifying_key()
+            .verify(&authorizing_signature_message, &authorizing_group_signature);
+
+        assert!(verify_signature.is_ok());
+
+        let spend_signature =
+            { Signature::read(&mut authorizing_group_signature.serialize().as_ref())? };
+
+        // Create and verify binding signature keys
+        let (binding_signature_private_key, binding_signature_public_key) =
+            self.binding_signature_keys(&unsigned_mints, &burn_descriptions)?;
+
+        let binding_signature = self.binding_signature(
+            &binding_signature_private_key,
+            &binding_signature_public_key,
+            &data_to_sign,
+        )?;
+
+        // Sign spends now that we have the data needed to be signed
+        let mut spend_descriptions = Vec::with_capacity(unsigned_spends.len());
+        for spend in unsigned_spends.drain(0..) {
+            spend_descriptions.push(spend.sign_frost(spend_signature).unwrap());
+        }
+
+        // Sign mints now that we have the data needed to be signed
+        let mut mint_descriptions = Vec::with_capacity(unsigned_mints.len());
+        for mint in unsigned_mints.drain(0..) {
+            mint_descriptions.push(mint.sign(&self.spender_key, &data_to_sign)?);
         }
 
         Ok(Transaction {
@@ -951,4 +1121,83 @@ pub fn batch_verify_transactions<'a>(
         &SAPLING.output_verifying_key,
         &SAPLING.mint_verifying_key,
     )
+}
+
+fn split_secret(
+    config: &SecretShareConfig,
+    identifiers: IdentifierList,
+    rng: &mut ThreadRng,
+) -> Result<(BTreeMap<Identifier, SecretShare>, PublicKeyPackage), Error> {
+    let secret_key = SigningKey::deserialize(
+        config
+            .secret
+            .clone()
+            .try_into()
+            .map_err(|_| Error::MalformedSigningKey)?,
+    )?;
+    let (shares, pubkeys) = frost::keys::split(
+        &secret_key,
+        config.max_signers,
+        config.min_signers,
+        identifiers,
+        rng,
+    )?;
+
+    for (_k, v) in shares.clone() {
+        frost::keys::KeyPackage::try_from(v)?;
+    }
+
+    Ok((shares, pubkeys))
+}
+
+fn key_package(shares: &BTreeMap<Identifier, SecretShare>) -> HashMap<Identifier, KeyPackage> {
+    let mut key_packages: HashMap<_, _> = HashMap::new();
+
+    for (identifier, secret_share) in shares {
+        let key_package = frost::keys::KeyPackage::try_from(secret_share.clone()).unwrap();
+        key_packages.insert(*identifier, key_package);
+    }
+
+    key_packages
+}
+
+fn round_one(
+    min_signers: u16,
+    mut rng: &mut ThreadRng,
+    key_packages: &HashMap<Identifier, KeyPackage>,
+) -> (
+    HashMap<Identifier, SigningNonces>,
+    BTreeMap<Identifier, SigningCommitments>,
+) {
+    let mut nonces_map = HashMap::new();
+    let mut commitments_map = BTreeMap::new();
+
+    for participant_index in 1..(min_signers + 1) {
+        let participant_identifier = participant_index.try_into().expect("should be nonzero");
+        let key_package = &key_packages[&participant_identifier];
+        let (nonces, commitments) = frost::round1::commit(key_package.signing_share(), &mut rng);
+        nonces_map.insert(participant_identifier, nonces);
+        commitments_map.insert(participant_identifier, commitments);
+    }
+    (nonces_map, commitments_map)
+}
+
+fn round_two(
+    nonces_map: HashMap<Identifier, SigningNonces>,
+    key_packages: &HashMap<Identifier, KeyPackage>,
+    signing_package: SigningPackage,
+    randomizer: Randomizer,
+) -> (SigningPackage, BTreeMap<Identifier, SignatureShare>) {
+    let mut signature_shares = BTreeMap::new();
+
+    for participant_identifier in nonces_map.keys() {
+        let key_package = &key_packages[participant_identifier];
+
+        let nonces = &nonces_map[participant_identifier];
+        let signature_share =
+            frost::round2::sign(&signing_package, nonces, key_package, randomizer).unwrap();
+        signature_shares.insert(*participant_identifier, signature_share);
+    }
+
+    (signing_package, signature_shares)
 }
