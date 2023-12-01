@@ -187,6 +187,12 @@ impl UnsignedSpendDescription {
 
         Ok(self.description)
     }
+
+    pub fn sign_frost(mut self, signature: Signature) -> Result<SpendDescription, IronfishError> {
+        self.description.authorizing_signature = signature;
+
+        Ok(self.description)
+    }
 }
 
 /// The publicly visible value of a spent note. These get serialized to prove
