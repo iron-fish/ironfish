@@ -18,17 +18,6 @@ import { promptCurrency } from '../../utils/currency'
 import { selectFee } from '../../utils/fees'
 import { watchTransaction } from '../../utils/transaction'
 
-type TransactionSummaryOutput = {
-  amount: string
-  to: string
-  from: string
-  memo: string
-  fee: string
-  outputs: number
-  spends: number
-  expiration: string
-  version: number
-}
 export class Send extends IronfishCommand {
   static description = `Send coins to another account`
 
@@ -108,7 +97,7 @@ export class Send extends IronfishCommand {
     }),
   }
 
-  renderSummaryTable(
+  renderTransactionSummary(
     transaction: RawTransaction,
     assetId: string,
     amount: bigint,
@@ -119,78 +108,20 @@ export class Send extends IronfishCommand {
     const amountString = CurrencyUtils.renderIron(amount, true, assetId)
     const feeString = CurrencyUtils.renderIron(transaction.fee, true)
 
-    const columns: CliUx.Table.table.Columns<TransactionSummaryOutput> = {
-      account: {
-        header: 'ACCOUNT',
-        get: (row: TransactionSummaryOutput) => {
-          return row.from
-        },
-      },
-      amount: {
-        header: 'AMOUNT',
-        get: (row: TransactionSummaryOutput) => {
-          return row.amount
-        },
-      },
-      to: {
-        header: 'TO',
-        get: (row: TransactionSummaryOutput) => {
-          return row.to
-        },
-      },
-      memo: {
-        header: 'MEMO',
-        get: (row: TransactionSummaryOutput) => {
-          return row.memo
-        },
-      },
-      fee: {
-        header: 'FEE',
-        get: (row: TransactionSummaryOutput) => {
-          return row.fee
-        },
-      },
-      outputs: {
-        header: 'OUTPUTS',
-        get: (row: TransactionSummaryOutput) => {
-          return row.outputs
-        },
-      },
-      spends: {
-        header: 'SPENDS',
-        get: (row: TransactionSummaryOutput) => {
-          return row.spends
-        },
-      },
-      expiration: {
-        header: 'EXPIRATION',
-        get: (row: TransactionSummaryOutput) => {
-          return row.expiration
-        },
-      },
-      version: {
-        header: 'VERSION',
-        get: (row: TransactionSummaryOutput) => {
-          return row.version
-        },
-      },
-    }
+    const summary = `\
+\nTRANSACTION DETAILS:
+From                 ${from}
+To                   ${to}
+Amount               ${amountString}
+Fee                  ${feeString}
+Memo                 ${memo}
+Outputs              ${transaction.outputs.length}
+Spends               ${transaction.spends.length}
+Expiration           ${transaction.expiration ? transaction.expiration.toString() : ''}
+Version              ${transaction.version}
+`
 
-    const transactionOutput: TransactionSummaryOutput = {
-      amount: amountString,
-      to: to,
-      from: from,
-      memo: memo,
-      fee: feeString,
-      outputs: transaction.outputs.length,
-      spends: transaction.spends.length,
-      expiration: transaction.expiration ? transaction.expiration.toString() : '',
-      version: transaction.version,
-    }
-
-    CliUx.ux.table([transactionOutput], columns, {
-      printLine: (line) => this.log(line),
-    })
+    this.log(summary)
   }
 
   async start(): Promise<void> {
@@ -315,7 +246,7 @@ export class Send extends IronfishCommand {
       this.exit(0)
     }
 
-    this.renderSummaryTable(raw, assetId, amount, from, to, memo)
+    this.renderTransactionSummary(raw, assetId, amount, from, to, memo)
 
     if (!flags.confirm) {
       const confirmed = await CliUx.ux.confirm('Do you confirm (Y/N)?')
