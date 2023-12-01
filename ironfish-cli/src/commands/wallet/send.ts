@@ -97,6 +97,33 @@ export class Send extends IronfishCommand {
     }),
   }
 
+  renderTransactionSummary(
+    transaction: RawTransaction,
+    assetId: string,
+    amount: bigint,
+    from: string,
+    to: string,
+    memo: string,
+  ): void {
+    const amountString = CurrencyUtils.renderIron(amount, true, assetId)
+    const feeString = CurrencyUtils.renderIron(transaction.fee, true)
+
+    const summary = `\
+\nTRANSACTION DETAILS:
+From                 ${from}
+To                   ${to}
+Amount               ${amountString}
+Fee                  ${feeString}
+Memo                 ${memo}
+Outputs              ${transaction.outputs.length}
+Spends               ${transaction.spends.length}
+Expiration           ${transaction.expiration ? transaction.expiration.toString() : ''}
+Version              ${transaction.version}
+`
+
+    this.log(summary)
+  }
+
   async start(): Promise<void> {
     const { flags } = await this.parse(Send)
     let amount = flags.amount
@@ -219,8 +246,13 @@ export class Send extends IronfishCommand {
       this.exit(0)
     }
 
-    if (!flags.confirm && !(await this.confirm(assetId, amount, raw.fee, from, to, memo))) {
-      this.error('Transaction aborted.')
+    this.renderTransactionSummary(raw, assetId, amount, from, to, memo)
+
+    if (!flags.confirm) {
+      const confirmed = await CliUx.ux.confirm('Do you confirm (Y/N)?')
+      if (!confirmed) {
+        this.error('Transaction aborted.')
+      }
     }
 
     CliUx.ux.action.start('Sending the transaction')
@@ -265,27 +297,5 @@ export class Send extends IronfishCommand {
         hash: transaction.hash().toString('hex'),
       })
     }
-  }
-
-  async confirm(
-    assetId: string,
-    amount: bigint,
-    fee: bigint,
-    from: string,
-    to: string,
-    memo: string,
-  ): Promise<boolean> {
-    this.log(
-      `You are about to send a transaction: ${CurrencyUtils.renderIron(
-        amount,
-        true,
-        assetId,
-      )} plus a transaction fee of ${CurrencyUtils.renderIron(
-        fee,
-        true,
-      )} to ${to} from the account "${from}" with the memo "${memo}"`,
-    )
-
-    return await CliUx.ux.confirm('Do you confirm (Y/N)?')
   }
 }
