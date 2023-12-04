@@ -116,7 +116,6 @@ export class CombineNotesCommand extends IronfishCommand {
       )
 
       if (numberOfNotes > high) {
-        // TODO: throw error
         this.error(`The number of notes cannot be higher than the ${high}`)
       }
 
