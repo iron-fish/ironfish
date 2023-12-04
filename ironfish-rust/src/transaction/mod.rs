@@ -517,17 +517,13 @@ impl ProposedTransaction {
             &burn_descriptions,
         )?;
 
-        let mut authorizing_signature_message = [0u8; 64];
-        authorizing_signature_message[..32].copy_from_slice(&randomized_public_key.0.to_bytes());
-        authorizing_signature_message[32..].copy_from_slice(&data_to_sign[..]);
-
         let randomizer = Randomizer::deserialize(&self.public_key_randomness.to_bytes()).unwrap();
         let randomized_params =
             RandomizedParams::from_randomizer(pubkeys.verifying_key(), randomizer);
 
         // Coordinator generates randomized params on the fly
         let authorizing_signing_package =
-            frost::SigningPackage::new(commitments.clone(), &authorizing_signature_message);
+            frost::SigningPackage::new(commitments.clone(), &data_to_sign);
 
         // Use the previously saved nonces and commitments to aggregate a signature
         let (authorizing_signing_package, authorizing_signature_shares) = round_two(
@@ -547,7 +543,7 @@ impl ProposedTransaction {
         // Verify the signature with the public keys
         let verify_signature = randomized_params
             .randomized_verifying_key()
-            .verify(&authorizing_signature_message, &authorizing_group_signature);
+            .verify(&data_to_sign, &authorizing_group_signature);
 
         assert!(verify_signature.is_ok());
 
