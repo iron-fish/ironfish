@@ -8,18 +8,38 @@ import {
   RawTransactionSerde,
   Transaction,
 } from '@ironfish/sdk'
-import { CliUx } from '@oclif/core'
+import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
-import { RemoteFlags } from '../../../flags'
+import { IronFlag, RemoteFlags } from '../../../flags'
 import { selectFee } from '../../../utils/fees'
 import { watchTransaction } from '../../../utils/transaction'
 
-const { sort: _, ...tableFlags } = CliUx.ux.table.flags()
+const { sort: _ } = CliUx.ux.table.flags()
 export class CombineNotesCommand extends IronfishCommand {
   static description = `Display the account notes`
 
   static flags = {
     ...RemoteFlags,
+    confirm: Flags.boolean({
+      default: false,
+      description: 'Confirm without asking',
+    }),
+    fee: IronFlag({
+      char: 'o',
+      description: 'The fee amount in IRON',
+      minimum: 1n,
+      flagName: 'fee',
+    }),
+    feeRate: IronFlag({
+      char: 'r',
+      description: 'The fee rate amount in IRON/Kilobyte',
+      minimum: 1n,
+      flagName: 'fee rate',
+    }),
+    watch: Flags.boolean({
+      default: false,
+      description: 'Wait for the transaction to be confirmed',
+    }),
   }
 
   static args = [
@@ -65,18 +85,15 @@ export class CombineNotesCommand extends IronfishCommand {
       to = response1.content.publicKey
     }
 
-    const noteStream = client.wallet.getAccountNotesStream({ account })
+    const notes1 = await client.wallet.getNotes({
+      account: defaultAccount.content.account.name,
+      pageSize: 25,
+      filter: {
+        spent: false,
+      },
+    })
 
-    const limit = 100
-
-    const notes = []
-
-    for await (const note of noteStream.contentStream()) {
-      notes.push(note)
-      if (notes.length === limit) {
-        break
-      }
-    }
+    const notes = notes1.content.notes
 
     const amount = notes.reduce((acc, note) => acc + BigInt(note.value), 0n)
 
@@ -101,7 +118,6 @@ export class CombineNotesCommand extends IronfishCommand {
       raw = await selectFee({
         client,
         transaction: params,
-        account: account,
         logger: this.logger,
       })
     } else {
@@ -118,7 +134,6 @@ export class CombineNotesCommand extends IronfishCommand {
 
     const response = await client.wallet.postTransaction({
       transaction: RawTransactionSerde.serialize(raw).toString('hex'),
-      account: account,
     })
 
     const bytes = Buffer.from(response.content.transaction, 'hex')
@@ -152,7 +167,6 @@ export class CombineNotesCommand extends IronfishCommand {
       await watchTransaction({
         client,
         logger: this.logger,
-        account: account,
         hash: transaction.hash().toString('hex'),
       })
     }
