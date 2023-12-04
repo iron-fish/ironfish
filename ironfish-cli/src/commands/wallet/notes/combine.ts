@@ -109,11 +109,15 @@ export class CombineNotesCommand extends IronfishCommand {
     ])
 
     if (result.selection == null) {
-      const numberOfNotes = parseInt(
-        await CliUx.ux.prompt('Enter the number of notes', {
-          required: true,
-        }),
-      )
+      const promptResult = await CliUx.ux.prompt('Enter the number of notes', {
+        required: true,
+      })
+
+      if (isNaN(parseInt(promptResult))) {
+        this.error(`The number of notes must be a number`)
+      }
+
+      const numberOfNotes = parseInt(promptResult)
 
       if (numberOfNotes > high) {
         this.error(`The number of notes cannot be higher than the ${high}`)
