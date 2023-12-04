@@ -55,6 +55,11 @@ export class CombineNotesCommand extends IronfishCommand {
     },
   ]
 
+  async getNumberOfNotes(): Promise<number> {
+    await Promise.resolve()
+    return 25
+  }
+
   async start(): Promise<void> {
     const { flags, args } = await this.parse(CombineNotesCommand)
 
@@ -85,9 +90,11 @@ export class CombineNotesCommand extends IronfishCommand {
       to = response1.content.publicKey
     }
 
+    const numberOfNotes = await this.getNumberOfNotes()
+
     const notes1 = await client.wallet.getNotes({
       account: defaultAccount.content.account.name,
-      pageSize: 25,
+      pageSize: numberOfNotes,
       filter: {
         spent: false,
       },
