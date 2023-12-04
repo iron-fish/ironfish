@@ -174,6 +174,11 @@ impl UnsignedSpendDescription {
             return Err(IronfishError::new(IronfishErrorKind::InvalidSigningKey));
         }
 
+        // NOTE: The initial versions of the RedDSA specification and the redjubjub crate (that
+        // we're using here) require the public key bytes to be prefixed to the message. The latest
+        // version of the spec and the crate add the public key bytes automatically. Therefore, if
+        // in the future we upgrade to a newer version of redjubjub, `data_to_be_signed` will have
+        // to equal `signature_hash`
         let mut data_to_be_signed = [0; 64];
         data_to_be_signed[..TRANSACTION_PUBLIC_KEY_SIZE]
             .copy_from_slice(&transaction_randomized_public_key.0.to_bytes());
@@ -277,6 +282,12 @@ impl SpendDescription {
         if randomized_public_key.0.is_small_order().into() {
             return Err(IronfishError::new(IronfishErrorKind::IsSmallOrder));
         }
+
+        // NOTE: The initial versions of the RedDSA specification and the redjubjub crate (that
+        // we're using here) require the public key bytes to be prefixed to the message. The latest
+        // version of the spec and the crate add the public key bytes automatically. Therefore, if
+        // in the future we upgrade to a newer version of redjubjub, `data_to_be_signed` will have
+        // to equal `signature_hash_value`
         let mut data_to_be_signed = [0; 64];
         data_to_be_signed[..32].copy_from_slice(&randomized_public_key.0.to_bytes());
         data_to_be_signed[32..].copy_from_slice(&signature_hash_value[..]);

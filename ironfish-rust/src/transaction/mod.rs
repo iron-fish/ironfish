@@ -426,6 +426,11 @@ impl ProposedTransaction {
         public_key: &PublicKey,
         transaction_signature_hash: &[u8; 32],
     ) -> Result<Signature, IronfishError> {
+        // NOTE: The initial versions of the RedDSA specification and the redjubjub crate (that
+        // we're using here) require the public key bytes to be prefixed to the message. The latest
+        // version of the spec and the crate add the public key bytes automatically. Therefore, if
+        // in the future we upgrade to a newer version of redjubjub, `data_to_be_signed` will have
+        // to equal `transaction_signature_hash`
         let mut data_to_be_signed = [0u8; TRANSACTION_SIGNATURE_SIZE];
         data_to_be_signed[..TRANSACTION_PUBLIC_KEY_SIZE].copy_from_slice(&public_key.0.to_bytes());
         data_to_be_signed[TRANSACTION_PUBLIC_KEY_SIZE..]
