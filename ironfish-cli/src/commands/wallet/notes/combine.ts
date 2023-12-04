@@ -9,6 +9,7 @@ import {
   Transaction,
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
+import inquirer from 'inquirer'
 import { IronfishCommand } from '../../../command'
 import { IronFlag, RemoteFlags } from '../../../flags'
 import { selectFee } from '../../../utils/fees'
@@ -55,12 +56,84 @@ export class CombineNotesCommand extends IronfishCommand {
     },
   ]
 
-  async getNumberOfNotes(): Promise<number> {
+  async getNumberOfNotes(): Promise<{
+    low: number
+    average: number
+    high: number
+  }> {
     await Promise.resolve()
-    return 25
+    return {
+      low: 10,
+      average: 20,
+      high: 30,
+    }
+  }
+
+  async selectNumberOfNotes({
+    low,
+    average,
+    high,
+  }: {
+    low: number
+    average: number
+    high: number
+  }): Promise<number> {
+    const choices = [
+      {
+        name: `Low (${low} notes)`,
+        value: low,
+      },
+      {
+        name: `Average (${average} notes)`,
+        value: average,
+      },
+      {
+        name: `High (${high} notes)`,
+        value: high,
+      },
+      {
+        name: 'Enter a custom number of notes',
+        value: null,
+      },
+    ]
+
+    const result = await inquirer.prompt<{
+      selection: number
+    }>([
+      {
+        name: 'selection',
+        message: `Select the number of notes you wish to combine (MAX): `,
+        type: 'list',
+        choices,
+      },
+    ])
+
+    if (result.selection == null) {
+      const numberOfNotes = parseInt(
+        await CliUx.ux.prompt('Enter the number of notes', {
+          required: true,
+          type: 'number',
+        }),
+      )
+
+      if (numberOfNotes > high) {
+        // TODO: throw error
+        this.error(`The number of notes cannot be higher than the ${high}`)
+      }
+
+      return numberOfNotes
+    }
+
+    return result.selection
   }
 
   async start(): Promise<void> {
+    /**
+     * Changes:
+     * 1. Select the fee/ compaction goal in the front
+     * 2. Get current fee rate and notes are constant size
+     * 3. Move address selection after the goal/ cost section
+     */
     const { flags, args } = await this.parse(CombineNotesCommand)
 
     const client = await this.sdk.connectRpc()
@@ -90,7 +163,7 @@ export class CombineNotesCommand extends IronfishCommand {
       to = response1.content.publicKey
     }
 
-    const numberOfNotes = await this.getNumberOfNotes()
+    const numberOfNotes = await this.selectNumberOfNotes(await this.getNumberOfNotes())
 
     const notes1 = await client.wallet.getNotes({
       account: defaultAccount.content.account.name,
