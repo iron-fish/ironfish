@@ -27,7 +27,7 @@ fn test_diffie_hellman_shared_key() {
     let secret_key = key_pair.secret();
     let public_key = key_pair.public();
 
-    let shared_secret1 = shared_secret(secret_key, &address1.transmission_key, public_key);
+    let shared_secret1 = shared_secret(secret_key, &address1.0, public_key);
     let shared_secret2 = shared_secret(&key1.incoming_viewing_key.view_key, public_key, public_key);
     assert_eq!(shared_secret1, shared_secret2);
 }
@@ -44,15 +44,11 @@ fn test_diffie_hellman_shared_key_with_other_key() {
     let secret_key = key_pair.secret();
     let public_key = key_pair.public();
 
-    let shared_secret1 = shared_secret(secret_key, &address.transmission_key, public_key);
+    let shared_secret1 = shared_secret(secret_key, &address.0, public_key);
     let shared_secret2 = shared_secret(&key.incoming_viewing_key.view_key, public_key, public_key);
     assert_eq!(shared_secret1, shared_secret2);
 
-    let shared_secret_third_party1 = shared_secret(
-        secret_key,
-        &third_party_address.transmission_key,
-        public_key,
-    );
+    let shared_secret_third_party1 = shared_secret(secret_key, &third_party_address.0, public_key);
     assert_ne!(shared_secret1, shared_secret_third_party1);
     assert_ne!(shared_secret2, shared_secret_third_party1);
 
@@ -90,8 +86,8 @@ fn test_serialization() {
         .expect("Should be able to construct address from valid bytes");
 
     assert_eq!(
-        ExtendedPoint::from(read_back_address.transmission_key).to_affine(),
-        ExtendedPoint::from(public_address.transmission_key).to_affine()
+        ExtendedPoint::from(read_back_address.0).to_affine(),
+        ExtendedPoint::from(public_address.0).to_affine()
     )
 }
 

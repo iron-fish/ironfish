@@ -82,7 +82,7 @@ impl MerkleNote {
         let public_key = diffie_hellman_keys.public();
 
         let mut key_bytes = [0; 64];
-        key_bytes[..32].copy_from_slice(&note.owner.transmission_key.to_bytes());
+        key_bytes[..32].copy_from_slice(&note.owner.0.to_bytes());
         key_bytes[32..].clone_from_slice(secret_key.to_repr().as_ref());
 
         let encryption_key = calculate_key_for_encryption_keys(
@@ -131,11 +131,7 @@ impl MerkleNote {
         let secret_key = diffie_hellman_keys.secret();
         let public_key = diffie_hellman_keys.public();
 
-        let encrypted_note = note.encrypt(&shared_secret(
-            secret_key,
-            &note.owner.transmission_key,
-            public_key,
-        ));
+        let encrypted_note = note.encrypt(&shared_secret(secret_key, &note.owner.0, public_key));
 
         MerkleNote {
             value_commitment: value_commitment.commitment().into(),
@@ -204,11 +200,11 @@ impl MerkleNote {
 
         let note_encryption_keys: [u8; ENCRYPTED_SHARED_KEY_SIZE] =
             aead::decrypt(&encryption_key, &self.note_encryption_keys)?;
-        let transmission_key = PublicAddress::load_transmission_key(&note_encryption_keys[..32])?;
+        let public_address = PublicAddress::new(&note_encryption_keys[..32].try_into().unwrap())?;
         let secret_key = read_scalar(&note_encryption_keys[32..])?;
-        let shared_key = shared_secret(&secret_key, &transmission_key, &self.ephemeral_public_key);
+        let shared_key = shared_secret(&secret_key, &public_address.0, &self.ephemeral_public_key);
         let note =
-            Note::from_spender_encrypted(transmission_key, &shared_key, &self.encrypted_note)?;
+            Note::from_spender_encrypted(public_address.0, &shared_key, &self.encrypted_note)?;
         note.verify_commitment(self.note_commitment)?;
         Ok(note)
     }
