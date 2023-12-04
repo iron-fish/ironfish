@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Asset } from '@ironfish/rust-nodejs'
 import {
   CreateTransactionRequest,
   CurrencyUtils,
@@ -41,20 +42,15 @@ export class CombineNotesCommand extends IronfishCommand {
       default: false,
       description: 'Wait for the transaction to be confirmed',
     }),
-  }
-
-  static args = [
-    {
-      name: 'account',
-      required: false,
-      description: 'Name of the account to get notes for',
-    },
-    {
-      name: 'to',
-      required: false,
+    to: Flags.string({
+      char: 't',
       description: 'The public address of the recipient',
-    },
-  ]
+    }),
+    account: Flags.string({
+      char: 'f',
+      description: 'The account to send money from',
+    }),
+  }
 
   async getNumberOfNotes(): Promise<{
     low: number
@@ -136,35 +132,33 @@ export class CombineNotesCommand extends IronfishCommand {
   async start(): Promise<void> {
     /**
      * Changes:
-     * 1. Select the fee/ compaction goal in the front
      * 2. Get current fee rate and notes are constant size
      * 3. Move address selection after the goal/ cost section
      */
-    const { flags, args } = await this.parse(CombineNotesCommand)
+    const { flags } = await this.parse(CombineNotesCommand)
 
     const client = await this.sdk.connectRpc()
 
-    let to = args.to as string | undefined
-
-    const defaultAccount = await client.wallet.getDefaultAccount()
-
-    if (!defaultAccount.content.account) {
-      throw Error(
-        `No account is currently active on the node. Cannot send a payout transaction.`,
+    const getDefaultAccountResponse = await client.wallet.getDefaultAccount()
+    if (!getDefaultAccountResponse.content.account) {
+      this.error(
+        `No account is currently active.
+         Use ironfish wallet:create <name> to first create an account`,
       )
     }
 
-    let account
+    const defaultAccountName = getDefaultAccountResponse.content.account.name
 
-    if (!args.account) {
-      account = defaultAccount.content.account.name
-    } else {
-      account = args.account as string
+    let to = flags.to?.trim()
+    let from = flags.account?.trim()
+
+    if (!from) {
+      from = defaultAccountName
     }
 
     if (!to) {
       const response1 = await client.wallet.getAccountPublicKey({
-        account: defaultAccount.content.account.name,
+        account: defaultAccountName,
       })
       to = response1.content.publicKey
     }
@@ -172,7 +166,7 @@ export class CombineNotesCommand extends IronfishCommand {
     const numberOfNotes = await this.selectNumberOfNotes(await this.getNumberOfNotes())
 
     const notes1 = await client.wallet.getNotes({
-      account: defaultAccount.content.account.name,
+      account: from,
       pageSize: numberOfNotes,
       filter: {
         spent: false,
@@ -186,7 +180,7 @@ export class CombineNotesCommand extends IronfishCommand {
     const memo = await CliUx.ux.prompt('Enter the memo (or leave blank)', { required: false })
 
     const params: CreateTransactionRequest = {
-      account: account,
+      account: from,
       outputs: [
         {
           publicAddress: to,
@@ -212,8 +206,13 @@ export class CombineNotesCommand extends IronfishCommand {
       raw = RawTransactionSerde.deserialize(bytes)
     }
 
-    if (!flags.confirm && !(await CliUx.ux.confirm('Do you confirm (Y/N)?'))) {
-      this.error('Transaction aborted.')
+    this.renderTransactionSummary(raw, Asset.nativeId().toString('hex'), amount, from, to, memo)
+
+    if (!flags.confirm) {
+      const confirmed = await CliUx.ux.confirm('Do you confirm (Y/N)?')
+      if (!confirmed) {
+        this.error('Transaction aborted.')
+      }
     }
 
     CliUx.ux.action.start('Sending the transaction')
@@ -237,7 +236,7 @@ export class CombineNotesCommand extends IronfishCommand {
       this.warn(`Transaction '${transaction.hash().toString('hex')}' failed to broadcast`)
     }
 
-    this.log(`Sent ${CurrencyUtils.renderIron(amount, true)} to ${to} from ${account}`)
+    this.log(`Sent ${CurrencyUtils.renderIron(amount, true)} to ${to} from ${from}`)
     this.log(`Hash: ${transaction.hash().toString('hex')}`)
     this.log(`Fee: ${CurrencyUtils.renderIron(transaction.fee(), true)}`)
     this.log(`Memo: ${memo}`)
@@ -256,5 +255,32 @@ export class CombineNotesCommand extends IronfishCommand {
         hash: transaction.hash().toString('hex'),
       })
     }
+  }
+
+  renderTransactionSummary(
+    transaction: RawTransaction,
+    assetId: string,
+    amount: bigint,
+    from: string,
+    to: string,
+    memo: string,
+  ): void {
+    const amountString = CurrencyUtils.renderIron(amount, true, assetId)
+    const feeString = CurrencyUtils.renderIron(transaction.fee, true)
+
+    const summary = `\
+\nTRANSACTION DETAILS:
+From                 ${from}
+To                   ${to}
+Amount               ${amountString}
+Fee                  ${feeString}
+Memo                 ${memo}
+Outputs              ${transaction.outputs.length}
+Spends               ${transaction.spends.length}
+Expiration           ${transaction.expiration ? transaction.expiration.toString() : ''}
+Version              ${transaction.version}
+`
+
+    this.log(summary)
   }
 }
