@@ -87,12 +87,11 @@ routes.register<typeof GetNotesRequestSchema, GetNotesResponse>(
     const notes = []
     let nextPageCursor: Buffer | null = null
 
-    // is sortByValue is used, we need assetId to be defined and spent to be false
     if (
       request.data.sortByValue &&
       (request.data.filter?.assetId === undefined || request.data.filter?.spent === true)
     ) {
-      throw new Error('sortByValue requires assetId and spent to be defined.')
+      throw new Error('sortByValue requires assetId to be defined and spent to be false.')
     }
 
     const iterator =
