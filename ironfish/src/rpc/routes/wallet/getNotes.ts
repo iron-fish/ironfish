@@ -28,6 +28,7 @@ type GetNotesRequestFilter = {
 }
 
 export type GetNotesRequest = {
+  sortByValue?: 'asc' | 'desc'
   account?: string
   pageSize?: number
   pageCursor?: string
@@ -41,6 +42,7 @@ export type GetNotesResponse = {
 
 export const GetNotesRequestSchema: yup.ObjectSchema<GetNotesRequest> = yup
   .object({
+    sortByValue: yup.string().oneOf(['asc', 'desc']).optional(),
     account: yup.string().trim(),
     pageSize: yup.number().min(1),
     pageCursor: yup.string(),
