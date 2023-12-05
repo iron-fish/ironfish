@@ -62,7 +62,7 @@ export class CombineNotesCommand extends IronfishCommand {
   }> {
     const timeTakenPerNote = await this.measureNotesPostTransaction(client)
 
-    const minTime = 60000 // 1 minute
+    const minTime = 60000
 
     const notesInMaxTime = Math.floor(minTime / timeTakenPerNote)
 
@@ -131,6 +131,10 @@ export class CombineNotesCommand extends IronfishCommand {
 
     const totalTime = BenchUtils.end(start)
 
+    /**
+     * After some testing, I added this factor to account for the time taken to post and broadcast
+     * the transaction and the time taken to broadcast the transaction
+     */
     const FACTOR = 10
 
     return (totalTime / numberOfNotes) * FACTOR
