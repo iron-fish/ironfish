@@ -1135,6 +1135,7 @@ export class Account {
     for await (const [value, _] of this.walletDb.loadUnspentNoteValues(
       this,
       assetId,
+      undefined,
       maxConfirmedSequence,
       tx,
     )) {
