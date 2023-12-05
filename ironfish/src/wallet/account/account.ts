@@ -104,12 +104,14 @@ export class Account {
 
   async *getSortedByValueNotes(
     orderBy: 'asc' | 'desc',
-    assetId: Buffer,
-    keyRange?: DatabaseKeyRange,
+    assetId: string,
   ): AsyncGenerator<DecryptedNoteValue & { hash: Buffer }> {
     const valueNoteHash = []
 
-    for await (const [value, noteHash] of this.walletDb.loadUnspentNoteValues(this, assetId)) {
+    for await (const [value, noteHash] of this.walletDb.loadUnspentNoteValues(
+      this,
+      Buffer.from(assetId, 'hex'),
+    )) {
       valueNoteHash.push({ value, noteHash })
     }
 
@@ -122,10 +124,7 @@ export class Account {
     })
 
     for (const { noteHash } of valueNoteHash) {
-      const decryptedNote = await this.getDecryptedNote(
-        noteHash,
-        keyRange ? undefined : undefined,
-      )
+      const decryptedNote = await this.getDecryptedNote(noteHash)
       if (decryptedNote) {
         yield { ...decryptedNote, hash: noteHash }
       }
@@ -1165,7 +1164,6 @@ export class Account {
     for await (const [value, _] of this.walletDb.loadUnspentNoteValues(
       this,
       assetId,
-      undefined,
       maxConfirmedSequence,
       tx,
     )) {

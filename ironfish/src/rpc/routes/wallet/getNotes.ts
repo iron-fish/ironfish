@@ -87,7 +87,20 @@ routes.register<typeof GetNotesRequestSchema, GetNotesResponse>(
     const notes = []
     let nextPageCursor: Buffer | null = null
 
-    for await (const decryptedNote of account.getNotes(keyRange)) {
+    // is sortByValue is used, we need assetId to be defined and spent to be false
+    if (
+      request.data.sortByValue &&
+      (request.data.filter?.assetId === undefined || request.data.filter?.spent === true)
+    ) {
+      throw new Error('sortByValue requires assetId and spent to be defined.')
+    }
+
+    const iterator =
+      request.data.sortByValue && request.data.filter?.assetId && !request.data.filter?.spent
+        ? account.getSortedByValueNotes(request.data.sortByValue, request.data.filter?.assetId)
+        : account.getNotes(keyRange)
+
+    for await (const decryptedNote of iterator) {
       if (notes.length === pageSize) {
         nextPageCursor = context.wallet.walletDb.decryptedNotes.keyEncoding.serialize([
           account.prefix,

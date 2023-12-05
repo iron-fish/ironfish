@@ -653,8 +653,7 @@ export class WalletDB {
   async *loadUnspentNoteValues(
     account: Account,
     assetId: Buffer,
-    start?: number,
-    end?: number,
+    sequence?: number,
     tx?: IDatabaseTransaction,
   ): AsyncGenerator<[bigint, Buffer]> {
     const encoding = new PrefixEncoding(
@@ -663,11 +662,10 @@ export class WalletDB {
       4,
     )
 
-    const minConfirmedSequence = start ?? 1
-    const maxConfirmedSequence = end ?? 2 ** 32 - 1
+    const maxConfirmedSequence = sequence ?? 2 ** 32 - 1
 
     const range = getPrefixesKeyRange(
-      encoding.serialize([account.prefix, [assetId, minConfirmedSequence]]),
+      encoding.serialize([account.prefix, [assetId, 1]]),
       encoding.serialize([account.prefix, [assetId, maxConfirmedSequence]]),
     )
 
