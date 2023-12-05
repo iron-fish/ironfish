@@ -655,7 +655,7 @@ export class WalletDB {
     assetId: Buffer,
     sequence?: number,
     tx?: IDatabaseTransaction,
-  ): AsyncGenerator<bigint> {
+  ): AsyncGenerator<[bigint, Buffer]> {
     const encoding = new PrefixEncoding(
       BUFFER_ENCODING,
       new PrefixEncoding(BUFFER_ENCODING, U32_ENCODING_BE, 32),
@@ -669,11 +669,11 @@ export class WalletDB {
       encoding.serialize([account.prefix, [assetId, maxConfirmedSequence]]),
     )
 
-    for await (const [, [, [, [value, _]]]] of this.unspentNoteHashes.getAllKeysIter(
+    for await (const [, [, [, [value, noteHash]]]] of this.unspentNoteHashes.getAllKeysIter(
       tx,
       range,
     )) {
-      yield value
+      yield [value, noteHash]
     }
   }
 
