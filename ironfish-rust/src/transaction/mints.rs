@@ -139,6 +139,12 @@ impl UnsignedMintDescription {
 
         Ok(self.description)
     }
+
+    pub fn sign_frost(mut self, signature: Signature) -> Result<MintDescription, IronfishError> {
+        self.description.authorizing_signature = signature;
+
+        Ok(self.description)
+    }
 }
 
 /// This description represents an action to increase the supply of an existing
