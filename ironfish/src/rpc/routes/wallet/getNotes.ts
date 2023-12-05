@@ -89,7 +89,9 @@ routes.register<typeof GetNotesRequestSchema, GetNotesResponse>(
 
     if (
       request.data.sortByValue &&
-      (request.data.filter?.assetId === undefined || request.data.filter?.spent === true)
+      (request.data.filter?.assetId === undefined ||
+        request.data.filter?.spent === undefined ||
+        request.data.filter?.spent === true)
     ) {
       throw new Error('sortByValue requires assetId to be defined and spent to be false.')
     }
