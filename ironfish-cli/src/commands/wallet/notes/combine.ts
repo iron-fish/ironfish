@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
 import {
-  Assert,
   BenchUtils,
   CreateTransactionRequest,
   CurrencyUtils,
@@ -55,25 +54,28 @@ export class CombineNotesCommand extends IronfishCommand {
     }),
   }
 
-  async getNumberOfNotes(client: RpcClient): Promise<{
+  async getNumberOfNotes(
+    client: RpcClient,
+    account: string,
+  ): Promise<{
     low: number
     average: number
     high: number
   }> {
-    const timeTakenPerNote = await this.measureNotesPostTransaction(client)
+    const timeTakenPerNote = await this.benchmarkTransactionPerformance(client, account)
 
     const minTime = 60000
 
-    const notesInMaxTime = Math.floor(minTime / timeTakenPerNote)
+    const notesCombinedInMinTime = Math.floor(minTime / timeTakenPerNote)
 
     return {
-      low: notesInMaxTime,
-      average: notesInMaxTime * 3,
-      high: notesInMaxTime * 7,
+      low: notesCombinedInMinTime, // roughly 1 minute
+      average: notesCombinedInMinTime * 3, // roughly 5 minutes with some buffer
+      high: notesCombinedInMinTime * 7, // roughly 10 minutes with some buffer
     }
   }
 
-  async measureNotesPostTransaction(client: RpcClient): Promise<number> {
+  async benchmarkTransactionPerformance(client: RpcClient, account: string): Promise<number> {
     await Promise.resolve()
 
     const getNotesResponse = await client.wallet.getNotes({
@@ -83,13 +85,9 @@ export class CombineNotesCommand extends IronfishCommand {
       },
     })
 
-    const defaultAccount = await client.wallet.getDefaultAccount()
-
-    Assert.isNotNull(defaultAccount.content.account)
-
     const publicKey = (
       await client.wallet.getAccountPublicKey({
-        account: defaultAccount.content.account.name,
+        account: account,
       })
     ).content.publicKey
 
@@ -99,7 +97,7 @@ export class CombineNotesCommand extends IronfishCommand {
     const amount = notes.reduce((acc, note) => acc + BigInt(note.value), 0n)
 
     const params: CreateTransactionRequest = {
-      account: defaultAccount.content.account.name,
+      account: account,
       outputs: [
         {
           publicAddress: publicKey,
@@ -238,17 +236,19 @@ export class CombineNotesCommand extends IronfishCommand {
       to = response1.content.publicKey
     }
 
-    const numberOfNotes = await this.selectNumberOfNotes(await this.getNumberOfNotes(client))
+    const numberOfNotes = await this.selectNumberOfNotes(
+      await this.getNumberOfNotes(client, from),
+    )
 
-    const notes1 = await client.wallet.getNotes({
-      account: from,
-      pageSize: numberOfNotes,
-      filter: {
-        spent: false,
-      },
-    })
-
-    const notes = notes1.content.notes
+    const notes = (
+      await client.wallet.getNotes({
+        account: from,
+        pageSize: numberOfNotes,
+        filter: {
+          spent: false,
+        },
+      })
+    ).content.notes
 
     const amount = notes.reduce((acc, note) => acc + BigInt(note.value), 0n)
 
@@ -283,11 +283,8 @@ export class CombineNotesCommand extends IronfishCommand {
 
     this.renderTransactionSummary(raw, Asset.nativeId().toString('hex'), amount, from, to, memo)
 
-    if (!flags.confirm) {
-      const confirmed = await CliUx.ux.confirm('Do you confirm (Y/N)?')
-      if (!confirmed) {
-        this.error('Transaction aborted.')
-      }
+    if (!flags.confirm && !(await CliUx.ux.confirm('Do you confirm (Y/N)?'))) {
+      this.error('Transaction aborted.')
     }
 
     CliUx.ux.action.start('Sending the transaction')
