@@ -3,10 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
 import {
+  Assert,
+  BenchUtils,
   CreateTransactionRequest,
   CurrencyUtils,
   RawTransaction,
   RawTransactionSerde,
+  RpcClient,
   Transaction,
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
@@ -52,17 +55,85 @@ export class CombineNotesCommand extends IronfishCommand {
     }),
   }
 
-  async getNumberOfNotes(): Promise<{
+  async getNumberOfNotes(client: RpcClient): Promise<{
     low: number
     average: number
     high: number
   }> {
-    await Promise.resolve()
+    const timeTakenPerNote = await this.measureNotesPostTransaction(client)
+
+    const minTime = 60000 // 1 minute
+
+    const notesInMaxTime = Math.floor(minTime / timeTakenPerNote)
+
     return {
-      low: 10,
-      average: 20,
-      high: 30,
+      low: notesInMaxTime,
+      average: notesInMaxTime * 3,
+      high: notesInMaxTime * 7,
     }
+  }
+
+  async measureNotesPostTransaction(client: RpcClient): Promise<number> {
+    await Promise.resolve()
+
+    const getNotesResponse = await client.wallet.getNotes({
+      pageSize: 10,
+      filter: {
+        spent: false,
+      },
+    })
+
+    const defaultAccount = await client.wallet.getDefaultAccount()
+
+    Assert.isNotNull(defaultAccount.content.account)
+
+    const publicKey = (
+      await client.wallet.getAccountPublicKey({
+        account: defaultAccount.content.account.name,
+      })
+    ).content.publicKey
+
+    const notes = getNotesResponse.content.notes
+    const numberOfNotes = notes.length
+
+    const amount = notes.reduce((acc, note) => acc + BigInt(note.value), 0n)
+
+    const params: CreateTransactionRequest = {
+      account: defaultAccount.content.account.name,
+      outputs: [
+        {
+          publicAddress: publicKey,
+          amount: CurrencyUtils.encode(amount),
+          memo: '',
+        },
+      ],
+      fee: null,
+      feeRate: null,
+      notes: notes.map((note) => note.noteHash),
+    }
+
+    const feeRates = await client.wallet.estimateFeeRates()
+
+    const start = BenchUtils.start()
+
+    const createTransactionResponse = await client.wallet.createTransaction({
+      ...params,
+      feeRate: feeRates.content.fast,
+    })
+
+    const bytes = Buffer.from(createTransactionResponse.content.transaction, 'hex')
+    const raw = RawTransactionSerde.deserialize(bytes)
+
+    await client.wallet.postTransaction({
+      transaction: RawTransactionSerde.serialize(raw).toString('hex'),
+      broadcast: false,
+    })
+
+    const totalTime = BenchUtils.end(start)
+
+    const FACTOR = 10
+
+    return (totalTime / numberOfNotes) * FACTOR
   }
 
   async selectNumberOfNotes({
@@ -76,15 +147,15 @@ export class CombineNotesCommand extends IronfishCommand {
   }): Promise<number> {
     const choices = [
       {
-        name: `Low (${low} notes)`,
+        name: `Low (${low} notes) ~1 minute`,
         value: low,
       },
       {
-        name: `Average (${average} notes)`,
+        name: `Average (${average} notes) ~5 minutes`,
         value: average,
       },
       {
-        name: `High (${high} notes)`,
+        name: `High (${high} notes) ~10 minutes`,
         value: high,
       },
       {
@@ -163,7 +234,7 @@ export class CombineNotesCommand extends IronfishCommand {
       to = response1.content.publicKey
     }
 
-    const numberOfNotes = await this.selectNumberOfNotes(await this.getNumberOfNotes())
+    const numberOfNotes = await this.selectNumberOfNotes(await this.getNumberOfNotes(client))
 
     const notes1 = await client.wallet.getNotes({
       account: from,
