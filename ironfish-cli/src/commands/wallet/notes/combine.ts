@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
 import {
+  Assert,
   BenchUtils,
   CreateTransactionRequest,
   CurrencyUtils,
@@ -254,12 +255,7 @@ export class CombineNotesCommand extends IronfishCommand {
     })
     const currentBlockIndex = getBlockResponse.content.block.noteSize
 
-    console.log('currentBlockIndex', currentBlockIndex)
-    if (!currentBlockIndex) {
-      this.error(
-        `The current block index is not available. Please wait for the next block to be mined`,
-      )
-    }
+    Assert.isNotNull(currentBlockIndex)
 
     const defaultAccountName = getDefaultAccountResponse.content.account.name
 
