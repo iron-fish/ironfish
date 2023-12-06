@@ -12,6 +12,7 @@ import {
   Transaction,
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
+import { writeFileSync } from 'fs'
 import inquirer from 'inquirer'
 import { IronfishCommand } from '../../../command'
 import { IronFlag, RemoteFlags } from '../../../flags'
@@ -205,7 +206,7 @@ export class CombineNotesCommand extends IronfishCommand {
         this.error(`The number of notes cannot be lower than 2`)
       }
 
-      return numberOfNotes
+      return numberOfNotes - 1
     }
 
     return result.selection
@@ -237,30 +238,56 @@ export class CombineNotesCommand extends IronfishCommand {
     if (!from) {
       from = defaultAccountName
     }
-
     if (!to) {
       const response1 = await client.wallet.getAccountPublicKey({
-        account: defaultAccountName,
+        account: from,
       })
       to = response1.content.publicKey
     }
 
-    const numberOfNotes = await this.selectNumberOfNotes(
-      await this.getNumberOfNotes(client, from),
-    )
+    const noteSelectionOptions = await this.getNumberOfNotes(client, from)
 
     const notes = (
       await client.wallet.getNotes({
         account: from,
-        pageSize: numberOfNotes,
+        pageSize: noteSelectionOptions.high + 1,
         filter: {
           spent: false,
         },
       })
     ).content.notes
 
-    const amount = notes.reduce((acc, note) => acc + BigInt(note.value), 0n)
+    writeFileSync('/Users/patni/notes.json', JSON.stringify(notes, null, 2))
 
+    if (notes.length < 2) {
+      this.error(
+        `You must have at least 2 notes to combine. You currently have ${notes.length} notes`,
+      )
+    }
+
+    if (notes.length < noteSelectionOptions.low) {
+      noteSelectionOptions.low = notes.length - 1
+      noteSelectionOptions.average = notes.length - 1
+      noteSelectionOptions.high = notes.length - 1
+    } else if (notes.length < noteSelectionOptions.average) {
+      noteSelectionOptions.average = notes.length - 1
+      noteSelectionOptions.high = notes.length - 1
+    } else if (notes.length < noteSelectionOptions.high) {
+      noteSelectionOptions.high = notes.length - 1
+    }
+
+    const numberOfNotes = await this.selectNumberOfNotes(noteSelectionOptions)
+
+    const notesToCombine = notes.slice(0, numberOfNotes)
+
+    const amount = notesToCombine.reduce((acc, note) => acc + BigInt(note.value), 0n)
+    for (const note of notesToCombine) {
+      if (note.owner !== to) {
+        this.error(
+          `All notes must be owned by the same public address. Note ${note.noteHash} is owned by ${note.owner}`,
+        )
+      }
+    }
     const memo = await CliUx.ux.prompt('Enter the memo (or leave blank)', { required: false })
 
     const params: CreateTransactionRequest = {
@@ -274,7 +301,7 @@ export class CombineNotesCommand extends IronfishCommand {
       ],
       fee: flags.fee ? CurrencyUtils.encode(flags.fee) : null,
       feeRate: flags.feeRate ? CurrencyUtils.encode(flags.feeRate) : null,
-      notes: notes.map((note) => note.noteHash),
+      notes: notesToCombine.map((note) => note.noteHash),
     }
 
     let raw: RawTransaction
@@ -282,6 +309,7 @@ export class CombineNotesCommand extends IronfishCommand {
       raw = await selectFee({
         client,
         transaction: params,
+        account: from,
         logger: this.logger,
       })
     } else {
@@ -300,6 +328,7 @@ export class CombineNotesCommand extends IronfishCommand {
 
     const response = await client.wallet.postTransaction({
       transaction: RawTransactionSerde.serialize(raw).toString('hex'),
+      account: from,
     })
 
     const bytes = Buffer.from(response.content.transaction, 'hex')
