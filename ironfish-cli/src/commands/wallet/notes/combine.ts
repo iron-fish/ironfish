@@ -64,9 +64,9 @@ export class CombineNotesCommand extends IronfishCommand {
     average: number
     high: number
   }> {
-    // const config = await client.config.getConfig()
+    const config = await client.config.getConfig()
 
-    let minNotesToCombine = undefined // config.content.minNotesToCombine
+    let minNotesToCombine = config.content.minNotesToCombine
 
     if (minNotesToCombine === undefined || minNotesToCombine <= 0) {
       const timeTakenPerNote = await this.benchmarkTransactionPerformance(
