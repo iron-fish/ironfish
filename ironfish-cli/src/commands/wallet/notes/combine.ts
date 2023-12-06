@@ -54,7 +54,7 @@ export class CombineNotesCommand extends IronfishCommand {
     }),
   }
 
-  async getNumberOfNotes(
+  async getCombineNoteOptions(
     client: RpcClient,
     account: string,
   ): Promise<{
@@ -75,6 +75,8 @@ export class CombineNotesCommand extends IronfishCommand {
         name: 'minNotesToCombine',
         value: minNotesToCombine,
       })
+    } else {
+      console.log('not running benchmark')
     }
 
     return {
@@ -86,8 +88,10 @@ export class CombineNotesCommand extends IronfishCommand {
 
   async benchmarkTransactionPerformance(client: RpcClient, account: string): Promise<number> {
     const getNotesResponse = await client.wallet.getNotes({
+      account: account,
       pageSize: 10,
       filter: {
+        assetId: Asset.nativeId().toString('hex'),
         spent: false,
       },
     })
@@ -216,7 +220,7 @@ export class CombineNotesCommand extends IronfishCommand {
      * 3. Move address selection after the goal/ cost section
      */
     const { flags } = await this.parse(CombineNotesCommand)
-
+    const ironAssetId = Asset.nativeId().toString('hex')
     const client = await this.sdk.connectRpc()
 
     const getDefaultAccountResponse = await client.wallet.getDefaultAccount()
@@ -242,13 +246,14 @@ export class CombineNotesCommand extends IronfishCommand {
       to = response1.content.publicKey
     }
 
-    const noteSelectionOptions = await this.getNumberOfNotes(client, from)
+    const noteSelectionOptions = await this.getCombineNoteOptions(client, from)
 
     const notes = (
       await client.wallet.getNotes({
         account: from,
         pageSize: noteSelectionOptions.high + 1,
         filter: {
+          assetId: ironAssetId,
           spent: false,
         },
       })
@@ -313,7 +318,7 @@ export class CombineNotesCommand extends IronfishCommand {
       raw = RawTransactionSerde.deserialize(bytes)
     }
 
-    this.renderTransactionSummary(raw, Asset.nativeId().toString('hex'), amount, from, to, memo)
+    this.renderTransactionSummary(raw, ironAssetId, amount, from, to, memo)
 
     if (!flags.confirm && !(await CliUx.ux.confirm('Do you confirm (Y/N)?'))) {
       this.error('Transaction aborted.')
