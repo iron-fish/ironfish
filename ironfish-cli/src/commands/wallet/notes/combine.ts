@@ -304,8 +304,6 @@ export class CombineNotesCommand extends IronfishCommand {
       )
     }
 
-    console.log(`You currently have ${notes.length} notes`)
-
     if (notes.length < noteSelectionOptions.low) {
       noteSelectionOptions.low = notes.length - 1
       noteSelectionOptions.average = notes.length - 1
