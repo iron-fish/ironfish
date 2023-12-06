@@ -85,8 +85,6 @@ export class CombineNotesCommand extends IronfishCommand {
   }
 
   async benchmarkTransactionPerformance(client: RpcClient, account: string): Promise<number> {
-    await Promise.resolve()
-
     const getNotesResponse = await client.wallet.getNotes({
       pageSize: 10,
       filter: {
