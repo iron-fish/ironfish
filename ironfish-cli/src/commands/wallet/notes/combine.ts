@@ -62,16 +62,25 @@ export class CombineNotesCommand extends IronfishCommand {
     average: number
     high: number
   }> {
-    const timeTakenPerNote = await this.benchmarkTransactionPerformance(client, account)
+    const config = await client.config.getConfig()
 
-    const minTime = 60000
+    let minNotesToCombine = config.content.minNotesToCombine
 
-    const notesCombinedInMinTime = Math.floor(minTime / timeTakenPerNote)
+    if (minNotesToCombine === undefined || minNotesToCombine <= 0) {
+      const timeTakenPerNote = await this.benchmarkTransactionPerformance(client, account)
+      const minTime = 60000
+      minNotesToCombine = Math.floor(minTime / timeTakenPerNote)
+
+      await client.config.setConfig({
+        name: 'minNotesToCombine',
+        value: minNotesToCombine,
+      })
+    }
 
     return {
-      low: notesCombinedInMinTime, // roughly 1 minute
-      average: notesCombinedInMinTime * 3, // roughly 5 minutes with some buffer
-      high: notesCombinedInMinTime * 7, // roughly 10 minutes with some buffer
+      low: minNotesToCombine, // roughly 1 minute
+      average: minNotesToCombine * 3, // roughly 5 minutes with some buffer
+      high: minNotesToCombine * 7, // roughly 10 minutes with some buffer
     }
   }
 
@@ -149,15 +158,15 @@ export class CombineNotesCommand extends IronfishCommand {
   }): Promise<number> {
     const choices = [
       {
-        name: `Low (${low} notes) ~1 minute`,
+        name: `Low (${low + 1} notes) ~1 minute`,
         value: low,
       },
       {
-        name: `Average (${average} notes) ~5 minutes`,
+        name: `Average (${average + 1} notes) ~5 minutes`,
         value: average,
       },
       {
-        name: `High (${high} notes) ~10 minutes`,
+        name: `High (${high + 1} notes) ~10 minutes`,
         value: high,
       },
       {
@@ -192,8 +201,8 @@ export class CombineNotesCommand extends IronfishCommand {
         this.error(`The number of notes cannot be higher than the ${high}`)
       }
 
-      if (numberOfNotes < 1) {
-        this.error(`The number of notes cannot be lower than 1`)
+      if (numberOfNotes < 2) {
+        this.error(`The number of notes cannot be lower than 2`)
       }
 
       return numberOfNotes
@@ -348,9 +357,8 @@ Amount               ${amountString}
 Fee                  ${feeString}
 Memo                 ${memo}
 Outputs              ${transaction.outputs.length}
-Spends               ${transaction.spends.length}
+Notes Combined       ${transaction.spends.length} 
 Expiration           ${transaction.expiration ? transaction.expiration.toString() : ''}
-Version              ${transaction.version}
 `
 
     this.log(summary)
