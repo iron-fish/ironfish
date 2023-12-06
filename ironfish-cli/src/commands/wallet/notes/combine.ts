@@ -247,16 +247,7 @@ export class CombineNotesCommand extends IronfishCommand {
       )
     }
 
-    const getCurrentBlock = await client.chain.getChainInfo()
-    const currentBlockSequence = parseInt(getCurrentBlock.content.currentBlockIdentifier.index)
-
-    const getBlockResponse = await client.chain.getBlock({
-      sequence: currentBlockSequence,
-    })
-
-    Assert.isNotNull(getBlockResponse.content.block.noteSize)
-
-    const currentBlockIndex = getBlockResponse.content.block.noteSize - 2
+    const blockIndex = await this.getBlockIndex(client)
 
     const defaultAccountName = getDefaultAccountResponse.content.account.name
 
@@ -273,11 +264,7 @@ export class CombineNotesCommand extends IronfishCommand {
       to = response1.content.publicKey
     }
 
-    const noteSelectionOptions = await this.getCombineNoteOptions(
-      client,
-      from,
-      currentBlockIndex,
-    )
+    const noteSelectionOptions = await this.getCombineNoteOptions(client, from, blockIndex)
 
     const unfilteredNotes = (
       await client.wallet.getNotes({
@@ -295,7 +282,7 @@ export class CombineNotesCommand extends IronfishCommand {
       if (!note.index) {
         return false
       }
-      return note.index < currentBlockIndex
+      return note.index < blockIndex
     })
 
     if (notes.length < 2) {
@@ -404,6 +391,20 @@ export class CombineNotesCommand extends IronfishCommand {
         hash: transaction.hash().toString('hex'),
       })
     }
+  }
+
+  private async getBlockIndex(client: RpcClient) {
+    const getCurrentBlock = await client.chain.getChainInfo()
+    const currentBlockSequence = parseInt(getCurrentBlock.content.currentBlockIdentifier.index)
+
+    const getBlockResponse = await client.chain.getBlock({
+      sequence: currentBlockSequence,
+    })
+
+    Assert.isNotNull(getBlockResponse.content.block.noteSize)
+
+    const currentBlockIndex = getBlockResponse.content.block.noteSize - 2
+    return currentBlockIndex
   }
 
   renderTransactionSummary(
