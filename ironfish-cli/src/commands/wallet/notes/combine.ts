@@ -12,7 +12,6 @@ import {
   Transaction,
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
-import { writeFileSync } from 'fs'
 import inquirer from 'inquirer'
 import { IronfishCommand } from '../../../command'
 import { IronFlag, RemoteFlags } from '../../../flags'
@@ -256,8 +255,6 @@ export class CombineNotesCommand extends IronfishCommand {
         },
       })
     ).content.notes
-
-    writeFileSync('/Users/patni/notes.json', JSON.stringify(notes, null, 2))
 
     if (notes.length < 2) {
       this.error(
