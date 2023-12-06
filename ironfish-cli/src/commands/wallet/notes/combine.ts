@@ -253,9 +253,10 @@ export class CombineNotesCommand extends IronfishCommand {
     const getBlockResponse = await client.chain.getBlock({
       sequence: currentBlockSequence,
     })
-    const currentBlockIndex = getBlockResponse.content.block.noteSize
 
-    Assert.isNotNull(currentBlockIndex)
+    Assert.isNotNull(getBlockResponse.content.block.noteSize)
+
+    const currentBlockIndex = getBlockResponse.content.block.noteSize - 2
 
     const defaultAccountName = getDefaultAccountResponse.content.account.name
 
@@ -302,6 +303,8 @@ export class CombineNotesCommand extends IronfishCommand {
         `You must have at least 2 notes to combine. You currently have ${notes.length} notes`,
       )
     }
+
+    console.log(`You currently have ${notes.length} notes`)
 
     if (notes.length < noteSelectionOptions.low) {
       noteSelectionOptions.low = notes.length - 1
