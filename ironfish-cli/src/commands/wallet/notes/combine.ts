@@ -57,17 +57,22 @@ export class CombineNotesCommand extends IronfishCommand {
   async getCombineNoteOptions(
     client: RpcClient,
     account: string,
+    currentBlockIndex: number,
   ): Promise<{
     low: number
     average: number
     high: number
   }> {
-    const config = await client.config.getConfig()
+    // const config = await client.config.getConfig()
 
-    let minNotesToCombine = config.content.minNotesToCombine
+    let minNotesToCombine = undefined // config.content.minNotesToCombine
 
     if (minNotesToCombine === undefined || minNotesToCombine <= 0) {
-      const timeTakenPerNote = await this.benchmarkTransactionPerformance(client, account)
+      const timeTakenPerNote = await this.benchmarkTransactionPerformance(
+        client,
+        account,
+        currentBlockIndex,
+      )
       const minTime = 60000
       minNotesToCombine = Math.floor(minTime / timeTakenPerNote)
 
@@ -75,8 +80,6 @@ export class CombineNotesCommand extends IronfishCommand {
         name: 'minNotesToCombine',
         value: minNotesToCombine,
       })
-    } else {
-      console.log('not running benchmark')
     }
 
     return {
@@ -86,7 +89,11 @@ export class CombineNotesCommand extends IronfishCommand {
     }
   }
 
-  async benchmarkTransactionPerformance(client: RpcClient, account: string): Promise<number> {
+  async benchmarkTransactionPerformance(
+    client: RpcClient,
+    account: string,
+    currentBlockIndex: number,
+  ): Promise<number> {
     const getNotesResponse = await client.wallet.getNotes({
       account: account,
       pageSize: 10,
@@ -102,7 +109,14 @@ export class CombineNotesCommand extends IronfishCommand {
       })
     ).content.publicKey
 
-    const notes = getNotesResponse.content.notes
+    const unfiltered = getNotesResponse.content.notes
+    const notes = unfiltered.filter((note) => {
+      if (!note.index) {
+        return false
+      }
+      return note.index < currentBlockIndex
+    })
+
     const numberOfNotes = notes.length
 
     const amount = notes.reduce((acc, note) => acc + BigInt(note.value), 0n)
@@ -219,6 +233,7 @@ export class CombineNotesCommand extends IronfishCommand {
      * 2. Get current fee rate and notes are constant size
      * 3. Move address selection after the goal/ cost section
      */
+
     const { flags } = await this.parse(CombineNotesCommand)
     const ironAssetId = Asset.nativeId().toString('hex')
     const client = await this.sdk.connectRpc()
@@ -228,6 +243,21 @@ export class CombineNotesCommand extends IronfishCommand {
       this.error(
         `No account is currently active.
          Use ironfish wallet:create <name> to first create an account`,
+      )
+    }
+
+    const getCurrentBlock = await client.chain.getChainInfo()
+    const currentBlockSequence = parseInt(getCurrentBlock.content.currentBlockIdentifier.index)
+
+    const getBlockResponse = await client.chain.getBlock({
+      sequence: currentBlockSequence,
+    })
+    const currentBlockIndex = getBlockResponse.content.block.noteSize
+
+    console.log('currentBlockIndex', currentBlockIndex)
+    if (!currentBlockIndex) {
+      this.error(
+        `The current block index is not available. Please wait for the next block to be mined`,
       )
     }
 
@@ -246,9 +276,13 @@ export class CombineNotesCommand extends IronfishCommand {
       to = response1.content.publicKey
     }
 
-    const noteSelectionOptions = await this.getCombineNoteOptions(client, from)
+    const noteSelectionOptions = await this.getCombineNoteOptions(
+      client,
+      from,
+      currentBlockIndex,
+    )
 
-    const notes = (
+    const unfilteredNotes = (
       await client.wallet.getNotes({
         account: from,
         pageSize: noteSelectionOptions.high + 1,
@@ -258,6 +292,14 @@ export class CombineNotesCommand extends IronfishCommand {
         },
       })
     ).content.notes
+
+    // filter notes by current block index
+    const notes = unfilteredNotes.filter((note) => {
+      if (!note.index) {
+        return false
+      }
+      return note.index < currentBlockIndex
+    })
 
     if (notes.length < 2) {
       this.error(
