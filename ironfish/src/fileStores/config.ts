@@ -113,11 +113,6 @@ export type ConfigOptions = {
   maxPeers: number
   minPeers: number
   /**
-   * The minimum notes to combine for the wallet:notes:combine command.
-   * This is calculated and is higher for machines with more processing power.
-   */
-  minNotesToCombine: number
-  /**
    * The ideal number of peers we'd like to be connected to. The node will attempt to
    * establish new connections when below this number.
    */
@@ -355,7 +350,6 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     rpcHttpPort: YupUtils.isPort,
     maxPeers: YupUtils.isPositiveInteger,
     minPeers: YupUtils.isPositiveInteger,
-    minNotesToCombine: yup.number().integer(),
     targetPeers: yup.number().integer().min(1),
     keepOpenPeerSlot: yup.boolean(),
     telemetryApi: yup.string(),
@@ -458,7 +452,6 @@ export class Config extends KeyStore<ConfigOptions> {
       maxPeers: DEFAULT_MAX_PEERS,
       confirmations: 2,
       minPeers: 1,
-      minNotesToCombine: 0,
       targetPeers: DEFAULT_TARGET_PEERS,
       keepOpenPeerSlot: DEFAULT_KEEP_OPEN_PEER_SLOT,
       telemetryApi: '',

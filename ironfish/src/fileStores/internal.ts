@@ -11,6 +11,7 @@ export type InternalOptions = {
   telemetryNodeId: string
   rpcAuthToken: string
   networkId: number
+  minNotesToCombine: number
 }
 
 export const InternalOptionsDefaults: InternalOptions = {
@@ -19,6 +20,7 @@ export const InternalOptionsDefaults: InternalOptions = {
   telemetryNodeId: '',
   rpcAuthToken: '',
   networkId: DEFAULT_NETWORK_ID,
+  minNotesToCombine: 1,
 }
 
 export class InternalStore extends KeyStore<InternalOptions> {
