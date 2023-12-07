@@ -20,7 +20,7 @@ import { selectFee } from '../../../utils/fees'
 import { watchTransaction } from '../../../utils/transaction'
 
 export class CombineNotesCommand extends IronfishCommand {
-  static description = `Display the account notes`
+  static description = `Combine notes into a single note`
 
   static flags = {
     ...RemoteFlags,
