@@ -25,10 +25,6 @@ export class CombineNotesCommand extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
-    confirm: Flags.boolean({
-      default: false,
-      description: 'Confirm without asking',
-    }),
     fee: IronFlag({
       char: 'o',
       description: 'The fee amount in IRON',
@@ -343,9 +339,9 @@ export class CombineNotesCommand extends IronfishCommand {
       raw = RawTransactionSerde.deserialize(bytes)
     }
 
-    this.renderTransactionSummary(raw, ironAssetId, amount, from, to, memo)
+    this.renderTransactionSummary(raw, Asset.nativeId().toString('hex'), amount, from, to, memo)
 
-    if (!flags.confirm && !(await CliUx.ux.confirm('Do you confirm (Y/N)?'))) {
+    if (!(await CliUx.ux.confirm('Do you confirm (Y/N)?'))) {
       this.error('Transaction aborted.')
     }
 
