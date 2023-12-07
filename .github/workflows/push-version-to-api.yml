@@ -18,7 +18,7 @@ jobs:
 
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Push version string to mainnet API
         if: ${{ inputs.push_mainnet }}

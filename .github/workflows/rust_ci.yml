@@ -33,7 +33,7 @@ jobs:
     name: Lint Rust
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2
@@ -68,7 +68,7 @@ jobs:
     name: Test ironfish-rust
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2
@@ -94,7 +94,7 @@ jobs:
     name: Test ironfish-zkp
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2
