@@ -11,6 +11,7 @@ export type InternalOptions = {
   telemetryNodeId: string
   rpcAuthToken: string
   networkId: number
+  noteCombineRate: number // notes to combine per minute based on the performance of the machine
 }
 
 export const InternalOptionsDefaults: InternalOptions = {
@@ -19,6 +20,7 @@ export const InternalOptionsDefaults: InternalOptions = {
   telemetryNodeId: '',
   rpcAuthToken: '',
   networkId: DEFAULT_NETWORK_ID,
+  noteCombineRate: 1,
 }
 
 export class InternalStore extends KeyStore<InternalOptions> {
