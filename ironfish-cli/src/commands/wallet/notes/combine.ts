@@ -62,16 +62,12 @@ export class CombineNotesCommand extends IronfishCommand {
   }> {
     let timeToSendOneNote = this.sdk.internal.get('timeToSendOneNote')
 
-    console.log(timeToSendOneNote)
-
     if (timeToSendOneNote <= 0) {
       timeToSendOneNote = await this.benchmarkTimeToSendOneNote(
         client,
         account,
         currentBlockIndex,
       )
-
-      console.log('timeToSendOneNote: ' + timeToSendOneNote.toString())
 
       this.sdk.internal.set('timeToSendOneNote', timeToSendOneNote)
       await this.sdk.internal.save()
