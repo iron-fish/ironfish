@@ -19,7 +19,6 @@ import { IronFlag, RemoteFlags } from '../../../flags'
 import { selectFee } from '../../../utils/fees'
 import { watchTransaction } from '../../../utils/transaction'
 
-const { sort: _ } = CliUx.ux.table.flags()
 export class CombineNotesCommand extends IronfishCommand {
   static description = `Display the account notes`
 
