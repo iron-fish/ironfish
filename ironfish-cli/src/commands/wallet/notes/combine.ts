@@ -85,11 +85,17 @@ export class CombineNotesCommand extends IronfishCommand {
     }
   }
 
-  async benchmarkTransactionPerformance(
+  async benchmarkTimeToSendOneNote(
     client: RpcClient,
     account: string,
     currentBlockIndex: number,
   ): Promise<number> {
+    const publicKey = (
+      await client.wallet.getAccountPublicKey({
+        account: account,
+      })
+    ).content.publicKey
+
     const getNotesResponse = await client.wallet.getNotes({
       account: account,
       pageSize: 10,
@@ -98,12 +104,6 @@ export class CombineNotesCommand extends IronfishCommand {
         spent: false,
       },
     })
-
-    const publicKey = (
-      await client.wallet.getAccountPublicKey({
-        account: account,
-      })
-    ).content.publicKey
 
     const unfiltered = getNotesResponse.content.notes
     const notes = unfiltered.filter((note) => {
@@ -150,13 +150,7 @@ export class CombineNotesCommand extends IronfishCommand {
 
     const totalTime = BenchUtils.end(start)
 
-    /**
-     * After some testing, I added this factor to account for the time taken to post and broadcast
-     * the transaction and the time taken to broadcast the transaction
-     */
-    const FACTOR = 10
-
-    return (totalTime / numberOfNotes) * FACTOR
+    return (totalTime / numberOfNotes) * 2 // adding a buffer to account for the time taken to broadcast a transaction
   }
 
   async selectNumberOfNotes({
@@ -168,6 +162,7 @@ export class CombineNotesCommand extends IronfishCommand {
     average: number
     high: number
   }): Promise<number> {
+    // the + 1 is to account for the note that will be used for the fee
     const choices = [
       {
         name: `Low (${low + 1} notes) ~1 minute`,
@@ -217,6 +212,7 @@ export class CombineNotesCommand extends IronfishCommand {
         this.error(`The number of notes cannot be lower than 2`)
       }
 
+      // accounting for the fee note
       return numberOfNotes - 1
     }
 
@@ -231,7 +227,7 @@ export class CombineNotesCommand extends IronfishCommand {
      */
 
     const { flags } = await this.parse(CombineNotesCommand)
-    const ironAssetId = Asset.nativeId().toString('hex')
+
     const client = await this.sdk.connectRpc()
 
     const getDefaultAccountResponse = await client.wallet.getDefaultAccount()
@@ -266,7 +262,7 @@ export class CombineNotesCommand extends IronfishCommand {
         account: from,
         pageSize: noteSelectionOptions.high + 1,
         filter: {
-          assetId: ironAssetId,
+          assetId: Asset.nativeId().toString('hex'),
           spent: false,
         },
       })
@@ -424,7 +420,6 @@ Outputs              ${transaction.outputs.length}
 Notes Combined       ${transaction.spends.length} 
 Expiration           ${transaction.expiration ? transaction.expiration.toString() : ''}
 `
-
     this.log(summary)
   }
 }
