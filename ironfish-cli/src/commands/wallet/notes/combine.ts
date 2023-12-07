@@ -88,7 +88,7 @@ export class CombineNotesCommand extends IronfishCommand {
     currentBlockIndex: number,
   ): Promise<number> {
     CliUx.ux.action.start(
-      'Performing a 1-time benchmark to determine how many notes can be combined. This may take a few minutes...',
+      'Performing a 1-time benchmark to determine how many notes can be combined at a time. This may take a few minutes...',
     )
 
     const publicKey = (
