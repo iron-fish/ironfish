@@ -83,9 +83,9 @@ export class CombineNotesCommand extends IronfishCommand {
     const minNotesToCombine = Math.floor(minTime / timeToPostOneNote)
 
     return {
-      low: minNotesToCombine, // roughly 1 minute
-      average: minNotesToCombine * 3, // roughly 5 minutes with some buffer
-      high: minNotesToCombine * 7, // roughly 10 minutes with some buffer
+      low: minNotesToCombine,
+      average: minNotesToCombine * 5,
+      high: minNotesToCombine * 10,
     }
   }
 
