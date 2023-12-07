@@ -46,7 +46,7 @@ jobs:
           ${{ contains(matrix.settings.host, 'windows-') && 'Get-WmiObject -Class Win32_Processor -ComputerName.' || '' }}
 
       - name: Check out Git repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Use Node.js
         uses: actions/setup-node@v3
@@ -112,7 +112,7 @@ jobs:
     runs-on: ${{ matrix.settings.host }}
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up QEMU for Docker
         if: ${{ matrix.settings.docker }}
