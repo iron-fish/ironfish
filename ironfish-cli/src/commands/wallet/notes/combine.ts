@@ -64,22 +64,23 @@ export class CombineNotesCommand extends IronfishCommand {
     average: number
     high: number
   }> {
-    let minNotesToCombine = this.sdk.internal.get('minNotesToCombine')
+    const timeToPostOneNote = this.sdk.internal.get('timeToPostOneNote')
 
-    if (minNotesToCombine <= 1) {
-      const timeTakenPerNote = await this.benchmarkTransactionPerformance(
+    if (timeToPostOneNote <= 0) {
+      const timeToPostOneNote = await this.benchmarkTransactionPerformance(
         client,
         account,
         currentBlockIndex,
       )
-      const minTime = 60000
-      minNotesToCombine = Math.floor(minTime / timeTakenPerNote)
 
       await client.config.setConfig({
-        name: 'minNotesToCombine',
-        value: minNotesToCombine,
+        name: 'timeToPostOneNote',
+        value: timeToPostOneNote,
       })
     }
+
+    const minTime = 60000
+    const minNotesToCombine = Math.floor(minTime / timeToPostOneNote)
 
     return {
       low: minNotesToCombine, // roughly 1 minute
