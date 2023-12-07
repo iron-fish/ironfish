@@ -62,6 +62,8 @@ export class CombineNotesCommand extends IronfishCommand {
   }> {
     let timeToSendOneNote = this.sdk.internal.get('timeToSendOneNote')
 
+    console.log(timeToSendOneNote)
+
     if (timeToSendOneNote <= 0) {
       timeToSendOneNote = await this.benchmarkTimeToSendOneNote(
         client,
@@ -69,10 +71,10 @@ export class CombineNotesCommand extends IronfishCommand {
         currentBlockIndex,
       )
 
-      await client.config.setConfig({
-        name: 'timeToPostOneNote',
-        value: timeToSendOneNote,
-      })
+      console.log('timeToSendOneNote: ' + timeToSendOneNote.toString())
+
+      this.sdk.internal.set('timeToSendOneNote', timeToSendOneNote)
+      await this.sdk.internal.save()
     }
 
     const minTime = 60000
@@ -90,6 +92,10 @@ export class CombineNotesCommand extends IronfishCommand {
     account: string,
     currentBlockIndex: number,
   ): Promise<number> {
+    CliUx.ux.action.start(
+      'Performing a 1-time benchmark to determine how many notes can be combined. This may take a few minutes...',
+    )
+
     const publicKey = (
       await client.wallet.getAccountPublicKey({
         account: account,
@@ -149,6 +155,8 @@ export class CombineNotesCommand extends IronfishCommand {
     })
 
     const totalTime = BenchUtils.end(start)
+
+    CliUx.ux.action.stop()
 
     return (totalTime / numberOfNotes) * 2 // adding a buffer to account for the time taken to broadcast a transaction
   }
@@ -220,12 +228,6 @@ export class CombineNotesCommand extends IronfishCommand {
   }
 
   async start(): Promise<void> {
-    /**
-     * Changes:
-     * 2. Get current fee rate and notes are constant size
-     * 3. Move address selection after the goal/ cost section
-     */
-
     const { flags } = await this.parse(CombineNotesCommand)
 
     const client = await this.sdk.connectRpc()
