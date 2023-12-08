@@ -168,15 +168,15 @@ export class CombineNotesCommand extends IronfishCommand {
     // the + 1 is to account for the note that will be used for the fee
     const choices = [
       {
-        name: `Low (${low + 1} notes) ~1 minute`,
+        name: `Low (${low} notes) ~1 minute`,
         value: low,
       },
       {
-        name: `Average (${average + 1} notes) ~5 minutes`,
+        name: `Average (${average} notes) ~5 minutes`,
         value: average,
       },
       {
-        name: `High (${high + 1} notes) ~10 minutes`,
+        name: `High (${high} notes) ~10 minutes`,
         value: high,
       },
       {
@@ -216,7 +216,7 @@ export class CombineNotesCommand extends IronfishCommand {
       }
 
       // accounting for the fee note
-      return numberOfNotes - 1
+      return numberOfNotes
     }
 
     return result.selection
@@ -279,13 +279,19 @@ export class CombineNotesCommand extends IronfishCommand {
       )
     }
 
+    // -1 because we want to leave a note for the transaction fee
     noteSelectionOptions.low = Math.min(notes.length - 1, noteSelectionOptions.low)
     noteSelectionOptions.average = Math.min(notes.length - 1, noteSelectionOptions.average)
     noteSelectionOptions.high = Math.min(notes.length - 1, noteSelectionOptions.high)
 
     const numberOfNotes = await this.selectNumberOfNotes(noteSelectionOptions)
 
-    const notesToCombine = notes.slice(0, numberOfNotes)
+    const notesToCombine = notes.slice(0, numberOfNotes).sort((a, b) => {
+      if (a.value < b.value) {
+        return -1
+      }
+      return 1
+    })
 
     const amount = notesToCombine.reduce((acc, note) => acc + BigInt(note.value), 0n)
     for (const note of notesToCombine) {
@@ -411,7 +417,7 @@ Amount               ${amountString}
 Fee                  ${feeString}
 Memo                 ${memo}
 Outputs              ${transaction.outputs.length}
-Notes Combined       ${transaction.spends.length} 
+Notes Combined       ${transaction.spends.length} (includes 1 or more notes for the fee)
 Expiration           ${transaction.expiration ? transaction.expiration.toString() : ''}
 `
     this.log(summary)
