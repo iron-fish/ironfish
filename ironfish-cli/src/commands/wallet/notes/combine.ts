@@ -384,8 +384,11 @@ export class CombineNotesCommand extends IronfishCommand {
 
     Assert.isNotNull(getBlockResponse.content.block.noteSize)
 
+    const config = await client.config.getConfig()
+
     // Adding a buffer to avoid a mismatch between confirmations used to load notes and confirmations used when creating witnesses to spend them
-    const currentBlockIndex = getBlockResponse.content.block.noteSize - 2
+    const currentBlockIndex =
+      getBlockResponse.content.block.noteSize - (config.content.confirmations || 2)
     return currentBlockIndex
   }
 
