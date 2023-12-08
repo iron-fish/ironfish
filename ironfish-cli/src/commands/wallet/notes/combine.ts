@@ -7,9 +7,11 @@ import {
   BenchUtils,
   CreateTransactionRequest,
   CurrencyUtils,
+  EstimateFeeRatesResponse,
   RawTransaction,
   RawTransactionSerde,
   RpcClient,
+  RpcResponseEnded,
   Transaction,
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
@@ -54,12 +56,17 @@ export class CombineNotesCommand extends IronfishCommand {
     client: RpcClient,
     account: string,
     currentBlockIndex: number,
-  ): Promise<{
-    low: number
-    average: number
-    high: number
-  }> {
-    let timeToSendOneNote = this.sdk.internal.get('timeToSendOneNote')
+  ): Promise<
+    [
+      {
+        low: number
+        average: number
+        high: number
+      },
+      number,
+    ]
+  > {
+    let timeToSendOneNote = 0 // this.sdk.internal.get('timeToSendOneNote')
 
     if (timeToSendOneNote <= 0) {
       timeToSendOneNote = await this.benchmarkTimeToSendOneNote(
@@ -72,15 +79,20 @@ export class CombineNotesCommand extends IronfishCommand {
       await this.sdk.internal.save()
     }
 
-    const minTime = 60000
-    const minNotesToCombine = Math.floor(minTime / timeToSendOneNote)
+    const minNotesToCombine = Math.floor(60000 / timeToSendOneNote)
 
-    return {
-      low: minNotesToCombine,
-      average: minNotesToCombine * 5,
-      high: minNotesToCombine * 10,
-    }
+    return [
+      {
+        low: minNotesToCombine,
+        average: minNotesToCombine * 5,
+        high: minNotesToCombine * 10,
+      },
+      timeToSendOneNote,
+    ]
   }
+
+  // TODO calculate the time to send a note based on the current network conditions differently
+  // TODO calculate expiration
 
   async benchmarkTimeToSendOneNote(
     client: RpcClient,
@@ -88,7 +100,7 @@ export class CombineNotesCommand extends IronfishCommand {
     currentBlockIndex: number,
   ): Promise<number> {
     CliUx.ux.action.start(
-      'Performing a 1-time benchmark to determine how many notes can be combined at a time. This may take a few minutes...',
+      'Calculating the number of notes to combine. This may take a few minutes...',
     )
 
     const publicKey = (
@@ -107,37 +119,84 @@ export class CombineNotesCommand extends IronfishCommand {
     })
 
     const unfiltered = getNotesResponse.content.notes
-    const notes = unfiltered.filter((note) => {
-      if (!note.index) {
-        return false
-      }
-      return note.index < currentBlockIndex
-    })
+    const notes = unfiltered
+      .filter((note) => {
+        if (!note.index) {
+          return false
+        }
+        return note.index < currentBlockIndex
+      })
+      .sort((a, b) => {
+        if (a.value < b.value) {
+          return -1
+        }
+        return 1
+      })
 
-    const numberOfNotes = notes.length
+    if (notes.length <= 2) {
+      this.error(
+        `You must have at least 3 notes to combine. You currently have ${notes.length} notes`,
+      )
+    }
 
-    const amount = notes.reduce((acc, note) => acc + BigInt(note.value), 0n)
+    const feeRates = await client.wallet.estimateFeeRates()
 
-    const params: CreateTransactionRequest = {
+    /** Transaction 1 */
+
+    const txn1Params: CreateTransactionRequest = {
       account: account,
       outputs: [
         {
           publicAddress: publicKey,
-          amount: CurrencyUtils.encode(amount),
+          amount: CurrencyUtils.encode(BigInt(notes[0].value)),
           memo: '',
         },
       ],
       fee: null,
       feeRate: null,
-      notes: notes.map((note) => note.noteHash),
+      notes: [notes[0].noteHash],
     }
 
-    const feeRates = await client.wallet.estimateFeeRates()
+    /** Transaction 2 */
 
-    const start = BenchUtils.start()
+    const txn2Params: CreateTransactionRequest = {
+      account: account,
+      outputs: [
+        {
+          publicAddress: publicKey,
+          amount: CurrencyUtils.encode(BigInt(notes[0].value) + BigInt(notes[1].value)),
+          memo: '',
+        },
+      ],
+      fee: null,
+      feeRate: null,
+      notes: [notes[0].noteHash, notes[1].noteHash],
+    }
+
+    let timedeltas = 0
+
+    for (let i = 0; i < 5; i++) {
+      const totalTimeTxn1 = await this.measureTransactionTime(client, txn1Params, feeRates)
+      const totalTimeTxn2 = await this.measureTransactionTime(client, txn2Params, feeRates)
+      const difference = totalTimeTxn2 - totalTimeTxn1
+
+      timedeltas += difference
+    }
+
+    CliUx.ux.action.stop()
+
+    return Math.ceil(timedeltas / 5)
+  }
+
+  private async measureTransactionTime(
+    client: RpcClient,
+    txn1Params: CreateTransactionRequest,
+    feeRates: RpcResponseEnded<EstimateFeeRatesResponse>,
+  ) {
+    const startTxn1 = BenchUtils.start()
 
     const createTransactionResponse = await client.wallet.createTransaction({
-      ...params,
+      ...txn1Params,
       feeRate: feeRates.content.fast,
     })
 
@@ -149,11 +208,8 @@ export class CombineNotesCommand extends IronfishCommand {
       broadcast: false,
     })
 
-    const totalTime = BenchUtils.end(start)
-
-    CliUx.ux.action.stop()
-
-    return (totalTime / numberOfNotes) * 2 // adding a buffer to account for the time taken to broadcast a transaction
+    const totalTimeTxn1 = BenchUtils.end(startTxn1)
+    return totalTimeTxn1
   }
 
   async selectNumberOfNotes({
@@ -235,7 +291,7 @@ export class CombineNotesCommand extends IronfishCommand {
       )
     }
 
-    const blockIndex = await this.getBlockIndex(client)
+    const [blockIndex, currentBlockSequence] = await this.getBlockIndex(client)
 
     const defaultAccountName = getDefaultAccountResponse.content.account.name
 
@@ -252,7 +308,11 @@ export class CombineNotesCommand extends IronfishCommand {
       to = response1.content.publicKey
     }
 
-    const noteSelectionOptions = await this.getCombineNoteOptions(client, from, blockIndex)
+    const [noteSelectionOptions, timeToCombineOneNote] = await this.getCombineNoteOptions(
+      client,
+      from,
+      blockIndex,
+    )
 
     const unfilteredNotes = (
       await client.wallet.getNotes({
@@ -266,12 +326,19 @@ export class CombineNotesCommand extends IronfishCommand {
     ).content.notes
 
     // filter notes by current block index
-    const notes = unfilteredNotes.filter((note) => {
-      if (!note.index) {
-        return false
-      }
-      return note.index < blockIndex
-    })
+    const notes = unfilteredNotes
+      .filter((note) => {
+        if (!note.index) {
+          return false
+        }
+        return note.index < blockIndex
+      })
+      .sort((a, b) => {
+        if (a.value < b.value) {
+          return -1
+        }
+        return 1
+      })
 
     if (notes.length < 2) {
       this.error(
@@ -279,19 +346,14 @@ export class CombineNotesCommand extends IronfishCommand {
       )
     }
 
-    // -1 because we want to leave a note for the transaction fee
+    // - 1 because we want to leave a note for the transaction fee
     noteSelectionOptions.low = Math.min(notes.length - 1, noteSelectionOptions.low)
     noteSelectionOptions.average = Math.min(notes.length - 1, noteSelectionOptions.average)
     noteSelectionOptions.high = Math.min(notes.length - 1, noteSelectionOptions.high)
 
     const numberOfNotes = await this.selectNumberOfNotes(noteSelectionOptions)
 
-    const notesToCombine = notes.slice(0, numberOfNotes).sort((a, b) => {
-      if (a.value < b.value) {
-        return -1
-      }
-      return 1
-    })
+    const notesToCombine = notes.slice(0, numberOfNotes)
 
     const amount = notesToCombine.reduce((acc, note) => acc + BigInt(note.value), 0n)
     for (const note of notesToCombine) {
@@ -302,6 +364,14 @@ export class CombineNotesCommand extends IronfishCommand {
       }
     }
     const memo = await CliUx.ux.prompt('Enter the memo (or leave blank)', { required: false })
+
+    const targetBlockTimeInSeconds = (await this.sdk.client.chain.getConsensusParameters())
+      .content.targetBlockTimeInSeconds
+
+    const expiration = Math.ceil(
+      currentBlockSequence +
+        (timeToCombineOneNote * numberOfNotes * 1.5) / 1000 / targetBlockTimeInSeconds,
+    )
 
     const params: CreateTransactionRequest = {
       account: from,
@@ -315,6 +385,7 @@ export class CombineNotesCommand extends IronfishCommand {
       fee: flags.fee ? CurrencyUtils.encode(flags.fee) : null,
       feeRate: flags.feeRate ? CurrencyUtils.encode(flags.feeRate) : null,
       notes: notesToCombine.map((note) => note.noteHash),
+      expiration,
     }
 
     let raw: RawTransaction
@@ -395,7 +466,7 @@ export class CombineNotesCommand extends IronfishCommand {
     // Adding a buffer to avoid a mismatch between confirmations used to load notes and confirmations used when creating witnesses to spend them
     const currentBlockIndex =
       getBlockResponse.content.block.noteSize - (config.content.confirmations || 2)
-    return currentBlockIndex
+    return [currentBlockIndex, currentBlockSequence]
   }
 
   renderTransactionSummary(
