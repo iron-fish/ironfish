@@ -279,16 +279,9 @@ export class CombineNotesCommand extends IronfishCommand {
       )
     }
 
-    if (notes.length < noteSelectionOptions.low) {
-      noteSelectionOptions.low = notes.length - 1
-      noteSelectionOptions.average = notes.length - 1
-      noteSelectionOptions.high = notes.length - 1
-    } else if (notes.length < noteSelectionOptions.average) {
-      noteSelectionOptions.average = notes.length - 1
-      noteSelectionOptions.high = notes.length - 1
-    } else if (notes.length < noteSelectionOptions.high) {
-      noteSelectionOptions.high = notes.length - 1
-    }
+    noteSelectionOptions.low = Math.min(notes.length - 1, noteSelectionOptions.low)
+    noteSelectionOptions.average = Math.min(notes.length - 1, noteSelectionOptions.average)
+    noteSelectionOptions.high = Math.min(notes.length - 1, noteSelectionOptions.high)
 
     const numberOfNotes = await this.selectNumberOfNotes(noteSelectionOptions)
 
