@@ -52,20 +52,11 @@ export class CombineNotesCommand extends IronfishCommand {
     }),
   }
 
-  async getCombineNoteOptions(
+  async getSpendPostTime(
     client: RpcClient,
     account: string,
     currentBlockIndex: number,
-  ): Promise<
-    [
-      {
-        low: number
-        average: number
-        high: number
-      },
-      number,
-    ]
-  > {
+  ): Promise<number> {
     let timeToSendOneNote = 0 // this.sdk.internal.get('timeToSendOneNote')
 
     if (timeToSendOneNote <= 0) {
@@ -79,16 +70,7 @@ export class CombineNotesCommand extends IronfishCommand {
       await this.sdk.internal.save()
     }
 
-    const minNotesToCombine = Math.floor(60000 / timeToSendOneNote)
-
-    return [
-      {
-        low: minNotesToCombine,
-        average: minNotesToCombine * 5,
-        high: minNotesToCombine * 10,
-      },
-      timeToSendOneNote,
-    ]
+    return timeToSendOneNote
   }
 
   // TODO calculate the time to send a note based on the current network conditions differently
@@ -222,27 +204,25 @@ export class CombineNotesCommand extends IronfishCommand {
     return totalTimeTxn1
   }
 
-  async selectNumberOfNotes({
-    low,
-    average,
-    high,
-  }: {
-    low: number
-    average: number
-    high: number
-  }): Promise<number> {
-    // the + 1 is to account for the note that will be used for the fee
+  async selectNumberOfNotes(spendPostTimeMs: number): Promise<number> {
+    const spendsPerMinute = Math.floor(60000 / spendPostTimeMs)
+
+    const low = spendsPerMinute
+    const medium = spendsPerMinute * 5
+    const high = spendsPerMinute * 10
+
     const choices = [
       {
-        name: `Low (${low} notes) ~1 minute`,
+        name: `~1 minute: ${low} notes`,
         value: low,
       },
       {
-        name: `Average (${average} notes) ~5 minutes`,
-        value: average,
+        name: `~5 minutes: ${medium} notes`,
+        value: medium,
+        default: true,
       },
       {
-        name: `High (${high} notes) ~10 minutes`,
+        name: `~10 minutes: ${high} notes`,
         value: high,
       },
       {
@@ -262,38 +242,41 @@ export class CombineNotesCommand extends IronfishCommand {
       },
     ])
 
-    if (result.selection == null) {
-      const promptResult = await CliUx.ux.prompt('Enter the number of notes', {
+    if (result.selection) {
+      return result.selection
+    }
+
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const result = await CliUx.ux.prompt('Enter the number of notes', {
         required: true,
       })
 
-      if (isNaN(parseInt(promptResult))) {
-        this.error(`The number of notes must be a number`)
+      const numberOfNotes = parseInt(result)
+
+      if (isNaN(numberOfNotes)) {
+        this.logger.error(`The number of notes must be a number`)
+        continue
       }
 
-      const numberOfNotes = parseInt(promptResult)
-
       if (numberOfNotes > high) {
-        this.error(`The number of notes cannot be higher than the ${high}`)
+        this.logger.error(`The number of notes cannot be higher than the ${high}`)
+        continue
       }
 
       if (numberOfNotes < 2) {
-        this.error(`The number of notes cannot be lower than 2`)
+        this.logger.error(`The number of notes cannot be lower than 2`)
+        continue
       }
 
-      // accounting for the fee note
       return numberOfNotes
     }
-
-    return result.selection
   }
 
   async start(): Promise<void> {
     const { flags } = await this.parse(CombineNotesCommand)
 
     const client = await this.sdk.connectRpc()
-
-    const [blockIndex, currentBlockSequence] = await this.getBlockIndex(client)
 
     let to = flags.to
     let from = flags.account
@@ -319,50 +302,32 @@ export class CombineNotesCommand extends IronfishCommand {
       to = response.content.publicKey
     }
 
-    const [noteSelectionOptions, timeToCombineOneNote] = await this.getCombineNoteOptions(
-      client,
-      from,
-      blockIndex,
-    )
+    const [blockIndex] = await this.getBlockIndex(client)
 
-    const notes = await this.fetchAndFilterNotes(
-      client,
-      from,
-      blockIndex,
-      noteSelectionOptions.high + 1,
-    )
+    const spendPostTime = await this.getSpendPostTime(client, from, blockIndex)
+
+    const numberOfNotes = await this.selectNumberOfNotes(spendPostTime)
+
+    // TODO: ADD ACTION HERE
+    const notes = await this.fetchAndFilterNotes(client, from, blockIndex, numberOfNotes + 1)
 
     if (notes.length < 2) {
-      this.error(
-        `You must have at least 2 notes to combine. You currently have ${notes.length} notes`,
-      )
+      this.log(`Your notes are already combined. You currently have ${notes.length} notes`)
+      this.exit(0)
     }
 
-    // - 1 because we want to leave a note for the transaction fee
-    noteSelectionOptions.low = Math.min(notes.length - 1, noteSelectionOptions.low)
-    noteSelectionOptions.average = Math.min(notes.length - 1, noteSelectionOptions.average)
-    noteSelectionOptions.high = Math.min(notes.length - 1, noteSelectionOptions.high)
+    const amount = notes.reduce((acc, note) => acc + BigInt(note.value), 0n)
 
-    const numberOfNotes = await this.selectNumberOfNotes(noteSelectionOptions)
-
-    const notesToCombine = notes.slice(0, numberOfNotes)
-
-    const amount = notesToCombine.reduce((acc, note) => acc + BigInt(note.value), 0n)
-    for (const note of notesToCombine) {
-      if (note.owner !== to) {
-        this.error(
-          `All notes must be owned by the same public address. Note ${note.noteHash} is owned by ${note.owner}`,
-        )
-      }
-    }
     const memo = await CliUx.ux.prompt('Enter the memo (or leave blank)', { required: false })
 
     const targetBlockTimeInSeconds = (await this.sdk.client.chain.getConsensusParameters())
       .content.targetBlockTimeInSeconds
 
+    const chainInfo = await client.chain.getChainInfo()
+
     const expiration = Math.ceil(
-      currentBlockSequence +
-        (timeToCombineOneNote * numberOfNotes * 1.5) / 1000 / targetBlockTimeInSeconds,
+      parseInt(chainInfo.content.currentBlockIdentifier.index) +
+        (spendPostTime * numberOfNotes * 1.5) / 1000 / targetBlockTimeInSeconds,
     )
 
     const params: CreateTransactionRequest = {
@@ -376,7 +341,7 @@ export class CombineNotesCommand extends IronfishCommand {
       ],
       fee: flags.fee ? CurrencyUtils.encode(flags.fee) : null,
       feeRate: flags.feeRate ? CurrencyUtils.encode(flags.feeRate) : null,
-      notes: notesToCombine.map((note) => note.noteHash),
+      notes: notes.map((note) => note.noteHash),
       expiration,
     }
 
