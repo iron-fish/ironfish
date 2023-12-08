@@ -293,29 +293,30 @@ export class CombineNotesCommand extends IronfishCommand {
 
     const client = await this.sdk.connectRpc()
 
-    const getDefaultAccountResponse = await client.wallet.getDefaultAccount()
-    if (!getDefaultAccountResponse.content.account) {
-      this.error(
-        `No account is currently active.
-         Use ironfish wallet:create <name> to first create an account`,
-      )
-    }
-
     const [blockIndex, currentBlockSequence] = await this.getBlockIndex(client)
 
-    const defaultAccountName = getDefaultAccountResponse.content.account.name
-
-    let to = flags.to?.trim()
-    let from = flags.account?.trim()
+    let to = flags.to
+    let from = flags.account
 
     if (!from) {
-      from = defaultAccountName
+      const response = await client.wallet.getDefaultAccount()
+
+      if (!response.content.account) {
+        this.error(
+          `No account is currently active.
+          Use ironfish wallet:create <name> to first create an account`,
+        )
+      }
+
+      from = response.content.account.name
     }
+
     if (!to) {
-      const response1 = await client.wallet.getAccountPublicKey({
+      const response = await client.wallet.getAccountPublicKey({
         account: from,
       })
-      to = response1.content.publicKey
+
+      to = response.content.publicKey
     }
 
     const [noteSelectionOptions, timeToCombineOneNote] = await this.getCombineNoteOptions(
