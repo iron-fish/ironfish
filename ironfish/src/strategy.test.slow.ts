@@ -106,12 +106,11 @@ describe('Demonstrate the Sapling API', () => {
 
       minerNote = new NativeNote(owner, 42n, '', Asset.nativeId(), owner)
 
-      const transaction = new NativeTransaction(
-        spenderKey.spendingKey,
-        LATEST_TRANSACTION_VERSION,
-      )
+      const transaction = new NativeTransaction(LATEST_TRANSACTION_VERSION)
       transaction.output(minerNote)
-      minerTransaction = new NativeTransactionPosted(transaction.post_miners_fee())
+      minerTransaction = new NativeTransactionPosted(
+        transaction.post_miners_fee(spenderKey.spendingKey),
+      )
       expect(minerTransaction).toBeTruthy()
       expect(minerTransaction.notesLength()).toEqual(1)
     })
@@ -137,7 +136,7 @@ describe('Demonstrate the Sapling API', () => {
     })
 
     it('Can create a simple transaction', () => {
-      transaction = new NativeTransaction(spenderKey.spendingKey, LATEST_TRANSACTION_VERSION)
+      transaction = new NativeTransaction(LATEST_TRANSACTION_VERSION)
       expect(transaction).toBeTruthy()
     })
 
@@ -159,7 +158,9 @@ describe('Demonstrate the Sapling API', () => {
       )
       transaction.output(outputNote)
 
-      publicTransaction = new NativeTransactionPosted(transaction.post(null, 0n))
+      publicTransaction = new NativeTransactionPosted(
+        transaction.post(spenderKey.spendingKey, null, 0n),
+      )
 
       expect(publicTransaction).toBeTruthy()
     })
@@ -310,7 +311,7 @@ describe('Demonstrate the Sapling API', () => {
     })
 
     it('Can create and post a transaction', async () => {
-      transaction = new NativeTransaction(receiverKey.spendingKey, LATEST_TRANSACTION_VERSION)
+      transaction = new NativeTransaction(LATEST_TRANSACTION_VERSION)
 
       const witness = await tree.witness(receiverWitnessIndex)
       if (witness === null) {
@@ -342,7 +343,9 @@ describe('Demonstrate the Sapling API', () => {
       transaction.output(noteForSpender)
       transaction.output(receiverNoteToSelf)
 
-      const postedTransaction = new Transaction(transaction.post(undefined, 1n))
+      const postedTransaction = new Transaction(
+        transaction.post(receiverKey.spendingKey, undefined, 1n),
+      )
       expect(postedTransaction).toBeTruthy()
       expect(await workerPool.verifyTransactions([postedTransaction])).toEqual({ valid: true })
     })
