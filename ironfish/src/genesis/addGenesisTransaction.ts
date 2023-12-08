@@ -88,7 +88,7 @@ export async function addGenesisTransaction(
   }
 
   // Create the new transaction to be appended to the new genesis block
-  const transaction = new NativeTransaction(account.spendingKey, TransactionVersion.V2)
+  const transaction = new NativeTransaction(TransactionVersion.V2)
   logger.info(`  Generating a spend for ${allocationSumInIron} coins...`)
   transaction.spend(note, witness)
 
@@ -109,7 +109,9 @@ export async function addGenesisTransaction(
   }
 
   logger.info('  Posting the transaction...')
-  const postedTransaction = new Transaction(transaction.post(undefined, BigInt(0)))
+  const postedTransaction = new Transaction(
+    transaction.post(account.spendingKey, undefined, BigInt(0)),
+  )
 
   logger.info('Creating the modified genesis block...')
   // Get the existing genesis block

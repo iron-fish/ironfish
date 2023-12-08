@@ -102,10 +102,10 @@ export class CreateMinersFeeTask extends WorkerTask {
       minerPublicAddress,
     )
 
-    const transaction = new Transaction(spendKey, transactionVersion)
+    const transaction = new Transaction(transactionVersion)
     transaction.output(minerNote)
 
-    const serializedTransactionPosted = transaction.post_miners_fee()
+    const serializedTransactionPosted = transaction.post_miners_fee(spendKey)
     return new CreateMinersFeeResponse(serializedTransactionPosted, jobId)
   }
 }
