@@ -214,7 +214,7 @@ export type ConfigOptions = {
   /**
    * The discord webhook URL to post pool critical pool information to
    */
-  poolDiscordWebhook: ''
+  poolDiscordWebhook: string
 
   /**
    * The maximum number of concurrent open connections per remote address.
@@ -225,7 +225,7 @@ export type ConfigOptions = {
   /**
    * The lark webhook URL to post pool critical pool information to
    */
-  poolLarkWebhook: ''
+  poolLarkWebhook: string
 
   /**
    * Whether we want the logs to the console to be in JSON format or not. This can be used to log to
