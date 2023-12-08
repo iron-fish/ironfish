@@ -109,35 +109,7 @@ export class CombineNotesCommand extends IronfishCommand {
       })
     ).content.publicKey
 
-    const getNotesResponse = await client.wallet.getNotes({
-      account: account,
-      pageSize: 10,
-      filter: {
-        assetId: Asset.nativeId().toString('hex'),
-        spent: false,
-      },
-    })
-
-    const unfiltered = getNotesResponse.content.notes
-    const notes = unfiltered
-      .filter((note) => {
-        if (!note.index) {
-          return false
-        }
-        return note.index < currentBlockIndex
-      })
-      .sort((a, b) => {
-        if (a.value < b.value) {
-          return -1
-        }
-        return 1
-      })
-
-    if (notes.length <= 2) {
-      this.error(
-        `You must have at least 3 notes to combine. You currently have ${notes.length} notes`,
-      )
-    }
+    const notes = await this.fetchAndFilterNotes(client, account, currentBlockIndex, 10)
 
     const feeRates = await client.wallet.estimateFeeRates()
 
@@ -186,6 +158,44 @@ export class CombineNotesCommand extends IronfishCommand {
     CliUx.ux.action.stop()
 
     return Math.ceil(timedeltas / 5)
+  }
+
+  private async fetchAndFilterNotes(
+    client: RpcClient,
+    account: string,
+    currentBlockIndex: number,
+    pageSize: number,
+  ) {
+    const getNotesResponse = await client.wallet.getNotes({
+      account,
+      pageSize,
+      filter: {
+        assetId: Asset.nativeId().toString('hex'),
+        spent: false,
+      },
+    })
+
+    const unfiltered = getNotesResponse.content.notes
+    const notes = unfiltered
+      .filter((note) => {
+        if (!note.index) {
+          return false
+        }
+        return note.index < currentBlockIndex
+      })
+      .sort((a, b) => {
+        if (a.value < b.value) {
+          return -1
+        }
+        return 1
+      })
+
+    if (notes.length <= 2) {
+      this.error(
+        `You must have at least 3 notes to combine. You currently have ${notes.length} notes`,
+      )
+    }
+    return notes
   }
 
   private async measureTransactionTime(
@@ -314,31 +324,12 @@ export class CombineNotesCommand extends IronfishCommand {
       blockIndex,
     )
 
-    const unfilteredNotes = (
-      await client.wallet.getNotes({
-        account: from,
-        pageSize: noteSelectionOptions.high + 1,
-        filter: {
-          assetId: Asset.nativeId().toString('hex'),
-          spent: false,
-        },
-      })
-    ).content.notes
-
-    // filter notes by current block index
-    const notes = unfilteredNotes
-      .filter((note) => {
-        if (!note.index) {
-          return false
-        }
-        return note.index < blockIndex
-      })
-      .sort((a, b) => {
-        if (a.value < b.value) {
-          return -1
-        }
-        return 1
-      })
+    const notes = await this.fetchAndFilterNotes(
+      client,
+      from,
+      blockIndex,
+      noteSelectionOptions.high + 1,
+    )
 
     if (notes.length < 2) {
       this.error(
