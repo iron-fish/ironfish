@@ -52,34 +52,27 @@ export class CombineNotesCommand extends IronfishCommand {
     }),
   }
 
-  async getSpendPostTime(
+  async getSpendPostTimeInMs(
     client: RpcClient,
     account: string,
-    currentBlockIndex: number,
+    noteSize: number,
   ): Promise<number> {
-    let timeToSendOneNote = 0 // this.sdk.internal.get('timeToSendOneNote')
+    let timeToSendOneNoteInMs = this.sdk.internal.get('timeToSendOneNoteInMs')
 
-    if (timeToSendOneNote <= 0) {
-      timeToSendOneNote = await this.benchmarkTimeToSendOneNote(
-        client,
-        account,
-        currentBlockIndex,
-      )
+    if (timeToSendOneNoteInMs <= 0) {
+      timeToSendOneNoteInMs = await this.benchmarkTimeToSendOneNote(client, account, noteSize)
 
-      this.sdk.internal.set('timeToSendOneNote', timeToSendOneNote)
+      this.sdk.internal.set('timeToSendOneNoteInMs', timeToSendOneNoteInMs)
       await this.sdk.internal.save()
     }
 
-    return timeToSendOneNote
+    return timeToSendOneNoteInMs
   }
-
-  // TODO calculate the time to send a note based on the current network conditions differently
-  // TODO calculate expiration
 
   async benchmarkTimeToSendOneNote(
     client: RpcClient,
     account: string,
-    currentBlockIndex: number,
+    noteSize: number,
   ): Promise<number> {
     CliUx.ux.action.start(
       'Calculating the number of notes to combine. This may take a few minutes...',
@@ -91,7 +84,7 @@ export class CombineNotesCommand extends IronfishCommand {
       })
     ).content.publicKey
 
-    const notes = await this.fetchAndFilterNotes(client, account, currentBlockIndex, 10)
+    const notes = await this.fetchAndFilterNotes(client, account, noteSize, 10)
 
     const feeRates = await client.wallet.estimateFeeRates()
 
@@ -145,7 +138,7 @@ export class CombineNotesCommand extends IronfishCommand {
   private async fetchAndFilterNotes(
     client: RpcClient,
     account: string,
-    currentBlockIndex: number,
+    noteSize: number,
     pageSize: number,
   ) {
     const getNotesResponse = await client.wallet.getNotes({
@@ -163,7 +156,7 @@ export class CombineNotesCommand extends IronfishCommand {
         if (!note.index) {
           return false
         }
-        return note.index < currentBlockIndex
+        return note.index < noteSize
       })
       .sort((a, b) => {
         if (a.value < b.value) {
@@ -302,14 +295,13 @@ export class CombineNotesCommand extends IronfishCommand {
       to = response.content.publicKey
     }
 
-    const [blockIndex] = await this.getBlockIndex(client)
+    const noteSize = await this.getNoteSize(client)
 
-    const spendPostTime = await this.getSpendPostTime(client, from, blockIndex)
+    const spendPostTime = await this.getSpendPostTimeInMs(client, from, noteSize)
 
     const numberOfNotes = await this.selectNumberOfNotes(spendPostTime)
 
-    // TODO: ADD ACTION HERE
-    const notes = await this.fetchAndFilterNotes(client, from, blockIndex, numberOfNotes + 1)
+    const notes = await this.fetchAndFilterNotes(client, from, noteSize, numberOfNotes + 1)
 
     if (notes.length < 2) {
       this.log(`Your notes are already combined. You currently have ${notes.length} notes`)
@@ -320,15 +312,7 @@ export class CombineNotesCommand extends IronfishCommand {
 
     const memo = await CliUx.ux.prompt('Enter the memo (or leave blank)', { required: false })
 
-    const targetBlockTimeInSeconds = (await this.sdk.client.chain.getConsensusParameters())
-      .content.targetBlockTimeInSeconds
-
-    const chainInfo = await client.chain.getChainInfo()
-
-    const expiration = Math.ceil(
-      parseInt(chainInfo.content.currentBlockIdentifier.index) +
-        (spendPostTime * numberOfNotes * 1.5) / 1000 / targetBlockTimeInSeconds,
-    )
+    const expiration = await this.calculateExpiration(client, spendPostTime, numberOfNotes)
 
     const params: CreateTransactionRequest = {
       account: from,
@@ -408,8 +392,49 @@ export class CombineNotesCommand extends IronfishCommand {
     }
   }
 
-  private async getBlockIndex(client: RpcClient) {
+  private async calculateExpiration(
+    client: RpcClient,
+    spendPostTimeInMs: number,
+    numberOfNotes: number,
+  ) {
+    const currentBlockSequence = await this.getCurrentBlockSequence(client)
+
+    let timeLastFiveBlocksInMs = 0
+
+    let currentBlockTime = new Date(
+      (
+        await client.chain.getBlock({
+          sequence: currentBlockSequence,
+        })
+      ).content.block.timestamp,
+    )
+
+    for (let i = 0; i < 5; i++) {
+      const block = new Date(
+        (
+          await client.chain.getBlock({
+            sequence: currentBlockSequence - i,
+          })
+        ).content.block.timestamp,
+      )
+
+      timeLastFiveBlocksInMs += currentBlockTime.getTime() - block.getTime()
+
+      currentBlockTime = block
+    }
+
+    const averageBlockTimeInMs = timeLastFiveBlocksInMs / 5
+
+    const expiration = Math.ceil(
+      currentBlockSequence + (spendPostTimeInMs * numberOfNotes * 2) / averageBlockTimeInMs,
+    )
+
+    return expiration
+  }
+
+  private async getNoteSize(client: RpcClient) {
     const getCurrentBlock = await client.chain.getChainInfo()
+
     const currentBlockSequence = parseInt(getCurrentBlock.content.currentBlockIdentifier.index)
 
     const getBlockResponse = await client.chain.getBlock({
@@ -421,9 +446,13 @@ export class CombineNotesCommand extends IronfishCommand {
     const config = await client.config.getConfig()
 
     // Adding a buffer to avoid a mismatch between confirmations used to load notes and confirmations used when creating witnesses to spend them
-    const currentBlockIndex =
-      getBlockResponse.content.block.noteSize - (config.content.confirmations || 2)
-    return [currentBlockIndex, currentBlockSequence]
+    return getBlockResponse.content.block.noteSize - (config.content.confirmations || 2)
+  }
+
+  private async getCurrentBlockSequence(client: RpcClient) {
+    const getCurrentBlock = await client.chain.getChainInfo()
+    const currentBlockSequence = parseInt(getCurrentBlock.content.currentBlockIdentifier.index)
+    return currentBlockSequence
   }
 
   renderTransactionSummary(

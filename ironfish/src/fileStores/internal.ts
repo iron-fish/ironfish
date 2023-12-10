@@ -11,7 +11,7 @@ export type InternalOptions = {
   telemetryNodeId: string
   rpcAuthToken: string
   networkId: number
-  timeToSendOneNote: number
+  timeToSendOneNoteInMs: number
 }
 
 export const InternalOptionsDefaults: InternalOptions = {
@@ -20,7 +20,7 @@ export const InternalOptionsDefaults: InternalOptions = {
   telemetryNodeId: '',
   rpcAuthToken: '',
   networkId: DEFAULT_NETWORK_ID,
-  timeToSendOneNote: 0,
+  timeToSendOneNoteInMs: 0,
 }
 
 export class InternalStore extends KeyStore<InternalOptions> {
