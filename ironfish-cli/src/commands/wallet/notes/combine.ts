@@ -123,11 +123,10 @@ export class CombineNotesCommand extends IronfishCommand {
     let timedeltas = 0
 
     for (let i = 0; i < 5; i++) {
-      const totalTimeTxn1 = await this.measureTransactionTime(client, txn1Params, feeRates)
-      const totalTimeTxn2 = await this.measureTransactionTime(client, txn2Params, feeRates)
-      const difference = totalTimeTxn2 - totalTimeTxn1
+      const totalTimeTxn1InMs = await this.measureTransactionTime(client, txn1Params, feeRates)
+      const totalTimeTxn2InMs = await this.measureTransactionTime(client, txn2Params, feeRates)
 
-      timedeltas += difference
+      timedeltas += totalTimeTxn2InMs - totalTimeTxn1InMs
     }
 
     CliUx.ux.action.stop()
@@ -175,17 +174,17 @@ export class CombineNotesCommand extends IronfishCommand {
 
   private async measureTransactionTime(
     client: RpcClient,
-    txn1Params: CreateTransactionRequest,
+    params: CreateTransactionRequest,
     feeRates: RpcResponseEnded<EstimateFeeRatesResponse>,
   ) {
-    const startTxn1 = BenchUtils.start()
+    const start = BenchUtils.start()
 
-    const createTransactionResponse = await client.wallet.createTransaction({
-      ...txn1Params,
+    const response = await client.wallet.createTransaction({
+      ...params,
       feeRate: feeRates.content.fast,
     })
 
-    const bytes = Buffer.from(createTransactionResponse.content.transaction, 'hex')
+    const bytes = Buffer.from(response.content.transaction, 'hex')
     const raw = RawTransactionSerde.deserialize(bytes)
 
     await client.wallet.postTransaction({
@@ -193,8 +192,8 @@ export class CombineNotesCommand extends IronfishCommand {
       broadcast: false,
     })
 
-    const totalTimeTxn1 = BenchUtils.end(startTxn1)
-    return totalTimeTxn1
+    const totalTimeInMs = BenchUtils.end(start)
+    return totalTimeInMs
   }
 
   async selectNumberOfNotes(spendPostTimeMs: number): Promise<number> {
