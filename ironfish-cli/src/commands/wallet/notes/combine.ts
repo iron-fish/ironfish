@@ -150,6 +150,7 @@ export class CombineNotesCommand extends IronfishCommand {
     })
 
     const unfiltered = getNotesResponse.content.notes
+
     const notes = unfiltered
       .filter((note) => {
         if (!note.index) {
@@ -298,13 +299,20 @@ export class CombineNotesCommand extends IronfishCommand {
 
     const spendPostTime = await this.getSpendPostTimeInMs(client, from, noteSize)
 
-    const numberOfNotes = await this.selectNumberOfNotes(spendPostTime)
+    let numberOfNotes = await this.selectNumberOfNotes(spendPostTime)
 
-    const notes = await this.fetchAndFilterNotes(client, from, noteSize, numberOfNotes + 1)
+    let notes = await this.fetchAndFilterNotes(client, from, noteSize, numberOfNotes + 1)
 
     if (notes.length < 2) {
       this.log(`Your notes are already combined. You currently have ${notes.length} notes`)
       this.exit(0)
+    }
+
+    // If the user doesn't have enough notes for their selection, we reduce the number of notes so that
+    // the largest notes can be used for fees.
+    if (notes.length < numberOfNotes + 1) {
+      numberOfNotes = notes.length - 1
+      notes = notes.slice(0, numberOfNotes)
     }
 
     const amount = notes.reduce((acc, note) => acc + BigInt(note.value), 0n)
