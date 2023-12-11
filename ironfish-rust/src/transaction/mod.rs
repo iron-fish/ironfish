@@ -455,8 +455,13 @@ impl ProposedTransaction {
 
         // Split the spend authorizing key into shares for the signers
         let mut rng = thread_rng();
+        let identifiers = [
+            Identifier::derive(&[b'1']).unwrap(),
+            Identifier::derive(&[b'2']).unwrap(),
+            Identifier::derive(&[b'3']).unwrap(),
+        ];
         let (key_packages, pubkeys) =
-            split_secret(&secret_config, IdentifierList::Default, &mut rng).unwrap();
+            generate_secret_shares(&secret_config, &identifiers, &mut rng).unwrap();
 
         // Save the nonces and get commitments to aggregate by the coordinator
         let (nonces, commitments) = round_one(secret_config.min_signers, &mut rng, &key_packages);
@@ -1147,7 +1152,7 @@ fn split_secret(
     Ok((key_packages, pubkeys))
 }
 
-fn generate_secret(
+fn generate_secret_shares(
     config: &SecretShareConfig,
     identifiers: &[Identifier],
     rng: &mut ThreadRng,
@@ -1249,7 +1254,11 @@ fn generate_secret(
 
     let identifier = identifiers[0];
 
-    Ok((key_packages, pubkey_packages))
+    // TODO: we will not just unsafely unwrap the return type here
+    Ok((
+        key_packages,
+        pubkey_packages.get(&identifier).unwrap().clone(),
+    ))
 }
 
 fn key_package(shares: &BTreeMap<Identifier, SecretShare>) -> HashMap<Identifier, KeyPackage> {
@@ -1274,12 +1283,11 @@ fn round_one(
     let mut nonces_map = HashMap::new();
     let mut commitments_map = BTreeMap::new();
 
-    for participant_index in 1..(min_signers + 1) {
-        let participant_identifier = participant_index.try_into().expect("should be nonzero");
+    for participant_identifier in key_packages.keys() {
         let key_package = &key_packages[&participant_identifier];
         let (nonces, commitments) = frost::round1::commit(key_package.signing_share(), &mut rng);
-        nonces_map.insert(participant_identifier, nonces);
-        commitments_map.insert(participant_identifier, commitments);
+        nonces_map.insert(*participant_identifier, nonces);
+        commitments_map.insert(*participant_identifier, commitments);
     }
     (nonces_map, commitments_map)
 }
