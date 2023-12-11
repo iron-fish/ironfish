@@ -21,6 +21,7 @@ use rand::rngs::ThreadRng;
 use reddsa::frost::redjubjub as frost;
 use reddsa::frost::redjubjub::aggregate;
 use reddsa::frost::redjubjub::round2::Randomizer;
+use reddsa::frost::redjubjub::JubjubBlake2b512;
 use reddsa::frost::redjubjub::RandomizedParams;
 
 use blstrs::Bls12;
@@ -454,9 +455,8 @@ impl ProposedTransaction {
 
         // Split the spend authorizing key into shares for the signers
         let mut rng = thread_rng();
-        let (shares, pubkeys) =
+        let (key_packages, pubkeys) =
             split_secret(&secret_config, IdentifierList::Default, &mut rng).unwrap();
-        let key_packages = key_package(&shares);
 
         // Save the nonces and get commitments to aggregate by the coordinator
         let (nonces, commitments) = round_one(secret_config.min_signers, &mut rng, &key_packages);
@@ -1122,7 +1122,7 @@ fn split_secret(
     config: &SecretShareConfig,
     identifiers: IdentifierList,
     rng: &mut ThreadRng,
-) -> Result<(BTreeMap<Identifier, SecretShare>, PublicKeyPackage), Error> {
+) -> Result<(HashMap<Identifier, KeyPackage>, PublicKeyPackage), Error> {
     let secret_key = SigningKey::deserialize(
         config
             .secret
@@ -1142,7 +1142,114 @@ fn split_secret(
         frost::keys::KeyPackage::try_from(v)?;
     }
 
-    Ok((shares, pubkeys))
+    let key_packages = key_package(&shares);
+
+    Ok((key_packages, pubkeys))
+}
+
+fn generate_secret(
+    config: &SecretShareConfig,
+    identifiers: &[Identifier],
+    rng: &mut ThreadRng,
+) -> Result<(HashMap<Identifier, KeyPackage>, PublicKeyPackage), Error> {
+    // Round 1
+    let mut round1_secret_packages = BTreeMap::new();
+
+    // Keep track of all round 1 packages sent to the given participant.
+    // This is used to simulate the broadcast; in practice the packages
+    // will be sent through some communication channel.
+    let mut received_round1_packages = BTreeMap::new();
+
+    // For each participant, perform the first part of the DKG protocol.
+    // In practice, each participant will perform this on their own environments.
+    for participant_identifier in identifiers.iter() {
+        let (round1_secret_package, round1_package) = frost::keys::dkg::part1(
+            *participant_identifier,
+            config.max_signers,
+            config.min_signers,
+            &mut *rng,
+        )?;
+
+        // Store the participant's secret package for later use.
+        // In practice each participant will store it in their own environment.
+        round1_secret_packages.insert(participant_identifier, round1_secret_package);
+
+        // "Send" the round 1 package to all other participants. In this
+        // test this is simulated using a HashMap; in practice this will be
+        // sent through some communication channel.
+        for receiver_participant_identifier in identifiers.iter() {
+            if receiver_participant_identifier == participant_identifier {
+                continue;
+            }
+            received_round1_packages
+                .entry(*receiver_participant_identifier)
+                .or_insert_with(BTreeMap::new)
+                .insert(*participant_identifier, round1_package.clone());
+        }
+    }
+
+    // Round 2
+    // Keep track of each participant's round 2 secret package.
+    // In practice each participant will keep its copy; no one
+    // will have all the participant's packages.
+    let mut round2_secret_packages = BTreeMap::new();
+
+    // Keep track of all round 2 packages sent to the given participant.
+    // This is used to simulate the broadcast; in practice the packages
+    // will be sent through some communication channel.
+    let mut received_round2_packages = BTreeMap::new();
+
+    // For each participant, perform the second part of the DKG protocol.
+    // In practice, each participant will perform this on their own environments.
+    for participant_identifier in identifiers.iter() {
+        let round1_secret_package = round1_secret_packages
+            .remove(&participant_identifier)
+            .unwrap();
+        let round1_packages = &received_round1_packages[&participant_identifier];
+        let (round2_secret_package, round2_packages) =
+            frost::keys::dkg::part2(round1_secret_package, round1_packages)?;
+
+        // Store the participant's secret package for later use.
+        // In practice each participant will store it in their own environment.
+        round2_secret_packages.insert(participant_identifier, round2_secret_package);
+
+        // "Send" the round 2 package to all other participants. In this
+        // test this is simulated using a HashMap; in practice this will be
+        // sent through some communication channel.
+        // Note that, in contrast to the previous part, here each other participant
+        // gets its own specific package.
+        for (receiver_identifier, round2_package) in round2_packages {
+            received_round2_packages
+                .entry(receiver_identifier)
+                .or_insert_with(BTreeMap::new)
+                .insert(*participant_identifier, round2_package);
+        }
+    }
+
+    // Round 3
+    let mut key_packages = HashMap::new();
+
+    // Keep track of each participant's public key package.
+    // In practice, if there is a Coordinator, only they need to store the set.
+    // If there is not, then all candidates must store their own sets.
+    // All participants will have the same exact public key package.
+    let mut pubkey_packages = HashMap::new();
+
+    // For each participant, perform the third part of the DKG protocol.
+    // In practice, each participant will perform this on their own environments.
+    for participant_identifier in identifiers.iter() {
+        let round2_secret_package = &round2_secret_packages[participant_identifier];
+        let round1_packages = &received_round1_packages[participant_identifier];
+        let round2_packages = &received_round2_packages[participant_identifier];
+        let (key_package, pubkey_package) =
+            frost::keys::dkg::part3(round2_secret_package, round1_packages, round2_packages)?;
+        key_packages.insert(*participant_identifier, key_package);
+        pubkey_packages.insert(*participant_identifier, pubkey_package);
+    }
+
+    let identifier = identifiers[0];
+
+    Ok((key_packages, pubkey_packages))
 }
 
 fn key_package(shares: &BTreeMap<Identifier, SecretShare>) -> HashMap<Identifier, KeyPackage> {
