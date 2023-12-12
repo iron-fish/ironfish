@@ -436,8 +436,13 @@ export class CombineNotesCommand extends IronfishCommand {
 
     const averageBlockTimeInMs = timeLastFiveBlocksInMs / 5
 
+    const targetBlockTimeInMs =
+      (await client.chain.getConsensusParameters()).content.targetBlockTimeInSeconds * 1000
+
+    const blockTimeForCalculation = Math.min(averageBlockTimeInMs, targetBlockTimeInMs)
+
     const expiration = Math.ceil(
-      currentBlockSequence + (spendPostTimeInMs * numberOfNotes * 1.5) / averageBlockTimeInMs, // * 1.5 added to account for the time it takes to calculate fees
+      currentBlockSequence + (spendPostTimeInMs * numberOfNotes * 2) / blockTimeForCalculation, // * 2 added to account for the time it takes to calculate fees
     )
 
     return expiration
