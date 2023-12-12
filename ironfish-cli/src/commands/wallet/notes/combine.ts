@@ -386,6 +386,7 @@ export class CombineNotesCommand extends IronfishCommand {
       await watchTransaction({
         client,
         logger: this.logger,
+        account: from,
         hash: transaction.hash().toString('hex'),
       })
     }
