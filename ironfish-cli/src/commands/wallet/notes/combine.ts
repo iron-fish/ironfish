@@ -60,7 +60,7 @@ export class CombineNotesCommand extends IronfishCommand {
     let spendPostTime = this.sdk.internal.get('spendPostTime')
 
     if (spendPostTime <= 0) {
-      spendPostTime = await this.benchmarkTimeToSendOneNote(client, account, noteSize)
+      spendPostTime = await this.benchmarkSpendPostTime(client, account, noteSize)
 
       this.sdk.internal.set('spendPostTime', spendPostTime)
       await this.sdk.internal.save()
@@ -69,14 +69,12 @@ export class CombineNotesCommand extends IronfishCommand {
     return spendPostTime
   }
 
-  async benchmarkTimeToSendOneNote(
+  async benchmarkSpendPostTime(
     client: RpcClient,
     account: string,
     noteSize: number,
   ): Promise<number> {
-    CliUx.ux.action.start(
-      'Calculating the number of notes to combine. This may take a few minutes...',
-    )
+    CliUx.ux.action.start('Calculating the number of notes to combine')
 
     const publicKey = (
       await client.wallet.getAccountPublicKey({
@@ -84,11 +82,11 @@ export class CombineNotesCommand extends IronfishCommand {
       })
     ).content.publicKey
 
-    const notes = await this.fetchAndFilterNotes(client, account, noteSize, 10)
+    const notes = await this.fetchSortedNotes(client, account, noteSize, 10)
 
     const feeRates = await client.wallet.estimateFeeRates()
 
-    /** Transaction 1 */
+    /** Transaction 1: selects 1 note */
 
     const txn1Params: CreateTransactionRequest = {
       account: account,
@@ -104,7 +102,7 @@ export class CombineNotesCommand extends IronfishCommand {
       notes: [notes[0].noteHash],
     }
 
-    /** Transaction 2 */
+    /** Transaction 2: selects two notes */
 
     const txn2Params: CreateTransactionRequest = {
       account: account,
@@ -120,21 +118,51 @@ export class CombineNotesCommand extends IronfishCommand {
       notes: [notes[0].noteHash, notes[1].noteHash],
     }
 
-    let timedeltas = 0
+    let delta = 0
 
     for (let i = 0; i < 5; i++) {
-      const totalTimeTxn1InMs = await this.measureTransactionTime(client, txn1Params, feeRates)
-      const totalTimeTxn2InMs = await this.measureTransactionTime(client, txn2Params, feeRates)
+      const txn1InMs = await this.measureTransactionPostTime(client, txn1Params, feeRates)
+      const txn2InMs = await this.measureTransactionPostTime(client, txn2Params, feeRates)
 
-      timedeltas += totalTimeTxn2InMs - totalTimeTxn1InMs
+      delta += txn2InMs - txn1InMs
+
+      this.log(`Delta ${i}: ${txn2InMs - txn1InMs}ms`)
     }
 
     CliUx.ux.action.stop()
 
-    return Math.ceil(timedeltas / 5)
+    return Math.ceil(delta / 5)
   }
 
-  private async fetchAndFilterNotes(
+  private async measureTransactionPostTime(
+    client: RpcClient,
+    params: CreateTransactionRequest,
+    feeRates: RpcResponseEnded<EstimateFeeRatesResponse>,
+  ) {
+    const response = await client.wallet.createTransaction({
+      ...params,
+      feeRate: feeRates.content.fast,
+    })
+
+    const bytes = Buffer.from(response.content.transaction, 'hex')
+    const raw = RawTransactionSerde.deserialize(bytes)
+
+    const start = BenchUtils.start()
+
+    await client.wallet.postTransaction({
+      transaction: RawTransactionSerde.serialize(raw).toString('hex'),
+      broadcast: false,
+    })
+
+    return BenchUtils.end(start)
+  }
+
+  /**
+   * This function gets notes, filters them by note size, sorts them by value, and returns the notes from smallest to largest
+   * The sort is useful because the function calling this one will use the smallest notes first and the largest can be used
+   * for fees if not selected by the user to combine
+   */
+  private async fetchSortedNotes(
     client: RpcClient,
     account: string,
     noteSize: number,
@@ -171,30 +199,6 @@ export class CombineNotesCommand extends IronfishCommand {
       )
     }
     return notes
-  }
-
-  private async measureTransactionTime(
-    client: RpcClient,
-    params: CreateTransactionRequest,
-    feeRates: RpcResponseEnded<EstimateFeeRatesResponse>,
-  ) {
-    const start = BenchUtils.start()
-
-    const response = await client.wallet.createTransaction({
-      ...params,
-      feeRate: feeRates.content.fast,
-    })
-
-    const bytes = Buffer.from(response.content.transaction, 'hex')
-    const raw = RawTransactionSerde.deserialize(bytes)
-
-    await client.wallet.postTransaction({
-      transaction: RawTransactionSerde.serialize(raw).toString('hex'),
-      broadcast: false,
-    })
-
-    const totalTimeInMs = BenchUtils.end(start)
-    return totalTimeInMs
   }
 
   async selectNumberOfNotes(spendPostTimeMs: number): Promise<number> {
@@ -301,7 +305,7 @@ export class CombineNotesCommand extends IronfishCommand {
 
     let numberOfNotes = await this.selectNumberOfNotes(spendPostTime)
 
-    let notes = await this.fetchAndFilterNotes(client, from, noteSize, numberOfNotes + 1)
+    let notes = await this.fetchSortedNotes(client, from, noteSize, numberOfNotes + 1)
 
     if (notes.length < 2) {
       this.log(`Your notes are already combined. You currently have ${notes.length} notes`)
