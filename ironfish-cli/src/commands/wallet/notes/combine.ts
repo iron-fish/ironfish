@@ -120,7 +120,7 @@ export class CombineNotesCommand extends IronfishCommand {
 
     let delta = 0
 
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 3; i++) {
       const txn1InMs = await this.measureTransactionPostTime(client, txn1Params, feeRates)
       const txn2InMs = await this.measureTransactionPostTime(client, txn2Params, feeRates)
 
@@ -129,7 +129,7 @@ export class CombineNotesCommand extends IronfishCommand {
 
     CliUx.ux.action.stop()
 
-    return Math.ceil(delta / 5)
+    return Math.ceil(delta / 3)
   }
 
   private async measureTransactionPostTime(
@@ -159,11 +159,13 @@ export class CombineNotesCommand extends IronfishCommand {
     client: RpcClient,
     account: string,
     noteSize: number,
-    pageSize: number,
+    notesToCombine: number,
   ) {
+    notesToCombine = Math.max(notesToCombine, 10) // adds a buffer in case the user selects a small number of notes and they get filtered out by noteSize
+
     const getNotesResponse = await client.wallet.getNotes({
       account,
-      pageSize,
+      pageSize: notesToCombine,
       filter: {
         assetId: Asset.nativeId().toString('hex'),
         spent: false,
@@ -194,8 +196,8 @@ export class CombineNotesCommand extends IronfishCommand {
     return notes
   }
 
-  async selectNumberOfNotes(spendPostTimeMs: number): Promise<number> {
-    const spendsPerMinute = Math.floor(60000 / spendPostTimeMs)
+  async selectNotesToCombine(spendPostTimeMs: number): Promise<number> {
+    const spendsPerMinute = Math.max(Math.floor(60000 / spendPostTimeMs), 1) // minimum of 1 note per minute in case the spentPostTime is very high
 
     const low = spendsPerMinute
     const medium = spendsPerMinute * 5
@@ -242,24 +244,24 @@ export class CombineNotesCommand extends IronfishCommand {
         required: true,
       })
 
-      const numberOfNotes = parseInt(result)
+      const notesToCombine = parseInt(result)
 
-      if (isNaN(numberOfNotes)) {
+      if (isNaN(notesToCombine)) {
         this.logger.error(`The number of notes must be a number`)
         continue
       }
 
-      if (numberOfNotes > high) {
+      if (notesToCombine > high) {
         this.logger.error(`The number of notes cannot be higher than the ${high}`)
         continue
       }
 
-      if (numberOfNotes < 2) {
+      if (notesToCombine < 2) {
         this.logger.error(`The number of notes cannot be lower than 2`)
         continue
       }
 
-      return numberOfNotes
+      return notesToCombine
     }
   }
 
@@ -296,16 +298,17 @@ export class CombineNotesCommand extends IronfishCommand {
 
     const spendPostTime = await this.getSpendPostTimeInMs(client, from, noteSize)
 
-    let numberOfNotes = await this.selectNumberOfNotes(spendPostTime)
+    let numberOfNotes = await this.selectNotesToCombine(spendPostTime)
 
-    let notes = await this.fetchNotes(client, from, noteSize, numberOfNotes + 1)
+    let notes = await this.fetchNotes(client, from, noteSize, numberOfNotes)
 
     // If the user doesn't have enough notes for their selection, we reduce the number of notes so that
     // the largest notes can be used for fees.
-    if (notes.length < numberOfNotes + 1) {
+    if (notes.length < numberOfNotes) {
       numberOfNotes = notes.length - 1
-      notes = notes.slice(0, numberOfNotes)
     }
+
+    notes = notes.slice(0, numberOfNotes)
 
     const amount = notes.reduce((acc, note) => acc + BigInt(note.value), 0n)
 
