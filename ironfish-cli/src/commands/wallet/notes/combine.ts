@@ -74,15 +74,15 @@ export class CombineNotesCommand extends IronfishCommand {
     account: string,
     noteSize: number,
   ): Promise<number> {
-    CliUx.ux.action.start('Calculating the number of notes to combine')
-
     const publicKey = (
       await client.wallet.getAccountPublicKey({
         account: account,
       })
     ).content.publicKey
 
-    const notes = await this.fetchSortedNotes(client, account, noteSize, 10)
+    const notes = await this.fetchNotes(client, account, noteSize, 10)
+
+    CliUx.ux.action.start('Calculating the number of notes to combine')
 
     const feeRates = await client.wallet.estimateFeeRates()
 
@@ -125,8 +125,6 @@ export class CombineNotesCommand extends IronfishCommand {
       const txn2InMs = await this.measureTransactionPostTime(client, txn2Params, feeRates)
 
       delta += txn2InMs - txn1InMs
-
-      this.log(`Delta ${i}: ${txn2InMs - txn1InMs}ms`)
     }
 
     CliUx.ux.action.stop()
@@ -157,12 +155,7 @@ export class CombineNotesCommand extends IronfishCommand {
     return BenchUtils.end(start)
   }
 
-  /**
-   * This function gets notes, filters them by note size, sorts them by value, and returns the notes from smallest to largest
-   * The sort is useful because the function calling this one will use the smallest notes first and the largest can be used
-   * for fees if not selected by the user to combine
-   */
-  private async fetchSortedNotes(
+  private async fetchNotes(
     client: RpcClient,
     account: string,
     noteSize: number,
@@ -177,9 +170,8 @@ export class CombineNotesCommand extends IronfishCommand {
       },
     })
 
-    const unfiltered = getNotesResponse.content.notes
-
-    const notes = unfiltered
+    // filtering notes by noteSize and sorting them by value in ascending order
+    const notes = getNotesResponse.content.notes
       .filter((note) => {
         if (!note.index) {
           return false
@@ -193,11 +185,11 @@ export class CombineNotesCommand extends IronfishCommand {
         return 1
       })
 
-    if (notes.length <= 2) {
-      this.error(
-        `You must have at least 3 notes to combine. You currently have ${notes.length} notes`,
-      )
+    if (notes.length < 2) {
+      this.log(`Your notes are already combined. You currently have ${notes.length} notes.`)
+      this.exit(0)
     }
+
     return notes
   }
 
@@ -305,12 +297,7 @@ export class CombineNotesCommand extends IronfishCommand {
 
     let numberOfNotes = await this.selectNumberOfNotes(spendPostTime)
 
-    let notes = await this.fetchSortedNotes(client, from, noteSize, numberOfNotes + 1)
-
-    if (notes.length < 2) {
-      this.log(`Your notes are already combined. You currently have ${notes.length} notes`)
-      this.exit(0)
-    }
+    let notes = await this.fetchNotes(client, from, noteSize, numberOfNotes + 1)
 
     // If the user doesn't have enough notes for their selection, we reduce the number of notes so that
     // the largest notes can be used for fees.
@@ -441,9 +428,18 @@ export class CombineNotesCommand extends IronfishCommand {
 
     const blockTimeForCalculation = Math.min(averageBlockTimeInMs, targetBlockTimeInMs)
 
-    const expiration = Math.ceil(
+    let expiration = Math.ceil(
       currentBlockSequence + (spendPostTimeInMs * numberOfNotes * 2) / blockTimeForCalculation, // * 2 added to account for the time it takes to calculate fees
     )
+
+    const config = await client.config.getConfig()
+
+    if (config.content.transactionExpirationDelta) {
+      expiration = Math.max(
+        currentBlockSequence + config.content.transactionExpirationDelta,
+        expiration,
+      )
+    }
 
     return expiration
   }
