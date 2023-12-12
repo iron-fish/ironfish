@@ -185,7 +185,8 @@ export class CombineNotesCommand extends IronfishCommand {
         return 1
       })
 
-    if (notes.length < 2) {
+    // must have at least three notes so that you can combine 2 and use another for fees
+    if (notes.length < 3) {
       this.log(`Your notes are already combined. You currently have ${notes.length} notes.`)
       this.exit(0)
     }
