@@ -129,12 +129,6 @@ describe('BlockHeader', () => {
     header2.noteCommitment = header1.noteCommitment
     expect(header1.equals(header2)).toBe(true)
 
-    // note size
-    header2.noteSize = 7
-    expect(header1.equals(header2)).toBe(false)
-    header2.noteSize = header1.noteSize
-    expect(header1.equals(header2)).toBe(true)
-
     // target
     header2.target = new Target(10)
     expect(header1.equals(header2)).toBe(false)

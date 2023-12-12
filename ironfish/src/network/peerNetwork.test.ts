@@ -685,10 +685,10 @@ describe('PeerNetwork', () => {
 
       await peerNetwork.peerManager.onMessage.emitAsync(peer, message)
 
+      getSizeSpy.mockRestore()
+
       expect(sendSpy.mock.calls[0][0]).toBeInstanceOf(GetBlocksResponse)
       expectGetBlocksResponseToMatch(sendSpy.mock.calls[0][0] as GetBlocksResponse, response)
-
-      getSizeSpy.mockRestore()
     })
 
     it('should respect the lookup limit', async () => {

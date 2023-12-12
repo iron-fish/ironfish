@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { blake3 } from '@napi-rs/blake-hash'
+import bufio from 'bufio'
 import { Assert } from '../assert'
 import { BlockHashSerdeInstance, GraffitiSerdeInstance } from '../serde'
 import PartialBlockHeaderSerde from '../serde/PartialHeaderSerde'
@@ -216,13 +217,9 @@ export class BlockHeader {
    * header and the global trees it models.
    */
   recomputeHash(): BlockHash {
-    const partialHeader = this.serializePartial()
+    const header = this.serialize()
 
-    const headerBytes = Buffer.alloc(partialHeader.byteLength + 8)
-    headerBytes.set(BigIntUtils.writeBigU64BE(this.randomness))
-    headerBytes.set(partialHeader, 8)
-
-    const hash = hashBlockHeader(headerBytes)
+    const hash = hashBlockHeader(header)
     this.hash = hash
     return hash
   }
@@ -237,6 +234,20 @@ export class BlockHeader {
    */
   verifyTarget(): boolean {
     return Target.meets(BigIntUtils.fromBytesBE(this.recomputeHash()), this.target)
+  }
+
+  serialize(): Buffer {
+    const bw = bufio.write(180)
+    bw.writeBigU64BE(this.randomness)
+    bw.writeU32(this.sequence)
+    bw.writeHash(this.previousBlockHash)
+    bw.writeHash(this.noteCommitment)
+    bw.writeHash(this.transactionCommitment)
+    bw.writeBigU256BE(this.target.asBigInt())
+    bw.writeU64(this.timestamp.getTime())
+    bw.writeBytes(this.graffiti)
+
+    return bw.render()
   }
 
   equals(other: BlockHeader): boolean {
