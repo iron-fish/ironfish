@@ -19,7 +19,7 @@ import inquirer from 'inquirer'
 import { IronfishCommand } from '../../../command'
 import { IronFlag, RemoteFlags } from '../../../flags'
 import { selectFee } from '../../../utils/fees'
-import { watchTransaction } from '../../../utils/transaction'
+import { displayTransactionSummary, watchTransaction } from '../../../utils/transaction'
 
 export class CombineNotesCommand extends IronfishCommand {
   static description = `Combine notes into a single note`
@@ -350,7 +350,7 @@ export class CombineNotesCommand extends IronfishCommand {
       raw = RawTransactionSerde.deserialize(bytes)
     }
 
-    this.renderTransactionSummary(raw, Asset.nativeId().toString('hex'), amount, from, to, memo)
+    displayTransactionSummary(raw, Asset.nativeId().toString('hex'), amount, from, to, memo)
 
     if (!(await CliUx.ux.confirm('Do you confirm (Y/N)?'))) {
       this.error('Transaction aborted.')
@@ -460,30 +460,5 @@ export class CombineNotesCommand extends IronfishCommand {
     const getCurrentBlock = await client.chain.getChainInfo()
     const currentBlockSequence = parseInt(getCurrentBlock.content.currentBlockIdentifier.index)
     return currentBlockSequence
-  }
-
-  renderTransactionSummary(
-    transaction: RawTransaction,
-    assetId: string,
-    amount: bigint,
-    from: string,
-    to: string,
-    memo: string,
-  ): void {
-    const amountString = CurrencyUtils.renderIron(amount, true, assetId)
-    const feeString = CurrencyUtils.renderIron(transaction.fee, true)
-
-    const summary = `\
-\nTRANSACTION DETAILS:
-From                 ${from}
-To                   ${to}
-Amount               ${amountString}
-Fee                  ${feeString}
-Memo                 ${memo}
-Outputs              ${transaction.outputs.length}
-Notes Combined       ${transaction.spends.length} (includes 1 or more notes for the fee)
-Expiration           ${transaction.expiration ? transaction.expiration.toString() : ''}
-`
-    this.log(summary)
   }
 }

@@ -16,7 +16,7 @@ import { HexFlag, IronFlag, RemoteFlags } from '../../flags'
 import { selectAsset } from '../../utils/asset'
 import { promptCurrency } from '../../utils/currency'
 import { selectFee } from '../../utils/fees'
-import { watchTransaction } from '../../utils/transaction'
+import { displayTransactionSummary, watchTransaction } from '../../utils/transaction'
 
 export class Send extends IronfishCommand {
   static description = `Send coins to another account`
@@ -95,33 +95,6 @@ export class Send extends IronfishCommand {
       description: 'The note hashes to include in the transaction',
       multiple: true,
     }),
-  }
-
-  renderTransactionSummary(
-    transaction: RawTransaction,
-    assetId: string,
-    amount: bigint,
-    from: string,
-    to: string,
-    memo: string,
-  ): void {
-    const amountString = CurrencyUtils.renderIron(amount, true, assetId)
-    const feeString = CurrencyUtils.renderIron(transaction.fee, true)
-
-    const summary = `\
-\nTRANSACTION DETAILS:
-From                 ${from}
-To                   ${to}
-Amount               ${amountString}
-Fee                  ${feeString}
-Memo                 ${memo}
-Outputs              ${transaction.outputs.length}
-Spends               ${transaction.spends.length}
-Expiration           ${transaction.expiration ? transaction.expiration.toString() : ''}
-Version              ${transaction.version}
-`
-
-    this.log(summary)
   }
 
   async start(): Promise<void> {
@@ -246,7 +219,7 @@ Version              ${transaction.version}
       this.exit(0)
     }
 
-    this.renderTransactionSummary(raw, assetId, amount, from, to, memo)
+    displayTransactionSummary(raw, assetId, amount, from, to, memo)
 
     if (!flags.confirm) {
       const confirmed = await CliUx.ux.confirm('Do you confirm (Y/N)?')
