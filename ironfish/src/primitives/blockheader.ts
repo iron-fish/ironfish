@@ -6,7 +6,6 @@ import { blake3 } from '@napi-rs/blake-hash'
 import bufio from 'bufio'
 import { Assert } from '../assert'
 import { BlockHashSerdeInstance, GraffitiSerdeInstance } from '../serde'
-import PartialBlockHeaderSerde from '../serde/PartialHeaderSerde'
 import { BigIntUtils } from '../utils/bigint'
 import { NoteEncryptedHash, SerializedNoteEncryptedHash } from './noteEncrypted'
 import { Target } from './target'
@@ -195,24 +194,6 @@ export class BlockHeader {
   }
 
   /**
-   * Construct a partial block header without the randomness and convert
-   * it to buffer.
-   *
-   * This is used for calculating the hash in miners and for verifying it.
-   */
-  serializePartial(): Buffer {
-    return PartialBlockHeaderSerde.serialize({
-      sequence: this.sequence,
-      previousBlockHash: this.previousBlockHash,
-      noteCommitment: this.noteCommitment,
-      transactionCommitment: this.transactionCommitment,
-      target: this.target,
-      timestamp: this.timestamp,
-      graffiti: this.graffiti,
-    })
-  }
-
-  /**
    * Hash all the values in the block header to get a commitment to the entire
    * header and the global trees it models.
    */
@@ -236,6 +217,9 @@ export class BlockHeader {
     return Target.meets(BigIntUtils.fromBytesBE(this.recomputeHash()), this.target)
   }
 
+  /**
+   * Serialize the block header into a buffer for hashing and mining
+   */
   serialize(): Buffer {
     const bw = bufio.write(180)
     bw.writeBigU64BE(this.randomness)
@@ -254,7 +238,7 @@ export class BlockHeader {
     return (
       this.noteSize === other.noteSize &&
       this.work === other.work &&
-      this.recomputeHash().equals(other.recomputeHash())
+      this.serialize().equals(other.serialize())
     )
   }
 }
