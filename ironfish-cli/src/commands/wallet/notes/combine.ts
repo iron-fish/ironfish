@@ -197,7 +197,7 @@ export class CombineNotesCommand extends IronfishCommand {
   }
 
   private async selectNotesToCombine(spendPostTimeMs: number): Promise<number> {
-    const spendsPerMinute = Math.max(Math.floor(60000 / spendPostTimeMs), 1) // minimum of 1 note per minute in case the spentPostTime is very high
+    const spendsPerMinute = Math.max(Math.floor(60000 / spendPostTimeMs), 2) // minimum of 2 notes per minute in case the spentPostTime is very high
 
     const low = spendsPerMinute
     const medium = spendsPerMinute * 5
