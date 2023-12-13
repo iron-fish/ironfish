@@ -16,6 +16,7 @@ export type GetAccountStatusResponse = {
     headHash: string
     headInChain?: boolean
     sequence: string | number
+    viewOnly: boolean
   }[]
 }
 
@@ -34,6 +35,7 @@ export const GetAccountStatusResponseSchema: yup.ObjectSchema<GetAccountStatusRe
             headHash: yup.string().defined(),
             headInChain: yup.boolean().optional(),
             sequence: yup.string().defined(),
+            viewOnly: yup.boolean().defined(),
           })
           .defined(),
       )
@@ -67,6 +69,7 @@ routes.register<typeof GetAccountStatusRequestSchema, GetAccountStatusResponse>(
         headHash: head?.hash.toString('hex') || 'NULL',
         headInChain,
         sequence: head?.sequence || 'NULL',
+        viewOnly: !account.isSpendingAccount(),
       })
     }
 
