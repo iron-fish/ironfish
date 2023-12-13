@@ -33,6 +33,9 @@ export class StatusCommand extends IronfishCommand {
         id: {
           header: 'Account ID',
         },
+        viewOnly: {
+          header: 'View Only',
+        },
         headHash: {
           header: 'Head Hash',
         },
