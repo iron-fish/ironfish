@@ -1128,4 +1128,21 @@ describe('Wallet', () => {
       })
     })
   })
+
+  describe('frost', () => {
+    it('can do a multisig transaction', async () => {
+      const { node } = await nodeTest.createSetup()
+      const account = await useAccountFixture(node.wallet)
+
+      // Split up ask
+
+      // const firstSigner = await node.wallet.createAccount(
+      //   'first',
+      //   {},
+      //   {
+      //     authorizingKeyShard: 
+      //   }
+      // )
+    })
+  })
 })

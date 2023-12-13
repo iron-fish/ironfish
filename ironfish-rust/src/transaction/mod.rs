@@ -1127,7 +1127,7 @@ pub fn batch_verify_transactions<'a>(
     )
 }
 
-fn split_secret(
+pub fn split_secret(
     config: &SecretShareConfig,
     identifiers: IdentifierList,
     rng: &mut ThreadRng,

@@ -167,3 +167,11 @@ impl ThreadPoolHandler {
 pub fn is_valid_public_address(hex_address: String) -> bool {
     PublicAddress::from_hex(&hex_address).is_ok()
 }
+
+/*
+// Split the spend authorizing key into shares for the signers
+let mut rng = thread_rng();
+let (key_packages, pubkeys) =
+    split_secret(&secret_config, IdentifierList::Default, &mut rng).unwrap(); */
+#[napi]
+pub fn split_secret(min_signers: u16, max_signers: u16, secret: Vec<u8>) -> void {}

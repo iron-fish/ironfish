@@ -1437,6 +1437,15 @@ export class Wallet {
       setCreatedAt: true,
       setDefault: false,
     },
+    multiSigOptions?: {
+      viewKey: string,
+      incomingViewKey: string,
+      outgoingViewKey: string,
+      publicAddress: string,
+      authorizingKeyShard: string,
+      identifier: string,
+      proofGenerationKey: string,
+    },
   ): Promise<Account> {
     if (this.getAccountByName(name)) {
       throw new Error(`Account already exists with the name ${name}`)
@@ -1457,11 +1466,11 @@ export class Wallet {
       version: ACCOUNT_SCHEMA_VERSION,
       id: uuid(),
       name,
-      incomingViewKey: key.incomingViewKey,
-      outgoingViewKey: key.outgoingViewKey,
-      publicAddress: key.publicAddress,
+      incomingViewKey: multiSigOptions?.incomingViewKey ?? key.incomingViewKey,
+      outgoingViewKey: multiSigOptions?.outgoingViewKey ?? key.outgoingViewKey,
+      publicAddress: multiSigOptions?.publicAddress ?? key.publicAddress,
       spendingKey: key.spendingKey,
-      viewKey: key.viewKey,
+      viewKey: multiSigOptions?.viewKey ?? key.viewKey,
       createdAt,
       walletDb: this.walletDb,
     })

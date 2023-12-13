@@ -48,6 +48,15 @@ export class Account {
   readonly prefix: Buffer
   readonly prefixRange: DatabaseKeyRange
 
+  // multisig fields
+  // - private key
+  // - ask
+  // - participant identifier
+  // - proof generation key
+  readonly authorizingKeyShard?: string
+  readonly identifier?: string
+  readonly proofGenerationKey?: string
+
   constructor({
     id,
     name,

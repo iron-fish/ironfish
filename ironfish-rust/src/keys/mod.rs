@@ -4,6 +4,7 @@
 
 use crate::errors::{IronfishError, IronfishErrorKind};
 use crate::serializing::{bytes_to_hex, hex_to_bytes, read_scalar};
+use crate::transaction::{split_secret, SecretShareConfig};
 
 pub use bip39::Language;
 use bip39::Mnemonic;
@@ -16,7 +17,10 @@ use ironfish_zkp::constants::{
 use ironfish_zkp::ProofGenerationKey;
 use jubjub::SubgroupPoint;
 use rand::prelude::*;
+use reddsa::frost::redjubjub::keys::{IdentifierList, KeyPackage};
+use reddsa::frost::redjubjub::{Identifier, JubjubBlake2b512};
 
+use std::collections::HashMap;
 use std::io;
 
 mod ephemeral;
@@ -270,4 +274,32 @@ impl SaplingKey {
         let scalar = read_scalar(&hash_result[..])?;
         Ok(scalar)
     }
+}
+
+pub fn split_spender_key(
+    coordinator_sapling_key: SaplingKey,
+    min_signers: u16,
+    max_signers: u16,
+    secret: Vec<u8>,
+) -> (ProofGenerationKey, HashMap<Identifier, KeyPackage>) {
+    let secret_config = SecretShareConfig {
+        min_signers,
+        max_signers,
+        secret,
+    };
+
+    let mut rng = thread_rng();
+    let (key_packages, pubkeys) =
+        split_secret(&secret_config, IdentifierList::Default, &mut rng).unwrap();
+
+    let authorizing_key_bytes = pubkeys.verifying_key().serialize();
+    let authorizing_key = Option::from(SubgroupPoint::from_bytes(&authorizing_key_bytes))
+        .expect("should be able to deserialize the verifying key into a SubgroupPoint");
+
+    let proof_generation_key = ProofGenerationKey {
+        ak: authorizing_key,
+        nsk: coordinator_sapling_key.sapling_proof_generation_key().nsk,
+    };
+
+    (proof_generation_key, key_packages)
 }
