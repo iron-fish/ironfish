@@ -18,7 +18,7 @@ use crate::{
         TransactionVersion, TRANSACTION_EXPIRATION_SIZE, TRANSACTION_FEE_SIZE,
         TRANSACTION_SIGNATURE_SIZE,
     },
-    ViewKey,
+    IncomingViewKey, Sapling, ViewKey,
 };
 
 use frost::keys::IdentifierList;
@@ -33,6 +33,7 @@ use ironfish_zkp::{
     },
     proofs::{MintAsset, Output, Spend},
     redjubjub::{self, Signature},
+    ProofGenerationKey,
 };
 use rand::thread_rng;
 
@@ -229,15 +230,24 @@ fn test_transaction_simple_frost() {
     let sk_2 = SaplingKey::generate_key();
 
     let authorizing_key_bytes = pubkeys.verifying_key().serialize();
-    let authorizing_key = Option::from(SubgroupPoint::from_bytes(&authorizing_key_bytes)).expect(
-        "should be able to deserialize the verifying key into a SubgroupPoint",
-    );
+    let authorizing_key = Option::from(SubgroupPoint::from_bytes(&authorizing_key_bytes))
+        .expect("should be able to deserialize the verifying key into a SubgroupPoint");
+
+    let proof_generation_key = ProofGenerationKey {
+        ak: authorizing_key,
+        nsk: sk_2.sapling_proof_generation_key().nsk,
+    };
+
     let nullifier_deriving_key =
         *PROOF_GENERATION_KEY_GENERATOR * sk_2.sapling_proof_generation_key().nsk;
 
     let view_key = ViewKey {
         authorizing_key,
         nullifier_deriving_key,
+    };
+
+    let incoming_viewing_key = IncomingViewKey {
+        view_key: SaplingKey::hash_viewing_key(&authorizing_key, &nullifier_deriving_key).unwrap(),
     };
 
     assert_eq!(
@@ -247,10 +257,9 @@ fn test_transaction_simple_frost() {
 
     let receiver_key = SaplingKey::generate_key();
     let sender_key = SaplingKey::generate_key();
-    let spender_key_clone = spender_key.clone();
 
     let in_note = Note::new(
-        spender_key.public_address(),
+        incoming_viewing_key.public_address(),
         42,
         "",
         NATIVE_ASSET,
@@ -261,7 +270,7 @@ fn test_transaction_simple_frost() {
         40,
         "",
         NATIVE_ASSET,
-        spender_key.public_address(),
+        incoming_viewing_key.public_address(),
     );
     let witness = make_fake_witness(&in_note);
 
@@ -271,33 +280,15 @@ fn test_transaction_simple_frost() {
     transaction.add_output(out_note).unwrap();
     assert_eq!(transaction.outputs.len(), 1);
 
-    let public_transaction = transaction
-        .post(spender_key, None, 1)
-        .expect("should be able to post transaction");
-    verify_transaction(&public_transaction).expect("Should be able to verify transaction");
-    assert_eq!(public_transaction.fee(), 1);
-
-    // A change note was created
-    assert_eq!(public_transaction.outputs.len(), 2);
-    assert_eq!(public_transaction.spends.len(), 1);
-    assert_eq!(public_transaction.mints.len(), 0);
-    assert_eq!(public_transaction.burns.len(), 0);
-
-    let received_note = public_transaction.outputs[1]
-        .merkle_note()
-        .decrypt_note_for_owner(&spender_key_clone.incoming_viewing_key)
-        .unwrap();
-    assert_eq!(received_note.sender, spender_key_clone.public_address());
-
     let frost_transaction = transaction
         .post_frost(
             &key_packages,
             pubkeys,
-            spender_key_clone.sapling_proof_generation_key(),
+            proof_generation_key,
             view_key,
-            spender_key_clone.outgoing_view_key().clone(),
-            spender_key_clone.public_address(),
-            Some(spender_key_clone.public_address()), 
+            sk_2.outgoing_view_key().clone(),
+            incoming_viewing_key.public_address(),
+            Some(incoming_viewing_key.public_address()),
             1,
         )
         .expect("should be able to post transaction");
