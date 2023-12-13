@@ -22,7 +22,7 @@ use crate::{
 };
 
 use frost::keys::IdentifierList;
-use group::cofactor::CofactorGroup;
+use group::GroupEncoding;
 use jubjub::SubgroupPoint;
 use reddsa::frost::redjubjub as frost;
 
@@ -228,7 +228,10 @@ fn test_transaction_simple_frost() {
 
     let sk_2 = SaplingKey::generate_key();
 
-    let authorizing_key = pubkeys.verifying_key().to_element().mul_by_cofactor();
+    let authorizing_key_bytes = pubkeys.verifying_key().serialize();
+    let authorizing_key = Option::from(SubgroupPoint::from_bytes(&authorizing_key_bytes)).expect(
+        "should be able to deserialize the verifying key into a SubgroupPoint",
+    );
     let nullifier_deriving_key =
         *PROOF_GENERATION_KEY_GENERATOR * sk_2.sapling_proof_generation_key().nsk;
 
@@ -236,6 +239,11 @@ fn test_transaction_simple_frost() {
         authorizing_key,
         nullifier_deriving_key,
     };
+
+    assert_eq!(
+        view_key.authorizing_key,
+        spender_key.view_key.authorizing_key
+    );
 
     let receiver_key = SaplingKey::generate_key();
     let sender_key = SaplingKey::generate_key();
@@ -280,6 +288,19 @@ fn test_transaction_simple_frost() {
         .decrypt_note_for_owner(&spender_key_clone.incoming_viewing_key)
         .unwrap();
     assert_eq!(received_note.sender, spender_key_clone.public_address());
+
+    let frost_transaction = transaction
+        .post_frost(
+            &key_packages,
+            pubkeys,
+            spender_key_clone.sapling_proof_generation_key(),
+            view_key,
+            spender_key_clone.outgoing_view_key().clone(),
+            spender_key_clone.public_address(),
+            Some(spender_key_clone.public_address()), 
+            1,
+        )
+        .expect("should be able to post transaction");
 }
 
 #[test]
