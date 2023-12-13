@@ -2,9 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::HashMap;
 use std::fmt::Display;
+use std::hash::Hash;
 
+use ironfish::keys::split_spender_key;
 use ironfish::keys::Language;
+use ironfish::serializing::bytes_to_hex;
+use ironfish::util::proof_generation_key_to_bytes;
+use ironfish::util::str_to_array;
 use ironfish::PublicAddress;
 use ironfish::SaplingKey;
 use napi::bindgen_prelude::*;
@@ -168,10 +174,42 @@ pub fn is_valid_public_address(hex_address: String) -> bool {
     PublicAddress::from_hex(&hex_address).is_ok()
 }
 
+#[napi(object)]
+pub struct TrustedDealerKeyPackages {
+    pub proof_generation_key: String,
+    pub signing_shares: HashMap<String, String>,
+}
+
 /*
 // Split the spend authorizing key into shares for the signers
 let mut rng = thread_rng();
 let (key_packages, pubkeys) =
     split_secret(&secret_config, IdentifierList::Default, &mut rng).unwrap(); */
+/*
+authorizingKeyShard: string,
+identifier: string,
+proofGenerationKey: string, */
 #[napi]
-pub fn split_secret(min_signers: u16, max_signers: u16, secret: Vec<u8>) -> void {}
+pub fn split_secret(
+    coordinator_sapling_key: String,
+    min_signers: u16,
+    max_signers: u16,
+    secret: Vec<u8>,
+) -> (TrustedDealerKeyPackages) {
+    let key = SaplingKey::new(str_to_array(&coordinator_sapling_key)).unwrap();
+    let (proof_generation_key, key_packages) =
+        split_spender_key(key, min_signers, max_signers, secret);
+
+    let mut signing_shares = HashMap::new();
+    for (k, v) in key_packages.iter() {
+        signing_shares.insert(
+            bytes_to_hex(&k.serialize()),
+            bytes_to_hex(&v.signing_share().serialize()),
+        );
+    }
+
+    TrustedDealerKeyPackages {
+        proof_generation_key: bytes_to_hex(&proof_generation_key_to_bytes(proof_generation_key)),
+        signing_shares,
+    }
+}
