@@ -132,6 +132,7 @@ import type {
   UseAccountResponse,
 } from '../routes'
 import { ApiNamespace } from '../routes/namespaces'
+import { GetAccountStatusRequest, GetAccountStatusResponse } from '../routes/wallet/getAccountStatus'
 
 export abstract class RpcClient {
   abstract request<TEnd = unknown, TStream = unknown>(
@@ -279,6 +280,15 @@ export abstract class RpcClient {
         `${ApiNamespace.wallet}/getAccountNotesStream`,
         params,
       )
+    },
+
+    getAccountStatus: (
+      params: GetAccountStatusRequest,
+    ): Promise<RpcResponseEnded<GetAccountStatusResponse>> => {
+      return this.request<GetAccountStatusResponse>(
+        `${ApiNamespace.wallet}/getAccountStatus`,
+        params,
+      ).waitForEnd()
     },
 
     getAccountsStatus: (
