@@ -7,9 +7,9 @@ import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import { AssertHasRpcContext } from '../rpcContext'
 
-export type GetAccountStatusRequest = { account?: string }
+export type GetAccountsStatusRequest = Record<string, never> | undefined
 
-export type GetAccountStatusResponse = {
+export type GetAccountsStatusResponse = {
   accounts: {
     name: string
     id: string
@@ -20,11 +20,12 @@ export type GetAccountStatusResponse = {
   }[]
 }
 
-export const GetAccountStatusRequestSchema: yup.ObjectSchema<GetAccountStatusRequest> = yup
-  .object({})
-  .defined()
+export const GetAccountsStatusRequestSchema: yup.ObjectSchema<GetAccountsStatusRequest> = yup
+  .object<Record<string, never>>({})
+  .notRequired()
+  .default({})
 
-export const GetAccountStatusResponseSchema: yup.ObjectSchema<GetAccountStatusResponse> = yup
+export const GetAccountsStatusResponseSchema: yup.ObjectSchema<GetAccountsStatusResponse> = yup
   .object({
     accounts: yup
       .array(
@@ -43,9 +44,9 @@ export const GetAccountStatusResponseSchema: yup.ObjectSchema<GetAccountStatusRe
   })
   .defined()
 
-routes.register<typeof GetAccountStatusRequestSchema, GetAccountStatusResponse>(
+routes.register<typeof GetAccountsStatusRequestSchema, GetAccountsStatusResponse>(
   `${ApiNamespace.wallet}/getAccountsStatus`,
-  GetAccountStatusRequestSchema,
+  GetAccountsStatusRequestSchema,
   async (request, node): Promise<void> => {
     const heads = new Map<string, HeadValue | null>()
     AssertHasRpcContext(request, node, 'wallet')
@@ -54,7 +55,7 @@ routes.register<typeof GetAccountStatusRequestSchema, GetAccountStatusResponse>(
       heads.set(accountId, head)
     }
 
-    const accountsInfo: GetAccountStatusResponse['accounts'] = []
+    const accountsInfo: GetAccountsStatusResponse['accounts'] = []
     for (const account of node.wallet.listAccounts()) {
       const head = heads.get(account.id)
 

@@ -6,7 +6,7 @@ import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
 export class StatusCommand extends IronfishCommand {
-  static description = `Get status of an account`
+  static description = `Get status of all accounts`
 
   static flags = {
     ...RemoteFlags,
@@ -14,14 +14,11 @@ export class StatusCommand extends IronfishCommand {
   }
 
   async start(): Promise<void> {
-    const { args, flags } = await this.parse(StatusCommand)
-    const account = args.account as string | undefined
+    const { flags } = await this.parse(StatusCommand)
 
     const client = await this.sdk.connectRpc()
 
-    const response = await client.wallet.getAccountsStatus({
-      account: account,
-    })
+    const response = await client.wallet.getAccountsStatus()
 
     CliUx.ux.table(
       response.content.accounts,
