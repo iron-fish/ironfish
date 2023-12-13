@@ -132,7 +132,10 @@ import type {
   UseAccountResponse,
 } from '../routes'
 import { ApiNamespace } from '../routes/namespaces'
-import { GetAccountStatusRequest, GetAccountStatusResponse } from '../routes/wallet/getAccountStatus'
+import {
+  GetAccountStatusRequest,
+  GetAccountStatusResponse,
+} from '../routes/wallet/getAccountStatus'
 
 export abstract class RpcClient {
   abstract request<TEnd = unknown, TStream = unknown>(
