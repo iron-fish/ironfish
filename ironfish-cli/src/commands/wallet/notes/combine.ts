@@ -52,7 +52,7 @@ export class CombineNotesCommand extends IronfishCommand {
     }),
   }
 
-  async getSpendPostTimeInMs(
+  private async getSpendPostTimeInMs(
     client: RpcClient,
     account: string,
     noteSize: number,
@@ -69,7 +69,7 @@ export class CombineNotesCommand extends IronfishCommand {
     return spendPostTime
   }
 
-  async benchmarkSpendPostTime(
+  private async benchmarkSpendPostTime(
     client: RpcClient,
     account: string,
     noteSize: number,
@@ -196,7 +196,7 @@ export class CombineNotesCommand extends IronfishCommand {
     return notes
   }
 
-  async selectNotesToCombine(spendPostTimeMs: number): Promise<number> {
+  private async selectNotesToCombine(spendPostTimeMs: number): Promise<number> {
     const spendsPerMinute = Math.max(Math.floor(60000 / spendPostTimeMs), 1) // minimum of 1 note per minute in case the spentPostTime is very high
 
     const low = spendsPerMinute
@@ -265,6 +265,83 @@ export class CombineNotesCommand extends IronfishCommand {
     }
   }
 
+  private async calculateExpiration(
+    client: RpcClient,
+    spendPostTimeInMs: number,
+    numberOfNotes: number,
+  ) {
+    const currentBlockSequence = await this.getCurrentBlockSequence(client)
+
+    let timeLastFiveBlocksInMs = 0
+
+    let currentBlockTime = new Date(
+      (
+        await client.chain.getBlock({
+          sequence: currentBlockSequence,
+        })
+      ).content.block.timestamp,
+    )
+
+    for (let i = 0; i < 5; i++) {
+      const block = new Date(
+        (
+          await client.chain.getBlock({
+            sequence: currentBlockSequence - i,
+          })
+        ).content.block.timestamp,
+      )
+
+      timeLastFiveBlocksInMs += currentBlockTime.getTime() - block.getTime()
+
+      currentBlockTime = block
+    }
+
+    const averageBlockTimeInMs = timeLastFiveBlocksInMs / 5
+
+    const targetBlockTimeInMs =
+      (await client.chain.getConsensusParameters()).content.targetBlockTimeInSeconds * 1000
+
+    const blockTimeForCalculation = Math.min(averageBlockTimeInMs, targetBlockTimeInMs)
+
+    let expiration = Math.ceil(
+      currentBlockSequence + (spendPostTimeInMs * numberOfNotes * 2) / blockTimeForCalculation, // * 2 added to account for the time it takes to calculate fees
+    )
+
+    const config = await client.config.getConfig()
+
+    if (config.content.transactionExpirationDelta) {
+      expiration = Math.max(
+        currentBlockSequence + config.content.transactionExpirationDelta,
+        expiration,
+      )
+    }
+
+    return expiration
+  }
+
+  private async getNoteSize(client: RpcClient) {
+    const getCurrentBlock = await client.chain.getChainInfo()
+
+    const currentBlockSequence = parseInt(getCurrentBlock.content.currentBlockIdentifier.index)
+
+    const getBlockResponse = await client.chain.getBlock({
+      sequence: currentBlockSequence,
+    })
+
+    Assert.isNotNull(getBlockResponse.content.block.noteSize)
+
+    const config = await client.config.getConfig()
+
+    // Adding a buffer to avoid a mismatch between confirmations used to load notes and confirmations used when creating witnesses to spend them
+    return getBlockResponse.content.block.noteSize - (config.content.confirmations || 2)
+  }
+
+  private async getCurrentBlockSequence(client: RpcClient) {
+    const getCurrentBlock = await client.chain.getChainInfo()
+    const currentBlockSequence = parseInt(getCurrentBlock.content.currentBlockIdentifier.index)
+    return currentBlockSequence
+  }
+
   async start(): Promise<void> {
     const { flags } = await this.parse(CombineNotesCommand)
 
@@ -303,7 +380,7 @@ export class CombineNotesCommand extends IronfishCommand {
     let notes = await this.fetchNotes(client, from, noteSize, numberOfNotes)
 
     // If the user doesn't have enough notes for their selection, we reduce the number of notes so that
-    // the largest notes can be used for fees.
+    // the largest note can be used for fees.
     if (notes.length < numberOfNotes) {
       numberOfNotes = notes.length - 1
     }
@@ -393,82 +470,5 @@ export class CombineNotesCommand extends IronfishCommand {
         hash: transaction.hash().toString('hex'),
       })
     }
-  }
-
-  private async calculateExpiration(
-    client: RpcClient,
-    spendPostTimeInMs: number,
-    numberOfNotes: number,
-  ) {
-    const currentBlockSequence = await this.getCurrentBlockSequence(client)
-
-    let timeLastFiveBlocksInMs = 0
-
-    let currentBlockTime = new Date(
-      (
-        await client.chain.getBlock({
-          sequence: currentBlockSequence,
-        })
-      ).content.block.timestamp,
-    )
-
-    for (let i = 0; i < 5; i++) {
-      const block = new Date(
-        (
-          await client.chain.getBlock({
-            sequence: currentBlockSequence - i,
-          })
-        ).content.block.timestamp,
-      )
-
-      timeLastFiveBlocksInMs += currentBlockTime.getTime() - block.getTime()
-
-      currentBlockTime = block
-    }
-
-    const averageBlockTimeInMs = timeLastFiveBlocksInMs / 5
-
-    const targetBlockTimeInMs =
-      (await client.chain.getConsensusParameters()).content.targetBlockTimeInSeconds * 1000
-
-    const blockTimeForCalculation = Math.min(averageBlockTimeInMs, targetBlockTimeInMs)
-
-    let expiration = Math.ceil(
-      currentBlockSequence + (spendPostTimeInMs * numberOfNotes * 2) / blockTimeForCalculation, // * 2 added to account for the time it takes to calculate fees
-    )
-
-    const config = await client.config.getConfig()
-
-    if (config.content.transactionExpirationDelta) {
-      expiration = Math.max(
-        currentBlockSequence + config.content.transactionExpirationDelta,
-        expiration,
-      )
-    }
-
-    return expiration
-  }
-
-  private async getNoteSize(client: RpcClient) {
-    const getCurrentBlock = await client.chain.getChainInfo()
-
-    const currentBlockSequence = parseInt(getCurrentBlock.content.currentBlockIdentifier.index)
-
-    const getBlockResponse = await client.chain.getBlock({
-      sequence: currentBlockSequence,
-    })
-
-    Assert.isNotNull(getBlockResponse.content.block.noteSize)
-
-    const config = await client.config.getConfig()
-
-    // Adding a buffer to avoid a mismatch between confirmations used to load notes and confirmations used when creating witnesses to spend them
-    return getBlockResponse.content.block.noteSize - (config.content.confirmations || 2)
-  }
-
-  private async getCurrentBlockSequence(client: RpcClient) {
-    const getCurrentBlock = await client.chain.getChainInfo()
-    const currentBlockSequence = parseInt(getCurrentBlock.content.currentBlockIdentifier.index)
-    return currentBlockSequence
   }
 }
