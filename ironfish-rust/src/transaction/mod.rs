@@ -17,6 +17,8 @@ use frost::Error;
 use frost::Identifier;
 use frost::SigningKey;
 use frost::SigningPackage;
+use frost_rerandomized::frost_core::frost::keys::split;
+use ironfish_zkp::ProofGenerationKey;
 use rand::rngs::ThreadRng;
 use reddsa::frost::redjubjub as frost;
 use reddsa::frost::redjubjub::aggregate;
@@ -30,6 +32,8 @@ use outputs::OutputBuilder;
 use spends::{SpendBuilder, UnsignedSpendDescription};
 use value_balances::ValueBalances;
 
+use crate::OutgoingViewKey;
+use crate::ViewKey;
 use crate::{
     assets::{
         asset::Asset,
@@ -256,6 +260,58 @@ impl ProposedTransaction {
         self._partial_post(spender_key)
     }
 
+    pub fn post_frost(
+        &mut self,
+        key_packages: &HashMap<Identifier, KeyPackage>,
+        pubkeys: PublicKeyPackage,
+        proof_generation_key: ProofGenerationKey,
+        view_key: ViewKey,
+        outgoing_view_key: OutgoingViewKey,
+        public_address: PublicAddress,
+        change_goes_to: Option<PublicAddress>,
+        intended_transaction_fee: u64,
+    ) -> Result<Transaction, IronfishError> {
+        let mut change_notes = vec![];
+
+        for (asset_id, value) in self.value_balances.iter() {
+            let is_native_asset = asset_id == &NATIVE_ASSET;
+
+            let change_amount = match is_native_asset {
+                true => *value - i64::try_from(intended_transaction_fee)?,
+                false => *value,
+            };
+
+            if change_amount < 0 {
+                return Err(IronfishError::new(IronfishErrorKind::InvalidBalance));
+            }
+            if change_amount > 0 {
+                let change_address = change_goes_to.unwrap_or_else(|| public_address);
+                let change_note = Note::new(
+                    change_address,
+                    change_amount as u64, // we checked it was positive
+                    "",
+                    *asset_id,
+                    public_address,
+                );
+
+                change_notes.push(change_note);
+            }
+        }
+
+        for change_note in change_notes {
+            self.add_output(change_note)?;
+        }
+
+        self._partial_post_frost(
+            key_packages,
+            pubkeys,
+            proof_generation_key,
+            view_key,
+            outgoing_view_key,
+            public_address,
+        )
+    }
+
     /// Special case for posting a miners fee transaction. Miner fee transactions
     /// are unique in that they generate currency. They do not have any spends
     /// or change and therefore have a negative transaction fee. In normal use,
@@ -299,59 +355,6 @@ impl ProposedTransaction {
         self.expiration = sequence;
     }
 
-    pub fn data_to_sign(&self) -> Result<[u8; 32], IronfishError> {
-        // Generate randomized public key
-
-        // The public key after randomization has been applied. This is used
-        // during signature verification. Referred to as `rk` in the literature
-        // Calculated from the authorizing key and the public_key_randomness.
-        let randomized_public_key =
-            redjubjub::PublicKey(self.spender_key.view_key.authorizing_key.into())
-                .randomize(self.public_key_randomness, *SPENDING_KEY_GENERATOR);
-
-        // Build descriptions
-        let mut unsigned_spends = Vec::with_capacity(self.spends.len());
-        for spend in &self.spends {
-            unsigned_spends.push(spend.build(
-                &self.spender_key,
-                &self.public_key_randomness,
-                &randomized_public_key,
-            )?);
-        }
-
-        let mut output_descriptions = Vec::with_capacity(self.outputs.len());
-        for output in &self.outputs {
-            output_descriptions.push(output.build(
-                &self.spender_key,
-                &self.public_key_randomness,
-                &randomized_public_key,
-            )?);
-        }
-
-        let mut unsigned_mints = Vec::with_capacity(self.mints.len());
-        for mint in &self.mints {
-            unsigned_mints.push(mint.build(
-                &self.spender_key,
-                &self.public_key_randomness,
-                &randomized_public_key,
-            )?);
-        }
-
-        let mut burn_descriptions = Vec::with_capacity(self.burns.len());
-        for burn in &self.burns {
-            burn_descriptions.push(burn.build());
-        }
-
-        // Create the transaction signature hash
-        let data_to_sign = self.transaction_signature_hash(
-            &unsigned_spends,
-            &output_descriptions,
-            &unsigned_mints,
-            &burn_descriptions,
-        )?;
-        Ok(data_to_sign)
-    }
-
     // Post transaction without much validation.
     fn _partial_post(&self, spender_key: SaplingKey) -> Result<Transaction, IronfishError> {
         // Generate randomized public key
@@ -368,7 +371,8 @@ impl ProposedTransaction {
         let mut unsigned_spends = Vec::with_capacity(self.spends.len());
         for spend in &self.spends {
             unsigned_spends.push(spend.build(
-                &spender_key,
+                &spender_key.sapling_proof_generation_key(),
+                &spender_key.view_key(),
                 &public_key_randomness,
                 &randomized_public_key,
             )?);
@@ -377,7 +381,8 @@ impl ProposedTransaction {
         let mut output_descriptions = Vec::with_capacity(self.outputs.len());
         for output in &self.outputs {
             output_descriptions.push(output.build(
-                &spender_key,
+                &spender_key.sapling_proof_generation_key(),
+                &spender_key.outgoing_view_key(),
                 &public_key_randomness,
                 &randomized_public_key,
             )?);
@@ -386,7 +391,8 @@ impl ProposedTransaction {
         let mut unsigned_mints = Vec::with_capacity(self.mints.len());
         for mint in &self.mints {
             unsigned_mints.push(mint.build(
-                &spender_key,
+                &spender_key.sapling_proof_generation_key(),
+                spender_key.public_address(),
                 &public_key_randomness,
                 &randomized_public_key,
             )?);
@@ -441,30 +447,24 @@ impl ProposedTransaction {
         })
     }
 
-    fn _partial_post_frost(&self) -> Result<Transaction, IronfishError> {
-        // This would be a spending key that owns an asset
-        let ask = self.spender_key.spend_authorizing_key();
+    fn _partial_post_frost(
+        &self,
+        key_packages: &HashMap<Identifier, KeyPackage>,
+        pubkeys: PublicKeyPackage,
+        proof_generation_key: ProofGenerationKey,
+        view_key: ViewKey,
+        outgoing_view_key: OutgoingViewKey,
+        public_address: PublicAddress,
+    ) -> Result<Transaction, IronfishError> {
+        let public_key_randomness = jubjub::Fr::random(thread_rng());
 
-        // Configure how many signatures are needed
-        let secret = ask.to_bytes().to_vec();
-        let secret_config = SecretShareConfig {
-            min_signers: 2,
-            max_signers: 3,
-            secret,
-        };
+        let min_signers = 2;
 
         // Split the spend authorizing key into shares for the signers
         let mut rng = thread_rng();
-        let identifiers = [
-            Identifier::derive(&[b'1']).unwrap(),
-            Identifier::derive(&[b'2']).unwrap(),
-            Identifier::derive(&[b'3']).unwrap(),
-        ];
-        let (key_packages, pubkeys) =
-            generate_secret_shares(&secret_config, &identifiers, &mut rng).unwrap();
 
         // Save the nonces and get commitments to aggregate by the coordinator
-        let (nonces, commitments) = round_one(secret_config.min_signers, &mut rng, &key_packages);
+        let (nonces, commitments) = round_one(min_signers, &mut rng, &key_packages);
 
         // Generate randomized public key
 
@@ -473,14 +473,15 @@ impl ProposedTransaction {
         // Calculated from the authorizing key and the public_key_randomness.
         let randomized_public_key =
             redjubjub::PublicKey::read(pubkeys.verifying_key().serialize().as_ref())?
-                .randomize(self.public_key_randomness, *SPENDING_KEY_GENERATOR);
+                .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);
 
         // Build descriptions
         let mut unsigned_spends = Vec::with_capacity(self.spends.len());
         for spend in &self.spends {
             unsigned_spends.push(spend.build(
-                &self.spender_key,
-                &self.public_key_randomness,
+                &proof_generation_key,
+                &view_key,
+                &public_key_randomness,
                 &randomized_public_key,
             )?);
         }
@@ -488,8 +489,9 @@ impl ProposedTransaction {
         let mut output_descriptions = Vec::with_capacity(self.outputs.len());
         for output in &self.outputs {
             output_descriptions.push(output.build(
-                &self.spender_key,
-                &self.public_key_randomness,
+                &proof_generation_key,
+                &outgoing_view_key,
+                &public_key_randomness,
                 &randomized_public_key,
             )?);
         }
@@ -497,8 +499,9 @@ impl ProposedTransaction {
         let mut unsigned_mints = Vec::with_capacity(self.mints.len());
         for mint in &self.mints {
             unsigned_mints.push(mint.build(
-                &self.spender_key,
-                &self.public_key_randomness,
+                &proof_generation_key,
+                public_address,
+                &public_key_randomness,
                 &randomized_public_key,
             )?);
         }
@@ -514,9 +517,10 @@ impl ProposedTransaction {
             &output_descriptions,
             &unsigned_mints,
             &burn_descriptions,
+            &randomized_public_key,
         )?;
 
-        let randomizer = Randomizer::deserialize(&self.public_key_randomness.to_bytes()).unwrap();
+        let randomizer = Randomizer::deserialize(&public_key_randomness.to_bytes()).unwrap();
         let randomized_params =
             RandomizedParams::from_randomizer(pubkeys.verifying_key(), randomizer);
 

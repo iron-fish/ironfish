@@ -14,14 +14,23 @@ use crate::{
     sapling_bls12::SAPLING,
     test_util::make_fake_witness,
     transaction::{
-        batch_verify_transactions, verify_transaction, TransactionVersion,
-        TRANSACTION_EXPIRATION_SIZE, TRANSACTION_FEE_SIZE, TRANSACTION_SIGNATURE_SIZE,
+        batch_verify_transactions, split_secret, verify_transaction, SecretShareConfig,
+        TransactionVersion, TRANSACTION_EXPIRATION_SIZE, TRANSACTION_FEE_SIZE,
+        TRANSACTION_SIGNATURE_SIZE,
     },
+    ViewKey,
 };
+
+use frost::keys::IdentifierList;
+use group::cofactor::CofactorGroup;
+use jubjub::SubgroupPoint;
+use reddsa::frost::redjubjub as frost;
 
 use ff::Field;
 use ironfish_zkp::{
-    constants::{ASSET_ID_LENGTH, SPENDING_KEY_GENERATOR, TREE_DEPTH},
+    constants::{
+        ASSET_ID_LENGTH, PROOF_GENERATION_KEY_GENERATOR, SPENDING_KEY_GENERATOR, TREE_DEPTH,
+    },
     proofs::{MintAsset, Output, Spend},
     redjubjub::{self, Signature},
 };
@@ -153,6 +162,81 @@ fn test_transaction() {
 #[test]
 fn test_transaction_simple() {
     let spender_key = SaplingKey::generate_key();
+    let receiver_key = SaplingKey::generate_key();
+    let sender_key = SaplingKey::generate_key();
+    let spender_key_clone = spender_key.clone();
+
+    let in_note = Note::new(
+        spender_key.public_address(),
+        42,
+        "",
+        NATIVE_ASSET,
+        sender_key.public_address(),
+    );
+    let out_note = Note::new(
+        receiver_key.public_address(),
+        40,
+        "",
+        NATIVE_ASSET,
+        spender_key.public_address(),
+    );
+    let witness = make_fake_witness(&in_note);
+
+    let mut transaction = ProposedTransaction::new(TransactionVersion::latest());
+    transaction.add_spend(in_note, &witness).unwrap();
+    assert_eq!(transaction.spends.len(), 1);
+    transaction.add_output(out_note).unwrap();
+    assert_eq!(transaction.outputs.len(), 1);
+
+    let public_transaction = transaction
+        .post(spender_key, None, 1)
+        .expect("should be able to post transaction");
+    verify_transaction(&public_transaction).expect("Should be able to verify transaction");
+    assert_eq!(public_transaction.fee(), 1);
+
+    // A change note was created
+    assert_eq!(public_transaction.outputs.len(), 2);
+    assert_eq!(public_transaction.spends.len(), 1);
+    assert_eq!(public_transaction.mints.len(), 0);
+    assert_eq!(public_transaction.burns.len(), 0);
+
+    let received_note = public_transaction.outputs[1]
+        .merkle_note()
+        .decrypt_note_for_owner(&spender_key_clone.incoming_viewing_key)
+        .unwrap();
+    assert_eq!(received_note.sender, spender_key_clone.public_address());
+}
+
+#[test]
+fn test_transaction_simple_frost() {
+    let spender_key = SaplingKey::generate_key();
+    // This would be a spending key that owns an asset
+    let ask = spender_key.spend_authorizing_key();
+
+    // Configure how many signatures are needed
+    let secret = ask.to_bytes().to_vec();
+    let secret_config = SecretShareConfig {
+        min_signers: 2,
+        max_signers: 3,
+        secret,
+    };
+
+    // Split the spend authorizing key into shares for the signers
+    let mut rng = thread_rng();
+    let (key_packages, pubkeys) =
+        split_secret(&secret_config, IdentifierList::Default, &mut rng).unwrap();
+
+    let sk_2 = SaplingKey::generate_key();
+
+    let authorizing_key = pubkeys.verifying_key().to_element().mul_by_cofactor();
+    let nullifier_deriving_key =
+        *PROOF_GENERATION_KEY_GENERATOR * sk_2.sapling_proof_generation_key().nsk;
+
+    let view_key = ViewKey {
+        authorizing_key,
+        nullifier_deriving_key,
+    };
+
     let receiver_key = SaplingKey::generate_key();
     let sender_key = SaplingKey::generate_key();
     let spender_key_clone = spender_key.clone();
