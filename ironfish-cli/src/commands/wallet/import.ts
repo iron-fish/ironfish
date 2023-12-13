@@ -40,6 +40,13 @@ export class ImportCommand extends IronfishCommand {
     const client = await this.sdk.connectRpc()
 
     let account: string
+
+    if (blob && blob.length !== 0 && flags.path && flags.path.length !== 0) {
+      this.error(
+        `Your command includes an unexpected argument. Please pass either --path or the output of wallet:export.`,
+      )
+    }
+
     if (blob) {
       account = blob
     } else if (flags.path) {
