@@ -45,7 +45,6 @@ routes.register<typeof AddPeerRequestSchema, AddPeerResponse>(
 
     const peerManager = node.peerNetwork.peerManager
     const { host, port, whitelist } = request.data
-
     const peer = peerManager.connectToWebSocketAddress({
       host,
       port: port || DEFAULT_WEBSOCKET_PORT,
@@ -70,15 +69,18 @@ routes.register<typeof AddPeerRequestSchema, AddPeerResponse>(
       if (prevState.type !== 'CONNECTED' && state.type === 'CONNECTED') {
         request.end({ added: true })
         peer.onStateChanged.off(onPeerStateChange)
-      } else if (peer.error) {
-        request.end({ added: false, error: ErrorUtils.renderError(peer.error) })
+      } else if (prevState.type !== 'DISCONNECTED' && state.type === 'DISCONNECTED') {
+        request.end({
+          added: false,
+          error: peer.error ? ErrorUtils.renderError(peer.error) : undefined,
+        })
         peer.onStateChanged.off(onPeerStateChange)
       }
     }
 
     peer.onStateChanged.on(onPeerStateChange)
 
-    request.onClose.on(() => {
+    request.onClose.once(() => {
       peer.onStateChanged.off(onPeerStateChange)
     })
   },
