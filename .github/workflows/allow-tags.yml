@@ -1,0 +1,44 @@
+name: Allow self hosted runner on tags
+
+on:
+  push:
+    tags:
+    - '*'
+
+
+jobs:
+  update-runner-group:
+    runs-on: ubuntu-latest
+    permissions:
+        write-all
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Get the new tag name
+        id: tag_name
+        run: |
+            echo $GITHUB_REF
+            echo "TAG=${GITHUB_REF}" >> $GITHUB_OUTPUT
+
+      - name: Fetch current runner group configuration for self hosted runner
+        id: fetch_config
+        run: |
+          RESPONSE=$(curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+                         -H "Accept: application/vnd.github+json" \
+                         "https://api.github.com/orgs/iron-fish/actions/runner-groups/3")
+          SELECTED_WORKFLOWS=$(echo $RESPONSE | jq '.selected_workflows')
+          echo $SELECTED_WORKFLOWS
+          echo "SELECTED_WORKFLOWS=${SELECTED_WORKFLOWS}" >> $GITHUB_OUTPUT
+
+    #   - name: Update runner group with new workflow
+    #     run: |
+    #       NEW_WORKFLOW="iron-fish/ironfish/.github/workflows/publish-binaries.yml@refs/tags/${{ steps.tag_name.outputs.TAG }}"
+    #       UPDATED_WORKFLOWS=$(echo ${{ steps.fetch_config.outputs.SELECTED_WORKFLOWS }} | jq '. + ["'"$NEW_WORKFLOW"'"]')
+    #       echo $UPDATED_WORKFLOWS
+    #       curl -X PATCH \
+    #            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+    #            -H "Accept: application/vnd.github+json" \
+    #            -H "X-GitHub-Api-Version: 2022-11-28" \
+    #            "https://api.github.com/orgs/iron-fish/actions/runner-groups/3" \
+    #            -d "{\"selected_workflows\": $UPDATED_WORKFLOWS}"
