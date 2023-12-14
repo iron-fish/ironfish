@@ -33,6 +33,8 @@ use value_balances::ValueBalances;
 
 use crate::OutgoingViewKey;
 use crate::ViewKey;
+use crate::serializing::hex_to_bytes;
+use crate::util::str_to_array;
 use crate::{
     assets::{
         asset::Asset,
@@ -1274,7 +1276,7 @@ fn key_package(shares: &BTreeMap<Identifier, SecretShare>) -> HashMap<Identifier
 
 pub fn round_one_participant(signing_share: &str) -> (SigningNonces, SigningCommitments) {
     let mut rng = thread_rng();
-    frost::round1::commit(&SigningShare::from(signing_share), &mut rng)
+    frost::round1::commit(&SigningShare::deserialize(hex_to_bytes(signing_share).unwrap()).unwrap(), &mut rng)
 }
 
 pub fn round_one(

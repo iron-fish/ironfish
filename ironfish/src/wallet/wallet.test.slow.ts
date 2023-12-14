@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Asset, ASSET_ID_LENGTH, generateKey, splitSecret } from '@ironfish/rust-nodejs'
+import { Asset, ASSET_ID_LENGTH, frostRoundOne, generateKey, RoundOneSigningData, splitSecret } from '@ironfish/rust-nodejs'
 import { Target } from '../primitives/target'
 import {
   createNodeTest,
@@ -1144,15 +1144,17 @@ describe('Wallet', () => {
 
       console.log(trustedDealerPackage)
 
-      // Split up ask
+      // const firstParticipant = await useAccountFixture(node.wallet)
+      // const secondParticipant = await useAccountFixture(node.wallet)
+      // const thirdParticipant = await useAccountFixture(node.wallet)
 
-      // const firstSigner = await node.wallet.createAccount(
-      //   'first',
-      //   {},
-      //   {
-      //     authorizingKeyShard: 
-      //   }
-      // )
+      const roundOneSigningData: Record<string, RoundOneSigningData> = {}
+      for (const identifier in trustedDealerPackage.signingShares) {
+        const signingShare = trustedDealerPackage.signingShares[identifier]
+        roundOneSigningData[identifier] = frostRoundOne(signingShare)
+      }
+
+      console.log(roundOneSigningData)
     })
   })
 })

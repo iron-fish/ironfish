@@ -77,6 +77,13 @@ export interface TrustedDealerKeyPackages {
   signingShares: Record<string, string>
 }
 export function splitSecret(coordinatorSaplingKey: string, minSigners: number, maxSigners: number, secret: string): TrustedDealerKeyPackages
+export interface RoundOneSigningData {
+  nonceHiding: string
+  nonceBinding: string
+  commitmentHiding: string
+  commitmentBinding: string
+}
+export function frostRoundOne(signingShare: string): RoundOneSigningData
 export class BoxKeyPair {
   constructor()
   static fromHex(secretHex: string): BoxKeyPair
