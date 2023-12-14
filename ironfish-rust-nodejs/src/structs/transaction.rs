@@ -3,9 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::RefCell;
+use std::collections::{BTreeMap, HashMap};
 use std::convert::TryInto;
 
 use ironfish::assets::asset_identifier::AssetIdentifier;
+use ironfish::serializing::bytes_to_hex;
 use ironfish::transaction::{
     batch_verify_transactions, TransactionVersion, TRANSACTION_EXPIRATION_SIZE,
     TRANSACTION_FEE_SIZE, TRANSACTION_PUBLIC_KEY_SIZE, TRANSACTION_SIGNATURE_SIZE,
@@ -164,6 +166,23 @@ pub struct NativeTransaction {
     transaction: ProposedTransaction,
 }
 
+#[napi(object)]
+pub struct SigningCommitment {
+    pub hiding: String,
+    pub binding: String,
+}
+
+#[napi(object)]
+pub struct SigningPackageCommitments {
+    pub commitments: HashMap<String, SigningCommitment>,
+}
+
+#[napi(object)]
+pub struct SigningPackage {
+    pub public_key_randomness: String,
+    pub message: String,
+}
+
 #[napi]
 impl NativeTransaction {
     #[napi(constructor)]
@@ -311,6 +330,45 @@ impl NativeTransaction {
     #[napi]
     pub fn set_expiration(&mut self, sequence: u32) -> Undefined {
         self.transaction.set_expiration(sequence);
+    }
+
+    #[napi]
+    pub fn create_coordinator_signing_package(
+        &mut self,
+        verifying_key: String,
+        proof_generation_key: String,
+        view_key: String,
+        outgoing_view_key: String,
+        public_address: String,
+        native_commitments: SigningPackageCommitments,
+    ) -> Result<SigningPackage> {
+        let mut commitments = HashMap::new();
+        for (identifier, signing_commitment) in native_commitments.commitments {
+            commitments.insert(
+                identifier,
+                ironfish::transaction::SigningCommitment {
+                    binding: signing_commitment.binding,
+                    hiding: signing_commitment.hiding,
+                },
+            );
+        }
+
+        let (public_key_randomness, signing_package) = self
+            .transaction
+            .coordinator_signing_package(
+                &verifying_key,
+                &proof_generation_key,
+                &view_key,
+                &outgoing_view_key,
+                &public_address,
+                commitments,
+            )
+            .map_err(to_napi_err)?;
+
+        Ok(SigningPackage {
+            public_key_randomness: public_key_randomness.to_string(),
+            message: bytes_to_hex(signing_package.message()),
+        })
     }
 }
 

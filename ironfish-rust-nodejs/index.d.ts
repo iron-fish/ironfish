@@ -48,6 +48,17 @@ export const TRANSACTION_PUBLIC_KEY_RANDOMNESS_LENGTH: number
 export const TRANSACTION_EXPIRATION_LENGTH: number
 export const TRANSACTION_FEE_LENGTH: number
 export const LATEST_TRANSACTION_VERSION: number
+export interface SigningCommitment {
+  hiding: string
+  binding: string
+}
+export interface SigningPackageCommitments {
+  commitments: Record<string, SigningCommitment>
+}
+export interface SigningPackage {
+  publicKeyRandomness: string
+  message: string
+}
 export function verifyTransactions(serializedTransactions: Array<Buffer>): boolean
 export const enum LanguageCode {
   English = 0,
@@ -213,6 +224,7 @@ export class Transaction {
    */
   post(spenderHexKey: string, changeGoesTo: string | undefined | null, intendedTransactionFee: bigint): Buffer
   setExpiration(sequence: number): void
+  createCoordinatorSigningPackage(verifyingKey: string, proofGenerationKey: string, viewKey: string, outgoingViewKey: string, publicAddress: string, nativeCommitments: SigningPackageCommitments): SigningPackage
 }
 export class FoundBlockResult {
   randomness: string

@@ -1142,12 +1142,6 @@ describe('Wallet', () => {
         account.spendingKey
       )
 
-      console.log(trustedDealerPackage)
-
-      // const firstParticipant = await useAccountFixture(node.wallet)
-      // const secondParticipant = await useAccountFixture(node.wallet)
-      // const thirdParticipant = await useAccountFixture(node.wallet)
-
       const roundOneSigningData: Record<string, RoundOneSigningData> = {}
       for (const identifier in trustedDealerPackage.signingShares) {
         const signingShare = trustedDealerPackage.signingShares[identifier]

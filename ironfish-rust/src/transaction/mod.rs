@@ -23,6 +23,7 @@ use reddsa::frost::redjubjub as frost;
 use reddsa::frost::redjubjub::aggregate;
 use reddsa::frost::redjubjub::keys::SigningShare;
 use reddsa::frost::redjubjub::keys::VerifyingShare;
+use reddsa::frost::redjubjub::round1::NonceCommitment;
 use reddsa::frost::redjubjub::round2::Randomizer;
 use reddsa::frost::redjubjub::RandomizedParams;
 use reddsa::frost::redjubjub::VerifyingKey;
@@ -33,6 +34,7 @@ use outputs::OutputBuilder;
 use spends::{SpendBuilder, UnsignedSpendDescription};
 use value_balances::ValueBalances;
 
+use crate::serializing::bytes_to_hex;
 use crate::serializing::hex_to_bytes;
 use crate::util::str_to_array;
 use crate::OutgoingViewKey;
@@ -101,6 +103,11 @@ pub struct SecretShareConfig {
     pub min_signers: u16,
     pub max_signers: u16,
     pub secret: Vec<u8>,
+}
+
+pub struct SigningCommitment {
+    pub hiding: String,
+    pub binding: String,
 }
 
 /// A collection of spend and output proofs that can be signed and verified.
@@ -716,15 +723,44 @@ impl ProposedTransaction {
 
     pub fn coordinator_signing_package(
         &self,
-        verifying_key: VerifyingKey,
-        proof_generation_key: ProofGenerationKey,
-        view_key: ViewKey,
-        outgoing_view_key: OutgoingViewKey,
-        public_address: PublicAddress,
-        commitments: BTreeMap<Identifier, SigningCommitments>,
+        verifying_key_str: &str,
+        proof_generation_key_str: &str,
+        view_key_str: &str,
+        outgoing_view_key_str: &str,
+        public_address_str: &str,
+        native_commitments: HashMap<String, SigningCommitment>,
     ) -> Result<(jubjub::Fr, SigningPackage), IronfishError> {
         // Generate randomized public key
         let public_key_randomness = jubjub::Fr::random(thread_rng());
+
+        let verifying_key = VerifyingKey::deserialize(hex_to_bytes(verifying_key_str)?).unwrap();
+
+        let proof_generation_key_bytes = hex_to_bytes::<64>(proof_generation_key_str)?;
+        let mut ak_bytes = [0u8; 32];
+        ak_bytes.copy_from_slice(&proof_generation_key_bytes[0..32]);
+        let mut nsk_bytes = [0u8; 32];
+        nsk_bytes.copy_from_slice(&proof_generation_key_bytes[32..]);
+        let proof_generation_key = ProofGenerationKey {
+            ak: jubjub::SubgroupPoint::from_bytes(&ak_bytes).unwrap(),
+            nsk: jubjub::Fr::from_bytes(&nsk_bytes).unwrap(),
+        };
+
+        let view_key = ViewKey::from_hex(view_key_str)?;
+        let outgoing_view_key = OutgoingViewKey::from_hex(outgoing_view_key_str)?;
+        let public_address = PublicAddress::from_hex(public_address_str)?;
+
+        let mut commitments = BTreeMap::new();
+        for (identifier, signing_commitment) in native_commitments {
+            commitments.insert(
+                Identifier::deserialize(&hex_to_bytes(&identifier)?).unwrap(),
+                SigningCommitments::new(
+                    NonceCommitment::deserialize(hex_to_bytes(&signing_commitment.hiding)?)
+                        .unwrap(),
+                    NonceCommitment::deserialize(hex_to_bytes(&signing_commitment.binding)?)
+                        .unwrap(),
+                ),
+            );
+        }
 
         let randomized_public_key = redjubjub::PublicKey::read(verifying_key.serialize().as_ref())?
             .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);
@@ -777,7 +813,7 @@ impl ProposedTransaction {
         // Coordinator generates randomized params on the fly
         Ok((
             public_key_randomness,
-            frost::SigningPackage::new(commitments.clone(), &data_to_sign),
+            frost::SigningPackage::new(commitments, &data_to_sign),
         ))
     }
 }
