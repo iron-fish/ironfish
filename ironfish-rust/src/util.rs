@@ -3,6 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use std::cmp;
 
+use group::GroupEncoding;
+use ironfish_zkp::ProofGenerationKey;
+
 /// Helper function to create an array from a string. If the string is not as
 /// large as the array, it will be filled with 0. If the string is too large, it
 /// will only include up to the size of the array.
@@ -14,6 +17,14 @@ pub fn str_to_array<const SIZE: usize>(string: &str) -> [u8; SIZE] {
     arr[..num_to_copy].copy_from_slice(&bytes[..num_to_copy]);
 
     arr
+}
+
+pub fn proof_generation_key_to_bytes(proof_generation_key: ProofGenerationKey) -> [u8; 64] {
+    let mut proof_generation_key_bytes = [0; 64];
+    proof_generation_key_bytes[0..32].copy_from_slice(&proof_generation_key.ak.to_bytes());
+    proof_generation_key_bytes[32..].copy_from_slice(&proof_generation_key.nsk.to_bytes());
+
+    proof_generation_key_bytes
 }
 
 #[cfg(test)]

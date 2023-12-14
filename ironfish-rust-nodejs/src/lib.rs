@@ -8,7 +8,10 @@ use std::hash::Hash;
 
 use ironfish::keys::split_spender_key;
 use ironfish::keys::Language;
+use ironfish::nacl::KEY_LENGTH;
 use ironfish::serializing::bytes_to_hex;
+use ironfish::serializing::hex_to_bytes;
+use ironfish::transaction::round_one;
 use ironfish::util::proof_generation_key_to_bytes;
 use ironfish::util::str_to_array;
 use ironfish::PublicAddress;
@@ -180,25 +183,21 @@ pub struct TrustedDealerKeyPackages {
     pub signing_shares: HashMap<String, String>,
 }
 
-/*
-// Split the spend authorizing key into shares for the signers
-let mut rng = thread_rng();
-let (key_packages, pubkeys) =
-    split_secret(&secret_config, IdentifierList::Default, &mut rng).unwrap(); */
-/*
-authorizingKeyShard: string,
-identifier: string,
-proofGenerationKey: string, */
 #[napi]
 pub fn split_secret(
     coordinator_sapling_key: String,
     min_signers: u16,
     max_signers: u16,
-    secret: Vec<u8>,
-) -> (TrustedDealerKeyPackages) {
-    let key = SaplingKey::new(str_to_array(&coordinator_sapling_key)).unwrap();
-    let (proof_generation_key, key_packages) =
-        split_spender_key(key, min_signers, max_signers, secret);
+    secret: String,
+) -> TrustedDealerKeyPackages {
+    let coordinator_key = SaplingKey::new(str_to_array(&coordinator_sapling_key)).unwrap();
+    let secret_spending_key = SaplingKey::new(str_to_array(&secret)).unwrap();
+    let (proof_generation_key, key_packages) = split_spender_key(
+        coordinator_key,
+        min_signers,
+        max_signers,
+        secret_spending_key.spend_authorizing_key().to_bytes().to_vec(),
+    );
 
     let mut signing_shares = HashMap::new();
     for (k, v) in key_packages.iter() {
@@ -212,4 +211,21 @@ pub fn split_secret(
         proof_generation_key: bytes_to_hex(&proof_generation_key_to_bytes(proof_generation_key)),
         signing_shares,
     }
+}
+
+#[napi(object)]
+pub struct NativeKeyPackage {
+    pub signing_share: String,
+    pub verifying_share: String,
+}
+
+#[napi(object)]
+pub struct RoundOneKeyPackages {
+    pub key_packages: HashMap<String, NativeKeyPackage>,
+}
+
+#[napi]
+pub fn frost_round_one(signing_share: String) -> () {
+    let mut rng = thread_rng();
+    let (nonces, commitments) = frost::round1::commit(signing_share, &mut rng);
 }

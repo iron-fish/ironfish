@@ -43,7 +43,7 @@ pub const SPEND_KEY_SIZE: usize = 32;
 /// While the key parts are all represented as 256 bit keys to the outside
 /// world, inside the API they map to Edwards points or scalar values
 /// on the JubJub curve.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct SaplingKey {
     /// The private (secret) key from which all the other key parts are derived.
     /// The expanded form of this key is required before a note can be spent.

@@ -76,7 +76,7 @@ export interface TrustedDealerKeyPackages {
   proofGenerationKey: string
   signingShares: Record<string, string>
 }
-export function splitSecret(coordinatorSaplingKey: string, minSigners: number, maxSigners: number, secret: Array<number>): TrustedDealerKeyPackages
+export function splitSecret(coordinatorSaplingKey: string, minSigners: number, maxSigners: number, secret: string): TrustedDealerKeyPackages
 export class BoxKeyPair {
   constructor()
   static fromHex(secretHex: string): BoxKeyPair

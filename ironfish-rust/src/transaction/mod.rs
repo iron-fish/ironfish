@@ -17,13 +17,12 @@ use frost::Error;
 use frost::Identifier;
 use frost::SigningKey;
 use frost::SigningPackage;
-use frost_rerandomized::frost_core::frost::keys::split;
 use ironfish_zkp::ProofGenerationKey;
 use rand::rngs::ThreadRng;
 use reddsa::frost::redjubjub as frost;
 use reddsa::frost::redjubjub::aggregate;
+use reddsa::frost::redjubjub::keys::SigningShare;
 use reddsa::frost::redjubjub::round2::Randomizer;
-use reddsa::frost::redjubjub::JubjubBlake2b512;
 use reddsa::frost::redjubjub::RandomizedParams;
 
 use blstrs::Bls12;
@@ -460,11 +459,8 @@ impl ProposedTransaction {
 
         let min_signers = 2;
 
-        // Split the spend authorizing key into shares for the signers
-        let mut rng = thread_rng();
-
         // Save the nonces and get commitments to aggregate by the coordinator
-        let (nonces, commitments) = round_one(min_signers, &mut rng, &key_packages);
+        let (nonces, commitments) = round_one(&key_packages);
 
         // Generate randomized public key
 
@@ -1276,14 +1272,18 @@ fn key_package(shares: &BTreeMap<Identifier, SecretShare>) -> HashMap<Identifier
     key_packages
 }
 
-fn round_one(
-    min_signers: u16,
-    mut rng: &mut ThreadRng,
+pub fn round_one_participant(signing_share: &str) -> (SigningNonces, SigningCommitments) {
+    let mut rng = thread_rng();
+    frost::round1::commit(&SigningShare::from(signing_share), &mut rng)
+}
+
+pub fn round_one(
     key_packages: &HashMap<Identifier, KeyPackage>,
 ) -> (
     HashMap<Identifier, SigningNonces>,
     BTreeMap<Identifier, SigningCommitments>,
 ) {
+    let mut rng = thread_rng();
     let mut nonces_map = HashMap::new();
     let mut commitments_map = BTreeMap::new();
 

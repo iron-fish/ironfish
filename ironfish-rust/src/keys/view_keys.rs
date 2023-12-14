@@ -29,7 +29,7 @@ const DIFFIE_HELLMAN_PERSONALIZATION: &[u8; 16] = b"Iron Fish shared";
 /// Key that allows someone to view a transaction that you have received.
 ///
 /// Referred to as `ivk` in the literature.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct IncomingViewKey {
     pub(crate) view_key: jubjub::Fr,
 }
@@ -89,7 +89,7 @@ impl IncomingViewKey {
 /// Contains two keys that are required (along with outgoing view key)
 /// to have full view access to an account.
 /// Referred to as `ViewingKey` in the literature.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ViewKey {
     /// Part of the full viewing key. Generally referred to as
     /// `ak` in the literature. Derived from spend_authorizing_key using scalar
@@ -141,7 +141,7 @@ impl ViewKey {
 /// Key that allows someone to view a transaction that you have spent.
 ///
 /// Referred to as `ovk` in the literature.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct OutgoingViewKey {
     pub(crate) view_key: [u8; 32],
 }
