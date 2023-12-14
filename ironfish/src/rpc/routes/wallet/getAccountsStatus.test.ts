@@ -12,31 +12,7 @@ import { createRouteTest } from '../../../testUtilities/routeTest'
 describe('Route wallet/getAccountsStatus', () => {
   const routeTest = createRouteTest()
 
-  it('should return account status information', async () => {
-    const account = await routeTest.node.wallet.createAccount(uuid(), {
-      setCreatedAt: true,
-      setDefault: true,
-    })
-    const response = await routeTest.client
-      .request<any>('wallet/getAccountsStatus', {})
-      .waitForEnd()
-
-    expect(response.status).toBe(200)
-    expect(response.content).toMatchObject({
-      accounts: [
-        {
-          name: account.name,
-          id: account.id,
-          headHash: routeTest.chain.head.hash.toString('hex'),
-          headInChain: true,
-          sequence: routeTest.chain.head.sequence,
-          viewOnly: false,
-        },
-      ],
-    })
-  })
-
-  it('should return account head and sequence', async () => {
+  it('should return account head', async () => {
     const account = await routeTest.node.wallet.createAccount(uuid(), {
       setCreatedAt: true,
       setDefault: true,
@@ -57,9 +33,11 @@ describe('Route wallet/getAccountsStatus', () => {
         {
           name: account.name,
           id: account.id,
-          headHash: routeTest.chain.head.hash.toString('hex'),
-          headInChain: true,
-          sequence: routeTest.chain.head.sequence,
+          head: {
+            hash: routeTest.chain.head.hash.toString('hex'),
+            sequence: routeTest.chain.head.sequence,
+            inChain: true,
+          },
           viewOnly: false,
         },
       ],
@@ -85,9 +63,7 @@ describe('Route wallet/getAccountsStatus', () => {
         {
           name: account.name,
           id: account.id,
-          headHash: 'NULL',
-          headInChain: false,
-          sequence: 'NULL',
+          head: null,
           viewOnly: true,
         },
       ],

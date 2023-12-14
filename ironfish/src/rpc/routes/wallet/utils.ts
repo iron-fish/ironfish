@@ -14,6 +14,7 @@ import { ValidationError } from '../../adapters'
 import {
   RpcAccountAssetBalanceDelta,
   RpcAccountImport,
+  RpcAccountStatus,
   RpcWalletNote,
   RpcWalletTransaction,
 } from './types'
@@ -223,5 +224,25 @@ export function serializeRpcWalletNote(
     spent: note.spent,
     isOwner: note.note.owner() === publicAddress,
     hash: note.note.hash().toString('hex'),
+  }
+}
+
+export async function serializeRpcAccountStatus(
+  wallet: Wallet,
+  account: Account,
+): Promise<RpcAccountStatus> {
+  const head = await account.getHead()
+
+  return {
+    name: account.name,
+    id: account.id,
+    head: head
+      ? {
+          hash: head.hash.toString('hex'),
+          sequence: head.sequence,
+          inChain: wallet.nodeClient ? await wallet.chainHasBlock(head.hash) : null,
+        }
+      : null,
+    viewOnly: !account.isSpendingAccount(),
   }
 }
