@@ -1020,8 +1020,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c05aeb6a22b8f62540c194aac980f2115af067bfe15a0734d7277a768d396b31"
 dependencies = [
  "cfg-if",
+ "js-sys",
  "libc",
  "wasi 0.11.0+wasi-snapshot-preview1",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -1381,10 +1383,12 @@ dependencies = [
  "blstrs",
  "byteorder",
  "ff 0.12.1",
+ "getrandom 0.2.8",
  "group 0.12.1",
  "jubjub 0.9.0 (git+https://github.com/iron-fish/jubjub.git?branch=blstrs)",
  "lazy_static",
  "rand 0.8.5",
+ "rand_core 0.6.4",
  "zcash_primitives",
  "zcash_proofs",
 ]

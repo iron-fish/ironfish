@@ -29,6 +29,8 @@ ff = "0.12.0"
 group = "0.12.0"
 jubjub = { git = "https://github.com/iron-fish/jubjub.git", branch = "blstrs" }
 lazy_static = "1.4.0"
+getrandom = { version = "0.2", features = ["js"] }
+rand_core = { version = "0.6.4", features = ["getrandom"] }
 rand = "0.8.5"
 zcash_primitives = { git = "https://github.com/iron-fish/librustzcash.git", branch = "blstrs", package = "zcash_primitives" }
 zcash_proofs = { git = "https://github.com/iron-fish/librustzcash.git", branch = "blstrs", package = "zcash_proofs" }
