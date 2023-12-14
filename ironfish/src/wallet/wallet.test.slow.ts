@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Asset, ASSET_ID_LENGTH, generateKey } from '@ironfish/rust-nodejs'
+import { Asset, ASSET_ID_LENGTH, generateKey, splitSecret } from '@ironfish/rust-nodejs'
 import { Target } from '../primitives/target'
 import {
   createNodeTest,
@@ -1129,10 +1129,20 @@ describe('Wallet', () => {
     })
   })
 
-  describe('frost', () => {
+  describe.only('frost', () => {
     it('can do a multisig transaction', async () => {
       const { node } = await nodeTest.createSetup()
       const account = await useAccountFixture(node.wallet)
+      const coordinatorSaplingKey = generateKey()
+
+      const trustedDealerPackage = splitSecret(
+        coordinatorSaplingKey.spendingKey,
+        2,
+        3,
+        account.spendingKey
+      )
+
+      console.log(trustedDealerPackage)
 
       // Split up ask
 

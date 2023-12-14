@@ -1051,5 +1051,24 @@
         }
       ]
     }
+  ],
+  "Wallet frost can do a multisig transaction": [
+    {
+      "version": 2,
+      "id": "83396d5a-d2b8-42e5-81b9-53ba338e959d",
+      "name": "test",
+      "spendingKey": "2cdec63477638e548ab464aca11235b2b8ec7a6d9d18c7186f48b3fe0044fbea",
+      "viewKey": "4aff28f1ebcd379ea48b326e351c3cf979c2f8e58861d1c8d62266120751a12016fce09f8dc3c2c28be1f1bc3a97658faf16afecd0219dd5ef4951d7aae4f2ec",
+      "incomingViewKey": "53389707126ec412a6e5e06ed48b4ad5f827f9c3553fef2fcee670232e893802",
+      "outgoingViewKey": "81a0d3d84e4eb7939cef374b191d8ccf12011e8aabc6142fe337311973697bf0",
+      "publicAddress": "be7f120ceed856f1a996a31343e79dc2b2a65adcb767eaddc7c1e6f0056c92a7",
+      "createdAt": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      }
+    }
   ]
 }
