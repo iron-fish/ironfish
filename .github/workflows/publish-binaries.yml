@@ -26,7 +26,7 @@ jobs:
             arch: x86_64
             system: linux
 
-          - host: [self-hosted, macOS, ARM64]
+          - host: macos-latest-large
             arch: arm64
             system: apple
 
