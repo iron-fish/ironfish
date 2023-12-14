@@ -2,9 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+ #[cfg(target_family = "wasm")]
+use core::ffi::c_void;
+#[cfg(target_family = "wasm")]
+use core::ffi::c_int;
+#[cfg(not(target_family = "wasm"))]
+use libc::c_void;
+#[cfg(not(target_family = "wasm"))]
+use libc::c_int;
+
 extern "C" {
     // This is present in libc on unix, but not on linux
-    fn backtrace_symbols_fd(buffer: *const *mut libc::c_void, size: libc::c_int, fd: libc::c_int);
+    fn backtrace_symbols_fd(buffer: *const *mut c_void, size: c_int, fd: c_int);
 }
 
 /// # Safety
@@ -19,7 +28,7 @@ unsafe fn display_trace() {
 #[cfg(all(unix, not(target_env = "musl")))]
 unsafe fn display_trace() {
     const MAX_FRAMES: usize = 256;
-    static mut STACK_TRACE: [*mut libc::c_void; MAX_FRAMES] = [std::ptr::null_mut(); MAX_FRAMES];
+    static mut STACK_TRACE: [*mut c_void; MAX_FRAMES] = [std::ptr::null_mut(); MAX_FRAMES];
     let depth = libc::backtrace(STACK_TRACE.as_mut_ptr(), MAX_FRAMES as i32);
     backtrace_symbols_fd(STACK_TRACE.as_ptr(), depth, 2);
     libc::exit(libc::EXIT_FAILURE);
