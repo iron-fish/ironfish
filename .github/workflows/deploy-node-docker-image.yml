@@ -34,7 +34,7 @@ jobs:
 
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Login to GitHub Registry
         run: echo ${GITHUB_TOKEN} | docker login -u ${GITHUB_USER} --password-stdin ghcr.io

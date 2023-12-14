@@ -21,7 +21,7 @@ jobs:
     name: Build and cache rust code
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2

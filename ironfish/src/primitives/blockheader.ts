@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { blake3 } from '@napi-rs/blake-hash'
+import bufio from 'bufio'
 import { Assert } from '../assert'
 import { BlockHashSerdeInstance, GraffitiSerdeInstance } from '../serde'
-import PartialBlockHeaderSerde from '../serde/PartialHeaderSerde'
 import { BigIntUtils } from '../utils/bigint'
 import { NoteEncryptedHash, SerializedNoteEncryptedHash } from './noteEncrypted'
 import { Target } from './target'
@@ -194,35 +194,13 @@ export class BlockHeader {
   }
 
   /**
-   * Construct a partial block header without the randomness and convert
-   * it to buffer.
-   *
-   * This is used for calculating the hash in miners and for verifying it.
-   */
-  serializePartial(): Buffer {
-    return PartialBlockHeaderSerde.serialize({
-      sequence: this.sequence,
-      previousBlockHash: this.previousBlockHash,
-      noteCommitment: this.noteCommitment,
-      transactionCommitment: this.transactionCommitment,
-      target: this.target,
-      timestamp: this.timestamp,
-      graffiti: this.graffiti,
-    })
-  }
-
-  /**
    * Hash all the values in the block header to get a commitment to the entire
    * header and the global trees it models.
    */
   recomputeHash(): BlockHash {
-    const partialHeader = this.serializePartial()
+    const header = this.serialize()
 
-    const headerBytes = Buffer.alloc(partialHeader.byteLength + 8)
-    headerBytes.set(BigIntUtils.writeBigU64BE(this.randomness))
-    headerBytes.set(partialHeader, 8)
-
-    const hash = hashBlockHeader(headerBytes)
+    const hash = hashBlockHeader(header)
     this.hash = hash
     return hash
   }
@@ -239,11 +217,28 @@ export class BlockHeader {
     return Target.meets(BigIntUtils.fromBytesBE(this.recomputeHash()), this.target)
   }
 
+  /**
+   * Serialize the block header into a buffer for hashing and mining
+   */
+  serialize(): Buffer {
+    const bw = bufio.write(180)
+    bw.writeBigU64BE(this.randomness)
+    bw.writeU32(this.sequence)
+    bw.writeHash(this.previousBlockHash)
+    bw.writeHash(this.noteCommitment)
+    bw.writeHash(this.transactionCommitment)
+    bw.writeBigU256BE(this.target.asBigInt())
+    bw.writeU64(this.timestamp.getTime())
+    bw.writeBytes(this.graffiti)
+
+    return bw.render()
+  }
+
   equals(other: BlockHeader): boolean {
     return (
       this.noteSize === other.noteSize &&
       this.work === other.work &&
-      this.recomputeHash().equals(other.recomputeHash())
+      this.serialize().equals(other.serialize())
     )
   }
 }

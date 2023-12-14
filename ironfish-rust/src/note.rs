@@ -201,14 +201,14 @@ impl<'a> Note {
     /// This function allows the owner to decrypt the note using the derived
     /// shared secret and their own view key.
     pub(crate) fn from_spender_encrypted(
-        transmission_key: SubgroupPoint,
+        public_address: SubgroupPoint,
         shared_secret: &[u8; 32],
         encrypted_bytes: &[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE],
     ) -> Result<Self, IronfishError> {
         let (randomness, asset_id, value, memo, sender) =
             Note::decrypt_note_parts(shared_secret, encrypted_bytes)?;
 
-        let owner = PublicAddress { transmission_key };
+        let owner = PublicAddress(public_address);
 
         Ok(Note {
             owner,
@@ -278,9 +278,9 @@ impl<'a> Note {
         commitment_full_point(
             self.asset_generator(),
             self.value,
-            self.owner.transmission_key,
+            self.owner.0,
             self.randomness,
-            self.sender.transmission_key,
+            self.sender.0,
         )
     }
 
@@ -409,8 +409,7 @@ mod test {
         let dh_secret = diffie_hellman_keys.secret();
         let dh_public = diffie_hellman_keys.public();
 
-        let public_shared_secret =
-            shared_secret(dh_secret, &public_address.transmission_key, dh_public);
+        let public_shared_secret = shared_secret(dh_secret, &public_address.0, dh_public);
         let note = Note::new(public_address, 42, "", NATIVE_ASSET, sender_address);
         let encryption_result = note.encrypt(&public_shared_secret);
 
@@ -434,12 +433,9 @@ mod test {
             note.sender.public_address()
         );
 
-        let spender_decrypted = Note::from_spender_encrypted(
-            note.owner.transmission_key,
-            &public_shared_secret,
-            &encryption_result,
-        )
-        .expect("Should be able to load from transmission key");
+        let spender_decrypted =
+            Note::from_spender_encrypted(note.owner.0, &public_shared_secret, &encryption_result)
+                .expect("Should be able to load from transmission key");
         assert!(
             spender_decrypted.owner.public_address().as_ref()
                 == note.owner.public_address().as_ref()

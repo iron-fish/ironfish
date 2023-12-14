@@ -127,6 +127,11 @@ impl UnsignedMintDescription {
             return Err(IronfishError::new(IronfishErrorKind::InvalidSigningKey));
         }
 
+        // NOTE: The initial versions of the RedDSA specification and the redjubjub crate (that
+        // we're using here) require the public key bytes to be prefixed to the message. The latest
+        // version of the spec and the crate add the public key bytes automatically. Therefore, if
+        // in the future we upgrade to a newer version of redjubjub, `data_to_be_signed` will have
+        // to equal `signature_hash`
         let mut data_to_be_signed = [0; 64];
         data_to_be_signed[..32].copy_from_slice(&randomized_public_key.0.to_bytes());
         data_to_be_signed[32..].copy_from_slice(&signature_hash[..]);
@@ -179,6 +184,12 @@ impl MintDescription {
         if randomized_public_key.0.is_small_order().into() {
             return Err(IronfishError::new(IronfishErrorKind::IsSmallOrder));
         }
+
+        // NOTE: The initial versions of the RedDSA specification and the redjubjub crate (that
+        // we're using here) require the public key bytes to be prefixed to the message. The latest
+        // version of the spec and the crate add the public key bytes automatically. Therefore, if
+        // in the future we upgrade to a newer version of redjubjub, `data_to_be_signed` will have
+        // to equal `signature_hash_value`
         let mut data_to_be_signed = [0; 64];
         data_to_be_signed[..32].copy_from_slice(&randomized_public_key.0.to_bytes());
         data_to_be_signed[32..].copy_from_slice(&signature_hash_value[..]);
@@ -201,7 +212,7 @@ impl MintDescription {
         public_inputs[0] = randomized_public_key_point.get_u();
         public_inputs[1] = randomized_public_key_point.get_v();
 
-        let public_address_point = ExtendedPoint::from(self.owner.transmission_key).to_affine();
+        let public_address_point = ExtendedPoint::from(self.owner.0).to_affine();
         public_inputs[2] = public_address_point.get_u();
         public_inputs[3] = public_address_point.get_v();
 

@@ -46,10 +46,10 @@ jobs:
           ${{ contains(matrix.settings.host, 'windows-') && 'Get-WmiObject -Class Win32_Processor -ComputerName.' || '' }}
 
       - name: Check out Git repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Use Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 18
           cache: yarn
@@ -112,14 +112,14 @@ jobs:
     runs-on: ${{ matrix.settings.host }}
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up QEMU for Docker
         if: ${{ matrix.settings.docker }}
         run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 
       - name: Use Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 18
 

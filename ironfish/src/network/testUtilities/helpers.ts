@@ -252,12 +252,5 @@ export function expectGetBlocksResponseToMatch(
   a: GetBlocksResponse,
   b: GetBlocksResponse,
 ): void {
-  expect(a.blocks.length).toEqual(b.blocks.length)
-  a.blocks.forEach((blockA, blockIndexA) => {
-    const blockB = b.blocks[blockIndexA]
-
-    expect(blockA.equals(blockB)).toBe(true)
-  })
-
-  expect({ ...a, blocks: undefined }).toMatchObject({ ...b, blocks: undefined })
+  expect(a.serialize().equals(b.serialize())).toBe(true)
 }

@@ -162,3 +162,30 @@ export const RpcAccountImportSchema: yup.ObjectSchema<RpcAccountImport> = yup
       .defined(),
   })
   .defined()
+
+export type RpcAccountStatus = {
+  name: string
+  id: string
+  head: {
+    hash: string
+    sequence: number
+    inChain: boolean | null
+  } | null
+  viewOnly: boolean
+}
+
+export const RpcAccountStatusSchema: yup.ObjectSchema<RpcAccountStatus> = yup
+  .object<RpcAccountStatus>({
+    name: yup.string().defined(),
+    id: yup.string().defined(),
+    head: yup
+      .object({
+        hash: yup.string().defined(),
+        sequence: yup.number().defined(),
+        inChain: yup.boolean().nullable().defined(),
+      })
+      .nullable()
+      .defined(),
+    viewOnly: yup.boolean().defined(),
+  })
+  .defined()

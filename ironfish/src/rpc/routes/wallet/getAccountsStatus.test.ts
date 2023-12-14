@@ -6,39 +6,17 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { v4 as uuid } from 'uuid'
-import { Assert } from '../../../assert'
 import { useMinerBlockFixture } from '../../../testUtilities/fixtures'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 
 describe('Route wallet/getAccountsStatus', () => {
-  const routeTest = createRouteTest(true)
+  const routeTest = createRouteTest()
 
-  it('should return account status information', async () => {
+  it('should return account head', async () => {
     const account = await routeTest.node.wallet.createAccount(uuid(), {
       setCreatedAt: true,
       setDefault: true,
     })
-    const response = await routeTest.client
-      .request<any>('wallet/getAccountsStatus', {})
-      .waitForEnd()
-
-    expect(response.status).toBe(200)
-    expect(response.content).toMatchObject({
-      accounts: [
-        {
-          name: account.name,
-          id: account.id,
-          headHash: routeTest.chain.head.hash.toString('hex'),
-          headInChain: true,
-          sequence: routeTest.chain.head.sequence,
-        },
-      ],
-    })
-  })
-
-  it('should return account head and sequence', async () => {
-    const account = routeTest.wallet.getDefaultAccount()
-    Assert.isNotNull(account)
 
     const block = await useMinerBlockFixture(routeTest.chain, 2, account, routeTest.wallet)
 
@@ -55,9 +33,38 @@ describe('Route wallet/getAccountsStatus', () => {
         {
           name: account.name,
           id: account.id,
-          headHash: routeTest.chain.head.hash.toString('hex'),
-          headInChain: true,
-          sequence: routeTest.chain.head.sequence,
+          head: {
+            hash: routeTest.chain.head.hash.toString('hex'),
+            sequence: routeTest.chain.head.sequence,
+            inChain: true,
+          },
+          viewOnly: false,
+        },
+      ],
+    })
+  })
+
+  it('should return true for view-only accounts', async () => {
+    let account = await routeTest.wallet.createAccount('temp')
+    await routeTest.wallet.removeAccountByName('temp')
+    account = await routeTest.wallet.importAccount({
+      ...account,
+      name: 'viewonly',
+      spendingKey: null,
+    })
+
+    const response = await routeTest.client
+      .request<any>('wallet/getAccountsStatus', {})
+      .waitForEnd()
+
+    expect(response.status).toBe(200)
+    expect(response.content).toMatchObject({
+      accounts: [
+        {
+          name: account.name,
+          id: account.id,
+          head: null,
+          viewOnly: true,
         },
       ],
     })
