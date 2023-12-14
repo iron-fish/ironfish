@@ -22,8 +22,10 @@ use rand::rngs::ThreadRng;
 use reddsa::frost::redjubjub as frost;
 use reddsa::frost::redjubjub::aggregate;
 use reddsa::frost::redjubjub::keys::SigningShare;
+use reddsa::frost::redjubjub::keys::VerifyingShare;
 use reddsa::frost::redjubjub::round2::Randomizer;
 use reddsa::frost::redjubjub::RandomizedParams;
+use reddsa::frost::redjubjub::VerifyingKey;
 
 use blstrs::Bls12;
 use ff::Field;
@@ -31,10 +33,10 @@ use outputs::OutputBuilder;
 use spends::{SpendBuilder, UnsignedSpendDescription};
 use value_balances::ValueBalances;
 
-use crate::OutgoingViewKey;
-use crate::ViewKey;
 use crate::serializing::hex_to_bytes;
 use crate::util::str_to_array;
+use crate::OutgoingViewKey;
+use crate::ViewKey;
 use crate::{
     assets::{
         asset::Asset,
@@ -711,6 +713,73 @@ impl ProposedTransaction {
             burns,
         )
     }
+
+    pub fn coordinator_signing_package(
+        &self,
+        verifying_key: VerifyingKey,
+        proof_generation_key: ProofGenerationKey,
+        view_key: ViewKey,
+        outgoing_view_key: OutgoingViewKey,
+        public_address: PublicAddress,
+        commitments: BTreeMap<Identifier, SigningCommitments>,
+    ) -> Result<(jubjub::Fr, SigningPackage), IronfishError> {
+        // Generate randomized public key
+        let public_key_randomness = jubjub::Fr::random(thread_rng());
+
+        let randomized_public_key = redjubjub::PublicKey::read(verifying_key.serialize().as_ref())?
+            .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);
+
+        // Build descriptions
+        let mut unsigned_spends = Vec::with_capacity(self.spends.len());
+        for spend in &self.spends {
+            unsigned_spends.push(spend.build(
+                &proof_generation_key,
+                &view_key,
+                &public_key_randomness,
+                &randomized_public_key,
+            )?);
+        }
+
+        let mut output_descriptions = Vec::with_capacity(self.outputs.len());
+        for output in &self.outputs {
+            output_descriptions.push(output.build(
+                &proof_generation_key,
+                &outgoing_view_key,
+                &public_key_randomness,
+                &randomized_public_key,
+            )?);
+        }
+
+        let mut unsigned_mints = Vec::with_capacity(self.mints.len());
+        for mint in &self.mints {
+            unsigned_mints.push(mint.build(
+                &proof_generation_key,
+                public_address,
+                &public_key_randomness,
+                &randomized_public_key,
+            )?);
+        }
+
+        let mut burn_descriptions = Vec::with_capacity(self.burns.len());
+        for burn in &self.burns {
+            burn_descriptions.push(burn.build());
+        }
+
+        // Create the transaction signature hash
+        let data_to_sign = self.transaction_signature_hash(
+            &unsigned_spends,
+            &output_descriptions,
+            &unsigned_mints,
+            &burn_descriptions,
+            &randomized_public_key,
+        )?;
+
+        // Coordinator generates randomized params on the fly
+        Ok((
+            public_key_randomness,
+            frost::SigningPackage::new(commitments.clone(), &data_to_sign),
+        ))
+    }
 }
 
 /// A transaction that has been published and can be read by anyone, not storing
@@ -1276,7 +1345,10 @@ fn key_package(shares: &BTreeMap<Identifier, SecretShare>) -> HashMap<Identifier
 
 pub fn round_one_participant(signing_share: &str) -> (SigningNonces, SigningCommitments) {
     let mut rng = thread_rng();
-    frost::round1::commit(&SigningShare::deserialize(hex_to_bytes(signing_share).unwrap()).unwrap(), &mut rng)
+    frost::round1::commit(
+        &SigningShare::deserialize(hex_to_bytes(signing_share).unwrap()).unwrap(),
+        &mut rng,
+    )
 }
 
 pub fn round_one(
