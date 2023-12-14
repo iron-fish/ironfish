@@ -1,11 +1,11 @@
 name: Build @ironfish binaries
 
-# on:
-#   push
 on:
-  release:
-    types:
-      - published
+  push
+# on:
+#   release:
+#     types:
+#       - published
 
 jobs:
   build:
@@ -130,9 +130,3 @@ jobs:
           asset_name: ${{ steps.set_paths.outputs.zip }}
           asset_content_type: application/zip
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ steps.set_paths.outputs.name }}
-          path: tools/${{ steps.set_paths.outputs.zip }}
-          if-no-files-found: error
