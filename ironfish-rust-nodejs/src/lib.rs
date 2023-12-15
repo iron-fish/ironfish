@@ -222,7 +222,7 @@ pub fn split_secret(
     for (k, v) in key_packages.iter() {
         signing_shares.insert(
             bytes_to_hex(&k.serialize()),
-            bytes_to_hex(&v.signing_share().serialize()),
+            bytes_to_hex(&v.serialize().unwrap()),
         );
     }
 
@@ -246,8 +246,8 @@ pub struct RoundOneSigningData {
 }
 
 #[napi]
-pub fn frost_round_one(signing_share: String, seed: u32) -> RoundOneSigningData {
-    let (nonce, commitment) = round_one_participant(&signing_share, seed.into());
+pub fn frost_round_one(key_package: String, seed: u32) -> RoundOneSigningData {
+    let (nonce, commitment) = round_one_participant(&key_package, seed.into());
 
     RoundOneSigningData {
         nonce_hiding: bytes_to_hex(&nonce.hiding().serialize()),
