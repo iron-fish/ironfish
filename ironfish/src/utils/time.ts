@@ -48,6 +48,8 @@ const renderSpan = (
     hideMilliseconds?: boolean
   },
 ): string => {
+  time = Math.abs(time)
+
   if (time < 1) {
     return `${MathUtils.round(time, 4)}ms`
   }
