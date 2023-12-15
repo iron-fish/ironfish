@@ -61,18 +61,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Create build.tar.gz for binary
-        id: build
-        run: |
-          mkdir build
-          cd build
-          cp $(node -e "console.log(process.execPath)") ${{ matrix.settings.system != 'windows' && 'node' || 'node.exe' }}
-          npm init -y
-          npm install ironfish
-          tar -czf ../tools/build.tar.gz -C . .
-
       - name: Create random identifier so binary extraction will be unique
         id: identifier
+        shell: bash
         run: |
           identifier=$(awk 'BEGIN {
             srand(); 
@@ -83,6 +74,16 @@ jobs:
             print "";
           }')
           echo "identifier=${identifier}" >> $GITHUB_OUTPUT
+
+      - name: Create build.tar.gz for binary
+        id: build
+        run: |
+          mkdir build
+          cd build
+          cp $(node -e "console.log(process.execPath)") ${{ matrix.settings.system != 'windows' && 'node' || 'node.exe' }}
+          npm init -y
+          npm install ironfish
+          tar -czf ../tools/build.tar.gz -C . .
 
       - name: Create binary
         id: binary
