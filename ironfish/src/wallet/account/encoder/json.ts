@@ -1,6 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { generateKeyFromPrivateKey } from '@ironfish/rust-nodejs'
+import { Assert } from '../../../assert'
 import { RpcAccountImport } from '../../../rpc/routes/wallet/types'
 import { validateAccount } from '../../validator'
 import { AccountImport } from '../../walletdb/accountValue'
@@ -35,6 +37,17 @@ export class JsonEncoder implements AccountEncoder {
             }
           : null,
       }
+
+      if (!accountImport.viewKey) {
+        Assert.isNotNull(
+          accountImport.spendingKey,
+          'Imported account missing both viewKey and spendingKey',
+        )
+
+        const key = generateKeyFromPrivateKey(accountImport.spendingKey)
+        accountImport.viewKey = key.viewKey
+      }
+
       validateAccount(accountImport)
       return accountImport
     } catch (e) {
