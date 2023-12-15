@@ -85,19 +85,6 @@ jobs:
           npm install ironfish
           tar -czf ../tools/build.tar.gz -C . .
 
-      - name: Create random identifier so binary extraction will be unique
-        id: identifier
-        run: |
-          identifier=$(awk 'BEGIN {
-            srand(); 
-            chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-            for (i = 1; i <= 10; i++) {
-                printf "%s", substr(chars, int(rand() * length(chars)) + 1, 1);
-            }
-            print "";
-          }')
-          echo "identifier=${identifier}" >> $GITHUB_OUTPUT
-
       - name: Create binary
         id: binary
         run: |
