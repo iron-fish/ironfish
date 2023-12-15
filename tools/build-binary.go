@@ -50,6 +50,7 @@ import (
 var data embed.FS
 
 var (
+	Identifier           string
 	Command              string
 	UncompressionMessage string
 )
@@ -58,8 +59,8 @@ func main() {
 
 	var applicationDirectory string
 	for extractionAttempt := 0; true; extractionAttempt++ {
-		lock := path.Join(os.TempDir(), "caxac/locks", strconv.Itoa(extractionAttempt))
-		applicationDirectory = path.Join(os.TempDir(), "caxac/applications", strconv.Itoa(extractionAttempt))
+		lock := path.Join(os.TempDir(), "caxac/locks", Identifier, strconv.Itoa(extractionAttempt))
+		applicationDirectory = path.Join(os.TempDir(), "caxac/applications", Identifier, strconv.Itoa(extractionAttempt))
 		applicationDirectoryFileInfo, err := os.Stat(applicationDirectory)
 		if err != nil && !errors.Is(err, os.ErrNotExist) {
 			log.Fatalf("caxac stub: Failed to find information about the application directory: %v", err)

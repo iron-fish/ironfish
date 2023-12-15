@@ -71,10 +71,23 @@ jobs:
           npm install ironfish
           tar -czf ../tools/build.tar.gz -C . .
 
+      - name: Create random identifier so binary extraction will be unique
+        id: identifier
+        run: |
+          identifier=$(awk 'BEGIN {
+            srand(); 
+            chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+            for (i = 1; i <= 10; i++) {
+                printf "%s", substr(chars, int(rand() * length(chars)) + 1, 1);
+            }
+            print "";
+          }')
+          echo "identifier=${identifier}" >> $GITHUB_OUTPUT
+
       - name: Create binary
         id: binary
         run: |
-          go build -ldflags "-X 'main.Identifier=identifier' -X 'main.Command={{caxac}}/node --enable-source-maps {{caxac}}/node_modules/ironfish/bin/run' -X 'main.UncompressionMessage=Unpackaging ironfish application, this may take a minute when run for the first time.'" -o tools/${{ matrix.settings.system != 'windows' && 'ironfish' || 'ironfish.exe' }} tools/build-binary.go 
+          go build -ldflags "-X 'main.Identifier=${{ steps.identifier.outputs.identifier }}' -X 'main.Command={{caxac}}/${{ matrix.settings.system != 'windows' && 'node' || 'node.exe' }} --enable-source-maps {{caxac}}/node_modules/ironfish/bin/run' -X 'main.UncompressionMessage=Unpackaging ironfish application, this may take a minute when run for the first time.'" -o tools/${{ matrix.settings.system != 'windows' && 'ironfish' || 'ironfish.exe' }} tools/build-binary.go 
 
       - name: Set paths
         id: set_paths
