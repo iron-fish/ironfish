@@ -12,6 +12,7 @@ import {
   RawTransactionSerde,
   RpcClient,
   RpcResponseEnded,
+  TimeUtils,
   Transaction,
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
@@ -136,12 +137,8 @@ export class CombineNotesCommand extends IronfishCommand {
         3,
     )
 
-    const end = BenchUtils.end(start)
-
-    this.log(`Benchmark took ${end}ms`)
-
     CliUx.ux.action.stop()
-    this.log(`Spend post time: ${Math.ceil(delta)}ms`)
+
     return delta
   }
 
@@ -437,11 +434,41 @@ export class CombineNotesCommand extends IronfishCommand {
 
     displayTransactionSummary(raw, Asset.nativeId().toString('hex'), amount, from, to, memo)
 
+    const estimateInMs = Math.ceil(spendPostTime * raw.spends.length)
+
+    this.log(
+      `Time to send: ${TimeUtils.renderSpan(estimateInMs, {
+        hideMilliseconds: true,
+      })}`,
+    )
+
     if (!(await CliUx.ux.confirm('Do you confirm (Y/N)?'))) {
       this.error('Transaction aborted.')
     }
 
-    CliUx.ux.action.start('Sending the transaction')
+    CliUx.ux.action.start(`Sending the transaction`)
+
+    const startTime = Date.now()
+
+    const startTimer = () => {
+      const timerInterval = setInterval(() => {
+        const durationInMs = Date.now() - startTime
+
+        const timeRemaining = estimateInMs - durationInMs
+
+        if (timeRemaining > 0) {
+          const span = TimeUtils.renderSpan(timeRemaining, { hideMilliseconds: true })
+          CliUx.ux.action.status = `Time left: ${span}`
+        } else {
+          const span = TimeUtils.renderSpan(timeRemaining * -1, { hideMilliseconds: true })
+          CliUx.ux.action.status = `Extra time: ${span || 0}`
+        }
+      }, 1000)
+
+      return timerInterval
+    }
+
+    const timer = startTimer()
 
     const response = await client.wallet.postTransaction({
       transaction: RawTransactionSerde.serialize(raw).toString('hex'),
@@ -451,7 +478,13 @@ export class CombineNotesCommand extends IronfishCommand {
     const bytes = Buffer.from(response.content.transaction, 'hex')
     const transaction = new Transaction(bytes)
 
-    CliUx.ux.action.stop()
+    clearInterval(timer)
+
+    CliUx.ux.action.stop(
+      `${TimeUtils.renderSpan(Date.now() - startTime, {
+        hideMilliseconds: true,
+      })}`,
+    )
 
     if (response.content.accepted === false) {
       this.warn(
