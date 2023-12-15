@@ -99,7 +99,8 @@ export interface RoundOneSigningData {
   commitmentHiding: string
   commitmentBinding: string
 }
-export function frostRoundOne(signingShare: string): RoundOneSigningData
+export function frostRoundOne(signingShare: string, seed: number): RoundOneSigningData
+export function frostRoundTwo(signingPackage: string, signingShare: string, keyPackage: string, publicKeyRandomness: string, seed: number): string
 export class BoxKeyPair {
   constructor()
   static fromHex(secretHex: string): BoxKeyPair

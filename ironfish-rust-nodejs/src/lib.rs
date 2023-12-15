@@ -13,6 +13,7 @@ use ironfish::serializing::bytes_to_hex;
 use ironfish::serializing::hex_to_bytes;
 use ironfish::transaction::round_one;
 use ironfish::transaction::round_one_participant;
+use ironfish::transaction::round_two_participant;
 use ironfish::util::proof_generation_key_to_bytes;
 use ironfish::util::str_to_array;
 use ironfish::PublicAddress;
@@ -245,8 +246,8 @@ pub struct RoundOneSigningData {
 }
 
 #[napi]
-pub fn frost_round_one(signing_share: String) -> RoundOneSigningData {
-    let (nonce, commitment) = round_one_participant(&signing_share);
+pub fn frost_round_one(signing_share: String, seed: u32) -> RoundOneSigningData {
+    let (nonce, commitment) = round_one_participant(&signing_share, seed.into());
 
     RoundOneSigningData {
         nonce_hiding: bytes_to_hex(&nonce.hiding().serialize()),
@@ -254,4 +255,23 @@ pub fn frost_round_one(signing_share: String) -> RoundOneSigningData {
         commitment_hiding: bytes_to_hex(&commitment.hiding().serialize()),
         commitment_binding: bytes_to_hex(&commitment.binding().serialize()),
     }
+}
+
+#[napi]
+pub fn frost_round_two(
+    signing_package: String,
+    signing_share: String,
+    key_package: String,
+    public_key_randomness: String,
+    seed: u32,
+) -> String {
+    let signature_share = round_two_participant(
+        &signing_package,
+        &signing_share,
+        &key_package,
+        &public_key_randomness,
+        seed.into(),
+    );
+
+    bytes_to_hex(&signature_share.serialize())
 }
