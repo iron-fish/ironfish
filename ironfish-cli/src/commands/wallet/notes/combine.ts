@@ -118,18 +118,31 @@ export class CombineNotesCommand extends IronfishCommand {
       notes: [notes[0].noteHash, notes[1].noteHash],
     }
 
-    let delta = 0
+    const start = BenchUtils.start()
+    const promisesTxn1 = []
+    const promisesTxn2 = []
 
     for (let i = 0; i < 3; i++) {
-      const txn1InMs = await this.measureTransactionPostTime(client, txn1Params, feeRates)
-      const txn2InMs = await this.measureTransactionPostTime(client, txn2Params, feeRates)
-
-      delta += txn2InMs - txn1InMs
+      promisesTxn1.push(this.measureTransactionPostTime(client, txn1Params, feeRates))
+      promisesTxn2.push(this.measureTransactionPostTime(client, txn2Params, feeRates))
     }
 
-    CliUx.ux.action.stop()
+    const resultTxn1 = await Promise.all(promisesTxn1)
+    const resultTxn2 = await Promise.all(promisesTxn2)
 
-    return Math.ceil(delta / 3)
+    const delta = Math.ceil(
+      (resultTxn2.reduce((acc, curr) => acc + curr, 0) -
+        resultTxn1.reduce((acc, curr) => acc + curr, 0)) /
+        3,
+    )
+
+    const end = BenchUtils.end(start)
+
+    this.log(`Benchmark took ${end}ms`)
+
+    CliUx.ux.action.stop()
+    this.log(`Spend post time: ${Math.ceil(delta)}ms`)
+    return delta
   }
 
   private async measureTransactionPostTime(
