@@ -18,7 +18,10 @@ use frost::Identifier;
 use frost::SigningKey;
 use frost::SigningPackage;
 use ironfish_zkp::ProofGenerationKey;
+use rand::rngs::StdRng;
 use rand::rngs::ThreadRng;
+use rand::CryptoRng;
+use rand::SeedableRng;
 use reddsa::frost::redjubjub as frost;
 use reddsa::frost::redjubjub::aggregate;
 use reddsa::frost::redjubjub::keys::SigningShare;
@@ -36,6 +39,7 @@ use value_balances::ValueBalances;
 
 use crate::serializing::bytes_to_hex;
 use crate::serializing::hex_to_bytes;
+use crate::serializing::hex_to_vec_bytes;
 use crate::util::str_to_array;
 use crate::OutgoingViewKey;
 use crate::ViewKey;
@@ -1381,10 +1385,15 @@ fn key_package(shares: &BTreeMap<Identifier, SecretShare>) -> HashMap<Identifier
     key_packages
 }
 
-pub fn round_one_participant(signing_share: &str) -> (SigningNonces, SigningCommitments) {
-    let mut rng = thread_rng();
+pub fn round_one_participant(
+    key_package_str: &str,
+    seed: u64,
+) -> (SigningNonces, SigningCommitments) {
+    let key_package = KeyPackage::deserialize(&hex_to_vec_bytes(key_package_str).unwrap()).unwrap();
+
+    let mut rng = StdRng::seed_from_u64(seed);
     frost::round1::commit(
-        &SigningShare::deserialize(hex_to_bytes(signing_share).unwrap()).unwrap(),
+        &key_package.signing_share(),
         &mut rng,
     )
 }
@@ -1426,4 +1435,25 @@ fn round_two(
     }
 
     (signing_package, signature_shares)
+}
+
+pub fn round_two_participant(
+    signing_package: &str,
+    signing_share: &str,
+    key_package: &str,
+    public_key_randomness: &str,
+    seed: u64,
+) -> SignatureShare {
+    let mut rng = StdRng::seed_from_u64(seed);
+
+    frost::round2::sign(
+        &SigningPackage::deserialize(&hex_to_vec_bytes(signing_package).unwrap()[..]).unwrap(),
+        &SigningNonces::new(
+            &SigningShare::deserialize(hex_to_bytes::<32>(signing_share).unwrap()).unwrap(),
+            &mut rng,
+        ),
+        &KeyPackage::deserialize(&hex_to_vec_bytes(key_package).unwrap()[..]).unwrap(),
+        Randomizer::deserialize(&hex_to_bytes::<32>(public_key_randomness).unwrap()).unwrap(),
+    )
+    .unwrap()
 }

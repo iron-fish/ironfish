@@ -1141,6 +1141,8 @@ describe('Wallet', () => {
 
   describe.only('frost', () => {
     it('can do a multisig transaction', async () => {
+      const seed = 420
+
       const { node } = await nodeTest.createSetup()
       const account = await useAccountFixture(node.wallet)
       const coordinatorSaplingKey = generateKey()
@@ -1166,7 +1168,7 @@ describe('Wallet', () => {
       const roundOneSigningData: Record<string, RoundOneSigningData> = {}
       for (const identifier in trustedDealerPackage.signingShares) {
         const signingShare = trustedDealerPackage.signingShares[identifier]
-        roundOneSigningData[identifier] = frostRoundOne(signingShare)
+        roundOneSigningData[identifier] = frostRoundOne(signingShare, seed)
       }
 
       console.log(roundOneSigningData)
