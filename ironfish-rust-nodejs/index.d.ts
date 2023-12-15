@@ -57,7 +57,7 @@ export interface SigningPackageCommitments {
 }
 export interface SigningPackage {
   publicKeyRandomness: string
-  message: string
+  signingPackage: string
 }
 export function verifyTransactions(serializedTransactions: Array<Buffer>): boolean
 export const enum LanguageCode {
@@ -84,7 +84,12 @@ export function generateKeyFromPrivateKey(privateKey: string): Key
 export function initializeSapling(): void
 export function isValidPublicAddress(hexAddress: string): boolean
 export interface TrustedDealerKeyPackages {
+  verifyingKey: string
   proofGenerationKey: string
+  viewKey: string
+  incomingViewKey: string
+  outgoingViewKey: string
+  publicAddress: string
   signingShares: Record<string, string>
 }
 export function splitSecret(coordinatorSaplingKey: string, minSigners: number, maxSigners: number, secret: string): TrustedDealerKeyPackages

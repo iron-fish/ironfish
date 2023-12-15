@@ -729,7 +729,7 @@ impl ProposedTransaction {
         outgoing_view_key_str: &str,
         public_address_str: &str,
         native_commitments: HashMap<String, SigningCommitment>,
-    ) -> Result<(jubjub::Fr, SigningPackage), IronfishError> {
+    ) -> Result<(jubjub::Fr, Vec<u8>), IronfishError> {
         // Generate randomized public key
         let public_key_randomness = jubjub::Fr::random(thread_rng());
 
@@ -813,7 +813,9 @@ impl ProposedTransaction {
         // Coordinator generates randomized params on the fly
         Ok((
             public_key_randomness,
-            frost::SigningPackage::new(commitments, &data_to_sign),
+            frost::SigningPackage::new(commitments, &data_to_sign)
+                .serialize()
+                .unwrap(),
         ))
     }
 }

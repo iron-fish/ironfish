@@ -1,7 +1,17 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Asset, ASSET_ID_LENGTH, frostRoundOne, generateKey, RoundOneSigningData, splitSecret } from '@ironfish/rust-nodejs'
+import {
+  Asset,
+  ASSET_ID_LENGTH,
+  frostRoundOne,
+  generateKey,
+  RoundOneSigningData,
+  SigningCommitment,
+  SigningPackageCommitments,
+  splitSecret,
+} from '@ironfish/rust-nodejs'
+import { v4 as uuid } from 'uuid'
 import { Target } from '../primitives/target'
 import {
   createNodeTest,
@@ -1139,9 +1149,20 @@ describe('Wallet', () => {
         coordinatorSaplingKey.spendingKey,
         2,
         3,
-        account.spendingKey
+        account.spendingKey,
       )
 
+      // import view-only account using shared multisig keys
+      const multiSigAccount = await node.wallet.importAccount({
+        version: 2,
+        id: uuid(),
+        name: 'multisig',
+        spendingKey: null,
+        createdAt: null,
+        ...trustedDealerPackage,
+      })
+
+      // frost round one
       const roundOneSigningData: Record<string, RoundOneSigningData> = {}
       for (const identifier in trustedDealerPackage.signingShares) {
         const signingShare = trustedDealerPackage.signingShares[identifier]
@@ -1149,6 +1170,81 @@ describe('Wallet', () => {
       }
 
       console.log(roundOneSigningData)
+
+      // mine block to send IRON to multisig account
+      const miner = await useAccountFixture(node.wallet, 'miner')
+      const block = await useMinerBlockFixture(node.chain, undefined, miner)
+      await expect(node.chain).toAddBlock(block)
+      await node.wallet.updateHead()
+
+      const transaction = await node.wallet.send({
+        account: miner,
+        outputs: [
+          {
+            publicAddress: multiSigAccount.publicAddress,
+            amount: BigInt(2),
+            memo: '',
+            assetId: Asset.nativeId(),
+          },
+        ],
+        fee: BigInt(0),
+      })
+
+      // Create a block with a miner's fee and the transaction to send IRON to the multisig account
+      const minersfee2 = await nodeTest.strategy.createMinersFee(
+        transaction.fee(),
+        block.header.sequence + 1,
+        generateKey().spendingKey,
+      )
+      const newBlock2 = await node.chain.newBlock([transaction], minersfee2)
+      const addResult2 = await node.chain.addBlock(newBlock2)
+      expect(addResult2.isAdded).toBeTruthy()
+
+      await node.wallet.updateHead()
+
+      // verify multisig account can see its IRON
+      expect(await node.wallet.getBalance(multiSigAccount, Asset.nativeId())).toMatchObject({
+        unconfirmed: BigInt(2),
+      })
+
+      // create transaction from multisig account back to miner
+      const rawTransaction = await node.wallet.createTransaction({
+        account: multiSigAccount,
+        outputs: [
+          {
+            publicAddress: miner.publicAddress,
+            amount: 2n,
+            memo: '',
+            assetId: Asset.nativeId(),
+          },
+        ],
+        expiration: 0,
+        fee: 0n,
+      })
+
+      const nativeTransaction = rawTransaction.build()
+
+      const signingCommitments: Record<string, SigningCommitment> = {}
+      for (const identifier in roundOneSigningData) {
+        const signingData = roundOneSigningData[identifier]
+        signingCommitments[identifier] = {
+          binding: signingData.commitmentBinding,
+          hiding: signingData.commitmentHiding,
+        }
+      }
+
+      const signingPackageCommitments = { commitments: signingCommitments }
+
+      const signingPackage = nativeTransaction.createCoordinatorSigningPackage(
+        trustedDealerPackage.verifyingKey,
+        trustedDealerPackage.proofGenerationKey,
+        trustedDealerPackage.viewKey,
+        trustedDealerPackage.outgoingViewKey,
+        trustedDealerPackage.publicAddress,
+        signingPackageCommitments,
+      )
+
+      console.log(signingPackage)
     })
   })
 })

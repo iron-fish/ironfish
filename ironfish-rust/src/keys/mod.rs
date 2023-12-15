@@ -281,7 +281,15 @@ pub fn split_spender_key(
     min_signers: u16,
     max_signers: u16,
     secret: Vec<u8>,
-) -> (ProofGenerationKey, HashMap<Identifier, KeyPackage>) {
+) -> (
+    [u8; 32],
+    ProofGenerationKey,
+    ViewKey,
+    IncomingViewKey,
+    OutgoingViewKey,
+    PublicAddress,
+    HashMap<Identifier, KeyPackage>,
+) {
     let secret_config = SecretShareConfig {
         min_signers,
         max_signers,
@@ -301,5 +309,29 @@ pub fn split_spender_key(
         nsk: coordinator_sapling_key.sapling_proof_generation_key().nsk,
     };
 
-    (proof_generation_key, key_packages)
+    let nullifier_deriving_key = *PROOF_GENERATION_KEY_GENERATOR
+        * coordinator_sapling_key.sapling_proof_generation_key().nsk;
+
+    let view_key = ViewKey {
+        authorizing_key,
+        nullifier_deriving_key,
+    };
+
+    let incoming_viewing_key = IncomingViewKey {
+        view_key: SaplingKey::hash_viewing_key(&authorizing_key, &nullifier_deriving_key).unwrap(),
+    };
+
+    let outgoing_view_key: OutgoingViewKey = coordinator_sapling_key.outgoing_view_key().clone();
+
+    let public_address = incoming_viewing_key.public_address();
+
+    (
+        authorizing_key.to_bytes(),
+        proof_generation_key,
+        view_key,
+        incoming_viewing_key,
+        outgoing_view_key,
+        public_address,
+        key_packages,
+    )
 }

@@ -17,6 +17,7 @@ use ironfish::util::proof_generation_key_to_bytes;
 use ironfish::util::str_to_array;
 use ironfish::PublicAddress;
 use ironfish::SaplingKey;
+use ironfish::ViewKey;
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 
@@ -180,7 +181,12 @@ pub fn is_valid_public_address(hex_address: String) -> bool {
 
 #[napi(object)]
 pub struct TrustedDealerKeyPackages {
+    pub verifying_key: String,
     pub proof_generation_key: String,
+    pub view_key: String,
+    pub incoming_view_key: String,
+    pub outgoing_view_key: String,
+    pub public_address: String,
     pub signing_shares: HashMap<String, String>,
 }
 
@@ -193,7 +199,15 @@ pub fn split_secret(
 ) -> TrustedDealerKeyPackages {
     let coordinator_key = SaplingKey::new(str_to_array(&coordinator_sapling_key)).unwrap();
     let secret_spending_key = SaplingKey::new(str_to_array(&secret)).unwrap();
-    let (proof_generation_key, key_packages) = split_spender_key(
+    let (
+        verifying_key,
+        proof_generation_key,
+        view_key,
+        incoming_view_key,
+        outgoing_view_key,
+        public_address,
+        key_packages,
+    ) = split_spender_key(
         coordinator_key,
         min_signers,
         max_signers,
@@ -212,7 +226,12 @@ pub fn split_secret(
     }
 
     TrustedDealerKeyPackages {
+        verifying_key: bytes_to_hex(&verifying_key),
         proof_generation_key: bytes_to_hex(&proof_generation_key_to_bytes(proof_generation_key)),
+        view_key: view_key.hex_key(),
+        incoming_view_key: incoming_view_key.hex_key(),
+        outgoing_view_key: outgoing_view_key.hex_key(),
+        public_address: public_address.hex_public_address(),
         signing_shares,
     }
 }

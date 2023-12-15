@@ -180,7 +180,7 @@ pub struct SigningPackageCommitments {
 #[napi(object)]
 pub struct SigningPackage {
     pub public_key_randomness: String,
-    pub message: String,
+    pub signing_package: String,
 }
 
 #[napi]
@@ -367,7 +367,7 @@ impl NativeTransaction {
 
         Ok(SigningPackage {
             public_key_randomness: public_key_randomness.to_string(),
-            message: bytes_to_hex(signing_package.message()),
+            signing_package: bytes_to_hex(&signing_package),
         })
     }
 }
