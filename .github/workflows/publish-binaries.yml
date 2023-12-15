@@ -1,11 +1,11 @@
 name: Build @ironfish binaries
 
-on:
-  push
 # on:
-#   release:
-#     types:
-#       - published
+#   push
+on:
+  release:
+    types:
+      - published
 
 jobs:
   build:
@@ -129,4 +129,3 @@ jobs:
           asset_path: ${{ steps.set_paths.outputs.zip }}
           asset_name: ${{ steps.set_paths.outputs.zip }}
           asset_content_type: application/zip
-
