@@ -119,7 +119,6 @@ export class CombineNotesCommand extends IronfishCommand {
       notes: [notes[0].noteHash, notes[1].noteHash],
     }
 
-    const start = BenchUtils.start()
     const promisesTxn1 = []
     const promisesTxn2 = []
 
