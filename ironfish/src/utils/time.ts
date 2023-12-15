@@ -48,10 +48,12 @@ const renderSpan = (
     hideMilliseconds?: boolean
   },
 ): string => {
+  const isNegative = time < 0
+
   time = Math.abs(time)
 
   if (time < 1) {
-    return `${MathUtils.round(time, 4)}ms`
+    return `${isNegative ? '-' : ''}${MathUtils.round(time, 4)}ms`
   }
 
   const parts = []
@@ -87,6 +89,10 @@ const renderSpan = (
       }
     }
     magnitude = Math.max(magnitude, 1)
+  }
+
+  if (isNegative && parts.length > 0) {
+    parts[0] = `-${parts[0]}`
   }
 
   return parts.join(' ')
