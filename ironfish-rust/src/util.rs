@@ -5,6 +5,7 @@ use std::cmp;
 
 use group::GroupEncoding;
 use ironfish_zkp::ProofGenerationKey;
+use jubjub::{SubgroupPoint, Fr};
 
 /// Helper function to create an array from a string. If the string is not as
 /// large as the array, it will be filled with 0. If the string is too large, it
@@ -20,13 +21,25 @@ pub fn str_to_array<const SIZE: usize>(string: &str) -> [u8; SIZE] {
 }
 
 pub fn proof_generation_key_to_bytes(proof_generation_key: ProofGenerationKey) -> [u8; 64] {
-    let mut proof_generation_key_bytes = [0; 64];
+    let mut proof_generation_key_bytes: [u8; 64] = [0; 64];
     proof_generation_key_bytes[0..32].copy_from_slice(&proof_generation_key.ak.to_bytes());
     proof_generation_key_bytes[32..].copy_from_slice(&proof_generation_key.nsk.to_bytes());
 
     proof_generation_key_bytes
 }
 
+pub fn bytes_to_proof_generation_key(proof_generation_key_bytes: [u8; 64]) -> ProofGenerationKey {
+    let mut ak_bytes: [u8; 32] = [0; 32];
+    let mut nsk_bytes: [u8; 32] = [0; 32];
+
+    ak_bytes[0..32].copy_from_slice(&proof_generation_key_bytes[0..32]);
+    nsk_bytes[0..32].copy_from_slice(&proof_generation_key_bytes[32..64]);
+
+    let ak = SubgroupPoint::from_bytes(&ak_bytes).unwrap();
+    let nsk = Fr::from_bytes(&nsk_bytes).unwrap();
+
+    ProofGenerationKey { ak, nsk }
+}
 #[cfg(test)]
 mod test {
     use super::str_to_array;

@@ -17,7 +17,7 @@ use ironfish_zkp::constants::{
 use ironfish_zkp::ProofGenerationKey;
 use jubjub::SubgroupPoint;
 use rand::prelude::*;
-use reddsa::frost::redjubjub::keys::{IdentifierList, KeyPackage};
+use reddsa::frost::redjubjub::keys::{IdentifierList, KeyPackage, PublicKeyPackage};
 use reddsa::frost::redjubjub::{Identifier, JubjubBlake2b512};
 
 use std::collections::HashMap;
@@ -289,6 +289,7 @@ pub fn split_spender_key(
     OutgoingViewKey,
     PublicAddress,
     HashMap<Identifier, KeyPackage>,
+    PublicKeyPackage,
 ) {
     let secret_config = SecretShareConfig {
         min_signers,
@@ -333,5 +334,6 @@ pub fn split_spender_key(
         outgoing_view_key,
         public_address,
         key_packages,
+        pubkeys,
     )
 }

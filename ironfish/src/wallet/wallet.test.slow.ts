@@ -5,6 +5,7 @@ import {
   Asset,
   ASSET_ID_LENGTH,
   frostRoundOne,
+  frostRoundTwo,
   generateKey,
   RoundOneSigningData,
   SigningCommitment,
@@ -1166,9 +1167,9 @@ describe('Wallet', () => {
 
       // frost round one
       const roundOneSigningData: Record<string, RoundOneSigningData> = {}
-      for (const identifier in trustedDealerPackage.signingShares) {
-        const signingShare = trustedDealerPackage.signingShares[identifier]
-        roundOneSigningData[identifier] = frostRoundOne(signingShare, seed)
+      for (const identifier in trustedDealerPackage.keyPackages) {
+        const keyPackage = trustedDealerPackage.keyPackages[identifier]
+        roundOneSigningData[identifier] = frostRoundOne(keyPackage, seed)
       }
 
       console.log(roundOneSigningData)
@@ -1246,7 +1247,30 @@ describe('Wallet', () => {
         signingPackageCommitments,
       )
 
+      const signatureShares: Record<string, string> = {}
+      for (const identifier in trustedDealerPackage.keyPackages) {
+        const keyPackage = trustedDealerPackage.keyPackages[identifier]
+        signatureShares[identifier] = frostRoundTwo(
+          signingPackage.signingPackage,
+          keyPackage,
+          signingPackage.publicKeyRandomness,
+          seed,
+        )
+      }
       console.log(signingPackage)
+
+      nativeTransaction.postFrostAggregate(
+        trustedDealerPackage.publicKeyPackage,
+        trustedDealerPackage.proofGenerationKey,
+        trustedDealerPackage.viewKey,
+        trustedDealerPackage.outgoingViewKey,
+        trustedDealerPackage.publicAddress,
+        signingPackage.signingPackage,
+        signatureShares,
+        signingPackage.publicKeyRandomness,
+        trustedDealerPackage.publicAddress,
+        1n,
+      )
     })
   })
 })

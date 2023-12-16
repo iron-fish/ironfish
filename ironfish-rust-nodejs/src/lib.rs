@@ -188,7 +188,8 @@ pub struct TrustedDealerKeyPackages {
     pub incoming_view_key: String,
     pub outgoing_view_key: String,
     pub public_address: String,
-    pub signing_shares: HashMap<String, String>,
+    pub key_packages: HashMap<String, String>,
+    pub public_key_package: String,
 }
 
 #[napi]
@@ -208,6 +209,7 @@ pub fn split_secret(
         outgoing_view_key,
         public_address,
         key_packages,
+        public_key_package,
     ) = split_spender_key(
         coordinator_key,
         min_signers,
@@ -218,9 +220,9 @@ pub fn split_secret(
             .to_vec(),
     );
 
-    let mut signing_shares = HashMap::new();
+    let mut key_packages_serialized = HashMap::new();
     for (k, v) in key_packages.iter() {
-        signing_shares.insert(
+        key_packages_serialized.insert(
             bytes_to_hex(&k.serialize()),
             bytes_to_hex(&v.serialize().unwrap()),
         );
@@ -233,7 +235,8 @@ pub fn split_secret(
         incoming_view_key: incoming_view_key.hex_key(),
         outgoing_view_key: outgoing_view_key.hex_key(),
         public_address: public_address.hex_public_address(),
-        signing_shares,
+        key_packages: key_packages_serialized,
+        public_key_package: bytes_to_hex(&public_key_package.serialize().unwrap()),
     }
 }
 
@@ -260,14 +263,12 @@ pub fn frost_round_one(key_package: String, seed: u32) -> RoundOneSigningData {
 #[napi]
 pub fn frost_round_two(
     signing_package: String,
-    signing_share: String,
     key_package: String,
     public_key_randomness: String,
     seed: u32,
 ) -> String {
     let signature_share = round_two_participant(
         &signing_package,
-        &signing_share,
         &key_package,
         &public_key_randomness,
         seed.into(),
@@ -275,3 +276,5 @@ pub fn frost_round_two(
 
     bytes_to_hex(&signature_share.serialize())
 }
+
+

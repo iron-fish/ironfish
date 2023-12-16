@@ -20,12 +20,9 @@ use frost::SigningPackage;
 use ironfish_zkp::ProofGenerationKey;
 use rand::rngs::StdRng;
 use rand::rngs::ThreadRng;
-use rand::CryptoRng;
 use rand::SeedableRng;
 use reddsa::frost::redjubjub as frost;
 use reddsa::frost::redjubjub::aggregate;
-use reddsa::frost::redjubjub::keys::SigningShare;
-use reddsa::frost::redjubjub::keys::VerifyingShare;
 use reddsa::frost::redjubjub::round1::NonceCommitment;
 use reddsa::frost::redjubjub::round2::Randomizer;
 use reddsa::frost::redjubjub::RandomizedParams;
@@ -37,12 +34,11 @@ use outputs::OutputBuilder;
 use spends::{SpendBuilder, UnsignedSpendDescription};
 use value_balances::ValueBalances;
 
-use crate::serializing::bytes_to_hex;
 use crate::serializing::hex_to_bytes;
 use crate::serializing::hex_to_vec_bytes;
-use crate::util::str_to_array;
 use crate::OutgoingViewKey;
 use crate::ViewKey;
+use crate::util::bytes_to_proof_generation_key;
 use crate::{
     assets::{
         asset::Asset,
@@ -273,7 +269,7 @@ impl ProposedTransaction {
 
         self._partial_post(spender_key)
     }
-
+    
     pub fn post_frost(
         &mut self,
         key_packages: &HashMap<Identifier, KeyPackage>,
@@ -324,6 +320,195 @@ impl ProposedTransaction {
             outgoing_view_key,
             public_address,
         )
+    }
+
+
+    pub fn post_frost_aggregate(
+        &mut self,
+        public_key_package: &str,
+        proof_generation_key_str: &str,
+        view_key_str: &str,
+        outgoing_view_key_str: &str,
+        public_address_str: &str,
+        authorizing_signing_package_str: &str,
+        authorizing_signature_shares_hashmap: HashMap<String, String>,
+        public_key_randomness_str: &str,
+        change_goes_to: Option<PublicAddress>,
+        intended_transaction_fee: u64,
+    ) -> Result<Transaction, IronfishError> {
+
+        let pubkeys = PublicKeyPackage::deserialize(&hex_to_vec_bytes(public_key_package)?).unwrap();
+        let proof_generation_key = bytes_to_proof_generation_key(hex_to_bytes(proof_generation_key_str)?);
+        let view_key = ViewKey::from_hex(view_key_str)?;
+        let outgoing_view_key = OutgoingViewKey::from_hex(outgoing_view_key_str)?;
+        let public_address = PublicAddress::from_hex(public_address_str)?;
+        let authorizing_signing_package = SigningPackage::deserialize(&hex_to_vec_bytes(authorizing_signing_package_str)?).unwrap();
+        let public_key_randomness = jubjub::Fr::from_bytes(&hex_to_bytes(public_key_randomness_str)?).unwrap();
+        let authorizing_signature_shares = BTreeMap::<Identifier, SignatureShare>::from_iter(
+            authorizing_signature_shares_hashmap.iter().map(
+                |(k, v)| 
+                (Identifier::deserialize(&hex_to_bytes(k).unwrap()).unwrap(), 
+                SignatureShare::deserialize(hex_to_bytes(v).unwrap()).unwrap())
+            )
+        );
+
+
+        let mut change_notes = vec![];
+
+        for (asset_id, value) in self.value_balances.iter() {
+            let is_native_asset = asset_id == &NATIVE_ASSET;
+
+            let change_amount = match is_native_asset {
+                true => *value - i64::try_from(intended_transaction_fee)?,
+                false => *value,
+            };
+
+            if change_amount < 0 {
+                return Err(IronfishError::new(IronfishErrorKind::InvalidBalance));
+            }
+            if change_amount > 0 {
+                let change_address = change_goes_to.unwrap_or_else(|| public_address);
+                let change_note = Note::new(
+                    change_address,
+                    change_amount as u64, // we checked it was positive
+                    "",
+                    *asset_id,
+                    public_address,
+                );
+
+                change_notes.push(change_note);
+            }
+        }
+
+        for change_note in change_notes {
+            self.add_output(change_note)?;
+        }
+        // let public_key_randomness = jubjub::Fr::random(thread_rng());
+
+        // let min_signers = 2;
+
+        // Save the nonces and get commitments to aggregate by the coordinator
+        // let (nonces, commitments) = round_one(&key_packages);
+
+        // Generate randomized public key
+
+        // The public key after randomization has been applied. This is used
+        // during signature verification. Referred to as `rk` in the literature
+        // Calculated from the authorizing key and the public_key_randomness.
+        let randomized_public_key =
+            redjubjub::PublicKey::read(pubkeys.verifying_key().serialize().as_ref())?
+                .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);
+
+        // Build descriptions
+        let mut unsigned_spends = Vec::with_capacity(self.spends.len());
+        for spend in &self.spends {
+            unsigned_spends.push(spend.build(
+                &proof_generation_key,
+                &view_key,
+                &public_key_randomness,
+                &randomized_public_key,
+            )?);
+        }
+
+        let mut output_descriptions = Vec::with_capacity(self.outputs.len());
+        for output in &self.outputs {
+            output_descriptions.push(output.build(
+                &proof_generation_key,
+                &outgoing_view_key,
+                &public_key_randomness,
+                &randomized_public_key,
+            )?);
+        }
+
+        let mut unsigned_mints = Vec::with_capacity(self.mints.len());
+        for mint in &self.mints {
+            unsigned_mints.push(mint.build(
+                &proof_generation_key,
+                public_address,
+                &public_key_randomness,
+                &randomized_public_key,
+            )?);
+        }
+
+        let mut burn_descriptions = Vec::with_capacity(self.burns.len());
+        for burn in &self.burns {
+            burn_descriptions.push(burn.build());
+        }
+
+        // Create the transaction signature hash
+        let data_to_sign = self.transaction_signature_hash(
+            &unsigned_spends,
+            &output_descriptions,
+            &unsigned_mints,
+            &burn_descriptions,
+            &randomized_public_key,
+        )?;
+
+        let randomizer = Randomizer::deserialize(&public_key_randomness.to_bytes()).unwrap();
+        let randomized_params =
+            RandomizedParams::from_randomizer(pubkeys.verifying_key(), randomizer);
+
+        // Coordinator generates randomized params on the fly
+        // let authorizing_signing_package =
+        //     frost::SigningPackage::new(commitments.clone(), &data_to_sign);
+
+        // // Use the previously saved nonces and commitments to aggregate a signature
+        // let (authorizing_signing_package, authorizing_signature_shares) = round_two(
+        //     nonces,
+        //     &key_packages,
+        //     authorizing_signing_package,
+        //     randomizer,
+        // );
+        let authorizing_group_signature = aggregate(
+            &authorizing_signing_package,
+            &authorizing_signature_shares,
+            &pubkeys,
+            &randomized_params,
+        )
+        .unwrap();
+
+        // Verify the signature with the public keys
+        let verify_signature = randomized_params
+            .randomized_verifying_key()
+            .verify(&data_to_sign, &authorizing_group_signature);
+
+        assert!(verify_signature.is_ok());
+
+        let signature = { Signature::read(&mut authorizing_group_signature.serialize().as_ref())? };
+
+        // Create and verify binding signature keys
+        let (binding_signature_private_key, binding_signature_public_key) =
+            self.binding_signature_keys(&unsigned_mints, &burn_descriptions)?;
+
+        let binding_signature = self.binding_signature(
+            &binding_signature_private_key,
+            &binding_signature_public_key,
+            &data_to_sign,
+        )?;
+
+        // Sign spends now that we have the data needed to be signed
+        let mut spend_descriptions = Vec::with_capacity(unsigned_spends.len());
+        for spend in unsigned_spends.drain(0..) {
+            spend_descriptions.push(spend.sign_frost(signature).unwrap());
+        }
+
+        // Sign mints now that we have the data needed to be signed
+        let mut mint_descriptions = Vec::with_capacity(unsigned_mints.len());
+        for mint in unsigned_mints.drain(0..) {
+            mint_descriptions.push(mint.sign_frost(signature).unwrap());
+        }
+
+        Ok(Transaction {
+            version: self.version,
+            expiration: self.expiration,
+            fee: *self.value_balances.fee(),
+            spends: spend_descriptions,
+            outputs: output_descriptions,
+            mints: mint_descriptions,
+            burns: burn_descriptions,
+            binding_signature,
+            randomized_public_key,
+        })
     }
 
     /// Special case for posting a miners fee transaction. Miner fee transactions
@@ -1439,20 +1624,19 @@ fn round_two(
 
 pub fn round_two_participant(
     signing_package: &str,
-    signing_share: &str,
     key_package: &str,
     public_key_randomness: &str,
     seed: u64,
 ) -> SignatureShare {
     let mut rng = StdRng::seed_from_u64(seed);
-
+    let key_package = KeyPackage::deserialize(&hex_to_vec_bytes(key_package).unwrap()[..]).unwrap();
     frost::round2::sign(
         &SigningPackage::deserialize(&hex_to_vec_bytes(signing_package).unwrap()[..]).unwrap(),
         &SigningNonces::new(
-            &SigningShare::deserialize(hex_to_bytes::<32>(signing_share).unwrap()).unwrap(),
+            key_package.signing_share(),
             &mut rng,
         ),
-        &KeyPackage::deserialize(&hex_to_vec_bytes(key_package).unwrap()[..]).unwrap(),
+        &key_package,
         Randomizer::deserialize(&hex_to_bytes::<32>(public_key_randomness).unwrap()).unwrap(),
     )
     .unwrap()

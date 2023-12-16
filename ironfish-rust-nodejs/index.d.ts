@@ -90,7 +90,8 @@ export interface TrustedDealerKeyPackages {
   incomingViewKey: string
   outgoingViewKey: string
   publicAddress: string
-  signingShares: Record<string, string>
+  keyPackages: Record<string, string>
+  publicKeyPackage: string
 }
 export function splitSecret(coordinatorSaplingKey: string, minSigners: number, maxSigners: number, secret: string): TrustedDealerKeyPackages
 export interface RoundOneSigningData {
@@ -99,8 +100,8 @@ export interface RoundOneSigningData {
   commitmentHiding: string
   commitmentBinding: string
 }
-export function frostRoundOne(signingShare: string, seed: number): RoundOneSigningData
-export function frostRoundTwo(signingPackage: string, signingShare: string, keyPackage: string, publicKeyRandomness: string, seed: number): string
+export function frostRoundOne(keyPackage: string, seed: number): RoundOneSigningData
+export function frostRoundTwo(signingPackage: string, keyPackage: string, publicKeyRandomness: string, seed: number): string
 export class BoxKeyPair {
   constructor()
   static fromHex(secretHex: string): BoxKeyPair
@@ -229,6 +230,7 @@ export class Transaction {
    * aka: self.value_balance - intended_transaction_fee - change = 0
    */
   post(spenderHexKey: string, changeGoesTo: string | undefined | null, intendedTransactionFee: bigint): Buffer
+  postFrostAggregate(publicKeyPackage: string, proofGenerationKeyStr: string, viewKeyStr: string, outgoingViewKeyStr: string, publicAddressStr: string, authorizingSigningPackageStr: string, authorizingSignatureShares: Record<string, string>, publicKeyRandomnessStr: string, changeGoesTo: string | undefined | null, intendedTransactionFee: bigint): Buffer
   setExpiration(sequence: number): void
   createCoordinatorSigningPackage(verifyingKey: string, proofGenerationKey: string, viewKey: string, outgoingViewKey: string, publicAddress: string, nativeCommitments: SigningPackageCommitments): SigningPackage
 }
