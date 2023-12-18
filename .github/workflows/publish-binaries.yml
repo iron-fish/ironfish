@@ -1,5 +1,7 @@
 name: Build @ironfish binaries
 
+# on:
+#   push
 on:
   release:
     types:
@@ -24,7 +26,7 @@ jobs:
             arch: x86_64
             system: linux
 
-          - host: [self-hosted, macOS, ARM64]
+          - host: macos-latest-large
             arch: arm64
             system: apple
 
@@ -50,36 +52,72 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 18
+      
+      - name: Use Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.20.6'
+      
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: npm init
-        run: npm init -y
-
-      - name: install dependencies
-        run: npm install ironfish caxa@3.0.1
-
-      - name: caxa package
-        id: caxa
+      - name: Create random identifier so binary extraction will be unique
+        id: identifier
+        shell: bash
         run: |
-          npx caxa --uncompression-message "Running the CLI for the first time may take a while, please wait..." --input . --output "${{ matrix.settings.system != 'windows' && 'ironfish' || 'ironfish.exe' }}" -- "{{caxa}}/node_modules/.bin/node" "--enable-source-maps" "{{caxa}}/node_modules/ironfish/bin/run"
-          echo "RELEASE_NAME=ironfish-${{ matrix.settings.system }}-${{ matrix.settings.arch }}-${{ github.event.release.tag_name }}.zip"
+          identifier=$(awk 'BEGIN {
+            srand(); 
+            chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+            for (i = 1; i <= 10; i++) {
+                printf "%s", substr(chars, int(rand() * length(chars)) + 1, 1);
+            }
+            print "";
+          }')
+          echo "identifier=${identifier}" >> $GITHUB_OUTPUT
 
-      - name: set paths
+      - name: Create build.tar.gz for binary
+        id: build
+        run: |
+          mkdir build
+          cd build
+          cp $(node -e "console.log(process.execPath)") ${{ matrix.settings.system != 'windows' && 'node' || 'node.exe' }}
+          npm init -y
+          npm install ironfish
+          tar -czf ../tools/build.tar.gz -C . .
+
+      - name: Create binary
+        id: binary
+        run: |
+          go build -ldflags "-X 'main.Identifier=${{ steps.identifier.outputs.identifier }}' -X 'main.Command={{caxac}}/${{ matrix.settings.system != 'windows' && 'node' || 'node.exe' }} --enable-source-maps {{caxac}}/node_modules/ironfish/bin/run' -X 'main.UncompressionMessage=Unpackaging ironfish application, this may take a minute when run for the first time.'" -o tools/${{ matrix.settings.system != 'windows' && 'ironfish' || 'ironfish.exe' }} tools/build-binary.go 
+
+      - name: Set paths
         id: set_paths
         shell: bash
         run: |
-          echo "zip=ironfish-${{ matrix.settings.system }}-${{ matrix.settings.arch }}-${{ github.event.release.tag_name }}.zip" >> $GITHUB_OUTPUT
+          name="ironfish-${{ matrix.settings.system }}-${{ matrix.settings.arch }}-${{ github.event.release.tag_name }}"
+          echo "name=${name}" >> $GITHUB_OUTPUT
+          echo "zip=${name}.zip" >> $GITHUB_OUTPUT
           echo "binary=${{ matrix.settings.system != 'windows' && 'ironfish' || 'ironfish.exe' }}" >> $GITHUB_OUTPUT
 
       - name: chmod binary
+        working-directory: tools
         if: matrix.settings.system != 'windows'
         run: chmod +x ${{ steps.set_paths.outputs.binary }}
 
       - name: Zip binary
         uses: thedoctor0/zip-release@0.7.1
         with:
+          directory: tools
           type: 'zip'
-          filename: ${{ steps.set_paths.outputs.zip }}
+          filename: ${{ steps.set_paths.outputs.name }}
           path: ${{ steps.set_paths.outputs.binary }}
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ steps.set_paths.outputs.name }}
+          path: tools/${{ steps.set_paths.outputs.zip }}
+          if-no-files-found: error
 
       - name: Upload Release Asset
         id: upload-release-asset
