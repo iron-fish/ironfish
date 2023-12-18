@@ -40,6 +40,10 @@ export class CombineNotesCommand extends IronfishCommand {
       minimum: 1n,
       flagName: 'fee rate',
     }),
+    confirm: Flags.boolean({
+      default: false,
+      description: 'Confirm without asking',
+    }),
     watch: Flags.boolean({
       default: false,
       description: 'Wait for the transaction to be confirmed',
@@ -441,9 +445,11 @@ export class CombineNotesCommand extends IronfishCommand {
         hideMilliseconds: true,
       })}`,
     )
-
-    if (!(await CliUx.ux.confirm('Do you confirm (Y/N)?'))) {
-      this.error('Transaction aborted.')
+    if (!flags.confirm) {
+      const confirmed = await CliUx.ux.confirm('Do you confirm (Y/N)?')
+      if (!confirmed) {
+        this.error('Transaction aborted.')
+      }
     }
 
     const progressBar = CliUx.ux.progress({
