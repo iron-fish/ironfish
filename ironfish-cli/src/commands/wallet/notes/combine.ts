@@ -19,6 +19,7 @@ import { CliUx, Flags } from '@oclif/core'
 import inquirer from 'inquirer'
 import { IronfishCommand } from '../../../command'
 import { IronFlag, RemoteFlags } from '../../../flags'
+import { ProgressBar } from '../../../types'
 import { selectFee } from '../../../utils/fees'
 import { displayTransactionSummary, watchTransaction } from '../../../utils/transaction'
 
@@ -445,28 +446,30 @@ export class CombineNotesCommand extends IronfishCommand {
       this.error('Transaction aborted.')
     }
 
-    CliUx.ux.action.start(`Sending the transaction`)
+    const progressBar = CliUx.ux.progress({
+      format: '{title}: [{bar}] {percentage}% | {estimate}',
+    }) as ProgressBar
 
     const startTime = Date.now()
 
     const startTimer = () => {
       const timerInterval = setInterval(() => {
         const durationInMs = Date.now() - startTime
-
         const timeRemaining = estimateInMs - durationInMs
+        const progress = Math.round((durationInMs / estimateInMs) * 100)
 
-        if (timeRemaining > 0) {
-          const span = TimeUtils.renderSpan(timeRemaining, { hideMilliseconds: true })
-          CliUx.ux.action.status = `Time left: ${span}`
-        } else {
-          const span = TimeUtils.renderSpan(timeRemaining * -1, { hideMilliseconds: true })
-          CliUx.ux.action.status = `Extra time: ${span || 0}`
-        }
+        progressBar.update(progress, {
+          estimate: TimeUtils.renderSpan(timeRemaining, { hideMilliseconds: true }),
+        })
       }, 1000)
 
       return timerInterval
     }
 
+    progressBar.start(100, 0, {
+      title: 'Sending the transaction',
+      estimate: TimeUtils.renderSpan(estimateInMs, { hideMilliseconds: true }),
+    })
     const timer = startTimer()
 
     const response = await client.wallet.postTransaction({
@@ -478,9 +481,11 @@ export class CombineNotesCommand extends IronfishCommand {
     const transaction = new Transaction(bytes)
 
     clearInterval(timer)
+    progressBar.update(100)
+    progressBar.stop()
 
-    CliUx.ux.action.stop(
-      `${TimeUtils.renderSpan(Date.now() - startTime, {
+    this.log(
+      `Sending took ${TimeUtils.renderSpan(Date.now() - startTime, {
         hideMilliseconds: true,
       })}`,
     )
