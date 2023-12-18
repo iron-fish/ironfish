@@ -410,7 +410,7 @@ impl NativeTransaction {
             .map_err(to_napi_err)?;
 
         Ok(SigningPackage {
-            public_key_randomness: public_key_randomness.to_string(),
+            public_key_randomness: bytes_to_hex(&public_key_randomness.to_bytes()),
             signing_package: bytes_to_hex(&signing_package),
         })
     }

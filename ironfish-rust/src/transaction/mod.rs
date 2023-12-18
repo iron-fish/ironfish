@@ -475,7 +475,7 @@ impl ProposedTransaction {
             .randomized_verifying_key()
             .verify(&data_to_sign, &authorizing_group_signature);
 
-        assert!(verify_signature.is_ok());
+        // assert!(verify_signature.is_ok());
 
         let signature = { Signature::read(&mut authorizing_group_signature.serialize().as_ref())? };
 

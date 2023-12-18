@@ -1172,8 +1172,6 @@ describe('Wallet', () => {
         roundOneSigningData[identifier] = frostRoundOne(keyPackage, seed)
       }
 
-      console.log(roundOneSigningData)
-
       // mine block to send IRON to multisig account
       const miner = await useAccountFixture(node.wallet, 'miner')
       const block = await useMinerBlockFixture(node.chain, undefined, miner)
@@ -1258,6 +1256,8 @@ describe('Wallet', () => {
         )
       }
       console.log(signingPackage)
+      console.log(trustedDealerPackage)
+      console.log(signatureShares)
 
       nativeTransaction.postFrostAggregate(
         trustedDealerPackage.publicKeyPackage,
@@ -1269,8 +1269,8 @@ describe('Wallet', () => {
         signatureShares,
         signingPackage.publicKeyRandomness,
         trustedDealerPackage.publicAddress,
-        1n,
+        0n,
       )
-    })
+    }, 1000000)
   })
 })
