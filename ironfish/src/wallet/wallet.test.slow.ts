@@ -1144,6 +1144,8 @@ describe('Wallet', () => {
   describe.only('frost', () => {
     it('can do a multisig transaction', async () => {
       const seed = 420
+      const minSigners = 2
+      const maxSigners = 3
 
       const { node } = await nodeTest.createSetup()
       const account = await useAccountFixture(node.wallet)
@@ -1152,8 +1154,8 @@ describe('Wallet', () => {
 
       const trustedDealerPackage = splitSecret(
         coordinatorSaplingKey.spendingKey,
-        2,
-        3,
+        minSigners,
+        maxSigners,
         account.spendingKey,
       )
 
