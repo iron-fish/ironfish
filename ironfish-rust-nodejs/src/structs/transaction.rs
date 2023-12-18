@@ -9,8 +9,9 @@ use std::convert::TryInto;
 use ironfish::assets::asset_identifier::AssetIdentifier;
 use ironfish::serializing::bytes_to_hex;
 use ironfish::transaction::{
-    batch_verify_transactions, TransactionVersion, TRANSACTION_EXPIRATION_SIZE,
-    TRANSACTION_FEE_SIZE, TRANSACTION_PUBLIC_KEY_SIZE, TRANSACTION_SIGNATURE_SIZE,
+    batch_verify_transactions, TransactionVersion, UnsignedTransaction,
+    TRANSACTION_EXPIRATION_SIZE, TRANSACTION_FEE_SIZE, TRANSACTION_PUBLIC_KEY_SIZE,
+    TRANSACTION_SIGNATURE_SIZE,
 };
 use ironfish::{MerkleNoteHash, ProposedTransaction, PublicAddress, SaplingKey, Transaction};
 use napi::{
@@ -328,6 +329,40 @@ impl NativeTransaction {
     }
 
     #[napi]
+    pub fn build(
+        &mut self,
+        public_key_package: String,
+        proof_generation_key_str: String,
+        view_key_str: String,
+        outgoing_view_key_str: String,
+        public_address_str: String,
+        change_goes_to: Option<String>,
+        intended_transaction_fee: BigInt,
+    ) -> Result<Buffer> {
+        let change_key = match change_goes_to {
+            Some(address) => Some(PublicAddress::from_hex(&address).map_err(to_napi_err)?),
+            None => None,
+        };
+
+        let intended_transaction_fee_u64 = intended_transaction_fee.get_u64().1;
+
+        let unsigned_transaction = self.transaction.build(
+            &public_key_package,
+            &proof_generation_key_str,
+            &view_key_str,
+            &outgoing_view_key_str,
+            &public_address_str,
+            change_key,
+            intended_transaction_fee_u64,
+        ).map_err(to_napi_err)?;
+
+        let mut vec: Vec<u8> = vec![];
+        unsigned_transaction.write(&mut vec).map_err(to_napi_err)?;
+
+        Ok(Buffer::from(vec))
+    }
+
+    #[napi]
     pub fn post_frost_aggregate(
         &mut self,
         public_key_package: String,
@@ -348,7 +383,6 @@ impl NativeTransaction {
 
         let intended_transaction_fee_u64 = intended_transaction_fee.get_u64().1;
 
-        
         let posted_transaction = self
             .transaction
             .post_frost_aggregate(
@@ -374,6 +408,23 @@ impl NativeTransaction {
     #[napi]
     pub fn set_expiration(&mut self, sequence: u32) -> Undefined {
         self.transaction.set_expiration(sequence);
+    }
+}
+
+#[napi(js_name = "UnsignedTransaction")]
+pub struct NativeUnsignedTransaction {
+    transaction: UnsignedTransaction,
+}
+
+#[napi]
+impl NativeUnsignedTransaction {
+    #[napi(constructor)]
+    pub fn new(js_bytes: JsBuffer) -> Result<NativeUnsignedTransaction> {
+        let bytes = js_bytes.into_value()?;
+
+        let transaction = UnsignedTransaction::read(bytes.as_ref()).map_err(to_napi_err)?;
+
+        Ok(NativeUnsignedTransaction { transaction })
     }
 
     #[napi]

@@ -1223,7 +1223,15 @@ describe('Wallet', () => {
         fee: 0n,
       })
 
-      const nativeTransaction = rawTransaction.build()
+      const unsignedTransaction = rawTransaction.build(
+        trustedDealerPackage.publicKeyPackage,
+        trustedDealerPackage.proofGenerationKey,
+        trustedDealerPackage.viewKey,
+        trustedDealerPackage.outgoingViewKey,
+        trustedDealerPackage.publicAddress,
+        trustedDealerPackage.publicAddress,
+        0n,
+      )
 
       const signingCommitments: Record<string, SigningCommitment> = {}
       for (const identifier in roundOneSigningData) {
@@ -1236,7 +1244,7 @@ describe('Wallet', () => {
 
       const signingPackageCommitments = { commitments: signingCommitments }
 
-      const signingPackage = nativeTransaction.createCoordinatorSigningPackage(
+      const signingPackage = unsignedTransaction.createCoordinatorSigningPackage(
         trustedDealerPackage.verifyingKey,
         trustedDealerPackage.proofGenerationKey,
         trustedDealerPackage.viewKey,
@@ -1259,7 +1267,7 @@ describe('Wallet', () => {
       console.log(trustedDealerPackage)
       console.log(signatureShares)
 
-      nativeTransaction.postFrostAggregate(
+      unsignedTransaction.postFrostAggregate(
         trustedDealerPackage.publicKeyPackage,
         trustedDealerPackage.proofGenerationKey,
         trustedDealerPackage.viewKey,

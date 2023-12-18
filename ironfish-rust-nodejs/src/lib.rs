@@ -276,5 +276,3 @@ pub fn frost_round_two(
 
     bytes_to_hex(&signature_share.serialize())
 }
-
-

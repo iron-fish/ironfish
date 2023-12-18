@@ -660,8 +660,6 @@ impl ProposedTransaction {
     ) -> Result<Transaction, IronfishError> {
         let public_key_randomness = jubjub::Fr::random(thread_rng());
 
-        let min_signers = 2;
-
         // Save the nonces and get commitments to aggregate by the coordinator
         let (nonces, commitments) = round_one(&key_packages);
 
@@ -783,6 +781,129 @@ impl ProposedTransaction {
             burns: burn_descriptions,
             binding_signature,
             randomized_public_key,
+        })
+    }
+
+    pub fn build(
+        &mut self,
+        public_key_package: &str,
+        proof_generation_key_str: &str,
+        view_key_str: &str,
+        outgoing_view_key_str: &str,
+        public_address_str: &str,
+        change_goes_to: Option<PublicAddress>,
+        intended_transaction_fee: u64,
+    ) -> Result<UnsignedTransaction, IronfishError> {
+        let pubkeys =
+            PublicKeyPackage::deserialize(&hex_to_vec_bytes(public_key_package)?).unwrap();
+        let proof_generation_key =
+            bytes_to_proof_generation_key(hex_to_bytes(proof_generation_key_str)?);
+        let view_key = ViewKey::from_hex(view_key_str)?;
+        let outgoing_view_key = OutgoingViewKey::from_hex(outgoing_view_key_str)?;
+        let public_address = PublicAddress::from_hex(public_address_str)?;
+
+        let public_key_randomness = jubjub::Fr::random(thread_rng());
+        // The public key after randomization has been applied. This is used
+        // during signature verification. Referred to as `rk` in the literature
+        // Calculated from the authorizing key and the public_key_randomness.
+        let randomized_public_key =
+            redjubjub::PublicKey::read(pubkeys.verifying_key().serialize().as_ref())?
+                .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);
+        
+                let mut change_notes = vec![];
+
+        for (asset_id, value) in self.value_balances.iter() {
+            let is_native_asset = asset_id == &NATIVE_ASSET;
+
+            let change_amount = match is_native_asset {
+                true => *value - i64::try_from(intended_transaction_fee)?,
+                false => *value,
+            };
+
+            if change_amount < 0 {
+                return Err(IronfishError::new(IronfishErrorKind::InvalidBalance));
+            }
+            if change_amount > 0 {
+                let change_address = change_goes_to.unwrap_or_else(|| public_address);
+                let change_note = Note::new(
+                    change_address,
+                    change_amount as u64, // we checked it was positive
+                    "",
+                    *asset_id,
+                    public_address,
+                );
+
+                change_notes.push(change_note);
+            }
+        }
+
+        for change_note in change_notes {
+            self.add_output(change_note)?;
+        }
+
+        let mut unsigned_spends = Vec::with_capacity(self.spends.len());
+        for spend in &self.spends {
+            unsigned_spends.push(spend.build(
+                &proof_generation_key,
+                &view_key,
+                &public_key_randomness,
+                &randomized_public_key,
+            )?);
+        }
+
+        let mut output_descriptions = Vec::with_capacity(self.outputs.len());
+        for output in &self.outputs {
+            output_descriptions.push(output.build(
+                &proof_generation_key,
+                &outgoing_view_key,
+                &public_key_randomness,
+                &randomized_public_key,
+            )?);
+        }
+
+        let mut unsigned_mints = Vec::with_capacity(self.mints.len());
+        for mint in &self.mints {
+            unsigned_mints.push(mint.build(
+                &proof_generation_key,
+                public_address,
+                &public_key_randomness,
+                &randomized_public_key,
+            )?);
+        }
+
+        let mut burn_descriptions = Vec::with_capacity(self.burns.len());
+        for burn in &self.burns {
+            burn_descriptions.push(burn.build());
+        }
+
+        let data_to_sign = self.transaction_signature_hash(
+            &unsigned_spends,
+            &output_descriptions,
+            &unsigned_mints,
+            &burn_descriptions,
+            &randomized_public_key,
+        )?;
+
+        // Create and verify binding signature keys
+        let (binding_signature_private_key, binding_signature_public_key) =
+            self.binding_signature_keys(&unsigned_mints, &burn_descriptions)?;
+
+        let binding_signature = self.binding_signature(
+            &binding_signature_private_key,
+            &binding_signature_public_key,
+            &data_to_sign,
+        )?;
+
+        Ok(UnsignedTransaction {
+            burns: burn_descriptions,
+            mints: unsigned_mints,
+            outputs: output_descriptions,
+            spends: unsigned_spends,
+            version: self.version,
+            fee: i64::try_from(intended_transaction_fee)?,
+            binding_signature,
+            randomized_public_key,
+            expiration: self.expiration,
         })
     }
 
@@ -912,6 +1033,128 @@ impl ProposedTransaction {
             burns,
         )
     }
+}
+
+#[derive(Clone)]
+pub struct UnsignedTransaction {
+    /// The transaction serialization version. This can be incremented when
+    /// changes need to be made to the transaction format
+    version: TransactionVersion,
+
+    /// List of spends, or input notes, that have been destroyed.
+    spends: Vec<UnsignedSpendDescription>,
+
+    /// List of outputs, or output notes that have been created.
+    outputs: Vec<OutputDescription>,
+
+    /// List of mint descriptions
+    mints: Vec<UnsignedMintDescription>,
+
+    /// List of burn descriptions
+    burns: Vec<BurnDescription>,
+
+    /// Signature calculated from accumulating randomness with all the spends
+    /// and outputs when the transaction was created.
+    binding_signature: Signature,
+
+    /// This is the sequence in the chain the transaction will expire at and be
+    /// removed from the mempool. A value of 0 indicates the transaction will
+    /// not expire.
+    expiration: u32,
+
+    /// Randomized public key of the sender of the Transaction
+    /// currently this value is the same for all spends[].owner and outputs[].sender
+    /// This is used during verification of SpendDescriptions and OutputDescriptions, as
+    /// well as signing of the SpendDescriptions. Referred to as
+    /// `rk` in the literature Calculated from the authorizing key and
+    /// the public_key_randomness.
+    randomized_public_key: redjubjub::PublicKey,
+
+    /// The balance of total spends - outputs, which is the amount that the miner gets to keep
+    fee: i64,
+}
+
+impl UnsignedTransaction {
+        /// Load a Transaction from a Read implementation (e.g: socket, file)
+    /// This is the main entry-point when reconstructing a serialized transaction
+    /// for verifying.
+    pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
+        let version = TransactionVersion::read(&mut reader)?;
+        let num_spends = reader.read_u64::<LittleEndian>()?;
+        let num_outputs = reader.read_u64::<LittleEndian>()?;
+        let num_mints = reader.read_u64::<LittleEndian>()?;
+        let num_burns = reader.read_u64::<LittleEndian>()?;
+        let fee = reader.read_i64::<LittleEndian>()?;
+        let expiration = reader.read_u32::<LittleEndian>()?;
+        let randomized_public_key = redjubjub::PublicKey::read(&mut reader)?;
+
+        let mut spends = Vec::with_capacity(num_spends as usize);
+        for _ in 0..num_spends {
+            spends.push(UnsignedSpendDescription::read(&mut reader)?);
+        }
+
+        let mut outputs = Vec::with_capacity(num_outputs as usize);
+        for _ in 0..num_outputs {
+            outputs.push(OutputDescription::read(&mut reader)?);
+        }
+
+        let mut mints = Vec::with_capacity(num_mints as usize);
+        for _ in 0..num_mints {
+            mints.push(UnsignedMintDescription::read(&mut reader, version)?);
+        }
+
+        let mut burns = Vec::with_capacity(num_burns as usize);
+        for _ in 0..num_burns {
+            burns.push(BurnDescription::read(&mut reader)?);
+        }
+
+        let binding_signature = Signature::read(&mut reader)?;
+
+        Ok(UnsignedTransaction {
+            version,
+            fee,
+            spends,
+            outputs,
+            mints,
+            burns,
+            binding_signature,
+            expiration,
+            randomized_public_key,
+        })
+    }
+
+    /// Store the bytes of this transaction in the given writer. This is used
+    /// to serialize transactions to file or network
+    pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
+        self.version.write(&mut writer)?;
+        writer.write_u64::<LittleEndian>(self.spends.len() as u64)?;
+        writer.write_u64::<LittleEndian>(self.outputs.len() as u64)?;
+        writer.write_u64::<LittleEndian>(self.mints.len() as u64)?;
+        writer.write_u64::<LittleEndian>(self.burns.len() as u64)?;
+        writer.write_i64::<LittleEndian>(self.fee)?;
+        writer.write_u32::<LittleEndian>(self.expiration)?;
+        writer.write_all(&self.randomized_public_key.0.to_bytes())?;
+
+        for spend in self.spends.iter() {
+            spend.write(&mut writer)?;
+        }
+
+        for output in self.outputs.iter() {
+            output.write(&mut writer)?;
+        }
+
+        for mints in self.mints.iter() {
+            mints.write(&mut writer, self.version)?;
+        }
+
+        for burns in self.burns.iter() {
+            burns.write(&mut writer)?;
+        }
+
+        self.binding_signature.write(&mut writer)?;
+
+        Ok(())
+    }
 
     pub fn coordinator_signing_package(
         &self,
@@ -925,21 +1168,11 @@ impl ProposedTransaction {
         // Generate randomized public key
         let public_key_randomness = jubjub::Fr::random(thread_rng());
 
-        let verifying_key = VerifyingKey::deserialize(hex_to_bytes(verifying_key_str)?).unwrap();
-
         let proof_generation_key_bytes = hex_to_bytes::<64>(proof_generation_key_str)?;
         let mut ak_bytes = [0u8; 32];
         ak_bytes.copy_from_slice(&proof_generation_key_bytes[0..32]);
         let mut nsk_bytes = [0u8; 32];
         nsk_bytes.copy_from_slice(&proof_generation_key_bytes[32..]);
-        let proof_generation_key = ProofGenerationKey {
-            ak: jubjub::SubgroupPoint::from_bytes(&ak_bytes).unwrap(),
-            nsk: jubjub::Fr::from_bytes(&nsk_bytes).unwrap(),
-        };
-
-        let view_key = ViewKey::from_hex(view_key_str)?;
-        let outgoing_view_key = OutgoingViewKey::from_hex(outgoing_view_key_str)?;
-        let public_address = PublicAddress::from_hex(public_address_str)?;
 
         let mut commitments = BTreeMap::new();
         for (identifier, signing_commitment) in native_commitments {
@@ -954,55 +1187,8 @@ impl ProposedTransaction {
             );
         }
 
-        let randomized_public_key = redjubjub::PublicKey::read(verifying_key.serialize().as_ref())?
-            .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);
-
-        // Build descriptions
-        let mut unsigned_spends = Vec::with_capacity(self.spends.len());
-        for spend in &self.spends {
-            unsigned_spends.push(spend.build(
-                &proof_generation_key,
-                &view_key,
-                &public_key_randomness,
-                &randomized_public_key,
-            )?);
-        }
-
-        let mut output_descriptions = Vec::with_capacity(self.outputs.len());
-        for output in &self.outputs {
-            output_descriptions.push(output.build(
-                &proof_generation_key,
-                &outgoing_view_key,
-                &public_key_randomness,
-                &randomized_public_key,
-            )?);
-        }
-
-        let mut unsigned_mints = Vec::with_capacity(self.mints.len());
-        for mint in &self.mints {
-            unsigned_mints.push(mint.build(
-                &proof_generation_key,
-                public_address,
-                &public_key_randomness,
-                &randomized_public_key,
-            )?);
-        }
-
-        let mut burn_descriptions = Vec::with_capacity(self.burns.len());
-        for burn in &self.burns {
-            burn_descriptions.push(burn.build());
-        }
-
-        // TODO: add change notes
-
         // Create the transaction signature hash
-        let data_to_sign = self.transaction_signature_hash(
-            &unsigned_spends,
-            &output_descriptions,
-            &unsigned_mints,
-            &burn_descriptions,
-            &randomized_public_key,
-        )?;
+        let data_to_sign = self.transaction_signature_hash()?;
 
         // Coordinator generates randomized params on the fly
         Ok((
@@ -1011,6 +1197,42 @@ impl ProposedTransaction {
                 .serialize()
                 .unwrap(),
         ))
+    }
+
+    /// Calculate a hash of the transaction data. This hash was signed by the
+    /// private keys when the transaction was constructed, and will now be
+    /// reconstructed to verify the signature.
+    pub fn transaction_signature_hash(&self) -> Result<[u8; 32], IronfishError> {
+        let mut hasher = Blake2b::new()
+            .hash_length(32)
+            .personal(SIGNATURE_HASH_PERSONALIZATION)
+            .to_state();
+        hasher.update(TRANSACTION_SIGNATURE_VERSION);
+        self.version.write(&mut hasher)?;
+        hasher.write_u32::<LittleEndian>(self.expiration)?;
+        hasher.write_i64::<LittleEndian>(self.fee)?;
+        hasher.write_all(&self.randomized_public_key.0.to_bytes())?;
+
+        for spend in self.spends.iter() {
+            spend.description.serialize_signature_fields(&mut hasher)?;
+        }
+
+        for output in self.outputs.iter() {
+            output.serialize_signature_fields(&mut hasher)?;
+        }
+
+        for mint in self.mints.iter() {
+            mint.description
+                .serialize_signature_fields(&mut hasher, self.version)?;
+        }
+
+        for burn in self.burns.iter() {
+            burn.serialize_signature_fields(&mut hasher)?;
+        }
+
+        let mut hash_result = [0; 32];
+        hash_result[..].clone_from_slice(hasher.finalize().as_ref());
+        Ok(hash_result)
     }
 }
 

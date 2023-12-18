@@ -8,6 +8,7 @@ import {
   PROOF_LENGTH,
   PUBLIC_ADDRESS_LENGTH,
   Transaction as NativeTransaction,
+  UnsignedTransaction,
   TRANSACTION_EXPIRATION_LENGTH,
   TRANSACTION_FEE_LENGTH,
   TRANSACTION_PUBLIC_KEY_RANDOMNESS_LENGTH,
@@ -116,7 +117,7 @@ export class RawTransaction {
     return size
   }
 
-  build(): NativeTransaction {
+  _build(): NativeTransaction {
     const builder = new NativeTransaction(this.version)
     for (const spend of this.spends) {
       builder.spend(spend.note.takeReference(), spend.witness)
@@ -160,8 +161,15 @@ export class RawTransaction {
     return builder
   }
 
+  build(publicKeyPackage: string, proofGenerationKeyStr: string, viewKeyStr: string, outgoingViewKeyStr: string, publicAddressStr: string, changeGoesTo: string | undefined | null, intendedTransactionFee: bigint): UnsignedTransaction {
+    const builder = this._build()
+    const serialized = builder.build(publicKeyPackage, proofGenerationKeyStr, viewKeyStr, outgoingViewKeyStr, publicAddressStr, changeGoesTo, intendedTransactionFee)
+    const unsignedTransaction = new UnsignedTransaction(serialized)
+    return unsignedTransaction
+  }
+
   post(spendingKey: string): Transaction {
-    const builder = this.build()
+    const builder = this._build()
 
     const serialized = builder.post(spendingKey, null, this.fee)
     const posted = new Transaction(serialized)
