@@ -63,19 +63,33 @@ export class CombineNotesCommand extends IronfishCommand {
       char: 'f',
       description: 'The account to send money from',
     }),
+    benchmark: Flags.boolean({
+      hidden: true,
+      default: false,
+      description: 'Force run the benchmark to measure the time to combine 1 note',
+    }),
   }
 
   private async getSpendPostTimeInMs(
     client: RpcClient,
     account: string,
     noteSize: number,
+    forceBenchmark: boolean,
   ): Promise<number> {
     let spendPostTime = this.sdk.internal.get('spendPostTime')
 
-    if (spendPostTime <= 0) {
+    const spendPostTimeAt = this.sdk.internal.get('spendPostTimeAt')
+
+    const shouldbenchmark =
+      forceBenchmark ||
+      spendPostTime <= 0 ||
+      Date.now() - spendPostTimeAt > 1000 * 60 * 60 * 24 * 30 // 1 month
+
+    if (shouldbenchmark) {
       spendPostTime = await this.benchmarkSpendPostTime(client, account, noteSize)
 
       this.sdk.internal.set('spendPostTime', spendPostTime)
+      this.sdk.internal.set('spendPostTimeAt', Date.now())
       await this.sdk.internal.save()
     }
 
@@ -395,7 +409,12 @@ export class CombineNotesCommand extends IronfishCommand {
     // the confirmation range in the merkle tree for notes that are safe to use
     const noteSize = await this.getNoteTreeSize(client)
 
-    const spendPostTime = await this.getSpendPostTimeInMs(client, from, noteSize)
+    const spendPostTime = await this.getSpendPostTimeInMs(
+      client,
+      from,
+      noteSize,
+      flags.benchmark,
+    )
 
     let numberOfNotes = flags.notes
 
