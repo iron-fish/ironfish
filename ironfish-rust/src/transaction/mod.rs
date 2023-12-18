@@ -36,9 +36,9 @@ use value_balances::ValueBalances;
 
 use crate::serializing::hex_to_bytes;
 use crate::serializing::hex_to_vec_bytes;
+use crate::util::bytes_to_proof_generation_key;
 use crate::OutgoingViewKey;
 use crate::ViewKey;
-use crate::util::bytes_to_proof_generation_key;
 use crate::{
     assets::{
         asset::Asset,
@@ -269,7 +269,7 @@ impl ProposedTransaction {
 
         self._partial_post(spender_key)
     }
-    
+
     pub fn post_frost(
         &mut self,
         key_packages: &HashMap<Identifier, KeyPackage>,
@@ -322,7 +322,6 @@ impl ProposedTransaction {
         )
     }
 
-
     pub fn post_frost_aggregate(
         &mut self,
         public_key_package: &str,
@@ -336,22 +335,26 @@ impl ProposedTransaction {
         change_goes_to: Option<PublicAddress>,
         intended_transaction_fee: u64,
     ) -> Result<Transaction, IronfishError> {
-
-        let pubkeys = PublicKeyPackage::deserialize(&hex_to_vec_bytes(public_key_package)?).unwrap();
-        let proof_generation_key = bytes_to_proof_generation_key(hex_to_bytes(proof_generation_key_str)?);
+        let pubkeys =
+            PublicKeyPackage::deserialize(&hex_to_vec_bytes(public_key_package)?).unwrap();
+        let proof_generation_key =
+            bytes_to_proof_generation_key(hex_to_bytes(proof_generation_key_str)?);
         let view_key = ViewKey::from_hex(view_key_str)?;
         let outgoing_view_key = OutgoingViewKey::from_hex(outgoing_view_key_str)?;
         let public_address = PublicAddress::from_hex(public_address_str)?;
-        let authorizing_signing_package = SigningPackage::deserialize(&hex_to_vec_bytes(authorizing_signing_package_str)?).unwrap();
-        let public_key_randomness = jubjub::Fr::from_bytes(&hex_to_bytes(public_key_randomness_str)?).unwrap();
+        let authorizing_signing_package =
+            SigningPackage::deserialize(&hex_to_vec_bytes(authorizing_signing_package_str)?)
+                .unwrap();
+        let public_key_randomness =
+            jubjub::Fr::from_bytes(&hex_to_bytes(public_key_randomness_str)?).unwrap();
         let authorizing_signature_shares = BTreeMap::<Identifier, SignatureShare>::from_iter(
-            authorizing_signature_shares_hashmap.iter().map(
-                |(k, v)| 
-                (Identifier::deserialize(&hex_to_bytes(k).unwrap()).unwrap(), 
-                SignatureShare::deserialize(hex_to_bytes(v).unwrap()).unwrap())
-            )
+            authorizing_signature_shares_hashmap.iter().map(|(k, v)| {
+                (
+                    Identifier::deserialize(&hex_to_bytes(k).unwrap()).unwrap(),
+                    SignatureShare::deserialize(hex_to_bytes(v).unwrap()).unwrap(),
+                )
+            }),
         );
-
 
         let mut change_notes = vec![];
 
@@ -990,6 +993,8 @@ impl ProposedTransaction {
             burn_descriptions.push(burn.build());
         }
 
+        // TODO: add change notes
+
         // Create the transaction signature hash
         let data_to_sign = self.transaction_signature_hash(
             &unsigned_spends,
@@ -1577,10 +1582,7 @@ pub fn round_one_participant(
     let key_package = KeyPackage::deserialize(&hex_to_vec_bytes(key_package_str).unwrap()).unwrap();
 
     let mut rng = StdRng::seed_from_u64(seed);
-    frost::round1::commit(
-        &key_package.signing_share(),
-        &mut rng,
-    )
+    frost::round1::commit(&key_package.signing_share(), &mut rng)
 }
 
 pub fn round_one(
@@ -1632,10 +1634,7 @@ pub fn round_two_participant(
     let key_package = KeyPackage::deserialize(&hex_to_vec_bytes(key_package).unwrap()[..]).unwrap();
     frost::round2::sign(
         &SigningPackage::deserialize(&hex_to_vec_bytes(signing_package).unwrap()[..]).unwrap(),
-        &SigningNonces::new(
-            key_package.signing_share(),
-            &mut rng,
-        ),
+        &SigningNonces::new(key_package.signing_share(), &mut rng),
         &key_package,
         Randomizer::deserialize(&hex_to_bytes::<32>(public_key_randomness).unwrap()).unwrap(),
     )

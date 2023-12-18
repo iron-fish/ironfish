@@ -5,7 +5,7 @@ use std::cmp;
 
 use group::GroupEncoding;
 use ironfish_zkp::ProofGenerationKey;
-use jubjub::{SubgroupPoint, Fr};
+use jubjub::{Fr, SubgroupPoint};
 
 /// Helper function to create an array from a string. If the string is not as
 /// large as the array, it will be filled with 0. If the string is too large, it
