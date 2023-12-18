@@ -1,11 +1,11 @@
 name: Build @ironfish binaries
 
-on:
-  push
 # on:
-#   release:
-#     types:
-#       - published
+#   push
+on:
+  release:
+    types:
+      - published
 
 jobs:
   build:
@@ -26,9 +26,9 @@ jobs:
             arch: x86_64
             system: linux
 
-          # - host: macos-latest-large
-          #   arch: arm64
-          #   system: apple
+          - host: macos-latest-large
+            arch: arm64
+            system: apple
 
           # currently no way to build arm64
           # - host: ubuntu-20.04
@@ -187,13 +187,13 @@ jobs:
           path: tools/${{ steps.set_paths.outputs.zip }}
           if-no-files-found: error
 
-      # - name: Upload Release Asset
-      #   id: upload-release-asset
-      #   uses: actions/upload-release-asset@v1
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #   with:
-      #     upload_url: "${{ github.event.release.upload_url }}?name=${{ steps.set_paths.outputs.zip }}"
-      #     asset_path: ${{ steps.set_paths.outputs.zip }}
-      #     asset_name: ${{ steps.set_paths.outputs.zip }}
-      #     asset_content_type: application/zip
+      - name: Upload Release Asset
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: "${{ github.event.release.upload_url }}?name=${{ steps.set_paths.outputs.zip }}"
+          asset_path: ${{ steps.set_paths.outputs.zip }}
+          asset_name: ${{ steps.set_paths.outputs.zip }}
+          asset_content_type: application/zip
