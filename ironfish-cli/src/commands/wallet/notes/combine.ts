@@ -340,7 +340,7 @@ export class CombineNotesCommand extends IronfishCommand {
     return expiration
   }
 
-  private async getNoteSize(client: RpcClient) {
+  private async getNoteTreeSize(client: RpcClient) {
     const getCurrentBlock = await client.chain.getChainInfo()
 
     const currentBlockSequence = parseInt(getCurrentBlock.content.currentBlockIdentifier.index)
@@ -392,7 +392,8 @@ export class CombineNotesCommand extends IronfishCommand {
       to = response.content.publicKey
     }
 
-    const noteSize = await this.getNoteSize(client)
+    // the confirmation range in the merkle tree for notes that are safe to use
+    const noteSize = await this.getNoteTreeSize(client)
 
     const spendPostTime = await this.getSpendPostTimeInMs(client, from, noteSize)
 
