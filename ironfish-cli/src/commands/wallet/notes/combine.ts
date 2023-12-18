@@ -275,7 +275,7 @@ export class CombineNotesCommand extends IronfishCommand {
       }
 
       if (notesToCombine < 2) {
-        this.logger.error(`The number of notes cannot be lower than 2`)
+        this.logger.error(`The number must be larger than 1`)
         continue
       }
 
