@@ -292,7 +292,7 @@ export class CombineNotesCommand extends IronfishCommand {
     )
 
     for (let i = 0; i < 5; i++) {
-      const block = new Date(
+      const blockTime = new Date(
         (
           await client.chain.getBlock({
             sequence: currentBlockSequence - i,
@@ -300,9 +300,9 @@ export class CombineNotesCommand extends IronfishCommand {
         ).content.block.timestamp,
       )
 
-      timeLastFiveBlocksInMs += currentBlockTime.getTime() - block.getTime()
+      timeLastFiveBlocksInMs += currentBlockTime.getTime() - blockTime.getTime()
 
-      currentBlockTime = block
+      currentBlockTime = blockTime
     }
 
     const averageBlockTimeInMs = timeLastFiveBlocksInMs / 5
