@@ -40,6 +40,10 @@ export class CombineNotesCommand extends IronfishCommand {
       minimum: 1n,
       flagName: 'fee rate',
     }),
+    memo: Flags.string({
+      char: 'm',
+      description: 'The memo of transaction',
+    }),
     confirm: Flags.boolean({
       default: false,
       description: 'Confirm without asking',
@@ -403,7 +407,9 @@ export class CombineNotesCommand extends IronfishCommand {
 
     const amount = notes.reduce((acc, note) => acc + BigInt(note.value), 0n)
 
-    const memo = await CliUx.ux.prompt('Enter the memo (or leave blank)', { required: false })
+    const memo =
+      flags.memo?.trim() ??
+      (await CliUx.ux.prompt('Enter the memo (or leave blank)', { required: false }))
 
     const expiration = await this.calculateExpiration(client, spendPostTime, numberOfNotes)
 
