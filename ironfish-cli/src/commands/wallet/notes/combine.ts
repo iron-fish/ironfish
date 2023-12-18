@@ -44,6 +44,9 @@ export class CombineNotesCommand extends IronfishCommand {
       char: 'm',
       description: 'The memo of transaction',
     }),
+    notes: Flags.integer({
+      description: 'How many notes to combine',
+    }),
     confirm: Flags.boolean({
       default: false,
       description: 'Confirm without asking',
@@ -393,7 +396,11 @@ export class CombineNotesCommand extends IronfishCommand {
 
     const spendPostTime = await this.getSpendPostTimeInMs(client, from, noteSize)
 
-    let numberOfNotes = await this.selectNotesToCombine(spendPostTime)
+    let numberOfNotes = flags.notes
+
+    if (numberOfNotes === undefined) {
+      numberOfNotes = await this.selectNotesToCombine(spendPostTime)
+    }
 
     let notes = await this.fetchNotes(client, from, noteSize, numberOfNotes)
 
