@@ -363,49 +363,6 @@ impl NativeTransaction {
     }
 
     #[napi]
-    pub fn post_frost_aggregate(
-        &mut self,
-        public_key_package: String,
-        proof_generation_key_str: String,
-        view_key_str: String,
-        outgoing_view_key_str: String,
-        public_address_str: String,
-        authorizing_signing_package_str: String,
-        authorizing_signature_shares: HashMap<String, String>,
-        public_key_randomness_str: String,
-        change_goes_to: Option<String>,
-        intended_transaction_fee: BigInt,
-    ) -> Result<Buffer> {
-        let change_key = match change_goes_to {
-            Some(address) => Some(PublicAddress::from_hex(&address).map_err(to_napi_err)?),
-            None => None,
-        };
-
-        let intended_transaction_fee_u64 = intended_transaction_fee.get_u64().1;
-
-        let posted_transaction = self
-            .transaction
-            .post_frost_aggregate(
-                &public_key_package,
-                &proof_generation_key_str,
-                &view_key_str,
-                &outgoing_view_key_str,
-                &public_address_str,
-                &authorizing_signing_package_str,
-                authorizing_signature_shares,
-                &public_key_randomness_str,
-                change_key,
-                intended_transaction_fee_u64,
-            )
-            .map_err(to_napi_err)?;
-
-        let mut vec: Vec<u8> = vec![];
-        posted_transaction.write(&mut vec).map_err(to_napi_err)?;
-
-        Ok(Buffer::from(vec))
-    }
-
-    #[napi]
     pub fn set_expiration(&mut self, sequence: u32) -> Undefined {
         self.transaction.set_expiration(sequence);
     }
@@ -430,11 +387,6 @@ impl NativeUnsignedTransaction {
     #[napi]
     pub fn create_coordinator_signing_package(
         &mut self,
-        verifying_key: String,
-        proof_generation_key: String,
-        view_key: String,
-        outgoing_view_key: String,
-        public_address: String,
         native_commitments: SigningPackageCommitments,
     ) -> Result<SigningPackage> {
         let mut commitments = HashMap::new();
@@ -451,11 +403,6 @@ impl NativeUnsignedTransaction {
         let (public_key_randomness, signing_package) = self
             .transaction
             .coordinator_signing_package(
-                &verifying_key,
-                &proof_generation_key,
-                &view_key,
-                &outgoing_view_key,
-                &public_address,
                 commitments,
             )
             .map_err(to_napi_err)?;
@@ -464,6 +411,28 @@ impl NativeUnsignedTransaction {
             public_key_randomness: bytes_to_hex(&public_key_randomness.to_bytes()),
             signing_package: bytes_to_hex(&signing_package),
         })
+    }
+
+    #[napi]
+    pub fn post_frost_aggregate(
+        &mut self,
+        public_key_package: String,
+        authorizing_signing_package_str: String,
+        authorizing_signature_shares: HashMap<String, String>,
+    ) -> Result<Buffer> {
+        let posted_transaction = self
+            .transaction
+            .post_frost_aggregate(
+                &public_key_package,
+                &authorizing_signing_package_str,
+                authorizing_signature_shares,
+            )
+            .map_err(to_napi_err)?;
+
+        let mut vec: Vec<u8> = vec![];
+        posted_transaction.write(&mut vec).map_err(to_napi_err)?;
+
+        Ok(Buffer::from(vec))
     }
 }
 

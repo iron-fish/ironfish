@@ -504,6 +504,7 @@ export class Verifier {
         return VerificationResultReason.INVALID_SPEND
       }
     } catch {
+      console.log('spend')
       return VerificationResultReason.ERROR
     }
   }

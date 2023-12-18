@@ -9,11 +9,12 @@ import {
   generateKey,
   RoundOneSigningData,
   SigningCommitment,
-  SigningPackageCommitments,
   splitSecret,
+  verifyTransactions,
 } from '@ironfish/rust-nodejs'
 import { v4 as uuid } from 'uuid'
 import { Target } from '../primitives/target'
+import { Transaction } from '../primitives/transaction'
 import {
   createNodeTest,
   useAccountFixture,
@@ -1146,6 +1147,7 @@ describe('Wallet', () => {
 
       const { node } = await nodeTest.createSetup()
       const account = await useAccountFixture(node.wallet)
+      const recipient = await useAccountFixture(node.wallet, 'recipient')
       const coordinatorSaplingKey = generateKey()
 
       const trustedDealerPackage = splitSecret(
@@ -1213,7 +1215,7 @@ describe('Wallet', () => {
         account: multiSigAccount,
         outputs: [
           {
-            publicAddress: miner.publicAddress,
+            publicAddress: recipient.publicAddress,
             amount: 2n,
             memo: '',
             assetId: Asset.nativeId(),
@@ -1245,11 +1247,6 @@ describe('Wallet', () => {
       const signingPackageCommitments = { commitments: signingCommitments }
 
       const signingPackage = unsignedTransaction.createCoordinatorSigningPackage(
-        trustedDealerPackage.verifyingKey,
-        trustedDealerPackage.proofGenerationKey,
-        trustedDealerPackage.viewKey,
-        trustedDealerPackage.outgoingViewKey,
-        trustedDealerPackage.publicAddress,
         signingPackageCommitments,
       )
 
@@ -1263,22 +1260,27 @@ describe('Wallet', () => {
           seed,
         )
       }
-      console.log(signingPackage)
-      console.log(trustedDealerPackage)
-      console.log(signatureShares)
 
-      unsignedTransaction.postFrostAggregate(
+      const serializedFrostTransaction = unsignedTransaction.postFrostAggregate(
         trustedDealerPackage.publicKeyPackage,
-        trustedDealerPackage.proofGenerationKey,
-        trustedDealerPackage.viewKey,
-        trustedDealerPackage.outgoingViewKey,
-        trustedDealerPackage.publicAddress,
         signingPackage.signingPackage,
         signatureShares,
-        signingPackage.publicKeyRandomness,
-        trustedDealerPackage.publicAddress,
-        0n,
       )
-    }, 1000000)
+      const frostTransaction = new Transaction(serializedFrostTransaction)
+
+      const minersfee3 = await nodeTest.strategy.createMinersFee(
+        transaction.fee(),
+        newBlock2.header.sequence + 1,
+        generateKey().spendingKey,
+      )
+      const frostBlock = await node.chain.newBlock([frostTransaction], minersfee3)
+      await node.chain.addBlock(newBlock2)
+      await expect(node.chain).toAddBlock(frostBlock)
+      await node.wallet.updateHead()
+
+      expect(await node.wallet.getBalance(recipient, Asset.nativeId())).toMatchObject({
+        unconfirmed: BigInt(2),
+      })
+    }, 100000)
   })
 })

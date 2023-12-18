@@ -674,6 +674,7 @@ export class Blockchain {
     }
 
     const verifyBlock = this.verifier.verifyBlockAdd(block, prev, tx).catch((_) => {
+      console.log('hi')
       return { valid: false, reason: VerificationResultReason.ERROR }
     })
 

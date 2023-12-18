@@ -231,13 +231,13 @@ export class Transaction {
    */
   post(spenderHexKey: string, changeGoesTo: string | undefined | null, intendedTransactionFee: bigint): Buffer
   build(publicKeyPackage: string, proofGenerationKeyStr: string, viewKeyStr: string, outgoingViewKeyStr: string, publicAddressStr: string, changeGoesTo: string | undefined | null, intendedTransactionFee: bigint): Buffer
-  postFrostAggregate(publicKeyPackage: string, proofGenerationKeyStr: string, viewKeyStr: string, outgoingViewKeyStr: string, publicAddressStr: string, authorizingSigningPackageStr: string, authorizingSignatureShares: Record<string, string>, publicKeyRandomnessStr: string, changeGoesTo: string | undefined | null, intendedTransactionFee: bigint): Buffer
   setExpiration(sequence: number): void
 }
 export type NativeUnsignedTransaction = UnsignedTransaction
 export class UnsignedTransaction {
   constructor(jsBytes: Buffer)
-  createCoordinatorSigningPackage(verifyingKey: string, proofGenerationKey: string, viewKey: string, outgoingViewKey: string, publicAddress: string, nativeCommitments: SigningPackageCommitments): SigningPackage
+  createCoordinatorSigningPackage(nativeCommitments: SigningPackageCommitments): SigningPackage
+  postFrostAggregate(publicKeyPackage: string, authorizingSigningPackageStr: string, authorizingSignatureShares: Record<string, string>): Buffer
 }
 export class FoundBlockResult {
   randomness: string
