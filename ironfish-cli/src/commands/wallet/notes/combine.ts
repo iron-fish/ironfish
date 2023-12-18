@@ -452,25 +452,20 @@ export class CombineNotesCommand extends IronfishCommand {
 
     const startTime = Date.now()
 
-    const startTimer = () => {
-      const timerInterval = setInterval(() => {
-        const durationInMs = Date.now() - startTime
-        const timeRemaining = estimateInMs - durationInMs
-        const progress = Math.round((durationInMs / estimateInMs) * 100)
-
-        progressBar.update(progress, {
-          estimate: TimeUtils.renderSpan(timeRemaining, { hideMilliseconds: true }),
-        })
-      }, 1000)
-
-      return timerInterval
-    }
-
     progressBar.start(100, 0, {
       title: 'Sending the transaction',
       estimate: TimeUtils.renderSpan(estimateInMs, { hideMilliseconds: true }),
     })
-    const timer = startTimer()
+
+    const timer = setInterval(() => {
+      const durationInMs = Date.now() - startTime
+      const timeRemaining = estimateInMs - durationInMs
+      const progress = Math.round((durationInMs / estimateInMs) * 100)
+
+      progressBar.update(progress, {
+        estimate: TimeUtils.renderSpan(timeRemaining, { hideMilliseconds: true }),
+      })
+    }, 1000)
 
     const response = await client.wallet.postTransaction({
       transaction: RawTransactionSerde.serialize(raw).toString('hex'),
