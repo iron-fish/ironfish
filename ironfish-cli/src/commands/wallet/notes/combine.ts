@@ -95,7 +95,7 @@ export class CombineNotesCommand extends IronfishCommand {
 
     const notes = await this.fetchNotes(client, account, noteSize, 10)
 
-    CliUx.ux.action.start('Calculating the number of notes to combine')
+    CliUx.ux.action.start('Measuring time to combine 1 note')
 
     const feeRates = await client.wallet.estimateFeeRates()
 
@@ -148,7 +148,7 @@ export class CombineNotesCommand extends IronfishCommand {
         3,
     )
 
-    CliUx.ux.action.stop()
+    CliUx.ux.action.stop(TimeUtils.renderSpan(delta))
 
     return delta
   }
