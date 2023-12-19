@@ -104,6 +104,60 @@ jobs:
         if: matrix.settings.system != 'windows'
         run: chmod +x ${{ steps.set_paths.outputs.binary }}
 
+      - name: Sign MacOS
+        working-directory: tools
+        if: matrix.settings.system == 'apple'
+        env:
+          APPLE_DEVELOPER_ID_APPLICATION: ${{ secrets.APPLE_DEVELOPER_ID_APPLICATION }}
+          APPLE_IFLABS_SIGNING_CERT: ${{ secrets.APPLE_IFLABS_SIGNING_CERT }}
+          APPLE_IFLABS_SIGNING_CERT_PASSWORD: ${{ secrets.APPLE_IFLABS_SIGNING_CERT_PASSWORD }}
+          APPLE_PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+        run: |
+          # create variables
+          CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
+          PP_PATH=$RUNNER_TEMP/build_pp.mobileprovision
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          API_KEY_PATH=$RUNNER_TEMP/api_key.p8
+  
+          # import certificate and provisioning profile from secrets
+          echo -n "$APPLE_IFLABS_SIGNING_CERT" | base64 --decode -o $CERTIFICATE_PATH
+          echo -n "$APPLE_PROVISIONING_PROFILE" | base64 --decode -o $PP_PATH
+          echo -n "$APPLE_API_KEY" | base64 --decode -o $API_KEY_PATH
+  
+          # create temporary keychain
+          security create-keychain -p "$APPLE_IFLABS_SIGNING_CERT_PASSWORD" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "$APPLE_IFLABS_SIGNING_CERT_PASSWORD" $KEYCHAIN_PATH
+  
+          # import certificate to keychain
+          security import $CERTIFICATE_PATH -P "$APPLE_IFLABS_SIGNING_CERT_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security list-keychain -d user -s $KEYCHAIN_PATH
+  
+          # apply provisioning profile
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles
+          ls $RUNNER_TEMP
+
+          APPLE_API_KEY="$RUNNER_TEMP/api_key.p8" codesign --deep --force --options=runtime --sign "${APPLE_DEVELOPER_ID_APPLICATION}" --timestamp ${{ steps.set_paths.outputs.binary }}
+
+      - name: Sign Windows
+        working-directory: tools
+        if: matrix.settings.system == 'windows'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AZURE_KEY_VAULT_URI: ${{ secrets.AZURE_KEY_VAULT_URI }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_CERT_NAME: ${{ secrets.AZURE_CERT_NAME }}
+        run: |
+          dotnet tool install --global AzureSignTool
+          AzureSignTool sign -kvu "${{ secrets.AZURE_KEY_VAULT_URI }}" -kvi "${{ secrets.AZURE_CLIENT_ID }}" -kvt "${{ secrets.AZURE_TENANT_ID }}" -kvs "${{ secrets.AZURE_CLIENT_SECRET }}" -kvc ${{ secrets.AZURE_CERT_NAME }} -tr http://timestamp.digicert.com -v ${{ steps.set_paths.outputs.binary }}
+
       - name: Zip binary
         uses: thedoctor0/zip-release@0.7.1
         with:
@@ -111,6 +165,20 @@ jobs:
           type: 'zip'
           filename: ${{ steps.set_paths.outputs.name }}
           path: ${{ steps.set_paths.outputs.binary }}
+      
+      - name: "Notarize app bundle"
+        working-directory: tools
+        if: matrix.settings.system == 'apple'
+        env:
+          PROD_MACOS_NOTARIZATION_APPLE_ID: ${{ secrets.APPLE_ID }}
+          PROD_MACOS_NOTARIZATION_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          PROD_MACOS_NOTARIZATION_PWD: ${{ secrets.APPLE_NOTARIZATION_PWD }}
+        run: |
+          echo "Create keychain profile"
+          xcrun notarytool store-credentials "notarytool-profile" --apple-id "$PROD_MACOS_NOTARIZATION_APPLE_ID" --team-id "$PROD_MACOS_NOTARIZATION_TEAM_ID" --password "$PROD_MACOS_NOTARIZATION_PWD"
+      
+          echo "Notarize app"
+          xcrun notarytool submit "${{ steps.set_paths.outputs.zip }}" --keychain-profile "notarytool-profile" --wait
       
       - name: Upload artifact
         uses: actions/upload-artifact@v3
