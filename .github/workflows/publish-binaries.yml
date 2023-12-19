@@ -170,12 +170,12 @@ jobs:
         working-directory: tools
         if: matrix.settings.system == 'apple'
         env:
-          PROD_MACOS_NOTARIZATION_APPLE_ID: ${{ secrets.APPLE_ID }}
-          PROD_MACOS_NOTARIZATION_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          PROD_MACOS_NOTARIZATION_PWD: ${{ secrets.APPLE_NOTARIZATION_PWD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_NOTARIZATION_PWD: ${{ secrets.APPLE_NOTARIZATION_PWD }}
         run: |
           echo "Create keychain profile"
-          xcrun notarytool store-credentials "notarytool-profile" --apple-id "$PROD_MACOS_NOTARIZATION_APPLE_ID" --team-id "$PROD_MACOS_NOTARIZATION_TEAM_ID" --password "$PROD_MACOS_NOTARIZATION_PWD"
+          xcrun notarytool store-credentials "notarytool-profile" --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" --password "$APPLE_NOTARIZATION_PWD"
       
           echo "Notarize app"
           xcrun notarytool submit "${{ steps.set_paths.outputs.zip }}" --keychain-profile "notarytool-profile" --wait
