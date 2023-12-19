@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { BufferMap } from 'buffer-map'
-import { Block, CompactBlock } from '../primitives/block'
+import { Block } from '../primitives/block'
 import { BlockHash, BlockHeader } from '../primitives/blockheader'
 import { ArrayUtils } from '../utils/array'
 import { CompactBlockUtils } from '../utils/compactblock'
@@ -48,7 +48,6 @@ type BlockState =
   | {
       action: 'PROCESSING_COMPACT_BLOCK'
       peer: Identity
-      compactBlock: CompactBlock
       sources: Set<Identity> // Set of peers that have sent us the hash or compact block
       firstSeenBy: Identity
     }
@@ -189,8 +188,7 @@ export class BlockFetcher {
    * but has not yet been processed (validated, assembled into a full
    * block, etc.) Returns true if the caller (PeerNetwork) should continue
    * processing this compact block or not */
-  receivedCompactBlock(compactBlock: CompactBlock, peer: Peer): boolean {
-    const hash = compactBlock.header.hash
+  receivedCompactBlock(hash: BlockHash, peer: Peer): boolean {
     const currentState = this.pending.get(hash)
 
     // If the peer is not connected or identified, ignore them
@@ -221,7 +219,6 @@ export class BlockFetcher {
     this.pending.set(hash, {
       action: 'PROCESSING_COMPACT_BLOCK',
       peer: peer.state.identity,
-      compactBlock,
       sources: currentState ? currentState.sources : new Set<Identity>(),
       firstSeenBy: currentState ? currentState.firstSeenBy : peer.state.identity,
     })

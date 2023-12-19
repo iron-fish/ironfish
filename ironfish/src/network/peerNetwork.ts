@@ -782,15 +782,16 @@ export class PeerNetwork {
       return
     }
 
+    const header = compactBlock.header
+
     // mark the block as received in the block fetcher and decide whether to continue
     // to validate this compact block or not
-    const shouldProcess = this.blockFetcher.receivedCompactBlock(compactBlock, peer)
+    const shouldProcess = this.blockFetcher.receivedCompactBlock(header.hash, peer)
     if (!shouldProcess) {
       return
     }
 
     // verify the header
-    const header = compactBlock.header
     if (header.sequence === GENESIS_BLOCK_SEQUENCE) {
       this.chain.addInvalid(header.hash, VerificationResultReason.GOSSIPED_GENESIS_BLOCK)
       this.blockFetcher.removeBlock(header.hash)
