@@ -4,12 +4,12 @@
 import bufio, { sizeVarBytes, sizeVarint } from 'bufio'
 import { Assert } from '../../assert'
 import {
-  Block,
   CompactBlock,
   CompactBlockTransaction,
   GRAFFITI_SIZE,
+  RawBlock,
 } from '../../primitives/block'
-import { BlockHeader } from '../../primitives/blockheader'
+import { RawBlockHeader } from '../../primitives/blockheader'
 import { Target } from '../../primitives/target'
 import { Transaction } from '../../primitives/transaction'
 
@@ -19,7 +19,7 @@ const BLOCK_TRANSACTIONS_LENGTH_BYTES = 2
 
 export function writeBlockHeader(
   bw: bufio.StaticWriter | bufio.BufferWriter,
-  header: BlockHeader,
+  header: RawBlockHeader,
 ): bufio.StaticWriter | bufio.BufferWriter {
   bw.writeU32(header.sequence)
   bw.writeHash(header.previousBlockHash)
@@ -34,7 +34,7 @@ export function writeBlockHeader(
   return bw
 }
 
-export function readBlockHeader(reader: bufio.BufferReader): BlockHeader {
+export function readBlockHeader(reader: bufio.BufferReader): RawBlockHeader {
   const sequence = reader.readU32()
   const previousBlockHash = reader.readHash()
   const noteCommitment = reader.readHash()
@@ -44,16 +44,16 @@ export function readBlockHeader(reader: bufio.BufferReader): BlockHeader {
   const timestamp = reader.readU64()
   const graffiti = reader.readBytes(GRAFFITI_SIZE)
 
-  return new BlockHeader(
+  return {
     sequence,
     previousBlockHash,
     noteCommitment,
     transactionCommitment,
-    new Target(target),
+    target: new Target(target),
     randomness,
-    new Date(timestamp),
+    timestamp: new Date(timestamp),
     graffiti,
-  )
+  }
 }
 
 export function getBlockHeaderSize(): number {
@@ -71,7 +71,7 @@ export function getBlockHeaderSize(): number {
 
 export function writeBlock(
   bw: bufio.StaticWriter | bufio.BufferWriter,
-  block: Block,
+  block: RawBlock,
 ): bufio.StaticWriter | bufio.BufferWriter {
   bw = writeBlockHeader(bw, block.header)
 
@@ -83,7 +83,7 @@ export function writeBlock(
   return bw
 }
 
-export function readBlock(reader: bufio.BufferReader): Block {
+export function readBlock(reader: bufio.BufferReader): RawBlock {
   const header = readBlockHeader(reader)
 
   const transactionsLength = reader.readU16()
@@ -92,10 +92,10 @@ export function readBlock(reader: bufio.BufferReader): Block {
     transactions.push(readTransaction(reader))
   }
 
-  return new Block(header, transactions)
+  return { header, transactions }
 }
 
-export function getBlockSize(block: Block): number {
+export function getBlockSize(block: RawBlock): number {
   let size = getBlockHeaderSize()
 
   size += BLOCK_TRANSACTIONS_LENGTH_BYTES

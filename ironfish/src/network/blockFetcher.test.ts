@@ -4,6 +4,7 @@
 
 import { Blockchain } from '../blockchain'
 import { VerificationResultReason } from '../consensus'
+import { BlockHeader } from '../primitives'
 import { Block } from '../primitives/block'
 import {
   createNodeTest,
@@ -489,13 +490,17 @@ describe('BlockFetcher', () => {
     const sentPeers = peers.filter(({ sendSpy }) => sendSpy.mock.calls.length > 0)
     const call = sentPeers[0].sendSpy.mock.calls[0][0] as GetCompactBlockRequest
 
-    const message = new GetCompactBlockResponse(newBlock.toCompactBlock(), call.rpcId)
+    const compactBlock = newBlock.toCompactBlock()
+    const message = new GetCompactBlockResponse(compactBlock, call.rpcId)
     for (const { peer } of sentPeers) {
       await peerNetwork.peerManager.onMessage.emitAsync(...peerMessage(peer, message))
     }
 
     expect(telemetrySpy).toHaveBeenCalledWith(
-      newBlock,
+      Block.fromRaw({
+        header: BlockHeader.fromRaw(compactBlock.header),
+        transactions: newBlock.transactions,
+      }),
       expect.any(Date),
       peers[0].peer.state.identity,
     )

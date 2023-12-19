@@ -25,15 +25,7 @@ describe('GetBlocksResponse', () => {
   const nodeTest = createNodeTest()
 
   function expectGetBlocksResponseToMatch(a: GetBlocksResponse, b: GetBlocksResponse): void {
-    // Test blocks separately because Block is not a primitive type
-    expect(a.blocks.length).toEqual(b.blocks.length)
-    a.blocks.forEach((blockA, blockIndexA) => {
-      const blockB = b.blocks[blockIndexA]
-
-      expect(blockA.equals(blockB)).toBe(true)
-    })
-
-    expect({ ...a, blocks: undefined }).toMatchObject({ ...b, blocks: undefined })
+    expect(a.serialize().equals(b.serialize())).toBe(true)
   }
 
   it('serializes the object into a buffer and deserializes to the original object', async () => {

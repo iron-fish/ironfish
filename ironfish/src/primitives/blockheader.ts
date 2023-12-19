@@ -241,6 +241,43 @@ export class BlockHeader {
       this.serialize().equals(other.serialize())
     )
   }
+
+  toRaw(): RawBlockHeader {
+    return {
+      sequence: this.sequence,
+      previousBlockHash: this.previousBlockHash,
+      noteCommitment: this.noteCommitment,
+      transactionCommitment: this.transactionCommitment,
+      target: this.target,
+      randomness: this.randomness,
+      timestamp: this.timestamp,
+      graffiti: this.graffiti,
+    }
+  }
+
+  static fromRaw(raw: RawBlockHeader): BlockHeader {
+    return new BlockHeader(
+      raw.sequence,
+      raw.previousBlockHash,
+      raw.noteCommitment,
+      raw.transactionCommitment,
+      raw.target,
+      raw.randomness,
+      raw.timestamp,
+      raw.graffiti,
+    )
+  }
+}
+
+export type RawBlockHeader = {
+  sequence: number
+  previousBlockHash: BlockHash
+  noteCommitment: NoteEncryptedHash
+  transactionCommitment: Buffer
+  target: Target
+  randomness: bigint
+  timestamp: Date
+  graffiti: Buffer
 }
 
 export type SerializedBlockHeader = {

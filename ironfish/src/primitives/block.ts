@@ -4,7 +4,12 @@
 
 import { zip } from 'lodash'
 import { Assert } from '../assert'
-import { BlockHeader, BlockHeaderSerde, SerializedBlockHeader } from './blockheader'
+import {
+  BlockHeader,
+  BlockHeaderSerde,
+  RawBlockHeader,
+  SerializedBlockHeader,
+} from './blockheader'
 import { MintDescription } from './mintDescription'
 import { NoteEncrypted, NoteEncryptedHash } from './noteEncrypted'
 import { Nullifier } from './nullifier'
@@ -119,7 +124,7 @@ export class Block {
   }
 
   toCompactBlock(): CompactBlock {
-    const header = this.header
+    const header = this.header.toRaw()
 
     const [minersFee, ...transactions] = this.transactions
     const transactionHashes = transactions.map((t) => t.hash())
@@ -135,6 +140,11 @@ export class Block {
       ],
     }
   }
+
+  static fromRaw(raw: RawBlock): Block {
+    const header = BlockHeader.fromRaw(raw.header)
+    return new Block(header, raw.transactions)
+  }
 }
 
 export type CompactBlockTransaction = {
@@ -143,9 +153,14 @@ export type CompactBlockTransaction = {
 }
 
 export type CompactBlock = {
-  header: BlockHeader
+  header: RawBlockHeader
   transactionHashes: Buffer[]
   transactions: CompactBlockTransaction[]
+}
+
+export type RawBlock = {
+  header: RawBlockHeader
+  transactions: Transaction[]
 }
 
 export type SerializedBlock = {
