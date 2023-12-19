@@ -4,13 +4,43 @@
 
 import {
   createRootLogger,
+  CurrencyUtils,
   Logger,
   PromiseUtils,
+  RawTransaction,
   RpcClient,
   TimeUtils,
   TransactionStatus,
 } from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
+
+export function displayTransactionSummary(
+  transaction: RawTransaction,
+  assetId: string,
+  amount: bigint,
+  from: string,
+  to: string,
+  memo: string,
+  logger?: Logger,
+): void {
+  logger = logger ?? createRootLogger()
+
+  const amountString = CurrencyUtils.renderIron(amount, true, assetId)
+  const feeString = CurrencyUtils.renderIron(transaction.fee, true)
+
+  const summary = `\
+\nTRANSACTION SUMMARY:
+From                 ${from}
+To                   ${to}
+Amount               ${amountString}
+Fee                  ${feeString}
+Memo                 ${memo}
+Outputs              ${transaction.outputs.length}
+Spends               ${transaction.spends.length}
+Expiration           ${transaction.expiration ? transaction.expiration.toString() : ''}
+`
+  logger.log(summary)
+}
 
 export async function watchTransaction(options: {
   client: Pick<RpcClient, 'wallet'>

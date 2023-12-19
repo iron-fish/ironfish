@@ -11,6 +11,8 @@ export type InternalOptions = {
   telemetryNodeId: string
   rpcAuthToken: string
   networkId: number
+  spendPostTime: number // in milliseconds
+  spendPostTimeAt: number // when the spend post time measurement was done
 }
 
 export const InternalOptionsDefaults: InternalOptions = {
@@ -19,6 +21,8 @@ export const InternalOptionsDefaults: InternalOptions = {
   telemetryNodeId: '',
   rpcAuthToken: '',
   networkId: DEFAULT_NETWORK_ID,
+  spendPostTime: 0,
+  spendPostTimeAt: 0,
 }
 
 export class InternalStore extends KeyStore<InternalOptions> {

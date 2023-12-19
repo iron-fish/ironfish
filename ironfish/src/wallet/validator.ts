@@ -8,6 +8,7 @@ import { AccountValue } from './walletdb/accountValue'
 const SPENDING_KEY_LENGTH = 64
 const INCOMING_VIEW_KEY_LENGTH = 64
 const OUTGOING_VIEW_KEY_LENGTH = 64
+const VIEW_KEY_LENGTH = 128
 
 export function isValidPublicAddress(publicAddress: string): boolean {
   return nativeIsValidPublicAddress(publicAddress)
@@ -29,6 +30,10 @@ export function isValidOutgoingViewKey(outgoingViewKey: string): boolean {
     outgoingViewKey.length === OUTGOING_VIEW_KEY_LENGTH &&
     haveAllowedCharacters(outgoingViewKey)
   )
+}
+
+export function isValidViewKey(viewKey: string): boolean {
+  return viewKey.length === VIEW_KEY_LENGTH && haveAllowedCharacters(viewKey)
 }
 
 export function validateAccount(toImport: Partial<AccountValue>): void {
@@ -58,6 +63,14 @@ export function validateAccount(toImport: Partial<AccountValue>): void {
 
   if (!isValidIncomingViewKey(toImport.incomingViewKey)) {
     throw new Error(`Provided incoming view key ${toImport.incomingViewKey} is invalid`)
+  }
+
+  if (!toImport.viewKey) {
+    throw new Error(`Imported account has no view key`)
+  }
+
+  if (!isValidViewKey(toImport.viewKey)) {
+    throw new Error(`Provided view key ${toImport.viewKey} is invalid`)
   }
 
   if (toImport.spendingKey && !isValidSpendingKey(toImport.spendingKey)) {

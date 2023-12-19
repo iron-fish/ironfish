@@ -14,6 +14,7 @@ import {
   RpcClient,
   RpcRequestError,
 } from '@ironfish/sdk'
+import { CliUx } from '@oclif/core'
 import inquirer from 'inquirer'
 import { promptCurrency } from './currency'
 
@@ -24,25 +25,29 @@ export async function selectFee(options: {
   confirmations?: number
   logger: Logger
 }): Promise<RawTransaction> {
+  CliUx.ux.action.start('Calculating fees')
+
   const feeRates = await options.client.wallet.estimateFeeRates()
 
-  const [slow, average, fast] = [
-    await getTxWithFee(
+  const promises = [
+    getTxWithFee(
       options.client,
       options.transaction,
       CurrencyUtils.decode(feeRates.content.slow),
     ),
-    await getTxWithFee(
+    getTxWithFee(
       options.client,
       options.transaction,
       CurrencyUtils.decode(feeRates.content.average),
     ),
-    await getTxWithFee(
+    getTxWithFee(
       options.client,
       options.transaction,
       CurrencyUtils.decode(feeRates.content.fast),
     ),
   ]
+
+  const [slow, average, fast] = await Promise.all(promises)
 
   const choices = [
     getChoiceFromTx('Slow', slow),
@@ -53,6 +58,8 @@ export async function selectFee(options: {
       value: null,
     },
   ]
+
+  CliUx.ux.action.stop()
 
   const result = await inquirer.prompt<{
     selection: RawTransaction | null
