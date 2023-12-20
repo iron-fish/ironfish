@@ -44,10 +44,15 @@ jobs:
       - name: Install Cargo tools
         run: |
           rustup component add rustfmt clippy
+          cargo install --locked cargo-vet
 
       - name: Check that cargo lockfile is up to date
         run: |
           cargo check --locked --all-targets
+
+      - name: Vet dependencies
+        run: |
+          cargo vet
 
       # Note: ironfish-zkp is does not need this due to different licensing
       - name: Check for license headers for ironfish-rust
