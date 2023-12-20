@@ -534,6 +534,8 @@ export class CombineNotesCommand extends IronfishCommand {
       this.warn(`Transaction '${transaction.hash().toString('hex')}' failed to broadcast`)
     }
 
+    await this.displayCombinedNoteHashes(client, from, transaction)
+
     this.log(`Sent ${CurrencyUtils.renderIron(amount, true)} to ${to} from ${from}`)
     this.log(`Hash: ${transaction.hash().toString('hex')}`)
     this.log(`Fee: ${CurrencyUtils.renderIron(transaction.fee(), true)}`)
@@ -552,6 +554,36 @@ export class CombineNotesCommand extends IronfishCommand {
         logger: this.logger,
         account: from,
         hash: transaction.hash().toString('hex'),
+      })
+    }
+  }
+
+  private async displayCombinedNoteHashes(
+    client: RpcClient,
+    from: string,
+    transaction: Transaction,
+  ) {
+    const resultingNotes = (
+      await client.wallet.getAccountTransaction({
+        account: from,
+        hash: transaction.hash().toString('hex'),
+      })
+    ).content.transaction?.notes
+
+    if (resultingNotes) {
+      CliUx.ux.table(resultingNotes, {
+        hash: {
+          header: 'Note Hash',
+          get: (note) => note.noteHash,
+        },
+        value: {
+          header: 'Value',
+          get: (note) => note.value,
+        },
+        owner: {
+          header: 'Owner',
+          get: (note) => note.owner,
+        },
       })
     }
   }
