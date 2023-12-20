@@ -536,12 +536,9 @@ export class CombineNotesCommand extends IronfishCommand {
 
     await this.displayCombinedNoteHashes(client, from, transaction)
 
-    this.log(`Sent ${CurrencyUtils.renderIron(amount, true)} to ${to} from ${from}`)
-    this.log(`Hash: ${transaction.hash().toString('hex')}`)
-    this.log(`Fee: ${CurrencyUtils.renderIron(transaction.fee(), true)}`)
-    this.log(`Memo: ${memo}`)
+    this.log(`Transaction hash: ${transaction.hash().toString('hex')}`)
     this.log(
-      `\nIf the transaction is mined, it will appear here https://explorer.ironfish.network/transaction/${transaction
+      `If the transaction is mined, it will appear here https://explorer.ironfish.network/transaction/${transaction
         .hash()
         .toString('hex')}`,
     )
@@ -571,9 +568,10 @@ export class CombineNotesCommand extends IronfishCommand {
     ).content.transaction?.notes
 
     if (resultingNotes) {
+      this.log('')
       CliUx.ux.table(resultingNotes, {
         hash: {
-          header: 'Note Hash',
+          header: 'Notes Created',
           get: (note) => note.noteHash,
         },
         value: {
@@ -585,6 +583,7 @@ export class CombineNotesCommand extends IronfishCommand {
           get: (note) => note.owner,
         },
       })
+      this.log('')
     }
   }
 }
