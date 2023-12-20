@@ -874,10 +874,6 @@ criteria = "safe-to-deploy"
 version = "0.1.2"
 criteria = "safe-to-deploy"
 
-[[exemptions.zcash_note_encryption]]
-version = "0.1.0"
-criteria = "safe-to-deploy"
-
 [[exemptions.zeroize]]
 version = "1.6.0"
 criteria = "safe-to-deploy"

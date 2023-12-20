@@ -1197,3 +1197,10 @@ criteria = "safe-to-deploy"
 delta = "0.2.83 -> 0.2.84"
 notes = "Bumps the schema version to add `linked_modules`."
 aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
+
+[[audits.zcash.audits.zcash_note_encryption]]
+who = "Jack Grigg <jack@z.cash>"
+criteria = "safe-to-deploy"
+version = "0.1.0"
+notes = "The ECC core team maintains this crate, and we have reviewed every line."
+aggregated-from = "https://raw.githubusercontent.com/zcash/zcash/master/qa/supply-chain/audits.toml"
