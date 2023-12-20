@@ -472,7 +472,7 @@ export class CombineNotesCommand extends IronfishCommand {
     // This allows for a single note output.
     const amount = amountIncludingFees - raw.fee
     params.outputs[0].amount = CurrencyUtils.encode(amount)
-    params.fee = raw.fee ? CurrencyUtils.encode(raw.fee) : null
+    params.fee = CurrencyUtils.encode(raw.fee)
 
     const createTransactionResponse = await client.wallet.createTransaction(params)
     const createTransactionBytes = Buffer.from(
