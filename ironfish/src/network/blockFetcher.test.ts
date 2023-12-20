@@ -4,7 +4,6 @@
 
 import { Blockchain } from '../blockchain'
 import { VerificationResultReason } from '../consensus'
-import { BlockHeader } from '../primitives'
 import { Block } from '../primitives/block'
 import {
   createNodeTest,
@@ -497,13 +496,13 @@ describe('BlockFetcher', () => {
     }
 
     expect(telemetrySpy).toHaveBeenCalledWith(
-      Block.fromRaw({
-        header: BlockHeader.fromRaw(compactBlock.header),
-        transactions: newBlock.transactions,
-      }),
+      expect.any(Block),
       expect.any(Date),
       peers[0].peer.state.identity,
     )
+
+    const calledBlockHash = telemetrySpy.mock.calls[0][0].header.hash
+    expect(calledBlockHash).toEqual(newBlock.header.hash)
 
     await peerNetwork.stop()
   })
