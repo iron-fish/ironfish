@@ -432,7 +432,7 @@ export class CombineNotesCommand extends IronfishCommand {
 
     notes = notes.slice(0, numberOfNotes)
 
-    const amountExcludingFees = notes.reduce((acc, note) => acc + BigInt(note.value), 0n)
+    const amountIncludingFees = notes.reduce((acc, note) => acc + BigInt(note.value), 0n)
 
     const memo =
       flags.memo?.trim() ??
@@ -445,7 +445,7 @@ export class CombineNotesCommand extends IronfishCommand {
       outputs: [
         {
           publicAddress: to,
-          amount: CurrencyUtils.encode(amountExcludingFees),
+          amount: CurrencyUtils.encode(amountIncludingFees),
           memo,
         },
       ],
@@ -471,7 +471,7 @@ export class CombineNotesCommand extends IronfishCommand {
 
     // This allows us to have a single note as an output.
 
-    const amount = amountExcludingFees - raw.fee
+    const amount = amountIncludingFees - raw.fee
     params.outputs[0].amount = CurrencyUtils.encode(amount)
     const createTransactionResponse = await client.wallet.createTransaction(params)
     const createTransactionBytes = Buffer.from(
