@@ -126,7 +126,7 @@ export class WalletDB {
     value: null
   }>
 
-  noteValue: IDatabaseStore<{
+  valueToNoteHash: IDatabaseStore<{
     key: [Account['prefix'], [Buffer, [bigint, Buffer]]] // account prefix, asset ID, value, note hash
     value: null
   }>
@@ -259,7 +259,7 @@ export class WalletDB {
       valueEncoding: new BufferEncoding(),
     })
 
-    this.noteValue = this.db.addStore({
+    this.valueToNoteHash = this.db.addStore({
       name: 'nv',
       keyEncoding: new PrefixEncoding(
         new BufferEncoding(), // account prefix
@@ -312,7 +312,7 @@ export class WalletDB {
       this.assets,
       this.nullifierToTransactionHash,
       this.unspentNoteHashes,
-      this.noteValue,
+      this.valueToNoteHash,
     ]
   }
 
