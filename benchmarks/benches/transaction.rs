@@ -29,7 +29,7 @@ pub fn simple(c: &mut Criterion) {
                 proposed.add_spend(spend_note, &witness).unwrap();
                 proposed.add_output(out_note).unwrap();
 
-                let tx = proposed.post(key, None, 1).unwrap();
+                let tx = proposed.post(&key, None, 1).unwrap();
 
                 assert_eq!(tx.spends().len(), 1);
                 assert_eq!(tx.outputs().len(), 1);
@@ -67,7 +67,7 @@ pub fn all_descriptions(c: &mut Criterion) {
                 proposed.add_mint(asset, asset_value).unwrap();
                 proposed.add_burn(*asset.id(), asset_value).unwrap();
 
-                let tx = proposed.post(key, None, 1).unwrap();
+                let tx = proposed.post(&key, None, 1).unwrap();
 
                 assert_eq!(tx.spends().len(), 1);
                 assert_eq!(tx.outputs().len(), 1);
@@ -97,7 +97,7 @@ pub fn verify(c: &mut Criterion) {
                 proposed.add_spend(spend_note, &witness).unwrap();
                 proposed.add_output(out_note).unwrap();
 
-                proposed.post(key, None, 1).unwrap()
+                proposed.post(&key, None, 1).unwrap()
             },
             // Benchmark
             |tx| {
@@ -132,7 +132,7 @@ pub fn batch_verify(c: &mut Criterion) {
                     proposed.add_spend(spend_note, &witness).unwrap();
                     proposed.add_output(out_note).unwrap();
 
-                    transactions.push(proposed.post(key, None, 1).unwrap());
+                    transactions.push(proposed.post(&key, None, 1).unwrap());
                 }
 
                 transactions
