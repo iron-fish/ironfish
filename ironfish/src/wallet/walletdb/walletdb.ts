@@ -122,7 +122,12 @@ export class WalletDB {
   }>
 
   unspentNoteHashes: IDatabaseStore<{
-    key: [Account['prefix'], [Buffer, [number, [bigint, Buffer]]]]
+    key: [Account['prefix'], [Buffer, [number, [bigint, Buffer]]]] // account prefix, asset ID, sequence, value, note hash
+    value: null
+  }>
+
+  noteValue: IDatabaseStore<{
+    key: [Account['prefix'], [Buffer, [bigint, Buffer]]] // account prefix, asset ID, value, note hash
     value: null
   }>
 
@@ -254,6 +259,24 @@ export class WalletDB {
       valueEncoding: new BufferEncoding(),
     })
 
+    this.noteValue = this.db.addStore({
+      name: 'nv',
+      keyEncoding: new PrefixEncoding(
+        new BufferEncoding(), // account prefix
+        new PrefixEncoding(
+          new BufferEncoding(), // asset ID
+          new PrefixEncoding(
+            new BigU64BEEncoding(), // value
+            new BufferEncoding(), // note hash
+            8,
+          ),
+          32,
+        ),
+        4,
+      ),
+      valueEncoding: NULL_ENCODING,
+    })
+
     this.unspentNoteHashes = this.db.addStore({
       name: 'un',
       keyEncoding: new PrefixEncoding(
@@ -289,6 +312,7 @@ export class WalletDB {
       this.assets,
       this.nullifierToTransactionHash,
       this.unspentNoteHashes,
+      this.noteValue,
     ]
   }
 
