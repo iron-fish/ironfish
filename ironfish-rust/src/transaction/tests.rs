@@ -92,7 +92,7 @@ fn test_transaction() {
     assert_eq!(transaction.burns.len(), 1);
 
     let public_transaction = transaction
-        .post(spender_key, None, 1)
+        .post(&spender_key, None, 1)
         .expect("should be able to post transaction");
     verify_transaction(&public_transaction).expect("Should be able to verify transaction");
     assert_eq!(public_transaction.fee(), 1);
@@ -180,7 +180,7 @@ fn test_transaction_simple() {
     assert_eq!(transaction.outputs.len(), 1);
 
     let public_transaction = transaction
-        .post(spender_key, None, 1)
+        .post(&spender_key, None, 1)
         .expect("should be able to post transaction");
     verify_transaction(&public_transaction).expect("Should be able to verify transaction");
     assert_eq!(public_transaction.fee(), 1);
@@ -212,7 +212,7 @@ fn test_miners_fee() {
     let mut transaction = ProposedTransaction::new(TransactionVersion::latest());
     transaction.add_output(out_note).unwrap();
     let posted_transaction = transaction
-        .post_miners_fee(spender_key)
+        .post_miners_fee(&spender_key)
         .expect("it is a valid miner's fee");
     assert_eq!(posted_transaction.fee, -42);
     assert_eq!(
@@ -252,7 +252,7 @@ fn test_transaction_signature() {
     transaction.set_expiration(1337);
 
     let public_transaction = transaction
-        .post(spender_key, None, 0)
+        .post(&spender_key, None, 0)
         .expect("should be able to post transaction");
 
     let mut serialized_signature = vec![];
@@ -295,7 +295,7 @@ fn test_transaction_created_with_version_1() {
     assert_eq!(transaction.version, TransactionVersion::V1);
 
     let public_transaction = transaction
-        .post(spender_key, None, 1)
+        .post(&spender_key, None, 1)
         .expect("should be able to post transaction");
 
     assert_eq!(public_transaction.version, TransactionVersion::V1);
@@ -473,13 +473,13 @@ fn test_batch_verify_wrong_params() {
         .unwrap();
 
     let transaction1 = proposed_transaction1
-        .post(key, None, 1)
+        .post(&key, None, 1)
         .expect("should be able to post transaction");
 
     let mut proposed_transaction2 = ProposedTransaction::new(TransactionVersion::latest());
     proposed_transaction2.add_mint(asset2, 5).unwrap();
 
-    let transaction2 = proposed_transaction2.post(other_key, None, 0).unwrap();
+    let transaction2 = proposed_transaction2.post(&other_key, None, 0).unwrap();
     //
     // END TRANSACTION CREATION
     //
@@ -567,13 +567,13 @@ fn test_batch_verify() {
         .unwrap();
 
     let mut transaction1 = proposed_transaction1
-        .post(key, None, 1)
+        .post(&key, None, 1)
         .expect("should be able to post transaction");
 
     let mut proposed_transaction2 = ProposedTransaction::new(TransactionVersion::latest());
     proposed_transaction2.add_mint(asset2, 5).unwrap();
 
-    let transaction2 = proposed_transaction2.post(other_key, None, 0).unwrap();
+    let transaction2 = proposed_transaction2.post(&other_key, None, 0).unwrap();
 
     batch_verify_transactions([&transaction1, &transaction2])
         .expect("should be able to verify transaction");
