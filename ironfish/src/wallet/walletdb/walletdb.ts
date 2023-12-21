@@ -122,7 +122,7 @@ export class WalletDB {
   }>
 
   unspentNoteHashes: IDatabaseStore<{
-    key: [Account['prefix'], [Buffer, [number, [bigint, Buffer]]]] // account prefix, asset ID, sequence, value, note hash
+    key: [Account['prefix'], [Buffer, [number, [bigint, Buffer]]]]
     value: null
   }>
 
@@ -590,6 +590,18 @@ export class WalletDB {
     )
 
     await this.sequenceToNoteHash.clear(tx, keyRange)
+  }
+
+  async addValueToNoteHash(
+    account: Account,
+    noteHash: Buffer,
+    decryptedNote: DecryptedNoteValue,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    const value = decryptedNote.note.value()
+    const assetId = decryptedNote.note.assetId()
+
+    await this.valueToNoteHash.put([account.prefix, [assetId, [value, noteHash]]], null, tx)
   }
 
   async addUnspentNoteHash(
