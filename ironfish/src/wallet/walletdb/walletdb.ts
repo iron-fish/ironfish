@@ -861,14 +861,14 @@ export class WalletDB {
     }
   }
 
-  async *loadNoteHashesInValueRange(
+  async *loadNotesSortedByValue(
     account: Account,
     assetId: Buffer,
     start: number,
     end: number,
     reverse = false,
     tx?: IDatabaseTransaction,
-  ): AsyncGenerator<Buffer> {
+  ): AsyncGenerator<DecryptedNoteValue> {
     const encoding = new PrefixEncoding(
       BUFFER_ENCODING,
       new PrefixEncoding(BUFFER_ENCODING, U32_ENCODING_BE, 32),
@@ -883,7 +883,11 @@ export class WalletDB {
     for await (const [, [, [_, noteHash]]] of this.valueToNoteHash.getAllKeysIter(tx, range, {
       reverse,
     })) {
-      yield noteHash
+      const decryptedNote = await this.decryptedNotes.get([account.prefix, noteHash], tx)
+
+      if (decryptedNote !== undefined) {
+        yield decryptedNote
+      }
     }
   }
 
