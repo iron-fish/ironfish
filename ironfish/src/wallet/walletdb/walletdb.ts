@@ -786,7 +786,7 @@ export class WalletDB {
       }
 
       await this.setNoteHashSequence(account, noteHash, note.sequence, tx)
-
+      await this.saveValueToNoteHash(account, noteHash, note, tx)
       await this.decryptedNotes.put([account.prefix, noteHash], note, tx)
     })
   }
@@ -937,10 +937,32 @@ export class WalletDB {
     noteHash: Buffer,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    await this.decryptedNotes.del([account.prefix, noteHash], tx)
+    await this.db.withTransaction(tx, async (tx) => {
+      const decryptedNote = await this.decryptedNotes.get([account.prefix, noteHash], tx)
+      if (decryptedNote) {
+        await this.deleteValueToNoteHash(account, decryptedNote, tx)
+      }
+
+      await this.decryptedNotes.del([account.prefix, noteHash], tx)
+    })
+  }
+
+  async deleteValueToNoteHash(
+    account: Account,
+    decryptedNote: DecryptedNoteValue,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    await this.valueToNoteHash.del(
+      [
+        account.prefix,
+        [decryptedNote.note.assetId(), [decryptedNote.note.value(), decryptedNote.note.hash()]],
+      ],
+      tx,
+    )
   }
 
   async clearDecryptedNotes(account: Account, tx?: IDatabaseTransaction): Promise<void> {
+    await this.valueToNoteHash.clear(tx, account.prefixRange)
     await this.decryptedNotes.clear(tx, account.prefixRange)
   }
 
