@@ -350,13 +350,13 @@ impl ProposedTransaction {
         // Sign spends now that we have the data needed to be signed
         let mut spend_descriptions = Vec::with_capacity(unsigned_spends.len());
         for spend in unsigned_spends.drain(0..) {
-            spend_descriptions.push(spend.sign(&spender_key, &data_to_sign)?);
+            spend_descriptions.push(spend.sign(spender_key, &data_to_sign)?);
         }
 
         // Sign mints now that we have the data needed to be signed
         let mut mint_descriptions = Vec::with_capacity(unsigned_mints.len());
         for mint in unsigned_mints.drain(0..) {
-            mint_descriptions.push(mint.sign(&spender_key, &data_to_sign)?);
+            mint_descriptions.push(mint.sign(spender_key, &data_to_sign)?);
         }
 
         Ok(Transaction {
