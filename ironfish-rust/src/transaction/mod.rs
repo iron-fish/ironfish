@@ -108,6 +108,14 @@ pub struct ProposedTransaction {
     /// removed from the mempool. A value of 0 indicates the transaction will
     /// not expire.
     expiration: u32,
+
+    // randomness used for the transaction to calculate the randomized ak, which
+    // allows us to verify the sender address is valid and stored in the notes
+    // Used to add randomness to signature generation without leaking the
+    // key. Referred to as `ar` in the literature.
+    public_key_randomness: jubjub::Fr,
+    // NOTE: If adding fields here, you may need to add fields to
+    // signature hash method, and also to Transaction.
 }
 
 impl ProposedTransaction {
@@ -120,6 +128,7 @@ impl ProposedTransaction {
             burns: vec![],
             value_balances: ValueBalances::new(),
             expiration: 0,
+            public_key_randomness: jubjub::Fr::random(thread_rng()),
         }
     }
 
@@ -275,14 +284,13 @@ impl ProposedTransaction {
     // Post transaction without much validation.
     fn _partial_post(&self, spender_key: &SaplingKey) -> Result<Transaction, IronfishError> {
         // Generate randomized public key
-        let public_key_randomness = jubjub::Fr::random(thread_rng());
 
         // The public key after randomization has been applied. This is used
         // during signature verification. Referred to as `rk` in the literature
         // Calculated from the authorizing key and the public_key_randomness.
         let randomized_public_key =
             redjubjub::PublicKey(spender_key.view_key.authorizing_key.into())
-                .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);
+                .randomize(self.public_key_randomness, *SPENDING_KEY_GENERATOR);
 
         // Build descriptions
         let mut unsigned_spends = Vec::with_capacity(self.spends.len());
