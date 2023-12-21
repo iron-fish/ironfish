@@ -849,6 +849,32 @@ export class WalletDB {
     }
   }
 
+  async *loadNoteHashesInValueRange(
+    account: Account,
+    assetId: Buffer,
+    start: number,
+    end: number,
+    reverse = false,
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<Buffer> {
+    const encoding = new PrefixEncoding(
+      BUFFER_ENCODING,
+      new PrefixEncoding(BUFFER_ENCODING, U32_ENCODING_BE, 32),
+      4,
+    )
+
+    const range = getPrefixesKeyRange(
+      encoding.serialize([account.prefix, [assetId, start]]),
+      encoding.serialize([account.prefix, [assetId, end]]),
+    )
+
+    for await (const [, [, [_, noteHash]]] of this.valueToNoteHash.getAllKeysIter(tx, range, {
+      reverse,
+    })) {
+      yield noteHash
+    }
+  }
+
   async *loadTransactionHashesInSequenceRange(
     account: Account,
     start: number,
