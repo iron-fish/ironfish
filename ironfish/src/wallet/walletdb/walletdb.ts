@@ -592,7 +592,7 @@ export class WalletDB {
     await this.sequenceToNoteHash.clear(tx, keyRange)
   }
 
-  async addValueToNoteHash(
+  async saveValueToNoteHash(
     account: Account,
     noteHash: Buffer,
     decryptedNote: DecryptedNoteValue,
