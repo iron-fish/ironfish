@@ -248,7 +248,7 @@ impl NativeTransaction {
         let spender_key = SaplingKey::from_hex(&spender_hex_key).map_err(to_napi_err)?;
         let transaction = self
             .transaction
-            .post_miners_fee(spender_key)
+            .post_miners_fee(&spender_key)
             .map_err(to_napi_err)?;
 
         let mut vec: Vec<u8> = vec![];
@@ -263,7 +263,7 @@ impl NativeTransaction {
         let spender_key = SaplingKey::from_hex(&spender_hex_key).map_err(to_napi_err)?;
         let transaction = self
             .transaction
-            .post_miners_fee_unchecked(spender_key)
+            .post_miners_fee_unchecked(&spender_key)
             .map_err(to_napi_err)?;
 
         let mut vec: Vec<u8> = vec![];
@@ -299,7 +299,7 @@ impl NativeTransaction {
 
         let posted_transaction = self
             .transaction
-            .post(spender_key, change_key, intended_transaction_fee_u64)
+            .post(&spender_key, change_key, intended_transaction_fee_u64)
             .map_err(to_napi_err)?;
 
         let mut vec: Vec<u8> = vec![];

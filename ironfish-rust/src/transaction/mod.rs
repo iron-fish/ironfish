@@ -191,7 +191,7 @@ impl ProposedTransaction {
     /// aka: self.value_balance - intended_transaction_fee - change = 0
     pub fn post(
         &mut self,
-        spender_key: SaplingKey,
+        spender_key: &SaplingKey,
         change_goes_to: Option<PublicAddress>,
         intended_transaction_fee: u64,
     ) -> Result<Transaction, IronfishError> {
@@ -236,7 +236,7 @@ impl ProposedTransaction {
     /// as the miners fee.
     pub fn post_miners_fee(
         &mut self,
-        spender_key: SaplingKey,
+        spender_key: &SaplingKey,
     ) -> Result<Transaction, IronfishError> {
         if !self.spends.is_empty()
             || self.outputs.len() != 1
@@ -253,7 +253,7 @@ impl ProposedTransaction {
     /// Do not call this directly -- see post_miners_fee.
     pub fn post_miners_fee_unchecked(
         &mut self,
-        spender_key: SaplingKey,
+        spender_key: &SaplingKey,
     ) -> Result<Transaction, IronfishError> {
         // Set note_encryption_keys to a constant value on the outputs
         for output in &mut self.outputs {
@@ -273,7 +273,7 @@ impl ProposedTransaction {
     }
 
     // Post transaction without much validation.
-    fn _partial_post(&self, spender_key: SaplingKey) -> Result<Transaction, IronfishError> {
+    fn _partial_post(&self, spender_key: &SaplingKey) -> Result<Transaction, IronfishError> {
         // Generate randomized public key
         let public_key_randomness = jubjub::Fr::random(thread_rng());
 
