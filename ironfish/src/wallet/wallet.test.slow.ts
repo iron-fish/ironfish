@@ -1159,21 +1159,42 @@ describe('Wallet', () => {
         account.spendingKey,
       )
 
-      // import view-only account using shared multisig keys
-      const multiSigAccount = await node.wallet.importAccount({
+      const keyPackages = Object.entries(trustedDealerPackage.keyPackages)
+      const participantA = await node.wallet.importAccount({
         version: 2,
         id: uuid(),
-        name: 'multisig',
+        name: keyPackages[0][0],
         spendingKey: null,
         createdAt: null,
+        keyPackage: keyPackages[0][1],
+        multiSigIdentifier: keyPackages[0][0],
+        ...trustedDealerPackage,
+      })
+      const participantB = await node.wallet.importAccount({
+        version: 2,
+        id: uuid(),
+        name: keyPackages[1][0],
+        spendingKey: null,
+        createdAt: null,
+        keyPackage: keyPackages[1][1],
+        multiSigIdentifier: keyPackages[1][0],
+        ...trustedDealerPackage,
+      })
+      const participantC = await node.wallet.importAccount({
+        version: 2,
+        id: uuid(),
+        name: keyPackages[2][0],
+        spendingKey: null,
+        createdAt: null,
+        keyPackage: keyPackages[2][1],
+        multiSigIdentifier: keyPackages[2][0],
         ...trustedDealerPackage,
       })
 
-      // frost round one
-      const roundOneSigningData: Record<string, RoundOneSigningData> = {}
-      for (const identifier in trustedDealerPackage.keyPackages) {
-        const keyPackage = trustedDealerPackage.keyPackages[identifier]
-        roundOneSigningData[identifier] = frostRoundOne(keyPackage, seed)
+      const roundOneSigningData: Record<string, RoundOneSigningData> = {
+        [participantA.multiSigIdentifier!]: frostRoundOne(participantA.keyPackage!, seed),
+        [participantB.multiSigIdentifier!]: frostRoundOne(participantB.keyPackage!, seed),
+        [participantC.multiSigIdentifier!]: frostRoundOne(participantC.keyPackage!, seed),
       }
 
       // mine block to send IRON to multisig account
@@ -1186,7 +1207,7 @@ describe('Wallet', () => {
         account: miner,
         outputs: [
           {
-            publicAddress: multiSigAccount.publicAddress,
+            publicAddress: participantA.publicAddress,
             amount: BigInt(2),
             memo: '',
             assetId: Asset.nativeId(),
@@ -1208,13 +1229,13 @@ describe('Wallet', () => {
       await node.wallet.updateHead()
 
       // verify multisig account can see its IRON
-      expect(await node.wallet.getBalance(multiSigAccount, Asset.nativeId())).toMatchObject({
+      expect(await node.wallet.getBalance(participantA, Asset.nativeId())).toMatchObject({
         unconfirmed: BigInt(2),
       })
 
       // create transaction from multisig account back to miner
       const rawTransaction = await node.wallet.createTransaction({
-        account: multiSigAccount,
+        account: participantA,
         outputs: [
           {
             publicAddress: recipient.publicAddress,
@@ -1252,15 +1273,10 @@ describe('Wallet', () => {
         signingPackageCommitments,
       )
 
-      const signatureShares: Record<string, string> = {}
-      for (const identifier in trustedDealerPackage.keyPackages) {
-        const keyPackage = trustedDealerPackage.keyPackages[identifier]
-        signatureShares[identifier] = frostRoundTwo(
-          signingPackage.signingPackage,
-          keyPackage,
-          signingPackage.publicKeyRandomness,
-          seed,
-        )
+      const signatureShares: Record<string, string> = {
+        [participantA.multiSigIdentifier!]: frostRoundTwo(signingPackage.signingPackage, participantA.keyPackage!, signingPackage.publicKeyRandomness, seed),
+        [participantB.multiSigIdentifier!]: frostRoundTwo(signingPackage.signingPackage, participantB.keyPackage!, signingPackage.publicKeyRandomness, seed),
+        [participantC.multiSigIdentifier!]: frostRoundTwo(signingPackage.signingPackage, participantC.keyPackage!, signingPackage.publicKeyRandomness, seed),
       }
 
       const serializedFrostTransaction = unsignedTransaction.postFrostAggregate(

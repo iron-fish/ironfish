@@ -53,9 +53,8 @@ export class Account {
   // - ask
   // - participant identifier
   // - proof generation key
-  readonly authorizingKeyShard?: string
-  readonly identifier?: string
-  readonly proofGenerationKey?: string
+  readonly keyPackage?: string
+  readonly multiSigIdentifier?: string
 
   constructor({
     id,
@@ -68,6 +67,8 @@ export class Account {
     outgoingViewKey,
     version,
     createdAt,
+    keyPackage,
+    multiSigIdentifier,
   }: AccountValue & { walletDb: WalletDB }) {
     this.id = id
     this.name = name
@@ -85,6 +86,8 @@ export class Account {
     this.walletDb = walletDb
     this.version = version ?? 1
     this.createdAt = createdAt
+    this.keyPackage = keyPackage
+    this.multiSigIdentifier = multiSigIdentifier
   }
 
   isSpendingAccount(): this is SpendingAccount {
