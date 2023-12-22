@@ -1234,10 +1234,11 @@ export class Wallet {
     notesSpent: BufferSet,
     confirmations: number,
   ): Promise<bigint> {
-    for await (const unspentNote of sender.getUnspentNotes(assetId, {
+    for await (const unspentNote of sender.getNotesSortedByValue(assetId, {
+      reverse: true,
       confirmations,
     })) {
-      if (notesSpent.has(unspentNote.note.hash())) {
+      if (unspentNote.spent || notesSpent.has(unspentNote.note.hash())) {
         continue
       }
 

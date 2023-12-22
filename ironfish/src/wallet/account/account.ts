@@ -110,6 +110,36 @@ export class Account {
     }
   }
 
+  async *getNotesSortedByValue(
+    assetId: Buffer,
+    options?: {
+      confirmations?: number
+      reverse?: boolean
+    },
+  ): AsyncGenerator<DecryptedNoteValue> {
+    const head = await this.getHead()
+    if (!head) {
+      return
+    }
+    const confirmations = options?.confirmations ?? 0
+    const maxConfirmedSequence = Math.max(head.sequence - confirmations, GENESIS_BLOCK_SEQUENCE)
+
+    for await (const decryptedNote of this.walletDb.loadNotesSortedByValue(
+      this,
+      assetId,
+      options?.reverse ?? false,
+    )) {
+      if (
+        !decryptedNote ||
+        !decryptedNote.sequence ||
+        decryptedNote.sequence >= maxConfirmedSequence
+      ) {
+        continue
+      }
+      yield decryptedNote
+    }
+  }
+
   async *getUnspentNotes(
     assetId: Buffer,
     options?: {
