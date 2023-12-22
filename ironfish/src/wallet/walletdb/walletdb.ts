@@ -11,6 +11,7 @@ import { NoteEncryptedHash } from '../../primitives/noteEncrypted'
 import { Nullifier } from '../../primitives/nullifier'
 import { Transaction, TransactionHash } from '../../primitives/transaction'
 import {
+  BIG_U64_BE_ENCODING,
   BigU64BEEncoding,
   BUFFER_ENCODING,
   BufferEncoding,
@@ -864,14 +865,14 @@ export class WalletDB {
   async *loadNotesSortedByValue(
     account: Account,
     assetId: Buffer,
-    start: number,
-    end: number,
     reverse = false,
+    start = 0n,
+    end = 2n ** 64n - 1n,
     tx?: IDatabaseTransaction,
   ): AsyncGenerator<DecryptedNoteValue> {
     const encoding = new PrefixEncoding(
       BUFFER_ENCODING,
-      new PrefixEncoding(BUFFER_ENCODING, U32_ENCODING_BE, 32),
+      new PrefixEncoding(BUFFER_ENCODING, BIG_U64_BE_ENCODING, 32),
       4,
     )
 
