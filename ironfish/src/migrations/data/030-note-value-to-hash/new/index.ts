@@ -21,7 +21,7 @@ export function GetNewStores(db: IDatabase): {
     key: [Account['prefix'], [Buffer, [bigint, Buffer]]] // account prefix, asset ID, value, note hash
     value: null
   }> = db.addStore({
-    name: 'un',
+    name: 'valueToNoteHash',
     keyEncoding: new PrefixEncoding(
       new BufferEncoding(), // account prefix
       new PrefixEncoding(
