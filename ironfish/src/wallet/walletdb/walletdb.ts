@@ -38,7 +38,7 @@ import { HeadValue, NullableHeadValueEncoding } from './headValue'
 import { AccountsDBMeta, MetaValue, MetaValueEncoding } from './metaValue'
 import { TransactionValue, TransactionValueEncoding } from './transactionValue'
 
-const VERSION_DATABASE_ACCOUNTS = 29
+const VERSION_DATABASE_ACCOUNTS = 30
 
 const getAccountsDBMetaDefaults = (): AccountsDBMeta => ({
   defaultAccountId: null,
@@ -882,7 +882,7 @@ export class WalletDB {
     )
 
     for await (const [, [, [_, noteHash]]] of this.valueToNoteHash.getAllKeysIter(tx, range, {
-      reverse,
+      reverse: reverse,
     })) {
       const decryptedNote = await this.decryptedNotes.get([account.prefix, noteHash], tx)
 
