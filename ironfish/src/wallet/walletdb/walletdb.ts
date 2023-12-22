@@ -261,7 +261,7 @@ export class WalletDB {
     })
 
     this.valueToNoteHash = this.db.addStore({
-      name: 'nv',
+      name: 'valueToNoteHash',
       keyEncoding: new PrefixEncoding(
         new BufferEncoding(), // account prefix
         new PrefixEncoding(

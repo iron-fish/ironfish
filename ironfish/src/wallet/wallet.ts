@@ -1234,19 +1234,19 @@ export class Wallet {
     notesSpent: BufferSet,
     confirmations: number,
   ): Promise<bigint> {
-    for await (const unspentNote of sender.getNotesSortedByValue(assetId, {
+    for await (const decryptedNote of sender.getNotesSortedByValue(assetId, {
       reverse: true,
       confirmations,
     })) {
-      if (unspentNote.spent || notesSpent.has(unspentNote.note.hash())) {
+      if (decryptedNote.spent || notesSpent.has(decryptedNote.note.hash())) {
         continue
       }
 
-      const witness = await this.getNoteWitness(unspentNote, confirmations)
+      const witness = await this.getNoteWitness(decryptedNote, confirmations)
 
-      amountSpent += unspentNote.note.value()
+      amountSpent += decryptedNote.note.value()
 
-      raw.spends.push({ note: unspentNote.note, witness })
+      raw.spends.push({ note: decryptedNote.note, witness })
 
       if (amountSpent >= amountNeeded) {
         break
