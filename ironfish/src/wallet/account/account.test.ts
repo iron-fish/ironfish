@@ -2496,6 +2496,84 @@ describe('Accounts', () => {
         previousNoteValue = note.note.value()
       }
     })
+
+    it('sorted notes for minted assets', async () => {
+      const { node } = nodeTest
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+      const accountB = await useAccountFixture(node.wallet, 'accountB')
+
+      const minerBlockA = await useMinerBlockFixture(
+        node.chain,
+        undefined,
+        accountA,
+        node.wallet,
+      )
+
+      await node.chain.addBlock(minerBlockA)
+      await node.wallet.updateHead()
+
+      const asset = new Asset(accountA.publicAddress, 'mint-asset', 'metadata')
+
+      const mintBlock = await useMintBlockFixture({
+        node,
+        account: accountA,
+        asset,
+        value: 10n,
+      })
+
+      await node.chain.addBlock(mintBlock)
+      await node.wallet.updateHead()
+
+      expect((await accountA.getBalance(asset.id(), 0)).available).toBe(10n)
+
+      let transfer = await usePostTxFixture({
+        node,
+        wallet: node.wallet,
+        from: accountA,
+        to: accountB,
+        assetId: asset.id(),
+        amount: BigInt(1n),
+      })
+      let block = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet, [
+        transfer,
+      ])
+      await node.chain.addBlock(block)
+      await node.wallet.updateHead()
+
+      // confirm balances
+      expect((await accountA.getBalance(asset.id(), 0)).available).toBe(9n)
+
+      transfer = await usePostTxFixture({
+        node,
+        wallet: node.wallet,
+        from: accountA,
+        to: accountB,
+        assetId: asset.id(),
+        amount: BigInt(2n),
+      })
+      block = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet, [
+        transfer,
+      ])
+      await node.chain.addBlock(block)
+      await node.wallet.updateHead()
+
+      // confirm balances
+      expect((await accountA.getBalance(asset.id(), 0)).available).toBe(7n)
+
+      const sortedAssetNotes = await AsyncUtils.materialize(
+        accountA.getNotesSortedByValue(asset.id(), {
+          reverse: true,
+        }),
+      )
+
+      expect(sortedAssetNotes).toHaveLength(3)
+
+      const values = sortedAssetNotes.map((note) => note.note.value())
+      const spent = sortedAssetNotes.map((note) => note.spent)
+
+      expect(values).toEqual([10n, 9n, 7n])
+      expect(spent).toEqual([true, true, false])
+    })
   })
 
   describe('getTransactionsBySequence', () => {
