@@ -2355,6 +2355,149 @@ describe('Accounts', () => {
     })
   })
 
+  describe('getNotesSortedByValue', () => {
+    it('loads notes sorted by value', async () => {
+      const { node } = nodeTest
+      const account = await useAccountFixture(node.wallet)
+
+      const minerBlockA = await useMinerBlockFixture(
+        node.chain,
+        undefined,
+        account,
+        node.wallet,
+      )
+
+      await node.chain.addBlock(minerBlockA)
+      await node.wallet.updateHead()
+
+      const minerBlockB = await useMinerBlockFixture(
+        node.chain,
+        undefined,
+        account,
+        node.wallet,
+      )
+
+      await node.chain.addBlock(minerBlockB)
+      await node.wallet.updateHead()
+
+      const block = await useMinerBlockFixture(node.chain, undefined, account, node.wallet, [
+        await useTxFixture(node.wallet, account, account),
+        await useTxFixture(node.wallet, account, account),
+      ])
+      await node.chain.addBlock(block)
+      await node.wallet.updateHead()
+
+      const sortedNotes = await AsyncUtils.materialize(
+        account.getNotesSortedByValue(Asset.nativeId()),
+      )
+
+      const allNotes = await AsyncUtils.materialize(account.getNotes())
+
+      expect(sortedNotes.length).toEqual(allNotes.length)
+
+      let previousNoteValue = sortedNotes[0].note.value()
+
+      for (const note of sortedNotes) {
+        expect(note.note.value()).toBeGreaterThanOrEqual(previousNoteValue)
+        previousNoteValue = note.note.value()
+      }
+    })
+
+    it('filters notes by confirmations', async () => {
+      const { node } = nodeTest
+      const account = await useAccountFixture(node.wallet)
+
+      const blockA = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
+
+      await node.chain.addBlock(blockA)
+      await node.wallet.updateHead()
+
+      const blockB = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
+
+      await node.chain.addBlock(blockB)
+      await node.wallet.updateHead()
+
+      const transactionC = await useTxFixture(node.wallet, account, account)
+      const blockC = await useMinerBlockFixture(node.chain, undefined, account, node.wallet, [
+        transactionC,
+      ])
+      await node.chain.addBlock(blockC)
+      await node.wallet.updateHead()
+
+      const transactionD = await useTxFixture(node.wallet, account, account)
+      const blockD = await useMinerBlockFixture(node.chain, undefined, account, node.wallet, [
+        transactionD,
+      ])
+      await node.chain.addBlock(blockD)
+      await node.wallet.updateHead()
+
+      const transactionANotesLength = transactionC.notes.length + transactionC.spends.length
+      const transactionBNotesLength = transactionD.notes.length + transactionD.spends.length
+
+      const allNotes = await AsyncUtils.materialize(account.getNotes())
+
+      expect(
+        await AsyncUtils.materialize(
+          account.getNotesSortedByValue(Asset.nativeId(), { confirmations: 0 }),
+        ),
+      ).toHaveLength(allNotes.length)
+
+      expect(
+        await AsyncUtils.materialize(
+          account.getNotesSortedByValue(Asset.nativeId(), { confirmations: 1 }),
+        ),
+      ).toHaveLength(allNotes.length - transactionANotesLength)
+
+      expect(
+        await AsyncUtils.materialize(
+          account.getNotesSortedByValue(Asset.nativeId(), { confirmations: 2 }),
+        ),
+      ).toHaveLength(allNotes.length - transactionANotesLength - transactionBNotesLength)
+    })
+
+    it('loads notes in descending order', async () => {
+      const { node } = nodeTest
+      const account = await useAccountFixture(node.wallet)
+
+      const minerBlockA = await useMinerBlockFixture(
+        node.chain,
+        undefined,
+        account,
+        node.wallet,
+      )
+
+      await node.chain.addBlock(minerBlockA)
+      await node.wallet.updateHead()
+
+      const transactionA = await useTxFixture(node.wallet, account, account)
+
+      const block = await useMinerBlockFixture(node.chain, undefined, account, node.wallet, [
+        transactionA,
+      ])
+
+      await node.chain.addBlock(block)
+
+      await node.wallet.updateHead()
+
+      const sortedNotes = await AsyncUtils.materialize(
+        account.getNotesSortedByValue(Asset.nativeId(), {
+          reverse: true,
+        }),
+      )
+
+      const allNotes = await AsyncUtils.materialize(account.getNotes())
+
+      expect(sortedNotes).toHaveLength(allNotes.length)
+
+      let previousNoteValue = sortedNotes[0].note.value()
+
+      for (const note of sortedNotes) {
+        expect(note.note.value()).toBeLessThanOrEqual(previousNoteValue)
+        previousNoteValue = note.note.value()
+      }
+    })
+  })
+
   describe('getTransactionsBySequence', () => {
     it('returns a stream of transactions with a matching block sequence', async () => {
       const { node } = nodeTest
