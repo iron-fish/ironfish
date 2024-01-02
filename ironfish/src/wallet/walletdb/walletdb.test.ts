@@ -1,7 +1,14 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { createNodeTest, useAccountFixture, useMinerBlockFixture } from '../../testUtilities'
+import { Asset } from '@ironfish/rust-nodejs'
+import { Assert } from '../../assert'
+import {
+  createNodeTest,
+  useAccountFixture,
+  useMinerBlockFixture,
+  useTxFixture,
+} from '../../testUtilities'
 import { AsyncUtils } from '../../utils'
 
 describe('WalletDB', () => {
@@ -44,6 +51,77 @@ describe('WalletDB', () => {
       expect(noteHashes[0]).toEqualBuffer(Buffer.from('10', 'hex'))
       expect(noteHashes[1]).toEqualBuffer(Buffer.from('100', 'hex'))
       expect(noteHashes[2]).toEqualBuffer(Buffer.from('1000', 'hex'))
+    })
+  })
+
+  describe('loadNotesSortedByValue', () => {
+    it('keys should be stored in order', async () => {
+      const { node } = await nodeTest.createSetup()
+      const walletDb = node.wallet.walletDb
+      const account = await useAccountFixture(node.wallet)
+
+      await walletDb.valueToNoteHash.put(
+        [account.prefix, [Asset.nativeId(), [100n, Buffer.from('100', 'hex')]]],
+        null,
+      )
+      await walletDb.valueToNoteHash.put(
+        [account.prefix, [Asset.nativeId(), [1n, Buffer.from('1', 'hex')]]],
+        null,
+      )
+      await walletDb.valueToNoteHash.put(
+        [account.prefix, [Asset.nativeId(), [10n, Buffer.from('10', 'hex')]]],
+        null,
+      )
+      await walletDb.valueToNoteHash.put(
+        [account.prefix, [Asset.nativeId(), [1000n, Buffer.from('1000', 'hex')]]],
+        null,
+      )
+      await walletDb.valueToNoteHash.put(
+        [account.prefix, [Asset.nativeId(), [10000n, Buffer.from('10000', 'hex')]]],
+        null,
+      )
+
+      const allNotes = await walletDb.valueToNoteHash.getAll()
+
+      const correctOrder = [1n, 10n, 100n, 1000n, 10000n]
+
+      const values = allNotes.map((note) => note[0][1][1][0])
+
+      expect(values).toEqual(correctOrder)
+    })
+
+    it('notes should be returned in order of value', async () => {
+      const { node } = await nodeTest.createSetup()
+      const account = await useAccountFixture(node.wallet)
+
+      const block1 = await useMinerBlockFixture(node.chain, undefined, account)
+      await expect(node.chain).toAddBlock(block1)
+      await node.wallet.updateHead()
+
+      for (let i = 1; i < 3; i++) {
+        const transaction = await useTxFixture(node.wallet, account, account)
+        await expect(node.chain).toAddBlock(
+          await useMinerBlockFixture(node.chain, undefined, undefined, undefined, [
+            transaction,
+          ]),
+        )
+        await node.wallet.updateHead()
+      }
+
+      const walletDb = node.wallet.walletDb
+      const notes = await AsyncUtils.materialize(
+        walletDb.loadNotesSortedByValue(account, Asset.nativeId()),
+      )
+      const allNotes = await AsyncUtils.materialize(walletDb.loadDecryptedNotes(account))
+
+      expect(notes).toHaveLength(allNotes.length)
+
+      let previousNoteValue = notes[0].note.value()
+
+      for (const note of notes) {
+        expect(note.note.value()).toBeGreaterThanOrEqual(previousNoteValue)
+        previousNoteValue = note.note.value()
+      }
     })
   })
 
@@ -179,6 +257,41 @@ describe('WalletDB', () => {
   })
 
   describe('loadDecryptedNotes', () => {
+    it('deleting and saving decrypted note also does teh same with valueToNoteHash', async () => {
+      const node = (await nodeTest.createSetup()).node
+      const walletDb = node.wallet.walletDb
+      const account = await useAccountFixture(node.wallet)
+
+      const block = await useMinerBlockFixture(node.chain, 0, account)
+      await node.chain.addBlock(block)
+      await node.wallet.updateHead()
+
+      const noteHash: Buffer = block.transactions[0].notes[0].hash()
+      const decryptedNote = await account.getDecryptedNote(noteHash)
+      Assert.isNotUndefined(decryptedNote)
+      const dn1 = await AsyncUtils.materialize(walletDb.loadDecryptedNotes(account))
+      const vtn1 = await AsyncUtils.materialize(
+        walletDb.loadNotesSortedByValue(account, Asset.nativeId()),
+      )
+      expect(dn1.length).toEqual(1)
+      expect(vtn1.length).toEqual(1)
+      await walletDb.deleteDecryptedNote(account, noteHash)
+      const dn2 = await AsyncUtils.materialize(walletDb.loadDecryptedNotes(account))
+      expect(dn2.length).toEqual(0)
+      const vtn2 = await AsyncUtils.materialize(
+        walletDb.loadNotesSortedByValue(account, Asset.nativeId()),
+      )
+      expect(vtn2.length).toEqual(0)
+
+      await walletDb.saveDecryptedNote(account, noteHash, decryptedNote)
+      const dn3 = await AsyncUtils.materialize(walletDb.loadDecryptedNotes(account))
+      expect(dn3.length).toEqual(1)
+      const vtn3 = await AsyncUtils.materialize(
+        walletDb.loadNotesSortedByValue(account, Asset.nativeId()),
+      )
+      expect(vtn3.length).toEqual(1)
+    })
+
     it('loads decrypted notes greater than or equal to a given key', async () => {
       const node = (await nodeTest.createSetup()).node
       const walletDb = node.wallet.walletDb
