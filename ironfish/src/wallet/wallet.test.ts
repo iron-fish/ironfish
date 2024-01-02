@@ -20,7 +20,7 @@ import {
   usePostTxFixture,
   useTxFixture,
 } from '../testUtilities'
-import { AsyncUtils, BufferUtils } from '../utils'
+import { AsyncUtils, BufferUtils, ORE_TO_IRON } from '../utils'
 import { Account, TransactionStatus, TransactionType } from '../wallet'
 import { AssetStatus, Wallet } from './wallet'
 
@@ -916,36 +916,35 @@ describe('Wallet', () => {
     })
   })
 
-  describe('fund transaction', () => {
-    it.only('should select notes in order of largest to smallest', async () => {
+  describe('addSpendsForAsset', () => {
+    it('should select notes in order of largest to smallest', async () => {
       const { node } = nodeTest
       const accountA = await useAccountFixture(node.wallet, 'a')
       const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await node.chain.addBlock(blockA1)
       await node.wallet.updateHead()
 
-      for (let i = 0; i < 4; i++) {
-        const transaction = await useTxFixture(node.wallet, accountA, accountA)
-        const block = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet, [
-          transaction,
-        ])
-        await node.chain.addBlock(block)
-        await node.wallet.updateHead()
-      }
+      const transaction = await useTxFixture(node.wallet, accountA, accountA)
+      const block = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet, [
+        transaction,
+      ])
+      await node.chain.addBlock(block)
+      await node.wallet.updateHead()
 
-      const rawTransaction = new RawTransaction(TransactionVersion.V1)
+      const rawTransaction = new RawTransaction(TransactionVersion.V2)
 
-      const spends = await node.wallet.addSpendsForAsset(
+      await node.wallet.addSpendsForAsset(
         rawTransaction,
         accountA,
         Asset.nativeId(),
-        10n,
+        BigInt(ORE_TO_IRON * 10),
         0n,
         new BufferSet(),
         0,
       )
 
-      expect(spends).toEqual(2000000000n)
+      // if this fails, it means that the notes were not sorted in descending order
+      // a smaller note was used to fund the transaction
       expect(rawTransaction.spends).toHaveLength(1)
     })
   })
