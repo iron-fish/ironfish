@@ -7,6 +7,7 @@ import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { VerificationResultReason } from '../consensus'
+import { RawTransaction } from '../primitives'
 import { TransactionVersion } from '../primitives/transaction'
 import {
   createNodeTest,
@@ -912,6 +913,40 @@ describe('Wallet', () => {
       await expect(
         node.wallet.walletDb.loadTransaction(account, tx.hash()),
       ).resolves.toBeUndefined()
+    })
+  })
+
+  describe('fund transaction', () => {
+    it.only('should select notes in order of largest to smallest', async () => {
+      const { node } = nodeTest
+      const accountA = await useAccountFixture(node.wallet, 'a')
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(blockA1)
+      await node.wallet.updateHead()
+
+      for (let i = 0; i < 4; i++) {
+        const transaction = await useTxFixture(node.wallet, accountA, accountA)
+        const block = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet, [
+          transaction,
+        ])
+        await node.chain.addBlock(block)
+        await node.wallet.updateHead()
+      }
+
+      const rawTransaction = new RawTransaction(TransactionVersion.V1)
+
+      const spends = await node.wallet.addSpendsForAsset(
+        rawTransaction,
+        accountA,
+        Asset.nativeId(),
+        10n,
+        0n,
+        new BufferSet(),
+        0,
+      )
+
+      expect(spends).toEqual(2000000000n)
+      expect(rawTransaction.spends).toHaveLength(1)
     })
   })
 
