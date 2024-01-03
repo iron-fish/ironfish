@@ -483,7 +483,7 @@ export class CombineNotesCommand extends IronfishCommand {
 
     displayTransactionSummary(raw, Asset.nativeId().toString('hex'), amount, from, to, memo)
 
-    const estimateInMs = Math.ceil(spendPostTime * raw.spends.length)
+    const estimateInMs = Math.max(Math.ceil(spendPostTime * raw.spends.length), 1000)
 
     this.log(
       `Time to send: ${TimeUtils.renderSpan(estimateInMs, {
