@@ -3,15 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
 import {
-  Assert,
-  BenchUtils,
   CreateTransactionRequest,
   CurrencyUtils,
-  EstimateFeeRatesResponse,
   RawTransaction,
   RawTransactionSerde,
   RpcClient,
-  RpcResponseEnded,
   TimeUtils,
   Transaction,
 } from '@ironfish/sdk'
@@ -22,7 +18,12 @@ import { IronFlag, RemoteFlags } from '../../../flags'
 import { ProgressBar } from '../../../types'
 import { getExplorer } from '../../../utils/explorer'
 import { selectFee } from '../../../utils/fees'
-import { displayTransactionSummary, watchTransaction } from '../../../utils/transaction'
+import { fetchSortedNotes } from '../../../utils/notes'
+import {
+  displayTransactionSummary,
+  getSpendPostTimeInMs,
+  watchTransaction,
+} from '../../../utils/transaction'
 
 export class CombineNotesCommand extends IronfishCommand {
   static description = `Combine notes into a single note`
@@ -69,167 +70,6 @@ export class CombineNotesCommand extends IronfishCommand {
       default: false,
       description: 'Force run the benchmark to measure the time to combine 1 note',
     }),
-  }
-
-  private async getSpendPostTimeInMs(
-    client: RpcClient,
-    account: string,
-    noteSize: number,
-    forceBenchmark: boolean,
-  ): Promise<number> {
-    let spendPostTime = this.sdk.internal.get('spendPostTime')
-
-    const spendPostTimeAt = this.sdk.internal.get('spendPostTimeAt')
-
-    const shouldbenchmark =
-      forceBenchmark ||
-      spendPostTime <= 0 ||
-      Date.now() - spendPostTimeAt > 1000 * 60 * 60 * 24 * 30 // 1 month
-
-    if (shouldbenchmark) {
-      spendPostTime = await this.benchmarkSpendPostTime(client, account, noteSize)
-
-      this.sdk.internal.set('spendPostTime', spendPostTime)
-      this.sdk.internal.set('spendPostTimeAt', Date.now())
-      await this.sdk.internal.save()
-    }
-
-    return spendPostTime
-  }
-
-  private async benchmarkSpendPostTime(
-    client: RpcClient,
-    account: string,
-    noteSize: number,
-  ): Promise<number> {
-    const publicKey = (
-      await client.wallet.getAccountPublicKey({
-        account: account,
-      })
-    ).content.publicKey
-
-    const notes = await this.fetchNotes(client, account, noteSize, 10)
-
-    CliUx.ux.action.start('Measuring time to combine 1 note')
-
-    const feeRates = await client.wallet.estimateFeeRates()
-
-    /** Transaction 1: selects 1 note */
-
-    const txn1Params: CreateTransactionRequest = {
-      account: account,
-      outputs: [
-        {
-          publicAddress: publicKey,
-          amount: CurrencyUtils.encode(BigInt(notes[0].value)),
-          memo: '',
-        },
-      ],
-      fee: null,
-      feeRate: null,
-      notes: [notes[0].noteHash],
-    }
-
-    /** Transaction 2: selects two notes */
-
-    const txn2Params: CreateTransactionRequest = {
-      account: account,
-      outputs: [
-        {
-          publicAddress: publicKey,
-          amount: CurrencyUtils.encode(BigInt(notes[0].value) + BigInt(notes[1].value)),
-          memo: '',
-        },
-      ],
-      fee: null,
-      feeRate: null,
-      notes: [notes[0].noteHash, notes[1].noteHash],
-    }
-
-    const promisesTxn1 = []
-    const promisesTxn2 = []
-
-    for (let i = 0; i < 3; i++) {
-      promisesTxn1.push(this.measureTransactionPostTime(client, txn1Params, feeRates))
-      promisesTxn2.push(this.measureTransactionPostTime(client, txn2Params, feeRates))
-    }
-
-    const resultTxn1 = await Promise.all(promisesTxn1)
-    const resultTxn2 = await Promise.all(promisesTxn2)
-
-    const delta = Math.ceil(
-      (resultTxn2.reduce((acc, curr) => acc + curr, 0) -
-        resultTxn1.reduce((acc, curr) => acc + curr, 0)) /
-        3,
-    )
-
-    CliUx.ux.action.stop(TimeUtils.renderSpan(delta))
-
-    return delta
-  }
-
-  private async measureTransactionPostTime(
-    client: RpcClient,
-    params: CreateTransactionRequest,
-    feeRates: RpcResponseEnded<EstimateFeeRatesResponse>,
-  ) {
-    const response = await client.wallet.createTransaction({
-      ...params,
-      feeRate: feeRates.content.fast,
-    })
-
-    const bytes = Buffer.from(response.content.transaction, 'hex')
-    const raw = RawTransactionSerde.deserialize(bytes)
-
-    const start = BenchUtils.start()
-
-    await client.wallet.postTransaction({
-      transaction: RawTransactionSerde.serialize(raw).toString('hex'),
-      broadcast: false,
-    })
-
-    return BenchUtils.end(start)
-  }
-
-  private async fetchNotes(
-    client: RpcClient,
-    account: string,
-    noteSize: number,
-    notesToCombine: number,
-  ) {
-    notesToCombine = Math.max(notesToCombine, 10) // adds a buffer in case the user selects a small number of notes and they get filtered out by noteSize
-
-    const getNotesResponse = await client.wallet.getNotes({
-      account,
-      pageSize: notesToCombine,
-      filter: {
-        assetId: Asset.nativeId().toString('hex'),
-        spent: false,
-      },
-    })
-
-    // filtering notes by noteSize and sorting them by value in ascending order
-    const notes = getNotesResponse.content.notes
-      .filter((note) => {
-        if (!note.index) {
-          return false
-        }
-        return note.index < noteSize
-      })
-      .sort((a, b) => {
-        if (a.value < b.value) {
-          return -1
-        }
-        return 1
-      })
-
-    // must have at least three notes so that you can combine 2 and use another for fees
-    if (notes.length < 3) {
-      this.log(`Your notes are already combined. You currently have ${notes.length} notes.`)
-      this.exit(0)
-    }
-
-    return notes
   }
 
   private async selectNotesToCombine(spendPostTimeMs: number): Promise<number> {
@@ -355,23 +195,6 @@ export class CombineNotesCommand extends IronfishCommand {
     return expiration
   }
 
-  private async getNoteTreeSize(client: RpcClient) {
-    const getCurrentBlock = await client.chain.getChainInfo()
-
-    const currentBlockSequence = parseInt(getCurrentBlock.content.currentBlockIdentifier.index)
-
-    const getBlockResponse = await client.chain.getBlock({
-      sequence: currentBlockSequence,
-    })
-
-    Assert.isNotNull(getBlockResponse.content.block.noteSize)
-
-    const config = await client.config.getConfig()
-
-    // Adding a buffer to avoid a mismatch between confirmations used to load notes and confirmations used when creating witnesses to spend them
-    return getBlockResponse.content.block.noteSize - (config.content.confirmations || 2)
-  }
-
   private async getCurrentBlockSequence(client: RpcClient) {
     const getCurrentBlock = await client.chain.getChainInfo()
     const currentBlockSequence = parseInt(getCurrentBlock.content.currentBlockIdentifier.index)
@@ -408,14 +231,17 @@ export class CombineNotesCommand extends IronfishCommand {
     }
 
     // the confirmation range in the merkle tree for notes that are safe to use
-    const noteSize = await this.getNoteTreeSize(client)
 
-    const spendPostTime = await this.getSpendPostTimeInMs(
-      client,
-      from,
-      noteSize,
-      flags.benchmark,
-    )
+    const ensureMinNotes = await fetchSortedNotes(client, from, 10)
+
+    if (ensureMinNotes.length < 3) {
+      this.log(
+        `Your notes are already combined. You currently have ${ensureMinNotes.length} notes.`,
+      )
+      this.exit(0)
+    }
+
+    const spendPostTime = await getSpendPostTimeInMs(client, this.sdk, from, flags.benchmark)
 
     let numberOfNotes = flags.notes
 
@@ -423,7 +249,7 @@ export class CombineNotesCommand extends IronfishCommand {
       numberOfNotes = await this.selectNotesToCombine(spendPostTime)
     }
 
-    let notes = await this.fetchNotes(client, from, noteSize, numberOfNotes)
+    let notes = await fetchSortedNotes(client, from, numberOfNotes)
 
     // If the user doesn't have enough notes for their selection, we reduce the number of notes so that
     // the largest note can be used for fees.
