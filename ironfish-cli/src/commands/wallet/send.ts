@@ -8,16 +8,22 @@ import {
   isValidPublicAddress,
   RawTransaction,
   RawTransactionSerde,
+  TimeUtils,
   Transaction,
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { HexFlag, IronFlag, RemoteFlags } from '../../flags'
+import { ProgressBar } from '../../types'
 import { selectAsset } from '../../utils/asset'
 import { promptCurrency } from '../../utils/currency'
 import { getExplorer } from '../../utils/explorer'
 import { selectFee } from '../../utils/fees'
-import { displayTransactionSummary, watchTransaction } from '../../utils/transaction'
+import {
+  displayTransactionSummary,
+  getSpendPostTimeInMs,
+  watchTransaction,
+} from '../../utils/transaction'
 
 export class Send extends IronfishCommand {
   static description = `Send coins to another account`
@@ -168,6 +174,8 @@ export class Send extends IronfishCommand {
       from = response.content.account.name
     }
 
+    const spendPostTime = await getSpendPostTimeInMs(client, this.sdk, from, flags.benchmark)
+
     if (!to) {
       to = await CliUx.ux.prompt('Enter the public address of the recipient', {
         required: true,
@@ -239,14 +247,40 @@ export class Send extends IronfishCommand {
 
     displayTransactionSummary(raw, assetId, amount, from, to, memo)
 
+    const estimateInMs = Math.max(Math.ceil(spendPostTime * raw.spends.length), 1000)
+
+    this.log(
+      `Time to send: ${TimeUtils.renderSpan(estimateInMs, {
+        hideMilliseconds: true,
+      })}`,
+    )
+
     if (!flags.confirm) {
       const confirmed = await CliUx.ux.confirm('Do you confirm (Y/N)?')
       if (!confirmed) {
         this.error('Transaction aborted.')
       }
     }
+    const progressBar = CliUx.ux.progress({
+      format: '{title}: [{bar}] {percentage}% | {estimate}',
+    }) as ProgressBar
 
-    CliUx.ux.action.start('Sending the transaction')
+    const startTime = Date.now()
+
+    progressBar.start(100, 0, {
+      title: 'Sending the transaction',
+      estimate: TimeUtils.renderSpan(estimateInMs, { hideMilliseconds: true }),
+    })
+
+    const timer = setInterval(() => {
+      const durationInMs = Date.now() - startTime
+      const timeRemaining = estimateInMs - durationInMs
+      const progress = Math.round((durationInMs / estimateInMs) * 100)
+
+      progressBar.update(progress, {
+        estimate: TimeUtils.renderSpan(timeRemaining, { hideMilliseconds: true }),
+      })
+    }, 1000)
 
     const response = await client.wallet.postTransaction({
       transaction: RawTransactionSerde.serialize(raw).toString('hex'),
@@ -256,7 +290,15 @@ export class Send extends IronfishCommand {
     const bytes = Buffer.from(response.content.transaction, 'hex')
     const transaction = new Transaction(bytes)
 
-    CliUx.ux.action.stop()
+    clearInterval(timer)
+    progressBar.update(100)
+    progressBar.stop()
+
+    this.log(
+      `Sending took ${TimeUtils.renderSpan(Date.now() - startTime, {
+        hideMilliseconds: true,
+      })}`,
+    )
 
     if (response.content.accepted === false) {
       this.warn(
