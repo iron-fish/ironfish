@@ -19,7 +19,60 @@ import {
   TransactionStatus,
 } from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
+import { ProgressBar } from '../types'
 import { fetchSortedNotes } from './notes'
+
+export class TransactionTimer {
+  spendPostTime: number
+  raw: RawTransaction
+  estimateInMs: number
+  startTime: number
+  timer: NodeJS.Timeout | null
+  progressBar: ProgressBar
+
+  constructor(raw: RawTransaction, spendPostTime: number) {
+    this.spendPostTime = spendPostTime
+    this.raw = raw
+    this.estimateInMs = Math.max(Math.ceil(spendPostTime * raw.spends.length), 1000)
+    this.progressBar = CliUx.ux.progress({
+      format: '{title}: [{bar}] {percentage}% | {estimate}',
+    }) as ProgressBar
+    this.startTime = 0
+
+    this.timer = null
+  }
+
+  start(): void {
+    if (this.startTime > 0) {
+      return
+    }
+    this.startTime = Date.now()
+
+    this.progressBar.start(100, 0, {
+      title: 'Sending the transaction',
+      estimate: TimeUtils.renderSpan(this.estimateInMs, { hideMilliseconds: true }),
+    })
+
+    this.timer = setInterval(() => {
+      const durationInMs = Date.now() - this.startTime
+      const timeRemaining = this.estimateInMs - durationInMs
+      const progress = Math.round((durationInMs / this.estimateInMs) * 100)
+
+      this.progressBar.update(progress, {
+        estimate: TimeUtils.renderSpan(timeRemaining, { hideMilliseconds: true }),
+      })
+    }, 1000)
+  }
+
+  stop(): void {
+    if (this.timer === null) {
+      return
+    }
+    clearInterval(this.timer)
+    this.progressBar.update(100)
+    this.progressBar.stop()
+  }
+}
 
 async function measureTransactionPostTime(
   client: RpcClient,
