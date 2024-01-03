@@ -23,17 +23,13 @@ import { ProgressBar } from '../types'
 import { fetchSortedNotes } from './notes'
 
 export class TransactionTimer {
-  spendPostTime: number
-  raw: RawTransaction
   estimateInMs: number
   startTime: number
   timer: NodeJS.Timeout | null
   progressBar: ProgressBar
 
-  constructor(raw: RawTransaction, spendPostTime: number) {
-    this.spendPostTime = spendPostTime
-    this.raw = raw
-    this.estimateInMs = Math.max(Math.ceil(spendPostTime * raw.spends.length), 1000)
+  constructor(estimateInMs: number) {
+    this.estimateInMs = estimateInMs
     this.progressBar = CliUx.ux.progress({
       format: '{title}: [{bar}] {percentage}% | {estimate}',
     }) as ProgressBar
