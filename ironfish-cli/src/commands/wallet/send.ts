@@ -109,6 +109,11 @@ export class Send extends IronfishCommand {
       description: 'The note hashes to include in the transaction',
       multiple: true,
     }),
+    benchmark: Flags.boolean({
+      hidden: true,
+      default: false,
+      description: 'Force run the benchmark to measure the time to combine 1 note',
+    }),
   }
 
   async start(): Promise<void> {
