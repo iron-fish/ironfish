@@ -4,7 +4,7 @@
 import { Asset } from '@ironfish/rust-nodejs'
 import { Assert, RpcClient, RpcWalletNote } from '@ironfish/sdk'
 
-export async function getNoteTreeSize(client: RpcClient): Promise<number> {
+async function getNoteTreeSize(client: RpcClient): Promise<number> {
   const getCurrentBlock = await client.chain.getChainInfo()
 
   const currentBlockSequence = parseInt(getCurrentBlock.content.currentBlockIdentifier.index)
