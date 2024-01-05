@@ -21,8 +21,6 @@ use std::io;
 
 mod ephemeral;
 pub use ephemeral::EphemeralKeyPair;
-mod key_packages;
-pub use key_packages::TrustedDealerKeyPackages;
 mod public_address;
 pub use public_address::*;
 mod view_keys;
