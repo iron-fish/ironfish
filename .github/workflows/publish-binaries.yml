@@ -42,18 +42,12 @@ jobs:
     runs-on: ${{ matrix.settings.host }}
     steps:
 
-      - name: clean selfhosted node_modules
-        if: matrix.settings.system == 'apple' && matrix.settings.arch == 'arm64'
-        run: |
-          cd $GITHUB_WORKSPACE
-          find . -name . -o -prune -exec rm -rf -- {} +
-
-      - name: Use Node.js
+      - name: Use node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
       
-      - name: Use Go
+      - name: Use go
         uses: actions/setup-go@v4
         with:
           go-version: '1.20.6'
@@ -104,7 +98,7 @@ jobs:
         if: matrix.settings.system != 'windows'
         run: chmod +x ${{ steps.set_paths.outputs.binary }}
 
-      - name: Sign MacOS
+      - name: Sign macOS
         working-directory: tools
         if: matrix.settings.system == 'apple'
         env:
@@ -144,7 +138,7 @@ jobs:
 
           APPLE_API_KEY="$RUNNER_TEMP/api_key.p8" codesign --deep --force --options=runtime --sign "${APPLE_DEVELOPER_ID_APPLICATION}" --timestamp ${{ steps.set_paths.outputs.binary }}
 
-      - name: Sign Windows
+      - name: Sign windows
         working-directory: tools
         if: matrix.settings.system == 'windows'
         env:
@@ -163,10 +157,10 @@ jobs:
         with:
           directory: tools
           type: 'zip'
-          filename: ${{ steps.set_paths.outputs.name }}
+          filename: ${{ steps.set_paths.outputs.zip }}
           path: ${{ steps.set_paths.outputs.binary }}
       
-      - name: "Notarize app bundle"
+      - name: Notarize app bundle
         working-directory: tools
         if: matrix.settings.system == 'apple'
         env:
@@ -187,13 +181,13 @@ jobs:
           path: tools/${{ steps.set_paths.outputs.zip }}
           if-no-files-found: error
 
-      - name: Upload Release Asset
+      - name: Upload release asset
         id: upload-release-asset
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: "${{ github.event.release.upload_url }}?name=${{ steps.set_paths.outputs.zip }}"
-          asset_path: ${{ steps.set_paths.outputs.zip }}
+          asset_path: tools/${{ steps.set_paths.outputs.zip }}
           asset_name: ${{ steps.set_paths.outputs.zip }}
           asset_content_type: application/zip
