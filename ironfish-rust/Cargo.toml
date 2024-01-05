@@ -49,6 +49,8 @@ libc = "0.2.126" # sub-dependency that needs a pinned version until a new releas
 rand = "0.8.5"
 tiny-bip39 = "0.8"
 xxhash-rust = { version = "0.8.5", features = ["xxh3"] }
+frost-rerandomized = "0.7.0"
+reddsa = { git = "https://github.com/ZcashFoundation/reddsa.git", rev = "81c649c", features = ["frost"] }
 
 [dev-dependencies]
 hex-literal = "0.4"
