@@ -204,19 +204,7 @@ export function expectGetCompactBlockResponseToMatch(
   a: GetCompactBlockResponse,
   b: GetCompactBlockResponse,
 ): void {
-  // Test transactions separately because Transaction is not a primitive type
-  expect(a.compactBlock.transactions.length).toEqual(b.compactBlock.transactions.length)
-  a.compactBlock.transactions.forEach((transactionA, transactionIndexA) => {
-    const transactionB = b.compactBlock.transactions[transactionIndexA]
-
-    expect(transactionA.index).toEqual(transactionB.index)
-    expect(transactionA.transaction.hash().equals(transactionB.transaction.hash())).toBe(true)
-  })
-
-  expect({
-    ...a,
-    compactBlock: { ...a.compactBlock, transactions: undefined },
-  }).toMatchObject({ ...b, compactBlock: { ...b.compactBlock, transactions: undefined } })
+  expect(a.serialize().equals(b.serialize())).toBe(true)
 }
 
 export function expectGetBlockTransactionsResponseToMatch(
@@ -238,14 +226,7 @@ export function expectGetBlockHeadersResponseToMatch(
   a: GetBlockHeadersResponse,
   b: GetBlockHeadersResponse,
 ): void {
-  expect(a.headers.length).toEqual(b.headers.length)
-  a.headers.forEach((headerA, headerIndexA) => {
-    const headerB = b.headers[headerIndexA]
-
-    expect(headerA.hash).toEqual(headerB.hash)
-  })
-
-  expect({ ...a, headers: undefined }).toMatchObject({ ...b, headers: undefined })
+  expect(a.serialize().equals(b.serialize())).toBe(true)
 }
 
 export function expectGetBlocksResponseToMatch(

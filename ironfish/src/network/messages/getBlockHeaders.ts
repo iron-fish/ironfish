@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import bufio from 'bufio'
-import { BlockHeader } from '../../primitives'
+import { RawBlockHeader } from '../../primitives/blockheader'
 import { NetworkMessageType } from '../types'
 import { getBlockHeaderSize, readBlockHeader, writeBlockHeader } from '../utils/serializers'
 import { Direction, RpcNetworkMessage } from './rpcNetworkMessage'
@@ -72,9 +72,9 @@ export class GetBlockHeadersRequest extends RpcNetworkMessage {
 }
 
 export class GetBlockHeadersResponse extends RpcNetworkMessage {
-  readonly headers: BlockHeader[]
+  readonly headers: RawBlockHeader[]
 
-  constructor(headers: BlockHeader[], rpcId: number) {
+  constructor(headers: RawBlockHeader[], rpcId: number) {
     super(NetworkMessageType.GetBlockHeadersResponse, Direction.Response, rpcId)
     this.headers = headers
   }

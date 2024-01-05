@@ -489,16 +489,20 @@ describe('BlockFetcher', () => {
     const sentPeers = peers.filter(({ sendSpy }) => sendSpy.mock.calls.length > 0)
     const call = sentPeers[0].sendSpy.mock.calls[0][0] as GetCompactBlockRequest
 
-    const message = new GetCompactBlockResponse(newBlock.toCompactBlock(), call.rpcId)
+    const compactBlock = newBlock.toCompactBlock()
+    const message = new GetCompactBlockResponse(compactBlock, call.rpcId)
     for (const { peer } of sentPeers) {
       await peerNetwork.peerManager.onMessage.emitAsync(...peerMessage(peer, message))
     }
 
     expect(telemetrySpy).toHaveBeenCalledWith(
-      newBlock,
+      expect.any(Block),
       expect.any(Date),
       peers[0].peer.state.identity,
     )
+
+    const calledBlockHash = telemetrySpy.mock.calls[0][0].header.hash
+    expect(calledBlockHash).toEqual(newBlock.header.hash)
 
     await peerNetwork.stop()
   })
