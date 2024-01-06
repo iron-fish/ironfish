@@ -234,16 +234,6 @@ export type ConfigOptions = {
   jsonLogs: boolean
 
   /**
-   * URL for viewing block information in a block explorer
-   */
-  explorerBlocksUrl: string
-
-  /**
-   * URL for viewing transaction information in a block explorer
-   */
-  explorerTransactionsUrl: string
-
-  /**
    * How many blocks back from the head of the chain to use to calculate the fee
    * estimate
    */
@@ -373,8 +363,6 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     poolMaxConnectionsPerIp: YupUtils.isPositiveInteger,
     poolLarkWebhook: yup.string(),
     jsonLogs: yup.boolean(),
-    explorerBlocksUrl: YupUtils.isUrl,
-    explorerTransactionsUrl: YupUtils.isUrl,
     feeEstimatorMaxBlockHistory: YupUtils.isPositiveInteger,
     feeEstimatorPercentileSlow: YupUtils.isPositiveInteger,
     feeEstimatorPercentileAverage: YupUtils.isPositiveInteger,
@@ -473,8 +461,6 @@ export class Config extends KeyStore<ConfigOptions> {
       poolMaxConnectionsPerIp: 0,
       poolLarkWebhook: '',
       jsonLogs: false,
-      explorerBlocksUrl: 'https://explorer.ironfish.network/blocks/',
-      explorerTransactionsUrl: 'https://explorer.ironfish.network/transaction/',
       feeEstimatorMaxBlockHistory: DEFAULT_FEE_ESTIMATOR_MAX_BLOCK_HISTORY,
       feeEstimatorPercentileSlow: DEFAULT_FEE_ESTIMATOR_PERCENTILE_SLOW,
       feeEstimatorPercentileAverage: DEFAULT_FEE_ESTIMATOR_PERCENTILE_AVERAGE,
