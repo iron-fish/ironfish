@@ -170,10 +170,15 @@ export async function makeGenesisBlock(
     GraffitiUtils.fromString('genesis'),
   )
 
-  // Modify the block with any custom properties.
-  block.header.target = info.target
-  block.header.timestamp = new Date(info.timestamp)
+  const genesisBlock = Block.fromRaw({
+    header: {
+      ...block.header,
+      target: info.target,
+      timestamp: new Date(info.timestamp),
+    },
+    transactions: block.transactions,
+  })
 
   logger.info('Block complete.')
-  return { block }
+  return { block: genesisBlock }
 }
