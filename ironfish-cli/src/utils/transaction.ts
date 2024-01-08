@@ -24,12 +24,14 @@ import { fetchSortedNotes } from './notes'
 
 export class TransactionTimer {
   estimateInMs: number
+  spendPostTime: number
   startTime: number
   timer: NodeJS.Timeout | null
   progressBar: ProgressBar
 
-  constructor(estimateInMs: number) {
-    this.estimateInMs = estimateInMs
+  constructor(spendPostTime: number, raw: RawTransaction) {
+    this.estimateInMs = Math.max(Math.ceil(spendPostTime * raw.spends.length), 1000)
+    this.spendPostTime = spendPostTime
     this.progressBar = CliUx.ux.progress({
       format: '{title}: [{bar}] {percentage}% | {estimate}',
     }) as ProgressBar
@@ -39,10 +41,19 @@ export class TransactionTimer {
   }
 
   start(): void {
-    if (this.startTime > 0) {
+    if (this.startTime > 0 || this.spendPostTime <= 0) {
       return
     }
     this.startTime = Date.now()
+
+    if (this.spendPostTime > 0) {
+      const logger = createRootLogger()
+      logger.log(
+        `Time to send: ${TimeUtils.renderSpan(this.estimateInMs, {
+          hideMilliseconds: true,
+        })}`,
+      )
+    }
 
     this.progressBar.start(100, 0, {
       title: 'Sending the transaction',
@@ -60,13 +71,22 @@ export class TransactionTimer {
     }, 1000)
   }
 
-  stop(): void {
+  stop(logger?: Logger): void {
     if (this.timer === null) {
       return
     }
+
+    logger = logger ?? createRootLogger()
+
     clearInterval(this.timer)
     this.progressBar.update(100)
     this.progressBar.stop()
+
+    logger.log(
+      `Sending took ${TimeUtils.renderSpan(Date.now() - this.startTime, {
+        hideMilliseconds: true,
+      })}`,
+    )
   }
 }
 
@@ -101,6 +121,11 @@ async function benchmarkSpendPostTime(client: RpcClient, account: string): Promi
   ).content.publicKey
 
   const notes = await fetchSortedNotes(client, account, 10)
+
+  // need at least 3 notes to measure the time to combine 2 notes
+  if (notes.length < 3) {
+    return 0
+  }
 
   CliUx.ux.action.start('Measuring time to combine 1 note')
 
@@ -177,10 +202,11 @@ export async function getSpendPostTimeInMs(
 
   if (shouldbenchmark) {
     spendPostTime = await benchmarkSpendPostTime(client, account)
-
-    sdk.internal.set('spendPostTime', spendPostTime)
-    sdk.internal.set('spendPostTimeAt', Date.now())
-    await sdk.internal.save()
+    if (spendPostTime !== 0) {
+      sdk.internal.set('spendPostTime', spendPostTime)
+      sdk.internal.set('spendPostTimeAt', Date.now())
+      await sdk.internal.save()
+    }
   }
 
   return spendPostTime
@@ -193,6 +219,7 @@ export function displayTransactionSummary(
   from: string,
   to: string,
   memo: string,
+
   logger?: Logger,
 ): void {
   logger = logger ?? createRootLogger()

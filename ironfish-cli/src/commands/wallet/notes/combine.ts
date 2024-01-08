@@ -8,7 +8,6 @@ import {
   RawTransaction,
   RawTransactionSerde,
   RpcClient,
-  TimeUtils,
   Transaction,
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
@@ -307,16 +306,8 @@ export class CombineNotesCommand extends IronfishCommand {
       'hex',
     )
     raw = RawTransactionSerde.deserialize(createTransactionBytes)
-
-    displayTransactionSummary(raw, Asset.nativeId().toString('hex'), amount, from, to, memo)
-
-    const estimateInMs = Math.max(Math.ceil(spendPostTime * raw.spends.length), 1000)
-
-    this.log(
-      `Time to send: ${TimeUtils.renderSpan(estimateInMs, {
-        hideMilliseconds: true,
-      })}`,
-    )
+    const assetId = Asset.nativeId().toString('hex')
+    displayTransactionSummary(raw, assetId, amount, from, to, memo)
 
     if (!flags.confirm) {
       const confirmed = await CliUx.ux.confirm('Do you confirm (Y/N)?')
@@ -325,7 +316,7 @@ export class CombineNotesCommand extends IronfishCommand {
       }
     }
 
-    const transactionTimer = new TransactionTimer(estimateInMs)
+    const transactionTimer = new TransactionTimer(spendPostTime, raw)
     transactionTimer.start()
 
     const response = await client.wallet.postTransaction({
@@ -337,12 +328,6 @@ export class CombineNotesCommand extends IronfishCommand {
     const transaction = new Transaction(bytes)
 
     transactionTimer.stop()
-
-    this.log(
-      `Sending took ${TimeUtils.renderSpan(Date.now() - transactionTimer.startTime, {
-        hideMilliseconds: true,
-      })}`,
-    )
 
     if (response.content.accepted === false) {
       this.warn(
