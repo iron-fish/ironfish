@@ -305,6 +305,18 @@ impl NativeTransaction {
     pub fn set_expiration(&mut self, sequence: u32) -> Undefined {
         self.transaction.set_expiration(sequence);
     }
+
+    #[napi]
+    pub fn build(
+        &mut self,
+        public_key_package: String,
+        proof_generation_key_str: String,
+        view_key_str: String,
+        outgoing_view_key_str: String,
+        public_address_str: String,
+        change_goes_to: Option<String>,
+        intended_transaction_fee: BigInt,
+    )  {}
 }
 
 #[napi]
