@@ -546,7 +546,7 @@ describe('Verifier', () => {
         header.target,
         header.randomness,
         header.timestamp,
-        Buffer.alloc(31),
+        Buffer.alloc(33),
         header.noteSize,
         header.work,
         header.hash,
