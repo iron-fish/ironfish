@@ -43,7 +43,7 @@ path = "../ironfish-zkp"
 optional = true
 
 [dependencies.byteorder]
-version = "1"
+version = "1.5"
 optional = true
 
 [dependencies.hex-literal]
