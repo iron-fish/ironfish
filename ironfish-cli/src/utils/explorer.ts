@@ -5,7 +5,7 @@
 export const EXPLORER_URL_MAINNET = 'https://explorer.ironfish.network'
 export const EXPLORER_URL_TESTNET = 'https://testnet.explorer.ironfish.network'
 
-export const getExlorerUrl = (networkId: number): string | null => {
+export const getExplorerUrl = (networkId: number): string | null => {
   switch (networkId) {
     case 0:
       return EXPLORER_URL_TESTNET
@@ -17,11 +17,11 @@ export const getExlorerUrl = (networkId: number): string | null => {
 }
 
 export const getTransactionUrl = (networkId: number, txId?: string): string | null => {
-  const explorerUrl = getExlorerUrl(networkId)
+  const explorerUrl = getExplorerUrl(networkId)
   return explorerUrl ? `${explorerUrl}/transaction${txId ? `/${txId}` : ''}` : null
 }
 
 export const getBlockUrl = (networkId: number, blockHash?: string): string | null => {
-  const explorerUrl = getExlorerUrl(networkId)
+  const explorerUrl = getExplorerUrl(networkId)
   return explorerUrl ? `${explorerUrl}/blocks${blockHash ? `/${blockHash}` : ''}` : null
 }
