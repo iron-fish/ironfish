@@ -293,7 +293,7 @@ export class Blockchain {
     let connectResult = null
     try {
       connectResult = await this.blockchainDb.db.transaction(async (tx) => {
-        const hash = block.header.recomputeHash()
+        const hash = block.header.computeHash()
 
         if (!this.hasGenesisBlock && block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
           return await this.connect(block, null, tx)
