@@ -8,7 +8,7 @@ import {
   useMinersTxFixture,
 } from '../testUtilities/fixtures'
 import { createNodeTest } from '../testUtilities/nodeTest'
-import { BlockSerde, SerializedBlock } from './block'
+import { Block, BlockSerde, SerializedBlock } from './block'
 
 describe('Block', () => {
   const nodeTest = createNodeTest()
@@ -54,16 +54,33 @@ describe('Block', () => {
     // Header change
     const block2 = BlockSerde.deserialize(BlockSerde.serialize(block1))
     expect(block1.equals(block2)).toBe(true)
-    block2.header.randomness = BigInt(400)
-    expect(block1.equals(block2)).toBe(false)
-    block2.header.randomness = block1.header.randomness
-    expect(block1.equals(block2)).toBe(true)
-    block2.header.sequence += 1
-    expect(block1.equals(block2)).toBe(false)
-    block2.header.sequence = block1.header.sequence
-    expect(block1.equals(block2)).toBe(true)
-    block2.header.timestamp = new Date(block2.header.timestamp.valueOf() + 1)
-    expect(block1.equals(block2)).toBe(false)
+
+    let toCompare = Block.fromRaw({
+      header: {
+        ...block2.header,
+        randomness: BigInt(400),
+      },
+      transactions: block2.transactions,
+    })
+    expect(block1.equals(toCompare)).toBe(false)
+
+    toCompare = Block.fromRaw({
+      header: {
+        ...block2.header,
+        sequence: block2.header.sequence + 1,
+      },
+      transactions: block2.transactions,
+    })
+    expect(block1.equals(toCompare)).toBe(false)
+
+    toCompare = Block.fromRaw({
+      header: {
+        ...block2.header,
+        timestamp: new Date(block2.header.timestamp.valueOf() + 1),
+      },
+      transactions: block2.transactions,
+    })
+    expect(block1.equals(toCompare)).toBe(false)
 
     // Transactions length
     const block3 = BlockSerde.deserialize(BlockSerde.serialize(block1))
