@@ -15,7 +15,7 @@ import { IronfishCommand } from '../../command'
 import { HexFlag, IronFlag, RemoteFlags } from '../../flags'
 import { selectAsset } from '../../utils/asset'
 import { promptCurrency } from '../../utils/currency'
-import { getTransactionUrl } from '../../utils/explorer'
+import { getExplorerTransactionUrl } from '../../utils/explorer'
 import { selectFee } from '../../utils/fees'
 import { displayTransactionSummary, watchTransaction } from '../../utils/transaction'
 
@@ -257,7 +257,7 @@ export class Send extends IronfishCommand {
     this.log(`Memo: ${memo}`)
 
     const networkResponse = await client.chain.getNetworkInfo()
-    const transactionUrl = getTransactionUrl(
+    const transactionUrl = getExplorerTransactionUrl(
       networkResponse.content.networkId,
       transaction.hash().toString('hex'),
     )

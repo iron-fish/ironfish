@@ -27,6 +27,8 @@ import { WebhookNotifier } from './webhooks'
 const RECALCULATE_TARGET_TIMEOUT = 10000
 const EVENT_LOOP_MS = 10 * 1000
 
+type GetExplorerUrl = (networkId: number, hash: string) => string | null
+
 export class MiningPool {
   readonly stratum: StratumServer
   readonly rpc: RpcSocketClient
@@ -59,6 +61,9 @@ export class MiningPool {
   private recalculateTargetInterval: SetIntervalToken | null
   private notifyStatusInterval: SetIntervalToken | null
 
+  private getExplorerBlockUrl: GetExplorerUrl = () => null
+  private getExplorerTransactionUrl: GetExplorerUrl = () => null
+
   private constructor(options: {
     rpc: RpcSocketClient
     shares: MiningPoolShares
@@ -66,6 +71,8 @@ export class MiningPool {
     logger: Logger
     webhooks?: WebhookNotifier[]
     banning?: boolean
+    getExplorerBlockUrl?: GetExplorerUrl
+    getExplorerTransactionUrl?: GetExplorerUrl
   }) {
     this.rpc = options.rpc
     this.logger = options.logger
@@ -98,6 +105,10 @@ export class MiningPool {
 
     this.recalculateTargetInterval = null
     this.notifyStatusInterval = null
+
+    this.getExplorerBlockUrl = options.getExplorerBlockUrl ?? this.getExplorerBlockUrl
+    this.getExplorerTransactionUrl =
+      options.getExplorerTransactionUrl ?? this.getExplorerTransactionUrl
   }
 
   static async init(options: {
@@ -111,6 +122,8 @@ export class MiningPool {
     banning?: boolean
     tls?: boolean
     tlsOptions?: tls.TlsOptions
+    getExplorerBlockUrl?: GetExplorerUrl
+    getExplorerTransactionUrl?: GetExplorerUrl
   }): Promise<MiningPool> {
     const shares = await MiningPoolShares.init({
       rpc: options.rpc,
@@ -127,6 +140,8 @@ export class MiningPool {
       webhooks: options.webhooks,
       shares,
       banning: options.banning,
+      getExplorerBlockUrl: options.getExplorerBlockUrl,
+      getExplorerTransactionUrl: options.getExplorerTransactionUrl,
     })
 
     if (options.tls) {
@@ -345,7 +360,15 @@ export class MiningPool {
     }
 
     if (connected) {
-      this.webhooks.map((w) => w.poolConnected())
+      const networkResponse = await this.rpc.chain.getNetworkInfo()
+      const networkId = networkResponse.content.networkId
+
+      this.webhooks.map((w) =>
+        w.poolConnected(
+          (hash: string) => this.getExplorerBlockUrl(networkId, hash),
+          (hash: string) => this.getExplorerTransactionUrl(networkId, hash),
+        ),
+      )
     }
 
     this.connectWarned = false

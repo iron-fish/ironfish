@@ -14,7 +14,7 @@ import { IronfishCommand } from '../../command'
 import { IronFlag, RemoteFlags } from '../../flags'
 import { selectAsset } from '../../utils/asset'
 import { promptCurrency } from '../../utils/currency'
-import { getTransactionUrl } from '../../utils/explorer'
+import { getExplorerTransactionUrl } from '../../utils/explorer'
 import { selectFee } from '../../utils/fees'
 import { watchTransaction } from '../../utils/transaction'
 
@@ -223,7 +223,7 @@ export class Burn extends IronfishCommand {
     this.log(`Fee: ${CurrencyUtils.renderIron(transaction.fee(), true)}`)
 
     const networkResponse = await client.chain.getNetworkInfo()
-    const transactionUrl = getTransactionUrl(
+    const transactionUrl = getExplorerTransactionUrl(
       networkResponse.content.networkId,
       transaction.hash().toString('hex'),
     )

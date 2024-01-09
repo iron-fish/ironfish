@@ -20,7 +20,7 @@ import inquirer from 'inquirer'
 import { IronfishCommand } from '../../../command'
 import { IronFlag, RemoteFlags } from '../../../flags'
 import { ProgressBar } from '../../../types'
-import { getTransactionUrl } from '../../../utils/explorer'
+import { getExplorerTransactionUrl } from '../../../utils/explorer'
 import { selectFee } from '../../../utils/fees'
 import { displayTransactionSummary, watchTransaction } from '../../../utils/transaction'
 
@@ -552,7 +552,7 @@ export class CombineNotesCommand extends IronfishCommand {
     this.log(`Transaction hash: ${transaction.hash().toString('hex')}`)
 
     const networkResponse = await client.chain.getNetworkInfo()
-    const transactionUrl = getTransactionUrl(
+    const transactionUrl = getExplorerTransactionUrl(
       networkResponse.content.networkId,
       transaction.hash().toString('hex'),
     )
