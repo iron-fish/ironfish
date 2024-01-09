@@ -167,4 +167,3 @@ impl ThreadPoolHandler {
 pub fn is_valid_public_address(hex_address: String) -> bool {
     PublicAddress::from_hex(&hex_address).is_ok()
 }
-
