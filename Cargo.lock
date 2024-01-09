@@ -1532,7 +1532,7 @@ dependencies = [
 [[package]]
 name = "ironfish-frost"
 version = "0.1.0"
-source = "git+https://github.com/iron-fish/ironfish-frost.git#705f29d4010567bba1333912de0036a730387bff"
+source = "git+https://github.com/iron-fish/ironfish-frost.git#a52338e0d2de8f6854f485011bc7003a60be0e28"
 dependencies = [
  "blake3",
  "ed25519-dalek",
@@ -2304,7 +2304,7 @@ version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf2890aaef0aa82719a50e808de264f9484b74b442e1a3a0e5ee38243ac40bdb"
 dependencies = [
- "rand_core 0.6.4",
+ "rand_core 0.5.1",
 ]
 
 [[package]]
