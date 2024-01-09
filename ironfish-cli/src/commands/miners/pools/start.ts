@@ -16,6 +16,7 @@ import { Flags } from '@oclif/core'
 import dns from 'dns'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
+import { getExplorer } from '../../../utils/explorer'
 
 export class StartPool extends IronfishCommand {
   static description = `Start a mining pool that connects to a node`
@@ -76,8 +77,6 @@ export class StartPool extends IronfishCommand {
         new Discord({
           webhook: discordWebhook,
           logger: this.logger,
-          explorerBlocksUrl: this.sdk.config.get('explorerBlocksUrl'),
-          explorerTransactionsUrl: this.sdk.config.get('explorerTransactionsUrl'),
         }),
       )
 
@@ -90,8 +89,6 @@ export class StartPool extends IronfishCommand {
         new Lark({
           webhook: larkWebhook,
           logger: this.logger,
-          explorerBlocksUrl: this.sdk.config.get('explorerBlocksUrl'),
-          explorerTransactionsUrl: this.sdk.config.get('explorerTransactionsUrl'),
         }),
       )
 
@@ -146,6 +143,7 @@ export class StartPool extends IronfishCommand {
       banning: flags.banning,
       tls: flags.tls,
       tlsOptions: tlsOptions,
+      getExplorer,
     })
 
     await this.pool.start()

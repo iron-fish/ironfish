@@ -7,22 +7,19 @@ import { createRootLogger, Logger } from '../../logger'
 import { CurrencyUtils, ErrorUtils } from '../../utils'
 import { FileUtils } from '../../utils/file'
 
+export type Explorer = {
+  getBlockUrl: (hash: string) => string
+  getTransactionUrl: (hash: string) => string
+}
+
 export abstract class WebhookNotifier {
   protected readonly webhook: string | null = null
   protected readonly client: AxiosInstance | null = null
   protected readonly logger: Logger
-  protected readonly explorerBlocksUrl: string | null = null
-  protected readonly explorerTransactionsUrl: string | null = null
+  protected explorer: Explorer | null = null
 
-  constructor(options: {
-    webhook: string | null
-    logger?: Logger
-    explorerBlocksUrl?: string | null
-    explorerTransactionsUrl?: string | null
-  }) {
+  constructor(options: { webhook: string | null; logger?: Logger }) {
     this.logger = options.logger ?? createRootLogger()
-    this.explorerBlocksUrl = options.explorerBlocksUrl ?? null
-    this.explorerTransactionsUrl = options.explorerTransactionsUrl ?? null
 
     if (options.webhook) {
       this.webhook = options.webhook
@@ -32,7 +29,8 @@ export abstract class WebhookNotifier {
 
   abstract sendText(text: string): void
 
-  poolConnected(): void {
+  poolConnected(explorer?: Explorer): void {
+    this.explorer = explorer ?? this.explorer
     this.sendText('Successfully connected to node')
   }
 
@@ -42,12 +40,9 @@ export abstract class WebhookNotifier {
 
   poolSubmittedBlock(hashedHeaderHex: string, hashRate: number, clients: number): void {
     this.sendText(
-      `Block ${this.renderHashHex(
-        hashedHeaderHex,
-        this.explorerBlocksUrl,
-      )} submitted successfully! ${FileUtils.formatHashRate(
-        hashRate,
-      )}/s with ${clients} miners`,
+      `Block ${
+        this.explorer?.getBlockUrl(hashedHeaderHex) ?? `\`${hashedHeaderHex}\``
+      } submitted successfully! ${FileUtils.formatHashRate(hashRate)}/s with ${clients} miners`,
     )
   }
 
@@ -62,10 +57,9 @@ export abstract class WebhookNotifier {
     this.sendText(
       `Successfully created payout of ${shareCount} shares to ${
         outputs.length
-      } users for ${CurrencyUtils.renderIron(total, true)} in transaction ${this.renderHashHex(
-        transactionHashHex,
-        this.explorerTransactionsUrl,
-      )}. Transaction pending (${payoutPeriodId})`,
+      } users for ${CurrencyUtils.renderIron(total, true)} in transaction ${
+        this.explorer?.getTransactionUrl(transactionHashHex) ?? `\`${transactionHashHex}\``
+      }. Transaction pending (${payoutPeriodId})`,
     )
   }
 
@@ -104,13 +98,5 @@ export abstract class WebhookNotifier {
         status.clients
       }\n\tBans: ${status.bans}`,
     )
-  }
-
-  private renderHashHex(hashHex: string, explorerUrl: string | null): string {
-    if (explorerUrl == null) {
-      return `\`${hashHex}\``
-    }
-
-    return `${explorerUrl + hashHex}`
   }
 }

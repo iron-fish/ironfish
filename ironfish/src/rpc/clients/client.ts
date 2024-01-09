@@ -742,7 +742,7 @@ export abstract class RpcClient {
 
     getNetworkInfo: (
       params?: GetNetworkInfoRequest,
-    ): Promise<RpcResponse<GetNetworkInfoResponse>> => {
+    ): Promise<RpcResponseEnded<GetNetworkInfoResponse>> => {
       return this.request<GetNetworkInfoResponse>(
         `${ApiNamespace.chain}/getNetworkInfo`,
         params,
