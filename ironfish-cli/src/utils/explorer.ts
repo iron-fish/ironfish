@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 export const EXPLORER_URLS = {
-  0: 'https://explorer.ironfish.network',
-  1: 'https://testnet.explorer.ironfish.network',
+  0: 'https://testnet.explorer.ironfish.network',
+  1: 'https://explorer.ironfish.network',
 }
 
 type ValidNetworkId = keyof typeof EXPLORER_URLS
