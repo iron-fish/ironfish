@@ -49,6 +49,16 @@ export const TRANSACTION_EXPIRATION_LENGTH: number
 export const TRANSACTION_FEE_LENGTH: number
 export const LATEST_TRANSACTION_VERSION: number
 export function verifyTransactions(serializedTransactions: Array<Buffer>): boolean
+export interface TrustedDealerKeyPackages {
+  verifyingKey: string
+  proofGenerationKey: string
+  viewKey: string
+  incomingViewKey: string
+  outgoingViewKey: string
+  publicAddress: string
+  keyPackages: Record<string, string>
+  publicKeyPackage: string
+}
 export const enum LanguageCode {
   English = 0,
   ChineseSimplified = 1,
@@ -72,16 +82,6 @@ export function wordsToSpendingKey(words: string, languageCode: LanguageCode): s
 export function generateKeyFromPrivateKey(privateKey: string): Key
 export function initializeSapling(): void
 export function isValidPublicAddress(hexAddress: string): boolean
-export interface TrustedDealerKeyPackages {
-  verifyingKey: string
-  proofGenerationKey: string
-  viewKey: string
-  incomingViewKey: string
-  outgoingViewKey: string
-  publicAddress: string
-  keyPackages: Record<string, string>
-  publicKeyPackage: string
-}
 export class BoxKeyPair {
   constructor()
   static fromHex(secretHex: string): BoxKeyPair
