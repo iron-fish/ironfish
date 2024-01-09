@@ -4,7 +4,7 @@
 import { Assert } from '../assert'
 import { VerificationResultReason } from '../consensus'
 import { getBlockWithMinersFeeSize, getTransactionSize } from '../network/utils/serializers'
-import { Target, Transaction } from '../primitives'
+import { Block, Target, Transaction } from '../primitives'
 import { TransactionVersion } from '../primitives/transaction'
 import { BlockTemplateSerde, SerializedBlockTemplate } from '../serde'
 import {
@@ -625,8 +625,14 @@ describe('Mining manager', () => {
 
       // Create 2 blocks at the same sequence, one with higher difficulty
       const blockA1 = await useMinerBlockFixture(chain, undefined, account, wallet)
-      const blockB1 = await useMinerBlockFixture(chain, undefined, account, wallet)
-      blockB1.header.target = Target.fromDifficulty(blockA1.header.target.toDifficulty() + 1n)
+      const blockB1Temp = await useMinerBlockFixture(chain, undefined, account, wallet)
+      const blockB1 = Block.fromRaw({
+        header: {
+          ...blockB1Temp.header,
+          target: Target.fromDifficulty(blockA1.header.target.toDifficulty() + 1n),
+        },
+        transactions: blockB1Temp.transactions,
+      })
 
       await expect(chain).toAddBlock(blockA1)
 
@@ -635,8 +641,15 @@ describe('Mining manager', () => {
       await expect(chain).toAddBlock(blockB1)
 
       // Increase difficulty of submitted template so it
-      const blockA2 = BlockTemplateSerde.deserialize(templateA2)
-      blockA2.header.target = Target.fromDifficulty(blockA2.header.target.toDifficulty() + 2n)
+      const blockA2Temp = BlockTemplateSerde.deserialize(templateA2)
+      const blockA2 = Block.fromRaw({
+        header: {
+          ...blockA2Temp.header,
+          target: Target.fromDifficulty(blockA2Temp.header.target.toDifficulty() + 2n),
+        },
+        transactions: blockA2Temp.transactions,
+      })
+
       const templateToSubmit = BlockTemplateSerde.serialize(blockA2, firstBlock)
 
       // Check that we are submitting a template that does not attack to current head
