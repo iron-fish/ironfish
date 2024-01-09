@@ -145,6 +145,7 @@ impl SpendBuilder {
     }
 }
 
+#[derive(Clone)]
 pub struct UnsignedSpendDescription {
     /// Used to add randomness to signature generation without leaking the
     /// key. Referred to as `ar` in the literature.
@@ -191,6 +192,23 @@ impl UnsignedSpendDescription {
         );
 
         Ok(self.description)
+    }
+
+    pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
+        let public_key_randomness = read_scalar(&mut reader)?;
+        let description = SpendDescription::read(&mut reader)?;
+
+        Ok(UnsignedSpendDescription {
+            public_key_randomness,
+            description,
+        })
+    }
+
+    pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
+        writer.write_all(&self.public_key_randomness.to_bytes())?;
+        self.description.write(&mut writer)?;
+
+        Ok(())
     }
 }
 

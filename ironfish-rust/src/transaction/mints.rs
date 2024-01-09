@@ -21,6 +21,7 @@ use crate::{
     assets::asset::Asset,
     errors::{IronfishError, IronfishErrorKind},
     sapling_bls12::SAPLING,
+    serializing::read_scalar,
     transaction::TransactionVersion,
     PublicAddress, SaplingKey,
 };
@@ -98,6 +99,7 @@ impl MintBuilder {
 /// The publicly visible values of a mint description in a transaction.
 /// These fields get serialized when computing the transaction hash and are used
 /// to prove that the creator has knowledge of these values.
+#[derive(Clone)]
 pub struct UnsignedMintDescription {
     /// Used to add randomness to signature generation. Referred to as `ar` in
     /// the literature.
@@ -143,6 +145,30 @@ impl UnsignedMintDescription {
         );
 
         Ok(self.description)
+    }
+
+    pub fn read<R: io::Read>(
+        mut reader: R,
+        version: TransactionVersion,
+    ) -> Result<Self, IronfishError> {
+        let public_key_randomness = read_scalar(&mut reader)?;
+        let description = MintDescription::read(&mut reader, version)?;
+
+        Ok(UnsignedMintDescription {
+            public_key_randomness,
+            description,
+        })
+    }
+
+    pub fn write<W: io::Write>(
+        &self,
+        mut writer: W,
+        version: TransactionVersion,
+    ) -> Result<(), IronfishError> {
+        writer.write_all(&self.public_key_randomness.to_bytes())?;
+        self.description.write(&mut writer, version)?;
+
+        Ok(())
     }
 }
 
