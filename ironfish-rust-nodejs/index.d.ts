@@ -49,6 +49,16 @@ export const TRANSACTION_EXPIRATION_LENGTH: number
 export const TRANSACTION_FEE_LENGTH: number
 export const LATEST_TRANSACTION_VERSION: number
 export function verifyTransactions(serializedTransactions: Array<Buffer>): boolean
+export interface TrustedDealerKeyPackages {
+  verifyingKey: string
+  proofGenerationKey: string
+  viewKey: string
+  incomingViewKey: string
+  outgoingViewKey: string
+  publicAddress: string
+  keyPackages: Record<string, string>
+  publicKeyPackage: string
+}
 export const enum LanguageCode {
   English = 0,
   ChineseSimplified = 1,
