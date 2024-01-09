@@ -27,8 +27,6 @@ import { Explorer, WebhookNotifier } from './webhooks'
 const RECALCULATE_TARGET_TIMEOUT = 10000
 const EVENT_LOOP_MS = 10 * 1000
 
-type GetExplorer = (networkId: number) => Explorer | null
-
 export class MiningPool {
   readonly stratum: StratumServer
   readonly rpc: RpcSocketClient
@@ -61,7 +59,7 @@ export class MiningPool {
   private recalculateTargetInterval: SetIntervalToken | null
   private notifyStatusInterval: SetIntervalToken | null
 
-  private getExplorer: GetExplorer = () => null
+  private getExplorer: (networkId: number) => Explorer | null = () => null
 
   private constructor(options: {
     rpc: RpcSocketClient
@@ -70,7 +68,7 @@ export class MiningPool {
     logger: Logger
     webhooks?: WebhookNotifier[]
     banning?: boolean
-    getExplorer?: GetExplorer
+    getExplorer?: (networkId: number) => Explorer | null
   }) {
     this.rpc = options.rpc
     this.logger = options.logger
@@ -118,7 +116,7 @@ export class MiningPool {
     banning?: boolean
     tls?: boolean
     tlsOptions?: tls.TlsOptions
-    getExplorer?: GetExplorer
+    getExplorer?: (networkId: number) => Explorer | null
   }): Promise<MiningPool> {
     const shares = await MiningPoolShares.init({
       rpc: options.rpc,
