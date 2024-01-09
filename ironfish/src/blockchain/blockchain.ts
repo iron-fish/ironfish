@@ -293,8 +293,6 @@ export class Blockchain {
     let connectResult = null
     try {
       connectResult = await this.blockchainDb.db.transaction(async (tx) => {
-        const hash = block.header.recomputeHash()
-
         if (!this.hasGenesisBlock && block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
           return await this.connect(block, null, tx)
         }
@@ -310,7 +308,7 @@ export class Blockchain {
           throw new VerifyError(verify.reason, BAN_SCORE.MAX)
         }
 
-        if (await this.hasBlock(hash, tx)) {
+        if (await this.hasBlock(block.header.hash, tx)) {
           throw new VerifyError(VerificationResultReason.DUPLICATE)
         }
 
