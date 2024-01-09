@@ -7,14 +7,16 @@ import { createRootLogger, Logger } from '../../logger'
 import { CurrencyUtils, ErrorUtils } from '../../utils'
 import { FileUtils } from '../../utils/file'
 
-type GetExplorerUrl = (hash: string) => string | null
+export type Explorer = {
+  getBlockUrl: (hash: string) => string
+  getTransactionUrl: (hash: string) => string
+}
 
 export abstract class WebhookNotifier {
   protected readonly webhook: string | null = null
   protected readonly client: AxiosInstance | null = null
   protected readonly logger: Logger
-  protected getExplorerBlockUrl: GetExplorerUrl = () => null
-  protected getExplorerTransactionUrl: GetExplorerUrl = () => null
+  protected explorer: Explorer | null = null
 
   constructor(options: { webhook: string | null; logger?: Logger }) {
     this.logger = options.logger ?? createRootLogger()
@@ -27,13 +29,8 @@ export abstract class WebhookNotifier {
 
   abstract sendText(text: string): void
 
-  poolConnected(
-    getExplorerBlockUrl?: GetExplorerUrl,
-    getExplorerTransactionUrl?: GetExplorerUrl,
-  ): void {
-    this.getExplorerBlockUrl = getExplorerBlockUrl ?? this.getExplorerBlockUrl
-    this.getExplorerTransactionUrl = getExplorerTransactionUrl ?? this.getExplorerTransactionUrl
-
+  poolConnected(explorer?: Explorer): void {
+    this.explorer = explorer ?? this.explorer
     this.sendText('Successfully connected to node')
   }
 
@@ -44,7 +41,7 @@ export abstract class WebhookNotifier {
   poolSubmittedBlock(hashedHeaderHex: string, hashRate: number, clients: number): void {
     this.sendText(
       `Block ${
-        this.getExplorerBlockUrl(hashedHeaderHex) ?? `\`${hashedHeaderHex}\``
+        this.explorer?.getBlockUrl(hashedHeaderHex) ?? `\`${hashedHeaderHex}\``
       } submitted successfully! ${FileUtils.formatHashRate(hashRate)}/s with ${clients} miners`,
     )
   }
@@ -61,7 +58,7 @@ export abstract class WebhookNotifier {
       `Successfully created payout of ${shareCount} shares to ${
         outputs.length
       } users for ${CurrencyUtils.renderIron(total, true)} in transaction ${
-        this.getExplorerTransactionUrl(transactionHashHex) ?? `\`${transactionHashHex}\``
+        this.explorer?.getTransactionUrl(transactionHashHex) ?? `\`${transactionHashHex}\``
       }. Transaction pending (${payoutPeriodId})`,
     )
   }

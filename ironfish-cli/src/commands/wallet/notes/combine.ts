@@ -20,7 +20,7 @@ import inquirer from 'inquirer'
 import { IronfishCommand } from '../../../command'
 import { IronFlag, RemoteFlags } from '../../../flags'
 import { ProgressBar } from '../../../types'
-import { getExplorerTransactionUrl } from '../../../utils/explorer'
+import { getExplorer } from '../../../utils/explorer'
 import { selectFee } from '../../../utils/fees'
 import { displayTransactionSummary, watchTransaction } from '../../../utils/transaction'
 
@@ -551,13 +551,15 @@ export class CombineNotesCommand extends IronfishCommand {
 
     this.log(`Transaction hash: ${transaction.hash().toString('hex')}`)
 
-    const networkResponse = await client.chain.getNetworkInfo()
-    const transactionUrl = getExplorerTransactionUrl(
-      networkResponse.content.networkId,
-      transaction.hash().toString('hex'),
-    )
-    transactionUrl &&
-      this.log(`\nIf the transaction is mined, it will appear here: ${transactionUrl}`)
+    const networkId = (await client.chain.getNetworkInfo()).content.networkId
+    const explorer = getExplorer(networkId)
+    if (explorer) {
+      this.log(
+        `\nIf the transaction is mined, it will appear here: ${explorer.getTransactionUrl(
+          transaction.hash().toString('hex'),
+        )}`,
+      )
+    }
 
     if (flags.watch) {
       this.log('')

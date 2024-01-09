@@ -16,7 +16,7 @@ import { Flags } from '@oclif/core'
 import dns from 'dns'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
-import { getExplorerBlockUrl, getExplorerTransactionUrl } from '../../../utils/explorer'
+import { getExplorer } from '../../../utils/explorer'
 
 export class StartPool extends IronfishCommand {
   static description = `Start a mining pool that connects to a node`
@@ -143,8 +143,7 @@ export class StartPool extends IronfishCommand {
       banning: flags.banning,
       tls: flags.tls,
       tlsOptions: tlsOptions,
-      getExplorerBlockUrl,
-      getExplorerTransactionUrl,
+      getExplorer,
     })
 
     await this.pool.start()
