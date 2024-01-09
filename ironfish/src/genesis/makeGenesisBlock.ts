@@ -179,6 +179,9 @@ export async function makeGenesisBlock(
     transactions: block.transactions,
   })
 
+  genesisBlock.header.noteSize = block.header.noteSize
+  genesisBlock.header.work = block.header.work
+
   logger.info('Block complete.')
   return { block: genesisBlock }
 }
