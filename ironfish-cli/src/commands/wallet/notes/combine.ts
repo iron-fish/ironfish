@@ -552,13 +552,12 @@ export class CombineNotesCommand extends IronfishCommand {
     this.log(`Transaction hash: ${transaction.hash().toString('hex')}`)
 
     const networkId = (await client.chain.getNetworkInfo()).content.networkId
-    const explorer = getExplorer(networkId)
-    if (explorer) {
-      this.log(
-        `\nIf the transaction is mined, it will appear here: ${explorer.getTransactionUrl(
-          transaction.hash().toString('hex'),
-        )}`,
-      )
+    const transactionUrl = getExplorer(networkId)?.getTransactionUrl(
+      transaction.hash().toString('hex'),
+    )
+
+    if (transactionUrl) {
+      this.log(`\nIf the transaction is mined, it will appear here: ${transactionUrl}`)
     }
 
     if (flags.watch) {

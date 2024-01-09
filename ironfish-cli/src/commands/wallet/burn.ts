@@ -226,6 +226,7 @@ export class Burn extends IronfishCommand {
     const transactionUrl = getExplorer(networkId)?.getTransactionUrl(
       transaction.hash().toString('hex'),
     )
+
     if (transactionUrl) {
       this.log(`\nIf the transaction is mined, it will appear here: ${transactionUrl}`)
     }
