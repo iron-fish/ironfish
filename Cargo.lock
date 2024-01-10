@@ -1028,6 +1028,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "93ace6ec7cc19c8ed33a32eaa9ea692d7faea05006b5356b9e2b668ec4bc3955"
 
 [[package]]
+name = "fish_hash"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9577244a17c8bd562cbfd4b86dead29d8b3f6cb779d1f7be4bc8a2c9b62028dc"
+dependencies = [
+ "blake3",
+ "tiny-keccak",
+]
+
+[[package]]
 name = "flume"
 version = "0.10.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1564,6 +1574,7 @@ name = "ironfish-rust-nodejs"
 version = "0.1.0"
 dependencies = [
  "base64 0.13.1",
+ "fish_hash",
  "ironfish",
  "ironfish_mpc",
  "napi",
@@ -2818,6 +2829,15 @@ dependencies = [
  "unicode-normalization",
  "wasm-bindgen",
  "zeroize",
+]
+
+[[package]]
+name = "tiny-keccak"
+version = "2.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2c9d3793400a45f954c52e73d068316d76b6f4e36977e3fcebb13a2721e80237"
+dependencies = [
+ "crunchy",
 ]
 
 [[package]]
