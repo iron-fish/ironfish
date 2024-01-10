@@ -167,27 +167,15 @@ export class BlockHeader {
 
   public readonly hash: Buffer
 
-  constructor(
-    sequence: number,
-    previousBlockHash: BlockHash,
-    noteCommitment: NoteEncryptedHash,
-    transactionCommitment: Buffer,
-    target: Target,
-    randomness = BigInt(0),
-    timestamp: Date | undefined = undefined,
-    graffiti: Buffer,
-    noteSize?: number | null,
-    work = BigInt(0),
-    hash?: Buffer,
-  ) {
-    this.sequence = sequence
-    this.previousBlockHash = previousBlockHash
-    this.noteCommitment = noteCommitment
-    this.transactionCommitment = transactionCommitment
-    this.target = target
-    this.randomness = randomness
-    this.timestamp = timestamp || new Date()
-    this.graffiti = graffiti
+  constructor(raw: RawBlockHeader, noteSize?: number | null, work = BigInt(0), hash?: Buffer) {
+    this.sequence = raw.sequence
+    this.previousBlockHash = raw.previousBlockHash
+    this.noteCommitment = raw.noteCommitment
+    this.transactionCommitment = raw.transactionCommitment
+    this.target = raw.target
+    this.randomness = raw.randomness
+    this.timestamp = raw.timestamp || new Date()
+    this.graffiti = raw.graffiti
     this.noteSize = noteSize ?? null
     this.work = work
     this.hash = hash || this.computeHash()
@@ -254,16 +242,7 @@ export class BlockHeader {
   }
 
   static fromRaw(raw: RawBlockHeader): BlockHeader {
-    return new BlockHeader(
-      raw.sequence,
-      raw.previousBlockHash,
-      raw.noteCommitment,
-      raw.transactionCommitment,
-      raw.target,
-      raw.randomness,
-      raw.timestamp,
-      raw.graffiti,
-    )
+    return new BlockHeader(raw)
   }
 }
 
@@ -310,17 +289,19 @@ export class BlockHeaderSerde {
   }
 
   static deserialize(data: SerializedBlockHeader): BlockHeader {
-    return new BlockHeader(
-      Number(data.sequence),
-      Buffer.from(BlockHashSerdeInstance.deserialize(data.previousBlockHash)),
-      data.noteCommitment,
-      data.transactionCommitment,
-      new Target(data.target),
-      BigInt(data.randomness),
-      new Date(data.timestamp),
-      Buffer.from(GraffitiSerdeInstance.deserialize(data.graffiti)),
-      data.noteSize,
-      data.work ? BigInt(data.work) : BigInt(0),
-    )
+    const rawHeader = {
+      sequence: Number(data.sequence),
+      previousBlockHash: Buffer.from(
+        BlockHashSerdeInstance.deserialize(data.previousBlockHash),
+      ),
+      noteCommitment: data.noteCommitment,
+      transactionCommitment: data.transactionCommitment,
+      target: new Target(data.target),
+      randomness: BigInt(data.randomness),
+      timestamp: new Date(data.timestamp),
+      graffiti: Buffer.from(GraffitiSerdeInstance.deserialize(data.graffiti)),
+    }
+
+    return new BlockHeader(rawHeader, data.noteSize, data.work ? BigInt(data.work) : BigInt(0))
   }
 }

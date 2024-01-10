@@ -520,14 +520,10 @@ describe('Verifier', () => {
 
     it('fails validation if graffiti field is not equal to 32 bytes', () => {
       const invalidHeader31Byte = new BlockHeader(
-        header.sequence,
-        header.previousBlockHash,
-        header.noteCommitment,
-        header.transactionCommitment,
-        header.target,
-        header.randomness,
-        header.timestamp,
-        Buffer.alloc(31),
+        {
+          ...header,
+          graffiti: Buffer.alloc(31),
+        },
         header.noteSize,
         header.work,
         header.hash,
@@ -539,14 +535,10 @@ describe('Verifier', () => {
       })
 
       const invalidHeader33Byte = new BlockHeader(
-        header.sequence,
-        header.previousBlockHash,
-        header.noteCommitment,
-        header.transactionCommitment,
-        header.target,
-        header.randomness,
-        header.timestamp,
-        Buffer.alloc(33),
+        {
+          ...header,
+          graffiti: Buffer.alloc(33),
+        },
         header.noteSize,
         header.work,
         header.hash,

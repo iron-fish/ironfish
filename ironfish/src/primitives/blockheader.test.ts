@@ -93,16 +93,16 @@ describe('transactionMerkleRoot', () => {
 
 describe('BlockHeader', () => {
   it('checks equal block headers', () => {
-    const header1 = new BlockHeader(
-      5,
-      Buffer.alloc(32),
-      Buffer.alloc(32, 'header'),
-      Buffer.alloc(32, 'transactionRoot'),
-      new Target(17),
-      BigInt(25),
-      new Date(1598467858637),
-      Buffer.alloc(32),
-    )
+    const header1 = new BlockHeader({
+      sequence: 5,
+      previousBlockHash: Buffer.alloc(32),
+      noteCommitment: Buffer.alloc(32, 'header'),
+      transactionCommitment: Buffer.alloc(32, 'transactionRoot'),
+      target: new Target(17),
+      randomness: BigInt(25),
+      timestamp: new Date(1598467858637),
+      graffiti: Buffer.alloc(32),
+    })
 
     expect(header1.equals(BlockHeader.fromRaw({ ...header1 }))).toBe(true)
 
@@ -142,16 +142,16 @@ describe('BlockHeaderSerde', () => {
   const serde = BlockHeaderSerde
 
   it('serializes and deserializes a block header', () => {
-    const header = new BlockHeader(
-      5,
-      Buffer.alloc(32),
-      Buffer.alloc(32),
-      Buffer.alloc(32, 'transactionRoot'),
-      new Target(17),
-      BigInt(25),
-      new Date(1598467858637),
-      GraffitiUtils.fromString('test'),
-    )
+    const header = new BlockHeader({
+      sequence: 5,
+      previousBlockHash: Buffer.alloc(32),
+      noteCommitment: Buffer.alloc(32),
+      transactionCommitment: Buffer.alloc(32, 'transactionRoot'),
+      target: new Target(17),
+      randomness: BigInt(25),
+      timestamp: new Date(1598467858637),
+      graffiti: GraffitiUtils.fromString('test'),
+    })
 
     const serialized = serde.serialize(header)
     const deserialized = serde.deserialize(serialized)
@@ -159,16 +159,16 @@ describe('BlockHeaderSerde', () => {
   })
 
   it('checks block is later than', () => {
-    const header1 = new BlockHeader(
-      5,
-      Buffer.alloc(32),
-      Buffer.alloc(32),
-      Buffer.alloc(32, 'transactionRoot'),
-      new Target(0),
-      BigInt(0),
-      new Date(0),
-      Buffer.alloc(32),
-    )
+    const header1 = new BlockHeader({
+      sequence: 5,
+      previousBlockHash: Buffer.alloc(32),
+      noteCommitment: Buffer.alloc(32),
+      transactionCommitment: Buffer.alloc(32, 'transactionRoot'),
+      target: new Target(0),
+      randomness: BigInt(0),
+      timestamp: new Date(0),
+      graffiti: Buffer.alloc(32),
+    })
 
     expect(isBlockLater(header1, BlockHeader.fromRaw({ ...header1 }))).toBe(false)
 
@@ -186,16 +186,16 @@ describe('BlockHeaderSerde', () => {
   })
 
   it('checks block is heavier than', () => {
-    const header1 = new BlockHeader(
-      5,
-      Buffer.alloc(32),
-      Buffer.alloc(32),
-      Buffer.alloc(32, 'transactionRoot'),
-      new Target(100),
-      BigInt(0),
-      new Date(0),
-      Buffer.alloc(32),
-    )
+    const header1 = new BlockHeader({
+      sequence: 5,
+      previousBlockHash: Buffer.alloc(32),
+      noteCommitment: Buffer.alloc(32),
+      transactionCommitment: Buffer.alloc(32, 'transactionRoot'),
+      target: new Target(100),
+      randomness: BigInt(0),
+      timestamp: new Date(0),
+      graffiti: Buffer.alloc(32),
+    })
 
     const serialized = serde.serialize(header1)
     let header2 = serde.deserialize(serialized)

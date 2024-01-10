@@ -56,16 +56,20 @@ export class BlockTemplateSerde {
 
   static deserialize(blockTemplate: SerializedBlockTemplate): Block {
     const noteHasher = new NoteEncryptedHashSerde()
-    const header = new BlockHeader(
-      blockTemplate.header.sequence,
-      Buffer.from(blockTemplate.header.previousBlockHash, 'hex'),
-      noteHasher.deserialize(Buffer.from(blockTemplate.header.noteCommitment, 'hex')),
-      Buffer.from(blockTemplate.header.transactionCommitment, 'hex'),
-      new Target(Buffer.from(blockTemplate.header.target, 'hex')),
-      BigIntUtils.fromBytesBE(Buffer.from(blockTemplate.header.randomness, 'hex')),
-      new Date(blockTemplate.header.timestamp),
-      Buffer.from(blockTemplate.header.graffiti, 'hex'),
-    )
+    const rawHeader = {
+      sequence: blockTemplate.header.sequence,
+      previousBlockHash: Buffer.from(blockTemplate.header.previousBlockHash, 'hex'),
+      noteCommitment: noteHasher.deserialize(
+        Buffer.from(blockTemplate.header.noteCommitment, 'hex'),
+      ),
+      transactionCommitment: Buffer.from(blockTemplate.header.transactionCommitment, 'hex'),
+      target: new Target(Buffer.from(blockTemplate.header.target, 'hex')),
+      randomness: BigIntUtils.fromBytesBE(Buffer.from(blockTemplate.header.randomness, 'hex')),
+      timestamp: new Date(blockTemplate.header.timestamp),
+      graffiti: Buffer.from(blockTemplate.header.graffiti, 'hex'),
+    }
+
+    const header = new BlockHeader(rawHeader)
 
     const transactions = blockTemplate.transactions.map(
       (t) => new Transaction(Buffer.from(t, 'hex')),
