@@ -10,6 +10,7 @@ use crate::{
     sapling_bls12::SAPLING,
     serializing::{read_point, read_scalar},
     witness::WitnessTrait,
+    ViewKey,
 };
 
 use bellperson::gadgets::multipack;
@@ -23,7 +24,7 @@ use ironfish_zkp::{
     primitives::ValueCommitment,
     proofs::Spend,
     redjubjub::{self, Signature},
-    Nullifier,
+    Nullifier, ProofGenerationKey,
 };
 use jubjub::ExtendedPoint;
 use rand::thread_rng;
@@ -90,7 +91,8 @@ impl SpendBuilder {
     /// transactions
     pub(crate) fn build(
         &self,
-        spender_key: &SaplingKey,
+        proof_generation_key: &ProofGenerationKey,
+        view_key: &ViewKey,
         public_key_randomness: &jubjub::Fr,
         randomized_public_key: &redjubjub::PublicKey,
     ) -> Result<UnsignedSpendDescription, IronfishError> {
@@ -98,7 +100,7 @@ impl SpendBuilder {
 
         let circuit = Spend {
             value_commitment: Some(self.value_commitment.clone()),
-            proof_generation_key: Some(spender_key.sapling_proof_generation_key()),
+            proof_generation_key: Some(proof_generation_key.clone()),
             payment_address: Some(self.note.owner.0),
             auth_path: self.auth_path.clone(),
             commitment_randomness: Some(self.note.randomness),
@@ -114,9 +116,7 @@ impl SpendBuilder {
 
         // Bytes to be placed into the nullifier set to verify whether this note
         // has been previously spent.
-        let nullifier = self
-            .note
-            .nullifier(&spender_key.view_key, self.witness_position);
+        let nullifier = self.note.nullifier(view_key, self.witness_position);
 
         let blank_signature = {
             let buf = [0u8; 64];
@@ -446,7 +446,12 @@ mod test {
         thread_rng().fill(&mut sig_hash[..]);
 
         let unsigned_proof = spend
-            .build(&key, &public_key_randomness, &randomized_public_key)
+            .build(
+                &key.sapling_proof_generation_key(),
+                key.view_key(),
+                &public_key_randomness,
+                &randomized_public_key,
+            )
             .expect("should be able to build proof");
 
         verify_spend_proof(
@@ -459,17 +464,32 @@ mod test {
 
         // Wrong spender key
         assert!(spend
-            .build(&sender_key, &public_key_randomness, &randomized_public_key)
+            .build(
+                &sender_key.sapling_proof_generation_key(),
+                sender_key.view_key(),
+                &public_key_randomness,
+                &randomized_public_key
+            )
             .is_err());
 
         // Wrong public key randomness
         assert!(spend
-            .build(&key, &other_public_key_randomness, &randomized_public_key)
+            .build(
+                &key.sapling_proof_generation_key(),
+                key.view_key(),
+                &other_public_key_randomness,
+                &randomized_public_key
+            )
             .is_err());
 
         // Wrong randomized public key
         assert!(spend
-            .build(&key, &public_key_randomness, &other_randomized_public_key)
+            .build(
+                &key.sapling_proof_generation_key(),
+                key.view_key(),
+                &public_key_randomness,
+                &other_randomized_public_key
+            )
             .is_err());
 
         assert!(verify_spend_proof(
@@ -509,7 +529,12 @@ mod test {
         thread_rng().fill(&mut sig_hash[..]);
 
         let unsigned_proof = spend
-            .build(&key, &public_key_randomness, &randomized_public_key)
+            .build(
+                &key.sapling_proof_generation_key(),
+                key.view_key(),
+                &public_key_randomness,
+                &randomized_public_key,
+            )
             .expect("should be able to build proof");
         let proof = unsigned_proof
             .sign(&key, &sig_hash)
