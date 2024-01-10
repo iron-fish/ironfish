@@ -4,6 +4,7 @@
 
 use blstrs::Bls12;
 use ff::Field;
+use ironfish_frost::frost::keys::PublicKeyPackage;
 use outputs::OutputBuilder;
 use spends::{SpendBuilder, UnsignedSpendDescription};
 use value_balances::ValueBalances;
@@ -18,7 +19,7 @@ use crate::{
     note::Note,
     sapling_bls12::SAPLING,
     witness::WitnessTrait,
-    OutputDescription, SpendDescription,
+    OutputDescription, SpendDescription, serializing::hex_to_bytes, ViewKey, OutgoingViewKey,
 };
 
 use bellperson::groth16::{verify_proofs_batch, PreparedVerifyingKey};
@@ -44,7 +45,7 @@ use std::{
 
 use self::{
     burns::{BurnBuilder, BurnDescription},
-    mints::{MintBuilder, MintDescription, UnsignedMintDescription},
+    mints::{MintBuilder, MintDescription, UnsignedMintDescription}, unsigned::UnsignedTransaction, utils::bytes_to_proof_generation_key,
 };
 
 pub mod burns;
@@ -186,6 +187,130 @@ impl ProposedTransaction {
         self.burns.push(BurnBuilder::new(asset_id, value));
 
         Ok(())
+    }
+
+
+    pub fn build(
+        &mut self,
+        public_key_package: &str,
+        proof_generation_key_str: &str,
+        view_key_str: &str,
+        outgoing_view_key_str: &str,
+        public_address_str: &str,
+        change_goes_to: Option<PublicAddress>,
+        intended_transaction_fee: u64,
+    ) -> Result<UnsignedTransaction, IronfishError> {
+        let pubkeys =
+            PublicKeyPackage::deserialize(&hex_to_bytes(public_key_package)?).unwrap();
+        let proof_generation_key =
+            bytes_to_proof_generation_key(hex_to_bytes(proof_generation_key_str)?);
+        let view_key = ViewKey::from_hex(view_key_str)?;
+        let outgoing_view_key = OutgoingViewKey::from_hex(outgoing_view_key_str)?;
+        let public_address = PublicAddress::from_hex(public_address_str)?;
+
+        let public_key_randomness = jubjub::Fr::random(thread_rng());
+        // The public key after randomization has been applied. This is used
+        // during signature verification. Referred to as `rk` in the literature
+        // Calculated from the authorizing key and the public_key_randomness.
+        let randomized_public_key =
+            redjubjub::PublicKey::read(pubkeys.verifying_key().serialize().as_ref())?
+                .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);
+        
+        let mut change_notes = vec![];
+
+        for (asset_id, value) in self.value_balances.iter() {
+            let is_native_asset = asset_id == &NATIVE_ASSET;
+
+            let change_amount = match is_native_asset {
+                true => *value - i64::try_from(intended_transaction_fee)?,
+                false => *value,
+            };
+
+            if change_amount < 0 {
+                return Err(IronfishError::new(IronfishErrorKind::InvalidBalance));
+            }
+            if change_amount > 0 {
+                let change_address = change_goes_to.unwrap_or_else(|| public_address);
+                let change_note = Note::new(
+                    change_address,
+                    change_amount as u64, // we checked it was positive
+                    "",
+                    *asset_id,
+                    public_address,
+                );
+
+                change_notes.push(change_note);
+            }
+        }
+
+        for change_note in change_notes {
+            self.add_output(change_note)?;
+        }
+
+        let mut unsigned_spends = Vec::with_capacity(self.spends.len());
+        for spend in &self.spends {
+            unsigned_spends.push(spend.build(
+                &proof_generation_key,
+                &view_key,
+                &public_key_randomness,
+                &randomized_public_key,
+            )?);
+        }
+
+        let mut output_descriptions = Vec::with_capacity(self.outputs.len());
+        for output in &self.outputs {
+            output_descriptions.push(output.build(
+                &proof_generation_key,
+                &outgoing_view_key,
+                &public_key_randomness,
+                &randomized_public_key,
+            )?);
+        }
+
+        let mut unsigned_mints = Vec::with_capacity(self.mints.len());
+        for mint in &self.mints {
+            unsigned_mints.push(mint.build(
+                &proof_generation_key,
+                &public_address,
+                &public_key_randomness,
+                &randomized_public_key,
+            )?);
+        }
+
+        let mut burn_descriptions = Vec::with_capacity(self.burns.len());
+        for burn in &self.burns {
+            burn_descriptions.push(burn.build());
+        }
+
+        let data_to_sign = self.transaction_signature_hash(
+            &unsigned_spends,
+            &output_descriptions,
+            &unsigned_mints,
+            &burn_descriptions,
+        )?;
+
+        // Create and verify binding signature keys
+        let (binding_signature_private_key, binding_signature_public_key) =
+            self.binding_signature_keys(&unsigned_mints, &burn_descriptions)?;
+
+        let binding_signature = self.binding_signature(
+            &binding_signature_private_key,
+            &binding_signature_public_key,
+            &data_to_sign,
+        )?;
+
+        Ok(UnsignedTransaction {
+            burns: burn_descriptions,
+            mints: unsigned_mints,
+            outputs: output_descriptions,
+            spends: unsigned_spends,
+            version: self.version,
+            fee: i64::try_from(intended_transaction_fee)?,
+            binding_signature,
+            randomized_public_key,
+            public_key_randomness,
+            expiration: self.expiration,
+        })
     }
 
     /// Post the transaction. This performs a bit of validation, and signs
