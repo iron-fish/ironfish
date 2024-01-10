@@ -56,7 +56,8 @@ export class BlockTemplateSerde {
 
   static deserialize(blockTemplate: SerializedBlockTemplate): Block {
     const noteHasher = new NoteEncryptedHashSerde()
-    const rawHeader = {
+
+    const header = new BlockHeader({
       sequence: blockTemplate.header.sequence,
       previousBlockHash: Buffer.from(blockTemplate.header.previousBlockHash, 'hex'),
       noteCommitment: noteHasher.deserialize(
@@ -67,9 +68,7 @@ export class BlockTemplateSerde {
       randomness: BigIntUtils.fromBytesBE(Buffer.from(blockTemplate.header.randomness, 'hex')),
       timestamp: new Date(blockTemplate.header.timestamp),
       graffiti: Buffer.from(blockTemplate.header.graffiti, 'hex'),
-    }
-
-    const header = new BlockHeader(rawHeader)
+    })
 
     const transactions = blockTemplate.transactions.map(
       (t) => new Transaction(Buffer.from(t, 'hex')),

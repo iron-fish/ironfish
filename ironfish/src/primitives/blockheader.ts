@@ -268,7 +268,7 @@ export type SerializedBlockHeader = {
 
 export class BlockHeaderSerde {
   static serialize(header: BlockHeader): SerializedBlockHeader {
-    const serialized = {
+    return {
       sequence: header.sequence,
       previousBlockHash: BlockHashSerdeInstance.serialize(header.previousBlockHash),
       noteCommitment: header.noteCommitment,
@@ -280,24 +280,24 @@ export class BlockHeaderSerde {
       noteSize: header.noteSize,
       work: header.work.toString(),
     }
-
-    return serialized
   }
 
   static deserialize(data: SerializedBlockHeader): BlockHeader {
-    const rawHeader = {
-      sequence: Number(data.sequence),
-      previousBlockHash: Buffer.from(
-        BlockHashSerdeInstance.deserialize(data.previousBlockHash),
-      ),
-      noteCommitment: data.noteCommitment,
-      transactionCommitment: data.transactionCommitment,
-      target: new Target(data.target),
-      randomness: BigInt(data.randomness),
-      timestamp: new Date(data.timestamp),
-      graffiti: Buffer.from(GraffitiSerdeInstance.deserialize(data.graffiti)),
-    }
-
-    return new BlockHeader(rawHeader, data.noteSize, data.work ? BigInt(data.work) : BigInt(0))
+    return new BlockHeader(
+      {
+        sequence: Number(data.sequence),
+        previousBlockHash: Buffer.from(
+          BlockHashSerdeInstance.deserialize(data.previousBlockHash),
+        ),
+        noteCommitment: data.noteCommitment,
+        transactionCommitment: data.transactionCommitment,
+        target: new Target(data.target),
+        randomness: BigInt(data.randomness),
+        timestamp: new Date(data.timestamp),
+        graffiti: Buffer.from(GraffitiSerdeInstance.deserialize(data.graffiti)),
+      },
+      data.noteSize,
+      data.work ? BigInt(data.work) : BigInt(0),
+    )
   }
 }
