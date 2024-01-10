@@ -294,7 +294,8 @@ impl ProposedTransaction {
         let mut unsigned_spends = Vec::with_capacity(self.spends.len());
         for spend in &self.spends {
             unsigned_spends.push(spend.build(
-                &self.spender_key,
+                &self.spender_key.sapling_proof_generation_key(),
+                &self.spender_key.view_key(),
                 &self.public_key_randomness,
                 &randomized_public_key,
             )?);
