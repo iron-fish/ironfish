@@ -64,6 +64,10 @@ pub fn hex_to_bytes<const SIZE: usize>(hex: &str) -> Result<[u8; SIZE], Ironfish
 }
 
 pub fn hex_to_vec_bytes(hex: &str) -> Result<Vec<u8>, IronfishError> {
+    if hex.len() % 2 != 0 {
+        return Err(IronfishError::new(IronfishErrorKind::InvalidData));
+    }
+
     let mut bytes = Vec::new();
 
     let hex_iter = hex.as_bytes().chunks_exact(2);
