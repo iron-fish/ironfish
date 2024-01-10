@@ -63,6 +63,18 @@ pub fn hex_to_bytes<const SIZE: usize>(hex: &str) -> Result<[u8; SIZE], Ironfish
     Ok(bytes)
 }
 
+pub fn hex_to_vec_bytes(hex: &str) -> Result<Vec<u8>, IronfishError> {
+    let mut bytes = Vec::new();
+
+    let hex_iter = hex.as_bytes().chunks_exact(2);
+
+    for (i, hex) in hex_iter.enumerate() {
+        bytes.push(hex_to_u8(hex[0])? << 4 | hex_to_u8(hex[1])?);
+    }
+
+    Ok(bytes)
+}
+
 #[inline]
 fn hex_to_u8(char: u8) -> Result<u8, IronfishError> {
     match char {
