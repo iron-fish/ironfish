@@ -87,7 +87,27 @@ fn hex_to_u8(char: u8) -> Result<u8, IronfishError> {
 
 #[cfg(test)]
 mod test {
-    use crate::serializing::{bytes_to_hex, hex_to_bytes};
+    use crate::serializing::{bytes_to_hex, hex_to_bytes, hex_to_vec_bytes};
+
+    #[test]
+    fn test_hex_to_vec_bytes_valid() {
+        let hex = "A1B2C3";
+        let expected_bytes = vec![161, 178, 195];
+        assert_eq!(hex_to_vec_bytes(hex).unwrap(), expected_bytes);
+    }
+
+    #[test]
+    fn test_hex_to_vec_bytes_invalid_char() {
+        let hex = "A1B2G3";
+        let result: Result<Vec<u8>, crate::errors::IronfishError> = hex_to_vec_bytes(hex);
+        assert!(result.is_err());
+
+        let error = result.unwrap_err();
+        assert!(matches!(
+            error.kind,
+            crate::errors::IronfishErrorKind::InvalidData
+        ));
+    }
 
     #[test]
     fn hex_serde() {
