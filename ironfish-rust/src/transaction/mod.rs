@@ -51,6 +51,7 @@ pub mod burns;
 pub mod mints;
 pub mod outputs;
 pub mod spends;
+pub mod unsigned;
 
 mod utils;
 mod value_balances;
