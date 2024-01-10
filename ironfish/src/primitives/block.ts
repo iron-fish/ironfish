@@ -142,7 +142,7 @@ export class Block {
   }
 
   static fromRaw(raw: RawBlock): Block {
-    const header = BlockHeader.fromRaw(raw.header)
+    const header = new BlockHeader(raw.header)
     return new Block(header, raw.transactions)
   }
 }

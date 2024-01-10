@@ -937,18 +937,18 @@ export class Blockchain {
 
       graffiti = graffiti ? graffiti : Buffer.alloc(32)
 
-      const header = new BlockHeader(
-        previousSequence + 1,
+      const rawHeader = {
+        sequence: previousSequence + 1,
         previousBlockHash,
         noteCommitment,
-        transactionCommitment(transactions),
+        transactionCommitment: transactionCommitment(transactions),
         target,
-        BigInt(0),
+        randomness: BigInt(0),
         timestamp,
         graffiti,
-        noteSize,
-        BigInt(0),
-      )
+      }
+
+      const header = new BlockHeader(rawHeader, noteSize, BigInt(0))
 
       const block = new Block(header, transactions)
       if (verifyBlock && !previousBlockHash.equals(GENESIS_BLOCK_PREVIOUS)) {

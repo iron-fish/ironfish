@@ -93,47 +93,43 @@ describe('transactionMerkleRoot', () => {
 
 describe('BlockHeader', () => {
   it('checks equal block headers', () => {
-    const header1 = new BlockHeader(
-      5,
-      Buffer.alloc(32),
-      Buffer.alloc(32, 'header'),
-      Buffer.alloc(32, 'transactionRoot'),
-      new Target(17),
-      BigInt(25),
-      new Date(1598467858637),
-      Buffer.alloc(32),
-    )
+    const header1 = new BlockHeader({
+      sequence: 5,
+      previousBlockHash: Buffer.alloc(32),
+      noteCommitment: Buffer.alloc(32, 'header'),
+      transactionCommitment: Buffer.alloc(32, 'transactionRoot'),
+      target: new Target(17),
+      randomness: BigInt(25),
+      timestamp: new Date(1598467858637),
+      graffiti: Buffer.alloc(32),
+    })
 
-    expect(header1.equals(BlockHeader.fromRaw({ ...header1 }))).toBe(true)
+    expect(header1.equals(new BlockHeader({ ...header1 }))).toBe(true)
 
     // sequence
-    expect(header1.equals(BlockHeader.fromRaw({ ...header1, sequence: 6 }))).toBe(false)
+    expect(header1.equals(new BlockHeader({ ...header1, sequence: 6 }))).toBe(false)
 
     // note commitment
     expect(
       header1.equals(
-        BlockHeader.fromRaw({ ...header1, noteCommitment: Buffer.alloc(32, 'not  header') }),
+        new BlockHeader({ ...header1, noteCommitment: Buffer.alloc(32, 'not  header') }),
       ),
     ).toBe(false)
 
     // target
-    expect(header1.equals(BlockHeader.fromRaw({ ...header1, target: new Target(10) }))).toBe(
-      false,
-    )
+    expect(header1.equals(new BlockHeader({ ...header1, target: new Target(10) }))).toBe(false)
 
     // randomness
-    expect(header1.equals(BlockHeader.fromRaw({ ...header1, randomness: BigInt(19) }))).toBe(
-      false,
-    )
+    expect(header1.equals(new BlockHeader({ ...header1, randomness: BigInt(19) }))).toBe(false)
 
     // timestamp
-    expect(header1.equals(BlockHeader.fromRaw({ ...header1, timestamp: new Date(1000) }))).toBe(
+    expect(header1.equals(new BlockHeader({ ...header1, timestamp: new Date(1000) }))).toBe(
       false,
     )
 
     // graffiti
     expect(
-      header1.equals(BlockHeader.fromRaw({ ...header1, graffiti: Buffer.alloc(32, 'a') })),
+      header1.equals(new BlockHeader({ ...header1, graffiti: Buffer.alloc(32, 'a') })),
     ).toBe(false)
   })
 })
@@ -142,16 +138,16 @@ describe('BlockHeaderSerde', () => {
   const serde = BlockHeaderSerde
 
   it('serializes and deserializes a block header', () => {
-    const header = new BlockHeader(
-      5,
-      Buffer.alloc(32),
-      Buffer.alloc(32),
-      Buffer.alloc(32, 'transactionRoot'),
-      new Target(17),
-      BigInt(25),
-      new Date(1598467858637),
-      GraffitiUtils.fromString('test'),
-    )
+    const header = new BlockHeader({
+      sequence: 5,
+      previousBlockHash: Buffer.alloc(32),
+      noteCommitment: Buffer.alloc(32),
+      transactionCommitment: Buffer.alloc(32, 'transactionRoot'),
+      target: new Target(17),
+      randomness: BigInt(25),
+      timestamp: new Date(1598467858637),
+      graffiti: GraffitiUtils.fromString('test'),
+    })
 
     const serialized = serde.serialize(header)
     const deserialized = serde.deserialize(serialized)
@@ -159,43 +155,40 @@ describe('BlockHeaderSerde', () => {
   })
 
   it('checks block is later than', () => {
-    const header1 = new BlockHeader(
-      5,
-      Buffer.alloc(32),
-      Buffer.alloc(32),
-      Buffer.alloc(32, 'transactionRoot'),
-      new Target(0),
-      BigInt(0),
-      new Date(0),
-      Buffer.alloc(32),
-    )
+    const header1 = new BlockHeader({
+      sequence: 5,
+      previousBlockHash: Buffer.alloc(32),
+      noteCommitment: Buffer.alloc(32),
+      transactionCommitment: Buffer.alloc(32, 'transactionRoot'),
+      target: new Target(0),
+      randomness: BigInt(0),
+      timestamp: new Date(0),
+      graffiti: Buffer.alloc(32),
+    })
 
-    expect(isBlockLater(header1, BlockHeader.fromRaw({ ...header1 }))).toBe(false)
+    expect(isBlockLater(header1, new BlockHeader({ ...header1 }))).toBe(false)
 
     expect(
-      isBlockLater(
-        header1,
-        BlockHeader.fromRaw({ ...header1, sequence: header1.sequence - 1 }),
-      ),
+      isBlockLater(header1, new BlockHeader({ ...header1, sequence: header1.sequence - 1 })),
     ).toBe(true)
 
-    const header2 = BlockHeader.fromRaw({ ...header1, graffiti: Buffer.alloc(32, 'a') })
+    const header2 = new BlockHeader({ ...header1, graffiti: Buffer.alloc(32, 'a') })
 
     const header1HashIsGreater = header1.hash.compare(header2.hash) < 0
     expect(isBlockLater(header1, header2)).toBe(header1HashIsGreater)
   })
 
   it('checks block is heavier than', () => {
-    const header1 = new BlockHeader(
-      5,
-      Buffer.alloc(32),
-      Buffer.alloc(32),
-      Buffer.alloc(32, 'transactionRoot'),
-      new Target(100),
-      BigInt(0),
-      new Date(0),
-      Buffer.alloc(32),
-    )
+    const header1 = new BlockHeader({
+      sequence: 5,
+      previousBlockHash: Buffer.alloc(32),
+      noteCommitment: Buffer.alloc(32),
+      transactionCommitment: Buffer.alloc(32, 'transactionRoot'),
+      target: new Target(100),
+      randomness: BigInt(0),
+      timestamp: new Date(0),
+      graffiti: Buffer.alloc(32),
+    })
 
     const serialized = serde.serialize(header1)
     let header2 = serde.deserialize(serialized)
@@ -205,21 +198,21 @@ describe('BlockHeaderSerde', () => {
     header2.work = BigInt(0)
     expect(isBlockHeavier(header1, header2)).toBe(true)
 
-    header2 = BlockHeader.fromRaw({ ...header1, sequence: header1.sequence - 1 })
+    header2 = new BlockHeader({ ...header1, sequence: header1.sequence - 1 })
     header1.work = BigInt(0)
     header2.work = BigInt(0)
     expect(isBlockHeavier(header1, header2)).toBe(true)
 
-    header2 = BlockHeader.fromRaw({ ...header1, target: new Target(200) })
+    header2 = new BlockHeader({ ...header1, target: new Target(200) })
     header1.work = BigInt(0)
     header2.work = BigInt(0)
     expect(isBlockHeavier(header1, header2)).toBe(true)
 
-    header2 = BlockHeader.fromRaw({ ...header1, target: new Target(200) })
+    header2 = new BlockHeader({ ...header1, target: new Target(200) })
     header1.work = BigInt(0)
     header2.work = BigInt(0)
 
-    header2 = BlockHeader.fromRaw({ ...header1, graffiti: Buffer.alloc(32, 'a') })
+    header2 = new BlockHeader({ ...header1, graffiti: Buffer.alloc(32, 'a') })
     const header1HashIsGreater = header1.hash.compare(header2.hash) < 0
     expect(isBlockHeavier(header1, header2)).toBe(header1HashIsGreater)
   })

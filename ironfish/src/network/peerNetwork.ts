@@ -614,7 +614,7 @@ export class PeerNetwork {
       throw new Error(`Invalid GetBlockHeadersResponse: ${message.displayType()}`)
     }
 
-    const headers = response.headers.map((rawHeader) => BlockHeader.fromRaw(rawHeader))
+    const headers = response.headers.map((rawHeader) => new BlockHeader(rawHeader))
 
     return { headers, time: BenchUtils.end(begin) }
   }
@@ -787,7 +787,7 @@ export class PeerNetwork {
       return
     }
 
-    const header = BlockHeader.fromRaw(compactBlock.header)
+    const header = new BlockHeader(compactBlock.header)
 
     // mark the block as received in the block fetcher and decide whether to continue
     // to validate this compact block or not

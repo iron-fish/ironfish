@@ -127,17 +127,19 @@ export async function addGenesisTransaction(
   // Generate a new block header for the new genesis block
   const noteCommitment = await node.chain.notes.rootHash()
   const noteSize = await node.chain.notes.size()
-  const newGenesisHeader = new BlockHeader(
-    1,
-    genesisBlock.header.previousBlockHash,
+
+  const rawHeader = {
+    sequence: 1,
+    previousBlockHash: genesisBlock.header.previousBlockHash,
     noteCommitment,
-    transactionCommitment(genesisBlock.transactions),
-    genesisBlock.header.target,
-    genesisBlock.header.randomness,
-    genesisBlock.header.timestamp,
-    genesisBlock.header.graffiti,
-    noteSize,
-  )
+    transactionCommitment: transactionCommitment(genesisBlock.transactions),
+    target: genesisBlock.header.target,
+    randomness: genesisBlock.header.randomness,
+    timestamp: genesisBlock.header.timestamp,
+    graffiti: genesisBlock.header.graffiti,
+  }
+
+  const newGenesisHeader = new BlockHeader(rawHeader, noteSize)
 
   genesisBlock.header = newGenesisHeader
 

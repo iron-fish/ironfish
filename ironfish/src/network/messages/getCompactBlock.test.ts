@@ -33,16 +33,16 @@ describe('GetCompactBlockResponse', () => {
     const transactionB = await useMinersTxFixture(nodeTest.node, account)
 
     const compactBlock: CompactBlock = {
-      header: new BlockHeader(
-        2,
-        Buffer.alloc(32, 2),
-        Buffer.alloc(32, 1),
-        Buffer.alloc(32, 2),
-        new Target(12),
-        BigInt(1),
-        new Date(200000),
-        Buffer.alloc(32, 'graffiti1', 'utf8'),
-      ),
+      header: new BlockHeader({
+        sequence: 2,
+        previousBlockHash: Buffer.alloc(32, 2),
+        noteCommitment: Buffer.alloc(32, 1),
+        transactionCommitment: Buffer.alloc(32, 2),
+        target: new Target(12),
+        randomness: BigInt(1),
+        timestamp: new Date(200000),
+        graffiti: Buffer.alloc(32, 'graffiti1', 'utf8'),
+      }),
       transactions: [
         { transaction: transactionA, index: 0 },
         { transaction: transactionB, index: 2 },

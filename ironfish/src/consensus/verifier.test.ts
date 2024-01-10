@@ -520,14 +520,10 @@ describe('Verifier', () => {
 
     it('fails validation if graffiti field is not equal to 32 bytes', () => {
       const invalidHeader31Byte = new BlockHeader(
-        header.sequence,
-        header.previousBlockHash,
-        header.noteCommitment,
-        header.transactionCommitment,
-        header.target,
-        header.randomness,
-        header.timestamp,
-        Buffer.alloc(31),
+        {
+          ...header,
+          graffiti: Buffer.alloc(31),
+        },
         header.noteSize,
         header.work,
         header.hash,
@@ -539,14 +535,10 @@ describe('Verifier', () => {
       })
 
       const invalidHeader33Byte = new BlockHeader(
-        header.sequence,
-        header.previousBlockHash,
-        header.noteCommitment,
-        header.transactionCommitment,
-        header.target,
-        header.randomness,
-        header.timestamp,
-        Buffer.alloc(33),
+        {
+          ...header,
+          graffiti: Buffer.alloc(33),
+        },
         header.noteSize,
         header.work,
         header.hash,
@@ -647,7 +639,7 @@ describe('Verifier', () => {
       nodeTest.verifier.enableVerifyTarget = true
       const block = await useMinerBlockFixture(nodeTest.chain)
 
-      const invalidHeader = BlockHeader.fromRaw({
+      const invalidHeader = new BlockHeader({
         ...block.header,
         target: Target.minTarget(),
       })
@@ -663,7 +655,7 @@ describe('Verifier', () => {
     it('Is invalid when the sequence is wrong', async () => {
       const block = await useMinerBlockFixture(nodeTest.chain)
 
-      const invalidHeader = BlockHeader.fromRaw({
+      const invalidHeader = new BlockHeader({
         ...block.header,
         sequence: 9999,
       })
@@ -700,7 +692,7 @@ describe('Verifier', () => {
       })
 
       it('fails validation when timestamp is too low', async () => {
-        const invalidHeader = BlockHeader.fromRaw({
+        const invalidHeader = new BlockHeader({
           ...header,
           timestamp: new Date(
             prevHeader.timestamp.getTime() -
@@ -721,7 +713,7 @@ describe('Verifier', () => {
           .spyOn(global.Date, 'now')
           .mockImplementationOnce(() => prevHeader.timestamp.getTime() + 40 * 1000)
 
-        const invalidHeader = BlockHeader.fromRaw({
+        const invalidHeader = new BlockHeader({
           ...header,
           timestamp: new Date(
             prevHeader.timestamp.getTime() +
@@ -742,7 +734,7 @@ describe('Verifier', () => {
           .spyOn(global.Date, 'now')
           .mockImplementationOnce(() => prevHeader.timestamp.getTime() + 1 * 1000)
 
-        const invalidHeader = BlockHeader.fromRaw({
+        const invalidHeader = new BlockHeader({
           ...header,
           timestamp: new Date(prevHeader.timestamp.getTime() - 1 * 1000),
         })
@@ -759,7 +751,7 @@ describe('Verifier', () => {
           .spyOn(global.Date, 'now')
           .mockImplementationOnce(() => prevHeader.timestamp.getTime() + 1 * 1000)
 
-        const invalidHeader = BlockHeader.fromRaw({
+        const invalidHeader = new BlockHeader({
           ...header,
           timestamp: new Date(prevHeader.timestamp.getTime() + 1 * 1000),
         })
@@ -800,7 +792,7 @@ describe('Verifier', () => {
       })
 
       it('fails validation when timestamp is too low', async () => {
-        const invalidHeader = BlockHeader.fromRaw({
+        const invalidHeader = new BlockHeader({
           ...header,
           timestamp: new Date(
             prevHeader.timestamp.getTime() -
@@ -821,7 +813,7 @@ describe('Verifier', () => {
           .spyOn(global.Date, 'now')
           .mockImplementationOnce(() => prevHeader.timestamp.getTime() + 40 * 1000)
 
-        const invalidHeader = BlockHeader.fromRaw({
+        const invalidHeader = new BlockHeader({
           ...header,
           timestamp: new Date(
             prevHeader.timestamp.getTime() +
@@ -838,7 +830,7 @@ describe('Verifier', () => {
       })
 
       it('fails validation when timestamp is smaller than previous block', async () => {
-        const invalidHeader = BlockHeader.fromRaw({
+        const invalidHeader = new BlockHeader({
           ...header,
           timestamp: new Date(prevHeader.timestamp.getTime() - 1 * 1000),
         })
@@ -852,7 +844,7 @@ describe('Verifier', () => {
       })
 
       it('fails validation when timestamp is same as previous block', async () => {
-        const invalidHeader = BlockHeader.fromRaw({
+        const invalidHeader = new BlockHeader({
           ...header,
           timestamp: new Date(prevHeader.timestamp.getTime()),
         })
@@ -870,7 +862,7 @@ describe('Verifier', () => {
           .spyOn(global.Date, 'now')
           .mockImplementationOnce(() => prevHeader.timestamp.getTime() + 1 * 1000)
 
-        const invalidHeader = BlockHeader.fromRaw({
+        const invalidHeader = new BlockHeader({
           ...header,
           timestamp: new Date(prevHeader.timestamp.getTime() + 1 * 1000),
         })
