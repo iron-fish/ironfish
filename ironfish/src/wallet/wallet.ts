@@ -852,6 +852,22 @@ export class Wallet {
     return account.getBalance(assetId, confirmations)
   }
 
+  async *getUnspentNotes(
+    account: Account,
+    assetId: Buffer,
+    options?: {
+      confirmations?: number
+    },
+  ): AsyncGenerator<DecryptedNoteValue> {
+    const confirmations = options?.confirmations ?? this.config.get('confirmations')
+
+    for await (const decryptedNote of account.getUnspentNotes(assetId, {
+      confirmations,
+    })) {
+      yield decryptedNote
+    }
+  }
+
   async send(options: {
     account: Account
     outputs: TransactionOutput[]
@@ -1220,7 +1236,8 @@ export class Wallet {
     notesSpent: BufferSet,
     confirmations: number,
   ): Promise<bigint> {
-    for await (const unspentNote of sender.getUnspentNotes(assetId, {
+    for await (const unspentNote of sender.getUnspentNotesSortedByValue(assetId, {
+      reverse: true,
       confirmations,
     })) {
       if (notesSpent.has(unspentNote.note.hash())) {
