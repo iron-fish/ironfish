@@ -194,6 +194,11 @@ impl UnsignedSpendDescription {
         Ok(self.description)
     }
 
+    pub fn sign_frost(mut self, signature: Signature) -> Result<SpendDescription, IronfishError> {
+        self.description.authorizing_signature = signature;
+        Ok(self.description)
+    }
+
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
         let public_key_randomness = read_scalar(&mut reader)?;
         let description = SpendDescription::read(&mut reader)?;

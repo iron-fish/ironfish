@@ -348,6 +348,11 @@ impl MintDescription {
 
         Ok(())
     }
+
+    pub fn sign_frost(mut self, signature: Signature) -> Result<MintDescription, IronfishError> {
+        self.description.authorizing_signature = signature;
+        Ok(self.description)
+    }
 }
 
 #[cfg(test)]
