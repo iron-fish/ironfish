@@ -147,6 +147,11 @@ impl UnsignedMintDescription {
         Ok(self.description)
     }
 
+    pub fn sign_frost(mut self, signature: Signature) -> Result<MintDescription, IronfishError> {
+        self.description.authorizing_signature = signature;
+        Ok(self.description)
+    }
+
     pub fn read<R: io::Read>(
         mut reader: R,
         version: TransactionVersion,
@@ -347,11 +352,6 @@ impl MintDescription {
         self.authorizing_signature.write(&mut writer)?;
 
         Ok(())
-    }
-
-    pub fn sign_frost(mut self, signature: Signature) -> Result<MintDescription, IronfishError> {
-        self.description.authorizing_signature = signature;
-        Ok(self.description)
     }
 }
 
