@@ -69,7 +69,7 @@ describe('BlockchainUtils', () => {
       [{ start: 3.14, stop: 6.28 }, 3, 6],
       [{ start: 6.28, stop: 3.14 }, 6, 6],
     ])('%o returns %d %d', (param, expectedStart, expectedStop) => {
-      nodeTest.chain.latest = BlockHeader.fromRaw({
+      nodeTest.chain.latest = new BlockHeader({
         ...nodeTest.chain.latest,
         sequence: 10000,
       })
@@ -80,7 +80,7 @@ describe('BlockchainUtils', () => {
     })
 
     it('{ start: null, stop: 6000 } returns 1 6000', () => {
-      nodeTest.chain.latest = BlockHeader.fromRaw({
+      nodeTest.chain.latest = new BlockHeader({
         ...nodeTest.chain.latest,
         sequence: 10000,
       })
@@ -91,7 +91,7 @@ describe('BlockchainUtils', () => {
     })
 
     it('{ start: 6000, stop: null } returns 6000 10000', () => {
-      nodeTest.chain.latest = BlockHeader.fromRaw({
+      nodeTest.chain.latest = new BlockHeader({
         ...nodeTest.chain.latest,
         sequence: 10000,
       })

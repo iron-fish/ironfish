@@ -240,10 +240,6 @@ export class BlockHeader {
       graffiti: this.graffiti,
     }
   }
-
-  static fromRaw(raw: RawBlockHeader): BlockHeader {
-    return new BlockHeader(raw)
-  }
 }
 
 export type RawBlockHeader = {
