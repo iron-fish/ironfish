@@ -6,6 +6,7 @@ use std::cell::RefCell;
 use std::convert::TryInto;
 
 use ironfish::assets::asset_identifier::AssetIdentifier;
+use ironfish::transaction::unsigned::UnsignedTransaction;
 use ironfish::transaction::{
     batch_verify_transactions, TransactionVersion, TRANSACTION_EXPIRATION_SIZE,
     TRANSACTION_FEE_SIZE, TRANSACTION_PUBLIC_KEY_SIZE, TRANSACTION_SIGNATURE_SIZE,
@@ -304,6 +305,23 @@ impl NativeTransaction {
     #[napi]
     pub fn set_expiration(&mut self, sequence: u32) -> Undefined {
         self.transaction.set_expiration(sequence);
+    }
+}
+
+#[napi(js_name = "UnsignedTransaction")]
+pub struct NativeUnsignedTransaction {
+    transaction: UnsignedTransaction,
+}
+
+#[napi]
+impl NativeUnsignedTransaction {
+    #[napi(constructor)]
+    pub fn new(js_bytes: JsBuffer) -> Result<NativeUnsignedTransaction> {
+        let bytes = js_bytes.into_value()?;
+
+        let transaction = UnsignedTransaction::read(bytes.as_ref()).map_err(to_napi_err)?;
+
+        Ok(NativeUnsignedTransaction { transaction })
     }
 }
 
