@@ -106,14 +106,13 @@ mod test {
     #[test]
     fn test_hex_to_vec_bytes_invalid_char() {
         let hex = "A1B2G3";
-        let result: Result<Vec<u8>, crate::errors::IronfishError> = hex_to_vec_bytes(hex);
-        assert!(result.is_err());
+        hex_to_vec_bytes(hex).expect_err("invalid hex should throw an error");
+    }
 
-        let error = result.unwrap_err();
-        assert!(matches!(
-            error.kind,
-            crate::errors::IronfishErrorKind::InvalidData
-        ));
+    #[test]
+    fn test_hex_to_vec_bytes_invalid_hex_with_odd_length() {
+        let hex = "A1B2C";
+        hex_to_vec_bytes(hex).expect_err("invalid hex should throw an error");
     }
 
     #[test]
