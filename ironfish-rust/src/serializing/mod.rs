@@ -93,7 +93,10 @@ mod test {
     fn test_hex_to_vec_bytes_valid() {
         let hex = "A1B2C3";
         let expected_bytes = vec![161, 178, 195];
-        assert_eq!(hex_to_vec_bytes(hex).unwrap(), expected_bytes);
+
+        let result = hex_to_vec_bytes(hex).expect("valid hex");
+
+        assert_eq!(result, expected_bytes);
     }
 
     #[test]
