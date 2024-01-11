@@ -18,6 +18,7 @@ describe('Miners reward', () => {
     minFee: 1,
     enableAssetOwnership: 1,
     enforceSequentialBlockTime: 3,
+    enableFishHash: 'never',
   }
 
   beforeAll(() => {
