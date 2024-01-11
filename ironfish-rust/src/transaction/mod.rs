@@ -4,7 +4,6 @@
 
 use blstrs::Bls12;
 use ff::Field;
-use ironfish_frost::frost::keys::PublicKeyPackage;
 use outputs::OutputBuilder;
 use spends::{SpendBuilder, UnsignedSpendDescription};
 use value_balances::ValueBalances;
@@ -19,7 +18,7 @@ use crate::{
     note::Note,
     sapling_bls12::SAPLING,
     witness::WitnessTrait,
-    OutputDescription, SpendDescription, serializing::hex_to_bytes, ViewKey, OutgoingViewKey,
+    OutgoingViewKey, OutputDescription, SpendDescription, ViewKey,
 };
 
 use bellperson::groth16::{verify_proofs_batch, PreparedVerifyingKey};
@@ -35,6 +34,7 @@ use ironfish_zkp::{
         VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
     },
     redjubjub::{self, PrivateKey, PublicKey, Signature},
+    ProofGenerationKey,
 };
 
 use std::{
@@ -45,7 +45,8 @@ use std::{
 
 use self::{
     burns::{BurnBuilder, BurnDescription},
-    mints::{MintBuilder, MintDescription, UnsignedMintDescription}, unsigned::UnsignedTransaction, utils::bytes_to_proof_generation_key,
+    mints::{MintBuilder, MintDescription, UnsignedMintDescription},
+    unsigned::UnsignedTransaction,
 };
 
 pub mod burns;
@@ -189,33 +190,21 @@ impl ProposedTransaction {
         Ok(())
     }
 
-
     pub fn build(
         &mut self,
-        public_key_package: &str,
-        proof_generation_key_str: &str,
-        view_key_str: &str,
-        outgoing_view_key_str: &str,
-        public_address_str: &str,
+        proof_generation_key: ProofGenerationKey,
+        view_key: ViewKey,
+        outgoing_view_key: OutgoingViewKey,
+        public_address: PublicAddress,
         change_goes_to: Option<PublicAddress>,
         intended_transaction_fee: u64,
     ) -> Result<UnsignedTransaction, IronfishError> {
-        let pubkeys =
-            PublicKeyPackage::deserialize(&hex_to_bytes(public_key_package)?).unwrap();
-        let proof_generation_key =
-            bytes_to_proof_generation_key(hex_to_bytes(proof_generation_key_str)?);
-        let view_key = ViewKey::from_hex(view_key_str)?;
-        let outgoing_view_key = OutgoingViewKey::from_hex(outgoing_view_key_str)?;
-        let public_address = PublicAddress::from_hex(public_address_str)?;
-
-        let public_key_randomness = jubjub::Fr::random(thread_rng());
         // The public key after randomization has been applied. This is used
         // during signature verification. Referred to as `rk` in the literature
         // Calculated from the authorizing key and the public_key_randomness.
-        let randomized_public_key =
-            redjubjub::PublicKey::read(pubkeys.verifying_key().serialize().as_ref())?
-                .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);
-        
+        let randomized_public_key = redjubjub::PublicKey(view_key.authorizing_key.into())
+            .randomize(self.public_key_randomness, *SPENDING_KEY_GENERATOR);
+
         let mut change_notes = vec![];
 
         for (asset_id, value) in self.value_balances.iter() {
@@ -230,7 +219,7 @@ impl ProposedTransaction {
                 return Err(IronfishError::new(IronfishErrorKind::InvalidBalance));
             }
             if change_amount > 0 {
-                let change_address = change_goes_to.unwrap_or_else(|| public_address);
+                let change_address = change_goes_to.unwrap_or(public_address);
                 let change_note = Note::new(
                     change_address,
                     change_amount as u64, // we checked it was positive
@@ -252,7 +241,7 @@ impl ProposedTransaction {
             unsigned_spends.push(spend.build(
                 &proof_generation_key,
                 &view_key,
-                &public_key_randomness,
+                &self.public_key_randomness,
                 &randomized_public_key,
             )?);
         }
@@ -262,7 +251,7 @@ impl ProposedTransaction {
             output_descriptions.push(output.build(
                 &proof_generation_key,
                 &outgoing_view_key,
-                &public_key_randomness,
+                &self.public_key_randomness,
                 &randomized_public_key,
             )?);
         }
@@ -272,7 +261,7 @@ impl ProposedTransaction {
             unsigned_mints.push(mint.build(
                 &proof_generation_key,
                 &public_address,
-                &public_key_randomness,
+                &self.public_key_randomness,
                 &randomized_public_key,
             )?);
         }
@@ -287,6 +276,7 @@ impl ProposedTransaction {
             &output_descriptions,
             &unsigned_mints,
             &burn_descriptions,
+            &randomized_public_key,
         )?;
 
         // Create and verify binding signature keys
@@ -308,7 +298,7 @@ impl ProposedTransaction {
             fee: i64::try_from(intended_transaction_fee)?,
             binding_signature,
             randomized_public_key,
-            public_key_randomness,
+            public_key_randomness: self.public_key_randomness,
             expiration: self.expiration,
         })
     }

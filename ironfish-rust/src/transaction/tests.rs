@@ -199,6 +199,59 @@ fn test_transaction_simple() {
 }
 
 #[test]
+fn test_proposed_transaction_build() {
+    let spender_key = SaplingKey::generate_key();
+    let receiver_key = SaplingKey::generate_key();
+    let sender_key = SaplingKey::generate_key();
+    let spender_key_clone = spender_key.clone();
+
+    let in_note = Note::new(
+        spender_key.public_address(),
+        42,
+        "",
+        NATIVE_ASSET,
+        sender_key.public_address(),
+    );
+    let out_note = Note::new(
+        receiver_key.public_address(),
+        40,
+        "",
+        NATIVE_ASSET,
+        spender_key.public_address(),
+    );
+    let witness = make_fake_witness(&in_note);
+
+    let mut transaction = ProposedTransaction::new(TransactionVersion::latest());
+    transaction.add_spend(in_note, &witness).unwrap();
+    assert_eq!(transaction.spends.len(), 1);
+    transaction.add_output(out_note).unwrap();
+    assert_eq!(transaction.outputs.len(), 1);
+
+    let unsigned_transaction = transaction
+        .build(
+            spender_key.sapling_proof_generation_key(),
+            spender_key.view_key().clone(),
+            spender_key.outgoing_view_key().clone(),
+            spender_key.public_address(),
+            Some(spender_key.public_address()),
+            1,
+        )
+        .expect("should be able to build unsigned transaction");
+
+    // A change note was created
+    assert_eq!(unsigned_transaction.outputs.len(), 2);
+    assert_eq!(unsigned_transaction.spends.len(), 1);
+    assert_eq!(unsigned_transaction.mints.len(), 0);
+    assert_eq!(unsigned_transaction.burns.len(), 0);
+
+    let received_note = unsigned_transaction.outputs[1]
+        .merkle_note()
+        .decrypt_note_for_owner(&spender_key_clone.incoming_viewing_key)
+        .unwrap();
+    assert_eq!(received_note.sender, spender_key_clone.public_address());
+}
+
+#[test]
 fn test_miners_fee() {
     let spender_key = SaplingKey::generate_key();
     let receiver_key = SaplingKey::generate_key();
