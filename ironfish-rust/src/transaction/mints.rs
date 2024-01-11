@@ -663,7 +663,6 @@ mod test {
     fn test_add_signature() {
         let key = SaplingKey::generate_key();
         let public_address = key.public_address();
-        let sender_key = SaplingKey::generate_key();
 
         let asset = Asset::new(public_address, "name", "").expect("should be able to create asset");
         let public_key_randomness = jubjub::Fr::random(thread_rng());
@@ -677,7 +676,7 @@ mod test {
         let msg = [0u8; 32];
         let signature = private_key.sign(&msg, &mut thread_rng(), *SPENDING_KEY_GENERATOR);
         let unsigned_spend_description = builder
-            .build(&sender_key, &public_key_randomness, &randomized_public_key)
+            .build(&key, &public_key_randomness, &randomized_public_key)
             .expect("should be able to build proof");
         unsigned_spend_description.add_signature(signature);
         assert!(public_key.verify(&msg, &signature, *SPENDING_KEY_GENERATOR))
