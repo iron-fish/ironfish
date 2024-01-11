@@ -194,6 +194,11 @@ impl UnsignedSpendDescription {
         Ok(self.description)
     }
 
+    pub fn add_signature(mut self, signature: Signature) -> SpendDescription {
+        self.description.authorizing_signature = signature;
+        self.description
+    }
+
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
         let public_key_randomness = read_scalar(&mut reader)?;
         let description = SpendDescription::read(&mut reader)?;
@@ -409,7 +414,7 @@ mod test {
     use ff::Field;
     use group::Curve;
     use ironfish_zkp::constants::SPENDING_KEY_GENERATOR;
-    use ironfish_zkp::redjubjub;
+    use ironfish_zkp::redjubjub::{self, PrivateKey, PublicKey};
     use rand::prelude::*;
     use rand::{thread_rng, Rng};
 
@@ -578,5 +583,43 @@ mod test {
             .write(&mut serialized_again)
             .expect("should be able to serialize proof again");
         assert_eq!(serialized_proof, serialized_again);
+    }
+
+    #[test]
+    fn test_add_signature() {
+        let key = SaplingKey::generate_key();
+        let public_address = key.public_address();
+        let sender_key = SaplingKey::generate_key();
+
+        let note_randomness = random();
+
+        let note = Note::new(
+            public_address,
+            note_randomness,
+            "",
+            NATIVE_ASSET,
+            sender_key.public_address(),
+        );
+        let witness = make_fake_witness(&note);
+        let public_key_randomness = jubjub::Fr::random(thread_rng());
+        let randomized_public_key = redjubjub::PublicKey(key.view_key.authorizing_key.into())
+            .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);
+
+        let builder = SpendBuilder::new(note, &witness);
+        // create a random private key and sign random message as placeholder
+        let private_key = PrivateKey(jubjub::Fr::random(thread_rng()));
+        let public_key = PublicKey::from_private(&private_key, *SPENDING_KEY_GENERATOR);
+        let msg = [0u8; 32];
+        let signature = private_key.sign(&msg, &mut thread_rng(), *SPENDING_KEY_GENERATOR);
+        let unsigned_spend_description = builder
+            .build(
+                &key.sapling_proof_generation_key(),
+                key.view_key(),
+                &public_key_randomness,
+                &randomized_public_key,
+            )
+            .expect("should be able to build proof");
+        unsigned_spend_description.add_signature(signature);
+        assert!(public_key.verify(&msg, &signature, *SPENDING_KEY_GENERATOR))
     }
 }
