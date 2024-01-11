@@ -63,6 +63,22 @@ pub fn hex_to_bytes<const SIZE: usize>(hex: &str) -> Result<[u8; SIZE], Ironfish
     Ok(bytes)
 }
 
+pub fn hex_to_vec_bytes(hex: &str) -> Result<Vec<u8>, IronfishError> {
+    if hex.len() % 2 != 0 {
+        return Err(IronfishError::new(IronfishErrorKind::InvalidData));
+    }
+
+    let mut bytes = Vec::new();
+
+    let hex_iter = hex.as_bytes().chunks_exact(2);
+
+    for (_, hex) in hex_iter.enumerate() {
+        bytes.push(hex_to_u8(hex[0])? << 4 | hex_to_u8(hex[1])?);
+    }
+
+    Ok(bytes)
+}
+
 #[inline]
 fn hex_to_u8(char: u8) -> Result<u8, IronfishError> {
     match char {
@@ -75,7 +91,29 @@ fn hex_to_u8(char: u8) -> Result<u8, IronfishError> {
 
 #[cfg(test)]
 mod test {
-    use crate::serializing::{bytes_to_hex, hex_to_bytes};
+    use crate::serializing::{bytes_to_hex, hex_to_bytes, hex_to_vec_bytes};
+
+    #[test]
+    fn test_hex_to_vec_bytes_valid() {
+        let hex = "A1B2C3";
+        let expected_bytes = vec![161, 178, 195];
+
+        let result = hex_to_vec_bytes(hex).expect("valid hex");
+
+        assert_eq!(result, expected_bytes);
+    }
+
+    #[test]
+    fn test_hex_to_vec_bytes_invalid_char() {
+        let hex = "A1B2G3";
+        hex_to_vec_bytes(hex).expect_err("invalid hex should throw an error");
+    }
+
+    #[test]
+    fn test_hex_to_vec_bytes_invalid_hex_with_odd_length() {
+        let hex = "A1B2C";
+        hex_to_vec_bytes(hex).expect_err("invalid hex should throw an error");
+    }
 
     #[test]
     fn hex_serde() {
