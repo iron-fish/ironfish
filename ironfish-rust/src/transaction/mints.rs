@@ -147,7 +147,7 @@ impl UnsignedMintDescription {
         Ok(self.description)
     }
 
-    pub fn sign_frost(mut self, signature: Signature) -> Result<MintDescription, IronfishError> {
+    pub fn add_signature(mut self, signature: Signature) -> Result<MintDescription, IronfishError> {
         self.description.authorizing_signature = signature;
         Ok(self.description)
     }
@@ -660,7 +660,7 @@ mod test {
     }
 
     #[test]
-    fn test_sign_frost() {
+    fn test_add_signature() {
         let key = SaplingKey::generate_key();
         let public_address = key.public_address();
         let sender_key = SaplingKey::generate_key();
@@ -680,8 +680,8 @@ mod test {
             .build(&sender_key, &public_key_randomness, &randomized_public_key)
             .expect("should be able to build proof");
         unsigned_spend_description
-            .sign_frost(signature)
-            .expect("should be able to sign");
+            .add_signature(signature)
+            .expect("should be able to add signature");
         assert!(public_key.verify(&msg, &signature, *SPENDING_KEY_GENERATOR) == true)
     }
 }
