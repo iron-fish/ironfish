@@ -678,8 +678,7 @@ mod test {
         let unsigned_spend_description = builder
             .build(&sender_key, &public_key_randomness, &randomized_public_key)
             .expect("should be able to build proof");
-        unsigned_spend_description
-            .add_signature(signature);
+        unsigned_spend_description.add_signature(signature);
         assert!(public_key.verify(&msg, &signature, *SPENDING_KEY_GENERATOR))
     }
 }

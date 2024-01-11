@@ -194,11 +194,8 @@ impl UnsignedSpendDescription {
         Ok(self.description)
     }
 
-    pub fn add_signature(
-        mut self,
-        signature: Signature,
-    ) {
-        self.description.authorizing_signature = signature;  
+    pub fn add_signature(mut self, signature: Signature) {
+        self.description.authorizing_signature = signature;
     }
 
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
@@ -621,8 +618,7 @@ mod test {
                 &randomized_public_key,
             )
             .expect("should be able to build proof");
-        unsigned_spend_description
-            .add_signature(signature);
+        unsigned_spend_description.add_signature(signature);
         assert!(public_key.verify(&msg, &signature, *SPENDING_KEY_GENERATOR))
     }
 }
