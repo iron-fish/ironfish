@@ -194,8 +194,9 @@ impl UnsignedSpendDescription {
         Ok(self.description)
     }
 
-    pub fn add_signature(mut self, signature: Signature) {
+    pub fn add_signature(mut self, signature: Signature) -> SpendDescription {
         self.description.authorizing_signature = signature;
+        self.description
     }
 
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {

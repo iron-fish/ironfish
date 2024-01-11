@@ -147,8 +147,9 @@ impl UnsignedMintDescription {
         Ok(self.description)
     }
 
-    pub fn add_signature(mut self, signature: Signature) {
+    pub fn add_signature(mut self, signature: Signature) -> MintDescription {
         self.description.authorizing_signature = signature;
+        self.description
     }
 
     pub fn read<R: io::Read>(
