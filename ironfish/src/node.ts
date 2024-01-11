@@ -8,7 +8,6 @@ import { Blockchain } from './blockchain'
 import { TestnetConsensus } from './consensus'
 import {
   Config,
-  ConfigOptions,
   DEFAULT_DATA_DIR,
   InternalStore,
   PeerStore,
@@ -214,7 +213,7 @@ export class FullNode {
     dataDir = dataDir || DEFAULT_DATA_DIR
 
     if (!config) {
-      config = new Config(files, dataDir)
+      config = new Config(files, dataDir, {})
       await config.load()
     }
 
@@ -423,10 +422,7 @@ export class FullNode {
     void this.syncer.stop()
   }
 
-  async onConfigChange<Key extends keyof ConfigOptions>(
-    key: Key,
-    newValue: ConfigOptions[Key],
-  ): Promise<void> {
+  async onConfigChange(key: string, newValue: unknown): Promise<void> {
     switch (key) {
       case 'enableTelemetry': {
         if (newValue) {
