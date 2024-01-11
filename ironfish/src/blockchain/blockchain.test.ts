@@ -435,7 +435,7 @@ describe('Blockchain', () => {
     const genesis = nodeTest.chain.genesis
     expect(node.chain.head?.hash).toEqualBuffer(genesis.hash)
 
-    const blockB3Invalid = Block.fromRaw({
+    const blockB3Invalid = nodeTest.strategy.newBlock({
       header: {
         ...blockB3.header,
         noteCommitment: Buffer.alloc(32),
@@ -731,7 +731,7 @@ describe('Blockchain', () => {
       valid: true,
     })
 
-    const invalidBlock = Block.fromRaw({
+    const invalidBlock = nodeTest.strategy.newBlock({
       header: {
         ...block.header,
         timestamp: new Date(0),

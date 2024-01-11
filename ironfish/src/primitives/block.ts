@@ -4,6 +4,7 @@
 
 import { zip } from 'lodash'
 import { Assert } from '../assert'
+import { Strategy } from '../strategy'
 import {
   BlockHeader,
   BlockHeaderSerde,
@@ -140,11 +141,6 @@ export class Block {
       ],
     }
   }
-
-  static fromRaw(raw: RawBlock): Block {
-    const header = new BlockHeader(raw.header)
-    return new Block(header, raw.transactions)
-  }
 }
 
 export type CompactBlockTransaction = {
@@ -178,7 +174,7 @@ export class BlockSerde {
     }
   }
 
-  static deserialize(data: SerializedBlock): Block {
+  static deserialize(data: SerializedBlock, strategy: Strategy): Block {
     if (
       typeof data === 'object' &&
       data !== null &&
@@ -186,7 +182,7 @@ export class BlockSerde {
       'transactions' in data &&
       Array.isArray(data.transactions)
     ) {
-      const header = BlockHeaderSerde.deserialize(data.header)
+      const header = BlockHeaderSerde.deserialize(data.header, strategy)
       const transactions = data.transactions.map((t) => new Transaction(t))
       return new Block(header, transactions)
     }

@@ -2,7 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { blake3 } from '@napi-rs/blake-hash'
+import bufio from 'bufio'
 import { Consensus } from './consensus'
+import { Block, RawBlock } from './primitives/block'
+import { BlockHash, BlockHeader, RawBlockHeader } from './primitives/blockheader'
 import { Transaction } from './primitives/transaction'
 import { MathUtils } from './utils'
 import { WorkerPool } from './workerPool'
@@ -92,4 +96,33 @@ export class Strategy {
 
     return this.workerPool.createMinersFee(minerSpendKey, amount, '', transactionVersion)
   }
+
+  hashHeader(header: RawBlockHeader): BlockHash {
+    const serialized = serializeHeaderBlake3(header)
+    return blake3(serialized)
+  }
+
+  newBlockHeader(raw: RawBlockHeader, noteSize?: number | null, work?: bigint): BlockHeader {
+    const hash = this.hashHeader(raw)
+    return new BlockHeader(raw, hash, noteSize, work)
+  }
+
+  newBlock(raw: RawBlock, noteSize?: number | null, work?: bigint): Block {
+    const header = this.newBlockHeader(raw.header, noteSize, work)
+    return new Block(header, raw.transactions)
+  }
+}
+
+function serializeHeaderBlake3(header: RawBlockHeader): Buffer {
+  const bw = bufio.write(180)
+  bw.writeBigU64BE(header.randomness)
+  bw.writeU32(header.sequence)
+  bw.writeHash(header.previousBlockHash)
+  bw.writeHash(header.noteCommitment)
+  bw.writeHash(header.transactionCommitment)
+  bw.writeBigU256BE(header.target.asBigInt())
+  bw.writeU64(header.timestamp.getTime())
+  bw.writeBytes(header.graffiti)
+
+  return bw.render()
 }

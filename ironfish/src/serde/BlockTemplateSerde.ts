@@ -3,10 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Block } from '../primitives/block'
-import { BlockHeader } from '../primitives/blockheader'
 import { NoteEncryptedHashSerde } from '../primitives/noteEncrypted'
 import { Target } from '../primitives/target'
 import { Transaction } from '../primitives/transaction'
+import { Strategy } from '../strategy'
 import { BigIntUtils } from '../utils'
 
 export type SerializedBlockTemplate = {
@@ -54,10 +54,10 @@ export class BlockTemplateSerde {
     }
   }
 
-  static deserialize(blockTemplate: SerializedBlockTemplate): Block {
+  static deserialize(blockTemplate: SerializedBlockTemplate, strategy: Strategy): Block {
     const noteHasher = new NoteEncryptedHashSerde()
 
-    const header = new BlockHeader({
+    const header = strategy.newBlockHeader({
       sequence: blockTemplate.header.sequence,
       previousBlockHash: Buffer.from(blockTemplate.header.previousBlockHash, 'hex'),
       noteCommitment: noteHasher.deserialize(

@@ -9,7 +9,7 @@ import {
 } from '@ironfish/rust-nodejs'
 import { Logger } from '../logger'
 import { FullNode } from '../node'
-import { Block, BlockHeader } from '../primitives'
+import { Block } from '../primitives'
 import { transactionCommitment } from '../primitives/blockheader'
 import { Transaction, TransactionVersion } from '../primitives/transaction'
 import { CurrencyUtils } from '../utils'
@@ -139,7 +139,7 @@ export async function addGenesisTransaction(
     graffiti: genesisBlock.header.graffiti,
   }
 
-  const newGenesisHeader = new BlockHeader(rawHeader, noteSize)
+  const newGenesisHeader = node.chain.strategy.newBlockHeader(rawHeader, noteSize)
 
   genesisBlock.header = newGenesisHeader
 

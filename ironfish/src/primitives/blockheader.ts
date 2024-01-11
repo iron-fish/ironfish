@@ -6,6 +6,7 @@ import { blake3 } from '@napi-rs/blake-hash'
 import bufio from 'bufio'
 import { Assert } from '../assert'
 import { BlockHashSerdeInstance, GraffitiSerdeInstance } from '../serde'
+import { Strategy } from '../strategy'
 import { BigIntUtils } from '../utils/bigint'
 import { NoteEncryptedHash, SerializedNoteEncryptedHash } from './noteEncrypted'
 import { Target } from './target'
@@ -167,7 +168,7 @@ export class BlockHeader {
 
   public readonly hash: Buffer
 
-  constructor(raw: RawBlockHeader, noteSize?: number | null, work = BigInt(0), hash?: Buffer) {
+  constructor(raw: RawBlockHeader, hash: Buffer, noteSize?: number | null, work = BigInt(0)) {
     this.sequence = raw.sequence
     this.previousBlockHash = raw.previousBlockHash
     this.noteCommitment = raw.noteCommitment
@@ -178,17 +179,7 @@ export class BlockHeader {
     this.graffiti = raw.graffiti
     this.noteSize = noteSize ?? null
     this.work = work
-    this.hash = hash || this.computeHash()
-  }
-
-  /**
-   * Hash all the values in the block header to get a commitment to the entire
-   * header and the global trees it models.
-   */
-  computeHash(): BlockHash {
-    const header = this.serialize()
-
-    return hashBlockHeader(header)
+    this.hash = hash
   }
 
   /**
@@ -282,8 +273,8 @@ export class BlockHeaderSerde {
     }
   }
 
-  static deserialize(data: SerializedBlockHeader): BlockHeader {
-    return new BlockHeader(
+  static deserialize(data: SerializedBlockHeader, strategy: Strategy): BlockHeader {
+    return strategy.newBlockHeader(
       {
         sequence: Number(data.sequence),
         previousBlockHash: Buffer.from(

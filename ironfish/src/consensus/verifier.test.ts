@@ -199,7 +199,7 @@ describe('Verifier', () => {
       const { block } = await useBlockWithTx(nodeTest.node)
 
       const reorderedTransactions = [block.transactions[1], block.transactions[0]]
-      const invalidBlock = Block.fromRaw({
+      const invalidBlock = nodeTest.strategy.newBlock({
         header: {
           ...block.header,
           transactionCommitment: transactionCommitment(reorderedTransactions),
@@ -219,7 +219,7 @@ describe('Verifier', () => {
       const minersFee = await useMinersTxFixture(nodeTest.node, account, undefined, 0)
 
       const reorderedTransactions = [block.transactions[0], minersFee]
-      const invalidBlock = Block.fromRaw({
+      const invalidBlock = nodeTest.strategy.newBlock({
         header: {
           ...block.header,
           transactionCommitment: transactionCommitment(reorderedTransactions),
@@ -272,7 +272,7 @@ describe('Verifier', () => {
         },
       )
 
-      const invalidMinersBlock = Block.fromRaw({
+      const invalidMinersBlock = nodeTest.strategy.newBlock({
         header: {
           ...minersBlock.header,
           transactionCommitment: transactionCommitment([invalidMinersTransaction]),
@@ -289,7 +289,7 @@ describe('Verifier', () => {
     it('rejects a block with no transactions', async () => {
       const block = await useMinerBlockFixture(nodeTest.node.chain)
 
-      const invalidBlock = Block.fromRaw({
+      const invalidBlock = nodeTest.strategy.newBlock({
         header: {
           ...block.header,
           transactionCommitment: transactionCommitment([]),
@@ -316,7 +316,7 @@ describe('Verifier', () => {
 
       const invalidTransactions = [...block.transactions, extraTransaction]
 
-      const invalidBlock = Block.fromRaw({
+      const invalidBlock = nodeTest.strategy.newBlock({
         header: {
           ...block.header,
           transactionCommitment: transactionCommitment(invalidTransactions),
@@ -524,9 +524,9 @@ describe('Verifier', () => {
           ...header,
           graffiti: Buffer.alloc(31),
         },
+        header.hash,
         header.noteSize,
         header.work,
-        header.hash,
       )
 
       expect(nodeTest.verifier.verifyBlockHeader(invalidHeader31Byte)).toMatchObject({
@@ -539,9 +539,9 @@ describe('Verifier', () => {
           ...header,
           graffiti: Buffer.alloc(33),
         },
+        header.hash,
         header.noteSize,
         header.work,
-        header.hash,
       )
 
       expect(nodeTest.verifier.verifyBlockHeader(invalidHeader33Byte)).toMatchObject({
@@ -639,7 +639,7 @@ describe('Verifier', () => {
       nodeTest.verifier.enableVerifyTarget = true
       const block = await useMinerBlockFixture(nodeTest.chain)
 
-      const invalidHeader = new BlockHeader({
+      const invalidHeader = nodeTest.strategy.newBlockHeader({
         ...block.header,
         target: Target.minTarget(),
       })
@@ -655,7 +655,7 @@ describe('Verifier', () => {
     it('Is invalid when the sequence is wrong', async () => {
       const block = await useMinerBlockFixture(nodeTest.chain)
 
-      const invalidHeader = new BlockHeader({
+      const invalidHeader = nodeTest.strategy.newBlockHeader({
         ...block.header,
         sequence: 9999,
       })
@@ -692,7 +692,7 @@ describe('Verifier', () => {
       })
 
       it('fails validation when timestamp is too low', async () => {
-        const invalidHeader = new BlockHeader({
+        const invalidHeader = nodeTest.strategy.newBlockHeader({
           ...header,
           timestamp: new Date(
             prevHeader.timestamp.getTime() -
@@ -713,7 +713,7 @@ describe('Verifier', () => {
           .spyOn(global.Date, 'now')
           .mockImplementationOnce(() => prevHeader.timestamp.getTime() + 40 * 1000)
 
-        const invalidHeader = new BlockHeader({
+        const invalidHeader = nodeTest.strategy.newBlockHeader({
           ...header,
           timestamp: new Date(
             prevHeader.timestamp.getTime() +
@@ -734,7 +734,7 @@ describe('Verifier', () => {
           .spyOn(global.Date, 'now')
           .mockImplementationOnce(() => prevHeader.timestamp.getTime() + 1 * 1000)
 
-        const invalidHeader = new BlockHeader({
+        const invalidHeader = nodeTest.strategy.newBlockHeader({
           ...header,
           timestamp: new Date(prevHeader.timestamp.getTime() - 1 * 1000),
         })
@@ -751,7 +751,7 @@ describe('Verifier', () => {
           .spyOn(global.Date, 'now')
           .mockImplementationOnce(() => prevHeader.timestamp.getTime() + 1 * 1000)
 
-        const invalidHeader = new BlockHeader({
+        const invalidHeader = nodeTest.strategy.newBlockHeader({
           ...header,
           timestamp: new Date(prevHeader.timestamp.getTime() + 1 * 1000),
         })
@@ -792,7 +792,7 @@ describe('Verifier', () => {
       })
 
       it('fails validation when timestamp is too low', async () => {
-        const invalidHeader = new BlockHeader({
+        const invalidHeader = nodeTest.strategy.newBlockHeader({
           ...header,
           timestamp: new Date(
             prevHeader.timestamp.getTime() -
@@ -813,7 +813,7 @@ describe('Verifier', () => {
           .spyOn(global.Date, 'now')
           .mockImplementationOnce(() => prevHeader.timestamp.getTime() + 40 * 1000)
 
-        const invalidHeader = new BlockHeader({
+        const invalidHeader = nodeTest.strategy.newBlockHeader({
           ...header,
           timestamp: new Date(
             prevHeader.timestamp.getTime() +
@@ -830,7 +830,7 @@ describe('Verifier', () => {
       })
 
       it('fails validation when timestamp is smaller than previous block', async () => {
-        const invalidHeader = new BlockHeader({
+        const invalidHeader = nodeTest.strategy.newBlockHeader({
           ...header,
           timestamp: new Date(prevHeader.timestamp.getTime() - 1 * 1000),
         })
@@ -844,7 +844,7 @@ describe('Verifier', () => {
       })
 
       it('fails validation when timestamp is same as previous block', async () => {
-        const invalidHeader = new BlockHeader({
+        const invalidHeader = nodeTest.strategy.newBlockHeader({
           ...header,
           timestamp: new Date(prevHeader.timestamp.getTime()),
         })
@@ -862,7 +862,7 @@ describe('Verifier', () => {
           .spyOn(global.Date, 'now')
           .mockImplementationOnce(() => prevHeader.timestamp.getTime() + 1 * 1000)
 
-        const invalidHeader = new BlockHeader({
+        const invalidHeader = nodeTest.strategy.newBlockHeader({
           ...header,
           timestamp: new Date(prevHeader.timestamp.getTime() + 1 * 1000),
         })
@@ -895,15 +895,17 @@ describe('Verifier', () => {
       const newBlock = await useMinerBlockFixture(chain)
       await expect(chain).toAddBlock(newBlock)
 
-      const invalidNewBlock = Block.fromRaw({
-        header: {
-          ...newBlock.header,
-          noteCommitment: Buffer.alloc(newBlock.header.noteCommitment.length, 'NOOO'),
+      const invalidNewBlock = nodeTest.strategy.newBlock(
+        {
+          header: {
+            ...newBlock.header,
+            noteCommitment: Buffer.alloc(newBlock.header.noteCommitment.length, 'NOOO'),
+          },
+          transactions: newBlock.transactions,
         },
-        transactions: newBlock.transactions,
-      })
-      invalidNewBlock.header.noteSize = newBlock.header.noteSize
-      invalidNewBlock.header.work = newBlock.header.work
+        newBlock.header.noteSize,
+        newBlock.header.work,
+      )
 
       await expect(
         nodeTest.verifier.verifyConnectedBlock(invalidNewBlock),
