@@ -7,7 +7,7 @@ use crate::{errors::IronfishError, keys::EphemeralKeyPair, serializing::read_poi
 /// Implement a merkle note to store all the values that need to go into a merkle tree.
 /// A tree containing these values can serve as a snapshot of the entire chain.
 use super::{
-    keys::{shared_secret, IncomingViewKey, OutgoingViewKey, PublicAddress, SaplingKey},
+    keys::{shared_secret, IncomingViewKey, OutgoingViewKey, PublicAddress},
     note::{Note, ENCRYPTED_NOTE_SIZE},
     serializing::{aead, read_scalar},
     witness::{WitnessNode, WitnessTrait},
@@ -73,7 +73,7 @@ impl PartialEq for MerkleNote {
 
 impl MerkleNote {
     pub fn new(
-        spender_key: &SaplingKey,
+        outgoing_view_key: &OutgoingViewKey,
         note: &Note,
         value_commitment: &ValueCommitment,
         diffie_hellman_keys: &EphemeralKeyPair,
@@ -86,7 +86,7 @@ impl MerkleNote {
         key_bytes[32..].clone_from_slice(secret_key.to_repr().as_ref());
 
         let encryption_key = calculate_key_for_encryption_keys(
-            spender_key.outgoing_view_key(),
+            outgoing_view_key,
             &value_commitment.commitment().into(),
             &note.commitment_point(),
             public_key,
@@ -298,8 +298,12 @@ mod test {
 
         let value_commitment = ValueCommitment::new(note.value, note.asset_generator());
 
-        let merkle_note =
-            MerkleNote::new(&spender_key, &note, &value_commitment, &diffie_hellman_keys);
+        let merkle_note = MerkleNote::new(
+            spender_key.outgoing_view_key(),
+            &note,
+            &value_commitment,
+            &diffie_hellman_keys,
+        );
 
         assert_ne!(
             &merkle_note.note_encryption_keys,
@@ -348,8 +352,12 @@ mod test {
 
         let value_commitment = ValueCommitment::new(note.value, note.asset_generator());
 
-        let merkle_note =
-            MerkleNote::new(&spender_key, &note, &value_commitment, &diffie_hellman_keys);
+        let merkle_note = MerkleNote::new(
+            spender_key.outgoing_view_key(),
+            &note,
+            &value_commitment,
+            &diffie_hellman_keys,
+        );
         merkle_note
             .decrypt_note_for_owner(receiver_key.incoming_view_key())
             .expect("should be able to decrypt note for owner");
@@ -381,8 +389,12 @@ mod test {
 
         let value_commitment = ValueCommitment::new(note.value, note.asset_generator());
 
-        let merkle_note =
-            MerkleNote::new(&spender_key, &note, &value_commitment, &diffie_hellman_keys);
+        let merkle_note = MerkleNote::new(
+            spender_key.outgoing_view_key(),
+            &note,
+            &value_commitment,
+            &diffie_hellman_keys,
+        );
 
         assert!(merkle_note
             .decrypt_note_for_owner(third_party_key.incoming_view_key())
@@ -406,8 +418,12 @@ mod test {
 
         let value_commitment = ValueCommitment::new(note.value, note.asset_generator());
 
-        let mut merkle_note =
-            MerkleNote::new(&spender_key, &note, &value_commitment, &diffie_hellman_keys);
+        let mut merkle_note = MerkleNote::new(
+            spender_key.outgoing_view_key(),
+            &note,
+            &value_commitment,
+            &diffie_hellman_keys,
+        );
         merkle_note
             .decrypt_note_for_owner(spender_key.incoming_view_key())
             .expect("should be able to decrypt note for owner");

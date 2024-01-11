@@ -305,7 +305,8 @@ impl ProposedTransaction {
         let mut output_descriptions = Vec::with_capacity(self.outputs.len());
         for output in &self.outputs {
             output_descriptions.push(output.build(
-                &self.spender_key,
+                &self.spender_key.sapling_proof_generation_key(),
+                self.spender_key.outgoing_view_key(),
                 &self.public_key_randomness,
                 &randomized_public_key,
             )?);
@@ -314,7 +315,8 @@ impl ProposedTransaction {
         let mut unsigned_mints = Vec::with_capacity(self.mints.len());
         for mint in &self.mints {
             unsigned_mints.push(mint.build(
-                &self.spender_key,
+                &self.spender_key.sapling_proof_generation_key(),
+                &self.spender_key.public_address(),
                 &self.public_key_randomness,
                 &randomized_public_key,
             )?);
