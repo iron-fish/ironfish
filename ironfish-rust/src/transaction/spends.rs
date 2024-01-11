@@ -194,7 +194,10 @@ impl UnsignedSpendDescription {
         Ok(self.description)
     }
 
-    pub fn add_signature(mut self, signature: Signature) -> Result<SpendDescription, IronfishError> {
+    pub fn add_signature(
+        mut self,
+        signature: Signature,
+    ) -> Result<SpendDescription, IronfishError> {
         self.description.authorizing_signature = signature;
         Ok(self.description)
     }
