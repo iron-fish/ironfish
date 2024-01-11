@@ -147,9 +147,8 @@ impl UnsignedMintDescription {
         Ok(self.description)
     }
 
-    pub fn add_signature(mut self, signature: Signature) -> Result<MintDescription, IronfishError> {
+    pub fn add_signature(mut self, signature: Signature) {
         self.description.authorizing_signature = signature;
-        Ok(self.description)
     }
 
     pub fn read<R: io::Read>(
@@ -680,8 +679,7 @@ mod test {
             .build(&sender_key, &public_key_randomness, &randomized_public_key)
             .expect("should be able to build proof");
         unsigned_spend_description
-            .add_signature(signature)
-            .expect("should be able to add signature");
-        assert!(public_key.verify(&msg, &signature, *SPENDING_KEY_GENERATOR) == true)
+            .add_signature(signature);
+        assert!(public_key.verify(&msg, &signature, *SPENDING_KEY_GENERATOR))
     }
 }
