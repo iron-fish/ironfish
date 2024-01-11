@@ -587,7 +587,6 @@ mod test {
 
     #[test]
     fn test_sign_frost() {
-
         let key = SaplingKey::generate_key();
         let public_address = key.public_address();
         let sender_key = SaplingKey::generate_key();
@@ -620,8 +619,9 @@ mod test {
                 &randomized_public_key,
             )
             .expect("should be able to build proof");
-        unsigned_spend_description.sign_frost(signature).expect("should be able to sign");
+        unsigned_spend_description
+            .sign_frost(signature)
+            .expect("should be able to sign");
         assert!(public_key.verify(&msg, &signature, *SPENDING_KEY_GENERATOR) == true)
     }
-        
-}   
+}
