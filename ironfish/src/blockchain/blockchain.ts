@@ -200,7 +200,7 @@ export class Blockchain {
   }
 
   private async seed() {
-    const genesis = BlockSerde.deserialize(this.seedGenesisBlock)
+    const genesis = BlockSerde.deserialize(this.seedGenesisBlock, this.strategy)
 
     const result = await this.addBlock(genesis)
     Assert.isTrue(result.isAdded, `Could not seed genesis: ${result.reason || 'unknown'}`)
@@ -230,7 +230,7 @@ export class Blockchain {
     if (genesisHeader) {
       Assert.isTrue(
         genesisHeader.hash.equals(
-          BlockHeaderSerde.deserialize(this.seedGenesisBlock.header).hash,
+          BlockHeaderSerde.deserialize(this.seedGenesisBlock.header, this.strategy).hash,
         ),
         'Genesis block in network definition does not match existing chain genesis block',
       )
@@ -948,7 +948,7 @@ export class Blockchain {
         graffiti,
       }
 
-      const header = new BlockHeader(rawHeader, noteSize, BigInt(0))
+      const header = this.strategy.newBlockHeader(rawHeader, noteSize, BigInt(0))
 
       const block = new Block(header, transactions)
       if (verifyBlock && !previousBlockHash.equals(GENESIS_BLOCK_PREVIOUS)) {

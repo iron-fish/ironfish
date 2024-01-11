@@ -614,7 +614,9 @@ export class PeerNetwork {
       throw new Error(`Invalid GetBlockHeadersResponse: ${message.displayType()}`)
     }
 
-    const headers = response.headers.map((rawHeader) => new BlockHeader(rawHeader))
+    const headers = response.headers.map((rawHeader) =>
+      this.chain.strategy.newBlockHeader(rawHeader),
+    )
 
     return { headers, time: BenchUtils.end(begin) }
   }
@@ -637,7 +639,7 @@ export class PeerNetwork {
     const exceededSoftLimit = response.getSize() >= SOFT_MAX_MESSAGE_SIZE
     const isMessageFull = exceededSoftLimit || response.blocks.length >= limit
 
-    const blocks = response.blocks.map((rawBlock) => Block.fromRaw(rawBlock))
+    const blocks = response.blocks.map((rawBlock) => this.chain.strategy.newBlock(rawBlock))
 
     return { blocks, time: BenchUtils.end(begin), isMessageFull }
   }
@@ -787,7 +789,7 @@ export class PeerNetwork {
       return
     }
 
-    const header = new BlockHeader(compactBlock.header)
+    const header = this.chain.strategy.newBlockHeader(compactBlock.header)
 
     // mark the block as received in the block fetcher and decide whether to continue
     // to validate this compact block or not
@@ -1173,7 +1175,7 @@ export class PeerNetwork {
       return
     }
 
-    const block = Block.fromRaw(rawBlock)
+    const block = this.chain.strategy.newBlock(rawBlock)
 
     if (await this.alreadyHaveBlock(block.header)) {
       return

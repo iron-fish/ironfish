@@ -57,7 +57,7 @@ export async function useBlockFixture(
       return BlockSerde.serialize(block)
     },
     deserialize: (serialized: SerializedBlock): Block => {
-      return BlockSerde.deserialize(serialized)
+      return BlockSerde.deserialize(serialized, chain.strategy)
     },
   })
 }

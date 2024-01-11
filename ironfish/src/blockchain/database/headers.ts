@@ -63,7 +63,7 @@ export class HeaderEncoding implements IDatabaseEncoding<HeaderValue> {
       timestamp: new Date(timestamp),
       graffiti,
     }
-    const header = new BlockHeader(rawHeader, noteSize, work, hash)
+    const header = new BlockHeader(rawHeader, hash, noteSize, work)
 
     return { header }
   }

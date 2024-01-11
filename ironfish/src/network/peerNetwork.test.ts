@@ -11,7 +11,7 @@ import net from 'net'
 import ws from 'ws'
 import { Assert } from '../assert'
 import { VerificationResultReason } from '../consensus/verifier'
-import { Block, BlockHeader, Transaction } from '../primitives'
+import { Block, Transaction } from '../primitives'
 import { CompactBlock } from '../primitives/block'
 import {
   useAccountFixture,
@@ -763,7 +763,7 @@ describe('PeerNetwork', () => {
             expect(sendSpy).not.toHaveBeenCalled()
           }
 
-          const invalidHeader = new BlockHeader(invalidBlock.header)
+          const invalidHeader = nodeTest.strategy.newBlockHeader(invalidBlock.header)
           await expect(chain.hasBlock(invalidHeader.hash)).resolves.toBe(false)
           expect(chain.isInvalid(invalidHeader)).toBe(reason)
         }

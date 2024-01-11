@@ -170,17 +170,18 @@ export async function makeGenesisBlock(
     GraffitiUtils.fromString('genesis'),
   )
 
-  const genesisBlock = Block.fromRaw({
-    header: {
-      ...block.header,
-      target: info.target,
-      timestamp: new Date(info.timestamp),
+  const genesisBlock = chain.strategy.newBlock(
+    {
+      header: {
+        ...block.header,
+        target: info.target,
+        timestamp: new Date(info.timestamp),
+      },
+      transactions: block.transactions,
     },
-    transactions: block.transactions,
-  })
-
-  genesisBlock.header.noteSize = block.header.noteSize
-  genesisBlock.header.work = block.header.work
+    block.header.noteSize,
+    block.header.work,
+  )
 
   logger.info('Block complete.')
   return { block: genesisBlock }

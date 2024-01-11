@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Block, BlockHeader, Target } from '../../primitives'
+import { Block, Target } from '../../primitives'
 import { transactionCommitment } from '../../primitives/blockheader'
 import {
   createNodeTest,
@@ -36,7 +36,7 @@ describe('GetBlocksResponse', () => {
     const message = new GetBlocksResponse(
       [
         new Block(
-          new BlockHeader({
+          nodeTest.strategy.newBlockHeader({
             sequence: 2,
             previousBlockHash: Buffer.alloc(32, 2),
             noteCommitment: Buffer.alloc(32, 4),
@@ -49,7 +49,7 @@ describe('GetBlocksResponse', () => {
           [transactionA, transactionB],
         ),
         new Block(
-          new BlockHeader({
+          nodeTest.strategy.newBlockHeader({
             sequence: 2,
             previousBlockHash: Buffer.alloc(32, 1),
             noteCommitment: Buffer.alloc(32, 5),

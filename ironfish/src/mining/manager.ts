@@ -198,7 +198,7 @@ export class MiningManager {
       this.metrics.mining_newBlockTemplate.add(BenchUtils.end(connectedAt))
       this.streamBlockTemplate(currentBlock, template)
 
-      const block = BlockTemplateSerde.deserialize(template)
+      const block = BlockTemplateSerde.deserialize(template, this.chain.strategy)
       const verification = await this.chain.verifier.verifyBlock(block, {
         verifyTarget: false,
       })
@@ -366,7 +366,7 @@ export class MiningManager {
   }
 
   async submitBlockTemplate(blockTemplate: SerializedBlockTemplate): Promise<MINED_RESULT> {
-    const block = BlockTemplateSerde.deserialize(blockTemplate)
+    const block = BlockTemplateSerde.deserialize(blockTemplate, this.chain.strategy)
 
     const blockDisplay = `${block.header.hash.toString('hex')} (${block.header.sequence})`
     if (!block.header.previousBlockHash.equals(this.node.chain.head.hash)) {
