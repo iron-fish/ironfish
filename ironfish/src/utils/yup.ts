@@ -103,4 +103,20 @@ export class YupUtils {
       throw e
     }
   }
+
+  static union<
+    // eslint-disable-next-line @typescript-eslint/ban-types
+    T extends object | null | undefined = object | undefined,
+    // eslint-disable-next-line @typescript-eslint/ban-types
+    U extends object | null | undefined = object | undefined,
+  >(schema: yup.ObjectSchema<T>, append: yup.ObjectSchema<U>): yup.ObjectSchema<T & U> {
+    const result = yup
+      .object({
+        ...schema.fields,
+        ...append.fields,
+      })
+      .defined()
+
+    return result as yup.ObjectSchema<T & U>
+  }
 }

@@ -382,18 +382,30 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
   })
   .defined()
 
-export class Config extends KeyStore<ConfigOptions> {
+export class Config<
+  TExtend extends Record<string, unknown> = Record<string, unknown>,
+> extends KeyStore<ConfigOptions & TExtend> {
   readonly chainDatabasePath: string
   readonly walletDatabasePath: string
   readonly tempDir: string
 
-  constructor(files: FileSystem, dataDir: string, configName?: string) {
+  constructor(
+    files: FileSystem,
+    dataDir: string,
+    extend: TExtend,
+    configName?: string,
+    extendSchema?: yup.ObjectSchema<Partial<TExtend>>,
+  ) {
+    const schema = (
+      extendSchema ? YupUtils.union(ConfigOptionsSchema, extendSchema) : ConfigOptionsSchema
+    ) as yup.ObjectSchema<Partial<ConfigOptions & TExtend>>
+
     super(
       files,
       configName || DEFAULT_CONFIG_NAME,
-      Config.GetDefaults(files, dataDir),
+      { ...Config.GetDefaults(files, dataDir), ...extend },
       dataDir,
-      ConfigOptionsSchema,
+      schema,
     )
 
     this.chainDatabasePath = this.files.join(this.storage.dataDir, 'databases', 'chain')
