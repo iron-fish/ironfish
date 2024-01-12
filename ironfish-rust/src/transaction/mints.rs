@@ -693,7 +693,12 @@ mod test {
         let msg = [0u8; 32];
         let signature = private_key.sign(&msg, &mut thread_rng(), *SPENDING_KEY_GENERATOR);
         let unsigned_spend_description = builder
-            .build(&key, &public_key_randomness, &randomized_public_key)
+            .build(
+                &key.sapling_proof_generation_key(),
+                &key.public_address(),
+                &public_key_randomness,
+                &randomized_public_key,
+            )
             .expect("should be able to build proof");
         unsigned_spend_description.add_signature(signature);
         assert!(public_key.verify(&msg, &signature, *SPENDING_KEY_GENERATOR))
