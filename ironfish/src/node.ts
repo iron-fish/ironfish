@@ -5,6 +5,7 @@ import { BoxKeyPair } from '@ironfish/rust-nodejs'
 import { v4 as uuid } from 'uuid'
 import { AssetsVerifier } from './assets'
 import { Blockchain } from './blockchain'
+import { BlockHasher } from './blockHasher'
 import { TestnetConsensus } from './consensus'
 import {
   Config,
@@ -247,9 +248,11 @@ export class FullNode {
     }
 
     const consensus = new TestnetConsensus(networkDefinition.consensus)
+    // TODO: config value for fullCache
+    const blockHasher = new BlockHasher({ consensus, fullCache: false })
 
     strategyClass = strategyClass || Strategy
-    const strategy = new strategyClass({ workerPool, consensus })
+    const strategy = new strategyClass({ workerPool, consensus, blockHasher })
 
     const chain = new Blockchain({
       location: config.chainDatabasePath,

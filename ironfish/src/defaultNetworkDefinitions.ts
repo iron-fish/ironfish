@@ -37,7 +37,7 @@ export const TESTNET = `{
       "maxBlockSizeBytes": 524288,
       "minFee": 1,
       "enableAssetOwnership": 9999999,
-      "enforceSequentialBlockTime": "never".
+      "enforceSequentialBlockTime": "never",
       "enableFishHash": "never"
   }
 }`

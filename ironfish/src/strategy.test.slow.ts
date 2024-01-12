@@ -12,6 +12,7 @@ import {
   TransactionPosted as NativeTransactionPosted,
 } from '@ironfish/rust-nodejs'
 import { Assert } from './assert'
+import { BlockHasher } from './blockHasher'
 import { ConsensusParameters, TestnetConsensus } from './consensus'
 import { MerkleTree } from './merkletree'
 import { LeafEncoding } from './merkletree/database/leaves'
@@ -188,12 +189,16 @@ describe('Demonstrate the Sapling API', () => {
   })
 
   describe('Serializes and deserializes transactions', () => {
+    const consensus = new TestnetConsensus(consensusParameters)
+    const blockHasher = new BlockHasher({ consensus, fullCache: false })
+    const strategy = new Strategy({
+      workerPool,
+      consensus,
+      blockHasher,
+    })
+
     it('Does not hold a posted transaction if no references are taken', async () => {
       // Generate a miner's fee transaction
-      const strategy = new Strategy({
-        workerPool,
-        consensus: new TestnetConsensus(consensusParameters),
-      })
       const minersFee = await strategy.createMinersFee(0n, 0, generateKey().spendingKey)
 
       expect(minersFee['transactionPosted']).toBeNull()
@@ -203,11 +208,6 @@ describe('Demonstrate the Sapling API', () => {
 
     it('Holds a posted transaction if a reference is taken', async () => {
       // Generate a miner's fee transaction
-      const strategy = new Strategy({
-        workerPool,
-        consensus: new TestnetConsensus(consensusParameters),
-      })
-
       const minersFee = await strategy.createMinersFee(0n, 0, generateKey().spendingKey)
 
       await minersFee.withReference(async () => {
@@ -227,10 +227,6 @@ describe('Demonstrate the Sapling API', () => {
     it('Does not hold a note if no references are taken', async () => {
       // Generate a miner's fee transaction
       const key = generateKey()
-      const strategy = new Strategy({
-        workerPool,
-        consensus: new TestnetConsensus(consensusParameters),
-      })
       const minersFee = await strategy.createMinersFee(0n, 0, key.spendingKey)
 
       expect(minersFee['transactionPosted']).toBeNull()
@@ -256,24 +252,30 @@ describe('Demonstrate the Sapling API', () => {
     })
 
     it('Creates transactions with the correct version based on the sequence', async () => {
-      const modifiedParams = consensusParameters
-      modifiedParams.enableAssetOwnership = 1234
+      const modifiedParams = {
+        ...consensusParameters,
+        enableAssetOwnership: 1234,
+      }
+
       const key = generateKey()
-      const strategy = new Strategy({
+      const consensus = new TestnetConsensus(modifiedParams)
+      const blockHasher = new BlockHasher({ consensus, fullCache: false })
+      const modifiedStrategy = new Strategy({
         workerPool,
-        consensus: new TestnetConsensus(modifiedParams),
+        consensus,
+        blockHasher,
       })
 
       Assert.isTrue(typeof consensusParameters.enableAssetOwnership === 'number')
       const enableAssetOwnershipSequence = Number(consensusParameters.enableAssetOwnership)
-      const minersFee1 = await strategy.createMinersFee(
+      const minersFee1 = await modifiedStrategy.createMinersFee(
         0n,
         enableAssetOwnershipSequence - 1,
         key.spendingKey,
       )
       expect(minersFee1.version()).toEqual(TransactionVersion.V1)
 
-      const minersFee2 = await strategy.createMinersFee(
+      const minersFee2 = await modifiedStrategy.createMinersFee(
         0n,
         enableAssetOwnershipSequence,
         key.spendingKey,
