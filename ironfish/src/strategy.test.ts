@@ -5,6 +5,7 @@
 import { BlockHasher } from './blockHasher'
 import { Consensus, ConsensusParameters } from './consensus'
 import { Strategy } from './strategy'
+import { FISH_HASH_CONTEXT } from './testUtilities'
 import { WorkerPool } from './workerPool'
 
 describe('Miners reward', () => {
@@ -24,7 +25,7 @@ describe('Miners reward', () => {
 
   beforeAll(() => {
     const consensus = new Consensus(consensusParameters)
-    const blockHasher = new BlockHasher({ consensus, fullContext: false })
+    const blockHasher = new BlockHasher({ consensus, context: FISH_HASH_CONTEXT })
     strategy = new Strategy({
       workerPool: new WorkerPool(),
       consensus,

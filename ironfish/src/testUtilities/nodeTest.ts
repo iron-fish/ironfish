@@ -23,7 +23,7 @@ export type NodeTestOptions =
   | undefined
 
 // Create global FishHash context for tests
-const FISH_HASH_CONTEXT = new FishHashContext(false)
+export const FISH_HASH_CONTEXT = new FishHashContext(false)
 
 /**
  * Used as an easy wrapper for testing the node, and blockchain. Use

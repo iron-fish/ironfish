@@ -24,6 +24,7 @@ import { NoteEncrypted, NoteEncryptedHash } from './primitives/noteEncrypted'
 import { TransactionVersion } from './primitives/transaction'
 import { BUFFER_ENCODING, IDatabase } from './storage'
 import { Strategy } from './strategy'
+import { FISH_HASH_CONTEXT } from './testUtilities'
 import { makeDb, makeDbName } from './testUtilities/helpers/storage'
 import { WorkerPool } from './workerPool'
 
@@ -190,7 +191,7 @@ describe('Demonstrate the Sapling API', () => {
 
   describe('Serializes and deserializes transactions', () => {
     const consensus = new TestnetConsensus(consensusParameters)
-    const blockHasher = new BlockHasher({ consensus, fullContext: false })
+    const blockHasher = new BlockHasher({ consensus, context: FISH_HASH_CONTEXT })
     const strategy = new Strategy({
       workerPool,
       consensus,
@@ -259,7 +260,7 @@ describe('Demonstrate the Sapling API', () => {
 
       const key = generateKey()
       const consensus = new TestnetConsensus(modifiedParams)
-      const blockHasher = new BlockHasher({ consensus, fullContext: false })
+      const blockHasher = new BlockHasher({ consensus, context: FISH_HASH_CONTEXT })
       const modifiedStrategy = new Strategy({
         workerPool,
         consensus,
