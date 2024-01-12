@@ -256,10 +256,10 @@ describe('Verifier', () => {
             Asset.nativeId(),
             owner,
           )
-          const transaction = new NativeTransaction(key.spendingKey, LATEST_TRANSACTION_VERSION)
+          const transaction = new NativeTransaction(LATEST_TRANSACTION_VERSION)
           transaction.output(minerNote1)
           transaction.output(minerNote2)
-          return new Transaction(transaction._postMinersFeeUnchecked())
+          return new Transaction(transaction._postMinersFeeUnchecked(key.spendingKey))
         },
         {
           process: async (): Promise<void> => {},

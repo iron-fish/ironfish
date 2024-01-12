@@ -77,12 +77,11 @@ export async function makeGenesisBlock(
     minersFeeKey.publicAddress,
   )
 
-  const minersFeeTransaction = new NativeTransaction(
-    minersFeeKey.spendingKey,
-    TransactionVersion.V2,
-  )
+  const minersFeeTransaction = new NativeTransaction(TransactionVersion.V2)
   minersFeeTransaction.output(note)
-  const postedMinersFeeTransaction = new Transaction(minersFeeTransaction.post_miners_fee())
+  const postedMinersFeeTransaction = new Transaction(
+    minersFeeTransaction.post_miners_fee(minersFeeKey.spendingKey),
+  )
 
   /**
    *
@@ -91,16 +90,15 @@ export async function makeGenesisBlock(
    *
    */
   logger.info(`Generating an initial transaction with ${allocationSumInIron} coins...`)
-  const initialTransaction = new NativeTransaction(
-    genesisKey.spendingKey,
-    TransactionVersion.V2,
-  )
+  const initialTransaction = new NativeTransaction(TransactionVersion.V2)
 
   logger.info('  Generating the output...')
   initialTransaction.output(genesisNote)
 
   logger.info('  Posting the initial transaction...')
-  const postedInitialTransaction = new Transaction(initialTransaction.post_miners_fee())
+  const postedInitialTransaction = new Transaction(
+    initialTransaction.post_miners_fee(genesisKey.spendingKey),
+  )
   transactionList.push(postedInitialTransaction)
 
   // Temporarily add the miner's fee note and the note from the transaction to our merkle tree
@@ -130,7 +128,7 @@ export async function makeGenesisBlock(
    *
    */
   logger.info('Generating a transaction for distributing allocations...')
-  const transaction = new NativeTransaction(genesisKey.spendingKey, TransactionVersion.V2)
+  const transaction = new NativeTransaction(TransactionVersion.V2)
   logger.info(`  Generating a spend for ${allocationSumInIron} coins...`)
   transaction.spend(genesisNote, witness)
 
@@ -151,7 +149,9 @@ export async function makeGenesisBlock(
   }
 
   logger.info('  Posting the transaction...')
-  const postedTransaction = new Transaction(transaction.post(undefined, BigInt(0)))
+  const postedTransaction = new Transaction(
+    transaction.post(genesisKey.spendingKey, undefined, BigInt(0)),
+  )
   transactionList.push(postedTransaction)
 
   /**

@@ -167,10 +167,9 @@ pub struct NativeTransaction {
 #[napi]
 impl NativeTransaction {
     #[napi(constructor)]
-    pub fn new(spender_hex_key: String, version: u8) -> Result<Self> {
-        let spender_key = SaplingKey::from_hex(&spender_hex_key).map_err(to_napi_err)?;
+    pub fn new(version: u8) -> Result<Self> {
         let tx_version = version.try_into().map_err(to_napi_err)?;
-        let transaction = ProposedTransaction::new(spender_key, tx_version);
+        let transaction = ProposedTransaction::new(tx_version);
 
         Ok(NativeTransaction { transaction })
     }
@@ -245,8 +244,12 @@ impl NativeTransaction {
     /// a miner would not accept such a transaction unless it was explicitly set
     /// as the miners fee.
     #[napi(js_name = "post_miners_fee")]
-    pub fn post_miners_fee(&mut self) -> Result<Buffer> {
-        let transaction = self.transaction.post_miners_fee().map_err(to_napi_err)?;
+    pub fn post_miners_fee(&mut self, spender_hex_key: String) -> Result<Buffer> {
+        let spender_key = SaplingKey::from_hex(&spender_hex_key).map_err(to_napi_err)?;
+        let transaction = self
+            .transaction
+            .post_miners_fee(&spender_key)
+            .map_err(to_napi_err)?;
 
         let mut vec: Vec<u8> = vec![];
         transaction.write(&mut vec).map_err(to_napi_err)?;
@@ -256,10 +259,11 @@ impl NativeTransaction {
     /// Used to generate invalid miners fee transactions for testing. Call
     /// post_miners_fee instead in user-facing code.
     #[napi(js_name = "_postMinersFeeUnchecked")]
-    pub fn _post_miners_fee_unchecked(&mut self) -> Result<Buffer> {
+    pub fn _post_miners_fee_unchecked(&mut self, spender_hex_key: String) -> Result<Buffer> {
+        let spender_key = SaplingKey::from_hex(&spender_hex_key).map_err(to_napi_err)?;
         let transaction = self
             .transaction
-            .post_miners_fee_unchecked()
+            .post_miners_fee_unchecked(&spender_key)
             .map_err(to_napi_err)?;
 
         let mut vec: Vec<u8> = vec![];
@@ -280,9 +284,12 @@ impl NativeTransaction {
     #[napi]
     pub fn post(
         &mut self,
+        spender_hex_key: String,
         change_goes_to: Option<String>,
         intended_transaction_fee: BigInt,
     ) -> Result<Buffer> {
+        let spender_key = SaplingKey::from_hex(&spender_hex_key).map_err(to_napi_err)?;
+
         let intended_transaction_fee_u64 = intended_transaction_fee.get_u64().1;
 
         let change_key = match change_goes_to {
@@ -292,7 +299,7 @@ impl NativeTransaction {
 
         let posted_transaction = self
             .transaction
-            .post(change_key, intended_transaction_fee_u64)
+            .post(&spender_key, change_key, intended_transaction_fee_u64)
             .map_err(to_napi_err)?;
 
         let mut vec: Vec<u8> = vec![];

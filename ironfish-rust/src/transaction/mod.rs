@@ -109,10 +109,6 @@ pub struct ProposedTransaction {
     /// not expire.
     expiration: u32,
 
-    /// The key used to sign the transaction and any descriptions that need
-    /// signed.
-    spender_key: SaplingKey,
-
     // randomness used for the transaction to calculate the randomized ak, which
     // allows us to verify the sender address is valid and stored in the notes
     // Used to add randomness to signature generation without leaking the
@@ -123,7 +119,7 @@ pub struct ProposedTransaction {
 }
 
 impl ProposedTransaction {
-    pub fn new(spender_key: SaplingKey, version: TransactionVersion) -> Self {
+    pub fn new(version: TransactionVersion) -> Self {
         Self {
             version,
             spends: vec![],
@@ -132,7 +128,6 @@ impl ProposedTransaction {
             burns: vec![],
             value_balances: ValueBalances::new(),
             expiration: 0,
-            spender_key,
             public_key_randomness: jubjub::Fr::random(thread_rng()),
         }
     }
@@ -205,6 +200,7 @@ impl ProposedTransaction {
     /// aka: self.value_balance - intended_transaction_fee - change = 0
     pub fn post(
         &mut self,
+        spender_key: &SaplingKey,
         change_goes_to: Option<PublicAddress>,
         intended_transaction_fee: u64,
     ) -> Result<Transaction, IronfishError> {
@@ -222,14 +218,13 @@ impl ProposedTransaction {
                 return Err(IronfishError::new(IronfishErrorKind::InvalidBalance));
             }
             if change_amount > 0 {
-                let change_address =
-                    change_goes_to.unwrap_or_else(|| self.spender_key.public_address());
+                let change_address = change_goes_to.unwrap_or_else(|| spender_key.public_address());
                 let change_note = Note::new(
                     change_address,
                     change_amount as u64, // we checked it was positive
                     "",
                     *asset_id,
-                    self.spender_key.public_address(),
+                    spender_key.public_address(),
                 );
 
                 change_notes.push(change_note);
@@ -240,7 +235,7 @@ impl ProposedTransaction {
             self.add_output(change_note)?;
         }
 
-        self._partial_post()
+        self._partial_post(spender_key)
     }
 
     /// Special case for posting a miners fee transaction. Miner fee transactions
@@ -248,7 +243,10 @@ impl ProposedTransaction {
     /// or change and therefore have a negative transaction fee. In normal use,
     /// a miner would not accept such a transaction unless it was explicitly set
     /// as the miners fee.
-    pub fn post_miners_fee(&mut self) -> Result<Transaction, IronfishError> {
+    pub fn post_miners_fee(
+        &mut self,
+        spender_key: &SaplingKey,
+    ) -> Result<Transaction, IronfishError> {
         if !self.spends.is_empty()
             || self.outputs.len() != 1
             || !self.mints.is_empty()
@@ -258,16 +256,19 @@ impl ProposedTransaction {
                 IronfishErrorKind::InvalidMinersFeeTransaction,
             ));
         }
-        self.post_miners_fee_unchecked()
+        self.post_miners_fee_unchecked(spender_key)
     }
 
     /// Do not call this directly -- see post_miners_fee.
-    pub fn post_miners_fee_unchecked(&mut self) -> Result<Transaction, IronfishError> {
+    pub fn post_miners_fee_unchecked(
+        &mut self,
+        spender_key: &SaplingKey,
+    ) -> Result<Transaction, IronfishError> {
         // Set note_encryption_keys to a constant value on the outputs
         for output in &mut self.outputs {
             output.set_is_miners_fee();
         }
-        self._partial_post()
+        self._partial_post(spender_key)
     }
 
     /// Get the expiration sequence for this transaction
@@ -281,22 +282,22 @@ impl ProposedTransaction {
     }
 
     // Post transaction without much validation.
-    fn _partial_post(&self) -> Result<Transaction, IronfishError> {
+    fn _partial_post(&self, spender_key: &SaplingKey) -> Result<Transaction, IronfishError> {
         // Generate randomized public key
 
         // The public key after randomization has been applied. This is used
         // during signature verification. Referred to as `rk` in the literature
         // Calculated from the authorizing key and the public_key_randomness.
         let randomized_public_key =
-            redjubjub::PublicKey(self.spender_key.view_key.authorizing_key.into())
+            redjubjub::PublicKey(spender_key.view_key.authorizing_key.into())
                 .randomize(self.public_key_randomness, *SPENDING_KEY_GENERATOR);
 
         // Build descriptions
         let mut unsigned_spends = Vec::with_capacity(self.spends.len());
         for spend in &self.spends {
             unsigned_spends.push(spend.build(
-                &self.spender_key.sapling_proof_generation_key(),
-                self.spender_key.view_key(),
+                &spender_key.sapling_proof_generation_key(),
+                spender_key.view_key(),
                 &self.public_key_randomness,
                 &randomized_public_key,
             )?);
@@ -305,8 +306,8 @@ impl ProposedTransaction {
         let mut output_descriptions = Vec::with_capacity(self.outputs.len());
         for output in &self.outputs {
             output_descriptions.push(output.build(
-                &self.spender_key.sapling_proof_generation_key(),
-                self.spender_key.outgoing_view_key(),
+                &spender_key.sapling_proof_generation_key(),
+                spender_key.outgoing_view_key(),
                 &self.public_key_randomness,
                 &randomized_public_key,
             )?);
@@ -315,8 +316,8 @@ impl ProposedTransaction {
         let mut unsigned_mints = Vec::with_capacity(self.mints.len());
         for mint in &self.mints {
             unsigned_mints.push(mint.build(
-                &self.spender_key.sapling_proof_generation_key(),
-                &self.spender_key.public_address(),
+                &spender_key.sapling_proof_generation_key(),
+                &spender_key.public_address(),
                 &self.public_key_randomness,
                 &randomized_public_key,
             )?);
@@ -333,6 +334,7 @@ impl ProposedTransaction {
             &output_descriptions,
             &unsigned_mints,
             &burn_descriptions,
+            &randomized_public_key,
         )?;
 
         // Create and verify binding signature keys
@@ -348,13 +350,13 @@ impl ProposedTransaction {
         // Sign spends now that we have the data needed to be signed
         let mut spend_descriptions = Vec::with_capacity(unsigned_spends.len());
         for spend in unsigned_spends.drain(0..) {
-            spend_descriptions.push(spend.sign(&self.spender_key, &data_to_sign)?);
+            spend_descriptions.push(spend.sign(spender_key, &data_to_sign)?);
         }
 
         // Sign mints now that we have the data needed to be signed
         let mut mint_descriptions = Vec::with_capacity(unsigned_mints.len());
         for mint in unsigned_mints.drain(0..) {
-            mint_descriptions.push(mint.sign(&self.spender_key, &data_to_sign)?);
+            mint_descriptions.push(mint.sign(spender_key, &data_to_sign)?);
         }
 
         Ok(Transaction {
@@ -381,6 +383,7 @@ impl ProposedTransaction {
         outputs: &[OutputDescription],
         mints: &[UnsignedMintDescription],
         burns: &[BurnDescription],
+        randomized_public_key: &PublicKey,
     ) -> Result<[u8; 32], IronfishError> {
         let mut hasher = Blake2b::new()
             .hash_length(32)
@@ -391,10 +394,6 @@ impl ProposedTransaction {
         self.version.write(&mut hasher)?;
         hasher.write_u32::<LittleEndian>(self.expiration)?;
         hasher.write_i64::<LittleEndian>(*self.value_balances.fee())?;
-
-        let randomized_public_key =
-            redjubjub::PublicKey(self.spender_key.view_key.authorizing_key.into())
-                .randomize(self.public_key_randomness, *SPENDING_KEY_GENERATOR);
 
         hasher.write_all(&randomized_public_key.0.to_bytes())?;
 
