@@ -13,10 +13,16 @@ export class BlockHasher {
   readonly consensus: Consensus
   readonly fishHashContext: FishHashContext | null = null
 
-  constructor(options: { consensus: Consensus; fullCache?: boolean }) {
+  constructor(options: {
+    consensus: Consensus
+    fullContext?: boolean
+    context?: FishHashContext
+  }) {
     this.consensus = options.consensus
     if (this.consensus.parameters.enableFishHash !== 'never') {
-      this.fishHashContext = new FishHashContext(!!options.fullCache)
+      this.fishHashContext = options.context
+        ? options.context
+        : new FishHashContext(!!options.fullContext)
     }
   }
 

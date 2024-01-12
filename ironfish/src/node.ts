@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { BoxKeyPair } from '@ironfish/rust-nodejs'
+import { BoxKeyPair, FishHashContext } from '@ironfish/rust-nodejs'
 import { v4 as uuid } from 'uuid'
 import { AssetsVerifier } from './assets'
 import { Blockchain } from './blockchain'
@@ -197,6 +197,7 @@ export class FullNode {
     strategyClass,
     webSocket,
     privateIdentity,
+    fishHashContext,
   }: {
     pkg: Package
     dataDir?: string
@@ -209,6 +210,7 @@ export class FullNode {
     strategyClass: typeof Strategy | null
     webSocket: IsomorphicWebSocketConstructor
     privateIdentity?: PrivateIdentity
+    fishHashContext?: FishHashContext
   }): Promise<FullNode> {
     logger = logger.withTag('ironfishnode')
     dataDir = dataDir || DEFAULT_DATA_DIR
@@ -248,8 +250,12 @@ export class FullNode {
     }
 
     const consensus = new TestnetConsensus(networkDefinition.consensus)
-    // TODO: config value for fullCache
-    const blockHasher = new BlockHasher({ consensus, fullCache: false })
+    // TODO: config value for fullContext
+    const blockHasher = new BlockHasher({
+      consensus,
+      context: fishHashContext,
+      fullContext: false,
+    })
 
     strategyClass = strategyClass || Strategy
     const strategy = new strategyClass({ workerPool, consensus, blockHasher })

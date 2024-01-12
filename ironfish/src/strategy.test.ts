@@ -24,7 +24,7 @@ describe('Miners reward', () => {
 
   beforeAll(() => {
     const consensus = new Consensus(consensusParameters)
-    const blockHasher = new BlockHasher({ consensus, fullCache: false })
+    const blockHasher = new BlockHasher({ consensus, fullContext: false })
     strategy = new Strategy({
       workerPool: new WorkerPool(),
       consensus,
