@@ -18,7 +18,7 @@ use crate::{
     note::Note,
     sapling_bls12::SAPLING,
     witness::WitnessTrait,
-    OutputDescription, SpendDescription,
+    OutgoingViewKey, OutputDescription, SpendDescription, ViewKey,
 };
 
 use bellperson::groth16::{verify_proofs_batch, PreparedVerifyingKey};
@@ -34,6 +34,7 @@ use ironfish_zkp::{
         VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
     },
     redjubjub::{self, PrivateKey, PublicKey, Signature},
+    ProofGenerationKey,
 };
 
 use std::{
@@ -45,6 +46,7 @@ use std::{
 use self::{
     burns::{BurnBuilder, BurnDescription},
     mints::{MintBuilder, MintDescription, UnsignedMintDescription},
+    unsigned::UnsignedTransaction,
 };
 
 pub mod burns;
@@ -186,6 +188,119 @@ impl ProposedTransaction {
         self.burns.push(BurnBuilder::new(asset_id, value));
 
         Ok(())
+    }
+
+    pub fn build(
+        &mut self,
+        proof_generation_key: ProofGenerationKey,
+        view_key: ViewKey,
+        outgoing_view_key: OutgoingViewKey,
+        public_address: PublicAddress,
+        change_goes_to: Option<PublicAddress>,
+        intended_transaction_fee: u64,
+    ) -> Result<UnsignedTransaction, IronfishError> {
+        // The public key after randomization has been applied. This is used
+        // during signature verification. Referred to as `rk` in the literature
+        // Calculated from the authorizing key and the public_key_randomness.
+        let randomized_public_key = redjubjub::PublicKey(view_key.authorizing_key.into())
+            .randomize(self.public_key_randomness, *SPENDING_KEY_GENERATOR);
+
+        let mut change_notes = vec![];
+
+        for (asset_id, value) in self.value_balances.iter() {
+            let is_native_asset = asset_id == &NATIVE_ASSET;
+
+            let change_amount = match is_native_asset {
+                true => *value - i64::try_from(intended_transaction_fee)?,
+                false => *value,
+            };
+
+            if change_amount < 0 {
+                return Err(IronfishError::new(IronfishErrorKind::InvalidBalance));
+            }
+            if change_amount > 0 {
+                let change_address = change_goes_to.unwrap_or(public_address);
+                let change_note = Note::new(
+                    change_address,
+                    change_amount as u64, // we checked it was positive
+                    "",
+                    *asset_id,
+                    public_address,
+                );
+
+                change_notes.push(change_note);
+            }
+        }
+
+        for change_note in change_notes {
+            self.add_output(change_note)?;
+        }
+
+        let mut unsigned_spends = Vec::with_capacity(self.spends.len());
+        for spend in &self.spends {
+            unsigned_spends.push(spend.build(
+                &proof_generation_key,
+                &view_key,
+                &self.public_key_randomness,
+                &randomized_public_key,
+            )?);
+        }
+
+        let mut output_descriptions = Vec::with_capacity(self.outputs.len());
+        for output in &self.outputs {
+            output_descriptions.push(output.build(
+                &proof_generation_key,
+                &outgoing_view_key,
+                &self.public_key_randomness,
+                &randomized_public_key,
+            )?);
+        }
+
+        let mut unsigned_mints = Vec::with_capacity(self.mints.len());
+        for mint in &self.mints {
+            unsigned_mints.push(mint.build(
+                &proof_generation_key,
+                &public_address,
+                &self.public_key_randomness,
+                &randomized_public_key,
+            )?);
+        }
+
+        let mut burn_descriptions = Vec::with_capacity(self.burns.len());
+        for burn in &self.burns {
+            burn_descriptions.push(burn.build());
+        }
+
+        let data_to_sign = self.transaction_signature_hash(
+            &unsigned_spends,
+            &output_descriptions,
+            &unsigned_mints,
+            &burn_descriptions,
+            &randomized_public_key,
+        )?;
+
+        // Create and verify binding signature keys
+        let (binding_signature_private_key, binding_signature_public_key) =
+            self.binding_signature_keys(&unsigned_mints, &burn_descriptions)?;
+
+        let binding_signature = self.binding_signature(
+            &binding_signature_private_key,
+            &binding_signature_public_key,
+            &data_to_sign,
+        )?;
+
+        Ok(UnsignedTransaction {
+            burns: burn_descriptions,
+            mints: unsigned_mints,
+            outputs: output_descriptions,
+            spends: unsigned_spends,
+            version: self.version,
+            fee: i64::try_from(intended_transaction_fee)?,
+            binding_signature,
+            randomized_public_key,
+            public_key_randomness: self.public_key_randomness,
+            expiration: self.expiration,
+        })
     }
 
     /// Post the transaction. This performs a bit of validation, and signs

@@ -20,28 +20,28 @@ use super::{
 pub struct UnsignedTransaction {
     /// The transaction serialization version. This can be incremented when
     /// changes need to be made to the transaction format
-    version: TransactionVersion,
+    pub(crate) version: TransactionVersion,
 
     /// List of spends, or input notes, that have been destroyed.
-    spends: Vec<UnsignedSpendDescription>,
+    pub(crate) spends: Vec<UnsignedSpendDescription>,
 
     /// List of outputs, or output notes that have been created.
-    outputs: Vec<OutputDescription>,
+    pub(crate) outputs: Vec<OutputDescription>,
 
     /// List of mint descriptions
-    mints: Vec<UnsignedMintDescription>,
+    pub(crate) mints: Vec<UnsignedMintDescription>,
 
     /// List of burn descriptions
-    burns: Vec<BurnDescription>,
+    pub(crate) burns: Vec<BurnDescription>,
 
     /// Signature calculated from accumulating randomness with all the spends
     /// and outputs when the transaction was created.
-    binding_signature: Signature,
+    pub(crate) binding_signature: Signature,
 
     /// This is the sequence in the chain the transaction will expire at and be
     /// removed from the mempool. A value of 0 indicates the transaction will
     /// not expire.
-    expiration: u32,
+    pub(crate) expiration: u32,
 
     /// Randomized public key of the sender of the Transaction
     /// currently this value is the same for all spends[].owner and outputs[].sender
@@ -49,13 +49,13 @@ pub struct UnsignedTransaction {
     /// well as signing of the SpendDescriptions. Referred to as
     /// `rk` in the literature Calculated from the authorizing key and
     /// the public_key_randomness.
-    randomized_public_key: redjubjub::PublicKey,
+    pub(crate) randomized_public_key: redjubjub::PublicKey,
 
     // TODO: Verify if this is actually okay to store on the unsigned transaction
-    public_key_randomness: jubjub::Fr,
+    pub(crate) public_key_randomness: jubjub::Fr,
 
     /// The balance of total spends - outputs, which is the amount that the miner gets to keep
-    fee: i64,
+    pub(crate) fee: i64,
 }
 
 impl UnsignedTransaction {
