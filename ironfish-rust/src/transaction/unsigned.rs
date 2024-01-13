@@ -9,6 +9,7 @@ use std::io::{self, Write};
 
 use crate::{
     errors::IronfishError, serializing::read_scalar, transaction::Blake2b, OutputDescription,
+    SaplingKey, Transaction,
 };
 
 use super::{
@@ -177,5 +178,35 @@ impl UnsignedTransaction {
         let mut hash_result = [0; 32];
         hash_result[..].clone_from_slice(hasher.finalize().as_ref());
         Ok(hash_result)
+    }
+
+    // Post transaction without much validation.
+    pub fn sign(&self, spender_key: &SaplingKey) -> Result<Transaction, IronfishError> {
+        // Create the transaction signature hash
+        let data_to_sign = self.transaction_signature_hash()?;
+
+        // Sign spends now that we have the data needed to be signed
+        let mut spend_descriptions = Vec::with_capacity(self.spends.len());
+        for spend in self.spends.clone() {
+            spend_descriptions.push(spend.sign(spender_key, &data_to_sign)?);
+        }
+
+        // Sign mints now that we have the data needed to be signed
+        let mut mint_descriptions = Vec::with_capacity(self.mints.len());
+        for mint in self.mints.clone() {
+            mint_descriptions.push(mint.sign(spender_key, &data_to_sign)?);
+        }
+
+        Ok(Transaction {
+            version: self.version,
+            expiration: self.expiration,
+            fee: self.fee,
+            spends: spend_descriptions,
+            outputs: self.outputs.clone(),
+            mints: mint_descriptions,
+            burns: self.burns.clone(),
+            binding_signature: self.binding_signature,
+            randomized_public_key: self.randomized_public_key.clone(),
+        })
     }
 }
