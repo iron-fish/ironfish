@@ -127,27 +127,4 @@ mod test {
             deserialized_proof_generation_key.nsk
         );
     }
-
-    #[test]
-    fn test_proof_generation_key_serializable_deserializable() {
-        let mut rng = StdRng::seed_from_u64(0);
-        let proof_generation_key = ProofGenerationKey {
-            ak: jubjub::SubgroupPoint::random(&mut rng),
-            nsk: jubjub::Fr::random(&mut rng),
-        };
-
-        let proof_generation_key_bytes = proof_generation_key.serialize();
-        let proof_generation_key_deserialized =
-            ProofGenerationKey::deserialize(proof_generation_key_bytes)
-                .expect("deserialization successful");
-
-        assert_eq!(
-            proof_generation_key.ak,
-            proof_generation_key_deserialized.ak
-        );
-        assert_eq!(
-            proof_generation_key.nsk,
-            proof_generation_key_deserialized.nsk
-        );
-    }
 }
