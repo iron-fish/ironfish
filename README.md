@@ -90,6 +90,10 @@ If you want to contribute code, you must first read [our contributing guidelines
 - [iron-fish/ironfish-api](https://github.com/iron-fish/ironfish-api): The repository that powers most Iron Fish API services.
 - [iron-fish/chain-explorer](https://github.com/iron-fish/chain-explorer): A visual tool to explore the block chain and all of its forks.
 
+## Audit
+
+The Iron Fish core protocol implementation in this repo went through a security audit by [Inversed Tech](http://inversed.tech/), finalized on June 1, 2023. The full audit, including a summary of findings, outline of resources, and a detailed breakdown, can be found [here](https://ironfish-static.s3.amazonaws.com/ironfish-audit-report-FINAL.pdf). See our [blog post](https://ironfish.network/learn/blog/2023-08-11-audit) on it for more details.
+
 ## Licensing
 
 This code base and any contributions will be under the [MPL-2.0](https://www.mozilla.org/en-US/MPL/2.0/) Software License.
