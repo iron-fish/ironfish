@@ -1,8 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { BoxKeyPair } from '@ironfish/rust-nodejs'
 import { Assert } from './assert'
-import { Config, DEFAULT_DATA_DIR } from './fileStores'
+import { Config, DEFAULT_DATA_DIR, InternalStore } from './fileStores'
 import { NodeFileProvider } from './fileSystems'
 import { FullNode } from './node'
 import { Platform } from './platform'
@@ -103,6 +104,153 @@ describe('IronfishSdk', () => {
 
       const node = await sdk.node()
       expect(node.config).toBe(sdk.config)
+    })
+  })
+
+  describe('node', () => {
+    describe('networkIdentity', () => {
+      const saveInternalIdentity = async (
+        fileSystem: NodeFileProvider,
+        dataDir: string,
+        identity: string,
+      ) => {
+        const internal = new InternalStore(fileSystem, dataDir)
+        await internal.load()
+        expect(internal.isSet('networkIdentity')).toBe(false)
+        internal.set('networkIdentity', identity)
+        await internal.save()
+      }
+
+      it('should initialize networkIdentity if none is passed in', async () => {
+        const fileSystem = new NodeFileProvider()
+        await fileSystem.init()
+
+        const dataDir = getUniqueTestDataDir()
+
+        const internal = new InternalStore(fileSystem, dataDir)
+        await internal.load()
+        expect(internal.isSet('networkIdentity')).toBe(false)
+
+        const sdk = await IronfishSdk.init({
+          dataDir: dataDir,
+          fileSystem: fileSystem,
+        })
+
+        const node = await sdk.node()
+
+        const peerNetworkIdentity =
+          node.peerNetwork.localPeer.privateIdentity.secretKey.toString('hex')
+        expect(sdk.internal.isSet('networkIdentity')).toBe(true)
+        expect(sdk.internal.get('networkIdentity')).toEqual(peerNetworkIdentity)
+      })
+
+      it('should load networkIdentity if one is saved', async () => {
+        const fileSystem = new NodeFileProvider()
+        await fileSystem.init()
+
+        const dataDir = getUniqueTestDataDir()
+        const identity = new BoxKeyPair().secretKey.toString('hex')
+        await saveInternalIdentity(fileSystem, dataDir, identity)
+
+        const sdk = await IronfishSdk.init({
+          dataDir: dataDir,
+          fileSystem: fileSystem,
+        })
+
+        const node = await sdk.node()
+
+        const peerNetworkIdentity =
+          node.peerNetwork.localPeer.privateIdentity.secretKey.toString('hex')
+        expect(sdk.internal.isSet('networkIdentity')).toBe(true)
+        expect(sdk.internal.get('networkIdentity')).toEqual(peerNetworkIdentity)
+        expect(identity).toEqual(peerNetworkIdentity)
+      })
+
+      it('should save a new networkIdentity if generateNewIdentity is set', async () => {
+        const fileSystem = new NodeFileProvider()
+        await fileSystem.init()
+
+        const dataDir = getUniqueTestDataDir()
+        const identity = new BoxKeyPair().secretKey.toString('hex')
+        await saveInternalIdentity(fileSystem, dataDir, identity)
+
+        const sdk = await IronfishSdk.init({
+          dataDir: dataDir,
+          fileSystem: fileSystem,
+          configOverrides: {
+            generateNewIdentity: true,
+          },
+        })
+
+        const node = await sdk.node()
+
+        const peerNetworkIdentity =
+          node.peerNetwork.localPeer.privateIdentity.secretKey.toString('hex')
+        expect(sdk.internal.isSet('networkIdentity')).toBe(true)
+        expect(sdk.internal.get('networkIdentity')).toEqual(peerNetworkIdentity)
+        expect(identity).not.toEqual(peerNetworkIdentity)
+      })
+
+      it('should override and save networkIdentity if one is passed in', async () => {
+        const fileSystem = new NodeFileProvider()
+        await fileSystem.init()
+
+        const dataDir = getUniqueTestDataDir()
+        const savedIdentity = new BoxKeyPair().secretKey.toString('hex')
+        const overrideIdentity = new BoxKeyPair()
+        await saveInternalIdentity(fileSystem, dataDir, savedIdentity)
+
+        const sdk = await IronfishSdk.init({
+          dataDir: dataDir,
+          fileSystem: fileSystem,
+        })
+
+        const node = await sdk.node({ privateIdentity: overrideIdentity })
+
+        const newInternal = new InternalStore(fileSystem, dataDir)
+        await newInternal.load()
+        expect(newInternal.get('networkIdentity')).toEqual(overrideIdentity.secretKey.toString('hex'))
+
+        const peerNetworkIdentity =
+          node.peerNetwork.localPeer.privateIdentity.secretKey.toString('hex')
+        expect(sdk.internal.isSet('networkIdentity')).toBe(true)
+        expect(sdk.internal.get('networkIdentity')).toEqual(peerNetworkIdentity)
+        expect(overrideIdentity.secretKey.toString('hex')).toEqual(peerNetworkIdentity)
+      })
+
+      it('should save a new networkIdentity if generateNewIdentity is set and one is passed in', async () => {
+        const fileSystem = new NodeFileProvider()
+        await fileSystem.init()
+
+        const dataDir = getUniqueTestDataDir()
+        const savedIdentity = new BoxKeyPair().secretKey.toString('hex')
+        const overrideIdentity = new BoxKeyPair()
+        await saveInternalIdentity(fileSystem, dataDir, savedIdentity)
+
+        const sdk = await IronfishSdk.init({
+          dataDir: dataDir,
+          fileSystem: fileSystem,
+          configOverrides: {
+            generateNewIdentity: true,
+          },
+        })
+
+        const node = await sdk.node({ privateIdentity: overrideIdentity })
+
+        const newInternal = new InternalStore(fileSystem, dataDir)
+        await newInternal.load()
+        const generatedIdentity = newInternal.get('networkIdentity')
+        expect(generatedIdentity).not.toEqual(savedIdentity)
+        expect(generatedIdentity).not.toEqual(overrideIdentity.secretKey.toString('hex'))
+
+        const peerNetworkIdentity =
+          node.peerNetwork.localPeer.privateIdentity.secretKey.toString('hex')
+        expect(sdk.internal.isSet('networkIdentity')).toBe(true)
+        expect(sdk.internal.get('networkIdentity')).toEqual(peerNetworkIdentity)
+        expect(peerNetworkIdentity).toEqual(generatedIdentity)
+        expect(overrideIdentity.secretKey.toString('hex')).not.toEqual(generatedIdentity)
+        expect(savedIdentity).not.toEqual(generatedIdentity)
+      })
     })
   })
 
