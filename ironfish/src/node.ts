@@ -205,8 +205,8 @@ export class FullNode {
     metrics?: MetricsMonitor
     files: FileSystem
     strategyClass: typeof Strategy | null
-    webSocket: IsomorphicWebSocketConstructor,
-    privateIdentity?: PrivateIdentity,
+    webSocket: IsomorphicWebSocketConstructor
+    privateIdentity?: PrivateIdentity
   }): Promise<FullNode> {
     logger = logger.withTag('ironfishnode')
     dataDir = dataDir || DEFAULT_DATA_DIR
@@ -249,7 +249,9 @@ export class FullNode {
       privateIdentity = new BoxKeyPair()
     } else if (!privateIdentity) {
       const internalNetworkIdentity = internal.get('networkIdentity')
-      privateIdentity = isHexSecretKey(internalNetworkIdentity) ? BoxKeyPair.fromHex(internalNetworkIdentity) : new BoxKeyPair()
+      privateIdentity = isHexSecretKey(internalNetworkIdentity)
+        ? BoxKeyPair.fromHex(internalNetworkIdentity)
+        : new BoxKeyPair()
     }
     internal.set('networkIdentity', privateIdentity.secretKey.toString('hex'))
     await internal.save()

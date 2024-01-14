@@ -209,7 +209,9 @@ describe('IronfishSdk', () => {
 
         const newInternal = new InternalStore(fileSystem, dataDir)
         await newInternal.load()
-        expect(newInternal.get('networkIdentity')).toEqual(overrideIdentity.secretKey.toString('hex'))
+        expect(newInternal.get('networkIdentity')).toEqual(
+          overrideIdentity.secretKey.toString('hex'),
+        )
 
         const peerNetworkIdentity =
           node.peerNetwork.localPeer.privateIdentity.secretKey.toString('hex')
