@@ -4,7 +4,13 @@
 
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use group::GroupEncoding;
-use ironfish_frost::frost::{round1::SigningCommitments, Identifier, SigningPackage};
+use ironfish_frost::frost::{
+    frost::aggregate,
+    keys::PublicKeyPackage,
+    round1::SigningCommitments,
+    round2::{Randomizer, SignatureShare},
+    Identifier, RandomizedParams, SigningPackage,
+};
 
 use ironfish_zkp::redjubjub::{self, Signature};
 use std::{
@@ -183,6 +189,62 @@ impl UnsignedTransaction {
         let mut hash_result = [0; 32];
         hash_result[..].clone_from_slice(hasher.finalize().as_ref());
         Ok(hash_result)
+    }
+
+    pub fn sign_frost(
+        &mut self,
+        public_key_package: &PublicKeyPackage,
+        authorizing_signing_package: &SigningPackage,
+        authorizing_signature_shares: BTreeMap<Identifier, SignatureShare>,
+    ) -> Result<Transaction, IronfishError> {
+        // Create the transaction signature hash
+        let data_to_sign = self.transaction_signature_hash()?;
+
+        let randomizer = Randomizer::deserialize(&self.public_key_randomness.to_bytes()).unwrap();
+        let randomized_params =
+            RandomizedParams::from_randomizer(public_key_package.verifying_key(), randomizer);
+
+        let authorizing_group_signature = aggregate(
+            &authorizing_signing_package,
+            &authorizing_signature_shares,
+            &public_key_package,
+        )
+        .unwrap();
+
+        // Verify the signature with the public keys
+        let verify_signature = randomized_params
+            .randomized_verifying_key()
+            .verify(&data_to_sign, &authorizing_group_signature);
+
+        assert!(verify_signature.is_ok());
+
+        let signature = { Signature::read(&mut authorizing_group_signature.serialize().as_ref())? };
+
+        // Sign spends now that we have the data needed to be signed
+        let mut spend_descriptions = Vec::with_capacity(self.spends.len());
+        for spend in self.spends.drain(0..) {
+            spend_descriptions.push(spend.add_signature(signature));
+        }
+
+        // Sign mints now that we have the data needed to be signed
+        let mut mint_descriptions = Vec::with_capacity(self.mints.len());
+        for mint in self.mints.drain(0..) {
+            mint_descriptions.push(mint.add_signature(signature));
+        }
+
+        let transaction = Transaction {
+            version: self.version,
+            expiration: self.expiration,
+            fee: self.fee,
+            spends: spend_descriptions,
+            outputs: self.outputs.clone(),
+            mints: mint_descriptions,
+            burns: self.burns.clone(),
+            binding_signature: self.binding_signature,
+            randomized_public_key: redjubjub::PublicKey(self.randomized_public_key.0),
+        };
+
+        Ok(transaction)
     }
 
     // Post transaction without much validation.
