@@ -4514,5 +4514,24 @@
         }
       ]
     }
+  ],
+  "Accounts should only allow multisig keys if the account has no spending key": [
+    {
+      "version": 2,
+      "id": "4e4b7291-9062-4a8d-bea7-b9b0dde1f234",
+      "name": "accountA",
+      "spendingKey": "c7a830be9b479c7537feae54d9853f9c4a2ce5557997ac387d4cfad8184d16a9",
+      "viewKey": "f0f594f309a8d01ec32641c6103f53e52a551fe5a7533b7af75195ec56be3200ff6bf0ac3524973b08be8b7cea187930bd3ca7a4eb553e335a557dc7f2510e2d",
+      "incomingViewKey": "1a06c90e76d35d157a8770d5358eac9344ffcb3659cae47f0cc70a1a21db7f00",
+      "outgoingViewKey": "4201aa53d4e2555f55030386aacb3dd0e663a619f4edf0cdc80ade55a708a7ca",
+      "publicAddress": "8b69e3a174707c06c3d7f8a108a228d00d9f0297d2105408b39ff6143fed72dd",
+      "createdAt": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      }
+    }
   ]
 }
