@@ -10,8 +10,8 @@ import { Consensus } from './consensus'
 import { BlockHash, RawBlockHeader } from './primitives/blockheader'
 
 export class BlockHasher {
-  readonly consensus: Consensus
-  readonly fishHashContext: FishHashContext | null = null
+  private readonly consensus: Consensus
+  private readonly fishHashContext: FishHashContext | null = null
 
   constructor(options: {
     consensus: Consensus
@@ -44,7 +44,7 @@ export class BlockHasher {
   }
 }
 
-function serializeHeaderBlake3(header: RawBlockHeader): Buffer {
+export function serializeHeaderBlake3(header: RawBlockHeader): Buffer {
   const bw = bufio.write(180)
   bw.writeBigU64BE(header.randomness)
   bw.writeU32(header.sequence)
@@ -58,7 +58,7 @@ function serializeHeaderBlake3(header: RawBlockHeader): Buffer {
   return bw.render()
 }
 
-function serializeHeaderFishHash(header: RawBlockHeader): Buffer {
+export function serializeHeaderFishHash(header: RawBlockHeader): Buffer {
   const bw = bufio.write(180)
   bw.writeBytes(header.graffiti)
   bw.writeU32(header.sequence)
