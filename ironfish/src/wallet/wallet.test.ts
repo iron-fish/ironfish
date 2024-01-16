@@ -7,6 +7,7 @@ import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { VerificationResultReason } from '../consensus'
+import { RawTransaction } from '../primitives'
 import { TransactionVersion } from '../primitives/transaction'
 import {
   createNodeTest,
@@ -19,7 +20,7 @@ import {
   usePostTxFixture,
   useTxFixture,
 } from '../testUtilities'
-import { AsyncUtils, BufferUtils } from '../utils'
+import { AsyncUtils, BufferUtils, ORE_TO_IRON } from '../utils'
 import { Account, TransactionStatus, TransactionType } from '../wallet'
 import { AssetStatus, Wallet } from './wallet'
 
@@ -255,6 +256,39 @@ describe('Wallet', () => {
 
     // nullifier should have been removed from nullifierToNote
     expect(await accountA.getNoteHash(forkSpendNullifier)).toBeUndefined()
+  })
+
+  describe('addSpendsForAsset', () => {
+    it('should select notes in order of largest to smallest', async () => {
+      const { node } = nodeTest
+      const accountA = await useAccountFixture(node.wallet, 'a')
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(blockA1)
+      await node.wallet.updateHead()
+
+      const transaction = await useTxFixture(node.wallet, accountA, accountA)
+      const block = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet, [
+        transaction,
+      ])
+      await node.chain.addBlock(block)
+      await node.wallet.updateHead()
+
+      const rawTransaction = new RawTransaction(TransactionVersion.V2)
+
+      await node.wallet.addSpendsForAsset(
+        rawTransaction,
+        accountA,
+        Asset.nativeId(),
+        BigInt(ORE_TO_IRON * 10),
+        0n,
+        new BufferSet(),
+        0,
+      )
+
+      // if this fails, it means that the notes were not sorted in descending order
+      // multiple smaller notes were used to fund the transaction
+      expect(rawTransaction.spends).toHaveLength(1)
+    })
   })
 
   describe('load', () => {
