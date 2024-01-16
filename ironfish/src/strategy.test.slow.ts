@@ -11,7 +11,6 @@ import {
   Transaction as NativeTransaction,
   TransactionPosted as NativeTransactionPosted,
 } from '@ironfish/rust-nodejs'
-import { Assert } from './assert'
 import { BlockHasher } from './blockHasher'
 import { ConsensusParameters, TestnetConsensus } from './consensus'
 import { MerkleTree } from './merkletree'
@@ -94,6 +93,7 @@ describe('Demonstrate the Sapling API', () => {
   let transaction: NativeTransaction
   let publicTransaction: NativeTransactionPosted
   let workerPool: WorkerPool
+  let strategy: Strategy
 
   beforeAll(async () => {
     // Pay the cost of setting up Sapling and the DB outside of any test
@@ -101,6 +101,16 @@ describe('Demonstrate the Sapling API', () => {
     spenderKey = generateKey()
     receiverKey = generateKey()
     workerPool = new WorkerPool()
+    const consensus = new TestnetConsensus(consensusParameters)
+    const blockHasher = new BlockHasher({
+      consensus,
+      context: FISH_HASH_CONTEXT,
+    })
+    strategy = new Strategy({
+      workerPool,
+      consensus,
+      blockHasher,
+    })
   })
 
   describe('Can transact between two accounts', () => {
@@ -190,14 +200,6 @@ describe('Demonstrate the Sapling API', () => {
   })
 
   describe('Serializes and deserializes transactions', () => {
-    const consensus = new TestnetConsensus(consensusParameters)
-    const blockHasher = new BlockHasher({ consensus, context: FISH_HASH_CONTEXT })
-    const strategy = new Strategy({
-      workerPool,
-      consensus,
-      blockHasher,
-    })
-
     it('Does not hold a posted transaction if no references are taken', async () => {
       // Generate a miner's fee transaction
       const minersFee = await strategy.createMinersFee(0n, 0, generateKey().spendingKey)
@@ -259,26 +261,27 @@ describe('Demonstrate the Sapling API', () => {
       }
 
       const key = generateKey()
-      const consensus = new TestnetConsensus(modifiedParams)
-      const blockHasher = new BlockHasher({ consensus, context: FISH_HASH_CONTEXT })
+      const modifiedConsensus = new TestnetConsensus(modifiedParams)
+      const blockHasher = new BlockHasher({
+        consensus: modifiedConsensus,
+        context: FISH_HASH_CONTEXT,
+      })
       const modifiedStrategy = new Strategy({
         workerPool,
-        consensus,
+        consensus: modifiedConsensus,
         blockHasher,
       })
 
-      Assert.isTrue(typeof consensusParameters.enableAssetOwnership === 'number')
-      const enableAssetOwnershipSequence = Number(consensusParameters.enableAssetOwnership)
       const minersFee1 = await modifiedStrategy.createMinersFee(
         0n,
-        enableAssetOwnershipSequence - 1,
+        modifiedParams.enableAssetOwnership - 1,
         key.spendingKey,
       )
       expect(minersFee1.version()).toEqual(TransactionVersion.V1)
 
       const minersFee2 = await modifiedStrategy.createMinersFee(
         0n,
-        enableAssetOwnershipSequence,
+        modifiedParams.enableAssetOwnership,
         key.spendingKey,
       )
       expect(minersFee2.version()).toEqual(TransactionVersion.V2)
