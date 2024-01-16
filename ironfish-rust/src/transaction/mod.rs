@@ -4,6 +4,14 @@
 
 use blstrs::Bls12;
 use ff::Field;
+use ironfish_frost::frost;
+use ironfish_frost::frost::Error;
+
+use ironfish_frost::frost::keys::SecretShare;
+use ironfish_frost::frost::{
+    keys::{IdentifierList, KeyPackage, PublicKeyPackage},
+    Identifier, SigningKey,
+};
 use outputs::OutputBuilder;
 use spends::{SpendBuilder, UnsignedSpendDescription};
 use value_balances::ValueBalances;
@@ -26,7 +34,10 @@ use blake2b_simd::Params as Blake2b;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use group::GroupEncoding;
 use jubjub::ExtendedPoint;
-use rand::{rngs::OsRng, thread_rng};
+use rand::{
+    rngs::{OsRng, ThreadRng},
+    thread_rng,
+};
 
 use ironfish_zkp::{
     constants::{
@@ -37,7 +48,9 @@ use ironfish_zkp::{
     ProofGenerationKey,
 };
 
+use std::collections::BTreeMap;
 use std::{
+    collections::HashMap,
     io::{self, Write},
     iter,
     slice::Iter,
@@ -934,4 +947,49 @@ pub fn batch_verify_transactions<'a>(
         &SAPLING.output_verifying_key,
         &SAPLING.mint_verifying_key,
     )
+}
+pub struct SecretShareConfig {
+    pub min_signers: u16,
+    pub max_signers: u16,
+    pub secret: Vec<u8>,
+}
+
+pub fn split_secret(
+    config: &SecretShareConfig,
+    identifiers: IdentifierList,
+    rng: &mut ThreadRng,
+) -> Result<(HashMap<Identifier, KeyPackage>, PublicKeyPackage), Error> {
+    let secret_key = SigningKey::deserialize(
+        config
+            .secret
+            .clone()
+            .try_into()
+            .map_err(|_| Error::MalformedSigningKey)?,
+    )?;
+    let (shares, pubkeys) = frost::keys::split(
+        &secret_key,
+        config.max_signers,
+        config.min_signers,
+        identifiers,
+        rng,
+    )?;
+
+    for (_k, v) in shares.clone() {
+        frost::keys::KeyPackage::try_from(v)?;
+    }
+
+    let key_packages = key_package(&shares);
+
+    Ok((key_packages, pubkeys))
+}
+
+fn key_package(shares: &BTreeMap<Identifier, SecretShare>) -> HashMap<Identifier, KeyPackage> {
+    let mut key_packages: HashMap<_, _> = HashMap::new();
+
+    for (identifier, secret_share) in shares {
+        let key_package = frost::keys::KeyPackage::try_from(secret_share.clone()).unwrap();
+        key_packages.insert(*identifier, key_package);
+    }
+
+    key_packages
 }
