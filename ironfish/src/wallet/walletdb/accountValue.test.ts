@@ -39,7 +39,8 @@ describe('AccountValueEncoding', () => {
       incomingViewKey: key.incomingViewKey,
       outgoingViewKey: key.outgoingViewKey,
       publicAddress: key.publicAddress,
-      spendingKey: key.spendingKey,
+      // NOTE: accounts with multiSigKeys should not have spendingKey
+      spendingKey: null,
       viewKey: key.viewKey,
       version: 1,
       createdAt: null,
