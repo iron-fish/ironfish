@@ -995,3 +995,48 @@ fn key_package(shares: &BTreeMap<Identifier, SecretShare>) -> HashMap<Identifier
 
     key_packages
 }
+
+// test key package and split_secret
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use frost::keys::{Identifier, SigningKey};
+    use ironfish_frost::frost::{frost::Identifier, Identifier};
+    use rand::rngs::ThreadRng;
+    use std::collections::HashMap;
+
+    // Helper function to create a valid SecretShareConfig
+    fn create_valid_config() -> SecretShareConfig {
+        SecretShareConfig {
+            min_signers: 2,
+            max_signers: 5,
+            secret: Vec::new(), // Populate with a valid secret
+        }
+    }
+
+    fn create_valid_identifiers() -> IdentifierList {}
+
+    #[test]
+    fn test_split_secret_success() {
+        let config = create_valid_config();
+        let identifiers = create_valid_identifiers();
+        let mut rng = rand::thread_rng();
+
+        let result = split_secret(&config, identifiers, &mut rng);
+        assert!(result.is_ok());
+        // Further assertions to verify the correctness of the result
+    }
+
+    #[test]
+    fn test_split_secret_malformed_key() {
+        let mut config = create_valid_config();
+        config.secret = vec![0; 10]; // Invalid secret
+
+        let identifiers = create_valid_identifiers();
+        let mut rng = rand::thread_rng();
+
+        let result = split_secret(&config, identifiers, &mut rng);
+        assert!(result.is_err());
+        // Assert the specific type of error
+    }
+}
