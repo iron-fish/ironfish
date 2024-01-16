@@ -22,6 +22,33 @@ describe('AccountValueEncoding', () => {
         hash: Buffer.alloc(32, 0),
         sequence: 1,
       },
+      multiSigKeys: undefined,
+    }
+    const buffer = encoder.serialize(value)
+    const deserializedValue = encoder.deserialize(buffer)
+    expect(deserializedValue).toEqual(value)
+  })
+
+  it('serializes an object with multiSigKeys into a buffer and deserializes to the original object', () => {
+    const encoder = new AccountValueEncoding()
+
+    const key = generateKey()
+    const value: AccountValue = {
+      id: 'id',
+      name: 'foobar👁️🏃🐟',
+      incomingViewKey: key.incomingViewKey,
+      outgoingViewKey: key.outgoingViewKey,
+      publicAddress: key.publicAddress,
+      // NOTE: accounts with multiSigKeys should not have spendingKey
+      spendingKey: null,
+      viewKey: key.viewKey,
+      version: 1,
+      createdAt: null,
+      multiSigKeys: {
+        identifier: 'a',
+        keyPackage: 'b',
+        proofGenerationKey: 'c',
+      },
     }
     const buffer = encoder.serialize(value)
     const deserializedValue = encoder.deserialize(buffer)
