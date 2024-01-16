@@ -190,20 +190,8 @@ impl ProposedTransaction {
         Ok(())
     }
 
-    pub fn build(
-        &mut self,
-        proof_generation_key: ProofGenerationKey,
-        view_key: ViewKey,
-        outgoing_view_key: OutgoingViewKey,
-        public_address: PublicAddress,
-        change_goes_to: Option<PublicAddress>,
-        intended_transaction_fee: u64,
-    ) -> Result<UnsignedTransaction, IronfishError> {
-        // The public key after randomization has been applied. This is used
-        // during signature verification. Referred to as `rk` in the literature
-        // Calculated from the authorizing key and the public_key_randomness.
-        let randomized_public_key = redjubjub::PublicKey(view_key.authorizing_key.into())
-            .randomize(self.public_key_randomness, *SPENDING_KEY_GENERATOR);
+    pub fn add_change_notes(self) -> Result<(), IronfishError> {
+        
 
         let mut change_notes = vec![];
 
@@ -231,10 +219,25 @@ impl ProposedTransaction {
                 change_notes.push(change_note);
             }
         }
-
         for change_note in change_notes {
             self.add_output(change_note)?;
         }
+    }
+
+    pub fn build_unsigned(
+        &mut self,
+        proof_generation_key: ProofGenerationKey,
+        view_key: ViewKey,
+        outgoing_view_key: OutgoingViewKey,
+        public_address: PublicAddress,
+        change_goes_to: Option<PublicAddress>,
+        intended_transaction_fee: u64,
+    ) -> Result<UnsignedTransaction, IronfishError> {
+        // The public key after randomization has been applied. This is used
+        // during signature verification. Referred to as `rk` in the literature
+        // Calculated from the authorizing key and the public_key_randomness.
+        let randomized_public_key = redjubjub::PublicKey(view_key.authorizing_key.into())
+            .randomize(self.public_key_randomness, *SPENDING_KEY_GENERATOR);
 
         let mut unsigned_spends = Vec::with_capacity(self.spends.len());
         for spend in &self.spends {
