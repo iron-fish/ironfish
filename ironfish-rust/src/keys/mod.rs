@@ -4,12 +4,15 @@
 
 use crate::errors::{IronfishError, IronfishErrorKind};
 use crate::serializing::{bytes_to_hex, hex_to_bytes, read_scalar};
+use crate::transaction::{split_secret, SecretShareConfig};
 
 pub use bip39::Language;
 use bip39::Mnemonic;
 use blake2b_simd::Params as Blake2b;
 use blake2s_simd::Params as Blake2s;
 use group::GroupEncoding;
+use ironfish_frost::frost::keys::{IdentifierList, KeyPackage, PublicKeyPackage};
+use ironfish_frost::frost::Identifier;
 use ironfish_zkp::constants::{
     CRH_IVK_PERSONALIZATION, PROOF_GENERATION_KEY_GENERATOR, SPENDING_KEY_GENERATOR,
 };
@@ -17,6 +20,7 @@ use ironfish_zkp::ProofGenerationKey;
 use jubjub::SubgroupPoint;
 use rand::prelude::*;
 
+use std::collections::HashMap;
 use std::io;
 
 mod ephemeral;
@@ -266,4 +270,66 @@ impl SaplingKey {
         let scalar = read_scalar(&hash_result[..])?;
         Ok(scalar)
     }
+}
+
+pub fn split_spender_key(
+    coordinator_sapling_key: SaplingKey,
+    min_signers: u16,
+    max_signers: u16,
+    secret: Vec<u8>,
+) -> (
+    [u8; 32],
+    ProofGenerationKey,
+    ViewKey,
+    IncomingViewKey,
+    OutgoingViewKey,
+    PublicAddress,
+    HashMap<Identifier, KeyPackage>,
+    PublicKeyPackage,
+) {
+    let secret_config = SecretShareConfig {
+        min_signers,
+        max_signers,
+        secret,
+    };
+
+    let mut rng = thread_rng();
+    let (key_packages, pubkeys) =
+        split_secret(&secret_config, IdentifierList::Default, &mut rng).unwrap();
+
+    let authorizing_key_bytes = pubkeys.verifying_key().serialize();
+    let authorizing_key = Option::from(SubgroupPoint::from_bytes(&authorizing_key_bytes))
+        .expect("should be able to deserialize the verifying key into a SubgroupPoint");
+
+    let proof_generation_key = ProofGenerationKey {
+        ak: authorizing_key,
+        nsk: coordinator_sapling_key.sapling_proof_generation_key().nsk,
+    };
+
+    let nullifier_deriving_key = *PROOF_GENERATION_KEY_GENERATOR
+        * coordinator_sapling_key.sapling_proof_generation_key().nsk;
+
+    let view_key = ViewKey {
+        authorizing_key,
+        nullifier_deriving_key,
+    };
+
+    let incoming_viewing_key = IncomingViewKey {
+        view_key: SaplingKey::hash_viewing_key(&authorizing_key, &nullifier_deriving_key).unwrap(),
+    };
+
+    let outgoing_view_key: OutgoingViewKey = coordinator_sapling_key.outgoing_view_key().clone();
+
+    let public_address = incoming_viewing_key.public_address();
+
+    (
+        authorizing_key.to_bytes(),
+        proof_generation_key,
+        view_key,
+        incoming_viewing_key,
+        outgoing_view_key,
+        public_address,
+        key_packages,
+        pubkeys,
+    )
 }
