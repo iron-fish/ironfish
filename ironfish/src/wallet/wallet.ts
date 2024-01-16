@@ -876,6 +876,7 @@ export class Wallet {
     expirationDelta?: number
     expiration?: number
     confirmations?: number
+    notes?: Buffer[]
   }): Promise<Transaction> {
     const raw = await this.createTransaction({
       account: options.account,
@@ -885,6 +886,7 @@ export class Wallet {
       expirationDelta: options.expirationDelta,
       expiration: options.expiration ?? undefined,
       confirmations: options.confirmations ?? undefined,
+      notes: options.notes,
     })
 
     const { transaction } = await this.post({
