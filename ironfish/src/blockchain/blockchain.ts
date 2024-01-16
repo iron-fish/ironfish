@@ -200,7 +200,7 @@ export class Blockchain {
   }
 
   private async seed() {
-    const genesis = BlockSerde.deserialize(this.seedGenesisBlock)
+    const genesis = BlockSerde.deserialize(this.seedGenesisBlock, this.strategy)
 
     const result = await this.addBlock(genesis)
     Assert.isTrue(result.isAdded, `Could not seed genesis: ${result.reason || 'unknown'}`)
@@ -230,7 +230,7 @@ export class Blockchain {
     if (genesisHeader) {
       Assert.isTrue(
         genesisHeader.hash.equals(
-          BlockHeaderSerde.deserialize(this.seedGenesisBlock.header).hash,
+          BlockHeaderSerde.deserialize(this.seedGenesisBlock.header, this.strategy).hash,
         ),
         'Genesis block in network definition does not match existing chain genesis block',
       )
@@ -293,8 +293,6 @@ export class Blockchain {
     let connectResult = null
     try {
       connectResult = await this.blockchainDb.db.transaction(async (tx) => {
-        const hash = block.header.recomputeHash()
-
         if (!this.hasGenesisBlock && block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
           return await this.connect(block, null, tx)
         }
@@ -310,7 +308,7 @@ export class Blockchain {
           throw new VerifyError(verify.reason, BAN_SCORE.MAX)
         }
 
-        if (await this.hasBlock(hash, tx)) {
+        if (await this.hasBlock(block.header.hash, tx)) {
           throw new VerifyError(VerificationResultReason.DUPLICATE)
         }
 
@@ -939,18 +937,18 @@ export class Blockchain {
 
       graffiti = graffiti ? graffiti : Buffer.alloc(32)
 
-      const header = new BlockHeader(
-        previousSequence + 1,
+      const rawHeader = {
+        sequence: previousSequence + 1,
         previousBlockHash,
         noteCommitment,
-        transactionCommitment(transactions),
+        transactionCommitment: transactionCommitment(transactions),
         target,
-        BigInt(0),
+        randomness: BigInt(0),
         timestamp,
         graffiti,
-        noteSize,
-        BigInt(0),
-      )
+      }
+
+      const header = this.strategy.newBlockHeader(rawHeader, noteSize, BigInt(0))
 
       const block = new Block(header, transactions)
       if (verifyBlock && !previousBlockHash.equals(GENESIS_BLOCK_PREVIOUS)) {

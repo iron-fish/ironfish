@@ -69,7 +69,7 @@ fn test_transaction() {
         spender_key.public_address(),
     );
 
-    let mut transaction = ProposedTransaction::new(spender_key, TransactionVersion::latest());
+    let mut transaction = ProposedTransaction::new(TransactionVersion::latest());
 
     // Spend
     transaction.add_spend(in_note, &witness).unwrap();
@@ -92,7 +92,7 @@ fn test_transaction() {
     assert_eq!(transaction.burns.len(), 1);
 
     let public_transaction = transaction
-        .post(None, 1)
+        .post(&spender_key, None, 1)
         .expect("should be able to post transaction");
     verify_transaction(&public_transaction).expect("Should be able to verify transaction");
     assert_eq!(public_transaction.fee(), 1);
@@ -173,14 +173,14 @@ fn test_transaction_simple() {
     );
     let witness = make_fake_witness(&in_note);
 
-    let mut transaction = ProposedTransaction::new(spender_key, TransactionVersion::latest());
+    let mut transaction = ProposedTransaction::new(TransactionVersion::latest());
     transaction.add_spend(in_note, &witness).unwrap();
     assert_eq!(transaction.spends.len(), 1);
     transaction.add_output(out_note).unwrap();
     assert_eq!(transaction.outputs.len(), 1);
 
     let public_transaction = transaction
-        .post(None, 1)
+        .post(&spender_key, None, 1)
         .expect("should be able to post transaction");
     verify_transaction(&public_transaction).expect("Should be able to verify transaction");
     assert_eq!(public_transaction.fee(), 1);
@@ -199,6 +199,59 @@ fn test_transaction_simple() {
 }
 
 #[test]
+fn test_proposed_transaction_build() {
+    let spender_key = SaplingKey::generate_key();
+    let receiver_key = SaplingKey::generate_key();
+    let sender_key = SaplingKey::generate_key();
+    let spender_key_clone = spender_key.clone();
+
+    let in_note = Note::new(
+        spender_key.public_address(),
+        42,
+        "",
+        NATIVE_ASSET,
+        sender_key.public_address(),
+    );
+    let out_note = Note::new(
+        receiver_key.public_address(),
+        40,
+        "",
+        NATIVE_ASSET,
+        spender_key.public_address(),
+    );
+    let witness = make_fake_witness(&in_note);
+
+    let mut transaction = ProposedTransaction::new(TransactionVersion::latest());
+    transaction.add_spend(in_note, &witness).unwrap();
+    assert_eq!(transaction.spends.len(), 1);
+    transaction.add_output(out_note).unwrap();
+    assert_eq!(transaction.outputs.len(), 1);
+
+    let unsigned_transaction = transaction
+        .build(
+            spender_key.sapling_proof_generation_key(),
+            spender_key.view_key().clone(),
+            spender_key.outgoing_view_key().clone(),
+            spender_key.public_address(),
+            Some(spender_key.public_address()),
+            1,
+        )
+        .expect("should be able to build unsigned transaction");
+
+    // A change note was created
+    assert_eq!(unsigned_transaction.outputs.len(), 2);
+    assert_eq!(unsigned_transaction.spends.len(), 1);
+    assert_eq!(unsigned_transaction.mints.len(), 0);
+    assert_eq!(unsigned_transaction.burns.len(), 0);
+
+    let received_note = unsigned_transaction.outputs[1]
+        .merkle_note()
+        .decrypt_note_for_owner(&spender_key_clone.incoming_viewing_key)
+        .unwrap();
+    assert_eq!(received_note.sender, spender_key_clone.public_address());
+}
+
+#[test]
 fn test_miners_fee() {
     let spender_key = SaplingKey::generate_key();
     let receiver_key = SaplingKey::generate_key();
@@ -209,10 +262,10 @@ fn test_miners_fee() {
         NATIVE_ASSET,
         spender_key.public_address(),
     );
-    let mut transaction = ProposedTransaction::new(spender_key, TransactionVersion::latest());
+    let mut transaction = ProposedTransaction::new(TransactionVersion::latest());
     transaction.add_output(out_note).unwrap();
     let posted_transaction = transaction
-        .post_miners_fee()
+        .post_miners_fee(&spender_key)
         .expect("it is a valid miner's fee");
     assert_eq!(posted_transaction.fee, -42);
     assert_eq!(
@@ -234,7 +287,7 @@ fn test_transaction_signature() {
     let receiver_address = receiver_key.public_address();
     let sender_key = SaplingKey::generate_key();
 
-    let mut transaction = ProposedTransaction::new(spender_key, TransactionVersion::latest());
+    let mut transaction = ProposedTransaction::new(TransactionVersion::latest());
     let in_note = Note::new(
         spender_address,
         42,
@@ -252,7 +305,7 @@ fn test_transaction_signature() {
     transaction.set_expiration(1337);
 
     let public_transaction = transaction
-        .post(None, 0)
+        .post(&spender_key, None, 0)
         .expect("should be able to post transaction");
 
     let mut serialized_signature = vec![];
@@ -288,14 +341,14 @@ fn test_transaction_created_with_version_1() {
     );
     let witness = make_fake_witness(&in_note);
 
-    let mut transaction = ProposedTransaction::new(spender_key, TransactionVersion::V1);
+    let mut transaction = ProposedTransaction::new(TransactionVersion::V1);
     transaction.add_spend(in_note, &witness).unwrap();
     transaction.add_output(out_note).unwrap();
 
     assert_eq!(transaction.version, TransactionVersion::V1);
 
     let public_transaction = transaction
-        .post(None, 1)
+        .post(&spender_key, None, 1)
         .expect("should be able to post transaction");
 
     assert_eq!(public_transaction.version, TransactionVersion::V1);
@@ -356,7 +409,7 @@ fn test_transaction_value_overflows() {
     );
     let witness = make_fake_witness(&note);
 
-    let mut tx = ProposedTransaction::new(key, TransactionVersion::latest());
+    let mut tx = ProposedTransaction::new(TransactionVersion::latest());
 
     // spend
     assert!(tx.add_spend(note.clone(), &witness).is_err());
@@ -460,7 +513,7 @@ fn test_batch_verify_wrong_params() {
         key.public_address(),
     );
 
-    let mut proposed_transaction1 = ProposedTransaction::new(key, TransactionVersion::latest());
+    let mut proposed_transaction1 = ProposedTransaction::new(TransactionVersion::latest());
 
     proposed_transaction1.add_spend(in_note, &witness).unwrap();
     proposed_transaction1.add_output(out_note).unwrap();
@@ -473,14 +526,13 @@ fn test_batch_verify_wrong_params() {
         .unwrap();
 
     let transaction1 = proposed_transaction1
-        .post(None, 1)
+        .post(&key, None, 1)
         .expect("should be able to post transaction");
 
-    let mut proposed_transaction2 =
-        ProposedTransaction::new(other_key, TransactionVersion::latest());
+    let mut proposed_transaction2 = ProposedTransaction::new(TransactionVersion::latest());
     proposed_transaction2.add_mint(asset2, 5).unwrap();
 
-    let transaction2 = proposed_transaction2.post(None, 0).unwrap();
+    let transaction2 = proposed_transaction2.post(&other_key, None, 0).unwrap();
     //
     // END TRANSACTION CREATION
     //
@@ -555,7 +607,7 @@ fn test_batch_verify() {
         key.public_address(),
     );
 
-    let mut proposed_transaction1 = ProposedTransaction::new(key, TransactionVersion::latest());
+    let mut proposed_transaction1 = ProposedTransaction::new(TransactionVersion::latest());
 
     proposed_transaction1.add_spend(in_note, &witness).unwrap();
     proposed_transaction1.add_output(out_note).unwrap();
@@ -568,14 +620,13 @@ fn test_batch_verify() {
         .unwrap();
 
     let mut transaction1 = proposed_transaction1
-        .post(None, 1)
+        .post(&key, None, 1)
         .expect("should be able to post transaction");
 
-    let mut proposed_transaction2 =
-        ProposedTransaction::new(other_key, TransactionVersion::latest());
+    let mut proposed_transaction2 = ProposedTransaction::new(TransactionVersion::latest());
     proposed_transaction2.add_mint(asset2, 5).unwrap();
 
-    let transaction2 = proposed_transaction2.post(None, 0).unwrap();
+    let transaction2 = proposed_transaction2.post(&other_key, None, 0).unwrap();
 
     batch_verify_transactions([&transaction1, &transaction2])
         .expect("should be able to verify transaction");

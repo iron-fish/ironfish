@@ -21,7 +21,7 @@ describe('poolDatabase', () => {
     const fileSystem = new NodeFileProvider()
     await fileSystem.init()
     // TODO(mat): It would be convenient if we didn't need a filesystem for Config for tests
-    const config = new Config(fileSystem, dataDir)
+    const config = new Config(fileSystem, dataDir, {})
 
     db = await PoolDatabase.init({
       config,

@@ -15,6 +15,7 @@ import { IronfishCommand } from '../../command'
 import { HexFlag, IronFlag, RemoteFlags } from '../../flags'
 import { selectAsset } from '../../utils/asset'
 import { promptCurrency } from '../../utils/currency'
+import { getExplorer } from '../../utils/explorer'
 import { selectFee } from '../../utils/fees'
 import { displayTransactionSummary, watchTransaction } from '../../utils/transaction'
 
@@ -254,11 +255,15 @@ export class Send extends IronfishCommand {
     this.log(`Hash: ${transaction.hash().toString('hex')}`)
     this.log(`Fee: ${CurrencyUtils.renderIron(transaction.fee(), true)}`)
     this.log(`Memo: ${memo}`)
-    this.log(
-      `\nIf the transaction is mined, it will appear here https://explorer.ironfish.network/transaction/${transaction
-        .hash()
-        .toString('hex')}`,
+
+    const networkId = (await client.chain.getNetworkInfo()).content.networkId
+    const transactionUrl = getExplorer(networkId)?.getTransactionUrl(
+      transaction.hash().toString('hex'),
     )
+
+    if (transactionUrl) {
+      this.log(`\nIf the transaction is mined, it will appear here: ${transactionUrl}`)
+    }
 
     if (flags.watch) {
       this.log('')

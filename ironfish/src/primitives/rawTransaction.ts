@@ -117,7 +117,7 @@ export class RawTransaction {
   }
 
   post(spendingKey: string): Transaction {
-    const builder = new NativeTransaction(spendingKey, this.version)
+    const builder = new NativeTransaction(this.version)
     for (const spend of this.spends) {
       builder.spend(spend.note.takeReference(), spend.witness)
       spend.note.returnReference()
@@ -157,7 +157,7 @@ export class RawTransaction {
       builder.setExpiration(this.expiration)
     }
 
-    const serialized = builder.post(null, this.fee)
+    const serialized = builder.post(spendingKey, null, this.fee)
     const posted = new Transaction(serialized)
 
     return posted

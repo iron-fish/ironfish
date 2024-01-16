@@ -21,7 +21,7 @@ import { FullNode } from '../node'
 import { IronfishPKG } from '../package'
 import { Platform } from '../platform'
 import { GENESIS_BLOCK_SEQUENCE, Transaction } from '../primitives'
-import { Block, CompactBlock } from '../primitives/block'
+import { Block, CompactBlock, RawBlock } from '../primitives/block'
 import { BlockHash, BlockHeader } from '../primitives/blockheader'
 import { TransactionHash } from '../primitives/transaction'
 import { Telemetry } from '../telemetry'
@@ -614,7 +614,11 @@ export class PeerNetwork {
       throw new Error(`Invalid GetBlockHeadersResponse: ${message.displayType()}`)
     }
 
-    return { headers: response.headers, time: BenchUtils.end(begin) }
+    const headers = response.headers.map((rawHeader) =>
+      this.chain.strategy.newBlockHeader(rawHeader),
+    )
+
+    return { headers, time: BenchUtils.end(begin) }
   }
 
   async getBlocks(
@@ -634,7 +638,10 @@ export class PeerNetwork {
 
     const exceededSoftLimit = response.getSize() >= SOFT_MAX_MESSAGE_SIZE
     const isMessageFull = exceededSoftLimit || response.blocks.length >= limit
-    return { blocks: response.blocks, time: BenchUtils.end(begin), isMessageFull }
+
+    const blocks = response.blocks.map((rawBlock) => this.chain.strategy.newBlock(rawBlock))
+
+    return { blocks, time: BenchUtils.end(begin), isMessageFull }
   }
 
   private async handleMessage(peer: Peer, message: NetworkMessage): Promise<void> {
@@ -782,15 +789,20 @@ export class PeerNetwork {
       return
     }
 
+    const header = this.chain.strategy.newBlockHeader(compactBlock.header)
+
     // mark the block as received in the block fetcher and decide whether to continue
     // to validate this compact block or not
-    const shouldProcess = this.blockFetcher.receivedCompactBlock(compactBlock, peer)
+    const shouldProcess = this.blockFetcher.receivedCompactBlock(
+      header.hash,
+      compactBlock,
+      peer,
+    )
     if (!shouldProcess) {
       return
     }
 
     // verify the header
-    const header = compactBlock.header
     if (header.sequence === GENESIS_BLOCK_SEQUENCE) {
       this.chain.addInvalid(header.hash, VerificationResultReason.GOSSIPED_GENESIS_BLOCK)
       this.blockFetcher.removeBlock(header.hash)
@@ -880,7 +892,7 @@ export class PeerNetwork {
       partial.type === 'FULL' && fullTransactions.push(partial.value)
     }
 
-    const fullBlock = new Block(compactBlock.header, fullTransactions)
+    const fullBlock = new Block(header, fullTransactions)
     await this.onNewFullBlock(peer, fullBlock, prevHeader)
   }
 
@@ -1158,10 +1170,12 @@ export class PeerNetwork {
     return new GetCompactBlockResponse(block.toCompactBlock(), message.rpcId)
   }
 
-  private async handleRequestedBlock(peer: Peer, block: Block) {
+  private async handleRequestedBlock(peer: Peer, rawBlock: RawBlock) {
     if (!this.shouldProcessNewBlocks()) {
       return
     }
+
+    const block = this.chain.strategy.newBlock(rawBlock)
 
     if (await this.alreadyHaveBlock(block.header)) {
       return

@@ -4,4 +4,4 @@
 
 export { Discord } from './discord'
 export { Lark } from './lark'
-export { WebhookNotifier } from './webhookNotifier'
+export { Explorer, WebhookNotifier } from './webhookNotifier'

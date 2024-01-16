@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { BlockHeader, Target } from '../../primitives'
+import { Target } from '../../primitives'
 import { CompactBlock } from '../../primitives/block'
 import {
   createNodeTest,
@@ -33,16 +33,16 @@ describe('GetCompactBlockResponse', () => {
     const transactionB = await useMinersTxFixture(nodeTest.node, account)
 
     const compactBlock: CompactBlock = {
-      header: new BlockHeader(
-        2,
-        Buffer.alloc(32, 2),
-        Buffer.alloc(32, 1),
-        Buffer.alloc(32, 2),
-        new Target(12),
-        BigInt(1),
-        new Date(200000),
-        Buffer.alloc(32, 'graffiti1', 'utf8'),
-      ),
+      header: nodeTest.strategy.newBlockHeader({
+        sequence: 2,
+        previousBlockHash: Buffer.alloc(32, 2),
+        noteCommitment: Buffer.alloc(32, 1),
+        transactionCommitment: Buffer.alloc(32, 2),
+        target: new Target(12),
+        randomness: BigInt(1),
+        timestamp: new Date(200000),
+        graffiti: Buffer.alloc(32, 'graffiti1', 'utf8'),
+      }),
       transactions: [
         { transaction: transactionA, index: 0 },
         { transaction: transactionB, index: 2 },

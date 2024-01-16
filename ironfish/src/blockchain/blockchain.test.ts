@@ -435,7 +435,13 @@ describe('Blockchain', () => {
     const genesis = nodeTest.chain.genesis
     expect(node.chain.head?.hash).toEqualBuffer(genesis.hash)
 
-    blockB3.header.noteCommitment = Buffer.alloc(32)
+    const blockB3Invalid = nodeTest.strategy.newBlock({
+      header: {
+        ...blockB3.header,
+        noteCommitment: Buffer.alloc(32),
+      },
+      transactions: blockB3.transactions,
+    })
 
     await expect(node.chain).toAddBlock(blockA1)
     expect(node.chain.head?.hash).toEqualBuffer(blockA1.header.hash)
@@ -446,7 +452,7 @@ describe('Blockchain', () => {
     await expect(node.chain).toAddBlock(blockB2)
 
     // Should not add blockB3
-    const { isAdded, reason } = await node.chain.addBlock(blockB3)
+    const { isAdded, reason } = await node.chain.addBlock(blockB3Invalid)
     expect(isAdded).toBe(false)
     expect(reason).toBe(VerificationResultReason.NOTE_COMMITMENT)
 
@@ -725,24 +731,32 @@ describe('Blockchain', () => {
       valid: true,
     })
 
-    block.header.timestamp = new Date(0)
+    const invalidBlock = nodeTest.strategy.newBlock({
+      header: {
+        ...block.header,
+        timestamp: new Date(0),
+      },
+      transactions: block.transactions,
+    })
 
-    result = await node.chain.verifier.verifyBlockAdd(block, node.chain.genesis)
+    result = await node.chain.verifier.verifyBlockAdd(invalidBlock, node.chain.genesis)
     expect(result).toMatchObject({
       valid: false,
       reason: VerificationResultReason.BLOCK_TOO_OLD,
     })
 
-    expect(node.chain.isInvalid(block.header)).toBe(null)
+    expect(node.chain.isInvalid(invalidBlock.header)).toBe(null)
 
-    await expect(node.chain.addBlock(block)).resolves.toMatchObject({
+    await expect(node.chain.addBlock(invalidBlock)).resolves.toMatchObject({
       isAdded: false,
       reason: VerificationResultReason.BLOCK_TOO_OLD,
     })
 
-    expect(node.chain.isInvalid(block.header)).toBe(VerificationResultReason.BLOCK_TOO_OLD)
+    expect(node.chain.isInvalid(invalidBlock.header)).toBe(
+      VerificationResultReason.BLOCK_TOO_OLD,
+    )
 
-    await expect(node.chain.addBlock(block)).resolves.toMatchObject({
+    await expect(node.chain.addBlock(invalidBlock)).resolves.toMatchObject({
       isAdded: false,
       reason: VerificationResultReason.BLOCK_TOO_OLD,
     })

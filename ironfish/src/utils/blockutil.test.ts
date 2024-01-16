@@ -68,7 +68,10 @@ describe('BlockchainUtils', () => {
       [{ start: 3.14, stop: 6.28 }, 3, 6],
       [{ start: 6.28, stop: 3.14 }, 6, 6],
     ])('%o returns %d %d', (param, expectedStart, expectedStop) => {
-      nodeTest.chain.latest.sequence = 10000
+      nodeTest.chain.latest = nodeTest.strategy.newBlockHeader({
+        ...nodeTest.chain.latest,
+        sequence: 10000,
+      })
 
       const { start, stop } = getBlockRange(nodeTest.chain, param)
       expect(start).toEqual(expectedStart)
@@ -76,7 +79,10 @@ describe('BlockchainUtils', () => {
     })
 
     it('{ start: null, stop: 6000 } returns 1 6000', () => {
-      nodeTest.chain.latest.sequence = 10000
+      nodeTest.chain.latest = nodeTest.strategy.newBlockHeader({
+        ...nodeTest.chain.latest,
+        sequence: 10000,
+      })
 
       const { start, stop } = getBlockRange(nodeTest.chain, { start: null, stop: 6000 })
       expect(start).toEqual(1)
@@ -84,7 +90,10 @@ describe('BlockchainUtils', () => {
     })
 
     it('{ start: 6000, stop: null } returns 6000 10000', () => {
-      nodeTest.chain.latest.sequence = 10000
+      nodeTest.chain.latest = nodeTest.strategy.newBlockHeader({
+        ...nodeTest.chain.latest,
+        sequence: 10000,
+      })
 
       const { start, stop } = getBlockRange(nodeTest.chain, { start: 6000, stop: null })
       expect(start).toEqual(6000)

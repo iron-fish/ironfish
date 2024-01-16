@@ -13,6 +13,7 @@ use ironfish_zkp::{
     constants::SPENDING_KEY_GENERATOR,
     proofs::MintAsset,
     redjubjub::{self, Signature},
+    ProofGenerationKey,
 };
 use jubjub::ExtendedPoint;
 use rand::thread_rng;
@@ -21,6 +22,7 @@ use crate::{
     assets::asset::Asset,
     errors::{IronfishError, IronfishErrorKind},
     sapling_bls12::SAPLING,
+    serializing::read_scalar,
     transaction::TransactionVersion,
     PublicAddress, SaplingKey,
 };
@@ -57,12 +59,13 @@ impl MintBuilder {
 
     pub fn build(
         &self,
-        spender_key: &SaplingKey,
+        proof_generation_key: &ProofGenerationKey,
+        public_address: &PublicAddress,
         public_key_randomness: &jubjub::Fr,
         randomized_public_key: &redjubjub::PublicKey,
     ) -> Result<UnsignedMintDescription, IronfishError> {
         let circuit = MintAsset {
-            proof_generation_key: Some(spender_key.sapling_proof_generation_key()),
+            proof_generation_key: Some(proof_generation_key.clone()),
             public_key_randomness: Some(*public_key_randomness),
         };
 
@@ -77,7 +80,7 @@ impl MintBuilder {
             proof,
             asset: self.asset,
             value: self.value,
-            owner: spender_key.public_address(),
+            owner: *public_address,
             transfer_ownership_to: self.transfer_ownership_to,
             authorizing_signature: blank_signature,
         };
@@ -98,6 +101,7 @@ impl MintBuilder {
 /// The publicly visible values of a mint description in a transaction.
 /// These fields get serialized when computing the transaction hash and are used
 /// to prove that the creator has knowledge of these values.
+#[derive(Clone)]
 pub struct UnsignedMintDescription {
     /// Used to add randomness to signature generation. Referred to as `ar` in
     /// the literature.
@@ -143,6 +147,35 @@ impl UnsignedMintDescription {
         );
 
         Ok(self.description)
+    }
+
+    pub fn add_signature(mut self, signature: Signature) -> MintDescription {
+        self.description.authorizing_signature = signature;
+        self.description
+    }
+
+    pub fn read<R: io::Read>(
+        mut reader: R,
+        version: TransactionVersion,
+    ) -> Result<Self, IronfishError> {
+        let public_key_randomness = read_scalar(&mut reader)?;
+        let description = MintDescription::read(&mut reader, version)?;
+
+        Ok(UnsignedMintDescription {
+            public_key_randomness,
+            description,
+        })
+    }
+
+    pub fn write<W: io::Write>(
+        &self,
+        mut writer: W,
+        version: TransactionVersion,
+    ) -> Result<(), IronfishError> {
+        writer.write_all(&self.public_key_randomness.to_bytes())?;
+        self.description.write(&mut writer, version)?;
+
+        Ok(())
     }
 }
 
@@ -328,7 +361,7 @@ impl MintDescription {
 mod test {
     use ff::Field;
     use ironfish_zkp::{constants::SPENDING_KEY_GENERATOR, redjubjub};
-    use rand::thread_rng;
+    use rand::{random, thread_rng};
 
     use crate::{
         assets::asset::Asset,
@@ -360,7 +393,12 @@ mod test {
 
         let mint = MintBuilder::new(asset, value);
         let unsigned_mint = mint
-            .build(&key, &public_key_randomness, &randomized_public_key)
+            .build(
+                &key.sapling_proof_generation_key(),
+                &key.public_address(),
+                &public_key_randomness,
+                &randomized_public_key,
+            )
             .expect("should build valid mint description");
 
         // Signature comes from the transaction, normally
@@ -417,7 +455,7 @@ mod test {
         let mint = MintBuilder::new(asset, value);
 
         assert!(matches!(
-            mint.build(&owner_key, &public_key_randomness, &randomized_public_key),
+            mint.build(&owner_key.sapling_proof_generation_key(), &owner_key.public_address(), &public_key_randomness, &randomized_public_key),
             Err(e) if matches!(e.kind, IronfishErrorKind::InvalidMintProof)
         ))
     }
@@ -523,7 +561,12 @@ mod test {
             .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);
 
         let unsigned_mint = mint
-            .build(key, &public_key_randomness, &randomized_public_key)
+            .build(
+                &key.sapling_proof_generation_key(),
+                &key.public_address(),
+                &public_key_randomness,
+                &randomized_public_key,
+            )
             .expect("should build valid mint description");
 
         // Signature comes from the transaction, normally
@@ -624,7 +667,40 @@ mod test {
             value,
         );
 
-        let unsigned_mint = mint.build(&key, &public_key_randomness, &randomized_public_key);
+        let unsigned_mint = mint.build(
+            &key.sapling_proof_generation_key(),
+            &key.public_address(),
+            &public_key_randomness,
+            &randomized_public_key,
+        );
         assert!(unsigned_mint.is_err());
+    }
+
+    #[test]
+    fn test_add_signature() {
+        let key = SaplingKey::generate_key();
+        let public_address = key.public_address();
+
+        let asset = Asset::new(public_address, "name", "").expect("should be able to create asset");
+        let public_key_randomness = jubjub::Fr::random(thread_rng());
+        let randomized_public_key = redjubjub::PublicKey(key.view_key.authorizing_key.into())
+            .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);
+        let value = random();
+        let builder = MintBuilder::new(asset, value);
+        // create a random private key and sign random message as placeholder
+        let private_key = redjubjub::PrivateKey(jubjub::Fr::random(thread_rng()));
+        let public_key = redjubjub::PublicKey::from_private(&private_key, *SPENDING_KEY_GENERATOR);
+        let msg = [0u8; 32];
+        let signature = private_key.sign(&msg, &mut thread_rng(), *SPENDING_KEY_GENERATOR);
+        let unsigned_spend_description = builder
+            .build(
+                &key.sapling_proof_generation_key(),
+                &key.public_address(),
+                &public_key_randomness,
+                &randomized_public_key,
+            )
+            .expect("should be able to build proof");
+        unsigned_spend_description.add_signature(signature);
+        assert!(public_key.verify(&msg, &signature, *SPENDING_KEY_GENERATOR))
     }
 }

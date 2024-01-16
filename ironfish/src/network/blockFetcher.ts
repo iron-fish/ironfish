@@ -189,8 +189,7 @@ export class BlockFetcher {
    * but has not yet been processed (validated, assembled into a full
    * block, etc.) Returns true if the caller (PeerNetwork) should continue
    * processing this compact block or not */
-  receivedCompactBlock(compactBlock: CompactBlock, peer: Peer): boolean {
-    const hash = compactBlock.header.hash
+  receivedCompactBlock(hash: BlockHash, compactBlock: CompactBlock, peer: Peer): boolean {
     const currentState = this.pending.get(hash)
 
     // If the peer is not connected or identified, ignore them

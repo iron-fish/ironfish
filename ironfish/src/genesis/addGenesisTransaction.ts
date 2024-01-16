@@ -9,7 +9,7 @@ import {
 } from '@ironfish/rust-nodejs'
 import { Logger } from '../logger'
 import { FullNode } from '../node'
-import { Block, BlockHeader } from '../primitives'
+import { Block } from '../primitives'
 import { transactionCommitment } from '../primitives/blockheader'
 import { Transaction, TransactionVersion } from '../primitives/transaction'
 import { CurrencyUtils } from '../utils'
@@ -88,7 +88,7 @@ export async function addGenesisTransaction(
   }
 
   // Create the new transaction to be appended to the new genesis block
-  const transaction = new NativeTransaction(account.spendingKey, TransactionVersion.V2)
+  const transaction = new NativeTransaction(TransactionVersion.V2)
   logger.info(`  Generating a spend for ${allocationSumInIron} coins...`)
   transaction.spend(note, witness)
 
@@ -109,7 +109,9 @@ export async function addGenesisTransaction(
   }
 
   logger.info('  Posting the transaction...')
-  const postedTransaction = new Transaction(transaction.post(undefined, BigInt(0)))
+  const postedTransaction = new Transaction(
+    transaction.post(account.spendingKey, undefined, BigInt(0)),
+  )
 
   logger.info('Creating the modified genesis block...')
   // Get the existing genesis block
@@ -127,17 +129,19 @@ export async function addGenesisTransaction(
   // Generate a new block header for the new genesis block
   const noteCommitment = await node.chain.notes.rootHash()
   const noteSize = await node.chain.notes.size()
-  const newGenesisHeader = new BlockHeader(
-    1,
-    genesisBlock.header.previousBlockHash,
+
+  const rawHeader = {
+    sequence: 1,
+    previousBlockHash: genesisBlock.header.previousBlockHash,
     noteCommitment,
-    transactionCommitment(genesisBlock.transactions),
-    genesisBlock.header.target,
-    genesisBlock.header.randomness,
-    genesisBlock.header.timestamp,
-    genesisBlock.header.graffiti,
-    noteSize,
-  )
+    transactionCommitment: transactionCommitment(genesisBlock.transactions),
+    target: genesisBlock.header.target,
+    randomness: genesisBlock.header.randomness,
+    timestamp: genesisBlock.header.timestamp,
+    graffiti: genesisBlock.header.graffiti,
+  }
+
+  const newGenesisHeader = node.chain.strategy.newBlockHeader(rawHeader, noteSize)
 
   genesisBlock.header = newGenesisHeader
 

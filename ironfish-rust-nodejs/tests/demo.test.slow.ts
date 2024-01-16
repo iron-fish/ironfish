@@ -58,11 +58,11 @@ describe('Demonstrate the Sapling API', () => {
   it(`Should create a miner's fee transaction`, () => {
     const key = generateKey()
 
-    const transaction = new Transaction(key.spendingKey, LATEST_TRANSACTION_VERSION)
+    const transaction = new Transaction(LATEST_TRANSACTION_VERSION)
     const note = new Note(key.publicAddress, 20n, 'test', Asset.nativeId(), key.publicAddress)
     transaction.output(note)
 
-    const serializedPostedTransaction = transaction.post_miners_fee()
+    const serializedPostedTransaction = transaction.post_miners_fee(key.spendingKey)
     const postedTransaction = new TransactionPosted(serializedPostedTransaction)
 
     expect(postedTransaction.fee()).toEqual(-20n)
@@ -95,13 +95,13 @@ describe('Demonstrate the Sapling API', () => {
     const key = generateKey()
     const recipientKey = generateKey()
 
-    const minersFeeTransaction = new Transaction(key.spendingKey, LATEST_TRANSACTION_VERSION)
+    const minersFeeTransaction = new Transaction(LATEST_TRANSACTION_VERSION)
     const minersFeeNote = new Note(key.publicAddress, 20n, 'miner', Asset.nativeId(), key.publicAddress)
     minersFeeTransaction.output(minersFeeNote)
 
-    const postedMinersFeeTransaction = new TransactionPosted(minersFeeTransaction.post_miners_fee())
+    const postedMinersFeeTransaction = new TransactionPosted(minersFeeTransaction.post_miners_fee(key.spendingKey))
 
-    const transaction = new Transaction(key.spendingKey, LATEST_TRANSACTION_VERSION)
+    const transaction = new Transaction(LATEST_TRANSACTION_VERSION)
     transaction.setExpiration(10)
     const encryptedNote = new NoteEncrypted(postedMinersFeeTransaction.getNote(0))
     const decryptedNote = Note.deserialize(encryptedNote.decryptNoteForOwner(key.incomingViewKey)!)
@@ -128,7 +128,7 @@ describe('Demonstrate the Sapling API', () => {
     transaction.spend(decryptedNote, witness)
     transaction.output(newNote)
 
-    const postedTransaction = new TransactionPosted(transaction.post(key.publicAddress, 5n))
+    const postedTransaction = new TransactionPosted(transaction.post(key.spendingKey, key.publicAddress, 5n))
 
     expect(postedTransaction.expiration()).toEqual(10)
     expect(postedTransaction.fee()).toEqual(5n)

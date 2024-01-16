@@ -22,7 +22,7 @@ import { MiningStatusMessage } from './stratum/messages'
 import { StratumServer } from './stratum/stratumServer'
 import { StratumServerClient } from './stratum/stratumServerClient'
 import { mineableHeaderString } from './utils'
-import { WebhookNotifier } from './webhooks'
+import { Explorer, WebhookNotifier } from './webhooks'
 
 const RECALCULATE_TARGET_TIMEOUT = 10000
 const EVENT_LOOP_MS = 10 * 1000
@@ -59,6 +59,8 @@ export class MiningPool {
   private recalculateTargetInterval: SetIntervalToken | null
   private notifyStatusInterval: SetIntervalToken | null
 
+  private getExplorer: (networkId: number) => Explorer | null = () => null
+
   private constructor(options: {
     rpc: RpcSocketClient
     shares: MiningPoolShares
@@ -66,6 +68,7 @@ export class MiningPool {
     logger: Logger
     webhooks?: WebhookNotifier[]
     banning?: boolean
+    getExplorer?: (networkId: number) => Explorer | null
   }) {
     this.rpc = options.rpc
     this.logger = options.logger
@@ -98,6 +101,8 @@ export class MiningPool {
 
     this.recalculateTargetInterval = null
     this.notifyStatusInterval = null
+
+    this.getExplorer = options.getExplorer ?? this.getExplorer
   }
 
   static async init(options: {
@@ -111,6 +116,7 @@ export class MiningPool {
     banning?: boolean
     tls?: boolean
     tlsOptions?: tls.TlsOptions
+    getExplorer?: (networkId: number) => Explorer | null
   }): Promise<MiningPool> {
     const shares = await MiningPoolShares.init({
       rpc: options.rpc,
@@ -127,6 +133,7 @@ export class MiningPool {
       webhooks: options.webhooks,
       shares,
       banning: options.banning,
+      getExplorer: options.getExplorer,
     })
 
     if (options.tls) {
@@ -345,7 +352,10 @@ export class MiningPool {
     }
 
     if (connected) {
-      this.webhooks.map((w) => w.poolConnected())
+      const networkResponse = await this.rpc.chain.getNetworkInfo()
+      const explorer = this.getExplorer(networkResponse.content.networkId)
+
+      this.webhooks.map((w) => w.poolConnected(explorer ?? undefined))
     }
 
     this.connectWarned = false

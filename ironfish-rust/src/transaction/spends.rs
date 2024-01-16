@@ -10,6 +10,7 @@ use crate::{
     sapling_bls12::SAPLING,
     serializing::{read_point, read_scalar},
     witness::WitnessTrait,
+    ViewKey,
 };
 
 use bellperson::gadgets::multipack;
@@ -23,7 +24,7 @@ use ironfish_zkp::{
     primitives::ValueCommitment,
     proofs::Spend,
     redjubjub::{self, Signature},
-    Nullifier,
+    Nullifier, ProofGenerationKey,
 };
 use jubjub::ExtendedPoint;
 use rand::thread_rng;
@@ -90,7 +91,8 @@ impl SpendBuilder {
     /// transactions
     pub(crate) fn build(
         &self,
-        spender_key: &SaplingKey,
+        proof_generation_key: &ProofGenerationKey,
+        view_key: &ViewKey,
         public_key_randomness: &jubjub::Fr,
         randomized_public_key: &redjubjub::PublicKey,
     ) -> Result<UnsignedSpendDescription, IronfishError> {
@@ -98,7 +100,7 @@ impl SpendBuilder {
 
         let circuit = Spend {
             value_commitment: Some(self.value_commitment.clone()),
-            proof_generation_key: Some(spender_key.sapling_proof_generation_key()),
+            proof_generation_key: Some(proof_generation_key.clone()),
             payment_address: Some(self.note.owner.0),
             auth_path: self.auth_path.clone(),
             commitment_randomness: Some(self.note.randomness),
@@ -114,9 +116,7 @@ impl SpendBuilder {
 
         // Bytes to be placed into the nullifier set to verify whether this note
         // has been previously spent.
-        let nullifier = self
-            .note
-            .nullifier(&spender_key.view_key, self.witness_position);
+        let nullifier = self.note.nullifier(view_key, self.witness_position);
 
         let blank_signature = {
             let buf = [0u8; 64];
@@ -145,6 +145,7 @@ impl SpendBuilder {
     }
 }
 
+#[derive(Clone)]
 pub struct UnsignedSpendDescription {
     /// Used to add randomness to signature generation without leaking the
     /// key. Referred to as `ar` in the literature.
@@ -191,6 +192,28 @@ impl UnsignedSpendDescription {
         );
 
         Ok(self.description)
+    }
+
+    pub fn add_signature(mut self, signature: Signature) -> SpendDescription {
+        self.description.authorizing_signature = signature;
+        self.description
+    }
+
+    pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
+        let public_key_randomness = read_scalar(&mut reader)?;
+        let description = SpendDescription::read(&mut reader)?;
+
+        Ok(UnsignedSpendDescription {
+            public_key_randomness,
+            description,
+        })
+    }
+
+    pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
+        writer.write_all(&self.public_key_randomness.to_bytes())?;
+        self.description.write(&mut writer)?;
+
+        Ok(())
     }
 }
 
@@ -391,7 +414,7 @@ mod test {
     use ff::Field;
     use group::Curve;
     use ironfish_zkp::constants::SPENDING_KEY_GENERATOR;
-    use ironfish_zkp::redjubjub;
+    use ironfish_zkp::redjubjub::{self, PrivateKey, PublicKey};
     use rand::prelude::*;
     use rand::{thread_rng, Rng};
 
@@ -428,7 +451,12 @@ mod test {
         thread_rng().fill(&mut sig_hash[..]);
 
         let unsigned_proof = spend
-            .build(&key, &public_key_randomness, &randomized_public_key)
+            .build(
+                &key.sapling_proof_generation_key(),
+                key.view_key(),
+                &public_key_randomness,
+                &randomized_public_key,
+            )
             .expect("should be able to build proof");
 
         verify_spend_proof(
@@ -441,17 +469,32 @@ mod test {
 
         // Wrong spender key
         assert!(spend
-            .build(&sender_key, &public_key_randomness, &randomized_public_key)
+            .build(
+                &sender_key.sapling_proof_generation_key(),
+                sender_key.view_key(),
+                &public_key_randomness,
+                &randomized_public_key
+            )
             .is_err());
 
         // Wrong public key randomness
         assert!(spend
-            .build(&key, &other_public_key_randomness, &randomized_public_key)
+            .build(
+                &key.sapling_proof_generation_key(),
+                key.view_key(),
+                &other_public_key_randomness,
+                &randomized_public_key
+            )
             .is_err());
 
         // Wrong randomized public key
         assert!(spend
-            .build(&key, &public_key_randomness, &other_randomized_public_key)
+            .build(
+                &key.sapling_proof_generation_key(),
+                key.view_key(),
+                &public_key_randomness,
+                &other_randomized_public_key
+            )
             .is_err());
 
         assert!(verify_spend_proof(
@@ -491,7 +534,12 @@ mod test {
         thread_rng().fill(&mut sig_hash[..]);
 
         let unsigned_proof = spend
-            .build(&key, &public_key_randomness, &randomized_public_key)
+            .build(
+                &key.sapling_proof_generation_key(),
+                key.view_key(),
+                &public_key_randomness,
+                &randomized_public_key,
+            )
             .expect("should be able to build proof");
         let proof = unsigned_proof
             .sign(&key, &sig_hash)
@@ -535,5 +583,43 @@ mod test {
             .write(&mut serialized_again)
             .expect("should be able to serialize proof again");
         assert_eq!(serialized_proof, serialized_again);
+    }
+
+    #[test]
+    fn test_add_signature() {
+        let key = SaplingKey::generate_key();
+        let public_address = key.public_address();
+        let sender_key = SaplingKey::generate_key();
+
+        let note_randomness = random();
+
+        let note = Note::new(
+            public_address,
+            note_randomness,
+            "",
+            NATIVE_ASSET,
+            sender_key.public_address(),
+        );
+        let witness = make_fake_witness(&note);
+        let public_key_randomness = jubjub::Fr::random(thread_rng());
+        let randomized_public_key = redjubjub::PublicKey(key.view_key.authorizing_key.into())
+            .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);
+
+        let builder = SpendBuilder::new(note, &witness);
+        // create a random private key and sign random message as placeholder
+        let private_key = PrivateKey(jubjub::Fr::random(thread_rng()));
+        let public_key = PublicKey::from_private(&private_key, *SPENDING_KEY_GENERATOR);
+        let msg = [0u8; 32];
+        let signature = private_key.sign(&msg, &mut thread_rng(), *SPENDING_KEY_GENERATOR);
+        let unsigned_spend_description = builder
+            .build(
+                &key.sapling_proof_generation_key(),
+                key.view_key(),
+                &public_key_randomness,
+                &randomized_public_key,
+            )
+            .expect("should be able to build proof");
+        unsigned_spend_description.add_signature(signature);
+        assert!(public_key.verify(&msg, &signature, *SPENDING_KEY_GENERATOR))
     }
 }

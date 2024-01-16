@@ -4,7 +4,13 @@
 
 import { zip } from 'lodash'
 import { Assert } from '../assert'
-import { BlockHeader, BlockHeaderSerde, SerializedBlockHeader } from './blockheader'
+import { Strategy } from '../strategy'
+import {
+  BlockHeader,
+  BlockHeaderSerde,
+  RawBlockHeader,
+  SerializedBlockHeader,
+} from './blockheader'
 import { MintDescription } from './mintDescription'
 import { NoteEncrypted, NoteEncryptedHash } from './noteEncrypted'
 import { Nullifier } from './nullifier'
@@ -119,7 +125,7 @@ export class Block {
   }
 
   toCompactBlock(): CompactBlock {
-    const header = this.header
+    const header = this.header.toRaw()
 
     const [minersFee, ...transactions] = this.transactions
     const transactionHashes = transactions.map((t) => t.hash())
@@ -143,9 +149,14 @@ export type CompactBlockTransaction = {
 }
 
 export type CompactBlock = {
-  header: BlockHeader
+  header: RawBlockHeader
   transactionHashes: Buffer[]
   transactions: CompactBlockTransaction[]
+}
+
+export type RawBlock = {
+  header: RawBlockHeader
+  transactions: Transaction[]
 }
 
 export type SerializedBlock = {
@@ -163,7 +174,7 @@ export class BlockSerde {
     }
   }
 
-  static deserialize(data: SerializedBlock): Block {
+  static deserialize(data: SerializedBlock, strategy: Strategy): Block {
     if (
       typeof data === 'object' &&
       data !== null &&
@@ -171,7 +182,7 @@ export class BlockSerde {
       'transactions' in data &&
       Array.isArray(data.transactions)
     ) {
-      const header = BlockHeaderSerde.deserialize(data.header)
+      const header = BlockHeaderSerde.deserialize(data.header, strategy)
       const transactions = data.transactions.map((t) => new Transaction(t))
       return new Block(header, transactions)
     }

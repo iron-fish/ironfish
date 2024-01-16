@@ -20,6 +20,7 @@ import inquirer from 'inquirer'
 import { IronfishCommand } from '../../../command'
 import { IronFlag, RemoteFlags } from '../../../flags'
 import { ProgressBar } from '../../../types'
+import { getExplorer } from '../../../utils/explorer'
 import { selectFee } from '../../../utils/fees'
 import { displayTransactionSummary, watchTransaction } from '../../../utils/transaction'
 
@@ -432,7 +433,7 @@ export class CombineNotesCommand extends IronfishCommand {
 
     notes = notes.slice(0, numberOfNotes)
 
-    const amount = notes.reduce((acc, note) => acc + BigInt(note.value), 0n)
+    const amountIncludingFees = notes.reduce((acc, note) => acc + BigInt(note.value), 0n)
 
     const memo =
       flags.memo?.trim() ??
@@ -445,7 +446,7 @@ export class CombineNotesCommand extends IronfishCommand {
       outputs: [
         {
           publicAddress: to,
-          amount: CurrencyUtils.encode(amount),
+          amount: CurrencyUtils.encode(amountIncludingFees),
           memo,
         },
       ],
@@ -469,9 +470,21 @@ export class CombineNotesCommand extends IronfishCommand {
       raw = RawTransactionSerde.deserialize(bytes)
     }
 
+    // This allows for a single note output.
+    const amount = amountIncludingFees - raw.fee
+    params.outputs[0].amount = CurrencyUtils.encode(amount)
+    params.fee = CurrencyUtils.encode(raw.fee)
+
+    const createTransactionResponse = await client.wallet.createTransaction(params)
+    const createTransactionBytes = Buffer.from(
+      createTransactionResponse.content.transaction,
+      'hex',
+    )
+    raw = RawTransactionSerde.deserialize(createTransactionBytes)
+
     displayTransactionSummary(raw, Asset.nativeId().toString('hex'), amount, from, to, memo)
 
-    const estimateInMs = Math.ceil(spendPostTime * raw.spends.length)
+    const estimateInMs = Math.max(Math.ceil(spendPostTime * raw.spends.length), 1000)
 
     this.log(
       `Time to send: ${TimeUtils.renderSpan(estimateInMs, {
@@ -534,15 +547,18 @@ export class CombineNotesCommand extends IronfishCommand {
       this.warn(`Transaction '${transaction.hash().toString('hex')}' failed to broadcast`)
     }
 
-    this.log(`Sent ${CurrencyUtils.renderIron(amount, true)} to ${to} from ${from}`)
-    this.log(`Hash: ${transaction.hash().toString('hex')}`)
-    this.log(`Fee: ${CurrencyUtils.renderIron(transaction.fee(), true)}`)
-    this.log(`Memo: ${memo}`)
-    this.log(
-      `\nIf the transaction is mined, it will appear here https://explorer.ironfish.network/transaction/${transaction
-        .hash()
-        .toString('hex')}`,
+    await this.displayCombinedNoteHashes(client, from, transaction)
+
+    this.log(`Transaction hash: ${transaction.hash().toString('hex')}`)
+
+    const networkId = (await client.chain.getNetworkInfo()).content.networkId
+    const transactionUrl = getExplorer(networkId)?.getTransactionUrl(
+      transaction.hash().toString('hex'),
     )
+
+    if (transactionUrl) {
+      this.log(`\nIf the transaction is mined, it will appear here: ${transactionUrl}`)
+    }
 
     if (flags.watch) {
       this.log('')
@@ -553,6 +569,38 @@ export class CombineNotesCommand extends IronfishCommand {
         account: from,
         hash: transaction.hash().toString('hex'),
       })
+    }
+  }
+
+  private async displayCombinedNoteHashes(
+    client: RpcClient,
+    from: string,
+    transaction: Transaction,
+  ) {
+    const resultingNotes = (
+      await client.wallet.getAccountTransaction({
+        account: from,
+        hash: transaction.hash().toString('hex'),
+      })
+    ).content.transaction?.notes
+
+    if (resultingNotes) {
+      this.log('')
+      CliUx.ux.table(resultingNotes, {
+        hash: {
+          header: 'Notes Created',
+          get: (note) => note.noteHash,
+        },
+        value: {
+          header: 'Value',
+          get: (note) => CurrencyUtils.renderIron(note.value, true),
+        },
+        owner: {
+          header: 'Owner',
+          get: (note) => note.owner,
+        },
+      })
+      this.log('')
     }
   }
 }

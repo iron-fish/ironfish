@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import * as yup from 'yup'
 import { CurrencyUtils } from './currency'
 import { YupUtils } from './yup'
 
@@ -39,5 +40,13 @@ describe('YupUtils', () => {
       expect(YupUtils.currency().isValidSync('hello world')).toBe(false)
       expect(YupUtils.currency().isValidSync(0.00046)).toBe(false)
     })
+  })
+
+  it('union', () => {
+    const a = yup.object({ foo: yup.number() }).defined()
+    const b = yup.object({ bar: yup.number() }).defined()
+    const result = YupUtils.union(a, b)
+    expect(result.isValidSync({ foo: 'a', bar: 'b' })).toBe(false)
+    expect(result.isValidSync({ foo: 2, bar: 3 })).toBe(true)
   })
 })

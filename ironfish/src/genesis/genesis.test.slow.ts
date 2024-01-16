@@ -121,7 +121,7 @@ describe('Create genesis block', () => {
 
     // Deserialize the block and add it to the new chain
     const result = IJSON.parse(jsonedBlock) as SerializedBlock
-    const deserializedBlock = BlockSerde.deserialize(result)
+    const deserializedBlock = BlockSerde.deserialize(result, nodeTest.strategy)
     const addedBlock = await newChain.addBlock(deserializedBlock)
     expect(addedBlock.isAdded).toBe(true)
 
@@ -274,7 +274,7 @@ describe('addGenesisTransaction', () => {
 
     // Deserialize the block and add it to the new chain
     const result = IJSON.parse(jsonedBlock) as SerializedBlock
-    const deserializedBlock = BlockSerde.deserialize(result)
+    const deserializedBlock = BlockSerde.deserialize(result, nodeTest.strategy)
     const addedBlock = await chain.addBlock(deserializedBlock)
     expect(addedBlock.isAdded).toBe(true)
 

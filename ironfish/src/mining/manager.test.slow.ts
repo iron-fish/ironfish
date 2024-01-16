@@ -625,8 +625,14 @@ describe('Mining manager', () => {
 
       // Create 2 blocks at the same sequence, one with higher difficulty
       const blockA1 = await useMinerBlockFixture(chain, undefined, account, wallet)
-      const blockB1 = await useMinerBlockFixture(chain, undefined, account, wallet)
-      blockB1.header.target = Target.fromDifficulty(blockA1.header.target.toDifficulty() + 1n)
+      const blockB1Temp = await useMinerBlockFixture(chain, undefined, account, wallet)
+      const blockB1 = nodeTest.strategy.newBlock({
+        header: {
+          ...blockB1Temp.header,
+          target: Target.fromDifficulty(blockA1.header.target.toDifficulty() + 1n),
+        },
+        transactions: blockB1Temp.transactions,
+      })
 
       await expect(chain).toAddBlock(blockA1)
 
@@ -635,8 +641,15 @@ describe('Mining manager', () => {
       await expect(chain).toAddBlock(blockB1)
 
       // Increase difficulty of submitted template so it
-      const blockA2 = BlockTemplateSerde.deserialize(templateA2)
-      blockA2.header.target = Target.fromDifficulty(blockA2.header.target.toDifficulty() + 2n)
+      const blockA2Temp = BlockTemplateSerde.deserialize(templateA2, nodeTest.strategy)
+      const blockA2 = nodeTest.strategy.newBlock({
+        header: {
+          ...blockA2Temp.header,
+          target: Target.fromDifficulty(blockA2Temp.header.target.toDifficulty() + 2n),
+        },
+        transactions: blockA2Temp.transactions,
+      })
+
       const templateToSubmit = BlockTemplateSerde.serialize(blockA2, firstBlock)
 
       // Check that we are submitting a template that does not attack to current head
@@ -667,7 +680,7 @@ describe('Mining manager', () => {
         MINED_RESULT.SUCCESS,
       )
 
-      const submittedBlock = BlockTemplateSerde.deserialize(template)
+      const submittedBlock = BlockTemplateSerde.deserialize(template, nodeTest.strategy)
       const newBlock = onNewBlockSpy.mock.calls[0][0]
       expect(newBlock.header.hash).toEqual(submittedBlock.header.hash)
     })

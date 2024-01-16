@@ -3,10 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Block } from '../primitives/block'
-import { BlockHeader } from '../primitives/blockheader'
 import { NoteEncryptedHashSerde } from '../primitives/noteEncrypted'
 import { Target } from '../primitives/target'
 import { Transaction } from '../primitives/transaction'
+import { Strategy } from '../strategy'
 import { BigIntUtils } from '../utils'
 
 export type SerializedBlockTemplate = {
@@ -54,18 +54,21 @@ export class BlockTemplateSerde {
     }
   }
 
-  static deserialize(blockTemplate: SerializedBlockTemplate): Block {
+  static deserialize(blockTemplate: SerializedBlockTemplate, strategy: Strategy): Block {
     const noteHasher = new NoteEncryptedHashSerde()
-    const header = new BlockHeader(
-      blockTemplate.header.sequence,
-      Buffer.from(blockTemplate.header.previousBlockHash, 'hex'),
-      noteHasher.deserialize(Buffer.from(blockTemplate.header.noteCommitment, 'hex')),
-      Buffer.from(blockTemplate.header.transactionCommitment, 'hex'),
-      new Target(Buffer.from(blockTemplate.header.target, 'hex')),
-      BigIntUtils.fromBytesBE(Buffer.from(blockTemplate.header.randomness, 'hex')),
-      new Date(blockTemplate.header.timestamp),
-      Buffer.from(blockTemplate.header.graffiti, 'hex'),
-    )
+
+    const header = strategy.newBlockHeader({
+      sequence: blockTemplate.header.sequence,
+      previousBlockHash: Buffer.from(blockTemplate.header.previousBlockHash, 'hex'),
+      noteCommitment: noteHasher.deserialize(
+        Buffer.from(blockTemplate.header.noteCommitment, 'hex'),
+      ),
+      transactionCommitment: Buffer.from(blockTemplate.header.transactionCommitment, 'hex'),
+      target: new Target(Buffer.from(blockTemplate.header.target, 'hex')),
+      randomness: BigIntUtils.fromBytesBE(Buffer.from(blockTemplate.header.randomness, 'hex')),
+      timestamp: new Date(blockTemplate.header.timestamp),
+      graffiti: Buffer.from(blockTemplate.header.graffiti, 'hex'),
+    })
 
     const transactions = blockTemplate.transactions.map(
       (t) => new Transaction(Buffer.from(t, 'hex')),

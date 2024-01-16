@@ -197,11 +197,17 @@ describe('Verifier', () => {
 
     it("rejects a block with standard (non-miner's) transaction fee as first transaction", async () => {
       const { block } = await useBlockWithTx(nodeTest.node)
-      block.transactions = [block.transactions[1], block.transactions[0]]
-      block.header.transactionCommitment = transactionCommitment(block.transactions)
-      expect(block.transactions[0].fee()).toBeGreaterThan(0)
 
-      expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
+      const reorderedTransactions = [block.transactions[1], block.transactions[0]]
+      const invalidBlock = nodeTest.strategy.newBlock({
+        header: {
+          ...block.header,
+          transactionCommitment: transactionCommitment(reorderedTransactions),
+        },
+        transactions: reorderedTransactions,
+      })
+
+      expect(await nodeTest.verifier.verifyBlock(invalidBlock)).toMatchObject({
         reason: VerificationResultReason.MINERS_FEE_EXPECTED,
         valid: false,
       })
@@ -210,10 +216,18 @@ describe('Verifier', () => {
     it('rejects a block with miners fee as second transaction', async () => {
       const account = await useAccountFixture(nodeTest.node.wallet, 'accountA')
       const { block } = await useBlockWithTx(nodeTest.node)
-      block.transactions[1] = await useMinersTxFixture(nodeTest.node, account, undefined, 0)
-      block.header.transactionCommitment = transactionCommitment(block.transactions)
+      const minersFee = await useMinersTxFixture(nodeTest.node, account, undefined, 0)
 
-      expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
+      const reorderedTransactions = [block.transactions[0], minersFee]
+      const invalidBlock = nodeTest.strategy.newBlock({
+        header: {
+          ...block.header,
+          transactionCommitment: transactionCommitment(reorderedTransactions),
+        },
+        transactions: reorderedTransactions,
+      })
+
+      expect(await nodeTest.verifier.verifyBlock(invalidBlock)).toMatchObject({
         reason: VerificationResultReason.INVALID_TRANSACTION_FEE,
         valid: false,
       })
@@ -242,10 +256,10 @@ describe('Verifier', () => {
             Asset.nativeId(),
             owner,
           )
-          const transaction = new NativeTransaction(key.spendingKey, LATEST_TRANSACTION_VERSION)
+          const transaction = new NativeTransaction(LATEST_TRANSACTION_VERSION)
           transaction.output(minerNote1)
           transaction.output(minerNote2)
-          return new Transaction(transaction._postMinersFeeUnchecked())
+          return new Transaction(transaction._postMinersFeeUnchecked(key.spendingKey))
         },
         {
           process: async (): Promise<void> => {},
@@ -258,10 +272,15 @@ describe('Verifier', () => {
         },
       )
 
-      minersBlock.transactions[0] = invalidMinersTransaction
-      minersBlock.header.transactionCommitment = transactionCommitment(minersBlock.transactions)
+      const invalidMinersBlock = nodeTest.strategy.newBlock({
+        header: {
+          ...minersBlock.header,
+          transactionCommitment: transactionCommitment([invalidMinersTransaction]),
+        },
+        transactions: [invalidMinersTransaction],
+      })
 
-      expect(await nodeTest.verifier.verifyBlock(minersBlock)).toMatchObject({
+      expect(await nodeTest.verifier.verifyBlock(invalidMinersBlock)).toMatchObject({
         reason: VerificationResultReason.MINERS_FEE_EXPECTED,
         valid: false,
       })
@@ -269,10 +288,16 @@ describe('Verifier', () => {
 
     it('rejects a block with no transactions', async () => {
       const block = await useMinerBlockFixture(nodeTest.node.chain)
-      block.transactions = []
-      block.header.transactionCommitment = transactionCommitment(block.transactions)
 
-      expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
+      const invalidBlock = nodeTest.strategy.newBlock({
+        header: {
+          ...block.header,
+          transactionCommitment: transactionCommitment([]),
+        },
+        transactions: [],
+      })
+
+      expect(await nodeTest.verifier.verifyBlock(invalidBlock)).toMatchObject({
         reason: VerificationResultReason.MINERS_FEE_EXPECTED,
         valid: false,
       })
@@ -281,15 +306,25 @@ describe('Verifier', () => {
     it('rejects block with incorrect fee sum', async () => {
       const account = await useAccountFixture(nodeTest.node.wallet, 'accountA')
       const { block } = await useBlockWithTx(nodeTest.node, account)
-      block.transactions[2] = await usePostTxFixture({
+
+      const extraTransaction = await usePostTxFixture({
         node: nodeTest.node,
         wallet: nodeTest.wallet,
         from: account,
         fee: 1n,
       })
-      block.header.transactionCommitment = transactionCommitment(block.transactions)
 
-      expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
+      const invalidTransactions = [...block.transactions, extraTransaction]
+
+      const invalidBlock = nodeTest.strategy.newBlock({
+        header: {
+          ...block.header,
+          transactionCommitment: transactionCommitment(invalidTransactions),
+        },
+        transactions: invalidTransactions,
+      })
+
+      expect(await nodeTest.verifier.verifyBlock(invalidBlock)).toMatchObject({
         reason: VerificationResultReason.INVALID_MINERS_FEE,
         valid: false,
       })
@@ -484,16 +519,32 @@ describe('Verifier', () => {
     })
 
     it('fails validation if graffiti field is not equal to 32 bytes', () => {
-      header.graffiti = Buffer.alloc(31)
+      const invalidHeader31Byte = new BlockHeader(
+        {
+          ...header,
+          graffiti: Buffer.alloc(31),
+        },
+        header.hash,
+        header.noteSize,
+        header.work,
+      )
 
-      expect(nodeTest.verifier.verifyBlockHeader(header)).toMatchObject({
+      expect(nodeTest.verifier.verifyBlockHeader(invalidHeader31Byte)).toMatchObject({
         reason: VerificationResultReason.GRAFFITI,
         valid: false,
       })
 
-      header.graffiti = Buffer.alloc(33)
+      const invalidHeader33Byte = new BlockHeader(
+        {
+          ...header,
+          graffiti: Buffer.alloc(33),
+        },
+        header.hash,
+        header.noteSize,
+        header.work,
+      )
 
-      expect(nodeTest.verifier.verifyBlockHeader(header)).toMatchObject({
+      expect(nodeTest.verifier.verifyBlockHeader(invalidHeader33Byte)).toMatchObject({
         reason: VerificationResultReason.GRAFFITI,
         valid: false,
       })
@@ -587,10 +638,14 @@ describe('Verifier', () => {
     it('is invalid when the target is wrong', async () => {
       nodeTest.verifier.enableVerifyTarget = true
       const block = await useMinerBlockFixture(nodeTest.chain)
-      block.header.target = Target.minTarget()
+
+      const invalidHeader = nodeTest.strategy.newBlockHeader({
+        ...block.header,
+        target: Target.minTarget(),
+      })
 
       expect(
-        nodeTest.verifier.verifyBlockHeaderContextual(block.header, nodeTest.chain.genesis),
+        nodeTest.verifier.verifyBlockHeaderContextual(invalidHeader, nodeTest.chain.genesis),
       ).toMatchObject({
         valid: false,
         reason: VerificationResultReason.INVALID_TARGET,
@@ -599,10 +654,14 @@ describe('Verifier', () => {
 
     it('Is invalid when the sequence is wrong', async () => {
       const block = await useMinerBlockFixture(nodeTest.chain)
-      block.header.sequence = 9999
+
+      const invalidHeader = nodeTest.strategy.newBlockHeader({
+        ...block.header,
+        sequence: 9999,
+      })
 
       expect(
-        nodeTest.verifier.verifyBlockHeaderContextual(block.header, nodeTest.chain.genesis),
+        nodeTest.verifier.verifyBlockHeaderContextual(invalidHeader, nodeTest.chain.genesis),
       ).toMatchObject({
         valid: false,
         reason: VerificationResultReason.SEQUENCE_OUT_OF_ORDER,
@@ -633,12 +692,17 @@ describe('Verifier', () => {
       })
 
       it('fails validation when timestamp is too low', async () => {
-        header.timestamp = new Date(
-          prevHeader.timestamp.getTime() -
-            (nodeTest.chain.consensus.parameters.allowedBlockFutureSeconds + 2) * 1000,
-        )
+        const invalidHeader = nodeTest.strategy.newBlockHeader({
+          ...header,
+          timestamp: new Date(
+            prevHeader.timestamp.getTime() -
+              (nodeTest.chain.consensus.parameters.allowedBlockFutureSeconds + 2) * 1000,
+          ),
+        })
 
-        expect(await verifier.verifyBlockAdd(block, prevHeader)).toMatchObject({
+        const invalidBlock = new Block(invalidHeader, block.transactions)
+
+        expect(await verifier.verifyBlockAdd(invalidBlock, prevHeader)).toMatchObject({
           reason: VerificationResultReason.BLOCK_TOO_OLD,
           valid: false,
         })
@@ -648,12 +712,18 @@ describe('Verifier', () => {
         jest
           .spyOn(global.Date, 'now')
           .mockImplementationOnce(() => prevHeader.timestamp.getTime() + 40 * 1000)
-        header.timestamp = new Date(
-          prevHeader.timestamp.getTime() +
-            (nodeTest.chain.consensus.parameters.allowedBlockFutureSeconds + 42) * 1000,
-        )
 
-        expect(await verifier.verifyBlockAdd(block, prevHeader)).toMatchObject({
+        const invalidHeader = nodeTest.strategy.newBlockHeader({
+          ...header,
+          timestamp: new Date(
+            prevHeader.timestamp.getTime() +
+              (nodeTest.chain.consensus.parameters.allowedBlockFutureSeconds + 42) * 1000,
+          ),
+        })
+
+        const invalidBlock = new Block(invalidHeader, block.transactions)
+
+        expect(await verifier.verifyBlockAdd(invalidBlock, prevHeader)).toMatchObject({
           reason: VerificationResultReason.TOO_FAR_IN_FUTURE,
           valid: false,
         })
@@ -663,8 +733,15 @@ describe('Verifier', () => {
         jest
           .spyOn(global.Date, 'now')
           .mockImplementationOnce(() => prevHeader.timestamp.getTime() + 1 * 1000)
-        header.timestamp = new Date(prevHeader.timestamp.getTime() - 1 * 1000)
-        expect(await verifier.verifyBlockAdd(block, prevHeader)).toMatchObject({
+
+        const invalidHeader = nodeTest.strategy.newBlockHeader({
+          ...header,
+          timestamp: new Date(prevHeader.timestamp.getTime() - 1 * 1000),
+        })
+
+        const invalidBlock = new Block(invalidHeader, block.transactions)
+
+        expect(await verifier.verifyBlockAdd(invalidBlock, prevHeader)).toMatchObject({
           valid: true,
         })
       })
@@ -673,9 +750,15 @@ describe('Verifier', () => {
         jest
           .spyOn(global.Date, 'now')
           .mockImplementationOnce(() => prevHeader.timestamp.getTime() + 1 * 1000)
-        header.timestamp = new Date(prevHeader.timestamp.getTime() + 1 * 1000)
 
-        expect(await verifier.verifyBlockAdd(block, prevHeader)).toMatchObject({
+        const invalidHeader = nodeTest.strategy.newBlockHeader({
+          ...header,
+          timestamp: new Date(prevHeader.timestamp.getTime() + 1 * 1000),
+        })
+
+        const invalidBlock = new Block(invalidHeader, block.transactions)
+
+        expect(await verifier.verifyBlockAdd(invalidBlock, prevHeader)).toMatchObject({
           valid: true,
         })
       })
@@ -709,12 +792,17 @@ describe('Verifier', () => {
       })
 
       it('fails validation when timestamp is too low', async () => {
-        header.timestamp = new Date(
-          prevHeader.timestamp.getTime() -
-            (nodeTest.chain.consensus.parameters.allowedBlockFutureSeconds + 2) * 1000,
-        )
+        const invalidHeader = nodeTest.strategy.newBlockHeader({
+          ...header,
+          timestamp: new Date(
+            prevHeader.timestamp.getTime() -
+              (nodeTest.chain.consensus.parameters.allowedBlockFutureSeconds + 2) * 1000,
+          ),
+        })
 
-        expect(await verifier.verifyBlockAdd(currentBlock, prevHeader)).toMatchObject({
+        const invalidBlock = new Block(invalidHeader, currentBlock.transactions)
+
+        expect(await verifier.verifyBlockAdd(invalidBlock, prevHeader)).toMatchObject({
           reason: VerificationResultReason.BLOCK_TOO_OLD,
           valid: false,
         })
@@ -724,30 +812,46 @@ describe('Verifier', () => {
         jest
           .spyOn(global.Date, 'now')
           .mockImplementationOnce(() => prevHeader.timestamp.getTime() + 40 * 1000)
-        header.timestamp = new Date(
-          prevHeader.timestamp.getTime() +
-            (nodeTest.chain.consensus.parameters.allowedBlockFutureSeconds + 42) * 1000,
-        )
 
-        expect(await verifier.verifyBlockAdd(currentBlock, prevHeader)).toMatchObject({
+        const invalidHeader = nodeTest.strategy.newBlockHeader({
+          ...header,
+          timestamp: new Date(
+            prevHeader.timestamp.getTime() +
+              (nodeTest.chain.consensus.parameters.allowedBlockFutureSeconds + 42) * 1000,
+          ),
+        })
+
+        const invalidBlock = new Block(invalidHeader, currentBlock.transactions)
+
+        expect(await verifier.verifyBlockAdd(invalidBlock, prevHeader)).toMatchObject({
           reason: VerificationResultReason.TOO_FAR_IN_FUTURE,
           valid: false,
         })
       })
 
       it('fails validation when timestamp is smaller than previous block', async () => {
-        header.timestamp = new Date(prevHeader.timestamp.getTime() - 1 * 1000)
+        const invalidHeader = nodeTest.strategy.newBlockHeader({
+          ...header,
+          timestamp: new Date(prevHeader.timestamp.getTime() - 1 * 1000),
+        })
 
-        expect(await verifier.verifyBlockAdd(currentBlock, prevHeader)).toMatchObject({
+        const invalidBlock = new Block(invalidHeader, currentBlock.transactions)
+
+        expect(await verifier.verifyBlockAdd(invalidBlock, prevHeader)).toMatchObject({
           reason: VerificationResultReason.BLOCK_TOO_OLD,
           valid: false,
         })
       })
 
       it('fails validation when timestamp is same as previous block', async () => {
-        header.timestamp = new Date(prevHeader.timestamp.getTime())
+        const invalidHeader = nodeTest.strategy.newBlockHeader({
+          ...header,
+          timestamp: new Date(prevHeader.timestamp.getTime()),
+        })
 
-        expect(await verifier.verifyBlockAdd(currentBlock, prevHeader)).toMatchObject({
+        const invalidBlock = new Block(invalidHeader, currentBlock.transactions)
+
+        expect(await verifier.verifyBlockAdd(invalidBlock, prevHeader)).toMatchObject({
           reason: VerificationResultReason.BLOCK_TOO_OLD,
           valid: false,
         })
@@ -757,9 +861,15 @@ describe('Verifier', () => {
         jest
           .spyOn(global.Date, 'now')
           .mockImplementationOnce(() => prevHeader.timestamp.getTime() + 1 * 1000)
-        header.timestamp = new Date(prevHeader.timestamp.getTime() + 1 * 1000)
 
-        expect(await verifier.verifyBlockAdd(currentBlock, prevHeader)).toMatchObject({
+        const invalidHeader = nodeTest.strategy.newBlockHeader({
+          ...header,
+          timestamp: new Date(prevHeader.timestamp.getTime() + 1 * 1000),
+        })
+
+        const invalidBlock = new Block(invalidHeader, currentBlock.transactions)
+
+        expect(await verifier.verifyBlockAdd(invalidBlock, prevHeader)).toMatchObject({
           valid: true,
         })
       })
@@ -781,20 +891,28 @@ describe('Verifier', () => {
     })
 
     it('is false if the note hash is incorrect', async () => {
-      nodeTest.chain.genesis.noteCommitment = Buffer.alloc(
-        nodeTest.chain.genesis.noteCommitment.length,
-        'NOOO',
-      )
+      const { chain } = nodeTest
+      const newBlock = await useMinerBlockFixture(chain)
+      await expect(chain).toAddBlock(newBlock)
 
-      const genesisBlock = await nodeTest.chain.getBlock(nodeTest.chain.genesis)
-      Assert.isNotNull(genesisBlock)
-
-      await expect(nodeTest.verifier.verifyConnectedBlock(genesisBlock)).resolves.toMatchObject(
+      const invalidNewBlock = nodeTest.strategy.newBlock(
         {
-          valid: false,
-          reason: VerificationResultReason.NOTE_COMMITMENT,
+          header: {
+            ...newBlock.header,
+            noteCommitment: Buffer.alloc(newBlock.header.noteCommitment.length, 'NOOO'),
+          },
+          transactions: newBlock.transactions,
         },
+        newBlock.header.noteSize,
+        newBlock.header.work,
       )
+
+      await expect(
+        nodeTest.verifier.verifyConnectedBlock(invalidNewBlock),
+      ).resolves.toMatchObject({
+        valid: false,
+        reason: VerificationResultReason.NOTE_COMMITMENT,
+      })
     })
   })
 

@@ -10,19 +10,19 @@ describe('Transaction', () => {
       const key = generateKey()
       const asset = new Asset(key.publicAddress, 'testcoin', '')
       // Version 1 transactions cannot have an ownership transfer
-      const proposedTx = new Transaction(key.spendingKey, 1)
+      const proposedTx = new Transaction(1)
       proposedTx.mint(asset, 5n, key.publicAddress)
 
-      expect(() => { proposedTx.post(null, 0n)}).toThrow('InvalidTransactionVersion')
+      expect(() => { proposedTx.post(key.spendingKey, null, 0n)}).toThrow('InvalidTransactionVersion')
     })
 
     it('can post a valid transaction', () => {
       const key = generateKey()
       const asset = new Asset(key.publicAddress, 'testcoin', '')
-      const proposedTx = new Transaction(key.spendingKey, 1)
+      const proposedTx = new Transaction(1)
       proposedTx.mint(asset, 5n)
 
-      expect(() => { proposedTx.post(null, 0n)}).not.toThrow()
+      expect(() => { proposedTx.post(key.spendingKey, null, 0n)}).not.toThrow()
 
     })
   })

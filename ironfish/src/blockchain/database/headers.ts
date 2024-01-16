@@ -53,19 +53,17 @@ export class HeaderEncoding implements IDatabaseEncoding<HeaderValue> {
     const work = BigIntUtils.fromBytesLE(reader.readVarBytes())
     const hash = reader.readHash()
 
-    const header = new BlockHeader(
+    const rawHeader = {
       sequence,
       previousBlockHash,
       noteCommitment,
       transactionCommitment,
       target,
       randomness,
-      new Date(timestamp),
+      timestamp: new Date(timestamp),
       graffiti,
-      noteSize,
-      work,
-      hash,
-    )
+    }
+    const header = new BlockHeader(rawHeader, hash, noteSize, work)
 
     return { header }
   }

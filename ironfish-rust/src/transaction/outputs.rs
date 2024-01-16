@@ -4,17 +4,18 @@
 
 use crate::{
     errors::{IronfishError, IronfishErrorKind},
-    keys::{EphemeralKeyPair, SaplingKey},
+    keys::EphemeralKeyPair,
     merkle_note::MerkleNote,
     note::Note,
     sapling_bls12::SAPLING,
+    OutgoingViewKey,
 };
 
 use bellperson::groth16;
 use blstrs::{Bls12, Scalar};
 use ff::Field;
 use group::Curve;
-use ironfish_zkp::{primitives::ValueCommitment, proofs::Output, redjubjub};
+use ironfish_zkp::{primitives::ValueCommitment, proofs::Output, redjubjub, ProofGenerationKey};
 use jubjub::ExtendedPoint;
 use rand::thread_rng;
 
@@ -76,7 +77,8 @@ impl OutputBuilder {
     /// transactions.
     pub(crate) fn build(
         &self,
-        spender_key: &SaplingKey,
+        proof_generation_key: &ProofGenerationKey,
+        outgoing_view_key: &OutgoingViewKey,
         public_key_randomness: &jubjub::Fr,
         randomized_public_key: &redjubjub::PublicKey,
     ) -> Result<OutputDescription, IronfishError> {
@@ -88,7 +90,7 @@ impl OutputBuilder {
             commitment_randomness: Some(self.note.randomness),
             esk: Some(*diffie_hellman_keys.secret()),
             asset_id: *self.note.asset_id().as_bytes(),
-            proof_generation_key: Some(spender_key.sapling_proof_generation_key()),
+            proof_generation_key: Some(proof_generation_key.clone()),
             ar: Some(*public_key_randomness),
         };
 
@@ -98,7 +100,7 @@ impl OutputBuilder {
             MerkleNote::new_for_miners_fee(&self.note, &self.value_commitment, &diffie_hellman_keys)
         } else {
             MerkleNote::new(
-                spender_key,
+                outgoing_view_key,
                 &self.note,
                 &self.value_commitment,
                 &diffie_hellman_keys,
@@ -252,7 +254,12 @@ mod test {
         output.set_is_miners_fee();
 
         let proof = output
-            .build(&spender_key, &public_key_randomness, &randomized_public_key)
+            .build(
+                &spender_key.sapling_proof_generation_key(),
+                spender_key.outgoing_view_key(),
+                &public_key_randomness,
+                &randomized_public_key,
+            )
             .expect("should be able to build output proof");
 
         assert_eq!(
@@ -280,7 +287,12 @@ mod test {
 
         let output = OutputBuilder::new(note);
         let proof = output
-            .build(&spender_key, &public_key_randomness, &randomized_public_key)
+            .build(
+                &spender_key.sapling_proof_generation_key(),
+                spender_key.outgoing_view_key(),
+                &public_key_randomness,
+                &randomized_public_key,
+            )
             .expect("should be able to build output proof");
 
         assert_ne!(
@@ -314,7 +326,12 @@ mod test {
 
         let output = OutputBuilder::new(note);
         let description = output
-            .build(&spender_key, &public_key_randomness, &randomized_public_key)
+            .build(
+                &spender_key.sapling_proof_generation_key(),
+                spender_key.outgoing_view_key(),
+                &public_key_randomness,
+                &randomized_public_key,
+            )
             .expect("should be able to build output proof");
 
         verify_output_proof(
@@ -326,7 +343,8 @@ mod test {
         // Wrong spender key
         assert!(output
             .build(
-                &receiver_key,
+                &receiver_key.sapling_proof_generation_key(),
+                receiver_key.outgoing_view_key(),
                 &public_key_randomness,
                 &randomized_public_key
             )
@@ -335,7 +353,8 @@ mod test {
         // Wrong public key randomness
         assert!(output
             .build(
-                &spender_key,
+                &spender_key.sapling_proof_generation_key(),
+                spender_key.outgoing_view_key(),
                 &other_public_key_randomness,
                 &randomized_public_key
             )
@@ -344,7 +363,8 @@ mod test {
         // Wrong randomized public key
         assert!(output
             .build(
-                &spender_key,
+                &spender_key.sapling_proof_generation_key(),
+                spender_key.outgoing_view_key(),
                 &public_key_randomness,
                 &other_randomized_public_key
             )
@@ -376,7 +396,12 @@ mod test {
 
         let output = OutputBuilder::new(note);
         let proof = output
-            .build(&spender_key, &public_key_randomness, &randomized_public_key)
+            .build(
+                &spender_key.sapling_proof_generation_key(),
+                spender_key.outgoing_view_key(),
+                &public_key_randomness,
+                &randomized_public_key,
+            )
             .expect("Should be able to build output proof");
         verify_output_proof(&proof.proof, &proof.public_inputs(&randomized_public_key))
             .expect("proof should check out");

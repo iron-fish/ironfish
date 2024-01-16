@@ -106,7 +106,7 @@ export class IronfishSdk {
     logger = logger.withTag('ironfishsdk')
     dataDir = dataDir || DEFAULT_DATA_DIR
 
-    const config = new Config(fileSystem, dataDir, configName)
+    const config = new Config(fileSystem, dataDir, {}, configName)
     await config.load()
 
     const internal = new InternalStore(fileSystem, dataDir)
