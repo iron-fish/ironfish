@@ -2227,6 +2227,17 @@ describe('Accounts', () => {
         expect(note.note.value()).toBeGreaterThanOrEqual(previousNoteValue)
         previousNoteValue = note.note.value()
       }
+
+      // descending order
+      const sortedNotesDescending = await AsyncUtils.materialize(
+        account.getUnspentNotesSortedByValue(Asset.nativeId(), { reverse: true }),
+      )
+      previousNoteValue = sortedNotesDescending[0].note.value()
+
+      for (const note of sortedNotesDescending) {
+        expect(note.note.value()).toBeLessThanOrEqual(previousNoteValue)
+        previousNoteValue = note.note.value()
+      }
     })
 
     it('filters notes by confirmations', async () => {
@@ -2254,44 +2265,6 @@ describe('Accounts', () => {
       expect(await getUnspentNotesSortedByValue(0)).toHaveLength(2)
       expect(await getUnspentNotesSortedByValue(1)).toHaveLength(1)
       expect(await getUnspentNotesSortedByValue(2)).toHaveLength(0)
-    })
-
-    it('loads notes in descending order', async () => {
-      const { node } = nodeTest
-      const account = await useAccountFixture(node.wallet)
-
-      const minerBlockA = await useMinerBlockFixture(
-        node.chain,
-        undefined,
-        account,
-        node.wallet,
-      )
-
-      await node.chain.addBlock(minerBlockA)
-      await node.wallet.updateHead()
-
-      const transactionA = await useTxFixture(node.wallet, account, account)
-
-      const block = await useMinerBlockFixture(node.chain, undefined, account, node.wallet, [
-        transactionA,
-      ])
-
-      await node.chain.addBlock(block)
-
-      await node.wallet.updateHead()
-
-      const sortedNotes = await AsyncUtils.materialize(
-        account.getUnspentNotesSortedByValue(Asset.nativeId(), {
-          reverse: true,
-        }),
-      )
-
-      let previousNoteValue = sortedNotes[0].note.value()
-
-      for (const note of sortedNotes) {
-        expect(note.note.value()).toBeLessThanOrEqual(previousNoteValue)
-        previousNoteValue = note.note.value()
-      }
     })
 
     it('sorted notes for minted assets', async () => {
@@ -2337,7 +2310,6 @@ describe('Accounts', () => {
       await node.chain.addBlock(mintBlock)
       await node.wallet.updateHead()
 
-      // get mint balance
       expect((await accA.getBalance(asset.id(), 0)).available).toBe(10n)
 
       for (let i = 0; i < 3; i++) {
@@ -2356,7 +2328,6 @@ describe('Accounts', () => {
         await node.wallet.updateHead()
       }
 
-      // confirm balances
       expect((await accA.getBalance(asset.id(), 0)).available).toBe(4n)
       expect((await accB.getBalance(asset.id(), 0)).available).toBe(6n)
 
