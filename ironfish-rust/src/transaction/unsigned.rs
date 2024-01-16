@@ -5,7 +5,7 @@
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use group::GroupEncoding;
 use ironfish_frost::frost::{
-    frost::aggregate,
+    aggregate,
     keys::PublicKeyPackage,
     round1::SigningCommitments,
     round2::{Randomizer, SignatureShare},
@@ -19,8 +19,10 @@ use std::{
 };
 
 use crate::{
-    errors::IronfishError, serializing::read_scalar, transaction::Blake2b, OutputDescription,
-    SaplingKey, Transaction,
+    errors::{IronfishError, IronfishErrorKind},
+    serializing::read_scalar,
+    transaction::Blake2b,
+    OutputDescription, SaplingKey, Transaction,
 };
 
 use super::{
@@ -200,23 +202,28 @@ impl UnsignedTransaction {
         // Create the transaction signature hash
         let data_to_sign = self.transaction_signature_hash()?;
 
-        let randomizer = Randomizer::deserialize(&self.public_key_randomness.to_bytes()).unwrap();
+        let randomizer = Randomizer::deserialize(&self.public_key_randomness.to_bytes())
+            .map_err(|e| IronfishError::new_with_source(IronfishErrorKind::InvalidRandomizer, e))?;
         let randomized_params =
             RandomizedParams::from_randomizer(public_key_package.verifying_key(), randomizer);
 
         let authorizing_group_signature = aggregate(
-            &authorizing_signing_package,
+            authorizing_signing_package,
             &authorizing_signature_shares,
-            &public_key_package,
+            public_key_package,
+            &randomized_params,
         )
-        .unwrap();
+        .map_err(|e| {
+            IronfishError::new_with_source(IronfishErrorKind::FailedSignatureAggregation, e)
+        })?;
 
         // Verify the signature with the public keys
-        let verify_signature = randomized_params
+        randomized_params
             .randomized_verifying_key()
-            .verify(&data_to_sign, &authorizing_group_signature);
-
-        assert!(verify_signature.is_ok());
+            .verify(&data_to_sign, &authorizing_group_signature)
+            .map_err(|e| {
+                IronfishError::new_with_source(IronfishErrorKind::FailedSignatureVerification, e)
+            })?;
 
         let signature = { Signature::read(&mut authorizing_group_signature.serialize().as_ref())? };
 
