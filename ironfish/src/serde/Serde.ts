@@ -20,7 +20,6 @@ export type IJsonSerializable =
   | Buffer
   | IJsonSerializable[]
   | { [key: string]: IJsonSerializable }
-  | unknown
 
 /**
  * Interface for objects that can be serialized, deserialized, and compared for equality.

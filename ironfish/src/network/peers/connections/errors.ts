@@ -6,7 +6,7 @@ import { ErrorUtils } from '../../../utils'
 
 export class NetworkError extends Error {
   name = this.constructor.name
-  wrappedError: unknown | null
+  wrappedError: unknown
 
   constructor(message?: string, wrappedError?: unknown) {
     super(ErrorUtils.renderError(message || wrappedError || 'Unknown Network Error'))

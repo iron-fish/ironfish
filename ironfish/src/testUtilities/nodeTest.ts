@@ -86,8 +86,7 @@ export class NodeTest {
       for (const key in options.config) {
         const configKey = key as keyof ConfigOptions
         const configValue = options.config[configKey]
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        sdk.config.setOverride(key as keyof ConfigOptions, configValue as any)
+        sdk.config.setOverride(key as keyof ConfigOptions, configValue)
       }
     }
 

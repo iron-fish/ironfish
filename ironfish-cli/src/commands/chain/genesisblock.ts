@@ -152,7 +152,7 @@ export default class GenesisBlockCommand extends IronfishCommand {
     }
 
     CliUx.ux.table(info.allocations, columns, {
-      printLine: (line) => this.log(line),
+      printLine: this.log.bind(this),
     })
 
     // Display duplicates if they exist

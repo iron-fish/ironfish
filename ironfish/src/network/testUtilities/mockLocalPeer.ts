@@ -49,6 +49,7 @@ export function mockLocalPeer({
     identity,
     agent,
     version,
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     chain || mockChain(),
     WebSocketClient,
     mockNodeDataChannel,

@@ -77,7 +77,7 @@ export class Assert {
     }
   }
 
-  static isTruthy<T extends unknown>(
+  static isTruthy<T>(
     x: T,
     message?: string,
   ): asserts x is Exclude<T, null | undefined | 0 | false | ''> {

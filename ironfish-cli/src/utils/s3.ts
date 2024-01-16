@@ -32,7 +32,7 @@ const MAX_MULTIPART_NUM = 10000
 
 class UploadToBucketError extends Error {
   name = this.constructor.name
-  error: unknown | undefined
+  error: unknown
 
   constructor(message?: string, error?: unknown) {
     super(message)

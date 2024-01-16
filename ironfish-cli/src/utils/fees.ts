@@ -109,7 +109,7 @@ async function getTxWithFee(
   })
 
   const response = await promise.catch((e) => {
-    if (e instanceof RpcRequestError && e.code === ERROR_CODES.INSUFFICIENT_BALANCE) {
+    if (e instanceof RpcRequestError && e.code === ERROR_CODES.INSUFFICIENT_BALANCE.valueOf()) {
       return null
     } else {
       throw e

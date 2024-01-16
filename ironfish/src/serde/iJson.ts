@@ -14,7 +14,10 @@ export const IJSON = {
       (key, value) =>
         typeof value === 'bigint'
           ? `${value.toString()}n`
-          : (BJSON.replacer(key, value) as unknown),
+          : (BJSON.replacer(
+              key,
+              value as string /* The buffer-json types are wrong, this shouldn't need 'as string' */,
+            ) as unknown),
       space,
     )
   },

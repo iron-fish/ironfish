@@ -25,10 +25,10 @@ export class Retry {
     })
   }
 
-  private tryExecutor<T, E>(
+  private tryExecutor<T>(
     fn: () => Promise<T>,
     resolve: (result: T) => void,
-    reject: (error: E) => void,
+    reject: (error: unknown) => void,
   ) {
     fn()
       .then((result) => {

@@ -97,7 +97,7 @@ export default class GenesisAddCommand extends IronfishCommand {
     }
 
     CliUx.ux.table(allocations, columns, {
-      printLine: (line) => this.log(line),
+      printLine: this.log.bind(this),
     })
 
     // Display duplicates if they exist
