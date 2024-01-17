@@ -6,6 +6,7 @@ use blstrs::Bls12;
 
 pub mod assets;
 pub mod errors;
+pub mod frost_utils;
 pub mod keys;
 pub mod merkle_note;
 pub mod merkle_note_hash;
