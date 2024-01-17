@@ -10,6 +10,7 @@ import {
   useTxFixture,
 } from '../../testUtilities'
 import { AsyncUtils } from '../../utils'
+import { DecryptedNoteValue } from './decryptedNoteValue'
 
 describe('WalletDB', () => {
   const nodeTest = createNodeTest()
@@ -54,7 +55,7 @@ describe('WalletDB', () => {
     })
   })
 
-  describe('loadUnspentNoteHashesByValue', () => {
+  describe('loadUnspentNotesByValue', () => {
     it('notes should be returned in order of value', async () => {
       const { node } = await nodeTest.createSetup()
       const account = await useAccountFixture(node.wallet)
@@ -74,12 +75,17 @@ describe('WalletDB', () => {
       }
 
       const walletDb = node.wallet.walletDb
-      const notes = await AsyncUtils.materialize(
-        walletDb.loadUnspentNoteHashesByValue(account, Asset.nativeId()),
+      const noteHashes = await AsyncUtils.materialize(
+        walletDb.loadValueToUnspentNoteHashes(account, Asset.nativeId()),
       )
       const unspentNotes = await AsyncUtils.materialize(
         walletDb.loadUnspentNoteHashes(account, Asset.nativeId()),
       )
+      const notes = (
+        await Promise.all(
+          noteHashes.map((noteHash) => walletDb.loadDecryptedNote(account, noteHash)),
+        )
+      ).filter((note) => note !== undefined) as DecryptedNoteValue[]
 
       expect(notes).toHaveLength(unspentNotes.length)
 
@@ -139,31 +145,31 @@ describe('WalletDB', () => {
       const decryptedNote = await account.getDecryptedNote(noteHash)
       Assert.isNotUndefined(decryptedNote)
       const n1 = await AsyncUtils.materialize(
-        walletDb.loadUnspentNoteHashes(account, Asset.nativeId()),
+        walletDb.loadValueToUnspentNoteHashes(account, Asset.nativeId()),
       )
       const sn1 = await AsyncUtils.materialize(
-        walletDb.loadUnspentNoteHashesByValue(account, Asset.nativeId()),
+        walletDb.loadValueToUnspentNoteHashes(account, Asset.nativeId()),
       )
       expect(n1.length).toEqual(1)
       expect(sn1.length).toEqual(1)
 
       await walletDb.deleteUnspentNoteHash(account, noteHash, decryptedNote)
       const dn2 = await AsyncUtils.materialize(
-        walletDb.loadUnspentNoteHashes(account, Asset.nativeId()),
+        walletDb.loadValueToUnspentNoteHashes(account, Asset.nativeId()),
       )
       expect(dn2.length).toEqual(0)
       const vtn2 = await AsyncUtils.materialize(
-        walletDb.loadUnspentNoteHashesByValue(account, Asset.nativeId()),
+        walletDb.loadValueToUnspentNoteHashes(account, Asset.nativeId()),
       )
       expect(vtn2.length).toEqual(0)
 
       await walletDb.addUnspentNoteHash(account, noteHash, decryptedNote)
       const dn3 = await AsyncUtils.materialize(
-        walletDb.loadUnspentNoteHashes(account, Asset.nativeId()),
+        walletDb.loadValueToUnspentNoteHashes(account, Asset.nativeId()),
       )
       expect(dn3.length).toEqual(1)
       const vtn3 = await AsyncUtils.materialize(
-        walletDb.loadUnspentNoteHashesByValue(account, Asset.nativeId()),
+        walletDb.loadValueToUnspentNoteHashes(account, Asset.nativeId()),
       )
       expect(vtn3.length).toEqual(1)
     })

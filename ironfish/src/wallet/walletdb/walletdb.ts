@@ -663,31 +663,7 @@ export class WalletDB {
     await this.deleteValueToUnspentNoteHash(account, decryptedNote, tx)
   }
 
-  async *loadUnspentNoteHashesByValue(
-    account: Account,
-    assetId: Buffer,
-    reverse = false,
-    start = 0n,
-    end = 2n ** 64n - 1n,
-    tx?: IDatabaseTransaction,
-  ): AsyncGenerator<DecryptedNoteValue> {
-    for await (const noteHash of this.loadSortedUnspentNoteHashes(
-      account,
-      assetId,
-      reverse,
-      start,
-      end,
-      tx,
-    )) {
-      const decryptedNote = await this.decryptedNotes.get([account.prefix, noteHash], tx)
-
-      if (decryptedNote !== undefined) {
-        yield decryptedNote
-      }
-    }
-  }
-
-  async *loadSortedUnspentNoteHashes(
+  async *loadValueToUnspentNoteHashes(
     account: Account,
     assetId: Buffer,
     reverse = false,
