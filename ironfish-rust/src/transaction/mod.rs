@@ -1018,4 +1018,4 @@ mod tests {
 
         assert_eq!(scalar.to_bytes(), key);
     }
-}f
+}
