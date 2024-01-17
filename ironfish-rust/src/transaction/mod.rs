@@ -986,7 +986,6 @@ pub fn split_secret(
     Ok((key_packages, pubkeys))
 }
 
-// test key package and split_secret
 #[cfg(test)]
 mod tests {
     use ironfish_frost::frost::{frost::keys::reconstruct, JubjubBlake2b512};
