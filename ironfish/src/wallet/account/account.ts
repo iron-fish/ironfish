@@ -47,6 +47,11 @@ export class Account {
   createdAt: HeadValue | null
   readonly prefix: Buffer
   readonly prefixRange: DatabaseKeyRange
+  readonly multiSigKeys?: {
+    identifier: string
+    keyPackage: string
+    proofGenerationKey: string
+  }
 
   constructor({
     id,
@@ -59,6 +64,7 @@ export class Account {
     outgoingViewKey,
     version,
     createdAt,
+    multiSigKeys,
   }: AccountValue & { walletDb: WalletDB }) {
     this.id = id
     this.name = name
@@ -76,6 +82,7 @@ export class Account {
     this.walletDb = walletDb
     this.version = version ?? 1
     this.createdAt = createdAt
+    this.multiSigKeys = multiSigKeys
   }
 
   isSpendingAccount(): this is SpendingAccount {
