@@ -1544,7 +1544,7 @@ export class Wallet {
 
     await this.walletDb.db.transaction(async (tx) => {
       await this.walletDb.setAccount(account, tx)
-      await account.updateHead(null, tx)
+      await account.updateHead(createdAt, tx)
     })
 
     this.accounts.set(account.id, account)
