@@ -45,9 +45,9 @@ describe('AccountValueEncoding', () => {
       version: 1,
       createdAt: null,
       multiSigKeys: {
-        identifier: 'a',
-        keyPackage: 'b',
-        proofGenerationKey: 'c',
+        identifier: 'deaf',
+        keyPackage: 'beef',
+        proofGenerationKey: 'feed',
       },
     }
     const buffer = encoder.serialize(value)
