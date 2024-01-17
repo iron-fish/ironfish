@@ -166,39 +166,6 @@ describe('Accounts', () => {
     await expect(account.getTransaction(tx.hash())).resolves.toBeDefined()
   })
 
-  it('should only allow multisig keys if the account has no spending key', async () => {
-    const { node } = nodeTest
-
-    const account = await useAccountFixture(node.wallet, 'accountA')
-
-    expect(
-      () =>
-        new Account({
-          ...account,
-          walletDb: node.wallet.walletDb,
-          multiSigKeys: {
-            identifier: 'foo',
-            keyPackage: 'bar',
-            proofGenerationKey: 'baz',
-          },
-        }),
-    ).toThrow()
-
-    expect(
-      () =>
-        new Account({
-          ...account,
-          walletDb: node.wallet.walletDb,
-          multiSigKeys: {
-            identifier: 'foo',
-            keyPackage: 'bar',
-            proofGenerationKey: 'baz',
-          },
-          spendingKey: null,
-        }),
-    ).not.toThrow()
-  })
-
   describe('loadPendingTransactions', () => {
     it('should load pending transactions', async () => {
       const { node } = nodeTest

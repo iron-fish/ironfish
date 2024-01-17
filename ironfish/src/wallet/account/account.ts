@@ -82,14 +82,6 @@ export class Account {
     this.walletDb = walletDb
     this.version = version ?? 1
     this.createdAt = createdAt
-
-    if (multiSigKeys !== undefined) {
-      Assert.isNull(
-        this.spendingKey,
-        'An account cannot have its own spending key if it is part of a signing group.',
-      )
-    }
-
     this.multiSigKeys = multiSigKeys
   }
 
