@@ -27,9 +27,7 @@ use rand::{
     rngs::{OsRng, ThreadRng},
     thread_rng,
 };
-use std::collections::BTreeMap;
 
-use ironfish_frost::frost::keys::SecretShare;
 use ironfish_frost::frost::{
     keys::{IdentifierList, KeyPackage, PublicKeyPackage},
     Identifier, SigningKey,
@@ -72,9 +70,6 @@ pub mod unsigned;
 mod utils;
 mod value_balances;
 mod version;
-
-#[cfg(test)]
-mod tests;
 
 pub use version::TransactionVersion;
 
@@ -968,6 +963,7 @@ pub fn split_secret(
             .try_into()
             .map_err(|_| Error::MalformedSigningKey)?,
     )?;
+
     let (shares, pubkeys) = frost::keys::split(
         &secret_key,
         config.max_signers,
@@ -980,63 +976,46 @@ pub fn split_secret(
         frost::keys::KeyPackage::try_from(v)?;
     }
 
-    let key_packages = key_package(&shares);
-
-    Ok((key_packages, pubkeys))
-}
-
-fn key_package(shares: &BTreeMap<Identifier, SecretShare>) -> HashMap<Identifier, KeyPackage> {
     let mut key_packages: HashMap<_, _> = HashMap::new();
 
     for (identifier, secret_share) in shares {
         let key_package = frost::keys::KeyPackage::try_from(secret_share.clone()).unwrap();
-        key_packages.insert(*identifier, key_package);
+        key_packages.insert(identifier, key_package);
     }
 
-    key_packages
+    Ok((key_packages, pubkeys))
 }
 
 // test key package and split_secret
 #[cfg(test)]
 mod tests {
+    use ironfish_frost::frost::{frost::keys::reconstruct, JubjubBlake2b512};
+
     use super::*;
-    use frost::keys::{Identifier, SigningKey};
-    use ironfish_frost::frost::{frost::Identifier, Identifier};
-    use rand::rngs::ThreadRng;
-    use std::collections::HashMap;
 
-    // Helper function to create a valid SecretShareConfig
-    fn create_valid_config() -> SecretShareConfig {
-        SecretShareConfig {
+    #[test]
+    fn test_split_secret() {
+        let mut rng = rand::thread_rng();
+
+        let key = SaplingKey::generate_key().spend_authorizing_key.to_bytes();
+
+        let config = SecretShareConfig {
             min_signers: 2,
-            max_signers: 5,
-            secret: Vec::new(), // Populate with a valid secret
-        }
+            max_signers: 3,
+            secret: key.to_vec(),
+        };
+
+        let (key_packages, _) =
+            split_secret(&config, frost::keys::IdentifierList::Default, &mut rng).unwrap();
+        assert_eq!(key_packages.len(), 3);
+
+        let key_parts = key_packages.values().cloned().collect();
+
+        let signing_key =
+            reconstruct::<JubjubBlake2b512>(&key_parts).expect("key reconstruction failed");
+
+        let scalar = signing_key.to_scalar();
+
+        assert_eq!(scalar.to_bytes(), key);
     }
-
-    fn create_valid_identifiers() -> IdentifierList {}
-
-    #[test]
-    fn test_split_secret_success() {
-        let config = create_valid_config();
-        let identifiers = create_valid_identifiers();
-        let mut rng = rand::thread_rng();
-
-        let result = split_secret(&config, identifiers, &mut rng);
-        assert!(result.is_ok());
-        // Further assertions to verify the correctness of the result
-    }
-
-    #[test]
-    fn test_split_secret_malformed_key() {
-        let mut config = create_valid_config();
-        config.secret = vec![0; 10]; // Invalid secret
-
-        let identifiers = create_valid_identifiers();
-        let mut rng = rand::thread_rng();
-
-        let result = split_secret(&config, identifiers, &mut rng);
-        assert!(result.is_err());
-        // Assert the specific type of error
-    }
-}
+}f
