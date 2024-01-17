@@ -27,6 +27,7 @@ export type SendTransactionRequest = {
   expiration?: number | null
   expirationDelta?: number | null
   confirmations?: number | null
+  notes?: string[]
 }
 
 export type SendTransactionResponse = {
@@ -55,6 +56,7 @@ export const SendTransactionRequestSchema: yup.ObjectSchema<SendTransactionReque
     expiration: yup.number().nullable().optional(),
     expirationDelta: yup.number().nullable().optional(),
     confirmations: yup.number().nullable().optional(),
+    notes: yup.array(yup.string().defined()).optional(),
   })
   .defined()
 
@@ -127,6 +129,10 @@ routes.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
           ERROR_CODES.INSUFFICIENT_BALANCE,
         )
       }
+    }
+
+    if (request.data.notes) {
+      params.notes = request.data.notes.map((noteHash) => Buffer.from(noteHash, 'hex'))
     }
 
     try {
