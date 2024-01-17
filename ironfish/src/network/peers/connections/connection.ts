@@ -52,8 +52,8 @@ export abstract class Connection {
   /**
    * The last error received (if any), regardless of the current state of the connection.
    */
-  protected _error: unknown | null
-  get error(): Readonly<unknown> | null {
+  protected _error: unknown
+  get error(): Readonly<unknown> {
     return this._error as Readonly<unknown>
   }
 

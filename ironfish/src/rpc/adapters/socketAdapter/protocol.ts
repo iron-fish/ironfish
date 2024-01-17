@@ -19,18 +19,18 @@ export type SocketRpcRequest = {
   mid: number
   type: string
   auth: string | null | undefined
-  data: unknown | undefined
+  data: unknown
 }
 
 export type SocketRpcResponse = {
   id: number
   status: number
-  data: unknown | undefined
+  data: unknown
 }
 
 export type SocketRpcStream = {
   id: number
-  data: unknown | undefined
+  data: unknown
 }
 
 export type SocketRpcError = {

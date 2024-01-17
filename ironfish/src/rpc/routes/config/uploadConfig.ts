@@ -81,8 +81,7 @@ export function setUnknownConfigValue(
     value = convertValue(sourceKey, sourceValue, targetValue)
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  config.set(sourceKey, value as any)
+  config.set(sourceKey, value as never)
 }
 
 // Expects string in CSV format with no brackets

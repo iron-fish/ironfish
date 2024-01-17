@@ -5,6 +5,7 @@
 import type { Logger } from '../../../logger'
 import colors from 'colors/safe'
 import { MetricsMonitor } from '../../../metrics'
+import { IJSON } from '../../../serde/iJson'
 import { parseNetworkMessage } from '../../messageRegistry'
 import { IsomorphicWebSocket, IsomorphicWebSocketErrorEvent } from '../../types'
 import { WebSocketAddress } from '../../utils'
@@ -71,7 +72,7 @@ export class WebSocketConnection extends Connection {
     this.socket.onmessage = (event: MessageEvent) => {
       if (!Buffer.isBuffer(event.data)) {
         const message = 'Received non-buffer message'
-        this.logger.debug(message, event.data)
+        this.logger.debug(`${message}: ${IJSON.stringify(event.data)}`)
         this.close(new NetworkError(message))
         return
       }

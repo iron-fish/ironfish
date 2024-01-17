@@ -291,7 +291,7 @@ export class Syncer {
     peer.onStateChanged.on(this.onPeerStateChanged)
 
     this.stopping = this.syncFrom(peer)
-      .catch((error) => {
+      .catch((error: Readonly<unknown>) => {
         if (error instanceof AbortSyncingError || this.loader !== peer) {
           return
         }
