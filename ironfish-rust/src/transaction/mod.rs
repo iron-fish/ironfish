@@ -1009,7 +1009,7 @@ mod tests {
             split_secret(&config, frost::keys::IdentifierList::Default, &mut rng).unwrap();
         assert_eq!(key_packages.len(), 3);
 
-        let key_parts = key_packages.values().cloned().collect();
+        let key_parts: Vec<_> = key_packages.values().cloned().collect();
 
         let signing_key =
             reconstruct::<JubjubBlake2b512>(&key_parts).expect("key reconstruction failed");
