@@ -6,11 +6,15 @@ use std::cell::RefCell;
 use std::convert::TryInto;
 
 use ironfish::assets::asset_identifier::AssetIdentifier;
+use ironfish::serializing::hex_to_bytes;
 use ironfish::transaction::{
     batch_verify_transactions, TransactionVersion, TRANSACTION_EXPIRATION_SIZE,
     TRANSACTION_FEE_SIZE, TRANSACTION_PUBLIC_KEY_SIZE, TRANSACTION_SIGNATURE_SIZE,
 };
-use ironfish::{MerkleNoteHash, ProposedTransaction, PublicAddress, SaplingKey, Transaction};
+use ironfish::{
+    MerkleNoteHash, OutgoingViewKey, ProofGenerationKey, ProofGenerationKeySerializable,
+    ProposedTransaction, PublicAddress, SaplingKey, Transaction, ViewKey,
+};
 use napi::{
     bindgen_prelude::{i64n, BigInt, Buffer, Env, Object, Result, Undefined},
     JsBuffer,
@@ -304,6 +308,42 @@ impl NativeTransaction {
 
         let mut vec: Vec<u8> = vec![];
         posted_transaction.write(&mut vec).map_err(to_napi_err)?;
+
+        Ok(Buffer::from(vec))
+    }
+
+    // Outputs buffer of an unsigned transaction
+    #[napi]
+    pub fn build(
+        &mut self,
+        proof_generation_key_str: String,
+        view_key_str: String,
+        outgoing_view_key_str: String,
+        public_address_str: String,
+        intended_transaction_fee: BigInt,
+    ) -> Result<Buffer> {
+        let view_key = ViewKey::from_hex(&view_key_str).map_err(to_napi_err)?;
+        let outgoing_view_key =
+            OutgoingViewKey::from_hex(&outgoing_view_key_str).map_err(to_napi_err)?;
+        let public_address = PublicAddress::from_hex(&public_address_str).map_err(to_napi_err)?;
+        let proof_generation_key = ProofGenerationKey::deserialize(
+            hex_to_bytes(&proof_generation_key_str)
+                .map_err(|_| to_napi_err("PublicKeyPackage hex to bytes failed"))?,
+        )
+        .map_err(to_napi_err)?;
+        let unsigned_transaction = self
+            .transaction
+            .build(
+                proof_generation_key,
+                view_key,
+                outgoing_view_key,
+                public_address,
+                intended_transaction_fee.get_i64().0,
+            )
+            .map_err(to_napi_err)?;
+
+        let mut vec: Vec<u8> = vec![];
+        unsigned_transaction.write(&mut vec).map_err(to_napi_err)?;
 
         Ok(Buffer::from(vec))
     }
