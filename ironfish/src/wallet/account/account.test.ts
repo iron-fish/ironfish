@@ -2205,8 +2205,8 @@ describe('Accounts', () => {
       await node.wallet.updateHead()
 
       const block = await useMinerBlockFixture(node.chain, undefined, account, node.wallet, [
-        await useTxFixture(node.wallet, account, account),
-        await useTxFixture(node.wallet, account, account),
+        await useTxFixture(node.wallet, account, account, undefined, 1n),
+        await useTxFixture(node.wallet, account, account, undefined, 10n),
       ])
       await node.chain.addBlock(block)
       await node.wallet.updateHead()
