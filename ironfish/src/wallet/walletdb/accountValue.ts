@@ -55,9 +55,9 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     }
 
     if (value.multiSigKeys) {
-      bw.writeVarString(value.multiSigKeys.identifier, 'utf8')
-      bw.writeVarString(value.multiSigKeys.keyPackage, 'utf8')
-      bw.writeVarString(value.multiSigKeys.proofGenerationKey, 'utf8')
+      bw.writeVarBytes(Buffer.from(value.multiSigKeys.identifier, 'hex'))
+      bw.writeVarBytes(Buffer.from(value.multiSigKeys.keyPackage, 'hex'))
+      bw.writeVarBytes(Buffer.from(value.multiSigKeys.proofGenerationKey, 'hex'))
     }
 
     return bw.render()
@@ -87,9 +87,9 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     let multiSigKeys = undefined
     if (hasMultiSigKeys) {
       multiSigKeys = {
-        identifier: reader.readVarString('utf8'),
-        keyPackage: reader.readVarString('utf8'),
-        proofGenerationKey: reader.readVarString('utf8'),
+        identifier: reader.readVarBytes().toString('hex'),
+        keyPackage: reader.readVarBytes().toString('hex'),
+        proofGenerationKey: reader.readVarBytes().toString('hex'),
       }
     }
 
@@ -125,9 +125,9 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
       size += encoding.nonNullSize
     }
     if (value.multiSigKeys) {
-      size += bufio.sizeVarString(value.multiSigKeys.identifier, 'utf8')
-      size += bufio.sizeVarString(value.multiSigKeys.keyPackage, 'utf8')
-      size += bufio.sizeVarString(value.multiSigKeys.proofGenerationKey, 'utf8')
+      size += bufio.sizeVarString(value.multiSigKeys.identifier, 'hex')
+      size += bufio.sizeVarString(value.multiSigKeys.keyPackage, 'hex')
+      size += bufio.sizeVarString(value.multiSigKeys.proofGenerationKey, 'hex')
     }
 
     return size
