@@ -37,10 +37,12 @@ export class Migration030 extends Migration {
       )
     }
 
-    logger.info(`Indexing notes and sorting them by value for ${accounts.length} accounts`)
+    logger.info(
+      `Indexing unspent notes and sorting them by value for ${accounts.length} accounts`,
+    )
 
     for (const account of accounts) {
-      let decryptedNotes = 0
+      let unspentNotes = 0
 
       logger.info(` Indexing notes and sorting them by value for account ${account.name}`)
       for await (const [[, noteHash], note] of stores.old.decryptedNotes.getAllIter(
@@ -55,11 +57,11 @@ export class Migration030 extends Migration {
           [account.prefix, [note.note.assetId(), [note.note.value(), noteHash]]],
           null,
         )
-        decryptedNotes++
+        unspentNotes++
       }
 
       logger.info(
-        ` Indexed ${decryptedNotes} notes and sorted by value for account ${account.name}`,
+        ` Indexed ${unspentNotes} unspent notes and sorted by value for account ${account.name}`,
       )
     }
   }
