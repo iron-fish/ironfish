@@ -13,7 +13,7 @@ import {
   writeTestReport,
 } from '../../testUtilities'
 import { BenchUtils, CurrencyUtils, PromiseUtils, SegmentResults } from '../../utils'
-import { Account } from '../../wallet'
+import { SpendingAccount } from '../../wallet'
 import { CreateMinersFeeRequest } from './createMinersFee'
 import { DecryptNoteOptions, DecryptNotesRequest } from './decryptNotes'
 import { WORKER_MESSAGE_HEADER_SIZE } from './workerMessage'
@@ -23,7 +23,7 @@ describe('WorkerMessages', () => {
 
   const TEST_ITERATIONS = 50
 
-  let account: Account
+  let account: SpendingAccount
 
   beforeAll(async () => {
     account = await useAccountFixture(nodeTest.wallet, 'account')
