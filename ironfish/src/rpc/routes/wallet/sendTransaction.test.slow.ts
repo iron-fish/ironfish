@@ -9,10 +9,13 @@ import { createRouteTest } from '../../../testUtilities/routeTest'
 import { AsyncUtils } from '../../../utils'
 
 describe('Route wallet/sendTransaction (with note selection)', () => {
-  const routeTest = createRouteTest(true)
+  const routeTest = createRouteTest()
 
   it('spends the specified notes', async () => {
     const sender = await useAccountFixture(routeTest.node.wallet, 'accountA')
+
+    routeTest.node.peerNetwork['_isReady'] = true
+    routeTest.chain.synced = true
 
     const block = await useMinerBlockFixture(
       routeTest.chain,
