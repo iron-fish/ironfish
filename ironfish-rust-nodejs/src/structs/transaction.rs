@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::RefCell;
+
 use std::convert::TryInto;
 
 use ironfish::assets::asset_identifier::AssetIdentifier;
@@ -174,7 +175,6 @@ impl NativeTransaction {
     pub fn new(version: u8) -> Result<Self> {
         let tx_version = version.try_into().map_err(to_napi_err)?;
         let transaction = ProposedTransaction::new(tx_version);
-
         Ok(NativeTransaction { transaction })
     }
 

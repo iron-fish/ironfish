@@ -4,8 +4,13 @@
 
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use group::GroupEncoding;
+use ironfish_frost::frost::{round1::SigningCommitments, Identifier, SigningPackage};
+
 use ironfish_zkp::redjubjub::{self, Signature};
-use std::io::{self, Write};
+use std::{
+    collections::BTreeMap,
+    io::{self, Write},
+};
 
 use crate::{
     errors::IronfishError, serializing::read_scalar, transaction::Blake2b, OutputDescription,
@@ -208,5 +213,16 @@ impl UnsignedTransaction {
             binding_signature: self.binding_signature,
             randomized_public_key: self.randomized_public_key.clone(),
         })
+    }
+
+    // Creates frost signing package for use in round two of FROST multisig protocol
+    // only applicable for multisig transactions
+    pub fn signing_package(
+        &self,
+        commitments: BTreeMap<Identifier, SigningCommitments>,
+    ) -> Result<SigningPackage, IronfishError> {
+        // Create the transaction signature hash
+        let data_to_sign = self.transaction_signature_hash()?;
+        Ok(SigningPackage::new(commitments, &data_to_sign))
     }
 }
