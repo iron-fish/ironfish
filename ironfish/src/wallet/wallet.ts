@@ -14,7 +14,7 @@ import { NoteHasher } from '../merkletree'
 import { Side } from '../merkletree/merkletree'
 import { Witness } from '../merkletree/witness'
 import { Mutex } from '../mutex'
-import { GENESIS_BLOCK_SEQUENCE } from '../primitives'
+import { GENESIS_BLOCK_PREVIOUS, GENESIS_BLOCK_SEQUENCE } from '../primitives/block'
 import { BurnDescription } from '../primitives/burnDescription'
 import { MintDescription } from '../primitives/mintDescription'
 import { Note } from '../primitives/note'
@@ -51,7 +51,6 @@ import { DecryptedNoteValue } from './walletdb/decryptedNoteValue'
 import { HeadValue } from './walletdb/headValue'
 import { TransactionValue } from './walletdb/transactionValue'
 import { WalletDB } from './walletdb/walletdb'
-import { GENESIS_BLOCK_PREVIOUS } from '../primitives/block'
 
 export enum AssetStatus {
   CONFIRMED = 'confirmed',
