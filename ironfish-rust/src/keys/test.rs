@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::keys::{ephemeral::EphemeralKeyPair, PUBLIC_ADDRESS_SIZE};
+use crate::keys::{ephemeral::EphemeralKeyPair, split_spender_key, PUBLIC_ADDRESS_SIZE};
 
 use super::{shared_secret, PublicAddress, SaplingKey};
 use group::Curve;
@@ -129,4 +129,13 @@ fn test_from_and_to_words() {
     let key =
         SaplingKey::from_words(words, bip39::Language::English).expect("key should be created");
     assert_eq!(key.spending_key, key_bytes);
+}
+
+#[test]
+fn test_split_spender_key() {
+    let key = SaplingKey::generate_key();
+    let secret = key.spend_authorizing_key.to_bytes().to_vec();
+
+    let (_ak, _pgk, _vk, _ivk, _ovk, _address, _map, _key_package) =
+        split_spender_key(key, 2, 3, secret);
 }
