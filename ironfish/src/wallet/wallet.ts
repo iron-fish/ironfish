@@ -51,6 +51,7 @@ import { DecryptedNoteValue } from './walletdb/decryptedNoteValue'
 import { HeadValue } from './walletdb/headValue'
 import { TransactionValue } from './walletdb/transactionValue'
 import { WalletDB } from './walletdb/walletdb'
+import { GENESIS_BLOCK_PREVIOUS } from '../primitives/block'
 
 export enum AssetStatus {
   CONFIRMED = 'confirmed',
@@ -1788,13 +1789,13 @@ export class Wallet {
       return null
     }
 
-    const previousBlock = await this.chainGetBlock({ hash: block.block.previousBlockHash })
+    const previousBlockHash = Buffer.from(block.block.previousBlockHash, 'hex')
 
-    if (previousBlock === null) {
+    if (previousBlockHash.equals(GENESIS_BLOCK_PREVIOUS)) {
       return null
     }
 
-    return Buffer.from(previousBlock.block.hash, 'hex')
+    return previousBlockHash
   }
 
   private async getChainAsset(id: Buffer): Promise<{
