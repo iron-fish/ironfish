@@ -17,21 +17,23 @@ use crate::{IncomingViewKey, OutgoingViewKey, PublicAddress, SaplingKey, ViewKey
 
 use super::split_secret::{split_secret, SecretShareConfig};
 
+pub struct SpenderKeyConfig {
+    pub ak: [u8; 32],
+    pub pgk: ProofGenerationKey,
+    pub vk: ViewKey,
+    pub ivk: IncomingViewKey,
+    pub ovk: OutgoingViewKey,
+    pub address: PublicAddress,
+    pub key_packages: HashMap<Identifier, KeyPackage>,
+    pub pubkeys: PublicKeyPackage,
+}
+
 pub fn split_spender_key(
     coordinator_sapling_key: SaplingKey,
     min_signers: u16,
     max_signers: u16,
     secret: Vec<u8>,
-) -> (
-    [u8; 32],
-    ProofGenerationKey,
-    ViewKey,
-    IncomingViewKey,
-    OutgoingViewKey,
-    PublicAddress,
-    HashMap<Identifier, KeyPackage>,
-    PublicKeyPackage,
-) {
+) -> SpenderKeyConfig {
     let secret_config = SecretShareConfig {
         min_signers,
         max_signers,
@@ -66,17 +68,27 @@ pub fn split_spender_key(
     let outgoing_view_key: OutgoingViewKey = coordinator_sapling_key.outgoing_view_key().clone();
 
     let public_address = incoming_viewing_key.public_address();
+    // SpenderKeyConfig {
+    //     authorizing_key.to_bytes(),
+    //     proof_generation_key,
+    //     view_key,
+    //     incoming_viewing_key,
+    //     outgoing_view_key,
+    //     public_address,
+    //     key_packages,
+    //     pubkeys,
+    // }
 
-    (
-        authorizing_key.to_bytes(),
-        proof_generation_key,
-        view_key,
-        incoming_viewing_key,
-        outgoing_view_key,
-        public_address,
+    SpenderKeyConfig {
+        ak: authorizing_key.to_bytes(),
+        pgk: proof_generation_key,
+        vk: view_key,
+        ivk: incoming_viewing_key,
+        ovk: outgoing_view_key,
+        address: public_address,
         key_packages,
         pubkeys,
-    )
+    }
 }
 
 #[cfg(test)]
@@ -88,7 +100,6 @@ mod test {
         let key = SaplingKey::generate_key();
         let secret = key.spend_authorizing_key.to_bytes().to_vec();
 
-        let (_ak, _pgk, _vk, _ivk, _ovk, _address, _map, _key_package) =
-            split_spender_key(key, 2, 3, secret);
+        let _spender_key_config = split_spender_key(key, 2, 3, secret);
     }
 }
