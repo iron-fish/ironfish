@@ -57,6 +57,7 @@ pub enum IronfishErrorKind {
     Io,
     IsSmallOrder,
     RandomnessError,
+    RoundTwoSigningFailure,
     TryFromInt,
     Utf8,
 }
