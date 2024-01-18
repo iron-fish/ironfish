@@ -327,7 +327,7 @@ impl NativeTransaction {
             OutgoingViewKey::from_hex(&outgoing_view_key_str).map_err(to_napi_err)?;
         let public_address = PublicAddress::from_hex(&public_address_str).map_err(to_napi_err)?;
         let proof_generation_key = ProofGenerationKey::from_hex(&proof_generation_key_str)
-                .map_err(|_| to_napi_err("PublicKeyPackage hex to bytes failed"))?;
+            .map_err(|_| to_napi_err("PublicKeyPackage hex to bytes failed"))?;
         let unsigned_transaction = self
             .transaction
             .build(
