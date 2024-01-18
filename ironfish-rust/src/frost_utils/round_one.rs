@@ -31,7 +31,7 @@ mod test {
 
         let mut rng = ThreadRng::default();
         let key_packages = split_secret(
-            &&SecretShareConfig {
+            &SecretShareConfig {
                 max_signers: 3,
                 min_signers: 2,
                 secret: key.to_bytes().to_vec(),
