@@ -15,6 +15,7 @@ describe('Consensus', () => {
     minFee: 6,
     enableAssetOwnership: 7,
     enforceSequentialBlockTime: 1,
+    enableFishHash: 'never',
   }
 
   let consensus: Consensus
@@ -67,9 +68,11 @@ describe('Consensus', () => {
       minFee: 6,
       enableAssetOwnership: 'never',
       enforceSequentialBlockTime: 'never',
+      enableFishHash: 'never',
     })
     expect(consensus.getActiveTransactionVersion(5)).toEqual(TransactionVersion.V1)
     expect(consensus.isActive(consensus.parameters.enableAssetOwnership, 3)).toBe(false)
     expect(consensus.isActive(consensus.parameters.enforceSequentialBlockTime, 3)).toBe(false)
+    expect(consensus.isActive(consensus.parameters.enableFishHash, 3)).toBe(false)
   })
 })

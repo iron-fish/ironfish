@@ -49,6 +49,7 @@ export const networkDefinitionSchema: yup.ObjectSchema<NetworkDefinition> = yup
         minFee: yup.number().integer().defined(),
         enableAssetOwnership: yup.mixed<ActivationSequence>().defined(),
         enforceSequentialBlockTime: yup.mixed<ActivationSequence>().defined(),
+        enableFishHash: yup.mixed<ActivationSequence>().defined(),
       })
       .defined(),
   })

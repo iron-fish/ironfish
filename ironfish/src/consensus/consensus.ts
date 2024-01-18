@@ -48,6 +48,13 @@ export type ConsensusParameters = {
    * block we enforce the block timestamps in the sequential order as the block sequences.
    */
   enforceSequentialBlockTime: ActivationSequence
+
+  /**
+   * Sequence at which to start mining and validating blocks with the FishHash algorithm
+   * instead Blake3. This sequence also modifies the block header serialization to move graffiti
+   * to the beginning of the block header before mining.
+   */
+  enableFishHash: ActivationSequence
 }
 
 export class Consensus {
