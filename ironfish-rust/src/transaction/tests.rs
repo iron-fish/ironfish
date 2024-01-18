@@ -14,7 +14,7 @@ use crate::{
     sapling_bls12::SAPLING,
     test_util::make_fake_witness,
     transaction::{
-        batch_verify_transactions, verify_transaction, SecretShareConfig, TransactionVersion,
+        batch_verify_transactions, verify_transaction, TransactionVersion,
         TRANSACTION_EXPIRATION_SIZE, TRANSACTION_FEE_SIZE, TRANSACTION_SIGNATURE_SIZE,
     },
 };
