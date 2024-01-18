@@ -20,7 +20,7 @@ import {
 } from './logger'
 import { FileReporter } from './logger/reporters'
 import { MetricsMonitor } from './metrics'
-import { PrivateIdentity } from './network/identity'
+import { isHexSecretKey, PrivateIdentity } from './network/identity'
 import { IsomorphicWebSocketConstructor } from './network/types'
 import { WebSocketClient } from './network/webSocketClient'
 import { FullNode } from './node'
@@ -272,11 +272,7 @@ export class IronfishSdk {
 
   getPrivateIdentity(): PrivateIdentity | undefined {
     const networkIdentity = this.internal.get('networkIdentity')
-    if (
-      !this.config.get('generateNewIdentity') &&
-      networkIdentity !== undefined &&
-      networkIdentity.length > 31
-    ) {
+    if (!this.config.get('generateNewIdentity') && isHexSecretKey(networkIdentity)) {
       return BoxKeyPair.fromHex(networkIdentity)
     }
   }

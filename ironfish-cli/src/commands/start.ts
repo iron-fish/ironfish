@@ -213,7 +213,7 @@ export default class Start extends IronfishCommand {
       await this.sdk.internal.save()
     }
 
-    const node = await this.sdk.node({ privateIdentity: this.sdk.getPrivateIdentity() })
+    const node = await this.sdk.node()
 
     const nodeName = this.sdk.config.get('nodeName').trim() || null
     const blockGraffiti = this.sdk.config.get('blockGraffiti').trim() || null
@@ -253,12 +253,6 @@ export default class Start extends IronfishCommand {
 
       this.exit(1)
     }
-
-    const newSecretKey = Buffer.from(
-      node.peerNetwork.localPeer.privateIdentity.secretKey,
-    ).toString('hex')
-    node.internal.set('networkIdentity', newSecretKey)
-    await node.internal.save()
 
     if (node.internal.get('isFirstRun')) {
       await this.firstRun(node)
