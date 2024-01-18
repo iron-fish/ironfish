@@ -2,7 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { generateKey } from '@ironfish/rust-nodejs'
 import { Assert } from '../../../assert'
+import { AccountImport } from '../../walletdb/accountValue'
+import { ACCOUNT_SCHEMA_VERSION } from '../account'
 import { JsonEncoder } from './json'
 describe('JsonEncoder', () => {
   describe('encoding/decoding', () => {
@@ -27,6 +30,32 @@ describe('JsonEncoder', () => {
       const decoded = encoder.decode(jsonString)
       Assert.isNotNull(decoded)
       expect(decoded.viewKey).not.toBeNull()
+    })
+    it('encodes and decodes accounts with multisig keys', () => {
+      const key = generateKey()
+
+      const accountImport: AccountImport = {
+        version: ACCOUNT_SCHEMA_VERSION,
+        name: 'test',
+        spendingKey: null,
+        viewKey: key.viewKey,
+        incomingViewKey: key.incomingViewKey,
+        outgoingViewKey: key.outgoingViewKey,
+        publicAddress: key.publicAddress,
+        createdAt: null,
+        multiSigKeys: {
+          identifier: 'aaaa',
+          keyPackage: 'bbbb',
+          proofGenerationKey: 'cccc',
+        },
+      }
+
+      const encoder = new JsonEncoder()
+
+      const encoded = encoder.encode(accountImport)
+
+      const decoded = encoder.decode(encoded)
+      expect(decoded).toMatchObject(accountImport)
     })
   })
 })

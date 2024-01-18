@@ -24,7 +24,7 @@ import { WalletDB } from '../walletdb/walletdb'
 
 export const ACCOUNT_KEY_LENGTH = 32
 
-export const ACCOUNT_SCHEMA_VERSION = 2
+export const ACCOUNT_SCHEMA_VERSION = 3
 
 export type SpendingAccount = WithNonNull<Account, 'spendingKey'>
 
@@ -100,6 +100,7 @@ export class Account {
       outgoingViewKey: this.outgoingViewKey,
       publicAddress: this.publicAddress,
       createdAt: this.createdAt,
+      multiSigKeys: this.multiSigKeys,
     }
   }
 
