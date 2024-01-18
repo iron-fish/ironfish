@@ -116,7 +116,7 @@ switch (platform) {
         nativeBinding = require('@ironfish/rust-nodejs-darwin-universal')
       }
       break
-    } catch {}
+    } catch { }
     switch (arch) {
       case 'x64':
         localFileExisted = existsSync(join(__dirname, 'ironfish-rust-nodejs.darwin-x64.node'))
@@ -292,6 +292,7 @@ module.exports.LATEST_TRANSACTION_VERSION = LATEST_TRANSACTION_VERSION
 module.exports.TransactionPosted = TransactionPosted
 module.exports.Transaction = Transaction
 module.exports.verifyTransactions = verifyTransactions
+module.exports.UnsignedTransaction = UnsignedTransaction
 module.exports.LanguageCode = LanguageCode
 module.exports.generateKey = generateKey
 module.exports.spendingKeyToWords = spendingKeyToWords
