@@ -17,13 +17,12 @@ pub fn round_one(key_package: &KeyPackage, seed: u64) -> (SigningNonces, Signing
 
 #[cfg(test)]
 mod test {
-
     use ff::Field;
     use ironfish_frost::frost::keys::IdentifierList;
     use jubjub::Fr;
     use rand::rngs::ThreadRng;
 
-    use crate::transaction::{split_secret, SecretShareConfig};
+    use crate::frost_utils::split_secret::{split_secret, SecretShareConfig};
 
     #[test]
     pub fn test_seed_provides_same_result() {
@@ -32,7 +31,7 @@ mod test {
 
         let mut rng = ThreadRng::default();
         let key_packages = split_secret(
-            &SecretShareConfig {
+            &&SecretShareConfig {
                 max_signers: 3,
                 min_signers: 2,
                 secret: key.to_bytes().to_vec(),
