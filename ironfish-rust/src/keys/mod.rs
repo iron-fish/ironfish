@@ -2,10 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::io;
-
 use crate::errors::{IronfishError, IronfishErrorKind};
 use crate::serializing::{bytes_to_hex, hex_to_bytes, read_scalar};
+
 pub use bip39::Language;
 use bip39::Mnemonic;
 use blake2b_simd::Params as Blake2b;
@@ -17,6 +16,8 @@ use ironfish_zkp::constants::{
 use ironfish_zkp::ProofGenerationKey;
 use jubjub::SubgroupPoint;
 use rand::prelude::*;
+
+use std::io;
 
 mod ephemeral;
 pub use ephemeral::EphemeralKeyPair;
