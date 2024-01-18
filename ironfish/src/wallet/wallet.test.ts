@@ -341,7 +341,10 @@ describe('Wallet', () => {
         hash: block1.header.hash,
         sequence: block1.header.sequence,
       })
-      await expect(accountB.getHead()).resolves.toEqual(null)
+      await expect(accountB.getHead()).resolves.toEqual({
+        hash: block1.header.hash,
+        sequence: block1.header.sequence,
+      })
 
       await node.wallet.updateHead()
 
@@ -350,7 +353,10 @@ describe('Wallet', () => {
         hash: block2.header.hash,
         sequence: block2.header.sequence,
       })
-      await expect(accountB.getHead()).resolves.toEqual(null)
+      await expect(accountB.getHead()).resolves.toEqual({
+        hash: block2.header.hash,
+        sequence: block2.header.sequence,
+      })
 
       await node.wallet.scanTransactions()
 
@@ -717,7 +723,7 @@ describe('Wallet', () => {
 
       const accountBImport = await nodeB.wallet.importAccount(accountB)
 
-      expect(accountBImport.createdAt).toBeNull()
+      expect(accountBImport.createdAt).toBeDefined()
     })
   })
 
