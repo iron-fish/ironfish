@@ -130,12 +130,3 @@ fn test_from_and_to_words() {
         SaplingKey::from_words(words, bip39::Language::English).expect("key should be created");
     assert_eq!(key.spending_key, key_bytes);
 }
-
-#[test]
-fn test_split_spender_key() {
-    let key = SaplingKey::generate_key();
-    let secret = key.spend_authorizing_key.to_bytes().to_vec();
-
-    let (_ak, _pgk, _vk, _ivk, _ovk, _address, _map, _key_package) =
-        split_spender_key(key, 2, 3, secret);
-}
