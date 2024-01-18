@@ -2,7 +2,10 @@ use group::GroupEncoding;
 pub use ironfish_zkp::ProofGenerationKey;
 use jubjub::{Fr, SubgroupPoint};
 
-use crate::{serializing::{bytes_to_hex, hex_to_bytes}, errors::{IronfishError, IronfishErrorKind}};
+use crate::{
+    errors::{IronfishError, IronfishErrorKind},
+    serializing::{bytes_to_hex, hex_to_bytes},
+};
 
 pub trait ProofGenerationKeySerializable {
     fn serialize(&self) -> [u8; 64];
@@ -28,11 +31,7 @@ impl ProofGenerationKeySerializable for ProofGenerationKey {
 
         let ak = match SubgroupPoint::from_bytes(&ak_bytes).into() {
             Some(ak) => ak,
-            None => {
-                return Err(IronfishError::new(
-                    IronfishErrorKind::InvalidAuthorizingKey,
-                ))
-            }
+            None => return Err(IronfishError::new(IronfishErrorKind::InvalidAuthorizingKey)),
         };
 
         let nsk = match Fr::from_bytes(&nsk_bytes).into() {
@@ -60,10 +59,10 @@ impl ProofGenerationKeySerializable for ProofGenerationKey {
 
 #[cfg(test)]
 mod test {
+    use crate::errors::IronfishErrorKind;
     use ff::Field;
     use group::{Group, GroupEncoding};
     use ironfish_zkp::ProofGenerationKey;
-    use crate::errors::IronfishErrorKind;
 
     use super::ProofGenerationKeySerializable;
     use jubjub;
@@ -111,8 +110,10 @@ mod test {
 
         let err = result.err().unwrap();
 
-        assert!(matches!(err.kind, IronfishErrorKind::InvalidNullifierDerivingKey));
-
+        assert!(matches!(
+            err.kind,
+            IronfishErrorKind::InvalidNullifierDerivingKey
+        ));
     }
 
     #[test]

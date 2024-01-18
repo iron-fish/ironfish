@@ -12,8 +12,9 @@ use ironfish::transaction::{
     TRANSACTION_FEE_SIZE, TRANSACTION_PUBLIC_KEY_SIZE, TRANSACTION_SIGNATURE_SIZE,
 };
 use ironfish::{
-    keys::proof_generation_key::{ProofGenerationKey, ProofGenerationKeySerializable} ,MerkleNoteHash, OutgoingViewKey,
-    ProposedTransaction, PublicAddress, SaplingKey, Transaction, ViewKey,
+    keys::proof_generation_key::{ProofGenerationKey, ProofGenerationKeySerializable},
+    MerkleNoteHash, OutgoingViewKey, ProposedTransaction, PublicAddress, SaplingKey, Transaction,
+    ViewKey,
 };
 use napi::{
     bindgen_prelude::{i64n, BigInt, Buffer, Env, Object, Result, Undefined},
