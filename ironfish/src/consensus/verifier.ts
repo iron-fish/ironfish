@@ -217,12 +217,7 @@ export class Verifier {
       return { valid: false, reason: VerificationResultReason.PREV_HASH_MISMATCH }
     }
 
-    if (
-      this.chain.consensus.isActive(
-        this.chain.consensus.parameters.enforceSequentialBlockTime,
-        current.sequence,
-      )
-    ) {
+    if (this.chain.consensus.isActive('enforceSequentialBlockTime', current.sequence)) {
       if (current.timestamp.getTime() <= previousHeader.timestamp.getTime()) {
         return { valid: false, reason: VerificationResultReason.BLOCK_TOO_OLD }
       }
