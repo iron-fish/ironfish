@@ -71,6 +71,13 @@ export class Consensus {
     return Math.max(1, sequence) >= upgrade
   }
 
+  /**
+   * Returns true if the upgrade can never activate on the network
+   */
+  isNeverActive(upgrade: keyof ConsensusParameters): boolean {
+    return this.parameters[upgrade] === 'never'
+  }
+
   getActiveTransactionVersion(sequence: number): TransactionVersion {
     if (this.isActive(this.parameters.enableAssetOwnership, sequence)) {
       return TransactionVersion.V2

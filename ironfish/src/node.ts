@@ -250,12 +250,16 @@ export class FullNode {
     }
 
     const consensus = new TestnetConsensus(networkDefinition.consensus)
-    // TODO: config value for fullContext
-    const blockHasher = new BlockHasher({
-      consensus,
-      context: fishHashContext,
-      fullContext: false,
-    })
+
+    if (consensus.isNeverActive('enableFishHash')) {
+      fishHashContext = undefined
+    } else if (!fishHashContext) {
+      const isFull = config.get('fishHashFullContext')
+      fishHashContext = new FishHashContext(isFull)
+      fishHashContext.prebuildDataset(numWorkers)
+    }
+
+    const blockHasher = new BlockHasher({ context: fishHashContext, consensus })
 
     strategyClass = strategyClass || Strategy
     const strategy = new strategyClass({ workerPool, consensus, blockHasher })

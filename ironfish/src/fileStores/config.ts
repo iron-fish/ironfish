@@ -298,6 +298,13 @@ export type ConfigOptions = {
    * The max number of transactions to process at one time when syncing
    */
   walletSyncingMaxQueueSize: number
+
+  /**
+   * Whether or not to build the full fish hash context at node startup. Setting this
+   * to `true` will slightly increase node performance but use ~4GB more RAM. The majority of
+   * network users will not need this speed increase and so should keep the default of `false`.
+   */
+  fishHashFullContext: boolean
 }
 
 export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
@@ -379,6 +386,7 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     incomingWebSocketWhitelist: yup.array(yup.string().trim().defined()),
     walletGossipTransactionsMaxQueueSize: yup.number(),
     walletSyncingMaxQueueSize: yup.number(),
+    fishHashFullContext: yup.boolean(),
   })
   .defined()
 
@@ -486,6 +494,7 @@ export class Config<
       incomingWebSocketWhitelist: [],
       walletGossipTransactionsMaxQueueSize: 1000,
       walletSyncingMaxQueueSize: 100,
+      fishHashFullContext: false,
     }
   }
 }
