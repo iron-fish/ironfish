@@ -13,21 +13,13 @@ describe('Route chain.getConsensusParameters', () => {
       .request<GetConsensusParametersResponse>('chain/getConsensusParameters')
       .waitForEnd()
 
-    expect(response.content.allowedBlockFuturesSeconds).toEqual(
-      routeTest.chain.consensus.parameters.allowedBlockFutureSeconds,
+    const chainParams = routeTest.chain.consensus.parameters
+    const expectedResponseParams = Object.fromEntries(
+      Object.entries(chainParams).map(([k, v]) => {
+        return [k, v === 'never' ? null : v]
+      }),
     )
-    expect(response.content.genesisSupplyInIron).toEqual(
-      routeTest.chain.consensus.parameters.genesisSupplyInIron,
-    )
-    expect(response.content.targetBlockTimeInSeconds).toEqual(
-      routeTest.chain.consensus.parameters.targetBlockTimeInSeconds,
-    )
-    expect(response.content.targetBucketTimeInSeconds).toEqual(
-      routeTest.chain.consensus.parameters.targetBucketTimeInSeconds,
-    )
-    expect(response.content.maxBlockSizeBytes).toEqual(
-      routeTest.chain.consensus.parameters.maxBlockSizeBytes,
-    )
-    expect(response.content.minFee).toEqual(routeTest.chain.consensus.parameters.minFee)
+
+    expect(response.content).toEqual(expectedResponseParams)
   })
 })
