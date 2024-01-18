@@ -3,4 +3,5 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 pub mod round_one;
+pub mod round_two;
 pub mod split_secret;
