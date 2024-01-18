@@ -14,14 +14,12 @@ use crate::{
     sapling_bls12::SAPLING,
     test_util::make_fake_witness,
     transaction::{
-        batch_verify_transactions, split_secret, verify_transaction, SecretShareConfig,
-        TransactionVersion, TRANSACTION_EXPIRATION_SIZE, TRANSACTION_FEE_SIZE,
-        TRANSACTION_SIGNATURE_SIZE,
+        batch_verify_transactions, verify_transaction, TransactionVersion,
+        TRANSACTION_EXPIRATION_SIZE, TRANSACTION_FEE_SIZE, TRANSACTION_SIGNATURE_SIZE,
     },
 };
 
 use ff::Field;
-use ironfish_frost::frost::{frost::keys::reconstruct, JubjubBlake2b512};
 use ironfish_zkp::{
     constants::{ASSET_ID_LENGTH, SPENDING_KEY_GENERATOR, TREE_DEPTH},
     proofs::{MintAsset, Output, Spend},
@@ -644,34 +642,4 @@ fn test_batch_verify() {
         batch_verify_transactions([&transaction1, &transaction2]),
         Err(e) if matches!(e.kind, IronfishErrorKind::InvalidSpendSignature)
     ));
-}
-
-#[test]
-fn test_split_secret() {
-    let mut rng = rand::thread_rng();
-
-    let key = SaplingKey::generate_key().spend_authorizing_key.to_bytes();
-
-    let config = SecretShareConfig {
-        min_signers: 2,
-        max_signers: 3,
-        secret: key.to_vec(),
-    };
-
-    let (key_packages, _) = split_secret(
-        &config,
-        ironfish_frost::frost::keys::IdentifierList::Default,
-        &mut rng,
-    )
-    .unwrap();
-    assert_eq!(key_packages.len(), 3);
-
-    let key_parts: Vec<_> = key_packages.values().cloned().collect();
-
-    let signing_key =
-        reconstruct::<JubjubBlake2b512>(&key_parts).expect("key reconstruction failed");
-
-    let scalar = signing_key.to_scalar();
-
-    assert_eq!(scalar.to_bytes(), key);
 }
