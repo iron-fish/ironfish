@@ -17,8 +17,10 @@ use crate::{IncomingViewKey, OutgoingViewKey, PublicAddress, SaplingKey, ViewKey
 
 use super::split_secret::{split_secret, SecretShareConfig};
 
-pub struct SpenderKeyConfig {
-    pub ak: [u8; 32],
+type AuthorizingKey = [u8; 32];
+
+pub struct TrustedDealerKeyPackages {
+    pub ak: AuthorizingKey,
     pub pgk: ProofGenerationKey,
     pub vk: ViewKey,
     pub ivk: IncomingViewKey,
@@ -33,7 +35,7 @@ pub fn split_spender_key(
     min_signers: u16,
     max_signers: u16,
     secret: Vec<u8>,
-) -> SpenderKeyConfig {
+) -> TrustedDealerKeyPackages {
     let secret_config = SecretShareConfig {
         min_signers,
         max_signers,
@@ -45,8 +47,8 @@ pub fn split_spender_key(
         split_secret(&secret_config, IdentifierList::Default, &mut rng).unwrap();
 
     let authorizing_key_bytes = pubkeys.verifying_key().serialize();
-    let authorizing_key = Option::from(SubgroupPoint::from_bytes(&authorizing_key_bytes))
-        .expect("should be able to deserialize the verifying key into a SubgroupPoint");
+
+    let authorizing_key = SubgroupPoint::from_bytes(&authorizing_key_bytes).unwrap();
 
     let proof_generation_key = ProofGenerationKey {
         ak: authorizing_key,
@@ -61,15 +63,13 @@ pub fn split_spender_key(
         nullifier_deriving_key,
     };
 
-    let incoming_viewing_key = IncomingViewKey {
-        view_key: SaplingKey::hash_viewing_key(&authorizing_key, &nullifier_deriving_key).unwrap(),
-    };
+    let incoming_viewing_key = coordinator_sapling_key.incoming_view_key().clone();
 
     let outgoing_view_key: OutgoingViewKey = coordinator_sapling_key.outgoing_view_key().clone();
 
     let public_address = incoming_viewing_key.public_address();
 
-    SpenderKeyConfig {
+    TrustedDealerKeyPackages {
         ak: authorizing_key.to_bytes(),
         pgk: proof_generation_key,
         vk: view_key,

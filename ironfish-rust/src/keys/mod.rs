@@ -241,7 +241,7 @@ impl SaplingKey {
     ///
     /// This method is only called once, but it's kind of messy, so I pulled it
     /// out of the constructor for easier maintenance.
-    pub fn hash_viewing_key(
+    fn hash_viewing_key(
         authorizing_key: &SubgroupPoint,
         nullifier_deriving_key: &SubgroupPoint,
     ) -> Result<jubjub::Fr, IronfishError> {
