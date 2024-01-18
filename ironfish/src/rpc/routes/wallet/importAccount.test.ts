@@ -48,6 +48,38 @@ describe('Route wallet/importAccount', () => {
     })
   })
 
+  it('should import a multisig account that has no spending key', async () => {
+    const key = generateKey()
+
+    const accountName = 'multisig'
+    const response = await routeTest.client
+      .request<ImportResponse>('wallet/importAccount', {
+        account: {
+          name: accountName,
+          viewKey: key.viewKey,
+          spendingKey: null,
+          publicAddress: key.publicAddress,
+          incomingViewKey: key.incomingViewKey,
+          outgoingViewKey: key.outgoingViewKey,
+          version: 1,
+          createdAt: null,
+          multiSigKeys: {
+            identifier: 'aaaa',
+            keyPackage: 'bbbb',
+            proofGenerationKey: 'cccc',
+          },
+        },
+        rescan: false,
+      })
+      .waitForEnd()
+
+    expect(response.status).toBe(200)
+    expect(response.content).toMatchObject({
+      name: accountName,
+      isDefaultAccount: false,
+    })
+  })
+
   it('should import a spending account', async () => {
     const key = generateKey()
 

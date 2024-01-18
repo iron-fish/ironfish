@@ -55,6 +55,30 @@ describe('Bech32AccountEncoder', () => {
     expect(decoded).toMatchObject(accountImport)
   })
 
+  it('encodes and decodes accounts with multisig keys', () => {
+    const accountImport: AccountImport = {
+      version: ACCOUNT_SCHEMA_VERSION,
+      name: 'test',
+      spendingKey: null,
+      viewKey: key.viewKey,
+      incomingViewKey: key.incomingViewKey,
+      outgoingViewKey: key.outgoingViewKey,
+      publicAddress: key.publicAddress,
+      createdAt: null,
+      multiSigKeys: {
+        identifier: 'aaaa',
+        keyPackage: 'bbbb',
+        proofGenerationKey: 'cccc',
+      },
+    }
+
+    const encoded = encoder.encode(accountImport)
+    expect(encoded.startsWith(BECH32_ACCOUNT_PREFIX)).toBe(true)
+
+    const decoded = encoder.decode(encoded)
+    expect(decoded).toMatchObject(accountImport)
+  })
+
   it('encodes and decodes view-only accounts', () => {
     const accountImport: AccountImport = {
       version: ACCOUNT_SCHEMA_VERSION,
