@@ -51,7 +51,7 @@ describe('Route wallet/importAccount', () => {
   it('should import a multisig account that has no spending key', async () => {
     const key = generateKey()
 
-    const accountName = 'foo'
+    const accountName = 'multisig'
     const response = await routeTest.client
       .request<ImportResponse>('wallet/importAccount', {
         account: {
@@ -76,7 +76,7 @@ describe('Route wallet/importAccount', () => {
     expect(response.status).toBe(200)
     expect(response.content).toMatchObject({
       name: accountName,
-      isDefaultAccount: true,
+      isDefaultAccount: false,
     })
   })
 
