@@ -255,7 +255,6 @@ export class FullNode {
     } else if (!fishHashContext) {
       const isFull = config.get('fishHashFullContext')
       fishHashContext = new FishHashContext(isFull)
-      fishHashContext.prebuildDataset(numWorkers)
     }
 
     strategyClass = strategyClass || Strategy
