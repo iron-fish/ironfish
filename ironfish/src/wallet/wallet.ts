@@ -1544,7 +1544,21 @@ export class Wallet {
 
     await this.walletDb.db.transaction(async (tx) => {
       await this.walletDb.setAccount(account, tx)
-      await account.updateHead(createdAt, tx)
+
+      if (createdAt !== null) {
+        const previousBlockHash = await this.chainGetPreviousBlockHash(createdAt.hash)
+
+        const head = previousBlockHash
+          ? {
+              hash: previousBlockHash,
+              sequence: createdAt.sequence - 1,
+            }
+          : null
+
+        await account.updateHead(head, tx)
+      } else {
+        await account.updateHead(null, tx)
+      }
     })
 
     this.accounts.set(account.id, account)
@@ -1765,6 +1779,22 @@ export class Wallet {
       this.logger.error(ErrorUtils.renderError(error, true))
       throw error
     }
+  }
+
+  async chainGetPreviousBlockHash(hash: Buffer): Promise<Buffer | null> {
+    const block = await this.chainGetBlock({ hash: hash.toString('hex') })
+
+    if (block === null) {
+      return null
+    }
+
+    const previousBlock = await this.chainGetBlock({ hash: block.block.previousBlockHash })
+
+    if (previousBlock === null) {
+      return null
+    }
+
+    return Buffer.from(previousBlock.block.hash, 'hex')
   }
 
   private async getChainAsset(id: Buffer): Promise<{

@@ -341,10 +341,7 @@ describe('Wallet', () => {
         hash: block1.header.hash,
         sequence: block1.header.sequence,
       })
-      await expect(accountB.getHead()).resolves.toEqual({
-        hash: block1.header.hash,
-        sequence: block1.header.sequence,
-      })
+      await expect(accountB.getHead()).resolves.toEqual(null)
 
       await node.wallet.updateHead()
 
@@ -353,10 +350,7 @@ describe('Wallet', () => {
         hash: block2.header.hash,
         sequence: block2.header.sequence,
       })
-      await expect(accountB.getHead()).resolves.toEqual({
-        hash: block2.header.hash,
-        sequence: block2.header.sequence,
-      })
+      await expect(accountB.getHead()).resolves.toEqual(null)
 
       await node.wallet.scanTransactions()
 
@@ -696,6 +690,39 @@ describe('Wallet', () => {
 
       expect(accountBImport.createdAt?.hash).toEqualHash(block3.header.hash)
       expect(accountBImport.createdAt?.sequence).toEqual(3)
+    })
+
+    it('should set account head to block before createdAt if that block is in the chain', async () => {
+      const { node: nodeA } = await nodeTest.createSetup()
+      const { node: nodeB } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(nodeA.wallet, 'accountA', {
+        setCreatedAt: false,
+      })
+      expect(accountA.createdAt).toBe(null)
+
+      // create blocks and add them to both chains
+      const block2 = await useMinerBlockFixture(nodeA.chain, 2)
+      await nodeA.chain.addBlock(block2)
+      await nodeB.chain.addBlock(block2)
+      await nodeA.wallet.updateHead()
+      const block3 = await useMinerBlockFixture(nodeA.chain, 3)
+      await nodeA.chain.addBlock(block3)
+      await nodeB.chain.addBlock(block3)
+      await nodeA.wallet.updateHead()
+
+      // create an account so that createdAt will be non-null
+      const accountB = await useAccountFixture(nodeA.wallet, 'accountB')
+
+      const accountBImport = await nodeB.wallet.importAccount(accountB)
+
+      expect(accountBImport.createdAt?.hash).toEqualHash(block3.header.hash)
+      expect(accountBImport.createdAt?.sequence).toEqual(3)
+
+      const accountBImportHead = await accountBImport.getHead()
+
+      expect(accountBImportHead?.hash).toEqualHash(block2.header.hash)
+      expect(accountBImportHead?.sequence).toEqual(2)
     })
 
     it('should set createdAt to null if that block is not in the chain', async () => {
