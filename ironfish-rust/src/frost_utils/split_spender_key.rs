@@ -68,16 +68,6 @@ pub fn split_spender_key(
     let outgoing_view_key: OutgoingViewKey = coordinator_sapling_key.outgoing_view_key().clone();
 
     let public_address = incoming_viewing_key.public_address();
-    // SpenderKeyConfig {
-    //     authorizing_key.to_bytes(),
-    //     proof_generation_key,
-    //     view_key,
-    //     incoming_viewing_key,
-    //     outgoing_view_key,
-    //     public_address,
-    //     key_packages,
-    //     pubkeys,
-    // }
 
     SpenderKeyConfig {
         ak: authorizing_key.to_bytes(),
