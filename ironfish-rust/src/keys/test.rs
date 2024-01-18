@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::keys::{ephemeral::EphemeralKeyPair, split_spender_key, PUBLIC_ADDRESS_SIZE};
+use crate::keys::{ephemeral::EphemeralKeyPair, PUBLIC_ADDRESS_SIZE};
 
 use super::{shared_secret, PublicAddress, SaplingKey};
 use group::Curve;
