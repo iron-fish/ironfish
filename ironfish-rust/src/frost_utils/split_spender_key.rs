@@ -97,7 +97,7 @@ mod test {
     };
 
     #[test]
-    fn test_throws_error_with_mismatch_length() {
+    fn test_throws_error_with_mismatch_signer_and_identifiers_lengths() {
         let mut identifiers = Vec::new();
 
         for _ in 0..10 {
@@ -118,7 +118,6 @@ mod test {
 
         let sapling_key2 = SaplingKey::generate_key();
 
-        // when max signers is less than 10
         let result = std::panic::catch_unwind(|| {
             split_spender_key(sapling_key2, 5, 9, identifiers.clone());
         });
