@@ -12,7 +12,10 @@ use jubjub::SubgroupPoint;
 use rand::thread_rng;
 use std::collections::HashMap;
 
-use crate::{IncomingViewKey, OutgoingViewKey, PublicAddress, SaplingKey, ViewKey};
+use crate::{
+    errors::{IronfishError, IronfishErrorKind},
+    IncomingViewKey, OutgoingViewKey, PublicAddress, SaplingKey, ViewKey,
+};
 
 use super::split_secret::{split_secret, SecretShareConfig};
 
@@ -34,7 +37,7 @@ pub fn split_spender_key(
     min_signers: u16,
     max_signers: u16,
     identifiers: Vec<Identifier>,
-) -> TrustedDealerKeyPackages {
+) -> Result<TrustedDealerKeyPackages, IronfishError> {
     let secret = coordinator_sapling_key
         .spend_authorizing_key
         .to_bytes()
@@ -51,11 +54,12 @@ pub fn split_spender_key(
     let mut rng: rand::prelude::ThreadRng = thread_rng();
 
     let (key_packages, public_key_package) =
-        split_secret(&secret_config, identifier_list, &mut rng).unwrap();
+        split_secret(&secret_config, identifier_list, &mut rng)?;
 
     let authorizing_key_bytes = public_key_package.verifying_key().serialize();
 
-    let authorizing_key = SubgroupPoint::from_bytes(&authorizing_key_bytes).unwrap();
+    let authorizing_key = Option::from(SubgroupPoint::from_bytes(&authorizing_key_bytes))
+        .ok_or_else(|| IronfishError::new(IronfishErrorKind::InvalidAuthorizingKey))?;
 
     let proof_generation_key = ProofGenerationKey {
         ak: authorizing_key,
@@ -76,7 +80,7 @@ pub fn split_spender_key(
 
     let public_address = incoming_view_key.public_address();
 
-    TrustedDealerKeyPackages {
+    Ok(TrustedDealerKeyPackages {
         verifying_key: authorizing_key_bytes,
         proof_generation_key,
         view_key,
@@ -85,7 +89,7 @@ pub fn split_spender_key(
         public_address,
         key_packages,
         public_key_package,
-    }
+    })
 }
 
 #[cfg(test)]
@@ -110,19 +114,20 @@ mod test {
 
         let sapling_key = SaplingKey::generate_key();
 
-        let result = std::panic::catch_unwind(|| {
-            split_spender_key(sapling_key, 5, 11, identifiers.clone());
-        });
-
+        let result = split_spender_key(sapling_key, 5, 11, identifiers.clone());
         assert!(result.is_err());
+        let err = result.err().unwrap();
+        assert_eq!(err.kind, IronfishErrorKind::Frost);
+        assert!(err.to_string().contains("Incorrect number of identifiers."));
 
         let sapling_key2 = SaplingKey::generate_key();
 
-        let result = std::panic::catch_unwind(|| {
-            split_spender_key(sapling_key2, 5, 9, identifiers.clone());
-        });
+        let result = split_spender_key(sapling_key2, 5, 9, identifiers.clone());
 
         assert!(result.is_err());
+        let err = result.err().unwrap();
+        assert_eq!(err.kind, IronfishErrorKind::Frost);
+        assert!(err.to_string().contains("Incorrect number of identifiers."));
     }
 
     #[test]
@@ -137,7 +142,8 @@ mod test {
         let sapling_key = SaplingKey::generate_key();
 
         let trusted_dealer_key_packages =
-            split_spender_key(sapling_key.clone(), 5, 10, identifiers);
+            split_spender_key(sapling_key.clone(), 5, 10, identifiers)
+                .expect("spender key split failed");
 
         assert_eq!(
             trusted_dealer_key_packages.key_packages.len(),
