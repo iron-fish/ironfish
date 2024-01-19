@@ -12,7 +12,7 @@ import {
   TransactionPosted as NativeTransactionPosted,
 } from '@ironfish/rust-nodejs'
 import { blake3 } from '@napi-rs/blake-hash'
-import { BlockHasher, serializeHeaderBlake3, serializeHeaderFishHash } from './blockHasher'
+import { serializeHeaderBlake3, serializeHeaderFishHash } from './blockHasher'
 import { ConsensusParameters, TestnetConsensus } from './consensus'
 import { MerkleTree } from './merkletree'
 import { LeafEncoding } from './merkletree/database/leaves'
@@ -102,15 +102,10 @@ describe('Demonstrate the Sapling API', () => {
     spenderKey = generateKey()
     receiverKey = generateKey()
     workerPool = new WorkerPool()
-    const consensus = new TestnetConsensus(consensusParameters)
-    const blockHasher = new BlockHasher({
-      consensus,
-      context: FISH_HASH_CONTEXT,
-    })
     strategy = new Strategy({
       workerPool,
-      consensus,
-      blockHasher,
+      consensus: new TestnetConsensus(consensusParameters),
+      fishHashContext: FISH_HASH_CONTEXT,
     })
   })
 
@@ -262,15 +257,10 @@ describe('Demonstrate the Sapling API', () => {
       }
 
       const key = generateKey()
-      const modifiedConsensus = new TestnetConsensus(modifiedParams)
-      const blockHasher = new BlockHasher({
-        consensus: modifiedConsensus,
-        context: FISH_HASH_CONTEXT,
-      })
       const modifiedStrategy = new Strategy({
         workerPool,
-        consensus: modifiedConsensus,
-        blockHasher,
+        consensus: new TestnetConsensus(modifiedParams),
+        fishHashContext: FISH_HASH_CONTEXT,
       })
 
       const minersFee1 = await modifiedStrategy.createMinersFee(
@@ -367,15 +357,10 @@ describe('Demonstrate the Sapling API', () => {
     }
 
     beforeAll(() => {
-      const modifiedConsensus = new TestnetConsensus(modifiedParams)
-      const blockHasher = new BlockHasher({
-        consensus: modifiedConsensus,
-        context: FISH_HASH_CONTEXT,
-      })
       modifiedStrategy = new Strategy({
         workerPool,
-        consensus: modifiedConsensus,
-        blockHasher,
+        consensus: new TestnetConsensus(modifiedParams),
+        fishHashContext: FISH_HASH_CONTEXT,
       })
     })
 

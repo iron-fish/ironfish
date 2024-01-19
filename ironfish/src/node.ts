@@ -5,7 +5,6 @@ import { BoxKeyPair, FishHashContext } from '@ironfish/rust-nodejs'
 import { v4 as uuid } from 'uuid'
 import { AssetsVerifier } from './assets'
 import { Blockchain } from './blockchain'
-import { BlockHasher } from './blockHasher'
 import { TestnetConsensus } from './consensus'
 import {
   Config,
@@ -260,15 +259,16 @@ export class FullNode {
     await internal.save()
 
     const consensus = new TestnetConsensus(networkDefinition.consensus)
-    // TODO: config value for fullContext
-    const blockHasher = new BlockHasher({
-      consensus,
-      context: fishHashContext,
-      fullContext: false,
-    })
+
+    if (consensus.isNeverActive('enableFishHash')) {
+      fishHashContext = undefined
+    } else if (!fishHashContext) {
+      const isFull = config.get('fishHashFullContext')
+      fishHashContext = new FishHashContext(isFull)
+    }
 
     strategyClass = strategyClass || Strategy
-    const strategy = new strategyClass({ workerPool, consensus, blockHasher })
+    const strategy = new strategyClass({ workerPool, consensus, fishHashContext })
 
     const chain = new Blockchain({
       location: config.chainDatabasePath,

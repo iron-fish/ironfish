@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { FishHashContext } from '@ironfish/rust-nodejs'
 import { BlockHasher } from './blockHasher'
 import { Consensus } from './consensus'
 import { Block, RawBlock } from './primitives/block'
@@ -22,12 +23,15 @@ export class Strategy {
   constructor(options: {
     workerPool: WorkerPool
     consensus: Consensus
-    blockHasher: BlockHasher
+    fishHashContext?: FishHashContext
   }) {
     this.miningRewardCachedByYear = new Map<number, number>()
     this.workerPool = options.workerPool
     this.consensus = options.consensus
-    this.blockHasher = options.blockHasher
+    this.blockHasher = new BlockHasher({
+      consensus: this.consensus,
+      context: options.fishHashContext,
+    })
   }
 
   /**
