@@ -14,7 +14,7 @@ import { NoteHasher } from '../merkletree'
 import { Side } from '../merkletree/merkletree'
 import { Witness } from '../merkletree/witness'
 import { Mutex } from '../mutex'
-import { GENESIS_BLOCK_SEQUENCE } from '../primitives'
+import { GENESIS_BLOCK_PREVIOUS, GENESIS_BLOCK_SEQUENCE } from '../primitives/block'
 import { BurnDescription } from '../primitives/burnDescription'
 import { MintDescription } from '../primitives/mintDescription'
 import { Note } from '../primitives/note'
@@ -1544,7 +1544,21 @@ export class Wallet {
 
     await this.walletDb.db.transaction(async (tx) => {
       await this.walletDb.setAccount(account, tx)
-      await account.updateHead(null, tx)
+
+      if (createdAt !== null) {
+        const previousBlockHash = await this.chainGetPreviousBlockHash(createdAt.hash)
+
+        const head = previousBlockHash
+          ? {
+              hash: previousBlockHash,
+              sequence: createdAt.sequence - 1,
+            }
+          : null
+
+        await account.updateHead(head, tx)
+      } else {
+        await account.updateHead(null, tx)
+      }
     })
 
     this.accounts.set(account.id, account)
@@ -1765,6 +1779,22 @@ export class Wallet {
       this.logger.error(ErrorUtils.renderError(error, true))
       throw error
     }
+  }
+
+  async chainGetPreviousBlockHash(hash: Buffer): Promise<Buffer | null> {
+    const block = await this.chainGetBlock({ hash: hash.toString('hex') })
+
+    if (block === null) {
+      return null
+    }
+
+    const previousBlockHash = Buffer.from(block.block.previousBlockHash, 'hex')
+
+    if (previousBlockHash.equals(GENESIS_BLOCK_PREVIOUS)) {
+      return null
+    }
+
+    return previousBlockHash
   }
 
   private async getChainAsset(id: Buffer): Promise<{
