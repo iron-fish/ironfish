@@ -6,14 +6,14 @@ use std::cell::RefCell;
 use std::convert::TryInto;
 
 use ironfish::assets::asset_identifier::AssetIdentifier;
-use ironfish::serializing::hex_to_bytes;
 use ironfish::transaction::{
     batch_verify_transactions, TransactionVersion, TRANSACTION_EXPIRATION_SIZE,
     TRANSACTION_FEE_SIZE, TRANSACTION_PUBLIC_KEY_SIZE, TRANSACTION_SIGNATURE_SIZE,
 };
 use ironfish::{
-    MerkleNoteHash, OutgoingViewKey, ProofGenerationKey, ProofGenerationKeySerializable,
-    ProposedTransaction, PublicAddress, SaplingKey, Transaction, ViewKey,
+    keys::proof_generation_key::{ProofGenerationKey, ProofGenerationKeySerializable},
+    MerkleNoteHash, OutgoingViewKey, ProposedTransaction, PublicAddress, SaplingKey, Transaction,
+    ViewKey,
 };
 use napi::{
     bindgen_prelude::{i64n, BigInt, Buffer, Env, Object, Result, Undefined},
@@ -326,11 +326,8 @@ impl NativeTransaction {
         let outgoing_view_key =
             OutgoingViewKey::from_hex(&outgoing_view_key_str).map_err(to_napi_err)?;
         let public_address = PublicAddress::from_hex(&public_address_str).map_err(to_napi_err)?;
-        let proof_generation_key = ProofGenerationKey::deserialize(
-            hex_to_bytes(&proof_generation_key_str)
-                .map_err(|_| to_napi_err("PublicKeyPackage hex to bytes failed"))?,
-        )
-        .map_err(to_napi_err)?;
+        let proof_generation_key = ProofGenerationKey::from_hex(&proof_generation_key_str)
+            .map_err(|_| to_napi_err("PublicKeyPackage hex to bytes failed"))?;
         let unsigned_transaction = self
             .transaction
             .build(

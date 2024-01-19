@@ -1,11 +1,21 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
 use group::GroupEncoding;
+pub use ironfish_zkp::ProofGenerationKey;
 use jubjub::{Fr, SubgroupPoint};
-use std::io::Error;
-use zcash_primitives::sapling::ProofGenerationKey;
+
+use crate::{
+    errors::{IronfishError, IronfishErrorKind},
+    serializing::{bytes_to_hex, hex_to_bytes},
+};
 
 pub trait ProofGenerationKeySerializable {
     fn serialize(&self) -> [u8; 64];
-    fn deserialize(bytes: [u8; 64]) -> Result<ProofGenerationKey, Error>;
+    fn deserialize(bytes: [u8; 64]) -> Result<ProofGenerationKey, IronfishError>;
+    fn hex_key(&self) -> String;
+    fn from_hex(hex_key: &str) -> Result<ProofGenerationKey, IronfishError>;
 }
 
 impl ProofGenerationKeySerializable for ProofGenerationKey {
@@ -16,7 +26,7 @@ impl ProofGenerationKeySerializable for ProofGenerationKey {
         proof_generation_key_bytes
     }
 
-    fn deserialize(proof_generation_key_bytes: [u8; 64]) -> Result<Self, Error> {
+    fn deserialize(proof_generation_key_bytes: [u8; 64]) -> Result<Self, IronfishError> {
         let mut ak_bytes: [u8; 32] = [0; 32];
         let mut nsk_bytes: [u8; 32] = [0; 32];
 
@@ -25,36 +35,42 @@ impl ProofGenerationKeySerializable for ProofGenerationKey {
 
         let ak = match SubgroupPoint::from_bytes(&ak_bytes).into() {
             Some(ak) => ak,
-            None => {
-                return Err(Error::new(
-                    std::io::ErrorKind::InvalidData,
-                    "Invalid proof generation key (ak)",
-                ))
-            }
+            None => return Err(IronfishError::new(IronfishErrorKind::InvalidAuthorizingKey)),
         };
 
         let nsk = match Fr::from_bytes(&nsk_bytes).into() {
             Some(nsk) => nsk,
             None => {
-                return Err(Error::new(
-                    std::io::ErrorKind::InvalidData,
-                    "Invalid proof generation key (nsk)",
+                return Err(IronfishError::new(
+                    IronfishErrorKind::InvalidNullifierDerivingKey,
                 ))
             }
         };
 
         Ok(ProofGenerationKey { ak, nsk })
     }
+
+    fn hex_key(&self) -> String {
+        let serialized_bytes = self.serialize();
+        bytes_to_hex(&serialized_bytes[..])
+    }
+
+    fn from_hex(hex_key: &str) -> Result<ProofGenerationKey, IronfishError> {
+        let bytes = hex_to_bytes(hex_key)?;
+        ProofGenerationKey::deserialize(bytes)
+    }
 }
 
 #[cfg(test)]
 mod test {
-    use crate::primitives::proof_generation_key::ProofGenerationKeySerializable;
+    use crate::errors::IronfishErrorKind;
     use ff::Field;
     use group::{Group, GroupEncoding};
+    use ironfish_zkp::ProofGenerationKey;
+
+    use super::ProofGenerationKeySerializable;
     use jubjub;
     use rand::{rngs::StdRng, SeedableRng};
-    use zcash_primitives::sapling::ProofGenerationKey; // Import the rand crate for generating random bytes
 
     #[test]
     fn test_serialize() {
@@ -81,8 +97,7 @@ mod test {
 
         let err = result.err().unwrap();
 
-        assert_eq!(err.kind(), std::io::ErrorKind::InvalidData);
-        assert_eq!(err.to_string(), "Invalid proof generation key (ak)");
+        assert!(matches!(err.kind, IronfishErrorKind::InvalidAuthorizingKey));
     }
 
     #[test]
@@ -99,9 +114,10 @@ mod test {
 
         let err = result.err().unwrap();
 
-        assert_eq!(err.kind(), std::io::ErrorKind::InvalidData);
-
-        assert_eq!(err.to_string(), "Invalid proof generation key (nsk)");
+        assert!(matches!(
+            err.kind,
+            IronfishErrorKind::InvalidNullifierDerivingKey
+        ));
     }
 
     #[test]
@@ -117,6 +133,30 @@ mod test {
 
         let deserialized_proof_generation_key =
             ProofGenerationKey::deserialize(serialized_bytes).expect("deserialization successful");
+
+        assert_eq!(
+            proof_generation_key.ak,
+            deserialized_proof_generation_key.ak
+        );
+        assert_eq!(
+            proof_generation_key.nsk,
+            deserialized_proof_generation_key.nsk
+        );
+    }
+
+    #[test]
+    fn test_hex() {
+        let mut rng = StdRng::seed_from_u64(0);
+
+        let proof_generation_key = ProofGenerationKey {
+            ak: jubjub::SubgroupPoint::random(&mut rng),
+            nsk: jubjub::Fr::random(&mut rng),
+        };
+
+        let hex_key = proof_generation_key.hex_key();
+
+        let deserialized_proof_generation_key =
+            ProofGenerationKey::from_hex(&hex_key).expect("deserialization successful");
 
         assert_eq!(
             proof_generation_key.ak,

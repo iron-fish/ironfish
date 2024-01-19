@@ -20,8 +20,6 @@ pub mod signal_catcher;
 pub mod transaction;
 pub mod util;
 pub mod witness;
-pub use ironfish_zkp::primitives::ProofGenerationKeySerializable;
-pub use ironfish_zkp::ProofGenerationKey;
 pub use {
     ironfish_frost::frost,
     keys::{IncomingViewKey, OutgoingViewKey, PublicAddress, SaplingKey, ViewKey},
