@@ -208,7 +208,7 @@ impl SaplingKey {
 
     /// Adapter to convert this key to a proof generation key for use in
     /// sapling functions
-    pub(crate) fn sapling_proof_generation_key(&self) -> ProofGenerationKey {
+    pub fn sapling_proof_generation_key(&self) -> ProofGenerationKey {
         ProofGenerationKey {
             ak: self.view_key.authorizing_key,
             nsk: self.proof_authorizing_key,
