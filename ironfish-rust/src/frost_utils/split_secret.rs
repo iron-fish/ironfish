@@ -19,7 +19,7 @@ pub struct SecretShareConfig {
     pub secret: Vec<u8>,
 }
 
-pub fn split_secret(
+pub(crate) fn split_secret(
     config: &SecretShareConfig,
     identifiers: IdentifierList,
     rng: &mut ThreadRng,
