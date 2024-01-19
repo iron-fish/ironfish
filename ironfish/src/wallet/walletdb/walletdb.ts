@@ -299,7 +299,7 @@ export class WalletDB {
     })
 
     this.participantIdentifiers = this.db.addStore({
-      name: 'pa',
+      name: 'pi',
       keyEncoding: new PrefixEncoding(
         new BufferEncoding(), // account prefix
         new StringEncoding(), // participant identifier
