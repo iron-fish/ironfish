@@ -50,9 +50,10 @@ pub fn split_spender_key(
 
     let mut rng: rand::prelude::ThreadRng = thread_rng();
 
-    let (key_packages, pubkeys) = split_secret(&secret_config, identifier_list, &mut rng).unwrap();
+    let (key_packages, public_key_package) =
+        split_secret(&secret_config, identifier_list, &mut rng).unwrap();
 
-    let authorizing_key_bytes = pubkeys.verifying_key().serialize();
+    let authorizing_key_bytes = public_key_package.verifying_key().serialize();
 
     let authorizing_key = SubgroupPoint::from_bytes(&authorizing_key_bytes).unwrap();
 
@@ -69,21 +70,21 @@ pub fn split_spender_key(
         nullifier_deriving_key,
     };
 
-    let incoming_viewing_key = coordinator_sapling_key.incoming_view_key().clone();
+    let incoming_view_key = coordinator_sapling_key.incoming_view_key().clone();
 
     let outgoing_view_key: OutgoingViewKey = coordinator_sapling_key.outgoing_view_key().clone();
 
-    let public_address = incoming_viewing_key.public_address();
+    let public_address = incoming_view_key.public_address();
 
     TrustedDealerKeyPackages {
-        verifying_key: authorizing_key.to_bytes(),
+        verifying_key: authorizing_key_bytes,
         proof_generation_key,
         view_key,
-        incoming_view_key: incoming_viewing_key,
+        incoming_view_key,
         outgoing_view_key,
         public_address,
         key_packages,
-        public_key_package: pubkeys,
+        public_key_package,
     }
 }
 
@@ -96,7 +97,7 @@ mod test {
     };
 
     #[test]
-    fn test_split_spender_key() {
+    fn test_throws_error_with_mismatch_length() {
         let mut identifiers = Vec::new();
 
         for _ in 0..10 {
@@ -105,6 +106,33 @@ mod test {
                     .to_identity()
                     .to_frost_identifier(),
             );
+        }
+
+        let sapling_key = SaplingKey::generate_key();
+
+        let result = std::panic::catch_unwind(|| {
+            split_spender_key(sapling_key, 5, 11, identifiers.clone());
+        });
+
+        assert!(result.is_err());
+
+        let sapling_key2 = SaplingKey::generate_key();
+
+        // when max signers is less than 10
+        let result = std::panic::catch_unwind(|| {
+            split_spender_key(sapling_key2, 5, 9, identifiers.clone());
+        });
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_split_spender_key() {
+        let mut identifiers = Vec::new();
+
+        for _ in 0..10 {
+            let rng = thread_rng();
+            identifiers.push(Secret::random(rng).to_identity().to_frost_identifier());
         }
 
         let sapling_key = SaplingKey::generate_key();
