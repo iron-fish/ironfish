@@ -62,6 +62,10 @@ jobs:
       - name: Install packages
         run: yarn --non-interactive --frozen-lockfile
 
+      - name: Check for missing NAPI bindings
+        run: |
+          git status
+
       - name: Run tests
         run: yarn test:coverage --maxWorkers=2 --workerIdleMemoryLimit=2000MB
 
