@@ -47,7 +47,7 @@ pub fn split_secret(
     let mut key_packages: HashMap<_, _> = HashMap::new();
 
     for (identifier, secret_share) in shares {
-        let key_package = frost::keys::KeyPackage::try_from(secret_share.clone()).unwrap();
+        let key_package = frost::keys::KeyPackage::try_from(secret_share.clone())?;
         key_packages.insert(identifier, key_package);
     }
 
