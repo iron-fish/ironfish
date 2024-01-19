@@ -139,6 +139,11 @@ export class WalletDB {
     value: Buffer
   }>
 
+  participantIdentifiers: IDatabaseStore<{
+    key: [Account['prefix'], string]
+    value: null
+  }>
+
   cacheStores: Array<IDatabaseStore<DatabaseSchema>>
 
   constructor({
@@ -291,6 +296,16 @@ export class WalletDB {
       name: 'ms',
       keyEncoding: new StringEncoding(),
       valueEncoding: new BufferEncoding(),
+    })
+
+    this.participantIdentifiers = this.db.addStore({
+      name: 'pa',
+      keyEncoding: new PrefixEncoding(
+        new BufferEncoding(), // account prefix
+        new StringEncoding(), // participant identifier
+        4,
+      ),
+      valueEncoding: NULL_ENCODING,
     })
 
     // IDatabaseStores that cache and index decrypted chain data
@@ -1275,5 +1290,33 @@ export class WalletDB {
 
   async deleteMultisigSecret(name: string, tx?: IDatabaseTransaction): Promise<void> {
     await this.multisigSecrets.del(name, tx)
+  }
+
+  async addParticipantIdentifier(
+    account: Account,
+    identifier: string,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    await this.participantIdentifiers.put([account.prefix, identifier], null, tx)
+  }
+
+  async deleteParticipantIdentifier(
+    account: Account,
+    identifier: string,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    await this.participantIdentifiers.del([account.prefix, identifier], tx)
+  }
+
+  async *getParticipantIdentifiers(
+    account: Account,
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<string> {
+    for await (const [_, identifier] of this.participantIdentifiers.getAllKeysIter(
+      tx,
+      account.prefixRange,
+    )) {
+      yield identifier
+    }
   }
 }
