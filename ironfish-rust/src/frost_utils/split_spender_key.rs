@@ -117,7 +117,7 @@ mod test {
         let result = split_spender_key(sapling_key, 5, 11, identifiers.clone());
         assert!(result.is_err());
         let err = result.err().unwrap();
-        assert_eq!(err.kind, IronfishErrorKind::Frost);
+        assert_eq!(err.kind, IronfishErrorKind::FrostLibError);
         assert!(err.to_string().contains("Incorrect number of identifiers."));
 
         let sapling_key2 = SaplingKey::generate_key();
@@ -126,18 +126,23 @@ mod test {
 
         assert!(result.is_err());
         let err = result.err().unwrap();
-        assert_eq!(err.kind, IronfishErrorKind::Frost);
+        assert_eq!(err.kind, IronfishErrorKind::FrostLibError);
         assert!(err.to_string().contains("Incorrect number of identifiers."));
     }
 
     #[test]
-    fn test_split_spender_key() {
+    fn test_split_spender_key_success() {
         let mut identifiers = Vec::new();
 
         for _ in 0..10 {
-            let rng = thread_rng();
-            identifiers.push(Secret::random(rng).to_identity().to_frost_identifier());
+            identifiers.push(
+                Secret::random(thread_rng())
+                    .to_identity()
+                    .to_frost_identifier(),
+            );
         }
+
+        let cloned_identifiers = identifiers.clone();
 
         let sapling_key = SaplingKey::generate_key();
 
@@ -177,5 +182,15 @@ mod test {
         let scalar = signing_key.to_scalar();
 
         assert_eq!(scalar.to_bytes(), spend_auth_key);
+
+        // assert identifiers and trusted_dealer_key_packages.key_packages.keys() are the same
+        assert_eq!(
+            trusted_dealer_key_packages
+                .key_packages
+                .keys()
+                .cloned()
+                .collect::<Vec<_>>(),
+            cloned_identifiers
+        );
     }
 }
