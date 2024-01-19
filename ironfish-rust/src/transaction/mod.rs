@@ -191,7 +191,7 @@ impl ProposedTransaction {
         Ok(())
     }
 
-    pub fn add_change_notes(
+    fn add_change_notes(
         &mut self,
         change_goes_to: Option<PublicAddress>,
         public_address: PublicAddress,
@@ -223,7 +223,6 @@ impl ProposedTransaction {
                 change_notes.push(change_note);
             }
         }
-
         for change_note in change_notes {
             self.add_output(change_note)?;
         }
@@ -237,7 +236,14 @@ impl ProposedTransaction {
         outgoing_view_key: OutgoingViewKey,
         public_address: PublicAddress,
         intended_transaction_fee: i64,
+        change_goes_to: Option<PublicAddress>,
     ) -> Result<UnsignedTransaction, IronfishError> {
+        // skip adding change notes if this is special case of a miners fee transaction
+        let is_miners_fee = self.outputs.iter().any(|output| output.get_is_miners_fee());
+        if !is_miners_fee {
+            self.add_change_notes(change_goes_to, public_address, intended_transaction_fee)?;
+        }
+
         // The public key after randomization has been applied. This is used
         // during signature verification. Referred to as `rk` in the literature
         // Calculated from the authorizing key and the public_key_randomness.
@@ -330,7 +336,6 @@ impl ProposedTransaction {
         let public_address = spender_key.public_address();
 
         let i64_fee = i64::try_from(intended_transaction_fee)?;
-        self.add_change_notes(change_goes_to, public_address, i64_fee)?;
 
         let unsigned = self.build(
             spender_key.sapling_proof_generation_key(),
@@ -338,6 +343,7 @@ impl ProposedTransaction {
             spender_key.outgoing_view_key().clone(),
             public_address,
             i64_fee,
+            change_goes_to,
         )?;
         unsigned.sign(spender_key)
     }
@@ -378,6 +384,7 @@ impl ProposedTransaction {
             spender_key.outgoing_view_key().clone(),
             spender_key.public_address(),
             *self.value_balances.fee(),
+            None,
         )?;
         unsigned.sign(spender_key)
     }

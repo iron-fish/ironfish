@@ -227,11 +227,8 @@ fn test_proposed_transaction_build() {
     transaction.add_output(out_note).unwrap();
     assert_eq!(transaction.outputs.len(), 1);
 
-    let public_address = spender_key.public_address();
+    let public_address: crate::PublicAddress = spender_key.public_address();
     let intended_fee = 1;
-    transaction
-        .add_change_notes(Some(public_address), public_address, intended_fee)
-        .expect("should be able to add change notes");
 
     let unsigned_transaction = transaction
         .build(
@@ -240,6 +237,7 @@ fn test_proposed_transaction_build() {
             spender_key.outgoing_view_key().clone(),
             spender_key.public_address(),
             intended_fee,
+            Some(public_address),
         )
         .expect("should be able to build unsigned transaction");
 
