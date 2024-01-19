@@ -147,10 +147,11 @@ export class IronfishSdk {
     }
 
     let client: RpcSocketClient
-    const rpcAuthToken = internal.get('rpcAuthToken')
 
     if (config.get('enableRpcTcp')) {
       if (config.get('enableRpcTls')) {
+        const rpcAuthToken = internal.get('rpcAuthToken')
+
         client = new RpcTlsClient(
           config.get('rpcTcpHost'),
           config.get('rpcTcpPort'),
