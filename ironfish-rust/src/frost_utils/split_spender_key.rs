@@ -4,8 +4,7 @@
 
 use group::GroupEncoding;
 use ironfish_frost::frost::{
-    frost::keys::IdentifierList,
-    keys::{KeyPackage, PublicKeyPackage},
+    keys::{IdentifierList, KeyPackage, PublicKeyPackage},
     Identifier,
 };
 use ironfish_zkp::{constants::PROOF_GENERATION_KEY_GENERATOR, ProofGenerationKey};
@@ -20,31 +19,38 @@ use super::split_secret::{split_secret, SecretShareConfig};
 type AuthorizingKey = [u8; 32];
 
 pub struct TrustedDealerKeyPackages {
-    pub ak: AuthorizingKey,
-    pub pgk: ProofGenerationKey,
-    pub vk: ViewKey,
-    pub ivk: IncomingViewKey,
-    pub ovk: OutgoingViewKey,
-    pub address: PublicAddress,
+    pub verifying_key: AuthorizingKey, // verifying_key is the name given to this field in the frost protocol
+    pub proof_generation_key: ProofGenerationKey,
+    pub view_key: ViewKey,
+    pub incoming_view_key: IncomingViewKey,
+    pub outgoing_view_key: OutgoingViewKey,
+    pub public_address: PublicAddress,
     pub key_packages: HashMap<Identifier, KeyPackage>,
-    pub pubkeys: PublicKeyPackage,
+    pub public_key_package: PublicKeyPackage,
 }
 
 pub fn split_spender_key(
     coordinator_sapling_key: SaplingKey,
     min_signers: u16,
     max_signers: u16,
-    secret: Vec<u8>,
+    identifiers: Vec<Identifier>,
 ) -> TrustedDealerKeyPackages {
+    let secret = coordinator_sapling_key
+        .spend_authorizing_key
+        .to_bytes()
+        .to_vec();
+
     let secret_config = SecretShareConfig {
         min_signers,
         max_signers,
         secret,
     };
 
-    let mut rng = thread_rng();
-    let (key_packages, pubkeys) =
-        split_secret(&secret_config, IdentifierList::Default, &mut rng).unwrap();
+    let identifier_list = IdentifierList::Custom(&identifiers);
+
+    let mut rng: rand::prelude::ThreadRng = thread_rng();
+
+    let (key_packages, pubkeys) = split_secret(&secret_config, identifier_list, &mut rng).unwrap();
 
     let authorizing_key_bytes = pubkeys.verifying_key().serialize();
 
@@ -70,26 +76,70 @@ pub fn split_spender_key(
     let public_address = incoming_viewing_key.public_address();
 
     TrustedDealerKeyPackages {
-        ak: authorizing_key.to_bytes(),
-        pgk: proof_generation_key,
-        vk: view_key,
-        ivk: incoming_viewing_key,
-        ovk: outgoing_view_key,
-        address: public_address,
+        verifying_key: authorizing_key.to_bytes(),
+        proof_generation_key,
+        view_key,
+        incoming_view_key: incoming_viewing_key,
+        outgoing_view_key,
+        public_address,
         key_packages,
-        pubkeys,
+        public_key_package: pubkeys,
     }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
+    use ironfish_frost::{
+        frost::{frost::keys::reconstruct, JubjubBlake2b512},
+        participant::Secret,
+    };
 
     #[test]
     fn test_split_spender_key() {
-        let key = SaplingKey::generate_key();
-        let secret = key.spend_authorizing_key.to_bytes().to_vec();
+        let mut identifiers = Vec::new();
+        let mut rng = thread_rng();
 
-        let _spender_key_config = split_spender_key(key, 2, 3, secret);
+        for _ in 0..10 {
+            identifiers.push(Secret::random(&mut rng).to_identity().to_frost_identifier());
+        }
+
+        let sapling_key = SaplingKey::generate_key();
+
+        let trusted_dealer_key_packages =
+            split_spender_key(sapling_key.clone(), 5, 10, identifiers);
+
+        assert_eq!(
+            trusted_dealer_key_packages.key_packages.len(),
+            10,
+            "should have 10 key packages"
+        );
+
+        assert_eq!(
+            trusted_dealer_key_packages.view_key.to_bytes(),
+            sapling_key.view_key.to_bytes(),
+            "should have the same incoming viewing key"
+        );
+
+        assert_eq!(
+            trusted_dealer_key_packages.public_address,
+            sapling_key.public_address(),
+            "should have the same public address"
+        );
+
+        let spend_auth_key = sapling_key.spend_authorizing_key.to_bytes();
+
+        let key_parts: Vec<_> = trusted_dealer_key_packages
+            .key_packages
+            .values()
+            .cloned()
+            .collect();
+
+        let signing_key =
+            reconstruct::<JubjubBlake2b512>(&key_parts).expect("key reconstruction failed");
+
+        let scalar = signing_key.to_scalar();
+
+        assert_eq!(scalar.to_bytes(), spend_auth_key);
     }
 }
