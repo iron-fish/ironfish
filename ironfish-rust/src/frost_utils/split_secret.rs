@@ -79,6 +79,11 @@ mod test {
         let vec = vec![1; 31];
         let array = vec_to_array(vec);
         assert!(array.is_err());
+        // assert error type
+        assert!(
+            matches!(array.unwrap_err().kind, IronfishErrorKind::InvalidSecret),
+            "expected InvalidSecret error"
+        );
     }
 
     #[test]
