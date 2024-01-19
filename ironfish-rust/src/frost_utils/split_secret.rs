@@ -11,6 +11,8 @@ use ironfish_frost::frost::{
 use rand::rngs::ThreadRng;
 use std::collections::HashMap;
 
+use crate::errors::IronfishError;
+
 pub struct SecretShareConfig {
     pub min_signers: u16,
     pub max_signers: u16,
@@ -21,7 +23,7 @@ pub fn split_secret(
     config: &SecretShareConfig,
     identifiers: IdentifierList,
     rng: &mut ThreadRng,
-) -> Result<(HashMap<Identifier, KeyPackage>, PublicKeyPackage), Error> {
+) -> Result<(HashMap<Identifier, KeyPackage>, PublicKeyPackage), IronfishError> {
     let secret_key = SigningKey::deserialize(
         config
             .secret
