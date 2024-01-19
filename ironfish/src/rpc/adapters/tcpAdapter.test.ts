@@ -13,7 +13,7 @@ import { getUniqueTestDataDir } from '../../testUtilities'
 import { RpcRequestError } from '../clients'
 import { RpcTcpClient } from '../clients/tcpClient'
 import { ALL_API_NAMESPACES } from '../routes'
-import { ERROR_CODES, ValidationError } from './errors'
+import { ERROR_CODES, RpcValidationError } from './errors'
 import { RpcTcpAdapter } from './tcpAdapter'
 
 describe('TcpAdapter', () => {
@@ -97,7 +97,7 @@ describe('TcpAdapter', () => {
     Assert.isNotNull(tcp?.router)
 
     tcp.router.routes.register('foo/bar', yup.object({}), () => {
-      throw new ValidationError('hello error', 402, 'hello-error' as ERROR_CODES)
+      throw new RpcValidationError('hello error', 402, 'hello-error' as ERROR_CODES)
     })
 
     client = new RpcTcpClient('localhost', 0)

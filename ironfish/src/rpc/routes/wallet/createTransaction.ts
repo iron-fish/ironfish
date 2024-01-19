@@ -13,7 +13,7 @@ import { RawTransactionSerde } from '../../../primitives/rawTransaction'
 import { CurrencyUtils, YupUtils } from '../../../utils'
 import { Wallet } from '../../../wallet'
 import { NotEnoughFundsError } from '../../../wallet/errors'
-import { ERROR_CODES, ValidationError } from '../../adapters/errors'
+import { ERROR_CODES, RpcValidationError } from '../../adapters/errors'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import { AssertHasRpcContext } from '../rpcContext'
@@ -136,7 +136,7 @@ routes.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
 
       for (const mint of request.data.mints) {
         if (mint.assetId == null && mint.name == null) {
-          throw new ValidationError('Must provide name or identifier to mint')
+          throw new RpcValidationError('Must provide name or identifier to mint')
         }
 
         let creator = account.publicAddress
@@ -148,7 +148,7 @@ routes.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
           const asset = await account.getAsset(assetId)
 
           if (!asset) {
-            throw new ValidationError(`Error minting: Asset ${mint.assetId} not found.`)
+            throw new RpcValidationError(`Error minting: Asset ${mint.assetId} not found.`)
           }
 
           creator = asset.creator.toString('hex')
@@ -209,7 +209,7 @@ routes.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
       })
     } catch (e) {
       if (e instanceof NotEnoughFundsError) {
-        throw new ValidationError(e.message, 400, ERROR_CODES.INSUFFICIENT_BALANCE)
+        throw new RpcValidationError(e.message, 400, ERROR_CODES.INSUFFICIENT_BALANCE)
       }
       throw e
     }

@@ -10,7 +10,7 @@ import { BlockHeader } from '../../../primitives/blockheader'
 import { BufferUtils, CurrencyUtils } from '../../../utils'
 import { PromiseUtils } from '../../../utils/promise'
 import { isValidIncomingViewKey, isValidOutgoingViewKey } from '../../../wallet/validator'
-import { ValidationError } from '../../adapters/errors'
+import { RpcValidationError } from '../../adapters/errors'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import {
@@ -112,17 +112,17 @@ routes.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
     Assert.isInstanceOf(node, FullNode)
 
     if (!isValidIncomingViewKey(request.data.incomingViewKey)) {
-      throw new ValidationError(`incomingViewKey is not valid`)
+      throw new RpcValidationError(`incomingViewKey is not valid`)
     }
 
     if (request.data.outgoingViewKey && !isValidOutgoingViewKey(request.data.outgoingViewKey)) {
-      throw new ValidationError(`outgoingViewKey is not valid`)
+      throw new RpcValidationError(`outgoingViewKey is not valid`)
     }
 
     const head = request.data.head ? Buffer.from(request.data.head, 'hex') : null
 
     if (head && !(await node.chain.hasBlock(head))) {
-      throw new ValidationError(
+      throw new RpcValidationError(
         `Block with hash ${String(request.data.head)} was not found in the chain`,
       )
     }

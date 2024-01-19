@@ -8,7 +8,7 @@ import { RpcRequest } from '../request'
 import { RpcResponse } from '../response'
 import { Router } from '../routes'
 import { Stream } from '../stream'
-import { ResponseError } from './errors'
+import { RpcResponseError } from './errors'
 
 /**
  * This class provides a way to route requests directly against the routing layer
@@ -48,7 +48,7 @@ export class RpcMemoryAdapter {
     response.routePromise = router.route(route, request).catch((e) => {
       stream.close()
 
-      if (e instanceof ResponseError) {
+      if (e instanceof RpcResponseError) {
         // Set the response status to the errors status because RequsetError takes it from the response
         response.status = e.status
 

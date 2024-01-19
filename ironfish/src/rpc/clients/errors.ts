@@ -58,7 +58,7 @@ export class RpcRequestError<TEnd = unknown, TStream = unknown> extends Error {
 }
 
 /** Thrown when the request timeout has been exceeded and the request has been aborted */
-export class RequestTimeoutError<TEnd, TStream> extends RpcRequestError<TEnd, TStream> {
+export class RpcRequestTimeoutError<TEnd, TStream> extends RpcRequestError<TEnd, TStream> {
   constructor(response: RpcResponse<TEnd, TStream>, timeoutMs: number, route: string) {
     super(response, 'request-timeout', `Timeout of ${timeoutMs} exceeded to ${route}`)
   }

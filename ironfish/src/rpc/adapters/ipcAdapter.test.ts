@@ -9,7 +9,7 @@ import { PromiseUtils } from '../../utils/promise'
 import { RpcRequestError } from '../clients'
 import { RpcIpcClient } from '../clients/ipcClient'
 import { ALL_API_NAMESPACES } from '../routes/router'
-import { ERROR_CODES, ValidationError } from './errors'
+import { ERROR_CODES, RpcValidationError } from './errors'
 import { RpcIpcAdapter } from './ipcAdapter'
 
 describe('IpcAdapter', () => {
@@ -102,7 +102,7 @@ describe('IpcAdapter', () => {
 
   it('should handle errors', async () => {
     ipc.router?.routes.register('foo/bar', yup.object({}), () => {
-      throw new ValidationError('hello error', 402, 'hello-error' as ERROR_CODES)
+      throw new RpcValidationError('hello error', 402, 'hello-error' as ERROR_CODES)
     })
 
     await ipc.start()

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../../../assert'
-import { ValidationError } from '../../adapters'
+import { RpcValidationError } from '../../adapters'
 import { RpcSocketClient } from '../../clients'
 import { ApiNamespace } from '../namespaces'
 import { GetNodeStatusResponse, GetStatusRequestSchema } from '../node/getStatus'
@@ -16,7 +16,7 @@ routes.register<typeof GetStatusRequestSchema, GetNodeStatusResponse>(
     Assert.isNotNull(wallet.nodeClient)
 
     if (wallet.nodeClient instanceof RpcSocketClient && !wallet.nodeClient.isConnected) {
-      throw new ValidationError('Wallet node client is disconnected')
+      throw new RpcValidationError('Wallet node client is disconnected')
     }
 
     if (!request.data?.stream) {

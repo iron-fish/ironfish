@@ -4,7 +4,7 @@
 import axios, { AxiosError } from 'axios'
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
-import { ERROR_CODES, ResponseError } from '../../adapters'
+import { ERROR_CODES, RpcResponseError } from '../../adapters'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import { AssertHasRpcContext } from '../rpcContext'
@@ -37,7 +37,10 @@ routes.register<typeof GetFundsRequestSchema, GetFundsResponse>(
 
     if (networkId !== 0) {
       // not testnet
-      throw new ResponseError('This endpoint is only available for testnet.', ERROR_CODES.ERROR)
+      throw new RpcResponseError(
+        'This endpoint is only available for testnet.',
+        ERROR_CODES.ERROR,
+      )
     }
 
     const account = getAccount(context.wallet, request.data.account)
@@ -54,20 +57,20 @@ routes.register<typeof GetFundsRequestSchema, GetFundsResponse>(
         if (status === 422) {
           if (data.code === 'faucet_max_requests_reached') {
             Assert.isNotUndefined(data.message)
-            throw new ResponseError(data.message, ERROR_CODES.VALIDATION, status)
+            throw new RpcResponseError(data.message, ERROR_CODES.VALIDATION, status)
           }
 
-          throw new ResponseError(
+          throw new RpcResponseError(
             'You entered an invalid email.',
             ERROR_CODES.VALIDATION,
             status,
           )
         } else if (data.message) {
-          throw new ResponseError(data.message, ERROR_CODES.ERROR, status)
+          throw new RpcResponseError(data.message, ERROR_CODES.ERROR, status)
         }
       }
 
-      throw new ResponseError(error.message, ERROR_CODES.ERROR, Number(error.code))
+      throw new RpcResponseError(error.message, ERROR_CODES.ERROR, Number(error.code))
     })
 
     request.end({

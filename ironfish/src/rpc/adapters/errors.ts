@@ -22,7 +22,7 @@ export enum ERROR_CODES {
  *
  * @note Look at the {@link IPCAdapter} implementation for an example
  */
-export class ResponseError extends Error {
+export class RpcResponseError extends Error {
   name = this.constructor.name
   status: number
   code: string
@@ -47,7 +47,7 @@ export class ResponseError extends Error {
  * A convenience error to throw inside of routes when you want to indicate
  * a 400 error to the user based on validation
  */
-export class ValidationError extends ResponseError {
+export class RpcValidationError extends RpcResponseError {
   constructor(message: string, status = 400, code = ERROR_CODES.VALIDATION) {
     super(message, code, status)
   }
@@ -56,7 +56,7 @@ export class ValidationError extends ResponseError {
 /**
  * A convenience error to throw inside of routes when a resource is not found
  */
-export class NotFoundError extends ResponseError {
+export class RpcNotFoundError extends RpcResponseError {
   constructor(message: string, status = 404, code = ERROR_CODES.NOT_FOUND) {
     super(message, code, status)
   }

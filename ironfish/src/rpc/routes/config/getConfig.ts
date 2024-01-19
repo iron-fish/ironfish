@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { ConfigOptions, ConfigOptionsSchema } from '../../../fileStores/config'
-import { ValidationError } from '../../adapters/errors'
+import { RpcValidationError } from '../../adapters/errors'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import { AssertHasRpcContext } from '../rpcContext'
@@ -27,7 +27,7 @@ routes.register<typeof GetConfigRequestSchema, GetConfigResponse>(
     AssertHasRpcContext(request, context, 'config')
 
     if (request.data?.name && !(request.data.name in context.config.defaults)) {
-      throw new ValidationError(`No config option ${String(request.data.name)}`)
+      throw new RpcValidationError(`No config option ${String(request.data.name)}`)
     }
 
     let pickKeys: string[] | undefined = undefined

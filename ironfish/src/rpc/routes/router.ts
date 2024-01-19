@@ -5,7 +5,7 @@ import { Assert } from '../../assert'
 import { YupSchema, YupSchemaResult, YupUtils } from '../../utils'
 import { StrEnumUtils } from '../../utils/enums'
 import { ERROR_CODES } from '../adapters'
-import { ResponseError, ValidationError } from '../adapters/errors'
+import { RpcResponseError, RpcValidationError } from '../adapters/errors'
 import { RpcRequest } from '../request'
 import { RpcServer } from '../server'
 import { ApiNamespace } from './namespaces'
@@ -18,7 +18,7 @@ export type RouteHandler<TRequest = unknown, TResponse = unknown> = (
   context: RpcContext,
 ) => Promise<void> | void
 
-export class RouteNotFoundError extends ResponseError {
+export class RouteNotFoundError extends RpcResponseError {
   constructor(route: string, namespace: string, method: string) {
     super(
       `No route found ${route} in namespace ${namespace} for method ${method}`,
@@ -56,18 +56,18 @@ export class Router {
 
     const { result, error } = await YupUtils.tryValidate(schema, request.data)
     if (error) {
-      throw new ValidationError(error.message, 400)
+      throw new RpcValidationError(error.message, 400)
     }
     request.data = result
 
     try {
       await handler(request, this.server.context)
     } catch (e: unknown) {
-      if (e instanceof ResponseError) {
+      if (e instanceof RpcResponseError) {
         throw e
       }
       if (e instanceof Error) {
-        throw new ResponseError(e)
+        throw new RpcResponseError(e)
       }
       throw e
     }
