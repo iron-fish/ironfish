@@ -98,10 +98,13 @@ mod test {
     #[test]
     fn test_split_spender_key() {
         let mut identifiers = Vec::new();
-        let mut rng = thread_rng();
 
         for _ in 0..10 {
-            identifiers.push(Secret::random(&mut rng).to_identity().to_frost_identifier());
+            identifiers.push(
+                Secret::random(thread_rng())
+                    .to_identity()
+                    .to_frost_identifier(),
+            );
         }
 
         let sapling_key = SaplingKey::generate_key();
