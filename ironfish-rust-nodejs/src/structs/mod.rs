@@ -22,6 +22,3 @@ pub use witness::*;
 
 mod key_packages;
 pub use key_packages::*;
-
-mod unsigned;
-pub use unsigned::*;
