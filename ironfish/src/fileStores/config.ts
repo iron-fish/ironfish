@@ -260,11 +260,6 @@ export type ConfigOptions = {
   networkId: number
 
   /**
-   * Path to a JSON file containing the network definition of a custom network
-   */
-  customNetwork: string
-
-  /**
    * The oldest the tip should be before we consider the chain synced
    */
   maxSyncedAgeBlocks: number
@@ -375,7 +370,6 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     feeEstimatorPercentileAverage: YupUtils.isPositiveInteger,
     feeEstimatorPercentileFast: YupUtils.isPositiveInteger,
     networkId: yup.number().integer().min(0),
-    customNetwork: yup.string().trim(),
     maxSyncedAgeBlocks: yup.number().integer().min(0),
     mempoolMaxSizeBytes: yup
       .number()
@@ -486,7 +480,6 @@ export class Config<
       feeEstimatorPercentileAverage: DEFAULT_FEE_ESTIMATOR_PERCENTILE_AVERAGE,
       feeEstimatorPercentileFast: DEFAULT_FEE_ESTIMATOR_PERCENTILE_FAST,
       networkId: DEFAULT_NETWORK_ID,
-      customNetwork: '',
       maxSyncedAgeBlocks: 60,
       memPoolMaxSizeBytes: 60 * MEGABYTES,
       memPoolRecentlyEvictedCacheSize: 60000,
