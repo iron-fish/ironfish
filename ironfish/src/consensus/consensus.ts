@@ -64,11 +64,12 @@ export class Consensus {
     this.parameters = parameters
   }
 
-  isActive(upgrade: ActivationSequence, sequence: number): boolean {
-    if (upgrade === 'never') {
+  isActive(upgrade: keyof ConsensusParameters, sequence: number): boolean {
+    const upgradeSequence = this.parameters[upgrade]
+    if (upgradeSequence === 'never') {
       return false
     }
-    return Math.max(1, sequence) >= upgrade
+    return Math.max(1, sequence) >= upgradeSequence
   }
 
   /**
@@ -79,7 +80,7 @@ export class Consensus {
   }
 
   getActiveTransactionVersion(sequence: number): TransactionVersion {
-    if (this.isActive(this.parameters.enableAssetOwnership, sequence)) {
+    if (this.isActive('enableAssetOwnership', sequence)) {
       return TransactionVersion.V2
     } else {
       return TransactionVersion.V1

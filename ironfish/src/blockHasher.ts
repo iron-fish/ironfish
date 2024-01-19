@@ -24,10 +24,7 @@ export class BlockHasher {
   }
 
   hashHeader(header: RawBlockHeader): BlockHash {
-    const useFishHash = this.consensus.isActive(
-      this.consensus.parameters.enableFishHash,
-      header.sequence,
-    )
+    const useFishHash = this.consensus.isActive('enableFishHash', header.sequence)
 
     if (useFishHash) {
       Assert.isNotNull(this.fishHashContext, 'FishHash context was not initialized')
