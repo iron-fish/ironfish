@@ -129,3 +129,9 @@ impl From<num::TryFromIntError> for IronfishError {
         IronfishError::new_with_source(IronfishErrorKind::TryFromInt, e)
     }
 }
+
+impl From<ironfish_frost::frost::Error> for IronfishError {
+    fn from(e: ironfish_frost::frost::Error) -> IronfishError {
+        IronfishError::new_with_source(IronfishErrorKind::Frost, e)
+    }
+}
