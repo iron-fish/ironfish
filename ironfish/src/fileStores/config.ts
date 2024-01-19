@@ -301,7 +301,7 @@ export type ConfigOptions = {
 
   /**
    * Whether or not to build the full fish hash context at node startup. Setting this
-   * to `true` will slightly increase node performance but use ~4GB more RAM. The majority of
+   * to `true` will slightly increase node performance but use ~4.5GB more RAM. The majority of
    * network users will not need this speed increase and so should keep the default of `false`.
    */
   fishHashFullContext: boolean
