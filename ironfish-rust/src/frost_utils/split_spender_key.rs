@@ -133,6 +133,7 @@ mod test {
     #[test]
     fn test_split_spender_key_success() {
         let mut identifiers = Vec::new();
+        let mut cloned_identifiers = identifiers.clone();
 
         for _ in 0..10 {
             identifiers.push(
@@ -141,8 +142,6 @@ mod test {
                     .to_frost_identifier(),
             );
         }
-
-        let cloned_identifiers = identifiers.clone().sort();
 
         let sapling_key = SaplingKey::generate_key();
 
@@ -191,7 +190,7 @@ mod test {
                 .cloned()
                 .collect::<Vec<_>>()
                 .sort(),
-            cloned_identifiers
+            cloned_identifiers.sort()
         );
     }
 }
