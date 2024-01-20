@@ -10,7 +10,7 @@ import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { CurrencyUtils, YupUtils } from '../../../utils'
 import { MintAssetOptions } from '../../../wallet/interfaces/mintAssetOptions'
-import { ValidationError } from '../../adapters'
+import { RpcValidationError } from '../../adapters'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import { AssertHasRpcContext } from '../rpcContext'
@@ -92,7 +92,7 @@ routes.register<typeof MintAssetRequestSchema, MintAssetResponse>(
       request.data.transferOwnershipTo &&
       !isValidPublicAddress(request.data.transferOwnershipTo)
     ) {
-      throw new ValidationError('transferOwnershipTo must be a valid public address')
+      throw new RpcValidationError('transferOwnershipTo must be a valid public address')
     }
 
     let options: MintAssetOptions

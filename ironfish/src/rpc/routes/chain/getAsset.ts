@@ -8,7 +8,7 @@ import { AssetValue } from '../../../blockchain/database/assetValue'
 import { FullNode } from '../../../node'
 import { CurrencyUtils } from '../../../utils'
 import { AssetStatus } from '../../../wallet'
-import { NotFoundError, ValidationError } from '../../adapters'
+import { RpcNotFoundError, RpcValidationError } from '../../adapters'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import { RpcAsset, RpcAssetSchema } from '../types'
@@ -63,14 +63,14 @@ routes.register<typeof GetAssetRequestSchema, GetAssetResponse>(
     const id = Buffer.from(request.data.id, 'hex')
 
     if (id.byteLength !== ASSET_ID_LENGTH) {
-      throw new ValidationError(
+      throw new RpcValidationError(
         `Asset identifier is invalid length, expected ${ASSET_ID_LENGTH} but got ${id.byteLength}`,
       )
     }
 
     const asset = await node.chain.getAssetById(id)
     if (!asset) {
-      throw new NotFoundError(`No asset found with identifier ${request.data.id}`)
+      throw new RpcNotFoundError(`No asset found with identifier ${request.data.id}`)
     }
 
     request.end({

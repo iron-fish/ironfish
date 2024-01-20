@@ -8,22 +8,22 @@ import { Logger } from '../../logger'
 import { ErrorUtils, PromiseUtils, SetTimeoutToken, YupUtils } from '../../utils'
 import {
   MESSAGE_DELIMITER,
-  ServerSocketRpc,
-  ServerSocketRpcSchema,
-  SocketRpcErrorSchema,
-  SocketRpcResponseSchema,
-  SocketRpcStreamSchema,
+  RpcSocketErrorSchema,
+  RpcSocketResponseSchema,
+  RpcSocketServerMessage,
+  RpcSocketServerMessageSchema,
+  RpcSocketStreamSchema,
 } from '../adapters'
 import { MessageBuffer } from '../messageBuffer'
 import { isRpcResponseError, RpcResponse } from '../response'
 import { Stream } from '../stream'
 import { RpcClient } from './client'
 import {
-  RequestTimeoutError,
   RpcConnectionError,
   RpcConnectionLostError,
   RpcConnectionRefusedError,
   RpcRequestError,
+  RpcRequestTimeoutError,
 } from './errors'
 
 export type RpcSocketClientConnectionInfo = {
@@ -155,7 +155,7 @@ export abstract class RpcSocketClient extends RpcClient {
         const message = this.pending.get(messageId)
 
         if (message && response) {
-          message.reject(new RequestTimeoutError(response, timeoutMs, route))
+          message.reject(new RpcRequestTimeoutError(response, timeoutMs, route))
         }
       }, timeoutMs)
     }
@@ -216,7 +216,7 @@ export abstract class RpcSocketClient extends RpcClient {
   }
 
   protected handleStream = async (data: unknown): Promise<void> => {
-    const { result, error } = await YupUtils.tryValidate(SocketRpcStreamSchema, data)
+    const { result, error } = await YupUtils.tryValidate(RpcSocketStreamSchema, data)
     if (!result) {
       throw error
     }
@@ -245,7 +245,7 @@ export abstract class RpcSocketClient extends RpcClient {
   }
 
   protected handleEnd = async (data: unknown): Promise<void> => {
-    const { result, error } = await YupUtils.tryValidate(SocketRpcResponseSchema, data)
+    const { result, error } = await YupUtils.tryValidate(RpcSocketResponseSchema, data)
     if (!result) {
       throw error
     }
@@ -259,7 +259,7 @@ export abstract class RpcSocketClient extends RpcClient {
 
     if (isRpcResponseError(pending.response)) {
       const { result: errorBody, error: errorError } = await YupUtils.tryValidate(
-        SocketRpcErrorSchema,
+        RpcSocketErrorSchema,
         result.data,
       )
 
@@ -299,13 +299,13 @@ export abstract class RpcSocketClient extends RpcClient {
 
     for (const message of this.messageBuffer.readMessages()) {
       const { result, error } = await YupUtils.tryValidate(
-        ServerSocketRpcSchema,
+        RpcSocketServerMessageSchema,
         JSON.parse(message),
       )
       if (!result) {
         throw error
       }
-      const { type, data }: ServerSocketRpc = result
+      const { type, data }: RpcSocketServerMessage = result
       switch (type) {
         case 'message': {
           this.onMessage(data)

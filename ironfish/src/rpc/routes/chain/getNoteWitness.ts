@@ -5,7 +5,7 @@ import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { FullNode } from '../../../node'
 import { GENESIS_BLOCK_SEQUENCE } from '../../../primitives'
-import { ValidationError } from '../../adapters'
+import { RpcValidationError } from '../../adapters'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 
@@ -68,7 +68,7 @@ routes.register<typeof GetNoteWitnessRequestSchema, GetNoteWitnessResponse>(
     const witness = await chain.notes.witness(request.data.index, maxConfirmedHeader.noteSize)
 
     if (witness === null) {
-      throw new ValidationError(
+      throw new RpcValidationError(
         `No confirmed notes exist with index ${request.data.index} in tree of size ${maxConfirmedHeader.noteSize}`,
       )
     }

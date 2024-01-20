@@ -8,7 +8,7 @@ import { Assert } from '../../../assert'
 import { CurrencyUtils, YupUtils } from '../../../utils'
 import { Wallet } from '../../../wallet'
 import { NotEnoughFundsError } from '../../../wallet/errors'
-import { ERROR_CODES, ValidationError } from '../../adapters/errors'
+import { ERROR_CODES, RpcValidationError } from '../../adapters/errors'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import { AssertHasRpcContext } from '../rpcContext'
@@ -80,7 +80,7 @@ routes.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
     const status = await context.wallet.nodeClient.node.getStatus()
 
     if (!status.content.blockchain.synced) {
-      throw new ValidationError(
+      throw new RpcValidationError(
         `Your node must be synced with the Iron Fish network to send a transaction. Please try again later`,
       )
     }
@@ -123,7 +123,7 @@ routes.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
       })
 
       if (balance.available < sum) {
-        throw new ValidationError(
+        throw new RpcValidationError(
           `Your balance is too low. Add funds to your account first`,
           undefined,
           ERROR_CODES.INSUFFICIENT_BALANCE,
@@ -145,7 +145,7 @@ routes.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
       })
     } catch (e) {
       if (e instanceof NotEnoughFundsError) {
-        throw new ValidationError(e.message, 400, ERROR_CODES.INSUFFICIENT_BALANCE)
+        throw new RpcValidationError(e.message, 400, ERROR_CODES.INSUFFICIENT_BALANCE)
       }
       throw e
     }

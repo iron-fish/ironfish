@@ -6,7 +6,7 @@ import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { FullNode } from '../../../node'
 import { Transaction } from '../../../primitives'
-import { ValidationError } from '../../adapters'
+import { RpcValidationError } from '../../adapters'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 
@@ -47,7 +47,7 @@ routes.register<typeof BroadcastTransactionRequestSchema, BroadcastTransactionRe
 
     const verify = await context.chain.verifier.verifyNewTransaction(transaction)
     if (!verify.valid) {
-      throw new ValidationError(`Invalid transaction, reason: ${String(verify.reason)}`)
+      throw new RpcValidationError(`Invalid transaction, reason: ${String(verify.reason)}`)
     }
 
     const accepted = context.memPool.acceptTransaction(transaction)

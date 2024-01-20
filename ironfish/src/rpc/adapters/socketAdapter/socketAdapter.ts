@@ -14,15 +14,15 @@ import { RpcRequest } from '../../request'
 import { ApiNamespace, Router } from '../../routes'
 import { RpcServer } from '../../server'
 import { IRpcAdapter } from '../adapter'
-import { ERROR_CODES, ResponseError } from '../errors'
+import { ERROR_CODES, RpcResponseError } from '../errors'
 import {
-  ClientSocketRpcSchema,
   MESSAGE_DELIMITER,
-  ServerSocketRpc,
-  SocketRpcError,
+  RpcSocketClientMessageSchema,
+  RpcSocketError,
+  RpcSocketServerMessage,
 } from './protocol'
 
-type SocketClient = {
+type RpcSocketClient = {
   id: string
   socket: net.Socket
   requests: Map<string, RpcRequest>
@@ -38,7 +38,7 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
   enableAuthentication = true
 
   started = false
-  clients = new Map<string, SocketClient>()
+  clients = new Map<string, RpcSocketClient>()
 
   inboundTraffic = new Meter()
   outboundTraffic = new Meter()
@@ -155,7 +155,7 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
     await Promise.all(clients.map((c) => this.waitForClientToDisconnect(c)))
   }
 
-  waitForClientToDisconnect(client: SocketClient): Promise<void> {
+  waitForClientToDisconnect(client: RpcSocketClient): Promise<void> {
     return new Promise<void>((resolve) => {
       client.socket.once('close', () => {
         resolve()
@@ -183,17 +183,17 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
     })
   }
 
-  onClientDisconnection(client: SocketClient): void {
+  onClientDisconnection(client: RpcSocketClient): void {
     client.requests.forEach((req) => req.close())
     this.clients.delete(client.id)
     this.logger.debug(`client connection closed: ${this.describe()}`)
   }
 
-  onClientError(client: SocketClient, error: unknown): void {
+  onClientError(client: RpcSocketClient, error: unknown): void {
     this.logger.debug(`${this.describe()} has error: ${ErrorUtils.renderError(error)}`)
   }
 
-  async onClientData(client: SocketClient, data: Buffer): Promise<void> {
+  async onClientData(client: RpcSocketClient, data: Buffer): Promise<void> {
     this.inboundTraffic.add(data.byteLength)
     client.messageBuffer.write(data)
 
@@ -204,7 +204,7 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
         return
       }
 
-      const result = await YupUtils.tryValidate(ClientSocketRpcSchema, parsed)
+      const result = await YupUtils.tryValidate(RpcSocketClientMessageSchema, parsed)
 
       if (result.error) {
         this.emitResponse(client, this.constructMalformedRequest(parsed))
@@ -228,7 +228,7 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
 
       try {
         if (this.router == null || this.router.server == null) {
-          throw new ResponseError('Tried to connect to unmounted adapter')
+          throw new RpcResponseError('Tried to connect to unmounted adapter')
         }
 
         // Authentication
@@ -239,13 +239,13 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
             const error = message.auth
               ? 'Failed authentication'
               : 'Missing authentication token'
-            throw new ResponseError(error, ERROR_CODES.UNAUTHENTICATED, 401)
+            throw new RpcResponseError(error, ERROR_CODES.UNAUTHENTICATED, 401)
           }
         }
 
         await this.router.route(message.type, request)
       } catch (error: unknown) {
-        if (error instanceof ResponseError) {
+        if (error instanceof RpcResponseError) {
           const response = this.constructMessage(message.mid, error.status, {
             code: error.code,
             message: error.message,
@@ -261,7 +261,11 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
     }
   }
 
-  emitResponse(client: SocketClient, data: ServerSocketRpc, requestId?: string): void {
+  emitResponse(
+    client: RpcSocketClient,
+    data: RpcSocketServerMessage,
+    requestId?: string,
+  ): void {
     const message = this.encodeMessage(data)
     client.socket.write(message)
     this.outboundTraffic.add(message.byteLength)
@@ -272,17 +276,17 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
     }
   }
 
-  emitStream(client: SocketClient, data: ServerSocketRpc): void {
+  emitStream(client: RpcSocketClient, data: RpcSocketServerMessage): void {
     const message = this.encodeMessage(data)
     client.socket.write(message)
     this.outboundTraffic.add(message.byteLength)
   }
 
-  encodeMessage(data: ServerSocketRpc): Buffer {
+  encodeMessage(data: RpcSocketServerMessage): Buffer {
     return Buffer.from(JSON.stringify(data) + MESSAGE_DELIMITER)
   }
 
-  constructMessage(messageId: number, status: number, data: unknown): ServerSocketRpc {
+  constructMessage(messageId: number, status: number, data: unknown): RpcSocketServerMessage {
     return {
       type: 'message',
       data: {
@@ -293,7 +297,7 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
     }
   }
 
-  constructStream(messageId: number, data: unknown): ServerSocketRpc {
+  constructStream(messageId: number, data: unknown): RpcSocketServerMessage {
     return {
       type: 'stream',
       data: {
@@ -303,10 +307,10 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
     }
   }
 
-  constructMalformedRequest(request: unknown): ServerSocketRpc {
+  constructMalformedRequest(request: unknown): RpcSocketServerMessage {
     const error = new Error(`Malformed request rejected`)
 
-    const data: SocketRpcError = {
+    const data: RpcSocketError = {
       code: ERROR_CODES.ERROR,
       message: error.message,
       stack: error.stack,

@@ -8,7 +8,7 @@ import { FullNode } from '../../../node'
 import { BlockHeader } from '../../../primitives'
 import { GENESIS_BLOCK_SEQUENCE } from '../../../primitives/block'
 import { BufferUtils } from '../../../utils'
-import { NotFoundError, ValidationError } from '../../adapters'
+import { RpcNotFoundError, RpcValidationError } from '../../adapters'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import { RpcBlock, RpcBlockSchema, serializeRpcBlockHeader } from '../types'
@@ -94,16 +94,16 @@ routes.register<typeof GetBlockRequestSchema, GetBlockResponse>(
     }
 
     if (!header) {
-      throw new NotFoundError(error)
+      throw new RpcNotFoundError(error)
     }
 
     if (header.noteSize === null) {
-      throw new ValidationError('Block header was saved to database without a note size')
+      throw new RpcValidationError('Block header was saved to database without a note size')
     }
 
     const block = await context.chain.getBlock(header)
     if (!block) {
-      throw new NotFoundError(`No block with header ${header.hash.toString('hex')}`)
+      throw new RpcNotFoundError(`No block with header ${header.hash.toString('hex')}`)
     }
 
     const transactions: GetBlockResponse['block']['transactions'] = []

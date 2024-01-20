@@ -7,7 +7,7 @@ import { getTransactionSize } from '../../../network/utils/serializers'
 import { FullNode } from '../../../node'
 import { BlockHashSerdeInstance } from '../../../serde'
 import { CurrencyUtils } from '../../../utils'
-import { NotFoundError, ValidationError } from '../../adapters'
+import { RpcNotFoundError, RpcValidationError } from '../../adapters'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import { RpcTransaction, RpcTransactionSchema } from './types'
@@ -58,7 +58,7 @@ routes.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
     Assert.isInstanceOf(context, FullNode)
 
     if (!request.data.transactionHash) {
-      throw new ValidationError(`Missing transaction hash`)
+      throw new RpcValidationError(`Missing transaction hash`)
     }
 
     const transactionHashBuffer = Buffer.from(request.data.transactionHash, 'hex')
@@ -68,14 +68,14 @@ routes.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
       : await context.chain.getBlockHashByTransactionHash(transactionHashBuffer)
 
     if (!blockHashBuffer) {
-      throw new NotFoundError(
+      throw new RpcNotFoundError(
         `No block hash found for transaction hash ${request.data.transactionHash}`,
       )
     }
 
     const blockHeader = await context.chain.getHeader(blockHashBuffer)
     if (!blockHeader) {
-      throw new NotFoundError(
+      throw new RpcNotFoundError(
         `No block found for block hash ${blockHashBuffer.toString('hex')}`,
       )
     }
@@ -87,7 +87,7 @@ routes.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
     )
 
     if (!foundTransaction) {
-      throw new NotFoundError(
+      throw new RpcNotFoundError(
         `Transaction not found on block ${blockHashBuffer.toString('hex')}`,
       )
     }

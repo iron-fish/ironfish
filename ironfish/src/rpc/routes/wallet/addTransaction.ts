@@ -5,7 +5,7 @@ import * as yup from 'yup'
 import { Verifier } from '../../../consensus'
 import { Transaction } from '../../../primitives'
 import { AsyncUtils } from '../../../utils'
-import { ValidationError } from '../../adapters'
+import { RpcValidationError } from '../../adapters'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import { AssertHasRpcContext } from '../rpcContext'
@@ -48,7 +48,7 @@ routes.register<typeof AddTransactionRequestSchema, AddTransactionResponse>(
     const verify = Verifier.verifyCreatedTransaction(transaction, context.strategy.consensus)
 
     if (!verify.valid) {
-      throw new ValidationError(`Invalid transaction, reason: ${String(verify.reason)}`, 400)
+      throw new RpcValidationError(`Invalid transaction, reason: ${String(verify.reason)}`, 400)
     }
 
     await context.wallet.addPendingTransaction(transaction)
@@ -58,7 +58,7 @@ routes.register<typeof AddTransactionRequestSchema, AddTransactionResponse>(
     )
 
     if (accounts.length === 0) {
-      throw new ValidationError(
+      throw new RpcValidationError(
         `Transaction ${transaction.hash().toString('hex')} is not related to any account`,
       )
     }

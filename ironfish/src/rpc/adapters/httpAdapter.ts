@@ -11,13 +11,13 @@ import { RpcRequest } from '../request'
 import { ApiNamespace, Router } from '../routes'
 import { RpcServer } from '../server'
 import { IRpcAdapter } from './adapter'
-import { ERROR_CODES, ResponseError } from './errors'
+import { ERROR_CODES, RpcResponseError } from './errors'
 import { MESSAGE_DELIMITER } from './socketAdapter'
 
 const MEGABYTES = 1000 * 1000
 const MAX_REQUEST_SIZE = 5 * MEGABYTES
 
-export type HttpRpcError = {
+export type RpcHttpError = {
   status: number
   code: string
   message: string
@@ -101,13 +101,13 @@ export class RpcHttpAdapter implements IRpcAdapter {
           void this.handleRequest(req, res, requestId).catch((e) => {
             const error = ErrorUtils.renderError(e)
             this.logger.debug(`Error in HTTP adapter: ${error}`)
-            let errorResponse: HttpRpcError = {
+            let errorResponse: RpcHttpError = {
               code: ERROR_CODES.ERROR,
               status: 500,
               message: error,
             }
 
-            if (e instanceof ResponseError) {
+            if (e instanceof RpcResponseError) {
               errorResponse = {
                 code: e.code,
                 status: e.status,
@@ -165,13 +165,13 @@ export class RpcHttpAdapter implements IRpcAdapter {
     requestId: string,
   ): Promise<void> {
     if (this.router === null || this.router.server === null) {
-      throw new ResponseError('Tried to connect to unmounted adapter')
+      throw new RpcResponseError('Tried to connect to unmounted adapter')
     }
 
     const router = this.router
 
     if (request.url === undefined) {
-      throw new ResponseError('No request url provided')
+      throw new RpcResponseError('No request url provided')
     }
 
     this.logger.debug(
@@ -180,7 +180,7 @@ export class RpcHttpAdapter implements IRpcAdapter {
 
     const route = this.formatRoute(request)
     if (route === undefined) {
-      throw new ResponseError('No route found')
+      throw new RpcResponseError('No route found')
     }
 
     // TODO(daniel): clean up reading body code here a bit of possible
@@ -193,7 +193,7 @@ export class RpcHttpAdapter implements IRpcAdapter {
       data.push(chunk)
 
       if (size >= MAX_REQUEST_SIZE) {
-        throw new ResponseError('Max request size exceeded')
+        throw new RpcResponseError('Max request size exceeded')
       }
     }
 
