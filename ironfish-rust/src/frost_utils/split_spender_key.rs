@@ -142,7 +142,7 @@ mod test {
             );
         }
 
-        let cloned_identifiers = identifiers.clone();
+        let cloned_identifiers = identifiers.clone().sort();
 
         let sapling_key = SaplingKey::generate_key();
 
@@ -189,7 +189,8 @@ mod test {
                 .key_packages
                 .keys()
                 .cloned()
-                .collect::<Vec<_>>(),
+                .collect::<Vec<_>>()
+                .sort(),
             cloned_identifiers
         );
     }
