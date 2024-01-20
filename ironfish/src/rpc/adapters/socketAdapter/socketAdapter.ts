@@ -14,7 +14,7 @@ import { RpcRequest } from '../../request'
 import { ApiNamespace, Router } from '../../routes'
 import { RpcServer } from '../../server'
 import { IRpcAdapter } from '../adapter'
-import { ERROR_CODES, RpcResponseError } from '../errors'
+import { RPC_ERROR_CODES, RpcResponseError } from '../errors'
 import {
   MESSAGE_DELIMITER,
   RpcSocketClientMessageSchema,
@@ -239,7 +239,7 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
             const error = message.auth
               ? 'Failed authentication'
               : 'Missing authentication token'
-            throw new RpcResponseError(error, ERROR_CODES.UNAUTHENTICATED, 401)
+            throw new RpcResponseError(error, RPC_ERROR_CODES.UNAUTHENTICATED, 401)
           }
         }
 
@@ -311,7 +311,7 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
     const error = new Error(`Malformed request rejected`)
 
     const data: RpcSocketError = {
-      code: ERROR_CODES.ERROR,
+      code: RPC_ERROR_CODES.ERROR,
       message: error.message,
       stack: error.stack,
     }

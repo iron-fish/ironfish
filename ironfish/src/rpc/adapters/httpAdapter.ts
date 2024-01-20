@@ -11,7 +11,7 @@ import { RpcRequest } from '../request'
 import { ApiNamespace, Router } from '../routes'
 import { RpcServer } from '../server'
 import { IRpcAdapter } from './adapter'
-import { ERROR_CODES, RpcResponseError } from './errors'
+import { RPC_ERROR_CODES, RpcResponseError } from './errors'
 import { MESSAGE_DELIMITER } from './socketAdapter'
 
 const MEGABYTES = 1000 * 1000
@@ -102,7 +102,7 @@ export class RpcHttpAdapter implements IRpcAdapter {
             const error = ErrorUtils.renderError(e)
             this.logger.debug(`Error in HTTP adapter: ${error}`)
             let errorResponse: RpcHttpError = {
-              code: ERROR_CODES.ERROR,
+              code: RPC_ERROR_CODES.ERROR,
               status: 500,
               message: error,
             }

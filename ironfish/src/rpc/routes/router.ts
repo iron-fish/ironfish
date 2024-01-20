@@ -4,7 +4,7 @@
 import { Assert } from '../../assert'
 import { YupSchema, YupSchemaResult, YupUtils } from '../../utils'
 import { StrEnumUtils } from '../../utils/enums'
-import { ERROR_CODES } from '../adapters'
+import { RPC_ERROR_CODES } from '../adapters'
 import { RpcResponseError, RpcValidationError } from '../adapters/errors'
 import { RpcRequest } from '../request'
 import { RpcServer } from '../server'
@@ -22,7 +22,7 @@ export class RouteNotFoundError extends RpcResponseError {
   constructor(route: string, namespace: string, method: string) {
     super(
       `No route found ${route} in namespace ${namespace} for method ${method}`,
-      ERROR_CODES.ROUTE_NOT_FOUND,
+      RPC_ERROR_CODES.ROUTE_NOT_FOUND,
       404,
     )
   }

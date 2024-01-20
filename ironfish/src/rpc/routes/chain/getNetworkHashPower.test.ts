@@ -4,7 +4,7 @@
 import { useAccountFixture, useMinerBlockFixture } from '../../../testUtilities/fixtures'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { Account } from '../../../wallet'
-import { ERROR_CODES } from '../../adapters'
+import { RPC_ERROR_CODES } from '../../adapters'
 
 describe('Route chain/getNetworkHashPower', () => {
   const routeTest = createRouteTest(true)
@@ -76,7 +76,7 @@ describe('Route chain/getNetworkHashPower', () => {
       expect.objectContaining({
         message: expect.stringContaining('[blocks] value must be greater than 0'),
         status: 400,
-        code: ERROR_CODES.VALIDATION,
+        code: RPC_ERROR_CODES.VALIDATION,
       }),
     )
   })

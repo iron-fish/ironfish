@@ -7,7 +7,7 @@ import { RawTransactionSerde } from '../../../primitives/rawTransaction'
 import { useAccountFixture, useMinerBlockFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { AsyncUtils } from '../../../utils'
-import { ERROR_CODES } from '../../adapters/errors'
+import { RPC_ERROR_CODES } from '../../adapters/errors'
 
 const REQUEST_PARAMS = {
   account: 'existingAccount',
@@ -51,7 +51,7 @@ describe('Route wallet/createTransaction', () => {
       expect.objectContaining({
         message: expect.any(String),
         status: 400,
-        code: ERROR_CODES.INSUFFICIENT_BALANCE,
+        code: RPC_ERROR_CODES.INSUFFICIENT_BALANCE,
       }),
     )
   })
@@ -380,7 +380,7 @@ describe('Route wallet/createTransaction', () => {
       expect.objectContaining({
         message: expect.any(String),
         status: 400,
-        code: ERROR_CODES.INSUFFICIENT_BALANCE,
+        code: RPC_ERROR_CODES.INSUFFICIENT_BALANCE,
       }),
     )
   })

@@ -7,7 +7,7 @@ import { Assert } from '../../../assert'
 import { useAccountFixture, useMinersTxFixture } from '../../../testUtilities/fixtures'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { NotEnoughFundsError } from '../../../wallet/errors'
-import { ERROR_CODES } from '../../adapters'
+import { RPC_ERROR_CODES } from '../../adapters'
 
 const TEST_PARAMS = {
   account: 'existingAccount',
@@ -74,7 +74,7 @@ describe('Route wallet/sendTransaction', () => {
           `Your balance is too low. Add funds to your account first`,
         ),
         status: 400,
-        code: ERROR_CODES.INSUFFICIENT_BALANCE,
+        code: RPC_ERROR_CODES.INSUFFICIENT_BALANCE,
       }),
     )
 
@@ -84,7 +84,7 @@ describe('Route wallet/sendTransaction', () => {
           `Your balance is too low. Add funds to your account first`,
         ),
         status: 400,
-        code: ERROR_CODES.INSUFFICIENT_BALANCE,
+        code: RPC_ERROR_CODES.INSUFFICIENT_BALANCE,
       }),
     )
   })
@@ -109,7 +109,7 @@ describe('Route wallet/sendTransaction', () => {
           `Your balance is too low. Add funds to your account first`,
         ),
         status: 400,
-        code: ERROR_CODES.INSUFFICIENT_BALANCE,
+        code: RPC_ERROR_CODES.INSUFFICIENT_BALANCE,
       }),
     )
 
@@ -130,7 +130,7 @@ describe('Route wallet/sendTransaction', () => {
           `Your balance is too low. Add funds to your account first`,
         ),
         status: 400,
-        code: ERROR_CODES.INSUFFICIENT_BALANCE,
+        code: RPC_ERROR_CODES.INSUFFICIENT_BALANCE,
       }),
     )
   })
@@ -157,7 +157,7 @@ describe('Route wallet/sendTransaction', () => {
     await expect(routeTest.client.wallet.sendTransaction(TEST_PARAMS)).rejects.toThrow(
       expect.objectContaining({
         status: 400,
-        code: ERROR_CODES.INSUFFICIENT_BALANCE,
+        code: RPC_ERROR_CODES.INSUFFICIENT_BALANCE,
       }),
     )
   })

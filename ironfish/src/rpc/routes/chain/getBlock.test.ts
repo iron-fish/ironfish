@@ -4,7 +4,7 @@
 import { Assert } from '../../../assert'
 import { useBlockWithTx, useMinerBlockFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
-import { ERROR_CODES } from '../../adapters'
+import { RPC_ERROR_CODES } from '../../adapters'
 import { RpcRequestError } from '../../clients/errors'
 import { GetBlockResponse } from './getBlock'
 
@@ -50,7 +50,7 @@ describe('Route chain/getBlock', () => {
         throw e
       }
       expect(e.status).toBe(404)
-      expect(e.code).toBe(ERROR_CODES.NOT_FOUND)
+      expect(e.code).toBe(RPC_ERROR_CODES.NOT_FOUND)
       expect(e.message).toContain('No block found with hash')
     }
 
@@ -88,7 +88,7 @@ describe('Route chain/getBlock', () => {
         throw e
       }
       expect(e.status).toBe(404)
-      expect(e.code).toBe(ERROR_CODES.NOT_FOUND)
+      expect(e.code).toBe(RPC_ERROR_CODES.NOT_FOUND)
       expect(e.message).toContain('No block found with sequence')
     }
 
@@ -104,7 +104,7 @@ describe('Route chain/getBlock', () => {
         throw e
       }
       expect(e.status).toBe(404)
-      expect(e.code).toBe(ERROR_CODES.NOT_FOUND)
+      expect(e.code).toBe(RPC_ERROR_CODES.NOT_FOUND)
       expect(e.message).toContain('No block with header')
     }
   })
