@@ -133,7 +133,6 @@ mod test {
     #[test]
     fn test_split_spender_key_success() {
         let mut identifiers = Vec::new();
-        let mut cloned_identifiers = identifiers.clone();
 
         for _ in 0..10 {
             identifiers.push(
@@ -142,6 +141,8 @@ mod test {
                     .to_frost_identifier(),
             );
         }
+        let mut cloned_identifiers = identifiers.clone();
+        cloned_identifiers.sort();
 
         let sapling_key = SaplingKey::generate_key();
 
@@ -183,14 +184,13 @@ mod test {
         assert_eq!(scalar.to_bytes(), spend_auth_key);
 
         // assert identifiers and trusted_dealer_key_packages.key_packages.keys() are the same
-        assert_eq!(
-            trusted_dealer_key_packages
-                .key_packages
-                .keys()
-                .cloned()
-                .collect::<Vec<_>>()
-                .sort(),
-            cloned_identifiers.sort()
-        );
+        let mut t_identifiers = trusted_dealer_key_packages
+            .key_packages
+            .keys()
+            .cloned()
+            .collect::<Vec<_>>();
+
+        t_identifiers.sort();
+        assert_eq!(t_identifiers, cloned_identifiers);
     }
 }
