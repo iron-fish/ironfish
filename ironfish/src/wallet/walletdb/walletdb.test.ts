@@ -79,7 +79,7 @@ describe('WalletDB', () => {
         walletDb.loadValueToUnspentNoteHashes(account, Asset.nativeId()),
       )
       const unspentNotes = await AsyncUtils.materialize(
-        walletDb.loadUnspentNoteHashes(account, Asset.nativeId()),
+        walletDb.loadValueToUnspentNoteHashes(account, Asset.nativeId()),
       )
       const notes = (
         await Promise.all(
@@ -148,7 +148,7 @@ describe('WalletDB', () => {
         walletDb.loadValueToUnspentNoteHashes(account, Asset.nativeId()),
       )
       const unsorted1 = await AsyncUtils.materialize(
-        walletDb.loadUnspentNotes(account, Asset.nativeId()),
+        walletDb.loadUnspentNoteValues(account, Asset.nativeId()),
       )
       expect(sorted1.length).toEqual(1)
       expect(unsorted1.length).toEqual(1)
@@ -159,7 +159,7 @@ describe('WalletDB', () => {
       )
       expect(sorted2.length).toEqual(0)
       const unsorted2 = await AsyncUtils.materialize(
-        walletDb.loadUnspentNotes(account, Asset.nativeId()),
+        walletDb.loadUnspentNoteValues(account, Asset.nativeId()),
       )
       expect(unsorted2.length).toEqual(0)
 
@@ -169,7 +169,7 @@ describe('WalletDB', () => {
       )
       expect(sorted3.length).toEqual(1)
       const unsorted3 = await AsyncUtils.materialize(
-        walletDb.loadUnspentNotes(account, Asset.nativeId()),
+        walletDb.loadUnspentNoteValues(account, Asset.nativeId()),
       )
       expect(unsorted3.length).toEqual(1)
     })
