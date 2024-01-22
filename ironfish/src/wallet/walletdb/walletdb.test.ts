@@ -144,34 +144,34 @@ describe('WalletDB', () => {
       const noteHash: Buffer = block.transactions[0].notes[0].hash()
       const decryptedNote = await account.getDecryptedNote(noteHash)
       Assert.isNotUndefined(decryptedNote)
-      const n1 = await AsyncUtils.materialize(
+      const sorted1 = await AsyncUtils.materialize(
         walletDb.loadValueToUnspentNoteHashes(account, Asset.nativeId()),
       )
-      const sn1 = await AsyncUtils.materialize(
-        walletDb.loadValueToUnspentNoteHashes(account, Asset.nativeId()),
+      const unsorted1 = await AsyncUtils.materialize(
+        walletDb.loadUnspentNotes(account, Asset.nativeId()),
       )
-      expect(n1.length).toEqual(1)
-      expect(sn1.length).toEqual(1)
+      expect(sorted1.length).toEqual(1)
+      expect(unsorted1.length).toEqual(1)
 
       await walletDb.deleteUnspentNoteHash(account, noteHash, decryptedNote)
-      const dn2 = await AsyncUtils.materialize(
+      const sorted2 = await AsyncUtils.materialize(
         walletDb.loadValueToUnspentNoteHashes(account, Asset.nativeId()),
       )
-      expect(dn2.length).toEqual(0)
-      const vtn2 = await AsyncUtils.materialize(
-        walletDb.loadValueToUnspentNoteHashes(account, Asset.nativeId()),
+      expect(sorted2.length).toEqual(0)
+      const unsorted2 = await AsyncUtils.materialize(
+        walletDb.loadUnspentNotes(account, Asset.nativeId()),
       )
-      expect(vtn2.length).toEqual(0)
+      expect(unsorted2.length).toEqual(0)
 
       await walletDb.addUnspentNoteHash(account, noteHash, decryptedNote)
-      const dn3 = await AsyncUtils.materialize(
+      const sorted3 = await AsyncUtils.materialize(
         walletDb.loadValueToUnspentNoteHashes(account, Asset.nativeId()),
       )
-      expect(dn3.length).toEqual(1)
-      const vtn3 = await AsyncUtils.materialize(
-        walletDb.loadValueToUnspentNoteHashes(account, Asset.nativeId()),
+      expect(sorted3.length).toEqual(1)
+      const unsorted3 = await AsyncUtils.materialize(
+        walletDb.loadUnspentNotes(account, Asset.nativeId()),
       )
-      expect(vtn3.length).toEqual(1)
+      expect(unsorted3.length).toEqual(1)
     })
   })
 
