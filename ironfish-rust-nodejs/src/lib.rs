@@ -4,16 +4,26 @@
 
 use std::fmt::Display;
 
+use ironfish::errors::IronfishError;
+use ironfish::frost::Error;
+use ironfish::frost::Identifier;
+use ironfish::frost_utils::split_spender_key::split_spender_key;
+use ironfish::ironfish_frost::{
+    frost::{frost::keys::reconstruct, JubjubBlake2b512},
+    participant::Secret,
+};
 use ironfish::keys::Language;
 use ironfish::keys::ProofGenerationKeySerializable;
 use ironfish::PublicAddress;
 use ironfish::SaplingKey;
 
+use ironfish::util::str_to_array;
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 
 use ironfish::mining;
 use ironfish::sapling_bls12;
+use structs::TrustedDealerKeyPackages;
 
 pub mod fish_hash;
 pub mod frost;
@@ -31,7 +41,7 @@ fn to_napi_err(err: impl Display) -> napi::Error {
 // have to recreate if we want type safety. hopefully in the future this will work with napi:
 // #[napi]
 // pub use bip39::Language as Language;
-// https://github.com/napi-rs/napi-rs/issues/1463
+// https://gi thub.com/napi-rs/napi-rs/issues/1463
 #[napi]
 pub enum LanguageCode {
     English,
@@ -66,6 +76,21 @@ pub struct Key {
     pub outgoing_view_key: String,
     pub public_address: String,
     pub proof_generation_key: String,
+}
+
+#[napi]
+pub fn split_secret(
+    coordinator_sapling_key: String,
+    min_signers: u16,
+    max_signers: u16,
+    identifiers: Vec<String>,
+) -> Result<TrustedDealerKeyPackages> {
+    let coordinator_key = SaplingKey::new(str_to_array(&coordinator_sapling_key))?;
+    // Secret::random(thread_rng()) .to_identity() .to_frost_identifier(),
+    let i: Vec<Identifier> = identifiers.iter().map(|id| Secret).collect();
+
+    let t = split_spender_key(coordinator_key, min_signers, max_signers, i)?;
+    return t;
 }
 
 #[napi]
