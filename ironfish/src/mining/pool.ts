@@ -354,7 +354,7 @@ export class MiningPool {
       return
     }
 
-    // Get block explorer URLs based on netowrk ID
+    // Get block explorer URLs based on network ID
     const networkResponse = await this.rpc.chain.getNetworkInfo()
     const explorer = this.getExplorer(networkResponse.content.networkId)
     this.webhooks.map((w) => w.poolConnected(explorer ?? undefined))
