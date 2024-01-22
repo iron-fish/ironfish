@@ -2342,9 +2342,7 @@ describe('Accounts', () => {
       expect(sortedAssetNotes).toHaveLength(3)
       expect(values).toEqual([3n, 2n, 1n])
     })
-  })
 
-  describe('getUnspentNotes', () => {
     it('loads all unspent notes with no confirmation range', async () => {
       const { node } = nodeTest
 
