@@ -212,14 +212,14 @@ export class RpcHttpAdapter implements IRpcAdapter {
       route,
       (status: number, data?: unknown) => {
         response.statusCode = status
-        const delimeter = chunkStreamed ? MESSAGE_DELIMITER : ''
+        const delimiter = chunkStreamed ? MESSAGE_DELIMITER : ''
 
         const responseData = JSON.stringify({ status, data })
         const responseSize = Buffer.byteLength(responseData, 'utf-8')
         this.outboundTraffic.add(responseSize)
         this.outboundBytes.value += responseSize
 
-        response.end(delimeter + responseData)
+        response.end(delimiter + responseData)
 
         this.cleanUpRequest(requestId)
       },
@@ -228,14 +228,14 @@ export class RpcHttpAdapter implements IRpcAdapter {
         // they wait until all chunks have been received and combine them. This will
         // stream a delimitated list of JSON objects but is still probably not
         // ideal as a response. We could find some better way to stream
-        const delimeter = chunkStreamed ? MESSAGE_DELIMITER : ''
+        const delimiter = chunkStreamed ? MESSAGE_DELIMITER : ''
 
         const responseData = JSON.stringify({ data })
         const responseSize = Buffer.byteLength(responseData, 'utf-8')
         this.outboundTraffic.add(responseSize)
         this.outboundBytes.value += responseSize
 
-        response.write(delimeter + responseData)
+        response.write(delimiter + responseData)
         chunkStreamed = true
       },
     )
