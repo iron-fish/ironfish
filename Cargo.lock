@@ -1580,6 +1580,7 @@ dependencies = [
  "napi",
  "napi-build",
  "napi-derive",
+ "rand 0.8.5",
 ]
 
 [[package]]
