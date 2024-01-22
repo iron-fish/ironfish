@@ -18,24 +18,16 @@ pub struct SecretShareConfig {
     pub secret: Vec<u8>,
 }
 
-fn vec_to_array(vec: Vec<u8>) -> Result<[u8; 32], IronfishError> {
-    if vec.len() != 32 {
-        return Err(IronfishError::new(IronfishErrorKind::InvalidSecret));
-    }
-
-    let array: [u8; 32] = vec
-        .try_into()
-        .map_err(|_| IronfishError::new(IronfishErrorKind::InvalidSecret))?;
-
-    Ok(array)
-}
-
 pub(crate) fn split_secret(
     config: &SecretShareConfig,
     identifiers: IdentifierList,
     rng: &mut ThreadRng,
 ) -> Result<(HashMap<Identifier, KeyPackage>, PublicKeyPackage), IronfishError> {
-    let secret_bytes = vec_to_array(config.secret.clone())?;
+    let secret_bytes: [u8; 32] = config
+        .secret
+        .clone()
+        .try_into()
+        .map_err(|_| IronfishError::new(IronfishErrorKind::InvalidSecret))?;
 
     let secret_key = SigningKey::deserialize(secret_bytes)?;
 
@@ -68,20 +60,22 @@ mod test {
     use ironfish_frost::frost::{frost::keys::reconstruct, JubjubBlake2b512};
 
     #[test]
-    fn test_vec_to_array() {
-        let vec = vec![1; 32];
-        let array = vec_to_array(vec).unwrap();
-        assert_eq!(array, [1; 32]);
-    }
-
-    #[test]
-    fn test_vec_to_array_invalid() {
+    fn test_invalid_secret() {
         let vec = vec![1; 31];
-        let array = vec_to_array(vec);
-        assert!(array.is_err());
-        // assert error type
+        let config = SecretShareConfig {
+            min_signers: 2,
+            max_signers: 3,
+            secret: vec,
+        };
+        let mut rng = rand::thread_rng();
+        let result = split_secret(
+            &config,
+            ironfish_frost::frost::keys::IdentifierList::Default,
+            &mut rng,
+        );
+        assert!(result.is_err());
         assert!(
-            matches!(array.unwrap_err().kind, IronfishErrorKind::InvalidSecret),
+            matches!(result.unwrap_err().kind, IronfishErrorKind::InvalidSecret),
             "expected InvalidSecret error"
         );
     }
