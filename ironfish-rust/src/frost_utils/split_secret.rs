@@ -2,14 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use ironfish_frost::frost;
-use ironfish_frost::frost::Error;
 use ironfish_frost::frost::{
+    frost::keys::split,
     keys::{IdentifierList, KeyPackage, PublicKeyPackage},
     Identifier, SigningKey,
 };
 use rand::rngs::ThreadRng;
 use std::collections::HashMap;
+
+use crate::errors::{IronfishError, IronfishErrorKind};
 
 pub struct SecretShareConfig {
     pub min_signers: u16,
@@ -17,20 +18,20 @@ pub struct SecretShareConfig {
     pub secret: Vec<u8>,
 }
 
-pub fn split_secret(
+pub(crate) fn split_secret(
     config: &SecretShareConfig,
     identifiers: IdentifierList,
     rng: &mut ThreadRng,
-) -> Result<(HashMap<Identifier, KeyPackage>, PublicKeyPackage), Error> {
-    let secret_key = SigningKey::deserialize(
-        config
-            .secret
-            .clone()
-            .try_into()
-            .map_err(|_| Error::MalformedSigningKey)?,
-    )?;
+) -> Result<(HashMap<Identifier, KeyPackage>, PublicKeyPackage), IronfishError> {
+    let secret_bytes: [u8; 32] = config
+        .secret
+        .clone()
+        .try_into()
+        .map_err(|_| IronfishError::new(IronfishErrorKind::InvalidSecret))?;
 
-    let (shares, pubkeys) = frost::keys::split(
+    let secret_key = SigningKey::deserialize(secret_bytes)?;
+
+    let (shares, pubkeys) = split(
         &secret_key,
         config.max_signers,
         config.min_signers,
@@ -39,13 +40,13 @@ pub fn split_secret(
     )?;
 
     for (_k, v) in shares.clone() {
-        frost::keys::KeyPackage::try_from(v)?;
+        KeyPackage::try_from(v)?;
     }
 
     let mut key_packages: HashMap<_, _> = HashMap::new();
 
     for (identifier, secret_share) in shares {
-        let key_package = frost::keys::KeyPackage::try_from(secret_share.clone()).unwrap();
+        let key_package = KeyPackage::try_from(secret_share.clone())?;
         key_packages.insert(identifier, key_package);
     }
 
@@ -57,6 +58,27 @@ mod test {
     use super::*;
     use crate::keys::SaplingKey;
     use ironfish_frost::frost::{frost::keys::reconstruct, JubjubBlake2b512};
+
+    #[test]
+    fn test_invalid_secret() {
+        let vec = vec![1; 31];
+        let config = SecretShareConfig {
+            min_signers: 2,
+            max_signers: 3,
+            secret: vec,
+        };
+        let mut rng = rand::thread_rng();
+        let result = split_secret(
+            &config,
+            ironfish_frost::frost::keys::IdentifierList::Default,
+            &mut rng,
+        );
+        assert!(result.is_err());
+        assert!(
+            matches!(result.unwrap_err().kind, IronfishErrorKind::InvalidSecret),
+            "expected InvalidSecret error"
+        );
+    }
 
     #[test]
     fn test_split_secret() {

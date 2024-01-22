@@ -5,3 +5,4 @@
 pub mod round_one;
 pub mod round_two;
 pub mod split_secret;
+pub mod split_spender_key;
