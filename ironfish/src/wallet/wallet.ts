@@ -1220,7 +1220,7 @@ export class Wallet {
     notesSpent: BufferSet,
     confirmations: number,
   ): Promise<bigint> {
-    for await (const unspentNote of sender.getUnspentNotesSortedByValue(assetId, {
+    for await (const unspentNote of sender.getUnspentNotes(assetId, {
       reverse: true,
       confirmations,
     })) {

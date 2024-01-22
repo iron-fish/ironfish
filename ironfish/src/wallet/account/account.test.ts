@@ -2179,7 +2179,7 @@ describe('Accounts', () => {
     })
   })
 
-  describe('getUnspentNotesSortedByValue', () => {
+  describe('getUnspentNotes', () => {
     it('loads notes sorted by value', async () => {
       const { node } = nodeTest
       const account = await useAccountFixture(node.wallet)
@@ -2212,7 +2212,7 @@ describe('Accounts', () => {
       await node.wallet.updateHead()
 
       const sortedNotes = await AsyncUtils.materialize(
-        account.getUnspentNotesSortedByValue(Asset.nativeId()),
+        account.getUnspentNotes(Asset.nativeId()),
       )
 
       const allUnspentNotes = await AsyncUtils.materialize(
@@ -2230,7 +2230,7 @@ describe('Accounts', () => {
 
       // descending order
       const sortedNotesDescending = await AsyncUtils.materialize(
-        account.getUnspentNotesSortedByValue(Asset.nativeId(), { reverse: true }),
+        account.getUnspentNotes(Asset.nativeId(), { reverse: true }),
       )
       previousNoteValue = sortedNotesDescending[0].note.value()
 
@@ -2244,9 +2244,9 @@ describe('Accounts', () => {
       const { node } = nodeTest
       const account = await useAccountFixture(node.wallet)
 
-      const getUnspentNotesSortedByValue = async (confirmations: number) => {
+      const getUnspentNotes = async (confirmations: number) => {
         return await AsyncUtils.materialize(
-          account.getUnspentNotesSortedByValue(Asset.nativeId(), { confirmations }),
+          account.getUnspentNotes(Asset.nativeId(), { confirmations }),
         )
       }
 
@@ -2254,17 +2254,17 @@ describe('Accounts', () => {
       await node.chain.addBlock(blockA)
       await node.wallet.updateHead()
 
-      expect(await getUnspentNotesSortedByValue(1)).toHaveLength(0)
+      expect(await getUnspentNotes(1)).toHaveLength(0)
 
-      expect(await getUnspentNotesSortedByValue(0)).toHaveLength(1)
+      expect(await getUnspentNotes(0)).toHaveLength(1)
 
       const blockB = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
       await node.chain.addBlock(blockB)
       await node.wallet.updateHead()
 
-      expect(await getUnspentNotesSortedByValue(0)).toHaveLength(2)
-      expect(await getUnspentNotesSortedByValue(1)).toHaveLength(1)
-      expect(await getUnspentNotesSortedByValue(2)).toHaveLength(0)
+      expect(await getUnspentNotes(0)).toHaveLength(2)
+      expect(await getUnspentNotes(1)).toHaveLength(1)
+      expect(await getUnspentNotes(2)).toHaveLength(0)
     })
 
     it('sorted notes for minted assets', async () => {
@@ -2332,7 +2332,7 @@ describe('Accounts', () => {
       expect((await accB.getBalance(asset.id(), 0)).available).toBe(6n)
 
       const sortedAssetNotes = await AsyncUtils.materialize(
-        accB.getUnspentNotesSortedByValue(asset.id(), {
+        accB.getUnspentNotes(asset.id(), {
           confirmations: 0,
           reverse: true,
         }),

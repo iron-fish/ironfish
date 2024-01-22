@@ -4515,7 +4515,7 @@
       ]
     }
   ],
-  "Accounts getUnspentNotesSortedByValue sorted notes for minted assets": [
+  "Accounts getUnspentNotes sorted notes for minted assets": [
     {
       "version": 2,
       "id": "3f91a9b1-bf07-46fd-8803-86c4063dfa2a",
@@ -4747,7 +4747,7 @@
       ]
     }
   ],
-  "Accounts getUnspentNotesSortedByValue loads notes sorted by value": [
+  "Accounts getUnspentNotes loads notes sorted by value": [
     {
       "version": 2,
       "id": "f6b967ea-32eb-465d-8c96-33145a610b1d",
@@ -4860,7 +4860,7 @@
       ]
     }
   ],
-  "Accounts getUnspentNotesSortedByValue filters notes by confirmations": [
+  "Accounts getUnspentNotes filters notes by confirmations": [
     {
       "version": 2,
       "id": "40f8ed94-105c-412c-b30b-9abdfff24057",
@@ -4931,7 +4931,7 @@
       ]
     }
   ],
-  "Accounts getUnspentNotesSortedByValue loads notes in descending order": [
+  "Accounts getUnspentNotes loads notes in descending order": [
     {
       "version": 2,
       "id": "49362eda-7536-40d0-8fdc-73c44ab157ba",
