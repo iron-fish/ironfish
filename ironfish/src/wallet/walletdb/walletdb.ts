@@ -611,7 +611,7 @@ export class WalletDB {
     assetId: Buffer,
     sequence?: number,
     tx?: IDatabaseTransaction,
-  ): AsyncGenerator<Buffer> {
+  ): AsyncGenerator<[bigint, Buffer]> {
     const encoding = new PrefixEncoding(
       BUFFER_ENCODING,
       new PrefixEncoding(BUFFER_ENCODING, U32_ENCODING_BE, 32),
@@ -625,11 +625,11 @@ export class WalletDB {
       encoding.serialize([account.prefix, [assetId, maxConfirmedSequence]]),
     )
 
-    for await (const [, [, [, [_, noteHash]]]] of this.unspentNoteHashes.getAllKeysIter(
+    for await (const [, [, [, [value, noteHash]]]] of this.unspentNoteHashes.getAllKeysIter(
       tx,
       range,
     )) {
-      yield noteHash
+      yield [value, noteHash]
     }
   }
 
@@ -639,7 +639,12 @@ export class WalletDB {
     sequence?: number,
     tx?: IDatabaseTransaction,
   ): AsyncGenerator<DecryptedNoteValue> {
-    for await (const noteHash of this.loadUnspentNoteHashes(account, assetId, sequence, tx)) {
+    for await (const [, noteHash] of this.loadUnspentNoteHashes(
+      account,
+      assetId,
+      sequence,
+      tx,
+    )) {
       const decryptedNote = await this.decryptedNotes.get([account.prefix, noteHash], tx)
 
       if (decryptedNote !== undefined) {
@@ -654,23 +659,7 @@ export class WalletDB {
     sequence?: number,
     tx?: IDatabaseTransaction,
   ): AsyncGenerator<bigint> {
-    const encoding = new PrefixEncoding(
-      BUFFER_ENCODING,
-      new PrefixEncoding(BUFFER_ENCODING, U32_ENCODING_BE, 32),
-      4,
-    )
-
-    const maxConfirmedSequence = sequence ?? 2 ** 32 - 1
-
-    const range = getPrefixesKeyRange(
-      encoding.serialize([account.prefix, [assetId, 1]]),
-      encoding.serialize([account.prefix, [assetId, maxConfirmedSequence]]),
-    )
-
-    for await (const [, [, [, [value, _]]]] of this.unspentNoteHashes.getAllKeysIter(
-      tx,
-      range,
-    )) {
+    for await (const [value] of this.loadUnspentNoteHashes(account, assetId, sequence, tx)) {
       yield value
     }
   }
