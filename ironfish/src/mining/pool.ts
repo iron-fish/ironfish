@@ -5,6 +5,7 @@ import { blake3 } from '@napi-rs/blake-hash'
 import LeastRecentlyUsed from 'blru'
 import tls from 'tls'
 import { Assert } from '../assert'
+import { ConsensusParameters } from '../consensus'
 import { Config } from '../fileStores/config'
 import { Logger } from '../logger'
 import { Target } from '../primitives/target'
@@ -34,6 +35,8 @@ export class MiningPool {
   readonly shares: MiningPoolShares
   readonly config: Config
   readonly webhooks: WebhookNotifier[]
+
+  private consensusParameters: ConsensusParameters | null = null
 
   private started: boolean
   private stopPromise: Promise<void> | null = null
@@ -351,11 +354,17 @@ export class MiningPool {
       return
     }
 
-    if (connected) {
-      const networkResponse = await this.rpc.chain.getNetworkInfo()
-      const explorer = this.getExplorer(networkResponse.content.networkId)
+    // Get block explorer URLs based on netowrk ID
+    const networkResponse = await this.rpc.chain.getNetworkInfo()
+    const explorer = this.getExplorer(networkResponse.content.networkId)
+    this.webhooks.map((w) => w.poolConnected(explorer ?? undefined))
 
-      this.webhooks.map((w) => w.poolConnected(explorer ?? undefined))
+    const consensusResponse = (await this.rpc.chain.getConsensusParameters()).content
+    this.consensusParameters = {
+      ...consensusResponse,
+      enableFishHash: consensusResponse.enableFishHash || 'never',
+      enableAssetOwnership: consensusResponse.enableAssetOwnership || 'never',
+      enforceSequentialBlockTime: consensusResponse.enforceSequentialBlockTime || 'never',
     }
 
     this.connectWarned = false
@@ -379,13 +388,13 @@ export class MiningPool {
   }
 
   private async processNewBlocks() {
-    const consensusParameters = (await this.rpc.chain.getConsensusParameters()).content
+    Assert.isNotNull(this.consensusParameters)
 
     for await (const payload of this.rpc.miner.blockTemplateStream().contentStream()) {
       Assert.isNotUndefined(payload.previousBlockInfo)
       this.restartCalculateTargetInterval(
-        consensusParameters.targetBlockTimeInSeconds,
-        consensusParameters.targetBucketTimeInSeconds,
+        this.consensusParameters.targetBlockTimeInSeconds,
+        this.consensusParameters.targetBucketTimeInSeconds,
       )
 
       const currentHeadTarget = new Target(Buffer.from(payload.previousBlockInfo.target, 'hex'))
