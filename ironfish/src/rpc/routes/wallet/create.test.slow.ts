@@ -7,7 +7,7 @@
 
 import { v4 as uuid } from 'uuid'
 import { createRouteTest } from '../../../testUtilities/routeTest'
-import { ERROR_CODES } from '../../adapters'
+import { RPC_ERROR_CODES } from '../../adapters'
 import { RpcRequestError } from '../../clients/errors'
 
 describe('Route wallet/create', () => {
@@ -65,7 +65,7 @@ describe('Route wallet/create', () => {
         throw e
       }
       expect(e.status).toBe(400)
-      expect(e.code).toBe(ERROR_CODES.ACCOUNT_EXISTS)
+      expect(e.code).toBe(RPC_ERROR_CODES.ACCOUNT_EXISTS)
     }
   })
 
