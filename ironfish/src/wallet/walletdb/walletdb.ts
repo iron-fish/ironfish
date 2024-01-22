@@ -611,35 +611,10 @@ export class WalletDB {
       null,
       tx,
     )
-    await this.addValueToUnspentNoteHash(account, decryptedNote, tx)
-  }
-
-  async addValueToUnspentNoteHash(
-    account: Account,
-    decryptedNote: DecryptedNoteValue,
-    tx?: IDatabaseTransaction,
-  ): Promise<void> {
-    const value = decryptedNote.note.value()
-    const assetId = decryptedNote.note.assetId()
-    const noteHash = decryptedNote.note.hash()
 
     await this.valueToUnspentNoteHashes.put(
       [account.prefix, [assetId, [value, noteHash]]],
       null,
-      tx,
-    )
-  }
-
-  private async deleteValueToUnspentNoteHash(
-    account: Account,
-    decryptedNote: DecryptedNoteValue,
-    tx?: IDatabaseTransaction,
-  ): Promise<void> {
-    await this.valueToUnspentNoteHashes.del(
-      [
-        account.prefix,
-        [decryptedNote.note.assetId(), [decryptedNote.note.value(), decryptedNote.note.hash()]],
-      ],
       tx,
     )
   }
@@ -660,7 +635,8 @@ export class WalletDB {
       [account.prefix, [assetId, [sequence, [value, noteHash]]]],
       tx,
     )
-    await this.deleteValueToUnspentNoteHash(account, decryptedNote, tx)
+
+    await this.valueToUnspentNoteHashes.del([account.prefix, [assetId, [value, noteHash]]], tx)
   }
 
   async *loadValueToUnspentNoteHashes(
