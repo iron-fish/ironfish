@@ -321,6 +321,7 @@ impl NativeTransaction {
         outgoing_view_key_str: String,
         public_address_str: String,
         intended_transaction_fee: BigInt,
+        change_goes_to: Option<String>,
     ) -> Result<Buffer> {
         let view_key = ViewKey::from_hex(&view_key_str).map_err(to_napi_err)?;
         let outgoing_view_key =
@@ -328,6 +329,10 @@ impl NativeTransaction {
         let public_address = PublicAddress::from_hex(&public_address_str).map_err(to_napi_err)?;
         let proof_generation_key = ProofGenerationKey::from_hex(&proof_generation_key_str)
             .map_err(|_| to_napi_err("PublicKeyPackage hex to bytes failed"))?;
+        let change_address = match change_goes_to {
+            Some(address) => Some(PublicAddress::from_hex(&address).map_err(to_napi_err)?),
+            None => None,
+        };
         let unsigned_transaction = self
             .transaction
             .build(
@@ -336,6 +341,7 @@ impl NativeTransaction {
                 outgoing_view_key,
                 public_address,
                 intended_transaction_fee.get_i64().0,
+                change_address,
             )
             .map_err(to_napi_err)?;
 

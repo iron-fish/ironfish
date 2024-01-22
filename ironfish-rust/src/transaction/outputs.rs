@@ -60,6 +60,10 @@ impl OutputBuilder {
         self.is_miners_fee = true;
     }
 
+    pub(crate) fn get_is_miners_fee(&self) -> bool {
+        self.is_miners_fee
+    }
+
     /// Get the value_commitment from this proof as an edwards Point.
     ///
     /// This integrates the value and randomness into a single point, using an
