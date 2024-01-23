@@ -5,12 +5,10 @@
 use ironfish::frost::Error;
 use ironfish::frost::Identifier;
 use ironfish::frost_utils::split_spender_key::split_spender_key;
+use ironfish::serializing::bytes_to_hex;
+use ironfish::serializing::proof_generation_key_to_bytes;
+use std::collections::HashMap;
 use std::fmt::Display;
-
-use ironfish_frost::frost::{
-    keys::{IdentifierList, KeyPackage, PublicKeyPackage},
-    Identifier,
-};
 
 use ironfish::keys::Language;
 use ironfish::keys::ProofGenerationKeySerializable;
@@ -18,7 +16,6 @@ use ironfish::PublicAddress;
 use ironfish::SaplingKey;
 
 use ironfish::util::str_to_array;
-use ironfish_frost::participant::Secret;
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 
@@ -86,7 +83,7 @@ pub fn split_secret(
     max_signers: u16,
     identifiers: Vec<u16>,
 ) -> Result<TrustedDealerKeyPackages> {
-    let coordinator_key = SaplingKey::new(str_to_array(&coordinator_sapling_key))?;
+    let coordinator_key = SaplingKey::new(str_to_array(&coordinator_sapling_key)).unwrap();
 
     let converted = identifiers
         .iter()
@@ -96,19 +93,26 @@ pub fn split_secret(
     let t = split_spender_key(coordinator_key, min_signers, max_signers, converted)
         .map_err(to_napi_err)?;
 
+    let mut key_packages_serialized = HashMap::new();
+    for (k, v) in t.key_packages.iter() {
+        key_packages_serialized.insert(
+            bytes_to_hex(&k.serialize()),
+            bytes_to_hex(&v.serialize().unwrap()),
+        );
+    }
+
+    //TODO(rahul): remove unwrap
+    let public_key_package = t.public_key_package.serialize().unwrap();
+
     Ok(TrustedDealerKeyPackages {
-        verifying_key: t.verifying_key.to_string(),
-        proof_generation_key: t.proof_generation_key.to_string(),
-        view_key: t.view_key.to_string(),
-        incoming_view_key: t.incoming_view_key.to_string(),
-        outgoing_view_key: t.outgoing_view_key.to_string(),
-        public_address: t.public_address.to_string(),
-        key_packages: t
-            .key_packages
-            .into_iter()
-            .map(|(k, v)| (k.to_string(), v.to_string()))
-            .collect(),
-        public_key_package: t.public_key_package.to_string(),
+        verifying_key: bytes_to_hex(&t.verifying_key),
+        proof_generation_key: bytes_to_hex(&proof_generation_key_to_bytes(t.proof_generation_key)),
+        view_key: t.view_key.hex_key(),
+        incoming_view_key: t.incoming_view_key.hex_key(),
+        outgoing_view_key: t.outgoing_view_key.hex_key(),
+        public_address: t.public_address.hex_public_address(),
+        key_packages: key_packages_serialized,
+        public_key_package: bytes_to_hex(&public_key_package),
     })
 }
 

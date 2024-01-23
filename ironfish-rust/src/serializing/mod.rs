@@ -13,10 +13,19 @@ use crate::errors::{IronfishError, IronfishErrorKind};
 /// can be a bit clunky if you're just working with bytearrays.
 use ff::PrimeField;
 use group::GroupEncoding;
+use ironfish_zkp::ProofGenerationKey;
 
 use std::io;
 
 const HEX_CHARS: &[u8; 16] = b"0123456789abcdef";
+
+pub fn proof_generation_key_to_bytes(proof_generation_key: ProofGenerationKey) -> [u8; 64] {
+    let mut proof_generation_key_bytes: [u8; 64] = [0; 64];
+    proof_generation_key_bytes[0..32].copy_from_slice(&proof_generation_key.ak.to_bytes());
+    proof_generation_key_bytes[32..].copy_from_slice(&proof_generation_key.nsk.to_bytes());
+
+    proof_generation_key_bytes
+}
 
 pub(crate) fn read_scalar<F: PrimeField, R: io::Read>(mut reader: R) -> Result<F, IronfishError> {
     let mut fr_repr = F::Repr::default();
