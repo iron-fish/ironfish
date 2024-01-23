@@ -86,11 +86,13 @@ pub fn split_secret(
 ) -> Result<TrustedDealerKeyPackages> {
     let coordinator_key = SaplingKey::new(str_to_array(&coordinator_sapling_key)).unwrap();
 
-    let converted = identifiers
-        .iter()
-        .map(|x| Identifier::deserialize(&(hex_to_bytes(x).map_err(to_napi_err)?)))
-        .map_err(to_napi_err)
-        .collect::<Result<Vec<Identifier>>>()?;
+    let mut converted = Vec::new();
+
+    for identifier in &identifiers {
+        let bytes = hex_to_bytes(identifier).map_err(to_napi_err)?;
+        let deserialized = Identifier::deserialize(&bytes).map_err(to_napi_err)?;
+        converted.push(deserialized);
+    }
 
     let t = split_spender_key(coordinator_key, min_signers, max_signers, converted)
         .map_err(to_napi_err)?;
