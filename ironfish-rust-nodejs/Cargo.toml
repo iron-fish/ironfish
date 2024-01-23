@@ -30,7 +30,6 @@ base64 = "0.13.0"
 fish_hash = "0.1.0"
 ironfish = { path = "../ironfish-rust" }
 ironfish_mpc = { path = "../ironfish-mpc" }
-ironfish-frost = { git = "https://github.com/iron-fish/ironfish-frost.git" }
 napi = { version = "2.13.2", features = ["napi6"] }
 napi-derive = "2.13.0"
 
