@@ -17,24 +17,20 @@ use napi_derive::napi;
 use crate::to_napi_err;
 
 #[napi(object)]
-pub struct RoundOneSigningData {
-    pub nonce_hiding: String,
-    pub nonce_binding: String,
-    pub commitment_hiding: String,
-    pub commitment_binding: String,
+pub struct SigningCommitments {
+    pub hiding: String,
+    pub binding: String,
 }
 
 #[napi]
-pub fn round_one(key_package: String, seed: u32) -> Result<RoundOneSigningData> {
+pub fn round_one(key_package: String, seed: u32) -> Result<SigningCommitments> {
     let key_package =
         KeyPackage::deserialize(&hex_to_vec_bytes(&key_package).map_err(to_napi_err)?)
             .map_err(to_napi_err)?;
-    let (nonce, commitment) = round_one_rust(&key_package, seed as u64);
-    Ok(RoundOneSigningData {
-        nonce_hiding: bytes_to_hex(&nonce.hiding().serialize()),
-        nonce_binding: bytes_to_hex(&nonce.binding().serialize()),
-        commitment_hiding: bytes_to_hex(&commitment.hiding().serialize()),
-        commitment_binding: bytes_to_hex(&commitment.binding().serialize()),
+    let (_, commitment) = round_one_rust(&key_package, seed as u64);
+    Ok(SigningCommitments {
+        hiding: bytes_to_hex(&commitment.hiding().serialize()),
+        binding: bytes_to_hex(&commitment.binding().serialize()),
     })
 }
 
