@@ -196,6 +196,7 @@ export class FullNode {
     webSocket,
     privateIdentity,
     fishHashContext,
+    customNetworkPath,
   }: {
     pkg: Package
     dataDir?: string
@@ -209,6 +210,7 @@ export class FullNode {
     webSocket: IsomorphicWebSocketConstructor
     privateIdentity?: PrivateIdentity
     fishHashContext?: FishHashContext
+    customNetworkPath?: string
   }): Promise<FullNode> {
     logger = logger.withTag('ironfishnode')
     dataDir = dataDir || DEFAULT_DATA_DIR
@@ -241,7 +243,12 @@ export class FullNode {
 
     metrics = metrics || new MetricsMonitor({ logger })
 
-    const networkDefinition = await getNetworkDefinition(config, internal, files)
+    const networkDefinition = await getNetworkDefinition(
+      config,
+      internal,
+      files,
+      customNetworkPath,
+    )
 
     if (!config.isSet('bootstrapNodes')) {
       config.setOverride('bootstrapNodes', networkDefinition.bootstrapNodes)
