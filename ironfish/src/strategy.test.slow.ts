@@ -11,18 +11,20 @@ import {
   Transaction as NativeTransaction,
   TransactionPosted as NativeTransactionPosted,
 } from '@ironfish/rust-nodejs'
-import { Assert } from './assert'
+import { blake3 } from '@napi-rs/blake-hash'
+import { serializeHeaderBlake3, serializeHeaderFishHash } from './blockHasher'
 import { ConsensusParameters, TestnetConsensus } from './consensus'
 import { MerkleTree } from './merkletree'
 import { LeafEncoding } from './merkletree/database/leaves'
 import { NodeEncoding } from './merkletree/database/nodes'
 import { NoteHasher } from './merkletree/hasher'
-import { Transaction } from './primitives'
+import { Target, Transaction } from './primitives'
 import { Note } from './primitives/note'
 import { NoteEncrypted, NoteEncryptedHash } from './primitives/noteEncrypted'
 import { TransactionVersion } from './primitives/transaction'
 import { BUFFER_ENCODING, IDatabase } from './storage'
 import { Strategy } from './strategy'
+import { FISH_HASH_CONTEXT } from './testUtilities'
 import { makeDb, makeDbName } from './testUtilities/helpers/storage'
 import { WorkerPool } from './workerPool'
 
@@ -73,6 +75,7 @@ const consensusParameters: ConsensusParameters = {
   minFee: 1,
   enableAssetOwnership: 1,
   enforceSequentialBlockTime: 3,
+  enableFishHash: 'never',
 }
 
 /**
@@ -91,6 +94,7 @@ describe('Demonstrate the Sapling API', () => {
   let transaction: NativeTransaction
   let publicTransaction: NativeTransactionPosted
   let workerPool: WorkerPool
+  let strategy: Strategy
 
   beforeAll(async () => {
     // Pay the cost of setting up Sapling and the DB outside of any test
@@ -98,6 +102,11 @@ describe('Demonstrate the Sapling API', () => {
     spenderKey = generateKey()
     receiverKey = generateKey()
     workerPool = new WorkerPool()
+    strategy = new Strategy({
+      workerPool,
+      consensus: new TestnetConsensus(consensusParameters),
+      fishHashContext: FISH_HASH_CONTEXT,
+    })
   })
 
   describe('Can transact between two accounts', () => {
@@ -189,10 +198,6 @@ describe('Demonstrate the Sapling API', () => {
   describe('Serializes and deserializes transactions', () => {
     it('Does not hold a posted transaction if no references are taken', async () => {
       // Generate a miner's fee transaction
-      const strategy = new Strategy({
-        workerPool,
-        consensus: new TestnetConsensus(consensusParameters),
-      })
       const minersFee = await strategy.createMinersFee(0n, 0, generateKey().spendingKey)
 
       expect(minersFee['transactionPosted']).toBeNull()
@@ -202,11 +207,6 @@ describe('Demonstrate the Sapling API', () => {
 
     it('Holds a posted transaction if a reference is taken', async () => {
       // Generate a miner's fee transaction
-      const strategy = new Strategy({
-        workerPool,
-        consensus: new TestnetConsensus(consensusParameters),
-      })
-
       const minersFee = await strategy.createMinersFee(0n, 0, generateKey().spendingKey)
 
       await minersFee.withReference(async () => {
@@ -226,10 +226,6 @@ describe('Demonstrate the Sapling API', () => {
     it('Does not hold a note if no references are taken', async () => {
       // Generate a miner's fee transaction
       const key = generateKey()
-      const strategy = new Strategy({
-        workerPool,
-        consensus: new TestnetConsensus(consensusParameters),
-      })
       const minersFee = await strategy.createMinersFee(0n, 0, key.spendingKey)
 
       expect(minersFee['transactionPosted']).toBeNull()
@@ -255,26 +251,28 @@ describe('Demonstrate the Sapling API', () => {
     })
 
     it('Creates transactions with the correct version based on the sequence', async () => {
-      const modifiedParams = consensusParameters
-      modifiedParams.enableAssetOwnership = 1234
+      const modifiedParams = {
+        ...consensusParameters,
+        enableAssetOwnership: 1234,
+      }
+
       const key = generateKey()
-      const strategy = new Strategy({
+      const modifiedStrategy = new Strategy({
         workerPool,
         consensus: new TestnetConsensus(modifiedParams),
+        fishHashContext: FISH_HASH_CONTEXT,
       })
 
-      Assert.isTrue(typeof consensusParameters.enableAssetOwnership === 'number')
-      const enableAssetOwnershipSequence = Number(consensusParameters.enableAssetOwnership)
-      const minersFee1 = await strategy.createMinersFee(
+      const minersFee1 = await modifiedStrategy.createMinersFee(
         0n,
-        enableAssetOwnershipSequence - 1,
+        modifiedParams.enableAssetOwnership - 1,
         key.spendingKey,
       )
       expect(minersFee1.version()).toEqual(TransactionVersion.V1)
 
-      const minersFee2 = await strategy.createMinersFee(
+      const minersFee2 = await modifiedStrategy.createMinersFee(
         0n,
-        enableAssetOwnershipSequence,
+        modifiedParams.enableAssetOwnership,
         key.spendingKey,
       )
       expect(minersFee2.version()).toEqual(TransactionVersion.V2)
@@ -348,6 +346,84 @@ describe('Demonstrate the Sapling API', () => {
       )
       expect(postedTransaction).toBeTruthy()
       expect(await workerPool.verifyTransactions([postedTransaction])).toEqual({ valid: true })
+    })
+  })
+
+  describe('Hashes blocks with correct hashing algorithm', () => {
+    let modifiedStrategy: Strategy
+    const modifiedParams = {
+      ...consensusParameters,
+      enableFishHash: 10,
+    }
+
+    beforeAll(() => {
+      modifiedStrategy = new Strategy({
+        workerPool,
+        consensus: new TestnetConsensus(modifiedParams),
+        fishHashContext: FISH_HASH_CONTEXT,
+      })
+    })
+
+    const rawHeaderFields = {
+      previousBlockHash: Buffer.alloc(32),
+      noteCommitment: Buffer.alloc(32, 'header'),
+      transactionCommitment: Buffer.alloc(32, 'transactionRoot'),
+      target: new Target(17),
+      randomness: BigInt(25),
+      timestamp: new Date(1598467858637),
+      graffiti: Buffer.alloc(32),
+    }
+
+    it('Creates block headers with blake3 before the activation sequence', () => {
+      const rawHeader = {
+        ...rawHeaderFields,
+        sequence: modifiedParams.enableFishHash - 1,
+      }
+      const header = modifiedStrategy.newBlockHeader(rawHeader)
+
+      expect(header.hash.equals(blake3(serializeHeaderBlake3(rawHeader)))).toBe(true)
+
+      expect(header.hash.equals(blake3(serializeHeaderFishHash(rawHeader)))).not.toBe(true)
+      expect(
+        header.hash.equals(FISH_HASH_CONTEXT.hash(serializeHeaderBlake3(rawHeader))),
+      ).not.toBe(true)
+
+      expect(header.toRaw()).toEqual(rawHeader)
+    })
+
+    it('Creates block headers with FishHash after the activation sequence', () => {
+      const rawHeader = {
+        ...rawHeaderFields,
+        sequence: modifiedParams.enableFishHash,
+      }
+      const header = modifiedStrategy.newBlockHeader(rawHeader)
+
+      expect(
+        header.hash.equals(FISH_HASH_CONTEXT.hash(serializeHeaderFishHash(rawHeader))),
+      ).toBe(true)
+
+      expect(
+        header.hash.equals(FISH_HASH_CONTEXT.hash(serializeHeaderBlake3(rawHeader))),
+      ).not.toBe(true)
+
+      expect(header.hash.equals(blake3(serializeHeaderFishHash(rawHeader)))).not.toBe(true)
+
+      expect(header.toRaw()).toEqual(rawHeader)
+    })
+
+    it('Creates block headers with noteSize and work if passed in', () => {
+      const rawHeader = {
+        ...rawHeaderFields,
+        sequence: modifiedParams.enableFishHash - 1,
+      }
+
+      const header1 = modifiedStrategy.newBlockHeader(rawHeader)
+      expect(header1.noteSize).toBeNull()
+      expect(header1.work).toEqual(BigInt(0))
+
+      const header2 = modifiedStrategy.newBlockHeader(rawHeader, 123, BigInt(456))
+      expect(header2.noteSize).toEqual(123)
+      expect(header2.work).toEqual(BigInt(456))
     })
   })
 })

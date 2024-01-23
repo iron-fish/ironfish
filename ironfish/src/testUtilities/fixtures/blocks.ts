@@ -289,7 +289,7 @@ export async function useBlockWithCustomTxs(
     fee?: bigint
     to?: SpendingAccount
     from: SpendingAccount
-    outputs: TransactionOutput[]
+    outputs?: TransactionOutput[]
   }[],
 ): Promise<{
   block: Block
@@ -354,9 +354,9 @@ export async function useBlockWithCustomTxs(
 export async function useBlockWithTxs(
   node: FullNode,
   numTransactions: number,
-  from?: Account,
+  from?: SpendingAccount,
 ): Promise<{
-  account: Account
+  account: SpendingAccount
   block: Block
   transactions: Transaction[]
 }> {
@@ -364,10 +364,14 @@ export async function useBlockWithTxs(
     from = await useAccountFixture(node.wallet, 'test')
   }
 
-  const { block, transactions } = await useBlockWithCustomTxs(
-    node,
-    Array(numTransactions).fill({ from }),
-  )
+  const transactionInputs = new Array<{
+    fee?: bigint
+    to?: SpendingAccount
+    from: SpendingAccount
+    outputs?: TransactionOutput[]
+  }>(numTransactions).fill({ from })
+
+  const { block, transactions } = await useBlockWithCustomTxs(node, transactionInputs)
 
   return { block, transactions, account: from }
 }

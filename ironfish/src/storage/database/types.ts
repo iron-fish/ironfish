@@ -17,19 +17,9 @@ export interface DatabaseIteratorOptions {
   ordered?: boolean
 }
 
-export type DatabaseKey =
-  | bigint
-  | number
-  | string
-  | Date
-  | Buffer
-  | Array<IJsonSerializable>
-  | unknown
+export type DatabaseKey = bigint | number | string | Date | Buffer | Array<IJsonSerializable>
 
-export type DatabaseSchema<
-  key extends DatabaseKey = DatabaseKey,
-  value extends unknown = unknown,
-> = {
+export type DatabaseSchema<key extends DatabaseKey = DatabaseKey, value = unknown> = {
   key: key
   value: value
 }

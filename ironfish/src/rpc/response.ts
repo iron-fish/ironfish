@@ -31,7 +31,7 @@ export class RpcResponse<TEnd = unknown, TStream = unknown> {
   constructor(
     promise: Promise<TEnd>,
     stream: Stream<TStream>,
-    timeout: SetTimeoutToken | null,
+    timeout: SetTimeoutToken | null = null,
   ) {
     this.promise = promise
     this.stream = stream

@@ -227,14 +227,17 @@ fn test_proposed_transaction_build() {
     transaction.add_output(out_note).unwrap();
     assert_eq!(transaction.outputs.len(), 1);
 
+    let public_address: crate::PublicAddress = spender_key.public_address();
+    let intended_fee = 1;
+
     let unsigned_transaction = transaction
         .build(
             spender_key.sapling_proof_generation_key(),
             spender_key.view_key().clone(),
             spender_key.outgoing_view_key().clone(),
             spender_key.public_address(),
-            Some(spender_key.public_address()),
-            1,
+            intended_fee,
+            Some(public_address),
         )
         .expect("should be able to build unsigned transaction");
 

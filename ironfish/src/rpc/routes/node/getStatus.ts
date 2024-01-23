@@ -262,8 +262,8 @@ routes.register<typeof GetStatusRequestSchema, GetNodeStatusResponse>(
 
     let stream = true
     while (stream) {
-      const status = getStatus(node)
-      request.stream(await status)
+      const status = await getStatus(node)
+      request.stream(status)
       await PromiseUtils.sleep(500)
     }
 

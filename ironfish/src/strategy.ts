@@ -1,12 +1,11 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-
-import { blake3 } from '@napi-rs/blake-hash'
-import bufio from 'bufio'
+import { FishHashContext } from '@ironfish/rust-nodejs'
+import { BlockHasher } from './blockHasher'
 import { Consensus } from './consensus'
 import { Block, RawBlock } from './primitives/block'
-import { BlockHash, BlockHeader, RawBlockHeader } from './primitives/blockheader'
+import { BlockHeader, RawBlockHeader } from './primitives/blockheader'
 import { Transaction } from './primitives/transaction'
 import { MathUtils } from './utils'
 import { WorkerPool } from './workerPool'
@@ -17,13 +16,22 @@ import { WorkerPool } from './workerPool'
 export class Strategy {
   readonly workerPool: WorkerPool
   readonly consensus: Consensus
+  readonly blockHasher: BlockHasher
 
   private miningRewardCachedByYear: Map<number, number>
 
-  constructor(options: { workerPool: WorkerPool; consensus: Consensus }) {
+  constructor(options: {
+    workerPool: WorkerPool
+    consensus: Consensus
+    fishHashContext?: FishHashContext
+  }) {
     this.miningRewardCachedByYear = new Map<number, number>()
     this.workerPool = options.workerPool
     this.consensus = options.consensus
+    this.blockHasher = new BlockHasher({
+      consensus: this.consensus,
+      context: options.fishHashContext,
+    })
   }
 
   /**
@@ -97,13 +105,8 @@ export class Strategy {
     return this.workerPool.createMinersFee(minerSpendKey, amount, '', transactionVersion)
   }
 
-  hashHeader(header: RawBlockHeader): BlockHash {
-    const serialized = serializeHeaderBlake3(header)
-    return blake3(serialized)
-  }
-
   newBlockHeader(raw: RawBlockHeader, noteSize?: number | null, work?: bigint): BlockHeader {
-    const hash = this.hashHeader(raw)
+    const hash = this.blockHasher.hashHeader(raw)
     return new BlockHeader(raw, hash, noteSize, work)
   }
 
@@ -111,18 +114,4 @@ export class Strategy {
     const header = this.newBlockHeader(raw.header, noteSize, work)
     return new Block(header, raw.transactions)
   }
-}
-
-function serializeHeaderBlake3(header: RawBlockHeader): Buffer {
-  const bw = bufio.write(180)
-  bw.writeBigU64BE(header.randomness)
-  bw.writeU32(header.sequence)
-  bw.writeHash(header.previousBlockHash)
-  bw.writeHash(header.noteCommitment)
-  bw.writeHash(header.transactionCommitment)
-  bw.writeBigU256BE(header.target.asBigInt())
-  bw.writeU64(header.timestamp.getTime())
-  bw.writeBytes(header.graffiti)
-
-  return bw.render()
 }

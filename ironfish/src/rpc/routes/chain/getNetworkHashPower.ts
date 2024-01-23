@@ -5,7 +5,7 @@ import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { FullNode } from '../../../node'
 import { BigIntUtils } from '../../../utils'
-import { ValidationError } from '../../adapters'
+import { RpcValidationError } from '../../adapters'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 
@@ -47,7 +47,7 @@ routes.register<typeof GetNetworkHashPowerRequestSchema, GetNetworkHashPowerResp
     let sequence = request.data?.sequence ?? -1
 
     if (blocks < 0) {
-      throw new ValidationError('[blocks] value must be greater than 0')
+      throw new RpcValidationError('[blocks] value must be greater than 0')
     }
 
     let endBlock = context.chain.head

@@ -21,12 +21,13 @@ use crate::{
     OutgoingViewKey, OutputDescription, SpendDescription, ViewKey,
 };
 
+use rand::{rngs::OsRng, thread_rng};
+
 use bellperson::groth16::{verify_proofs_batch, PreparedVerifyingKey};
 use blake2b_simd::Params as Blake2b;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use group::GroupEncoding;
 use jubjub::ExtendedPoint;
-use rand::{rngs::OsRng, thread_rng};
 
 use ironfish_zkp::{
     constants::{
@@ -190,28 +191,19 @@ impl ProposedTransaction {
         Ok(())
     }
 
-    pub fn build(
+    fn add_change_notes(
         &mut self,
-        proof_generation_key: ProofGenerationKey,
-        view_key: ViewKey,
-        outgoing_view_key: OutgoingViewKey,
-        public_address: PublicAddress,
         change_goes_to: Option<PublicAddress>,
-        intended_transaction_fee: u64,
-    ) -> Result<UnsignedTransaction, IronfishError> {
-        // The public key after randomization has been applied. This is used
-        // during signature verification. Referred to as `rk` in the literature
-        // Calculated from the authorizing key and the public_key_randomness.
-        let randomized_public_key = redjubjub::PublicKey(view_key.authorizing_key.into())
-            .randomize(self.public_key_randomness, *SPENDING_KEY_GENERATOR);
-
+        public_address: PublicAddress,
+        intended_transaction_fee: i64,
+    ) -> Result<(), IronfishError> {
         let mut change_notes = vec![];
 
         for (asset_id, value) in self.value_balances.iter() {
             let is_native_asset = asset_id == &NATIVE_ASSET;
 
             let change_amount = match is_native_asset {
-                true => *value - i64::try_from(intended_transaction_fee)?,
+                true => *value - intended_transaction_fee,
                 false => *value,
             };
 
@@ -231,10 +223,32 @@ impl ProposedTransaction {
                 change_notes.push(change_note);
             }
         }
-
         for change_note in change_notes {
             self.add_output(change_note)?;
         }
+        Ok(())
+    }
+
+    pub fn build(
+        &mut self,
+        proof_generation_key: ProofGenerationKey,
+        view_key: ViewKey,
+        outgoing_view_key: OutgoingViewKey,
+        public_address: PublicAddress,
+        intended_transaction_fee: i64,
+        change_goes_to: Option<PublicAddress>,
+    ) -> Result<UnsignedTransaction, IronfishError> {
+        // skip adding change notes if this is special case of a miners fee transaction
+        let is_miners_fee = self.outputs.iter().any(|output| output.get_is_miners_fee());
+        if !is_miners_fee {
+            self.add_change_notes(change_goes_to, public_address, intended_transaction_fee)?;
+        }
+
+        // The public key after randomization has been applied. This is used
+        // during signature verification. Referred to as `rk` in the literature
+        // Calculated from the authorizing key and the public_key_randomness.
+        let randomized_public_key = redjubjub::PublicKey(view_key.authorizing_key.into())
+            .randomize(self.public_key_randomness, *SPENDING_KEY_GENERATOR);
 
         let mut unsigned_spends = Vec::with_capacity(self.spends.len());
         for spend in &self.spends {
@@ -295,7 +309,7 @@ impl ProposedTransaction {
             outputs: output_descriptions,
             spends: unsigned_spends,
             version: self.version,
-            fee: i64::try_from(intended_transaction_fee)?,
+            fee: intended_transaction_fee,
             binding_signature,
             randomized_public_key,
             public_key_randomness: self.public_key_randomness,
@@ -319,38 +333,19 @@ impl ProposedTransaction {
         change_goes_to: Option<PublicAddress>,
         intended_transaction_fee: u64,
     ) -> Result<Transaction, IronfishError> {
-        let mut change_notes = vec![];
+        let public_address = spender_key.public_address();
 
-        for (asset_id, value) in self.value_balances.iter() {
-            let is_native_asset = asset_id == &NATIVE_ASSET;
+        let i64_fee = i64::try_from(intended_transaction_fee)?;
 
-            let change_amount = match is_native_asset {
-                true => *value - i64::try_from(intended_transaction_fee)?,
-                false => *value,
-            };
-
-            if change_amount < 0 {
-                return Err(IronfishError::new(IronfishErrorKind::InvalidBalance));
-            }
-            if change_amount > 0 {
-                let change_address = change_goes_to.unwrap_or_else(|| spender_key.public_address());
-                let change_note = Note::new(
-                    change_address,
-                    change_amount as u64, // we checked it was positive
-                    "",
-                    *asset_id,
-                    spender_key.public_address(),
-                );
-
-                change_notes.push(change_note);
-            }
-        }
-
-        for change_note in change_notes {
-            self.add_output(change_note)?;
-        }
-
-        self._partial_post(spender_key)
+        let unsigned = self.build(
+            spender_key.sapling_proof_generation_key(),
+            spender_key.view_key().clone(),
+            spender_key.outgoing_view_key().clone(),
+            public_address,
+            i64_fee,
+            change_goes_to,
+        )?;
+        unsigned.sign(spender_key)
     }
 
     /// Special case for posting a miners fee transaction. Miner fee transactions
@@ -383,7 +378,15 @@ impl ProposedTransaction {
         for output in &mut self.outputs {
             output.set_is_miners_fee();
         }
-        self._partial_post(spender_key)
+        let unsigned = self.build(
+            spender_key.sapling_proof_generation_key(),
+            spender_key.view_key().clone(),
+            spender_key.outgoing_view_key().clone(),
+            spender_key.public_address(),
+            *self.value_balances.fee(),
+            None,
+        )?;
+        unsigned.sign(spender_key)
     }
 
     /// Get the expiration sequence for this transaction
@@ -394,97 +397,6 @@ impl ProposedTransaction {
     /// Set the sequence to expire the transaction from the mempool.
     pub fn set_expiration(&mut self, sequence: u32) {
         self.expiration = sequence;
-    }
-
-    // Post transaction without much validation.
-    fn _partial_post(&self, spender_key: &SaplingKey) -> Result<Transaction, IronfishError> {
-        // Generate randomized public key
-
-        // The public key after randomization has been applied. This is used
-        // during signature verification. Referred to as `rk` in the literature
-        // Calculated from the authorizing key and the public_key_randomness.
-        let randomized_public_key =
-            redjubjub::PublicKey(spender_key.view_key.authorizing_key.into())
-                .randomize(self.public_key_randomness, *SPENDING_KEY_GENERATOR);
-
-        // Build descriptions
-        let mut unsigned_spends = Vec::with_capacity(self.spends.len());
-        for spend in &self.spends {
-            unsigned_spends.push(spend.build(
-                &spender_key.sapling_proof_generation_key(),
-                spender_key.view_key(),
-                &self.public_key_randomness,
-                &randomized_public_key,
-            )?);
-        }
-
-        let mut output_descriptions = Vec::with_capacity(self.outputs.len());
-        for output in &self.outputs {
-            output_descriptions.push(output.build(
-                &spender_key.sapling_proof_generation_key(),
-                spender_key.outgoing_view_key(),
-                &self.public_key_randomness,
-                &randomized_public_key,
-            )?);
-        }
-
-        let mut unsigned_mints = Vec::with_capacity(self.mints.len());
-        for mint in &self.mints {
-            unsigned_mints.push(mint.build(
-                &spender_key.sapling_proof_generation_key(),
-                &spender_key.public_address(),
-                &self.public_key_randomness,
-                &randomized_public_key,
-            )?);
-        }
-
-        let mut burn_descriptions = Vec::with_capacity(self.burns.len());
-        for burn in &self.burns {
-            burn_descriptions.push(burn.build());
-        }
-
-        // Create the transaction signature hash
-        let data_to_sign = self.transaction_signature_hash(
-            &unsigned_spends,
-            &output_descriptions,
-            &unsigned_mints,
-            &burn_descriptions,
-            &randomized_public_key,
-        )?;
-
-        // Create and verify binding signature keys
-        let (binding_signature_private_key, binding_signature_public_key) =
-            self.binding_signature_keys(&unsigned_mints, &burn_descriptions)?;
-
-        let binding_signature = self.binding_signature(
-            &binding_signature_private_key,
-            &binding_signature_public_key,
-            &data_to_sign,
-        )?;
-
-        // Sign spends now that we have the data needed to be signed
-        let mut spend_descriptions = Vec::with_capacity(unsigned_spends.len());
-        for spend in unsigned_spends.drain(0..) {
-            spend_descriptions.push(spend.sign(spender_key, &data_to_sign)?);
-        }
-
-        // Sign mints now that we have the data needed to be signed
-        let mut mint_descriptions = Vec::with_capacity(unsigned_mints.len());
-        for mint in unsigned_mints.drain(0..) {
-            mint_descriptions.push(mint.sign(spender_key, &data_to_sign)?);
-        }
-
-        Ok(Transaction {
-            version: self.version,
-            expiration: self.expiration,
-            fee: *self.value_balances.fee(),
-            spends: spend_descriptions,
-            outputs: output_descriptions,
-            mints: mint_descriptions,
-            burns: burn_descriptions,
-            binding_signature,
-            randomized_public_key,
-        })
     }
 
     /// Calculate a hash of the transaction data. This hash is what gets signed

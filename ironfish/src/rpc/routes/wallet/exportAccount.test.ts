@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { generateKey } from '@ironfish/rust-nodejs'
+import { v4 as uuid } from 'uuid'
 import { useAccountFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { Account } from '../../../wallet'
@@ -137,5 +139,49 @@ describe('Route wallet/exportAccount', () => {
         })
         .waitForEnd(),
     ).rejects.toThrow()
+  })
+
+  it('should export an account with multiSigKeys', async () => {
+    const key = generateKey()
+
+    const accountName = 'foo'
+    const accountImport = {
+      name: accountName,
+      viewKey: key.viewKey,
+      spendingKey: null,
+      publicAddress: key.publicAddress,
+      incomingViewKey: key.incomingViewKey,
+      outgoingViewKey: key.outgoingViewKey,
+      version: 1,
+      createdAt: null,
+      multiSigKeys: {
+        identifier: 'aaaa',
+        keyPackage: 'bbbb',
+        proofGenerationKey: 'cccc',
+      },
+    }
+
+    await routeTest.wallet.importAccount({ ...accountImport, id: uuid() })
+
+    const response = await routeTest.client
+      .request<ExportAccountResponse>('wallet/exportAccount', {
+        account: accountName,
+        viewOnly: false,
+      })
+      .waitForEnd()
+
+    expect(response.status).toBe(200)
+    expect(response.content).toMatchObject({
+      account: {
+        name: accountImport.name,
+        spendingKey: accountImport.spendingKey,
+        viewKey: accountImport.viewKey,
+        incomingViewKey: accountImport.incomingViewKey,
+        outgoingViewKey: accountImport.outgoingViewKey,
+        publicAddress: accountImport.publicAddress,
+        version: accountImport.version,
+        multiSigKeys: accountImport.multiSigKeys,
+      },
+    })
   })
 })

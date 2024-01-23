@@ -11,7 +11,7 @@ import { createRootLogger, Logger } from '../logger'
 import { MetricsMonitor } from '../metrics'
 import { getTransactionSize } from '../network/utils/serializers'
 import { Block, BlockHeader } from '../primitives'
-import { Transaction, TransactionHash } from '../primitives/transaction'
+import { Transaction, TransactionHash, TransactionVersion } from '../primitives/transaction'
 import { PriorityQueue } from '../utils'
 import { FeeEstimator, getPreciseFeeRate } from './feeEstimator'
 import { RecentlyEvictedCache } from './recentlyEvictedCache'
@@ -27,7 +27,7 @@ interface ExpirationMempoolEntry {
 }
 
 interface VersionMempoolEntry {
-  version: number
+  version: TransactionVersion
   hash: TransactionHash
 }
 

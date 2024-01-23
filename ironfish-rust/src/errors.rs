@@ -22,10 +22,11 @@ pub struct IronfishError {
 /// in the code to reduce the cognitive load needed for using Result and Error
 /// types. The second is to give a singular type to convert into NAPI errors to
 /// be raised on the Javascript side.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum IronfishErrorKind {
     BellpersonSynthesis,
     CryptoBox,
+    FrostLibError,
     IllegalValue,
     InconsistentWitness,
     InvalidAssetIdentifier,
@@ -46,6 +47,7 @@ pub enum IronfishErrorKind {
     InvalidOutputProof,
     InvalidPaymentAddress,
     InvalidPublicAddress,
+    InvalidSecret,
     InvalidSignature,
     InvalidSigningKey,
     InvalidSpendProof,
@@ -57,6 +59,7 @@ pub enum IronfishErrorKind {
     Io,
     IsSmallOrder,
     RandomnessError,
+    RoundTwoSigningFailure,
     TryFromInt,
     Utf8,
 }
@@ -126,5 +129,11 @@ impl From<bellperson::SynthesisError> for IronfishError {
 impl From<num::TryFromIntError> for IronfishError {
     fn from(e: num::TryFromIntError) -> IronfishError {
         IronfishError::new_with_source(IronfishErrorKind::TryFromInt, e)
+    }
+}
+
+impl From<ironfish_frost::frost::Error> for IronfishError {
+    fn from(e: ironfish_frost::frost::Error) -> IronfishError {
+        IronfishError::new_with_source(IronfishErrorKind::FrostLibError, e)
     }
 }

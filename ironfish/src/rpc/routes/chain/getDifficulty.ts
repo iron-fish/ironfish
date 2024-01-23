@@ -4,7 +4,7 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { FullNode } from '../../../node'
-import { ValidationError } from '../../adapters'
+import { RpcValidationError } from '../../adapters'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 
@@ -46,7 +46,7 @@ routes.register<typeof GetDifficultyRequestSchema, GetDifficultyResponse>(
     if (request.data?.sequence) {
       const sequenceBlock = await node.chain.getHeaderAtSequence(request.data.sequence)
       if (!sequenceBlock) {
-        throw new ValidationError(`No block found at sequence ${request.data.sequence}`)
+        throw new RpcValidationError(`No block found at sequence ${request.data.sequence}`)
       }
       sequence = sequenceBlock.sequence
       block = sequenceBlock

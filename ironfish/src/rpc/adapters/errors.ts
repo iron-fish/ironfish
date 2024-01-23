@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 /** All the known error codes for APIs that can be sent back from all APIs */
-export enum ERROR_CODES {
+export enum RPC_ERROR_CODES {
   ACCOUNT_EXISTS = 'account-exists',
   ERROR = 'error',
   ROUTE_NOT_FOUND = 'route-not-found',
@@ -22,7 +22,7 @@ export enum ERROR_CODES {
  *
  * @note Look at the {@link IPCAdapter} implementation for an example
  */
-export class ResponseError extends Error {
+export class RpcResponseError extends Error {
   name = this.constructor.name
   status: number
   code: string
@@ -30,7 +30,7 @@ export class ResponseError extends Error {
 
   constructor(message: string, code?: string, status?: number)
   constructor(error: Error, code?: string, status?: number)
-  constructor(messageOrError: string | Error, code = ERROR_CODES.ERROR, status = 400) {
+  constructor(messageOrError: string | Error, code = RPC_ERROR_CODES.ERROR, status = 400) {
     super(messageOrError instanceof Error ? messageOrError.message : messageOrError)
 
     if (messageOrError instanceof Error) {
@@ -47,8 +47,8 @@ export class ResponseError extends Error {
  * A convenience error to throw inside of routes when you want to indicate
  * a 400 error to the user based on validation
  */
-export class ValidationError extends ResponseError {
-  constructor(message: string, status = 400, code = ERROR_CODES.VALIDATION) {
+export class RpcValidationError extends RpcResponseError {
+  constructor(message: string, status = 400, code = RPC_ERROR_CODES.VALIDATION) {
     super(message, code, status)
   }
 }
@@ -56,8 +56,8 @@ export class ValidationError extends ResponseError {
 /**
  * A convenience error to throw inside of routes when a resource is not found
  */
-export class NotFoundError extends ResponseError {
-  constructor(message: string, status = 404, code = ERROR_CODES.NOT_FOUND) {
+export class RpcNotFoundError extends RpcResponseError {
+  constructor(message: string, status = 404, code = RPC_ERROR_CODES.NOT_FOUND) {
     super(message, code, status)
   }
 }

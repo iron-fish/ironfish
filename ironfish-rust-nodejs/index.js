@@ -252,9 +252,10 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { FishHashContext, contribute, verifyTransform, KEY_LENGTH, NONCE_LENGTH, BoxKeyPair, randomBytes, boxMessage, unboxMessage, RollingFilter, initSignalHandler, triggerSegfault, ASSET_ID_LENGTH, ASSET_METADATA_LENGTH, ASSET_NAME_LENGTH, ASSET_LENGTH, Asset, NOTE_ENCRYPTION_KEY_LENGTH, MAC_LENGTH, ENCRYPTED_NOTE_PLAINTEXT_LENGTH, ENCRYPTED_NOTE_LENGTH, NoteEncrypted, PUBLIC_ADDRESS_LENGTH, RANDOMNESS_LENGTH, MEMO_LENGTH, AMOUNT_VALUE_LENGTH, DECRYPTED_NOTE_LENGTH, Note, PROOF_LENGTH, TRANSACTION_SIGNATURE_LENGTH, TRANSACTION_PUBLIC_KEY_RANDOMNESS_LENGTH, TRANSACTION_EXPIRATION_LENGTH, TRANSACTION_FEE_LENGTH, LATEST_TRANSACTION_VERSION, TransactionPosted, Transaction, verifyTransactions, LanguageCode, generateKey, spendingKeyToWords, wordsToSpendingKey, generateKeyFromPrivateKey, initializeSapling, FoundBlockResult, ThreadPoolHandler, isValidPublicAddress } = nativeBinding
+const { FishHashContext, roundOne, contribute, verifyTransform, KEY_LENGTH, NONCE_LENGTH, BoxKeyPair, randomBytes, boxMessage, unboxMessage, RollingFilter, initSignalHandler, triggerSegfault, ASSET_ID_LENGTH, ASSET_METADATA_LENGTH, ASSET_NAME_LENGTH, ASSET_LENGTH, Asset, NOTE_ENCRYPTION_KEY_LENGTH, MAC_LENGTH, ENCRYPTED_NOTE_PLAINTEXT_LENGTH, ENCRYPTED_NOTE_LENGTH, NoteEncrypted, PUBLIC_ADDRESS_LENGTH, RANDOMNESS_LENGTH, MEMO_LENGTH, AMOUNT_VALUE_LENGTH, DECRYPTED_NOTE_LENGTH, Note, PROOF_LENGTH, TRANSACTION_SIGNATURE_LENGTH, TRANSACTION_PUBLIC_KEY_RANDOMNESS_LENGTH, TRANSACTION_EXPIRATION_LENGTH, TRANSACTION_FEE_LENGTH, LATEST_TRANSACTION_VERSION, TransactionPosted, Transaction, verifyTransactions, UnsignedTransaction, LanguageCode, generateKey, spendingKeyToWords, wordsToSpendingKey, generateKeyFromPrivateKey, initializeSapling, FoundBlockResult, ThreadPoolHandler, isValidPublicAddress } = nativeBinding
 
 module.exports.FishHashContext = FishHashContext
+module.exports.roundOne = roundOne
 module.exports.contribute = contribute
 module.exports.verifyTransform = verifyTransform
 module.exports.KEY_LENGTH = KEY_LENGTH
@@ -291,6 +292,7 @@ module.exports.LATEST_TRANSACTION_VERSION = LATEST_TRANSACTION_VERSION
 module.exports.TransactionPosted = TransactionPosted
 module.exports.Transaction = Transaction
 module.exports.verifyTransactions = verifyTransactions
+module.exports.UnsignedTransaction = UnsignedTransaction
 module.exports.LanguageCode = LanguageCode
 module.exports.generateKey = generateKey
 module.exports.spendingKeyToWords = spendingKeyToWords

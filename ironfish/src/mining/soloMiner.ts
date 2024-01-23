@@ -4,6 +4,7 @@
 import { ThreadPoolHandler } from '@ironfish/rust-nodejs'
 import { blake3 } from '@napi-rs/blake-hash'
 import { Assert } from '../assert'
+import { ConsensusParameters } from '../consensus'
 import { Logger } from '../logger'
 import { Meter } from '../metrics/meter'
 import { Target } from '../primitives/target'
@@ -34,6 +35,8 @@ export class MiningSoloMiner {
   private nextMiningRequestId: number
   private miningRequestBlocks: Map<number, SerializedBlockTemplate>
   private miningRequestId: number
+
+  private consensusParameters: ConsensusParameters | null = null
 
   private currentHeadTimestamp: number | null
   private currentHeadDifficulty: bigint | null
@@ -148,7 +151,7 @@ export class MiningSoloMiner {
   }
 
   private async processNewBlocks() {
-    const consensusParameters = (await this.rpc.chain.getConsensusParameters()).content
+    Assert.isNotNull(this.consensusParameters)
 
     for await (const payload of this.rpc.miner.blockTemplateStream().contentStream()) {
       Assert.isNotUndefined(payload.previousBlockInfo)
@@ -158,8 +161,8 @@ export class MiningSoloMiner {
       this.currentHeadTimestamp = payload.previousBlockInfo.timestamp
 
       this.restartCalculateTargetInterval(
-        consensusParameters.targetBlockTimeInSeconds,
-        consensusParameters.targetBucketTimeInSeconds,
+        this.consensusParameters.targetBlockTimeInSeconds,
+        this.consensusParameters.targetBucketTimeInSeconds,
       )
       this.startNewWork(payload)
     }
@@ -248,6 +251,14 @@ export class MiningSoloMiner {
 
       this.connectTimeout = setTimeout(() => void this.startConnectingRpc(), 5000)
       return
+    }
+
+    const consensusResponse = (await this.rpc.chain.getConsensusParameters()).content
+    this.consensusParameters = {
+      ...consensusResponse,
+      enableFishHash: consensusResponse.enableFishHash || 'never',
+      enableAssetOwnership: consensusResponse.enableAssetOwnership || 'never',
+      enforceSequentialBlockTime: consensusResponse.enforceSequentialBlockTime || 'never',
     }
 
     this.connectWarned = false

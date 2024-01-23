@@ -8,7 +8,7 @@
  * is the verbObject naming convention. For example, `POST /wallet/burnAsset` burns an asset.
  */
 
-import { ERROR_CODES, ValidationError } from '../../adapters'
+import { RPC_ERROR_CODES, RpcValidationError } from '../../adapters'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import { AssertHasRpcContext } from '../rpcContext'
@@ -23,10 +23,10 @@ routes.register<typeof CreateAccountRequestSchema, CreateAccountResponse>(
     const name = request.data.name
 
     if (context.wallet.accountExists(name)) {
-      throw new ValidationError(
+      throw new RpcValidationError(
         `There is already an account with the name ${name}`,
         400,
-        ERROR_CODES.ACCOUNT_EXISTS,
+        RPC_ERROR_CODES.ACCOUNT_EXISTS,
       )
     }
 

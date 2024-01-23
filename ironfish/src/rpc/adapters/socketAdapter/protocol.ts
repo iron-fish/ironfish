@@ -5,41 +5,41 @@ import * as yup from 'yup'
 
 export const MESSAGE_DELIMITER = '\f'
 
-export type ClientSocketRpc = {
+export type RpcSocketClientMessage = {
   type: 'message'
-  data: SocketRpcRequest
+  data: RpcSocketRequest
 }
 
-export type ServerSocketRpc = {
+export type RpcSocketServerMessage = {
   type: 'message' | 'malformedRequest' | 'error' | 'stream'
-  data: SocketRpcResponse | SocketRpcError | SocketRpcStream
+  data: RpcSocketResponse | RpcSocketError | RpcSocketStream
 }
 
-export type SocketRpcRequest = {
+export type RpcSocketRequest = {
   mid: number
   type: string
   auth: string | null | undefined
-  data: unknown | undefined
+  data: unknown
 }
 
-export type SocketRpcResponse = {
+export type RpcSocketResponse = {
   id: number
   status: number
-  data: unknown | undefined
+  data: unknown
 }
 
-export type SocketRpcStream = {
+export type RpcSocketStream = {
   id: number
-  data: unknown | undefined
+  data: unknown
 }
 
-export type SocketRpcError = {
+export type RpcSocketError = {
   code: string
   message: string
   stack?: string
 }
 
-export const ClientSocketRpcSchema: yup.ObjectSchema<ClientSocketRpc> = yup
+export const RpcSocketClientMessageSchema: yup.ObjectSchema<RpcSocketClientMessage> = yup
   .object({
     type: yup.string().oneOf(['message']).required(),
     data: yup
@@ -53,14 +53,14 @@ export const ClientSocketRpcSchema: yup.ObjectSchema<ClientSocketRpc> = yup
   })
   .required()
 
-export const ServerSocketRpcSchema: yup.ObjectSchema<ServerSocketRpc> = yup
+export const RpcSocketServerMessageSchema: yup.ObjectSchema<RpcSocketServerMessage> = yup
   .object({
     type: yup.string().oneOf(['message', 'malformedRequest', 'error', 'stream']).required(),
-    data: yup.mixed<SocketRpcResponse | SocketRpcError | SocketRpcStream>().required(),
+    data: yup.mixed<RpcSocketResponse | RpcSocketError | RpcSocketStream>().required(),
   })
   .required()
 
-export const SocketRpcErrorSchema: yup.ObjectSchema<SocketRpcError> = yup
+export const RpcSocketErrorSchema: yup.ObjectSchema<RpcSocketError> = yup
   .object({
     code: yup.string().defined(),
     message: yup.string().defined(),
@@ -68,7 +68,7 @@ export const SocketRpcErrorSchema: yup.ObjectSchema<SocketRpcError> = yup
   })
   .defined()
 
-export const SocketRpcRequestSchema: yup.ObjectSchema<SocketRpcRequest> = yup
+export const RpcSocketRequestSchema: yup.ObjectSchema<RpcSocketRequest> = yup
   .object({
     mid: yup.number().required(),
     type: yup.string().required(),
@@ -77,7 +77,7 @@ export const SocketRpcRequestSchema: yup.ObjectSchema<SocketRpcRequest> = yup
   })
   .required()
 
-export const SocketRpcResponseSchema: yup.ObjectSchema<SocketRpcResponse> = yup
+export const RpcSocketResponseSchema: yup.ObjectSchema<RpcSocketResponse> = yup
   .object({
     id: yup.number().defined(),
     status: yup.number().defined(),
@@ -85,7 +85,7 @@ export const SocketRpcResponseSchema: yup.ObjectSchema<SocketRpcResponse> = yup
   })
   .defined()
 
-export const SocketRpcStreamSchema: yup.ObjectSchema<SocketRpcStream> = yup
+export const RpcSocketStreamSchema: yup.ObjectSchema<RpcSocketStream> = yup
   .object({
     id: yup.number().defined(),
     data: yup.mixed().notRequired(),

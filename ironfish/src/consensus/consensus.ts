@@ -48,6 +48,13 @@ export type ConsensusParameters = {
    * block we enforce the block timestamps in the sequential order as the block sequences.
    */
   enforceSequentialBlockTime: ActivationSequence
+
+  /**
+   * Sequence at which to start mining and validating blocks with the FishHash algorithm
+   * instead Blake3. This sequence also modifies the block header serialization to move graffiti
+   * to the beginning of the block header before mining.
+   */
+  enableFishHash: ActivationSequence
 }
 
 export class Consensus {
@@ -57,15 +64,23 @@ export class Consensus {
     this.parameters = parameters
   }
 
-  isActive(upgrade: ActivationSequence, sequence: number): boolean {
-    if (upgrade === 'never') {
+  isActive(upgrade: keyof ConsensusParameters, sequence: number): boolean {
+    const upgradeSequence = this.parameters[upgrade]
+    if (upgradeSequence === 'never') {
       return false
     }
-    return Math.max(1, sequence) >= upgrade
+    return Math.max(1, sequence) >= upgradeSequence
+  }
+
+  /**
+   * Returns true if the upgrade can never activate on the network
+   */
+  isNeverActive(upgrade: keyof ConsensusParameters): boolean {
+    return this.parameters[upgrade] === 'never'
   }
 
   getActiveTransactionVersion(sequence: number): TransactionVersion {
-    if (this.isActive(this.parameters.enableAssetOwnership, sequence)) {
+    if (this.isActive('enableAssetOwnership', sequence)) {
       return TransactionVersion.V2
     } else {
       return TransactionVersion.V1

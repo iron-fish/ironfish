@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { BoxKeyPair } from '@ironfish/rust-nodejs'
+import { BoxKeyPair, FishHashContext } from '@ironfish/rust-nodejs'
 import { v4 as uuid } from 'uuid'
 import { AssetsVerifier } from './assets'
 import { Blockchain } from './blockchain'
@@ -21,6 +21,7 @@ import { MetricsMonitor } from './metrics'
 import { Migrator } from './migrations'
 import { MiningManager } from './mining'
 import { PeerNetwork, PrivateIdentity, privateIdentityToIdentity } from './network'
+import { isHexSecretKey } from './network/identity'
 import { IsomorphicWebSocketConstructor, NodeDataChannelType } from './network/types'
 import { getNetworkDefinition } from './networkDefinition'
 import { Package } from './package'
@@ -89,7 +90,7 @@ export class FullNode {
     logger: Logger
     webSocket: IsomorphicWebSocketConstructor
     nodeDataChannel: NodeDataChannelType
-    privateIdentity?: PrivateIdentity
+    privateIdentity: PrivateIdentity
     peerStore: PeerStore
     networkId: number
     assetsVerifier: AssetsVerifier
@@ -116,15 +117,13 @@ export class FullNode {
 
     this.migrator = new Migrator({ context: this, logger })
 
-    const identity = privateIdentity || new BoxKeyPair()
-
     this.telemetry = new Telemetry({
       chain,
       logger,
       config,
       metrics,
       workerPool,
-      localPeerIdentity: privateIdentityToIdentity(identity),
+      localPeerIdentity: privateIdentityToIdentity(privateIdentity),
       defaultTags: [
         { name: 'version', value: pkg.version },
         { name: 'agent', value: Platform.getAgent(pkg) },
@@ -138,7 +137,7 @@ export class FullNode {
 
     this.peerNetwork = new PeerNetwork({
       networkId,
-      identity: identity,
+      identity: privateIdentity,
       agent: Platform.getAgent(pkg),
       port: config.get('peerPort'),
       name: config.get('nodeName'),
@@ -196,6 +195,7 @@ export class FullNode {
     strategyClass,
     webSocket,
     privateIdentity,
+    fishHashContext,
   }: {
     pkg: Package
     dataDir?: string
@@ -208,6 +208,7 @@ export class FullNode {
     strategyClass: typeof Strategy | null
     webSocket: IsomorphicWebSocketConstructor
     privateIdentity?: PrivateIdentity
+    fishHashContext?: FishHashContext
   }): Promise<FullNode> {
     logger = logger.withTag('ironfishnode')
     dataDir = dataDir || DEFAULT_DATA_DIR
@@ -246,10 +247,28 @@ export class FullNode {
       config.setOverride('bootstrapNodes', networkDefinition.bootstrapNodes)
     }
 
+    if (config.get('generateNewIdentity')) {
+      privateIdentity = new BoxKeyPair()
+    } else if (!privateIdentity) {
+      const internalNetworkIdentity = internal.get('networkIdentity')
+      privateIdentity = isHexSecretKey(internalNetworkIdentity)
+        ? BoxKeyPair.fromHex(internalNetworkIdentity)
+        : new BoxKeyPair()
+    }
+    internal.set('networkIdentity', privateIdentity.secretKey.toString('hex'))
+    await internal.save()
+
     const consensus = new TestnetConsensus(networkDefinition.consensus)
 
+    if (consensus.isNeverActive('enableFishHash')) {
+      fishHashContext = undefined
+    } else if (!fishHashContext) {
+      const isFull = config.get('fishHashFullContext')
+      fishHashContext = new FishHashContext(isFull)
+    }
+
     strategyClass = strategyClass || Strategy
-    const strategy = new strategyClass({ workerPool, consensus })
+    const strategy = new strategyClass({ workerPool, consensus, fishHashContext })
 
     const chain = new Blockchain({
       location: config.chainDatabasePath,

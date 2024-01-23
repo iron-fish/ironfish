@@ -13,7 +13,7 @@ import { getUniqueTestDataDir } from '../../testUtilities'
 import { RpcRequestError } from '../clients'
 import { RpcTcpClient } from '../clients/tcpClient'
 import { ALL_API_NAMESPACES } from '../routes'
-import { ERROR_CODES, ValidationError } from './errors'
+import { RPC_ERROR_CODES, RpcValidationError } from './errors'
 import { RpcTcpAdapter } from './tcpAdapter'
 
 describe('TcpAdapter', () => {
@@ -97,7 +97,7 @@ describe('TcpAdapter', () => {
     Assert.isNotNull(tcp?.router)
 
     tcp.router.routes.register('foo/bar', yup.object({}), () => {
-      throw new ValidationError('hello error', 402, 'hello-error' as ERROR_CODES)
+      throw new RpcValidationError('hello error', 402, 'hello-error' as RPC_ERROR_CODES)
     })
 
     client = new RpcTcpClient('localhost', 0)
@@ -132,7 +132,7 @@ describe('TcpAdapter', () => {
     await expect(response.waitForEnd()).rejects.toThrow(RpcRequestError)
     await expect(response.waitForEnd()).rejects.toMatchObject({
       status: 400,
-      code: ERROR_CODES.VALIDATION,
+      code: RPC_ERROR_CODES.VALIDATION,
       codeMessage: expect.stringContaining('this must be defined'),
     })
   }, 20000)
@@ -173,7 +173,7 @@ describe('TcpAdapter', () => {
 
     await expect(response.waitForEnd()).rejects.toMatchObject({
       status: 401,
-      code: ERROR_CODES.UNAUTHENTICATED,
+      code: RPC_ERROR_CODES.UNAUTHENTICATED,
       codeMessage: expect.stringContaining('Failed authentication'),
     })
   }, 20000)
@@ -197,7 +197,7 @@ describe('TcpAdapter', () => {
 
     await expect(response.waitForEnd()).rejects.toMatchObject({
       status: 401,
-      code: ERROR_CODES.UNAUTHENTICATED,
+      code: RPC_ERROR_CODES.UNAUTHENTICATED,
       codeMessage: expect.stringContaining('Missing authentication token'),
     })
   }, 20000)

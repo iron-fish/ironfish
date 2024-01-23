@@ -15,6 +15,7 @@ import {
   BUFFER_ENCODING,
   BufferEncoding,
   DatabaseKeyRange,
+  DatabaseSchema,
   IDatabase,
   IDatabaseStore,
   IDatabaseTransaction,
@@ -126,10 +127,7 @@ export class WalletDB {
     value: null
   }>
 
-  cacheStores: IDatabaseStore<{
-    key: Readonly<unknown>
-    value: unknown
-  }>[]
+  cacheStores: Array<IDatabaseStore<DatabaseSchema>>
 
   constructor({
     files,

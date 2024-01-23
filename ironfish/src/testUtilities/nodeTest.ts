@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import './matchers'
+import { FishHashContext } from '@ironfish/rust-nodejs'
 import { Blockchain } from '../blockchain'
 import { Verifier } from '../consensus/verifier'
 import { ConfigOptions } from '../fileStores/config'
@@ -20,6 +21,9 @@ export type NodeTestOptions =
       autoSeed?: boolean
     }
   | undefined
+
+// Create global FishHash context for tests
+export const FISH_HASH_CONTEXT = new FishHashContext(false)
 
 /**
  * Used as an easy wrapper for testing the node, and blockchain. Use
@@ -86,12 +90,14 @@ export class NodeTest {
       for (const key in options.config) {
         const configKey = key as keyof ConfigOptions
         const configValue = options.config[configKey]
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        sdk.config.setOverride(key as keyof ConfigOptions, configValue as any)
+        sdk.config.setOverride(key as keyof ConfigOptions, configValue)
       }
     }
 
-    const node = await sdk.node({ autoSeed: this.options?.autoSeed })
+    const node = await sdk.node({
+      autoSeed: this.options?.autoSeed,
+      fishHashContext: FISH_HASH_CONTEXT,
+    })
     const strategy = node.strategy as TestStrategy
     const chain = node.chain
     const wallet = node.wallet

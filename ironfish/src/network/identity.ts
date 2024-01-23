@@ -33,6 +33,18 @@ export const secretKeyLength = KEY_LENGTH
  */
 export const base64IdentityLength = Math.ceil(identityLength / 3) * 4
 
+/**
+ * Length of the secret key as a hex-encoded string.
+ */
+export const hexSecretKeyLength = secretKeyLength * 2
+
+export function isHexSecretKey(obj: string): boolean {
+  return (
+    obj.length === hexSecretKeyLength &&
+    Buffer.from(obj, 'hex').toString('hex').toLowerCase() === obj.toLowerCase()
+  )
+}
+
 export function isIdentity(obj: string): boolean {
   // Should be a base64-encoded string with the expected length
   return (

@@ -45,6 +45,7 @@ module.exports = {
         // the matchers to unknown, or defining a custom matcher, which seems
         // like too much friction for test-writing.
         '@typescript-eslint/no-unsafe-assignment': 'off',
+        '@typescript-eslint/no-unsafe-argument': 'off',
         // It's common to want to mock unbound methods.
         '@typescript-eslint/unbound-method': 'off',
         // Using try catch with expect.assertions(n) is the recommended way to

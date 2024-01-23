@@ -6,6 +6,7 @@ use blstrs::Bls12;
 
 pub mod assets;
 pub mod errors;
+pub mod frost_utils;
 pub mod keys;
 pub mod merkle_note;
 pub mod merkle_note_hash;
@@ -20,6 +21,7 @@ pub mod transaction;
 pub mod util;
 pub mod witness;
 pub use {
+    ironfish_frost::frost,
     keys::{IncomingViewKey, OutgoingViewKey, PublicAddress, SaplingKey, ViewKey},
     merkle_note::MerkleNote,
     merkle_note_hash::MerkleNoteHash,

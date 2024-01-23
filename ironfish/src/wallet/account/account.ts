@@ -24,7 +24,7 @@ import { WalletDB } from '../walletdb/walletdb'
 
 export const ACCOUNT_KEY_LENGTH = 32
 
-export const ACCOUNT_SCHEMA_VERSION = 2
+export const ACCOUNT_SCHEMA_VERSION = 3
 
 export type SpendingAccount = WithNonNull<Account, 'spendingKey'>
 
@@ -47,6 +47,11 @@ export class Account {
   createdAt: HeadValue | null
   readonly prefix: Buffer
   readonly prefixRange: DatabaseKeyRange
+  readonly multiSigKeys?: {
+    identifier: string
+    keyPackage: string
+    proofGenerationKey: string
+  }
 
   constructor({
     id,
@@ -59,6 +64,7 @@ export class Account {
     outgoingViewKey,
     version,
     createdAt,
+    multiSigKeys,
   }: AccountValue & { walletDb: WalletDB }) {
     this.id = id
     this.name = name
@@ -76,6 +82,7 @@ export class Account {
     this.walletDb = walletDb
     this.version = version ?? 1
     this.createdAt = createdAt
+    this.multiSigKeys = multiSigKeys
   }
 
   isSpendingAccount(): this is SpendingAccount {
@@ -93,6 +100,7 @@ export class Account {
       outgoingViewKey: this.outgoingViewKey,
       publicAddress: this.publicAddress,
       createdAt: this.createdAt,
+      multiSigKeys: this.multiSigKeys,
     }
   }
 

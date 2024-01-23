@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { GENESIS_BLOCK_SEQUENCE } from '../../../primitives'
-import { ValidationError } from '../../adapters/errors'
+import { RpcValidationError } from '../../adapters/errors'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import { AssertHasRpcContext } from '../rpcContext'
@@ -35,7 +35,7 @@ routes.register<typeof RescanAccountRequestSchema, RescanAccountResponse>(
     let scan = context.wallet.scan
 
     if (scan && !request.data.follow) {
-      throw new ValidationError(`A transaction rescan is already running`)
+      throw new RpcValidationError(`A transaction rescan is already running`)
     }
 
     if (!scan) {
@@ -50,7 +50,7 @@ routes.register<typeof RescanAccountRequestSchema, RescanAccountResponse>(
         const response = await context.wallet.chainGetBlock({ sequence: request.data.from })
 
         if (response === null) {
-          throw new ValidationError(
+          throw new RpcValidationError(
             `No block header found in the chain at sequence ${request.data.from}`,
           )
         }

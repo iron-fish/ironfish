@@ -4,6 +4,7 @@
 
 import { Consensus, ConsensusParameters } from './consensus'
 import { Strategy } from './strategy'
+import { FISH_HASH_CONTEXT } from './testUtilities'
 import { WorkerPool } from './workerPool'
 
 describe('Miners reward', () => {
@@ -18,12 +19,14 @@ describe('Miners reward', () => {
     minFee: 1,
     enableAssetOwnership: 1,
     enforceSequentialBlockTime: 3,
+    enableFishHash: 'never',
   }
 
   beforeAll(() => {
     strategy = new Strategy({
       workerPool: new WorkerPool(),
       consensus: new Consensus(consensusParameters),
+      fishHashContext: FISH_HASH_CONTEXT,
     })
   })
 

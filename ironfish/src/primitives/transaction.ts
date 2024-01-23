@@ -68,7 +68,7 @@ export class Transaction {
     const reader = bufio.read(this.transactionPostedSerialized, true)
 
     this._version = reader.readU8() // 1
-    if (this._version < 1 || this._version > 2) {
+    if (this._version < TransactionVersion.V1 || this._version > TransactionVersion.V2) {
       throw new UnsupportedVersionError(this._version)
     }
     const _spendsLength = reader.readU64() // 8
@@ -188,7 +188,7 @@ export class Transaction {
 
     const result = callback(transaction)
 
-    Promise.resolve(result).finally(() => {
+    void Promise.resolve(result).finally(() => {
       this.returnReference()
     })
 

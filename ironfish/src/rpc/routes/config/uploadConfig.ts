@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Config, ConfigOptions, ConfigOptionsSchema } from '../../../fileStores/config'
-import { ValidationError } from '../../adapters/errors'
+import { RpcValidationError } from '../../adapters/errors'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import { AssertHasRpcContext } from '../rpcContext'
@@ -52,7 +52,7 @@ export function setUnknownConfigValue(
 ): void {
   if (unknownKey && !(unknownKey in config.defaults)) {
     if (!ignoreUnknownKey) {
-      throw new ValidationError(`No config option ${String(unknownKey)}`)
+      throw new RpcValidationError(`No config option ${String(unknownKey)}`)
     }
   }
 
@@ -81,8 +81,7 @@ export function setUnknownConfigValue(
     value = convertValue(sourceKey, sourceValue, targetValue)
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  config.set(sourceKey, value as any)
+  config.set(sourceKey, value as never)
 }
 
 // Expects string in CSV format with no brackets
@@ -100,7 +99,7 @@ function stringToStringArray(value: string): string[] | null {
 
 function convertValue(sourceKey: string, sourceValue: unknown, targetValue: unknown): unknown {
   if (typeof sourceValue !== 'string') {
-    throw new ValidationError(
+    throw new RpcValidationError(
       `${sourceKey} has an invalid value: Cannot convert ${JSON.stringify(
         sourceValue,
       )} from ${typeof sourceValue} to ${String(typeof targetValue)}`,
@@ -140,7 +139,7 @@ function convertValue(sourceKey: string, sourceValue: unknown, targetValue: unkn
     targetType = 'array'
   }
 
-  throw new ValidationError(
+  throw new RpcValidationError(
     `${sourceKey} has an invalid value: Could not convert ${JSON.stringify(
       sourceValue,
     )} from ${typeof sourceValue} to ${String(targetType)}`,

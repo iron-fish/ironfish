@@ -65,7 +65,8 @@ export async function watchTransaction(options: {
 
   const startTime = lastTime
 
-  let prevStatus = last?.content.transaction?.status ?? 'not found'
+  let prevStatus: TransactionStatus | 'not found' =
+    last?.content.transaction?.status ?? 'not found'
   let currentStatus = prevStatus
 
   // If the transaction is already in the desired state, return

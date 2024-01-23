@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { BoxKeyPair } from '@ironfish/rust-nodejs'
+import { BoxKeyPair, FishHashContext } from '@ironfish/rust-nodejs'
 import {
   Config,
   ConfigOptions,
@@ -20,7 +20,7 @@ import {
 } from './logger'
 import { FileReporter } from './logger/reporters'
 import { MetricsMonitor } from './metrics'
-import { PrivateIdentity } from './network/identity'
+import { isHexSecretKey, PrivateIdentity } from './network/identity'
 import { IsomorphicWebSocketConstructor } from './network/types'
 import { WebSocketClient } from './network/webSocketClient'
 import { FullNode } from './node'
@@ -147,10 +147,11 @@ export class IronfishSdk {
     }
 
     let client: RpcSocketClient
-    const rpcAuthToken = internal.get('rpcAuthToken')
 
     if (config.get('enableRpcTcp')) {
       if (config.get('enableRpcTls')) {
+        const rpcAuthToken = internal.get('rpcAuthToken')
+
         client = new RpcTlsClient(
           config.get('rpcTcpHost'),
           config.get('rpcTcpPort'),
@@ -183,6 +184,7 @@ export class IronfishSdk {
   }: {
     autoSeed?: boolean
     privateIdentity?: PrivateIdentity
+    fishHashContext?: FishHashContext
   } = {}): Promise<FullNode> {
     const webSocket = WebSocketClient as IsomorphicWebSocketConstructor
 
@@ -271,11 +273,7 @@ export class IronfishSdk {
 
   getPrivateIdentity(): PrivateIdentity | undefined {
     const networkIdentity = this.internal.get('networkIdentity')
-    if (
-      !this.config.get('generateNewIdentity') &&
-      networkIdentity !== undefined &&
-      networkIdentity.length > 31
-    ) {
+    if (!this.config.get('generateNewIdentity') && isHexSecretKey(networkIdentity)) {
       return BoxKeyPair.fromHex(networkIdentity)
     }
   }

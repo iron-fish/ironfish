@@ -33,6 +33,13 @@ export class Bech32Encoder implements AccountEncoder {
       bw.writeU32(value.createdAt.sequence)
     }
 
+    bw.writeU8(Number(!!value.multiSigKeys))
+    if (value.multiSigKeys) {
+      bw.writeVarBytes(Buffer.from(value.multiSigKeys.identifier, 'hex'))
+      bw.writeVarBytes(Buffer.from(value.multiSigKeys.keyPackage, 'hex'))
+      bw.writeVarBytes(Buffer.from(value.multiSigKeys.proofGenerationKey, 'hex'))
+    }
+
     return Bech32m.encode(bw.render().toString('hex'), BECH32_ACCOUNT_PREFIX)
   }
 
@@ -53,6 +60,7 @@ export class Bech32Encoder implements AccountEncoder {
     let publicAddress: string
     let spendingKey: string | null
     let createdAt = null
+    let multiSigKeys = undefined
 
     try {
       const buffer = Buffer.from(hexEncoding, 'hex')
@@ -83,6 +91,16 @@ export class Bech32Encoder implements AccountEncoder {
         const sequence = reader.readU32()
         createdAt = { hash, sequence }
       }
+
+      const hasMultiSigKeys = reader.readU8() === 1
+
+      if (hasMultiSigKeys) {
+        multiSigKeys = {
+          identifier: reader.readVarBytes().toString('hex'),
+          keyPackage: reader.readVarBytes().toString('hex'),
+          proofGenerationKey: reader.readVarBytes().toString('hex'),
+        }
+      }
     } catch (e) {
       if (e instanceof EncodingError) {
         throw new DecodeFailed(
@@ -102,6 +120,7 @@ export class Bech32Encoder implements AccountEncoder {
       spendingKey,
       publicAddress,
       createdAt,
+      multiSigKeys,
     }
   }
 
@@ -121,6 +140,12 @@ export class Bech32Encoder implements AccountEncoder {
     if (value.createdAt) {
       size += 32 // block hash
       size += 4 // block sequence
+    }
+    size += 1 // multiSigKeys byte
+    if (value.multiSigKeys) {
+      size += bufio.sizeVarBytes(Buffer.from(value.multiSigKeys.identifier, 'hex'))
+      size += bufio.sizeVarBytes(Buffer.from(value.multiSigKeys.keyPackage, 'hex'))
+      size += bufio.sizeVarBytes(Buffer.from(value.multiSigKeys.proofGenerationKey, 'hex'))
     }
 
     return size

@@ -10,7 +10,7 @@ import { AssetValue } from '../../../wallet/walletdb/assetValue'
 import { DecryptedNoteValue } from '../../../wallet/walletdb/decryptedNoteValue'
 import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
 import { WorkerPool } from '../../../workerPool'
-import { ValidationError } from '../../adapters'
+import { RpcValidationError } from '../../adapters'
 import {
   RpcAccountAssetBalanceDelta,
   RpcAccountImport,
@@ -25,7 +25,7 @@ export function getAccount(wallet: Wallet, name?: string): Account {
     if (account) {
       return account
     }
-    throw new ValidationError(`No account with name ${name}`)
+    throw new RpcValidationError(`No account with name ${name}`)
   }
 
   const defaultAccount = wallet.getDefaultAccount()
@@ -33,7 +33,7 @@ export function getAccount(wallet: Wallet, name?: string): Account {
     return defaultAccount
   }
 
-  throw new ValidationError(
+  throw new RpcValidationError(
     `No account is currently active.\n\n` +
       `Use ironfish wallet:create <name> to first create an account`,
   )
