@@ -2,12 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use ironfish::errors::IronfishError;
 use ironfish::frost::Identifier;
 use ironfish::frost_utils::split_spender_key::split_spender_key;
 use ironfish::serializing::bytes_to_hex;
 use ironfish::serializing::hex_to_bytes;
-use ironfish::serializing::proof_generation_key_to_bytes;
 use std::collections::HashMap;
 use std::fmt::Display;
 
