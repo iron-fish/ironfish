@@ -5,7 +5,6 @@
 import { Logger } from '../../logger'
 import { IDatabase, IDatabaseTransaction } from '../../storage'
 import { createDB } from '../../storage/utils'
-import { Account } from '../../wallet'
 import { Database, Migration, MigrationContext } from '../migration'
 import { GetStores } from './030-value-to-unspent-note/stores'
 
@@ -18,55 +17,29 @@ export class Migration030 extends Migration {
   }
 
   async forward(
-    context: MigrationContext,
+    _context: MigrationContext,
     db: IDatabase,
-    tx: IDatabaseTransaction | undefined,
+    _tx: IDatabaseTransaction | undefined,
     logger: Logger,
   ): Promise<void> {
     const stores = GetStores(db)
 
-    const accounts = []
+    logger.info(`Indexing all unspent notes and sorting them by value`)
 
-    for await (const accountValue of stores.old.accounts.getAllValuesIter()) {
-      accounts.push(
-        new Account({
-          ...accountValue,
-          createdAt: null,
-          walletDb: context.wallet.walletDb,
-        }),
-      )
+    let unspentNotes = 0
+
+    for await (const [
+      prefix,
+      [assetId, [_sequence, [value, noteHash]]],
+    ] of stores.old.unspentNoteHashes.getAllKeysIter()) {
+      await stores.new.valueToUnspentNoteHash.put([prefix, [assetId, [value, noteHash]]], null)
+      unspentNotes++
     }
 
-    logger.info(
-      `Indexing unspent notes and sorting them by value for ${accounts.length} accounts`,
-    )
-
-    for (const account of accounts) {
-      let unspentNotes = 0
-
-      logger.info(` Indexing notes and sorting them by value for account ${account.name}`)
-      for await (const [[, noteHash], note] of stores.old.decryptedNotes.getAllIter(
-        undefined,
-        account.prefixRange,
-      )) {
-        if (note.sequence === null || note.spent) {
-          continue
-        }
-
-        await stores.new.valueToUnspentNoteHash.put(
-          [account.prefix, [note.note.assetId(), [note.note.value(), noteHash]]],
-          null,
-        )
-        unspentNotes++
-      }
-
-      logger.info(
-        ` Indexed ${unspentNotes} unspent notes and sorted by value for account ${account.name}`,
-      )
-    }
+    logger.info(` Indexed ${unspentNotes} unspent notes and sorted by value.`)
   }
 
-  async backward(context: MigrationContext, db: IDatabase): Promise<void> {
+  async backward(_context: MigrationContext, db: IDatabase): Promise<void> {
     const stores = GetStores(db)
 
     await stores.new.valueToUnspentNoteHash.clear()

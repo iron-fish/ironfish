@@ -38,5 +38,5 @@ export function GetNewStores(db: IDatabase): {
     valueEncoding: NULL_ENCODING,
   })
 
-  return { valueToUnspentNoteHash: valueToUnspentNoteHash }
+  return { valueToUnspentNoteHash }
 }
