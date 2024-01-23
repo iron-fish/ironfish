@@ -82,6 +82,7 @@ export interface Key {
   publicAddress: string
   proofGenerationKey: string
 }
+export function splitSecret(coordinatorSaplingKey: string, minSigners: number, maxSigners: number, identifiers: Array<string>): TrustedDealerKeyPackages
 export function generateKey(): Key
 export function spendingKeyToWords(privateKey: string, languageCode: LanguageCode): string
 export function wordsToSpendingKey(words: string, languageCode: LanguageCode): string
