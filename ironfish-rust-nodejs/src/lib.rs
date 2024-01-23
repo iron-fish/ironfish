@@ -82,7 +82,8 @@ pub fn split_secret(
     max_signers: u16,
     identifiers: Vec<String>,
 ) -> Result<TrustedDealerKeyPackages> {
-    let coordinator_key = SaplingKey::new(str_to_array(&coordinator_sapling_key)).unwrap();
+    let coordinator_key =
+        SaplingKey::new(str_to_array(&coordinator_sapling_key)).map_err(to_napi_err)?;
 
     let mut converted = Vec::new();
 
@@ -92,7 +93,7 @@ pub fn split_secret(
         converted.push(deserialized);
     }
 
-    let t = split_spender_key(coordinator_key, min_signers, max_signers, converted)
+    let t = split_spender_key(&coordinator_key, min_signers, max_signers, converted)
         .map_err(to_napi_err)?;
 
     let mut key_packages_serialized = HashMap::new();
