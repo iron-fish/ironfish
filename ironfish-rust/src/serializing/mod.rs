@@ -13,7 +13,6 @@ use crate::errors::{IronfishError, IronfishErrorKind};
 /// can be a bit clunky if you're just working with bytearrays.
 use ff::PrimeField;
 use group::GroupEncoding;
-use ironfish_zkp::ProofGenerationKey;
 
 use std::io;
 
