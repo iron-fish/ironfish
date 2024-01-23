@@ -105,12 +105,11 @@ pub fn split_secret(
         );
     }
 
-    //TODO(rahul): remove unwrap
     let public_key_package = t.public_key_package.serialize().map_err(to_napi_err)?;
 
     Ok(TrustedDealerKeyPackages {
         verifying_key: bytes_to_hex(&t.verifying_key),
-        proof_generation_key: bytes_to_hex(&proof_generation_key_to_bytes(t.proof_generation_key)),
+        proof_generation_key: t.proof_generation_key.hex_key(),
         view_key: t.view_key.hex_key(),
         incoming_view_key: t.incoming_view_key.hex_key(),
         outgoing_view_key: t.outgoing_view_key.hex_key(),
