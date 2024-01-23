@@ -102,25 +102,16 @@ describe('WalletDB', () => {
       const walletDb = node.wallet.walletDb
       const account = await useAccountFixture(node.wallet)
 
-      await walletDb.valueToUnspentNoteHashes.put(
-        [account.prefix, [Asset.nativeId(), [100n, Buffer.from('100', 'hex')]]],
-        null,
-      )
-      await walletDb.valueToUnspentNoteHashes.put(
-        [account.prefix, [Asset.nativeId(), [1n, Buffer.from('1', 'hex')]]],
-        null,
-      )
-      await walletDb.valueToUnspentNoteHashes.put(
-        [account.prefix, [Asset.nativeId(), [10n, Buffer.from('10', 'hex')]]],
-        null,
-      )
-      await walletDb.valueToUnspentNoteHashes.put(
-        [account.prefix, [Asset.nativeId(), [1000n, Buffer.from('1000', 'hex')]]],
-        null,
-      )
-      await walletDb.valueToUnspentNoteHashes.put(
-        [account.prefix, [Asset.nativeId(), [10000n, Buffer.from('10000', 'hex')]]],
-        null,
+      await Promise.all(
+        [1n, 10n, 100n, 1000n, 10000n].map((value) => {
+          return walletDb.valueToUnspentNoteHashes.put(
+            [
+              account.prefix,
+              [Asset.nativeId(), [value, Buffer.from(value.toString(16), 'hex')]],
+            ],
+            null,
+          )
+        }),
       )
 
       const allNotes = await walletDb.valueToUnspentNoteHashes.getAll()
