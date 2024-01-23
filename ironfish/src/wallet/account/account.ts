@@ -135,7 +135,7 @@ export class Account {
     for await (const unspentNoteHash of this.walletDb.loadValueToUnspentNoteHashes(
       this,
       assetId,
-      options?.reverse ?? false,
+      options?.reverse,
     )) {
       const decryptedNote = await this.walletDb.loadDecryptedNote(this, unspentNoteHash)
 
