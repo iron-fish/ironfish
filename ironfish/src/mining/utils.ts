@@ -20,27 +20,3 @@ export function mineableHeaderString(header: SerializedBlockTemplate['header']):
   bw.writeBytes(Buffer.from(header.graffiti, 'hex'))
   return bw.render()
 }
-
-// deserialize into a partial header
-export function minedPartialHeader(data: Buffer): SerializedBlockTemplate['header'] {
-  const br = bufio.read(data)
-  const randomness = br.readBytes(8)
-  const sequence = br.readU32()
-  const previousBlockHash = br.readHash()
-  const noteCommitment = br.readHash()
-  const transactionCommitment = br.readHash()
-  const target = br.readBytes(32)
-  const timestamp = br.readU64()
-  const graffiti = br.readBytes(32)
-
-  return {
-    randomness: randomness.toString('hex'),
-    sequence: sequence,
-    previousBlockHash: previousBlockHash.toString('hex'),
-    target: target.toString('hex'),
-    timestamp: timestamp,
-    graffiti: graffiti.toString('hex'),
-    noteCommitment: noteCommitment.toString('hex'),
-    transactionCommitment: transactionCommitment.toString('hex'),
-  }
-}
