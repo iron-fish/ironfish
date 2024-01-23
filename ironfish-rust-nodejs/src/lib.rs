@@ -2,22 +2,23 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::fmt::Display;
-
-use ironfish::errors::IronfishError;
 use ironfish::frost::Error;
 use ironfish::frost::Identifier;
 use ironfish::frost_utils::split_spender_key::split_spender_key;
-use ironfish::ironfish_frost::{
-    frost::{frost::keys::reconstruct, JubjubBlake2b512},
-    participant::Secret,
+use std::fmt::Display;
+
+use ironfish_frost::frost::{
+    keys::{IdentifierList, KeyPackage, PublicKeyPackage},
+    Identifier,
 };
+
 use ironfish::keys::Language;
 use ironfish::keys::ProofGenerationKeySerializable;
 use ironfish::PublicAddress;
 use ironfish::SaplingKey;
 
 use ironfish::util::str_to_array;
+use ironfish_frost::participant::Secret;
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 
@@ -83,14 +84,32 @@ pub fn split_secret(
     coordinator_sapling_key: String,
     min_signers: u16,
     max_signers: u16,
-    identifiers: Vec<String>,
+    identifiers: Vec<u16>,
 ) -> Result<TrustedDealerKeyPackages> {
     let coordinator_key = SaplingKey::new(str_to_array(&coordinator_sapling_key))?;
-    // Secret::random(thread_rng()) .to_identity() .to_frost_identifier(),
-    let i: Vec<Identifier> = identifiers.iter().map(|id| Secret).collect();
 
-    let t = split_spender_key(coordinator_key, min_signers, max_signers, i)?;
-    return t;
+    let converted = identifiers
+        .iter()
+        .map(|x| Identifier::try_from(*x).map_err(to_napi_err))
+        .collect::<Result<Vec<Identifier>>>()?;
+
+    let t = split_spender_key(coordinator_key, min_signers, max_signers, converted)
+        .map_err(to_napi_err)?;
+
+    Ok(TrustedDealerKeyPackages {
+        verifying_key: t.verifying_key.to_string(),
+        proof_generation_key: t.proof_generation_key.to_string(),
+        view_key: t.view_key.to_string(),
+        incoming_view_key: t.incoming_view_key.to_string(),
+        outgoing_view_key: t.outgoing_view_key.to_string(),
+        public_address: t.public_address.to_string(),
+        key_packages: t
+            .key_packages
+            .into_iter()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect(),
+        public_key_package: t.public_key_package.to_string(),
+    })
 }
 
 #[napi]
