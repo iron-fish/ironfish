@@ -2,10 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use ironfish::frost::Error;
+use ironfish::errors::IronfishError;
 use ironfish::frost::Identifier;
 use ironfish::frost_utils::split_spender_key::split_spender_key;
 use ironfish::serializing::bytes_to_hex;
+use ironfish::serializing::hex_to_bytes;
 use ironfish::serializing::proof_generation_key_to_bytes;
 use std::collections::HashMap;
 use std::fmt::Display;
@@ -39,7 +40,7 @@ fn to_napi_err(err: impl Display) -> napi::Error {
 // have to recreate if we want type safety. hopefully in the future this will work with napi:
 // #[napi]
 // pub use bip39::Language as Language;
-// https://gi thub.com/napi-rs/napi-rs/issues/1463
+// https://github.com/napi-rs/napi-rs/issues/1463
 #[napi]
 pub enum LanguageCode {
     English,
@@ -81,13 +82,14 @@ pub fn split_secret(
     coordinator_sapling_key: String,
     min_signers: u16,
     max_signers: u16,
-    identifiers: Vec<u16>,
+    identifiers: Vec<String>,
 ) -> Result<TrustedDealerKeyPackages> {
     let coordinator_key = SaplingKey::new(str_to_array(&coordinator_sapling_key)).unwrap();
 
     let converted = identifiers
         .iter()
-        .map(|x| Identifier::try_from(*x).map_err(to_napi_err))
+        .map(|x| Identifier::deserialize(&(hex_to_bytes(x).map_err(to_napi_err)?)))
+        .map_err(to_napi_err)
         .collect::<Result<Vec<Identifier>>>()?;
 
     let t = split_spender_key(coordinator_key, min_signers, max_signers, converted)
@@ -97,12 +99,12 @@ pub fn split_secret(
     for (k, v) in t.key_packages.iter() {
         key_packages_serialized.insert(
             bytes_to_hex(&k.serialize()),
-            bytes_to_hex(&v.serialize().unwrap()),
+            bytes_to_hex(&v.serialize().map_err(to_napi_err)?),
         );
     }
 
     //TODO(rahul): remove unwrap
-    let public_key_package = t.public_key_package.serialize().unwrap();
+    let public_key_package = t.public_key_package.serialize().map_err(to_napi_err)?;
 
     Ok(TrustedDealerKeyPackages {
         verifying_key: bytes_to_hex(&t.verifying_key),
