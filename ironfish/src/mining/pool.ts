@@ -4,7 +4,7 @@
 import LeastRecentlyUsed from 'blru'
 import tls from 'tls'
 import { Assert } from '../assert'
-import { BlockHasher, serializeHeaderBlake3 } from '../blockHasher'
+import { BlockHasher } from '../blockHasher'
 import { Consensus, ConsensusParameters } from '../consensus'
 import { Config } from '../fileStores/config'
 import { Logger } from '../logger'
@@ -462,14 +462,14 @@ export class MiningPool {
   private distributeNewBlock(newBlock: SerializedBlockTemplate) {
     Assert.isNotNull(this.currentHeadTimestamp)
     Assert.isNotNull(this.currentHeadDifficulty)
+    Assert.isNotNull(this.blockHasher)
 
     const miningRequestId = this.nextMiningRequestId++
     this.miningRequestBlocks.set(miningRequestId, newBlock)
     this.recentSubmissions.clear()
 
     const rawBlock = RawBlockTemplateSerde.deserialize(newBlock)
-    // TODO: This should use fish hash serialization once mining software supports it
-    const newWork = serializeHeaderBlake3(rawBlock.header)
+    const newWork = this.blockHasher.serializeHeader(rawBlock.header)
 
     this.stratum.newWork(miningRequestId, newWork)
   }
