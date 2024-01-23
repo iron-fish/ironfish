@@ -11,6 +11,7 @@ import { NoteEncryptedHash } from '../../primitives/noteEncrypted'
 import { Nullifier } from '../../primitives/nullifier'
 import { Transaction, TransactionHash } from '../../primitives/transaction'
 import {
+  BIG_U64_BE_ENCODING,
   BigU64BEEncoding,
   BUFFER_ENCODING,
   BufferEncoding,
@@ -38,7 +39,7 @@ import { HeadValue, NullableHeadValueEncoding } from './headValue'
 import { AccountsDBMeta, MetaValue, MetaValueEncoding } from './metaValue'
 import { TransactionValue, TransactionValueEncoding } from './transactionValue'
 
-const VERSION_DATABASE_ACCOUNTS = 29
+const VERSION_DATABASE_ACCOUNTS = 30
 
 const getAccountsDBMetaDefaults = (): AccountsDBMeta => ({
   defaultAccountId: null,
@@ -124,6 +125,11 @@ export class WalletDB {
 
   unspentNoteHashes: IDatabaseStore<{
     key: [Account['prefix'], [Buffer, [number, [bigint, Buffer]]]]
+    value: null
+  }>
+
+  valueToUnspentNoteHashes: IDatabaseStore<{
+    key: [Account['prefix'], [Buffer, [bigint, Buffer]]] // account prefix, asset ID, value, note hash
     value: null
   }>
 
@@ -274,6 +280,24 @@ export class WalletDB {
       valueEncoding: NULL_ENCODING,
     })
 
+    this.valueToUnspentNoteHashes = this.db.addStore({
+      name: 'valueToUnspentNoteHashes',
+      keyEncoding: new PrefixEncoding(
+        new BufferEncoding(), // account prefix
+        new PrefixEncoding(
+          new BufferEncoding(), // asset ID
+          new PrefixEncoding(
+            new BigU64BEEncoding(), // value
+            new BufferEncoding(), // note hash
+            8,
+          ),
+          32,
+        ),
+        4,
+      ),
+      valueEncoding: NULL_ENCODING,
+    })
+
     // IDatabaseStores that cache and index decrypted chain data
     this.cacheStores = [
       this.decryptedNotes,
@@ -287,6 +311,7 @@ export class WalletDB {
       this.assets,
       this.nullifierToTransactionHash,
       this.unspentNoteHashes,
+      this.valueToUnspentNoteHashes,
     ]
   }
 
@@ -586,6 +611,12 @@ export class WalletDB {
       null,
       tx,
     )
+
+    await this.valueToUnspentNoteHashes.put(
+      [account.prefix, [assetId, [value, noteHash]]],
+      null,
+      tx,
+    )
   }
 
   async deleteUnspentNoteHash(
@@ -604,6 +635,38 @@ export class WalletDB {
       [account.prefix, [assetId, [sequence, [value, noteHash]]]],
       tx,
     )
+
+    await this.valueToUnspentNoteHashes.del([account.prefix, [assetId, [value, noteHash]]], tx)
+  }
+
+  async *loadValueToUnspentNoteHashes(
+    account: Account,
+    assetId: Buffer,
+    reverse = false,
+    start = 0n,
+    end = 2n ** 64n - 1n,
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<Buffer> {
+    const encoding = new PrefixEncoding(
+      BUFFER_ENCODING,
+      new PrefixEncoding(BUFFER_ENCODING, BIG_U64_BE_ENCODING, 32),
+      4,
+    )
+
+    const range = getPrefixesKeyRange(
+      encoding.serialize([account.prefix, [assetId, start]]),
+      encoding.serialize([account.prefix, [assetId, end]]),
+    )
+
+    for await (const [, [, [_, noteHash]]] of this.valueToUnspentNoteHashes.getAllKeysIter(
+      tx,
+      range,
+      {
+        reverse: reverse,
+      },
+    )) {
+      yield noteHash
+    }
   }
 
   async *loadUnspentNoteHashes(

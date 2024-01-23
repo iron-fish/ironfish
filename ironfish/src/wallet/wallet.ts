@@ -1221,6 +1221,7 @@ export class Wallet {
     confirmations: number,
   ): Promise<bigint> {
     for await (const unspentNote of sender.getUnspentNotes(assetId, {
+      reverse: true,
       confirmations,
     })) {
       if (notesSpent.has(unspentNote.note.hash())) {
