@@ -7,6 +7,7 @@ use std::cell::RefCell;
 use std::convert::TryInto;
 
 use ironfish::assets::asset_identifier::AssetIdentifier;
+use ironfish::transaction::unsigned::UnsignedTransaction;
 use ironfish::transaction::{
     batch_verify_transactions, TransactionVersion, TRANSACTION_EXPIRATION_SIZE,
     TRANSACTION_FEE_SIZE, TRANSACTION_PUBLIC_KEY_SIZE, TRANSACTION_SIGNATURE_SIZE,
@@ -370,4 +371,29 @@ pub fn verify_transactions(serialized_transactions: Vec<JsBuffer>) -> Result<boo
     }
 
     Ok(batch_verify_transactions(transactions.iter()).is_ok())
+}
+
+#[napi(js_name = "UnsignedTransaction")]
+pub struct NativeUnsignedTransaction {
+    transaction: UnsignedTransaction,
+}
+
+#[napi]
+impl NativeUnsignedTransaction {
+    #[napi(constructor)]
+    pub fn new(js_bytes: JsBuffer) -> Result<NativeUnsignedTransaction> {
+        let bytes = js_bytes.into_value()?;
+
+        let transaction = UnsignedTransaction::read(bytes.as_ref()).map_err(to_napi_err)?;
+
+        Ok(NativeUnsignedTransaction { transaction })
+    }
+
+    #[napi]
+    pub fn serialize(&self) -> Result<Buffer> {
+        let mut vec: Vec<u8> = vec![];
+        self.transaction.write(&mut vec).map_err(to_napi_err)?;
+
+        Ok(Buffer::from(vec))
+    }
 }

@@ -226,6 +226,11 @@ export class Transaction {
   build(proofGenerationKeyStr: string, viewKeyStr: string, outgoingViewKeyStr: string, publicAddressStr: string, intendedTransactionFee: bigint, changeGoesTo?: string | undefined | null): Buffer
   setExpiration(sequence: number): void
 }
+export type NativeUnsignedTransaction = UnsignedTransaction
+export class UnsignedTransaction {
+  constructor(jsBytes: Buffer)
+  serialize(): Buffer
+}
 export class FoundBlockResult {
   randomness: string
   miningRequestId: number
