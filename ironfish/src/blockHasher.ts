@@ -23,6 +23,14 @@ export class BlockHasher {
     }
   }
 
+  serializeHeader(header: RawBlockHeader): BlockHash {
+    if (this.consensus.isActive('enableFishHash', header.sequence)) {
+      return serializeHeaderFishHash(header)
+    }
+
+    return serializeHeaderBlake3(header)
+  }
+
   hashHeader(header: RawBlockHeader): BlockHash {
     const useFishHash = this.consensus.isActive('enableFishHash', header.sequence)
 
