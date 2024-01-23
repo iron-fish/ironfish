@@ -4,9 +4,14 @@
 
 use std::cell::RefCell;
 
+use std::collections::{BTreeMap, HashMap};
 use std::convert::TryInto;
 
 use ironfish::assets::asset_identifier::AssetIdentifier;
+use ironfish::frost::frost::round1::NonceCommitment;
+use ironfish::frost::round1::SigningCommitments;
+use ironfish::frost::Identifier;
+use ironfish::serializing::{bytes_to_hex, hex_to_bytes};
 use ironfish::transaction::unsigned::UnsignedTransaction;
 use ironfish::transaction::{
     batch_verify_transactions, TransactionVersion, TRANSACTION_EXPIRATION_SIZE,
@@ -23,7 +28,7 @@ use napi::{
 };
 use napi_derive::napi;
 
-use crate::to_napi_err;
+use crate::{frost::NativeSigningCommitments, to_napi_err};
 
 use super::note::NativeNote;
 use super::spend_proof::NativeSpendDescription;
@@ -395,5 +400,40 @@ impl NativeUnsignedTransaction {
         self.transaction.write(&mut vec).map_err(to_napi_err)?;
 
         Ok(Buffer::from(vec))
+    }
+
+    #[napi]
+    pub fn signing_package(
+        &self,
+        native_commitments: HashMap<String, NativeSigningCommitments>,
+    ) -> Result<String> {
+        let mut commitments: BTreeMap<Identifier, SigningCommitments> = BTreeMap::new();
+
+        for (identifier_hex, commitment_hex) in native_commitments {
+            let identifier_bytes = hex_to_bytes(&identifier_hex).map_err(to_napi_err)?;
+            let identifier = Identifier::deserialize(&identifier_bytes).map_err(to_napi_err)?;
+
+            let commitment = SigningCommitments::new(
+                NonceCommitment::deserialize(
+                    hex_to_bytes(&commitment_hex.hiding).map_err(to_napi_err)?,
+                )
+                .map_err(to_napi_err)?,
+                NonceCommitment::deserialize(
+                    hex_to_bytes(&commitment_hex.binding).map_err(to_napi_err)?,
+                )
+                .map_err(to_napi_err)?,
+            );
+
+            commitments.insert(identifier, commitment);
+        }
+
+        let signing_package = self
+            .transaction
+            .signing_package(commitments)
+            .map_err(to_napi_err)?;
+
+        Ok(bytes_to_hex(
+            &signing_package.serialize().map_err(to_napi_err)?,
+        ))
     }
 }
