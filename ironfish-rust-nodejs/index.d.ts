@@ -8,6 +8,7 @@ export interface SigningCommitments {
   binding: string
 }
 export function roundOne(keyPackage: string, seed: number): SigningCommitments
+export function roundTwo(signingPackage: string, keyPackage: string, publicKeyRandomness: string, seed: number): string
 export function contribute(inputPath: string, outputPath: string, seed?: string | undefined | null): Promise<string>
 export function verifyTransform(paramsPath: string, newParamsPath: string): Promise<string>
 export const KEY_LENGTH: number
@@ -230,6 +231,7 @@ export class UnsignedTransaction {
   constructor(jsBytes: Buffer)
   serialize(): Buffer
   signingPackage(nativeCommitments: Record<string, SigningCommitments>): string
+  signFrost(publicKeyPackageStr: string, signingPackageStr: string, signatureSharesMap: Record<string, string>): Buffer
 }
 export class FoundBlockResult {
   randomness: string

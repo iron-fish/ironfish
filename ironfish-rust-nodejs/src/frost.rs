@@ -3,11 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use ironfish::{
-    frost::{
-        keys::KeyPackage,
-        round2::{Randomizer, SignatureShare},
-        SigningPackage,
-    },
+    frost::{keys::KeyPackage, round2::Randomizer, SigningPackage},
     frost_utils::{round_one::round_one as round_one_rust, round_two::round_two as round_two_rust},
     serializing::{bytes_to_hex, hex_to_bytes, hex_to_vec_bytes},
 };
@@ -34,12 +30,13 @@ pub fn round_one(key_package: String, seed: u32) -> Result<NativeSigningCommitme
     })
 }
 
+#[napi]
 pub fn round_two(
     signing_package: String,
     key_package: String,
     public_key_randomness: String,
-    seed: u64,
-) -> Result<SignatureShare> {
+    seed: u32,
+) -> Result<String> {
     let key_package =
         KeyPackage::deserialize(&hex_to_vec_bytes(&key_package).map_err(to_napi_err)?[..])
             .map_err(to_napi_err)?;
@@ -49,5 +46,9 @@ pub fn round_two(
     let randomizer =
         Randomizer::deserialize(&hex_to_bytes(&public_key_randomness).map_err(to_napi_err)?)
             .map_err(to_napi_err)?;
-    round_two_rust(signing_package, key_package, randomizer, seed).map_err(to_napi_err)
+
+    let signature_share = round_two_rust(signing_package, key_package, randomizer, seed as u64)
+        .map_err(to_napi_err)?;
+
+    Ok(bytes_to_hex(&signature_share.serialize()))
 }
