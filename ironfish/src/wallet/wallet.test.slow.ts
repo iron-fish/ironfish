@@ -8,7 +8,9 @@ import {
   roundOne,
   SigningCommitments,
   splitSecret,
+  TrustedDealerKeyPackages,
 } from '@ironfish/rust-nodejs'
+import * as crypto from 'crypto'
 import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
 import { Target } from '../primitives/target'
@@ -1149,11 +1151,22 @@ describe('Wallet', () => {
 
       const coordinatorSaplingKey = generateKey()
 
-      const trustedDealerPackage = splitSecret(
+      function generateRandomBytesArray(length: number, count: number): string[] {
+        const array: string[] = []
+        for (let i = 0; i < count; i++) {
+          const randomBytes = crypto.randomBytes(length)
+          array.push(randomBytes.toString('hex'))
+        }
+        return array
+      }
+
+      const identifiers = generateRandomBytesArray(32, 3)
+
+      const trustedDealerPackage: TrustedDealerKeyPackages = splitSecret(
         coordinatorSaplingKey.spendingKey,
         minSigners,
         maxSigners,
-        [],
+        identifiers,
       )
 
       const keyPackages = Object.entries(trustedDealerPackage.keyPackages)
@@ -1280,14 +1293,14 @@ describe('Wallet', () => {
           signingPackage.publicKeyRandomness,
           seed,
         ),
-        [participantB.multiSigIdentifier!]: frostRoundTwo(
-          signingPackage.signingPackage,
+        [participantB.multiSigKeys.identifier]: roundTwo(
+          signingPackage,
           participantB.keyPackage,
           signingPackage.publicKeyRandomness,
           seed,
         ),
-        [participantC.multiSigIdentifier!]: frostRoundTwo(
-          signingPackage.signingPackage,
+        [participantC.multiSigKeys.identifier]: roundTwo(
+          signingPackage,
           participantC.keyPackage,
           signingPackage.publicKeyRandomness,
           seed,
