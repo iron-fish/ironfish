@@ -665,7 +665,7 @@ fn test_sign_frost() {
     }
 
     // key package generation by trusted dealer
-    let key_packages = split_spender_key(spender_key, 2, 3, identifiers)
+    let key_packages = split_spender_key(&spender_key, 2, 3, identifiers)
         .expect("should be able to split spender key");
 
     // create raw/proposed transaction

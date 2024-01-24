@@ -248,7 +248,7 @@ impl UnsignedTransaction {
             mints: mint_descriptions,
             burns: self.burns.clone(),
             binding_signature: self.binding_signature,
-            randomized_public_key: redjubjub::PublicKey(self.randomized_public_key.0),
+            randomized_public_key: self.randomized_public_key.clone(),
         };
 
         Ok(transaction)
