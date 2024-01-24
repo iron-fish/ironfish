@@ -10,6 +10,11 @@ import { RpcServer } from '../server'
  */
 export interface IRpcAdapter {
   /**
+   * True if the adapter has been started
+   */
+  readonly started: boolean
+
+  /**
    * Called when the adapter has been added to an RpcServer.
    * This lets you get access to both the RpcServer, and the
    * node on the server if you want to access anything like

@@ -2,76 +2,83 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { Assert } from '../../assert'
-import { IronfishSdk } from '../../sdk'
-import { getUniqueTestDataDir } from '../../testUtilities'
-import { PromiseUtils } from '../../utils/promise'
-import { RpcRequestError } from '../clients'
-import { RpcIpcClient } from '../clients/ipcClient'
-import { ALL_API_NAMESPACES } from '../routes/router'
-import { RPC_ERROR_CODES, RpcValidationError } from './errors'
-import { RpcIpcAdapter } from './ipcAdapter'
+import { FullNode } from '../../../node'
+import {
+  IRpcAdapter,
+  Router,
+  RPC_ERROR_CODES,
+  RpcClient,
+  RpcRequestError,
+  RpcValidationError,
+} from '../../../rpc'
+import { IronfishSdk } from '../../../sdk'
+import { createNodeTest } from '../../../testUtilities'
+import { PromiseUtils } from '../../../utils/promise'
 
-describe('IpcAdapter', () => {
-  let ipc: RpcIpcAdapter
-  let sdk: IronfishSdk
-  let client: RpcIpcClient
+export function createAdapterTest(
+  onSetup: (
+    sdk: IronfishSdk,
+    node: FullNode,
+  ) => Promise<{
+    client: RpcClient
+    router: Router
+    adapter: IRpcAdapter
+  }>,
+  onTeardown: () => void | Promise<void>,
+  onConnect: () => void | Promise<void>,
+  onDisconnect: () => void,
+): void {
+  let client: RpcClient
+  let router: Router
+  let adapter: IRpcAdapter
+
+  const nodeTest = createNodeTest(false, {
+    config: {
+      enableRpc: false,
+      enableRpcIpc: false,
+      enableRpcTcp: false,
+      enableRpcTls: false,
+      enableRpcHttp: false,
+    },
+  })
 
   beforeEach(async () => {
-    sdk = await IronfishSdk.init({
-      dataDir: getUniqueTestDataDir(),
-      configOverrides: {
-        enableRpc: false,
-        enableRpcIpc: false,
-      },
-    })
-
-    ipc = new RpcIpcAdapter(sdk.config.get('ipcPath'), undefined, ALL_API_NAMESPACES)
-
-    const node = await sdk.node()
-    await node.rpc.mount(ipc)
-
-    Assert.isInstanceOf(sdk.client, RpcIpcClient)
-    client = sdk.client
+    // eslint-disable-next-line @typescript-eslint/no-extra-semi
+    ;({ client, router, adapter } = await onSetup(nodeTest.sdk, nodeTest.node))
+    await onConnect()
   })
 
   afterEach(async () => {
-    client.close()
-    await ipc.stop()
+    onDisconnect()
+    await onTeardown()
   })
 
-  it('should start and stop', async () => {
-    expect(ipc).toBeInstanceOf(RpcIpcAdapter)
-    expect(ipc.started).toBe(false)
+  it('adapter should start and stop', async () => {
+    await adapter.stop()
+    expect(adapter.started).toBe(false)
 
-    await ipc.start()
-    expect(ipc.started).toBe(true)
+    await adapter.start()
+    expect(adapter.started).toBe(true)
 
-    await ipc.stop()
-    expect(ipc.started).toBe(false)
+    await adapter.stop()
+    expect(adapter.started).toBe(false)
   })
 
   it('should send and receive message', async () => {
-    ipc.router?.routes.register('foo/bar', yup.string(), (request) => {
+    router.routes.register('foo/bar', yup.string(), (request) => {
       request.end(request.data)
     })
-
-    await ipc.start()
-    await client.connect()
 
     const response = await client.request('foo/bar', 'hello world').waitForEnd()
     expect(response.content).toBe('hello world')
   })
 
   it('should stream message', async () => {
-    ipc.router?.routes.register('foo/bar', yup.object({}), (request) => {
+    router.routes.register('foo/bar', yup.object({}), (request) => {
       request.stream('hello 1')
       request.stream('hello 2')
       request.end()
     })
-
-    await ipc.start()
-    await client.connect()
 
     const response = client.request('foo/bar')
     expect((await response.contentStream().next()).value).toBe('hello 1')
@@ -84,16 +91,10 @@ describe('IpcAdapter', () => {
   it('should not crash on disconnect while streaming', async () => {
     const [waitPromise, waitResolve] = PromiseUtils.split<void>()
 
-    ipc.router?.routes.register('foo/bar', yup.object({}), async () => {
-      await waitPromise
-    })
-
-    await ipc.start()
-    await client.connect()
-
+    router.routes.register('foo/bar', yup.object({}), () => waitPromise)
     const next = client.request('foo/bar').contentStream().next()
 
-    client.close()
+    onDisconnect()
     waitResolve()
 
     expect.assertions(0)
@@ -101,12 +102,9 @@ describe('IpcAdapter', () => {
   })
 
   it('should handle errors', async () => {
-    ipc.router?.routes.register('foo/bar', yup.object({}), () => {
+    router.routes.register('foo/bar', yup.object({}), () => {
       throw new RpcValidationError('hello error', 402, 'hello-error' as RPC_ERROR_CODES)
     })
-
-    await ipc.start()
-    await client.connect()
 
     const response = client.request('foo/bar')
 
@@ -124,10 +122,7 @@ describe('IpcAdapter', () => {
     // But send this instead
     const body = undefined
 
-    ipc.router?.routes.register('foo/bar', schema, (res) => res.end())
-
-    await ipc.start()
-    await client.connect()
+    router.routes.register('foo/bar', schema, (res) => res.end())
 
     const response = client.request('foo/bar', body)
 
@@ -135,7 +130,8 @@ describe('IpcAdapter', () => {
     await expect(response.waitForEnd()).rejects.toMatchObject({
       status: 400,
       code: RPC_ERROR_CODES.VALIDATION,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       codeMessage: expect.stringContaining('this must be defined'),
     })
   })
-})
+}
