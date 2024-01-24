@@ -78,7 +78,7 @@ impl ParticipantSecret {
     }
 }
 
-#[napi(js_name = "Identity")]
+#[napi]
 pub struct ParticipantIdentity {
     identity: Identity,
 }

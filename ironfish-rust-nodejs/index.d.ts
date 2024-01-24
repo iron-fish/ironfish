@@ -99,8 +99,7 @@ export class ParticipantSecret {
   constructor()
   toIdentity(): ParticipantIdentity
 }
-export type ParticipantIdentity = Identity
-export class Identity {
+export class ParticipantIdentity {
   constructor(jsBytes: Buffer)
   serialize(): Buffer
   toFrostIdentifier(): string

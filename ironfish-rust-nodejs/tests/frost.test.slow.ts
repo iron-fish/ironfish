@@ -2,32 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { FrostIdentity, FrostSecret } from "..";
+import { ParticipantIdentity, ParticipantSecret } from "..";
 
-describe('FrostIdentity', () => {
+describe('ParticipantIdentity', () => {
   describe('ser/de', () => {
     it('serializes and deserializes as a buffer', () => {
-      const secret = new FrostSecret()
+      const secret = new ParticipantSecret()
 
       const identity = secret.toIdentity()
 
       const serialized = identity.serialize()
 
-      const deserialized = new FrostIdentity(serialized)
+      const deserialized = new ParticipantIdentity(serialized)
 
       expect(identity).toEqual(deserialized)
-    })
-
-    it('serializes and deserializes as hex', () => {
-      const secret = new FrostSecret()
-
-      const identity = secret.toIdentity()
-
-      const identityHex = identity.toHex()
-
-      const identityFromHex = FrostIdentity.fromHex(identityHex)
-
-      expect(identity).toEqual(identityFromHex)
     })
   })
 })
