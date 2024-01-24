@@ -294,4 +294,9 @@ impl UnsignedTransaction {
         let data_to_sign = self.transaction_signature_hash()?;
         Ok(SigningPackage::new(commitments, &data_to_sign))
     }
+
+    // Exposes the public key package for use in round two of FROST multisig protocol
+    pub fn public_key_randomness(&self) -> jubjub::Fr {
+        self.public_key_randomness
+    }
 }

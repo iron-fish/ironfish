@@ -407,6 +407,12 @@ impl NativeUnsignedTransaction {
     }
 
     #[napi]
+    pub fn public_key_randomness(&self) -> String {
+        let bytes = self.transaction.public_key_randomness().to_bytes();
+        bytes_to_hex(&bytes)
+    }
+
+    #[napi]
     pub fn signing_package(
         &self,
         native_commitments: HashMap<String, NativeSigningCommitments>,
