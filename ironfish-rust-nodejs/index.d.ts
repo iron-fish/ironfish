@@ -229,6 +229,7 @@ export type NativeUnsignedTransaction = UnsignedTransaction
 export class UnsignedTransaction {
   constructor(jsBytes: Buffer)
   serialize(): Buffer
+  signingPackage(nativeCommitments: Record<string, SigningCommitments>): string
 }
 export class FoundBlockResult {
   randomness: string
