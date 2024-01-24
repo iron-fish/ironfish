@@ -102,9 +102,7 @@ export class ParticipantSecret {
 export type ParticipantIdentity = Identity
 export class Identity {
   constructor(jsBytes: Buffer)
-  static fromHex(hex: string): Identity
   serialize(): Buffer
-  toHex(): string
   toFrostIdentifier(): string
 }
 export class BoxKeyPair {

@@ -95,15 +95,6 @@ impl ParticipantIdentity {
     }
 
     #[napi]
-    pub fn from_hex(hex: String) -> Result<ParticipantIdentity> {
-        let bytes: [u8; IDENTITY_LEN] = hex_to_bytes(&hex).map_err(to_napi_err)?;
-
-        let identity = Identity::deserialize_from(bytes.as_ref()).map_err(to_napi_err)?;
-
-        Ok(ParticipantIdentity { identity })
-    }
-
-    #[napi]
     pub fn serialize(&self) -> Result<Buffer> {
         let mut vec: Vec<u8> = vec![];
         self.identity
@@ -111,16 +102,6 @@ impl ParticipantIdentity {
             .map_err(to_napi_err)?;
 
         Ok(Buffer::from(vec))
-    }
-
-    #[napi]
-    pub fn to_hex(&self) -> Result<String> {
-        let mut vec: Vec<u8> = vec![];
-        self.identity
-            .serialize_into(&mut vec)
-            .map_err(to_napi_err)?;
-
-        Ok(bytes_to_hex(&vec))
     }
 
     #[napi]
