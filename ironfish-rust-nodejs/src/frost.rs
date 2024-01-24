@@ -5,7 +5,7 @@
 use ironfish::{
     frost::{keys::KeyPackage, round2::Randomizer, Identifier, SigningPackage},
     frost_utils::{round_one::round_one as round_one_rust, round_two::round_two as round_two_rust},
-    participant::{Identity, Secret, IDENTITY_LEN},
+    participant::{Identity, Secret},
     serializing::{bytes_to_hex, hex_to_bytes, hex_to_vec_bytes},
 };
 use napi::{bindgen_prelude::*, JsBuffer};
