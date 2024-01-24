@@ -123,6 +123,10 @@ impl UnsignedTransaction {
         })
     }
 
+    pub fn public_key_randomness(&self) -> jubjub::Fr {
+        self.public_key_randomness
+    }
+
     /// Store the bytes of this transaction in the given writer. This is used
     /// to serialize transactions to file or network
     pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {

@@ -6,13 +6,14 @@ import {
   ASSET_ID_LENGTH,
   generateKey,
   roundOne,
+  roundTwo,
   SigningCommitments,
   splitSecret,
   TrustedDealerKeyPackages,
 } from '@ironfish/rust-nodejs'
-import * as crypto from 'crypto'
 import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
+import { Transaction } from '../primitives'
 import { Target } from '../primitives/target'
 import {
   createNodeTest,
@@ -1151,16 +1152,10 @@ describe('Wallet', () => {
 
       const coordinatorSaplingKey = generateKey()
 
-      function generateRandomBytesArray(length: number, count: number): string[] {
-        const array: string[] = []
-        for (let i = 0; i < count; i++) {
-          const randomBytes = crypto.randomBytes(length)
-          array.push(randomBytes.toString('hex'))
-        }
-        return array
-      }
+      const identifiers = []
 
-      const identifiers = generateRandomBytesArray(32, 3)
+      // construct 3 separate secrets for the participants
+      // take the secrets and get identifiers back (get identity first then identifier)
 
       const trustedDealerPackage: TrustedDealerKeyPackages = splitSecret(
         coordinatorSaplingKey.spendingKey,
@@ -1285,31 +1280,32 @@ describe('Wallet', () => {
       )
 
       const signingPackage = unsignedTransaction.signingPackage(signingCommitments)
+      const publicKeyRandomnes = unsignedTransaction.publicKeyRandomness()
 
       const signatureShares: Record<string, string> = {
         [participantA.multiSigKeys.identifier]: roundTwo(
           signingPackage,
           participantA.multiSigKeys.keyPackage,
-          signingPackage.publicKeyRandomness,
+          publicKeyRandomnes,
           seed,
         ),
         [participantB.multiSigKeys.identifier]: roundTwo(
           signingPackage,
-          participantB.keyPackage,
-          signingPackage.publicKeyRandomness,
+          participantB.multiSigKeys.keyPackage,
+          publicKeyRandomnes,
           seed,
         ),
         [participantC.multiSigKeys.identifier]: roundTwo(
           signingPackage,
-          participantC.keyPackage,
-          signingPackage.publicKeyRandomness,
+          participantC.multiSigKeys.keyPackage,
+          publicKeyRandomnes,
           seed,
         ),
       }
 
-      const serializedFrostTransaction = unsignedTransaction.postFrostAggregate(
+      const serializedFrostTransaction = unsignedTransaction.signFrost(
         trustedDealerPackage.publicKeyPackage,
-        signingPackage.signingPackage,
+        signingPackage,
         signatureShares,
       )
       const frostTransaction = new Transaction(serializedFrostTransaction)
