@@ -230,6 +230,7 @@ export type NativeUnsignedTransaction = UnsignedTransaction
 export class UnsignedTransaction {
   constructor(jsBytes: Buffer)
   serialize(): Buffer
+  publicKeyRandomness(): string
   signingPackage(nativeCommitments: Record<string, SigningCommitments>): string
   signFrost(publicKeyPackageStr: string, signingPackageStr: string, signatureSharesMap: Record<string, string>): Buffer
 }
