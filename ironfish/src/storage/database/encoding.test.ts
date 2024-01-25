@@ -3,7 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import leveldown from 'leveldown'
-import { PrefixEncoding, PrefixSizeError, StringEncoding } from '../database'
+import {
+  BigU64BEEncoding,
+  BufferEncoding,
+  PrefixArrayEncoding,
+  PrefixEncoding,
+  PrefixSizeError,
+  StringEncoding,
+} from '../database'
 import { StorageUtils } from '../database/utils'
 import { LevelupDatabase } from '../levelup'
 
@@ -14,6 +21,64 @@ describe('Encoding', () => {
 
   afterEach(async () => {
     await db.close()
+  })
+
+  describe('PrefixArrayEncoding', () => {
+    it('should encode and decode', () => {
+      const encoding = new PrefixArrayEncoding<[Buffer, Buffer, bigint, Buffer]>([
+        [new BufferEncoding(), 4],
+        [new BufferEncoding(), 32],
+        [new BigU64BEEncoding(), 8],
+        [new BufferEncoding(), 32],
+      ])
+
+      const a = Buffer.alloc(4, Math.random().toString())
+      const b = Buffer.alloc(32, Math.random().toString())
+      const c = BigInt(Math.floor(Math.random() * 10000000))
+      const d = Buffer.alloc(32, Math.random().toString())
+
+      const encoded = encoding.serialize([a, b, c, d])
+      const decoded = encoding.deserialize(encoded)
+
+      expect(decoded[0].equals(a)).toBe(true)
+      expect(decoded[1].equals(b)).toBe(true)
+      expect(decoded[2]).toEqual(c)
+      expect(decoded[3].equals(d)).toBe(true)
+    })
+
+    it('should throw error if length wrong', () => {
+      const encoding = new PrefixArrayEncoding<[Buffer]>([[new BufferEncoding(), 4]])
+      expect(() => encoding.serialize([Buffer.alloc(10)])).toThrow(PrefixSizeError)
+    })
+
+    it('should compare to PrefixEncoding', () => {
+      const encodingA = new PrefixArrayEncoding<[Buffer, Buffer, bigint, Buffer]>([
+        [new BufferEncoding(), 4],
+        [new BufferEncoding(), 32],
+        [new BigU64BEEncoding(), 8],
+        [new BufferEncoding(), 32],
+      ])
+
+      const encodingB = new PrefixEncoding(
+        new BufferEncoding(),
+        new PrefixEncoding(
+          new BufferEncoding(),
+          new PrefixEncoding(new BigU64BEEncoding(), new BufferEncoding(), 8),
+          32,
+        ),
+        4,
+      )
+
+      const a = Buffer.alloc(4, Math.random().toString())
+      const b = Buffer.alloc(32, Math.random().toString())
+      const c = BigInt(Math.floor(Math.random() * 10000000))
+      const d = Buffer.alloc(32, Math.random().toString())
+
+      const encodedA = encodingA.serialize([a, b, c, d])
+      const encodedB = encodingB.serialize([a, [b, [c, d]]])
+
+      expect(encodedA.equals(encodedB)).toBe(true)
+    })
   })
 
   describe('PrefixEncoding', () => {

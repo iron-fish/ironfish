@@ -107,18 +107,20 @@ describe('WalletDB', () => {
           return walletDb.valueToUnspentNoteHashes.put(
             [
               account.prefix,
-              [Asset.nativeId(), [value, Buffer.from(value.toString(16), 'hex')]],
+              Asset.nativeId(),
+              value,
+              Buffer.alloc(32, Math.random().toString()),
             ],
             null,
           )
         }),
       )
 
-      const allNotes = await walletDb.valueToUnspentNoteHashes.getAll()
+      const allNotes = await walletDb.valueToUnspentNoteHashes.getAllKeys()
 
       const correctOrder = [1n, 10n, 100n, 1000n, 10000n]
 
-      const values = allNotes.map((note) => note[0][1][1][0])
+      const values = allNotes.map((note) => note[2])
 
       expect(values).toEqual(correctOrder)
     })
