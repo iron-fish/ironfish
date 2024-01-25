@@ -21,6 +21,7 @@ import {
   IDatabaseStore,
   IDatabaseTransaction,
   NULL_ENCODING,
+  PrefixArrayEncoding,
   PrefixEncoding,
   StringEncoding,
   U32_ENCODING_BE,
@@ -129,7 +130,7 @@ export class WalletDB {
   }>
 
   valueToUnspentNoteHashes: IDatabaseStore<{
-    key: [Account['prefix'], [Buffer, [bigint, Buffer]]] // account prefix, asset ID, value, note hash
+    key: [Account['prefix'], Buffer, bigint, Buffer] // account prefix, asset ID, value, note hash
     value: null
   }>
 
@@ -282,19 +283,12 @@ export class WalletDB {
 
     this.valueToUnspentNoteHashes = this.db.addStore({
       name: 'valueToUnspentNoteHashes',
-      keyEncoding: new PrefixEncoding(
-        new BufferEncoding(), // account prefix
-        new PrefixEncoding(
-          new BufferEncoding(), // asset ID
-          new PrefixEncoding(
-            new BigU64BEEncoding(), // value
-            new BufferEncoding(), // note hash
-            8,
-          ),
-          32,
-        ),
-        4,
-      ),
+      keyEncoding: new PrefixArrayEncoding([
+        [new BufferEncoding(), 4], // account prefix
+        [new BufferEncoding(), 32], // asset ID
+        [new BigU64BEEncoding(), 8], // value
+        [new BufferEncoding(), 32], // note hash
+      ]),
       valueEncoding: NULL_ENCODING,
     })
 
@@ -613,7 +607,7 @@ export class WalletDB {
     )
 
     await this.valueToUnspentNoteHashes.put(
-      [account.prefix, [assetId, [value, noteHash]]],
+      [account.prefix, assetId, value, noteHash],
       null,
       tx,
     )
@@ -636,7 +630,7 @@ export class WalletDB {
       tx,
     )
 
-    await this.valueToUnspentNoteHashes.del([account.prefix, [assetId, [value, noteHash]]], tx)
+    await this.valueToUnspentNoteHashes.del([account.prefix, assetId, value, noteHash], tx)
   }
 
   async *loadValueToUnspentNoteHashes(
@@ -658,7 +652,7 @@ export class WalletDB {
       encoding.serialize([account.prefix, [assetId, end]]),
     )
 
-    for await (const [, [, [_, noteHash]]] of this.valueToUnspentNoteHashes.getAllKeysIter(
+    for await (const [, , , noteHash] of this.valueToUnspentNoteHashes.getAllKeysIter(
       tx,
       range,
       {

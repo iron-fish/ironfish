@@ -103,6 +103,61 @@ export class PrefixEncoding<TPrefix, TKey> implements IDatabaseEncoding<[TPrefix
   }
 }
 
+type WrapDatabaseEncoding<Tuple extends [...unknown[]]> = {
+  [Index in keyof Tuple]: IDatabaseEncoding<Tuple[Index]>
+}
+
+type WrapDatabaseEncodingInLength<Tuple extends [...unknown[]]> = {
+  [Index in keyof Tuple]: [Tuple[Index], number]
+} & { length: number }
+
+export class PrefixArrayEncoding<
+  TValues extends unknown[],
+  TEncodings extends WrapDatabaseEncoding<TValues> = WrapDatabaseEncoding<TValues>,
+> implements IDatabaseEncoding<[...rest: TValues]>
+{
+  readonly encoders: WrapDatabaseEncodingInLength<TEncodings>
+
+  constructor(encoders: WrapDatabaseEncodingInLength<TEncodings>) {
+    this.encoders = encoders
+  }
+
+  serialize = (values: TValues): Buffer => {
+    const result = []
+    let index = 0
+
+    for (const value of values) {
+      const [encoder, length] = this.encoders[index]
+      const encoded = encoder.serialize(value)
+      result.push(encoded)
+
+      if (encoded.byteLength !== length) {
+        throw new PrefixSizeError(
+          `key prefix at index ${index} expected to be ${length} byte(s) but was ${encoded.byteLength} when encoding ${encoder.constructor.name}`,
+        )
+      }
+
+      index++
+    }
+
+    return Buffer.concat(result)
+  }
+
+  deserialize = (buffer: Buffer): TValues => {
+    const results = []
+    let offset = 0
+
+    for (const [encoder, length] of Array.from(this.encoders)) {
+      const slice = buffer.slice(offset, offset + length)
+      const key = encoder.deserialize(slice)
+      results.push(key)
+      offset += length
+    }
+
+    return results as TValues
+  }
+}
+
 export class NullableBufferEncoding implements IDatabaseEncoding<Buffer | null> {
   serialize = (value: Buffer | null): Buffer => {
     const size = value ? bufio.sizeVarBytes(value) : 0
