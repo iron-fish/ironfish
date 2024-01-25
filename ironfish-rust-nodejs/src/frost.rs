@@ -2,17 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::{
+    structs::{IdentiferKeyPackage, TrustedDealerKeyPackages},
+    to_napi_err,
+};
+use ironfish::keys::ProofGenerationKeySerializable;
 use ironfish::{
     frost::{keys::KeyPackage, round2::Randomizer, Identifier, SigningPackage},
+    frost_utils::split_spender_key::split_spender_key,
     frost_utils::{round_one::round_one as round_one_rust, round_two::round_two as round_two_rust},
     participant::{Identity, Secret},
     serializing::{bytes_to_hex, hex_to_bytes, hex_to_vec_bytes},
+    SaplingKey,
 };
 use napi::{bindgen_prelude::*, JsBuffer};
 use napi_derive::napi;
 use rand::thread_rng;
-
-use crate::to_napi_err;
 
 #[napi(object, js_name = "SigningCommitments")]
 pub struct NativeSigningCommitments {
@@ -110,4 +115,48 @@ impl ParticipantIdentity {
 
         bytes_to_hex(&identifier.serialize())
     }
+}
+
+#[napi]
+pub fn split_secret(
+    coordinator_sapling_key: String,
+    min_signers: u16,
+    max_signers: u16,
+    identifiers: Vec<String>,
+) -> Result<TrustedDealerKeyPackages> {
+    let coordinator_key =
+        SaplingKey::new(hex_to_bytes(&coordinator_sapling_key).map_err(to_napi_err)?)
+            .map_err(to_napi_err)?;
+
+    let mut converted = Vec::new();
+
+    for identifier in &identifiers {
+        let bytes = hex_to_bytes(identifier).map_err(to_napi_err)?;
+        let deserialized = Identifier::deserialize(&bytes).map_err(to_napi_err)?;
+        converted.push(deserialized);
+    }
+
+    let t = split_spender_key(&coordinator_key, min_signers, max_signers, converted)
+        .map_err(to_napi_err)?;
+
+    let mut key_packages_serialized = Vec::new();
+    for (k, v) in t.key_packages.iter() {
+        key_packages_serialized.push(IdentiferKeyPackage {
+            identifier: bytes_to_hex(&k.serialize()),
+            key_package: bytes_to_hex(&v.serialize().map_err(to_napi_err)?),
+        });
+    }
+
+    let public_key_package = t.public_key_package.serialize().map_err(to_napi_err)?;
+
+    Ok(TrustedDealerKeyPackages {
+        verifying_key: bytes_to_hex(&t.verifying_key),
+        proof_generation_key: t.proof_generation_key.hex_key(),
+        view_key: t.view_key.hex_key(),
+        incoming_view_key: t.incoming_view_key.hex_key(),
+        outgoing_view_key: t.outgoing_view_key.hex_key(),
+        public_address: t.public_address.hex_public_address(),
+        key_packages: key_packages_serialized,
+        public_key_package: bytes_to_hex(&public_key_package),
+    })
 }

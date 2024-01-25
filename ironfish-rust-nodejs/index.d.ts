@@ -9,6 +9,7 @@ export interface SigningCommitments {
 }
 export function roundOne(keyPackage: string, seed: number): SigningCommitments
 export function roundTwo(signingPackage: string, keyPackage: string, publicKeyRandomness: string, seed: number): string
+export function splitSecret(coordinatorSaplingKey: string, minSigners: number, maxSigners: number, identifiers: Array<string>): TrustedDealerKeyPackages
 export function contribute(inputPath: string, outputPath: string, seed?: string | undefined | null): Promise<string>
 export function verifyTransform(paramsPath: string, newParamsPath: string): Promise<string>
 export const KEY_LENGTH: number
@@ -55,6 +56,10 @@ export const TRANSACTION_EXPIRATION_LENGTH: number
 export const TRANSACTION_FEE_LENGTH: number
 export const LATEST_TRANSACTION_VERSION: number
 export function verifyTransactions(serializedTransactions: Array<Buffer>): boolean
+export interface IdentiferKeyPackage {
+  identifier: string
+  keyPackage: string
+}
 export interface TrustedDealerKeyPackages {
   verifyingKey: string
   proofGenerationKey: string
@@ -62,7 +67,7 @@ export interface TrustedDealerKeyPackages {
   incomingViewKey: string
   outgoingViewKey: string
   publicAddress: string
-  keyPackages: Record<string, string>
+  keyPackages: Array<IdentiferKeyPackage>
   publicKeyPackage: string
 }
 export const enum LanguageCode {
@@ -83,7 +88,6 @@ export interface Key {
   publicAddress: string
   proofGenerationKey: string
 }
-export function splitSecret(coordinatorSaplingKey: string, minSigners: number, maxSigners: number, identifiers: Array<string>): TrustedDealerKeyPackages
 export function generateKey(): Key
 export function spendingKeyToWords(privateKey: string, languageCode: LanguageCode): string
 export function wordsToSpendingKey(words: string, languageCode: LanguageCode): string
