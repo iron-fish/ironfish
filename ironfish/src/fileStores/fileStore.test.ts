@@ -39,11 +39,14 @@ describe('FileStore', () => {
     await flushTimeout()
     await flushTimeout()
     await flushTimeout()
+    await flushTimeout()
     expect(writeFileSpy).toHaveBeenCalledTimes(1)
 
     resolve1()
     // Resolve the first promise, freeing the mutex and allowing save2 to
     // execute
+    await flushTimeout()
+    await flushTimeout()
     await flushTimeout()
     await flushTimeout()
     expect(writeFileSpy).toHaveBeenCalledTimes(2)
