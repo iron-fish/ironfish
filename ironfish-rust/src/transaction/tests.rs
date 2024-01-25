@@ -651,6 +651,54 @@ fn test_batch_verify() {
 }
 
 #[test]
+fn test_sign_simple() {
+    let spender_key = SaplingKey::generate_key();
+    let receiver_key = SaplingKey::generate_key();
+    let sender_key = SaplingKey::generate_key();
+
+    let in_note = Note::new(
+        spender_key.public_address(),
+        42,
+        "",
+        NATIVE_ASSET,
+        sender_key.public_address(),
+    );
+    let out_note = Note::new(
+        receiver_key.public_address(),
+        40,
+        "",
+        NATIVE_ASSET,
+        spender_key.public_address(),
+    );
+    let witness = make_fake_witness(&in_note);
+
+    // create transaction, add spend and output
+    let mut transaction = ProposedTransaction::new(TransactionVersion::latest());
+    transaction.add_spend(in_note, &witness).unwrap();
+    transaction.add_output(out_note).unwrap();
+
+    // build transaction, generate proofs
+    let unsigned_transaction = transaction
+        .build(
+            spender_key.sapling_proof_generation_key(),
+            spender_key.view_key().clone(),
+            spender_key.outgoing_view_key().clone(),
+            spender_key.public_address(),
+            1,
+            Some(spender_key.public_address()),
+        )
+        .expect("should be able to build unsigned transaction");
+
+    // sign transaction
+    let signed_transaction = unsigned_transaction
+        .sign(&spender_key)
+        .expect("should be able to sign transaction");
+
+    // verify transaction
+    verify_transaction(&signed_transaction).expect("should be able to verify transaction");
+}
+
+#[test]
 fn test_sign_frost() {
     let spender_key = SaplingKey::generate_key();
 
