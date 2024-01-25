@@ -100,7 +100,9 @@ export class FishHashContext {
   hash(header: Buffer): Buffer
 }
 export class ParticipantSecret {
-  constructor()
+  constructor(jsBytes: Buffer)
+  serialize(): Buffer
+  static random(): ParticipantSecret
   toIdentity(): ParticipantIdentity
 }
 export class ParticipantIdentity {

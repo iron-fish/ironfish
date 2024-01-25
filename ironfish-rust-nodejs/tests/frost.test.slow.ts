@@ -7,7 +7,7 @@ import { ParticipantIdentity, ParticipantSecret } from "..";
 describe('ParticipantIdentity', () => {
   describe('ser/de', () => {
     it('serializes and deserializes as a buffer', () => {
-      const secret = new ParticipantSecret()
+      const secret = ParticipantSecret.random()
 
       const identity = secret.toIdentity()
 

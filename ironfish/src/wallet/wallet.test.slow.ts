@@ -1156,7 +1156,7 @@ describe('Wallet', () => {
       const identifiers: string[] = []
 
       for (let i = 0; i < maxSigners; i++) {
-        identifiers.push(new ParticipantSecret().toIdentity().toFrostIdentifier())
+        identifiers.push(ParticipantSecret.random().toIdentity().toFrostIdentifier())
       }
 
       // construct 3 separate secrets for the participants

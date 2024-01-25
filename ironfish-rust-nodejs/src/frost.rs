@@ -67,8 +67,24 @@ pub struct ParticipantSecret {
 
 #[napi]
 impl ParticipantSecret {
-    // TODO(hughy): implement Secret ser/de
     #[napi(constructor)]
+    pub fn new(js_bytes: JsBuffer) -> Result<ParticipantSecret> {
+        let bytes = js_bytes.into_value()?;
+
+        let secret = Secret::deserialize_from(bytes.as_ref()).map_err(to_napi_err)?;
+
+        Ok(ParticipantSecret { secret })
+    }
+
+    #[napi]
+    pub fn serialize(&self) -> Result<Buffer> {
+        let mut vec: Vec<u8> = vec![];
+        self.secret.serialize_into(&mut vec).map_err(to_napi_err)?;
+
+        Ok(Buffer::from(vec))
+    }
+
+    #[napi]
     pub fn random() -> ParticipantSecret {
         let secret = Secret::random(thread_rng());
 
