@@ -95,6 +95,15 @@ export class FishHashContext {
   prebuildDataset(threads: number): void
   hash(header: Buffer): Buffer
 }
+export class ParticipantSecret {
+  constructor()
+  toIdentity(): ParticipantIdentity
+}
+export class ParticipantIdentity {
+  constructor(jsBytes: Buffer)
+  serialize(): Buffer
+  toFrostIdentifier(): string
+}
 export class BoxKeyPair {
   constructor()
   static fromHex(secretHex: string): BoxKeyPair

@@ -22,6 +22,7 @@ pub mod util;
 pub mod witness;
 pub use {
     ironfish_frost::frost,
+    ironfish_frost::participant,
     keys::{IncomingViewKey, OutgoingViewKey, PublicAddress, SaplingKey, ViewKey},
     merkle_note::MerkleNote,
     merkle_note_hash::MerkleNoteHash,

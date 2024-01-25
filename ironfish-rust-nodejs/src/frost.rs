@@ -3,12 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use ironfish::{
-    frost::{keys::KeyPackage, round2::Randomizer, SigningPackage},
+    frost::{keys::KeyPackage, round2::Randomizer, Identifier, SigningPackage},
     frost_utils::{round_one::round_one as round_one_rust, round_two::round_two as round_two_rust},
+    participant::{Identity, Secret},
     serializing::{bytes_to_hex, hex_to_bytes, hex_to_vec_bytes},
 };
-use napi::bindgen_prelude::*;
+use napi::{bindgen_prelude::*, JsBuffer};
 use napi_derive::napi;
+use rand::thread_rng;
 
 use crate::to_napi_err;
 
@@ -51,4 +53,61 @@ pub fn round_two(
         .map_err(to_napi_err)?;
 
     Ok(bytes_to_hex(&signature_share.serialize()))
+}
+
+#[napi]
+pub struct ParticipantSecret {
+    secret: Secret,
+}
+
+#[napi]
+impl ParticipantSecret {
+    // TODO(hughy): implement Secret ser/de
+    #[napi(constructor)]
+    pub fn random() -> ParticipantSecret {
+        let secret = Secret::random(thread_rng());
+
+        ParticipantSecret { secret }
+    }
+
+    #[napi]
+    pub fn to_identity(&self) -> Result<ParticipantIdentity> {
+        let identity = self.secret.to_identity();
+
+        Ok(ParticipantIdentity { identity })
+    }
+}
+
+#[napi]
+pub struct ParticipantIdentity {
+    identity: Identity,
+}
+
+#[napi]
+impl ParticipantIdentity {
+    #[napi(constructor)]
+    pub fn new(js_bytes: JsBuffer) -> Result<ParticipantIdentity> {
+        let bytes = js_bytes.into_value()?;
+
+        let identity = Identity::deserialize_from(bytes.as_ref()).map_err(to_napi_err)?;
+
+        Ok(ParticipantIdentity { identity })
+    }
+
+    #[napi]
+    pub fn serialize(&self) -> Result<Buffer> {
+        let mut vec: Vec<u8> = vec![];
+        self.identity
+            .serialize_into(&mut vec)
+            .map_err(to_napi_err)?;
+
+        Ok(Buffer::from(vec))
+    }
+
+    #[napi]
+    pub fn to_frost_identifier(&self) -> String {
+        let identifier: Identifier = self.identity.to_frost_identifier();
+
+        bytes_to_hex(&identifier.serialize())
+    }
 }
