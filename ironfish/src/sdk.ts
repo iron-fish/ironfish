@@ -182,11 +182,13 @@ export class IronfishSdk {
     autoSeed,
     privateIdentity,
     customNetworkPath,
+    networkId,
   }: {
     autoSeed?: boolean
     privateIdentity?: PrivateIdentity
     fishHashContext?: FishHashContext
     customNetworkPath?: string
+    networkId?: number
   } = {}): Promise<FullNode> {
     const webSocket = WebSocketClient as IsomorphicWebSocketConstructor
 
@@ -203,6 +205,7 @@ export class IronfishSdk {
       privateIdentity: privateIdentity,
       dataDir: this.dataDir,
       customNetworkPath,
+      networkId,
     })
 
     if (this.config.get('enableRpcIpc')) {

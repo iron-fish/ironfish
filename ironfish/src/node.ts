@@ -197,6 +197,7 @@ export class FullNode {
     privateIdentity,
     fishHashContext,
     customNetworkPath,
+    networkId,
   }: {
     pkg: Package
     dataDir?: string
@@ -211,6 +212,7 @@ export class FullNode {
     privateIdentity?: PrivateIdentity
     fishHashContext?: FishHashContext
     customNetworkPath?: string
+    networkId?: number
   }): Promise<FullNode> {
     logger = logger.withTag('ironfishnode')
     dataDir = dataDir || DEFAULT_DATA_DIR
@@ -248,6 +250,7 @@ export class FullNode {
       internal,
       files,
       customNetworkPath,
+      networkId,
     )
 
     if (!config.isSet('bootstrapNodes')) {

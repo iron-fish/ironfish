@@ -79,7 +79,6 @@ export class NodeTest {
     const sdk = await IronfishSdk.init({ dataDir, strategyClass })
 
     sdk.config.setOverride('bootstrapNodes', [''])
-    sdk.config.setOverride('networkId', 2)
     sdk.config.setOverride('enableListenP2P', false)
     sdk.config.setOverride('enableTelemetry', false)
     sdk.config.setOverride('enableAssetVerification', false)
@@ -97,7 +96,9 @@ export class NodeTest {
     const node = await sdk.node({
       autoSeed: this.options?.autoSeed,
       fishHashContext: FISH_HASH_CONTEXT,
+      networkId: 2,
     })
+
     const strategy = node.strategy as TestStrategy
     const chain = node.chain
     const wallet = node.wallet
