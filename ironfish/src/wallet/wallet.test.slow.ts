@@ -5,6 +5,7 @@ import {
   Asset,
   ASSET_ID_LENGTH,
   generateKey,
+  ParticipantSecret,
   roundOne,
   roundTwo,
   SigningCommitments,
@@ -1152,8 +1153,12 @@ describe('Wallet', () => {
 
       const coordinatorSaplingKey = generateKey()
 
-      const identifiers = []
+      const identifiers: string[] = []
 
+      for (let i = 0; i < maxSigners; i++) {
+        identifiers.push(new ParticipantSecret().toIdentity().toFrostIdentifier())
+      }
+      
       // construct 3 separate secrets for the participants
       // take the secrets and get identifiers back (get identity first then identifier)
 
