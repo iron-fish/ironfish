@@ -1142,7 +1142,7 @@ describe('Wallet', () => {
     })
   })
 
-  describe.only('frost', () => {
+  describe('frost', () => {
     it('can do a multisig transaction', async () => {
       const seed = 420
       const minSigners = 2
