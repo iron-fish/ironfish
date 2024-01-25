@@ -1542,7 +1542,7 @@ dependencies = [
 [[package]]
 name = "ironfish-frost"
 version = "0.1.0"
-source = "git+https://github.com/iron-fish/ironfish-frost.git#a52338e0d2de8f6854f485011bc7003a60be0e28"
+source = "git+https://github.com/iron-fish/ironfish-frost.git?branch=main#f6699a938bdcf7da6c335acc77dd4dbfd7466b45"
 dependencies = [
  "blake3",
  "ed25519-dalek",
