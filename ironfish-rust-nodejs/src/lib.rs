@@ -2,11 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use ironfish::frost::Identifier;
-use ironfish::frost_utils::split_spender_key::split_spender_key;
-use ironfish::serializing::bytes_to_hex;
-use ironfish::serializing::hex_to_bytes;
-use std::collections::HashMap;
 use std::fmt::Display;
 
 use ironfish::keys::Language;
@@ -14,13 +9,11 @@ use ironfish::keys::ProofGenerationKeySerializable;
 use ironfish::PublicAddress;
 use ironfish::SaplingKey;
 
-use ironfish::util::str_to_array;
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 
 use ironfish::mining;
 use ironfish::sapling_bls12;
-use structs::TrustedDealerKeyPackages;
 
 pub mod fish_hash;
 pub mod frost;
@@ -73,49 +66,6 @@ pub struct Key {
     pub outgoing_view_key: String,
     pub public_address: String,
     pub proof_generation_key: String,
-}
-
-#[napi]
-pub fn split_secret(
-    coordinator_sapling_key: String,
-    min_signers: u16,
-    max_signers: u16,
-    identifiers: Vec<String>,
-) -> Result<TrustedDealerKeyPackages> {
-    let coordinator_key =
-        SaplingKey::new(str_to_array(&coordinator_sapling_key)).map_err(to_napi_err)?;
-
-    let mut converted = Vec::new();
-
-    for identifier in &identifiers {
-        let bytes = hex_to_bytes(identifier).map_err(to_napi_err)?;
-        let deserialized = Identifier::deserialize(&bytes).map_err(to_napi_err)?;
-        converted.push(deserialized);
-    }
-
-    let t = split_spender_key(&coordinator_key, min_signers, max_signers, converted)
-        .map_err(to_napi_err)?;
-
-    let mut key_packages_serialized = HashMap::new();
-    for (k, v) in t.key_packages.iter() {
-        key_packages_serialized.insert(
-            bytes_to_hex(&k.serialize()),
-            bytes_to_hex(&v.serialize().map_err(to_napi_err)?),
-        );
-    }
-
-    let public_key_package = t.public_key_package.serialize().map_err(to_napi_err)?;
-
-    Ok(TrustedDealerKeyPackages {
-        verifying_key: bytes_to_hex(&t.verifying_key),
-        proof_generation_key: t.proof_generation_key.hex_key(),
-        view_key: t.view_key.hex_key(),
-        incoming_view_key: t.incoming_view_key.hex_key(),
-        outgoing_view_key: t.outgoing_view_key.hex_key(),
-        public_address: t.public_address.hex_public_address(),
-        key_packages: key_packages_serialized,
-        public_key_package: bytes_to_hex(&public_key_package),
-    })
 }
 
 #[napi]
