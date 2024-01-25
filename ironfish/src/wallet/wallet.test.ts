@@ -674,7 +674,7 @@ describe('Wallet', () => {
       expect(viewonlyAccount.publicAddress).toEqual(key.publicAddress)
     })
 
-    it('should be unable to import a viewonly account if it is a dupe', async () => {
+    it('should be able to import a viewonly account if it is a dupe', async () => {
       const { node } = nodeTest
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { spendingKey, ...key } = generateKey()
@@ -686,13 +686,14 @@ describe('Wallet', () => {
         createdAt: null,
         ...key,
       }
-      await node.wallet.importAccount(accountValue)
+      const accountImport1 = await node.wallet.importAccount(accountValue)
       const clone = { ...accountValue }
       clone.name = 'Different name'
 
-      await expect(node.wallet.importAccount(clone)).rejects.toThrow(
-        'Account already exists with provided view key(s)',
-      )
+      const accountImport2 = await node.wallet.importAccount(clone)
+
+      expect(accountImport2.createdAt).toBeDefined()
+      expect(accountImport1.viewKey).toEqual(accountImport2.viewKey)
     })
 
     it('should set createdAt if that block is in the chain', async () => {

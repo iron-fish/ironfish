@@ -1495,9 +1495,6 @@ export class Wallet {
     ) {
       throw new Error(`Account already exists with provided spending key`)
     }
-    if (accounts.find((a) => accountValue.viewKey === a.viewKey)) {
-      throw new Error(`Account already exists with provided view key(s)`)
-    }
 
     validateAccount(accountValue)
 
