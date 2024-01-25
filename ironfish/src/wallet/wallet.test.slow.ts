@@ -1249,7 +1249,7 @@ describe('Wallet', () => {
       const minersfee2 = await nodeTest.strategy.createMinersFee(
         transaction.fee(),
         block.header.sequence + 1,
-        generateKey().spendingKey,
+        miner.spendingKey,
       )
       const newBlock2 = await node.chain.newBlock([transaction], minersfee2)
       const addResult2 = await node.chain.addBlock(newBlock2)
@@ -1318,8 +1318,13 @@ describe('Wallet', () => {
       const minersfee3 = await nodeTest.strategy.createMinersFee(
         transaction.fee(),
         newBlock2.header.sequence + 1,
-        generateKey().spendingKey,
+        miner.spendingKey,
       )
+
+      expect(await node.wallet.getBalance(recipient, Asset.nativeId())).toMatchObject({
+        unconfirmed: BigInt(0),
+      })
+
       const frostBlock = await node.chain.newBlock([frostTransaction], minersfee3)
       await node.chain.addBlock(newBlock2)
       await expect(node.chain).toAddBlock(frostBlock)
