@@ -255,11 +255,6 @@ export type ConfigOptions = {
   feeEstimatorPercentileFast: number
 
   /**
-   * Network ID of an official Iron Fish network
-   */
-  networkId: number
-
-  /**
    * The oldest the tip should be before we consider the chain synced
    */
   maxSyncedAgeBlocks: number
@@ -367,7 +362,6 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     feeEstimatorPercentileSlow: YupUtils.isPositiveInteger,
     feeEstimatorPercentileAverage: YupUtils.isPositiveInteger,
     feeEstimatorPercentileFast: YupUtils.isPositiveInteger,
-    networkId: yup.number().integer().min(0),
     maxSyncedAgeBlocks: yup.number().integer().min(0),
     mempoolMaxSizeBytes: yup
       .number()
@@ -478,7 +472,6 @@ export class Config<
       feeEstimatorPercentileSlow: DEFAULT_FEE_ESTIMATOR_PERCENTILE_SLOW,
       feeEstimatorPercentileAverage: DEFAULT_FEE_ESTIMATOR_PERCENTILE_AVERAGE,
       feeEstimatorPercentileFast: DEFAULT_FEE_ESTIMATOR_PERCENTILE_FAST,
-      networkId: DEFAULT_NETWORK_ID,
       maxSyncedAgeBlocks: 60,
       memPoolMaxSizeBytes: 60 * MEGABYTES,
       memPoolRecentlyEvictedCacheSize: 60000,

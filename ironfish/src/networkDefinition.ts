@@ -60,6 +60,7 @@ export async function getNetworkDefinition(
   internal: InternalStore,
   files: FileSystem,
   customNetworkPath?: string,
+  networkIdOverride?: number,
 ): Promise<NetworkDefinition> {
   let networkDefinitionJSON = ''
 
@@ -69,15 +70,14 @@ export async function getNetworkDefinition(
   } else {
     if (
       internal.isSet('networkId') &&
-      config.isSet('networkId') &&
-      internal.get('networkId') !== config.get('networkId')
+      networkIdOverride !== undefined &&
+      internal.get('networkId') !== networkIdOverride
     ) {
       throw Error('Network ID flag does not match network ID stored in datadir')
     }
 
-    const networkId = config.isSet('networkId')
-      ? config.get('networkId')
-      : internal.get('networkId')
+    const networkId =
+      networkIdOverride !== undefined ? networkIdOverride : internal.get('networkId')
 
     if (networkId === 0) {
       networkDefinitionJSON = TESTNET
