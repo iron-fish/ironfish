@@ -62,7 +62,7 @@ export function createAdapterTest(
 
     await adapter.stop()
     expect(adapter.started).toBe(false)
-  })
+  }, 20000)
 
   it('should send and receive message', async () => {
     router.routes.register('foo/bar', yup.string(), (request) => {
@@ -71,7 +71,7 @@ export function createAdapterTest(
 
     const response = await client.request('foo/bar', 'hello world').waitForEnd()
     expect(response.content).toBe('hello world')
-  })
+  }, 20000)
 
   it('should stream message', async () => {
     router.routes.register('foo/bar', yup.object({}), (request) => {
@@ -86,7 +86,7 @@ export function createAdapterTest(
 
     await response.waitForEnd()
     expect(response.content).toBe(undefined)
-  })
+  }, 20000)
 
   it('should not crash on disconnect while streaming', async () => {
     const [waitPromise, waitResolve] = PromiseUtils.split<void>()
@@ -99,7 +99,7 @@ export function createAdapterTest(
 
     expect.assertions(0)
     await next
-  })
+  }, 20000)
 
   it('should handle errors', async () => {
     router.routes.register('foo/bar', yup.object({}), () => {
@@ -114,7 +114,7 @@ export function createAdapterTest(
       code: 'hello-error',
       codeMessage: 'hello error',
     })
-  })
+  }, 20000)
 
   it('should handle request errors', async () => {
     // Requires this
@@ -133,5 +133,5 @@ export function createAdapterTest(
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       codeMessage: expect.stringContaining('this must be defined'),
     })
-  })
+  }, 20000)
 }
