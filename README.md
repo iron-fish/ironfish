@@ -15,7 +15,7 @@ See https://ironfish.network
 
 The following steps should only be used to install if you are planning on contributing to the Iron Fish codebase. Otherwise, we **strongly** recommend using the installation methods here: https://ironfish.network/use/get-started/installation
 
-1. Install [Node.js LTS](https://nodejs.org/en/download/)
+1. Install [Node.js 20 LTS (or greater)](https://nodejs.org/en/download/).
 1. Install [Rust](https://www.rust-lang.org/learn/get-started).
 1. Install [Yarn](https://classic.yarnpkg.com/en/docs/install).
 1. Windows:
@@ -51,6 +51,8 @@ The following steps should only be used to install if you are planning on contri
 Once your environment is set up - you can run the CLI by following [these directions](https://github.com/iron-fish/ironfish/tree/master/ironfish-cli).
 
 ## Running Tests
+
+> **Note:** Running tests requires Node.js 20 or greater.
 
 1. To test the entire monorepo:
    1. Run `yarn test` at the root of the repository
