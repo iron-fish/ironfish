@@ -674,8 +674,12 @@ fn test_sign_simple() {
 
     // create transaction, add spend and output
     let mut transaction = ProposedTransaction::new(TransactionVersion::latest());
-    transaction.add_spend(in_note, &witness).unwrap();
-    transaction.add_output(out_note).unwrap();
+    transaction
+        .add_spend(in_note, &witness)
+        .expect("should be able to add a spend");
+    transaction
+        .add_output(out_note)
+        .expect("should be able to add an output");
 
     // build transaction, generate proofs
     let unsigned_transaction = transaction
