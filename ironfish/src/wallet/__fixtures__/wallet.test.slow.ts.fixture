@@ -1051,5 +1051,67 @@
         }
       ]
     }
+  ],
+  "Wallet frost can do a multisig transaction": [
+    {
+      "version": 3,
+      "id": "754016f7-19bc-4473-b256-123a648cf079",
+      "name": "recipient",
+      "spendingKey": "2d35cd691cee02391ca1d83156060fe226916a7cf99f20eeb922eb230fd3cb21",
+      "viewKey": "6e3c259a1b8f5c37730c8a1375e3abb6c333adc6428bcff7c6b95f394620fb550112749b1725f3704d062b558771c4b466171ee159db077a763fcc550074e529",
+      "incomingViewKey": "051ddad590d3e4642dd62e71fed85b4f3cd3102b84df60ee3d8ba8149199bb05",
+      "outgoingViewKey": "3a650c9ca17b4051bf46f40c6a4941636b11baa14225fd13ff21be2aace52d23",
+      "publicAddress": "a5709bfed0974987673561016cd92729710286070b44cf239bbcf47eb6a04832",
+      "createdAt": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      }
+    },
+    {
+      "version": 3,
+      "id": "ac3dbec2-159a-4efc-afd8-39597b939802",
+      "name": "miner",
+      "spendingKey": "3cf7d4cfde75d2057cc72f2475ca3e85dcb82b8a9a8f36253351a7f713148ab4",
+      "viewKey": "9bc6e32f1b5b3d0383d56e5608e83cf1ab7db3bb6af40a7f6251a87aaf83d00a6a47a4af4e60b8ab0916ff4774aa6a52b34d982b7b5963214328f8c47c5f1957",
+      "incomingViewKey": "731eb5c0fd06e869a4127d1c6d6828c2db78dac9457bdfd3f495b01249c8c903",
+      "outgoingViewKey": "b3cd2c649ade27ec24e494569a9686e90f0d77e4bf319a217eb60aa12af1e8c2",
+      "publicAddress": "31c0c314101411d190c5c282636e6666bffd36de6cb1b55aeb92f447a1079683",
+      "createdAt": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      }
+    },
+    {
+      "header": {
+        "sequence": 2,
+        "previousBlockHash": "4791D7AE9F97DF100EF1558E84772D6A09B43762388283F75C6F20A32A88AA86",
+        "noteCommitment": {
+          "type": "Buffer",
+          "data": "base64:cNZkJfZGoTGjhyUaa5Y/BUsYCpyXKobX53GuN7Anug0="
+        },
+        "transactionCommitment": {
+          "type": "Buffer",
+          "data": "base64:BMWOoBAwndSSj1c/fx4qxu+pvA8NORjF7PtLWfTnTSE="
+        },
+        "target": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
+        "randomness": "0",
+        "timestamp": 1706144934245,
+        "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
+        "noteSize": 4,
+        "work": "0"
+      },
+      "transactions": [
+        {
+          "type": "Buffer",
+          "data": "base64:AgAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzKiP////8AAAAAJcZ/qv0J1oCs19iUV8aFCTOW6dO1anbFzVTe5H41iSyue7p660FB/wbPQ9nZvhyeVQxib6eaWqT3mLhux4F/+KngZWOCvaHE1evMoIsjiWK5kUqepXmo08WSx5QHM3b7ZJXSLj8izI1qrD8Lz5nPI3ZJwADG4/4BR9EYp0DDthAPqxhUiSZCQ5E2q4L6kvIuSo6usVnBPNDT7kLPSZDxQJ9ZwnQeEH3tEA1y4g/zUouIB0XK+BWpnfpoHE+BQFTFxh5YaZGhooNcQ/Yaq7bPf9lu3OQ7F9G3zTw20RKmJxh4ZVCQGqOQICoZ4oE9qQydPHRAcslSAxH8G85jfgOLYRNJjjdRKyjM9RFektYteGR+OQqt8Oc/E1sqiPd1/FgIzA07aCdGDd+5lj0QbjOh279Lcna8sYPOPK3OEAQ8Rpa+6+LUjU/PKftH4CtNjUkxW3CNM8RbxvSEySL0Y2FLtOyE7GgGKR2LK8khZVHwPb8Icb8LCuhHasSoxeMyV1D1SHjFPakpvwC/nzSs+YfDlwXvfsHLPlNxssa1aroCXKy1oipAEDs+NCq2Hq3lECelgtMoiUJCcg6eqPqQTCqtHNe5RYYP6IpiPZOPwqKhfVHFlqnBW/XfMUlyb24gRmlzaCBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAww6JRbtqT59e8UpJxUSNjpW2DuR3vs7+MjQnDcrMyZHOWYrqCR8w9N/Xqi8AlPRR8pByYJIrq1ZTAZfLA5q5TDg=="
+        }
+      ]
+    }
   ]
 }

@@ -4,6 +4,8 @@
 
 import {
   AMOUNT_VALUE_LENGTH,
+  Asset,
+  ASSET_ID_LENGTH,
   ASSET_LENGTH,
   PROOF_LENGTH,
   PUBLIC_ADDRESS_LENGTH,
@@ -14,7 +16,6 @@ import {
   TRANSACTION_SIGNATURE_LENGTH,
   UnsignedTransaction,
 } from '@ironfish/rust-nodejs'
-import { Asset, ASSET_ID_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { Assert } from '../assert'
 import { Witness } from '../merkletree'
