@@ -1158,7 +1158,7 @@ describe('Wallet', () => {
       for (let i = 0; i < maxSigners; i++) {
         identifiers.push(new ParticipantSecret().toIdentity().toFrostIdentifier())
       }
-
+      
       // construct 3 separate secrets for the participants
       // take the secrets and get identifiers back (get identity first then identifier)
 
@@ -1285,25 +1285,25 @@ describe('Wallet', () => {
       )
 
       const signingPackage = unsignedTransaction.signingPackage(signingCommitments)
-      const publicKeyRandomnes = unsignedTransaction.publicKeyRandomness()
+      const publicKeyRandomness = unsignedTransaction.publicKeyRandomness()
 
       const signatureShares: Record<string, string> = {
         [participantA.multiSigKeys.identifier]: roundTwo(
           signingPackage,
           participantA.multiSigKeys.keyPackage,
-          publicKeyRandomnes,
+          publicKeyRandomness,
           seed,
         ),
         [participantB.multiSigKeys.identifier]: roundTwo(
           signingPackage,
           participantB.multiSigKeys.keyPackage,
-          publicKeyRandomnes,
+          publicKeyRandomness,
           seed,
         ),
         [participantC.multiSigKeys.identifier]: roundTwo(
           signingPackage,
           participantC.multiSigKeys.keyPackage,
-          publicKeyRandomnes,
+          publicKeyRandomness,
           seed,
         ),
       }
