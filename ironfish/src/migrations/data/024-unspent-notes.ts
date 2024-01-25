@@ -52,10 +52,7 @@ export class Migration024 extends Migration {
         }
 
         await stores.new.unspentNoteHashes.put(
-          [
-            account.prefix,
-            [note.note.assetId(), [note.sequence, [note.note.value(), noteHash]]],
-          ],
+          [account.prefix, note.note.assetId(), note.sequence, note.note.value(), noteHash],
           null,
         )
         unspentNotes++
