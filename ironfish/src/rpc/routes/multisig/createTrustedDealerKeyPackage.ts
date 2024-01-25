@@ -9,6 +9,9 @@ import { routes } from '../router'
 export type CreateTrustedDealerKeyPackageRequest = {
   minSigners: number
   maxSigners: number
+  participants: Array<{
+    identifier: string
+  }>
 }
 export type CreateTrustedDealerKeyPackageResponse = {
   verifyingKey: string
@@ -25,6 +28,16 @@ export const CreateTrustedDealerKeyPackageRequestSchema: yup.ObjectSchema<Create
     .object({
       minSigners: yup.number().defined(),
       maxSigners: yup.number().defined(),
+      participants: yup
+        .array()
+        .of(
+          yup
+            .object({
+              identifier: yup.string().defined(),
+            })
+            .defined(),
+        )
+        .defined(),
     })
     .defined()
 
@@ -38,8 +51,7 @@ export const CreateTrustedDealerKeyPackageResponseSchema: yup.ObjectSchema<Creat
       outgoingViewKey: yup.string().defined(),
       publicAddress: yup.string().defined(),
       keyPackages: yup
-        .array()
-        .of(
+        .array(
           yup
             .object({
               identifier: yup.string().defined(),
@@ -58,9 +70,16 @@ routes.register<
 >(
   `${ApiNamespace.multisig}/createTrustedDealerKeyPackage`,
   CreateTrustedDealerKeyPackageRequestSchema,
-  async (request, context): Promise<void> => {
+  (request, _context): void => {
     const key = generateKey()
-    const { minSigners, maxSigners } = request.data
-    splitSecret(key.spendingKey, minSigners, maxSigners)
+    const { minSigners, maxSigners, participants } = request.data
+    const identifiers = participants.map((p) => p.identifier)
+    const trustedDealerPackage = splitSecret(
+      key.spendingKey,
+      minSigners,
+      maxSigners,
+      identifiers,
+    )
+    request.end(trustedDealerPackage)
   },
 )
