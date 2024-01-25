@@ -276,8 +276,6 @@ export type ConfigOptions = {
    */
   memPoolRecentlyEvictedCacheSize: number
 
-  networkDefinitionPath: string
-
   /**
    * Always allow incoming connections from these IPs even if the node is at maxPeers
    */
@@ -376,7 +374,6 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
       .integer()
       .min(20 * MEGABYTES),
     memPoolRecentlyEvictedCacheSize: yup.number().integer(),
-    networkDefinitionPath: yup.string().trim(),
     incomingWebSocketWhitelist: yup.array(yup.string().trim().defined()),
     walletGossipTransactionsMaxQueueSize: yup.number(),
     walletSyncingMaxQueueSize: yup.number(),
@@ -389,6 +386,7 @@ export class Config<
 > extends KeyStore<ConfigOptions & TExtend> {
   readonly chainDatabasePath: string
   readonly walletDatabasePath: string
+  readonly networkDefinitionPath: string
   readonly tempDir: string
 
   constructor(
@@ -412,6 +410,7 @@ export class Config<
 
     this.chainDatabasePath = this.files.join(this.storage.dataDir, 'databases', 'chain')
     this.walletDatabasePath = this.files.join(this.storage.dataDir, 'databases', 'wallet')
+    this.networkDefinitionPath = this.files.join(this.storage.dataDir, 'network.json')
     this.tempDir = this.files.join(this.storage.dataDir, 'temp')
   }
 
@@ -483,7 +482,6 @@ export class Config<
       maxSyncedAgeBlocks: 60,
       memPoolMaxSizeBytes: 60 * MEGABYTES,
       memPoolRecentlyEvictedCacheSize: 60000,
-      networkDefinitionPath: files.resolve(files.join(dataDir, 'network.json')),
       incomingWebSocketWhitelist: [],
       walletGossipTransactionsMaxQueueSize: 1000,
       walletSyncingMaxQueueSize: 100,

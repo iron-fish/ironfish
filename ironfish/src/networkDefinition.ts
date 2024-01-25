@@ -86,7 +86,7 @@ export async function getNetworkDefinition(
     } else if (networkId === 2) {
       networkDefinitionJSON = DEVNET
     } else {
-      networkDefinitionJSON = await files.readFile(config.get('networkDefinitionPath'))
+      networkDefinitionJSON = await files.readFile(config.networkDefinitionPath)
     }
   }
 
@@ -104,7 +104,7 @@ export async function getNetworkDefinition(
     }
 
     // Copy custom network definition to data directory for future use
-    await files.writeFile(config.get('networkDefinitionPath'), networkDefinitionJSON)
+    await files.writeFile(config.networkDefinitionPath, networkDefinitionJSON)
   }
 
   internal.set('networkId', networkDefinition.id)
