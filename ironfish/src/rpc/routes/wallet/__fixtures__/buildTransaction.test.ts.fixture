@@ -1,0 +1,40 @@
+{
+  "Route wallet/buildTransaction should build a raw transaction": [
+    {
+      "version": 3,
+      "id": "30daa269-2936-47a2-95a9-ab58c2f7751b",
+      "name": "existingAccount",
+      "spendingKey": "d607c65f38c478e0585949b83e5de1cac046fdb5899da9a8846e48b32b4e1737",
+      "viewKey": "327296b284f174e973c05fd4ffb43fa86904979cc2e61aafa003f0ebf3f7e1db511e89da3a566664d732ab8179b7428ab98a1d6bc625241813cdb31761cfcfdc",
+      "incomingViewKey": "9e049ba0c7544ff8ae772f6ffb31e90cd48a61e6c8fdd3bd8b29634f2d1da805",
+      "outgoingViewKey": "c3e456502ede854080505c09fd0290018bf73a266d209e14e1fb95fc30f08ca0",
+      "publicAddress": "25a33803af98590c1ab7337b586b730bd5a427351ff28555a9e3eed427725b56",
+      "createdAt": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      }
+    }
+  ],
+  "Route wallet/buildTransaction should return an error if the transaction won't deserialize": [
+    {
+      "version": 3,
+      "id": "1348a3cc-69fd-425b-aaf9-aaf0839452b3",
+      "name": "accountB",
+      "spendingKey": "7e72d9c22ee7f3fb2287c12b3cb3fd7e4751accadf0c474488ec94e7abd87532",
+      "viewKey": "b37fedc257197a65ba90f301277e5052e73b30bb0e2d9a139c3ea3d13c5901f3b39809d461b95b154e3daa653f3c02a38c7bd30b29a3ee0f0f4b63ded9504957",
+      "incomingViewKey": "faa7bba7993064e3b6d6b1718332f570947c3163e49146f56d2c84acb45f8006",
+      "outgoingViewKey": "4bcb6158b649de3f33e24b2339d5e025a9f0df752d913fcb3d0c40f697f43437",
+      "publicAddress": "cc81f41a5ac3273d1e67e4f004a2b49cb269c5f274ae36aff1b5a990e91c9f85",
+      "createdAt": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      }
+    }
+  ]
+}

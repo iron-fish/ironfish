@@ -1,7 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Asset, generateKey, Note as NativeNote } from '@ironfish/rust-nodejs'
+import {
+  Asset,
+  generateKey,
+  generateKeyFromPrivateKey,
+  Note as NativeNote,
+  UnsignedTransaction,
+} from '@ironfish/rust-nodejs'
 import { BufferMap, BufferSet } from 'buffer-map'
 import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
@@ -1055,6 +1061,34 @@ export class Wallet {
     } finally {
       unlock()
     }
+  }
+
+  async build(options: { transaction: RawTransaction; account: Account }): Promise<{
+    transaction: UnsignedTransaction
+  }> {
+    // TODO(hughy): replace with top-level proofAuthorizingKey property
+    let proofAuthorizingKey = null
+    if (options.account.spendingKey) {
+      proofAuthorizingKey = generateKeyFromPrivateKey(
+        options.account.spendingKey,
+      ).proofAuthorizingKey
+    } else if (options.account.multiSigKeys) {
+      proofAuthorizingKey = options.account.multiSigKeys.proofGenerationKey.slice(64)
+    }
+
+    Assert.isNotNull(
+      proofAuthorizingKey,
+      'proofAuthorizingKey is required to build transactions',
+    )
+
+    const transaction = await this.workerPool.buildTransaction(
+      options.transaction,
+      proofAuthorizingKey,
+      options.account.viewKey,
+      options.account.outgoingViewKey,
+    )
+
+    return { transaction }
   }
 
   async post(options: {

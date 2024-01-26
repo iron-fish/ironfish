@@ -13,6 +13,8 @@ import type {
   BlockTemplateStreamResponse,
   BroadcastTransactionRequest,
   BroadcastTransactionResponse,
+  BuildTransactionRequest,
+  BuildTransactionResponse,
   BurnAssetRequest,
   BurnAssetResponse,
   CreateAccountRequest,
@@ -417,6 +419,15 @@ export abstract class RpcClient {
       return this.request<void, GetNodeStatusResponse>(`${ApiNamespace.wallet}/getNodeStatus`, {
         stream: true,
       })
+    },
+
+    buildTransaction: (
+      params: BuildTransactionRequest,
+    ): Promise<RpcResponseEnded<BuildTransactionResponse>> => {
+      return this.request<BuildTransactionResponse>(
+        `${ApiNamespace.wallet}/buildTransaction`,
+        params,
+      ).waitForEnd()
     },
   }
 
