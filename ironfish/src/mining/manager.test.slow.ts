@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../assert'
-import { VerificationResultReason } from '../consensus'
+import { Consensus, VerificationResultReason } from '../consensus'
 import { getBlockWithMinersFeeSize, getTransactionSize } from '../network/utils/serializers'
 import { Target, Transaction } from '../primitives'
 import { TransactionVersion } from '../primitives/transaction'
@@ -289,7 +289,10 @@ describe('Mining manager', () => {
       const { node, chain, wallet } = nodeTest
 
       // Enable V1 transactions
-      chain.consensus.parameters.enableAssetOwnership = 999999
+      chain.consensus = new Consensus({
+        ...chain.consensus.parameters,
+        enableAssetOwnership: 999999,
+      })
 
       const account = await useAccountFixture(wallet, 'account')
       await wallet.setDefaultAccount(account.name)
@@ -318,7 +321,10 @@ describe('Mining manager', () => {
       expect(node.memPool.acceptTransaction(mintTx1)).toEqual(true)
 
       // Enable V2 transactions
-      chain.consensus.parameters.enableAssetOwnership = 1
+      chain.consensus = new Consensus({
+        ...chain.consensus.parameters,
+        enableAssetOwnership: 1,
+      })
 
       const mintTx2 = await usePostTxFixture({
         node,
@@ -367,7 +373,10 @@ describe('Mining manager', () => {
       )
 
       node.memPool.acceptTransaction(transaction)
-      chain.consensus.parameters.maxBlockSizeBytes = getBlockWithMinersFeeSize()
+      chain.consensus = new Consensus({
+        ...chain.consensus.parameters,
+        maxBlockSizeBytes: getBlockWithMinersFeeSize(),
+      })
 
       const templates = await collectTemplates(node.miningManager, 2)
       const fullTemplate = templates.find((t) => t.transactions.length > 1)
@@ -375,8 +384,10 @@ describe('Mining manager', () => {
       expect(fullTemplate).toBeUndefined()
 
       // Expand max block size, should allow transaction to be added to block
-      chain.consensus.parameters.maxBlockSizeBytes =
-        getBlockWithMinersFeeSize() + getTransactionSize(transaction)
+      chain.consensus = new Consensus({
+        ...chain.consensus.parameters,
+        maxBlockSizeBytes: getBlockWithMinersFeeSize() + getTransactionSize(transaction),
+      })
 
       const templates2 = await collectTemplates(node.miningManager, 2)
       const fullTemplate2 = templates2.find((t) => t.transactions.length > 1)

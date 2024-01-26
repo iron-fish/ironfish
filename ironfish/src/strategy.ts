@@ -15,7 +15,7 @@ import { WorkerPool } from './workerPool'
  */
 export class Strategy {
   readonly workerPool: WorkerPool
-  readonly consensus: Consensus
+  readonly consensus: Readonly<Consensus>
   readonly blockHasher: BlockHasher
 
   private miningRewardCachedByYear: Map<number, number>

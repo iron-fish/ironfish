@@ -58,7 +58,7 @@ export type ConsensusParameters = {
 }
 
 export class Consensus {
-  readonly parameters: ConsensusParameters
+  readonly parameters: Readonly<ConsensusParameters>
 
   constructor(parameters: ConsensusParameters) {
     this.parameters = parameters

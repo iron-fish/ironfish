@@ -94,7 +94,7 @@ export class Wallet {
   readonly chainProcessor: RemoteChainProcessor
   readonly nodeClient: RpcClient | null
   private readonly config: Config
-  private readonly consensus: Consensus
+  readonly consensus: Readonly<Consensus>
 
   protected rebroadcastAfter: number
   protected defaultAccount: string | null = null

@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
 import { Assert } from '../assert'
+import { Consensus } from '../consensus'
 import * as ConsensusUtils from '../consensus/utils'
 import { getTransactionSize } from '../network/utils/serializers'
 import { FullNode } from '../node'
@@ -523,7 +524,10 @@ describe('MemPool', () => {
       const account = await useAccountFixture(wallet)
 
       // Enable V1 transactions to setup the test transactions
-      chain.consensus.parameters.enableAssetOwnership = 999999
+      chain.consensus = new Consensus({
+        ...chain.consensus.parameters,
+        enableAssetOwnership: 999999,
+      })
 
       const block1 = await useMinerBlockFixture(chain, undefined, account)
       await expect(chain).toAddBlock(block1)
@@ -537,7 +541,10 @@ describe('MemPool', () => {
       expect(memPool.acceptTransaction(transaction1)).toBe(true)
 
       // Re-enable V2 transactions
-      chain.consensus.parameters.enableAssetOwnership = 1
+      chain.consensus = new Consensus({
+        ...chain.consensus.parameters,
+        enableAssetOwnership: 1,
+      })
 
       const transaction2 = await useTxFixture(wallet, account, account)
       expect(memPool.acceptTransaction(transaction2)).toBe(true)

@@ -33,6 +33,7 @@ import {
 } from '../testUtilities'
 import { useFixture } from '../testUtilities/fixtures/fixture'
 import { Account, Wallet } from '../wallet'
+import { Consensus } from './consensus'
 import { VerificationResultReason, Verifier } from './verifier'
 
 describe('Verifier', () => {
@@ -85,7 +86,10 @@ describe('Verifier', () => {
 
     it('returns false on transactions larger than max size', async () => {
       const { transaction } = await useTxSpendsFixture(nodeTest.node)
-      nodeTest.chain.consensus.parameters.maxBlockSizeBytes = getBlockWithMinersFeeSize()
+      nodeTest.chain.consensus = new Consensus({
+        ...nodeTest.chain.consensus.parameters,
+        maxBlockSizeBytes: getBlockWithMinersFeeSize(),
+      })
 
       const result = Verifier.verifyCreatedTransaction(transaction, nodeTest.chain.consensus)
 
@@ -155,7 +159,10 @@ describe('Verifier', () => {
         fee: BigInt(txnFee),
       })
 
-      nodeTest.chain.consensus.parameters.minFee = txnFee + 1
+      nodeTest.chain.consensus = new Consensus({
+        ...nodeTest.chain.consensus.parameters,
+        minFee: txnFee + 1,
+      })
 
       const result = Verifier.verifyCreatedTransaction(transaction, nodeTest.chain.consensus)
 
@@ -332,7 +339,10 @@ describe('Verifier', () => {
 
     it('rejects a block with size more than maxBlockSizeBytes', async () => {
       const block = await useMinerBlockFixture(nodeTest.chain)
-      nodeTest.chain.consensus.parameters.maxBlockSizeBytes = getBlockSize(block) - 1
+      nodeTest.chain.consensus = new Consensus({
+        ...nodeTest.chain.consensus.parameters,
+        maxBlockSizeBytes: getBlockSize(block) - 1,
+      })
 
       expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
         valid: false,
@@ -346,7 +356,11 @@ describe('Verifier', () => {
       const fees = block.transactions.flatMap((tx) => Number(tx.fee()))
       const maxFee = Math.max(...fees)
 
-      nodeTest.chain.consensus.parameters.minFee = maxFee + 1
+      nodeTest.chain.consensus = new Consensus({
+        ...nodeTest.chain.consensus.parameters,
+        minFee: maxFee + 1,
+      })
+
       expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
         valid: false,
         reason: VerificationResultReason.MINIMUM_FEE_NOT_MET,
@@ -432,13 +446,19 @@ describe('Verifier', () => {
       it('while transaction v1 is active', async () => {
         const { chain, verifier } = await nodeTest.createSetup()
         // Enable asset ownership to generate a v2 transaction
-        chain.consensus.parameters.enableAssetOwnership = 1
+        chain.consensus = new Consensus({
+          ...chain.consensus.parameters,
+          enableAssetOwnership: 1,
+        })
 
         const block = await useMinerBlockFixture(chain)
         expect(block.transactions[0].version()).toEqual(TransactionVersion.V2)
 
         // Deactivate asset ownership so the blockchain expects v1 transactions
-        chain.consensus.parameters.enableAssetOwnership = Number.MAX_SAFE_INTEGER
+        chain.consensus = new Consensus({
+          ...chain.consensus.parameters,
+          enableAssetOwnership: Number.MAX_SAFE_INTEGER,
+        })
 
         expect(await verifier.verifyBlock(block)).toMatchObject({
           reason: VerificationResultReason.INVALID_TRANSACTION_VERSION,
@@ -449,13 +469,19 @@ describe('Verifier', () => {
       it('while v2 is active', async () => {
         const { chain, verifier } = await nodeTest.createSetup()
         // Deactivate asset ownership to generate a v1 transaction
-        chain.consensus.parameters.enableAssetOwnership = Number.MAX_SAFE_INTEGER
+        chain.consensus = new Consensus({
+          ...chain.consensus.parameters,
+          enableAssetOwnership: Number.MAX_SAFE_INTEGER,
+        })
 
         const block = await useMinerBlockFixture(chain)
         expect(block.transactions[0].version()).toEqual(TransactionVersion.V1)
 
         // Enable asset ownership to so the blockchain expects v2 transactions
-        chain.consensus.parameters.enableAssetOwnership = 1
+        chain.consensus = new Consensus({
+          ...chain.consensus.parameters,
+          enableAssetOwnership: 1,
+        })
 
         expect(await verifier.verifyBlock(block)).toMatchObject({
           reason: VerificationResultReason.INVALID_TRANSACTION_VERSION,
@@ -467,7 +493,10 @@ describe('Verifier', () => {
     describe('accepts a block with a transaction containing a valid version', () => {
       it('while transaction v1 is active', async () => {
         const { chain, verifier } = await nodeTest.createSetup()
-        chain.consensus.parameters.enableAssetOwnership = 999999
+        chain.consensus = new Consensus({
+          ...chain.consensus.parameters,
+          enableAssetOwnership: 999999,
+        })
 
         const block = await useMinerBlockFixture(chain)
         expect(block.transactions[0].version()).toEqual(TransactionVersion.V1)
@@ -479,7 +508,10 @@ describe('Verifier', () => {
 
       it('while transaction v2 is active', async () => {
         const { chain, verifier } = await nodeTest.createSetup()
-        chain.consensus.parameters.enableAssetOwnership = 1
+        chain.consensus = new Consensus({
+          ...chain.consensus.parameters,
+          enableAssetOwnership: 1,
+        })
 
         const block = await useMinerBlockFixture(chain)
         expect(block.transactions[0].version()).toEqual(TransactionVersion.V2)
@@ -677,13 +709,13 @@ describe('Verifier', () => {
 
       beforeAll(async () => {
         const { chain, verifier: verifierTest } = await nodeTest.createSetup()
-        chain.consensus.parameters.enforceSequentialBlockTime = 3
+        chain.consensus = new Consensus({
+          ...chain.consensus.parameters,
+          enforceSequentialBlockTime: 3,
+        })
         verifier = verifierTest
         verifier.chain = chain
-        block = await useMinerBlockFixture(
-          chain,
-          chain.consensus.parameters.enforceSequentialBlockTime - 1,
-        )
+        block = await useMinerBlockFixture(chain, 2)
         header = block.header
         const previousBlock = block.header.previousBlockHash
         const previousHeader = await chain.getHeader(previousBlock)
@@ -773,21 +805,18 @@ describe('Verifier', () => {
 
       beforeAll(async () => {
         const { chain, verifier: verifierTest } = await nodeTest.createSetup()
-        chain.consensus.parameters.enforceSequentialBlockTime = 3
+        chain.consensus = new Consensus({
+          ...chain.consensus.parameters,
+          enforceSequentialBlockTime: 3,
+        })
         verifier = verifierTest
         verifier.chain = chain
 
-        const previousBlock = await useMinerBlockFixture(
-          chain,
-          chain.consensus.parameters.enforceSequentialBlockTime - 1,
-        )
+        const previousBlock = await useMinerBlockFixture(chain, 2)
         await chain.addBlock(previousBlock)
 
         prevHeader = previousBlock.header
-        currentBlock = await useMinerBlockFixture(
-          chain,
-          chain.consensus.parameters.enforceSequentialBlockTime,
-        )
+        currentBlock = await useMinerBlockFixture(chain, 3)
         header = currentBlock.header
       })
 

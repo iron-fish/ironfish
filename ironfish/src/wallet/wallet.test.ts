@@ -6,7 +6,7 @@ import { BufferMap, BufferSet } from 'buffer-map'
 import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
-import { VerificationResultReason } from '../consensus'
+import { Consensus, VerificationResultReason } from '../consensus'
 import { RawTransaction } from '../primitives'
 import { TransactionVersion } from '../primitives/transaction'
 import {
@@ -1237,7 +1237,19 @@ describe('Wallet', () => {
         chain = testChain
         wallet = testWallet
 
-        chain.consensus.parameters.enableAssetOwnership = 999999
+        const mockParams = {
+          ...chain.consensus.parameters,
+          enableAssetOwnership: 999999,
+        }
+
+        jest.spyOn(chain.consensus, 'isActive').mockImplementation((...args) => {
+          return new Consensus(mockParams).isActive(...args)
+        })
+
+        jest.spyOn(wallet.consensus, 'isActive').mockImplementation((...args) => {
+          return new Consensus(mockParams).isActive(...args)
+        })
+
         account = await useAccountFixture(wallet, 'test')
 
         const block = await useMinerBlockFixture(chain, undefined, account, wallet)
@@ -1251,7 +1263,19 @@ describe('Wallet', () => {
       testPermutations.forEach(({ delta, expectedVersion }) => {
         it(`delta: ${delta}, expectedVersion: ${expectedVersion}`, async () => {
           // transaction version change happening `delta` blocks ahead of the chain
-          chain.consensus.parameters.enableAssetOwnership = chain.head.sequence + delta
+
+          const mockParams = {
+            ...chain.consensus.parameters,
+            enableAssetOwnership: chain.head.sequence + delta,
+          }
+
+          jest.spyOn(chain.consensus, 'isActive').mockImplementation((...args) => {
+            return new Consensus(mockParams).isActive(...args)
+          })
+
+          jest.spyOn(wallet.consensus, 'isActive').mockImplementation((...args) => {
+            return new Consensus(mockParams).isActive(...args)
+          })
 
           // default expiration
           let tx = await wallet.createTransaction({ account, fee: 0n })

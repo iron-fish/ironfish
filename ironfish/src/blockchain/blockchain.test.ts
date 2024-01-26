@@ -4,7 +4,7 @@
 
 import { Asset, generateKey, Note as NativeNote } from '@ironfish/rust-nodejs'
 import { Assert } from '../assert'
-import { VerificationResultReason } from '../consensus'
+import { Consensus, VerificationResultReason } from '../consensus'
 import { FullNode } from '../node'
 import { Block, Note } from '../primitives'
 import { NoteEncrypted } from '../primitives/noteEncrypted'
@@ -1758,7 +1758,10 @@ describe('Blockchain', () => {
         fee: 0,
       })
 
-      node.chain.consensus.parameters.minFee = 1
+      node.chain.consensus = new Consensus({
+        ...node.chain.consensus.parameters,
+        minFee: 1,
+      })
 
       const added = await chain.addBlock(block)
 
