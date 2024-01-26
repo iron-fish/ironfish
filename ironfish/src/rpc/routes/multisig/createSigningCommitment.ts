@@ -26,7 +26,7 @@ export const CreateSigningCommitmentResponseSchema: yup.ObjectSchema<CreateSigni
   RpcSigningCommitmentsSchema
 
 routes.register<typeof CreateSigningCommitmentRequestSchema, CreateSigningCommitmentResponse>(
-  `${ApiNamespace.wallet}/createSigningCommitment`,
+  `${ApiNamespace.multisig}/createSigningCommitment`,
   CreateSigningCommitmentRequestSchema,
   (request, _context): void => {
     const result = roundOne(request.data.keyPackage, request.data.seed)
