@@ -9,7 +9,7 @@ import { RpcSigningCommitments, RpcSigningCommitmentsSchema } from './types'
 
 export type CreateSigningCommitmentRequest = {
   keyPackage: string
-  seed: number
+  seed: number //  TODO: remove when we have deterministic nonces
 }
 
 export type CreateSigningCommitmentResponse = RpcSigningCommitments
