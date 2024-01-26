@@ -8,13 +8,9 @@ describe('Route multisig/createTrustedDealerKeyPackage', () => {
   const routeTest = createRouteTest()
 
   it('should create trusted dealer key package', async () => {
-    const participants: { identifier: string }[] = []
-    for (let i = 0; i < 3; i++) {
-      const identifier = ParticipantSecret.random().toIdentity().toFrostIdentifier()
-      participants.push({
-        identifier: identifier,
-      })
-    }
+    const participants = Array.from({ length: 3 }, () => ({
+      identifier: ParticipantSecret.random().toIdentity().toFrostIdentifier(),
+    }))
     const request = { minSigners: 2, maxSigners: 3, participants }
     const response = await routeTest.client
       .request('multisig/createTrustedDealerKeyPackage', request)
