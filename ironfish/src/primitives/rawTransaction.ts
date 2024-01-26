@@ -42,7 +42,7 @@ export interface MintData {
 }
 
 export class RawTransaction {
-  version: TransactionVersion
+  transactionVersion: TransactionVersion
   expiration: number | null = null
   fee = 0n
   mints: MintData[] = []
@@ -60,7 +60,7 @@ export class RawTransaction {
   }[] = []
 
   constructor(version: TransactionVersion) {
-    this.version = version
+    this.transactionVersion = version
   }
 
   postedSize(_publicAddress: string): number {
@@ -79,7 +79,7 @@ export class RawTransaction {
       .map((mint) => {
         let mintSize =
           PROOF_LENGTH + ASSET_LENGTH + AMOUNT_VALUE_LENGTH + TRANSACTION_SIGNATURE_LENGTH
-        if (TransactionFeatures.hasMintTransferOwnershipTo(this.version)) {
+        if (TransactionFeatures.hasMintTransferOwnershipTo(this.transactionVersion)) {
           mintSize += PUBLIC_ADDRESS_LENGTH // owner
 
           // transferOwnershipTo
@@ -119,7 +119,7 @@ export class RawTransaction {
   }
 
   _build(): NativeTransaction {
-    const builder = new NativeTransaction(this.version)
+    const builder = new NativeTransaction(this.transactionVersion)
     for (const spend of this.spends) {
       builder.spend(spend.note.takeReference(), spend.witness)
       spend.note.returnReference()
@@ -191,11 +191,17 @@ export class RawTransaction {
   }
 }
 
+export class RawTransactionSerdeError extends Error {}
+
 export class RawTransactionSerde {
+  static VERSION = 3
+
   static serialize(raw: RawTransaction): Buffer {
     const bw = bufio.write(this.getSize(raw))
 
-    bw.writeU8(raw.version)
+    bw.writeU8(RawTransactionSerde.VERSION)
+
+    bw.writeU8(raw.transactionVersion)
 
     bw.writeBigU64(raw.fee)
 
@@ -230,7 +236,7 @@ export class RawTransactionSerde {
       bw.writeVarString(mint.name, 'utf8')
       bw.writeVarString(mint.metadata, 'utf8')
       bw.writeBigU64(mint.value)
-      if (TransactionFeatures.hasMintTransferOwnershipTo(raw.version)) {
+      if (TransactionFeatures.hasMintTransferOwnershipTo(raw.transactionVersion)) {
         if (mint.transferOwnershipTo) {
           bw.writeU8(1)
           bw.writeBytes(Buffer.from(mint.transferOwnershipTo, 'hex'))
@@ -264,7 +270,15 @@ export class RawTransactionSerde {
 
     const version = reader.readU8()
 
-    const raw = new RawTransaction(version)
+    if (version !== RawTransactionSerde.VERSION) {
+      throw new RawTransactionSerdeError(
+        `RawTransaction serialization version ${version} does not match current version ${RawTransactionSerde.VERSION}`,
+      )
+    }
+
+    const transactionVersion = reader.readU8()
+
+    const raw = new RawTransaction(transactionVersion)
     raw.fee = reader.readBigU64()
 
     const spendsLength = reader.readU64()
@@ -300,7 +314,7 @@ export class RawTransactionSerde {
       const value = reader.readBigU64()
 
       let transferOwnershipTo = undefined
-      if (TransactionFeatures.hasMintTransferOwnershipTo(raw.version)) {
+      if (TransactionFeatures.hasMintTransferOwnershipTo(raw.transactionVersion)) {
         if (reader.readU8()) {
           transferOwnershipTo = reader.readBytes(PUBLIC_ADDRESS_LENGTH).toString('hex')
         }
@@ -327,7 +341,9 @@ export class RawTransactionSerde {
   static getSize(raw: RawTransaction): number {
     let size = 0
 
-    size += 1 // raw.version
+    size += 1 // VERSION
+
+    size += 1 // raw.transactionVersion
 
     size += TRANSACTION_FEE_LENGTH // raw.fee
 
@@ -356,7 +372,7 @@ export class RawTransactionSerde {
       size += bufio.sizeVarString(mint.metadata, 'utf8')
       size += AMOUNT_VALUE_LENGTH // mint.value
 
-      if (TransactionFeatures.hasMintTransferOwnershipTo(raw.version)) {
+      if (TransactionFeatures.hasMintTransferOwnershipTo(raw.transactionVersion)) {
         size += 1
         if (mint.transferOwnershipTo) {
           size += PUBLIC_ADDRESS_LENGTH

@@ -1255,21 +1255,21 @@ describe('Wallet', () => {
 
           // default expiration
           let tx = await wallet.createTransaction({ account, fee: 0n })
-          expect(tx.version).toEqual(expectedVersion)
+          expect(tx.transactionVersion).toEqual(expectedVersion)
 
           tx = await wallet.createTransaction({
             account,
             fee: 0n,
             expirationDelta: delta,
           })
-          expect(tx.version).toEqual(expectedVersion)
+          expect(tx.transactionVersion).toEqual(expectedVersion)
 
           tx = await wallet.createTransaction({
             account,
             fee: 0n,
             expiration: chain.head.sequence + delta,
           })
-          expect(tx.version).toEqual(expectedVersion)
+          expect(tx.transactionVersion).toEqual(expectedVersion)
         })
       })
     })

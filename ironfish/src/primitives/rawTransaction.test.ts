@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset, generateKey, Note as NativeNote } from '@ironfish/rust-nodejs'
 import { BufferMap } from 'buffer-map'
+import bufio from 'bufio'
 import { Assert } from '../assert'
 import { IsNoteWitnessEqual } from '../merkletree/witness'
 import { makeFakeWitness } from '../testUtilities'
@@ -14,7 +15,12 @@ import {
 import { createRawTransaction } from '../testUtilities/helpers/transaction'
 import { createNodeTest } from '../testUtilities/nodeTest'
 import { Note } from './note'
-import { MintData, RawTransaction, RawTransactionSerde } from './rawTransaction'
+import {
+  MintData,
+  RawTransaction,
+  RawTransactionSerde,
+  RawTransactionSerdeError,
+} from './rawTransaction'
 import { TransactionVersion } from './transaction'
 
 describe('RawTransaction', () => {
@@ -263,7 +269,7 @@ describe('RawTransactionSerde', () => {
     })
 
     expect(RawTransactionSerde.serialize(deserialized).equals(serialized)).toBe(true)
-    expect(deserialized.version).toEqual(TransactionVersion.V1)
+    expect(deserialized.transactionVersion).toEqual(TransactionVersion.V1)
     expect(deserialized.outputs[0].note).toEqual(raw.outputs[0].note)
     expect(deserialized.burns[0].assetId).toEqual(asset.id())
     expect(deserialized.burns[0].value).toEqual(5n)
@@ -342,7 +348,7 @@ describe('RawTransactionSerde', () => {
     })
 
     expect(RawTransactionSerde.serialize(deserialized).equals(serialized)).toBe(true)
-    expect(deserialized.version).toEqual(TransactionVersion.V2)
+    expect(deserialized.transactionVersion).toEqual(TransactionVersion.V2)
     expect(deserialized.outputs[0].note).toEqual(raw.outputs[0].note)
     expect(deserialized.burns[0].assetId).toEqual(asset.id())
     expect(deserialized.burns[0].value).toEqual(5n)
@@ -388,5 +394,38 @@ describe('RawTransactionSerde', () => {
 
     expect(deserialized.mints[1].name).toEqual(assetName)
     expect(deserialized.mints[1].metadata).toEqual(assetMetadata)
+  })
+
+  it('throws an error on deserialization if serde version does not match', () => {
+    const assetName = 'asset'
+    const assetMetadata = 'metadata'
+
+    const raw = new RawTransaction(TransactionVersion.V1)
+
+    raw.mints = [
+      {
+        creator: '0000',
+        name: assetName,
+        metadata: assetMetadata,
+        value: 5n,
+      },
+    ]
+
+    const serialized = RawTransactionSerde.serialize(raw)
+
+    const bw = bufio.write(1)
+    bw.writeU8(42)
+
+    const wrongVersion = bw.render()
+    const serializedNoVersion = serialized.subarray(1)
+
+    const serializedWrongVersion = Buffer.concat([wrongVersion, serializedNoVersion])
+
+    expect(() => RawTransactionSerde.deserialize(serializedNoVersion)).toThrow(
+      RawTransactionSerdeError,
+    )
+    expect(() => RawTransactionSerde.deserialize(serializedWrongVersion)).toThrow(
+      RawTransactionSerdeError,
+    )
   })
 })
