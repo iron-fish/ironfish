@@ -1,12 +1,18 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Asset, generateKey, Note as NativeNote } from '@ironfish/rust-nodejs'
+import {
+  Asset,
+  generateKey,
+  generateKeyFromPrivateKey,
+  Note as NativeNote,
+} from '@ironfish/rust-nodejs'
+import { Assert } from '../assert'
 import { makeFakeWitness, useAccountFixture, useTxFixture } from '../testUtilities'
 import { createNodeTest } from '../testUtilities/nodeTest'
 import { SpendingAccount } from '../wallet'
 import { Note } from './note'
-import { RawTransaction } from './rawTransaction'
+import { RawTransaction, RawTransactionSerde } from './rawTransaction'
 import { TransactionVersion } from './transaction'
 
 const TEST_ASSET_ID_1: Buffer = Buffer.from(
@@ -255,6 +261,63 @@ describe('RawTransaction', () => {
 
           expect(raw.postedSize(account.publicAddress)).toEqual(serialized.byteLength)
         })
+      })
+    })
+  })
+
+  describe('serde', () => {
+    it('serializes and deserializes unsignedTransactionSerialized', async () => {
+      const account = await useAccountFixture(nodeTest.wallet)
+
+      const inNote = new Note(
+        new NativeNote(
+          account.publicAddress,
+          5n,
+          'spend',
+          Asset.nativeId(),
+          account.publicAddress,
+        ).serialize(),
+      )
+      const outNote = new Note(
+        new NativeNote(
+          account.publicAddress,
+          5n,
+          'receive',
+          Asset.nativeId(),
+          account.publicAddress,
+        ).serialize(),
+      )
+
+      const witness = makeFakeWitness(inNote)
+
+      const raw = new RawTransaction(TransactionVersion.V1)
+      raw.expiration = 60
+      raw.fee = 0n
+
+      raw.outputs = [
+        {
+          note: outNote,
+        },
+      ]
+
+      raw.spends = [{ note: inNote, witness }]
+
+      const accountKey = generateKeyFromPrivateKey(account.spendingKey)
+
+      raw.build(
+        accountKey.proofGenerationKey,
+        account.viewKey,
+        account.outgoingViewKey,
+        account.publicAddress,
+      )
+
+      Assert.isNotNull(raw.unsignedTransactionSerialized)
+
+      const serialized = RawTransactionSerde.serialize(raw)
+      const deserialized = RawTransactionSerde.deserialize(serialized)
+
+      expect(deserialized).toMatchObject({
+        unsignedTransactionSerialized: raw.unsignedTransactionSerialized,
       })
     })
   })

@@ -59,6 +59,8 @@ export class RawTransaction {
     >
   }[] = []
 
+  unsignedTransactionSerialized: Buffer | null = null
+
   constructor(version: TransactionVersion) {
     this.transactionVersion = version
   }
@@ -168,18 +170,21 @@ export class RawTransaction {
     outgoingViewKey: string,
     publicAddress: string,
   ): UnsignedTransaction {
-    const builder = this._build()
+    if (!this.unsignedTransactionSerialized) {
+      const builder = this._build()
 
-    const serialized = builder.build(
-      proofGenerationKey,
-      viewKey,
-      outgoingViewKey,
-      publicAddress,
-      this.fee,
-      null,
-    )
+      const serialized = builder.build(
+        proofGenerationKey,
+        viewKey,
+        outgoingViewKey,
+        publicAddress,
+        this.fee,
+        null,
+      )
+      this.unsignedTransactionSerialized = serialized
+    }
 
-    return new UnsignedTransaction(serialized)
+    return new UnsignedTransaction(this.unsignedTransactionSerialized)
   }
 
   post(spendingKey: string): Transaction {
@@ -194,7 +199,8 @@ export class RawTransaction {
 export class RawTransactionSerdeError extends Error {}
 
 export class RawTransactionSerde {
-  static VERSION = 3
+  private static readonly MIN_VERSION = 3
+  private static readonly VERSION = 4
 
   static serialize(raw: RawTransaction): Buffer {
     const bw = bufio.write(this.getSize(raw))
@@ -262,6 +268,11 @@ export class RawTransactionSerde {
       bw.writeU32(raw.expiration)
     }
 
+    bw.writeU8(Number(raw.unsignedTransactionSerialized != null))
+    if (raw.unsignedTransactionSerialized != null) {
+      bw.writeVarBytes(raw.unsignedTransactionSerialized)
+    }
+
     return bw.render()
   }
 
@@ -270,9 +281,9 @@ export class RawTransactionSerde {
 
     const version = reader.readU8()
 
-    if (version !== RawTransactionSerde.VERSION) {
+    if (version < RawTransactionSerde.MIN_VERSION) {
       throw new RawTransactionSerdeError(
-        `RawTransaction serialization version ${version} does not match current version ${RawTransactionSerde.VERSION}`,
+        `RawTransaction serialization version ${version} does not meet minimum deserialization version ${RawTransactionSerde.MIN_VERSION}`,
       )
     }
 
@@ -335,6 +346,16 @@ export class RawTransactionSerde {
       raw.expiration = reader.readU32()
     }
 
+    if (version < 4) {
+      // unsignedTransactionSerialized added in version 4
+      return raw
+    }
+
+    const hasUnsignedTransactionSerialized = reader.readU8()
+    if (hasUnsignedTransactionSerialized) {
+      raw.unsignedTransactionSerialized = reader.readVarBytes()
+    }
+
     return raw
   }
 
@@ -389,6 +410,11 @@ export class RawTransactionSerde {
     size += 1 // has expiration sequence
     if (raw.expiration != null) {
       size += TRANSACTION_EXPIRATION_LENGTH // raw.expiration
+    }
+
+    size += 1 // has unsignedTransactionSerialized
+    if (raw.unsignedTransactionSerialized) {
+      size += bufio.sizeVarBytes(raw.unsignedTransactionSerialized)
     }
 
     return size
