@@ -61,7 +61,9 @@ export class Consensus {
   readonly parameters: ConsensusParameters
 
   constructor(parameters: ConsensusParameters) {
-    this.parameters = parameters
+    this.parameters = {
+      ...parameters,
+    }
   }
 
   isActive(upgrade: keyof ConsensusParameters, sequence: number): boolean {
