@@ -329,14 +329,12 @@ impl NativeTransaction {
         proof_generation_key_str: String,
         view_key_str: String,
         outgoing_view_key_str: String,
-        public_address_str: String,
         intended_transaction_fee: BigInt,
         change_goes_to: Option<String>,
     ) -> Result<Buffer> {
         let view_key = ViewKey::from_hex(&view_key_str).map_err(to_napi_err)?;
         let outgoing_view_key =
             OutgoingViewKey::from_hex(&outgoing_view_key_str).map_err(to_napi_err)?;
-        let public_address = PublicAddress::from_hex(&public_address_str).map_err(to_napi_err)?;
         let proof_generation_key = ProofGenerationKey::from_hex(&proof_generation_key_str)
             .map_err(|_| to_napi_err("PublicKeyPackage hex to bytes failed"))?;
         let change_address = match change_goes_to {
@@ -349,7 +347,6 @@ impl NativeTransaction {
                 proof_generation_key,
                 view_key,
                 outgoing_view_key,
-                public_address,
                 intended_transaction_fee.get_i64().0,
                 change_address,
             )

@@ -243,7 +243,6 @@ fn test_proposed_transaction_build() {
             spender_key.sapling_proof_generation_key(),
             spender_key.view_key().clone(),
             spender_key.outgoing_view_key().clone(),
-            spender_key.public_address(),
             intended_fee,
             Some(public_address),
         )
@@ -687,7 +686,6 @@ fn test_sign_simple() {
             spender_key.sapling_proof_generation_key(),
             spender_key.view_key().clone(),
             spender_key.outgoing_view_key().clone(),
-            spender_key.public_address(),
             1,
             Some(spender_key.public_address()),
         )
@@ -782,7 +780,6 @@ fn test_sign_frost() {
             key_packages.proof_generation_key,
             key_packages.view_key,
             key_packages.outgoing_view_key,
-            key_packages.public_address,
             intended_fee,
             Some(key_packages.public_address),
         )
