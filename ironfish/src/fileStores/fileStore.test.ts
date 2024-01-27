@@ -23,7 +23,6 @@ describe('FileStore', () => {
     const dir = getUniqueTestDataDir()
     const files = await new NodeFileProvider().init()
 
-    // create empty file
     const path = files.resolve(dir + '/test')
     await files.mkdir(files.dirname(path), { recursive: true })
     await files.writeFile(path, '')
