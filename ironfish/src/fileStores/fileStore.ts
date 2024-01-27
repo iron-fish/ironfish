@@ -27,6 +27,10 @@ export class FileStore<T extends Record<string, unknown>> {
 
     if (configExists) {
       const data = await this.files.readFile(this.configPath)
+
+      if (data.length === 0) {
+        return null
+      }
       config = JSONUtils.parse<PartialRecursive<T>>(data, this.configName)
     }
 
