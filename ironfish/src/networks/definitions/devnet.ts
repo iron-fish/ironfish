@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import type { NetworkDefinition } from '../networkDefinition'
+
 /**
  * This account (IronFishGenesisAccount) can be imported to access the funds in the genesis block.
  *
@@ -49,4 +51,22 @@ export const DEVNET_GENESIS = {
       'base64',
     ),
   ],
+}
+
+// TODO(IFL-1523): Update proper activation sequence for enableAssetOwnership
+export const DEVNET: NetworkDefinition = {
+  id: 2,
+  bootstrapNodes: [],
+  genesis: DEVNET_GENESIS,
+  consensus: {
+    allowedBlockFutureSeconds: 15,
+    genesisSupplyInIron: 42000000,
+    targetBlockTimeInSeconds: 60,
+    targetBucketTimeInSeconds: 10,
+    maxBlockSizeBytes: 524288,
+    minFee: 0,
+    enableAssetOwnership: 1,
+    enforceSequentialBlockTime: 1,
+    enableFishHash: 'never',
+  },
 }

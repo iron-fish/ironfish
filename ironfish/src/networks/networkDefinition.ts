@@ -2,12 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { ActivationSequence, ConsensusParameters } from './consensus'
-import { DEVNET, isDefaultNetworkId, MAINNET, TESTNET } from './defaultNetworkDefinitions'
-import { Config, InternalStore } from './fileStores'
-import { FileSystem } from './fileSystems'
-import { SerializedBlock } from './primitives/block'
-import { IJSON } from './serde'
+import { ActivationSequence, ConsensusParameters } from '../consensus'
+import { Config, InternalStore } from '../fileStores'
+import { FileSystem } from '../fileSystems'
+import { SerializedBlock } from '../primitives/block'
+import { IJSON } from '../serde'
+import { DEVNET } from './definitions/devnet'
+import { MAINNET } from './definitions/mainnet'
+import { TESTNET } from './definitions/testnet'
 
 export type NetworkDefinition = {
   id: number
@@ -54,6 +56,21 @@ export const networkDefinitionSchema: yup.ObjectSchema<NetworkDefinition> = yup
       .defined(),
   })
   .defined()
+
+export function isDefaultNetworkId(networkId: number): boolean {
+  return networkId <= 100
+}
+
+export function defaultNetworkName(networkId: number): string | undefined {
+  switch (networkId) {
+    case 0:
+      return 'Testnet'
+    case 1:
+      return 'Mainnet'
+    case 2:
+      return 'Devnet'
+  }
+}
 
 export async function getNetworkDefinition(
   config: Config,

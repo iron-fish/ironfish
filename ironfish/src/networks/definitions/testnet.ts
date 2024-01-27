@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import type { NetworkDefinition } from '../networkDefinition'
+
 export const TESTNET_GENESIS = {
   header: {
     sequence: 1,
@@ -32,4 +34,25 @@ export const TESTNET_GENESIS = {
       'base64',
     ),
   ],
+}
+
+// TODO(IFL-1523): Update proper activation sequence for enableAssetOwnership
+// enforceSequentialBlockTime activation date is approximately 26-07-2024 00:56. This is not the
+// actual date, it's an placeholder for the testnet release.
+// TODO: @ygao76 update this once the change is ready to release to testnet.
+export const TESTNET: NetworkDefinition = {
+  id: 0,
+  bootstrapNodes: ['1.test.bn.ironfish.network', '2.test.bn.ironfish.network'],
+  genesis: TESTNET_GENESIS,
+  consensus: {
+    allowedBlockFutureSeconds: 15,
+    genesisSupplyInIron: 42000000,
+    targetBlockTimeInSeconds: 60,
+    targetBucketTimeInSeconds: 10,
+    maxBlockSizeBytes: 524288,
+    minFee: 1,
+    enableAssetOwnership: 9999999,
+    enforceSequentialBlockTime: 'never',
+    enableFishHash: 'never',
+  },
 }
