@@ -21,20 +21,19 @@ export class FileStore<T extends Record<string, unknown>> {
   }
 
   async load(): Promise<PartialRecursive<T> | null> {
-    const configExists = await this.files.exists(this.configPath)
+    const exists = await this.files.exists(this.configPath)
 
-    let config = null
-
-    if (configExists) {
-      const data = await this.files.readFile(this.configPath)
-
-      if (data.length === 0) {
-        return null
-      }
-      config = JSONUtils.parse<PartialRecursive<T>>(data, this.configName)
+    if (!exists) {
+      return null
     }
 
-    return config
+    const data = await this.files.readFile(this.configPath)
+
+    if (data.length === 0) {
+      return null
+    }
+
+    return JSONUtils.parse<PartialRecursive<T>>(data, this.configName)
   }
 
   async save(data: PartialRecursive<T>): Promise<void> {
