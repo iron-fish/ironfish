@@ -19,6 +19,22 @@ describe('FileStore', () => {
     expect(loaded).toMatchObject({ foo: 'hello' })
   })
 
+  it('should load file if it is empty', async () => {
+    const dir = getUniqueTestDataDir()
+    const files = await new NodeFileProvider().init()
+
+    await files.mkdir(dir, { recursive: true })
+    await files.writeFile(files.join(dir, '/test'), '')
+
+    const store = new FileStore(files, 'test', dir)
+    const result = await store.load()
+    expect(result).toBeNull()
+
+    await store.save({ foo: 'hello' })
+    const loaded = await store.load()
+    expect(loaded).toMatchObject({ foo: 'hello' })
+  })
+
   it('should prevent multiple writes to the file before the promise completes', async () => {
     const dir = getUniqueTestDataDir()
     const files = new NodeFileProvider()
