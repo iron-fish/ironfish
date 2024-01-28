@@ -23,17 +23,15 @@ describe('FileStore', () => {
     const dir = getUniqueTestDataDir()
     const files = await new NodeFileProvider().init()
 
-    const path = files.resolve(dir + '/test')
-    await files.mkdir(files.dirname(path), { recursive: true })
-    await files.writeFile(path, '')
+    await files.mkdir(dir, { recursive: true })
+    await files.writeFile(files.join(dir, '/test'), '')
 
-    const store = new FileStore<{ foo: string }>(files, 'test', dir)
+    const store = new FileStore(files, 'test', dir)
     const result = await store.load()
     expect(result).toBeNull()
+
     await store.save({ foo: 'hello' })
-
     const loaded = await store.load()
-
     expect(loaded).toMatchObject({ foo: 'hello' })
   })
 
