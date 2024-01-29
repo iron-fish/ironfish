@@ -16,7 +16,6 @@ describe('UnsignedTransaction', () => {
                 key.proofGenerationKey,
                 key.viewKey,
                 key.outgoingViewKey,
-                key.publicAddress,
                 0n,
             )
 

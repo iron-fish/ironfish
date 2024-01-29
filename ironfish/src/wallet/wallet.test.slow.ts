@@ -1279,7 +1279,6 @@ describe('Wallet', () => {
         trustedDealerPackage.proofGenerationKey,
         trustedDealerPackage.viewKey,
         trustedDealerPackage.outgoingViewKey,
-        trustedDealerPackage.publicAddress,
       )
 
       const signingPackage = unsignedTransaction.signingPackage(signingCommitments)

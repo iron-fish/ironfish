@@ -16,6 +16,7 @@ use super::PublicAddress;
 use crate::{
     errors::{IronfishError, IronfishErrorKind},
     serializing::{bytes_to_hex, hex_to_bytes, read_scalar},
+    SaplingKey,
 };
 use bip39::{Language, Mnemonic};
 use blake2b_simd::Params as Blake2b;
@@ -135,6 +136,17 @@ impl ViewKey {
         result[..32].copy_from_slice(&self.authorizing_key.to_bytes());
         result[32..].copy_from_slice(&self.nullifier_deriving_key.to_bytes());
         result
+    }
+
+    pub fn public_address(&self) -> Result<PublicAddress, IronfishError> {
+        let ivk = IncomingViewKey {
+            view_key: SaplingKey::hash_viewing_key(
+                &self.authorizing_key,
+                &self.nullifier_deriving_key,
+            )?,
+        };
+
+        Ok(ivk.public_address())
     }
 }
 

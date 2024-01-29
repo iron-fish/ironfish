@@ -166,7 +166,6 @@ export class RawTransaction {
     proofGenerationKey: string,
     viewKey: string,
     outgoingViewKey: string,
-    publicAddress: string,
   ): UnsignedTransaction {
     const builder = this._build()
 
@@ -174,7 +173,6 @@ export class RawTransaction {
       proofGenerationKey,
       viewKey,
       outgoingViewKey,
-      publicAddress,
       this.fee,
       null,
     )
