@@ -334,8 +334,6 @@ impl ProposedTransaction {
         change_goes_to: Option<PublicAddress>,
         intended_transaction_fee: u64,
     ) -> Result<Transaction, IronfishError> {
-        let public_address = spender_key.public_address();
-
         let i64_fee = i64::try_from(intended_transaction_fee)?;
 
         let unsigned = self.build(
