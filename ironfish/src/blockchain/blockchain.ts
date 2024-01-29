@@ -28,7 +28,6 @@ import {
 import {
   BlockHash,
   BlockHeader,
-  BlockHeaderSerde,
   isBlockHeavier,
   isBlockLater,
   transactionCommitment,
@@ -199,9 +198,7 @@ export class Blockchain {
     return Math.max(Math.min(1, progress), 0)
   }
 
-  private async seed() {
-    const genesis = BlockSerde.deserialize(this.seedGenesisBlock, this.strategy)
-
+  private async seed(genesis: Block): Promise<BlockHeader> {
     const result = await this.addBlock(genesis)
     Assert.isTrue(result.isAdded, `Could not seed genesis: ${result.reason || 'unknown'}`)
     Assert.isEqual(result.isFork, false)
@@ -227,17 +224,17 @@ export class Blockchain {
 
   private async load(): Promise<void> {
     let genesisHeader = await this.getHeaderAtSequence(GENESIS_BLOCK_SEQUENCE)
+    const seedGenesisBlock = BlockSerde.deserialize(this.seedGenesisBlock, this.strategy)
+
     if (genesisHeader) {
       Assert.isTrue(
-        genesisHeader.hash.equals(
-          BlockHeaderSerde.deserialize(this.seedGenesisBlock.header, this.strategy).hash,
-        ),
+        genesisHeader.hash.equals(seedGenesisBlock.header.hash),
         'Genesis block in network definition does not match existing chain genesis block',
       )
     }
 
     if (!genesisHeader && this.autoSeed) {
-      genesisHeader = await this.seed()
+      genesisHeader = await this.seed(seedGenesisBlock)
     }
 
     if (genesisHeader) {
