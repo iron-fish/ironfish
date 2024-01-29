@@ -13,7 +13,7 @@ import {
 } from '@ironfish/rust-nodejs'
 import { blake3 } from '@napi-rs/blake-hash'
 import { serializeHeaderBlake3, serializeHeaderFishHash } from './blockHasher'
-import { ConsensusParameters, TestnetConsensus } from './consensus'
+import { Consensus, ConsensusParameters } from './consensus'
 import { MerkleTree } from './merkletree'
 import { LeafEncoding } from './merkletree/database/leaves'
 import { NodeEncoding } from './merkletree/database/nodes'
@@ -104,7 +104,7 @@ describe('Demonstrate the Sapling API', () => {
     workerPool = new WorkerPool()
     strategy = new Strategy({
       workerPool,
-      consensus: new TestnetConsensus(consensusParameters),
+      consensus: new Consensus(consensusParameters),
       fishHashContext: FISH_HASH_CONTEXT,
     })
   })
@@ -259,7 +259,7 @@ describe('Demonstrate the Sapling API', () => {
       const key = generateKey()
       const modifiedStrategy = new Strategy({
         workerPool,
-        consensus: new TestnetConsensus(modifiedParams),
+        consensus: new Consensus(modifiedParams),
         fishHashContext: FISH_HASH_CONTEXT,
       })
 
@@ -359,7 +359,7 @@ describe('Demonstrate the Sapling API', () => {
     beforeAll(() => {
       modifiedStrategy = new Strategy({
         workerPool,
-        consensus: new TestnetConsensus(modifiedParams),
+        consensus: new Consensus(modifiedParams),
         fishHashContext: FISH_HASH_CONTEXT,
       })
     })
