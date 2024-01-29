@@ -7,39 +7,29 @@ import {
   IDatabase,
   IDatabaseStore,
   NULL_ENCODING,
-  PrefixEncoding,
+  PrefixArrayEncoding,
   U32_ENCODING_BE,
 } from '../../../../storage'
 import { Account } from '../../../../wallet'
 
 export function GetNewStores(db: IDatabase): {
   unspentNoteHashes: IDatabaseStore<{
-    key: [Account['prefix'], [Buffer, [number, [bigint, Buffer]]]]
+    key: [Account['prefix'], Buffer, number, bigint, Buffer]
     value: null
   }>
 } {
   const unspentNoteHashes: IDatabaseStore<{
-    key: [Account['prefix'], [Buffer, [number, [bigint, Buffer]]]]
+    key: [Account['prefix'], Buffer, number, bigint, Buffer]
     value: null
   }> = db.addStore({
     name: 'un',
-    keyEncoding: new PrefixEncoding(
-      new BufferEncoding(), // account prefix
-      new PrefixEncoding(
-        new BufferEncoding(), // asset ID
-        new PrefixEncoding(
-          U32_ENCODING_BE, // sequence
-          new PrefixEncoding(
-            new BigU64BEEncoding(), // value
-            new BufferEncoding(), // note hash
-            8,
-          ),
-          4,
-        ),
-        32,
-      ),
-      4,
-    ),
+    keyEncoding: new PrefixArrayEncoding([
+      [new BufferEncoding(), 4], // account prefix
+      [new BufferEncoding(), 32], // asset ID
+      [U32_ENCODING_BE, 4], // sequence
+      [new BigU64BEEncoding(), 8], // value
+      [new BufferEncoding(), 32], // note hash
+    ]),
     valueEncoding: NULL_ENCODING,
   })
 
