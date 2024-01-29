@@ -127,7 +127,13 @@ pub struct ThreadPoolHandler {
 #[napi]
 impl ThreadPoolHandler {
     #[napi(constructor)]
-    pub fn new(thread_count: u32, batch_size: u32, pause_on_success: bool, use_fish_hash: bool, fish_hash_full_context: bool) -> Self {
+    pub fn new(
+        thread_count: u32,
+        batch_size: u32,
+        pause_on_success: bool,
+        use_fish_hash: bool,
+        fish_hash_full_context: bool,
+    ) -> Self {
         ThreadPoolHandler {
             threadpool: mining::threadpool::ThreadPool::new(
                 thread_count as usize,
@@ -140,7 +146,13 @@ impl ThreadPoolHandler {
     }
 
     #[napi]
-    pub fn new_work(&mut self, header_bytes: Buffer, target: Buffer, mining_request_id: u32, fish_hash: bool) {
+    pub fn new_work(
+        &mut self,
+        header_bytes: Buffer,
+        target: Buffer,
+        mining_request_id: u32,
+        fish_hash: bool,
+    ) {
         self.threadpool
             .new_work(&header_bytes, &target, mining_request_id, fish_hash)
     }
