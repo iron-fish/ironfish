@@ -58,7 +58,7 @@ export class MiningSoloMiner {
     this.graffiti = options.graffiti
 
     const threadCount = options.threadCount ?? 1
-    this.threadPool = new ThreadPoolHandler(threadCount, options.batchSize, true)
+    this.threadPool = new ThreadPoolHandler(threadCount, options.batchSize, true, false, false)
 
     this.miningRequestId = 0
     this.nextMiningRequestId = 0
@@ -135,7 +135,7 @@ export class MiningSoloMiner {
     headerBytes.set(this.graffiti, MINEABLE_BLOCK_HEADER_GRAFFITI_OFFSET)
 
     this.waiting = false
-    this.threadPool.newWork(headerBytes, this.target, miningRequestId)
+    this.threadPool.newWork(headerBytes, this.target, miningRequestId, false)
   }
 
   waitForWork(): void {

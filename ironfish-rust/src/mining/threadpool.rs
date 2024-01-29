@@ -11,8 +11,15 @@ pub struct ThreadPool {
     hash_rate_receiver: Receiver<u32>,
     mining_request_id: u32,
 }
+
 impl ThreadPool {
-    pub fn new(thread_count: usize, batch_size: u32, pause_on_success: bool) -> Self {
+    pub fn new(
+        thread_count: usize,
+        batch_size: u32,
+        pause_on_success: bool,
+        use_fish_hash: bool,
+        fish_hash_full_context: bool,
+    ) -> Self {
         let (block_found_channel, block_found_receiver) = mpsc::channel::<(u64, u32)>();
 
         let (hash_rate_channel, hash_rate_receiver) = mpsc::channel::<u32>();
@@ -26,6 +33,8 @@ impl ThreadPool {
                 thread_count,
                 batch_size,
                 pause_on_success,
+                use_fish_hash,
+                fish_hash_full_context,
             ));
         }
 
@@ -37,12 +46,23 @@ impl ThreadPool {
         }
     }
 
-    pub fn new_work(&mut self, header_bytes: &[u8], target: &[u8], mining_request_id: u32) {
+    pub fn new_work(
+        &mut self,
+        header_bytes: &[u8],
+        target: &[u8],
+        mining_request_id: u32,
+        fish_hash: bool,
+    ) {
         self.mining_request_id = mining_request_id;
 
         for thread in self.threads.iter() {
             thread
-                .new_work(header_bytes.to_vec(), target.to_vec(), mining_request_id)
+                .new_work(
+                    header_bytes.to_vec(),
+                    target.to_vec(),
+                    mining_request_id,
+                    fish_hash,
+                )
                 .unwrap();
         }
     }

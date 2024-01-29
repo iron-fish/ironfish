@@ -8,6 +8,7 @@ use std::{
 };
 
 use super::mine;
+use fish_hash::Context;
 
 #[derive(Debug)]
 pub(crate) enum Command {
@@ -15,6 +16,7 @@ pub(crate) enum Command {
         Vec<u8>, // header bytes
         Vec<u8>, // target
         u32,     // mining request id
+        bool,    // use fish hash
     ),
     Stop,
     Pause,
@@ -23,6 +25,7 @@ pub(crate) enum Command {
 pub(crate) struct Thread {
     command_channel: Sender<Command>,
 }
+
 impl Thread {
     pub(crate) fn new(
         id: u64,
@@ -31,12 +34,20 @@ impl Thread {
         pool_size: usize,
         batch_size: u32,
         pause_on_success: bool,
+        use_fish_hash: bool,
+        fish_hash_full_context: bool,
     ) -> Self {
         let (work_sender, work_receiver) = mpsc::channel::<Command>();
 
         thread::Builder::new()
             .name(id.to_string())
             .spawn(move || {
+                let mut fish_hash_context = if use_fish_hash {
+                    Some(fish_hash::Context::new(fish_hash_full_context))
+                } else {
+                    None
+                };
+
                 process_commands(
                     work_receiver,
                     block_found_channel,
@@ -45,6 +56,7 @@ impl Thread {
                     pool_size,
                     batch_size as u64,
                     pause_on_success,
+                    &mut fish_hash_context,
                 )
             })
             .unwrap();
@@ -59,9 +71,14 @@ impl Thread {
         header_bytes: Vec<u8>,
         target: Vec<u8>,
         mining_request_id: u32,
+        use_fish_hash: bool,
     ) -> Result<(), SendError<Command>> {
-        self.command_channel
-            .send(Command::NewWork(header_bytes, target, mining_request_id))
+        self.command_channel.send(Command::NewWork(
+            header_bytes,
+            target,
+            mining_request_id,
+            use_fish_hash,
+        ))
     }
 
     pub(crate) fn pause(&self) -> Result<(), SendError<Command>> {
@@ -81,6 +98,7 @@ fn process_commands(
     step_size: usize,
     default_batch_size: u64,
     pause_on_success: bool,
+    fish_hash_context: &mut Option<Context>,
 ) {
     let mut commands: VecDeque<Command> = VecDeque::new();
     loop {
@@ -92,7 +110,7 @@ fn process_commands(
 
         let command = commands.pop_front().unwrap();
         match command {
-            Command::NewWork(mut header_bytes, target, mining_request_id) => {
+            Command::NewWork(mut header_bytes, target, mining_request_id, use_fish_hash) => {
                 let mut batch_start = start;
                 loop {
                     let remaining_search_space = u64::MAX - batch_start;
@@ -101,13 +119,24 @@ fn process_commands(
                     } else {
                         remaining_search_space
                     };
-                    let match_found = mine::mine_batch(
-                        &mut header_bytes,
-                        &target,
-                        batch_start,
-                        step_size,
-                        batch_size,
-                    );
+
+                    let match_found = match use_fish_hash {
+                        false => mine::mine_batch_blake3(
+                            &mut header_bytes,
+                            &target,
+                            batch_start,
+                            step_size,
+                            batch_size,
+                        ),
+                        true => mine::mine_batch_fish_hash(
+                            fish_hash_context.as_mut().unwrap(),
+                            &mut header_bytes,
+                            &target,
+                            batch_start,
+                            step_size,
+                            batch_size,
+                        ),
+                    };
 
                     // Submit amount of work done
                     let work_done = match match_found {
