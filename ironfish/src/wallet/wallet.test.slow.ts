@@ -1234,7 +1234,7 @@ describe('Wallet', () => {
         account: miner,
         outputs: [
           {
-            publicAddress: participantA.publicAddress,
+            publicAddress: participantB.publicAddress,
             amount: BigInt(2),
             memo: '',
             assetId: Asset.nativeId(),
