@@ -16,6 +16,7 @@ export interface AccountValue {
   id: string
   name: string
   spendingKey: string | null
+  proofAuthorizationKey: string | null
   viewKey: string
   incomingViewKey: string
   outgoingViewKey: string
@@ -37,12 +38,16 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     flags |= Number(!!value.spendingKey) << 0
     flags |= Number(!!value.createdAt) << 1
     flags |= Number(!!value.multiSigKeys) << 2
+    flags |= Number(!!value.proofAuthorizationKey) << 3
     bw.writeU8(flags)
     bw.writeU16(value.version)
     bw.writeVarString(value.id, 'utf8')
     bw.writeVarString(value.name, 'utf8')
     if (value.spendingKey) {
       bw.writeBytes(Buffer.from(value.spendingKey, 'hex'))
+    }
+    if (value.proofAuthorizationKey) {
+      bw.writeBytes(Buffer.from(value.proofAuthorizationKey, 'hex'))
     }
     bw.writeBytes(Buffer.from(value.viewKey, 'hex'))
     bw.writeBytes(Buffer.from(value.incomingViewKey, 'hex'))
@@ -70,9 +75,13 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     const hasSpendingKey = flags & (1 << 0)
     const hasCreatedAt = flags & (1 << 1)
     const hasMultiSigKeys = flags & (1 << 2)
+    const hasProofAuthorizationKey = flags & (1 << 3)
     const id = reader.readVarString('utf8')
     const name = reader.readVarString('utf8')
     const spendingKey = hasSpendingKey ? reader.readBytes(KEY_LENGTH).toString('hex') : null
+    const proofAuthorizationKey = hasProofAuthorizationKey
+      ? reader.readBytes(KEY_LENGTH).toString('hex')
+      : null
     const viewKey = reader.readBytes(VIEW_KEY_LENGTH).toString('hex')
     const incomingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
     const outgoingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
@@ -101,6 +110,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
       incomingViewKey,
       outgoingViewKey,
       spendingKey,
+      proofAuthorizationKey,
       publicAddress,
       createdAt,
       multiSigKeys,
@@ -114,6 +124,9 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     size += bufio.sizeVarString(value.id, 'utf8')
     size += bufio.sizeVarString(value.name, 'utf8')
     if (value.spendingKey) {
+      size += KEY_LENGTH
+    }
+    if (value.proofAuthorizationKey) {
       size += KEY_LENGTH
     }
     size += VIEW_KEY_LENGTH
