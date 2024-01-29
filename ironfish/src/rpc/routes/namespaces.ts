@@ -8,6 +8,7 @@ export enum ApiNamespace {
   event = 'event',
   faucet = 'faucet',
   miner = 'miner',
+  multisig = 'multisig',
   node = 'node',
   peer = 'peer',
   wallet = 'wallet',

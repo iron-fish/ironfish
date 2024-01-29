@@ -2180,6 +2180,169 @@ describe('Accounts', () => {
   })
 
   describe('getUnspentNotes', () => {
+    it('loads notes sorted by value', async () => {
+      const { node } = nodeTest
+      const account = await useAccountFixture(node.wallet)
+
+      const minerBlockA = await useMinerBlockFixture(
+        node.chain,
+        undefined,
+        account,
+        node.wallet,
+      )
+
+      await node.chain.addBlock(minerBlockA)
+      await node.wallet.updateHead()
+
+      const minerBlockB = await useMinerBlockFixture(
+        node.chain,
+        undefined,
+        account,
+        node.wallet,
+      )
+
+      await node.chain.addBlock(minerBlockB)
+      await node.wallet.updateHead()
+
+      const block = await useMinerBlockFixture(node.chain, undefined, account, node.wallet, [
+        await useTxFixture(node.wallet, account, account, undefined, 1n),
+        await useTxFixture(node.wallet, account, account, undefined, 10n),
+      ])
+      await node.chain.addBlock(block)
+      await node.wallet.updateHead()
+
+      const sortedNotes = await AsyncUtils.materialize(
+        account.getUnspentNotes(Asset.nativeId()),
+      )
+
+      const allUnspentNotes = await AsyncUtils.materialize(
+        account.getUnspentNotes(Asset.nativeId()),
+      )
+
+      expect(sortedNotes.length).toEqual(allUnspentNotes.length)
+
+      let previousNoteValue = sortedNotes[0].note.value()
+
+      for (const note of sortedNotes) {
+        expect(note.note.value()).toBeGreaterThanOrEqual(previousNoteValue)
+        previousNoteValue = note.note.value()
+      }
+
+      // descending order
+      const sortedNotesDescending = await AsyncUtils.materialize(
+        account.getUnspentNotes(Asset.nativeId(), { reverse: true }),
+      )
+      previousNoteValue = sortedNotesDescending[0].note.value()
+
+      for (const note of sortedNotesDescending) {
+        expect(note.note.value()).toBeLessThanOrEqual(previousNoteValue)
+        previousNoteValue = note.note.value()
+      }
+    })
+
+    it('filters notes by confirmations', async () => {
+      const { node } = nodeTest
+      const account = await useAccountFixture(node.wallet)
+
+      const getUnspentNotes = async (confirmations: number) => {
+        return await AsyncUtils.materialize(
+          account.getUnspentNotes(Asset.nativeId(), { confirmations }),
+        )
+      }
+
+      const blockA = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
+      await node.chain.addBlock(blockA)
+      await node.wallet.updateHead()
+
+      expect(await getUnspentNotes(1)).toHaveLength(0)
+
+      expect(await getUnspentNotes(0)).toHaveLength(1)
+
+      const blockB = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
+      await node.chain.addBlock(blockB)
+      await node.wallet.updateHead()
+
+      expect(await getUnspentNotes(0)).toHaveLength(2)
+      expect(await getUnspentNotes(1)).toHaveLength(1)
+      expect(await getUnspentNotes(2)).toHaveLength(0)
+    })
+
+    it('sorted notes for minted assets', async () => {
+      const { node } = nodeTest
+      const accA = await useAccountFixture(node.wallet, 'accountA')
+      const accB = await useAccountFixture(node.wallet, 'accountB')
+
+      const minerBlockA = await useMinerBlockFixture(node.chain, undefined, accA, node.wallet)
+
+      await node.chain.addBlock(minerBlockA)
+      await node.wallet.updateHead()
+
+      const transactionA = await useTxFixture(node.wallet, accA, accB)
+      const block = await useMinerBlockFixture(node.chain, undefined, undefined, node.wallet, [
+        transactionA,
+      ])
+      await node.chain.addBlock(block)
+      await node.wallet.updateHead()
+
+      const asset = new Asset(accA.publicAddress, 'mint-asset', 'metadata')
+
+      const mintData = {
+        creator: asset.creator().toString('hex'),
+        name: asset.name().toString('utf8'),
+        metadata: asset.metadata().toString('utf8'),
+        value: 10n,
+      }
+
+      const mint = await usePostTxFixture({
+        node: node,
+        wallet: node.wallet,
+        from: accA,
+        mints: [mintData],
+      })
+
+      const mintBlock = await useMinerBlockFixture(
+        node.chain,
+        undefined,
+        undefined,
+        undefined,
+        [mint],
+      )
+      await node.chain.addBlock(mintBlock)
+      await node.wallet.updateHead()
+
+      expect((await accA.getBalance(asset.id(), 0)).available).toBe(10n)
+
+      for (let i = 0; i < 3; i++) {
+        const transfer = await usePostTxFixture({
+          node,
+          wallet: node.wallet,
+          from: accA,
+          to: accB,
+          assetId: asset.id(),
+          amount: BigInt(i + 1),
+        })
+        const block = await useMinerBlockFixture(node.chain, undefined, accA, node.wallet, [
+          transfer,
+        ])
+        await node.chain.addBlock(block)
+        await node.wallet.updateHead()
+      }
+
+      expect((await accA.getBalance(asset.id(), 0)).available).toBe(4n)
+      expect((await accB.getBalance(asset.id(), 0)).available).toBe(6n)
+
+      const sortedAssetNotes = await AsyncUtils.materialize(
+        accB.getUnspentNotes(asset.id(), {
+          confirmations: 0,
+          reverse: true,
+        }),
+      )
+      const values = sortedAssetNotes.map((note) => note.note.value())
+
+      expect(sortedAssetNotes).toHaveLength(3)
+      expect(values).toEqual([3n, 2n, 1n])
+    })
+
     it('loads all unspent notes with no confirmation range', async () => {
       const { node } = nodeTest
 

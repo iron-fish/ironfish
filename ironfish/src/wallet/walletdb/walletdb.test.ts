@@ -1,8 +1,16 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { createNodeTest, useAccountFixture, useMinerBlockFixture } from '../../testUtilities'
+import { Asset } from '@ironfish/rust-nodejs'
+import { Assert } from '../../assert'
+import {
+  createNodeTest,
+  useAccountFixture,
+  useMinerBlockFixture,
+  useTxFixture,
+} from '../../testUtilities'
 import { AsyncUtils } from '../../utils'
+import { DecryptedNoteValue } from './decryptedNoteValue'
 
 describe('WalletDB', () => {
   const nodeTest = createNodeTest()
@@ -44,6 +52,119 @@ describe('WalletDB', () => {
       expect(noteHashes[0]).toEqualBuffer(Buffer.from('10', 'hex'))
       expect(noteHashes[1]).toEqualBuffer(Buffer.from('100', 'hex'))
       expect(noteHashes[2]).toEqualBuffer(Buffer.from('1000', 'hex'))
+    })
+  })
+
+  describe('loadUnspentNotesByValue', () => {
+    it('notes should be returned in order of value', async () => {
+      const { node } = await nodeTest.createSetup()
+      const account = await useAccountFixture(node.wallet)
+
+      const block1 = await useMinerBlockFixture(node.chain, undefined, account)
+      await expect(node.chain).toAddBlock(block1)
+      await node.wallet.updateHead()
+
+      for (let i = 1; i < 3; i++) {
+        const transaction = await useTxFixture(node.wallet, account, account)
+        await expect(node.chain).toAddBlock(
+          await useMinerBlockFixture(node.chain, undefined, undefined, undefined, [
+            transaction,
+          ]),
+        )
+        await node.wallet.updateHead()
+      }
+
+      const walletDb = node.wallet.walletDb
+      const noteHashes = await AsyncUtils.materialize(
+        walletDb.loadValueToUnspentNoteHashes(account, Asset.nativeId()),
+      )
+      const unspentNotes = await AsyncUtils.materialize(
+        walletDb.loadUnspentNoteHashes(account, Asset.nativeId()),
+      )
+      const notes = (
+        await Promise.all(
+          noteHashes.map((noteHash) => walletDb.loadDecryptedNote(account, noteHash)),
+        )
+      ).filter((note) => note !== undefined) as DecryptedNoteValue[]
+
+      expect(notes).toHaveLength(unspentNotes.length)
+
+      let previousNoteValue = notes[0].note.value()
+
+      for (const note of notes) {
+        expect(note.note.value()).toBeGreaterThanOrEqual(previousNoteValue)
+        previousNoteValue = note.note.value()
+      }
+    })
+
+    it('keys should be stored in order', async () => {
+      const { node } = await nodeTest.createSetup()
+      const walletDb = node.wallet.walletDb
+      const account = await useAccountFixture(node.wallet)
+
+      await Promise.all(
+        [1n, 10n, 100n, 1000n, 10000n].map((value) => {
+          return walletDb.valueToUnspentNoteHashes.put(
+            [
+              account.prefix,
+              Asset.nativeId(),
+              value,
+              Buffer.alloc(32, Math.random().toString()),
+            ],
+            null,
+          )
+        }),
+      )
+
+      const allNotes = await walletDb.valueToUnspentNoteHashes.getAllKeys()
+
+      const correctOrder = [1n, 10n, 100n, 1000n, 10000n]
+
+      const values = allNotes.map((note) => note[2])
+
+      expect(values).toEqual(correctOrder)
+    })
+
+    it('deleting and saving unspent note hashes note also does the same with valueToNoteHash', async () => {
+      const node = (await nodeTest.createSetup()).node
+      const walletDb = node.wallet.walletDb
+      const account = await useAccountFixture(node.wallet)
+
+      const block = await useMinerBlockFixture(node.chain, 0, account)
+      await node.chain.addBlock(block)
+      await node.wallet.updateHead()
+
+      const noteHash: Buffer = block.transactions[0].notes[0].hash()
+      const decryptedNote = await account.getDecryptedNote(noteHash)
+      Assert.isNotUndefined(decryptedNote)
+      const sorted1 = await AsyncUtils.materialize(
+        walletDb.loadValueToUnspentNoteHashes(account, Asset.nativeId()),
+      )
+      const unsorted1 = await AsyncUtils.materialize(
+        walletDb.loadUnspentNotes(account, Asset.nativeId()),
+      )
+      expect(sorted1.length).toEqual(1)
+      expect(unsorted1.length).toEqual(1)
+
+      await walletDb.deleteUnspentNoteHash(account, noteHash, decryptedNote)
+      const sorted2 = await AsyncUtils.materialize(
+        walletDb.loadValueToUnspentNoteHashes(account, Asset.nativeId()),
+      )
+      expect(sorted2.length).toEqual(0)
+      const unsorted2 = await AsyncUtils.materialize(
+        walletDb.loadUnspentNotes(account, Asset.nativeId()),
+      )
+      expect(unsorted2.length).toEqual(0)
+
+      await walletDb.addUnspentNoteHash(account, noteHash, decryptedNote)
+      const sorted3 = await AsyncUtils.materialize(
+        walletDb.loadValueToUnspentNoteHashes(account, Asset.nativeId()),
+      )
+      expect(sorted3.length).toEqual(1)
+      const unsorted3 = await AsyncUtils.materialize(
+        walletDb.loadUnspentNotes(account, Asset.nativeId()),
+      )
+      expect(unsorted3.length).toEqual(1)
     })
   })
 

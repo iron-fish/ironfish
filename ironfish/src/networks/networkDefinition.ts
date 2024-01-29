@@ -2,12 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { ActivationSequence, ConsensusParameters } from './consensus'
-import { DEVNET, isDefaultNetworkId, MAINNET, TESTNET } from './defaultNetworkDefinitions'
-import { Config, InternalStore } from './fileStores'
-import { FileSystem } from './fileSystems'
-import { SerializedBlock } from './primitives/block'
-import { IJSON } from './serde'
+import { ActivationSequence, ConsensusParameters } from '../consensus'
+import { Config, InternalStore } from '../fileStores'
+import { FileSystem } from '../fileSystems'
+import { SerializedBlock } from '../primitives/block'
+import { IJSON } from '../serde'
+import { DEVNET } from './definitions/devnet'
+import { MAINNET } from './definitions/mainnet'
+import { TESTNET } from './definitions/testnet'
 
 export type NetworkDefinition = {
   id: number
@@ -55,55 +57,73 @@ export const networkDefinitionSchema: yup.ObjectSchema<NetworkDefinition> = yup
   })
   .defined()
 
+export function isDefaultNetworkId(networkId: number): boolean {
+  return networkId <= 100
+}
+
+export function defaultNetworkName(networkId: number): string | undefined {
+  switch (networkId) {
+    case 0:
+      return 'Testnet'
+    case 1:
+      return 'Mainnet'
+    case 2:
+      return 'Devnet'
+  }
+}
+
 export async function getNetworkDefinition(
   config: Config,
   internal: InternalStore,
   files: FileSystem,
+  customNetworkPath?: string,
+  networkIdOverride?: number,
 ): Promise<NetworkDefinition> {
-  let networkDefinitionJSON = ''
+  let networkDefinition: NetworkDefinition
 
   // Try fetching custom network definition first, if it exists
-  if (config.isSet('customNetwork')) {
-    networkDefinitionJSON = await files.readFile(files.resolve(config.get('customNetwork')))
+  if (customNetworkPath) {
+    const networkDefinitionJSON = await files.readFile(files.resolve(customNetworkPath))
+    networkDefinition = await networkDefinitionSchema.validate(
+      IJSON.parse(networkDefinitionJSON) as NetworkDefinition,
+    )
   } else {
     if (
       internal.isSet('networkId') &&
-      config.isSet('networkId') &&
-      internal.get('networkId') !== config.get('networkId')
+      networkIdOverride !== undefined &&
+      internal.get('networkId') !== networkIdOverride
     ) {
       throw Error('Network ID flag does not match network ID stored in datadir')
     }
 
-    const networkId = config.isSet('networkId')
-      ? config.get('networkId')
-      : internal.get('networkId')
+    const networkId =
+      networkIdOverride !== undefined ? networkIdOverride : internal.get('networkId')
 
     if (networkId === 0) {
-      networkDefinitionJSON = TESTNET
+      networkDefinition = TESTNET
     } else if (networkId === 1) {
-      networkDefinitionJSON = MAINNET
+      networkDefinition = MAINNET
     } else if (networkId === 2) {
-      networkDefinitionJSON = DEVNET
+      networkDefinition = DEVNET
     } else {
-      networkDefinitionJSON = await files.readFile(config.get('networkDefinitionPath'))
+      const networkDefinitionJSON = await files.readFile(config.networkDefinitionPath)
+      networkDefinition = await networkDefinitionSchema.validate(
+        IJSON.parse(networkDefinitionJSON) as NetworkDefinition,
+      )
     }
   }
-
-  const networkDefinition = await networkDefinitionSchema.validate(
-    IJSON.parse(networkDefinitionJSON) as NetworkDefinition,
-  )
 
   if (internal.isSet('networkId') && networkDefinition.id !== internal.get('networkId')) {
     throw Error('Network ID in network definition does not match network ID stored in datadir')
   }
 
-  if (config.isSet('customNetwork')) {
+  if (customNetworkPath) {
     if (isDefaultNetworkId(networkDefinition.id)) {
       throw Error('Cannot start custom network with a reserved network ID')
     }
 
     // Copy custom network definition to data directory for future use
-    await files.writeFile(config.get('networkDefinitionPath'), networkDefinitionJSON)
+    await files.writeFile(config.networkDefinitionPath, IJSON.stringify(networkDefinition))
   }
 
   internal.set('networkId', networkDefinition.id)

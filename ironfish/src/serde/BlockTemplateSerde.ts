@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Block } from '../primitives/block'
+import { Block, RawBlock } from '../primitives/block'
 import { NoteEncryptedHashSerde } from '../primitives/noteEncrypted'
 import { Target } from '../primitives/target'
 import { Transaction } from '../primitives/transaction'
@@ -27,8 +27,8 @@ export type SerializedBlockTemplate = {
   }
 }
 
-export class BlockTemplateSerde {
-  static serialize(block: Block, previousBlock: Block): SerializedBlockTemplate {
+export class RawBlockTemplateSerde {
+  static serialize(block: RawBlock, previousBlock: RawBlock): SerializedBlockTemplate {
     const header = {
       sequence: block.header.sequence,
       previousBlockHash: block.header.previousBlockHash.toString('hex'),
@@ -54,26 +54,39 @@ export class BlockTemplateSerde {
     }
   }
 
-  static deserialize(blockTemplate: SerializedBlockTemplate, strategy: Strategy): Block {
+  static deserialize(blockTemplate: SerializedBlockTemplate): RawBlock {
     const noteHasher = new NoteEncryptedHashSerde()
 
-    const header = strategy.newBlockHeader({
-      sequence: blockTemplate.header.sequence,
-      previousBlockHash: Buffer.from(blockTemplate.header.previousBlockHash, 'hex'),
-      noteCommitment: noteHasher.deserialize(
-        Buffer.from(blockTemplate.header.noteCommitment, 'hex'),
+    return {
+      header: {
+        sequence: blockTemplate.header.sequence,
+        previousBlockHash: Buffer.from(blockTemplate.header.previousBlockHash, 'hex'),
+        noteCommitment: noteHasher.deserialize(
+          Buffer.from(blockTemplate.header.noteCommitment, 'hex'),
+        ),
+        transactionCommitment: Buffer.from(blockTemplate.header.transactionCommitment, 'hex'),
+        target: new Target(Buffer.from(blockTemplate.header.target, 'hex')),
+        randomness: BigIntUtils.fromBytesBE(
+          Buffer.from(blockTemplate.header.randomness, 'hex'),
+        ),
+        timestamp: new Date(blockTemplate.header.timestamp),
+        graffiti: Buffer.from(blockTemplate.header.graffiti, 'hex'),
+      },
+      transactions: blockTemplate.transactions.map(
+        (t) => new Transaction(Buffer.from(t, 'hex')),
       ),
-      transactionCommitment: Buffer.from(blockTemplate.header.transactionCommitment, 'hex'),
-      target: new Target(Buffer.from(blockTemplate.header.target, 'hex')),
-      randomness: BigIntUtils.fromBytesBE(Buffer.from(blockTemplate.header.randomness, 'hex')),
-      timestamp: new Date(blockTemplate.header.timestamp),
-      graffiti: Buffer.from(blockTemplate.header.graffiti, 'hex'),
-    })
+    }
+  }
+}
 
-    const transactions = blockTemplate.transactions.map(
-      (t) => new Transaction(Buffer.from(t, 'hex')),
-    )
+export class BlockTemplateSerde {
+  static serialize(block: Block, previousBlock: Block): SerializedBlockTemplate {
+    return RawBlockTemplateSerde.serialize(block, previousBlock)
+  }
 
-    return new Block(header, transactions)
+  static deserialize(blockTemplate: SerializedBlockTemplate, strategy: Strategy): Block {
+    const rawBlock = RawBlockTemplateSerde.deserialize(blockTemplate)
+
+    return strategy.newBlock(rawBlock)
   }
 }

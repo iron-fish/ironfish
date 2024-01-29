@@ -3,8 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use napi_derive::napi;
-use std::collections::HashMap;
 
+#[napi(object)]
+pub struct IdentiferKeyPackage {
+    pub identifier: String,
+    pub key_package: String,
+}
 #[napi(object)]
 
 pub struct TrustedDealerKeyPackages {
@@ -14,6 +18,6 @@ pub struct TrustedDealerKeyPackages {
     pub incoming_view_key: String,
     pub outgoing_view_key: String,
     pub public_address: String,
-    pub key_packages: HashMap<String, String>,
+    pub key_packages: Vec<IdentiferKeyPackage>,
     pub public_key_package: String,
 }

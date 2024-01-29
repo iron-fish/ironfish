@@ -4,6 +4,8 @@
 
 import {
   AMOUNT_VALUE_LENGTH,
+  Asset,
+  ASSET_ID_LENGTH,
   ASSET_LENGTH,
   PROOF_LENGTH,
   PUBLIC_ADDRESS_LENGTH,
@@ -12,8 +14,8 @@ import {
   TRANSACTION_FEE_LENGTH,
   TRANSACTION_PUBLIC_KEY_RANDOMNESS_LENGTH,
   TRANSACTION_SIGNATURE_LENGTH,
+  UnsignedTransaction,
 } from '@ironfish/rust-nodejs'
-import { Asset, ASSET_ID_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { Assert } from '../assert'
 import { Witness } from '../merkletree'
@@ -116,7 +118,7 @@ export class RawTransaction {
     return size
   }
 
-  post(spendingKey: string): Transaction {
+  _build(): NativeTransaction {
     const builder = new NativeTransaction(this.version)
     for (const spend of this.spends) {
       builder.spend(spend.note.takeReference(), spend.witness)
@@ -157,6 +159,31 @@ export class RawTransaction {
       builder.setExpiration(this.expiration)
     }
 
+    return builder
+  }
+
+  build(
+    proofGenerationKey: string,
+    viewKey: string,
+    outgoingViewKey: string,
+    publicAddress: string,
+  ): UnsignedTransaction {
+    const builder = this._build()
+
+    const serialized = builder.build(
+      proofGenerationKey,
+      viewKey,
+      outgoingViewKey,
+      publicAddress,
+      this.fee,
+      null,
+    )
+
+    return new UnsignedTransaction(serialized)
+  }
+
+  post(spendingKey: string): Transaction {
+    const builder = this._build()
     const serialized = builder.post(spendingKey, null, this.fee)
     const posted = new Transaction(serialized)
 

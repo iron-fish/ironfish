@@ -4,9 +4,18 @@
 
 use std::cell::RefCell;
 
+use std::collections::{BTreeMap, HashMap};
 use std::convert::TryInto;
 
 use ironfish::assets::asset_identifier::AssetIdentifier;
+use ironfish::frost::frost::round1::NonceCommitment;
+use ironfish::frost::keys::PublicKeyPackage;
+use ironfish::frost::round1::SigningCommitments;
+use ironfish::frost::round2::SignatureShare;
+use ironfish::frost::Identifier;
+use ironfish::frost::SigningPackage;
+use ironfish::serializing::hex_to_vec_bytes;
+use ironfish::serializing::{bytes_to_hex, hex_to_bytes};
 use ironfish::transaction::unsigned::UnsignedTransaction;
 use ironfish::transaction::{
     batch_verify_transactions, TransactionVersion, TRANSACTION_EXPIRATION_SIZE,
@@ -23,7 +32,7 @@ use napi::{
 };
 use napi_derive::napi;
 
-use crate::to_napi_err;
+use crate::{frost::NativeSigningCommitments, to_napi_err};
 
 use super::note::NativeNote;
 use super::spend_proof::NativeSpendDescription;
@@ -393,6 +402,83 @@ impl NativeUnsignedTransaction {
     pub fn serialize(&self) -> Result<Buffer> {
         let mut vec: Vec<u8> = vec![];
         self.transaction.write(&mut vec).map_err(to_napi_err)?;
+
+        Ok(Buffer::from(vec))
+    }
+
+    #[napi]
+    pub fn public_key_randomness(&self) -> String {
+        let bytes = self.transaction.public_key_randomness().to_bytes();
+        bytes_to_hex(&bytes)
+    }
+
+    #[napi]
+    pub fn signing_package(
+        &self,
+        native_commitments: HashMap<String, NativeSigningCommitments>,
+    ) -> Result<String> {
+        let mut commitments: BTreeMap<Identifier, SigningCommitments> = BTreeMap::new();
+
+        for (identifier_hex, commitment_hex) in native_commitments {
+            let identifier_bytes = hex_to_bytes(&identifier_hex).map_err(to_napi_err)?;
+            let identifier = Identifier::deserialize(&identifier_bytes).map_err(to_napi_err)?;
+
+            let commitment = SigningCommitments::new(
+                NonceCommitment::deserialize(
+                    hex_to_bytes(&commitment_hex.hiding).map_err(to_napi_err)?,
+                )
+                .map_err(to_napi_err)?,
+                NonceCommitment::deserialize(
+                    hex_to_bytes(&commitment_hex.binding).map_err(to_napi_err)?,
+                )
+                .map_err(to_napi_err)?,
+            );
+
+            commitments.insert(identifier, commitment);
+        }
+
+        let signing_package = self
+            .transaction
+            .signing_package(commitments)
+            .map_err(to_napi_err)?;
+
+        Ok(bytes_to_hex(
+            &signing_package.serialize().map_err(to_napi_err)?,
+        ))
+    }
+
+    #[napi]
+    pub fn sign_frost(
+        &mut self,
+        public_key_package_str: String,
+        signing_package_str: String,
+        signature_shares_map: HashMap<String, String>,
+    ) -> Result<Buffer> {
+        let public_key_package = PublicKeyPackage::deserialize(
+            &hex_to_vec_bytes(&public_key_package_str).map_err(to_napi_err)?,
+        )
+        .map_err(to_napi_err)?;
+        let signing_package = SigningPackage::deserialize(
+            &hex_to_vec_bytes(&signing_package_str).map_err(to_napi_err)?,
+        )
+        .map_err(to_napi_err)?;
+        let mut signature_shares = BTreeMap::<Identifier, SignatureShare>::new();
+        for (k, v) in signature_shares_map.iter() {
+            let identifier = Identifier::deserialize(&hex_to_bytes(k).map_err(to_napi_err)?)
+                .map_err(to_napi_err)?;
+            let signature_share =
+                SignatureShare::deserialize(hex_to_bytes(v).map_err(to_napi_err)?)
+                    .map_err(to_napi_err)?;
+            signature_shares.insert(identifier, signature_share);
+        }
+
+        let signed_transaction = self
+            .transaction
+            .sign_frost(&public_key_package, &signing_package, signature_shares)
+            .map_err(to_napi_err)?;
+
+        let mut vec: Vec<u8> = vec![];
+        signed_transaction.write(&mut vec).map_err(to_napi_err)?;
 
         Ok(Buffer::from(vec))
     }

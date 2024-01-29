@@ -2,12 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::BTreeMap;
+
 #[cfg(test)]
 use super::internal_batch_verify_transactions;
 use super::{ProposedTransaction, Transaction};
+use crate::frost_utils::{round_one::round_one, round_two::round_two};
+use crate::transaction::tests::split_spender_key::split_spender_key;
 use crate::{
     assets::{asset::Asset, asset_identifier::NATIVE_ASSET},
     errors::{IronfishError, IronfishErrorKind},
+    frost_utils::split_spender_key,
     keys::SaplingKey,
     merkle_note::NOTE_ENCRYPTION_MINER_KEYS,
     note::Note,
@@ -20,6 +25,9 @@ use crate::{
 };
 
 use ff::Field;
+use ironfish_frost::frost::round2::{Randomizer, SignatureShare};
+use ironfish_frost::frost::Identifier;
+use ironfish_frost::participant::Secret;
 use ironfish_zkp::{
     constants::{ASSET_ID_LENGTH, SPENDING_KEY_GENERATOR, TREE_DEPTH},
     proofs::{MintAsset, Output, Spend},
@@ -640,4 +648,190 @@ fn test_batch_verify() {
         batch_verify_transactions([&transaction1, &transaction2]),
         Err(e) if matches!(e.kind, IronfishErrorKind::InvalidSpendSignature)
     ));
+}
+
+#[test]
+fn test_sign_simple() {
+    let spender_key = SaplingKey::generate_key();
+    let receiver_key = SaplingKey::generate_key();
+    let sender_key = SaplingKey::generate_key();
+
+    let in_note = Note::new(
+        spender_key.public_address(),
+        42,
+        "",
+        NATIVE_ASSET,
+        sender_key.public_address(),
+    );
+    let out_note = Note::new(
+        receiver_key.public_address(),
+        40,
+        "",
+        NATIVE_ASSET,
+        spender_key.public_address(),
+    );
+    let witness = make_fake_witness(&in_note);
+
+    // create transaction, add spend and output
+    let mut transaction = ProposedTransaction::new(TransactionVersion::latest());
+    transaction
+        .add_spend(in_note, &witness)
+        .expect("should be able to add a spend");
+    transaction
+        .add_output(out_note)
+        .expect("should be able to add an output");
+
+    // build transaction, generate proofs
+    let unsigned_transaction = transaction
+        .build(
+            spender_key.sapling_proof_generation_key(),
+            spender_key.view_key().clone(),
+            spender_key.outgoing_view_key().clone(),
+            spender_key.public_address(),
+            1,
+            Some(spender_key.public_address()),
+        )
+        .expect("should be able to build unsigned transaction");
+
+    // sign transaction
+    let signed_transaction = unsigned_transaction
+        .sign(&spender_key)
+        .expect("should be able to sign transaction");
+
+    // verify transaction
+    verify_transaction(&signed_transaction).expect("should be able to verify transaction");
+}
+
+#[test]
+fn test_sign_frost() {
+    let spender_key = SaplingKey::generate_key();
+
+    // create fake participants in multisig
+    let mut identifiers = Vec::new();
+    for _ in 0..3 {
+        identifiers.push(
+            Secret::random(thread_rng())
+                .to_identity()
+                .to_frost_identifier(),
+        );
+    }
+
+    // key package generation by trusted dealer
+    let key_packages = split_spender_key(&spender_key, 2, 3, identifiers)
+        .expect("should be able to split spender key");
+
+    // create raw/proposed transaction
+    let in_note = Note::new(
+        key_packages.public_address,
+        42,
+        "",
+        NATIVE_ASSET,
+        key_packages.public_address,
+    );
+    let out_note = Note::new(
+        key_packages.public_address,
+        40,
+        "",
+        NATIVE_ASSET,
+        key_packages.public_address,
+    );
+    let asset = Asset::new(
+        key_packages.public_address,
+        "Testcoin",
+        "A really cool coin",
+    )
+    .expect("should be able to create an asset");
+    let value = 5;
+    let mint_out_note = Note::new(
+        key_packages.public_address,
+        value,
+        "",
+        *asset.id(),
+        key_packages.public_address,
+    );
+    let witness = make_fake_witness(&in_note);
+
+    let mut transaction = ProposedTransaction::new(TransactionVersion::latest());
+    transaction
+        .add_spend(in_note, &witness)
+        .expect("add spend to transaction");
+    assert_eq!(transaction.spends.len(), 1);
+    transaction
+        .add_output(out_note)
+        .expect("add output to transaction");
+    assert_eq!(transaction.outputs.len(), 1);
+    transaction
+        .add_mint(asset, value)
+        .expect("add mint to transaction");
+    transaction
+        .add_output(mint_out_note)
+        .expect("add mint output to transaction");
+
+    let intended_fee = 1;
+    transaction
+        .add_change_notes(
+            Some(key_packages.public_address),
+            key_packages.public_address,
+            intended_fee,
+        )
+        .expect("should be able to add change notes");
+
+    // build UnsignedTransaction without signing
+    let mut unsigned_transaction = transaction
+        .build(
+            key_packages.proof_generation_key,
+            key_packages.view_key,
+            key_packages.outgoing_view_key,
+            key_packages.public_address,
+            intended_fee,
+            Some(key_packages.public_address),
+        )
+        .expect("should be able to build unsigned transaction");
+
+    let mut commitments = BTreeMap::new();
+
+    // simulate round 1
+    for key_package in key_packages.key_packages.iter() {
+        let (_nonce, commitment) = round_one(key_package.1, 0);
+        commitments.insert(*key_package.0, commitment);
+    }
+
+    // coordinator creates signing package
+    let signing_package = unsigned_transaction
+        .signing_package(commitments)
+        .expect("should be able to create signing package");
+
+    // simulate round 2
+    let mut signing_shares: BTreeMap<Identifier, SignatureShare> = BTreeMap::new();
+    let randomizer =
+        Randomizer::deserialize(&unsigned_transaction.public_key_randomness.to_bytes())
+            .expect("should be able to deserialize randomizer");
+
+    for key_package in key_packages.key_packages.iter() {
+        let signature_share = round_two(
+            signing_package.clone(),
+            key_package.1.clone(),
+            randomizer,
+            0,
+        )
+        .expect("should be able to create signature share");
+        signing_shares.insert(*key_package.0, signature_share);
+    }
+
+    // coordinator creates signed transaction
+    let signed_transaction = unsigned_transaction
+        .sign_frost(
+            &key_packages.public_key_package,
+            &signing_package,
+            signing_shares,
+        )
+        .expect("should be able to sign transaction");
+
+    assert_eq!(signed_transaction.spends.len(), 1);
+    assert_eq!(signed_transaction.outputs.len(), 3);
+    assert_eq!(signed_transaction.mints.len(), 1);
+    assert_eq!(signed_transaction.burns.len(), 0);
+
+    // verify transaction
+    verify_transaction(&signed_transaction).expect("should be able to verify transaction");
 }

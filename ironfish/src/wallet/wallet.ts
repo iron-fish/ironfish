@@ -1221,6 +1221,7 @@ export class Wallet {
     confirmations: number,
   ): Promise<bigint> {
     for await (const unspentNote of sender.getUnspentNotes(assetId, {
+      reverse: true,
       confirmations,
     })) {
       if (notesSpent.has(unspentNote.note.hash())) {
@@ -1493,9 +1494,6 @@ export class Wallet {
       accounts.find((a) => accountValue.spendingKey === a.spendingKey)
     ) {
       throw new Error(`Account already exists with provided spending key`)
-    }
-    if (accounts.find((a) => accountValue.viewKey === a.viewKey)) {
-      throw new Error(`Account already exists with provided view key(s)`)
     }
 
     validateAccount(accountValue)

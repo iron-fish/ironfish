@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import Axios, { AxiosInstance } from 'axios'
+import Axios, { AxiosInstance, CancelTokenSource } from 'axios'
 import http from 'http'
+import { v4 as uuid } from 'uuid'
 import * as yup from 'yup'
 import { ErrorUtils, PromiseUtils, YupUtils } from '../../utils'
 import { RpcHttpErrorSchema, RpcHttpResponseSchema } from '../adapters/httpAdapter'
@@ -11,7 +12,12 @@ import { RpcClient } from '../clients/client'
 import { MessageBuffer } from '../messageBuffer'
 import { isRpcResponseError, RpcResponse } from '../response'
 import { Stream } from '../stream'
-import { RpcConnectionRefusedError, RpcRequestError, RpcRequestTimeoutError } from './errors'
+import {
+  RpcConnectionLostError,
+  RpcConnectionRefusedError,
+  RpcRequestError,
+  RpcRequestTimeoutError,
+} from './errors'
 
 export const RpcHttpMessageSchema = yup
   .object({
@@ -21,6 +27,7 @@ export const RpcHttpMessageSchema = yup
 
 export class RpcHttpClient extends RpcClient {
   protected readonly axios: AxiosInstance
+  protected readonly requests = new Map<string, CancelTokenSource>()
 
   constructor(baseURL: string) {
     super()
@@ -34,11 +41,16 @@ export class RpcHttpClient extends RpcClient {
       timeoutMs?: number | null
     } = {},
   ): RpcResponse<TEnd, TStream> {
+    const requestId = uuid()
+
+    const abort = Axios.CancelToken.source()
     const timeoutMs = options.timeoutMs ?? 0
     const messageBuffer = new MessageBuffer('\f')
     const [promise, resolve, reject] = PromiseUtils.split<TEnd>()
     const stream = new Stream<TStream>()
     const rpcResponse = new RpcResponse<TEnd, TStream>(promise, stream)
+
+    this.requests.set(requestId, abort)
 
     const onData = async (data: Buffer): Promise<void> => {
       messageBuffer.write(data)
@@ -69,12 +81,15 @@ export class RpcHttpClient extends RpcClient {
               errorBody.message,
               errorBody.stack,
             )
+            this.requests.delete(requestId)
             stream.close(err)
             reject(err)
           } else if (errorError) {
+            this.requests.delete(requestId)
             stream.close(errorError)
             reject(errorError)
           } else {
+            this.requests.delete(requestId)
             stream.close(data)
             reject(data)
           }
@@ -91,6 +106,7 @@ export class RpcHttpClient extends RpcClient {
         }
 
         if (result.status !== undefined) {
+          this.requests.delete(requestId)
           stream.close()
           resolve(messageBody.data as TEnd)
           return
@@ -106,6 +122,7 @@ export class RpcHttpClient extends RpcClient {
       .post<http.IncomingMessage>(route, body, {
         responseType: 'stream',
         timeout: timeoutMs,
+        cancelToken: abort.token,
         validateStatus: () => true,
         transitional: {
           clarifyTimeoutError: true,
@@ -123,8 +140,17 @@ export class RpcHttpClient extends RpcClient {
         })
       })
       .catch((error) => {
+        if (error instanceof Axios.Cancel) {
+          const errorTimeout = new RpcConnectionLostError(error.message)
+          this.requests.delete(requestId)
+          stream.close()
+          reject(errorTimeout)
+          return
+        }
+
         if (ErrorUtils.isConnectTimeOutError(error)) {
           const errorTimeout = new RpcRequestTimeoutError(rpcResponse, timeoutMs, route)
+          this.requests.delete(requestId)
           stream.close(errorTimeout)
           reject(errorTimeout)
           return
@@ -132,15 +158,26 @@ export class RpcHttpClient extends RpcClient {
 
         if (ErrorUtils.isConnectRefusedError(error)) {
           const errorRefused = new RpcConnectionRefusedError(`Failed to connect to ${route}`)
+          this.requests.delete(requestId)
           stream.close(errorRefused)
           reject(errorRefused)
           return
         }
 
+        this.requests.delete(requestId)
         stream.close(error)
         reject(error)
       })
 
     return rpcResponse
+  }
+
+  close(): void {
+    const requests = Array.from(this.requests.values())
+    this.requests.clear()
+
+    for (const abort of requests) {
+      abort.cancel('Closing HTTP Client')
+    }
   }
 }

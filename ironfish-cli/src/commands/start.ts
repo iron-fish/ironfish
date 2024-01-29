@@ -201,19 +201,16 @@ export default class Start extends IronfishCommand {
         'Cannot specify both the networkId and customNetwork flags at the same time',
       )
     }
-    if (networkId !== undefined && networkId !== this.sdk.config.get('networkId')) {
-      this.sdk.config.setOverride('networkId', networkId)
-    }
-    if (customNetwork !== undefined && customNetwork !== this.sdk.config.get('customNetwork')) {
-      this.sdk.config.setOverride('customNetwork', customNetwork)
-    }
 
     if (!this.sdk.internal.get('telemetryNodeId')) {
       this.sdk.internal.set('telemetryNodeId', uuid())
       await this.sdk.internal.save()
     }
 
-    const node = await this.sdk.node()
+    const node = await this.sdk.node({
+      customNetworkPath: customNetwork,
+      networkId,
+    })
 
     const nodeName = this.sdk.config.get('nodeName').trim() || null
     const blockGraffiti = this.sdk.config.get('blockGraffiti').trim() || null

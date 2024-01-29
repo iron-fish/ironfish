@@ -49,6 +49,7 @@ export const RpcHttpResponseSchema: yup.ObjectSchema<RpcHttpResponse> = yup
 export class RpcHttpAdapter implements IRpcAdapter {
   server: http.Server | null = null
   router: Router | null = null
+  started = false
 
   readonly host: string
   readonly port: number
@@ -87,6 +88,11 @@ export class RpcHttpAdapter implements IRpcAdapter {
   }
 
   start(): Promise<void> {
+    if (this.started) {
+      return Promise.resolve()
+    }
+
+    this.started = true
     this.logger.debug(`Serving RPC on HTTP ${this.host}:${this.port}`)
 
     const server = http.createServer()
@@ -109,6 +115,8 @@ export class RpcHttpAdapter implements IRpcAdapter {
         server.on('request', (req: http.IncomingMessage, res: http.ServerResponse) => {
           this.onRequest(req, res)
         })
+
+        resolve()
       }
 
       server.on('error', onError)
@@ -136,6 +144,12 @@ export class RpcHttpAdapter implements IRpcAdapter {
   }
 
   async stop(): Promise<void> {
+    if (!this.started) {
+      return Promise.resolve()
+    }
+
+    this.started = false
+
     for (const { req, rpcRequest } of this.requests.values()) {
       req.destroy()
       rpcRequest?.close()

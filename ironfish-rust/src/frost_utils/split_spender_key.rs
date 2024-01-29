@@ -33,7 +33,7 @@ pub struct TrustedDealerKeyPackages {
 }
 
 pub fn split_spender_key(
-    coordinator_sapling_key: SaplingKey,
+    coordinator_sapling_key: &SaplingKey,
     min_signers: u16,
     max_signers: u16,
     identifiers: Vec<Identifier>,
@@ -112,17 +112,16 @@ mod test {
             );
         }
 
-        let sapling_key_1 = SaplingKey::generate_key();
+        let sapling_key = SaplingKey::generate_key();
         // max signers > identifiers length
-        let result = split_spender_key(sapling_key_1, 5, 11, identifiers.clone());
+        let result = split_spender_key(&sapling_key, 5, 11, identifiers.clone());
         assert!(result.is_err());
         let err = result.err().unwrap();
         assert_eq!(err.kind, IronfishErrorKind::FrostLibError);
         assert!(err.to_string().contains("Incorrect number of identifiers."));
 
-        let sapling_key2 = SaplingKey::generate_key();
         // max signers < identifiers length
-        let result = split_spender_key(sapling_key2, 5, 9, identifiers.clone());
+        let result = split_spender_key(&sapling_key, 5, 9, identifiers.clone());
 
         assert!(result.is_err());
         let err = result.err().unwrap();
@@ -147,8 +146,7 @@ mod test {
         let sapling_key = SaplingKey::generate_key();
 
         let trusted_dealer_key_packages =
-            split_spender_key(sapling_key.clone(), 5, 10, identifiers)
-                .expect("spender key split failed");
+            split_spender_key(&sapling_key, 5, 10, identifiers).expect("spender key split failed");
 
         assert_eq!(
             trusted_dealer_key_packages.key_packages.len(),

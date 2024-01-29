@@ -1,17 +1,17 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { blake3 } from '@napi-rs/blake-hash'
 import LeastRecentlyUsed from 'blru'
 import tls from 'tls'
 import { Assert } from '../assert'
-import { ConsensusParameters } from '../consensus'
+import { BlockHasher } from '../blockHasher'
+import { Consensus, ConsensusParameters } from '../consensus'
 import { Config } from '../fileStores/config'
 import { Logger } from '../logger'
 import { Target } from '../primitives/target'
 import { Transaction } from '../primitives/transaction'
 import { RpcSocketClient } from '../rpc/clients'
-import { SerializedBlockTemplate } from '../serde/BlockTemplateSerde'
+import { RawBlockTemplateSerde, SerializedBlockTemplate } from '../serde/BlockTemplateSerde'
 import { BigIntUtils } from '../utils/bigint'
 import { ErrorUtils } from '../utils/error'
 import { FileUtils } from '../utils/file'
@@ -22,7 +22,6 @@ import { StratumTcpAdapter, StratumTlsAdapter } from './stratum/adapters'
 import { MiningStatusMessage } from './stratum/messages'
 import { StratumServer } from './stratum/stratumServer'
 import { StratumServerClient } from './stratum/stratumServerClient'
-import { mineableHeaderString } from './utils'
 import { Explorer, WebhookNotifier } from './webhooks'
 
 const RECALCULATE_TARGET_TIMEOUT = 10000
@@ -37,6 +36,7 @@ export class MiningPool {
   readonly webhooks: WebhookNotifier[]
 
   private consensusParameters: ConsensusParameters | null = null
+  private blockHasher: BlockHasher | null = null
 
   private started: boolean
   private stopPromise: Promise<void> | null = null
@@ -260,6 +260,8 @@ export class MiningPool {
   ): Promise<void> {
     Assert.isNotNull(client.publicAddress)
     Assert.isNotNull(client.graffiti)
+    Assert.isNotNull(this.blockHasher)
+
     if (miningRequestId !== this.nextMiningRequestId - 1) {
       this.logger.debug(
         `Client ${client.id} submitted work for stale mining request: ${miningRequestId}`,
@@ -293,15 +295,14 @@ export class MiningPool {
     blockTemplate.header.graffiti = client.graffiti.toString('hex')
     blockTemplate.header.randomness = randomness
 
-    let headerBytes
+    let hashedHeader: Buffer
     try {
-      headerBytes = mineableHeaderString(blockTemplate.header)
+      const rawBlock = RawBlockTemplateSerde.deserialize(blockTemplate)
+      hashedHeader = this.blockHasher.hashHeader(rawBlock.header)
     } catch (error) {
       this.stratum.peers.punish(client, `${client.id} sent malformed work.`)
       return
     }
-
-    const hashedHeader = blake3(headerBytes)
 
     if (hashedHeader.compare(Buffer.from(blockTemplate.header.target, 'hex')) !== 1) {
       this.logger.debug('Valid block, submitting to node')
@@ -366,6 +367,11 @@ export class MiningPool {
       enableAssetOwnership: consensusResponse.enableAssetOwnership || 'never',
       enforceSequentialBlockTime: consensusResponse.enforceSequentialBlockTime || 'never',
     }
+
+    // TODO: Add option for full cache FishHash verification
+    this.blockHasher = new BlockHasher({
+      consensus: new Consensus(this.consensusParameters),
+    })
 
     this.connectWarned = false
     this.logger.info('Successfully connected to node')
@@ -456,12 +462,16 @@ export class MiningPool {
   private distributeNewBlock(newBlock: SerializedBlockTemplate) {
     Assert.isNotNull(this.currentHeadTimestamp)
     Assert.isNotNull(this.currentHeadDifficulty)
+    Assert.isNotNull(this.blockHasher)
 
     const miningRequestId = this.nextMiningRequestId++
     this.miningRequestBlocks.set(miningRequestId, newBlock)
     this.recentSubmissions.clear()
 
-    this.stratum.newWork(miningRequestId, newBlock)
+    const rawBlock = RawBlockTemplateSerde.deserialize(newBlock)
+    const newWork = this.blockHasher.serializeHeader(rawBlock.header)
+
+    this.stratum.newWork(miningRequestId, newWork)
   }
 
   private restartCalculateTargetInterval(

@@ -6,13 +6,11 @@ import { Assert } from '../../assert'
 import { Config } from '../../fileStores/config'
 import { Logger } from '../../logger'
 import { GRAFFITI_SIZE } from '../../primitives/block'
-import { SerializedBlockTemplate } from '../../serde/BlockTemplateSerde'
 import { GraffitiUtils, StringUtils } from '../../utils'
 import { ErrorUtils } from '../../utils/error'
 import { YupUtils } from '../../utils/yup'
 import { isValidPublicAddress } from '../../wallet/validator'
 import { MiningPool } from '../pool'
-import { mineableHeaderString } from '../utils'
 import { IStratumAdapter } from './adapters'
 import { DisconnectReason } from './constants'
 import { ClientMessageMalformedError } from './errors'
@@ -128,9 +126,9 @@ export class StratumServer {
     }
   }
 
-  newWork(miningRequestId: number, block: SerializedBlockTemplate): void {
+  newWork(miningRequestId: number, block: Buffer): void {
     this.currentMiningRequestId = miningRequestId
-    this.currentWork = mineableHeaderString(block.header)
+    this.currentWork = block
 
     this.logger.info(
       `Setting work for request: ${this.currentMiningRequestId} ${this.currentWork

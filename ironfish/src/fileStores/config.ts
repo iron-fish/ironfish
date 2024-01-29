@@ -255,16 +255,6 @@ export type ConfigOptions = {
   feeEstimatorPercentileFast: number
 
   /**
-   * Network ID of an official Iron Fish network
-   */
-  networkId: number
-
-  /**
-   * Path to a JSON file containing the network definition of a custom network
-   */
-  customNetwork: string
-
-  /**
    * The oldest the tip should be before we consider the chain synced
    */
   maxSyncedAgeBlocks: number
@@ -280,8 +270,6 @@ export type ConfigOptions = {
    * track of transaction hashes recently evicted from the mempool after it exceeds mempoolMaxSizeBytes
    */
   memPoolRecentlyEvictedCacheSize: number
-
-  networkDefinitionPath: string
 
   /**
    * Always allow incoming connections from these IPs even if the node is at maxPeers
@@ -374,15 +362,12 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     feeEstimatorPercentileSlow: YupUtils.isPositiveInteger,
     feeEstimatorPercentileAverage: YupUtils.isPositiveInteger,
     feeEstimatorPercentileFast: YupUtils.isPositiveInteger,
-    networkId: yup.number().integer().min(0),
-    customNetwork: yup.string().trim(),
     maxSyncedAgeBlocks: yup.number().integer().min(0),
     mempoolMaxSizeBytes: yup
       .number()
       .integer()
       .min(20 * MEGABYTES),
     memPoolRecentlyEvictedCacheSize: yup.number().integer(),
-    networkDefinitionPath: yup.string().trim(),
     incomingWebSocketWhitelist: yup.array(yup.string().trim().defined()),
     walletGossipTransactionsMaxQueueSize: yup.number(),
     walletSyncingMaxQueueSize: yup.number(),
@@ -395,6 +380,7 @@ export class Config<
 > extends KeyStore<ConfigOptions & TExtend> {
   readonly chainDatabasePath: string
   readonly walletDatabasePath: string
+  readonly networkDefinitionPath: string
   readonly tempDir: string
 
   constructor(
@@ -418,6 +404,7 @@ export class Config<
 
     this.chainDatabasePath = this.files.join(this.storage.dataDir, 'databases', 'chain')
     this.walletDatabasePath = this.files.join(this.storage.dataDir, 'databases', 'wallet')
+    this.networkDefinitionPath = this.files.join(this.storage.dataDir, 'network.json')
     this.tempDir = this.files.join(this.storage.dataDir, 'temp')
   }
 
@@ -485,12 +472,9 @@ export class Config<
       feeEstimatorPercentileSlow: DEFAULT_FEE_ESTIMATOR_PERCENTILE_SLOW,
       feeEstimatorPercentileAverage: DEFAULT_FEE_ESTIMATOR_PERCENTILE_AVERAGE,
       feeEstimatorPercentileFast: DEFAULT_FEE_ESTIMATOR_PERCENTILE_FAST,
-      networkId: DEFAULT_NETWORK_ID,
-      customNetwork: '',
       maxSyncedAgeBlocks: 60,
       memPoolMaxSizeBytes: 60 * MEGABYTES,
       memPoolRecentlyEvictedCacheSize: 60000,
-      networkDefinitionPath: files.resolve(files.join(dataDir, 'network.json')),
       incomingWebSocketWhitelist: [],
       walletGossipTransactionsMaxQueueSize: 1000,
       walletSyncingMaxQueueSize: 100,

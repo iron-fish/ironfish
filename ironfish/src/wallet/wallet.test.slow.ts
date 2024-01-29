@@ -1,7 +1,20 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Asset, ASSET_ID_LENGTH, generateKey } from '@ironfish/rust-nodejs'
+import {
+  Asset,
+  ASSET_ID_LENGTH,
+  generateKey,
+  ParticipantSecret,
+  roundOne,
+  roundTwo,
+  SigningCommitments,
+  splitSecret,
+  TrustedDealerKeyPackages,
+} from '@ironfish/rust-nodejs'
+import { v4 as uuid } from 'uuid'
+import { Assert } from '../assert'
+import { Transaction } from '../primitives'
 import { Target } from '../primitives/target'
 import {
   createNodeTest,
@@ -1127,5 +1140,197 @@ describe('Wallet', () => {
         confirmed: BigInt(8),
       })
     })
+  })
+
+  describe('frost', () => {
+    it('can do a multisig transaction', async () => {
+      const seed = 420
+      const minSigners = 2
+      const maxSigners = 3
+
+      const { node } = await nodeTest.createSetup()
+      const recipient = await useAccountFixture(node.wallet, 'recipient')
+
+      const coordinatorSaplingKey = generateKey()
+
+      const identifiers: string[] = []
+
+      for (let i = 0; i < maxSigners; i++) {
+        identifiers.push(ParticipantSecret.random().toIdentity().toFrostIdentifier())
+      }
+
+      // construct 3 separate secrets for the participants
+      // take the secrets and get identifiers back (get identity first then identifier)
+
+      const trustedDealerPackage: TrustedDealerKeyPackages = splitSecret(
+        coordinatorSaplingKey.spendingKey,
+        minSigners,
+        maxSigners,
+        identifiers,
+      )
+
+      const getMultiSigKeys = (index: number) => {
+        return {
+          identifier: trustedDealerPackage.keyPackages[index].identifier,
+          keyPackage: trustedDealerPackage.keyPackages[index].keyPackage,
+          proofGenerationKey: trustedDealerPackage.proofGenerationKey,
+        }
+      }
+
+      const participantA = await node.wallet.importAccount({
+        version: 2,
+        id: uuid(),
+        name: trustedDealerPackage.keyPackages[0].identifier,
+        spendingKey: null,
+        createdAt: null,
+        multiSigKeys: getMultiSigKeys(0),
+        ...trustedDealerPackage,
+      })
+      const participantB = await node.wallet.importAccount({
+        version: 2,
+        id: uuid(),
+        name: trustedDealerPackage.keyPackages[1].identifier,
+        spendingKey: null,
+        createdAt: null,
+        multiSigKeys: getMultiSigKeys(1),
+        ...trustedDealerPackage,
+      })
+      const participantC = await node.wallet.importAccount({
+        version: 2,
+        id: uuid(),
+        name: trustedDealerPackage.keyPackages[2].identifier,
+        spendingKey: null,
+        createdAt: null,
+        multiSigKeys: getMultiSigKeys(2),
+        ...trustedDealerPackage,
+      })
+
+      Assert.isNotUndefined(participantA.multiSigKeys)
+      Assert.isNotUndefined(participantB.multiSigKeys)
+      Assert.isNotUndefined(participantC.multiSigKeys)
+
+      const signingCommitments: Record<string, SigningCommitments> = {
+        [participantA.multiSigKeys.identifier]: roundOne(
+          participantA.multiSigKeys.keyPackage,
+          seed,
+        ),
+        [participantB.multiSigKeys.identifier]: roundOne(
+          participantB.multiSigKeys.keyPackage,
+          seed,
+        ),
+        [participantC.multiSigKeys.identifier]: roundOne(
+          participantC.multiSigKeys.keyPackage,
+          seed,
+        ),
+      }
+
+      // mine block to send IRON to multisig account
+      const miner = await useAccountFixture(node.wallet, 'miner')
+      const block = await useMinerBlockFixture(node.chain, undefined, miner)
+      await expect(node.chain).toAddBlock(block)
+      await node.wallet.updateHead()
+
+      const transaction = await node.wallet.send({
+        account: miner,
+        outputs: [
+          {
+            publicAddress: participantA.publicAddress,
+            amount: BigInt(2),
+            memo: '',
+            assetId: Asset.nativeId(),
+          },
+        ],
+        fee: BigInt(0),
+      })
+
+      // Create a block with a miner's fee and the transaction to send IRON to the multisig account
+      const minersfee2 = await nodeTest.strategy.createMinersFee(
+        transaction.fee(),
+        block.header.sequence + 1,
+        miner.spendingKey,
+      )
+      const newBlock2 = await node.chain.newBlock([transaction], minersfee2)
+      const addResult2 = await node.chain.addBlock(newBlock2)
+      expect(addResult2.isAdded).toBeTruthy()
+
+      await node.wallet.updateHead()
+
+      // verify multisig account can see its IRON
+      expect(await node.wallet.getBalance(participantA, Asset.nativeId())).toMatchObject({
+        unconfirmed: BigInt(2),
+      })
+
+      // create transaction from multisig account back to miner
+      const rawTransaction = await node.wallet.createTransaction({
+        account: participantA,
+        outputs: [
+          {
+            publicAddress: recipient.publicAddress,
+            amount: 2n,
+            memo: '',
+            assetId: Asset.nativeId(),
+          },
+        ],
+        expiration: 0,
+        fee: 0n,
+      })
+
+      const unsignedTransaction = rawTransaction.build(
+        trustedDealerPackage.proofGenerationKey,
+        trustedDealerPackage.viewKey,
+        trustedDealerPackage.outgoingViewKey,
+        trustedDealerPackage.publicAddress,
+      )
+
+      const signingPackage = unsignedTransaction.signingPackage(signingCommitments)
+      const publicKeyRandomness = unsignedTransaction.publicKeyRandomness()
+
+      const signatureShares: Record<string, string> = {
+        [participantA.multiSigKeys.identifier]: roundTwo(
+          signingPackage,
+          participantA.multiSigKeys.keyPackage,
+          publicKeyRandomness,
+          seed,
+        ),
+        [participantB.multiSigKeys.identifier]: roundTwo(
+          signingPackage,
+          participantB.multiSigKeys.keyPackage,
+          publicKeyRandomness,
+          seed,
+        ),
+        [participantC.multiSigKeys.identifier]: roundTwo(
+          signingPackage,
+          participantC.multiSigKeys.keyPackage,
+          publicKeyRandomness,
+          seed,
+        ),
+      }
+
+      const serializedFrostTransaction = unsignedTransaction.signFrost(
+        trustedDealerPackage.publicKeyPackage,
+        signingPackage,
+        signatureShares,
+      )
+      const frostTransaction = new Transaction(serializedFrostTransaction)
+
+      const minersfee3 = await nodeTest.strategy.createMinersFee(
+        transaction.fee(),
+        newBlock2.header.sequence + 1,
+        miner.spendingKey,
+      )
+
+      expect(await node.wallet.getBalance(recipient, Asset.nativeId())).toMatchObject({
+        unconfirmed: BigInt(0),
+      })
+
+      const frostBlock = await node.chain.newBlock([frostTransaction], minersfee3)
+      await node.chain.addBlock(newBlock2)
+      await expect(node.chain).toAddBlock(frostBlock)
+      await node.wallet.updateHead()
+
+      expect(await node.wallet.getBalance(recipient, Asset.nativeId())).toMatchObject({
+        unconfirmed: BigInt(2),
+      })
+    }, 100000)
   })
 })

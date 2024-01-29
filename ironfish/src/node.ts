@@ -23,7 +23,7 @@ import { MiningManager } from './mining'
 import { PeerNetwork, PrivateIdentity, privateIdentityToIdentity } from './network'
 import { isHexSecretKey } from './network/identity'
 import { IsomorphicWebSocketConstructor, NodeDataChannelType } from './network/types'
-import { getNetworkDefinition } from './networkDefinition'
+import { getNetworkDefinition } from './networks'
 import { Package } from './package'
 import { Platform } from './platform'
 import { ALL_API_NAMESPACES, RpcMemoryClient } from './rpc'
@@ -196,6 +196,8 @@ export class FullNode {
     webSocket,
     privateIdentity,
     fishHashContext,
+    customNetworkPath,
+    networkId,
   }: {
     pkg: Package
     dataDir?: string
@@ -209,6 +211,8 @@ export class FullNode {
     webSocket: IsomorphicWebSocketConstructor
     privateIdentity?: PrivateIdentity
     fishHashContext?: FishHashContext
+    customNetworkPath?: string
+    networkId?: number
   }): Promise<FullNode> {
     logger = logger.withTag('ironfishnode')
     dataDir = dataDir || DEFAULT_DATA_DIR
@@ -241,7 +245,13 @@ export class FullNode {
 
     metrics = metrics || new MetricsMonitor({ logger })
 
-    const networkDefinition = await getNetworkDefinition(config, internal, files)
+    const networkDefinition = await getNetworkDefinition(
+      config,
+      internal,
+      files,
+      customNetworkPath,
+      networkId,
+    )
 
     if (!config.isSet('bootstrapNodes')) {
       config.setOverride('bootstrapNodes', networkDefinition.bootstrapNodes)
