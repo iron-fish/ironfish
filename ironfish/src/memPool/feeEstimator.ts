@@ -64,7 +64,7 @@ export class FeeEstimator {
       return
     }
 
-    let currentBlockHash = chain.latest.hash
+    let currentBlockHash = chain.head.hash
 
     for (let i = 0; i < this.maxBlockHistory; i++) {
       const currentBlock = await chain.getBlock(currentBlockHash)
