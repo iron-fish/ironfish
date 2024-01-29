@@ -32,7 +32,8 @@ use napi::{
 };
 use napi_derive::napi;
 
-use crate::{frost::NativeSigningCommitments, to_napi_err};
+use crate::frost::NativeIdentifierCommitment;
+use crate::to_napi_err;
 
 use super::note::NativeNote;
 use super::spend_proof::NativeSpendDescription;
@@ -412,21 +413,22 @@ impl NativeUnsignedTransaction {
     #[napi]
     pub fn signing_package(
         &self,
-        native_commitments: HashMap<String, NativeSigningCommitments>,
+        native_identifer_commitments: Vec<NativeIdentifierCommitment>,
     ) -> Result<String> {
         let mut commitments: BTreeMap<Identifier, SigningCommitments> = BTreeMap::new();
 
-        for (identifier_hex, commitment_hex) in native_commitments {
-            let identifier_bytes = hex_to_bytes(&identifier_hex).map_err(to_napi_err)?;
+        for identifier_commitment in native_identifer_commitments {
+            let identifier_bytes =
+                hex_to_bytes(&identifier_commitment.identifier).map_err(to_napi_err)?;
             let identifier = Identifier::deserialize(&identifier_bytes).map_err(to_napi_err)?;
 
             let commitment = SigningCommitments::new(
                 NonceCommitment::deserialize(
-                    hex_to_bytes(&commitment_hex.hiding).map_err(to_napi_err)?,
+                    hex_to_bytes(&identifier_commitment.commitment.hiding).map_err(to_napi_err)?,
                 )
                 .map_err(to_napi_err)?,
                 NonceCommitment::deserialize(
-                    hex_to_bytes(&commitment_hex.binding).map_err(to_napi_err)?,
+                    hex_to_bytes(&identifier_commitment.commitment.binding).map_err(to_napi_err)?,
                 )
                 .map_err(to_napi_err)?,
             );

@@ -8,7 +8,6 @@ import {
   ParticipantSecret,
   roundOne,
   roundTwo,
-  SigningCommitments,
   splitSecret,
   TrustedDealerKeyPackages,
 } from '@ironfish/rust-nodejs'
@@ -1209,20 +1208,20 @@ describe('Wallet', () => {
       Assert.isNotUndefined(participantB.multiSigKeys)
       Assert.isNotUndefined(participantC.multiSigKeys)
 
-      const signingCommitments: Record<string, SigningCommitments> = {
-        [participantA.multiSigKeys.identifier]: roundOne(
-          participantA.multiSigKeys.keyPackage,
-          seed,
-        ),
-        [participantB.multiSigKeys.identifier]: roundOne(
-          participantB.multiSigKeys.keyPackage,
-          seed,
-        ),
-        [participantC.multiSigKeys.identifier]: roundOne(
-          participantC.multiSigKeys.keyPackage,
-          seed,
-        ),
-      }
+      const signingCommitments = [
+        {
+          identifier: participantA.multiSigKeys.identifier,
+          commitment: roundOne(participantA.multiSigKeys.keyPackage, seed),
+        },
+        {
+          identifier: participantB.multiSigKeys.identifier,
+          commitment: roundOne(participantB.multiSigKeys.keyPackage, seed),
+        },
+        {
+          identifier: participantC.multiSigKeys.identifier,
+          commitment: roundOne(participantC.multiSigKeys.keyPackage, seed),
+        },
+      ]
 
       // mine block to send IRON to multisig account
       const miner = await useAccountFixture(node.wallet, 'miner')

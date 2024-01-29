@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { ParticipantSecret, SigningCommitments } from '@ironfish/rust-nodejs'
+import { IdentifierCommitment, ParticipantSecret } from '@ironfish/rust-nodejs'
 import {
   createNodeTest,
   useAccountFixture,
@@ -30,7 +30,7 @@ describe('Route multisig/createSigningPackage', () => {
 
     const trustedDealerPackage = response.content
 
-    const commitments: Array<{ identifier: string; commitment: SigningCommitments }> = []
+    const commitments: Array<IdentifierCommitment> = []
     for (let i = 0; i < 3; i++) {
       const commitment = await routeTest.client.multisig.createSigningCommitment({
         keyPackage: trustedDealerPackage.keyPackages[i].keyPackage,

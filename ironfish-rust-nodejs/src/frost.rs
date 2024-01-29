@@ -19,19 +19,25 @@ use napi::{bindgen_prelude::*, JsBuffer};
 use napi_derive::napi;
 use rand::thread_rng;
 
-#[napi(object, js_name = "SigningCommitments")]
-pub struct NativeSigningCommitments {
+#[napi(object, js_name = "Commitment")]
+pub struct NativeCommitment {
     pub hiding: String,
     pub binding: String,
 }
 
+#[napi(object, js_name = "IdentifierCommitment")]
+pub struct NativeIdentifierCommitment {
+    pub identifier: String,
+    pub commitment: NativeCommitment,
+}
+
 #[napi]
-pub fn round_one(key_package: String, seed: u32) -> Result<NativeSigningCommitments> {
+pub fn round_one(key_package: String, seed: u32) -> Result<NativeCommitment> {
     let key_package =
         KeyPackage::deserialize(&hex_to_vec_bytes(&key_package).map_err(to_napi_err)?)
             .map_err(to_napi_err)?;
     let (_, commitment) = round_one_rust(&key_package, seed as u64);
-    Ok(NativeSigningCommitments {
+    Ok(NativeCommitment {
         hiding: bytes_to_hex(&commitment.hiding().serialize()),
         binding: bytes_to_hex(&commitment.binding().serialize()),
     })
