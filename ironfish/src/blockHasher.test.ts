@@ -4,7 +4,7 @@
 
 import { blake3 } from '@napi-rs/blake-hash'
 import { BlockHasher, serializeHeaderBlake3, serializeHeaderFishHash } from './blockHasher'
-import { TestnetConsensus } from './consensus'
+import { Consensus } from './consensus'
 import { Target } from './primitives'
 import { RawBlockHeader } from './primitives/blockheader'
 import { FISH_HASH_CONTEXT } from './testUtilities'
@@ -25,7 +25,7 @@ describe('Hashes blocks with correct hashing algorithm', () => {
   let blockHasher: BlockHasher
 
   beforeAll(() => {
-    const modifiedConsensus = new TestnetConsensus(consensusParameters)
+    const modifiedConsensus = new Consensus(consensusParameters)
     blockHasher = new BlockHasher({
       consensus: modifiedConsensus,
       context: FISH_HASH_CONTEXT,

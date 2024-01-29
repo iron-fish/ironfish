@@ -5,7 +5,7 @@ import { BoxKeyPair, FishHashContext } from '@ironfish/rust-nodejs'
 import { v4 as uuid } from 'uuid'
 import { AssetsVerifier } from './assets'
 import { Blockchain } from './blockchain'
-import { TestnetConsensus } from './consensus'
+import { Consensus } from './consensus'
 import {
   Config,
   DEFAULT_DATA_DIR,
@@ -268,7 +268,7 @@ export class FullNode {
     internal.set('networkIdentity', privateIdentity.secretKey.toString('hex'))
     await internal.save()
 
-    const consensus = new TestnetConsensus(networkDefinition.consensus)
+    const consensus = new Consensus(networkDefinition.consensus)
 
     if (consensus.isNeverActive('enableFishHash')) {
       fishHashContext = undefined
