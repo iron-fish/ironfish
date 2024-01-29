@@ -1,12 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Asset } from '@ironfish/rust-nodejs'
+import { Asset, generateKeyFromPrivateKey } from '@ironfish/rust-nodejs'
 import { Assert } from '../../assert'
 import { FullNode } from '../../node'
 import { BurnDescription } from '../../primitives/burnDescription'
 import { MintData } from '../../primitives/rawTransaction'
 import { SerializedTransaction, Transaction } from '../../primitives/transaction'
+import { UnsignedTransaction } from '../../primitives/unsignedTransaction'
 import { Account, Wallet } from '../../wallet'
 import { createRawTransaction } from '../helpers/transaction'
 import { useAccountFixture } from './account'
@@ -95,6 +96,48 @@ export async function useTxFixture(
     },
     deserialize: (tx: SerializedTransaction): Transaction => {
       return new Transaction(tx)
+    },
+  })
+}
+
+export async function useUnsignedTxFixture(
+  wallet: Wallet,
+  from: Account,
+  to: Account,
+  generate?: FixtureGenerate<UnsignedTransaction>,
+  fee?: bigint,
+  expiration?: number,
+): Promise<UnsignedTransaction> {
+  generate =
+    generate ||
+    (async () => {
+      const raw = await wallet.createTransaction({
+        account: from,
+        outputs: [
+          {
+            publicAddress: to.publicAddress,
+            amount: BigInt(1),
+            memo: '',
+            assetId: Asset.nativeId(),
+          },
+        ],
+        fee: fee ?? 0n,
+        expiration: expiration ?? 0,
+        expirationDelta: 0,
+      })
+      Assert.isNotNull(from.spendingKey)
+      const key = generateKeyFromPrivateKey(from.spendingKey)
+      const unsignedBuffer = raw
+        .build(key.proofGenerationKey, key.viewKey, key.outgoingViewKey, key.publicAddress)
+        .serialize()
+      return new UnsignedTransaction(unsignedBuffer)
+    })
+  return useFixture(generate, {
+    serialize: (tx: UnsignedTransaction): Buffer => {
+      return tx.serialize()
+    },
+    deserialize: (tx: Buffer): UnsignedTransaction => {
+      return new UnsignedTransaction(tx)
     },
   })
 }

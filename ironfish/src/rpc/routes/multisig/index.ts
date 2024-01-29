@@ -3,4 +3,5 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 export * from './createSigningCommitment'
+export * from './createSigningPackage'
 export * from './createTrustedDealerKeyPackage'

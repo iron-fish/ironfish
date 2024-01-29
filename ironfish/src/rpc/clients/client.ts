@@ -17,8 +17,14 @@ import type {
   BurnAssetResponse,
   CreateAccountRequest,
   CreateAccountResponse,
+  CreateSigningCommitmentRequest,
+  CreateSigningCommitmentResponse,
+  CreateSigningPackageRequest,
+  CreateSigningPackageResponse,
   CreateTransactionRequest,
   CreateTransactionResponse,
+  CreateTrustedDealerKeyPackageRequest,
+  CreateTrustedDealerKeyPackageResponse,
   EstimateFeeRateRequest,
   EstimateFeeRateResponse,
   EstimateFeeRatesRequest,
@@ -35,6 +41,8 @@ import type {
   GetAccountsResponse,
   GetAccountsStatusRequest,
   GetAccountsStatusResponse,
+  GetAccountStatusRequest,
+  GetAccountStatusResponse,
   GetAccountTransactionRequest,
   GetAccountTransactionResponse,
   GetAccountTransactionsRequest,
@@ -132,10 +140,6 @@ import type {
   UseAccountResponse,
 } from '../routes'
 import { ApiNamespace } from '../routes/namespaces'
-import {
-  GetAccountStatusRequest,
-  GetAccountStatusResponse,
-} from '../routes/wallet/getAccountStatus'
 
 export abstract class RpcClient {
   abstract request<TEnd = unknown, TStream = unknown>(
@@ -799,6 +803,34 @@ export abstract class RpcClient {
     ): Promise<RpcResponseEnded<UploadConfigResponse>> => {
       return this.request<UploadConfigResponse>(
         `${ApiNamespace.config}/uploadConfig`,
+        params,
+      ).waitForEnd()
+    },
+  }
+  multisig = {
+    createTrustedDealerKeyPackage: (
+      params: CreateTrustedDealerKeyPackageRequest,
+    ): Promise<RpcResponseEnded<CreateTrustedDealerKeyPackageResponse>> => {
+      return this.request<CreateTrustedDealerKeyPackageResponse>(
+        `${ApiNamespace.multisig}/createTrustedDealerKeyPackage`,
+        params,
+      ).waitForEnd()
+    },
+
+    createSigningPackage: (
+      params: CreateSigningPackageRequest,
+    ): Promise<RpcResponseEnded<CreateSigningPackageResponse>> => {
+      return this.request<CreateSigningPackageResponse>(
+        `${ApiNamespace.multisig}/createSigningPackage`,
+        params,
+      ).waitForEnd()
+    },
+
+    createSigningCommitment: (
+      params: CreateSigningCommitmentRequest,
+    ): Promise<RpcResponseEnded<CreateSigningCommitmentResponse>> => {
+      return this.request<CreateSigningCommitmentResponse>(
+        `${ApiNamespace.multisig}/createSigningCommitment`,
         params,
       ).waitForEnd()
     },
