@@ -256,8 +256,8 @@ export class FoundBlockResult {
   constructor(randomness: string, miningRequestId: number)
 }
 export class ThreadPoolHandler {
-  constructor(threadCount: number, batchSize: number, pauseOnSuccess: boolean)
-  newWork(headerBytes: Buffer, target: Buffer, miningRequestId: number): void
+  constructor(threadCount: number, batchSize: number, pauseOnSuccess: boolean, useFishHash: boolean, fishHashFullContext: boolean)
+  newWork(headerBytes: Buffer, target: Buffer, miningRequestId: number, fishHash: boolean): void
   stop(): void
   pause(): void
   getFoundBlock(): FoundBlockResult | null

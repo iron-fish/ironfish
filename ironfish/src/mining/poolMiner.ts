@@ -47,7 +47,7 @@ export class MiningPoolMiner {
     }
 
     const threadCount = options.threadCount ?? 1
-    this.threadPool = new ThreadPoolHandler(threadCount, options.batchSize, false)
+    this.threadPool = new ThreadPoolHandler(threadCount, options.batchSize, false, false, false)
 
     this.stratum = options.stratum
     this.stratum.onConnected.on(() => this.stratum.subscribe(this.publicAddress, this.name))
@@ -122,7 +122,7 @@ export class MiningPoolMiner {
     headerBytes.set(this.graffiti, MINEABLE_BLOCK_HEADER_GRAFFITI_OFFSET)
 
     this.waiting = false
-    this.threadPool.newWork(headerBytes, this.target, miningRequestId)
+    this.threadPool.newWork(headerBytes, this.target, miningRequestId, false)
   }
 
   waitForWork(): void {
