@@ -99,6 +99,7 @@ export async function GetOldAccounts(
       new Account({
         ...account,
         version: 1,
+        proofAuthorizingKey: null,
         viewKey: key.viewKey,
         createdAt: null,
         walletDb: context.wallet.walletDb,

@@ -30,6 +30,7 @@ export class Migration025 extends Migration {
         new Account({
           ...account,
           createdAt: null,
+          proofAuthorizingKey: null,
           walletDb: context.wallet.walletDb,
         }),
       )
