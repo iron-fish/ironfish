@@ -240,7 +240,7 @@ describe('Verifier', () => {
       const invalidMinersTransaction = await useFixture(
         () => {
           const key = generateKey()
-          const reward = nodeTest.strategy.miningReward(minersBlock.header.sequence)
+          const reward = nodeTest.chain.network.miningReward(minersBlock.header.sequence)
           const owner = key.publicAddress
           const minerNote1 = new NativeNote(
             owner,

@@ -25,6 +25,7 @@ import { PeerNetwork, PrivateIdentity, privateIdentityToIdentity } from './netwo
 import { isHexSecretKey } from './network/identity'
 import { IsomorphicWebSocketConstructor, NodeDataChannelType } from './network/types'
 import { getNetworkDefinition } from './networks'
+import { Network } from './networks/network'
 import { Package } from './package'
 import { Platform } from './platform'
 import { ALL_API_NAMESPACES, RpcMemoryClient } from './rpc'
@@ -54,6 +55,7 @@ export class FullNode {
   pkg: Package
   telemetry: Telemetry
   assetsVerifier: AssetsVerifier
+  network: Network
 
   started = false
   shutdownPromise: Promise<void> | null = null
@@ -75,8 +77,8 @@ export class FullNode {
     nodeDataChannel,
     privateIdentity,
     peerStore,
-    networkId,
     assetsVerifier,
+    network,
   }: {
     pkg: Package
     files: FileSystem
@@ -93,8 +95,8 @@ export class FullNode {
     nodeDataChannel: NodeDataChannelType
     privateIdentity: PrivateIdentity
     peerStore: PeerStore
-    networkId: number
     assetsVerifier: AssetsVerifier
+    network: Network
   }) {
     this.files = files
     this.config = config
@@ -103,6 +105,7 @@ export class FullNode {
     this.chain = chain
     this.strategy = strategy
     this.metrics = metrics
+    this.network = network
     this.miningManager = new MiningManager({
       chain,
       memPool,
@@ -133,11 +136,11 @@ export class FullNode {
         { name: 'node_id', type: 'string', value: internal.get('telemetryNodeId') },
         { name: 'session_id', type: 'string', value: uuid() },
       ],
-      networkId,
+      networkId: network.id,
     })
 
     this.peerNetwork = new PeerNetwork({
-      networkId,
+      networkId: network.id,
       identity: privateIdentity,
       agent: Platform.getAgent(pkg),
       port: config.get('peerPort'),
@@ -286,6 +289,8 @@ export class FullNode {
     strategyClass = strategyClass || Strategy
     const strategy = new strategyClass({ workerPool, consensus, blockHasher })
 
+    const network = new Network(networkDefinition, strategy)
+
     const chain = new Blockchain({
       location: config.chainDatabasePath,
       strategy,
@@ -298,6 +303,7 @@ export class FullNode {
       genesis: networkDefinition.genesis,
       config,
       blockHasher,
+      network,
     })
 
     const feeEstimator = new FeeEstimator({
@@ -356,8 +362,8 @@ export class FullNode {
       nodeDataChannel,
       privateIdentity,
       peerStore,
-      networkId: networkDefinition.id,
       assetsVerifier,
+      network,
     })
 
     memoryClient.router = node.rpc.getRouter(ALL_API_NAMESPACES)
