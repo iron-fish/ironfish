@@ -158,7 +158,7 @@ export class Verifier {
     }
 
     // minersFee should be (negative) miningReward + totalTransactionFees
-    const miningReward = this.chain.strategy.miningReward(block.header.sequence)
+    const miningReward = this.chain.network.miningReward(block.header.sequence)
 
     if (minersFeeTransaction.fee() !== -1n * (BigInt(miningReward) + totalTransactionFees)) {
       return { valid: false, reason: VerificationResultReason.INVALID_MINERS_FEE }

@@ -19,6 +19,7 @@ import { NodeEncoding } from '../merkletree/database/nodes'
 import { MetricsMonitor } from '../metrics'
 import { RollingAverage } from '../metrics/rollingAverage'
 import { BAN_SCORE } from '../network/peers/peer'
+import { Network } from '../networks/network'
 import {
   Block,
   BlockSerde,
@@ -66,6 +67,7 @@ export class Blockchain {
   config: Config
   blockHasher: BlockHasher
   workerPool: WorkerPool
+  network: Network
   readonly blockchainDb: BlockchainDB
 
   readonly notes: MerkleTree<
@@ -137,6 +139,7 @@ export class Blockchain {
 
   constructor(options: {
     location: string
+    network: Network
     strategy: Strategy
     workerPool: WorkerPool
     logger?: Logger
@@ -153,6 +156,7 @@ export class Blockchain {
 
     this.location = options.location
     this.strategy = options.strategy
+    this.network = options.network
     this.files = options.files
     this.logger = logger.withTag('blockchain')
     this.metrics = options.metrics || new MetricsMonitor({ logger: this.logger })
@@ -1504,7 +1508,7 @@ export class Blockchain {
   ): Promise<Transaction> {
     // Create a new note with value equal to the inverse of the sum of the
     // transaction fees and the mining reward
-    const reward = this.strategy.miningReward(blockSequence)
+    const reward = this.network.miningReward(blockSequence)
     const amount = totalTransactionFees + BigInt(reward)
 
     const transactionVersion = this.consensus.getActiveTransactionVersion(blockSequence)
