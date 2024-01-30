@@ -32,6 +32,7 @@ export class SpendingKeyEncoder implements AccountEncoder {
       name: options.name,
       spendingKey: spendingKey,
       viewKey: key.viewKey,
+      proofAuthorizationKey: key.proofGenerationKey,
       incomingViewKey: key.incomingViewKey,
       outgoingViewKey: key.outgoingViewKey,
       publicAddress: key.publicAddress,

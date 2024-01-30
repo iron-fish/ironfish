@@ -4,7 +4,7 @@
 import { PUBLIC_ADDRESS_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { IDatabaseEncoding } from '../../../../storage'
-import { HeadValue, NullableHeadValueEncoding } from './headValue'
+import { HeadValue, NullableHeadValueEncoding } from './HeadValue'
 
 const KEY_LENGTH = 32
 export const VIEW_KEY_LENGTH = 64
@@ -20,10 +20,6 @@ export interface AccountValue {
   outgoingViewKey: string
   publicAddress: string
   createdAt: HeadValue | null
-}
-
-export type AccountImport = Omit<AccountValue, 'id' | 'createdAt'> & {
-  createdAt: { hash: string; sequence: number } | null
 }
 
 export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
