@@ -2,11 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { BlockHasher } from '../blockHasher'
 import { Consensus } from '../consensus'
-import { Strategy } from '../strategy'
-import { FISH_HASH_CONTEXT } from '../testUtilities'
-import { WorkerPool } from '../workerPool'
 import { DEVNET } from './definitions'
 import { Network } from './network'
 
@@ -26,15 +22,7 @@ describe('Network', () => {
       enableFishHash: 'never',
     })
 
-    const blockHasher = new BlockHasher({ consensus, context: FISH_HASH_CONTEXT })
-
-    const strategy = new Strategy({
-      workerPool: new WorkerPool(),
-      consensus,
-      blockHasher,
-    })
-
-    network = new Network(DEVNET, strategy)
+    network = new Network(DEVNET, consensus)
   })
 
   describe('miningReward', () => {

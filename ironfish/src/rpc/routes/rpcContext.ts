@@ -6,7 +6,7 @@ import { AssetsVerifier } from '../../assets'
 import { Config, InternalStore } from '../../fileStores'
 import { FileSystem } from '../../fileSystems'
 import { Logger } from '../../logger'
-import { Strategy } from '../../strategy'
+import { Network } from '../../networks'
 import { Wallet } from '../../wallet'
 import { WorkerPool } from '../../workerPool'
 import { RpcRequest } from '../request'
@@ -21,7 +21,7 @@ export type RpcContext = Partial<{
   logger: Logger
   rpc: RpcServer
   assetsVerifier: AssetsVerifier
-  strategy: Strategy
+  network: Network
   shutdown: () => Promise<void>
 }>
 

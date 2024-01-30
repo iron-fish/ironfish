@@ -30,7 +30,6 @@ import { Package } from './package'
 import { Platform } from './platform'
 import { ALL_API_NAMESPACES, RpcMemoryClient } from './rpc'
 import { RpcServer } from './rpc/server'
-import { Strategy } from './strategy'
 import { Syncer } from './syncer'
 import { Telemetry } from './telemetry/telemetry'
 import { Wallet, WalletDB } from './wallet'
@@ -38,7 +37,6 @@ import { calculateWorkers, WorkerPool } from './workerPool'
 
 export class FullNode {
   chain: Blockchain
-  strategy: Strategy
   config: Config
   internal: InternalStore
   wallet: Wallet
@@ -68,7 +66,6 @@ export class FullNode {
     config,
     internal,
     wallet,
-    strategy,
     metrics,
     memPool,
     workerPool,
@@ -86,7 +83,6 @@ export class FullNode {
     internal: InternalStore
     wallet: Wallet
     chain: Blockchain
-    strategy: Strategy
     metrics: MetricsMonitor
     memPool: MemPool
     workerPool: WorkerPool
@@ -103,7 +99,6 @@ export class FullNode {
     this.internal = internal
     this.wallet = wallet
     this.chain = chain
-    this.strategy = strategy
     this.metrics = metrics
     this.network = network
     this.miningManager = new MiningManager({
@@ -196,7 +191,7 @@ export class FullNode {
     logger = createRootLogger(),
     metrics,
     files,
-    strategyClass,
+    networkClass,
     webSocket,
     privateIdentity,
     fishHashContext,
@@ -211,7 +206,7 @@ export class FullNode {
     logger?: Logger
     metrics?: MetricsMonitor
     files: FileSystem
-    strategyClass: typeof Strategy | null
+    networkClass: typeof Network | null
     webSocket: IsomorphicWebSocketConstructor
     privateIdentity?: PrivateIdentity
     fishHashContext?: FishHashContext
@@ -286,14 +281,11 @@ export class FullNode {
       context: fishHashContext,
     })
 
-    strategyClass = strategyClass || Strategy
-    const strategy = new strategyClass({ workerPool, consensus, blockHasher })
-
-    const network = new Network(networkDefinition, strategy)
+    networkClass = networkClass || Network
+    const network = new networkClass(networkDefinition, consensus)
 
     const chain = new Blockchain({
       location: config.chainDatabasePath,
-      strategy,
       logger,
       metrics,
       autoSeed,
@@ -349,7 +341,6 @@ export class FullNode {
     const node = new FullNode({
       pkg,
       chain,
-      strategy,
       files,
       config,
       internal,

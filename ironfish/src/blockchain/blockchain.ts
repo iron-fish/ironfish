@@ -45,7 +45,6 @@ import {
 import { Target } from '../primitives/target'
 import { Transaction, TransactionHash } from '../primitives/transaction'
 import { BUFFER_ENCODING, IDatabaseTransaction } from '../storage'
-import { Strategy } from '../strategy'
 import { AsyncUtils, BenchUtils, HashUtils } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { AssetValue } from './database/assetValue'
@@ -57,7 +56,6 @@ export const VERSION_DATABASE_CHAIN = 28
 
 export class Blockchain {
   logger: Logger
-  strategy: Strategy
   verifier: Verifier
   metrics: MetricsMonitor
   location: string
@@ -140,7 +138,6 @@ export class Blockchain {
   constructor(options: {
     location: string
     network: Network
-    strategy: Strategy
     workerPool: WorkerPool
     logger?: Logger
     metrics?: MetricsMonitor
@@ -155,7 +152,6 @@ export class Blockchain {
     const logger = options.logger || createRootLogger()
 
     this.location = options.location
-    this.strategy = options.strategy
     this.network = options.network
     this.files = options.files
     this.logger = logger.withTag('blockchain')
