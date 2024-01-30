@@ -615,7 +615,7 @@ export class PeerNetwork {
     }
 
     const headers = response.headers.map((rawHeader) =>
-      this.chain.strategy.newBlockHeader(rawHeader),
+      this.chain.newBlockHeaderFromRaw(rawHeader),
     )
 
     return { headers, time: BenchUtils.end(begin) }
@@ -639,7 +639,7 @@ export class PeerNetwork {
     const exceededSoftLimit = response.getSize() >= SOFT_MAX_MESSAGE_SIZE
     const isMessageFull = exceededSoftLimit || response.blocks.length >= limit
 
-    const blocks = response.blocks.map((rawBlock) => this.chain.strategy.newBlock(rawBlock))
+    const blocks = response.blocks.map((rawBlock) => this.chain.newBlockFromRaw(rawBlock))
 
     return { blocks, time: BenchUtils.end(begin), isMessageFull }
   }
@@ -789,7 +789,7 @@ export class PeerNetwork {
       return
     }
 
-    const header = this.chain.strategy.newBlockHeader(compactBlock.header)
+    const header = this.chain.newBlockHeaderFromRaw(compactBlock.header)
 
     // mark the block as received in the block fetcher and decide whether to continue
     // to validate this compact block or not
@@ -1175,7 +1175,7 @@ export class PeerNetwork {
       return
     }
 
-    const block = this.chain.strategy.newBlock(rawBlock)
+    const block = this.chain.newBlockFromRaw(rawBlock)
 
     if (await this.alreadyHaveBlock(block.header)) {
       return

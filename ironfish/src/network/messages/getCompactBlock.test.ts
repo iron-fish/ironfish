@@ -33,7 +33,7 @@ describe('GetCompactBlockResponse', () => {
     const transactionB = await useMinersTxFixture(nodeTest.node, account)
 
     const compactBlock: CompactBlock = {
-      header: nodeTest.strategy.newBlockHeader({
+      header: nodeTest.chain.newBlockHeaderFromRaw({
         sequence: 2,
         previousBlockHash: Buffer.alloc(32, 2),
         noteCommitment: Buffer.alloc(32, 1),

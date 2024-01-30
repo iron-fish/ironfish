@@ -11,14 +11,13 @@ import {
   Transaction as NativeTransaction,
   TransactionPosted as NativeTransactionPosted,
 } from '@ironfish/rust-nodejs'
-import { blake3 } from '@napi-rs/blake-hash'
-import { serializeHeaderBlake3, serializeHeaderFishHash } from './blockHasher'
+import { BlockHasher } from './blockHasher'
 import { Consensus, ConsensusParameters } from './consensus'
 import { MerkleTree } from './merkletree'
 import { LeafEncoding } from './merkletree/database/leaves'
 import { NodeEncoding } from './merkletree/database/nodes'
 import { NoteHasher } from './merkletree/hasher'
-import { Target, Transaction } from './primitives'
+import { Transaction } from './primitives'
 import { Note } from './primitives/note'
 import { NoteEncrypted, NoteEncryptedHash } from './primitives/noteEncrypted'
 import { TransactionVersion } from './primitives/transaction'
@@ -102,10 +101,12 @@ describe('Demonstrate the Sapling API', () => {
     spenderKey = generateKey()
     receiverKey = generateKey()
     workerPool = new WorkerPool()
+    const consensus = new Consensus(consensusParameters)
+    const blockHasher = new BlockHasher({ consensus, context: FISH_HASH_CONTEXT })
     strategy = new Strategy({
       workerPool,
-      consensus: new Consensus(consensusParameters),
-      fishHashContext: FISH_HASH_CONTEXT,
+      consensus,
+      blockHasher,
     })
   })
 
@@ -257,10 +258,12 @@ describe('Demonstrate the Sapling API', () => {
       }
 
       const key = generateKey()
+      const consensus = new Consensus(modifiedParams)
+      const blockHasher = new BlockHasher({ consensus, context: FISH_HASH_CONTEXT })
       const modifiedStrategy = new Strategy({
         workerPool,
-        consensus: new Consensus(modifiedParams),
-        fishHashContext: FISH_HASH_CONTEXT,
+        consensus,
+        blockHasher,
       })
 
       const minersFee1 = await modifiedStrategy.createMinersFee(
@@ -346,84 +349,6 @@ describe('Demonstrate the Sapling API', () => {
       )
       expect(postedTransaction).toBeTruthy()
       expect(await workerPool.verifyTransactions([postedTransaction])).toEqual({ valid: true })
-    })
-  })
-
-  describe('Hashes blocks with correct hashing algorithm', () => {
-    let modifiedStrategy: Strategy
-    const modifiedParams = {
-      ...consensusParameters,
-      enableFishHash: 10,
-    }
-
-    beforeAll(() => {
-      modifiedStrategy = new Strategy({
-        workerPool,
-        consensus: new Consensus(modifiedParams),
-        fishHashContext: FISH_HASH_CONTEXT,
-      })
-    })
-
-    const rawHeaderFields = {
-      previousBlockHash: Buffer.alloc(32),
-      noteCommitment: Buffer.alloc(32, 'header'),
-      transactionCommitment: Buffer.alloc(32, 'transactionRoot'),
-      target: new Target(17),
-      randomness: BigInt(25),
-      timestamp: new Date(1598467858637),
-      graffiti: Buffer.alloc(32),
-    }
-
-    it('Creates block headers with blake3 before the activation sequence', () => {
-      const rawHeader = {
-        ...rawHeaderFields,
-        sequence: modifiedParams.enableFishHash - 1,
-      }
-      const header = modifiedStrategy.newBlockHeader(rawHeader)
-
-      expect(header.hash.equals(blake3(serializeHeaderBlake3(rawHeader)))).toBe(true)
-
-      expect(header.hash.equals(blake3(serializeHeaderFishHash(rawHeader)))).not.toBe(true)
-      expect(
-        header.hash.equals(FISH_HASH_CONTEXT.hash(serializeHeaderBlake3(rawHeader))),
-      ).not.toBe(true)
-
-      expect(header.toRaw()).toEqual(rawHeader)
-    })
-
-    it('Creates block headers with FishHash after the activation sequence', () => {
-      const rawHeader = {
-        ...rawHeaderFields,
-        sequence: modifiedParams.enableFishHash,
-      }
-      const header = modifiedStrategy.newBlockHeader(rawHeader)
-
-      expect(
-        header.hash.equals(FISH_HASH_CONTEXT.hash(serializeHeaderFishHash(rawHeader))),
-      ).toBe(true)
-
-      expect(
-        header.hash.equals(FISH_HASH_CONTEXT.hash(serializeHeaderBlake3(rawHeader))),
-      ).not.toBe(true)
-
-      expect(header.hash.equals(blake3(serializeHeaderFishHash(rawHeader)))).not.toBe(true)
-
-      expect(header.toRaw()).toEqual(rawHeader)
-    })
-
-    it('Creates block headers with noteSize and work if passed in', () => {
-      const rawHeader = {
-        ...rawHeaderFields,
-        sequence: modifiedParams.enableFishHash - 1,
-      }
-
-      const header1 = modifiedStrategy.newBlockHeader(rawHeader)
-      expect(header1.noteSize).toBeNull()
-      expect(header1.work).toEqual(BigInt(0))
-
-      const header2 = modifiedStrategy.newBlockHeader(rawHeader, 123, BigInt(456))
-      expect(header2.noteSize).toEqual(123)
-      expect(header2.work).toEqual(BigInt(456))
     })
   })
 })

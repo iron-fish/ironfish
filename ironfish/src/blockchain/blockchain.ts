@@ -6,6 +6,7 @@ import { Asset } from '@ironfish/rust-nodejs'
 import LRU from 'blru'
 import { BufferMap } from 'buffer-map'
 import { Assert } from '../assert'
+import { BlockHasher } from '../blockHasher'
 import { Consensus } from '../consensus'
 import { VerificationResultReason, Verifier } from '../consensus/verifier'
 import { Event } from '../event'
@@ -23,6 +24,7 @@ import {
   BlockSerde,
   GENESIS_BLOCK_PREVIOUS,
   GENESIS_BLOCK_SEQUENCE,
+  RawBlock,
   SerializedBlock,
 } from '../primitives/block'
 import {
@@ -30,6 +32,7 @@ import {
   BlockHeader,
   isBlockHeavier,
   isBlockLater,
+  RawBlockHeader,
   transactionCommitment,
 } from '../primitives/blockheader'
 import {
@@ -61,6 +64,7 @@ export class Blockchain {
   consensus: Consensus
   seedGenesisBlock: SerializedBlock
   config: Config
+  blockHasher: BlockHasher
   readonly blockchainDb: BlockchainDB
 
   readonly notes: MerkleTree<
@@ -142,6 +146,7 @@ export class Blockchain {
     consensus: Consensus
     genesis: SerializedBlock
     config: Config
+    blockHasher: BlockHasher
   }) {
     const logger = options.logger || createRootLogger()
 
@@ -159,6 +164,7 @@ export class Blockchain {
     this.consensus = options.consensus
     this.seedGenesisBlock = options.genesis
     this.config = options.config
+    this.blockHasher = options.blockHasher
 
     this.blockchainDb = new BlockchainDB({
       files: options.files,
@@ -224,7 +230,7 @@ export class Blockchain {
 
   private async load(): Promise<void> {
     let genesisHeader = await this.getHeaderAtSequence(GENESIS_BLOCK_SEQUENCE)
-    const seedGenesisBlock = BlockSerde.deserialize(this.seedGenesisBlock, this.strategy)
+    const seedGenesisBlock = BlockSerde.deserialize(this.seedGenesisBlock, this)
 
     if (genesisHeader) {
       Assert.isTrue(
@@ -945,7 +951,7 @@ export class Blockchain {
         graffiti,
       }
 
-      const header = this.strategy.newBlockHeader(rawHeader, noteSize, BigInt(0))
+      const header = this.newBlockHeaderFromRaw(rawHeader, noteSize, BigInt(0))
 
       const block = new Block(header, transactions)
       if (verifyBlock && !previousBlockHash.equals(GENESIS_BLOCK_PREVIOUS)) {
@@ -1472,6 +1478,20 @@ export class Blockchain {
 
     const asset = await this.blockchainDb.getAsset(assetId, tx)
     return asset || null
+  }
+
+  newBlockHeaderFromRaw(
+    raw: RawBlockHeader,
+    noteSize?: number | null,
+    work?: bigint,
+  ): BlockHeader {
+    const hash = this.blockHasher.hashHeader(raw)
+    return new BlockHeader(raw, hash, noteSize, work)
+  }
+
+  newBlockFromRaw(raw: RawBlock, noteSize?: number | null, work?: bigint): Block {
+    const header = this.newBlockHeaderFromRaw(raw.header, noteSize, work)
+    return new Block(header, raw.transactions)
   }
 }
 

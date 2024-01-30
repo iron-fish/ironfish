@@ -5,6 +5,7 @@ import { BoxKeyPair, FishHashContext } from '@ironfish/rust-nodejs'
 import { v4 as uuid } from 'uuid'
 import { AssetsVerifier } from './assets'
 import { Blockchain } from './blockchain'
+import { BlockHasher } from './blockHasher'
 import { Consensus } from './consensus'
 import {
   Config,
@@ -277,8 +278,13 @@ export class FullNode {
       fishHashContext = new FishHashContext(isFull)
     }
 
+    const blockHasher = new BlockHasher({
+      consensus: consensus,
+      context: fishHashContext,
+    })
+
     strategyClass = strategyClass || Strategy
-    const strategy = new strategyClass({ workerPool, consensus, fishHashContext })
+    const strategy = new strategyClass({ workerPool, consensus, blockHasher })
 
     const chain = new Blockchain({
       location: config.chainDatabasePath,
@@ -291,6 +297,7 @@ export class FullNode {
       consensus,
       genesis: networkDefinition.genesis,
       config,
+      blockHasher,
     })
 
     const feeEstimator = new FeeEstimator({

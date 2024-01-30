@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { Blockchain } from '../blockchain'
 import { Block, RawBlock } from '../primitives/block'
 import { NoteEncryptedHashSerde } from '../primitives/noteEncrypted'
 import { Target } from '../primitives/target'
 import { Transaction } from '../primitives/transaction'
-import { Strategy } from '../strategy'
 import { BigIntUtils } from '../utils'
 
 export type SerializedBlockTemplate = {
@@ -84,9 +84,9 @@ export class BlockTemplateSerde {
     return RawBlockTemplateSerde.serialize(block, previousBlock)
   }
 
-  static deserialize(blockTemplate: SerializedBlockTemplate, strategy: Strategy): Block {
+  static deserialize(blockTemplate: SerializedBlockTemplate, chain: Blockchain): Block {
     const rawBlock = RawBlockTemplateSerde.deserialize(blockTemplate)
 
-    return strategy.newBlock(rawBlock)
+    return chain.newBlockFromRaw(rawBlock)
   }
 }

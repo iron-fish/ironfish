@@ -170,7 +170,7 @@ export async function makeGenesisBlock(
     GraffitiUtils.fromString('genesis'),
   )
 
-  const genesisBlock = chain.strategy.newBlock(
+  const genesisBlock = chain.newBlockFromRaw(
     {
       header: {
         ...block.header,
