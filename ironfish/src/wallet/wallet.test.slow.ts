@@ -1272,7 +1272,7 @@ describe('Wallet', () => {
       })
 
       const unsignedTransaction = rawTransaction.build(
-        trustedDealerPackage.proofGenerationKey,
+        trustedDealerPackage.proofGenerationKey.slice(64), // total 64 bytes, first 32 are the ak and the last 32 are the nsk
         trustedDealerPackage.viewKey,
         trustedDealerPackage.outgoingViewKey,
       )
