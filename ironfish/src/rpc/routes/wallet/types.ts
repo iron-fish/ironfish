@@ -141,6 +141,7 @@ export type RpcAccountImport = {
   outgoingViewKey: string
   publicAddress: string
   spendingKey: string | null
+  proofAuthorizingKey: string | null
   createdAt: { hash: string; sequence: number } | null
   multiSigKeys?: {
     identifier: string
@@ -153,6 +154,7 @@ export const RpcAccountImportSchema: yup.ObjectSchema<RpcAccountImport> = yup
   .object({
     name: yup.string().defined(),
     spendingKey: yup.string().nullable().defined(),
+    proofAuthorizingKey: yup.string().nullable().defined(),
     viewKey: yup.string().defined(),
     publicAddress: yup.string().defined(),
     incomingViewKey: yup.string().defined(),

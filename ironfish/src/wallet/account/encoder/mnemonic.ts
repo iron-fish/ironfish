@@ -53,6 +53,7 @@ export class MnemonicEncoder implements AccountEncoder {
     return {
       name: options.name,
       spendingKey: spendingKey,
+      proofAuthorizingKey: key.proofGenerationKey.slice(32, 64),
       viewKey: key.viewKey,
       incomingViewKey: key.incomingViewKey,
       outgoingViewKey: key.outgoingViewKey,
