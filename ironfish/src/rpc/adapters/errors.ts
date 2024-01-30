@@ -9,6 +9,7 @@ export enum RPC_ERROR_CODES {
   ROUTE_NOT_FOUND = 'route-not-found',
   VALIDATION = 'validation',
   INSUFFICIENT_BALANCE = 'insufficient-balance',
+  EXPERIMENTAL_METHOD_NOT_ENABLED = 'experimental-method-not-enabled',
   UNAUTHENTICATED = 'unauthenticated',
   NOT_FOUND = 'not-found',
 }

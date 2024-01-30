@@ -52,7 +52,15 @@ export class Router {
       throw new RouteNotFoundError(route, namespace, method)
     }
 
-    const { handler, schema } = methodRoute
+    const { handler, schema, experimental } = methodRoute
+
+    if (experimental && !this.server.context.config.experimental) {
+      throw new RpcResponseError(
+        `Experimental features for route ${route} is not enabled, please run server with --experimental flag`,
+        RPC_ERROR_CODES.EXPERIMENTAL_METHOD_NOT_ENABLED,
+        400,
+      )
+    }
 
     const { result, error } = await YupUtils.tryValidate(schema, request.data)
     if (error) {
@@ -74,13 +82,22 @@ export class Router {
   }
 }
 
-class Routes {
-  routes = new Map<string, Map<string, { handler: RouteHandler; schema: YupSchema }>>()
+class Route {
+  public handler: RouteHandler
+  public schema: YupSchema
+  public experimental: boolean
 
-  get(
-    namespace: string,
-    method: string,
-  ): { handler: RouteHandler; schema: YupSchema } | undefined {
+  constructor(handler: RouteHandler, schema: YupSchema, experimental = false) {
+    this.handler = handler
+    this.schema = schema
+    this.experimental = experimental
+  }
+}
+
+class Routes {
+  routes = new Map<string, Map<string, Route>>()
+
+  get(namespace: string, method: string): Route | undefined {
     const namespaceRoutes = this.routes.get(namespace)
     if (!namespaceRoutes) {
       return undefined
@@ -93,6 +110,7 @@ class Routes {
     route: string,
     requestSchema: TRequestSchema,
     handler: RouteHandler<YupSchemaResult<TRequestSchema>, TResponse>,
+    experimental = false,
   ): void {
     const [namespace, method] = parseRoute(route)
 
@@ -102,14 +120,13 @@ class Routes {
     let namespaceRoutes = this.routes.get(namespace)
 
     if (!namespaceRoutes) {
-      namespaceRoutes = new Map<string, { handler: RouteHandler; schema: YupSchema }>()
+      namespaceRoutes = new Map<string, Route>()
       this.routes.set(namespace, namespaceRoutes)
     }
-
-    namespaceRoutes.set(method, {
-      handler: handler as RouteHandler<unknown, unknown>,
-      schema: requestSchema,
-    })
+    namespaceRoutes.set(
+      method,
+      new Route(handler as RouteHandler<unknown, unknown>, requestSchema, experimental),
+    )
   }
 
   filter(namespaces: string[]): Routes {
