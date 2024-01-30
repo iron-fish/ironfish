@@ -247,6 +247,7 @@ export class UnsignedTransaction {
   serialize(): Buffer
   publicKeyRandomness(): string
   signingPackage(nativeCommitments: Record<string, SigningCommitments>): string
+  sign(spenderHexKey: string): Buffer
   signFrost(publicKeyPackageStr: string, signingPackageStr: string, signatureSharesMap: Record<string, string>): Buffer
 }
 export class FoundBlockResult {

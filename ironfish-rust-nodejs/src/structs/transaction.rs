@@ -445,6 +445,18 @@ impl NativeUnsignedTransaction {
     }
 
     #[napi]
+    pub fn sign(&mut self, spender_hex_key: String) -> Result<Buffer> {
+        let spender_key = SaplingKey::from_hex(&spender_hex_key).map_err(to_napi_err)?;
+
+        let posted_transaction = self.transaction.sign(&spender_key).map_err(to_napi_err)?;
+
+        let mut vec: Vec<u8> = vec![];
+        posted_transaction.write(&mut vec).map_err(to_napi_err)?;
+
+        Ok(Buffer::from(vec))
+    }
+
+    #[napi]
     pub fn sign_frost(
         &mut self,
         public_key_package_str: String,
