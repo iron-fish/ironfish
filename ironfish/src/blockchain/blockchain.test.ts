@@ -6,7 +6,9 @@ import { Asset, generateKey, Note as NativeNote } from '@ironfish/rust-nodejs'
 import { Assert } from '../assert'
 import { VerificationResultReason } from '../consensus'
 import { FullNode } from '../node'
-import { Block, Note } from '../primitives'
+import { Block, Note, Target } from '../primitives'
+import { RawBlock } from '../primitives/block'
+import { RawBlockHeader } from '../primitives/blockheader'
 import { NoteEncrypted } from '../primitives/noteEncrypted'
 import { RawTransaction } from '../primitives/rawTransaction'
 import { TransactionVersion } from '../primitives/transaction'
@@ -435,7 +437,7 @@ describe('Blockchain', () => {
     const genesis = nodeTest.chain.genesis
     expect(node.chain.head?.hash).toEqualBuffer(genesis.hash)
 
-    const blockB3Invalid = nodeTest.strategy.newBlock({
+    const blockB3Invalid = nodeTest.chain.newBlockFromRaw({
       header: {
         ...blockB3.header,
         noteCommitment: Buffer.alloc(32),
@@ -731,7 +733,7 @@ describe('Blockchain', () => {
       valid: true,
     })
 
-    const invalidBlock = nodeTest.strategy.newBlock({
+    const invalidBlock = nodeTest.chain.newBlockFromRaw({
       header: {
         ...block.header,
         timestamp: new Date(0),
@@ -1764,6 +1766,78 @@ describe('Blockchain', () => {
 
       expect(added.isAdded).toBe(false)
       expect(added.reason).toBe(VerificationResultReason.MINIMUM_FEE_NOT_MET)
+    })
+  })
+
+  describe('newBlockHeaderFromRaw', () => {
+    it('should construct and hash block header', async () => {
+      const { chain } = await nodeTest.createSetup()
+
+      const raw: RawBlockHeader = {
+        previousBlockHash: Buffer.alloc(32),
+        noteCommitment: Buffer.alloc(32, 'header'),
+        transactionCommitment: Buffer.alloc(32, 'transactionRoot'),
+        target: new Target(17),
+        randomness: BigInt(25),
+        timestamp: new Date(1598467858637),
+        graffiti: Buffer.alloc(32),
+        sequence: 1,
+      }
+
+      const hashHeaderSpy = jest.spyOn(chain.blockHasher, 'hashHeader')
+
+      const header = chain.newBlockHeaderFromRaw(raw)
+      expect(header.sequence).toEqual(1)
+      expect(hashHeaderSpy).toHaveBeenCalledTimes(1)
+    })
+
+    it('Creates block headers with noteSize and work if passed in', async () => {
+      const { chain } = await nodeTest.createSetup()
+
+      const raw = {
+        previousBlockHash: Buffer.alloc(32),
+        noteCommitment: Buffer.alloc(32, 'header'),
+        transactionCommitment: Buffer.alloc(32, 'transactionRoot'),
+        target: new Target(17),
+        randomness: BigInt(25),
+        timestamp: new Date(1598467858637),
+        graffiti: Buffer.alloc(32),
+        sequence: 1,
+      }
+
+      const header1 = chain.newBlockHeaderFromRaw(raw)
+      expect(header1.noteSize).toBeNull()
+      expect(header1.work).toEqual(BigInt(0))
+
+      const header2 = chain.newBlockHeaderFromRaw(raw, 123, BigInt(456))
+      expect(header2.noteSize).toEqual(123)
+      expect(header2.work).toEqual(BigInt(456))
+    })
+  })
+
+  describe('newBlockFromRaw', () => {
+    it('should construct and hash block', async () => {
+      const { chain } = await nodeTest.createSetup()
+
+      const raw: RawBlock = {
+        header: {
+          previousBlockHash: Buffer.alloc(32),
+          noteCommitment: Buffer.alloc(32, 'header'),
+          transactionCommitment: Buffer.alloc(32, 'transactionRoot'),
+          target: new Target(17),
+          randomness: BigInt(25),
+          timestamp: new Date(1598467858637),
+          graffiti: Buffer.alloc(32),
+          sequence: 1,
+        },
+        transactions: [],
+      }
+
+      const hashHeaderSpy = jest.spyOn(chain.blockHasher, 'hashHeader')
+
+      const header = chain.newBlockFromRaw(raw)
+      expect(header.header.sequence).toEqual(1)
+      expect(hashHeaderSpy).toHaveBeenCalledTimes(1)
     })
   })
 

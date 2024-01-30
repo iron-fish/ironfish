@@ -5,8 +5,8 @@
 import { blake3 } from '@napi-rs/blake-hash'
 import bufio from 'bufio'
 import { Assert } from '../assert'
+import { Blockchain } from '../blockchain'
 import { BlockHashSerdeInstance, GraffitiSerdeInstance } from '../serde'
-import { Strategy } from '../strategy'
 import { BigIntUtils } from '../utils/bigint'
 import { NoteEncryptedHash, SerializedNoteEncryptedHash } from './noteEncrypted'
 import { Target } from './target'
@@ -273,8 +273,8 @@ export class BlockHeaderSerde {
     }
   }
 
-  static deserialize(data: SerializedBlockHeader, strategy: Strategy): BlockHeader {
-    return strategy.newBlockHeader(
+  static deserialize(data: SerializedBlockHeader, chain: Blockchain): BlockHeader {
+    return chain.newBlockHeaderFromRaw(
       {
         sequence: Number(data.sequence),
         previousBlockHash: Buffer.from(

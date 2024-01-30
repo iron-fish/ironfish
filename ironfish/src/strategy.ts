@@ -1,11 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { FishHashContext } from '@ironfish/rust-nodejs'
 import { BlockHasher } from './blockHasher'
 import { Consensus } from './consensus'
-import { Block, RawBlock } from './primitives/block'
-import { BlockHeader, RawBlockHeader } from './primitives/blockheader'
 import { Transaction } from './primitives/transaction'
 import { MathUtils } from './utils'
 import { WorkerPool } from './workerPool'
@@ -23,15 +20,12 @@ export class Strategy {
   constructor(options: {
     workerPool: WorkerPool
     consensus: Consensus
-    fishHashContext?: FishHashContext
+    blockHasher: BlockHasher
   }) {
     this.miningRewardCachedByYear = new Map<number, number>()
     this.workerPool = options.workerPool
     this.consensus = options.consensus
-    this.blockHasher = new BlockHasher({
-      consensus: this.consensus,
-      context: options.fishHashContext,
-    })
+    this.blockHasher = options.blockHasher
   }
 
   /**
@@ -103,15 +97,5 @@ export class Strategy {
     const transactionVersion = this.consensus.getActiveTransactionVersion(blockSequence)
 
     return this.workerPool.createMinersFee(minerSpendKey, amount, '', transactionVersion)
-  }
-
-  newBlockHeader(raw: RawBlockHeader, noteSize?: number | null, work?: bigint): BlockHeader {
-    const hash = this.blockHasher.hashHeader(raw)
-    return new BlockHeader(raw, hash, noteSize, work)
-  }
-
-  newBlock(raw: RawBlock, noteSize?: number | null, work?: bigint): Block {
-    const header = this.newBlockHeader(raw.header, noteSize, work)
-    return new Block(header, raw.transactions)
   }
 }
