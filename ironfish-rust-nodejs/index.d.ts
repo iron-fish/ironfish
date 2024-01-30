@@ -90,7 +90,7 @@ export interface Key {
   incomingViewKey: string
   outgoingViewKey: string
   publicAddress: string
-  proofGenerationKey: string
+  proofAuthorizingKey: string
 }
 export function generateKey(): Key
 export function spendingKeyToWords(privateKey: string, languageCode: LanguageCode): string
@@ -242,7 +242,7 @@ export class Transaction {
    * aka: self.value_balance - intended_transaction_fee - change = 0
    */
   post(spenderHexKey: string, changeGoesTo: string | undefined | null, intendedTransactionFee: bigint): Buffer
-  build(proofGenerationKeyStr: string, viewKeyStr: string, outgoingViewKeyStr: string, intendedTransactionFee: bigint, changeGoesTo?: string | undefined | null): Buffer
+  build(proofAuthorizingKey: string, viewKeyStr: string, outgoingViewKeyStr: string, intendedTransactionFee: bigint, changeGoesTo?: string | undefined | null): Buffer
   setExpiration(sequence: number): void
 }
 export type NativeUnsignedTransaction = UnsignedTransaction

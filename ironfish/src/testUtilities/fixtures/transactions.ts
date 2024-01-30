@@ -128,7 +128,7 @@ export async function useUnsignedTxFixture(
       Assert.isNotNull(from.spendingKey)
       const key = generateKeyFromPrivateKey(from.spendingKey)
       const unsignedBuffer = raw
-        .build(key.proofGenerationKey, key.viewKey, key.outgoingViewKey)
+        .build(key.proofAuthorizingKey, key.viewKey, key.outgoingViewKey)
         .serialize()
       return new UnsignedTransaction(unsignedBuffer)
     })

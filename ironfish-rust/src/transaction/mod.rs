@@ -14,7 +14,7 @@ use crate::{
         asset_identifier::{AssetIdentifier, NATIVE_ASSET},
     },
     errors::{IronfishError, IronfishErrorKind},
-    keys::{PublicAddress, SaplingKey},
+    keys::{ProofAuthorizingKey, PublicAddress, SaplingKey},
     note::Note,
     sapling_bls12::SAPLING,
     witness::WitnessTrait,
@@ -231,7 +231,7 @@ impl ProposedTransaction {
 
     pub fn build(
         &mut self,
-        proof_generation_key: ProofGenerationKey,
+        proof_authorizing_key: ProofAuthorizingKey,
         view_key: ViewKey,
         outgoing_view_key: OutgoingViewKey,
         intended_transaction_fee: i64,
@@ -250,6 +250,11 @@ impl ProposedTransaction {
         // Calculated from the authorizing key and the public_key_randomness.
         let randomized_public_key = redjubjub::PublicKey(view_key.authorizing_key.into())
             .randomize(self.public_key_randomness, *SPENDING_KEY_GENERATOR);
+
+        let proof_generation_key = ProofGenerationKey {
+            ak: view_key.authorizing_key,
+            nsk: proof_authorizing_key,
+        };
 
         let mut unsigned_spends = Vec::with_capacity(self.spends.len());
         for spend in &self.spends {
@@ -337,7 +342,7 @@ impl ProposedTransaction {
         let i64_fee = i64::try_from(intended_transaction_fee)?;
 
         let unsigned = self.build(
-            spender_key.sapling_proof_generation_key(),
+            spender_key.proof_authorizing_key(),
             spender_key.view_key().clone(),
             spender_key.outgoing_view_key().clone(),
             i64_fee,
@@ -377,7 +382,7 @@ impl ProposedTransaction {
             output.set_is_miners_fee();
         }
         let unsigned = self.build(
-            spender_key.sapling_proof_generation_key(),
+            spender_key.proof_authorizing_key(),
             spender_key.view_key().clone(),
             spender_key.outgoing_view_key().clone(),
             *self.value_balances.fee(),

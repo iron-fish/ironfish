@@ -5,7 +5,7 @@
 use std::fmt::Display;
 
 use ironfish::keys::Language;
-use ironfish::keys::ProofGenerationKeySerializable;
+use ironfish::keys::ProofAuthorizingKeySerializable;
 use ironfish::PublicAddress;
 use ironfish::SaplingKey;
 
@@ -65,7 +65,7 @@ pub struct Key {
     pub incoming_view_key: String,
     pub outgoing_view_key: String,
     pub public_address: String,
-    pub proof_generation_key: String,
+    pub proof_authorizing_key: String,
 }
 
 #[napi]
@@ -78,7 +78,7 @@ pub fn generate_key() -> Key {
         incoming_view_key: sapling_key.incoming_view_key().hex_key(),
         outgoing_view_key: sapling_key.outgoing_view_key().hex_key(),
         public_address: sapling_key.public_address().hex_public_address(),
-        proof_generation_key: sapling_key.sapling_proof_generation_key().hex_key(),
+        proof_authorizing_key: sapling_key.proof_authorizing_key().hex_key(),
     }
 }
 
@@ -105,7 +105,7 @@ pub fn generate_key_from_private_key(private_key: String) -> Result<Key> {
         incoming_view_key: sapling_key.incoming_view_key().hex_key(),
         outgoing_view_key: sapling_key.outgoing_view_key().hex_key(),
         public_address: sapling_key.public_address().hex_public_address(),
-        proof_generation_key: sapling_key.sapling_proof_generation_key().hex_key(),
+        proof_authorizing_key: sapling_key.proof_authorizing_key().hex_key(),
     })
 }
 

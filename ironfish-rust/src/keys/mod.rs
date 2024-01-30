@@ -27,6 +27,8 @@ mod view_keys;
 pub use view_keys::*;
 pub mod proof_generation_key;
 pub use proof_generation_key::*;
+pub mod proof_authorizing_key;
+pub use proof_authorizing_key::*;
 
 #[cfg(test)]
 mod test;
@@ -194,6 +196,11 @@ impl SaplingKey {
     /// Retrieve the publicly visible outgoing viewing key
     pub fn outgoing_view_key(&self) -> &OutgoingViewKey {
         &self.outgoing_viewing_key
+    }
+
+    // Retrieve the publicly visible proof authorizing key
+    pub fn proof_authorizing_key(&self) -> jubjub::Fr {
+        self.proof_authorizing_key
     }
 
     /// Retrieve the publicly visible incoming viewing key

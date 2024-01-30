@@ -240,7 +240,7 @@ fn test_proposed_transaction_build() {
 
     let unsigned_transaction = transaction
         .build(
-            spender_key.sapling_proof_generation_key(),
+            spender_key.proof_authorizing_key(),
             spender_key.view_key().clone(),
             spender_key.outgoing_view_key().clone(),
             intended_fee,
@@ -683,7 +683,7 @@ fn test_sign_simple() {
     // build transaction, generate proofs
     let unsigned_transaction = transaction
         .build(
-            spender_key.sapling_proof_generation_key(),
+            spender_key.proof_authorizing_key(),
             spender_key.view_key().clone(),
             spender_key.outgoing_view_key().clone(),
             1,
@@ -777,7 +777,7 @@ fn test_sign_frost() {
     // build UnsignedTransaction without signing
     let mut unsigned_transaction = transaction
         .build(
-            key_packages.proof_generation_key,
+            key_packages.proof_generation_key.nsk,
             key_packages.view_key,
             key_packages.outgoing_view_key,
             intended_fee,
