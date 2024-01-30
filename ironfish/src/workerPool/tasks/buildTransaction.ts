@@ -43,7 +43,9 @@ export class BuildTransactionRequest extends WorkerMessage {
     const viewKey = reader.readBytes(VIEW_KEY_LENGTH).toString('hex')
     const outgoingViewKeyiewKey = reader.readBytes(ACCOUNT_KEY_LENGTH).toString('hex')
     const raw = RawTransactionSerde.deserialize(
-      reader.readBytes(buffer.length - ACCOUNT_KEY_LENGTH),
+      reader.readBytes(
+        buffer.length - (VIEW_KEY_LENGTH + VIEW_KEY_LENGTH + ACCOUNT_KEY_LENGTH),
+      ),
     )
     return new BuildTransactionRequest(
       raw,

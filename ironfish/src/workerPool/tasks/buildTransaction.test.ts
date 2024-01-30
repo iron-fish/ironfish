@@ -61,6 +61,15 @@ describe('BuildTransactionResponse', () => {
   it('serializes the object into a buffer and deserializes to the original object', async () => {
     const account = await useAccountFixture(nodeTest.wallet)
 
+    const block = await useMinerBlockFixture(
+      nodeTest.chain,
+      undefined,
+      account,
+      nodeTest.wallet,
+    )
+    await expect(nodeTest.chain).toAddBlock(block)
+    await nodeTest.wallet.updateHead()
+
     const transaction = await useUnsignedTxFixture(nodeTest.wallet, account, account)
 
     const unsigned = transaction.takeReference()
