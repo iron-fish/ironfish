@@ -37,6 +37,9 @@ export class Bech32Encoder implements AccountEncoder {
     if (value.spendingKey) {
       bw.writeBytes(Buffer.from(value.spendingKey, 'hex'))
     }
+    if (value.proofAuthorizationKey) {
+      bw.writeBytes(Buffer.from(value.proofAuthorizationKey, 'hex'))
+    }
 
     bw.writeU8(Number(!!value.createdAt))
     if (value.createdAt) {
