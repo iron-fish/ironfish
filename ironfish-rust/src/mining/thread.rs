@@ -22,6 +22,11 @@ pub(crate) enum Command {
     Pause,
 }
 
+pub struct FishHashOptions {
+    pub enabled: bool,
+    pub full_context: bool,
+}
+
 pub(crate) struct Thread {
     command_channel: Sender<Command>,
 }
@@ -34,16 +39,15 @@ impl Thread {
         pool_size: usize,
         batch_size: u32,
         pause_on_success: bool,
-        use_fish_hash: bool,
-        fish_hash_full_context: bool,
+        fish_hash_options: FishHashOptions,
     ) -> Self {
         let (work_sender, work_receiver) = mpsc::channel::<Command>();
 
         thread::Builder::new()
             .name(id.to_string())
             .spawn(move || {
-                let mut fish_hash_context = if use_fish_hash {
-                    Some(fish_hash::Context::new(fish_hash_full_context))
+                let mut fish_hash_context = if fish_hash_options.enabled {
+                    Some(fish_hash::Context::new(fish_hash_options.full_context))
                 } else {
                     None
                 };
@@ -52,9 +56,11 @@ impl Thread {
                     work_receiver,
                     block_found_channel,
                     hash_rate_channel,
-                    id,
-                    pool_size,
-                    batch_size as u64,
+                    NonceOptions {
+                        start: id,
+                        step_size: pool_size,
+                        default_batch_size: batch_size as u64,
+                    },
                     pause_on_success,
                     &mut fish_hash_context,
                 )
@@ -90,16 +96,23 @@ impl Thread {
     }
 }
 
+struct NonceOptions {
+    start: u64,
+    step_size: usize,
+    default_batch_size: u64,
+}
+
 fn process_commands(
     work_receiver: Receiver<Command>,
     block_found_channel: Sender<(u64, u32)>,
     hash_rate_channel: Sender<u32>,
-    start: u64,
-    step_size: usize,
-    default_batch_size: u64,
+    nonce_options: NonceOptions,
     pause_on_success: bool,
     fish_hash_context: &mut Option<Context>,
 ) {
+    let start = nonce_options.start;
+    let step_size = nonce_options.step_size;
+    let default_batch_size = nonce_options.default_batch_size;
     let mut commands: VecDeque<Command> = VecDeque::new();
     loop {
         // If there is no pending work, wait for work with a blocking call

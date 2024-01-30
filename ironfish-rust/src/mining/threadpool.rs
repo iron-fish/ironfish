@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use std::sync::mpsc::{self, Receiver};
 
-use super::thread::Thread;
+use super::thread::{FishHashOptions, Thread};
 
 pub struct ThreadPool {
     threads: Vec<Thread>,
@@ -26,6 +26,11 @@ impl ThreadPool {
 
         let mut threads = Vec::with_capacity(thread_count);
         for id in 0..thread_count {
+            let fish_hash_options = FishHashOptions {
+                enabled: use_fish_hash,
+                full_context: fish_hash_full_context,
+            };
+
             threads.push(Thread::new(
                 id as u64,
                 block_found_channel.clone(),
@@ -33,8 +38,7 @@ impl ThreadPool {
                 thread_count,
                 batch_size,
                 pause_on_success,
-                use_fish_hash,
-                fish_hash_full_context,
+                fish_hash_options,
             ));
         }
 
