@@ -1230,6 +1230,9 @@ describe('Wallet', () => {
       await expect(node.chain).toAddBlock(block)
       await node.wallet.updateHead()
 
+      // we are using participant B and sending the transaction below from participant A
+      // to make it extremely obvious that the participants in the multisig account control
+      // the same account.
       const transaction = await node.wallet.send({
         account: miner,
         outputs: [
