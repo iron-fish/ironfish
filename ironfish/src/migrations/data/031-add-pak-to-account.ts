@@ -35,8 +35,8 @@ export class Migration031 extends Migration {
         accountValue.id,
         {
           ...accountValue,
-          proofAuthorizationKey: accountValue.spendingKey
-            ? spendingKeyEncoder.decode(accountValue.spendingKey, {}).proofAuthorizationKey
+          proofAuthorizingKey: accountValue.spendingKey
+            ? spendingKeyEncoder.decode(accountValue.spendingKey, {}).proofAuthorizingKey
             : null,
         },
         tx,

@@ -1446,7 +1446,7 @@ export class Wallet {
       name,
       incomingViewKey: key.incomingViewKey,
       outgoingViewKey: key.outgoingViewKey,
-      proofAuthorizationKey: key.proofGenerationKey,
+      proofAuthorizingKey: key.proofGenerationKey,
       publicAddress: key.publicAddress,
       spendingKey: key.spendingKey,
       viewKey: key.viewKey,

@@ -15,7 +15,7 @@ export interface AccountValue {
   id: string
   name: string
   spendingKey: string | null
-  proofAuthorizationKey: string | null
+  proofAuthorizingKey: string | null
   viewKey: string
   incomingViewKey: string
   outgoingViewKey: string
@@ -35,7 +35,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     flags |= Number(!!value.spendingKey) << 0
     flags |= Number(!!value.createdAt) << 1
     flags |= Number(!!value.multiSigKeys) << 2
-    flags |= Number(!!value.proofAuthorizationKey) << 3
+    flags |= Number(!!value.proofAuthorizingKey) << 3
     bw.writeU8(flags)
     bw.writeU16(value.version)
     bw.writeVarString(value.id, 'utf8')
@@ -43,8 +43,8 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     if (value.spendingKey) {
       bw.writeBytes(Buffer.from(value.spendingKey, 'hex'))
     }
-    if (value.proofAuthorizationKey) {
-      bw.writeBytes(Buffer.from(value.proofAuthorizationKey, 'hex'))
+    if (value.proofAuthorizingKey) {
+      bw.writeBytes(Buffer.from(value.proofAuthorizingKey, 'hex'))
     }
     bw.writeBytes(Buffer.from(value.viewKey, 'hex'))
     bw.writeBytes(Buffer.from(value.incomingViewKey, 'hex'))
@@ -76,7 +76,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     const id = reader.readVarString('utf8')
     const name = reader.readVarString('utf8')
     const spendingKey = hasSpendingKey ? reader.readBytes(KEY_LENGTH).toString('hex') : null
-    const proofAuthorizationKey = hasProofAuthorizationKey
+    const proofAuthorizingKey = hasProofAuthorizationKey
       ? reader.readBytes(KEY_LENGTH).toString('hex')
       : null
     const viewKey = reader.readBytes(VIEW_KEY_LENGTH).toString('hex')
@@ -107,7 +107,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
       incomingViewKey,
       outgoingViewKey,
       spendingKey,
-      proofAuthorizationKey,
+      proofAuthorizingKey,
       publicAddress,
       createdAt,
       multiSigKeys,
@@ -123,7 +123,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     if (value.spendingKey) {
       size += KEY_LENGTH
     }
-    if (value.proofAuthorizationKey) {
+    if (value.proofAuthorizingKey) {
       size += KEY_LENGTH
     }
     size += VIEW_KEY_LENGTH

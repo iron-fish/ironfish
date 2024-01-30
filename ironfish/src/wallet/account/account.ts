@@ -39,7 +39,7 @@ export class Account {
   readonly displayName: string
   name: string
   readonly spendingKey: string | null
-  readonly proofAuthorizationKey: string | null
+  readonly proofAuthorizingKey: string | null
   readonly viewKey: string
   readonly incomingViewKey: string
   readonly outgoingViewKey: string
@@ -60,7 +60,7 @@ export class Account {
     publicAddress,
     walletDb,
     spendingKey,
-    proofAuthorizationKey,
+    proofAuthorizingKey,
     viewKey,
     incomingViewKey,
     outgoingViewKey,
@@ -71,7 +71,7 @@ export class Account {
     this.id = id
     this.name = name
     this.spendingKey = spendingKey
-    this.proofAuthorizationKey = proofAuthorizationKey
+    this.proofAuthorizingKey = proofAuthorizingKey
     this.viewKey = viewKey
     this.incomingViewKey = incomingViewKey
     this.outgoingViewKey = outgoingViewKey
@@ -98,7 +98,7 @@ export class Account {
       id: this.id,
       name: this.name,
       spendingKey: this.spendingKey,
-      proofAuthorizationKey: this.proofAuthorizationKey,
+      proofAuthorizingKey: this.proofAuthorizingKey,
       viewKey: this.viewKey,
       incomingViewKey: this.incomingViewKey,
       outgoingViewKey: this.outgoingViewKey,
