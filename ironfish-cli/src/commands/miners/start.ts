@@ -27,7 +27,7 @@ export class Miner extends IronfishCommand {
     ...RemoteFlags,
     threads: Flags.integer({
       char: 't',
-      default: -1,
+      default: 1,
       description:
         'Number of CPU threads to use for mining. -1 will auto-detect based on number of CPU cores.',
     }),
@@ -50,6 +50,11 @@ export class Miner extends IronfishCommand {
     }),
     tls: Flags.boolean({
       description: 'Connect to pool over tls',
+      allowNo: true,
+    }),
+    fishHashFull: Flags.boolean({
+      description: 'Instantiate the full 4.6GB fish hash context in every thread',
+      default: false,
       allowNo: true,
     }),
   }
@@ -145,6 +150,7 @@ export class Miner extends IronfishCommand {
         logger: this.logger,
         batchSize,
         rpc,
+        fishHashFullContext: flags.fishHashFull,
       })
 
       miner.start()
