@@ -156,7 +156,7 @@ export async function useMinersTxFixture(
     Assert.isNotUndefined(to)
     Assert.isNotNull(to.spendingKey)
 
-    return node.chain.strategy.createMinersFee(
+    return node.chain.createMinersFee(
       BigInt(amount),
       sequence || node.chain.head.sequence + 1,
       to.spendingKey,

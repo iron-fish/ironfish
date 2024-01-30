@@ -72,7 +72,7 @@ describe('Wallet', () => {
     })
 
     // Create a block with a miner's fee
-    const minersfee = await nodeTest.strategy.createMinersFee(BigInt(0), 2, account.spendingKey)
+    const minersfee = await nodeTest.chain.createMinersFee(BigInt(0), 2, account.spendingKey)
     const newBlock = await chain.newBlock([], minersfee)
     const addResult = await chain.addBlock(newBlock)
     expect(addResult.isAdded).toBeTruthy()
@@ -88,7 +88,6 @@ describe('Wallet', () => {
 
   it('Lowers the balance after using send to spend a note', async () => {
     // Initialize the database and chain
-    const strategy = nodeTest.strategy
     const node = nodeTest.node
     const chain = nodeTest.chain
 
@@ -108,7 +107,7 @@ describe('Wallet', () => {
     })
 
     // Create a block with a miner's fee
-    const minersfee = await strategy.createMinersFee(BigInt(0), 2, account.spendingKey)
+    const minersfee = await chain.createMinersFee(BigInt(0), 2, account.spendingKey)
     const newBlock = await chain.newBlock([], minersfee)
     const addResult = await chain.addBlock(newBlock)
     expect(addResult.isAdded).toBeTruthy()
@@ -137,7 +136,7 @@ describe('Wallet', () => {
     })
 
     // Create a block with a miner's fee
-    const minersfee2 = await strategy.createMinersFee(
+    const minersfee2 = await chain.createMinersFee(
       transaction.fee(),
       newBlock.header.sequence + 1,
       generateKey().spendingKey,
@@ -156,7 +155,6 @@ describe('Wallet', () => {
 
   it('Creates valid transactions when the worker pool is enabled', async () => {
     // Initialize the database and chain
-    const strategy = nodeTest.strategy
     const node = nodeTest.node
     const chain = nodeTest.chain
 
@@ -176,7 +174,7 @@ describe('Wallet', () => {
     })
 
     // Create a block with a miner's fee
-    const minersfee = await strategy.createMinersFee(BigInt(0), 2, account.spendingKey)
+    const minersfee = await chain.createMinersFee(BigInt(0), 2, account.spendingKey)
     const newBlock = await chain.newBlock([], minersfee)
     const addResult = await chain.addBlock(newBlock)
     expect(addResult.isAdded).toBeTruthy()
@@ -208,7 +206,7 @@ describe('Wallet', () => {
     )
 
     // Create a block with a miner's fee
-    const minersfee2 = await strategy.createMinersFee(
+    const minersfee2 = await chain.createMinersFee(
       transaction.fee(),
       newBlock.header.sequence + 1,
       generateKey().spendingKey,
@@ -227,7 +225,6 @@ describe('Wallet', () => {
 
   it('creates valid transactions with multiple outputs', async () => {
     // Initialize the database and chain
-    const strategy = nodeTest.strategy
     const node = nodeTest.node
     const chain = nodeTest.chain
 
@@ -247,7 +244,7 @@ describe('Wallet', () => {
     })
 
     // Create a block with a miner's fee
-    const minersfee = await strategy.createMinersFee(BigInt(0), 2, account.spendingKey)
+    const minersfee = await chain.createMinersFee(BigInt(0), 2, account.spendingKey)
     const newBlock = await chain.newBlock([], minersfee)
     const addResult = await chain.addBlock(newBlock)
     expect(addResult.isAdded).toBeTruthy()
@@ -290,7 +287,7 @@ describe('Wallet', () => {
     )
 
     // Create a block with a miner's fee
-    const minersfee2 = await strategy.createMinersFee(
+    const minersfee2 = await chain.createMinersFee(
       transaction.fee(),
       newBlock.header.sequence + 1,
       generateKey().spendingKey,
@@ -332,7 +329,6 @@ describe('Wallet', () => {
 
   it('Expires transactions when calling expireTransactions', async () => {
     // Initialize the database and chain
-    const strategy = nodeTest.strategy
     const node = nodeTest.node
     const chain = nodeTest.chain
 
@@ -355,7 +351,7 @@ describe('Wallet', () => {
     })
 
     // Create a block with a miner's fee
-    const minersfee = await strategy.createMinersFee(BigInt(0), 2, account.spendingKey)
+    const minersfee = await chain.createMinersFee(BigInt(0), 2, account.spendingKey)
     const newBlock = await chain.newBlock([], minersfee)
     const addResult = await chain.addBlock(newBlock)
     expect(addResult.isAdded).toBeTruthy()
@@ -396,7 +392,7 @@ describe('Wallet', () => {
     })
 
     // Create a block with a miner's fee
-    const minersfee2 = await strategy.createMinersFee(
+    const minersfee2 = await chain.createMinersFee(
       transaction.fee(),
       newBlock.header.sequence + 1,
       generateKey().spendingKey,
@@ -415,7 +411,6 @@ describe('Wallet', () => {
 
   it('Expires transactions when calling expireTransactions with restarts', async () => {
     // Initialize the database and chain
-    const strategy = nodeTest.strategy
     const node = nodeTest.node
     const chain = nodeTest.chain
 
@@ -441,7 +436,7 @@ describe('Wallet', () => {
     })
 
     // Create a block with a miner's fee
-    const minersfee = await strategy.createMinersFee(BigInt(0), 2, account.spendingKey)
+    const minersfee = await chain.createMinersFee(BigInt(0), 2, account.spendingKey)
     const newBlock = await chain.newBlock([], minersfee)
     await expect(chain).toAddBlock(newBlock)
 
@@ -478,7 +473,7 @@ describe('Wallet', () => {
     await node.wallet.open()
 
     // Create a block with a miner's fee
-    const minersfee2 = await strategy.createMinersFee(
+    const minersfee2 = await chain.createMinersFee(
       transaction.fee(),
       newBlock.header.sequence + 1,
       generateKey().spendingKey,
@@ -536,7 +531,7 @@ describe('Wallet', () => {
       // Create block 2
       return nodeA.chain.newBlock(
         [transaction],
-        await nodeA.strategy.createMinersFee(transaction.fee(), 3, generateKey().spendingKey),
+        await nodeA.chain.createMinersFee(transaction.fee(), 3, generateKey().spendingKey),
       )
     })
 
@@ -631,7 +626,6 @@ describe('Wallet', () => {
 
   it('View only accounts can observe received and spent notes', async () => {
     // Initialize the database and chain
-    const strategy = nodeTest.strategy
     const node = nodeTest.node
     // need separate node because a node cannot have a view only wallet + spend wallet for same account
     const { node: viewOnlyNode } = await nodeTest.createSetup()
@@ -653,7 +647,7 @@ describe('Wallet', () => {
     const viewOnlyAccount = await viewOnlyNode.wallet.importAccount(accountValue)
 
     // Create a block with a miner's fee
-    const minersfee = await strategy.createMinersFee(BigInt(0), 2, account.spendingKey)
+    const minersfee = await chain.createMinersFee(BigInt(0), 2, account.spendingKey)
     const newBlock = await chain.newBlock([], minersfee)
     const addResult = await chain.addBlock(newBlock)
     const addResultViewOnly = await viewOnlyChain.addBlock(newBlock)
@@ -691,7 +685,7 @@ describe('Wallet', () => {
     })
 
     // Create a block with a miner's fee
-    const minersfee2 = await strategy.createMinersFee(
+    const minersfee2 = await chain.createMinersFee(
       transaction.fee(),
       newBlock.header.sequence + 1,
       generateKey().spendingKey,
@@ -768,7 +762,7 @@ describe('Wallet', () => {
         // Create block A2
         return nodeA.chain.newBlock(
           [transaction],
-          await nodeA.strategy.createMinersFee(BigInt(0), 3, generateKey().spendingKey),
+          await nodeA.chain.createMinersFee(BigInt(0), 3, generateKey().spendingKey),
         )
       },
       nodeA.wallet,
@@ -881,7 +875,7 @@ describe('Wallet', () => {
         // Create block A2
         return nodeA.chain.newBlock(
           [transaction],
-          await nodeA.strategy.createMinersFee(BigInt(0), 3, generateKey().spendingKey),
+          await nodeA.chain.createMinersFee(BigInt(0), 3, generateKey().spendingKey),
         )
       },
       nodeB.wallet,
@@ -894,7 +888,7 @@ describe('Wallet', () => {
     const blockB2 = await useBlockFixture(nodeB.chain, async () =>
       nodeB.chain.newBlock(
         [],
-        await nodeB.strategy.createMinersFee(BigInt(0), 3, generateKey().spendingKey),
+        await nodeB.chain.createMinersFee(BigInt(0), 3, generateKey().spendingKey),
       ),
     )
     addedBlock = await nodeB.chain.addBlock(blockB2)
@@ -904,7 +898,7 @@ describe('Wallet', () => {
     const blockB3 = await useBlockFixture(nodeB.chain, async () =>
       nodeB.chain.newBlock(
         [],
-        await nodeB.strategy.createMinersFee(BigInt(0), 4, generateKey().spendingKey),
+        await nodeB.chain.createMinersFee(BigInt(0), 4, generateKey().spendingKey),
       ),
     )
     addedBlock = await nodeB.chain.addBlock(blockB3)
@@ -1004,7 +998,7 @@ describe('Wallet', () => {
 
         const mintBlock = await node.chain.newBlock(
           [transaction],
-          await node.strategy.createMinersFee(transaction.fee(), 4, generateKey().spendingKey),
+          await node.chain.createMinersFee(transaction.fee(), 4, generateKey().spendingKey),
         )
         await expect(node.chain).toAddBlock(mintBlock)
         await node.wallet.updateHead()
@@ -1246,7 +1240,7 @@ describe('Wallet', () => {
       })
 
       // Create a block with a miner's fee and the transaction to send IRON to the multisig account
-      const minersfee2 = await nodeTest.strategy.createMinersFee(
+      const minersfee2 = await nodeTest.chain.createMinersFee(
         transaction.fee(),
         block.header.sequence + 1,
         miner.spendingKey,
@@ -1314,7 +1308,7 @@ describe('Wallet', () => {
       )
       const frostTransaction = new Transaction(serializedFrostTransaction)
 
-      const minersfee3 = await nodeTest.strategy.createMinersFee(
+      const minersfee3 = await nodeTest.chain.createMinersFee(
         transaction.fee(),
         newBlock2.header.sequence + 1,
         miner.spendingKey,

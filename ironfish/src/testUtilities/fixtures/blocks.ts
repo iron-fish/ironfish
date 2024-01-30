@@ -80,7 +80,7 @@ export async function useMinerBlockFixture(
     async () =>
       chain.newBlock(
         transactions,
-        await chain.strategy.createMinersFee(
+        await chain.createMinersFee(
           transactionFees,
           sequence || chain.head.sequence + 1,
           spendingKey,
@@ -197,7 +197,7 @@ export async function useBlockWithRawTxFixture(
 
     return chain.newBlock(
       [transaction],
-      await chain.strategy.createMinersFee(transaction.fee(), sequence, sender.spendingKey),
+      await chain.createMinersFee(transaction.fee(), sequence, sender.spendingKey),
     )
   }
 
@@ -269,7 +269,7 @@ export async function useBlockWithTx(
 
     return node.chain.newBlock(
       [transaction],
-      await node.strategy.createMinersFee(transaction.fee(), 3, generateKey().spendingKey),
+      await node.chain.createMinersFee(transaction.fee(), 3, generateKey().spendingKey),
     )
   })
 
@@ -335,7 +335,7 @@ export async function useBlockWithCustomTxs(
 
       return node.chain.newBlock(
         transactions,
-        await node.strategy.createMinersFee(transactionFees, 3, generateKey().spendingKey),
+        await node.chain.createMinersFee(transactionFees, 3, generateKey().spendingKey),
       )
     },
     node.wallet,
