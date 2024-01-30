@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { SigningCommitments, UnsignedTransaction } from '@ironfish/rust-nodejs'
+import { UnsignedTransaction } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
@@ -50,14 +50,7 @@ routes.register<typeof CreateSigningPackageRequestSchema, CreateSigningPackageRe
     const unsignedTransaction = new UnsignedTransaction(
       Buffer.from(request.data.unsignedTransaction, 'hex'),
     )
-    const map = request.data.commitments.reduce(
-      (acc: { [key: string]: SigningCommitments }, { identifier, commitment }) => {
-        acc[identifier] = commitment
-        return acc
-      },
-      {},
-    )
-    const signingPackage = unsignedTransaction.signingPackage(map)
+    const signingPackage = unsignedTransaction.signingPackage(request.data.commitments)
 
     request.end({
       signingPackage,
