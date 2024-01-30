@@ -72,6 +72,8 @@ mod test {
 
     use byteorder::{BigEndian, ReadBytesExt};
 
+    use crate::mining::mine::mine_batch_fish_hash;
+
     use super::{bytes_lte, mine_batch_blake3};
 
     #[test]
@@ -105,6 +107,25 @@ mod test {
 
         assert!(result.is_some());
         assert_eq!(result.unwrap(), 43);
+    }
+
+    #[test]
+    fn test_mine_batch_match_fish_hash() {
+        let header_bytes = &mut [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].repeat(18);
+        let batch_size = 3;
+        let start = 43;
+        let step_size = 1;
+
+        let context = &mut fish_hash::Context::new(false);
+
+        // Hardcoded target value derived from a randomness of 45, which is lower than 42
+        // This allows us to test the looping and target comparison a little better
+        let target: &[u8; 32] = &[59, 125, 43, 4, 254, 19, 32, 88, 203, 188, 220, 43, 193, 139, 194, 164, 61, 99, 44, 90, 151, 122, 236, 65, 253, 171, 148, 82, 130, 54, 122, 195];
+
+        let result = mine_batch_fish_hash(context, header_bytes, target, start, step_size, batch_size);
+
+        assert!(result.is_some());
+        assert_eq!(result.unwrap(), 45);
     }
 
     #[test]
