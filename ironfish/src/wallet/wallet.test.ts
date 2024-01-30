@@ -28,8 +28,8 @@ describe('Wallet', () => {
   const nodeTest = createNodeTest()
 
   it('should throw an error when chain processor head does not exist in chain', async () => {
-    const { node, strategy } = nodeTest
-    strategy.disableMiningReward()
+    const { node, network } = nodeTest
+    network.disableMiningReward()
 
     node.wallet['chainProcessor'].hash = Buffer.from('0')
 

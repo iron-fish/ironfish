@@ -12,7 +12,7 @@ import { IronfishSdk } from '../sdk'
 import { Syncer } from '../syncer'
 import { Wallet } from '../wallet'
 import { WorkerPool } from '../workerPool'
-import { TestStrategy } from './strategy'
+import { TestNetwork } from './testNetwork'
 import { getUniqueTestDataDir } from './utils'
 
 export type NodeTestOptions =
@@ -35,7 +35,7 @@ export class NodeTest {
 
   sdk!: IronfishSdk
   node!: FullNode
-  strategy!: TestStrategy
+  network!: TestNetwork
   verifier!: Verifier
   chain!: Blockchain
   wallet!: Wallet
@@ -46,7 +46,7 @@ export class NodeTest {
   setups = new Array<{
     sdk: IronfishSdk
     node: FullNode
-    strategy: TestStrategy
+    network: TestNetwork
     chain: Blockchain
     wallet: Wallet
     peerNetwork: PeerNetwork
@@ -61,7 +61,7 @@ export class NodeTest {
   async createSetup(options?: NodeTestOptions): Promise<{
     sdk: IronfishSdk
     node: FullNode
-    strategy: TestStrategy
+    network: TestNetwork
     verifier: Verifier
     chain: Blockchain
     wallet: Wallet
@@ -74,9 +74,9 @@ export class NodeTest {
     }
 
     const dataDir = getUniqueTestDataDir()
-    const strategyClass = TestStrategy
+    const networkClass = TestNetwork
 
-    const sdk = await IronfishSdk.init({ dataDir, strategyClass })
+    const sdk = await IronfishSdk.init({ dataDir, networkClass })
 
     sdk.config.setOverride('bootstrapNodes', [''])
     sdk.config.setOverride('enableListenP2P', false)
@@ -99,7 +99,7 @@ export class NodeTest {
       networkId: 2,
     })
 
-    const strategy = node.strategy as TestStrategy
+    const network = node.network as TestNetwork
     const chain = node.chain
     const wallet = node.wallet
     const peerNetwork = node.peerNetwork
@@ -114,7 +114,7 @@ export class NodeTest {
     const setup = {
       sdk,
       node,
-      strategy,
+      network,
       verifier,
       chain,
       wallet,
@@ -128,12 +128,12 @@ export class NodeTest {
   }
 
   async setup(): Promise<void> {
-    const { sdk, node, strategy, verifier, chain, wallet, peerNetwork, syncer, workerPool } =
+    const { sdk, node, network, verifier, chain, wallet, peerNetwork, syncer, workerPool } =
       await this.createSetup()
 
     this.sdk = sdk
     this.node = node
-    this.strategy = strategy
+    this.network = network
     this.verifier = verifier
     this.chain = chain
     this.wallet = wallet

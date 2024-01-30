@@ -46,10 +46,6 @@ export function mockChain(): any {
   }
 }
 
-export function mockStrategy(): any {
-  return {}
-}
-
 export function mockNode(): any {
   return {
     wallet: mockWallet(),
