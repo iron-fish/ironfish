@@ -1,7 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Asset } from '@ironfish/rust-nodejs'
+import { Asset, generateKey } from '@ironfish/rust-nodejs'
+import { Assert } from '../assert'
 import {
   createNodeTest,
   useAccountFixture,
@@ -17,17 +18,9 @@ describe('Transaction', () => {
   it('produces unique transaction hashes', async () => {
     const account = await useAccountFixture(nodeTest.wallet)
 
-    const transactionA = await nodeTest.strategy.createMinersFee(
-      BigInt(0),
-      1,
-      account.spendingKey,
-    )
+    const transactionA = await nodeTest.chain.createMinersFee(BigInt(0), 1, account.spendingKey)
 
-    const transactionB = await nodeTest.strategy.createMinersFee(
-      BigInt(0),
-      1,
-      account.spendingKey,
-    )
+    const transactionB = await nodeTest.chain.createMinersFee(BigInt(0), 1, account.spendingKey)
 
     const hashA = transactionA.unsignedHash()
     const hashB = transactionB.unsignedHash()
@@ -38,13 +31,9 @@ describe('Transaction', () => {
   it('check if a transaction is a miners fee', async () => {
     const account = await useAccountFixture(nodeTest.wallet)
 
-    const transactionA = await nodeTest.strategy.createMinersFee(
-      BigInt(0),
-      1,
-      account.spendingKey,
-    )
+    const transactionA = await nodeTest.chain.createMinersFee(BigInt(0), 1, account.spendingKey)
 
-    const transactionB = await nodeTest.strategy.createMinersFee(
+    const transactionB = await nodeTest.chain.createMinersFee(
       BigInt(-1),
       1,
       account.spendingKey,
@@ -164,5 +153,48 @@ describe('Transaction', () => {
       assetId: asset.id(),
       value: burnAmount,
     })
+  })
+
+  it('Does not hold a posted transaction if no references are taken', async () => {
+    const spendingKey = generateKey().spendingKey
+    const tx = await nodeTest.chain.createMinersFee(0n, 0, spendingKey)
+    const valid = await nodeTest.workerPool.verifyTransactions([tx])
+
+    expect(valid).toMatchObject({ valid: true })
+    expect(tx['transactionPosted']).toBeNull()
+  })
+
+  it('Holds a posted transaction if a reference is taken', async () => {
+    const spendingKey = generateKey().spendingKey
+    const tx = await nodeTest.chain.createMinersFee(0n, 0, spendingKey)
+
+    await tx.withReference(async () => {
+      expect(tx['transactionPosted']).not.toBeNull()
+      expect(tx.notes.length).toEqual(1)
+      expect(tx['transactionPosted']).not.toBeNull()
+
+      // Reference returning happens on the promise jobs queue, so use an await
+      // to delay until reference returning is expected to happen
+      return Promise.resolve()
+    })
+
+    expect(tx['transactionPosted']).toBeNull()
+  })
+
+  it('Does not hold a note if no references are taken', async () => {
+    const key = generateKey()
+    const minersFee = await nodeTest.chain.createMinersFee(0n, 0, key.spendingKey)
+    expect(minersFee['transactionPosted']).toBeNull()
+
+    const note = minersFee.notes[0] ?? null
+    expect(note).not.toBeNull()
+    expect(note['noteEncrypted']).toBeNull()
+
+    const decryptedNote = note.decryptNoteForOwner(key.incomingViewKey)
+    Assert.isNotUndefined(decryptedNote, 'Note must be decryptable')
+    expect(note['noteEncrypted']).toBeNull()
+    expect(decryptedNote['note']).toBeNull()
+    expect(decryptedNote.value()).toBe(2000000000n)
+    expect(decryptedNote['note']).toBeNull()
   })
 })

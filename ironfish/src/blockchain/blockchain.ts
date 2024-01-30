@@ -65,6 +65,7 @@ export class Blockchain {
   seedGenesisBlock: SerializedBlock
   config: Config
   blockHasher: BlockHasher
+  workerPool: WorkerPool
   readonly blockchainDb: BlockchainDB
 
   readonly notes: MerkleTree<
@@ -165,6 +166,7 @@ export class Blockchain {
     this.seedGenesisBlock = options.genesis
     this.config = options.config
     this.blockHasher = options.blockHasher
+    this.workerPool = options.workerPool
 
     this.blockchainDb = new BlockchainDB({
       files: options.files,
@@ -1478,6 +1480,35 @@ export class Blockchain {
 
     const asset = await this.blockchainDb.getAsset(assetId, tx)
     return asset || null
+  }
+
+  /**
+   * Create the miner's fee transaction for a given block.
+   *
+   * The miner's fee is a special transaction with one output and
+   * zero spends. Its output value must be the total transaction fees
+   * in the block plus the mining reward for the block.
+   *
+   * The mining reward may change over time, so we accept the block sequence
+   * to calculate the mining reward from.
+   *
+   * @param totalTransactionFees is the sum of the transaction fees intended to go
+   * in this block.
+   * @param blockSequence the sequence of the block for which the miner's fee is being created
+   * @param minerKey the spending key for the miner.
+   */
+  async createMinersFee(
+    totalTransactionFees: bigint,
+    blockSequence: number,
+    minerSpendKey: string,
+  ): Promise<Transaction> {
+    // Create a new note with value equal to the inverse of the sum of the
+    // transaction fees and the mining reward
+    const reward = this.strategy.miningReward(blockSequence)
+    const amount = totalTransactionFees + BigInt(reward)
+
+    const transactionVersion = this.consensus.getActiveTransactionVersion(blockSequence)
+    return this.workerPool.createMinersFee(minerSpendKey, amount, '', transactionVersion)
   }
 
   newBlockHeaderFromRaw(

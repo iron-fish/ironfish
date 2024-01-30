@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { BlockHasher } from './blockHasher'
 import { Consensus } from './consensus'
-import { Transaction } from './primitives/transaction'
 import { MathUtils } from './utils'
 import { WorkerPool } from './workerPool'
 
@@ -68,34 +67,5 @@ export class Strategy {
 
   convertIronToOre(iron: number): number {
     return Math.round(iron * 10 ** 8)
-  }
-
-  /**
-   * Create the miner's fee transaction for a given block.
-   *
-   * The miner's fee is a special transaction with one output and
-   * zero spends. Its output value must be the total transaction fees
-   * in the block plus the mining reward for the block.
-   *
-   * The mining reward may change over time, so we accept the block sequence
-   * to calculate the mining reward from.
-   *
-   * @param totalTransactionFees is the sum of the transaction fees intended to go
-   * in this block.
-   * @param blockSequence the sequence of the block for which the miner's fee is being created
-   * @param minerKey the spending key for the miner.
-   */
-  async createMinersFee(
-    totalTransactionFees: bigint,
-    blockSequence: number,
-    minerSpendKey: string,
-  ): Promise<Transaction> {
-    // Create a new note with value equal to the inverse of the sum of the
-    // transaction fees and the mining reward
-    const amount = totalTransactionFees + BigInt(this.miningReward(blockSequence))
-
-    const transactionVersion = this.consensus.getActiveTransactionVersion(blockSequence)
-
-    return this.workerPool.createMinersFee(minerSpendKey, amount, '', transactionVersion)
   }
 }

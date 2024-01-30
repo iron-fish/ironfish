@@ -12,13 +12,13 @@ describe('Worker Pool', () => {
   const nodeTest = createNodeTest(false, { config: { nodeWorkers: 1 } })
 
   it('createMinersFee', async () => {
-    const { workerPool, strategy } = nodeTest
+    const { workerPool, chain } = nodeTest
     workerPool.start()
 
     expect(workerPool.workers.length).toBe(1)
     expect(workerPool.completed).toBe(0)
 
-    const minersFee = await strategy.createMinersFee(BigInt(0), 0, generateKey().spendingKey)
+    const minersFee = await chain.createMinersFee(BigInt(0), 0, generateKey().spendingKey)
     expect(minersFee.serialize()).toBeInstanceOf(Buffer)
 
     expect(workerPool.completed).toBe(1)

@@ -1737,7 +1737,7 @@ describe('Blockchain', () => {
 
           return node.chain.newBlock(
             [burnTransaction, spendTransaction],
-            await node.strategy.createMinersFee(fee, 3, generateKey().spendingKey),
+            await node.chain.createMinersFee(fee, 3, generateKey().spendingKey),
           )
         })
 
@@ -1937,6 +1937,19 @@ describe('Blockchain', () => {
         const blockHashA = await nodeA.chain.getBlockHashByTransactionHash(transaction.hash())
         expect(blockHashA).toBeNull()
       }
+    })
+  })
+
+  describe('createMinersFee()', () => {
+    it('Creates transactions with the correct version based on the sequence', async () => {
+      const spendingKey = generateKey().spendingKey
+      nodeTest.chain.consensus.parameters.enableAssetOwnership = 1234
+
+      const minersFee1 = await nodeTest.chain.createMinersFee(0n, 1233, spendingKey)
+      const minersFee2 = await nodeTest.chain.createMinersFee(0n, 1234, spendingKey)
+
+      expect(minersFee1.version()).toEqual(TransactionVersion.V1)
+      expect(minersFee2.version()).toEqual(TransactionVersion.V2)
     })
   })
 })

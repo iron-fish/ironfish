@@ -323,7 +323,7 @@ export class MiningManager {
       currBlockSize = newBlockSize
 
       // Calculate the final fee for the miner of this block
-      minersFee = await this.node.strategy.createMinersFee(
+      minersFee = await this.node.chain.createMinersFee(
         totalFees,
         newBlockSequence,
         account.spendingKey,

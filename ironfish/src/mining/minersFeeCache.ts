@@ -34,7 +34,7 @@ export class MinersFeeCache {
       return cached
     }
 
-    const minersFeePromise = this.node.strategy.createMinersFee(
+    const minersFeePromise = this.node.chain.createMinersFee(
       BigInt(0),
       sequence,
       account.spendingKey,
@@ -48,7 +48,7 @@ export class MinersFeeCache {
   startCreatingEmptyMinersFee(sequence: number, account: SpendingAccount): void {
     const key = `${sequence}-${account.publicAddress}`
 
-    const minersFeePromise = this.node.strategy.createMinersFee(
+    const minersFeePromise = this.node.chain.createMinersFee(
       BigInt(0),
       sequence,
       account.spendingKey,
