@@ -4,7 +4,7 @@
 import { ThreadPoolHandler } from '@ironfish/rust-nodejs'
 import { Assert } from '../assert'
 import { serializeHeaderBlake3, serializeHeaderFishHash } from '../blockHasher'
-import { Consensus, ConsensusParameters } from '../consensus'
+import { Consensus } from '../consensus'
 import { Logger } from '../logger'
 import { Meter } from '../metrics/meter'
 import { Target } from '../primitives/target'
@@ -35,7 +35,7 @@ export class MiningSoloMiner {
   private miningRequestBlocks: Map<number, SerializedBlockTemplate>
   private miningRequestId: number
 
-  private consensusParameters: ConsensusParameters | null = null
+  private consensus: Consensus | null = null
 
   private currentHeadTimestamp: number | null
   private currentHeadDifficulty: bigint | null
@@ -143,7 +143,7 @@ export class MiningSoloMiner {
   }
 
   private async processNewBlocks() {
-    Assert.isNotNull(this.consensusParameters)
+    Assert.isNotNull(this.consensus)
 
     for await (const payload of this.rpc.miner.blockTemplateStream().contentStream()) {
       Assert.isNotUndefined(payload.previousBlockInfo)
@@ -153,8 +153,8 @@ export class MiningSoloMiner {
       this.currentHeadTimestamp = payload.previousBlockInfo.timestamp
 
       this.restartCalculateTargetInterval(
-        this.consensusParameters.targetBlockTimeInSeconds,
-        this.consensusParameters.targetBucketTimeInSeconds,
+        this.consensus.parameters.targetBlockTimeInSeconds,
+        this.consensus.parameters.targetBucketTimeInSeconds,
       )
       this.startNewWork(payload)
     }
@@ -163,7 +163,7 @@ export class MiningSoloMiner {
   private startNewWork(block: SerializedBlockTemplate) {
     Assert.isNotNull(this.currentHeadTimestamp)
     Assert.isNotNull(this.currentHeadDifficulty)
-    Assert.isNotNull(this.consensusParameters)
+    Assert.isNotNull(this.consensus)
 
     const miningRequestId = this.nextMiningRequestId++
     this.miningRequestBlocks.set(miningRequestId, block)
@@ -171,11 +171,10 @@ export class MiningSoloMiner {
 
     this.target = Buffer.from(block.header.target, 'hex')
 
-    const consensus = new Consensus(this.consensusParameters)
     const rawBlock = RawBlockTemplateSerde.deserialize(block)
     rawBlock.header.graffiti = this.graffiti
 
-    const fishHashBlock = consensus.isActive('enableFishHash', rawBlock.header.sequence)
+    const fishHashBlock = this.consensus.isActive('enableFishHash', rawBlock.header.sequence)
     const headerBytes = fishHashBlock
       ? serializeHeaderFishHash(rawBlock.header)
       : serializeHeaderBlake3(rawBlock.header)
@@ -257,12 +256,12 @@ export class MiningSoloMiner {
     }
 
     const consensusResponse = (await this.rpc.chain.getConsensusParameters()).content
-    this.consensusParameters = {
+    this.consensus = new Consensus({
       ...consensusResponse,
       enableFishHash: consensusResponse.enableFishHash || 'never',
       enableAssetOwnership: consensusResponse.enableAssetOwnership || 'never',
       enforceSequentialBlockTime: consensusResponse.enforceSequentialBlockTime || 'never',
-    }
+    })
 
     this.connectWarned = false
     this.logger.info('Successfully connected to node')
