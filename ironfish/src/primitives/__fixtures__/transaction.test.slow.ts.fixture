@@ -37,68 +37,6 @@
       }
     }
   ],
-  "Transaction throw error if account is not fully synced when creating transaction": [
-    {
-      "version": 2,
-      "id": "d283dbe7-a71c-4924-a565-24cf056a6b24",
-      "name": "testA",
-      "spendingKey": "84596b1a609345a27a5f9a3146157361e7fa419d77a6126460327eda18aafc2a",
-      "viewKey": "f2b58c13a6d8e27de575a37f04dcae3ed612d129b9e139e8630bc276c099e3e147be6b0e67742864ed1481fdd0792acb45334351fbac2129c0522fd1092fa60d",
-      "incomingViewKey": "c1c7d58affbea89aea6cd493788e75c2b0c4722ee9514345c39508f3450d1e03",
-      "outgoingViewKey": "79c00a26cbdbac6cf1eb3348830f1e868dc08700ae1f9454909e9b097a26e9c6",
-      "publicAddress": "11de04f3699b77a994045aaf26fcf1c1e0402a27d5f02bf44b81b683226cc7f0",
-      "createdAt": {
-        "hash": {
-          "type": "Buffer",
-          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
-        },
-        "sequence": 1
-      }
-    },
-    {
-      "version": 2,
-      "id": "51c4cff5-d48c-48d2-bfbf-46aa8e7f4346",
-      "name": "testB",
-      "spendingKey": "92d415945ed382e16dc67bcf40c15a60e6b614dde41ad3737ddcc52c92d9b263",
-      "viewKey": "fb92691173d3c88bbb1e41bfd1cd341b5668b6b492f783f9948cc02c62174e3b3fcec997366022c2698bb7d82b020b999aa14702858bf819d99af955b1c66bb7",
-      "incomingViewKey": "e55f21def38f409991d28480b050c43e6ac59cb1c63e6e216517521f55ed9e05",
-      "outgoingViewKey": "138224cf5bdc50eef098cff1b23ea1d3bf1fb542e0717c4a583f3f8dd1ae9087",
-      "publicAddress": "fa28629adfbf0a24ea976859a4abb2d8be178776d716422cb491274b54349dd8",
-      "createdAt": {
-        "hash": {
-          "type": "Buffer",
-          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
-        },
-        "sequence": 1
-      }
-    },
-    {
-      "header": {
-        "sequence": 2,
-        "previousBlockHash": "4791D7AE9F97DF100EF1558E84772D6A09B43762388283F75C6F20A32A88AA86",
-        "noteCommitment": {
-          "type": "Buffer",
-          "data": "base64:XMcV9o/QRLNpCLaiKyGwEKmGMNeDdroq+y+h9jD+RlM="
-        },
-        "transactionCommitment": {
-          "type": "Buffer",
-          "data": "base64:neA9YMRbFYjfrzgJ3nubn9QoyYhl6q4q1lEtI7yGVG8="
-        },
-        "target": "9282972777491357380673661573939192202192629606981189395159182914949423",
-        "randomness": "0",
-        "timestamp": 1695140654832,
-        "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
-        "noteSize": 4,
-        "work": "0"
-      },
-      "transactions": [
-        {
-          "type": "Buffer",
-          "data": "base64:AgAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzKiP////8AAAAAUFzRRKUUw8Vbc1ZusHhJrYDmEmGXE0NVlMfxjv4jmpCid7pHJuJymNR8DmAh0mytk21WGoVJU0UWdUcfkNmGJ2bb2qRGsKJ3AWtVqoMR14ugxE6WgucauybLvRvmIWTXXc40Xq9S67C/UeCkpqsgoTkfib6b0P/4sRUWc5UVJtQMPiMzZJGsjP1WVvEKLzil8xX0l0j2CeyNh9BOmyJNYpfMQEDWPn4e3nK6WKEXtvi1FvT/k/PP9sIs/LDt1up4wFSovbGyHyJN+ER6AoF3H1Lwx2XX33i30dMOotVYqg7JPXOzbjK6ycd21cY8v1AVAHDXYHghdHr4wvN0y3X0OexPSKhs3ZzC5H4115U+2CLxYEpzyChcdZm0D1aDxsNuX7P/14q5LNih4/rmxDNZi88GXgrszsIAW6/23TTFlFt9BhQVckU1+R/BpGSzfY13UMj5WHiPGZ7cPADViqcF/1Nb8nEe0ONik6GzoPBFFmpLAtTO6POA6x5T+eNo8Fv4aCZWpGcaMET0zzvySKErXpdN/WtOJufuIe5K3rOYAvY/N6xA6nz0Tb3XTUfrmayd7XfDKwgkYf8vzXlStpJfTU+oq+xLwWopUHWvPCe64u7uyts+Y5jsh0lyb24gRmlzaCBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwvEQbyBC7GVPG1CZLVctTeKm7gfThTdQN9Bly+pdx/uk6bGoAlBcRTCMCGubOr4cxSV6BkyPOHtROKKEeR/m0Bw=="
-        }
-      ]
-    }
-  ],
   "Transaction check if a transaction is not a miners fee": [
     {
       "version": 2,

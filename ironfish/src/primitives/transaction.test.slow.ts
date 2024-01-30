@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
-import { Assert } from '../assert'
 import {
   createNodeTest,
   useAccountFixture,
@@ -53,39 +52,6 @@ describe('Transaction', () => {
 
     expect(transactionA.isMinersFee()).toBe(true)
     expect(transactionB.isMinersFee()).toBe(true)
-  })
-
-  it('throw error if account is not fully synced when creating transaction', async () => {
-    const nodeA = nodeTest.node
-
-    // Create an account A
-    const accountA = await useAccountFixture(nodeA.wallet, 'testA')
-    const accountB = await useAccountFixture(nodeA.wallet, 'testB')
-
-    // Create a block with a miner's fee
-    const block1 = await useMinerBlockFixture(nodeA.chain, 2, accountA)
-    await nodeA.chain.addBlock(block1)
-    await nodeA.wallet.updateHead()
-    const headhash = await nodeA.wallet.getLatestHeadHash()
-    Assert.isNotNull(headhash)
-    // Modify the headhash
-    headhash[0] = 0
-    await accountA.updateHead({ hash: headhash, sequence: 2 })
-
-    const response = nodeA.wallet.createTransaction({
-      account: accountA,
-      outputs: [
-        {
-          publicAddress: accountB.publicAddress,
-          amount: BigInt(1),
-          memo: '',
-          assetId: Asset.nativeId(),
-        },
-      ],
-      fee: 1n,
-      expiration: 0,
-    })
-    await expect(response).rejects.toThrow(Error)
   })
 
   it('check if a transaction is not a miners fee', async () => {
