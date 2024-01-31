@@ -1,10 +1,10 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { generateKeyFromPrivateKey } from '@ironfish/rust-nodejs'
 import { Logger } from '../../logger'
 import { IDatabase, IDatabaseTransaction } from '../../storage'
 import { createDB } from '../../storage/utils'
-import { SpendingKeyEncoder } from '../../wallet/account/encoder/spendingKey'
 import { Database, Migration, MigrationContext } from '../migration'
 import { GetStores } from './031-add-pak-to-account/stores'
 
@@ -29,15 +29,18 @@ export class Migration031 extends Migration {
     for await (const accountValue of stores.old.accounts.getAllValuesIter(tx)) {
       logger.info(` Migrating account ${accountValue.name}`)
 
-      const spendingKeyEncoder = new SpendingKeyEncoder()
+      let proofAuthorizingKey = null
+      if (accountValue.spendingKey) {
+        proofAuthorizingKey = generateKeyFromPrivateKey(
+          accountValue.spendingKey,
+        ).proofAuthorizingKey
+      }
 
       await stores.new.accounts.put(
         accountValue.id,
         {
           ...accountValue,
-          proofAuthorizingKey: accountValue.spendingKey
-            ? spendingKeyEncoder.decode(accountValue.spendingKey, {}).proofAuthorizingKey
-            : null,
+          proofAuthorizingKey,
         },
         tx,
       )
