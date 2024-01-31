@@ -11,8 +11,8 @@ export interface IdentifierCommitment {
   identifier: string
   commitment: Commitment
 }
-export function roundOne(keyPackage: string, seed: number): Commitment
-export function roundTwo(signingPackage: string, keyPackage: string, publicKeyRandomness: string, seed: number): string
+export function createSigningCommitment(keyPackage: string, seed: number): Commitment
+export function createSigningShare(signingPackage: string, keyPackage: string, publicKeyRandomness: string, seed: number): string
 export function splitSecret(coordinatorSaplingKey: string, minSigners: number, maxSigners: number, identifiers: Array<string>): TrustedDealerKeyPackages
 export function contribute(inputPath: string, outputPath: string, seed?: string | undefined | null): Promise<string>
 export function verifyTransform(paramsPath: string, newParamsPath: string): Promise<string>

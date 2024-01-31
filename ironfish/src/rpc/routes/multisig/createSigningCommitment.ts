@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { roundOne } from '@ironfish/rust-nodejs'
+import { createSigningCommitment } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
@@ -29,7 +29,7 @@ routes.register<typeof CreateSigningCommitmentRequestSchema, CreateSigningCommit
   `${ApiNamespace.multisig}/createSigningCommitment`,
   CreateSigningCommitmentRequestSchema,
   (request, _context): void => {
-    const result = roundOne(request.data.keyPackage, request.data.seed)
+    const result = createSigningCommitment(request.data.keyPackage, request.data.seed)
 
     request.end({
       hiding: result.hiding,

@@ -4,10 +4,10 @@
 import {
   Asset,
   ASSET_ID_LENGTH,
+  createSigningCommitment,
+  createSigningShare,
   generateKey,
   ParticipantSecret,
-  roundOne,
-  roundTwo,
   splitSecret,
   TrustedDealerKeyPackages,
 } from '@ironfish/rust-nodejs'
@@ -1205,15 +1205,15 @@ describe('Wallet', () => {
       const signingCommitments = [
         {
           identifier: participantA.multiSigKeys.identifier,
-          commitment: roundOne(participantA.multiSigKeys.keyPackage, seed),
+          commitment: createSigningCommitment(participantA.multiSigKeys.keyPackage, seed),
         },
         {
           identifier: participantB.multiSigKeys.identifier,
-          commitment: roundOne(participantB.multiSigKeys.keyPackage, seed),
+          commitment: createSigningCommitment(participantB.multiSigKeys.keyPackage, seed),
         },
         {
           identifier: participantC.multiSigKeys.identifier,
-          commitment: roundOne(participantC.multiSigKeys.keyPackage, seed),
+          commitment: createSigningCommitment(participantC.multiSigKeys.keyPackage, seed),
         },
       ]
 
@@ -1281,19 +1281,19 @@ describe('Wallet', () => {
       const publicKeyRandomness = unsignedTransaction.publicKeyRandomness()
 
       const signatureShares: Record<string, string> = {
-        [participantA.multiSigKeys.identifier]: roundTwo(
+        [participantA.multiSigKeys.identifier]: createSigningShare(
           signingPackage,
           participantA.multiSigKeys.keyPackage,
           publicKeyRandomness,
           seed,
         ),
-        [participantB.multiSigKeys.identifier]: roundTwo(
+        [participantB.multiSigKeys.identifier]: createSigningShare(
           signingPackage,
           participantB.multiSigKeys.keyPackage,
           publicKeyRandomness,
           seed,
         ),
-        [participantC.multiSigKeys.identifier]: roundTwo(
+        [participantC.multiSigKeys.identifier]: createSigningShare(
           signingPackage,
           participantC.multiSigKeys.keyPackage,
           publicKeyRandomness,
