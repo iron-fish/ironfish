@@ -49,7 +49,6 @@ pub enum IronfishErrorKind {
     InvalidNullifierDerivingKey,
     InvalidOutputProof,
     InvalidPaymentAddress,
-    InvalidProofAuthorizingKey,
     InvalidPublicAddress,
     InvalidSecret,
     InvalidRandomizer,
