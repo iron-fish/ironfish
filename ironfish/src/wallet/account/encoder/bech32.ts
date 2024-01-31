@@ -37,6 +37,7 @@ export class Bech32Encoder implements AccountEncoder {
     if (value.spendingKey) {
       bw.writeBytes(Buffer.from(value.spendingKey, 'hex'))
     }
+    bw.writeU8(Number(!!value.proofAuthorizingKey))
     if (value.proofAuthorizingKey) {
       bw.writeBytes(Buffer.from(value.proofAuthorizingKey, 'hex'))
     }
@@ -104,6 +105,7 @@ export class Bech32Encoder implements AccountEncoder {
     if (value.spendingKey) {
       size += KEY_LENGTH
     }
+    size += 1 // proofAuthorizingKey byte
     if (value.proofAuthorizingKey) {
       size += KEY_LENGTH
     }
