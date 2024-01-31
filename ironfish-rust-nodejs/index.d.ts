@@ -90,7 +90,7 @@ export interface Key {
   incomingViewKey: string
   outgoingViewKey: string
   publicAddress: string
-  proofGenerationKey: string
+  proofAuthorizingKey: string
 }
 export function generateKey(): Key
 export function spendingKeyToWords(privateKey: string, languageCode: LanguageCode): string
