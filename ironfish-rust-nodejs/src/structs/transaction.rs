@@ -14,6 +14,7 @@ use ironfish::frost::round1::SigningCommitments;
 use ironfish::frost::round2::SignatureShare;
 use ironfish::frost::Identifier;
 use ironfish::frost::SigningPackage;
+use ironfish::serializing::fr::FrSerializable;
 use ironfish::serializing::hex_to_vec_bytes;
 use ironfish::serializing::{bytes_to_hex, hex_to_bytes};
 use ironfish::transaction::unsigned::UnsignedTransaction;
@@ -22,7 +23,6 @@ use ironfish::transaction::{
     TRANSACTION_FEE_SIZE, TRANSACTION_PUBLIC_KEY_SIZE, TRANSACTION_SIGNATURE_SIZE,
 };
 use ironfish::{
-    keys::proof_generation_key::{ProofGenerationKey, ProofGenerationKeySerializable},
     MerkleNoteHash, OutgoingViewKey, ProposedTransaction, PublicAddress, SaplingKey, Transaction,
     ViewKey,
 };
@@ -327,7 +327,7 @@ impl NativeTransaction {
     #[napi]
     pub fn build(
         &mut self,
-        proof_generation_key_str: String,
+        proof_authorizing_key_str: String,
         view_key_str: String,
         outgoing_view_key_str: String,
         intended_transaction_fee: BigInt,
@@ -336,8 +336,9 @@ impl NativeTransaction {
         let view_key = ViewKey::from_hex(&view_key_str).map_err(to_napi_err)?;
         let outgoing_view_key =
             OutgoingViewKey::from_hex(&outgoing_view_key_str).map_err(to_napi_err)?;
-        let proof_generation_key = ProofGenerationKey::from_hex(&proof_generation_key_str)
-            .map_err(|_| to_napi_err("PublicKeyPackage hex to bytes failed"))?;
+        let proof_authorizing_key = jubjub::Fr::from_hex(&proof_authorizing_key_str)
+            .map_err(|_| to_napi_err("PublicKeyPackage authorizing key hex to bytes failed"))?;
+
         let change_address = match change_goes_to {
             Some(address) => Some(PublicAddress::from_hex(&address).map_err(to_napi_err)?),
             None => None,
@@ -345,7 +346,7 @@ impl NativeTransaction {
         let unsigned_transaction = self
             .transaction
             .build(
-                proof_generation_key,
+                proof_authorizing_key,
                 view_key,
                 outgoing_view_key,
                 intended_transaction_fee.get_i64().0,
