@@ -14,7 +14,7 @@ use ironfish::{
         signing_share::create_signing_share as create_signing_share_rust,
     },
     participant::{Identity, Secret},
-    serializing::{bytes_to_hex, hex_to_bytes, hex_to_vec_bytes},
+    serializing::{bytes_to_hex, fr::FrSerializable, hex_to_bytes, hex_to_vec_bytes},
     SaplingKey,
 };
 use napi::{bindgen_prelude::*, JsBuffer};
@@ -176,7 +176,7 @@ pub fn split_secret(
 
     Ok(TrustedDealerKeyPackages {
         verifying_key: bytes_to_hex(&t.verifying_key),
-        proof_authorizing_key: bytes_to_hex(&t.proof_authorizing_key.to_bytes()),
+        proof_authorizing_key: t.proof_authorizing_key.hex_key(),
         view_key: t.view_key.hex_key(),
         incoming_view_key: t.incoming_view_key.hex_key(),
         outgoing_view_key: t.outgoing_view_key.hex_key(),
