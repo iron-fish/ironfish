@@ -23,7 +23,6 @@ import { MetricsMonitor } from './metrics'
 import { isHexSecretKey, PrivateIdentity } from './network/identity'
 import { IsomorphicWebSocketConstructor } from './network/types'
 import { WebSocketClient } from './network/webSocketClient'
-import { Network } from './networks'
 import { FullNode } from './node'
 import { IronfishPKG, Package } from './package'
 import { Platform } from './platform'
@@ -46,7 +45,6 @@ export class IronfishSdk {
   logger: Logger
   metrics: MetricsMonitor
   internal: InternalStore
-  networkClass: typeof Network | null
   dataDir: string
 
   private constructor(
@@ -57,7 +55,6 @@ export class IronfishSdk {
     fileSystem: FileSystem,
     logger: Logger,
     metrics: MetricsMonitor,
-    networkClass: typeof Network | null = null,
     dataDir: string,
   ) {
     this.pkg = pkg
@@ -67,7 +64,6 @@ export class IronfishSdk {
     this.fileSystem = fileSystem
     this.logger = logger
     this.metrics = metrics
-    this.networkClass = networkClass
     this.dataDir = dataDir
   }
 
@@ -80,7 +76,6 @@ export class IronfishSdk {
     dataDir,
     logger = createRootLogger(),
     metrics,
-    networkClass,
   }: {
     pkg?: Package
     configName?: string
@@ -90,7 +85,6 @@ export class IronfishSdk {
     dataDir?: string
     logger?: Logger
     metrics?: MetricsMonitor
-    networkClass?: typeof Network
   } = {}): Promise<IronfishSdk> {
     const runtime = Platform.getRuntime()
 
@@ -173,7 +167,6 @@ export class IronfishSdk {
       fileSystem,
       logger,
       metrics,
-      networkClass,
       dataDir,
     )
   }
@@ -200,7 +193,6 @@ export class IronfishSdk {
       autoSeed: autoSeed,
       logger: this.logger,
       metrics: this.metrics,
-      networkClass: this.networkClass,
       webSocket: webSocket,
       privateIdentity: privateIdentity,
       dataDir: this.dataDir,

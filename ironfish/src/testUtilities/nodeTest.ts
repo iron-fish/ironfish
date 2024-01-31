@@ -7,12 +7,12 @@ import { Blockchain } from '../blockchain'
 import { Verifier } from '../consensus/verifier'
 import { ConfigOptions } from '../fileStores/config'
 import { PeerNetwork } from '../network'
+import { Network } from '../networks'
 import { FullNode } from '../node'
 import { IronfishSdk } from '../sdk'
 import { Syncer } from '../syncer'
 import { Wallet } from '../wallet'
 import { WorkerPool } from '../workerPool'
-import { TestNetwork } from './testNetwork'
 import { getUniqueTestDataDir } from './utils'
 
 export type NodeTestOptions =
@@ -35,7 +35,7 @@ export class NodeTest {
 
   sdk!: IronfishSdk
   node!: FullNode
-  network!: TestNetwork
+  network!: Network
   verifier!: Verifier
   chain!: Blockchain
   wallet!: Wallet
@@ -46,7 +46,7 @@ export class NodeTest {
   setups = new Array<{
     sdk: IronfishSdk
     node: FullNode
-    network: TestNetwork
+    network: Network
     chain: Blockchain
     wallet: Wallet
     peerNetwork: PeerNetwork
@@ -61,7 +61,7 @@ export class NodeTest {
   async createSetup(options?: NodeTestOptions): Promise<{
     sdk: IronfishSdk
     node: FullNode
-    network: TestNetwork
+    network: Network
     verifier: Verifier
     chain: Blockchain
     wallet: Wallet
@@ -74,9 +74,8 @@ export class NodeTest {
     }
 
     const dataDir = getUniqueTestDataDir()
-    const networkClass = TestNetwork
 
-    const sdk = await IronfishSdk.init({ dataDir, networkClass })
+    const sdk = await IronfishSdk.init({ dataDir })
 
     sdk.config.setOverride('bootstrapNodes', [''])
     sdk.config.setOverride('enableListenP2P', false)
@@ -99,7 +98,7 @@ export class NodeTest {
       networkId: 2,
     })
 
-    const network = node.network as TestNetwork
+    const network = node.network
     const chain = node.chain
     const wallet = node.wallet
     const peerNetwork = node.peerNetwork
