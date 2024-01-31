@@ -10,7 +10,10 @@ use ironfish::keys::ProofGenerationKeySerializable;
 use ironfish::{
     frost::{keys::KeyPackage, round2::Randomizer, Identifier, SigningPackage},
     frost_utils::split_spender_key::split_spender_key,
-    frost_utils::{round_one::round_one as round_one_rust, round_two::round_two as round_two_rust},
+    frost_utils::{
+        signing_commitment::create_signing_commitment as create_signing_commitment_rust,
+        signing_share::create_signing_share as create_signing_share_rust,
+    },
     participant::{Identity, Secret},
     serializing::{bytes_to_hex, hex_to_bytes, hex_to_vec_bytes},
     SaplingKey,
@@ -32,11 +35,11 @@ pub struct NativeIdentifierCommitment {
 }
 
 #[napi]
-pub fn round_one(key_package: String, seed: u32) -> Result<NativeCommitment> {
+pub fn create_signing_commitment(key_package: String, seed: u32) -> Result<NativeCommitment> {
     let key_package =
         KeyPackage::deserialize(&hex_to_vec_bytes(&key_package).map_err(to_napi_err)?)
             .map_err(to_napi_err)?;
-    let (_, commitment) = round_one_rust(&key_package, seed as u64);
+    let (_, commitment) = create_signing_commitment_rust(&key_package, seed as u64);
     Ok(NativeCommitment {
         hiding: bytes_to_hex(&commitment.hiding().serialize()),
         binding: bytes_to_hex(&commitment.binding().serialize()),
@@ -44,7 +47,7 @@ pub fn round_one(key_package: String, seed: u32) -> Result<NativeCommitment> {
 }
 
 #[napi]
-pub fn round_two(
+pub fn create_signing_share(
     signing_package: String,
     key_package: String,
     public_key_randomness: String,
@@ -60,8 +63,9 @@ pub fn round_two(
         Randomizer::deserialize(&hex_to_bytes(&public_key_randomness).map_err(to_napi_err)?)
             .map_err(to_napi_err)?;
 
-    let signature_share = round_two_rust(signing_package, key_package, randomizer, seed as u64)
-        .map_err(to_napi_err)?;
+    let signature_share =
+        create_signing_share_rust(signing_package, key_package, randomizer, seed as u64)
+            .map_err(to_napi_err)?;
 
     Ok(bytes_to_hex(&signature_share.serialize()))
 }

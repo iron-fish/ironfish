@@ -7,7 +7,9 @@ use std::collections::BTreeMap;
 #[cfg(test)]
 use super::internal_batch_verify_transactions;
 use super::{ProposedTransaction, Transaction};
-use crate::frost_utils::{round_one::round_one, round_two::round_two};
+use crate::frost_utils::{
+    signing_commitment::create_signing_commitment, signing_share::create_signing_share,
+};
 use crate::transaction::tests::split_spender_key::split_spender_key;
 use crate::{
     assets::{asset::Asset, asset_identifier::NATIVE_ASSET},
@@ -789,7 +791,7 @@ fn test_sign_frost() {
 
     // simulate round 1
     for key_package in key_packages.key_packages.iter() {
-        let (_nonce, commitment) = round_one(key_package.1, 0);
+        let (_nonce, commitment) = create_signing_commitment(key_package.1, 0);
         commitments.insert(*key_package.0, commitment);
     }
 
@@ -805,7 +807,7 @@ fn test_sign_frost() {
             .expect("should be able to deserialize randomizer");
 
     for key_package in key_packages.key_packages.iter() {
-        let signature_share = round_two(
+        let signature_share = create_signing_share(
             signing_package.clone(),
             key_package.1.clone(),
             randomizer,
