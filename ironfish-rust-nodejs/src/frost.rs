@@ -6,7 +6,6 @@ use crate::{
     structs::{IdentiferKeyPackage, TrustedDealerKeyPackages},
     to_napi_err,
 };
-use ironfish::keys::ProofGenerationKeySerializable;
 use ironfish::{
     frost::{keys::KeyPackage, round2::Randomizer, Identifier, SigningPackage},
     frost_utils::split_spender_key::split_spender_key,

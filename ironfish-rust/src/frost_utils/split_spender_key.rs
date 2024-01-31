@@ -7,7 +7,7 @@ use ironfish_frost::frost::{
     keys::{IdentifierList, KeyPackage, PublicKeyPackage},
     Identifier,
 };
-use ironfish_zkp::{constants::PROOF_GENERATION_KEY_GENERATOR, ProofGenerationKey};
+use ironfish_zkp::constants::PROOF_GENERATION_KEY_GENERATOR;
 use jubjub::SubgroupPoint;
 use rand::thread_rng;
 use std::collections::HashMap;

@@ -10,7 +10,6 @@ use super::{ProposedTransaction, Transaction};
 use crate::frost_utils::{
     signing_commitment::create_signing_commitment, signing_share::create_signing_share,
 };
-use crate::keys::proof_generation_key;
 use crate::transaction::tests::split_spender_key::split_spender_key;
 use crate::{
     assets::{asset::Asset, asset_identifier::NATIVE_ASSET},
@@ -31,8 +30,6 @@ use ff::Field;
 use ironfish_frost::frost::round2::{Randomizer, SignatureShare};
 use ironfish_frost::frost::Identifier;
 use ironfish_frost::participant::Secret;
-use ironfish_zkp::constants::proof;
-use ironfish_zkp::ProofGenerationKey;
 use ironfish_zkp::{
     constants::{ASSET_ID_LENGTH, SPENDING_KEY_GENERATOR, TREE_DEPTH},
     proofs::{MintAsset, Output, Spend},
