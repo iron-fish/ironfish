@@ -5,6 +5,7 @@ import { Blockchain } from '../blockchain'
 import { Verifier } from '../consensus'
 import { createRootLogger } from '../logger'
 import { PeerNetwork } from '../network/peerNetwork'
+import { Network } from '../networks'
 import { FullNode } from '../node'
 import { ALL_API_NAMESPACES } from '../rpc'
 import { RpcMemoryAdapter } from '../rpc/adapters'
@@ -14,7 +15,6 @@ import { Syncer } from '../syncer'
 import { Wallet } from '../wallet'
 import { WorkerPool } from '../workerPool'
 import { NodeTest } from './nodeTest'
-import { TestNetwork } from './testNetwork'
 
 /**
  * Used as an easy wrapper for an RPC route test. Use {@link createRouteTest}
@@ -28,7 +28,7 @@ export class RouteTest extends NodeTest {
   async createSetup(): Promise<{
     sdk: IronfishSdk
     node: FullNode
-    network: TestNetwork
+    network: Network
     verifier: Verifier
     chain: Blockchain
     wallet: Wallet

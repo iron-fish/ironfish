@@ -191,7 +191,6 @@ export class FullNode {
     logger = createRootLogger(),
     metrics,
     files,
-    networkClass,
     webSocket,
     privateIdentity,
     fishHashContext,
@@ -206,7 +205,6 @@ export class FullNode {
     logger?: Logger
     metrics?: MetricsMonitor
     files: FileSystem
-    networkClass: typeof Network | null
     webSocket: IsomorphicWebSocketConstructor
     privateIdentity?: PrivateIdentity
     fishHashContext?: FishHashContext
@@ -281,8 +279,7 @@ export class FullNode {
       context: fishHashContext,
     })
 
-    networkClass = networkClass || Network
-    const network = new networkClass(networkDefinition, consensus)
+    const network = new Network(networkDefinition, consensus)
 
     const chain = new Blockchain({
       location: config.chainDatabasePath,

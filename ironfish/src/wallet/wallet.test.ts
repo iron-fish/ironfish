@@ -28,12 +28,9 @@ describe('Wallet', () => {
   const nodeTest = createNodeTest()
 
   it('should throw an error when chain processor head does not exist in chain', async () => {
-    const { node, network } = nodeTest
-    network.disableMiningReward()
+    nodeTest.wallet['chainProcessor'].hash = Buffer.from('0')
 
-    node.wallet['chainProcessor'].hash = Buffer.from('0')
-
-    await expect(node.wallet.start()).rejects.toThrow()
+    await expect(nodeTest.wallet.start()).rejects.toThrow()
   })
 
   it('should handle transaction created on fork', async () => {
