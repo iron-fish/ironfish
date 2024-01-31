@@ -779,7 +779,7 @@ fn test_sign_frost() {
     // build UnsignedTransaction without signing
     let mut unsigned_transaction = transaction
         .build(
-            key_packages.proof_generation_key.nsk,
+            key_packages.proof_authorizing_key,
             key_packages.view_key,
             key_packages.outgoing_view_key,
             intended_fee,

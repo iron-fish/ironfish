@@ -13,7 +13,7 @@ pub struct IdentiferKeyPackage {
 
 pub struct TrustedDealerKeyPackages {
     pub verifying_key: String,
-    pub proof_generation_key: String,
+    pub proof_authorizing_key: String,
     pub view_key: String,
     pub incoming_view_key: String,
     pub outgoing_view_key: String,
