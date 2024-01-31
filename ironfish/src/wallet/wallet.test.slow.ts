@@ -1272,7 +1272,7 @@ describe('Wallet', () => {
       })
 
       const unsignedTransaction = rawTransaction.build(
-        trustedDealerPackage.proofGenerationKey,
+        trustedDealerPackage.proofGenerationKey.slice(64, 128),
         trustedDealerPackage.viewKey,
         trustedDealerPackage.outgoingViewKey,
       )

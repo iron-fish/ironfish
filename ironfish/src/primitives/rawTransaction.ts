@@ -163,14 +163,14 @@ export class RawTransaction {
   }
 
   build(
-    proofGenerationKey: string,
+    proofAuthorizingKey: string,
     viewKey: string,
     outgoingViewKey: string,
   ): UnsignedTransaction {
     const builder = this._build()
 
     const serialized = builder.build(
-      proofGenerationKey,
+      proofAuthorizingKey,
       viewKey,
       outgoingViewKey,
       this.fee,
