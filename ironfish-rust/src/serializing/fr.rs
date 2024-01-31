@@ -7,8 +7,6 @@ use jubjub::Fr;
 
 use super::{bytes_to_hex, hex_to_bytes};
 
-pub const MAC_SIZE: usize = 16;
-
 pub trait FrSerializable {
     fn serialize(&self) -> [u8; 32];
     fn deserialize(bytes: [u8; 32]) -> Result<Fr, IronfishError>;
@@ -22,16 +20,12 @@ impl FrSerializable for Fr {
     }
 
     fn deserialize(bytes: [u8; 32]) -> Result<Self, IronfishError> {
-        let nsk = match Fr::from_bytes(&bytes).into() {
-            Some(nsk) => nsk,
-            None => {
-                return Err(IronfishError::new(
-                    IronfishErrorKind::InvalidProofAuthorizingKey,
-                ))
-            }
+        let fr = match Fr::from_bytes(&bytes).into() {
+            Some(fr) => fr,
+            None => return Err(IronfishError::new(IronfishErrorKind::InvalidFr)),
         };
 
-        Ok(nsk)
+        Ok(fr)
     }
 
     fn hex_key(&self) -> String {
@@ -55,19 +49,19 @@ mod test {
     fn test_serialize() {
         let mut rng = StdRng::seed_from_u64(0);
 
-        let proof_authorizing_key = Fr::random(&mut rng);
+        let fr = Fr::random(&mut rng);
 
-        let serialized_bytes = proof_authorizing_key.serialize();
+        let serialized_bytes = fr.serialize();
 
         assert_eq!(serialized_bytes.len(), 32);
     }
 
     #[test]
     fn test_deserialize_error() {
-        let mut proof_authorizing_key_bytes: [u8; 32] = [0; 32];
-        proof_authorizing_key_bytes[0..32].fill(0xFF);
+        let mut bytes: [u8; 32] = [0; 32];
+        bytes[0..32].fill(0xFF);
 
-        let result = Fr::deserialize(proof_authorizing_key_bytes);
+        let result = Fr::deserialize(bytes);
 
         assert!(result.is_err());
 
@@ -83,27 +77,26 @@ mod test {
     fn test_deserialize() {
         let mut rng = StdRng::seed_from_u64(0);
 
-        let proof_authorizing_key = Fr::random(&mut rng);
+        let fr = Fr::random(&mut rng);
 
-        let serialized_bytes = proof_authorizing_key.serialize();
+        let serialized_bytes = fr.serialize();
 
-        let deserialized_proof_authorizing_key =
+        let deserialized_fr =
             Fr::deserialize(serialized_bytes).expect("deserialization successful");
 
-        assert_eq!(proof_authorizing_key, deserialized_proof_authorizing_key);
+        assert_eq!(fr, deserialized_fr);
     }
 
     #[test]
     fn test_hex() {
         let mut rng = StdRng::seed_from_u64(0);
 
-        let proof_authorizing_key = jubjub::Fr::random(&mut rng);
+        let fr = jubjub::Fr::random(&mut rng);
 
-        let hex_key = proof_authorizing_key.hex_key();
+        let hex_key = fr.hex_key();
 
-        let deserialized_proof_authorizing_key =
-            Fr::from_hex(&hex_key).expect("deserialization successful");
+        let deserialized_fr = Fr::from_hex(&hex_key).expect("deserialization successful");
 
-        assert_eq!(proof_authorizing_key, deserialized_proof_authorizing_key);
+        assert_eq!(fr, deserialized_fr);
     }
 }
