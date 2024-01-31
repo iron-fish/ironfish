@@ -453,7 +453,7 @@ export class Config<
       assetVerificationApi: '',
       generateNewIdentity: false,
       blocksPerMessage: 25,
-      minerBatchSize: 25000,
+      minerBatchSize: 1000,
       preemptiveBlockMining: true,
       poolName: 'Iron Fish Pool',
       poolAccountName: undefined,
