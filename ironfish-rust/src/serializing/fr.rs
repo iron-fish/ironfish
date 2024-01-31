@@ -67,10 +67,7 @@ mod test {
 
         let err = result.err().unwrap();
 
-        assert!(matches!(
-            err.kind,
-            IronfishErrorKind::InvalidProofAuthorizingKey
-        ));
+        assert!(matches!(err.kind, IronfishErrorKind::InvalidFr));
     }
 
     #[test]
