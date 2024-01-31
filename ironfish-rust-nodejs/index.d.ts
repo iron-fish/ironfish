@@ -66,7 +66,7 @@ export interface IdentiferKeyPackage {
 }
 export interface TrustedDealerKeyPackages {
   verifyingKey: string
-  proofGenerationKey: string
+  proofAuthorizingKey: string
   viewKey: string
   incomingViewKey: string
   outgoingViewKey: string

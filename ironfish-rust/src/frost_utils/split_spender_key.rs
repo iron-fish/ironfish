@@ -23,7 +23,7 @@ type AuthorizingKey = [u8; 32];
 
 pub struct TrustedDealerKeyPackages {
     pub verifying_key: AuthorizingKey, // verifying_key is the name given to this field in the frost protocol
-    pub proof_generation_key: ProofGenerationKey,
+    pub proof_authorizing_key: jubjub::Fr,
     pub view_key: ViewKey,
     pub incoming_view_key: IncomingViewKey,
     pub outgoing_view_key: OutgoingViewKey,
@@ -61,10 +61,7 @@ pub fn split_spender_key(
     let authorizing_key = Option::from(SubgroupPoint::from_bytes(&authorizing_key_bytes))
         .ok_or_else(|| IronfishError::new(IronfishErrorKind::InvalidAuthorizingKey))?;
 
-    let proof_generation_key = ProofGenerationKey {
-        ak: authorizing_key,
-        nsk: coordinator_sapling_key.sapling_proof_generation_key().nsk,
-    };
+    let proof_authorizing_key = coordinator_sapling_key.sapling_proof_generation_key().nsk;
 
     let nullifier_deriving_key = *PROOF_GENERATION_KEY_GENERATOR
         * coordinator_sapling_key.sapling_proof_generation_key().nsk;
@@ -82,7 +79,7 @@ pub fn split_spender_key(
 
     Ok(TrustedDealerKeyPackages {
         verifying_key: authorizing_key_bytes,
-        proof_generation_key,
+        proof_authorizing_key,
         view_key,
         incoming_view_key,
         outgoing_view_key,

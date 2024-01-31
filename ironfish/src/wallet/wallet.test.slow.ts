@@ -1162,11 +1162,16 @@ describe('Wallet', () => {
         identifiers,
       )
 
+      // TODO(hughy): replace when account imports use proofAuthorizingKey
+      const proofGenerationKey = trustedDealerPackage.viewKey
+        .slice(0, 64)
+        .concat(trustedDealerPackage.proofAuthorizingKey)
+
       const getMultiSigKeys = (index: number) => {
         return {
           identifier: trustedDealerPackage.keyPackages[index].identifier,
           keyPackage: trustedDealerPackage.keyPackages[index].keyPackage,
-          proofGenerationKey: trustedDealerPackage.proofGenerationKey,
+          proofGenerationKey: proofGenerationKey,
         }
       }
 
@@ -1272,7 +1277,7 @@ describe('Wallet', () => {
       })
 
       const unsignedTransaction = rawTransaction.build(
-        trustedDealerPackage.proofGenerationKey.slice(64, 128),
+        trustedDealerPackage.proofAuthorizingKey,
         trustedDealerPackage.viewKey,
         trustedDealerPackage.outgoingViewKey,
       )

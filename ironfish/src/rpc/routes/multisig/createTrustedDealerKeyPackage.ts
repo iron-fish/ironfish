@@ -80,6 +80,12 @@ routes.register<
       maxSigners,
       identifiers,
     )
-    request.end(trustedDealerPackage)
+
+    // TODO(hughy): update response type to use proofAuthorizingKey
+    const proofGenerationKey = trustedDealerPackage.viewKey
+      .slice(0, 64)
+      .concat(trustedDealerPackage.proofAuthorizingKey)
+
+    request.end({ ...trustedDealerPackage, proofGenerationKey })
   },
 )
