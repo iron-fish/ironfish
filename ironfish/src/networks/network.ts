@@ -15,11 +15,11 @@ export class Network {
 
   private miningRewardCachedByYear = new Map<number, number>()
 
-  constructor(definition: NetworkDefinition, consensus: Consensus) {
+  constructor({ definition }: { definition: NetworkDefinition }) {
     this.id = definition.id
     this.default = isDefaultNetworkId(definition.id)
     this.definition = definition
-    this.consensus = consensus
+    this.consensus = new Consensus(definition.consensus)
 
     if (this.default) {
       const defaultName = defaultNetworkName(definition.id)

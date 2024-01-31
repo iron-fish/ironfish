@@ -2,31 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Consensus } from '../consensus'
-import { DEVNET } from './definitions'
+import { MAINNET } from './definitions'
 import { Network } from './network'
 
 describe('Network', () => {
-  let network: Network
-
-  beforeAll(() => {
-    const consensus = new Consensus({
-      allowedBlockFutureSeconds: 15,
-      genesisSupplyInIron: 42000000,
-      targetBlockTimeInSeconds: 60,
-      targetBucketTimeInSeconds: 10,
-      maxBlockSizeBytes: 512 * 1024,
-      minFee: 1,
-      enableAssetOwnership: 1,
-      enforceSequentialBlockTime: 3,
-      enableFishHash: 'never',
-    })
-
-    network = new Network(DEVNET, consensus)
-  })
-
   describe('miningReward', () => {
     it('miners reward is properly calculated for year 0-1', () => {
+      const network = new Network({ definition: MAINNET })
+
       // for 60 second block time, miner's block reward in the first year should be 20 IRON
       const ironFishYearInBlocks =
         (365 * 24 * 60 * 60) / network.definition.consensus.targetBlockTimeInSeconds
@@ -39,6 +22,8 @@ describe('Network', () => {
     })
 
     it('miners reward is properly calculated for year 1-2', () => {
+      const network = new Network({ definition: MAINNET })
+
       // for 60 second block time, miner's block reward in the second year should be 19 IRON
       const ironFishYearInBlocks =
         (365 * 24 * 60 * 60) / network.definition.consensus.targetBlockTimeInSeconds
