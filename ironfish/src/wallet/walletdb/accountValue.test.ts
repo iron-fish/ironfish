@@ -12,6 +12,7 @@ describe('AccountValueEncoding', () => {
     const value: AccountValue = {
       id: 'id',
       name: 'foobar👁️🏃🐟',
+      proofAuthorizingKey: key.proofAuthorizingKey,
       incomingViewKey: key.incomingViewKey,
       outgoingViewKey: key.outgoingViewKey,
       publicAddress: key.publicAddress,
@@ -35,6 +36,7 @@ describe('AccountValueEncoding', () => {
     const key = generateKey()
     const value: AccountValue = {
       id: 'id',
+      proofAuthorizingKey: key.proofAuthorizingKey,
       name: 'foobar👁️🏃🐟',
       incomingViewKey: key.incomingViewKey,
       outgoingViewKey: key.outgoingViewKey,

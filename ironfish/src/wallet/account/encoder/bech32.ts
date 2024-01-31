@@ -104,6 +104,9 @@ export class Bech32Encoder implements AccountEncoder {
     if (value.spendingKey) {
       size += KEY_LENGTH
     }
+    if (value.proofAuthorizingKey) {
+      size += KEY_LENGTH
+    }
     size += 1 // createdAt byte
     if (value.createdAt) {
       size += 32 // block hash

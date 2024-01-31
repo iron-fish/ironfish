@@ -46,6 +46,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     if (value.spendingKey) {
       bw.writeBytes(Buffer.from(value.spendingKey, 'hex'))
     }
+
     if (value.proofAuthorizingKey) {
       bw.writeBytes(Buffer.from(value.proofAuthorizingKey, 'hex'))
     }

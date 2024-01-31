@@ -152,6 +152,7 @@ describe('Route wallet/exportAccount', () => {
       publicAddress: key.publicAddress,
       incomingViewKey: key.incomingViewKey,
       outgoingViewKey: key.outgoingViewKey,
+      proofAuthorizingKey: key.proofAuthorizingKey,
       version: 1,
       createdAt: null,
       multiSigKeys: {
