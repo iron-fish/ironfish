@@ -1578,6 +1578,7 @@ dependencies = [
  "fish_hash",
  "ironfish",
  "ironfish_mpc",
+ "jubjub 0.9.0 (git+https://github.com/iron-fish/jubjub.git?branch=blstrs)",
  "napi",
  "napi-build",
  "napi-derive",

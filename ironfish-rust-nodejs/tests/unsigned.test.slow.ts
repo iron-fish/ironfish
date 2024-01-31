@@ -12,7 +12,7 @@ describe("UnsignedTransaction", () => {
       const proposedTx = new Transaction(2);
       proposedTx.mint(asset, 5n);
       const unsignedTxBuffer = proposedTx.build(
-        key.viewKey.slice(0, 64) + key.proofAuthorizingKey, //todo(rahul): change this to accept just proof authorizing key when the interface changes
+        key.proofAuthorizingKey,
         key.viewKey,
         key.outgoingViewKey,
         0n
