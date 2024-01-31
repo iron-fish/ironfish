@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 pub mod aead;
-
+pub mod fr;
 use crate::errors::{IronfishError, IronfishErrorKind};
 
 /// Helper functions to convert pairing parts to bytes
