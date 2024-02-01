@@ -6,6 +6,7 @@ import { Config } from '../../../fileStores'
 import { Note } from '../../../primitives'
 import { BufferUtils, CurrencyUtils } from '../../../utils'
 import { Account, Wallet } from '../../../wallet'
+import { isSignerMultiSig } from '../../../wallet/account/encoder/multiSigKeys'
 import { MultiSigKeys } from '../../../wallet/interfaces/multiSigKeys'
 import { AccountImport } from '../../../wallet/walletdb/accountValue'
 import { AssetValue } from '../../../wallet/walletdb/assetValue'
@@ -120,17 +121,17 @@ export function deserializeRpcAccountMultiSigKeys(
     return undefined
   }
 
-  if (rpcMultiSigKeys.publicKeyPackage) {
-    return { publicKeyPackage: rpcMultiSigKeys.publicKeyPackage }
-  } else {
-    Assert.isNotUndefined(rpcMultiSigKeys.identifier)
-    Assert.isNotUndefined(rpcMultiSigKeys.keyPackage)
-    Assert.isNotUndefined(rpcMultiSigKeys.proofGenerationKey)
+  if (isSignerMultiSig(rpcMultiSigKeys)) {
     return {
+      publicKeyPackage: rpcMultiSigKeys.publicKeyPackage,
       identifier: rpcMultiSigKeys.identifier,
       keyPackage: rpcMultiSigKeys.keyPackage,
       proofGenerationKey: rpcMultiSigKeys.proofGenerationKey,
     }
+  }
+
+  return {
+    publicKeyPackage: rpcMultiSigKeys.publicKeyPackage,
   }
 }
 

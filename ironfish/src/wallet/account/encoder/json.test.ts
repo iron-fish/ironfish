@@ -72,6 +72,7 @@ describe('JsonEncoder', () => {
         publicAddress: key.publicAddress,
         createdAt: null,
         multiSigKeys: {
+          publicKeyPackage: 'cccc',
           identifier: 'aaaa',
           keyPackage: 'bbbb',
           proofGenerationKey: 'cccc',

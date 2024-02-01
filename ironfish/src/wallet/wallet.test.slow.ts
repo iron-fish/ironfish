@@ -1170,6 +1170,7 @@ describe('Wallet', () => {
 
       const getMultiSigKeys = (index: number) => {
         return {
+          publicKeyPackage: trustedDealerPackage.publicKeyPackage,
           identifier: trustedDealerPackage.keyPackages[index].identifier,
           keyPackage: trustedDealerPackage.keyPackages[index].keyPackage,
           proofGenerationKey: proofGenerationKey,

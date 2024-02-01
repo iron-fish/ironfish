@@ -88,6 +88,7 @@ describe('Bech32AccountEncoder', () => {
       publicAddress: key.publicAddress,
       createdAt: null,
       multiSigKeys: {
+        publicKeyPackage: 'cccc',
         identifier: 'aaaa',
         keyPackage: 'bbbb',
         proofGenerationKey: 'cccc',

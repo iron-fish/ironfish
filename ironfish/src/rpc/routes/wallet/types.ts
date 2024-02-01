@@ -137,7 +137,7 @@ export type RpcMultiSigKeys = {
   identifier?: string
   keyPackage?: string
   proofGenerationKey?: string
-  publicKeyPackage?: string
+  publicKeyPackage: string
 }
 
 export type RpcAccountImport = {
@@ -173,7 +173,7 @@ export const RpcAccountImportSchema: yup.ObjectSchema<RpcAccountImport> = yup
         identifier: yup.string().optional(),
         keyPackage: yup.string().optional(),
         proofGenerationKey: yup.string().optional(),
-        publicKeyPackage: yup.string().optional(),
+        publicKeyPackage: yup.string().defined(),
       })
       .optional(),
   })

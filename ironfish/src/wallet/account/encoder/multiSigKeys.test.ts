@@ -10,6 +10,7 @@ describe('multiSigKeys encoder', () => {
       const encoder = new NullableMultiSigKeysEncoding()
 
       const value: MultiSigSigner = {
+        publicKeyPackage: 'aaaaaa',
         identifier: 'aaaaaa',
         keyPackage: 'bbbb',
         proofGenerationKey: 'cccc',
