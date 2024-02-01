@@ -116,16 +116,14 @@ export function deserializeRpcAccountImport(accountImport: RpcAccountImport): Ac
 export function deserializeRpcAccountMultiSigKeys(
   rpcMultiSigKeys: RpcMultiSigKeys,
 ): MultiSigKeys | undefined {
-  let multiSigKeys: MultiSigKeys | undefined
-
   if (rpcMultiSigKeys) {
     if (rpcMultiSigKeys.publicKeyPackage) {
-      multiSigKeys = { publicKeyPackage: rpcMultiSigKeys.publicKeyPackage }
+      return { publicKeyPackage: rpcMultiSigKeys.publicKeyPackage }
     } else {
       Assert.isNotUndefined(rpcMultiSigKeys.identifier)
       Assert.isNotUndefined(rpcMultiSigKeys.keyPackage)
       Assert.isNotUndefined(rpcMultiSigKeys.proofGenerationKey)
-      multiSigKeys = {
+      return {
         identifier: rpcMultiSigKeys.identifier,
         keyPackage: rpcMultiSigKeys.keyPackage,
         proofGenerationKey: rpcMultiSigKeys.proofGenerationKey,
@@ -133,7 +131,7 @@ export function deserializeRpcAccountMultiSigKeys(
     }
   }
 
-  return multiSigKeys
+  return undefined
 }
 
 export async function getAssetBalanceDeltas(
