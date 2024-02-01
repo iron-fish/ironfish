@@ -1,24 +1,19 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-
 import type { NetworkDefinition } from '../networkDefinition'
+import { ConsensusParameters } from '../../consensus'
 
-/**
- * This account (IronFishGenesisAccount) can be imported to access the funds in the genesis block.
- *
- * If the dev genesis block is ever regenerated, this account will need to be updated.
- */
-export const DEV_GENESIS_ACCOUNT = {
-  version: 2,
-  name: 'IronFishGenesisAccount',
-  spendingKey: '2abe405e7110640e0e7bdedc95f1df14bd425df1cb8d87e88c9d4fce7bf89d40',
-  viewKey:
-    '689634cf4d97c7472c3fc861877caf27e6be48220111db840c066b7ba70f60e5f92bc747bc388d5b39c261a977416e9e1f432a6db317237ea89c8a16ef1eea9c',
-  incomingViewKey: '6b776d2263a72c5a525b0c23f6b58b8d588f5245dde52128a6da081083a72a03',
-  outgoingViewKey: '61ffa2d35d1dba8d3231695efe4747b3bedc9f4ac642e63d4626a49c0b0076fa',
-  publicAddress: '561cd548332724ac284e56044dcb0882b21aa408a320a850d77ac1aad64ad6b4',
-  createdAt: null,
+const DEVNET_CONSENSUS: ConsensusParameters = {
+  allowedBlockFutureSeconds: 15,
+  genesisSupplyInIron: 42000000,
+  targetBlockTimeInSeconds: 60,
+  targetBucketTimeInSeconds: 10,
+  maxBlockSizeBytes: 524288,
+  minFee: 0,
+  enableAssetOwnership: 1,
+  enforceSequentialBlockTime: 1,
+  enableFishHash: 'never',
 }
 
 export const DEVNET_GENESIS = {
@@ -53,20 +48,27 @@ export const DEVNET_GENESIS = {
   ],
 }
 
+/**
+ * This account (IronFishGenesisAccount) can be imported to access the funds in the genesis block.
+ *
+ * If the dev genesis block is ever regenerated, this account will need to be updated.
+ */
+export const DEV_GENESIS_ACCOUNT = {
+  version: 2,
+  name: 'IronFishGenesisAccount',
+  spendingKey: '2abe405e7110640e0e7bdedc95f1df14bd425df1cb8d87e88c9d4fce7bf89d40',
+  viewKey:
+    '689634cf4d97c7472c3fc861877caf27e6be48220111db840c066b7ba70f60e5f92bc747bc388d5b39c261a977416e9e1f432a6db317237ea89c8a16ef1eea9c',
+  incomingViewKey: '6b776d2263a72c5a525b0c23f6b58b8d588f5245dde52128a6da081083a72a03',
+  outgoingViewKey: '61ffa2d35d1dba8d3231695efe4747b3bedc9f4ac642e63d4626a49c0b0076fa',
+  publicAddress: '561cd548332724ac284e56044dcb0882b21aa408a320a850d77ac1aad64ad6b4',
+  createdAt: null,
+}
+
 // TODO(IFL-1523): Update proper activation sequence for enableAssetOwnership
 export const DEVNET: NetworkDefinition = {
   id: 2,
   bootstrapNodes: [],
   genesis: DEVNET_GENESIS,
-  consensus: {
-    allowedBlockFutureSeconds: 15,
-    genesisSupplyInIron: 42000000,
-    targetBlockTimeInSeconds: 60,
-    targetBucketTimeInSeconds: 10,
-    maxBlockSizeBytes: 524288,
-    minFee: 0,
-    enableAssetOwnership: 1,
-    enforceSequentialBlockTime: 1,
-    enableFishHash: 'never',
-  },
+  consensus: DEVNET_CONSENSUS,
 }
