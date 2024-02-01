@@ -155,6 +155,7 @@ export class MiningSoloMiner {
       this.restartCalculateTargetInterval(
         this.consensus.parameters.targetBlockTimeInSeconds,
         this.consensus.parameters.targetBucketTimeInSeconds,
+        this.consensus.getDifficultyBucketMax(payload.header.sequence),
       )
       this.startNewWork(payload)
     }
@@ -272,6 +273,7 @@ export class MiningSoloMiner {
   private recalculateTarget(
     targetBlockTimeInSeconds: number,
     targetBucketTimeInSeconds: number,
+    maxBuckets: number,
   ) {
     Assert.isNotNull(this.currentHeadTimestamp)
     Assert.isNotNull(this.currentHeadDifficulty)
@@ -287,6 +289,7 @@ export class MiningSoloMiner {
         this.currentHeadDifficulty,
         targetBlockTimeInSeconds,
         targetBucketTimeInSeconds,
+        maxBuckets,
       ),
     )
 
@@ -299,13 +302,14 @@ export class MiningSoloMiner {
   private restartCalculateTargetInterval(
     targetBlockTimeInSeconds: number,
     targetBucketTimeInSeconds: number,
+    maxBuckets: number,
   ) {
     if (this.recalculateTargetInterval) {
       clearInterval(this.recalculateTargetInterval)
     }
 
     this.recalculateTargetInterval = setInterval(() => {
-      this.recalculateTarget(targetBlockTimeInSeconds, targetBucketTimeInSeconds)
+      this.recalculateTarget(targetBlockTimeInSeconds, targetBucketTimeInSeconds, maxBuckets)
     }, RECALCULATE_TARGET_TIMEOUT)
   }
 }

@@ -15,6 +15,7 @@ const MAINNET_CONSENSUS: ConsensusParameters = {
   enableAssetOwnership: 9999999,
   enforceSequentialBlockTime: null,
   enableFishHash: null,
+  enableIncreasedDifficultyChange: null,
 }
 
 export const MAINNET_GENESIS = {

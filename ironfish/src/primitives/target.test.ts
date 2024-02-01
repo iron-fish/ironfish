@@ -6,6 +6,7 @@ import { Target } from './target'
 
 const TARGET_BLOCK_TIME_IN_SECONDS = 60
 const TARGET_BUCKET_TIME_IN_SECONDS = 10
+const MAX_BUCKETS = 99
 
 describe('Target', () => {
   it('constructs targets', () => {
@@ -95,6 +96,7 @@ describe('Calculate target', () => {
         difficulty,
         TARGET_BLOCK_TIME_IN_SECONDS,
         TARGET_BUCKET_TIME_IN_SECONDS,
+        MAX_BUCKETS,
       )
       const newTarget = Target.calculateTarget(
         time,
@@ -102,6 +104,7 @@ describe('Calculate target', () => {
         target,
         TARGET_BLOCK_TIME_IN_SECONDS,
         TARGET_BUCKET_TIME_IN_SECONDS,
+        MAX_BUCKETS,
       )
 
       expect(newDifficulty).toBeGreaterThan(difficulty)
@@ -125,6 +128,7 @@ describe('Calculate target', () => {
         difficulty,
         TARGET_BLOCK_TIME_IN_SECONDS,
         TARGET_BUCKET_TIME_IN_SECONDS,
+        MAX_BUCKETS,
       )
       const newTarget = Target.calculateTarget(
         time,
@@ -132,6 +136,7 @@ describe('Calculate target', () => {
         target,
         TARGET_BLOCK_TIME_IN_SECONDS,
         TARGET_BUCKET_TIME_IN_SECONDS,
+        MAX_BUCKETS,
       )
 
       const diffInDifficulty = BigInt(newDifficulty) - difficulty
@@ -169,6 +174,7 @@ describe('Calculate target', () => {
         difficulty,
         TARGET_BLOCK_TIME_IN_SECONDS,
         TARGET_BUCKET_TIME_IN_SECONDS,
+        MAX_BUCKETS,
       )
       const newTarget = Target.calculateTarget(
         time,
@@ -176,6 +182,7 @@ describe('Calculate target', () => {
         target,
         TARGET_BLOCK_TIME_IN_SECONDS,
         TARGET_BUCKET_TIME_IN_SECONDS,
+        MAX_BUCKETS,
       )
       expect(newDifficulty).toBeLessThan(difficulty)
       expect(BigInt(newDifficulty) + diffInDifficulty).toEqual(difficulty)
@@ -184,34 +191,93 @@ describe('Calculate target', () => {
     }
   })
 
-  it('no matter how late blocks come in, we clamp difficulty change by 99 buckets (steps) away from previous block difficulty', () => {
-    const now = new Date()
-    const difficulty = BigInt(231072)
-    const previousBlockTarget = Target.fromDifficulty(difficulty)
-    // 99 buckets away from previous block target
-    const maximallyDifferentTarget = Target.calculateTarget(
-      new Date(now.getTime() + 1065 * 1000),
-      now,
-      previousBlockTarget,
-      TARGET_BLOCK_TIME_IN_SECONDS,
-      TARGET_BUCKET_TIME_IN_SECONDS,
-    )
-
-    // check that we don't change difficulty by more than 99 buckets (steps)
-    // away from previous block difficulty
-    for (let i = 1065; i < 1070; i++) {
-      const time = new Date(now.getTime() + i * 1000)
-
-      const newTarget = Target.calculateTarget(
-        time,
+  describe('max buckets', () => {
+    it('no matter how late blocks come in, we clamp difficulty change by `maxBuckets` buckets (steps) away from previous block difficulty', () => {
+      const now = new Date()
+      const difficulty = BigInt(231072)
+      const previousBlockTarget = Target.fromDifficulty(difficulty)
+      // MAX_BUCKETS buckets away from previous block target
+      const maximallyDifferentTarget = Target.calculateTarget(
+        new Date(now.getTime() + 1065 * 1000),
         now,
         previousBlockTarget,
         TARGET_BLOCK_TIME_IN_SECONDS,
         TARGET_BUCKET_TIME_IN_SECONDS,
+        MAX_BUCKETS,
       )
 
-      expect(newTarget).toEqual(maximallyDifferentTarget)
-    }
+      // Sanity check that difficulty is different in the bucket prior
+      const almostMaxTarget = Target.calculateTarget(
+        new Date(now.getTime() + 1035 * 1000),
+        now,
+        previousBlockTarget,
+        TARGET_BLOCK_TIME_IN_SECONDS,
+        TARGET_BUCKET_TIME_IN_SECONDS,
+        MAX_BUCKETS,
+      )
+      expect(almostMaxTarget.asBigInt()).toBeLessThan(maximallyDifferentTarget.asBigInt())
+
+      // check that we don't change difficulty by more than `maxBuckets` buckets (steps)
+      // away from previous block difficulty
+      for (let i = 1065; i < 1070; i++) {
+        const time = new Date(now.getTime() + i * 1000)
+
+        const newTarget = Target.calculateTarget(
+          time,
+          now,
+          previousBlockTarget,
+          TARGET_BLOCK_TIME_IN_SECONDS,
+          TARGET_BUCKET_TIME_IN_SECONDS,
+          MAX_BUCKETS,
+        )
+
+        expect(newTarget).toEqual(maximallyDifferentTarget)
+      }
+    })
+
+    it('correctly adjusts to a number given as the `maxBuckets` parameter', () => {
+      const otherMaxBuckets = 200
+      const now = new Date()
+      const difficulty = BigInt(23107200)
+      const previousBlockTarget = Target.fromDifficulty(difficulty)
+      // max buckets away from previous block target
+      const maximallyDifferentTarget = Target.calculateTarget(
+        new Date(now.getTime() + 2065 * 1000),
+        now,
+        previousBlockTarget,
+        TARGET_BLOCK_TIME_IN_SECONDS,
+        TARGET_BUCKET_TIME_IN_SECONDS,
+        otherMaxBuckets,
+      )
+
+      // Sanity check that difficulty is different in the bucket prior
+      const almostMaxTarget = Target.calculateTarget(
+        new Date(now.getTime() + 2045 * 1000),
+        now,
+        previousBlockTarget,
+        TARGET_BLOCK_TIME_IN_SECONDS,
+        TARGET_BUCKET_TIME_IN_SECONDS,
+        otherMaxBuckets,
+      )
+      expect(almostMaxTarget.asBigInt()).toBeLessThan(maximallyDifferentTarget.asBigInt())
+
+      // check that we don't change difficulty by more than `otherMaxBuckets` buckets (steps)
+      // away from previous block difficulty
+      for (let i = 2065; i < 2070; i++) {
+        const time = new Date(now.getTime() + i * 1000)
+
+        const newTarget = Target.calculateTarget(
+          time,
+          now,
+          previousBlockTarget,
+          TARGET_BLOCK_TIME_IN_SECONDS,
+          TARGET_BUCKET_TIME_IN_SECONDS,
+          otherMaxBuckets,
+        )
+
+        expect(newTarget).toEqual(maximallyDifferentTarget)
+      }
+    })
   })
 
   describe('fromDifficulty', () => {

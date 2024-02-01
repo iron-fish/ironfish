@@ -14,6 +14,7 @@ const DEVNET_CONSENSUS: ConsensusParameters = {
   enableAssetOwnership: 1,
   enforceSequentialBlockTime: 1,
   enableFishHash: null,
+  enableIncreasedDifficultyChange: null,
 }
 
 export const DEVNET_GENESIS = {

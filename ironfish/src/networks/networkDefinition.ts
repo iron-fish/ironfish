@@ -52,6 +52,7 @@ export const networkDefinitionSchema: yup.ObjectSchema<NetworkDefinition> = yup
         enableAssetOwnership: yup.mixed<ActivationSequence>().defined(),
         enforceSequentialBlockTime: yup.mixed<ActivationSequence>().defined(),
         enableFishHash: yup.mixed<ActivationSequence>().defined(),
+        enableIncreasedDifficultyChange: yup.mixed<ActivationSequence>().defined(),
       })
       .defined(),
   })

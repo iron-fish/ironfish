@@ -66,6 +66,7 @@ export class Target {
     previousBlockTarget: Target,
     targetBlockTimeInSeconds: number,
     targetBucketTimeInSeconds: number,
+    maxBuckets: number,
   ): Target {
     const parentDifficulty = previousBlockTarget.toDifficulty()
 
@@ -75,6 +76,7 @@ export class Target {
       parentDifficulty,
       targetBlockTimeInSeconds,
       targetBucketTimeInSeconds,
+      maxBuckets,
     )
 
     return Target.fromDifficulty(difficulty)
@@ -107,6 +109,7 @@ export class Target {
     previousBlockDifficulty: bigint,
     targetBlockTimeInSeconds: number,
     targetBucketTimeInSeconds: number,
+    maxBuckets: number,
   ): bigint {
     const diffInSeconds = (time.getTime() - previousBlockTimestamp.getTime()) / 1000
 
@@ -115,8 +118,8 @@ export class Target {
         targetBucketTimeInSeconds,
     )
 
-    // Should not change difficulty by more than 99 buckets from last block's difficulty
-    bucket = Math.min(bucket, 99)
+    // Should not change difficulty by more than `maxBuckets` buckets from last block's difficulty
+    bucket = Math.min(bucket, maxBuckets)
 
     const difficulty =
       previousBlockDifficulty - (previousBlockDifficulty / 2048n) * BigInt(bucket)

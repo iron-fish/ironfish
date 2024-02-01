@@ -55,6 +55,12 @@ export type ConsensusParameters = {
    * to the beginning of the block header before mining.
    */
   enableFishHash: ActivationSequence
+
+  /**
+   * Sequence at which to use an increased max bucket in the target calculation,
+   * allowing for a greater per-block downward shift.
+   */
+  enableIncreasedDifficultyChange: ActivationSequence
 }
 
 export class Consensus {
@@ -84,6 +90,14 @@ export class Consensus {
       return TransactionVersion.V2
     } else {
       return TransactionVersion.V1
+    }
+  }
+
+  getDifficultyBucketMax(sequence: number): number {
+    if (this.isActive('enableIncreasedDifficultyChange', sequence)) {
+      return 200
+    } else {
+      return 99
     }
   }
 }
