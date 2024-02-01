@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { UnsignedTransaction } from '@ironfish/rust-nodejs'
 import _ from 'lodash'
 import os from 'os'
 import { VerificationResult, VerificationResultReason } from '../consensus'
@@ -14,7 +13,6 @@ import { Metric } from '../telemetry/interfaces/metric'
 import { WorkerMessageStats } from './interfaces/workerMessageStats'
 import { Job } from './job'
 import { RoundRobinQueue } from './roundRobinQueue'
-import { BuildTransactionRequest, BuildTransactionResponse } from './tasks/buildTransaction'
 import { CreateMinersFeeRequest, CreateMinersFeeResponse } from './tasks/createMinersFee'
 import {
   DecryptedNote,
@@ -138,28 +136,6 @@ export class WorkerPool {
     }
 
     return new Transaction(Buffer.from(response.serializedTransactionPosted))
-  }
-
-  async buildTransaction(
-    transaction: RawTransaction,
-    proofGenerationKey: string,
-    viewKey: string,
-    outgoingViewKey: string,
-  ): Promise<UnsignedTransaction> {
-    const request = new BuildTransactionRequest(
-      transaction,
-      proofGenerationKey,
-      viewKey,
-      outgoingViewKey,
-    )
-
-    const response = await this.execute(request).result()
-
-    if (!(response instanceof BuildTransactionResponse)) {
-      throw new Error('Invalid response')
-    }
-
-    return response.transaction
   }
 
   async postTransaction(
