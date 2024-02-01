@@ -24,7 +24,7 @@ import { WalletDB } from '../walletdb/walletdb'
 
 export const ACCOUNT_KEY_LENGTH = 32
 
-export const ACCOUNT_SCHEMA_VERSION = 3
+export const ACCOUNT_SCHEMA_VERSION = 4
 
 export type SpendingAccount = WithNonNull<Account, 'spendingKey'>
 
