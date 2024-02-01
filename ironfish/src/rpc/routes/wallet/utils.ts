@@ -116,22 +116,22 @@ export function deserializeRpcAccountImport(accountImport: RpcAccountImport): Ac
 export function deserializeRpcAccountMultiSigKeys(
   rpcMultiSigKeys: RpcMultiSigKeys,
 ): MultiSigKeys | undefined {
-  if (rpcMultiSigKeys) {
-    if (rpcMultiSigKeys.publicKeyPackage) {
-      return { publicKeyPackage: rpcMultiSigKeys.publicKeyPackage }
-    } else {
-      Assert.isNotUndefined(rpcMultiSigKeys.identifier)
-      Assert.isNotUndefined(rpcMultiSigKeys.keyPackage)
-      Assert.isNotUndefined(rpcMultiSigKeys.proofGenerationKey)
-      return {
-        identifier: rpcMultiSigKeys.identifier,
-        keyPackage: rpcMultiSigKeys.keyPackage,
-        proofGenerationKey: rpcMultiSigKeys.proofGenerationKey,
-      }
-    }
+  if (!rpcMultiSigKeys) {
+    return undefined
   }
 
-  return undefined
+  if (rpcMultiSigKeys.publicKeyPackage) {
+    return { publicKeyPackage: rpcMultiSigKeys.publicKeyPackage }
+  } else {
+    Assert.isNotUndefined(rpcMultiSigKeys.identifier)
+    Assert.isNotUndefined(rpcMultiSigKeys.keyPackage)
+    Assert.isNotUndefined(rpcMultiSigKeys.proofGenerationKey)
+    return {
+      identifier: rpcMultiSigKeys.identifier,
+      keyPackage: rpcMultiSigKeys.keyPackage,
+      proofGenerationKey: rpcMultiSigKeys.proofGenerationKey,
+    }
+  }
 }
 
 export async function getAssetBalanceDeltas(
