@@ -142,13 +142,13 @@ export class WorkerPool {
 
   async buildTransaction(
     transaction: RawTransaction,
-    proofGenerationKey: string,
+    proofAuthorizingKey: string,
     viewKey: string,
     outgoingViewKey: string,
   ): Promise<UnsignedTransaction> {
     const request = new BuildTransactionRequest(
       transaction,
-      proofGenerationKey,
+      proofAuthorizingKey,
       viewKey,
       outgoingViewKey,
     )

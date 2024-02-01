@@ -12,26 +12,26 @@ import { WorkerTask } from './workerTask'
 
 export class BuildTransactionRequest extends WorkerMessage {
   readonly transaction: RawTransaction
-  readonly proofGenerationKey: string
+  readonly proofAuthorizingKey: string
   readonly viewKey: string
   readonly outgoingViewKey: string
 
   constructor(
     transaction: RawTransaction,
-    proofGenerationKey: string,
+    proofAuthorizingKey: string,
     viewKey: string,
     outgoingViewKey: string,
     jobId?: number,
   ) {
     super(WorkerMessageType.BuildTransaction, jobId)
     this.transaction = transaction
-    this.proofGenerationKey = proofGenerationKey
+    this.proofAuthorizingKey = proofAuthorizingKey
     this.viewKey = viewKey
     this.outgoingViewKey = outgoingViewKey
   }
 
   serializePayload(bw: bufio.StaticWriter | bufio.BufferWriter): void {
-    bw.writeBytes(Buffer.from(this.proofGenerationKey, 'hex'))
+    bw.writeBytes(Buffer.from(this.proofAuthorizingKey, 'hex'))
     bw.writeBytes(Buffer.from(this.viewKey, 'hex'))
     bw.writeBytes(Buffer.from(this.outgoingViewKey, 'hex'))
     bw.writeBytes(RawTransactionSerde.serialize(this.transaction))
@@ -39,17 +39,17 @@ export class BuildTransactionRequest extends WorkerMessage {
 
   static deserializePayload(jobId: number, buffer: Buffer): BuildTransactionRequest {
     const reader = bufio.read(buffer, true)
-    const proofGenerationKey = reader.readBytes(VIEW_KEY_LENGTH).toString('hex')
+    const proofAuthorizingKey = reader.readBytes(ACCOUNT_KEY_LENGTH).toString('hex')
     const viewKey = reader.readBytes(VIEW_KEY_LENGTH).toString('hex')
     const outgoingViewKeyiewKey = reader.readBytes(ACCOUNT_KEY_LENGTH).toString('hex')
     const raw = RawTransactionSerde.deserialize(
       reader.readBytes(
-        buffer.length - (VIEW_KEY_LENGTH + VIEW_KEY_LENGTH + ACCOUNT_KEY_LENGTH),
+        buffer.length - (ACCOUNT_KEY_LENGTH + VIEW_KEY_LENGTH + ACCOUNT_KEY_LENGTH),
       ),
     )
     return new BuildTransactionRequest(
       raw,
-      proofGenerationKey,
+      proofAuthorizingKey,
       viewKey,
       outgoingViewKeyiewKey,
       jobId,
@@ -58,10 +58,10 @@ export class BuildTransactionRequest extends WorkerMessage {
 
   getSize(): number {
     return (
-      RawTransactionSerde.getSize(this.transaction) + // rawTransaction
-      VIEW_KEY_LENGTH + // proofGenerationKey
+      ACCOUNT_KEY_LENGTH + // proofAuthorizingKey
       VIEW_KEY_LENGTH + // viewKey
-      ACCOUNT_KEY_LENGTH // outgoingViewKey
+      ACCOUNT_KEY_LENGTH + // outgoingViewKey
+      RawTransactionSerde.getSize(this.transaction) // rawTransaction
     )
   }
 }
@@ -102,7 +102,7 @@ export class BuildTransactionTask extends WorkerTask {
 
   execute(request: BuildTransactionRequest): BuildTransactionResponse {
     const unsigned = request.transaction.build(
-      request.proofGenerationKey,
+      request.proofAuthorizingKey,
       request.viewKey,
       request.outgoingViewKey,
     )
