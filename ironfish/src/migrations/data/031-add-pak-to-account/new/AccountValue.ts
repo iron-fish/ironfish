@@ -15,7 +15,6 @@ export interface AccountValue {
   id: string
   name: string
   spendingKey: string | null
-  proofAuthorizingKey: string | null
   viewKey: string
   incomingViewKey: string
   outgoingViewKey: string
@@ -26,6 +25,7 @@ export interface AccountValue {
     keyPackage: string
     proofGenerationKey: string
   }
+  proofAuthorizingKey: string | null
 }
 
 export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
@@ -43,9 +43,6 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     if (value.spendingKey) {
       bw.writeBytes(Buffer.from(value.spendingKey, 'hex'))
     }
-    if (value.proofAuthorizingKey) {
-      bw.writeBytes(Buffer.from(value.proofAuthorizingKey, 'hex'))
-    }
     bw.writeBytes(Buffer.from(value.viewKey, 'hex'))
     bw.writeBytes(Buffer.from(value.incomingViewKey, 'hex'))
     bw.writeBytes(Buffer.from(value.outgoingViewKey, 'hex'))
@@ -62,6 +59,10 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
       bw.writeVarBytes(Buffer.from(value.multiSigKeys.proofGenerationKey, 'hex'))
     }
 
+    if (value.proofAuthorizingKey) {
+      bw.writeBytes(Buffer.from(value.proofAuthorizingKey, 'hex'))
+    }
+
     return bw.render()
   }
 
@@ -76,9 +77,6 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     const id = reader.readVarString('utf8')
     const name = reader.readVarString('utf8')
     const spendingKey = hasSpendingKey ? reader.readBytes(KEY_LENGTH).toString('hex') : null
-    const proofAuthorizingKey = hasProofAuthorizingKey
-      ? reader.readBytes(KEY_LENGTH).toString('hex')
-      : null
     const viewKey = reader.readBytes(VIEW_KEY_LENGTH).toString('hex')
     const incomingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
     const outgoingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
@@ -99,6 +97,10 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
       }
     }
 
+    const proofAuthorizingKey = hasProofAuthorizingKey
+      ? reader.readBytes(KEY_LENGTH).toString('hex')
+      : null
+
     return {
       version,
       id,
@@ -107,10 +109,10 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
       incomingViewKey,
       outgoingViewKey,
       spendingKey,
-      proofAuthorizingKey,
       publicAddress,
       createdAt,
       multiSigKeys,
+      proofAuthorizingKey,
     }
   }
 
@@ -121,9 +123,6 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     size += bufio.sizeVarString(value.id, 'utf8')
     size += bufio.sizeVarString(value.name, 'utf8')
     if (value.spendingKey) {
-      size += KEY_LENGTH
-    }
-    if (value.proofAuthorizingKey) {
       size += KEY_LENGTH
     }
     size += VIEW_KEY_LENGTH
@@ -138,6 +137,9 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
       size += bufio.sizeVarString(value.multiSigKeys.identifier, 'hex')
       size += bufio.sizeVarString(value.multiSigKeys.keyPackage, 'hex')
       size += bufio.sizeVarString(value.multiSigKeys.proofGenerationKey, 'hex')
+    }
+    if (value.proofAuthorizingKey) {
+      size += KEY_LENGTH
     }
 
     return size
