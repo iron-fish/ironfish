@@ -9,8 +9,19 @@ import { ACCOUNT_SCHEMA_VERSION } from '../account'
 import { AccountDecodingOptions, AccountEncoder, DecodeFailed, DecodeInvalid } from './encoder'
 
 export const BECH32_ACCOUNT_PREFIX = 'ifaccount'
+
+type Bech32Decoder = (
+  reader: bufio.BufferReader,
+  options?: AccountDecodingOptions,
+) => AccountImport
+
 export class Bech32Encoder implements AccountEncoder {
-  VERSION = 1
+  VERSION = 2
+
+  VERSION_DECODERS: Map<number, Bech32Decoder> = new Map([
+    [1, decoderV1],
+    [2, decoderV2],
+  ])
 
   encode(value: AccountImport): string {
     const bw = bufio.write(this.getSize(value))
@@ -53,15 +64,6 @@ export class Bech32Encoder implements AccountEncoder {
       )
     }
 
-    let name: string
-    let viewKey: string
-    let incomingViewKey: string
-    let outgoingViewKey: string
-    let publicAddress: string
-    let spendingKey: string | null
-    let createdAt = null
-    let multiSigKeys = undefined
-
     try {
       const buffer = Buffer.from(hexEncoding, 'hex')
 
@@ -69,38 +71,13 @@ export class Bech32Encoder implements AccountEncoder {
 
       const version = reader.readU16()
 
-      if (version !== this.VERSION) {
-        throw new DecodeInvalid(
-          `Encoded account version ${version} does not match encoder version ${this.VERSION}`,
-        )
+      const decoder = this.VERSION_DECODERS.get(version)
+
+      if (decoder === undefined) {
+        throw new DecodeInvalid(`Encoded account version ${version} not supported.`)
       }
 
-      name = reader.readVarString('utf8')
-      viewKey = reader.readBytes(VIEW_KEY_LENGTH).toString('hex')
-      incomingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
-      outgoingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
-      publicAddress = reader.readBytes(PUBLIC_ADDRESS_LENGTH).toString('hex')
-
-      const hasSpendingKey = reader.readU8() === 1
-      spendingKey = hasSpendingKey ? reader.readBytes(KEY_LENGTH).toString('hex') : null
-
-      const hasCreatedAt = reader.readU8() === 1
-
-      if (hasCreatedAt) {
-        const hash = reader.readBytes(32)
-        const sequence = reader.readU32()
-        createdAt = { hash, sequence }
-      }
-
-      const hasMultiSigKeys = reader.readU8() === 1
-
-      if (hasMultiSigKeys) {
-        multiSigKeys = {
-          identifier: reader.readVarBytes().toString('hex'),
-          keyPackage: reader.readVarBytes().toString('hex'),
-          proofGenerationKey: reader.readVarBytes().toString('hex'),
-        }
-      }
+      return decoder(reader, options)
     } catch (e) {
       if (e instanceof EncodingError) {
         throw new DecodeFailed(
@@ -109,18 +86,6 @@ export class Bech32Encoder implements AccountEncoder {
         )
       }
       throw e
-    }
-
-    return {
-      version: ACCOUNT_SCHEMA_VERSION,
-      name: options?.name ? options.name : name,
-      viewKey,
-      incomingViewKey,
-      outgoingViewKey,
-      spendingKey,
-      publicAddress,
-      createdAt,
-      multiSigKeys,
     }
   }
 
@@ -149,5 +114,62 @@ export class Bech32Encoder implements AccountEncoder {
     }
 
     return size
+  }
+}
+
+function decoderV1(
+  reader: bufio.BufferReader,
+  options?: AccountDecodingOptions,
+): AccountImport {
+  const name = reader.readVarString('utf8')
+  const viewKey = reader.readBytes(VIEW_KEY_LENGTH).toString('hex')
+  const incomingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
+  const outgoingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
+  const publicAddress = reader.readBytes(PUBLIC_ADDRESS_LENGTH).toString('hex')
+
+  const hasSpendingKey = reader.readU8() === 1
+  const spendingKey = hasSpendingKey ? reader.readBytes(KEY_LENGTH).toString('hex') : null
+
+  const hasCreatedAt = reader.readU8() === 1
+
+  let createdAt = null
+  if (hasCreatedAt) {
+    const hash = reader.readBytes(32)
+    const sequence = reader.readU32()
+    createdAt = { hash, sequence }
+  }
+
+  return {
+    version: ACCOUNT_SCHEMA_VERSION,
+    name: options?.name ? options.name : name,
+    viewKey,
+    incomingViewKey,
+    outgoingViewKey,
+    spendingKey,
+    publicAddress,
+    createdAt,
+  }
+}
+
+function decoderV2(
+  reader: bufio.BufferReader,
+  options?: AccountDecodingOptions,
+): AccountImport {
+  const accountImport = decoderV1(reader, options)
+
+  let multiSigKeys = undefined
+
+  const hasMultiSigKeys = reader.readU8() === 1
+  if (hasMultiSigKeys) {
+    multiSigKeys = {
+      identifier: reader.readVarBytes().toString('hex'),
+      keyPackage: reader.readVarBytes().toString('hex'),
+      proofGenerationKey: reader.readVarBytes().toString('hex'),
+    }
+  }
+
+  return {
+    ...accountImport,
+    multiSigKeys,
   }
 }
