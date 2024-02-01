@@ -58,7 +58,7 @@ routes.register<typeof ExportAccountRequestSchema, ExportAccountResponse>(
       }
 
       request.end({
-        account: { ...accountInfo, createdAt, multiSigKeys: accountInfo.multiSigKeys },
+        account: { ...accountInfo, createdAt },
       })
     } else {
       const encoded = encodeAccount(accountInfo, request.data.format, {
