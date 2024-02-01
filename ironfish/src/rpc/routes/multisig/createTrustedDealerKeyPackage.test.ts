@@ -33,7 +33,7 @@ describe('Route multisig/createTrustedDealerKeyPackage', () => {
         },
       ]),
       outgoingViewKey: expect.any(String),
-      proofGenerationKey: expect.any(String),
+      proofAuthorizingKey: expect.any(String),
       publicAddress: expect.any(String),
       publicKeyPackage: expect.any(String),
       verifyingKey: expect.any(String),
