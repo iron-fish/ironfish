@@ -76,7 +76,11 @@ export class NullableMultiSigKeysEncoding
 }
 
 export function isSignerMultiSig(multiSigKeys: MultiSigKeys): multiSigKeys is MultiSigSigner {
-  return 'keyPackage' in multiSigKeys
+  return (
+    'keyPackage' in multiSigKeys &&
+    'identifier' in multiSigKeys &&
+    'proofGenerationKey' in multiSigKeys
+  )
 }
 
 export function AssertIsSignerMultiSig(
