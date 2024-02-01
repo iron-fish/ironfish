@@ -52,6 +52,11 @@ export class Bech32Encoder implements AccountEncoder {
       bw.writeVarBytes(Buffer.from(value.multiSigKeys.proofGenerationKey, 'hex'))
     }
 
+    bw.writeU8(Number(!!value.proofAuthorizingKey))
+    if (value.proofAuthorizingKey) {
+      bw.writeBytes(Buffer.from(value.proofAuthorizingKey, 'hex'))
+    }
+
     return Bech32m.encode(bw.render().toString('hex'), BECH32_ACCOUNT_PREFIX)
   }
 
