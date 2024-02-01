@@ -141,7 +141,7 @@ export async function addGenesisTransaction(
     graffiti: genesisBlock.header.graffiti,
   }
 
-  const newGenesisHeader = node.chain.strategy.newBlockHeader(rawHeader, noteSize)
+  const newGenesisHeader = node.chain.newBlockHeaderFromRaw(rawHeader, noteSize)
 
   genesisBlock.header = newGenesisHeader
 

@@ -29,7 +29,7 @@ describe('Read genesis block', () => {
   it('Can start a chain with the existing genesis block', async () => {
     // We should also be able to create new blocks after the genesis block
     // has been added
-    const minersfee = await nodeTest.strategy.createMinersFee(
+    const minersfee = await nodeTest.chain.createMinersFee(
       BigInt(0),
       nodeTest.chain.head.sequence + 1,
       generateKey().spendingKey,
@@ -56,7 +56,6 @@ describe('Create genesis block', () => {
 
   it('Can generate a valid genesis block', async () => {
     // Initialize the database and chain
-    const strategy = nodeTest.strategy
     const node = nodeTest.node
     const chain = nodeTest.chain
 
@@ -103,7 +102,7 @@ describe('Create genesis block', () => {
     })
 
     // Ensure we can construct blocks after that block
-    const minersfee = await strategy.createMinersFee(
+    const minersfee = await chain.createMinersFee(
       BigInt(0),
       block.header.sequence + 1,
       generateKey().spendingKey,
@@ -121,7 +120,7 @@ describe('Create genesis block', () => {
 
     // Deserialize the block and add it to the new chain
     const result = IJSON.parse(jsonedBlock) as SerializedBlock
-    const deserializedBlock = BlockSerde.deserialize(result, nodeTest.strategy)
+    const deserializedBlock = BlockSerde.deserialize(result, nodeTest.chain)
     const addedBlock = await newChain.addBlock(deserializedBlock)
     expect(addedBlock.isAdded).toBe(true)
 
@@ -141,7 +140,7 @@ describe('Create genesis block', () => {
     })
 
     // Ensure we can construct blocks after that block
-    const newMinersfee = await strategy.createMinersFee(
+    const newMinersfee = await chain.createMinersFee(
       BigInt(0),
       deserializedBlock.header.sequence + 1,
       generateKey().spendingKey,
@@ -261,7 +260,7 @@ describe('addGenesisTransaction', () => {
     })
 
     // Create a new node
-    const { strategy, chain, node } = await nodeTest.createSetup()
+    const { chain, node } = await nodeTest.createSetup()
 
     // Import accounts
     const account1 = await node.wallet.importAccount(account1Original)
@@ -274,7 +273,7 @@ describe('addGenesisTransaction', () => {
 
     // Deserialize the block and add it to the new chain
     const result = IJSON.parse(jsonedBlock) as SerializedBlock
-    const deserializedBlock = BlockSerde.deserialize(result, nodeTest.strategy)
+    const deserializedBlock = BlockSerde.deserialize(result, nodeTest.chain)
     const addedBlock = await chain.addBlock(deserializedBlock)
     expect(addedBlock.isAdded).toBe(true)
 
@@ -295,7 +294,7 @@ describe('addGenesisTransaction', () => {
     })
 
     // Ensure we can construct blocks after that block
-    const minersfee = await strategy.createMinersFee(
+    const minersfee = await chain.createMinersFee(
       BigInt(0),
       block.header.sequence + 1,
       generateKey().spendingKey,

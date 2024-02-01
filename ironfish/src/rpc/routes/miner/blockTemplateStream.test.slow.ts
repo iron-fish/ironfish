@@ -88,12 +88,12 @@ describe('Block template stream', () => {
     await nodeTest.teardownAll()
 
     // Now, spy on some functions
-    const actual = node.strategy.createMinersFee
+    const actual = node.chain.createMinersFee.bind(node.chain)
     const [p, res] = PromiseUtils.split<void>()
 
-    jest.spyOn(node.strategy, 'createMinersFee').mockImplementation(async (a, b, c) => {
+    jest.spyOn(node.chain, 'createMinersFee').mockImplementation(async (a, b, c) => {
       await p
-      return await actual.bind(node.strategy)(a, b, c)
+      return await actual(a, b, c)
     })
 
     const newBlockSpy = jest.spyOn(node.chain, 'newBlock')
@@ -108,7 +108,7 @@ describe('Block template stream', () => {
     await expect(chain).toAddBlock(block2)
     await expect(chain).toAddBlock(block3)
 
-    // Resolve the createMinersSpy promise, allowing block creation to proceed to newBlock
+    // Resolve the createMinersFee promise, allowing block creation to proceed to newBlock
     res()
 
     // Finish up the response
@@ -116,6 +116,7 @@ describe('Block template stream', () => {
     await expect(response.waitForRoute()).resolves.toEqual(expect.anything())
 
     // newBlock should have thrown an error, but the response should not have crashed
+    expect(newBlockSpy).toHaveBeenCalled()
     await expect(newBlockSpy.mock.results[0].value).rejects.toThrow()
   })
 })

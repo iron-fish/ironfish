@@ -89,9 +89,3 @@ export class Consensus {
     }
   }
 }
-
-export class TestnetConsensus extends Consensus {
-  constructor(parameters: ConsensusParameters) {
-    super(parameters)
-  }
-}

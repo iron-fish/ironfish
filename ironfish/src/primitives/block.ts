@@ -4,7 +4,7 @@
 
 import { zip } from 'lodash'
 import { Assert } from '../assert'
-import { Strategy } from '../strategy'
+import { Blockchain } from '../blockchain'
 import {
   BlockHeader,
   BlockHeaderSerde,
@@ -174,7 +174,7 @@ export class BlockSerde {
     }
   }
 
-  static deserialize(data: SerializedBlock, strategy: Strategy): Block {
+  static deserialize(data: SerializedBlock, chain: Blockchain): Block {
     if (
       typeof data === 'object' &&
       data !== null &&
@@ -182,7 +182,7 @@ export class BlockSerde {
       'transactions' in data &&
       Array.isArray(data.transactions)
     ) {
-      const header = BlockHeaderSerde.deserialize(data.header, strategy)
+      const header = BlockHeaderSerde.deserialize(data.header, chain)
       const transactions = data.transactions.map((t) => new Transaction(t))
       return new Block(header, transactions)
     }

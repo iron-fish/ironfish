@@ -6,6 +6,7 @@ import { Asset } from '@ironfish/rust-nodejs'
 import LRU from 'blru'
 import { BufferMap } from 'buffer-map'
 import { Assert } from '../assert'
+import { BlockHasher } from '../blockHasher'
 import { Consensus } from '../consensus'
 import { VerificationResultReason, Verifier } from '../consensus/verifier'
 import { Event } from '../event'
@@ -18,19 +19,21 @@ import { NodeEncoding } from '../merkletree/database/nodes'
 import { MetricsMonitor } from '../metrics'
 import { RollingAverage } from '../metrics/rollingAverage'
 import { BAN_SCORE } from '../network/peers/peer'
+import { Network } from '../networks/network'
 import {
   Block,
   BlockSerde,
   GENESIS_BLOCK_PREVIOUS,
   GENESIS_BLOCK_SEQUENCE,
+  RawBlock,
   SerializedBlock,
 } from '../primitives/block'
 import {
   BlockHash,
   BlockHeader,
-  BlockHeaderSerde,
   isBlockHeavier,
   isBlockLater,
+  RawBlockHeader,
   transactionCommitment,
 } from '../primitives/blockheader'
 import {
@@ -42,7 +45,6 @@ import {
 import { Target } from '../primitives/target'
 import { Transaction, TransactionHash } from '../primitives/transaction'
 import { BUFFER_ENCODING, IDatabaseTransaction } from '../storage'
-import { Strategy } from '../strategy'
 import { AsyncUtils, BenchUtils, HashUtils } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { AssetValue } from './database/assetValue'
@@ -54,7 +56,6 @@ export const VERSION_DATABASE_CHAIN = 28
 
 export class Blockchain {
   logger: Logger
-  strategy: Strategy
   verifier: Verifier
   metrics: MetricsMonitor
   location: string
@@ -62,6 +63,9 @@ export class Blockchain {
   consensus: Consensus
   seedGenesisBlock: SerializedBlock
   config: Config
+  blockHasher: BlockHasher
+  workerPool: WorkerPool
+  network: Network
   readonly blockchainDb: BlockchainDB
 
   readonly notes: MerkleTree<
@@ -133,7 +137,7 @@ export class Blockchain {
 
   constructor(options: {
     location: string
-    strategy: Strategy
+    network: Network
     workerPool: WorkerPool
     logger?: Logger
     metrics?: MetricsMonitor
@@ -143,11 +147,12 @@ export class Blockchain {
     consensus: Consensus
     genesis: SerializedBlock
     config: Config
+    blockHasher: BlockHasher
   }) {
     const logger = options.logger || createRootLogger()
 
     this.location = options.location
-    this.strategy = options.strategy
+    this.network = options.network
     this.files = options.files
     this.logger = logger.withTag('blockchain')
     this.metrics = options.metrics || new MetricsMonitor({ logger: this.logger })
@@ -160,6 +165,8 @@ export class Blockchain {
     this.consensus = options.consensus
     this.seedGenesisBlock = options.genesis
     this.config = options.config
+    this.blockHasher = options.blockHasher
+    this.workerPool = options.workerPool
 
     this.blockchainDb = new BlockchainDB({
       files: options.files,
@@ -199,9 +206,7 @@ export class Blockchain {
     return Math.max(Math.min(1, progress), 0)
   }
 
-  private async seed() {
-    const genesis = BlockSerde.deserialize(this.seedGenesisBlock, this.strategy)
-
+  private async seed(genesis: Block): Promise<BlockHeader> {
     const result = await this.addBlock(genesis)
     Assert.isTrue(result.isAdded, `Could not seed genesis: ${result.reason || 'unknown'}`)
     Assert.isEqual(result.isFork, false)
@@ -227,17 +232,17 @@ export class Blockchain {
 
   private async load(): Promise<void> {
     let genesisHeader = await this.getHeaderAtSequence(GENESIS_BLOCK_SEQUENCE)
+    const seedGenesisBlock = BlockSerde.deserialize(this.seedGenesisBlock, this)
+
     if (genesisHeader) {
       Assert.isTrue(
-        genesisHeader.hash.equals(
-          BlockHeaderSerde.deserialize(this.seedGenesisBlock.header, this.strategy).hash,
-        ),
+        genesisHeader.hash.equals(seedGenesisBlock.header.hash),
         'Genesis block in network definition does not match existing chain genesis block',
       )
     }
 
     if (!genesisHeader && this.autoSeed) {
-      genesisHeader = await this.seed()
+      genesisHeader = await this.seed(seedGenesisBlock)
     }
 
     if (genesisHeader) {
@@ -948,7 +953,7 @@ export class Blockchain {
         graffiti,
       }
 
-      const header = this.strategy.newBlockHeader(rawHeader, noteSize, BigInt(0))
+      const header = this.newBlockHeaderFromRaw(rawHeader, noteSize, BigInt(0))
 
       const block = new Block(header, transactions)
       if (verifyBlock && !previousBlockHash.equals(GENESIS_BLOCK_PREVIOUS)) {
@@ -1475,6 +1480,49 @@ export class Blockchain {
 
     const asset = await this.blockchainDb.getAsset(assetId, tx)
     return asset || null
+  }
+
+  /**
+   * Create the miner's fee transaction for a given block.
+   *
+   * The miner's fee is a special transaction with one output and
+   * zero spends. Its output value must be the total transaction fees
+   * in the block plus the mining reward for the block.
+   *
+   * The mining reward may change over time, so we accept the block sequence
+   * to calculate the mining reward from.
+   *
+   * @param totalTransactionFees is the sum of the transaction fees intended to go
+   * in this block.
+   * @param blockSequence the sequence of the block for which the miner's fee is being created
+   * @param minerKey the spending key for the miner.
+   */
+  async createMinersFee(
+    totalTransactionFees: bigint,
+    blockSequence: number,
+    minerSpendKey: string,
+  ): Promise<Transaction> {
+    // Create a new note with value equal to the inverse of the sum of the
+    // transaction fees and the mining reward
+    const reward = this.network.miningReward(blockSequence)
+    const amount = totalTransactionFees + BigInt(reward)
+
+    const transactionVersion = this.consensus.getActiveTransactionVersion(blockSequence)
+    return this.workerPool.createMinersFee(minerSpendKey, amount, '', transactionVersion)
+  }
+
+  newBlockHeaderFromRaw(
+    raw: RawBlockHeader,
+    noteSize?: number | null,
+    work?: bigint,
+  ): BlockHeader {
+    const hash = this.blockHasher.hashHeader(raw)
+    return new BlockHeader(raw, hash, noteSize, work)
+  }
+
+  newBlockFromRaw(raw: RawBlock, noteSize?: number | null, work?: bigint): Block {
+    const header = this.newBlockHeaderFromRaw(raw.header, noteSize, work)
+    return new Block(header, raw.transactions)
   }
 }
 

@@ -6,39 +6,47 @@ use crate::{
     structs::{IdentiferKeyPackage, TrustedDealerKeyPackages},
     to_napi_err,
 };
-use ironfish::keys::ProofGenerationKeySerializable;
 use ironfish::{
     frost::{keys::KeyPackage, round2::Randomizer, Identifier, SigningPackage},
     frost_utils::split_spender_key::split_spender_key,
-    frost_utils::{round_one::round_one as round_one_rust, round_two::round_two as round_two_rust},
+    frost_utils::{
+        signing_commitment::create_signing_commitment as create_signing_commitment_rust,
+        signing_share::create_signing_share as create_signing_share_rust,
+    },
     participant::{Identity, Secret},
-    serializing::{bytes_to_hex, hex_to_bytes, hex_to_vec_bytes},
+    serializing::{bytes_to_hex, fr::FrSerializable, hex_to_bytes, hex_to_vec_bytes},
     SaplingKey,
 };
 use napi::{bindgen_prelude::*, JsBuffer};
 use napi_derive::napi;
 use rand::thread_rng;
 
-#[napi(object, js_name = "SigningCommitments")]
-pub struct NativeSigningCommitments {
+#[napi(object, js_name = "Commitment")]
+pub struct NativeCommitment {
     pub hiding: String,
     pub binding: String,
 }
 
+#[napi(object, js_name = "IdentifierCommitment")]
+pub struct NativeIdentifierCommitment {
+    pub identifier: String,
+    pub commitment: NativeCommitment,
+}
+
 #[napi]
-pub fn round_one(key_package: String, seed: u32) -> Result<NativeSigningCommitments> {
+pub fn create_signing_commitment(key_package: String, seed: u32) -> Result<NativeCommitment> {
     let key_package =
         KeyPackage::deserialize(&hex_to_vec_bytes(&key_package).map_err(to_napi_err)?)
             .map_err(to_napi_err)?;
-    let (_, commitment) = round_one_rust(&key_package, seed as u64);
-    Ok(NativeSigningCommitments {
+    let (_, commitment) = create_signing_commitment_rust(&key_package, seed as u64);
+    Ok(NativeCommitment {
         hiding: bytes_to_hex(&commitment.hiding().serialize()),
         binding: bytes_to_hex(&commitment.binding().serialize()),
     })
 }
 
 #[napi]
-pub fn round_two(
+pub fn create_signing_share(
     signing_package: String,
     key_package: String,
     public_key_randomness: String,
@@ -54,8 +62,9 @@ pub fn round_two(
         Randomizer::deserialize(&hex_to_bytes(&public_key_randomness).map_err(to_napi_err)?)
             .map_err(to_napi_err)?;
 
-    let signature_share = round_two_rust(signing_package, key_package, randomizer, seed as u64)
-        .map_err(to_napi_err)?;
+    let signature_share =
+        create_signing_share_rust(signing_package, key_package, randomizer, seed as u64)
+            .map_err(to_napi_err)?;
 
     Ok(bytes_to_hex(&signature_share.serialize()))
 }
@@ -167,7 +176,7 @@ pub fn split_secret(
 
     Ok(TrustedDealerKeyPackages {
         verifying_key: bytes_to_hex(&t.verifying_key),
-        proof_generation_key: t.proof_generation_key.hex_key(),
+        proof_authorizing_key: t.proof_authorizing_key.hex_key(),
         view_key: t.view_key.hex_key(),
         incoming_view_key: t.incoming_view_key.hex_key(),
         outgoing_view_key: t.outgoing_view_key.hex_key(),

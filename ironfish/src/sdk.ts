@@ -35,7 +35,6 @@ import { RpcMemoryClient } from './rpc/clients/memoryClient'
 import { RpcTcpClient } from './rpc/clients/tcpClient'
 import { RpcTlsClient } from './rpc/clients/tlsClient'
 import { ALL_API_NAMESPACES } from './rpc/routes/router'
-import { Strategy } from './strategy'
 import { NodeUtils } from './utils'
 
 export class IronfishSdk {
@@ -46,7 +45,6 @@ export class IronfishSdk {
   logger: Logger
   metrics: MetricsMonitor
   internal: InternalStore
-  strategyClass: typeof Strategy | null
   dataDir: string
 
   private constructor(
@@ -57,7 +55,6 @@ export class IronfishSdk {
     fileSystem: FileSystem,
     logger: Logger,
     metrics: MetricsMonitor,
-    strategyClass: typeof Strategy | null = null,
     dataDir: string,
   ) {
     this.pkg = pkg
@@ -67,7 +64,6 @@ export class IronfishSdk {
     this.fileSystem = fileSystem
     this.logger = logger
     this.metrics = metrics
-    this.strategyClass = strategyClass
     this.dataDir = dataDir
   }
 
@@ -80,7 +76,6 @@ export class IronfishSdk {
     dataDir,
     logger = createRootLogger(),
     metrics,
-    strategyClass,
   }: {
     pkg?: Package
     configName?: string
@@ -90,7 +85,6 @@ export class IronfishSdk {
     dataDir?: string
     logger?: Logger
     metrics?: MetricsMonitor
-    strategyClass?: typeof Strategy
   } = {}): Promise<IronfishSdk> {
     const runtime = Platform.getRuntime()
 
@@ -173,7 +167,6 @@ export class IronfishSdk {
       fileSystem,
       logger,
       metrics,
-      strategyClass,
       dataDir,
     )
   }
@@ -200,7 +193,6 @@ export class IronfishSdk {
       autoSeed: autoSeed,
       logger: this.logger,
       metrics: this.metrics,
-      strategyClass: this.strategyClass,
       webSocket: webSocket,
       privateIdentity: privateIdentity,
       dataDir: this.dataDir,

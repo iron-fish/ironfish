@@ -30,7 +30,10 @@ export class Migration030 extends Migration {
 
     for await (const [
       prefix,
-      [assetId, [_sequence, [value, noteHash]]],
+      assetId,
+      ,
+      value,
+      noteHash,
     ] of stores.old.unspentNoteHashes.getAllKeysIter()) {
       await stores.new.valueToUnspentNoteHash.put([prefix, assetId, value, noteHash], null)
       unspentNotes++

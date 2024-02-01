@@ -231,13 +231,19 @@ impl ProposedTransaction {
 
     pub fn build(
         &mut self,
-        proof_generation_key: ProofGenerationKey,
+        proof_authorizing_key: jubjub::Fr,
         view_key: ViewKey,
         outgoing_view_key: OutgoingViewKey,
-        public_address: PublicAddress,
         intended_transaction_fee: i64,
         change_goes_to: Option<PublicAddress>,
     ) -> Result<UnsignedTransaction, IronfishError> {
+        let public_address = view_key.public_address()?;
+
+        let proof_generation_key = ProofGenerationKey {
+            ak: view_key.authorizing_key,
+            nsk: proof_authorizing_key,
+        };
+
         // skip adding change notes if this is special case of a miners fee transaction
         let is_miners_fee = self.outputs.iter().any(|output| output.get_is_miners_fee());
         if !is_miners_fee {
@@ -333,15 +339,12 @@ impl ProposedTransaction {
         change_goes_to: Option<PublicAddress>,
         intended_transaction_fee: u64,
     ) -> Result<Transaction, IronfishError> {
-        let public_address = spender_key.public_address();
-
         let i64_fee = i64::try_from(intended_transaction_fee)?;
 
         let unsigned = self.build(
-            spender_key.sapling_proof_generation_key(),
+            spender_key.proof_authorizing_key,
             spender_key.view_key().clone(),
             spender_key.outgoing_view_key().clone(),
-            public_address,
             i64_fee,
             change_goes_to,
         )?;
@@ -379,10 +382,9 @@ impl ProposedTransaction {
             output.set_is_miners_fee();
         }
         let unsigned = self.build(
-            spender_key.sapling_proof_generation_key(),
+            spender_key.proof_authorizing_key,
             spender_key.view_key().clone(),
             spender_key.outgoing_view_key().clone(),
-            spender_key.public_address(),
             *self.value_balances.fee(),
             None,
         )?;

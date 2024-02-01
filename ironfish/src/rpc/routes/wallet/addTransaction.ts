@@ -40,12 +40,12 @@ routes.register<typeof AddTransactionRequestSchema, AddTransactionResponse>(
   `${ApiNamespace.wallet}/addTransaction`,
   AddTransactionRequestSchema,
   async (request, context): Promise<void> => {
-    AssertHasRpcContext(request, context, 'strategy', 'wallet')
+    AssertHasRpcContext(request, context, 'network', 'wallet')
 
     const data = Buffer.from(request.data.transaction, 'hex')
     const transaction = new Transaction(data)
 
-    const verify = Verifier.verifyCreatedTransaction(transaction, context.strategy.consensus)
+    const verify = Verifier.verifyCreatedTransaction(transaction, context.network.consensus)
 
     if (!verify.valid) {
       throw new RpcValidationError(`Invalid transaction, reason: ${String(verify.reason)}`, 400)

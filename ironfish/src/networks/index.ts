@@ -4,3 +4,4 @@
 
 export * from './networkDefinition'
 export * from './definitions'
+export * from './network'

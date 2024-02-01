@@ -5,7 +5,7 @@
 use std::fmt::Display;
 
 use ironfish::keys::Language;
-use ironfish::keys::ProofGenerationKeySerializable;
+use ironfish::serializing::bytes_to_hex;
 use ironfish::PublicAddress;
 use ironfish::SaplingKey;
 
@@ -65,7 +65,7 @@ pub struct Key {
     pub incoming_view_key: String,
     pub outgoing_view_key: String,
     pub public_address: String,
-    pub proof_generation_key: String,
+    pub proof_authorizing_key: String,
 }
 
 #[napi]
@@ -78,7 +78,9 @@ pub fn generate_key() -> Key {
         incoming_view_key: sapling_key.incoming_view_key().hex_key(),
         outgoing_view_key: sapling_key.outgoing_view_key().hex_key(),
         public_address: sapling_key.public_address().hex_public_address(),
-        proof_generation_key: sapling_key.sapling_proof_generation_key().hex_key(),
+        proof_authorizing_key: bytes_to_hex(
+            &sapling_key.sapling_proof_generation_key().nsk.to_bytes(),
+        ),
     }
 }
 
@@ -105,7 +107,9 @@ pub fn generate_key_from_private_key(private_key: String) -> Result<Key> {
         incoming_view_key: sapling_key.incoming_view_key().hex_key(),
         outgoing_view_key: sapling_key.outgoing_view_key().hex_key(),
         public_address: sapling_key.public_address().hex_public_address(),
-        proof_generation_key: sapling_key.sapling_proof_generation_key().hex_key(),
+        proof_authorizing_key: bytes_to_hex(
+            &sapling_key.sapling_proof_generation_key().nsk.to_bytes(),
+        ),
     })
 }
 
@@ -127,20 +131,34 @@ pub struct ThreadPoolHandler {
 #[napi]
 impl ThreadPoolHandler {
     #[napi(constructor)]
-    pub fn new(thread_count: u32, batch_size: u32, pause_on_success: bool) -> Self {
+    pub fn new(
+        thread_count: u32,
+        batch_size: u32,
+        pause_on_success: bool,
+        use_fish_hash: bool,
+        fish_hash_full_context: bool,
+    ) -> Self {
         ThreadPoolHandler {
             threadpool: mining::threadpool::ThreadPool::new(
                 thread_count as usize,
                 batch_size,
                 pause_on_success,
+                use_fish_hash,
+                fish_hash_full_context,
             ),
         }
     }
 
     #[napi]
-    pub fn new_work(&mut self, header_bytes: Buffer, target: Buffer, mining_request_id: u32) {
+    pub fn new_work(
+        &mut self,
+        header_bytes: Buffer,
+        target: Buffer,
+        mining_request_id: u32,
+        fish_hash: bool,
+    ) {
         self.threadpool
-            .new_work(&header_bytes, &target, mining_request_id)
+            .new_work(&header_bytes, &target, mining_request_id, fish_hash)
     }
 
     #[napi]

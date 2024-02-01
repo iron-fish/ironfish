@@ -10,7 +10,10 @@ use ironfish_frost::frost::{
 use rand::{rngs::StdRng, SeedableRng};
 
 // Small wrapper around frost::round1::commit that provides a seedable rng
-pub fn round_one(key_package: &KeyPackage, seed: u64) -> (SigningNonces, SigningCommitments) {
+pub fn create_signing_commitment(
+    key_package: &KeyPackage,
+    seed: u64,
+) -> (SigningNonces, SigningCommitments) {
     let mut rng = StdRng::seed_from_u64(seed);
     frost::round1::commit(key_package.signing_share(), &mut rng)
 }
@@ -46,8 +49,8 @@ mod test {
             .next()
             .expect("key package to be created")
             .1;
-        let (nonces, commitments) = super::round_one(&key_package, seed);
-        let (nonces2, commitments2) = super::round_one(&key_package, seed);
+        let (nonces, commitments) = super::create_signing_commitment(&key_package, seed);
+        let (nonces2, commitments2) = super::create_signing_commitment(&key_package, seed);
         assert_eq!(nonces.hiding().serialize(), nonces2.hiding().serialize());
         assert_eq!(nonces.binding().serialize(), nonces2.binding().serialize());
         assert_eq!(commitments, commitments2);

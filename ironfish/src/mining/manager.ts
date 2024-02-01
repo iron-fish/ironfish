@@ -198,7 +198,7 @@ export class MiningManager {
       this.metrics.mining_newBlockTemplate.add(BenchUtils.end(connectedAt))
       this.streamBlockTemplate(currentBlock, template)
 
-      const block = BlockTemplateSerde.deserialize(template, this.chain.strategy)
+      const block = BlockTemplateSerde.deserialize(template, this.chain)
       const verification = await this.chain.verifier.verifyBlock(block, {
         verifyTarget: false,
       })
@@ -323,7 +323,7 @@ export class MiningManager {
       currBlockSize = newBlockSize
 
       // Calculate the final fee for the miner of this block
-      minersFee = await this.node.strategy.createMinersFee(
+      minersFee = await this.node.chain.createMinersFee(
         totalFees,
         newBlockSequence,
         account.spendingKey,
@@ -366,7 +366,7 @@ export class MiningManager {
   }
 
   async submitBlockTemplate(blockTemplate: SerializedBlockTemplate): Promise<MINED_RESULT> {
-    const block = BlockTemplateSerde.deserialize(blockTemplate, this.chain.strategy)
+    const block = BlockTemplateSerde.deserialize(blockTemplate, this.chain)
 
     const blockDisplay = `${block.header.hash.toString('hex')} (${block.header.sequence})`
     if (!block.header.previousBlockHash.equals(this.node.chain.head.hash)) {

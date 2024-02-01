@@ -763,7 +763,7 @@ describe('PeerNetwork', () => {
             expect(sendSpy).not.toHaveBeenCalled()
           }
 
-          const invalidHeader = nodeTest.strategy.newBlockHeader(invalidBlock.header)
+          const invalidHeader = nodeTest.chain.newBlockHeaderFromRaw(invalidBlock.header)
           await expect(chain.hasBlock(invalidHeader.hash)).resolves.toBe(false)
           expect(chain.isInvalid(invalidHeader)).toBe(reason)
         }

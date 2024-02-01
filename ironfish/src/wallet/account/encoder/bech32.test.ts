@@ -110,7 +110,7 @@ describe('Bech32AccountEncoder', () => {
     expect(() => encoder.decode(encoded)).toThrow()
   })
 
-  it('throws an error when decoding if the version does not match', () => {
+  it('throws an error when decoding if the version is not supported', () => {
     const accountImport: AccountImport = {
       version: ACCOUNT_SCHEMA_VERSION,
       name: 'test',
@@ -126,8 +126,6 @@ describe('Bech32AccountEncoder', () => {
 
     const encoded = encoder.encode(accountImport)
     expect(encoded.startsWith(BECH32_ACCOUNT_PREFIX)).toBe(true)
-
-    encoder.VERSION = 1
 
     expect(() => encoder.decode(encoded)).toThrow()
   })

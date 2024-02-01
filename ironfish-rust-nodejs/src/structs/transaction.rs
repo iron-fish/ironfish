@@ -14,6 +14,7 @@ use ironfish::frost::round1::SigningCommitments;
 use ironfish::frost::round2::SignatureShare;
 use ironfish::frost::Identifier;
 use ironfish::frost::SigningPackage;
+use ironfish::serializing::fr::FrSerializable;
 use ironfish::serializing::hex_to_vec_bytes;
 use ironfish::serializing::{bytes_to_hex, hex_to_bytes};
 use ironfish::transaction::unsigned::UnsignedTransaction;
@@ -22,7 +23,6 @@ use ironfish::transaction::{
     TRANSACTION_FEE_SIZE, TRANSACTION_PUBLIC_KEY_SIZE, TRANSACTION_SIGNATURE_SIZE,
 };
 use ironfish::{
-    keys::proof_generation_key::{ProofGenerationKey, ProofGenerationKeySerializable},
     MerkleNoteHash, OutgoingViewKey, ProposedTransaction, PublicAddress, SaplingKey, Transaction,
     ViewKey,
 };
@@ -32,7 +32,8 @@ use napi::{
 };
 use napi_derive::napi;
 
-use crate::{frost::NativeSigningCommitments, to_napi_err};
+use crate::frost::NativeIdentifierCommitment;
+use crate::to_napi_err;
 
 use super::note::NativeNote;
 use super::spend_proof::NativeSpendDescription;
@@ -326,19 +327,18 @@ impl NativeTransaction {
     #[napi]
     pub fn build(
         &mut self,
-        proof_generation_key_str: String,
+        proof_authorizing_key_str: String,
         view_key_str: String,
         outgoing_view_key_str: String,
-        public_address_str: String,
         intended_transaction_fee: BigInt,
         change_goes_to: Option<String>,
     ) -> Result<Buffer> {
         let view_key = ViewKey::from_hex(&view_key_str).map_err(to_napi_err)?;
         let outgoing_view_key =
             OutgoingViewKey::from_hex(&outgoing_view_key_str).map_err(to_napi_err)?;
-        let public_address = PublicAddress::from_hex(&public_address_str).map_err(to_napi_err)?;
-        let proof_generation_key = ProofGenerationKey::from_hex(&proof_generation_key_str)
-            .map_err(|_| to_napi_err("PublicKeyPackage hex to bytes failed"))?;
+        let proof_authorizing_key = jubjub::Fr::from_hex(&proof_authorizing_key_str)
+            .map_err(|_| to_napi_err("PublicKeyPackage authorizing key hex to bytes failed"))?;
+
         let change_address = match change_goes_to {
             Some(address) => Some(PublicAddress::from_hex(&address).map_err(to_napi_err)?),
             None => None,
@@ -346,10 +346,9 @@ impl NativeTransaction {
         let unsigned_transaction = self
             .transaction
             .build(
-                proof_generation_key,
+                proof_authorizing_key,
                 view_key,
                 outgoing_view_key,
-                public_address,
                 intended_transaction_fee.get_i64().0,
                 change_address,
             )
@@ -415,21 +414,22 @@ impl NativeUnsignedTransaction {
     #[napi]
     pub fn signing_package(
         &self,
-        native_commitments: HashMap<String, NativeSigningCommitments>,
+        native_identifer_commitments: Vec<NativeIdentifierCommitment>,
     ) -> Result<String> {
         let mut commitments: BTreeMap<Identifier, SigningCommitments> = BTreeMap::new();
 
-        for (identifier_hex, commitment_hex) in native_commitments {
-            let identifier_bytes = hex_to_bytes(&identifier_hex).map_err(to_napi_err)?;
+        for identifier_commitment in native_identifer_commitments {
+            let identifier_bytes =
+                hex_to_bytes(&identifier_commitment.identifier).map_err(to_napi_err)?;
             let identifier = Identifier::deserialize(&identifier_bytes).map_err(to_napi_err)?;
 
             let commitment = SigningCommitments::new(
                 NonceCommitment::deserialize(
-                    hex_to_bytes(&commitment_hex.hiding).map_err(to_napi_err)?,
+                    hex_to_bytes(&identifier_commitment.commitment.hiding).map_err(to_napi_err)?,
                 )
                 .map_err(to_napi_err)?,
                 NonceCommitment::deserialize(
-                    hex_to_bytes(&commitment_hex.binding).map_err(to_napi_err)?,
+                    hex_to_bytes(&identifier_commitment.commitment.binding).map_err(to_napi_err)?,
                 )
                 .map_err(to_napi_err)?,
             );
@@ -445,6 +445,18 @@ impl NativeUnsignedTransaction {
         Ok(bytes_to_hex(
             &signing_package.serialize().map_err(to_napi_err)?,
         ))
+    }
+
+    #[napi]
+    pub fn sign(&mut self, spender_hex_key: String) -> Result<Buffer> {
+        let spender_key = SaplingKey::from_hex(&spender_hex_key).map_err(to_napi_err)?;
+
+        let posted_transaction = self.transaction.sign(&spender_key).map_err(to_napi_err)?;
+
+        let mut vec: Vec<u8> = vec![];
+        posted_transaction.write(&mut vec).map_err(to_napi_err)?;
+
+        Ok(Buffer::from(vec))
     }
 
     #[napi]

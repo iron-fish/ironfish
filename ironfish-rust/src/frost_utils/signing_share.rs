@@ -14,7 +14,7 @@ use rand::{rngs::StdRng, SeedableRng};
 use crate::errors::{IronfishError, IronfishErrorKind};
 
 // Wrapper around frost::round2::sign that provides a seedable rng from u64
-pub fn round_two(
+pub fn create_signing_share(
     signing_package: SigningPackage,
     key_package: KeyPackage,
     randomizer: Randomizer,

@@ -125,7 +125,7 @@ export class WalletDB {
   }>
 
   unspentNoteHashes: IDatabaseStore<{
-    key: [Account['prefix'], [Buffer, [number, [bigint, Buffer]]]]
+    key: [Account['prefix'], Buffer, number, bigint, Buffer]
     value: null
   }>
 
@@ -261,23 +261,13 @@ export class WalletDB {
 
     this.unspentNoteHashes = this.db.addStore({
       name: 'un',
-      keyEncoding: new PrefixEncoding(
-        new BufferEncoding(), // account prefix
-        new PrefixEncoding(
-          new BufferEncoding(), // asset ID
-          new PrefixEncoding(
-            U32_ENCODING_BE, // sequence
-            new PrefixEncoding(
-              new BigU64BEEncoding(), // value
-              new BufferEncoding(), // note hash
-              8,
-            ),
-            4,
-          ),
-          32,
-        ),
-        4,
-      ),
+      keyEncoding: new PrefixArrayEncoding([
+        [new BufferEncoding(), 4], // account prefix
+        [new BufferEncoding(), 32], // asset ID
+        [U32_ENCODING_BE, 4], // sequence
+        [new BigU64BEEncoding(), 8], // value
+        [new BufferEncoding(), 32], // note hash
+      ]),
       valueEncoding: NULL_ENCODING,
     })
 
@@ -601,7 +591,7 @@ export class WalletDB {
     const value = decryptedNote.note.value()
 
     await this.unspentNoteHashes.put(
-      [account.prefix, [assetId, [sequence, [value, noteHash]]]],
+      [account.prefix, assetId, sequence, value, noteHash],
       null,
       tx,
     )
@@ -625,10 +615,7 @@ export class WalletDB {
 
     Assert.isNotNull(sequence, 'Cannot spend a note that is not on the chain.')
 
-    await this.unspentNoteHashes.del(
-      [account.prefix, [assetId, [sequence, [value, noteHash]]]],
-      tx,
-    )
+    await this.unspentNoteHashes.del([account.prefix, assetId, sequence, value, noteHash], tx)
 
     await this.valueToUnspentNoteHashes.del([account.prefix, assetId, value, noteHash], tx)
   }
@@ -682,10 +669,7 @@ export class WalletDB {
       encoding.serialize([account.prefix, [assetId, maxConfirmedSequence]]),
     )
 
-    for await (const [, [, [, [_, noteHash]]]] of this.unspentNoteHashes.getAllKeysIter(
-      tx,
-      range,
-    )) {
+    for await (const [, , , , noteHash] of this.unspentNoteHashes.getAllKeysIter(tx, range)) {
       yield noteHash
     }
   }
@@ -724,10 +708,7 @@ export class WalletDB {
       encoding.serialize([account.prefix, [assetId, maxConfirmedSequence]]),
     )
 
-    for await (const [, [, [, [value, _]]]] of this.unspentNoteHashes.getAllKeysIter(
-      tx,
-      range,
-    )) {
+    for await (const [, , , value, _] of this.unspentNoteHashes.getAllKeysIter(tx, range)) {
       yield value
     }
   }

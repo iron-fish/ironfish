@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { ParticipantSecret, TrustedDealerKeyPackages } from '@ironfish/rust-nodejs'
+import { ParticipantSecret } from '@ironfish/rust-nodejs'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 
 describe('Route multisig/createSigningCommitment', () => {
@@ -9,9 +9,7 @@ describe('Route multisig/createSigningCommitment', () => {
 
   it('should error on invalid keypackage', async () => {
     const keyPackage = 'invalid key package'
-
     const request = { keyPackage, seed: 0 }
-
     await expect(
       routeTest.client.request('multisig/createSigningCommitment', request).waitForEnd(),
     ).rejects.toThrow('InvalidData')
@@ -23,15 +21,13 @@ describe('Route multisig/createSigningCommitment', () => {
     }))
 
     const request = { minSigners: 2, maxSigners: 3, participants }
-    const response = await routeTest.client
-      .request('multisig/createTrustedDealerKeyPackage', request)
-      .waitForEnd()
+    const response = await routeTest.client.multisig.createTrustedDealerKeyPackage(request)
 
-    const trustedDealerKeyPackage = response.content as TrustedDealerKeyPackages
+    const trustedDealerPackage = response.content
 
     const signingCommitment = await routeTest.client
       .request('multisig/createSigningCommitment', {
-        keyPackage: trustedDealerKeyPackage.keyPackages[0].keyPackage,
+        keyPackage: trustedDealerPackage.keyPackages[0].keyPackage,
         seed: 420,
       })
       .waitForEnd()

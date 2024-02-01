@@ -28,12 +28,9 @@ describe('Wallet', () => {
   const nodeTest = createNodeTest()
 
   it('should throw an error when chain processor head does not exist in chain', async () => {
-    const { node, strategy } = nodeTest
-    strategy.disableMiningReward()
+    nodeTest.wallet['chainProcessor'].hash = Buffer.from('0')
 
-    node.wallet['chainProcessor'].hash = Buffer.from('0')
-
-    await expect(node.wallet.start()).rejects.toThrow()
+    await expect(nodeTest.wallet.start()).rejects.toThrow()
   })
 
   it('should handle transaction created on fork', async () => {
@@ -1216,6 +1213,41 @@ describe('Wallet', () => {
 
       const reorgVerification = await nodeA.chain.verifier.verifyTransactionAdd(transaction)
       expect(reorgVerification.valid).toBe(true)
+    })
+
+    it('throw error if account is not fully synced when creating transaction', async () => {
+      // Create an account A
+      const accountA = await useAccountFixture(nodeTest.wallet, 'testA')
+      const accountB = await useAccountFixture(nodeTest.wallet, 'testB')
+
+      // Create a block with a miner's fee
+      const block = await useMinerBlockFixture(nodeTest.node.chain, 2, accountA)
+      await nodeTest.chain.addBlock(block)
+      await nodeTest.wallet.updateHead()
+
+      // Modify the headhash
+      const headhash = await nodeTest.wallet.getLatestHeadHash()
+      Assert.isNotNull(headhash)
+      headhash[0] = 0
+      await accountA.updateHead({ hash: headhash, sequence: 2 })
+
+      const response = nodeTest.wallet.createTransaction({
+        account: accountA,
+        outputs: [
+          {
+            publicAddress: accountB.publicAddress,
+            amount: BigInt(1),
+            memo: '',
+            assetId: Asset.nativeId(),
+          },
+        ],
+        fee: 1n,
+        expiration: 0,
+      })
+
+      await expect(response).rejects.toThrow(
+        'Your account must finish scanning before sending a transaction.',
+      )
     })
 
     describe('should create transactions with the correct version', () => {

@@ -15,7 +15,7 @@ export type CreateTrustedDealerKeyPackageRequest = {
 }
 export type CreateTrustedDealerKeyPackageResponse = {
   verifyingKey: string
-  proofGenerationKey: string
+  proofAuthorizingKey: string
   viewKey: string
   incomingViewKey: string
   outgoingViewKey: string
@@ -45,7 +45,7 @@ export const CreateTrustedDealerKeyPackageResponseSchema: yup.ObjectSchema<Creat
   yup
     .object({
       verifyingKey: yup.string().defined(),
-      proofGenerationKey: yup.string().defined(),
+      proofAuthorizingKey: yup.string().defined(),
       viewKey: yup.string().defined(),
       incomingViewKey: yup.string().defined(),
       outgoingViewKey: yup.string().defined(),
@@ -80,6 +80,7 @@ routes.register<
       maxSigners,
       identifiers,
     )
+
     request.end(trustedDealerPackage)
   },
 )

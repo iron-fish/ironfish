@@ -36,7 +36,7 @@ describe('GetBlocksResponse', () => {
     const message = new GetBlocksResponse(
       [
         new Block(
-          nodeTest.strategy.newBlockHeader({
+          nodeTest.chain.newBlockHeaderFromRaw({
             sequence: 2,
             previousBlockHash: Buffer.alloc(32, 2),
             noteCommitment: Buffer.alloc(32, 4),
@@ -49,7 +49,7 @@ describe('GetBlocksResponse', () => {
           [transactionA, transactionB],
         ),
         new Block(
-          nodeTest.strategy.newBlockHeader({
+          nodeTest.chain.newBlockHeaderFromRaw({
             sequence: 2,
             previousBlockHash: Buffer.alloc(32, 1),
             noteCommitment: Buffer.alloc(32, 5),

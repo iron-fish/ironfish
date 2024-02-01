@@ -5,7 +5,8 @@ import { BoxKeyPair, FishHashContext } from '@ironfish/rust-nodejs'
 import { v4 as uuid } from 'uuid'
 import { AssetsVerifier } from './assets'
 import { Blockchain } from './blockchain'
-import { TestnetConsensus } from './consensus'
+import { BlockHasher } from './blockHasher'
+import { Consensus } from './consensus'
 import {
   Config,
   DEFAULT_DATA_DIR,
@@ -24,11 +25,11 @@ import { PeerNetwork, PrivateIdentity, privateIdentityToIdentity } from './netwo
 import { isHexSecretKey } from './network/identity'
 import { IsomorphicWebSocketConstructor, NodeDataChannelType } from './network/types'
 import { getNetworkDefinition } from './networks'
+import { Network } from './networks/network'
 import { Package } from './package'
 import { Platform } from './platform'
 import { ALL_API_NAMESPACES, RpcMemoryClient } from './rpc'
 import { RpcServer } from './rpc/server'
-import { Strategy } from './strategy'
 import { Syncer } from './syncer'
 import { Telemetry } from './telemetry/telemetry'
 import { Wallet, WalletDB } from './wallet'
@@ -36,7 +37,6 @@ import { calculateWorkers, WorkerPool } from './workerPool'
 
 export class FullNode {
   chain: Blockchain
-  strategy: Strategy
   config: Config
   internal: InternalStore
   wallet: Wallet
@@ -53,6 +53,7 @@ export class FullNode {
   pkg: Package
   telemetry: Telemetry
   assetsVerifier: AssetsVerifier
+  network: Network
 
   started = false
   shutdownPromise: Promise<void> | null = null
@@ -65,7 +66,6 @@ export class FullNode {
     config,
     internal,
     wallet,
-    strategy,
     metrics,
     memPool,
     workerPool,
@@ -74,8 +74,8 @@ export class FullNode {
     nodeDataChannel,
     privateIdentity,
     peerStore,
-    networkId,
     assetsVerifier,
+    network,
   }: {
     pkg: Package
     files: FileSystem
@@ -83,7 +83,6 @@ export class FullNode {
     internal: InternalStore
     wallet: Wallet
     chain: Blockchain
-    strategy: Strategy
     metrics: MetricsMonitor
     memPool: MemPool
     workerPool: WorkerPool
@@ -92,16 +91,16 @@ export class FullNode {
     nodeDataChannel: NodeDataChannelType
     privateIdentity: PrivateIdentity
     peerStore: PeerStore
-    networkId: number
     assetsVerifier: AssetsVerifier
+    network: Network
   }) {
     this.files = files
     this.config = config
     this.internal = internal
     this.wallet = wallet
     this.chain = chain
-    this.strategy = strategy
     this.metrics = metrics
+    this.network = network
     this.miningManager = new MiningManager({
       chain,
       memPool,
@@ -132,11 +131,11 @@ export class FullNode {
         { name: 'node_id', type: 'string', value: internal.get('telemetryNodeId') },
         { name: 'session_id', type: 'string', value: uuid() },
       ],
-      networkId,
+      networkId: network.id,
     })
 
     this.peerNetwork = new PeerNetwork({
-      networkId,
+      networkId: network.id,
       identity: privateIdentity,
       agent: Platform.getAgent(pkg),
       port: config.get('peerPort'),
@@ -192,7 +191,6 @@ export class FullNode {
     logger = createRootLogger(),
     metrics,
     files,
-    strategyClass,
     webSocket,
     privateIdentity,
     fishHashContext,
@@ -207,7 +205,6 @@ export class FullNode {
     logger?: Logger
     metrics?: MetricsMonitor
     files: FileSystem
-    strategyClass: typeof Strategy | null
     webSocket: IsomorphicWebSocketConstructor
     privateIdentity?: PrivateIdentity
     fishHashContext?: FishHashContext
@@ -268,7 +265,7 @@ export class FullNode {
     internal.set('networkIdentity', privateIdentity.secretKey.toString('hex'))
     await internal.save()
 
-    const consensus = new TestnetConsensus(networkDefinition.consensus)
+    const consensus = new Consensus(networkDefinition.consensus)
 
     if (consensus.isNeverActive('enableFishHash')) {
       fishHashContext = undefined
@@ -277,12 +274,15 @@ export class FullNode {
       fishHashContext = new FishHashContext(isFull)
     }
 
-    strategyClass = strategyClass || Strategy
-    const strategy = new strategyClass({ workerPool, consensus, fishHashContext })
+    const blockHasher = new BlockHasher({
+      consensus: consensus,
+      context: fishHashContext,
+    })
+
+    const network = new Network(networkDefinition, consensus)
 
     const chain = new Blockchain({
       location: config.chainDatabasePath,
-      strategy,
       logger,
       metrics,
       autoSeed,
@@ -291,6 +291,8 @@ export class FullNode {
       consensus,
       genesis: networkDefinition.genesis,
       config,
+      blockHasher,
+      network,
     })
 
     const feeEstimator = new FeeEstimator({
@@ -336,7 +338,6 @@ export class FullNode {
     const node = new FullNode({
       pkg,
       chain,
-      strategy,
       files,
       config,
       internal,
@@ -349,8 +350,8 @@ export class FullNode {
       nodeDataChannel,
       privateIdentity,
       peerStore,
-      networkId: networkDefinition.id,
       assetsVerifier,
+      network,
     })
 
     memoryClient.router = node.rpc.getRouter(ALL_API_NAMESPACES)
