@@ -7,7 +7,7 @@ import { Bech32m } from '../../../utils'
 import { AccountImport, KEY_LENGTH, VIEW_KEY_LENGTH } from '../../walletdb/accountValue'
 import { ACCOUNT_SCHEMA_VERSION } from '../account'
 import { AccountDecodingOptions, AccountEncoder, DecodeFailed, DecodeInvalid } from './encoder'
-import { NullableMultiSigKeysEncoding } from './multiSigKeys'
+import { MultiSigKeysEncoding } from './multiSigKeys'
 
 export const BECH32_ACCOUNT_PREFIX = 'ifaccount'
 
@@ -47,7 +47,7 @@ export class Bech32Encoder implements AccountEncoder {
 
     bw.writeU8(Number(!!value.multiSigKeys))
     if (value.multiSigKeys) {
-      const encoding = new NullableMultiSigKeysEncoding()
+      const encoding = new MultiSigKeysEncoding()
       bw.writeU64(encoding.getSize(value.multiSigKeys))
       bw.writeBytes(encoding.serialize(value.multiSigKeys))
     }
@@ -109,7 +109,7 @@ export class Bech32Encoder implements AccountEncoder {
     }
     size += 1 // multiSigKeys byte
     if (value.multiSigKeys) {
-      const encoding = new NullableMultiSigKeysEncoding()
+      const encoding = new MultiSigKeysEncoding()
       size += 8 // size of multi sig keys
       size += encoding.getSize(value.multiSigKeys)
     }
@@ -163,7 +163,7 @@ function decoderV2(
   const hasMultiSigKeys = reader.readU8() === 1
   if (hasMultiSigKeys) {
     const size = reader.readU64()
-    const encoder = new NullableMultiSigKeysEncoding()
+    const encoder = new MultiSigKeysEncoding()
     multiSigKeys = encoder.deserialize(reader.readBytes(size))
   }
 

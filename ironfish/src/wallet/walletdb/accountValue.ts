@@ -5,7 +5,7 @@ import { PUBLIC_ADDRESS_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { IDatabaseEncoding } from '../../storage'
 import { ACCOUNT_KEY_LENGTH } from '../account/account'
-import { NullableMultiSigKeysEncoding } from '../account/encoder/multiSigKeys'
+import { MultiSigKeysEncoding } from '../account/encoder/multiSigKeys'
 import { MultiSigKeys } from '../interfaces/multiSigKeys'
 import { HeadValue, NullableHeadValueEncoding } from './headValue'
 
@@ -53,7 +53,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     }
 
     if (value.multiSigKeys) {
-      const encoding = new NullableMultiSigKeysEncoding()
+      const encoding = new MultiSigKeysEncoding()
       bw.writeU64(encoding.getSize(value.multiSigKeys))
       bw.writeBytes(encoding.serialize(value.multiSigKeys))
     }
@@ -85,7 +85,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     let multiSigKeys = undefined
     if (hasMultiSigKeys) {
       const multiSigKeysLength = reader.readU64()
-      const encoding = new NullableMultiSigKeysEncoding()
+      const encoding = new MultiSigKeysEncoding()
       multiSigKeys = encoding.deserialize(reader.readBytes(multiSigKeysLength))
     }
 
@@ -123,7 +123,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     }
 
     if (value.multiSigKeys) {
-      const encoding = new NullableMultiSigKeysEncoding()
+      const encoding = new MultiSigKeysEncoding()
       size += 8 // size of multi sig keys
       size += encoding.getSize(value.multiSigKeys)
     }

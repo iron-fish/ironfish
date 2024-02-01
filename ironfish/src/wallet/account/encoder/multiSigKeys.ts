@@ -6,10 +6,8 @@ import { Assert } from '../../../assert'
 import { IDatabaseEncoding } from '../../../storage'
 import { MultiSigKeys, MultiSigSigner } from '../../interfaces/multiSigKeys'
 
-export class NullableMultiSigKeysEncoding
-  implements IDatabaseEncoding<MultiSigKeys | undefined>
-{
-  serialize(value: MultiSigKeys | undefined): Buffer {
+export class MultiSigKeysEncoding implements IDatabaseEncoding<MultiSigKeys> {
+  serialize(value: MultiSigKeys): Buffer {
     const bw = bufio.write(this.getSize(value))
 
     if (value) {
@@ -28,35 +26,31 @@ export class NullableMultiSigKeysEncoding
     return bw.render()
   }
 
-  deserialize(buffer: Buffer): MultiSigKeys | undefined {
+  deserialize(buffer: Buffer): MultiSigKeys {
     const reader = bufio.read(buffer, true)
 
-    if (reader.left()) {
-      const flags = reader.readU8()
-      const isSigner = flags & (1 << 0)
+    const flags = reader.readU8()
+    const isSigner = flags & (1 << 0)
 
-      const publicKeyPackage = reader.readVarBytes().toString('hex')
-      if (isSigner) {
-        const identifier = reader.readVarBytes().toString('hex')
-        const keyPackage = reader.readVarBytes().toString('hex')
-        const proofGenerationKey = reader.readVarBytes().toString('hex')
-        return {
-          publicKeyPackage,
-          identifier,
-          keyPackage,
-          proofGenerationKey,
-        }
-      }
-
+    const publicKeyPackage = reader.readVarBytes().toString('hex')
+    if (isSigner) {
+      const identifier = reader.readVarBytes().toString('hex')
+      const keyPackage = reader.readVarBytes().toString('hex')
+      const proofGenerationKey = reader.readVarBytes().toString('hex')
       return {
         publicKeyPackage,
+        identifier,
+        keyPackage,
+        proofGenerationKey,
       }
     }
 
-    return undefined
+    return {
+      publicKeyPackage,
+    }
   }
 
-  getSize(value: MultiSigKeys | undefined): number {
+  getSize(value: MultiSigKeys): number {
     if (!value) {
       return 0
     }
