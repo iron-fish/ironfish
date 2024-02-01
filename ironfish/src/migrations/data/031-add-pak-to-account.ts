@@ -24,7 +24,7 @@ export class Migration031 extends Migration {
   ): Promise<void> {
     const stores = GetStores(db)
 
-    logger.info(`Migrating account data to store proof authorization key`)
+    logger.info(`Migrating account data to store proof authorizing key`)
 
     for await (const accountValue of stores.old.accounts.getAllValuesIter(tx)) {
       logger.info(` Migrating account ${accountValue.name}`)
@@ -55,7 +55,7 @@ export class Migration031 extends Migration {
   ): Promise<void> {
     const stores = GetStores(db)
 
-    logger.info(`Reverting migration of adding proof authorization key to account`)
+    logger.info(`Reverting migration of adding proof authorizing key to account`)
 
     for await (const accountValue of stores.new.accounts.getAllValuesIter(tx)) {
       logger.info(` Reverting migration for account ${accountValue.name}`)

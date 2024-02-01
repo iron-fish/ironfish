@@ -72,11 +72,11 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     const hasSpendingKey = flags & (1 << 0)
     const hasCreatedAt = flags & (1 << 1)
     const hasMultiSigKeys = flags & (1 << 2)
-    const hasProofAuthorizationKey = flags & (1 << 3)
+    const hasProofAuthorizingKey = flags & (1 << 3)
     const id = reader.readVarString('utf8')
     const name = reader.readVarString('utf8')
     const spendingKey = hasSpendingKey ? reader.readBytes(KEY_LENGTH).toString('hex') : null
-    const proofAuthorizingKey = hasProofAuthorizationKey
+    const proofAuthorizingKey = hasProofAuthorizingKey
       ? reader.readBytes(KEY_LENGTH).toString('hex')
       : null
     const viewKey = reader.readBytes(VIEW_KEY_LENGTH).toString('hex')
