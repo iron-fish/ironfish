@@ -13,6 +13,7 @@ import { StorageUtils } from '../../storage/database/utils'
 import { WithNonNull } from '../../utils'
 import { DecryptedNote } from '../../workerPool/tasks/decryptNotes'
 import { AssetBalances } from '../assetBalances'
+import { MultiSigKeys } from '../interfaces/multiSigKeys'
 import { WalletBlockHeader } from '../remoteChainProcessor'
 import { AccountValue } from '../walletdb/accountValue'
 import { AssetValue } from '../walletdb/assetValue'
@@ -47,11 +48,7 @@ export class Account {
   createdAt: HeadValue | null
   readonly prefix: Buffer
   readonly prefixRange: DatabaseKeyRange
-  readonly multiSigKeys?: {
-    identifier: string
-    keyPackage: string
-    proofGenerationKey: string
-  }
+  readonly multiSigKeys: MultiSigKeys | null
 
   constructor({
     id,
@@ -82,7 +79,7 @@ export class Account {
     this.walletDb = walletDb
     this.version = version ?? 1
     this.createdAt = createdAt
-    this.multiSigKeys = multiSigKeys
+    this.multiSigKeys = multiSigKeys ?? null
   }
 
   isSpendingAccount(): this is SpendingAccount {

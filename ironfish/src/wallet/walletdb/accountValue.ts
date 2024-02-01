@@ -5,6 +5,8 @@ import { PUBLIC_ADDRESS_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { IDatabaseEncoding } from '../../storage'
 import { ACCOUNT_KEY_LENGTH } from '../account/account'
+import { NullableMultiSigKeysEncoding } from '../account/encoder/multiSigKeys'
+import { MultiSigKeys } from '../interfaces/multiSigKeys'
 import { HeadValue, NullableHeadValueEncoding } from './headValue'
 
 export const KEY_LENGTH = ACCOUNT_KEY_LENGTH
@@ -21,11 +23,7 @@ export interface AccountValue {
   outgoingViewKey: string
   publicAddress: string
   createdAt: HeadValue | null
-  multiSigKeys?: {
-    identifier: string
-    keyPackage: string
-    proofGenerationKey: string
-  }
+  multiSigKeys?: MultiSigKeys | null
 }
 
 export type AccountImport = Omit<AccountValue, 'id'>
@@ -55,9 +53,9 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     }
 
     if (value.multiSigKeys) {
-      bw.writeVarBytes(Buffer.from(value.multiSigKeys.identifier, 'hex'))
-      bw.writeVarBytes(Buffer.from(value.multiSigKeys.keyPackage, 'hex'))
-      bw.writeVarBytes(Buffer.from(value.multiSigKeys.proofGenerationKey, 'hex'))
+      const encoding = new NullableMultiSigKeysEncoding()
+      bw.writeU64(encoding.getSize(value.multiSigKeys))
+      bw.writeBytes(encoding.serialize(value.multiSigKeys))
     }
 
     return bw.render()
@@ -84,13 +82,11 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
       createdAt = encoding.deserialize(reader.readBytes(encoding.nonNullSize))
     }
 
-    let multiSigKeys = undefined
+    let multiSigKeys = null
     if (hasMultiSigKeys) {
-      multiSigKeys = {
-        identifier: reader.readVarBytes().toString('hex'),
-        keyPackage: reader.readVarBytes().toString('hex'),
-        proofGenerationKey: reader.readVarBytes().toString('hex'),
-      }
+      const multiSigKeysLength = reader.readU64()
+      const encoding = new NullableMultiSigKeysEncoding()
+      multiSigKeys = encoding.deserialize(reader.readBytes(multiSigKeysLength))
     }
 
     return {
@@ -120,14 +116,16 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     size += KEY_LENGTH
     size += KEY_LENGTH
     size += PUBLIC_ADDRESS_LENGTH
+
     if (value.createdAt) {
       const encoding = new NullableHeadValueEncoding()
       size += encoding.nonNullSize
     }
+
     if (value.multiSigKeys) {
-      size += bufio.sizeVarString(value.multiSigKeys.identifier, 'hex')
-      size += bufio.sizeVarString(value.multiSigKeys.keyPackage, 'hex')
-      size += bufio.sizeVarString(value.multiSigKeys.proofGenerationKey, 'hex')
+      const encoding = new NullableMultiSigKeysEncoding()
+      size += 8 // size of multi sig keys
+      size += encoding.getSize(value.multiSigKeys)
     }
 
     return size

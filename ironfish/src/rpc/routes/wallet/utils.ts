@@ -1,10 +1,12 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Assert } from '../../../assert'
 import { Config } from '../../../fileStores'
 import { Note } from '../../../primitives'
 import { BufferUtils, CurrencyUtils } from '../../../utils'
 import { Account, Wallet } from '../../../wallet'
+import { MultiSigKeys } from '../../../wallet/interfaces/multiSigKeys'
 import { AccountImport } from '../../../wallet/walletdb/accountValue'
 import { AssetValue } from '../../../wallet/walletdb/assetValue'
 import { DecryptedNoteValue } from '../../../wallet/walletdb/decryptedNoteValue'
@@ -15,6 +17,7 @@ import {
   RpcAccountAssetBalanceDelta,
   RpcAccountImport,
   RpcAccountStatus,
+  RpcMultiSigKeys,
   RpcWalletNote,
   RpcWalletTransaction,
 } from './types'
@@ -104,7 +107,33 @@ export function deserializeRpcAccountImport(accountImport: RpcAccountImport): Ac
           sequence: accountImport.createdAt.sequence,
         }
       : null,
+    multiSigKeys: accountImport.multiSigKeys
+      ? deserializeRpcAccountMultiSigKeys(accountImport.multiSigKeys)
+      : null,
   }
+}
+
+export function deserializeRpcAccountMultiSigKeys(
+  rpcMultiSigKeys: RpcMultiSigKeys,
+): MultiSigKeys | null {
+  let multiSigKeys: MultiSigKeys | null = null
+
+  if (rpcMultiSigKeys) {
+    if (rpcMultiSigKeys.publicKeyPackage) {
+      multiSigKeys = { publicKeyPackage: rpcMultiSigKeys.publicKeyPackage }
+    } else {
+      Assert.isNotUndefined(rpcMultiSigKeys.identifier)
+      Assert.isNotUndefined(rpcMultiSigKeys.keyPackage)
+      Assert.isNotUndefined(rpcMultiSigKeys.proofGenerationKey)
+      multiSigKeys = {
+        identifier: rpcMultiSigKeys.identifier,
+        keyPackage: rpcMultiSigKeys.keyPackage,
+        proofGenerationKey: rpcMultiSigKeys.proofGenerationKey,
+      }
+    }
+  }
+
+  return multiSigKeys
 }
 
 export async function getAssetBalanceDeltas(
