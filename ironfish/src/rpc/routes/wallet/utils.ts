@@ -109,14 +109,14 @@ export function deserializeRpcAccountImport(accountImport: RpcAccountImport): Ac
       : null,
     multiSigKeys: accountImport.multiSigKeys
       ? deserializeRpcAccountMultiSigKeys(accountImport.multiSigKeys)
-      : null,
+      : undefined,
   }
 }
 
 export function deserializeRpcAccountMultiSigKeys(
   rpcMultiSigKeys: RpcMultiSigKeys,
-): MultiSigKeys | null {
-  let multiSigKeys: MultiSigKeys | null = null
+): MultiSigKeys | undefined {
+  let multiSigKeys: MultiSigKeys | undefined
 
   if (rpcMultiSigKeys) {
     if (rpcMultiSigKeys.publicKeyPackage) {

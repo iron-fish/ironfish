@@ -23,7 +23,7 @@ export interface AccountValue {
   outgoingViewKey: string
   publicAddress: string
   createdAt: HeadValue | null
-  multiSigKeys?: MultiSigKeys | null
+  multiSigKeys?: MultiSigKeys
 }
 
 export type AccountImport = Omit<AccountValue, 'id'>
@@ -82,7 +82,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
       createdAt = encoding.deserialize(reader.readBytes(encoding.nonNullSize))
     }
 
-    let multiSigKeys = null
+    let multiSigKeys = undefined
     if (hasMultiSigKeys) {
       const multiSigKeysLength = reader.readU64()
       const encoding = new NullableMultiSigKeysEncoding()

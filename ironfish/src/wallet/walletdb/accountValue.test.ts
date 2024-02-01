@@ -22,7 +22,6 @@ describe('AccountValueEncoding', () => {
         hash: Buffer.alloc(32, 0),
         sequence: 1,
       },
-      multiSigKeys: undefined,
     }
     const buffer = encoder.serialize(value)
     const deserializedValue = encoder.deserialize(buffer)

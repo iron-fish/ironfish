@@ -48,6 +48,7 @@ export class Bech32Encoder implements AccountEncoder {
     bw.writeU8(Number(!!value.multiSigKeys))
     if (value.multiSigKeys) {
       const encoding = new NullableMultiSigKeysEncoding()
+      bw.writeU64(encoding.getSize(value.multiSigKeys))
       bw.writeBytes(encoding.serialize(value.multiSigKeys))
     }
 
@@ -161,7 +162,7 @@ function decoderV2(
 
   const hasMultiSigKeys = reader.readU8() === 1
   if (hasMultiSigKeys) {
-    const size = reader.readU8()
+    const size = reader.readU64()
     const encoder = new NullableMultiSigKeysEncoding()
     multiSigKeys = encoder.deserialize(reader.readBytes(size))
   }

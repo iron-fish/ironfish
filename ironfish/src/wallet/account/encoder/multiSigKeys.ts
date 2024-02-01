@@ -2,11 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import bufio from 'bufio'
+import { Assert } from '../../../assert'
 import { IDatabaseEncoding } from '../../../storage'
-import { MultiSigCoordinator, MultiSigKeys } from '../../interfaces/multiSigKeys'
+import {
+  MultiSigCoordinator,
+  MultiSigKeys,
+  MultiSigSigner,
+} from '../../interfaces/multiSigKeys'
 
-export class NullableMultiSigKeysEncoding implements IDatabaseEncoding<MultiSigKeys | null> {
-  serialize(value: MultiSigKeys | null): Buffer {
+export class NullableMultiSigKeysEncoding
+  implements IDatabaseEncoding<MultiSigKeys | undefined>
+{
+  serialize(value: MultiSigKeys | undefined): Buffer {
     const bw = bufio.write(this.getSize(value))
 
     if (value) {
@@ -26,7 +33,7 @@ export class NullableMultiSigKeysEncoding implements IDatabaseEncoding<MultiSigK
     return bw.render()
   }
 
-  deserialize(buffer: Buffer): MultiSigKeys | null {
+  deserialize(buffer: Buffer): MultiSigKeys | undefined {
     const reader = bufio.read(buffer, true)
 
     if (reader.left()) {
@@ -34,24 +41,24 @@ export class NullableMultiSigKeysEncoding implements IDatabaseEncoding<MultiSigK
       const isCoordinator = flags & (1 << 0)
 
       if (isCoordinator) {
-        const identifier = reader.readVarBytes().toString('hex')
-        const keyPackage = reader.readVarBytes().toString('hex')
-        const proofGenerationKey = reader.readVarBytes().toString('hex')
-        return {
-          identifier,
-          keyPackage,
-          proofGenerationKey,
-        }
+        const publicKeyPackage = reader.readVarBytes().toString('hex')
+        return { publicKeyPackage }
       }
 
-      const publicKeyPackage = reader.readVarBytes().toString('hex')
-      return { publicKeyPackage }
+      const identifier = reader.readVarBytes().toString('hex')
+      const keyPackage = reader.readVarBytes().toString('hex')
+      const proofGenerationKey = reader.readVarBytes().toString('hex')
+      return {
+        identifier,
+        keyPackage,
+        proofGenerationKey,
+      }
     }
 
-    return null
+    return undefined
   }
 
-  getSize(value: MultiSigKeys | null): number {
+  getSize(value: MultiSigKeys | undefined): number {
     if (!value) {
       return 0
     }
@@ -75,4 +82,16 @@ export function isCoordinatorMultiSig(
   multiSigKeys: MultiSigKeys,
 ): multiSigKeys is MultiSigCoordinator {
   return 'publicKeyPackage' in multiSigKeys
+}
+
+export function AssertIsCoordinatorMultiSig(
+  multiSigKeys: MultiSigKeys,
+): asserts multiSigKeys is MultiSigCoordinator {
+  Assert.isTrue(isCoordinatorMultiSig(multiSigKeys))
+}
+
+export function AssertIsSignerMultiSig(
+  multiSigKeys: MultiSigKeys,
+): asserts multiSigKeys is MultiSigSigner {
+  Assert.isFalse(isCoordinatorMultiSig(multiSigKeys))
 }

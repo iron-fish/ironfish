@@ -39,7 +39,7 @@ export class JsonEncoder implements AccountEncoder {
           : null,
         multiSigKeys: account.multiSigKeys
           ? deserializeRpcAccountMultiSigKeys(account.multiSigKeys)
-          : null,
+          : undefined,
       }
 
       if (!accountImport.viewKey) {

@@ -26,6 +26,7 @@ import {
   useTxFixture,
 } from '../testUtilities'
 import { acceptsAllTarget } from '../testUtilities/helpers/blockchain'
+import { AssertIsSignerMultiSig } from './account/encoder/multiSigKeys'
 
 describe('Wallet', () => {
   const nodeTest = createNodeTest()
@@ -1206,6 +1207,9 @@ describe('Wallet', () => {
       Assert.isNotUndefined(participantA.multiSigKeys)
       Assert.isNotUndefined(participantB.multiSigKeys)
       Assert.isNotUndefined(participantC.multiSigKeys)
+      AssertIsSignerMultiSig(participantA.multiSigKeys)
+      AssertIsSignerMultiSig(participantB.multiSigKeys)
+      AssertIsSignerMultiSig(participantC.multiSigKeys)
 
       const signingCommitments = [
         {
