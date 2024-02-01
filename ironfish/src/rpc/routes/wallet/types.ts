@@ -149,7 +149,7 @@ export type RpcAccountImport = {
   publicAddress: string
   spendingKey: string | null
   createdAt: { hash: string; sequence: number } | null
-  multiSigKeys: RpcMultiSigKeys | null
+  multiSigKeys?: RpcMultiSigKeys | null
 }
 
 export const RpcAccountImportSchema: yup.ObjectSchema<RpcAccountImport> = yup
@@ -175,8 +175,7 @@ export const RpcAccountImportSchema: yup.ObjectSchema<RpcAccountImport> = yup
         proofGenerationKey: yup.string().optional(),
         publicKeyPackage: yup.string().optional(),
       })
-      .nullable()
-      .defined(),
+      .nullable(),
   })
   .defined()
 
