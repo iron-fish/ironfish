@@ -44,7 +44,7 @@ describe('BuildTransactionRequest', () => {
 
     const request = new BuildTransactionRequest(
       raw,
-      key.proofGenerationKey,
+      key.proofAuthorizingKey,
       account.viewKey,
       account.outgoingViewKey,
     )
@@ -110,7 +110,7 @@ describe('BuildTransactionTask', () => {
 
     const request = new BuildTransactionRequest(
       raw,
-      key.proofGenerationKey,
+      key.proofAuthorizingKey,
       account.viewKey,
       account.outgoingViewKey,
     )
