@@ -1098,14 +1098,7 @@ export class Blockchain {
         await this.disconnect(block, tx)
       }
 
-      const result = await this.blockchainDb.getBlockHashesAtSequence(header.sequence, tx)
-      const hashes = result.filter((h) => !h.equals(hash))
-      if (hashes.length === 0) {
-        await this.blockchainDb.deleteSequenceToHashes(header.sequence, tx)
-      } else {
-        await this.blockchainDb.putSequenceToHashes(header.sequence, hashes, tx)
-      }
-
+      await this.blockchainDb.removeHashAtSequence(header.sequence, hash, tx)
       await this.blockchainDb.deleteTransaction(hash, tx)
       await this.blockchainDb.deleteHeader(hash, tx)
 
@@ -1290,8 +1283,7 @@ export class Blockchain {
     await this.blockchainDb.addTransaction(hash, { transactions: block.transactions }, tx)
 
     // Update Sequence -> BlockHash[]
-    const hashes = await this.blockchainDb.getBlockHashesAtSequence(sequence, tx)
-    await this.blockchainDb.putSequenceToHashes(sequence, [...hashes, hash], tx)
+    await this.blockchainDb.addHashAtSequence(sequence, hash, tx)
 
     if (!fork) {
       await this.saveConnect(block, prev, tx)
