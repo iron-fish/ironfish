@@ -152,7 +152,6 @@ describe('Route wallet/exportAccount', () => {
       publicAddress: key.publicAddress,
       incomingViewKey: key.incomingViewKey,
       outgoingViewKey: key.outgoingViewKey,
-      proofAuthorizingKey: key.proofAuthorizingKey,
       version: 1,
       createdAt: null,
       multiSigKeys: {
@@ -160,6 +159,7 @@ describe('Route wallet/exportAccount', () => {
         keyPackage: 'bbbb',
         proofGenerationKey: 'cccc',
       },
+      proofAuthorizingKey: key.proofAuthorizingKey,
     }
 
     await routeTest.wallet.importAccount({ ...accountImport, id: uuid() })

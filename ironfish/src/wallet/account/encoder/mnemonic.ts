@@ -53,13 +53,13 @@ export class MnemonicEncoder implements AccountEncoder {
     return {
       name: options.name,
       spendingKey: spendingKey,
-      proofAuthorizingKey: key.proofAuthorizingKey,
       viewKey: key.viewKey,
       incomingViewKey: key.incomingViewKey,
       outgoingViewKey: key.outgoingViewKey,
       publicAddress: key.publicAddress,
       createdAt: null,
       version: ACCOUNT_SCHEMA_VERSION,
+      proofAuthorizingKey: key.proofAuthorizingKey,
     }
   }
 }

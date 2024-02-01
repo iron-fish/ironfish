@@ -15,13 +15,13 @@ describe('Bech32AccountEncoder', () => {
     const accountImport: AccountImport = {
       version: ACCOUNT_SCHEMA_VERSION,
       name: 'test',
-      proofAuthorizingKey: key.proofAuthorizingKey,
       spendingKey: key.spendingKey,
       viewKey: key.viewKey,
       incomingViewKey: key.incomingViewKey,
       outgoingViewKey: key.outgoingViewKey,
       publicAddress: key.publicAddress,
       createdAt: null,
+      proofAuthorizingKey: key.proofAuthorizingKey,
     }
 
     const encoded = encoder.encode(accountImport)
@@ -36,7 +36,6 @@ describe('Bech32AccountEncoder', () => {
       version: ACCOUNT_SCHEMA_VERSION,
       name: 'test',
       spendingKey: key.spendingKey,
-      proofAuthorizingKey: key.proofAuthorizingKey,
       viewKey: key.viewKey,
       incomingViewKey: key.incomingViewKey,
       outgoingViewKey: key.outgoingViewKey,
@@ -48,6 +47,7 @@ describe('Bech32AccountEncoder', () => {
         ),
         sequence: 1,
       },
+      proofAuthorizingKey: key.proofAuthorizingKey,
     }
 
     const encoded = encoder.encode(accountImport)
@@ -62,12 +62,12 @@ describe('Bech32AccountEncoder', () => {
       version: ACCOUNT_SCHEMA_VERSION,
       name: 'test',
       spendingKey: null,
-      proofAuthorizingKey: key.proofAuthorizingKey,
       viewKey: key.viewKey,
       incomingViewKey: key.incomingViewKey,
       outgoingViewKey: key.outgoingViewKey,
       publicAddress: key.publicAddress,
       createdAt: null,
+      proofAuthorizingKey: key.proofAuthorizingKey,
     }
 
     const encoded = encoder.encode(accountImport)
@@ -82,7 +82,6 @@ describe('Bech32AccountEncoder', () => {
       version: ACCOUNT_SCHEMA_VERSION,
       name: 'test',
       spendingKey: null,
-      proofAuthorizingKey: null,
       viewKey: key.viewKey,
       incomingViewKey: key.incomingViewKey,
       outgoingViewKey: key.outgoingViewKey,
@@ -93,6 +92,7 @@ describe('Bech32AccountEncoder', () => {
         keyPackage: 'bbbb',
         proofGenerationKey: 'cccc',
       },
+      proofAuthorizingKey: null,
     }
 
     const encoded = encoder.encode(accountImport)
@@ -107,12 +107,12 @@ describe('Bech32AccountEncoder', () => {
       version: ACCOUNT_SCHEMA_VERSION,
       name: 'test',
       spendingKey: null,
-      proofAuthorizingKey: null,
       viewKey: key.viewKey,
       incomingViewKey: key.incomingViewKey,
       outgoingViewKey: key.outgoingViewKey,
       publicAddress: key.publicAddress,
       createdAt: null,
+      proofAuthorizingKey: null,
     }
 
     const encoded = encoder.encode(accountImport)
@@ -140,11 +140,11 @@ describe('Bech32AccountEncoder', () => {
       name: 'test',
       spendingKey: null,
       viewKey: key.viewKey,
-      proofAuthorizingKey: key.proofAuthorizingKey,
       incomingViewKey: key.incomingViewKey,
       outgoingViewKey: key.outgoingViewKey,
       publicAddress: key.publicAddress,
       createdAt: null,
+      proofAuthorizingKey: key.proofAuthorizingKey,
     }
 
     encoder.VERSION = 0

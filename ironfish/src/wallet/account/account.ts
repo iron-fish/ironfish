@@ -39,7 +39,6 @@ export class Account {
   readonly displayName: string
   name: string
   readonly spendingKey: string | null
-  readonly proofAuthorizingKey: string | null
   readonly viewKey: string
   readonly incomingViewKey: string
   readonly outgoingViewKey: string
@@ -53,6 +52,7 @@ export class Account {
     keyPackage: string
     proofGenerationKey: string
   }
+  readonly proofAuthorizingKey: string | null
 
   constructor({
     id,
@@ -60,18 +60,17 @@ export class Account {
     publicAddress,
     walletDb,
     spendingKey,
-    proofAuthorizingKey,
     viewKey,
     incomingViewKey,
     outgoingViewKey,
     version,
     createdAt,
     multiSigKeys,
+    proofAuthorizingKey,
   }: AccountValue & { walletDb: WalletDB }) {
     this.id = id
     this.name = name
     this.spendingKey = spendingKey
-    this.proofAuthorizingKey = proofAuthorizingKey
     this.viewKey = viewKey
     this.incomingViewKey = incomingViewKey
     this.outgoingViewKey = outgoingViewKey
@@ -86,6 +85,7 @@ export class Account {
     this.version = version ?? 1
     this.createdAt = createdAt
     this.multiSigKeys = multiSigKeys
+    this.proofAuthorizingKey = proofAuthorizingKey
   }
 
   isSpendingAccount(): this is SpendingAccount {
@@ -98,13 +98,13 @@ export class Account {
       id: this.id,
       name: this.name,
       spendingKey: this.spendingKey,
-      proofAuthorizingKey: this.proofAuthorizingKey,
       viewKey: this.viewKey,
       incomingViewKey: this.incomingViewKey,
       outgoingViewKey: this.outgoingViewKey,
       publicAddress: this.publicAddress,
       createdAt: this.createdAt,
       multiSigKeys: this.multiSigKeys,
+      proofAuthorizingKey: this.proofAuthorizingKey,
     }
   }
 

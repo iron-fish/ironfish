@@ -39,7 +39,6 @@ describe('JsonEncoder', () => {
         name: 'test',
         spendingKey: null,
         viewKey: key.viewKey,
-        proofAuthorizingKey: key.proofAuthorizingKey,
         incomingViewKey: key.incomingViewKey,
         outgoingViewKey: key.outgoingViewKey,
         publicAddress: key.publicAddress,
@@ -49,6 +48,7 @@ describe('JsonEncoder', () => {
           keyPackage: 'bbbb',
           proofGenerationKey: 'cccc',
         },
+        proofAuthorizingKey: key.proofAuthorizingKey,
       }
 
       const encoder = new JsonEncoder()

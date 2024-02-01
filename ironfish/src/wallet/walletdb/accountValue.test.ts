@@ -12,7 +12,6 @@ describe('AccountValueEncoding', () => {
     const value: AccountValue = {
       id: 'id',
       name: 'foobar👁️🏃🐟',
-      proofAuthorizingKey: key.proofAuthorizingKey,
       incomingViewKey: key.incomingViewKey,
       outgoingViewKey: key.outgoingViewKey,
       publicAddress: key.publicAddress,
@@ -24,6 +23,7 @@ describe('AccountValueEncoding', () => {
         sequence: 1,
       },
       multiSigKeys: undefined,
+      proofAuthorizingKey: key.proofAuthorizingKey,
     }
     const buffer = encoder.serialize(value)
     const deserializedValue = encoder.deserialize(buffer)
@@ -36,7 +36,6 @@ describe('AccountValueEncoding', () => {
     const key = generateKey()
     const value: AccountValue = {
       id: 'id',
-      proofAuthorizingKey: key.proofAuthorizingKey,
       name: 'foobar👁️🏃🐟',
       incomingViewKey: key.incomingViewKey,
       outgoingViewKey: key.outgoingViewKey,
@@ -51,6 +50,7 @@ describe('AccountValueEncoding', () => {
         keyPackage: 'beef',
         proofGenerationKey: 'feed',
       },
+      proofAuthorizingKey: key.proofAuthorizingKey,
     }
     const buffer = encoder.serialize(value)
     const deserializedValue = encoder.deserialize(buffer)
