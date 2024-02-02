@@ -8,8 +8,6 @@ import { MathUtils } from '../utils'
 import { defaultNetworkName, isDefaultNetworkId, NetworkDefinition } from './networkDefinition'
 
 export class Network {
-  private readonly definition: NetworkDefinition
-
   readonly default: boolean
   readonly name: string
   readonly id: number
@@ -20,8 +18,6 @@ export class Network {
   private miningRewardCachedByYear = new Map<number, number>()
 
   constructor(definition: NetworkDefinition) {
-    this.definition = definition
-
     this.id = definition.id
     this.default = isDefaultNetworkId(definition.id)
     this.consensus = new Consensus({ ...definition.consensus })
