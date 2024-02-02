@@ -47,7 +47,6 @@ export class Verifier {
   async verifyBlock(
     block: Block,
     options: { verifyTarget?: boolean } = { verifyTarget: true },
-    tx?: IDatabaseTransaction,
   ): Promise<VerificationResult> {
     if (getBlockSize(block) > this.chain.consensus.parameters.maxBlockSizeBytes) {
       return { valid: false, reason: VerificationResultReason.MAX_BLOCK_SIZE_EXCEEDED }
@@ -69,11 +68,6 @@ export class Verifier {
     // Require the miner's fee transaction
     if (!minersFeeTransaction || !minersFeeTransaction.isMinersFee()) {
       return { valid: false, reason: VerificationResultReason.MINERS_FEE_EXPECTED }
-    }
-
-    const mintOwnersValid = await this.verifyMintOwners(block.mints(), tx)
-    if (!mintOwnersValid.valid) {
-      return mintOwnersValid
     }
 
     // Verify the transactions
@@ -399,11 +393,7 @@ export class Verifier {
   }
 
   // TODO: Rename to verifyBlock but merge verifyBlock into this
-  async verifyBlockAdd(
-    block: Block,
-    prev: BlockHeader | null,
-    tx?: IDatabaseTransaction,
-  ): Promise<VerificationResult> {
+  async verifyBlockAdd(block: Block, prev: BlockHeader | null): Promise<VerificationResult> {
     if (block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
       return { valid: true }
     }
@@ -417,7 +407,7 @@ export class Verifier {
       return verification
     }
 
-    verification = await this.verifyBlock(block, {}, tx)
+    verification = await this.verifyBlock(block, {})
     if (!verification.valid) {
       return verification
     }
@@ -456,6 +446,11 @@ export class Verifier {
     block: Block,
     tx?: IDatabaseTransaction,
   ): Promise<VerificationResult> {
+    const mintOwnersValid = await this.verifyMintOwners(block.mints(), tx)
+    if (!mintOwnersValid.valid) {
+      return mintOwnersValid
+    }
+
     const result = Verifier.verifyInternalNullifiers(block.spends())
     if (!result.valid) {
       return result
