@@ -67,7 +67,6 @@ describe('Route wallet/importAccount', () => {
             publicKeyPackage: 'aaaa',
             identifier: 'aaaa',
             keyPackage: 'bbbb',
-            proofGenerationKey: 'cccc',
           },
         },
         rescan: false,

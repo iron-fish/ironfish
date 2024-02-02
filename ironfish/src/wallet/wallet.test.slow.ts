@@ -1164,17 +1164,11 @@ describe('Wallet', () => {
         identifiers,
       )
 
-      // TODO(hughy): replace when account imports use proofAuthorizingKey
-      const proofGenerationKey = trustedDealerPackage.viewKey
-        .slice(0, 64)
-        .concat(trustedDealerPackage.proofAuthorizingKey)
-
       const getMultiSigKeys = (index: number) => {
         return {
           publicKeyPackage: trustedDealerPackage.publicKeyPackage,
           identifier: trustedDealerPackage.keyPackages[index].identifier,
           keyPackage: trustedDealerPackage.keyPackages[index].keyPackage,
-          proofGenerationKey: proofGenerationKey,
         }
       }
 

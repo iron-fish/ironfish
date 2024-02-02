@@ -158,7 +158,6 @@ describe('Route wallet/exportAccount', () => {
         publicKeyPackage: 'aaaa',
         identifier: 'aaaa',
         keyPackage: 'bbbb',
-        proofGenerationKey: 'cccc',
       },
       proofAuthorizingKey: key.proofAuthorizingKey,
     }
