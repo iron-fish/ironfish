@@ -13,30 +13,29 @@ export type CreateSigningShareRequest = {
   seed: number //  TODO: remove when we have deterministic nonces
 }
 
-export type CreateSigningCommitmentResponse = {
+export type CreateSigningShareResponse = {
   signingShare: string
 }
 
-export const CreateSigningCommitmentRequestSchema: yup.ObjectSchema<CreateSigningShareRequest> =
-  yup
-    .object({
-      signingPackage: yup.string().defined(),
-      keyPackage: yup.string().defined(),
-      unsignedTransaction: yup.string().defined(),
-      seed: yup.number().defined(),
-    })
-    .defined()
+export const CreateSigningShareRequestSchema: yup.ObjectSchema<CreateSigningShareRequest> = yup
+  .object({
+    signingPackage: yup.string().defined(),
+    keyPackage: yup.string().defined(),
+    unsignedTransaction: yup.string().defined(),
+    seed: yup.number().defined(),
+  })
+  .defined()
 
-export const CreateSigningCommitmentResponseSchema: yup.ObjectSchema<CreateSigningCommitmentResponse> =
+export const CreateSigningShareResponseSchema: yup.ObjectSchema<CreateSigningShareResponse> =
   yup
     .object({
       signingShare: yup.string().defined(),
     })
     .defined()
 
-routes.register<typeof CreateSigningCommitmentRequestSchema, CreateSigningCommitmentResponse>(
+routes.register<typeof CreateSigningShareRequestSchema, CreateSigningShareResponse>(
   `${ApiNamespace.multisig}/createSigningShare`,
-  CreateSigningCommitmentRequestSchema,
+  CreateSigningShareRequestSchema,
   (request, _context): void => {
     const unsigned = new UnsignedTransaction(
       Buffer.from(request.data.unsignedTransaction, 'hex'),
