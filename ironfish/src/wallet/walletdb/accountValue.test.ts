@@ -23,6 +23,7 @@ describe('AccountValueEncoding', () => {
         sequence: 1,
       },
       multiSigKeys: undefined,
+      proofAuthorizingKey: key.proofAuthorizingKey,
     }
     const buffer = encoder.serialize(value)
     const deserializedValue = encoder.deserialize(buffer)
@@ -49,6 +50,7 @@ describe('AccountValueEncoding', () => {
         keyPackage: 'beef',
         proofGenerationKey: 'feed',
       },
+      proofAuthorizingKey: key.proofAuthorizingKey,
     }
     const buffer = encoder.serialize(value)
     const deserializedValue = encoder.deserialize(buffer)

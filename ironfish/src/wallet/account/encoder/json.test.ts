@@ -48,6 +48,7 @@ describe('JsonEncoder', () => {
           keyPackage: 'bbbb',
           proofGenerationKey: 'cccc',
         },
+        proofAuthorizingKey: key.proofAuthorizingKey,
       }
 
       const encoder = new JsonEncoder()

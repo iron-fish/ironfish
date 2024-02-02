@@ -16,11 +16,12 @@ type Bech32Decoder = (
 ) => AccountImport
 
 export class Bech32Encoder implements AccountEncoder {
-  VERSION = 2
+  VERSION = 3
 
   VERSION_DECODERS: Map<number, Bech32Decoder> = new Map([
     [1, decoderV1],
     [2, decoderV2],
+    [3, decoderV3],
   ])
 
   encode(value: AccountImport): string {
@@ -49,6 +50,11 @@ export class Bech32Encoder implements AccountEncoder {
       bw.writeVarBytes(Buffer.from(value.multiSigKeys.identifier, 'hex'))
       bw.writeVarBytes(Buffer.from(value.multiSigKeys.keyPackage, 'hex'))
       bw.writeVarBytes(Buffer.from(value.multiSigKeys.proofGenerationKey, 'hex'))
+    }
+
+    bw.writeU8(Number(!!value.proofAuthorizingKey))
+    if (value.proofAuthorizingKey) {
+      bw.writeBytes(Buffer.from(value.proofAuthorizingKey, 'hex'))
     }
 
     return Bech32m.encode(bw.render().toString('hex'), BECH32_ACCOUNT_PREFIX)
@@ -112,6 +118,10 @@ export class Bech32Encoder implements AccountEncoder {
       size += bufio.sizeVarBytes(Buffer.from(value.multiSigKeys.keyPackage, 'hex'))
       size += bufio.sizeVarBytes(Buffer.from(value.multiSigKeys.proofGenerationKey, 'hex'))
     }
+    size += 1 // proofAuthorizingKey byte
+    if (value.proofAuthorizingKey) {
+      size += KEY_LENGTH
+    }
 
     return size
   }
@@ -148,6 +158,7 @@ function decoderV1(
     spendingKey,
     publicAddress,
     createdAt,
+    proofAuthorizingKey: null,
   }
 }
 
@@ -171,5 +182,22 @@ function decoderV2(
   return {
     ...accountImport,
     multiSigKeys,
+  }
+}
+
+function decoderV3(
+  reader: bufio.BufferReader,
+  options?: AccountDecodingOptions,
+): AccountImport {
+  const accountImport = decoderV2(reader, options)
+
+  const hasProofAuthorizingKey = reader.readU8() === 1
+  const proofAuthorizingKey = hasProofAuthorizingKey
+    ? reader.readBytes(KEY_LENGTH).toString('hex')
+    : null
+
+  return {
+    ...accountImport,
+    proofAuthorizingKey,
   }
 }

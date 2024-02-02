@@ -3,11 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { PUBLIC_ADDRESS_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
-import { IDatabaseEncoding } from '../../storage'
-import { ACCOUNT_KEY_LENGTH } from '../account/account'
-import { HeadValue, NullableHeadValueEncoding } from './headValue'
+import { IDatabaseEncoding } from '../../../../storage'
+import { HeadValue, NullableHeadValueEncoding } from './HeadValue'
 
-export const KEY_LENGTH = ACCOUNT_KEY_LENGTH
+const KEY_LENGTH = 32
 export const VIEW_KEY_LENGTH = 64
 const VERSION_LENGTH = 2
 
@@ -29,8 +28,6 @@ export interface AccountValue {
   proofAuthorizingKey: string | null
 }
 
-export type AccountImport = Omit<AccountValue, 'id'>
-
 export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
   serialize(value: AccountValue): Buffer {
     const bw = bufio.write(this.getSize(value))
@@ -46,7 +43,6 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     if (value.spendingKey) {
       bw.writeBytes(Buffer.from(value.spendingKey, 'hex'))
     }
-
     bw.writeBytes(Buffer.from(value.viewKey, 'hex'))
     bw.writeBytes(Buffer.from(value.incomingViewKey, 'hex'))
     bw.writeBytes(Buffer.from(value.outgoingViewKey, 'hex'))

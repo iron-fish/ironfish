@@ -30,6 +30,7 @@ export class Migration026 extends Migration {
         new Account({
           ...account,
           createdAt: null,
+          proofAuthorizingKey: null,
           walletDb: context.wallet.walletDb,
         }),
       )
@@ -76,6 +77,7 @@ export class Migration026 extends Migration {
         new Account({
           ...account,
           createdAt: null,
+          proofAuthorizingKey: null,
           walletDb: context.wallet.walletDb,
         }),
       )
