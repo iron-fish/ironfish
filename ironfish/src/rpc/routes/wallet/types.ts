@@ -133,6 +133,12 @@ export const RpcWalletTransactionSchema: yup.ObjectSchema<RpcWalletTransaction> 
   })
   .defined()
 
+export type RpcMultiSigKeys = {
+  identifier?: string
+  keyPackage?: string
+  publicKeyPackage: string
+}
+
 export type RpcAccountImport = {
   version: number
   name: string
@@ -143,11 +149,7 @@ export type RpcAccountImport = {
   spendingKey: string | null
 
   createdAt: { hash: string; sequence: number } | null
-  multiSigKeys?: {
-    identifier: string
-    keyPackage: string
-    proofGenerationKey: string
-  }
+  multiSigKeys?: RpcMultiSigKeys
   proofAuthorizingKey: string | null
 }
 
@@ -169,9 +171,9 @@ export const RpcAccountImportSchema: yup.ObjectSchema<RpcAccountImport> = yup
       .defined(),
     multiSigKeys: yup
       .object({
-        identifier: yup.string().defined(),
-        keyPackage: yup.string().defined(),
-        proofGenerationKey: yup.string().defined(),
+        identifier: yup.string().optional(),
+        keyPackage: yup.string().optional(),
+        publicKeyPackage: yup.string().defined(),
       })
       .optional(),
     proofAuthorizingKey: yup.string().nullable().defined(),

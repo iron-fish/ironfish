@@ -23,7 +23,6 @@ export interface AccountValue {
   multiSigKeys?: {
     identifier: string
     keyPackage: string
-    proofGenerationKey: string
   }
   proofAuthorizingKey: string | null
 }
@@ -56,7 +55,6 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     if (value.multiSigKeys) {
       bw.writeVarBytes(Buffer.from(value.multiSigKeys.identifier, 'hex'))
       bw.writeVarBytes(Buffer.from(value.multiSigKeys.keyPackage, 'hex'))
-      bw.writeVarBytes(Buffer.from(value.multiSigKeys.proofGenerationKey, 'hex'))
     }
 
     if (value.proofAuthorizingKey) {
@@ -93,7 +91,6 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
       multiSigKeys = {
         identifier: reader.readVarBytes().toString('hex'),
         keyPackage: reader.readVarBytes().toString('hex'),
-        proofGenerationKey: reader.readVarBytes().toString('hex'),
       }
     }
 
@@ -136,7 +133,6 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     if (value.multiSigKeys) {
       size += bufio.sizeVarString(value.multiSigKeys.identifier, 'hex')
       size += bufio.sizeVarString(value.multiSigKeys.keyPackage, 'hex')
-      size += bufio.sizeVarString(value.multiSigKeys.proofGenerationKey, 'hex')
     }
     if (value.proofAuthorizingKey) {
       size += KEY_LENGTH

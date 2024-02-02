@@ -18,11 +18,13 @@ describe('JsonEncoder', () => {
       const encoded = encoder.encode(decoded)
       expect(encoded).toEqual(jsonString)
     })
+
     it('throws when json is not a valid account', () => {
       const invalidJson = '{}'
       const encoder = new JsonEncoder()
       expect(() => encoder.decode(invalidJson)).toThrow()
     })
+
     it('derives missing viewKeys from the spendingKey', () => {
       const jsonString =
         '{"id":"b7f1a89e-225e-44d1-8b49-90439cc2d467","name":"test","spendingKey":"6abe8ea63993915ee7603a4bbc3e5fcbef339a96ddd2432476664d76e208e9ee","incomingViewKey":"a43af622cfe11d0e1619f88fe3160a1ec14079b8e525920d405362756bc6c904","outgoingViewKey":"5a0a1e01d31ed0be06732cbf9735ec6d6ce8c31beb833569f55a1b44e64aa3b7","publicAddress":"c121b2b9c39a6613ea04c960a8a4b942ebf8ad366df853c5b97f3cc09c51b502"}'
@@ -31,7 +33,8 @@ describe('JsonEncoder', () => {
       Assert.isNotNull(decoded)
       expect(decoded.viewKey).not.toBeNull()
     })
-    it('encodes and decodes accounts with multisig keys', () => {
+
+    it('encodes and decodes accounts with multisig coordinator keys', () => {
       const key = generateKey()
 
       const accountImport: AccountImport = {
@@ -44,9 +47,35 @@ describe('JsonEncoder', () => {
         publicAddress: key.publicAddress,
         createdAt: null,
         multiSigKeys: {
+          publicKeyPackage: 'cccc',
+        },
+        proofAuthorizingKey: key.proofAuthorizingKey,
+      }
+
+      const encoder = new JsonEncoder()
+
+      const encoded = encoder.encode(accountImport)
+
+      const decoded = encoder.decode(encoded)
+      expect(decoded).toMatchObject(accountImport)
+    })
+
+    it('encodes and decodes accounts with multisig signer keys', () => {
+      const key = generateKey()
+
+      const accountImport: AccountImport = {
+        version: ACCOUNT_SCHEMA_VERSION,
+        name: 'test',
+        spendingKey: null,
+        viewKey: key.viewKey,
+        incomingViewKey: key.incomingViewKey,
+        outgoingViewKey: key.outgoingViewKey,
+        publicAddress: key.publicAddress,
+        createdAt: null,
+        multiSigKeys: {
+          publicKeyPackage: 'cccc',
           identifier: 'aaaa',
           keyPackage: 'bbbb',
-          proofGenerationKey: 'cccc',
         },
         proofAuthorizingKey: key.proofAuthorizingKey,
       }

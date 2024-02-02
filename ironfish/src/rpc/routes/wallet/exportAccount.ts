@@ -56,6 +56,7 @@ routes.register<typeof ExportAccountRequestSchema, ExportAccountResponse>(
           sequence: accountInfo.createdAt.sequence,
         }
       }
+
       request.end({ account: { ...accountInfo, createdAt } })
     } else {
       const encoded = encodeAccount(accountInfo, request.data.format, {

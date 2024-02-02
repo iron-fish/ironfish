@@ -7,6 +7,7 @@ import { Bech32m } from '../../../utils'
 import { AccountImport, KEY_LENGTH, VIEW_KEY_LENGTH } from '../../walletdb/accountValue'
 import { ACCOUNT_SCHEMA_VERSION } from '../account'
 import { AccountDecodingOptions, AccountEncoder, DecodeFailed, DecodeInvalid } from './encoder'
+import { MultiSigKeysEncoding } from './multiSigKeys'
 
 export const BECH32_ACCOUNT_PREFIX = 'ifaccount'
 
@@ -47,9 +48,9 @@ export class Bech32Encoder implements AccountEncoder {
 
     bw.writeU8(Number(!!value.multiSigKeys))
     if (value.multiSigKeys) {
-      bw.writeVarBytes(Buffer.from(value.multiSigKeys.identifier, 'hex'))
-      bw.writeVarBytes(Buffer.from(value.multiSigKeys.keyPackage, 'hex'))
-      bw.writeVarBytes(Buffer.from(value.multiSigKeys.proofGenerationKey, 'hex'))
+      const encoding = new MultiSigKeysEncoding()
+      bw.writeU64(encoding.getSize(value.multiSigKeys))
+      bw.writeBytes(encoding.serialize(value.multiSigKeys))
     }
 
     bw.writeU8(Number(!!value.proofAuthorizingKey))
@@ -114,9 +115,9 @@ export class Bech32Encoder implements AccountEncoder {
     }
     size += 1 // multiSigKeys byte
     if (value.multiSigKeys) {
-      size += bufio.sizeVarBytes(Buffer.from(value.multiSigKeys.identifier, 'hex'))
-      size += bufio.sizeVarBytes(Buffer.from(value.multiSigKeys.keyPackage, 'hex'))
-      size += bufio.sizeVarBytes(Buffer.from(value.multiSigKeys.proofGenerationKey, 'hex'))
+      const encoding = new MultiSigKeysEncoding()
+      size += 8 // size of multi sig keys
+      size += encoding.getSize(value.multiSigKeys)
     }
     size += 1 // proofAuthorizingKey byte
     if (value.proofAuthorizingKey) {
@@ -172,11 +173,9 @@ function decoderV2(
 
   const hasMultiSigKeys = reader.readU8() === 1
   if (hasMultiSigKeys) {
-    multiSigKeys = {
-      identifier: reader.readVarBytes().toString('hex'),
-      keyPackage: reader.readVarBytes().toString('hex'),
-      proofGenerationKey: reader.readVarBytes().toString('hex'),
-    }
+    const size = reader.readU64()
+    const encoder = new MultiSigKeysEncoding()
+    multiSigKeys = encoder.deserialize(reader.readBytes(size))
   }
 
   return {

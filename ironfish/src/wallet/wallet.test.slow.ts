@@ -26,6 +26,7 @@ import {
   useTxFixture,
 } from '../testUtilities'
 import { acceptsAllTarget } from '../testUtilities/helpers/blockchain'
+import { AssertIsSignerMultiSig } from './account/encoder/multiSigKeys'
 
 describe('Wallet', () => {
   const nodeTest = createNodeTest()
@@ -1163,16 +1164,11 @@ describe('Wallet', () => {
         identifiers,
       )
 
-      // TODO(hughy): replace when account imports use proofAuthorizingKey
-      const proofGenerationKey = trustedDealerPackage.viewKey
-        .slice(0, 64)
-        .concat(trustedDealerPackage.proofAuthorizingKey)
-
       const getMultiSigKeys = (index: number) => {
         return {
+          publicKeyPackage: trustedDealerPackage.publicKeyPackage,
           identifier: trustedDealerPackage.keyPackages[index].identifier,
           keyPackage: trustedDealerPackage.keyPackages[index].keyPackage,
-          proofGenerationKey: proofGenerationKey,
         }
       }
 
@@ -1207,6 +1203,9 @@ describe('Wallet', () => {
       Assert.isNotUndefined(participantA.multiSigKeys)
       Assert.isNotUndefined(participantB.multiSigKeys)
       Assert.isNotUndefined(participantC.multiSigKeys)
+      AssertIsSignerMultiSig(participantA.multiSigKeys)
+      AssertIsSignerMultiSig(participantB.multiSigKeys)
+      AssertIsSignerMultiSig(participantC.multiSigKeys)
 
       const signingCommitments = [
         {
