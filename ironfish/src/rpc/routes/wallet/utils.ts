@@ -115,11 +115,7 @@ export function deserializeRpcAccountImport(accountImport: RpcAccountImport): Ac
 
 export function deserializeRpcAccountMultiSigKeys(
   rpcMultiSigKeys: RpcMultiSigKeys,
-): MultiSigKeys | undefined {
-  if (!rpcMultiSigKeys) {
-    return undefined
-  }
-
+): MultiSigKeys {
   if (isSignerMultiSig(rpcMultiSigKeys)) {
     return {
       publicKeyPackage: rpcMultiSigKeys.publicKeyPackage,
