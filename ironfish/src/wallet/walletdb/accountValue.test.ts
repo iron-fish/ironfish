@@ -22,6 +22,7 @@ describe('AccountValueEncoding', () => {
         hash: Buffer.alloc(32, 0),
         sequence: 1,
       },
+      proofAuthorizingKey: key.proofAuthorizingKey,
     }
     const buffer = encoder.serialize(value)
     const deserializedValue = encoder.deserialize(buffer)
@@ -47,8 +48,8 @@ describe('AccountValueEncoding', () => {
         publicKeyPackage: 'cccc',
         identifier: 'deaf',
         keyPackage: 'beef',
-        proofGenerationKey: 'feed',
       },
+      proofAuthorizingKey: key.proofAuthorizingKey,
     }
     const buffer = encoder.serialize(value)
     const deserializedValue = encoder.deserialize(buffer)

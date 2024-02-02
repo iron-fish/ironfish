@@ -4,7 +4,6 @@
 export interface MultiSigSigner {
   identifier: string
   keyPackage: string
-  proofGenerationKey: string
   publicKeyPackage: string
 }
 

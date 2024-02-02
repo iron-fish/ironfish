@@ -6,7 +6,6 @@ import { v4 as uuid } from 'uuid'
 import { AssetsVerifier } from './assets'
 import { Blockchain } from './blockchain'
 import { BlockHasher } from './blockHasher'
-import { Consensus } from './consensus'
 import {
   Config,
   DEFAULT_DATA_DIR,
@@ -250,8 +249,10 @@ export class FullNode {
       networkId,
     )
 
+    const network = new Network(networkDefinition)
+
     if (!config.isSet('bootstrapNodes')) {
-      config.setOverride('bootstrapNodes', networkDefinition.bootstrapNodes)
+      config.setOverride('bootstrapNodes', network.bootstrapNodes)
     }
 
     if (config.get('generateNewIdentity')) {
@@ -265,9 +266,7 @@ export class FullNode {
     internal.set('networkIdentity', privateIdentity.secretKey.toString('hex'))
     await internal.save()
 
-    const consensus = new Consensus(networkDefinition.consensus)
-
-    if (consensus.isNeverActive('enableFishHash')) {
+    if (network.consensus.isNeverActive('enableFishHash')) {
       fishHashContext = undefined
     } else if (!fishHashContext) {
       const isFull = config.get('fishHashFullContext')
@@ -275,11 +274,9 @@ export class FullNode {
     }
 
     const blockHasher = new BlockHasher({
-      consensus: consensus,
+      consensus: network.consensus,
       context: fishHashContext,
     })
-
-    const network = new Network(networkDefinition, consensus)
 
     const chain = new Blockchain({
       location: config.chainDatabasePath,
@@ -288,15 +285,15 @@ export class FullNode {
       autoSeed,
       workerPool,
       files,
-      consensus,
-      genesis: networkDefinition.genesis,
+      consensus: network.consensus,
+      genesis: network.genesis,
       config,
       blockHasher,
       network,
     })
 
     const feeEstimator = new FeeEstimator({
-      consensus,
+      consensus: network.consensus,
       maxBlockHistory: config.get('feeEstimatorMaxBlockHistory'),
       percentiles: {
         slow: config.get('feeEstimatorPercentileSlow'),
@@ -311,7 +308,7 @@ export class FullNode {
       feeEstimator,
       metrics,
       logger,
-      consensus,
+      consensus: network.consensus,
       maxSizeBytes: config.get('memPoolMaxSizeBytes'),
       recentlyEvictedCacheSize: config.get('memPoolRecentlyEvictedCacheSize'),
     })
@@ -328,7 +325,7 @@ export class FullNode {
       config,
       database: walletDB,
       workerPool,
-      consensus,
+      consensus: network.consensus,
       nodeClient: memoryClient,
       logger,
     })

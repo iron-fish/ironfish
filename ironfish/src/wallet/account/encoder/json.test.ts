@@ -49,6 +49,7 @@ describe('JsonEncoder', () => {
         multiSigKeys: {
           publicKeyPackage: 'cccc',
         },
+        proofAuthorizingKey: key.proofAuthorizingKey,
       }
 
       const encoder = new JsonEncoder()
@@ -75,8 +76,8 @@ describe('JsonEncoder', () => {
           publicKeyPackage: 'cccc',
           identifier: 'aaaa',
           keyPackage: 'bbbb',
-          proofGenerationKey: 'cccc',
         },
+        proofAuthorizingKey: key.proofAuthorizingKey,
       }
 
       const encoder = new JsonEncoder()

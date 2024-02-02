@@ -644,6 +644,7 @@ describe('Wallet', () => {
       outgoingViewKey: account.outgoingViewKey,
       incomingViewKey: account.incomingViewKey,
       createdAt: null,
+      proofAuthorizingKey: account.proofAuthorizingKey,
     }
     const viewOnlyAccount = await viewOnlyNode.wallet.importAccount(accountValue)
 

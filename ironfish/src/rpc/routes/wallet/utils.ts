@@ -125,7 +125,6 @@ export function deserializeRpcAccountMultiSigKeys(
       publicKeyPackage: rpcMultiSigKeys.publicKeyPackage,
       identifier: rpcMultiSigKeys.identifier,
       keyPackage: rpcMultiSigKeys.keyPackage,
-      proofGenerationKey: rpcMultiSigKeys.proofGenerationKey,
     }
   }
 

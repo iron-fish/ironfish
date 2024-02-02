@@ -21,6 +21,7 @@ describe('Bech32AccountEncoder', () => {
       outgoingViewKey: key.outgoingViewKey,
       publicAddress: key.publicAddress,
       createdAt: null,
+      proofAuthorizingKey: key.proofAuthorizingKey,
     }
 
     const encoded = encoder.encode(accountImport)
@@ -46,6 +47,27 @@ describe('Bech32AccountEncoder', () => {
         ),
         sequence: 1,
       },
+      proofAuthorizingKey: key.proofAuthorizingKey,
+    }
+
+    const encoded = encoder.encode(accountImport)
+    expect(encoded.startsWith(BECH32_ACCOUNT_PREFIX)).toBe(true)
+
+    const decoded = encoder.decode(encoded)
+    expect(decoded).toMatchObject(accountImport)
+  })
+
+  it('encodes and decodes accounts with proofAuthorizingKey', () => {
+    const accountImport: AccountImport = {
+      version: ACCOUNT_SCHEMA_VERSION,
+      name: 'test',
+      spendingKey: null,
+      viewKey: key.viewKey,
+      incomingViewKey: key.incomingViewKey,
+      outgoingViewKey: key.outgoingViewKey,
+      publicAddress: key.publicAddress,
+      createdAt: null,
+      proofAuthorizingKey: key.proofAuthorizingKey,
     }
 
     const encoded = encoder.encode(accountImport)
@@ -68,6 +90,7 @@ describe('Bech32AccountEncoder', () => {
       multiSigKeys: {
         publicKeyPackage: 'abcdef0000',
       },
+      proofAuthorizingKey: key.proofAuthorizingKey,
     }
 
     const encoded = encoder.encode(accountImport)
@@ -91,8 +114,8 @@ describe('Bech32AccountEncoder', () => {
         publicKeyPackage: 'cccc',
         identifier: 'aaaa',
         keyPackage: 'bbbb',
-        proofGenerationKey: 'cccc',
       },
+      proofAuthorizingKey: null,
     }
 
     const encoded = encoder.encode(accountImport)
@@ -112,6 +135,7 @@ describe('Bech32AccountEncoder', () => {
       outgoingViewKey: key.outgoingViewKey,
       publicAddress: key.publicAddress,
       createdAt: null,
+      proofAuthorizingKey: null,
     }
 
     const encoded = encoder.encode(accountImport)
@@ -143,6 +167,7 @@ describe('Bech32AccountEncoder', () => {
       outgoingViewKey: key.outgoingViewKey,
       publicAddress: key.publicAddress,
       createdAt: null,
+      proofAuthorizingKey: key.proofAuthorizingKey,
     }
 
     encoder.VERSION = 0

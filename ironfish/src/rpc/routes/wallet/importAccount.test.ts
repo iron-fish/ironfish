@@ -168,6 +168,7 @@ describe('Route wallet/importAccount', () => {
         outgoingViewKey: key.outgoingViewKey,
         version: 1,
         createdAt: null,
+        proofAuthorizingKey: key.proofAuthorizingKey,
       }
     }
 

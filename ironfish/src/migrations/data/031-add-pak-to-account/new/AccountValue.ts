@@ -3,13 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { PUBLIC_ADDRESS_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
-import { IDatabaseEncoding } from '../../storage'
-import { ACCOUNT_KEY_LENGTH } from '../account/account'
-import { MultiSigKeysEncoding } from '../account/encoder/multiSigKeys'
-import { MultiSigKeys } from '../interfaces/multiSigKeys'
-import { HeadValue, NullableHeadValueEncoding } from './headValue'
+import { IDatabaseEncoding } from '../../../../storage'
+import { HeadValue, NullableHeadValueEncoding } from './HeadValue'
 
-export const KEY_LENGTH = ACCOUNT_KEY_LENGTH
+const KEY_LENGTH = 32
 export const VIEW_KEY_LENGTH = 64
 const VERSION_LENGTH = 2
 
@@ -23,11 +20,12 @@ export interface AccountValue {
   outgoingViewKey: string
   publicAddress: string
   createdAt: HeadValue | null
-  multiSigKeys?: MultiSigKeys
+  multiSigKeys?: {
+    identifier: string
+    keyPackage: string
+  }
   proofAuthorizingKey: string | null
 }
-
-export type AccountImport = Omit<AccountValue, 'id'>
 
 export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
   serialize(value: AccountValue): Buffer {
@@ -44,7 +42,6 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     if (value.spendingKey) {
       bw.writeBytes(Buffer.from(value.spendingKey, 'hex'))
     }
-
     bw.writeBytes(Buffer.from(value.viewKey, 'hex'))
     bw.writeBytes(Buffer.from(value.incomingViewKey, 'hex'))
     bw.writeBytes(Buffer.from(value.outgoingViewKey, 'hex'))
@@ -56,9 +53,8 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     }
 
     if (value.multiSigKeys) {
-      const encoding = new MultiSigKeysEncoding()
-      bw.writeU64(encoding.getSize(value.multiSigKeys))
-      bw.writeBytes(encoding.serialize(value.multiSigKeys))
+      bw.writeVarBytes(Buffer.from(value.multiSigKeys.identifier, 'hex'))
+      bw.writeVarBytes(Buffer.from(value.multiSigKeys.keyPackage, 'hex'))
     }
 
     if (value.proofAuthorizingKey) {
@@ -92,9 +88,10 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
 
     let multiSigKeys = undefined
     if (hasMultiSigKeys) {
-      const multiSigKeysLength = reader.readU64()
-      const encoding = new MultiSigKeysEncoding()
-      multiSigKeys = encoding.deserialize(reader.readBytes(multiSigKeysLength))
+      multiSigKeys = {
+        identifier: reader.readVarBytes().toString('hex'),
+        keyPackage: reader.readVarBytes().toString('hex'),
+      }
     }
 
     const proofAuthorizingKey = hasProofAuthorizingKey
@@ -129,16 +126,13 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     size += KEY_LENGTH
     size += KEY_LENGTH
     size += PUBLIC_ADDRESS_LENGTH
-
     if (value.createdAt) {
       const encoding = new NullableHeadValueEncoding()
       size += encoding.nonNullSize
     }
-
     if (value.multiSigKeys) {
-      const encoding = new MultiSigKeysEncoding()
-      size += 8 // size of multi sig keys
-      size += encoding.getSize(value.multiSigKeys)
+      size += bufio.sizeVarString(value.multiSigKeys.identifier, 'hex')
+      size += bufio.sizeVarString(value.multiSigKeys.keyPackage, 'hex')
     }
     if (value.proofAuthorizingKey) {
       size += KEY_LENGTH
