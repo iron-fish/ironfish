@@ -48,7 +48,7 @@ export class Network {
    */
   miningReward(sequence: number): number {
     const ironFishYearInBlocks =
-      (365 * 24 * 60 * 60) / this.definition.consensus.targetBlockTimeInSeconds
+      (365 * 24 * 60 * 60) / this.consensus.parameters.targetBlockTimeInSeconds
     const yearsAfterLaunch = Math.floor(Number(sequence) / ironFishYearInBlocks)
 
     let reward = this.miningRewardCachedByYear.get(yearsAfterLaunch)
@@ -57,7 +57,7 @@ export class Network {
     }
 
     const annualReward =
-      (this.definition.consensus.genesisSupplyInIron / 4) * Math.E ** (-0.05 * yearsAfterLaunch)
+      (this.consensus.parameters.genesisSupplyInIron / 4) * Math.E ** (-0.05 * yearsAfterLaunch)
 
     // This rounds and produces an incorrect result but must
     // be kept because it would cause a hard fork once you reach

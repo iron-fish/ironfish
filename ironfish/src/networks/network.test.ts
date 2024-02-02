@@ -12,7 +12,7 @@ describe('Network', () => {
 
       // for 60 second block time, miner's block reward in the first year should be 20 IRON
       const ironFishYearInBlocks =
-        (365 * 24 * 60 * 60) / network.definition.consensus.targetBlockTimeInSeconds
+        (365 * 24 * 60 * 60) / network.consensus.parameters.targetBlockTimeInSeconds
 
       let minersReward = network.miningReward(1)
       expect(minersReward).toBe(20 * 10 ** 8)
@@ -26,7 +26,7 @@ describe('Network', () => {
 
       // for 60 second block time, miner's block reward in the second year should be 19 IRON
       const ironFishYearInBlocks =
-        (365 * 24 * 60 * 60) / network.definition.consensus.targetBlockTimeInSeconds
+        (365 * 24 * 60 * 60) / network.consensus.parameters.targetBlockTimeInSeconds
 
       const minersReward = network.miningReward(ironFishYearInBlocks + 1)
       expect(minersReward).toBe(19 * 10 ** 8)
