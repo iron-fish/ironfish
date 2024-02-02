@@ -19,7 +19,7 @@ export class Network {
     this.id = definition.id
     this.default = isDefaultNetworkId(definition.id)
     this.definition = definition
-    this.consensus = new Consensus(definition.consensus)
+    this.consensus = new Consensus({ ...definition.consensus })
 
     if (this.default) {
       const defaultName = defaultNetworkName(definition.id)
