@@ -10,16 +10,14 @@ export class MultiSigKeysEncoding implements IDatabaseEncoding<MultiSigKeys> {
   serialize(value: MultiSigKeys): Buffer {
     const bw = bufio.write(this.getSize(value))
 
-    if (value) {
-      let flags = 0
-      flags |= Number(!!isSignerMultiSig(value)) << 0
-      bw.writeU8(flags)
+    let flags = 0
+    flags |= Number(!!isSignerMultiSig(value)) << 0
+    bw.writeU8(flags)
 
-      bw.writeVarBytes(Buffer.from(value.publicKeyPackage, 'hex'))
-      if (isSignerMultiSig(value)) {
-        bw.writeVarBytes(Buffer.from(value.identifier, 'hex'))
-        bw.writeVarBytes(Buffer.from(value.keyPackage, 'hex'))
-      }
+    bw.writeVarBytes(Buffer.from(value.publicKeyPackage, 'hex'))
+    if (isSignerMultiSig(value)) {
+      bw.writeVarBytes(Buffer.from(value.identifier, 'hex'))
+      bw.writeVarBytes(Buffer.from(value.keyPackage, 'hex'))
     }
 
     return bw.render()
@@ -48,10 +46,6 @@ export class MultiSigKeysEncoding implements IDatabaseEncoding<MultiSigKeys> {
   }
 
   getSize(value: MultiSigKeys): number {
-    if (!value) {
-      return 0
-    }
-
     let size = 0
     size += 1 // flags
 
