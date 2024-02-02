@@ -1199,6 +1199,17 @@ describe('Wallet', () => {
         multiSigKeys: getMultiSigKeys(2),
         ...trustedDealerPackage,
       })
+      const coordinator = await node.wallet.importAccount({
+        version: 4,
+        id: uuid(),
+        name: 'coordinator',
+        spendingKey: null,
+        createdAt: null,
+        multiSigKeys: {
+          publicKeyPackage: trustedDealerPackage.publicKeyPackage,
+        },
+        ...trustedDealerPackage,
+      })
 
       Assert.isNotUndefined(participantA.multiSigKeys)
       Assert.isNotUndefined(participantB.multiSigKeys)
@@ -1306,8 +1317,9 @@ describe('Wallet', () => {
         ),
       }
 
+      Assert.isNotUndefined(coordinator.multiSigKeys)
       const serializedFrostTransaction = unsignedTransaction.signFrost(
-        trustedDealerPackage.publicKeyPackage,
+        coordinator.multiSigKeys.publicKeyPackage,
         signingPackage,
         signatureShares,
       )
