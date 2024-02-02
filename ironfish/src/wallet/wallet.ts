@@ -1066,24 +1066,14 @@ export class Wallet {
   async build(options: { transaction: RawTransaction; account: Account }): Promise<{
     transaction: UnsignedTransaction
   }> {
-    // TODO(hughy): replace with top-level proofAuthorizingKey property
-    let proofAuthorizingKey = null
-    if (options.account.spendingKey) {
-      proofAuthorizingKey = generateKeyFromPrivateKey(
-        options.account.spendingKey,
-      ).proofAuthorizingKey
-    } else if (options.account.multiSigKeys) {
-      proofAuthorizingKey = options.account.multiSigKeys.proofGenerationKey.slice(64)
-    }
-
     Assert.isNotNull(
-      proofAuthorizingKey,
+      options.account.proofAuthorizingKey,
       'proofAuthorizingKey is required to build transactions',
     )
 
     const transaction = await this.workerPool.buildTransaction(
       options.transaction,
-      proofAuthorizingKey,
+      options.account.proofAuthorizingKey,
       options.account.viewKey,
       options.account.outgoingViewKey,
     )
