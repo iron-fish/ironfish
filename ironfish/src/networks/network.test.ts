@@ -8,7 +8,7 @@ import { Network } from './network'
 describe('Network', () => {
   describe('miningReward', () => {
     it('miners reward is properly calculated for year 0-1', () => {
-      const network = new Network({ definition: MAINNET })
+      const network = new Network(MAINNET)
 
       // for 60 second block time, miner's block reward in the first year should be 20 IRON
       const ironFishYearInBlocks =
@@ -22,7 +22,7 @@ describe('Network', () => {
     })
 
     it('miners reward is properly calculated for year 1-2', () => {
-      const network = new Network({ definition: MAINNET })
+      const network = new Network(MAINNET)
 
       // for 60 second block time, miner's block reward in the second year should be 19 IRON
       const ironFishYearInBlocks =

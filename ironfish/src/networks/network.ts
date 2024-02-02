@@ -15,7 +15,7 @@ export class Network {
 
   private miningRewardCachedByYear = new Map<number, number>()
 
-  constructor({ definition }: { definition: NetworkDefinition }) {
+  constructor(definition: NetworkDefinition) {
     this.id = definition.id
     this.default = isDefaultNetworkId(definition.id)
     this.definition = definition

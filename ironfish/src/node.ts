@@ -249,7 +249,7 @@ export class FullNode {
       networkId,
     )
 
-    const network = new Network({ definition: networkDefinition })
+    const network = new Network(networkDefinition)
 
     if (!config.isSet('bootstrapNodes')) {
       config.setOverride('bootstrapNodes', network.definition.bootstrapNodes)
