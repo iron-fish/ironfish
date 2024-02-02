@@ -5,3 +5,4 @@
 export * from './createSigningCommitment'
 export * from './createSigningPackage'
 export * from './createTrustedDealerKeyPackage'
+export * from './createSigningShare'

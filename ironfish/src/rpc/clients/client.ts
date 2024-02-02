@@ -21,6 +21,8 @@ import type {
   CreateSigningCommitmentResponse,
   CreateSigningPackageRequest,
   CreateSigningPackageResponse,
+  CreateSigningShareRequest,
+  CreateSigningShareResponse,
   CreateTransactionRequest,
   CreateTransactionResponse,
   CreateTrustedDealerKeyPackageRequest,
@@ -831,6 +833,15 @@ export abstract class RpcClient {
     ): Promise<RpcResponseEnded<CreateSigningCommitmentResponse>> => {
       return this.request<CreateSigningCommitmentResponse>(
         `${ApiNamespace.multisig}/createSigningCommitment`,
+        params,
+      ).waitForEnd()
+    },
+
+    createSigningShare: (
+      params: CreateSigningShareRequest,
+    ): Promise<RpcResponseEnded<CreateSigningShareResponse>> => {
+      return this.request<CreateSigningShareResponse>(
+        `${ApiNamespace.multisig}/createSigningShare`,
         params,
       ).waitForEnd()
     },
