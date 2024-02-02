@@ -3,23 +3,30 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../assert'
 import { Consensus } from '../consensus'
+import { SerializedBlock } from '../primitives/block'
 import { MathUtils } from '../utils'
 import { defaultNetworkName, isDefaultNetworkId, NetworkDefinition } from './networkDefinition'
 
 export class Network {
+  private readonly definition: NetworkDefinition
+
   readonly default: boolean
   readonly name: string
   readonly id: number
-  readonly definition: NetworkDefinition
   readonly consensus: Consensus
+  readonly genesis: SerializedBlock
+  readonly bootstrapNodes: string[]
 
   private miningRewardCachedByYear = new Map<number, number>()
 
   constructor(definition: NetworkDefinition) {
+    this.definition = definition
+
     this.id = definition.id
     this.default = isDefaultNetworkId(definition.id)
-    this.definition = definition
     this.consensus = new Consensus({ ...definition.consensus })
+    this.genesis = definition.genesis
+    this.bootstrapNodes = definition.bootstrapNodes
 
     if (this.default) {
       const defaultName = defaultNetworkName(definition.id)

@@ -252,7 +252,7 @@ export class FullNode {
     const network = new Network(networkDefinition)
 
     if (!config.isSet('bootstrapNodes')) {
-      config.setOverride('bootstrapNodes', network.definition.bootstrapNodes)
+      config.setOverride('bootstrapNodes', network.bootstrapNodes)
     }
 
     if (config.get('generateNewIdentity')) {
@@ -286,7 +286,7 @@ export class FullNode {
       workerPool,
       files,
       consensus: network.consensus,
-      genesis: network.definition.genesis,
+      genesis: network.genesis,
       config,
       blockHasher,
       network,
