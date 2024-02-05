@@ -8,7 +8,6 @@ import { routes } from '../router'
 
 export type CreateTrustedDealerKeyPackageRequest = {
   minSigners: number
-  maxSigners: number
   participants: Array<{
     identifier: string
   }>
@@ -27,7 +26,6 @@ export const CreateTrustedDealerKeyPackageRequestSchema: yup.ObjectSchema<Create
   yup
     .object({
       minSigners: yup.number().defined(),
-      maxSigners: yup.number().defined(),
       participants: yup
         .array()
         .of(
@@ -72,8 +70,7 @@ routes.register<
   CreateTrustedDealerKeyPackageRequestSchema,
   (request, _context): void => {
     const key = generateKey()
-    // todo(rahul): remove max signers from request import
-    const { minSigners, maxSigners: _, participants } = request.data
+    const { minSigners, participants } = request.data
     const identifiers = participants.map((p) => p.identifier)
     const trustedDealerPackage = splitSecret(key.spendingKey, minSigners, identifiers)
 
