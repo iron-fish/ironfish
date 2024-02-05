@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { RpcAccountImport } from '@ironfish/sdk'
+import { Assert, RpcAccountImport } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
@@ -15,11 +15,6 @@ export class CreateSigningCommitmentCommand extends IronfishCommand {
     account: Flags.string({
       char: 'a',
       description: 'The account to use for the transaction',
-      required: false,
-    }),
-    transaction: Flags.string({
-      char: 't',
-      description: 'The unsigned transaction',
       required: false,
     }),
   }
@@ -38,6 +33,11 @@ export class CreateSigningCommitmentCommand extends IronfishCommand {
       this.error(`Account "${account.name}" is not a multisig account`)
     }
 
+    if (!account.multiSigKeys.keyPackage) {
+      this.error(`Account "${account.name}" does not have a key package`)
+    }
+
+    Assert.isNotNull(account.multiSigKeys, 'Account is not a multisig account')
     // TODO(andrea): use flags.transaction to create commiment when we incorportate deterministic nonces
     // set required to true as well
     const commitmentResponse = await client.multisig.createSigningCommitment({
@@ -45,7 +45,12 @@ export class CreateSigningCommitmentCommand extends IronfishCommand {
       seed: 0,
     })
 
+    const commitment = {
+      identifier: account.multiSigKeys.identifier,
+      commitment: commitmentResponse.content,
+    }
+
     this.log('Commitment:\n')
-    this.log(JSON.stringify(commitmentResponse.content))
+    this.log(JSON.stringify(commitment))
   }
 }
