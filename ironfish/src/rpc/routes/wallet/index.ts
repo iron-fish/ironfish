@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 export * from './addTransaction'
+export * from './buildTransaction'
 export * from './burnAsset'
 export * from './create'
 export * from './createAccount'
