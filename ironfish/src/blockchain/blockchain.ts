@@ -615,7 +615,7 @@ export class Blockchain {
     prev: BlockHeader | null,
     tx: IDatabaseTransaction,
   ): Promise<void> {
-    const verifyBlockAdd = this.verifier.verifyBlockAdd(block, prev, tx).catch((_) => {
+    const verifyBlockAdd = this.verifier.verifyBlockAdd(block, prev).catch((_) => {
       return { valid: false, reason: VerificationResultReason.ERROR }
     })
 
@@ -676,13 +676,13 @@ export class Blockchain {
       await this.reorganizeChain(prev, tx)
     }
 
-    const verifyBlock = this.verifier.verifyBlockAdd(block, prev, tx).catch((_) => {
+    const verifyBlockAdd = this.verifier.verifyBlockAdd(block, prev).catch((_) => {
       return { valid: false, reason: VerificationResultReason.ERROR }
     })
 
     await this.saveBlock(block, prev, false, tx)
 
-    const { valid, reason } = await verifyBlock
+    const { valid, reason } = await verifyBlockAdd
     if (!valid) {
       Assert.isNotUndefined(reason)
 
@@ -959,7 +959,7 @@ export class Blockchain {
       if (verifyBlock && !previousBlockHash.equals(GENESIS_BLOCK_PREVIOUS)) {
         // since we're creating a block that hasn't been mined yet, don't
         // verify target because it'll always fail target check here
-        const verification = await this.verifier.verifyBlock(block, { verifyTarget: false }, tx)
+        const verification = await this.verifier.verifyBlock(block, { verifyTarget: false })
 
         if (!verification.valid) {
           throw new Error(verification.reason)
