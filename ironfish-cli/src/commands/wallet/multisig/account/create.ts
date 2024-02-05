@@ -46,7 +46,7 @@ export class MultisigCreate extends IronfishCommand {
 
     const client = await this.sdk.connectRpc()
 
-    const response = await client.multisig.createTrustedDealerKeyPackage({
+    const response = await client.wallet.multisig.createTrustedDealerKeyPackage({
       minSigners,
       participants: identifiers.map((identifier) => ({ identifier })),
     })
