@@ -11,7 +11,7 @@ describe('Route multisig/createTrustedDealerKeyPackage', () => {
     const participants = Array.from({ length: 3 }, () => ({
       identifier: ParticipantSecret.random().toIdentity().toFrostIdentifier(),
     }))
-    const request = { minSigners: 2, maxSigners: 3, participants }
+    const request = { minSigners: 2, participants }
     const response = await routeTest.client
       .request('multisig/createTrustedDealerKeyPackage', request)
       .waitForEnd()

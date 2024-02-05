@@ -23,7 +23,6 @@ describe('Route multisig/createSigningPackage', () => {
 
     const request = {
       minSigners: 2,
-      maxSigners: 3,
       participants,
     }
     const response = await routeTest.client.multisig.createTrustedDealerKeyPackage(request)

@@ -1141,7 +1141,7 @@ describe('Wallet', () => {
     it('can do a multisig transaction', async () => {
       const seed = 420
       const minSigners = 2
-      const maxSigners = 3
+      const participants = 3
 
       const { node } = await nodeTest.createSetup()
       const recipient = await useAccountFixture(node.wallet, 'recipient')
@@ -1150,7 +1150,7 @@ describe('Wallet', () => {
 
       const identifiers: string[] = []
 
-      for (let i = 0; i < maxSigners; i++) {
+      for (let i = 0; i < participants; i++) {
         identifiers.push(ParticipantSecret.random().toIdentity().toFrostIdentifier())
       }
 
