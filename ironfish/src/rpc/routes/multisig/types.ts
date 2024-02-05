@@ -6,7 +6,6 @@ import * as yup from 'yup'
 
 export type RpcSigningCommitments = {
   identifier: string
-
   hiding: string
   binding: string
 }
