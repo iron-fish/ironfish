@@ -4,7 +4,7 @@
 
 use group::GroupEncoding;
 use ironfish_frost::frost::{
-    keys::{IdentifierList, KeyPackage, PublicKeyPackage},
+    keys::{KeyPackage, PublicKeyPackage},
     Identifier,
 };
 use ironfish_zkp::constants::PROOF_GENERATION_KEY_GENERATOR;
@@ -35,7 +35,6 @@ pub struct TrustedDealerKeyPackages {
 pub fn split_spender_key(
     coordinator_sapling_key: &SaplingKey,
     min_signers: u16,
-    max_signers: u16,
     identifiers: Vec<Identifier>,
 ) -> Result<TrustedDealerKeyPackages, IronfishError> {
     let secret = coordinator_sapling_key
@@ -45,16 +44,13 @@ pub fn split_spender_key(
 
     let secret_config = SecretShareConfig {
         min_signers,
-        max_signers,
+        identifiers,
         secret,
     };
 
-    let identifier_list = IdentifierList::Custom(&identifiers);
-
     let mut rng: rand::prelude::ThreadRng = thread_rng();
 
-    let (key_packages, public_key_package) =
-        split_secret(&secret_config, identifier_list, &mut rng)?;
+    let (key_packages, public_key_package) = split_secret(&secret_config, &mut rng)?;
 
     let authorizing_key_bytes = public_key_package.verifying_key().serialize();
 
@@ -91,59 +87,22 @@ pub fn split_spender_key(
 
 #[cfg(test)]
 mod test {
+    use crate::test_util::create_identifiers;
+
     use super::*;
-    use ironfish_frost::{
-        frost::{frost::keys::reconstruct, JubjubBlake2b512},
-        participant::Secret,
-    };
-
-    #[test]
-    fn test_throws_error_with_mismatch_signer_and_identifiers_lengths() {
-        let mut identifiers = Vec::new();
-
-        for _ in 0..10 {
-            identifiers.push(
-                Secret::random(thread_rng())
-                    .to_identity()
-                    .to_frost_identifier(),
-            );
-        }
-
-        let sapling_key = SaplingKey::generate_key();
-        // max signers > identifiers length
-        let result = split_spender_key(&sapling_key, 5, 11, identifiers.clone());
-        assert!(result.is_err());
-        let err = result.err().unwrap();
-        assert_eq!(err.kind, IronfishErrorKind::FrostLibError);
-        assert!(err.to_string().contains("Incorrect number of identifiers."));
-
-        // max signers < identifiers length
-        let result = split_spender_key(&sapling_key, 5, 9, identifiers.clone());
-
-        assert!(result.is_err());
-        let err = result.err().unwrap();
-        assert_eq!(err.kind, IronfishErrorKind::FrostLibError);
-        assert!(err.to_string().contains("Incorrect number of identifiers."));
-    }
+    use ironfish_frost::frost::{frost::keys::reconstruct, JubjubBlake2b512};
 
     #[test]
     fn test_split_spender_key_success() {
-        let mut identifiers = Vec::new();
+        let identifiers = create_identifiers(10);
 
-        for _ in 0..10 {
-            identifiers.push(
-                Secret::random(thread_rng())
-                    .to_identity()
-                    .to_frost_identifier(),
-            );
-        }
         let mut cloned_identifiers = identifiers.clone();
         cloned_identifiers.sort();
 
         let sapling_key = SaplingKey::generate_key();
 
         let trusted_dealer_key_packages =
-            split_spender_key(&sapling_key, 5, 10, identifiers).expect("spender key split failed");
+            split_spender_key(&sapling_key, 5, identifiers).expect("spender key split failed");
 
         assert_eq!(
             trusted_dealer_key_packages.key_packages.len(),

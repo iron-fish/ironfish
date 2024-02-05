@@ -10,6 +10,7 @@ use super::{ProposedTransaction, Transaction};
 use crate::frost_utils::{
     signing_commitment::create_signing_commitment, signing_share::create_signing_share,
 };
+use crate::test_util::create_identifiers;
 use crate::transaction::tests::split_spender_key::split_spender_key;
 use crate::{
     assets::{asset::Asset, asset_identifier::NATIVE_ASSET},
@@ -29,7 +30,6 @@ use crate::{
 use ff::Field;
 use ironfish_frost::frost::round2::{Randomizer, SignatureShare};
 use ironfish_frost::frost::Identifier;
-use ironfish_frost::participant::Secret;
 use ironfish_zkp::{
     constants::{ASSET_ID_LENGTH, SPENDING_KEY_GENERATOR, TREE_DEPTH},
     proofs::{MintAsset, Output, Spend},
@@ -706,18 +706,10 @@ fn test_sign_simple() {
 fn test_sign_frost() {
     let spender_key = SaplingKey::generate_key();
 
-    // create fake participants in multisig
-    let mut identifiers = Vec::new();
-    for _ in 0..3 {
-        identifiers.push(
-            Secret::random(thread_rng())
-                .to_identity()
-                .to_frost_identifier(),
-        );
-    }
+    let identifiers = create_identifiers(10);
 
     // key package generation by trusted dealer
-    let key_packages = split_spender_key(&spender_key, 2, 3, identifiers)
+    let key_packages = split_spender_key(&spender_key, 2, identifiers)
         .expect("should be able to split spender key");
 
     // create raw/proposed transaction

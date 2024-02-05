@@ -146,7 +146,6 @@ impl ParticipantIdentity {
 pub fn split_secret(
     coordinator_sapling_key: String,
     min_signers: u16,
-    max_signers: u16,
     identifiers: Vec<String>,
 ) -> Result<TrustedDealerKeyPackages> {
     let coordinator_key =
@@ -161,8 +160,7 @@ pub fn split_secret(
         converted.push(deserialized);
     }
 
-    let t = split_spender_key(&coordinator_key, min_signers, max_signers, converted)
-        .map_err(to_napi_err)?;
+    let t = split_spender_key(&coordinator_key, min_signers, converted).map_err(to_napi_err)?;
 
     let mut key_packages_serialized = Vec::new();
     for (k, v) in t.key_packages.iter() {

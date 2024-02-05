@@ -72,14 +72,10 @@ routes.register<
   CreateTrustedDealerKeyPackageRequestSchema,
   (request, _context): void => {
     const key = generateKey()
-    const { minSigners, maxSigners, participants } = request.data
+    // todo(rahul): remove max signers from request import
+    const { minSigners, maxSigners: _, participants } = request.data
     const identifiers = participants.map((p) => p.identifier)
-    const trustedDealerPackage = splitSecret(
-      key.spendingKey,
-      minSigners,
-      maxSigners,
-      identifiers,
-    )
+    const trustedDealerPackage = splitSecret(key.spendingKey, minSigners, identifiers)
 
     request.end(trustedDealerPackage)
   },
