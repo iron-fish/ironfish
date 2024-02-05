@@ -9,8 +9,6 @@ import type {
   AddPeerResponse,
   AddTransactionRequest,
   AddTransactionResponse,
-  AggregateSigningSharesRequest,
-  AggregateSigningSharesResponse,
   BlockTemplateStreamRequest,
   BlockTemplateStreamResponse,
   BroadcastTransactionRequest,
@@ -180,6 +178,43 @@ export abstract class RpcClient {
   }
 
   wallet = {
+    multisig: {
+      createTrustedDealerKeyPackage: (
+        params: CreateTrustedDealerKeyPackageRequest,
+      ): Promise<RpcResponseEnded<CreateTrustedDealerKeyPackageResponse>> => {
+        return this.request<CreateTrustedDealerKeyPackageResponse>(
+          `${ApiNamespace.multisig}/createTrustedDealerKeyPackage`,
+          params,
+        ).waitForEnd()
+      },
+
+      createSigningPackage: (
+        params: CreateSigningPackageRequest,
+      ): Promise<RpcResponseEnded<CreateSigningPackageResponse>> => {
+        return this.request<CreateSigningPackageResponse>(
+          `${ApiNamespace.multisig}/createSigningPackage`,
+          params,
+        ).waitForEnd()
+      },
+
+      createSigningCommitment: (
+        params: CreateSigningCommitmentRequest,
+      ): Promise<RpcResponseEnded<CreateSigningCommitmentResponse>> => {
+        return this.request<CreateSigningCommitmentResponse>(
+          `${ApiNamespace.multisig}/createSigningCommitment`,
+          params,
+        ).waitForEnd()
+      },
+
+      createSigningShare: (
+        params: CreateSigningShareRequest,
+      ): Promise<RpcResponseEnded<CreateSigningShareResponse>> => {
+        return this.request<CreateSigningShareResponse>(
+          `${ApiNamespace.multisig}/createSigningShare`,
+          params,
+        ).waitForEnd()
+      },
+    },
     getAccounts: (
       params: GetAccountsRequest = undefined,
     ): Promise<RpcResponseEnded<GetAccountsResponse>> => {
@@ -818,52 +853,6 @@ export abstract class RpcClient {
     ): Promise<RpcResponseEnded<UploadConfigResponse>> => {
       return this.request<UploadConfigResponse>(
         `${ApiNamespace.config}/uploadConfig`,
-        params,
-      ).waitForEnd()
-    },
-  }
-  multisig = {
-    aggregateSigningShares: (
-      params: AggregateSigningSharesRequest,
-    ): Promise<RpcResponseEnded<AggregateSigningSharesResponse>> => {
-      return this.request<AggregateSigningSharesResponse>(
-        `${ApiNamespace.multisig}/aggregateSigningShares`,
-        params,
-      ).waitForEnd()
-    },
-
-    createTrustedDealerKeyPackage: (
-      params: CreateTrustedDealerKeyPackageRequest,
-    ): Promise<RpcResponseEnded<CreateTrustedDealerKeyPackageResponse>> => {
-      return this.request<CreateTrustedDealerKeyPackageResponse>(
-        `${ApiNamespace.multisig}/createTrustedDealerKeyPackage`,
-        params,
-      ).waitForEnd()
-    },
-
-    createSigningPackage: (
-      params: CreateSigningPackageRequest,
-    ): Promise<RpcResponseEnded<CreateSigningPackageResponse>> => {
-      return this.request<CreateSigningPackageResponse>(
-        `${ApiNamespace.multisig}/createSigningPackage`,
-        params,
-      ).waitForEnd()
-    },
-
-    createSigningCommitment: (
-      params: CreateSigningCommitmentRequest,
-    ): Promise<RpcResponseEnded<CreateSigningCommitmentResponse>> => {
-      return this.request<CreateSigningCommitmentResponse>(
-        `${ApiNamespace.multisig}/createSigningCommitment`,
-        params,
-      ).waitForEnd()
-    },
-
-    createSigningShare: (
-      params: CreateSigningShareRequest,
-    ): Promise<RpcResponseEnded<CreateSigningShareResponse>> => {
-      return this.request<CreateSigningShareResponse>(
-        `${ApiNamespace.multisig}/createSigningShare`,
         params,
       ).waitForEnd()
     },
