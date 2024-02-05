@@ -1160,7 +1160,6 @@ describe('Wallet', () => {
       const trustedDealerPackage: TrustedDealerKeyPackages = splitSecret(
         coordinatorSaplingKey.spendingKey,
         minSigners,
-        maxSigners,
         identifiers,
       )
 
