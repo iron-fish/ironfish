@@ -1215,6 +1215,7 @@ describe('Wallet', () => {
 
       const signingCommitments: Commitment[] = []
       for (const participant of participants) {
+        Assert.isNotUndefined(participant.multiSigKeys)
         AssertIsSignerMultiSig(participant.multiSigKeys)
         signingCommitments.push(
           createSigningCommitment(participant.multiSigKeys.keyPackage, seed),
@@ -1287,6 +1288,7 @@ describe('Wallet', () => {
       const signatureShares: Record<string, string> = {}
 
       for (const participant of participants) {
+        Assert.isNotUndefined(participant.multiSigKeys)
         AssertIsSignerMultiSig(participant.multiSigKeys)
         signatureShares[participant.multiSigKeys.identifier] = createSigningShare(
           signingPackage,

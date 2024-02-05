@@ -64,8 +64,7 @@ export function isSignerMultiSig(multiSigKeys: MultiSigKeys): multiSigKeys is Mu
 }
 
 export function AssertIsSignerMultiSig(
-  multiSigKeys: MultiSigKeys | undefined,
+  multiSigKeys: MultiSigKeys,
 ): asserts multiSigKeys is MultiSigSigner {
-  Assert.isNotUndefined(multiSigKeys)
   Assert.isTrue(isSignerMultiSig(multiSigKeys))
 }
