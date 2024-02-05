@@ -8,15 +8,17 @@ import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 
 export class CreateSigningCommitmentCommand extends IronfishCommand {
-  static description = `Attempt to connect to a peer through websockets`
+  static description = `Create a signing commitment from a participant for a given transaction`
 
   static flags = {
     ...RemoteFlags,
     account: Flags.string({
       char: 'a',
-      description: 'The account to use for the transaction',
+      description:
+        'The account to use for generating the commitment, must be a multisig participant account',
       required: false,
     }),
+    // TODO(andrea): add transaction flag when we incorporate deterministic nonces
   }
 
   async start(): Promise<void> {
