@@ -33,10 +33,8 @@ routes.register<typeof CreateSigningCommitmentRequestSchema, CreateSigningCommit
 
     request.end({
       identifier: result.identifier,
-      commitment: {
-        hiding: result.commitment.hiding,
-        binding: result.commitment.binding,
-      },
+      hiding: result.hiding,
+      binding: result.binding,
     })
   },
 )

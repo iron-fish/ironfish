@@ -23,31 +23,21 @@ use rand::thread_rng;
 
 #[napi(object, js_name = "Commitment")]
 pub struct NativeCommitment {
+    pub identifier: String,
     pub hiding: String,
     pub binding: String,
 }
 
-#[napi(object, js_name = "IdentifierCommitment")]
-pub struct NativeIdentifierCommitment {
-    pub identifier: String,
-    pub commitment: NativeCommitment,
-}
-
 #[napi]
-pub fn create_signing_commitment(
-    key_package: String,
-    seed: u32,
-) -> Result<NativeIdentifierCommitment> {
+pub fn create_signing_commitment(key_package: String, seed: u32) -> Result<NativeCommitment> {
     let key_package =
         KeyPackage::deserialize(&hex_to_vec_bytes(&key_package).map_err(to_napi_err)?)
             .map_err(to_napi_err)?;
     let (_, commitment) = create_signing_commitment_rust(&key_package, seed as u64);
-    Ok(NativeIdentifierCommitment {
+    Ok(NativeCommitment {
         identifier: bytes_to_hex(&key_package.identifier().serialize()),
-        commitment: NativeCommitment {
-            hiding: bytes_to_hex(&commitment.hiding().serialize()),
-            binding: bytes_to_hex(&commitment.binding().serialize()),
-        },
+        hiding: bytes_to_hex(&commitment.hiding().serialize()),
+        binding: bytes_to_hex(&commitment.binding().serialize()),
     })
 }
 

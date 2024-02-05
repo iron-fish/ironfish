@@ -6,20 +6,15 @@ import * as yup from 'yup'
 
 export type RpcSigningCommitments = {
   identifier: string
-  commitment: {
-    hiding: string
-    binding: string
-  }
+
+  hiding: string
+  binding: string
 }
 
 export const RpcSigningCommitmentsSchema: yup.ObjectSchema<RpcSigningCommitments> = yup
   .object({
     identifier: yup.string().defined(),
-    commitment: yup
-      .object({
-        hiding: yup.string().defined(),
-        binding: yup.string().defined(),
-      })
-      .defined(),
+    hiding: yup.string().defined(),
+    binding: yup.string().defined(),
   })
   .defined()

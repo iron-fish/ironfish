@@ -4,10 +4,10 @@
 import {
   Asset,
   ASSET_ID_LENGTH,
+  Commitment,
   createSigningCommitment,
   createSigningShare,
   generateKey,
-  IdentifierCommitment,
   ParticipantSecret,
   splitSecret,
   TrustedDealerKeyPackages,
@@ -1213,7 +1213,7 @@ describe('Wallet', () => {
         ...trustedDealerPackage,
       })
 
-      const signingCommitments: IdentifierCommitment[] = []
+      const signingCommitments: Commitment[] = []
       for (const participant of participants) {
         AssertIsSignerMultiSig(participant.multiSigKeys)
         signingCommitments.push(
