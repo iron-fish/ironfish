@@ -14,13 +14,12 @@ use crate::errors::{IronfishError, IronfishErrorKind};
 
 pub struct SecretShareConfig {
     pub min_signers: u16,
-    pub max_signers: u16,
+    pub identifiers: Vec<Identifier>,
     pub secret: Vec<u8>,
 }
 
 pub(crate) fn split_secret(
     config: &SecretShareConfig,
-    identifiers: IdentifierList,
     rng: &mut ThreadRng,
 ) -> Result<(HashMap<Identifier, KeyPackage>, PublicKeyPackage), IronfishError> {
     let secret_bytes: [u8; 32] = config
@@ -31,11 +30,13 @@ pub(crate) fn split_secret(
 
     let secret_key = SigningKey::deserialize(secret_bytes)?;
 
+    let identifier_list = IdentifierList::Custom(&config.identifiers);
+
     let (shares, pubkeys) = split(
         &secret_key,
-        config.max_signers,
+        config.identifiers.len() as u16,
         config.min_signers,
-        identifiers,
+        identifier_list,
         rng,
     )?;
 
@@ -57,22 +58,33 @@ pub(crate) fn split_secret(
 mod test {
     use super::*;
     use crate::keys::SaplingKey;
-    use ironfish_frost::frost::{frost::keys::reconstruct, JubjubBlake2b512};
+    use ironfish_frost::{
+        frost::{frost::keys::reconstruct, JubjubBlake2b512},
+        participant::Secret,
+    };
+    use rand::thread_rng;
 
     #[test]
     fn test_invalid_secret() {
+        let mut identifiers = Vec::new();
+
+        for _ in 0..10 {
+            identifiers.push(
+                Secret::random(thread_rng())
+                    .to_identity()
+                    .to_frost_identifier(),
+            );
+        }
+
         let vec = vec![1; 31];
         let config = SecretShareConfig {
             min_signers: 2,
-            max_signers: 3,
+            identifiers,
             secret: vec,
         };
+
         let mut rng = rand::thread_rng();
-        let result = split_secret(
-            &config,
-            ironfish_frost::frost::keys::IdentifierList::Default,
-            &mut rng,
-        );
+        let result = split_secret(&config, &mut rng);
         assert!(result.is_err());
         assert!(
             matches!(result.unwrap_err().kind, IronfishErrorKind::InvalidSecret),
@@ -82,22 +94,27 @@ mod test {
 
     #[test]
     fn test_split_secret() {
+        let mut identifiers = Vec::new();
+
+        for _ in 0..10 {
+            identifiers.push(
+                Secret::random(thread_rng())
+                    .to_identity()
+                    .to_frost_identifier(),
+            );
+        }
+
         let mut rng = rand::thread_rng();
 
         let key = SaplingKey::generate_key().spend_authorizing_key.to_bytes();
 
         let config = SecretShareConfig {
             min_signers: 2,
-            max_signers: 3,
+            identifiers: identifiers,
             secret: key.to_vec(),
         };
 
-        let (key_packages, _) = split_secret(
-            &config,
-            ironfish_frost::frost::keys::IdentifierList::Default,
-            &mut rng,
-        )
-        .unwrap();
+        let (key_packages, _) = split_secret(&config, &mut rng).unwrap();
         assert_eq!(key_packages.len(), 3);
 
         let key_parts: Vec<_> = key_packages.values().cloned().collect();

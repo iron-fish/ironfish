@@ -35,11 +35,10 @@ mod test {
         let mut rng = ThreadRng::default();
         let key_packages = split_secret(
             &SecretShareConfig {
-                max_signers: 3,
+                identifiers: IdentifierList::Default,
                 min_signers: 2,
                 secret: key.to_bytes().to_vec(),
             },
-            IdentifierList::Default,
             &mut rng,
         )
         .expect("key shares to be created");
