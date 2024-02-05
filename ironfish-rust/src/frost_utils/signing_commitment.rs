@@ -21,7 +21,6 @@ pub fn create_signing_commitment(
 #[cfg(test)]
 mod test {
     use ff::Field;
-    use ironfish_frost::frost::keys::IdentifierList;
     use jubjub::Fr;
     use rand::rngs::ThreadRng;
 
@@ -32,10 +31,12 @@ mod test {
         let seed = 100;
         let key = Fr::random(&mut rand::thread_rng());
 
+        let identifiers = create_identifiers();
+
         let mut rng = ThreadRng::default();
         let key_packages = split_secret(
             &SecretShareConfig {
-                identifiers: IdentifierList::Default,
+                identifiers,
                 min_signers: 2,
                 secret: key.to_bytes().to_vec(),
             },

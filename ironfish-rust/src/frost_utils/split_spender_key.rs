@@ -87,23 +87,15 @@ pub fn split_spender_key(
 
 #[cfg(test)]
 mod test {
+    use crate::test_util::create_identifiers;
+
     use super::*;
-    use ironfish_frost::{
-        frost::{frost::keys::reconstruct, JubjubBlake2b512},
-        participant::Secret,
-    };
+    use ironfish_frost::frost::{frost::keys::reconstruct, JubjubBlake2b512};
 
     #[test]
     fn test_split_spender_key_success() {
-        let mut identifiers = Vec::new();
+        let mut identifiers = create_identifiers(10);
 
-        for _ in 0..10 {
-            identifiers.push(
-                Secret::random(thread_rng())
-                    .to_identity()
-                    .to_frost_identifier(),
-            );
-        }
         let mut cloned_identifiers = identifiers.clone();
         cloned_identifiers.sort();
 

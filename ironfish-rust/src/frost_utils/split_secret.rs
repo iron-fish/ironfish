@@ -57,24 +57,12 @@ pub(crate) fn split_secret(
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::keys::SaplingKey;
-    use ironfish_frost::{
-        frost::{frost::keys::reconstruct, JubjubBlake2b512},
-        participant::Secret,
-    };
-    use rand::thread_rng;
+    use crate::{keys::SaplingKey, test_util::create_identifiers};
+    use ironfish_frost::frost::{frost::keys::reconstruct, JubjubBlake2b512};
 
     #[test]
     fn test_invalid_secret() {
-        let mut identifiers = Vec::new();
-
-        for _ in 0..10 {
-            identifiers.push(
-                Secret::random(thread_rng())
-                    .to_identity()
-                    .to_frost_identifier(),
-            );
-        }
+        let mut identifiers = create_identifiers(10);
 
         let vec = vec![1; 31];
         let config = SecretShareConfig {
@@ -94,15 +82,7 @@ mod test {
 
     #[test]
     fn test_split_secret() {
-        let mut identifiers = Vec::new();
-
-        for _ in 0..10 {
-            identifiers.push(
-                Secret::random(thread_rng())
-                    .to_identity()
-                    .to_frost_identifier(),
-            );
-        }
+        let mut identifiers = create_identifiers(10);
 
         let mut rng = rand::thread_rng();
 

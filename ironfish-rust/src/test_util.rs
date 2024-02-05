@@ -8,6 +8,7 @@ use super::{
     MerkleNoteHash,
 };
 use blstrs::Scalar;
+use ironfish_frost::{frost::Identifier, participant::Secret};
 use ironfish_zkp::constants::TREE_DEPTH;
 use rand::{thread_rng, Rng};
 
@@ -57,4 +58,19 @@ pub(crate) fn auth_path_to_root_hash(
     }
 
     cur
+}
+
+// Helper function to create a list of random identifiers
+pub fn create_identifiers(num_identifiers: usize) -> Vec<Identifier> {
+    let mut identifiers = Vec::new();
+
+    for _ in 0..num_identifiers {
+        identifiers.push(
+            Secret::random(thread_rng())
+                .to_identity()
+                .to_frost_identifier(),
+        );
+    }
+
+    identifiers
 }
