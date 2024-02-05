@@ -827,7 +827,7 @@ export abstract class RpcClient {
       params: AggregateSigningSharesRequest,
     ): Promise<RpcResponseEnded<AggregateSigningSharesResponse>> => {
       return this.request<AggregateSigningSharesResponse>(
-        `${ApiNamespace.multisig}/aggregateSignatureShares`,
+        `${ApiNamespace.multisig}/aggregateSigningShares`,
         params,
       ).waitForEnd()
     },
