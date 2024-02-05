@@ -9,6 +9,8 @@ import type {
   AddPeerResponse,
   AddTransactionRequest,
   AddTransactionResponse,
+  AggregateSigningSharesRequest,
+  AggregateSigningSharesResponse,
   BlockTemplateStreamRequest,
   BlockTemplateStreamResponse,
   BroadcastTransactionRequest,
@@ -821,6 +823,15 @@ export abstract class RpcClient {
     },
   }
   multisig = {
+    aggregateSignatureShares: (
+      params: AggregateSigningSharesRequest,
+    ): Promise<RpcResponseEnded<AggregateSigningSharesResponse>> => {
+      return this.request<AggregateSigningSharesResponse>(
+        `${ApiNamespace.multisig}/aggregateSignatureShares`,
+        params,
+      ).waitForEnd()
+    },
+
     createTrustedDealerKeyPackage: (
       params: CreateTrustedDealerKeyPackageRequest,
     ): Promise<RpcResponseEnded<CreateTrustedDealerKeyPackageResponse>> => {
