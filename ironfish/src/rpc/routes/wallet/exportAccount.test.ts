@@ -7,7 +7,7 @@ import { v4 as uuid } from 'uuid'
 import { useAccountFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { Account } from '../../../wallet'
-import { Bech32Encoder } from '../../../wallet/account/encoder/bech32'
+import { Base64JsonEncoder } from '../../../wallet/account/encoder/base64json'
 import { AccountFormat } from '../../../wallet/account/encoder/encoder'
 import { JsonEncoder } from '../../../wallet/account/encoder/json'
 import { MnemonicEncoder } from '../../../wallet/account/encoder/mnemonic'
@@ -81,16 +81,18 @@ describe('Route wallet/exportAccount', () => {
     expect(response.content.account).toEqual(new JsonEncoder().encode(accountImport))
   })
 
-  it('should export an account as a bech32 string if requested', async () => {
+  it('should export an account as a base64 string if requested', async () => {
     const response = await routeTest.client
       .request<ExportAccountResponse>('wallet/exportAccount', {
         account: account.name,
-        format: AccountFormat.Bech32,
+        format: AccountFormat.Base64Json,
       })
       .waitForEnd()
 
+    const { id: _, ...accountImport } = account.serialize()
+
     expect(response.status).toBe(200)
-    expect(response.content.account).toEqual(new Bech32Encoder().encode(account))
+    expect(response.content.account).toEqual(new Base64JsonEncoder().encode(accountImport))
   })
 
   it('should export an account as a spending key string if requested', async () => {
