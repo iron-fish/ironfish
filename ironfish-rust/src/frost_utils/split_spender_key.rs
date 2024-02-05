@@ -94,7 +94,7 @@ mod test {
 
     #[test]
     fn test_split_spender_key_success() {
-        let mut identifiers = create_identifiers(10);
+        let identifiers = create_identifiers(10);
 
         let mut cloned_identifiers = identifiers.clone();
         cloned_identifiers.sort();

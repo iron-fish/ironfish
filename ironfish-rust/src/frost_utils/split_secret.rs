@@ -62,7 +62,7 @@ mod test {
 
     #[test]
     fn test_invalid_secret() {
-        let mut identifiers = create_identifiers(10);
+        let identifiers = create_identifiers(10);
 
         let vec = vec![1; 31];
         let config = SecretShareConfig {
@@ -82,7 +82,8 @@ mod test {
 
     #[test]
     fn test_split_secret() {
-        let mut identifiers = create_identifiers(10);
+        let identifiers = create_identifiers(10);
+        let identifiers_length = identifiers.len();
 
         let mut rng = rand::thread_rng();
 
@@ -90,12 +91,12 @@ mod test {
 
         let config = SecretShareConfig {
             min_signers: 2,
-            identifiers: identifiers,
+            identifiers,
             secret: key.to_vec(),
         };
 
         let (key_packages, _) = split_secret(&config, &mut rng).unwrap();
-        assert_eq!(key_packages.len(), 3);
+        assert_eq!(key_packages.len(), identifiers_length);
 
         let key_parts: Vec<_> = key_packages.values().cloned().collect();
 

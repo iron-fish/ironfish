@@ -20,18 +20,18 @@ pub fn create_signing_commitment(
 
 #[cfg(test)]
 mod test {
+    use crate::frost_utils::split_secret::{split_secret, SecretShareConfig};
+    use crate::test_util::create_identifiers;
     use ff::Field;
     use jubjub::Fr;
     use rand::rngs::ThreadRng;
-
-    use crate::frost_utils::split_secret::{split_secret, SecretShareConfig};
 
     #[test]
     pub fn test_seed_provides_same_result() {
         let seed = 100;
         let key = Fr::random(&mut rand::thread_rng());
 
-        let identifiers = create_identifiers();
+        let identifiers = create_identifiers(10);
 
         let mut rng = ThreadRng::default();
         let key_packages = split_secret(
