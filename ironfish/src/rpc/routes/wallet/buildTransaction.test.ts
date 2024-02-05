@@ -21,12 +21,12 @@ describe('Route wallet/buildTransaction', () => {
     })
 
     const response = await routeTest.client.wallet.buildTransaction({
-      transaction: RawTransactionSerde.serialize(rawTransaction).toString('hex'),
+      rawTransaction: RawTransactionSerde.serialize(rawTransaction).toString('hex'),
       account: account.name,
     })
 
     expect(response.status).toBe(200)
-    expect(response.content.transaction).toBeDefined()
+    expect(response.content.unsignedTransaction).toBeDefined()
   })
 
   it('should produce output that can be signed', async () => {
@@ -43,15 +43,15 @@ describe('Route wallet/buildTransaction', () => {
     })
 
     const response = await routeTest.client.wallet.buildTransaction({
-      transaction: RawTransactionSerde.serialize(rawTransaction).toString('hex'),
+      rawTransaction: RawTransactionSerde.serialize(rawTransaction).toString('hex'),
       account: account.name,
     })
 
     expect(response.status).toBe(200)
-    expect(response.content.transaction).toBeDefined()
+    expect(response.content.unsignedTransaction).toBeDefined()
 
     const unsignedTransaction = new UnsignedTransaction(
-      Buffer.from(response.content.transaction, 'hex'),
+      Buffer.from(response.content.unsignedTransaction, 'hex'),
     )
     const signedTransaction = unsignedTransaction.sign(account.spendingKey)
 
@@ -64,7 +64,7 @@ describe('Route wallet/buildTransaction', () => {
 
     await expect(
       routeTest.client.wallet.buildTransaction({
-        transaction: '0xdeadbeef',
+        rawTransaction: '0xdeadbeef',
         account: account.name,
       }),
     ).rejects.toThrow('Out of bounds read (offset=0).')

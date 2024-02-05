@@ -11,23 +11,23 @@ import { getAccount } from './utils'
 
 export type BuildTransactionRequest = {
   account?: string
-  transaction: string
+  rawTransaction: string
 }
 
 export type BuildTransactionResponse = {
-  transaction: string
+  unsignedTransaction: string
 }
 
 export const BuildTransactionRequestSchema: yup.ObjectSchema<BuildTransactionRequest> = yup
   .object({
     account: yup.string().optional(),
-    transaction: yup.string().defined(),
+    rawTransaction: yup.string().defined(),
   })
   .defined()
 
 export const BuildTransactionResponseSchema: yup.ObjectSchema<BuildTransactionResponse> = yup
   .object({
-    transaction: yup.string().defined(),
+    unsignedTransaction: yup.string().defined(),
   })
   .defined()
 
@@ -40,12 +40,12 @@ routes.register<typeof BuildTransactionRequestSchema, BuildTransactionResponse>(
 
     const account = getAccount(node.wallet, request.data.account)
 
-    const raw = RawTransactionSerde.deserialize(Buffer.from(request.data.transaction, 'hex'))
+    const raw = RawTransactionSerde.deserialize(Buffer.from(request.data.rawTransaction, 'hex'))
 
     const unsigned = await node.wallet.build({ transaction: raw, account })
 
     request.end({
-      transaction: unsigned.transaction.serialize().toString('hex'),
+      unsignedTransaction: unsigned.transaction.serialize().toString('hex'),
     })
   },
 )
