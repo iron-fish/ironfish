@@ -706,7 +706,6 @@ fn test_sign_simple() {
 fn test_sign_frost() {
     let spender_key = SaplingKey::generate_key();
 
-    // create fake participants in multisig
     let identifiers = create_identifiers(10);
 
     // key package generation by trusted dealer

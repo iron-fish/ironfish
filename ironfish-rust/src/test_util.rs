@@ -60,7 +60,7 @@ pub(crate) fn auth_path_to_root_hash(
     cur
 }
 
-// Helper function to create a list of random identifiers
+// Helper function to create a list of random identifiers for multisig participants.
 pub fn create_identifiers(num_identifiers: usize) -> Vec<Identifier> {
     let mut identifiers = Vec::new();
 
