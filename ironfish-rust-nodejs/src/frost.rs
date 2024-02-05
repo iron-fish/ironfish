@@ -34,14 +34,20 @@ pub struct NativeIdentifierCommitment {
 }
 
 #[napi]
-pub fn create_signing_commitment(key_package: String, seed: u32) -> Result<NativeCommitment> {
+pub fn create_signing_commitment(
+    key_package: String,
+    seed: u32,
+) -> Result<NativeIdentifierCommitment> {
     let key_package =
         KeyPackage::deserialize(&hex_to_vec_bytes(&key_package).map_err(to_napi_err)?)
             .map_err(to_napi_err)?;
     let (_, commitment) = create_signing_commitment_rust(&key_package, seed as u64);
-    Ok(NativeCommitment {
-        hiding: bytes_to_hex(&commitment.hiding().serialize()),
-        binding: bytes_to_hex(&commitment.binding().serialize()),
+    Ok(NativeIdentifierCommitment {
+        identifier: bytes_to_hex(&key_package.identifier().serialize()),
+        commitment: NativeCommitment {
+            hiding: bytes_to_hex(&commitment.hiding().serialize()),
+            binding: bytes_to_hex(&commitment.binding().serialize()),
+        },
     })
 }
 

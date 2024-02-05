@@ -7,6 +7,7 @@ import {
   createSigningCommitment,
   createSigningShare,
   generateKey,
+  IdentifierCommitment,
   ParticipantSecret,
   splitSecret,
   TrustedDealerKeyPackages,
@@ -1141,7 +1142,6 @@ describe('Wallet', () => {
     it('can do a multisig transaction', async () => {
       const seed = 420
       const minSigners = 2
-      const participants = 3
 
       const { node } = await nodeTest.createSetup()
       const recipient = await useAccountFixture(node.wallet, 'recipient')
@@ -1150,7 +1150,7 @@ describe('Wallet', () => {
 
       const identifiers: string[] = []
 
-      for (let i = 0; i < participants; i++) {
+      for (let i = 0; i < 3; i++) {
         identifiers.push(ParticipantSecret.random().toIdentity().toFrostIdentifier())
       }
 
@@ -1198,6 +1198,9 @@ describe('Wallet', () => {
         multiSigKeys: getMultiSigKeys(2),
         ...trustedDealerPackage,
       })
+
+      const participants = [participantA, participantB, participantC]
+
       const coordinator = await node.wallet.importAccount({
         version: 4,
         id: uuid(),
@@ -1210,27 +1213,13 @@ describe('Wallet', () => {
         ...trustedDealerPackage,
       })
 
-      Assert.isNotUndefined(participantA.multiSigKeys)
-      Assert.isNotUndefined(participantB.multiSigKeys)
-      Assert.isNotUndefined(participantC.multiSigKeys)
-      AssertIsSignerMultiSig(participantA.multiSigKeys)
-      AssertIsSignerMultiSig(participantB.multiSigKeys)
-      AssertIsSignerMultiSig(participantC.multiSigKeys)
-
-      const signingCommitments = [
-        {
-          identifier: participantA.multiSigKeys.identifier,
-          commitment: createSigningCommitment(participantA.multiSigKeys.keyPackage, seed),
-        },
-        {
-          identifier: participantB.multiSigKeys.identifier,
-          commitment: createSigningCommitment(participantB.multiSigKeys.keyPackage, seed),
-        },
-        {
-          identifier: participantC.multiSigKeys.identifier,
-          commitment: createSigningCommitment(participantC.multiSigKeys.keyPackage, seed),
-        },
-      ]
+      const signingCommitments: IdentifierCommitment[] = []
+      for (const participant of participants) {
+        AssertIsSignerMultiSig(participant.multiSigKeys)
+        signingCommitments.push(
+          createSigningCommitment(participant.multiSigKeys.keyPackage, seed),
+        )
+      }
 
       // mine block to send IRON to multisig account
       const miner = await useAccountFixture(node.wallet, 'miner')
@@ -1295,25 +1284,16 @@ describe('Wallet', () => {
       const signingPackage = unsignedTransaction.signingPackage(signingCommitments)
       const publicKeyRandomness = unsignedTransaction.publicKeyRandomness()
 
-      const signatureShares: Record<string, string> = {
-        [participantA.multiSigKeys.identifier]: createSigningShare(
+      const signatureShares: Record<string, string> = {}
+
+      for (const participant of participants) {
+        AssertIsSignerMultiSig(participant.multiSigKeys)
+        signatureShares[participant.multiSigKeys.identifier] = createSigningShare(
           signingPackage,
-          participantA.multiSigKeys.keyPackage,
+          participant.multiSigKeys.keyPackage,
           publicKeyRandomness,
           seed,
-        ),
-        [participantB.multiSigKeys.identifier]: createSigningShare(
-          signingPackage,
-          participantB.multiSigKeys.keyPackage,
-          publicKeyRandomness,
-          seed,
-        ),
-        [participantC.multiSigKeys.identifier]: createSigningShare(
-          signingPackage,
-          participantC.multiSigKeys.keyPackage,
-          publicKeyRandomness,
-          seed,
-        ),
+        )
       }
 
       Assert.isNotUndefined(coordinator.multiSigKeys)
