@@ -32,7 +32,7 @@ use napi::{
 };
 use napi_derive::napi;
 
-use crate::frost::NativeIdentifierCommitment;
+use crate::frost::NativeCommitment;
 use crate::to_napi_err;
 
 use super::note::NativeNote;
@@ -414,7 +414,7 @@ impl NativeUnsignedTransaction {
     #[napi]
     pub fn signing_package(
         &self,
-        native_identifer_commitments: Vec<NativeIdentifierCommitment>,
+        native_identifer_commitments: Vec<NativeCommitment>,
     ) -> Result<String> {
         let mut commitments: BTreeMap<Identifier, SigningCommitments> = BTreeMap::new();
 
@@ -425,11 +425,11 @@ impl NativeUnsignedTransaction {
 
             let commitment = SigningCommitments::new(
                 NonceCommitment::deserialize(
-                    hex_to_bytes(&identifier_commitment.commitment.hiding).map_err(to_napi_err)?,
+                    hex_to_bytes(&identifier_commitment.hiding).map_err(to_napi_err)?,
                 )
                 .map_err(to_napi_err)?,
                 NonceCommitment::deserialize(
-                    hex_to_bytes(&identifier_commitment.commitment.binding).map_err(to_napi_err)?,
+                    hex_to_bytes(&identifier_commitment.binding).map_err(to_napi_err)?,
                 )
                 .map_err(to_napi_err)?,
             );

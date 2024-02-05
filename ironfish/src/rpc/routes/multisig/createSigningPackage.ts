@@ -9,10 +9,7 @@ import { RpcSigningCommitments, RpcSigningCommitmentsSchema } from './types'
 
 export type CreateSigningPackageRequest = {
   unsignedTransaction: string
-  commitments: Array<{
-    identifier: string
-    commitment: RpcSigningCommitments
-  }>
+  commitments: Array<RpcSigningCommitments>
 }
 
 export type CreateSigningPackageResponse = {
@@ -23,16 +20,7 @@ export const CreateSigningPackageRequestSchema: yup.ObjectSchema<CreateSigningPa
   yup
     .object({
       unsignedTransaction: yup.string().defined(),
-      commitments: yup
-        .array(
-          yup
-            .object({
-              identifier: yup.string().defined(),
-              commitment: RpcSigningCommitmentsSchema,
-            })
-            .defined(),
-        )
-        .defined(),
+      commitments: yup.array(RpcSigningCommitmentsSchema).defined(),
     })
     .defined()
 
