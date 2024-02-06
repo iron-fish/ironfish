@@ -8,14 +8,15 @@ import { ApiNamespace } from '../../namespaces'
 import { routes } from '../../router'
 import { AssertHasRpcContext } from '../../rpcContext'
 import { getAccount } from '../utils'
-import { RpcSigningCommitments, RpcSigningCommitmentsSchema } from './types'
 
 export type CreateSigningCommitmentRequest = {
   account: string
   seed: number //  TODO: remove when we have deterministic nonces
 }
 
-export type CreateSigningCommitmentResponse = RpcSigningCommitments
+export type CreateSigningCommitmentResponse = {
+  commitment: string
+}
 
 export const CreateSigningCommitmentRequestSchema: yup.ObjectSchema<CreateSigningCommitmentRequest> =
   yup
@@ -26,7 +27,11 @@ export const CreateSigningCommitmentRequestSchema: yup.ObjectSchema<CreateSignin
     .defined()
 
 export const CreateSigningCommitmentResponseSchema: yup.ObjectSchema<CreateSigningCommitmentResponse> =
-  RpcSigningCommitmentsSchema
+  yup
+    .object({
+      commitment: yup.string().defined(),
+    })
+    .defined()
 
 routes.register<typeof CreateSigningCommitmentRequestSchema, CreateSigningCommitmentResponse>(
   `${ApiNamespace.wallet}/multisig/createSigningCommitment`,
@@ -38,12 +43,8 @@ routes.register<typeof CreateSigningCommitmentRequestSchema, CreateSigningCommit
 
     AssertMultiSigSigner(account)
 
-    const result = createSigningCommitment(account.multiSigKeys.keyPackage, request.data.seed)
-
     request.end({
-      identifier: result.identifier,
-      hiding: result.hiding,
-      binding: result.binding,
+      commitment: createSigningCommitment(account.multiSigKeys.keyPackage, request.data.seed),
     })
   },
 )

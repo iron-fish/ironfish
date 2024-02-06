@@ -4,7 +4,6 @@
 import {
   Asset,
   ASSET_ID_LENGTH,
-  Commitment,
   createSignatureShare,
   createSigningCommitment,
   generateKey,
@@ -1213,7 +1212,7 @@ describe('Wallet', () => {
         ...trustedDealerPackage,
       })
 
-      const signingCommitments: Commitment[] = []
+      const signingCommitments: string[] = []
       for (const participant of participants) {
         AssertMultiSigSigner(participant)
         signingCommitments.push(

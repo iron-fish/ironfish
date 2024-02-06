@@ -112,8 +112,7 @@ describe('Route wallet/multisig/createSigningCommitment', () => {
     })
 
     expect(response.content).toMatchObject({
-      hiding: expect.any(String),
-      binding: expect.any(String),
+      commitment: expect.any(String),
     })
   })
 })
