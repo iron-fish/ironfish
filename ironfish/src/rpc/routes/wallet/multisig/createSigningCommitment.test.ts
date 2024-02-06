@@ -23,6 +23,47 @@ describe('Route wallet/multisig/createSigningCommitment', () => {
     )
   })
 
+  it('cannot perform signing commitment if the account is a trusted dealer', async () => {
+    const participants = Array.from({ length: 3 }, () => ({
+      identifier: ParticipantSecret.random().toIdentity().toFrostIdentifier(),
+    }))
+
+    const request = { minSigners: 2, participants }
+
+    const trustedDealerPackage = (
+      await routeTest.client.wallet.multisig.createTrustedDealerKeyPackage(request)
+    ).content
+
+    const importAccountRequest = {
+      name: 'td',
+      account: {
+        name: 'td',
+        version: ACCOUNT_SCHEMA_VERSION,
+        viewKey: trustedDealerPackage.viewKey,
+        incomingViewKey: trustedDealerPackage.incomingViewKey,
+        outgoingViewKey: trustedDealerPackage.outgoingViewKey,
+        publicAddress: trustedDealerPackage.publicAddress,
+        spendingKey: null,
+        createdAt: null,
+        multiSigKeys: {
+          publicKeyPackage: trustedDealerPackage.publicKeyPackage,
+        },
+        proofAuthorizingKey: null,
+      },
+    }
+
+    const importAccountResponse = await routeTest.client.wallet.importAccount(
+      importAccountRequest,
+    )
+
+    await expect(
+      routeTest.client.wallet.multisig.createSigningCommitment({
+        account: importAccountResponse.content.name,
+        seed: 420,
+      }),
+    ).rejects.toThrow()
+  })
+
   it('should create signing commitment', async () => {
     const participants = Array.from({ length: 3 }, () => ({
       identifier: ParticipantSecret.random().toIdentity().toFrostIdentifier(),
