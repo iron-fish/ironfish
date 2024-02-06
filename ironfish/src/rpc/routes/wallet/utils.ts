@@ -5,8 +5,8 @@ import { Config } from '../../../fileStores'
 import { Note } from '../../../primitives'
 import { BufferUtils, CurrencyUtils } from '../../../utils'
 import { Account, Wallet } from '../../../wallet'
-import { isSignerMultiSig } from '../../../wallet/account/encoder/multiSigKeys'
-import { MultiSigKeys } from '../../../wallet/interfaces/multiSigKeys'
+import { isSignerMultiSig } from '../../../wallet/account/encoder/multisigKeys'
+import { MultisigKeys } from '../../../wallet/interfaces/multisigKeys'
 import { AccountImport } from '../../../wallet/walletdb/accountValue'
 import { AssetValue } from '../../../wallet/walletdb/assetValue'
 import { DecryptedNoteValue } from '../../../wallet/walletdb/decryptedNoteValue'
@@ -17,7 +17,7 @@ import {
   RpcAccountAssetBalanceDelta,
   RpcAccountImport,
   RpcAccountStatus,
-  RpcMultiSigKeys,
+  RpcMultisigKeys,
   RpcWalletNote,
   RpcWalletTransaction,
 } from './types'
@@ -107,25 +107,25 @@ export function deserializeRpcAccountImport(accountImport: RpcAccountImport): Ac
           sequence: accountImport.createdAt.sequence,
         }
       : null,
-    multiSigKeys: accountImport.multiSigKeys
-      ? deserializeRpcAccountMultiSigKeys(accountImport.multiSigKeys)
+    multisigKeys: accountImport.multisigKeys
+      ? deserializeRpcAccountMultiSigKeys(accountImport.multisigKeys)
       : undefined,
   }
 }
 
 export function deserializeRpcAccountMultiSigKeys(
-  rpcMultiSigKeys: RpcMultiSigKeys,
-): MultiSigKeys {
-  if (isSignerMultiSig(rpcMultiSigKeys)) {
+  rpcMultisigKeys: RpcMultisigKeys,
+): MultisigKeys {
+  if (isSignerMultiSig(rpcMultisigKeys)) {
     return {
-      publicKeyPackage: rpcMultiSigKeys.publicKeyPackage,
-      identifier: rpcMultiSigKeys.identifier,
-      keyPackage: rpcMultiSigKeys.keyPackage,
+      publicKeyPackage: rpcMultisigKeys.publicKeyPackage,
+      identifier: rpcMultisigKeys.identifier,
+      keyPackage: rpcMultisigKeys.keyPackage,
     }
   }
 
   return {
-    publicKeyPackage: rpcMultiSigKeys.publicKeyPackage,
+    publicKeyPackage: rpcMultisigKeys.publicKeyPackage,
   }
 }
 

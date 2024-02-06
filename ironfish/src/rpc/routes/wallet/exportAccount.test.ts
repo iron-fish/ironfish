@@ -143,7 +143,7 @@ describe('Route wallet/exportAccount', () => {
     ).rejects.toThrow()
   })
 
-  it('should export an account with multiSigKeys', async () => {
+  it('should export an account with multisigKeys', async () => {
     const key = generateKey()
 
     const accountName = 'foo'
@@ -156,7 +156,7 @@ describe('Route wallet/exportAccount', () => {
       outgoingViewKey: key.outgoingViewKey,
       version: 1,
       createdAt: null,
-      multiSigKeys: {
+      multisigKeys: {
         publicKeyPackage: 'aaaa',
         identifier: 'aaaa',
         keyPackage: 'bbbb',
@@ -183,7 +183,7 @@ describe('Route wallet/exportAccount', () => {
         outgoingViewKey: accountImport.outgoingViewKey,
         publicAddress: accountImport.publicAddress,
         version: accountImport.version,
-        multiSigKeys: accountImport.multiSigKeys,
+        multisigKeys: accountImport.multisigKeys,
       },
     })
   })

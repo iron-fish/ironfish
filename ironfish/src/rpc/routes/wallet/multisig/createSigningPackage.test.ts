@@ -42,7 +42,7 @@ describe('Route multisig/createSigningPackage', () => {
         publicAddress: trustedDealerPackage.publicAddress,
         spendingKey: null,
         createdAt: null,
-        multiSigKeys: {
+        multisigKeys: {
           keyPackage: trustedDealerPackage.keyPackages[0].keyPackage,
           identifier: trustedDealerPackage.keyPackages[0].identifier,
           publicKeyPackage: trustedDealerPackage.publicKeyPackage,

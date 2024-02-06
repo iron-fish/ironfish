@@ -3,10 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import bufio from 'bufio'
 import { IDatabaseEncoding } from '../../../storage'
-import { MultiSigKeys, MultiSigSigner } from '../../interfaces/multiSigKeys'
+import { MultisigKeys, MultisigSigner } from '../../interfaces/multisigKeys'
 
-export class MultiSigKeysEncoding implements IDatabaseEncoding<MultiSigKeys> {
-  serialize(value: MultiSigKeys): Buffer {
+export class MultisigKeysEncoding implements IDatabaseEncoding<MultisigKeys> {
+  serialize(value: MultisigKeys): Buffer {
     const bw = bufio.write(this.getSize(value))
 
     let flags = 0
@@ -22,7 +22,7 @@ export class MultiSigKeysEncoding implements IDatabaseEncoding<MultiSigKeys> {
     return bw.render()
   }
 
-  deserialize(buffer: Buffer): MultiSigKeys {
+  deserialize(buffer: Buffer): MultisigKeys {
     const reader = bufio.read(buffer, true)
 
     const flags = reader.readU8()
@@ -44,7 +44,7 @@ export class MultiSigKeysEncoding implements IDatabaseEncoding<MultiSigKeys> {
     }
   }
 
-  getSize(value: MultiSigKeys): number {
+  getSize(value: MultisigKeys): number {
     let size = 0
     size += 1 // flags
 
@@ -58,6 +58,6 @@ export class MultiSigKeysEncoding implements IDatabaseEncoding<MultiSigKeys> {
   }
 }
 
-export function isSignerMultiSig(multiSigKeys: MultiSigKeys): multiSigKeys is MultiSigSigner {
-  return 'keyPackage' in multiSigKeys && 'identifier' in multiSigKeys
+export function isSignerMultiSig(multisigKeys: MultisigKeys): multisigKeys is MultisigSigner {
+  return 'keyPackage' in multisigKeys && 'identifier' in multisigKeys
 }

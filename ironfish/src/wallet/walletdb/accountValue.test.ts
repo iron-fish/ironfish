@@ -29,7 +29,7 @@ describe('AccountValueEncoding', () => {
     expect(deserializedValue).toEqual(value)
   })
 
-  it('serializes an object with multiSigKeys into a buffer and deserializes to the original object', () => {
+  it('serializes an object with multisigKeys into a buffer and deserializes to the original object', () => {
     const encoder = new AccountValueEncoding()
 
     const key = generateKey()
@@ -39,12 +39,12 @@ describe('AccountValueEncoding', () => {
       incomingViewKey: key.incomingViewKey,
       outgoingViewKey: key.outgoingViewKey,
       publicAddress: key.publicAddress,
-      // NOTE: accounts with multiSigKeys should not have spendingKey
+      // NOTE: accounts with multisigKeys should not have spendingKey
       spendingKey: null,
       viewKey: key.viewKey,
       version: 1,
       createdAt: null,
-      multiSigKeys: {
+      multisigKeys: {
         publicKeyPackage: 'cccc',
         identifier: 'deaf',
         keyPackage: 'beef',

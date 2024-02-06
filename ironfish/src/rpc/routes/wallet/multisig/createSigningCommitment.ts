@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { createSigningCommitment } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
-import { AssertMultiSigSigner } from '../../../../wallet/account/account'
+import { AssertMultisigSigner } from '../../../../wallet/account/account'
 import { ApiNamespace } from '../../namespaces'
 import { routes } from '../../router'
 import { AssertHasRpcContext } from '../../rpcContext'
@@ -41,7 +41,7 @@ routes.register<typeof CreateSigningCommitmentRequestSchema, CreateSigningCommit
 
     const account = getAccount(context.wallet, request.data.account)
 
-    AssertMultiSigSigner(account)
+    AssertMultisigSigner(account)
 
     request.end({
       commitment: createSigningCommitment(account.multiSigKeys.keyPackage, request.data.seed),

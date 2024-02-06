@@ -7,7 +7,7 @@ import { Bech32m } from '../../../utils'
 import { AccountImport, KEY_LENGTH, VIEW_KEY_LENGTH } from '../../walletdb/accountValue'
 import { ACCOUNT_SCHEMA_VERSION } from '../account'
 import { AccountDecodingOptions, AccountEncoder, DecodeFailed, DecodeInvalid } from './encoder'
-import { MultiSigKeysEncoding } from './multiSigKeys'
+import { MultisigKeysEncoding } from './multisigKeys'
 
 export const BECH32_ACCOUNT_PREFIX = 'ifaccount'
 
@@ -49,11 +49,11 @@ export class Bech32Encoder implements AccountEncoder {
       bw.writeU32(value.createdAt.sequence)
     }
 
-    bw.writeU8(Number(!!value.multiSigKeys))
-    if (value.multiSigKeys) {
-      const encoding = new MultiSigKeysEncoding()
-      bw.writeU64(encoding.getSize(value.multiSigKeys))
-      bw.writeBytes(encoding.serialize(value.multiSigKeys))
+    bw.writeU8(Number(!!value.multisigKeys))
+    if (value.multisigKeys) {
+      const encoding = new MultisigKeysEncoding()
+      bw.writeU64(encoding.getSize(value.multisigKeys))
+      bw.writeBytes(encoding.serialize(value.multisigKeys))
     }
 
     bw.writeU8(Number(!!value.proofAuthorizingKey))
@@ -116,11 +116,11 @@ export class Bech32Encoder implements AccountEncoder {
       size += 32 // block hash
       size += 4 // block sequence
     }
-    size += 1 // multiSigKeys byte
-    if (value.multiSigKeys) {
-      const encoding = new MultiSigKeysEncoding()
+    size += 1 // multisigKeys byte
+    if (value.multisigKeys) {
+      const encoding = new MultisigKeysEncoding()
       size += 8 // size of multi sig keys
-      size += encoding.getSize(value.multiSigKeys)
+      size += encoding.getSize(value.multisigKeys)
     }
     size += 1 // proofAuthorizingKey byte
     if (value.proofAuthorizingKey) {
@@ -172,18 +172,18 @@ function decoderV2(
 ): AccountImport {
   const accountImport = decoderV1(reader, options)
 
-  let multiSigKeys = undefined
+  let multisigKeys = undefined
 
   const hasMultiSigKeys = reader.readU8() === 1
   if (hasMultiSigKeys) {
     const size = reader.readU64()
-    const encoder = new MultiSigKeysEncoding()
-    multiSigKeys = encoder.deserialize(reader.readBytes(size))
+    const encoder = new MultisigKeysEncoding()
+    multisigKeys = encoder.deserialize(reader.readBytes(size))
   }
 
   return {
     ...accountImport,
-    multiSigKeys,
+    multisigKeys: multisigKeys,
   }
 }
 

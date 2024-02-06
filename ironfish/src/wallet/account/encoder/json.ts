@@ -37,8 +37,8 @@ export class JsonEncoder implements AccountEncoder {
               sequence: account.createdAt.sequence,
             }
           : null,
-        multiSigKeys: account.multiSigKeys
-          ? deserializeRpcAccountMultiSigKeys(account.multiSigKeys)
+        multisigKeys: account.multisigKeys
+          ? deserializeRpcAccountMultiSigKeys(account.multisigKeys)
           : undefined,
       }
 
