@@ -21,7 +21,9 @@ describe('Route multisig/createSigningCommitment', () => {
     }))
 
     const request = { minSigners: 2, participants }
-    const response = await routeTest.client.multisig.createTrustedDealerKeyPackage(request)
+    const response = await routeTest.client.wallet.multisig.createTrustedDealerKeyPackage(
+      request,
+    )
 
     const trustedDealerPackage = response.content
 

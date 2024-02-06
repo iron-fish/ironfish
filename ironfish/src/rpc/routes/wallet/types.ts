@@ -147,7 +147,6 @@ export type RpcAccountImport = {
   outgoingViewKey: string
   publicAddress: string
   spendingKey: string | null
-
   createdAt: { hash: string; sequence: number } | null
   multiSigKeys?: RpcMultiSigKeys
   proofAuthorizingKey: string | null

@@ -3,11 +3,15 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { createSigningCommitment } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
-import { ApiNamespace } from '../namespaces'
-import { routes } from '../router'
+import { AssertMultiSig } from '../../../../wallet/account/account'
+import { AssertIsSignerMultiSig } from '../../../../wallet/account/encoder/multiSigKeys'
+import { ApiNamespace } from '../../namespaces'
+import { routes } from '../../router'
+import { AssertHasRpcContext } from '../../rpcContext'
+import { getAccount } from '../utils'
 
 export type CreateSigningCommitmentRequest = {
-  keyPackage: string
+  account: string
   seed: number //  TODO: remove when we have deterministic nonces
 }
 
@@ -18,7 +22,7 @@ export type CreateSigningCommitmentResponse = {
 export const CreateSigningCommitmentRequestSchema: yup.ObjectSchema<CreateSigningCommitmentRequest> =
   yup
     .object({
-      keyPackage: yup.string().defined(),
+      account: yup.string().defined(),
       seed: yup.number().defined(),
     })
     .defined()
@@ -31,11 +35,18 @@ export const CreateSigningCommitmentResponseSchema: yup.ObjectSchema<CreateSigni
     .defined()
 
 routes.register<typeof CreateSigningCommitmentRequestSchema, CreateSigningCommitmentResponse>(
-  `${ApiNamespace.multisig}/createSigningCommitment`,
+  `${ApiNamespace.wallet}/multisig/createSigningCommitment`,
   CreateSigningCommitmentRequestSchema,
-  (request, _context): void => {
+  (request, context): void => {
+    AssertHasRpcContext(request, context, 'wallet')
+
+    const account = getAccount(context.wallet, request.data.account)
+
+    AssertMultiSig(account)
+    AssertIsSignerMultiSig(account.multiSigKeys)
+
     request.end({
-      commitment: createSigningCommitment(request.data.keyPackage, request.data.seed),
+      commitment: createSigningCommitment(account.multiSigKeys.keyPackage, request.data.seed),
     })
   },
 )

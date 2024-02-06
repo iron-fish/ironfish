@@ -1284,21 +1284,24 @@ describe('Wallet', () => {
       const signingPackage = unsignedTransaction.signingPackage(signingCommitments)
       const publicKeyRandomness = unsignedTransaction.publicKeyRandomness()
 
-      const signatureShares: Record<string, string> = {}
+      const signatureShares: Array<string> = []
 
       for (const participant of participants) {
         Assert.isNotUndefined(participant.multiSigKeys)
         AssertIsSignerMultiSig(participant.multiSigKeys)
-        signatureShares[participant.multiSigKeys.identifier] = createSigningShare(
-          signingPackage,
-          participant.multiSigKeys.keyPackage,
-          publicKeyRandomness,
-          seed,
+        signatureShares.push(
+          createSigningShare(
+            signingPackage,
+            participant.multiSigKeys.identifier,
+            participant.multiSigKeys.keyPackage,
+            publicKeyRandomness,
+            seed,
+          ),
         )
       }
 
       Assert.isNotUndefined(coordinator.multiSigKeys)
-      const serializedFrostTransaction = unsignedTransaction.signFrost(
+      const serializedFrostTransaction = unsignedTransaction.aggregateSignatureShares(
         coordinator.multiSigKeys.publicKeyPackage,
         signingPackage,
         signatureShares,

@@ -10,7 +10,7 @@ import { GENESIS_BLOCK_SEQUENCE } from '../../primitives/block'
 import { Note } from '../../primitives/note'
 import { DatabaseKeyRange, IDatabaseTransaction } from '../../storage'
 import { StorageUtils } from '../../storage/database/utils'
-import { WithNonNull } from '../../utils'
+import { WithNonNull, WithRequired } from '../../utils'
 import { DecryptedNote } from '../../workerPool/tasks/decryptNotes'
 import { AssetBalances } from '../assetBalances'
 import { MultiSigKeys } from '../interfaces/multiSigKeys'
@@ -31,6 +31,15 @@ export type SpendingAccount = WithNonNull<Account, 'spendingKey'>
 
 export function AssertSpending(account: Account): asserts account is SpendingAccount {
   Assert.isTrue(account.isSpendingAccount())
+}
+
+export type MultiSigAccount = WithRequired<Account, 'multiSigKeys'>
+
+export function AssertMultiSig(account: Account): asserts account is MultiSigAccount {
+  Assert.isNotUndefined(
+    account.multiSigKeys,
+    `Account ${account.name} is not a multisig account`,
+  )
 }
 
 export class Account {

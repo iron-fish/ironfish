@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { generateKey, splitSecret } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
-import { ApiNamespace } from '../namespaces'
-import { routes } from '../router'
+import { ApiNamespace } from '../../namespaces'
+import { routes } from '../../router'
 
 export type CreateTrustedDealerKeyPackageRequest = {
   minSigners: number
@@ -66,7 +66,7 @@ routes.register<
   typeof CreateTrustedDealerKeyPackageRequestSchema,
   CreateTrustedDealerKeyPackageResponse
 >(
-  `${ApiNamespace.multisig}/createTrustedDealerKeyPackage`,
+  `${ApiNamespace.wallet}/multisig/createTrustedDealerKeyPackage`,
   CreateTrustedDealerKeyPackageRequestSchema,
   (request, _context): void => {
     const key = generateKey()
