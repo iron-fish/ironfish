@@ -703,7 +703,7 @@ fn test_sign_simple() {
 }
 
 #[test]
-fn test_sign_frost() {
+fn test_aggregate_signature_shares() {
     let spender_key = SaplingKey::generate_key();
 
     let identifiers = create_identifiers(10);
@@ -812,7 +812,7 @@ fn test_sign_frost() {
 
     // coordinator creates signed transaction
     let signed_transaction = unsigned_transaction
-        .sign_frost(
+        .aggregate_signature_shares(
             &key_packages.public_key_package,
             &signing_package,
             signing_shares,

@@ -49,7 +49,7 @@ routes.register<typeof AggregateSigningSharesRequestSchema, AggregateSigningShar
     const unsigned = new UnsignedTransaction(
       Buffer.from(request.data.unsignedTransaction, 'hex'),
     )
-    const transaction = unsigned.signFrost(
+    const transaction = unsigned.aggregateSignatureShares(
       account.multiSigKeys.publicKeyPackage,
       request.data.signingPackage,
       request.data.signingShares,

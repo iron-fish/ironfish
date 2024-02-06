@@ -249,7 +249,7 @@ export class UnsignedTransaction {
   publicKeyRandomness(): string
   signingPackage(nativeIdentiferCommitments: Array<Commitment>): string
   sign(spenderHexKey: string): Buffer
-  signFrost(publicKeyPackageStr: string, signingPackageStr: string, signatureSharesArr: Array<string>): Buffer
+  aggregateSignatureShares(publicKeyPackageStr: string, signingPackageStr: string, signatureSharesArr: Array<string>): Buffer
 }
 export class FoundBlockResult {
   randomness: string

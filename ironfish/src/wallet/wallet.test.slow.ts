@@ -1302,7 +1302,7 @@ describe('Wallet', () => {
       }
 
       Assert.isNotUndefined(coordinator.multiSigKeys)
-      const serializedFrostTransaction = unsignedTransaction.signFrost(
+      const serializedFrostTransaction = unsignedTransaction.aggregateSignatureShares(
         coordinator.multiSigKeys.publicKeyPackage,
         signingPackage,
         signatureShares,
