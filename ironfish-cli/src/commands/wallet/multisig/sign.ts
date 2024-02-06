@@ -66,7 +66,7 @@ export class MultiSigSign extends IronfishCommand {
       if (!response.content.account) {
         this.error(
           `No account is currently active.
-           Use ironfish wallet:create <name> to first create an account`,
+           Use ironfish wallet:import to first import the multisig account which can sign the shares for this transaction`,
         )
       }
 
