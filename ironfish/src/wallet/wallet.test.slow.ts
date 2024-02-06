@@ -5,8 +5,8 @@ import {
   Asset,
   ASSET_ID_LENGTH,
   Commitment,
+  createSignatureShare,
   createSigningCommitment,
-  createSigningShare,
   generateKey,
   ParticipantSecret,
   splitSecret,
@@ -1289,7 +1289,7 @@ describe('Wallet', () => {
       for (const participant of participants) {
         AssertMultiSigSigner(participant)
         signatureShares.push(
-          createSigningShare(
+          createSignatureShare(
             signingPackage,
             participant.multiSigKeys.identifier,
             participant.multiSigKeys.keyPackage,

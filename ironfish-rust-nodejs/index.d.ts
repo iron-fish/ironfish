@@ -9,7 +9,7 @@ export interface Commitment {
   binding: string
 }
 export function createSigningCommitment(keyPackage: string, seed: number): Commitment
-export function createSigningShare(signingPackage: string, identifier: string, keyPackage: string, publicKeyRandomness: string, seed: number): string
+export function createSignatureShare(signingPackage: string, identifier: string, keyPackage: string, publicKeyRandomness: string, seed: number): string
 export function splitSecret(coordinatorSaplingKey: string, minSigners: number, identifiers: Array<string>): TrustedDealerKeyPackages
 export function contribute(inputPath: string, outputPath: string, seed?: string | undefined | null): Promise<string>
 export function verifyTransform(paramsPath: string, newParamsPath: string): Promise<string>
