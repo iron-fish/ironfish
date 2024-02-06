@@ -7,6 +7,7 @@ import fs from 'fs'
 import path from 'path'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { encodeAccount } from '../../../wallet/account/encoder/account'
+import { Bech32Encoder } from '../../../wallet/account/encoder/bech32'
 import { Bech32JsonEncoder } from '../../../wallet/account/encoder/bech32json'
 import { AccountFormat } from '../../../wallet/account/encoder/encoder'
 import { RpcClient } from '../../clients'
@@ -209,11 +210,29 @@ describe('Route wallet/importAccount', () => {
 
     it('should import a bech32 encoded account', async () => {
       const name = 'bech32'
-      const bech32 = encodeAccount(createAccountImport(name), AccountFormat.Bech32)
+      const bech32 = new Bech32Encoder().encode(createAccountImport(name))
 
       const response = await routeTest.client
         .request<ImportResponse>('wallet/importAccount', {
           account: bech32,
+          rescan: false,
+        })
+        .waitForEnd()
+
+      expect(response.status).toBe(200)
+      expect(response.content).toMatchObject({
+        name: name,
+        isDefaultAccount: false, // This is false because the default account is already imported in a previous test
+      })
+    })
+
+    it('should import a base64 encoded account', async () => {
+      const name = 'base64'
+      const base64 = encodeAccount(createAccountImport(name), AccountFormat.Base64Json)
+
+      const response = await routeTest.client
+        .request<ImportResponse>('wallet/importAccount', {
+          account: base64,
           rescan: false,
         })
         .waitForEnd()

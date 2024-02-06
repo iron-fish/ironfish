@@ -28,9 +28,9 @@ describe('decodeAccount/encodeAccount', () => {
       const decodedJson = decodeAccount(encodedJson, { name: 'new' })
       expect(decodedJson.name).toEqual('new')
 
-      const encodedBech32 = encodeAccount(decoded, AccountFormat.Bech32)
-      const decodedBech32 = decodeAccount(encodedBech32, { name: 'new' })
-      expect(decodedBech32.name).toEqual('new')
+      const encodedBase64 = encodeAccount(decoded, AccountFormat.Base64Json)
+      const decodedBase64 = decodeAccount(encodedBase64, { name: 'new' })
+      expect(decodedBase64.name).toEqual('new')
 
       const bech32Encoder = new Bech32JsonEncoder()
       const encodedBech32Json = bech32Encoder.encode(decoded)

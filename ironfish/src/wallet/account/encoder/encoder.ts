@@ -16,10 +16,10 @@ export class DecodeFailed extends Error {
 }
 
 export enum AccountFormat {
+  Base64Json = 'Base64Json',
   JSON = 'JSON',
-  Bech32 = 'Bech32',
-  SpendingKey = 'SpendingKey',
   Mnemonic = 'Mnemonic',
+  SpendingKey = 'SpendingKey',
 }
 
 export type AccountEncodingOptions = {
