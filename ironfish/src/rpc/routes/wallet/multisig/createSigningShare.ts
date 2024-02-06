@@ -3,12 +3,16 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { createSigningShare, UnsignedTransaction } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
+import { AssertMultiSig } from '../../../../wallet'
+import { AssertIsSignerMultiSig } from '../../../../wallet/account/encoder/multiSigKeys'
 import { ApiNamespace } from '../../namespaces'
 import { routes } from '../../router'
+import { AssertHasRpcContext } from '../../rpcContext'
+import { getAccount } from '../utils'
 
 export type CreateSigningShareRequest = {
+  account: string
   signingPackage: string
-  keyPackage: string
   unsignedTransaction: string
   seed: number //  TODO: remove when we have deterministic nonces
 }
@@ -19,8 +23,8 @@ export type CreateSigningShareResponse = {
 
 export const CreateSigningShareRequestSchema: yup.ObjectSchema<CreateSigningShareRequest> = yup
   .object({
+    account: yup.string().defined(),
     signingPackage: yup.string().defined(),
-    keyPackage: yup.string().defined(),
     unsignedTransaction: yup.string().defined(),
     seed: yup.number().defined(),
   })
@@ -36,13 +40,19 @@ export const CreateSigningShareResponseSchema: yup.ObjectSchema<CreateSigningSha
 routes.register<typeof CreateSigningShareRequestSchema, CreateSigningShareResponse>(
   `${ApiNamespace.wallet}/multisig/createSigningShare`,
   CreateSigningShareRequestSchema,
-  (request, _context): void => {
+  (request, node): void => {
+    AssertHasRpcContext(request, node, 'wallet')
+
+    const account = getAccount(node.wallet, request.data.account)
+    AssertMultiSig(account)
+    AssertIsSignerMultiSig(account.multiSigKeys)
+
     const unsigned = new UnsignedTransaction(
       Buffer.from(request.data.unsignedTransaction, 'hex'),
     )
     const result = createSigningShare(
       request.data.signingPackage,
-      request.data.keyPackage,
+      account.multiSigKeys.keyPackage,
       unsigned.publicKeyRandomness(),
       request.data.seed,
     )
