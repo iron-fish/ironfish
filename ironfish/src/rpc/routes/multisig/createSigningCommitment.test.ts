@@ -33,8 +33,7 @@ describe('Route multisig/createSigningCommitment', () => {
       .waitForEnd()
 
     expect(signingCommitment.content).toMatchObject({
-      hiding: expect.any(String),
-      binding: expect.any(String),
+      commitment: expect.any(String),
     })
   })
 })

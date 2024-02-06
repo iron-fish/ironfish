@@ -8,12 +8,12 @@ use std::collections::{BTreeMap, HashMap};
 use std::convert::TryInto;
 
 use ironfish::assets::asset_identifier::AssetIdentifier;
-use ironfish::frost::frost::round1::NonceCommitment;
 use ironfish::frost::keys::PublicKeyPackage;
 use ironfish::frost::round1::SigningCommitments;
 use ironfish::frost::round2::SignatureShare;
 use ironfish::frost::Identifier;
 use ironfish::frost::SigningPackage;
+use ironfish::frost_utils::signing_commitment::SigningCommitment;
 use ironfish::serializing::fr::FrSerializable;
 use ironfish::serializing::hex_to_vec_bytes;
 use ironfish::serializing::{bytes_to_hex, hex_to_bytes};
@@ -32,7 +32,6 @@ use napi::{
 };
 use napi_derive::napi;
 
-use crate::frost::NativeCommitment;
 use crate::to_napi_err;
 
 use super::note::NativeNote;
@@ -412,29 +411,17 @@ impl NativeUnsignedTransaction {
     }
 
     #[napi]
-    pub fn signing_package(
-        &self,
-        native_identifer_commitments: Vec<NativeCommitment>,
-    ) -> Result<String> {
+    pub fn signing_package(&self, native_identifer_commitments: Vec<String>) -> Result<String> {
         let mut commitments: BTreeMap<Identifier, SigningCommitments> = BTreeMap::new();
 
         for identifier_commitment in native_identifer_commitments {
-            let identifier_bytes =
-                hex_to_bytes(&identifier_commitment.identifier).map_err(to_napi_err)?;
-            let identifier = Identifier::deserialize(&identifier_bytes).map_err(to_napi_err)?;
+            let bytes = hex_to_vec_bytes(&identifier_commitment).map_err(to_napi_err)?;
+            let signing_commitment = SigningCommitment::read(&bytes[..]).map_err(to_napi_err)?;
 
-            let commitment = SigningCommitments::new(
-                NonceCommitment::deserialize(
-                    hex_to_bytes(&identifier_commitment.hiding).map_err(to_napi_err)?,
-                )
-                .map_err(to_napi_err)?,
-                NonceCommitment::deserialize(
-                    hex_to_bytes(&identifier_commitment.binding).map_err(to_napi_err)?,
-                )
-                .map_err(to_napi_err)?,
-            );
+            let commitment =
+                SigningCommitments::new(signing_commitment.hiding, signing_commitment.binding);
 
-            commitments.insert(identifier, commitment);
+            commitments.insert(signing_commitment.identifier, commitment);
         }
 
         let signing_package = self
