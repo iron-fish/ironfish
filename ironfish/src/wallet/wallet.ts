@@ -42,7 +42,7 @@ import { WorkerPool } from '../workerPool'
 import { DecryptedNote, DecryptNoteOptions } from '../workerPool/tasks/decryptNotes'
 import { Account, ACCOUNT_SCHEMA_VERSION } from './account/account'
 import { AssetBalances } from './assetBalances'
-import { NotEnoughFundsError } from './errors'
+import { DuplicateAccountNameError, NotEnoughFundsError } from './errors'
 import { MintAssetOptions } from './interfaces/mintAssetOptions'
 import {
   RemoteChainProcessor,
@@ -1449,7 +1449,7 @@ export class Wallet {
     },
   ): Promise<Account> {
     if (this.getAccountByName(name)) {
-      throw new Error(`Account already exists with the name ${name}`)
+      throw new DuplicateAccountNameError(name)
     }
 
     const key = generateKey()
@@ -1510,7 +1510,7 @@ export class Wallet {
 
   async importAccount(accountValue: AccountValue): Promise<Account> {
     if (accountValue.name && this.getAccountByName(accountValue.name)) {
-      throw new Error(`Account already exists with the name ${accountValue.name}`)
+      throw new DuplicateAccountNameError(accountValue.name)
     }
     const accounts = this.listAccounts()
     if (
