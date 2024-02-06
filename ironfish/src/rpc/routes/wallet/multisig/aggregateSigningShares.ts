@@ -13,10 +13,7 @@ export type AggregateSigningSharesRequest = {
   account: string
   unsignedTransaction: string
   signingPackage: string
-  signingShares: Array<{
-    identifier: string
-    signingShare: string
-  }>
+  signingShares: Array<string>
 }
 
 export type AggregateSigningSharesResponse = {
@@ -29,16 +26,7 @@ export const AggregateSigningSharesRequestSchema: yup.ObjectSchema<AggregateSign
       account: yup.string().defined(),
       unsignedTransaction: yup.string().defined(),
       signingPackage: yup.string().defined(),
-      signingShares: yup
-        .array(
-          yup
-            .object({
-              identifier: yup.string().defined(),
-              signingShare: yup.string().defined(),
-            })
-            .defined(),
-        )
-        .defined(),
+      signingShares: yup.array(yup.string().defined()).defined(),
     })
     .defined()
 
@@ -61,17 +49,10 @@ routes.register<typeof AggregateSigningSharesRequestSchema, AggregateSigningShar
     const unsigned = new UnsignedTransaction(
       Buffer.from(request.data.unsignedTransaction, 'hex'),
     )
-
-    // TODO(hughy): change interface of signFrost to take Array of shares instead of Record
-    const signingShares: Record<string, string> = {}
-    for (const { identifier, signingShare } of request.data.signingShares) {
-      signingShares[identifier] = signingShare
-    }
-
     const transaction = unsigned.signFrost(
       account.multiSigKeys.publicKeyPackage,
       request.data.signingPackage,
-      signingShares,
+      request.data.signingShares,
     )
 
     request.end({

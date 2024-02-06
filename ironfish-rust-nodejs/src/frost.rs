@@ -8,10 +8,10 @@ use crate::{
 };
 use ironfish::{
     frost::{keys::KeyPackage, round2::Randomizer, Identifier, SigningPackage},
-    frost_utils::split_spender_key::split_spender_key,
     frost_utils::{
         signing_commitment::create_signing_commitment as create_signing_commitment_rust,
         signing_share::create_signing_share as create_signing_share_rust,
+        split_spender_key::split_spender_key,
     },
     participant::{Identity, Secret},
     serializing::{bytes_to_hex, fr::FrSerializable, hex_to_bytes, hex_to_vec_bytes},
@@ -44,10 +44,13 @@ pub fn create_signing_commitment(key_package: String, seed: u32) -> Result<Nativ
 #[napi]
 pub fn create_signing_share(
     signing_package: String,
+    identifier: String,
     key_package: String,
     public_key_randomness: String,
     seed: u32,
 ) -> Result<String> {
+    let identifier = Identifier::deserialize(&hex_to_bytes(&identifier).map_err(to_napi_err)?)
+        .map_err(to_napi_err)?;
     let key_package =
         KeyPackage::deserialize(&hex_to_vec_bytes(&key_package).map_err(to_napi_err)?[..])
             .map_err(to_napi_err)?;
@@ -58,9 +61,14 @@ pub fn create_signing_share(
         Randomizer::deserialize(&hex_to_bytes(&public_key_randomness).map_err(to_napi_err)?)
             .map_err(to_napi_err)?;
 
-    let signature_share =
-        create_signing_share_rust(signing_package, key_package, randomizer, seed as u64)
-            .map_err(to_napi_err)?;
+    let signature_share = create_signing_share_rust(
+        signing_package,
+        identifier,
+        key_package,
+        randomizer,
+        seed as u64,
+    )
+    .map_err(to_napi_err)?;
 
     Ok(bytes_to_hex(&signature_share.serialize()))
 }

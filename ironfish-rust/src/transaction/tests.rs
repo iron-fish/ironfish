@@ -801,12 +801,13 @@ fn test_sign_frost() {
     for key_package in key_packages.key_packages.iter() {
         let signature_share = create_signing_share(
             signing_package.clone(),
+            *key_package.0,
             key_package.1.clone(),
             randomizer,
             0,
         )
         .expect("should be able to create signature share");
-        signing_shares.insert(*key_package.0, signature_share);
+        signing_shares.insert(signature_share.identifier, signature_share.signature_share);
     }
 
     // coordinator creates signed transaction
