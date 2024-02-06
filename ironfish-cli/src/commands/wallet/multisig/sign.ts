@@ -7,7 +7,7 @@ import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 
 export class MultiSigSign extends IronfishCommand {
-  static description = 'Aggregate signing shares from participants to sign a transaction'
+  static description = 'Aggregate signature shares from participants to sign a transaction'
   static hidden = true
 
   static flags = {
