@@ -7,8 +7,8 @@ import {
   useAccountFixture,
   useMinerBlockFixture,
   useUnsignedTxFixture,
-} from '../../../testUtilities'
-import { createRouteTest } from '../../../testUtilities/routeTest'
+} from '../../../../testUtilities'
+import { createRouteTest } from '../../../../testUtilities/routeTest'
 
 describe('Route multisig/createSigningPackage', () => {
   const routeTest = createRouteTest()
@@ -25,13 +25,15 @@ describe('Route multisig/createSigningPackage', () => {
       minSigners: 2,
       participants,
     }
-    const response = await routeTest.client.multisig.createTrustedDealerKeyPackage(request)
+    const response = await routeTest.client.wallet.multisig.createTrustedDealerKeyPackage(
+      request,
+    )
 
     const trustedDealerPackage = response.content
 
     const commitments: Array<Commitment> = []
     for (let i = 0; i < 3; i++) {
-      const signingCommitment = await routeTest.client.multisig.createSigningCommitment({
+      const signingCommitment = await routeTest.client.wallet.multisig.createSigningCommitment({
         keyPackage: trustedDealerPackage.keyPackages[i].keyPackage,
         seed,
       })
@@ -52,7 +54,7 @@ describe('Route multisig/createSigningPackage', () => {
 
     const unsignedTransaction = await useUnsignedTxFixture(nodeTest.wallet, account, account)
     const unsignedString = unsignedTransaction.serialize().toString('hex')
-    const responseSigningPackage = await routeTest.client.multisig.createSigningPackage({
+    const responseSigningPackage = await routeTest.client.wallet.multisig.createSigningPackage({
       commitments,
       unsignedTransaction: unsignedString,
     })

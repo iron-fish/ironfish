@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { UnsignedTransaction } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
-import { ApiNamespace } from '../namespaces'
-import { routes } from '../router'
+import { ApiNamespace } from '../../namespaces'
+import { routes } from '../../router'
 
 export type AggregateSigningSharesRequest = {
   publicKeyPackage: string
@@ -47,7 +47,7 @@ export const AggregateSigningSharesResponseSchema: yup.ObjectSchema<AggregateSig
     .defined()
 
 routes.register<typeof AggregateSigningSharesRequestSchema, AggregateSigningSharesResponse>(
-  `${ApiNamespace.multisig}/aggregateSigningShares`,
+  `${ApiNamespace.wallet}/multisig/aggregateSigningShares`,
   AggregateSigningSharesRequestSchema,
   (request, _context): void => {
     const unsigned = new UnsignedTransaction(

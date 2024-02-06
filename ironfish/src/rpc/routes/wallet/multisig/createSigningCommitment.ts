@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { createSigningCommitment } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
-import { ApiNamespace } from '../namespaces'
-import { routes } from '../router'
+import { ApiNamespace } from '../../namespaces'
+import { routes } from '../../router'
 import { RpcSigningCommitments, RpcSigningCommitmentsSchema } from './types'
 
 export type CreateSigningCommitmentRequest = {
@@ -26,7 +26,7 @@ export const CreateSigningCommitmentResponseSchema: yup.ObjectSchema<CreateSigni
   RpcSigningCommitmentsSchema
 
 routes.register<typeof CreateSigningCommitmentRequestSchema, CreateSigningCommitmentResponse>(
-  `${ApiNamespace.multisig}/createSigningCommitment`,
+  `${ApiNamespace.wallet}/multisig/createSigningCommitment`,
   CreateSigningCommitmentRequestSchema,
   (request, _context): void => {
     const result = createSigningCommitment(request.data.keyPackage, request.data.seed)
