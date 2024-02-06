@@ -5,6 +5,10 @@ import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 
+interface SigningShare {
+  identifier: string
+  signingShare: string
+}
 export class MultiSigSign extends IronfishCommand {
   static description = `Sign a transaction`
   static hidden = true
@@ -20,12 +24,12 @@ export class MultiSigSign extends IronfishCommand {
       description: 'Unsigned transaction',
     }),
     signingPackage: Flags.string({
-      char: 's',
+      char: 'p',
       description: 'Signing package',
     }),
-    participant: Flags.string({
-      char: 'p',
-      description: 'Participant',
+    signingShare: Flags.string({
+      char: 's',
+      description: 'Signing share',
       multiple: true,
     }),
   }
@@ -51,8 +55,26 @@ export class MultiSigSign extends IronfishCommand {
 
     this.log(signingPackage)
 
-    if (!flags.participant) {
-      this.error('At least one participant is required')
+    if (!flags.signingShare) {
+      this.error('At least one signingShare is required')
     }
+
+    const signingShares: SigningShare[] = flags.signingShare.map(
+      (ss) => JSON.parse(ss) as SigningShare,
+    )
+
+    this.log(signingShares.join('\n'))
+
+    const client = await this.sdk.connectRpc()
+
+    const response = await client.multisig.aggregateSigningShares({
+      publicKeyPackage,
+      unsignedTransaction,
+      signingPackage,
+      signingShares,
+    })
+
+    this.log('Transaction response: ')
+    this.log(response.content.transaction)
   }
 }
