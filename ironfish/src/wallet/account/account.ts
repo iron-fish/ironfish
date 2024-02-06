@@ -36,6 +36,10 @@ export function AssertSpending(account: Account): asserts account is SpendingAcc
 
 export type MultiSigAccount = WithRequired<Account, 'multiSigKeys'>
 
+type MultiSigSignerAccount = WithRequired<Account, 'multiSigKeys'> & {
+  multiSigKeys: MultiSigSigner
+}
+
 export function AssertMultiSig(account: Account): asserts account is MultiSigAccount {
   Assert.isNotUndefined(
     account.multiSigKeys,
@@ -43,10 +47,11 @@ export function AssertMultiSig(account: Account): asserts account is MultiSigAcc
   )
 }
 
-export function AssertIsSignerMultiSig(
-  multiSig: MultiSigKeys,
-): asserts multiSig is MultiSigSigner {
-  Assert.isTrue(isSignerMultiSig(multiSig), 'Multisig is not a signer')
+export function AssertSignerMultiSig(
+  account: Account,
+): asserts account is MultiSigSignerAccount {
+  AssertMultiSig(account)
+  Assert.isTrue(isSignerMultiSig(account.multiSigKeys), 'Multisig is not a signer')
 }
 
 export class Account {

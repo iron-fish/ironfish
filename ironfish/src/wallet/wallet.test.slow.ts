@@ -27,7 +27,7 @@ import {
   useTxFixture,
 } from '../testUtilities'
 import { acceptsAllTarget } from '../testUtilities/helpers/blockchain'
-import { AssertIsSignerMultiSig } from '../wallet'
+import { AssertSignerMultiSig } from '../wallet'
 
 describe('Wallet', () => {
   const nodeTest = createNodeTest()
@@ -1215,8 +1215,7 @@ describe('Wallet', () => {
 
       const signingCommitments: Commitment[] = []
       for (const participant of participants) {
-        Assert.isNotUndefined(participant.multiSigKeys)
-        AssertIsSignerMultiSig(participant.multiSigKeys)
+        AssertSignerMultiSig(participant)
         signingCommitments.push(
           createSigningCommitment(participant.multiSigKeys.keyPackage, seed),
         )
@@ -1288,8 +1287,7 @@ describe('Wallet', () => {
       const signatureShares: Array<string> = []
 
       for (const participant of participants) {
-        Assert.isNotUndefined(participant.multiSigKeys)
-        AssertIsSignerMultiSig(participant.multiSigKeys)
+        AssertSignerMultiSig(participant)
         signatureShares.push(
           createSigningShare(
             signingPackage,
