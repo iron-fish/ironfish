@@ -9,6 +9,7 @@ import {
   useUnsignedTxFixture,
 } from '../../../../testUtilities'
 import { createRouteTest } from '../../../../testUtilities/routeTest'
+import { ACCOUNT_SCHEMA_VERSION } from '../../../../wallet'
 
 describe('Route multisig/createSigningPackage', () => {
   const routeTest = createRouteTest()
@@ -25,16 +26,37 @@ describe('Route multisig/createSigningPackage', () => {
       minSigners: 2,
       participants,
     }
-    const response = await routeTest.client.wallet.multisig.createTrustedDealerKeyPackage(
-      request,
-    )
 
-    const trustedDealerPackage = response.content
+    const trustedDealerPackage = (
+      await routeTest.client.wallet.multisig.createTrustedDealerKeyPackage(request)
+    ).content
+
+    const importAccountRequest = {
+      name: 'participant1',
+      account: {
+        name: 'participant1',
+        version: ACCOUNT_SCHEMA_VERSION,
+        viewKey: trustedDealerPackage.viewKey,
+        incomingViewKey: trustedDealerPackage.incomingViewKey,
+        outgoingViewKey: trustedDealerPackage.outgoingViewKey,
+        publicAddress: trustedDealerPackage.publicAddress,
+        spendingKey: null,
+        createdAt: null,
+        multiSigKeys: {
+          keyPackage: trustedDealerPackage.keyPackages[0].keyPackage,
+          identifier: trustedDealerPackage.keyPackages[0].identifier,
+          publicKeyPackage: trustedDealerPackage.publicKeyPackage,
+        },
+        proofAuthorizingKey: null,
+      },
+    }
+
+    const response = await routeTest.client.wallet.importAccount(importAccountRequest)
 
     const commitments: Array<Commitment> = []
     for (let i = 0; i < 3; i++) {
       const signingCommitment = await routeTest.client.wallet.multisig.createSigningCommitment({
-        keyPackage: trustedDealerPackage.keyPackages[i].keyPackage,
+        account: response.content.name,
         seed,
       })
       commitments.push(signingCommitment.content)
