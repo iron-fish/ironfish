@@ -461,7 +461,7 @@ impl NativeUnsignedTransaction {
     }
 
     #[napi]
-    pub fn sign_frost(
+    pub fn aggregate_signature_shares(
         &mut self,
         public_key_package_str: String,
         signing_package_str: String,
@@ -485,7 +485,7 @@ impl NativeUnsignedTransaction {
 
         let signed_transaction = self
             .transaction
-            .sign_frost(&public_key_package, &signing_package, signature_shares)
+            .aggregate_signature_shares(&public_key_package, &signing_package, signature_shares)
             .map_err(to_napi_err)?;
 
         let mut vec: Vec<u8> = vec![];
