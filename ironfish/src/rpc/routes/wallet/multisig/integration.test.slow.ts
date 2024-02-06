@@ -1,11 +1,10 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Asset, Commitment, ParticipantSecret, verifyTransactions } from '@ironfish/rust-nodejs'
+import { Asset, ParticipantSecret, verifyTransactions } from '@ironfish/rust-nodejs'
 import { Assert } from '../../../../assert'
 import { createRouteTest } from '../../../../testUtilities/routeTest'
-import { Account, ACCOUNT_SCHEMA_VERSION, AssertMultiSig } from '../../../../wallet'
-import { AssertIsSignerMultiSig } from '../../../../wallet/account/encoder/multiSigKeys'
+import { Account, ACCOUNT_SCHEMA_VERSION, AssertMultiSigSigner } from '../../../../wallet'
 
 describe('multisig RPC integration', () => {
   const routeTest = createRouteTest()
@@ -99,10 +98,9 @@ describe('multisig RPC integration', () => {
     const unsignedTransaction = buildTransactionResponse.content.unsignedTransaction
 
     // create and collect signing commitments
-    const commitments: Array<Commitment> = []
+    const commitments: Array<string> = []
     for (const participantAccount of participantAccounts) {
-      AssertMultiSig(participantAccount)
-      AssertIsSignerMultiSig(participantAccount.multiSigKeys)
+      AssertMultiSigSigner(participantAccount)
 
       const commitmentResponse = await routeTest.client.wallet.multisig.createSigningCommitment(
         {
@@ -111,11 +109,7 @@ describe('multisig RPC integration', () => {
         },
       )
 
-      commitments.push({
-        identifier: participantAccount.multiSigKeys.identifier,
-        hiding: commitmentResponse.content.hiding,
-        binding: commitmentResponse.content.binding,
-      })
+      commitments.push(commitmentResponse.content.commitment)
     }
 
     // create signing package
@@ -126,30 +120,27 @@ describe('multisig RPC integration', () => {
     const signingPackage = responseSigningPackage.content.signingPackage
 
     // create and collect signing shares
-    const signingShares: Array<{ identifier: string; signingShare: string }> = []
+    const signatureShares: Array<string> = []
     for (const participantAccount of participantAccounts) {
-      AssertMultiSig(participantAccount)
-      AssertIsSignerMultiSig(participantAccount.multiSigKeys)
+      AssertMultiSigSigner(participantAccount)
 
-      const signingShareResponse = await routeTest.client.wallet.multisig.createSigningShare({
-        account: participantAccount.name,
-        signingPackage,
-        unsignedTransaction,
-        seed,
-      })
+      const signatureShareResponse =
+        await routeTest.client.wallet.multisig.createSignatureShare({
+          account: participantAccount.name,
+          signingPackage,
+          unsignedTransaction,
+          seed,
+        })
 
-      signingShares.push({
-        identifier: participantAccount.multiSigKeys.identifier,
-        signingShare: signingShareResponse.content.signingShare,
-      })
+      signatureShares.push(signatureShareResponse.content.signatureShare)
     }
 
     // aggregate signing shares
-    const aggregateResponse = await routeTest.client.wallet.multisig.aggregateSigningShares({
+    const aggregateResponse = await routeTest.client.wallet.multisig.aggregateSignatureShares({
       account: coordinatorAccount.name,
       unsignedTransaction,
       signingPackage,
-      signingShares,
+      signatureShares,
     })
     expect(aggregateResponse.status).toEqual(200)
 
