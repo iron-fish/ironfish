@@ -4,6 +4,7 @@
 import { UnsignedTransaction } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
 import { Assert } from '../../../../assert'
+import { Transaction } from '../../../../primitives/transaction'
 import { ApiNamespace } from '../../namespaces'
 import { routes } from '../../router'
 import { AssertHasRpcContext } from '../../rpcContext'
@@ -14,9 +15,12 @@ export type AggregateSignatureSharesRequest = {
   unsignedTransaction: string
   signingPackage: string
   signatureShares: Array<string>
+  broadcast?: boolean
 }
 
 export type AggregateSignatureSharesResponse = {
+  accepted: boolean
+  broadcasted: boolean
   transaction: string
 }
 
@@ -33,6 +37,8 @@ export const AggregateSignatureSharesRequestSchema: yup.ObjectSchema<AggregateSi
 export const AggregateSignatureSharesResponseSchema: yup.ObjectSchema<AggregateSignatureSharesResponse> =
   yup
     .object({
+      accepted: yup.boolean().defined(),
+      broadcasted: yup.boolean().defined(),
       transaction: yup.string().defined(),
     })
     .defined()
@@ -40,7 +46,7 @@ export const AggregateSignatureSharesResponseSchema: yup.ObjectSchema<AggregateS
 routes.register<typeof AggregateSignatureSharesRequestSchema, AggregateSignatureSharesResponse>(
   `${ApiNamespace.wallet}/multisig/aggregateSignatureShares`,
   AggregateSignatureSharesRequestSchema,
-  (request, node): void => {
+  async (request, node): Promise<void> => {
     AssertHasRpcContext(request, node, 'wallet')
     const account = getAccount(node.wallet, request.data.account)
     // TODO(hughy): change this to use assertion instead of not undefined
@@ -49,14 +55,26 @@ routes.register<typeof AggregateSignatureSharesRequestSchema, AggregateSignature
     const unsigned = new UnsignedTransaction(
       Buffer.from(request.data.unsignedTransaction, 'hex'),
     )
-    const transaction = unsigned.aggregateSignatureShares(
+    const serialized = unsigned.aggregateSignatureShares(
       account.multiSigKeys.publicKeyPackage,
       request.data.signingPackage,
       request.data.signatureShares,
     )
+    const transaction = new Transaction(serialized)
+
+    let accepted = false
+    let broadcasted = false
+
+    if (request.data.broadcast) {
+      const result = await node.wallet.broadcastTransaction(transaction)
+      accepted = result.accepted
+      broadcasted = result.broadcasted
+    }
 
     request.end({
-      transaction: transaction.toString('hex'),
+      accepted,
+      broadcasted,
+      transaction: serialized.toString('hex'),
     })
   },
 )

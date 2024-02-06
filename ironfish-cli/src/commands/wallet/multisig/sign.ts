@@ -26,7 +26,7 @@ export class MultiSigSign extends IronfishCommand {
     }),
     signatureShare: Flags.string({
       char: 's',
-      description: 'Signing share',
+      description: 'Participant signature share',
       multiple: true,
     }),
     broadcast: Flags.boolean({
