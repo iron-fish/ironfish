@@ -4,6 +4,7 @@
 import { createSigningCommitment } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
 import { Assert } from '../../../../assert'
+import { AssertMultiSig } from '../../../../wallet/account/account'
 import { AssertIsSignerMultiSig } from '../../../../wallet/account/encoder/multiSigKeys'
 import { ApiNamespace } from '../../namespaces'
 import { routes } from '../../router'
@@ -38,8 +39,7 @@ routes.register<typeof CreateSigningCommitmentRequestSchema, CreateSigningCommit
 
     const account = getAccount(context.wallet, request.data.account)
 
-    // todo: update this with an assertion for account being a multiSig account
-    Assert.isNotUndefined(account.multiSigKeys)
+    AssertMultiSig(account)
     AssertIsSignerMultiSig(account.multiSigKeys)
 
     const result = createSigningCommitment(account.multiSigKeys.keyPackage, request.data.seed)
