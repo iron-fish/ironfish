@@ -1,15 +1,10 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { CurrencyUtils, Transaction } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
-import { YupUtils } from '@ironfish/sdk'
-
-interface SigningShare {
-  identifier: string
-  signingShare: string
-}
 
 export class MultiSigSign extends IronfishCommand {
   static description = 'Aggregate signing shares from participants to sign a transaction'
@@ -29,10 +24,15 @@ export class MultiSigSign extends IronfishCommand {
       char: 'p',
       description: 'Signing package',
     }),
-    signingShare: Flags.string({
+    signatureShare: Flags.string({
       char: 's',
       description: 'Signing share',
       multiple: true,
+    }),
+    broadcast: Flags.boolean({
+      default: true,
+      allowNo: true,
+      description: 'Broadcast the transaction after signing',
     }),
   }
 
@@ -43,21 +43,18 @@ export class MultiSigSign extends IronfishCommand {
       flags.unsignedTransaction?.trim() ??
       (await CliUx.ux.prompt('Enter the unsigned transaction', { required: true }))
 
-    this.log(unsignedTransaction)
-
     const signingPackage =
       flags.signingPackage?.trim() ??
       (await CliUx.ux.prompt('Enter the signing package', { required: true }))
 
-    this.log(signingPackage)
-
-    if (!flags.signingShare) {
-      this.error('At least one signingShare is required')
+    let signatureShares = flags.signatureShare
+    if (!signatureShares) {
+      const input = await CliUx.ux.prompt('Enter the signature shares separated by commas', {
+        required: true,
+      })
+      signatureShares = input.split(',')
     }
-
-    const signingShares: SigningShare[] = flags.signingShare.map(
-      (ss) => JSON.parse(ss) as SigningShare,
-    )
+    signatureShares = signatureShares.map((s) => s.trim())
 
     const client = await this.sdk.connectRpc()
 
@@ -75,17 +72,29 @@ export class MultiSigSign extends IronfishCommand {
       account = response.content.account.name
     }
 
-    const response = await client.multisig.aggregateSigningShares({
+    const response = await client.wallet.multisig.aggregateSignatureShares({
       account,
       unsignedTransaction,
       signingPackage,
-      signingShares,
+      signatureShares,
     })
 
-    // TODO: Decide on how to display the transaction information. Similar to the send command?
-    this.log('Transaction response: ')
-    this.log(response.content.transaction)
+    const bytes = Buffer.from(response.content.transaction, 'hex')
+    const transaction = new Transaction(bytes)
 
-    // TODO: Do we now send the transaction?
+    CliUx.ux.action.stop()
+
+    if (response.content.accepted === false) {
+      this.warn(
+        `Transaction '${transaction.hash().toString('hex')}' was not accepted into the mempool`,
+      )
+    }
+
+    if (response.content.broadcasted === false) {
+      this.warn(`Transaction '${transaction.hash().toString('hex')}' failed to broadcast`)
+    }
+
+    this.log(`Hash: ${transaction.hash().toString('hex')}`)
+    this.log(`Fee: ${CurrencyUtils.renderIron(transaction.fee(), true)}`)
   }
 }
