@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Assert, FullNode, NodeUtils, PromiseUtils } from '@ironfish/sdk'
+import { Assert, FullNode, loadNetworkDefinition, NodeUtils, PromiseUtils } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import inspector from 'node:inspector'
 import { v4 as uuid } from 'uuid'
@@ -207,8 +207,12 @@ export default class Start extends IronfishCommand {
       await this.sdk.internal.save()
     }
 
+    const customNetworkDefinition = customNetwork
+      ? await loadNetworkDefinition(this.sdk.fileSystem, customNetwork)
+      : undefined
+
     const node = await this.sdk.node({
-      customNetworkPath: customNetwork,
+      customNetworkDefinition,
       networkId,
     })
 

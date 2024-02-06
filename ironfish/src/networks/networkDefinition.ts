@@ -72,21 +72,28 @@ export function defaultNetworkName(networkId: number): string | undefined {
   }
 }
 
+export async function loadNetworkDefinition(
+  files: FileSystem,
+  path: string,
+): Promise<NetworkDefinition> {
+  const networkDefinitionJSON = await files.readFile(files.resolve(path))
+  const networkDefinition = await networkDefinitionSchema.validate(
+    IJSON.parse(networkDefinitionJSON) as NetworkDefinition,
+  )
+  return networkDefinition
+}
+
 export async function getNetworkDefinition(
   config: Config,
   internal: InternalStore,
   files: FileSystem,
-  customNetworkPath?: string,
+  customNetworkDefinition?: NetworkDefinition,
   networkIdOverride?: number,
 ): Promise<NetworkDefinition> {
   let networkDefinition: NetworkDefinition
 
-  // Try fetching custom network definition first, if it exists
-  if (customNetworkPath) {
-    const networkDefinitionJSON = await files.readFile(files.resolve(customNetworkPath))
-    networkDefinition = await networkDefinitionSchema.validate(
-      IJSON.parse(networkDefinitionJSON) as NetworkDefinition,
-    )
+  if (customNetworkDefinition) {
+    networkDefinition = customNetworkDefinition
   } else {
     if (
       internal.isSet('networkId') &&
@@ -117,7 +124,7 @@ export async function getNetworkDefinition(
     throw Error('Network ID in network definition does not match network ID stored in datadir')
   }
 
-  if (customNetworkPath) {
+  if (customNetworkDefinition) {
     if (isDefaultNetworkId(networkDefinition.id)) {
       throw Error('Cannot start custom network with a reserved network ID')
     }

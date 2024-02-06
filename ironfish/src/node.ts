@@ -23,7 +23,7 @@ import { MiningManager } from './mining'
 import { PeerNetwork, PrivateIdentity, privateIdentityToIdentity } from './network'
 import { isHexSecretKey } from './network/identity'
 import { IsomorphicWebSocketConstructor, NodeDataChannelType } from './network/types'
-import { getNetworkDefinition } from './networks'
+import { getNetworkDefinition, NetworkDefinition } from './networks'
 import { Network } from './networks/network'
 import { Package } from './package'
 import { Platform } from './platform'
@@ -193,7 +193,7 @@ export class FullNode {
     webSocket,
     privateIdentity,
     fishHashContext,
-    customNetworkPath,
+    customNetworkDefinition,
     networkId,
   }: {
     pkg: Package
@@ -207,7 +207,7 @@ export class FullNode {
     webSocket: IsomorphicWebSocketConstructor
     privateIdentity?: PrivateIdentity
     fishHashContext?: FishHashContext
-    customNetworkPath?: string
+    customNetworkDefinition?: NetworkDefinition
     networkId?: number
   }): Promise<FullNode> {
     logger = logger.withTag('ironfishnode')
@@ -245,7 +245,7 @@ export class FullNode {
       config,
       internal,
       files,
-      customNetworkPath,
+      customNetworkDefinition,
       networkId,
     )
 

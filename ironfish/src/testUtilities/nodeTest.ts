@@ -7,7 +7,7 @@ import { Blockchain } from '../blockchain'
 import { Verifier } from '../consensus/verifier'
 import { ConfigOptions } from '../fileStores/config'
 import { PeerNetwork } from '../network'
-import { Network } from '../networks'
+import { Network, NetworkDefinition } from '../networks'
 import { FullNode } from '../node'
 import { IronfishSdk } from '../sdk'
 import { Syncer } from '../syncer'
@@ -19,6 +19,7 @@ export type NodeTestOptions =
   | {
       config?: Partial<ConfigOptions>
       autoSeed?: boolean
+      customNetworkDefinition?: NetworkDefinition
     }
   | undefined
 
@@ -92,10 +93,14 @@ export class NodeTest {
       }
     }
 
+    const networkOptions = options?.customNetworkDefinition
+      ? { customNetworkDefinition: options.customNetworkDefinition }
+      : { networkId: 2 }
+
     const node = await sdk.node({
       autoSeed: this.options?.autoSeed,
       fishHashContext: FISH_HASH_CONTEXT,
-      networkId: 2,
+      ...networkOptions,
     })
 
     const network = node.network

@@ -23,6 +23,7 @@ import { MetricsMonitor } from './metrics'
 import { isHexSecretKey, PrivateIdentity } from './network/identity'
 import { IsomorphicWebSocketConstructor } from './network/types'
 import { WebSocketClient } from './network/webSocketClient'
+import { NetworkDefinition } from './networks'
 import { FullNode } from './node'
 import { IronfishPKG, Package } from './package'
 import { Platform } from './platform'
@@ -174,13 +175,13 @@ export class IronfishSdk {
   async node({
     autoSeed,
     privateIdentity,
-    customNetworkPath,
+    customNetworkDefinition,
     networkId,
   }: {
     autoSeed?: boolean
     privateIdentity?: PrivateIdentity
     fishHashContext?: FishHashContext
-    customNetworkPath?: string
+    customNetworkDefinition?: NetworkDefinition
     networkId?: number
   } = {}): Promise<FullNode> {
     const webSocket = WebSocketClient as IsomorphicWebSocketConstructor
@@ -196,7 +197,7 @@ export class IronfishSdk {
       webSocket: webSocket,
       privateIdentity: privateIdentity,
       dataDir: this.dataDir,
-      customNetworkPath,
+      customNetworkDefinition,
       networkId,
     })
 
