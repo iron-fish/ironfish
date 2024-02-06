@@ -59,6 +59,7 @@ export class MultiSigSign extends IronfishCommand {
       this.error('At least one signingShare is required')
     }
 
+    // TODO: Error and edgecase handling
     const signingShares: SigningShare[] = flags.signingShare.map(
       (ss) => JSON.parse(ss) as SigningShare,
     )
@@ -74,7 +75,10 @@ export class MultiSigSign extends IronfishCommand {
       signingShares,
     })
 
+    // TODO: Decide on how to display the transaction information. Similar to the send command?
     this.log('Transaction response: ')
     this.log(response.content.transaction)
+
+    // TODO: Do we now send the transaction?
   }
 }
