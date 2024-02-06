@@ -47,7 +47,7 @@ export function AssertMultiSig(account: Account): asserts account is MultiSigAcc
   )
 }
 
-export function AssertSignerMultiSig(
+export function AssertMultiSigSigner(
   account: Account,
 ): asserts account is MultiSigSignerAccount {
   AssertMultiSig(account)
