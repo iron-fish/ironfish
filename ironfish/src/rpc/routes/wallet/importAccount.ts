@@ -4,6 +4,8 @@
 import { v4 as uuid } from 'uuid'
 import * as yup from 'yup'
 import { decodeAccount } from '../../../wallet/account/encoder/account'
+import { DuplicateAccountNameError } from '../../../wallet/errors'
+import { RPC_ERROR_CODES, RpcValidationError } from '../../adapters'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import { AssertHasRpcContext } from '../rpcContext'
@@ -53,10 +55,18 @@ routes.register<typeof ImportAccountRequestSchema, ImportResponse>(
       accountImport = deserializeRpcAccountImport(request.data.account)
     }
 
-    const account = await context.wallet.importAccount({
-      id: uuid(),
-      ...accountImport,
-    })
+    let account
+    try {
+      account = await context.wallet.importAccount({
+        id: uuid(),
+        ...accountImport,
+      })
+    } catch (e) {
+      if (e instanceof DuplicateAccountNameError) {
+        throw new RpcValidationError(e.message, 400, RPC_ERROR_CODES.DUPLICATE_ACCOUNT_NAME)
+      }
+      throw e
+    }
 
     if (request.data.rescan) {
       if (context.wallet.nodeClient) {
