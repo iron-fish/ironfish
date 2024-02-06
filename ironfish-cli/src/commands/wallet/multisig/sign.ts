@@ -13,7 +13,8 @@ export class MultiSigSign extends IronfishCommand {
   static flags = {
     ...RemoteFlags,
     account: Flags.string({
-      description: 'The account that created the raw transaction',
+      char: 'f',
+      description: 'Account to use when aggregating signature shares',
       required: false,
     }),
     unsignedTransaction: Flags.string({
