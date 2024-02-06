@@ -1,5 +1,5 @@
 {
-  "Route multisig/createSigningShare should fail for an account that does not have multisig keys": [
+  "Route wallet/multisig/createSignatureShare should fail for an account that does not have multisig keys": [
     {
       "version": 4,
       "id": "ef8a8d12-b4c2-48ba-952c-8cf7b398bd82",

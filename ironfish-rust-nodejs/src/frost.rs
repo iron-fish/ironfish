@@ -9,8 +9,10 @@ use crate::{
 use ironfish::{
     frost::{keys::KeyPackage, round2::Randomizer, Identifier, SigningPackage},
     frost_utils::{
-        signing_commitment::create_signing_commitment as create_signing_commitment_rust,
-        signing_share::create_signing_share as create_signing_share_rust,
+        signature_share::create_signature_share as create_signature_share_rust,
+        signing_commitment::{
+            create_signing_commitment as create_signing_commitment_rust, SigningCommitment,
+        },
         split_spender_key::split_spender_key,
     },
     participant::{Identity, Secret},
@@ -21,28 +23,24 @@ use napi::{bindgen_prelude::*, JsBuffer};
 use napi_derive::napi;
 use rand::thread_rng;
 
-#[napi(object, js_name = "Commitment")]
-pub struct NativeCommitment {
-    pub identifier: String,
-    pub hiding: String,
-    pub binding: String,
-}
-
 #[napi]
-pub fn create_signing_commitment(key_package: String, seed: u32) -> Result<NativeCommitment> {
+pub fn create_signing_commitment(key_package: String, seed: u32) -> Result<String> {
     let key_package =
         KeyPackage::deserialize(&hex_to_vec_bytes(&key_package).map_err(to_napi_err)?)
             .map_err(to_napi_err)?;
     let (_, commitment) = create_signing_commitment_rust(&key_package, seed as u64);
-    Ok(NativeCommitment {
-        identifier: bytes_to_hex(&key_package.identifier().serialize()),
-        hiding: bytes_to_hex(&commitment.hiding().serialize()),
-        binding: bytes_to_hex(&commitment.binding().serialize()),
-    })
+
+    let signing_commitment = SigningCommitment {
+        identifier: *key_package.identifier(),
+        hiding: *commitment.hiding(),
+        binding: *commitment.binding(),
+    };
+
+    Ok(bytes_to_hex(&signing_commitment.serialize()))
 }
 
 #[napi]
-pub fn create_signing_share(
+pub fn create_signature_share(
     signing_package: String,
     identifier: String,
     key_package: String,
@@ -61,7 +59,7 @@ pub fn create_signing_share(
         Randomizer::deserialize(&hex_to_bytes(&public_key_randomness).map_err(to_napi_err)?)
             .map_err(to_napi_err)?;
 
-    let signature_share = create_signing_share_rust(
+    let signature_share = create_signature_share_rust(
         signing_package,
         identifier,
         key_package,

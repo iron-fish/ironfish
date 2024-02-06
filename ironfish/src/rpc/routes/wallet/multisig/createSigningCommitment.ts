@@ -3,20 +3,20 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { createSigningCommitment } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
-import { AssertMultiSig } from '../../../../wallet/account/account'
-import { AssertIsSignerMultiSig } from '../../../../wallet/account/encoder/multiSigKeys'
+import { AssertMultiSigSigner } from '../../../../wallet/account/account'
 import { ApiNamespace } from '../../namespaces'
 import { routes } from '../../router'
 import { AssertHasRpcContext } from '../../rpcContext'
 import { getAccount } from '../utils'
-import { RpcSigningCommitments, RpcSigningCommitmentsSchema } from './types'
 
 export type CreateSigningCommitmentRequest = {
   account?: string
   seed: number //  TODO: remove when we have deterministic nonces
 }
 
-export type CreateSigningCommitmentResponse = RpcSigningCommitments
+export type CreateSigningCommitmentResponse = {
+  commitment: string
+}
 
 export const CreateSigningCommitmentRequestSchema: yup.ObjectSchema<CreateSigningCommitmentRequest> =
   yup
@@ -27,7 +27,11 @@ export const CreateSigningCommitmentRequestSchema: yup.ObjectSchema<CreateSignin
     .defined()
 
 export const CreateSigningCommitmentResponseSchema: yup.ObjectSchema<CreateSigningCommitmentResponse> =
-  RpcSigningCommitmentsSchema
+  yup
+    .object({
+      commitment: yup.string().defined(),
+    })
+    .defined()
 
 routes.register<typeof CreateSigningCommitmentRequestSchema, CreateSigningCommitmentResponse>(
   `${ApiNamespace.wallet}/multisig/createSigningCommitment`,
@@ -37,15 +41,10 @@ routes.register<typeof CreateSigningCommitmentRequestSchema, CreateSigningCommit
 
     const account = getAccount(context.wallet, request.data.account)
 
-    AssertMultiSig(account)
-    AssertIsSignerMultiSig(account.multiSigKeys)
-
-    const result = createSigningCommitment(account.multiSigKeys.keyPackage, request.data.seed)
+    AssertMultiSigSigner(account)
 
     request.end({
-      identifier: result.identifier,
-      hiding: result.hiding,
-      binding: result.binding,
+      commitment: createSigningCommitment(account.multiSigKeys.keyPackage, request.data.seed),
     })
   },
 )

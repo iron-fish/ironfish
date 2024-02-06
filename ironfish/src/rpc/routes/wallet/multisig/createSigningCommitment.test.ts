@@ -61,7 +61,14 @@ describe('Route wallet/multisig/createSigningCommitment', () => {
         account: importAccountResponse.content.name,
         seed: 420,
       }),
-    ).rejects.toThrow()
+    ).rejects.toThrow(
+      expect.objectContaining({
+        message: expect.stringContaining(
+          `Account ${importAccountResponse.content.name} is not a multisig signer account`,
+        ),
+        status: 400,
+      }),
+    )
   })
 
   it('should create signing commitment', async () => {
@@ -105,8 +112,7 @@ describe('Route wallet/multisig/createSigningCommitment', () => {
     })
 
     expect(response.content).toMatchObject({
-      hiding: expect.any(String),
-      binding: expect.any(String),
+      commitment: expect.any(String),
     })
   })
 })

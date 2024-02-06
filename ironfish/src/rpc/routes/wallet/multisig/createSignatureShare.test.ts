@@ -5,12 +5,12 @@ import { generateKey } from '@ironfish/rust-nodejs'
 import { createRouteTest } from '../../../../testUtilities/routeTest'
 import { ACCOUNT_SCHEMA_VERSION } from '../../../../wallet'
 
-describe('Route multisig/createSigningShare', () => {
+describe('Route wallt/multisig/createSignatureShare', () => {
   const routeTest = createRouteTest()
 
   it('should fail for an account that does not exist', async () => {
     await expect(
-      routeTest.client.wallet.multisig.createSigningShare({
+      routeTest.client.wallet.multisig.createSignatureShare({
         account: 'non-existent',
         signingPackage: 'fake',
         unsignedTransaction: 'deadbeef',
@@ -40,7 +40,7 @@ describe('Route multisig/createSigningShare', () => {
     const account = await routeTest.wallet.importAccount(accountImport)
 
     await expect(
-      routeTest.client.wallet.multisig.createSigningShare({
+      routeTest.client.wallet.multisig.createSignatureShare({
         account: account.name,
         signingPackage: 'fake',
         unsignedTransaction: 'deadbeef',

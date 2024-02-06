@@ -18,3 +18,12 @@ export class NotEnoughFundsError extends Error {
     )} available to spend. Please fund your account and/or wait for any pending transactions to be confirmed.'`
   }
 }
+
+export class DuplicateAccountNameError extends Error {
+  name = this.constructor.name
+
+  constructor(name: string) {
+    super()
+    this.message = `Account already exists with the name ${name}`
+  }
+}

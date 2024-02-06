@@ -48,7 +48,7 @@ impl SignatureShare {
 }
 
 // Wrapper around frost::round2::sign that provides a seedable rng from u64
-pub fn create_signing_share(
+pub fn create_signature_share(
     signing_package: SigningPackage,
     identifier: Identifier,
     key_package: KeyPackage,

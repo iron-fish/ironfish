@@ -4,9 +4,8 @@
 import {
   Asset,
   ASSET_ID_LENGTH,
-  Commitment,
+  createSignatureShare,
   createSigningCommitment,
-  createSigningShare,
   generateKey,
   ParticipantSecret,
   splitSecret,
@@ -27,7 +26,7 @@ import {
   useTxFixture,
 } from '../testUtilities'
 import { acceptsAllTarget } from '../testUtilities/helpers/blockchain'
-import { AssertIsSignerMultiSig } from './account/encoder/multiSigKeys'
+import { AssertMultiSigSigner } from '../wallet'
 
 describe('Wallet', () => {
   const nodeTest = createNodeTest()
@@ -1213,10 +1212,9 @@ describe('Wallet', () => {
         ...trustedDealerPackage,
       })
 
-      const signingCommitments: Commitment[] = []
+      const signingCommitments: string[] = []
       for (const participant of participants) {
-        Assert.isNotUndefined(participant.multiSigKeys)
-        AssertIsSignerMultiSig(participant.multiSigKeys)
+        AssertMultiSigSigner(participant)
         signingCommitments.push(
           createSigningCommitment(participant.multiSigKeys.keyPackage, seed),
         )
@@ -1288,10 +1286,9 @@ describe('Wallet', () => {
       const signatureShares: Array<string> = []
 
       for (const participant of participants) {
-        Assert.isNotUndefined(participant.multiSigKeys)
-        AssertIsSignerMultiSig(participant.multiSigKeys)
+        AssertMultiSigSigner(participant)
         signatureShares.push(
-          createSigningShare(
+          createSignatureShare(
             signingPackage,
             participant.multiSigKeys.identifier,
             participant.multiSigKeys.keyPackage,
@@ -1302,7 +1299,7 @@ describe('Wallet', () => {
       }
 
       Assert.isNotUndefined(coordinator.multiSigKeys)
-      const serializedFrostTransaction = unsignedTransaction.signFrost(
+      const serializedFrostTransaction = unsignedTransaction.aggregateSignatureShares(
         coordinator.multiSigKeys.publicKeyPackage,
         signingPackage,
         signatureShares,
