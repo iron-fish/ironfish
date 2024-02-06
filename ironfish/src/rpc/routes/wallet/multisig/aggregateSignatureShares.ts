@@ -9,37 +9,37 @@ import { routes } from '../../router'
 import { AssertHasRpcContext } from '../../rpcContext'
 import { getAccount } from '../utils'
 
-export type AggregateSigningSharesRequest = {
+export type AggregateSignatureSharesRequest = {
   account: string
   unsignedTransaction: string
   signingPackage: string
-  signingShares: Array<string>
+  signatureShares: Array<string>
 }
 
-export type AggregateSigningSharesResponse = {
+export type AggregateSignatureSharesResponse = {
   transaction: string
 }
 
-export const AggregateSigningSharesRequestSchema: yup.ObjectSchema<AggregateSigningSharesRequest> =
+export const AggregateSignatureSharesRequestSchema: yup.ObjectSchema<AggregateSignatureSharesRequest> =
   yup
     .object({
       account: yup.string().defined(),
       unsignedTransaction: yup.string().defined(),
       signingPackage: yup.string().defined(),
-      signingShares: yup.array(yup.string().defined()).defined(),
+      signatureShares: yup.array(yup.string().defined()).defined(),
     })
     .defined()
 
-export const AggregateSigningSharesResponseSchema: yup.ObjectSchema<AggregateSigningSharesResponse> =
+export const AggregateSignatureSharesResponseSchema: yup.ObjectSchema<AggregateSignatureSharesResponse> =
   yup
     .object({
       transaction: yup.string().defined(),
     })
     .defined()
 
-routes.register<typeof AggregateSigningSharesRequestSchema, AggregateSigningSharesResponse>(
-  `${ApiNamespace.wallet}/multisig/aggregateSigningShares`,
-  AggregateSigningSharesRequestSchema,
+routes.register<typeof AggregateSignatureSharesRequestSchema, AggregateSignatureSharesResponse>(
+  `${ApiNamespace.wallet}/multisig/aggregateSignatureShares`,
+  AggregateSignatureSharesRequestSchema,
   (request, node): void => {
     AssertHasRpcContext(request, node, 'wallet')
     const account = getAccount(node.wallet, request.data.account)
@@ -52,7 +52,7 @@ routes.register<typeof AggregateSigningSharesRequestSchema, AggregateSigningShar
     const transaction = unsigned.aggregateSignatureShares(
       account.multiSigKeys.publicKeyPackage,
       request.data.signingPackage,
-      request.data.signingShares,
+      request.data.signatureShares,
     )
 
     request.end({
