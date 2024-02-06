@@ -30,7 +30,6 @@ routes.register<typeof CreateSigningCommitmentRequestSchema, CreateSigningCommit
   CreateSigningCommitmentRequestSchema,
   (request, _context): void => {
     const result = createSigningCommitment(request.data.keyPackage, request.data.seed)
-    console.log('result', result)
     request.end({
       identifier: result.identifier,
       hiding: result.hiding,
