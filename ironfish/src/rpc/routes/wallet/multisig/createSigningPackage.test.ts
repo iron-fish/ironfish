@@ -32,12 +32,13 @@ describe('Route multisig/createSigningPackage', () => {
     const trustedDealerPackage = response.content
 
     const commitments: Array<Commitment> = []
+    console.log('before ')
     for (let i = 0; i < 3; i++) {
       const commitment = await routeTest.client.wallet.multisig.createSigningCommitment({
         keyPackage: trustedDealerPackage.keyPackages[i].keyPackage,
         seed,
       })
-      commitments.push(signingCommitment.content)
+      commitments.push(commitment.content)
     }
 
     const account = await useAccountFixture(nodeTest.wallet)
