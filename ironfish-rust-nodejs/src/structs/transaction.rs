@@ -13,11 +13,8 @@ use ironfish::frost::round1::SigningCommitments;
 use ironfish::frost::round2::SignatureShare as FrostSignatureShare;
 use ironfish::frost::Identifier;
 use ironfish::frost::SigningPackage;
-<<<<<<< HEAD
 use ironfish::frost_utils::signing_commitment::SigningCommitment;
-=======
 use ironfish::frost_utils::signing_share::SignatureShare;
->>>>>>> staging
 use ironfish::serializing::fr::FrSerializable;
 use ironfish::serializing::hex_to_vec_bytes;
 use ironfish::serializing::{bytes_to_hex, hex_to_bytes};
