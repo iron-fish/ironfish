@@ -9,8 +9,8 @@ import type {
   AddPeerResponse,
   AddTransactionRequest,
   AddTransactionResponse,
-  AggregateSigningSharesRequest,
-  AggregateSigningSharesResponse,
+  AggregateSignatureSharesRequest,
+  AggregateSignatureSharesResponse,
   BlockTemplateStreamRequest,
   BlockTemplateStreamResponse,
   BroadcastTransactionRequest,
@@ -21,12 +21,12 @@ import type {
   BurnAssetResponse,
   CreateAccountRequest,
   CreateAccountResponse,
+  CreateSignatureShareRequest,
+  CreateSignatureShareResponse,
   CreateSigningCommitmentRequest,
   CreateSigningCommitmentResponse,
   CreateSigningPackageRequest,
   CreateSigningPackageResponse,
-  CreateSigningShareRequest,
-  CreateSigningShareResponse,
   CreateTransactionRequest,
   CreateTransactionResponse,
   CreateTrustedDealerKeyPackageRequest,
@@ -181,11 +181,11 @@ export abstract class RpcClient {
 
   wallet = {
     multisig: {
-      aggregateSigningShares: (
-        params: AggregateSigningSharesRequest,
-      ): Promise<RpcResponseEnded<AggregateSigningSharesResponse>> => {
-        return this.request<AggregateSigningSharesResponse>(
-          `${ApiNamespace.wallet}/multisig/aggregateSigningShares`,
+      aggregateSignatureShares: (
+        params: AggregateSignatureSharesRequest,
+      ): Promise<RpcResponseEnded<AggregateSignatureSharesResponse>> => {
+        return this.request<AggregateSignatureSharesResponse>(
+          `${ApiNamespace.wallet}/multisig/aggregateSignatureShares`,
           params,
         ).waitForEnd()
       },
@@ -217,11 +217,11 @@ export abstract class RpcClient {
         ).waitForEnd()
       },
 
-      createSigningShare: (
-        params: CreateSigningShareRequest,
-      ): Promise<RpcResponseEnded<CreateSigningShareResponse>> => {
-        return this.request<CreateSigningShareResponse>(
-          `${ApiNamespace.wallet}/multisig/createSigningShare`,
+      createSignatureShare: (
+        params: CreateSignatureShareRequest,
+      ): Promise<RpcResponseEnded<CreateSignatureShareResponse>> => {
+        return this.request<CreateSignatureShareResponse>(
+          `${ApiNamespace.wallet}/multisig/createSignatureShare`,
           params,
         ).waitForEnd()
       },
