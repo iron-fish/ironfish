@@ -15,7 +15,7 @@ use rand::{rngs::StdRng, SeedableRng};
 
 use crate::errors::IronfishError;
 
-pub const SIGNING_COMMITMENT_LENGTH : usize= 96;
+pub const SIGNING_COMMITMENT_LENGTH: usize = 96;
 
 #[derive(Clone)]
 pub struct SigningCommitment {
