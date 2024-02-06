@@ -4,7 +4,7 @@
 import { createSigningShare, UnsignedTransaction } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
 import { AssertMultiSig } from '../../../../wallet'
-import { AssertIsSignerMultiSig } from '../../../../wallet/account/encoder/multisigKeys'
+import { AssertIsSignerMultiSig } from '../../../../wallet/account/encoder/multisigKey'
 import { ApiNamespace } from '../../namespaces'
 import { routes } from '../../router'
 import { AssertHasRpcContext } from '../../rpcContext'

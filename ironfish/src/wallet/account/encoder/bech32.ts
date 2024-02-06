@@ -7,7 +7,7 @@ import { Bech32m } from '../../../utils'
 import { AccountImport, KEY_LENGTH, VIEW_KEY_LENGTH } from '../../walletdb/accountValue'
 import { ACCOUNT_SCHEMA_VERSION } from '../account'
 import { AccountDecodingOptions, AccountEncoder, DecodeFailed, DecodeInvalid } from './encoder'
-import { MultisigKeysEncoding } from './multisigKeys'
+import { MultisigKeysEncoding } from './multisigKey'
 
 export const BECH32_ACCOUNT_PREFIX = 'ifaccount'
 
