@@ -56,3 +56,6 @@ export function HasOwnProperty<X extends {}, Y extends PropertyKey>(obj: X, prop
 // ie Account.spendingKey = string | null
 // with WithNonNull<Account, 'spendingKey'>, the return type has Account.spendingKey = string
 export type WithNonNull<T, K extends keyof T> = T & { [P in K]: NonNullable<T[P]> }
+
+// When used requires that an optional property K be defined in type T
+export type WithRequired<T, K extends keyof T> = T & { [P in K]-?: T[P] }
