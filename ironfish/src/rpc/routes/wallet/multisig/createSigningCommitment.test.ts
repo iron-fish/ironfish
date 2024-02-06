@@ -63,7 +63,9 @@ describe('Route wallet/multisig/createSigningCommitment', () => {
       }),
     ).rejects.toThrow(
       expect.objectContaining({
-        message: expect.stringContaining(`Multisig is not a signer`),
+        message: expect.stringContaining(
+          `Account ${importAccountResponse.content.name} is not a multisig signer account`,
+        ),
         status: 400,
       }),
     )

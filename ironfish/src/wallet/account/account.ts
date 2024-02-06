@@ -51,7 +51,10 @@ export function AssertMultiSigSigner(
   account: Account,
 ): asserts account is MultiSigSignerAccount {
   AssertMultiSig(account)
-  Assert.isTrue(isSignerMultiSig(account.multiSigKeys), 'Multisig is not a signer')
+  Assert.isTrue(
+    isSignerMultiSig(account.multiSigKeys),
+    `Account ${account.name} is not a multisig signer account`,
+  )
 }
 
 export class Account {
