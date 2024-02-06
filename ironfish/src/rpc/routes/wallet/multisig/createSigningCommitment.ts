@@ -12,7 +12,7 @@ import { getAccount } from '../utils'
 import { RpcSigningCommitments, RpcSigningCommitmentsSchema } from './types'
 
 export type CreateSigningCommitmentRequest = {
-  account: string
+  account?: string
   seed: number //  TODO: remove when we have deterministic nonces
 }
 
