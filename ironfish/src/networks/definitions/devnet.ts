@@ -13,7 +13,7 @@ const DEVNET_CONSENSUS: ConsensusParameters = {
   minFee: 0,
   enableAssetOwnership: 1,
   enforceSequentialBlockTime: 1,
-  enableFishHash: 'never',
+  enableFishHash: null,
 }
 
 export const DEVNET_GENESIS = {

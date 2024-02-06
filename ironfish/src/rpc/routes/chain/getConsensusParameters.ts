@@ -3,17 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
-import { ActivationSequence, ConsensusParameters } from '../../../consensus/consensus'
+import { ConsensusParameters } from '../../../consensus/consensus'
 import { FullNode } from '../../../node'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 
 export type GetConsensusParametersRequest = Record<string, never> | undefined
-export type GetConsensusParametersResponse = {
-  [K in keyof ConsensusParameters]: ConsensusParameters[K] extends number
-    ? ConsensusParameters[K]
-    : number | null
-}
+export type GetConsensusParametersResponse = ConsensusParameters
 
 export const GetConsensusParametersRequestSchema: yup.MixedSchema<GetConsensusParametersRequest> =
   yup.mixed().oneOf([undefined] as const)
@@ -41,15 +37,6 @@ routes.register<typeof GetConsensusParametersRequestSchema, GetConsensusParamete
 
     const consensusParameters = node.chain.consensus.parameters
 
-    const neverToNull = (value: ActivationSequence): number | null => {
-      return value === 'never' ? null : value
-    }
-
-    request.end({
-      ...consensusParameters,
-      enableAssetOwnership: neverToNull(consensusParameters.enableAssetOwnership),
-      enforceSequentialBlockTime: neverToNull(consensusParameters.enforceSequentialBlockTime),
-      enableFishHash: neverToNull(consensusParameters.enableFishHash),
-    })
+    request.end(consensusParameters)
   },
 )

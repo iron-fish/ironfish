@@ -13,8 +13,8 @@ const TESTNET_CONSENSUS: ConsensusParameters = {
   maxBlockSizeBytes: 524288,
   minFee: 1,
   enableAssetOwnership: 9999999,
-  enforceSequentialBlockTime: 'never',
-  enableFishHash: 'never',
+  enforceSequentialBlockTime: null,
+  enableFishHash: null,
 }
 
 export const TESTNET_GENESIS = {
