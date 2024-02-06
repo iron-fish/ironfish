@@ -5,9 +5,12 @@ import { UnsignedTransaction } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
+import { getAccount } from '../wallet/utils'
+import { AssertHasRpcContext } from '..'
+import { RPC_ERROR_CODES, RpcResponseError } from '../..'
 
 export type AggregateSigningSharesRequest = {
-  publicKeyPackage: string
+  account: string
   unsignedTransaction: string
   signingPackage: string
   signingShares: Array<{
@@ -23,7 +26,7 @@ export type AggregateSigningSharesResponse = {
 export const AggregateSigningSharesRequestSchema: yup.ObjectSchema<AggregateSigningSharesRequest> =
   yup
     .object({
-      publicKeyPackage: yup.string().defined(),
+      account: yup.string().defined(),
       unsignedTransaction: yup.string().defined(),
       signingPackage: yup.string().defined(),
       signingShares: yup
@@ -49,7 +52,17 @@ export const AggregateSigningSharesResponseSchema: yup.ObjectSchema<AggregateSig
 routes.register<typeof AggregateSigningSharesRequestSchema, AggregateSigningSharesResponse>(
   `${ApiNamespace.multisig}/aggregateSigningShares`,
   AggregateSigningSharesRequestSchema,
-  (request, _context): void => {
+  (request, node): void => {
+    AssertHasRpcContext(request, node, 'wallet')
+
+    const account = getAccount(node.wallet, request.data.account)
+    if (account.multiSigKeys === undefined) {
+      throw new RpcResponseError(
+        `Account ${account} does not have any multisig fields to aggregate signing shares`,
+        RPC_ERROR_CODES.ERROR,
+      )
+    }
+
     const unsigned = new UnsignedTransaction(
       Buffer.from(request.data.unsignedTransaction, 'hex'),
     )
@@ -61,7 +74,7 @@ routes.register<typeof AggregateSigningSharesRequestSchema, AggregateSigningShar
     }
 
     const transaction = unsigned.signFrost(
-      request.data.publicKeyPackage,
+      account.multiSigKeys.publicKeyPackage,
       request.data.signingPackage,
       signingShares,
     )

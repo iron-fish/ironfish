@@ -4,20 +4,22 @@
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
+import { YupUtils } from '@ironfish/sdk'
 
 interface SigningShare {
   identifier: string
   signingShare: string
 }
+
 export class MultiSigSign extends IronfishCommand {
-  static description = `Sign a transaction`
+  static description = 'Aggregate signing shares from participants to sign a transaction'
   static hidden = true
 
   static flags = {
     ...RemoteFlags,
-    publicKeyPackage: Flags.string({
-      char: 'k',
-      description: 'Public key package',
+    account: Flags.string({
+      description: 'The account that created the raw transaction',
+      required: false,
     }),
     unsignedTransaction: Flags.string({
       char: 'u',
@@ -37,12 +39,6 @@ export class MultiSigSign extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(MultiSigSign)
 
-    const publicKeyPackage =
-      flags.publicKeyPackage?.trim() ??
-      (await CliUx.ux.prompt('Enter the public key package', { required: true }))
-
-    this.log(publicKeyPackage)
-
     const unsignedTransaction =
       flags.unsignedTransaction?.trim() ??
       (await CliUx.ux.prompt('Enter the unsigned transaction', { required: true }))
@@ -59,17 +55,28 @@ export class MultiSigSign extends IronfishCommand {
       this.error('At least one signingShare is required')
     }
 
-    // TODO: Error and edgecase handling
     const signingShares: SigningShare[] = flags.signingShare.map(
       (ss) => JSON.parse(ss) as SigningShare,
     )
 
-    this.log(signingShares.join('\n'))
-
     const client = await this.sdk.connectRpc()
 
+    let account = flags.account
+    if (!account) {
+      const response = await client.wallet.getDefaultAccount()
+
+      if (!response.content.account) {
+        this.error(
+          `No account is currently active.
+           Use ironfish wallet:create <name> to first create an account`,
+        )
+      }
+
+      account = response.content.account.name
+    }
+
     const response = await client.multisig.aggregateSigningShares({
-      publicKeyPackage,
+      account,
       unsignedTransaction,
       signingPackage,
       signingShares,
