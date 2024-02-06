@@ -11,11 +11,11 @@ export class MultisigKeysEncoding implements IDatabaseEncoding<MultisigKeys> {
     const bw = bufio.write(this.getSize(value))
 
     let flags = 0
-    flags |= Number(!!isSignerMultiSig(value)) << 0
+    flags |= Number(!!isSignerMultisig(value)) << 0
     bw.writeU8(flags)
 
     bw.writeVarBytes(Buffer.from(value.publicKeyPackage, 'hex'))
-    if (isSignerMultiSig(value)) {
+    if (isSignerMultisig(value)) {
       bw.writeVarBytes(Buffer.from(value.identifier, 'hex'))
       bw.writeVarBytes(Buffer.from(value.keyPackage, 'hex'))
     }
@@ -50,7 +50,7 @@ export class MultisigKeysEncoding implements IDatabaseEncoding<MultisigKeys> {
     size += 1 // flags
 
     size += bufio.sizeVarString(value.publicKeyPackage, 'hex')
-    if (isSignerMultiSig(value)) {
+    if (isSignerMultisig(value)) {
       size += bufio.sizeVarString(value.identifier, 'hex')
       size += bufio.sizeVarString(value.keyPackage, 'hex')
     }
@@ -59,12 +59,12 @@ export class MultisigKeysEncoding implements IDatabaseEncoding<MultisigKeys> {
   }
 }
 
-export function isSignerMultiSig(multisigKeys: MultisigKeys): multisigKeys is MultisigSigner {
+export function isSignerMultisig(multisigKeys: MultisigKeys): multisigKeys is MultisigSigner {
   return 'keyPackage' in multisigKeys && 'identifier' in multisigKeys
 }
 
-export function AssertIsSignerMultiSig(
+export function AssertIsSignerMultisig(
   multisigKeys: MultisigKeys,
 ): asserts multisigKeys is MultisigSigner {
-  Assert.isTrue(isSignerMultiSig(multisigKeys))
+  Assert.isTrue(isSignerMultisig(multisigKeys))
 }

@@ -1162,7 +1162,7 @@ describe('Wallet', () => {
         identifiers,
       )
 
-      const getMultiSigKeys = (index: number) => {
+      const getMultisigKeys = (index: number) => {
         return {
           publicKeyPackage: trustedDealerPackage.publicKeyPackage,
           identifier: trustedDealerPackage.keyPackages[index].identifier,
@@ -1176,7 +1176,7 @@ describe('Wallet', () => {
         name: trustedDealerPackage.keyPackages[0].identifier,
         spendingKey: null,
         createdAt: null,
-        multisigKeys: getMultiSigKeys(0),
+        multisigKeys: getMultisigKeys(0),
         ...trustedDealerPackage,
       })
       const participantB = await node.wallet.importAccount({
@@ -1185,7 +1185,7 @@ describe('Wallet', () => {
         name: trustedDealerPackage.keyPackages[1].identifier,
         spendingKey: null,
         createdAt: null,
-        multisigKeys: getMultiSigKeys(1),
+        multisigKeys: getMultisigKeys(1),
         ...trustedDealerPackage,
       })
       const participantC = await node.wallet.importAccount({
@@ -1194,7 +1194,7 @@ describe('Wallet', () => {
         name: trustedDealerPackage.keyPackages[2].identifier,
         spendingKey: null,
         createdAt: null,
-        multisigKeys: getMultiSigKeys(2),
+        multisigKeys: getMultisigKeys(2),
         ...trustedDealerPackage,
       })
 

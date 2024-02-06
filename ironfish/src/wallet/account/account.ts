@@ -22,7 +22,7 @@ import { DecryptedNoteValue } from '../walletdb/decryptedNoteValue'
 import { HeadValue } from '../walletdb/headValue'
 import { TransactionValue } from '../walletdb/transactionValue'
 import { WalletDB } from '../walletdb/walletdb'
-import { isSignerMultiSig } from './encoder/multisigKeys'
+import { isSignerMultisig } from './encoder/multisigKeys'
 
 export const ACCOUNT_KEY_LENGTH = 32
 
@@ -40,7 +40,7 @@ type MultisigSignerAccount = WithRequired<Account, 'multisigKeys'> & {
   multiSigKeys: MultisigSigner
 }
 
-export function AssertMultiSig(account: Account): asserts account is MultisigAccount {
+export function AssertMultisig(account: Account): asserts account is MultisigAccount {
   Assert.isNotUndefined(
     account.multisigKeys,
     `Account ${account.name} is not a multisig account`,
@@ -50,9 +50,9 @@ export function AssertMultiSig(account: Account): asserts account is MultisigAcc
 export function AssertMultisigSigner(
   account: Account,
 ): asserts account is MultisigSignerAccount {
-  AssertMultiSig(account)
+  AssertMultisig(account)
   Assert.isTrue(
-    isSignerMultiSig(account.multisigKeys),
+    isSignerMultisig(account.multisigKeys),
     `Account ${account.name} is not a multisig signer account`,
   )
 }

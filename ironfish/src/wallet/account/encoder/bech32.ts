@@ -174,8 +174,8 @@ function decoderV2(
 
   let multisigKeys = undefined
 
-  const hasMultiSigKeys = reader.readU8() === 1
-  if (hasMultiSigKeys) {
+  const hasMultisigKeys = reader.readU8() === 1
+  if (hasMultisigKeys) {
     const size = reader.readU64()
     const encoder = new MultisigKeysEncoding()
     multisigKeys = encoder.deserialize(reader.readBytes(size))
