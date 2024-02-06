@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { ACCOUNT_SCHEMA_VERSION, JsonEncoder } from '@ironfish/sdk'
+import { ACCOUNT_SCHEMA_VERSION, Base64JsonEncoder } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
@@ -46,7 +46,7 @@ export class MultisigCreate extends IronfishCommand {
 
     const client = await this.sdk.connectRpc()
 
-    const response = await client.multisig.createTrustedDealerKeyPackage({
+    const response = await client.wallet.multisig.createTrustedDealerKeyPackage({
       minSigners,
       participants: identifiers.map((identifier) => ({ identifier })),
     })
@@ -59,7 +59,7 @@ export class MultisigCreate extends IronfishCommand {
       sequence,
     }
 
-    const encoder = new JsonEncoder()
+    const encoder = new Base64JsonEncoder()
     this.log('\n')
 
     response.content.keyPackages.map((keyPackage) => {

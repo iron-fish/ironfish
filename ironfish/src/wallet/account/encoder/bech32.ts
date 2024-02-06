@@ -25,6 +25,9 @@ export class Bech32Encoder implements AccountEncoder {
     [3, decoderV3],
   ])
 
+  /**
+   * @deprecated Use Base64JsonEncoder instead
+   */
   encode(value: AccountImport): string {
     const bw = bufio.write(this.getSize(value))
     bw.writeU16(this.VERSION)

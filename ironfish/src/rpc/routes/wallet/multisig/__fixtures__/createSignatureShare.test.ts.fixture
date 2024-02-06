@@ -1,0 +1,22 @@
+{
+  "Route wallet/multisig/createSignatureShare should fail for an account that does not have multisig keys": [
+    {
+      "version": 4,
+      "id": "ef8a8d12-b4c2-48ba-952c-8cf7b398bd82",
+      "name": "test",
+      "spendingKey": "fe24aa5ec0df39f47a4a3a464ad7ccd6df7a94387a4becdcdc8273e7bd6f2775",
+      "viewKey": "2a4f6a8bdbd8ad56cb33b17481b75887131894ab0ad51418d66e7ba7483cb8ef1b0147cc4dec2daee8871072dce331fc2b94116fa31528ff0315c021c5696ece",
+      "incomingViewKey": "e692cb799f7711f460fcd167c5d9f15327aa7e5ee5dadca37ef9583812b73c01",
+      "outgoingViewKey": "d1a3d4d19b6ee59122e76e35ae93b0e240708971e90f1c3dbc55ac4b1d627e24",
+      "publicAddress": "238e1bfb3d867cb811346acb53832ab041ee1014862d10ae0ccbd03d6f357a2a",
+      "createdAt": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      },
+      "proofAuthorizingKey": "b8f276b6a86c3b5ff8e100a03d74cac15ff705aab41ff9577d1c88a57ac85909"
+    }
+  ]
+}

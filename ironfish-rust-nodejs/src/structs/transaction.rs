@@ -4,16 +4,17 @@
 
 use std::cell::RefCell;
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 use std::convert::TryInto;
 
 use ironfish::assets::asset_identifier::AssetIdentifier;
 use ironfish::frost::frost::round1::NonceCommitment;
 use ironfish::frost::keys::PublicKeyPackage;
 use ironfish::frost::round1::SigningCommitments;
-use ironfish::frost::round2::SignatureShare;
+use ironfish::frost::round2::SignatureShare as FrostSignatureShare;
 use ironfish::frost::Identifier;
 use ironfish::frost::SigningPackage;
+use ironfish::frost_utils::signature_share::SignatureShare;
 use ironfish::serializing::fr::FrSerializable;
 use ironfish::serializing::hex_to_vec_bytes;
 use ironfish::serializing::{bytes_to_hex, hex_to_bytes};
@@ -460,11 +461,11 @@ impl NativeUnsignedTransaction {
     }
 
     #[napi]
-    pub fn sign_frost(
+    pub fn aggregate_signature_shares(
         &mut self,
         public_key_package_str: String,
         signing_package_str: String,
-        signature_shares_map: HashMap<String, String>,
+        signature_shares_arr: Vec<String>,
     ) -> Result<Buffer> {
         let public_key_package = PublicKeyPackage::deserialize(
             &hex_to_vec_bytes(&public_key_package_str).map_err(to_napi_err)?,
@@ -474,19 +475,17 @@ impl NativeUnsignedTransaction {
             &hex_to_vec_bytes(&signing_package_str).map_err(to_napi_err)?,
         )
         .map_err(to_napi_err)?;
-        let mut signature_shares = BTreeMap::<Identifier, SignatureShare>::new();
-        for (k, v) in signature_shares_map.iter() {
-            let identifier = Identifier::deserialize(&hex_to_bytes(k).map_err(to_napi_err)?)
-                .map_err(to_napi_err)?;
-            let signature_share =
-                SignatureShare::deserialize(hex_to_bytes(v).map_err(to_napi_err)?)
+        let mut signature_shares = BTreeMap::<Identifier, FrostSignatureShare>::new();
+        for signature_share in signature_shares_arr.iter() {
+            let iss =
+                SignatureShare::deserialize(&hex_to_bytes(signature_share).map_err(to_napi_err)?)
                     .map_err(to_napi_err)?;
-            signature_shares.insert(identifier, signature_share);
+            signature_shares.insert(iss.identifier, iss.signature_share);
         }
 
         let signed_transaction = self
             .transaction
-            .sign_frost(&public_key_package, &signing_package, signature_shares)
+            .aggregate_signature_shares(&public_key_package, &signing_package, signature_shares)
             .map_err(to_napi_err)?;
 
         let mut vec: Vec<u8> = vec![];

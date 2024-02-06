@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { ParticipantSecret } from '@ironfish/rust-nodejs'
-import { createRouteTest } from '../../../testUtilities/routeTest'
+import { createRouteTest } from '../../../../testUtilities/routeTest'
 
 describe('Route multisig/createTrustedDealerKeyPackage', () => {
   const routeTest = createRouteTest()
@@ -13,7 +13,7 @@ describe('Route multisig/createTrustedDealerKeyPackage', () => {
     }))
     const request = { minSigners: 2, participants }
     const response = await routeTest.client
-      .request('multisig/createTrustedDealerKeyPackage', request)
+      .request('wallet/multisig/createTrustedDealerKeyPackage', request)
       .waitForEnd()
 
     expect(response.content).toMatchObject({

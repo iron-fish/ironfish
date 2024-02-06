@@ -10,10 +10,10 @@ import { GENESIS_BLOCK_SEQUENCE } from '../../primitives/block'
 import { Note } from '../../primitives/note'
 import { DatabaseKeyRange, IDatabaseTransaction } from '../../storage'
 import { StorageUtils } from '../../storage/database/utils'
-import { WithNonNull } from '../../utils'
+import { WithNonNull, WithRequired } from '../../utils'
 import { DecryptedNote } from '../../workerPool/tasks/decryptNotes'
 import { AssetBalances } from '../assetBalances'
-import { MultiSigKeys } from '../interfaces/multiSigKeys'
+import { MultiSigKeys, MultiSigSigner } from '../interfaces/multiSigKeys'
 import { WalletBlockHeader } from '../remoteChainProcessor'
 import { AccountValue } from '../walletdb/accountValue'
 import { AssetValue } from '../walletdb/assetValue'
@@ -22,6 +22,7 @@ import { DecryptedNoteValue } from '../walletdb/decryptedNoteValue'
 import { HeadValue } from '../walletdb/headValue'
 import { TransactionValue } from '../walletdb/transactionValue'
 import { WalletDB } from '../walletdb/walletdb'
+import { isSignerMultiSig } from './encoder/multiSigKeys'
 
 export const ACCOUNT_KEY_LENGTH = 32
 
@@ -31,6 +32,29 @@ export type SpendingAccount = WithNonNull<Account, 'spendingKey'>
 
 export function AssertSpending(account: Account): asserts account is SpendingAccount {
   Assert.isTrue(account.isSpendingAccount())
+}
+
+export type MultiSigAccount = WithRequired<Account, 'multiSigKeys'>
+
+type MultiSigSignerAccount = WithRequired<Account, 'multiSigKeys'> & {
+  multiSigKeys: MultiSigSigner
+}
+
+export function AssertMultiSig(account: Account): asserts account is MultiSigAccount {
+  Assert.isNotUndefined(
+    account.multiSigKeys,
+    `Account ${account.name} is not a multisig account`,
+  )
+}
+
+export function AssertMultiSigSigner(
+  account: Account,
+): asserts account is MultiSigSignerAccount {
+  AssertMultiSig(account)
+  Assert.isTrue(
+    isSignerMultiSig(account.multiSigKeys),
+    `Account ${account.name} is not a multisig signer account`,
+  )
 }
 
 export class Account {

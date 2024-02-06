@@ -31,7 +31,8 @@ export class RouteNotFoundError extends RpcResponseError {
 export function parseRoute(
   route: string,
 ): [namespace: string | undefined, method: string | undefined] {
-  const [n, m] = route.split('/')
+  const [n, ...rest] = route.split('/')
+  const m = rest.join('/')
   return [n, m]
 }
 
@@ -45,8 +46,8 @@ export class Router {
   }
 
   async route(route: string, request: RpcRequest): Promise<void> {
-    const [namespace, method] = route.split('/')
-
+    const [namespace, ...rest] = route.split('/')
+    const method = rest.join('/')
     const methodRoute = this.routes.get(namespace, method)
     if (!methodRoute) {
       throw new RouteNotFoundError(route, namespace, method)

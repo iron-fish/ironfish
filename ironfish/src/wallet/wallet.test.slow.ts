@@ -5,8 +5,8 @@ import {
   Asset,
   ASSET_ID_LENGTH,
   Commitment,
+  createSignatureShare,
   createSigningCommitment,
-  createSigningShare,
   generateKey,
   ParticipantSecret,
   splitSecret,
@@ -27,7 +27,7 @@ import {
   useTxFixture,
 } from '../testUtilities'
 import { acceptsAllTarget } from '../testUtilities/helpers/blockchain'
-import { AssertIsSignerMultiSig } from './account/encoder/multiSigKeys'
+import { AssertMultiSigSigner } from '../wallet'
 
 describe('Wallet', () => {
   const nodeTest = createNodeTest()
@@ -1215,8 +1215,7 @@ describe('Wallet', () => {
 
       const signingCommitments: Commitment[] = []
       for (const participant of participants) {
-        Assert.isNotUndefined(participant.multiSigKeys)
-        AssertIsSignerMultiSig(participant.multiSigKeys)
+        AssertMultiSigSigner(participant)
         signingCommitments.push(
           createSigningCommitment(participant.multiSigKeys.keyPackage, seed),
         )
@@ -1285,21 +1284,23 @@ describe('Wallet', () => {
       const signingPackage = unsignedTransaction.signingPackage(signingCommitments)
       const publicKeyRandomness = unsignedTransaction.publicKeyRandomness()
 
-      const signatureShares: Record<string, string> = {}
+      const signatureShares: Array<string> = []
 
       for (const participant of participants) {
-        Assert.isNotUndefined(participant.multiSigKeys)
-        AssertIsSignerMultiSig(participant.multiSigKeys)
-        signatureShares[participant.multiSigKeys.identifier] = createSigningShare(
-          signingPackage,
-          participant.multiSigKeys.keyPackage,
-          publicKeyRandomness,
-          seed,
+        AssertMultiSigSigner(participant)
+        signatureShares.push(
+          createSignatureShare(
+            signingPackage,
+            participant.multiSigKeys.identifier,
+            participant.multiSigKeys.keyPackage,
+            publicKeyRandomness,
+            seed,
+          ),
         )
       }
 
       Assert.isNotUndefined(coordinator.multiSigKeys)
-      const serializedFrostTransaction = unsignedTransaction.signFrost(
+      const serializedFrostTransaction = unsignedTransaction.aggregateSignatureShares(
         coordinator.multiSigKeys.publicKeyPackage,
         signingPackage,
         signatureShares,

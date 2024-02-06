@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 use super::internal_batch_verify_transactions;
 use super::{ProposedTransaction, Transaction};
 use crate::frost_utils::{
-    signing_commitment::create_signing_commitment, signing_share::create_signing_share,
+    signature_share::create_signature_share, signing_commitment::create_signing_commitment,
 };
 use crate::test_util::create_identifiers;
 use crate::transaction::tests::split_spender_key::split_spender_key;
@@ -703,7 +703,7 @@ fn test_sign_simple() {
 }
 
 #[test]
-fn test_sign_frost() {
+fn test_aggregate_signature_shares() {
     let spender_key = SaplingKey::generate_key();
 
     let identifiers = create_identifiers(10);
@@ -793,28 +793,29 @@ fn test_sign_frost() {
         .expect("should be able to create signing package");
 
     // simulate round 2
-    let mut signing_shares: BTreeMap<Identifier, SignatureShare> = BTreeMap::new();
+    let mut signature_shares: BTreeMap<Identifier, SignatureShare> = BTreeMap::new();
     let randomizer =
         Randomizer::deserialize(&unsigned_transaction.public_key_randomness.to_bytes())
             .expect("should be able to deserialize randomizer");
 
     for key_package in key_packages.key_packages.iter() {
-        let signature_share = create_signing_share(
+        let signature_share = create_signature_share(
             signing_package.clone(),
+            *key_package.0,
             key_package.1.clone(),
             randomizer,
             0,
         )
         .expect("should be able to create signature share");
-        signing_shares.insert(*key_package.0, signature_share);
+        signature_shares.insert(signature_share.identifier, signature_share.signature_share);
     }
 
     // coordinator creates signed transaction
     let signed_transaction = unsigned_transaction
-        .sign_frost(
+        .aggregate_signature_shares(
             &key_packages.public_key_package,
             &signing_package,
-            signing_shares,
+            signature_shares,
         )
         .expect("should be able to sign transaction");
 
