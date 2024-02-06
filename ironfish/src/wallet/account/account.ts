@@ -37,7 +37,7 @@ export function AssertSpending(account: Account): asserts account is SpendingAcc
 export type MultisigAccount = WithRequired<Account, 'multisigKeys'>
 
 type MultisigSignerAccount = WithRequired<Account, 'multisigKeys'> & {
-  multiSigKeys: MultisigSigner
+  multisigKeys: MultisigSigner
 }
 
 export function AssertMultisig(account: Account): asserts account is MultisigAccount {

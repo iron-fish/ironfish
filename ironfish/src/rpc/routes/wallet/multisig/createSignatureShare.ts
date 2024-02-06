@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { createSignatureShare, UnsignedTransaction } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
-import { AssertMultiSigSigner } from '../../../../wallet'
+import { AssertMultisigSigner } from '../../../../wallet'
 import { ApiNamespace } from '../../namespaces'
 import { routes } from '../../router'
 import { AssertHasRpcContext } from '../../rpcContext'
@@ -44,15 +44,15 @@ routes.register<typeof CreateSignatureShareRequestSchema, CreateSignatureShareRe
     AssertHasRpcContext(request, node, 'wallet')
 
     const account = getAccount(node.wallet, request.data.account)
-    AssertMultiSigSigner(account)
+    AssertMultisigSigner(account)
 
     const unsigned = new UnsignedTransaction(
       Buffer.from(request.data.unsignedTransaction, 'hex'),
     )
     const result = createSignatureShare(
       request.data.signingPackage,
-      account.multiSigKeys.identifier,
-      account.multiSigKeys.keyPackage,
+      account.multisigKeys.identifier,
+      account.multisigKeys.keyPackage,
       unsigned.publicKeyRandomness(),
       request.data.seed,
     )

@@ -44,7 +44,7 @@ routes.register<typeof CreateSigningCommitmentRequestSchema, CreateSigningCommit
     AssertMultisigSigner(account)
 
     request.end({
-      commitment: createSigningCommitment(account.multiSigKeys.keyPackage, request.data.seed),
+      commitment: createSigningCommitment(account.multisigKeys.keyPackage, request.data.seed),
     })
   },
 )
