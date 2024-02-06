@@ -5,7 +5,7 @@ import { generateKey } from '@ironfish/rust-nodejs'
 import { createRouteTest } from '../../../../testUtilities/routeTest'
 import { ACCOUNT_SCHEMA_VERSION } from '../../../../wallet'
 
-describe('Route multisig/createSignatureShare', () => {
+describe('Route wallt/multisig/createSignatureShare', () => {
   const routeTest = createRouteTest()
 
   it('should fail for an account that does not exist', async () => {
