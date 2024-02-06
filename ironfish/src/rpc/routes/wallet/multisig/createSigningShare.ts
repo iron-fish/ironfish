@@ -3,8 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { createSigningShare, UnsignedTransaction } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
-import { AssertMultiSig } from '../../../../wallet'
-import { AssertIsSignerMultiSig } from '../../../../wallet/account/encoder/multiSigKeys'
+import { AssertIsSignerMultiSig, AssertMultiSig } from '../../../../wallet'
 import { ApiNamespace } from '../../namespaces'
 import { routes } from '../../router'
 import { AssertHasRpcContext } from '../../rpcContext'

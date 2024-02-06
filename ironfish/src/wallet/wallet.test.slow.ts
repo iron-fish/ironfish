@@ -27,7 +27,7 @@ import {
   useTxFixture,
 } from '../testUtilities'
 import { acceptsAllTarget } from '../testUtilities/helpers/blockchain'
-import { AssertIsSignerMultiSig } from './account/encoder/multiSigKeys'
+import { AssertIsSignerMultiSig } from '../wallet'
 
 describe('Wallet', () => {
   const nodeTest = createNodeTest()

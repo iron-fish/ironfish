@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import bufio from 'bufio'
-import { Assert } from '../../../assert'
 import { IDatabaseEncoding } from '../../../storage'
 import { MultiSigKeys, MultiSigSigner } from '../../interfaces/multiSigKeys'
 
@@ -61,10 +60,4 @@ export class MultiSigKeysEncoding implements IDatabaseEncoding<MultiSigKeys> {
 
 export function isSignerMultiSig(multiSigKeys: MultiSigKeys): multiSigKeys is MultiSigSigner {
   return 'keyPackage' in multiSigKeys && 'identifier' in multiSigKeys
-}
-
-export function AssertIsSignerMultiSig(
-  multiSigKeys: MultiSigKeys,
-): asserts multiSigKeys is MultiSigSigner {
-  Assert.isTrue(isSignerMultiSig(multiSigKeys))
 }

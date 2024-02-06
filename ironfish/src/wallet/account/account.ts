@@ -13,7 +13,7 @@ import { StorageUtils } from '../../storage/database/utils'
 import { WithNonNull, WithRequired } from '../../utils'
 import { DecryptedNote } from '../../workerPool/tasks/decryptNotes'
 import { AssetBalances } from '../assetBalances'
-import { MultiSigKeys } from '../interfaces/multiSigKeys'
+import { MultiSigKeys, MultiSigSigner } from '../interfaces/multiSigKeys'
 import { WalletBlockHeader } from '../remoteChainProcessor'
 import { AccountValue } from '../walletdb/accountValue'
 import { AssetValue } from '../walletdb/assetValue'
@@ -22,6 +22,7 @@ import { DecryptedNoteValue } from '../walletdb/decryptedNoteValue'
 import { HeadValue } from '../walletdb/headValue'
 import { TransactionValue } from '../walletdb/transactionValue'
 import { WalletDB } from '../walletdb/walletdb'
+import { isSignerMultiSig } from './encoder/multiSigKeys'
 
 export const ACCOUNT_KEY_LENGTH = 32
 
@@ -40,6 +41,12 @@ export function AssertMultiSig(account: Account): asserts account is MultiSigAcc
     account.multiSigKeys,
     `Account ${account.name} is not a multisig account`,
   )
+}
+
+export function AssertIsSignerMultiSig(
+  multiSig: MultiSigKeys,
+): asserts multiSig is MultiSigSigner {
+  Assert.isTrue(isSignerMultiSig(multiSig), 'Multisig is not a signer')
 }
 
 export class Account {
