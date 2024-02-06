@@ -3,11 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { UnsignedTransaction } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
+import { Assert } from '../../../../assert'
 import { ApiNamespace } from '../../namespaces'
 import { routes } from '../../router'
+import { AssertHasRpcContext } from '../../rpcContext'
+import { getAccount } from '../utils'
 
 export type AggregateSigningSharesRequest = {
-  publicKeyPackage: string
+  account: string
   unsignedTransaction: string
   signingPackage: string
   signingShares: Array<{
@@ -23,7 +26,7 @@ export type AggregateSigningSharesResponse = {
 export const AggregateSigningSharesRequestSchema: yup.ObjectSchema<AggregateSigningSharesRequest> =
   yup
     .object({
-      publicKeyPackage: yup.string().defined(),
+      account: yup.string().defined(),
       unsignedTransaction: yup.string().defined(),
       signingPackage: yup.string().defined(),
       signingShares: yup
@@ -49,7 +52,12 @@ export const AggregateSigningSharesResponseSchema: yup.ObjectSchema<AggregateSig
 routes.register<typeof AggregateSigningSharesRequestSchema, AggregateSigningSharesResponse>(
   `${ApiNamespace.wallet}/multisig/aggregateSigningShares`,
   AggregateSigningSharesRequestSchema,
-  (request, _context): void => {
+  (request, node): void => {
+    AssertHasRpcContext(request, node, 'wallet')
+    const account = getAccount(node.wallet, request.data.account)
+    // TODO(hughy): change this to use assertion instead of not undefined
+    Assert.isNotUndefined(account.multiSigKeys, 'Account is not a multisig account')
+
     const unsigned = new UnsignedTransaction(
       Buffer.from(request.data.unsignedTransaction, 'hex'),
     )
@@ -61,7 +69,7 @@ routes.register<typeof AggregateSigningSharesRequestSchema, AggregateSigningShar
     }
 
     const transaction = unsigned.signFrost(
-      request.data.publicKeyPackage,
+      account.multiSigKeys.publicKeyPackage,
       request.data.signingPackage,
       signingShares,
     )
