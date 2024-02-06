@@ -1,16 +1,11 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import {
-  Asset,
-  IdentifierCommitment,
-  ParticipantSecret,
-  verifyTransactions,
-} from '@ironfish/rust-nodejs'
-import { Assert } from '../../../assert'
-import { useAccountFixture, useMinerBlockFixture } from '../../../testUtilities'
-import { createRouteTest } from '../../../testUtilities/routeTest'
-import { Account } from '../../../wallet'
+import { Asset, Commitment, ParticipantSecret, verifyTransactions } from '@ironfish/rust-nodejs'
+import { Assert } from '../../../../assert'
+import { createRouteTest } from '../../../../testUtilities/routeTest'
+import { Account, ACCOUNT_SCHEMA_VERSION, AssertMultiSig } from '../../../../wallet'
+import { AssertIsSignerMultiSig } from '../../../../wallet/account/encoder/multiSigKeys'
 
 describe('multisig RPC integration', () => {
   const routeTest = createRouteTest()
@@ -25,17 +20,46 @@ describe('multisig RPC integration', () => {
     }))
 
     // create trusted dealer key package
-    const responseKeyPackage = await routeTest.client.multisig.createTrustedDealerKeyPackage({
-      minSigners: 2,
-      maxSigners: 3,
-      participants,
-    })
+    const responseKeyPackage =
+      await routeTest.client.wallet.multisig.createTrustedDealerKeyPackage({
+        minSigners: 2,
+        participants,
+      })
     const trustedDealerPackage = responseKeyPackage.content
+
+    // import participant accounts
+    const participantAccounts: Array<Account> = []
+    for (let i = 0; i < participants.length; i++) {
+      const accountName = `participant${i}`
+      await routeTest.client.wallet.importAccount({
+        account: {
+          name: accountName,
+          version: ACCOUNT_SCHEMA_VERSION,
+          viewKey: trustedDealerPackage.viewKey,
+          incomingViewKey: trustedDealerPackage.incomingViewKey,
+          outgoingViewKey: trustedDealerPackage.outgoingViewKey,
+          publicAddress: trustedDealerPackage.publicAddress,
+          spendingKey: null,
+          createdAt: null,
+          multiSigKeys: {
+            keyPackage: trustedDealerPackage.keyPackages[i].keyPackage,
+            identifier: trustedDealerPackage.keyPackages[i].identifier,
+            publicKeyPackage: trustedDealerPackage.publicKeyPackage,
+          },
+          proofAuthorizingKey: null,
+        },
+        rescan: false,
+      })
+
+      const participantAccount = routeTest.wallet.getAccountByName(accountName)
+      Assert.isNotNull(participantAccount)
+      participantAccounts.push(participantAccount)
+    }
 
     // import coordinator account
     await routeTest.client.wallet.importAccount({
       account: {
-        version: 4,
+        version: ACCOUNT_SCHEMA_VERSION,
         name: 'coordinator',
         spendingKey: null,
         createdAt: null,
@@ -44,13 +68,14 @@ describe('multisig RPC integration', () => {
         },
         ...trustedDealerPackage,
       },
+      rescan: false,
     })
     const coordinatorAccount = routeTest.wallet.getAccountByName('coordinator')
     Assert.isNotNull(coordinatorAccount)
 
     // fund coordinator account
     // mine block to send IRON to multisig account
-    const miner = await useAccountFixture(routeTest.wallet, 'miner')
+    const miner = await routeTest.wallet.createAccount('miner', { setCreatedAt: false })
     await fundAccount(coordinatorAccount, miner)
 
     // create raw transaction
@@ -74,21 +99,27 @@ describe('multisig RPC integration', () => {
     const unsignedTransaction = buildTransactionResponse.content.unsignedTransaction
 
     // create and collect signing commitments
-    const commitments: Array<IdentifierCommitment> = []
-    for (let i = 0; i < 3; i++) {
-      const commitmentResponse = await routeTest.client.multisig.createSigningCommitment({
-        keyPackage: trustedDealerPackage.keyPackages[i].keyPackage,
-        seed,
-      })
+    const commitments: Array<Commitment> = []
+    for (const participantAccount of participantAccounts) {
+      AssertMultiSig(participantAccount)
+      AssertIsSignerMultiSig(participantAccount.multiSigKeys)
+
+      const commitmentResponse = await routeTest.client.wallet.multisig.createSigningCommitment(
+        {
+          account: participantAccount.name,
+          seed,
+        },
+      )
 
       commitments.push({
-        identifier: trustedDealerPackage.keyPackages[i].identifier,
-        commitment: commitmentResponse.content,
+        identifier: participantAccount.multiSigKeys.identifier,
+        hiding: commitmentResponse.content.hiding,
+        binding: commitmentResponse.content.binding,
       })
     }
 
     // create signing package
-    const responseSigningPackage = await routeTest.client.multisig.createSigningPackage({
+    const responseSigningPackage = await routeTest.client.wallet.multisig.createSigningPackage({
       commitments,
       unsignedTransaction,
     })
@@ -96,23 +127,26 @@ describe('multisig RPC integration', () => {
 
     // create and collect signing shares
     const signingShares: Array<{ identifier: string; signingShare: string }> = []
-    for (let i = 0; i < participants.length; i++) {
-      const signingShareResponse = await routeTest.client.multisig.createSigningShare({
+    for (const participantAccount of participantAccounts) {
+      AssertMultiSig(participantAccount)
+      AssertIsSignerMultiSig(participantAccount.multiSigKeys)
+
+      const signingShareResponse = await routeTest.client.wallet.multisig.createSigningShare({
+        account: participantAccount.name,
         signingPackage,
-        keyPackage: trustedDealerPackage.keyPackages[i].keyPackage,
         unsignedTransaction,
         seed,
       })
 
       signingShares.push({
-        identifier: trustedDealerPackage.keyPackages[i].identifier,
+        identifier: participantAccount.multiSigKeys.identifier,
         signingShare: signingShareResponse.content.signingShare,
       })
     }
 
     // aggregate signing shares
-    const aggregateResponse = await routeTest.client.multisig.aggregateSigningShares({
-      publicKeyPackage: trustedDealerPackage.publicKeyPackage,
+    const aggregateResponse = await routeTest.client.wallet.multisig.aggregateSigningShares({
+      account: coordinatorAccount.name,
       unsignedTransaction,
       signingPackage,
       signingShares,
@@ -126,8 +160,18 @@ describe('multisig RPC integration', () => {
   }, 100000)
 
   async function fundAccount(account: Account, miner: Account): Promise<void> {
-    const block = await useMinerBlockFixture(routeTest.chain, undefined, miner)
-    await expect(routeTest.chain).toAddBlock(block)
+    Assert.isNotNull(miner.spendingKey)
+    await routeTest.wallet.updateHead()
+
+    const minersfee = await routeTest.chain.createMinersFee(
+      0n,
+      routeTest.chain.head.sequence + 1,
+      miner.spendingKey,
+    )
+    const newBlock = await routeTest.chain.newBlock([], minersfee)
+    const addResult = await routeTest.chain.addBlock(newBlock)
+    expect(addResult.isAdded).toBeTruthy()
+
     await routeTest.wallet.updateHead()
 
     const transaction = await routeTest.wallet.send({
@@ -143,12 +187,10 @@ describe('multisig RPC integration', () => {
       fee: BigInt(0),
     })
 
-    Assert.isNotNull(miner.spendingKey)
-
     // Create a block with a miner's fee and the transaction to send IRON to the multisig account
     const minersfee2 = await routeTest.chain.createMinersFee(
       transaction.fee(),
-      block.header.sequence + 1,
+      newBlock.header.sequence + 1,
       miner.spendingKey,
     )
     const newBlock2 = await routeTest.chain.newBlock([transaction], minersfee2)
