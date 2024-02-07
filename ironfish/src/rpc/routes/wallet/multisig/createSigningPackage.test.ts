@@ -4,8 +4,7 @@
 import { ParticipantSecret } from '@ironfish/rust-nodejs'
 import {
   createNodeTest,
-  useAccountFixture,
-  useMinerBlockFixture,
+  useAccountAndAddFundsFixture,
   useUnsignedTxFixture,
 } from '../../../../testUtilities'
 import { createRouteTest } from '../../../../testUtilities/routeTest'
@@ -64,18 +63,7 @@ describe('Route multisig/createSigningPackage', () => {
       commitments.push(signingCommitment.content.commitment)
     }
 
-    const account = await useAccountFixture(nodeTest.wallet)
-
-    // fund account
-    const block = await useMinerBlockFixture(
-      nodeTest.chain,
-      undefined,
-      account,
-      nodeTest.wallet,
-    )
-    await nodeTest.chain.addBlock(block)
-    await nodeTest.wallet.updateHead()
-
+    const account = await useAccountAndAddFundsFixture(nodeTest.wallet, nodeTest.chain)
     const unsignedTransaction = await useUnsignedTxFixture(nodeTest.wallet, account, account)
     const unsignedString = unsignedTransaction.serialize().toString('hex')
     const responseSigningPackage = await routeTest.client.wallet.multisig.createSigningPackage({

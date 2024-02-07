@@ -1,7 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Blockchain } from '../../blockchain'
 import { AccountValue, AssertSpending, SpendingAccount, Wallet } from '../../wallet'
+import { useMinerBlockFixture } from './blocks'
 import { FixtureGenerate, useFixture } from './fixture'
 
 export function useAccountFixture(
@@ -42,4 +44,17 @@ export function useAccountFixture(
       return account
     },
   })
+}
+
+export async function useAccountAndAddFundsFixture(
+  wallet: Wallet,
+  chain: Blockchain,
+  generate: FixtureGenerate<SpendingAccount> | string = 'test',
+  options?: { setCreatedAt?: boolean; setDefault?: boolean },
+): Promise<SpendingAccount> {
+  const account = await useAccountFixture(wallet, generate, options)
+  const block = await useMinerBlockFixture(chain, undefined, account)
+  await expect(chain).toAddBlock(block)
+  await wallet.updateHead()
+  return account
 }
