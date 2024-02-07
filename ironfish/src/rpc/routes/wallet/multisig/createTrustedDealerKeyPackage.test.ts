@@ -9,7 +9,7 @@ describe('Route multisig/createTrustedDealerKeyPackage', () => {
 
   it('should create trusted dealer key package', async () => {
     const participants = Array.from({ length: 3 }, () => ({
-      identifier: ParticipantSecret.random().toIdentity().toFrostIdentifier(),
+      identity: ParticipantSecret.random().toIdentity().serialize().toString('hex'),
     }))
     const request = { minSigners: 2, participants }
     const response = await routeTest.client
@@ -20,15 +20,15 @@ describe('Route multisig/createTrustedDealerKeyPackage', () => {
       incomingViewKey: expect.any(String),
       keyPackages: expect.arrayContaining([
         {
-          identifier: participants[0].identifier,
+          identity: participants[0].identity,
           keyPackage: expect.any(String),
         },
         {
-          identifier: participants[1].identifier,
+          identity: participants[1].identity,
           keyPackage: expect.any(String),
         },
         {
-          identifier: participants[2].identifier,
+          identity: participants[2].identity,
           keyPackage: expect.any(String),
         },
       ]),

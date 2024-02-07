@@ -119,7 +119,7 @@ export function deserializeRpcAccountMultisigKeys(
   if (isSignerMultisig(rpcMultisigKeys)) {
     return {
       publicKeyPackage: rpcMultisigKeys.publicKeyPackage,
-      identifier: rpcMultisigKeys.identifier,
+      identity: rpcMultisigKeys.identity,
       keyPackage: rpcMultisigKeys.keyPackage,
     }
   }

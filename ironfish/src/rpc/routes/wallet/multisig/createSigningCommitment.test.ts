@@ -25,7 +25,7 @@ describe('Route wallet/multisig/createSigningCommitment', () => {
 
   it('cannot perform signing commitment if the account is a trusted dealer', async () => {
     const participants = Array.from({ length: 3 }, () => ({
-      identifier: ParticipantSecret.random().toIdentity().toFrostIdentifier(),
+      identity: ParticipantSecret.random().toIdentity().serialize().toString('hex'),
     }))
 
     const request = { minSigners: 2, participants }
@@ -73,7 +73,7 @@ describe('Route wallet/multisig/createSigningCommitment', () => {
 
   it('should create signing commitment', async () => {
     const participants = Array.from({ length: 3 }, () => ({
-      identifier: ParticipantSecret.random().toIdentity().toFrostIdentifier(),
+      identity: ParticipantSecret.random().toIdentity().serialize().toString('hex'),
     }))
 
     const request = { minSigners: 2, participants }
@@ -95,7 +95,7 @@ describe('Route wallet/multisig/createSigningCommitment', () => {
         createdAt: null,
         multisigKeys: {
           keyPackage: trustedDealerPackage.keyPackages[0].keyPackage,
-          identifier: trustedDealerPackage.keyPackages[0].identifier,
+          identity: trustedDealerPackage.keyPackages[0].identity,
           publicKeyPackage: trustedDealerPackage.publicKeyPackage,
         },
         proofAuthorizingKey: null,

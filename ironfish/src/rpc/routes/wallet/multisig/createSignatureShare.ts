@@ -51,7 +51,7 @@ routes.register<typeof CreateSignatureShareRequestSchema, CreateSignatureShareRe
     )
     const result = createSignatureShare(
       request.data.signingPackage,
-      account.multisigKeys.identifier,
+      account.multisigKeys.identity,
       account.multisigKeys.keyPackage,
       unsigned.publicKeyRandomness(),
       request.data.seed,

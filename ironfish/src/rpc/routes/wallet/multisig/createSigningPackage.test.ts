@@ -18,13 +18,15 @@ describe('Route multisig/createSigningPackage', () => {
   it('should create signing package', async () => {
     const seed = 420
 
-    const participants = Array.from({ length: 3 }, () => ({
-      identifier: ParticipantSecret.random().toIdentity().toFrostIdentifier(),
-    }))
+    const participants = Array.from({ length: 3 }, () =>
+      ParticipantSecret.random().toIdentity(),
+    )
 
     const request = {
       minSigners: 2,
-      participants,
+      participants: participants.map((identity) => ({
+        identity: identity.serialize().toString('hex'),
+      })),
     }
 
     const trustedDealerPackage = (
@@ -44,7 +46,7 @@ describe('Route multisig/createSigningPackage', () => {
         createdAt: null,
         multisigKeys: {
           keyPackage: trustedDealerPackage.keyPackages[0].keyPackage,
-          identifier: trustedDealerPackage.keyPackages[0].identifier,
+          identity: trustedDealerPackage.keyPackages[0].identity,
           publicKeyPackage: trustedDealerPackage.publicKeyPackage,
         },
         proofAuthorizingKey: null,

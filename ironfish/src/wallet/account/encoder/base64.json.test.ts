@@ -111,7 +111,7 @@ describe('Base64JsonEncoder', () => {
       createdAt: null,
       multisigKeys: {
         publicKeyPackage: 'cccc',
-        identifier: 'aaaa',
+        identity: 'aaaa',
         keyPackage: 'bbbb',
       },
       proofAuthorizingKey: null,

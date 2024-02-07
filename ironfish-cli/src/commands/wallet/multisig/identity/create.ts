@@ -15,12 +15,5 @@ export class MultisigIdentityCreate extends IronfishCommand {
     const identity = secret.toIdentity()
     this.log('Identity:')
     this.log(identity.serialize().toString('hex'))
-
-    this.log()
-
-    // TODO: remove when other multisig CLI commands use identity as inputs
-    const identifier = identity.toFrostIdentifier()
-    this.log('Identifier:')
-    this.log(identifier)
   }
 }

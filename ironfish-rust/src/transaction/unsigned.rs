@@ -286,12 +286,20 @@ impl UnsignedTransaction {
 
     // Creates frost signing package for use in round two of FROST multisig protocol
     // only applicable for multisig transactions
-    pub fn signing_package(
+    pub fn signing_package<Iter, ID>(
         &self,
-        commitments: BTreeMap<Identifier, SigningCommitments>,
-    ) -> Result<SigningPackage, IronfishError> {
+        commitments: Iter,
+    ) -> Result<SigningPackage, IronfishError>
+    where
+        Iter: IntoIterator<Item = (ID, SigningCommitments)>,
+        ID: Into<Identifier>,
+    {
         // Create the transaction signature hash
         let data_to_sign = self.transaction_signature_hash()?;
+        let commitments = commitments
+            .into_iter()
+            .map(|(identity, commitments)| (identity.into(), commitments))
+            .collect();
         Ok(SigningPackage::new(commitments, &data_to_sign))
     }
 

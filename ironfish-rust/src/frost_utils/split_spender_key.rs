@@ -3,10 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use group::GroupEncoding;
-use ironfish_frost::frost::{
-    keys::{KeyPackage, PublicKeyPackage},
-    Identifier,
-};
+use ironfish_frost::frost::keys::{KeyPackage, PublicKeyPackage};
+use ironfish_frost::participant::Identity;
 use ironfish_zkp::constants::PROOF_GENERATION_KEY_GENERATOR;
 use jubjub::SubgroupPoint;
 use rand::thread_rng;
@@ -28,14 +26,14 @@ pub struct TrustedDealerKeyPackages {
     pub incoming_view_key: IncomingViewKey,
     pub outgoing_view_key: OutgoingViewKey,
     pub public_address: PublicAddress,
-    pub key_packages: HashMap<Identifier, KeyPackage>,
+    pub key_packages: HashMap<Identity, KeyPackage>,
     pub public_key_package: PublicKeyPackage,
 }
 
 pub fn split_spender_key(
     coordinator_sapling_key: &SaplingKey,
     min_signers: u16,
-    identifiers: Vec<Identifier>,
+    identities: Vec<Identity>,
 ) -> Result<TrustedDealerKeyPackages, IronfishError> {
     let secret = coordinator_sapling_key
         .spend_authorizing_key
@@ -44,7 +42,7 @@ pub fn split_spender_key(
 
     let secret_config = SecretShareConfig {
         min_signers,
-        identifiers,
+        identities,
         secret,
     };
 
@@ -87,22 +85,22 @@ pub fn split_spender_key(
 
 #[cfg(test)]
 mod test {
-    use crate::test_util::create_identifiers;
+    use crate::test_util::create_multisig_identities;
 
     use super::*;
     use ironfish_frost::frost::{frost::keys::reconstruct, JubjubBlake2b512};
 
     #[test]
     fn test_split_spender_key_success() {
-        let identifiers = create_identifiers(10);
+        let identities = create_multisig_identities(10);
 
-        let mut cloned_identifiers = identifiers.clone();
-        cloned_identifiers.sort();
+        let mut cloned_identities = identities.clone();
+        cloned_identities.sort_by_key(Identity::serialize);
 
         let sapling_key = SaplingKey::generate_key();
 
         let trusted_dealer_key_packages =
-            split_spender_key(&sapling_key, 5, identifiers).expect("spender key split failed");
+            split_spender_key(&sapling_key, 5, identities).expect("spender key split failed");
 
         assert_eq!(
             trusted_dealer_key_packages.key_packages.len(),
@@ -137,14 +135,14 @@ mod test {
 
         assert_eq!(scalar.to_bytes(), spend_auth_key);
 
-        // assert identifiers and trusted_dealer_key_packages.key_packages.keys() are the same
-        let mut t_identifiers = trusted_dealer_key_packages
+        // assert identities and trusted_dealer_key_packages.key_packages.keys() are the same
+        let mut t_identities = trusted_dealer_key_packages
             .key_packages
             .keys()
             .cloned()
             .collect::<Vec<_>>();
 
-        t_identifiers.sort();
-        assert_eq!(t_identifiers, cloned_identifiers);
+        t_identities.sort_by_key(Identity::serialize);
+        assert_eq!(t_identities, cloned_identities);
     }
 }

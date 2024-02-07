@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 #[cfg(test)]
 use super::internal_batch_verify_transactions;
@@ -10,7 +10,7 @@ use super::{ProposedTransaction, Transaction};
 use crate::frost_utils::{
     signature_share::create_signature_share, signing_commitment::create_signing_commitment,
 };
-use crate::test_util::create_identifiers;
+use crate::test_util::create_multisig_identities;
 use crate::transaction::tests::split_spender_key::split_spender_key;
 use crate::{
     assets::{asset::Asset, asset_identifier::NATIVE_ASSET},
@@ -706,7 +706,7 @@ fn test_sign_simple() {
 fn test_aggregate_signature_shares() {
     let spender_key = SaplingKey::generate_key();
 
-    let identifiers = create_identifiers(10);
+    let identifiers = create_multisig_identities(10);
 
     // key package generation by trusted dealer
     let key_packages = split_spender_key(&spender_key, 2, identifiers)
@@ -779,12 +779,12 @@ fn test_aggregate_signature_shares() {
         )
         .expect("should be able to build unsigned transaction");
 
-    let mut commitments = BTreeMap::new();
+    let mut commitments = HashMap::new();
 
     // simulate round 1
     for key_package in key_packages.key_packages.iter() {
         let (_nonce, commitment) = create_signing_commitment(key_package.1, 0);
-        commitments.insert(*key_package.0, commitment);
+        commitments.insert(key_package.0, commitment);
     }
 
     // coordinator creates signing package
@@ -801,7 +801,7 @@ fn test_aggregate_signature_shares() {
     for key_package in key_packages.key_packages.iter() {
         let signature_share = create_signature_share(
             signing_package.clone(),
-            *key_package.0,
+            key_package.0,
             key_package.1.clone(),
             randomizer,
             0,

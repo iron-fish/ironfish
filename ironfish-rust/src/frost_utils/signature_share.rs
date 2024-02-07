@@ -9,6 +9,7 @@ use ironfish_frost::frost::{
     round2::{Randomizer, SignatureShare as FrostSignatureShare},
     Identifier, SigningPackage,
 };
+use ironfish_frost::participant::Identity;
 use rand::{rngs::StdRng, SeedableRng};
 
 use crate::errors::{IronfishError, IronfishErrorKind};
@@ -50,7 +51,7 @@ impl SignatureShare {
 // Wrapper around frost::round2::sign that provides a seedable rng from u64
 pub fn create_signature_share(
     signing_package: SigningPackage,
-    identifier: Identifier,
+    identity: &Identity,
     key_package: KeyPackage,
     randomizer: Randomizer,
     seed: u64,
@@ -60,6 +61,7 @@ pub fn create_signature_share(
     let signature_share =
         frost::round2::sign(&signing_package, &signer_nonces, &key_package, randomizer)
             .map_err(|_| IronfishError::new(IronfishErrorKind::RoundTwoSigningFailure))?;
+    let identifier = identity.to_frost_identifier();
     Ok(SignatureShare {
         identifier,
         signature_share,

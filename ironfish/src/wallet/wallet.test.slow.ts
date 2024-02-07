@@ -1147,25 +1147,23 @@ describe('Wallet', () => {
 
       const coordinatorSaplingKey = generateKey()
 
-      const identifiers: string[] = []
-
-      for (let i = 0; i < 3; i++) {
-        identifiers.push(ParticipantSecret.random().toIdentity().toFrostIdentifier())
-      }
+      const identities = Array.from({ length: 3 }, () =>
+        ParticipantSecret.random().toIdentity().serialize().toString('hex'),
+      )
 
       // construct 3 separate secrets for the participants
-      // take the secrets and get identifiers back (get identity first then identifier)
+      // take the secrets and get identities back (get identity first then identifier)
 
       const trustedDealerPackage: TrustedDealerKeyPackages = splitSecret(
         coordinatorSaplingKey.spendingKey,
         minSigners,
-        identifiers,
+        identities,
       )
 
       const getMultisigKeys = (index: number) => {
         return {
           publicKeyPackage: trustedDealerPackage.publicKeyPackage,
-          identifier: trustedDealerPackage.keyPackages[index].identifier,
+          identity: trustedDealerPackage.keyPackages[index].identity,
           keyPackage: trustedDealerPackage.keyPackages[index].keyPackage,
         }
       }
@@ -1173,7 +1171,7 @@ describe('Wallet', () => {
       const participantA = await node.wallet.importAccount({
         version: 2,
         id: uuid(),
-        name: trustedDealerPackage.keyPackages[0].identifier,
+        name: trustedDealerPackage.keyPackages[0].identity,
         spendingKey: null,
         createdAt: null,
         multisigKeys: getMultisigKeys(0),
@@ -1182,7 +1180,7 @@ describe('Wallet', () => {
       const participantB = await node.wallet.importAccount({
         version: 2,
         id: uuid(),
-        name: trustedDealerPackage.keyPackages[1].identifier,
+        name: trustedDealerPackage.keyPackages[1].identity,
         spendingKey: null,
         createdAt: null,
         multisigKeys: getMultisigKeys(1),
@@ -1191,7 +1189,7 @@ describe('Wallet', () => {
       const participantC = await node.wallet.importAccount({
         version: 2,
         id: uuid(),
-        name: trustedDealerPackage.keyPackages[2].identifier,
+        name: trustedDealerPackage.keyPackages[2].identity,
         spendingKey: null,
         createdAt: null,
         multisigKeys: getMultisigKeys(2),
@@ -1290,7 +1288,7 @@ describe('Wallet', () => {
         signatureShares.push(
           createSignatureShare(
             signingPackage,
-            participant.multisigKeys.identifier,
+            participant.multisigKeys.identity,
             participant.multisigKeys.keyPackage,
             publicKeyRandomness,
             seed,

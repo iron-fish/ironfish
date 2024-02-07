@@ -3,11 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::{
-    structs::{IdentiferKeyPackage, TrustedDealerKeyPackages},
+    structs::{IdentityKeyPackage, TrustedDealerKeyPackages},
     to_napi_err,
 };
 use ironfish::{
-    frost::{keys::KeyPackage, round2::Randomizer, Identifier, SigningPackage},
+    frost::{keys::KeyPackage, round2::Randomizer, SigningPackage},
     frost_utils::{
         signature_share::create_signature_share as create_signature_share_rust,
         signing_commitment::{
@@ -42,13 +42,14 @@ pub fn create_signing_commitment(key_package: String, seed: u32) -> Result<Strin
 #[napi]
 pub fn create_signature_share(
     signing_package: String,
-    identifier: String,
+    identity: String,
     key_package: String,
     public_key_randomness: String,
     seed: u32,
 ) -> Result<String> {
-    let identifier = Identifier::deserialize(&hex_to_bytes(&identifier).map_err(to_napi_err)?)
-        .map_err(to_napi_err)?;
+    let identity =
+        Identity::deserialize_from(&hex_to_vec_bytes(&identity).map_err(to_napi_err)?[..])
+            .map_err(to_napi_err)?;
     let key_package =
         KeyPackage::deserialize(&hex_to_vec_bytes(&key_package).map_err(to_napi_err)?[..])
             .map_err(to_napi_err)?;
@@ -61,7 +62,7 @@ pub fn create_signature_share(
 
     let signature_share = create_signature_share_rust(
         signing_package,
-        identifier,
+        &identity,
         key_package,
         randomizer,
         seed as u64,
@@ -135,39 +136,33 @@ impl ParticipantIdentity {
 
         Ok(Buffer::from(vec))
     }
-
-    #[napi]
-    pub fn to_frost_identifier(&self) -> String {
-        let identifier: Identifier = self.identity.to_frost_identifier();
-
-        bytes_to_hex(&identifier.serialize())
-    }
 }
 
 #[napi]
 pub fn split_secret(
     coordinator_sapling_key: String,
     min_signers: u16,
-    identifiers: Vec<String>,
+    identities: Vec<String>,
 ) -> Result<TrustedDealerKeyPackages> {
     let coordinator_key =
         SaplingKey::new(hex_to_bytes(&coordinator_sapling_key).map_err(to_napi_err)?)
             .map_err(to_napi_err)?;
 
-    let mut converted = Vec::new();
+    let mut deserialized_identities = Vec::new();
 
-    for identifier in &identifiers {
-        let bytes = hex_to_bytes(identifier).map_err(to_napi_err)?;
-        let deserialized = Identifier::deserialize(&bytes).map_err(to_napi_err)?;
-        converted.push(deserialized);
+    for identity in &identities {
+        let bytes = hex_to_vec_bytes(identity).map_err(to_napi_err)?;
+        let frost_id = Identity::deserialize_from(&bytes[..]).map_err(to_napi_err)?;
+        deserialized_identities.push(frost_id);
     }
 
-    let t = split_spender_key(&coordinator_key, min_signers, converted).map_err(to_napi_err)?;
+    let t = split_spender_key(&coordinator_key, min_signers, deserialized_identities)
+        .map_err(to_napi_err)?;
 
     let mut key_packages_serialized = Vec::new();
     for (k, v) in t.key_packages.iter() {
-        key_packages_serialized.push(IdentiferKeyPackage {
-            identifier: bytes_to_hex(&k.serialize()),
+        key_packages_serialized.push(IdentityKeyPackage {
+            identity: bytes_to_hex(&k.serialize()),
             key_package: bytes_to_hex(&v.serialize().map_err(to_napi_err)?),
         });
     }

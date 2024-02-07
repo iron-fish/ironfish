@@ -15,7 +15,7 @@ describe('multisig RPC integration', () => {
 
     // create participants
     const participants = Array.from({ length: 3 }, () => ({
-      identifier: ParticipantSecret.random().toIdentity().toFrostIdentifier(),
+      identity: ParticipantSecret.random().toIdentity().serialize().toString('hex'),
     }))
 
     // create trusted dealer key package
@@ -42,7 +42,7 @@ describe('multisig RPC integration', () => {
           createdAt: null,
           multisigKeys: {
             keyPackage: trustedDealerPackage.keyPackages[i].keyPackage,
-            identifier: trustedDealerPackage.keyPackages[i].identifier,
+            identity: trustedDealerPackage.keyPackages[i].identity,
             publicKeyPackage: trustedDealerPackage.publicKeyPackage,
           },
           proofAuthorizingKey: null,

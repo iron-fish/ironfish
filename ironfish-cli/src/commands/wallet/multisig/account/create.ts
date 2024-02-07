@@ -7,7 +7,7 @@ import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
 
 export class MultisigCreate extends IronfishCommand {
-  static description = `Create a set of multisig accounts from identifiers`
+  static description = `Create a set of multisig accounts from identities`
   static hidden = true
 
   static flags = {
@@ -16,9 +16,9 @@ export class MultisigCreate extends IronfishCommand {
       char: 'n',
       description: 'Name to use for the coordinator',
     }),
-    identifier: Flags.string({
+    identity: Flags.string({
       char: 'i',
-      description: 'Identifier of a participant',
+      description: 'Identity of a participant',
       multiple: true,
     }),
     minSigners: Flags.integer({
@@ -35,18 +35,18 @@ export class MultisigCreate extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(MultisigCreate)
 
-    let identifiers = flags.identifier
-    if (!identifiers || identifiers.length < 2) {
-      const input = await CliUx.ux.prompt('Enter the identifiers separated by commas', {
+    let identities = flags.identity
+    if (!identities || identities.length < 2) {
+      const input = await CliUx.ux.prompt('Enter the identities separated by commas', {
         required: true,
       })
-      identifiers = input.split(',')
+      identities = input.split(',')
 
-      if (identifiers.length < 2) {
-        this.error('Minimum number of identifiers must be at least 2')
+      if (identities.length < 2) {
+        this.error('Minimum number of identities must be at least 2')
       }
     }
-    identifiers = identifiers.map((i) => i.trim())
+    identities = identities.map((i) => i.trim())
 
     let minSigners = flags.minSigners
     if (!minSigners) {
@@ -67,7 +67,7 @@ export class MultisigCreate extends IronfishCommand {
 
     const response = await client.wallet.multisig.createTrustedDealerKeyPackage({
       minSigners,
-      participants: identifiers.map((identifier) => ({ identifier })),
+      participants: identities.map((identity) => ({ identity })),
     })
 
     const chainResponse = await client.chain.getChainInfo()
@@ -110,7 +110,7 @@ export class MultisigCreate extends IronfishCommand {
     for (const [i, keyPackage] of response.content.keyPackages.entries()) {
       this.log('\n')
       this.log(`Account ${i + 1}`)
-      this.log(`Identifier ${keyPackage.identifier}`)
+      this.log(`Identifier ${keyPackage.identity}`)
       this.log('----------------')
       const accountStr = encoder.encode({
         name: `${name}-0`,
@@ -123,7 +123,7 @@ export class MultisigCreate extends IronfishCommand {
         publicAddress: response.content.publicAddress,
         proofAuthorizingKey: response.content.proofAuthorizingKey,
         multisigKeys: {
-          identifier: keyPackage.identifier,
+          identity: keyPackage.identity,
           keyPackage: keyPackage.keyPackage,
           publicKeyPackage: response.content.publicKeyPackage,
         },

@@ -73,7 +73,7 @@ pub fn create_signing_commitment(
 #[cfg(test)]
 mod test {
     use crate::frost_utils::split_secret::{split_secret, SecretShareConfig};
-    use crate::test_util::create_identifiers;
+    use crate::test_util::create_multisig_identities;
     use ff::Field;
     use jubjub::Fr;
     use rand::thread_rng;
@@ -83,11 +83,11 @@ mod test {
         let seed = 100;
         let key = Fr::random(&mut rand::thread_rng());
 
-        let identifiers = create_identifiers(10);
+        let identities = create_multisig_identities(10);
 
         let key_packages = split_secret(
             &SecretShareConfig {
-                identifiers,
+                identities,
                 min_signers: 2,
                 secret: key.to_bytes().to_vec(),
             },

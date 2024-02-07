@@ -46,7 +46,7 @@ describe('AccountValueEncoding', () => {
       createdAt: null,
       multisigKeys: {
         publicKeyPackage: 'cccc',
-        identifier: 'deaf',
+        identity: 'deaf',
         keyPackage: 'beef',
       },
       proofAuthorizingKey: key.proofAuthorizingKey,

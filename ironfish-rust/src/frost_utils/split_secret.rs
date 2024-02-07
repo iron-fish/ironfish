@@ -5,8 +5,9 @@
 use ironfish_frost::frost::{
     frost::keys::split,
     keys::{IdentifierList, KeyPackage, PublicKeyPackage},
-    Identifier, SigningKey,
+    SigningKey,
 };
+use ironfish_frost::participant::Identity;
 use rand::{CryptoRng, RngCore};
 use std::collections::HashMap;
 
@@ -14,14 +15,14 @@ use crate::errors::{IronfishError, IronfishErrorKind};
 
 pub struct SecretShareConfig {
     pub min_signers: u16,
-    pub identifiers: Vec<Identifier>,
+    pub identities: Vec<Identity>,
     pub secret: Vec<u8>,
 }
 
 pub(crate) fn split_secret<R: RngCore + CryptoRng>(
     config: &SecretShareConfig,
     mut rng: R,
-) -> Result<(HashMap<Identifier, KeyPackage>, PublicKeyPackage), IronfishError> {
+) -> Result<(HashMap<Identity, KeyPackage>, PublicKeyPackage), IronfishError> {
     let secret_bytes: [u8; 32] = config
         .secret
         .clone()
@@ -30,25 +31,35 @@ pub(crate) fn split_secret<R: RngCore + CryptoRng>(
 
     let secret_key = SigningKey::deserialize(secret_bytes)?;
 
-    let identifier_list = IdentifierList::Custom(&config.identifiers);
+    let mut frost_id_map = config
+        .identities
+        .iter()
+        .cloned()
+        .map(|identity| (identity.to_frost_identifier(), identity))
+        .collect::<HashMap<_, _>>();
+    let frost_ids = frost_id_map.keys().cloned().collect::<Vec<_>>();
+    let identifier_list = IdentifierList::Custom(&frost_ids[..]);
 
     let (shares, pubkeys) = split(
         &secret_key,
-        config.identifiers.len() as u16,
+        config
+            .identities
+            .len()
+            .try_into()
+            .expect("too many identities"),
         config.min_signers,
         identifier_list,
         &mut rng,
     )?;
 
-    for (_k, v) in shares.clone() {
-        KeyPackage::try_from(v)?;
-    }
-
     let mut key_packages: HashMap<_, _> = HashMap::new();
 
-    for (identifier, secret_share) in shares {
+    for (frost_id, secret_share) in shares {
+        let identity = frost_id_map
+            .remove(&frost_id)
+            .expect("frost returned an identifier that was not passed as an input");
         let key_package = KeyPackage::try_from(secret_share.clone())?;
-        key_packages.insert(identifier, key_package);
+        key_packages.insert(identity, key_package);
     }
 
     Ok((key_packages, pubkeys))
@@ -57,17 +68,17 @@ pub(crate) fn split_secret<R: RngCore + CryptoRng>(
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{keys::SaplingKey, test_util::create_identifiers};
+    use crate::{keys::SaplingKey, test_util::create_multisig_identities};
     use ironfish_frost::frost::{frost::keys::reconstruct, JubjubBlake2b512};
 
     #[test]
     fn test_invalid_secret() {
-        let identifiers = create_identifiers(10);
+        let identities = create_multisig_identities(10);
 
         let vec = vec![1; 31];
         let config = SecretShareConfig {
             min_signers: 2,
-            identifiers,
+            identities,
             secret: vec,
         };
 
@@ -82,8 +93,8 @@ mod test {
 
     #[test]
     fn test_split_secret() {
-        let identifiers = create_identifiers(10);
-        let identifiers_length = identifiers.len();
+        let identities = create_multisig_identities(10);
+        let identities_length = identities.len();
 
         let rng = rand::thread_rng();
 
@@ -91,12 +102,12 @@ mod test {
 
         let config = SecretShareConfig {
             min_signers: 2,
-            identifiers,
+            identities,
             secret: key.to_vec(),
         };
 
         let (key_packages, _) = split_secret(&config, rng).unwrap();
-        assert_eq!(key_packages.len(), identifiers_length);
+        assert_eq!(key_packages.len(), identities_length);
 
         let key_parts: Vec<_> = key_packages.values().cloned().collect();
 

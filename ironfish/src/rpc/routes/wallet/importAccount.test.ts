@@ -66,7 +66,7 @@ describe('Route wallet/importAccount', () => {
           createdAt: null,
           multisigKeys: {
             publicKeyPackage: 'aaaa',
-            identifier: 'aaaa',
+            identity: 'aaaa',
             keyPackage: 'bbbb',
           },
         },
