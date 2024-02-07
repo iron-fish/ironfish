@@ -42,7 +42,7 @@ describe('Route wallet/mintAsset', () => {
           value: '-1',
         }),
       ).rejects.toThrow(
-        'Request failed (400) validation: value must be equal to or greater than 1',
+        'Request failed (400) validation: value must be equal to or greater than 0',
       )
     })
   })
