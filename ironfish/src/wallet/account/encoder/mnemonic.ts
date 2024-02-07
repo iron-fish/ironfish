@@ -16,6 +16,7 @@ import {
   AccountEncodingOptions,
   DecodeFailed,
   DecodeInvalid,
+  DecodeInvalidName,
 } from './encoder'
 
 export class MnemonicEncoder implements AccountEncoder {
@@ -47,8 +48,9 @@ export class MnemonicEncoder implements AccountEncoder {
       throw new DecodeFailed('Invalid mnemonic', this.constructor.name)
     }
     if (!options.name) {
-      throw new DecodeInvalid('Name option is required for mnemonic key encoder')
+      throw new DecodeInvalidName('Name option is required for mnemonic key encoder')
     }
+
     const key = generateKeyFromPrivateKey(spendingKey)
     return {
       name: options.name,

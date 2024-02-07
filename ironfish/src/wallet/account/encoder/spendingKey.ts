@@ -4,7 +4,7 @@
 import { generateKeyFromPrivateKey, Key } from '@ironfish/rust-nodejs'
 import { AccountImport } from '../../walletdb/accountValue'
 import { ACCOUNT_SCHEMA_VERSION } from '../account'
-import { AccountDecodingOptions, AccountEncoder, DecodeFailed, DecodeInvalid } from './encoder'
+import { AccountDecodingOptions, AccountEncoder, DecodeFailed, DecodeInvalid, DecodeInvalidName } from './encoder'
 
 export class SpendingKeyEncoder implements AccountEncoder {
   encode(value: AccountImport): string {
@@ -26,8 +26,9 @@ export class SpendingKeyEncoder implements AccountEncoder {
     }
 
     if (!options.name) {
-      throw new DecodeInvalid('Name option is required for spending key encoder')
+      throw new DecodeInvalidName('Name option is required for spending key encoder')
     }
+
     return {
       name: options.name,
       spendingKey: spendingKey,
