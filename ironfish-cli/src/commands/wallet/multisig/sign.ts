@@ -59,22 +59,8 @@ export class MultisigSign extends IronfishCommand {
 
     const client = await this.sdk.connectRpc()
 
-    let account = flags.account
-    if (!account) {
-      const response = await client.wallet.getDefaultAccount()
-
-      if (!response.content.account) {
-        this.error(
-          `No account is currently active.
-           Use ironfish wallet:import to first import the multisig account which can sign the shares for this transaction`,
-        )
-      }
-
-      account = response.content.account.name
-    }
-
     const response = await client.wallet.multisig.aggregateSignatureShares({
-      account,
+      account: flags.account,
       unsignedTransaction,
       signingPackage,
       signatureShares,
