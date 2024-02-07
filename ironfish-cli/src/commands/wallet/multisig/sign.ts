@@ -6,7 +6,7 @@ import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 
-export class MultiSigSign extends IronfishCommand {
+export class MultisigSign extends IronfishCommand {
   static description = 'Aggregate signature shares from participants to sign a transaction'
   static hidden = true
 
@@ -38,7 +38,7 @@ export class MultiSigSign extends IronfishCommand {
   }
 
   async start(): Promise<void> {
-    const { flags } = await this.parse(MultiSigSign)
+    const { flags } = await this.parse(MultisigSign)
 
     const unsignedTransaction =
       flags.unsignedTransaction?.trim() ??
@@ -85,13 +85,13 @@ export class MultiSigSign extends IronfishCommand {
 
     CliUx.ux.action.stop()
 
-    if (response.content.accepted === false) {
+    if (flags.broadcast && response.content.accepted === false) {
       this.warn(
         `Transaction '${transaction.hash().toString('hex')}' was not accepted into the mempool`,
       )
     }
 
-    if (response.content.broadcasted === false) {
+    if (flags.broadcast && response.content.broadcasted === false) {
       this.warn(`Transaction '${transaction.hash().toString('hex')}' failed to broadcast`)
     }
 
