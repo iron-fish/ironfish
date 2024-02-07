@@ -10,7 +10,7 @@ import { AssertHasRpcContext } from '../../rpcContext'
 import { getAccount } from '../utils'
 
 export type CreateSigningCommitmentRequest = {
-  account: string
+  account?: string
   seed: number //  TODO: remove when we have deterministic nonces
 }
 
@@ -21,7 +21,7 @@ export type CreateSigningCommitmentResponse = {
 export const CreateSigningCommitmentRequestSchema: yup.ObjectSchema<CreateSigningCommitmentRequest> =
   yup
     .object({
-      account: yup.string().defined(),
+      account: yup.string().optional(),
       seed: yup.number().defined(),
     })
     .defined()
