@@ -7,7 +7,7 @@ use ironfish_frost::frost::{
     keys::{IdentifierList, KeyPackage, PublicKeyPackage},
     Identifier, SigningKey,
 };
-use rand::rngs::ThreadRng;
+use rand::{CryptoRng, RngCore};
 use std::collections::HashMap;
 
 use crate::errors::{IronfishError, IronfishErrorKind};
@@ -18,9 +18,9 @@ pub struct SecretShareConfig {
     pub secret: Vec<u8>,
 }
 
-pub(crate) fn split_secret(
+pub(crate) fn split_secret<R: RngCore + CryptoRng>(
     config: &SecretShareConfig,
-    rng: &mut ThreadRng,
+    mut rng: R,
 ) -> Result<(HashMap<Identifier, KeyPackage>, PublicKeyPackage), IronfishError> {
     let secret_bytes: [u8; 32] = config
         .secret
@@ -37,7 +37,7 @@ pub(crate) fn split_secret(
         config.identifiers.len() as u16,
         config.min_signers,
         identifier_list,
-        rng,
+        &mut rng,
     )?;
 
     for (_k, v) in shares.clone() {
@@ -71,8 +71,8 @@ mod test {
             secret: vec,
         };
 
-        let mut rng = rand::thread_rng();
-        let result = split_secret(&config, &mut rng);
+        let rng = rand::thread_rng();
+        let result = split_secret(&config, rng);
         assert!(result.is_err());
         assert!(
             matches!(result.unwrap_err().kind, IronfishErrorKind::InvalidSecret),
@@ -85,7 +85,7 @@ mod test {
         let identifiers = create_identifiers(10);
         let identifiers_length = identifiers.len();
 
-        let mut rng = rand::thread_rng();
+        let rng = rand::thread_rng();
 
         let key = SaplingKey::generate_key().spend_authorizing_key.to_bytes();
 
@@ -95,7 +95,7 @@ mod test {
             secret: key.to_vec(),
         };
 
-        let (key_packages, _) = split_secret(&config, &mut rng).unwrap();
+        let (key_packages, _) = split_secret(&config, rng).unwrap();
         assert_eq!(key_packages.len(), identifiers_length);
 
         let key_parts: Vec<_> = key_packages.values().cloned().collect();

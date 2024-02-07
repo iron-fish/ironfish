@@ -76,7 +76,7 @@ mod test {
     use crate::test_util::create_identifiers;
     use ff::Field;
     use jubjub::Fr;
-    use rand::rngs::ThreadRng;
+    use rand::thread_rng;
 
     #[test]
     pub fn test_seed_provides_same_result() {
@@ -85,14 +85,13 @@ mod test {
 
         let identifiers = create_identifiers(10);
 
-        let mut rng = ThreadRng::default();
         let key_packages = split_secret(
             &SecretShareConfig {
                 identifiers,
                 min_signers: 2,
                 secret: key.to_bytes().to_vec(),
             },
-            &mut rng,
+            thread_rng(),
         )
         .expect("key shares to be created");
         let key_package = key_packages

@@ -14,12 +14,6 @@ describe('Route chain.getConsensusParameters', () => {
       .waitForEnd()
 
     const chainParams = routeTest.chain.consensus.parameters
-    const expectedResponseParams = Object.fromEntries(
-      Object.entries(chainParams).map(([k, v]) => {
-        return [k, v === 'never' ? null : v]
-      }),
-    )
-
-    expect(response.content).toEqual(expectedResponseParams)
+    expect(response.content).toEqual(chainParams)
   })
 })

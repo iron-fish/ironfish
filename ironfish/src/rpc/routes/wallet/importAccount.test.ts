@@ -64,7 +64,7 @@ describe('Route wallet/importAccount', () => {
           outgoingViewKey: key.outgoingViewKey,
           version: 1,
           createdAt: null,
-          multiSigKeys: {
+          multisigKeys: {
             publicKeyPackage: 'aaaa',
             identifier: 'aaaa',
             keyPackage: 'bbbb',

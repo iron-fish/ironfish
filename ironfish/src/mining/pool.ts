@@ -361,12 +361,7 @@ export class MiningPool {
     this.webhooks.map((w) => w.poolConnected(explorer ?? undefined))
 
     const consensusResponse = (await this.rpc.chain.getConsensusParameters()).content
-    this.consensusParameters = {
-      ...consensusResponse,
-      enableFishHash: consensusResponse.enableFishHash || 'never',
-      enableAssetOwnership: consensusResponse.enableAssetOwnership || 'never',
-      enforceSequentialBlockTime: consensusResponse.enforceSequentialBlockTime || 'never',
-    }
+    this.consensusParameters = consensusResponse
 
     // TODO: Add option for full cache FishHash verification
     this.blockHasher = new BlockHasher({

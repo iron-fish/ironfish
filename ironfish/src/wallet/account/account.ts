@@ -13,7 +13,7 @@ import { StorageUtils } from '../../storage/database/utils'
 import { WithNonNull, WithRequired } from '../../utils'
 import { DecryptedNote } from '../../workerPool/tasks/decryptNotes'
 import { AssetBalances } from '../assetBalances'
-import { MultiSigKeys, MultiSigSigner } from '../interfaces/multiSigKeys'
+import { MultisigKeys, MultisigSigner } from '../interfaces/multisigKeys'
 import { WalletBlockHeader } from '../remoteChainProcessor'
 import { AccountValue } from '../walletdb/accountValue'
 import { AssetValue } from '../walletdb/assetValue'
@@ -22,7 +22,7 @@ import { DecryptedNoteValue } from '../walletdb/decryptedNoteValue'
 import { HeadValue } from '../walletdb/headValue'
 import { TransactionValue } from '../walletdb/transactionValue'
 import { WalletDB } from '../walletdb/walletdb'
-import { isSignerMultiSig } from './encoder/multiSigKeys'
+import { isSignerMultisig } from './encoder/multisigKeys'
 
 export const ACCOUNT_KEY_LENGTH = 32
 
@@ -34,25 +34,25 @@ export function AssertSpending(account: Account): asserts account is SpendingAcc
   Assert.isTrue(account.isSpendingAccount())
 }
 
-export type MultiSigAccount = WithRequired<Account, 'multiSigKeys'>
+export type MultisigAccount = WithRequired<Account, 'multisigKeys'>
 
-type MultiSigSignerAccount = WithRequired<Account, 'multiSigKeys'> & {
-  multiSigKeys: MultiSigSigner
+type MultisigSignerAccount = WithRequired<Account, 'multisigKeys'> & {
+  multisigKeys: MultisigSigner
 }
 
-export function AssertMultiSig(account: Account): asserts account is MultiSigAccount {
+export function AssertMultisig(account: Account): asserts account is MultisigAccount {
   Assert.isNotUndefined(
-    account.multiSigKeys,
+    account.multisigKeys,
     `Account ${account.name} is not a multisig account`,
   )
 }
 
-export function AssertMultiSigSigner(
+export function AssertMultisigSigner(
   account: Account,
-): asserts account is MultiSigSignerAccount {
-  AssertMultiSig(account)
+): asserts account is MultisigSignerAccount {
+  AssertMultisig(account)
   Assert.isTrue(
-    isSignerMultiSig(account.multiSigKeys),
+    isSignerMultisig(account.multisigKeys),
     `Account ${account.name} is not a multisig signer account`,
   )
 }
@@ -72,7 +72,7 @@ export class Account {
   createdAt: HeadValue | null
   readonly prefix: Buffer
   readonly prefixRange: DatabaseKeyRange
-  readonly multiSigKeys?: MultiSigKeys
+  readonly multisigKeys?: MultisigKeys
   readonly proofAuthorizingKey: string | null
 
   constructor({
@@ -86,7 +86,7 @@ export class Account {
     outgoingViewKey,
     version,
     createdAt,
-    multiSigKeys,
+    multisigKeys,
     proofAuthorizingKey,
   }: AccountValue & { walletDb: WalletDB }) {
     this.id = id
@@ -105,7 +105,7 @@ export class Account {
     this.walletDb = walletDb
     this.version = version ?? 1
     this.createdAt = createdAt
-    this.multiSigKeys = multiSigKeys
+    this.multisigKeys = multisigKeys
     this.proofAuthorizingKey = proofAuthorizingKey
   }
 
@@ -124,7 +124,7 @@ export class Account {
       outgoingViewKey: this.outgoingViewKey,
       publicAddress: this.publicAddress,
       createdAt: this.createdAt,
-      multiSigKeys: this.multiSigKeys,
+      multisigKeys: this.multisigKeys,
       proofAuthorizingKey: this.proofAuthorizingKey,
     }
   }
