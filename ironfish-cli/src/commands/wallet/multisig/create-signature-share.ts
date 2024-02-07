@@ -31,7 +31,6 @@ export class CreateSignatureShareCommand extends IronfishCommand {
 
   async start(): Promise<void> {
     const { flags } = await this.parse(CreateSignatureShareCommand)
-    const signingPackage = flags.signingPackage
 
     const client = await this.sdk.connectRpc()
     // TODO(andrea): use flags.transaction to create commiment when we incorportate deterministic nonces
@@ -39,7 +38,7 @@ export class CreateSignatureShareCommand extends IronfishCommand {
     const signatureShareResponse = await client.wallet.multisig.createSignatureShare({
       account: flags.account,
       unsignedTransaction: flags.unsignedTransaction,
-      signingPackage,
+      signingPackage: flags.signingPackage,
       seed: 0,
     })
 
