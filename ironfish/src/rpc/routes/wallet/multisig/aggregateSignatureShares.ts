@@ -31,6 +31,7 @@ export const AggregateSignatureSharesRequestSchema: yup.ObjectSchema<AggregateSi
       unsignedTransaction: yup.string().defined(),
       signingPackage: yup.string().defined(),
       signatureShares: yup.array(yup.string().defined()).defined(),
+      broadcast: yup.boolean().optional().default(true),
     })
     .defined()
 
