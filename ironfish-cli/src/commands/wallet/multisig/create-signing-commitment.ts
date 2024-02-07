@@ -7,6 +7,7 @@ import { RemoteFlags } from '../../../flags'
 
 export class CreateSigningCommitmentCommand extends IronfishCommand {
   static description = 'Create a signing commitment from a participant for a given transaction'
+  static hidden = true
 
   static flags = {
     ...RemoteFlags,
