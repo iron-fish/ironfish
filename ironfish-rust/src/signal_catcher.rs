@@ -16,7 +16,7 @@ unsafe fn display_trace() {
 
 /// # Safety
 /// This is unsafe, it calls libc functions
-#[cfg(all(unix, not(target_env = "musl")))]
+#[cfg(all(unix, not(target_env = "musl"), not(target_os = "android")))]
 unsafe fn display_trace() {
     const MAX_FRAMES: usize = 256;
     static mut STACK_TRACE: [*mut libc::c_void; MAX_FRAMES] = [std::ptr::null_mut(); MAX_FRAMES];
