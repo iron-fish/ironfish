@@ -11,7 +11,7 @@ import { AssertHasRpcContext } from '../../rpcContext'
 import { getAccount } from '../utils'
 
 export type AggregateSignatureSharesRequest = {
-  account: string
+  account?: string
   unsignedTransaction: string
   signingPackage: string
   signatureShares: Array<string>
@@ -27,7 +27,7 @@ export type AggregateSignatureSharesResponse = {
 export const AggregateSignatureSharesRequestSchema: yup.ObjectSchema<AggregateSignatureSharesRequest> =
   yup
     .object({
-      account: yup.string().defined(),
+      account: yup.string().optional(),
       unsignedTransaction: yup.string().defined(),
       signingPackage: yup.string().defined(),
       signatureShares: yup.array(yup.string().defined()).defined(),
