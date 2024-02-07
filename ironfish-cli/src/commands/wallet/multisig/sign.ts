@@ -63,6 +63,7 @@ export class MultisigSign extends IronfishCommand {
 
     const response = await client.wallet.multisig.aggregateSignatureShares({
       account: flags.account,
+      broadcast: flags.broadcast,
       unsignedTransaction,
       signingPackage,
       signatureShares,
