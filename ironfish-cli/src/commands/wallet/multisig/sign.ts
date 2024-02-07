@@ -33,7 +33,7 @@ export class MultisigSign extends IronfishCommand {
     broadcast: Flags.boolean({
       default: true,
       allowNo: true,
-      description: 'Broadcast the transaction after signing',
+      description: 'Broadcast the transaction to the network after signing',
     }),
   }
 
