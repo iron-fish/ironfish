@@ -15,7 +15,6 @@ import {
   AccountEncoder,
   AccountEncodingOptions,
   DecodeFailed,
-  DecodeInvalid,
   DecodeInvalidName,
 } from './encoder'
 
