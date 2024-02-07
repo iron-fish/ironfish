@@ -6,6 +6,7 @@ import { IronfishCommand } from '../../../../command'
 
 export class MultisigIdentityCreate extends IronfishCommand {
   static description = `Create a multisig identity`
+  static hidden = true
 
   start(): void {
     // TODO: generate secret over RPC, persist in walletDb
