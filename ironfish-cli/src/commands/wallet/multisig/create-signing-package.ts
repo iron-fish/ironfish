@@ -31,12 +31,12 @@ export class CreateSigningPackage extends IronfishCommand {
 
     const client = await this.sdk.connectRpc()
 
-    const signingShareResponse = await client.wallet.multisig.createSigningPackage({
+    const signingPackageResponse = await client.wallet.multisig.createSigningPackage({
       unsignedTransaction: flags.unsignedTransaction,
       commitments: flags.commitment,
     })
 
     this.log(`Signing Package for commitments from ${flags.commitment.length} participants:\n`)
-    this.log(signingShareResponse.content.signingPackage)
+    this.log(signingPackageResponse.content.signingPackage)
   }
 }
