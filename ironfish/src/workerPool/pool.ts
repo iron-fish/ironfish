@@ -320,9 +320,8 @@ export function calculateWorkers(nodeWorkers: number, nodeWorkersMax: number): n
   if (workers === -1) {
     workers = os.cpus().length - 1
 
-    const maxWorkers = nodeWorkersMax
-    if (maxWorkers !== -1) {
-      workers = Math.min(workers, maxWorkers)
+    if (nodeWorkersMax !== -1) {
+      workers = Math.min(workers, nodeWorkersMax)
     }
   }
 
