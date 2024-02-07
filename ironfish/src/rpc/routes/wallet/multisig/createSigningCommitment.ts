@@ -21,7 +21,7 @@ export type CreateSigningCommitmentResponse = {
 export const CreateSigningCommitmentRequestSchema: yup.ObjectSchema<CreateSigningCommitmentRequest> =
   yup
     .object({
-      account: yup.string().defined(),
+      account: yup.string().optional(),
       seed: yup.number().defined(),
     })
     .defined()
@@ -40,7 +40,6 @@ routes.register<typeof CreateSigningCommitmentRequestSchema, CreateSigningCommit
     AssertHasRpcContext(request, context, 'wallet')
 
     const account = getAccount(context.wallet, request.data.account)
-
     AssertMultiSigSigner(account)
 
     request.end({

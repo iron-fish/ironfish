@@ -7,12 +7,12 @@ import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 
 export class CreateSigningCommitmentCommand extends IronfishCommand {
-  static description = `Create a signing commitment from a participant for a given transaction`
+  static description = 'Create a signing commitment from a participant for a given transaction'
 
   static flags = {
     ...RemoteFlags,
     account: Flags.string({
-      char: 'a',
+      char: 'f',
       description:
         'The account to use for generating the commitment, must be a multisig participant account',
       required: false,
@@ -32,6 +32,6 @@ export class CreateSigningCommitmentCommand extends IronfishCommand {
     })
 
     this.log('Commitment:\n')
-    this.log(response.content)
+    this.log(response.content.commitment)
   }
 }
