@@ -122,7 +122,7 @@ export class MultisigCreate extends IronfishCommand {
         outgoingViewKey: response.content.outgoingViewKey,
         publicAddress: response.content.publicAddress,
         proofAuthorizingKey: response.content.proofAuthorizingKey,
-        multiSigKeys: {
+        multisigKeys: {
           identifier: keyPackage.identifier,
           keyPackage: keyPackage.keyPackage,
           publicKeyPackage: response.content.publicKeyPackage,
