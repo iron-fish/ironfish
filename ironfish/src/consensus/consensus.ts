@@ -4,7 +4,7 @@
 
 import { TransactionVersion } from '../primitives/transaction'
 
-export type ActivationSequence = number | 'never'
+export type ActivationSequence = number | null
 
 export type ConsensusParameters = {
   /**
@@ -66,7 +66,7 @@ export class Consensus {
 
   isActive(upgrade: keyof ConsensusParameters, sequence: number): boolean {
     const upgradeSequence = this.parameters[upgrade]
-    if (upgradeSequence === 'never') {
+    if (upgradeSequence === null) {
       return false
     }
     return Math.max(1, sequence) >= upgradeSequence
@@ -76,7 +76,7 @@ export class Consensus {
    * Returns true if the upgrade can never activate on the network
    */
   isNeverActive(upgrade: keyof ConsensusParameters): boolean {
-    return this.parameters[upgrade] === 'never'
+    return this.parameters[upgrade] === null
   }
 
   getActiveTransactionVersion(sequence: number): TransactionVersion {
