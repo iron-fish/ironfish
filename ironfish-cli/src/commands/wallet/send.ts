@@ -229,6 +229,7 @@ export class Send extends IronfishCommand {
 
     if (flags.unsignedTransaction) {
       const response = await client.wallet.buildTransaction({
+        account: from,
         rawTransaction: RawTransactionSerde.serialize(raw).toString('hex'),
       })
       this.log('Unsigned Transaction')
