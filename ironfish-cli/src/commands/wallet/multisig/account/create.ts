@@ -113,7 +113,7 @@ export class MultisigCreate extends IronfishCommand {
       this.log(`Identifier ${keyPackage.identity}`)
       this.log('----------------')
       const accountStr = encoder.encode({
-        name: `${name}-0`,
+        name: `${name}-${i}`,
         version: ACCOUNT_SCHEMA_VERSION,
         createdAt,
         spendingKey: null,
