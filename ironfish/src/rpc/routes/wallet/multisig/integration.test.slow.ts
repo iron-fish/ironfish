@@ -4,7 +4,7 @@
 import { Asset, ParticipantSecret, verifyTransactions } from '@ironfish/rust-nodejs'
 import { Assert } from '../../../../assert'
 import { createRouteTest } from '../../../../testUtilities/routeTest'
-import { Account, ACCOUNT_SCHEMA_VERSION, AssertMultiSigSigner } from '../../../../wallet'
+import { Account, ACCOUNT_SCHEMA_VERSION, AssertMultisigSigner } from '../../../../wallet'
 
 describe('multisig RPC integration', () => {
   const routeTest = createRouteTest()
@@ -40,7 +40,7 @@ describe('multisig RPC integration', () => {
           publicAddress: trustedDealerPackage.publicAddress,
           spendingKey: null,
           createdAt: null,
-          multiSigKeys: {
+          multisigKeys: {
             keyPackage: trustedDealerPackage.keyPackages[i].keyPackage,
             identifier: trustedDealerPackage.keyPackages[i].identifier,
             publicKeyPackage: trustedDealerPackage.publicKeyPackage,
@@ -62,7 +62,7 @@ describe('multisig RPC integration', () => {
         name: 'coordinator',
         spendingKey: null,
         createdAt: null,
-        multiSigKeys: {
+        multisigKeys: {
           publicKeyPackage: trustedDealerPackage.publicKeyPackage,
         },
         ...trustedDealerPackage,
@@ -100,7 +100,7 @@ describe('multisig RPC integration', () => {
     // create and collect signing commitments
     const commitments: Array<string> = []
     for (const participantAccount of participantAccounts) {
-      AssertMultiSigSigner(participantAccount)
+      AssertMultisigSigner(participantAccount)
 
       const commitmentResponse = await routeTest.client.wallet.multisig.createSigningCommitment(
         {
@@ -122,7 +122,7 @@ describe('multisig RPC integration', () => {
     // create and collect signing shares
     const signatureShares: Array<string> = []
     for (const participantAccount of participantAccounts) {
-      AssertMultiSigSigner(participantAccount)
+      AssertMultisigSigner(participantAccount)
 
       const signatureShareResponse =
         await routeTest.client.wallet.multisig.createSignatureShare({
