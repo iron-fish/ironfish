@@ -1543,9 +1543,11 @@ dependencies = [
 [[package]]
 name = "ironfish-frost"
 version = "0.1.0"
-source = "git+https://github.com/iron-fish/ironfish-frost.git?branch=main#f6699a938bdcf7da6c335acc77dd4dbfd7466b45"
+source = "git+https://github.com/iron-fish/ironfish-frost.git?branch=main#9f2f785cc8e4c32078fbb6f1403a60e2dd4eb6d9"
 dependencies = [
  "blake3",
+ "chacha20 0.9.1",
+ "chacha20poly1305 0.10.1",
  "ed25519-dalek",
  "once_cell",
  "rand_chacha 0.3.1",
@@ -2372,7 +2374,7 @@ dependencies = [
 [[package]]
 name = "reddsa"
 version = "0.5.1"
-source = "git+https://github.com/ZcashFoundation/reddsa.git#81c649c412e5b6ba56d491d2857f91fbd28adbc7"
+source = "git+https://github.com/ZcashFoundation/reddsa.git#36cb6b8226e2315c6cb753b5852a824fd53d3598"
 dependencies = [
  "blake2b_simd",
  "byteorder",
