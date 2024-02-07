@@ -36,7 +36,7 @@ export const MintAssetRequestSchema: yup.ObjectSchema<MintAssetRequest> = yup
   .object({
     account: yup.string().required(),
     fee: YupUtils.currency({ min: 1n }).defined(),
-    value: YupUtils.currency({ min: 1n }).defined(),
+    value: YupUtils.currency({ min: 0n }).defined(),
     assetId: yup.string().optional(),
     expiration: yup.number().optional(),
     expirationDelta: yup.number().optional(),

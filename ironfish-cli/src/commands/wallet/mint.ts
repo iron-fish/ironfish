@@ -193,7 +193,7 @@ export class Mint extends IronfishCommand {
         client: client,
         required: true,
         text: 'Enter the amount',
-        minimum: 1n,
+        minimum: 0n,
         logger: this.logger,
       })
     }

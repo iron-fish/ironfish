@@ -72,7 +72,7 @@ export const CreateTransactionRequestSchema: yup.ObjectSchema<CreateTransactionR
             assetId: yup.string().optional(),
             name: yup.string().optional().max(ASSET_NAME_LENGTH),
             metadata: yup.string().optional().max(ASSET_METADATA_LENGTH),
-            value: YupUtils.currency({ min: 1n }).defined(),
+            value: YupUtils.currency({ min: 0n }).defined(),
             transferOwnershipTo: yup.string().optional(),
           })
           .defined(),

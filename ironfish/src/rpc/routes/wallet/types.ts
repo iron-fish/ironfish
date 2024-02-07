@@ -133,7 +133,7 @@ export const RpcWalletTransactionSchema: yup.ObjectSchema<RpcWalletTransaction> 
   })
   .defined()
 
-export type RpcMultiSigKeys = {
+export type RpcMultisigKeys = {
   identifier?: string
   keyPackage?: string
   publicKeyPackage: string
@@ -148,7 +148,7 @@ export type RpcAccountImport = {
   publicAddress: string
   spendingKey: string | null
   createdAt: { hash: string; sequence: number } | null
-  multiSigKeys?: RpcMultiSigKeys
+  multisigKeys?: RpcMultisigKeys
   proofAuthorizingKey: string | null
 }
 
@@ -168,7 +168,7 @@ export const RpcAccountImportSchema: yup.ObjectSchema<RpcAccountImport> = yup
       })
       .nullable()
       .defined(),
-    multiSigKeys: yup
+    multisigKeys: yup
       .object({
         identifier: yup.string().optional(),
         keyPackage: yup.string().optional(),

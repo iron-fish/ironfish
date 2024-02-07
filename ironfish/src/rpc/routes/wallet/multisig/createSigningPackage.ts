@@ -5,11 +5,10 @@ import { UnsignedTransaction } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
 import { ApiNamespace } from '../../namespaces'
 import { routes } from '../../router'
-import { RpcSigningCommitments, RpcSigningCommitmentsSchema } from './types'
 
 export type CreateSigningPackageRequest = {
   unsignedTransaction: string
-  commitments: Array<RpcSigningCommitments>
+  commitments: Array<string>
 }
 
 export type CreateSigningPackageResponse = {
@@ -20,7 +19,7 @@ export const CreateSigningPackageRequestSchema: yup.ObjectSchema<CreateSigningPa
   yup
     .object({
       unsignedTransaction: yup.string().defined(),
-      commitments: yup.array(RpcSigningCommitmentsSchema).defined(),
+      commitments: yup.array(yup.string().defined()).defined(),
     })
     .defined()
 

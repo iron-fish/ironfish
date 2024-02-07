@@ -20,11 +20,11 @@ describe('Consensus', () => {
 
   const consensus = new Consensus(params)
 
-  const consensusWithNevers = new Consensus({
+  const consensusWithInactives = new Consensus({
     ...params,
-    enableAssetOwnership: 'never',
-    enforceSequentialBlockTime: 'never',
-    enableFishHash: 'never',
+    enableAssetOwnership: null,
+    enforceSequentialBlockTime: null,
+    enableFishHash: null,
   })
 
   describe('isActive', () => {
@@ -68,17 +68,17 @@ describe('Consensus', () => {
     })
 
     it('returns false if flag activation is never', () => {
-      expect(consensusWithNevers.isActive('enableAssetOwnership', 3)).toBe(false)
-      expect(consensusWithNevers.isActive('enforceSequentialBlockTime', 3)).toBe(false)
-      expect(consensusWithNevers.isActive('enableFishHash', 3)).toBe(false)
+      expect(consensusWithInactives.isActive('enableAssetOwnership', 3)).toBe(false)
+      expect(consensusWithInactives.isActive('enforceSequentialBlockTime', 3)).toBe(false)
+      expect(consensusWithInactives.isActive('enableFishHash', 3)).toBe(false)
     })
   })
 
   describe('isNeverActive', () => {
     it('returns true if flag activation is never', () => {
-      expect(consensusWithNevers.isNeverActive('enableAssetOwnership')).toBe(true)
-      expect(consensusWithNevers.isNeverActive('enforceSequentialBlockTime')).toBe(true)
-      expect(consensusWithNevers.isNeverActive('enableFishHash')).toBe(true)
+      expect(consensusWithInactives.isNeverActive('enableAssetOwnership')).toBe(true)
+      expect(consensusWithInactives.isNeverActive('enforceSequentialBlockTime')).toBe(true)
+      expect(consensusWithInactives.isNeverActive('enableFishHash')).toBe(true)
     })
 
     it('returns false if flag has activation sequence', () => {
@@ -97,7 +97,9 @@ describe('Consensus', () => {
     })
 
     it('returns V1 transaction when activation flag is never', () => {
-      expect(consensusWithNevers.getActiveTransactionVersion(5)).toEqual(TransactionVersion.V1)
+      expect(consensusWithInactives.getActiveTransactionVersion(5)).toEqual(
+        TransactionVersion.V1,
+      )
     })
   })
 })

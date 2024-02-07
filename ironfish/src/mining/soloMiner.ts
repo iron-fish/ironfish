@@ -256,12 +256,7 @@ export class MiningSoloMiner {
     }
 
     const consensusResponse = (await this.rpc.chain.getConsensusParameters()).content
-    this.consensus = new Consensus({
-      ...consensusResponse,
-      enableFishHash: consensusResponse.enableFishHash || 'never',
-      enableAssetOwnership: consensusResponse.enableAssetOwnership || 'never',
-      enforceSequentialBlockTime: consensusResponse.enforceSequentialBlockTime || 'never',
-    })
+    this.consensus = new Consensus(consensusResponse)
 
     this.connectWarned = false
     this.logger.info('Successfully connected to node')

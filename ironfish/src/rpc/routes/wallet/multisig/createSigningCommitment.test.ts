@@ -45,7 +45,7 @@ describe('Route wallet/multisig/createSigningCommitment', () => {
         publicAddress: trustedDealerPackage.publicAddress,
         spendingKey: null,
         createdAt: null,
-        multiSigKeys: {
+        multisigKeys: {
           publicKeyPackage: trustedDealerPackage.publicKeyPackage,
         },
         proofAuthorizingKey: null,
@@ -93,7 +93,7 @@ describe('Route wallet/multisig/createSigningCommitment', () => {
         publicAddress: trustedDealerPackage.publicAddress,
         spendingKey: null,
         createdAt: null,
-        multiSigKeys: {
+        multisigKeys: {
           keyPackage: trustedDealerPackage.keyPackages[0].keyPackage,
           identifier: trustedDealerPackage.keyPackages[0].identifier,
           publicKeyPackage: trustedDealerPackage.publicKeyPackage,
@@ -112,8 +112,7 @@ describe('Route wallet/multisig/createSigningCommitment', () => {
     })
 
     expect(response.content).toMatchObject({
-      hiding: expect.any(String),
-      binding: expect.any(String),
+      commitment: expect.any(String),
     })
   })
 })

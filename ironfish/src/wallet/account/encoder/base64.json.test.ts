@@ -86,7 +86,7 @@ describe('Base64JsonEncoder', () => {
       outgoingViewKey: key.outgoingViewKey,
       publicAddress: key.publicAddress,
       createdAt: null,
-      multiSigKeys: {
+      multisigKeys: {
         publicKeyPackage: 'abcdef0000',
       },
       proofAuthorizingKey: key.proofAuthorizingKey,
@@ -109,7 +109,7 @@ describe('Base64JsonEncoder', () => {
       outgoingViewKey: key.outgoingViewKey,
       publicAddress: key.publicAddress,
       createdAt: null,
-      multiSigKeys: {
+      multisigKeys: {
         publicKeyPackage: 'cccc',
         identifier: 'aaaa',
         keyPackage: 'bbbb',

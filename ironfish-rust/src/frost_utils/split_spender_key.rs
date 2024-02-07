@@ -48,9 +48,9 @@ pub fn split_spender_key(
         secret,
     };
 
-    let mut rng: rand::prelude::ThreadRng = thread_rng();
+    let rng = thread_rng();
 
-    let (key_packages, public_key_package) = split_secret(&secret_config, &mut rng)?;
+    let (key_packages, public_key_package) = split_secret(&secret_config, rng)?;
 
     let authorizing_key_bytes = public_key_package.verifying_key().serialize();
 

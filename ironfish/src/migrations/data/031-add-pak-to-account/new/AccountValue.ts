@@ -20,7 +20,7 @@ export interface AccountValue {
   outgoingViewKey: string
   publicAddress: string
   createdAt: HeadValue | null
-  multiSigKeys?: {
+  multisigKeys?: {
     identifier: string
     keyPackage: string
   }
@@ -33,7 +33,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     let flags = 0
     flags |= Number(!!value.spendingKey) << 0
     flags |= Number(!!value.createdAt) << 1
-    flags |= Number(!!value.multiSigKeys) << 2
+    flags |= Number(!!value.multisigKeys) << 2
     flags |= Number(!!value.proofAuthorizingKey) << 3
     bw.writeU8(flags)
     bw.writeU16(value.version)
@@ -52,9 +52,9 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
       bw.writeBytes(encoding.serialize(value.createdAt))
     }
 
-    if (value.multiSigKeys) {
-      bw.writeVarBytes(Buffer.from(value.multiSigKeys.identifier, 'hex'))
-      bw.writeVarBytes(Buffer.from(value.multiSigKeys.keyPackage, 'hex'))
+    if (value.multisigKeys) {
+      bw.writeVarBytes(Buffer.from(value.multisigKeys.identifier, 'hex'))
+      bw.writeVarBytes(Buffer.from(value.multisigKeys.keyPackage, 'hex'))
     }
 
     if (value.proofAuthorizingKey) {
@@ -70,7 +70,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     const version = reader.readU16()
     const hasSpendingKey = flags & (1 << 0)
     const hasCreatedAt = flags & (1 << 1)
-    const hasMultiSigKeys = flags & (1 << 2)
+    const hasMultisigKeys = flags & (1 << 2)
     const hasProofAuthorizingKey = flags & (1 << 3)
     const id = reader.readVarString('utf8')
     const name = reader.readVarString('utf8')
@@ -86,9 +86,9 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
       createdAt = encoding.deserialize(reader.readBytes(encoding.nonNullSize))
     }
 
-    let multiSigKeys = undefined
-    if (hasMultiSigKeys) {
-      multiSigKeys = {
+    let multisigKeys = undefined
+    if (hasMultisigKeys) {
+      multisigKeys = {
         identifier: reader.readVarBytes().toString('hex'),
         keyPackage: reader.readVarBytes().toString('hex'),
       }
@@ -108,7 +108,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
       spendingKey,
       publicAddress,
       createdAt,
-      multiSigKeys,
+      multisigKeys,
       proofAuthorizingKey,
     }
   }
@@ -130,9 +130,9 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
       const encoding = new NullableHeadValueEncoding()
       size += encoding.nonNullSize
     }
-    if (value.multiSigKeys) {
-      size += bufio.sizeVarString(value.multiSigKeys.identifier, 'hex')
-      size += bufio.sizeVarString(value.multiSigKeys.keyPackage, 'hex')
+    if (value.multisigKeys) {
+      size += bufio.sizeVarString(value.multisigKeys.identifier, 'hex')
+      size += bufio.sizeVarString(value.multisigKeys.keyPackage, 'hex')
     }
     if (value.proofAuthorizingKey) {
       size += KEY_LENGTH

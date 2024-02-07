@@ -4,7 +4,6 @@
 import {
   Asset,
   ASSET_ID_LENGTH,
-  Commitment,
   createSignatureShare,
   createSigningCommitment,
   generateKey,
@@ -27,7 +26,7 @@ import {
   useTxFixture,
 } from '../testUtilities'
 import { acceptsAllTarget } from '../testUtilities/helpers/blockchain'
-import { AssertMultiSigSigner } from '../wallet'
+import { AssertMultisigSigner } from '../wallet'
 
 describe('Wallet', () => {
   const nodeTest = createNodeTest()
@@ -1163,7 +1162,7 @@ describe('Wallet', () => {
         identifiers,
       )
 
-      const getMultiSigKeys = (index: number) => {
+      const getMultisigKeys = (index: number) => {
         return {
           publicKeyPackage: trustedDealerPackage.publicKeyPackage,
           identifier: trustedDealerPackage.keyPackages[index].identifier,
@@ -1177,7 +1176,7 @@ describe('Wallet', () => {
         name: trustedDealerPackage.keyPackages[0].identifier,
         spendingKey: null,
         createdAt: null,
-        multiSigKeys: getMultiSigKeys(0),
+        multisigKeys: getMultisigKeys(0),
         ...trustedDealerPackage,
       })
       const participantB = await node.wallet.importAccount({
@@ -1186,7 +1185,7 @@ describe('Wallet', () => {
         name: trustedDealerPackage.keyPackages[1].identifier,
         spendingKey: null,
         createdAt: null,
-        multiSigKeys: getMultiSigKeys(1),
+        multisigKeys: getMultisigKeys(1),
         ...trustedDealerPackage,
       })
       const participantC = await node.wallet.importAccount({
@@ -1195,7 +1194,7 @@ describe('Wallet', () => {
         name: trustedDealerPackage.keyPackages[2].identifier,
         spendingKey: null,
         createdAt: null,
-        multiSigKeys: getMultiSigKeys(2),
+        multisigKeys: getMultisigKeys(2),
         ...trustedDealerPackage,
       })
 
@@ -1207,17 +1206,17 @@ describe('Wallet', () => {
         name: 'coordinator',
         spendingKey: null,
         createdAt: null,
-        multiSigKeys: {
+        multisigKeys: {
           publicKeyPackage: trustedDealerPackage.publicKeyPackage,
         },
         ...trustedDealerPackage,
       })
 
-      const signingCommitments: Commitment[] = []
+      const signingCommitments: string[] = []
       for (const participant of participants) {
-        AssertMultiSigSigner(participant)
+        AssertMultisigSigner(participant)
         signingCommitments.push(
-          createSigningCommitment(participant.multiSigKeys.keyPackage, seed),
+          createSigningCommitment(participant.multisigKeys.keyPackage, seed),
         )
       }
 
@@ -1287,21 +1286,21 @@ describe('Wallet', () => {
       const signatureShares: Array<string> = []
 
       for (const participant of participants) {
-        AssertMultiSigSigner(participant)
+        AssertMultisigSigner(participant)
         signatureShares.push(
           createSignatureShare(
             signingPackage,
-            participant.multiSigKeys.identifier,
-            participant.multiSigKeys.keyPackage,
+            participant.multisigKeys.identifier,
+            participant.multisigKeys.keyPackage,
             publicKeyRandomness,
             seed,
           ),
         )
       }
 
-      Assert.isNotUndefined(coordinator.multiSigKeys)
+      Assert.isNotUndefined(coordinator.multisigKeys)
       const serializedFrostTransaction = unsignedTransaction.aggregateSignatureShares(
-        coordinator.multiSigKeys.publicKeyPackage,
+        coordinator.multisigKeys.publicKeyPackage,
         signingPackage,
         signatureShares,
       )

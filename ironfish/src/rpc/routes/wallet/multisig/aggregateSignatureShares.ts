@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { UnsignedTransaction } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
-import { Assert } from '../../../../assert'
 import { Transaction } from '../../../../primitives/transaction'
+import { AssertMultisig } from '../../../../wallet'
 import { ApiNamespace } from '../../namespaces'
 import { routes } from '../../router'
 import { AssertHasRpcContext } from '../../rpcContext'
@@ -49,14 +49,13 @@ routes.register<typeof AggregateSignatureSharesRequestSchema, AggregateSignature
   async (request, node): Promise<void> => {
     AssertHasRpcContext(request, node, 'wallet')
     const account = getAccount(node.wallet, request.data.account)
-    // TODO(hughy): change this to use assertion instead of not undefined
-    Assert.isNotUndefined(account.multiSigKeys, 'Account is not a multisig account')
+    AssertMultisig(account)
 
     const unsigned = new UnsignedTransaction(
       Buffer.from(request.data.unsignedTransaction, 'hex'),
     )
     const serialized = unsigned.aggregateSignatureShares(
-      account.multiSigKeys.publicKeyPackage,
+      account.multisigKeys.publicKeyPackage,
       request.data.signingPackage,
       request.data.signatureShares,
     )
