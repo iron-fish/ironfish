@@ -10,7 +10,7 @@ import { AssertHasRpcContext } from '../../rpcContext'
 import { getAccount } from '../utils'
 
 export type CreateSignatureShareRequest = {
-  account: string
+  account?: string
   signingPackage: string
   unsignedTransaction: string
   seed: number //  TODO: remove when we have deterministic nonces

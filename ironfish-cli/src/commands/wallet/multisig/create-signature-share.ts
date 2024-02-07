@@ -6,43 +6,44 @@ import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 
-export class CreateSigningShareCommand extends IronfishCommand {
-  static description = `Creates a signing share for a participant for a given transaction`
+export class CreateSignatureShareCommand extends IronfishCommand {
+  static description = `Creates a signature share for a participant for a given transaction`
   static hidden = true
 
   static flags = {
     ...RemoteFlags,
     account: Flags.string({
-      char: 'a',
-      description: 'The account from which the signing share will be created',
+      char: 'f',
+      description: 'The account from which the signature share will be created',
       required: false,
     }),
     unsignedTransaction: Flags.string({
       char: 'u',
-      description: 'The unsigned transaction for which the signing share will be created',
+      description: 'The unsigned transaction for which the signature share will be created',
       required: true,
     }),
     signingPackage: Flags.string({
       char: 's',
-      description: 'The signing package for which the signing share will be created',
+      description: 'The signing package for which the signature share will be created',
       required: true,
     }),
   }
 
   async start(): Promise<void> {
-    const { flags } = await this.parse(CreateSigningShareCommand)
+    const { flags } = await this.parse(CreateSignatureShareCommand)
     const signingPackage = flags.signingPackage
 
     const client = await this.sdk.connectRpc()
     // TODO(andrea): use flags.transaction to create commiment when we incorportate deterministic nonces
     // set required to true as well
-    const signingShareResponse = await client.wallet.multisig.createSigningShare({
+    const signatureShareResponse = await client.wallet.multisig.createSignatureShare({
       account: flags.account,
       unsignedTransaction: flags.unsignedTransaction,
       signingPackage,
       seed: 0,
     })
+
     this.log('Signing Share:\n')
-    this.log(JSON.stringify(signingShareResponse.content))
+    this.log(JSON.stringify(signatureShareResponse.content))
   }
 }
