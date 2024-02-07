@@ -3,24 +3,28 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import net from 'net'
 import { Assert } from '../../assert'
+import { MessageBuffer } from '../../rpc/messageBuffer'
 
 export class StratumServerClient {
   id: number
   socket: net.Socket
   connected: boolean
   subscribed: boolean
+  version: number | null = null
   publicAddress: string | null = null
   name: string | undefined
+  agent: string | undefined
   remoteAddress: string
+  xn: string | null = null
   graffiti: Buffer | null = null
-  messageBuffer: string
+  messageBuffer: MessageBuffer
 
   private constructor(options: { socket: net.Socket; id: number }) {
     this.id = options.id
     this.socket = options.socket
     this.connected = true
     this.subscribed = false
-    this.messageBuffer = ''
+    this.messageBuffer = new MessageBuffer('\n')
 
     Assert.isNotUndefined(this.socket.remoteAddress)
     this.remoteAddress = this.socket.remoteAddress
@@ -35,7 +39,7 @@ export class StratumServerClient {
       return
     }
 
-    this.messageBuffer = ''
+    this.messageBuffer.clear()
     this.connected = false
     this.socket.destroy(error)
   }

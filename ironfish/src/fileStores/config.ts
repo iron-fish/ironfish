@@ -228,6 +228,11 @@ export type ConfigOptions = {
   poolLarkWebhook: string
 
   /**
+   * Extranonce size in bytes for v2 protocol.
+   */
+  poolXnSize: number
+
+  /**
    * Whether we want the logs to the console to be in JSON format or not. This can be used to log to
    * more easily process logs on a remote server using a log service like Datadog
    */
@@ -357,6 +362,7 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     poolDiscordWebhook: yup.string(),
     poolMaxConnectionsPerIp: YupUtils.isPositiveInteger,
     poolLarkWebhook: yup.string(),
+    poolXnSize: yup.number(),
     jsonLogs: yup.boolean(),
     feeEstimatorMaxBlockHistory: YupUtils.isPositiveInteger,
     feeEstimatorPercentileSlow: YupUtils.isPositiveInteger,
@@ -434,6 +440,7 @@ export class Config<
       logPrefix: '',
       miningForce: false,
       blockGraffiti: '',
+      poolXnSize: 2,
       nodeName: '',
       nodeWorkers: -1,
       nodeWorkersMax: 6,

@@ -9,6 +9,13 @@ export type StratumMessage = {
   body?: unknown
 }
 
+export interface StratumMessageWithError extends Omit<StratumMessage, 'method' | 'body'> {
+  error: {
+    id: number
+    message: string
+  }
+}
+
 export type MiningDisconnectMessage =
   | {
       reason?: string
@@ -22,6 +29,7 @@ export type MiningSubscribeMessage = {
   version: number
   name?: string
   publicAddress: string
+  agent?: string
 }
 
 export type MiningSubmitMessage = {
@@ -29,9 +37,26 @@ export type MiningSubmitMessage = {
   randomness: string
 }
 
+export type MiningSubmitMessageV2 = {
+  miningRequestId: number
+  randomness: string
+  graffiti: string
+}
+
 export type MiningSubscribedMessage = {
   clientId: number
   graffiti: string
+}
+
+export type MiningSubscribedMessageV2 = {
+  clientId: number
+  xn: string
+}
+
+export type MiningSubmittedMessageV2 = {
+  id: number
+  result: boolean
+  message?: string
 }
 
 export type MiningSetTargetMessage = {
@@ -75,6 +100,18 @@ export const StratumMessageSchema: yup.ObjectSchema<StratumMessage> = yup
   })
   .required()
 
+export const StratumMessageWithErrorSchema: yup.ObjectSchema<StratumMessageWithError> = yup
+  .object({
+    id: yup.number().required(),
+    error: yup
+      .object({
+        id: yup.number().required(),
+        message: yup.string().required(),
+      })
+      .required(),
+  })
+  .required()
+
 export const MiningDisconnectMessageSchema: yup.ObjectSchema<MiningDisconnectMessage> = yup
   .object({
     reason: yup.string().optional(),
@@ -91,9 +128,24 @@ export const MiningSubscribedMessageSchema: yup.ObjectSchema<MiningSubscribedMes
   })
   .required()
 
+export const MiningSubscribedMessageV2Schema: yup.ObjectSchema<MiningSubscribedMessageV2> = yup
+  .object({
+    clientId: yup.number().required(),
+    xn: yup.string().required(),
+  })
+  .required()
+
 export const MiningSetTargetSchema: yup.ObjectSchema<MiningSetTargetMessage> = yup
   .object({
     target: yup.string().required(),
+  })
+  .required()
+
+export const MiningSubmittedSchema: yup.ObjectSchema<MiningSubmittedMessageV2> = yup
+  .object({
+    id: yup.number().required(),
+    result: yup.bool().required(),
+    message: yup.string().optional(),
   })
   .required()
 
@@ -113,6 +165,7 @@ export const MiningSubscribeSchema: yup.ObjectSchema<MiningSubscribeMessage> = y
     version: yup.number().required(),
     name: yup.string().optional(),
     publicAddress: yup.string().required(),
+    agent: yup.string().optional(),
   })
   .required()
 
@@ -120,6 +173,14 @@ export const MiningSubmitSchema: yup.ObjectSchema<MiningSubmitMessage> = yup
   .object({
     miningRequestId: yup.number().required(),
     randomness: yup.string().required(),
+  })
+  .required()
+
+export const MiningSubmitSchemaV2: yup.ObjectSchema<MiningSubmitMessageV2> = yup
+  .object({
+    miningRequestId: yup.number().required(),
+    randomness: yup.string().required(),
+    graffiti: yup.string().required(),
   })
   .required()
 

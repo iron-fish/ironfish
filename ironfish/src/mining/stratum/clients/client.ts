@@ -27,7 +27,6 @@ import {
   StratumMessage,
   StratumMessageSchema,
 } from '../messages'
-import { VERSION_PROTOCOL_STRATUM } from '../version'
 
 export abstract class StratumClient {
   readonly logger: Logger
@@ -55,7 +54,8 @@ export abstract class StratumClient {
 
   constructor(options: { logger: Logger }) {
     this.logger = options.logger
-    this.version = VERSION_PROTOCOL_STRATUM
+    // TODO: upgrade this client to FishHash version when ready
+    this.version = 1
 
     this.started = false
     this.id = null
