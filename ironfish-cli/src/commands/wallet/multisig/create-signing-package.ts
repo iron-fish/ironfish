@@ -7,7 +7,7 @@ import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 
 export class CreateSigningPackage extends IronfishCommand {
-  static description = `Creates a signing package for a given signing session for a multisig account`
+  static description = `Creates a signing package for a given transaction for a multisig account`
   static hidden = true
 
   static flags = {
@@ -28,22 +28,15 @@ export class CreateSigningPackage extends IronfishCommand {
 
   async start(): Promise<void> {
     const { flags } = await this.parse(CreateSigningPackage)
-    const commitments = flags.commitment.map(
-      (c: string) =>
-        JSON.parse(c) as {
-          identifier: string
-          commitment: { hiding: string; binding: string }
-        },
-    )
 
     const client = await this.sdk.connectRpc()
 
     const signingShareResponse = await client.wallet.multisig.createSigningPackage({
       unsignedTransaction: flags.unsignedTransaction,
-      commitments,
+      commitments: flags.commitment,
     })
 
-    this.log(`Signing Package for commitments from ${commitments.length} participants:\n`)
+    this.log(`Signing Package for commitments from ${flags.commitment.length} participants:\n`)
     this.log(signingShareResponse.content.signingPackage)
   }
 }
