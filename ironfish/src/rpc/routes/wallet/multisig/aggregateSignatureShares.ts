@@ -44,13 +44,13 @@ routes.register<typeof AggregateSignatureSharesRequestSchema, AggregateSignature
     AssertHasRpcContext(request, node, 'wallet')
     const account = getAccount(node.wallet, request.data.account)
     // TODO(hughy): change this to use assertion instead of not undefined
-    Assert.isNotUndefined(account.multiSigKeys, 'Account is not a multisig account')
+    Assert.isNotUndefined(account.multisigKeys, 'Account is not a multisig account')
 
     const unsigned = new UnsignedTransaction(
       Buffer.from(request.data.unsignedTransaction, 'hex'),
     )
     const transaction = unsigned.aggregateSignatureShares(
-      account.multiSigKeys.publicKeyPackage,
+      account.multisigKeys.publicKeyPackage,
       request.data.signingPackage,
       request.data.signatureShares,
     )
