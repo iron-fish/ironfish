@@ -46,7 +46,7 @@ describe('JsonEncoder', () => {
         outgoingViewKey: key.outgoingViewKey,
         publicAddress: key.publicAddress,
         createdAt: null,
-        multiSigKeys: {
+        multisigKeys: {
           publicKeyPackage: 'cccc',
         },
         proofAuthorizingKey: key.proofAuthorizingKey,
@@ -72,7 +72,7 @@ describe('JsonEncoder', () => {
         outgoingViewKey: key.outgoingViewKey,
         publicAddress: key.publicAddress,
         createdAt: null,
-        multiSigKeys: {
+        multisigKeys: {
           publicKeyPackage: 'cccc',
           identifier: 'aaaa',
           keyPackage: 'bbbb',
