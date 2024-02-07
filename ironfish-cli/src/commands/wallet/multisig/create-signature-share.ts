@@ -43,6 +43,6 @@ export class CreateSignatureShareCommand extends IronfishCommand {
     })
 
     this.log('Signing Share:\n')
-    this.log(JSON.stringify(signatureShareResponse.content))
+    this.log(signatureShareResponse.content.signatureShare)
   }
 }
