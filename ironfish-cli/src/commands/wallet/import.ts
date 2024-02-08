@@ -90,12 +90,15 @@ export class ImportCommand extends IronfishCommand {
       } catch (e) {
         if (
           e instanceof RpcRequestError &&
-          e.code === RPC_ERROR_CODES.DUPLICATE_ACCOUNT_NAME.toString()
+          (e.code === RPC_ERROR_CODES.DUPLICATE_ACCOUNT_NAME.toString() ||
+            e.code === RPC_ERROR_CODES.IMPORT_ACCOUNT_NAME_REQUIRED.toString())
         ) {
-          this.log()
-          this.log(e.codeMessage)
+          if (e.code === RPC_ERROR_CODES.DUPLICATE_ACCOUNT_NAME.toString()) {
+            this.log()
+            this.log(e.codeMessage)
+          }
 
-          const name = await CliUx.ux.prompt('Enter a different name for the account', {
+          const name = await CliUx.ux.prompt('Enter a name for the account', {
             required: true,
           })
           if (name === flags.name) {

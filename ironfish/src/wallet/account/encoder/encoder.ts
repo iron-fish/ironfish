@@ -6,6 +6,10 @@ import { AccountImport } from '../../walletdb/accountValue'
 
 export class DecodeInvalid extends Error {}
 
+export class DecodeInvalidName extends DecodeInvalid {
+  name = this.constructor.name
+}
+
 export class DecodeFailed extends Error {
   decoder: string
 
