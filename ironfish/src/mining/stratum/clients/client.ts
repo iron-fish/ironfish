@@ -18,16 +18,15 @@ import {
   MiningSetTargetSchema,
   MiningStatusMessage,
   MiningStatusSchema,
-  MiningSubmitMessage,
-  MiningSubscribedMessage,
-  MiningSubscribedMessageSchema,
+  MiningSubmitMessageV1,
+  MiningSubscribedMessageSchemaV1,
+  MiningSubscribedMessageV1,
   MiningSubscribeMessage,
   MiningWaitForWorkMessage,
   MiningWaitForWorkSchema,
   StratumMessage,
   StratumMessageSchema,
 } from '../messages'
-import { VERSION_PROTOCOL_STRATUM } from '../version'
 
 export abstract class StratumClient {
   readonly logger: Logger
@@ -47,7 +46,7 @@ export abstract class StratumClient {
   private disconnectMessage: string | null = null
 
   readonly onConnected = new Event<[]>()
-  readonly onSubscribed = new Event<[MiningSubscribedMessage]>()
+  readonly onSubscribed = new Event<[MiningSubscribedMessageV1]>()
   readonly onSetTarget = new Event<[MiningSetTargetMessage]>()
   readonly onNotify = new Event<[MiningNotifyMessage]>()
   readonly onWaitForWork = new Event<[MiningWaitForWorkMessage]>()
@@ -55,7 +54,8 @@ export abstract class StratumClient {
 
   constructor(options: { logger: Logger }) {
     this.logger = options.logger
-    this.version = VERSION_PROTOCOL_STRATUM
+    // TODO: upgrade this client to FishHash version when ready
+    this.version = 1
 
     this.started = false
     this.id = null
@@ -141,7 +141,7 @@ export abstract class StratumClient {
     return this.connected
   }
 
-  private send(method: 'mining.submit', body: MiningSubmitMessage): void
+  private send(method: 'mining.submit', body: MiningSubmitMessageV1): void
   private send(method: 'mining.subscribe', body: MiningSubscribeMessage): void
   private send(method: 'mining.get_status', body: MiningGetStatusMessage): void
   private send(method: string, body?: unknown): void {
@@ -229,7 +229,7 @@ export abstract class StratumClient {
 
         case 'mining.subscribed': {
           const body = await YupUtils.tryValidate(
-            MiningSubscribedMessageSchema,
+            MiningSubscribedMessageSchemaV1,
             header.result.body,
           )
 

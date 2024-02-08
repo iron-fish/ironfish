@@ -228,6 +228,16 @@ export type ConfigOptions = {
   poolLarkWebhook: string
 
   /**
+   * Extranonce size in bytes for v2 protocol.
+   */
+  poolXnSize: number
+
+  /**
+   * Versions of the ironfish stratum protocol that the pool supports.
+   */
+  poolSupportedVersions: number[]
+
+  /**
    * Whether we want the logs to the console to be in JSON format or not. This can be used to log to
    * more easily process logs on a remote server using a log service like Datadog
    */
@@ -357,6 +367,8 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     poolDiscordWebhook: yup.string(),
     poolMaxConnectionsPerIp: YupUtils.isPositiveInteger,
     poolLarkWebhook: yup.string(),
+    poolXnSize: yup.number(),
+    poolSupportedVersions: yup.array().of(yup.number().defined().integer().min(1).max(5)),
     jsonLogs: yup.boolean(),
     feeEstimatorMaxBlockHistory: YupUtils.isPositiveInteger,
     feeEstimatorPercentileSlow: YupUtils.isPositiveInteger,
@@ -467,6 +479,8 @@ export class Config<
       poolDiscordWebhook: '',
       poolMaxConnectionsPerIp: 0,
       poolLarkWebhook: '',
+      poolXnSize: 2,
+      poolSupportedVersions: [1, 2],
       jsonLogs: false,
       feeEstimatorMaxBlockHistory: DEFAULT_FEE_ESTIMATOR_MAX_BLOCK_HISTORY,
       feeEstimatorPercentileSlow: DEFAULT_FEE_ESTIMATOR_PERCENTILE_SLOW,
