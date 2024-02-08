@@ -22,6 +22,7 @@ import {
   MiningStatusMessage,
   MiningSubmitSchemaV1,
   MiningSubmitSchemaV2,
+  MiningSubmitSchemaV3,
   MiningSubmittedMessageV2,
   MiningSubscribedMessageV1,
   MiningSubscribedMessageV2,
@@ -291,6 +292,22 @@ export class StratumServer {
         clientId: client.id,
         xn,
       })
+    } else if (body.result.version === 3) {
+      const xnHexSize = 2 * this.config.get('poolXnSize')
+      const xn = idHex.slice(-xnHexSize).padStart(xnHexSize, '0')
+
+      client.subscription = {
+        version: 3,
+        publicAddress: body.result.publicAddress,
+        xn,
+        name: body.result.name,
+        agent: body.result.agent,
+      }
+
+      this.send(client.socket, 'mining.subscribed', {
+        clientId: client.id,
+        xn,
+      })
     }
 
     this.subscribed++
@@ -352,6 +369,46 @@ export class StratumServer {
         miningRequestId,
         randomness,
         graffiti,
+      )
+
+      if (error) {
+        this.send(client.socket, 'mining.submitted', {
+          id: message.id,
+          result: false,
+          message: error,
+        })
+      } else {
+        this.send(client.socket, 'mining.submitted', {
+          id: message.id,
+          result: true,
+        })
+      }
+    } else if (client.subscription?.version === 3) {
+      const body = await YupUtils.tryValidate(MiningSubmitSchemaV3, message.body)
+
+      if (body.error) {
+        this.peers.ban(client, {
+          message: body.error.message,
+        })
+        return
+      }
+
+      const { randomness, miningRequestId } = body.result
+
+      if (!randomness.startsWith(client.subscription.xn)) {
+        this.send(client.socket, 'mining.submitted', {
+          id: message.id,
+          result: false,
+          message: 'invalid leading xnonce in randomness',
+        })
+        return
+      }
+
+      const { error } = await this.pool.submitWork(
+        client,
+        miningRequestId,
+        randomness,
+        GraffitiUtils.fromString(`${this.pool.name}`).toString('hex'),
       )
 
       if (error) {

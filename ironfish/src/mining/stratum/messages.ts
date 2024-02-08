@@ -43,6 +43,11 @@ export type MiningSubmitMessageV2 = {
   graffiti: string
 }
 
+export type MiningSubmitMessageV3 = {
+  miningRequestId: number
+  randomness: string
+}
+
 export type MiningSubscribedMessageV1 = {
   clientId: number
   graffiti: string
@@ -181,6 +186,13 @@ export const MiningSubmitSchemaV2: yup.ObjectSchema<MiningSubmitMessageV2> = yup
     miningRequestId: yup.number().required(),
     randomness: yup.string().required(),
     graffiti: yup.string().required(),
+  })
+  .required()
+
+export const MiningSubmitSchemaV3: yup.ObjectSchema<MiningSubmitMessageV3> = yup
+  .object({
+    miningRequestId: yup.number().required(),
+    randomness: yup.string().required(),
   })
   .required()
 
