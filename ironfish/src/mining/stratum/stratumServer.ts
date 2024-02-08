@@ -247,7 +247,7 @@ export class StratumServer {
       return
     }
 
-    if (![1, 2].includes(body.result.version)) {
+    if (!this.supportedVersions.includes(body.result.version)) {
       const msg = `Client version ${body.result.version} is not handled by this server`
       this.sendStratumError(client, message.id, msg)
       this.peers.ban(client, {
