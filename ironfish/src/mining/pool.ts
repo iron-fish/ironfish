@@ -5,7 +5,7 @@ import LeastRecentlyUsed from 'blru'
 import tls from 'tls'
 import { Assert } from '../assert'
 import { BlockHasher } from '../blockHasher'
-import { Consensus } from '../consensus'
+import { ActivationSequence, Consensus } from '../consensus'
 import { Config } from '../fileStores/config'
 import { Logger } from '../logger'
 import { Target } from '../primitives/target'
@@ -405,6 +405,7 @@ export class MiningPool {
         this.consensus.parameters.targetBlockTimeInSeconds,
         this.consensus.parameters.targetBucketTimeInSeconds,
         this.consensus.getDifficultyBucketMax(payload.header.sequence),
+        this.consensus.parameters.enableFishHash,
       )
 
       const currentHeadTarget = new Target(Buffer.from(payload.previousBlockInfo.target, 'hex'))
@@ -419,6 +420,7 @@ export class MiningPool {
     targetBlockTimeInSeconds: number,
     targetBucketTimeInSeconds: number,
     maxBuckets: number,
+    enableFishHashSequence: ActivationSequence,
   ) {
     this.logger.debug('recalculating target')
 
@@ -442,6 +444,8 @@ export class MiningPool {
         targetBlockTimeInSeconds,
         targetBucketTimeInSeconds,
         maxBuckets,
+        enableFishHashSequence,
+        latestBlock.header.sequence,
       ),
     )
 
@@ -484,13 +488,19 @@ export class MiningPool {
     targetBlockTimeInSeconds: number,
     targetBucketTimeInSeconds: number,
     maxBuckets: number,
+    enableFishHashSequence: ActivationSequence,
   ) {
     if (this.recalculateTargetInterval) {
       clearInterval(this.recalculateTargetInterval)
     }
 
     this.recalculateTargetInterval = setInterval(() => {
-      this.recalculateTarget(targetBlockTimeInSeconds, targetBucketTimeInSeconds, maxBuckets)
+      this.recalculateTarget(
+        targetBlockTimeInSeconds,
+        targetBucketTimeInSeconds,
+        maxBuckets,
+        enableFishHashSequence,
+      )
     }, RECALCULATE_TARGET_TIMEOUT)
   }
 

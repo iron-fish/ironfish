@@ -7,6 +7,8 @@ import { Target } from './target'
 const TARGET_BLOCK_TIME_IN_SECONDS = 60
 const TARGET_BUCKET_TIME_IN_SECONDS = 10
 const MAX_BUCKETS = 99
+const FISH_HASH_ACTIVATION_SEQUENCE = 999
+const SEQUENCE = 5
 
 describe('Target', () => {
   it('constructs targets', () => {
@@ -97,6 +99,8 @@ describe('Calculate target', () => {
         TARGET_BLOCK_TIME_IN_SECONDS,
         TARGET_BUCKET_TIME_IN_SECONDS,
         MAX_BUCKETS,
+        FISH_HASH_ACTIVATION_SEQUENCE,
+        SEQUENCE,
       )
       const newTarget = Target.calculateTarget(
         time,
@@ -105,6 +109,8 @@ describe('Calculate target', () => {
         TARGET_BLOCK_TIME_IN_SECONDS,
         TARGET_BUCKET_TIME_IN_SECONDS,
         MAX_BUCKETS,
+        FISH_HASH_ACTIVATION_SEQUENCE,
+        SEQUENCE,
       )
 
       expect(newDifficulty).toBeGreaterThan(difficulty)
@@ -129,6 +135,8 @@ describe('Calculate target', () => {
         TARGET_BLOCK_TIME_IN_SECONDS,
         TARGET_BUCKET_TIME_IN_SECONDS,
         MAX_BUCKETS,
+        FISH_HASH_ACTIVATION_SEQUENCE,
+        SEQUENCE,
       )
       const newTarget = Target.calculateTarget(
         time,
@@ -137,6 +145,8 @@ describe('Calculate target', () => {
         TARGET_BLOCK_TIME_IN_SECONDS,
         TARGET_BUCKET_TIME_IN_SECONDS,
         MAX_BUCKETS,
+        FISH_HASH_ACTIVATION_SEQUENCE,
+        SEQUENCE,
       )
 
       const diffInDifficulty = BigInt(newDifficulty) - difficulty
@@ -175,6 +185,8 @@ describe('Calculate target', () => {
         TARGET_BLOCK_TIME_IN_SECONDS,
         TARGET_BUCKET_TIME_IN_SECONDS,
         MAX_BUCKETS,
+        FISH_HASH_ACTIVATION_SEQUENCE,
+        SEQUENCE,
       )
       const newTarget = Target.calculateTarget(
         time,
@@ -183,12 +195,59 @@ describe('Calculate target', () => {
         TARGET_BLOCK_TIME_IN_SECONDS,
         TARGET_BUCKET_TIME_IN_SECONDS,
         MAX_BUCKETS,
+        FISH_HASH_ACTIVATION_SEQUENCE,
+        SEQUENCE,
       )
       expect(newDifficulty).toBeLessThan(difficulty)
       expect(BigInt(newDifficulty) + diffInDifficulty).toEqual(difficulty)
 
       expect(newTarget.asBigInt()).toBeGreaterThan(target.asBigInt())
     }
+  })
+
+  it('adjusts difficulty only if the given sequence is the fish hash activation sequence', () => {
+    const now = new Date()
+    const difficulty = BigInt(231072000)
+    const previousBlockTarget = Target.fromDifficulty(difficulty)
+
+    const nonActivationSequence = Target.calculateTarget(
+      new Date(now.getTime() + 60 * 1000),
+      now,
+      previousBlockTarget,
+      TARGET_BLOCK_TIME_IN_SECONDS,
+      TARGET_BUCKET_TIME_IN_SECONDS,
+      MAX_BUCKETS,
+      FISH_HASH_ACTIVATION_SEQUENCE,
+      FISH_HASH_ACTIVATION_SEQUENCE - 1,
+    )
+
+    expect(nonActivationSequence.toDifficulty()).toEqual(difficulty)
+
+    const activationSequence = Target.calculateTarget(
+      new Date(now.getTime() + 60 * 1000),
+      now,
+      previousBlockTarget,
+      TARGET_BLOCK_TIME_IN_SECONDS,
+      TARGET_BUCKET_TIME_IN_SECONDS,
+      MAX_BUCKETS,
+      FISH_HASH_ACTIVATION_SEQUENCE,
+      FISH_HASH_ACTIVATION_SEQUENCE,
+    )
+
+    expect(activationSequence.toDifficulty()).toEqual(difficulty / 100n)
+
+    const postActivationSequence = Target.calculateTarget(
+      new Date(now.getTime() + 60 * 1000),
+      now,
+      previousBlockTarget,
+      TARGET_BLOCK_TIME_IN_SECONDS,
+      TARGET_BUCKET_TIME_IN_SECONDS,
+      MAX_BUCKETS,
+      FISH_HASH_ACTIVATION_SEQUENCE,
+      FISH_HASH_ACTIVATION_SEQUENCE + 1,
+    )
+
+    expect(postActivationSequence.toDifficulty()).toEqual(difficulty)
   })
 
   describe('max buckets', () => {
@@ -204,6 +263,8 @@ describe('Calculate target', () => {
         TARGET_BLOCK_TIME_IN_SECONDS,
         TARGET_BUCKET_TIME_IN_SECONDS,
         MAX_BUCKETS,
+        FISH_HASH_ACTIVATION_SEQUENCE,
+        SEQUENCE,
       )
 
       // Sanity check that difficulty is different in the bucket prior
@@ -214,6 +275,8 @@ describe('Calculate target', () => {
         TARGET_BLOCK_TIME_IN_SECONDS,
         TARGET_BUCKET_TIME_IN_SECONDS,
         MAX_BUCKETS,
+        FISH_HASH_ACTIVATION_SEQUENCE,
+        SEQUENCE,
       )
       expect(almostMaxTarget.asBigInt()).toBeLessThan(maximallyDifferentTarget.asBigInt())
 
@@ -229,6 +292,8 @@ describe('Calculate target', () => {
           TARGET_BLOCK_TIME_IN_SECONDS,
           TARGET_BUCKET_TIME_IN_SECONDS,
           MAX_BUCKETS,
+          FISH_HASH_ACTIVATION_SEQUENCE,
+          SEQUENCE,
         )
 
         expect(newTarget).toEqual(maximallyDifferentTarget)
@@ -248,6 +313,8 @@ describe('Calculate target', () => {
         TARGET_BLOCK_TIME_IN_SECONDS,
         TARGET_BUCKET_TIME_IN_SECONDS,
         otherMaxBuckets,
+        FISH_HASH_ACTIVATION_SEQUENCE,
+        SEQUENCE,
       )
 
       // Sanity check that difficulty is different in the bucket prior
@@ -258,6 +325,8 @@ describe('Calculate target', () => {
         TARGET_BLOCK_TIME_IN_SECONDS,
         TARGET_BUCKET_TIME_IN_SECONDS,
         otherMaxBuckets,
+        FISH_HASH_ACTIVATION_SEQUENCE,
+        SEQUENCE,
       )
       expect(almostMaxTarget.asBigInt()).toBeLessThan(maximallyDifferentTarget.asBigInt())
 
@@ -273,6 +342,8 @@ describe('Calculate target', () => {
           TARGET_BLOCK_TIME_IN_SECONDS,
           TARGET_BUCKET_TIME_IN_SECONDS,
           otherMaxBuckets,
+          FISH_HASH_ACTIVATION_SEQUENCE,
+          SEQUENCE,
         )
 
         expect(newTarget).toEqual(maximallyDifferentTarget)

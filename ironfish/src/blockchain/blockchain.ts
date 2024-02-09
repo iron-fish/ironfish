@@ -926,6 +926,8 @@ export class Blockchain {
           this.consensus.parameters.targetBlockTimeInSeconds,
           this.consensus.parameters.targetBucketTimeInSeconds,
           this.consensus.getDifficultyBucketMax(previousSequence + 1),
+          this.consensus.parameters.enableFishHash,
+          previousSequence + 1,
         )
       }
 

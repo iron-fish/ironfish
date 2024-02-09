@@ -4,7 +4,7 @@
 import { ThreadPoolHandler } from '@ironfish/rust-nodejs'
 import { Assert } from '../assert'
 import { serializeHeaderBlake3, serializeHeaderFishHash } from '../blockHasher'
-import { Consensus } from '../consensus'
+import { ActivationSequence, Consensus } from '../consensus'
 import { Logger } from '../logger'
 import { Meter } from '../metrics/meter'
 import { Target } from '../primitives/target'
@@ -156,6 +156,7 @@ export class MiningSoloMiner {
         this.consensus.parameters.targetBlockTimeInSeconds,
         this.consensus.parameters.targetBucketTimeInSeconds,
         this.consensus.getDifficultyBucketMax(payload.header.sequence),
+        this.consensus.parameters.enableFishHash,
       )
       this.startNewWork(payload)
     }
@@ -274,6 +275,7 @@ export class MiningSoloMiner {
     targetBlockTimeInSeconds: number,
     targetBucketTimeInSeconds: number,
     maxBuckets: number,
+    enableFishHashSequence: ActivationSequence,
   ) {
     Assert.isNotNull(this.currentHeadTimestamp)
     Assert.isNotNull(this.currentHeadDifficulty)
@@ -290,6 +292,8 @@ export class MiningSoloMiner {
         targetBlockTimeInSeconds,
         targetBucketTimeInSeconds,
         maxBuckets,
+        enableFishHashSequence,
+        latestBlock.header.sequence,
       ),
     )
 
@@ -303,13 +307,19 @@ export class MiningSoloMiner {
     targetBlockTimeInSeconds: number,
     targetBucketTimeInSeconds: number,
     maxBuckets: number,
+    enableFishHashSequence: ActivationSequence,
   ) {
     if (this.recalculateTargetInterval) {
       clearInterval(this.recalculateTargetInterval)
     }
 
     this.recalculateTargetInterval = setInterval(() => {
-      this.recalculateTarget(targetBlockTimeInSeconds, targetBucketTimeInSeconds, maxBuckets)
+      this.recalculateTarget(
+        targetBlockTimeInSeconds,
+        targetBucketTimeInSeconds,
+        maxBuckets,
+        enableFishHashSequence,
+      )
     }, RECALCULATE_TARGET_TIMEOUT)
   }
 }

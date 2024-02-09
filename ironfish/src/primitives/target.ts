@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { ActivationSequence } from '../consensus'
 import { BigIntUtils } from '../utils/bigint'
 
 /**
@@ -67,6 +68,8 @@ export class Target {
     targetBlockTimeInSeconds: number,
     targetBucketTimeInSeconds: number,
     maxBuckets: number,
+    enableFishHashSequence: ActivationSequence,
+    sequence: number,
   ): Target {
     const parentDifficulty = previousBlockTarget.toDifficulty()
 
@@ -77,6 +80,8 @@ export class Target {
       targetBlockTimeInSeconds,
       targetBucketTimeInSeconds,
       maxBuckets,
+      enableFishHashSequence,
+      sequence,
     )
 
     return Target.fromDifficulty(difficulty)
@@ -110,6 +115,8 @@ export class Target {
     targetBlockTimeInSeconds: number,
     targetBucketTimeInSeconds: number,
     maxBuckets: number,
+    enableFishHashSequence: ActivationSequence,
+    sequence: number,
   ): bigint {
     const diffInSeconds = (time.getTime() - previousBlockTimestamp.getTime()) / 1000
 
@@ -121,8 +128,14 @@ export class Target {
     // Should not change difficulty by more than `maxBuckets` buckets from last block's difficulty
     bucket = Math.min(bucket, maxBuckets)
 
-    const difficulty =
+    let difficulty =
       previousBlockDifficulty - (previousBlockDifficulty / 2048n) * BigInt(bucket)
+
+    // A one-time difficulty adjustment when the mining algorithm changes from
+    // blake3 to fishhash, since the fishhash hashrate is much lower than blake3
+    if (sequence === enableFishHashSequence) {
+      difficulty /= 100n
+    }
 
     return BigIntUtils.max(difficulty, Target.minDifficulty())
   }
