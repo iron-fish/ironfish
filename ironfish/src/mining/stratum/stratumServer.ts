@@ -23,7 +23,7 @@ import {
   MiningSubmitSchemaV1,
   MiningSubmitSchemaV2,
   MiningSubmitSchemaV3,
-  MiningSubmittedMessageV2,
+  MiningSubmittedMessage,
   MiningSubscribedMessageV1,
   MiningSubscribedMessageV2,
   MiningSubscribeSchema,
@@ -33,8 +33,6 @@ import {
 } from './messages'
 import { StratumPeers } from './stratumPeers'
 import { StratumServerClient } from './stratumServerClient'
-
-const SUPPORTED_VERSIONS = [1, 2]
 
 export class StratumServer {
   readonly pool: MiningPool
@@ -65,7 +63,7 @@ export class StratumServer {
     this.config = options.config
     this.logger = options.logger
 
-    this.supportedVersions = SUPPORTED_VERSIONS
+    this.supportedVersions = options.config.get('poolSupportedVersions')
 
     this.clients = new Map()
     this.nextMinerId = 1
@@ -538,7 +536,7 @@ export class StratumServer {
   send(socket: net.Socket, method: 'mining.set_target', body: MiningSetTargetMessage): void
   send(socket: net.Socket, method: 'mining.subscribed', body: MiningSubscribedMessageV1): void
   send(socket: net.Socket, method: 'mining.subscribed', body: MiningSubscribedMessageV2): void
-  send(socket: net.Socket, method: 'mining.submitted', body: MiningSubmittedMessageV2): void
+  send(socket: net.Socket, method: 'mining.submitted', body: MiningSubmittedMessage): void
   send(socket: net.Socket, method: 'mining.wait_for_work'): void
   send(socket: net.Socket, method: 'mining.status', body: MiningStatusMessage): void
   send(socket: net.Socket, method: string, body?: unknown): void {

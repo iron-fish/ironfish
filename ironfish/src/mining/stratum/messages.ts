@@ -58,7 +58,12 @@ export type MiningSubscribedMessageV2 = {
   xn: string
 }
 
-export type MiningSubmittedMessageV2 = {
+export type MiningSubscribedMessageV3 = {
+  clientId: number
+  xn: string
+}
+
+export type MiningSubmittedMessage = {
   id: number
   result: boolean
   message?: string
@@ -133,7 +138,14 @@ export const MiningSubscribedMessageSchemaV1: yup.ObjectSchema<MiningSubscribedM
   })
   .required()
 
-export const MiningSubscribedMessageV2Schema: yup.ObjectSchema<MiningSubscribedMessageV2> = yup
+export const MiningSubscribedMessageSchemaV2: yup.ObjectSchema<MiningSubscribedMessageV2> = yup
+  .object({
+    clientId: yup.number().required(),
+    xn: yup.string().required(),
+  })
+  .required()
+
+export const MiningSubscribedMessageSchemaV3: yup.ObjectSchema<MiningSubscribedMessageV3> = yup
   .object({
     clientId: yup.number().required(),
     xn: yup.string().required(),
@@ -146,7 +158,7 @@ export const MiningSetTargetSchema: yup.ObjectSchema<MiningSetTargetMessage> = y
   })
   .required()
 
-export const MiningSubmittedSchemaV2: yup.ObjectSchema<MiningSubmittedMessageV2> = yup
+export const MiningSubmittedSchema: yup.ObjectSchema<MiningSubmittedMessage> = yup
   .object({
     id: yup.number().required(),
     result: yup.bool().required(),
