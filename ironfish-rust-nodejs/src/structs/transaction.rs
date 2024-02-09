@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::RefCell;
-
 use std::collections::BTreeMap;
 use std::convert::TryInto;
 
@@ -23,22 +22,27 @@ use ironfish::transaction::{
     batch_verify_transactions, TransactionVersion, TRANSACTION_EXPIRATION_SIZE,
     TRANSACTION_FEE_SIZE, TRANSACTION_PUBLIC_KEY_SIZE, TRANSACTION_SIGNATURE_SIZE,
 };
-use ironfish::{
-    MerkleNoteHash, OutgoingViewKey, ProposedTransaction, PublicAddress, SaplingKey, Transaction,
-    ViewKey,
-};
+use ironfish::OutgoingViewKey;
+use ironfish::PublicAddress;
+use ironfish::ViewKey;
+use ironfish::{MerkleNoteHash, ProposedTransaction, SaplingKey, Transaction};
+use napi::bindgen_prelude::BigInt;
+use napi::bindgen_prelude::Object;
+use napi::bindgen_prelude::Undefined;
+use napi::Env;
 use napi::{
-    bindgen_prelude::{i64n, BigInt, Buffer, Env, Object, Result, Undefined},
+    bindgen_prelude::{i64n, Buffer, Result},
     JsBuffer,
 };
 use napi_derive::napi;
 
 use crate::to_napi_err;
 
-use super::note::NativeNote;
 use super::spend_proof::NativeSpendDescription;
-use super::witness::JsWitness;
-use super::{NativeAsset, ENCRYPTED_NOTE_LENGTH};
+use super::JsWitness;
+use super::NativeAsset;
+use super::NativeNote;
+use super::ENCRYPTED_NOTE_LENGTH;
 use ironfish::transaction::outputs::PROOF_SIZE;
 
 #[napi]
@@ -332,7 +336,7 @@ impl NativeTransaction {
         outgoing_view_key_str: String,
         intended_transaction_fee: BigInt,
         change_goes_to: Option<String>,
-    ) -> Result<Buffer> {
+    ) -> Result<()> {
         let view_key = ViewKey::from_hex(&view_key_str).map_err(to_napi_err)?;
         let outgoing_view_key =
             OutgoingViewKey::from_hex(&outgoing_view_key_str).map_err(to_napi_err)?;
@@ -343,8 +347,7 @@ impl NativeTransaction {
             Some(address) => Some(PublicAddress::from_hex(&address).map_err(to_napi_err)?),
             None => None,
         };
-        let unsigned_transaction = self
-            .transaction
+        self.transaction
             .build(
                 proof_authorizing_key,
                 view_key,
@@ -352,6 +355,22 @@ impl NativeTransaction {
                 intended_transaction_fee.get_i64().0,
                 change_address,
             )
+            .map_err(to_napi_err)?;
+        Ok(())
+    }
+
+    // Outputs buffer of an unsigned transaction
+    #[napi]
+    pub fn unsigned(
+        &mut self,
+        view_key_str: String,
+        intended_transaction_fee: BigInt,
+    ) -> Result<Buffer> {
+        let view_key = ViewKey::from_hex(&view_key_str).map_err(to_napi_err)?;
+
+        let unsigned_transaction = self
+            .transaction
+            .unsigned(&view_key, intended_transaction_fee.get_i64().0)
             .map_err(to_napi_err)?;
 
         let mut vec: Vec<u8> = vec![];

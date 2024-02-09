@@ -89,19 +89,27 @@ pub struct ProposedTransaction {
     /// the signatures.
     spends: Vec<SpendBuilder>,
 
+    pub(crate) unsigned_spends: Vec<UnsignedSpendDescription>,
+
     /// Builders for proofs of the individual outputs with values required to calculate
     /// signatures. Note: This is commonly referred to as
     /// `outputs` in the literature.
     outputs: Vec<OutputBuilder>,
 
+    pub(crate) output_descriptions: Vec<OutputDescription>,
+
     /// Builders for proofs of the individual mints with all values required to
     /// calculate the signatures.
     mints: Vec<MintBuilder>,
+
+    pub(crate) unsigned_mints: Vec<UnsignedMintDescription>,
 
     /// Descriptions containing the assets and value commitments to be burned.
     /// We do not need to use a builder here since we only need to handle
     /// balancing and effects are handled by outputs.
     burns: Vec<BurnBuilder>,
+
+    pub(crate) burn_descriptions: Vec<BurnDescription>,
 
     /// The balance of all the spends minus all the outputs. The difference
     /// is the fee paid to the miner for mining the transaction.
@@ -126,9 +134,13 @@ impl ProposedTransaction {
         Self {
             version,
             spends: vec![],
+            unsigned_spends: vec![],
             outputs: vec![],
+            output_descriptions: vec![],
             mints: vec![],
+            unsigned_mints: vec![],
             burns: vec![],
+            burn_descriptions: vec![],
             value_balances: ValueBalances::new(),
             expiration: 0,
             public_key_randomness: jubjub::Fr::random(thread_rng()),
@@ -236,7 +248,7 @@ impl ProposedTransaction {
         outgoing_view_key: OutgoingViewKey,
         intended_transaction_fee: i64,
         change_goes_to: Option<PublicAddress>,
-    ) -> Result<UnsignedTransaction, IronfishError> {
+    ) -> Result<(), IronfishError> {
         let public_address = view_key.public_address()?;
 
         let proof_generation_key = ProofGenerationKey {
@@ -256,9 +268,8 @@ impl ProposedTransaction {
         let randomized_public_key = redjubjub::PublicKey(view_key.authorizing_key.into())
             .randomize(self.public_key_randomness, *SPENDING_KEY_GENERATOR);
 
-        let mut unsigned_spends = Vec::with_capacity(self.spends.len());
         for spend in &self.spends {
-            unsigned_spends.push(spend.build(
+            self.unsigned_spends.push(spend.build(
                 &proof_generation_key,
                 &view_key,
                 &self.public_key_randomness,
@@ -266,9 +277,8 @@ impl ProposedTransaction {
             )?);
         }
 
-        let mut output_descriptions = Vec::with_capacity(self.outputs.len());
         for output in &self.outputs {
-            output_descriptions.push(output.build(
+            self.output_descriptions.push(output.build(
                 &proof_generation_key,
                 &outgoing_view_key,
                 &self.public_key_randomness,
@@ -276,9 +286,8 @@ impl ProposedTransaction {
             )?);
         }
 
-        let mut unsigned_mints = Vec::with_capacity(self.mints.len());
         for mint in &self.mints {
-            unsigned_mints.push(mint.build(
+            self.unsigned_mints.push(mint.build(
                 &proof_generation_key,
                 &public_address,
                 &self.public_key_randomness,
@@ -286,22 +295,32 @@ impl ProposedTransaction {
             )?);
         }
 
-        let mut burn_descriptions = Vec::with_capacity(self.burns.len());
         for burn in &self.burns {
-            burn_descriptions.push(burn.build());
+            self.burn_descriptions.push(burn.build());
         }
 
+        Ok(())
+    }
+
+    pub fn unsigned(
+        &mut self,
+        view_key: &ViewKey,
+        intended_transaction_fee: i64,
+    ) -> Result<UnsignedTransaction, IronfishError> {
+        let randomized_public_key = redjubjub::PublicKey(view_key.authorizing_key.into())
+            .randomize(self.public_key_randomness, *SPENDING_KEY_GENERATOR);
+
         let data_to_sign = self.transaction_signature_hash(
-            &unsigned_spends,
-            &output_descriptions,
-            &unsigned_mints,
-            &burn_descriptions,
+            &self.unsigned_spends,
+            &self.output_descriptions,
+            &self.unsigned_mints,
+            &self.burn_descriptions,
             &randomized_public_key,
         )?;
 
         // Create and verify binding signature keys
         let (binding_signature_private_key, binding_signature_public_key) =
-            self.binding_signature_keys(&unsigned_mints, &burn_descriptions)?;
+            self.binding_signature_keys(&self.unsigned_mints, &self.burn_descriptions)?;
 
         let binding_signature = self.binding_signature(
             &binding_signature_private_key,
@@ -310,10 +329,10 @@ impl ProposedTransaction {
         )?;
 
         Ok(UnsignedTransaction {
-            burns: burn_descriptions,
-            mints: unsigned_mints,
-            outputs: output_descriptions,
-            spends: unsigned_spends,
+            burns: self.burn_descriptions.clone(),
+            mints: self.unsigned_mints.clone(),
+            outputs: self.output_descriptions.clone(),
+            spends: self.unsigned_spends.clone(),
             version: self.version,
             fee: intended_transaction_fee,
             binding_signature,
@@ -341,13 +360,16 @@ impl ProposedTransaction {
     ) -> Result<Transaction, IronfishError> {
         let i64_fee = i64::try_from(intended_transaction_fee)?;
 
-        let unsigned = self.build(
+        self.build(
             spender_key.proof_authorizing_key,
             spender_key.view_key().clone(),
             spender_key.outgoing_view_key().clone(),
             i64_fee,
             change_goes_to,
         )?;
+
+        let unsigned = self.unsigned(&spender_key.view_key(), i64_fee)?;
+
         unsigned.sign(spender_key)
     }
 
@@ -381,13 +403,16 @@ impl ProposedTransaction {
         for output in &mut self.outputs {
             output.set_is_miners_fee();
         }
-        let unsigned = self.build(
+
+        self.build(
             spender_key.proof_authorizing_key,
             spender_key.view_key().clone(),
             spender_key.outgoing_view_key().clone(),
             *self.value_balances.fee(),
             None,
         )?;
+
+        let unsigned = self.unsigned(&spender_key.view_key(), *self.value_balances.fee())?;
         unsigned.sign(spender_key)
     }
 

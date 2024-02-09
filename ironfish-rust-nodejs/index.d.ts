@@ -233,7 +233,8 @@ export class Transaction {
    * aka: self.value_balance - intended_transaction_fee - change = 0
    */
   post(spenderHexKey: string, changeGoesTo: string | undefined | null, intendedTransactionFee: bigint): Buffer
-  build(proofAuthorizingKeyStr: string, viewKeyStr: string, outgoingViewKeyStr: string, intendedTransactionFee: bigint, changeGoesTo?: string | undefined | null): Buffer
+  build(proofAuthorizingKeyStr: string, viewKeyStr: string, outgoingViewKeyStr: string, intendedTransactionFee: bigint, changeGoesTo?: string | undefined | null): void
+  unsigned(viewKeyStr: string, intendedTransactionFee: bigint): Buffer
   setExpiration(sequence: number): void
 }
 export type NativeUnsignedTransaction = UnsignedTransaction

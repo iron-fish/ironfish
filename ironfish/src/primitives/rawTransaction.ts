@@ -59,8 +59,11 @@ export class RawTransaction {
     >
   }[] = []
 
+  builder: NativeTransaction
+
   constructor(version: TransactionVersion) {
     this.version = version
+    this.builder = new NativeTransaction(this.version)
   }
 
   postedSize(_publicAddress: string): number {
@@ -118,15 +121,14 @@ export class RawTransaction {
     return size
   }
 
-  _build(): NativeTransaction {
-    const builder = new NativeTransaction(this.version)
+  _build(): void {
     for (const spend of this.spends) {
-      builder.spend(spend.note.takeReference(), spend.witness)
+      this.builder.spend(spend.note.takeReference(), spend.witness)
       spend.note.returnReference()
     }
 
     for (const output of this.outputs) {
-      builder.output(output.note.takeReference())
+      this.builder.output(output.note.takeReference())
       output.note.returnReference()
     }
 
@@ -140,7 +142,7 @@ export class RawTransaction {
       }
       const asset = new Asset(mint.creator, mint.name, mint.metadata)
 
-      builder.mint(asset, mint.value, mint.transferOwnershipTo)
+      this.builder.mint(asset, mint.value, mint.transferOwnershipTo)
     }
 
     for (const burn of this.burns) {
@@ -152,14 +154,12 @@ export class RawTransaction {
         )
       }
 
-      builder.burn(burn.assetId, burn.value)
+      this.builder.burn(burn.assetId, burn.value)
     }
 
     if (this.expiration !== null) {
-      builder.setExpiration(this.expiration)
+      this.builder.setExpiration(this.expiration)
     }
-
-    return builder
   }
 
   build(
@@ -169,13 +169,9 @@ export class RawTransaction {
   ): UnsignedTransaction {
     const builder = this._build()
 
-    const serialized = builder.build(
-      proofAuthorizingKey,
-      viewKey,
-      outgoingViewKey,
-      this.fee,
-      null,
-    )
+    builder.build(proofAuthorizingKey, viewKey, outgoingViewKey, this.fee, null)
+
+    const serialized = builder.unsigned(viewKey, this.fee)
 
     return new UnsignedTransaction(serialized)
   }

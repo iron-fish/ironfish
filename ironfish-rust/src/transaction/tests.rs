@@ -240,7 +240,7 @@ fn test_proposed_transaction_build() {
     let public_address: crate::PublicAddress = spender_key.public_address();
     let intended_fee = 1;
 
-    let unsigned_transaction = transaction
+    transaction
         .build(
             spender_key.proof_authorizing_key,
             spender_key.view_key().clone(),
@@ -248,6 +248,10 @@ fn test_proposed_transaction_build() {
             intended_fee,
             Some(public_address),
         )
+        .expect("should be able to build unsigned transaction");
+
+    let unsigned_transaction = transaction
+        .unsigned(&spender_key.view_key(), intended_fee)
         .expect("should be able to build unsigned transaction");
 
     // A change note was created
@@ -683,7 +687,7 @@ fn test_sign_simple() {
         .expect("should be able to add an output");
 
     // build transaction, generate proofs
-    let unsigned_transaction = transaction
+    transaction
         .build(
             spender_key.proof_authorizing_key,
             spender_key.view_key().clone(),
@@ -691,6 +695,10 @@ fn test_sign_simple() {
             1,
             Some(spender_key.public_address()),
         )
+        .expect("should be able to build unsigned transaction");
+
+    let unsigned_transaction = transaction
+        .unsigned(&spender_key.view_key(), 1)
         .expect("should be able to build unsigned transaction");
 
     // sign transaction
@@ -769,15 +777,19 @@ fn test_aggregate_signature_shares() {
         .expect("should be able to add change notes");
 
     // build UnsignedTransaction without signing
-    let mut unsigned_transaction = transaction
+    transaction
         .build(
             key_packages.proof_authorizing_key,
-            key_packages.view_key,
+            key_packages.view_key.clone(),
             key_packages.outgoing_view_key,
             intended_fee,
             Some(key_packages.public_address),
         )
-        .expect("should be able to build unsigned transaction");
+        .expect("should be able to build proofs");
+
+    let mut unsigned_transaction = transaction
+        .unsigned(&key_packages.view_key, intended_fee)
+        .expect("should be able to create unsigned transaction");
 
     let mut commitments = HashMap::new();
 
