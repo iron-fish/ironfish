@@ -22,7 +22,8 @@ import {
   MiningStatusMessage,
   MiningSubmitSchemaV1,
   MiningSubmitSchemaV2,
-  MiningSubmittedMessageV2,
+  MiningSubmitSchemaV3,
+  MiningSubmittedMessage,
   MiningSubscribedMessageV1,
   MiningSubscribedMessageV2,
   MiningSubscribeSchema,
@@ -32,8 +33,6 @@ import {
 } from './messages'
 import { StratumPeers } from './stratumPeers'
 import { StratumServerClient } from './stratumServerClient'
-
-const SUPPORTED_VERSIONS = [1, 2]
 
 export class StratumServer {
   readonly pool: MiningPool
@@ -64,7 +63,7 @@ export class StratumServer {
     this.config = options.config
     this.logger = options.logger
 
-    this.supportedVersions = SUPPORTED_VERSIONS
+    this.supportedVersions = options.config.get('poolSupportedVersions')
 
     this.clients = new Map()
     this.nextMinerId = 1
@@ -291,6 +290,22 @@ export class StratumServer {
         clientId: client.id,
         xn,
       })
+    } else if (body.result.version === 3) {
+      const xnHexSize = 2 * this.config.get('poolXnSize')
+      const xn = idHex.slice(-xnHexSize).padStart(xnHexSize, '0')
+
+      client.subscription = {
+        version: 3,
+        publicAddress: body.result.publicAddress,
+        xn,
+        name: body.result.name,
+        agent: body.result.agent,
+      }
+
+      this.send(client.socket, 'mining.subscribed', {
+        clientId: client.id,
+        xn,
+      })
     }
 
     this.subscribed++
@@ -352,6 +367,46 @@ export class StratumServer {
         miningRequestId,
         randomness,
         graffiti,
+      )
+
+      if (error) {
+        this.send(client.socket, 'mining.submitted', {
+          id: message.id,
+          result: false,
+          message: error,
+        })
+      } else {
+        this.send(client.socket, 'mining.submitted', {
+          id: message.id,
+          result: true,
+        })
+      }
+    } else if (client.subscription?.version === 3) {
+      const body = await YupUtils.tryValidate(MiningSubmitSchemaV3, message.body)
+
+      if (body.error) {
+        this.peers.ban(client, {
+          message: body.error.message,
+        })
+        return
+      }
+
+      const { randomness, miningRequestId } = body.result
+
+      if (!randomness.startsWith(client.subscription.xn)) {
+        this.send(client.socket, 'mining.submitted', {
+          id: message.id,
+          result: false,
+          message: 'invalid leading xnonce in randomness',
+        })
+        return
+      }
+
+      const { error } = await this.pool.submitWork(
+        client,
+        miningRequestId,
+        randomness,
+        GraffitiUtils.fromString(`${this.pool.name}`).toString('hex'),
       )
 
       if (error) {
@@ -481,7 +536,7 @@ export class StratumServer {
   send(socket: net.Socket, method: 'mining.set_target', body: MiningSetTargetMessage): void
   send(socket: net.Socket, method: 'mining.subscribed', body: MiningSubscribedMessageV1): void
   send(socket: net.Socket, method: 'mining.subscribed', body: MiningSubscribedMessageV2): void
-  send(socket: net.Socket, method: 'mining.submitted', body: MiningSubmittedMessageV2): void
+  send(socket: net.Socket, method: 'mining.submitted', body: MiningSubmittedMessage): void
   send(socket: net.Socket, method: 'mining.wait_for_work'): void
   send(socket: net.Socket, method: 'mining.status', body: MiningStatusMessage): void
   send(socket: net.Socket, method: string, body?: unknown): void {

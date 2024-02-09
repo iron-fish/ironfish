@@ -21,12 +21,20 @@ type V2Subscription = {
   xn: string
 }
 
+type V3Subscription = {
+  version: 3
+  publicAddress: string
+  name?: string
+  agent?: string
+  xn: string
+}
+
 export class StratumServerClient {
   id: number
   socket: net.Socket
   connected: boolean
   remoteAddress: string
-  subscription: V1Subscription | V2Subscription | null = null
+  subscription: V1Subscription | V2Subscription | V3Subscription | null = null
   messageBuffer: MessageBuffer
 
   private constructor(options: { socket: net.Socket; id: number }) {
