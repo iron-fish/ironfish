@@ -480,7 +480,7 @@ export class Config<
       poolMaxConnectionsPerIp: 0,
       poolLarkWebhook: '',
       poolXnSize: 2,
-      poolSupportedVersions: [2, 3],
+      poolSupportedVersions: [1, 2, 3],
       jsonLogs: false,
       feeEstimatorMaxBlockHistory: DEFAULT_FEE_ESTIMATOR_MAX_BLOCK_HISTORY,
       feeEstimatorPercentileSlow: DEFAULT_FEE_ESTIMATOR_PERCENTILE_SLOW,
