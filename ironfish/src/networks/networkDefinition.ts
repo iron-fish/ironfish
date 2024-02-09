@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { ActivationSequence, ConsensusParameters } from '../consensus'
+import { ActivationSequence, Checkpoint, ConsensusParameters } from '../consensus'
 import { Config, InternalStore } from '../fileStores'
 import { FileSystem } from '../fileSystems'
 import { SerializedBlock } from '../primitives/block'
@@ -17,6 +17,29 @@ export type NetworkDefinition = {
   genesis: SerializedBlock
   consensus: ConsensusParameters
 }
+
+export const ConsensusParametersSchema: yup.ObjectSchema<ConsensusParameters> = yup
+  .object({
+    allowedBlockFutureSeconds: yup.number().integer().defined(),
+    genesisSupplyInIron: yup.number().integer().defined(),
+    targetBlockTimeInSeconds: yup.number().integer().defined(),
+    targetBucketTimeInSeconds: yup.number().integer().defined(),
+    maxBlockSizeBytes: yup.number().integer().defined(),
+    minFee: yup.number().integer().defined(),
+    enableAssetOwnership: yup.mixed<ActivationSequence>().defined(),
+    enforceSequentialBlockTime: yup.mixed<ActivationSequence>().defined(),
+    enableFishHash: yup.mixed<ActivationSequence>().defined(),
+    enableIncreasedDifficultyChange: yup.mixed<ActivationSequence>().defined(),
+    checkpoints: yup
+      .array()
+      .of<Checkpoint>(
+        yup
+          .object({ sequence: yup.number().defined(), hash: yup.string().defined() })
+          .defined(),
+      )
+      .defined(),
+  })
+  .defined()
 
 export const networkDefinitionSchema: yup.ObjectSchema<NetworkDefinition> = yup
   .object({
@@ -41,20 +64,7 @@ export const networkDefinitionSchema: yup.ObjectSchema<NetworkDefinition> = yup
         transactions: yup.array().of<Buffer>(yup.mixed<Buffer>()).defined(),
       })
       .defined(),
-    consensus: yup
-      .object({
-        allowedBlockFutureSeconds: yup.number().integer().defined(),
-        genesisSupplyInIron: yup.number().integer().defined(),
-        targetBlockTimeInSeconds: yup.number().integer().defined(),
-        targetBucketTimeInSeconds: yup.number().integer().defined(),
-        maxBlockSizeBytes: yup.number().integer().defined(),
-        minFee: yup.number().integer().defined(),
-        enableAssetOwnership: yup.mixed<ActivationSequence>().defined(),
-        enforceSequentialBlockTime: yup.mixed<ActivationSequence>().defined(),
-        enableFishHash: yup.mixed<ActivationSequence>().defined(),
-        enableIncreasedDifficultyChange: yup.mixed<ActivationSequence>().defined(),
-      })
-      .defined(),
+    consensus: ConsensusParametersSchema,
   })
   .defined()
 
