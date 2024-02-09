@@ -17,6 +17,7 @@ describe('Consensus', () => {
     enforceSequentialBlockTime: 8,
     enableFishHash: 9,
     enableIncreasedDifficultyChange: 10,
+    checkpoints: [],
   }
 
   const consensus = new Consensus(params)
