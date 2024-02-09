@@ -100,6 +100,8 @@ export class Blockchain {
 
   private _head: BlockHeader | null = null
 
+  private latestCheckpoint: BlockHeader | null = null
+
   get head(): BlockHeader {
     Assert.isNotNull(
       this._head,
@@ -273,6 +275,19 @@ export class Blockchain {
         )}, but no block header for that hash.`,
       )
       this.latest = latest
+    }
+
+    for (const [sequence, hash] of this.consensus.checkpoints) {
+      const header = await this.getHeaderAtSequence(sequence)
+      const onMainChain = header && header.hash.equals(hash)
+
+      if (!onMainChain) {
+        continue
+      }
+
+      if (!this.latestCheckpoint || this.latestCheckpoint.sequence < sequence) {
+        this.latestCheckpoint = header
+      }
     }
 
     if (this._head) {
@@ -520,6 +535,10 @@ export class Blockchain {
     this.invalid.set(hash, reason)
   }
 
+  isCheckpoint(header: BlockHeader): boolean {
+    return this.consensus.checkpoints.get(header.sequence)?.equals(header.hash) ?? false
+  }
+
   private async connect(
     block: Block,
     prev: BlockHeader | null,
@@ -607,6 +626,10 @@ export class Blockchain {
     this.notes.pastRootTxCommitted(tx)
 
     this.head = block.header
+    if (this.isCheckpoint(block.header)) {
+      this.latestCheckpoint = block.header
+    }
+
     await this.onConnectBlock.emitAsync(block, tx)
   }
 
@@ -704,6 +727,9 @@ export class Blockchain {
     }
 
     this.head = block.header
+    if (this.isCheckpoint(block.header)) {
+      this.latestCheckpoint = block.header
+    }
 
     if (block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
       this.genesis = block.header
@@ -722,6 +748,10 @@ export class Blockchain {
 
     // Step 0: Find the fork between the two heads
     const fork = await this.findFork(oldHead, newHead, tx)
+
+    if (this.latestCheckpoint && fork.sequence < this.latestCheckpoint.sequence) {
+      throw new Error('Cannot reorganize chain below the latest checkpoint')
+    }
 
     // Step 2: Collect all the blocks from the old head to the fork
     const removeIter = this.iterateFrom(oldHead, fork, tx)

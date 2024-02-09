@@ -16,6 +16,7 @@ const MAINNET_CONSENSUS: ConsensusParameters = {
   enforceSequentialBlockTime: null,
   enableFishHash: null,
   enableIncreasedDifficultyChange: null,
+  checkpoints: [],
 }
 
 export const MAINNET_GENESIS = {

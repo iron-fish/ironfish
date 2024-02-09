@@ -5,6 +5,7 @@
 import { TransactionVersion } from '../primitives/transaction'
 
 export type ActivationSequence = number | null
+export type Checkpoint = { sequence: number; hash: string }
 
 export type ConsensusParameters = {
   /**
@@ -61,18 +62,29 @@ export type ConsensusParameters = {
    * allowing for a greater per-block downward shift.
    */
   enableIncreasedDifficultyChange: ActivationSequence
+
+  /**
+   * Mapping of block height to the hash of the block at that height. Once a node has added this block to
+   * its main chain, it will not be disconnected from the main chain.
+   */
+  checkpoints: Checkpoint[]
 }
 
 export class Consensus {
   readonly parameters: ConsensusParameters
+  readonly checkpoints: Map<number, Buffer>
 
   constructor(parameters: ConsensusParameters) {
     this.parameters = parameters
+    this.checkpoints = new Map<number, Buffer>()
+    for (const checkpoint of this.parameters.checkpoints) {
+      this.checkpoints.set(checkpoint.sequence, Buffer.from(checkpoint.hash, 'hex'))
+    }
   }
 
   isActive(upgrade: keyof ConsensusParameters, sequence: number): boolean {
     const upgradeSequence = this.parameters[upgrade]
-    if (upgradeSequence === null) {
+    if (upgradeSequence === null || typeof upgradeSequence !== 'number') {
       return false
     }
     return Math.max(1, sequence) >= upgradeSequence
