@@ -5,6 +5,7 @@ import { PromiseUtils, RPC_ERROR_CODES, RpcRequestError } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
+import { largePrompt } from '../../utils/longPrompt'
 
 export class ImportCommand extends IronfishCommand {
   static description = `Import an account`
@@ -149,11 +150,8 @@ export class ImportCommand extends IronfishCommand {
   }
 
   async importTTY(): Promise<string> {
-    const userInput = await CliUx.ux.prompt(
+    const userInput = await largePrompt(
       'Paste the output of wallet:export, or your spending key',
-      {
-        required: true,
-      },
     )
 
     return userInput.trim()
