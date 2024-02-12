@@ -1038,6 +1038,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "fish_hash"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f9c394ecb7ca553063e6d7a124cd91a6e479f1f5580ace28d837d81dc654d13b"
+dependencies = [
+ "blake3",
+ "tiny-keccak",
+]
+
+[[package]]
 name = "flume"
 version = "0.10.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1524,7 +1534,7 @@ dependencies = [
  "chacha20poly1305 0.9.1",
  "crypto_box",
  "ff 0.12.1",
- "fish_hash",
+ "fish_hash 0.2.0",
  "group 0.12.1",
  "hex",
  "hex-literal 0.4.1",
@@ -1577,7 +1587,7 @@ name = "ironfish-rust-nodejs"
 version = "0.1.0"
 dependencies = [
  "base64 0.13.1",
- "fish_hash",
+ "fish_hash 0.1.0",
  "ironfish",
  "ironfish_mpc",
  "jubjub 0.9.0 (git+https://github.com/iron-fish/jubjub.git?branch=blstrs)",
