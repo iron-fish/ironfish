@@ -5,6 +5,7 @@
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
+import { largePrompt } from '../../../utils/longPrompt'
 
 export class CreateSignatureShareCommand extends IronfishCommand {
   static description = `Creates a signature share for a participant for a given transaction`
@@ -20,25 +21,35 @@ export class CreateSignatureShareCommand extends IronfishCommand {
     unsignedTransaction: Flags.string({
       char: 'u',
       description: 'The unsigned transaction for which the signature share will be created',
-      required: true,
+      required: false,
     }),
     signingPackage: Flags.string({
       char: 's',
       description: 'The signing package for which the signature share will be created',
-      required: true,
+      required: false,
     }),
   }
 
   async start(): Promise<void> {
     const { flags } = await this.parse(CreateSignatureShareCommand)
+    let unsignedTransaction = flags.unsignedTransaction?.trim()
+    let signingPackage = flags.signingPackage?.trim()
+
+    if (!unsignedTransaction) {
+      unsignedTransaction = await largePrompt('Enter the unsigned transaction: ')
+    }
+
+    if (!signingPackage) {
+      signingPackage = await largePrompt('Enter the signing package: ')
+    }
 
     const client = await this.sdk.connectRpc()
     // TODO(andrea): use flags.transaction to create commiment when we incorportate deterministic nonces
     // set required to true as well
     const signatureShareResponse = await client.wallet.multisig.createSignatureShare({
       account: flags.account,
-      unsignedTransaction: flags.unsignedTransaction,
-      signingPackage: flags.signingPackage,
+      unsignedTransaction,
+      signingPackage,
       seed: 0,
     })
 
