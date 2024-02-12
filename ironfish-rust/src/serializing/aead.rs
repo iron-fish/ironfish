@@ -8,6 +8,8 @@ use chacha20poly1305::{ChaCha20Poly1305, Key, Nonce};
 
 pub const MAC_SIZE: usize = 16;
 
+/// IMPORTANT: This method should only be used with unique keys as the nonce is zeroed!
+/// 
 /// Encrypt the plaintext using the given key, and append the MAC tag to the
 /// end of the output array to be decrypted and checked in one step below.
 ///
