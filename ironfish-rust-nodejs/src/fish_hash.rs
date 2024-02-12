@@ -16,7 +16,7 @@ impl FishHashContext {
     #[napi(constructor)]
     pub fn new(full: bool) -> Self {
         Self {
-            inner: Context::new(full),
+            inner: Context::new(full, None),
         }
     }
 
