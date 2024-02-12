@@ -23,7 +23,7 @@ export type CreateSignatureShareResponse = {
 export const CreateSignatureShareRequestSchema: yup.ObjectSchema<CreateSignatureShareRequest> =
   yup
     .object({
-      account: yup.string().defined(),
+      account: yup.string().optional(),
       signingPackage: yup.string().defined(),
       unsignedTransaction: yup.string().defined(),
       seed: yup.number().defined(),
