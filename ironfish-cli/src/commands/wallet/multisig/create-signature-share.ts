@@ -2,8 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Flags } from '@oclif/core'
-import inquirer from 'inquirer'
+import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 
@@ -35,17 +34,7 @@ export class CreateSignatureShareCommand extends IronfishCommand {
 
     const unsignedTransaction = flags.unsignedTransaction
       ? flags.unsignedTransaction.trim()
-      : await inquirer
-          .prompt<{
-            unsignedTransaction: string
-          }>([
-            {
-              name: 'unsignedTransaction',
-              message: `Enter the unsigned transaction: `,
-              type: 'input',
-            },
-          ])
-          .then((response) => response.unsignedTransaction.trim())
+      : await CliUx.ux.prompt(`Enter unsigned transaction`)
     // TODO(andrea): use flags.transaction to create commiment when we incorportate deterministic nonces
     // set required to true as well
     const signatureShareResponse = await client.wallet.multisig.createSignatureShare({
