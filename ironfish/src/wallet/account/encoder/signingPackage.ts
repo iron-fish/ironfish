@@ -7,7 +7,7 @@ export type SigningPackage = {
   unsignedTransaction: string
 }
 
-export class SigningPackageEncorder {
+export class SigningPackageEncoder {
   constructor() {}
 
   encode(signingPackage: SigningPackage): string {

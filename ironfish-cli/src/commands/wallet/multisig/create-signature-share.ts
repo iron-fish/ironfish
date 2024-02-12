@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { SigningPackageEncorder } from '@ironfish/sdk'
+import { SigningPackageEncoder } from '@ironfish/sdk/src/wallet/account/encoder/signingPackage'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
@@ -32,15 +32,8 @@ export class CreateSignatureShareCommand extends IronfishCommand {
 
   async start(): Promise<void> {
     const { flags } = await this.parse(CreateSignatureShareCommand)
-    const encoder = new SigningPackageEncorder()
-    const siginingPackage = encoder.decode(flags.signingPackage)
-    let unsignedTransaction = siginingPackage.unsignedTransaction.trim()
 
-    let signingPackage = siginingPackage.signingPackage.trim()
-
-    if (!unsignedTransaction) {
-      unsignedTransaction = await longPrompt('Enter the unsigned transaction: ')
-    }
+    let signingPackage = flags.signingPackage?.trim()
 
     if (!signingPackage) {
       signingPackage = await longPrompt('Enter the signing package: ')
@@ -52,14 +45,15 @@ export class CreateSignatureShareCommand extends IronfishCommand {
         this.error('Creating signature share aborted')
       }
     }
+    const encoder = new SigningPackageEncoder()
+    const siginingPackageDecoded = encoder.decode(signingPackage.trim())
 
     const client = await this.sdk.connectRpc()
     // TODO(andrea): use flags.transaction to create commiment when we incorportate deterministic nonces
     // set required to true as well
     const signatureShareResponse = await client.wallet.multisig.createSignatureShare({
       account: flags.account,
-      unsignedTransaction,
-      signingPackage,
+      ...siginingPackageDecoded,
       seed: 0,
     })
 
