@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Flags } from '@oclif/core'
+import inquirer from 'inquirer'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 
@@ -20,12 +21,10 @@ export class CreateSignatureShareCommand extends IronfishCommand {
     unsignedTransaction: Flags.string({
       char: 'u',
       description: 'The unsigned transaction for which the signature share will be created',
-      required: true,
     }),
     signingPackage: Flags.string({
       char: 's',
       description: 'The signing package for which the signature share will be created',
-      required: true,
     }),
   }
 
@@ -33,12 +32,26 @@ export class CreateSignatureShareCommand extends IronfishCommand {
     const { flags } = await this.parse(CreateSignatureShareCommand)
 
     const client = await this.sdk.connectRpc()
+
+    const unsignedTransaction = flags.unsignedTransaction
+      ? flags.unsignedTransaction.trim()
+      : await inquirer
+          .prompt<{
+            unsignedTransaction: string
+          }>([
+            {
+              name: 'unsignedTransaction',
+              message: `Enter the unsigned transaction: `,
+              type: 'input',
+            },
+          ])
+          .then((response) => response.unsignedTransaction.trim())
     // TODO(andrea): use flags.transaction to create commiment when we incorportate deterministic nonces
     // set required to true as well
     const signatureShareResponse = await client.wallet.multisig.createSignatureShare({
       account: flags.account,
-      unsignedTransaction: flags.unsignedTransaction,
-      signingPackage: flags.signingPackage,
+      unsignedTransaction,
+      signingPackage: flags.signingPackage || '',
       seed: 0,
     })
 
