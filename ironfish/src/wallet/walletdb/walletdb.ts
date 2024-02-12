@@ -139,7 +139,7 @@ export class WalletDB {
     value: Buffer
   }>
 
-  participantIdentifiers: IDatabaseStore<{
+  participantIdentities: IDatabaseStore<{
     key: [Account['prefix'], string]
     value: null
   }>
@@ -298,7 +298,7 @@ export class WalletDB {
       valueEncoding: new BufferEncoding(),
     })
 
-    this.participantIdentifiers = this.db.addStore({
+    this.participantIdentities = this.db.addStore({
       name: 'pi',
       keyEncoding: new PrefixEncoding(
         new BufferEncoding(), // account prefix
@@ -1292,27 +1292,27 @@ export class WalletDB {
     await this.multisigSecrets.del(name, tx)
   }
 
-  async addParticipantIdentifier(
+  async addParticipantIdentity(
     account: Account,
     identifier: string,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    await this.participantIdentifiers.put([account.prefix, identifier], null, tx)
+    await this.participantIdentities.put([account.prefix, identifier], null, tx)
   }
 
-  async deleteParticipantIdentifier(
+  async deleteParticipantIdentity(
     account: Account,
     identifier: string,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    await this.participantIdentifiers.del([account.prefix, identifier], tx)
+    await this.participantIdentities.del([account.prefix, identifier], tx)
   }
 
-  async *getParticipantIdentifiers(
+  async *getParticipantIdentities(
     account: Account,
     tx?: IDatabaseTransaction,
   ): AsyncGenerator<string> {
-    for await (const [_, identifier] of this.participantIdentifiers.getAllKeysIter(
+    for await (const [_, identifier] of this.participantIdentities.getAllKeysIter(
       tx,
       account.prefixRange,
     )) {
