@@ -6,7 +6,7 @@ import bufio from 'bufio'
 import { IDatabaseEncoding } from '../../storage'
 import { ACCOUNT_KEY_LENGTH } from '../account/account'
 import { MultisigKeysEncoding } from '../account/encoder/multisigKeys'
-import { MultisigKeys as MultisigKeys } from '../interfaces/multisigKeys'
+import { MultisigKeys } from '../interfaces/multisigKeys'
 import { HeadValue, NullableHeadValueEncoding } from './headValue'
 
 export const KEY_LENGTH = ACCOUNT_KEY_LENGTH
