@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { SigningPackageEncorder } from '@ironfish/sdk'
+import { SigningPackage } from '@ironfish/sdk/src/wallet/account/encoder/signingPackage'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
@@ -52,7 +54,14 @@ export class CreateSigningPackage extends IronfishCommand {
       commitments,
     })
 
+    const encoder: SigningPackageEncorder = new SigningPackageEncorder()
+
+    const encoded = encoder.encode({
+      signingPackage: signingPackageResponse.content.signingPackage,
+      unsignedTransaction: flags.unsignedTransaction,
+    } as SigningPackage)
+
     this.log(`Signing Package for commitments from ${commitments.length} participants:\n`)
-    this.log(signingPackageResponse.content.signingPackage)
+    this.log(encoded)
   }
 }

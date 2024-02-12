@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { SigningPackageEncorder } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
@@ -18,11 +19,6 @@ export class CreateSignatureShareCommand extends IronfishCommand {
       description: 'The account from which the signature share will be created',
       required: false,
     }),
-    unsignedTransaction: Flags.string({
-      char: 'u',
-      description: 'The unsigned transaction for which the signature share will be created',
-      required: false,
-    }),
     signingPackage: Flags.string({
       char: 's',
       description: 'The signing package for which the signature share will be created',
@@ -36,8 +32,11 @@ export class CreateSignatureShareCommand extends IronfishCommand {
 
   async start(): Promise<void> {
     const { flags } = await this.parse(CreateSignatureShareCommand)
-    let unsignedTransaction = flags.unsignedTransaction?.trim()
-    let signingPackage = flags.signingPackage?.trim()
+    const encoder = new SigningPackageEncorder()
+    const siginingPackage = encoder.decode(flags.signingPackage)
+    let unsignedTransaction = siginingPackage.unsignedTransaction.trim()
+
+    let signingPackage = siginingPackage.signingPackage.trim()
 
     if (!unsignedTransaction) {
       unsignedTransaction = await longPrompt('Enter the unsigned transaction: ')
