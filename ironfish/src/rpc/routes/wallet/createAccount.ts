@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { DuplicateAccountNameError } from '../../../wallet/errors'
 import { RPC_ERROR_CODES, RpcValidationError } from '../../adapters'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
@@ -45,24 +46,23 @@ routes.register<typeof CreateAccountRequestSchema, CreateAccountResponse>(
   async (request, context): Promise<void> => {
     AssertHasRpcContext(request, context, 'wallet')
 
-    const name = request.data.name
-
-    if (context.wallet.accountExists(name)) {
-      throw new RpcValidationError(
-        `There is already an account with the name ${name}`,
-        400,
-        RPC_ERROR_CODES.ACCOUNT_EXISTS,
-      )
+    let account
+    try {
+      account = await context.wallet.createAccount(request.data.name)
+    } catch (e) {
+      if (e instanceof DuplicateAccountNameError) {
+        throw new RpcValidationError(e.message, 400, RPC_ERROR_CODES.DUPLICATE_ACCOUNT_NAME)
+      }
+      throw e
     }
 
-    const account = await context.wallet.createAccount(name)
     if (context.wallet.nodeClient) {
       void context.wallet.scanTransactions()
     }
 
     let isDefaultAccount = false
     if (!context.wallet.hasDefaultAccount || request.data.default) {
-      await context.wallet.setDefaultAccount(name)
+      await context.wallet.setDefaultAccount(account.name)
       isDefaultAccount = true
     }
 
