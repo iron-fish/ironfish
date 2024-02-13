@@ -12,8 +12,8 @@ import { getAccount } from '../utils'
 export type CreateSignatureShareRequest = {
   account?: string
   signingPackage: string
-  unsignedTransaction: string
-  seed: number //  TODO: remove when we have deterministic nonces
+  unsignedTransaction: string // TODO make `unsignedTransaction` part of `signingPackage`
+  signers: Array<{ identity: string }> // TODO make `signers` part of `signingPackage`
 }
 
 export type CreateSignatureShareResponse = {
@@ -26,7 +26,15 @@ export const CreateSignatureShareRequestSchema: yup.ObjectSchema<CreateSignature
       account: yup.string().optional(),
       signingPackage: yup.string().defined(),
       unsignedTransaction: yup.string().defined(),
-      seed: yup.number().defined(),
+      signers: yup
+        .array(
+          yup
+            .object({
+              identity: yup.string().defined(),
+            })
+            .defined(),
+        )
+        .defined(),
     })
     .defined()
 
@@ -49,16 +57,15 @@ routes.register<typeof CreateSignatureShareRequestSchema, CreateSignatureShareRe
     const unsigned = new UnsignedTransaction(
       Buffer.from(request.data.unsignedTransaction, 'hex'),
     )
-    const result = createSignatureShare(
-      request.data.signingPackage,
+    const signatureShare = createSignatureShare(
       account.multisigKeys.identity,
       account.multisigKeys.keyPackage,
+      request.data.signingPackage,
+      unsigned.hash(),
       unsigned.publicKeyRandomness(),
-      request.data.seed,
+      request.data.signers.map((signer) => signer.identity),
     )
 
-    request.end({
-      signatureShare: result,
-    })
+    request.end({ signatureShare })
   },
 )

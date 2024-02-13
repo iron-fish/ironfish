@@ -10,9 +10,6 @@ describe('multisig RPC integration', () => {
   const routeTest = createRouteTest()
 
   it('should create a verified transaction using multisig', async () => {
-    // TODO: remove seed after implementing deterministic nonces
-    const seed = 420
-
     // create participants
     const participants = Array.from({ length: 3 }, () => ({
       identity: ParticipantSecret.random().toIdentity().serialize().toString('hex'),
@@ -77,6 +74,12 @@ describe('multisig RPC integration', () => {
     const miner = await routeTest.wallet.createAccount('miner', { setCreatedAt: false })
     await fundAccount(coordinatorAccount, miner)
 
+    // build list of signers
+    const signers = participantAccounts.map((participant) => {
+      AssertMultisigSigner(participant)
+      return { identity: participant.multisigKeys.identity }
+    })
+
     // create raw transaction
     const createTransactionResponse = await routeTest.client.wallet.createTransaction({
       account: coordinatorAccount.name,
@@ -105,7 +108,8 @@ describe('multisig RPC integration', () => {
       const commitmentResponse = await routeTest.client.wallet.multisig.createSigningCommitment(
         {
           account: participantAccount.name,
-          seed,
+          unsignedTransaction,
+          signers,
         },
       )
 
@@ -129,7 +133,7 @@ describe('multisig RPC integration', () => {
           account: participantAccount.name,
           signingPackage,
           unsignedTransaction,
-          seed,
+          signers,
         })
 
       signatureShares.push(signatureShareResponse.content.signatureShare)

@@ -2,21 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { ParticipantSecret } from '@ironfish/rust-nodejs'
-import {
-  createNodeTest,
-  useAccountAndAddFundsFixture,
-  useUnsignedTxFixture,
-} from '../../../../testUtilities'
+import { useAccountAndAddFundsFixture, useUnsignedTxFixture } from '../../../../testUtilities'
 import { createRouteTest } from '../../../../testUtilities/routeTest'
 import { ACCOUNT_SCHEMA_VERSION } from '../../../../wallet'
 
 describe('Route multisig/createSigningPackage', () => {
   const routeTest = createRouteTest()
-  const nodeTest = createNodeTest()
 
   it('should create signing package', async () => {
-    const seed = 420
-
     const participants = Array.from({ length: 3 }, () =>
       ParticipantSecret.random().toIdentity(),
     )
@@ -52,23 +45,31 @@ describe('Route multisig/createSigningPackage', () => {
       },
     }
 
-    const response = await routeTest.client.wallet.importAccount(importAccountRequest)
+    await routeTest.client.wallet.importAccount(importAccountRequest)
 
-    const commitments: Array<string> = []
-    for (let i = 0; i < 3; i++) {
-      const signingCommitment = await routeTest.client.wallet.multisig.createSigningCommitment({
-        account: response.content.name,
-        seed,
-      })
-      commitments.push(signingCommitment.content.commitment)
-    }
+    const txAccount = await useAccountAndAddFundsFixture(routeTest.wallet, routeTest.chain)
+    const unsignedTransaction = (
+      await useUnsignedTxFixture(routeTest.wallet, txAccount, txAccount)
+    )
+      .serialize()
+      .toString('hex')
 
-    const account = await useAccountAndAddFundsFixture(nodeTest.wallet, nodeTest.chain)
-    const unsignedTransaction = await useUnsignedTxFixture(nodeTest.wallet, account, account)
-    const unsignedString = unsignedTransaction.serialize().toString('hex')
+    const commitments = await Promise.all(
+      participants.map(async (_) => {
+        const signingCommitment =
+          await routeTest.client.wallet.multisig.createSigningCommitment({
+            unsignedTransaction,
+            signers: participants.map((identity) => ({
+              identity: identity.serialize().toString('hex'),
+            })),
+          })
+        return signingCommitment.content.commitment
+      }),
+    )
+
     const responseSigningPackage = await routeTest.client.wallet.multisig.createSigningPackage({
       commitments,
-      unsignedTransaction: unsignedString,
+      unsignedTransaction,
     })
 
     expect(responseSigningPackage.content).toMatchObject({

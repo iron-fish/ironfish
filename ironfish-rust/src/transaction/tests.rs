@@ -7,9 +7,6 @@ use std::collections::{BTreeMap, HashMap};
 #[cfg(test)]
 use super::internal_batch_verify_transactions;
 use super::{ProposedTransaction, Transaction};
-use crate::frost_utils::{
-    signature_share::create_signature_share, signing_commitment::create_signing_commitment,
-};
 use crate::test_util::create_multisig_identities;
 use crate::transaction::tests::split_spender_key::split_spender_key;
 use crate::{
@@ -28,8 +25,14 @@ use crate::{
 };
 
 use ff::Field;
-use ironfish_frost::frost::round2::{Randomizer, SignatureShare};
-use ironfish_frost::frost::Identifier;
+use ironfish_frost::{
+    frost::{
+        round2,
+        round2::{Randomizer, SignatureShare},
+        Identifier,
+    },
+    nonces::deterministic_signing_nonces,
+};
 use ironfish_zkp::{
     constants::{ASSET_ID_LENGTH, SPENDING_KEY_GENERATOR, TREE_DEPTH},
     proofs::{MintAsset, Output, Spend},
@@ -706,10 +709,10 @@ fn test_sign_simple() {
 fn test_aggregate_signature_shares() {
     let spender_key = SaplingKey::generate_key();
 
-    let identifiers = create_multisig_identities(10);
+    let identities = create_multisig_identities(10);
 
     // key package generation by trusted dealer
-    let key_packages = split_spender_key(&spender_key, 2, identifiers)
+    let key_packages = split_spender_key(&spender_key, 2, identities.clone())
         .expect("should be able to split spender key");
 
     // create raw/proposed transaction
@@ -779,12 +782,20 @@ fn test_aggregate_signature_shares() {
         )
         .expect("should be able to build unsigned transaction");
 
+    let transaction_hash = unsigned_transaction
+        .transaction_signature_hash()
+        .expect("should be able to compute transaction hash");
+
     let mut commitments = HashMap::new();
 
     // simulate round 1
-    for key_package in key_packages.key_packages.iter() {
-        let (_nonce, commitment) = create_signing_commitment(key_package.1, 0);
-        commitments.insert(key_package.0, commitment);
+    for (identity, key_package) in key_packages.key_packages.iter() {
+        let nonces = deterministic_signing_nonces(
+            key_package.signing_share(),
+            &transaction_hash,
+            &identities,
+        );
+        commitments.insert(identity, (&nonces).into());
     }
 
     // coordinator creates signing package
@@ -798,16 +809,15 @@ fn test_aggregate_signature_shares() {
         Randomizer::deserialize(&unsigned_transaction.public_key_randomness.to_bytes())
             .expect("should be able to deserialize randomizer");
 
-    for key_package in key_packages.key_packages.iter() {
-        let signature_share = create_signature_share(
-            signing_package.clone(),
-            key_package.0,
-            key_package.1.clone(),
-            randomizer,
-            0,
-        )
-        .expect("should be able to create signature share");
-        signature_shares.insert(signature_share.identifier, signature_share.signature_share);
+    for (identity, key_package) in key_packages.key_packages.iter() {
+        let nonces = deterministic_signing_nonces(
+            key_package.signing_share(),
+            &transaction_hash,
+            &identities,
+        );
+        let signature_share = round2::sign(&signing_package, &nonces, key_package, randomizer)
+            .expect("should be able to create signature share");
+        signature_shares.insert(identity.to_frost_identifier(), signature_share);
     }
 
     // coordinator creates signed transaction

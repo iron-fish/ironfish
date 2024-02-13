@@ -17,18 +17,28 @@ export class CreateSigningCommitmentCommand extends IronfishCommand {
         'The account to use for generating the commitment, must be a multisig participant account',
       required: false,
     }),
-    // TODO(andrea): add transaction flag when we incorporate deterministic nonces
+    unsignedTransaction: Flags.string({
+      char: 'u',
+      description: 'The unsigned transaction that needs to be signed',
+      required: true,
+    }),
+    signerIdentity: Flags.string({
+      char: 'i',
+      description:
+        'The identity of the participants that will sign the transaction (may be specified multiple times to add multiple signers)',
+      required: true,
+      multiple: true,
+    }),
   }
 
   async start(): Promise<void> {
     const { flags } = await this.parse(CreateSigningCommitmentCommand)
 
     const client = await this.sdk.connectRpc()
-    // TODO(andrea): use flags.transaction to create commiment when we incorportate deterministic nonces
-    // set required to true as well
     const response = await client.wallet.multisig.createSigningCommitment({
       account: flags.account,
-      seed: 0,
+      unsignedTransaction: flags.unsignedTransaction,
+      signers: flags.signerIdentity.map((identity) => ({ identity })),
     })
 
     this.log('Commitment:\n')

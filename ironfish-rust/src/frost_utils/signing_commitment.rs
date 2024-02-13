@@ -4,18 +4,11 @@
 
 use std::io;
 
-use ironfish_frost::frost::{
-    self,
-    frost::round1::NonceCommitment,
-    keys::KeyPackage,
-    round1::{SigningCommitments, SigningNonces},
-    Identifier, JubjubBlake2b512,
-};
-use rand::{rngs::StdRng, SeedableRng};
+use ironfish_frost::frost::{frost::round1::NonceCommitment, Identifier, JubjubBlake2b512};
 
 use crate::errors::IronfishError;
 
-pub const SIGNING_COMMITMENT_LENGTH: usize = 96;
+const SIGNING_COMMITMENT_LENGTH: usize = 96;
 
 #[derive(Clone)]
 pub struct SigningCommitment {
@@ -58,52 +51,5 @@ impl SigningCommitment {
         writer.write_all(&self.hiding.serialize())?;
         writer.write_all(&self.binding.serialize())?;
         Ok(())
-    }
-}
-
-// Small wrapper around frost::round1::commit that provides a seedable rng
-pub fn create_signing_commitment(
-    key_package: &KeyPackage,
-    seed: u64,
-) -> (SigningNonces, SigningCommitments) {
-    let mut rng = StdRng::seed_from_u64(seed);
-    frost::round1::commit(key_package.signing_share(), &mut rng)
-}
-
-#[cfg(test)]
-mod test {
-    use crate::frost_utils::split_secret::{split_secret, SecretShareConfig};
-    use crate::test_util::create_multisig_identities;
-    use ff::Field;
-    use jubjub::Fr;
-    use rand::thread_rng;
-
-    #[test]
-    pub fn test_seed_provides_same_result() {
-        let seed = 100;
-        let key = Fr::random(&mut rand::thread_rng());
-
-        let identities = create_multisig_identities(10);
-
-        let key_packages = split_secret(
-            &SecretShareConfig {
-                identities,
-                min_signers: 2,
-                secret: key.to_bytes().to_vec(),
-            },
-            thread_rng(),
-        )
-        .expect("key shares to be created");
-        let key_package = key_packages
-            .0
-            .into_iter()
-            .next()
-            .expect("key package to be created")
-            .1;
-        let (nonces, commitments) = super::create_signing_commitment(&key_package, seed);
-        let (nonces2, commitments2) = super::create_signing_commitment(&key_package, seed);
-        assert_eq!(nonces.hiding().serialize(), nonces2.hiding().serialize());
-        assert_eq!(nonces.binding().serialize(), nonces2.binding().serialize());
-        assert_eq!(commitments, commitments2);
     }
 }

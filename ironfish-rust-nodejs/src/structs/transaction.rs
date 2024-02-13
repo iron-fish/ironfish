@@ -412,6 +412,16 @@ impl NativeUnsignedTransaction {
     }
 
     #[napi]
+    pub fn hash(&self) -> Result<Buffer> {
+        let hash = self
+            .transaction
+            .transaction_signature_hash()
+            .map_err(to_napi_err)?;
+
+        Ok(Buffer::from(hash.as_ref()))
+    }
+
+    #[napi]
     pub fn signing_package(&self, native_identifer_commitments: Vec<String>) -> Result<String> {
         let mut commitments: BTreeMap<Identifier, SigningCommitments> = BTreeMap::new();
 
@@ -467,7 +477,7 @@ impl NativeUnsignedTransaction {
             let iss =
                 SignatureShare::deserialize(&hex_to_bytes(signature_share).map_err(to_napi_err)?)
                     .map_err(to_napi_err)?;
-            signature_shares.insert(iss.identifier, iss.signature_share);
+            signature_shares.insert(iss.identity.to_frost_identifier(), iss.signature_share);
         }
 
         let signed_transaction = self

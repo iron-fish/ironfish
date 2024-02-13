@@ -1139,7 +1139,6 @@ describe('Wallet', () => {
 
   describe('frost', () => {
     it('can do a multisig transaction', async () => {
-      const seed = 420
       const minSigners = 2
 
       const { node } = await nodeTest.createSetup()
@@ -1213,14 +1212,6 @@ describe('Wallet', () => {
       // When importing an account through the SDK, we need to kick off a scan.
       await node.wallet.scanTransactions()
 
-      const signingCommitments: string[] = []
-      for (const participant of participants) {
-        AssertMultisigSigner(participant)
-        signingCommitments.push(
-          createSigningCommitment(participant.multisigKeys.keyPackage, seed),
-        )
-      }
-
       // mine block to send IRON to multisig account
       const miner = await useAccountFixture(node.wallet, 'miner')
       const block = await useMinerBlockFixture(node.chain, undefined, miner)
@@ -1280,6 +1271,24 @@ describe('Wallet', () => {
         trustedDealerPackage.viewKey,
         trustedDealerPackage.outgoingViewKey,
       )
+      const transactionHash = unsignedTransaction.hash()
+
+      const signers = participants.map((participant) => {
+        AssertMultisigSigner(participant)
+        return participant.multisigKeys.identity
+      })
+
+      const signingCommitments: string[] = []
+      for (const participant of participants) {
+        AssertMultisigSigner(participant)
+        signingCommitments.push(
+          createSigningCommitment(
+            participant.multisigKeys.keyPackage,
+            transactionHash,
+            signers,
+          ),
+        )
+      }
 
       const signingPackage = unsignedTransaction.signingPackage(signingCommitments)
       const publicKeyRandomness = unsignedTransaction.publicKeyRandomness()
@@ -1290,11 +1299,12 @@ describe('Wallet', () => {
         AssertMultisigSigner(participant)
         signatureShares.push(
           createSignatureShare(
-            signingPackage,
             participant.multisigKeys.identity,
             participant.multisigKeys.keyPackage,
+            signingPackage,
+            transactionHash,
             publicKeyRandomness,
-            seed,
+            signers,
           ),
         )
       }
