@@ -1232,12 +1232,12 @@ describe('Wallet', () => {
         outputs: [
           {
             publicAddress: participantB.publicAddress,
-            amount: BigInt(2),
+            amount: BigInt(4),
             memo: '',
             assetId: Asset.nativeId(),
           },
         ],
-        fee: BigInt(0),
+        fee: BigInt(2),
       })
 
       // Create a block with a miner's fee and the transaction to send IRON to the multisig account
@@ -1251,10 +1251,11 @@ describe('Wallet', () => {
       expect(addResult2.isAdded).toBeTruthy()
 
       await node.wallet.updateHead()
+      await node.wallet.scanTransactions()
 
       // verify multisig account can see its IRON
       expect(await node.wallet.getBalance(participantA, Asset.nativeId())).toMatchObject({
-        unconfirmed: BigInt(2),
+        unconfirmed: BigInt(4),
       })
 
       // create transaction from multisig account back to miner
@@ -1269,7 +1270,7 @@ describe('Wallet', () => {
           },
         ],
         expiration: 0,
-        fee: 0n,
+        fee: 2n,
       })
 
       const unsignedTransaction = rawTransaction.build(
@@ -1305,7 +1306,7 @@ describe('Wallet', () => {
       const frostTransaction = new Transaction(serializedFrostTransaction)
 
       const minersfee3 = await nodeTest.chain.createMinersFee(
-        transaction.fee(),
+        2n,
         newBlock2.header.sequence + 1,
         miner.spendingKey,
       )
