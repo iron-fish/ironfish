@@ -920,14 +920,11 @@ export class Blockchain {
         timestamp = new Date(Math.max(currentTime, heaviestHead.timestamp.getTime() + 1))
 
         target = Target.calculateTarget(
+          this.consensus,
+          previousSequence + 1,
           timestamp,
           heaviestHead.timestamp,
           heaviestHead.target,
-          this.consensus.parameters.targetBlockTimeInSeconds,
-          this.consensus.parameters.targetBucketTimeInSeconds,
-          this.consensus.getDifficultyBucketMax(previousSequence + 1),
-          this.consensus.parameters.enableFishHash,
-          previousSequence + 1,
         )
       }
 

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { ActivationSequence } from '../consensus'
+import { Consensus } from '../consensus'
 import { BigIntUtils } from '../utils/bigint'
 
 /**
@@ -62,26 +62,20 @@ export class Target {
    * @param previousBlockTarget the block's previous block header's target
    */
   static calculateTarget(
+    consensus: Consensus,
+    sequence: number,
     time: Date,
     previousBlockTimestamp: Date,
     previousBlockTarget: Target,
-    targetBlockTimeInSeconds: number,
-    targetBucketTimeInSeconds: number,
-    maxBuckets: number,
-    enableFishHashSequence: ActivationSequence,
-    sequence: number,
   ): Target {
     const parentDifficulty = previousBlockTarget.toDifficulty()
 
     const difficulty = Target.calculateDifficulty(
+      consensus,
+      sequence,
       time,
       previousBlockTimestamp,
       parentDifficulty,
-      targetBlockTimeInSeconds,
-      targetBucketTimeInSeconds,
-      maxBuckets,
-      enableFishHashSequence,
-      sequence,
     )
 
     return Target.fromDifficulty(difficulty)
@@ -109,20 +103,21 @@ export class Target {
    * @param previousBlockTarget the block's previous block header's target
    */
   static calculateDifficulty(
+    consensus: Consensus,
+    sequence: number,
     time: Date,
     previousBlockTimestamp: Date,
     previousBlockDifficulty: bigint,
-    targetBlockTimeInSeconds: number,
-    targetBucketTimeInSeconds: number,
-    maxBuckets: number,
-    enableFishHashSequence: ActivationSequence,
-    sequence: number,
   ): bigint {
+    const targetBlockTime = consensus.parameters.targetBlockTimeInSeconds
+    const targetBucketTime = consensus.parameters.targetBucketTimeInSeconds
+    const enableFishHashSequence = consensus.parameters.enableFishHash
+    const maxBuckets = consensus.getDifficultyBucketMax(sequence)
+
     const diffInSeconds = (time.getTime() - previousBlockTimestamp.getTime()) / 1000
 
     let bucket = Math.floor(
-      (diffInSeconds - targetBlockTimeInSeconds + Math.floor(targetBucketTimeInSeconds / 2)) /
-        targetBucketTimeInSeconds,
+      (diffInSeconds - targetBlockTime + Math.floor(targetBucketTime / 2)) / targetBucketTime,
     )
 
     // Should not change difficulty by more than `maxBuckets` buckets from last block's difficulty
