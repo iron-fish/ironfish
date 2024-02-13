@@ -382,12 +382,11 @@ export class Verifier {
     }
 
     const expectedTarget = Target.calculateTarget(
+      this.chain.consensus,
+      header.sequence,
       header.timestamp,
       previous.timestamp,
       previous.target,
-      this.chain.consensus.parameters.targetBlockTimeInSeconds,
-      this.chain.consensus.parameters.targetBucketTimeInSeconds,
-      this.chain.consensus.getDifficultyBucketMax(header.sequence),
     )
 
     return header.target.targetValue === expectedTarget.targetValue

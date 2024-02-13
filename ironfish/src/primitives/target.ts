@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { Consensus } from '../consensus'
 import { BigIntUtils } from '../utils/bigint'
 
 /**
@@ -20,6 +21,12 @@ const MAX_TARGET = 8834235323891921647916487503714592579137419484378094790608031
  */
 const MAX_256_BIT_NUM =
   115792089237316195423570985008687907853269984665640564039457584007913129639935n
+
+/**
+ * The number to divide the difficulty by when FishHash is activated. This is
+ * due to the FishHash hash rate being much lower than Blake3
+ */
+const FISH_HASH_DIFFICULTY_ADJUSTMENT = 100n
 
 export class Target {
   targetValue: bigint
@@ -61,22 +68,20 @@ export class Target {
    * @param previousBlockTarget the block's previous block header's target
    */
   static calculateTarget(
+    consensus: Consensus,
+    sequence: number,
     time: Date,
     previousBlockTimestamp: Date,
     previousBlockTarget: Target,
-    targetBlockTimeInSeconds: number,
-    targetBucketTimeInSeconds: number,
-    maxBuckets: number,
   ): Target {
     const parentDifficulty = previousBlockTarget.toDifficulty()
 
     const difficulty = Target.calculateDifficulty(
+      consensus,
+      sequence,
       time,
       previousBlockTimestamp,
       parentDifficulty,
-      targetBlockTimeInSeconds,
-      targetBucketTimeInSeconds,
-      maxBuckets,
     )
 
     return Target.fromDifficulty(difficulty)
@@ -104,25 +109,34 @@ export class Target {
    * @param previousBlockTarget the block's previous block header's target
    */
   static calculateDifficulty(
+    consensus: Consensus,
+    sequence: number,
     time: Date,
     previousBlockTimestamp: Date,
     previousBlockDifficulty: bigint,
-    targetBlockTimeInSeconds: number,
-    targetBucketTimeInSeconds: number,
-    maxBuckets: number,
   ): bigint {
+    const targetBlockTime = consensus.parameters.targetBlockTimeInSeconds
+    const targetBucketTime = consensus.parameters.targetBucketTimeInSeconds
+    const enableFishHashSequence = consensus.parameters.enableFishHash
+    const maxBuckets = consensus.getDifficultyBucketMax(sequence)
+
     const diffInSeconds = (time.getTime() - previousBlockTimestamp.getTime()) / 1000
 
     let bucket = Math.floor(
-      (diffInSeconds - targetBlockTimeInSeconds + Math.floor(targetBucketTimeInSeconds / 2)) /
-        targetBucketTimeInSeconds,
+      (diffInSeconds - targetBlockTime + Math.floor(targetBucketTime / 2)) / targetBucketTime,
     )
 
     // Should not change difficulty by more than `maxBuckets` buckets from last block's difficulty
     bucket = Math.min(bucket, maxBuckets)
 
-    const difficulty =
+    let difficulty =
       previousBlockDifficulty - (previousBlockDifficulty / 2048n) * BigInt(bucket)
+
+    // A one-time difficulty adjustment when the mining algorithm changes from
+    // blake3 to FishHash, since the FishHash hash rate is much lower than Blake3
+    if (sequence === enableFishHashSequence) {
+      difficulty /= FISH_HASH_DIFFICULTY_ADJUSTMENT
+    }
 
     return BigIntUtils.max(difficulty, Target.minDifficulty())
   }

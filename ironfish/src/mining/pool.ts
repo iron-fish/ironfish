@@ -401,11 +401,7 @@ export class MiningPool {
 
     for await (const payload of this.rpc.miner.blockTemplateStream().contentStream()) {
       Assert.isNotUndefined(payload.previousBlockInfo)
-      this.restartCalculateTargetInterval(
-        this.consensus.parameters.targetBlockTimeInSeconds,
-        this.consensus.parameters.targetBucketTimeInSeconds,
-        this.consensus.getDifficultyBucketMax(payload.header.sequence),
-      )
+      this.restartCalculateTargetInterval()
 
       const currentHeadTarget = new Target(Buffer.from(payload.previousBlockInfo.target, 'hex'))
       this.currentHeadDifficulty = currentHeadTarget.toDifficulty()
@@ -415,15 +411,12 @@ export class MiningPool {
     }
   }
 
-  private recalculateTarget(
-    targetBlockTimeInSeconds: number,
-    targetBucketTimeInSeconds: number,
-    maxBuckets: number,
-  ) {
+  private recalculateTarget() {
     this.logger.debug('recalculating target')
 
     Assert.isNotNull(this.currentHeadTimestamp)
     Assert.isNotNull(this.currentHeadDifficulty)
+    Assert.isNotNull(this.consensus)
 
     const currentBlock = this.miningRequestBlocks.get(this.nextMiningRequestId - 1)
     Assert.isNotNull(currentBlock)
@@ -436,12 +429,11 @@ export class MiningPool {
 
     const newTarget = Target.fromDifficulty(
       Target.calculateDifficulty(
+        this.consensus,
+        latestBlock.header.sequence,
         newTime,
         new Date(this.currentHeadTimestamp),
         this.currentHeadDifficulty,
-        targetBlockTimeInSeconds,
-        targetBucketTimeInSeconds,
-        maxBuckets,
       ),
     )
 
@@ -480,17 +472,13 @@ export class MiningPool {
     this.stratum.newWork(miningRequestId, newWork)
   }
 
-  private restartCalculateTargetInterval(
-    targetBlockTimeInSeconds: number,
-    targetBucketTimeInSeconds: number,
-    maxBuckets: number,
-  ) {
+  private restartCalculateTargetInterval() {
     if (this.recalculateTargetInterval) {
       clearInterval(this.recalculateTargetInterval)
     }
 
     this.recalculateTargetInterval = setInterval(() => {
-      this.recalculateTarget(targetBlockTimeInSeconds, targetBucketTimeInSeconds, maxBuckets)
+      this.recalculateTarget()
     }, RECALCULATE_TARGET_TIMEOUT)
   }
 

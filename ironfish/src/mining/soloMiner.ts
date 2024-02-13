@@ -152,11 +152,7 @@ export class MiningSoloMiner {
       this.currentHeadDifficulty = currentHeadTarget.toDifficulty()
       this.currentHeadTimestamp = payload.previousBlockInfo.timestamp
 
-      this.restartCalculateTargetInterval(
-        this.consensus.parameters.targetBlockTimeInSeconds,
-        this.consensus.parameters.targetBucketTimeInSeconds,
-        this.consensus.getDifficultyBucketMax(payload.header.sequence),
-      )
+      this.restartCalculateTargetInterval()
       this.startNewWork(payload)
     }
   }
@@ -270,13 +266,10 @@ export class MiningSoloMiner {
     })
   }
 
-  private recalculateTarget(
-    targetBlockTimeInSeconds: number,
-    targetBucketTimeInSeconds: number,
-    maxBuckets: number,
-  ) {
+  private recalculateTarget() {
     Assert.isNotNull(this.currentHeadTimestamp)
     Assert.isNotNull(this.currentHeadDifficulty)
+    Assert.isNotNull(this.consensus)
 
     const latestBlock = this.miningRequestBlocks.get(this.nextMiningRequestId - 1)
     Assert.isNotUndefined(latestBlock)
@@ -284,12 +277,11 @@ export class MiningSoloMiner {
     const newTime = new Date()
     const newTarget = Target.fromDifficulty(
       Target.calculateDifficulty(
+        this.consensus,
+        latestBlock.header.sequence,
         newTime,
         new Date(this.currentHeadTimestamp),
         this.currentHeadDifficulty,
-        targetBlockTimeInSeconds,
-        targetBucketTimeInSeconds,
-        maxBuckets,
       ),
     )
 
@@ -299,17 +291,13 @@ export class MiningSoloMiner {
     this.startNewWork(latestBlock)
   }
 
-  private restartCalculateTargetInterval(
-    targetBlockTimeInSeconds: number,
-    targetBucketTimeInSeconds: number,
-    maxBuckets: number,
-  ) {
+  private restartCalculateTargetInterval() {
     if (this.recalculateTargetInterval) {
       clearInterval(this.recalculateTargetInterval)
     }
 
     this.recalculateTargetInterval = setInterval(() => {
-      this.recalculateTarget(targetBlockTimeInSeconds, targetBucketTimeInSeconds, maxBuckets)
+      this.recalculateTarget()
     }, RECALCULATE_TARGET_TIMEOUT)
   }
 }
