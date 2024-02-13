@@ -49,7 +49,7 @@ export const FISHNET_GENESIS = {
 }
 
 export const FISHNET: NetworkDefinition = {
-  id: 4,
+  id: 3,
   bootstrapNodes: [],
   genesis: FISHNET_GENESIS,
   consensus: FISHNET_CONSENSUS,

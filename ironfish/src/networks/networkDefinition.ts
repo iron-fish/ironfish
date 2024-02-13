@@ -67,6 +67,8 @@ export function defaultNetworkName(networkId: number): string | undefined {
       return 'Mainnet'
     case 2:
       return 'Devnet'
+    case 3:
+      return 'Fishnet'
   }
 }
 
