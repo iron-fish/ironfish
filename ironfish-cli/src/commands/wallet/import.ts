@@ -150,16 +150,8 @@ export class ImportCommand extends IronfishCommand {
   }
 
   async importTTY(): Promise<string> {
-    let userInput = (
-      await largePrompt('Paste the output of wallet:export, or your spending key: ')
-    ).trim()
-
-    while (userInput.length === 0) {
-      userInput = (
-        await largePrompt('Paste the output of wallet:export, or your spending key: ')
-      ).trim()
-    }
-
-    return userInput
+    return await largePrompt('Paste the output of wallet:export, or your spending key: ', {
+      required: true,
+    })
   }
 }
