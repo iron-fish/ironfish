@@ -22,6 +22,12 @@ const MAX_TARGET = 8834235323891921647916487503714592579137419484378094790608031
 const MAX_256_BIT_NUM =
   115792089237316195423570985008687907853269984665640564039457584007913129639935n
 
+/**
+ * The number to divide the difficulty by when FishHash is activated. This is
+ * due to the FishHash hash rate being much lower than Blake3
+ */
+const FISH_HASH_DIFFICULTY_ADJUSTMENT = 100n
+
 export class Target {
   targetValue: bigint
   constructor(targetValue: bigint | Buffer | string | number) {
@@ -127,9 +133,9 @@ export class Target {
       previousBlockDifficulty - (previousBlockDifficulty / 2048n) * BigInt(bucket)
 
     // A one-time difficulty adjustment when the mining algorithm changes from
-    // blake3 to fishhash, since the fishhash hashrate is much lower than blake3
+    // blake3 to FishHash, since the FishHash hash rate is much lower than Blake3
     if (sequence === enableFishHashSequence) {
-      difficulty /= 100n
+      difficulty /= FISH_HASH_DIFFICULTY_ADJUSTMENT
     }
 
     return BigIntUtils.max(difficulty, Target.minDifficulty())
