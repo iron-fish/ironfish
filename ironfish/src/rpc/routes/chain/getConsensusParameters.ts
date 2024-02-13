@@ -26,6 +26,7 @@ export const GetConsensusParametersResponseSchema: yup.ObjectSchema<GetConsensus
       enableAssetOwnership: yup.number().nullable().defined(),
       enforceSequentialBlockTime: yup.number().nullable().defined(),
       enableFishHash: yup.number().nullable().defined(),
+      enableIncreasedDifficultyChange: yup.number().nullable().defined(),
     })
     .defined()
 

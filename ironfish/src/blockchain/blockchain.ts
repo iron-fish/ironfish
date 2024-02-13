@@ -925,6 +925,7 @@ export class Blockchain {
           heaviestHead.target,
           this.consensus.parameters.targetBlockTimeInSeconds,
           this.consensus.parameters.targetBucketTimeInSeconds,
+          this.consensus.getDifficultyBucketMax(previousSequence + 1),
         )
       }
 

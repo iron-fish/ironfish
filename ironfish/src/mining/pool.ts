@@ -5,7 +5,7 @@ import LeastRecentlyUsed from 'blru'
 import tls from 'tls'
 import { Assert } from '../assert'
 import { BlockHasher } from '../blockHasher'
-import { Consensus, ConsensusParameters } from '../consensus'
+import { Consensus } from '../consensus'
 import { Config } from '../fileStores/config'
 import { Logger } from '../logger'
 import { Target } from '../primitives/target'
@@ -35,7 +35,7 @@ export class MiningPool {
   readonly config: Config
   readonly webhooks: WebhookNotifier[]
 
-  private consensusParameters: ConsensusParameters | null = null
+  private consensus: Consensus | null = null
   private blockHasher: BlockHasher | null = null
 
   private started: boolean
@@ -369,11 +369,11 @@ export class MiningPool {
     this.webhooks.map((w) => w.poolConnected(explorer ?? undefined))
 
     const consensusResponse = (await this.rpc.chain.getConsensusParameters()).content
-    this.consensusParameters = consensusResponse
+    this.consensus = new Consensus(consensusResponse)
 
     // TODO: Add option for full cache FishHash verification
     this.blockHasher = new BlockHasher({
-      consensus: new Consensus(this.consensusParameters),
+      consensus: this.consensus,
     })
 
     this.connectWarned = false
@@ -397,13 +397,14 @@ export class MiningPool {
   }
 
   private async processNewBlocks() {
-    Assert.isNotNull(this.consensusParameters)
+    Assert.isNotNull(this.consensus)
 
     for await (const payload of this.rpc.miner.blockTemplateStream().contentStream()) {
       Assert.isNotUndefined(payload.previousBlockInfo)
       this.restartCalculateTargetInterval(
-        this.consensusParameters.targetBlockTimeInSeconds,
-        this.consensusParameters.targetBucketTimeInSeconds,
+        this.consensus.parameters.targetBlockTimeInSeconds,
+        this.consensus.parameters.targetBucketTimeInSeconds,
+        this.consensus.getDifficultyBucketMax(payload.header.sequence),
       )
 
       const currentHeadTarget = new Target(Buffer.from(payload.previousBlockInfo.target, 'hex'))
@@ -417,6 +418,7 @@ export class MiningPool {
   private recalculateTarget(
     targetBlockTimeInSeconds: number,
     targetBucketTimeInSeconds: number,
+    maxBuckets: number,
   ) {
     this.logger.debug('recalculating target')
 
@@ -439,6 +441,7 @@ export class MiningPool {
         this.currentHeadDifficulty,
         targetBlockTimeInSeconds,
         targetBucketTimeInSeconds,
+        maxBuckets,
       ),
     )
 
@@ -480,13 +483,14 @@ export class MiningPool {
   private restartCalculateTargetInterval(
     targetBlockTimeInSeconds: number,
     targetBucketTimeInSeconds: number,
+    maxBuckets: number,
   ) {
     if (this.recalculateTargetInterval) {
       clearInterval(this.recalculateTargetInterval)
     }
 
     this.recalculateTargetInterval = setInterval(() => {
-      this.recalculateTarget(targetBlockTimeInSeconds, targetBucketTimeInSeconds)
+      this.recalculateTarget(targetBlockTimeInSeconds, targetBucketTimeInSeconds, maxBuckets)
     }, RECALCULATE_TARGET_TIMEOUT)
   }
 

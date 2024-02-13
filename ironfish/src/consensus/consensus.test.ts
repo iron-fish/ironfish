@@ -16,6 +16,7 @@ describe('Consensus', () => {
     enableAssetOwnership: 7,
     enforceSequentialBlockTime: 8,
     enableFishHash: 9,
+    enableIncreasedDifficultyChange: 10,
   }
 
   const consensus = new Consensus(params)
@@ -25,6 +26,7 @@ describe('Consensus', () => {
     enableAssetOwnership: null,
     enforceSequentialBlockTime: null,
     enableFishHash: null,
+    enableIncreasedDifficultyChange: null,
   })
 
   describe('isActive', () => {
@@ -37,6 +39,7 @@ describe('Consensus', () => {
       expect(consensus.isActive('enableAssetOwnership', 6)).toBe(false)
       expect(consensus.isActive('enforceSequentialBlockTime', 7)).toBe(false)
       expect(consensus.isActive('enableFishHash', 8)).toBe(false)
+      expect(consensus.isActive('enableIncreasedDifficultyChange', 9)).toBe(false)
     })
 
     it('returns true when the sequence is equal to the upgrade number', () => {
@@ -48,6 +51,7 @@ describe('Consensus', () => {
       expect(consensus.isActive('enableAssetOwnership', 7)).toBe(true)
       expect(consensus.isActive('enforceSequentialBlockTime', 8)).toBe(true)
       expect(consensus.isActive('enableFishHash', 9)).toBe(true)
+      expect(consensus.isActive('enableIncreasedDifficultyChange', 10)).toBe(true)
     })
 
     it('returns true when the sequence is greater than the upgrade number', () => {
@@ -59,6 +63,7 @@ describe('Consensus', () => {
       expect(consensus.isActive('enableAssetOwnership', 8)).toBe(true)
       expect(consensus.isActive('enforceSequentialBlockTime', 9)).toBe(true)
       expect(consensus.isActive('enableFishHash', 10)).toBe(true)
+      expect(consensus.isActive('enableIncreasedDifficultyChange', 11)).toBe(true)
     })
 
     it('uses a minimum sequence of 1 if given a smaller sequence', () => {
@@ -71,6 +76,7 @@ describe('Consensus', () => {
       expect(consensusWithInactives.isActive('enableAssetOwnership', 3)).toBe(false)
       expect(consensusWithInactives.isActive('enforceSequentialBlockTime', 3)).toBe(false)
       expect(consensusWithInactives.isActive('enableFishHash', 3)).toBe(false)
+      expect(consensusWithInactives.isActive('enableIncreasedDifficultyChange', 3)).toBe(false)
     })
   })
 
@@ -79,12 +85,14 @@ describe('Consensus', () => {
       expect(consensusWithInactives.isNeverActive('enableAssetOwnership')).toBe(true)
       expect(consensusWithInactives.isNeverActive('enforceSequentialBlockTime')).toBe(true)
       expect(consensusWithInactives.isNeverActive('enableFishHash')).toBe(true)
+      expect(consensusWithInactives.isNeverActive('enableIncreasedDifficultyChange')).toBe(true)
     })
 
     it('returns false if flag has activation sequence', () => {
       expect(consensus.isNeverActive('enableAssetOwnership')).toBe(false)
       expect(consensus.isNeverActive('enforceSequentialBlockTime')).toBe(false)
       expect(consensus.isNeverActive('enableFishHash')).toBe(false)
+      expect(consensus.isNeverActive('enableIncreasedDifficultyChange')).toBe(false)
     })
   })
 
@@ -100,6 +108,19 @@ describe('Consensus', () => {
       expect(consensusWithInactives.getActiveTransactionVersion(5)).toEqual(
         TransactionVersion.V1,
       )
+    })
+  })
+
+  describe('getDifficultyBucketMax', () => {
+    it('returns the correct max bucket number based on activation sequence', () => {
+      expect(consensus.getDifficultyBucketMax(8)).toEqual(99)
+      expect(consensus.getDifficultyBucketMax(9)).toEqual(99)
+      expect(consensus.getDifficultyBucketMax(10)).toEqual(200)
+      expect(consensus.getDifficultyBucketMax(11)).toEqual(200)
+    })
+
+    it('returns 99 when activation flag is never', () => {
+      expect(consensusWithInactives.getDifficultyBucketMax(5)).toEqual(99)
     })
   })
 })
