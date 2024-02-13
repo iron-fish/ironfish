@@ -5,7 +5,7 @@
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
-import { longPrompt } from '../../../utils/longPrompt'
+import { largePrompt } from '../../../utils/longPrompt'
 
 export class CreateSignatureShareCommand extends IronfishCommand {
   static description = `Creates a signature share for a participant for a given transaction`
@@ -36,11 +36,11 @@ export class CreateSignatureShareCommand extends IronfishCommand {
     let signingPackage = flags.signingPackage?.trim()
 
     if (!unsignedTransaction) {
-      unsignedTransaction = await longPrompt('Enter the unsigned transaction: ')
+      unsignedTransaction = await largePrompt('Enter the unsigned transaction: ')
     }
 
     if (!signingPackage) {
-      signingPackage = await longPrompt('Enter the signing package: ')
+      signingPackage = await largePrompt('Enter the signing package: ')
     }
 
     const client = await this.sdk.connectRpc()
