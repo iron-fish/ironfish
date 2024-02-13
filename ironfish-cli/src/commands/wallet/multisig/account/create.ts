@@ -110,7 +110,7 @@ export class MultisigCreate extends IronfishCommand {
     for (const [i, keyPackage] of response.content.keyPackages.entries()) {
       this.log('\n')
       this.log(`Account ${i + 1}`)
-      this.log(`Identifier ${keyPackage.identity}`)
+      this.log(`Identity ${keyPackage.identity}`)
       this.log('----------------')
       const accountStr = encoder.encode({
         name: `${name}-${i}`,
