@@ -4,30 +4,28 @@
 import readline from 'readline'
 
 // Most effective way to take in a large textual prompt input without affecting UX
-function fetchResponse(question: string): Promise<string> {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  })
-
-  return new Promise((resolve) => {
-    rl.question(question, (answer) => {
-      rl.close()
-      resolve(answer.trim())
-    })
-  })
-}
-
-export async function largePrompt(
+export async function longPrompt(
   question: string,
   options?: {
     required?: boolean
   },
 ): Promise<string> {
-  let userInput = (await fetchResponse(question)).trim()
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  })
 
-  while (userInput.length === 0 && options?.required) {
-    userInput = (await fetchResponse(question)).trim()
+  const promise = new Promise((resolve) => {
+    rl.question(question, (answer) => {
+      rl.close()
+      resolve(answer.trim())
+    })
+  })
+
+  let userInput = (await promise) as string
+
+  if (userInput.length === 0 && options?.required) {
+    userInput = await longPrompt(question, options)
   }
 
   return userInput
