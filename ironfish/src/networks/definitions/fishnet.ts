@@ -48,7 +48,7 @@ export const FISHNET_GENESIS = {
   ],
 }
 
-export const DEVNET: NetworkDefinition = {
+export const FISHNET: NetworkDefinition = {
   id: 4,
   bootstrapNodes: [],
   genesis: FISHNET_GENESIS,

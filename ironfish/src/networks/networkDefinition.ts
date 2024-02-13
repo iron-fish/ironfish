@@ -7,9 +7,7 @@ import { Config, InternalStore } from '../fileStores'
 import { FileSystem } from '../fileSystems'
 import { SerializedBlock } from '../primitives/block'
 import { IJSON } from '../serde'
-import { DEVNET } from './definitions/devnet'
-import { MAINNET } from './definitions/mainnet'
-import { TESTNET } from './definitions/testnet'
+import { DEVNET, FISHNET, MAINNET, TESTNET } from './definitions'
 
 export type NetworkDefinition = {
   id: number
@@ -105,6 +103,8 @@ export async function getNetworkDefinition(
       networkDefinition = MAINNET
     } else if (networkId === 2) {
       networkDefinition = DEVNET
+    } else if (networkId === 3) {
+      networkDefinition = FISHNET
     } else {
       const networkDefinitionJSON = await files.readFile(config.networkDefinitionPath)
       networkDefinition = await networkDefinitionSchema.validate(
