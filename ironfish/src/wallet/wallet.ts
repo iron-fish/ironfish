@@ -412,14 +412,14 @@ export class Wallet {
       ))
 
     const batchSize = 20
-    const notePromisesByAccountId: Map<string, Array<Promise<Array<DecryptedNote>>>> = new Map()
+    const notePromises: Array<Promise<Array<DecryptedNote>>> = []
+    let decryptNotesPayloads = []
     for (const account of accountsToCheck) {
-      const notePromises = []
-      let decryptNotesPayloads = []
       let currentNoteIndex = initialNoteIndex
 
       for (const note of transaction.notes) {
         decryptNotesPayloads.push({
+          accountId: account.id,
           serializedNote: note.serialize(),
           incomingViewKey: account.incomingViewKey,
           outgoingViewKey: account.outgoingViewKey,
@@ -437,20 +437,18 @@ export class Wallet {
           decryptNotesPayloads = []
         }
       }
+    }
 
-      if (decryptNotesPayloads.length) {
-        notePromises.push(this.decryptNotesFromTransaction(decryptNotesPayloads))
-      }
-
-      notePromisesByAccountId.set(account.id, notePromises)
+    if (decryptNotesPayloads.length) {
+      notePromises.push(this.decryptNotesFromTransaction(decryptNotesPayloads))
     }
 
     const decryptedNotesByAccountId = new Map<string, Array<DecryptedNote>>()
-    for (const [key, value] of notePromisesByAccountId) {
-      const decryptedNotes = (await Promise.all(value ?? [])).flat()
-      if (decryptedNotes.length) {
-        decryptedNotesByAccountId.set(key, decryptedNotes)
-      }
+    const flatPromises = (await Promise.all(notePromises)).flat()
+    for (const decryptedNote of flatPromises) {
+      const accountNotes = decryptedNotesByAccountId.get(decryptedNote.accountId) ?? []
+      accountNotes.push(decryptedNote)
+      decryptedNotesByAccountId.set(decryptedNote.accountId, accountNotes)
     }
 
     return decryptedNotesByAccountId

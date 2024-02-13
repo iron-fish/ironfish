@@ -187,6 +187,7 @@ export async function getTransactionNotes(
     }
 
     decryptNotesPayloads.push({
+      accountId: account.id,
       serializedNote: note.serialize(),
       incomingViewKey: account.incomingViewKey,
       outgoingViewKey: account.outgoingViewKey,
