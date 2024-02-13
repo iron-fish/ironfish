@@ -9,11 +9,7 @@ export type SigningPackage = {
 
 export class SigningPackageEncoder {
   encode(signingPackage: SigningPackage): string {
-    return Buffer.from(
-      JSON.stringify({
-        signingPackage,
-      }),
-    ).toString('base64')
+    return Buffer.from(JSON.stringify(signingPackage)).toString('base64')
   }
 
   decode(value: string): SigningPackage {

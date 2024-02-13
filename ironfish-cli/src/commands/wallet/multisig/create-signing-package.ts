@@ -39,7 +39,7 @@ export class CreateSigningPackage extends IronfishCommand {
 
     let commitments = flags.commitment
     if (!commitments) {
-      const input = await longPrompt('Enter the signing commitments separated by commas', {
+      const input = await longPrompt('Enter the signing commitments separated by commas: ', {
         required: true,
       })
       commitments = input.split(',')
@@ -48,16 +48,18 @@ export class CreateSigningPackage extends IronfishCommand {
 
     const client = await this.sdk.connectRpc()
 
-    const signingPackageResponse = await client.wallet.multisig.createSigningPackage({
-      unsignedTransaction,
-      commitments,
-    })
+    const signingPackage = (
+      await client.wallet.multisig.createSigningPackage({
+        unsignedTransaction,
+        commitments,
+      })
+    ).content.signingPackage
 
     const encoder = new SigningPackageEncoder()
 
     const encoded = encoder.encode({
-      signingPackage: signingPackageResponse.content.signingPackage,
-      unsignedTransaction: flags.unsignedTransaction,
+      signingPackage,
+      unsignedTransaction,
     } as SigningPackage)
 
     this.log(`Signing Package for commitments from ${commitments.length} participants:\n`)

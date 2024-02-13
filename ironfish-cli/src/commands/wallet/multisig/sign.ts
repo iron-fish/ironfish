@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { CurrencyUtils, Transaction } from '@ironfish/sdk'
+import { CurrencyUtils, SigningPackageEncoder, Transaction } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
@@ -17,10 +17,6 @@ export class MultisigSign extends IronfishCommand {
       char: 'f',
       description: 'Account to use when aggregating signature shares',
       required: false,
-    }),
-    unsignedTransaction: Flags.string({
-      char: 'u',
-      description: 'Unsigned transaction',
     }),
     signingPackage: Flags.string({
       char: 'p',
@@ -41,17 +37,16 @@ export class MultisigSign extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(MultisigSign)
 
-    const unsignedTransaction =
-      flags.unsignedTransaction?.trim() ??
-      (await longPrompt('Enter the unsigned transaction: ', { required: true }))
-
     const signingPackage =
       flags.signingPackage?.trim() ??
       (await longPrompt('Enter the signing package: ', { required: true }))
 
+    const encoder = new SigningPackageEncoder()
+    const siginingPackageDecoded = encoder.decode(signingPackage.trim())
+
     let signatureShares = flags.signatureShare
     if (!signatureShares) {
-      const input = await longPrompt('Enter the signature shares separated by commas', {
+      const input = await longPrompt('Enter the signature shares separated by commas: ', {
         required: true,
       })
       signatureShares = input.split(',')
@@ -65,8 +60,8 @@ export class MultisigSign extends IronfishCommand {
     const response = await client.wallet.multisig.aggregateSignatureShares({
       account: flags.account,
       broadcast: flags.broadcast,
-      unsignedTransaction,
-      signingPackage,
+      unsignedTransaction: siginingPackageDecoded.unsignedTransaction,
+      signingPackage: siginingPackageDecoded.signingPackage,
       signatureShares,
     })
 

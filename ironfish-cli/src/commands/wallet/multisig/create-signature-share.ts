@@ -47,15 +47,17 @@ export class CreateSignatureShareCommand extends IronfishCommand {
     }
     const encoder = new SigningPackageEncoder()
     const siginingPackageDecoded = encoder.decode(signingPackage.trim())
-
     const client = await this.sdk.connectRpc()
     // TODO(andrea): use flags.transaction to create commiment when we incorportate deterministic nonces
     // set required to true as well
-    const signatureShareResponse = await client.wallet.multisig.createSignatureShare({
+    const input = {
       account: flags.account,
-      ...siginingPackageDecoded,
+      signingPackage: siginingPackageDecoded.signingPackage,
+      unsignedTransaction: siginingPackageDecoded.unsignedTransaction,
       seed: 0,
-    })
+    }
+
+    const signatureShareResponse = await client.wallet.multisig.createSignatureShare(input)
 
     this.log('Signing Share:\n')
     this.log(signatureShareResponse.content.signatureShare)
