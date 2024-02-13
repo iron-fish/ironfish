@@ -5,6 +5,7 @@
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
+import { largePrompt } from '../../../utils/longPrompt'
 
 export class CreateSigningPackage extends IronfishCommand {
   static description = `Creates a signing package for a given transaction for a multisig account`
@@ -15,13 +16,11 @@ export class CreateSigningPackage extends IronfishCommand {
     unsignedTransaction: Flags.string({
       char: 'u',
       description: 'The unsigned transaction for which the signing share will be created',
-      required: true,
     }),
     commitment: Flags.string({
       char: 'c',
       description:
         'The signing commitments from participants to be used for creating the signing package',
-      required: true,
       multiple: true,
     }),
   }
@@ -29,14 +28,31 @@ export class CreateSigningPackage extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(CreateSigningPackage)
 
+    let unsignedTransaction = flags.unsignedTransaction?.trim()
+
+    if (!unsignedTransaction) {
+      unsignedTransaction = await largePrompt('Enter the unsigned transaction: ', {
+        required: true,
+      })
+    }
+
+    let commitments = flags.commitment
+    if (!commitments) {
+      const input = await largePrompt('Enter the signing commitments separated by commas', {
+        required: true,
+      })
+      commitments = input.split(',')
+    }
+    commitments = commitments.map((s) => s.trim())
+
     const client = await this.sdk.connectRpc()
 
     const signingPackageResponse = await client.wallet.multisig.createSigningPackage({
-      unsignedTransaction: flags.unsignedTransaction,
-      commitments: flags.commitment,
+      unsignedTransaction,
+      commitments,
     })
 
-    this.log(`Signing Package for commitments from ${flags.commitment.length} participants:\n`)
+    this.log(`Signing Package for commitments from ${commitments.length} participants:\n`)
     this.log(signingPackageResponse.content.signingPackage)
   }
 }

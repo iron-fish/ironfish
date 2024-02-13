@@ -5,6 +5,7 @@ import { CurrencyUtils, Transaction } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
+import { largePrompt } from '../../../utils/longPrompt'
 
 export class MultisigSign extends IronfishCommand {
   static description = 'Aggregate signature shares from participants to sign a transaction'
@@ -42,15 +43,15 @@ export class MultisigSign extends IronfishCommand {
 
     const unsignedTransaction =
       flags.unsignedTransaction?.trim() ??
-      (await CliUx.ux.prompt('Enter the unsigned transaction', { required: true }))
+      (await largePrompt('Enter the unsigned transaction: ', { required: true }))
 
     const signingPackage =
       flags.signingPackage?.trim() ??
-      (await CliUx.ux.prompt('Enter the signing package', { required: true }))
+      (await largePrompt('Enter the signing package: ', { required: true }))
 
     let signatureShares = flags.signatureShare
     if (!signatureShares) {
-      const input = await CliUx.ux.prompt('Enter the signature shares separated by commas', {
+      const input = await largePrompt('Enter the signature shares separated by commas', {
         required: true,
       })
       signatureShares = input.split(',')
