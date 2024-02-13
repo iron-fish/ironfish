@@ -411,11 +411,10 @@ export class Wallet {
         async (a) => await this.isAccountUpToDate(a),
       ))
 
-    const decryptedNotesByAccountId = new Map<string, Array<DecryptedNote>>()
-
     const batchSize = 20
+    const notePromisesByAccountId: Map<string, Array<Promise<Array<DecryptedNote>>>> = new Map()
     for (const account of accountsToCheck) {
-      const decryptedNotes = []
+      const notePromises = []
       let decryptNotesPayloads = []
       let currentNoteIndex = initialNoteIndex
 
@@ -434,21 +433,23 @@ export class Wallet {
         }
 
         if (decryptNotesPayloads.length >= batchSize) {
-          const decryptedNotesBatch = await this.decryptNotesFromTransaction(
-            decryptNotesPayloads,
-          )
-          decryptedNotes.push(...decryptedNotesBatch)
+          notePromises.push(this.decryptNotesFromTransaction(decryptNotesPayloads))
           decryptNotesPayloads = []
         }
       }
 
       if (decryptNotesPayloads.length) {
-        const decryptedNotesBatch = await this.decryptNotesFromTransaction(decryptNotesPayloads)
-        decryptedNotes.push(...decryptedNotesBatch)
+        notePromises.push(this.decryptNotesFromTransaction(decryptNotesPayloads))
       }
 
+      notePromisesByAccountId.set(account.id, notePromises)
+    }
+
+    const decryptedNotesByAccountId = new Map<string, Array<DecryptedNote>>()
+    for (const [key, value] of notePromisesByAccountId) {
+      const decryptedNotes = (await Promise.all(value ?? [])).flat()
       if (decryptedNotes.length) {
-        decryptedNotesByAccountId.set(account.id, decryptedNotes)
+        decryptedNotesByAccountId.set(key, decryptedNotes)
       }
     }
 
@@ -484,9 +485,40 @@ export class Wallet {
       }
     })
 
-    for (const account of accounts) {
-      const shouldDecrypt = await this.shouldDecryptForAccount(blockHeader, account)
+    const decryptAccounts = (
+      await Promise.all(
+        accounts.map((a) =>
+          this.shouldDecryptForAccount(blockHeader, a).then(
+            (shouldDecrypt): [Account, boolean] => [a, shouldDecrypt],
+          ),
+        ),
+      )
+    )
+      .filter((v) => v[1])
+      .map((v) => v[0])
+    const decryptedTransactions = await Promise.all(
+      transactions.map(({ transaction, initialNoteIndex }) =>
+        this.decryptNotes(transaction, initialNoteIndex, false, decryptAccounts).then((r) => ({
+          result: r,
+          transaction,
+        })),
+      ),
+    )
 
+    const m: Map<string, [Transaction, DecryptedNote[]][]> = new Map()
+    for (const { transaction, result } of decryptedTransactions) {
+      for (const [id, v] of result) {
+        if (!v.length) {
+          continue
+        }
+
+        const arr = m.get(id) ?? []
+        arr.push([transaction, v])
+        m.set(id, arr)
+      }
+    }
+
+    for (const account of accounts) {
       if (scan && scan.isAborted) {
         scan.signalComplete()
         this.scan = null
@@ -495,11 +527,12 @@ export class Wallet {
 
       await this.walletDb.db.transaction(async (tx) => {
         let assetBalanceDeltas = new AssetBalances()
+        const txns = m.get(account.id)
 
-        if (shouldDecrypt) {
+        if (txns) {
           assetBalanceDeltas = await this.connectBlockTransactions(
             blockHeader,
-            transactions,
+            txns,
             account,
             scan,
             tx,
@@ -556,26 +589,17 @@ export class Wallet {
 
   private async connectBlockTransactions(
     blockHeader: WalletBlockHeader,
-    transactions: WalletBlockTransaction[],
+    transactions: Array<[Transaction, DecryptedNote[]]>,
     account: Account,
     scan?: ScanState,
     tx?: IDatabaseTransaction,
   ): Promise<AssetBalances> {
     const assetBalanceDeltas = new AssetBalances()
 
-    for (const { transaction, initialNoteIndex } of transactions) {
+    for (const [transaction, decryptedNotes] of transactions) {
       if (scan && scan.isAborted) {
         return assetBalanceDeltas
       }
-
-      const decryptedNotesByAccountId = await this.decryptNotes(
-        transaction,
-        initialNoteIndex,
-        false,
-        [account],
-      )
-
-      const decryptedNotes = decryptedNotesByAccountId.get(account.id) ?? []
 
       const transactionDeltas = await account.connectTransaction(
         blockHeader,
