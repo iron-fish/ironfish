@@ -1029,9 +1029,9 @@ checksum = "93ace6ec7cc19c8ed33a32eaa9ea692d7faea05006b5356b9e2b668ec4bc3955"
 
 [[package]]
 name = "fish_hash"
-version = "0.1.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9577244a17c8bd562cbfd4b86dead29d8b3f6cb779d1f7be4bc8a2c9b62028dc"
+checksum = "6cea268879491ea825e57d07604f4080d26acfee3c603077ea3ac1e5ea034313"
 dependencies = [
  "blake3",
  "tiny-keccak",
