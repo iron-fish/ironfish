@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Flags } from '@oclif/core'
+import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 import { longPrompt } from '../../../utils/longPrompt'
@@ -28,6 +28,10 @@ export class CreateSignatureShareCommand extends IronfishCommand {
       description: 'The signing package for which the signature share will be created',
       required: false,
     }),
+    confirm: Flags.boolean({
+      default: false,
+      description: 'Confirm creating signature share without confirming',
+    }),
   }
 
   async start(): Promise<void> {
@@ -41,6 +45,13 @@ export class CreateSignatureShareCommand extends IronfishCommand {
 
     if (!signingPackage) {
       signingPackage = await longPrompt('Enter the signing package: ')
+    }
+
+    if (!flags.confirm) {
+      const confirmed = await CliUx.ux.confirm('Confirm new signature share creation (Y/N)')
+      if (!confirmed) {
+        this.error('Creating signature share aborted')
+      }
     }
 
     const client = await this.sdk.connectRpc()
