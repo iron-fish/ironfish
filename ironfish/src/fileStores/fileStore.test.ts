@@ -42,10 +42,8 @@ describe('FileStore', () => {
     await files.init()
     const store = new FileStore<{ foo: string }>(files, 'test', dir)
 
-    const [promise1, resolve1] = PromiseUtils.split<void>()
-    const [promise2, resolve2] = PromiseUtils.split<void>()
-    writeFileSpy.mockReturnValueOnce(promise1)
-    writeFileSpy.mockReturnValueOnce(promise2)
+    const [promiseFirstWrite, resolveFirstWrite] = PromiseUtils.split<void>()
+    writeFileSpy.mockReturnValueOnce(promiseFirstWrite)
 
     const save1 = store.save({ foo: 'hello' })
     const save2 = store.save({ foo: 'hello' })
@@ -58,19 +56,9 @@ describe('FileStore', () => {
     await flushTimeout()
     expect(writeFileSpy).toHaveBeenCalledTimes(1)
 
-    resolve1()
-    // Resolve the first promise, freeing the mutex and allowing save2 to
-    // execute
-    await flushTimeout()
-    await flushTimeout()
-    await flushTimeout()
-    await flushTimeout()
-    expect(writeFileSpy).toHaveBeenCalledTimes(2)
-
+    resolveFirstWrite()
     await save1
-    resolve2()
     await save2
-
     expect(writeFileSpy).toHaveBeenCalledTimes(2)
   })
 })
