@@ -135,7 +135,8 @@ describe('Transaction', () => {
     expect(transaction.fee()).toEqual(fee)
     expect(transaction.expiration()).toEqual(expiration)
 
-    expect(transaction.spends.length).toEqual(2)
+    // no spend is needed for burn: burn value subtracted from mint output value
+    expect(transaction.spends.length).toEqual(1)
     expect(transaction.notes.length).toEqual(3)
     expect(transaction.mints.length).toEqual(1)
     expect(transaction.burns.length).toEqual(1)
