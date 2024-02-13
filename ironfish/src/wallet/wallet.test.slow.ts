@@ -1232,12 +1232,12 @@ describe('Wallet', () => {
         outputs: [
           {
             publicAddress: participantB.publicAddress,
-            amount: 2n,
+            amount: BigInt(2),
             memo: '',
             assetId: Asset.nativeId(),
           },
         ],
-        fee: 0n,
+        fee: BigInt(0),
       })
 
       // Create a block with a miner's fee and the transaction to send IRON to the multisig account
@@ -1255,7 +1255,7 @@ describe('Wallet', () => {
 
       // verify multisig account can see its IRON
       expect(await node.wallet.getBalance(participantA, Asset.nativeId())).toMatchObject({
-        unconfirmed: 2n,
+        unconfirmed: BigInt(2),
       })
 
       // create transaction from multisig account back to miner
