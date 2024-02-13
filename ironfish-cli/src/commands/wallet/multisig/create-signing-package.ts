@@ -5,7 +5,7 @@
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
-import { largePrompt } from '../../../utils/longPrompt'
+import { longPrompt } from '../../../utils/longPrompt'
 
 export class CreateSigningPackage extends IronfishCommand {
   static description = `Creates a signing package for a given transaction for a multisig account`
@@ -31,14 +31,14 @@ export class CreateSigningPackage extends IronfishCommand {
     let unsignedTransaction = flags.unsignedTransaction?.trim()
 
     if (!unsignedTransaction) {
-      unsignedTransaction = await largePrompt('Enter the unsigned transaction: ', {
+      unsignedTransaction = await longPrompt('Enter the unsigned transaction: ', {
         required: true,
       })
     }
 
     let commitments = flags.commitment
     if (!commitments) {
-      const input = await largePrompt('Enter the signing commitments separated by commas', {
+      const input = await longPrompt('Enter the signing commitments separated by commas', {
         required: true,
       })
       commitments = input.split(',')
