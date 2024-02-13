@@ -8,8 +8,6 @@ export type SigningPackage = {
 }
 
 export class SigningPackageEncoder {
-  constructor() {}
-
   encode(signingPackage: SigningPackage): string {
     return Buffer.from(
       JSON.stringify({
