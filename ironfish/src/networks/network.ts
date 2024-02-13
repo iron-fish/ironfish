@@ -26,8 +26,6 @@ export class Network {
 
     if (this.default) {
       const defaultName = defaultNetworkName(definition.id)
-      console.log(defaultName)
-      console.log(definition.id)
       Assert.isNotUndefined(defaultName)
       this.name = defaultName
     } else {
