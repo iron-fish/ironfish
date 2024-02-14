@@ -65,7 +65,7 @@ describe('Route wallet/create', () => {
         throw e
       }
       expect(e.status).toBe(400)
-      expect(e.code).toBe(RPC_ERROR_CODES.ACCOUNT_EXISTS)
+      expect(e.code).toBe(RPC_ERROR_CODES.DUPLICATE_ACCOUNT_NAME)
     }
   })
 
