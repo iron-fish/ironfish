@@ -1210,6 +1210,9 @@ describe('Wallet', () => {
         ...trustedDealerPackage,
       })
 
+      // When importing an account through the SDK, we need to kick off a scan.
+      await node.wallet.scanTransactions()
+
       const signingCommitments: string[] = []
       for (const participant of participants) {
         AssertMultisigSigner(participant)
