@@ -1210,6 +1210,10 @@ describe('Wallet', () => {
         ...trustedDealerPackage,
       })
 
+      // TODO: This should not be required. There is a bug where account import through the sdk doesn't
+      // trigger a scan but through the RPC does. This is a workaround for now.
+      await node.wallet.scanTransactions()
+
       const signingCommitments: string[] = []
       for (const participant of participants) {
         AssertMultisigSigner(participant)
@@ -1251,7 +1255,6 @@ describe('Wallet', () => {
       expect(addResult2.isAdded).toBeTruthy()
 
       await node.wallet.updateHead()
-      await node.wallet.scanTransactions()
 
       // verify multisig account can see its IRON
       expect(await node.wallet.getBalance(participantA, Asset.nativeId())).toMatchObject({
