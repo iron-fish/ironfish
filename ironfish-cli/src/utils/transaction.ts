@@ -41,6 +41,17 @@ export class TransactionTimer {
     this.logger = logger ?? createRootLogger()
   }
 
+  displayEstimate(): void {
+    if (this.spendPostTime <= 0) {
+      return
+    }
+    this.logger.log(
+      `Time to send: ${TimeUtils.renderSpan(this.estimateInMs, {
+        hideMilliseconds: true,
+      })}`,
+    )
+  }
+
   start(): void {
     if (this.startTime > 0) {
       return
@@ -60,12 +71,6 @@ export class TransactionTimer {
 
       return
     }
-
-    this.logger.log(
-      `Time to send: ${TimeUtils.renderSpan(this.estimateInMs, {
-        hideMilliseconds: true,
-      })}`,
-    )
 
     this.progressBar.start(100, 0, {
       title: 'Progress',

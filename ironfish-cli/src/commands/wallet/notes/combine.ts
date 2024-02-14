@@ -18,9 +18,9 @@ import { getExplorer } from '../../../utils/explorer'
 import { selectFee } from '../../../utils/fees'
 import { fetchSortedNotes } from '../../../utils/notes'
 import {
+  TransactionTimer,
   displayTransactionSummary,
   getSpendPostTimeInMs,
-  TransactionTimer,
   watchTransaction,
 } from '../../../utils/transaction'
 
@@ -309,6 +309,10 @@ export class CombineNotesCommand extends IronfishCommand {
     const assetId = Asset.nativeId().toString('hex')
     displayTransactionSummary(raw, assetId, amount, from, to, memo)
 
+    const transactionTimer = new TransactionTimer(spendPostTime, raw)
+
+    transactionTimer.displayEstimate()
+
     if (!flags.confirm) {
       const confirmed = await CliUx.ux.confirm('Do you confirm (Y/N)?')
       if (!confirmed) {
@@ -316,7 +320,6 @@ export class CombineNotesCommand extends IronfishCommand {
       }
     }
 
-    const transactionTimer = new TransactionTimer(spendPostTime, raw)
     transactionTimer.start()
 
     const response = await client.wallet.postTransaction({

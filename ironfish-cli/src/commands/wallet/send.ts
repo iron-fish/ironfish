@@ -251,13 +251,17 @@ export class Send extends IronfishCommand {
 
     displayTransactionSummary(raw, assetId, amount, from, to, memo)
 
+    const transactionTimer = new TransactionTimer(spendPostTime, raw)
+
+    transactionTimer.displayEstimate()
+
     if (!flags.confirm) {
       const confirmed = await CliUx.ux.confirm('Do you confirm (Y/N)?')
       if (!confirmed) {
         this.error('Transaction aborted.')
       }
     }
-    const transactionTimer = new TransactionTimer(spendPostTime, raw)
+
     transactionTimer.start()
 
     const response = await client.wallet.postTransaction({
