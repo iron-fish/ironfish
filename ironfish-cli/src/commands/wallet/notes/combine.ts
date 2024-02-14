@@ -18,9 +18,9 @@ import { getExplorer } from '../../../utils/explorer'
 import { selectFee } from '../../../utils/fees'
 import { fetchSortedNotes } from '../../../utils/notes'
 import {
-  TransactionTimer,
   displayTransactionSummary,
   getSpendPostTimeInMs,
+  TransactionTimer,
   watchTransaction,
 } from '../../../utils/transaction'
 
