@@ -26,37 +26,49 @@ export class TransactionTimer {
   estimateInMs: number
   spendPostTime: number
   startTime: number
+  logger: Logger
   timer: NodeJS.Timeout | null
   progressBar: ProgressBar
 
-  constructor(spendPostTime: number, raw: RawTransaction) {
+  constructor(spendPostTime: number, raw: RawTransaction, logger?: Logger) {
     this.estimateInMs = Math.max(Math.ceil(spendPostTime * raw.spends.length), 1000)
     this.spendPostTime = spendPostTime
     this.progressBar = CliUx.ux.progress({
-      format: '{title}: [{bar}] {percentage}% | {estimate}',
+      format: '{title}: [{bar}] {percentage}% {estimate}',
     }) as ProgressBar
     this.startTime = 0
-
     this.timer = null
+    this.logger = logger ?? createRootLogger()
   }
 
   start(): void {
-    if (this.startTime > 0 || this.spendPostTime <= 0) {
+    if (this.startTime > 0) {
       return
     }
+
     this.startTime = Date.now()
 
-    if (this.spendPostTime > 0) {
-      const logger = createRootLogger()
-      logger.log(
-        `Time to send: ${TimeUtils.renderSpan(this.estimateInMs, {
+    if (this.spendPostTime <= 0) {
+      CliUx.ux.action.start(`Sending the transaction`)
+
+      this.timer = setInterval(() => {
+        const durationInMs = Date.now() - this.startTime
+        CliUx.ux.action.status = `${TimeUtils.renderSpan(durationInMs, {
           hideMilliseconds: true,
-        })}`,
-      )
+        })}`
+      }, 1000)
+
+      return
     }
 
+    this.logger.log(
+      `Time to send: ${TimeUtils.renderSpan(this.estimateInMs, {
+        hideMilliseconds: true,
+      })}`,
+    )
+
     this.progressBar.start(100, 0, {
-      title: 'Sending the transaction',
+      title: 'Progress',
       estimate: TimeUtils.renderSpan(this.estimateInMs, { hideMilliseconds: true }),
     })
 
@@ -71,22 +83,27 @@ export class TransactionTimer {
     }, 1000)
   }
 
-  stop(logger?: Logger): void {
+  stop(): void {
     if (this.timer === null) {
       return
     }
 
-    logger = logger ?? createRootLogger()
+    if (this.spendPostTime <= 0) {
+      CliUx.ux.action.stop('done')
+    } else {
+      this.progressBar.update(100)
+      this.progressBar.stop()
+    }
 
     clearInterval(this.timer)
-    this.progressBar.update(100)
-    this.progressBar.stop()
 
-    logger.log(
-      `Sending took ${TimeUtils.renderSpan(Date.now() - this.startTime, {
+    this.logger.log(
+      `Completed in ${TimeUtils.renderSpan(Date.now() - this.startTime, {
         hideMilliseconds: true,
       })}`,
     )
+
+    this.logger.log('')
   }
 }
 
@@ -122,7 +139,8 @@ async function benchmarkSpendPostTime(client: RpcClient, account: string): Promi
 
   const notes = await fetchSortedNotes(client, account, 10)
 
-  // need at least 3 notes to measure the time to combine 2 notes
+  // need at least 3 notes to measure the time to measure spend post time
+  // 1 note will be used for fees
   if (notes.length < 3) {
     return 0
   }
@@ -200,16 +218,20 @@ export async function getSpendPostTimeInMs(
     spendPostTime <= 0 ||
     Date.now() - spendPostTimeAt > 1000 * 60 * 60 * 24 * 30 // 1 month
 
-  if (shouldbenchmark) {
-    spendPostTime = await benchmarkSpendPostTime(client, account)
-    if (spendPostTime !== 0) {
-      sdk.internal.set('spendPostTime', spendPostTime)
-      sdk.internal.set('spendPostTimeAt', Date.now())
-      await sdk.internal.save()
+  try {
+    if (shouldbenchmark) {
+      spendPostTime = await benchmarkSpendPostTime(client, account)
+      if (spendPostTime !== 0) {
+        sdk.internal.set('spendPostTime', spendPostTime)
+        sdk.internal.set('spendPostTimeAt', Date.now())
+        await sdk.internal.save()
+      }
     }
+    return spendPostTime
+  } catch (e) {
+    // if benchmarking fails, return 0. The consumer of this function should not show an estimate
+    return 0
   }
-
-  return spendPostTime
 }
 
 export function displayTransactionSummary(
