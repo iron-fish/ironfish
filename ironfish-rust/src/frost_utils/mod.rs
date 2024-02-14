@@ -6,3 +6,4 @@ pub mod signature_share;
 pub mod signing_commitment;
 pub mod split_secret;
 pub mod split_spender_key;
+pub use ironfish_frost::participant::IDENTITY_LEN;
