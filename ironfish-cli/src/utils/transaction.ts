@@ -34,7 +34,7 @@ export class TransactionTimer {
     this.estimateInMs = Math.max(Math.ceil(spendPostTime * raw.spends.length), 1000)
     this.spendPostTime = spendPostTime
     this.progressBar = CliUx.ux.progress({
-      format: '{title}: [{bar}] {percentage}% {estimate}',
+      format: '{title}: [{bar}] {percentage}% | {estimate}\n',
     }) as ProgressBar
     this.startTime = 0
     this.timer = null
