@@ -1210,8 +1210,7 @@ describe('Wallet', () => {
         ...trustedDealerPackage,
       })
 
-      // TODO: This should not be required. There is a bug where account import through the sdk doesn't
-      // trigger a scan but through the RPC does. This is a workaround for now.
+      // When importing an account through the SDK, we need to kick off a scan.
       await node.wallet.scanTransactions()
 
       const signingCommitments: string[] = []
