@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Asset } from '@ironfish/rust-nodejs'
+import { Asset, ParticipantSecret } from '@ironfish/rust-nodejs'
 import { Assert } from '../../assert'
 import {
   createNodeTest,
@@ -388,6 +388,23 @@ describe('WalletDB', () => {
       expect(transactions.length).toEqual(transactionHashes.length - 2)
       expect(transactions[0].transaction.hash()).toEqual(transactionHashes[1])
       expect(transactions[1].transaction.hash()).toEqual(transactionHashes[2])
+    })
+  })
+
+  describe('multisigSecrets', () => {
+    it('should store named ParticipantSecret as buffer', async () => {
+      const node = (await nodeTest.createSetup()).node
+      const walletDb = node.wallet.walletDb
+
+      const name = 'test'
+      const secret = ParticipantSecret.random()
+      const serializedSecret = secret.serialize()
+
+      await walletDb.putMultisigSecret(name, serializedSecret)
+
+      const storedSecret = await walletDb.getMultisigSecret(name)
+
+      expect(storedSecret).toEqualBuffer(serializedSecret)
     })
   })
 })

@@ -134,6 +134,11 @@ export class WalletDB {
     value: null
   }>
 
+  multisigSecrets: IDatabaseStore<{
+    key: string
+    value: Buffer
+  }>
+
   cacheStores: Array<IDatabaseStore<DatabaseSchema>>
 
   constructor({
@@ -280,6 +285,12 @@ export class WalletDB {
         [new BufferEncoding(), 32], // note hash
       ]),
       valueEncoding: NULL_ENCODING,
+    })
+
+    this.multisigSecrets = this.db.addStore({
+      name: 'ms',
+      keyEncoding: new StringEncoding(),
+      valueEncoding: new BufferEncoding(),
     })
 
     // IDatabaseStores that cache and index decrypted chain data
@@ -1241,5 +1252,24 @@ export class WalletDB {
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.nullifierToTransactionHash.del([account.prefix, nullifier], tx)
+  }
+
+  async putMultisigSecret(
+    name: string,
+    secret: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    await this.multisigSecrets.put(name, secret, tx)
+  }
+
+  async getMultisigSecret(
+    name: string,
+    tx?: IDatabaseTransaction,
+  ): Promise<Buffer | undefined> {
+    return this.multisigSecrets.get(name, tx)
+  }
+
+  async deleteMultisigSecret(name: string, tx?: IDatabaseTransaction): Promise<void> {
+    await this.multisigSecrets.del(name, tx)
   }
 }
