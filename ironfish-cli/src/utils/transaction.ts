@@ -150,7 +150,7 @@ async function benchmarkSpendPostTime(client: RpcClient, account: string): Promi
     return 0
   }
 
-  CliUx.ux.action.start('Measuring time to combine 1 note')
+  CliUx.ux.action.start('Benchmark transaction send time')
 
   const feeRates = await client.wallet.estimateFeeRates()
 
