@@ -35,7 +35,7 @@ export async function createRawTransaction(options: {
   outputs?: {
     publicAddress: string
     amount: bigint
-    memo: string
+    memo: Buffer
     assetId: Buffer
   }[]
   mints?: MintData[]
@@ -47,7 +47,7 @@ export async function createRawTransaction(options: {
     outputs.push({
       publicAddress: options.to.publicAddress,
       amount: options.amount ?? 1n,
-      memo: '',
+      memo: Buffer.alloc(32),
       assetId: options.assetId ?? Asset.nativeId(),
     })
   }

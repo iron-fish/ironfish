@@ -19,7 +19,8 @@ export type SendTransactionRequest = {
   outputs: {
     publicAddress: string
     amount: string
-    memo: string
+    memo?: string
+    memoHex?: string
     assetId?: string
   }[]
   fee?: string
@@ -46,6 +47,7 @@ export const SendTransactionRequestSchema: yup.ObjectSchema<SendTransactionReque
             publicAddress: yup.string().defined(),
             amount: YupUtils.currency({ min: 0n }).defined(),
             memo: yup.string().defined().max(MEMO_LENGTH),
+            memoHex: yup.string().length(MEMO_LENGTH * 2, 'Must be 32 byte hex encoded'),
             assetId: yup.string().optional(),
           })
           .defined(),
@@ -85,12 +87,20 @@ routes.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
       )
     }
 
-    const outputs = request.data.outputs.map((output) => ({
-      publicAddress: output.publicAddress,
-      amount: CurrencyUtils.decode(output.amount),
-      memo: output.memo,
-      assetId: output.assetId ? Buffer.from(output.assetId, 'hex') : Asset.nativeId(),
-    }))
+    const outputs = request.data.outputs.map((output) => {
+      const memo = output.memo
+        ? Buffer.from(output.memo)
+        : output.memoHex
+        ? Buffer.from(output.memoHex, 'hex')
+        : Buffer.alloc(32, 0)
+
+      return {
+        publicAddress: output.publicAddress,
+        amount: CurrencyUtils.decode(output.amount),
+        memo: memo,
+        assetId: output.assetId ? Buffer.from(output.assetId, 'hex') : Asset.nativeId(),
+      }
+    })
 
     const params: Parameters<Wallet['send']>[0] = {
       account,

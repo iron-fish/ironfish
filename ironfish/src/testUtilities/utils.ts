@@ -45,12 +45,13 @@ export async function splitNotes(
   numOutputs: number,
   wallet: Wallet,
 ): Promise<Transaction> {
-  const outputs: { publicAddress: string; amount: bigint; memo: string; assetId: Buffer }[] = []
+  const outputs: { publicAddress: string; amount: bigint; memo: Buffer; assetId: Buffer }[] = []
+
   for (let i = 0; i < numOutputs; i++) {
     outputs.push({
       publicAddress: account.publicAddress,
       amount: BigInt(1),
-      memo: '',
+      memo: Buffer.alloc(32),
       assetId: Asset.nativeId(),
     })
   }

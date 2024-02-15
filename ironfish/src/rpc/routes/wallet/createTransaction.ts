@@ -24,7 +24,8 @@ export type CreateTransactionRequest = {
   outputs: {
     publicAddress: string
     amount: string
-    memo: string
+    memo?: string
+    memoHex?: string
     assetId?: string
   }[]
   mints?: {
@@ -59,7 +60,8 @@ export const CreateTransactionRequestSchema: yup.ObjectSchema<CreateTransactionR
           .object({
             publicAddress: yup.string().defined(),
             amount: YupUtils.currency({ min: 1n }).defined(),
-            memo: yup.string().defined().max(MEMO_LENGTH),
+            memo: yup.string().optional().max(MEMO_LENGTH),
+            memoHex: yup.string().length(MEMO_LENGTH * 2, 'Must be 32 byte hex encoded'),
             assetId: yup.string().optional(),
           })
           .defined(),
@@ -122,10 +124,16 @@ routes.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
       params.outputs = []
 
       for (const output of request.data.outputs) {
+        const memo = output.memo
+          ? Buffer.from(output.memo)
+          : output.memoHex
+          ? Buffer.from(output.memoHex, 'hex')
+          : Buffer.alloc(32, 0)
+
         params.outputs.push({
           publicAddress: output.publicAddress,
           amount: CurrencyUtils.decode(output.amount),
-          memo: output.memo,
+          memo: memo,
           assetId: output.assetId ? Buffer.from(output.assetId, 'hex') : Asset.nativeId(),
         })
       }

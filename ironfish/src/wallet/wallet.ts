@@ -4,6 +4,7 @@
 import {
   Asset,
   generateKey,
+  MEMO_LENGTH,
   Note as NativeNote,
   UnsignedTransaction,
 } from '@ironfish/rust-nodejs'
@@ -81,7 +82,7 @@ export enum TransactionType {
 export type TransactionOutput = {
   publicAddress: string
   amount: bigint
-  memo: string
+  memo: Buffer
   assetId: Buffer
 }
 
@@ -1022,7 +1023,7 @@ export class Wallet {
           const note = new NativeNote(
             output.publicAddress,
             output.amount,
-            Buffer.from(output.memo, 'hex'),
+            output.memo,
             output.assetId,
             options.account.publicAddress,
           )
