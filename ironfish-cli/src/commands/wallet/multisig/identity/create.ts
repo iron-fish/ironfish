@@ -14,7 +14,7 @@ export class MultisigIdentityCreate extends IronfishCommand {
     ...RemoteFlags,
     name: Flags.string({
       char: 'n',
-      description: 'Name to assoicate with the identity',
+      description: 'Name to associate with the identity',
       required: true,
     }),
   }
