@@ -38,6 +38,7 @@ import { BalanceValue, BalanceValueEncoding } from './balanceValue'
 import { DecryptedNoteValue, DecryptedNoteValueEncoding } from './decryptedNoteValue'
 import { HeadValue, NullableHeadValueEncoding } from './headValue'
 import { AccountsDBMeta, MetaValue, MetaValueEncoding } from './metaValue'
+import { ParticipantIdentity, ParticipantIdentityEncoding } from './participantIdentity'
 import { TransactionValue, TransactionValueEncoding } from './transactionValue'
 
 const VERSION_DATABASE_ACCOUNTS = 31
@@ -137,6 +138,11 @@ export class WalletDB {
   multisigSecrets: IDatabaseStore<{
     key: string
     value: Buffer
+  }>
+
+  participantIdentities: IDatabaseStore<{
+    key: [Account['prefix'], Buffer]
+    value: ParticipantIdentity
   }>
 
   cacheStores: Array<IDatabaseStore<DatabaseSchema>>
@@ -291,6 +297,16 @@ export class WalletDB {
       name: 'ms',
       keyEncoding: new StringEncoding(),
       valueEncoding: new BufferEncoding(),
+    })
+
+    this.participantIdentities = this.db.addStore({
+      name: 'pi',
+      keyEncoding: new PrefixEncoding(
+        new BufferEncoding(), // account prefix
+        new BufferEncoding(), // participant identifier
+        4,
+      ),
+      valueEncoding: new ParticipantIdentityEncoding(),
     })
 
     // IDatabaseStores that cache and index decrypted chain data
@@ -1275,5 +1291,36 @@ export class WalletDB {
 
   async deleteMultisigSecret(name: string, tx?: IDatabaseTransaction): Promise<void> {
     await this.multisigSecrets.del(name, tx)
+  }
+
+  async addParticipantIdentity(
+    account: Account,
+    identity: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    const encoding = new ParticipantIdentityEncoding()
+
+    const encoded = encoding.serialize({ identity })
+    await this.participantIdentities.put([account.prefix, identity], { identity: encoded }, tx)
+  }
+
+  async deleteParticipantIdentity(
+    account: Account,
+    identity: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    await this.participantIdentities.del([account.prefix, identity], tx)
+  }
+
+  async *getParticipantIdentities(
+    account: Account,
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<Buffer> {
+    for await (const [_, identity] of this.participantIdentities.getAllKeysIter(
+      tx,
+      account.prefixRange,
+    )) {
+      yield identity
+    }
   }
 }

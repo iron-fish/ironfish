@@ -23,6 +23,11 @@ use napi::{bindgen_prelude::*, JsBuffer};
 use napi_derive::napi;
 use rand::thread_rng;
 
+use ironfish::frost_utils::IDENTITY_LEN as ID_LEN;
+
+#[napi]
+pub const IDENTITY_LEN: u32 = ID_LEN as u32;
+
 #[napi]
 pub fn create_signing_commitment(key_package: String, seed: u32) -> Result<String> {
     let key_package =
