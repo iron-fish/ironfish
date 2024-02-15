@@ -79,6 +79,8 @@ import type {
   GetDifficultyResponse,
   GetFundsRequest,
   GetFundsResponse,
+  GetIdentityRequest,
+  GetIdentityResponse,
   GetLogStreamResponse,
   GetMempoolStatusResponse,
   GetMempoolTransactionResponse,
@@ -233,6 +235,15 @@ export abstract class RpcClient {
       ): Promise<RpcResponseEnded<CreateIdentityResponse>> => {
         return this.request<CreateIdentityResponse>(
           `${ApiNamespace.wallet}/multisig/createIdentity`,
+          params,
+        ).waitForEnd()
+      },
+
+      getIdentity: (
+        params: GetIdentityRequest,
+      ): Promise<RpcResponseEnded<GetIdentityResponse>> => {
+        return this.request<GetIdentityResponse>(
+          `${ApiNamespace.wallet}/multisig/getIdentity`,
           params,
         ).waitForEnd()
       },
