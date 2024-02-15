@@ -7,6 +7,19 @@ export const IDENTITY_LEN: number
 export function createSigningCommitment(identity: string, keyPackage: string, transactionHash: Buffer, signers: Array<string>): string
 export function createSignatureShare(identity: string, keyPackage: string, signingPackage: string): string
 export function splitSecret(spendingKey: string, minSigners: number, identities: Array<string>): TrustedDealerKeyPackages
+export interface ParticipantKeyPackage {
+  identity: string
+  keyPackage: string
+}
+export interface TrustedDealerKeyPackages {
+  publicAddress: string
+  publicKeyPackage: string
+  viewKey: string
+  incomingViewKey: string
+  outgoingViewKey: string
+  proofAuthorizingKey: string
+  keyPackages: Array<ParticipantKeyPackage>
+}
 export function contribute(inputPath: string, outputPath: string, seed?: string | undefined | null): Promise<string>
 export function verifyTransform(paramsPath: string, newParamsPath: string): Promise<string>
 export const KEY_LENGTH: number
@@ -54,19 +67,6 @@ export const TRANSACTION_FEE_LENGTH: number
 export const LATEST_TRANSACTION_VERSION: number
 export function verifyTransactions(serializedTransactions: Array<Buffer>): boolean
 export function aggregateSignatureShares(publicKeyPackageStr: string, signingPackageStr: string, signatureSharesArr: Array<string>): Buffer
-export interface IdentityKeyPackage {
-  identity: string
-  keyPackage: string
-}
-export interface TrustedDealerKeyPackages {
-  proofAuthorizingKey: string
-  viewKey: string
-  incomingViewKey: string
-  outgoingViewKey: string
-  publicAddress: string
-  keyPackages: Array<IdentityKeyPackage>
-  publicKeyPackage: string
-}
 export const enum LanguageCode {
   English = 0,
   ChineseSimplified = 1,

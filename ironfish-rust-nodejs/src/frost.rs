@@ -2,10 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::{
-    structs::{IdentityKeyPackage, TrustedDealerKeyPackages},
-    to_napi_err,
-};
+use crate::to_napi_err;
 use ironfish::{
     frost::{keys::KeyPackage, round1::SigningCommitments, round2, Randomizer},
     frost_utils::{signing_package::SigningPackage, split_spender_key::split_spender_key},
@@ -212,7 +209,7 @@ pub fn split_secret(
 
     let mut key_packages = Vec::with_capacity(packages.key_packages.len());
     for (identity, key_package) in packages.key_packages.iter() {
-        key_packages.push(IdentityKeyPackage {
+        key_packages.push(ParticipantKeyPackage {
             identity: bytes_to_hex(&identity.serialize()),
             key_package: bytes_to_hex(&key_package.serialize().map_err(to_napi_err)?),
         });
@@ -224,14 +221,35 @@ pub fn split_secret(
         .map_err(to_napi_err)?;
 
     Ok(TrustedDealerKeyPackages {
-        proof_authorizing_key: packages.proof_authorizing_key.hex_key(),
+        public_address: packages.public_address.hex_public_address(),
+        public_key_package: bytes_to_hex(&public_key_package),
         view_key: packages.view_key.hex_key(),
         incoming_view_key: packages.incoming_view_key.hex_key(),
         outgoing_view_key: packages.outgoing_view_key.hex_key(),
-        public_address: packages.public_address.hex_public_address(),
+        proof_authorizing_key: packages.proof_authorizing_key.hex_key(),
         key_packages,
-        public_key_package: bytes_to_hex(&public_key_package),
     })
+}
+
+#[napi(object)]
+pub struct ParticipantKeyPackage {
+    pub identity: String,
+    // TODO: this should contain the spender_key only, there's no need to return (and later store)
+    // the entire key package, as all other information can be either derived or is stored
+    // elsewhere (with the exception of min_signers, but that can be easily moved to
+    // TrustedDealerKeyPackages)
+    pub key_package: String,
+}
+
+#[napi(object)]
+pub struct TrustedDealerKeyPackages {
+    pub public_address: String,
+    pub public_key_package: String,
+    pub view_key: String,
+    pub incoming_view_key: String,
+    pub outgoing_view_key: String,
+    pub proof_authorizing_key: String,
+    pub key_packages: Vec<ParticipantKeyPackage>,
 }
 
 #[napi(js_name = "PublicKeyPackage")]
