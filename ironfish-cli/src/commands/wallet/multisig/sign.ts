@@ -18,10 +18,6 @@ export class MultisigSign extends IronfishCommand {
       description: 'Account to use when aggregating signature shares',
       required: false,
     }),
-    unsignedTransaction: Flags.string({
-      char: 'u',
-      description: 'Unsigned transaction',
-    }),
     signingPackage: Flags.string({
       char: 'p',
       description: 'Signing package',
@@ -40,10 +36,6 @@ export class MultisigSign extends IronfishCommand {
 
   async start(): Promise<void> {
     const { flags } = await this.parse(MultisigSign)
-
-    const unsignedTransaction =
-      flags.unsignedTransaction?.trim() ??
-      (await longPrompt('Enter the unsigned transaction: ', { required: true }))
 
     const signingPackage =
       flags.signingPackage?.trim() ??
@@ -65,7 +57,6 @@ export class MultisigSign extends IronfishCommand {
     const response = await client.wallet.multisig.aggregateSignatureShares({
       account: flags.account,
       broadcast: flags.broadcast,
-      unsignedTransaction,
       signingPackage,
       signatureShares,
     })
