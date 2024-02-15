@@ -19,6 +19,3 @@ pub use transaction::*;
 
 mod witness;
 pub use witness::*;
-
-mod key_packages;
-pub use key_packages::*;

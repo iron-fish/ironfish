@@ -18,13 +18,13 @@ use crate::{
 use super::split_secret::{split_secret, SecretShareConfig};
 
 pub struct TrustedDealerKeyPackages {
-    pub proof_authorizing_key: jubjub::Fr,
+    pub public_address: PublicAddress,
+    pub public_key_package: PublicKeyPackage,
     pub view_key: ViewKey,
     pub incoming_view_key: IncomingViewKey,
     pub outgoing_view_key: OutgoingViewKey,
-    pub public_address: PublicAddress,
+    pub proof_authorizing_key: jubjub::Fr,
     pub key_packages: HashMap<Identity, KeyPackage>,
-    pub public_key_package: PublicKeyPackage,
 }
 
 pub fn split_spender_key(
@@ -61,13 +61,13 @@ pub fn split_spender_key(
     let public_address = incoming_view_key.public_address();
 
     Ok(TrustedDealerKeyPackages {
-        proof_authorizing_key,
+        public_address,
+        public_key_package,
         view_key,
         incoming_view_key,
         outgoing_view_key,
-        public_address,
+        proof_authorizing_key,
         key_packages,
-        public_key_package,
     })
 }
 
