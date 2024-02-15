@@ -1020,12 +1020,6 @@ export class Wallet {
 
       if (options.outputs) {
         for (const output of options.outputs) {
-          Assert.isEqual(
-            output.memo.byteLength,
-            MEMO_LENGTH,
-            `Note was ${output.memo.byteLength} but must be ${MEMO_LENGTH} bytes.`,
-          )
-
           const note = new NativeNote(
             output.publicAddress,
             output.amount,
