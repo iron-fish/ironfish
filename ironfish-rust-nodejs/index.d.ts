@@ -52,6 +52,7 @@ export const TRANSACTION_EXPIRATION_LENGTH: number
 export const TRANSACTION_FEE_LENGTH: number
 export const LATEST_TRANSACTION_VERSION: number
 export function verifyTransactions(serializedTransactions: Array<Buffer>): boolean
+export function aggregateSignatureShares(publicKeyPackageStr: string, signingPackageStr: string, signatureSharesArr: Array<string>): Buffer
 export interface IdentityKeyPackage {
   identity: string
   keyPackage: string
@@ -244,7 +245,6 @@ export class UnsignedTransaction {
   hash(): Buffer
   signingPackage(nativeIdentiferCommitments: Array<string>): string
   sign(spenderHexKey: string): Buffer
-  aggregateSignatureShares(publicKeyPackageStr: string, signingPackageStr: string, signatureSharesArr: Array<string>): Buffer
 }
 export class FoundBlockResult {
   randomness: string

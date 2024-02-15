@@ -197,7 +197,7 @@ impl UnsignedTransaction {
     pub fn aggregate_signature_shares(
         &mut self,
         public_key_package: &PublicKeyPackage,
-        authorizing_signing_package: &SigningPackage,
+        authorizing_signing_package: &FrostSigningPackage,
         authorizing_signature_shares: BTreeMap<Identifier, SignatureShare>,
     ) -> Result<Transaction, IronfishError> {
         // Create the transaction signature hash
@@ -209,7 +209,7 @@ impl UnsignedTransaction {
             RandomizedParams::from_randomizer(public_key_package.verifying_key(), randomizer);
 
         let authorizing_group_signature = aggregate(
-            &authorizing_signing_package.frost_signing_package,
+            authorizing_signing_package,
             &authorizing_signature_shares,
             public_key_package,
             &randomized_params,

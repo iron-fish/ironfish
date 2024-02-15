@@ -829,7 +829,7 @@ fn test_aggregate_signature_shares() {
     let signed_transaction = unsigned_transaction
         .aggregate_signature_shares(
             &key_packages.public_key_package,
-            &signing_package,
+            &signing_package.frost_signing_package,
             signature_shares,
         )
         .expect("should be able to sign transaction");

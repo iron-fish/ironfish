@@ -141,7 +141,6 @@ describe('multisig RPC integration', () => {
     // aggregate signing shares
     const aggregateResponse = await routeTest.client.wallet.multisig.aggregateSignatureShares({
       account: coordinatorAccount.name,
-      unsignedTransaction,
       signingPackage,
       signatureShares,
     })

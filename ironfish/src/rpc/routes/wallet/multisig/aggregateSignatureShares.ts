@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { UnsignedTransaction } from '@ironfish/rust-nodejs'
+import { aggregateSignatureShares } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
 import { Transaction } from '../../../../primitives/transaction'
 import { AssertMultisig } from '../../../../wallet'
@@ -12,7 +12,6 @@ import { getAccount } from '../utils'
 
 export type AggregateSignatureSharesRequest = {
   account?: string
-  unsignedTransaction: string
   signingPackage: string
   signatureShares: Array<string>
   broadcast?: boolean
@@ -28,7 +27,6 @@ export const AggregateSignatureSharesRequestSchema: yup.ObjectSchema<AggregateSi
   yup
     .object({
       account: yup.string().optional(),
-      unsignedTransaction: yup.string().defined(),
       signingPackage: yup.string().defined(),
       signatureShares: yup.array(yup.string().defined()).defined(),
       broadcast: yup.boolean().optional().default(true),
@@ -52,14 +50,12 @@ routes.register<typeof AggregateSignatureSharesRequestSchema, AggregateSignature
     const account = getAccount(node.wallet, request.data.account)
     AssertMultisig(account)
 
-    const unsigned = new UnsignedTransaction(
-      Buffer.from(request.data.unsignedTransaction, 'hex'),
-    )
-    const serialized = unsigned.aggregateSignatureShares(
+    const serialized = aggregateSignatureShares(
       account.multisigKeys.publicKeyPackage,
       request.data.signingPackage,
       request.data.signatureShares,
     )
+
     const transaction = new Transaction(serialized)
 
     let accepted = false
