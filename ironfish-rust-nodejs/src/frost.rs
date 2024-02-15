@@ -94,8 +94,6 @@ pub fn create_signature_share(
         .transaction_signature_hash()
         .map_err(to_napi_err)?;
 
-    let signers = try_deserialize_signers(signers)?;
-
     let randomizer = Randomizer::deserialize(
         &signing_package
             .unsigned_transaction
