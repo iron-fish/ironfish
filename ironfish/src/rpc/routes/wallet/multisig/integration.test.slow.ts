@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Asset, ParticipantSecret, verifyTransactions } from '@ironfish/rust-nodejs'
+import { Asset, verifyTransactions } from '@ironfish/rust-nodejs'
 import { Assert } from '../../../../assert'
 import { createRouteTest } from '../../../../testUtilities/routeTest'
 import { Account, ACCOUNT_SCHEMA_VERSION, AssertMultisigSigner } from '../../../../wallet'
@@ -10,35 +10,41 @@ describe('multisig RPC integration', () => {
   const routeTest = createRouteTest()
 
   it('should create a verified transaction using multisig', async () => {
-    // create participants
-    const participants = Array.from({ length: 3 }, () => ({
-      identity: ParticipantSecret.random().toIdentity().serialize().toString('hex'),
-    }))
+    // create a bunch of multisig identities
+    const accountNames = Array.from({ length: 3 }, (_, index) => `test-account-${index}`)
+    const participants = await Promise.all(
+      accountNames.map(async (name) => {
+        const identity = (await routeTest.client.wallet.multisig.createIdentity({ name }))
+          .content.identity
+        return { name, identity }
+      }),
+    )
 
-    // create trusted dealer key package
-    const responseKeyPackage =
+    // initialize the group though tdk and import the accounts generated
+    const trustedDealerPackage = (
       await routeTest.client.wallet.multisig.createTrustedDealerKeyPackage({
         minSigners: 2,
         participants,
       })
-    const trustedDealerPackage = responseKeyPackage.content
-
-    // import participant accounts
-    const participantAccounts: Array<Account> = []
-    for (let i = 0; i < participants.length; i++) {
-      const accountName = `participant${i}`
+    ).content
+    for (const { name, identity } of participants) {
+      const importAccount = trustedDealerPackage.participantAccounts.find(
+        (account) => account.identity === identity,
+      )
+      expect(importAccount).not.toBeUndefined()
       await routeTest.client.wallet.importAccount({
-        name: accountName,
-        account: trustedDealerPackage.participantAccounts[i].account,
-        rescan: false,
+        name,
+        account: importAccount!.account,
       })
-
-      const participantAccount = routeTest.wallet.getAccountByName(accountName)
-      Assert.isNotNull(participantAccount)
-      participantAccounts.push(participantAccount)
     }
 
-    // import coordinator account
+    const participantAccounts = accountNames.map((accountName) => {
+      const participantAccount = routeTest.wallet.getAccountByName(accountName)
+      Assert.isNotNull(participantAccount)
+      return participantAccount
+    })
+
+    // import an account to serve as the coordinator
     await routeTest.client.wallet.importAccount({
       account: {
         version: ACCOUNT_SCHEMA_VERSION,
@@ -57,7 +63,7 @@ describe('multisig RPC integration', () => {
 
     // fund coordinator account
     // mine block to send IRON to multisig account
-    const miner = await routeTest.wallet.createAccount('miner', { setCreatedAt: false })
+    const miner = await routeTest.wallet.createAccount('miner')
     await fundAccount(coordinatorAccount, miner)
 
     // build list of signers

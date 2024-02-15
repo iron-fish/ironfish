@@ -19,10 +19,10 @@ describe('Route multisig/createTrustedDealerKeyPackage', () => {
     expect(response.content).toMatchObject({
       publicAddress: expect.any(String),
       publicKeyPackage: expect.any(String),
-      proofAuthorizingKey: expect.any(String),
       viewKey: expect.any(String),
       incomingViewKey: expect.any(String),
       outgoingViewKey: expect.any(String),
+      proofAuthorizingKey: expect.any(String),
       participantAccounts: expect.arrayContaining([
         {
           identity: participants[0].identity,

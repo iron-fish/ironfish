@@ -11,9 +11,7 @@ import { routes } from '../../router'
 
 export type CreateTrustedDealerKeyPackageRequest = {
   minSigners: number
-  participants: Array<{
-    identity: string
-  }>
+  participants: Array<{ identity: string }>
 }
 
 export type CreateTrustedDealerKeyPackageResponse = {
@@ -90,22 +88,30 @@ routes.register<
     const encoder = new Base64JsonEncoder()
     const participantAccounts = keyPackages.map(({ identity, keyPackage }) => ({
       identity,
-      account: encoder.encode({
-        name: identity,
-        version: ACCOUNT_SCHEMA_VERSION,
-        createdAt,
-        spendingKey: null,
-        viewKey,
-        incomingViewKey,
-        outgoingViewKey,
-        publicAddress,
-        proofAuthorizingKey,
-        multisigKeys: {
-          identity,
-          keyPackage,
-          publicKeyPackage,
+      account: encoder.encode(
+        {
+          name: identity,
+          version: ACCOUNT_SCHEMA_VERSION,
+          createdAt,
+          spendingKey: null,
+          viewKey,
+          incomingViewKey,
+          outgoingViewKey,
+          publicAddress,
+          proofAuthorizingKey,
+          multisigKeys: {
+            identity,
+            keyPackage,
+            publicKeyPackage,
+          },
         },
-      }),
+        {
+          encryptWith: {
+            kind: 'MultisigIdentity',
+            identity: Buffer.from(identity, 'hex'),
+          },
+        },
+      ),
     }))
 
     request.end({

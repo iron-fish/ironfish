@@ -1,35 +1,47 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { ParticipantSecret } from '@ironfish/rust-nodejs'
 import { useAccountAndAddFundsFixture, useUnsignedTxFixture } from '../../../../testUtilities'
 import { createRouteTest } from '../../../../testUtilities/routeTest'
 import { RpcRequestError } from '../../../clients'
+import { CreateIdentityResponse } from './createIdentity'
 
 describe('Route multisig/createSigningPackage', () => {
   const routeTest = createRouteTest()
 
   it('should create signing package', async () => {
-    const participants = Array.from({ length: 3 }, () =>
-      ParticipantSecret.random().toIdentity(),
+    // Create a bunch of multisig identities
+    const accountNames = Array.from({ length: 3 }, (_, index) => `test-account-${index}`)
+    const participants = await Promise.all(
+      accountNames.map(async (name) => {
+        const identity = (
+          await routeTest.client
+            .request<CreateIdentityResponse>('wallet/multisig/createIdentity', { name })
+            .waitForEnd()
+        ).content.identity
+        return { name, identity }
+      }),
     )
 
-    const request = {
-      minSigners: 2,
-      participants: participants.map((identity) => ({
-        identity: identity.serialize().toString('hex'),
-      })),
+    // Initialize the group though TDK and import the accounts generated
+    const trustedDealerPackage = (
+      await routeTest.client.wallet.multisig.createTrustedDealerKeyPackage({
+        minSigners: 2,
+        participants,
+      })
+    ).content
+    for (const { name, identity } of participants) {
+      const importAccount = trustedDealerPackage.participantAccounts.find(
+        (account) => account.identity === identity,
+      )
+      expect(importAccount).not.toBeUndefined()
+      await routeTest.client.wallet.importAccount({
+        name,
+        account: importAccount!.account,
+      })
     }
 
-    const trustedDealerPackage = (
-      await routeTest.client.wallet.multisig.createTrustedDealerKeyPackage(request)
-    ).content
-
-    await routeTest.client.wallet.importAccount({
-      name: 'participant1',
-      account: trustedDealerPackage.participantAccounts[0].account,
-    })
-
+    // Create an unsigned transaction
     const txAccount = await useAccountAndAddFundsFixture(routeTest.wallet, routeTest.chain)
     const unsignedTransaction = (
       await useUnsignedTxFixture(routeTest.wallet, txAccount, txAccount)
@@ -37,52 +49,84 @@ describe('Route multisig/createSigningPackage', () => {
       .serialize()
       .toString('hex')
 
+    // Create signing commitments for all participants
     const commitments = await Promise.all(
-      participants.map(async (_) => {
+      accountNames.map(async (accountName) => {
         const signingCommitment =
           await routeTest.client.wallet.multisig.createSigningCommitment({
+            account: accountName,
             unsignedTransaction,
-            signers: participants.map((identity) => ({
-              identity: identity.serialize().toString('hex'),
-            })),
+            signers: participants,
           })
         return signingCommitment.content.commitment
       }),
     )
 
+    // Create the signing package
     const responseSigningPackage = await routeTest.client.wallet.multisig.createSigningPackage({
-      account: 'participant1',
       commitments,
       unsignedTransaction,
     })
-
     expect(responseSigningPackage.content).toMatchObject({
       signingPackage: expect.any(String),
     })
   })
 
   it('should verify commitment identities', async () => {
-    // create a multisig group and import an account
-    const participant1 = ParticipantSecret.random().toIdentity()
-    const participant2 = ParticipantSecret.random().toIdentity()
-    const keyRequest1 = {
-      minSigners: 2,
-      participants: [
-        { identity: participant1.serialize().toString('hex') },
-        { identity: participant2.serialize().toString('hex') },
-      ],
+    // Create a bunch of multisig identities
+    const accountNames = Array.from({ length: 4 }, (_, index) => `test-account-${index}`)
+    const participants = await Promise.all(
+      accountNames.map(async (name) => {
+        const identity = (
+          await routeTest.client
+            .request<CreateIdentityResponse>('wallet/multisig/createIdentity', { name })
+            .waitForEnd()
+        ).content.identity
+        return { name, identity }
+      }),
+    )
+
+    // Split the participants in two groups
+    const participantsGroup1 = participants.slice(0, 2)
+    const participantsGroup2 = participants.slice(2)
+
+    // Initialize the first group though TDK and import the accounts generated
+    const trustedDealerPackage1 = (
+      await routeTest.client.wallet.multisig.createTrustedDealerKeyPackage({
+        minSigners: 2,
+        participants: participantsGroup1,
+      })
+    ).content
+    for (const { name, identity } of participantsGroup1) {
+      const importAccount = trustedDealerPackage1.participantAccounts.find(
+        (account) => account.identity === identity,
+      )
+      expect(importAccount).not.toBeUndefined()
+      await routeTest.client.wallet.importAccount({
+        name,
+        account: importAccount!.account,
+      })
     }
 
-    const package1 = (
-      await routeTest.client.wallet.multisig.createTrustedDealerKeyPackage(keyRequest1)
+    // Initialize the second group though TDK and import the accounts generated
+    const trustedDealerPackage2 = (
+      await routeTest.client.wallet.multisig.createTrustedDealerKeyPackage({
+        minSigners: 2,
+        participants: participantsGroup2,
+      })
     ).content
+    for (const { name, identity } of participantsGroup2) {
+      const importAccount = trustedDealerPackage2.participantAccounts.find(
+        (account) => account.identity === identity,
+      )
+      expect(importAccount).not.toBeUndefined()
+      await routeTest.client.wallet.importAccount({
+        name,
+        account: importAccount!.account,
+      })
+    }
 
-    await routeTest.client.wallet.importAccount({
-      name: 'participant1',
-      account: package1.participantAccounts[0].account,
-    })
-
-    // create a transaction for the signing package
+    // Create an unsigned transaction
     const txAccount = await useAccountAndAddFundsFixture(routeTest.wallet, routeTest.chain)
     const unsignedTransaction = (
       await useUnsignedTxFixture(routeTest.wallet, txAccount, txAccount)
@@ -90,51 +134,32 @@ describe('Route multisig/createSigningPackage', () => {
       .serialize()
       .toString('hex')
 
-    // create a second multisig group
-    const participant3 = ParticipantSecret.random().toIdentity()
-    const participant4 = ParticipantSecret.random().toIdentity()
-    const keyRequest2 = {
-      minSigners: 2,
-      participants: [
-        { identity: participant3.serialize().toString('hex') },
-        { identity: participant4.serialize().toString('hex') },
-      ],
-    }
+    // Create signing commitments mixing participants from different groups
+    const mixedParticipants = [participantsGroup1[0], participantsGroup2[0]]
+    const commitments = await Promise.all(
+      mixedParticipants.map(async ({ name }) => {
+        const signingCommitment =
+          await routeTest.client.wallet.multisig.createSigningCommitment({
+            account: name,
+            unsignedTransaction,
+            signers: participants,
+          })
+        return signingCommitment.content.commitment
+      }),
+    )
 
-    const package2 = (
-      await routeTest.client.wallet.multisig.createTrustedDealerKeyPackage(keyRequest2)
-    ).content
-
-    await routeTest.client.wallet.importAccount({
-      name: 'participant3',
-      account: package2.participantAccounts[0].account,
-    })
-
-    // include a commitment from participant 3, who is not in the first group
-    const signers = [
-      { identity: participant1.serialize().toString('hex') },
-      { identity: participant3.serialize().toString('hex') },
-    ]
-    const commitments = [
-      (
-        await routeTest.client.wallet.multisig.createSigningCommitment({
-          account: 'participant1',
-          unsignedTransaction,
-          signers,
-        })
-      ).content.commitment,
-      (
-        await routeTest.client.wallet.multisig.createSigningCommitment({
-          account: 'participant3',
-          unsignedTransaction,
-          signers,
-        })
-      ).content.commitment,
-    ]
+    // Try to create the signing package
+    await expect(async () =>
+      routeTest.client.wallet.multisig.createSigningPackage({
+        account: mixedParticipants[0].name,
+        commitments,
+        unsignedTransaction,
+      }),
+    ).rejects.toThrow(RpcRequestError)
 
     await expect(async () =>
       routeTest.client.wallet.multisig.createSigningPackage({
-        account: 'participant1',
+        account: mixedParticipants[1].name,
         commitments,
         unsignedTransaction,
       }),
