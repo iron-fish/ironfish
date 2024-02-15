@@ -26,7 +26,7 @@ use ironfish_zkp::{
 };
 use jubjub::SubgroupPoint;
 use rand::thread_rng;
-use std::{cmp, fmt, io, io::Read};
+use std::{fmt, io, io::Read};
 pub const ENCRYPTED_NOTE_SIZE: usize =
     SCALAR_SIZE + MEMO_SIZE + AMOUNT_VALUE_SIZE + ASSET_ID_LENGTH + PUBLIC_ADDRESS_SIZE;
 //   8  value
@@ -57,12 +57,9 @@ impl From<String> for Memo {
     }
 }
 
-impl From<&[u8]> for Memo {
-    fn from(value: &[u8]) -> Self {
-        let num_to_copy = cmp::min(value.len(), MEMO_SIZE);
-        let mut memo_bytes = [0u8; MEMO_SIZE];
-        memo_bytes[..num_to_copy].copy_from_slice(&value[..num_to_copy]);
-        Memo(memo_bytes)
+impl From<[u8; MEMO_SIZE]> for Memo {
+    fn from(value: [u8; MEMO_SIZE]) -> Self {
+        Memo(value)
     }
 }
 

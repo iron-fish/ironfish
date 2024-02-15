@@ -63,7 +63,9 @@ impl NativeNote {
         let sender_address = ironfish::PublicAddress::from_hex(&sender).map_err(to_napi_err)?;
 
         let memo_buffer = memo.into_value()?;
-        let memo_bytes = memo_buffer.as_ref();
+        let memo_vec = memo_buffer.as_ref();
+        let mut memo_bytes = [0; MEMO_SIZE];
+        memo_bytes.clone_from_slice(&memo_vec[0..MEMO_SIZE]);
 
         let buffer = asset_id.into_value()?;
         let asset_id_vec = buffer.as_ref();
