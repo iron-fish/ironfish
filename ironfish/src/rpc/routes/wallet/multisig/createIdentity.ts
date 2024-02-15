@@ -35,19 +35,21 @@ routes.register<typeof CreateIdentityRequestSchema, CreateIdentityResponse>(
 
     const { name } = request.data
 
-    if (await context.wallet.walletDb.hasMultisigSecret(name)) {
-      throw new RpcValidationError(
-        `Identity already exists with name ${name}`,
-        400,
-        RPC_ERROR_CODES.DUPLICATE_ACCOUNT_NAME,
-      )
-    }
+    await context.wallet.walletDb.db.transaction(async (tx) => {
+      if (await context.wallet.walletDb.hasMultisigSecret(name, tx)) {
+        throw new RpcValidationError(
+          `Identity already exists with name ${name}`,
+          400,
+          RPC_ERROR_CODES.DUPLICATE_ACCOUNT_NAME,
+        )
+      }
 
-    const secret = ParticipantSecret.random()
-    const identity = secret.toIdentity()
+      const secret = ParticipantSecret.random()
+      const identity = secret.toIdentity()
 
-    await context.wallet.walletDb.putMultisigSecret(name, secret.serialize())
+      await context.wallet.walletDb.putMultisigSecret(name, secret.serialize(), tx)
 
-    request.end({ identity: identity.serialize().toString('hex') })
+      request.end({ identity: identity.serialize().toString('hex') })
+    })
   },
 )

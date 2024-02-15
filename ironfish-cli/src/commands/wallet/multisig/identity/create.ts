@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { ParticipantIdentity } from '@ironfish/rust-nodejs'
 import { RPC_ERROR_CODES, RpcRequestError } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
@@ -37,21 +36,13 @@ export class MultisigIdentityCreate extends IronfishCommand {
           this.log(e.codeMessage)
         }
 
-        const name = await CliUx.ux.prompt('Enter a name for the identity', {
+        flags.name = await CliUx.ux.prompt('Enter a new name for the identity', {
           required: true,
         })
-        if (name === flags.name) {
-          this.error(`Entered the same name: '${name}'`)
-        }
-
-        flags.name = name
-        continue
       }
     }
 
-    const identity = new ParticipantIdentity(Buffer.from(response.content.identity, 'hex'))
-
     this.log('Identity:')
-    this.log(identity.serialize().toString('hex'))
+    this.log(response.content.identity)
   }
 }
