@@ -21,6 +21,8 @@ import type {
   BurnAssetResponse,
   CreateAccountRequest,
   CreateAccountResponse,
+  CreateIdentityRequest,
+  CreateIdentityResponse,
   CreateSignatureShareRequest,
   CreateSignatureShareResponse,
   CreateSigningCommitmentRequest,
@@ -222,6 +224,15 @@ export abstract class RpcClient {
       ): Promise<RpcResponseEnded<CreateSignatureShareResponse>> => {
         return this.request<CreateSignatureShareResponse>(
           `${ApiNamespace.wallet}/multisig/createSignatureShare`,
+          params,
+        ).waitForEnd()
+      },
+
+      createIdentity: (
+        params: CreateIdentityRequest,
+      ): Promise<RpcResponseEnded<CreateIdentityResponse>> => {
+        return this.request<CreateIdentityResponse>(
+          `${ApiNamespace.wallet}/multisig/createIdentity`,
           params,
         ).waitForEnd()
       },

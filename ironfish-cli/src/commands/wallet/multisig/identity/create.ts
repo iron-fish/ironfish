@@ -1,19 +1,48 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { ParticipantSecret } from '@ironfish/rust-nodejs'
+import { RPC_ERROR_CODES, RpcRequestError } from '@ironfish/sdk'
+import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
+import { RemoteFlags } from '../../../../flags'
 
 export class MultisigIdentityCreate extends IronfishCommand {
   static description = `Create a multisig identity`
   static hidden = true
 
-  start(): void {
-    // TODO: generate secret over RPC, persist in walletDb
-    const secret = ParticipantSecret.random()
+  static flags = {
+    ...RemoteFlags,
+    name: Flags.string({
+      char: 'n',
+      description: 'Name to associate with the identity',
+      required: true,
+    }),
+  }
 
-    const identity = secret.toIdentity()
+  async start(): Promise<void> {
+    const { flags } = await this.parse(MultisigIdentityCreate)
+
+    const client = await this.sdk.connectRpc()
+    let response
+    while (!response) {
+      try {
+        response = await client.wallet.multisig.createIdentity({ name: flags.name })
+      } catch (e) {
+        if (
+          e instanceof RpcRequestError &&
+          e.code === RPC_ERROR_CODES.DUPLICATE_ACCOUNT_NAME.toString()
+        ) {
+          this.log()
+          this.log(e.codeMessage)
+        }
+
+        flags.name = await CliUx.ux.prompt('Enter a new name for the identity', {
+          required: true,
+        })
+      }
+    }
+
     this.log('Identity:')
-    this.log(identity.serialize().toString('hex'))
+    this.log(response.content.identity)
   }
 }
