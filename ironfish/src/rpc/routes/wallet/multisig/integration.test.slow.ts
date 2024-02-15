@@ -4,7 +4,7 @@
 import { Asset, ParticipantSecret, verifyTransactions } from '@ironfish/rust-nodejs'
 import { Assert } from '../../../../assert'
 import { createRouteTest } from '../../../../testUtilities/routeTest'
-import { Account, ACCOUNT_SCHEMA_VERSION, AssertMultisigSigner } from '../../../../wallet'
+import { ACCOUNT_SCHEMA_VERSION, Account, AssertMultisigSigner } from '../../../../wallet'
 
 describe('multisig RPC integration', () => {
   const routeTest = createRouteTest()
@@ -132,7 +132,6 @@ describe('multisig RPC integration', () => {
         await routeTest.client.wallet.multisig.createSignatureShare({
           account: participantAccount.name,
           signingPackage,
-          unsignedTransaction,
           signers,
         })
 

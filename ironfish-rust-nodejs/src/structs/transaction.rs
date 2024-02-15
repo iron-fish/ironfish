@@ -12,9 +12,9 @@ use ironfish::frost::keys::PublicKeyPackage;
 use ironfish::frost::round1::SigningCommitments;
 use ironfish::frost::round2::SignatureShare as FrostSignatureShare;
 use ironfish::frost::Identifier;
-use ironfish::frost::SigningPackage;
 use ironfish::frost_utils::signature_share::SignatureShare;
 use ironfish::frost_utils::signing_commitment::SigningCommitment;
+use ironfish::frost_utils::signing_package::SigningPackage;
 use ironfish::serializing::fr::FrSerializable;
 use ironfish::serializing::hex_to_vec_bytes;
 use ironfish::serializing::{bytes_to_hex, hex_to_bytes};
@@ -440,9 +440,10 @@ impl NativeUnsignedTransaction {
             .signing_package(commitments)
             .map_err(to_napi_err)?;
 
-        Ok(bytes_to_hex(
-            &signing_package.serialize().map_err(to_napi_err)?,
-        ))
+        let mut vec: Vec<u8> = vec![];
+        signing_package.write(&mut vec).map_err(to_napi_err)?;
+
+        Ok(bytes_to_hex(&vec))
     }
 
     #[napi]
@@ -468,10 +469,10 @@ impl NativeUnsignedTransaction {
             &hex_to_vec_bytes(&public_key_package_str).map_err(to_napi_err)?,
         )
         .map_err(to_napi_err)?;
-        let signing_package = SigningPackage::deserialize(
-            &hex_to_vec_bytes(&signing_package_str).map_err(to_napi_err)?,
-        )
-        .map_err(to_napi_err)?;
+
+        let bytes = hex_to_vec_bytes(&signing_package_str).map_err(to_napi_err)?;
+        let signing_package = SigningPackage::read(&bytes[..]).map_err(to_napi_err)?;
+
         let mut signature_shares = BTreeMap::<Identifier, FrostSignatureShare>::new();
         for signature_share in signature_shares_arr.iter() {
             let iss =
