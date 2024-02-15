@@ -9,7 +9,7 @@ use ironfish_frost::frost::{
     keys::PublicKeyPackage,
     round1::SigningCommitments,
     round2::{Randomizer, SignatureShare},
-    Identifier, RandomizedParams, SigningPackage,
+    Identifier, RandomizedParams, SigningPackage as FrostSigningPackage,
 };
 
 use ironfish_zkp::redjubjub::{self, Signature};
@@ -20,6 +20,7 @@ use std::{
 
 use crate::{
     errors::{IronfishError, IronfishErrorKind},
+    frost_utils::signing_package::SigningPackage,
     serializing::read_scalar,
     transaction::Blake2b,
     OutputDescription, SaplingKey, Transaction,
@@ -208,7 +209,7 @@ impl UnsignedTransaction {
             RandomizedParams::from_randomizer(public_key_package.verifying_key(), randomizer);
 
         let authorizing_group_signature = aggregate(
-            authorizing_signing_package,
+            &authorizing_signing_package.frost_signing_package,
             &authorizing_signature_shares,
             public_key_package,
             &randomized_params,
@@ -300,7 +301,11 @@ impl UnsignedTransaction {
             .into_iter()
             .map(|(identity, commitments)| (identity.into(), commitments))
             .collect();
-        Ok(SigningPackage::new(commitments, &data_to_sign))
+        let frost_signing_package = FrostSigningPackage::new(commitments, &data_to_sign);
+        Ok(SigningPackage {
+            unsigned_transaction: self.clone(),
+            frost_signing_package,
+        })
     }
 
     // Exposes the public key package for use in round two of FROST multisig protocol

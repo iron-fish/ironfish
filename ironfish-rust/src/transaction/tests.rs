@@ -815,8 +815,13 @@ fn test_aggregate_signature_shares() {
             &transaction_hash,
             &identities,
         );
-        let signature_share = round2::sign(&signing_package, &nonces, key_package, randomizer)
-            .expect("should be able to create signature share");
+        let signature_share = round2::sign(
+            &signing_package.frost_signing_package,
+            &nonces,
+            key_package,
+            randomizer,
+        )
+        .expect("should be able to create signature share");
         signature_shares.insert(identity.to_frost_identifier(), signature_share);
     }
 

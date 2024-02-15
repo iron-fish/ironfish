@@ -1291,7 +1291,6 @@ describe('Wallet', () => {
       }
 
       const signingPackage = unsignedTransaction.signingPackage(signingCommitments)
-      const publicKeyRandomness = unsignedTransaction.publicKeyRandomness()
 
       const signatureShares: Array<string> = []
 
@@ -1302,8 +1301,6 @@ describe('Wallet', () => {
             participant.multisigKeys.identity,
             participant.multisigKeys.keyPackage,
             signingPackage,
-            transactionHash,
-            publicKeyRandomness,
             signers,
           ),
         )

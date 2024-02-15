@@ -8,11 +8,13 @@ use crate::{
 };
 use ironfish::{
     frost::{
-        keys::KeyPackage, round1::SigningCommitments, round2, round2::Randomizer, SigningPackage,
+        keys::KeyPackage,
+        round1::SigningCommitments,
+        round2::{self, Randomizer},
     },
     frost_utils::{
         signature_share::SignatureShare, signing_commitment::SigningCommitment,
-        split_spender_key::split_spender_key,
+        signing_package::SigningPackage, split_spender_key::split_spender_key,
     },
     participant::{Identity, Secret},
     serializing::{bytes_to_hex, fr::FrSerializable, hex_to_bytes, hex_to_vec_bytes},
@@ -73,8 +75,6 @@ pub fn create_signature_share(
     identity: String,
     key_package: String,
     signing_package: String,
-    transaction_hash: JsBuffer,
-    public_key_randomness: String,
     signers: Vec<String>,
 ) -> Result<String> {
     let identity =
@@ -83,20 +83,35 @@ pub fn create_signature_share(
     let key_package =
         KeyPackage::deserialize(&hex_to_vec_bytes(&key_package).map_err(to_napi_err)?[..])
             .map_err(to_napi_err)?;
+
     let signing_package =
-        SigningPackage::deserialize(&hex_to_vec_bytes(&signing_package).map_err(to_napi_err)?[..])
-            .map_err(to_napi_err)?;
-    let transaction_hash = transaction_hash.into_value()?;
-    let randomizer =
-        Randomizer::deserialize(&hex_to_bytes(&public_key_randomness).map_err(to_napi_err)?)
+        SigningPackage::read(&hex_to_vec_bytes(&signing_package).map_err(to_napi_err)?[..])
             .map_err(to_napi_err)?;
     let signers = try_deserialize_signers(signers)?;
+
+    let transaction_hash = signing_package
+        .unsigned_transaction
+        .transaction_signature_hash()
+        .map_err(to_napi_err)?;
+
+    let randomizer = Randomizer::deserialize(
+        &signing_package
+            .unsigned_transaction
+            .public_key_randomness()
+            .to_bytes(),
+    )
+    .map_err(to_napi_err)?;
 
     let nonces =
         deterministic_signing_nonces(key_package.signing_share(), &transaction_hash, &signers);
 
-    let signature_share =
-        round2::sign(&signing_package, &nonces, &key_package, randomizer).map_err(to_napi_err)?;
+    let signature_share = round2::sign(
+        &signing_package.frost_signing_package,
+        &nonces,
+        &key_package,
+        randomizer,
+    )
+    .map_err(to_napi_err)?;
 
     let signature_share = SignatureShare {
         identity,

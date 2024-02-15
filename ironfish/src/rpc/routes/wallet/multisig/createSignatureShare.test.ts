@@ -13,7 +13,6 @@ describe('Route wallt/multisig/createSignatureShare', () => {
       routeTest.client.wallet.multisig.createSignatureShare({
         account: 'non-existent',
         signingPackage: 'fake',
-        unsignedTransaction: 'deadbeef',
         signers: [],
       }),
     ).rejects.toThrow(
@@ -43,7 +42,6 @@ describe('Route wallt/multisig/createSignatureShare', () => {
       routeTest.client.wallet.multisig.createSignatureShare({
         account: account.name,
         signingPackage: 'fake',
-        unsignedTransaction: 'deadbeef',
         signers: [],
       }),
     ).rejects.toThrow(
