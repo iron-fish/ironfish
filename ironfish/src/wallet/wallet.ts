@@ -1022,7 +1022,7 @@ export class Wallet {
           const note = new NativeNote(
             output.publicAddress,
             output.amount,
-            output.memo,
+            Buffer.from(output.memo, 'hex'),
             output.assetId,
             options.account.publicAddress,
           )

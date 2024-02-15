@@ -184,7 +184,7 @@ export async function useBlockWithRawTxFixture(
       const note = new NativeNote(
         output.publicAddress,
         output.amount,
-        output.memo,
+        Buffer.from(output.memo, 'hex'),
         output.assetId,
         sender.publicAddress,
       )

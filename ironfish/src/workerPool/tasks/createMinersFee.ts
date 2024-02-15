@@ -97,7 +97,7 @@ export class CreateMinersFeeTask extends WorkerTask {
     const minerNote = new Note(
       minerPublicAddress,
       amount,
-      memo,
+      Buffer.from(memo, 'hex'),
       Asset.nativeId(),
       minerPublicAddress,
     )
