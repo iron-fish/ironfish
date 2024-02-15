@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { ParticipantIdentity } from '@ironfish/rust-nodejs'
-import { Flags } from '@oclif/core'
+import { RPC_ERROR_CODES, RpcRequestError } from '@ironfish/sdk'
+import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
 
@@ -23,7 +24,30 @@ export class MultisigIdentityCreate extends IronfishCommand {
     const { flags } = await this.parse(MultisigIdentityCreate)
 
     const client = await this.sdk.connectRpc()
-    const response = await client.wallet.multisig.createIdentity({ name: flags.name })
+    let response
+    while (!response) {
+      try {
+        response = await client.wallet.multisig.createIdentity({ name: flags.name })
+      } catch (e) {
+        if (
+          e instanceof RpcRequestError &&
+          e.code === RPC_ERROR_CODES.DUPLICATE_ACCOUNT_NAME.toString()
+        ) {
+          this.log()
+          this.log(e.codeMessage)
+        }
+
+        const name = await CliUx.ux.prompt('Enter a name for the identity', {
+          required: true,
+        })
+        if (name === flags.name) {
+          this.error(`Entered the same name: '${name}'`)
+        }
+
+        flags.name = name
+        continue
+      }
+    }
 
     const identity = new ParticipantIdentity(Buffer.from(response.content.identity, 'hex'))
 

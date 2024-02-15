@@ -1269,6 +1269,10 @@ export class WalletDB {
     return this.multisigSecrets.get(name, tx)
   }
 
+  async hasMultisigSecret(name: string, tx?: IDatabaseTransaction): Promise<boolean> {
+    return (await this.getMultisigSecret(name, tx)) !== undefined
+  }
+
   async deleteMultisigSecret(name: string, tx?: IDatabaseTransaction): Promise<void> {
     await this.multisigSecrets.del(name, tx)
   }

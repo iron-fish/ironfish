@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { ParticipantSecret } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
+import { RPC_ERROR_CODES, RpcValidationError } from '../../../adapters/errors'
 import { ApiNamespace } from '../../namespaces'
 import { routes } from '../../router'
 import { AssertHasRpcContext } from '../../rpcContext'
@@ -33,6 +34,14 @@ routes.register<typeof CreateIdentityRequestSchema, CreateIdentityResponse>(
     AssertHasRpcContext(request, context, 'wallet')
 
     const { name } = request.data
+
+    if (await context.wallet.walletDb.hasMultisigSecret(name)) {
+      throw new RpcValidationError(
+        `Identity already exists with name ${name}`,
+        400,
+        RPC_ERROR_CODES.DUPLICATE_ACCOUNT_NAME,
+      )
+    }
 
     const secret = ParticipantSecret.random()
     const identity = secret.toIdentity()
