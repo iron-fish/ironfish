@@ -21,6 +21,8 @@ import type {
   BurnAssetResponse,
   CreateAccountRequest,
   CreateAccountResponse,
+  CreateIdentityRequest,
+  CreateIdentityResponse,
   CreateSignatureShareRequest,
   CreateSignatureShareResponse,
   CreateSigningCommitmentRequest,
@@ -146,7 +148,6 @@ import type {
   UseAccountResponse,
 } from '../routes'
 import { ApiNamespace } from '../routes/namespaces'
-import { CreateSecretRequest, CreateSecretResponse } from '../routes/wallet/multisig/createSecret'
 
 export abstract class RpcClient {
   abstract request<TEnd = unknown, TStream = unknown>(
@@ -227,11 +228,11 @@ export abstract class RpcClient {
         ).waitForEnd()
       },
 
-      createSecret: (
-        params: CreateSecretRequest,
-      ): Promise<RpcResponseEnded<CreateSecretResponse>> => {
-        return this.request<CreateSecretResponse>(
-          `${ApiNamespace.wallet}/multisig/createSecret`,
+      createIdentity: (
+        params: CreateIdentityRequest,
+      ): Promise<RpcResponseEnded<CreateIdentityResponse>> => {
+        return this.request<CreateIdentityResponse>(
+          `${ApiNamespace.wallet}/multisig/createIdentity`,
           params,
         ).waitForEnd()
       },

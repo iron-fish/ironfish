@@ -7,38 +7,38 @@ import { ApiNamespace } from '../../namespaces'
 import { routes } from '../../router'
 import { AssertHasRpcContext } from '../../rpcContext'
 
-export type CreateSecretRequest = {
+export type CreateIdentityRequest = {
   name: string
 }
 
-export type CreateSecretResponse = {
-  secret: string
+export type CreateIdentityResponse = {
+  identity: string
 }
-export const CreateSecretRequestSchema: yup.ObjectSchema<CreateSecretRequest> = yup
+export const CreateIdentityRequestSchema: yup.ObjectSchema<CreateIdentityRequest> = yup
   .object({
     name: yup.string().defined(),
   })
   .defined()
 
-export const CreateSecretResponseSchema: yup.ObjectSchema<CreateSecretResponse> = yup
+export const CreateIdentityResponseSchema: yup.ObjectSchema<CreateIdentityResponse> = yup
   .object({
-    secret: yup.string().defined(),
+    identity: yup.string().defined(),
   })
   .defined()
 
-routes.register<typeof CreateSecretRequestSchema, CreateSecretResponse>(
-  `${ApiNamespace.wallet}/multisig/createSecret`,
-  CreateSecretRequestSchema,
+routes.register<typeof CreateIdentityRequestSchema, CreateIdentityResponse>(
+  `${ApiNamespace.wallet}/multisig/createIdentity`,
+  CreateIdentityRequestSchema,
   async (request, context): Promise<void> => {
     AssertHasRpcContext(request, context, 'wallet')
 
     const { name } = request.data
 
     const secret = ParticipantSecret.random()
-    const secretBuffer = secret.serialize()
+    const identity = secret.toIdentity()
 
-    await context.wallet.walletDb.putMultisigSecret(name, secretBuffer)
+    await context.wallet.walletDb.putMultisigSecret(name, secret.serialize())
 
-    request.end({ secret: secretBuffer.toString('hex') })
+    request.end({ identity: identity.serialize().toString('hex') })
   },
 )
