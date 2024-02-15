@@ -4,7 +4,7 @@
 import { Asset, ParticipantSecret, verifyTransactions } from '@ironfish/rust-nodejs'
 import { Assert } from '../../../../assert'
 import { createRouteTest } from '../../../../testUtilities/routeTest'
-import { ACCOUNT_SCHEMA_VERSION, Account, AssertMultisigSigner } from '../../../../wallet'
+import { Account, ACCOUNT_SCHEMA_VERSION, AssertMultisigSigner } from '../../../../wallet'
 
 describe('multisig RPC integration', () => {
   const routeTest = createRouteTest()
