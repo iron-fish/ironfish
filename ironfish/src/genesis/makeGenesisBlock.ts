@@ -56,7 +56,7 @@ export async function makeGenesisBlock(
   const genesisNote = new NativeNote(
     genesisKey.publicAddress,
     allocationSum,
-    '',
+    Buffer.alloc(0),
     Asset.nativeId(),
     genesisKey.publicAddress,
   )
@@ -72,7 +72,7 @@ export async function makeGenesisBlock(
   const note = new NativeNote(
     minersFeeKey.publicAddress,
     BigInt(0),
-    '',
+    Buffer.alloc(0),
     Asset.nativeId(),
     minersFeeKey.publicAddress,
   )
@@ -141,7 +141,7 @@ export async function makeGenesisBlock(
     const note = new NativeNote(
       alloc.publicAddress,
       BigInt(alloc.amountInOre),
-      alloc.memo,
+      Buffer.from(alloc.memo, 'hex'),
       Asset.nativeId(),
       genesisNote.owner(),
     )

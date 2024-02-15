@@ -54,13 +54,16 @@ impl NativeNote {
     pub fn new(
         owner: String,
         value: BigInt,
-        memo: String,
+        memo: JsBuffer,
         asset_id: JsBuffer,
         sender: String,
     ) -> Result<Self> {
         let value_u64 = value.get_u64().1;
         let owner_address = ironfish::PublicAddress::from_hex(&owner).map_err(to_napi_err)?;
         let sender_address = ironfish::PublicAddress::from_hex(&sender).map_err(to_napi_err)?;
+
+        let memo_buffer = memo.into_value()?;
+        let memo_bytes = memo_buffer.as_ref();
 
         let buffer = asset_id.into_value()?;
         let asset_id_vec = buffer.as_ref();
@@ -69,7 +72,13 @@ impl NativeNote {
         let asset_id = asset_id_bytes.try_into().map_err(to_napi_err)?;
 
         Ok(NativeNote {
-            note: Note::new(owner_address, value_u64, memo, asset_id, sender_address),
+            note: Note::new(
+                owner_address,
+                value_u64,
+                memo_bytes,
+                asset_id,
+                sender_address,
+            ),
         })
     }
 
