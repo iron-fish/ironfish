@@ -750,7 +750,7 @@ export class Blockchain {
     const fork = await this.findFork(oldHead, newHead, tx)
 
     if (this.latestCheckpoint && fork.sequence < this.latestCheckpoint.sequence) {
-      throw new Error('Cannot reorganize chain below the latest checkpoint')
+      throw new VerifyError(VerificationResultReason.CHECKPOINT_REORG)
     }
 
     // Step 2: Collect all the blocks from the old head to the fork
