@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { CurrencyUtils } from '@ironfish/sdk'
-import { CliUx } from '@oclif/core'
+import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 import { TableCols } from '../../../utils/table'
@@ -14,23 +14,18 @@ export class NotesCommand extends IronfishCommand {
   static flags = {
     ...RemoteFlags,
     ...tableFlags,
+    account: Flags.string({
+      char: 'a',
+      deprecateAliases: true,
+    }),
   }
 
-  static args = [
-    {
-      name: 'account',
-      required: false,
-      description: 'Name of the account to get notes for',
-    },
-  ]
-
   async start(): Promise<void> {
-    const { flags, args } = await this.parse(NotesCommand)
-    const account = args.account as string | undefined
+    const { flags } = await this.parse(NotesCommand)
 
     const client = await this.sdk.connectRpc()
 
-    const response = client.wallet.getAccountNotesStream({ account })
+    const response = client.wallet.getAccountNotesStream({ account: flags.account })
 
     let showHeader = !flags['no-header']
 

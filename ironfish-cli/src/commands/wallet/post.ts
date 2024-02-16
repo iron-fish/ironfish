@@ -25,8 +25,8 @@ export class PostCommand extends IronfishCommand {
   static flags = {
     ...RemoteFlags,
     account: Flags.string({
+      char: 'a',
       description: 'The account that created the raw transaction',
-      required: false,
     }),
     confirm: Flags.boolean({
       default: false,

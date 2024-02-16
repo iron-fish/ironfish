@@ -15,6 +15,10 @@ export class WatchTxCommand extends IronfishCommand {
       required: false,
       description: 'Minimum number of blocks confirmations for a transaction',
     }),
+    account: Flags.string({
+      char: 'a',
+      description: 'The account from which the transaction was sent',
+    }),
   }
 
   static args = [
@@ -24,24 +28,18 @@ export class WatchTxCommand extends IronfishCommand {
       required: true,
       description: 'Hash of the transaction',
     },
-    {
-      name: 'account',
-      required: false,
-      description: 'Name of the account',
-    },
   ]
 
   async start(): Promise<void> {
     const { flags, args } = await this.parse(WatchTxCommand)
     const hash = args.hash as string
-    const account = args.account as string | undefined
 
     const client = await this.sdk.connectRpc()
 
     await watchTransaction({
       client,
       logger: this.logger,
-      account,
+      account: flags.account,
       hash,
       confirmations: flags.confirmations,
     })

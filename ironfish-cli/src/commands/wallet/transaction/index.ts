@@ -9,7 +9,7 @@ import {
   RpcWalletNote,
   TimeUtils,
 } from '@ironfish/sdk'
-import { CliUx } from '@oclif/core'
+import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 
@@ -18,6 +18,10 @@ export class TransactionCommand extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
+    account: Flags.string({
+      char: 'a',
+      description: 'The account from which the transaction was sent',
+    }),
   }
 
   static args = [
@@ -27,17 +31,12 @@ export class TransactionCommand extends IronfishCommand {
       required: true,
       description: 'Hash of the transaction',
     },
-    {
-      name: 'account',
-      required: false,
-      description: 'Name of the account',
-    },
   ]
 
   async start(): Promise<void> {
-    const { args } = await this.parse(TransactionCommand)
+    const { flags, args } = await this.parse(TransactionCommand)
     const hash = args.hash as string
-    const account = args.account as string | undefined
+    const account = flags.account
 
     const client = await this.sdk.connectRpc()
 

@@ -61,14 +61,23 @@ export class CombineNotesCommand extends IronfishCommand {
       description: 'The public address of the recipient',
     }),
     account: Flags.string({
-      char: 'f',
-      description: 'The account to send money from',
+      char: 'a',
+      aliases: ['f'],
+      description: 'The account to combine notes for',
     }),
     benchmark: Flags.boolean({
       hidden: true,
       default: false,
       description: 'Force run the benchmark to measure the time to combine 1 note',
     }),
+  }
+
+  warnIfFlagDeprecated(flags: Record<string, unknown>) {
+    if (flags.account) {
+      this.warn(
+        `Warning: The "-f" is going away in version 1.22.0. Use "--account" or "-a" instead.`,
+      )
+    }
   }
 
   private async getSpendPostTimeInMs(
