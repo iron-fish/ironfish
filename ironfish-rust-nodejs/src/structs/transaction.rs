@@ -507,7 +507,7 @@ impl NativeUnsignedTransaction {
             outputs.push(Buffer::from(vec));
         }
 
-        Ok(NativeUnsignedTransactionNotes{
+        Ok(NativeUnsignedTransactionNotes {
             mints,
             burns,
             outputs,
