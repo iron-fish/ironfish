@@ -423,7 +423,7 @@ impl NativeUnsignedTransaction {
 
     #[napi]
     pub fn signing_package(&self, native_identifer_commitments: Vec<String>) -> Result<String> {
-        let mut commitments: BTreeMap<Identifier, SigningCommitments> = BTreeMap::new();
+        let mut commitments = Vec::new();
 
         for identifier_commitment in native_identifer_commitments {
             let bytes = hex_to_vec_bytes(&identifier_commitment).map_err(to_napi_err)?;
@@ -432,7 +432,7 @@ impl NativeUnsignedTransaction {
             let commitment =
                 SigningCommitments::new(signing_commitment.hiding, signing_commitment.binding);
 
-            commitments.insert(signing_commitment.identifier, commitment);
+            commitments.push((signing_commitment.identity, commitment));
         }
 
         let signing_package = self

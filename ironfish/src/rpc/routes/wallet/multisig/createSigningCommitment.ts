@@ -57,6 +57,7 @@ routes.register<typeof CreateSigningCommitmentRequestSchema, CreateSigningCommit
       Buffer.from(request.data.unsignedTransaction, 'hex'),
     )
     const commitment = createSigningCommitment(
+      account.multisigKeys.identity,
       account.multisigKeys.keyPackage,
       unsigned.hash(),
       request.data.signers.map((signer) => signer.identity),

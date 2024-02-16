@@ -12,7 +12,6 @@ import { getAccount } from '../utils'
 export type CreateSignatureShareRequest = {
   account?: string
   signingPackage: string
-  signers: Array<{ identity: string }> // TODO make `signers` part of `signingPackage`
 }
 
 export type CreateSignatureShareResponse = {
@@ -24,15 +23,6 @@ export const CreateSignatureShareRequestSchema: yup.ObjectSchema<CreateSignature
     .object({
       account: yup.string().optional(),
       signingPackage: yup.string().defined(),
-      signers: yup
-        .array(
-          yup
-            .object({
-              identity: yup.string().defined(),
-            })
-            .defined(),
-        )
-        .defined(),
     })
     .defined()
 
@@ -56,7 +46,6 @@ routes.register<typeof CreateSignatureShareRequestSchema, CreateSignatureShareRe
       account.multisigKeys.identity,
       account.multisigKeys.keyPackage,
       request.data.signingPackage,
-      request.data.signers.map((signer) => signer.identity),
     )
 
     request.end({ signatureShare })

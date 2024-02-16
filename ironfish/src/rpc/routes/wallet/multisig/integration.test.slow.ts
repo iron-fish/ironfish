@@ -132,7 +132,6 @@ describe('multisig RPC integration', () => {
         await routeTest.client.wallet.multisig.createSignatureShare({
           account: participantAccount.name,
           signingPackage,
-          signers,
         })
 
       signatureShares.push(signatureShareResponse.content.signatureShare)

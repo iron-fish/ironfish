@@ -4,19 +4,20 @@
 
 use std::io;
 
-use ironfish_frost::frost::{frost::round1::NonceCommitment, Identifier, JubjubBlake2b512};
+use ironfish_frost::{
+    frost::round1::NonceCommitment,
+    participant::{Identity, IDENTITY_LEN},
+};
 
 use crate::errors::IronfishError;
 
-const SIGNING_COMMITMENT_LENGTH: usize = 96;
+const SIGNING_COMMITMENT_LENGTH: usize = IDENTITY_LEN + 96;
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct SigningCommitment {
-    pub identifier: Identifier,
-
-    pub hiding: NonceCommitment<JubjubBlake2b512>,
-
-    pub binding: NonceCommitment<JubjubBlake2b512>,
+    pub identity: Identity,
+    pub hiding: NonceCommitment,
+    pub binding: NonceCommitment,
 }
 
 impl SigningCommitment {
@@ -27,9 +28,7 @@ impl SigningCommitment {
     }
 
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
-        let mut identifier = [0u8; 32];
-        reader.read_exact(&mut identifier)?;
-        let identifier = Identifier::deserialize(&identifier)?;
+        let identity = Identity::deserialize_from(&mut reader)?;
 
         let mut hiding = [0u8; 32];
         reader.read_exact(&mut hiding)?;
@@ -40,16 +39,46 @@ impl SigningCommitment {
         let binding = NonceCommitment::deserialize(binding)?;
 
         Ok(SigningCommitment {
-            identifier,
+            identity,
             hiding,
             binding,
         })
     }
 
     fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
-        writer.write_all(&self.identifier.serialize())?;
+        writer.write_all(&self.identity.serialize())?;
         writer.write_all(&self.hiding.serialize())?;
         writer.write_all(&self.binding.serialize())?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::SigningCommitment;
+    use ironfish_frost::{
+        frost::{keys::SigningShare, round1::SigningNonces},
+        participant::Secret,
+    };
+    use rand::thread_rng;
+
+    #[test]
+    fn serialization_round_trip() {
+        let mut rng = thread_rng();
+
+        let signing_share = SigningShare::default();
+        let identity = Secret::random(&mut rng).to_identity();
+        let nonces = SigningNonces::new(&signing_share, &mut rng);
+
+        let signing_commitment = SigningCommitment {
+            identity,
+            hiding: nonces.hiding().into(),
+            binding: nonces.binding().into(),
+        };
+        let serialized = signing_commitment.serialize();
+        let deserialized =
+            SigningCommitment::read(&serialized[..]).expect("deserialization failed");
+
+        assert_eq!(deserialized, signing_commitment);
     }
 }

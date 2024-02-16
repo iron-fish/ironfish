@@ -55,7 +55,6 @@ export class CreateSignatureShareCommand extends IronfishCommand {
     const signatureShareResponse = await client.wallet.multisig.createSignatureShare({
       account: flags.account,
       signingPackage,
-      signers: flags.signerIdentity.map((identity) => ({ identity })),
     })
 
     this.log('Signing Share:\n')

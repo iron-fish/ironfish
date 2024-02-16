@@ -795,7 +795,7 @@ fn test_aggregate_signature_shares() {
             &transaction_hash,
             &identities,
         );
-        commitments.insert(identity, (&nonces).into());
+        commitments.insert(identity.clone(), (&nonces).into());
     }
 
     // coordinator creates signing package

@@ -47,10 +47,13 @@ where
 
 #[napi]
 pub fn create_signing_commitment(
+    identity: String,
     key_package: String,
     transaction_hash: JsBuffer,
     signers: Vec<String>,
 ) -> Result<String> {
+    let identity =
+        Identity::deserialize_from(&hex_to_vec_bytes(&identity).map_err(to_napi_err)?[..])?;
     let key_package =
         KeyPackage::deserialize(&hex_to_vec_bytes(&key_package).map_err(to_napi_err)?)
             .map_err(to_napi_err)?;
@@ -62,7 +65,7 @@ pub fn create_signing_commitment(
     let commitments = SigningCommitments::from(&nonces);
 
     let signing_commitment = SigningCommitment {
-        identifier: *key_package.identifier(),
+        identity,
         hiding: *commitments.hiding(),
         binding: *commitments.binding(),
     };
@@ -75,7 +78,6 @@ pub fn create_signature_share(
     identity: String,
     key_package: String,
     signing_package: String,
-    signers: Vec<String>,
 ) -> Result<String> {
     let identity =
         Identity::deserialize_from(&hex_to_vec_bytes(&identity).map_err(to_napi_err)?[..])
@@ -87,7 +89,6 @@ pub fn create_signature_share(
     let signing_package =
         SigningPackage::read(&hex_to_vec_bytes(&signing_package).map_err(to_napi_err)?[..])
             .map_err(to_napi_err)?;
-    let signers = try_deserialize_signers(signers)?;
 
     let transaction_hash = signing_package
         .unsigned_transaction
@@ -102,8 +103,11 @@ pub fn create_signature_share(
     )
     .map_err(to_napi_err)?;
 
-    let nonces =
-        deterministic_signing_nonces(key_package.signing_share(), &transaction_hash, &signers);
+    let nonces = deterministic_signing_nonces(
+        key_package.signing_share(),
+        &transaction_hash,
+        &signing_package.signers,
+    );
 
     let signature_share = round2::sign(
         &signing_package.frost_signing_package,

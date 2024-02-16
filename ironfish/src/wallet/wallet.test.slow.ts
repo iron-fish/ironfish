@@ -1284,6 +1284,7 @@ describe('Wallet', () => {
         AssertMultisigSigner(participant)
         signingCommitments.push(
           createSigningCommitment(
+            participant.multisigKeys.identity,
             participant.multisigKeys.keyPackage,
             transactionHash,
             signers,
@@ -1302,7 +1303,6 @@ describe('Wallet', () => {
             participant.multisigKeys.identity,
             participant.multisigKeys.keyPackage,
             signingPackage,
-            signers,
           ),
         )
       }
