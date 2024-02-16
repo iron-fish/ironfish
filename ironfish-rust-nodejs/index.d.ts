@@ -52,6 +52,19 @@ export const TRANSACTION_EXPIRATION_LENGTH: number
 export const TRANSACTION_FEE_LENGTH: number
 export const LATEST_TRANSACTION_VERSION: number
 export function verifyTransactions(serializedTransactions: Array<Buffer>): boolean
+export interface NativeMintDescription {
+  assetId: string
+  value: bigint
+}
+export interface NativeBurnDescription {
+  assetId: string
+  value: bigint
+}
+export interface NativeUnsignedTransactionNotes {
+  outputs: Array<Buffer>
+  mints: Array<NativeMintDescription>
+  burns: Array<NativeBurnDescription>
+}
 export interface IdentityKeyPackage {
   identity: string
   keyPackage: string
@@ -244,6 +257,7 @@ export class UnsignedTransaction {
   signingPackage(nativeIdentiferCommitments: Array<string>): string
   sign(spenderHexKey: string): Buffer
   aggregateSignatureShares(publicKeyPackageStr: string, signingPackageStr: string, signatureSharesArr: Array<string>): Buffer
+  descriptions(): NativeUnsignedTransactionNotes
 }
 export class FoundBlockResult {
   randomness: string
