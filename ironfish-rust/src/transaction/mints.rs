@@ -177,6 +177,10 @@ impl UnsignedMintDescription {
 
         Ok(())
     }
+
+    pub fn description(&self) -> &MintDescription {
+        &self.description
+    }
 }
 
 /// This description represents an action to increase the supply of an existing

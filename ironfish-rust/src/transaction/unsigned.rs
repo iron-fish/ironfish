@@ -312,4 +312,16 @@ impl UnsignedTransaction {
     pub fn public_key_randomness(&self) -> jubjub::Fr {
         self.public_key_randomness
     }
+
+    pub fn outputs(&self) -> &Vec<OutputDescription> {
+        &self.outputs
+    }
+
+    pub fn mints(&self) -> &Vec<UnsignedMintDescription> {
+        &self.mints
+    }
+
+    pub fn burns(&self) -> &Vec<BurnDescription> {
+        &self.burns
+    }
 }

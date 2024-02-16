@@ -2,7 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { UnsignedTransaction as NativeUnsignedTransaction } from '@ironfish/rust-nodejs'
+import {
+  NativeBurnDescription,
+  NativeMintDescription,
+  UnsignedTransaction as NativeUnsignedTransaction,
+} from '@ironfish/rust-nodejs'
+import { Note } from './note'
+import { NoteEncrypted } from './noteEncrypted'
 
 export class UnsignedTransaction {
   private readonly unsignedTransactionSerialized: Buffer
@@ -54,5 +60,41 @@ export class UnsignedTransaction {
     })
 
     return result
+  }
+
+  descriptions(
+    incomingViewKey: string,
+    outgoingViewKey: string,
+  ): {
+    receivedNotes: Note[]
+    spentNotes: Note[]
+    mints: NativeMintDescription[]
+    burns: NativeBurnDescription[]
+  } {
+    const descriptions = this.takeReference().descriptions()
+    this.returnReference()
+
+    const receivedNotes = []
+    const spentNotes = []
+    for (const serializedOutput of descriptions.outputs) {
+      const note = new NoteEncrypted(serializedOutput)
+
+      const receivedNote = note.decryptNoteForOwner(incomingViewKey)
+      if (receivedNote) {
+        receivedNotes.push(receivedNote)
+      }
+
+      const spentNote = note.decryptNoteForSpender(outgoingViewKey)
+      if (spentNote) {
+        spentNotes.push(spentNote)
+      }
+    }
+
+    return {
+      receivedNotes,
+      spentNotes,
+      mints: descriptions.mints,
+      burns: descriptions.burns,
+    }
   }
 }
