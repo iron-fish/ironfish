@@ -6,7 +6,7 @@ import { Asset, MEMO_LENGTH } from '@ironfish/rust-nodejs'
 import { RawTransactionSerde } from '../../../primitives/rawTransaction'
 import { useAccountFixture, useMinerBlockFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
-import { AsyncUtils } from '../../../utils'
+import { AsyncUtils, BufferUtils } from '../../../utils'
 import { RPC_ERROR_CODES } from '../../adapters/errors'
 import { RpcRequestError } from '../../clients'
 
@@ -550,6 +550,43 @@ describe('Route wallet/createTransaction', () => {
 
     expect(rawTransaction.outputs.length).toBe(1)
     expect(rawTransaction.outputs[0].note.memo()).toEqualBuffer(memoHexBuffer)
+  })
+
+  it('should create transaction with no memo', async () => {
+    const sender = await useAccountFixture(routeTest.node.wallet, 'existingAccount')
+
+    const block = await useMinerBlockFixture(
+      routeTest.chain,
+      undefined,
+      sender,
+      routeTest.node.wallet,
+    )
+
+    await expect(routeTest.node.chain).toAddBlock(block)
+
+    await routeTest.node.wallet.updateHead()
+
+    const response = await routeTest.client.wallet.createTransaction({
+      account: 'existingAccount',
+      outputs: [
+        {
+          publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
+          amount: BigInt(10).toString(),
+          assetId: Asset.nativeId().toString('hex'),
+        },
+      ],
+      fee: undefined,
+    })
+
+    expect(response.status).toBe(200)
+    expect(response.content.transaction).toBeDefined()
+
+    const rawTransactionBytes = Buffer.from(response.content.transaction, 'hex')
+    const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
+
+    expect(rawTransaction.outputs.length).toBe(1)
+    expect(rawTransaction.outputs[0].note.memo()).toEqualBuffer(Buffer.alloc(32, 0))
+    expect(BufferUtils.toHuman(rawTransaction.outputs[0].note.memo())).toEqual('')
   })
 
   it('should enforce maximum memo length', async () => {
