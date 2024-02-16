@@ -8,6 +8,7 @@ import { useAccountFixture, useMinersTxFixture } from '../../../testUtilities/fi
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { NotEnoughFundsError } from '../../../wallet/errors'
 import { RPC_ERROR_CODES } from '../../adapters'
+import { RpcRequestError } from '../../clients'
 
 const TEST_PARAMS = {
   account: 'existingAccount',
@@ -282,5 +283,23 @@ describe('Route wallet/sendTransaction', () => {
     const sendMemo = sendSpy.mock.lastCall?.[0].outputs[0].memo
     expect(sendMemo?.byteLength).toBe(memo.byteLength)
     expect(sendMemo?.equals(memo)).toBe(true)
+  })
+
+  it('should allow only one of memo or memoHex to be set', async () => {
+    await expect(async () =>
+      routeTest.client.wallet.sendTransaction({
+        account: 'existingAccount',
+        outputs: [
+          {
+            publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
+            amount: BigInt(10).toString(),
+            memo: 'abcd',
+            memoHex: 'abcd',
+            assetId: Asset.nativeId().toString('hex'),
+          },
+        ],
+        fee: undefined,
+      }),
+    ).rejects.toThrow(RpcRequestError)
   })
 })

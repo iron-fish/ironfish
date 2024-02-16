@@ -606,4 +606,22 @@ describe('Route wallet/createTransaction', () => {
       }),
     ).rejects.toThrow(RpcRequestError)
   })
+
+  it('should allow only one of memo or memoHex to be set', async () => {
+    await expect(async () =>
+      routeTest.client.wallet.createTransaction({
+        account: 'existingAccount',
+        outputs: [
+          {
+            publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
+            amount: BigInt(10).toString(),
+            memo: 'abcd',
+            memoHex: 'abcd',
+            assetId: Asset.nativeId().toString('hex'),
+          },
+        ],
+        fee: undefined,
+      }),
+    ).rejects.toThrow(RpcRequestError)
+  })
 })

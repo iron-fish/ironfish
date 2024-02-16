@@ -127,6 +127,10 @@ routes.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
       params.outputs = []
 
       for (const output of request.data.outputs) {
+        if (output.memo && output.memoHex) {
+          throw new RpcValidationError('Only one of memo or memoHex may be set for each output')
+        }
+
         const memo = output.memo
           ? Buffer.from(output.memo)
           : output.memoHex
