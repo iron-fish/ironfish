@@ -127,7 +127,7 @@ describe('Wallet', () => {
         {
           publicAddress: generateKey().publicAddress,
           amount: BigInt(2),
-          memo: '',
+          memo: Buffer.alloc(32),
           assetId: Asset.nativeId(),
         },
       ],
@@ -194,7 +194,7 @@ describe('Wallet', () => {
         {
           publicAddress: generateKey().publicAddress,
           amount: BigInt(2),
-          memo: '',
+          memo: Buffer.alloc(32),
           assetId: Asset.nativeId(),
         },
       ],
@@ -317,7 +317,7 @@ describe('Wallet', () => {
           {
             publicAddress: generateKey().publicAddress,
             amount: BigInt(2),
-            memo: '',
+            memo: Buffer.alloc(32),
             assetId: Asset.nativeId(),
           },
         ],
@@ -371,7 +371,7 @@ describe('Wallet', () => {
         {
           publicAddress: generateKey().publicAddress,
           amount: BigInt(2),
-          memo: '',
+          memo: Buffer.alloc(32),
           assetId: Asset.nativeId(),
         },
       ],
@@ -455,7 +455,7 @@ describe('Wallet', () => {
         {
           publicAddress: generateKey().publicAddress,
           amount: BigInt(2),
-          memo: '',
+          memo: Buffer.alloc(32),
           assetId: Asset.nativeId(),
         },
       ],
@@ -516,7 +516,7 @@ describe('Wallet', () => {
           {
             publicAddress: accountB.publicAddress,
             amount: BigInt(1),
-            memo: '',
+            memo: Buffer.alloc(32),
             assetId: Asset.nativeId(),
           },
         ],
@@ -548,7 +548,7 @@ describe('Wallet', () => {
           {
             publicAddress: accountC.publicAddress,
             amount: BigInt(1),
-            memo: '',
+            memo: Buffer.alloc(32),
             assetId: Asset.nativeId(),
           },
         ],
@@ -677,7 +677,7 @@ describe('Wallet', () => {
         {
           publicAddress: generateKey().publicAddress,
           amount: BigInt(2),
-          memo: '',
+          memo: Buffer.alloc(32),
           assetId: Asset.nativeId(),
         },
       ],
@@ -748,7 +748,7 @@ describe('Wallet', () => {
             {
               publicAddress: accountB.publicAddress,
               amount: BigInt(2),
-              memo: '',
+              memo: Buffer.alloc(32),
               assetId: Asset.nativeId(),
             },
           ],
@@ -861,7 +861,7 @@ describe('Wallet', () => {
             {
               publicAddress: accountB.publicAddress,
               amount: BigInt(2),
-              memo: '',
+              memo: Buffer.alloc(32),
               assetId: Asset.nativeId(),
             },
           ],
@@ -1227,7 +1227,7 @@ describe('Wallet', () => {
           {
             publicAddress: participantB.publicAddress,
             amount: BigInt(2),
-            memo: '',
+            memo: Buffer.alloc(32),
             assetId: Asset.nativeId(),
           },
         ],
@@ -1258,7 +1258,7 @@ describe('Wallet', () => {
           {
             publicAddress: recipient.publicAddress,
             amount: 2n,
-            memo: '',
+            memo: Buffer.alloc(32),
             assetId: Asset.nativeId(),
           },
         ],
