@@ -263,7 +263,7 @@ describe('Route wallet/sendTransaction', () => {
       sequence: null,
     })
 
-    const memo = Buffer.from('hello world')
+    const memo = Buffer.from('deadbeef', 'hex')
 
     const params = {
       ...TEST_PARAMS,
