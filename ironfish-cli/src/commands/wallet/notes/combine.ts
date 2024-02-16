@@ -74,7 +74,6 @@ export class CombineNotesCommand extends IronfishCommand {
   private async getSpendPostTimeInMs(
     client: RpcClient,
     account: string,
-    noteSize: number,
     forceBenchmark: boolean,
   ): Promise<number> {
     let spendPostTime = this.sdk.internal.get('spendPostTime')
@@ -87,7 +86,7 @@ export class CombineNotesCommand extends IronfishCommand {
       Date.now() - spendPostTimeAt > 1000 * 60 * 60 * 24 * 30 // 1 month
 
     if (shouldbenchmark) {
-      spendPostTime = await this.benchmarkSpendPostTime(client, account, noteSize)
+      spendPostTime = await this.benchmarkSpendPostTime(client, account)
 
       this.sdk.internal.set('spendPostTime', spendPostTime)
       this.sdk.internal.set('spendPostTimeAt', Date.now())
@@ -97,18 +96,14 @@ export class CombineNotesCommand extends IronfishCommand {
     return spendPostTime
   }
 
-  private async benchmarkSpendPostTime(
-    client: RpcClient,
-    account: string,
-    noteSize: number,
-  ): Promise<number> {
+  private async benchmarkSpendPostTime(client: RpcClient, account: string): Promise<number> {
     const publicKey = (
       await client.wallet.getAccountPublicKey({
         account: account,
       })
     ).content.publicKey
 
-    const notes = await this.fetchNotes(client, account, noteSize, 10)
+    const notes = await this.fetchNotes(client, account, 10)
 
     CliUx.ux.action.start('Measuring time to combine 1 note')
 
@@ -191,13 +186,8 @@ export class CombineNotesCommand extends IronfishCommand {
     return BenchUtils.end(start)
   }
 
-  private async fetchNotes(
-    client: RpcClient,
-    account: string,
-    noteSize: number,
-    notesToCombine: number,
-  ) {
-    notesToCombine = Math.max(notesToCombine, 10) // adds a buffer in case the user selects a small number of notes and they get filtered out by noteSize
+  private async fetchNotes(client: RpcClient, account: string, notesToCombine: number) {
+    const noteSize = await this.getNoteTreeSize(client)
 
     const getNotesResponse = await client.wallet.getNotes({
       account,
@@ -222,12 +212,6 @@ export class CombineNotesCommand extends IronfishCommand {
         }
         return 1
       })
-
-    // must have at least three notes so that you can combine 2 and use another for fees
-    if (notes.length < 3) {
-      this.log(`Your notes are already combined. You currently have ${notes.length} notes.`)
-      this.exit(0)
-    }
 
     return notes
   }
@@ -407,15 +391,9 @@ export class CombineNotesCommand extends IronfishCommand {
       to = response.content.publicKey
     }
 
-    // the confirmation range in the merkle tree for notes that are safe to use
-    const noteSize = await this.getNoteTreeSize(client)
+    await this.ensureUserHasEnoughNotesToCombine(client, from)
 
-    const spendPostTime = await this.getSpendPostTimeInMs(
-      client,
-      from,
-      noteSize,
-      flags.benchmark,
-    )
+    const spendPostTime = await this.getSpendPostTimeInMs(client, from, flags.benchmark)
 
     let numberOfNotes = flags.notes
 
@@ -423,7 +401,7 @@ export class CombineNotesCommand extends IronfishCommand {
       numberOfNotes = await this.selectNotesToCombine(spendPostTime)
     }
 
-    let notes = await this.fetchNotes(client, from, noteSize, numberOfNotes)
+    let notes = await this.fetchNotes(client, from, numberOfNotes)
 
     // If the user doesn't have enough notes for their selection, we reduce the number of notes so that
     // the largest note can be used for fees.
@@ -569,6 +547,15 @@ export class CombineNotesCommand extends IronfishCommand {
         account: from,
         hash: transaction.hash().toString('hex'),
       })
+    }
+  }
+
+  private async ensureUserHasEnoughNotesToCombine(client: RpcClient, from: string) {
+    const notes = await this.fetchNotes(client, from, 10)
+
+    if (notes.length < 3) {
+      this.log(`Your notes are already combined. You currently have ${notes.length} notes.`)
+      this.exit(0)
     }
   }
 
