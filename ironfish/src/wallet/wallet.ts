@@ -4,7 +4,6 @@
 import {
   Asset,
   generateKey,
-  MEMO_LENGTH,
   Note as NativeNote,
   UnsignedTransaction,
 } from '@ironfish/rust-nodejs'
