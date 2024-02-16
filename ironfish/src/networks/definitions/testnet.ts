@@ -5,6 +5,8 @@
 import type { NetworkDefinition } from '../networkDefinition'
 import { ConsensusParameters } from '../../consensus'
 
+const HARDFORK_1_ACTIVATION_TESTNET = 419_193
+
 const TESTNET_CONSENSUS: ConsensusParameters = {
   allowedBlockFutureSeconds: 15,
   genesisSupplyInIron: 42000000,
@@ -13,9 +15,9 @@ const TESTNET_CONSENSUS: ConsensusParameters = {
   maxBlockSizeBytes: 524288,
   minFee: 1,
   enableAssetOwnership: 9999999,
-  enforceSequentialBlockTime: null,
-  enableFishHash: null,
-  enableIncreasedDifficultyChange: null,
+  enforceSequentialBlockTime: HARDFORK_1_ACTIVATION_TESTNET,
+  enableFishHash: HARDFORK_1_ACTIVATION_TESTNET,
+  enableIncreasedDifficultyChange: HARDFORK_1_ACTIVATION_TESTNET,
   checkpoints: [],
 }
 
@@ -51,10 +53,6 @@ export const TESTNET_GENESIS = {
   ],
 }
 
-// TODO(IFL-1523): Update proper activation sequence for enableAssetOwnership
-// enforceSequentialBlockTime activation date is approximately 26-07-2024 00:56. This is not the
-// actual date, it's an placeholder for the testnet release.
-// TODO: @ygao76 update this once the change is ready to release to testnet.
 export const TESTNET: NetworkDefinition = {
   id: 0,
   bootstrapNodes: ['1.test.bn.ironfish.network', '2.test.bn.ironfish.network'],
