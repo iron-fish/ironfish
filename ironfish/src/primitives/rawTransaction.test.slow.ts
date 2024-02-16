@@ -46,7 +46,7 @@ function createTestRawTransaction(
     new NativeNote(
       account.publicAddress,
       123456789n,
-      'some memo',
+      Buffer.from('some memo'),
       Asset.nativeId(),
       generateKey().publicAddress,
     ).serialize(),
@@ -102,7 +102,7 @@ function createTestRawTransaction(
       new NativeNote(
         account.publicAddress,
         123456789n,
-        'some memo',
+        Buffer.from('some memo'),
         TEST_ASSET_ID_1,
         generateKey().publicAddress,
       ).serialize(),
@@ -112,7 +112,7 @@ function createTestRawTransaction(
       new NativeNote(
         account.publicAddress,
         123456789n,
-        'some memo',
+        Buffer.from('some memo'),
         TEST_ASSET_ID_2,
         generateKey().publicAddress,
       ).serialize(),
@@ -130,7 +130,7 @@ function createTestRawTransaction(
       new NativeNote(
         generateKey().publicAddress,
         123456789n - raw.fee,
-        'some memo',
+        Buffer.from('some memo'),
         Asset.nativeId(),
         account.publicAddress,
       ).serialize(),

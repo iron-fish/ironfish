@@ -84,13 +84,13 @@ describe('Transaction', () => {
     const spendAmount = BigInt(numSpends) * CurrencyUtils.decodeIron(20)
     const outputAmount = BigIntUtils.divide(spendAmount, BigInt(numOutputs))
 
-    const outputs: { publicAddress: string; amount: bigint; memo: string; assetId: Buffer }[] =
+    const outputs: { publicAddress: string; amount: bigint; memo: Buffer; assetId: Buffer }[] =
       []
     for (let i = 0; i < numOutputs; i++) {
       outputs.push({
         publicAddress: account.publicAddress,
         amount: BigInt(outputAmount),
-        memo: '',
+        memo: Buffer.from(''),
         assetId: Asset.nativeId(),
       })
     }

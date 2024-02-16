@@ -174,7 +174,7 @@ describe('multisig RPC integration', () => {
         {
           publicAddress: account.publicAddress,
           amount: BigInt(2),
-          memo: '',
+          memo: Buffer.from(''),
           assetId: Asset.nativeId(),
         },
       ],

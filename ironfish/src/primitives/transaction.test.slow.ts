@@ -61,7 +61,7 @@ describe('Transaction', () => {
         {
           publicAddress: accountB.publicAddress,
           amount: BigInt(1),
-          memo: '',
+          memo: Buffer.from(''),
           assetId: Asset.nativeId(),
         },
       ],
@@ -86,7 +86,7 @@ describe('Transaction', () => {
     const expiration = 10
     const amount = 10n
     const burnAmount = 1n
-    const memo = 'Hello World'
+    const memo = Buffer.from('Hello World')
     const assetName = 'Testcoin'
     const metadata = 'testcoin metadata'
     const asset = new Asset(account.publicAddress, assetName, metadata)
