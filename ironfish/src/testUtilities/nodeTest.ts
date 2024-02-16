@@ -7,9 +7,10 @@ import { Blockchain } from '../blockchain'
 import { Verifier } from '../consensus/verifier'
 import { ConfigOptions } from '../fileStores/config'
 import { PeerNetwork } from '../network'
-import { Network } from '../networks'
+import { Network, NetworkDefinition } from '../networks'
 import { FullNode } from '../node'
 import { IronfishSdk } from '../sdk'
+import { IJSON } from '../serde'
 import { Syncer } from '../syncer'
 import { Wallet } from '../wallet'
 import { WorkerPool } from '../workerPool'
@@ -19,6 +20,8 @@ export type NodeTestOptions =
   | {
       config?: Partial<ConfigOptions>
       autoSeed?: boolean
+      networkDefinition?: NetworkDefinition
+      dataDir?: string
     }
   | undefined
 
@@ -73,7 +76,7 @@ export class NodeTest {
       options = this.options
     }
 
-    const dataDir = getUniqueTestDataDir()
+    const dataDir = options?.dataDir || getUniqueTestDataDir()
 
     const sdk = await IronfishSdk.init({ dataDir })
 
@@ -92,10 +95,20 @@ export class NodeTest {
       }
     }
 
+    let networkOptions: { networkId: 2 } | { customNetworkPath: string } = { networkId: 2 }
+    if (options?.networkDefinition) {
+      const dir = getUniqueTestDataDir()
+      await sdk.fileSystem.mkdir(dir, { recursive: true })
+      const networkFile = sdk.fileSystem.join(dir, 'customNetwork.json')
+      await sdk.fileSystem.writeFile(networkFile, IJSON.stringify(options.networkDefinition))
+
+      networkOptions = { customNetworkPath: networkFile }
+    }
+
     const node = await sdk.node({
       autoSeed: this.options?.autoSeed,
       fishHashContext: FISH_HASH_CONTEXT,
-      networkId: 2,
+      ...networkOptions,
     })
 
     const network = node.network

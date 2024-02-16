@@ -16,6 +16,7 @@ const TESTNET_CONSENSUS: ConsensusParameters = {
   enforceSequentialBlockTime: null,
   enableFishHash: null,
   enableIncreasedDifficultyChange: null,
+  checkpoints: [],
 }
 
 export const TESTNET_GENESIS = {

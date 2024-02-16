@@ -5,6 +5,7 @@
 import { Asset, generateKey, Note as NativeNote } from '@ironfish/rust-nodejs'
 import { Assert } from '../assert'
 import { VerificationResultReason } from '../consensus'
+import { DEVNET, NetworkDefinition } from '../networks'
 import { FullNode } from '../node'
 import { Block, Note, Target } from '../primitives'
 import { RawBlock } from '../primitives/block'
@@ -1950,6 +1951,193 @@ describe('Blockchain', () => {
 
       expect(minersFee1.version()).toEqual(TransactionVersion.V1)
       expect(minersFee2.version()).toEqual(TransactionVersion.V2)
+    })
+  })
+
+  describe('checkpoints', () => {
+    let mainChain: Block[] = []
+    let forkChain: Block[] = []
+    let checkpointNetworkDefinition: NetworkDefinition
+
+    beforeEach(async () => {
+      // Create a fork scenario with a checkpoint
+      // M0 -> M1 -> M2(*) -> M3 -> M4 -> M5
+      //          -> F2    -> F3 -> F4
+
+      // Create a main chain of 4 blocks
+      const { node: nodeM } = await nodeTest.createSetup()
+      const M0 = await useMinerBlockFixture(nodeM.chain)
+      await nodeM.chain.addBlock(M0)
+
+      const M1 = await useMinerBlockFixture(nodeM.chain)
+      await nodeM.chain.addBlock(M1)
+
+      const M2 = await useMinerBlockFixture(nodeM.chain)
+      await nodeM.chain.addBlock(M2)
+
+      const M3 = await useMinerBlockFixture(nodeM.chain)
+      await nodeM.chain.addBlock(M3)
+
+      const M4 = await useMinerBlockFixture(nodeM.chain)
+      await nodeM.chain.addBlock(M4)
+
+      const M5 = await useMinerBlockFixture(nodeM.chain)
+      await nodeM.chain.addBlock(M5)
+
+      // Create a fork chain from block 2
+      const { node: nodeF } = await nodeTest.createSetup()
+
+      await nodeF.chain.addBlock(M0)
+      await nodeF.chain.addBlock(M1)
+
+      const F2 = await useMinerBlockFixture(nodeF.chain)
+      await nodeF.chain.addBlock(F2)
+
+      const F3 = await useMinerBlockFixture(nodeF.chain)
+      await nodeF.chain.addBlock(F3)
+
+      const F4 = await useMinerBlockFixture(nodeF.chain)
+      await nodeF.chain.addBlock(F4)
+
+      mainChain = [M0, M1, M2, M3, M4, M5]
+      forkChain = [M0, M1, F2, F3, F4]
+
+      // Node with a checkpoint will stay on the main chain
+      checkpointNetworkDefinition = {
+        ...DEVNET,
+        id: 101,
+        consensus: {
+          ...DEVNET.consensus,
+          checkpoints: [
+            {
+              sequence: M2.header.sequence,
+              hash: M2.header.hash.toString('hex'),
+            },
+          ],
+        },
+      }
+    })
+
+    it('will not reorganize once a checkpoint has been hit', async () => {
+      // Node without a checkpoint will re-rg to longer fork chain
+      const [M0, M1, M2, M3] = mainChain
+      const [_, ___, F2, F3, F4] = forkChain
+
+      const { node: noCheckpointNode } = await nodeTest.createSetup()
+      await expect(noCheckpointNode.chain).toAddBlock(M0)
+      await expect(noCheckpointNode.chain).toAddBlock(M1)
+      expect(noCheckpointNode.chain.latestCheckpoint).toBeNull()
+      await expect(noCheckpointNode.chain).toAddBlock(M2)
+      expect(noCheckpointNode.chain.latestCheckpoint).toBeNull()
+      await expect(noCheckpointNode.chain).toAddBlock(M3)
+
+      await expect(noCheckpointNode.chain).toAddBlock(F2)
+      await expect(noCheckpointNode.chain).toAddBlock(F3)
+      await expect(noCheckpointNode.chain).toAddBlock(F4)
+
+      expect(noCheckpointNode.chain.head.hash.equals(F4.header.hash)).toBe(true)
+
+      const { node: checkpointNode } = await nodeTest.createSetup({
+        networkDefinition: checkpointNetworkDefinition,
+      })
+      await expect(checkpointNode.chain).toAddBlock(M0)
+      await expect(checkpointNode.chain).toAddBlock(M1)
+      expect(checkpointNode.chain.latestCheckpoint).toBeNull()
+      await expect(checkpointNode.chain).toAddBlock(M2)
+      expect(checkpointNode.chain.latestCheckpoint?.hash.equals(M2.header.hash)).toBe(true)
+      await expect(checkpointNode.chain).toAddBlock(M3)
+
+      // Which block is going to be heavier is non-deterministic, so we need to
+      // check both results
+      await expect(checkpointNode.chain).toAddBlock(F2)
+      const resultF3 = await checkpointNode.chain.addBlock(F3)
+      if (!resultF3.isAdded) {
+        expect(resultF3).toMatchObject({
+          isAdded: false,
+          reason: VerificationResultReason.CHECKPOINT_REORG,
+          score: 0,
+        })
+      } else {
+        const resultF4 = await checkpointNode.chain.addBlock(F4)
+        expect(resultF4).toMatchObject({
+          isAdded: false,
+          reason: VerificationResultReason.CHECKPOINT_REORG,
+          score: 0,
+        })
+      }
+
+      expect(checkpointNode.chain.head.hash.equals(M3.header.hash)).toBe(true)
+      expect(checkpointNode.chain.latestCheckpoint?.hash.equals(M2.header.hash)).toBe(true)
+    })
+
+    it('will not reorganize if checkpoint is already in database', async () => {
+      // Create a data directory that has already passed the checkpoint
+      const [M0, M1, M2, M3] = mainChain
+      const [_, ___, F2, F3, F4] = forkChain
+
+      const { node } = await nodeTest.createSetup({ networkDefinition: { ...DEVNET, id: 101 } })
+      await expect(node.chain).toAddBlock(M0)
+      await expect(node.chain).toAddBlock(M1)
+      await expect(node.chain).toAddBlock(M2)
+      await expect(node.chain).toAddBlock(M3)
+      expect(node.chain.latestCheckpoint).toBeNull()
+      await node.shutdown()
+      await node.closeDB()
+
+      const { node: checkpointNode } = await nodeTest.createSetup({
+        networkDefinition: checkpointNetworkDefinition,
+        dataDir: node.config.dataDir,
+      })
+
+      // Which block is going to be heavier is non-deterministic, so we need to
+      // check both results
+      await expect(checkpointNode.chain).toAddBlock(F2)
+      const resultF3 = await checkpointNode.chain.addBlock(F3)
+      if (!resultF3.isAdded) {
+        expect(resultF3).toMatchObject({
+          isAdded: false,
+          reason: VerificationResultReason.CHECKPOINT_REORG,
+          score: 0,
+        })
+      } else {
+        const resultF4 = await checkpointNode.chain.addBlock(F4)
+        expect(resultF4).toMatchObject({
+          isAdded: false,
+          reason: VerificationResultReason.CHECKPOINT_REORG,
+          score: 0,
+        })
+      }
+
+      expect(checkpointNode.chain.head.hash.equals(M3.header.hash)).toBe(true)
+      expect(checkpointNode.chain.latestCheckpoint?.hash.equals(M2.header.hash)).toBe(true)
+    })
+
+    it('will reorganize to checkpoint chain if it is heavier', async () => {
+      const [M0, M1, M2, M3, M4, M5] = mainChain
+      const [_, ___, F2, F3] = forkChain
+
+      const { node } = await nodeTest.createSetup({
+        networkDefinition: checkpointNetworkDefinition,
+      })
+
+      expect(node.chain.latestCheckpoint).toBeNull()
+
+      // Add the fork chain
+      await expect(node.chain).toAddBlock(M0)
+      await expect(node.chain).toAddBlock(M1)
+      await expect(node.chain).toAddBlock(F2)
+      await expect(node.chain).toAddBlock(F3)
+
+      // Add the heavier main chain
+      await expect(node.chain).toAddBlock(M2)
+      // Will not reorg immediately unless checkpoint block is heavier
+      expect(node.chain.latestCheckpoint).toBeNull()
+      await expect(node.chain).toAddBlock(M3)
+      await expect(node.chain).toAddBlock(M4)
+      await expect(node.chain).toAddBlock(M5)
+
+      expect(node.chain.head.hash.equals(M5.header.hash)).toBe(true)
+      expect(node.chain.latestCheckpoint?.hash.equals(M2.header.hash)).toBe(true)
     })
   })
 })

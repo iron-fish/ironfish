@@ -4,6 +4,7 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { ConsensusParameters } from '../../../consensus/consensus'
+import { ConsensusParametersSchema } from '../../../networks/networkDefinition'
 import { FullNode } from '../../../node'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
@@ -15,20 +16,7 @@ export const GetConsensusParametersRequestSchema: yup.MixedSchema<GetConsensusPa
   yup.mixed().oneOf([undefined] as const)
 
 export const GetConsensusParametersResponseSchema: yup.ObjectSchema<GetConsensusParametersResponse> =
-  yup
-    .object({
-      allowedBlockFutureSeconds: yup.number().defined(),
-      genesisSupplyInIron: yup.number().defined(),
-      targetBlockTimeInSeconds: yup.number().defined(),
-      targetBucketTimeInSeconds: yup.number().defined(),
-      maxBlockSizeBytes: yup.number().defined(),
-      minFee: yup.number().defined(),
-      enableAssetOwnership: yup.number().nullable().defined(),
-      enforceSequentialBlockTime: yup.number().nullable().defined(),
-      enableFishHash: yup.number().nullable().defined(),
-      enableIncreasedDifficultyChange: yup.number().nullable().defined(),
-    })
-    .defined()
+  ConsensusParametersSchema
 
 routes.register<typeof GetConsensusParametersRequestSchema, GetConsensusParametersResponse>(
   `${ApiNamespace.chain}/getConsensusParameters`,
