@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { createSigningCommitment } from '@ironfish/rust-nodejs'
+import { createSigningCommitment, UnsignedTransaction } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
 import { AssertMultisigSigner } from '../../../../wallet/account/account'
 import { ApiNamespace } from '../../namespaces'
@@ -11,7 +11,8 @@ import { getAccount } from '../utils'
 
 export type CreateSigningCommitmentRequest = {
   account?: string
-  seed: number //  TODO: remove when we have deterministic nonces
+  unsignedTransaction: string
+  signers: Array<{ identity: string }>
 }
 
 export type CreateSigningCommitmentResponse = {
@@ -22,7 +23,16 @@ export const CreateSigningCommitmentRequestSchema: yup.ObjectSchema<CreateSignin
   yup
     .object({
       account: yup.string().optional(),
-      seed: yup.number().defined(),
+      unsignedTransaction: yup.string().defined(),
+      signers: yup
+        .array(
+          yup
+            .object({
+              identity: yup.string().defined(),
+            })
+            .defined(),
+        )
+        .defined(),
     })
     .defined()
 
@@ -43,8 +53,16 @@ routes.register<typeof CreateSigningCommitmentRequestSchema, CreateSigningCommit
 
     AssertMultisigSigner(account)
 
-    request.end({
-      commitment: createSigningCommitment(account.multisigKeys.keyPackage, request.data.seed),
-    })
+    const unsigned = new UnsignedTransaction(
+      Buffer.from(request.data.unsignedTransaction, 'hex'),
+    )
+    const commitment = createSigningCommitment(
+      account.multisigKeys.identity,
+      account.multisigKeys.keyPackage,
+      unsigned.hash(),
+      request.data.signers.map((signer) => signer.identity),
+    )
+
+    request.end({ commitment })
   },
 )

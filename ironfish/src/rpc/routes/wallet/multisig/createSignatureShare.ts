@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { createSignatureShare, UnsignedTransaction } from '@ironfish/rust-nodejs'
+import { createSignatureShare } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
 import { AssertMultisigSigner } from '../../../../wallet'
 import { ApiNamespace } from '../../namespaces'
@@ -12,8 +12,6 @@ import { getAccount } from '../utils'
 export type CreateSignatureShareRequest = {
   account?: string
   signingPackage: string
-  unsignedTransaction: string
-  seed: number //  TODO: remove when we have deterministic nonces
 }
 
 export type CreateSignatureShareResponse = {
@@ -25,8 +23,6 @@ export const CreateSignatureShareRequestSchema: yup.ObjectSchema<CreateSignature
     .object({
       account: yup.string().optional(),
       signingPackage: yup.string().defined(),
-      unsignedTransaction: yup.string().defined(),
-      seed: yup.number().defined(),
     })
     .defined()
 
@@ -46,19 +42,12 @@ routes.register<typeof CreateSignatureShareRequestSchema, CreateSignatureShareRe
     const account = getAccount(node.wallet, request.data.account)
     AssertMultisigSigner(account)
 
-    const unsigned = new UnsignedTransaction(
-      Buffer.from(request.data.unsignedTransaction, 'hex'),
-    )
-    const result = createSignatureShare(
-      request.data.signingPackage,
+    const signatureShare = createSignatureShare(
       account.multisigKeys.identity,
       account.multisigKeys.keyPackage,
-      unsigned.publicKeyRandomness(),
-      request.data.seed,
+      request.data.signingPackage,
     )
 
-    request.end({
-      signatureShare: result,
-    })
+    request.end({ signatureShare })
   },
 )

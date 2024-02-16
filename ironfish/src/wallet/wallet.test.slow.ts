@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import {
+  aggregateSignatureShares,
   Asset,
   ASSET_ID_LENGTH,
   createSignatureShare,
@@ -1139,7 +1140,6 @@ describe('Wallet', () => {
 
   describe('frost', () => {
     it('can do a multisig transaction', async () => {
-      const seed = 420
       const minSigners = 2
 
       const { node } = await nodeTest.createSetup()
@@ -1213,14 +1213,6 @@ describe('Wallet', () => {
       // When importing an account through the SDK, we need to kick off a scan.
       await node.wallet.scanTransactions()
 
-      const signingCommitments: string[] = []
-      for (const participant of participants) {
-        AssertMultisigSigner(participant)
-        signingCommitments.push(
-          createSigningCommitment(participant.multisigKeys.keyPackage, seed),
-        )
-      }
-
       // mine block to send IRON to multisig account
       const miner = await useAccountFixture(node.wallet, 'miner')
       const block = await useMinerBlockFixture(node.chain, undefined, miner)
@@ -1280,9 +1272,27 @@ describe('Wallet', () => {
         trustedDealerPackage.viewKey,
         trustedDealerPackage.outgoingViewKey,
       )
+      const transactionHash = unsignedTransaction.hash()
+
+      const signers = participants.map((participant) => {
+        AssertMultisigSigner(participant)
+        return participant.multisigKeys.identity
+      })
+
+      const signingCommitments: string[] = []
+      for (const participant of participants) {
+        AssertMultisigSigner(participant)
+        signingCommitments.push(
+          createSigningCommitment(
+            participant.multisigKeys.identity,
+            participant.multisigKeys.keyPackage,
+            transactionHash,
+            signers,
+          ),
+        )
+      }
 
       const signingPackage = unsignedTransaction.signingPackage(signingCommitments)
-      const publicKeyRandomness = unsignedTransaction.publicKeyRandomness()
 
       const signatureShares: Array<string> = []
 
@@ -1290,17 +1300,15 @@ describe('Wallet', () => {
         AssertMultisigSigner(participant)
         signatureShares.push(
           createSignatureShare(
-            signingPackage,
             participant.multisigKeys.identity,
             participant.multisigKeys.keyPackage,
-            publicKeyRandomness,
-            seed,
+            signingPackage,
           ),
         )
       }
 
       Assert.isNotUndefined(coordinator.multisigKeys)
-      const serializedFrostTransaction = unsignedTransaction.aggregateSignatureShares(
+      const serializedFrostTransaction = aggregateSignatureShares(
         coordinator.multisigKeys.publicKeyPackage,
         signingPackage,
         signatureShares,

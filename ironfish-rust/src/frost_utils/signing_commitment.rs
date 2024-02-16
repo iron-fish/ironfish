@@ -4,26 +4,20 @@
 
 use std::io;
 
-use ironfish_frost::frost::{
-    self,
+use ironfish_frost::{
     frost::round1::NonceCommitment,
-    keys::KeyPackage,
-    round1::{SigningCommitments, SigningNonces},
-    Identifier, JubjubBlake2b512,
+    participant::{Identity, IDENTITY_LEN},
 };
-use rand::{rngs::StdRng, SeedableRng};
 
 use crate::errors::IronfishError;
 
-pub const SIGNING_COMMITMENT_LENGTH: usize = 96;
+const SIGNING_COMMITMENT_LENGTH: usize = IDENTITY_LEN + 96;
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct SigningCommitment {
-    pub identifier: Identifier,
-
-    pub hiding: NonceCommitment<JubjubBlake2b512>,
-
-    pub binding: NonceCommitment<JubjubBlake2b512>,
+    pub identity: Identity,
+    pub hiding: NonceCommitment,
+    pub binding: NonceCommitment,
 }
 
 impl SigningCommitment {
@@ -34,9 +28,7 @@ impl SigningCommitment {
     }
 
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
-        let mut identifier = [0u8; 32];
-        reader.read_exact(&mut identifier)?;
-        let identifier = Identifier::deserialize(&identifier)?;
+        let identity = Identity::deserialize_from(&mut reader)?;
 
         let mut hiding = [0u8; 32];
         reader.read_exact(&mut hiding)?;
@@ -47,63 +39,46 @@ impl SigningCommitment {
         let binding = NonceCommitment::deserialize(binding)?;
 
         Ok(SigningCommitment {
-            identifier,
+            identity,
             hiding,
             binding,
         })
     }
 
     fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
-        writer.write_all(&self.identifier.serialize())?;
+        writer.write_all(&self.identity.serialize())?;
         writer.write_all(&self.hiding.serialize())?;
         writer.write_all(&self.binding.serialize())?;
         Ok(())
     }
 }
 
-// Small wrapper around frost::round1::commit that provides a seedable rng
-pub fn create_signing_commitment(
-    key_package: &KeyPackage,
-    seed: u64,
-) -> (SigningNonces, SigningCommitments) {
-    let mut rng = StdRng::seed_from_u64(seed);
-    frost::round1::commit(key_package.signing_share(), &mut rng)
-}
-
 #[cfg(test)]
-mod test {
-    use crate::frost_utils::split_secret::{split_secret, SecretShareConfig};
-    use crate::test_util::create_multisig_identities;
-    use ff::Field;
-    use jubjub::Fr;
+mod tests {
+    use super::SigningCommitment;
+    use ironfish_frost::{
+        frost::{keys::SigningShare, round1::SigningNonces},
+        participant::Secret,
+    };
     use rand::thread_rng;
 
     #[test]
-    pub fn test_seed_provides_same_result() {
-        let seed = 100;
-        let key = Fr::random(&mut rand::thread_rng());
+    fn serialization_round_trip() {
+        let mut rng = thread_rng();
 
-        let identities = create_multisig_identities(10);
+        let signing_share = SigningShare::default();
+        let identity = Secret::random(&mut rng).to_identity();
+        let nonces = SigningNonces::new(&signing_share, &mut rng);
 
-        let key_packages = split_secret(
-            &SecretShareConfig {
-                identities,
-                min_signers: 2,
-                secret: key.to_bytes().to_vec(),
-            },
-            thread_rng(),
-        )
-        .expect("key shares to be created");
-        let key_package = key_packages
-            .0
-            .into_iter()
-            .next()
-            .expect("key package to be created")
-            .1;
-        let (nonces, commitments) = super::create_signing_commitment(&key_package, seed);
-        let (nonces2, commitments2) = super::create_signing_commitment(&key_package, seed);
-        assert_eq!(nonces.hiding().serialize(), nonces2.hiding().serialize());
-        assert_eq!(nonces.binding().serialize(), nonces2.binding().serialize());
-        assert_eq!(commitments, commitments2);
+        let signing_commitment = SigningCommitment {
+            identity,
+            hiding: nonces.hiding().into(),
+            binding: nonces.binding().into(),
+        };
+        let serialized = signing_commitment.serialize();
+        let deserialized =
+            SigningCommitment::read(&serialized[..]).expect("deserialization failed");
+
+        assert_eq!(deserialized, signing_commitment);
     }
 }

@@ -2,17 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { ParticipantSecret } from '@ironfish/rust-nodejs'
-import { createNodeTest } from '../../../../testUtilities'
+import { useAccountAndAddFundsFixture, useUnsignedTxFixture } from '../../../../testUtilities'
 import { createRouteTest } from '../../../../testUtilities/routeTest'
 import { ACCOUNT_SCHEMA_VERSION } from '../../../../wallet'
 
 describe('Route wallet/multisig/createSigningCommitment', () => {
   const routeTest = createRouteTest()
-  createNodeTest()
 
   it('should error on account that does not exist', async () => {
-    const account = 'invalid account'
-    const request = { account, seed: 0 }
+    const txAccount = await useAccountAndAddFundsFixture(routeTest.wallet, routeTest.chain)
+    const unsignedTransaction = (
+      await useUnsignedTxFixture(routeTest.wallet, txAccount, txAccount)
+    )
+      .serialize()
+      .toString('hex')
+
+    const request = { account: 'invalid account', unsignedTransaction, signers: [] }
     await expect(
       routeTest.client.wallet.multisig.createSigningCommitment(request),
     ).rejects.toThrow(
@@ -56,10 +61,18 @@ describe('Route wallet/multisig/createSigningCommitment', () => {
       importAccountRequest,
     )
 
+    const txAccount = await useAccountAndAddFundsFixture(routeTest.wallet, routeTest.chain)
+    const unsignedTransaction = (
+      await useUnsignedTxFixture(routeTest.wallet, txAccount, txAccount)
+    )
+      .serialize()
+      .toString('hex')
+
     await expect(
       routeTest.client.wallet.multisig.createSigningCommitment({
         account: importAccountResponse.content.name,
-        seed: 420,
+        unsignedTransaction,
+        signers: [],
       }),
     ).rejects.toThrow(
       expect.objectContaining({
@@ -106,9 +119,17 @@ describe('Route wallet/multisig/createSigningCommitment', () => {
       importAccountRequest,
     )
 
+    const txAccount = await useAccountAndAddFundsFixture(routeTest.wallet, routeTest.chain)
+    const unsignedTransaction = (
+      await useUnsignedTxFixture(routeTest.wallet, txAccount, txAccount)
+    )
+      .serialize()
+      .toString('hex')
+
     const response = await routeTest.client.wallet.multisig.createSigningCommitment({
       account: importAccountResponse.content.name,
-      seed: 420,
+      unsignedTransaction,
+      signers: participants,
     })
 
     expect(response.content).toMatchObject({

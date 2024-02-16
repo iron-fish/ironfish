@@ -7,21 +7,43 @@ use crate::{
     to_napi_err,
 };
 use ironfish::{
-    frost::{keys::KeyPackage, round2::Randomizer, SigningPackage},
+    frost::{
+        keys::KeyPackage,
+        round1::SigningCommitments,
+        round2::{self, Randomizer},
+    },
     frost_utils::{
-        signature_share::create_signature_share as create_signature_share_rust,
-        signing_commitment::{
-            create_signing_commitment as create_signing_commitment_rust, SigningCommitment,
-        },
-        split_spender_key::split_spender_key,
+        signature_share::SignatureShare, signing_commitment::SigningCommitment,
+        signing_package::SigningPackage, split_spender_key::split_spender_key,
     },
     participant::{Identity, Secret},
     serializing::{bytes_to_hex, fr::FrSerializable, hex_to_bytes, hex_to_vec_bytes},
     SaplingKey,
 };
+use ironfish_frost::nonces::deterministic_signing_nonces;
 use napi::{bindgen_prelude::*, JsBuffer};
 use napi_derive::napi;
 use rand::thread_rng;
+use std::ops::Deref;
+
+fn try_deserialize_signers<I, S>(signers: I) -> Result<Vec<Identity>>
+where
+    I: IntoIterator<Item = S>,
+    S: Deref<Target = str>,
+{
+    signers
+        .into_iter()
+        .try_fold(Vec::new(), |mut signers, serialized_identity| {
+            let serialized_identity =
+                hex_to_vec_bytes(&serialized_identity).map_err(to_napi_err)?;
+            Identity::deserialize_from(&serialized_identity[..])
+                .map(|identity| {
+                    signers.push(identity);
+                    signers
+                })
+                .map_err(to_napi_err)
+        })
+}
 
 use ironfish::frost_utils::IDENTITY_LEN as ID_LEN;
 
@@ -29,16 +51,28 @@ use ironfish::frost_utils::IDENTITY_LEN as ID_LEN;
 pub const IDENTITY_LEN: u32 = ID_LEN as u32;
 
 #[napi]
-pub fn create_signing_commitment(key_package: String, seed: u32) -> Result<String> {
+pub fn create_signing_commitment(
+    identity: String,
+    key_package: String,
+    transaction_hash: JsBuffer,
+    signers: Vec<String>,
+) -> Result<String> {
+    let identity =
+        Identity::deserialize_from(&hex_to_vec_bytes(&identity).map_err(to_napi_err)?[..])?;
     let key_package =
         KeyPackage::deserialize(&hex_to_vec_bytes(&key_package).map_err(to_napi_err)?)
             .map_err(to_napi_err)?;
-    let (_, commitment) = create_signing_commitment_rust(&key_package, seed as u64);
+    let transaction_hash = transaction_hash.into_value()?;
+    let signers = try_deserialize_signers(signers)?;
+
+    let nonces =
+        deterministic_signing_nonces(key_package.signing_share(), &transaction_hash, &signers);
+    let commitments = SigningCommitments::from(&nonces);
 
     let signing_commitment = SigningCommitment {
-        identifier: *key_package.identifier(),
-        hiding: *commitment.hiding(),
-        binding: *commitment.binding(),
+        identity,
+        hiding: *commitments.hiding(),
+        binding: *commitments.binding(),
     };
 
     Ok(bytes_to_hex(&signing_commitment.serialize()))
@@ -46,11 +80,9 @@ pub fn create_signing_commitment(key_package: String, seed: u32) -> Result<Strin
 
 #[napi]
 pub fn create_signature_share(
-    signing_package: String,
     identity: String,
     key_package: String,
-    public_key_randomness: String,
-    seed: u32,
+    signing_package: String,
 ) -> Result<String> {
     let identity =
         Identity::deserialize_from(&hex_to_vec_bytes(&identity).map_err(to_napi_err)?[..])
@@ -58,21 +90,42 @@ pub fn create_signature_share(
     let key_package =
         KeyPackage::deserialize(&hex_to_vec_bytes(&key_package).map_err(to_napi_err)?[..])
             .map_err(to_napi_err)?;
+
     let signing_package =
-        SigningPackage::deserialize(&hex_to_vec_bytes(&signing_package).map_err(to_napi_err)?[..])
-            .map_err(to_napi_err)?;
-    let randomizer =
-        Randomizer::deserialize(&hex_to_bytes(&public_key_randomness).map_err(to_napi_err)?)
+        SigningPackage::read(&hex_to_vec_bytes(&signing_package).map_err(to_napi_err)?[..])
             .map_err(to_napi_err)?;
 
-    let signature_share = create_signature_share_rust(
-        signing_package,
-        &identity,
-        key_package,
-        randomizer,
-        seed as u64,
+    let transaction_hash = signing_package
+        .unsigned_transaction
+        .transaction_signature_hash()
+        .map_err(to_napi_err)?;
+
+    let randomizer = Randomizer::deserialize(
+        &signing_package
+            .unsigned_transaction
+            .public_key_randomness()
+            .to_bytes(),
     )
     .map_err(to_napi_err)?;
+
+    let nonces = deterministic_signing_nonces(
+        key_package.signing_share(),
+        &transaction_hash,
+        &signing_package.signers,
+    );
+
+    let signature_share = round2::sign(
+        &signing_package.frost_signing_package,
+        &nonces,
+        &key_package,
+        randomizer,
+    )
+    .map_err(to_napi_err)?;
+
+    let signature_share = SignatureShare {
+        identity,
+        signature_share,
+    };
 
     Ok(bytes_to_hex(&signature_share.serialize()))
 }

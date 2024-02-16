@@ -13,8 +13,6 @@ describe('Route wallt/multisig/createSignatureShare', () => {
       routeTest.client.wallet.multisig.createSignatureShare({
         account: 'non-existent',
         signingPackage: 'fake',
-        unsignedTransaction: 'deadbeef',
-        seed: 420,
       }),
     ).rejects.toThrow(
       expect.objectContaining({
@@ -43,8 +41,6 @@ describe('Route wallt/multisig/createSignatureShare', () => {
       routeTest.client.wallet.multisig.createSignatureShare({
         account: account.name,
         signingPackage: 'fake',
-        unsignedTransaction: 'deadbeef',
-        seed: 420,
       }),
     ).rejects.toThrow(
       expect.objectContaining({

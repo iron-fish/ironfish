@@ -18,15 +18,17 @@ export class CreateSignatureShareCommand extends IronfishCommand {
       description: 'The account from which the signature share will be created',
       required: false,
     }),
-    unsignedTransaction: Flags.string({
-      char: 'u',
-      description: 'The unsigned transaction for which the signature share will be created',
-      required: false,
-    }),
     signingPackage: Flags.string({
       char: 's',
       description: 'The signing package for which the signature share will be created',
       required: false,
+    }),
+    signerIdentity: Flags.string({
+      char: 'i',
+      description:
+        'The identity of the participants that will sign the transaction (may be specified multiple times to add multiple signers)',
+      required: true,
+      multiple: true,
     }),
     confirm: Flags.boolean({
       default: false,
@@ -36,12 +38,7 @@ export class CreateSignatureShareCommand extends IronfishCommand {
 
   async start(): Promise<void> {
     const { flags } = await this.parse(CreateSignatureShareCommand)
-    let unsignedTransaction = flags.unsignedTransaction?.trim()
     let signingPackage = flags.signingPackage?.trim()
-
-    if (!unsignedTransaction) {
-      unsignedTransaction = await longPrompt('Enter the unsigned transaction: ')
-    }
 
     if (!signingPackage) {
       signingPackage = await longPrompt('Enter the signing package: ')
@@ -55,13 +52,9 @@ export class CreateSignatureShareCommand extends IronfishCommand {
     }
 
     const client = await this.sdk.connectRpc()
-    // TODO(andrea): use flags.transaction to create commiment when we incorportate deterministic nonces
-    // set required to true as well
     const signatureShareResponse = await client.wallet.multisig.createSignatureShare({
       account: flags.account,
-      unsignedTransaction,
       signingPackage,
-      seed: 0,
     })
 
     this.log('Signing Share:\n')
