@@ -1957,7 +1957,7 @@ describe('Blockchain', () => {
   describe('checkpoints', () => {
     let mainChain: Block[] = []
     let forkChain: Block[] = []
-    let checkpointNetworkDefinition: NetworkDefinition | null = null
+    let checkpointNetworkDefinition: NetworkDefinition
 
     beforeEach(async () => {
       // Create a fork scenario with a checkpoint
@@ -2018,11 +2018,10 @@ describe('Blockchain', () => {
       }
     })
 
-    it('Will not reorganize once a checkpoint has been hit', async () => {
+    it('will not reorganize once a checkpoint has been hit', async () => {
       // Node without a checkpoint will re-rg to longer fork chain
       const [M0, M1, M2, M3] = mainChain
       const [_, ___, F2, F3, F4] = forkChain
-      Assert.isNotNull(checkpointNetworkDefinition)
 
       const { node: noCheckpointNode } = await nodeTest.createSetup()
       await expect(noCheckpointNode.chain).toAddBlock(M0)
@@ -2066,11 +2065,10 @@ describe('Blockchain', () => {
       expect(checkpointNode.chain.head.hash.equals(M3.header.hash)).toBe(true)
     })
 
-    it('Will not reorganize if checkpoint is already in database', async () => {
+    it('will not reorganize if checkpoint is already in database', async () => {
       // Create a data directory that has already passed the checkpoint
       const [M0, M1, M2, M3] = mainChain
       const [_, ___, F2, F3, F4] = forkChain
-      Assert.isNotNull(checkpointNetworkDefinition)
 
       const { node } = await nodeTest.createSetup({ networkDefinition: { ...DEVNET, id: 101 } })
       await expect(node.chain).toAddBlock(M0)
@@ -2107,7 +2105,7 @@ describe('Blockchain', () => {
       expect(checkpointNode.chain.head.hash.equals(M3.header.hash)).toBe(true)
     })
 
-    it('Will not reorganize to checkpoint chain if it is heavier', async () => {
+    it('will reorganize to checkpoint chain if it is heavier', async () => {
       const [M0, M1, M2, M3, M4, M5] = mainChain
       const [_, ___, F2, F3] = forkChain
       Assert.isNotNull(checkpointNetworkDefinition)
