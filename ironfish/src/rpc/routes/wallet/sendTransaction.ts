@@ -46,8 +46,11 @@ export const SendTransactionRequestSchema: yup.ObjectSchema<SendTransactionReque
           .object({
             publicAddress: yup.string().defined(),
             amount: YupUtils.currency({ min: 0n }).defined(),
-            memo: yup.string().defined().max(MEMO_LENGTH),
-            memoHex: yup.string().max(MEMO_LENGTH * 2, 'Must be 32 byte hex encoded'),
+            memo: yup.string().optional().max(MEMO_LENGTH),
+            memoHex: yup
+              .string()
+              .optional()
+              .max(MEMO_LENGTH * 2, 'Must be 32 byte hex encoded'),
             assetId: yup.string().optional(),
           })
           .defined(),

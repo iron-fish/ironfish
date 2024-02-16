@@ -244,4 +244,43 @@ describe('Route wallet/sendTransaction', () => {
       confirmations: 10,
     })
   })
+
+  it('allows you to pass in a hex encoded buffer', async () => {
+    routeTest.chain.synced = true
+
+    const account = await useAccountFixture(routeTest.node.wallet, 'memo')
+    const tx = await useMinersTxFixture(routeTest.node, account)
+    const sendSpy = jest.spyOn(routeTest.node.wallet, 'send').mockResolvedValue(tx)
+
+    jest.spyOn(routeTest.node.wallet, 'getBalance').mockResolvedValueOnce({
+      unconfirmed: BigInt(11),
+      confirmed: BigInt(11),
+      pending: BigInt(11),
+      available: BigInt(11),
+      unconfirmedCount: 0,
+      pendingCount: 0,
+      blockHash: null,
+      sequence: null,
+    })
+
+    const memo = Buffer.from('hello world')
+
+    const params = {
+      ...TEST_PARAMS,
+      outputs: [
+        {
+          ...TEST_PARAMS.outputs[0],
+          memo: undefined,
+          memoHex: memo.toString('hex'),
+        },
+      ],
+    }
+
+    await routeTest.client.wallet.sendTransaction(params)
+    expect(sendSpy).toHaveBeenCalled()
+
+    const sendMemo = sendSpy.mock.lastCall?.[0].outputs[0].memo
+    expect(sendMemo?.byteLength).toBe(memo.byteLength)
+    expect(sendMemo?.equals(memo)).toBe(true)
+  })
 })
