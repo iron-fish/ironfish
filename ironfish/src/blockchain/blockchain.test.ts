@@ -2026,7 +2026,9 @@ describe('Blockchain', () => {
       const { node: noCheckpointNode } = await nodeTest.createSetup()
       await expect(noCheckpointNode.chain).toAddBlock(M0)
       await expect(noCheckpointNode.chain).toAddBlock(M1)
+      expect(noCheckpointNode.chain.latestCheckpoint).toBeNull()
       await expect(noCheckpointNode.chain).toAddBlock(M2)
+      expect(noCheckpointNode.chain.latestCheckpoint).toBeNull()
       await expect(noCheckpointNode.chain).toAddBlock(M3)
 
       await expect(noCheckpointNode.chain).toAddBlock(F2)
@@ -2040,7 +2042,9 @@ describe('Blockchain', () => {
       })
       await expect(checkpointNode.chain).toAddBlock(M0)
       await expect(checkpointNode.chain).toAddBlock(M1)
+      expect(checkpointNode.chain.latestCheckpoint).toBeNull()
       await expect(checkpointNode.chain).toAddBlock(M2)
+      expect(checkpointNode.chain.latestCheckpoint?.hash.equals(M2.header.hash)).toBe(true)
       await expect(checkpointNode.chain).toAddBlock(M3)
 
       // Which block is going to be heavier is non-deterministic, so we need to
@@ -2063,6 +2067,7 @@ describe('Blockchain', () => {
       }
 
       expect(checkpointNode.chain.head.hash.equals(M3.header.hash)).toBe(true)
+      expect(checkpointNode.chain.latestCheckpoint?.hash.equals(M2.header.hash)).toBe(true)
     })
 
     it('will not reorganize if checkpoint is already in database', async () => {
@@ -2075,6 +2080,7 @@ describe('Blockchain', () => {
       await expect(node.chain).toAddBlock(M1)
       await expect(node.chain).toAddBlock(M2)
       await expect(node.chain).toAddBlock(M3)
+      expect(node.chain.latestCheckpoint).toBeNull()
       await node.shutdown()
       await node.closeDB()
 
@@ -2103,16 +2109,18 @@ describe('Blockchain', () => {
       }
 
       expect(checkpointNode.chain.head.hash.equals(M3.header.hash)).toBe(true)
+      expect(checkpointNode.chain.latestCheckpoint?.hash.equals(M2.header.hash)).toBe(true)
     })
 
     it('will reorganize to checkpoint chain if it is heavier', async () => {
       const [M0, M1, M2, M3, M4, M5] = mainChain
       const [_, ___, F2, F3] = forkChain
-      Assert.isNotNull(checkpointNetworkDefinition)
 
       const { node } = await nodeTest.createSetup({
         networkDefinition: checkpointNetworkDefinition,
       })
+
+      expect(node.chain.latestCheckpoint).toBeNull()
 
       // Add the fork chain
       await expect(node.chain).toAddBlock(M0)
@@ -2122,11 +2130,14 @@ describe('Blockchain', () => {
 
       // Add the heavier main chain
       await expect(node.chain).toAddBlock(M2)
+      // Will not reorg immediately unless checkpoint block is heavier
+      expect(node.chain.latestCheckpoint).toBeNull()
       await expect(node.chain).toAddBlock(M3)
       await expect(node.chain).toAddBlock(M4)
       await expect(node.chain).toAddBlock(M5)
 
       expect(node.chain.head.hash.equals(M5.header.hash)).toBe(true)
+      expect(node.chain.latestCheckpoint?.hash.equals(M2.header.hash)).toBe(true)
     })
   })
 })

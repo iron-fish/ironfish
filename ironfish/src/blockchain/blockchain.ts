@@ -100,8 +100,6 @@ export class Blockchain {
 
   private _head: BlockHeader | null = null
 
-  private latestCheckpoint: BlockHeader | null = null
-
   get head(): BlockHeader {
     Assert.isNotNull(
       this._head,
@@ -111,6 +109,16 @@ export class Blockchain {
   }
   set head(newHead: BlockHeader) {
     this._head = newHead
+  }
+
+  private _latestCheckpoint: BlockHeader | null = null
+
+  get latestCheckpoint(): BlockHeader | null {
+    return this._latestCheckpoint
+  }
+
+  private set latestCheckpoint(newCheckpoint: BlockHeader | null) {
+    this._latestCheckpoint = newCheckpoint
   }
 
   private _latest: BlockHeader | null = null
