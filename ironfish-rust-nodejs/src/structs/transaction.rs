@@ -420,6 +420,16 @@ impl NativeUnsignedTransaction {
         Ok(NativeUnsignedTransaction { transaction })
     }
 
+    #[napi(factory)]
+    pub fn from_signing_package(signing_package_str: String) -> Result<Self> {
+        let bytes = hex_to_vec_bytes(&signing_package_str).map_err(to_napi_err)?;
+        let signing_package = SigningPackage::read(&bytes[..]).map_err(to_napi_err)?;
+
+        Ok(NativeUnsignedTransaction {
+            transaction: signing_package.unsigned_transaction,
+        })
+    }
+
     #[napi]
     pub fn serialize(&self) -> Result<Buffer> {
         let mut vec: Vec<u8> = vec![];

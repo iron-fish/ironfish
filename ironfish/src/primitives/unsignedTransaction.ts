@@ -19,6 +19,11 @@ export class UnsignedTransaction {
     this.unsignedTransactionSerialized = unsignedTransactionSerialized
   }
 
+  static fromSigningPackage(signingPackage: string): UnsignedTransaction {
+    const unsigned = new NativeUnsignedTransaction(Buffer.from(signingPackage, 'hex'))
+    return new UnsignedTransaction(unsigned.serialize())
+  }
+
   serialize(): Buffer {
     return this.unsignedTransactionSerialized
   }
