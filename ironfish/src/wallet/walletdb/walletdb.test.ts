@@ -407,4 +407,24 @@ describe('WalletDB', () => {
       expect(storedSecret).toEqualBuffer(serializedSecret)
     })
   })
+
+  describe('participantIdentities', () => {
+    it('should store participant identities for a multisig account', async () => {
+      const node = (await nodeTest.createSetup()).node
+      const walletDb = node.wallet.walletDb
+
+      const account = await useAccountFixture(node.wallet, 'multisig')
+
+      const identity = ParticipantSecret.random().toIdentity()
+
+      await walletDb.addParticipantIdentity(account, identity.serialize())
+
+      const storedIdentities = await AsyncUtils.materialize(
+        walletDb.getParticipantIdentities(account),
+      )
+
+      expect(storedIdentities.length).toEqual(1)
+      expect(storedIdentities[0]).toEqualBuffer(identity.serialize())
+    })
+  })
 })

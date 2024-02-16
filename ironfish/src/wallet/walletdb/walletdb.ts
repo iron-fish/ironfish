@@ -1298,10 +1298,7 @@ export class WalletDB {
     identity: Buffer,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    const encoding = new ParticipantIdentityEncoding()
-
-    const encoded = encoding.serialize({ identity })
-    await this.participantIdentities.put([account.prefix, identity], { identity: encoded }, tx)
+    await this.participantIdentities.put([account.prefix, identity], { identity }, tx)
   }
 
   async deleteParticipantIdentity(
