@@ -620,5 +620,25 @@
         }
       ]
     }
+  ],
+  "WalletDB participantIdentities should store participant identities for a multisig account": [
+    {
+      "version": 4,
+      "id": "63fab545-05a5-4fb4-a25c-91a2c30bc887",
+      "name": "multisig",
+      "spendingKey": "f6848427f16d6132d8ffd2d93a0a34762ef0d43e570fe58010e8a789c1c02422",
+      "viewKey": "dc4859d08635381e225a0bd0dc7729de4ec5f6845b51647a00176589c655954118aa0fd1ee7fe43bf607d8658fa29ee576e1ac73af7ec6612629efa1b355360a",
+      "incomingViewKey": "0156374073bc9359cf2e22dc66cd94fbe9e4b4a78ba73989da0e69f9d2f64701",
+      "outgoingViewKey": "a5f996469ac43bf3a3ce6173c22567cae3d6fe0f193b2212261b67ffdaaa7454",
+      "publicAddress": "58a560280156ac44f7226ec45a6a8c754d13a45dc722d93f6d0c6c3cab997cc4",
+      "createdAt": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      },
+      "proofAuthorizingKey": "d1b2058c56de7f63f697c216017ddb397c6a3e1f42743406bd1cddd2846d950b"
+    }
   ]
 }
