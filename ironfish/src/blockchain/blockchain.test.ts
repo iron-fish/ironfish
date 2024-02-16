@@ -1955,11 +1955,11 @@ describe('Blockchain', () => {
   })
 
   describe('checkpoints', () => {
-    const mainChain: Block[] = []
-    const forkChain: Block[] = []
+    let mainChain: Block[] = []
+    let forkChain: Block[] = []
     let checkpointNetworkDefinition: NetworkDefinition | null = null
 
-    beforeAll(async () => {
+    beforeEach(async () => {
       // Create a fork scenario with a checkpoint
       // M0 -> M1 -> M2(*) -> M3 -> M4 -> M5
       //          -> F2    -> F3 -> F4
@@ -1999,8 +1999,8 @@ describe('Blockchain', () => {
       const F4 = await useMinerBlockFixture(nodeF.chain)
       await nodeF.chain.addBlock(F4)
 
-      mainChain.push(M0, M1, M2, M3, M4, M5)
-      forkChain.push(M0, M1, F2, F3, F4)
+      mainChain = [M0, M1, M2, M3, M4, M5]
+      forkChain = [M0, M1, F2, F3, F4]
 
       // Node with a checkpoint will stay on the main chain
       checkpointNetworkDefinition = {
