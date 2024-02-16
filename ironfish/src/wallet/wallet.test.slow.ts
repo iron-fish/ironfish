@@ -263,19 +263,19 @@ describe('Wallet', () => {
         {
           publicAddress: generateKey().publicAddress,
           amount: BigInt(2),
-          memo: 'recipient 1',
+          memo: Buffer.from('recipient 1'),
           assetId: Asset.nativeId(),
         },
         {
           publicAddress: generateKey().publicAddress,
           amount: BigInt(2),
-          memo: 'recipient 2',
+          memo: Buffer.from('recipient 2'),
           assetId: Asset.nativeId(),
         },
         {
           publicAddress: generateKey().publicAddress,
           amount: BigInt(2),
-          memo: 'recipient 3',
+          memo: Buffer.from('recipient 3'),
           assetId: Asset.nativeId(),
         },
       ],
