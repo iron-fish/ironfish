@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cmp;
+
 use ironfish::{
     assets::asset::ID_LENGTH as ASSET_ID_LENGTH,
     note::{AMOUNT_VALUE_SIZE, MEMO_SIZE, SCALAR_SIZE},
@@ -64,8 +66,9 @@ impl NativeNote {
 
         let memo_buffer = memo.into_value()?;
         let memo_vec = memo_buffer.as_ref();
+        let num_to_copy = cmp::min(memo_vec.len(), MEMO_SIZE);
         let mut memo_bytes = [0; MEMO_SIZE];
-        memo_bytes.clone_from_slice(&memo_vec[0..MEMO_SIZE]);
+        memo_bytes[..num_to_copy].copy_from_slice(&memo_vec[..num_to_copy]);
 
         let buffer = asset_id.into_value()?;
         let asset_id_vec = buffer.as_ref();
