@@ -14,7 +14,7 @@ const TESTNET_CONSENSUS: ConsensusParameters = {
   targetBucketTimeInSeconds: 10,
   maxBlockSizeBytes: 524288,
   minFee: 1,
-  enableAssetOwnership: 9999999,
+  enableAssetOwnership: null,
   enforceSequentialBlockTime: HARDFORK_1_ACTIVATION_TESTNET,
   enableFishHash: HARDFORK_1_ACTIVATION_TESTNET,
   enableIncreasedDifficultyChange: HARDFORK_1_ACTIVATION_TESTNET,
