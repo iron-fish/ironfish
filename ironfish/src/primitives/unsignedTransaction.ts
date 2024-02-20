@@ -67,7 +67,7 @@ export class UnsignedTransaction {
     outgoingViewKey: string,
   ): {
     receivedNotes: Note[]
-    spentNotes: Note[]
+    sentNotes: Note[]
     mints: NativeMintDescription[]
     burns: NativeBurnDescription[]
   } {
@@ -75,7 +75,7 @@ export class UnsignedTransaction {
     this.returnReference()
 
     const receivedNotes = []
-    const spentNotes = []
+    const sentNotes = []
     for (const serializedOutput of descriptions.outputs) {
       const note = new NoteEncrypted(serializedOutput)
 
@@ -84,15 +84,15 @@ export class UnsignedTransaction {
         receivedNotes.push(receivedNote)
       }
 
-      const spentNote = note.decryptNoteForSpender(outgoingViewKey)
-      if (spentNote) {
-        spentNotes.push(spentNote)
+      const sentNote = note.decryptNoteForSpender(outgoingViewKey)
+      if (sentNote) {
+        sentNotes.push(sentNote)
       }
     }
 
     return {
       receivedNotes,
-      spentNotes,
+      sentNotes,
       mints: descriptions.mints,
       burns: descriptions.burns,
     }
