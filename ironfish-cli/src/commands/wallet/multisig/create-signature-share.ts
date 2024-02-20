@@ -23,13 +23,6 @@ export class CreateSignatureShareCommand extends IronfishCommand {
       description: 'The signing package for which the signature share will be created',
       required: false,
     }),
-    signerIdentity: Flags.string({
-      char: 'i',
-      description:
-        'The identity of the participants that will sign the transaction (may be specified multiple times to add multiple signers)',
-      required: true,
-      multiple: true,
-    }),
     confirm: Flags.boolean({
       default: false,
       description: 'Confirm creating signature share without confirming',
