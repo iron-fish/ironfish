@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Asset, generateKeyFromPrivateKey } from '@ironfish/rust-nodejs'
+import { Asset } from '@ironfish/rust-nodejs'
 import { Assert } from '../../assert'
 import { FullNode } from '../../node'
 import { BurnDescription } from '../../primitives/burnDescription'
@@ -125,10 +125,9 @@ export async function useUnsignedTxFixture(
         expiration: expiration ?? 0,
         expirationDelta: 0,
       })
-      Assert.isNotNull(from.spendingKey)
-      const key = generateKeyFromPrivateKey(from.spendingKey)
+      Assert.isNotNull(from.proofAuthorizingKey)
       const unsignedBuffer = raw
-        .build(key.proofAuthorizingKey, key.viewKey, key.outgoingViewKey)
+        .build(from.proofAuthorizingKey, from.viewKey, from.outgoingViewKey)
         .serialize()
       return new UnsignedTransaction(unsignedBuffer)
     })

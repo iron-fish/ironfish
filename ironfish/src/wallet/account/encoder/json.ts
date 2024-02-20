@@ -4,6 +4,7 @@
 import { generateKeyFromPrivateKey } from '@ironfish/rust-nodejs'
 import { Assert } from '../../../assert'
 import { RpcAccountImport } from '../../../rpc/routes/wallet/types'
+import { deserializeRpcAccountMultisigKeys } from '../../../rpc/routes/wallet/utils'
 import { validateAccount } from '../../validator'
 import { AccountImport } from '../../walletdb/accountValue'
 import { AccountDecodingOptions, AccountEncoder, DecodeFailed } from './encoder'
@@ -36,6 +37,9 @@ export class JsonEncoder implements AccountEncoder {
               sequence: account.createdAt.sequence,
             }
           : null,
+        multisigKeys: account.multisigKeys
+          ? deserializeRpcAccountMultisigKeys(account.multisigKeys)
+          : undefined,
       }
 
       if (!accountImport.viewKey) {

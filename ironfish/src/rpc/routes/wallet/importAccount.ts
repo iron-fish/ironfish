@@ -3,7 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { v4 as uuid } from 'uuid'
 import * as yup from 'yup'
+import { DecodeInvalidName } from '../../../wallet'
 import { decodeAccount } from '../../../wallet/account/encoder/account'
+import { DuplicateAccountNameError } from '../../../wallet/errors'
+import { RPC_ERROR_CODES, RpcValidationError } from '../../adapters'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import { AssertHasRpcContext } from '../rpcContext'
@@ -44,19 +47,33 @@ routes.register<typeof ImportAccountRequestSchema, ImportResponse>(
   async (request, context): Promise<void> => {
     AssertHasRpcContext(request, context, 'wallet')
 
-    let accountImport = null
-    if (typeof request.data.account === 'string') {
-      accountImport = decodeAccount(request.data.account, {
-        name: request.data.name,
-      })
-    } else {
-      accountImport = deserializeRpcAccountImport(request.data.account)
-    }
+    let account
+    try {
+      let accountImport = null
+      if (typeof request.data.account === 'string') {
+        accountImport = decodeAccount(request.data.account, {
+          name: request.data.name,
+        })
+      } else {
+        accountImport = deserializeRpcAccountImport(request.data.account)
+      }
 
-    const account = await context.wallet.importAccount({
-      id: uuid(),
-      ...accountImport,
-    })
+      account = await context.wallet.importAccount({
+        id: uuid(),
+        ...accountImport,
+      })
+    } catch (e) {
+      if (e instanceof DuplicateAccountNameError) {
+        throw new RpcValidationError(e.message, 400, RPC_ERROR_CODES.DUPLICATE_ACCOUNT_NAME)
+      } else if (e instanceof DecodeInvalidName) {
+        throw new RpcValidationError(
+          e.message,
+          400,
+          RPC_ERROR_CODES.IMPORT_ACCOUNT_NAME_REQUIRED,
+        )
+      }
+      throw e
+    }
 
     if (request.data.rescan) {
       if (context.wallet.nodeClient) {

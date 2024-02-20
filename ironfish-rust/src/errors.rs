@@ -40,6 +40,8 @@ pub enum IronfishErrorKind {
     InvalidDiversificationPoint,
     InvalidEntropy,
     InvalidFr,
+    InvalidFrostIdentifier,
+    InvalidFrostSignatureShare,
     InvalidLanguageEncoding,
     InvalidMinersFeeTransaction,
     InvalidMintProof,

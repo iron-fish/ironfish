@@ -2,14 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 #[cfg(test)]
 use super::internal_batch_verify_transactions;
 use super::{ProposedTransaction, Transaction};
-use crate::frost_utils::{
-    signing_commitment::create_signing_commitment, signing_share::create_signing_share,
-};
+use crate::test_util::create_multisig_identities;
 use crate::transaction::tests::split_spender_key::split_spender_key;
 use crate::{
     assets::{asset::Asset, asset_identifier::NATIVE_ASSET},
@@ -27,9 +25,10 @@ use crate::{
 };
 
 use ff::Field;
-use ironfish_frost::frost::round2::{Randomizer, SignatureShare};
-use ironfish_frost::frost::Identifier;
-use ironfish_frost::participant::Secret;
+use ironfish_frost::{
+    frost::{round2, round2::SignatureShare, Identifier, Randomizer},
+    nonces::deterministic_signing_nonces,
+};
 use ironfish_zkp::{
     constants::{ASSET_ID_LENGTH, SPENDING_KEY_GENERATOR, TREE_DEPTH},
     proofs::{MintAsset, Output, Spend},
@@ -703,21 +702,13 @@ fn test_sign_simple() {
 }
 
 #[test]
-fn test_sign_frost() {
+fn test_aggregate_signature_shares() {
     let spender_key = SaplingKey::generate_key();
 
-    // create fake participants in multisig
-    let mut identifiers = Vec::new();
-    for _ in 0..3 {
-        identifiers.push(
-            Secret::random(thread_rng())
-                .to_identity()
-                .to_frost_identifier(),
-        );
-    }
+    let identities = create_multisig_identities(10);
 
     // key package generation by trusted dealer
-    let key_packages = split_spender_key(&spender_key, 2, 3, identifiers)
+    let key_packages = split_spender_key(&spender_key, 2, identities.clone())
         .expect("should be able to split spender key");
 
     // create raw/proposed transaction
@@ -787,12 +778,20 @@ fn test_sign_frost() {
         )
         .expect("should be able to build unsigned transaction");
 
-    let mut commitments = BTreeMap::new();
+    let transaction_hash = unsigned_transaction
+        .transaction_signature_hash()
+        .expect("should be able to compute transaction hash");
+
+    let mut commitments = HashMap::new();
 
     // simulate round 1
-    for key_package in key_packages.key_packages.iter() {
-        let (_nonce, commitment) = create_signing_commitment(key_package.1, 0);
-        commitments.insert(*key_package.0, commitment);
+    for (identity, key_package) in key_packages.key_packages.iter() {
+        let nonces = deterministic_signing_nonces(
+            key_package.signing_share(),
+            &transaction_hash,
+            &identities,
+        );
+        commitments.insert(identity.clone(), (&nonces).into());
     }
 
     // coordinator creates signing package
@@ -801,28 +800,33 @@ fn test_sign_frost() {
         .expect("should be able to create signing package");
 
     // simulate round 2
-    let mut signing_shares: BTreeMap<Identifier, SignatureShare> = BTreeMap::new();
+    let mut signature_shares: BTreeMap<Identifier, SignatureShare> = BTreeMap::new();
     let randomizer =
         Randomizer::deserialize(&unsigned_transaction.public_key_randomness.to_bytes())
             .expect("should be able to deserialize randomizer");
 
-    for key_package in key_packages.key_packages.iter() {
-        let signature_share = create_signing_share(
-            signing_package.clone(),
-            key_package.1.clone(),
+    for (identity, key_package) in key_packages.key_packages.iter() {
+        let nonces = deterministic_signing_nonces(
+            key_package.signing_share(),
+            &transaction_hash,
+            &identities,
+        );
+        let signature_share = round2::sign(
+            &signing_package.frost_signing_package,
+            &nonces,
+            key_package,
             randomizer,
-            0,
         )
         .expect("should be able to create signature share");
-        signing_shares.insert(*key_package.0, signature_share);
+        signature_shares.insert(identity.to_frost_identifier(), signature_share);
     }
 
     // coordinator creates signed transaction
     let signed_transaction = unsigned_transaction
-        .sign_frost(
+        .aggregate_signature_shares(
             &key_packages.public_key_package,
-            &signing_package,
-            signing_shares,
+            &signing_package.frost_signing_package,
+            signature_shares,
         )
         .expect("should be able to sign transaction");
 

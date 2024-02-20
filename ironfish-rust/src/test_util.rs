@@ -8,6 +8,7 @@ use super::{
     MerkleNoteHash,
 };
 use blstrs::Scalar;
+use ironfish_frost::{participant::Identity, participant::Secret};
 use ironfish_zkp::constants::TREE_DEPTH;
 use rand::{thread_rng, Rng};
 
@@ -57,4 +58,12 @@ pub(crate) fn auth_path_to_root_hash(
     }
 
     cur
+}
+
+/// Helper function to create a list of random identifiers for multisig participants.
+pub fn create_multisig_identities(num_identifiers: usize) -> Vec<Identity> {
+    (0..num_identifiers)
+        .into_iter()
+        .map(|_| Secret::random(thread_rng()).to_identity())
+        .collect()
 }

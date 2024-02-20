@@ -6,6 +6,10 @@ import { AccountImport } from '../../walletdb/accountValue'
 
 export class DecodeInvalid extends Error {}
 
+export class DecodeInvalidName extends DecodeInvalid {
+  name = this.constructor.name
+}
+
 export class DecodeFailed extends Error {
   decoder: string
 
@@ -16,10 +20,10 @@ export class DecodeFailed extends Error {
 }
 
 export enum AccountFormat {
+  Base64Json = 'Base64Json',
   JSON = 'JSON',
-  Bech32 = 'Bech32',
-  SpendingKey = 'SpendingKey',
   Mnemonic = 'Mnemonic',
+  SpendingKey = 'SpendingKey',
 }
 
 export type AccountEncodingOptions = {

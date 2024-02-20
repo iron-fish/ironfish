@@ -8,6 +8,7 @@ import { Assert } from '../assert'
 import { createRootLogger, Logger } from '../logger'
 import { WorkerHeader } from './interfaces/workerHeader'
 import { Job } from './job'
+import { BuildTransactionRequest, BuildTransactionResponse } from './tasks/buildTransaction'
 import { CreateMinersFeeRequest, CreateMinersFeeResponse } from './tasks/createMinersFee'
 import { DecryptNotesRequest, DecryptNotesResponse } from './tasks/decryptNotes'
 import { JobAbortedError, JobAbortedMessage } from './tasks/jobAbort'
@@ -231,6 +232,8 @@ export class Worker {
         return SubmitTelemetryRequest.deserializePayload(jobId, request)
       case WorkerMessageType.VerifyTransactions:
         return VerifyTransactionsRequest.deserializePayload(jobId, request)
+      case WorkerMessageType.BuildTransaction:
+        return BuildTransactionRequest.deserializePayload(jobId, request)
     }
   }
 
@@ -256,6 +259,8 @@ export class Worker {
         return SubmitTelemetryResponse.deserializePayload(jobId)
       case WorkerMessageType.VerifyTransactions:
         return VerifyTransactionsResponse.deserializePayload(jobId, response)
+      case WorkerMessageType.BuildTransaction:
+        return BuildTransactionResponse.deserializePayload(jobId, response)
     }
   }
 }

@@ -3,16 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { UnsignedTransaction } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
-import { ApiNamespace } from '../namespaces'
-import { routes } from '../router'
-import { RpcSigningCommitments, RpcSigningCommitmentsSchema } from './types'
+import { ApiNamespace } from '../../namespaces'
+import { routes } from '../../router'
 
 export type CreateSigningPackageRequest = {
   unsignedTransaction: string
-  commitments: Array<{
-    identifier: string
-    commitment: RpcSigningCommitments
-  }>
+  commitments: Array<string>
 }
 
 export type CreateSigningPackageResponse = {
@@ -23,16 +19,7 @@ export const CreateSigningPackageRequestSchema: yup.ObjectSchema<CreateSigningPa
   yup
     .object({
       unsignedTransaction: yup.string().defined(),
-      commitments: yup
-        .array(
-          yup
-            .object({
-              identifier: yup.string().defined(),
-              commitment: RpcSigningCommitmentsSchema,
-            })
-            .defined(),
-        )
-        .defined(),
+      commitments: yup.array(yup.string().defined()).defined(),
     })
     .defined()
 
@@ -44,7 +31,7 @@ export const CreateSigningPackageResponseSchema: yup.ObjectSchema<CreateSigningP
     .defined()
 
 routes.register<typeof CreateSigningPackageRequestSchema, CreateSigningPackageResponse>(
-  `${ApiNamespace.multisig}/createSigningPackage`,
+  `${ApiNamespace.wallet}/multisig/createSigningPackage`,
   CreateSigningPackageRequestSchema,
   (request, _context): void => {
     const unsignedTransaction = new UnsignedTransaction(

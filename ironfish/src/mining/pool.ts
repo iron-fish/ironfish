@@ -5,7 +5,7 @@ import LeastRecentlyUsed from 'blru'
 import tls from 'tls'
 import { Assert } from '../assert'
 import { BlockHasher } from '../blockHasher'
-import { Consensus, ConsensusParameters } from '../consensus'
+import { Consensus } from '../consensus'
 import { Config } from '../fileStores/config'
 import { Logger } from '../logger'
 import { Target } from '../primitives/target'
@@ -35,7 +35,7 @@ export class MiningPool {
   readonly config: Config
   readonly webhooks: WebhookNotifier[]
 
-  private consensusParameters: ConsensusParameters | null = null
+  private consensus: Consensus | null = null
   private blockHasher: BlockHasher | null = null
 
   private started: boolean
@@ -170,7 +170,7 @@ export class MiningPool {
     this.stopPromise = new Promise((r) => (this.stopResolve = r))
     this.started = true
 
-    this.logger.info(`Starting stratum server v${String(this.stratum.version)}`)
+    this.logger.info(`Starting stratum server`)
     await this.stratum.start()
 
     this.logger.info('Connecting to node...')
@@ -257,42 +257,47 @@ export class MiningPool {
     client: StratumServerClient,
     miningRequestId: number,
     randomness: string,
-  ): Promise<void> {
-    Assert.isNotNull(client.publicAddress)
-    Assert.isNotNull(client.graffiti)
+    graffiti: string,
+  ): Promise<{ error: string | null }> {
+    Assert.isNotNull(client.subscription)
     Assert.isNotNull(this.blockHasher)
 
+    if (graffiti.length !== 64) {
+      const msg = `Client ${client.id} work with invalid custom graffiti length: ${graffiti.length}`
+      this.logger.warn(msg)
+      return { error: msg }
+    } else {
+      // TODO verify hex parse?
+    }
+
     if (miningRequestId !== this.nextMiningRequestId - 1) {
-      this.logger.debug(
-        `Client ${client.id} submitted work for stale mining request: ${miningRequestId}`,
-      )
-      return
+      const msg = `Client ${client.id} submitted work for stale mining request: ${miningRequestId}`
+      this.logger.debug(msg)
+      return { error: msg }
     }
 
     const originalBlockTemplate = this.miningRequestBlocks.get(miningRequestId)
 
     if (!originalBlockTemplate) {
-      this.logger.warn(
-        `Client ${client.id} work for invalid mining request: ${miningRequestId}`,
-      )
-      return
+      const msg = `Client ${client.id} work for invalid mining request: ${miningRequestId}`
+      this.logger.warn(msg)
+      return { error: msg }
     }
 
     const blockTemplate = Object.assign({}, originalBlockTemplate)
     blockTemplate.header = Object.assign({}, originalBlockTemplate.header)
 
-    const isDuplicate = this.isDuplicateSubmission(client.id, randomness)
+    const isDuplicate = this.isDuplicateSubmission(client.id, randomness, graffiti)
 
     if (isDuplicate) {
-      this.logger.warn(
-        `Client ${client.id} submitted a duplicate mining request: ${miningRequestId}, ${randomness}`,
-      )
-      return
+      const msg = `Client ${client.id} submitted a duplicate share: ${miningRequestId}, ${randomness}, ${graffiti}`
+      this.logger.warn(msg)
+      return { error: msg }
     }
 
-    this.addWorkSubmission(client.id, randomness)
+    this.addWorkSubmission(client.id, randomness, graffiti)
 
-    blockTemplate.header.graffiti = client.graffiti.toString('hex')
+    blockTemplate.header.graffiti = graffiti
     blockTemplate.header.randomness = randomness
 
     let hashedHeader: Buffer
@@ -300,8 +305,9 @@ export class MiningPool {
       const rawBlock = RawBlockTemplateSerde.deserialize(blockTemplate)
       hashedHeader = this.blockHasher.hashHeader(rawBlock.header)
     } catch (error) {
-      this.stratum.peers.punish(client, `${client.id} sent malformed work.`)
-      return
+      const msg = `${client.id} sent malformed work.`
+      this.stratum.peers.punish(client, msg)
+      return { error: msg }
     }
 
     if (hashedHeader.compare(Buffer.from(blockTemplate.header.target, 'hex')) !== 1) {
@@ -333,8 +339,10 @@ export class MiningPool {
     }
 
     if (hashedHeader.compare(this.target) !== 1) {
-      this.logger.debug('Valid pool share submitted')
-      await this.shares.submitShare(client.publicAddress)
+      await this.shares.submitShare(client.subscription.publicAddress)
+      return { error: null }
+    } else {
+      return { error: 'low difficulty' }
     }
   }
 
@@ -361,16 +369,11 @@ export class MiningPool {
     this.webhooks.map((w) => w.poolConnected(explorer ?? undefined))
 
     const consensusResponse = (await this.rpc.chain.getConsensusParameters()).content
-    this.consensusParameters = {
-      ...consensusResponse,
-      enableFishHash: consensusResponse.enableFishHash || 'never',
-      enableAssetOwnership: consensusResponse.enableAssetOwnership || 'never',
-      enforceSequentialBlockTime: consensusResponse.enforceSequentialBlockTime || 'never',
-    }
+    this.consensus = new Consensus(consensusResponse)
 
     // TODO: Add option for full cache FishHash verification
     this.blockHasher = new BlockHasher({
-      consensus: new Consensus(this.consensusParameters),
+      consensus: this.consensus,
     })
 
     this.connectWarned = false
@@ -394,14 +397,11 @@ export class MiningPool {
   }
 
   private async processNewBlocks() {
-    Assert.isNotNull(this.consensusParameters)
+    Assert.isNotNull(this.consensus)
 
     for await (const payload of this.rpc.miner.blockTemplateStream().contentStream()) {
       Assert.isNotUndefined(payload.previousBlockInfo)
-      this.restartCalculateTargetInterval(
-        this.consensusParameters.targetBlockTimeInSeconds,
-        this.consensusParameters.targetBucketTimeInSeconds,
-      )
+      this.restartCalculateTargetInterval()
 
       const currentHeadTarget = new Target(Buffer.from(payload.previousBlockInfo.target, 'hex'))
       this.currentHeadDifficulty = currentHeadTarget.toDifficulty()
@@ -411,14 +411,12 @@ export class MiningPool {
     }
   }
 
-  private recalculateTarget(
-    targetBlockTimeInSeconds: number,
-    targetBucketTimeInSeconds: number,
-  ) {
+  private recalculateTarget() {
     this.logger.debug('recalculating target')
 
     Assert.isNotNull(this.currentHeadTimestamp)
     Assert.isNotNull(this.currentHeadDifficulty)
+    Assert.isNotNull(this.consensus)
 
     const currentBlock = this.miningRequestBlocks.get(this.nextMiningRequestId - 1)
     Assert.isNotNull(currentBlock)
@@ -431,11 +429,11 @@ export class MiningPool {
 
     const newTarget = Target.fromDifficulty(
       Target.calculateDifficulty(
+        this.consensus,
+        latestBlock.header.sequence,
         newTime,
         new Date(this.currentHeadTimestamp),
         this.currentHeadDifficulty,
-        targetBlockTimeInSeconds,
-        targetBucketTimeInSeconds,
       ),
     )
 
@@ -474,33 +472,36 @@ export class MiningPool {
     this.stratum.newWork(miningRequestId, newWork)
   }
 
-  private restartCalculateTargetInterval(
-    targetBlockTimeInSeconds: number,
-    targetBucketTimeInSeconds: number,
-  ) {
+  private restartCalculateTargetInterval() {
     if (this.recalculateTargetInterval) {
       clearInterval(this.recalculateTargetInterval)
     }
 
     this.recalculateTargetInterval = setInterval(() => {
-      this.recalculateTarget(targetBlockTimeInSeconds, targetBucketTimeInSeconds)
+      this.recalculateTarget()
     }, RECALCULATE_TARGET_TIMEOUT)
   }
 
-  private isDuplicateSubmission(clientId: number, randomness: string): boolean {
+  private isDuplicateSubmission(
+    clientId: number,
+    randomness: string,
+    graffiti: string,
+  ): boolean {
     const submissions = this.recentSubmissions.get(clientId)
     if (submissions == null) {
       return false
     }
-    return submissions.includes(randomness)
+    const k = randomness + '|' + graffiti
+    return submissions.includes(k)
   }
 
-  private addWorkSubmission(clientId: number, randomness: string): void {
+  private addWorkSubmission(clientId: number, randomness: string, graffiti: string): void {
     const submissions = this.recentSubmissions.get(clientId)
+    const k = randomness + '|' + graffiti
     if (submissions == null) {
-      this.recentSubmissions.set(clientId, [randomness])
+      this.recentSubmissions.set(clientId, [k])
     } else {
-      submissions.push(randomness)
+      submissions.push(k)
       this.recentSubmissions.set(clientId, submissions)
     }
   }
@@ -547,9 +548,9 @@ export class MiningPool {
       const addressConnectedMiners: string[] = []
 
       for (const client of this.stratum.clients.values()) {
-        if (client.subscribed && client.publicAddress === publicAddress) {
+        if (client.subscription?.publicAddress === publicAddress) {
           addressMinerCount++
-          addressConnectedMiners.push(client.name || `Miner ${client.id}`)
+          addressConnectedMiners.push(client.subscription.name || `Miner ${client.id}`)
         }
       }
 

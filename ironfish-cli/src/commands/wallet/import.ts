@@ -1,10 +1,11 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { PromiseUtils } from '@ironfish/sdk'
+import { PromiseUtils, RPC_ERROR_CODES, RpcRequestError } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
+import { longPrompt } from '../../utils/longPrompt'
 
 export class ImportCommand extends IronfishCommand {
   static description = `Import an account`
@@ -78,11 +79,40 @@ export class ImportCommand extends IronfishCommand {
       flags.name = name
     }
 
-    const result = await client.wallet.importAccount({
-      account,
-      rescan: flags.rescan,
-      name: flags.name,
-    })
+    let result
+
+    while (!result) {
+      try {
+        result = await client.wallet.importAccount({
+          account,
+          rescan: flags.rescan,
+          name: flags.name,
+        })
+      } catch (e) {
+        if (
+          e instanceof RpcRequestError &&
+          (e.code === RPC_ERROR_CODES.DUPLICATE_ACCOUNT_NAME.toString() ||
+            e.code === RPC_ERROR_CODES.IMPORT_ACCOUNT_NAME_REQUIRED.toString())
+        ) {
+          if (e.code === RPC_ERROR_CODES.DUPLICATE_ACCOUNT_NAME.toString()) {
+            this.log()
+            this.log(e.codeMessage)
+          }
+
+          const name = await CliUx.ux.prompt('Enter a name for the account', {
+            required: true,
+          })
+          if (name === flags.name) {
+            this.error(`Entered the same name: '${name}'`)
+          }
+
+          flags.name = name
+          continue
+        }
+
+        throw e
+      }
+    }
 
     const { name, isDefaultAccount } = result.content
     this.log(`Account ${name} imported.`)
@@ -120,13 +150,8 @@ export class ImportCommand extends IronfishCommand {
   }
 
   async importTTY(): Promise<string> {
-    const userInput = await CliUx.ux.prompt(
-      'Paste the output of wallet:export, or your spending key',
-      {
-        required: true,
-      },
-    )
-
-    return userInput.trim()
+    return await longPrompt('Paste the output of wallet:export, or your spending key: ', {
+      required: true,
+    })
   }
 }

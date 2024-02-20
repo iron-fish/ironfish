@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../../../assert'
 import { AccountImport } from '../../walletdb/accountValue'
+import { Base64JsonEncoder } from './base64json'
 import { Bech32Encoder } from './bech32'
 import { Bech32JsonEncoder } from './bech32json'
 import {
@@ -21,6 +22,7 @@ const ENCODER_VERSIONS = [
   SpendingKeyEncoder,
   Bech32JsonEncoder,
   Bech32Encoder,
+  Base64JsonEncoder,
 ]
 
 export function encodeAccount(
@@ -31,8 +33,8 @@ export function encodeAccount(
   switch (format) {
     case AccountFormat.JSON:
       return new JsonEncoder().encode(value)
-    case AccountFormat.Bech32:
-      return new Bech32Encoder().encode(value)
+    case AccountFormat.Base64Json:
+      return new Base64JsonEncoder().encode(value)
     case AccountFormat.SpendingKey:
       return new SpendingKeyEncoder().encode(value)
     case AccountFormat.Mnemonic:

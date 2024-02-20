@@ -19,6 +19,8 @@ const consensusParameters = {
   enableAssetOwnership: 1,
   enforceSequentialBlockTime: 1,
   enableFishHash: 100001,
+  enableIncreasedDifficultyChange: 100001,
+  checkpoints: [],
 }
 
 describe('Hashes blocks with correct hashing algorithm', () => {

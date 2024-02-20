@@ -1029,9 +1029,9 @@ checksum = "93ace6ec7cc19c8ed33a32eaa9ea692d7faea05006b5356b9e2b668ec4bc3955"
 
 [[package]]
 name = "fish_hash"
-version = "0.1.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9577244a17c8bd562cbfd4b86dead29d8b3f6cb779d1f7be4bc8a2c9b62028dc"
+checksum = "6cea268879491ea825e57d07604f4080d26acfee3c603077ea3ac1e5ea034313"
 dependencies = [
  "blake3",
  "tiny-keccak",
@@ -1092,9 +1092,9 @@ dependencies = [
 
 [[package]]
 name = "frost-core"
-version = "1.0.0-rc.0"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eae732628620e7e52b3146df2eef3636f321b63dfba6e92b3b67147e0c5b2bb2"
+checksum = "45d6280625f1603d160df24b23e4984a6a7286f41455ae606823d0104c32e834"
 dependencies = [
  "byteorder",
  "const-crc32",
@@ -1114,9 +1114,9 @@ dependencies = [
 
 [[package]]
 name = "frost-rerandomized"
-version = "1.0.0-rc.0"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "abc9f0445f27262bd1e1d4754ad8ce7ac03c8d079704e6c696f5e40bab85d1e2"
+checksum = "52c58f58ea009000db490efd9a3936d0035647a2b00c7ba8f3868c2ed0306b0b"
 dependencies = [
  "derive-getters",
  "document-features",
@@ -1543,9 +1543,11 @@ dependencies = [
 [[package]]
 name = "ironfish-frost"
 version = "0.1.0"
-source = "git+https://github.com/iron-fish/ironfish-frost.git?branch=main#f6699a938bdcf7da6c335acc77dd4dbfd7466b45"
+source = "git+https://github.com/iron-fish/ironfish-frost.git?branch=main#2097825398c6a5ab0469058c52c2c2ed5842a3f0"
 dependencies = [
  "blake3",
+ "chacha20 0.9.1",
+ "chacha20poly1305 0.10.1",
  "ed25519-dalek",
  "once_cell",
  "rand_chacha 0.3.1",
@@ -1577,6 +1579,7 @@ dependencies = [
  "base64 0.13.1",
  "fish_hash",
  "ironfish",
+ "ironfish-frost",
  "ironfish_mpc",
  "jubjub 0.9.0 (git+https://github.com/iron-fish/jubjub.git?branch=blstrs)",
  "napi",
@@ -2372,7 +2375,7 @@ dependencies = [
 [[package]]
 name = "reddsa"
 version = "0.5.1"
-source = "git+https://github.com/ZcashFoundation/reddsa.git#81c649c412e5b6ba56d491d2857f91fbd28adbc7"
+source = "git+https://github.com/ZcashFoundation/reddsa.git?rev=311baf8865f6e21527d1f20750d8f2cf5c9e531a#311baf8865f6e21527d1f20750d8f2cf5c9e531a"
 dependencies = [
  "blake2b_simd",
  "byteorder",

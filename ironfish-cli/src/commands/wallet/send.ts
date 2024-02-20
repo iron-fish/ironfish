@@ -87,6 +87,13 @@ export class Send extends IronfishCommand {
       description:
         'Return raw transaction. Use it to create a transaction but not post to the network',
     }),
+    unsignedTransaction: Flags.boolean({
+      hidden: true,
+      default: false,
+      description:
+        'Return a serialized UnsignedTransaction. Use it to create a transaction and build proofs but not post to the network',
+      exclusive: ['rawTransaction'],
+    }),
     offline: Flags.boolean({
       default: false,
       description: 'Allow offline transaction creation',
@@ -217,6 +224,16 @@ export class Send extends IronfishCommand {
       this.log('Raw Transaction')
       this.log(RawTransactionSerde.serialize(raw).toString('hex'))
       this.log(`Run "ironfish wallet:post" to post the raw transaction. `)
+      this.exit(0)
+    }
+
+    if (flags.unsignedTransaction) {
+      const response = await client.wallet.buildTransaction({
+        account: from,
+        rawTransaction: RawTransactionSerde.serialize(raw).toString('hex'),
+      })
+      this.log('Unsigned Transaction')
+      this.log(response.content.unsignedTransaction)
       this.exit(0)
     }
 

@@ -5,6 +5,8 @@ import { Config } from '../../../fileStores'
 import { Note } from '../../../primitives'
 import { BufferUtils, CurrencyUtils } from '../../../utils'
 import { Account, Wallet } from '../../../wallet'
+import { isSignerMultisig } from '../../../wallet/account/encoder/multisigKeys'
+import { MultisigKeys } from '../../../wallet/interfaces/multisigKeys'
 import { AccountImport } from '../../../wallet/walletdb/accountValue'
 import { AssetValue } from '../../../wallet/walletdb/assetValue'
 import { DecryptedNoteValue } from '../../../wallet/walletdb/decryptedNoteValue'
@@ -15,6 +17,7 @@ import {
   RpcAccountAssetBalanceDelta,
   RpcAccountImport,
   RpcAccountStatus,
+  RpcMultisigKeys,
   RpcWalletNote,
   RpcWalletTransaction,
 } from './types'
@@ -104,6 +107,25 @@ export function deserializeRpcAccountImport(accountImport: RpcAccountImport): Ac
           sequence: accountImport.createdAt.sequence,
         }
       : null,
+    multisigKeys: accountImport.multisigKeys
+      ? deserializeRpcAccountMultisigKeys(accountImport.multisigKeys)
+      : undefined,
+  }
+}
+
+export function deserializeRpcAccountMultisigKeys(
+  rpcMultisigKeys: RpcMultisigKeys,
+): MultisigKeys {
+  if (isSignerMultisig(rpcMultisigKeys)) {
+    return {
+      publicKeyPackage: rpcMultisigKeys.publicKeyPackage,
+      identity: rpcMultisigKeys.identity,
+      keyPackage: rpcMultisigKeys.keyPackage,
+    }
+  }
+
+  return {
+    publicKeyPackage: rpcMultisigKeys.publicKeyPackage,
   }
 }
 

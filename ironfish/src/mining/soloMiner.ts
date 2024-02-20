@@ -152,10 +152,7 @@ export class MiningSoloMiner {
       this.currentHeadDifficulty = currentHeadTarget.toDifficulty()
       this.currentHeadTimestamp = payload.previousBlockInfo.timestamp
 
-      this.restartCalculateTargetInterval(
-        this.consensus.parameters.targetBlockTimeInSeconds,
-        this.consensus.parameters.targetBucketTimeInSeconds,
-      )
+      this.restartCalculateTargetInterval()
       this.startNewWork(payload)
     }
   }
@@ -256,12 +253,7 @@ export class MiningSoloMiner {
     }
 
     const consensusResponse = (await this.rpc.chain.getConsensusParameters()).content
-    this.consensus = new Consensus({
-      ...consensusResponse,
-      enableFishHash: consensusResponse.enableFishHash || 'never',
-      enableAssetOwnership: consensusResponse.enableAssetOwnership || 'never',
-      enforceSequentialBlockTime: consensusResponse.enforceSequentialBlockTime || 'never',
-    })
+    this.consensus = new Consensus(consensusResponse)
 
     this.connectWarned = false
     this.logger.info('Successfully connected to node')
@@ -274,12 +266,10 @@ export class MiningSoloMiner {
     })
   }
 
-  private recalculateTarget(
-    targetBlockTimeInSeconds: number,
-    targetBucketTimeInSeconds: number,
-  ) {
+  private recalculateTarget() {
     Assert.isNotNull(this.currentHeadTimestamp)
     Assert.isNotNull(this.currentHeadDifficulty)
+    Assert.isNotNull(this.consensus)
 
     const latestBlock = this.miningRequestBlocks.get(this.nextMiningRequestId - 1)
     Assert.isNotUndefined(latestBlock)
@@ -287,11 +277,11 @@ export class MiningSoloMiner {
     const newTime = new Date()
     const newTarget = Target.fromDifficulty(
       Target.calculateDifficulty(
+        this.consensus,
+        latestBlock.header.sequence,
         newTime,
         new Date(this.currentHeadTimestamp),
         this.currentHeadDifficulty,
-        targetBlockTimeInSeconds,
-        targetBucketTimeInSeconds,
       ),
     )
 
@@ -301,16 +291,13 @@ export class MiningSoloMiner {
     this.startNewWork(latestBlock)
   }
 
-  private restartCalculateTargetInterval(
-    targetBlockTimeInSeconds: number,
-    targetBucketTimeInSeconds: number,
-  ) {
+  private restartCalculateTargetInterval() {
     if (this.recalculateTargetInterval) {
       clearInterval(this.recalculateTargetInterval)
     }
 
     this.recalculateTargetInterval = setInterval(() => {
-      this.recalculateTarget(targetBlockTimeInSeconds, targetBucketTimeInSeconds)
+      this.recalculateTarget()
     }, RECALCULATE_TARGET_TIMEOUT)
   }
 }

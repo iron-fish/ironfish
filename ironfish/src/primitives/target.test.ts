@@ -2,10 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { Consensus } from '../consensus'
+import { DEVNET } from '../networks/definitions/devnet'
 import { Target } from './target'
 
 const TARGET_BLOCK_TIME_IN_SECONDS = 60
 const TARGET_BUCKET_TIME_IN_SECONDS = 10
+const FISH_HASH_ACTIVATION_SEQUENCE = 999
+const SEQUENCE = 5
+
+const CONSENSUS_PARAMETERS = {
+  ...DEVNET.consensus,
+  enableFishHash: FISH_HASH_ACTIVATION_SEQUENCE,
+}
 
 describe('Target', () => {
   it('constructs targets', () => {
@@ -66,6 +75,12 @@ describe('Target', () => {
 })
 
 describe('Calculate target', () => {
+  let consensus: Consensus
+
+  beforeAll(() => {
+    consensus = new Consensus(CONSENSUS_PARAMETERS)
+  })
+
   it('increases difficulty if a new block is coming in before the target range time', () => {
     const now = new Date()
     /**
@@ -90,20 +105,13 @@ describe('Calculate target', () => {
       const diffInDifficulty = (difficulty / BigInt(2048)) * BigInt(bucketFromParent)
 
       const newDifficulty = Target.calculateDifficulty(
+        consensus,
+        SEQUENCE,
         time,
         now,
         difficulty,
-        TARGET_BLOCK_TIME_IN_SECONDS,
-        TARGET_BUCKET_TIME_IN_SECONDS,
       )
-      const newTarget = Target.calculateTarget(
-        time,
-        now,
-        target,
-        TARGET_BLOCK_TIME_IN_SECONDS,
-        TARGET_BUCKET_TIME_IN_SECONDS,
-      )
-
+      const newTarget = Target.calculateTarget(consensus, SEQUENCE, time, now, target)
       expect(newDifficulty).toBeGreaterThan(difficulty)
       expect(BigInt(difficulty) + diffInDifficulty).toEqual(newDifficulty)
 
@@ -120,19 +128,13 @@ describe('Calculate target', () => {
       const target = Target.fromDifficulty(difficulty)
 
       const newDifficulty = Target.calculateDifficulty(
+        consensus,
+        SEQUENCE,
         time,
         now,
         difficulty,
-        TARGET_BLOCK_TIME_IN_SECONDS,
-        TARGET_BUCKET_TIME_IN_SECONDS,
       )
-      const newTarget = Target.calculateTarget(
-        time,
-        now,
-        target,
-        TARGET_BLOCK_TIME_IN_SECONDS,
-        TARGET_BUCKET_TIME_IN_SECONDS,
-      )
+      const newTarget = Target.calculateTarget(consensus, SEQUENCE, time, now, target)
 
       const diffInDifficulty = BigInt(newDifficulty) - difficulty
 
@@ -164,19 +166,13 @@ describe('Calculate target', () => {
       const diffInDifficulty = (difficulty / BigInt(2048)) * BigInt(bucketFromParent)
 
       const newDifficulty = Target.calculateDifficulty(
+        consensus,
+        SEQUENCE,
         time,
         now,
         difficulty,
-        TARGET_BLOCK_TIME_IN_SECONDS,
-        TARGET_BUCKET_TIME_IN_SECONDS,
       )
-      const newTarget = Target.calculateTarget(
-        time,
-        now,
-        target,
-        TARGET_BLOCK_TIME_IN_SECONDS,
-        TARGET_BUCKET_TIME_IN_SECONDS,
-      )
+      const newTarget = Target.calculateTarget(consensus, SEQUENCE, time, now, target)
       expect(newDifficulty).toBeLessThan(difficulty)
       expect(BigInt(newDifficulty) + diffInDifficulty).toEqual(difficulty)
 
@@ -184,34 +180,126 @@ describe('Calculate target', () => {
     }
   })
 
-  it('no matter how late blocks come in, we clamp difficulty change by 99 buckets (steps) away from previous block difficulty', () => {
+  it('adjusts difficulty only if the given sequence is the fish hash activation sequence', () => {
     const now = new Date()
-    const difficulty = BigInt(231072)
+    const difficulty = BigInt(231072000)
     const previousBlockTarget = Target.fromDifficulty(difficulty)
-    // 99 buckets away from previous block target
-    const maximallyDifferentTarget = Target.calculateTarget(
-      new Date(now.getTime() + 1065 * 1000),
+
+    const nonActivationSequence = Target.calculateTarget(
+      consensus,
+      FISH_HASH_ACTIVATION_SEQUENCE - 1,
+      new Date(now.getTime() + 60 * 1000),
       now,
       previousBlockTarget,
-      TARGET_BLOCK_TIME_IN_SECONDS,
-      TARGET_BUCKET_TIME_IN_SECONDS,
     )
 
-    // check that we don't change difficulty by more than 99 buckets (steps)
-    // away from previous block difficulty
-    for (let i = 1065; i < 1070; i++) {
-      const time = new Date(now.getTime() + i * 1000)
+    expect(nonActivationSequence.toDifficulty()).toEqual(difficulty)
 
-      const newTarget = Target.calculateTarget(
-        time,
+    const activationSequence = Target.calculateTarget(
+      consensus,
+      FISH_HASH_ACTIVATION_SEQUENCE,
+      new Date(now.getTime() + 60 * 1000),
+      now,
+      previousBlockTarget,
+    )
+
+    expect(activationSequence.toDifficulty()).toEqual(difficulty / 100n)
+
+    const postActivationSequence = Target.calculateTarget(
+      consensus,
+      FISH_HASH_ACTIVATION_SEQUENCE + 1,
+      new Date(now.getTime() + 60 * 1000),
+      now,
+      previousBlockTarget,
+    )
+
+    expect(postActivationSequence.toDifficulty()).toEqual(difficulty)
+  })
+
+  describe('max buckets', () => {
+    it('no matter how late blocks come in, we clamp difficulty change by `maxBuckets` buckets (steps) away from previous block difficulty', () => {
+      const now = new Date()
+      const difficulty = BigInt(231072)
+      const previousBlockTarget = Target.fromDifficulty(difficulty)
+      // MAX_BUCKETS buckets away from previous block target
+      const maximallyDifferentTarget = Target.calculateTarget(
+        consensus,
+        SEQUENCE,
+        new Date(now.getTime() + 1065 * 1000),
         now,
         previousBlockTarget,
-        TARGET_BLOCK_TIME_IN_SECONDS,
-        TARGET_BUCKET_TIME_IN_SECONDS,
       )
 
-      expect(newTarget).toEqual(maximallyDifferentTarget)
-    }
+      // Sanity check that difficulty is different in the bucket prior
+      const almostMaxTarget = Target.calculateTarget(
+        consensus,
+        SEQUENCE,
+        new Date(now.getTime() + 1035 * 1000),
+        now,
+        previousBlockTarget,
+      )
+      expect(almostMaxTarget.asBigInt()).toBeLessThan(maximallyDifferentTarget.asBigInt())
+
+      // check that we don't change difficulty by more than `maxBuckets` buckets (steps)
+      // away from previous block difficulty
+      for (let i = 1065; i < 1070; i++) {
+        const time = new Date(now.getTime() + i * 1000)
+
+        const newTarget = Target.calculateTarget(
+          consensus,
+          SEQUENCE,
+          time,
+          now,
+          previousBlockTarget,
+        )
+
+        expect(newTarget).toEqual(maximallyDifferentTarget)
+      }
+    })
+
+    it('correctly adjusts to a different number provided by consensus', () => {
+      const modifiedConsensus = new Consensus({
+        ...CONSENSUS_PARAMETERS,
+        enableIncreasedDifficultyChange: SEQUENCE,
+      })
+      const now = new Date()
+      const difficulty = BigInt(23107200)
+      const previousBlockTarget = Target.fromDifficulty(difficulty)
+      // max buckets away from previous block target
+      const maximallyDifferentTarget = Target.calculateTarget(
+        modifiedConsensus,
+        SEQUENCE,
+        new Date(now.getTime() + 2065 * 1000),
+        now,
+        previousBlockTarget,
+      )
+
+      // Sanity check that difficulty is different in the bucket prior
+      const almostMaxTarget = Target.calculateTarget(
+        modifiedConsensus,
+        SEQUENCE,
+        new Date(now.getTime() + 2045 * 1000),
+        now,
+        previousBlockTarget,
+      )
+      expect(almostMaxTarget.asBigInt()).toBeLessThan(maximallyDifferentTarget.asBigInt())
+
+      // check that we don't change difficulty by more than 200 buckets (steps)
+      // away from previous block difficulty
+      for (let i = 2065; i < 2070; i++) {
+        const time = new Date(now.getTime() + i * 1000)
+
+        const newTarget = Target.calculateTarget(
+          modifiedConsensus,
+          SEQUENCE,
+          time,
+          now,
+          previousBlockTarget,
+        )
+
+        expect(newTarget).toEqual(maximallyDifferentTarget)
+      }
+    })
   })
 
   describe('fromDifficulty', () => {

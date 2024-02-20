@@ -3,14 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { generateKey, splitSecret } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
-import { ApiNamespace } from '../namespaces'
-import { routes } from '../router'
+import { ApiNamespace } from '../../namespaces'
+import { routes } from '../../router'
 
 export type CreateTrustedDealerKeyPackageRequest = {
   minSigners: number
-  maxSigners: number
   participants: Array<{
-    identifier: string
+    identity: string
   }>
 }
 export type CreateTrustedDealerKeyPackageResponse = {
@@ -20,20 +19,19 @@ export type CreateTrustedDealerKeyPackageResponse = {
   incomingViewKey: string
   outgoingViewKey: string
   publicAddress: string
-  keyPackages: Array<{ identifier: string; keyPackage: string }>
+  keyPackages: Array<{ identity: string; keyPackage: string }>
   publicKeyPackage: string
 }
 export const CreateTrustedDealerKeyPackageRequestSchema: yup.ObjectSchema<CreateTrustedDealerKeyPackageRequest> =
   yup
     .object({
       minSigners: yup.number().defined(),
-      maxSigners: yup.number().defined(),
       participants: yup
         .array()
         .of(
           yup
             .object({
-              identifier: yup.string().defined(),
+              identity: yup.string().defined(),
             })
             .defined(),
         )
@@ -54,7 +52,7 @@ export const CreateTrustedDealerKeyPackageResponseSchema: yup.ObjectSchema<Creat
         .array(
           yup
             .object({
-              identifier: yup.string().defined(),
+              identity: yup.string().defined(),
               keyPackage: yup.string().defined(),
             })
             .defined(),
@@ -68,18 +66,13 @@ routes.register<
   typeof CreateTrustedDealerKeyPackageRequestSchema,
   CreateTrustedDealerKeyPackageResponse
 >(
-  `${ApiNamespace.multisig}/createTrustedDealerKeyPackage`,
+  `${ApiNamespace.wallet}/multisig/createTrustedDealerKeyPackage`,
   CreateTrustedDealerKeyPackageRequestSchema,
   (request, _context): void => {
     const key = generateKey()
-    const { minSigners, maxSigners, participants } = request.data
-    const identifiers = participants.map((p) => p.identifier)
-    const trustedDealerPackage = splitSecret(
-      key.spendingKey,
-      minSigners,
-      maxSigners,
-      identifiers,
-    )
+    const { minSigners, participants } = request.data
+    const identities = participants.map((p) => p.identity)
+    const trustedDealerPackage = splitSecret(key.spendingKey, minSigners, identities)
 
     request.end(trustedDealerPackage)
   },

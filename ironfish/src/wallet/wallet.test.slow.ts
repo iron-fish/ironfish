@@ -2,10 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import {
+  aggregateSignatureShares,
   Asset,
   ASSET_ID_LENGTH,
+  createSignatureShare,
   createSigningCommitment,
-  createSigningShare,
   generateKey,
   ParticipantSecret,
   splitSecret,
@@ -26,6 +27,7 @@ import {
   useTxFixture,
 } from '../testUtilities'
 import { acceptsAllTarget } from '../testUtilities/helpers/blockchain'
+import { AssertMultisigSigner } from '../wallet'
 
 describe('Wallet', () => {
   const nodeTest = createNodeTest()
@@ -643,6 +645,7 @@ describe('Wallet', () => {
       outgoingViewKey: account.outgoingViewKey,
       incomingViewKey: account.incomingViewKey,
       createdAt: null,
+      proofAuthorizingKey: account.proofAuthorizingKey,
     }
     const viewOnlyAccount = await viewOnlyNode.wallet.importAccount(accountValue)
 
@@ -1137,90 +1140,78 @@ describe('Wallet', () => {
 
   describe('frost', () => {
     it('can do a multisig transaction', async () => {
-      const seed = 420
       const minSigners = 2
-      const maxSigners = 3
 
       const { node } = await nodeTest.createSetup()
       const recipient = await useAccountFixture(node.wallet, 'recipient')
 
       const coordinatorSaplingKey = generateKey()
 
-      const identifiers: string[] = []
-
-      for (let i = 0; i < maxSigners; i++) {
-        identifiers.push(ParticipantSecret.random().toIdentity().toFrostIdentifier())
-      }
+      const identities = Array.from({ length: 3 }, () =>
+        ParticipantSecret.random().toIdentity().serialize().toString('hex'),
+      )
 
       // construct 3 separate secrets for the participants
-      // take the secrets and get identifiers back (get identity first then identifier)
+      // take the secrets and get identities back (get identity first then identifier)
 
       const trustedDealerPackage: TrustedDealerKeyPackages = splitSecret(
         coordinatorSaplingKey.spendingKey,
         minSigners,
-        maxSigners,
-        identifiers,
+        identities,
       )
 
-      // TODO(hughy): replace when account imports use proofAuthorizingKey
-      const proofGenerationKey = trustedDealerPackage.viewKey
-        .slice(0, 64)
-        .concat(trustedDealerPackage.proofAuthorizingKey)
-
-      const getMultiSigKeys = (index: number) => {
+      const getMultisigKeys = (index: number) => {
         return {
-          identifier: trustedDealerPackage.keyPackages[index].identifier,
+          publicKeyPackage: trustedDealerPackage.publicKeyPackage,
+          identity: trustedDealerPackage.keyPackages[index].identity,
           keyPackage: trustedDealerPackage.keyPackages[index].keyPackage,
-          proofGenerationKey: proofGenerationKey,
         }
       }
 
       const participantA = await node.wallet.importAccount({
         version: 2,
         id: uuid(),
-        name: trustedDealerPackage.keyPackages[0].identifier,
+        name: trustedDealerPackage.keyPackages[0].identity,
         spendingKey: null,
         createdAt: null,
-        multiSigKeys: getMultiSigKeys(0),
+        multisigKeys: getMultisigKeys(0),
         ...trustedDealerPackage,
       })
       const participantB = await node.wallet.importAccount({
         version: 2,
         id: uuid(),
-        name: trustedDealerPackage.keyPackages[1].identifier,
+        name: trustedDealerPackage.keyPackages[1].identity,
         spendingKey: null,
         createdAt: null,
-        multiSigKeys: getMultiSigKeys(1),
+        multisigKeys: getMultisigKeys(1),
         ...trustedDealerPackage,
       })
       const participantC = await node.wallet.importAccount({
         version: 2,
         id: uuid(),
-        name: trustedDealerPackage.keyPackages[2].identifier,
+        name: trustedDealerPackage.keyPackages[2].identity,
         spendingKey: null,
         createdAt: null,
-        multiSigKeys: getMultiSigKeys(2),
+        multisigKeys: getMultisigKeys(2),
         ...trustedDealerPackage,
       })
 
-      Assert.isNotUndefined(participantA.multiSigKeys)
-      Assert.isNotUndefined(participantB.multiSigKeys)
-      Assert.isNotUndefined(participantC.multiSigKeys)
+      const participants = [participantA, participantB, participantC]
 
-      const signingCommitments = [
-        {
-          identifier: participantA.multiSigKeys.identifier,
-          commitment: createSigningCommitment(participantA.multiSigKeys.keyPackage, seed),
+      const coordinator = await node.wallet.importAccount({
+        version: 4,
+        id: uuid(),
+        name: 'coordinator',
+        spendingKey: null,
+        createdAt: null,
+        multisigKeys: {
+          publicKeyPackage: trustedDealerPackage.publicKeyPackage,
         },
-        {
-          identifier: participantB.multiSigKeys.identifier,
-          commitment: createSigningCommitment(participantB.multiSigKeys.keyPackage, seed),
-        },
-        {
-          identifier: participantC.multiSigKeys.identifier,
-          commitment: createSigningCommitment(participantC.multiSigKeys.keyPackage, seed),
-        },
-      ]
+        ...trustedDealerPackage,
+      })
+
+      // When importing an account through the SDK, we need to kick off a scan.
+      await node.wallet.scanTransactions()
 
       // mine block to send IRON to multisig account
       const miner = await useAccountFixture(node.wallet, 'miner')
@@ -1281,33 +1272,44 @@ describe('Wallet', () => {
         trustedDealerPackage.viewKey,
         trustedDealerPackage.outgoingViewKey,
       )
+      const transactionHash = unsignedTransaction.hash()
 
-      const signingPackage = unsignedTransaction.signingPackage(signingCommitments)
-      const publicKeyRandomness = unsignedTransaction.publicKeyRandomness()
+      const signers = participants.map((participant) => {
+        AssertMultisigSigner(participant)
+        return participant.multisigKeys.identity
+      })
 
-      const signatureShares: Record<string, string> = {
-        [participantA.multiSigKeys.identifier]: createSigningShare(
-          signingPackage,
-          participantA.multiSigKeys.keyPackage,
-          publicKeyRandomness,
-          seed,
-        ),
-        [participantB.multiSigKeys.identifier]: createSigningShare(
-          signingPackage,
-          participantB.multiSigKeys.keyPackage,
-          publicKeyRandomness,
-          seed,
-        ),
-        [participantC.multiSigKeys.identifier]: createSigningShare(
-          signingPackage,
-          participantC.multiSigKeys.keyPackage,
-          publicKeyRandomness,
-          seed,
-        ),
+      const signingCommitments: string[] = []
+      for (const participant of participants) {
+        AssertMultisigSigner(participant)
+        signingCommitments.push(
+          createSigningCommitment(
+            participant.multisigKeys.identity,
+            participant.multisigKeys.keyPackage,
+            transactionHash,
+            signers,
+          ),
+        )
       }
 
-      const serializedFrostTransaction = unsignedTransaction.signFrost(
-        trustedDealerPackage.publicKeyPackage,
+      const signingPackage = unsignedTransaction.signingPackage(signingCommitments)
+
+      const signatureShares: Array<string> = []
+
+      for (const participant of participants) {
+        AssertMultisigSigner(participant)
+        signatureShares.push(
+          createSignatureShare(
+            participant.multisigKeys.identity,
+            participant.multisigKeys.keyPackage,
+            signingPackage,
+          ),
+        )
+      }
+
+      Assert.isNotUndefined(coordinator.multisigKeys)
+      const serializedFrostTransaction = aggregateSignatureShares(
+        coordinator.multisigKeys.publicKeyPackage,
         signingPackage,
         signatureShares,
       )

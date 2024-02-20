@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../assert'
 import { Consensus } from '../consensus'
+import { SerializedBlock } from '../primitives/block'
 import { MathUtils } from '../utils'
 import { defaultNetworkName, isDefaultNetworkId, NetworkDefinition } from './networkDefinition'
 
@@ -10,16 +11,18 @@ export class Network {
   readonly default: boolean
   readonly name: string
   readonly id: number
-  readonly definition: NetworkDefinition
   readonly consensus: Consensus
+  readonly genesis: SerializedBlock
+  readonly bootstrapNodes: string[]
 
   private miningRewardCachedByYear = new Map<number, number>()
 
-  constructor(definition: NetworkDefinition, consensus: Consensus) {
+  constructor(definition: NetworkDefinition) {
     this.id = definition.id
     this.default = isDefaultNetworkId(definition.id)
-    this.definition = definition
-    this.consensus = consensus
+    this.consensus = new Consensus({ ...definition.consensus })
+    this.genesis = definition.genesis
+    this.bootstrapNodes = definition.bootstrapNodes
 
     if (this.default) {
       const defaultName = defaultNetworkName(definition.id)
@@ -48,7 +51,7 @@ export class Network {
    */
   miningReward(sequence: number): number {
     const ironFishYearInBlocks =
-      (365 * 24 * 60 * 60) / this.definition.consensus.targetBlockTimeInSeconds
+      (365 * 24 * 60 * 60) / this.consensus.parameters.targetBlockTimeInSeconds
     const yearsAfterLaunch = Math.floor(Number(sequence) / ironFishYearInBlocks)
 
     let reward = this.miningRewardCachedByYear.get(yearsAfterLaunch)
@@ -57,7 +60,7 @@ export class Network {
     }
 
     const annualReward =
-      (this.definition.consensus.genesisSupplyInIron / 4) * Math.E ** (-0.05 * yearsAfterLaunch)
+      (this.consensus.parameters.genesisSupplyInIron / 4) * Math.E ** (-0.05 * yearsAfterLaunch)
 
     // This rounds and produces an incorrect result but must
     // be kept because it would cause a hard fork once you reach

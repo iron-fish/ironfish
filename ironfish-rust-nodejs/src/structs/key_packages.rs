@@ -5,8 +5,8 @@
 use napi_derive::napi;
 
 #[napi(object)]
-pub struct IdentiferKeyPackage {
-    pub identifier: String,
+pub struct IdentityKeyPackage {
+    pub identity: String,
     pub key_package: String,
 }
 #[napi(object)]
@@ -18,6 +18,6 @@ pub struct TrustedDealerKeyPackages {
     pub incoming_view_key: String,
     pub outgoing_view_key: String,
     pub public_address: String,
-    pub key_packages: Vec<IdentiferKeyPackage>,
+    pub key_packages: Vec<IdentityKeyPackage>,
     pub public_key_package: String,
 }

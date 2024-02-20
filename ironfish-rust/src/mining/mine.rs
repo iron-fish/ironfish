@@ -116,7 +116,7 @@ mod test {
         let start = 43;
         let step_size = 1;
 
-        let context = &mut fish_hash::Context::new(false);
+        let context = &mut fish_hash::Context::new(false, None);
 
         // Hardcoded target value derived from a randomness of 45, which is lower than 42
         // This allows us to test the looping and target comparison a little better

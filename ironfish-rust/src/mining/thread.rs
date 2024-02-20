@@ -47,7 +47,10 @@ impl Thread {
             .name(id.to_string())
             .spawn(move || {
                 let mut fish_hash_context = if fish_hash_options.enabled {
-                    Some(fish_hash::Context::new(fish_hash_options.full_context))
+                    Some(fish_hash::Context::new(
+                        fish_hash_options.full_context,
+                        None,
+                    ))
                 } else {
                     None
                 };

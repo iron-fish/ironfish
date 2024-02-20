@@ -4,12 +4,12 @@
 
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use group::GroupEncoding;
-use ironfish_frost::frost::{
-    aggregate,
-    keys::PublicKeyPackage,
-    round1::SigningCommitments,
-    round2::{Randomizer, SignatureShare},
-    Identifier, RandomizedParams, SigningPackage,
+use ironfish_frost::{
+    frost::{
+        aggregate, keys::PublicKeyPackage, round1::SigningCommitments, round2::SignatureShare,
+        Identifier, RandomizedParams, Randomizer, SigningPackage as FrostSigningPackage,
+    },
+    participant::Identity,
 };
 
 use ironfish_zkp::redjubjub::{self, Signature};
@@ -20,6 +20,7 @@ use std::{
 
 use crate::{
     errors::{IronfishError, IronfishErrorKind},
+    frost_utils::signing_package::SigningPackage,
     serializing::read_scalar,
     transaction::Blake2b,
     OutputDescription, SaplingKey, Transaction,
@@ -193,10 +194,10 @@ impl UnsignedTransaction {
         Ok(hash_result)
     }
 
-    pub fn sign_frost(
+    pub fn aggregate_signature_shares(
         &mut self,
         public_key_package: &PublicKeyPackage,
-        authorizing_signing_package: &SigningPackage,
+        authorizing_signing_package: &FrostSigningPackage,
         authorizing_signature_shares: BTreeMap<Identifier, SignatureShare>,
     ) -> Result<Transaction, IronfishError> {
         // Create the transaction signature hash
@@ -286,17 +287,42 @@ impl UnsignedTransaction {
 
     // Creates frost signing package for use in round two of FROST multisig protocol
     // only applicable for multisig transactions
-    pub fn signing_package(
-        &self,
-        commitments: BTreeMap<Identifier, SigningCommitments>,
-    ) -> Result<SigningPackage, IronfishError> {
-        // Create the transaction signature hash
+    pub fn signing_package<Iter>(&self, commitments: Iter) -> Result<SigningPackage, IronfishError>
+    where
+        Iter: IntoIterator<Item = (Identity, SigningCommitments)>,
+    {
         let data_to_sign = self.transaction_signature_hash()?;
-        Ok(SigningPackage::new(commitments, &data_to_sign))
+
+        let mut commitments_map = BTreeMap::new();
+        let mut signers = Vec::new();
+        for (signer_identity, signer_commitments) in commitments {
+            commitments_map.insert(signer_identity.to_frost_identifier(), signer_commitments);
+            signers.push(signer_identity);
+        }
+
+        let frost_signing_package = FrostSigningPackage::new(commitments_map, &data_to_sign);
+
+        Ok(SigningPackage {
+            unsigned_transaction: self.clone(),
+            frost_signing_package,
+            signers,
+        })
     }
 
     // Exposes the public key package for use in round two of FROST multisig protocol
     pub fn public_key_randomness(&self) -> jubjub::Fr {
         self.public_key_randomness
+    }
+
+    pub fn outputs(&self) -> &Vec<OutputDescription> {
+        &self.outputs
+    }
+
+    pub fn mints(&self) -> &Vec<UnsignedMintDescription> {
+        &self.mints
+    }
+
+    pub fn burns(&self) -> &Vec<BurnDescription> {
+        &self.burns
     }
 }

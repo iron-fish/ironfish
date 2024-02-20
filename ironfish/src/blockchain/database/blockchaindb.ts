@@ -217,16 +217,27 @@ export class BlockchainDB {
     return headers
   }
 
-  async deleteSequenceToHashes(sequence: number, tx?: IDatabaseTransaction): Promise<void> {
-    return this.sequenceToHashes.del(sequence, tx)
-  }
-
-  async putSequenceToHashes(
+  async addHashAtSequence(
     sequence: number,
-    hashes: Buffer[],
+    hash: Buffer,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    return this.sequenceToHashes.put(sequence, { hashes }, tx)
+    const hashes = await this.getBlockHashesAtSequence(sequence, tx)
+    return this.sequenceToHashes.put(sequence, { hashes: [...hashes, hash] }, tx)
+  }
+
+  async removeHashAtSequence(
+    sequence: number,
+    hash: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    const result = await this.getBlockHashesAtSequence(sequence, tx)
+    const hashes = result.filter((h) => !h.equals(hash))
+    if (hashes.length === 0) {
+      await this.sequenceToHashes.del(sequence, tx)
+    } else {
+      return this.sequenceToHashes.put(sequence, { hashes }, tx)
+    }
   }
 
   async getBlockHashAtSequence(

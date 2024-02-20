@@ -11,6 +11,8 @@ export enum RPC_ERROR_CODES {
   INSUFFICIENT_BALANCE = 'insufficient-balance',
   UNAUTHENTICATED = 'unauthenticated',
   NOT_FOUND = 'not-found',
+  DUPLICATE_ACCOUNT_NAME = 'duplicate-account-name',
+  IMPORT_ACCOUNT_NAME_REQUIRED = 'import-account-name-required',
 }
 
 /**

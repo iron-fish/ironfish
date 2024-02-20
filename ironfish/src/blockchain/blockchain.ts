@@ -111,6 +111,16 @@ export class Blockchain {
     this._head = newHead
   }
 
+  private _latestCheckpoint: BlockHeader | null = null
+
+  get latestCheckpoint(): BlockHeader | null {
+    return this._latestCheckpoint
+  }
+
+  private set latestCheckpoint(newCheckpoint: BlockHeader | null) {
+    this._latestCheckpoint = newCheckpoint
+  }
+
   private _latest: BlockHeader | null = null
   get latest(): BlockHeader {
     Assert.isNotNull(
@@ -273,6 +283,19 @@ export class Blockchain {
         )}, but no block header for that hash.`,
       )
       this.latest = latest
+    }
+
+    for (const [sequence, hash] of this.consensus.checkpoints) {
+      const header = await this.getHeaderAtSequence(sequence)
+      const onMainChain = header && header.hash.equals(hash)
+
+      if (!onMainChain) {
+        continue
+      }
+
+      if (!this.latestCheckpoint || this.latestCheckpoint.sequence < sequence) {
+        this.latestCheckpoint = header
+      }
     }
 
     if (this._head) {
@@ -520,6 +543,10 @@ export class Blockchain {
     this.invalid.set(hash, reason)
   }
 
+  isCheckpoint(header: BlockHeader): boolean {
+    return this.consensus.checkpoints.get(header.sequence)?.equals(header.hash) ?? false
+  }
+
   private async connect(
     block: Block,
     prev: BlockHeader | null,
@@ -607,6 +634,10 @@ export class Blockchain {
     this.notes.pastRootTxCommitted(tx)
 
     this.head = block.header
+    if (this.isCheckpoint(block.header)) {
+      this.latestCheckpoint = block.header
+    }
+
     await this.onConnectBlock.emitAsync(block, tx)
   }
 
@@ -615,7 +646,7 @@ export class Blockchain {
     prev: BlockHeader | null,
     tx: IDatabaseTransaction,
   ): Promise<void> {
-    const verifyBlockAdd = this.verifier.verifyBlockAdd(block, prev, tx).catch((_) => {
+    const verifyBlockAdd = this.verifier.verifyBlockAdd(block, prev).catch((_) => {
       return { valid: false, reason: VerificationResultReason.ERROR }
     })
 
@@ -676,13 +707,13 @@ export class Blockchain {
       await this.reorganizeChain(prev, tx)
     }
 
-    const verifyBlock = this.verifier.verifyBlockAdd(block, prev, tx).catch((_) => {
+    const verifyBlockAdd = this.verifier.verifyBlockAdd(block, prev).catch((_) => {
       return { valid: false, reason: VerificationResultReason.ERROR }
     })
 
     await this.saveBlock(block, prev, false, tx)
 
-    const { valid, reason } = await verifyBlock
+    const { valid, reason } = await verifyBlockAdd
     if (!valid) {
       Assert.isNotUndefined(reason)
 
@@ -704,6 +735,9 @@ export class Blockchain {
     }
 
     this.head = block.header
+    if (this.isCheckpoint(block.header)) {
+      this.latestCheckpoint = block.header
+    }
 
     if (block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
       this.genesis = block.header
@@ -722,6 +756,10 @@ export class Blockchain {
 
     // Step 0: Find the fork between the two heads
     const fork = await this.findFork(oldHead, newHead, tx)
+
+    if (this.latestCheckpoint && fork.sequence < this.latestCheckpoint.sequence) {
+      throw new VerifyError(VerificationResultReason.CHECKPOINT_REORG)
+    }
 
     // Step 2: Collect all the blocks from the old head to the fork
     const removeIter = this.iterateFrom(oldHead, fork, tx)
@@ -920,11 +958,11 @@ export class Blockchain {
         timestamp = new Date(Math.max(currentTime, heaviestHead.timestamp.getTime() + 1))
 
         target = Target.calculateTarget(
+          this.consensus,
+          previousSequence + 1,
           timestamp,
           heaviestHead.timestamp,
           heaviestHead.target,
-          this.consensus.parameters.targetBlockTimeInSeconds,
-          this.consensus.parameters.targetBucketTimeInSeconds,
         )
       }
 
@@ -959,7 +997,7 @@ export class Blockchain {
       if (verifyBlock && !previousBlockHash.equals(GENESIS_BLOCK_PREVIOUS)) {
         // since we're creating a block that hasn't been mined yet, don't
         // verify target because it'll always fail target check here
-        const verification = await this.verifier.verifyBlock(block, { verifyTarget: false }, tx)
+        const verification = await this.verifier.verifyBlock(block, { verifyTarget: false })
 
         if (!verification.valid) {
           throw new Error(verification.reason)
@@ -1098,14 +1136,7 @@ export class Blockchain {
         await this.disconnect(block, tx)
       }
 
-      const result = await this.blockchainDb.getBlockHashesAtSequence(header.sequence, tx)
-      const hashes = result.filter((h) => !h.equals(hash))
-      if (hashes.length === 0) {
-        await this.blockchainDb.deleteSequenceToHashes(header.sequence, tx)
-      } else {
-        await this.blockchainDb.putSequenceToHashes(header.sequence, hashes, tx)
-      }
-
+      await this.blockchainDb.removeHashAtSequence(header.sequence, hash, tx)
       await this.blockchainDb.deleteTransaction(hash, tx)
       await this.blockchainDb.deleteHeader(hash, tx)
 
@@ -1290,8 +1321,7 @@ export class Blockchain {
     await this.blockchainDb.addTransaction(hash, { transactions: block.transactions }, tx)
 
     // Update Sequence -> BlockHash[]
-    const hashes = await this.blockchainDb.getBlockHashesAtSequence(sequence, tx)
-    await this.blockchainDb.putSequenceToHashes(sequence, [...hashes, hash], tx)
+    await this.blockchainDb.addHashAtSequence(sequence, hash, tx)
 
     if (!fork) {
       await this.saveConnect(block, prev, tx)

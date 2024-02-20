@@ -10,9 +10,10 @@ import { GENESIS_BLOCK_SEQUENCE } from '../../primitives/block'
 import { Note } from '../../primitives/note'
 import { DatabaseKeyRange, IDatabaseTransaction } from '../../storage'
 import { StorageUtils } from '../../storage/database/utils'
-import { WithNonNull } from '../../utils'
+import { WithNonNull, WithRequired } from '../../utils'
 import { DecryptedNote } from '../../workerPool/tasks/decryptNotes'
 import { AssetBalances } from '../assetBalances'
+import { MultisigKeys, MultisigSigner } from '../interfaces/multisigKeys'
 import { WalletBlockHeader } from '../remoteChainProcessor'
 import { AccountValue } from '../walletdb/accountValue'
 import { AssetValue } from '../walletdb/assetValue'
@@ -21,15 +22,39 @@ import { DecryptedNoteValue } from '../walletdb/decryptedNoteValue'
 import { HeadValue } from '../walletdb/headValue'
 import { TransactionValue } from '../walletdb/transactionValue'
 import { WalletDB } from '../walletdb/walletdb'
+import { isSignerMultisig } from './encoder/multisigKeys'
 
 export const ACCOUNT_KEY_LENGTH = 32
 
-export const ACCOUNT_SCHEMA_VERSION = 3
+export const ACCOUNT_SCHEMA_VERSION = 4
 
 export type SpendingAccount = WithNonNull<Account, 'spendingKey'>
 
 export function AssertSpending(account: Account): asserts account is SpendingAccount {
   Assert.isTrue(account.isSpendingAccount())
+}
+
+export type MultisigAccount = WithRequired<Account, 'multisigKeys'>
+
+type MultisigSignerAccount = WithRequired<Account, 'multisigKeys'> & {
+  multisigKeys: MultisigSigner
+}
+
+export function AssertMultisig(account: Account): asserts account is MultisigAccount {
+  Assert.isNotUndefined(
+    account.multisigKeys,
+    `Account ${account.name} is not a multisig account`,
+  )
+}
+
+export function AssertMultisigSigner(
+  account: Account,
+): asserts account is MultisigSignerAccount {
+  AssertMultisig(account)
+  Assert.isTrue(
+    isSignerMultisig(account.multisigKeys),
+    `Account ${account.name} is not a multisig signer account`,
+  )
 }
 
 export class Account {
@@ -47,11 +72,8 @@ export class Account {
   createdAt: HeadValue | null
   readonly prefix: Buffer
   readonly prefixRange: DatabaseKeyRange
-  readonly multiSigKeys?: {
-    identifier: string
-    keyPackage: string
-    proofGenerationKey: string
-  }
+  readonly multisigKeys?: MultisigKeys
+  readonly proofAuthorizingKey: string | null
 
   constructor({
     id,
@@ -64,7 +86,8 @@ export class Account {
     outgoingViewKey,
     version,
     createdAt,
-    multiSigKeys,
+    multisigKeys,
+    proofAuthorizingKey,
   }: AccountValue & { walletDb: WalletDB }) {
     this.id = id
     this.name = name
@@ -82,7 +105,8 @@ export class Account {
     this.walletDb = walletDb
     this.version = version ?? 1
     this.createdAt = createdAt
-    this.multiSigKeys = multiSigKeys
+    this.multisigKeys = multisigKeys
+    this.proofAuthorizingKey = proofAuthorizingKey
   }
 
   isSpendingAccount(): this is SpendingAccount {
@@ -100,7 +124,8 @@ export class Account {
       outgoingViewKey: this.outgoingViewKey,
       publicAddress: this.publicAddress,
       createdAt: this.createdAt,
-      multiSigKeys: this.multiSigKeys,
+      multisigKeys: this.multisigKeys,
+      proofAuthorizingKey: this.proofAuthorizingKey,
     }
   }
 

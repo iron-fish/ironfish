@@ -422,7 +422,7 @@ describe('Verifier', () => {
 
       block.transactions[1].mints[0].owner = Buffer.from(accountB.publicAddress, 'hex')
 
-      expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
+      expect(await nodeTest.verifier.verifyBlockConnect(block)).toMatchObject({
         reason: VerificationResultReason.INVALID_MINT_OWNER,
         valid: false,
       })

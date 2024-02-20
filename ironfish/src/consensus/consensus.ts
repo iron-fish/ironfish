@@ -4,7 +4,8 @@
 
 import { TransactionVersion } from '../primitives/transaction'
 
-export type ActivationSequence = number | 'never'
+export type ActivationSequence = number | null
+export type Checkpoint = { sequence: number; hash: string }
 
 export type ConsensusParameters = {
   /**
@@ -55,20 +56,35 @@ export type ConsensusParameters = {
    * to the beginning of the block header before mining.
    */
   enableFishHash: ActivationSequence
+
+  /**
+   * Sequence at which to use an increased max bucket in the target calculation,
+   * allowing for a greater per-block downward shift.
+   */
+  enableIncreasedDifficultyChange: ActivationSequence
+
+  /**
+   * Mapping of block height to the hash of the block at that height. Once a node has added this block to
+   * its main chain, it will not be disconnected from the main chain.
+   */
+  checkpoints: Checkpoint[]
 }
 
 export class Consensus {
   readonly parameters: ConsensusParameters
+  readonly checkpoints: Map<number, Buffer>
 
   constructor(parameters: ConsensusParameters) {
-    this.parameters = {
-      ...parameters,
+    this.parameters = parameters
+    this.checkpoints = new Map<number, Buffer>()
+    for (const checkpoint of this.parameters.checkpoints) {
+      this.checkpoints.set(checkpoint.sequence, Buffer.from(checkpoint.hash, 'hex'))
     }
   }
 
   isActive(upgrade: keyof ConsensusParameters, sequence: number): boolean {
     const upgradeSequence = this.parameters[upgrade]
-    if (upgradeSequence === 'never') {
+    if (upgradeSequence === null || typeof upgradeSequence !== 'number') {
       return false
     }
     return Math.max(1, sequence) >= upgradeSequence
@@ -78,7 +94,7 @@ export class Consensus {
    * Returns true if the upgrade can never activate on the network
    */
   isNeverActive(upgrade: keyof ConsensusParameters): boolean {
-    return this.parameters[upgrade] === 'never'
+    return this.parameters[upgrade] === null
   }
 
   getActiveTransactionVersion(sequence: number): TransactionVersion {
@@ -86,6 +102,14 @@ export class Consensus {
       return TransactionVersion.V2
     } else {
       return TransactionVersion.V1
+    }
+  }
+
+  getDifficultyBucketMax(sequence: number): number {
+    if (this.isActive('enableIncreasedDifficultyChange', sequence)) {
+      return 200
+    } else {
+      return 99
     }
   }
 }

@@ -1,7 +1,12 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Asset, generateKey, Note as NativeNote } from '@ironfish/rust-nodejs'
+import {
+  Asset,
+  generateKey,
+  Note as NativeNote,
+  UnsignedTransaction,
+} from '@ironfish/rust-nodejs'
 import { BufferMap, BufferSet } from 'buffer-map'
 import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
@@ -37,7 +42,7 @@ import { WorkerPool } from '../workerPool'
 import { DecryptedNote, DecryptNoteOptions } from '../workerPool/tasks/decryptNotes'
 import { Account, ACCOUNT_SCHEMA_VERSION } from './account/account'
 import { AssetBalances } from './assetBalances'
-import { NotEnoughFundsError } from './errors'
+import { DuplicateAccountNameError, NotEnoughFundsError } from './errors'
 import { MintAssetOptions } from './interfaces/mintAssetOptions'
 import {
   RemoteChainProcessor,
@@ -1057,6 +1062,24 @@ export class Wallet {
     }
   }
 
+  async build(options: { transaction: RawTransaction; account: Account }): Promise<{
+    transaction: UnsignedTransaction
+  }> {
+    Assert.isNotNull(
+      options.account.proofAuthorizingKey,
+      'proofAuthorizingKey is required to build transactions',
+    )
+
+    const transaction = await this.workerPool.buildTransaction(
+      options.transaction,
+      options.account.proofAuthorizingKey,
+      options.account.viewKey,
+      options.account.outgoingViewKey,
+    )
+
+    return { transaction }
+  }
+
   async post(options: {
     transaction: RawTransaction
     spendingKey?: string
@@ -1426,7 +1449,7 @@ export class Wallet {
     },
   ): Promise<Account> {
     if (this.getAccountByName(name)) {
-      throw new Error(`Account already exists with the name ${name}`)
+      throw new DuplicateAccountNameError(name)
     }
 
     const key = generateKey()
@@ -1446,6 +1469,7 @@ export class Wallet {
       name,
       incomingViewKey: key.incomingViewKey,
       outgoingViewKey: key.outgoingViewKey,
+      proofAuthorizingKey: key.proofAuthorizingKey,
       publicAddress: key.publicAddress,
       spendingKey: key.spendingKey,
       viewKey: key.viewKey,
@@ -1486,7 +1510,7 @@ export class Wallet {
 
   async importAccount(accountValue: AccountValue): Promise<Account> {
     if (accountValue.name && this.getAccountByName(accountValue.name)) {
-      throw new Error(`Account already exists with the name ${accountValue.name}`)
+      throw new DuplicateAccountNameError(accountValue.name)
     }
     const accounts = this.listAccounts()
     if (

@@ -3,6 +3,21 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import type { NetworkDefinition } from '../networkDefinition'
+import { ConsensusParameters } from '../../consensus'
+
+const MAINNET_CONSENSUS: ConsensusParameters = {
+  allowedBlockFutureSeconds: 15,
+  genesisSupplyInIron: 42000000,
+  targetBlockTimeInSeconds: 60,
+  targetBucketTimeInSeconds: 10,
+  maxBlockSizeBytes: 524288,
+  minFee: 1,
+  enableAssetOwnership: 9999999,
+  enforceSequentialBlockTime: null,
+  enableFishHash: null,
+  enableIncreasedDifficultyChange: null,
+  checkpoints: [],
+}
 
 export const MAINNET_GENESIS = {
   header: {
@@ -60,15 +75,5 @@ export const MAINNET: NetworkDefinition = {
   id: 1,
   bootstrapNodes: ['1.main.bn.ironfish.network', '2.main.bn.ironfish.network'],
   genesis: MAINNET_GENESIS,
-  consensus: {
-    allowedBlockFutureSeconds: 15,
-    genesisSupplyInIron: 42000000,
-    targetBlockTimeInSeconds: 60,
-    targetBucketTimeInSeconds: 10,
-    maxBlockSizeBytes: 524288,
-    minFee: 1,
-    enableAssetOwnership: 9999999,
-    enforceSequentialBlockTime: 'never',
-    enableFishHash: 'never',
-  },
+  consensus: MAINNET_CONSENSUS,
 }

@@ -7,6 +7,7 @@ import { Bech32m } from '../../../utils'
 import { AccountImport, KEY_LENGTH, VIEW_KEY_LENGTH } from '../../walletdb/accountValue'
 import { ACCOUNT_SCHEMA_VERSION } from '../account'
 import { AccountDecodingOptions, AccountEncoder, DecodeFailed, DecodeInvalid } from './encoder'
+import { MultisigKeysEncoding } from './multisigKeys'
 
 export const BECH32_ACCOUNT_PREFIX = 'ifaccount'
 
@@ -16,13 +17,17 @@ type Bech32Decoder = (
 ) => AccountImport
 
 export class Bech32Encoder implements AccountEncoder {
-  VERSION = 2
+  VERSION = 3
 
   VERSION_DECODERS: Map<number, Bech32Decoder> = new Map([
     [1, decoderV1],
     [2, decoderV2],
+    [3, decoderV3],
   ])
 
+  /**
+   * @deprecated Use Base64JsonEncoder instead
+   */
   encode(value: AccountImport): string {
     const bw = bufio.write(this.getSize(value))
     bw.writeU16(this.VERSION)
@@ -44,11 +49,16 @@ export class Bech32Encoder implements AccountEncoder {
       bw.writeU32(value.createdAt.sequence)
     }
 
-    bw.writeU8(Number(!!value.multiSigKeys))
-    if (value.multiSigKeys) {
-      bw.writeVarBytes(Buffer.from(value.multiSigKeys.identifier, 'hex'))
-      bw.writeVarBytes(Buffer.from(value.multiSigKeys.keyPackage, 'hex'))
-      bw.writeVarBytes(Buffer.from(value.multiSigKeys.proofGenerationKey, 'hex'))
+    bw.writeU8(Number(!!value.multisigKeys))
+    if (value.multisigKeys) {
+      const encoding = new MultisigKeysEncoding()
+      bw.writeU64(encoding.getSize(value.multisigKeys))
+      bw.writeBytes(encoding.serialize(value.multisigKeys))
+    }
+
+    bw.writeU8(Number(!!value.proofAuthorizingKey))
+    if (value.proofAuthorizingKey) {
+      bw.writeBytes(Buffer.from(value.proofAuthorizingKey, 'hex'))
     }
 
     return Bech32m.encode(bw.render().toString('hex'), BECH32_ACCOUNT_PREFIX)
@@ -106,11 +116,15 @@ export class Bech32Encoder implements AccountEncoder {
       size += 32 // block hash
       size += 4 // block sequence
     }
-    size += 1 // multiSigKeys byte
-    if (value.multiSigKeys) {
-      size += bufio.sizeVarBytes(Buffer.from(value.multiSigKeys.identifier, 'hex'))
-      size += bufio.sizeVarBytes(Buffer.from(value.multiSigKeys.keyPackage, 'hex'))
-      size += bufio.sizeVarBytes(Buffer.from(value.multiSigKeys.proofGenerationKey, 'hex'))
+    size += 1 // multisigKeys byte
+    if (value.multisigKeys) {
+      const encoding = new MultisigKeysEncoding()
+      size += 8 // size of multi sig keys
+      size += encoding.getSize(value.multisigKeys)
+    }
+    size += 1 // proofAuthorizingKey byte
+    if (value.proofAuthorizingKey) {
+      size += KEY_LENGTH
     }
 
     return size
@@ -148,6 +162,7 @@ function decoderV1(
     spendingKey,
     publicAddress,
     createdAt,
+    proofAuthorizingKey: null,
   }
 }
 
@@ -157,19 +172,34 @@ function decoderV2(
 ): AccountImport {
   const accountImport = decoderV1(reader, options)
 
-  let multiSigKeys = undefined
+  let multisigKeys = undefined
 
-  const hasMultiSigKeys = reader.readU8() === 1
-  if (hasMultiSigKeys) {
-    multiSigKeys = {
-      identifier: reader.readVarBytes().toString('hex'),
-      keyPackage: reader.readVarBytes().toString('hex'),
-      proofGenerationKey: reader.readVarBytes().toString('hex'),
-    }
+  const hasMultisigKeys = reader.readU8() === 1
+  if (hasMultisigKeys) {
+    const size = reader.readU64()
+    const encoder = new MultisigKeysEncoding()
+    multisigKeys = encoder.deserialize(reader.readBytes(size))
   }
 
   return {
     ...accountImport,
-    multiSigKeys,
+    multisigKeys: multisigKeys,
+  }
+}
+
+function decoderV3(
+  reader: bufio.BufferReader,
+  options?: AccountDecodingOptions,
+): AccountImport {
+  const accountImport = decoderV2(reader, options)
+
+  const hasProofAuthorizingKey = reader.readU8() === 1
+  const proofAuthorizingKey = hasProofAuthorizingKey
+    ? reader.readBytes(KEY_LENGTH).toString('hex')
+    : null
+
+  return {
+    ...accountImport,
+    proofAuthorizingKey,
   }
 }
