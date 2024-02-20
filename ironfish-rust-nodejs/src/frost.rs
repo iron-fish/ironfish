@@ -7,11 +7,7 @@ use crate::{
     to_napi_err,
 };
 use ironfish::{
-    frost::{
-        keys::KeyPackage,
-        round1::SigningCommitments,
-        round2::{self, Randomizer},
-    },
+    frost::{keys::KeyPackage, round1::SigningCommitments, round2, Randomizer},
     frost_utils::{
         signature_share::SignatureShare, signing_commitment::SigningCommitment,
         signing_package::SigningPackage, split_spender_key::split_spender_key,

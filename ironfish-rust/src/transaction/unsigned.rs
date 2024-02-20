@@ -6,11 +6,8 @@ use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use group::GroupEncoding;
 use ironfish_frost::{
     frost::{
-        aggregate,
-        keys::PublicKeyPackage,
-        round1::SigningCommitments,
-        round2::{Randomizer, SignatureShare},
-        Identifier, RandomizedParams, SigningPackage as FrostSigningPackage,
+        aggregate, keys::PublicKeyPackage, round1::SigningCommitments, round2::SignatureShare,
+        Identifier, RandomizedParams, Randomizer, SigningPackage as FrostSigningPackage,
     },
     participant::Identity,
 };
