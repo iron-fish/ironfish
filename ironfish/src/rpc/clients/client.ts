@@ -49,6 +49,8 @@ import type {
   GetAccountsStatusResponse,
   GetAccountStatusRequest,
   GetAccountStatusResponse,
+  GetAccountTransactionDescriptionsRequest,
+  GetAccountTransactionDescriptionsResponse,
   GetAccountTransactionRequest,
   GetAccountTransactionResponse,
   GetAccountTransactionsRequest,
@@ -364,6 +366,15 @@ export abstract class RpcClient {
     ): Promise<RpcResponseEnded<GetAccountTransactionResponse>> => {
       return this.request<GetAccountTransactionResponse>(
         `${ApiNamespace.wallet}/getAccountTransaction`,
+        params,
+      ).waitForEnd()
+    },
+
+    getAccountTransactionDescriptions: (
+      params: GetAccountTransactionDescriptionsRequest,
+    ): Promise<RpcResponseEnded<GetAccountTransactionDescriptionsResponse>> => {
+      return this.request<GetAccountTransactionDescriptionsResponse>(
+        `${ApiNamespace.wallet}/getAccountTransactionDescriptions`,
         params,
       ).waitForEnd()
     },
