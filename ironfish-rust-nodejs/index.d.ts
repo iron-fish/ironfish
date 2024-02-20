@@ -253,6 +253,7 @@ export class Transaction {
 export type NativeUnsignedTransaction = UnsignedTransaction
 export class UnsignedTransaction {
   constructor(jsBytes: Buffer)
+  static fromSigningPackage(signingPackageStr: string): NativeUnsignedTransaction
   serialize(): Buffer
   publicKeyRandomness(): string
   hash(): Buffer
