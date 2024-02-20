@@ -1,6 +1,6 @@
 {
   "name": "@ironfish/rust-nodejs-darwin-arm64",
-  "version": "1.16.0",
+  "version": "1.17.0",
   "os": [
     "darwin"
   ],
