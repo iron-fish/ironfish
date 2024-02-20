@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
+import { Assert } from '../../../assert'
+import { MintData } from '../../../primitives/rawTransaction'
 import { useAccountFixture } from '../../../testUtilities/fixtures/account'
 import { useMinerBlockFixture } from '../../../testUtilities/fixtures/blocks'
-import { MintData } from '../../../primitives/rawTransaction'
 import { createRawTransaction } from '../../../testUtilities/helpers/transaction'
-import { Assert } from '../../../assert'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 
 describe('Route /wallet/getAccountTransactionDescriptions', () => {
@@ -18,12 +18,7 @@ describe('Route /wallet/getAccountTransactionDescriptions', () => {
     const recipient = await useAccountFixture(node.wallet, 'recipient')
     const asset = new Asset(account.publicAddress, 'test', '')
 
-    const block = await useMinerBlockFixture(
-      node.chain,
-      undefined,
-      account,
-      node.wallet,
-    )
+    const block = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
     await expect(node.chain).toAddBlock(block)
     await node.wallet.updateHead()
 
@@ -65,7 +60,9 @@ describe('Route /wallet/getAccountTransactionDescriptions', () => {
     })
     expect(response.status).toBe(200)
 
-    const mintOutput = response.content.receivedNotes.filter((n) => n.assetId === asset.id().toString('hex'))
+    const mintOutput = response.content.receivedNotes.filter(
+      (n) => n.assetId === asset.id().toString('hex'),
+    )
     expect(mintOutput).toHaveLength(1)
     expect(mintOutput[0].value).toEqual(mintValue.toString())
 
