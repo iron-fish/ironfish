@@ -12,7 +12,7 @@ const MAINNET_CONSENSUS: ConsensusParameters = {
   targetBucketTimeInSeconds: 10,
   maxBlockSizeBytes: 524288,
   minFee: 1,
-  enableAssetOwnership: 9999999,
+  enableAssetOwnership: null,
   enforceSequentialBlockTime: null,
   enableFishHash: null,
   enableIncreasedDifficultyChange: null,

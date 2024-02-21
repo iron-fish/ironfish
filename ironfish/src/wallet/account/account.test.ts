@@ -4,6 +4,7 @@
 import { Asset } from '@ironfish/rust-nodejs'
 import { BufferMap } from 'buffer-map'
 import { Assert } from '../../assert'
+import { DEVNET } from '../../networks'
 import {
   createNodeTest,
   useAccountFixture,
@@ -770,7 +771,17 @@ describe('Accounts', () => {
     })
 
     it('should correctly update the asset store from a mint description with ownership transfer', async () => {
-      const { node } = nodeTest
+      const assetOwnershipNetworkDefinition = {
+        ...DEVNET,
+        consensus: {
+          ...DEVNET.consensus,
+          enableAssetOwnership: 1,
+        },
+        id: 999,
+      }
+      const { node } = await nodeTest.createSetup({
+        networkDefinition: assetOwnershipNetworkDefinition,
+      })
 
       const accountA = await useAccountFixture(node.wallet, 'accountA')
       const accountB = await useAccountFixture(node.wallet, 'accountB')
@@ -1275,7 +1286,17 @@ describe('Accounts', () => {
     })
 
     it('should correctly update the asset store from a mint description with ownership transfer', async () => {
-      const { node } = nodeTest
+      const assetOwnershipNetworkDefinition = {
+        ...DEVNET,
+        consensus: {
+          ...DEVNET.consensus,
+          enableAssetOwnership: 1,
+        },
+        id: 999,
+      }
+      const { node } = await nodeTest.createSetup({
+        networkDefinition: assetOwnershipNetworkDefinition,
+      })
 
       const accountA = await useAccountFixture(node.wallet, 'accountA')
       const accountB = await useAccountFixture(node.wallet, 'accountB')

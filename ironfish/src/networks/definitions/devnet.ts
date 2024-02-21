@@ -11,7 +11,7 @@ const DEVNET_CONSENSUS: ConsensusParameters = {
   targetBucketTimeInSeconds: 10,
   maxBlockSizeBytes: 524288,
   minFee: 0,
-  enableAssetOwnership: 1,
+  enableAssetOwnership: null,
   enforceSequentialBlockTime: 1,
   enableFishHash: null,
   enableIncreasedDifficultyChange: null,
