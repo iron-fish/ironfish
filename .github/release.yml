@@ -1,9 +1,12 @@
 changelog:
   categories:
-    - title: Breaking Changes 🛠
+    - title: RPC Breaking Changes 🛠
       labels:
-        - breaking-change
-    - title: Exciting New Features 🎉
+        - breaking-change-rpc
+    - title: SDK Breaking Changes 🛠
+      labels:
+        - breaking-change-sdk
+    - title: New Features 🎉
       labels:
         - enhancement
     - title: Other Changes
