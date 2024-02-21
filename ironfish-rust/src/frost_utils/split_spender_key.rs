@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use group::GroupEncoding;
-use ironfish_frost::frost::keys::{KeyPackage, PublicKeyPackage};
 use ironfish_frost::participant::Identity;
+use ironfish_frost::{frost::keys::KeyPackage, keys::PublicKeyPackage};
 use ironfish_zkp::constants::PROOF_GENERATION_KEY_GENERATOR;
 use jubjub::SubgroupPoint;
 use rand::thread_rng;
@@ -50,7 +50,10 @@ pub fn split_spender_key(
 
     let (key_packages, public_key_package) = split_secret(&secret_config, rng)?;
 
-    let authorizing_key_bytes = public_key_package.verifying_key().serialize();
+    let authorizing_key_bytes = public_key_package
+        .frost_public_key_package
+        .verifying_key()
+        .serialize();
 
     let authorizing_key = Option::from(SubgroupPoint::from_bytes(&authorizing_key_bytes))
         .ok_or_else(|| IronfishError::new(IronfishErrorKind::InvalidAuthorizingKey))?;
