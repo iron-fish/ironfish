@@ -6,12 +6,10 @@ use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use group::GroupEncoding;
 use ironfish_frost::{
     frost::{
-        aggregate,
-        keys::PublicKeyPackage,
-        round1::SigningCommitments,
-        round2::{Randomizer, SignatureShare},
-        Identifier, RandomizedParams, SigningPackage as FrostSigningPackage,
+        aggregate, round1::SigningCommitments, round2::SignatureShare, Identifier,
+        RandomizedParams, Randomizer, SigningPackage as FrostSigningPackage,
     },
+    keys::PublicKeyPackage,
     participant::Identity,
 };
 
@@ -208,13 +206,15 @@ impl UnsignedTransaction {
 
         let randomizer = Randomizer::deserialize(&self.public_key_randomness.to_bytes())
             .map_err(|e| IronfishError::new_with_source(IronfishErrorKind::InvalidRandomizer, e))?;
-        let randomized_params =
-            RandomizedParams::from_randomizer(public_key_package.verifying_key(), randomizer);
+        let randomized_params = RandomizedParams::from_randomizer(
+            public_key_package.frost_public_key_package.verifying_key(),
+            randomizer,
+        );
 
         let authorizing_group_signature = aggregate(
             authorizing_signing_package,
             &authorizing_signature_shares,
-            public_key_package,
+            &public_key_package.frost_public_key_package,
             &randomized_params,
         )
         .map_err(|e| {
@@ -315,5 +315,17 @@ impl UnsignedTransaction {
     // Exposes the public key package for use in round two of FROST multisig protocol
     pub fn public_key_randomness(&self) -> jubjub::Fr {
         self.public_key_randomness
+    }
+
+    pub fn outputs(&self) -> &Vec<OutputDescription> {
+        &self.outputs
+    }
+
+    pub fn mints(&self) -> &Vec<UnsignedMintDescription> {
+        &self.mints
+    }
+
+    pub fn burns(&self) -> &Vec<BurnDescription> {
+        &self.burns
     }
 }

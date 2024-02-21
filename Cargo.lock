@@ -1092,9 +1092,9 @@ dependencies = [
 
 [[package]]
 name = "frost-core"
-version = "1.0.0-rc.0"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eae732628620e7e52b3146df2eef3636f321b63dfba6e92b3b67147e0c5b2bb2"
+checksum = "45d6280625f1603d160df24b23e4984a6a7286f41455ae606823d0104c32e834"
 dependencies = [
  "byteorder",
  "const-crc32",
@@ -1114,9 +1114,9 @@ dependencies = [
 
 [[package]]
 name = "frost-rerandomized"
-version = "1.0.0-rc.0"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "abc9f0445f27262bd1e1d4754ad8ce7ac03c8d079704e6c696f5e40bab85d1e2"
+checksum = "52c58f58ea009000db490efd9a3936d0035647a2b00c7ba8f3868c2ed0306b0b"
 dependencies = [
  "derive-getters",
  "document-features",
@@ -1543,7 +1543,7 @@ dependencies = [
 [[package]]
 name = "ironfish-frost"
 version = "0.1.0"
-source = "git+https://github.com/iron-fish/ironfish-frost.git?branch=main#9f2f785cc8e4c32078fbb6f1403a60e2dd4eb6d9"
+source = "git+https://github.com/iron-fish/ironfish-frost.git?branch=main#3363ff1ce322ad195cdad50ac76e05dc6353a919"
 dependencies = [
  "blake3",
  "chacha20 0.9.1",
@@ -2375,7 +2375,7 @@ dependencies = [
 [[package]]
 name = "reddsa"
 version = "0.5.1"
-source = "git+https://github.com/ZcashFoundation/reddsa.git#36cb6b8226e2315c6cb753b5852a824fd53d3598"
+source = "git+https://github.com/ZcashFoundation/reddsa.git?rev=311baf8865f6e21527d1f20750d8f2cf5c9e531a#311baf8865f6e21527d1f20750d8f2cf5c9e531a"
 dependencies = [
  "blake2b_simd",
  "byteorder",

@@ -2,12 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use ironfish_frost::frost::{
-    frost::keys::split,
-    keys::{IdentifierList, KeyPackage, PublicKeyPackage},
-    SigningKey,
-};
 use ironfish_frost::participant::Identity;
+use ironfish_frost::{
+    frost::{
+        frost::keys::split,
+        keys::{IdentifierList, KeyPackage},
+        SigningKey,
+    },
+    keys::PublicKeyPackage,
+};
 use rand::{CryptoRng, RngCore};
 use std::collections::HashMap;
 
@@ -62,7 +65,12 @@ pub(crate) fn split_secret<R: RngCore + CryptoRng>(
         key_packages.insert(identity, key_package);
     }
 
-    Ok((key_packages, pubkeys))
+    let public_key_package = PublicKeyPackage {
+        frost_public_key_package: pubkeys,
+        identities: config.identities.clone(),
+    };
+
+    Ok((key_packages, public_key_package))
 }
 
 #[cfg(test)]

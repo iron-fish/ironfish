@@ -26,11 +26,7 @@ use crate::{
 
 use ff::Field;
 use ironfish_frost::{
-    frost::{
-        round2,
-        round2::{Randomizer, SignatureShare},
-        Identifier,
-    },
+    frost::{round2, round2::SignatureShare, Identifier, Randomizer},
     nonces::deterministic_signing_nonces,
 };
 use ironfish_zkp::{

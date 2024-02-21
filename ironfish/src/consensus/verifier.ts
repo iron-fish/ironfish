@@ -704,6 +704,7 @@ export enum VerificationResultReason {
   TOO_FAR_IN_FUTURE = 'Timestamp is in future',
   TRANSACTION_EXPIRED = 'Transaction expired',
   VERIFY_TRANSACTION = 'Verify_transaction',
+  CHECKPOINT_REORG = 'Cannot add block that re-orgs past the last checkpoint',
 }
 
 /**

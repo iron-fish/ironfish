@@ -7,11 +7,7 @@ use crate::{
     to_napi_err,
 };
 use ironfish::{
-    frost::{
-        keys::KeyPackage,
-        round1::SigningCommitments,
-        round2::{self, Randomizer},
-    },
+    frost::{keys::KeyPackage, round1::SigningCommitments, round2, Randomizer},
     frost_utils::{
         signature_share::SignatureShare, signing_commitment::SigningCommitment,
         signing_package::SigningPackage, split_spender_key::split_spender_key,
@@ -225,7 +221,10 @@ pub fn split_secret(
         });
     }
 
-    let public_key_package = t.public_key_package.serialize().map_err(to_napi_err)?;
+    let mut public_key_package_vec: Vec<u8> = vec![];
+    t.public_key_package
+        .write(&mut public_key_package_vec)
+        .map_err(to_napi_err)?;
 
     Ok(TrustedDealerKeyPackages {
         verifying_key: bytes_to_hex(&t.verifying_key),
@@ -235,6 +234,6 @@ pub fn split_secret(
         outgoing_view_key: t.outgoing_view_key.hex_key(),
         public_address: t.public_address.hex_public_address(),
         key_packages: key_packages_serialized,
-        public_key_package: bytes_to_hex(&public_key_package),
+        public_key_package: bytes_to_hex(&public_key_package_vec),
     })
 }

@@ -8,7 +8,6 @@ use std::collections::BTreeMap;
 use std::convert::TryInto;
 
 use ironfish::assets::asset_identifier::AssetIdentifier;
-use ironfish::frost::keys::PublicKeyPackage;
 use ironfish::frost::round1::SigningCommitments;
 use ironfish::frost::round2::SignatureShare as FrostSignatureShare;
 use ironfish::frost::Identifier;
@@ -27,6 +26,7 @@ use ironfish::{
     MerkleNoteHash, OutgoingViewKey, ProposedTransaction, PublicAddress, SaplingKey, Transaction,
     ViewKey,
 };
+use ironfish_frost::keys::PublicKeyPackage;
 use napi::{
     bindgen_prelude::{i64n, BigInt, Buffer, Env, Object, Result, Undefined},
     JsBuffer,
@@ -386,6 +386,29 @@ pub struct NativeUnsignedTransaction {
     transaction: UnsignedTransaction,
 }
 
+#[napi(object)]
+pub struct NativeMintDescription {
+    pub asset_id: String,
+
+    pub value: BigInt,
+}
+
+#[napi(object)]
+pub struct NativeBurnDescription {
+    pub asset_id: String,
+
+    pub value: BigInt,
+}
+
+#[napi(object)]
+pub struct NativeUnsignedTransactionNotes {
+    pub outputs: Vec<Buffer>,
+
+    pub mints: Vec<NativeMintDescription>,
+
+    pub burns: Vec<NativeBurnDescription>,
+}
+
 #[napi]
 impl NativeUnsignedTransaction {
     #[napi(constructor)]
@@ -457,6 +480,39 @@ impl NativeUnsignedTransaction {
 
         Ok(Buffer::from(vec))
     }
+
+    #[napi]
+    pub fn descriptions(&mut self) -> Result<NativeUnsignedTransactionNotes> {
+        let mut mints = Vec::new();
+        for mint in self.transaction.mints().iter() {
+            mints.push(NativeMintDescription {
+                asset_id: bytes_to_hex(mint.description().asset.id().as_bytes()),
+                value: mint.description().value.into(),
+            });
+        }
+
+        let mut burns = Vec::new();
+        for burn in self.transaction.burns().iter() {
+            burns.push(NativeBurnDescription {
+                asset_id: bytes_to_hex(burn.asset_id.as_bytes()),
+                value: burn.value.into(),
+            });
+        }
+
+        let mut outputs = Vec::new();
+        for output in self.transaction.outputs().iter() {
+            let mut vec: Vec<u8> = vec![];
+            output.merkle_note().write(&mut vec).map_err(to_napi_err)?;
+
+            outputs.push(Buffer::from(vec));
+        }
+
+        Ok(NativeUnsignedTransactionNotes {
+            mints,
+            burns,
+            outputs,
+        })
+    }
 }
 
 #[napi]
@@ -465,8 +521,8 @@ pub fn aggregate_signature_shares(
     signing_package_str: String,
     signature_shares_arr: Vec<String>,
 ) -> Result<Buffer> {
-    let public_key_package = PublicKeyPackage::deserialize(
-        &hex_to_vec_bytes(&public_key_package_str).map_err(to_napi_err)?,
+    let public_key_package = PublicKeyPackage::read(
+        &hex_to_vec_bytes(&public_key_package_str).map_err(to_napi_err)?[..],
     )
     .map_err(to_napi_err)?;
 

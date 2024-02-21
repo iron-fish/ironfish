@@ -17,6 +17,7 @@ describe('Consensus', () => {
     enforceSequentialBlockTime: 8,
     enableFishHash: 9,
     enableIncreasedDifficultyChange: 10,
+    checkpoints: [],
   }
 
   const consensus = new Consensus(params)
@@ -121,6 +122,39 @@ describe('Consensus', () => {
 
     it('returns 99 when activation flag is never', () => {
       expect(consensusWithInactives.getDifficultyBucketMax(5)).toEqual(99)
+    })
+  })
+
+  describe('checkpoints', () => {
+    it('returns correct hash for each checkpoint', () => {
+      const consensusWithCheckpoints = new Consensus({
+        ...params,
+        checkpoints: [
+          {
+            sequence: 5,
+            hash: 'hash5',
+          },
+          {
+            sequence: 6,
+            hash: 'hash6',
+          },
+        ],
+      })
+
+      expect(consensusWithCheckpoints.checkpoints.size).toEqual(2)
+
+      expect(
+        consensusWithCheckpoints.checkpoints.get(5)?.equals(Buffer.from('hash5', 'hex')),
+      ).toBe(true)
+      expect(
+        consensusWithCheckpoints.checkpoints.get(6)?.equals(Buffer.from('hash6', 'hex')),
+      ).toBe(true)
+    })
+
+    it('is empty if no checkpoints exist', () => {
+      expect(consensus.checkpoints.size).toEqual(0)
+      expect(consensus.checkpoints.get(5)).toBeUndefined()
+      expect(consensus.checkpoints.get(6)).toBeUndefined()
     })
   })
 })

@@ -15,6 +15,7 @@ const DEVNET_CONSENSUS: ConsensusParameters = {
   enforceSequentialBlockTime: 1,
   enableFishHash: null,
   enableIncreasedDifficultyChange: null,
+  checkpoints: [],
 }
 
 export const DEVNET_GENESIS = {
