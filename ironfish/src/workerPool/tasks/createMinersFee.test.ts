@@ -17,7 +17,7 @@ describe('CreateMinersFeeRequest', () => {
   it('serializes the object to a buffer and deserializes to the original object', () => {
     const request = new CreateMinersFeeRequest(
       BigInt(0),
-      'memo',
+      Buffer.from('memo'),
       'spendKey',
       TransactionVersion.V1,
     )
@@ -47,7 +47,7 @@ describe('CreateMinersFeeTask', () => {
       const account = await useAccountFixture(nodeTest.wallet)
       const request = new CreateMinersFeeRequest(
         BigInt(0),
-        'memo',
+        Buffer.from('memo'),
         account.spendingKey,
         TransactionVersion.V1,
       )
@@ -62,7 +62,7 @@ describe('CreateMinersFeeTask', () => {
       const account = await useAccountFixture(nodeTest.wallet)
       const request = new CreateMinersFeeRequest(
         BigInt(0),
-        'memo',
+        Buffer.from('memo'),
         account.spendingKey,
         TransactionVersion.V2,
       )

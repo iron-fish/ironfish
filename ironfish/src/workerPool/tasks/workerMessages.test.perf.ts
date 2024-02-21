@@ -33,7 +33,7 @@ describe('WorkerMessages', () => {
     Assert.isNotNull(account.spendingKey)
     const message = new CreateMinersFeeRequest(
       CurrencyUtils.decodeIron(20),
-      'hello world memo',
+      Buffer.from('hello world memo'),
       account.spendingKey,
       TransactionVersion.V1,
     )
