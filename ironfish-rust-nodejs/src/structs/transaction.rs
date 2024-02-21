@@ -531,7 +531,7 @@ pub fn aggregate_signature_shares(
     signing_package_str: String,
     signature_shares_arr: Vec<String>,
 ) -> Result<Buffer> {
-    let public_key_package = PublicKeyPackage::read(
+    let public_key_package = PublicKeyPackage::deserialize_from(
         &hex_to_vec_bytes(&public_key_package_str).map_err(to_napi_err)?[..],
     )
     .map_err(to_napi_err)?;

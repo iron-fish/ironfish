@@ -50,10 +50,7 @@ pub fn split_spender_key(
 
     let (key_packages, public_key_package) = split_secret(&secret_config, rng)?;
 
-    let authorizing_key_bytes = public_key_package
-        .frost_public_key_package
-        .verifying_key()
-        .serialize();
+    let authorizing_key_bytes = public_key_package.verifying_key().serialize();
 
     let authorizing_key = Option::from(SubgroupPoint::from_bytes(&authorizing_key_bytes))
         .ok_or_else(|| IronfishError::new(IronfishErrorKind::InvalidAuthorizingKey))?;

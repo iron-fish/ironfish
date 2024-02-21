@@ -218,7 +218,7 @@ pub fn split_secret(
 
     let mut public_key_package_vec: Vec<u8> = vec![];
     t.public_key_package
-        .write(&mut public_key_package_vec)
+        .serialize_into(&mut public_key_package_vec)
         .map_err(to_napi_err)?;
 
     Ok(TrustedDealerKeyPackages {
