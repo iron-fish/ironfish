@@ -148,12 +148,10 @@ export class CreateSignatureShareCommand extends IronfishCommand {
         this.log('Notes received:')
         this.log('==================')
 
-        let logged = false
-        for (const note of response.content.receivedNotes) {
-          if (logged) {
+        for (const [i, note] of response.content.receivedNotes.entries()) {
+          if (i !== 0) {
             this.log('------------------')
           }
-          logged = true
           this.log()
 
           this.log(`Amount:        ${CurrencyUtils.renderIron(note.value, true, note.assetId)}`)
