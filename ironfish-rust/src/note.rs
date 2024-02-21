@@ -57,6 +57,12 @@ impl From<String> for Memo {
     }
 }
 
+impl From<[u8; MEMO_SIZE]> for Memo {
+    fn from(value: [u8; MEMO_SIZE]) -> Self {
+        Memo(value)
+    }
+}
+
 impl fmt::Display for Memo {
     /// This can be lossy because it assumes that the
     /// memo is in valid UTF-8 format.

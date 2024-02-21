@@ -1718,7 +1718,7 @@ describe('Blockchain', () => {
                 new NativeNote(
                   account.publicAddress,
                   3n,
-                  '',
+                  Buffer.alloc(32),
                   assetId,
                   account.publicAddress,
                 ).serialize(),

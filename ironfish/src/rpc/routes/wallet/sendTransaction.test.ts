@@ -8,6 +8,7 @@ import { useAccountFixture, useMinersTxFixture } from '../../../testUtilities/fi
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { NotEnoughFundsError } from '../../../wallet/errors'
 import { RPC_ERROR_CODES } from '../../adapters'
+import { RpcRequestError } from '../../clients'
 
 const TEST_PARAMS = {
   account: 'existingAccount',
@@ -243,5 +244,62 @@ describe('Route wallet/sendTransaction', () => {
       expirationDelta: 12345,
       confirmations: 10,
     })
+  })
+
+  it('allows you to pass in a hex encoded buffer', async () => {
+    routeTest.chain.synced = true
+
+    const account = await useAccountFixture(routeTest.node.wallet, 'memo')
+    const tx = await useMinersTxFixture(routeTest.node, account)
+    const sendSpy = jest.spyOn(routeTest.node.wallet, 'send').mockResolvedValue(tx)
+
+    jest.spyOn(routeTest.node.wallet, 'getBalance').mockResolvedValueOnce({
+      unconfirmed: BigInt(11),
+      confirmed: BigInt(11),
+      pending: BigInt(11),
+      available: BigInt(11),
+      unconfirmedCount: 0,
+      pendingCount: 0,
+      blockHash: null,
+      sequence: null,
+    })
+
+    const memo = Buffer.from('deadbeef', 'hex')
+
+    const params = {
+      ...TEST_PARAMS,
+      outputs: [
+        {
+          ...TEST_PARAMS.outputs[0],
+          memo: undefined,
+          memoHex: memo.toString('hex'),
+        },
+      ],
+    }
+
+    await routeTest.client.wallet.sendTransaction(params)
+    expect(sendSpy).toHaveBeenCalled()
+
+    const sendMemo = sendSpy.mock.lastCall?.[0].outputs[0].memo
+    expect(sendMemo?.byteLength).toBe(memo.byteLength)
+    expect(sendMemo?.equals(memo)).toBe(true)
+  })
+
+  it('should allow only one of memo or memoHex to be set', async () => {
+    await expect(async () =>
+      routeTest.client.wallet.sendTransaction({
+        account: 'existingAccount',
+        outputs: [
+          {
+            publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
+            amount: BigInt(10).toString(),
+            memo: 'abcd',
+            memoHex: 'abcd',
+            assetId: Asset.nativeId().toString('hex'),
+          },
+        ],
+        fee: undefined,
+      }),
+    ).rejects.toThrow(RpcRequestError)
   })
 })

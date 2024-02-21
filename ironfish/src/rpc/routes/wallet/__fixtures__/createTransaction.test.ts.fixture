@@ -838,5 +838,97 @@
         }
       ]
     }
+  ],
+  "Route wallet/createTransaction should create transaction using memoHex": [
+    {
+      "version": 4,
+      "id": "65f292fe-447b-4fdc-9f5d-1d87c679d878",
+      "name": "existingAccount",
+      "spendingKey": "d1f0fa57871b472b27632df610a969d2b17482e140c5582368d56a34671b2f19",
+      "viewKey": "9b053fb9039ecbbed113b60f4125749c1b4e4954e2dcce7f754f8d508fc4737048f54f4b94bad2afc837bf36602a5650b605f2a8496dbf4c91db1f86c87fd770",
+      "incomingViewKey": "381d6f627054582fbe93b21e8536a5a97fe0c46f18e8afde66b0af3d0397cd06",
+      "outgoingViewKey": "0247cefeb6b8f4d581e2432acdc44e21fe9dc77fd6249bc64568257853b5e729",
+      "publicAddress": "a1edf124480c1c5f256a6f7e19424bcb3a8d680977c966f990fde74ec01365e9",
+      "createdAt": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      },
+      "proofAuthorizingKey": "8779d66619335e2335e87b8222776695925cc6589f2ff74a7dc3e14ee62f0703"
+    },
+    {
+      "header": {
+        "sequence": 2,
+        "previousBlockHash": "4791D7AE9F97DF100EF1558E84772D6A09B43762388283F75C6F20A32A88AA86",
+        "noteCommitment": {
+          "type": "Buffer",
+          "data": "base64:EL+5Xwlj0WiPwsQ49awyIAJ39N6n436tcyPPRR5R8TY="
+        },
+        "transactionCommitment": {
+          "type": "Buffer",
+          "data": "base64:2gMem3TOMZHj4Qrlal7qhDd3i0xw5IKQqqzkVa88CtA="
+        },
+        "target": "9282972777491357380673661573939192202192629606981189395159182914949423",
+        "randomness": "0",
+        "timestamp": 1708044968503,
+        "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
+        "noteSize": 4,
+        "work": "0"
+      },
+      "transactions": [
+        {
+          "type": "Buffer",
+          "data": "base64:AgAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzKiP////8AAAAAHl6TyxC6GpTvkB5Wf5vzk9mqaOEhEsDTA3WMBcM65XKw+cgRFJUfhpo4SFSQ2kRwWgrJwnMhf3hvkzjOkdUoD3bvtEsL/+x+e9rMuQYQiueVJhbkGZ326NYmn0SBHL+0Td0ZfAkdvh+is9mnpUJGeORFjKDRMwYcp69CE+LroI4Nz/7Fh1Jww4BO875FKdsIyWlvWlA0Kha8PrC4kbh/r0nUWC5QOdCgjyGFWnWbgMmQNYJnzaa5X+IsB/yTOScJLbNyq4fK9hVWKlY0J2NE1glupWCQeeD+r1MNJXVV/4SBhulGpuK857tIe3B0oYISfiwyLGUA03LBhx0ILgwlLZa65dPEZyUl5VqBV+6zq9wV+0kZ9xAhiXGm47+HLHJNNrU2dNbq7PKGkq8+zwg4l9x+WNJux2IvC/5yCpfmTeSd/f5+Ldd0YqpRu+JSEY3NQT5rxGAVakmXwZebXHMJNxolt0SK37qnhE9cD6NoqRjzo/4UhK36rR98uIslMnfTcAMvHwFgmnNQluCeWQs9u7CYFNsxP9rxXO+tdEAzSU7jcb5C1yVkXW54Bl0/9/mSUjTVcKJqthADr9Uv2gNKDub/HdcqGR7ojCTnJpZTnDFLnPwwvL07KUlyb24gRmlzaCBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAw4DPc6qEcpuUdHhUOah+t/QdZrujnul5cMg+Sc8HM9nEsIVuUI7enLPsLNuQAWCPnEaD0QdE2NMV2fLduZ9h3AA=="
+        }
+      ]
+    }
+  ],
+  "Route wallet/createTransaction should create transaction with no memo": [
+    {
+      "version": 4,
+      "id": "b3e4c164-c479-4dd9-a8a2-36f754d430d8",
+      "name": "existingAccount",
+      "spendingKey": "29aba0d30212cdcff8b50163e0e647b7615e55299e1886f9dcc79c27f1f6edca",
+      "viewKey": "23b50ea197210babcd7df30c4864ccf45f7851d7cd99cf8b81ae208d2f865909c3255fbd9de37a09fe16355e978d033c49bd9dcfdc4445eb78cfc692c623d91c",
+      "incomingViewKey": "03568087c837bcf481fcf404b6693713df3a26fbb243071b79affabac29ade03",
+      "outgoingViewKey": "caace199576008230996da764a7bce6b1a663665015bb959d1c1c71518649e93",
+      "publicAddress": "7741877c7c4771b5304d04a7bd6c2662c97d295962981eeeeb85b6fa113fba86",
+      "createdAt": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      },
+      "proofAuthorizingKey": "1bbcbba0e6170165c90753badcfb85554c77fd740847fcb4ab065347fadc5b06"
+    },
+    {
+      "header": {
+        "sequence": 2,
+        "previousBlockHash": "4791D7AE9F97DF100EF1558E84772D6A09B43762388283F75C6F20A32A88AA86",
+        "noteCommitment": {
+          "type": "Buffer",
+          "data": "base64:tMR7WCLDXwulsqXQYgRWmqN9wR28LdWUxVL0nNDIVWE="
+        },
+        "transactionCommitment": {
+          "type": "Buffer",
+          "data": "base64:iJ2RTsbkXO0yziEuDD6jjKg7h6NJFXQVTCvHb4kxI1Q="
+        },
+        "target": "9282972777491357380673661573939192202192629606981189395159182914949423",
+        "randomness": "0",
+        "timestamp": 1708109450669,
+        "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
+        "noteSize": 4,
+        "work": "0"
+      },
+      "transactions": [
+        {
+          "type": "Buffer",
+          "data": "base64:AgAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzKiP////8AAAAAZ2OGDWLTDMoZGTWUg+9zG/MbUjmVXXJsIEYwrr4OBcCsQlx2VlkfoLnfCxjpbs+NeyNZWTL5jn2a55ri4edKHKzf6Mom1CpKiw1/SZKZ25GsM5PAfFzJ+5QKDjhwBgl4FZBLctLGm5QKrpeRnRW6iblNk2TMKS8NlyB46HyE7sMOnQKavjAdsJiV6gHU11RB2hRlMX8KHAPHZXEkiUZqGrZsYEu7Yz0NypbNQCxgPhCwoJjHp91uyBRgWnqpPigv3erWxYJERQzLC5aGFWc7erj2qwyuv9Pxw8o/QNR8mt9Ldp9U5XQUtwgTCro24TqLZc6ZerUtfTODAnbwnzvWsLSd8oHiz+8WkDWkt2aCY52yJvReDZSjzjOpJTa5YwMw7vmZ3isOxVx9FYjRbGGsO+U0LPx8JImeHx6dS+zbJYAKtlQ/BPi6ivFv+/C3FYD8bZbJA5Oa5wh1GblzJjxqSXQ4hev6gOHPzrke0pl3UW01Ctvbf47iYsxLtahevdWcGm40bkdF2UMgqFR1TsKGI2SU7qSmG5OhgM2K9SKOr/PYB6BlGEiGL9nPOyYu/VpAz6DCcTNP40MRSY5gddv1ivreDOBKdv3wikWJ8gNQzMKOKlglKGOICUlyb24gRmlzaCBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwSId5xa1d0KuLJG6wdXu/lcE6BT9N3cXx3xiT6kI/RyJZxnyjNLtTt34ta8CjrvVsU8n6ysi9LTDp3cI7eaiwAA=="
+        }
+      ]
+    }
   ]
 }

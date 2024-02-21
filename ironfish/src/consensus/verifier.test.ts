@@ -245,14 +245,14 @@ describe('Verifier', () => {
           const minerNote1 = new NativeNote(
             owner,
             BigInt(reward / 2),
-            '',
+            Buffer.from(''),
             Asset.nativeId(),
             owner,
           )
           const minerNote2 = new NativeNote(
             owner,
             BigInt(reward / 2),
-            '',
+            Buffer.from(''),
             Asset.nativeId(),
             owner,
           )

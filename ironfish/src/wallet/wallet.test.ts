@@ -1003,7 +1003,7 @@ describe('Wallet', () => {
           {
             publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
             amount: 10n,
-            memo: '',
+            memo: Buffer.alloc(32),
             assetId: Asset.nativeId(),
           },
         ],
@@ -1037,7 +1037,7 @@ describe('Wallet', () => {
           {
             publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
             amount: 10n,
-            memo: '',
+            memo: Buffer.alloc(32),
             assetId: Asset.nativeId(),
           },
         ],
@@ -1076,7 +1076,7 @@ describe('Wallet', () => {
           {
             publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
             amount: 10n,
-            memo: '',
+            memo: Buffer.alloc(32),
             assetId: Asset.nativeId(),
           },
         ],
@@ -1113,7 +1113,7 @@ describe('Wallet', () => {
           {
             publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
             amount: 10n,
-            memo: '',
+            memo: Buffer.alloc(32),
             assetId: Asset.nativeId(),
           },
         ],
@@ -1150,7 +1150,7 @@ describe('Wallet', () => {
           {
             publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
             amount: 2000000000n,
-            memo: '',
+            memo: Buffer.alloc(32),
             assetId: Asset.nativeId(),
           },
         ],
@@ -1237,7 +1237,7 @@ describe('Wallet', () => {
           {
             publicAddress: accountB.publicAddress,
             amount: BigInt(1),
-            memo: '',
+            memo: Buffer.alloc(32),
             assetId: Asset.nativeId(),
           },
         ],
@@ -1336,7 +1336,7 @@ describe('Wallet', () => {
           {
             publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
             amount: 20n,
-            memo: '',
+            memo: Buffer.alloc(32),
             assetId: asset.id(),
           },
         ],

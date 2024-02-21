@@ -2,12 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Asset } from '@ironfish/rust-nodejs'
+import { Asset, MEMO_LENGTH } from '@ironfish/rust-nodejs'
 import { RawTransactionSerde } from '../../../primitives/rawTransaction'
 import { useAccountFixture, useMinerBlockFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
-import { AsyncUtils } from '../../../utils'
+import { AsyncUtils, BufferUtils } from '../../../utils'
 import { RPC_ERROR_CODES } from '../../adapters/errors'
+import { RpcRequestError } from '../../clients'
 
 const REQUEST_PARAMS = {
   account: 'existingAccount',
@@ -507,5 +508,120 @@ describe('Route wallet/createTransaction', () => {
     expect(rawTransaction.mints.length).toBe(0)
     expect(rawTransaction.spends.length).toBe(3)
     expect(rawTransaction.fee).toBe(1n)
+  })
+
+  it('should create transaction using memoHex', async () => {
+    const sender = await useAccountFixture(routeTest.node.wallet, 'existingAccount')
+    const memoHex = 'deadbeef'
+
+    const block = await useMinerBlockFixture(
+      routeTest.chain,
+      undefined,
+      sender,
+      routeTest.node.wallet,
+    )
+
+    await expect(routeTest.node.chain).toAddBlock(block)
+
+    await routeTest.node.wallet.updateHead()
+
+    const response = await routeTest.client.wallet.createTransaction({
+      account: 'existingAccount',
+      outputs: [
+        {
+          publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
+          amount: BigInt(10).toString(),
+          memoHex,
+          assetId: Asset.nativeId().toString('hex'),
+        },
+      ],
+      fee: undefined,
+    })
+
+    expect(response.status).toBe(200)
+    expect(response.content.transaction).toBeDefined()
+
+    const rawTransactionBytes = Buffer.from(response.content.transaction, 'hex')
+    const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
+
+    // write memo to fixed-length buffer
+    const memoHexBuffer = Buffer.alloc(32)
+    memoHexBuffer.write(memoHex, 'hex')
+
+    expect(rawTransaction.outputs.length).toBe(1)
+    expect(rawTransaction.outputs[0].note.memo()).toEqualBuffer(memoHexBuffer)
+  })
+
+  it('should create transaction with no memo', async () => {
+    const sender = await useAccountFixture(routeTest.node.wallet, 'existingAccount')
+
+    const block = await useMinerBlockFixture(
+      routeTest.chain,
+      undefined,
+      sender,
+      routeTest.node.wallet,
+    )
+
+    await expect(routeTest.node.chain).toAddBlock(block)
+
+    await routeTest.node.wallet.updateHead()
+
+    const response = await routeTest.client.wallet.createTransaction({
+      account: 'existingAccount',
+      outputs: [
+        {
+          publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
+          amount: BigInt(10).toString(),
+          assetId: Asset.nativeId().toString('hex'),
+        },
+      ],
+      fee: undefined,
+    })
+
+    expect(response.status).toBe(200)
+    expect(response.content.transaction).toBeDefined()
+
+    const rawTransactionBytes = Buffer.from(response.content.transaction, 'hex')
+    const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
+
+    expect(rawTransaction.outputs.length).toBe(1)
+    expect(rawTransaction.outputs[0].note.memo()).toEqualBuffer(Buffer.alloc(32, 0))
+    expect(BufferUtils.toHuman(rawTransaction.outputs[0].note.memo())).toEqual('')
+  })
+
+  it('should enforce maximum memo length', async () => {
+    const memoHex = 'a'.repeat(MEMO_LENGTH * 2 + 1)
+    await expect(async () =>
+      routeTest.client.wallet.createTransaction({
+        account: 'existingAccount',
+        outputs: [
+          {
+            publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
+            amount: BigInt(10).toString(),
+            memoHex,
+            assetId: Asset.nativeId().toString('hex'),
+          },
+        ],
+        fee: undefined,
+      }),
+    ).rejects.toThrow(RpcRequestError)
+  })
+
+  it('should allow only one of memo or memoHex to be set', async () => {
+    await expect(async () =>
+      routeTest.client.wallet.createTransaction({
+        account: 'existingAccount',
+        outputs: [
+          {
+            publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
+            amount: BigInt(10).toString(),
+            memo: 'abcd',
+            memoHex: 'abcd',
+            assetId: Asset.nativeId().toString('hex'),
+          },
+        ],
+        fee: undefined,
+      }),
+    ).rejects.toThrow(RpcRequestError)
   })
 })

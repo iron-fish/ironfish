@@ -59,7 +59,7 @@ describe('Demonstrate the Sapling API', () => {
     const key = generateKey()
 
     const transaction = new Transaction(LATEST_TRANSACTION_VERSION)
-    const note = new Note(key.publicAddress, 20n, 'test', Asset.nativeId(), key.publicAddress)
+    const note = new Note(key.publicAddress, 20n, Buffer.from('test'), Asset.nativeId(), key.publicAddress)
     transaction.output(note)
 
     const serializedPostedTransaction = transaction.post_miners_fee(key.spendingKey)
@@ -96,7 +96,7 @@ describe('Demonstrate the Sapling API', () => {
     const recipientKey = generateKey()
 
     const minersFeeTransaction = new Transaction(LATEST_TRANSACTION_VERSION)
-    const minersFeeNote = new Note(key.publicAddress, 20n, 'miner', Asset.nativeId(), key.publicAddress)
+    const minersFeeNote = new Note(key.publicAddress, 20n, Buffer.from('miner'), Asset.nativeId(), key.publicAddress)
     minersFeeTransaction.output(minersFeeNote)
 
     const postedMinersFeeTransaction = new TransactionPosted(minersFeeTransaction.post_miners_fee(key.spendingKey))
@@ -105,7 +105,7 @@ describe('Demonstrate the Sapling API', () => {
     transaction.setExpiration(10)
     const encryptedNote = new NoteEncrypted(postedMinersFeeTransaction.getNote(0))
     const decryptedNote = Note.deserialize(encryptedNote.decryptNoteForOwner(key.incomingViewKey)!)
-    const newNote = new Note(recipientKey.publicAddress, 15n, 'receive', Asset.nativeId(), minersFeeNote.owner())
+    const newNote = new Note(recipientKey.publicAddress, 15n, Buffer.from('receive'), Asset.nativeId(), minersFeeNote.owner())
 
     let currentHash = encryptedNote.hash()
     let authPath = Array.from({ length: 32 }, (_, depth) => {

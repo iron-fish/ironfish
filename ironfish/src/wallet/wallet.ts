@@ -81,7 +81,7 @@ export enum TransactionType {
 export type TransactionOutput = {
   publicAddress: string
   amount: bigint
-  memo: string
+  memo: Buffer
   assetId: Buffer
 }
 

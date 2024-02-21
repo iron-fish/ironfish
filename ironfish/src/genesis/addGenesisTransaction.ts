@@ -101,7 +101,7 @@ export async function addGenesisTransaction(
     const note = new NativeNote(
       alloc.publicAddress,
       BigInt(alloc.amountInOre),
-      alloc.memo,
+      Buffer.from(alloc.memo, 'hex'),
       Asset.nativeId(),
       account.publicAddress,
     )

@@ -19,7 +19,8 @@ export type SendTransactionRequest = {
   outputs: {
     publicAddress: string
     amount: string
-    memo: string
+    memo?: string
+    memoHex?: string
     assetId?: string
   }[]
   fee?: string
@@ -45,7 +46,11 @@ export const SendTransactionRequestSchema: yup.ObjectSchema<SendTransactionReque
           .object({
             publicAddress: yup.string().defined(),
             amount: YupUtils.currency({ min: 0n }).defined(),
-            memo: yup.string().defined().max(MEMO_LENGTH),
+            memo: yup.string().optional().max(MEMO_LENGTH),
+            memoHex: yup
+              .string()
+              .optional()
+              .max(MEMO_LENGTH * 2, 'Must be 32 byte hex encoded'),
             assetId: yup.string().optional(),
           })
           .defined(),
@@ -85,12 +90,27 @@ routes.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
       )
     }
 
-    const outputs = request.data.outputs.map((output) => ({
-      publicAddress: output.publicAddress,
-      amount: CurrencyUtils.decode(output.amount),
-      memo: output.memo,
-      assetId: output.assetId ? Buffer.from(output.assetId, 'hex') : Asset.nativeId(),
-    }))
+    const outputs = request.data.outputs.map((output) => {
+      if (output.memo && output.memoHex) {
+        throw new RpcValidationError('Only one of memo or memoHex may be set for each output')
+      }
+
+      let memo: Buffer
+      if (output.memo) {
+        memo = Buffer.from(output.memo, 'utf-8')
+      } else if (output.memoHex) {
+        memo = Buffer.from(output.memoHex, 'hex')
+      } else {
+        memo = Buffer.alloc(0)
+      }
+
+      return {
+        publicAddress: output.publicAddress,
+        amount: CurrencyUtils.decode(output.amount),
+        memo: memo,
+        assetId: output.assetId ? Buffer.from(output.assetId, 'hex') : Asset.nativeId(),
+      }
+    })
 
     const params: Parameters<Wallet['send']>[0] = {
       account,
