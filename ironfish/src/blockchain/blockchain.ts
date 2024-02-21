@@ -1500,7 +1500,12 @@ export class Blockchain {
     const amount = totalTransactionFees + BigInt(reward)
 
     const transactionVersion = this.consensus.getActiveTransactionVersion(blockSequence)
-    return this.workerPool.createMinersFee(minerSpendKey, amount, '', transactionVersion)
+    return this.workerPool.createMinersFee(
+      minerSpendKey,
+      amount,
+      Buffer.alloc(0),
+      transactionVersion,
+    )
   }
 
   newBlockHeaderFromRaw(

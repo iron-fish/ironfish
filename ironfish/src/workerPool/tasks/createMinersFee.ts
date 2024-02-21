@@ -10,13 +10,13 @@ import { WorkerTask } from './workerTask'
 
 export class CreateMinersFeeRequest extends WorkerMessage {
   readonly amount: bigint
-  readonly memo: string
+  readonly memo: Buffer
   readonly spendKey: string
   readonly transactionVersion: TransactionVersion
 
   constructor(
     amount: bigint,
-    memo: string,
+    memo: Buffer,
     spendKey: string,
     transactionVersion: TransactionVersion,
     jobId?: number,
@@ -30,7 +30,7 @@ export class CreateMinersFeeRequest extends WorkerMessage {
 
   serializePayload(bw: bufio.StaticWriter | bufio.BufferWriter): void {
     bw.writeVarBytes(BigIntUtils.toBytesBE(this.amount))
-    bw.writeVarString(this.memo, 'utf8')
+    bw.writeVarBytes(this.memo)
     bw.writeVarString(this.spendKey, 'utf8')
     bw.writeU8(this.transactionVersion)
   }
@@ -38,7 +38,7 @@ export class CreateMinersFeeRequest extends WorkerMessage {
   static deserializePayload(jobId: number, buffer: Buffer): CreateMinersFeeRequest {
     const reader = bufio.read(buffer, true)
     const amount = BigIntUtils.fromBytesBE(reader.readVarBytes())
-    const memo = reader.readVarString('utf8')
+    const memo = reader.readVarBytes()
     const spendKey = reader.readVarString('utf8')
     const transactionVersion = reader.readU8()
     return new CreateMinersFeeRequest(amount, memo, spendKey, transactionVersion, jobId)
@@ -47,7 +47,7 @@ export class CreateMinersFeeRequest extends WorkerMessage {
   getSize(): number {
     return (
       bufio.sizeVarBytes(BigIntUtils.toBytesBE(this.amount)) +
-      bufio.sizeVarString(this.memo, 'utf8') +
+      bufio.sizeVarBytes(this.memo) +
       bufio.sizeVarString(this.spendKey, 'utf8') +
       1 // transactionVersion
     )
@@ -97,7 +97,7 @@ export class CreateMinersFeeTask extends WorkerTask {
     const minerNote = new Note(
       minerPublicAddress,
       amount,
-      Buffer.from(memo, 'hex'),
+      memo,
       Asset.nativeId(),
       minerPublicAddress,
     )
