@@ -206,15 +206,13 @@ impl UnsignedTransaction {
 
         let randomizer = Randomizer::deserialize(&self.public_key_randomness.to_bytes())
             .map_err(|e| IronfishError::new_with_source(IronfishErrorKind::InvalidRandomizer, e))?;
-        let randomized_params = RandomizedParams::from_randomizer(
-            public_key_package.frost_public_key_package.verifying_key(),
-            randomizer,
-        );
+        let randomized_params =
+            RandomizedParams::from_randomizer(public_key_package.verifying_key(), randomizer);
 
         let authorizing_group_signature = aggregate(
             authorizing_signing_package,
             &authorizing_signature_shares,
-            &public_key_package.frost_public_key_package,
+            public_key_package.frost_public_key_package(),
             &randomized_params,
         )
         .map_err(|e| {

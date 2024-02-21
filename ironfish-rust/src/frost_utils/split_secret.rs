@@ -65,10 +65,8 @@ pub(crate) fn split_secret<R: RngCore + CryptoRng>(
         key_packages.insert(identity, key_package);
     }
 
-    let public_key_package = PublicKeyPackage {
-        frost_public_key_package: pubkeys,
-        identities: config.identities.clone(),
-    };
+    let public_key_package =
+        PublicKeyPackage::from_frost(pubkeys, config.identities.iter().cloned());
 
     Ok((key_packages, public_key_package))
 }
