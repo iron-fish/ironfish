@@ -8,7 +8,6 @@ use std::collections::BTreeMap;
 use std::convert::TryInto;
 
 use ironfish::assets::asset_identifier::AssetIdentifier;
-use ironfish::frost::keys::PublicKeyPackage;
 use ironfish::frost::round1::SigningCommitments;
 use ironfish::frost::round2::SignatureShare as FrostSignatureShare;
 use ironfish::frost::Identifier;
@@ -27,6 +26,7 @@ use ironfish::{
     MerkleNoteHash, OutgoingViewKey, ProposedTransaction, PublicAddress, SaplingKey, Transaction,
     ViewKey,
 };
+use ironfish_frost::keys::PublicKeyPackage;
 use napi::{
     bindgen_prelude::{i64n, BigInt, Buffer, Env, Object, Result, Undefined},
     JsBuffer,
@@ -521,8 +521,8 @@ pub fn aggregate_signature_shares(
     signing_package_str: String,
     signature_shares_arr: Vec<String>,
 ) -> Result<Buffer> {
-    let public_key_package = PublicKeyPackage::deserialize(
-        &hex_to_vec_bytes(&public_key_package_str).map_err(to_napi_err)?,
+    let public_key_package = PublicKeyPackage::read(
+        &hex_to_vec_bytes(&public_key_package_str).map_err(to_napi_err)?[..],
     )
     .map_err(to_napi_err)?;
 
