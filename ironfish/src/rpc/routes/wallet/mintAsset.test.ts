@@ -67,6 +67,7 @@ describe('Route wallet/mintAsset', () => {
   describe('with valid parameters', () => {
     it('returns the asset identifier and transaction hash', async () => {
       const node = routeTest.node
+      node.chain.consensus.parameters.enableAssetOwnership = 1
       const wallet = node.wallet
       const account = await useAccountFixture(wallet)
       const accountB = await useAccountFixture(wallet, 'accountB')
