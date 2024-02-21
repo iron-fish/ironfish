@@ -5,6 +5,7 @@
 import { generateKey, LanguageCode, spendingKeyToWords } from '@ironfish/rust-nodejs'
 import fs from 'fs'
 import path from 'path'
+import { createTrustedDealerKeyPackages } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { encodeAccount } from '../../../wallet/account/encoder/account'
 import { Bech32Encoder } from '../../../wallet/account/encoder/bech32'
@@ -50,24 +51,20 @@ describe('Route wallet/importAccount', () => {
   })
 
   it('should import a multisig account that has no spending key', async () => {
-    const key = generateKey()
+    const trustedDealerPackages = createTrustedDealerKeyPackages()
 
     const accountName = 'multisig'
     const response = await routeTest.client
       .request<ImportResponse>('wallet/importAccount', {
         account: {
           name: accountName,
-          viewKey: key.viewKey,
           spendingKey: null,
-          publicAddress: key.publicAddress,
-          incomingViewKey: key.incomingViewKey,
-          outgoingViewKey: key.outgoingViewKey,
           version: 1,
           createdAt: null,
+          ...trustedDealerPackages,
           multisigKeys: {
-            publicKeyPackage: 'aaaa',
-            identity: 'aaaa',
-            keyPackage: 'bbbb',
+            ...trustedDealerPackages.keyPackages[0],
+            publicKeyPackage: trustedDealerPackages.publicKeyPackage,
           },
         },
         rescan: false,
