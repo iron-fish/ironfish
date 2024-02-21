@@ -1335,4 +1335,43 @@ describe('Wallet', () => {
       })
     }, 100000)
   })
+
+  it('adds publicKeyPackage identities to walletDb on account import', async () => {
+    const minSigners = 2
+
+    const { node } = await nodeTest.createSetup()
+
+    const coordinatorSaplingKey = generateKey()
+
+    const identities = Array.from({ length: 3 }, () =>
+      ParticipantSecret.random().toIdentity().serialize().toString('hex'),
+    )
+
+    const trustedDealerPackage: TrustedDealerKeyPackages = splitSecret(
+      coordinatorSaplingKey.spendingKey,
+      minSigners,
+      identities,
+    )
+
+    const account = await node.wallet.importAccount({
+      version: 2,
+      id: uuid(),
+      name: trustedDealerPackage.keyPackages[0].identity,
+      spendingKey: null,
+      createdAt: null,
+      multisigKeys: {
+        publicKeyPackage: trustedDealerPackage.publicKeyPackage,
+        identity: trustedDealerPackage.keyPackages[0].identity,
+        keyPackage: trustedDealerPackage.keyPackages[0].keyPackage,
+      },
+      ...trustedDealerPackage,
+    })
+
+    const storedIdentities: string[] = []
+    for await (const identity of node.wallet.walletDb.getParticipantIdentities(account)) {
+      storedIdentities.push(identity.toString('hex'))
+    }
+
+    expect(identities.sort()).toEqual(storedIdentities.sort())
+  })
 })

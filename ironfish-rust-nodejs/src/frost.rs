@@ -16,7 +16,7 @@ use ironfish::{
     serializing::{bytes_to_hex, fr::FrSerializable, hex_to_bytes, hex_to_vec_bytes},
     SaplingKey,
 };
-use ironfish_frost::nonces::deterministic_signing_nonces;
+use ironfish_frost::{keys::PublicKeyPackage, nonces::deterministic_signing_nonces};
 use napi::{bindgen_prelude::*, JsBuffer};
 use napi_derive::napi;
 use rand::thread_rng;
@@ -236,4 +236,35 @@ pub fn split_secret(
         key_packages: key_packages_serialized,
         public_key_package: bytes_to_hex(&public_key_package_vec),
     })
+}
+
+#[napi(js_name = "PublicKeyPackage")]
+pub struct NativePublicKeyPackage {
+    public_key_package: PublicKeyPackage,
+}
+
+#[napi]
+impl NativePublicKeyPackage {
+    #[napi(constructor)]
+    pub fn new(value: String) -> Result<NativePublicKeyPackage> {
+        let bytes = hex_to_vec_bytes(&value).map_err(to_napi_err)?;
+
+        let public_key_package = PublicKeyPackage::read(&bytes[..]).map_err(to_napi_err)?;
+
+        Ok(NativePublicKeyPackage { public_key_package })
+    }
+
+    #[napi]
+    pub fn identities(&self) -> Result<Vec<Buffer>> {
+        let mut identities: Vec<Buffer> = vec![];
+
+        for identity in &self.public_key_package.identities {
+            let mut vec: Vec<u8> = vec![];
+            identity.serialize_into(&mut vec).map_err(to_napi_err)?;
+
+            identities.push(Buffer::from(vec))
+        }
+
+        Ok(identities)
+    }
 }

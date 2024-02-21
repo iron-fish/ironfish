@@ -120,6 +120,11 @@ export class ParticipantIdentity {
   constructor(jsBytes: Buffer)
   serialize(): Buffer
 }
+export type NativePublicKeyPackage = PublicKeyPackage
+export class PublicKeyPackage {
+  constructor(value: string)
+  identities(): Array<Buffer>
+}
 export class BoxKeyPair {
   constructor()
   static fromHex(secretHex: string): BoxKeyPair
