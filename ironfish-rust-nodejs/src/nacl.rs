@@ -32,7 +32,7 @@ impl BoxKeyPair {
 
         BoxKeyPair {
             public_key: secret_key.public_key().as_bytes().to_vec(),
-            secret_key: secret_key.as_bytes().to_vec(),
+            secret_key: secret_key.to_bytes().to_vec(),
         }
     }
 
@@ -45,7 +45,7 @@ impl BoxKeyPair {
 
         Ok(BoxKeyPair {
             public_key: secret_key.public_key().as_bytes().to_vec(),
-            secret_key: secret_key.as_bytes().to_vec(),
+            secret_key: secret_key.to_bytes().to_vec(),
         })
     }
 
