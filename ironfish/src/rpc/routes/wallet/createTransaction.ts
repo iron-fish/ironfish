@@ -135,7 +135,7 @@ routes.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
           ? Buffer.from(output.memo)
           : output.memoHex
           ? Buffer.from(output.memoHex, 'hex')
-          : Buffer.alloc(32, 0)
+          : Buffer.alloc(0)
 
         params.outputs.push({
           publicAddress: output.publicAddress,
