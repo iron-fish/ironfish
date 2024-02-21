@@ -95,11 +95,14 @@ routes.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
         throw new RpcValidationError('Only one of memo or memoHex may be set for each output')
       }
 
-      const memo = output.memo
-        ? Buffer.from(output.memo)
-        : output.memoHex
-        ? Buffer.from(output.memoHex, 'hex')
-        : Buffer.alloc(32, 0)
+      let memo: Buffer
+      if (output.memo) {
+        memo = Buffer.from(output.memo, 'utf-8')
+      } else if (output.memoHex) {
+        memo = Buffer.from(output.memoHex, 'hex')
+      } else {
+        memo = Buffer.alloc(0)
+      }
 
       return {
         publicAddress: output.publicAddress,
