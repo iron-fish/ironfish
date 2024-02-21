@@ -1,14 +1,14 @@
 {
-  "Route wallet/getUnsignedTransactionNotes should return descriptions": [
+  "Route wallet/getUnsignedTransactionNotes should return decrypted sent and received notes": [
     {
       "version": 4,
-      "id": "10e64211-71a7-45bd-9aa6-bc6d0eeca14a",
+      "id": "86f037f9-4822-442e-a760-89258ff503e9",
       "name": "test",
-      "spendingKey": "f7c7e560acaf20173d44a7cbb204bdca82a4d8cb559d365e3c2dbabbfdfba1b0",
-      "viewKey": "27534e2c63d4827e6c5cae98e38802d8b7ec0eba4ba8a70467b86c33a4be605f1386735508715f8942c39eb705aa83349b2c2c0de0809e78eebf64ccdd5889a5",
-      "incomingViewKey": "beb6b9a7fce4c9aaf167f467e9d37c1b652f4d8ef2561de07110b7bab392b506",
-      "outgoingViewKey": "524cdaf6faa6bf6c2001c5fa2097ce050f016e4ea721f8de1439908ee842a52d",
-      "publicAddress": "1b6589cd1b268cf5b6496553d256b4b51b58bf290d1a96c5b1deb6a400b179ec",
+      "spendingKey": "f6e96cbd2b3c5992d73a98bfac69c6275ec9e9be8e9bd306875af369767ad355",
+      "viewKey": "8778d8337af7481d711b4af077420ffb1b2aaa18ca61b691846282846ab57159dbf95cc2e0790fb327997f2e0dca515c9e3a68b3ae3bba5803b24a977a0eff2e",
+      "incomingViewKey": "07b9209408f10f6d3ec61f58a8bade2cb874319f16b5b044a310fa72f6d13a04",
+      "outgoingViewKey": "988423e8f9b76784b5b2435d7d26d5577212b3e6edf3f408dedbf771b014f966",
+      "publicAddress": "365f5ff0a202c69dd1e1da1739c38a2f9a394c1b7ed5f709c3e3bc3b08a8ace6",
       "createdAt": {
         "hash": {
           "type": "Buffer",
@@ -16,17 +16,17 @@
         },
         "sequence": 1
       },
-      "proofAuthorizingKey": "60448529f1a4ae1db294096f62f77852bc5527dd607ffc23eed55235c3871a00"
+      "proofAuthorizingKey": "0e68906a3254a4ab871899eb9c330abe39c19bee8d1fe25117ad6bd932de3001"
     },
     {
       "version": 4,
-      "id": "e28fb650-9fbc-44a4-a597-21f738959416",
+      "id": "b75e6d1d-c6b4-4a6d-83fe-29cf7b1ac1c7",
       "name": "recipient",
-      "spendingKey": "016539d1733adb80b9e5e2e312a6b6090dd9387951d0f98570e60438c1b71f75",
-      "viewKey": "cd30e4a14edcc18e3afa88540261d79cabfbd9e3dbdf3d9feb35219cced4f4875e63bf48606d8f4ba82e27d4ef936d85e61393c0f5385ee7f49bb6bd9289aa31",
-      "incomingViewKey": "0f77c18a3ff649dc733a6088b291ca99980442d2bb5b76bd66e80b771cfe1e05",
-      "outgoingViewKey": "50bf50c4ee211dfda4e3c879ccbe6d1302c26c77b39dc5986ec15d59beee5624",
-      "publicAddress": "4e4ce325faa9b547f3676f26156d9fc466710851c11f750183e2cf33e9b43415",
+      "spendingKey": "24129364028109edbe026562f21221be7fcba80164e6bac0e72fcd6be6d7af1a",
+      "viewKey": "8e067bc8367482b23066001694e5a0c2e5cf3c6ea4576c542bc6ca2286cba51bd30156902199fe91c989a5e2b782cffc154f3ddc40be352d77be243053452445",
+      "incomingViewKey": "d5543eca61881e5ac1e4204a9796031f026cac04b0a4315049c548e6d4226a02",
+      "outgoingViewKey": "b69186e77d20b16ad2a02c4fabc0ff5ff06ad387f82e827f8ce5ece79790e034",
+      "publicAddress": "7293179bb36e8ff57b20ee39876567ad513c2ea3a364b727ca08fc6f40c947b4",
       "createdAt": {
         "hash": {
           "type": "Buffer",
@@ -34,7 +34,7 @@
         },
         "sequence": 1
       },
-      "proofAuthorizingKey": "68531e48ba8baaf023a88d3346e845019d4d3c3b89f00f5e5ba9a5f1afd77b01"
+      "proofAuthorizingKey": "1a15781286927ad7ab0d33c78dae604e51833884ef60b9f161f0ab407702700a"
     },
     {
       "header": {
@@ -42,15 +42,15 @@
         "previousBlockHash": "4791D7AE9F97DF100EF1558E84772D6A09B43762388283F75C6F20A32A88AA86",
         "noteCommitment": {
           "type": "Buffer",
-          "data": "base64:L5aG0Afp6YclAjq1J9z4zdvLQCQ3ifaCrDywNS/f6yA="
+          "data": "base64:tt3HLzq5t4T410hSbQxelVhYwO1vbzQ5EmmsXW/JJwI="
         },
         "transactionCommitment": {
           "type": "Buffer",
-          "data": "base64:lU/jbKIuaj5K2oSWYbc2uwPHNDTdzzyv63obGyPSicY="
+          "data": "base64:JXmN/nkOgyxby/LEPfT8PBRjJa+2vUS3qDYR/92hN00="
         },
         "target": "9282972777491357380673661573939192202192629606981189395159182914949423",
         "randomness": "0",
-        "timestamp": 1708467202913,
+        "timestamp": 1708483210186,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 4,
         "work": "0"
@@ -58,7 +58,7 @@
       "transactions": [
         {
           "type": "Buffer",
-          "data": "base64:AgAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzKiP////8AAAAAlRurS1RDLCflwQH+ODgboWefkTf4tls32zcIlNjhcDy1exOdD3Gq2TiOMjGko58qkpqToy/U0eQZK4lTs4IyO5FYIJy7+AdpjuNqDfWkZnKy6EmllW3urJWjoZHj4x4iFtE0vEZo1ZLhMkGo2Mb6pjnblarr2BNtZR1SZpbxFAEWAE5zCLWZrW80qaEH9W2K4TILGfO+kbcT9Q733KJwRoAHH04uklcM+QFoLP9MOsaR26qHMK/BuoAvy4NB8NjFBAaGZm2ry8kFitVbzOC/Riwmht0THgfYGAc25QB/dXekz7zA3Mpq1KPxg1Nv9Ty97PYKj0Dfj1QfwbBWGT9+zNg+SzrJ7wrH/WjRaM9WCYZBMW6Ufz8BIfwKlo3up3hl0qZr36Bn+ngeKHySdfkkuD3I2W3DBHJZ3Esco1R4CL5pgzv0hcAVq+ljJ2Hzy0/W9FxOl7PJXmuztEcP4LrjfrjGhQm4E4nwV3wsLwZMd38Q4WprXwxAiFZXl2T7qg+CEuYWiIXaY6Tn99D7DmxyqkemS95n+7stIwNtr+XzXkYtEsM/N2eo487YdEvvrYmC18+CqYY2uPjHAzHcYPQiGck3T862pMA8WR/nWLjYIdhpK8ybKGmsU0lyb24gRmlzaCBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAw/1pq4aJ0SZVzP0o7278+koI5FqsITCtB1O8/4vTegEOZ2ZJdJUIhCrKTKYhG2Z2nuoYcMXqvjZQBYjy/54O6CA=="
+          "data": "base64:AgAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzKiP////8AAAAAxKdfYb1FrjvUls0xSFDOlkURRea0yqdEvY60Bka0n9SWeUpL+GdNRCeMo24W7tODjMrshYTShs0pmNtDKLLLhS82ovKf9DE4AV4lX6lXX3WvlrNI+052NyZK4pu3Bfw6CGaf2U8a/foOxabe7jpkeV6tvuZNweS3O5mj5UyI7V8GRggUY8bKfURH0tIuWDS7ymAQIuy1KClm5HrKcK0RgR4AxCK1f+eq4eL9W8STZyyuBDG2zXMfsGsiQJXWS2uEbhvigId9G/RwYXZA9N0Hyo+XQ12t1y81ABeWEb3NmGAVrgEykOX6HJNkCRIjOdr73Xj8ddjogW2XO+eBsAf2Xkrs6Bc3f7KHdshyuSB3GEO/p35cvzBeQCoSbUneQAozC05QTeizPMIxLTcKiDmPE+5R+OEP2rao7PIlw5vYScaQeoXYrnrPt7PFCRCcT30J2mXfJ+4Bf28JnfYMVSy3nHuqJBiSGiekqFRXeL5EMh8KeZiHVBbe8+S/uUOmS70qYOwI0HrI+y62IAGThkKQyPPArvnCLJpu2tCay1Rzs7J5l1o0dvoj4EzdCW52u4k4P7XLtSrj++r4iBDIp1PMjB2mEFIzc+ErE+3trmPodl3gRvuFpfr+vUlyb24gRmlzaCBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwrCDBLDyQpXod4pQ55Y1eFw5Iq8l/IS/d4H3Ae1DM3/GLC/GbbpWnuEJE5KTWAcqHPw7rvsDswn2Hp+IEu+xZDA=="
         }
       ]
     }

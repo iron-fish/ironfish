@@ -12,7 +12,7 @@ import { createRouteTest } from '../../../testUtilities/routeTest'
 describe('Route wallet/getUnsignedTransactionNotes', () => {
   const routeTest = createRouteTest()
 
-  it('should return descriptions', async () => {
+  it('should return decrypted sent and received notes', async () => {
     const node = routeTest.node
     const account = await useAccountFixture(node.wallet)
     const recipient = await useAccountFixture(node.wallet, 'recipient')
@@ -64,5 +64,11 @@ describe('Route wallet/getUnsignedTransactionNotes', () => {
     )
     expect(mintOutput).toHaveLength(1)
     expect(mintOutput[0].value).toEqual(mintValue.toString())
+
+    const changeOutput = response.content.receivedNotes.filter(
+      (n) => n.assetId === Asset.nativeId().toString('hex'),
+    )
+    expect(changeOutput).toHaveLength(1)
+    expect(changeOutput[0].value).toBe('1999999997')
   })
 })
