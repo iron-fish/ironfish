@@ -25,6 +25,27 @@ export const RcpAccountAssetBalanceDeltaSchema: yup.ObjectSchema<RpcAccountAsset
     })
     .defined()
 
+export type RpcUnsignedTransactionNote = {
+  assetId: string
+  memo: string
+  noteHash: string
+  owner: string
+  sender: string
+  value: string
+}
+
+export const RpcUnsignedTransactionNoteSchema: yup.ObjectSchema<RpcUnsignedTransactionNote> =
+  yup
+    .object({
+      assetId: yup.string().defined(),
+      memo: yup.string().defined(),
+      noteHash: yup.string().defined(),
+      owner: yup.string().defined(),
+      sender: yup.string().defined(),
+      value: yup.string().defined(),
+    })
+    .defined()
+
 export type RpcWalletNote = {
   assetId: string
   value: string
