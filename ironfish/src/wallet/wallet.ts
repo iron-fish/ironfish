@@ -5,6 +5,7 @@ import {
   Asset,
   generateKey,
   Note as NativeNote,
+  PublicKeyPackage,
   UnsignedTransaction,
 } from '@ironfish/rust-nodejs'
 import { BufferMap, BufferSet } from 'buffer-map'
@@ -1564,6 +1565,14 @@ export class Wallet {
         await account.updateHead(head, tx)
       } else {
         await account.updateHead(null, tx)
+      }
+
+      if (account.multisigKeys) {
+        const publicKeyPackage = new PublicKeyPackage(account.multisigKeys.publicKeyPackage)
+
+        for (const identity of publicKeyPackage.identities()) {
+          await this.walletDb.addParticipantIdentity(account, identity, tx)
+        }
       }
     })
 

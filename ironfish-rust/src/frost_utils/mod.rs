@@ -7,4 +7,5 @@ pub mod signing_commitment;
 pub mod signing_package;
 pub mod split_secret;
 pub mod split_spender_key;
+pub use ironfish_frost::keys::PublicKeyPackage;
 pub use ironfish_frost::participant::IDENTITY_LEN;

@@ -2,9 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { generateKey } from '@ironfish/rust-nodejs'
 import { v4 as uuid } from 'uuid'
-import { useAccountFixture } from '../../../testUtilities'
+import { createTrustedDealerKeyPackages, useAccountFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { Account } from '../../../wallet'
 import { Base64JsonEncoder } from '../../../wallet/account/encoder/base64json'
@@ -144,24 +143,19 @@ describe('Route wallet/exportAccount', () => {
   })
 
   it('should export an account with multisigKeys', async () => {
-    const key = generateKey()
+    const trustedDealerPackages = createTrustedDealerKeyPackages()
 
     const accountName = 'foo'
     const accountImport = {
       name: accountName,
-      viewKey: key.viewKey,
       spendingKey: null,
-      publicAddress: key.publicAddress,
-      incomingViewKey: key.incomingViewKey,
-      outgoingViewKey: key.outgoingViewKey,
       version: 1,
       createdAt: null,
+      ...trustedDealerPackages,
       multisigKeys: {
-        publicKeyPackage: 'aaaa',
-        identity: 'aaaa',
-        keyPackage: 'bbbb',
+        ...trustedDealerPackages.keyPackages[0],
+        publicKeyPackage: trustedDealerPackages.publicKeyPackage,
       },
-      proofAuthorizingKey: key.proofAuthorizingKey,
     }
 
     await routeTest.wallet.importAccount({ ...accountImport, id: uuid() })
