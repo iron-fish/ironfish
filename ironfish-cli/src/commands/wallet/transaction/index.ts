@@ -101,6 +101,7 @@ export class TransactionCommand extends IronfishCommand {
         },
         assetId: {
           header: 'Asset Id',
+          get: ({ note }) => note.assetId,
         },
         isSpent: {
           header: 'Spent',
@@ -108,6 +109,7 @@ export class TransactionCommand extends IronfishCommand {
         },
         memo: {
           header: 'Memo',
+          get: ({ note }) => note.memo,
         },
         owner: {
           header: 'Owner Address',
