@@ -256,15 +256,11 @@ impl NativePublicKeyPackage {
 
     #[napi]
     pub fn identities(&self) -> Result<Vec<Buffer>> {
-        let mut identities: Vec<Buffer> = vec![];
-
-        for identity in &self.public_key_package.identities {
-            let mut vec: Vec<u8> = vec![];
-            identity.serialize_into(&mut vec).map_err(to_napi_err)?;
-
-            identities.push(Buffer::from(vec))
-        }
-
-        Ok(identities)
+        Ok(self
+            .public_key_package
+            .identities
+            .iter()
+            .map(|identity| Buffer::from(&identity.serialize()[..]))
+            .collect())
     }
 }
