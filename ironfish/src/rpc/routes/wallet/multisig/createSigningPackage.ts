@@ -1,8 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { IDENTITY_LEN, UnsignedTransaction } from '@ironfish/rust-nodejs'
+import { IDENTITY_LEN, PublicKeyPackage, UnsignedTransaction } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
+import { AssertMultisig } from '../../../../wallet'
 import { RpcValidationError } from '../../../adapters'
 import { ApiNamespace } from '../../namespaces'
 import { routes } from '../../router'
@@ -38,7 +39,7 @@ export const CreateSigningPackageResponseSchema: yup.ObjectSchema<CreateSigningP
 routes.register<typeof CreateSigningPackageRequestSchema, CreateSigningPackageResponse>(
   `${ApiNamespace.wallet}/multisig/createSigningPackage`,
   CreateSigningPackageRequestSchema,
-  async (request, context): Promise<void> => {
+  (request, context): void => {
     AssertHasRpcContext(request, context, 'wallet')
 
     const unsignedTransaction = new UnsignedTransaction(
@@ -46,14 +47,12 @@ routes.register<typeof CreateSigningPackageRequestSchema, CreateSigningPackageRe
     )
 
     const account = getAccount(context.wallet, request.data.account)
+    AssertMultisig(account)
 
-    const identitySet = new Set()
-    for await (const identityBuffer of context.wallet.walletDb.getParticipantIdentities(
-      account,
-    )) {
-      const identity = identityBuffer.toString('hex')
-      identitySet.add(identity)
-    }
+    const publicKeyPackage = new PublicKeyPackage(account.multisigKeys.publicKeyPackage)
+    const identitySet = new Set(
+      publicKeyPackage.identities().map((identity) => identity.toString('hex')),
+    )
 
     for (const commitment of request.data.commitments) {
       const identity = commitment.slice(0, IDENTITY_LEN * 2)

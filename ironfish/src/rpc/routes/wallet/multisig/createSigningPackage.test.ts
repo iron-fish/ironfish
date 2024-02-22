@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { createSigningCommitment, ParticipantSecret } from '@ironfish/rust-nodejs'
-import { Assert } from '../../../../assert'
 import { useAccountAndAddFundsFixture, useUnsignedTxFixture } from '../../../../testUtilities'
 import { createRouteTest } from '../../../../testUtilities/routeTest'
 import { ACCOUNT_SCHEMA_VERSION } from '../../../../wallet'
@@ -117,12 +116,6 @@ describe('Route multisig/createSigningPackage', () => {
     }
 
     await routeTest.client.wallet.importAccount(importAccountRequest)
-
-    // add participants 1 and 2 to address book for participant 1
-    const account1 = routeTest.wallet.getAccountByName('participant1')
-    Assert.isNotNull(account1)
-    await routeTest.wallet.walletDb.addParticipantIdentity(account1, participant1.serialize())
-    await routeTest.wallet.walletDb.addParticipantIdentity(account1, participant2.serialize())
 
     // create a transaction for the signing package
     const txAccount = await useAccountAndAddFundsFixture(routeTest.wallet, routeTest.chain)
