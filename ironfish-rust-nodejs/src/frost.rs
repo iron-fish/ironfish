@@ -255,12 +255,11 @@ impl NativePublicKeyPackage {
     }
 
     #[napi]
-    pub fn identities(&self) -> Result<Vec<Buffer>> {
-        Ok(self
-            .public_key_package
+    pub fn identities(&self) -> Vec<Buffer> {
+        self.public_key_package
             .identities
             .iter()
             .map(|identity| Buffer::from(&identity.serialize()[..]))
-            .collect())
+            .collect()
     }
 }
