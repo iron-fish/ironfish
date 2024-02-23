@@ -42,7 +42,12 @@ export class CreateSignatureShareCommand extends IronfishCommand {
     const client = await this.sdk.connectRpc()
     const unsignedTransaction = UnsignedTransaction.fromSigningPackage(signingPackage)
 
-    await renderUnsignedTransactionDetails(client, unsignedTransaction, flags.account)
+    await renderUnsignedTransactionDetails(
+      client,
+      unsignedTransaction,
+      flags.account,
+      this.logger,
+    )
 
     if (!flags.confirm) {
       const confirmed = await CliUx.ux.confirm('Confirm new signature share creation (Y/N)')
