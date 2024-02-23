@@ -14,7 +14,6 @@ export class MultisigAccountIdentities extends IronfishCommand {
     account: Flags.string({
       char: 'f',
       description: 'The account to list identities for',
-      required: false,
     }),
   }
 
