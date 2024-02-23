@@ -1,9 +1,11 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { UnsignedTransaction } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
+import { renderUnsignedTransactionDetails } from '../../../utils/transaction'
 
 export class CreateSigningCommitmentCommand extends IronfishCommand {
   static description = 'Create a signing commitment from a participant for a given transaction'
@@ -29,12 +31,21 @@ export class CreateSigningCommitmentCommand extends IronfishCommand {
       required: true,
       multiple: true,
     }),
+    confirm: Flags.boolean({
+      default: false,
+      description: 'Confirm creating signature share without confirming',
+    }),
   }
 
   async start(): Promise<void> {
     const { flags } = await this.parse(CreateSigningCommitmentCommand)
 
     const client = await this.sdk.connectRpc()
+
+    const unsignedTransaction = new UnsignedTransaction(Buffer.from(flags.unsignedTransaction))
+
+    await renderUnsignedTransactionDetails(client, unsignedTransaction, flags.account)
+
     const response = await client.wallet.multisig.createSigningCommitment({
       account: flags.account,
       unsignedTransaction: flags.unsignedTransaction,
