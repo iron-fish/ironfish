@@ -18,12 +18,7 @@ export class Base64JsonEncoder implements AccountEncoder {
       throw new Error('Invalid prefix for base64 encoded account')
     }
 
-    const parts = value.split(BASE64_JSON_ACCOUNT_PREFIX)
-    if (parts.length !== 2) {
-      throw new Error('Invalid format for base64 encoded account')
-    }
-
-    const [_, encoded] = parts
+    const encoded = value.slice(BASE64_JSON_ACCOUNT_PREFIX.length)
     const encodedJson = Buffer.from(encoded, 'base64').toString()
     return new JsonEncoder().decode(encodedJson, options)
   }
