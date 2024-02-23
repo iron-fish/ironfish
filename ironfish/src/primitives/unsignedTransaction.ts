@@ -123,7 +123,7 @@ export class UnsignedTransaction {
   }
 
   static fromSigningPackage(signingPackage: string): UnsignedTransaction {
-    const unsigned = new NativeUnsignedTransaction(Buffer.from(signingPackage, 'hex'))
+    const unsigned = NativeUnsignedTransaction.fromSigningPackage(signingPackage)
     return new UnsignedTransaction(unsigned.serialize())
   }
 
