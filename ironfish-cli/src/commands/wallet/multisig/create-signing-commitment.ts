@@ -2,9 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { UnsignedTransaction } from '@ironfish/sdk'
-import { Flags } from '@oclif/core'
+import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
+import { longPrompt } from '../../../utils/longPrompt'
 import { renderUnsignedTransactionDetails } from '../../../utils/transaction'
 
 export class CreateSigningCommitmentCommand extends IronfishCommand {
@@ -22,13 +23,11 @@ export class CreateSigningCommitmentCommand extends IronfishCommand {
     unsignedTransaction: Flags.string({
       char: 'u',
       description: 'The unsigned transaction that needs to be signed',
-      required: true,
     }),
-    signerIdentity: Flags.string({
+    identity: Flags.string({
       char: 'i',
       description:
         'The identity of the participants that will sign the transaction (may be specified multiple times to add multiple signers)',
-      required: true,
       multiple: true,
     }),
     confirm: Flags.boolean({
@@ -40,19 +39,52 @@ export class CreateSigningCommitmentCommand extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(CreateSigningCommitmentCommand)
 
+    let identities = flags.identity
+    if (!identities || identities.length < 2) {
+      const input = await CliUx.ux.prompt('Enter the identities separated by commas', {
+        required: true,
+      })
+      identities = input.split(',')
+
+      if (identities.length < 2) {
+        this.error('Minimum number of identities must be at least 2')
+      }
+    }
+    identities = identities.map((i) => i.trim())
+
+    let unsignedTransactionInput = flags.unsignedTransaction?.trim()
+    if (!unsignedTransactionInput) {
+      unsignedTransactionInput = await longPrompt('Enter the unsigned transaction: ', {
+        required: true,
+      })
+    }
+
     const client = await this.sdk.connectRpc()
+    const unsignedTransaction = new UnsignedTransaction(
+      Buffer.from(unsignedTransactionInput, 'hex'),
+    )
 
-    const unsignedTransaction = new UnsignedTransaction(Buffer.from(flags.unsignedTransaction))
+    await renderUnsignedTransactionDetails(
+      client,
+      unsignedTransaction,
+      flags.account,
+      this.logger,
+    )
 
-    await renderUnsignedTransactionDetails(client, unsignedTransaction, flags.account)
+    if (!flags.confirm) {
+      const confirmed = await CliUx.ux.confirm('Confirm signing commitment creation (Y/N)')
+      if (!confirmed) {
+        this.error('Creating signing commitment aborted')
+      }
+    }
 
     const response = await client.wallet.multisig.createSigningCommitment({
       account: flags.account,
-      unsignedTransaction: flags.unsignedTransaction,
-      signers: flags.signerIdentity.map((identity) => ({ identity })),
+      unsignedTransaction: unsignedTransactionInput,
+      signers: identities.map((identity) => ({ identity })),
     })
 
-    this.log('Commitment:\n')
+    this.log('\nCommitment:\n')
     this.log(response.content.commitment)
   }
 }

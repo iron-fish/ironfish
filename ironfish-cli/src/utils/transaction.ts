@@ -101,7 +101,7 @@ export async function renderUnsignedTransactionDetails(
       }
     }
 
-    if (response.content.sentNotes.length > 0) {
+    if (response.content.receivedNotes.length > 0) {
       logger.log('')
       logger.log('==================')
       logger.log('Notes received:')
