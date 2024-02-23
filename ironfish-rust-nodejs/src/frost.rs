@@ -8,15 +8,15 @@ use crate::{
 };
 use ironfish::{
     frost::{keys::KeyPackage, round1::SigningCommitments, round2, Randomizer},
-    frost_utils::{
-        signature_share::SignatureShare, signing_commitment::SigningCommitment,
-        signing_package::SigningPackage, split_spender_key::split_spender_key,
-    },
+    frost_utils::{signing_package::SigningPackage, split_spender_key::split_spender_key},
     participant::{Identity, Secret},
     serializing::{bytes_to_hex, fr::FrSerializable, hex_to_bytes, hex_to_vec_bytes},
     SaplingKey,
 };
-use ironfish_frost::nonces::deterministic_signing_nonces;
+use ironfish_frost::{
+    nonces::deterministic_signing_nonces, signature_share::SignatureShare,
+    signing_commitment::SigningCommitment,
+};
 use napi::{bindgen_prelude::*, JsBuffer};
 use napi_derive::napi;
 use rand::thread_rng;
@@ -60,13 +60,12 @@ pub fn create_signing_commitment(
         deterministic_signing_nonces(key_package.signing_share(), &transaction_hash, &signers);
     let commitments = SigningCommitments::from(&nonces);
 
-    let signing_commitment = SigningCommitment {
-        identity,
-        hiding: *commitments.hiding(),
-        binding: *commitments.binding(),
-    };
+    let signing_commitment =
+        SigningCommitment::from_frost(identity, *commitments.hiding(), *commitments.binding());
 
-    Ok(bytes_to_hex(&signing_commitment.serialize()))
+    let bytes = signing_commitment.serialize()?;
+
+    Ok(bytes_to_hex(&bytes[..]))
 }
 
 #[napi]
@@ -113,12 +112,10 @@ pub fn create_signature_share(
     )
     .map_err(to_napi_err)?;
 
-    let signature_share = SignatureShare {
-        identity,
-        signature_share,
-    };
+    let signature_share = SignatureShare::from_frost(signature_share, identity);
+    let bytes = signature_share.serialize()?;
 
-    Ok(bytes_to_hex(&signature_share.serialize()))
+    Ok(bytes_to_hex(&bytes[..]))
 }
 
 #[napi]
