@@ -13,6 +13,11 @@ export class CreateSigningPackage extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
+    account: Flags.string({
+      char: 'f',
+      description: 'The account to use when creating the signing package',
+      required: false,
+    }),
     unsignedTransaction: Flags.string({
       char: 'u',
       description: 'The unsigned transaction for which the signing share will be created',
@@ -48,6 +53,7 @@ export class CreateSigningPackage extends IronfishCommand {
     const client = await this.sdk.connectRpc()
 
     const signingPackageResponse = await client.wallet.multisig.createSigningPackage({
+      account: flags.account,
       unsignedTransaction,
       commitments,
     })
