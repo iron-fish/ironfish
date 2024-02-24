@@ -1,21 +1,22 @@
 {
   "Route wallet/rename renames existing account": [
     {
-      "version": 2,
-      "id": "82502796-7f03-4333-919c-e2434bc1bac0",
+      "version": 4,
+      "id": "5c6923b0-dc39-405b-b87e-e641288c7150",
       "name": "existingAccount",
-      "spendingKey": "970d0218d99f749651336c47b5503dd5f16abaa7c02c6d5e1792db5ff3c198a8",
-      "viewKey": "00893212dbff9d3ca39cef8cd6b4b8ed3ba722fe6af2efebaf6711fad1ca13b8348c27f98a1c12be9e3fade03094f061b80b350052f7c34ca7b57295e3440c58",
-      "incomingViewKey": "bff752a5542f8048e6b0192b58fed5cc1e3cf125173f7ff4386c4dfa2d83e100",
-      "outgoingViewKey": "b98baddb11961db362568f8c4923dda404dcd8c7a9d03e33475af5b0f7ca0a45",
-      "publicAddress": "62c1ab78169681583029933bf9688cae97c4626df2fdd8f0d411b0f5044227e7",
+      "spendingKey": "c15a84fe91f2b113ad06b65443d85f96920159ebe1a5771d98f71556fdcdac0e",
+      "viewKey": "7aeb89c7043c3e7ab839d72fe252fbbf4cf7d9e00bed646faccb34188b5ed2016390e5190b93710efd0a9fad45935d1aa043a09055f539d396f90282ae651fa9",
+      "incomingViewKey": "d7e810f9850156118a8cf800ca8ad91a57bc29e2626b9233b69d54f29d686404",
+      "outgoingViewKey": "cea03b5aee20acf21a314882c3ddc3f90f62e797a04091d05467b60ce0a37ef7",
+      "publicAddress": "0977c206fc54c8ec9bc49d0e81a88b855c75e60d6f9768e43898f8342d18444c",
       "createdAt": {
         "hash": {
           "type": "Buffer",
           "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
         },
         "sequence": 1
-      }
+      },
+      "proofAuthorizingKey": "023c7f2af496ffc9c846cca35188c90ad3710cdc96fe2bbc54939ba0de73c909"
     }
   ]
 }

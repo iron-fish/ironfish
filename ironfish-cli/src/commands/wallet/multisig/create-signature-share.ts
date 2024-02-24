@@ -2,10 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { UnsignedTransaction } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 import { longPrompt } from '../../../utils/longPrompt'
+import { renderUnsignedTransactionDetails } from '../../../utils/transaction'
 
 export class CreateSignatureShareCommand extends IronfishCommand {
   static description = `Creates a signature share for a participant for a given transaction`
@@ -37,6 +39,16 @@ export class CreateSignatureShareCommand extends IronfishCommand {
       signingPackage = await longPrompt('Enter the signing package: ')
     }
 
+    const client = await this.sdk.connectRpc()
+    const unsignedTransaction = UnsignedTransaction.fromSigningPackage(signingPackage)
+
+    await renderUnsignedTransactionDetails(
+      client,
+      unsignedTransaction,
+      flags.account,
+      this.logger,
+    )
+
     if (!flags.confirm) {
       const confirmed = await CliUx.ux.confirm('Confirm new signature share creation (Y/N)')
       if (!confirmed) {
@@ -44,13 +56,12 @@ export class CreateSignatureShareCommand extends IronfishCommand {
       }
     }
 
-    const client = await this.sdk.connectRpc()
     const signatureShareResponse = await client.wallet.multisig.createSignatureShare({
       account: flags.account,
       signingPackage,
     })
 
-    this.log('Signing Share:\n')
+    this.log('Signature Share:\n')
     this.log(signatureShareResponse.content.signatureShare)
   }
 }

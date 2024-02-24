@@ -126,7 +126,7 @@ export class WorkerPool {
   async createMinersFee(
     spendKey: string,
     amount: bigint,
-    memo: string,
+    memo: Buffer,
     transactionVersion: TransactionVersion,
   ): Promise<Transaction> {
     const request = new CreateMinersFeeRequest(amount, memo, spendKey, transactionVersion)

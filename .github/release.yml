@@ -1,0 +1,14 @@
+changelog:
+  categories:
+    - title: RPC Breaking Changes 🛠
+      labels:
+        - breaking-change-rpc
+    - title: SDK Breaking Changes 🛠
+      labels:
+        - breaking-change-sdk
+    - title: New Features 🎉
+      labels:
+        - enhancement
+    - title: Other Changes
+      labels:
+        - "*"

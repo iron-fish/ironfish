@@ -4,10 +4,9 @@
 
 use crypto_box::{
     aead::{generic_array::GenericArray, Aead, AeadCore},
-    rand_core::OsRng,
     PublicKey, SalsaBox, SecretKey,
 };
-use rand::RngCore;
+use rand::{rngs::OsRng, RngCore};
 
 use crate::errors::{IronfishError, IronfishErrorKind};
 
@@ -15,7 +14,7 @@ pub const KEY_LENGTH: usize = crypto_box::KEY_SIZE;
 pub const NONCE_LENGTH: usize = 24;
 
 pub fn new_secret_key() -> SecretKey {
-    let mut rng = crypto_box::rand_core::OsRng;
+    let mut rng = OsRng;
 
     SecretKey::generate(&mut rng)
 }
@@ -79,9 +78,9 @@ mod test {
     #[test]
     fn test_secret_key() {
         let key = new_secret_key();
-        let key2 = bytes_to_secret_key(*key.as_bytes());
+        let key2 = bytes_to_secret_key(key.to_bytes());
 
-        assert_eq!(key.as_bytes(), key2.as_bytes());
+        assert_eq!(key.to_bytes(), key2.to_bytes());
     }
 
     #[test]
@@ -111,22 +110,22 @@ mod test {
         let secret3 = new_secret_key();
 
         let (nonce, boxed_message) =
-            box_message(plaintext.clone(), *secret1.as_bytes(), *public2.as_bytes())
+            box_message(plaintext.clone(), secret1.to_bytes(), public2.to_bytes())
                 .expect("Can box message");
 
         let unboxed_message = unbox_message(
             &boxed_message,
             &nonce,
-            *public1.as_bytes(),
-            *secret2.as_bytes(),
+            public1.to_bytes(),
+            secret2.to_bytes(),
         )
         .expect("Can unbox message");
 
         let failed_unbox = unbox_message(
             &boxed_message,
             &nonce,
-            *public1.as_bytes(),
-            *secret3.as_bytes(),
+            public1.to_bytes(),
+            secret3.to_bytes(),
         );
 
         assert_eq!(plaintext, unboxed_message);

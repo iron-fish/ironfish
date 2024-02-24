@@ -32,7 +32,7 @@ export async function usePostTxFixture(options: {
   outputs?: {
     publicAddress: string
     amount: bigint
-    memo: string
+    memo: Buffer
     assetId: Buffer
   }[]
   mints?: MintData[]
@@ -72,7 +72,7 @@ export async function useTxFixture(
           {
             publicAddress: to.publicAddress,
             amount: BigInt(1),
-            memo: '',
+            memo: Buffer.alloc(32),
             assetId: Asset.nativeId(),
           },
         ],
@@ -117,7 +117,7 @@ export async function useUnsignedTxFixture(
           {
             publicAddress: to.publicAddress,
             amount: BigInt(1),
-            memo: '',
+            memo: Buffer.alloc(32),
             assetId: Asset.nativeId(),
           },
         ],

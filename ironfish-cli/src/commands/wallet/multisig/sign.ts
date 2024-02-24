@@ -43,7 +43,7 @@ export class MultisigSign extends IronfishCommand {
 
     let signatureShares = flags.signatureShare
     if (!signatureShares) {
-      const input = await longPrompt('Enter the signature shares separated by commas', {
+      const input = await longPrompt('Enter the signature shares separated by commas: ', {
         required: true,
       })
       signatureShares = input.split(',')

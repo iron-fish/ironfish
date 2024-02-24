@@ -5,6 +5,7 @@ import { Asset } from '@ironfish/rust-nodejs'
 import { Assert } from '../assert'
 import * as ConsensusUtils from '../consensus/utils'
 import { getTransactionSize } from '../network/utils/serializers'
+import { DEVNET } from '../networks'
 import { FullNode } from '../node'
 import { Transaction } from '../primitives'
 import { TransactionVersion } from '../primitives/transaction'
@@ -294,10 +295,20 @@ describe('MemPool', () => {
     })
 
     describe('with an expired version', () => {
+      const assetOwnershipNetworkDefinition = {
+        ...DEVNET,
+        consensus: {
+          ...DEVNET.consensus,
+          enableAssetOwnership: 1,
+        },
+        id: 999,
+      }
       const nodeTest = createNodeTest()
 
       it('returns false', async () => {
-        const { node, wallet } = nodeTest
+        const { node, wallet } = await nodeTest.createSetup({
+          networkDefinition: assetOwnershipNetworkDefinition,
+        })
         const account = await useAccountFixture(wallet)
         const { transaction } = await useBlockWithTx(node, account)
 

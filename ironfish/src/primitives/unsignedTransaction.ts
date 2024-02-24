@@ -122,6 +122,11 @@ export class UnsignedTransaction {
     reader.seek(TRANSACTION_SIGNATURE_LENGTH)
   }
 
+  static fromSigningPackage(signingPackage: string): UnsignedTransaction {
+    const unsigned = NativeUnsignedTransaction.fromSigningPackage(signingPackage)
+    return new UnsignedTransaction(unsigned.serialize())
+  }
+
   serialize(): Buffer {
     return this.unsignedTransactionSerialized
   }
