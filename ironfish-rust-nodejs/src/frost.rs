@@ -14,7 +14,7 @@ use ironfish::{
     SaplingKey,
 };
 use ironfish_frost::{
-    nonces::deterministic_signing_nonces, signature_share::SignatureShare,
+    keys::PublicKeyPackage, nonces::deterministic_signing_nonces, signature_share::SignatureShare,
     signing_commitment::SigningCommitment,
 };
 use napi::{bindgen_prelude::*, JsBuffer};
@@ -40,6 +40,11 @@ where
                 .map_err(to_napi_err)
         })
 }
+
+use ironfish::frost_utils::IDENTITY_LEN as ID_LEN;
+
+#[napi]
+pub const IDENTITY_LEN: u32 = ID_LEN as u32;
 
 #[napi]
 pub fn create_signing_commitment(
@@ -228,4 +233,31 @@ pub fn split_secret(
         key_packages: key_packages_serialized,
         public_key_package: bytes_to_hex(&public_key_package_vec),
     })
+}
+
+#[napi(js_name = "PublicKeyPackage")]
+pub struct NativePublicKeyPackage {
+    public_key_package: PublicKeyPackage,
+}
+
+#[napi]
+impl NativePublicKeyPackage {
+    #[napi(constructor)]
+    pub fn new(value: String) -> Result<NativePublicKeyPackage> {
+        let bytes = hex_to_vec_bytes(&value).map_err(to_napi_err)?;
+
+        let public_key_package =
+            PublicKeyPackage::deserialize_from(&bytes[..]).map_err(to_napi_err)?;
+
+        Ok(NativePublicKeyPackage { public_key_package })
+    }
+
+    #[napi]
+    pub fn identities(&self) -> Vec<Buffer> {
+        self.public_key_package
+            .identities()
+            .iter()
+            .map(|identity| Buffer::from(&identity.serialize()[..]))
+            .collect()
+    }
 }

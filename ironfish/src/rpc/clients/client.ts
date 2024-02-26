@@ -21,6 +21,8 @@ import type {
   BurnAssetResponse,
   CreateAccountRequest,
   CreateAccountResponse,
+  CreateIdentityRequest,
+  CreateIdentityResponse,
   CreateSignatureShareRequest,
   CreateSignatureShareResponse,
   CreateSigningCommitmentRequest,
@@ -41,6 +43,8 @@ import type {
   ExportChainStreamResponse,
   FollowChainStreamRequest,
   FollowChainStreamResponse,
+  GetAccountIdentitiesRequest,
+  GetAccountIdentitiesResponse,
   GetAccountNotesStreamRequest,
   GetAccountNotesStreamResponse,
   GetAccountsRequest,
@@ -77,6 +81,8 @@ import type {
   GetDifficultyResponse,
   GetFundsRequest,
   GetFundsResponse,
+  GetIdentityRequest,
+  GetIdentityResponse,
   GetLogStreamResponse,
   GetMempoolStatusResponse,
   GetMempoolTransactionResponse,
@@ -227,7 +233,35 @@ export abstract class RpcClient {
           params,
         ).waitForEnd()
       },
+
+      createIdentity: (
+        params: CreateIdentityRequest,
+      ): Promise<RpcResponseEnded<CreateIdentityResponse>> => {
+        return this.request<CreateIdentityResponse>(
+          `${ApiNamespace.wallet}/multisig/createIdentity`,
+          params,
+        ).waitForEnd()
+      },
+
+      getIdentity: (
+        params: GetIdentityRequest,
+      ): Promise<RpcResponseEnded<GetIdentityResponse>> => {
+        return this.request<GetIdentityResponse>(
+          `${ApiNamespace.wallet}/multisig/getIdentity`,
+          params,
+        ).waitForEnd()
+      },
+
+      getAccountIdentities: (
+        params: GetAccountIdentitiesRequest,
+      ): Promise<RpcResponseEnded<GetAccountIdentitiesResponse>> => {
+        return this.request<GetAccountIdentitiesResponse>(
+          `${ApiNamespace.wallet}/multisig/getAccountIdentities`,
+          params,
+        ).waitForEnd()
+      },
     },
+
     getAccounts: (
       params: GetAccountsRequest = undefined,
     ): Promise<RpcResponseEnded<GetAccountsResponse>> => {
