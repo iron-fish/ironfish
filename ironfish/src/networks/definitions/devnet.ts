@@ -13,8 +13,8 @@ const DEVNET_CONSENSUS: ConsensusParameters = {
   minFee: 0,
   enableAssetOwnership: null,
   enforceSequentialBlockTime: 1,
-  enableFishHash: null,
-  enableIncreasedDifficultyChange: null,
+  enableFishHash: 1,
+  enableIncreasedDifficultyChange: 1,
   checkpoints: [],
 }
 
@@ -27,7 +27,7 @@ export const DEVNET_GENESIS = {
       'J42IwDCgpNSWDJcr5edUlUIzchlAN8HIt7PGx1Uy+EQ=',
       'base64',
     ),
-    target: '8834235323891921647916487503714592579137419484378094790608031006463098',
+    target: '883423532389192164791648750371459257913741948437809479060803100646309888',
     randomness: '0',
     timestamp: 1681339461513,
     graffiti: '67656E6573697300000000000000000000000000000000000000000000000000',

@@ -6,11 +6,9 @@ import { Assert } from '../assert'
 import { Logger } from '../logger'
 import { Meter } from '../metrics/meter'
 import { FileUtils } from '../utils/file'
-import { GraffitiUtils } from '../utils/graffiti'
 import { PromiseUtils } from '../utils/promise'
 import { isValidPublicAddress } from '../wallet/validator'
 import { StratumClient } from './stratum/clients/client'
-import { MINEABLE_BLOCK_HEADER_GRAFFITI_OFFSET } from './utils'
 
 export class MiningPoolMiner {
   readonly hashRate: Meter
@@ -25,7 +23,7 @@ export class MiningPoolMiner {
   private readonly publicAddress: string
   private readonly name: string | undefined
 
-  graffiti: Buffer | null
+  xnonce: Buffer | null = null
   miningRequestId: number
   target: Buffer
   waiting: boolean
@@ -39,7 +37,6 @@ export class MiningPoolMiner {
     name?: string
   }) {
     this.logger = options.logger
-    this.graffiti = null
     this.name = options.name
     this.publicAddress = options.publicAddress
     if (!isValidPublicAddress(this.publicAddress)) {
@@ -51,7 +48,21 @@ export class MiningPoolMiner {
 
     this.stratum = options.stratum
     this.stratum.onConnected.on(() => this.stratum.subscribe(this.publicAddress, this.name))
-    this.stratum.onSubscribed.on((m) => this.setGraffiti(GraffitiUtils.fromString(m.graffiti)))
+    this.stratum.onSubscribed.on((m) => {
+      console.log('xn', m.xn)
+      this.xnonce = Buffer.from(m.xn, 'hex')
+      console.log('xn', this.xnonce)
+    })
+    this.stratum.onSubmitted.on((m) => {
+      if (m.result) {
+        this.logger.info('Share accepted.')
+      } else {
+        this.logger.info('Share rejected (' + (m.message || '?') + ').')
+      }
+    })
+    this.stratum.onStratumError.on((m) => {
+      this.logger.info('Pool error message: ' + m.error.message)
+    })
     this.stratum.onSetTarget.on((m) => this.setTarget(m.target))
     this.stratum.onNotify.on((m) =>
       this.newWork(m.miningRequestId, Buffer.from(m.header, 'hex')),
@@ -103,12 +114,8 @@ export class MiningPoolMiner {
     this.target = Buffer.from(target, 'hex')
   }
 
-  setGraffiti(graffiti: Buffer): void {
-    this.graffiti = graffiti
-  }
-
   newWork(miningRequestId: number, header: Buffer): void {
-    Assert.isNotNull(this.graffiti)
+    Assert.isNotNull(this.xnonce)
 
     this.logger.debug(
       `new work ${header
@@ -119,10 +126,18 @@ export class MiningPoolMiner {
     )
 
     const headerBytes = Buffer.concat([header])
-    headerBytes.set(this.graffiti, MINEABLE_BLOCK_HEADER_GRAFFITI_OFFSET)
+    headerBytes.set(this.xnonce, 172)
+    console.log('headerBytes', headerBytes.slice(-8))
+    console.log('xnonce.byteLength', this.xnonce.byteLength)
 
     this.waiting = false
-    this.threadPool.newWork(headerBytes, this.target, miningRequestId, false)
+    this.threadPool.newWork(
+      headerBytes,
+      this.target,
+      miningRequestId,
+      false,
+      this.xnonce.byteLength,
+    )
   }
 
   waitForWork(): void {
@@ -137,8 +152,8 @@ export class MiningPoolMiner {
         continue
       }
 
-      if (this.graffiti == null) {
-        this.logger.info('Waiting for graffiti from pool...')
+      if (this.xnonce == null) {
+        this.logger.info('Waiting for xnonce from pool...')
         await PromiseUtils.sleep(500)
         continue
       }

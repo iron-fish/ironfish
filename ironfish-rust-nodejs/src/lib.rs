@@ -156,9 +156,15 @@ impl ThreadPoolHandler {
         target: Buffer,
         mining_request_id: u32,
         fish_hash: bool,
+        xn_length: u8,
     ) {
-        self.threadpool
-            .new_work(&header_bytes, &target, mining_request_id, fish_hash)
+        self.threadpool.new_work(
+            &header_bytes,
+            &target,
+            mining_request_id,
+            fish_hash,
+            xn_length,
+        )
     }
 
     #[napi]
@@ -174,8 +180,10 @@ impl ThreadPoolHandler {
     #[napi]
     pub fn get_found_block(&self) -> Option<FoundBlockResult> {
         if let Some(result) = self.threadpool.get_found_block() {
+            let mut bytes = [0u8; 8];
+            bytes.copy_from_slice(&result.0.to_be_bytes());
             return Some(FoundBlockResult {
-                randomness: format!("{:016x}", result.0),
+                randomness: format!("{:?}", bytes),
                 mining_request_id: result.1 as f64,
             });
         }

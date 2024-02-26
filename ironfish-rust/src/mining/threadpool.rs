@@ -7,7 +7,7 @@ use super::thread::{FishHashOptions, Thread};
 
 pub struct ThreadPool {
     threads: Vec<Thread>,
-    block_found_receiver: Receiver<(u64, u32)>,
+    block_found_receiver: Receiver<([u8; 8], u32)>,
     hash_rate_receiver: Receiver<u32>,
     mining_request_id: u32,
 }
@@ -20,7 +20,7 @@ impl ThreadPool {
         use_fish_hash: bool,
         fish_hash_full_context: bool,
     ) -> Self {
-        let (block_found_channel, block_found_receiver) = mpsc::channel::<(u64, u32)>();
+        let (block_found_channel, block_found_receiver) = mpsc::channel::<([u8; 8], u32)>();
 
         let (hash_rate_channel, hash_rate_receiver) = mpsc::channel::<u32>();
 
@@ -56,6 +56,7 @@ impl ThreadPool {
         target: &[u8],
         mining_request_id: u32,
         fish_hash: bool,
+        xn_length: u8,
     ) {
         self.mining_request_id = mining_request_id;
 
@@ -66,6 +67,7 @@ impl ThreadPool {
                     target.to_vec(),
                     mining_request_id,
                     fish_hash,
+                    xn_length,
                 )
                 .unwrap();
         }
@@ -83,7 +85,7 @@ impl ThreadPool {
         }
     }
 
-    pub fn get_found_block(&self) -> Option<(u64, u32)> {
+    pub fn get_found_block(&self) -> Option<([u8; 8], u32)> {
         if let Ok((randomness, mining_request_id)) = self.block_found_receiver.try_recv() {
             // Stale work
             if mining_request_id != self.mining_request_id {

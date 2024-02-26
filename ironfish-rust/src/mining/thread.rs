@@ -17,6 +17,7 @@ pub(crate) enum Command {
         Vec<u8>, // target
         u32,     // mining request id
         bool,    // use fish hash
+        u8,      // xn length
     ),
     Stop,
     Pause,
@@ -34,7 +35,7 @@ pub(crate) struct Thread {
 impl Thread {
     pub(crate) fn new(
         id: u64,
-        block_found_channel: Sender<(u64, u32)>,
+        block_found_channel: Sender<([u8; 8], u32)>,
         hash_rate_channel: Sender<u32>,
         pool_size: usize,
         batch_size: u32,
@@ -81,12 +82,14 @@ impl Thread {
         target: Vec<u8>,
         mining_request_id: u32,
         use_fish_hash: bool,
+        xn_length: u8,
     ) -> Result<(), SendError<Command>> {
         self.command_channel.send(Command::NewWork(
             header_bytes,
             target,
             mining_request_id,
             use_fish_hash,
+            xn_length,
         ))
     }
 
@@ -107,7 +110,7 @@ struct NonceOptions {
 
 fn process_commands(
     work_receiver: Receiver<Command>,
-    block_found_channel: Sender<(u64, u32)>,
+    block_found_channel: Sender<([u8; 8], u32)>,
     hash_rate_channel: Sender<u32>,
     nonce_options: NonceOptions,
     pause_on_success: bool,
@@ -126,10 +129,20 @@ fn process_commands(
 
         let command = commands.pop_front().unwrap();
         match command {
-            Command::NewWork(mut header_bytes, target, mining_request_id, use_fish_hash) => {
+            Command::NewWork(
+                mut header_bytes,
+                target,
+                mining_request_id,
+                use_fish_hash,
+                xn_length,
+            ) => {
+                println!("New work received");
                 let mut batch_start = start;
+
+                let search_space = u64::MAX - (2 ^ xn_length) as u64;
+
                 loop {
-                    let remaining_search_space = u64::MAX - batch_start;
+                    let remaining_search_space = search_space - batch_start;
                     let batch_size = if remaining_search_space > default_batch_size {
                         default_batch_size
                     } else {
@@ -147,6 +160,7 @@ fn process_commands(
                         true => mine::mine_batch_fish_hash(
                             fish_hash_context.as_mut().unwrap(),
                             &mut header_bytes,
+                            xn_length as usize,
                             &target,
                             batch_start,
                             step_size,
