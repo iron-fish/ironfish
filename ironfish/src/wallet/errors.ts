@@ -25,9 +25,9 @@ export class MaxMemoLengthError extends Error {
   constructor(memo: Buffer) {
     super()
     const utf8String = memo.toString('utf-8')
-    this.message = `Memo exceeds maximum of ${MEMO_LENGTH} bytes: ${memo.toString(
-      'hex',
-    )} (${utf8String})`
+    this.message = `Memo exceeds maximum of ${MEMO_LENGTH} bytes (length=${
+      memo.byteLength
+    }): ${memo.toString('hex')} (${utf8String})`
   }
 }
 
