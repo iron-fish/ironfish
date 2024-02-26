@@ -4,6 +4,7 @@
 import {
   Asset,
   generateKey,
+  MEMO_LENGTH,
   Note as NativeNote,
   UnsignedTransaction,
 } from '@ironfish/rust-nodejs'
@@ -989,6 +990,16 @@ export class Wallet {
       throw new Error(
         `Invalid expiration sequence for transaction ${expiration} vs ${heaviestHead.sequence}`,
       )
+    }
+
+    for (const output of options.outputs ?? []) {
+      if (output.memo.byteLength > MEMO_LENGTH) {
+        throw new Error(
+          `Memo is too long, max byte length is ${MEMO_LENGTH}, provided memo is ${
+            output.memo.byteLength
+          } bytes. Memo: ${output.memo.toString('utf8')}`,
+        )
+      }
     }
 
     const unlock = await this.createTransactionMutex.lock()

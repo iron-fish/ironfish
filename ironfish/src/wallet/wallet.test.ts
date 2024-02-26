@@ -1015,6 +1015,41 @@ describe('Wallet', () => {
       )
     })
 
+    it.only('should throw error if memo is too long', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA1)
+
+      await node.wallet.updateHead()
+
+      const transaction = blockA1.minersFee
+
+      const transactionValue = await accountA.getTransaction(transaction.hash())
+      Assert.isNotUndefined(transactionValue)
+      Assert.isNotNull(transactionValue.sequence)
+
+      const rawTransaction = node.wallet.createTransaction({
+        account: accountA,
+        fee: 1n,
+        outputs: [
+          {
+            publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
+            amount: 10n,
+            memo: Buffer.from('This is a string with 33 bytes!!!'),
+            assetId: Asset.nativeId(),
+          },
+        ],
+        expiration: 0,
+      })
+
+      await expect(rawTransaction).rejects.toThrow(
+        'Memo is too long, max byte length is 32, provided memo is 33 bytes. Memo: This is a string with 33 bytes!!!',
+      )
+    })
+
     it('should create raw transaction with fee rate', async () => {
       const { node } = nodeTest
 
