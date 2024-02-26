@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Asset, generateKey } from '@ironfish/rust-nodejs'
+import { Asset, generateKey, MEMO_LENGTH } from '@ironfish/rust-nodejs'
 import { BufferMap, BufferSet } from 'buffer-map'
 import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
@@ -22,6 +22,7 @@ import {
 } from '../testUtilities'
 import { AsyncUtils, BufferUtils, ORE_TO_IRON } from '../utils'
 import { Account, TransactionStatus, TransactionType } from '../wallet'
+import { MaxMemoLengthError } from './errors'
 import { AssetStatus, Wallet } from './wallet'
 
 describe('Wallet', () => {
@@ -1015,39 +1016,21 @@ describe('Wallet', () => {
       )
     })
 
-    it.only('should throw error if memo is too long', async () => {
-      const { node } = nodeTest
-
-      const accountA = await useAccountFixture(node.wallet, 'a')
-
-      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
-      await expect(node.chain).toAddBlock(blockA1)
-
-      await node.wallet.updateHead()
-
-      const transaction = blockA1.minersFee
-
-      const transactionValue = await accountA.getTransaction(transaction.hash())
-      Assert.isNotUndefined(transactionValue)
-      Assert.isNotNull(transactionValue.sequence)
-
-      const rawTransaction = node.wallet.createTransaction({
-        account: accountA,
+    it('should throw error if memo is too long', async () => {
+      const account = await useAccountFixture(nodeTest.node.wallet, 'a')
+      const promise = nodeTest.wallet.createTransaction({
+        account: account,
         fee: 1n,
         outputs: [
           {
-            publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
-            amount: 10n,
-            memo: Buffer.from('This is a string with 33 bytes!!!'),
+            publicAddress: account.publicAddress,
+            amount: 1n,
+            memo: Buffer.alloc(MEMO_LENGTH + 1),
             assetId: Asset.nativeId(),
           },
         ],
-        expiration: 0,
       })
-
-      await expect(rawTransaction).rejects.toThrow(
-        'Memo is too long, max byte length is 32, provided memo is 33 bytes. Memo: This is a string with 33 bytes!!!',
-      )
+      await expect(promise).rejects.toThrow(MaxMemoLengthError)
     })
 
     it('should create raw transaction with fee rate', async () => {

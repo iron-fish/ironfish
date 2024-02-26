@@ -43,7 +43,7 @@ import { WorkerPool } from '../workerPool'
 import { DecryptedNote, DecryptNoteOptions } from '../workerPool/tasks/decryptNotes'
 import { Account, ACCOUNT_SCHEMA_VERSION } from './account/account'
 import { AssetBalances } from './assetBalances'
-import { DuplicateAccountNameError, NotEnoughFundsError } from './errors'
+import { DuplicateAccountNameError, MaxMemoLengthError, NotEnoughFundsError } from './errors'
 import { MintAssetOptions } from './interfaces/mintAssetOptions'
 import {
   RemoteChainProcessor,
@@ -992,13 +992,11 @@ export class Wallet {
       )
     }
 
-    for (const output of options.outputs ?? []) {
-      if (output.memo.byteLength > MEMO_LENGTH) {
-        throw new Error(
-          `Memo is too long, max byte length is ${MEMO_LENGTH}, provided memo is ${
-            output.memo.byteLength
-          } bytes. Memo: ${output.memo.toString('utf8')}`,
-        )
+    if (options.outputs) {
+      for (const output of options.outputs) {
+        if (output.memo.byteLength > MEMO_LENGTH) {
+          throw new MaxMemoLengthError(output.memo)
+        }
       }
     }
 
