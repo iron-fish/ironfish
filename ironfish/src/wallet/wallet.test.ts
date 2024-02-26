@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Asset, generateKey } from '@ironfish/rust-nodejs'
+import { Asset, generateKey, MEMO_LENGTH } from '@ironfish/rust-nodejs'
 import { BufferMap, BufferSet } from 'buffer-map'
 import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
@@ -22,6 +22,7 @@ import {
 } from '../testUtilities'
 import { AsyncUtils, BufferUtils, ORE_TO_IRON } from '../utils'
 import { Account, TransactionStatus, TransactionType } from '../wallet'
+import { MaxMemoLengthError } from './errors'
 import { AssetStatus, Wallet } from './wallet'
 
 describe('Wallet', () => {
@@ -1013,6 +1014,23 @@ describe('Wallet', () => {
       await expect(rawTransaction).rejects.toThrow(
         'Fee or FeeRate is required to create a transaction',
       )
+    })
+
+    it('should throw error if memo is too long', async () => {
+      const account = await useAccountFixture(nodeTest.node.wallet, 'a')
+      const promise = nodeTest.wallet.createTransaction({
+        account: account,
+        fee: 1n,
+        outputs: [
+          {
+            publicAddress: account.publicAddress,
+            amount: 1n,
+            memo: Buffer.alloc(MEMO_LENGTH + 1),
+            assetId: Asset.nativeId(),
+          },
+        ],
+      })
+      await expect(promise).rejects.toThrow(MaxMemoLengthError)
     })
 
     it('should create raw transaction with fee rate', async () => {
