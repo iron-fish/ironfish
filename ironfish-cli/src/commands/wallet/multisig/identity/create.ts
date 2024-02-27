@@ -15,12 +15,17 @@ export class MultisigIdentityCreate extends IronfishCommand {
     name: Flags.string({
       char: 'n',
       description: 'Name to associate with the identity',
-      required: true,
     }),
   }
 
   async start(): Promise<void> {
     const { flags } = await this.parse(MultisigIdentityCreate)
+
+    if (!flags.name) {
+      flags.name = await CliUx.ux.prompt('Enter a name for the identity', {
+        required: true,
+      })
+    }
 
     const client = await this.sdk.connectRpc()
     let response
