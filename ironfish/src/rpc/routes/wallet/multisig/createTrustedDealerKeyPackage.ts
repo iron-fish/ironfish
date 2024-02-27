@@ -13,7 +13,6 @@ export type CreateTrustedDealerKeyPackageRequest = {
   }>
 }
 export type CreateTrustedDealerKeyPackageResponse = {
-  verifyingKey: string
   proofAuthorizingKey: string
   viewKey: string
   incomingViewKey: string
@@ -42,7 +41,6 @@ export const CreateTrustedDealerKeyPackageRequestSchema: yup.ObjectSchema<Create
 export const CreateTrustedDealerKeyPackageResponseSchema: yup.ObjectSchema<CreateTrustedDealerKeyPackageResponse> =
   yup
     .object({
-      verifyingKey: yup.string().defined(),
       proofAuthorizingKey: yup.string().defined(),
       viewKey: yup.string().defined(),
       incomingViewKey: yup.string().defined(),

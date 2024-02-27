@@ -9,10 +9,9 @@ pub struct IdentityKeyPackage {
     pub identity: String,
     pub key_package: String,
 }
-#[napi(object)]
 
+#[napi(object)]
 pub struct TrustedDealerKeyPackages {
-    pub verifying_key: String,
     pub proof_authorizing_key: String,
     pub view_key: String,
     pub incoming_view_key: String,

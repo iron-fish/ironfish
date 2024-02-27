@@ -17,10 +17,7 @@ use crate::{
 
 use super::split_secret::{split_secret, SecretShareConfig};
 
-type AuthorizingKey = [u8; 32];
-
 pub struct TrustedDealerKeyPackages {
-    pub verifying_key: AuthorizingKey, // verifying_key is the name given to this field in the frost protocol
     pub proof_authorizing_key: jubjub::Fr,
     pub view_key: ViewKey,
     pub incoming_view_key: IncomingViewKey,
@@ -31,14 +28,11 @@ pub struct TrustedDealerKeyPackages {
 }
 
 pub fn split_spender_key(
-    coordinator_sapling_key: &SaplingKey,
+    spender_key: &SaplingKey,
     min_signers: u16,
     identities: Vec<Identity>,
 ) -> Result<TrustedDealerKeyPackages, IronfishError> {
-    let secret = coordinator_sapling_key
-        .spend_authorizing_key
-        .to_bytes()
-        .to_vec();
+    let secret = spender_key.spend_authorizing_key.to_bytes().to_vec();
 
     let secret_config = SecretShareConfig {
         min_signers,
@@ -46,33 +40,26 @@ pub fn split_spender_key(
         secret,
     };
 
-    let rng = thread_rng();
+    let (key_packages, public_key_package) = split_secret(&secret_config, thread_rng())?;
 
-    let (key_packages, public_key_package) = split_secret(&secret_config, rng)?;
+    let proof_authorizing_key = spender_key.sapling_proof_generation_key().nsk;
 
-    let authorizing_key_bytes = public_key_package.verifying_key().serialize();
-
-    let authorizing_key = Option::from(SubgroupPoint::from_bytes(&authorizing_key_bytes))
+    let authorizing_key = public_key_package.verifying_key().serialize();
+    let authorizing_key = Option::from(SubgroupPoint::from_bytes(&authorizing_key))
         .ok_or_else(|| IronfishError::new(IronfishErrorKind::InvalidAuthorizingKey))?;
-
-    let proof_authorizing_key = coordinator_sapling_key.sapling_proof_generation_key().nsk;
-
-    let nullifier_deriving_key = *PROOF_GENERATION_KEY_GENERATOR
-        * coordinator_sapling_key.sapling_proof_generation_key().nsk;
-
+    let nullifier_deriving_key =
+        *PROOF_GENERATION_KEY_GENERATOR * spender_key.sapling_proof_generation_key().nsk;
     let view_key = ViewKey {
         authorizing_key,
         nullifier_deriving_key,
     };
 
-    let incoming_view_key = coordinator_sapling_key.incoming_view_key().clone();
-
-    let outgoing_view_key: OutgoingViewKey = coordinator_sapling_key.outgoing_view_key().clone();
+    let incoming_view_key = spender_key.incoming_view_key().clone();
+    let outgoing_view_key: OutgoingViewKey = spender_key.outgoing_view_key().clone();
 
     let public_address = incoming_view_key.public_address();
 
     Ok(TrustedDealerKeyPackages {
-        verifying_key: authorizing_key_bytes,
         proof_authorizing_key,
         view_key,
         incoming_view_key,

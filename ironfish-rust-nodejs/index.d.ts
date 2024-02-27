@@ -6,7 +6,7 @@
 export const IDENTITY_LEN: number
 export function createSigningCommitment(identity: string, keyPackage: string, transactionHash: Buffer, signers: Array<string>): string
 export function createSignatureShare(identity: string, keyPackage: string, signingPackage: string): string
-export function splitSecret(coordinatorSaplingKey: string, minSigners: number, identities: Array<string>): TrustedDealerKeyPackages
+export function splitSecret(spendingKey: string, minSigners: number, identities: Array<string>): TrustedDealerKeyPackages
 export function contribute(inputPath: string, outputPath: string, seed?: string | undefined | null): Promise<string>
 export function verifyTransform(paramsPath: string, newParamsPath: string): Promise<string>
 export const KEY_LENGTH: number
@@ -59,7 +59,6 @@ export interface IdentityKeyPackage {
   keyPackage: string
 }
 export interface TrustedDealerKeyPackages {
-  verifyingKey: string
   proofAuthorizingKey: string
   viewKey: string
   incomingViewKey: string
