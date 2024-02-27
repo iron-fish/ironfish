@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { ACCOUNT_SCHEMA_VERSION, Base64JsonEncoder } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
-import { IronfishCommand } from '../../../../command'
-import { RemoteFlags } from '../../../../flags'
+import { IronfishCommand } from '../../../command'
+import { RemoteFlags } from '../../../flags'
 
 export class MultisigCreate extends IronfishCommand {
   static description = `Create a set of multisig accounts from identities`

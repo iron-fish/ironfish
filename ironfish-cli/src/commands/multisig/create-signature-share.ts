@@ -4,10 +4,10 @@
 
 import { UnsignedTransaction } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
-import { IronfishCommand } from '../../../command'
-import { RemoteFlags } from '../../../flags'
-import { longPrompt } from '../../../utils/longPrompt'
-import { renderUnsignedTransactionDetails } from '../../../utils/transaction'
+import { IronfishCommand } from '../../command'
+import { RemoteFlags } from '../../flags'
+import { longPrompt } from '../../utils/longPrompt'
+import { renderUnsignedTransactionDetails } from '../../utils/transaction'
 
 export class CreateSignatureShareCommand extends IronfishCommand {
   static description = `Creates a signature share for a participant for a given transaction`

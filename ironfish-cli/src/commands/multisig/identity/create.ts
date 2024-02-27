@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { RPC_ERROR_CODES, RpcRequestError } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
-import { IronfishCommand } from '../../../../command'
-import { RemoteFlags } from '../../../../flags'
+import { IronfishCommand } from '../../../command'
+import { RemoteFlags } from '../../../flags'
 
 export class MultisigIdentityCreate extends IronfishCommand {
   static description = `Create a multisig identity`

@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Flags } from '@oclif/core'
-import { IronfishCommand } from '../../../command'
-import { RemoteFlags } from '../../../flags'
-import { longPrompt } from '../../../utils/longPrompt'
+import { IronfishCommand } from '../../command'
+import { RemoteFlags } from '../../flags'
+import { longPrompt } from '../../utils/longPrompt'
 
 export class CreateSigningPackage extends IronfishCommand {
   static description = `Creates a signing package for a given transaction for a multisig account`

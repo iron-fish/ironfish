@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { CurrencyUtils, Transaction } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
-import { IronfishCommand } from '../../../command'
-import { RemoteFlags } from '../../../flags'
-import { longPrompt } from '../../../utils/longPrompt'
+import { IronfishCommand } from '../../command'
+import { RemoteFlags } from '../../flags'
+import { longPrompt } from '../../utils/longPrompt'
 
 export class MultisigSign extends IronfishCommand {
   static description = 'Aggregate signature shares from participants to sign a transaction'
