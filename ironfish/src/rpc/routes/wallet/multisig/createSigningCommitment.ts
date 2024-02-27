@@ -1,13 +1,14 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { createSigningCommitment, UnsignedTransaction } from '@ironfish/rust-nodejs'
+import { createSigningCommitment, ParticipantSecret, UnsignedTransaction } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
 import { AssertMultisigSigner } from '../../../../wallet/account/account'
 import { ApiNamespace } from '../../namespaces'
 import { routes } from '../../router'
 import { AssertHasRpcContext } from '../../rpcContext'
 import { getAccount } from '../utils'
+import { RpcNotFoundError } from '../../../adapters/errors'
 
 export type CreateSigningCommitmentRequest = {
   account?: string
@@ -17,6 +18,7 @@ export type CreateSigningCommitmentRequest = {
 
 export type CreateSigningCommitmentResponse = {
   commitment: string
+  signature: string
 }
 
 export const CreateSigningCommitmentRequestSchema: yup.ObjectSchema<CreateSigningCommitmentRequest> =
@@ -40,29 +42,26 @@ export const CreateSigningCommitmentResponseSchema: yup.ObjectSchema<CreateSigni
   yup
     .object({
       commitment: yup.string().defined(),
+      signature: yup.string().defined(),
     })
     .defined()
 
 routes.register<typeof CreateSigningCommitmentRequestSchema, CreateSigningCommitmentResponse>(
   `${ApiNamespace.wallet}/multisig/createSigningCommitment`,
   CreateSigningCommitmentRequestSchema,
-  (request, context): void => {
+  async (request, context): Promise<void> => {
     AssertHasRpcContext(request, context, 'wallet')
 
     const account = getAccount(context.wallet, request.data.account)
-
-    AssertMultisigSigner(account)
-
     const unsigned = new UnsignedTransaction(
       Buffer.from(request.data.unsignedTransaction, 'hex'),
     )
-    const commitment = createSigningCommitment(
-      account.multisigKeys.identity,
-      account.multisigKeys.keyPackage,
-      unsigned.hash(),
-      request.data.signers.map((signer) => signer.identity),
+
+    const { commitment, signature } = await account.createSigningCommitment(
+      unsigned,
+      request.data.signers.map((signer) => signer.identity)
     )
 
-    request.end({ commitment })
+    request.end({ commitment, signature })
   },
 )

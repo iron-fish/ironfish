@@ -47,12 +47,21 @@ use ironfish::frost_utils::IDENTITY_LEN as ID_LEN;
 pub const IDENTITY_LEN: u32 = ID_LEN as u32;
 
 #[napi]
+pub struct SignedCommitment {
+    pub commitment: String,
+    pub signature: String,
+}
+
+#[napi]
 pub fn create_signing_commitment(
+    secret_bytes: JsBuffer,
     identity: String,
     key_package: String,
     transaction_hash: JsBuffer,
     signers: Vec<String>,
-) -> Result<String> {
+) -> Result<SignedCommitment> {
+    let secret =
+        Secret::deserialize_from(secret_bytes.into_value()?.as_ref()).map_err(to_napi_err)?;
     let identity =
         Identity::deserialize_from(&hex_to_vec_bytes(&identity).map_err(to_napi_err)?[..])?;
     let key_package =
@@ -70,7 +79,10 @@ pub fn create_signing_commitment(
 
     let bytes = signing_commitment.serialize()?;
 
-    Ok(bytes_to_hex(&bytes[..]))
+    Ok(SignedCommitment {
+        commitment: bytes_to_hex(&bytes[..]),
+        signature: bytes_to_hex(&secret.sign(&bytes[..]).to_bytes()),
+    })
 }
 
 #[napi]
