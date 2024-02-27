@@ -17,6 +17,7 @@ pub(crate) enum Command {
         Vec<u8>, // target
         u32,     // mining request id
         bool,    // use fish hash
+        u8,      // xn length
     ),
     Stop,
     Pause,
@@ -81,12 +82,14 @@ impl Thread {
         target: Vec<u8>,
         mining_request_id: u32,
         use_fish_hash: bool,
+        xn_length: u8,
     ) -> Result<(), SendError<Command>> {
         self.command_channel.send(Command::NewWork(
             header_bytes,
             target,
             mining_request_id,
             use_fish_hash,
+            xn_length,
         ))
     }
 
@@ -126,10 +129,17 @@ fn process_commands(
 
         let command = commands.pop_front().unwrap();
         match command {
-            Command::NewWork(mut header_bytes, target, mining_request_id, use_fish_hash) => {
+            Command::NewWork(
+                mut header_bytes,
+                target,
+                mining_request_id,
+                use_fish_hash,
+                xn_length,
+            ) => {
+                let search_space = 2_u64.pow(64 - (xn_length as u32 * 8)) - 1;
                 let mut batch_start = start;
                 loop {
-                    let remaining_search_space = u64::MAX - batch_start;
+                    let remaining_search_space = search_space - batch_start;
                     let batch_size = if remaining_search_space > default_batch_size {
                         default_batch_size
                     } else {
@@ -139,6 +149,7 @@ fn process_commands(
                     let match_found = match use_fish_hash {
                         false => mine::mine_batch_blake3(
                             &mut header_bytes,
+                            xn_length,
                             &target,
                             batch_start,
                             step_size,
@@ -147,6 +158,7 @@ fn process_commands(
                         true => mine::mine_batch_fish_hash(
                             fish_hash_context.as_mut().unwrap(),
                             &mut header_bytes,
+                            xn_length,
                             &target,
                             batch_start,
                             step_size,
