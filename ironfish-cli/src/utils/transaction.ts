@@ -14,6 +14,97 @@ import {
   UnsignedTransaction,
 } from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
+import { ProgressBar } from '../types'
+
+export class TransactionTimer {
+  estimateInMs: number
+  spendPostTime: number
+  startTime: number
+  logger: Logger
+  timer: NodeJS.Timeout | null
+  progressBar: ProgressBar
+
+  constructor(spendPostTime: number, raw: RawTransaction, logger?: Logger) {
+    this.estimateInMs = Math.max(Math.ceil(spendPostTime * raw.spends.length), 1000)
+    this.spendPostTime = spendPostTime
+    this.progressBar = CliUx.ux.progress({
+      format: '{title}: [{bar}] {percentage}% | {estimate}\n',
+    }) as ProgressBar
+    this.startTime = 0
+    this.timer = null
+    this.logger = logger ?? createRootLogger()
+  }
+
+  displayEstimate(): void {
+    if (this.spendPostTime <= 0) {
+      return
+    }
+    this.logger.log(
+      `Time to send: ${TimeUtils.renderSpan(this.estimateInMs, {
+        hideMilliseconds: true,
+      })}`,
+    )
+  }
+
+  start(): void {
+    if (this.startTime > 0) {
+      return
+    }
+
+    this.startTime = Date.now()
+
+    if (this.spendPostTime <= 0) {
+      CliUx.ux.action.start(`Sending the transaction`)
+
+      this.timer = setInterval(() => {
+        const durationInMs = Date.now() - this.startTime
+        CliUx.ux.action.status = `${TimeUtils.renderSpan(durationInMs, {
+          hideMilliseconds: true,
+        })}`
+      }, 1000)
+
+      return
+    }
+
+    this.progressBar.start(100, 0, {
+      title: 'Progress',
+      estimate: TimeUtils.renderSpan(this.estimateInMs, { hideMilliseconds: true }),
+    })
+
+    this.timer = setInterval(() => {
+      const durationInMs = Date.now() - this.startTime
+      const timeRemaining = this.estimateInMs - durationInMs
+      const progress = Math.round((durationInMs / this.estimateInMs) * 100)
+
+      this.progressBar.update(progress, {
+        estimate: TimeUtils.renderSpan(timeRemaining, { hideMilliseconds: true }),
+      })
+    }, 1000)
+  }
+
+  stop(): void {
+    if (this.timer === null) {
+      return
+    }
+
+    if (this.spendPostTime <= 0) {
+      CliUx.ux.action.stop('done')
+    } else {
+      this.progressBar.update(100)
+      this.progressBar.stop()
+    }
+
+    clearInterval(this.timer)
+
+    this.logger.log(
+      `Completed in ${TimeUtils.renderSpan(Date.now() - this.startTime, {
+        hideMilliseconds: true,
+      })}`,
+    )
+
+    this.logger.log('')
+  }
+}
 
 export async function renderUnsignedTransactionDetails(
   client: RpcClient,
