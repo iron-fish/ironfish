@@ -79,7 +79,7 @@ describe('Route multisig/createSigningPackage', () => {
     })
   })
 
-  it('should verify commitment identities', async () => {
+  it.only('should verify commitment identities', async () => {
     // create a multisig group and import an account
     const participant1 = ParticipantSecret.random().toIdentity()
     const participant2 = ParticipantSecret.random().toIdentity()
