@@ -18,7 +18,7 @@ import { ProgressBar } from '../types'
 
 export class TransactionTimer {
   estimateInMs: number
-  spendPostTime: number
+  canPerformanceCountdown: boolean
   startTime: number
   logger: Logger
   timer: NodeJS.Timeout | null
@@ -26,7 +26,13 @@ export class TransactionTimer {
 
   constructor(spendPostTime: number, raw: RawTransaction, logger?: Logger) {
     this.estimateInMs = Math.max(Math.ceil(spendPostTime * raw.spends.length), 1000)
-    this.spendPostTime = spendPostTime
+
+    // 0 is passed when there was an error calculating the spend post time
+    // in that case, we don't display the progress bar and it will count up
+    console.log(this.estimateInMs)
+    console.log(spendPostTime)
+    this.canPerformanceCountdown = spendPostTime > 0
+
     this.progressBar = CliUx.ux.progress({
       format: '{title}: [{bar}] {percentage}% | {estimate}\n',
     }) as ProgressBar
@@ -36,7 +42,7 @@ export class TransactionTimer {
   }
 
   displayEstimate(): void {
-    if (this.spendPostTime <= 0) {
+    if (!this.canPerformanceCountdown) {
       return
     }
     this.logger.log(
@@ -53,7 +59,7 @@ export class TransactionTimer {
 
     this.startTime = Date.now()
 
-    if (this.spendPostTime <= 0) {
+    if (!this.canPerformanceCountdown) {
       CliUx.ux.action.start(`Sending the transaction`)
 
       this.timer = setInterval(() => {
@@ -71,6 +77,8 @@ export class TransactionTimer {
       estimate: TimeUtils.renderSpan(this.estimateInMs, { hideMilliseconds: true }),
     })
 
+    console.log('calling interval')
+
     this.timer = setInterval(() => {
       const durationInMs = Date.now() - this.startTime
       const timeRemaining = this.estimateInMs - durationInMs
@@ -79,7 +87,7 @@ export class TransactionTimer {
       this.progressBar.update(progress, {
         estimate: TimeUtils.renderSpan(timeRemaining, { hideMilliseconds: true }),
       })
-    }, 1000)
+    }, 10)
   }
 
   stop(): void {
@@ -87,7 +95,7 @@ export class TransactionTimer {
       return
     }
 
-    if (this.spendPostTime <= 0) {
+    if (!this.canPerformanceCountdown) {
       CliUx.ux.action.stop('done')
     } else {
       this.progressBar.update(100)
