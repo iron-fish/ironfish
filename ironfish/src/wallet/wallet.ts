@@ -771,39 +771,47 @@ export class Wallet {
     // but setting this.scan is our lock so updating the head doesn't run again
     await this.updateHeadState?.wait()
 
-    const startHash = fromHash ?? (await this.getEarliestHeadHash())
+    try {
+      const startHash = fromHash ?? (await this.getEarliestHeadHash())
 
-    // Fetch current chain head sequence
-    const chainHead = await this.getChainHead()
-    scan.endSequence = chainHead.sequence
+      // Fetch current chain head sequence
+      const chainHead = await this.getChainHead()
+      scan.endSequence = chainHead.sequence
 
-    this.logger.info(`Scan starting from block ${startHash?.toString('hex') ?? 'null'}`)
+      this.logger.info(`Scan starting from block ${startHash?.toString('hex') ?? 'null'}`)
 
-    const scanProcessor = new RemoteChainProcessor({
-      logger: this.logger,
-      nodeClient: this.nodeClient,
-      head: startHash,
-      maxQueueSize: this.config.get('walletSyncingMaxQueueSize'),
-    })
+      const scanProcessor = new RemoteChainProcessor({
+        logger: this.logger,
+        nodeClient: this.nodeClient,
+        head: startHash,
+        maxQueueSize: this.config.get('walletSyncingMaxQueueSize'),
+      })
 
-    scanProcessor.onAdd.on(async ({ header, transactions }) => {
-      await this.connectBlock(header, transactions, scan)
-      scan.signal(header.sequence)
-    })
+      scanProcessor.onAdd.on(async ({ header, transactions }) => {
+        await this.connectBlock(header, transactions, scan)
+        scan.signal(header.sequence)
+      })
 
-    scanProcessor.onRemove.on(async ({ header, transactions }) => {
-      await this.disconnectBlock(header, transactions)
-    })
+      scanProcessor.onRemove.on(async ({ header, transactions }) => {
+        await this.disconnectBlock(header, transactions)
+      })
 
-    let hashChanged = false
-    do {
-      hashChanged = (await scanProcessor.update({ signal: scan.abortController.signal }))
-        .hashChanged
-    } while (hashChanged)
+      let hashChanged = false
+      do {
+        hashChanged = (await scanProcessor.update({ signal: scan.abortController.signal }))
+          .hashChanged
+      } while (hashChanged)
 
-    // Update chainProcessor following scan
-    this.chainProcessor.hash = scanProcessor.hash
-    this.chainProcessor.sequence = scanProcessor.sequence
+      // Update chainProcessor following scan
+      this.chainProcessor.hash = scanProcessor.hash
+      this.chainProcessor.sequence = scanProcessor.sequence
+    } catch (e) {
+      if (!this.isOpen) {
+        this.logger.info('Scan aborted (wallet closed while scanning)')
+        return
+      }
+      throw e
+    }
 
     this.logger.info(
       `Finished scanning for transactions after ${Math.floor(
