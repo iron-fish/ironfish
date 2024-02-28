@@ -73,8 +73,12 @@ export function createRouteTest(preserveState = false): RouteTest {
     afterAll(() => routeTest.teardownAll())
   } else {
     beforeEach(() => routeTest.setup(), 10000)
-    afterEach(() => routeTest.teardownEach())
-    afterEach(() => routeTest.teardownAll())
+    // afterEach(() => routeTest.teardownEach())
+    // afterEach(() => routeTest.teardownAll())
+    afterEach(async () => {
+      await routeTest.teardownEach()
+      await routeTest.teardownAll()
+    })
   }
 
   return routeTest

@@ -178,8 +178,12 @@ export function createNodeTest(preserveState = false, options: NodeTestOptions =
     afterAll(() => nodeTest.teardownAll())
   } else {
     beforeEach(() => nodeTest.setup(), 10000)
-    afterEach(() => nodeTest.teardownEach())
-    afterEach(() => nodeTest.teardownAll())
+    // afterEach(() => nodeTest.teardownEach())
+    // afterEach(() => nodeTest.teardownAll())
+    afterEach(async () => {
+      await nodeTest.teardownEach()
+      await nodeTest.teardownAll()
+    })
   }
 
   return nodeTest
