@@ -97,22 +97,7 @@ describe('Route wallet/multisig/createSigningCommitment', () => {
 
     const importAccountRequest = {
       name: 'participant1',
-      account: {
-        name: 'participant1',
-        version: ACCOUNT_SCHEMA_VERSION,
-        viewKey: trustedDealerPackage.viewKey,
-        incomingViewKey: trustedDealerPackage.incomingViewKey,
-        outgoingViewKey: trustedDealerPackage.outgoingViewKey,
-        publicAddress: trustedDealerPackage.publicAddress,
-        spendingKey: null,
-        createdAt: null,
-        multisigKeys: {
-          keyPackage: trustedDealerPackage.keyPackages[0].keyPackage,
-          identity: trustedDealerPackage.keyPackages[0].identity,
-          publicKeyPackage: trustedDealerPackage.publicKeyPackage,
-        },
-        proofAuthorizingKey: null,
-      },
+      account: trustedDealerPackage.participantAccounts[0].account,
     }
 
     const importAccountResponse = await routeTest.client.wallet.importAccount(

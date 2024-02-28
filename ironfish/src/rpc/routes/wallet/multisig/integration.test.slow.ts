@@ -28,22 +28,8 @@ describe('multisig RPC integration', () => {
     for (let i = 0; i < participants.length; i++) {
       const accountName = `participant${i}`
       await routeTest.client.wallet.importAccount({
-        account: {
-          name: accountName,
-          version: ACCOUNT_SCHEMA_VERSION,
-          viewKey: trustedDealerPackage.viewKey,
-          incomingViewKey: trustedDealerPackage.incomingViewKey,
-          outgoingViewKey: trustedDealerPackage.outgoingViewKey,
-          publicAddress: trustedDealerPackage.publicAddress,
-          spendingKey: null,
-          createdAt: null,
-          multisigKeys: {
-            keyPackage: trustedDealerPackage.keyPackages[i].keyPackage,
-            identity: trustedDealerPackage.keyPackages[i].identity,
-            publicKeyPackage: trustedDealerPackage.publicKeyPackage,
-          },
-          proofAuthorizingKey: null,
-        },
+        name: accountName,
+        account: trustedDealerPackage.participantAccounts[i].account,
         rescan: false,
       })
 

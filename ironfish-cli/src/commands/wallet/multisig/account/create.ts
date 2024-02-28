@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { ACCOUNT_SCHEMA_VERSION, Base64JsonEncoder } from '@ironfish/sdk'
+import { ACCOUNT_SCHEMA_VERSION } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
@@ -105,30 +105,12 @@ export class MultisigCreate extends IronfishCommand {
       CliUx.ux.action.stop()
     }
 
-    const encoder = new Base64JsonEncoder()
-
-    for (const [i, keyPackage] of response.content.keyPackages.entries()) {
+    for (const [i, { identity, account }] of response.content.participantAccounts.entries()) {
       this.log('\n')
       this.log(`Account ${i + 1}`)
-      this.log(`Identity ${keyPackage.identity}`)
+      this.log(`Identity ${identity}`)
       this.log('----------------')
-      const accountStr = encoder.encode({
-        name: `${name}-${i}`,
-        version: ACCOUNT_SCHEMA_VERSION,
-        createdAt,
-        spendingKey: null,
-        viewKey: response.content.viewKey,
-        incomingViewKey: response.content.incomingViewKey,
-        outgoingViewKey: response.content.outgoingViewKey,
-        publicAddress: response.content.publicAddress,
-        proofAuthorizingKey: response.content.proofAuthorizingKey,
-        multisigKeys: {
-          identity: keyPackage.identity,
-          keyPackage: keyPackage.keyPackage,
-          publicKeyPackage: response.content.publicKeyPackage,
-        },
-      })
-      this.log(accountStr)
+      this.log(account)
     }
 
     this.log()

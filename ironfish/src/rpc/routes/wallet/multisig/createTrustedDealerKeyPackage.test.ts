@@ -23,18 +23,18 @@ describe('Route multisig/createTrustedDealerKeyPackage', () => {
       viewKey: expect.any(String),
       incomingViewKey: expect.any(String),
       outgoingViewKey: expect.any(String),
-      keyPackages: expect.arrayContaining([
+      participantAccounts: expect.arrayContaining([
         {
           identity: participants[0].identity,
-          keyPackage: expect.any(String),
+          account: expect.any(String),
         },
         {
           identity: participants[1].identity,
-          keyPackage: expect.any(String),
+          account: expect.any(String),
         },
         {
           identity: participants[2].identity,
-          keyPackage: expect.any(String),
+          account: expect.any(String),
         },
       ]),
     })
