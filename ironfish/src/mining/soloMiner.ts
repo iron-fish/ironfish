@@ -183,7 +183,7 @@ export class MiningSoloMiner {
     )
 
     this.waiting = false
-    this.threadPool.newWork(headerBytes, this.target, miningRequestId, fishHashBlock)
+    this.threadPool.newWork(headerBytes, this.target, miningRequestId, fishHashBlock, 0)
   }
 
   private async mine(): Promise<void> {

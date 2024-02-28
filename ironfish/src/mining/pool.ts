@@ -15,6 +15,7 @@ import { RawBlockTemplateSerde, SerializedBlockTemplate } from '../serde/BlockTe
 import { BigIntUtils } from '../utils/bigint'
 import { ErrorUtils } from '../utils/error'
 import { FileUtils } from '../utils/file'
+import { GraffitiUtils } from '../utils/graffiti'
 import { SetIntervalToken, SetTimeoutToken } from '../utils/types'
 import { TransactionStatus } from '../wallet'
 import { MiningPoolShares } from './poolShares'
@@ -457,6 +458,10 @@ export class MiningPool {
     this.logger.debug('target recalculated', { prevHash: latestBlock.header.previousBlockHash })
   }
 
+  graffiti(): Buffer {
+    return GraffitiUtils.fromString(this.name)
+  }
+
   private distributeNewBlock(newBlock: SerializedBlockTemplate) {
     Assert.isNotNull(this.currentHeadTimestamp)
     Assert.isNotNull(this.currentHeadDifficulty)
@@ -467,6 +472,7 @@ export class MiningPool {
     this.recentSubmissions.clear()
 
     const rawBlock = RawBlockTemplateSerde.deserialize(newBlock)
+    rawBlock.header.graffiti = this.graffiti()
     const newWork = this.blockHasher.serializeHeader(rawBlock.header)
 
     this.stratum.newWork(miningRequestId, newWork)

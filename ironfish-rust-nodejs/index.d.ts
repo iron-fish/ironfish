@@ -260,7 +260,7 @@ export class FoundBlockResult {
 }
 export class ThreadPoolHandler {
   constructor(threadCount: number, batchSize: number, pauseOnSuccess: boolean, useFishHash: boolean, fishHashFullContext: boolean)
-  newWork(headerBytes: Buffer, target: Buffer, miningRequestId: number, fishHash: boolean): void
+  newWork(headerBytes: Buffer, target: Buffer, miningRequestId: number, fishHash: boolean, xnLength: number): void
   stop(): void
   pause(): void
   getFoundBlock(): FoundBlockResult | null

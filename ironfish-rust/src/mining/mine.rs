@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-use byteorder::{BigEndian, WriteBytesExt};
 use fish_hash::Context;
 
 /// returns true if a <= b when treating both as 32 byte big endian numbers.
@@ -18,12 +17,9 @@ pub(crate) fn bytes_lte(a: &[u8], b: &[u8]) -> bool {
     true
 }
 
-fn randomize_header(i: u64, mut header_bytes: &mut [u8]) {
-    header_bytes.write_u64::<BigEndian>(i).unwrap();
-}
-
 pub(crate) fn mine_batch_blake3(
     header_bytes: &mut [u8],
+    xn_length: u8,
     target: &[u8],
     start: u64,
     step_size: usize,
@@ -31,11 +27,14 @@ pub(crate) fn mine_batch_blake3(
 ) -> Option<u64> {
     let end = start + batch_size;
     for i in (start..=end).step_by(step_size) {
-        randomize_header(i, header_bytes);
+        header_bytes[xn_length as usize..8].copy_from_slice(&i.to_be_bytes()[xn_length as usize..]);
+
         let hash = blake3::hash(header_bytes);
 
         if bytes_lte(hash.as_bytes(), target) {
-            return Some(i);
+            let mut bytes = [0u8; 8];
+            bytes.copy_from_slice(&header_bytes[0..8]);
+            return Some(u64::from_be_bytes(bytes));
         }
     }
     None
@@ -44,6 +43,7 @@ pub(crate) fn mine_batch_blake3(
 pub(crate) fn mine_batch_fish_hash(
     context: &mut Context,
     header_bytes: &mut [u8],
+    xn_length: u8,
     target: &[u8],
     start: u64,
     step_size: usize,
@@ -51,7 +51,8 @@ pub(crate) fn mine_batch_fish_hash(
 ) -> Option<u64> {
     let end = start + batch_size;
     for i in (start..=end).step_by(step_size) {
-        header_bytes[172..].copy_from_slice(&i.to_be_bytes());
+        header_bytes[172 + xn_length as usize..]
+            .copy_from_slice(&i.to_be_bytes()[xn_length as usize..]);
 
         let mut hash = [0u8; 32];
         {
@@ -59,7 +60,9 @@ pub(crate) fn mine_batch_fish_hash(
         }
 
         if bytes_lte(&hash, target) {
-            return Some(i);
+            let mut bytes = [0u8; 8];
+            bytes.copy_from_slice(&header_bytes[172..180]);
+            return Some(u64::from_be_bytes(bytes));
         }
     }
 
@@ -84,7 +87,7 @@ mod test {
         let start = 42;
         let step_size = 1;
 
-        let result = mine_batch_blake3(header_bytes, target, start, step_size, batch_size);
+        let result = mine_batch_blake3(header_bytes, 0, target, start, step_size, batch_size);
 
         assert!(result.is_none())
     }
@@ -103,7 +106,7 @@ mod test {
             67, 145, 116, 198, 241, 183, 88, 140, 172, 79, 139, 210, 162,
         ];
 
-        let result = mine_batch_blake3(header_bytes, target, start, step_size, batch_size);
+        let result = mine_batch_blake3(header_bytes, 0, target, start, step_size, batch_size);
 
         assert!(result.is_some());
         assert_eq!(result.unwrap(), 43);
@@ -125,8 +128,15 @@ mod test {
             151, 122, 236, 65, 253, 171, 148, 82, 130, 54, 122, 195,
         ];
 
-        let result =
-            mine_batch_fish_hash(context, header_bytes, target, start, step_size, batch_size);
+        let result = mine_batch_fish_hash(
+            context,
+            header_bytes,
+            0,
+            target,
+            start,
+            step_size,
+            batch_size,
+        );
 
         assert!(result.is_some());
         assert_eq!(result.unwrap(), 45);
@@ -147,7 +157,7 @@ mod test {
 
         // Uses i values: 0, 3, 6, 9
         let header_bytes = &mut header_bytes_base.clone();
-        let _ = mine_batch_blake3(header_bytes, target, start, step_size, batch_size);
+        let _ = mine_batch_blake3(header_bytes, 0, target, start, step_size, batch_size);
 
         let mut cursor = Cursor::new(header_bytes);
         let end = cursor.read_u64::<BigEndian>().unwrap();
@@ -155,7 +165,7 @@ mod test {
 
         // Uses i values: 1, 4, 7, 10
         let header_bytes = &mut header_bytes_base.clone();
-        let _ = mine_batch_blake3(header_bytes, target, start + 1, step_size, batch_size);
+        let _ = mine_batch_blake3(header_bytes, 0, target, start + 1, step_size, batch_size);
 
         let mut cursor = Cursor::new(header_bytes);
         let end = cursor.read_u64::<BigEndian>().unwrap();
@@ -163,7 +173,7 @@ mod test {
 
         // Uses i values: 2, 5, 8, 11
         let header_bytes = &mut header_bytes_base.clone();
-        let _ = mine_batch_blake3(header_bytes, target, start + 2, step_size, batch_size);
+        let _ = mine_batch_blake3(header_bytes, 0, target, start + 2, step_size, batch_size);
 
         let mut cursor = Cursor::new(header_bytes);
         let end = cursor.read_u64::<BigEndian>().unwrap();
@@ -176,7 +186,7 @@ mod test {
 
         // Uses i values: 12, 15, 18, 21
         let header_bytes = &mut header_bytes_base.clone();
-        let _ = mine_batch_blake3(header_bytes, target, start, step_size, batch_size);
+        let _ = mine_batch_blake3(header_bytes, 0, target, start, step_size, batch_size);
 
         let mut cursor = Cursor::new(header_bytes);
         let end = cursor.read_u64::<BigEndian>().unwrap();
@@ -184,7 +194,7 @@ mod test {
 
         // Uses i values: 13, 16, 19, 22
         let header_bytes = &mut header_bytes_base.clone();
-        let _ = mine_batch_blake3(header_bytes, target, start + 1, step_size, batch_size);
+        let _ = mine_batch_blake3(header_bytes, 0, target, start + 1, step_size, batch_size);
 
         let mut cursor = Cursor::new(header_bytes);
         let end = cursor.read_u64::<BigEndian>().unwrap();
@@ -192,7 +202,7 @@ mod test {
 
         // Uses i values: 14, 17, 20, 23
         let header_bytes = &mut header_bytes_base.clone();
-        let _ = mine_batch_blake3(header_bytes, target, start + 2, step_size, batch_size);
+        let _ = mine_batch_blake3(header_bytes, 0, target, start + 2, step_size, batch_size);
 
         let mut cursor = Cursor::new(header_bytes);
         let end = cursor.read_u64::<BigEndian>().unwrap();
@@ -205,7 +215,7 @@ mod test {
 
         // Uses i values: 24, 27, 30, 33
         let header_bytes = &mut header_bytes_base.clone();
-        let _ = mine_batch_blake3(header_bytes, target, start, step_size, batch_size);
+        let _ = mine_batch_blake3(header_bytes, 0, target, start, step_size, batch_size);
 
         let mut cursor = Cursor::new(header_bytes);
         let end = cursor.read_u64::<BigEndian>().unwrap();
@@ -213,7 +223,7 @@ mod test {
 
         // Uses i values: 25, 28, 31, 34
         let header_bytes = &mut header_bytes_base.clone();
-        let _ = mine_batch_blake3(header_bytes, target, start + 1, step_size, batch_size);
+        let _ = mine_batch_blake3(header_bytes, 0, target, start + 1, step_size, batch_size);
 
         let mut cursor = Cursor::new(header_bytes);
         let end = cursor.read_u64::<BigEndian>().unwrap();
@@ -221,7 +231,7 @@ mod test {
 
         // Uses i values: 26, 29, 32, 35
         let header_bytes = &mut header_bytes_base.clone();
-        let _ = mine_batch_blake3(header_bytes, target, start + 2, step_size, batch_size);
+        let _ = mine_batch_blake3(header_bytes, 0, target, start + 2, step_size, batch_size);
 
         let mut cursor = Cursor::new(header_bytes);
         let end = cursor.read_u64::<BigEndian>().unwrap();

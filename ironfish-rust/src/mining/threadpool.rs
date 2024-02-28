@@ -56,6 +56,7 @@ impl ThreadPool {
         target: &[u8],
         mining_request_id: u32,
         fish_hash: bool,
+        xn_length: u8,
     ) {
         self.mining_request_id = mining_request_id;
 
@@ -66,6 +67,7 @@ impl ThreadPool {
                     target.to_vec(),
                     mining_request_id,
                     fish_hash,
+                    xn_length,
                 )
                 .unwrap();
         }
