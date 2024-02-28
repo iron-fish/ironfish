@@ -23,7 +23,7 @@
     "lint:ci": "lerna run lint:ci",
     "postinstall": "(cd ironfish-rust-nodejs && yarn build)",
     "test": "lerna run test --stream",
-    "test:coverage": "lerna run test --stream --concurrency 1 -- --collect-coverage",
+    "test:coverage": "lerna run test:foo --stream --concurrency 1 --",
     "test:coverage:html": "lerna run test:coverage:html --stream",
     "test:changed": "lerna run --since origin/master --include-dependents test",
     "test:update": "lerna run test -- -u",
