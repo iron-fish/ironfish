@@ -14,8 +14,8 @@ use ironfish::{
     SaplingKey,
 };
 use ironfish_frost::{
-    keys::PublicKeyPackage, nonces::deterministic_signing_nonces, signature_share::SignatureShare,
-    signing_commitment::SigningCommitment,
+    keys::PublicKeyPackage, multienc, nonces::deterministic_signing_nonces,
+    signature_share::SignatureShare, signing_commitment::SigningCommitment,
 };
 use napi::{bindgen_prelude::*, JsBuffer};
 use napi_derive::napi;
@@ -152,6 +152,16 @@ impl ParticipantSecret {
         let identity = self.secret.to_identity();
         ParticipantIdentity { identity }
     }
+
+    #[napi]
+    pub fn decrypt_data(&self, js_bytes: JsBuffer) -> Result<Buffer> {
+        let bytes = js_bytes.into_value()?;
+        let encrypted_blob =
+            multienc::MultiRecipientBlob::deserialize_from(bytes.as_ref()).map_err(to_napi_err)?;
+        multienc::decrypt(&self.secret, &encrypted_blob)
+            .map(Buffer::from)
+            .map_err(to_napi_err)
+    }
 }
 
 #[napi]
@@ -172,6 +182,16 @@ impl ParticipantIdentity {
     #[napi]
     pub fn serialize(&self) -> Buffer {
         Buffer::from(self.identity.serialize().as_slice())
+    }
+
+    #[napi]
+    pub fn encrypt_data(&self, js_bytes: JsBuffer) -> Result<Buffer> {
+        let bytes = js_bytes.into_value()?;
+        let encrypted_blob = multienc::encrypt(&bytes, [&self.identity], thread_rng());
+        encrypted_blob
+            .serialize()
+            .map(Buffer::from)
+            .map_err(to_napi_err)
     }
 }
 

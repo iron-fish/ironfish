@@ -101,10 +101,12 @@ export class ParticipantSecret {
   serialize(): Buffer
   static random(): ParticipantSecret
   toIdentity(): ParticipantIdentity
+  decryptData(jsBytes: Buffer): Buffer
 }
 export class ParticipantIdentity {
   constructor(jsBytes: Buffer)
   serialize(): Buffer
+  encryptData(jsBytes: Buffer): Buffer
 }
 export type NativePublicKeyPackage = PublicKeyPackage
 export class PublicKeyPackage {
