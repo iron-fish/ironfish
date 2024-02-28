@@ -57,7 +57,7 @@
     "lint": "tsc -b && tsc -b tsconfig.test.json && eslint --ext .ts,.tsx,.js,.jsx src/",
     "lint:fix": "tsc -b && tsc -b tsconfig.test.json && eslint --ext .ts,.tsx,.js,.jsx src/ --fix",
     "start": "tsc -b -w",
-    "test:foo": "tsc -b && tsc -b tsconfig.test.json && cross-env NODE_OPTIONS=--experimental-vm-modules RUST_BACKTRACE=1 jest createSigningPackage --testTimeout=${JEST_TIMEOUT:-5000} --testNamePattern 'should verify commitment identities'",
+    "test:foo": "tsc -b && tsc -b tsconfig.test.json && cross-env NODE_OPTIONS=--experimental-vm-modules RUST_BACKTRACE=1 jest createSigningPackage --testTimeout=${JEST_TIMEOUT:-5000}",
     "test:slow": "tsc -b && tsc -b tsconfig.test.json && cross-env NODE_OPTIONS=--experimental-vm-modules TEST_INIT_RUST=true RUST_BACKTRACE=1 jest --testMatch \"**/*.test.slow.ts\" --testPathIgnorePatterns --testTimeout=${JEST_TIMEOUT:-60000}",
     "test:perf": "tsc -b && tsc -b tsconfig.test.json && cross-env NODE_OPTIONS=--experimental-vm-modules TEST_INIT_RUST=true jest --testMatch \"**/*.test.perf.ts\" --testPathIgnorePatterns --testTimeout=${JEST_TIMEOUT:-600000} --runInBand",
     "test:perf:report": "tsc -b && tsc -b tsconfig.test.json && cross-env NODE_OPTIONS=--experimental-vm-modules TEST_INIT_RUST=true GENERATE_TEST_REPORT=true jest --config jest.config.js --testMatch \"**/*.test.perf.ts\" --testPathIgnorePatterns --testTimeout=${JEST_TIMEOUT:-600000} --ci",
