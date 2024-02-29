@@ -13,6 +13,7 @@ import { Bech32JsonEncoder } from '../../../wallet/account/encoder/bech32json'
 import { AccountFormat } from '../../../wallet/account/encoder/encoder'
 import { RpcClient } from '../../clients'
 import { ImportResponse } from './importAccount'
+import { CreateIdentityResponse } from '../..'
 
 describe('Route wallet/importAccount', () => {
   const routeTest = createRouteTest(true)
@@ -51,9 +52,15 @@ describe('Route wallet/importAccount', () => {
   })
 
   it('should import a multisig account that has no spending key', async () => {
+    const accountName = 'multisig'
+    const createIdentityResponse = await routeTest.client
+      .request<CreateIdentityResponse>('wallet/multisig/createIdentity', {
+        name: accountName,
+      })
+      .waitForEnd()
+
     const trustedDealerPackages = createTrustedDealerKeyPackages()
 
-    const accountName = 'multisig'
     const response = await routeTest.client
       .request<ImportResponse>('wallet/importAccount', {
         account: {
@@ -65,6 +72,7 @@ describe('Route wallet/importAccount', () => {
           multisigKeys: {
             ...trustedDealerPackages.keyPackages[0],
             publicKeyPackage: trustedDealerPackages.publicKeyPackage,
+            identity: createIdentityResponse.content.identity,
           },
         },
         rescan: false,

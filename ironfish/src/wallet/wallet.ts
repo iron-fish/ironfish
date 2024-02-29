@@ -1521,9 +1521,24 @@ export class Wallet {
   }
 
   async importAccount(accountValue: AccountValue): Promise<Account> {
-    if (accountValue.name && this.getAccountByName(accountValue.name)) {
-      throw new DuplicateAccountNameError(accountValue.name)
+    let name = accountValue.name
+    if (accountValue.multisigKeys && isSignerMultisig(accountValue.multisigKeys)) {
+      const identityName = await this.getIdentityName(accountValue.multisigKeys.identity)
+      if (!identityName) {
+        throw new Error('Cannot import identity without an existing secret')
+      }
+
+      if (this.findAccountByIdentity(accountValue.multisigKeys.identity)) {
+        throw new Error('Account already exists with the provided identity')
+      }
+
+      name = identityName
     }
+
+    if (name && this.getAccountByName(name)) {
+      throw new DuplicateAccountNameError(name)
+    }
+
     const accounts = this.listAccounts()
     if (
       accountValue.spendingKey &&
@@ -1535,7 +1550,6 @@ export class Wallet {
     validateAccount(accountValue)
 
     let createdAt = accountValue.createdAt
-    let name = accountValue.name
 
     if (createdAt && !this.nodeClient) {
       this.logger.debug(
@@ -1548,20 +1562,11 @@ export class Wallet {
 
     if (createdAt !== null && !(await this.chainHasBlock(createdAt.hash))) {
       this.logger.debug(
-        `Account ${accountValue.name} createdAt block ${createdAt.hash.toString('hex')} (${
+        `Account ${name} createdAt block ${createdAt.hash.toString('hex')} (${
           createdAt.sequence
         }) not found in the chain. Setting createdAt to null.`,
       )
       createdAt = null
-    }
-
-    if (accountValue.multisigKeys && isSignerMultisig(accountValue.multisigKeys)) {
-      const identityName = await this.getIdentityName(accountValue.multisigKeys.identity)
-      if (!identityName) {
-        throw new Error('Cannot import identity without an existing secret')
-      }
-
-      name = identityName
     }
 
     const account = new Account({
@@ -1617,6 +1622,20 @@ export class Wallet {
       const secret = new ParticipantSecret(value)
       if (identity === secret.toIdentity().serialize().toString('hex')) {
         return name
+      }
+    }
+
+    return undefined
+  }
+
+  findAccountByIdentity(identity: string): Account | undefined {
+    for (const account of this.listAccounts()) {
+      if (
+        account.multisigKeys &&
+        isSignerMultisig(account.multisigKeys) &&
+        account.multisigKeys.identity === identity
+      ) {
+        return account
       }
     }
 
