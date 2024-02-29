@@ -55,13 +55,14 @@ routes.register<typeof CreateSigningPackageRequestSchema, CreateSigningPackageRe
     )
 
     for (const commitment of request.data.commitments) {
-      const identity = commitment.slice(0, IDENTITY_LEN * 2)
-      if (!identitySet.has(identity)) {
+      if (!identitySet.has(identityStr)) {
         throw new RpcValidationError(
           `Received commitment from identity (${identity}) that is not part of the multsig group for account ${account.name}`,
           400,
         )
       }
+
+      const 
     }
     const signingPackage = unsignedTransaction.signingPackage(request.data.commitments)
 

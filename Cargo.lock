@@ -1521,7 +1521,7 @@ dependencies = [
 [[package]]
 name = "ironfish-frost"
 version = "0.1.0"
-source = "git+https://github.com/iron-fish/ironfish-frost.git?branch=main#30e48557bfadd3d9a6513fdd8098a4d1d81a4c98"
+source = "git+https://github.com/iron-fish/ironfish-frost.git?branch=rohan/ifl-2310-add-signature-to-signing-commitment#120cf4b38d83af541f74d8e82a43034f21f1bb30"
 dependencies = [
  "blake3",
  "chacha20 0.9.1",

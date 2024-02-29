@@ -15,7 +15,7 @@ use ironfish::{
 };
 use ironfish_frost::{
     keys::PublicKeyPackage, multienc, nonces::deterministic_signing_nonces,
-    signature_share::SignatureShare, signing_commitment::SigningCommitment,
+    signature_share::SignatureShare, signing_commitment::{self, SigningCommitment},
 };
 use napi::{bindgen_prelude::*, JsBuffer};
 use napi_derive::napi;
@@ -46,13 +46,13 @@ where
 
 #[napi]
 pub fn create_signing_commitment(
-    identity: String,
+    secret: String,
     key_package: String,
     transaction_hash: JsBuffer,
     signers: Vec<String>,
 ) -> Result<String> {
-    let identity =
-        Identity::deserialize_from(&hex_to_vec_bytes(&identity).map_err(to_napi_err)?[..])?;
+    let secret =
+        Secret::deserialize_from(&hex_to_vec_bytes(&secret).map_err(to_napi_err)?[..])?;
     let key_package =
         KeyPackage::deserialize(&hex_to_vec_bytes(&key_package).map_err(to_napi_err)?)
             .map_err(to_napi_err)?;
@@ -64,7 +64,7 @@ pub fn create_signing_commitment(
     let commitments = SigningCommitments::from(&nonces);
 
     let signing_commitment =
-        SigningCommitment::from_frost(identity, *commitments.hiding(), *commitments.binding());
+        SigningCommitment::from_frost(secret, *commitments.hiding(), *commitments.binding());
 
     let bytes = signing_commitment.serialize()?;
 
@@ -259,4 +259,28 @@ impl NativePublicKeyPackage {
             .map(|identity| Buffer::from(&identity.serialize()[..]))
             .collect()
     }
+}
+
+#[napi(js_name="SigningCommitment")]
+pub struct NativeSigningCommitment {
+    signing_commitment: SigningCommitment,
+}
+
+#[napi]
+impl NativeSigningCommitment {
+    #[napi(constructor)]
+    pub fn new(value: String) -> Result<NativeSigningCommitment> {
+        let bytes = hex_to_vec_bytes(&value).map_err(to_napi_err)?;
+
+        let signing_commitment =
+            SigningCommitment::deserialize_from(&bytes[..]).map_err(to_napi_err)?;
+
+        Ok(NativeSigningCommitment { signing_commitment })
+    }
+
+    pub fn identity(&self) -> Buffer {
+        Buffer::from(&self.signing_commitment.identity().serialize()[..])
+    }
+
+    pub fn 
 }
