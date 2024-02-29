@@ -11,9 +11,9 @@ import { encodeAccount } from '../../../wallet/account/encoder/account'
 import { Bech32Encoder } from '../../../wallet/account/encoder/bech32'
 import { Bech32JsonEncoder } from '../../../wallet/account/encoder/bech32json'
 import { AccountFormat } from '../../../wallet/account/encoder/encoder'
+import { CreateIdentityResponse } from './multisig/createIdentity'
 import { RpcClient } from '../../clients'
 import { ImportResponse } from './importAccount'
-import { CreateIdentityResponse } from '../..'
 
 describe('Route wallet/importAccount', () => {
   const routeTest = createRouteTest(true)
