@@ -14,26 +14,19 @@ use ironfish_frost::{
 use rand::{CryptoRng, RngCore};
 use std::collections::HashMap;
 
-use crate::errors::{IronfishError, IronfishErrorKind};
+use crate::errors::IronfishError;
+use crate::SaplingKey;
 
 pub struct SecretShareConfig {
     pub min_signers: u16,
     pub identities: Vec<Identity>,
-    pub secret: Vec<u8>,
+    pub spender_key: SaplingKey,
 }
 
 pub(crate) fn split_secret<R: RngCore + CryptoRng>(
     config: &SecretShareConfig,
     mut rng: R,
 ) -> Result<(HashMap<Identity, KeyPackage>, PublicKeyPackage), IronfishError> {
-    let secret_bytes: [u8; 32] = config
-        .secret
-        .clone()
-        .try_into()
-        .map_err(|_| IronfishError::new(IronfishErrorKind::InvalidSecret))?;
-
-    let secret_key = SigningKey::deserialize(secret_bytes)?;
-
     let mut frost_id_map = config
         .identities
         .iter()
@@ -43,13 +36,12 @@ pub(crate) fn split_secret<R: RngCore + CryptoRng>(
     let frost_ids = frost_id_map.keys().cloned().collect::<Vec<_>>();
     let identifier_list = IdentifierList::Custom(&frost_ids[..]);
 
+    let secret_key = SigningKey::deserialize(config.spender_key.spend_authorizing_key.to_bytes())?;
+    let max_signers: u16 = config.identities.len().try_into()?;
+
     let (shares, pubkeys) = split(
         &secret_key,
-        config
-            .identities
-            .len()
-            .try_into()
-            .expect("too many identities"),
+        max_signers,
         config.min_signers,
         identifier_list,
         &mut rng,
@@ -78,38 +70,17 @@ mod test {
     use ironfish_frost::frost::{frost::keys::reconstruct, JubjubBlake2b512};
 
     #[test]
-    fn test_invalid_secret() {
-        let identities = create_multisig_identities(10);
-
-        let vec = vec![1; 31];
-        let config = SecretShareConfig {
-            min_signers: 2,
-            identities,
-            secret: vec,
-        };
-
-        let rng = rand::thread_rng();
-        let result = split_secret(&config, rng);
-        assert!(result.is_err());
-        assert!(
-            matches!(result.unwrap_err().kind, IronfishErrorKind::InvalidSecret),
-            "expected InvalidSecret error"
-        );
-    }
-
-    #[test]
     fn test_split_secret() {
         let identities = create_multisig_identities(10);
         let identities_length = identities.len();
 
         let rng = rand::thread_rng();
-
-        let key = SaplingKey::generate_key().spend_authorizing_key.to_bytes();
+        let key = SaplingKey::generate_key();
 
         let config = SecretShareConfig {
             min_signers: 2,
             identities,
-            secret: key.to_vec(),
+            spender_key: key,
         };
 
         let (key_packages, _) = split_secret(&config, rng).unwrap();
@@ -122,6 +93,9 @@ mod test {
 
         let scalar = signing_key.to_scalar();
 
-        assert_eq!(scalar.to_bytes(), key);
+        assert_eq!(
+            scalar.to_bytes(),
+            config.spender_key.spend_authorizing_key.to_bytes()
+        );
     }
 }
