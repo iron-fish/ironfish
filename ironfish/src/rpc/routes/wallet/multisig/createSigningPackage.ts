@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { IDENTITY_LEN, PublicKeyPackage, UnsignedTransaction } from '@ironfish/rust-nodejs'
+import { PublicKeyPackage, SigningCommitment, UnsignedTransaction } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
 import { AssertMultisig } from '../../../../wallet'
 import { RpcValidationError } from '../../../adapters'
@@ -9,6 +9,7 @@ import { ApiNamespace } from '../../namespaces'
 import { routes } from '../../router'
 import { AssertHasRpcContext } from '../../rpcContext'
 import { getAccount } from '../utils'
+import { BufferSet } from 'buffer-map'
 
 export type CreateSigningPackageRequest = {
   unsignedTransaction: string
@@ -50,19 +51,18 @@ routes.register<typeof CreateSigningPackageRequestSchema, CreateSigningPackageRe
     AssertMultisig(account)
 
     const publicKeyPackage = new PublicKeyPackage(account.multisigKeys.publicKeyPackage)
-    const identitySet = new Set(
-      publicKeyPackage.identities().map((identity) => identity.toString('hex')),
-    )
+    const identitySet = new BufferSet( publicKeyPackage.identities())
 
-    for (const commitment of request.data.commitments) {
-      if (!identitySet.has(identityStr)) {
+    for (const commitmentStr of request.data.commitments) {
+      const commitment = new SigningCommitment(commitmentStr)
+      const identity = commitment.identity()
+
+      if (!identitySet.has(identity)) {
         throw new RpcValidationError(
           `Received commitment from identity (${identity}) that is not part of the multsig group for account ${account.name}`,
           400,
         )
       }
-
-      const 
     }
     const signingPackage = unsignedTransaction.signingPackage(request.data.commitments)
 

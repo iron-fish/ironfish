@@ -278,9 +278,8 @@ impl NativeSigningCommitment {
         Ok(NativeSigningCommitment { signing_commitment })
     }
 
+    #[napi]
     pub fn identity(&self) -> Buffer {
         Buffer::from(&self.signing_commitment.identity().serialize()[..])
     }
-
-    pub fn 
 }
