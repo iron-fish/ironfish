@@ -15,18 +15,23 @@ export class MultisigIdentityCreate extends IronfishCommand {
     name: Flags.string({
       char: 'n',
       description: 'Name to associate with the identity',
-      required: true,
     }),
   }
 
   async start(): Promise<void> {
     const { flags } = await this.parse(MultisigIdentityCreate)
+    let name = flags.name
+    if (!name) {
+      name = await CliUx.ux.prompt('Enter a name for the identity', {
+        required: true,
+      })
+    }
 
     const client = await this.sdk.connectRpc()
     let response
     while (!response) {
       try {
-        response = await client.wallet.multisig.createIdentity({ name: flags.name })
+        response = await client.wallet.multisig.createIdentity({ name })
       } catch (e) {
         if (
           e instanceof RpcRequestError &&
@@ -36,7 +41,7 @@ export class MultisigIdentityCreate extends IronfishCommand {
           this.log(e.codeMessage)
         }
 
-        flags.name = await CliUx.ux.prompt('Enter a new name for the identity', {
+        name = await CliUx.ux.prompt('Enter a new name for the identity', {
           required: true,
         })
       }
