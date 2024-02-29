@@ -32,30 +32,31 @@ pub fn split_spender_key(
     min_signers: u16,
     identities: Vec<Identity>,
 ) -> Result<TrustedDealerKeyPackages, IronfishError> {
-    let secret = spender_key.spend_authorizing_key.to_bytes().to_vec();
+    let group_secret_key = SaplingKey::generate_key();
 
     let secret_config = SecretShareConfig {
         min_signers,
         identities,
-        secret,
+        spender_key: spender_key.clone(),
     };
 
     let (key_packages, public_key_package) = split_secret(&secret_config, thread_rng())?;
 
-    let proof_authorizing_key = spender_key.sapling_proof_generation_key().nsk;
+    let proof_authorizing_key = secret_config.spender_key.sapling_proof_generation_key().nsk;
 
     let authorizing_key = public_key_package.verifying_key().serialize();
     let authorizing_key = Option::from(SubgroupPoint::from_bytes(&authorizing_key))
         .ok_or_else(|| IronfishError::new(IronfishErrorKind::InvalidAuthorizingKey))?;
-    let nullifier_deriving_key =
-        *PROOF_GENERATION_KEY_GENERATOR * spender_key.sapling_proof_generation_key().nsk;
+
+    let nullifier_deriving_key = *PROOF_GENERATION_KEY_GENERATOR * proof_authorizing_key;
+
     let view_key = ViewKey {
         authorizing_key,
         nullifier_deriving_key,
     };
 
-    let incoming_view_key = spender_key.incoming_view_key().clone();
-    let outgoing_view_key: OutgoingViewKey = spender_key.outgoing_view_key().clone();
+    let incoming_view_key = secret_config.spender_key.incoming_view_key().clone();
+    let outgoing_view_key: OutgoingViewKey = group_secret_key.outgoing_view_key().clone();
 
     let public_address = incoming_view_key.public_address();
 
@@ -100,10 +101,11 @@ mod test {
             sapling_key.view_key.to_bytes(),
             "should have the same incoming viewing key"
         );
+        let sapling_key_clone = sapling_key.clone();
 
         assert_eq!(
             trusted_dealer_key_packages.public_address,
-            sapling_key.public_address(),
+            sapling_key_clone.public_address(),
             "should have the same public address"
         );
 
