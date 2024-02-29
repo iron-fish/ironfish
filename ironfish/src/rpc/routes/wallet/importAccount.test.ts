@@ -1,8 +1,12 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-
-import { generateKey, LanguageCode, spendingKeyToWords } from '@ironfish/rust-nodejs'
+import {
+  generateKey,
+  LanguageCode,
+  ParticipantSecret,
+  spendingKeyToWords,
+} from '@ironfish/rust-nodejs'
 import fs from 'fs'
 import path from 'path'
 import { createTrustedDealerKeyPackages } from '../../../testUtilities'
@@ -13,6 +17,7 @@ import { Bech32JsonEncoder } from '../../../wallet/account/encoder/bech32json'
 import { AccountFormat } from '../../../wallet/account/encoder/encoder'
 import { RpcClient } from '../../clients'
 import { ImportResponse } from './importAccount'
+import { CreateIdentityResponse } from './multisig/createIdentity'
 
 describe('Route wallet/importAccount', () => {
   const routeTest = createRouteTest(true)
@@ -281,7 +286,12 @@ describe('Route wallet/importAccount', () => {
 
     it('should support importing old account export formats', async () => {
       const testCaseDir = path.join(__dirname, '__importTestCases__')
-      const importTestCaseFiles = fs.readdirSync(testCaseDir)
+      const importTestCaseFiles = fs
+        .readdirSync(testCaseDir, { withFileTypes: true })
+        .filter((testCaseFile) => testCaseFile.isFile())
+        .map((testCaseFile) => testCaseFile.name)
+
+      expect(importTestCaseFiles.length).toBeGreaterThan(0)
 
       for (const testCaseFile of importTestCaseFiles) {
         const testCase = await routeTest.sdk.fileSystem.readFile(
@@ -298,6 +308,126 @@ describe('Route wallet/importAccount', () => {
         expect(response.status).toBe(200)
         expect(response.content.name).not.toBeNull()
       }
+    })
+
+    describe('with multisig encryption', () => {
+      it('should import a base64 encoded account', async () => {
+        const name = 'multisig-encrypted-base64'
+
+        const identity = (
+          await routeTest.client
+            .request<CreateIdentityResponse>('wallet/multisig/createIdentity', { name })
+            .waitForEnd()
+        ).content.identity
+        const base64 = encodeAccount(createAccountImport(name), AccountFormat.Base64Json, {
+          encryptWith: { kind: 'MultisigIdentity', identity: Buffer.from(identity, 'hex') },
+        })
+
+        const response = await routeTest.client
+          .request<ImportResponse>('wallet/importAccount', {
+            name,
+            account: base64,
+            rescan: false,
+          })
+          .waitForEnd()
+
+        expect(response.status).toBe(200)
+        expect(response.content).toMatchObject({
+          name,
+          isDefaultAccount: false, // This is false because the default account is already imported in a previous test
+        })
+      })
+
+      it('should fail to import a base64 encoded account if no multisig identity was generated', async () => {
+        const name = 'multisig-encrypted-base64 (no key)'
+
+        const identity = ParticipantSecret.random().toIdentity()
+        const base64 = encodeAccount(createAccountImport(name), AccountFormat.Base64Json, {
+          encryptWith: { kind: 'MultisigIdentity', identity },
+        })
+
+        await expect(
+          routeTest.client
+            .request<ImportResponse>('wallet/importAccount', {
+              name,
+              account: base64,
+              rescan: false,
+            })
+            .waitForEnd(),
+        ).rejects.toThrow(
+          expect.objectContaining({
+            message: expect.stringContaining(
+              'Encrypted multisig account cannot be decrypted without a multisig secret',
+            ),
+            status: 400,
+          }),
+        )
+      })
+
+      it('should fail to import a base64 encode account if the wrong multisig identity is used', async () => {
+        const name = 'multisig-encrypted-base64 (wrong key)'
+
+        const _storedIdentity = (
+          await routeTest.client
+            .request<CreateIdentityResponse>('wallet/multisig/createIdentity', { name })
+            .waitForEnd()
+        ).content.identity
+        const encryptingIdentity = ParticipantSecret.random().toIdentity()
+        const base64 = encodeAccount(createAccountImport(name), AccountFormat.Base64Json, {
+          encryptWith: { kind: 'MultisigIdentity', identity: encryptingIdentity },
+        })
+
+        await expect(
+          routeTest.client
+            .request<ImportResponse>('wallet/importAccount', {
+              name,
+              account: base64,
+              rescan: false,
+            })
+            .waitForEnd(),
+        ).rejects.toThrow(
+          expect.objectContaining({
+            message: expect.stringContaining('Failed to decrypt multisig account'),
+            status: 400,
+          }),
+        )
+      })
+
+      it('should import old account export formats', async () => {
+        const testCaseSuffix = '.txt'
+        const keySuffix = '.key'
+        const testCaseDir = path.join(__dirname, '__importTestCases__', 'multisigEncrypted')
+        const importTestCaseFiles = fs
+          .readdirSync(testCaseDir, { withFileTypes: true })
+          .filter(
+            (testCaseFile) =>
+              testCaseFile.isFile() && testCaseFile.name.endsWith(testCaseSuffix),
+          )
+          .map((testCaseFile) => testCaseFile.name)
+
+        expect(importTestCaseFiles.length).toBeGreaterThan(0)
+
+        for (const testCaseFile of importTestCaseFiles) {
+          const testCase = await fs.promises.readFile(path.join(testCaseDir, testCaseFile), {
+            encoding: 'ascii',
+          })
+
+          const keyFile = testCaseFile.slice(0, -testCaseSuffix.length) + keySuffix
+          const key = await fs.promises.readFile(path.join(testCaseDir, keyFile))
+
+          await routeTest.node.wallet.walletDb.putMultisigSecret(testCaseFile, key)
+
+          const response = await routeTest.client
+            .request<ImportResponse>('wallet/importAccount', {
+              account: testCase,
+              name: testCaseFile,
+            })
+            .waitForEnd()
+
+          expect(response.status).toBe(200)
+          expect(response.content.name).not.toBeNull()
+        }
+      })
     })
   })
 })

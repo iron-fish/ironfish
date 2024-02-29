@@ -51,9 +51,11 @@ routes.register<typeof ImportAccountRequestSchema, ImportResponse>(
     try {
       let accountImport = null
       if (typeof request.data.account === 'string') {
-        accountImport = decodeAccount(request.data.account, {
-          name: request.data.name,
-        })
+        const name = request.data.name
+        const multisigSecret = name
+          ? await context.wallet.walletDb.getMultisigSecret(name)
+          : undefined
+        accountImport = decodeAccount(request.data.account, { name, multisigSecret })
       } else {
         accountImport = deserializeRpcAccountImport(request.data.account)
       }

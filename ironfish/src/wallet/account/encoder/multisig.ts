@@ -24,5 +24,9 @@ export function decodeEncryptedMultisigAccount(
   const secret = Buffer.isBuffer(options.multisigSecret)
     ? new ParticipantSecret(options.multisigSecret)
     : options.multisigSecret
-  return secret.decryptData(value)
+  try {
+    return secret.decryptData(value)
+  } catch (e) {
+    throw new Error(`Failed to decrypt multisig account: ${String(e)}`)
+  }
 }
