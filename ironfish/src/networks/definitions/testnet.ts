@@ -18,7 +18,12 @@ const TESTNET_CONSENSUS: ConsensusParameters = {
   enforceSequentialBlockTime: HARDFORK_1_ACTIVATION_TESTNET,
   enableFishHash: HARDFORK_1_ACTIVATION_TESTNET,
   enableIncreasedDifficultyChange: HARDFORK_1_ACTIVATION_TESTNET,
-  checkpoints: [],
+  checkpoints: [
+    {
+      sequence: 419193,
+      hash: '0000000002ee166a1ffe9ae5402ed7eae3be254f38f1d9f3d285b11007847d7d',
+    },
+  ],
 }
 
 export const TESTNET_GENESIS = {
