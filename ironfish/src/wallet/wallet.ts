@@ -6,6 +6,7 @@ import {
   generateKey,
   MEMO_LENGTH,
   Note as NativeNote,
+  ParticipantSecret,
   PublicKeyPackage,
   UnsignedTransaction,
 } from '@ironfish/rust-nodejs'
@@ -43,6 +44,7 @@ import {
 import { WorkerPool } from '../workerPool'
 import { DecryptedNote, DecryptNoteOptions } from '../workerPool/tasks/decryptNotes'
 import { Account, ACCOUNT_SCHEMA_VERSION } from './account/account'
+import { isSignerMultisig } from './account/encoder/multisigKeys'
 import { AssetBalances } from './assetBalances'
 import { DuplicateAccountNameError, MaxMemoLengthError, NotEnoughFundsError } from './errors'
 import { MintAssetOptions } from './interfaces/mintAssetOptions'
@@ -1533,6 +1535,7 @@ export class Wallet {
     validateAccount(accountValue)
 
     let createdAt = accountValue.createdAt
+    let name = accountValue.name
 
     if (createdAt && !this.nodeClient) {
       this.logger.debug(
@@ -1552,9 +1555,19 @@ export class Wallet {
       createdAt = null
     }
 
+    if (accountValue.multisigKeys && isSignerMultisig(accountValue.multisigKeys)) {
+      const identityName = await this.getIdentityName(accountValue.multisigKeys.identity)
+      if (!identityName) {
+        throw new Error('Cannot import identity without an existing secret')
+      }
+
+      name = identityName
+    }
+
     const account = new Account({
       ...accountValue,
       createdAt,
+      name,
       walletDb: this.walletDb,
     })
 
@@ -1597,6 +1610,17 @@ export class Wallet {
 
   accountExists(name: string): boolean {
     return this.getAccountByName(name) !== null
+  }
+
+  async getIdentityName(identity: string): Promise<string | undefined> {
+    for await (const { name, value } of this.walletDb.loadMultisigSecrets()) {
+      const secret = new ParticipantSecret(value)
+      if (identity === secret.toIdentity().serialize().toString('hex')) {
+        return name
+      }
+    }
+
+    return undefined
   }
 
   async resetAccount(

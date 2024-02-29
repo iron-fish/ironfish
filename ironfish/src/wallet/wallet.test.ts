@@ -1,7 +1,12 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Asset, generateKey, MEMO_LENGTH } from '@ironfish/rust-nodejs'
+import {
+  Asset,
+  generateKey,
+  MEMO_LENGTH,
+  ParticipantSecret,
+} from '@ironfish/rust-nodejs'
 import { BufferMap, BufferSet } from 'buffer-map'
 import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
@@ -21,9 +26,10 @@ import {
   useTxFixture,
 } from '../testUtilities'
 import { AsyncUtils, BufferUtils, ORE_TO_IRON } from '../utils'
-import { Account, TransactionStatus, TransactionType } from '../wallet'
+import { Account, ACCOUNT_SCHEMA_VERSION, TransactionStatus, TransactionType } from '../wallet'
 import { MaxMemoLengthError } from './errors'
 import { AssetStatus, Wallet } from './wallet'
+import { AccountImport } from './walletdb/accountValue'
 
 describe('Wallet', () => {
   const nodeTest = createNodeTest()
@@ -784,6 +790,67 @@ describe('Wallet', () => {
       const accountBImport = await nodeB.wallet.importAccount(accountB)
 
       expect(accountBImport.createdAt).toBeDefined()
+    })
+
+    it('should use the identity name if the secret is stored', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const publicKeyPackage =
+        'e600000000c3d2051e03bd582c1a9c4830772548cf331fe767c43eddc5acf99572348fca0bd34a6fca04294604e2e21fa5020023097f8554941b37d1e1965787036c5c01015dc64757e5530201a8812272389aedd5b9db31c5eeb52a4b29b239283d08577dccb58d090a92586446743a5ae150f6a80c15889585ab4d6b0cfd9e02b70e323302bb7ec71d728d5deaa7b94ae8f50cd926f45728c75769c6436b9b771d1d1e2e03ae17d40a53961efd469d22f51aafdf4e4fe43d50fec6b193f92d97c3089d15c221a2b703504c3c157b7997db3c541a359a9f2c23ff93b988e0c40916577b25e79041f9870300000072749795dda410b2d42a43eaadd6140f233eae00d52decd5c2d7bcd2b7d0702ef2a27866846b4625322c0249a5068168970a5ec8eddcf93b80aab5d76212e63b4e79cf1b63d1ad562f8b42ce11b68cee55578b109041521fc3ba08d8b8927bb1ca4a837f60fc2c87b464e5c51203ca29930097e2ac8797b179689f2c5499afce0372e9841aecf484ec28db77810229574ebc481dc6fa8e21376f162fdacefbfb42102b5aa0092d76f5b25ede2f87af3feff5c67670db66f82c1f0f47ed7fd61ae10c363dd39781a89f9420f79fa65870f01a6916e5e1a4b7d0bbfc40f3083f9d65b779c685bc7def78689532a2c897f7eb112e7c2c51dd05d7c52fe8c75170e51b06721fa1324987829d3528b0e7f59f02bbd6f0be999797123adf96d19bc6162226174d96942281d1207a54c7b0804e30cf2b7d83acb39bf5920b9c4a6de78fb95b0b2e900b063ddcf9bc7f7e02e4e83392e106e99b1ab25396ed106596c7140c56eac60beb8f175bf53acec464157a5504a721f9fa4dbeb4592f2cd2cc733ccfa40c'
+      const name = 'identity-name'
+      const secret = ParticipantSecret.random()
+      const identity = secret.toIdentity()
+      await node.wallet.walletDb.putMultisigSecret(name, secret.serialize())
+
+      const key = generateKey()
+      const accountImport: AccountImport = {
+        version: ACCOUNT_SCHEMA_VERSION,
+        name: 'unused-name',
+        spendingKey: null,
+        viewKey: key.viewKey,
+        incomingViewKey: key.incomingViewKey,
+        outgoingViewKey: key.outgoingViewKey,
+        publicAddress: key.publicAddress,
+        createdAt: null,
+        multisigKeys: {
+          publicKeyPackage,
+          identity: identity.serialize().toString('hex'),
+          keyPackage: 'bbbb',
+        },
+        proofAuthorizingKey: null,
+      }
+
+      const account = await node.wallet.importAccount({ ...accountImport, id: '0' })
+      expect(account.name).toEqual(name)
+    })
+
+    it('should throw an exception if importing an identity without an existing secret', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const secret = ParticipantSecret.random()
+      const identity = secret.toIdentity()
+
+      const key = generateKey()
+      const accountImport: AccountImport = {
+        version: ACCOUNT_SCHEMA_VERSION,
+        name: 'unused-name',
+        spendingKey: null,
+        viewKey: key.viewKey,
+        incomingViewKey: key.incomingViewKey,
+        outgoingViewKey: key.outgoingViewKey,
+        publicAddress: key.publicAddress,
+        createdAt: null,
+        multisigKeys: {
+          identity: identity.serialize().toString('hex'),
+          publicKeyPackage: 'cccc',
+          keyPackage: 'bbbb',
+        },
+        proofAuthorizingKey: null,
+      }
+
+      await expect(node.wallet.importAccount({ ...accountImport, id: '0' })).rejects.toThrow(
+        'Cannot import identity without an existing secret',
+      )
     })
   })
 

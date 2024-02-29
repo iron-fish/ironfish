@@ -1285,6 +1285,15 @@ export class WalletDB {
     return this.multisigSecrets.get(name, tx)
   }
 
+  async *loadMultisigSecrets(tx?: IDatabaseTransaction): AsyncGenerator<{
+    name: string
+    value: Buffer
+  }> {
+    for await (const [name, value] of this.multisigSecrets.getAllIter(tx)) {
+      yield { name, value }
+    }
+  }
+
   async hasMultisigSecret(name: string, tx?: IDatabaseTransaction): Promise<boolean> {
     return (await this.getMultisigSecret(name, tx)) !== undefined
   }
