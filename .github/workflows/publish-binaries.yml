@@ -46,12 +46,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 18
-      
+
       - name: Use go
         uses: actions/setup-go@v4
         with:
           go-version: '1.20.6'
-      
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -60,7 +60,7 @@ jobs:
         shell: bash
         run: |
           identifier=$(awk 'BEGIN {
-            srand(); 
+            srand();
             chars = "abcdefghijklmnopqrstuvwxyz0123456789";
             for (i = 1; i <= 10; i++) {
                 printf "%s", substr(chars, int(rand() * length(chars)) + 1, 1);
@@ -76,13 +76,13 @@ jobs:
           cd build
           cp $(node -e "console.log(process.execPath)") ${{ matrix.settings.system != 'windows' && 'node' || 'node.exe' }}
           npm init -y
-          npm install ironfish
+          npm install ironfish@${{ github.event.release.tag_name }}
           tar -czf ../tools/build.tar.gz -C . .
 
       - name: Create binary
         id: binary
         run: |
-          go build -ldflags "-X 'main.Identifier=${{ steps.identifier.outputs.identifier }}' -X 'main.Command={{caxac}}/${{ matrix.settings.system != 'windows' && 'node' || 'node.exe' }} --enable-source-maps {{caxac}}/node_modules/ironfish/bin/run' -X 'main.UncompressionMessage=Unpackaging ironfish application, this may take a minute when run for the first time.'" -o tools/${{ matrix.settings.system != 'windows' && 'ironfish' || 'ironfish.exe' }} tools/build-binary.go 
+          go build -ldflags "-X 'main.Identifier=${{ steps.identifier.outputs.identifier }}' -X 'main.Command={{caxac}}/${{ matrix.settings.system != 'windows' && 'node' || 'node.exe' }} --enable-source-maps {{caxac}}/node_modules/ironfish/bin/run' -X 'main.UncompressionMessage=Unpackaging ironfish application, this may take a minute when run for the first time.'" -o tools/${{ matrix.settings.system != 'windows' && 'ironfish' || 'ironfish.exe' }} tools/build-binary.go
 
       - name: Set paths
         id: set_paths
@@ -116,21 +116,21 @@ jobs:
           PP_PATH=$RUNNER_TEMP/build_pp.mobileprovision
           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
           API_KEY_PATH=$RUNNER_TEMP/api_key.p8
-  
+
           # import certificate and provisioning profile from secrets
           echo -n "$APPLE_IFLABS_SIGNING_CERT" | base64 --decode -o $CERTIFICATE_PATH
           echo -n "$APPLE_PROVISIONING_PROFILE" | base64 --decode -o $PP_PATH
           echo -n "$APPLE_API_KEY" | base64 --decode -o $API_KEY_PATH
-  
+
           # create temporary keychain
           security create-keychain -p "$APPLE_IFLABS_SIGNING_CERT_PASSWORD" $KEYCHAIN_PATH
           security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
           security unlock-keychain -p "$APPLE_IFLABS_SIGNING_CERT_PASSWORD" $KEYCHAIN_PATH
-  
+
           # import certificate to keychain
           security import $CERTIFICATE_PATH -P "$APPLE_IFLABS_SIGNING_CERT_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
           security list-keychain -d user -s $KEYCHAIN_PATH
-  
+
           # apply provisioning profile
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles
@@ -159,7 +159,7 @@ jobs:
           type: 'zip'
           filename: ${{ steps.set_paths.outputs.zip }}
           path: ${{ steps.set_paths.outputs.binary }}
-      
+
       - name: Notarize app bundle
         working-directory: tools
         if: matrix.settings.system == 'apple'
@@ -170,10 +170,10 @@ jobs:
         run: |
           echo "Create keychain profile"
           xcrun notarytool store-credentials "notarytool-profile" --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" --password "$APPLE_NOTARIZATION_PWD"
-      
+
           echo "Notarize app"
           xcrun notarytool submit "${{ steps.set_paths.outputs.zip }}" --keychain-profile "notarytool-profile" --wait
-      
+
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
