@@ -7,10 +7,9 @@ import {
   ASSET_ID_LENGTH,
   createSignatureShare,
   createSigningCommitment,
+  generateAndSplitKey,
   generateKey,
   ParticipantSecret,
-  splitSecret,
-  TrustedDealerKeyPackages,
 } from '@ironfish/rust-nodejs'
 import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
@@ -1145,8 +1144,6 @@ describe('Wallet', () => {
       const { node } = await nodeTest.createSetup()
       const recipient = await useAccountFixture(node.wallet, 'recipient')
 
-      const coordinatorSaplingKey = generateKey()
-
       const identities = Array.from({ length: 3 }, () =>
         ParticipantSecret.random().toIdentity().serialize().toString('hex'),
       )
@@ -1154,11 +1151,7 @@ describe('Wallet', () => {
       // construct 3 separate secrets for the participants
       // take the secrets and get identities back (get identity first then identifier)
 
-      const trustedDealerPackage: TrustedDealerKeyPackages = splitSecret(
-        coordinatorSaplingKey.spendingKey,
-        minSigners,
-        identities,
-      )
+      const trustedDealerPackage = generateAndSplitKey(minSigners, identities)
 
       const getMultisigKeys = (index: number) => {
         return {
@@ -1341,17 +1334,11 @@ describe('Wallet', () => {
 
     const { node } = await nodeTest.createSetup()
 
-    const coordinatorSaplingKey = generateKey()
-
     const identities = Array.from({ length: 3 }, () =>
       ParticipantSecret.random().toIdentity().serialize().toString('hex'),
     )
 
-    const trustedDealerPackage: TrustedDealerKeyPackages = splitSecret(
-      coordinatorSaplingKey.spendingKey,
-      minSigners,
-      identities,
-    )
+    const trustedDealerPackage = generateAndSplitKey(minSigners, identities)
 
     const account = await node.wallet.importAccount({
       version: 2,

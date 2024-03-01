@@ -7,7 +7,7 @@ use ironfish::{
     frost::{keys::KeyPackage, round1::SigningCommitments, round2, Randomizer},
     frost_utils::{signing_package::SigningPackage, split_spender_key::split_spender_key},
     participant::{Identity, Secret},
-    serializing::{bytes_to_hex, fr::FrSerializable, hex_to_bytes, hex_to_vec_bytes},
+    serializing::{bytes_to_hex, fr::FrSerializable, hex_to_vec_bytes},
     SaplingKey,
 };
 use ironfish_frost::{
@@ -193,14 +193,11 @@ impl ParticipantIdentity {
 }
 
 #[napi]
-pub fn split_secret(
-    spending_key: String,
+pub fn generate_and_split_key(
     min_signers: u16,
     identities: Vec<String>,
 ) -> Result<TrustedDealerKeyPackages> {
-    let spending_key = hex_to_bytes(&spending_key)
-        .and_then(SaplingKey::new)
-        .map_err(to_napi_err)?;
+    let spending_key = SaplingKey::generate_key();
 
     let identities = try_deserialize_identities(identities)?;
 

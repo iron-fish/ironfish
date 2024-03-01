@@ -6,7 +6,7 @@
 export const IDENTITY_LEN: number
 export function createSigningCommitment(identity: string, keyPackage: string, transactionHash: Buffer, signers: Array<string>): string
 export function createSignatureShare(identity: string, keyPackage: string, signingPackage: string): string
-export function splitSecret(spendingKey: string, minSigners: number, identities: Array<string>): TrustedDealerKeyPackages
+export function generateAndSplitKey(minSigners: number, identities: Array<string>): TrustedDealerKeyPackages
 export interface ParticipantKeyPackage {
   identity: string
   keyPackage: string
