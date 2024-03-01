@@ -2,7 +2,7 @@
 # cargo-vet config file
 
 [cargo-vet]
-version = "0.8"
+version = "0.9"
 
 [imports.bytecode-alliance]
 url = "https://raw.githubusercontent.com/bytecodealliance/wasmtime/main/supply-chain/audits.toml"
@@ -45,6 +45,9 @@ audit-as-crates-io = false
 [policy."jubjub:0.9.0@git:a1a0c2ed69eec4d5d5e87842e2a40849f7fa4633"]
 audit-as-crates-io = true
 
+[policy."reddsa:0.5.1@git:311baf8865f6e21527d1f20750d8f2cf5c9e531a"]
+audit-as-crates-io = true
+
 [policy.zcash_address]
 audit-as-crates-io = true
 
@@ -72,6 +75,14 @@ criteria = "safe-to-deploy"
 
 [[exemptions.aho-corasick]]
 version = "0.7.20"
+criteria = "safe-to-deploy"
+
+[[exemptions.atomic-polyfill]]
+version = "0.1.11"
+criteria = "safe-to-deploy"
+
+[[exemptions.base16ct]]
+version = "0.2.0"
 criteria = "safe-to-deploy"
 
 [[exemptions.base64]]
@@ -186,6 +197,18 @@ criteria = "safe-to-deploy"
 version = "0.2.4"
 criteria = "safe-to-deploy"
 
+[[exemptions.cobs]]
+version = "0.2.3"
+criteria = "safe-to-deploy"
+
+[[exemptions.const-crc32]]
+version = "1.2.0"
+criteria = "safe-to-deploy"
+
+[[exemptions.const-oid]]
+version = "0.9.2"
+criteria = "safe-to-deploy"
+
 [[exemptions.constant_time_eq]]
 version = "0.1.5"
 criteria = "safe-to-deploy"
@@ -204,6 +227,10 @@ criteria = "safe-to-deploy"
 
 [[exemptions.criterion-plot]]
 version = "0.5.0"
+criteria = "safe-to-deploy"
+
+[[exemptions.critical-section]]
+version = "1.1.0"
 criteria = "safe-to-deploy"
 
 [[exemptions.crossbeam-channel]]
@@ -234,12 +261,36 @@ criteria = "safe-to-deploy"
 version = "0.8.2"
 criteria = "safe-to-deploy"
 
+[[exemptions.crypto_secretbox]]
+version = "0.1.1"
+criteria = "safe-to-deploy"
+
 [[exemptions.ctor]]
 version = "0.2.2"
 criteria = "safe-to-deploy"
 
 [[exemptions.curve25519-dalek]]
 version = "3.2.0"
+criteria = "safe-to-deploy"
+
+[[exemptions.curve25519-dalek]]
+version = "4.0.0"
+criteria = "safe-to-deploy"
+
+[[exemptions.curve25519-dalek-derive]]
+version = "0.1.0"
+criteria = "safe-to-deploy"
+
+[[exemptions.debugless-unwrap]]
+version = "0.0.4"
+criteria = "safe-to-deploy"
+
+[[exemptions.der]]
+version = "0.7.1"
+criteria = "safe-to-deploy"
+
+[[exemptions.derive-getters]]
+version = "0.3.0"
 criteria = "safe-to-deploy"
 
 [[exemptions.digest]]
@@ -262,6 +313,14 @@ criteria = "safe-to-deploy"
 version = "0.5.2"
 criteria = "safe-to-deploy"
 
+[[exemptions.ed25519]]
+version = "2.2.0"
+criteria = "safe-to-deploy"
+
+[[exemptions.ed25519-dalek]]
+version = "2.1.0"
+criteria = "safe-to-deploy"
+
 [[exemptions.execute]]
 version = "0.2.12"
 criteria = "safe-to-deploy"
@@ -282,12 +341,20 @@ criteria = "safe-to-deploy"
 version = "0.12.1"
 criteria = "safe-to-deploy"
 
+[[exemptions.fish_hash]]
+version = "0.3.0"
+criteria = "safe-to-deploy"
+
 [[exemptions.flume]]
 version = "0.10.14"
 criteria = "safe-to-deploy"
 
 [[exemptions.fpe]]
 version = "0.5.1"
+criteria = "safe-to-deploy"
+
+[[exemptions.frost-rerandomized]]
+version = "1.0.0"
 criteria = "safe-to-deploy"
 
 [[exemptions.funty]]
@@ -320,6 +387,14 @@ criteria = "safe-to-deploy"
 
 [[exemptions.h2]]
 version = "0.3.19"
+criteria = "safe-to-deploy"
+
+[[exemptions.hash32]]
+version = "0.2.1"
+criteria = "safe-to-deploy"
+
+[[exemptions.heapless]]
+version = "0.7.0"
 criteria = "safe-to-deploy"
 
 [[exemptions.hermit-abi]]
@@ -486,16 +561,16 @@ criteria = "safe-to-deploy"
 version = "0.3.2"
 criteria = "safe-to-deploy"
 
-[[exemptions.pasta_curves]]
-version = "0.4.1"
-criteria = "safe-to-deploy"
-
 [[exemptions.pbkdf2]]
 version = "0.4.0"
 criteria = "safe-to-deploy"
 
 [[exemptions.pbkdf2]]
 version = "0.9.0"
+criteria = "safe-to-deploy"
+
+[[exemptions.pkcs8]]
+version = "0.10.1"
 criteria = "safe-to-deploy"
 
 [[exemptions.pkg-config]]
@@ -516,6 +591,10 @@ criteria = "safe-to-deploy"
 
 [[exemptions.poly1305]]
 version = "0.7.2"
+criteria = "safe-to-deploy"
+
+[[exemptions.postcard]]
+version = "1.0.1"
 criteria = "safe-to-deploy"
 
 [[exemptions.ppv-lite86]]
@@ -559,7 +638,7 @@ version = "0.2.3"
 criteria = "safe-to-deploy"
 
 [[exemptions.reddsa]]
-version = "0.3.0"
+version = "0.5.1@git:311baf8865f6e21527d1f20750d8f2cf5c9e531a"
 criteria = "safe-to-deploy"
 
 [[exemptions.redjubjub]]
@@ -638,8 +717,16 @@ criteria = "safe-to-deploy"
 version = "0.7.1"
 criteria = "safe-to-deploy"
 
+[[exemptions.serdect]]
+version = "0.2.0"
+criteria = "safe-to-deploy"
+
 [[exemptions.sha2]]
 version = "0.9.9"
+criteria = "safe-to-deploy"
+
+[[exemptions.signature]]
+version = "2.0.0"
 criteria = "safe-to-deploy"
 
 [[exemptions.socket2]]
@@ -648,6 +735,14 @@ criteria = "safe-to-deploy"
 
 [[exemptions.spin]]
 version = "0.9.8"
+criteria = "safe-to-deploy"
+
+[[exemptions.spki]]
+version = "0.7.0"
+criteria = "safe-to-deploy"
+
+[[exemptions.stable_deref_trait]]
+version = "1.0.0"
 criteria = "safe-to-deploy"
 
 [[exemptions.static_assertions]]
@@ -687,7 +782,11 @@ version = "1.8.1"
 criteria = "safe-to-deploy"
 
 [[exemptions.tiny-bip39]]
-version = "0.8.2"
+version = "1.0.0"
+criteria = "safe-to-deploy"
+
+[[exemptions.tiny-keccak]]
+version = "2.0.2"
 criteria = "safe-to-deploy"
 
 [[exemptions.tinytemplate]]
@@ -724,6 +823,10 @@ criteria = "safe-to-deploy"
 
 [[exemptions.uint]]
 version = "0.9.5"
+criteria = "safe-to-deploy"
+
+[[exemptions.visibility]]
+version = "0.1.0"
 criteria = "safe-to-deploy"
 
 [[exemptions.walkdir]]
@@ -859,7 +962,7 @@ version = "0.5.1"
 criteria = "safe-to-deploy"
 
 [[exemptions.x25519-dalek]]
-version = "1.1.1"
+version = "2.0.0"
 criteria = "safe-to-deploy"
 
 [[exemptions.xsalsa20poly1305]]
