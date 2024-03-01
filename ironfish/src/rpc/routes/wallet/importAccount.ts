@@ -60,10 +60,7 @@ routes.register<typeof ImportAccountRequestSchema, ImportResponse>(
         accountImport = deserializeRpcAccountImport(request.data.account)
       }
 
-      account = await context.wallet.importAccount({
-        id: uuid(),
-        ...accountImport,
-      })
+      account = await context.wallet.importAccount(accountImport)
     } catch (e) {
       if (e instanceof DuplicateAccountNameError) {
         throw new RpcValidationError(e.message, 400, RPC_ERROR_CODES.DUPLICATE_ACCOUNT_NAME)

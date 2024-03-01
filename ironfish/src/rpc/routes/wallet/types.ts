@@ -155,7 +155,7 @@ export const RpcWalletTransactionSchema: yup.ObjectSchema<RpcWalletTransaction> 
   .defined()
 
 export type RpcMultisigKeys = {
-  identity?: string
+  secret?: string
   keyPackage?: string
   publicKeyPackage: string
 }

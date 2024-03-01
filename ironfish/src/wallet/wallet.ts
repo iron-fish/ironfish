@@ -52,7 +52,7 @@ import {
   WalletBlockTransaction,
 } from './remoteChainProcessor'
 import { validateAccount } from './validator'
-import { AccountValue } from './walletdb/accountValue'
+import { AccountImport, AccountValue } from './walletdb/accountValue'
 import { AssetValue } from './walletdb/assetValue'
 import { DecryptedNoteValue } from './walletdb/decryptedNoteValue'
 import { HeadValue } from './walletdb/headValue'
@@ -1518,7 +1518,7 @@ export class Wallet {
     }
   }
 
-  async importAccount(accountValue: AccountValue): Promise<Account> {
+  async importAccount(accountValue: AccountImport): Promise<Account> {
     if (accountValue.name && this.getAccountByName(accountValue.name)) {
       throw new DuplicateAccountNameError(accountValue.name)
     }
@@ -1554,6 +1554,7 @@ export class Wallet {
 
     const account = new Account({
       ...accountValue,
+      id: uuid(),
       createdAt,
       walletDb: this.walletDb,
     })

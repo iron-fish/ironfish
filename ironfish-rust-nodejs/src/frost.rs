@@ -43,13 +43,13 @@ where
 
 #[napi]
 pub fn create_signing_commitment(
-    identity: String,
+    secret: String,
     key_package: String,
     transaction_hash: JsBuffer,
     signers: Vec<String>,
 ) -> Result<String> {
-    let identity =
-        Identity::deserialize_from(&hex_to_vec_bytes(&identity).map_err(to_napi_err)?[..])?;
+    let secret = Secret::deserialize_from(&hex_to_vec_bytes(&secret).map_err(to_napi_err)?[..])?;
+    let identity = secret.to_identity();
     let key_package =
         KeyPackage::deserialize(&hex_to_vec_bytes(&key_package).map_err(to_napi_err)?)
             .map_err(to_napi_err)?;

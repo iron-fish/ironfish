@@ -1170,7 +1170,6 @@ describe('Wallet', () => {
 
       const participantA = await node.wallet.importAccount({
         version: 2,
-        id: uuid(),
         name: trustedDealerPackage.keyPackages[0].identity,
         spendingKey: null,
         createdAt: null,
@@ -1179,7 +1178,6 @@ describe('Wallet', () => {
       })
       const participantB = await node.wallet.importAccount({
         version: 2,
-        id: uuid(),
         name: trustedDealerPackage.keyPackages[1].identity,
         spendingKey: null,
         createdAt: null,
@@ -1188,7 +1186,6 @@ describe('Wallet', () => {
       })
       const participantC = await node.wallet.importAccount({
         version: 2,
-        id: uuid(),
         name: trustedDealerPackage.keyPackages[2].identity,
         spendingKey: null,
         createdAt: null,
@@ -1200,7 +1197,6 @@ describe('Wallet', () => {
 
       const coordinator = await node.wallet.importAccount({
         version: 4,
-        id: uuid(),
         name: 'coordinator',
         spendingKey: null,
         createdAt: null,
@@ -1276,7 +1272,8 @@ describe('Wallet', () => {
 
       const signers = participants.map((participant) => {
         AssertMultisigSigner(participant)
-        return participant.multisigKeys.identity
+        const secret = new ParticipantSecret(Buffer.from(participant.multisigKeys.secret, 'hex'))
+        return secret.toIdentity().serialize().toString('hex')
       })
 
       const signingCommitments: string[] = []
@@ -1284,7 +1281,7 @@ describe('Wallet', () => {
         AssertMultisigSigner(participant)
         signingCommitments.push(
           createSigningCommitment(
-            participant.multisigKeys.identity,
+            participant.multisigKeys.secret,
             participant.multisigKeys.keyPackage,
             transactionHash,
             signers,
@@ -1300,7 +1297,7 @@ describe('Wallet', () => {
         AssertMultisigSigner(participant)
         signatureShares.push(
           createSignatureShare(
-            participant.multisigKeys.identity,
+            participant.multisigKeys.secret,
             participant.multisigKeys.keyPackage,
             signingPackage,
           ),
@@ -1355,7 +1352,6 @@ describe('Wallet', () => {
 
     const account = await node.wallet.importAccount({
       version: 2,
-      id: uuid(),
       name: trustedDealerPackage.keyPackages[0].identity,
       spendingKey: null,
       createdAt: null,
