@@ -85,10 +85,6 @@ criteria = "safe-to-deploy"
 version = "0.2.0"
 criteria = "safe-to-deploy"
 
-[[exemptions.base64]]
-version = "0.13.1"
-criteria = "safe-to-deploy"
-
 [[exemptions.base64ct]]
 version = "1.0.1"
 criteria = "safe-to-deploy"
@@ -250,10 +246,6 @@ version = "0.8.14"
 criteria = "safe-to-deploy"
 
 [[exemptions.crypto-mac]]
-version = "0.8.0"
-criteria = "safe-to-deploy"
-
-[[exemptions.crypto-mac]]
 version = "0.11.1"
 criteria = "safe-to-deploy"
 
@@ -267,10 +259,6 @@ criteria = "safe-to-deploy"
 
 [[exemptions.ctor]]
 version = "0.2.2"
-criteria = "safe-to-deploy"
-
-[[exemptions.curve25519-dalek]]
-version = "3.2.0"
 criteria = "safe-to-deploy"
 
 [[exemptions.curve25519-dalek]]
@@ -374,10 +362,6 @@ version = "0.14.6"
 criteria = "safe-to-deploy"
 
 [[exemptions.getrandom]]
-version = "0.1.16"
-criteria = "safe-to-deploy"
-
-[[exemptions.getrandom]]
 version = "0.2.8"
 criteria = "safe-to-deploy"
 
@@ -407,10 +391,6 @@ criteria = "safe-to-deploy"
 
 [[exemptions.hex-literal-impl]]
 version = "0.1.2"
-criteria = "safe-to-deploy"
-
-[[exemptions.hmac]]
-version = "0.8.1"
 criteria = "safe-to-deploy"
 
 [[exemptions.hmac]]
@@ -562,10 +542,6 @@ version = "0.3.2"
 criteria = "safe-to-deploy"
 
 [[exemptions.pbkdf2]]
-version = "0.4.0"
-criteria = "safe-to-deploy"
-
-[[exemptions.pbkdf2]]
 version = "0.9.0"
 criteria = "safe-to-deploy"
 
@@ -614,23 +590,7 @@ version = "0.7.0"
 criteria = "safe-to-deploy"
 
 [[exemptions.rand]]
-version = "0.7.3"
-criteria = "safe-to-deploy"
-
-[[exemptions.rand]]
 version = "0.8.5"
-criteria = "safe-to-deploy"
-
-[[exemptions.rand_chacha]]
-version = "0.2.2"
-criteria = "safe-to-deploy"
-
-[[exemptions.rand_core]]
-version = "0.5.1"
-criteria = "safe-to-deploy"
-
-[[exemptions.rand_hc]]
-version = "0.2.0"
 criteria = "safe-to-deploy"
 
 [[exemptions.rand_seeder]]
@@ -745,10 +705,6 @@ criteria = "safe-to-deploy"
 version = "1.0.0"
 criteria = "safe-to-deploy"
 
-[[exemptions.static_assertions]]
-version = "1.1.0"
-criteria = "safe-to-deploy"
-
 [[exemptions.subtle]]
 version = "2.4.1"
 criteria = "safe-to-deploy"
@@ -831,10 +787,6 @@ criteria = "safe-to-deploy"
 
 [[exemptions.walkdir]]
 version = "2.3.3"
-criteria = "safe-to-deploy"
-
-[[exemptions.wasi]]
-version = "0.9.0+wasi-snapshot-preview1"
 criteria = "safe-to-deploy"
 
 [[exemptions.wasi]]
@@ -963,10 +915,6 @@ criteria = "safe-to-deploy"
 
 [[exemptions.x25519-dalek]]
 version = "2.0.0"
-criteria = "safe-to-deploy"
-
-[[exemptions.xsalsa20poly1305]]
-version = "0.9.1"
 criteria = "safe-to-deploy"
 
 [[exemptions.xxhash-rust]]
