@@ -74,7 +74,7 @@ describe('JsonEncoder', () => {
         createdAt: null,
         multisigKeys: {
           publicKeyPackage: 'cccc',
-          identity: 'aaaa',
+          secret: 'aaaa',
           keyPackage: 'bbbb',
         },
         proofAuthorizingKey: key.proofAuthorizingKey,

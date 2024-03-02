@@ -22,6 +22,9 @@ use std::ops::Deref;
 #[napi]
 pub const IDENTITY_LEN: u32 = ironfish::frost_utils::IDENTITY_LEN as u32;
 
+#[napi]
+pub const SECRET_LEN: u32 = ironfish_frost::participant::SECRET_LEN as u32;
+
 fn try_deserialize_identities<I, S>(signers: I) -> Result<Vec<Identity>>
 where
     I: IntoIterator<Item = S>,

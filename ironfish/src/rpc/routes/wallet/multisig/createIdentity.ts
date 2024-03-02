@@ -15,6 +15,7 @@ export type CreateIdentityRequest = {
 export type CreateIdentityResponse = {
   identity: string
 }
+
 export const CreateIdentityRequestSchema: yup.ObjectSchema<CreateIdentityRequest> = yup
   .object({
     name: yup.string().defined(),
@@ -36,7 +37,7 @@ routes.register<typeof CreateIdentityRequestSchema, CreateIdentityResponse>(
     const { name } = request.data
 
     await context.wallet.walletDb.db.transaction(async (tx) => {
-      if (await context.wallet.walletDb.hasMultisigSecret(name, tx)) {
+      if (await context.wallet.walletDb.hasMultisigSecretName(name, tx)) {
         throw new RpcValidationError(
           `Identity already exists with name ${name}`,
           400,
@@ -47,7 +48,14 @@ routes.register<typeof CreateIdentityRequestSchema, CreateIdentityResponse>(
       const secret = ParticipantSecret.random()
       const identity = secret.toIdentity()
 
-      await context.wallet.walletDb.putMultisigSecret(name, secret.serialize(), tx)
+      await context.wallet.walletDb.putMultisigSecret(
+        identity.serialize(),
+        {
+          name,
+          secret: secret.serialize(),
+        },
+        tx,
+      )
 
       request.end({ identity: identity.serialize().toString('hex') })
     })

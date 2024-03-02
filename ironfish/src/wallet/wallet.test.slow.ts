@@ -12,7 +12,6 @@ import {
   splitSecret,
   TrustedDealerKeyPackages,
 } from '@ironfish/rust-nodejs'
-import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
 import { Transaction } from '../primitives'
 import { Target } from '../primitives/target'
@@ -1272,7 +1271,9 @@ describe('Wallet', () => {
 
       const signers = participants.map((participant) => {
         AssertMultisigSigner(participant)
-        const secret = new ParticipantSecret(Buffer.from(participant.multisigKeys.secret, 'hex'))
+        const secret = new ParticipantSecret(
+          Buffer.from(participant.multisigKeys.secret, 'hex'),
+        )
         return secret.toIdentity().serialize().toString('hex')
       })
 

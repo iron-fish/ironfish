@@ -37,7 +37,7 @@ export type AccountImport = {
   publicAddress: string
   createdAt: HeadValue | null
   multisigKeys?: MultisigKeysImport
-  proofAuthorizingKey: string | null 
+  proofAuthorizingKey: string | null
 }
 
 export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {

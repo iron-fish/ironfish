@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { v4 as uuid } from 'uuid'
 import * as yup from 'yup'
 import { DecodeInvalidName } from '../../../wallet'
 import { decodeAccount } from '../../../wallet/account/encoder/account'
@@ -52,9 +51,10 @@ routes.register<typeof ImportAccountRequestSchema, ImportResponse>(
       let accountImport = null
       if (typeof request.data.account === 'string') {
         const name = request.data.name
-        const multisigSecret = name
-          ? await context.wallet.walletDb.getMultisigSecret(name)
+        const multisigSecretValue = name
+          ? await context.wallet.walletDb.getMultisigSecretByName(name)
           : undefined
+        const multisigSecret = multisigSecretValue ? multisigSecretValue.secret : undefined
         accountImport = decodeAccount(request.data.account, { name, multisigSecret })
       } else {
         accountImport = deserializeRpcAccountImport(request.data.account)
