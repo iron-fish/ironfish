@@ -3,9 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import {
-  generateKey,
+  generateAndSplitKey,
   ParticipantSecret,
-  splitSecret,
   TrustedDealerKeyPackages,
 } from '@ironfish/rust-nodejs'
 
@@ -13,9 +12,8 @@ export function createTrustedDealerKeyPackages(
   minSigners: number = 2,
   maxSigners: number = 2,
 ): TrustedDealerKeyPackages {
-  const key = generateKey()
   const identities = Array.from({ length: maxSigners }, () =>
     ParticipantSecret.random().toIdentity().serialize().toString('hex'),
   )
-  return splitSecret(key.spendingKey, minSigners, identities)
+  return generateAndSplitKey(minSigners, identities)
 }

@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { generateKey, splitSecret } from '@ironfish/rust-nodejs'
+import { generateAndSplitKey } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
 import { Assert } from '../../../../assert'
 import { FullNode } from '../../../../node'
@@ -66,7 +66,6 @@ routes.register<
   (request, node): void => {
     Assert.isInstanceOf(node, FullNode)
 
-    const key = generateKey()
     const { minSigners, participants } = request.data
     const identities = participants.map((p) => p.identity)
     const {
@@ -77,7 +76,7 @@ routes.register<
       outgoingViewKey,
       proofAuthorizingKey,
       keyPackages,
-    } = splitSecret(key.spendingKey, minSigners, identities)
+    } = generateAndSplitKey(minSigners, identities)
 
     const latestHeader = node.chain.latest
     const createdAt = {
