@@ -50,7 +50,6 @@ routes.register<typeof CreateSigningCommitmentRequestSchema, CreateSigningCommit
     AssertHasRpcContext(request, context, 'wallet')
 
     const account = getAccount(context.wallet, request.data.account)
-
     AssertMultisigSigner(account)
 
     const unsigned = new UnsignedTransaction(

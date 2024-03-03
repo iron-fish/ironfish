@@ -31,10 +31,10 @@ describe('multisig RPC integration', () => {
       const importAccount = trustedDealerPackage.participantAccounts.find(
         (account) => account.identity === identity,
       )
-      expect(importAccount).not.toBeUndefined()
+      Assert.isNotUndefined(importAccount)
       await routeTest.client.wallet.importAccount({
         name,
-        account: importAccount!.account,
+        account: importAccount.account,
       })
     }
 
@@ -70,7 +70,7 @@ describe('multisig RPC integration', () => {
     const signers = participantAccounts.map((participant) => {
       AssertMultisigSigner(participant)
       const secret = new ParticipantSecret(Buffer.from(participant.multisigKeys.secret, 'hex'))
-      return { identity: secret.serialize().toString('hex') }
+      return { identity: secret.toIdentity().serialize().toString('hex') }
     })
 
     // create raw transaction

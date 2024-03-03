@@ -1143,8 +1143,18 @@ describe('Wallet', () => {
       const { node } = await nodeTest.createSetup()
       const recipient = await useAccountFixture(node.wallet, 'recipient')
 
-      const identities = Array.from({ length: 3 }, () =>
-        ParticipantSecret.random().toIdentity().serialize().toString('hex'),
+      const accountNames = Array.from({ length: 3 }, (_, index) => `test-account-${index}`)
+      const identities = await Promise.all(
+        accountNames.map(async (name) => {
+          const secret = ParticipantSecret.random()
+          const identity = secret.toIdentity()
+
+          await node.wallet.walletDb.putMultisigSecret(identity.serialize(), {
+            name,
+            secret: secret.serialize(),
+          })
+          return identity.serialize().toString('hex')
+        }),
       )
 
       // construct 3 separate secrets for the participants
@@ -1332,8 +1342,18 @@ describe('Wallet', () => {
 
     const { node } = await nodeTest.createSetup()
 
-    const identities = Array.from({ length: 3 }, () =>
-      ParticipantSecret.random().toIdentity().serialize().toString('hex'),
+    const accountNames = Array.from({ length: 3 }, (_, index) => `test-account-${index}`)
+    const identities = await Promise.all(
+      accountNames.map(async (name) => {
+        const secret = ParticipantSecret.random()
+        const identity = secret.toIdentity()
+
+        await node.wallet.walletDb.putMultisigSecret(identity.serialize(), {
+          name,
+          secret: secret.serialize(),
+        })
+        return identity.serialize().toString('hex')
+      }),
     )
 
     const trustedDealerPackage = generateAndSplitKey(minSigners, identities)

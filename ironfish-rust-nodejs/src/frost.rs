@@ -52,7 +52,6 @@ pub fn create_signing_commitment(
     signers: Vec<String>,
 ) -> Result<String> {
     let secret = Secret::deserialize_from(&hex_to_vec_bytes(&secret).map_err(to_napi_err)?[..])?;
-    let identity = secret.to_identity();
     let key_package =
         KeyPackage::deserialize(&hex_to_vec_bytes(&key_package).map_err(to_napi_err)?)
             .map_err(to_napi_err)?;
@@ -64,7 +63,7 @@ pub fn create_signing_commitment(
     let commitments = SigningCommitments::from(&nonces);
 
     let signing_commitment =
-        SigningCommitment::from_frost(identity, *commitments.hiding(), *commitments.binding());
+        SigningCommitment::from_frost(secret, *commitments.hiding(), *commitments.binding());
 
     let bytes = signing_commitment.serialize()?;
 
@@ -73,13 +72,12 @@ pub fn create_signing_commitment(
 
 #[napi]
 pub fn create_signature_share(
-    identity: String,
+    secret: String,
     key_package: String,
     signing_package: String,
 ) -> Result<String> {
-    let identity =
-        Identity::deserialize_from(&hex_to_vec_bytes(&identity).map_err(to_napi_err)?[..])
-            .map_err(to_napi_err)?;
+    let secret = Secret::deserialize_from(&hex_to_vec_bytes(&secret).map_err(to_napi_err)?[..])?;
+    let identity = secret.to_identity();
     let key_package =
         KeyPackage::deserialize(&hex_to_vec_bytes(&key_package).map_err(to_napi_err)?[..])
             .map_err(to_napi_err)?;
@@ -116,7 +114,7 @@ pub fn create_signature_share(
     .map_err(to_napi_err)?;
 
     let signature_share = SignatureShare::from_frost(signature_share, identity);
-    let bytes = signature_share.serialize()?;
+    let bytes = signature_share.serialize();
 
     Ok(bytes_to_hex(&bytes[..]))
 }
@@ -276,5 +274,26 @@ impl NativePublicKeyPackage {
             .iter()
             .map(|identity| Buffer::from(&identity.serialize()[..]))
             .collect()
+    }
+}
+
+#[napi(js_name = "SigningCommitment")]
+pub struct NativeSigningCommitment {
+    signing_commitment: SigningCommitment,
+}
+
+#[napi]
+impl NativeSigningCommitment {
+    #[napi(constructor)]
+    pub fn new(js_bytes: JsBuffer) -> Result<NativeSigningCommitment> {
+        let bytes = js_bytes.into_value()?;
+        SigningCommitment::deserialize_from(bytes.as_ref())
+            .map(|signing_commitment| NativeSigningCommitment { signing_commitment })
+            .map_err(to_napi_err)
+    }
+
+    #[napi]
+    pub fn identity(&self) -> Buffer {
+        Buffer::from(self.signing_commitment.identity().serialize().as_slice())
     }
 }

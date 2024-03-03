@@ -46,7 +46,7 @@ import { Account, ACCOUNT_SCHEMA_VERSION } from './account/account'
 import { AssetBalances } from './assetBalances'
 import { DuplicateAccountNameError, MaxMemoLengthError, NotEnoughFundsError } from './errors'
 import { MintAssetOptions } from './interfaces/mintAssetOptions'
-import { isMultisigSignerTrustedDealerImport, MultisigKeys } from './interfaces/multisigKeys'
+import { isMultisigSignerTrustedDealerImport } from './interfaces/multisigKeys'
 import {
   RemoteChainProcessor,
   WalletBlockHeader,
@@ -1520,7 +1520,7 @@ export class Wallet {
   }
 
   async importAccount(accountValue: AccountImport): Promise<Account> {
-    let multisigKeys: MultisigKeys | undefined
+    let multisigKeys = accountValue.multisigKeys
     let name = accountValue.name
 
     if (
