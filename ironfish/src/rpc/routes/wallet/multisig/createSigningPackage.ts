@@ -1,11 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import {
-  PublicKeyPackage,
-  SigningCommitment,
-  UnsignedTransaction,
-} from '@ironfish/rust-nodejs'
+import { PublicKeyPackage, SigningCommitment, UnsignedTransaction } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
 import { AssertMultisig } from '../../../../wallet'
 import { RpcValidationError } from '../../../adapters'
