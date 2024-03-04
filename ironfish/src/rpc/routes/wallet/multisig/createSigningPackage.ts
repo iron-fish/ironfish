@@ -10,17 +10,17 @@ import { routes } from '../../router'
 import { AssertHasRpcContext } from '../../rpcContext'
 import { getAccount } from '../utils'
 
-export type AggregateCommitmentsRequest = {
+export type CreateSigningPackageRequest = {
   unsignedTransaction: string
   commitments: Array<string>
   account?: string
 }
 
-export type AggregateCommitmentsResponse = {
+export type CreateSigningPackageResponse = {
   signingPackage: string
 }
 
-export const AggregateCommitmentsRequestSchema: yup.ObjectSchema<AggregateCommitmentsRequest> =
+export const CreateSigningPackageRequestSchema: yup.ObjectSchema<CreateSigningPackageRequest> =
   yup
     .object({
       unsignedTransaction: yup.string().defined(),
@@ -29,16 +29,16 @@ export const AggregateCommitmentsRequestSchema: yup.ObjectSchema<AggregateCommit
     })
     .defined()
 
-export const AggregateCommitmentsResponseSchema: yup.ObjectSchema<AggregateCommitmentsResponse> =
+export const CreateSigningPackageResponseSchema: yup.ObjectSchema<CreateSigningPackageResponse> =
   yup
     .object({
       signingPackage: yup.string().defined(),
     })
     .defined()
 
-routes.register<typeof AggregateCommitmentsRequestSchema, AggregateCommitmentsResponse>(
+routes.register<typeof CreateSigningPackageRequestSchema, CreateSigningPackageResponse>(
   `${ApiNamespace.wallet}/multisig/aggregateCommitments`,
-  AggregateCommitmentsRequestSchema,
+  CreateSigningPackageRequestSchema,
   (request, context): void => {
     AssertHasRpcContext(request, context, 'wallet')
 

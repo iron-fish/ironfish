@@ -6,7 +6,7 @@ import { createRouteTest } from '../../../../testUtilities/routeTest'
 import { RpcRequestError } from '../../../clients'
 import { CreateParticipantResponse } from './createParticipant'
 
-describe('Route multisig/aggregateCommitments', () => {
+describe('Route multisig/createSigningPackage', () => {
   const routeTest = createRouteTest()
 
   it('should create signing package', async () => {
@@ -63,7 +63,7 @@ describe('Route multisig/aggregateCommitments', () => {
     )
 
     // Create the signing package
-    const responseSigningPackage = await routeTest.client.wallet.multisig.aggregateCommitments({
+    const responseSigningPackage = await routeTest.client.wallet.multisig.createSigningPackage({
       commitments,
       unsignedTransaction,
     })
@@ -150,7 +150,7 @@ describe('Route multisig/aggregateCommitments', () => {
 
     // Try to create the signing package
     await expect(async () =>
-      routeTest.client.wallet.multisig.aggregateCommitments({
+      routeTest.client.wallet.multisig.createSigningPackage({
         account: mixedParticipants[0].name,
         commitments,
         unsignedTransaction,
@@ -158,7 +158,7 @@ describe('Route multisig/aggregateCommitments', () => {
     ).rejects.toThrow(RpcRequestError)
 
     await expect(async () =>
-      routeTest.client.wallet.multisig.aggregateCommitments({
+      routeTest.client.wallet.multisig.createSigningPackage({
         account: mixedParticipants[1].name,
         commitments,
         unsignedTransaction,

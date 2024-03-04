@@ -9,8 +9,8 @@ import type {
   AddPeerResponse,
   AddTransactionRequest,
   AddTransactionResponse,
-  AggregateCommitmentsRequest,
-  AggregateCommitmentsResponse,
+  CreateSigningPackageRequest,
+  CreateSigningPackageResponse,
   AggregateSignatureSharesRequest,
   AggregateSignatureSharesResponse,
   BlockTemplateStreamRequest,
@@ -207,11 +207,11 @@ export abstract class RpcClient {
         ).waitForEnd()
       },
 
-      aggregateCommitments: (
-        params: AggregateCommitmentsRequest,
-      ): Promise<RpcResponseEnded<AggregateCommitmentsResponse>> => {
-        return this.request<AggregateCommitmentsResponse>(
-          `${ApiNamespace.wallet}/multisig/aggregateCommitments`,
+      createSigningPackage: (
+        params: CreateSigningPackageRequest,
+      ): Promise<RpcResponseEnded<CreateSigningPackageResponse>> => {
+        return this.request<CreateSigningPackageResponse>(
+          `${ApiNamespace.wallet}/multisig/createSigningPackage`,
           params,
         ).waitForEnd()
       },

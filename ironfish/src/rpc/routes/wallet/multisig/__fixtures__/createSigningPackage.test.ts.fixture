@@ -1,5 +1,5 @@
 {
-  "Route multisig/aggregateCommitments should create signing package": [
+  "Route multisig/createSigningPackage should create signing package": [
     {
       "version": 4,
       "id": "5bd50c3c-6539-444e-a65f-7576df689ec7",
