@@ -4,7 +4,7 @@
 
 export * from './aggregateSignatureShares'
 export * from './createSigningCommitment'
-export * from './aggregateCommitments'
+export * from './createSigningPackage'
 export * from './createTrustedDealerKeyPackage'
 export * from './createSignatureShare'
 export * from './createParticipant'
