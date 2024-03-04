@@ -101,7 +101,7 @@ export class BalancesCommand extends IronfishCommand {
         },
         sequence: {
           header: 'Head Sequence',
-          get: ({ balance }) => balance.blockHash || 'NULL',
+          get: ({ balance }) => balance.sequence || 'NULL',
         },
       }
     }
