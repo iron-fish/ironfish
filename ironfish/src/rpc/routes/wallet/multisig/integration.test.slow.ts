@@ -110,7 +110,7 @@ describe('multisig RPC integration', () => {
     }
 
     // create signing package
-    const responseSigningPackage = await routeTest.client.wallet.multisig.aggregateCommitments({
+    const responseSigningPackage = await routeTest.client.wallet.multisig.createSigningPackage({
       commitments,
       unsignedTransaction,
     })
