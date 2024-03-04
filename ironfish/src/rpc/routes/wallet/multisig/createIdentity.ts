@@ -1,9 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { ParticipantSecret } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
-import { RPC_ERROR_CODES, RpcValidationError } from '../../../adapters/errors'
 import { ApiNamespace } from '../../namespaces'
 import { routes } from '../../router'
 import { AssertHasRpcContext } from '../../rpcContext'
@@ -34,30 +32,7 @@ routes.register<typeof CreateIdentityRequestSchema, CreateIdentityResponse>(
   async (request, context): Promise<void> => {
     AssertHasRpcContext(request, context, 'wallet')
 
-    const { name } = request.data
-
-    await context.wallet.walletDb.db.transaction(async (tx) => {
-      if (await context.wallet.walletDb.hasMultisigSecretName(name, tx)) {
-        throw new RpcValidationError(
-          `Identity already exists with name ${name}`,
-          400,
-          RPC_ERROR_CODES.DUPLICATE_ACCOUNT_NAME,
-        )
-      }
-
-      const secret = ParticipantSecret.random()
-      const identity = secret.toIdentity()
-
-      await context.wallet.walletDb.putMultisigSecret(
-        identity.serialize(),
-        {
-          name,
-          secret: secret.serialize(),
-        },
-        tx,
-      )
-
-      request.end({ identity: identity.serialize().toString('hex') })
-    })
+    const identity = await context.wallet.createMultisigSecret(request.data.name)
+    request.end({ identity: identity.toString('hex') })
   },
 )

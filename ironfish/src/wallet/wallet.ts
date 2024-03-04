@@ -6,6 +6,7 @@ import {
   generateKey,
   MEMO_LENGTH,
   Note as NativeNote,
+  ParticipantSecret,
   PublicKeyPackage,
   UnsignedTransaction,
 } from '@ironfish/rust-nodejs'
@@ -44,7 +45,12 @@ import { WorkerPool } from '../workerPool'
 import { DecryptedNote, DecryptNoteOptions } from '../workerPool/tasks/decryptNotes'
 import { Account, ACCOUNT_SCHEMA_VERSION } from './account/account'
 import { AssetBalances } from './assetBalances'
-import { DuplicateAccountNameError, MaxMemoLengthError, NotEnoughFundsError } from './errors'
+import {
+  DuplicateAccountNameError,
+  DuplicateMultisigSecretNameError,
+  MaxMemoLengthError,
+  NotEnoughFundsError,
+} from './errors'
 import { MintAssetOptions } from './interfaces/mintAssetOptions'
 import { isMultisigSignerTrustedDealerImport } from './interfaces/multisigKeys'
 import {
@@ -1891,6 +1897,32 @@ export class Wallet {
       this.logger.error(ErrorUtils.renderError(error, true))
       throw error
     }
+  }
+
+  async createMultisigSecret(name: string): Promise<Buffer> {
+    return this.walletDb.db.transaction(async (tx) => {
+      if (await this.walletDb.hasMultisigSecretName(name, tx)) {
+        throw new DuplicateMultisigSecretNameError(name)
+      }
+
+      if (this.getAccountByName(name)) {
+        throw new DuplicateAccountNameError(name)
+      }
+
+      const secret = ParticipantSecret.random()
+      const identity = secret.toIdentity()
+
+      await this.walletDb.putMultisigSecret(
+        identity.serialize(),
+        {
+          name,
+          secret: secret.serialize(),
+        },
+        tx,
+      )
+
+      return identity.serialize()
+    })
   }
 }
 
