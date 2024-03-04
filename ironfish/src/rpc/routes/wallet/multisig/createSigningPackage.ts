@@ -37,7 +37,7 @@ export const CreateSigningPackageResponseSchema: yup.ObjectSchema<CreateSigningP
     .defined()
 
 routes.register<typeof CreateSigningPackageRequestSchema, CreateSigningPackageResponse>(
-  `${ApiNamespace.wallet}/multisig/aggregateCommitments`,
+  `${ApiNamespace.wallet}/multisig/createSigningPackage`,
   CreateSigningPackageRequestSchema,
   (request, context): void => {
     AssertHasRpcContext(request, context, 'wallet')
