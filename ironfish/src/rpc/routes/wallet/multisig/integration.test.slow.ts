@@ -14,7 +14,7 @@ describe('multisig RPC integration', () => {
     const accountNames = Array.from({ length: 3 }, (_, index) => `test-account-${index}`)
     const participants = await Promise.all(
       accountNames.map(async (name) => {
-        const identity = (await routeTest.client.wallet.multisig.createIdentity({ name }))
+        const identity = (await routeTest.client.wallet.multisig.createParticipant({ name }))
           .content.identity
         return { name, identity }
       }),
@@ -110,7 +110,7 @@ describe('multisig RPC integration', () => {
     }
 
     // create signing package
-    const responseSigningPackage = await routeTest.client.wallet.multisig.createSigningPackage({
+    const responseSigningPackage = await routeTest.client.wallet.multisig.aggregateCommitments({
       commitments,
       unsignedTransaction,
     })

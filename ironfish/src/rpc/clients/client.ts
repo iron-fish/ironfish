@@ -9,6 +9,8 @@ import type {
   AddPeerResponse,
   AddTransactionRequest,
   AddTransactionResponse,
+  AggregateCommitmentsRequest,
+  AggregateCommitmentsResponse,
   AggregateSignatureSharesRequest,
   AggregateSignatureSharesResponse,
   BlockTemplateStreamRequest,
@@ -21,14 +23,12 @@ import type {
   BurnAssetResponse,
   CreateAccountRequest,
   CreateAccountResponse,
-  CreateIdentityRequest,
-  CreateIdentityResponse,
+  CreateParticipantRequest,
+  CreateParticipantResponse,
   CreateSignatureShareRequest,
   CreateSignatureShareResponse,
   CreateSigningCommitmentRequest,
   CreateSigningCommitmentResponse,
-  CreateSigningPackageRequest,
-  CreateSigningPackageResponse,
   CreateTransactionRequest,
   CreateTransactionResponse,
   CreateTrustedDealerKeyPackageRequest,
@@ -207,11 +207,11 @@ export abstract class RpcClient {
         ).waitForEnd()
       },
 
-      createSigningPackage: (
-        params: CreateSigningPackageRequest,
-      ): Promise<RpcResponseEnded<CreateSigningPackageResponse>> => {
-        return this.request<CreateSigningPackageResponse>(
-          `${ApiNamespace.wallet}/multisig/createSigningPackage`,
+      aggregateCommitments: (
+        params: AggregateCommitmentsRequest,
+      ): Promise<RpcResponseEnded<AggregateCommitmentsResponse>> => {
+        return this.request<AggregateCommitmentsResponse>(
+          `${ApiNamespace.wallet}/multisig/aggregateCommitments`,
           params,
         ).waitForEnd()
       },
@@ -234,11 +234,11 @@ export abstract class RpcClient {
         ).waitForEnd()
       },
 
-      createIdentity: (
-        params: CreateIdentityRequest,
-      ): Promise<RpcResponseEnded<CreateIdentityResponse>> => {
-        return this.request<CreateIdentityResponse>(
-          `${ApiNamespace.wallet}/multisig/createIdentity`,
+      createParticipant: (
+        params: CreateParticipantRequest,
+      ): Promise<RpcResponseEnded<CreateParticipantResponse>> => {
+        return this.request<CreateParticipantResponse>(
+          `${ApiNamespace.wallet}/multisig/createParticipant`,
           params,
         ).waitForEnd()
       },

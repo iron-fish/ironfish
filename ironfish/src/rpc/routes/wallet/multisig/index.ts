@@ -4,9 +4,9 @@
 
 export * from './aggregateSignatureShares'
 export * from './createSigningCommitment'
-export * from './createSigningPackage'
+export * from './aggregateCommitments'
 export * from './createTrustedDealerKeyPackage'
 export * from './createSignatureShare'
-export * from './createIdentity'
+export * from './createParticipant'
 export * from './getIdentity'
 export * from './getAccountIdentities'

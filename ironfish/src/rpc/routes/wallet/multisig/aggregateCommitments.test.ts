@@ -4,9 +4,9 @@
 import { useAccountAndAddFundsFixture, useUnsignedTxFixture } from '../../../../testUtilities'
 import { createRouteTest } from '../../../../testUtilities/routeTest'
 import { RpcRequestError } from '../../../clients'
-import { CreateIdentityResponse } from './createIdentity'
+import { CreateParticipantResponse } from './createParticipant'
 
-describe('Route multisig/createSigningPackage', () => {
+describe('Route multisig/aggregateCommitments', () => {
   const routeTest = createRouteTest()
 
   it('should create signing package', async () => {
@@ -16,7 +16,7 @@ describe('Route multisig/createSigningPackage', () => {
       accountNames.map(async (name) => {
         const identity = (
           await routeTest.client
-            .request<CreateIdentityResponse>('wallet/multisig/createIdentity', { name })
+            .request<CreateParticipantResponse>('wallet/multisig/createParticipant', { name })
             .waitForEnd()
         ).content.identity
         return { name, identity }
@@ -63,7 +63,7 @@ describe('Route multisig/createSigningPackage', () => {
     )
 
     // Create the signing package
-    const responseSigningPackage = await routeTest.client.wallet.multisig.createSigningPackage({
+    const responseSigningPackage = await routeTest.client.wallet.multisig.aggregateCommitments({
       commitments,
       unsignedTransaction,
     })
@@ -79,7 +79,7 @@ describe('Route multisig/createSigningPackage', () => {
       accountNames.map(async (name) => {
         const identity = (
           await routeTest.client
-            .request<CreateIdentityResponse>('wallet/multisig/createIdentity', { name })
+            .request<CreateParticipantResponse>('wallet/multisig/createParticipant', { name })
             .waitForEnd()
         ).content.identity
         return { name, identity }
@@ -150,7 +150,7 @@ describe('Route multisig/createSigningPackage', () => {
 
     // Try to create the signing package
     await expect(async () =>
-      routeTest.client.wallet.multisig.createSigningPackage({
+      routeTest.client.wallet.multisig.aggregateCommitments({
         account: mixedParticipants[0].name,
         commitments,
         unsignedTransaction,
@@ -158,7 +158,7 @@ describe('Route multisig/createSigningPackage', () => {
     ).rejects.toThrow(RpcRequestError)
 
     await expect(async () =>
-      routeTest.client.wallet.multisig.createSigningPackage({
+      routeTest.client.wallet.multisig.aggregateCommitments({
         account: mixedParticipants[1].name,
         commitments,
         unsignedTransaction,

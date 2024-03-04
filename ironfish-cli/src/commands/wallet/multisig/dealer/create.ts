@@ -6,7 +6,7 @@ import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
 
-export class MultisigCreate extends IronfishCommand {
+export class MultisigCreateDealer extends IronfishCommand {
   static description = `Create a set of multisig accounts from identities`
   static hidden = true
 
@@ -33,7 +33,7 @@ export class MultisigCreate extends IronfishCommand {
   }
 
   async start(): Promise<void> {
-    const { flags } = await this.parse(MultisigCreate)
+    const { flags } = await this.parse(MultisigCreateDealer)
 
     let identities = flags.identity
     if (!identities || identities.length < 2) {

@@ -5,27 +5,29 @@ import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
 
-export class MultisigIdentity extends IronfishCommand {
-  static description = `Retrieve a multisig identity`
+export class MultisigAccountParticipants extends IronfishCommand {
+  static description = `List the identities for a multisig account`
   static hidden = true
 
   static flags = {
     ...RemoteFlags,
-    name: Flags.string({
-      char: 'n',
-      description: 'Name of the identity',
-      required: true,
+    account: Flags.string({
+      char: 'f',
+      description: 'The account to list identities for',
     }),
   }
 
   async start(): Promise<void> {
-    const { flags } = await this.parse(MultisigIdentity)
+    const { flags } = await this.parse(MultisigAccountParticipants)
 
     const client = await this.sdk.connectRpc()
 
-    const response = await client.wallet.multisig.getIdentity({ name: flags.name })
+    const response = await client.wallet.multisig.getAccountIdentities({
+      account: flags.account,
+    })
 
-    this.log('Identity:')
-    this.log(response.content.identity)
+    for (const identity of response.content.identities) {
+      this.log(identity)
+    }
   }
 }

@@ -11,7 +11,7 @@ import { JsonEncoder } from '../../../wallet/account/encoder/json'
 import { MnemonicEncoder } from '../../../wallet/account/encoder/mnemonic'
 import { SpendingKeyEncoder } from '../../../wallet/account/encoder/spendingKey'
 import { ExportAccountResponse } from './exportAccount'
-import { CreateIdentityResponse } from './multisig/createIdentity'
+import { CreateParticipantResponse } from './multisig/createParticipant'
 
 describe('Route wallet/exportAccount', () => {
   const routeTest = createRouteTest(true)
@@ -149,7 +149,7 @@ describe('Route wallet/exportAccount', () => {
         async (name) =>
           (
             await routeTest.client
-              .request<CreateIdentityResponse>('wallet/multisig/createIdentity', { name })
+              .request<CreateParticipantResponse>('wallet/multisig/createParticipant', { name })
               .waitForEnd()
           ).content,
       ),

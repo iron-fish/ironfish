@@ -3,10 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { UnsignedTransaction } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
-import { IronfishCommand } from '../../../command'
-import { RemoteFlags } from '../../../flags'
-import { longPrompt } from '../../../utils/longPrompt'
-import { renderUnsignedTransactionDetails } from '../../../utils/transaction'
+import { IronfishCommand } from '../../../../command'
+import { RemoteFlags } from '../../../../flags'
+import { longPrompt } from '../../../../utils/longPrompt'
+import { renderUnsignedTransactionDetails } from '../../../../utils/transaction'
 
 export class CreateSigningCommitmentCommand extends IronfishCommand {
   static description = 'Create a signing commitment from a participant for a given transaction'

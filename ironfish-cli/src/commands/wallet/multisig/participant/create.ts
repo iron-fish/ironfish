@@ -7,7 +7,7 @@ import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
 
 export class MultisigIdentityCreate extends IronfishCommand {
-  static description = `Create a multisig identity`
+  static description = `Create a multisig participant identity`
   static hidden = true
 
   static flags = {
@@ -31,7 +31,7 @@ export class MultisigIdentityCreate extends IronfishCommand {
     let response
     while (!response) {
       try {
-        response = await client.wallet.multisig.createIdentity({ name })
+        response = await client.wallet.multisig.createParticipant({ name })
       } catch (e) {
         if (
           e instanceof RpcRequestError &&
