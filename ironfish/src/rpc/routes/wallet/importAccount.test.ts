@@ -56,21 +56,22 @@ describe('Route wallet/importAccount', () => {
   })
 
   it('should import a multisig account that has no spending key', async () => {
-    const secret = ParticipantSecret.random()
     const trustedDealerPackages = createTrustedDealerKeyPackages()
 
     const accountName = 'multisig'
     const response = await routeTest.client
       .request<ImportResponse>('wallet/importAccount', {
         account: {
-          name: accountName,
-          spendingKey: null,
           version: 1,
+          name: accountName,
+          viewKey: trustedDealerPackages.viewKey,
+          incomingViewKey: trustedDealerPackages.incomingViewKey,
+          outgoingViewKey: trustedDealerPackages.outgoingViewKey,
+          publicAddress: trustedDealerPackages.publicAddress,
+          spendingKey: null,
           createdAt: null,
-          ...trustedDealerPackages,
+          proofAuthorizingKey: trustedDealerPackages.proofAuthorizingKey,
           multisigKeys: {
-            ...trustedDealerPackages,
-            secret: secret.serialize().toString('hex'),
             publicKeyPackage: trustedDealerPackages.publicKeyPackage,
           },
         },
