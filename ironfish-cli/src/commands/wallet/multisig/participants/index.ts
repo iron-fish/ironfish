@@ -6,7 +6,7 @@ import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
 
 export class MultisigAccountParticipants extends IronfishCommand {
-  static description = `List the identities for a multisig account`
+  static description = `List the participant identities for a multisig account`
   static hidden = true
 
   static flags = {
