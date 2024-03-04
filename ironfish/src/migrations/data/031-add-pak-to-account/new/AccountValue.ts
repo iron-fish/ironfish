@@ -21,7 +21,7 @@ export interface AccountValue {
   publicAddress: string
   createdAt: HeadValue | null
   multisigKeys?: {
-    identity: string
+    secret: string
     keyPackage: string
   }
   proofAuthorizingKey: string | null
@@ -53,7 +53,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     }
 
     if (value.multisigKeys) {
-      bw.writeVarBytes(Buffer.from(value.multisigKeys.identity, 'hex'))
+      bw.writeVarBytes(Buffer.from(value.multisigKeys.secret, 'hex'))
       bw.writeVarBytes(Buffer.from(value.multisigKeys.keyPackage, 'hex'))
     }
 
@@ -89,7 +89,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     let multisigKeys = undefined
     if (hasMultisigKeys) {
       multisigKeys = {
-        identity: reader.readVarBytes().toString('hex'),
+        secret: reader.readVarBytes().toString('hex'),
         keyPackage: reader.readVarBytes().toString('hex'),
       }
     }
@@ -131,7 +131,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
       size += encoding.nonNullSize
     }
     if (value.multisigKeys) {
-      size += bufio.sizeVarString(value.multisigKeys.identity, 'hex')
+      size += bufio.sizeVarString(value.multisigKeys.secret, 'hex')
       size += bufio.sizeVarString(value.multisigKeys.keyPackage, 'hex')
     }
     if (value.proofAuthorizingKey) {

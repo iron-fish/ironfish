@@ -46,13 +46,14 @@ import { Account, ACCOUNT_SCHEMA_VERSION } from './account/account'
 import { AssetBalances } from './assetBalances'
 import { DuplicateAccountNameError, MaxMemoLengthError, NotEnoughFundsError } from './errors'
 import { MintAssetOptions } from './interfaces/mintAssetOptions'
+import { isMultisigSignerTrustedDealerImport } from './interfaces/multisigKeys'
 import {
   RemoteChainProcessor,
   WalletBlockHeader,
   WalletBlockTransaction,
 } from './remoteChainProcessor'
 import { validateAccount } from './validator'
-import { AccountValue } from './walletdb/accountValue'
+import { AccountImport } from './walletdb/accountValue'
 import { AssetValue } from './walletdb/assetValue'
 import { DecryptedNoteValue } from './walletdb/decryptedNoteValue'
 import { HeadValue } from './walletdb/headValue'
@@ -1518,10 +1519,33 @@ export class Wallet {
     }
   }
 
-  async importAccount(accountValue: AccountValue): Promise<Account> {
-    if (accountValue.name && this.getAccountByName(accountValue.name)) {
-      throw new DuplicateAccountNameError(accountValue.name)
+  async importAccount(accountValue: AccountImport): Promise<Account> {
+    let multisigKeys = accountValue.multisigKeys
+    let name = accountValue.name
+
+    if (
+      accountValue.multisigKeys &&
+      isMultisigSignerTrustedDealerImport(accountValue.multisigKeys)
+    ) {
+      const multisigSecret = await this.walletDb.getMultisigSecret(
+        Buffer.from(accountValue.multisigKeys.identity, 'hex'),
+      )
+      if (!multisigSecret) {
+        throw new Error('Cannot import identity without a corresponding multisig secret')
+      }
+
+      name = multisigSecret.name
+      multisigKeys = {
+        keyPackage: accountValue.multisigKeys.keyPackage,
+        publicKeyPackage: accountValue.multisigKeys.publicKeyPackage,
+        secret: multisigSecret.secret.toString('hex'),
+      }
     }
+
+    if (name && this.getAccountByName(name)) {
+      throw new DuplicateAccountNameError(name)
+    }
+
     const accounts = this.listAccounts()
     if (
       accountValue.spendingKey &&
@@ -1554,7 +1578,10 @@ export class Wallet {
 
     const account = new Account({
       ...accountValue,
+      id: uuid(),
       createdAt,
+      name,
+      multisigKeys,
       walletDb: this.walletDb,
     })
 

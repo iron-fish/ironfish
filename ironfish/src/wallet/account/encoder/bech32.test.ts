@@ -112,7 +112,7 @@ describe('Bech32AccountEncoder', () => {
       createdAt: null,
       multisigKeys: {
         publicKeyPackage: 'cccc',
-        identity: 'aaaa',
+        secret: 'aaaa',
         keyPackage: 'bbbb',
       },
       proofAuthorizingKey: null,

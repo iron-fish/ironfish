@@ -6,7 +6,7 @@ import bufio from 'bufio'
 import { IDatabaseEncoding } from '../../storage'
 import { ACCOUNT_KEY_LENGTH } from '../account/account'
 import { MultisigKeysEncoding } from '../account/encoder/multisigKeys'
-import { MultisigKeys } from '../interfaces/multisigKeys'
+import { MultisigKeys, MultisigKeysImport } from '../interfaces/multisigKeys'
 import { HeadValue, NullableHeadValueEncoding } from './headValue'
 
 export const KEY_LENGTH = ACCOUNT_KEY_LENGTH
@@ -27,7 +27,18 @@ export interface AccountValue {
   proofAuthorizingKey: string | null
 }
 
-export type AccountImport = Omit<AccountValue, 'id'>
+export type AccountImport = {
+  version: number
+  name: string
+  spendingKey: string | null
+  viewKey: string
+  incomingViewKey: string
+  outgoingViewKey: string
+  publicAddress: string
+  createdAt: HeadValue | null
+  multisigKeys?: MultisigKeysImport
+  proofAuthorizingKey: string | null
+}
 
 export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
   serialize(value: AccountValue): Buffer {

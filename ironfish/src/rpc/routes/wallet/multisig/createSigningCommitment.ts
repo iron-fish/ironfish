@@ -50,14 +50,13 @@ routes.register<typeof CreateSigningCommitmentRequestSchema, CreateSigningCommit
     AssertHasRpcContext(request, context, 'wallet')
 
     const account = getAccount(context.wallet, request.data.account)
-
     AssertMultisigSigner(account)
 
     const unsigned = new UnsignedTransaction(
       Buffer.from(request.data.unsignedTransaction, 'hex'),
     )
     const commitment = createSigningCommitment(
-      account.multisigKeys.identity,
+      account.multisigKeys.secret,
       account.multisigKeys.keyPackage,
       unsigned.hash(),
       request.data.signers.map((signer) => signer.identity),

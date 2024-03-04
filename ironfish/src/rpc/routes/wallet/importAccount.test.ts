@@ -62,13 +62,16 @@ describe('Route wallet/importAccount', () => {
     const response = await routeTest.client
       .request<ImportResponse>('wallet/importAccount', {
         account: {
-          name: accountName,
-          spendingKey: null,
           version: 1,
+          name: accountName,
+          viewKey: trustedDealerPackages.viewKey,
+          incomingViewKey: trustedDealerPackages.incomingViewKey,
+          outgoingViewKey: trustedDealerPackages.outgoingViewKey,
+          publicAddress: trustedDealerPackages.publicAddress,
+          spendingKey: null,
           createdAt: null,
-          ...trustedDealerPackages,
+          proofAuthorizingKey: trustedDealerPackages.proofAuthorizingKey,
           multisigKeys: {
-            ...trustedDealerPackages.keyPackages[0],
             publicKeyPackage: trustedDealerPackages.publicKeyPackage,
           },
         },
@@ -367,11 +370,9 @@ describe('Route wallet/importAccount', () => {
       it('should fail to import a base64 encode account if the wrong multisig identity is used', async () => {
         const name = 'multisig-encrypted-base64 (wrong key)'
 
-        const _storedIdentity = (
-          await routeTest.client
-            .request<CreateIdentityResponse>('wallet/multisig/createIdentity', { name })
-            .waitForEnd()
-        ).content.identity
+        await routeTest.client
+          .request<CreateIdentityResponse>('wallet/multisig/createIdentity', { name })
+          .waitForEnd()
         const encryptingIdentity = ParticipantSecret.random().toIdentity()
         const base64 = encodeAccount(createAccountImport(name), AccountFormat.Base64Json, {
           encryptWith: { kind: 'MultisigIdentity', identity: encryptingIdentity },
@@ -414,8 +415,13 @@ describe('Route wallet/importAccount', () => {
 
           const keyFile = testCaseFile.slice(0, -testCaseSuffix.length) + keySuffix
           const key = await fs.promises.readFile(path.join(testCaseDir, keyFile))
+          const secret = new ParticipantSecret(key)
+          const identity = secret.toIdentity()
 
-          await routeTest.node.wallet.walletDb.putMultisigSecret(testCaseFile, key)
+          await routeTest.node.wallet.walletDb.putMultisigSecret(identity.serialize(), {
+            secret: secret.serialize(),
+            name: testCaseFile,
+          })
 
           const response = await routeTest.client
             .request<ImportResponse>('wallet/importAccount', {

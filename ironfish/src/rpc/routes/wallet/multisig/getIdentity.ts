@@ -15,6 +15,7 @@ export type GetIdentityRequest = {
 export type GetIdentityResponse = {
   identity: string
 }
+
 export const GetIdentityRequestSchema: yup.ObjectSchema<GetIdentityRequest> = yup
   .object({
     name: yup.string().defined(),
@@ -35,14 +36,12 @@ routes.register<typeof GetIdentityRequestSchema, GetIdentityResponse>(
 
     const { name } = request.data
 
-    const secretBuffer = await context.wallet.walletDb.getMultisigSecret(name)
-
-    if (secretBuffer === undefined) {
+    const record = await context.wallet.walletDb.getMultisigSecretByName(name)
+    if (record === undefined) {
       throw new RpcValidationError(`No identity found with name ${name}`, 404)
     }
 
-    const secret = new ParticipantSecret(secretBuffer)
-
+    const secret = new ParticipantSecret(record.secret)
     const identity = secret.toIdentity()
 
     request.end({ identity: identity.serialize().toString('hex') })

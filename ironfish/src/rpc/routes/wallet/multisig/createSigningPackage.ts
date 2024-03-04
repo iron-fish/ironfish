@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { IDENTITY_LEN, PublicKeyPackage, UnsignedTransaction } from '@ironfish/rust-nodejs'
+import { PublicKeyPackage, SigningCommitment, UnsignedTransaction } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
 import { AssertMultisig } from '../../../../wallet'
 import { RpcValidationError } from '../../../adapters'
@@ -55,7 +55,8 @@ routes.register<typeof CreateSigningPackageRequestSchema, CreateSigningPackageRe
     )
 
     for (const commitment of request.data.commitments) {
-      const identity = commitment.slice(0, IDENTITY_LEN * 2)
+      const signingCommitment = new SigningCommitment(Buffer.from(commitment, 'hex'))
+      const identity = signingCommitment.identity().toString('hex')
       if (!identitySet.has(identity)) {
         throw new RpcValidationError(
           `Received commitment from identity (${identity}) that is not part of the multsig group for account ${account.name}`,

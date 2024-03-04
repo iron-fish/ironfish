@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Asset, verifyTransactions } from '@ironfish/rust-nodejs'
+import { Asset, ParticipantSecret, verifyTransactions } from '@ironfish/rust-nodejs'
 import { Assert } from '../../../../assert'
 import { createRouteTest } from '../../../../testUtilities/routeTest'
 import { Account, ACCOUNT_SCHEMA_VERSION, AssertMultisigSigner } from '../../../../wallet'
@@ -31,10 +31,10 @@ describe('multisig RPC integration', () => {
       const importAccount = trustedDealerPackage.participantAccounts.find(
         (account) => account.identity === identity,
       )
-      expect(importAccount).not.toBeUndefined()
+      Assert.isNotUndefined(importAccount)
       await routeTest.client.wallet.importAccount({
         name,
-        account: importAccount!.account,
+        account: importAccount.account,
       })
     }
 
@@ -69,7 +69,8 @@ describe('multisig RPC integration', () => {
     // build list of signers
     const signers = participantAccounts.map((participant) => {
       AssertMultisigSigner(participant)
-      return { identity: participant.multisigKeys.identity }
+      const secret = new ParticipantSecret(Buffer.from(participant.multisigKeys.secret, 'hex'))
+      return { identity: secret.toIdentity().serialize().toString('hex') }
     })
 
     // create raw transaction

@@ -11,7 +11,6 @@ import {
   generateKey,
   ParticipantSecret,
 } from '@ironfish/rust-nodejs'
-import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
 import { Transaction } from '../primitives'
 import { Target } from '../primitives/target'
@@ -1144,8 +1143,18 @@ describe('Wallet', () => {
       const { node } = await nodeTest.createSetup()
       const recipient = await useAccountFixture(node.wallet, 'recipient')
 
-      const identities = Array.from({ length: 3 }, () =>
-        ParticipantSecret.random().toIdentity().serialize().toString('hex'),
+      const accountNames = Array.from({ length: 3 }, (_, index) => `test-account-${index}`)
+      const identities = await Promise.all(
+        accountNames.map(async (name) => {
+          const secret = ParticipantSecret.random()
+          const identity = secret.toIdentity()
+
+          await node.wallet.walletDb.putMultisigSecret(identity.serialize(), {
+            name,
+            secret: secret.serialize(),
+          })
+          return identity.serialize().toString('hex')
+        }),
       )
 
       // construct 3 separate secrets for the participants
@@ -1163,7 +1172,6 @@ describe('Wallet', () => {
 
       const participantA = await node.wallet.importAccount({
         version: 2,
-        id: uuid(),
         name: trustedDealerPackage.keyPackages[0].identity,
         spendingKey: null,
         createdAt: null,
@@ -1172,7 +1180,6 @@ describe('Wallet', () => {
       })
       const participantB = await node.wallet.importAccount({
         version: 2,
-        id: uuid(),
         name: trustedDealerPackage.keyPackages[1].identity,
         spendingKey: null,
         createdAt: null,
@@ -1181,7 +1188,6 @@ describe('Wallet', () => {
       })
       const participantC = await node.wallet.importAccount({
         version: 2,
-        id: uuid(),
         name: trustedDealerPackage.keyPackages[2].identity,
         spendingKey: null,
         createdAt: null,
@@ -1193,7 +1199,6 @@ describe('Wallet', () => {
 
       const coordinator = await node.wallet.importAccount({
         version: 4,
-        id: uuid(),
         name: 'coordinator',
         spendingKey: null,
         createdAt: null,
@@ -1269,7 +1274,10 @@ describe('Wallet', () => {
 
       const signers = participants.map((participant) => {
         AssertMultisigSigner(participant)
-        return participant.multisigKeys.identity
+        const secret = new ParticipantSecret(
+          Buffer.from(participant.multisigKeys.secret, 'hex'),
+        )
+        return secret.toIdentity().serialize().toString('hex')
       })
 
       const signingCommitments: string[] = []
@@ -1277,7 +1285,7 @@ describe('Wallet', () => {
         AssertMultisigSigner(participant)
         signingCommitments.push(
           createSigningCommitment(
-            participant.multisigKeys.identity,
+            participant.multisigKeys.secret,
             participant.multisigKeys.keyPackage,
             transactionHash,
             signers,
@@ -1293,7 +1301,7 @@ describe('Wallet', () => {
         AssertMultisigSigner(participant)
         signatureShares.push(
           createSignatureShare(
-            participant.multisigKeys.identity,
+            participant.multisigKeys.secret,
             participant.multisigKeys.keyPackage,
             signingPackage,
           ),
@@ -1334,15 +1342,24 @@ describe('Wallet', () => {
 
     const { node } = await nodeTest.createSetup()
 
-    const identities = Array.from({ length: 3 }, () =>
-      ParticipantSecret.random().toIdentity().serialize().toString('hex'),
+    const accountNames = Array.from({ length: 3 }, (_, index) => `test-account-${index}`)
+    const identities = await Promise.all(
+      accountNames.map(async (name) => {
+        const secret = ParticipantSecret.random()
+        const identity = secret.toIdentity()
+
+        await node.wallet.walletDb.putMultisigSecret(identity.serialize(), {
+          name,
+          secret: secret.serialize(),
+        })
+        return identity.serialize().toString('hex')
+      }),
     )
 
     const trustedDealerPackage = generateAndSplitKey(minSigners, identities)
 
     const account = await node.wallet.importAccount({
       version: 2,
-      id: uuid(),
       name: trustedDealerPackage.keyPackages[0].identity,
       spendingKey: null,
       createdAt: null,
