@@ -39,3 +39,12 @@ export class DuplicateAccountNameError extends Error {
     this.message = `Account already exists with the name ${name}`
   }
 }
+
+export class DuplicateMultisigSecretNameError extends Error {
+  name = this.constructor.name
+
+  constructor(name: string) {
+    super()
+    this.message = `Multisig secret already exists with the name ${name}`
+  }
+}
