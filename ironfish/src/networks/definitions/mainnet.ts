@@ -5,6 +5,8 @@
 import type { NetworkDefinition } from '../networkDefinition'
 import { ConsensusParameters } from '../../consensus'
 
+const HARDFORK_1_ACTIVATION_MAINNET = 503_338
+
 const MAINNET_CONSENSUS: ConsensusParameters = {
   allowedBlockFutureSeconds: 15,
   genesisSupplyInIron: 42000000,
@@ -13,9 +15,9 @@ const MAINNET_CONSENSUS: ConsensusParameters = {
   maxBlockSizeBytes: 524288,
   minFee: 1,
   enableAssetOwnership: null,
-  enforceSequentialBlockTime: null,
-  enableFishHash: null,
-  enableIncreasedDifficultyChange: null,
+  enforceSequentialBlockTime: HARDFORK_1_ACTIVATION_MAINNET,
+  enableFishHash: HARDFORK_1_ACTIVATION_MAINNET,
+  enableIncreasedDifficultyChange: HARDFORK_1_ACTIVATION_MAINNET,
   checkpoints: [],
 }
 
@@ -67,10 +69,6 @@ export const MAINNET_GENESIS = {
   ],
 }
 
-// TODO(IFL-1523): Update proper activation sequence for enableAssetOwnership
-// enforceSequentialBlockTime activation date is approximately 26-07-2024 00:50. This is not the
-// actual date, it's an placeholder for the next hardfork.
-// TODO: @ygao76 update this once the hard fork date is finalized.
 export const MAINNET: NetworkDefinition = {
   id: 1,
   bootstrapNodes: ['1.main.bn.ironfish.network', '2.main.bn.ironfish.network'],
