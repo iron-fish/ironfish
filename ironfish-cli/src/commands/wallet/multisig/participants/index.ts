@@ -5,8 +5,8 @@ import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
 
-export class MultisigAccountIdentities extends IronfishCommand {
-  static description = `List the identities for a multisig account`
+export class MultisigAccountParticipants extends IronfishCommand {
+  static description = `List the participant identities for a multisig account`
   static hidden = true
 
   static flags = {
@@ -18,7 +18,7 @@ export class MultisigAccountIdentities extends IronfishCommand {
   }
 
   async start(): Promise<void> {
-    const { flags } = await this.parse(MultisigAccountIdentities)
+    const { flags } = await this.parse(MultisigAccountParticipants)
 
     const client = await this.sdk.connectRpc()
 

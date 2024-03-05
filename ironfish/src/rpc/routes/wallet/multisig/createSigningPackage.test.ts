@@ -4,7 +4,7 @@
 import { useAccountAndAddFundsFixture, useUnsignedTxFixture } from '../../../../testUtilities'
 import { createRouteTest } from '../../../../testUtilities/routeTest'
 import { RpcRequestError } from '../../../clients'
-import { CreateIdentityResponse } from './createIdentity'
+import { CreateParticipantResponse } from './createParticipant'
 
 describe('Route multisig/createSigningPackage', () => {
   const routeTest = createRouteTest()
@@ -16,7 +16,7 @@ describe('Route multisig/createSigningPackage', () => {
       accountNames.map(async (name) => {
         const identity = (
           await routeTest.client
-            .request<CreateIdentityResponse>('wallet/multisig/createIdentity', { name })
+            .request<CreateParticipantResponse>('wallet/multisig/createParticipant', { name })
             .waitForEnd()
         ).content.identity
         return { name, identity }
@@ -79,7 +79,7 @@ describe('Route multisig/createSigningPackage', () => {
       accountNames.map(async (name) => {
         const identity = (
           await routeTest.client
-            .request<CreateIdentityResponse>('wallet/multisig/createIdentity', { name })
+            .request<CreateParticipantResponse>('wallet/multisig/createParticipant', { name })
             .waitForEnd()
         ).content.identity
         return { name, identity }

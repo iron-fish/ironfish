@@ -4,15 +4,15 @@
 import { Assert } from '../../../../assert'
 import { createRouteTest } from '../../../../testUtilities/routeTest'
 
-describe('Route wallet/multisig/createIdentity', () => {
+describe('Route wallet/multisig/createParticipant', () => {
   const routeTest = createRouteTest()
 
   it('should fail for a secret name that exists', async () => {
     const name = 'name'
-    await routeTest.client.wallet.multisig.createIdentity({ name })
+    await routeTest.client.wallet.multisig.createParticipant({ name })
 
     await expect(
-      routeTest.client.wallet.multisig.createIdentity({
+      routeTest.client.wallet.multisig.createParticipant({
         name,
       }),
     ).rejects.toThrow(
@@ -30,7 +30,7 @@ describe('Route wallet/multisig/createIdentity', () => {
     await routeTest.client.wallet.createAccount({ name })
 
     await expect(
-      routeTest.client.wallet.multisig.createIdentity({
+      routeTest.client.wallet.multisig.createParticipant({
         name,
       }),
     ).rejects.toThrow(
@@ -43,7 +43,7 @@ describe('Route wallet/multisig/createIdentity', () => {
 
   it('should create a secret for a new identity', async () => {
     const name = 'identity'
-    const response = await routeTest.client.wallet.multisig.createIdentity({ name })
+    const response = await routeTest.client.wallet.multisig.createParticipant({ name })
 
     const secretValue = await routeTest.node.wallet.walletDb.getMultisigSecret(
       Buffer.from(response.content.identity, 'hex'),

@@ -6,14 +6,14 @@ import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
 
 export class MultisigIdentity extends IronfishCommand {
-  static description = `Retrieve a multisig identity`
+  static description = `Retrieve a multisig participant identity from a name`
   static hidden = true
 
   static flags = {
     ...RemoteFlags,
     name: Flags.string({
       char: 'n',
-      description: 'Name of the identity',
+      description: 'Name of the participant identity',
       required: true,
     }),
   }

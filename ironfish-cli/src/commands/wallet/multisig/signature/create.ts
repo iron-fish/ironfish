@@ -1,13 +1,12 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-
 import { UnsignedTransaction } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
-import { IronfishCommand } from '../../../command'
-import { RemoteFlags } from '../../../flags'
-import { longPrompt } from '../../../utils/longPrompt'
-import { renderUnsignedTransactionDetails } from '../../../utils/transaction'
+import { IronfishCommand } from '../../../../command'
+import { RemoteFlags } from '../../../../flags'
+import { longPrompt } from '../../../../utils/longPrompt'
+import { renderUnsignedTransactionDetails } from '../../../../utils/transaction'
 
 export class CreateSignatureShareCommand extends IronfishCommand {
   static description = `Creates a signature share for a participant for a given transaction`

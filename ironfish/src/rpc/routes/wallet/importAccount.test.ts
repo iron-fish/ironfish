@@ -17,7 +17,7 @@ import { Bech32JsonEncoder } from '../../../wallet/account/encoder/bech32json'
 import { AccountFormat } from '../../../wallet/account/encoder/encoder'
 import { RpcClient } from '../../clients'
 import { ImportResponse } from './importAccount'
-import { CreateIdentityResponse } from './multisig/createIdentity'
+import { CreateParticipantResponse } from './multisig/createParticipant'
 
 describe('Route wallet/importAccount', () => {
   const routeTest = createRouteTest(true)
@@ -319,7 +319,7 @@ describe('Route wallet/importAccount', () => {
 
         const identity = (
           await routeTest.client
-            .request<CreateIdentityResponse>('wallet/multisig/createIdentity', { name })
+            .request<CreateParticipantResponse>('wallet/multisig/createParticipant', { name })
             .waitForEnd()
         ).content.identity
         const base64 = encodeAccount(createAccountImport(name), AccountFormat.Base64Json, {
@@ -371,11 +371,11 @@ describe('Route wallet/importAccount', () => {
         const name = 'multisig-encrypted-base64 (wrong key)'
 
         await routeTest.client
-          .request<CreateIdentityResponse>('wallet/multisig/createIdentity', { name })
+          .request<CreateParticipantResponse>('wallet/multisig/createParticipant', { name })
           .waitForEnd()
-        const encryptingIdentity = ParticipantSecret.random().toIdentity()
+        const encryptingParticipant = ParticipantSecret.random().toIdentity()
         const base64 = encodeAccount(createAccountImport(name), AccountFormat.Base64Json, {
-          encryptWith: { kind: 'MultisigIdentity', identity: encryptingIdentity },
+          encryptWith: { kind: 'MultisigIdentity', identity: encryptingParticipant },
         })
 
         await expect(
