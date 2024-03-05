@@ -32,7 +32,7 @@ export class CreateSigningCommitmentCommand extends IronfishCommand {
     }),
     confirm: Flags.boolean({
       default: false,
-      description: 'Confirm creating signature share without confirming',
+      description: 'Confirm creating signing commitment without confirming',
     }),
   }
 
