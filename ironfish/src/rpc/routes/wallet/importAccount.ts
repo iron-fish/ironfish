@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { DecodeInvalidName } from '../../../wallet'
+import { DecodeInvalidName, MultisigMissingSecretName } from '../../../wallet'
 import { decodeAccount } from '../../../wallet/account/encoder/account'
 import { DuplicateAccountNameError } from '../../../wallet/errors'
 import { RPC_ERROR_CODES, RpcValidationError } from '../../adapters'
@@ -69,6 +69,12 @@ routes.register<typeof ImportAccountRequestSchema, ImportResponse>(
           e.message,
           400,
           RPC_ERROR_CODES.IMPORT_ACCOUNT_NAME_REQUIRED,
+        )
+      } else if (e instanceof MultisigMissingSecretName) {
+        throw new RpcValidationError(
+          e.message,
+          400,
+          RPC_ERROR_CODES.MULTISIG_SECRET_NAME_REQUIRED,
         )
       }
       throw e
