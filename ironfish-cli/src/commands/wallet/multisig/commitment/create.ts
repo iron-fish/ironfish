@@ -41,7 +41,7 @@ export class CreateSigningCommitmentCommand extends IronfishCommand {
 
     let identities = flags.identity
     if (!identities || identities.length < 2) {
-      const input = await CliUx.ux.prompt('Enter the identities separated by commas', {
+      const input = await longPrompt('Enter the identities separated by commas', {
         required: true,
       })
       identities = input.split(',')
@@ -54,7 +54,7 @@ export class CreateSigningCommitmentCommand extends IronfishCommand {
 
     let unsignedTransactionInput = flags.unsignedTransaction?.trim()
     if (!unsignedTransactionInput) {
-      unsignedTransactionInput = await longPrompt('Enter the unsigned transaction: ', {
+      unsignedTransactionInput = await longPrompt('Enter the unsigned transaction', {
         required: true,
       })
     }

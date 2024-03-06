@@ -35,7 +35,7 @@ export class CreateSignatureShareCommand extends IronfishCommand {
     let signingPackage = flags.signingPackage?.trim()
 
     if (!signingPackage) {
-      signingPackage = await longPrompt('Enter the signing package: ')
+      signingPackage = await longPrompt('Enter the signing package')
     }
 
     const client = await this.sdk.connectRpc()
