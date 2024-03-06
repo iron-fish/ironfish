@@ -20,6 +20,10 @@ export class DecodeFailed extends Error {
   }
 }
 
+export class MultisigMissingSecretName extends DecodeInvalid {
+  name = this.constructor.name
+}
+
 export enum AccountFormat {
   Base64Json = 'Base64Json',
   JSON = 'JSON',
