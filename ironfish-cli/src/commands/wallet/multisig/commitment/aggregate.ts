@@ -36,14 +36,14 @@ export class CreateSigningPackage extends IronfishCommand {
     let unsignedTransaction = flags.unsignedTransaction?.trim()
 
     if (!unsignedTransaction) {
-      unsignedTransaction = await longPrompt('Enter the unsigned transaction: ', {
+      unsignedTransaction = await longPrompt('Enter the unsigned transaction', {
         required: true,
       })
     }
 
     let commitments = flags.commitment
     if (!commitments) {
-      const input = await longPrompt('Enter the signing commitments separated by commas: ', {
+      const input = await longPrompt('Enter the signing commitments separated by commas', {
         required: true,
       })
       commitments = input.split(',')
