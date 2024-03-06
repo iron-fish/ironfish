@@ -5,6 +5,7 @@ import './matchers'
 
 export * from './helpers/serializable'
 export * from './fixtures'
+export * from './keys'
 export * from './nodeTest'
 export * from './utils'
 export * from './witness'

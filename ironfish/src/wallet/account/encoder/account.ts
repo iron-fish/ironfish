@@ -34,7 +34,7 @@ export function encodeAccount(
     case AccountFormat.JSON:
       return new JsonEncoder().encode(value)
     case AccountFormat.Base64Json:
-      return new Base64JsonEncoder().encode(value)
+      return new Base64JsonEncoder().encode(value, options)
     case AccountFormat.SpendingKey:
       return new SpendingKeyEncoder().encode(value)
     case AccountFormat.Mnemonic:

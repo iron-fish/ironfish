@@ -4,7 +4,10 @@
 import {
   Asset,
   generateKey,
+  MEMO_LENGTH,
   Note as NativeNote,
+  ParticipantSecret,
+  PublicKeyPackage,
   UnsignedTransaction,
 } from '@ironfish/rust-nodejs'
 import { BufferMap, BufferSet } from 'buffer-map'
@@ -42,15 +45,21 @@ import { WorkerPool } from '../workerPool'
 import { DecryptedNote, DecryptNoteOptions } from '../workerPool/tasks/decryptNotes'
 import { Account, ACCOUNT_SCHEMA_VERSION } from './account/account'
 import { AssetBalances } from './assetBalances'
-import { DuplicateAccountNameError, NotEnoughFundsError } from './errors'
+import {
+  DuplicateAccountNameError,
+  DuplicateMultisigSecretNameError,
+  MaxMemoLengthError,
+  NotEnoughFundsError,
+} from './errors'
 import { MintAssetOptions } from './interfaces/mintAssetOptions'
+import { isMultisigSignerTrustedDealerImport } from './interfaces/multisigKeys'
 import {
   RemoteChainProcessor,
   WalletBlockHeader,
   WalletBlockTransaction,
 } from './remoteChainProcessor'
 import { validateAccount } from './validator'
-import { AccountValue } from './walletdb/accountValue'
+import { AccountImport } from './walletdb/accountValue'
 import { AssetValue } from './walletdb/assetValue'
 import { DecryptedNoteValue } from './walletdb/decryptedNoteValue'
 import { HeadValue } from './walletdb/headValue'
@@ -81,7 +90,7 @@ export enum TransactionType {
 export type TransactionOutput = {
   publicAddress: string
   amount: bigint
-  memo: string
+  memo: Buffer
   assetId: Buffer
 }
 
@@ -991,6 +1000,14 @@ export class Wallet {
       )
     }
 
+    if (options.outputs) {
+      for (const output of options.outputs) {
+        if (output.memo.byteLength > MEMO_LENGTH) {
+          throw new MaxMemoLengthError(output.memo)
+        }
+      }
+    }
+
     const unlock = await this.createTransactionMutex.lock()
 
     try {
@@ -1508,10 +1525,33 @@ export class Wallet {
     }
   }
 
-  async importAccount(accountValue: AccountValue): Promise<Account> {
-    if (accountValue.name && this.getAccountByName(accountValue.name)) {
-      throw new DuplicateAccountNameError(accountValue.name)
+  async importAccount(accountValue: AccountImport): Promise<Account> {
+    let multisigKeys = accountValue.multisigKeys
+    let name = accountValue.name
+
+    if (
+      accountValue.multisigKeys &&
+      isMultisigSignerTrustedDealerImport(accountValue.multisigKeys)
+    ) {
+      const multisigSecret = await this.walletDb.getMultisigSecret(
+        Buffer.from(accountValue.multisigKeys.identity, 'hex'),
+      )
+      if (!multisigSecret) {
+        throw new Error('Cannot import identity without a corresponding multisig secret')
+      }
+
+      name = multisigSecret.name
+      multisigKeys = {
+        keyPackage: accountValue.multisigKeys.keyPackage,
+        publicKeyPackage: accountValue.multisigKeys.publicKeyPackage,
+        secret: multisigSecret.secret.toString('hex'),
+      }
     }
+
+    if (name && this.getAccountByName(name)) {
+      throw new DuplicateAccountNameError(name)
+    }
+
     const accounts = this.listAccounts()
     if (
       accountValue.spendingKey &&
@@ -1544,7 +1584,10 @@ export class Wallet {
 
     const account = new Account({
       ...accountValue,
+      id: uuid(),
       createdAt,
+      name,
+      multisigKeys,
       walletDb: this.walletDb,
     })
 
@@ -1564,6 +1607,14 @@ export class Wallet {
         await account.updateHead(head, tx)
       } else {
         await account.updateHead(null, tx)
+      }
+
+      if (account.multisigKeys) {
+        const publicKeyPackage = new PublicKeyPackage(account.multisigKeys.publicKeyPackage)
+
+        for (const identity of publicKeyPackage.identities()) {
+          await this.walletDb.addParticipantIdentity(account, identity, tx)
+        }
       }
     })
 
@@ -1846,6 +1897,32 @@ export class Wallet {
       this.logger.error(ErrorUtils.renderError(error, true))
       throw error
     }
+  }
+
+  async createMultisigSecret(name: string): Promise<Buffer> {
+    return this.walletDb.db.transaction(async (tx) => {
+      if (await this.walletDb.hasMultisigSecretName(name, tx)) {
+        throw new DuplicateMultisigSecretNameError(name)
+      }
+
+      if (this.getAccountByName(name)) {
+        throw new DuplicateAccountNameError(name)
+      }
+
+      const secret = ParticipantSecret.random()
+      const identity = secret.toIdentity()
+
+      await this.walletDb.putMultisigSecret(
+        identity.serialize(),
+        {
+          name,
+          secret: secret.serialize(),
+        },
+        tx,
+      )
+
+      return identity.serialize()
+    })
   }
 }
 

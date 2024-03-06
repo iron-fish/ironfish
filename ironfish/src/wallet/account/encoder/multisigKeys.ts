@@ -16,7 +16,7 @@ export class MultisigKeysEncoding implements IDatabaseEncoding<MultisigKeys> {
 
     bw.writeVarBytes(Buffer.from(value.publicKeyPackage, 'hex'))
     if (isSignerMultisig(value)) {
-      bw.writeVarBytes(Buffer.from(value.identity, 'hex'))
+      bw.writeVarBytes(Buffer.from(value.secret, 'hex'))
       bw.writeVarBytes(Buffer.from(value.keyPackage, 'hex'))
     }
 
@@ -31,11 +31,11 @@ export class MultisigKeysEncoding implements IDatabaseEncoding<MultisigKeys> {
 
     const publicKeyPackage = reader.readVarBytes().toString('hex')
     if (isSigner) {
-      const identity = reader.readVarBytes().toString('hex')
+      const secret = reader.readVarBytes().toString('hex')
       const keyPackage = reader.readVarBytes().toString('hex')
       return {
         publicKeyPackage,
-        identity,
+        secret,
         keyPackage,
       }
     }
@@ -51,7 +51,7 @@ export class MultisigKeysEncoding implements IDatabaseEncoding<MultisigKeys> {
 
     size += bufio.sizeVarString(value.publicKeyPackage, 'hex')
     if (isSignerMultisig(value)) {
-      size += bufio.sizeVarString(value.identity, 'hex')
+      size += bufio.sizeVarString(value.secret, 'hex')
       size += bufio.sizeVarString(value.keyPackage, 'hex')
     }
 
@@ -60,7 +60,7 @@ export class MultisigKeysEncoding implements IDatabaseEncoding<MultisigKeys> {
 }
 
 export function isSignerMultisig(multisigKeys: MultisigKeys): multisigKeys is MultisigSigner {
-  return 'keyPackage' in multisigKeys && 'identity' in multisigKeys
+  return 'keyPackage' in multisigKeys && 'secret' in multisigKeys
 }
 
 export function AssertIsSignerMultisig(

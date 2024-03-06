@@ -92,14 +92,21 @@ export class ImportCommand extends IronfishCommand {
         if (
           e instanceof RpcRequestError &&
           (e.code === RPC_ERROR_CODES.DUPLICATE_ACCOUNT_NAME.toString() ||
-            e.code === RPC_ERROR_CODES.IMPORT_ACCOUNT_NAME_REQUIRED.toString())
+            e.code === RPC_ERROR_CODES.IMPORT_ACCOUNT_NAME_REQUIRED.toString() ||
+            e.code === RPC_ERROR_CODES.MULTISIG_SECRET_NAME_REQUIRED.toString())
         ) {
+          let message = 'Enter a name for the account'
+
           if (e.code === RPC_ERROR_CODES.DUPLICATE_ACCOUNT_NAME.toString()) {
             this.log()
             this.log(e.codeMessage)
           }
 
-          const name = await CliUx.ux.prompt('Enter a name for the account', {
+          if (e.code === RPC_ERROR_CODES.MULTISIG_SECRET_NAME_REQUIRED.toString()) {
+            message = 'Enter the name of the multisig secret'
+          }
+
+          const name = await CliUx.ux.prompt(message, {
             required: true,
           })
           if (name === flags.name) {
@@ -150,7 +157,7 @@ export class ImportCommand extends IronfishCommand {
   }
 
   async importTTY(): Promise<string> {
-    return await longPrompt('Paste the output of wallet:export, or your spending key: ', {
+    return await longPrompt('Paste the output of wallet:export, or your spending key', {
       required: true,
     })
   }

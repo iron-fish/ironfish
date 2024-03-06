@@ -2,27 +2,30 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::{
-    structs::{IdentityKeyPackage, TrustedDealerKeyPackages},
-    to_napi_err,
-};
+use crate::to_napi_err;
 use ironfish::{
     frost::{keys::KeyPackage, round1::SigningCommitments, round2, Randomizer},
-    frost_utils::{
-        signature_share::SignatureShare, signing_commitment::SigningCommitment,
-        signing_package::SigningPackage, split_spender_key::split_spender_key,
-    },
+    frost_utils::{signing_package::SigningPackage, split_spender_key::split_spender_key},
     participant::{Identity, Secret},
-    serializing::{bytes_to_hex, fr::FrSerializable, hex_to_bytes, hex_to_vec_bytes},
+    serializing::{bytes_to_hex, fr::FrSerializable, hex_to_vec_bytes},
     SaplingKey,
 };
-use ironfish_frost::nonces::deterministic_signing_nonces;
+use ironfish_frost::{
+    keys::PublicKeyPackage, multienc, nonces::deterministic_signing_nonces,
+    signature_share::SignatureShare, signing_commitment::SigningCommitment,
+};
 use napi::{bindgen_prelude::*, JsBuffer};
 use napi_derive::napi;
 use rand::thread_rng;
 use std::ops::Deref;
 
-fn try_deserialize_signers<I, S>(signers: I) -> Result<Vec<Identity>>
+#[napi]
+pub const IDENTITY_LEN: u32 = ironfish::frost_utils::IDENTITY_LEN as u32;
+
+#[napi]
+pub const SECRET_LEN: u32 = ironfish_frost::participant::SECRET_LEN as u32;
+
+fn try_deserialize_identities<I, S>(signers: I) -> Result<Vec<Identity>>
 where
     I: IntoIterator<Item = S>,
     S: Deref<Target = str>,
@@ -43,41 +46,38 @@ where
 
 #[napi]
 pub fn create_signing_commitment(
-    identity: String,
+    secret: String,
     key_package: String,
     transaction_hash: JsBuffer,
     signers: Vec<String>,
 ) -> Result<String> {
-    let identity =
-        Identity::deserialize_from(&hex_to_vec_bytes(&identity).map_err(to_napi_err)?[..])?;
+    let secret = Secret::deserialize_from(&hex_to_vec_bytes(&secret).map_err(to_napi_err)?[..])?;
     let key_package =
         KeyPackage::deserialize(&hex_to_vec_bytes(&key_package).map_err(to_napi_err)?)
             .map_err(to_napi_err)?;
     let transaction_hash = transaction_hash.into_value()?;
-    let signers = try_deserialize_signers(signers)?;
+    let signers = try_deserialize_identities(signers)?;
 
     let nonces =
         deterministic_signing_nonces(key_package.signing_share(), &transaction_hash, &signers);
     let commitments = SigningCommitments::from(&nonces);
 
-    let signing_commitment = SigningCommitment {
-        identity,
-        hiding: *commitments.hiding(),
-        binding: *commitments.binding(),
-    };
+    let signing_commitment =
+        SigningCommitment::from_frost(secret, *commitments.hiding(), *commitments.binding());
 
-    Ok(bytes_to_hex(&signing_commitment.serialize()))
+    let bytes = signing_commitment.serialize()?;
+
+    Ok(bytes_to_hex(&bytes[..]))
 }
 
 #[napi]
 pub fn create_signature_share(
-    identity: String,
+    secret: String,
     key_package: String,
     signing_package: String,
 ) -> Result<String> {
-    let identity =
-        Identity::deserialize_from(&hex_to_vec_bytes(&identity).map_err(to_napi_err)?[..])
-            .map_err(to_napi_err)?;
+    let secret = Secret::deserialize_from(&hex_to_vec_bytes(&secret).map_err(to_napi_err)?[..])?;
+    let identity = secret.to_identity();
     let key_package =
         KeyPackage::deserialize(&hex_to_vec_bytes(&key_package).map_err(to_napi_err)?[..])
             .map_err(to_napi_err)?;
@@ -113,12 +113,10 @@ pub fn create_signature_share(
     )
     .map_err(to_napi_err)?;
 
-    let signature_share = SignatureShare {
-        identity,
-        signature_share,
-    };
+    let signature_share = SignatureShare::from_frost(signature_share, identity);
+    let bytes = signature_share.serialize();
 
-    Ok(bytes_to_hex(&signature_share.serialize()))
+    Ok(bytes_to_hex(&bytes[..]))
 }
 
 #[napi]
@@ -131,32 +129,36 @@ impl ParticipantSecret {
     #[napi(constructor)]
     pub fn new(js_bytes: JsBuffer) -> Result<ParticipantSecret> {
         let bytes = js_bytes.into_value()?;
-
-        let secret = Secret::deserialize_from(bytes.as_ref()).map_err(to_napi_err)?;
-
-        Ok(ParticipantSecret { secret })
+        Secret::deserialize_from(bytes.as_ref())
+            .map(|secret| ParticipantSecret { secret })
+            .map_err(to_napi_err)
     }
 
     #[napi]
-    pub fn serialize(&self) -> Result<Buffer> {
-        let mut vec: Vec<u8> = vec![];
-        self.secret.serialize_into(&mut vec).map_err(to_napi_err)?;
-
-        Ok(Buffer::from(vec))
+    pub fn serialize(&self) -> Buffer {
+        Buffer::from(self.secret.serialize().as_slice())
     }
 
     #[napi]
     pub fn random() -> ParticipantSecret {
         let secret = Secret::random(thread_rng());
-
         ParticipantSecret { secret }
     }
 
     #[napi]
-    pub fn to_identity(&self) -> Result<ParticipantIdentity> {
+    pub fn to_identity(&self) -> ParticipantIdentity {
         let identity = self.secret.to_identity();
+        ParticipantIdentity { identity }
+    }
 
-        Ok(ParticipantIdentity { identity })
+    #[napi]
+    pub fn decrypt_data(&self, js_bytes: JsBuffer) -> Result<Buffer> {
+        let bytes = js_bytes.into_value()?;
+        let encrypted_blob =
+            multienc::MultiRecipientBlob::deserialize_from(bytes.as_ref()).map_err(to_napi_err)?;
+        multienc::decrypt(&self.secret, &encrypted_blob)
+            .map(Buffer::from)
+            .map_err(to_napi_err)
     }
 }
 
@@ -170,62 +172,128 @@ impl ParticipantIdentity {
     #[napi(constructor)]
     pub fn new(js_bytes: JsBuffer) -> Result<ParticipantIdentity> {
         let bytes = js_bytes.into_value()?;
-
-        let identity = Identity::deserialize_from(bytes.as_ref()).map_err(to_napi_err)?;
-
-        Ok(ParticipantIdentity { identity })
+        Identity::deserialize_from(bytes.as_ref())
+            .map(|identity| ParticipantIdentity { identity })
+            .map_err(to_napi_err)
     }
 
     #[napi]
-    pub fn serialize(&self) -> Result<Buffer> {
-        let mut vec: Vec<u8> = vec![];
-        self.identity
-            .serialize_into(&mut vec)
-            .map_err(to_napi_err)?;
+    pub fn serialize(&self) -> Buffer {
+        Buffer::from(self.identity.serialize().as_slice())
+    }
 
-        Ok(Buffer::from(vec))
+    #[napi]
+    pub fn encrypt_data(&self, js_bytes: JsBuffer) -> Result<Buffer> {
+        let bytes = js_bytes.into_value()?;
+        let encrypted_blob = multienc::encrypt(&bytes, [&self.identity], thread_rng());
+        encrypted_blob
+            .serialize()
+            .map(Buffer::from)
+            .map_err(to_napi_err)
     }
 }
 
 #[napi]
-pub fn split_secret(
-    coordinator_sapling_key: String,
+pub fn generate_and_split_key(
     min_signers: u16,
     identities: Vec<String>,
 ) -> Result<TrustedDealerKeyPackages> {
-    let coordinator_key =
-        SaplingKey::new(hex_to_bytes(&coordinator_sapling_key).map_err(to_napi_err)?)
-            .map_err(to_napi_err)?;
+    let spending_key = SaplingKey::generate_key();
 
-    let mut deserialized_identities = Vec::new();
+    let identities = try_deserialize_identities(identities)?;
 
-    for identity in &identities {
-        let bytes = hex_to_vec_bytes(identity).map_err(to_napi_err)?;
-        let frost_id = Identity::deserialize_from(&bytes[..]).map_err(to_napi_err)?;
-        deserialized_identities.push(frost_id);
-    }
+    let packages =
+        split_spender_key(&spending_key, min_signers, identities).map_err(to_napi_err)?;
 
-    let t = split_spender_key(&coordinator_key, min_signers, deserialized_identities)
-        .map_err(to_napi_err)?;
-
-    let mut key_packages_serialized = Vec::new();
-    for (k, v) in t.key_packages.iter() {
-        key_packages_serialized.push(IdentityKeyPackage {
-            identity: bytes_to_hex(&k.serialize()),
-            key_package: bytes_to_hex(&v.serialize().map_err(to_napi_err)?),
+    let mut key_packages = Vec::with_capacity(packages.key_packages.len());
+    for (identity, key_package) in packages.key_packages.iter() {
+        key_packages.push(ParticipantKeyPackage {
+            identity: bytes_to_hex(&identity.serialize()),
+            key_package: bytes_to_hex(&key_package.serialize().map_err(to_napi_err)?),
         });
     }
 
-    let public_key_package = t.public_key_package.serialize().map_err(to_napi_err)?;
+    let public_key_package = packages
+        .public_key_package
+        .serialize()
+        .map_err(to_napi_err)?;
 
     Ok(TrustedDealerKeyPackages {
-        verifying_key: bytes_to_hex(&t.verifying_key),
-        proof_authorizing_key: t.proof_authorizing_key.hex_key(),
-        view_key: t.view_key.hex_key(),
-        incoming_view_key: t.incoming_view_key.hex_key(),
-        outgoing_view_key: t.outgoing_view_key.hex_key(),
-        public_address: t.public_address.hex_public_address(),
-        key_packages: key_packages_serialized,
+        public_address: packages.public_address.hex_public_address(),
         public_key_package: bytes_to_hex(&public_key_package),
+        view_key: packages.view_key.hex_key(),
+        incoming_view_key: packages.incoming_view_key.hex_key(),
+        outgoing_view_key: packages.outgoing_view_key.hex_key(),
+        proof_authorizing_key: packages.proof_authorizing_key.hex_key(),
+        key_packages,
     })
+}
+
+#[napi(object)]
+pub struct ParticipantKeyPackage {
+    pub identity: String,
+    // TODO: this should contain the spender_key only, there's no need to return (and later store)
+    // the entire key package, as all other information can be either derived or is stored
+    // elsewhere (with the exception of min_signers, but that can be easily moved to
+    // TrustedDealerKeyPackages)
+    pub key_package: String,
+}
+
+#[napi(object)]
+pub struct TrustedDealerKeyPackages {
+    pub public_address: String,
+    pub public_key_package: String,
+    pub view_key: String,
+    pub incoming_view_key: String,
+    pub outgoing_view_key: String,
+    pub proof_authorizing_key: String,
+    pub key_packages: Vec<ParticipantKeyPackage>,
+}
+
+#[napi(js_name = "PublicKeyPackage")]
+pub struct NativePublicKeyPackage {
+    public_key_package: PublicKeyPackage,
+}
+
+#[napi]
+impl NativePublicKeyPackage {
+    #[napi(constructor)]
+    pub fn new(value: String) -> Result<NativePublicKeyPackage> {
+        let bytes = hex_to_vec_bytes(&value).map_err(to_napi_err)?;
+
+        let public_key_package =
+            PublicKeyPackage::deserialize_from(&bytes[..]).map_err(to_napi_err)?;
+
+        Ok(NativePublicKeyPackage { public_key_package })
+    }
+
+    #[napi]
+    pub fn identities(&self) -> Vec<Buffer> {
+        self.public_key_package
+            .identities()
+            .iter()
+            .map(|identity| Buffer::from(&identity.serialize()[..]))
+            .collect()
+    }
+}
+
+#[napi(js_name = "SigningCommitment")]
+pub struct NativeSigningCommitment {
+    signing_commitment: SigningCommitment,
+}
+
+#[napi]
+impl NativeSigningCommitment {
+    #[napi(constructor)]
+    pub fn new(js_bytes: JsBuffer) -> Result<NativeSigningCommitment> {
+        let bytes = js_bytes.into_value()?;
+        SigningCommitment::deserialize_from(bytes.as_ref())
+            .map(|signing_commitment| NativeSigningCommitment { signing_commitment })
+            .map_err(to_napi_err)
+    }
+
+    #[napi]
+    pub fn identity(&self) -> Buffer {
+        Buffer::from(self.signing_commitment.identity().serialize().as_slice())
+    }
 }

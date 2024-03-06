@@ -18,14 +18,18 @@ import {
   MiningSetTargetSchema,
   MiningStatusMessage,
   MiningStatusSchema,
-  MiningSubmitMessageV1,
-  MiningSubscribedMessageSchemaV1,
-  MiningSubscribedMessageV1,
+  MiningSubmitMessageV3,
+  MiningSubmittedMessage,
+  MiningSubmittedSchema,
+  MiningSubscribedMessageSchemaV3,
+  MiningSubscribedMessageV3,
   MiningSubscribeMessage,
   MiningWaitForWorkMessage,
   MiningWaitForWorkSchema,
   StratumMessage,
   StratumMessageSchema,
+  StratumMessageWithError,
+  StratumMessageWithErrorSchema,
 } from '../messages'
 
 export abstract class StratumClient {
@@ -46,16 +50,17 @@ export abstract class StratumClient {
   private disconnectMessage: string | null = null
 
   readonly onConnected = new Event<[]>()
-  readonly onSubscribed = new Event<[MiningSubscribedMessageV1]>()
+  readonly onSubscribed = new Event<[MiningSubscribedMessageV3]>()
+  readonly onSubmitted = new Event<[MiningSubmittedMessage]>()
   readonly onSetTarget = new Event<[MiningSetTargetMessage]>()
   readonly onNotify = new Event<[MiningNotifyMessage]>()
   readonly onWaitForWork = new Event<[MiningWaitForWorkMessage]>()
   readonly onStatus = new Event<[MiningStatusMessage]>()
+  readonly onStratumError = new Event<[StratumMessageWithError]>()
 
   constructor(options: { logger: Logger }) {
     this.logger = options.logger
-    // TODO: upgrade this client to FishHash version when ready
-    this.version = 1
+    this.version = 3
 
     this.started = false
     this.id = null
@@ -141,7 +146,7 @@ export abstract class StratumClient {
     return this.connected
   }
 
-  private send(method: 'mining.submit', body: MiningSubmitMessageV1): void
+  private send(method: 'mining.submit', body: MiningSubmitMessageV3): void
   private send(method: 'mining.subscribe', body: MiningSubscribeMessage): void
   private send(method: 'mining.get_status', body: MiningGetStatusMessage): void
   private send(method: string, body?: unknown): void {
@@ -206,7 +211,19 @@ export abstract class StratumClient {
       const header = await YupUtils.tryValidate(StratumMessageSchema, payload)
 
       if (header.error) {
-        throw new ServerMessageMalformedError(header.error)
+        // Try the stratum error message instead.
+        const headerWithError = await YupUtils.tryValidate(
+          StratumMessageWithErrorSchema,
+          payload,
+        )
+        if (headerWithError.error) {
+          throw new ServerMessageMalformedError(header.error)
+        }
+        this.logger.debug(
+          `Server sent error ${headerWithError.result.error.message} for id ${headerWithError.result.error.id}`,
+        )
+        this.onStratumError.emit(headerWithError.result)
+        return
       }
 
       this.logger.debug(`Server sent ${header.result.method} message`)
@@ -229,7 +246,7 @@ export abstract class StratumClient {
 
         case 'mining.subscribed': {
           const body = await YupUtils.tryValidate(
-            MiningSubscribedMessageSchemaV1,
+            MiningSubscribedMessageSchemaV3,
             header.result.body,
           )
 
@@ -280,6 +297,16 @@ export abstract class StratumClient {
             throw new ServerMessageMalformedError(body.error, header.result.method)
           }
           this.onStatus.emit(body.result)
+          break
+        }
+
+        case 'mining.submitted': {
+          const body = await YupUtils.tryValidate(MiningSubmittedSchema, header.result.body)
+
+          if (body.error) {
+            throw new ServerMessageMalformedError(body.error, header.result.method)
+          }
+          this.onSubmitted.emit(body.result)
           break
         }
 

@@ -13,6 +13,7 @@ export enum RPC_ERROR_CODES {
   NOT_FOUND = 'not-found',
   DUPLICATE_ACCOUNT_NAME = 'duplicate-account-name',
   IMPORT_ACCOUNT_NAME_REQUIRED = 'import-account-name-required',
+  MULTISIG_SECRET_NAME_REQUIRED = 'multisig-secret-name-required',
 }
 
 /**

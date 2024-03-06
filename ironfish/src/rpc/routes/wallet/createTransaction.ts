@@ -24,7 +24,8 @@ export type CreateTransactionRequest = {
   outputs: {
     publicAddress: string
     amount: string
-    memo: string
+    memo?: string
+    memoHex?: string
     assetId?: string
   }[]
   mints?: {
@@ -59,7 +60,11 @@ export const CreateTransactionRequestSchema: yup.ObjectSchema<CreateTransactionR
           .object({
             publicAddress: yup.string().defined(),
             amount: YupUtils.currency({ min: 1n }).defined(),
-            memo: yup.string().defined().max(MEMO_LENGTH),
+            memo: yup.string().optional().max(MEMO_LENGTH),
+            memoHex: yup
+              .string()
+              .optional()
+              .max(MEMO_LENGTH * 2, 'Must be 32 byte hex encoded'),
             assetId: yup.string().optional(),
           })
           .defined(),
@@ -122,10 +127,23 @@ routes.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
       params.outputs = []
 
       for (const output of request.data.outputs) {
+        if (output.memo && output.memoHex) {
+          throw new RpcValidationError('Only one of memo or memoHex may be set for each output')
+        }
+
+        let memo: Buffer
+        if (output.memo) {
+          memo = Buffer.from(output.memo, 'utf-8')
+        } else if (output.memoHex) {
+          memo = Buffer.from(output.memoHex, 'hex')
+        } else {
+          memo = Buffer.alloc(0)
+        }
+
         params.outputs.push({
           publicAddress: output.publicAddress,
           amount: CurrencyUtils.decode(output.amount),
-          memo: output.memo,
+          memo: memo,
           assetId: output.assetId ? Buffer.from(output.assetId, 'hex') : Asset.nativeId(),
         })
       }

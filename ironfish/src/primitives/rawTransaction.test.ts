@@ -212,7 +212,7 @@ describe('RawTransactionSerde', () => {
       new NativeNote(
         generateKey().publicAddress,
         5n,
-        'memo',
+        Buffer.from('memo'),
         asset.id(),
         account.publicAddress,
       ).serialize(),
@@ -290,7 +290,7 @@ describe('RawTransactionSerde', () => {
       new NativeNote(
         generateKey().publicAddress,
         5n,
-        'memo',
+        Buffer.from('memo'),
         asset.id(),
         accountA.publicAddress,
       ).serialize(),

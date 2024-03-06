@@ -57,6 +57,10 @@ export class Miner extends IronfishCommand {
       default: false,
       allowNo: true,
     }),
+    blake3: Flags.boolean({
+      description: 'Mine with the blake3 algorithm instead of fish hash',
+      default: false,
+    }),
   }
 
   async start(): Promise<void> {
@@ -124,6 +128,8 @@ export class Miner extends IronfishCommand {
         batchSize,
         stratum,
         name: flags.name,
+        blake3: flags.blake3,
+        fishHashFullContext: flags.fishHashFull,
       })
 
       miner.start()

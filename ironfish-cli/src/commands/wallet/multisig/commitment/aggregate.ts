@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Flags } from '@oclif/core'
-import { IronfishCommand } from '../../../command'
-import { RemoteFlags } from '../../../flags'
-import { longPrompt } from '../../../utils/longPrompt'
+import { IronfishCommand } from '../../../../command'
+import { RemoteFlags } from '../../../../flags'
+import { longPrompt } from '../../../../utils/longPrompt'
 
 export class CreateSigningPackage extends IronfishCommand {
   static description = `Creates a signing package for a given transaction for a multisig account`
@@ -13,6 +13,11 @@ export class CreateSigningPackage extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
+    account: Flags.string({
+      char: 'f',
+      description: 'The account to use when creating the signing package',
+      required: false,
+    }),
     unsignedTransaction: Flags.string({
       char: 'u',
       description: 'The unsigned transaction for which the signing share will be created',
@@ -31,7 +36,7 @@ export class CreateSigningPackage extends IronfishCommand {
     let unsignedTransaction = flags.unsignedTransaction?.trim()
 
     if (!unsignedTransaction) {
-      unsignedTransaction = await longPrompt('Enter the unsigned transaction: ', {
+      unsignedTransaction = await longPrompt('Enter the unsigned transaction', {
         required: true,
       })
     }
@@ -48,6 +53,7 @@ export class CreateSigningPackage extends IronfishCommand {
     const client = await this.sdk.connectRpc()
 
     const signingPackageResponse = await client.wallet.multisig.createSigningPackage({
+      account: flags.account,
       unsignedTransaction,
       commitments,
     })

@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { CurrencyUtils, Transaction } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
-import { IronfishCommand } from '../../../command'
-import { RemoteFlags } from '../../../flags'
-import { longPrompt } from '../../../utils/longPrompt'
+import { IronfishCommand } from '../../../../command'
+import { RemoteFlags } from '../../../../flags'
+import { longPrompt } from '../../../../utils/longPrompt'
 
 export class MultisigSign extends IronfishCommand {
   static description = 'Aggregate signature shares from participants to sign a transaction'
@@ -39,7 +39,7 @@ export class MultisigSign extends IronfishCommand {
 
     const signingPackage =
       flags.signingPackage?.trim() ??
-      (await longPrompt('Enter the signing package: ', { required: true }))
+      (await longPrompt('Enter the signing package', { required: true }))
 
     let signatureShares = flags.signatureShare
     if (!signatureShares) {
@@ -76,6 +76,7 @@ export class MultisigSign extends IronfishCommand {
       this.warn(`Transaction '${transaction.hash().toString('hex')}' failed to broadcast`)
     }
 
+    this.log(`Transaction: ${response.content.transaction}`)
     this.log(`Hash: ${transaction.hash().toString('hex')}`)
     this.log(`Fee: ${CurrencyUtils.renderIron(transaction.fee(), true)}`)
   }

@@ -6,6 +6,7 @@ import { Assert } from '../assert'
 import { useAccountFixture, useMinerBlockFixture } from '../testUtilities/fixtures'
 import { createRawTransaction } from '../testUtilities/helpers/transaction'
 import { createNodeTest } from '../testUtilities/nodeTest'
+import { Note } from './note'
 import { MintData } from './rawTransaction'
 import { UnsignedTransaction } from './unsignedTransaction'
 
@@ -59,21 +60,29 @@ describe('UnsignedTransaction', () => {
     )
     const unsigned = new UnsignedTransaction(builtTx.serialize())
 
-    const descriptions = unsigned.descriptions(account.incomingViewKey, account.outgoingViewKey)
+    const receivedNotes: Note[] = []
+    for (const note of unsigned.notes) {
+      const receivedNote = note.decryptNoteForOwner(account.incomingViewKey)
+      if (receivedNote) {
+        receivedNotes.push(receivedNote)
+      }
+    }
 
-    const mintOutput = descriptions.receivedNotes.filter((n) => n.assetId().equals(asset.id()))
+    const mintOutput = receivedNotes.filter((n) => n.assetId().equals(asset.id()))
     expect(mintOutput).toHaveLength(1)
     expect(mintOutput[0].value()).toEqual(mintValue)
 
-    expect(descriptions.mints).toEqual([
+    expect(unsigned.mints).toEqual([
       {
-        assetId: asset.id().toString('hex'),
+        asset,
         value: mintValue,
+        owner: Buffer.from(account.publicAddress, 'hex'),
+        transferOwnershipTo: null,
       },
     ])
-    expect(descriptions.burns).toEqual([
+    expect(unsigned.burns).toEqual([
       {
-        assetId: Asset.nativeId().toString('hex'),
+        assetId: Asset.nativeId(),
         value: burnValue,
       },
     ])

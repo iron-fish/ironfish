@@ -1,9 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-
-import { generateKey } from '@ironfish/rust-nodejs'
-import { v4 as uuid } from 'uuid'
+import { Assert } from '../../../assert'
 import { useAccountFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { Account } from '../../../wallet'
@@ -13,6 +11,7 @@ import { JsonEncoder } from '../../../wallet/account/encoder/json'
 import { MnemonicEncoder } from '../../../wallet/account/encoder/mnemonic'
 import { SpendingKeyEncoder } from '../../../wallet/account/encoder/spendingKey'
 import { ExportAccountResponse } from './exportAccount'
+import { CreateParticipantResponse } from './multisig/createParticipant'
 
 describe('Route wallet/exportAccount', () => {
   const routeTest = createRouteTest(true)
@@ -144,31 +143,44 @@ describe('Route wallet/exportAccount', () => {
   })
 
   it('should export an account with multisigKeys', async () => {
-    const key = generateKey()
+    const accountNames = Array.from({ length: 2 }, (_, index) => `test-account-${index}`)
+    const participants = await Promise.all(
+      accountNames.map(
+        async (name) =>
+          (
+            await routeTest.client
+              .request<CreateParticipantResponse>('wallet/multisig/createParticipant', { name })
+              .waitForEnd()
+          ).content,
+      ),
+    )
 
-    const accountName = 'foo'
-    const accountImport = {
-      name: accountName,
-      viewKey: key.viewKey,
-      spendingKey: null,
-      publicAddress: key.publicAddress,
-      incomingViewKey: key.incomingViewKey,
-      outgoingViewKey: key.outgoingViewKey,
-      version: 1,
-      createdAt: null,
-      multisigKeys: {
-        publicKeyPackage: 'aaaa',
-        identity: 'aaaa',
-        keyPackage: 'bbbb',
-      },
-      proofAuthorizingKey: key.proofAuthorizingKey,
-    }
+    const multisigSecret = await routeTest.node.wallet.walletDb.getMultisigSecret(
+      Buffer.from(participants[0].identity, 'hex'),
+    )
+    Assert.isNotUndefined(multisigSecret)
 
-    await routeTest.wallet.importAccount({ ...accountImport, id: uuid() })
+    // Initialize the group though TDK and import one of the accounts generated
+    const trustedDealerPackage = (
+      await routeTest.client.wallet.multisig.createTrustedDealerKeyPackage({
+        minSigners: 2,
+        participants,
+      })
+    ).content
+
+    const importAccount = trustedDealerPackage.participantAccounts.find(
+      ({ identity }) => identity === participants[0].identity,
+    )
+    expect(importAccount).toBeDefined()
+
+    await routeTest.client.wallet.importAccount({
+      name: accountNames[0],
+      account: importAccount!.account,
+    })
 
     const response = await routeTest.client
       .request<ExportAccountResponse>('wallet/exportAccount', {
-        account: accountName,
+        account: accountNames[0],
         viewOnly: false,
       })
       .waitForEnd()
@@ -176,14 +188,16 @@ describe('Route wallet/exportAccount', () => {
     expect(response.status).toBe(200)
     expect(response.content).toMatchObject({
       account: {
-        name: accountImport.name,
-        spendingKey: accountImport.spendingKey,
-        viewKey: accountImport.viewKey,
-        incomingViewKey: accountImport.incomingViewKey,
-        outgoingViewKey: accountImport.outgoingViewKey,
-        publicAddress: accountImport.publicAddress,
-        version: accountImport.version,
-        multisigKeys: accountImport.multisigKeys,
+        name: accountNames[0],
+        spendingKey: null,
+        viewKey: trustedDealerPackage.viewKey,
+        incomingViewKey: trustedDealerPackage.incomingViewKey,
+        outgoingViewKey: trustedDealerPackage.outgoingViewKey,
+        publicAddress: trustedDealerPackage.publicAddress,
+        multisigKeys: {
+          secret: multisigSecret.secret.toString('hex'),
+          publicKeyPackage: trustedDealerPackage.publicKeyPackage,
+        },
       },
     })
   })

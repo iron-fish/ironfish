@@ -1127,9 +1127,20 @@ describe('Blockchain', () => {
       )
     }
 
+    const assetOwnershipNetworkDefinition = {
+      ...DEVNET,
+      consensus: {
+        ...DEVNET.consensus,
+        enableAssetOwnership: 1,
+      },
+      id: 999,
+    }
+
     describe('with a mint description', () => {
       it('upserts an asset to the database', async () => {
-        const { node } = await nodeTest.createSetup()
+        const { node } = await nodeTest.createSetup({
+          networkDefinition: assetOwnershipNetworkDefinition,
+        })
         const account = await useAccountFixture(node.wallet)
 
         const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
@@ -1168,8 +1179,12 @@ describe('Blockchain', () => {
 
       describe('with transferOwnershipTo', () => {
         it('changes the ownership of an asset in the database', async () => {
-          const { node: nodeA } = await nodeTest.createSetup()
-          const { node: nodeB } = await nodeTest.createSetup()
+          const { node: nodeA } = await nodeTest.createSetup({
+            networkDefinition: assetOwnershipNetworkDefinition,
+          })
+          const { node: nodeB } = await nodeTest.createSetup({
+            networkDefinition: assetOwnershipNetworkDefinition,
+          })
           const accountA = await useAccountFixture(nodeA.wallet, 'accountA')
           const accountB = await useAccountFixture(nodeB.wallet, 'accountB')
           expect(accountA.publicAddress).not.toEqual(accountB.publicAddress)
@@ -1362,8 +1377,12 @@ describe('Blockchain', () => {
       })
 
       it('should restore the original owner', async () => {
-        const { node: nodeA } = await nodeTest.createSetup()
-        const { node: nodeB } = await nodeTest.createSetup()
+        const { node: nodeA } = await nodeTest.createSetup({
+          networkDefinition: assetOwnershipNetworkDefinition,
+        })
+        const { node: nodeB } = await nodeTest.createSetup({
+          networkDefinition: assetOwnershipNetworkDefinition,
+        })
         const accountA = await useAccountFixture(nodeA.wallet, 'accountA')
         const accountB = await useAccountFixture(nodeB.wallet, 'accountB')
         expect(accountA.publicAddress).not.toEqual(accountB.publicAddress)
@@ -1672,7 +1691,9 @@ describe('Blockchain', () => {
 
     describe('when spending and burning the same note in a block', () => {
       it('fails validation as double spend', async () => {
-        const { node } = await nodeTest.createSetup()
+        const { node } = await nodeTest.createSetup({
+          networkDefinition: assetOwnershipNetworkDefinition,
+        })
         const account = await useAccountFixture(node.wallet)
 
         const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
@@ -1718,7 +1739,7 @@ describe('Blockchain', () => {
                 new NativeNote(
                   account.publicAddress,
                   3n,
-                  '',
+                  Buffer.alloc(32),
                   assetId,
                   account.publicAddress,
                 ).serialize(),

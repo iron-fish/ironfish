@@ -10,49 +10,41 @@ describe('multisig RPC integration', () => {
   const routeTest = createRouteTest()
 
   it('should create a verified transaction using multisig', async () => {
-    // create participants
-    const participants = Array.from({ length: 3 }, () => ({
-      identity: ParticipantSecret.random().toIdentity().serialize().toString('hex'),
-    }))
+    // create a bunch of multisig identities
+    const accountNames = Array.from({ length: 3 }, (_, index) => `test-account-${index}`)
+    const participants = await Promise.all(
+      accountNames.map(async (name) => {
+        const identity = (await routeTest.client.wallet.multisig.createParticipant({ name }))
+          .content.identity
+        return { name, identity }
+      }),
+    )
 
-    // create trusted dealer key package
-    const responseKeyPackage =
+    // initialize the group though tdk and import the accounts generated
+    const trustedDealerPackage = (
       await routeTest.client.wallet.multisig.createTrustedDealerKeyPackage({
         minSigners: 2,
         participants,
       })
-    const trustedDealerPackage = responseKeyPackage.content
-
-    // import participant accounts
-    const participantAccounts: Array<Account> = []
-    for (let i = 0; i < participants.length; i++) {
-      const accountName = `participant${i}`
+    ).content
+    for (const { name, identity } of participants) {
+      const importAccount = trustedDealerPackage.participantAccounts.find(
+        (account) => account.identity === identity,
+      )
+      Assert.isNotUndefined(importAccount)
       await routeTest.client.wallet.importAccount({
-        account: {
-          name: accountName,
-          version: ACCOUNT_SCHEMA_VERSION,
-          viewKey: trustedDealerPackage.viewKey,
-          incomingViewKey: trustedDealerPackage.incomingViewKey,
-          outgoingViewKey: trustedDealerPackage.outgoingViewKey,
-          publicAddress: trustedDealerPackage.publicAddress,
-          spendingKey: null,
-          createdAt: null,
-          multisigKeys: {
-            keyPackage: trustedDealerPackage.keyPackages[i].keyPackage,
-            identity: trustedDealerPackage.keyPackages[i].identity,
-            publicKeyPackage: trustedDealerPackage.publicKeyPackage,
-          },
-          proofAuthorizingKey: null,
-        },
-        rescan: false,
+        name,
+        account: importAccount.account,
       })
-
-      const participantAccount = routeTest.wallet.getAccountByName(accountName)
-      Assert.isNotNull(participantAccount)
-      participantAccounts.push(participantAccount)
     }
 
-    // import coordinator account
+    const participantAccounts = accountNames.map((accountName) => {
+      const participantAccount = routeTest.wallet.getAccountByName(accountName)
+      Assert.isNotNull(participantAccount)
+      return participantAccount
+    })
+
+    // import an account to serve as the coordinator
     await routeTest.client.wallet.importAccount({
       account: {
         version: ACCOUNT_SCHEMA_VERSION,
@@ -71,13 +63,14 @@ describe('multisig RPC integration', () => {
 
     // fund coordinator account
     // mine block to send IRON to multisig account
-    const miner = await routeTest.wallet.createAccount('miner', { setCreatedAt: false })
+    const miner = await routeTest.wallet.createAccount('miner')
     await fundAccount(coordinatorAccount, miner)
 
     // build list of signers
     const signers = participantAccounts.map((participant) => {
       AssertMultisigSigner(participant)
-      return { identity: participant.multisigKeys.identity }
+      const secret = new ParticipantSecret(Buffer.from(participant.multisigKeys.secret, 'hex'))
+      return { identity: secret.toIdentity().serialize().toString('hex') }
     })
 
     // create raw transaction
@@ -172,7 +165,7 @@ describe('multisig RPC integration', () => {
         {
           publicAddress: account.publicAddress,
           amount: BigInt(2),
-          memo: '',
+          memo: Buffer.from(''),
           assetId: Asset.nativeId(),
         },
       ],

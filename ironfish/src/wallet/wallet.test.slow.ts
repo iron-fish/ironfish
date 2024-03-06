@@ -7,12 +7,10 @@ import {
   ASSET_ID_LENGTH,
   createSignatureShare,
   createSigningCommitment,
+  generateAndSplitKey,
   generateKey,
   ParticipantSecret,
-  splitSecret,
-  TrustedDealerKeyPackages,
 } from '@ironfish/rust-nodejs'
-import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
 import { Transaction } from '../primitives'
 import { Target } from '../primitives/target'
@@ -128,7 +126,7 @@ describe('Wallet', () => {
         {
           publicAddress: generateKey().publicAddress,
           amount: BigInt(2),
-          memo: '',
+          memo: Buffer.alloc(32),
           assetId: Asset.nativeId(),
         },
       ],
@@ -195,7 +193,7 @@ describe('Wallet', () => {
         {
           publicAddress: generateKey().publicAddress,
           amount: BigInt(2),
-          memo: '',
+          memo: Buffer.alloc(32),
           assetId: Asset.nativeId(),
         },
       ],
@@ -264,19 +262,19 @@ describe('Wallet', () => {
         {
           publicAddress: generateKey().publicAddress,
           amount: BigInt(2),
-          memo: 'recipient 1',
+          memo: Buffer.from('recipient 1'),
           assetId: Asset.nativeId(),
         },
         {
           publicAddress: generateKey().publicAddress,
           amount: BigInt(2),
-          memo: 'recipient 2',
+          memo: Buffer.from('recipient 2'),
           assetId: Asset.nativeId(),
         },
         {
           publicAddress: generateKey().publicAddress,
           amount: BigInt(2),
-          memo: 'recipient 3',
+          memo: Buffer.from('recipient 3'),
           assetId: Asset.nativeId(),
         },
       ],
@@ -318,7 +316,7 @@ describe('Wallet', () => {
           {
             publicAddress: generateKey().publicAddress,
             amount: BigInt(2),
-            memo: '',
+            memo: Buffer.alloc(32),
             assetId: Asset.nativeId(),
           },
         ],
@@ -372,7 +370,7 @@ describe('Wallet', () => {
         {
           publicAddress: generateKey().publicAddress,
           amount: BigInt(2),
-          memo: '',
+          memo: Buffer.alloc(32),
           assetId: Asset.nativeId(),
         },
       ],
@@ -456,7 +454,7 @@ describe('Wallet', () => {
         {
           publicAddress: generateKey().publicAddress,
           amount: BigInt(2),
-          memo: '',
+          memo: Buffer.alloc(32),
           assetId: Asset.nativeId(),
         },
       ],
@@ -517,7 +515,7 @@ describe('Wallet', () => {
           {
             publicAddress: accountB.publicAddress,
             amount: BigInt(1),
-            memo: '',
+            memo: Buffer.alloc(32),
             assetId: Asset.nativeId(),
           },
         ],
@@ -549,7 +547,7 @@ describe('Wallet', () => {
           {
             publicAddress: accountC.publicAddress,
             amount: BigInt(1),
-            memo: '',
+            memo: Buffer.alloc(32),
             assetId: Asset.nativeId(),
           },
         ],
@@ -678,7 +676,7 @@ describe('Wallet', () => {
         {
           publicAddress: generateKey().publicAddress,
           amount: BigInt(2),
-          memo: '',
+          memo: Buffer.alloc(32),
           assetId: Asset.nativeId(),
         },
       ],
@@ -749,7 +747,7 @@ describe('Wallet', () => {
             {
               publicAddress: accountB.publicAddress,
               amount: BigInt(2),
-              memo: '',
+              memo: Buffer.alloc(32),
               assetId: Asset.nativeId(),
             },
           ],
@@ -862,7 +860,7 @@ describe('Wallet', () => {
             {
               publicAddress: accountB.publicAddress,
               amount: BigInt(2),
-              memo: '',
+              memo: Buffer.alloc(32),
               assetId: Asset.nativeId(),
             },
           ],
@@ -1145,20 +1143,24 @@ describe('Wallet', () => {
       const { node } = await nodeTest.createSetup()
       const recipient = await useAccountFixture(node.wallet, 'recipient')
 
-      const coordinatorSaplingKey = generateKey()
+      const accountNames = Array.from({ length: 3 }, (_, index) => `test-account-${index}`)
+      const identities = await Promise.all(
+        accountNames.map(async (name) => {
+          const secret = ParticipantSecret.random()
+          const identity = secret.toIdentity()
 
-      const identities = Array.from({ length: 3 }, () =>
-        ParticipantSecret.random().toIdentity().serialize().toString('hex'),
+          await node.wallet.walletDb.putMultisigSecret(identity.serialize(), {
+            name,
+            secret: secret.serialize(),
+          })
+          return identity.serialize().toString('hex')
+        }),
       )
 
       // construct 3 separate secrets for the participants
       // take the secrets and get identities back (get identity first then identifier)
 
-      const trustedDealerPackage: TrustedDealerKeyPackages = splitSecret(
-        coordinatorSaplingKey.spendingKey,
-        minSigners,
-        identities,
-      )
+      const trustedDealerPackage = generateAndSplitKey(minSigners, identities)
 
       const getMultisigKeys = (index: number) => {
         return {
@@ -1170,7 +1172,6 @@ describe('Wallet', () => {
 
       const participantA = await node.wallet.importAccount({
         version: 2,
-        id: uuid(),
         name: trustedDealerPackage.keyPackages[0].identity,
         spendingKey: null,
         createdAt: null,
@@ -1179,7 +1180,6 @@ describe('Wallet', () => {
       })
       const participantB = await node.wallet.importAccount({
         version: 2,
-        id: uuid(),
         name: trustedDealerPackage.keyPackages[1].identity,
         spendingKey: null,
         createdAt: null,
@@ -1188,7 +1188,6 @@ describe('Wallet', () => {
       })
       const participantC = await node.wallet.importAccount({
         version: 2,
-        id: uuid(),
         name: trustedDealerPackage.keyPackages[2].identity,
         spendingKey: null,
         createdAt: null,
@@ -1200,7 +1199,6 @@ describe('Wallet', () => {
 
       const coordinator = await node.wallet.importAccount({
         version: 4,
-        id: uuid(),
         name: 'coordinator',
         spendingKey: null,
         createdAt: null,
@@ -1228,7 +1226,7 @@ describe('Wallet', () => {
           {
             publicAddress: participantB.publicAddress,
             amount: BigInt(2),
-            memo: '',
+            memo: Buffer.alloc(32),
             assetId: Asset.nativeId(),
           },
         ],
@@ -1259,7 +1257,7 @@ describe('Wallet', () => {
           {
             publicAddress: recipient.publicAddress,
             amount: 2n,
-            memo: '',
+            memo: Buffer.alloc(32),
             assetId: Asset.nativeId(),
           },
         ],
@@ -1276,7 +1274,10 @@ describe('Wallet', () => {
 
       const signers = participants.map((participant) => {
         AssertMultisigSigner(participant)
-        return participant.multisigKeys.identity
+        const secret = new ParticipantSecret(
+          Buffer.from(participant.multisigKeys.secret, 'hex'),
+        )
+        return secret.toIdentity().serialize().toString('hex')
       })
 
       const signingCommitments: string[] = []
@@ -1284,7 +1285,7 @@ describe('Wallet', () => {
         AssertMultisigSigner(participant)
         signingCommitments.push(
           createSigningCommitment(
-            participant.multisigKeys.identity,
+            participant.multisigKeys.secret,
             participant.multisigKeys.keyPackage,
             transactionHash,
             signers,
@@ -1300,7 +1301,7 @@ describe('Wallet', () => {
         AssertMultisigSigner(participant)
         signatureShares.push(
           createSignatureShare(
-            participant.multisigKeys.identity,
+            participant.multisigKeys.secret,
             participant.multisigKeys.keyPackage,
             signingPackage,
           ),
@@ -1334,5 +1335,47 @@ describe('Wallet', () => {
         unconfirmed: BigInt(2),
       })
     }, 100000)
+  })
+
+  it('adds publicKeyPackage identities to walletDb on account import', async () => {
+    const minSigners = 2
+
+    const { node } = await nodeTest.createSetup()
+
+    const accountNames = Array.from({ length: 3 }, (_, index) => `test-account-${index}`)
+    const identities = await Promise.all(
+      accountNames.map(async (name) => {
+        const secret = ParticipantSecret.random()
+        const identity = secret.toIdentity()
+
+        await node.wallet.walletDb.putMultisigSecret(identity.serialize(), {
+          name,
+          secret: secret.serialize(),
+        })
+        return identity.serialize().toString('hex')
+      }),
+    )
+
+    const trustedDealerPackage = generateAndSplitKey(minSigners, identities)
+
+    const account = await node.wallet.importAccount({
+      version: 2,
+      name: trustedDealerPackage.keyPackages[0].identity,
+      spendingKey: null,
+      createdAt: null,
+      multisigKeys: {
+        publicKeyPackage: trustedDealerPackage.publicKeyPackage,
+        identity: trustedDealerPackage.keyPackages[0].identity,
+        keyPackage: trustedDealerPackage.keyPackages[0].keyPackage,
+      },
+      ...trustedDealerPackage,
+    })
+
+    const storedIdentities: string[] = []
+    for await (const identity of node.wallet.walletDb.getParticipantIdentities(account)) {
+      storedIdentities.push(identity.toString('hex'))
+    }
+
+    expect(identities.sort()).toEqual(storedIdentities.sort())
   })
 })

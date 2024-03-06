@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Asset } from '@ironfish/rust-nodejs'
+import { Asset, ParticipantSecret } from '@ironfish/rust-nodejs'
 import { Assert } from '../../assert'
 import {
   createNodeTest,
@@ -388,6 +388,46 @@ describe('WalletDB', () => {
       expect(transactions.length).toEqual(transactionHashes.length - 2)
       expect(transactions[0].transaction.hash()).toEqual(transactionHashes[1])
       expect(transactions[1].transaction.hash()).toEqual(transactionHashes[2])
+    })
+  })
+
+  describe('multisigSecrets', () => {
+    it('should store named ParticipantSecret as buffer', async () => {
+      const node = (await nodeTest.createSetup()).node
+      const walletDb = node.wallet.walletDb
+
+      const name = 'test'
+      const secret = ParticipantSecret.random()
+      const serializedSecret = secret.serialize()
+
+      await walletDb.putMultisigSecret(secret.toIdentity().serialize(), {
+        secret: serializedSecret,
+        name,
+      })
+
+      const storedSecret = await walletDb.getMultisigSecretByName(name)
+      Assert.isNotUndefined(storedSecret)
+      expect(storedSecret.secret).toEqualBuffer(serializedSecret)
+    })
+  })
+
+  describe('participantIdentities', () => {
+    it('should store participant identities for a multisig account', async () => {
+      const node = (await nodeTest.createSetup()).node
+      const walletDb = node.wallet.walletDb
+
+      const account = await useAccountFixture(node.wallet, 'multisig')
+
+      const identity = ParticipantSecret.random().toIdentity()
+
+      await walletDb.addParticipantIdentity(account, identity.serialize())
+
+      const storedIdentities = await AsyncUtils.materialize(
+        walletDb.getParticipantIdentities(account),
+      )
+
+      expect(storedIdentities.length).toEqual(1)
+      expect(storedIdentities[0]).toEqualBuffer(identity.serialize())
     })
   })
 })

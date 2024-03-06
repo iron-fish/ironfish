@@ -43,7 +43,7 @@ routes.register<typeof CreateSignatureShareRequestSchema, CreateSignatureShareRe
     AssertMultisigSigner(account)
 
     const signatureShare = createSignatureShare(
-      account.multisigKeys.identity,
+      account.multisigKeys.secret,
       account.multisigKeys.keyPackage,
       request.data.signingPackage,
     )

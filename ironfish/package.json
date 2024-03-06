@@ -1,6 +1,6 @@
 {
   "name": "@ironfish/sdk",
-  "version": "1.20.0",
+  "version": "2.0.0",
   "description": "SDK for running and interacting with an Iron Fish node",
   "author": "Iron Fish <contact@ironfish.network> (https://ironfish.network)",
   "main": "build/src/index.js",
@@ -22,7 +22,7 @@
   "dependencies": {
     "@ethersproject/bignumber": "5.7.0",
     "@fast-csv/format": "4.3.5",
-    "@ironfish/rust-nodejs": "1.17.0",
+    "@ironfish/rust-nodejs": "2.0.0",
     "@napi-rs/blake-hash": "1.3.3",
     "axios": "0.21.4",
     "bech32": "2.0.0",
@@ -57,8 +57,8 @@
     "lint": "tsc -b && tsc -b tsconfig.test.json && eslint --ext .ts,.tsx,.js,.jsx src/",
     "lint:fix": "tsc -b && tsc -b tsconfig.test.json && eslint --ext .ts,.tsx,.js,.jsx src/ --fix",
     "start": "tsc -b -w",
-    "test": "tsc -b && tsc -b tsconfig.test.json && cross-env NODE_OPTIONS=--experimental-vm-modules jest --testTimeout=${JEST_TIMEOUT:-5000}",
-    "test:slow": "tsc -b && tsc -b tsconfig.test.json && cross-env NODE_OPTIONS=--experimental-vm-modules TEST_INIT_RUST=true jest --testMatch \"**/*.test.slow.ts\" --testPathIgnorePatterns --testTimeout=${JEST_TIMEOUT:-60000}",
+    "test": "tsc -b && tsc -b tsconfig.test.json && cross-env NODE_OPTIONS=--experimental-vm-modules RUST_BACKTRACE=1 jest --testTimeout=${JEST_TIMEOUT:-5000}",
+    "test:slow": "tsc -b && tsc -b tsconfig.test.json && cross-env NODE_OPTIONS=--experimental-vm-modules TEST_INIT_RUST=true RUST_BACKTRACE=1 jest --testMatch \"**/*.test.slow.ts\" --testPathIgnorePatterns --testTimeout=${JEST_TIMEOUT:-60000}",
     "test:perf": "tsc -b && tsc -b tsconfig.test.json && cross-env NODE_OPTIONS=--experimental-vm-modules TEST_INIT_RUST=true jest --testMatch \"**/*.test.perf.ts\" --testPathIgnorePatterns --testTimeout=${JEST_TIMEOUT:-600000} --runInBand",
     "test:perf:report": "tsc -b && tsc -b tsconfig.test.json && cross-env NODE_OPTIONS=--experimental-vm-modules TEST_INIT_RUST=true GENERATE_TEST_REPORT=true jest --config jest.config.js --testMatch \"**/*.test.perf.ts\" --testPathIgnorePatterns --testTimeout=${JEST_TIMEOUT:-600000} --ci",
     "test:coverage:html": "tsc -b tsconfig.test.json && cross-env NODE_OPTIONS=--experimental-vm-modules jest --testPathIgnorePatterns --coverage --coverage-reporters html",

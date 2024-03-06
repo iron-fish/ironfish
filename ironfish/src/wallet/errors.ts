@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { MEMO_LENGTH } from '@ironfish/rust-nodejs'
 import { CurrencyUtils } from '../utils'
 
 export class NotEnoughFundsError extends Error {
@@ -19,11 +20,31 @@ export class NotEnoughFundsError extends Error {
   }
 }
 
+export class MaxMemoLengthError extends Error {
+  name = this.constructor.name
+  constructor(memo: Buffer) {
+    super()
+    const utf8String = memo.toString('utf-8')
+    this.message = `Memo exceeds maximum of ${MEMO_LENGTH} bytes (length=${
+      memo.byteLength
+    }): ${memo.toString('hex')} (${utf8String})`
+  }
+}
+
 export class DuplicateAccountNameError extends Error {
   name = this.constructor.name
 
   constructor(name: string) {
     super()
     this.message = `Account already exists with the name ${name}`
+  }
+}
+
+export class DuplicateMultisigSecretNameError extends Error {
+  name = this.constructor.name
+
+  constructor(name: string) {
+    super()
+    this.message = `Multisig secret already exists with the name ${name}`
   }
 }

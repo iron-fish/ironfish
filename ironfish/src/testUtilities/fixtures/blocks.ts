@@ -184,7 +184,7 @@ export async function useBlockWithRawTxFixture(
       const note = new NativeNote(
         output.publicAddress,
         output.amount,
-        output.memo,
+        Buffer.from(output.memo, 'hex'),
         output.assetId,
         sender.publicAddress,
       )
@@ -255,7 +255,7 @@ export async function useBlockWithTx(
         {
           publicAddress: to.publicAddress,
           amount: BigInt(1),
-          memo: '',
+          memo: Buffer.alloc(32),
           assetId: Asset.nativeId(),
         },
       ],
@@ -314,7 +314,7 @@ export async function useBlockWithCustomTxs(
             {
               publicAddress: to?.publicAddress ?? from.publicAddress,
               amount: BigInt(1),
-              memo: '',
+              memo: Buffer.alloc(32),
               assetId: Asset.nativeId(),
             },
           ],

@@ -156,9 +156,15 @@ impl ThreadPoolHandler {
         target: Buffer,
         mining_request_id: u32,
         fish_hash: bool,
+        xn_length: u8,
     ) {
-        self.threadpool
-            .new_work(&header_bytes, &target, mining_request_id, fish_hash)
+        self.threadpool.new_work(
+            &header_bytes,
+            &target,
+            mining_request_id,
+            fish_hash,
+            xn_length,
+        )
     }
 
     #[napi]
