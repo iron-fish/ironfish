@@ -203,13 +203,19 @@ pub fn generate_and_split_key(
     let identities = try_deserialize_identities(identities)?;
 
     let packages =
-        split_spender_key(&spending_key, min_signers, identities).map_err(to_napi_err)?;
+        split_spender_key(&spending_key, min_signers, identities.clone()).map_err(to_napi_err)?;
 
     let mut key_packages = Vec::with_capacity(packages.key_packages.len());
-    for (identity, key_package) in packages.key_packages.iter() {
+
+    // preserves the order of the identities
+    for identity in identities {
         key_packages.push(ParticipantKeyPackage {
             identity: bytes_to_hex(&identity.serialize()),
-            key_package: bytes_to_hex(&key_package.serialize().map_err(to_napi_err)?),
+            key_package: bytes_to_hex(
+                &packages.key_packages[&identity]
+                    .serialize()
+                    .map_err(to_napi_err)?,
+            ),
         });
     }
 
