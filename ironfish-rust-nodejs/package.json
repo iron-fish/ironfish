@@ -1,6 +1,6 @@
 {
   "name": "@ironfish/rust-nodejs",
-  "version": "1.17.0",
+  "version": "2.0.0",
   "description": "Node.js bindings for Rust code required by the Iron Fish SDK",
   "main": "index.js",
   "types": "index.d.ts",
