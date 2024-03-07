@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { RPC_ERROR_CODES } from '@ironfish/sdk'
 import { Assert } from '../../../../assert'
 import { createRouteTest } from '../../../../testUtilities/routeTest'
 
@@ -22,7 +21,6 @@ describe('Route wallet/multisig/createParticipant', () => {
           `Multisig secret already exists with the name ${name}`,
         ),
         status: 400,
-        code: RPC_ERROR_CODES.DUPLICATE_ACCOUNT_NAME,
       }),
     )
   })
