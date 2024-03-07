@@ -24,7 +24,7 @@ export function decodeEncryptedMultisigAccount(
 ): Buffer {
   if (!options?.multisigSecret) {
     throw new MultisigMissingSecretName(
-      'Encrypted multisig account cannot be decrypted without a multisig secret',
+      'Encrypted multisig account cannot be decrypted without a corresponding multisig secret',
     )
   }
   const secret = Buffer.isBuffer(options.multisigSecret)
