@@ -160,7 +160,7 @@ describe('BlockFetcher', () => {
     // Block should be one ahead of our current chain
     expect(block.header.sequence - chain.head.sequence).toEqual(1)
 
-    // We accept one of the the transaction in our mempool
+    // We accept one of the transaction in our mempool
     node.memPool.acceptTransaction(transactions[2])
 
     // Create 5 connected peers
