@@ -38,6 +38,10 @@ export class MultisigIdentity extends IronfishCommand {
           value: identity,
         })
       }
+
+      // sort identities by name
+      choices.sort((a, b) => a.name.localeCompare(b.name))
+
       const selection = await inquirer.prompt<{
         identity: string
       }>([
