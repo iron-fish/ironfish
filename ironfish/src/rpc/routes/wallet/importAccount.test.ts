@@ -388,7 +388,9 @@ describe('Route wallet/importAccount', () => {
             .waitForEnd(),
         ).rejects.toThrow(
           expect.objectContaining({
-            message: expect.stringContaining('Encrypted multisig account cannot be decrypted without a corresponding multisig secret'),
+            message: expect.stringContaining(
+              'Encrypted multisig account cannot be decrypted without a corresponding multisig secret',
+            ),
             status: 400,
           }),
         )
