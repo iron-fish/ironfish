@@ -39,11 +39,12 @@ export class MultisigIdentityCreate extends IronfishCommand {
         ) {
           this.log()
           this.log(e.codeMessage)
+          name = await CliUx.ux.prompt('Enter a new name for the identity', {
+            required: true,
+          })
+        } else {
+          throw e
         }
-
-        name = await CliUx.ux.prompt('Enter a new name for the identity', {
-          required: true,
-        })
       }
     }
 
