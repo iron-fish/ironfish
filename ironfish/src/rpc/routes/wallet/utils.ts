@@ -4,7 +4,7 @@
 import { Config } from '../../../fileStores'
 import { Note } from '../../../primitives'
 import { BufferUtils, CurrencyUtils } from '../../../utils'
-import { Account, Wallet } from '../../../wallet'
+import { Account, Base64JsonEncoder, Wallet } from '../../../wallet'
 import {
   isMultisigSignerImport,
   isMultisigSignerTrustedDealerImport,
@@ -278,4 +278,21 @@ export async function serializeRpcAccountStatus(
       : null,
     viewOnly: !account.isSpendingAccount(),
   }
+}
+
+export async function tryDecodeAccountWithMultisigSecrets(
+  wallet: Wallet,
+  value: string,
+): Promise<AccountImport | undefined> {
+  const encoder = new Base64JsonEncoder()
+
+  for await (const { name, secret } of wallet.walletDb.getMultisigSecrets()) {
+    try {
+      return encoder.decode(value, { name, multisigSecret: secret })
+    } catch (e: unknown) {
+      continue
+    }
+  }
+
+  return undefined
 }

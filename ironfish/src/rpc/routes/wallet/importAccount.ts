@@ -4,13 +4,14 @@
 import * as yup from 'yup'
 import { DecodeInvalidName, MultisigMissingSecretName } from '../../../wallet'
 import { decodeAccount } from '../../../wallet/account/encoder/account'
+import { BASE64_JSON_MULTISIG_ENCRYPTED_ACCOUNT_PREFIX } from '../../../wallet/account/encoder/base64json'
 import { DuplicateAccountNameError } from '../../../wallet/errors'
 import { RPC_ERROR_CODES, RpcValidationError } from '../../adapters'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import { AssertHasRpcContext } from '../rpcContext'
 import { RpcAccountImport } from './types'
-import { deserializeRpcAccountImport } from './utils'
+import { deserializeRpcAccountImport, tryDecodeAccountWithMultisigSecrets } from './utils'
 
 export class ImportError extends Error {}
 
@@ -51,11 +52,17 @@ routes.register<typeof ImportAccountRequestSchema, ImportResponse>(
       let accountImport = null
       if (typeof request.data.account === 'string') {
         const name = request.data.name
-        const multisigSecretValue = name
-          ? await context.wallet.walletDb.getMultisigSecretByName(name)
-          : undefined
-        const multisigSecret = multisigSecretValue ? multisigSecretValue.secret : undefined
-        accountImport = decodeAccount(request.data.account, { name, multisigSecret })
+
+        if (request.data.account.startsWith(BASE64_JSON_MULTISIG_ENCRYPTED_ACCOUNT_PREFIX)) {
+          accountImport = await tryDecodeAccountWithMultisigSecrets(
+            context.wallet,
+            request.data.account,
+          )
+        }
+
+        if (!accountImport) {
+          accountImport = decodeAccount(request.data.account, { name })
+        }
       } else {
         accountImport = deserializeRpcAccountImport(request.data.account)
       }
