@@ -212,7 +212,7 @@ pub fn generate_and_split_key(
         let key_package = packages
             .key_packages
             .get(&identity)
-            .ok_or_else(|| to_napi_err("Key package not found for identity".to_string()))?
+            .ok_or_else(|| to_napi_err("Key package not found for identity"))?
             .serialize()
             .map_err(to_napi_err)?;
 
