@@ -209,13 +209,16 @@ pub fn generate_and_split_key(
 
     // preserves the order of the identities
     for identity in identities {
+        let key_package = packages
+            .key_packages
+            .get(&identity)
+            .ok_or_else(|| to_napi_err("Key package not found for identity".to_string()))?
+            .serialize()
+            .map_err(to_napi_err)?;
+
         key_packages.push(ParticipantKeyPackage {
             identity: bytes_to_hex(&identity.serialize()),
-            key_package: bytes_to_hex(
-                &packages.key_packages[&identity]
-                    .serialize()
-                    .map_err(to_napi_err)?,
-            ),
+            key_package: bytes_to_hex(&key_package),
         });
     }
 
