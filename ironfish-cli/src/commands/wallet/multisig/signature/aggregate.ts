@@ -6,6 +6,7 @@ import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
 import { longPrompt } from '../../../../utils/longPrompt'
+import { watchTransaction } from '../../../../utils/transaction'
 
 export class MultisigSign extends IronfishCommand {
   static description = 'Aggregate signature shares from participants to sign a transaction'
@@ -31,6 +32,10 @@ export class MultisigSign extends IronfishCommand {
       default: true,
       allowNo: true,
       description: 'Broadcast the transaction to the network after signing',
+    }),
+    watch: Flags.boolean({
+      default: false,
+      description: 'Wait for the transaction to be confirmed',
     }),
   }
 
@@ -79,5 +84,16 @@ export class MultisigSign extends IronfishCommand {
     this.log(`Transaction: ${response.content.transaction}`)
     this.log(`Hash: ${transaction.hash().toString('hex')}`)
     this.log(`Fee: ${CurrencyUtils.renderIron(transaction.fee(), true)}`)
+
+    if (flags.watch) {
+      this.log('')
+
+      await watchTransaction({
+        client,
+        logger: this.logger,
+        account: flags.account,
+        hash: transaction.hash().toString('hex'),
+      })
+    }
   }
 }

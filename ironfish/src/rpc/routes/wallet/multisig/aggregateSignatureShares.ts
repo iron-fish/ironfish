@@ -62,6 +62,7 @@ routes.register<typeof AggregateSignatureSharesRequestSchema, AggregateSignature
     let broadcasted = false
 
     if (request.data.broadcast) {
+      await node.wallet.addPendingTransaction(transaction)
       const result = await node.wallet.broadcastTransaction(transaction)
       accepted = result.accepted
       broadcasted = result.broadcasted
