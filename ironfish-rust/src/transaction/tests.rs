@@ -708,7 +708,7 @@ fn test_aggregate_signature_shares() {
     let identities = create_multisig_identities(10);
 
     // key package generation by trusted dealer
-    let key_packages = split_spender_key(&spender_key, 2, identities.clone())
+    let key_packages = split_spender_key(&spender_key, 2, &identities)
         .expect("should be able to split spender key");
 
     // create raw/proposed transaction
