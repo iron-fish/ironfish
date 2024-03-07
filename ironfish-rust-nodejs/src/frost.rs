@@ -203,7 +203,7 @@ pub fn generate_and_split_key(
     let identities = try_deserialize_identities(identities)?;
 
     let packages =
-        split_spender_key(&spending_key, min_signers, identities.clone()).map_err(to_napi_err)?;
+        split_spender_key(&spending_key, min_signers, &identities).map_err(to_napi_err)?;
 
     let mut key_packages = Vec::with_capacity(packages.key_packages.len());
 

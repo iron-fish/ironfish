@@ -15,7 +15,7 @@ use crate::{
     IncomingViewKey, OutgoingViewKey, PublicAddress, SaplingKey, ViewKey,
 };
 
-use super::split_secret::{split_secret, SecretShareConfig};
+use super::split_secret::split_secret;
 
 pub struct TrustedDealerKeyPackages {
     pub public_address: PublicAddress,
@@ -30,19 +30,14 @@ pub struct TrustedDealerKeyPackages {
 pub fn split_spender_key(
     spender_key: &SaplingKey,
     min_signers: u16,
-    identities: Vec<Identity>,
+    identities: &[Identity],
 ) -> Result<TrustedDealerKeyPackages, IronfishError> {
     let group_secret_key = SaplingKey::generate_key();
 
-    let secret_config = SecretShareConfig {
-        min_signers,
-        identities,
-        spender_key: spender_key.clone(),
-    };
+    let (key_packages, public_key_package) =
+        split_secret(spender_key, identities, min_signers, thread_rng())?;
 
-    let (key_packages, public_key_package) = split_secret(&secret_config, thread_rng())?;
-
-    let proof_authorizing_key = secret_config.spender_key.sapling_proof_generation_key().nsk;
+    let proof_authorizing_key = spender_key.sapling_proof_generation_key().nsk;
 
     let authorizing_key = public_key_package.verifying_key().serialize();
     let authorizing_key = Option::from(SubgroupPoint::from_bytes(&authorizing_key))
@@ -55,7 +50,7 @@ pub fn split_spender_key(
         nullifier_deriving_key,
     };
 
-    let incoming_view_key = secret_config.spender_key.incoming_view_key().clone();
+    let incoming_view_key = spender_key.incoming_view_key().clone();
     let outgoing_view_key: OutgoingViewKey = group_secret_key.outgoing_view_key().clone();
 
     let public_address = incoming_view_key.public_address();
@@ -88,7 +83,7 @@ mod test {
         let sapling_key = SaplingKey::generate_key();
 
         let trusted_dealer_key_packages =
-            split_spender_key(&sapling_key, 5, identities).expect("spender key split failed");
+            split_spender_key(&sapling_key, 5, &identities).expect("spender key split failed");
 
         assert_eq!(
             trusted_dealer_key_packages.key_packages.len(),
