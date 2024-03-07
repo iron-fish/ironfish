@@ -119,6 +119,12 @@ export class SigningCommitment {
   constructor(jsBytes: Buffer)
   identity(): Buffer
 }
+export type NativeSigningPackage = SigningPackage
+export class SigningPackage {
+  constructor(jsBytes: Buffer)
+  unsignedTransaction(): NativeUnsignedTransaction
+  signers(): Array<Buffer>
+}
 export class BoxKeyPair {
   constructor()
   static fromHex(secretHex: string): BoxKeyPair
@@ -253,7 +259,6 @@ export class Transaction {
 export type NativeUnsignedTransaction = UnsignedTransaction
 export class UnsignedTransaction {
   constructor(jsBytes: Buffer)
-  static fromSigningPackage(signingPackageStr: string): NativeUnsignedTransaction
   serialize(): Buffer
   publicKeyRandomness(): string
   hash(): Buffer
