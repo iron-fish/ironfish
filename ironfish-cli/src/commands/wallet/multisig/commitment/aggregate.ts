@@ -9,7 +9,6 @@ import { longPrompt } from '../../../../utils/longPrompt'
 
 export class CreateSigningPackage extends IronfishCommand {
   static description = `Creates a signing package for a given transaction for a multisig account`
-  static hidden = true
 
   static flags = {
     ...RemoteFlags,

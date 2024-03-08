@@ -10,7 +10,6 @@ import { watchTransaction } from '../../../../utils/transaction'
 
 export class MultisigSign extends IronfishCommand {
   static description = 'Aggregate signature shares from participants to sign a transaction'
-  static hidden = true
 
   static flags = {
     ...RemoteFlags,
