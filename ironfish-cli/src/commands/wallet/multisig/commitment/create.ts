@@ -87,7 +87,7 @@ export class CreateSigningCommitmentCommand extends IronfishCommand {
     this.log('\nCommitment:\n')
     this.log(response.content.commitment)
 
-    this.log('')
+    this.log()
     this.log('Next step:')
     this.log('Send the commitment to the multisig account coordinator.')
   }
