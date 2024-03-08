@@ -70,6 +70,11 @@ export class CreateSignatureShareCommand extends IronfishCommand {
     this.log()
     this.log('Signature Share:')
     this.log(signatureShareResponse.content.signatureShare)
+
+    this.log('')
+    this.log(
+      'Next step: Send the signature to the coordinator. They will aggregate the signatures from all participants and sign the transaction.',
+    )
   }
 
   renderSigners(signers: Buffer[]): void {
