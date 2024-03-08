@@ -5,6 +5,7 @@ import { ACCOUNT_SCHEMA_VERSION } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
+import { longPrompt } from '../../../../utils/longPrompt'
 
 export class MultisigCreateDealer extends IronfishCommand {
   static description = `Create a set of multisig accounts from participant identities`
@@ -37,7 +38,7 @@ export class MultisigCreateDealer extends IronfishCommand {
 
     let identities = flags.identity
     if (!identities || identities.length < 2) {
-      const input = await CliUx.ux.prompt('Enter the identities separated by commas', {
+      const input = await longPrompt('Enter the identities separated by commas', {
         required: true,
       })
       identities = input.split(',')
