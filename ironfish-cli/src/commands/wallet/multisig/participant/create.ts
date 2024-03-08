@@ -52,13 +52,7 @@ export class MultisigIdentityCreate extends IronfishCommand {
     this.log(response.content.identity)
 
     this.log('')
-    this.log('Next steps:')
-    this.log('1. Send the identity to the multisig account dealer.')
-    this.log(
-      '2. They will return an account import string to you that you can use to import the multi signature account that controls part of the key.',
-    )
-    this.log(
-      '3. Once the account is imported, you can use it to create the commitment indicating that you will use your partial key to sign the transaction.',
-    )
+    this.log('Next step:')
+    this.log('Send the identity to the multisig account dealer.')
   }
 }

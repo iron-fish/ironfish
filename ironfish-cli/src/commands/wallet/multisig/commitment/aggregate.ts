@@ -62,8 +62,7 @@ export class CreateSigningPackage extends IronfishCommand {
     this.log(signingPackageResponse.content.signingPackage)
 
     this.log('')
-    this.log(
-      'Next step: Send the signing package to all of the participants who provided a commitment.',
-    )
+    this.log('Next step:')
+    this.log('Send the signing package to all of the participants who provided a commitment.')
   }
 }

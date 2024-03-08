@@ -114,8 +114,7 @@ export class MultisigCreateDealer extends IronfishCommand {
     }
 
     this.log()
-    this.log(
-      'Next step: Send the account imports to the participant with the corresponding identity.',
-    )
+    this.log('Next step:')
+    this.log('Send the account imports to the participant with the corresponding identity.')
   }
 }

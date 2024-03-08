@@ -72,8 +72,9 @@ export class CreateSignatureShareCommand extends IronfishCommand {
     this.log(signatureShareResponse.content.signatureShare)
 
     this.log('')
+    this.log('Next step:')
     this.log(
-      'Next step: Send the signature to the coordinator. They will aggregate the signatures from all participants and sign the transaction.',
+      'Send the signature to the coordinator. They will aggregate the signatures from all participants and sign the transaction.',
     )
   }
 

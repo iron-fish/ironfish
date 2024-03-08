@@ -88,10 +88,7 @@ export class CreateSigningCommitmentCommand extends IronfishCommand {
     this.log(response.content.commitment)
 
     this.log('')
-    this.log('Next steps:')
-    this.log('1. Send the commitment to the multisig account coordinator.')
-    this.log(
-      '2. They will return a signing package to you that you can use to create a signature using the CLI command: ironfish wallet:multisig:signature:create',
-    )
+    this.log('Next step:')
+    this.log('Send the commitment to the multisig account coordinator.')
   }
 }
