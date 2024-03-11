@@ -29,7 +29,7 @@ export class MultisigIdentity extends IronfishCommand {
       this.log('Identity:')
       this.log(response.content.identity)
     } else {
-      const response = await client.wallet.multisig.getIdentities(undefined)
+      const response = await client.wallet.multisig.getIdentities()
 
       const choices = []
       for (const { name, identity } of response.content.identities) {
