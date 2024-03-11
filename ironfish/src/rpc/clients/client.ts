@@ -255,7 +255,7 @@ export abstract class RpcClient {
       },
 
       getIdentities: (
-        params: GetIdentitiesRequest,
+        params: GetIdentitiesRequest = undefined,
       ): Promise<RpcResponseEnded<GetIdentitiesResponse>> => {
         return this.request<GetIdentitiesResponse>(
           `${ApiNamespace.wallet}/multisig/getIdentities`,
