@@ -14,8 +14,7 @@ related documentation pull request for the website.
 
 ## Breaking Change
 
-Is this a breaking change? If yes, add notes below on why this is breaking and
-what additional work is required, if any.
+Is this a breaking change? If yes, add notes below on why this is breaking and label it with `breaking-change-rpc` or `breaking-change-sdk`.
 
 ```
 [ ] Yes

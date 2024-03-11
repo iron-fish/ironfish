@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::to_napi_err;
+use crate::{structs::NativeUnsignedTransaction, to_napi_err};
 use ironfish::{
     frost::{keys::KeyPackage, round1::SigningCommitments, round2, Randomizer},
     frost_utils::{signing_package::SigningPackage, split_spender_key::split_spender_key},
@@ -203,7 +203,7 @@ pub fn generate_and_split_key(
     let identities = try_deserialize_identities(identities)?;
 
     let packages =
-        split_spender_key(&spending_key, min_signers, identities.clone()).map_err(to_napi_err)?;
+        split_spender_key(&spending_key, min_signers, &identities).map_err(to_napi_err)?;
 
     let mut key_packages = Vec::with_capacity(packages.key_packages.len());
 
@@ -304,5 +304,37 @@ impl NativeSigningCommitment {
     #[napi]
     pub fn identity(&self) -> Buffer {
         Buffer::from(self.signing_commitment.identity().serialize().as_slice())
+    }
+}
+
+#[napi(js_name = "SigningPackage")]
+pub struct NativeSigningPackage {
+    signing_package: SigningPackage,
+}
+
+#[napi]
+impl NativeSigningPackage {
+    #[napi(constructor)]
+    pub fn new(js_bytes: JsBuffer) -> Result<NativeSigningPackage> {
+        let bytes = js_bytes.into_value()?;
+        SigningPackage::read(bytes.as_ref())
+            .map(|signing_package| NativeSigningPackage { signing_package })
+            .map_err(to_napi_err)
+    }
+
+    #[napi]
+    pub fn unsigned_transaction(&self) -> NativeUnsignedTransaction {
+        NativeUnsignedTransaction {
+            transaction: self.signing_package.unsigned_transaction.clone(),
+        }
+    }
+
+    #[napi]
+    pub fn signers(&self) -> Vec<Buffer> {
+        self.signing_package
+            .signers
+            .iter()
+            .map(|signer| Buffer::from(&signer.serialize()[..]))
+            .collect()
     }
 }

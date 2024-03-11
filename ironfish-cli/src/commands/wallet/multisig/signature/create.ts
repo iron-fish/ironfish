@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { SigningPackage } from '@ironfish/rust-nodejs'
 import { UnsignedTransaction } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
@@ -32,14 +33,20 @@ export class CreateSignatureShareCommand extends IronfishCommand {
 
   async start(): Promise<void> {
     const { flags } = await this.parse(CreateSignatureShareCommand)
-    let signingPackage = flags.signingPackage?.trim()
+    let signingPackageString = flags.signingPackage?.trim()
 
-    if (!signingPackage) {
-      signingPackage = await longPrompt('Enter the signing package')
+    if (!signingPackageString) {
+      signingPackageString = await longPrompt('Enter the signing package')
     }
 
     const client = await this.sdk.connectRpc()
-    const unsignedTransaction = UnsignedTransaction.fromSigningPackage(signingPackage)
+
+    const signingPackage = new SigningPackage(Buffer.from(signingPackageString, 'hex'))
+    const unsignedTransaction = new UnsignedTransaction(
+      signingPackage.unsignedTransaction().serialize(),
+    )
+
+    this.renderSigners(signingPackage.signers())
 
     await renderUnsignedTransactionDetails(
       client,
@@ -57,11 +64,25 @@ export class CreateSignatureShareCommand extends IronfishCommand {
 
     const signatureShareResponse = await client.wallet.multisig.createSignatureShare({
       account: flags.account,
-      signingPackage,
+      signingPackage: signingPackageString,
     })
 
     this.log()
     this.log('Signature Share:')
     this.log(signatureShareResponse.content.signatureShare)
+  }
+
+  renderSigners(signers: Buffer[]): void {
+    this.log('')
+    this.log('==================')
+    this.log('Signer Identities:')
+    this.log('==================')
+
+    for (const [i, signer] of signers.entries()) {
+      if (i !== 0) {
+        this.log('------------------')
+      }
+      this.log(signer.toString('hex'))
+    }
   }
 }
