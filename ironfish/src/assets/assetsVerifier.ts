@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { VerifiedAssetsCacheStore } from '../fileStores/verifiedAssets'
+import { FileSystem } from '../fileSystems'
 import { createRootLogger, Logger } from '../logger'
 import { ErrorUtils } from '../utils'
 import { SetIntervalToken } from '../utils'
@@ -28,13 +29,14 @@ export class AssetsVerifier {
   private refreshToken?: SetIntervalToken
   private verifiedAssets?: VerifiedAssets
 
-  constructor(options?: {
+  constructor(options: {
+    files: FileSystem
     apiUrl?: string
     cache?: VerifiedAssetsCacheStore
     logger?: Logger
   }) {
     this.logger = options?.logger ?? createRootLogger()
-    this.api = new AssetsVerificationApi({ url: options?.apiUrl })
+    this.api = new AssetsVerificationApi({ url: options?.apiUrl, files: options.files })
     this.cache = options?.cache
     this.started = false
 
