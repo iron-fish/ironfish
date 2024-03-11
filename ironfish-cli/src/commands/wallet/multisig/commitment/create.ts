@@ -46,7 +46,7 @@ export class CreateSigningCommitmentCommand extends IronfishCommand {
     const loaded = await MultisigTransactionJson.load(this.sdk.fileSystem, flags.path)
     const options = MultisigTransactionJson.resolveFlags(flags, loaded)
 
-    let identities = options.signers
+    let identities = options.identity
     if (!identities || identities.length < 2) {
       const input = await longPrompt('Enter the identities separated by commas', {
         required: true,

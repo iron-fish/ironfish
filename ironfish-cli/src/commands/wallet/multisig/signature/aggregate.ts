@@ -54,7 +54,7 @@ export class MultisigSign extends IronfishCommand {
       signingPackage = await longPrompt('Enter the signing package', { required: true })
     }
 
-    let signatureShares = options.signatureShares
+    let signatureShares = options.signatureShare
     if (!signatureShares) {
       const input = await longPrompt('Enter the signature shares separated by commas', {
         required: true,

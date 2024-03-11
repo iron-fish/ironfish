@@ -5,22 +5,22 @@ import { FileSystem, YupUtils } from '@ironfish/sdk'
 import * as yup from 'yup'
 
 export type MultisigTransactionOptions = {
-  signers: string[]
+  identity: string[]
   unsignedTransaction: string
-  commitments: string[]
+  commitment: string[]
   signingPackage: string
-  signatureShares: string[]
+  signatureShare: string[]
 }
 
 export const MultisigTransactionOptionsSchema: yup.ObjectSchema<
   Partial<MultisigTransactionOptions>
 > = yup
   .object({
-    signers: yup.array().of(yup.string().defined()),
+    identity: yup.array().of(yup.string().defined()),
     unsignedTransaction: yup.string(),
-    commitments: yup.array().of(yup.string().defined()),
+    commitment: yup.array().of(yup.string().defined()),
     signingPackage: yup.string(),
-    signatureShares: yup.array().of(yup.string().defined()),
+    signatureShare: yup.array().of(yup.string().defined()),
   })
   .defined()
 
@@ -56,11 +56,11 @@ function resolveFlags(
   json: Partial<MultisigTransactionOptions>,
 ): Partial<MultisigTransactionOptions> {
   return {
-    signers: flags.identity ?? json.signers,
+    identity: flags.identity ?? json.identity,
     unsignedTransaction: flags.unsignedTransaction?.trim() ?? json.unsignedTransaction,
-    commitments: flags.commitment ?? json.commitments,
+    commitment: flags.commitment ?? json.commitment,
     signingPackage: flags.signingPackage?.trim() ?? json.signingPackage,
-    signatureShares: flags.signatureShare ?? json.signatureShares,
+    signatureShare: flags.signatureShare ?? json.signatureShare,
   }
 }
 

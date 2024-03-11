@@ -47,7 +47,7 @@ export class CreateSigningPackage extends IronfishCommand {
       })
     }
 
-    let commitments = options.commitments
+    let commitments = options.commitment
     if (!commitments) {
       const input = await longPrompt('Enter the signing commitments separated by commas', {
         required: true,
