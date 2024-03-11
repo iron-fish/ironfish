@@ -5,7 +5,7 @@ import { ParticipantIdentity, ParticipantSecret } from '@ironfish/rust-nodejs'
 import {
   AccountDecodingOptions,
   MultisigIdentityEncryption,
-  MultisigMissingSecretName,
+  MultisigSecretNotFound,
 } from './encoder'
 
 export function encodeEncryptedMultisigAccount(
@@ -23,8 +23,8 @@ export function decodeEncryptedMultisigAccount(
   options?: AccountDecodingOptions,
 ): Buffer {
   if (!options?.multisigSecret) {
-    throw new MultisigMissingSecretName(
-      'Encrypted multisig account cannot be decrypted without a multisig secret',
+    throw new MultisigSecretNotFound(
+      'Encrypted multisig account cannot be decrypted without a corresponding multisig secret',
     )
   }
   const secret = Buffer.isBuffer(options.multisigSecret)

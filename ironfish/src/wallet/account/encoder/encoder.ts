@@ -20,7 +20,7 @@ export class DecodeFailed extends Error {
   }
 }
 
-export class MultisigMissingSecretName extends DecodeInvalid {
+export class MultisigSecretNotFound extends DecodeInvalid {
   name = this.constructor.name
 }
 
