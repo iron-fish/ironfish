@@ -230,6 +230,7 @@ export class FullNode {
     await verifiedAssetsCache.load()
 
     const assetsVerifier = new AssetsVerifier({
+      files,
       apiUrl: config.get('assetVerificationApi'),
       cache: verifiedAssetsCache,
       logger,

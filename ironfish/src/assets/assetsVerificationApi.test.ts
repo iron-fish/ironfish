@@ -1,11 +1,17 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import fs from 'fs'
 import nock from 'nock'
+import { NodeFileProvider } from '../fileSystems'
 import { AssetsVerificationApi } from './assetsVerificationApi'
 
 describe('Assets Verification API Client', () => {
+  const files = new NodeFileProvider()
+
+  beforeAll(async () => {
+    await files.init()
+  })
+
   beforeEach(() => {
     nock.cleanAll()
   })
@@ -24,6 +30,7 @@ describe('Assets Verification API Client', () => {
         })
 
       const api = new AssetsVerificationApi({
+        files,
         url: 'https://test/assets/verified',
       })
       const verifiedAssets = await api.getVerifiedAssets()
@@ -47,6 +54,7 @@ describe('Assets Verification API Client', () => {
         })
 
       const api = new AssetsVerificationApi({
+        files,
         url: 'https://test/assets/verified',
       })
       const verifiedAssets = await api.getVerifiedAssets()
@@ -66,6 +74,7 @@ describe('Assets Verification API Client', () => {
         })
 
       const api = new AssetsVerificationApi({
+        files,
         url: 'https://test/assets/verified',
       })
       const verifiedAssets = await api.getVerifiedAssets()
@@ -96,6 +105,7 @@ describe('Assets Verification API Client', () => {
         .reply(304)
 
       const api = new AssetsVerificationApi({
+        files,
         url: 'https://test/assets/verified',
       })
       const verifiedAssets = await api.getVerifiedAssets()
@@ -111,6 +121,7 @@ describe('Assets Verification API Client', () => {
       nock('https://test').get('/assets/verified').reply(500)
 
       const api = new AssetsVerificationApi({
+        files,
         url: 'https://test/assets/verified',
       })
       await expect(api.getVerifiedAssets()).rejects.toThrow(
@@ -127,6 +138,7 @@ describe('Assets Verification API Client', () => {
         })
 
       const api = new AssetsVerificationApi({
+        files,
         url: 'https://test/assets/verified',
         timeout: 1000,
       })
@@ -142,6 +154,7 @@ describe('Assets Verification API Client', () => {
         })
 
       const api = new AssetsVerificationApi({
+        files,
         url: 'https://test/assets/verified',
         timeout: 1000,
       })
@@ -152,15 +165,16 @@ describe('Assets Verification API Client', () => {
       const contents = JSON.stringify({
         assets: [{ identifier: '0123' }, { identifier: 'abcd' }],
       })
-      const readFileSpy = jest.spyOn(fs.promises, 'readFile').mockResolvedValue(contents)
+      const readFileSpy = jest.spyOn(files, 'readFile').mockResolvedValue(contents)
 
       const api = new AssetsVerificationApi({
+        files,
         url: 'file:///some/where',
       })
       const verifiedAssets = await api.getVerifiedAssets()
 
       expect(verifiedAssets['assetIds']).toStrictEqual(new Set(['0123', 'abcd']))
-      expect(readFileSpy).toHaveBeenCalledWith('/some/where', { encoding: 'utf8' })
+      expect(readFileSpy).toHaveBeenCalledWith('/some/where')
     })
   })
 })
