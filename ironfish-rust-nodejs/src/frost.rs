@@ -304,6 +304,20 @@ impl NativeSigningCommitment {
     pub fn identity(&self) -> Buffer {
         Buffer::from(self.signing_commitment.identity().serialize().as_slice())
     }
+
+    #[napi]
+    pub fn verify_checksum(
+        &self,
+        transaction_hash: JsBuffer,
+        signer_identities: Vec<String>,
+    ) -> Result<bool> {
+        let transaction_hash = transaction_hash.into_value()?;
+        let signer_identities = try_deserialize_identities(signer_identities)?;
+        Ok(self
+            .signing_commitment
+            .verify_checksum(&transaction_hash, &signer_identities)
+            .is_ok())
+    }
 }
 
 #[napi(js_name = "SigningPackage")]

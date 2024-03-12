@@ -118,6 +118,7 @@ export type NativeSigningCommitment = SigningCommitment
 export class SigningCommitment {
   constructor(jsBytes: Buffer)
   identity(): Buffer
+  verifyChecksum(transactionHash: Buffer, signerIdentities: Array<string>): boolean
 }
 export type NativeSigningPackage = SigningPackage
 export class SigningPackage {
