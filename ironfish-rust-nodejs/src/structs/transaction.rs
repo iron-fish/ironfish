@@ -462,7 +462,7 @@ impl NativeUnsignedTransaction {
     }
 }
 
-#[napi]
+#[napi(namespace = "multisig")]
 pub fn aggregate_signature_shares(
     public_key_package_str: String,
     signing_package_str: String,

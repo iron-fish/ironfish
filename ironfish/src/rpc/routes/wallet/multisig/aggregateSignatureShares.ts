@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { aggregateSignatureShares } from '@ironfish/rust-nodejs'
+import { multisig } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
 import { Transaction } from '../../../../primitives/transaction'
 import { AssertMultisig } from '../../../../wallet'
@@ -50,7 +50,7 @@ routes.register<typeof AggregateSignatureSharesRequestSchema, AggregateSignature
     const account = getAccount(node.wallet, request.data.account)
     AssertMultisig(account)
 
-    const serialized = aggregateSignatureShares(
+    const serialized = multisig.aggregateSignatureShares(
       account.multisigKeys.publicKeyPackage,
       request.data.signingPackage,
       request.data.signatureShares,

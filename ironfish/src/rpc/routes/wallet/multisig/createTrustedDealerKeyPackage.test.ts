@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { ParticipantSecret } from '@ironfish/rust-nodejs'
+import { multisig } from '@ironfish/rust-nodejs'
 import { createRouteTest } from '../../../../testUtilities/routeTest'
 
 describe('Route multisig/createTrustedDealerKeyPackage', () => {
@@ -9,7 +9,7 @@ describe('Route multisig/createTrustedDealerKeyPackage', () => {
 
   it('should create trusted dealer key package', async () => {
     const participants = Array.from({ length: 3 }, () => ({
-      identity: ParticipantSecret.random().toIdentity().serialize().toString('hex'),
+      identity: multisig.ParticipantSecret.random().toIdentity().serialize().toString('hex'),
     }))
     const request = { minSigners: 2, participants }
     const response = await routeTest.client
