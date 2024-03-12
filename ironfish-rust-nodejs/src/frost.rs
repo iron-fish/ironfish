@@ -4,7 +4,7 @@
 
 use crate::{structs::NativeUnsignedTransaction, to_napi_err};
 use ironfish::{
-    frost::{keys::KeyPackage, round1::SigningCommitments, round2, Randomizer},
+    frost::{keys::KeyPackage, round2, Randomizer},
     frost_utils::{signing_package::SigningPackage, split_spender_key::split_spender_key},
     participant::{Identity, Secret},
     serializing::{bytes_to_hex, fr::FrSerializable, hex_to_vec_bytes},
@@ -58,15 +58,14 @@ pub fn create_signing_commitment(
     let transaction_hash = transaction_hash.into_value()?;
     let signers = try_deserialize_identities(signers)?;
 
-    let nonces =
-        deterministic_signing_nonces(key_package.signing_share(), &transaction_hash, &signers);
-    let commitments = SigningCommitments::from(&nonces);
+    let signing_commitment = SigningCommitment::from_secrets(
+        &secret,
+        key_package.signing_share(),
+        &transaction_hash,
+        &signers,
+    );
 
-    let signing_commitment =
-        SigningCommitment::from_frost(secret, *commitments.hiding(), *commitments.binding());
-
-    let bytes = signing_commitment.serialize()?;
-
+    let bytes = signing_commitment.serialize();
     Ok(bytes_to_hex(&bytes[..]))
 }
 
