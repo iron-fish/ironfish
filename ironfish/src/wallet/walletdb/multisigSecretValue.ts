@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { SECRET_LEN } from '@ironfish/rust-nodejs'
+import { multisig } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { IDatabaseEncoding } from '../../storage'
 
@@ -21,14 +21,14 @@ export class MultisigSecretValueEncoding implements IDatabaseEncoding<MultisigSe
   deserialize(buffer: Buffer): MultisigSecretValue {
     const reader = bufio.read(buffer, true)
     const name = reader.readVarString('utf-8')
-    const secret = reader.readBytes(SECRET_LEN)
+    const secret = reader.readBytes(multisig.SECRET_LEN)
     return { name, secret }
   }
 
   getSize(value: MultisigSecretValue): number {
     let size = 0
     size += bufio.sizeVarString(value.name, 'utf8')
-    size += SECRET_LEN
+    size += multisig.SECRET_LEN
     return size
   }
 }

@@ -1,12 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import {
-  generateKey,
-  LanguageCode,
-  ParticipantSecret,
-  spendingKeyToWords,
-} from '@ironfish/rust-nodejs'
+import { generateKey, LanguageCode, multisig, spendingKeyToWords } from '@ironfish/rust-nodejs'
 import fs from 'fs'
 import path from 'path'
 import { createTrustedDealerKeyPackages } from '../../../testUtilities'
@@ -344,7 +339,7 @@ describe('Route wallet/importAccount', () => {
       it('should fail to import a base64 encoded account if no multisig identity was generated', async () => {
         const name = 'multisig-encrypted-base64 (no key)'
 
-        const identity = ParticipantSecret.random().toIdentity()
+        const identity = multisig.ParticipantSecret.random().toIdentity()
         const base64 = encodeAccount(createAccountImport(name), AccountFormat.Base64Json, {
           encryptWith: { kind: 'MultisigIdentity', identity },
         })
@@ -373,7 +368,7 @@ describe('Route wallet/importAccount', () => {
         await routeTest.client
           .request<CreateParticipantResponse>('wallet/multisig/createParticipant', { name })
           .waitForEnd()
-        const encryptingParticipant = ParticipantSecret.random().toIdentity()
+        const encryptingParticipant = multisig.ParticipantSecret.random().toIdentity()
         const base64 = encodeAccount(createAccountImport(name), AccountFormat.Base64Json, {
           encryptWith: { kind: 'MultisigIdentity', identity: encryptingParticipant },
         })
@@ -417,7 +412,7 @@ describe('Route wallet/importAccount', () => {
 
           const keyFile = testCaseFile.slice(0, -testCaseSuffix.length) + keySuffix
           const key = await fs.promises.readFile(path.join(testCaseDir, keyFile))
-          const secret = new ParticipantSecret(key)
+          const secret = new multisig.ParticipantSecret(key)
           const identity = secret.toIdentity()
 
           await routeTest.node.wallet.walletDb.putMultisigSecret(identity.serialize(), {

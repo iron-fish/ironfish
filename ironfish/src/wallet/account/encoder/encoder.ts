@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { ParticipantIdentity, ParticipantSecret } from '@ironfish/rust-nodejs'
+import { multisig } from '@ironfish/rust-nodejs'
 import { LanguageKey } from '../../../utils'
 import { AccountImport } from '../../walletdb/accountValue'
 
@@ -33,7 +33,7 @@ export enum AccountFormat {
 
 export interface MultisigIdentityEncryption {
   kind: 'MultisigIdentity'
-  identity: ParticipantIdentity | Buffer
+  identity: multisig.ParticipantIdentity | Buffer
 }
 
 // This is meant to be a tagged union type: `AccountEncryptionMethod = Method1 | Method2 | Method3 | ...`
@@ -56,7 +56,7 @@ export type AccountDecodingOptions = {
   // encoders extract all the decryption information they needed from it, but
   // sadly interacting with the wallet DB is an asynchronous operation, and
   // decoders are all synchronous
-  multisigSecret?: ParticipantSecret | Buffer
+  multisigSecret?: multisig.ParticipantSecret | Buffer
 }
 
 export type AccountEncoder = {

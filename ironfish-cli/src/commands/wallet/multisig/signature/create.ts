@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { SigningPackage } from '@ironfish/rust-nodejs'
+import { multisig } from '@ironfish/rust-nodejs'
 import { UnsignedTransaction } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
@@ -48,7 +48,7 @@ export class CreateSignatureShareCommand extends IronfishCommand {
 
     const client = await this.sdk.connectRpc()
 
-    const signingPackage = new SigningPackage(Buffer.from(signingPackageString, 'hex'))
+    const signingPackage = new multisig.SigningPackage(Buffer.from(signingPackageString, 'hex'))
     const unsignedTransaction = new UnsignedTransaction(
       signingPackage.unsignedTransaction().serialize(),
     )

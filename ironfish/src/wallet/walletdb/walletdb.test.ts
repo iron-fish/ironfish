@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Asset, ParticipantSecret } from '@ironfish/rust-nodejs'
+import { Asset, multisig } from '@ironfish/rust-nodejs'
 import { Assert } from '../../assert'
 import {
   createNodeTest,
@@ -397,7 +397,7 @@ describe('WalletDB', () => {
       const walletDb = node.wallet.walletDb
 
       const name = 'test'
-      const secret = ParticipantSecret.random()
+      const secret = multisig.ParticipantSecret.random()
       const serializedSecret = secret.serialize()
 
       await walletDb.putMultisigSecret(secret.toIdentity().serialize(), {
@@ -418,7 +418,7 @@ describe('WalletDB', () => {
 
       const account = await useAccountFixture(node.wallet, 'multisig')
 
-      const identity = ParticipantSecret.random().toIdentity()
+      const identity = multisig.ParticipantSecret.random().toIdentity()
 
       await walletDb.addParticipantIdentity(account, identity.serialize())
 

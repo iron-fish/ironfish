@@ -19,10 +19,10 @@ use napi_derive::napi;
 use rand::thread_rng;
 use std::ops::Deref;
 
-#[napi]
+#[napi(namespace = "multisig")]
 pub const IDENTITY_LEN: u32 = ironfish::frost_utils::IDENTITY_LEN as u32;
 
-#[napi]
+#[napi(namespace = "multisig")]
 pub const SECRET_LEN: u32 = ironfish_frost::participant::SECRET_LEN as u32;
 
 fn try_deserialize_identities<I, S>(signers: I) -> Result<Vec<Identity>>
@@ -44,7 +44,7 @@ where
         })
 }
 
-#[napi]
+#[napi(namespace = "multisig")]
 pub fn create_signing_commitment(
     secret: String,
     key_package: String,
@@ -69,7 +69,7 @@ pub fn create_signing_commitment(
     Ok(bytes_to_hex(&bytes[..]))
 }
 
-#[napi]
+#[napi(namespace = "multisig")]
 pub fn create_signature_share(
     secret: String,
     key_package: String,
@@ -118,12 +118,12 @@ pub fn create_signature_share(
     Ok(bytes_to_hex(&bytes[..]))
 }
 
-#[napi]
+#[napi(namespace = "multisig")]
 pub struct ParticipantSecret {
     secret: Secret,
 }
 
-#[napi]
+#[napi(namespace = "multisig")]
 impl ParticipantSecret {
     #[napi(constructor)]
     pub fn new(js_bytes: JsBuffer) -> Result<ParticipantSecret> {
@@ -161,12 +161,12 @@ impl ParticipantSecret {
     }
 }
 
-#[napi]
+#[napi(namespace = "multisig")]
 pub struct ParticipantIdentity {
     identity: Identity,
 }
 
-#[napi]
+#[napi(namespace = "multisig")]
 impl ParticipantIdentity {
     #[napi(constructor)]
     pub fn new(js_bytes: JsBuffer) -> Result<ParticipantIdentity> {
@@ -192,7 +192,7 @@ impl ParticipantIdentity {
     }
 }
 
-#[napi]
+#[napi(namespace = "multisig")]
 pub fn generate_and_split_key(
     min_signers: u16,
     identities: Vec<String>,
@@ -237,7 +237,7 @@ pub fn generate_and_split_key(
     })
 }
 
-#[napi(object)]
+#[napi(object, namespace = "multisig")]
 pub struct ParticipantKeyPackage {
     pub identity: String,
     // TODO: this should contain the spender_key only, there's no need to return (and later store)
@@ -247,7 +247,7 @@ pub struct ParticipantKeyPackage {
     pub key_package: String,
 }
 
-#[napi(object)]
+#[napi(object, namespace = "multisig")]
 pub struct TrustedDealerKeyPackages {
     pub public_address: String,
     pub public_key_package: String,
@@ -258,12 +258,12 @@ pub struct TrustedDealerKeyPackages {
     pub key_packages: Vec<ParticipantKeyPackage>,
 }
 
-#[napi(js_name = "PublicKeyPackage")]
+#[napi(js_name = "PublicKeyPackage", namespace = "multisig")]
 pub struct NativePublicKeyPackage {
     public_key_package: PublicKeyPackage,
 }
 
-#[napi]
+#[napi(namespace = "multisig")]
 impl NativePublicKeyPackage {
     #[napi(constructor)]
     pub fn new(value: String) -> Result<NativePublicKeyPackage> {
@@ -285,12 +285,12 @@ impl NativePublicKeyPackage {
     }
 }
 
-#[napi(js_name = "SigningCommitment")]
+#[napi(js_name = "SigningCommitment", namespace = "multisig")]
 pub struct NativeSigningCommitment {
     signing_commitment: SigningCommitment,
 }
 
-#[napi]
+#[napi(namespace = "multisig")]
 impl NativeSigningCommitment {
     #[napi(constructor)]
     pub fn new(js_bytes: JsBuffer) -> Result<NativeSigningCommitment> {
@@ -320,12 +320,12 @@ impl NativeSigningCommitment {
     }
 }
 
-#[napi(js_name = "SigningPackage")]
+#[napi(js_name = "SigningPackage", namespace = "multisig")]
 pub struct NativeSigningPackage {
     signing_package: SigningPackage,
 }
 
-#[napi]
+#[napi(namespace = "multisig")]
 impl NativeSigningPackage {
     #[napi(constructor)]
     pub fn new(js_bytes: JsBuffer) -> Result<NativeSigningPackage> {

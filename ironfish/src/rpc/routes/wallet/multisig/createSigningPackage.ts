@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { PublicKeyPackage, SigningCommitment, UnsignedTransaction } from '@ironfish/rust-nodejs'
+import { multisig, UnsignedTransaction } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
 import { AssertMultisig } from '../../../../wallet'
 import { RpcValidationError } from '../../../adapters'
@@ -50,13 +50,15 @@ routes.register<typeof CreateSigningPackageRequestSchema, CreateSigningPackageRe
     const account = getAccount(context.wallet, request.data.account)
     AssertMultisig(account)
 
-    const publicKeyPackage = new PublicKeyPackage(account.multisigKeys.publicKeyPackage)
+    const publicKeyPackage = new multisig.PublicKeyPackage(
+      account.multisigKeys.publicKeyPackage,
+    )
     const identitySet = publicKeyPackage
       .identities()
       .map((identity) => identity.toString('hex'))
 
     const commitments = request.data.commitments.map(
-      (commitment) => new SigningCommitment(Buffer.from(commitment, 'hex')),
+      (commitment) => new multisig.SigningCommitment(Buffer.from(commitment, 'hex')),
     )
 
     // Verify the consistency of commitments. Loop twice because the first loop
