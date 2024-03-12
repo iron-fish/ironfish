@@ -11,8 +11,6 @@ import { Bech32Encoder } from '../../../wallet/account/encoder/bech32'
 import { Bech32JsonEncoder } from '../../../wallet/account/encoder/bech32json'
 import { AccountFormat } from '../../../wallet/account/encoder/encoder'
 import { RpcClient } from '../../clients'
-import { ImportResponse } from './importAccount'
-import { CreateParticipantResponse } from './multisig/createParticipant'
 
 describe('Route wallet/importAccount', () => {
   const routeTest = createRouteTest(true)
@@ -27,21 +25,20 @@ describe('Route wallet/importAccount', () => {
     const key = generateKey()
 
     const accountName = 'foo'
-    const response = await routeTest.client
-      .request<ImportResponse>('wallet/importAccount', {
-        account: {
-          name: accountName,
-          viewKey: key.viewKey,
-          spendingKey: null,
-          publicAddress: key.publicAddress,
-          incomingViewKey: key.incomingViewKey,
-          outgoingViewKey: key.outgoingViewKey,
-          version: 1,
-          createdAt: null,
-        },
-        rescan: false,
-      })
-      .waitForEnd()
+    const response = await routeTest.client.wallet.importAccount({
+      account: {
+        name: accountName,
+        viewKey: key.viewKey,
+        spendingKey: null,
+        publicAddress: key.publicAddress,
+        incomingViewKey: key.incomingViewKey,
+        outgoingViewKey: key.outgoingViewKey,
+        proofAuthorizingKey: null,
+        version: 1,
+        createdAt: null,
+      },
+      rescan: false,
+    })
 
     expect(response.status).toBe(200)
     expect(response.content).toMatchObject({
@@ -54,25 +51,23 @@ describe('Route wallet/importAccount', () => {
     const trustedDealerPackages = createTrustedDealerKeyPackages()
 
     const accountName = 'multisig'
-    const response = await routeTest.client
-      .request<ImportResponse>('wallet/importAccount', {
-        account: {
-          version: 1,
-          name: accountName,
-          viewKey: trustedDealerPackages.viewKey,
-          incomingViewKey: trustedDealerPackages.incomingViewKey,
-          outgoingViewKey: trustedDealerPackages.outgoingViewKey,
-          publicAddress: trustedDealerPackages.publicAddress,
-          spendingKey: null,
-          createdAt: null,
-          proofAuthorizingKey: trustedDealerPackages.proofAuthorizingKey,
-          multisigKeys: {
-            publicKeyPackage: trustedDealerPackages.publicKeyPackage,
-          },
+    const response = await routeTest.client.wallet.importAccount({
+      account: {
+        version: 1,
+        name: accountName,
+        viewKey: trustedDealerPackages.viewKey,
+        incomingViewKey: trustedDealerPackages.incomingViewKey,
+        outgoingViewKey: trustedDealerPackages.outgoingViewKey,
+        publicAddress: trustedDealerPackages.publicAddress,
+        spendingKey: null,
+        createdAt: null,
+        proofAuthorizingKey: trustedDealerPackages.proofAuthorizingKey,
+        multisigKeys: {
+          publicKeyPackage: trustedDealerPackages.publicKeyPackage,
         },
-        rescan: false,
-      })
-      .waitForEnd()
+      },
+      rescan: false,
+    })
 
     expect(response.status).toBe(200)
     expect(response.content).toMatchObject({
@@ -85,21 +80,20 @@ describe('Route wallet/importAccount', () => {
     const key = generateKey()
 
     const accountName = 'bar'
-    const response = await routeTest.client
-      .request<ImportResponse>('wallet/importAccount', {
-        account: {
-          name: accountName,
-          viewKey: key.viewKey,
-          spendingKey: key.spendingKey,
-          publicAddress: key.publicAddress,
-          incomingViewKey: key.incomingViewKey,
-          outgoingViewKey: key.outgoingViewKey,
-          version: 1,
-          createdAt: null,
-        },
-        rescan: false,
-      })
-      .waitForEnd()
+    const response = await routeTest.client.wallet.importAccount({
+      account: {
+        name: accountName,
+        viewKey: key.viewKey,
+        spendingKey: key.spendingKey,
+        publicAddress: key.publicAddress,
+        incomingViewKey: key.incomingViewKey,
+        outgoingViewKey: key.outgoingViewKey,
+        proofAuthorizingKey: null,
+        version: 1,
+        createdAt: null,
+      },
+      rescan: false,
+    })
 
     expect(response.status).toBe(200)
     expect(response.content).toMatchObject({
@@ -129,22 +123,21 @@ describe('Route wallet/importAccount', () => {
       const skipRescanSpy = jest.spyOn(routeTest.node.wallet, 'skipRescan')
 
       const accountName = 'baz'
-      const response = await routeTest.client
-        .request<ImportResponse>('wallet/importAccount', {
-          account: {
-            name: accountName,
-            viewKey: key.viewKey,
-            spendingKey: key.spendingKey,
-            publicAddress: key.publicAddress,
-            incomingViewKey: key.incomingViewKey,
-            outgoingViewKey: key.outgoingViewKey,
-            version: 1,
-            createdAt: null,
-          },
-          // set rescan to true so that skipRescan should not be called
-          rescan: true,
-        })
-        .waitForEnd()
+      const response = await routeTest.client.wallet.importAccount({
+        account: {
+          name: accountName,
+          viewKey: key.viewKey,
+          spendingKey: key.spendingKey,
+          publicAddress: key.publicAddress,
+          incomingViewKey: key.incomingViewKey,
+          outgoingViewKey: key.outgoingViewKey,
+          proofAuthorizingKey: null,
+          version: 1,
+          createdAt: null,
+        },
+        // set rescan to true so that skipRescan should not be called
+        rescan: true,
+      })
 
       expect(response.status).toBe(200)
       expect(response.content).toMatchObject({
@@ -176,12 +169,10 @@ describe('Route wallet/importAccount', () => {
       const name = 'json'
       const jsonString = encodeAccount(createAccountImport(name), AccountFormat.JSON)
 
-      const response = await routeTest.client
-        .request<ImportResponse>('wallet/importAccount', {
-          account: jsonString,
-          rescan: false,
-        })
-        .waitForEnd()
+      const response = await routeTest.client.wallet.importAccount({
+        account: jsonString,
+        rescan: false,
+      })
 
       expect(response.status).toBe(200)
       expect(response.content).toMatchObject({
@@ -194,12 +185,10 @@ describe('Route wallet/importAccount', () => {
       const name = 'bech32json'
       const bech32Json = new Bech32JsonEncoder().encode(createAccountImport(name))
 
-      const response = await routeTest.client
-        .request<ImportResponse>('wallet/importAccount', {
-          account: bech32Json,
-          rescan: false,
-        })
-        .waitForEnd()
+      const response = await routeTest.client.wallet.importAccount({
+        account: bech32Json,
+        rescan: false,
+      })
 
       expect(response.status).toBe(200)
       expect(response.content).toMatchObject({
@@ -212,12 +201,10 @@ describe('Route wallet/importAccount', () => {
       const name = 'bech32'
       const bech32 = new Bech32Encoder().encode(createAccountImport(name))
 
-      const response = await routeTest.client
-        .request<ImportResponse>('wallet/importAccount', {
-          account: bech32,
-          rescan: false,
-        })
-        .waitForEnd()
+      const response = await routeTest.client.wallet.importAccount({
+        account: bech32,
+        rescan: false,
+      })
 
       expect(response.status).toBe(200)
       expect(response.content).toMatchObject({
@@ -230,12 +217,10 @@ describe('Route wallet/importAccount', () => {
       const name = 'base64'
       const base64 = encodeAccount(createAccountImport(name), AccountFormat.Base64Json)
 
-      const response = await routeTest.client
-        .request<ImportResponse>('wallet/importAccount', {
-          account: base64,
-          rescan: false,
-        })
-        .waitForEnd()
+      const response = await routeTest.client.wallet.importAccount({
+        account: base64,
+        rescan: false,
+      })
 
       expect(response.status).toBe(200)
       expect(response.content).toMatchObject({
@@ -248,13 +233,11 @@ describe('Route wallet/importAccount', () => {
       const name = 'spendingKey'
       const spendingKey = generateKey().spendingKey
 
-      const response = await routeTest.client
-        .request<ImportResponse>('wallet/importAccount', {
-          account: spendingKey,
-          name: name,
-          rescan: false,
-        })
-        .waitForEnd()
+      const response = await routeTest.client.wallet.importAccount({
+        account: spendingKey,
+        name: name,
+        rescan: false,
+      })
 
       expect(response.status).toBe(200)
       expect(response.content).toMatchObject({
@@ -267,13 +250,11 @@ describe('Route wallet/importAccount', () => {
       const name = 'mnemonic'
       const mnemonic = spendingKeyToWords(generateKey().spendingKey, LanguageCode.English)
 
-      const response = await routeTest.client
-        .request<ImportResponse>('wallet/importAccount', {
-          account: mnemonic,
-          name: name,
-          rescan: false,
-        })
-        .waitForEnd()
+      const response = await routeTest.client.wallet.importAccount({
+        account: mnemonic,
+        name: name,
+        rescan: false,
+      })
 
       expect(response.status).toBe(200)
       expect(response.content).toMatchObject({
@@ -296,12 +277,10 @@ describe('Route wallet/importAccount', () => {
           path.join(testCaseDir, testCaseFile),
         )
 
-        const response = await routeTest.client
-          .request<ImportResponse>('wallet/importAccount', {
-            account: testCase,
-            name: testCaseFile,
-          })
-          .waitForEnd()
+        const response = await routeTest.client.wallet.importAccount({
+          account: testCase,
+          name: testCaseFile,
+        })
 
         expect(response.status).toBe(200)
         expect(response.content.name).not.toBeNull()
@@ -312,22 +291,17 @@ describe('Route wallet/importAccount', () => {
       it('should import a base64 encoded account', async () => {
         const name = 'multisig-encrypted-base64'
 
-        const identity = (
-          await routeTest.client
-            .request<CreateParticipantResponse>('wallet/multisig/createParticipant', { name })
-            .waitForEnd()
-        ).content.identity
+        const identity = (await routeTest.client.wallet.multisig.createParticipant({ name }))
+          .content.identity
         const base64 = encodeAccount(createAccountImport(name), AccountFormat.Base64Json, {
           encryptWith: { kind: 'MultisigIdentity', identity: Buffer.from(identity, 'hex') },
         })
 
-        const response = await routeTest.client
-          .request<ImportResponse>('wallet/importAccount', {
-            name,
-            account: base64,
-            rescan: false,
-          })
-          .waitForEnd()
+        const response = await routeTest.client.wallet.importAccount({
+          name,
+          account: base64,
+          rescan: false,
+        })
 
         expect(response.status).toBe(200)
         expect(response.content).toMatchObject({
@@ -345,13 +319,11 @@ describe('Route wallet/importAccount', () => {
         })
 
         await expect(
-          routeTest.client
-            .request<ImportResponse>('wallet/importAccount', {
-              name,
-              account: base64,
-              rescan: false,
-            })
-            .waitForEnd(),
+          routeTest.client.wallet.importAccount({
+            name,
+            account: base64,
+            rescan: false,
+          }),
         ).rejects.toThrow(
           expect.objectContaining({
             message: expect.stringContaining(
@@ -365,22 +337,18 @@ describe('Route wallet/importAccount', () => {
       it('should fail to import a base64 encode account if the wrong multisig identity is used', async () => {
         const name = 'multisig-encrypted-base64 (wrong key)'
 
-        await routeTest.client
-          .request<CreateParticipantResponse>('wallet/multisig/createParticipant', { name })
-          .waitForEnd()
+        await routeTest.client.wallet.multisig.createParticipant({ name })
         const encryptingParticipant = multisig.ParticipantSecret.random().toIdentity()
         const base64 = encodeAccount(createAccountImport(name), AccountFormat.Base64Json, {
           encryptWith: { kind: 'MultisigIdentity', identity: encryptingParticipant },
         })
 
         await expect(
-          routeTest.client
-            .request<ImportResponse>('wallet/importAccount', {
-              name,
-              account: base64,
-              rescan: false,
-            })
-            .waitForEnd(),
+          routeTest.client.wallet.importAccount({
+            name,
+            account: base64,
+            rescan: false,
+          }),
         ).rejects.toThrow(
           expect.objectContaining({
             message: expect.stringContaining(
@@ -422,12 +390,10 @@ describe('Route wallet/importAccount', () => {
             name: testCaseFile,
           })
 
-          const response = await routeTest.client
-            .request<ImportResponse>('wallet/importAccount', {
-              account: testCase,
-              name: testCaseFile,
-            })
-            .waitForEnd()
+          const response = await routeTest.client.wallet.importAccount({
+            account: testCase,
+            name: testCaseFile,
+          })
 
           expect(response.status).toBe(200)
           expect(response.content.name).not.toBeNull()

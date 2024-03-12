@@ -23,9 +23,7 @@ describe('Route wallet/getAccountsStatus', () => {
     await expect(routeTest.chain).toAddBlock(block)
     await routeTest.wallet.updateHead()
 
-    const response = await routeTest.client
-      .request<any>('wallet/getAccountsStatus', {})
-      .waitForEnd()
+    const response = await routeTest.client.wallet.getAccountsStatus()
 
     expect(response.status).toBe(200)
     expect(response.content).toMatchObject({
@@ -53,9 +51,7 @@ describe('Route wallet/getAccountsStatus', () => {
       spendingKey: null,
     })
 
-    const response = await routeTest.client
-      .request<any>('wallet/getAccountsStatus', {})
-      .waitForEnd()
+    const response = await routeTest.client.wallet.getAccountsStatus()
 
     expect(response.status).toBe(200)
     expect(response.content).toMatchObject({

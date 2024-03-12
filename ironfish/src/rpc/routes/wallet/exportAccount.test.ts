@@ -10,8 +10,6 @@ import { AccountFormat } from '../../../wallet/account/encoder/encoder'
 import { JsonEncoder } from '../../../wallet/account/encoder/json'
 import { MnemonicEncoder } from '../../../wallet/account/encoder/mnemonic'
 import { SpendingKeyEncoder } from '../../../wallet/account/encoder/spendingKey'
-import { ExportAccountResponse } from './exportAccount'
-import { CreateParticipantResponse } from './multisig/createParticipant'
 
 describe('Route wallet/exportAccount', () => {
   const routeTest = createRouteTest(true)
@@ -23,12 +21,10 @@ describe('Route wallet/exportAccount', () => {
   })
 
   it('should export a default account', async () => {
-    const response = await routeTest.client
-      .request<ExportAccountResponse>('wallet/exportAccount', {
-        account: account.name,
-        viewOnly: false,
-      })
-      .waitForEnd()
+    const response = await routeTest.client.wallet.exportAccount({
+      account: account.name,
+      viewOnly: false,
+    })
 
     expect(response.status).toBe(200)
     expect(response.content).toMatchObject({
@@ -45,12 +41,10 @@ describe('Route wallet/exportAccount', () => {
   })
 
   it('should omit spending key when view only account is requested', async () => {
-    const response = await routeTest.client
-      .request<ExportAccountResponse>('wallet/exportAccount', {
-        account: account.name,
-        viewOnly: true,
-      })
-      .waitForEnd()
+    const response = await routeTest.client.wallet.exportAccount({
+      account: account.name,
+      viewOnly: true,
+    })
 
     expect(response.status).toBe(200)
     expect(response.content).toMatchObject({
@@ -67,12 +61,10 @@ describe('Route wallet/exportAccount', () => {
   })
 
   it('should export an account as a json string if requested', async () => {
-    const response = await routeTest.client
-      .request<ExportAccountResponse>('wallet/exportAccount', {
-        account: account.name,
-        format: AccountFormat.JSON,
-      })
-      .waitForEnd()
+    const response = await routeTest.client.wallet.exportAccount({
+      account: account.name,
+      format: AccountFormat.JSON,
+    })
 
     expect(response.status).toBe(200)
 
@@ -81,12 +73,10 @@ describe('Route wallet/exportAccount', () => {
   })
 
   it('should export an account as a base64 string if requested', async () => {
-    const response = await routeTest.client
-      .request<ExportAccountResponse>('wallet/exportAccount', {
-        account: account.name,
-        format: AccountFormat.Base64Json,
-      })
-      .waitForEnd()
+    const response = await routeTest.client.wallet.exportAccount({
+      account: account.name,
+      format: AccountFormat.Base64Json,
+    })
 
     const { id: _, ...accountImport } = account.serialize()
 
@@ -95,12 +85,10 @@ describe('Route wallet/exportAccount', () => {
   })
 
   it('should export an account as a spending key string if requested', async () => {
-    const response = await routeTest.client
-      .request<ExportAccountResponse>('wallet/exportAccount', {
-        account: account.name,
-        format: AccountFormat.SpendingKey,
-      })
-      .waitForEnd()
+    const response = await routeTest.client.wallet.exportAccount({
+      account: account.name,
+      format: AccountFormat.SpendingKey,
+    })
 
     expect(response.status).toBe(200)
     expect(response.content.account).toEqual(new SpendingKeyEncoder().encode(account))
@@ -108,23 +96,19 @@ describe('Route wallet/exportAccount', () => {
 
   it('should return an error when exporting a view only account in the spending key format', async () => {
     await expect(() =>
-      routeTest.client
-        .request<ExportAccountResponse>('wallet/exportAccount', {
-          account: account.name,
-          format: AccountFormat.SpendingKey,
-          viewOnly: true,
-        })
-        .waitForEnd(),
+      routeTest.client.wallet.exportAccount({
+        account: account.name,
+        format: AccountFormat.SpendingKey,
+        viewOnly: true,
+      }),
     ).rejects.toThrow()
   })
 
   it('should export an account as a mnemonic phrase string if requested', async () => {
-    const response = await routeTest.client
-      .request<ExportAccountResponse>('wallet/exportAccount', {
-        account: account.name,
-        format: AccountFormat.Mnemonic,
-      })
-      .waitForEnd()
+    const response = await routeTest.client.wallet.exportAccount({
+      account: account.name,
+      format: AccountFormat.Mnemonic,
+    })
 
     expect(response.status).toBe(200)
     expect(response.content.account).toEqual(new MnemonicEncoder().encode(account, {}))
@@ -132,13 +116,11 @@ describe('Route wallet/exportAccount', () => {
 
   it('should return an error when exporting a view only account in the mnemonic format', async () => {
     await expect(() =>
-      routeTest.client
-        .request<ExportAccountResponse>('wallet/exportAccount', {
-          account: account.name,
-          format: AccountFormat.Mnemonic,
-          viewOnly: true,
-        })
-        .waitForEnd(),
+      routeTest.client.wallet.exportAccount({
+        account: account.name,
+        format: AccountFormat.Mnemonic,
+        viewOnly: true,
+      }),
     ).rejects.toThrow()
   })
 
@@ -148,9 +130,7 @@ describe('Route wallet/exportAccount', () => {
       accountNames.map(
         async (name) =>
           (
-            await routeTest.client
-              .request<CreateParticipantResponse>('wallet/multisig/createParticipant', { name })
-              .waitForEnd()
+            await routeTest.client.wallet.multisig.createParticipant({ name })
           ).content,
       ),
     )
@@ -178,12 +158,10 @@ describe('Route wallet/exportAccount', () => {
       account: importAccount!.account,
     })
 
-    const response = await routeTest.client
-      .request<ExportAccountResponse>('wallet/exportAccount', {
-        account: accountNames[0],
-        viewOnly: false,
-      })
-      .waitForEnd()
+    const response = await routeTest.client.wallet.exportAccount({
+      account: accountNames[0],
+      viewOnly: false,
+    })
 
     expect(response.status).toBe(200)
     expect(response.content).toMatchObject({
@@ -211,9 +189,7 @@ describe('Route wallet/exportAccount', () => {
       accountNames.map(
         async (name) =>
           (
-            await routeTest.client
-              .request<CreateParticipantResponse>('wallet/multisig/createParticipant', { name })
-              .waitForEnd()
+            await routeTest.client.wallet.multisig.createParticipant({ name })
           ).content,
       ),
     )
@@ -241,12 +217,10 @@ describe('Route wallet/exportAccount', () => {
       account: importAccount!.account,
     })
 
-    const response = await routeTest.client
-      .request<ExportAccountResponse>('wallet/exportAccount', {
-        account: accountNames[0],
-        viewOnly: true,
-      })
-      .waitForEnd()
+    const response = await routeTest.client.wallet.exportAccount({
+      account: accountNames[0],
+      viewOnly: false,
+    })
 
     expect(response.status).toBe(200)
     expect(response.content).toMatchObject({

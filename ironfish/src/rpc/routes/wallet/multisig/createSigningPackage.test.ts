@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { useAccountAndAddFundsFixture, useUnsignedTxFixture } from '../../../../testUtilities'
 import { createRouteTest } from '../../../../testUtilities/routeTest'
-import { CreateParticipantResponse } from './createParticipant'
 
 describe('Route multisig/createSigningPackage', () => {
   const routeTest = createRouteTest()
@@ -13,11 +12,8 @@ describe('Route multisig/createSigningPackage', () => {
     const accountNames = Array.from({ length: 3 }, (_, index) => `test-account-${index}`)
     const participants = await Promise.all(
       accountNames.map(async (name) => {
-        const identity = (
-          await routeTest.client
-            .request<CreateParticipantResponse>('wallet/multisig/createParticipant', { name })
-            .waitForEnd()
-        ).content.identity
+        const identity = (await routeTest.client.wallet.multisig.createParticipant({ name }))
+          .content.identity
         return { name, identity }
       }),
     )
@@ -77,11 +73,8 @@ describe('Route multisig/createSigningPackage', () => {
       const accountNames = Array.from({ length: 4 }, (_, index) => `test-account-${index}`)
       const participants = await Promise.all(
         accountNames.map(async (name) => {
-          const identity = (
-            await routeTest.client
-              .request<CreateParticipantResponse>('wallet/multisig/createParticipant', { name })
-              .waitForEnd()
-          ).content.identity
+          const identity = (await routeTest.client.wallet.multisig.createParticipant({ name }))
+            .content.identity
           return { name, identity }
         }),
       )
@@ -185,11 +178,8 @@ describe('Route multisig/createSigningPackage', () => {
       const accountNames = Array.from({ length: 4 }, (_, index) => `test-account-${index}`)
       const participants = await Promise.all(
         accountNames.map(async (name) => {
-          const identity = (
-            await routeTest.client
-              .request<CreateParticipantResponse>('wallet/multisig/createParticipant', { name })
-              .waitForEnd()
-          ).content.identity
+          const identity = (await routeTest.client.wallet.multisig.createParticipant({ name }))
+            .content.identity
           return { name, identity }
         }),
       )
@@ -265,11 +255,8 @@ describe('Route multisig/createSigningPackage', () => {
       const accountNames = Array.from({ length: 4 }, (_, index) => `test-account-${index}`)
       const participants = await Promise.all(
         accountNames.map(async (name) => {
-          const identity = (
-            await routeTest.client
-              .request<CreateParticipantResponse>('wallet/multisig/createParticipant', { name })
-              .waitForEnd()
-          ).content.identity
+          const identity = (await routeTest.client.wallet.multisig.createParticipant({ name }))
+            .content.identity
           return { name, identity }
         }),
       )

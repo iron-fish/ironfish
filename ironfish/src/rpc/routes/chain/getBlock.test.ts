@@ -5,8 +5,6 @@ import { Assert } from '../../../assert'
 import { useBlockWithTx, useMinerBlockFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { RPC_ERROR_CODES } from '../../adapters'
-import { RpcRequestError } from '../../clients/errors'
-import { GetBlockResponse } from './getBlock'
 
 describe('Route chain/getBlock', () => {
   const routeTest = createRouteTest()
@@ -27,10 +25,7 @@ describe('Route chain/getBlock', () => {
     const hash2 = blockA2.header.hash.toString('hex')
 
     // Find block matching hash
-    let response = await routeTest.client
-      .request<GetBlockResponse>('chain/getBlock', { search: hash2 })
-      .waitForEnd()
-
+    let response = await routeTest.client.chain.getBlock({ search: hash2 })
     expect(response.content).toMatchObject({
       block: {
         hash: hash2,
@@ -39,26 +34,20 @@ describe('Route chain/getBlock', () => {
     })
 
     // Now miss on a hash check
-    try {
-      await routeTest.client
-        .request<GetBlockResponse>('chain/getBlock', {
-          search: '123405c7492bd000d6a8312f7592737e869967c890aac22247ede00678d4a2b2',
-        })
-        .waitForEnd()
-    } catch (e: unknown) {
-      if (!(e instanceof RpcRequestError)) {
-        throw e
-      }
-      expect(e.status).toBe(404)
-      expect(e.code).toBe(RPC_ERROR_CODES.NOT_FOUND)
-      expect(e.message).toContain('No block found with hash')
-    }
+    await expect(
+      routeTest.client.chain.getBlock({
+        search: '123405c7492bd000d6a8312f7592737e869967c890aac22247ede00678d4a2b2',
+      }),
+    ).rejects.toThrow(
+      expect.objectContaining({
+        status: 404,
+        code: RPC_ERROR_CODES.NOT_FOUND,
+        message: expect.stringContaining('No block found with hash'),
+      }),
+    )
 
     // Find block matching sequence
-    response = await routeTest.client
-      .request<GetBlockResponse>('chain/getBlock', { search: '2' })
-      .waitForEnd()
-
+    response = await routeTest.client.chain.getBlock({ search: '2' })
     expect(response.content).toMatchObject({
       block: {
         hash: hash1,
@@ -67,10 +56,7 @@ describe('Route chain/getBlock', () => {
     })
 
     // Find block matching sequence
-    response = await routeTest.client
-      .request<GetBlockResponse>('chain/getBlock', { search: '-1' })
-      .waitForEnd()
-
+    response = await routeTest.client.chain.getBlock({ search: '-1' })
     expect(response.content).toMatchObject({
       block: {
         hash: hash2,
@@ -79,34 +65,23 @@ describe('Route chain/getBlock', () => {
     })
 
     // Now miss on a sequence check
-    try {
-      await routeTest.client
-        .request<GetBlockResponse>('chain/getBlock', { search: '1234' })
-        .waitForEnd()
-    } catch (e: unknown) {
-      if (!(e instanceof RpcRequestError)) {
-        throw e
-      }
-      expect(e.status).toBe(404)
-      expect(e.code).toBe(RPC_ERROR_CODES.NOT_FOUND)
-      expect(e.message).toContain('No block found with sequence')
-    }
+    await expect(routeTest.client.chain.getBlock({ search: '1234' })).rejects.toThrow(
+      expect.objectContaining({
+        status: 404,
+        code: RPC_ERROR_CODES.NOT_FOUND,
+        message: expect.stringContaining('No block found with sequence'),
+      }),
+    )
 
     // Force failure of getBlock()
     jest.spyOn(chain, 'getBlock').mockResolvedValue(null)
-
-    try {
-      await routeTest.client
-        .request<GetBlockResponse>('chain/getBlock', { search: hash0 })
-        .waitForEnd()
-    } catch (e: unknown) {
-      if (!(e instanceof RpcRequestError)) {
-        throw e
-      }
-      expect(e.status).toBe(404)
-      expect(e.code).toBe(RPC_ERROR_CODES.NOT_FOUND)
-      expect(e.message).toContain('No block with header')
-    }
+    await expect(routeTest.client.chain.getBlock({ search: hash0 })).rejects.toThrow(
+      expect.objectContaining({
+        status: 404,
+        code: RPC_ERROR_CODES.NOT_FOUND,
+        message: expect.stringContaining('No block with header'),
+      }),
+    )
   })
 
   it('Receives transactions from a matched block', async () => {
@@ -117,10 +92,7 @@ describe('Route chain/getBlock', () => {
     await expect(node.chain).toAddBlock(block)
     const hash = block.header.hash.toString('hex')
 
-    const response = await routeTest.client
-      .request<GetBlockResponse>('chain/getBlock', { search: '3' })
-      .waitForEnd()
-
+    const response = await routeTest.client.chain.getBlock({ search: '3' })
     expect(response.content).toMatchObject({
       block: {
         hash: hash,
@@ -138,10 +110,7 @@ describe('Route chain/getBlock', () => {
     await expect(node.chain).toAddBlock(block)
     const hash = block.header.hash.toString('hex')
 
-    const response = await routeTest.client
-      .request<GetBlockResponse>('chain/getBlock', { search: '3' })
-      .waitForEnd()
-
+    const response = await routeTest.client.chain.getBlock({ search: '3' })
     expect(response.content).toMatchObject({
       block: {
         hash: hash,
@@ -152,10 +121,10 @@ describe('Route chain/getBlock', () => {
       },
     })
 
-    const unconfirmedResponse = await routeTest.client
-      .request<GetBlockResponse>('chain/getBlock', { search: '3', confirmations: 10 })
-      .waitForEnd()
-
+    const unconfirmedResponse = await routeTest.client.chain.getBlock({
+      search: '3',
+      confirmations: 10,
+    })
     expect(unconfirmedResponse.content).toMatchObject({
       block: {
         hash: hash,
@@ -173,10 +142,7 @@ describe('Route chain/getBlock', () => {
     const { block, transaction } = await useBlockWithTx(node)
     await expect(node.chain).toAddBlock(block)
 
-    const response = await routeTest.client
-      .request<GetBlockResponse>('chain/getBlock', { search: '3', serialized: true })
-      .waitForEnd()
-
+    const response = await routeTest.client.chain.getBlock({ search: '3', serialized: true })
     const serialized = response.content.block.transactions[1].serialized
     Assert.isNotUndefined(serialized)
     expect(Buffer.from(serialized, 'hex')).toEqual(transaction.serialize())
