@@ -7,6 +7,7 @@ import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
 import { longPrompt } from '../../../../utils/longPrompt'
+import { MultisigTransactionJson } from '../../../../utils/multisig'
 import { renderUnsignedTransactionDetails } from '../../../../utils/transaction'
 
 export class CreateSignatureShareCommand extends IronfishCommand {
@@ -29,12 +30,18 @@ export class CreateSignatureShareCommand extends IronfishCommand {
       default: false,
       description: 'Confirm creating signature share without confirming',
     }),
+    path: Flags.string({
+      description: 'Path to a JSON file containing multisig transaction data',
+    }),
   }
 
   async start(): Promise<void> {
     const { flags } = await this.parse(CreateSignatureShareCommand)
-    let signingPackageString = flags.signingPackage?.trim()
 
+    const loaded = await MultisigTransactionJson.load(this.sdk.fileSystem, flags.path)
+    const options = MultisigTransactionJson.resolveFlags(flags, loaded)
+
+    let signingPackageString = options.signingPackage
     if (!signingPackageString) {
       signingPackageString = await longPrompt('Enter the signing package')
     }
