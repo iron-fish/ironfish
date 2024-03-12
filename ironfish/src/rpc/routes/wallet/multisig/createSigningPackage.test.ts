@@ -335,4 +335,66 @@ describe('Route multisig/createSigningPackage', () => {
       )
     })
   })
+
+  it('should verify minimum number of commitments', async () => {
+    // Create a bunch of multisig identities
+    const accountNames = Array.from({ length: 3 }, (_, index) => `test-account-${index}`)
+    const participants = await Promise.all(
+      accountNames.map(async (name) => {
+        const identity = (await routeTest.client.wallet.multisig.createParticipant({ name }))
+          .content.identity
+        return { name, identity }
+      }),
+    )
+
+    // Initialize the group though TDK and import the accounts generated
+    const trustedDealerPackage = (
+      await routeTest.client.wallet.multisig.createTrustedDealerKeyPackage({
+        minSigners: 2,
+        participants,
+      })
+    ).content
+    for (const { name, identity } of participants) {
+      const importAccount = trustedDealerPackage.participantAccounts.find(
+        (account) => account.identity === identity,
+      )
+      expect(importAccount).not.toBeUndefined()
+      await routeTest.client.wallet.importAccount({
+        name,
+        account: importAccount!.account,
+      })
+    }
+
+    // Create an unsigned transaction
+    const txAccount = await useAccountAndAddFundsFixture(routeTest.wallet, routeTest.chain)
+    const unsignedTransaction = (
+      await useUnsignedTxFixture(routeTest.wallet, txAccount, txAccount)
+    )
+      .serialize()
+      .toString('hex')
+
+    // Create only one signing commitment
+    const signingCommitment = (
+      await routeTest.client.wallet.multisig.createSigningCommitment({
+        account: accountNames[0],
+        unsignedTransaction,
+        signers: participants,
+      })
+    ).content.commitment
+
+    await expect(async () =>
+      routeTest.client.wallet.multisig.createSigningPackage({
+        account: accountNames[0],
+        commitments: [signingCommitment],
+        unsignedTransaction,
+      }),
+    ).rejects.toThrow(
+      expect.objectContaining({
+        message: expect.stringContaining(
+          'A minimum of 2 signers is required for a valid signature. Only 1 commitments provided',
+        ),
+        status: 400,
+      }),
+    )
+  })
 })
