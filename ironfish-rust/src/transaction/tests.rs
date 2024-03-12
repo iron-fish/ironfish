@@ -385,7 +385,6 @@ fn test_transaction_version_is_checked() {
 
     let valid_versions = [1u8, 2u8];
     let invalid_versions = (u8::MIN..=u8::MAX)
-        .into_iter()
         .filter(|v| !valid_versions.contains(v))
         .collect::<Vec<u8>>();
     assert_eq!(invalid_versions.len(), 254);
