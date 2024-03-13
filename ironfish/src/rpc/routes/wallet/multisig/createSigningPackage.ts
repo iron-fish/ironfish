@@ -57,6 +57,15 @@ routes.register<typeof CreateSigningPackageRequestSchema, CreateSigningPackageRe
       .identities()
       .map((identity) => identity.toString('hex'))
 
+    if (request.data.commitments.length < publicKeyPackage.minSigners()) {
+      throw new RpcValidationError(
+        `A minimum of ${publicKeyPackage.minSigners()} signers is required for a valid signature. Only ${
+          request.data.commitments.length
+        } commitments provided`,
+        400,
+      )
+    }
+
     const commitments = request.data.commitments.map(
       (commitment) => new multisig.SigningCommitment(Buffer.from(commitment, 'hex')),
     )
