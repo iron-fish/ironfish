@@ -55,6 +55,11 @@ who = "Andrea <andrea@iflabs.network>"
 criteria = "safe-to-deploy"
 delta = "0.4.1 -> 0.2.3"
 
+[[audits.siphasher]]
+who = "Andrea <andrea@iflabs.network>"
+criteria = "safe-to-deploy"
+version = "1.0.0"
+
 [[audits.zcash_address]]
 who = "Andrea <andrea@iflabs.network>"
 criteria = "safe-to-deploy"
