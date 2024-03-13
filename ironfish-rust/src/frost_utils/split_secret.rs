@@ -89,7 +89,7 @@ pub(crate) fn split_secret<R: RngCore + CryptoRng>(
         key_packages.insert(identity, key_package);
     }
 
-    let public_key_package = PublicKeyPackage::from_frost(pubkeys, identities);
+    let public_key_package = PublicKeyPackage::from_frost(pubkeys, identities, min_signers);
 
     Ok((key_packages, public_key_package))
 }

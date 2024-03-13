@@ -411,8 +411,10 @@ describe('Route wallet/importAccount', () => {
           })
 
           const keyFile = testCaseFile.slice(0, -testCaseSuffix.length) + keySuffix
-          const key = await fs.promises.readFile(path.join(testCaseDir, keyFile))
-          const secret = new multisig.ParticipantSecret(key)
+          const key = await fs.promises.readFile(path.join(testCaseDir, keyFile), {
+            encoding: 'ascii',
+          })
+          const secret = new multisig.ParticipantSecret(Buffer.from(key, 'hex'))
           const identity = secret.toIdentity()
 
           await routeTest.node.wallet.walletDb.putMultisigSecret(identity.serialize(), {

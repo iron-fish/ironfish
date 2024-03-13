@@ -283,6 +283,11 @@ impl NativePublicKeyPackage {
             .map(|identity| Buffer::from(&identity.serialize()[..]))
             .collect()
     }
+
+    #[napi]
+    pub fn min_signers(&self) -> u16 {
+        self.public_key_package.min_signers()
+    }
 }
 
 #[napi(js_name = "SigningCommitment", namespace = "multisig")]

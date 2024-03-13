@@ -267,6 +267,7 @@ export namespace multisig {
     export class PublicKeyPackage {
     constructor(value: string)
     identities(): Array<Buffer>
+    minSigners(): number
   }
   export type NativeSigningCommitment = SigningCommitment
     export class SigningCommitment {
