@@ -35,6 +35,11 @@ criteria = "safe-to-deploy"
 delta = "0.1.0 -> 0.1.0@git:d551820030cb596eafe82226667f32b47164f91b"
 notes = "Fork of the official f4jumble owned by Iron Fish"
 
+[[audits.frost-core]]
+who = "Andrea <andrea@iflabs.network>"
+criteria = "safe-to-deploy"
+version = "1.0.0"
+
 [[audits.jubjub]]
 who = "Andrea <andrea@iflabs.network>"
 criteria = "safe-to-deploy"
