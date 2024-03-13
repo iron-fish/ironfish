@@ -18,6 +18,11 @@ criteria = "safe-to-deploy"
 delta = "0.24.1 -> 0.24.1@git:37b9976bcd96986cbdc71ae09fc455015e3dfac0"
 notes = "Fork of the official bellperson owned by Iron Fish"
 
+[[audits.crypto_box]]
+who = "Andrea <andrea@iflabs.network>"
+criteria = "safe-to-deploy"
+version = "0.9.1"
+
 [[audits.equihash]]
 who = "Andrea <andrea@iflabs.network>"
 criteria = "safe-to-deploy"
