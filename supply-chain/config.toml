@@ -257,10 +257,6 @@ criteria = "safe-to-deploy"
 version = "0.11.1"
 criteria = "safe-to-deploy"
 
-[[exemptions.crypto_box]]
-version = "0.9.1"
-criteria = "safe-to-deploy"
-
 [[exemptions.crypto_secretbox]]
 version = "0.1.1"
 criteria = "safe-to-deploy"
