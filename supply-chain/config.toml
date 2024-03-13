@@ -81,10 +81,6 @@ criteria = "safe-to-deploy"
 version = "0.7.20"
 criteria = "safe-to-deploy"
 
-[[exemptions.arrayvec]]
-version = "0.7.4"
-criteria = "safe-to-deploy"
-
 [[exemptions.atomic-polyfill]]
 version = "0.1.11"
 criteria = "safe-to-deploy"
