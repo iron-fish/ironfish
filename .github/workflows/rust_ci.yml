@@ -64,6 +64,26 @@ jobs:
         run: |
           cargo clippy --all-targets -- -D warnings
 
+  cargo_vet:
+    name: Vet Dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v2
+        with:
+          save-if: false
+          shared-key: base
+
+      - name: Install cargo-vet
+        run: |
+          cargo install --locked cargo-vet
+
+      - name: Vet dependencies
+        run: |
+          cargo vet
+
   ironfish_rust:
     name: Test ironfish-rust
     runs-on: ubuntu-latest
