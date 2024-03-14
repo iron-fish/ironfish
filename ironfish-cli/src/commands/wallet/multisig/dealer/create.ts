@@ -113,6 +113,8 @@ export class MultisigCreateDealer extends IronfishCommand {
     }
 
     this.log()
+    this.log('Next step:')
+    this.log('Send the account imports to the participant with the corresponding identity.')
   }
 
   async getCoordinatorName(client: RpcClient, inputName?: string): Promise<string> {
