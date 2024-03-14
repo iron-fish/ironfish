@@ -1311,6 +1311,12 @@ export class WalletDB {
     return (await this.getMultisigSecretByName(name, tx)) !== undefined
   }
 
+  async *getMultisigSecrets(tx?: IDatabaseTransaction): AsyncGenerator<MultisigSecretValue> {
+    for await (const value of this.multisigSecrets.getAllValuesIter(tx)) {
+      yield value
+    }
+  }
+
   async addParticipantIdentity(
     account: Account,
     identity: Buffer,

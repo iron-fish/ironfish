@@ -383,7 +383,7 @@ pub fn verify_transactions(serialized_transactions: Vec<JsBuffer>) -> Result<boo
 
 #[napi(js_name = "UnsignedTransaction")]
 pub struct NativeUnsignedTransaction {
-    transaction: UnsignedTransaction,
+    pub(crate) transaction: UnsignedTransaction,
 }
 
 #[napi]
@@ -395,16 +395,6 @@ impl NativeUnsignedTransaction {
         let transaction = UnsignedTransaction::read(bytes.as_ref()).map_err(to_napi_err)?;
 
         Ok(NativeUnsignedTransaction { transaction })
-    }
-
-    #[napi(factory)]
-    pub fn from_signing_package(signing_package_str: String) -> Result<Self> {
-        let bytes = hex_to_vec_bytes(&signing_package_str).map_err(to_napi_err)?;
-        let signing_package = SigningPackage::read(&bytes[..]).map_err(to_napi_err)?;
-
-        Ok(NativeUnsignedTransaction {
-            transaction: signing_package.unsigned_transaction,
-        })
     }
 
     #[napi]
@@ -472,7 +462,7 @@ impl NativeUnsignedTransaction {
     }
 }
 
-#[napi]
+#[napi(namespace = "multisig")]
 pub fn aggregate_signature_shares(
     public_key_package_str: String,
     signing_package_str: String,

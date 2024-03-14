@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { generateKey, ParticipantSecret } from '@ironfish/rust-nodejs'
+import { generateKey, multisig } from '@ironfish/rust-nodejs'
 import { AccountImport } from '../../walletdb/accountValue'
 import { ACCOUNT_SCHEMA_VERSION } from '../account'
 import {
@@ -184,7 +184,7 @@ describe('Base64JsonEncoder', () => {
   })
 
   describe('with multisig encryption', () => {
-    const multisigSecret = ParticipantSecret.random()
+    const multisigSecret = multisig.ParticipantSecret.random()
     const identity = multisigSecret.toIdentity()
 
     it(`produces a base64 blob with the ${BASE64_JSON_MULTISIG_ENCRYPTED_ACCOUNT_PREFIX} prefix`, () => {
@@ -266,7 +266,7 @@ describe('Base64JsonEncoder', () => {
       const encoded = encoder.encode(accountImport, {
         encryptWith: { kind: 'MultisigIdentity', identity },
       })
-      const wrongSecret = ParticipantSecret.random()
+      const wrongSecret = multisig.ParticipantSecret.random()
       expect(() => encoder.decode(encoded, { multisigSecret: wrongSecret })).toThrow()
     })
 

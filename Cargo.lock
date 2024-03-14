@@ -1521,7 +1521,7 @@ dependencies = [
 [[package]]
 name = "ironfish-frost"
 version = "0.1.0"
-source = "git+https://github.com/iron-fish/ironfish-frost.git?branch=main#18b413c75df23f9460bd143fb2d044632ef9d1c9"
+source = "git+https://github.com/iron-fish/ironfish-frost.git?branch=main#cabc4474446df9742e677d142520aecf790bb472"
 dependencies = [
  "blake3",
  "chacha20 0.9.1",
@@ -1531,6 +1531,7 @@ dependencies = [
  "rand_chacha",
  "rand_core",
  "reddsa 0.5.1",
+ "siphasher",
  "x25519-dalek",
 ]
 
@@ -2610,6 +2611,12 @@ name = "signature"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8fe458c98333f9c8152221191a77e2a44e8325d0193484af2e9421a53019e57d"
+
+[[package]]
+name = "siphasher"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "54ac45299ccbd390721be55b412d41931911f654fa99e2cb8bfb57184b2061fe"
 
 [[package]]
 name = "slab"

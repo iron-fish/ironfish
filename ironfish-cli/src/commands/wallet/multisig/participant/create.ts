@@ -8,7 +8,6 @@ import { RemoteFlags } from '../../../../flags'
 
 export class MultisigIdentityCreate extends IronfishCommand {
   static description = `Create a multisig participant identity`
-  static hidden = true
 
   static flags = {
     ...RemoteFlags,
@@ -39,15 +38,20 @@ export class MultisigIdentityCreate extends IronfishCommand {
         ) {
           this.log()
           this.log(e.codeMessage)
+          name = await CliUx.ux.prompt('Enter a new name for the identity', {
+            required: true,
+          })
+        } else {
+          throw e
         }
-
-        name = await CliUx.ux.prompt('Enter a new name for the identity', {
-          required: true,
-        })
       }
     }
 
     this.log('Identity:')
     this.log(response.content.identity)
+
+    this.log()
+    this.log('Next step:')
+    this.log('Send the identity to the multisig account dealer.')
   }
 }

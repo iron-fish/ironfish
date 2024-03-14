@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::to_napi_err;
+use crate::{structs::NativeUnsignedTransaction, to_napi_err};
 use ironfish::{
-    frost::{keys::KeyPackage, round1::SigningCommitments, round2, Randomizer},
+    frost::{keys::KeyPackage, round2, Randomizer},
     frost_utils::{signing_package::SigningPackage, split_spender_key::split_spender_key},
     participant::{Identity, Secret},
     serializing::{bytes_to_hex, fr::FrSerializable, hex_to_vec_bytes},
@@ -19,10 +19,10 @@ use napi_derive::napi;
 use rand::thread_rng;
 use std::ops::Deref;
 
-#[napi]
+#[napi(namespace = "multisig")]
 pub const IDENTITY_LEN: u32 = ironfish::frost_utils::IDENTITY_LEN as u32;
 
-#[napi]
+#[napi(namespace = "multisig")]
 pub const SECRET_LEN: u32 = ironfish_frost::participant::SECRET_LEN as u32;
 
 fn try_deserialize_identities<I, S>(signers: I) -> Result<Vec<Identity>>
@@ -44,7 +44,7 @@ where
         })
 }
 
-#[napi]
+#[napi(namespace = "multisig")]
 pub fn create_signing_commitment(
     secret: String,
     key_package: String,
@@ -58,19 +58,18 @@ pub fn create_signing_commitment(
     let transaction_hash = transaction_hash.into_value()?;
     let signers = try_deserialize_identities(signers)?;
 
-    let nonces =
-        deterministic_signing_nonces(key_package.signing_share(), &transaction_hash, &signers);
-    let commitments = SigningCommitments::from(&nonces);
+    let signing_commitment = SigningCommitment::from_secrets(
+        &secret,
+        key_package.signing_share(),
+        &transaction_hash,
+        &signers,
+    );
 
-    let signing_commitment =
-        SigningCommitment::from_frost(secret, *commitments.hiding(), *commitments.binding());
-
-    let bytes = signing_commitment.serialize()?;
-
+    let bytes = signing_commitment.serialize();
     Ok(bytes_to_hex(&bytes[..]))
 }
 
-#[napi]
+#[napi(namespace = "multisig")]
 pub fn create_signature_share(
     secret: String,
     key_package: String,
@@ -119,12 +118,12 @@ pub fn create_signature_share(
     Ok(bytes_to_hex(&bytes[..]))
 }
 
-#[napi]
+#[napi(namespace = "multisig")]
 pub struct ParticipantSecret {
     secret: Secret,
 }
 
-#[napi]
+#[napi(namespace = "multisig")]
 impl ParticipantSecret {
     #[napi(constructor)]
     pub fn new(js_bytes: JsBuffer) -> Result<ParticipantSecret> {
@@ -162,12 +161,12 @@ impl ParticipantSecret {
     }
 }
 
-#[napi]
+#[napi(namespace = "multisig")]
 pub struct ParticipantIdentity {
     identity: Identity,
 }
 
-#[napi]
+#[napi(namespace = "multisig")]
 impl ParticipantIdentity {
     #[napi(constructor)]
     pub fn new(js_bytes: JsBuffer) -> Result<ParticipantIdentity> {
@@ -193,7 +192,7 @@ impl ParticipantIdentity {
     }
 }
 
-#[napi]
+#[napi(namespace = "multisig")]
 pub fn generate_and_split_key(
     min_signers: u16,
     identities: Vec<String>,
@@ -203,13 +202,22 @@ pub fn generate_and_split_key(
     let identities = try_deserialize_identities(identities)?;
 
     let packages =
-        split_spender_key(&spending_key, min_signers, identities).map_err(to_napi_err)?;
+        split_spender_key(&spending_key, min_signers, &identities).map_err(to_napi_err)?;
 
     let mut key_packages = Vec::with_capacity(packages.key_packages.len());
-    for (identity, key_package) in packages.key_packages.iter() {
+
+    // preserves the order of the identities
+    for identity in identities {
+        let key_package = packages
+            .key_packages
+            .get(&identity)
+            .ok_or_else(|| to_napi_err("Key package not found for identity"))?
+            .serialize()
+            .map_err(to_napi_err)?;
+
         key_packages.push(ParticipantKeyPackage {
             identity: bytes_to_hex(&identity.serialize()),
-            key_package: bytes_to_hex(&key_package.serialize().map_err(to_napi_err)?),
+            key_package: bytes_to_hex(&key_package),
         });
     }
 
@@ -229,7 +237,7 @@ pub fn generate_and_split_key(
     })
 }
 
-#[napi(object)]
+#[napi(object, namespace = "multisig")]
 pub struct ParticipantKeyPackage {
     pub identity: String,
     // TODO: this should contain the spender_key only, there's no need to return (and later store)
@@ -239,7 +247,7 @@ pub struct ParticipantKeyPackage {
     pub key_package: String,
 }
 
-#[napi(object)]
+#[napi(object, namespace = "multisig")]
 pub struct TrustedDealerKeyPackages {
     pub public_address: String,
     pub public_key_package: String,
@@ -250,12 +258,12 @@ pub struct TrustedDealerKeyPackages {
     pub key_packages: Vec<ParticipantKeyPackage>,
 }
 
-#[napi(js_name = "PublicKeyPackage")]
+#[napi(js_name = "PublicKeyPackage", namespace = "multisig")]
 pub struct NativePublicKeyPackage {
     public_key_package: PublicKeyPackage,
 }
 
-#[napi]
+#[napi(namespace = "multisig")]
 impl NativePublicKeyPackage {
     #[napi(constructor)]
     pub fn new(value: String) -> Result<NativePublicKeyPackage> {
@@ -275,14 +283,19 @@ impl NativePublicKeyPackage {
             .map(|identity| Buffer::from(&identity.serialize()[..]))
             .collect()
     }
+
+    #[napi]
+    pub fn min_signers(&self) -> u16 {
+        self.public_key_package.min_signers()
+    }
 }
 
-#[napi(js_name = "SigningCommitment")]
+#[napi(js_name = "SigningCommitment", namespace = "multisig")]
 pub struct NativeSigningCommitment {
     signing_commitment: SigningCommitment,
 }
 
-#[napi]
+#[napi(namespace = "multisig")]
 impl NativeSigningCommitment {
     #[napi(constructor)]
     pub fn new(js_bytes: JsBuffer) -> Result<NativeSigningCommitment> {
@@ -295,5 +308,51 @@ impl NativeSigningCommitment {
     #[napi]
     pub fn identity(&self) -> Buffer {
         Buffer::from(self.signing_commitment.identity().serialize().as_slice())
+    }
+
+    #[napi]
+    pub fn verify_checksum(
+        &self,
+        transaction_hash: JsBuffer,
+        signer_identities: Vec<String>,
+    ) -> Result<bool> {
+        let transaction_hash = transaction_hash.into_value()?;
+        let signer_identities = try_deserialize_identities(signer_identities)?;
+        Ok(self
+            .signing_commitment
+            .verify_checksum(&transaction_hash, &signer_identities)
+            .is_ok())
+    }
+}
+
+#[napi(js_name = "SigningPackage", namespace = "multisig")]
+pub struct NativeSigningPackage {
+    signing_package: SigningPackage,
+}
+
+#[napi(namespace = "multisig")]
+impl NativeSigningPackage {
+    #[napi(constructor)]
+    pub fn new(js_bytes: JsBuffer) -> Result<NativeSigningPackage> {
+        let bytes = js_bytes.into_value()?;
+        SigningPackage::read(bytes.as_ref())
+            .map(|signing_package| NativeSigningPackage { signing_package })
+            .map_err(to_napi_err)
+    }
+
+    #[napi]
+    pub fn unsigned_transaction(&self) -> NativeUnsignedTransaction {
+        NativeUnsignedTransaction {
+            transaction: self.signing_package.unsigned_transaction.clone(),
+        }
+    }
+
+    #[napi]
+    pub fn signers(&self) -> Vec<Buffer> {
+        self.signing_package
+            .signers
+            .iter()
+            .map(|signer| Buffer::from(&signer.serialize()[..]))
+            .collect()
     }
 }

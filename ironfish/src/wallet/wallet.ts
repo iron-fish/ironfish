@@ -5,9 +5,8 @@ import {
   Asset,
   generateKey,
   MEMO_LENGTH,
+  multisig,
   Note as NativeNote,
-  ParticipantSecret,
-  PublicKeyPackage,
   UnsignedTransaction,
 } from '@ironfish/rust-nodejs'
 import { BufferMap, BufferSet } from 'buffer-map'
@@ -1610,7 +1609,9 @@ export class Wallet {
       }
 
       if (account.multisigKeys) {
-        const publicKeyPackage = new PublicKeyPackage(account.multisigKeys.publicKeyPackage)
+        const publicKeyPackage = new multisig.PublicKeyPackage(
+          account.multisigKeys.publicKeyPackage,
+        )
 
         for (const identity of publicKeyPackage.identities()) {
           await this.walletDb.addParticipantIdentity(account, identity, tx)
@@ -1909,7 +1910,7 @@ export class Wallet {
         throw new DuplicateAccountNameError(name)
       }
 
-      const secret = ParticipantSecret.random()
+      const secret = multisig.ParticipantSecret.random()
       const identity = secret.toIdentity()
 
       await this.walletDb.putMultisigSecret(

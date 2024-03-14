@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { createSigningCommitment, UnsignedTransaction } from '@ironfish/rust-nodejs'
+import { multisig, UnsignedTransaction } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
 import { AssertMultisigSigner } from '../../../../wallet/account/account'
 import { ApiNamespace } from '../../namespaces'
@@ -55,11 +55,21 @@ routes.register<typeof CreateSigningCommitmentRequestSchema, CreateSigningCommit
     const unsigned = new UnsignedTransaction(
       Buffer.from(request.data.unsignedTransaction, 'hex'),
     )
-    const commitment = createSigningCommitment(
+
+    const signers = request.data.signers.map((signer) => signer.identity)
+
+    // always include account's own identity. ironfish-frost deduplicates identities
+    const accountSecret = new multisig.ParticipantSecret(
+      Buffer.from(account.multisigKeys.secret, 'hex'),
+    )
+    const accountIdentity = accountSecret.toIdentity().serialize().toString('hex')
+    signers.push(accountIdentity)
+
+    const commitment = multisig.createSigningCommitment(
       account.multisigKeys.secret,
       account.multisigKeys.keyPackage,
       unsigned.hash(),
-      request.data.signers.map((signer) => signer.identity),
+      signers,
     )
 
     request.end({ commitment })

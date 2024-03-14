@@ -92,18 +92,13 @@ export class ImportCommand extends IronfishCommand {
         if (
           e instanceof RpcRequestError &&
           (e.code === RPC_ERROR_CODES.DUPLICATE_ACCOUNT_NAME.toString() ||
-            e.code === RPC_ERROR_CODES.IMPORT_ACCOUNT_NAME_REQUIRED.toString() ||
-            e.code === RPC_ERROR_CODES.MULTISIG_SECRET_NAME_REQUIRED.toString())
+            e.code === RPC_ERROR_CODES.IMPORT_ACCOUNT_NAME_REQUIRED.toString())
         ) {
-          let message = 'Enter a name for the account'
+          const message = 'Enter a name for the account'
 
           if (e.code === RPC_ERROR_CODES.DUPLICATE_ACCOUNT_NAME.toString()) {
             this.log()
             this.log(e.codeMessage)
-          }
-
-          if (e.code === RPC_ERROR_CODES.MULTISIG_SECRET_NAME_REQUIRED.toString()) {
-            message = 'Enter the name of the multisig secret'
           }
 
           const name = await CliUx.ux.prompt(message, {

@@ -14,10 +14,6 @@ import { Transaction } from './transaction'
 
 export type BlockHash = Buffer
 
-export function hashBlockHeader(serializedHeader: Buffer): BlockHash {
-  return blake3(serializedHeader)
-}
-
 export function isBlockLater(a: BlockHeader, b: BlockHeader): boolean {
   if (a.sequence !== b.sequence) {
     return a.sequence > b.sequence

@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { ParticipantSecret } from '@ironfish/rust-nodejs'
+import { multisig } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
 import { RpcValidationError } from '../../../adapters/errors'
 import { ApiNamespace } from '../../namespaces'
@@ -41,7 +41,7 @@ routes.register<typeof GetIdentityRequestSchema, GetIdentityResponse>(
       throw new RpcValidationError(`No identity found with name ${name}`, 404)
     }
 
-    const secret = new ParticipantSecret(record.secret)
+    const secret = new multisig.ParticipantSecret(record.secret)
     const identity = secret.toIdentity()
 
     request.end({ identity: identity.serialize().toString('hex') })

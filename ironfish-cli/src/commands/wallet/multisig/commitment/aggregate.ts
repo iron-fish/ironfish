@@ -6,10 +6,10 @@ import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
 import { longPrompt } from '../../../../utils/longPrompt'
+import { MultisigTransactionJson } from '../../../../utils/multisig'
 
 export class CreateSigningPackage extends IronfishCommand {
   static description = `Creates a signing package for a given transaction for a multisig account`
-  static hidden = true
 
   static flags = {
     ...RemoteFlags,
@@ -28,20 +28,25 @@ export class CreateSigningPackage extends IronfishCommand {
         'The signing commitments from participants to be used for creating the signing package',
       multiple: true,
     }),
+    path: Flags.string({
+      description: 'Path to a JSON file containing multisig transaction data',
+    }),
   }
 
   async start(): Promise<void> {
     const { flags } = await this.parse(CreateSigningPackage)
 
-    let unsignedTransaction = flags.unsignedTransaction?.trim()
+    const loaded = await MultisigTransactionJson.load(this.sdk.fileSystem, flags.path)
+    const options = MultisigTransactionJson.resolveFlags(flags, loaded)
 
+    let unsignedTransaction = options.unsignedTransaction
     if (!unsignedTransaction) {
       unsignedTransaction = await longPrompt('Enter the unsigned transaction', {
         required: true,
       })
     }
 
-    let commitments = flags.commitment
+    let commitments = options.commitment
     if (!commitments) {
       const input = await longPrompt('Enter the signing commitments separated by commas', {
         required: true,
@@ -60,5 +65,9 @@ export class CreateSigningPackage extends IronfishCommand {
 
     this.log(`Signing Package for commitments from ${commitments.length} participants:\n`)
     this.log(signingPackageResponse.content.signingPackage)
+
+    this.log()
+    this.log('Next step:')
+    this.log('Send the signing package to all of the participants who provided a commitment.')
   }
 }

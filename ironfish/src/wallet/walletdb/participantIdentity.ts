@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import type { IDatabaseEncoding } from '../../storage/database/types'
-import { IDENTITY_LEN } from '@ironfish/rust-nodejs'
+import { multisig } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 
 export interface ParticipantIdentity {
@@ -26,7 +26,7 @@ export class ParticipantIdentityEncoding implements IDatabaseEncoding<Participan
     //flags
     reader.readU8()
 
-    const identity = reader.readBytes(IDENTITY_LEN)
+    const identity = reader.readBytes(multisig.IDENTITY_LEN)
     return {
       identity,
     }
@@ -37,7 +37,7 @@ export class ParticipantIdentityEncoding implements IDatabaseEncoding<Participan
     let size = 0
     size += 1 // flags
 
-    size += IDENTITY_LEN // owner
+    size += multisig.IDENTITY_LEN // owner
     return size
   }
 }
