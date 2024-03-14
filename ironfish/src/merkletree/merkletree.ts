@@ -598,7 +598,6 @@ export class MerkleTree<
         const sibling = await this.getLeaf(leafIndex - 1, tx)
         const siblingHash = sibling.merkleHash
         currentHash = this.hasher.combineHash(0, siblingHash, currentHash)
-        pastHashes.set(leafIndex - 1, currentHash)
       } else {
         currentHash = this.hasher.combineHash(0, currentHash, currentHash)
       }
