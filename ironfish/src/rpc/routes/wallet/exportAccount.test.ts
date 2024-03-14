@@ -201,4 +201,66 @@ describe('Route wallet/exportAccount', () => {
       },
     })
   })
+
+  it('should export an account with multisigKeys and without multisig secrets when view only account is requested', async () => {
+    const accountNames = Array.from(
+      { length: 2 },
+      (_, index) => `another-test-account-${index}`,
+    )
+    const participants = await Promise.all(
+      accountNames.map(
+        async (name) =>
+          (
+            await routeTest.client
+              .request<CreateParticipantResponse>('wallet/multisig/createParticipant', { name })
+              .waitForEnd()
+          ).content,
+      ),
+    )
+
+    const multisigSecret = await routeTest.node.wallet.walletDb.getMultisigSecret(
+      Buffer.from(participants[0].identity, 'hex'),
+    )
+    Assert.isNotUndefined(multisigSecret)
+
+    // Initialize the group though TDK and import one of the accounts generated
+    const trustedDealerPackage = (
+      await routeTest.client.wallet.multisig.createTrustedDealerKeyPackage({
+        minSigners: 2,
+        participants,
+      })
+    ).content
+
+    const importAccount = trustedDealerPackage.participantAccounts.find(
+      ({ identity }) => identity === participants[0].identity,
+    )
+    expect(importAccount).toBeDefined()
+
+    await routeTest.client.wallet.importAccount({
+      name: accountNames[0],
+      account: importAccount!.account,
+    })
+
+    const response = await routeTest.client
+      .request<ExportAccountResponse>('wallet/exportAccount', {
+        account: accountNames[0],
+        viewOnly: true,
+      })
+      .waitForEnd()
+
+    expect(response.status).toBe(200)
+    expect(response.content).toMatchObject({
+      account: {
+        name: accountNames[0],
+        spendingKey: null,
+        viewKey: trustedDealerPackage.viewKey,
+        incomingViewKey: trustedDealerPackage.incomingViewKey,
+        outgoingViewKey: trustedDealerPackage.outgoingViewKey,
+        publicAddress: trustedDealerPackage.publicAddress,
+        multisigKeys: {
+          publicKeyPackage: trustedDealerPackage.publicKeyPackage,
+        },
+      },
+    })
+  })
 })
