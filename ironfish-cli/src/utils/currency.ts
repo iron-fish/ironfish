@@ -6,6 +6,10 @@ import { Asset } from '@ironfish/rust-nodejs'
 import { Assert, CurrencyUtils, Logger, RpcClient } from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
 
+/**
+ * This promps the user to enter an ammount of currency in IRON denominations
+ * and returns the value in ORE
+ */
 export async function promptCurrency(options: {
   client: Pick<RpcClient, 'wallet'>
   text: string
