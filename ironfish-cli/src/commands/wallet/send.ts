@@ -23,9 +23,9 @@ export class Send extends IronfishCommand {
   static description = `Send coins to another account`
 
   static examples = [
-    '$ ironfish wallet:send --amount 2 --fee 0.00000001 --to 997c586852d1b12da499bcff53595ba37d04e4909dbdb1a75f3bfd90dd7212217a1c2c0da652d187fc52ed',
-    '$ ironfish wallet:send --amount 2 --fee 0.00000001 --to 997c586852d1b12da499bcff53595ba37d04e4909dbdb1a75f3bfd90dd7212217a1c2c0da652d187fc52ed --account otheraccount',
-    '$ ironfish wallet:send --amount 2 --fee 0.00000001 --to 997c586852d1b12da499bcff53595ba37d04e4909dbdb1a75f3bfd90dd7212217a1c2c0da652d187fc52ed --account otheraccount --memo "enjoy!"',
+    '$ ironfish wallet:send --amount 2.003 --fee 0.00000001 --to 997c586852d1b12da499bcff53595ba37d04e4909dbdb1a75f3bfd90dd7212217a1c2c0da652d187fc52ed',
+    '$ ironfish wallet:send --amount 2.003 --fee 0.00000001 --to 997c586852d1b12da499bcff53595ba37d04e4909dbdb1a75f3bfd90dd7212217a1c2c0da652d187fc52ed --account otheraccount',
+    '$ ironfish wallet:send --amount 2.003 --fee 0.00000001 --to 997c586852d1b12da499bcff53595ba37d04e4909dbdb1a75f3bfd90dd7212217a1c2c0da652d187fc52ed --account otheraccount --memo "enjoy!"',
   ]
 
   static flags = {
@@ -36,7 +36,7 @@ export class Send extends IronfishCommand {
     }),
     amount: IronFlag({
       char: 'a',
-      description: 'Amount of coins to send',
+      description: 'The amount to send in IRON',
       flagName: 'amount',
     }),
     to: Flags.string({
@@ -144,7 +144,7 @@ export class Send extends IronfishCommand {
       amount = await promptCurrency({
         client: client,
         required: true,
-        text: 'Enter the amount',
+        text: 'Enter the amount in IRON',
         minimum: 1n,
         logger: this.logger,
         balance: {
