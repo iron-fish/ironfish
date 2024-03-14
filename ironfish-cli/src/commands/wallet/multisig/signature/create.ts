@@ -12,7 +12,6 @@ import { renderUnsignedTransactionDetails } from '../../../../utils/transaction'
 
 export class CreateSignatureShareCommand extends IronfishCommand {
   static description = `Creates a signature share for a participant for a given transaction`
-  static hidden = true
 
   static flags = {
     ...RemoteFlags,

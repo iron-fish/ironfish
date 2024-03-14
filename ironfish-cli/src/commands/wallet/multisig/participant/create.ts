@@ -8,7 +8,6 @@ import { RemoteFlags } from '../../../../flags'
 
 export class MultisigIdentityCreate extends IronfishCommand {
   static description = `Create a multisig participant identity`
-  static hidden = true
 
   static flags = {
     ...RemoteFlags,
