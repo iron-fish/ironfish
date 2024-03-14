@@ -46,6 +46,11 @@ routes.register<typeof ExportAccountRequestSchema, ExportAccountResponse>(
     const { id: _, ...accountInfo } = account.serialize()
     if (request.data.viewOnly) {
       accountInfo.spendingKey = null
+      if (accountInfo.multisigKeys) {
+        accountInfo.multisigKeys = {
+          publicKeyPackage: accountInfo.multisigKeys.publicKeyPackage,
+        }
+      }
     }
 
     if (!request.data.format) {
