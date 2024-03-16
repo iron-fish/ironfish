@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import nock from 'nock'
 import { VerifiedAssetsCacheStore } from '../fileStores/verifiedAssets'
+import { NodeFileProvider } from '../fileSystems'
 import { AssetsVerifier } from './assetsVerifier'
 
 /* eslint-disable jest/no-standalone-expect */
@@ -17,6 +18,12 @@ describe('AssetsVerifier', () => {
     }
   }
 
+  const files = new NodeFileProvider()
+
+  beforeAll(async () => {
+    await files.init()
+  })
+
   beforeEach(() => {
     nock.cleanAll()
     jest.clearAllTimers()
@@ -27,7 +34,7 @@ describe('AssetsVerifier', () => {
   })
 
   it('does not refresh when not started', () => {
-    const assetsVerifier = new AssetsVerifier()
+    const assetsVerifier = new AssetsVerifier({ files })
     const refresh = jest.spyOn(assetsVerifier as any, 'refresh')
 
     jest.runOnlyPendingTimers()
@@ -50,6 +57,7 @@ describe('AssetsVerifier', () => {
       })
 
     const assetsVerifier = new AssetsVerifier({
+      files,
       apiUrl: 'https://test/assets/verified',
     })
     const refresh = jest.spyOn(assetsVerifier as any, 'refresh')
@@ -91,6 +99,7 @@ describe('AssetsVerifier', () => {
       })
 
     const assetsVerifier = new AssetsVerifier({
+      files,
       apiUrl: 'https://test/assets/verified',
     })
     const refresh = jest.spyOn(assetsVerifier as any, 'refresh')
@@ -120,6 +129,7 @@ describe('AssetsVerifier', () => {
       .reply(304)
 
     const assetsVerifier = new AssetsVerifier({
+      files,
       apiUrl: 'https://test/assets/verified',
     })
     const refresh = jest.spyOn(assetsVerifier as any, 'refresh')
@@ -139,7 +149,7 @@ describe('AssetsVerifier', () => {
 
   describe('verify', () => {
     it("returns 'unknown' when not started", () => {
-      const assetsVerifier = new AssetsVerifier()
+      const assetsVerifier = new AssetsVerifier({ files })
 
       expect(assetsVerifier.verify('0123')).toStrictEqual({ status: 'unknown' })
       expect(assetsVerifier.verify('4567')).toStrictEqual({ status: 'unknown' })
@@ -149,6 +159,7 @@ describe('AssetsVerifier', () => {
       nock('https://test').get('/assets/verified').reply(500)
 
       const assetsVerifier = new AssetsVerifier({
+        files,
         apiUrl: 'https://test/assets/verified',
       })
       const refresh = jest.spyOn(assetsVerifier as any, 'refresh')
@@ -172,6 +183,7 @@ describe('AssetsVerifier', () => {
         })
 
       const assetsVerifier = new AssetsVerifier({
+        files,
         apiUrl: 'https://test/assets/verified',
       })
       const refresh = jest.spyOn(assetsVerifier as any, 'refresh')
@@ -190,6 +202,7 @@ describe('AssetsVerifier', () => {
         })
 
       const assetsVerifier = new AssetsVerifier({
+        files,
         apiUrl: 'https://test/assets/verified',
       })
       const refresh = jest.spyOn(assetsVerifier as any, 'refresh')
@@ -210,6 +223,7 @@ describe('AssetsVerifier', () => {
         .reply(500)
 
       const assetsVerifier = new AssetsVerifier({
+        files,
         apiUrl: 'https://test/assets/verified',
       })
       const refresh = jest.spyOn(assetsVerifier as any, 'refresh')
@@ -240,6 +254,7 @@ describe('AssetsVerifier', () => {
         })
 
       const assetsVerifier = new AssetsVerifier({
+        files,
         apiUrl: 'https://test/assets/verified',
       })
       const refresh = jest.spyOn(assetsVerifier as any, 'refresh')
@@ -276,6 +291,7 @@ describe('AssetsVerifier', () => {
         })
 
       const assetsVerifier = new AssetsVerifier({
+        files,
         apiUrl: 'https://test/assets/verified',
         cache: cache,
       })
@@ -307,6 +323,7 @@ describe('AssetsVerifier', () => {
         })
 
       const assetsVerifier = new AssetsVerifier({
+        files,
         apiUrl: 'https://bar.test/assets/verified',
         cache: cache,
       })
@@ -343,6 +360,7 @@ describe('AssetsVerifier', () => {
         )
 
       const assetsVerifier = new AssetsVerifier({
+        files,
         apiUrl: 'https://test/assets/verified',
         cache: cache,
       })
@@ -387,6 +405,7 @@ describe('AssetsVerifier', () => {
         .reply(304)
 
       const assetsVerifier = new AssetsVerifier({
+        files,
         apiUrl: 'https://test/assets/verified',
         cache: cache,
       })

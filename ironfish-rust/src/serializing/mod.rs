@@ -72,7 +72,7 @@ pub fn hex_to_vec_bytes(hex: &str) -> Result<Vec<u8>, IronfishError> {
 
     let hex_iter = hex.as_bytes().chunks_exact(2);
 
-    for (_, hex) in hex_iter.enumerate() {
+    for hex in hex_iter {
         bytes.push(hex_to_u8(hex[0])? << 4 | hex_to_u8(hex[1])?);
     }
 

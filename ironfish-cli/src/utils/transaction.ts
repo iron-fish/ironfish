@@ -74,51 +74,52 @@ export async function renderUnsignedTransactionDetails(
       unsignedTransaction: unsignedTransaction.serialize().toString('hex'),
     })
 
-    if (response.content.sentNotes.length > 0) {
-      logger.log('')
-      logger.log('==================')
-      logger.log('Notes sent:')
-      logger.log('==================')
+    logger.log('')
+    logger.log('==================')
+    logger.log('Notes sent:')
+    logger.log('==================')
 
-      let logged = false
-      for (const note of response.content.sentNotes) {
-        // Skip logger since we'll re-render for received notes
-        if (note.owner === note.sender) {
-          continue
-        }
-
-        if (logged) {
-          logger.log('------------------')
-        }
-        logged = true
-        logger.log('')
-
-        logger.log(`Amount:        ${CurrencyUtils.renderIron(note.value, true, note.assetId)}`)
-        logger.log(`Memo:          ${note.memo}`)
-        logger.log(`Recipient:     ${note.owner}`)
-        logger.log(`Sender:        ${note.sender}`)
-        logger.log('')
+    for (const [i, note] of response.content.sentNotes.entries()) {
+      // Skip logger since we'll re-render for received notes
+      if (note.owner === note.sender) {
+        continue
       }
+
+      if (i !== 0) {
+        logger.log('------------------')
+      }
+      logger.log('')
+
+      logger.log(`Amount:        ${CurrencyUtils.renderIron(note.value, true, note.assetId)}`)
+      logger.log(`Memo:          ${note.memo}`)
+      logger.log(`Recipient:     ${note.owner}`)
+      logger.log(`Sender:        ${note.sender}`)
+      logger.log('')
     }
 
-    if (response.content.receivedNotes.length > 0) {
-      logger.log('')
-      logger.log('==================')
-      logger.log('Notes received:')
-      logger.log('==================')
+    logger.log('')
+    logger.log('==================')
+    logger.log('Notes received:')
+    logger.log('==================')
 
-      for (const [i, note] of response.content.receivedNotes.entries()) {
-        if (i !== 0) {
-          logger.log('------------------')
-        }
-        logger.log('')
-
-        logger.log(`Amount:        ${CurrencyUtils.renderIron(note.value, true, note.assetId)}`)
-        logger.log(`Memo:          ${note.memo}`)
-        logger.log(`Recipient:     ${note.owner}`)
-        logger.log(`Sender:        ${note.sender}`)
-        logger.log('')
+    for (const [i, note] of response.content.receivedNotes.entries()) {
+      if (i !== 0) {
+        logger.log('------------------')
       }
+      logger.log('')
+
+      logger.log(`Amount:        ${CurrencyUtils.renderIron(note.value, true, note.assetId)}`)
+      logger.log(`Memo:          ${note.memo}`)
+      logger.log(`Recipient:     ${note.owner}`)
+      logger.log(`Sender:        ${note.sender}`)
+      logger.log('')
+    }
+
+    if (!response.content.sentNotes.length && !response.content.receivedNotes.length) {
+      logger.log('')
+      logger.log('------------------')
+      logger.log('Account unable to decrypt any notes in this transaction')
+      logger.log('------------------')
     }
   }
 

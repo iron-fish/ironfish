@@ -662,6 +662,53 @@ describe('Merkle tree', function () {
     }
   })
 
+  it('calculates witnesses without past sibling hash caching regression', async () => {
+    /* eslint-disable prettier/prettier */
+    // construct tree of size 128
+    const leaves = [
+      'aa', 'ab', 'ac', 'ad', 'ae', 'af', 'ag', 'ah',
+      'ba', 'bb', 'bc', 'bd', 'be', 'bf', 'bg', 'bh',
+      'ca', 'cb', 'cc', 'cd', 'ce', 'cf', 'cg', 'ch',
+      'da', 'db', 'dc', 'dd', 'de', 'df', 'dg', 'dh',
+      'ea', 'eb', 'ec', 'ed', 'ee', 'ef', 'eg', 'eh',
+      'fa', 'fb', 'fc', 'fd', 'fe', 'ff', 'fg', 'fh',
+      'ga', 'gb', 'gc', 'gd', 'ge', 'gf', 'gg', 'gh',
+      'ha', 'hb', 'hc', 'hd', 'he', 'hf', 'hg', 'hh',
+      'ia', 'ib', 'ic', 'id', 'ie', 'if', 'ig', 'ih',
+      'ja', 'jb', 'jc', 'jd', 'je', 'jf', 'jg', 'jh',
+      'ka', 'kb', 'kc', 'kd', 'ke', 'kf', 'kg', 'kh',
+      'la', 'lb', 'lc', 'ld', 'le', 'lf', 'lg', 'lh',
+      'ma', 'mb', 'mc', 'md', 'me', 'mf', 'mg', 'mh',
+      'na', 'nb', 'nc', 'nd', 'ne', 'nf', 'ng', 'nh',
+      'oa', 'ob', 'oc', 'od', 'oe', 'of', 'og', 'oh',
+      'pa', 'pb', 'pc', 'pd', 'pe', 'pf', 'pg', 'ph',
+    ]
+    /* eslint-enable prettier/prettier */
+
+    const tree = await makeTree({ depth: 7 })
+    for (const leaf of leaves) {
+      await tree.add(leaf)
+    }
+
+    // a tree size of 128, a past tree size of 74, and an index of 68 created an
+    // issue with pastRightSiblingHashes where the cache incorrectly stored a
+    // hash for the parent of leaf index 68 (at node index 72)
+    // the conditions to produce this issue:
+    // 1. leaf at pastSize - 1 is a right leaf node
+    // 2. node at pastSize - 2 is a left node
+    // 3. node at pastSize - 2 is not on path from leaf pastSize - 1 to root
+    // 4. node at pastSize - 2 is on path from witness index to root
+    const pastSize = 74
+    const pastRootHash = await tree.pastRoot(pastSize)
+
+    const index = 68
+    const witness = await tree.witness(index, pastSize)
+    if (witness === null) {
+      throw new Error('Witness should not be null')
+    }
+    expect(witness.rootHash).toEqual(pastRootHash)
+  })
+
   it('witness rootHash should equal the tree rootHash', async () => {
     const tree = await makeTree({ depth: 3, leaves: 'abcdefgh' })
 

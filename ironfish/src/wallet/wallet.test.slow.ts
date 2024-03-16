@@ -1,16 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import {
-  aggregateSignatureShares,
-  Asset,
-  ASSET_ID_LENGTH,
-  createSignatureShare,
-  createSigningCommitment,
-  generateAndSplitKey,
-  generateKey,
-  ParticipantSecret,
-} from '@ironfish/rust-nodejs'
+import { Asset, ASSET_ID_LENGTH, generateKey, multisig } from '@ironfish/rust-nodejs'
 import { Assert } from '../assert'
 import { Transaction } from '../primitives'
 import { Target } from '../primitives/target'
@@ -1146,7 +1137,7 @@ describe('Wallet', () => {
       const accountNames = Array.from({ length: 3 }, (_, index) => `test-account-${index}`)
       const identities = await Promise.all(
         accountNames.map(async (name) => {
-          const secret = ParticipantSecret.random()
+          const secret = multisig.ParticipantSecret.random()
           const identity = secret.toIdentity()
 
           await node.wallet.walletDb.putMultisigSecret(identity.serialize(), {
@@ -1160,7 +1151,7 @@ describe('Wallet', () => {
       // construct 3 separate secrets for the participants
       // take the secrets and get identities back (get identity first then identifier)
 
-      const trustedDealerPackage = generateAndSplitKey(minSigners, identities)
+      const trustedDealerPackage = multisig.generateAndSplitKey(minSigners, identities)
 
       const getMultisigKeys = (index: number) => {
         return {
@@ -1274,7 +1265,7 @@ describe('Wallet', () => {
 
       const signers = participants.map((participant) => {
         AssertMultisigSigner(participant)
-        const secret = new ParticipantSecret(
+        const secret = new multisig.ParticipantSecret(
           Buffer.from(participant.multisigKeys.secret, 'hex'),
         )
         return secret.toIdentity().serialize().toString('hex')
@@ -1284,7 +1275,7 @@ describe('Wallet', () => {
       for (const participant of participants) {
         AssertMultisigSigner(participant)
         signingCommitments.push(
-          createSigningCommitment(
+          multisig.createSigningCommitment(
             participant.multisigKeys.secret,
             participant.multisigKeys.keyPackage,
             transactionHash,
@@ -1300,7 +1291,7 @@ describe('Wallet', () => {
       for (const participant of participants) {
         AssertMultisigSigner(participant)
         signatureShares.push(
-          createSignatureShare(
+          multisig.createSignatureShare(
             participant.multisigKeys.secret,
             participant.multisigKeys.keyPackage,
             signingPackage,
@@ -1309,7 +1300,7 @@ describe('Wallet', () => {
       }
 
       Assert.isNotUndefined(coordinator.multisigKeys)
-      const serializedFrostTransaction = aggregateSignatureShares(
+      const serializedFrostTransaction = multisig.aggregateSignatureShares(
         coordinator.multisigKeys.publicKeyPackage,
         signingPackage,
         signatureShares,
@@ -1345,7 +1336,7 @@ describe('Wallet', () => {
     const accountNames = Array.from({ length: 3 }, (_, index) => `test-account-${index}`)
     const identities = await Promise.all(
       accountNames.map(async (name) => {
-        const secret = ParticipantSecret.random()
+        const secret = multisig.ParticipantSecret.random()
         const identity = secret.toIdentity()
 
         await node.wallet.walletDb.putMultisigSecret(identity.serialize(), {
@@ -1356,7 +1347,7 @@ describe('Wallet', () => {
       }),
     )
 
-    const trustedDealerPackage = generateAndSplitKey(minSigners, identities)
+    const trustedDealerPackage = multisig.generateAndSplitKey(minSigners, identities)
 
     const account = await node.wallet.importAccount({
       version: 2,

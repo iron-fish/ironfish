@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import axios, { AxiosAdapter, AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios'
-import { readFile } from 'node:fs/promises'
 import url, { URL } from 'url'
+import { FileSystem } from '../fileSystems'
 
 type GetVerifiedAssetsResponse = {
   assets: Array<{ identifier: string }>
@@ -62,10 +62,12 @@ export class AssetsVerificationApi {
 
   readonly url: string
 
-  constructor(options?: { url?: string; timeout?: number }) {
+  constructor(options: { files: FileSystem; url?: string; timeout?: number }) {
     this.url = options?.url || 'https://api.ironfish.network/assets/verified'
     this.timeout = options?.timeout ?? 30 * 1000 // 30 seconds
-    this.adapter = isFileUrl(this.url) ? axiosFileAdapter : axios.defaults.adapter
+    this.adapter = isFileUrl(this.url)
+      ? axiosFileAdapter(options.files)
+      : axios.defaults.adapter
   }
 
   async getVerifiedAssets(): Promise<VerifiedAssets> {
@@ -116,22 +118,23 @@ const isFileUrl = (url: string): boolean => {
   return parsedUrl.protocol === 'file:'
 }
 
-const axiosFileAdapter = (
-  config: AxiosRequestConfig,
-): Promise<AxiosResponse<GetVerifiedAssetsResponse>> => {
-  if (!config.url) {
-    return Promise.reject(new Error('url is undefined'))
+const axiosFileAdapter =
+  (files: FileSystem) =>
+  (config: AxiosRequestConfig): Promise<AxiosResponse<GetVerifiedAssetsResponse>> => {
+    if (!config.url) {
+      return Promise.reject(new Error('url is undefined'))
+    }
+
+    const path = url.fileURLToPath(config.url)
+
+    return files
+      .readFile(path)
+      .then(JSON.parse)
+      .then((data: GetVerifiedAssetsResponse) => ({
+        data,
+        status: 0,
+        statusText: '',
+        headers: {},
+        config: config,
+      }))
   }
-
-  const path = url.fileURLToPath(config.url)
-
-  return readFile(path, { encoding: 'utf8' })
-    .then(JSON.parse)
-    .then((data: GetVerifiedAssetsResponse) => ({
-      data,
-      status: 0,
-      statusText: '',
-      headers: {},
-      config: config,
-    }))
-}
