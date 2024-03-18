@@ -213,7 +213,7 @@ describe('AssetsVerifier', () => {
       expect(assetsVerifier.verify('4567')).toStrictEqual({ status: 'unverified' })
     })
 
-    it('uses the the in-memory cache when the API is unreachable', async () => {
+    it('uses the in-memory cache when the API is unreachable', async () => {
       nock('https://test')
         .get('/assets/verified')
         .reply(200, {
