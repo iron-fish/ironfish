@@ -474,7 +474,7 @@ export class CombineNotesCommand extends IronfishCommand {
       }
     }
 
-    transactionTimer.startTimer()
+    transactionTimer.start()
 
     const response = await client.wallet.postTransaction({
       transaction: RawTransactionSerde.serialize(raw).toString('hex'),
@@ -484,7 +484,7 @@ export class CombineNotesCommand extends IronfishCommand {
     const bytes = Buffer.from(response.content.transaction, 'hex')
     const transaction = new Transaction(bytes)
 
-    transactionTimer.endTimer()
+    transactionTimer.end()
 
     if (response.content.accepted === false) {
       this.warn(

@@ -46,7 +46,7 @@ export class TransactionTimer {
     )
   }
 
-  startTimer() {
+  start() {
     this.progressBar = CliUx.ux.progress({
       format: '{title}: [{bar}] {percentage}% | {estimate}',
     }) as ProgressBar
@@ -72,7 +72,7 @@ export class TransactionTimer {
     }, 1000)
   }
 
-  endTimer() {
+  end() {
     if (!this.progressBar || !this.startTime || !this.timer) {
       return
     }
