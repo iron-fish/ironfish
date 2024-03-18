@@ -5,8 +5,17 @@ import axios, { AxiosAdapter, AxiosError, AxiosRequestConfig, AxiosResponse } fr
 import url, { URL } from 'url'
 import { FileSystem } from '../fileSystems'
 
-type GetVerifiedAssetsResponse = {
-  assets: Array<{ identifier: string }>
+type AssetData = {
+  assetId: string
+  name: string
+  symbol: string
+  decimals: number
+  logoURI: string
+}
+
+type GetAssetDataResponse = {
+  version?: number
+  assets: AssetData[]
 }
 
 type GetVerifiedAssetsRequestHeaders = {
@@ -18,19 +27,21 @@ type GetVerifiedAssetsResponseHeaders = {
 }
 
 export class VerifiedAssets {
-  private readonly assetIds: Set<string> = new Set()
+  private readonly assets: Map<string, AssetData> = new Map()
   private lastModified?: string
 
   export(): ExportedVerifiedAssets {
     return {
-      assetIds: Array.from(this.assetIds),
+      assets: Array.from(this.assets.values()),
       lastModified: this.lastModified,
     }
   }
 
   static restore(options: ExportedVerifiedAssets): VerifiedAssets {
     const verifiedAssets = new VerifiedAssets()
-    options.assetIds.forEach((identifier) => verifiedAssets.assetIds.add(identifier))
+    options.assets.forEach((assetData) =>
+      verifiedAssets.assets.set(assetData.assetId, sanitizedAssetData(assetData)),
+    )
     verifiedAssets.lastModified = options.lastModified
     return verifiedAssets
   }
@@ -39,7 +50,7 @@ export class VerifiedAssets {
     if (!(typeof assetId === 'string')) {
       assetId = assetId.toString('hex')
     }
-    return this.assetIds.has(assetId)
+    return this.assets.has(assetId)
   }
 }
 
@@ -52,7 +63,7 @@ export class VerifiedAssets {
 // - The `assetIds` field from `VerifiedAssets` is a `Set`, which is not
 //   properly supported by the cache serializer.
 export type ExportedVerifiedAssets = {
-  assetIds: string[]
+  assets: AssetData[]
   lastModified?: string
 }
 
@@ -86,19 +97,22 @@ export class AssetsVerificationApi {
       headers['if-modified-since'] = verifiedAssets['lastModified']
     }
     return axios
-      .get<GetVerifiedAssetsResponse>(this.url, {
+      .get<GetAssetDataResponse>(this.url, {
         headers: headers,
         timeout: this.timeout,
         adapter: this.adapter,
       })
       .then(
         (response: {
-          data: GetVerifiedAssetsResponse
+          data: GetAssetDataResponse
           headers: GetVerifiedAssetsResponseHeaders
         }) => {
-          verifiedAssets['assetIds'].clear()
-          response.data.assets.forEach(({ identifier }) => {
-            return verifiedAssets['assetIds'].add(identifier)
+          verifiedAssets['assets'].clear()
+          response.data.assets.forEach((assetData) => {
+            return verifiedAssets['assets'].set(
+              assetData.assetId,
+              sanitizedAssetData(assetData),
+            )
           })
           verifiedAssets['lastModified'] = response.headers['last-modified']
           return true
@@ -120,7 +134,7 @@ const isFileUrl = (url: string): boolean => {
 
 const axiosFileAdapter =
   (files: FileSystem) =>
-  (config: AxiosRequestConfig): Promise<AxiosResponse<GetVerifiedAssetsResponse>> => {
+  (config: AxiosRequestConfig): Promise<AxiosResponse<GetAssetDataResponse>> => {
     if (!config.url) {
       return Promise.reject(new Error('url is undefined'))
     }
@@ -130,7 +144,7 @@ const axiosFileAdapter =
     return files
       .readFile(path)
       .then(JSON.parse)
-      .then((data: GetVerifiedAssetsResponse) => ({
+      .then((data: GetAssetDataResponse) => ({
         data,
         status: 0,
         statusText: '',
@@ -138,3 +152,13 @@ const axiosFileAdapter =
         config: config,
       }))
   }
+
+const sanitizedAssetData = (assetData: AssetData): AssetData => {
+  return {
+    assetId: assetData.assetId,
+    name: assetData.name,
+    symbol: assetData.symbol,
+    decimals: assetData.decimals,
+    logoURI: assetData.logoURI,
+  }
+}

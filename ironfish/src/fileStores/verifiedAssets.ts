@@ -14,7 +14,7 @@ export type VerifiedAssetsCacheOptions = {
 
 export const VerifiedAssetsCacheOptionsDefaults: VerifiedAssetsCacheOptions = {
   apiUrl: '',
-  assetIds: [],
+  assets: [],
 }
 
 export const VERIFIED_ASSETS_CACHE_FILE_NAME = path.join('temp', 'verified-assets.json')

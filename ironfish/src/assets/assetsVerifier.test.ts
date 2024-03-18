@@ -8,6 +8,29 @@ import { AssetsVerifier } from './assetsVerifier'
 
 /* eslint-disable jest/no-standalone-expect */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+const assetData1 = {
+  assetId: '0123',
+  name: 'Foo',
+  symbol: '$FOO',
+  decimals: 4,
+  logoURI: 'https://example.com/not_real.png',
+}
+
+const assetData2 = {
+  assetId: '4567',
+  name: 'Bar',
+  symbol: '$BAR',
+  decimals: 4,
+  logoURI: 'https://example.com/not_real.png',
+}
+
+const assetData3 = {
+  assetId: '89ab',
+  name: 'Baz',
+  symbol: '$BAZ',
+  decimals: 4,
+  logoURI: 'https://example.com/not_real.png',
+}
 
 describe('AssetsVerifier', () => {
   jest.useFakeTimers()
@@ -45,15 +68,15 @@ describe('AssetsVerifier', () => {
     nock('https://test')
       .get('/assets/verified')
       .reply(200, {
-        assets: [{ identifier: '0123' }],
+        assets: [assetData1],
       })
       .get('/assets/verified')
       .reply(200, {
-        assets: [{ identifier: '4567' }],
+        assets: [assetData2],
       })
       .get('/assets/verified')
       .reply(200, {
-        assets: [{ identifier: '89ab' }],
+        assets: [assetData3],
       })
 
     const assetsVerifier = new AssetsVerifier({
@@ -95,7 +118,7 @@ describe('AssetsVerifier', () => {
     nock('https://test')
       .get('/assets/verified')
       .reply(200, {
-        assets: [{ identifier: '0123' }],
+        assets: [assetData1],
       })
 
     const assetsVerifier = new AssetsVerifier({
@@ -119,7 +142,7 @@ describe('AssetsVerifier', () => {
       .reply(
         200,
         {
-          assets: [{ identifier: '0123' }],
+          assets: [assetData2],
         },
         { 'last-modified': 'some-date' },
       )
@@ -179,7 +202,7 @@ describe('AssetsVerifier', () => {
       nock('https://test')
         .get('/assets/verified')
         .reply(200, {
-          assets: [{ identifier: '0123' }],
+          assets: [assetData1],
         })
 
       const assetsVerifier = new AssetsVerifier({
@@ -198,7 +221,7 @@ describe('AssetsVerifier', () => {
       nock('https://test')
         .get('/assets/verified')
         .reply(200, {
-          assets: [{ identifier: '0123' }],
+          assets: [assetData1],
         })
 
       const assetsVerifier = new AssetsVerifier({
@@ -217,7 +240,7 @@ describe('AssetsVerifier', () => {
       nock('https://test')
         .get('/assets/verified')
         .reply(200, {
-          assets: [{ identifier: '0123' }],
+          assets: [assetData1],
         })
         .get('/assets/verified')
         .reply(500)
@@ -250,7 +273,7 @@ describe('AssetsVerifier', () => {
       nock('https://test')
         .get('/assets/verified')
         .reply(200, {
-          assets: [{ identifier: '0123' }],
+          assets: [assetData1],
         })
 
       const assetsVerifier = new AssetsVerifier({
@@ -281,13 +304,13 @@ describe('AssetsVerifier', () => {
       jest.spyOn(cache, 'save').mockResolvedValue(undefined)
       cache.config = {
         apiUrl: 'https://test/assets/verified',
-        assetIds: ['0123'],
+        assets: [assetData1],
       }
 
       nock('https://test')
         .get('/assets/verified')
         .reply(200, {
-          assets: [{ identifier: '4567' }],
+          assets: [assetData2],
         })
 
       const assetsVerifier = new AssetsVerifier({
@@ -313,13 +336,13 @@ describe('AssetsVerifier', () => {
       jest.spyOn(cache, 'save').mockResolvedValue(undefined)
       cache.config = {
         apiUrl: 'https://foo.test/assets/verified',
-        assetIds: ['0123'],
+        assets: [assetData1],
       }
 
       nock('https://bar.test')
         .get('/assets/verified')
         .reply(200, {
-          assets: [{ identifier: '4567' }],
+          assets: [assetData2],
         })
 
       const assetsVerifier = new AssetsVerifier({
@@ -348,13 +371,13 @@ describe('AssetsVerifier', () => {
       nock('https://test')
         .get('/assets/verified')
         .reply(200, {
-          assets: [{ identifier: '0123' }],
+          assets: [assetData1],
         })
         .get('/assets/verified')
         .reply(
           200,
           {
-            assets: [{ identifier: '4567' }],
+            assets: [assetData2],
           },
           { 'last-modified': 'some-date' },
         )
@@ -371,7 +394,7 @@ describe('AssetsVerifier', () => {
 
       expect(setManySpy).toHaveBeenCalledWith({
         apiUrl: 'https://test/assets/verified',
-        assetIds: ['0123'],
+        assets: [assetData1],
         lastModified: undefined,
       })
       expect(saveSpy).toHaveBeenCalledTimes(1)
@@ -381,7 +404,7 @@ describe('AssetsVerifier', () => {
 
       expect(setManySpy).toHaveBeenCalledWith({
         apiUrl: 'https://test/assets/verified',
-        assetIds: ['4567'],
+        assets: [assetData2],
         lastModified: 'some-date',
       })
       expect(saveSpy).toHaveBeenCalledTimes(2)
@@ -393,7 +416,7 @@ describe('AssetsVerifier', () => {
       ) as VerifiedAssetsCacheStore
       cache.config = {
         apiUrl: 'https://test/assets/verified',
-        assetIds: ['0123'],
+        assets: [assetData1],
         lastModified: 'some-date',
       }
       const setManySpy = jest.spyOn(cache, 'setMany').mockReturnValue(undefined)
