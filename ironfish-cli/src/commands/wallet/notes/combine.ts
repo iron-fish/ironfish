@@ -22,8 +22,8 @@ import { IronFlag, RemoteFlags } from '../../../flags'
 import { getExplorer } from '../../../utils/explorer'
 import { selectFee } from '../../../utils/fees'
 import {
-  TransactionTimer,
   displayTransactionSummary,
+  TransactionTimer,
   watchTransaction,
 } from '../../../utils/transaction'
 
