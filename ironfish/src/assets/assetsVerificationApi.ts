@@ -6,11 +6,12 @@ import url, { URL } from 'url'
 import { FileSystem } from '../fileSystems'
 
 type AssetData = {
-  assetId: string
+  identifier: string
   name: string
   symbol: string
   decimals: number
   logoURI: string
+  website: string
 }
 
 type GetAssetDataResponse = {
@@ -40,7 +41,7 @@ export class VerifiedAssets {
   static restore(options: ExportedVerifiedAssets): VerifiedAssets {
     const verifiedAssets = new VerifiedAssets()
     options.assets.forEach((assetData) =>
-      verifiedAssets.assets.set(assetData.assetId, sanitizedAssetData(assetData)),
+      verifiedAssets.assets.set(assetData.identifier, sanitizedAssetData(assetData)),
     )
     verifiedAssets.lastModified = options.lastModified
     return verifiedAssets
@@ -60,7 +61,7 @@ export class VerifiedAssets {
 // issues:
 // - `VerifiedAssets` is a class with methods, and the type-check logic as well
 //   as the serialization logic expect methods to be serialized.
-// - The `assetIds` field from `VerifiedAssets` is a `Set`, which is not
+// - The `assets` field from `VerifiedAssets` is a `Map`, which is not
 //   properly supported by the cache serializer.
 export type ExportedVerifiedAssets = {
   assets: AssetData[]
@@ -110,7 +111,7 @@ export class AssetsVerificationApi {
           verifiedAssets['assets'].clear()
           response.data.assets.forEach((assetData) => {
             return verifiedAssets['assets'].set(
-              assetData.assetId,
+              assetData.identifier,
               sanitizedAssetData(assetData),
             )
           })
@@ -155,10 +156,11 @@ const axiosFileAdapter =
 
 const sanitizedAssetData = (assetData: AssetData): AssetData => {
   return {
-    assetId: assetData.assetId,
+    identifier: assetData.identifier,
     name: assetData.name,
     symbol: assetData.symbol,
     decimals: assetData.decimals,
     logoURI: assetData.logoURI,
+    website: assetData.website,
   }
 }

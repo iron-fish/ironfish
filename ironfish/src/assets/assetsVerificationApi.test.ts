@@ -6,7 +6,7 @@ import { NodeFileProvider } from '../fileSystems'
 import { AssetsVerificationApi } from './assetsVerificationApi'
 
 const assetData1 = {
-  assetId: '0123',
+  identifier: '0123',
   name: 'Foo',
   symbol: '$FOO',
   decimals: 4,
@@ -14,7 +14,7 @@ const assetData1 = {
 }
 
 const assetData2 = {
-  assetId: 'abcd',
+  identifier: 'abcd',
   name: 'Bar',
   symbol: '$BAR',
   decimals: 4,
@@ -22,7 +22,7 @@ const assetData2 = {
 }
 
 const assetData3 = {
-  assetId: 'abcd',
+  identifier: 'abcd',
   name: 'Baz',
   symbol: '$BAZ',
   decimals: 4,
@@ -61,8 +61,8 @@ describe('Assets Verification API Client', () => {
 
       expect(verifiedAssets['assets']).toStrictEqual(
         new Map([
-          [assetData1.assetId, assetData1],
-          [assetData2.assetId, assetData2],
+          [assetData1.identifier, assetData1],
+          [assetData2.identifier, assetData2],
         ]),
       )
       expect(verifiedAssets.isVerified('0123')).toBe(true)
@@ -97,8 +97,8 @@ describe('Assets Verification API Client', () => {
 
       expect(verifiedAssets['assets']).toStrictEqual(
         new Map([
-          [assetData1.assetId, assetData1],
-          [assetData2.assetId, assetData2],
+          [assetData1.identifier, assetData1],
+          [assetData2.identifier, assetData2],
         ]),
       )
     })
@@ -122,8 +122,8 @@ describe('Assets Verification API Client', () => {
 
       expect(verifiedAssets['assets']).toStrictEqual(
         new Map([
-          [assetData1.assetId, assetData1],
-          [assetData2.assetId, assetData2],
+          [assetData1.identifier, assetData1],
+          [assetData2.identifier, assetData2],
         ]),
       )
 
@@ -131,8 +131,8 @@ describe('Assets Verification API Client', () => {
 
       expect(verifiedAssets['assets']).toStrictEqual(
         new Map([
-          [assetData3.assetId, assetData3],
-          [assetData1.assetId, assetData1],
+          [assetData3.identifier, assetData3],
+          [assetData1.identifier, assetData1],
         ]),
       )
     })
@@ -163,8 +163,8 @@ describe('Assets Verification API Client', () => {
 
       expect(verifiedAssets['assets']).toStrictEqual(
         new Map([
-          [assetData1.assetId, assetData1],
-          [assetData2.assetId, assetData2],
+          [assetData1.identifier, assetData1],
+          [assetData2.identifier, assetData2],
         ]),
       )
 
@@ -172,8 +172,8 @@ describe('Assets Verification API Client', () => {
 
       expect(verifiedAssets['assets']).toStrictEqual(
         new Map([
-          [assetData1.assetId, assetData1],
-          [assetData2.assetId, assetData2],
+          [assetData1.identifier, assetData1],
+          [assetData2.identifier, assetData2],
         ]),
       )
     })
@@ -236,8 +236,8 @@ describe('Assets Verification API Client', () => {
 
       expect(verifiedAssets['assets']).toStrictEqual(
         new Map([
-          [assetData1.assetId, assetData1],
-          [assetData2.assetId, assetData2],
+          [assetData1.identifier, assetData1],
+          [assetData2.identifier, assetData2],
         ]),
       )
       expect(readFileSpy).toHaveBeenCalledWith('/some/where')

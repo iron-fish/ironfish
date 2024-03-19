@@ -9,27 +9,30 @@ import { AssetsVerifier } from './assetsVerifier'
 /* eslint-disable jest/no-standalone-expect */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const assetData1 = {
-  assetId: '0123',
+  identifier: '0123',
   name: 'Foo',
   symbol: '$FOO',
   decimals: 4,
   logoURI: 'https://example.com/not_real.png',
+  website: 'https://example.com/foo',
 }
 
 const assetData2 = {
-  assetId: '4567',
+  identifier: '4567',
   name: 'Bar',
   symbol: '$BAR',
   decimals: 4,
   logoURI: 'https://example.com/not_real.png',
+  website: 'https://example.com/bar',
 }
 
 const assetData3 = {
-  assetId: '89ab',
+  identifier: '89ab',
   name: 'Baz',
   symbol: '$BAZ',
   decimals: 4,
   logoURI: 'https://example.com/not_real.png',
+  website: 'https://example.com/baz',
 }
 
 describe('AssetsVerifier', () => {
