@@ -23,22 +23,12 @@ export class TransactionTimer {
   private estimateInMs: number
   private timer: NodeJS.Timer | undefined
 
-  constructor(
-    spendPostTime: number,
-    raw: RawTransaction,
-    logger?: Logger,
-    options: {
-      displayEstimate?: boolean
-    } = {
-      displayEstimate: true,
-    },
-  ) {
+  constructor(spendPostTime: number, raw: RawTransaction, logger?: Logger) {
     this.logger = logger ?? createRootLogger()
     this.estimateInMs = Math.max(Math.ceil(spendPostTime * raw.spends.length), 1000)
-    options.displayEstimate && this.displayEstimate()
   }
 
-  private displayEstimate() {
+  displayEstimate() {
     this.logger.log(
       `Time to send: ${TimeUtils.renderSpan(this.estimateInMs, {
         hideMilliseconds: true,

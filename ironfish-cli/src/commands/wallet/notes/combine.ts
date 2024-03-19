@@ -466,6 +466,7 @@ export class CombineNotesCommand extends IronfishCommand {
     displayTransactionSummary(raw, Asset.nativeId().toString('hex'), amount, from, to, memo)
 
     const transactionTimer = new TransactionTimer(spendPostTime, raw, this.logger)
+    transactionTimer.displayEstimate()
 
     if (!flags.confirm) {
       const confirmed = await CliUx.ux.confirm('Do you confirm (Y/N)?')
