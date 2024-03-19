@@ -16,11 +16,17 @@ export class TransactionTimer {
     this.estimateInMs = Math.max(Math.ceil(spendPostTime * raw.spends.length), 1000)
   }
 
-  getEndTime() {
+  getEndTime(): number {
+    if (!this.endTime) {
+      throw new Error('TransactionTimer not ended')
+    }
     return this.endTime
   }
 
-  getStartTime() {
+  getStartTime(): number {
+    if (!this.startTime) {
+      throw new Error('TransactionTimer not started')
+    }
     return this.startTime
   }
 

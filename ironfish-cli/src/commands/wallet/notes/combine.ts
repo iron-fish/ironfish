@@ -327,13 +327,11 @@ export class CombineNotesCommand extends IronfishCommand {
     const endTime = transactionTimer.getEndTime()
     const startTime = transactionTimer.getStartTime()
 
-    if (endTime && startTime) {
-      this.log(
-        `Sending took ${TimeUtils.renderSpan(endTime - startTime, {
-          hideMilliseconds: true,
-        })}`,
-      )
-    }
+    this.log(
+      `Sending took ${TimeUtils.renderSpan(endTime - startTime, {
+        hideMilliseconds: true,
+      })}`,
+    )
 
     if (response.content.accepted === false) {
       this.warn(
