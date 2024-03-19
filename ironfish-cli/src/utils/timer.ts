@@ -1,28 +1,31 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { createRootLogger, Logger, RawTransaction, TimeUtils } from '@ironfish/sdk'
+import { RawTransaction, TimeUtils } from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
 import { ProgressBar } from '../types'
 
 export class TransactionTimer {
-  private logger: Logger
   private progressBar: ProgressBar | undefined
   private startTime: number | undefined
   private estimateInMs: number
+  private endTime: number | undefined
   private timer: NodeJS.Timer | undefined
 
-  constructor(spendPostTime: number, raw: RawTransaction, logger?: Logger) {
-    this.logger = logger ?? createRootLogger()
+  constructor(spendPostTime: number, raw: RawTransaction) {
     this.estimateInMs = Math.max(Math.ceil(spendPostTime * raw.spends.length), 1000)
   }
 
-  displayEstimate() {
-    this.logger.log(
-      `Time to send: ${TimeUtils.renderSpan(this.estimateInMs, {
-        hideMilliseconds: true,
-      })}`,
-    )
+  getEndTime() {
+    return this.endTime
+  }
+
+  getStartTime() {
+    return this.startTime
+  }
+
+  getEstimateInMs() {
+    return this.estimateInMs
   }
 
   start() {
@@ -59,11 +62,6 @@ export class TransactionTimer {
     clearInterval(this.timer)
     this.progressBar.update(100)
     this.progressBar.stop()
-
-    this.logger.log(
-      `Sending took ${TimeUtils.renderSpan(Date.now() - this.startTime, {
-        hideMilliseconds: true,
-      })}`,
-    )
+    this.endTime = Date.now()
   }
 }

@@ -8,6 +8,7 @@ import {
   RawTransaction,
   RawTransactionSerde,
   RpcClient,
+  TimeUtils,
   Transaction,
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
@@ -297,8 +298,12 @@ export class CombineNotesCommand extends IronfishCommand {
 
     displayTransactionSummary(raw, Asset.nativeId().toString('hex'), amount, from, to, memo)
 
-    const transactionTimer = new TransactionTimer(spendPostTime, raw, this.logger)
-    transactionTimer.displayEstimate()
+    const transactionTimer = new TransactionTimer(spendPostTime, raw)
+    this.log(
+      `Time to send: ${TimeUtils.renderSpan(transactionTimer.getEstimateInMs(), {
+        hideMilliseconds: true,
+      })}`,
+    )
 
     if (!flags.confirm) {
       const confirmed = await CliUx.ux.confirm('Do you confirm (Y/N)?')
@@ -318,6 +323,17 @@ export class CombineNotesCommand extends IronfishCommand {
     const transaction = new Transaction(bytes)
 
     transactionTimer.end()
+
+    const endTime = transactionTimer.getEndTime()
+    const startTime = transactionTimer.getStartTime()
+
+    if (endTime && startTime) {
+      this.log(
+        `Sending took ${TimeUtils.renderSpan(endTime - startTime, {
+          hideMilliseconds: true,
+        })}`,
+      )
+    }
 
     if (response.content.accepted === false) {
       this.warn(
