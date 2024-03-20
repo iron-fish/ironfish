@@ -200,6 +200,7 @@ export class TransactionsCommand extends IronfishCommand {
       const assetName = assetLookup[note.assetId].name
       const sender = note.sender
       const recipient = note.owner
+      const memo = note.memo
 
       const group = this.getRowGroup(index, noteCount, transactionRows.length)
 
@@ -214,6 +215,7 @@ export class TransactionsCommand extends IronfishCommand {
           feePaid,
           sender,
           recipient,
+          memo,
         })
       } else {
         transactionRows.push({
@@ -223,6 +225,7 @@ export class TransactionsCommand extends IronfishCommand {
           amount,
           sender,
           recipient,
+          memo,
         })
       }
     }
@@ -301,6 +304,9 @@ export class TransactionsCommand extends IronfishCommand {
         },
         recipient: {
           header: 'Recipient Address',
+        },
+        memo: {
+          header: 'Memo',
         },
       }
     }
