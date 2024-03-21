@@ -8,6 +8,7 @@ import {
   isValidPublicAddress,
   RawTransaction,
   RawTransactionSerde,
+  TimeUtils,
   Transaction,
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
@@ -17,7 +18,12 @@ import { selectAsset } from '../../utils/asset'
 import { promptCurrency } from '../../utils/currency'
 import { getExplorer } from '../../utils/explorer'
 import { selectFee } from '../../utils/fees'
-import { displayTransactionSummary, watchTransaction } from '../../utils/transaction'
+import { getSpendPostTimeInMs, updateSpendPostTimeInMs } from '../../utils/spendPostTime'
+import {
+  displayTransactionSummary,
+  TransactionTimer,
+  watchTransaction,
+} from '../../utils/transaction'
 
 export class Send extends IronfishCommand {
   static description = `Send coins to another account`
@@ -261,6 +267,18 @@ export class Send extends IronfishCommand {
 
     displayTransactionSummary(raw, assetData, amount, from, to, memo)
 
+    const spendPostTime = getSpendPostTimeInMs(this.sdk)
+
+    const transactionTimer = new TransactionTimer(spendPostTime, raw)
+
+    if (spendPostTime > 0) {
+      this.log(
+        `Time to send: ${TimeUtils.renderSpan(transactionTimer.getEstimateInMs(), {
+          hideMilliseconds: true,
+        })}`,
+      )
+    }
+
     if (!flags.confirm) {
       const confirmed = await CliUx.ux.confirm('Do you confirm (Y/N)?')
       if (!confirmed) {
@@ -268,7 +286,7 @@ export class Send extends IronfishCommand {
       }
     }
 
-    CliUx.ux.action.start('Sending the transaction')
+    transactionTimer.start()
 
     const response = await client.wallet.postTransaction({
       transaction: RawTransactionSerde.serialize(raw).toString('hex'),
@@ -278,7 +296,23 @@ export class Send extends IronfishCommand {
     const bytes = Buffer.from(response.content.transaction, 'hex')
     const transaction = new Transaction(bytes)
 
-    CliUx.ux.action.stop()
+    transactionTimer.end()
+
+    this.log(
+      `Sending took ${TimeUtils.renderSpan(
+        transactionTimer.getEndTime() - transactionTimer.getStartTime(),
+        {
+          hideMilliseconds: true,
+        },
+      )}`,
+    )
+
+    await updateSpendPostTimeInMs(
+      this.sdk,
+      raw,
+      transactionTimer.getStartTime(),
+      transactionTimer.getEndTime(),
+    )
 
     if (response.content.accepted === false) {
       this.warn(
