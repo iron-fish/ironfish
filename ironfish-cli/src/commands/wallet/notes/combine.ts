@@ -465,8 +465,13 @@ export class CombineNotesCommand extends IronfishCommand {
 
     displayTransactionSummary(raw, Asset.nativeId().toString('hex'), amount, from, to, memo)
 
-    const transactionTimer = new TransactionTimer(spendPostTime, raw, this.logger)
-    transactionTimer.displayEstimate()
+    const transactionTimer = new TransactionTimer(spendPostTime, raw)
+
+    this.log(
+      `Time to combine: ${TimeUtils.renderSpan(transactionTimer.getEstimateInMs(), {
+        hideMilliseconds: true,
+      })}`,
+    )
 
     if (!flags.confirm) {
       const confirmed = await CliUx.ux.confirm('Do you confirm (Y/N)?')
@@ -486,6 +491,15 @@ export class CombineNotesCommand extends IronfishCommand {
     const transaction = new Transaction(bytes)
 
     transactionTimer.end()
+
+    this.log(
+      `Combining took ${TimeUtils.renderSpan(
+        transactionTimer.getEndTime() - transactionTimer.getStartTime(),
+        {
+          hideMilliseconds: true,
+        },
+      )}`,
+    )
 
     if (response.content.accepted === false) {
       this.warn(

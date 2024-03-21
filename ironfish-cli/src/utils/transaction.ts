@@ -17,23 +17,32 @@ import { CliUx } from '@oclif/core'
 import { ProgressBar } from '../types'
 
 export class TransactionTimer {
-  private logger: Logger
   private progressBar: ProgressBar | undefined
   private startTime: number | undefined
+  private endTime: number | undefined
   private estimateInMs: number
   private timer: NodeJS.Timer | undefined
 
-  constructor(spendPostTime: number, raw: RawTransaction, logger?: Logger) {
-    this.logger = logger ?? createRootLogger()
+  constructor(spendPostTime: number, raw: RawTransaction) {
     this.estimateInMs = Math.max(Math.ceil(spendPostTime * raw.spends.length), 1000)
   }
 
-  displayEstimate() {
-    this.logger.log(
-      `Time to send: ${TimeUtils.renderSpan(this.estimateInMs, {
-        hideMilliseconds: true,
-      })}`,
-    )
+  getEstimateInMs(): number {
+    return this.estimateInMs
+  }
+
+  getStartTime(): number {
+    if (!this.startTime) {
+      throw new Error('TransactionTimer not started')
+    }
+    return this.startTime
+  }
+
+  getEndTime(): number {
+    if (!this.endTime) {
+      throw new Error('TransactionTimer not ended')
+    }
+    return this.endTime
   }
 
   start() {
@@ -41,7 +50,7 @@ export class TransactionTimer {
       format: '{title}: [{bar}] {percentage}% | {estimate}',
     }) as ProgressBar
 
-    this.startTime = Date.now()
+    this.startTime = performance.now()
 
     this.progressBar.start(100, 0, {
       title: 'Sending the transaction',
@@ -52,7 +61,7 @@ export class TransactionTimer {
       if (!this.progressBar || !this.startTime) {
         return
       }
-      const durationInMs = Date.now() - this.startTime
+      const durationInMs = performance.now() - this.startTime
       const timeRemaining = this.estimateInMs - durationInMs
       const progress = Math.round((durationInMs / this.estimateInMs) * 100)
 
@@ -70,12 +79,7 @@ export class TransactionTimer {
     clearInterval(this.timer)
     this.progressBar.update(100)
     this.progressBar.stop()
-
-    this.logger.log(
-      `Sending took ${TimeUtils.renderSpan(Date.now() - this.startTime, {
-        hideMilliseconds: true,
-      })}`,
-    )
+    this.endTime = performance.now()
   }
 }
 
