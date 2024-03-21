@@ -50,7 +50,7 @@ export class TransactionTimer {
       format: '{title}: [{bar}] {percentage}% | {estimate}',
     }) as ProgressBar
 
-    this.startTime = Date.now()
+    this.startTime = performance.now()
 
     this.progressBar.start(100, 0, {
       title: 'Sending the transaction',
@@ -61,7 +61,7 @@ export class TransactionTimer {
       if (!this.progressBar || !this.startTime) {
         return
       }
-      const durationInMs = Date.now() - this.startTime
+      const durationInMs = performance.now() - this.startTime
       const timeRemaining = this.estimateInMs - durationInMs
       const progress = Math.round((durationInMs / this.estimateInMs) * 100)
 
@@ -79,7 +79,7 @@ export class TransactionTimer {
     clearInterval(this.timer)
     this.progressBar.update(100)
     this.progressBar.stop()
-    this.endTime = Date.now()
+    this.endTime = performance.now()
   }
 }
 
