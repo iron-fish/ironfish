@@ -17,23 +17,32 @@ import { CliUx } from '@oclif/core'
 import { ProgressBar } from '../types'
 
 export class TransactionTimer {
-  private logger: Logger
   private progressBar: ProgressBar | undefined
   private startTime: number | undefined
-  private estimateInMs: number
+  private endTime: number | undefined
+  private estimate: number
   private timer: NodeJS.Timer | undefined
 
-  constructor(spendPostTime: number, raw: RawTransaction, logger?: Logger) {
-    this.logger = logger ?? createRootLogger()
-    this.estimateInMs = Math.max(Math.ceil(spendPostTime * raw.spends.length), 1000)
+  constructor(spendPostTime: number, raw: RawTransaction) {
+    this.estimate = Math.max(Math.ceil(spendPostTime * raw.spends.length), 1000)
   }
 
-  displayEstimate() {
-    this.logger.log(
-      `Time to send: ${TimeUtils.renderSpan(this.estimateInMs, {
-        hideMilliseconds: true,
-      })}`,
-    )
+  getEstimate(): number {
+    return this.estimate
+  }
+
+  getStartTime(): number {
+    if (!this.startTime) {
+      throw new Error('TransactionTimer not started')
+    }
+    return this.startTime
+  }
+
+  getEndTime(): number {
+    if (!this.endTime) {
+      throw new Error('TransactionTimer not ended')
+    }
+    return this.endTime
   }
 
   start() {
@@ -45,7 +54,7 @@ export class TransactionTimer {
 
     this.progressBar.start(100, 0, {
       title: 'Sending the transaction',
-      estimate: TimeUtils.renderSpan(this.estimateInMs, { hideMilliseconds: true }),
+      estimate: TimeUtils.renderSpan(this.estimate, { hideMilliseconds: true }),
     })
 
     this.timer = setInterval(() => {
@@ -53,8 +62,8 @@ export class TransactionTimer {
         return
       }
       const durationInMs = Date.now() - this.startTime
-      const timeRemaining = this.estimateInMs - durationInMs
-      const progress = Math.round((durationInMs / this.estimateInMs) * 100)
+      const timeRemaining = this.estimate - durationInMs
+      const progress = Math.round((durationInMs / this.estimate) * 100)
 
       this.progressBar.update(progress, {
         estimate: TimeUtils.renderSpan(timeRemaining, { hideMilliseconds: true }),
@@ -70,12 +79,7 @@ export class TransactionTimer {
     clearInterval(this.timer)
     this.progressBar.update(100)
     this.progressBar.stop()
-
-    this.logger.log(
-      `Sending took ${TimeUtils.renderSpan(Date.now() - this.startTime, {
-        hideMilliseconds: true,
-      })}`,
-    )
+    this.endTime = Date.now()
   }
 }
 
