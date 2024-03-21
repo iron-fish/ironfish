@@ -303,11 +303,13 @@ export class CombineNotesCommand extends IronfishCommand {
 
     const transactionTimer = new TransactionTimer(spendPostTime, raw)
 
-    this.log(
-      `Time to combine: ${TimeUtils.renderSpan(transactionTimer.getEstimateInMs(), {
-        hideMilliseconds: true,
-      })}`,
-    )
+    if (spendPostTime > 0) {
+      this.log(
+        `Time to combine: ${TimeUtils.renderSpan(transactionTimer.getEstimateInMs(), {
+          hideMilliseconds: true,
+        })}`,
+      )
+    }
 
     if (!flags.confirm) {
       const confirmed = await CliUx.ux.confirm('Do you confirm (Y/N)?')

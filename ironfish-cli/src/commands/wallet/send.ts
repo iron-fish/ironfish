@@ -17,6 +17,8 @@ import { selectAsset } from '../../utils/asset'
 import { promptCurrency } from '../../utils/currency'
 import { getExplorer } from '../../utils/explorer'
 import { selectFee } from '../../utils/fees'
+import { getSpendPostTimeInMs } from '../../utils/spendPostTime'
+import { TransactionTimer } from '../../utils/timer'
 import { displayTransactionSummary, watchTransaction } from '../../utils/transaction'
 
 export class Send extends IronfishCommand {
@@ -102,6 +104,11 @@ export class Send extends IronfishCommand {
       char: 'n',
       description: 'The note hashes to include in the transaction',
       multiple: true,
+    }),
+    benchmark: Flags.boolean({
+      hidden: true,
+      default: false,
+      description: 'Force run the benchmark to measure the time to combine 1 note',
     }),
   }
 
@@ -239,6 +246,12 @@ export class Send extends IronfishCommand {
 
     displayTransactionSummary(raw, assetId, amount, from, to, memo)
 
+    const spendPostTime = await getSpendPostTimeInMs(this.sdk, client, from, flags.benchmark)
+
+    const transactionTimer = new TransactionTimer(spendPostTime, raw)
+
+    transactionTimer.displayEstimate()
+
     if (!flags.confirm) {
       const confirmed = await CliUx.ux.confirm('Do you confirm (Y/N)?')
       if (!confirmed) {
@@ -246,7 +259,7 @@ export class Send extends IronfishCommand {
       }
     }
 
-    CliUx.ux.action.start('Sending the transaction')
+    transactionTimer.start()
 
     const response = await client.wallet.postTransaction({
       transaction: RawTransactionSerde.serialize(raw).toString('hex'),
@@ -256,7 +269,7 @@ export class Send extends IronfishCommand {
     const bytes = Buffer.from(response.content.transaction, 'hex')
     const transaction = new Transaction(bytes)
 
-    CliUx.ux.action.stop()
+    transactionTimer.end()
 
     if (response.content.accepted === false) {
       this.warn(
@@ -268,6 +281,7 @@ export class Send extends IronfishCommand {
       this.warn(`Transaction '${transaction.hash().toString('hex')}' failed to broadcast`)
     }
 
+    this.log()
     this.log(`Sent ${CurrencyUtils.renderIron(amount, true, assetId)} to ${to} from ${from}`)
     this.log(`Hash: ${transaction.hash().toString('hex')}`)
     this.log(`Fee: ${CurrencyUtils.renderIron(transaction.fee(), true)}`)

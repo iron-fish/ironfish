@@ -24,7 +24,11 @@ export class TransactionTimer {
   private timer: NodeJS.Timer | undefined
 
   constructor(spendPostTime: number, raw: RawTransaction) {
-    this.estimateInMs = Math.max(Math.ceil(spendPostTime * raw.spends.length), 1000)
+    // if spendPostTime is 0, there means that there was an issue measuring the spendPostTime
+    // we will not show the progress bar in this case
+
+    this.estimateInMs =
+      spendPostTime > 0 ? Math.max(Math.ceil(spendPostTime * raw.spends.length), 1000) : -1
   }
 
   getEstimateInMs(): number {
@@ -46,6 +50,10 @@ export class TransactionTimer {
   }
 
   start() {
+    if (this.estimateInMs <= 0) {
+      return
+    }
+
     this.progressBar = CliUx.ux.progress({
       format: '{title}: [{bar}] {percentage}% | {estimate}',
     }) as ProgressBar
@@ -72,6 +80,10 @@ export class TransactionTimer {
   }
 
   end() {
+    if (this.estimateInMs <= 0) {
+      return
+    }
+
     if (!this.progressBar || !this.startTime || !this.timer) {
       return
     }

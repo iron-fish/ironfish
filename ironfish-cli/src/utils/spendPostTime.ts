@@ -21,24 +21,29 @@ export async function getSpendPostTimeInMs(
   account: string,
   forceBenchmark: boolean,
 ): Promise<number> {
-  let spendPostTime = sdk.internal.get('spendPostTime')
+  try {
+    let spendPostTime = sdk.internal.get('spendPostTime')
 
-  const spendPostTimeAt = sdk.internal.get('spendPostTimeAt')
+    const spendPostTimeAt = sdk.internal.get('spendPostTimeAt')
 
-  const shouldbenchmark =
-    forceBenchmark ||
-    spendPostTime <= 0 ||
-    Date.now() - spendPostTimeAt > 1000 * 60 * 60 * 24 * 30 // 1 month
+    const shouldbenchmark =
+      forceBenchmark ||
+      spendPostTime <= 0 ||
+      Date.now() - spendPostTimeAt > 1000 * 60 * 60 * 24 * 30 // 1 month
 
-  if (shouldbenchmark) {
-    spendPostTime = await benchmarkSpendPostTime(client, account)
+    if (shouldbenchmark) {
+      spendPostTime = await benchmarkSpendPostTime(client, account)
 
-    sdk.internal.set('spendPostTime', spendPostTime)
-    sdk.internal.set('spendPostTimeAt', Date.now())
-    await sdk.internal.save()
+      sdk.internal.set('spendPostTime', spendPostTime)
+      sdk.internal.set('spendPostTimeAt', Date.now())
+      await sdk.internal.save()
+    }
+
+    return spendPostTime
+  } catch (e) {
+    // if benchmarking fails, return 0. The consumer of this function should not show an estimate
+    return 0
   }
-
-  return spendPostTime
 }
 
 async function benchmarkSpendPostTime(client: RpcClient, account: string): Promise<number> {
@@ -49,6 +54,11 @@ async function benchmarkSpendPostTime(client: RpcClient, account: string): Promi
   ).content.publicKey
 
   const notes = await fetchNotes(client, account, 10)
+
+  // Not enough notes in the account to measure the time to combine a note
+  if (notes.length < 3) {
+    return 0
+  }
 
   CliUx.ux.action.start('Measuring time to combine 1 note')
 
