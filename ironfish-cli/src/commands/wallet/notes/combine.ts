@@ -3,14 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
 import {
-  BenchUtils,
   CreateTransactionRequest,
   CurrencyUtils,
-  EstimateFeeRatesResponse,
   RawTransaction,
   RawTransactionSerde,
   RpcClient,
-  RpcResponseEnded,
   TimeUtils,
   Transaction,
 } from '@ironfish/sdk'
@@ -21,6 +18,7 @@ import { IronFlag, RemoteFlags } from '../../../flags'
 import { getExplorer } from '../../../utils/explorer'
 import { selectFee } from '../../../utils/fees'
 import { fetchNotes } from '../../../utils/note'
+import { getSpendPostTimeInMs } from '../../../utils/spendPostTime'
 import {
   displayTransactionSummary,
   TransactionTimer,
@@ -72,121 +70,6 @@ export class CombineNotesCommand extends IronfishCommand {
       default: false,
       description: 'Force run the benchmark to measure the time to combine 1 note',
     }),
-  }
-
-  private async getSpendPostTimeInMs(
-    client: RpcClient,
-    account: string,
-    forceBenchmark: boolean,
-  ): Promise<number> {
-    let spendPostTime = this.sdk.internal.get('spendPostTime')
-
-    const spendPostTimeAt = this.sdk.internal.get('spendPostTimeAt')
-
-    const shouldbenchmark =
-      forceBenchmark ||
-      spendPostTime <= 0 ||
-      Date.now() - spendPostTimeAt > 1000 * 60 * 60 * 24 * 30 // 1 month
-
-    if (shouldbenchmark) {
-      spendPostTime = await this.benchmarkSpendPostTime(client, account)
-
-      this.sdk.internal.set('spendPostTime', spendPostTime)
-      this.sdk.internal.set('spendPostTimeAt', Date.now())
-      await this.sdk.internal.save()
-    }
-
-    return spendPostTime
-  }
-
-  private async benchmarkSpendPostTime(client: RpcClient, account: string): Promise<number> {
-    const publicKey = (
-      await client.wallet.getAccountPublicKey({
-        account: account,
-      })
-    ).content.publicKey
-
-    const notes = await fetchNotes(client, account, 10)
-
-    CliUx.ux.action.start('Measuring time to combine 1 note')
-
-    const feeRates = await client.wallet.estimateFeeRates()
-
-    /** Transaction 1: selects 1 note */
-
-    const txn1Params: CreateTransactionRequest = {
-      account: account,
-      outputs: [
-        {
-          publicAddress: publicKey,
-          amount: CurrencyUtils.encode(BigInt(notes[0].value)),
-          memo: '',
-        },
-      ],
-      fee: null,
-      feeRate: null,
-      notes: [notes[0].noteHash],
-    }
-
-    /** Transaction 2: selects two notes */
-
-    const txn2Params: CreateTransactionRequest = {
-      account: account,
-      outputs: [
-        {
-          publicAddress: publicKey,
-          amount: CurrencyUtils.encode(BigInt(notes[0].value) + BigInt(notes[1].value)),
-          memo: '',
-        },
-      ],
-      fee: null,
-      feeRate: null,
-      notes: [notes[0].noteHash, notes[1].noteHash],
-    }
-
-    const promisesTxn1 = []
-    const promisesTxn2 = []
-
-    for (let i = 0; i < 3; i++) {
-      promisesTxn1.push(this.measureTransactionPostTime(client, txn1Params, feeRates))
-      promisesTxn2.push(this.measureTransactionPostTime(client, txn2Params, feeRates))
-    }
-
-    const resultTxn1 = await Promise.all(promisesTxn1)
-    const resultTxn2 = await Promise.all(promisesTxn2)
-
-    const delta = Math.ceil(
-      (resultTxn2.reduce((acc, curr) => acc + curr, 0) -
-        resultTxn1.reduce((acc, curr) => acc + curr, 0)) /
-        3,
-    )
-
-    CliUx.ux.action.stop(TimeUtils.renderSpan(delta))
-
-    return delta
-  }
-
-  private async measureTransactionPostTime(
-    client: RpcClient,
-    params: CreateTransactionRequest,
-    feeRates: RpcResponseEnded<EstimateFeeRatesResponse>,
-  ) {
-    const response = await client.wallet.createTransaction({
-      ...params,
-      feeRate: feeRates.content.fast,
-    })
-
-    const bytes = Buffer.from(response.content.transaction, 'hex')
-    const raw = RawTransactionSerde.deserialize(bytes)
-
-    const start = BenchUtils.start()
-
-    await client.wallet.postTransaction({
-      transaction: RawTransactionSerde.serialize(raw).toString('hex'),
-      broadcast: false,
-    })
-
-    return BenchUtils.end(start)
   }
 
   private async selectNotesToCombine(spendPostTimeMs: number): Promise<number> {
@@ -349,7 +232,7 @@ export class CombineNotesCommand extends IronfishCommand {
 
     await this.ensureUserHasEnoughNotesToCombine(client, from)
 
-    const spendPostTime = await this.getSpendPostTimeInMs(client, from, flags.benchmark)
+    const spendPostTime = await getSpendPostTimeInMs(this.sdk, client, from, flags.benchmark)
 
     let numberOfNotes = flags.notes
 

@@ -13,7 +13,7 @@ import {
   TimeUtils,
 } from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
-import { CombineNotesCommand } from '../commands/wallet/notes/combine'
+import { fetchNotes } from './note'
 
 export async function getSpendPostTimeInMs(
   sdk: IronfishSdk,
@@ -48,7 +48,7 @@ async function benchmarkSpendPostTime(client: RpcClient, account: string): Promi
     })
   ).content.publicKey
 
-  const notes = await CombineNotesCommand.fetchNotes(client, account, 10)
+  const notes = await fetchNotes(client, account, 10)
 
   CliUx.ux.action.start('Measuring time to combine 1 note')
 
