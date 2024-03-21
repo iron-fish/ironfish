@@ -20,15 +20,15 @@ export class TransactionTimer {
   private progressBar: ProgressBar | undefined
   private startTime: number | undefined
   private endTime: number | undefined
-  private estimate: number
+  private estimateInMs: number
   private timer: NodeJS.Timer | undefined
 
   constructor(spendPostTime: number, raw: RawTransaction) {
-    this.estimate = Math.max(Math.ceil(spendPostTime * raw.spends.length), 1000)
+    this.estimateInMs = Math.max(Math.ceil(spendPostTime * raw.spends.length), 1000)
   }
 
-  getEstimate(): number {
-    return this.estimate
+  getEstimateInMs(): number {
+    return this.estimateInMs
   }
 
   getStartTime(): number {
@@ -54,7 +54,7 @@ export class TransactionTimer {
 
     this.progressBar.start(100, 0, {
       title: 'Sending the transaction',
-      estimate: TimeUtils.renderSpan(this.estimate, { hideMilliseconds: true }),
+      estimate: TimeUtils.renderSpan(this.estimateInMs, { hideMilliseconds: true }),
     })
 
     this.timer = setInterval(() => {
@@ -62,8 +62,8 @@ export class TransactionTimer {
         return
       }
       const durationInMs = Date.now() - this.startTime
-      const timeRemaining = this.estimate - durationInMs
-      const progress = Math.round((durationInMs / this.estimate) * 100)
+      const timeRemaining = this.estimateInMs - durationInMs
+      const progress = Math.round((durationInMs / this.estimateInMs) * 100)
 
       this.progressBar.update(progress, {
         estimate: TimeUtils.renderSpan(timeRemaining, { hideMilliseconds: true }),

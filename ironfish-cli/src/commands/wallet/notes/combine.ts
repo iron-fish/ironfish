@@ -468,7 +468,7 @@ export class CombineNotesCommand extends IronfishCommand {
     const transactionTimer = new TransactionTimer(spendPostTime, raw)
 
     this.log(
-      `Time to combine: ${TimeUtils.renderSpan(transactionTimer.getEstimate(), {
+      `Time to combine: ${TimeUtils.renderSpan(transactionTimer.getEstimateInMs(), {
         hideMilliseconds: true,
       })}`,
     )
