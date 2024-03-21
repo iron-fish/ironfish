@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
 import {
-  Assert,
   BenchUtils,
   CreateTransactionRequest,
   CurrencyUtils,
@@ -21,6 +20,7 @@ import { IronfishCommand } from '../../../command'
 import { IronFlag, RemoteFlags } from '../../../flags'
 import { getExplorer } from '../../../utils/explorer'
 import { selectFee } from '../../../utils/fees'
+import { fetchNotes } from '../../../utils/note'
 import {
   displayTransactionSummary,
   TransactionTimer,
@@ -106,7 +106,7 @@ export class CombineNotesCommand extends IronfishCommand {
       })
     ).content.publicKey
 
-    const notes = await this.fetchNotes(client, account, 10)
+    const notes = await fetchNotes(client, account, 10)
 
     CliUx.ux.action.start('Measuring time to combine 1 note')
 
@@ -187,36 +187,6 @@ export class CombineNotesCommand extends IronfishCommand {
     })
 
     return BenchUtils.end(start)
-  }
-
-  private async fetchNotes(client: RpcClient, account: string, notesToCombine: number) {
-    const noteSize = await this.getNoteTreeSize(client)
-
-    const getNotesResponse = await client.wallet.getNotes({
-      account,
-      pageSize: notesToCombine,
-      filter: {
-        assetId: Asset.nativeId().toString('hex'),
-        spent: false,
-      },
-    })
-
-    // filtering notes by noteSize and sorting them by value in ascending order
-    const notes = getNotesResponse.content.notes
-      .filter((note) => {
-        if (!note.index) {
-          return false
-        }
-        return note.index < noteSize
-      })
-      .sort((a, b) => {
-        if (a.value < b.value) {
-          return -1
-        }
-        return 1
-      })
-
-    return notes
   }
 
   private async selectNotesToCombine(spendPostTimeMs: number): Promise<number> {
@@ -342,23 +312,6 @@ export class CombineNotesCommand extends IronfishCommand {
     return expiration
   }
 
-  private async getNoteTreeSize(client: RpcClient) {
-    const getCurrentBlock = await client.chain.getChainInfo()
-
-    const currentBlockSequence = parseInt(getCurrentBlock.content.currentBlockIdentifier.index)
-
-    const getBlockResponse = await client.chain.getBlock({
-      sequence: currentBlockSequence,
-    })
-
-    Assert.isNotNull(getBlockResponse.content.block.noteSize)
-
-    const config = await client.config.getConfig()
-
-    // Adding a buffer to avoid a mismatch between confirmations used to load notes and confirmations used when creating witnesses to spend them
-    return getBlockResponse.content.block.noteSize - (config.content.confirmations || 2)
-  }
-
   private async getCurrentBlockSequence(client: RpcClient) {
     const getCurrentBlock = await client.chain.getChainInfo()
     const currentBlockSequence = parseInt(getCurrentBlock.content.currentBlockIdentifier.index)
@@ -404,7 +357,7 @@ export class CombineNotesCommand extends IronfishCommand {
       numberOfNotes = await this.selectNotesToCombine(spendPostTime)
     }
 
-    let notes = await this.fetchNotes(client, from, numberOfNotes)
+    let notes = await fetchNotes(client, from, numberOfNotes)
 
     // If the user doesn't have enough notes for their selection, we reduce the number of notes so that
     // the largest note can be used for fees.
@@ -537,7 +490,7 @@ export class CombineNotesCommand extends IronfishCommand {
   }
 
   private async ensureUserHasEnoughNotesToCombine(client: RpcClient, from: string) {
-    const notes = await this.fetchNotes(client, from, 10)
+    const notes = await fetchNotes(client, from, 10)
 
     if (notes.length < 3) {
       this.log(`Your notes are already combined. You currently have ${notes.length} notes.`)
