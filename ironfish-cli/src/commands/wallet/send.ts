@@ -8,6 +8,7 @@ import {
   isValidPublicAddress,
   RawTransaction,
   RawTransactionSerde,
+  TimeUtils,
   Transaction,
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
@@ -18,8 +19,11 @@ import { promptCurrency } from '../../utils/currency'
 import { getExplorer } from '../../utils/explorer'
 import { selectFee } from '../../utils/fees'
 import { getSpendPostTimeInMs } from '../../utils/spendPostTime'
-import { TransactionTimer } from '../../utils/timer'
-import { displayTransactionSummary, watchTransaction } from '../../utils/transaction'
+import {
+  displayTransactionSummary,
+  TransactionTimer,
+  watchTransaction,
+} from '../../utils/transaction'
 
 export class Send extends IronfishCommand {
   static description = `Send coins to another account`
@@ -250,7 +254,13 @@ export class Send extends IronfishCommand {
 
     const transactionTimer = new TransactionTimer(spendPostTime, raw)
 
-    transactionTimer.displayEstimate()
+    if (spendPostTime > 0) {
+      this.log(
+        `Time to send: ${TimeUtils.renderSpan(transactionTimer.getEstimateInMs(), {
+          hideMilliseconds: true,
+        })}`,
+      )
+    }
 
     if (!flags.confirm) {
       const confirmed = await CliUx.ux.confirm('Do you confirm (Y/N)?')
@@ -270,6 +280,15 @@ export class Send extends IronfishCommand {
     const transaction = new Transaction(bytes)
 
     transactionTimer.end()
+
+    this.log(
+      `Sending took ${TimeUtils.renderSpan(
+        transactionTimer.getEndTime() - transactionTimer.getStartTime(),
+        {
+          hideMilliseconds: true,
+        },
+      )}`,
+    )
 
     if (response.content.accepted === false) {
       this.warn(
