@@ -9,9 +9,9 @@ type AssetData = {
   identifier: string
   name: string
   symbol: string
-  decimals: number
-  logoURI: string
-  website: string
+  decimals?: number
+  logoURI?: string
+  website?: string
 }
 
 type GetAssetDataResponse = {

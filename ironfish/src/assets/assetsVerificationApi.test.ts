@@ -11,6 +11,7 @@ const assetData1 = {
   symbol: '$FOO',
   decimals: 4,
   logoURI: 'https://example.com/not_real.png',
+  website: 'https://example.com',
 }
 
 const assetData2 = {
@@ -18,15 +19,12 @@ const assetData2 = {
   name: 'Bar',
   symbol: '$BAR',
   decimals: 4,
-  logoURI: 'https://example.com/not_real.png',
 }
 
 const assetData3 = {
   identifier: 'abcd',
   name: 'Baz',
   symbol: '$BAZ',
-  decimals: 4,
-  logoURI: 'https://example.com/not_real.png',
 }
 
 describe('Assets Verification API Client', () => {
