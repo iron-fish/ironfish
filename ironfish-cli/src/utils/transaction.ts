@@ -50,15 +50,16 @@ export class TransactionTimer {
   }
 
   start() {
+    this.startTime = Date.now()
+
     if (this.estimateInMs <= 0) {
+      CliUx.ux.action.start('Sending the transaction')
       return
     }
 
     this.progressBar = CliUx.ux.progress({
       format: '{title}: [{bar}] {percentage}% | {estimate}',
     }) as ProgressBar
-
-    this.startTime = performance.now()
 
     this.progressBar.start(100, 0, {
       title: 'Sending the transaction',
@@ -69,7 +70,7 @@ export class TransactionTimer {
       if (!this.progressBar || !this.startTime) {
         return
       }
-      const durationInMs = performance.now() - this.startTime
+      const durationInMs = Date.now() - this.startTime
       const timeRemaining = this.estimateInMs - durationInMs
       const progress = Math.round((durationInMs / this.estimateInMs) * 100)
 
@@ -80,18 +81,23 @@ export class TransactionTimer {
   }
 
   end() {
-    if (this.estimateInMs <= 0) {
+    if (!this.startTime) {
+      // transaction timer has not been started
       return
     }
 
-    if (!this.progressBar || !this.startTime || !this.timer) {
+    this.endTime = Date.now()
+
+    if (!this.progressBar || !this.timer || this.estimateInMs <= 0) {
+      CliUx.ux.action.stop()
       return
     }
 
     clearInterval(this.timer)
-    this.progressBar.update(100)
+    this.progressBar.update(100, {
+      estimate: 'done',
+    })
     this.progressBar.stop()
-    this.endTime = performance.now()
   }
 }
 

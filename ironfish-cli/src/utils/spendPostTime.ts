@@ -7,6 +7,7 @@ import {
   CurrencyUtils,
   EstimateFeeRatesResponse,
   IronfishSdk,
+  RawTransaction,
   RawTransactionSerde,
   RpcClient,
   RpcResponseEnded,
@@ -15,38 +16,31 @@ import {
 import { CliUx } from '@oclif/core'
 import { fetchNotes } from './note'
 
-export async function getSpendPostTimeInMs(
+export async function updateSpendPostTimeInMs(
   sdk: IronfishSdk,
-  client: RpcClient,
-  account: string,
-  forceBenchmark: boolean,
-): Promise<number> {
-  try {
-    let spendPostTime = sdk.internal.get('spendPostTime')
-
-    const spendPostTimeAt = sdk.internal.get('spendPostTimeAt')
-
-    const shouldbenchmark =
-      forceBenchmark ||
-      spendPostTime <= 0 ||
-      Date.now() - spendPostTimeAt > 1000 * 60 * 60 * 24 * 30 // 1 month
-
-    if (shouldbenchmark) {
-      spendPostTime = await benchmarkSpendPostTime(client, account)
-
-      sdk.internal.set('spendPostTime', spendPostTime)
-      sdk.internal.set('spendPostTimeAt', Date.now())
-      await sdk.internal.save()
-    }
-
-    return spendPostTime
-  } catch (e) {
-    // if benchmarking fails, return 0. The consumer of this function should not show an estimate
-    return 0
+  raw: RawTransaction,
+  startTime: number,
+  endTime: number,
+) {
+  const totalTime = endTime - startTime
+  const transactionSpendPostTime = Math.ceil(totalTime / raw.spends.length)
+  let spendPostTime = sdk.internal.get('spendPostTime')
+  if (transactionSpendPostTime > spendPostTime) {
+    spendPostTime = transactionSpendPostTime
+    sdk.internal.set('spendPostTime', spendPostTime)
+    sdk.internal.set('spendPostTimeAt', Date.now())
+    await sdk.internal.save()
   }
 }
 
-async function benchmarkSpendPostTime(client: RpcClient, account: string): Promise<number> {
+export function getSpendPostTimeInMs(sdk: IronfishSdk): number {
+  return sdk.internal.get('spendPostTime')
+}
+
+export async function benchmarkSpendPostTime(
+  client: RpcClient,
+  account: string,
+): Promise<number> {
   const publicKey = (
     await client.wallet.getAccountPublicKey({
       account: account,

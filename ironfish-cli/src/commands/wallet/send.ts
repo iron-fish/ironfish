@@ -18,7 +18,7 @@ import { selectAsset } from '../../utils/asset'
 import { promptCurrency } from '../../utils/currency'
 import { getExplorer } from '../../utils/explorer'
 import { selectFee } from '../../utils/fees'
-import { getSpendPostTimeInMs } from '../../utils/spendPostTime'
+import { getSpendPostTimeInMs, updateSpendPostTimeInMs } from '../../utils/spendPostTime'
 import {
   displayTransactionSummary,
   TransactionTimer,
@@ -108,11 +108,6 @@ export class Send extends IronfishCommand {
       char: 'n',
       description: 'The note hashes to include in the transaction',
       multiple: true,
-    }),
-    benchmark: Flags.boolean({
-      hidden: true,
-      default: false,
-      description: 'Force run the benchmark to measure the time to combine 1 note',
     }),
   }
 
@@ -250,7 +245,7 @@ export class Send extends IronfishCommand {
 
     displayTransactionSummary(raw, assetId, amount, from, to, memo)
 
-    const spendPostTime = await getSpendPostTimeInMs(this.sdk, client, from, flags.benchmark)
+    const spendPostTime = getSpendPostTimeInMs(this.sdk)
 
     const transactionTimer = new TransactionTimer(spendPostTime, raw)
 
@@ -288,6 +283,13 @@ export class Send extends IronfishCommand {
           hideMilliseconds: true,
         },
       )}`,
+    )
+
+    await updateSpendPostTimeInMs(
+      this.sdk,
+      raw,
+      transactionTimer.getStartTime(),
+      transactionTimer.getEndTime(),
     )
 
     if (response.content.accepted === false) {
