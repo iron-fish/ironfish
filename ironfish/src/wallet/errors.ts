@@ -7,16 +7,19 @@ import { CurrencyUtils } from '../utils'
 
 export class NotEnoughFundsError extends Error {
   name = this.constructor.name
+  assetId: string
+  amount: bigint
+  amountNeeded: bigint
 
   constructor(assetId: Buffer, amount: bigint, amountNeeded: bigint) {
     super()
-    this.message = `Insufficient funds: Needed ${CurrencyUtils.renderIron(
-      amountNeeded,
-      true,
-      assetId.toString('hex'),
-    )} but have ${CurrencyUtils.renderIron(
-      amount,
-    )} available to spend. Please fund your account and/or wait for any pending transactions to be confirmed.'`
+    this.assetId = assetId.toString('hex')
+    this.amount = amount
+    this.amountNeeded = amountNeeded
+
+    const renderedAmountNeeded = CurrencyUtils.render(amountNeeded, true, { id: this.assetId })
+    const renderedAmount = CurrencyUtils.render(amount)
+    this.message = `Insufficient funds: Needed ${renderedAmountNeeded} but have ${renderedAmount} available to spend. Please fund your account and/or wait for any pending transactions to be confirmed.'`
   }
 }
 

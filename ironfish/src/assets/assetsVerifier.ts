@@ -7,7 +7,7 @@ import { createRootLogger, Logger } from '../logger'
 import { ErrorUtils } from '../utils'
 import { SetIntervalToken } from '../utils'
 import { Retry } from '../utils'
-import { AssetsVerificationApi, VerifiedAssets } from './assetsVerificationApi'
+import { AssetData, AssetsVerificationApi, VerifiedAssets } from './assetsVerificationApi'
 
 export type AssetVerification = {
   status: 'verified' | 'unverified' | 'unknown'
@@ -113,5 +113,9 @@ export class AssetsVerifier {
     } else {
       return { status: 'unverified' }
     }
+  }
+
+  getAssetData(assetId: Buffer | string): AssetData | undefined {
+    return this.verifiedAssets?.getAssetData(assetId)
   }
 }

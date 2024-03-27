@@ -116,13 +116,10 @@ export class PostCommand extends IronfishCommand {
       spending += output.note.value()
     }
 
+    const renderedSpending = CurrencyUtils.render(spending, true)
+    const renderedFee = CurrencyUtils.render(raw.fee, true)
     this.log(
-      `You are about to post a transaction that sends ${CurrencyUtils.renderIron(
-        spending,
-        true,
-      )}, with ${raw.mints.length} mints and ${
-        raw.burns.length
-      } burns with a fee ${CurrencyUtils.renderIron(raw.fee, true)} using account ${account}`,
+      `You are about to post a transaction that sends ${renderedSpending}, with ${raw.mints.length} mints and ${raw.burns.length} burns with a fee ${renderedFee} using account ${account}`,
     )
 
     return CliUx.ux.confirm('Do you want to post this (Y/N)?')

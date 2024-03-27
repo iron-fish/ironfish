@@ -79,6 +79,10 @@ export type RpcAsset = {
   metadata: string
   createdTransactionHash: string
   verification: AssetVerification
+  symbol?: string
+  decimals?: number
+  logoURI?: string
+  website?: string
   supply?: string
   /**
    * @deprecated query for the transaction to find it's status

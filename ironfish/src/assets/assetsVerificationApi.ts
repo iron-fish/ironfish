@@ -5,7 +5,7 @@ import axios, { AxiosAdapter, AxiosError, AxiosRequestConfig, AxiosResponse } fr
 import url, { URL } from 'url'
 import { FileSystem } from '../fileSystems'
 
-type AssetData = {
+export type AssetData = {
   identifier: string
   symbol: string
   decimals?: number
@@ -51,6 +51,13 @@ export class VerifiedAssets {
       assetId = assetId.toString('hex')
     }
     return this.assets.has(assetId)
+  }
+
+  getAssetData(assetId: Buffer | string): AssetData | undefined {
+    if (!(typeof assetId === 'string')) {
+      assetId = assetId.toString('hex')
+    }
+    return this.assets.get(assetId)
   }
 }
 
