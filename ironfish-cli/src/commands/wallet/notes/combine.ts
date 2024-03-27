@@ -18,7 +18,11 @@ import { IronFlag, RemoteFlags } from '../../../flags'
 import { getExplorer } from '../../../utils/explorer'
 import { selectFee } from '../../../utils/fees'
 import { fetchNotes } from '../../../utils/note'
-import { getSpendPostTimeInMs } from '../../../utils/spendPostTime'
+import {
+  benchmarkSpendPostTime,
+  getSpendPostTimeInMs,
+  updateSpendPostTimeInMs,
+} from '../../../utils/spendPostTime'
 import {
   displayTransactionSummary,
   TransactionTimer,
@@ -232,7 +236,11 @@ export class CombineNotesCommand extends IronfishCommand {
 
     await this.ensureUserHasEnoughNotesToCombine(client, from)
 
-    const spendPostTime = await getSpendPostTimeInMs(this.sdk, client, from, flags.benchmark)
+    let spendPostTime = getSpendPostTimeInMs(this.sdk)
+
+    if (spendPostTime === 0 || flags.benchmark) {
+      spendPostTime = await benchmarkSpendPostTime(client, from)
+    }
 
     let numberOfNotes = flags.notes
 
@@ -303,11 +311,13 @@ export class CombineNotesCommand extends IronfishCommand {
 
     const transactionTimer = new TransactionTimer(spendPostTime, raw)
 
-    this.log(
-      `Time to combine: ${TimeUtils.renderSpan(transactionTimer.getEstimateInMs(), {
-        hideMilliseconds: true,
-      })}`,
-    )
+    if (spendPostTime > 0) {
+      this.log(
+        `Time to combine: ${TimeUtils.renderSpan(transactionTimer.getEstimateInMs(), {
+          hideMilliseconds: true,
+        })}`,
+      )
+    }
 
     if (!flags.confirm) {
       const confirmed = await CliUx.ux.confirm('Do you confirm (Y/N)?')
@@ -327,6 +337,13 @@ export class CombineNotesCommand extends IronfishCommand {
     const transaction = new Transaction(bytes)
 
     transactionTimer.end()
+
+    await updateSpendPostTimeInMs(
+      this.sdk,
+      raw,
+      transactionTimer.getStartTime(),
+      transactionTimer.getEndTime(),
+    )
 
     this.log(
       `Combining took ${TimeUtils.renderSpan(
