@@ -50,6 +50,7 @@ routes.register<typeof GetAccountNotesStreamRequestSchema, GetAccountNotesStream
           assetId: note.assetId().toString('hex'),
           assetName: asset?.name.toString('hex') || '',
           memo: BufferUtils.toHuman(note.memo()),
+          memoHex: note.memo().toString('hex'),
           sender: note.sender(),
           owner: note.owner(),
           noteHash: note.hash().toString('hex'),
