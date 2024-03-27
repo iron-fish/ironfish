@@ -462,7 +462,7 @@ export class Config<
       targetPeers: DEFAULT_TARGET_PEERS,
       keepOpenPeerSlot: DEFAULT_KEEP_OPEN_PEER_SLOT,
       telemetryApi: '',
-      assetVerificationApi: '',
+      assetVerificationApi: 'file:///Users/mat/projects/ironfish/verifiedassets.json',
       generateNewIdentity: false,
       blocksPerMessage: 25,
       minerBatchSize: 50,

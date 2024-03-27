@@ -73,7 +73,9 @@ routes.register<typeof GetAssetRequestSchema, GetAssetResponse>(
       throw new RpcNotFoundError(`No asset found with identifier ${request.data.id}`)
     }
 
-    request.end({
+    const verification = node.assetsVerifier.verify(asset.id)
+
+    const payload: RpcAsset = {
       createdTransactionHash: asset.createdTransactionHash.toString('hex'),
       id: asset.id.toString('hex'),
       metadata: asset.metadata.toString('hex'),
@@ -83,7 +85,21 @@ routes.register<typeof GetAssetRequestSchema, GetAssetResponse>(
       owner: asset.owner.toString('hex'),
       supply: CurrencyUtils.encode(asset.supply),
       status: await getAssetStatus(node, asset),
-      verification: node.assetsVerifier.verify(asset.id),
-    })
+      verification,
+    }
+
+    // TODO(mat): Make sure this logic is added for all occurrences of RpcAsset, or
+    // at least the ones that make sense. Encapsulate in helper function?
+    if (verification.status === 'verified') {
+      const additionalFields = node.assetsVerifier.getAssetData(asset.id)
+      if (additionalFields !== undefined) {
+        payload.symbol = additionalFields.symbol
+        payload.decimals = additionalFields.decimals
+        payload.logoURI = additionalFields.logoURI
+        payload.website = additionalFields.website
+      }
+    }
+
+    request.end(payload)
   },
 )

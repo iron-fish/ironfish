@@ -140,6 +140,14 @@ export class Send extends IronfishCommand {
       }
     }
 
+    const assetData = (
+      await client.wallet.getAsset({
+        account: from,
+        id: assetId,
+        confirmations: flags.confirmations,
+      })
+    ).content
+
     if (amount == null) {
       amount = await promptCurrency({
         client: client,
@@ -150,7 +158,7 @@ export class Send extends IronfishCommand {
         balance: {
           account: from,
           confirmations: flags.confirmations,
-          assetId,
+          asset: assetData,
         },
       })
     }
@@ -237,7 +245,7 @@ export class Send extends IronfishCommand {
       this.exit(0)
     }
 
-    displayTransactionSummary(raw, assetId, amount, from, to, memo)
+    displayTransactionSummary(raw, assetData, amount, from, to, memo)
 
     if (!flags.confirm) {
       const confirmed = await CliUx.ux.confirm('Do you confirm (Y/N)?')
@@ -268,9 +276,11 @@ export class Send extends IronfishCommand {
       this.warn(`Transaction '${transaction.hash().toString('hex')}' failed to broadcast`)
     }
 
-    this.log(`Sent ${CurrencyUtils.renderIron(amount, true, assetId)} to ${to} from ${from}`)
+    const renderedAmount = CurrencyUtils.render(amount, true, assetData)
+    const renderedFee = CurrencyUtils.render(transaction.fee(), true)
+    this.log(`Sent ${renderedAmount} to ${to} from ${from}`)
     this.log(`Hash: ${transaction.hash().toString('hex')}`)
-    this.log(`Fee: ${CurrencyUtils.renderIron(transaction.fee(), true)}`)
+    this.log(`Fee: ${renderedFee}`)
     this.log(`Memo: ${memo}`)
 
     const networkId = (await client.chain.getNetworkInfo()).content.networkId

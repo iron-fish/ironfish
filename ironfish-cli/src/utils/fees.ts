@@ -72,6 +72,14 @@ export async function selectFee(options: {
     },
   ])
 
+  const assetData = (
+    await options.client.wallet.getAsset({
+      id: Asset.nativeId().toString('hex'),
+      account: options.account,
+      confirmations: options.confirmations,
+    })
+  ).content
+
   if (result.selection == null) {
     const fee = await promptCurrency({
       client: options.client,
@@ -81,7 +89,7 @@ export async function selectFee(options: {
       balance: {
         account: options.account,
         confirmations: options.confirmations,
-        assetId: Asset.nativeId().toString('hex'),
+        asset: assetData,
       },
     })
 
@@ -137,7 +145,7 @@ function getChoiceFromTx(
   value: RawTransaction | null
 } {
   return {
-    name: `${name} ${transaction ? CurrencyUtils.renderIron(transaction.fee) : ''}`,
+    name: `${name} ${transaction ? CurrencyUtils.render(transaction.fee) : ''}`,
     disabled: transaction ? false : 'Not enough $IRON',
     value: transaction,
   }

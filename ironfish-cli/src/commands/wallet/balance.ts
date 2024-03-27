@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { CurrencyUtils, GetBalanceResponse, isNativeIdentifier } from '@ironfish/sdk'
+import { CurrencyUtils, GetBalanceResponse, isNativeIdentifier, RpcAsset } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -63,6 +63,7 @@ export class BalanceCommand extends IronfishCommand {
     ).content
 
     const assetId = response.content.assetId
+    // TODO(mat): We need to include this to override the symbol or whatever
     const assetName = renderAssetName(isNativeIdentifier(assetId) ? '$IRON' : assetId, {
       verification: asset.verification,
       verbose: !!flags.verbose,
@@ -70,7 +71,7 @@ export class BalanceCommand extends IronfishCommand {
     })
 
     if (flags.explain) {
-      this.explainBalance(response.content, assetName)
+      this.explainBalance(response.content, asset)
       return
     }
 
@@ -78,36 +79,22 @@ export class BalanceCommand extends IronfishCommand {
       this.log(`Account: ${response.content.account}`)
       this.log(`Head Hash: ${response.content.blockHash || 'NULL'}`)
       this.log(`Head Sequence: ${response.content.sequence || 'NULL'}`)
+      this.log(`Available:   ${CurrencyUtils.render(response.content.available, true, asset)}`)
+      this.log(`Confirmed:   ${CurrencyUtils.render(response.content.confirmed, true, asset)}`)
       this.log(
-        `Available:   ${CurrencyUtils.renderIron(response.content.available, true, assetName)}`,
+        `Unconfirmed: ${CurrencyUtils.render(response.content.unconfirmed, true, asset)}`,
       )
-      this.log(
-        `Confirmed:   ${CurrencyUtils.renderIron(response.content.confirmed, true, assetName)}`,
-      )
-      this.log(
-        `Unconfirmed: ${CurrencyUtils.renderIron(
-          response.content.unconfirmed,
-          true,
-          assetName,
-        )}`,
-      )
-      this.log(
-        `Pending:     ${CurrencyUtils.renderIron(response.content.pending, true, assetName)}`,
-      )
+      this.log(`Pending:     ${CurrencyUtils.render(response.content.pending, true, asset)}`)
       return
     }
 
     this.log(`Account: ${response.content.account}`)
     this.log(
-      `Available Balance: ${CurrencyUtils.renderIron(
-        response.content.available,
-        true,
-        assetName,
-      )}`,
+      `Available Balance: ${CurrencyUtils.render(response.content.available, true, asset)}`,
     )
   }
 
-  explainBalance(response: GetBalanceResponse, assetId: string): void {
+  explainBalance(response: GetBalanceResponse, asset: RpcAsset): void {
     const unconfirmed = CurrencyUtils.decode(response.unconfirmed)
     const confirmed = CurrencyUtils.decode(response.confirmed)
     const pending = CurrencyUtils.decode(response.pending)
@@ -115,6 +102,13 @@ export class BalanceCommand extends IronfishCommand {
 
     const unconfirmedDelta = unconfirmed - confirmed
     const pendingDelta = pending - unconfirmed
+
+    const renderedUnconfirmed = CurrencyUtils.render(unconfirmed, true, asset)
+    const renderedUnconfirmedDelta = CurrencyUtils.render(unconfirmedDelta, true, asset)
+    const renderedConfirmed = CurrencyUtils.render(confirmed, true, asset)
+    const renderedPending = CurrencyUtils.render(pending, true, asset)
+    const renderedPendingDelta = CurrencyUtils.render(pendingDelta, true, asset)
+    const renderedAvailable = CurrencyUtils.render(available, true, asset)
 
     this.log(`Account: ${response.account}`)
 
@@ -126,26 +120,22 @@ export class BalanceCommand extends IronfishCommand {
     this.log('')
 
     this.log(`Your available balance is made of notes on the chain that are safe to spend`)
-    this.log(`Available: ${CurrencyUtils.renderIron(available, true, assetId)}`)
+    this.log(`Available: ${renderedAvailable}`)
     this.log('')
 
     this.log('Your confirmed balance includes all notes from transactions on the chain')
-    this.log(`Confirmed: ${CurrencyUtils.renderIron(confirmed, true, assetId)}`)
+    this.log(`Confirmed: ${renderedConfirmed}`)
     this.log('')
 
     this.log(
-      `${response.unconfirmedCount} transactions worth ${CurrencyUtils.renderIron(
-        unconfirmedDelta,
-      )} are on the chain within ${response.confirmations} blocks of the head`,
+      `${response.unconfirmedCount} transactions worth ${renderedUnconfirmedDelta} are on the chain within ${response.confirmations} blocks of the head`,
     )
-    this.log(`Unconfirmed: ${CurrencyUtils.renderIron(unconfirmed, true, assetId)}`)
+    this.log(`Unconfirmed: ${renderedUnconfirmed}`)
     this.log('')
 
     this.log(
-      `${response.pendingCount} transactions worth ${CurrencyUtils.renderIron(
-        pendingDelta,
-      )} are pending and have not been added to the chain`,
+      `${response.pendingCount} transactions worth ${renderedPendingDelta} are pending and have not been added to the chain`,
     )
-    this.log(`Pending: ${CurrencyUtils.renderIron(pending, true, assetId)}`)
+    this.log(`Pending: ${renderedPending}`)
   }
 }

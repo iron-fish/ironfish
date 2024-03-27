@@ -90,7 +90,7 @@ export class MultisigSign extends IronfishCommand {
 
     this.log(`Transaction: ${response.content.transaction}`)
     this.log(`Hash: ${transaction.hash().toString('hex')}`)
-    this.log(`Fee: ${CurrencyUtils.renderIron(transaction.fee(), true)}`)
+    this.log(`Fee: ${CurrencyUtils.render(transaction.fee(), true)}`)
 
     if (flags.watch) {
       this.log('')

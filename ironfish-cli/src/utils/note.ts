@@ -7,6 +7,7 @@ import { Assert, RpcClient } from '@ironfish/sdk'
 export async function fetchNotes(client: RpcClient, account: string, notesToCombine: number) {
   const noteSize = await getNoteTreeSize(client)
 
+  // TODO(mat): We need to add asset support here for bridges, etc.
   const getNotesResponse = await client.wallet.getNotes({
     account,
     pageSize: notesToCombine,

@@ -58,6 +58,54 @@ export class CurrencyUtils {
     return amount.toString()
   }
 
+  /**
+   * Renders values for human-readable purposes:
+   * - Renders $IRON in the major denomination, with 8 decimal places
+   * - If a custom asset, and `decimals` is provided, it will render the custom
+   *     asset in the major denomination with the decimal places
+   * - If a custom asset, and `decimals` is not provided, it will render the
+   *     custom asset in the minor denomination with no decimal places
+   */
+  static render(
+    amount: bigint | string,
+    includeSymbol: boolean = false,
+    asset?: {
+      id?: string
+      decimals?: number
+      symbol?: string
+    },
+  ): string {
+    if (typeof amount === 'string') {
+      amount = this.decode(amount)
+    }
+
+    // If an asset ID was provided, check if it is the native asset. Otherwise,
+    // we can only assume that the amount is in the native asset
+    const isNativeAsset = asset?.id ? isNativeIdentifier(asset?.id) : true
+
+    // Default to displaying 0 decimal places for custom assets
+    let decimals = 0
+    if (isNativeAsset) {
+      // Hard-code the amount of decimals in the native asset
+      decimals = IRON_DECIMAL_PLACES
+    } else if (asset?.decimals) {
+      decimals = asset.decimals
+    }
+
+    const majorDenominationAmount = FixedNumberUtils.render(amount, decimals)
+
+    if (includeSymbol) {
+      let symbol = '$IRON'
+
+      if (asset?.id && !isNativeAsset) {
+        symbol = asset?.symbol || asset?.id
+      }
+      return `${symbol} ${majorDenominationAmount}`
+    }
+
+    return majorDenominationAmount
+  }
+
   /*
    * Renders ore as iron for human-readable purposes
    */
@@ -115,6 +163,7 @@ export function isParseFixedError(error: unknown): error is ParseFixedError {
   )
 }
 
+const IRON_DECIMAL_PLACES = 8
 export const ORE_TO_IRON = 100000000
 export const MINIMUM_ORE_AMOUNT = 0n
 export const MAXIMUM_ORE_AMOUNT = 2n ** 64n
