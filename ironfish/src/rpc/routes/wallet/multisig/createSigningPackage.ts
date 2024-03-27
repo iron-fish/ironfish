@@ -72,6 +72,7 @@ routes.register<typeof CreateSigningPackageRequestSchema, CreateSigningPackageRe
 
     // Verify the consistency of commitments. Loop twice because the first loop
     // gives a more specific error message (easier to debug)
+    const signerIdentities = []
     for (const [index, commitment] of commitments.entries()) {
       const identity = commitment.identity().toString('hex')
       if (!identitySet.includes(identity)) {
@@ -80,9 +81,10 @@ routes.register<typeof CreateSigningPackageRequestSchema, CreateSigningPackageRe
           400,
         )
       }
+      signerIdentities.push(identity)
     }
     for (const [index, commitment] of commitments.entries()) {
-      if (!commitment.verifyChecksum(transactionHash, identitySet)) {
+      if (!commitment.verifyChecksum(transactionHash, signerIdentities)) {
         throw new RpcValidationError(
           `Commitment ${index} was not generated for the given unsigned transaction and signer set`,
           400,
