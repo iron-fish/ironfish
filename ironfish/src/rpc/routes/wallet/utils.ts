@@ -248,6 +248,7 @@ export function serializeRpcWalletNote(
     assetId: note.note.assetId().toString('hex'),
     assetName: asset?.name.toString('hex') || '',
     memo: BufferUtils.toHuman(note.note.memo()),
+    memoHex: note.note.memo().toString('hex'),
     owner: note.note.owner(),
     sender: note.note.sender(),
     noteHash: note.note.hash().toString('hex'),

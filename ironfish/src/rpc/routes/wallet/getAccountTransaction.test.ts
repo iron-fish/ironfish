@@ -35,5 +35,8 @@ describe('Route wallet/getAccountTransaction', () => {
       })),
     )
     expect(responseTransaction.notes).toHaveLength(transaction.notes.length)
+
+    // each note should include a hex representation of the memo in memoHex
+    responseTransaction.notes?.map((note) => expect(note.memoHex).toBeDefined())
   })
 })

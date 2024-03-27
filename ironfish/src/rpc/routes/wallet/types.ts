@@ -50,6 +50,7 @@ export type RpcWalletNote = {
   assetId: string
   value: string
   memo: string
+  memoHex: string
   sender: string
   owner: string
   noteHash: string
@@ -77,6 +78,7 @@ export const RpcWalletNoteSchema: yup.ObjectSchema<RpcWalletNote> = yup
     assetId: yup.string().defined(),
     assetName: yup.string().defined(),
     memo: yup.string().defined(),
+    memoHex: yup.string().defined(),
     sender: yup.string().defined(),
     owner: yup.string().defined(),
     noteHash: yup.string().defined(),
