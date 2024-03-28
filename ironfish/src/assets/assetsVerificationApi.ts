@@ -7,7 +7,6 @@ import { FileSystem } from '../fileSystems'
 
 type AssetData = {
   identifier: string
-  name: string
   symbol: string
   decimals?: number
   logoURI?: string
@@ -157,7 +156,6 @@ const axiosFileAdapter =
 const sanitizedAssetData = (assetData: AssetData): AssetData => {
   return {
     identifier: assetData.identifier,
-    name: assetData.name,
     symbol: assetData.symbol,
     decimals: assetData.decimals,
     logoURI: assetData.logoURI,

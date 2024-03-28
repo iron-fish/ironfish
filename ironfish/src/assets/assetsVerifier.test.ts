@@ -10,7 +10,6 @@ import { AssetsVerifier } from './assetsVerifier'
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const assetData1 = {
   identifier: '0123',
-  name: 'Foo',
   symbol: '$FOO',
   decimals: 4,
   logoURI: 'https://example.com/not_real.png',
@@ -19,7 +18,6 @@ const assetData1 = {
 
 const assetData2 = {
   identifier: '4567',
-  name: 'Bar',
   symbol: '$BAR',
   decimals: 4,
   logoURI: 'https://example.com/not_real.png',
@@ -28,7 +26,6 @@ const assetData2 = {
 
 const assetData3 = {
   identifier: '89ab',
-  name: 'Baz',
   symbol: '$BAZ',
   decimals: 4,
   logoURI: 'https://example.com/not_real.png',

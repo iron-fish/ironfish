@@ -7,7 +7,6 @@ import { AssetsVerificationApi } from './assetsVerificationApi'
 
 const assetData1 = {
   identifier: '0123',
-  name: 'Foo',
   symbol: '$FOO',
   decimals: 4,
   logoURI: 'https://example.com/not_real.png',
@@ -16,14 +15,12 @@ const assetData1 = {
 
 const assetData2 = {
   identifier: 'abcd',
-  name: 'Bar',
   symbol: '$BAR',
   decimals: 4,
 }
 
 const assetData3 = {
   identifier: 'abcd',
-  name: 'Baz',
   symbol: '$BAZ',
 }
 
