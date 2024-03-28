@@ -67,6 +67,66 @@ describe('Route multisig/createSigningPackage', () => {
     })
   })
 
+  it('should create signing package with a subset of signers', async () => {
+    // Create a bunch of multisig identities
+    const accountNames = Array.from({ length: 3 }, (_, index) => `test-account-${index}`)
+    const participants = await Promise.all(
+      accountNames.map(async (name) => {
+        const identity = (await routeTest.client.wallet.multisig.createParticipant({ name }))
+          .content.identity
+        return { name, identity }
+      }),
+    )
+
+    // Initialize the group though TDK and import the accounts generated
+    const trustedDealerPackage = (
+      await routeTest.client.wallet.multisig.createTrustedDealerKeyPackage({
+        minSigners: 2,
+        participants,
+      })
+    ).content
+    for (const { name, identity } of participants) {
+      const importAccount = trustedDealerPackage.participantAccounts.find(
+        (account) => account.identity === identity,
+      )
+      expect(importAccount).not.toBeUndefined()
+      await routeTest.client.wallet.importAccount({
+        name,
+        account: importAccount!.account,
+      })
+    }
+
+    // Create an unsigned transaction
+    const txAccount = await useAccountAndAddFundsFixture(routeTest.wallet, routeTest.chain)
+    const unsignedTransaction = (
+      await useUnsignedTxFixture(routeTest.wallet, txAccount, txAccount)
+    )
+      .serialize()
+      .toString('hex')
+
+    // Create signing commitments for 2 of 3 participants
+    const commitments = await Promise.all(
+      accountNames.slice(0, 2).map(async (accountName) => {
+        const signingCommitment =
+          await routeTest.client.wallet.multisig.createSigningCommitment({
+            account: accountName,
+            unsignedTransaction,
+            signers: participants.slice(0, 2),
+          })
+        return signingCommitment.content.commitment
+      }),
+    )
+
+    // Create the signing package
+    const responseSigningPackage = await routeTest.client.wallet.multisig.createSigningPackage({
+      commitments,
+      unsignedTransaction,
+    })
+    expect(responseSigningPackage.content).toMatchObject({
+      signingPackage: expect.any(String),
+    })
+  })
+
   describe('should verify commitment consistency', () => {
     it('of identities', async () => {
       // Create a bunch of multisig identities
@@ -221,14 +281,14 @@ describe('Route multisig/createSigningPackage', () => {
           await routeTest.client.wallet.multisig.createSigningCommitment({
             account: participants[0].name,
             unsignedTransaction: unsignedTransaction1,
-            signers: participants,
+            signers: participants.slice(0, 2),
           })
         ).content.commitment,
         (
           await routeTest.client.wallet.multisig.createSigningCommitment({
             account: participants[1].name,
             unsignedTransaction: unsignedTransaction2,
-            signers: participants,
+            signers: participants.slice(0, 2),
           })
         ).content.commitment,
       ]
@@ -315,7 +375,7 @@ describe('Route multisig/createSigningPackage', () => {
       ).rejects.toThrow(
         expect.objectContaining({
           message: expect.stringContaining(
-            'Commitment 1 was not generated for the given unsigned transaction and signer set',
+            'Commitment 0 was not generated for the given unsigned transaction and signer set',
           ),
           status: 400,
         }),
