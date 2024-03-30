@@ -112,7 +112,9 @@ routes.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
   `${ApiNamespace.wallet}/createTransaction`,
   CreateTransactionRequestSchema,
   async (request, node): Promise<void> => {
+    console.log('in create transaction')
     AssertHasRpcContext(request, node, 'wallet')
+    console.log('has context')
 
     const account = getAccount(node.wallet, request.data.account)
 

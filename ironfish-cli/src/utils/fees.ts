@@ -28,22 +28,37 @@ export async function selectFee(options: {
   CliUx.ux.action.start('Calculating fees')
 
   const feeRates = await options.client.wallet.estimateFeeRates()
-
+  console.log(feeRates)
   const promises = [
     getTxWithFee(
       options.client,
       options.transaction,
+      CurrencyUtils.decode(feeRates.content.fast),
+      'fast',
+    ),
+    getTxWithFee(
+      options.client,
+      options.transaction,
       CurrencyUtils.decode(feeRates.content.slow),
+      'slow',
     ),
     getTxWithFee(
       options.client,
       options.transaction,
       CurrencyUtils.decode(feeRates.content.average),
+      'average',
     ),
     getTxWithFee(
       options.client,
       options.transaction,
-      CurrencyUtils.decode(feeRates.content.fast),
+      CurrencyUtils.decode(feeRates.content.average),
+      'average',
+    ),
+    getTxWithFee(
+      options.client,
+      options.transaction,
+      CurrencyUtils.decode(feeRates.content.average),
+      'average',
     ),
   ]
 
@@ -102,30 +117,35 @@ async function getTxWithFee(
   client: Pick<RpcClient, 'wallet'>,
   params: CreateTransactionRequest,
   feeRate: bigint,
+  name: string,
 ): Promise<RawTransaction | null> {
-  const promise = client.wallet.createTransaction({
-    ...params,
-    feeRate: CurrencyUtils.encode(feeRate),
-  })
+  try {
+    console.log('name')
+    console.log(name)
+    const response = await client.wallet.createTransaction({
+      ...params,
+      feeRate: CurrencyUtils.encode(feeRate),
+    })
 
-  const response = await promise.catch((e) => {
+    if (response === null) {
+      return null
+    }
+
+    const bytes = Buffer.from(response.content.transaction, 'hex')
+    const raw = RawTransactionSerde.deserialize(bytes)
+    return raw
+  } catch (e) {
     if (
       e instanceof RpcRequestError &&
       e.code === RPC_ERROR_CODES.INSUFFICIENT_BALANCE.valueOf()
     ) {
+      console.log('insufficient')
       return null
     } else {
+      console.log('throw')
       throw e
     }
-  })
-
-  if (response === null) {
-    return null
   }
-
-  const bytes = Buffer.from(response.content.transaction, 'hex')
-  const raw = RawTransactionSerde.deserialize(bytes)
-  return raw
 }
 
 function getChoiceFromTx(
