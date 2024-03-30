@@ -29,25 +29,23 @@ export async function selectFee(options: {
 
   const feeRates = await options.client.wallet.estimateFeeRates()
 
-  const promises = [
-    getTxWithFee(
-      options.client,
-      options.transaction,
-      CurrencyUtils.decode(feeRates.content.slow),
-    ),
-    getTxWithFee(
-      options.client,
-      options.transaction,
-      CurrencyUtils.decode(feeRates.content.average),
-    ),
-    getTxWithFee(
-      options.client,
-      options.transaction,
-      CurrencyUtils.decode(feeRates.content.fast),
-    ),
-  ]
+  const slow = await getTxWithFee(
+    options.client,
+    options.transaction,
+    CurrencyUtils.decode(feeRates.content.slow),
+  )
 
-  const [slow, average, fast] = await Promise.all(promises)
+  const average = await getTxWithFee(
+    options.client,
+    options.transaction,
+    CurrencyUtils.decode(feeRates.content.slow),
+  )
+
+  const fast = await getTxWithFee(
+    options.client,
+    options.transaction,
+    CurrencyUtils.decode(feeRates.content.slow),
+  )
 
   const choices = [
     getChoiceFromTx('Slow', slow),
