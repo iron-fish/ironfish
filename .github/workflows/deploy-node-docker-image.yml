@@ -1,5 +1,8 @@
 name: Deploy Node Docker Image
 on:
+  push:
+    branches:
+      'staging'
   workflow_dispatch:
     inputs:
       github_tag_mainnet:
@@ -74,6 +77,13 @@ jobs:
       # Used if we are deploying a new version (e.g. v1.1)
       - name: Deploy Node Image to GitHub:${{ github.ref_name }}
         if: ${{ github.ref_type == 'tag'}}
+        run: |
+          docker tag ironfish ghcr.io/iron-fish/ironfish:${{ github.ref_name }}
+          docker push ghcr.io/iron-fish/ironfish:${{ github.ref_name }}
+
+      # Used to deploy images for specific branches
+      - name: Deploy Node Image to GitHub:${{ github.ref_name }}
+        if: ${{ github.ref_type == 'branch' }}
         run: |
           docker tag ironfish ghcr.io/iron-fish/ironfish:${{ github.ref_name }}
           docker push ghcr.io/iron-fish/ironfish:${{ github.ref_name }}
