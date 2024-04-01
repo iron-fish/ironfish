@@ -1,5 +1,8 @@
 name: Deploy Node Docker Image
 on:
+  push:
+    branches:
+      'staging'
   workflow_dispatch:
     inputs:
       github_tag_mainnet:
