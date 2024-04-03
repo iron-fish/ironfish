@@ -10,6 +10,7 @@ import {
   isMultisigSignerTrustedDealerImport,
   MultisigKeysImport,
 } from '../../../wallet/interfaces/multisigKeys'
+import { getNoteOutpoint } from '../../../wallet/interfaces/noteOutpoint'
 import { AccountImport } from '../../../wallet/walletdb/accountValue'
 import { AssetValue } from '../../../wallet/walletdb/assetValue'
 import { DecryptedNoteValue } from '../../../wallet/walletdb/decryptedNoteValue'
@@ -170,16 +171,17 @@ export async function getTransactionNotes(
 
   let accountHasSpend = false
   for (const spend of transaction.transaction.spends) {
-    const noteHash = await account.getNoteHash(spend.nullifier)
+    const noteOutpoint = await account.getNoteOutpoint(spend.nullifier)
 
-    if (noteHash !== undefined) {
+    if (noteOutpoint !== undefined) {
       accountHasSpend = true
       break
     }
   }
 
-  for (const note of transaction.transaction.notes) {
-    const decryptedNote = await account.getDecryptedNote(note.hash())
+  for (const [index, note] of transaction.transaction.notes.entries()) {
+    const noteOutpoint = getNoteOutpoint(transaction.transaction, index)
+    const decryptedNote = await account.getDecryptedNote(noteOutpoint)
 
     if (decryptedNote) {
       notes.push(decryptedNote)

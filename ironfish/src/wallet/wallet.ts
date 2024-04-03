@@ -52,6 +52,7 @@ import {
 } from './errors'
 import { MintAssetOptions } from './interfaces/mintAssetOptions'
 import { isMultisigSignerTrustedDealerImport } from './interfaces/multisigKeys'
+import { getNoteOutpoint } from './interfaces/noteOutpoint'
 import {
   RemoteChainProcessor,
   WalletBlockHeader,
@@ -1141,11 +1142,11 @@ export class Wallet {
     const spent = new BufferMap<bigint>()
     const notesSpent = new BufferMap<BufferSet>()
 
-    for (const noteHash of options.notes ?? []) {
-      const decryptedNote = await options.account.getDecryptedNote(noteHash)
+    for (const noteOutpoint of options.notes ?? []) {
+      const decryptedNote = await options.account.getDecryptedNote(noteOutpoint)
       Assert.isNotUndefined(
         decryptedNote,
-        `No note found with hash ${noteHash.toString('hex')} for account ${
+        `No note found with outpoint ${noteOutpoint.toString('hex')} for account ${
           options.account.name
         }`,
       )
@@ -1158,7 +1159,7 @@ export class Wallet {
       spent.set(assetId, assetAmountSpent + decryptedNote.note.value())
 
       const assetNotesSpent = notesSpent.get(assetId) ?? new BufferSet()
-      assetNotesSpent.add(noteHash)
+      assetNotesSpent.add(noteOutpoint)
       notesSpent.set(assetId, assetNotesSpent)
 
       raw.spends.push({ note: decryptedNote.note, witness })
@@ -1263,6 +1264,7 @@ export class Wallet {
       reverse: true,
       confirmations,
     })) {
+      // TODO: notesSpent needs to keep track of outpoints, not hashes
       if (notesSpent.has(unspentNote.note.hash())) {
         continue
       }
@@ -1437,13 +1439,14 @@ export class Wallet {
     }
 
     for (const spend of transaction.transaction.spends) {
-      if ((await account.getNoteHash(spend.nullifier, tx)) !== undefined) {
+      if ((await account.getNoteOutpoint(spend.nullifier, tx)) !== undefined) {
         return TransactionType.SEND
       }
     }
 
-    for (const note of transaction.transaction.notes) {
-      const decryptedNote = await account.getDecryptedNote(note.hash(), tx)
+    for (const [index, _] of transaction.transaction.notes.entries()) {
+      const noteOutpoint = getNoteOutpoint(transaction.transaction, index)
+      const decryptedNote = await account.getDecryptedNote(noteOutpoint, tx)
 
       if (!decryptedNote) {
         continue

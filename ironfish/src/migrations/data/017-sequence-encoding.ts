@@ -13,6 +13,7 @@ import {
   PrefixEncoding,
   U32_ENCODING_BE,
 } from '../../storage'
+import { getNoteOutpoint } from '../../wallet/interfaces/noteOutpoint'
 import { Database, Migration, MigrationContext } from '../migration'
 import { GetOldAccounts } from './021-add-version-to-accounts/schemaOld'
 
@@ -72,11 +73,13 @@ export class Migration017 extends Migration {
       for await (const transactionValue of account.getTransactions()) {
         const transactionHash = transactionValue.transaction.hash()
 
-        for (const note of transactionValue.transaction.notes) {
+        for (const [index, note] of transactionValue.transaction.notes.entries()) {
           if (transactionValue.sequence !== null) {
             const sequence = transactionValue.sequence
 
-            const decryptedNoteValue = await account.getDecryptedNote(note.hash())
+            const noteOutpoint = getNoteOutpoint(transactionValue.transaction, index)
+
+            const decryptedNoteValue = await account.getDecryptedNote(noteOutpoint)
 
             if (decryptedNoteValue === undefined) {
               continue
@@ -98,7 +101,7 @@ export class Migration017 extends Migration {
       }
     }
 
-    await context.wallet.walletDb.sequenceToNoteHash.clear()
+    await context.wallet.walletDb.sequenceToNoteOutpoint.clear()
     await context.wallet.walletDb.sequenceToTransactionHash.clear()
     await context.wallet.walletDb.pendingTransactionHashes.clear()
   }

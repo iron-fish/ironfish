@@ -32,6 +32,7 @@ import { createDB } from '../../storage/utils'
 import { BufferUtils } from '../../utils'
 import { WorkerPool } from '../../workerPool'
 import { Account, calculateAccountPrefix } from '../account/account'
+import { NoteOutpoint } from '../interfaces/noteOutpoint'
 import { AccountValue, AccountValueEncoding } from './accountValue'
 import { AssetValue, AssetValueEncoding } from './assetValue'
 import { BalanceValue, BalanceValueEncoding } from './balanceValue'
@@ -76,17 +77,17 @@ export class WalletDB {
     value: DecryptedNoteValue
   }>
 
-  nullifierToNoteHash: IDatabaseStore<{
+  nullifierToNoteOutpoint: IDatabaseStore<{
     key: [Account['prefix'], Nullifier]
     value: Buffer
   }>
 
-  sequenceToNoteHash: IDatabaseStore<{
+  sequenceToNoteOutpoint: IDatabaseStore<{
     key: [Account['prefix'], [number, Buffer]]
     value: null
   }>
 
-  nonChainNoteHashes: IDatabaseStore<{
+  nonChainNoteOutpoints: IDatabaseStore<{
     key: [Account['prefix'], Buffer]
     value: null
   }>
@@ -126,12 +127,12 @@ export class WalletDB {
     value: TransactionHash
   }>
 
-  unspentNoteHashes: IDatabaseStore<{
+  unspentNoteOutpoints: IDatabaseStore<{
     key: [Account['prefix'], Buffer, number, bigint, Buffer]
     value: null
   }>
 
-  valueToUnspentNoteHashes: IDatabaseStore<{
+  valueToUnspentNoteOutpoints: IDatabaseStore<{
     key: [Account['prefix'], Buffer, bigint, Buffer] // account prefix, asset ID, value, note hash
     value: null
   }>
@@ -195,13 +196,13 @@ export class WalletDB {
       valueEncoding: new DecryptedNoteValueEncoding(),
     })
 
-    this.nullifierToNoteHash = this.db.addStore({
+    this.nullifierToNoteOutpoint = this.db.addStore({
       name: 'n',
       keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
       valueEncoding: new BufferEncoding(),
     })
 
-    this.sequenceToNoteHash = this.db.addStore({
+    this.sequenceToNoteOutpoint = this.db.addStore({
       name: 'SN',
       keyEncoding: new PrefixEncoding(
         new BufferEncoding(),
@@ -211,7 +212,7 @@ export class WalletDB {
       valueEncoding: NULL_ENCODING,
     })
 
-    this.nonChainNoteHashes = this.db.addStore({
+    this.nonChainNoteOutpoints = this.db.addStore({
       name: 'S',
       keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
       valueEncoding: NULL_ENCODING,
@@ -271,7 +272,7 @@ export class WalletDB {
       valueEncoding: new BufferEncoding(),
     })
 
-    this.unspentNoteHashes = this.db.addStore({
+    this.unspentNoteOutpoints = this.db.addStore({
       name: 'un',
       keyEncoding: new PrefixArrayEncoding([
         [new BufferEncoding(), 4], // account prefix
@@ -283,8 +284,8 @@ export class WalletDB {
       valueEncoding: NULL_ENCODING,
     })
 
-    this.valueToUnspentNoteHashes = this.db.addStore({
-      name: 'valueToUnspentNoteHashes',
+    this.valueToUnspentNoteOutpoints = this.db.addStore({
+      name: 'valueToUnspentNoteOutpoints',
       keyEncoding: new PrefixArrayEncoding([
         [new BufferEncoding(), 4], // account prefix
         [new BufferEncoding(), 32], // asset ID
@@ -313,17 +314,17 @@ export class WalletDB {
     // IDatabaseStores that cache and index decrypted chain data
     this.cacheStores = [
       this.decryptedNotes,
-      this.nullifierToNoteHash,
-      this.sequenceToNoteHash,
-      this.nonChainNoteHashes,
+      this.nullifierToNoteOutpoint,
+      this.sequenceToNoteOutpoint,
+      this.nonChainNoteOutpoints,
       this.transactions,
       this.sequenceToTransactionHash,
       this.pendingTransactionHashes,
       this.timestampToTransactionHash,
       this.assets,
       this.nullifierToTransactionHash,
-      this.unspentNoteHashes,
-      this.valueToUnspentNoteHashes,
+      this.unspentNoteOutpoints,
+      this.valueToUnspentNoteOutpoints,
     ]
   }
 
@@ -478,12 +479,15 @@ export class WalletDB {
     await this.timestampToTransactionHash.clear(tx, account.prefixRange)
   }
 
-  async clearSequenceToNoteHash(account: Account, tx?: IDatabaseTransaction): Promise<void> {
-    await this.sequenceToNoteHash.clear(tx, account.prefixRange)
+  async clearSequenceToNoteOutpoint(
+    account: Account,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    await this.sequenceToNoteOutpoint.clear(tx, account.prefixRange)
   }
 
-  async clearNonChainNoteHashes(account: Account, tx?: IDatabaseTransaction): Promise<void> {
-    await this.nonChainNoteHashes.clear(tx, account.prefixRange)
+  async clearNonChainNoteOutpoints(account: Account, tx?: IDatabaseTransaction): Promise<void> {
+    await this.nonChainNoteOutpoints.clear(tx, account.prefixRange)
   }
 
   async *getTransactionHashesBySequence(
@@ -546,66 +550,70 @@ export class WalletDB {
     )
   }
 
-  async setNoteHashSequence(
+  async setNoteOutpointSequence(
     account: Account,
-    noteHash: Buffer,
+    noteOutpoint: NoteOutpoint,
     sequence: number | null,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.db.withTransaction(tx, async (tx) => {
       if (sequence) {
-        await this.sequenceToNoteHash.put([account.prefix, [sequence, noteHash]], null, tx)
-        await this.nonChainNoteHashes.del([account.prefix, noteHash], tx)
+        await this.sequenceToNoteOutpoint.put(
+          [account.prefix, [sequence, noteOutpoint]],
+          null,
+          tx,
+        )
+        await this.nonChainNoteOutpoints.del([account.prefix, noteOutpoint], tx)
       } else {
-        await this.nonChainNoteHashes.put([account.prefix, noteHash], null, tx)
+        await this.nonChainNoteOutpoints.put([account.prefix, noteOutpoint], null, tx)
       }
     })
   }
 
-  async disconnectNoteHashSequence(
+  async disconnectNoteOutpointSequence(
     account: Account,
-    noteHash: Buffer,
+    noteOutpoint: NoteOutpoint,
     sequence: number,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.db.withTransaction(tx, async (tx) => {
-      await this.sequenceToNoteHash.del([account.prefix, [sequence, noteHash]], tx)
-      await this.nonChainNoteHashes.put([account.prefix, noteHash], null, tx)
+      await this.sequenceToNoteOutpoint.del([account.prefix, [sequence, noteOutpoint]], tx)
+      await this.nonChainNoteOutpoints.put([account.prefix, noteOutpoint], null, tx)
     })
   }
 
-  async deleteNoteHashSequence(
+  async deleteNoteOutpointSequence(
     account: Account,
-    noteHash: Buffer,
+    noteOutpoint: NoteOutpoint,
     sequence: number | null,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.db.withTransaction(tx, async (tx) => {
-      await this.nonChainNoteHashes.del([account.prefix, noteHash], tx)
+      await this.nonChainNoteOutpoints.del([account.prefix, noteOutpoint], tx)
 
       if (sequence !== null) {
-        await this.sequenceToNoteHash.del([account.prefix, [sequence, noteHash]], tx)
+        await this.sequenceToNoteOutpoint.del([account.prefix, [sequence, noteOutpoint]], tx)
       }
     })
   }
 
   /*
-   * clears sequenceToNoteHash entries for all accounts for a given sequence
+   * clears sequenceToNoteOutpoint entries for all accounts for a given sequence
    */
-  async clearSequenceNoteHashes(sequence: number, tx?: IDatabaseTransaction): Promise<void> {
-    const encoding = this.sequenceToNoteHash.keyEncoding
+  async clearSequenceNoteOutpoints(sequence: number, tx?: IDatabaseTransaction): Promise<void> {
+    const encoding = this.sequenceToNoteOutpoint.keyEncoding
 
     const keyRange = StorageUtils.getPrefixesKeyRange(
       encoding.serialize([Buffer.alloc(4, 0), [sequence, Buffer.alloc(0)]]),
       encoding.serialize([Buffer.alloc(4, 255), [sequence, Buffer.alloc(0)]]),
     )
 
-    await this.sequenceToNoteHash.clear(tx, keyRange)
+    await this.sequenceToNoteOutpoint.clear(tx, keyRange)
   }
 
-  async addUnspentNoteHash(
+  async addUnspentNoteOutpoint(
     account: Account,
-    noteHash: Buffer,
+    noteOutpoint: NoteOutpoint,
     decryptedNote: DecryptedNoteValue,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
@@ -618,22 +626,22 @@ export class WalletDB {
     const assetId = decryptedNote.note.assetId()
     const value = decryptedNote.note.value()
 
-    await this.unspentNoteHashes.put(
-      [account.prefix, assetId, sequence, value, noteHash],
+    await this.unspentNoteOutpoints.put(
+      [account.prefix, assetId, sequence, value, noteOutpoint],
       null,
       tx,
     )
 
-    await this.valueToUnspentNoteHashes.put(
-      [account.prefix, assetId, value, noteHash],
+    await this.valueToUnspentNoteOutpoints.put(
+      [account.prefix, assetId, value, noteOutpoint],
       null,
       tx,
     )
   }
 
-  async deleteUnspentNoteHash(
+  async deleteUnspentNoteOutpoint(
     account: Account,
-    noteHash: Buffer,
+    noteOutpoint: NoteOutpoint,
     decryptedNote: DecryptedNoteValue,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
@@ -643,12 +651,18 @@ export class WalletDB {
 
     Assert.isNotNull(sequence, 'Cannot spend a note that is not on the chain.')
 
-    await this.unspentNoteHashes.del([account.prefix, assetId, sequence, value, noteHash], tx)
+    await this.unspentNoteOutpoints.del(
+      [account.prefix, assetId, sequence, value, noteOutpoint],
+      tx,
+    )
 
-    await this.valueToUnspentNoteHashes.del([account.prefix, assetId, value, noteHash], tx)
+    await this.valueToUnspentNoteOutpoints.del(
+      [account.prefix, assetId, value, noteOutpoint],
+      tx,
+    )
   }
 
-  async *loadValueToUnspentNoteHashes(
+  async *loadValueToUnspentNoteOutpoints(
     account: Account,
     assetId: Buffer,
     reverse = false,
@@ -667,18 +681,18 @@ export class WalletDB {
       encoding.serialize([account.prefix, [assetId, end]]),
     )
 
-    for await (const [, , , noteHash] of this.valueToUnspentNoteHashes.getAllKeysIter(
+    for await (const [, , , noteOutpoint] of this.valueToUnspentNoteOutpoints.getAllKeysIter(
       tx,
       range,
       {
         reverse: reverse,
       },
     )) {
-      yield noteHash
+      yield noteOutpoint
     }
   }
 
-  async *loadUnspentNoteHashes(
+  async *loadUnspentNoteOutpoints(
     account: Account,
     assetId: Buffer,
     sequence?: number,
@@ -697,8 +711,11 @@ export class WalletDB {
       encoding.serialize([account.prefix, [assetId, maxConfirmedSequence]]),
     )
 
-    for await (const [, , , , noteHash] of this.unspentNoteHashes.getAllKeysIter(tx, range)) {
-      yield noteHash
+    for await (const [, , , , noteOutpoint] of this.unspentNoteOutpoints.getAllKeysIter(
+      tx,
+      range,
+    )) {
+      yield noteOutpoint
     }
   }
 
@@ -708,8 +725,13 @@ export class WalletDB {
     sequence?: number,
     tx?: IDatabaseTransaction,
   ): AsyncGenerator<DecryptedNoteValue> {
-    for await (const noteHash of this.loadUnspentNoteHashes(account, assetId, sequence, tx)) {
-      const decryptedNote = await this.decryptedNotes.get([account.prefix, noteHash], tx)
+    for await (const noteOutpoint of this.loadUnspentNoteOutpoints(
+      account,
+      assetId,
+      sequence,
+      tx,
+    )) {
+      const decryptedNote = await this.decryptedNotes.get([account.prefix, noteOutpoint], tx)
 
       if (decryptedNote !== undefined) {
         yield decryptedNote
@@ -736,42 +758,42 @@ export class WalletDB {
       encoding.serialize([account.prefix, [assetId, maxConfirmedSequence]]),
     )
 
-    for await (const [, , , value, _] of this.unspentNoteHashes.getAllKeysIter(tx, range)) {
+    for await (const [, , , value, _] of this.unspentNoteOutpoints.getAllKeysIter(tx, range)) {
       yield value
     }
   }
 
-  async loadNoteHash(
+  async loadNoteOutpoint(
     account: Account,
     nullifier: Buffer,
     tx?: IDatabaseTransaction,
   ): Promise<Buffer | undefined> {
-    return this.nullifierToNoteHash.get([account.prefix, nullifier], tx)
+    return this.nullifierToNoteOutpoint.get([account.prefix, nullifier], tx)
   }
 
-  async saveNullifierNoteHash(
+  async saveNullifierNoteOutpoint(
     account: Account,
     nullifier: Buffer,
-    noteHash: Buffer,
+    noteOutpoint: NoteOutpoint,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    await this.nullifierToNoteHash.put([account.prefix, nullifier], noteHash, tx)
+    await this.nullifierToNoteOutpoint.put([account.prefix, nullifier], noteOutpoint, tx)
   }
 
-  async *loadNullifierToNoteHash(
+  async *loadNullifierToNoteOutpoint(
     account: Account,
     tx?: IDatabaseTransaction,
   ): AsyncGenerator<{
     nullifier: Buffer
-    noteHash: Buffer
+    noteOutpoint: NoteOutpoint
   }> {
-    for await (const [[_, nullifier], noteHash] of this.nullifierToNoteHash.getAllIter(
+    for await (const [[_, nullifier], noteOutpoint] of this.nullifierToNoteOutpoint.getAllIter(
       tx,
       account.prefixRange,
     )) {
       yield {
         nullifier,
-        noteHash,
+        noteOutpoint,
       }
     }
   }
@@ -781,61 +803,68 @@ export class WalletDB {
     nullifier: Buffer,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    await this.nullifierToNoteHash.del([account.prefix, nullifier], tx)
+    await this.nullifierToNoteOutpoint.del([account.prefix, nullifier], tx)
   }
 
-  async clearNullifierToNoteHash(account: Account, tx?: IDatabaseTransaction): Promise<void> {
-    await this.nullifierToNoteHash.clear(tx, account.prefixRange)
+  async clearNullifierToNoteOutpoint(
+    account: Account,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    await this.nullifierToNoteOutpoint.clear(tx, account.prefixRange)
   }
 
-  async replaceNullifierToNoteHash(
+  async replaceNullifierToNoteOutpoint(
     account: Account,
     map: BufferMap<Buffer>,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.db.withTransaction(tx, async (tx) => {
-      await this.clearNullifierToNoteHash(account, tx)
+      await this.clearNullifierToNoteOutpoint(account, tx)
 
       for (const [key, value] of map) {
-        await this.nullifierToNoteHash.put([account.prefix, key], value, tx)
+        await this.nullifierToNoteOutpoint.put([account.prefix, key], value, tx)
       }
     })
   }
 
   async saveDecryptedNote(
     account: Account,
-    noteHash: Buffer,
+    noteOutpoint: NoteOutpoint,
     note: Readonly<DecryptedNoteValue>,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.db.withTransaction(tx, async (tx) => {
       if (note.nullifier) {
-        await this.nullifierToNoteHash.put([account.prefix, note.nullifier], noteHash, tx)
+        await this.nullifierToNoteOutpoint.put(
+          [account.prefix, note.nullifier],
+          noteOutpoint,
+          tx,
+        )
       }
 
-      await this.setNoteHashSequence(account, noteHash, note.sequence, tx)
+      await this.setNoteOutpointSequence(account, noteOutpoint, note.sequence, tx)
 
-      await this.decryptedNotes.put([account.prefix, noteHash], note, tx)
+      await this.decryptedNotes.put([account.prefix, noteOutpoint], note, tx)
     })
   }
 
   async loadDecryptedNote(
     account: Account,
-    noteHash: Buffer,
+    noteOutpoint: NoteOutpoint,
     tx?: IDatabaseTransaction,
   ): Promise<DecryptedNoteValue | undefined> {
-    return await this.decryptedNotes.get([account.prefix, noteHash], tx)
+    return await this.decryptedNotes.get([account.prefix, noteOutpoint], tx)
   }
 
-  async *loadNoteHashesNotOnChain(
+  async *loadNoteOutpointsNotOnChain(
     account: Account,
     tx?: IDatabaseTransaction,
   ): AsyncGenerator<Buffer> {
-    for await (const [, noteHash] of this.nonChainNoteHashes.getAllKeysIter(
+    for await (const [, noteOutpoint] of this.nonChainNoteOutpoints.getAllKeysIter(
       tx,
       account.prefixRange,
     )) {
-      yield noteHash
+      yield noteOutpoint
     }
   }
 
@@ -843,8 +872,8 @@ export class WalletDB {
     account: Account,
     tx?: IDatabaseTransaction,
   ): AsyncGenerator<DecryptedNoteValue> {
-    for await (const noteHash of this.loadNoteHashesNotOnChain(account, tx)) {
-      const note = await this.loadDecryptedNote(account, noteHash, tx)
+    for await (const noteOutpoint of this.loadNoteOutpointsNotOnChain(account, tx)) {
+      const note = await this.loadDecryptedNote(account, noteOutpoint, tx)
 
       if (note) {
         yield note
@@ -852,7 +881,7 @@ export class WalletDB {
     }
   }
 
-  async *loadNoteHashesInSequenceRange(
+  async *loadNoteOutpointsInSequenceRange(
     account: Account,
     start: number,
     end: number,
@@ -869,8 +898,11 @@ export class WalletDB {
       encoding.serialize([account.prefix, end]),
     )
 
-    for await (const [, [, noteHash]] of this.sequenceToNoteHash.getAllKeysIter(tx, range)) {
-      yield noteHash
+    for await (const [, [, noteOutpoint]] of this.sequenceToNoteOutpoint.getAllKeysIter(
+      tx,
+      range,
+    )) {
+      yield noteOutpoint
     }
   }
 
@@ -880,11 +912,16 @@ export class WalletDB {
     end: number,
     tx?: IDatabaseTransaction,
   ): AsyncGenerator<DecryptedNoteValue & { hash: Buffer }> {
-    for await (const noteHash of this.loadNoteHashesInSequenceRange(account, start, end, tx)) {
-      const note = await this.loadDecryptedNote(account, noteHash, tx)
+    for await (const noteOutpoint of this.loadNoteOutpointsInSequenceRange(
+      account,
+      start,
+      end,
+      tx,
+    )) {
+      const note = await this.loadDecryptedNote(account, noteOutpoint, tx)
 
       if (note) {
-        yield { ...note, hash: noteHash }
+        yield { ...note, hash: noteOutpoint }
       }
     }
   }
@@ -936,10 +973,10 @@ export class WalletDB {
 
   async deleteDecryptedNote(
     account: Account,
-    noteHash: Buffer,
+    noteOutpoint: NoteOutpoint,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    await this.decryptedNotes.del([account.prefix, noteHash], tx)
+    await this.decryptedNotes.del([account.prefix, noteOutpoint], tx)
   }
 
   async clearDecryptedNotes(account: Account, tx?: IDatabaseTransaction): Promise<void> {

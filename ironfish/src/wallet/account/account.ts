@@ -14,6 +14,7 @@ import { WithNonNull, WithRequired } from '../../utils'
 import { DecryptedNote } from '../../workerPool/tasks/decryptNotes'
 import { AssetBalances } from '../assetBalances'
 import { MultisigKeys, MultisigSigner } from '../interfaces/multisigKeys'
+import { getNoteOutpoint, NoteOutpoint } from '../interfaces/noteOutpoint'
 import { WalletBlockHeader } from '../remoteChainProcessor'
 import { AccountValue } from '../walletdb/accountValue'
 import { AssetValue } from '../walletdb/assetValue'
@@ -157,12 +158,12 @@ export class Account {
     const confirmations = options?.confirmations ?? 0
     const maxConfirmedSequence = Math.max(head.sequence - confirmations, GENESIS_BLOCK_SEQUENCE)
 
-    for await (const unspentNoteHash of this.walletDb.loadValueToUnspentNoteHashes(
+    for await (const unspentNoteOutpoint of this.walletDb.loadValueToUnspentNoteOutpoints(
       this,
       assetId,
       options?.reverse,
     )) {
-      const decryptedNote = await this.walletDb.loadDecryptedNote(this, unspentNoteHash)
+      const decryptedNote = await this.walletDb.loadDecryptedNote(this, unspentNoteOutpoint)
 
       if (
         !decryptedNote ||
@@ -176,10 +177,10 @@ export class Account {
   }
 
   async getDecryptedNote(
-    hash: Buffer,
+    outpoint: NoteOutpoint,
     tx?: IDatabaseTransaction,
   ): Promise<DecryptedNoteValue | undefined> {
-    return await this.walletDb.loadDecryptedNote(this, hash, tx)
+    return await this.walletDb.loadDecryptedNote(this, outpoint, tx)
   }
 
   async connectTransaction(
@@ -195,6 +196,11 @@ export class Account {
     let submittedSequence = sequence
     let timestamp = blockHeader.timestamp
 
+    const noteHashToDecryptedNote = new BufferMap<DecryptedNote>()
+    for (const decryptedNote of decryptedNotes) {
+      noteHashToDecryptedNote.set(decryptedNote.hash, decryptedNote)
+    }
+
     await this.walletDb.db.withTransaction(tx, async (tx) => {
       let transactionValue = await this.getTransaction(transaction.hash(), tx)
       if (transactionValue) {
@@ -202,12 +208,19 @@ export class Account {
         timestamp = transactionValue.timestamp
       }
 
-      for (const decryptedNote of decryptedNotes) {
+      for (const [index, noteEncrypted] of transaction.notes.entries()) {
+        const noteOutpoint = getNoteOutpoint(transaction, index)
+
+        const decryptedNote = noteHashToDecryptedNote.get(noteEncrypted.hash())
+        if (!decryptedNote) {
+          continue
+        }
+
         if (decryptedNote.forSpender) {
           continue
         }
 
-        const pendingNote = await this.getDecryptedNote(decryptedNote.hash, tx)
+        const pendingNote = await this.getDecryptedNote(noteOutpoint, tx)
 
         const spent = pendingNote?.spent ?? false
 
@@ -225,27 +238,27 @@ export class Account {
         assetBalanceDeltas.increment(note.note.assetId(), note.note.value())
         receivedAssets.add(note.note.assetId())
 
-        await this.walletDb.saveDecryptedNote(this, decryptedNote.hash, note, tx)
+        await this.walletDb.saveDecryptedNote(this, noteOutpoint, note, tx)
 
         if (!spent) {
-          await this.walletDb.addUnspentNoteHash(this, decryptedNote.hash, note, tx)
+          await this.walletDb.addUnspentNoteOutpoint(this, noteOutpoint, note, tx)
         }
       }
 
       for (const spend of transaction.spends) {
-        const spentNoteHash = await this.getNoteHash(spend.nullifier, tx)
-        if (!spentNoteHash) {
+        const spentNoteOutpoint = await this.getNoteOutpoint(spend.nullifier, tx)
+        if (!spentNoteOutpoint) {
           continue
         }
 
-        const note = await this.getDecryptedNote(spentNoteHash, tx)
+        const note = await this.getDecryptedNote(spentNoteOutpoint, tx)
 
         Assert.isNotUndefined(note)
 
         assetBalanceDeltas.increment(note.note.assetId(), -note.note.value())
 
         const spentNote = { ...note, spent: true }
-        await this.walletDb.saveDecryptedNote(this, spentNoteHash, spentNote, tx)
+        await this.walletDb.saveDecryptedNote(this, spentNoteOutpoint, spentNote, tx)
         await this.walletDb.saveNullifierToTransactionHash(
           this,
           spend.nullifier,
@@ -253,7 +266,7 @@ export class Account {
           tx,
         )
 
-        await this.walletDb.deleteUnspentNoteHash(this, spentNoteHash, spentNote, tx)
+        await this.walletDb.deleteUnspentNoteOutpoint(this, spentNoteOutpoint, spentNote, tx)
       }
 
       transactionValue = {
@@ -571,12 +584,23 @@ export class Account {
     const assetBalanceDeltas = new AssetBalances()
     const receivedAssets = new BufferSet()
 
+    const noteHashToDecryptedNote = new BufferMap<DecryptedNote>()
+    for (const decryptedNote of decryptedNotes) {
+      noteHashToDecryptedNote.set(decryptedNote.hash, decryptedNote)
+    }
+
     await this.walletDb.db.withTransaction(tx, async (tx) => {
       if (await this.hasTransaction(transaction.hash(), tx)) {
         return
       }
 
-      for (const decryptedNote of decryptedNotes) {
+      for (const [index, noteEncrypted] of transaction.notes.entries()) {
+        const decryptedNote = noteHashToDecryptedNote.get(noteEncrypted.hash())
+
+        if (!decryptedNote) {
+          continue
+        }
+
         if (decryptedNote.forSpender) {
           continue
         }
@@ -595,23 +619,24 @@ export class Account {
         assetBalanceDeltas.increment(note.note.assetId(), note.note.value())
         receivedAssets.add(note.note.assetId())
 
-        await this.walletDb.saveDecryptedNote(this, decryptedNote.hash, note, tx)
+        const noteOutpoint = getNoteOutpoint(transaction, index)
+        await this.walletDb.saveDecryptedNote(this, noteOutpoint, note, tx)
       }
 
       for (const spend of transaction.spends) {
-        const spentNoteHash = await this.getNoteHash(spend.nullifier, tx)
-        if (!spentNoteHash) {
+        const spentNoteOutpoint = await this.getNoteOutpoint(spend.nullifier, tx)
+        if (!spentNoteOutpoint) {
           continue
         }
 
-        const note = await this.getDecryptedNote(spentNoteHash, tx)
+        const note = await this.getDecryptedNote(spentNoteOutpoint, tx)
 
         Assert.isNotUndefined(note)
 
         assetBalanceDeltas.increment(note.note.assetId(), -note.note.value())
 
         const spentNote = { ...note, spent: true }
-        await this.walletDb.saveDecryptedNote(this, spentNoteHash, spentNote, tx)
+        await this.walletDb.saveDecryptedNote(this, spentNoteOutpoint, spentNote, tx)
 
         const existingTransactionHash = await this.walletDb.getTransactionHashFromNullifier(
           this,
@@ -627,7 +652,7 @@ export class Account {
           )
         }
 
-        await this.walletDb.deleteUnspentNoteHash(this, spentNoteHash, spentNote, tx)
+        await this.walletDb.deleteUnspentNoteOutpoint(this, spentNoteOutpoint, spentNote, tx)
       }
 
       const transactionValue = {
@@ -668,10 +693,10 @@ export class Account {
         return
       }
 
-      for (const note of transaction.notes) {
-        const noteHash = note.hash()
+      for (const [index, _] of transaction.notes.entries()) {
+        const noteOutpoint = getNoteOutpoint(transaction, index)
 
-        const decryptedNoteValue = await this.getDecryptedNote(noteHash, tx)
+        const decryptedNoteValue = await this.getDecryptedNote(noteOutpoint, tx)
         if (decryptedNoteValue === undefined) {
           continue
         }
@@ -684,14 +709,14 @@ export class Account {
 
         const sequence = decryptedNoteValue.sequence
         Assert.isNotNull(sequence)
-        await this.walletDb.disconnectNoteHashSequence(this, noteHash, sequence, tx)
+        await this.walletDb.disconnectNoteOutpointSequence(this, noteOutpoint, sequence, tx)
 
         Assert.isNotNull(decryptedNoteValue.nullifier)
         await this.walletDb.deleteNullifier(this, decryptedNoteValue.nullifier, tx)
 
         await this.walletDb.saveDecryptedNote(
           this,
-          noteHash,
+          noteOutpoint,
           {
             ...decryptedNoteValue,
             nullifier: null,
@@ -701,16 +726,21 @@ export class Account {
           },
           tx,
         )
-        await this.walletDb.deleteUnspentNoteHash(this, noteHash, decryptedNoteValue, tx)
+        await this.walletDb.deleteUnspentNoteOutpoint(
+          this,
+          noteOutpoint,
+          decryptedNoteValue,
+          tx,
+        )
       }
 
       for (const spend of transaction.spends) {
-        const spentNoteHash = await this.getNoteHash(spend.nullifier, tx)
-        if (!spentNoteHash) {
+        const spentNoteOutpoint = await this.getNoteOutpoint(spend.nullifier, tx)
+        if (!spentNoteOutpoint) {
           continue
         }
 
-        const spentNote = await this.getDecryptedNote(spentNoteHash, tx)
+        const spentNote = await this.getDecryptedNote(spentNoteOutpoint, tx)
 
         Assert.isNotUndefined(spentNote)
 
@@ -763,18 +793,23 @@ export class Account {
   }
 
   private async deleteDecryptedNote(
-    noteHash: Buffer,
+    noteOutpoint: Buffer,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.walletDb.db.withTransaction(tx, async (tx) => {
-      const decryptedNote = await this.getDecryptedNote(noteHash, tx)
+      const decryptedNote = await this.getDecryptedNote(noteOutpoint, tx)
 
       if (!decryptedNote) {
         return
       }
 
-      await this.walletDb.deleteDecryptedNote(this, noteHash, tx)
-      await this.walletDb.deleteNoteHashSequence(this, noteHash, decryptedNote.sequence, tx)
+      await this.walletDb.deleteDecryptedNote(this, noteOutpoint, tx)
+      await this.walletDb.deleteNoteOutpointSequence(
+        this,
+        noteOutpoint,
+        decryptedNote.sequence,
+        tx,
+      )
 
       if (decryptedNote.nullifier) {
         await this.walletDb.deleteNullifier(this, decryptedNote.nullifier, tx)
@@ -782,8 +817,11 @@ export class Account {
     })
   }
 
-  async getNoteHash(nullifier: Buffer, tx?: IDatabaseTransaction): Promise<Buffer | undefined> {
-    return this.walletDb.loadNoteHash(this, nullifier, tx)
+  async getNoteOutpoint(
+    nullifier: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<Buffer | undefined> {
+    return this.walletDb.loadNoteOutpoint(this, nullifier, tx)
   }
 
   async getTransaction(
@@ -867,10 +905,10 @@ export class Account {
       }
 
       for (const spend of transaction.spends) {
-        const noteHash = await this.getNoteHash(spend.nullifier, tx)
+        const noteOutpoint = await this.getNoteOutpoint(spend.nullifier, tx)
 
-        if (noteHash) {
-          const decryptedNote = await this.getDecryptedNote(noteHash, tx)
+        if (noteOutpoint) {
+          const decryptedNote = await this.getDecryptedNote(noteOutpoint, tx)
           Assert.isNotUndefined(
             decryptedNote,
             'nullifierToNote mappings must have a corresponding decryptedNote',
@@ -886,14 +924,14 @@ export class Account {
             await this.walletDb.deleteNullifierToTransactionHash(this, spend.nullifier, tx)
             await this.walletDb.saveDecryptedNote(
               this,
-              noteHash,
+              noteOutpoint,
               {
                 ...decryptedNote,
                 spent: false,
               },
               tx,
             )
-            await this.walletDb.addUnspentNoteHash(this, noteHash, decryptedNote, tx)
+            await this.walletDb.addUnspentNoteOutpoint(this, noteOutpoint, decryptedNote, tx)
           }
         }
       }
@@ -1268,14 +1306,14 @@ export class Account {
   ): Promise<Array<DecryptedNoteValue & { hash: Buffer }>> {
     const notes = []
 
-    for (const note of transaction.notes) {
-      const noteHash = note.hash()
-      const decryptedNote = await this.getDecryptedNote(noteHash)
+    for (const [index, _] of transaction.notes.entries()) {
+      const noteOutpoint = getNoteOutpoint(transaction, index)
+      const decryptedNote = await this.getDecryptedNote(noteOutpoint)
 
       if (decryptedNote) {
         notes.push({
           ...decryptedNote,
-          hash: noteHash,
+          hash: noteOutpoint,
         })
       }
     }

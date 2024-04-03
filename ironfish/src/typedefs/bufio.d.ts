@@ -10,6 +10,7 @@ declare module 'bufio' {
     writeU8(value: number): StaticWriter
     writeU16(value: number): StaticWriter
     writeU32(value: number): StaticWriter
+    writeU32BE(value: number): StaticWriter
     writeU64(value: number): StaticWriter
     writeI64(value: number): StaticWriter
     writeBigU64(value: bigint): StaticWriter
@@ -36,6 +37,7 @@ declare module 'bufio' {
     writeU8(value: number): BufferWriter
     writeU16(value: number): BufferWriter
     writeU32(value: number): BufferWriter
+    writeU32BE(value: number): StaticWriter
     writeU64(value: number): BufferWriter
     writeBigU64(value: bigint): BufferWriter
     writeBigU64BE(value: bigint): BufferWriter
