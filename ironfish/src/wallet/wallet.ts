@@ -1620,6 +1620,7 @@ export class Wallet {
     })
 
     this.accounts.set(account.id, account)
+    this.logger.debug(`Account ${account.id} imported successfully`)
     this.onAccountImported.emit(account)
 
     return account
@@ -1646,6 +1647,7 @@ export class Wallet {
       id: uuid(),
       walletDb: this.walletDb,
     })
+    this.logger.debug(`Resetting account name: ${account.name}, id: ${account.id}`)
 
     await this.walletDb.db.withTransaction(options?.tx, async (tx) => {
       await this.walletDb.setAccount(newAccount, tx)
@@ -1672,6 +1674,7 @@ export class Wallet {
   }
 
   async removeAccount(account: Account, tx?: IDatabaseTransaction): Promise<void> {
+    this.accounts.delete(account.id)
     await this.walletDb.db.withTransaction(tx, async (tx) => {
       if (account.id === this.defaultAccount) {
         await this.walletDb.setDefaultAccount(null, tx)
@@ -1682,7 +1685,7 @@ export class Wallet {
       await this.walletDb.removeHead(account, tx)
     })
 
-    this.accounts.delete(account.id)
+    this.logger.debug(`Removed account name: ${account.name}, id: ${account.id}`)
     this.onAccountRemoved.emit(account)
   }
 
