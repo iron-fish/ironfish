@@ -68,6 +68,7 @@
     "@oclif/plugin-help": "5.1.12",
     "@oclif/plugin-not-found": "2.3.1",
     "@oclif/plugin-warn-if-update-available": "2.0.40",
+    "@oclif/plugin-autocomplete": "3.0.13",
     "@types/tar": "6.1.1",
     "axios": "0.21.4",
     "bech32": "2.0.0",
@@ -93,7 +94,8 @@
     "plugins": [
       "@oclif/plugin-help",
       "@oclif/plugin-not-found",
-      "@oclif/plugin-warn-if-update-available"
+      "@oclif/plugin-warn-if-update-available",
+      "@oclif/plugin-autocomplete"
     ],
     "topics": {}
   },
