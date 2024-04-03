@@ -17,30 +17,34 @@ import {
   useTxFixture,
 } from '../../testUtilities'
 import { AsyncUtils } from '../../utils/async'
+import { getNoteOutpoint, NoteOutpoint } from '../interfaces/noteOutpoint'
 import { BalanceValue } from '../walletdb/balanceValue'
 import { Account } from './account'
 
 describe('Accounts', () => {
   const nodeTest = createNodeTest()
 
-  async function accountHasSequenceToNoteHash(
+  async function accountHasSequenceToNoteOutpoint(
     account: Account,
     sequence: number,
-    noteHash: Buffer,
+    noteOutpoint: Buffer,
   ): Promise<boolean> {
-    const entry = await account['walletDb'].sequenceToNoteHash.get([
+    const entry = await account['walletDb'].sequenceToNoteOutpoint.get([
       account.prefix,
-      [sequence, noteHash],
+      [sequence, noteOutpoint],
     ])
 
     return entry !== undefined
   }
 
-  async function accountHasNonChainNoteHash(
+  async function accountHasNonChainNoteOutpoint(
     account: Account,
-    noteHash: Buffer,
+    noteOutpoint: NoteOutpoint,
   ): Promise<boolean> {
-    const entry = await account['walletDb'].nonChainNoteHashes.get([account.prefix, noteHash])
+    const entry = await account['walletDb'].nonChainNoteOutpoints.get([
+      account.prefix,
+      noteOutpoint,
+    ])
 
     return entry !== undefined
   }
@@ -58,16 +62,18 @@ describe('Accounts', () => {
 
     // From block1
     const note1Encrypted = Array.from(block1.notes())[0]
+    const note1EncryptedOutpoint = getNoteOutpoint(block1.transactions[0], 0)
     const note1 = note1Encrypted.decryptNoteForOwner(account.incomingViewKey)
     Assert.isNotUndefined(note1)
 
     // From block2
     const note2Encrypted = Array.from(block2.notes())[0]
+    const note2EncryptedOutpoint = getNoteOutpoint(block2.transactions[0], 0)
     const note2 = note2Encrypted.decryptNoteForOwner(account.incomingViewKey)
     Assert.isNotUndefined(note2)
 
-    let noteHashesNotOnChain = await AsyncUtils.materialize(
-      node.wallet.walletDb.loadNoteHashesNotOnChain(account),
+    let noteOutpointsNotOnChain = await AsyncUtils.materialize(
+      node.wallet.walletDb.loadNoteOutpointsNotOnChain(account),
     )
     let notesInSequence = await AsyncUtils.materialize(
       node.wallet.walletDb.loadNotesInSequenceRange(account, 0, 3),
@@ -79,17 +85,17 @@ describe('Accounts', () => {
       node.wallet.walletDb.loadNotesInSequenceRange(account, 2, 2),
     )
 
-    expect(noteHashesNotOnChain).toHaveLength(2)
-    expect(noteHashesNotOnChain).toContainEqual(note1Encrypted.hash())
-    expect(noteHashesNotOnChain).toContainEqual(note2Encrypted.hash())
+    expect(noteOutpointsNotOnChain).toHaveLength(2)
+    expect(noteOutpointsNotOnChain).toContainEqual(note1EncryptedOutpoint)
+    expect(noteOutpointsNotOnChain).toContainEqual(note2EncryptedOutpoint)
     expect(notesInSequence).toHaveLength(0)
     expect(notesInSequence2).toHaveLength(0)
     expect(notesInSequence3).toHaveLength(0)
 
     await node.wallet.updateHead()
 
-    noteHashesNotOnChain = await AsyncUtils.materialize(
-      node.wallet.walletDb.loadNoteHashesNotOnChain(account),
+    noteOutpointsNotOnChain = await AsyncUtils.materialize(
+      node.wallet.walletDb.loadNoteOutpointsNotOnChain(account),
     )
     notesInSequence = await AsyncUtils.materialize(
       node.wallet.walletDb.loadNotesInSequenceRange(account, 0, 4),
@@ -104,25 +110,25 @@ describe('Accounts', () => {
       node.wallet.walletDb.loadNotesInSequenceRange(account, 4, 10),
     )
 
-    expect(noteHashesNotOnChain).toHaveLength(0)
+    expect(noteOutpointsNotOnChain).toHaveLength(0)
     expect(notesInSequence2).toHaveLength(1)
     expect(notesInSequence2).toContainEqual(
       expect.objectContaining({
-        hash: note1Encrypted.hash(),
+        outpoint: note1EncryptedOutpoint,
       }),
     )
 
     expect(notesInSequence3).toHaveLength(1)
     expect(notesInSequence3).toContainEqual(
       expect.objectContaining({
-        hash: note2Encrypted.hash(),
+        outpoint: note2EncryptedOutpoint,
       }),
     )
 
     // Check the notes are returned and in order
     expect(notesInSequence).toHaveLength(2)
-    expect(notesInSequence[0].hash).toEqual(note1Encrypted.hash())
-    expect(notesInSequence[1].hash).toEqual(note2Encrypted.hash())
+    expect(notesInSequence[0].outpoint).toEqual(note1EncryptedOutpoint)
+    expect(notesInSequence[1].outpoint).toEqual(note2EncryptedOutpoint)
 
     // And that no notes are returned in a range where there are none
     await expect(notesInSequenceAfter).resolves.toHaveLength(0)
@@ -142,7 +148,7 @@ describe('Accounts', () => {
     await expect(AsyncUtils.materialize(account.getNotes())).resolves.toHaveLength(1)
 
     await expect(
-      AsyncUtils.materialize(node.wallet.walletDb.loadNoteHashesNotOnChain(account)),
+      AsyncUtils.materialize(node.wallet.walletDb.loadNoteOutpointsNotOnChain(account)),
     ).resolves.toHaveLength(1)
 
     await expect(account.getBalance(Asset.nativeId(), 1)).resolves.toMatchObject({
@@ -155,7 +161,7 @@ describe('Accounts', () => {
     await expect(AsyncUtils.materialize(account.getNotes())).resolves.toHaveLength(0)
 
     await expect(
-      AsyncUtils.materialize(node.wallet.walletDb.loadNoteHashesNotOnChain(account)),
+      AsyncUtils.materialize(node.wallet.walletDb.loadNoteOutpointsNotOnChain(account)),
     ).resolves.toHaveLength(0)
 
     await expect(account.getBalance(Asset.nativeId(), 1)).resolves.toMatchObject({
@@ -299,14 +305,16 @@ describe('Accounts', () => {
       expect(addPendingSpy).toHaveBeenCalled()
 
       // transaction from A -> A, so all notes belong to A
-      for (const note of transaction.notes) {
-        const decryptedNote = await accountA.getDecryptedNote(note.hash())
+      for (const [index, _] of transaction.notes.entries()) {
+        const noteOutpoint = getNoteOutpoint(transaction, index)
+
+        const decryptedNote = await accountA.getDecryptedNote(noteOutpoint)
 
         expect(decryptedNote).toBeDefined()
 
-        const nonChainIndex = await accountA['walletDb'].nonChainNoteHashes.get([
+        const nonChainIndex = await accountA['walletDb'].nonChainNoteOutpoints.get([
           accountA.prefix,
-          note.hash(),
+          noteOutpoint,
         ])
 
         expect(nonChainIndex).toBeDefined()
@@ -329,11 +337,11 @@ describe('Accounts', () => {
       expect(addPendingSpy).toHaveBeenCalled()
 
       for (const spend of transaction.spends) {
-        const spentNoteHash = await accountA.getNoteHash(spend.nullifier)
+        const spentNoteOutpoint = await accountA.getNoteOutpoint(spend.nullifier)
 
-        Assert.isNotUndefined(spentNoteHash)
+        Assert.isNotUndefined(spentNoteOutpoint)
 
-        const spentNote = await accountA.getDecryptedNote(spentNoteHash)
+        const spentNote = await accountA.getDecryptedNote(spentNoteOutpoint)
 
         Assert.isNotUndefined(spentNote)
 
@@ -421,7 +429,7 @@ describe('Accounts', () => {
       await node.wallet.updateHead()
 
       let unspentA = await AsyncUtils.materialize(
-        accountA['walletDb'].loadUnspentNoteHashes(accountA, Asset.nativeId()),
+        accountA['walletDb'].loadUnspentNoteOutpoints(accountA, Asset.nativeId()),
       )
 
       expect(unspentA).toHaveLength(1)
@@ -430,7 +438,7 @@ describe('Accounts', () => {
       await useTxFixture(node.wallet, accountA, accountB)
 
       unspentA = await AsyncUtils.materialize(
-        accountA['walletDb'].loadUnspentNoteHashes(accountA, Asset.nativeId()),
+        accountA['walletDb'].loadUnspentNoteOutpoints(accountA, Asset.nativeId()),
       )
       expect(unspentA).toHaveLength(0)
     })
@@ -449,7 +457,7 @@ describe('Accounts', () => {
       await useTxFixture(node.wallet, accountA, accountB)
 
       const unspentB = await AsyncUtils.materialize(
-        accountB['walletDb'].loadUnspentNoteHashes(accountB, Asset.nativeId()),
+        accountB['walletDb'].loadUnspentNoteOutpoints(accountB, Asset.nativeId()),
       )
       expect(unspentB).toHaveLength(0)
     })
@@ -496,23 +504,24 @@ describe('Accounts', () => {
       expect(connectSpy).toHaveBeenCalled()
 
       // transaction from A -> A, so all notes belong to A
-      for (const note of transaction.notes) {
-        const decryptedNote = await accountA.getDecryptedNote(note.hash())
+      for (const [index, _] of transaction.notes.entries()) {
+        const noteOutpoint = getNoteOutpoint(transaction, index)
+        const decryptedNote = await accountA.getDecryptedNote(noteOutpoint)
 
         expect(decryptedNote).toBeDefined()
 
-        const nonChainIndex = await accountA['walletDb'].nonChainNoteHashes.get([
+        const nonChainIndex = await accountA['walletDb'].nonChainNoteOutpoints.get([
           accountA.prefix,
-          note.hash(),
+          noteOutpoint,
         ])
 
         expect(nonChainIndex).toBeUndefined()
 
         expect(decryptedNote?.nullifier).toBeDefined()
 
-        const sequenceIndex = await accountA['walletDb'].sequenceToNoteHash.get([
+        const sequenceIndex = await accountA['walletDb'].sequenceToNoteOutpoint.get([
           accountA.prefix,
-          [3, note.hash()],
+          [3, noteOutpoint],
         ])
 
         expect(sequenceIndex).toBeDefined()
@@ -540,11 +549,11 @@ describe('Accounts', () => {
       expect(connectSpy).toHaveBeenCalled()
 
       for (const spend of transaction.spends) {
-        const spentNoteHash = await accountA.getNoteHash(spend.nullifier)
+        const spentNoteOutpoint = await accountA.getNoteOutpoint(spend.nullifier)
 
-        Assert.isNotUndefined(spentNoteHash)
+        Assert.isNotUndefined(spentNoteOutpoint)
 
-        const spentNote = await accountA.getDecryptedNote(spentNoteHash)
+        const spentNote = await accountA.getDecryptedNote(spentNoteOutpoint)
 
         Assert.isNotUndefined(spentNote)
 
@@ -964,13 +973,13 @@ describe('Accounts', () => {
       await node.chain.addBlock(block2)
       await node.wallet.updateHead()
 
-      const unspentNoteHashes = await AsyncUtils.materialize(
-        accountA['walletDb'].loadUnspentNoteHashes(accountA, Asset.nativeId()),
+      const loadUnspentNoteOutpoints = await AsyncUtils.materialize(
+        accountA['walletDb'].loadUnspentNoteOutpoints(accountA, Asset.nativeId()),
       )
 
-      expect(unspentNoteHashes).toHaveLength(1)
+      expect(loadUnspentNoteOutpoints).toHaveLength(1)
 
-      const decryptedNote = await accountA.getDecryptedNote(unspentNoteHashes[0])
+      const decryptedNote = await accountA.getDecryptedNote(loadUnspentNoteOutpoints[0])
 
       expect(decryptedNote).toBeDefined()
     })
@@ -995,18 +1004,18 @@ describe('Accounts', () => {
       await nodeB.chain.addBlock(block2)
       await nodeB.wallet.updateHead()
 
-      const unspentNoteHashesBefore = await AsyncUtils.materialize(
-        accountAnodeB['walletDb'].loadUnspentNoteHashes(accountAnodeB, Asset.nativeId()),
+      const unspentNoteOutpointsBefore = await AsyncUtils.materialize(
+        accountAnodeB['walletDb'].loadUnspentNoteOutpoints(accountAnodeB, Asset.nativeId()),
       )
-      expect(unspentNoteHashesBefore).toHaveLength(1)
+      expect(unspentNoteOutpointsBefore).toHaveLength(1)
 
       const transaction = await useTxFixture(nodeA.wallet, accountAnodeA, accountAnodeA)
 
       // transaction is pending, but nodeB hasn't seen it, so note is still unspent
-      const unspentNoteHashesPending = await AsyncUtils.materialize(
-        accountAnodeB['walletDb'].loadUnspentNoteHashes(accountAnodeB, Asset.nativeId()),
+      const unspentNoteOutpointsPending = await AsyncUtils.materialize(
+        accountAnodeB['walletDb'].loadUnspentNoteOutpoints(accountAnodeB, Asset.nativeId()),
       )
-      expect(unspentNoteHashesPending).toEqual(unspentNoteHashesBefore)
+      expect(unspentNoteOutpointsPending).toEqual(unspentNoteOutpointsBefore)
 
       // mine the transaction on a block that nodeB adds
       const block3 = await useMinerBlockFixture(nodeA.chain, 3, accountAnodeA, undefined, [
@@ -1017,10 +1026,10 @@ describe('Accounts', () => {
       await nodeB.chain.addBlock(block3)
       await nodeB.wallet.updateHead()
 
-      const unspentNoteHashesAfter = await AsyncUtils.materialize(
-        accountAnodeB['walletDb'].loadUnspentNoteHashes(accountAnodeB, Asset.nativeId()),
+      const unspentNoteOutpointsAfter = await AsyncUtils.materialize(
+        accountAnodeB['walletDb'].loadUnspentNoteOutpoints(accountAnodeB, Asset.nativeId()),
       )
-      expect(unspentNoteHashesAfter).not.toEqual(unspentNoteHashesBefore)
+      expect(unspentNoteOutpointsAfter).not.toEqual(unspentNoteOutpointsBefore)
     })
   })
 
@@ -1042,16 +1051,17 @@ describe('Accounts', () => {
       await node.wallet.updateHead()
 
       // transaction from A -> A, so all notes belong to A
-      for (const note of transaction.notes) {
-        const decryptedNote = await accountA.getDecryptedNote(note.hash())
+      for (const [index, _] of transaction.notes.entries()) {
+        const noteOutpoint = getNoteOutpoint(transaction, index)
+        const decryptedNote = await accountA.getDecryptedNote(noteOutpoint)
 
         expect(decryptedNote).toBeDefined()
 
         expect(decryptedNote?.nullifier).toBeDefined()
 
-        const sequenceIndex = await accountA['walletDb'].sequenceToNoteHash.get([
+        const sequenceIndex = await accountA['walletDb'].sequenceToNoteOutpoint.get([
           accountA.prefix,
-          [3, note.hash()],
+          [3, noteOutpoint],
         ])
 
         expect(sequenceIndex).toBeDefined()
@@ -1060,23 +1070,24 @@ describe('Accounts', () => {
       // disconnect transaction
       await accountA.disconnectTransaction(block3.header, transaction)
 
-      for (const note of transaction.notes) {
-        const decryptedNote = await accountA.getDecryptedNote(note.hash())
+      for (const [index, _] of transaction.notes.entries()) {
+        const noteOutpoint = getNoteOutpoint(transaction, index)
+        const decryptedNote = await accountA.getDecryptedNote(noteOutpoint)
 
         expect(decryptedNote).toBeDefined()
 
         expect(decryptedNote?.nullifier).toBeNull()
 
-        const nonChainIndex = await accountA['walletDb'].nonChainNoteHashes.get([
+        const nonChainIndex = await accountA['walletDb'].nonChainNoteOutpoints.get([
           accountA.prefix,
-          note.hash(),
+          noteOutpoint,
         ])
 
         expect(nonChainIndex).toBeDefined()
 
-        const sequenceIndex = await accountA['walletDb'].sequenceToNoteHash.get([
+        const sequenceIndex = await accountA['walletDb'].sequenceToNoteOutpoint.get([
           accountA.prefix,
-          [3, note.hash()],
+          [3, noteOutpoint],
         ])
 
         expect(sequenceIndex).toBeUndefined()
@@ -1100,11 +1111,11 @@ describe('Accounts', () => {
       await node.wallet.updateHead()
 
       for (const spend of transaction.spends) {
-        const spentNoteHash = await accountA.getNoteHash(spend.nullifier)
+        const spentNoteOutpoint = await accountA.getNoteOutpoint(spend.nullifier)
 
-        Assert.isNotUndefined(spentNoteHash)
+        Assert.isNotUndefined(spentNoteOutpoint)
 
-        const spentNote = await accountA.getDecryptedNote(spentNoteHash)
+        const spentNote = await accountA.getDecryptedNote(spentNoteOutpoint)
 
         Assert.isNotUndefined(spentNote)
 
@@ -1115,11 +1126,11 @@ describe('Accounts', () => {
       await accountA.disconnectTransaction(block3.header, transaction)
 
       for (const spend of transaction.spends) {
-        const spentNoteHash = await accountA.getNoteHash(spend.nullifier)
+        const spentNoteOutpoint = await accountA.getNoteOutpoint(spend.nullifier)
 
-        Assert.isNotUndefined(spentNoteHash)
+        Assert.isNotUndefined(spentNoteOutpoint)
 
-        const spentNote = await accountA.getDecryptedNote(spentNoteHash)
+        const spentNote = await accountA.getDecryptedNote(spentNoteOutpoint)
 
         Assert.isNotUndefined(spentNote)
 
@@ -1548,20 +1559,20 @@ describe('Accounts', () => {
       await node.chain.addBlock(block3)
       await node.wallet.updateHead()
 
-      let unspentNoteHashesB = await AsyncUtils.materialize(
-        accountB['walletDb'].loadUnspentNoteHashes(accountB, Asset.nativeId()),
+      let unspentNoteOutpointsB = await AsyncUtils.materialize(
+        accountB['walletDb'].loadUnspentNoteOutpoints(accountB, Asset.nativeId()),
       )
 
-      expect(unspentNoteHashesB).toHaveLength(1)
+      expect(unspentNoteOutpointsB).toHaveLength(1)
 
       // disconnect transaction
       await accountB.disconnectTransaction(block3.header, transaction)
 
-      unspentNoteHashesB = await AsyncUtils.materialize(
-        accountB['walletDb'].loadUnspentNoteHashes(accountB, Asset.nativeId()),
+      unspentNoteOutpointsB = await AsyncUtils.materialize(
+        accountB['walletDb'].loadUnspentNoteOutpoints(accountB, Asset.nativeId()),
       )
 
-      expect(unspentNoteHashesB).toHaveLength(0)
+      expect(unspentNoteOutpointsB).toHaveLength(0)
     })
   })
 
@@ -1606,20 +1617,22 @@ describe('Accounts', () => {
 
       expect(notes.length).toEqual(1)
 
-      const noteHash = notes[0].hash
+      const noteOutpoint = notes[0].outpoint
 
       // the note has a nullifier stored in nullifierToNoteHashes
       const nullifier = notes[0].nullifier
 
       Assert.isNotNull(nullifier)
 
-      await expect(accountA.getNoteHash(nullifier)).resolves.toEqual(noteHash)
+      await expect(accountA.getNoteOutpoint(nullifier)).resolves.toEqual(noteOutpoint)
 
-      // the note is stored in sequenceToNoteHash
-      await expect(accountHasSequenceToNoteHash(accountA, 2, noteHash)).resolves.toBe(true)
+      // the note is stored in sequenceToNoteOutpoint
+      await expect(accountHasSequenceToNoteOutpoint(accountA, 2, noteOutpoint)).resolves.toBe(
+        true,
+      )
 
-      // but not nonChainNoteHashes
-      await expect(accountHasNonChainNoteHash(accountA, noteHash)).resolves.toBe(false)
+      // but not nonChainNoteOutpoints
+      await expect(accountHasNonChainNoteOutpoint(accountA, noteOutpoint)).resolves.toBe(false)
 
       // delete the transaction
       await accountA.deleteTransaction(transaction)
@@ -1630,13 +1643,15 @@ describe('Accounts', () => {
       expect(notes.length).toEqual(0)
 
       // nullifierToNoteHash entry removed
-      await expect(accountA.getNoteHash(nullifier)).resolves.toBeUndefined()
+      await expect(accountA.getNoteOutpoint(nullifier)).resolves.toBeUndefined()
 
       // the note is not stored in sequenceToNoteHash or nonChainNoteHashes
-      await expect(accountHasSequenceToNoteHash(accountA, 2, noteHash)).resolves.toBe(false)
+      await expect(accountHasSequenceToNoteOutpoint(accountA, 2, noteOutpoint)).resolves.toBe(
+        false,
+      )
 
       // but not nonChainNoteHashes
-      await expect(accountHasNonChainNoteHash(accountA, noteHash)).resolves.toBe(false)
+      await expect(accountHasNonChainNoteOutpoint(accountA, noteOutpoint)).resolves.toBe(false)
     })
 
     it('should delete expired transactions that created assets', async () => {
@@ -2102,9 +2117,9 @@ describe('Accounts', () => {
       expect(transactionHash).toEqual(transaction.hash())
 
       // Verify the note is spent before expiration
-      const noteHash = await account.getNoteHash(nullifier)
-      Assert.isNotUndefined(noteHash)
-      let decryptedNote = await account.getDecryptedNote(noteHash)
+      const noteOutpoint = await account.getNoteOutpoint(nullifier)
+      Assert.isNotUndefined(noteOutpoint)
+      let decryptedNote = await account.getDecryptedNote(noteOutpoint)
       Assert.isNotUndefined(decryptedNote)
       expect(decryptedNote.spent).toBe(true)
 
@@ -2115,7 +2130,7 @@ describe('Accounts', () => {
       ).toBeUndefined()
 
       // Verify the note is unspent after expiration
-      decryptedNote = await account.getDecryptedNote(noteHash)
+      decryptedNote = await account.getDecryptedNote(noteOutpoint)
       Assert.isNotUndefined(decryptedNote)
       expect(decryptedNote.spent).toBe(false)
     })
@@ -2148,9 +2163,9 @@ describe('Accounts', () => {
       expect(transactionHash).toEqual(transactionA.hash())
 
       // Verify the note is spent before expiration
-      const noteHash = await accountA.getNoteHash(nullifier)
-      Assert.isNotUndefined(noteHash)
-      let decryptedNote = await accountA.getDecryptedNote(noteHash)
+      const noteOutpoint = await accountA.getNoteOutpoint(nullifier)
+      Assert.isNotUndefined(noteOutpoint)
+      let decryptedNote = await accountA.getDecryptedNote(noteOutpoint)
       Assert.isNotUndefined(decryptedNote)
       expect(decryptedNote.spent).toBe(true)
 
@@ -2163,7 +2178,7 @@ describe('Accounts', () => {
       expect(transactionHash).toEqual(transactionA.hash())
 
       // Verify the note is still spent since we expired a different transaction
-      decryptedNote = await accountA.getDecryptedNote(noteHash)
+      decryptedNote = await accountA.getDecryptedNote(noteOutpoint)
       Assert.isNotUndefined(decryptedNote)
       expect(decryptedNote.spent).toBe(true)
     })
@@ -2177,26 +2192,26 @@ describe('Accounts', () => {
       await node.chain.addBlock(block2)
       await node.wallet.updateHead()
 
-      let unspentHashes = await AsyncUtils.materialize(
-        accountA['walletDb'].loadUnspentNoteHashes(accountA, Asset.nativeId()),
+      let unspentOutpoints = await AsyncUtils.materialize(
+        accountA['walletDb'].loadUnspentNoteOutpoints(accountA, Asset.nativeId()),
       )
-      expect(unspentHashes).toHaveLength(1)
-      const unspentHash = unspentHashes[0]
+      expect(unspentOutpoints).toHaveLength(1)
+      const unspentHash = unspentOutpoints[0]
 
       const transaction = await useTxFixture(node.wallet, accountA, accountA)
 
-      unspentHashes = await AsyncUtils.materialize(
-        accountA['walletDb'].loadUnspentNoteHashes(accountA, Asset.nativeId()),
+      unspentOutpoints = await AsyncUtils.materialize(
+        accountA['walletDb'].loadUnspentNoteOutpoints(accountA, Asset.nativeId()),
       )
-      expect(unspentHashes).toHaveLength(0)
+      expect(unspentOutpoints).toHaveLength(0)
 
       await accountA.expireTransaction(transaction)
 
-      unspentHashes = await AsyncUtils.materialize(
-        accountA['walletDb'].loadUnspentNoteHashes(accountA, Asset.nativeId()),
+      unspentOutpoints = await AsyncUtils.materialize(
+        accountA['walletDb'].loadUnspentNoteOutpoints(accountA, Asset.nativeId()),
       )
-      expect(unspentHashes).toHaveLength(1)
-      expect(unspentHash).toEqualBuffer(unspentHashes[0])
+      expect(unspentOutpoints).toHaveLength(1)
+      expect(unspentHash).toEqualBuffer(unspentOutpoints[0])
     })
   })
 

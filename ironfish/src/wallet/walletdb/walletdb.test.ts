@@ -10,7 +10,7 @@ import {
   useTxFixture,
 } from '../../testUtilities'
 import { AsyncUtils } from '../../utils'
-import { getNoteOutpoint, NOTE_OUTPOINT_LENGTH } from '../interfaces/noteOutpoint'
+import { getNoteOutpoint, NOTE_OUTPOINT_LENGTH, NoteOutpoint } from '../interfaces/noteOutpoint'
 import { DecryptedNoteValue } from './decryptedNoteValue'
 
 describe('WalletDB', () => {
@@ -45,14 +45,14 @@ describe('WalletDB', () => {
         null,
       )
 
-      const noteHashes = await AsyncUtils.materialize(
+      const noteOutpoints = await AsyncUtils.materialize(
         walletDb.loadNoteOutpointsInSequenceRange(account, 2, 9999),
       )
 
-      expect(noteHashes).toHaveLength(3)
-      expect(noteHashes[0]).toEqualBuffer(Buffer.from('10', 'hex'))
-      expect(noteHashes[1]).toEqualBuffer(Buffer.from('100', 'hex'))
-      expect(noteHashes[2]).toEqualBuffer(Buffer.from('1000', 'hex'))
+      expect(noteOutpoints).toHaveLength(3)
+      expect(noteOutpoints[0]).toEqualBuffer(Buffer.from('10', 'hex'))
+      expect(noteOutpoints[1]).toEqualBuffer(Buffer.from('100', 'hex'))
+      expect(noteOutpoints[2]).toEqualBuffer(Buffer.from('1000', 'hex'))
     })
   })
 
@@ -137,8 +137,8 @@ describe('WalletDB', () => {
       await node.chain.addBlock(block)
       await node.wallet.updateHead()
 
-      const noteHash: Buffer = block.transactions[0].notes[0].hash()
-      const decryptedNote = await account.getDecryptedNote(noteHash)
+      const noteOutpoint: NoteOutpoint = getNoteOutpoint(block.transactions[0], 0)
+      const decryptedNote = await account.getDecryptedNote(noteOutpoint)
       Assert.isNotUndefined(decryptedNote)
       const sorted1 = await AsyncUtils.materialize(
         walletDb.loadValueToUnspentNoteOutpoints(account, Asset.nativeId()),
@@ -149,7 +149,7 @@ describe('WalletDB', () => {
       expect(sorted1.length).toEqual(1)
       expect(unsorted1.length).toEqual(1)
 
-      await walletDb.deleteUnspentNoteOutpoint(account, noteHash, decryptedNote)
+      await walletDb.deleteUnspentNoteOutpoint(account, noteOutpoint, decryptedNote)
       const sorted2 = await AsyncUtils.materialize(
         walletDb.loadValueToUnspentNoteOutpoints(account, Asset.nativeId()),
       )
@@ -159,7 +159,7 @@ describe('WalletDB', () => {
       )
       expect(unsorted2.length).toEqual(0)
 
-      await walletDb.addUnspentNoteOutpoint(account, noteHash, decryptedNote)
+      await walletDb.addUnspentNoteOutpoint(account, noteOutpoint, decryptedNote)
       const sorted3 = await AsyncUtils.materialize(
         walletDb.loadValueToUnspentNoteOutpoints(account, Asset.nativeId()),
       )
@@ -327,36 +327,37 @@ describe('WalletDB', () => {
         walletDb.loadDecryptedNotes(account, upperRange),
       )
       expect(upperRangeNotes.length).toEqual(2)
-      // expect(upperRangeNotes[0].hash).toEqual(noteOutpoints[2])
-      // expect(upperRangeNotes[1].hash).toEqual(noteOutpoints[3])
+      expect(upperRangeNotes[0].outpoint).toEqual(noteOutpoints[2])
+      expect(upperRangeNotes[1].outpoint).toEqual(noteOutpoints[3])
     })
 
     it('loads decrypted notes less than a given key', async () => {
       const node = (await nodeTest.createSetup()).node
       const walletDb = node.wallet.walletDb
       const account = await useAccountFixture(node.wallet)
-      const noteHashes: Buffer[] = []
+      const noteOutpoints: NoteOutpoint[] = []
 
       for (let i = 2; i < 6; i++) {
         const block = await useMinerBlockFixture(node.chain, i, account)
         await node.chain.addBlock(block)
         await node.wallet.updateHead()
 
-        noteHashes.push(block.transactions[0].notes[0].hash())
+        const noteOutpoint = getNoteOutpoint(block.transactions[0], 0)
+        noteOutpoints.push(noteOutpoint)
       }
 
-      noteHashes.sort(Buffer.compare)
+      noteOutpoints.sort(Buffer.compare)
 
       const lowerRange = {
-        lt: walletDb.decryptedNotes.keyEncoding.serialize([account.prefix, noteHashes[2]]),
+        lt: walletDb.decryptedNotes.keyEncoding.serialize([account.prefix, noteOutpoints[2]]),
       }
 
       const lowerRangeNotes = await AsyncUtils.materialize(
         walletDb.loadDecryptedNotes(account, lowerRange),
       )
       expect(lowerRangeNotes.length).toEqual(2)
-      expect(lowerRangeNotes[0].hash).toEqual(noteHashes[0])
-      expect(lowerRangeNotes[1].hash).toEqual(noteHashes[1])
+      expect(lowerRangeNotes[0].outpoint).toEqual(noteOutpoints[0])
+      expect(lowerRangeNotes[1].outpoint).toEqual(noteOutpoints[1])
     })
   })
 

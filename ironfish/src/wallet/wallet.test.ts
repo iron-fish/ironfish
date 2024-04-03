@@ -23,6 +23,7 @@ import {
 import { AsyncUtils, BufferUtils, ORE_TO_IRON } from '../utils'
 import { Account, TransactionStatus, TransactionType } from '../wallet'
 import { MaxMemoLengthError } from './errors'
+import { getNoteOutpoint } from './interfaces/noteOutpoint'
 import { AssetStatus, Wallet } from './wallet'
 
 describe('Wallet', () => {
@@ -236,10 +237,10 @@ describe('Wallet', () => {
     expect(forkSpendTx.spends.length).toEqual(1)
 
     const forkSpendNullifier = forkSpendTx.spends[0].nullifier
-    const forkSpendNoteHash = await accountA.getNoteHash(forkSpendNullifier)
+    const forkSpendNoteOutpoint = await accountA.getNoteOutpoint(forkSpendNullifier)
 
     // nullifier should be defined
-    Assert.isNotUndefined(forkSpendNoteHash)
+    Assert.isNotUndefined(forkSpendNoteOutpoint)
 
     // re-org
     await expect(nodeA.chain).toAddBlock(blockB1)
@@ -248,12 +249,12 @@ describe('Wallet', () => {
     expect(nodeA.chain.head.hash.equals(blockB3.header.hash)).toBe(true)
     await nodeA.wallet.updateHead()
 
-    const forkSpendNote = await accountA.getDecryptedNote(forkSpendNoteHash)
+    const forkSpendNote = await accountA.getDecryptedNote(forkSpendNoteOutpoint)
     expect(forkSpendNote).toBeDefined()
     expect(forkSpendNote?.nullifier).toBeNull()
 
     // nullifier should have been removed from nullifierToNote
-    expect(await accountA.getNoteHash(forkSpendNullifier)).toBeUndefined()
+    expect(await accountA.getNoteOutpoint(forkSpendNullifier)).toBeUndefined()
   })
 
   describe('addSpendsForAsset', () => {
@@ -1085,7 +1086,8 @@ describe('Wallet', () => {
 
       await node.wallet.updateHead()
 
-      const notes = [blockA2.minersFee.notes[0].hash()]
+      const notes = [getNoteOutpoint(blockA2.minersFee, 0)]
+      const expectedSpentNoteHashes = [blockA2.minersFee.notes[0].hash()]
 
       const rawTransaction = await node.wallet.createTransaction({
         account: accountA,
@@ -1105,7 +1107,7 @@ describe('Wallet', () => {
       expect(rawTransaction.spends.length).toBe(1)
 
       const spentNoteHashes = rawTransaction.spends.map((spend) => spend.note.hash())
-      expect(spentNoteHashes).toEqual(notes)
+      expect(spentNoteHashes).toEqual(expectedSpentNoteHashes)
     })
 
     it('should create transaction with a list of multiple note hashes to spend', async () => {
@@ -1122,7 +1124,14 @@ describe('Wallet', () => {
 
       await node.wallet.updateHead()
 
-      const notes = [blockA2.minersFee.notes[0].hash(), blockA3.minersFee.notes[0].hash()]
+      const notes = [
+        getNoteOutpoint(blockA2.minersFee, 0),
+        getNoteOutpoint(blockA3.minersFee, 0),
+      ]
+      const expectedSpentNoteHashes = [
+        blockA2.minersFee.notes[0].hash(),
+        blockA3.minersFee.notes[0].hash(),
+      ]
 
       const rawTransaction = await node.wallet.createTransaction({
         account: accountA,
@@ -1142,7 +1151,7 @@ describe('Wallet', () => {
       expect(rawTransaction.spends.length).toBe(2)
 
       const spentNoteHashes = rawTransaction.spends.map((spend) => spend.note.hash())
-      expect(spentNoteHashes).toEqual(notes)
+      expect(spentNoteHashes).toEqual(expectedSpentNoteHashes)
     })
 
     it('should partially fund a transaction if the note hashes to spend have insufficient funds', async () => {
@@ -1159,7 +1168,8 @@ describe('Wallet', () => {
 
       await node.wallet.updateHead()
 
-      const notes = [blockA2.minersFee.notes[0].hash()]
+      const notes = [getNoteOutpoint(blockA2.minersFee, 0)]
+      const expectedSpentNoteHashes = [blockA2.minersFee.notes[0].hash()]
 
       const rawTransaction = await node.wallet.createTransaction({
         account: accountA,
@@ -1183,7 +1193,7 @@ describe('Wallet', () => {
         spentNoteHashes.add(spend.note.hash())
       }
 
-      expect(spentNoteHashes.has(notes[0])).toBe(true)
+      expect(spentNoteHashes.has(expectedSpentNoteHashes[0])).toBe(true)
     })
 
     it('should create transactions with spends valid after a reorg', async () => {

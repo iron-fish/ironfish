@@ -32,7 +32,7 @@ import { createDB } from '../../storage/utils'
 import { BufferUtils } from '../../utils'
 import { WorkerPool } from '../../workerPool'
 import { Account, calculateAccountPrefix } from '../account/account'
-import { NoteOutpoint } from '../interfaces/noteOutpoint'
+import { NOTE_OUTPOINT_LENGTH, NoteOutpoint } from '../interfaces/noteOutpoint'
 import { AccountValue, AccountValueEncoding } from './accountValue'
 import { AssetValue, AssetValueEncoding } from './assetValue'
 import { BalanceValue, BalanceValueEncoding } from './balanceValue'
@@ -191,19 +191,19 @@ export class WalletDB {
     })
 
     this.decryptedNotes = this.db.addStore({
-      name: 'd',
+      name: 'dn',
       keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
       valueEncoding: new DecryptedNoteValueEncoding(),
     })
 
     this.nullifierToNoteOutpoint = this.db.addStore({
-      name: 'n',
+      name: 'ntno',
       keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
       valueEncoding: new BufferEncoding(),
     })
 
     this.sequenceToNoteOutpoint = this.db.addStore({
-      name: 'SN',
+      name: 'stno',
       keyEncoding: new PrefixEncoding(
         new BufferEncoding(),
         new PrefixEncoding(U32_ENCODING_BE, new BufferEncoding(), 4),
@@ -213,7 +213,7 @@ export class WalletDB {
     })
 
     this.nonChainNoteOutpoints = this.db.addStore({
-      name: 'S',
+      name: 'ncno',
       keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
       valueEncoding: NULL_ENCODING,
     })
@@ -273,24 +273,24 @@ export class WalletDB {
     })
 
     this.unspentNoteOutpoints = this.db.addStore({
-      name: 'un',
+      name: 'uno',
       keyEncoding: new PrefixArrayEncoding([
         [new BufferEncoding(), 4], // account prefix
         [new BufferEncoding(), 32], // asset ID
         [U32_ENCODING_BE, 4], // sequence
         [new BigU64BEEncoding(), 8], // value
-        [new BufferEncoding(), 32], // note hash
+        [new BufferEncoding(), NOTE_OUTPOINT_LENGTH], // note outpoint
       ]),
       valueEncoding: NULL_ENCODING,
     })
 
     this.valueToUnspentNoteOutpoints = this.db.addStore({
-      name: 'valueToUnspentNoteOutpoints',
+      name: 'vtuno',
       keyEncoding: new PrefixArrayEncoding([
         [new BufferEncoding(), 4], // account prefix
         [new BufferEncoding(), 32], // asset ID
         [new BigU64BEEncoding(), 8], // value
-        [new BufferEncoding(), 32], // note hash
+        [new BufferEncoding(), NOTE_OUTPOINT_LENGTH], // note outpoint
       ]),
       valueEncoding: NULL_ENCODING,
     })
@@ -911,7 +911,7 @@ export class WalletDB {
     start: number,
     end: number,
     tx?: IDatabaseTransaction,
-  ): AsyncGenerator<DecryptedNoteValue & { hash: Buffer }> {
+  ): AsyncGenerator<DecryptedNoteValue & { outpoint: Buffer }> {
     for await (const noteOutpoint of this.loadNoteOutpointsInSequenceRange(
       account,
       start,
@@ -921,7 +921,7 @@ export class WalletDB {
       const note = await this.loadDecryptedNote(account, noteOutpoint, tx)
 
       if (note) {
-        yield { ...note, hash: noteOutpoint }
+        yield { ...note, outpoint: noteOutpoint }
       }
     }
   }
@@ -987,7 +987,7 @@ export class WalletDB {
     account: Account,
     range?: DatabaseKeyRange,
     tx?: IDatabaseTransaction,
-  ): AsyncGenerator<DecryptedNoteValue & { hash: Buffer }> {
+  ): AsyncGenerator<DecryptedNoteValue & { outpoint: Buffer }> {
     const gte = BufferUtils.maxNullable(account.prefixRange.gte, range?.gte)
     const lt = BufferUtils.minNullable(account.prefixRange.lt, range?.lt)
 
@@ -995,10 +995,10 @@ export class WalletDB {
       gte,
       lt,
     })) {
-      const [, hash] = key
+      const [, outpoint] = key
       yield {
         ...decryptedNote,
-        hash,
+        outpoint,
       }
     }
   }

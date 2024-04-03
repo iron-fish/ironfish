@@ -8,6 +8,7 @@ import { Transaction } from '../../../primitives'
 import { useAccountFixture, useBlockWithTx } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { Account } from '../../../wallet'
+import { getNoteOutpoint } from '../../../wallet/interfaces/noteOutpoint'
 import { RpcResponseEnded } from '../../response'
 import { GetNotesResponse } from './getNotes'
 import { RpcWalletNote } from './types'
@@ -38,8 +39,9 @@ describe('Route wallet/getNotes', () => {
 
     accountNotesByHash = new BufferMap<RpcWalletNote>()
     for (const transaction of [...previous.transactions, ...block.transactions]) {
-      for (const note of transaction.notes) {
-        const decryptedNote = await account.getDecryptedNote(note.hash())
+      for (const [index, note] of transaction.notes.entries()) {
+        const outpoint = getNoteOutpoint(transaction, index)
+        const decryptedNote = await account.getDecryptedNote(outpoint)
 
         if (!decryptedNote) {
           continue

@@ -138,7 +138,7 @@ export class Account {
 
   async *getNotes(
     keyRange?: DatabaseKeyRange,
-  ): AsyncGenerator<DecryptedNoteValue & { hash: Buffer }> {
+  ): AsyncGenerator<DecryptedNoteValue & { outpoint: Buffer }> {
     for await (const decryptedNote of this.walletDb.loadDecryptedNotes(this, keyRange)) {
       yield decryptedNote
     }
@@ -900,8 +900,9 @@ export class Account {
     const transactionHash = transaction.hash()
 
     await this.walletDb.db.withTransaction(tx, async (tx) => {
-      for (const note of transaction.notes) {
-        await this.deleteDecryptedNote(note.hash(), tx)
+      for (const [index, _] of transaction.notes.entries()) {
+        const noteOutpoint = getNoteOutpoint(transaction, index)
+        await this.deleteDecryptedNote(noteOutpoint, tx)
       }
 
       for (const spend of transaction.spends) {
@@ -1303,7 +1304,7 @@ export class Account {
 
   async getTransactionNotes(
     transaction: Transaction,
-  ): Promise<Array<DecryptedNoteValue & { hash: Buffer }>> {
+  ): Promise<Array<DecryptedNoteValue & { outpoint: Buffer }>> {
     const notes = []
 
     for (const [index, _] of transaction.notes.entries()) {
@@ -1313,7 +1314,7 @@ export class Account {
       if (decryptedNote) {
         notes.push({
           ...decryptedNote,
-          hash: noteOutpoint,
+          outpoint: noteOutpoint,
         })
       }
     }

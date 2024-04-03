@@ -650,5 +650,25 @@
       },
       "proofAuthorizingKey": "d1b2058c56de7f63f697c216017ddb397c6a3e1f42743406bd1cddd2846d950b"
     }
+  ],
+  "WalletDB loadNoteOutpointsInSequenceRange loads note hashes in the provided range": [
+    {
+      "version": 4,
+      "id": "00ec67f2-330c-4379-a6df-b2253252c03a",
+      "name": "test",
+      "spendingKey": "08dccb60028b3a2ee8a627cf4287cd0a6f6f0ea9bc97279a3c2c6a3ba216197a",
+      "viewKey": "6b06352f68b7f1aa1ab2d5561dcfba67552e36565327fc50f5f1ab93fda81967575adcc97093385d2f56a365c66c0a348cf0641d3401869e699612bb9b3f1f02",
+      "incomingViewKey": "8ff8e2884a0bcde1ce663b3aed7dce080a604caff8bbc3a73df36d4dac98fb06",
+      "outgoingViewKey": "c4558d4a580a1e8dfcd174fb30983de1831a0a8a2be3400b288637d4ac16aaa3",
+      "publicAddress": "a68eb3cb87c31cb2ef55db851adbdd1ad4980ccc8cc086123fa3f5e7a4c716f0",
+      "createdAt": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      },
+      "proofAuthorizingKey": "346b174d535fdc664802a2ae1ac3e27fdc586cdf9df40f77cb9a5b4a8efc630e"
+    }
   ]
 }

@@ -27,7 +27,12 @@ describe('Route wallet/sendTransaction (with note selection)', () => {
     await routeTest.node.wallet.updateHead()
 
     const decryptedNotes = await AsyncUtils.materialize(sender.getNotes())
-    const notes = decryptedNotes.map((note) => note.note.hash().toString('hex'))
+    const notes: string[] = []
+    const expectedSpendHashes: string[] = []
+    decryptedNotes.map((note) => {
+      notes.push(note.outpoint.toString('hex'))
+      expectedSpendHashes.push(note.note.hash().toString('hex'))
+    })
     expect((await sender.getBalance(Asset.nativeId(), 0)).confirmed).toBe(2000000000n)
 
     const requestParams = {
@@ -67,6 +72,6 @@ describe('Route wallet/sendTransaction (with note selection)', () => {
     ).content.notes.filter((note) => note.nullifier && spendNullifiers.includes(note.nullifier))
     const spendHashes = spends.map((spend) => spend.noteHash)
 
-    expect(new Set(spendHashes)).toEqual(new Set(notes))
+    expect(new Set(spendHashes)).toEqual(new Set(expectedSpendHashes))
   })
 })

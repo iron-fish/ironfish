@@ -89,7 +89,7 @@ routes.register<typeof GetNotesRequestSchema, GetNotesResponse>(
       if (notes.length === pageSize) {
         nextPageCursor = context.wallet.walletDb.decryptedNotes.keyEncoding.serialize([
           account.prefix,
-          decryptedNote.hash,
+          decryptedNote.outpoint,
         ])
 
         break

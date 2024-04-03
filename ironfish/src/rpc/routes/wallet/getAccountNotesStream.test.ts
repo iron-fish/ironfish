@@ -6,6 +6,7 @@ import { Assert } from '../../../assert'
 import { useAccountFixture, useBlockWithTx } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { AsyncUtils, BufferUtils, CurrencyUtils } from '../../../utils'
+import { getNoteOutpoint } from '../../../wallet/interfaces/noteOutpoint'
 import { DecryptedNoteValue } from '../../../wallet/walletdb/decryptedNoteValue'
 
 describe('Route wallet/getAccountNotesStream', () => {
@@ -28,8 +29,17 @@ describe('Route wallet/getAccountNotesStream', () => {
 
     // account will have notes from previous, the block used to fund the
     // transaction, and from the transaction
-    for (const note of [...previous.transactions[0].notes, ...transaction.notes]) {
-      const decryptedNote = await account.getDecryptedNote(note.hash())
+    for (const [index, note] of previous.transactions[0].notes.entries()) {
+      const outpoint = getNoteOutpoint(previous.transactions[0], index)
+      const decryptedNote = await account.getDecryptedNote(outpoint)
+
+      Assert.isNotUndefined(decryptedNote)
+
+      expectedNotesByHash.set(note.hash(), decryptedNote)
+    }
+    for (const [index, note] of transaction.notes.entries()) {
+      const outpoint = getNoteOutpoint(transaction, index)
+      const decryptedNote = await account.getDecryptedNote(outpoint)
 
       Assert.isNotUndefined(decryptedNote)
 
