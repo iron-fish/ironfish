@@ -253,7 +253,10 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
           })
 
           this.emitResponse(client, response, requestId)
+          continue
         }
+
+        throw error
       }
     }
   }
