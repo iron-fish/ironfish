@@ -15,16 +15,11 @@ import {
 import { CliUx } from '@oclif/core'
 import { fetchNotes } from './note'
 
-export async function getSpendPostTimeInMs(
-  sdk: IronfishSdk,
-  client: RpcClient,
-  account: string,
-  forceBenchmark: boolean,
-): Promise<number> {
+export function getSpendPostTimeInMs(sdk: IronfishSdk): number {
   return sdk.internal.get('spendPostTime')
 }
 
-async function benchmarkSpendPostTime(
+export async function benchmarkSpendPostTime(
   sdk: IronfishSdk,
   client: RpcClient,
   account: string,
