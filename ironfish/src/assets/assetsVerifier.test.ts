@@ -66,22 +66,22 @@ describe('AssetsVerifier', () => {
 
   it('periodically refreshes once started', async () => {
     nock('https://test')
-      .get('/assets/verified')
+      .get('/assets/verified_metadata')
       .reply(200, {
         assets: [assetData1],
       })
-      .get('/assets/verified')
+      .get('/assets/verified_metadata')
       .reply(200, {
         assets: [assetData2],
       })
-      .get('/assets/verified')
+      .get('/assets/verified_metadata')
       .reply(200, {
         assets: [assetData3],
       })
 
     const assetsVerifier = new AssetsVerifier({
       files,
-      apiUrl: 'https://test/assets/verified',
+      apiUrl: 'https://test/assets/verified_metadata',
     })
     const refresh = jest.spyOn(assetsVerifier as any, 'refresh')
 
@@ -116,14 +116,14 @@ describe('AssetsVerifier', () => {
 
   it('does not do any refresh after being stopped', async () => {
     nock('https://test')
-      .get('/assets/verified')
+      .get('/assets/verified_metadata')
       .reply(200, {
         assets: [assetData1],
       })
 
     const assetsVerifier = new AssetsVerifier({
       files,
-      apiUrl: 'https://test/assets/verified',
+      apiUrl: 'https://test/assets/verified_metadata',
     })
     const refresh = jest.spyOn(assetsVerifier as any, 'refresh')
 
@@ -138,7 +138,7 @@ describe('AssetsVerifier', () => {
 
   it('preserves the in-memory cache after being stopped', async () => {
     nock('https://test')
-      .get('/assets/verified')
+      .get('/assets/verified_metadata')
       .reply(
         200,
         {
@@ -148,12 +148,12 @@ describe('AssetsVerifier', () => {
       )
     nock('https://test')
       .matchHeader('if-modified-since', 'some-date')
-      .get('/assets/verified')
+      .get('/assets/verified_metadata')
       .reply(304)
 
     const assetsVerifier = new AssetsVerifier({
       files,
-      apiUrl: 'https://test/assets/verified',
+      apiUrl: 'https://test/assets/verified_metadata',
     })
     const refresh = jest.spyOn(assetsVerifier as any, 'refresh')
 
@@ -179,11 +179,11 @@ describe('AssetsVerifier', () => {
     })
 
     it("returns 'unknown' when the API is unreachable", async () => {
-      nock('https://test').get('/assets/verified').reply(500)
+      nock('https://test').get('/assets/verified_metadata').reply(500)
 
       const assetsVerifier = new AssetsVerifier({
         files,
-        apiUrl: 'https://test/assets/verified',
+        apiUrl: 'https://test/assets/verified_metadata',
       })
       const refresh = jest.spyOn(assetsVerifier as any, 'refresh')
       const warn = jest.spyOn(assetsVerifier['logger'], 'warn')
@@ -200,14 +200,14 @@ describe('AssetsVerifier', () => {
 
     it("returns 'verified' when the API lists the given asset", async () => {
       nock('https://test')
-        .get('/assets/verified')
+        .get('/assets/verified_metadata')
         .reply(200, {
           assets: [assetData1],
         })
 
       const assetsVerifier = new AssetsVerifier({
         files,
-        apiUrl: 'https://test/assets/verified',
+        apiUrl: 'https://test/assets/verified_metadata',
       })
       const refresh = jest.spyOn(assetsVerifier as any, 'refresh')
 
@@ -219,14 +219,14 @@ describe('AssetsVerifier', () => {
 
     it("returns 'unverified' when the API does not list the asset", async () => {
       nock('https://test')
-        .get('/assets/verified')
+        .get('/assets/verified_metadata')
         .reply(200, {
           assets: [assetData1],
         })
 
       const assetsVerifier = new AssetsVerifier({
         files,
-        apiUrl: 'https://test/assets/verified',
+        apiUrl: 'https://test/assets/verified_metadata',
       })
       const refresh = jest.spyOn(assetsVerifier as any, 'refresh')
 
@@ -238,16 +238,16 @@ describe('AssetsVerifier', () => {
 
     it('uses the in-memory cache when the API is unreachable', async () => {
       nock('https://test')
-        .get('/assets/verified')
+        .get('/assets/verified_metadata')
         .reply(200, {
           assets: [assetData1],
         })
-        .get('/assets/verified')
+        .get('/assets/verified_metadata')
         .reply(500)
 
       const assetsVerifier = new AssetsVerifier({
         files,
-        apiUrl: 'https://test/assets/verified',
+        apiUrl: 'https://test/assets/verified_metadata',
       })
       const refresh = jest.spyOn(assetsVerifier as any, 'refresh')
       const warn = jest.spyOn(assetsVerifier['logger'], 'warn')
@@ -271,14 +271,14 @@ describe('AssetsVerifier', () => {
 
     it('uses the in-memory cache after being stopped', async () => {
       nock('https://test')
-        .get('/assets/verified')
+        .get('/assets/verified_metadata')
         .reply(200, {
           assets: [assetData1],
         })
 
       const assetsVerifier = new AssetsVerifier({
         files,
-        apiUrl: 'https://test/assets/verified',
+        apiUrl: 'https://test/assets/verified_metadata',
       })
       const refresh = jest.spyOn(assetsVerifier as any, 'refresh')
 
@@ -303,19 +303,19 @@ describe('AssetsVerifier', () => {
       jest.spyOn(cache, 'setMany').mockReturnValue(undefined)
       jest.spyOn(cache, 'save').mockResolvedValue(undefined)
       cache.config = {
-        apiUrl: 'https://test/assets/verified',
+        apiUrl: 'https://test/assets/verified_metadata',
         assets: [assetData1],
       }
 
       nock('https://test')
-        .get('/assets/verified')
+        .get('/assets/verified_metadata')
         .reply(200, {
           assets: [assetData2],
         })
 
       const assetsVerifier = new AssetsVerifier({
         files,
-        apiUrl: 'https://test/assets/verified',
+        apiUrl: 'https://test/assets/verified_metadata',
         cache: cache,
       })
       const refresh = jest.spyOn(assetsVerifier as any, 'refresh')
@@ -335,19 +335,19 @@ describe('AssetsVerifier', () => {
       jest.spyOn(cache, 'setMany').mockReturnValue(undefined)
       jest.spyOn(cache, 'save').mockResolvedValue(undefined)
       cache.config = {
-        apiUrl: 'https://foo.test/assets/verified',
+        apiUrl: 'https://foo.test/assets/verified_metadata',
         assets: [assetData1],
       }
 
       nock('https://bar.test')
-        .get('/assets/verified')
+        .get('/assets/verified_metadata')
         .reply(200, {
           assets: [assetData2],
         })
 
       const assetsVerifier = new AssetsVerifier({
         files,
-        apiUrl: 'https://bar.test/assets/verified',
+        apiUrl: 'https://bar.test/assets/verified_metadata',
         cache: cache,
       })
       const refresh = jest.spyOn(assetsVerifier as any, 'refresh')
@@ -369,11 +369,11 @@ describe('AssetsVerifier', () => {
       const saveSpy = jest.spyOn(cache, 'save').mockResolvedValue(undefined)
 
       nock('https://test')
-        .get('/assets/verified')
+        .get('/assets/verified_metadata')
         .reply(200, {
           assets: [assetData1],
         })
-        .get('/assets/verified')
+        .get('/assets/verified_metadata')
         .reply(
           200,
           {
@@ -384,7 +384,7 @@ describe('AssetsVerifier', () => {
 
       const assetsVerifier = new AssetsVerifier({
         files,
-        apiUrl: 'https://test/assets/verified',
+        apiUrl: 'https://test/assets/verified_metadata',
         cache: cache,
       })
       const refresh = jest.spyOn(assetsVerifier as any, 'refresh')
@@ -393,7 +393,7 @@ describe('AssetsVerifier', () => {
       await waitForRefreshToFinish(refresh)
 
       expect(setManySpy).toHaveBeenCalledWith({
-        apiUrl: 'https://test/assets/verified',
+        apiUrl: 'https://test/assets/verified_metadata',
         assets: [assetData1],
         lastModified: undefined,
       })
@@ -403,7 +403,7 @@ describe('AssetsVerifier', () => {
       await waitForRefreshToFinish(refresh)
 
       expect(setManySpy).toHaveBeenCalledWith({
-        apiUrl: 'https://test/assets/verified',
+        apiUrl: 'https://test/assets/verified_metadata',
         assets: [assetData2],
         lastModified: 'some-date',
       })
@@ -415,7 +415,7 @@ describe('AssetsVerifier', () => {
         VerifiedAssetsCacheStore.prototype,
       ) as VerifiedAssetsCacheStore
       cache.config = {
-        apiUrl: 'https://test/assets/verified',
+        apiUrl: 'https://test/assets/verified_metadata',
         assets: [assetData1],
         lastModified: 'some-date',
       }
@@ -424,12 +424,12 @@ describe('AssetsVerifier', () => {
 
       nock('https://test')
         .matchHeader('if-modified-since', 'some-date')
-        .get('/assets/verified')
+        .get('/assets/verified_metadata')
         .reply(304)
 
       const assetsVerifier = new AssetsVerifier({
         files,
-        apiUrl: 'https://test/assets/verified',
+        apiUrl: 'https://test/assets/verified_metadata',
         cache: cache,
       })
       const refresh = jest.spyOn(assetsVerifier as any, 'refresh')

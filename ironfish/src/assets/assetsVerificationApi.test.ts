@@ -43,14 +43,14 @@ describe('Assets Verification API Client', () => {
   describe('getVerifiedAssets', () => {
     it('should return verified assets', async () => {
       nock('https://test')
-        .get('/assets/verified')
+        .get('/assets/verified_metadata')
         .reply(200, {
           assets: [assetData1, assetData2],
         })
 
       const api = new AssetsVerificationApi({
         files,
-        url: 'https://test/assets/verified',
+        url: 'https://test/assets/verified_metadata',
       })
       const verifiedAssets = await api.getVerifiedAssets()
 
@@ -78,7 +78,7 @@ describe('Assets Verification API Client', () => {
       }
 
       nock('https://test')
-        .get('/assets/verified')
+        .get('/assets/verified_metadata')
         .reply(200, {
           assets: [assetData1Extra, assetData2Extra],
           extra: 'should be ignored',
@@ -86,7 +86,7 @@ describe('Assets Verification API Client', () => {
 
       const api = new AssetsVerificationApi({
         files,
-        url: 'https://test/assets/verified',
+        url: 'https://test/assets/verified_metadata',
       })
       const verifiedAssets = await api.getVerifiedAssets()
 
@@ -100,18 +100,18 @@ describe('Assets Verification API Client', () => {
 
     it('should refresh verified assets', async () => {
       nock('https://test')
-        .get('/assets/verified')
+        .get('/assets/verified_metadata')
         .reply(200, {
           assets: [assetData1, assetData2],
         })
-        .get('/assets/verified')
+        .get('/assets/verified_metadata')
         .reply(200, {
           assets: [assetData3, assetData1],
         })
 
       const api = new AssetsVerificationApi({
         files,
-        url: 'https://test/assets/verified',
+        url: 'https://test/assets/verified_metadata',
       })
       const verifiedAssets = await api.getVerifiedAssets()
 
@@ -135,7 +135,7 @@ describe('Assets Verification API Client', () => {
     it('should optimize refreshing of verified assets with If-Modified-Since', async () => {
       const lastModified = new Date().toUTCString()
       nock('https://test')
-        .get('/assets/verified')
+        .get('/assets/verified_metadata')
         .reply(
           200,
           {
@@ -147,12 +147,12 @@ describe('Assets Verification API Client', () => {
         )
       nock('https://test')
         .matchHeader('if-modified-since', lastModified)
-        .get('/assets/verified')
+        .get('/assets/verified_metadata')
         .reply(304)
 
       const api = new AssetsVerificationApi({
         files,
-        url: 'https://test/assets/verified',
+        url: 'https://test/assets/verified_metadata',
       })
       const verifiedAssets = await api.getVerifiedAssets()
 
@@ -174,11 +174,11 @@ describe('Assets Verification API Client', () => {
     })
 
     it('should propagate HTTP errors', async () => {
-      nock('https://test').get('/assets/verified').reply(500)
+      nock('https://test').get('/assets/verified_metadata').reply(500)
 
       const api = new AssetsVerificationApi({
         files,
-        url: 'https://test/assets/verified',
+        url: 'https://test/assets/verified_metadata',
       })
       await expect(api.getVerifiedAssets()).rejects.toThrow(
         'Request failed with status code 500',
@@ -187,7 +187,7 @@ describe('Assets Verification API Client', () => {
 
     it('should respect timeouts while establishing connections', async () => {
       nock('https://test')
-        .get('/assets/verified')
+        .get('/assets/verified_metadata')
         .delayConnection(2000)
         .reply(200, {
           assets: [{ identifier: '0123' }, { identifier: 'abcd' }],
@@ -195,7 +195,7 @@ describe('Assets Verification API Client', () => {
 
       const api = new AssetsVerificationApi({
         files,
-        url: 'https://test/assets/verified',
+        url: 'https://test/assets/verified_metadata',
         timeout: 1000,
       })
       await expect(api.getVerifiedAssets()).rejects.toThrow('timeout of 1000ms exceeded')
@@ -203,7 +203,7 @@ describe('Assets Verification API Client', () => {
 
     it('should respect timeouts while waiting for responses', async () => {
       nock('https://test')
-        .get('/assets/verified')
+        .get('/assets/verified_metadata')
         .delay(2000)
         .reply(200, {
           assets: [{ identifier: '0123' }, { identifier: 'abcd' }],
@@ -211,7 +211,7 @@ describe('Assets Verification API Client', () => {
 
       const api = new AssetsVerificationApi({
         files,
-        url: 'https://test/assets/verified',
+        url: 'https://test/assets/verified_metadata',
         timeout: 1000,
       })
       await expect(api.getVerifiedAssets()).rejects.toThrow('timeout of 1000ms exceeded')
