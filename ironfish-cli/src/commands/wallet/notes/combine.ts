@@ -234,7 +234,7 @@ export class CombineNotesCommand extends IronfishCommand {
 
     let spendPostTime = getSpendPostTimeInMs(this.sdk)
 
-    if (spendPostTime === 0 || flags.benchmark) {
+    if (spendPostTime <= 0 || flags.benchmark) {
       spendPostTime = await benchmarkSpendPostTime(this.sdk, client, from)
     }
 
