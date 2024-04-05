@@ -15,33 +15,17 @@ import {
 import { CliUx } from '@oclif/core'
 import { fetchNotes } from './note'
 
-export async function getSpendPostTimeInMs(
+export function getSpendPostTimeInMs(sdk: IronfishSdk): number {
+  return sdk.internal.get('spendPostTime')
+}
+
+export async function benchmarkSpendPostTime(
   sdk: IronfishSdk,
   client: RpcClient,
   account: string,
-  forceBenchmark: boolean,
 ): Promise<number> {
-  let spendPostTime = sdk.internal.get('spendPostTime')
+  CliUx.ux.action.start('Measuring time to combine 1 note')
 
-  const spendPostTimeAt = sdk.internal.get('spendPostTimeAt')
-
-  const shouldbenchmark =
-    forceBenchmark ||
-    spendPostTime <= 0 ||
-    Date.now() - spendPostTimeAt > 1000 * 60 * 60 * 24 * 30 // 1 month
-
-  if (shouldbenchmark) {
-    spendPostTime = await benchmarkSpendPostTime(client, account)
-
-    sdk.internal.set('spendPostTime', spendPostTime)
-    sdk.internal.set('spendPostTimeAt', Date.now())
-    await sdk.internal.save()
-  }
-
-  return spendPostTime
-}
-
-async function benchmarkSpendPostTime(client: RpcClient, account: string): Promise<number> {
   const publicKey = (
     await client.wallet.getAccountPublicKey({
       account: account,
@@ -50,7 +34,10 @@ async function benchmarkSpendPostTime(client: RpcClient, account: string): Promi
 
   const notes = await fetchNotes(client, account, 10)
 
-  CliUx.ux.action.start('Measuring time to combine 1 note')
+  // Not enough notes in the account to measure the time to combine a note
+  if (notes.length < 3) {
+    CliUx.ux.error('Not enough notes.')
+  }
 
   const feeRates = await client.wallet.estimateFeeRates()
 
@@ -97,15 +84,22 @@ async function benchmarkSpendPostTime(client: RpcClient, account: string): Promi
   const resultTxn1 = await Promise.all(promisesTxn1)
   const resultTxn2 = await Promise.all(promisesTxn2)
 
-  const delta = Math.ceil(
+  const spendPostTime = Math.ceil(
     (resultTxn2.reduce((acc, curr) => acc + curr, 0) -
       resultTxn1.reduce((acc, curr) => acc + curr, 0)) /
       3,
   )
 
-  CliUx.ux.action.stop(TimeUtils.renderSpan(delta))
+  if (spendPostTime <= 0) {
+    CliUx.ux.error('Error calculating spendPostTime. Please try again.')
+  }
 
-  return delta
+  CliUx.ux.action.stop(TimeUtils.renderSpan(spendPostTime))
+  sdk.internal.set('spendPostTime', spendPostTime)
+
+  await sdk.internal.save()
+
+  return spendPostTime
 }
 
 async function measureTransactionPostTime(
