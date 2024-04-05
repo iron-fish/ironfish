@@ -5,6 +5,25 @@ import nock from 'nock'
 import { NodeFileProvider } from '../fileSystems'
 import { AssetsVerificationApi } from './assetsVerificationApi'
 
+const assetData1 = {
+  identifier: '0123',
+  symbol: '$FOO',
+  decimals: 4,
+  logoURI: 'https://example.com/not_real.png',
+  website: 'https://example.com',
+}
+
+const assetData2 = {
+  identifier: 'abcd',
+  symbol: '$BAR',
+  decimals: 4,
+}
+
+const assetData3 = {
+  identifier: 'abcd',
+  symbol: '$BAZ',
+}
+
 describe('Assets Verification API Client', () => {
   const files = new NodeFileProvider()
 
@@ -24,18 +43,23 @@ describe('Assets Verification API Client', () => {
   describe('getVerifiedAssets', () => {
     it('should return verified assets', async () => {
       nock('https://test')
-        .get('/assets/verified')
+        .get('/assets/verified_metadata')
         .reply(200, {
-          assets: [{ identifier: '0123' }, { identifier: 'abcd' }],
+          assets: [assetData1, assetData2],
         })
 
       const api = new AssetsVerificationApi({
         files,
-        url: 'https://test/assets/verified',
+        url: 'https://test/assets/verified_metadata',
       })
       const verifiedAssets = await api.getVerifiedAssets()
 
-      expect(verifiedAssets['assetIds']).toStrictEqual(new Set(['0123', 'abcd']))
+      expect(verifiedAssets['assets']).toStrictEqual(
+        new Map([
+          [assetData1.identifier, assetData1],
+          [assetData2.identifier, assetData2],
+        ]),
+      )
       expect(verifiedAssets.isVerified('0123')).toBe(true)
       expect(verifiedAssets.isVerified('abcd')).toBe(true)
       expect(verifiedAssets.isVerified('4567')).toBe(false)
@@ -43,57 +67,79 @@ describe('Assets Verification API Client', () => {
     })
 
     it('should ignore extra fields in responses', async () => {
+      const assetData1Extra = {
+        ...assetData1,
+        extra: 'should be ignored',
+      }
+
+      const assetData2Extra = {
+        ...assetData2,
+        extra: 'should be ignored',
+      }
+
       nock('https://test')
-        .get('/assets/verified')
+        .get('/assets/verified_metadata')
         .reply(200, {
-          assets: [
-            { identifier: '0123', extra: 'should be ignored' },
-            { identifier: 'abcd', extra: 'should be ignored' },
-          ],
+          assets: [assetData1Extra, assetData2Extra],
           extra: 'should be ignored',
         })
 
       const api = new AssetsVerificationApi({
         files,
-        url: 'https://test/assets/verified',
+        url: 'https://test/assets/verified_metadata',
       })
       const verifiedAssets = await api.getVerifiedAssets()
 
-      expect(verifiedAssets['assetIds']).toStrictEqual(new Set(['0123', 'abcd']))
+      expect(verifiedAssets['assets']).toStrictEqual(
+        new Map([
+          [assetData1.identifier, assetData1],
+          [assetData2.identifier, assetData2],
+        ]),
+      )
     })
 
     it('should refresh verified assets', async () => {
       nock('https://test')
-        .get('/assets/verified')
+        .get('/assets/verified_metadata')
         .reply(200, {
-          assets: [{ identifier: '0123' }, { identifier: 'abcd' }],
+          assets: [assetData1, assetData2],
         })
-        .get('/assets/verified')
+        .get('/assets/verified_metadata')
         .reply(200, {
-          assets: [{ identifier: '4567' }, { identifier: '0123' }],
+          assets: [assetData3, assetData1],
         })
 
       const api = new AssetsVerificationApi({
         files,
-        url: 'https://test/assets/verified',
+        url: 'https://test/assets/verified_metadata',
       })
       const verifiedAssets = await api.getVerifiedAssets()
 
-      expect(verifiedAssets['assetIds']).toStrictEqual(new Set(['0123', 'abcd']))
+      expect(verifiedAssets['assets']).toStrictEqual(
+        new Map([
+          [assetData1.identifier, assetData1],
+          [assetData2.identifier, assetData2],
+        ]),
+      )
 
       await api.refreshVerifiedAssets(verifiedAssets)
 
-      expect(verifiedAssets['assetIds']).toStrictEqual(new Set(['0123', '4567']))
+      expect(verifiedAssets['assets']).toStrictEqual(
+        new Map([
+          [assetData3.identifier, assetData3],
+          [assetData1.identifier, assetData1],
+        ]),
+      )
     })
 
     it('should optimize refreshing of verified assets with If-Modified-Since', async () => {
       const lastModified = new Date().toUTCString()
       nock('https://test')
-        .get('/assets/verified')
+        .get('/assets/verified_metadata')
         .reply(
           200,
           {
-            assets: [{ identifier: '0123' }, { identifier: 'abcd' }],
+            assets: [assetData1, assetData2],
           },
           {
             'last-modified': lastModified,
@@ -101,28 +147,38 @@ describe('Assets Verification API Client', () => {
         )
       nock('https://test')
         .matchHeader('if-modified-since', lastModified)
-        .get('/assets/verified')
+        .get('/assets/verified_metadata')
         .reply(304)
 
       const api = new AssetsVerificationApi({
         files,
-        url: 'https://test/assets/verified',
+        url: 'https://test/assets/verified_metadata',
       })
       const verifiedAssets = await api.getVerifiedAssets()
 
-      expect(verifiedAssets['assetIds']).toStrictEqual(new Set(['0123', 'abcd']))
+      expect(verifiedAssets['assets']).toStrictEqual(
+        new Map([
+          [assetData1.identifier, assetData1],
+          [assetData2.identifier, assetData2],
+        ]),
+      )
 
       await api.refreshVerifiedAssets(verifiedAssets)
 
-      expect(verifiedAssets['assetIds']).toStrictEqual(new Set(['0123', 'abcd']))
+      expect(verifiedAssets['assets']).toStrictEqual(
+        new Map([
+          [assetData1.identifier, assetData1],
+          [assetData2.identifier, assetData2],
+        ]),
+      )
     })
 
     it('should propagate HTTP errors', async () => {
-      nock('https://test').get('/assets/verified').reply(500)
+      nock('https://test').get('/assets/verified_metadata').reply(500)
 
       const api = new AssetsVerificationApi({
         files,
-        url: 'https://test/assets/verified',
+        url: 'https://test/assets/verified_metadata',
       })
       await expect(api.getVerifiedAssets()).rejects.toThrow(
         'Request failed with status code 500',
@@ -131,7 +187,7 @@ describe('Assets Verification API Client', () => {
 
     it('should respect timeouts while establishing connections', async () => {
       nock('https://test')
-        .get('/assets/verified')
+        .get('/assets/verified_metadata')
         .delayConnection(2000)
         .reply(200, {
           assets: [{ identifier: '0123' }, { identifier: 'abcd' }],
@@ -139,7 +195,7 @@ describe('Assets Verification API Client', () => {
 
       const api = new AssetsVerificationApi({
         files,
-        url: 'https://test/assets/verified',
+        url: 'https://test/assets/verified_metadata',
         timeout: 1000,
       })
       await expect(api.getVerifiedAssets()).rejects.toThrow('timeout of 1000ms exceeded')
@@ -147,7 +203,7 @@ describe('Assets Verification API Client', () => {
 
     it('should respect timeouts while waiting for responses', async () => {
       nock('https://test')
-        .get('/assets/verified')
+        .get('/assets/verified_metadata')
         .delay(2000)
         .reply(200, {
           assets: [{ identifier: '0123' }, { identifier: 'abcd' }],
@@ -155,7 +211,7 @@ describe('Assets Verification API Client', () => {
 
       const api = new AssetsVerificationApi({
         files,
-        url: 'https://test/assets/verified',
+        url: 'https://test/assets/verified_metadata',
         timeout: 1000,
       })
       await expect(api.getVerifiedAssets()).rejects.toThrow('timeout of 1000ms exceeded')
@@ -163,7 +219,7 @@ describe('Assets Verification API Client', () => {
 
     it('supports file:// URIs', async () => {
       const contents = JSON.stringify({
-        assets: [{ identifier: '0123' }, { identifier: 'abcd' }],
+        assets: [assetData1, assetData2],
       })
       const readFileSpy = jest.spyOn(files, 'readFile').mockResolvedValue(contents)
 
@@ -173,7 +229,12 @@ describe('Assets Verification API Client', () => {
       })
       const verifiedAssets = await api.getVerifiedAssets()
 
-      expect(verifiedAssets['assetIds']).toStrictEqual(new Set(['0123', 'abcd']))
+      expect(verifiedAssets['assets']).toStrictEqual(
+        new Map([
+          [assetData1.identifier, assetData1],
+          [assetData2.identifier, assetData2],
+        ]),
+      )
       expect(readFileSpy).toHaveBeenCalledWith('/some/where')
     })
   })
