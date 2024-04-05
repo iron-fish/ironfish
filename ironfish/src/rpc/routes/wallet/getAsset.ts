@@ -51,9 +51,7 @@ routes.register<typeof GetWalletAssetRequestSchema, GetWalletAssetResponse>(
       throw new RpcNotFoundError(`No asset found with identifier ${request.data.id}`)
     }
 
-    const verification = node.assetsVerifier.verify(asset.id)
-
-    const payload: RpcAsset = {
+    request.end({
       createdTransactionHash: asset.createdTransactionHash.toString('hex'),
       creator: asset.creator.toString('hex'),
       owner: asset.owner.toString('hex'),
@@ -65,19 +63,7 @@ routes.register<typeof GetWalletAssetRequestSchema, GetWalletAssetResponse>(
         confirmations: request.data.confirmations,
       }),
       supply: asset.supply ? CurrencyUtils.encode(asset.supply) : undefined,
-      verification,
-    }
-
-    if (verification.status === 'verified') {
-      const additionalFields = node.assetsVerifier.getAssetData(asset.id)
-      if (additionalFields !== undefined) {
-        payload.symbol = additionalFields.symbol
-        payload.decimals = additionalFields.decimals
-        payload.logoURI = additionalFields.logoURI
-        payload.website = additionalFields.website
-      }
-    }
-
-    request.end(payload)
+      ...node.assetsVerifier.verifyWithMetadata(asset.id),
+    })
   },
 )

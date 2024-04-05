@@ -7,7 +7,11 @@ import { createRootLogger, Logger } from '../logger'
 import { ErrorUtils } from '../utils'
 import { SetIntervalToken } from '../utils'
 import { Retry } from '../utils'
-import { AssetData, AssetsVerificationApi, VerifiedAssets } from './assetsVerificationApi'
+import {
+  AdditionalAssetData,
+  AssetsVerificationApi,
+  VerifiedAssets,
+} from './assetsVerificationApi'
 
 export type AssetVerification = {
   status: 'verified' | 'unverified' | 'unknown'
@@ -115,7 +119,32 @@ export class AssetsVerifier {
     }
   }
 
-  getAssetData(assetId: Buffer | string): AssetData | undefined {
+  // TODO(mat): this function is no longer necessary
+  getAssetData(assetId: Buffer | string): AdditionalAssetData | undefined {
     return this.verifiedAssets?.getAssetData(assetId)
+  }
+
+  verifyWithMetadata(
+    assetId: Buffer | string,
+  ):
+    | { verification: AssetVerification }
+    | ({ verification: AssetVerification } & AdditionalAssetData) {
+    const verification = this.verify(assetId)
+    if (verification.status === 'verified') {
+      const assetData = this.getAssetData(assetId)
+      if (assetData) {
+        return {
+          verification,
+          symbol: assetData.symbol,
+          decimals: assetData.decimals,
+          logoURI: assetData.logoURI,
+          website: assetData.website,
+        }
+      }
+    }
+
+    return {
+      verification,
+    }
   }
 }

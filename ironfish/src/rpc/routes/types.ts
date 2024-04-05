@@ -104,6 +104,10 @@ export const RpcAssetSchema: yup.ObjectSchema<RpcAsset> = yup
     supply: yup.string().optional(),
     owner: yup.string().defined(),
     createdTransactionHash: yup.string().defined(),
+    symbol: yup.string().optional(),
+    decimals: yup.number().optional(),
+    logoURI: yup.string().optional(),
+    website: yup.string().optional(),
   })
   .defined()
 
