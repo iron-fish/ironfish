@@ -24,6 +24,8 @@ export async function benchmarkSpendPostTime(
   client: RpcClient,
   account: string,
 ): Promise<number> {
+  CliUx.ux.action.start('Measuring time to combine 1 note')
+
   const publicKey = (
     await client.wallet.getAccountPublicKey({
       account: account,
@@ -34,10 +36,8 @@ export async function benchmarkSpendPostTime(
 
   // Not enough notes in the account to measure the time to combine a note
   if (notes.length < 3) {
-    return 0
+    CliUx.ux.error('Not enough notes.')
   }
-
-  CliUx.ux.action.start('Measuring time to combine 1 note')
 
   const feeRates = await client.wallet.estimateFeeRates()
 
