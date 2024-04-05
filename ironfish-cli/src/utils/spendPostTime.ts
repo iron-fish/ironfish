@@ -90,9 +90,7 @@ export async function benchmarkSpendPostTime(
       3,
   )
 
-  const test = true
-
-  if (test || spendPostTime < 0) {
+  if (spendPostTime < 0) {
     CliUx.ux.error('Error calculating spendPostTime. Please try again.')
   }
 
