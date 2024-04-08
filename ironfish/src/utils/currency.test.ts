@@ -61,15 +61,13 @@ describe('CurrencyUtils', () => {
 
     it('should still render iron with 8 decimals and $IRON symbol even if parameters are given', () => {
       expect(
-        CurrencyUtils.render(1n, false, {
-          id: Asset.nativeId().toString('hex'),
+        CurrencyUtils.render(1n, false, Asset.nativeId().toString('hex'), {
           decimals: 2,
           symbol: 'FOO',
         }),
       ).toEqual('0.00000001')
       expect(
-        CurrencyUtils.render(1n, true, {
-          id: Asset.nativeId().toString('hex'),
+        CurrencyUtils.render(1n, true, Asset.nativeId().toString('hex'), {
           decimals: 2,
           symbol: 'FOO',
         }),
@@ -77,27 +75,27 @@ describe('CurrencyUtils', () => {
     })
 
     it('should render an asset value with 0 decimals by default', () => {
-      expect(CurrencyUtils.render(1n, false, { id: assetId })).toEqual('1')
-      expect(CurrencyUtils.render(1n, true, { id: assetId })).toEqual(`${assetId} 1`)
+      expect(CurrencyUtils.render(1n, false, assetId)).toEqual('1')
+      expect(CurrencyUtils.render(1n, true, assetId)).toEqual(`${assetId} 1`)
     })
 
     it('should render an asset value with the given decimals and symbol', () => {
-      expect(CurrencyUtils.render(1n, false, { id: assetId, decimals: 2 })).toEqual('0.01')
-      expect(CurrencyUtils.render(1n, true, { id: assetId, decimals: 2 })).toEqual(
+      expect(CurrencyUtils.render(1n, false, assetId, { decimals: 2 })).toEqual('0.01')
+      expect(CurrencyUtils.render(1n, true, assetId, { decimals: 2 })).toEqual(
         `${assetId} 0.01`,
       )
 
-      expect(CurrencyUtils.render(100n, false, { id: assetId, decimals: 2 })).toEqual('1.00')
-      expect(CurrencyUtils.render(100n, true, { id: assetId, decimals: 2 })).toEqual(
+      expect(CurrencyUtils.render(100n, false, assetId, { decimals: 2 })).toEqual('1.00')
+      expect(CurrencyUtils.render(100n, true, assetId, { decimals: 2 })).toEqual(
         `${assetId} 1.00`,
       )
 
       expect(
-        CurrencyUtils.render(100n, false, { id: assetId, decimals: 2, symbol: 'FOO' }),
+        CurrencyUtils.render(100n, false, assetId, { decimals: 2, symbol: 'FOO' }),
       ).toEqual('1.00')
-      expect(
-        CurrencyUtils.render(100n, true, { id: assetId, decimals: 2, symbol: 'FOO' }),
-      ).toEqual(`FOO 1.00`)
+      expect(CurrencyUtils.render(100n, true, assetId, { decimals: 2, symbol: 'FOO' })).toEqual(
+        `FOO 1.00`,
+      )
     })
   })
 

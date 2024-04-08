@@ -69,8 +69,8 @@ export class CurrencyUtils {
   static render(
     amount: bigint | string,
     includeSymbol: boolean = false,
-    asset?: {
-      id?: string
+    assetId?: string,
+    verifiedAssetMetadata?: {
       decimals?: number
       symbol?: string
     },
@@ -81,15 +81,15 @@ export class CurrencyUtils {
 
     // If an asset ID was provided, check if it is the native asset. Otherwise,
     // we can only assume that the amount is in the native asset
-    const isNativeAsset = asset?.id ? isNativeIdentifier(asset?.id) : true
+    const isNativeAsset = assetId ? isNativeIdentifier(assetId) : true
 
     // Default to displaying 0 decimal places for custom assets
     let decimals = 0
     if (isNativeAsset) {
       // Hard-code the amount of decimals in the native asset
       decimals = IRON_DECIMAL_PLACES
-    } else if (asset?.decimals) {
-      decimals = asset.decimals
+    } else if (verifiedAssetMetadata?.decimals) {
+      decimals = verifiedAssetMetadata.decimals
     }
 
     const majorDenominationAmount = FixedNumberUtils.render(amount, decimals)
@@ -97,8 +97,8 @@ export class CurrencyUtils {
     if (includeSymbol) {
       let symbol = '$IRON'
 
-      if (asset?.id && !isNativeAsset) {
-        symbol = asset?.symbol || asset?.id
+      if (assetId && !isNativeAsset) {
+        symbol = verifiedAssetMetadata?.symbol || assetId
       }
       return `${symbol} ${majorDenominationAmount}`
     }

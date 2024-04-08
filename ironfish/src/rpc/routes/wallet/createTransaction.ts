@@ -229,8 +229,13 @@ routes.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
       if (e instanceof NotEnoughFundsError) {
         // We are overriding the error message from the node to include verified assets in their appropriate denomination.
         const assetData = node.assetsVerifier.getAssetData(e.assetId)
-        const renderedAmountNeeded = CurrencyUtils.render(e.amountNeeded, true, assetData)
-        const renderedAmount = CurrencyUtils.render(e.amount, false, assetData)
+        const renderedAmountNeeded = CurrencyUtils.render(
+          e.amountNeeded,
+          true,
+          e.assetId,
+          assetData,
+        )
+        const renderedAmount = CurrencyUtils.render(e.amount, false, e.assetId, assetData)
         const message = `Insufficient funds: Needed ${renderedAmountNeeded} but have ${renderedAmount} available to spend. Please fund your account and/or wait for any pending transactions to be confirmed.'`
         throw new RpcValidationError(message, 400, RPC_ERROR_CODES.INSUFFICIENT_BALANCE)
       }
