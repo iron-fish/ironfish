@@ -5,18 +5,18 @@ import axios, { AxiosAdapter, AxiosError, AxiosRequestConfig, AxiosResponse } fr
 import url, { URL } from 'url'
 import { FileSystem } from '../fileSystems'
 
-export type AdditionalAssetData = {
+export type VerifiedAssetMetadata = {
   symbol: string
   decimals?: number
   logoURI?: string
   website?: string
 }
 
-export type VerifiedAssetMetadata = { identifier: string } & AdditionalAssetData
+export type VerifiedAssetMetadataResponse = { identifier: string } & VerifiedAssetMetadata
 
 type GetAssetDataResponse = {
   version?: number
-  assets: VerifiedAssetMetadata[]
+  assets: VerifiedAssetMetadataResponse[]
 }
 
 type GetVerifiedAssetsRequestHeaders = {
@@ -28,7 +28,7 @@ type GetVerifiedAssetsResponseHeaders = {
 }
 
 export class VerifiedAssets {
-  private readonly assets: Map<string, VerifiedAssetMetadata> = new Map()
+  private readonly assets: Map<string, VerifiedAssetMetadataResponse> = new Map()
   private lastModified?: string
 
   export(): ExportedVerifiedAssets {
@@ -64,7 +64,7 @@ export class VerifiedAssets {
 // - The `assets` field from `VerifiedAssets` is a `Map`, which is not
 //   properly supported by the cache serializer.
 export type ExportedVerifiedAssets = {
-  assets: VerifiedAssetMetadata[]
+  assets: VerifiedAssetMetadataResponse[]
   lastModified?: string
 }
 
@@ -154,7 +154,9 @@ const axiosFileAdapter =
       }))
   }
 
-const sanitizedAssetData = (assetData: VerifiedAssetMetadata): VerifiedAssetMetadata => {
+const sanitizedAssetData = (
+  assetData: VerifiedAssetMetadataResponse,
+): VerifiedAssetMetadataResponse => {
   return {
     identifier: assetData.identifier,
     symbol: assetData.symbol,

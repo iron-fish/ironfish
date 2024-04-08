@@ -3,11 +3,15 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import * as yup from 'yup'
-import { AssetVerification } from '../../assets'
+import { AssetVerification, VerifiedAssetMetadata } from '../../assets'
 import { Connection } from '../../network'
 import { Features } from '../../network/peers/peerFeatures'
 import { BlockHeader } from '../../primitives'
 import { RpcTransaction, RpcTransactionSchema } from './chain/types'
+
+export type RpcAssetVerification = {
+  status: AssetVerification['status']
+} & Partial<VerifiedAssetMetadata>
 
 export type RpcBurn = {
   assetId: string
@@ -78,7 +82,7 @@ export type RpcAsset = {
   creator: string
   metadata: string
   createdTransactionHash: string
-  verification: AssetVerification
+  verification: RpcAssetVerification
   supply?: string
   /**
    * @deprecated query for the transaction to find it's status
