@@ -47,13 +47,6 @@ export class VerifiedAssets {
     return verifiedAssets
   }
 
-  isVerified(assetId: Buffer | string): boolean {
-    if (!(typeof assetId === 'string')) {
-      assetId = assetId.toString('hex')
-    }
-    return this.assets.has(assetId)
-  }
-
   getAssetData(assetId: Buffer | string): VerifiedAssetMetadata | undefined {
     if (!(typeof assetId === 'string')) {
       assetId = assetId.toString('hex')

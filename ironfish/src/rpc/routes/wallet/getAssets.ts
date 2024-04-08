@@ -52,7 +52,7 @@ routes.register<typeof GetAssetsRequestSchema, GetAssetsResponse>(
         }),
         supply: asset.supply !== null ? CurrencyUtils.encode(asset.supply) : undefined,
         createdTransactionHash: asset.createdTransactionHash.toString('hex'),
-        ...node.assetsVerifier.verifyWithMetadata(asset.id),
+        verification: node.assetsVerifier.verify(asset.id),
       })
     }
 
