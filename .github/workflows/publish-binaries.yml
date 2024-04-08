@@ -1,8 +1,8 @@
 name: Build @ironfish binaries
 
-# on:
-#   push
 on:
+  push:
+  workflow_dispatch:
   release:
     types:
       - published
@@ -41,6 +41,12 @@ jobs:
     name: Build ${{ matrix.settings.system }} ${{ matrix.settings.arch }}
     runs-on: ${{ matrix.settings.host }}
     steps:
+      - name: Check runner architecture
+        run: |
+          if [[ "$(uname -m)" != "${{ matrix.settings.arch }}" ]]; then
+            echo "Runner architecture does not match specified architecture"
+            exit 1
+          fi
 
       - name: Use node.js
         uses: actions/setup-node@v4
@@ -183,6 +189,7 @@ jobs:
 
       - name: Upload release asset
         id: upload-release-asset
+        if: github.event_name == 'release'
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
