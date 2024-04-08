@@ -48,11 +48,12 @@ jobs:
             echo "Runner architecture does not match specified architecture"
             exit 1
           fi
-
-      - name: python setup tools
-        run:
-          python -m pip install --upgrade pip
-          pip install setuptools
+      
+      # needed for distutils, which is used by nodegyp, arm64 mac runners have 3.12
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: 3.11
 
       - name: Use node.js
         uses: actions/setup-node@v4
