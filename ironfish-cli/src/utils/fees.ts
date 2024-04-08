@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Asset } from '@ironfish/rust-nodejs'
 import {
   Assert,
   CreateTransactionRequest,
@@ -81,7 +80,6 @@ export async function selectFee(options: {
       balance: {
         account: options.account,
         confirmations: options.confirmations,
-        assetId: Asset.nativeId().toString('hex'),
       },
     })
 
@@ -137,7 +135,7 @@ function getChoiceFromTx(
   value: RawTransaction | null
 } {
   return {
-    name: `${name} ${transaction ? CurrencyUtils.renderIron(transaction.fee) : ''}`,
+    name: `${name} ${transaction ? CurrencyUtils.render(transaction.fee) : ''}`,
     disabled: transaction ? false : 'Not enough $IRON',
     value: transaction,
   }

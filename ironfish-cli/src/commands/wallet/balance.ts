@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { CurrencyUtils, GetBalanceResponse, isNativeIdentifier } from '@ironfish/sdk'
+import { CurrencyUtils, GetBalanceResponse, isNativeIdentifier, RpcAsset } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -54,59 +54,49 @@ export class BalanceCommand extends IronfishCommand {
       confirmations: flags.confirmations,
     })
 
+    const assetId = response.content.assetId
+
     const asset = (
       await client.wallet.getAsset({
         account,
-        id: response.content.assetId,
+        id: assetId,
         confirmations: flags.confirmations,
       })
     ).content
 
-    const assetId = response.content.assetId
-    const assetName = renderAssetWithVerificationStatus(
-      isNativeIdentifier(assetId) ? '$IRON' : assetId,
-      asset,
-    )
+    let nameToRender
+    if (isNativeIdentifier(assetId)) {
+      nameToRender = '$IRON'
+    } else {
+      nameToRender = asset.symbol || assetId
+    }
+    const assetName = renderAssetWithVerificationStatus(nameToRender, asset)
 
     if (flags.explain) {
-      this.explainBalance(response.content, assetName)
+      this.explainBalance(response.content, asset, assetName)
       return
     }
 
+    const renderedAvailable = renderValue(response.content.available, asset, assetName)
+    const renderedConfirmed = renderValue(response.content.confirmed, asset, assetName)
+    const renderedUnconfirmed = renderValue(response.content.unconfirmed, asset, assetName)
+    const renderedPending = renderValue(response.content.pending, asset, assetName)
     if (flags.all) {
       this.log(`Account: ${response.content.account}`)
       this.log(`Head Hash: ${response.content.blockHash || 'NULL'}`)
       this.log(`Head Sequence: ${response.content.sequence || 'NULL'}`)
-      this.log(
-        `Available:   ${CurrencyUtils.renderIron(response.content.available, true, assetName)}`,
-      )
-      this.log(
-        `Confirmed:   ${CurrencyUtils.renderIron(response.content.confirmed, true, assetName)}`,
-      )
-      this.log(
-        `Unconfirmed: ${CurrencyUtils.renderIron(
-          response.content.unconfirmed,
-          true,
-          assetName,
-        )}`,
-      )
-      this.log(
-        `Pending:     ${CurrencyUtils.renderIron(response.content.pending, true, assetName)}`,
-      )
+      this.log(`Available:   ${renderedAvailable}`)
+      this.log(`Confirmed:   ${renderedConfirmed}`)
+      this.log(`Unconfirmed: ${renderedUnconfirmed}`)
+      this.log(`Pending:     ${renderedPending}`)
       return
     }
 
     this.log(`Account: ${response.content.account}`)
-    this.log(
-      `Available Balance: ${CurrencyUtils.renderIron(
-        response.content.available,
-        true,
-        assetName,
-      )}`,
-    )
+    this.log(`Available Balance: ${renderedAvailable}`)
   }
 
-  explainBalance(response: GetBalanceResponse, assetId: string): void {
+  explainBalance(response: GetBalanceResponse, asset: RpcAsset, assetName: string): void {
     const unconfirmed = CurrencyUtils.decode(response.unconfirmed)
     const confirmed = CurrencyUtils.decode(response.confirmed)
     const pending = CurrencyUtils.decode(response.pending)
@@ -114,6 +104,13 @@ export class BalanceCommand extends IronfishCommand {
 
     const unconfirmedDelta = unconfirmed - confirmed
     const pendingDelta = pending - unconfirmed
+
+    const renderedUnconfirmed = renderValue(unconfirmed, asset, assetName)
+    const renderedUnconfirmedDelta = renderValue(unconfirmedDelta, asset, assetName)
+    const renderedConfirmed = renderValue(confirmed, asset, assetName)
+    const renderedPending = renderValue(pending, asset, assetName)
+    const renderedPendingDelta = renderValue(pendingDelta, asset, assetName)
+    const renderedAvailable = renderValue(available, asset, assetName)
 
     this.log(`Account: ${response.account}`)
 
@@ -125,26 +122,34 @@ export class BalanceCommand extends IronfishCommand {
     this.log('')
 
     this.log(`Your available balance is made of notes on the chain that are safe to spend`)
-    this.log(`Available: ${CurrencyUtils.renderIron(available, true, assetId)}`)
+    this.log(`Available: ${renderedAvailable}`)
     this.log('')
 
     this.log('Your confirmed balance includes all notes from transactions on the chain')
-    this.log(`Confirmed: ${CurrencyUtils.renderIron(confirmed, true, assetId)}`)
+    this.log(`Confirmed: ${renderedConfirmed}`)
     this.log('')
 
     this.log(
-      `${response.unconfirmedCount} transactions worth ${CurrencyUtils.renderIron(
-        unconfirmedDelta,
-      )} are on the chain within ${response.confirmations} blocks of the head`,
+      `${response.unconfirmedCount} transactions worth ${renderedUnconfirmedDelta} are on the chain within ${response.confirmations} blocks of the head`,
     )
-    this.log(`Unconfirmed: ${CurrencyUtils.renderIron(unconfirmed, true, assetId)}`)
+    this.log(`Unconfirmed: ${renderedUnconfirmed}`)
     this.log('')
 
     this.log(
-      `${response.pendingCount} transactions worth ${CurrencyUtils.renderIron(
-        pendingDelta,
-      )} are pending and have not been added to the chain`,
+      `${response.pendingCount} transactions worth ${renderedPendingDelta} are pending and have not been added to the chain`,
     )
-    this.log(`Pending: ${CurrencyUtils.renderIron(pending, true, assetId)}`)
+    this.log(`Pending: ${renderedPending}`)
+  }
+}
+
+// TODO(mat): Eventually this logic should probably be rolled into
+// CurrencyUtils.render() via additional options
+function renderValue(amount: string | bigint, asset: RpcAsset, assetName: string): string {
+  const renderNameManually = asset.verification.status === 'verified'
+
+  if (renderNameManually) {
+    return `${assetName} ${CurrencyUtils.render(amount, false, asset.id, asset.verification)}`
+  } else {
+    return CurrencyUtils.render(amount, true, asset.id, asset.verification)
   }
 }

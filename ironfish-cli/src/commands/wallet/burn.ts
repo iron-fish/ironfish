@@ -7,6 +7,7 @@ import {
   CurrencyUtils,
   RawTransaction,
   RawTransactionSerde,
+  RpcAsset,
   Transaction,
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
@@ -130,6 +131,14 @@ export class Burn extends IronfishCommand {
       this.error(`You must have a custom asset in order to burn.`)
     }
 
+    const assetData = (
+      await client.wallet.getAsset({
+        account,
+        id: assetId,
+        confirmations: flags.confirmations,
+      })
+    ).content
+
     let amount = flags.amount
     if (!amount) {
       amount = await promptCurrency({
@@ -141,7 +150,7 @@ export class Burn extends IronfishCommand {
         balance: {
           account,
           confirmations: flags.confirmations,
-          assetId,
+          asset: assetData,
         },
       })
     }
@@ -183,7 +192,7 @@ export class Burn extends IronfishCommand {
       this.exit(0)
     }
 
-    if (!flags.confirm && !(await this.confirm(assetId, amount, raw.fee, account))) {
+    if (!flags.confirm && !(await this.confirm(assetData, amount, raw.fee, account))) {
       this.error('Transaction aborted.')
     }
 
@@ -209,18 +218,14 @@ export class Burn extends IronfishCommand {
       this.warn(`Transaction '${transaction.hash().toString('hex')}' failed to broadcast`)
     }
 
-    const assetResponse = await client.wallet.getAsset({
-      account,
-      id: assetId,
-      confirmations: flags.confirmations,
-    })
-    const assetName = BufferUtils.toHuman(Buffer.from(assetResponse.content.name, 'hex'))
+    const assetName = BufferUtils.toHuman(Buffer.from(assetData.name, 'hex'))
+    const renderedAmount = CurrencyUtils.render(amount, false, assetData)
 
     this.log(`Burned asset ${assetName} from ${account}`)
     this.log(`Asset Identifier: ${assetId}`)
-    this.log(`Amount: ${CurrencyUtils.renderIron(amount)}`)
+    this.log(`Amount: ${renderedAmount}`)
     this.log(`Hash: ${transaction.hash().toString('hex')}`)
-    this.log(`Fee: ${CurrencyUtils.renderIron(transaction.fee(), true)}`)
+    this.log(`Fee: ${CurrencyUtils.render(transaction.fee(), true)}`)
 
     const networkId = (await client.chain.getNetworkInfo()).content.networkId
     const transactionUrl = getExplorer(networkId)?.getTransactionUrl(
@@ -244,20 +249,15 @@ export class Burn extends IronfishCommand {
   }
 
   async confirm(
-    assetId: string,
+    asset: RpcAsset,
     amount: bigint,
     fee: bigint,
     account: string,
   ): Promise<boolean> {
+    const renderedAmount = CurrencyUtils.render(amount, true, asset)
+    const renderedFee = CurrencyUtils.render(fee, true)
     this.log(
-      `You are about to burn: ${CurrencyUtils.renderIron(
-        amount,
-        true,
-        assetId,
-      )} plus a transaction fee of ${CurrencyUtils.renderIron(
-        fee,
-        true,
-      )} with the account ${account}`,
+      `You are about to burn: ${renderedAmount} plus a transaction fee of ${renderedFee} with the account ${account}`,
     )
 
     return CliUx.ux.confirm('Do you confirm (Y/N)?')

@@ -7,6 +7,7 @@ import {
   CurrencyUtils,
   RawTransaction,
   RawTransactionSerde,
+  RpcAsset,
   RpcClient,
   TimeUtils,
   Transaction,
@@ -303,7 +304,15 @@ export class CombineNotesCommand extends IronfishCommand {
     )
     raw = RawTransactionSerde.deserialize(createTransactionBytes)
 
-    displayTransactionSummary(raw, Asset.nativeId().toString('hex'), amount, from, to, memo)
+    // TODO(mat): We need to add asset support here for bridges, etc.
+    const assetData = (
+      await client.wallet.getAsset({
+        id: Asset.nativeId().toString('hex'),
+        account: from,
+      })
+    ).content
+
+    displayTransactionSummary(raw, assetData, amount, from, to, memo)
 
     const transactionTimer = new TransactionTimer(spendPostTime, raw)
 
@@ -351,7 +360,7 @@ export class CombineNotesCommand extends IronfishCommand {
       this.warn(`Transaction '${transaction.hash().toString('hex')}' failed to broadcast`)
     }
 
-    await this.displayCombinedNoteHashes(client, from, transaction)
+    await this.displayCombinedNoteHashes(client, from, transaction, assetData)
 
     this.log(`Transaction hash: ${transaction.hash().toString('hex')}`)
 
@@ -389,6 +398,7 @@ export class CombineNotesCommand extends IronfishCommand {
     client: RpcClient,
     from: string,
     transaction: Transaction,
+    assetData: RpcAsset,
   ) {
     const resultingNotes = (
       await client.wallet.getAccountTransaction({
@@ -406,7 +416,7 @@ export class CombineNotesCommand extends IronfishCommand {
         },
         value: {
           header: 'Value',
-          get: (note) => CurrencyUtils.renderIron(note.value, true),
+          get: (note) => CurrencyUtils.render(note.value, true, assetData),
         },
         owner: {
           header: 'Owner',

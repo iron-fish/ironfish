@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Asset } from '@ironfish/rust-nodejs'
-import { Assert, CurrencyUtils, Logger, RpcClient } from '@ironfish/sdk'
+import { Assert, CurrencyUtils, Logger, RpcAsset, RpcClient } from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
 
 /**
@@ -18,7 +18,7 @@ export async function promptCurrency(options: {
   minimum?: bigint
   balance?: {
     account?: string
-    assetId?: string
+    asset?: RpcAsset
     confirmations?: number
   }
 }): Promise<bigint>
@@ -31,7 +31,7 @@ export async function promptCurrency(options: {
   minimum?: bigint
   balance?: {
     account?: string
-    assetId?: string
+    asset?: RpcAsset
     confirmations?: number
   }
 }): Promise<bigint | null> {
@@ -40,11 +40,16 @@ export async function promptCurrency(options: {
   if (options.balance) {
     const balance = await options.client.wallet.getAccountBalance({
       account: options.balance.account,
-      assetId: options.balance.assetId ?? Asset.nativeId().toString('hex'),
+      assetId: options.balance.asset?.id ?? Asset.nativeId().toString('hex'),
       confirmations: options.balance.confirmations,
     })
 
-    text += ` (balance ${CurrencyUtils.renderIron(balance.content.available)})`
+    const renderedAvailable = CurrencyUtils.render(
+      balance.content.available,
+      false,
+      options.balance.asset,
+    )
+    text += ` (balance ${renderedAvailable})`
   }
 
   // eslint-disable-next-line no-constant-condition
@@ -67,7 +72,12 @@ export async function promptCurrency(options: {
     Assert.isNotNull(amount)
 
     if (options.minimum != null && amount < options.minimum) {
-      options.logger.error(`Error: Minimum is ${CurrencyUtils.renderIron(options.minimum)}`)
+      const renderedMinimum = CurrencyUtils.render(
+        options.minimum,
+        false,
+        options.balance?.asset,
+      )
+      options.logger.error(`Error: Minimum is ${renderedMinimum}`)
       continue
     }
 
