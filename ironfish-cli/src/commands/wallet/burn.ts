@@ -12,7 +12,7 @@ import {
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
-import { IronFlag, RemoteFlags } from '../../flags'
+import { IronFlag, RemoteFlags, ValueFlag } from '../../flags'
 import { selectAsset } from '../../utils/asset'
 import { promptCurrency } from '../../utils/currency'
 import { getExplorer } from '../../utils/explorer'
@@ -46,9 +46,9 @@ export class Burn extends IronfishCommand {
       minimum: 1n,
       flagName: 'fee rate',
     }),
-    amount: IronFlag({
+    amount: ValueFlag({
       char: 'a',
-      description: 'Amount of coins to burn',
+      description: 'Amount of coins to burn in the major denomination',
       flagName: 'amount',
     }),
     assetId: Flags.string({
@@ -139,7 +139,21 @@ export class Burn extends IronfishCommand {
       })
     ).content
 
-    let amount = flags.amount
+    let amount
+    if (flags.amount) {
+      const [parsedAmount, error] = CurrencyUtils.tryMajorToMinor(
+        flags.amount,
+        assetId,
+        assetData?.verification,
+      )
+
+      if (error) {
+        this.error(`${error.reason}`)
+      }
+
+      amount = parsedAmount
+    }
+
     if (!amount) {
       amount = await promptCurrency({
         client: client,

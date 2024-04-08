@@ -157,6 +157,36 @@ export const parseIron = (input: string, opts: IronOpts): Promise<bigint> => {
   })
 }
 
+/**
+ * A flag used for a value when we do not yet know how to treat the conversion
+ * from major to minor denomination. Parses the value simply as a valid number,
+ * to be convert later manually.
+ */
+export const ValueFlag = Flags.custom<bigint, IronOpts>({
+  parse: async (input, _ctx, opts) => parseValue(input, opts),
+})
+
+export const parseValue = (input: string, opts: IronOpts): Promise<bigint> => {
+  return new Promise((resolve, reject) => {
+    const { minimum, flagName } = opts ?? {}
+    try {
+      const value = CurrencyUtils.decode(input)
+
+      if (minimum !== undefined && value < minimum) {
+        reject(new Error(`The minimum ${flagName} is ${CurrencyUtils.renderOre(minimum)}`))
+      }
+
+      if (value < MINIMUM_ORE_AMOUNT || value > MAXIMUM_ORE_AMOUNT) {
+        reject(new Error(`The number inputted for ${flagName} is invalid.`))
+      }
+
+      resolve(value)
+    } catch {
+      reject(new Error(`The number inputted for ${flagName} is invalid.`))
+    }
+  })
+}
+
 export const HexFlag = Flags.custom<string>({
   parse: async (input, _ctx, opts) => {
     const hexRegex = /^[0-9A-Fa-f]+$/g

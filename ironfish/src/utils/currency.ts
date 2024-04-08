@@ -26,21 +26,6 @@ export class CurrencyUtils {
   }
 
   /**
-   * Parses iron into ore but returns the error if parsing fails
-   */
-  static decodeIronTry(amount: string | number): [bigint, null] | [null, ParseFixedError] {
-    try {
-      const parsed = parseFixed(amount.toString(), 8).toBigInt()
-      return [parsed, null]
-    } catch (e) {
-      if (isParseFixedError(e)) {
-        return [null, e]
-      }
-      throw e
-    }
-  }
-
-  /**
    * Deserialize ore back into bigint
    */
   static decode(amount: string): bigint {
@@ -56,6 +41,50 @@ export class CurrencyUtils {
    */
   static encode(amount: bigint): string {
     return amount.toString()
+  }
+
+  /**
+   * Parses a value in a major denomination as the minor denomination where possible:
+   * - $IRON is always going to have 8 decimal places.
+   * - If a custom asset, and `decimals` is provided, it will give the value
+   * followed by a digit for each decimal place
+   * - If a custom asset, and `decimals` is not provided, it will assume the
+   * value is already in minor denomination with no decimal places
+   *
+   * Examples:
+   * 1 $IRON = 100000000
+   * A custom asset with 2 decimal places: 1 = 100
+   * A custom asset with no decimal places: 1 = 1
+   */
+  static tryMajorToMinor(
+    amount: bigint | string,
+    assetId?: string,
+    verifiedAssetMetadata?: {
+      decimals?: number
+    },
+  ): [bigint, null] | [null, ParseFixedError] {
+    try {
+      // If an asset ID was provided, check if it is the native asset. Otherwise,
+      // we can only assume that the amount is in the native asset
+      const isNativeAsset = assetId ? isNativeIdentifier(assetId) : true
+
+      // Default to displaying 0 decimal places for custom assets
+      let decimals = 0
+      if (isNativeAsset) {
+        // Hard-code the amount of decimals in the native asset
+        decimals = IRON_DECIMAL_PLACES
+      } else if (verifiedAssetMetadata?.decimals) {
+        decimals = verifiedAssetMetadata.decimals
+      }
+
+      const parsed = parseFixed(amount.toString(), decimals).toBigInt()
+      return [parsed, null]
+    } catch (e) {
+      if (isParseFixedError(e)) {
+        return [null, e]
+      }
+      throw e
+    }
   }
 
   /**
