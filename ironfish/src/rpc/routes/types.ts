@@ -3,11 +3,15 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import * as yup from 'yup'
-import { AssetVerification } from '../../assets'
+import { AssetVerification, VerifiedAssetMetadata } from '../../assets'
 import { Connection } from '../../network'
 import { Features } from '../../network/peers/peerFeatures'
 import { BlockHeader } from '../../primitives'
 import { RpcTransaction, RpcTransactionSchema } from './chain/types'
+
+export type RpcAssetVerification = {
+  status: AssetVerification['status']
+} & Partial<VerifiedAssetMetadata>
 
 export type RpcBurn = {
   assetId: string
@@ -78,7 +82,7 @@ export type RpcAsset = {
   creator: string
   metadata: string
   createdTransactionHash: string
-  verification: AssetVerification
+  verification: RpcAssetVerification
   supply?: string
   /**
    * @deprecated query for the transaction to find it's status
@@ -94,7 +98,13 @@ export const RpcAssetSchema: yup.ObjectSchema<RpcAsset> = yup
     nonce: yup.number().required(),
     creator: yup.string().required(),
     verification: yup
-      .object({ status: yup.string().oneOf(['verified', 'unverified', 'unknown']).defined() })
+      .object({
+        status: yup.string().oneOf(['verified', 'unverified', 'unknown']).defined(),
+        symbol: yup.string().optional(),
+        decimals: yup.number().optional(),
+        logoURI: yup.string().optional(),
+        website: yup.string().optional(),
+      })
       .defined(),
     status: yup.string().defined(),
     supply: yup.string().optional(),
