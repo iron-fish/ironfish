@@ -289,10 +289,12 @@ export class Mint extends IronfishCommand {
       this.warn(`Transaction '${transaction.hash().toString('hex')}' failed to broadcast`)
     }
 
-    const renderedValue = CurrencyUtils.render(minted.value, true, {
-      id: minted.asset.id().toString('hex'),
-      ...assetData,
-    })
+    const renderedValue = CurrencyUtils.render(
+      minted.value,
+      true,
+      minted.asset.id().toString('hex'),
+      assetData?.verification,
+    )
     const renderedFee = CurrencyUtils.render(transaction.fee(), true)
     this.log(`Minted asset ${BufferUtils.toHuman(minted.asset.name())} from ${account}`)
     this.log(`Asset Identifier: ${minted.asset.id().toString('hex')}`)
@@ -334,10 +336,12 @@ export class Mint extends IronfishCommand {
     const nameString = name ? `\nName: ${name}` : ''
     const metadataString = metadata ? `\nMetadata: ${metadata}` : ''
 
-    const renderedAmount = CurrencyUtils.render(amount, !!assetId, {
-      id: assetId,
-      ...assetData,
-    })
+    const renderedAmount = CurrencyUtils.render(
+      amount,
+      !!assetId,
+      assetId,
+      assetData?.verification,
+    )
     const renderedFee = CurrencyUtils.render(fee, true)
 
     this.log(

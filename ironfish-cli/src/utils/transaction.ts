@@ -120,7 +120,8 @@ export async function renderUnsignedTransactionDetails(
       const renderedAmount = CurrencyUtils.render(
         mint.value,
         false,
-        assetLookup[mint.asset.id().toString('hex')],
+        mint.asset.id().toString('hex'),
+        assetLookup[mint.asset.id().toString('hex')].verification,
       )
       logger.log(`Asset ID:      ${mint.asset.id().toString('hex')}`)
       logger.log(`Name:          ${mint.asset.name().toString('utf8')}`)
@@ -152,7 +153,8 @@ export async function renderUnsignedTransactionDetails(
       const renderedAmount = CurrencyUtils.render(
         burn.value,
         false,
-        assetLookup[burn.assetId.toString('hex')],
+        burn.assetId.toString('hex'),
+        assetLookup[burn.assetId.toString('hex')].verification,
       )
       logger.log(`Asset ID:      ${burn.assetId.toString('hex')}`)
       logger.log(`Amount:        ${renderedAmount}`)
@@ -182,7 +184,12 @@ export async function renderUnsignedTransactionDetails(
       }
       logger.log('')
 
-      const renderedAmount = CurrencyUtils.render(note.value, true, assetLookup[note.assetId])
+      const renderedAmount = CurrencyUtils.render(
+        note.value,
+        true,
+        note.assetId,
+        assetLookup[note.assetId].verification,
+      )
       logger.log(`Amount:        ${renderedAmount}`)
       logger.log(`Memo:          ${note.memo}`)
       logger.log(`Recipient:     ${note.owner}`)
@@ -201,7 +208,12 @@ export async function renderUnsignedTransactionDetails(
       }
       logger.log('')
 
-      const renderedAmount = CurrencyUtils.render(note.value, true, assetLookup[note.assetId])
+      const renderedAmount = CurrencyUtils.render(
+        note.value,
+        true,
+        note.assetId,
+        assetLookup[note.assetId].verification,
+      )
       logger.log(`Amount:        ${renderedAmount}`)
       logger.log(`Memo:          ${note.memo}`)
       logger.log(`Recipient:     ${note.owner}`)
@@ -231,7 +243,7 @@ export function displayTransactionSummary(
 ): void {
   logger = logger ?? createRootLogger()
 
-  const amountString = CurrencyUtils.render(amount, true, asset)
+  const amountString = CurrencyUtils.render(amount, true, asset.id, asset.verification)
   const feeString = CurrencyUtils.render(transaction.fee, true)
 
   const summary = `\

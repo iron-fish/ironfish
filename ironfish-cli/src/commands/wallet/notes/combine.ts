@@ -416,7 +416,8 @@ export class CombineNotesCommand extends IronfishCommand {
         },
         value: {
           header: 'Value',
-          get: (note) => CurrencyUtils.render(note.value, true, assetData),
+          get: (note) =>
+            CurrencyUtils.render(note.value, true, assetData.id, assetData.verification),
         },
         owner: {
           header: 'Owner',

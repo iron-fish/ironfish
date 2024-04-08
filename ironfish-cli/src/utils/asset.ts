@@ -127,7 +127,8 @@ export async function selectAsset(
     const renderedAvailable = CurrencyUtils.render(
       balance.available,
       false,
-      assetLookup[balance.assetId],
+      balance.assetId,
+      assetLookup[balance.assetId].verification,
     )
     const name = `${balance.assetId} (${assetName}) (${renderedAvailable})`
 

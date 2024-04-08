@@ -198,8 +198,8 @@ export class TransactionsCommand extends IronfishCommand {
       const amount = BigInt(note.value)
       const assetId = note.assetId
       const assetName = assetLookup[note.assetId].name
-      const assetDecimals = assetLookup[note.assetId].decimals
-      const assetSymbol = assetLookup[note.assetId].symbol
+      const assetDecimals = assetLookup[note.assetId].verification.decimals
+      const assetSymbol = assetLookup[note.assetId].verification.symbol
       const sender = note.sender
       const recipient = note.owner
       const memo = note.memo
@@ -296,8 +296,7 @@ export class TransactionsCommand extends IronfishCommand {
         header: 'Amount',
         get: (row) => {
           Assert.isNotUndefined(row.amount)
-          return CurrencyUtils.render(row.amount, false, {
-            id: row.assetId,
+          return CurrencyUtils.render(row.amount, false, row.assetId, {
             decimals: row.assetDecimals,
             symbol: row.assetSymbol,
           })

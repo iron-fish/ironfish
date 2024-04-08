@@ -276,7 +276,12 @@ export class Send extends IronfishCommand {
       this.warn(`Transaction '${transaction.hash().toString('hex')}' failed to broadcast`)
     }
 
-    const renderedAmount = CurrencyUtils.render(amount, true, assetData)
+    const renderedAmount = CurrencyUtils.render(
+      amount,
+      true,
+      assetData.id,
+      assetData.verification,
+    )
     const renderedFee = CurrencyUtils.render(transaction.fee(), true)
     this.log(`Sent ${renderedAmount} to ${to} from ${from}`)
     this.log(`Hash: ${transaction.hash().toString('hex')}`)

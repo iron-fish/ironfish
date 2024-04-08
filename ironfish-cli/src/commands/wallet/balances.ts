@@ -77,7 +77,8 @@ export class BalancesCommand extends IronfishCommand {
       },
       available: {
         header: 'Available Balance',
-        get: ({ asset, balance }) => CurrencyUtils.render(balance.available, false, asset),
+        get: ({ asset, balance }) =>
+          CurrencyUtils.render(balance.available, false, asset.id, asset.verification),
       },
     }
 
@@ -86,15 +87,18 @@ export class BalancesCommand extends IronfishCommand {
         ...columns,
         confirmed: {
           header: 'Confirmed Balance',
-          get: ({ asset, balance }) => CurrencyUtils.render(balance.confirmed, false, asset),
+          get: ({ asset, balance }) =>
+            CurrencyUtils.render(balance.confirmed, false, asset.id, asset.verification),
         },
         unconfirmed: {
           header: 'Unconfirmed Balance',
-          get: ({ asset, balance }) => CurrencyUtils.render(balance.unconfirmed, false, asset),
+          get: ({ asset, balance }) =>
+            CurrencyUtils.render(balance.unconfirmed, false, asset.id, asset.verification),
         },
         pending: {
           header: 'Pending Balance',
-          get: ({ asset, balance }) => CurrencyUtils.render(balance.pending, false, asset),
+          get: ({ asset, balance }) =>
+            CurrencyUtils.render(balance.pending, false, asset.id, asset.verification),
         },
         blockHash: {
           header: 'Head Hash',

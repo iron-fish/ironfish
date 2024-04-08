@@ -71,7 +71,13 @@ export class NotesCommand extends IronfishCommand {
           ...TableCols.asset({ extended: flags.extended }),
           value: {
             header: 'Amount',
-            get: (row) => CurrencyUtils.render(row.value, false, assetLookup.get(row.assetId)),
+            get: (row) =>
+              CurrencyUtils.render(
+                row.value,
+                false,
+                row.assetId,
+                assetLookup.get(row.assetId)?.verification,
+              ),
             minWidth: 16,
           },
           noteHash: {

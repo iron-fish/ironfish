@@ -47,7 +47,8 @@ export async function promptCurrency(options: {
     const renderedAvailable = CurrencyUtils.render(
       balance.content.available,
       false,
-      options.balance.asset,
+      options.balance.asset?.id,
+      options.balance.asset?.verification,
     )
     text += ` (balance ${renderedAvailable})`
   }
@@ -75,7 +76,8 @@ export async function promptCurrency(options: {
       const renderedMinimum = CurrencyUtils.render(
         options.minimum,
         false,
-        options.balance?.asset,
+        options.balance?.asset?.id,
+        options.balance?.asset?.verification,
       )
       options.logger.error(`Error: Minimum is ${renderedMinimum}`)
       continue

@@ -219,7 +219,12 @@ export class Burn extends IronfishCommand {
     }
 
     const assetName = BufferUtils.toHuman(Buffer.from(assetData.name, 'hex'))
-    const renderedAmount = CurrencyUtils.render(amount, false, assetData)
+    const renderedAmount = CurrencyUtils.render(
+      amount,
+      false,
+      assetData.id,
+      assetData.verification,
+    )
 
     this.log(`Burned asset ${assetName} from ${account}`)
     this.log(`Asset Identifier: ${assetId}`)
@@ -254,7 +259,7 @@ export class Burn extends IronfishCommand {
     fee: bigint,
     account: string,
   ): Promise<boolean> {
-    const renderedAmount = CurrencyUtils.render(amount, true, asset)
+    const renderedAmount = CurrencyUtils.render(amount, true, asset.id, asset.verification)
     const renderedFee = CurrencyUtils.render(fee, true)
     this.log(
       `You are about to burn: ${renderedAmount} plus a transaction fee of ${renderedFee} with the account ${account}`,
