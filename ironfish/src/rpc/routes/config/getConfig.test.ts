@@ -11,11 +11,9 @@ describe('Route config/getConfig', () => {
   })
 
   it('returns value of the requested ConfigOptions', async () => {
-    const response = await routeTest.client
-      .request('config/getConfig', {
-        name: 'minerBatchSize',
-      })
-      .waitForEnd()
+    const response = await routeTest.client.config.getConfig({
+      name: 'minerBatchSize',
+    })
     expect(response.status).toBe(200)
     expect(response.content).toEqual({
       minerBatchSize: routeTest.node.config.get('minerBatchSize'),
@@ -24,12 +22,10 @@ describe('Route config/getConfig', () => {
 
   it('returns nothing when no datadir exists', async () => {
     const target = {}
-    const response = await routeTest.client
-      .request('config/getConfig', {
-        name: 'minerBatchSize',
-        user: true,
-      })
-      .waitForEnd()
+    const response = await routeTest.client.config.getConfig({
+      name: 'minerBatchSize',
+      user: true,
+    })
     expect(response.status).toBe(200)
     expect(response.content).toEqual(target)
   })

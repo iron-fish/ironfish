@@ -12,9 +12,9 @@ describe('Route multisig/createTrustedDealerKeyPackage', () => {
       identity: multisig.ParticipantSecret.random().toIdentity().serialize().toString('hex'),
     }))
     const request = { minSigners: 2, participants }
-    const response = await routeTest.client
-      .request('wallet/multisig/createTrustedDealerKeyPackage', request)
-      .waitForEnd()
+    const response = await routeTest.client.wallet.multisig.createTrustedDealerKeyPackage(
+      request,
+    )
 
     expect(response.content).toMatchObject({
       publicAddress: expect.any(String),

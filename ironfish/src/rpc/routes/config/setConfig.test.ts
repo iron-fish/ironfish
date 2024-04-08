@@ -10,36 +10,28 @@ describe('Route config/setConfig', () => {
 
   it('should error if the config name does not exist', async () => {
     await expect(
-      routeTest.client
-        .request('config/setConfig', { name: 'asdf', value: 'asdf' })
-        .waitForEnd(),
+      routeTest.client.config.setConfig({ name: 'asdf', value: 'asdf' }),
     ).rejects.toThrow()
   })
 
   describe('Convert string to array', () => {
     it('does not special-case brackets', async () => {
-      const response = await routeTest.client
-        .request('config/setConfig', {
-          name: 'bootstrapNodes',
-          value: '[]',
-        })
-        .waitForEnd()
-      const content = await response.content
+      const response = await routeTest.client.config.setConfig({
+        name: 'bootstrapNodes',
+        value: '[]',
+      })
       expect(response.status).toBe(200)
-      expect(content).toBeUndefined()
+      expect(response.content).toBeUndefined()
       expect(routeTest.sdk.config.get('bootstrapNodes')).toEqual(['[]'])
     })
 
     it('should convert strings to arrays', async () => {
-      const response = await routeTest.client
-        .request('config/setConfig', {
-          name: 'bootstrapNodes',
-          value: 'test.node.com,test2.node.com',
-        })
-        .waitForEnd()
-      const content = await response.content
+      const response = await routeTest.client.config.setConfig({
+        name: 'bootstrapNodes',
+        value: 'test.node.com,test2.node.com',
+      })
       expect(response.status).toBe(200)
-      expect(content).toBeUndefined()
+      expect(response.content).toBeUndefined()
       expect(routeTest.sdk.config.get('bootstrapNodes')).toEqual([
         'test.node.com',
         'test2.node.com',
@@ -47,41 +39,32 @@ describe('Route config/setConfig', () => {
     })
 
     it('handles single values', async () => {
-      const response = await routeTest.client
-        .request('config/setConfig', {
-          name: 'bootstrapNodes',
-          value: 'test.node.com',
-        })
-        .waitForEnd()
-      const content = await response.content
+      const response = await routeTest.client.config.setConfig({
+        name: 'bootstrapNodes',
+        value: 'test.node.com',
+      })
       expect(response.status).toBe(200)
-      expect(content).toBeUndefined()
+      expect(response.content).toBeUndefined()
       expect(routeTest.sdk.config.get('bootstrapNodes')).toEqual(['test.node.com'])
     })
 
     it('should strip leading and trailing whitespace', async () => {
-      const response = await routeTest.client
-        .request('config/setConfig', {
-          name: 'bootstrapNodes',
-          value: '  node1  ,   node2  ',
-        })
-        .waitForEnd()
-      const content = await response.content
+      const response = await routeTest.client.config.setConfig({
+        name: 'bootstrapNodes',
+        value: '  node1  ,   node2  ',
+      })
       expect(response.status).toBe(200)
-      expect(content).toBeUndefined()
+      expect(response.content).toBeUndefined()
       expect(routeTest.sdk.config.get('bootstrapNodes')).toEqual(['node1', 'node2'])
     })
 
     it('should leave quotes', async () => {
-      const response = await routeTest.client
-        .request('config/setConfig', {
-          name: 'bootstrapNodes',
-          value: ' \' node1 \' , " node2 " ',
-        })
-        .waitForEnd()
-      const content = await response.content
+      const response = await routeTest.client.config.setConfig({
+        name: 'bootstrapNodes',
+        value: ' \' node1 \' , " node2 " ',
+      })
       expect(response.status).toBe(200)
-      expect(content).toBeUndefined()
+      expect(response.content).toBeUndefined()
       expect(routeTest.sdk.config.get('bootstrapNodes')).toEqual(["' node1 '", '" node2 "'])
     })
   })
