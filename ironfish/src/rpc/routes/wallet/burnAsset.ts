@@ -109,7 +109,7 @@ routes.register<typeof BurnAssetRequestSchema, BurnAssetResponse>(
           confirmations: request.data.confirmations,
         }),
         createdTransactionHash: asset.createdTransactionHash.toString('hex'),
-        ...context.assetsVerifier.verifyWithMetadata(asset.id),
+        verification: context.assetsVerifier.verify(asset.id),
       },
       transaction: await serializeRpcWalletTransaction(
         context.config,

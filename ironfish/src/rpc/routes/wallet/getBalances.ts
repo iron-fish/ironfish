@@ -109,7 +109,7 @@ routes.register<typeof GetBalancesRequestSchema, GetBalancesResponse>(
         assetName: asset?.name.toString('hex') ?? '',
         assetCreator: asset?.creator.toString('hex') ?? '',
         assetOwner: asset?.owner.toString('hex') ?? '',
-        assetVerification: context.assetsVerifier.verify(balance.assetId),
+        assetVerification: { status: context.assetsVerifier.verify(balance.assetId).status },
         blockHash: balance.blockHash?.toString('hex') ?? null,
         confirmed: CurrencyUtils.encode(balance.confirmed),
         sequence: balance.sequence,

@@ -147,7 +147,7 @@ routes.register<typeof MintAssetRequestSchema, MintAssetResponse>(
           confirmations: request.data.confirmations,
         }),
         createdTransactionHash: asset.createdTransactionHash.toString('hex'),
-        ...context.assetsVerifier.verifyWithMetadata(mint.asset.id()),
+        verification: context.assetsVerifier.verify(mint.asset.id()),
       },
       transaction: await serializeRpcWalletTransaction(
         context.config,
