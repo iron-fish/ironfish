@@ -1,8 +1,7 @@
 name: Build @ironfish binaries
 
-# on:
-#   push
 on:
+  workflow_dispatch:
   release:
     types:
       - published
@@ -26,7 +25,7 @@ jobs:
             arch: x86_64
             system: linux
 
-          - host: macos-latest-large
+          - host: macos-latest-xlarge
             arch: arm64
             system: apple
 
@@ -41,6 +40,19 @@ jobs:
     name: Build ${{ matrix.settings.system }} ${{ matrix.settings.arch }}
     runs-on: ${{ matrix.settings.host }}
     steps:
+      - name: Check runner architecture
+        shell: bash
+        run: |
+          if [[ "$(uname -m)" != "${{ matrix.settings.arch }}" ]]; then
+            echo "Runner architecture does not match specified architecture"
+            exit 1
+          fi
+      
+      # needed for distutils, which is used by nodegyp, arm64 mac runners have 3.12
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: 3.11
 
       - name: Use node.js
         uses: actions/setup-node@v4
@@ -183,6 +195,7 @@ jobs:
 
       - name: Upload release asset
         id: upload-release-asset
+        if: github.event_name == 'release'
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
