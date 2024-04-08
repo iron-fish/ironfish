@@ -1326,6 +1326,38 @@ describe('Wallet', () => {
         unconfirmed: BigInt(2),
       })
     }, 100000)
+
+    describe('dkg', () => {
+      it('should create a verified transaction using dkg', async () => {
+        const minSigners = 2
+
+        const { node } = await nodeTest.createSetup()
+        const recipient = await useAccountFixture(node.wallet, 'recipient')
+
+        // create a bunch of multisig identities
+        const accountNames = Array.from({ length: 3 }, (_, index) => `test-account-${index}`)
+        const participants = await Promise.all(
+          accountNames.map(async (name) => {
+            const identity = await node.wallet.createMultisigSecret(name)
+            return { name, identity }
+          }),
+        )
+
+        // run dkg round one
+
+        // run dkg round two
+
+        // run dkg round three
+
+        // import the accounts
+
+        // fund an account
+
+        // generate a transaction
+
+        // sign the transaction
+      }, 100000)
+    })
   })
 
   it('adds publicKeyPackage identities to walletDb on account import', async () => {

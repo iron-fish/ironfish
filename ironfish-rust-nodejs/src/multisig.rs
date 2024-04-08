@@ -7,17 +7,18 @@ use ironfish::{
     frost::{keys::KeyPackage, round2, Randomizer},
     frost_utils::{signing_package::SigningPackage, split_spender_key::split_spender_key},
     participant::{Identity, Secret},
-    serializing::{bytes_to_hex, fr::FrSerializable, hex_to_vec_bytes},
+    serializing::{bytes_to_hex, fr::FrSerializable, hex_to_bytes, hex_to_vec_bytes},
     SaplingKey,
 };
 use ironfish_frost::{
-    keys::PublicKeyPackage, multienc, nonces::deterministic_signing_nonces,
-    signature_share::SignatureShare, signing_commitment::SigningCommitment,
+    dkg::round1::export_secret_package, keys::PublicKeyPackage, multienc,
+    nonces::deterministic_signing_nonces, signature_share::SignatureShare,
+    signing_commitment::SigningCommitment,
 };
 use napi::{bindgen_prelude::*, JsBuffer};
 use napi_derive::napi;
 use rand::thread_rng;
-use std::ops::Deref;
+use std::{ops::Deref, os::unix::thread};
 
 #[napi(namespace = "multisig")]
 pub const IDENTITY_LEN: u32 = ironfish::frost_utils::IDENTITY_LEN as u32;
@@ -221,10 +222,7 @@ pub fn generate_and_split_key(
         });
     }
 
-    let public_key_package = packages
-        .public_key_package
-        .serialize()
-        .map_err(to_napi_err)?;
+    let public_key_package = packages.public_key_package.serialize();
 
     Ok(TrustedDealerKeyPackages {
         public_address: packages.public_address.hex_public_address(),
@@ -355,4 +353,41 @@ impl NativeSigningPackage {
             .map(|signer| Buffer::from(&signer.serialize()[..]))
             .collect()
     }
+}
+
+#[napi(namespace = "multisig")]
+pub struct DkgRoundOneOutput {
+    pub encrypted_secret_package: Buffer,
+    pub package: Buffer,
+}
+
+#[napi(namespace = "multisig")]
+pub fn dkg_round_one(
+    secret: String,
+    min_signers: u16,
+    signers: Vec<String>,
+    group_key_string: String,
+) -> Result<DkgRoundOneOutput> {
+    let secret = Secret::deserialize_from(&hex_to_vec_bytes(&secret).map_err(to_napi_err)?[..])?;
+    let identity = secret.to_identity();
+    let signers = try_deserialize_identities(signers)?;
+
+    let group_key_part = hex_to_bytes(&group_key_string).map_err(to_napi_err)?;
+
+    let (secret_package, package) = ironfish_frost::dkg::part1(
+        identity.clone(),
+        &signers[..],
+        min_signers,
+        group_key_part,
+        thread_rng(),
+    )
+    .map_err(to_napi_err)?;
+
+    let encrypted_secret_package =
+        export_secret_package(&identity, &secret_package.into(), thread_rng())
+            .map_err(to_napi_err)?;
+    Ok(DkgRoundOneOutput {
+        encrypted_secret_package: Buffer::from(encrypted_secret_package),
+        package: Buffer::from(package.serialize().map_err(to_napi_err)?),
+    })
 }

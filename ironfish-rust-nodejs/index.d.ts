@@ -250,6 +250,7 @@ export namespace multisig {
     proofAuthorizingKey: string
     keyPackages: Array<ParticipantKeyPackage>
   }
+  export function dkgRoundOne(secret: string, minSigners: number, signers: Array<string>, groupKeyString: string): DkgRoundOneOutput
   export function aggregateSignatureShares(publicKeyPackageStr: string, signingPackageStr: string, signatureSharesArr: Array<string>): Buffer
   export class ParticipantSecret {
     constructor(jsBytes: Buffer)
@@ -280,5 +281,9 @@ export namespace multisig {
     constructor(jsBytes: Buffer)
     unsignedTransaction(): NativeUnsignedTransaction
     signers(): Array<Buffer>
+  }
+  export class DkgRoundOneOutput {
+    encryptedSecretPackage: Buffer
+    package: Buffer
   }
 }
