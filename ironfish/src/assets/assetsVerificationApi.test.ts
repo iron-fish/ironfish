@@ -62,8 +62,8 @@ describe('Assets Verification API Client', () => {
       )
       expect(verifiedAssets.getAssetData('0123')).toBeDefined()
       expect(verifiedAssets.getAssetData('abcd')).toBeDefined()
-      expect(verifiedAssets.getAssetData('4567')).toBeDefined()
-      expect(verifiedAssets.getAssetData('89ef')).toBeDefined()
+      expect(verifiedAssets.getAssetData('4567')).toBeUndefined()
+      expect(verifiedAssets.getAssetData('89ef')).toBeUndefined()
     })
 
     it('should ignore extra fields in responses', async () => {

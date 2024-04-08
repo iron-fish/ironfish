@@ -93,7 +93,13 @@ describe('AssetsVerifier', () => {
     expect(refresh).toHaveBeenCalledTimes(1)
     await waitForRefreshToFinish(refresh)
 
-    expect(assetsVerifier.verify('0123')).toStrictEqual({ status: 'verified' })
+    expect(assetsVerifier.verify('0123')).toStrictEqual({
+      status: 'verified',
+      symbol: assetData1.symbol,
+      decimals: assetData1.decimals,
+      logoURI: assetData1.logoURI,
+      website: assetData1.website,
+    })
     expect(assetsVerifier.verify('4567')).toStrictEqual({ status: 'unverified' })
     expect(assetsVerifier.verify('89ab')).toStrictEqual({ status: 'unverified' })
 
@@ -102,7 +108,13 @@ describe('AssetsVerifier', () => {
     await waitForRefreshToFinish(refresh)
 
     expect(assetsVerifier.verify('0123')).toStrictEqual({ status: 'unverified' })
-    expect(assetsVerifier.verify('4567')).toStrictEqual({ status: 'verified' })
+    expect(assetsVerifier.verify('4567')).toStrictEqual({
+      status: 'verified',
+      symbol: assetData2.symbol,
+      decimals: assetData2.decimals,
+      logoURI: assetData2.logoURI,
+      website: assetData2.website,
+    })
     expect(assetsVerifier.verify('89ab')).toStrictEqual({ status: 'unverified' })
 
     jest.runOnlyPendingTimers()
@@ -111,7 +123,13 @@ describe('AssetsVerifier', () => {
 
     expect(assetsVerifier.verify('0123')).toStrictEqual({ status: 'unverified' })
     expect(assetsVerifier.verify('4567')).toStrictEqual({ status: 'unverified' })
-    expect(assetsVerifier.verify('89ab')).toStrictEqual({ status: 'verified' })
+    expect(assetsVerifier.verify('89ab')).toStrictEqual({
+      status: 'verified',
+      symbol: assetData3.symbol,
+      decimals: assetData3.decimals,
+      logoURI: assetData3.logoURI,
+      website: assetData3.website,
+    })
   })
 
   it('does not do any refresh after being stopped', async () => {
@@ -214,7 +232,13 @@ describe('AssetsVerifier', () => {
       assetsVerifier.start()
       await waitForRefreshToFinish(refresh)
 
-      expect(assetsVerifier.verify('0123')).toStrictEqual({ status: 'verified' })
+      expect(assetsVerifier.verify('0123')).toStrictEqual({
+        status: 'verified',
+        symbol: assetData1.symbol,
+        decimals: assetData1.decimals,
+        logoURI: assetData1.logoURI,
+        website: assetData1.website,
+      })
     })
 
     it("returns 'unverified' when the API does not list the asset", async () => {
@@ -256,7 +280,13 @@ describe('AssetsVerifier', () => {
       await waitForRefreshToFinish(refresh)
 
       expect(warn).not.toHaveBeenCalled()
-      expect(assetsVerifier.verify('0123')).toStrictEqual({ status: 'verified' })
+      expect(assetsVerifier.verify('0123')).toStrictEqual({
+        status: 'verified',
+        symbol: assetData1.symbol,
+        decimals: assetData1.decimals,
+        logoURI: assetData1.logoURI,
+        website: assetData1.website,
+      })
       expect(assetsVerifier.verify('4567')).toStrictEqual({ status: 'unverified' })
 
       jest.runOnlyPendingTimers()
@@ -265,7 +295,13 @@ describe('AssetsVerifier', () => {
       expect(warn).toHaveBeenCalledWith(
         'Error while fetching verified assets: Request failed with status code 500',
       )
-      expect(assetsVerifier.verify('0123')).toStrictEqual({ status: 'verified' })
+      expect(assetsVerifier.verify('0123')).toStrictEqual({
+        status: 'verified',
+        symbol: assetData1.symbol,
+        decimals: assetData1.decimals,
+        logoURI: assetData1.logoURI,
+        website: assetData1.website,
+      })
       expect(assetsVerifier.verify('4567')).toStrictEqual({ status: 'unverified' })
     })
 
@@ -285,12 +321,24 @@ describe('AssetsVerifier', () => {
       assetsVerifier.start()
       await waitForRefreshToFinish(refresh)
 
-      expect(assetsVerifier.verify('0123')).toStrictEqual({ status: 'verified' })
+      expect(assetsVerifier.verify('0123')).toStrictEqual({
+        status: 'verified',
+        symbol: assetData1.symbol,
+        decimals: assetData1.decimals,
+        logoURI: assetData1.logoURI,
+        website: assetData1.website,
+      })
       expect(assetsVerifier.verify('4567')).toStrictEqual({ status: 'unverified' })
 
       assetsVerifier.stop()
 
-      expect(assetsVerifier.verify('0123')).toStrictEqual({ status: 'verified' })
+      expect(assetsVerifier.verify('0123')).toStrictEqual({
+        status: 'verified',
+        symbol: assetData1.symbol,
+        decimals: assetData1.decimals,
+        logoURI: assetData1.logoURI,
+        website: assetData1.website,
+      })
       expect(assetsVerifier.verify('4567')).toStrictEqual({ status: 'unverified' })
     })
   })
@@ -322,7 +370,13 @@ describe('AssetsVerifier', () => {
 
       assetsVerifier.start()
 
-      expect(assetsVerifier.verify('0123')).toStrictEqual({ status: 'verified' })
+      expect(assetsVerifier.verify('0123')).toStrictEqual({
+        status: 'verified',
+        symbol: assetData1.symbol,
+        decimals: assetData1.decimals,
+        logoURI: assetData1.logoURI,
+        website: assetData1.website,
+      })
       expect(assetsVerifier.verify('4567')).toStrictEqual({ status: 'unverified' })
 
       await waitForRefreshToFinish(refresh)
@@ -360,7 +414,13 @@ describe('AssetsVerifier', () => {
       await waitForRefreshToFinish(refresh)
 
       expect(assetsVerifier.verify('0123')).toStrictEqual({ status: 'unverified' })
-      expect(assetsVerifier.verify('4567')).toStrictEqual({ status: 'verified' })
+      expect(assetsVerifier.verify('4567')).toStrictEqual({
+        status: 'verified',
+        symbol: assetData2.symbol,
+        decimals: assetData2.decimals,
+        logoURI: assetData2.logoURI,
+        website: assetData2.website,
+      })
     })
 
     it('saves the persistent cache after every update', async () => {
@@ -436,12 +496,24 @@ describe('AssetsVerifier', () => {
 
       assetsVerifier.start()
 
-      expect(assetsVerifier.verify('0123')).toStrictEqual({ status: 'verified' })
+      expect(assetsVerifier.verify('0123')).toStrictEqual({
+        status: 'verified',
+        symbol: assetData1.symbol,
+        decimals: assetData1.decimals,
+        logoURI: assetData1.logoURI,
+        website: assetData1.website,
+      })
       expect(assetsVerifier.verify('4567')).toStrictEqual({ status: 'unverified' })
 
       await waitForRefreshToFinish(refresh)
 
-      expect(assetsVerifier.verify('0123')).toStrictEqual({ status: 'verified' })
+      expect(assetsVerifier.verify('0123')).toStrictEqual({
+        status: 'verified',
+        symbol: assetData1.symbol,
+        decimals: assetData1.decimals,
+        logoURI: assetData1.logoURI,
+        website: assetData1.website,
+      })
       expect(assetsVerifier.verify('4567')).toStrictEqual({ status: 'unverified' })
       expect(setManySpy).not.toHaveBeenCalled()
       expect(saveSpy).not.toHaveBeenCalled()
