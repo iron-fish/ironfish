@@ -54,10 +54,11 @@ export abstract class WebhookNotifier {
   ): void {
     const total = outputs.reduce((m, c) => BigInt(c.amount) + m, BigInt(0))
 
+    const renderedValue = CurrencyUtils.render(total, true)
     this.sendText(
       `Successfully created payout of ${shareCount} shares to ${
         outputs.length
-      } users for ${CurrencyUtils.renderIron(total, true)} in transaction ${
+      } users for ${renderedValue} in transaction ${
         this.explorer?.getTransactionUrl(transactionHashHex) ?? `\`${transactionHashHex}\``
       }. Transaction pending (${payoutPeriodId})`,
     )
@@ -76,10 +77,9 @@ export abstract class WebhookNotifier {
   ): void {
     const total = outputs.reduce((m, c) => BigInt(c.amount) + m, BigInt(0))
 
+    const renderedValue = CurrencyUtils.render(total, true)
     this.sendText(
-      `Creating payout of ${shareCount} shares to ${
-        outputs.length
-      } users for ${CurrencyUtils.renderIron(total, true)} (${payoutPeriodId})`,
+      `Creating payout of ${shareCount} shares to ${outputs.length} users for ${renderedValue} (${payoutPeriodId})`,
     )
   }
 

@@ -132,10 +132,10 @@ export class RawTransaction {
 
     for (const mint of this.mints) {
       if (mint.value > MAX_MINT_OR_BURN_VALUE) {
+        const renderedValue = CurrencyUtils.renderOre(mint.value)
+        const renderedMax = CurrencyUtils.renderOre(MAX_MINT_OR_BURN_VALUE)
         throw new Error(
-          `Cannot post transaction. Mint value ${CurrencyUtils.renderIron(
-            mint.value,
-          )} exceededs maximum ${CurrencyUtils.renderIron(MAX_MINT_OR_BURN_VALUE)}. `,
+          `Cannot post transaction. Mint value ${renderedValue} exceededs maximum ${renderedMax}.`,
         )
       }
       const asset = new Asset(mint.creator, mint.name, mint.metadata)
@@ -145,10 +145,10 @@ export class RawTransaction {
 
     for (const burn of this.burns) {
       if (burn.value > MAX_MINT_OR_BURN_VALUE) {
+        const renderedValue = CurrencyUtils.renderOre(burn.value)
+        const renderedMax = CurrencyUtils.renderOre(MAX_MINT_OR_BURN_VALUE)
         throw new Error(
-          `Cannot post transaction. Burn value ${CurrencyUtils.renderIron(
-            burn.value,
-          )} exceededs maximum ${CurrencyUtils.renderIron(MAX_MINT_OR_BURN_VALUE)}`,
+          `Cannot post transaction. Burn value ${renderedValue} exceededs maximum ${renderedMax}`,
         )
       }
 
