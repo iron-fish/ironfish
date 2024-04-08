@@ -2,10 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Logger } from '../../logger'
-import { IDatabase, IDatabaseTransaction } from '../../storage'
+import { IDatabase } from '../../storage'
 import { Database, Migration, MigrationContext } from '../migration'
-import { GetOldAccounts } from './021-add-version-to-accounts/schemaOld'
 
 export class Migration016 extends Migration {
   path = __filename
@@ -15,41 +13,18 @@ export class Migration016 extends Migration {
     return context.wallet.walletDb.db
   }
 
-  async forward(
-    context: MigrationContext,
-    db: IDatabase,
-    tx: IDatabaseTransaction | undefined,
-    logger: Logger,
-  ): Promise<void> {
-    const accounts = await GetOldAccounts(context, db, tx)
+  /*
+   * This migration pre-dated the network reset in f483d9aeb87eda3101ae2c602e19d3ebb88897b6
+   *
+   * All assets, transactions, and notes from before the reset are no longer valid.
+   *
+   * These data need to be deleted before the node can run, so there is no need
+   * to run this migration.
+   */
 
-    logger.info(`Indexing on-chain transactions for ${accounts.length} accounts`)
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  async forward(): Promise<void> {}
 
-    for (const account of accounts) {
-      let onChainCount = 0
-      let offChainCount = 0
-
-      logger.info(`Indexing on-chain transactions for account ${account.name}`)
-      for await (const transaction of account.getTransactions()) {
-        if (transaction.sequence === null) {
-          offChainCount++
-          continue
-        }
-
-        await context.wallet.walletDb.saveSequenceToTransactionHash(
-          account,
-          transaction.sequence,
-          transaction.transaction.hash(),
-        )
-        onChainCount++
-      }
-
-      logger.info(` Indexed ${onChainCount} on-chain transactions`)
-      logger.info(` Skipped ${offChainCount} transactions that haven't been added to the chain`)
-    }
-  }
-
-  async backward(context: MigrationContext): Promise<void> {
-    await context.wallet.walletDb.sequenceToTransactionHash.clear()
-  }
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  async backward(): Promise<void> {}
 }
