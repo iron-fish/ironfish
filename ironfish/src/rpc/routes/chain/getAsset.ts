@@ -83,7 +83,7 @@ routes.register<typeof GetAssetRequestSchema, GetAssetResponse>(
       owner: asset.owner.toString('hex'),
       supply: CurrencyUtils.encode(asset.supply),
       status: await getAssetStatus(node, asset),
-      verification: node.assetsVerifier.verify(asset.id),
+      ...node.assetsVerifier.verifyWithMetadata(asset.id),
     })
   },
 )

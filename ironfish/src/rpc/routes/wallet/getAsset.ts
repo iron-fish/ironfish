@@ -63,7 +63,7 @@ routes.register<typeof GetWalletAssetRequestSchema, GetWalletAssetResponse>(
         confirmations: request.data.confirmations,
       }),
       supply: asset.supply ? CurrencyUtils.encode(asset.supply) : undefined,
-      verification: node.assetsVerifier.verify(asset.id),
+      ...node.assetsVerifier.verifyWithMetadata(asset.id),
     })
   },
 )

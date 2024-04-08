@@ -7,7 +7,12 @@ import { createRootLogger, Logger } from '../logger'
 import { ErrorUtils } from '../utils'
 import { SetIntervalToken } from '../utils'
 import { Retry } from '../utils'
-import { AssetsVerificationApi, VerifiedAssets } from './assetsVerificationApi'
+import {
+  AdditionalAssetData,
+  AssetsVerificationApi,
+  VerifiedAssetMetadata,
+  VerifiedAssets,
+} from './assetsVerificationApi'
 
 export type AssetVerification = {
   status: 'verified' | 'unverified' | 'unknown'
@@ -112,6 +117,34 @@ export class AssetsVerifier {
       return { status: 'verified' }
     } else {
       return { status: 'unverified' }
+    }
+  }
+
+  getAssetData(assetId: Buffer | string): VerifiedAssetMetadata | undefined {
+    return this.verifiedAssets?.getAssetData(assetId)
+  }
+
+  verifyWithMetadata(
+    assetId: Buffer | string,
+  ):
+    | { verification: AssetVerification }
+    | ({ verification: AssetVerification } & AdditionalAssetData) {
+    const verification = this.verify(assetId)
+    if (verification.status === 'verified') {
+      const assetData = this.getAssetData(assetId)
+      if (assetData) {
+        return {
+          verification,
+          symbol: assetData.symbol,
+          decimals: assetData.decimals,
+          logoURI: assetData.logoURI,
+          website: assetData.website,
+        }
+      }
+    }
+
+    return {
+      verification,
     }
   }
 }

@@ -5,17 +5,18 @@ import axios, { AxiosAdapter, AxiosError, AxiosRequestConfig, AxiosResponse } fr
 import url, { URL } from 'url'
 import { FileSystem } from '../fileSystems'
 
-type AssetData = {
-  identifier: string
+export type AdditionalAssetData = {
   symbol: string
   decimals?: number
   logoURI?: string
   website?: string
 }
 
+export type VerifiedAssetMetadata = { identifier: string } & AdditionalAssetData
+
 type GetAssetDataResponse = {
   version?: number
-  assets: AssetData[]
+  assets: VerifiedAssetMetadata[]
 }
 
 type GetVerifiedAssetsRequestHeaders = {
@@ -27,7 +28,7 @@ type GetVerifiedAssetsResponseHeaders = {
 }
 
 export class VerifiedAssets {
-  private readonly assets: Map<string, AssetData> = new Map()
+  private readonly assets: Map<string, VerifiedAssetMetadata> = new Map()
   private lastModified?: string
 
   export(): ExportedVerifiedAssets {
@@ -52,6 +53,13 @@ export class VerifiedAssets {
     }
     return this.assets.has(assetId)
   }
+
+  getAssetData(assetId: Buffer | string): VerifiedAssetMetadata | undefined {
+    if (!(typeof assetId === 'string')) {
+      assetId = assetId.toString('hex')
+    }
+    return this.assets.get(assetId)
+  }
 }
 
 // `ExportedVerifiedAssets` may seem redundant, given that it duplicates the
@@ -63,7 +71,7 @@ export class VerifiedAssets {
 // - The `assets` field from `VerifiedAssets` is a `Map`, which is not
 //   properly supported by the cache serializer.
 export type ExportedVerifiedAssets = {
-  assets: AssetData[]
+  assets: VerifiedAssetMetadata[]
   lastModified?: string
 }
 
@@ -153,7 +161,7 @@ const axiosFileAdapter =
       }))
   }
 
-const sanitizedAssetData = (assetData: AssetData): AssetData => {
+const sanitizedAssetData = (assetData: VerifiedAssetMetadata): VerifiedAssetMetadata => {
   return {
     identifier: assetData.identifier,
     symbol: assetData.symbol,
