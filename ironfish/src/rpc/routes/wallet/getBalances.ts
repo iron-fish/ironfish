@@ -41,7 +41,7 @@ export interface GetBalancesResponse {
     /**
      * @deprecated Please use getAsset endpoint to get this information
      * */
-    assetVerification: AssetVerification
+    assetVerification: { status: AssetVerification['status'] }
   }[]
 }
 

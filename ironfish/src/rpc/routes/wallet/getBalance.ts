@@ -32,7 +32,7 @@ export type GetBalanceResponse = {
   /**
    * @deprecated Please use getAsset endpoint to get this information
    * */
-  assetVerification: AssetVerification
+  assetVerification: { status: AssetVerification['status'] }
 }
 
 export const GetBalanceRequestSchema: yup.ObjectSchema<GetBalanceRequest> = yup

@@ -4,10 +4,10 @@
 
 import { Asset } from '@ironfish/rust-nodejs'
 import {
-  AssetVerification,
   BufferUtils,
   CurrencyUtils,
   RpcAsset,
+  RpcAssetVerification,
   RpcClient,
   StringUtils,
 } from '@ironfish/sdk'
@@ -15,7 +15,7 @@ import chalk from 'chalk'
 import inquirer from 'inquirer'
 
 type RenderAssetNameOptions = {
-  verification?: AssetVerification
+  verification?: RpcAssetVerification
   outputType?: string
   verbose?: boolean
   logWarn?: (msg: string) => void
@@ -53,9 +53,9 @@ export function renderAssetNameFromHex(
 
 export function compareAssets(
   leftName: string,
-  leftVerification: AssetVerification,
+  leftVerification: RpcAssetVerification,
   rightName: string,
-  rightVerification: AssetVerification,
+  rightVerification: RpcAssetVerification,
 ): number {
   const isLeftVerified = leftVerification?.status === 'verified'
   const isRightVerified = rightVerification?.status === 'verified'
