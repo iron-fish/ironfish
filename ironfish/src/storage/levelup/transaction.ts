@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import type { LevelupDatabase } from './database'
 import type { LevelupStore } from './store'
+import { BufferMap, BufferSet } from 'buffer-map'
 import { MutexUnlockFunction } from '../../mutex'
 import {
-  BufferToStringEncoding,
   DatabaseSchema,
   DuplicateKeyError,
   IDatabaseTransaction,
@@ -20,8 +20,8 @@ export class LevelupTransaction implements IDatabaseTransaction {
   batch: LevelupBatch
   committing = false
   aborting = false
-  cache = new Map<string, unknown>()
-  cacheDelete = new Set<string>()
+  cache = new BufferMap<unknown>()
+  cacheDelete = new BufferSet()
   unlock: MutexUnlockFunction | null = null
   waiting: Promise<void> | null = null
   waitingResolve: (() => void) | null = null
@@ -81,19 +81,18 @@ export class LevelupTransaction implements IDatabaseTransaction {
     this.assertCanRead()
 
     const [encodedKey] = store.encode(key)
-    const cacheKey = BufferToStringEncoding.serialize(encodedKey)
 
-    if (this.cacheDelete.has(cacheKey)) {
+    if (this.cacheDelete.has(encodedKey)) {
       return undefined
     }
 
-    if (this.cache.has(cacheKey)) {
-      const cached = this.cache.get(cacheKey)
+    if (this.cache.has(encodedKey)) {
+      const cached = this.cache.get(encodedKey)
       return cached as SchemaValue<Schema>
     }
 
     const value = await store.get(key)
-    this.cache.set(cacheKey, value)
+    this.cache.set(encodedKey, value)
     return value
   }
 
@@ -107,11 +106,10 @@ export class LevelupTransaction implements IDatabaseTransaction {
     this.assertCanWrite()
 
     const [encodedKey, encodedValue] = store.encode(key, value)
-    const cacheKey = BufferToStringEncoding.serialize(encodedKey)
 
     this.batch.putEncoded(encodedKey, encodedValue)
-    this.cache.set(cacheKey, value)
-    this.cacheDelete.delete(cacheKey)
+    this.cache.set(encodedKey, value)
+    this.cacheDelete.delete(encodedKey)
   }
 
   async add<Schema extends DatabaseSchema>(
@@ -128,10 +126,9 @@ export class LevelupTransaction implements IDatabaseTransaction {
     }
 
     const [encodedKey, encodedValue] = store.encode(key, value)
-    const cacheKey = BufferToStringEncoding.serialize(encodedKey)
     this.batch.putEncoded(encodedKey, encodedValue)
-    this.cache.set(cacheKey, value)
-    this.cacheDelete.delete(cacheKey)
+    this.cache.set(encodedKey, value)
+    this.cacheDelete.delete(encodedKey)
   }
 
   async del<Schema extends DatabaseSchema>(
@@ -143,10 +140,9 @@ export class LevelupTransaction implements IDatabaseTransaction {
     this.assertCanWrite()
 
     const [encodedKey] = store.encode(key)
-    const cacheKey = BufferToStringEncoding.serialize(encodedKey)
     this.batch.delEncoded(encodedKey)
-    this.cache.set(cacheKey, undefined)
-    this.cacheDelete.add(cacheKey)
+    this.cache.set(encodedKey, undefined)
+    this.cacheDelete.add(encodedKey)
   }
 
   async update(): Promise<void> {
