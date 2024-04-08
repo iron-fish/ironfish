@@ -42,11 +42,18 @@ jobs:
     runs-on: ${{ matrix.settings.host }}
     steps:
       - name: Check runner architecture
+        shell: bash
         run: |
           if [[ "$(uname -m)" != "${{ matrix.settings.arch }}" ]]; then
             echo "Runner architecture does not match specified architecture"
             exit 1
           fi
+      
+      # needed for distutils, which is used by nodegyp, arm64 mac runners have 3.12
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: 3.9
 
       - name: Use node.js
         uses: actions/setup-node@v4
