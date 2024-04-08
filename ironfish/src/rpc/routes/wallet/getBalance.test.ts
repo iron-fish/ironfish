@@ -141,7 +141,7 @@ describe('Route wallet/getBalance', () => {
 
       const verifyAsset = jest
         .spyOn(node.assetsVerifier, 'verify')
-        .mockReturnValueOnce({ status: 'verified' })
+        .mockReturnValueOnce({ status: 'verified', symbol: 'FOO' })
 
       const response = await routeTest.client.wallet.getAccountBalance({
         account: account.name,
