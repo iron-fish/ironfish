@@ -1,7 +1,6 @@
 name: Build @ironfish binaries
 
 on:
-  push:
   workflow_dispatch:
   release:
     types:
