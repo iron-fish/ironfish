@@ -8,15 +8,14 @@ import { ErrorUtils } from '../utils'
 import { SetIntervalToken } from '../utils'
 import { Retry } from '../utils'
 import {
-  AdditionalAssetData,
   AssetsVerificationApi,
   VerifiedAssetMetadata,
   VerifiedAssets,
 } from './assetsVerificationApi'
 
-export type AssetVerification = {
-  status: 'verified' | 'unverified' | 'unknown'
-} & Partial<AdditionalAssetData>
+export type AssetVerification =
+  | { status: 'unverified' | 'unknown' }
+  | ({ status: 'verified' } & VerifiedAssetMetadata)
 
 export class AssetsVerifier {
   private readonly REFRESH_INTERVAL = 6 * 60 * 60 * 1000 // 6 hours
