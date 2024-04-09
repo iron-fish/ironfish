@@ -221,10 +221,7 @@ pub fn generate_and_split_key(
         });
     }
 
-    let public_key_package = packages
-        .public_key_package
-        .serialize()
-        .map_err(to_napi_err)?;
+    let public_key_package = packages.public_key_package.serialize();
 
     Ok(TrustedDealerKeyPackages {
         public_address: packages.public_address.hex_public_address(),
