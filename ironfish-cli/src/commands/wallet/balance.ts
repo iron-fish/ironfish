@@ -5,7 +5,7 @@ import { CurrencyUtils, GetBalanceResponse, isNativeIdentifier } from '@ironfish
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { renderAssetName } from '../../utils'
+import { renderAssetWithVerificationStatus } from '../../utils'
 
 export class BalanceCommand extends IronfishCommand {
   static description =
@@ -63,11 +63,10 @@ export class BalanceCommand extends IronfishCommand {
     ).content
 
     const assetId = response.content.assetId
-    const assetName = renderAssetName(isNativeIdentifier(assetId) ? '$IRON' : assetId, {
-      verification: asset.verification,
-      verbose: !!flags.verbose,
-      logWarn: this.warn.bind(this),
-    })
+    const assetName = renderAssetWithVerificationStatus(
+      isNativeIdentifier(assetId) ? '$IRON' : assetId,
+      asset,
+    )
 
     if (flags.explain) {
       this.explainBalance(response.content, assetName)

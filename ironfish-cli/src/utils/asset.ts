@@ -17,11 +17,12 @@ import inquirer from 'inquirer'
 type RenderAssetNameOptions = {
   verification?: RpcAssetVerification
   outputType?: string
-  verbose?: boolean
-  logWarn?: (msg: string) => void
 }
 
-export function renderAssetName(name: string, options?: RenderAssetNameOptions): string {
+export function renderAssetWithVerificationStatus(
+  name: string,
+  options?: RenderAssetNameOptions,
+): string {
   if (options?.outputType) {
     // User requested some machine-readable output (like CSV, JSON, or YAML).
     // Do not alter the name in any way.
@@ -34,21 +35,10 @@ export function renderAssetName(name: string, options?: RenderAssetNameOptions):
     case 'verified':
       return chalk.green(name + '✓')
     case 'unknown':
-      if (options?.verbose && options?.logWarn) {
-        options.logWarn(`Could not check whether ${name} is a verified asset`)
-      }
-      return name
+      return chalk.green(name + '?')
     default:
       return name
   }
-}
-
-export function renderAssetNameFromHex(
-  hexName: string,
-  options?: RenderAssetNameOptions,
-): string {
-  const name = BufferUtils.toHuman(Buffer.from(hexName, 'hex'))
-  return renderAssetName(name, options)
 }
 
 export function compareAssets(
