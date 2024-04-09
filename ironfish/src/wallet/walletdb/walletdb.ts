@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Asset } from '@ironfish/rust-nodejs'
-import { BufferMap } from 'buffer-map'
 import { Assert } from '../../assert'
 import { FileSystem } from '../../fileSystems'
 import { GENESIS_BLOCK_PREVIOUS } from '../../primitives/block'
@@ -782,24 +781,6 @@ export class WalletDB {
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.nullifierToNoteHash.del([account.prefix, nullifier], tx)
-  }
-
-  async clearNullifierToNoteHash(account: Account, tx?: IDatabaseTransaction): Promise<void> {
-    await this.nullifierToNoteHash.clear(tx, account.prefixRange)
-  }
-
-  async replaceNullifierToNoteHash(
-    account: Account,
-    map: BufferMap<Buffer>,
-    tx?: IDatabaseTransaction,
-  ): Promise<void> {
-    await this.db.withTransaction(tx, async (tx) => {
-      await this.clearNullifierToNoteHash(account, tx)
-
-      for (const [key, value] of map) {
-        await this.nullifierToNoteHash.put([account.prefix, key], value, tx)
-      }
-    })
   }
 
   async saveDecryptedNote(
