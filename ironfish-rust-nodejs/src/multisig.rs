@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::{structs::NativeUnsignedTransaction, to_napi_err};
+use crate::{generate_key, structs::NativeUnsignedTransaction, to_napi_err};
 use ironfish::{
     frost::{keys::KeyPackage, round2, Randomizer},
     frost_utils::{signing_package::SigningPackage, split_spender_key::split_spender_key},
@@ -11,8 +11,12 @@ use ironfish::{
     SaplingKey,
 };
 use ironfish_frost::{
-    dkg::round1::export_secret_package, keys::PublicKeyPackage, multienc,
-    nonces::deterministic_signing_nonces, signature_share::SignatureShare,
+    dkg::round1::{export_secret_package, import_secret_package, round1},
+    dkg::round2::export_secret_package as export_secret_package_round2,
+    keys::PublicKeyPackage,
+    multienc,
+    nonces::deterministic_signing_nonces,
+    signature_share::SignatureShare,
     signing_commitment::SigningCommitment,
 };
 use napi::{bindgen_prelude::*, JsBuffer};
@@ -389,5 +393,60 @@ pub fn dkg_round_one(
     Ok(DkgRoundOneOutput {
         encrypted_secret_package: Buffer::from(encrypted_secret_package),
         package: Buffer::from(package.serialize().map_err(to_napi_err)?),
+    })
+}
+
+#[napi(namespace = "multisig")]
+pub struct DkgRoundTwoOutput {
+    pub encrypted_secret_package: Buffer,
+    // TODO: should this return a mapping instead of a list? packages are intended for specific participants
+    pub packages: Vec<Buffer>,
+}
+
+#[napi(namespace = "multisig")]
+pub fn dkg_round_two(
+    secret: String,
+    round1_secret_package: JsBuffer,
+    round1_packages: Vec<JsBuffer>,
+) -> Result<DkgRoundTwoOutput> {
+    let secret = Secret::deserialize_from(&hex_to_vec_bytes(&secret).map_err(to_napi_err)?[..])?;
+    let identity = secret.to_identity();
+
+    let exported_secret_package = round1_secret_package.into_value()?;
+
+    let round1_secret_package = import_secret_package(&secret, &exported_secret_package)?;
+
+    // TODO: fix error handling instead of using unwrap
+    let round1_packages: Vec<round1::Package> = round1_packages
+        .into_iter()
+        .map(|buf| {
+            let bytes = buf.into_value().unwrap();
+            round1::Package::deserialize_from(bytes.as_ref()).unwrap()
+        })
+        .collect();
+
+    let group_secret_key = generate_key();
+
+    let (secret_package, packages) = ironfish_frost::dkg::part2(
+        identity.clone(),
+        &round1_secret_package,
+        &round1_packages[..],
+        hex_to_bytes(&group_secret_key.spending_key).map_err(to_napi_err)?,
+    )
+    .map_err(to_napi_err)?;
+
+    let encrypted_secret_package =
+        export_secret_package_round2(&identity, &secret_package.into(), thread_rng())
+            .map_err(to_napi_err)?;
+
+    // TODO: fix error handling instead of using unwrap
+    let packages = packages
+        .into_iter()
+        .map(|package| Buffer::from(package.serialize().map_err(to_napi_err).unwrap()))
+        .collect();
+
+    Ok(DkgRoundTwoOutput {
+        encrypted_secret_package: Buffer::from(encrypted_secret_package),
+        packages,
     })
 }
