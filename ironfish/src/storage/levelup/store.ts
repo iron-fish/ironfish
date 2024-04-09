@@ -18,7 +18,6 @@ import {
   SchemaKey,
   SchemaValue,
 } from '../database'
-import { BufferToStringEncoding } from '../database/encoding'
 import { StorageUtils } from '../database/utils'
 import { LevelupTransaction } from './transaction'
 
@@ -73,11 +72,11 @@ export class LevelupStore<Schema extends DatabaseSchema> extends DatabaseStore<S
   }
 
   /* Get an [[`AsyncGenerator`]] that yields all of the key/value pairs in the IDatastore */
-  async *getAllIter(
+  private async *_getAllIter(
     transaction?: IDatabaseTransaction,
     keyRange?: DatabaseKeyRange,
     iteratorOptions?: DatabaseIteratorOptions,
-  ): AsyncGenerator<[SchemaKey<Schema>, SchemaValue<Schema>]> {
+  ): AsyncGenerator<[Buffer, SchemaValue<Schema> | Buffer]> {
     if (keyRange) {
       keyRange = StorageUtils.addPrefixToRange(keyRange, this.prefixBuffer)
     } else {
@@ -85,18 +84,18 @@ export class LevelupStore<Schema extends DatabaseSchema> extends DatabaseStore<S
     }
 
     const seen = new BufferSet()
-    const cacheElements = new FastPriorityQueue<{ key: Buffer; value: SchemaValue<Schema> }>(
-      ({ key: a }, { key: b }) =>
-        iteratorOptions?.reverse ? b.compare(a) < 0 : a.compare(b) < 0,
+    const cacheElements = new FastPriorityQueue<{
+      key: Buffer
+      value: SchemaValue<Schema> | Buffer
+    }>(({ key: a }, { key: b }) =>
+      iteratorOptions?.reverse ? b.compare(a) < 0 : a.compare(b) < 0,
     )
 
     if (ENABLE_TRANSACTIONS && transaction) {
       Assert.isInstanceOf(transaction, LevelupTransaction)
       await transaction.acquireLock()
 
-      for (const [keyString, value] of transaction.cache.entries()) {
-        const key = BufferToStringEncoding.deserialize(keyString)
-
+      for (const [key, value] of transaction.cache.entries()) {
         if (!StorageUtils.hasPrefix(key, this.prefixBuffer)) {
           continue
         }
@@ -112,9 +111,9 @@ export class LevelupStore<Schema extends DatabaseSchema> extends DatabaseStore<S
         }
 
         if (iteratorOptions?.ordered) {
-          cacheElements.add({ key: key, value: value as SchemaValue<Schema> })
+          cacheElements.add({ key, value })
         } else {
-          yield [this.decodeKey(key), value as SchemaValue<Schema>]
+          yield [key, value]
         }
       }
     }
@@ -130,21 +129,31 @@ export class LevelupStore<Schema extends DatabaseSchema> extends DatabaseStore<S
       ) {
         const element = cacheElements.poll()
         Assert.isNotUndefined(element)
-        yield [this.decodeKey(element.key), element.value]
+        yield [element.key, element.value]
         nextCacheElement = cacheElements.peek()
       }
 
       if (seen.has(key)) {
         continue
       } else {
-        yield [this.decodeKey(key), this.valueEncoding.deserialize(value)]
+        yield [key, value]
       }
     }
 
     while (!cacheElements.isEmpty()) {
       const element = cacheElements.poll()
       Assert.isNotUndefined(element)
-      yield [this.decodeKey(element.key), element.value]
+      yield [element.key, element.value]
+    }
+  }
+
+  async *getAllIter(
+    transaction?: IDatabaseTransaction,
+    keyRange?: DatabaseKeyRange,
+    iteratorOptions?: DatabaseIteratorOptions,
+  ): AsyncGenerator<[SchemaKey<Schema>, SchemaValue<Schema>]> {
+    for await (const [key, value] of this._getAllIter(transaction, keyRange, iteratorOptions)) {
+      yield [this.decodeKey(key), this.resolveValue(value)]
     }
   }
 
@@ -161,8 +170,8 @@ export class LevelupStore<Schema extends DatabaseSchema> extends DatabaseStore<S
     keyRange?: DatabaseKeyRange,
     iteratorOptions?: DatabaseIteratorOptions,
   ): AsyncGenerator<SchemaValue<Schema>> {
-    for await (const [, value] of this.getAllIter(transaction, keyRange, iteratorOptions)) {
-      yield value
+    for await (const [, value] of this._getAllIter(transaction, keyRange, iteratorOptions)) {
+      yield this.resolveValue(value)
     }
   }
 
@@ -179,8 +188,8 @@ export class LevelupStore<Schema extends DatabaseSchema> extends DatabaseStore<S
     keyRange?: DatabaseKeyRange,
     iteratorOptions?: DatabaseIteratorOptions,
   ): AsyncGenerator<SchemaKey<Schema>> {
-    for await (const [key] of this.getAllIter(transaction, keyRange, iteratorOptions)) {
-      yield key
+    for await (const [key] of this._getAllIter(transaction, keyRange, iteratorOptions)) {
+      yield this.decodeKey(key)
     }
   }
 
@@ -276,6 +285,13 @@ export class LevelupStore<Schema extends DatabaseSchema> extends DatabaseStore<S
   decodeKey(key: Buffer): SchemaKey<Schema> {
     const keyWithoutPrefix = key.slice(this.prefixBuffer.byteLength)
     return this.keyEncoding.deserialize(keyWithoutPrefix)
+  }
+
+  resolveValue(value: SchemaValue<Schema> | Buffer): SchemaValue<Schema> {
+    if (value instanceof Buffer) {
+      return this.valueEncoding.deserialize(value)
+    }
+    return value
   }
 }
 
