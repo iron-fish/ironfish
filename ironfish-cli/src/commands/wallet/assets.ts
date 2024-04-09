@@ -12,7 +12,7 @@ import { BufferUtils } from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { renderAssetNameFromHex } from '../../utils'
+import { renderAssetWithVerificationStatus } from '../../utils'
 import { TableCols } from '../../utils/table'
 
 const MAX_ASSET_METADATA_COLUMN_WIDTH = ASSET_METADATA_LENGTH + 1
@@ -64,12 +64,13 @@ export class AssetsCommand extends IronfishCommand {
             header: 'Name',
             width: assetNameWidth,
             get: (row) =>
-              renderAssetNameFromHex(row.name, {
-                verification: row.verification,
-                outputType: flags.output,
-                verbose: !!flags.verbose,
-                logWarn: this.warn.bind(this),
-              }),
+              renderAssetWithVerificationStatus(
+                BufferUtils.toHuman(Buffer.from(row.name, 'hex')),
+                {
+                  verification: row.verification,
+                  outputType: flags.output,
+                },
+              ),
           }),
           id: {
             header: 'ID',

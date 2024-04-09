@@ -1,11 +1,11 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { CurrencyUtils, GetBalancesResponse, RpcAsset } from '@ironfish/sdk'
+import { BufferUtils, CurrencyUtils, GetBalancesResponse, RpcAsset } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { compareAssets, renderAssetNameFromHex } from '../../utils'
+import { compareAssets, renderAssetWithVerificationStatus } from '../../utils'
 
 type AssetBalancePairs = { asset: RpcAsset; balance: GetBalancesResponse['balances'][number] }
 
@@ -63,12 +63,13 @@ export class BalancesCommand extends IronfishCommand {
       assetName: {
         header: 'Asset Name',
         get: ({ asset }) =>
-          renderAssetNameFromHex(asset.name, {
-            verification: asset.verification,
-            outputType: flags.output,
-            verbose: !!flags.verbose,
-            logWarn: this.warn.bind(this),
-          }),
+          renderAssetWithVerificationStatus(
+            BufferUtils.toHuman(Buffer.from(asset.name, 'hex')),
+            {
+              verification: asset.verification,
+              outputType: flags.output,
+            },
+          ),
       },
       'asset.id': {
         header: 'Asset Id',
