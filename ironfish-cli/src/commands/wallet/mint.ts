@@ -197,9 +197,7 @@ export class Mint extends IronfishCommand {
         text: 'Enter the amount',
         minimum: 0n,
         logger: this.logger,
-        balance: {
-          asset: assetData,
-        },
+        asset: assetData,
       })
     }
 

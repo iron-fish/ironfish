@@ -155,10 +155,10 @@ export class Send extends IronfishCommand {
         text: 'Enter the amount in IRON',
         minimum: 1n,
         logger: this.logger,
+        asset: assetData,
         balance: {
           account: from,
           confirmations: flags.confirmations,
-          asset: assetData,
         },
       })
     }
