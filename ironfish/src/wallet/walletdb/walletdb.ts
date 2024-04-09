@@ -783,10 +783,6 @@ export class WalletDB {
     await this.nullifierToNoteHash.del([account.prefix, nullifier], tx)
   }
 
-  async clearNullifierToNoteHash(account: Account, tx?: IDatabaseTransaction): Promise<void> {
-    await this.nullifierToNoteHash.clear(tx, account.prefixRange)
-  }
-
   async saveDecryptedNote(
     account: Account,
     noteHash: Buffer,
