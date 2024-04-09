@@ -64,19 +64,7 @@ export class CurrencyUtils {
     },
   ): [bigint, null] | [null, ParseFixedError] {
     try {
-      // If an asset ID was provided, check if it is the native asset. Otherwise,
-      // we can only assume that the amount is in the native asset
-      const isNativeAsset = assetId ? isNativeIdentifier(assetId) : true
-
-      // Default to displaying 0 decimal places for custom assets
-      let decimals = 0
-      if (isNativeAsset) {
-        // Hard-code the amount of decimals in the native asset
-        decimals = IRON_DECIMAL_PLACES
-      } else if (verifiedAssetMetadata?.decimals) {
-        decimals = verifiedAssetMetadata.decimals
-      }
-
+      const { decimals } = getAssetFields(assetId, verifiedAssetMetadata)
       const parsed = parseFixed(amount.toString(), decimals).toBigInt()
       return [parsed, null]
     } catch (e) {
@@ -108,21 +96,7 @@ export class CurrencyUtils {
       amount = this.decode(amount)
     }
 
-    let decimals: number
-    let symbol: string
-    // If an asset ID was provided, check if it is the native asset. Otherwise,
-    // we can only assume that the amount is in the native asset
-    const isNativeAsset = !assetId || isNativeIdentifier(assetId)
-    if (isNativeAsset) {
-      // Hard-code the amount of decimals in the native asset
-      decimals = IRON_DECIMAL_PLACES
-      symbol = IRON_SYMBOL
-    } else {
-      // Default to displaying 0 decimal places for custom assets
-      decimals = verifiedAssetMetadata?.decimals || 0
-      symbol = verifiedAssetMetadata?.symbol || assetId
-    }
-
+    const { decimals, symbol } = getAssetFields(assetId, verifiedAssetMetadata)
     const majorDenominationAmount = FixedNumberUtils.render(amount, decimals)
 
     if (includeSymbol) {
@@ -196,3 +170,34 @@ export const MINIMUM_ORE_AMOUNT = 0n
 export const MAXIMUM_ORE_AMOUNT = 2n ** 64n
 export const MINIMUM_IRON_AMOUNT = CurrencyUtils.renderIron(MINIMUM_ORE_AMOUNT)
 export const MAXIMUM_IRON_AMOUNT = CurrencyUtils.renderIron(MAXIMUM_ORE_AMOUNT)
+
+function getAssetFields(
+  assetId?: string,
+  verifiedAssetMetadata?: {
+    decimals?: number
+    symbol?: string
+  },
+): {
+  decimals: number
+  symbol: string
+} {
+  let decimals: number
+  let symbol: string
+  // If an asset ID was provided, check if it is the native asset. Otherwise,
+  // we can only assume that the amount is in the native asset
+  const isNativeAsset = !assetId || isNativeIdentifier(assetId)
+  if (isNativeAsset) {
+    // Hard-code the amount of decimals in the native asset
+    decimals = IRON_DECIMAL_PLACES
+    symbol = IRON_SYMBOL
+  } else {
+    // Default to displaying 0 decimal places for custom assets
+    decimals = verifiedAssetMetadata?.decimals || 0
+    symbol = verifiedAssetMetadata?.symbol || assetId
+  }
+
+  return {
+    decimals,
+    symbol,
+  }
+}

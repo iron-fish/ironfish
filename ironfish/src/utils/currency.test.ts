@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
-import { CurrencyUtils } from './currency'
+import { CurrencyUtils, isParseFixedError } from './currency'
 
 describe('CurrencyUtils', () => {
   it('encode', () => {
@@ -41,6 +41,61 @@ describe('CurrencyUtils', () => {
 
     expect(CurrencyUtils.decodeIron('0.00002394')).toBe(2394n)
     expect(CurrencyUtils.decodeIron('0.00000999')).toBe(999n)
+  })
+
+  describe('tryMajorToMinor', () => {
+    // Randomly generated custom asset ID
+    const assetId = '1a75bf033c1c1925cfcd1a77461364e77c6e861c2a3acabaf9e398e980146651'
+
+    it('should return iron in ore denomination with no extra parameters', () => {
+      expect(CurrencyUtils.tryMajorToMinor(0n)).toEqual([0n, null])
+      expect(CurrencyUtils.tryMajorToMinor(1n)).toEqual([100000000n, null])
+      expect(CurrencyUtils.tryMajorToMinor(100n)).toEqual([10000000000n, null])
+
+      expect(CurrencyUtils.tryMajorToMinor('0.00001')).toEqual([1000n, null])
+    })
+
+    it('should return iron in ore denomination with even with incorrect parameters', () => {
+      expect(
+        CurrencyUtils.tryMajorToMinor(0n, Asset.nativeId().toString('hex'), { decimals: 4 }),
+      ).toEqual([0n, null])
+      expect(
+        CurrencyUtils.tryMajorToMinor(1n, Asset.nativeId().toString('hex'), { decimals: 4 }),
+      ).toEqual([100000000n, null])
+      expect(
+        CurrencyUtils.tryMajorToMinor(100n, Asset.nativeId().toString('hex'), { decimals: 4 }),
+      ).toEqual([10000000000n, null])
+
+      expect(
+        CurrencyUtils.tryMajorToMinor('0.00001', Asset.nativeId().toString('hex'), {
+          decimals: 4,
+        }),
+      ).toEqual([1000n, null])
+    })
+
+    it('should return an asset value with 0 decimals by default', () => {
+      expect(CurrencyUtils.tryMajorToMinor(1n, assetId)).toEqual([1n, null])
+      expect(CurrencyUtils.tryMajorToMinor(100n, assetId)).toEqual([100n, null])
+      expect(CurrencyUtils.tryMajorToMinor('100', assetId)).toEqual([100n, null])
+    })
+
+    it('should return an asset value using the given decimals', () => {
+      expect(CurrencyUtils.tryMajorToMinor(1n, assetId, { decimals: 2 })).toEqual([100n, null])
+      expect(CurrencyUtils.tryMajorToMinor(100n, assetId, { decimals: 2 })).toEqual([
+        10000n,
+        null,
+      ])
+      expect(CurrencyUtils.tryMajorToMinor('100', assetId, { decimals: 2 })).toEqual([
+        10000n,
+        null,
+      ])
+    })
+
+    it('should return an error if the given amount cannot be parsed', () => {
+      const [value, err] = CurrencyUtils.tryMajorToMinor('1.0.0')
+      expect(value).toBeNull()
+      expect(isParseFixedError(err)).toEqual(true)
+    })
   })
 
   describe('render', () => {
