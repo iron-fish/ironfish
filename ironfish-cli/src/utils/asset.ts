@@ -35,7 +35,7 @@ export function renderAssetWithVerificationStatus(
     case 'verified':
       return chalk.green(name + '✓')
     case 'unknown':
-      return chalk.green(name + '?')
+      return chalk.yellow(name + '?')
     default:
       return name
   }

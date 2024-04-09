@@ -68,7 +68,7 @@ export class BalanceCommand extends IronfishCommand {
     if (isNativeIdentifier(assetId)) {
       nameToRender = '$IRON'
     } else {
-      nameToRender = asset.symbol || assetId
+      nameToRender = asset.verification.symbol || assetId
     }
     const assetName = renderAssetWithVerificationStatus(nameToRender, asset)
 
