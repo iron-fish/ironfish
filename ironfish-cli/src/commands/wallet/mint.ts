@@ -148,10 +148,6 @@ export class Mint extends IronfishCommand {
     // We can assume the prompt can be skipped if at least one of metadata or
     // name is provided
     let isMintingNewAsset = Boolean(name || metadata)
-    // TODO(mat): The above assumption is bad - as a user, I may want to mint more of
-    // a coin I know by name, but not by asset ID. By providing only the asset
-    // name, this presumes I want to make a new asset. This works fine if the
-    // metadata field is empty, but otherwise would be a painful experience.
     if (!assetId && !metadata && !name) {
       isMintingNewAsset = await CliUx.ux.confirm('Do you want to create a new asset (Y/N)?')
     }
@@ -170,8 +166,6 @@ export class Mint extends IronfishCommand {
         })
       }
 
-      // TODO(mat): Even if we are "creating a new asset", the asset may already exist - we
-      // should probably prompt here if that is the case?
       const newAsset = new Asset(accountPublicKey, name, metadata)
       assetId = newAsset.id().toString('hex')
     } else if (!assetId) {
