@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Asset } from '@ironfish/rust-nodejs'
 import { CurrencyUtils } from './currency'
 
 describe('CurrencyUtils', () => {
@@ -40,6 +41,62 @@ describe('CurrencyUtils', () => {
 
     expect(CurrencyUtils.decodeIron('0.00002394')).toBe(2394n)
     expect(CurrencyUtils.decodeIron('0.00000999')).toBe(999n)
+  })
+
+  describe('render', () => {
+    // Randomly generated custom asset ID
+    const assetId = '1a75bf033c1c1925cfcd1a77461364e77c6e861c2a3acabaf9e398e980146651'
+
+    it('should render iron with no extra parameters with 8 decimal places', () => {
+      expect(CurrencyUtils.render(0n)).toEqual('0.00000000')
+      expect(CurrencyUtils.render(1n)).toEqual('0.00000001')
+      expect(CurrencyUtils.render(100n)).toEqual('0.00000100')
+      expect(CurrencyUtils.render(10000n)).toEqual('0.00010000')
+      expect(CurrencyUtils.render(100000000n)).toEqual('1.00000000')
+    })
+
+    it('should include IRON for the iron asset ticker', () => {
+      expect(CurrencyUtils.render(1n, true)).toEqual('$IRON 0.00000001')
+    })
+
+    it('should still render iron with 8 decimals and $IRON symbol even if parameters are given', () => {
+      expect(
+        CurrencyUtils.render(1n, false, Asset.nativeId().toString('hex'), {
+          decimals: 2,
+          symbol: 'FOO',
+        }),
+      ).toEqual('0.00000001')
+      expect(
+        CurrencyUtils.render(1n, true, Asset.nativeId().toString('hex'), {
+          decimals: 2,
+          symbol: 'FOO',
+        }),
+      ).toEqual('$IRON 0.00000001')
+    })
+
+    it('should render an asset value with 0 decimals by default', () => {
+      expect(CurrencyUtils.render(1n, false, assetId)).toEqual('1')
+      expect(CurrencyUtils.render(1n, true, assetId)).toEqual(`${assetId} 1`)
+    })
+
+    it('should render an asset value with the given decimals and symbol', () => {
+      expect(CurrencyUtils.render(1n, false, assetId, { decimals: 2 })).toEqual('0.01')
+      expect(CurrencyUtils.render(1n, true, assetId, { decimals: 2 })).toEqual(
+        `${assetId} 0.01`,
+      )
+
+      expect(CurrencyUtils.render(100n, false, assetId, { decimals: 2 })).toEqual('1.00')
+      expect(CurrencyUtils.render(100n, true, assetId, { decimals: 2 })).toEqual(
+        `${assetId} 1.00`,
+      )
+
+      expect(
+        CurrencyUtils.render(100n, false, assetId, { decimals: 2, symbol: 'FOO' }),
+      ).toEqual('1.00')
+      expect(CurrencyUtils.render(100n, true, assetId, { decimals: 2, symbol: 'FOO' })).toEqual(
+        `FOO 1.00`,
+      )
+    })
   })
 
   it('renderIron', () => {
