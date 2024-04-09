@@ -79,27 +79,24 @@ export class CurrencyUtils {
       amount = this.decode(amount)
     }
 
+    let decimals: number
+    let symbol: string
     // If an asset ID was provided, check if it is the native asset. Otherwise,
     // we can only assume that the amount is in the native asset
-    const isNativeAsset = assetId ? isNativeIdentifier(assetId) : true
-
-    // Default to displaying 0 decimal places for custom assets
-    let decimals = 0
+    const isNativeAsset = !assetId || isNativeIdentifier(assetId)
     if (isNativeAsset) {
       // Hard-code the amount of decimals in the native asset
       decimals = IRON_DECIMAL_PLACES
-    } else if (verifiedAssetMetadata?.decimals) {
-      decimals = verifiedAssetMetadata.decimals
+      symbol = IRON_SYMBOL
+    } else {
+      // Default to displaying 0 decimal places for custom assets
+      decimals = verifiedAssetMetadata?.decimals || 0
+      symbol = verifiedAssetMetadata?.symbol || assetId
     }
 
     const majorDenominationAmount = FixedNumberUtils.render(amount, decimals)
 
     if (includeSymbol) {
-      let symbol = '$IRON'
-
-      if (assetId && !isNativeAsset) {
-        symbol = verifiedAssetMetadata?.symbol || assetId
-      }
       return `${symbol} ${majorDenominationAmount}`
     }
 
@@ -164,6 +161,7 @@ export function isParseFixedError(error: unknown): error is ParseFixedError {
 }
 
 const IRON_DECIMAL_PLACES = 8
+const IRON_SYMBOL = '$IRON'
 export const ORE_TO_IRON = 100000000
 export const MINIMUM_ORE_AMOUNT = 0n
 export const MAXIMUM_ORE_AMOUNT = 2n ** 64n
