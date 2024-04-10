@@ -9,6 +9,7 @@ import {
   DEFAULT_USE_RPC_IPC,
   DEFAULT_USE_RPC_TCP,
   DEFAULT_USE_RPC_TLS,
+  FixedNumberUtils,
   MAXIMUM_ORE_AMOUNT,
   MINIMUM_ORE_AMOUNT,
 } from '@ironfish/sdk'
@@ -160,32 +161,20 @@ export const parseIron = (input: string, opts: IronOpts): Promise<bigint> => {
 /**
  * A flag used for a value when we do not yet know how to treat the conversion
  * from major to minor denomination. Parses the value simply as a valid number,
- * to be convert later manually.
+ * to be converted later manually.
  */
-export const ValueFlag = Flags.custom<bigint, IronOpts>({
-  parse: async (input, _ctx, opts) => parseValue(input, opts),
+export const ValueFlag = Flags.custom<string>({
+  parse: async (input, _ctx, opts) => {
+    return new Promise((resolve, reject) => {
+      try {
+        FixedNumberUtils.tryDecodeDecimal(input)
+        resolve(input)
+      } catch (e) {
+        reject(new Error(`The number inputted for ${opts.name} is invalid.`))
+      }
+    })
+  },
 })
-
-export const parseValue = (input: string, opts: IronOpts): Promise<bigint> => {
-  return new Promise((resolve, reject) => {
-    const { minimum, flagName } = opts ?? {}
-    try {
-      const value = CurrencyUtils.decode(input)
-
-      if (minimum !== undefined && value < minimum) {
-        reject(new Error(`The minimum ${flagName} is ${CurrencyUtils.renderOre(minimum)}`))
-      }
-
-      if (value < MINIMUM_ORE_AMOUNT || value > MAXIMUM_ORE_AMOUNT) {
-        reject(new Error(`The number inputted for ${flagName} is invalid.`))
-      }
-
-      resolve(value)
-    } catch {
-      reject(new Error(`The number inputted for ${flagName} is invalid.`))
-    }
-  })
-}
 
 export const HexFlag = Flags.custom<string>({
   parse: async (input, _ctx, opts) => {

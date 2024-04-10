@@ -30,4 +30,29 @@ export class FixedNumberUtils {
 
     return value
   }
+
+  static trimFromEnd(input: string, c: string): string {
+    return input.replace(new RegExp(`${c}+$`), '')
+  }
+
+  static trimFromStart(input: string, c: string): string {
+    return input.replace(new RegExp(`^${c}+`), '')
+  }
+
+  static tryDecodeDecimal(input: string): { value: bigint; decimals: number } {
+    const split = input.split('.')
+
+    if (split.length > 2) {
+      throw new Error('Invalid number of decimals')
+    } else if (split.length === 1) {
+      return { value: BigInt(split[0]), decimals: 0 }
+    } else {
+      const whole = this.trimFromStart(split[0], '0')
+      const fraction = this.trimFromEnd(split[1], '0')
+
+      const decimals = fraction.length
+      const value = BigInt(whole + fraction)
+      return { value, decimals }
+    }
+  }
 }
