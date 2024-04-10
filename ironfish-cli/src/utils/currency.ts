@@ -65,8 +65,8 @@ export async function promptCurrency(options: {
 
     const [amount, error] = CurrencyUtils.tryMajorToMinor(
       input,
-      options.balance?.asset?.id,
-      options.balance?.asset?.verification,
+      options.asset?.id,
+      options.asset?.verification,
     )
 
     if (error) {
