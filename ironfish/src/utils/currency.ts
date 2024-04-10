@@ -64,7 +64,7 @@ export class CurrencyUtils {
     },
   ): [bigint, null] | [null, ParseFixedError] {
     try {
-      const { decimals } = getAssetFields(assetId, verifiedAssetMetadata)
+      const { decimals } = assetMetadataWithDefaults(assetId, verifiedAssetMetadata)
       const parsed = parseFixed(amount.toString(), decimals).toBigInt()
       return [parsed, null]
     } catch (e) {
@@ -96,7 +96,7 @@ export class CurrencyUtils {
       amount = this.decode(amount)
     }
 
-    const { decimals, symbol } = getAssetFields(assetId, verifiedAssetMetadata)
+    const { decimals, symbol } = assetMetadataWithDefaults(assetId, verifiedAssetMetadata)
     const majorDenominationAmount = FixedNumberUtils.render(amount, decimals)
 
     if (includeSymbol) {
@@ -171,7 +171,7 @@ export const MAXIMUM_ORE_AMOUNT = 2n ** 64n
 export const MINIMUM_IRON_AMOUNT = CurrencyUtils.renderIron(MINIMUM_ORE_AMOUNT)
 export const MAXIMUM_IRON_AMOUNT = CurrencyUtils.renderIron(MAXIMUM_ORE_AMOUNT)
 
-function getAssetFields(
+function assetMetadataWithDefaults(
   assetId?: string,
   verifiedAssetMetadata?: {
     decimals?: number
