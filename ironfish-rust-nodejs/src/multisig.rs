@@ -4,19 +4,15 @@
 
 use crate::{structs::NativeUnsignedTransaction, to_napi_err};
 use ironfish::{
-    frost::{
-        keys::{dkg, KeyPackage},
-        round2, Randomizer,
-    },
+    frost::{keys::KeyPackage, round2, Randomizer},
     frost_utils::{signing_package::SigningPackage, split_spender_key::split_spender_key},
     participant::{Identity, Secret},
     serializing::{bytes_to_hex, fr::FrSerializable, hex_to_vec_bytes},
     SaplingKey,
 };
 use ironfish_frost::{
-    dkg::round1::export_secret_package, keys::PublicKeyPackage, multienc,
-    nonces::deterministic_signing_nonces, signature_share::SignatureShare,
-    signing_commitment::SigningCommitment,
+    keys::PublicKeyPackage, multienc, nonces::deterministic_signing_nonces,
+    signature_share::SignatureShare, signing_commitment::SigningCommitment,
 };
 use napi::{bindgen_prelude::*, JsBuffer};
 use napi_derive::napi;
@@ -368,33 +364,13 @@ pub fn dkg_round1(
         Identity::deserialize_from(&hex_to_vec_bytes(&self_identity).map_err(to_napi_err)?[..])?;
     let participant_identities = try_deserialize_identities(participant_identities)?;
 
-    if !participant_identities.contains(&self_identity) {
-        return Err(to_napi_err(
-            "participant_identities must include self_identity",
-        ));
-    }
-
-    let max_signers = u16::try_from(participant_identities.len())
-        .map_err(|_| to_napi_err("too many participants"))?;
-
-    if min_signers > max_signers {
-        return Err(to_napi_err(
-            "min_signers exceeds the number of participants",
-        ));
-    }
-
-    let mut rng = thread_rng();
-    let (secret_package, public_package) = dkg::part1(
-        self_identity.to_frost_identifier(),
-        max_signers,
+    let (encrypted_secret_package, public_package) = ironfish_frost::dkg::round1::round1(
+        &self_identity,
         min_signers,
-        &mut rng,
+        &participant_identities,
+        thread_rng(),
     )
     .map_err(to_napi_err)?;
-
-    let encrypted_secret_package =
-        export_secret_package(&secret_package, &self_identity, &mut rng)?;
-    let public_package = public_package.serialize().map_err(to_napi_err)?;
 
     // TODO bind the min/max signers and the list of participants to the packages
     Ok(DkgRound1Packages {
