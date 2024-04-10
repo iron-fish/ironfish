@@ -198,6 +198,8 @@ export class TransactionsCommand extends IronfishCommand {
       const amount = BigInt(note.value)
       const assetId = note.assetId
       const assetName = assetLookup[note.assetId].name
+      const assetDecimals = assetLookup[note.assetId].verification.decimals
+      const assetSymbol = assetLookup[note.assetId].verification.symbol
       const sender = note.sender
       const recipient = note.owner
       const memo = note.memo
@@ -211,6 +213,8 @@ export class TransactionsCommand extends IronfishCommand {
           group,
           assetId,
           assetName,
+          assetDecimals,
+          assetSymbol,
           amount,
           feePaid,
           sender,
@@ -222,6 +226,8 @@ export class TransactionsCommand extends IronfishCommand {
           group,
           assetId,
           assetName,
+          assetDecimals,
+          assetSymbol,
           amount,
           sender,
           recipient,
@@ -283,14 +289,17 @@ export class TransactionsCommand extends IronfishCommand {
       feePaid: {
         header: 'Fee Paid ($IRON)',
         get: (row) =>
-          row.feePaid && row.feePaid !== 0n ? CurrencyUtils.renderIron(row.feePaid) : '',
+          row.feePaid && row.feePaid !== 0n ? CurrencyUtils.render(row.feePaid) : '',
       },
       ...TableCols.asset({ extended, format }),
       amount: {
         header: 'Amount',
         get: (row) => {
           Assert.isNotUndefined(row.amount)
-          return CurrencyUtils.renderIron(row.amount)
+          return CurrencyUtils.render(row.amount, false, row.assetId, {
+            decimals: row.assetDecimals,
+            symbol: row.assetSymbol,
+          })
         },
         minWidth: 16,
       },
@@ -347,6 +356,8 @@ type TransactionRow = {
   hash: string
   assetId: string
   assetName: string
+  assetDecimals?: number
+  assetSymbol?: string
   amount: bigint
   feePaid?: bigint
   notesCount: number

@@ -9,7 +9,7 @@ import {
   isValidPublicAddress,
   RawTransaction,
   RawTransactionSerde,
-  RpcClient,
+  RpcAsset,
   Transaction,
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
@@ -180,8 +180,10 @@ export class Mint extends IronfishCommand {
       assetId = asset.id
     }
 
+    let assetData
     if (assetId) {
-      const isAssetOwner = await this.isAssetOwner(client, assetId, accountPublicKey)
+      assetData = (await client.chain.getAsset({ id: assetId })).content
+      const isAssetOwner = this.isAssetOwner(assetData, accountPublicKey)
       if (!isAssetOwner) {
         this.error(`The account '${account}' does not own this asset.`)
       }
@@ -195,6 +197,7 @@ export class Mint extends IronfishCommand {
         text: 'Enter the amount',
         minimum: 0n,
         logger: this.logger,
+        asset: assetData,
       })
     }
 
@@ -254,6 +257,7 @@ export class Mint extends IronfishCommand {
         name,
         metadata,
         flags.transferOwnershipTo,
+        assetData,
       ))
     ) {
       this.error('Transaction aborted.')
@@ -283,16 +287,17 @@ export class Mint extends IronfishCommand {
       this.warn(`Transaction '${transaction.hash().toString('hex')}' failed to broadcast`)
     }
 
+    const renderedValue = CurrencyUtils.render(
+      minted.value,
+      true,
+      minted.asset.id().toString('hex'),
+      assetData?.verification,
+    )
+    const renderedFee = CurrencyUtils.render(transaction.fee(), true)
     this.log(`Minted asset ${BufferUtils.toHuman(minted.asset.name())} from ${account}`)
     this.log(`Asset Identifier: ${minted.asset.id().toString('hex')}`)
-    this.log(
-      `Value: ${CurrencyUtils.renderIron(
-        minted.value,
-        true,
-        minted.asset.id().toString('hex'),
-      )}`,
-    )
-    this.log(`Fee: ${CurrencyUtils.renderIron(transaction.fee(), true)}`)
+    this.log(`Value: ${renderedValue}`)
+    this.log(`Fee: ${renderedFee}`)
     this.log(`Hash: ${transaction.hash().toString('hex')}`)
 
     const networkId = (await client.chain.getNetworkInfo()).content.networkId
@@ -324,14 +329,24 @@ export class Mint extends IronfishCommand {
     name?: string,
     metadata?: string,
     transferOwnershipTo?: string,
+    assetData?: RpcAsset,
   ): Promise<boolean> {
     const nameString = name ? `\nName: ${name}` : ''
     const metadataString = metadata ? `\nMetadata: ${metadata}` : ''
+
+    const renderedAmount = CurrencyUtils.render(
+      amount,
+      !!assetId,
+      assetId,
+      assetData?.verification,
+    )
+    const renderedFee = CurrencyUtils.render(fee, true)
+
     this.log(
       `You are about to mint an asset with the account ${account}:${nameString}${metadataString}`,
     )
-    this.log(`Amount: ${CurrencyUtils.renderIron(amount, !!assetId, assetId)}`)
-    this.log(`Fee: ${CurrencyUtils.renderIron(fee, true)}`)
+    this.log(`Amount: ${renderedAmount}`)
+    this.log(`Fee: ${renderedFee}`)
 
     if (transferOwnershipTo) {
       this.log(
@@ -342,14 +357,9 @@ export class Mint extends IronfishCommand {
     return CliUx.ux.confirm('Do you confirm (Y/N)?')
   }
 
-  async isAssetOwner(
-    client: RpcClient,
-    assetId: string,
-    ownerPublicKey: string,
-  ): Promise<boolean> {
+  isAssetOwner(asset: RpcAsset, ownerPublicKey: string): boolean {
     try {
-      const assetResponse = await client.chain.getAsset({ id: assetId })
-      if (assetResponse.content.owner === ownerPublicKey) {
+      if (asset.owner === ownerPublicKey) {
         return true
       }
     } catch (e) {

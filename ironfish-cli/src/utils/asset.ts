@@ -35,7 +35,7 @@ export function renderAssetWithVerificationStatus(
     case 'verified':
       return chalk.green(name + '✓')
     case 'unknown':
-      return chalk.green(name + '?')
+      return chalk.yellow(name + '?')
     default:
       return name
   }
@@ -124,9 +124,13 @@ export async function selectAsset(
   const choices = balances.map((balance) => {
     const assetName = BufferUtils.toHuman(Buffer.from(assetLookup[balance.assetId].name, 'hex'))
 
-    const name = `${balance.assetId} (${assetName}) (${CurrencyUtils.renderIron(
+    const renderedAvailable = CurrencyUtils.render(
       balance.available,
-    )})`
+      false,
+      balance.assetId,
+      assetLookup[balance.assetId].verification,
+    )
+    const name = `${balance.assetId} (${assetName}) (${renderedAvailable})`
 
     const value = {
       id: balance.assetId,
