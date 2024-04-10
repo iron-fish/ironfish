@@ -12,7 +12,7 @@ import {
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
-import { HexFlag, IronFlag, RemoteFlags } from '../../flags'
+import { HexFlag, IronFlag, RemoteFlags, ValueFlag } from '../../flags'
 import { selectAsset } from '../../utils/asset'
 import { promptCurrency } from '../../utils/currency'
 import { getExplorer } from '../../utils/explorer'
@@ -34,9 +34,9 @@ export class Send extends IronfishCommand {
       char: 'f',
       description: 'The account to send money from',
     }),
-    amount: IronFlag({
+    amount: ValueFlag({
       char: 'a',
-      description: 'The amount to send in IRON',
+      description: 'The amount to send in the major denomination',
       flagName: 'amount',
     }),
     to: Flags.string({
@@ -107,7 +107,6 @@ export class Send extends IronfishCommand {
 
   async start(): Promise<void> {
     const { flags } = await this.parse(Send)
-    let amount = flags.amount
     let assetId = flags.assetId
     let to = flags.to?.trim()
     let from = flags.account?.trim()
@@ -148,11 +147,26 @@ export class Send extends IronfishCommand {
       })
     ).content
 
+    let amount
+    if (flags.amount) {
+      const [parsedAmount, error] = CurrencyUtils.tryMajorToMinor(
+        flags.amount,
+        assetId,
+        assetData?.verification,
+      )
+
+      if (error) {
+        this.error(`${error.reason}`)
+      }
+
+      amount = parsedAmount
+    }
+
     if (amount == null) {
       amount = await promptCurrency({
         client: client,
         required: true,
-        text: 'Enter the amount in IRON',
+        text: 'Enter the amount in the major denomination',
         minimum: 1n,
         logger: this.logger,
         asset: assetData,

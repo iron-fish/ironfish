@@ -7,8 +7,8 @@ import { Assert, CurrencyUtils, Logger, RpcAsset, RpcClient } from '@ironfish/sd
 import { CliUx } from '@oclif/core'
 
 /**
- * This prompts the user to enter an amount of currency in IRON denominations
- * and returns the value in ORE
+ * This prompts the user to enter an amount of currency in the major
+ * denomination and returns the value in the minor denomination
  */
 export async function promptCurrency(options: {
   client: Pick<RpcClient, 'wallet'>
@@ -63,7 +63,11 @@ export async function promptCurrency(options: {
       return null
     }
 
-    const [amount, error] = CurrencyUtils.decodeIronTry(input)
+    const [amount, error] = CurrencyUtils.tryMajorToMinor(
+      input,
+      options.asset?.id,
+      options.asset?.verification,
+    )
 
     if (error) {
       options.logger.error(`Error: ${error.reason}`)

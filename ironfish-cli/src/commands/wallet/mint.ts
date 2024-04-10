@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Asset } from '@ironfish/rust-nodejs'
 import {
   BufferUtils,
   CreateTransactionRequest,
@@ -14,7 +15,7 @@ import {
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
-import { IronFlag, RemoteFlags } from '../../flags'
+import { IronFlag, RemoteFlags, ValueFlag } from '../../flags'
 import { selectAsset } from '../../utils/asset'
 import { promptCurrency } from '../../utils/currency'
 import { getExplorer } from '../../utils/explorer'
@@ -50,9 +51,9 @@ export class Mint extends IronfishCommand {
       minimum: 1n,
       flagName: 'fee rate',
     }),
-    amount: IronFlag({
+    amount: ValueFlag({
       char: 'a',
-      description: 'Amount of coins to mint in IRON',
+      description: 'Amount of coins to mint in the major denomination',
       flagName: 'amount',
     }),
     assetId: Flags.string({
@@ -164,6 +165,9 @@ export class Mint extends IronfishCommand {
           required: false,
         })
       }
+
+      const newAsset = new Asset(accountPublicKey, name, metadata)
+      assetId = newAsset.id().toString('hex')
     } else if (!assetId) {
       const asset = await selectAsset(client, account, {
         action: 'mint',
@@ -189,7 +193,21 @@ export class Mint extends IronfishCommand {
       }
     }
 
-    let amount = flags.amount
+    let amount
+    if (flags.amount) {
+      const [parsedAmount, error] = CurrencyUtils.tryMajorToMinor(
+        flags.amount,
+        assetId,
+        assetData?.verification,
+      )
+
+      if (error) {
+        this.error(`${error.reason}`)
+      }
+
+      amount = parsedAmount
+    }
+
     if (!amount) {
       amount = await promptCurrency({
         client: client,
