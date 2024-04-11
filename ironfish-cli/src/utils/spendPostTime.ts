@@ -7,6 +7,7 @@ import {
   CurrencyUtils,
   EstimateFeeRatesResponse,
   IronfishSdk,
+  RawTransaction,
   RawTransactionSerde,
   RpcClient,
   RpcResponseEnded,
@@ -14,6 +15,35 @@ import {
 } from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
 import { fetchNotes } from './note'
+
+/**
+ * Recalculates the average spendPostTime based on the new measurement.
+ */
+export async function updateSpendPostTimeInMs(
+  sdk: IronfishSdk,
+  raw: RawTransaction,
+  startTime: number,
+  endTime: number,
+) {
+  if (raw.spends.length === 0) {
+    return
+  }
+
+  const transactionDuration = endTime - startTime
+  const averageSpendTime = Math.ceil(transactionDuration / raw.spends.length)
+
+  const oldAverage = sdk.internal.get('spendPostTime')
+  const oldMeasurementCount = sdk.internal.get('spendPostTimeMeasurements')
+
+  // Calculate the new average using the formula: ((oldAverage * oldCount) + newValue) / newCount
+  const newMeasurementCount = oldMeasurementCount + 1
+  const newAverageSpendPostTime =
+    (oldAverage * oldMeasurementCount + averageSpendTime) / newMeasurementCount
+
+  sdk.internal.set('spendPostTime', newAverageSpendPostTime)
+  sdk.internal.set('spendPostTimeMeasurements', newMeasurementCount)
+  await sdk.internal.save()
+}
 
 export function getSpendPostTimeInMs(sdk: IronfishSdk): number {
   return sdk.internal.get('spendPostTime')
@@ -96,7 +126,7 @@ export async function benchmarkSpendPostTime(
 
   CliUx.ux.action.stop(TimeUtils.renderSpan(spendPostTime))
   sdk.internal.set('spendPostTime', spendPostTime)
-
+  sdk.internal.set('spendPostTimeMeasurements', 1)
   await sdk.internal.save()
 
   return spendPostTime

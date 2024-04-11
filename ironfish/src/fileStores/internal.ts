@@ -12,6 +12,7 @@ export type InternalOptions = {
   rpcAuthToken: string
   networkId: number
   spendPostTime: number // in milliseconds
+  spendPostTimeMeasurements: number // used to calculate the average spendPostTime
 }
 
 export const InternalOptionsDefaults: InternalOptions = {
@@ -21,6 +22,7 @@ export const InternalOptionsDefaults: InternalOptions = {
   rpcAuthToken: '',
   networkId: DEFAULT_NETWORK_ID,
   spendPostTime: 0,
+  spendPostTimeMeasurements: 0,
 }
 
 export class InternalStore extends KeyStore<InternalOptions> {
