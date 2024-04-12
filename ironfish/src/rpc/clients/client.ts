@@ -35,6 +35,8 @@ import type {
   CreateTrustedDealerKeyPackageResponse,
   DkgRound1Request,
   DkgRound1Response,
+  DkgRound2Request,
+  DkgRound2Response,
   EstimateFeeRateRequest,
   EstimateFeeRateResponse,
   EstimateFeeRatesRequest,
@@ -278,6 +280,13 @@ export abstract class RpcClient {
         round1: (params: DkgRound1Request): Promise<RpcResponseEnded<DkgRound1Response>> => {
           return this.request<DkgRound1Response>(
             `${ApiNamespace.wallet}/multisig/dkg/round1`,
+            params,
+          ).waitForEnd()
+        },
+
+        round2: (params: DkgRound2Request): Promise<RpcResponseEnded<DkgRound2Response>> => {
+          return this.request<DkgRound2Response>(
+            `${ApiNamespace.wallet}/multisig/dkg/round2`,
             params,
           ).waitForEnd()
         },

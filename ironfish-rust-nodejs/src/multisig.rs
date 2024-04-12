@@ -11,13 +11,17 @@ use ironfish::{
     SaplingKey,
 };
 use ironfish_frost::{
-    keys::PublicKeyPackage, multienc, nonces::deterministic_signing_nonces,
-    signature_share::SignatureShare, signing_commitment::SigningCommitment,
+    dkg::round1::{import_secret_package, PublicPackage},
+    keys::PublicKeyPackage,
+    multienc,
+    nonces::deterministic_signing_nonces,
+    signature_share::SignatureShare,
+    signing_commitment::SigningCommitment,
 };
 use napi::{bindgen_prelude::*, JsBuffer};
 use napi_derive::napi;
 use rand::thread_rng;
-use std::ops::Deref;
+use std::{collections::HashMap, ops::Deref};
 
 #[napi(namespace = "multisig")]
 pub const IDENTITY_LEN: u32 = ironfish::frost_utils::IDENTITY_LEN as u32;
@@ -39,6 +43,24 @@ where
                 .map(|identity| {
                     signers.push(identity);
                     signers
+                })
+                .map_err(to_napi_err)
+        })
+}
+
+fn try_deserialize_public_packages<I, S>(public_packages: I) -> Result<Vec<PublicPackage>>
+where
+    I: IntoIterator<Item = S>,
+    S: Deref<Target = str>,
+{
+    public_packages
+        .into_iter()
+        .try_fold(Vec::new(), |mut public_packages, serialized_package| {
+            let serialized_package = hex_to_vec_bytes(&serialized_package).map_err(to_napi_err)?;
+            PublicPackage::deserialize_from(&serialized_package[..])
+                .map(|public_package| {
+                    public_packages.push(public_package);
+                    public_packages
                 })
                 .map_err(to_napi_err)
         })
@@ -375,7 +397,7 @@ pub fn dkg_round1(
     // TODO bind the min/max signers and the list of participants to the packages
     Ok(DkgRound1Packages {
         encrypted_secret_package: bytes_to_hex(&encrypted_secret_package),
-        public_package: bytes_to_hex(&public_package),
+        public_package: bytes_to_hex(&public_package.serialize()),
     })
 }
 
@@ -383,4 +405,47 @@ pub fn dkg_round1(
 pub struct DkgRound1Packages {
     pub encrypted_secret_package: String,
     pub public_package: String,
+}
+
+#[napi(namespace = "multisig")]
+pub fn dkg_round2(
+    secret: String,
+    encrypted_secret_package: String,
+    public_packages: Vec<String>,
+) -> Result<DkgRound2Packages> {
+    let secret = Secret::deserialize_from(&hex_to_vec_bytes(&secret).map_err(to_napi_err)?[..])?;
+    let public_packages = try_deserialize_public_packages(public_packages)?;
+
+    let secret_package = import_secret_package(
+        &hex_to_vec_bytes(&encrypted_secret_package).map_err(to_napi_err)?,
+        &secret,
+    )
+    .map_err(to_napi_err)?;
+
+    let (encrypted_secret_package, public_packages) = ironfish_frost::dkg::round2::round2(
+        &secret.to_identity(),
+        &secret_package,
+        &public_packages,
+        thread_rng(),
+    )
+    .map_err(to_napi_err)?;
+
+    let mut serialized_public_packages: HashMap<String, String> = HashMap::new();
+    for (identity, public_package) in public_packages {
+        serialized_public_packages.insert(
+            bytes_to_hex(&identity.serialize()),
+            bytes_to_hex(&public_package.serialize()),
+        );
+    }
+
+    Ok(DkgRound2Packages {
+        encrypted_secret_package: bytes_to_hex(&encrypted_secret_package),
+        public_packages: serialized_public_packages,
+    })
+}
+
+#[napi(object, namespace = "multisig")]
+pub struct DkgRound2Packages {
+    pub encrypted_secret_package: String,
+    pub public_packages: HashMap<String, String>,
 }
