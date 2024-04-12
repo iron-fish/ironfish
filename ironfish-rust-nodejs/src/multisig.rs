@@ -21,7 +21,7 @@ use ironfish_frost::{
 use napi::{bindgen_prelude::*, JsBuffer};
 use napi_derive::napi;
 use rand::thread_rng;
-use std::{collections::HashMap, ops::Deref};
+use std::ops::Deref;
 
 #[napi(namespace = "multisig")]
 pub const IDENTITY_LEN: u32 = ironfish::frost_utils::IDENTITY_LEN as u32;
@@ -394,7 +394,6 @@ pub fn dkg_round1(
     )
     .map_err(to_napi_err)?;
 
-    // TODO bind the min/max signers and the list of participants to the packages
     Ok(DkgRound1Packages {
         encrypted_secret_package: bytes_to_hex(&encrypted_secret_package),
         public_package: bytes_to_hex(&public_package.serialize()),
@@ -430,22 +429,19 @@ pub fn dkg_round2(
     )
     .map_err(to_napi_err)?;
 
-    let mut serialized_public_packages: HashMap<String, String> = HashMap::new();
-    for (identity, public_package) in public_packages {
-        serialized_public_packages.insert(
-            bytes_to_hex(&identity.serialize()),
-            bytes_to_hex(&public_package.serialize()),
-        );
-    }
+    let public_packages = public_packages
+        .iter()
+        .map(|p| bytes_to_hex(&p.serialize()))
+        .collect();
 
     Ok(DkgRound2Packages {
         encrypted_secret_package: bytes_to_hex(&encrypted_secret_package),
-        public_packages: serialized_public_packages,
+        public_packages,
     })
 }
 
 #[napi(object, namespace = "multisig")]
 pub struct DkgRound2Packages {
     pub encrypted_secret_package: String,
-    pub public_packages: HashMap<String, String>,
+    pub public_packages: Vec<String>,
 }

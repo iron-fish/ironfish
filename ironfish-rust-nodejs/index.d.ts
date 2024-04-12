@@ -258,7 +258,7 @@ export namespace multisig {
   export function dkgRound2(secret: string, encryptedSecretPackage: string, publicPackages: Array<string>): DkgRound2Packages
   export interface DkgRound2Packages {
     encryptedSecretPackage: string
-    publicPackages: Record<string, string>
+    publicPackages: Array<string>
   }
   export function aggregateSignatureShares(publicKeyPackageStr: string, signingPackageStr: string, signatureSharesArr: Array<string>): Buffer
   export class ParticipantSecret {
