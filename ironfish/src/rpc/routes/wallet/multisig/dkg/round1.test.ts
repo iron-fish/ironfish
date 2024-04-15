@@ -55,24 +55,25 @@ describe('Route multisig/dkg/round1', () => {
     )
   })
 
-  it('should fail if the named identity is not part of the participants', async () => {
+  it('should add the named identity if it is not in the list of participants', async () => {
     const secretName = 'name'
     await routeTest.client.wallet.multisig.createParticipant({ name: secretName })
 
-    const participants = Array.from({ length: 3 }, () => ({
-      identity: multisig.ParticipantSecret.random().toIdentity().serialize().toString('hex'),
-    }))
+    // only pass in one participant
+    const participants = [
+      {
+        identity: multisig.ParticipantSecret.random().toIdentity().serialize().toString('hex'),
+      },
+    ]
 
     const request = { secretName, minSigners: 2, participants }
 
-    await expect(routeTest.client.wallet.multisig.dkg.round1(request)).rejects.toThrow(
-      expect.objectContaining({
-        message: expect.stringContaining(
-          "List of participant identities must include the identity for 'name'",
-        ),
-        status: 400,
-      }),
-    )
+    const response = await routeTest.client.wallet.multisig.dkg.round1(request)
+
+    expect(response.content).toMatchObject({
+      encryptedSecretPackage: expect.any(String),
+      publicPackage: expect.any(String),
+    })
   })
 
   it('should fail if minSigners is too low', async () => {

@@ -61,11 +61,7 @@ routes.register<typeof DkgRound1RequestSchema, DkgRound1Response>(
       .toString('hex')
 
     if (!participantIdentities.includes(selfIdentity)) {
-      throw new RpcValidationError(
-        `List of participant identities must include the identity for '${secretName}' (${selfIdentity})`,
-        400,
-        RPC_ERROR_CODES.VALIDATION,
-      )
+      participantIdentities.push(selfIdentity)
     }
 
     if (minSigners < 2) {
