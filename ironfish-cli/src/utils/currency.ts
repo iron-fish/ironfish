@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Asset } from '@ironfish/rust-nodejs'
-import { Assert, CurrencyUtils, Logger, RpcAsset, RpcClient } from '@ironfish/sdk'
+import { Assert, CurrencyUtils, Logger, RpcAssetVerification, RpcClient } from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
 
 /**
@@ -16,7 +16,8 @@ export async function promptCurrency(options: {
   logger: Logger
   required: true
   minimum?: bigint
-  asset?: RpcAsset
+  assetId?: string
+  assetVerification?: RpcAssetVerification
   balance?: {
     account?: string
     confirmations?: number
@@ -29,7 +30,8 @@ export async function promptCurrency(options: {
   logger: Logger
   required?: boolean
   minimum?: bigint
-  asset?: RpcAsset
+  assetId?: string
+  assetVerification?: RpcAssetVerification
   balance?: {
     account?: string
     confirmations?: number
@@ -40,15 +42,15 @@ export async function promptCurrency(options: {
   if (options.balance) {
     const balance = await options.client.wallet.getAccountBalance({
       account: options.balance.account,
-      assetId: options.asset?.id ?? Asset.nativeId().toString('hex'),
+      assetId: options.assetId ?? Asset.nativeId().toString('hex'),
       confirmations: options.balance.confirmations,
     })
 
     const renderedAvailable = CurrencyUtils.render(
       balance.content.available,
       false,
-      options.asset?.id,
-      options.asset?.verification,
+      options.assetId,
+      options.assetVerification,
     )
     text += ` (balance ${renderedAvailable})`
   }
@@ -65,8 +67,8 @@ export async function promptCurrency(options: {
 
     const [amount, error] = CurrencyUtils.tryMajorToMinor(
       input,
-      options.asset?.id,
-      options.asset?.verification,
+      options.assetId,
+      options.assetVerification,
     )
 
     if (error) {
@@ -80,8 +82,8 @@ export async function promptCurrency(options: {
       const renderedMinimum = CurrencyUtils.render(
         options.minimum,
         false,
-        options.asset?.id,
-        options.asset?.verification,
+        options.assetId,
+        options.assetVerification,
       )
       options.logger.error(`Error: Minimum is ${renderedMinimum}`)
       continue

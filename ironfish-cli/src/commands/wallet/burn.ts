@@ -161,7 +161,8 @@ export class Burn extends IronfishCommand {
         text: 'Enter the amount of the custom asset to burn',
         minimum: 1n,
         logger: this.logger,
-        asset: assetData,
+        assetId: assetId,
+        assetVerification: assetData.verification,
         balance: {
           account,
           confirmations: flags.confirmations,
