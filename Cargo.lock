@@ -1521,7 +1521,7 @@ dependencies = [
 [[package]]
 name = "ironfish-frost"
 version = "0.1.0"
-source = "git+https://github.com/iron-fish/ironfish-frost.git?branch=main#e34173b50e7dcad25219cf0373ab7df220e4afc1"
+source = "git+https://github.com/iron-fish/ironfish-frost.git?branch=main#b6b11147654602c0ea6142bb26b7df2b5651073f"
 dependencies = [
  "blake3",
  "chacha20 0.9.1",
