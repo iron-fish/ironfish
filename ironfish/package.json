@@ -38,7 +38,7 @@
     "fastpriorityqueue": "0.7.1",
     "imurmurhash": "0.1.4",
     "level-errors": "2.0.1",
-    "leveldown": "5.6.0",
+    "leveldown": "6.1.1",
     "levelup": "4.4.0",
     "lodash": "4.17.21",
     "node-datachannel": "0.5.1",
