@@ -431,7 +431,10 @@ pub fn dkg_round2(
 
     let public_packages = public_packages
         .iter()
-        .map(|p| bytes_to_hex(&p.serialize()))
+        .map(|p| DkgRound2PublicPackage {
+            recipient_identity: bytes_to_hex(&p.recipient_identity().serialize()),
+            public_package: bytes_to_hex(&p.serialize()),
+        })
         .collect();
 
     Ok(DkgRound2Packages {
@@ -441,7 +444,13 @@ pub fn dkg_round2(
 }
 
 #[napi(object, namespace = "multisig")]
+pub struct DkgRound2PublicPackage {
+    pub recipient_identity: String,
+    pub public_package: String,
+}
+
+#[napi(object, namespace = "multisig")]
 pub struct DkgRound2Packages {
     pub encrypted_secret_package: String,
-    pub public_packages: Vec<String>,
+    pub public_packages: Vec<DkgRound2PublicPackage>,
 }
