@@ -15,7 +15,6 @@ export class DkgRound1Command extends IronfishCommand {
     secretName: Flags.string({
       char: 's',
       description: 'The name of the secret to use for encryption during DKG',
-      required: true,
     }),
     identity: Flags.string({
       char: 'i',
@@ -31,6 +30,13 @@ export class DkgRound1Command extends IronfishCommand {
 
   async start(): Promise<void> {
     const { flags } = await this.parse(DkgRound1Command)
+
+    let secretName = flags.secretName
+    if (!secretName) {
+      secretName = await CliUx.ux.prompt('Enter the name of the secret to use', {
+        required: true,
+      })
+    }
 
     let identities = flags.identity
     if (!identities || identities.length < 2) {
@@ -59,7 +65,7 @@ export class DkgRound1Command extends IronfishCommand {
     const client = await this.sdk.connectRpc()
 
     const response = await client.wallet.multisig.dkg.round1({
-      secretName: flags.secretName,
+      secretName: secretName,
       participants: identities.map((identity) => ({ identity })),
       minSigners: minSigners,
     })
