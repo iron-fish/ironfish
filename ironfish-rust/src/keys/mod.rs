@@ -135,8 +135,8 @@ impl SaplingKey {
     /// first time.
     /// Note that unlike `new`, this function always successfully returns a value.
     pub fn generate_key() -> Self {
-        let spending_key: [u8; SPEND_KEY_SIZE] = random();
         loop {
+            let spending_key: [u8; SPEND_KEY_SIZE] = random();
             if let Ok(key) = Self::new(spending_key) {
                 return key;
             }
