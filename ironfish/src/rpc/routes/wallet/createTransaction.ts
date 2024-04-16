@@ -112,7 +112,7 @@ routes.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
   `${ApiNamespace.wallet}/createTransaction`,
   CreateTransactionRequestSchema,
   async (request, node): Promise<void> => {
-    AssertHasRpcContext(request, node, 'wallet')
+    AssertHasRpcContext(request, node, 'wallet', 'assetsVerifier')
 
     const account = getAccount(node.wallet, request.data.account)
 
@@ -227,7 +227,17 @@ routes.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
       })
     } catch (e) {
       if (e instanceof NotEnoughFundsError) {
-        throw new RpcValidationError(e.message, 400, RPC_ERROR_CODES.INSUFFICIENT_BALANCE)
+        // We are overriding the error message from the node to include verified assets in their appropriate denomination.
+        const assetData = node.assetsVerifier.getAssetData(e.assetId)
+        const renderedAmountNeeded = CurrencyUtils.render(
+          e.amountNeeded,
+          true,
+          e.assetId,
+          assetData,
+        )
+        const renderedAmount = CurrencyUtils.render(e.amount, false, e.assetId, assetData)
+        const message = `Insufficient funds: Needed ${renderedAmountNeeded} but have ${renderedAmount} available to spend. Please fund your account and/or wait for any pending transactions to be confirmed.'`
+        throw new RpcValidationError(message, 400, RPC_ERROR_CODES.INSUFFICIENT_BALANCE)
       }
       throw e
     }

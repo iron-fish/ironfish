@@ -149,7 +149,7 @@ describe('Route wallet/getAssets', () => {
           assetId = assetId.toString('hex')
         }
         if (assetId === verifiedAsset.id().toString('hex')) {
-          return { status: 'verified' }
+          return { status: 'verified', symbol: 'FOO' }
         } else {
           return { status: 'unverified' }
         }
@@ -185,7 +185,7 @@ describe('Route wallet/getAssets', () => {
           owner: account.publicAddress,
           status: AssetStatus.CONFIRMED,
           supply: '123',
-          verification: { status: 'verified' },
+          verification: { status: 'verified', symbol: 'FOO' },
         },
       ]),
     )

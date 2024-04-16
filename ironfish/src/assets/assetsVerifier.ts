@@ -7,11 +7,15 @@ import { createRootLogger, Logger } from '../logger'
 import { ErrorUtils } from '../utils'
 import { SetIntervalToken } from '../utils'
 import { Retry } from '../utils'
-import { AssetsVerificationApi, VerifiedAssets } from './assetsVerificationApi'
+import {
+  AssetsVerificationApi,
+  VerifiedAssetMetadata,
+  VerifiedAssets,
+} from './assetsVerificationApi'
 
-export type AssetVerification = {
-  status: 'verified' | 'unverified' | 'unknown'
-}
+export type AssetVerification =
+  | { status: 'unverified' | 'unknown' }
+  | ({ status: 'verified' } & VerifiedAssetMetadata)
 
 export class AssetsVerifier {
   private readonly REFRESH_INTERVAL = 6 * 60 * 60 * 1000 // 6 hours
@@ -103,13 +107,24 @@ export class AssetsVerifier {
     return this.cache.save()
   }
 
+  getAssetData(assetId: Buffer | string): VerifiedAssetMetadata | undefined {
+    return this.verifiedAssets?.getAssetData(assetId)
+  }
+
   verify(assetId: Buffer | string): AssetVerification {
     if (!this.verifiedAssets) {
       return { status: 'unknown' }
     }
 
-    if (this.verifiedAssets.isVerified(assetId)) {
-      return { status: 'verified' }
+    const assetData = this.getAssetData(assetId)
+    if (assetData) {
+      return {
+        status: 'verified',
+        symbol: assetData.symbol,
+        decimals: assetData.decimals,
+        logoURI: assetData.logoURI,
+        website: assetData.website,
+      }
     } else {
       return { status: 'unverified' }
     }

@@ -201,14 +201,14 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
       const [parsed, error] = JSONUtils.tryParse(rpcMessage)
       if (error) {
         this.emitResponse(client, this.constructMalformedRequest(data))
-        return
+        continue
       }
 
       const result = await YupUtils.tryValidate(RpcSocketClientMessageSchema, parsed)
 
       if (result.error) {
         this.emitResponse(client, this.constructMalformedRequest(parsed))
-        return
+        continue
       }
 
       const message = result.result.data
@@ -253,7 +253,7 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
           })
 
           this.emitResponse(client, response, requestId)
-          return
+          continue
         }
 
         throw error

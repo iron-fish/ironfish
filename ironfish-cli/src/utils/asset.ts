@@ -4,10 +4,10 @@
 
 import { Asset } from '@ironfish/rust-nodejs'
 import {
-  AssetVerification,
   BufferUtils,
   CurrencyUtils,
   RpcAsset,
+  RpcAssetVerification,
   RpcClient,
   StringUtils,
 } from '@ironfish/sdk'
@@ -15,13 +15,14 @@ import chalk from 'chalk'
 import inquirer from 'inquirer'
 
 type RenderAssetNameOptions = {
-  verification?: AssetVerification
+  verification?: RpcAssetVerification
   outputType?: string
-  verbose?: boolean
-  logWarn?: (msg: string) => void
 }
 
-export function renderAssetName(name: string, options?: RenderAssetNameOptions): string {
+export function renderAssetWithVerificationStatus(
+  name: string,
+  options?: RenderAssetNameOptions,
+): string {
   if (options?.outputType) {
     // User requested some machine-readable output (like CSV, JSON, or YAML).
     // Do not alter the name in any way.
@@ -34,28 +35,17 @@ export function renderAssetName(name: string, options?: RenderAssetNameOptions):
     case 'verified':
       return chalk.green(name + '✓')
     case 'unknown':
-      if (options?.verbose && options?.logWarn) {
-        options.logWarn(`Could not check whether ${name} is a verified asset`)
-      }
-      return name
+      return chalk.yellow(name + '?')
     default:
       return name
   }
 }
 
-export function renderAssetNameFromHex(
-  hexName: string,
-  options?: RenderAssetNameOptions,
-): string {
-  const name = BufferUtils.toHuman(Buffer.from(hexName, 'hex'))
-  return renderAssetName(name, options)
-}
-
 export function compareAssets(
   leftName: string,
-  leftVerification: AssetVerification,
+  leftVerification: RpcAssetVerification,
   rightName: string,
-  rightVerification: AssetVerification,
+  rightVerification: RpcAssetVerification,
 ): number {
   const isLeftVerified = leftVerification?.status === 'verified'
   const isRightVerified = rightVerification?.status === 'verified'
@@ -134,9 +124,13 @@ export async function selectAsset(
   const choices = balances.map((balance) => {
     const assetName = BufferUtils.toHuman(Buffer.from(assetLookup[balance.assetId].name, 'hex'))
 
-    const name = `${balance.assetId} (${assetName}) (${CurrencyUtils.renderIron(
+    const renderedAvailable = CurrencyUtils.render(
       balance.available,
-    )})`
+      false,
+      balance.assetId,
+      assetLookup[balance.assetId].verification,
+    )
+    const name = `${balance.assetId} (${assetName}) (${renderedAvailable})`
 
     const value = {
       id: balance.assetId,

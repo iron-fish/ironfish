@@ -18,7 +18,12 @@ const MAINNET_CONSENSUS: ConsensusParameters = {
   enforceSequentialBlockTime: HARDFORK_1_ACTIVATION_MAINNET,
   enableFishHash: HARDFORK_1_ACTIVATION_MAINNET,
   enableIncreasedDifficultyChange: HARDFORK_1_ACTIVATION_MAINNET,
-  checkpoints: [],
+  checkpoints: [
+    {
+      sequence: HARDFORK_1_ACTIVATION_MAINNET,
+      hash: '00000000000045885508f3c1455d676fe8749433dc71a748d07719fdde39aeb2',
+    },
+  ],
 }
 
 export const MAINNET_GENESIS = {

@@ -38,7 +38,8 @@ describe('multisig RPC integration', () => {
       })
     }
 
-    const participantAccounts = accountNames.map((accountName) => {
+    // select only the first 2 accounts to sign (2 of 3)
+    const participantAccounts = accountNames.slice(0, 2).map((accountName) => {
       const participantAccount = routeTest.wallet.getAccountByName(accountName)
       Assert.isNotNull(participantAccount)
       return participantAccount

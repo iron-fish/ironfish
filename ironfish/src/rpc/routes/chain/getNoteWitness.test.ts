@@ -6,7 +6,6 @@ import { Witness } from '../../../merkletree'
 import { NoteEncrypted } from '../../../primitives/noteEncrypted'
 import { useMinerBlockFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
-import { GetNoteWitnessResponse } from './getNoteWitness'
 
 describe('Route chain/getNoteWitness', () => {
   const routeTest = createRouteTest()
@@ -23,9 +22,7 @@ describe('Route chain/getNoteWitness', () => {
     const noteSize = await chain.notes.size()
 
     for (const index of Array.from(Array(noteSize).keys())) {
-      const response = await routeTest.client
-        .request<GetNoteWitnessResponse>('chain/getNoteWitness', { index })
-        .waitForEnd()
+      const response = await routeTest.client.chain.getNoteWitness({ index })
 
       const witness: Witness<NoteEncrypted, Buffer, Buffer, Buffer> | null =
         await chain.notes.witness(index)
@@ -61,9 +58,7 @@ describe('Route chain/getNoteWitness', () => {
     const confirmations = 1
 
     for (let index = 0; index < noteSize; index++) {
-      const response = await routeTest.client
-        .request<GetNoteWitnessResponse>('chain/getNoteWitness', { index, confirmations })
-        .waitForEnd()
+      const response = await routeTest.client.chain.getNoteWitness({ index, confirmations })
 
       const witness: Witness<NoteEncrypted, Buffer, Buffer, Buffer> | null =
         await chain.notes.witness(index, noteSize)
@@ -87,10 +82,8 @@ describe('Route chain/getNoteWitness', () => {
 
     // Notes on block2 are not confirmed
     for (let index = noteSize; index < block2NoteSize; index++) {
-      await expect(() =>
-        routeTest.client
-          .request<GetNoteWitnessResponse>('chain/getNoteWitness', { index, confirmations })
-          .waitForEnd(),
+      await expect(
+        routeTest.client.chain.getNoteWitness({ index, confirmations }),
       ).rejects.toThrow(`No confirmed notes exist with index ${index}`)
     }
   })

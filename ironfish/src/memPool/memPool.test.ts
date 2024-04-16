@@ -17,7 +17,7 @@ import {
   useMinerBlockFixture,
   useTxFixture,
 } from '../testUtilities'
-import { Account } from '../wallet'
+import { Account, TransactionOutput } from '../wallet'
 import { getPreciseFeeRate } from './feeEstimator'
 import { mempoolEntryComparator } from './memPool'
 
@@ -146,11 +146,13 @@ describe('MemPool', () => {
     it('returns transactions sorted by fee rate deterministically', async () => {
       const from = await useAccountFixture(nodeTest.wallet, 'account')
 
-      const outputs = Array(10).fill({
-        publicAddress: from.publicAddress,
-        amount: 1n,
-        assetId: Asset.nativeId(),
-        memo: '',
+      const outputs: TransactionOutput[] = [...new Array(10)].map(() => {
+        return {
+          publicAddress: from.publicAddress,
+          amount: 1n,
+          assetId: Asset.nativeId(),
+          memo: Buffer.alloc(32, '', 'hex'),
+        }
       })
 
       const transactionInputs = [

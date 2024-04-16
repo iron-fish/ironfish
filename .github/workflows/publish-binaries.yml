@@ -1,8 +1,11 @@
 name: Build @ironfish binaries
 
-# on:
-#   push
 on:
+  workflow_dispatch:
+    inputs:
+      checkout_ref:
+        description: 'Git ref (branch, tag, commit SHA)'
+        required: false
   release:
     types:
       - published
@@ -26,7 +29,7 @@ jobs:
             arch: x86_64
             system: linux
 
-          - host: macos-latest-large
+          - host: macos-latest-xlarge
             arch: arm64
             system: apple
 
@@ -41,6 +44,19 @@ jobs:
     name: Build ${{ matrix.settings.system }} ${{ matrix.settings.arch }}
     runs-on: ${{ matrix.settings.host }}
     steps:
+      - name: Check runner architecture
+        shell: bash
+        run: |
+          if [[ "$(uname -m)" != "${{ matrix.settings.arch }}" ]]; then
+            echo "Runner architecture does not match specified architecture"
+            exit 1
+          fi
+      
+      # needed for distutils, which is used by nodegyp, arm64 mac runners have 3.12
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: 3.11
 
       - name: Use node.js
         uses: actions/setup-node@v4
@@ -54,6 +70,8 @@ jobs:
 
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.checkout_ref }}
 
       - name: Create random identifier so binary extraction will be unique
         id: identifier
@@ -76,7 +94,7 @@ jobs:
           cd build
           cp $(node -e "console.log(process.execPath)") ${{ matrix.settings.system != 'windows' && 'node' || 'node.exe' }}
           npm init -y
-          npm install ironfish@${{ github.event.release.tag_name }}
+          npm install ironfish@${{ github.event_name == 'release' && github.event.release.tag_name || github.event.inputs.checkout_ref }}
           tar -czf ../tools/build.tar.gz -C . .
 
       - name: Create binary
@@ -88,7 +106,7 @@ jobs:
         id: set_paths
         shell: bash
         run: |
-          name="ironfish-${{ matrix.settings.system }}-${{ matrix.settings.arch }}-${{ github.event.release.tag_name }}"
+          name="ironfish-standalone-${{ matrix.settings.system }}-${{ matrix.settings.arch }}-${{ github.event_name == 'release' && github.event.release.tag_name || github.event.inputs.checkout_ref }}"
           echo "name=${name}" >> $GITHUB_OUTPUT
           echo "zip=${name}.zip" >> $GITHUB_OUTPUT
           echo "binary=${{ matrix.settings.system != 'windows' && 'ironfish' || 'ironfish.exe' }}" >> $GITHUB_OUTPUT
@@ -183,6 +201,7 @@ jobs:
 
       - name: Upload release asset
         id: upload-release-asset
+        if: github.event_name == 'release'
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

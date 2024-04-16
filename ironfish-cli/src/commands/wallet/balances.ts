@@ -1,11 +1,11 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { CurrencyUtils, GetBalancesResponse, RpcAsset } from '@ironfish/sdk'
+import { BufferUtils, CurrencyUtils, GetBalancesResponse, RpcAsset } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { compareAssets, renderAssetNameFromHex } from '../../utils'
+import { compareAssets, renderAssetWithVerificationStatus } from '../../utils'
 
 type AssetBalancePairs = { asset: RpcAsset; balance: GetBalancesResponse['balances'][number] }
 
@@ -63,12 +63,13 @@ export class BalancesCommand extends IronfishCommand {
       assetName: {
         header: 'Asset Name',
         get: ({ asset }) =>
-          renderAssetNameFromHex(asset.name, {
-            verification: asset.verification,
-            outputType: flags.output,
-            verbose: !!flags.verbose,
-            logWarn: this.warn.bind(this),
-          }),
+          renderAssetWithVerificationStatus(
+            BufferUtils.toHuman(Buffer.from(asset.name, 'hex')),
+            {
+              verification: asset.verification,
+              outputType: flags.output,
+            },
+          ),
       },
       'asset.id': {
         header: 'Asset Id',
@@ -76,7 +77,8 @@ export class BalancesCommand extends IronfishCommand {
       },
       available: {
         header: 'Available Balance',
-        get: ({ balance }) => CurrencyUtils.renderIron(balance.available),
+        get: ({ asset, balance }) =>
+          CurrencyUtils.render(balance.available, false, asset.id, asset.verification),
       },
     }
 
@@ -85,15 +87,18 @@ export class BalancesCommand extends IronfishCommand {
         ...columns,
         confirmed: {
           header: 'Confirmed Balance',
-          get: ({ balance }) => CurrencyUtils.renderIron(balance.confirmed),
+          get: ({ asset, balance }) =>
+            CurrencyUtils.render(balance.confirmed, false, asset.id, asset.verification),
         },
         unconfirmed: {
           header: 'Unconfirmed Balance',
-          get: ({ balance }) => CurrencyUtils.renderIron(balance.unconfirmed),
+          get: ({ asset, balance }) =>
+            CurrencyUtils.render(balance.unconfirmed, false, asset.id, asset.verification),
         },
         pending: {
           header: 'Pending Balance',
-          get: ({ balance }) => CurrencyUtils.renderIron(balance.pending),
+          get: ({ asset, balance }) =>
+            CurrencyUtils.render(balance.pending, false, asset.id, asset.verification),
         },
         blockHash: {
           header: 'Head Hash',

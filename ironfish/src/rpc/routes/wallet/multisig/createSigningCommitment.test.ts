@@ -5,7 +5,6 @@ import { multisig } from '@ironfish/rust-nodejs'
 import { useAccountAndAddFundsFixture, useUnsignedTxFixture } from '../../../../testUtilities'
 import { createRouteTest } from '../../../../testUtilities/routeTest'
 import { ACCOUNT_SCHEMA_VERSION } from '../../../../wallet'
-import { CreateParticipantResponse } from './createParticipant'
 
 describe('Route wallet/multisig/createSigningCommitment', () => {
   const routeTest = createRouteTest()
@@ -92,9 +91,7 @@ describe('Route wallet/multisig/createSigningCommitment', () => {
       accountNames.map(
         async (name) =>
           (
-            await routeTest.client
-              .request<CreateParticipantResponse>('wallet/multisig/createParticipant', { name })
-              .waitForEnd()
+            await routeTest.client.wallet.multisig.createParticipant({ name })
           ).content,
       ),
     )

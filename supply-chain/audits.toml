@@ -1,0 +1,89 @@
+
+# cargo-vet audits file
+
+[[audits.arrayvec]]
+who = "Andrea <andrea@iflabs.network>"
+criteria = "safe-to-deploy"
+delta = "0.7.2 -> 0.7.4"
+
+[[audits.bellman]]
+who = "Andrea <andrea@iflabs.network>"
+criteria = "safe-to-deploy"
+delta = "0.13.1 -> 0.13.1@git:1cc52ca33e6db14233f1cbc0c9c5b7c822b229ec"
+notes = "Fork of the official bellperson owned by Iron Fish"
+
+[[audits.bellperson]]
+who = "Andrea <andrea@iflabs.network>"
+criteria = "safe-to-deploy"
+delta = "0.24.1 -> 0.24.1@git:37b9976bcd96986cbdc71ae09fc455015e3dfac0"
+notes = "Fork of the official bellperson owned by Iron Fish"
+
+[[audits.crypto_box]]
+who = "Andrea <andrea@iflabs.network>"
+criteria = "safe-to-deploy"
+version = "0.9.1"
+
+[[audits.equihash]]
+who = "Andrea <andrea@iflabs.network>"
+criteria = "safe-to-deploy"
+delta = "0.2.0 -> 0.2.0@git:d551820030cb596eafe82226667f32b47164f91b"
+notes = "Fork of the official equihash owned by Iron Fish"
+
+[[audits.f4jumble]]
+who = "Andrea <andrea@iflabs.network>"
+criteria = "safe-to-deploy"
+delta = "0.1.0 -> 0.1.0@git:d551820030cb596eafe82226667f32b47164f91b"
+notes = "Fork of the official f4jumble owned by Iron Fish"
+
+[[audits.frost-core]]
+who = "Andrea <andrea@iflabs.network>"
+criteria = "safe-to-deploy"
+version = "1.0.0"
+
+[[audits.jubjub]]
+who = "Andrea <andrea@iflabs.network>"
+criteria = "safe-to-deploy"
+delta = "0.9.0 -> 0.9.0@git:a1a0c2ed69eec4d5d5e87842e2a40849f7fa4633"
+notes = "Fork of the official jubjub owned by Iron Fish"
+
+[[audits.reddsa]]
+who = "Andrea <andrea@iflabs.network>"
+criteria = "safe-to-deploy"
+delta = "0.5.1 -> 0.5.1@git:311baf8865f6e21527d1f20750d8f2cf5c9e531a"
+importable = false
+notes = "Unreleased changes required by ironfish-frost to support multisig wallets"
+
+[[audits.siphasher]]
+who = "Andrea <andrea@iflabs.network>"
+criteria = "safe-to-deploy"
+version = "1.0.0"
+
+[[audits.zcash_address]]
+who = "Andrea <andrea@iflabs.network>"
+criteria = "safe-to-deploy"
+delta = "0.1.0 -> 0.1.0@git:d551820030cb596eafe82226667f32b47164f91b"
+notes = "Fork of the official zcash_address owned by Iron Fish"
+
+[[audits.zcash_encoding]]
+who = "Andrea <andrea@iflabs.network>"
+criteria = "safe-to-deploy"
+delta = "0.1.0 -> 0.1.0@git:d551820030cb596eafe82226667f32b47164f91b"
+notes = "Fork of the official zcash_encoding owned by Iron Fish"
+
+[[audits.zcash_note_encryption]]
+who = "Andrea <andrea@iflabs.network>"
+criteria = "safe-to-deploy"
+delta = "0.1.0 -> 0.1.0@git:d551820030cb596eafe82226667f32b47164f91b"
+notes = "Fork of the official zcash_note_encryption owned by Iron Fish"
+
+[[audits.zcash_primitives]]
+who = "Andrea <andrea@iflabs.network>"
+criteria = "safe-to-deploy"
+delta = "0.7.0 -> 0.7.0@git:d551820030cb596eafe82226667f32b47164f91b"
+notes = "Fork of the official zcash_primitives owned by Iron Fish"
+
+[[audits.zcash_proofs]]
+who = "Andrea <andrea@iflabs.network>"
+criteria = "safe-to-deploy"
+delta = "0.7.1 -> 0.7.1@git:d551820030cb596eafe82226667f32b47164f91b"
+notes = "Fork of the official zcash_proofs owned by Iron Fish"

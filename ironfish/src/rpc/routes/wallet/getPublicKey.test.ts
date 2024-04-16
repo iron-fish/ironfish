@@ -32,12 +32,9 @@ describe('Route wallet/getPublicKey', () => {
   })
 
   it('should return the account data', async () => {
-    const response = await routeTest.client
-      .request<any>('wallet/getPublicKey', {
-        account: account.name,
-        generate: false,
-      })
-      .waitForEnd()
+    const response = await routeTest.client.wallet.getAccountPublicKey({
+      account: account.name,
+    })
 
     expect(response.status).toBe(200)
     expect(response.content).toMatchObject({

@@ -16,11 +16,9 @@ describe('Route wallet/getAccountStatus', () => {
       setCreatedAt: true,
       setDefault: true,
     })
-    const response = await routeTest.client
-      .request<any>('wallet/getAccountStatus', {
-        account: account.name,
-      })
-      .waitForEnd()
+    const response = await routeTest.client.wallet.getAccountStatus({
+      account: account.name,
+    })
 
     expect(response.status).toBe(200)
     expect(response.content).toMatchObject({
@@ -38,12 +36,10 @@ describe('Route wallet/getAccountStatus', () => {
   })
 
   it('errors if no account exists', async () => {
-    await expect(() => {
-      return routeTest.client
-        .request<any>('wallet/getAccountStatus', {
-          account: 'asdf',
-        })
-        .waitForEnd()
-    }).rejects.toThrow('No account with name asdf')
+    await expect(
+      routeTest.client.wallet.getAccountStatus({
+        account: 'asdf',
+      }),
+    ).rejects.toThrow('No account with name asdf')
   })
 })

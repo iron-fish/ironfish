@@ -1,20 +1,22 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Asset } from '@ironfish/rust-nodejs'
 import {
   BufferUtils,
   CreateTransactionRequest,
   CurrencyUtils,
-  ErrorUtils,
   isValidPublicAddress,
   RawTransaction,
   RawTransactionSerde,
-  RpcClient,
+  RPC_ERROR_CODES,
+  RpcAsset,
+  RpcRequestError,
   Transaction,
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
-import { IronFlag, RemoteFlags } from '../../flags'
+import { IronFlag, RemoteFlags, ValueFlag } from '../../flags'
 import { selectAsset } from '../../utils/asset'
 import { promptCurrency } from '../../utils/currency'
 import { getExplorer } from '../../utils/explorer'
@@ -50,9 +52,9 @@ export class Mint extends IronfishCommand {
       minimum: 1n,
       flagName: 'fee rate',
     }),
-    amount: IronFlag({
+    amount: ValueFlag({
       char: 'a',
-      description: 'Amount of coins to mint in IRON',
+      description: 'Amount of coins to mint in the major denomination',
       flagName: 'amount',
     }),
     assetId: Flags.string({
@@ -164,6 +166,9 @@ export class Mint extends IronfishCommand {
           required: false,
         })
       }
+
+      const newAsset = new Asset(accountPublicKey, name, metadata)
+      assetId = newAsset.id().toString('hex')
     } else if (!assetId) {
       const asset = await selectAsset(client, account, {
         action: 'mint',
@@ -180,14 +185,39 @@ export class Mint extends IronfishCommand {
       assetId = asset.id
     }
 
+    let assetData
     if (assetId) {
-      const isAssetOwner = await this.isAssetOwner(client, assetId, accountPublicKey)
-      if (!isAssetOwner) {
-        this.error(`The account '${account}' does not own this asset.`)
+      try {
+        const assetRequest = await client.chain.getAsset({ id: assetId })
+        assetData = assetRequest.content
+        if (assetData.owner !== accountPublicKey) {
+          this.error(`The account '${account}' does not own this asset.`)
+        }
+      } catch (e) {
+        if (e instanceof RpcRequestError && e.code === RPC_ERROR_CODES.NOT_FOUND.valueOf()) {
+          // Do nothing, not finding an asset is acceptable since we're likely
+          // to be minting one for the first time
+        } else {
+          throw e
+        }
       }
     }
 
-    let amount = flags.amount
+    let amount
+    if (flags.amount) {
+      const [parsedAmount, error] = CurrencyUtils.tryMajorToMinor(
+        flags.amount,
+        assetId,
+        assetData?.verification,
+      )
+
+      if (error) {
+        this.error(`${error.reason}`)
+      }
+
+      amount = parsedAmount
+    }
+
     if (!amount) {
       amount = await promptCurrency({
         client: client,
@@ -195,6 +225,8 @@ export class Mint extends IronfishCommand {
         text: 'Enter the amount',
         minimum: 0n,
         logger: this.logger,
+        assetId: assetId,
+        assetVerification: assetData?.verification,
       })
     }
 
@@ -209,7 +241,8 @@ export class Mint extends IronfishCommand {
       outputs: [],
       mints: [
         {
-          assetId,
+          // Only provide the asset id if we are not minting an asset for the first time
+          ...(assetData != null ? { assetId } : {}),
           name,
           metadata,
           value: CurrencyUtils.encode(amount),
@@ -254,6 +287,7 @@ export class Mint extends IronfishCommand {
         name,
         metadata,
         flags.transferOwnershipTo,
+        assetData,
       ))
     ) {
       this.error('Transaction aborted.')
@@ -283,16 +317,17 @@ export class Mint extends IronfishCommand {
       this.warn(`Transaction '${transaction.hash().toString('hex')}' failed to broadcast`)
     }
 
+    const renderedValue = CurrencyUtils.render(
+      minted.value,
+      true,
+      minted.asset.id().toString('hex'),
+      assetData?.verification,
+    )
+    const renderedFee = CurrencyUtils.render(transaction.fee(), true)
     this.log(`Minted asset ${BufferUtils.toHuman(minted.asset.name())} from ${account}`)
     this.log(`Asset Identifier: ${minted.asset.id().toString('hex')}`)
-    this.log(
-      `Value: ${CurrencyUtils.renderIron(
-        minted.value,
-        true,
-        minted.asset.id().toString('hex'),
-      )}`,
-    )
-    this.log(`Fee: ${CurrencyUtils.renderIron(transaction.fee(), true)}`)
+    this.log(`Value: ${renderedValue}`)
+    this.log(`Fee: ${renderedFee}`)
     this.log(`Hash: ${transaction.hash().toString('hex')}`)
 
     const networkId = (await client.chain.getNetworkInfo()).content.networkId
@@ -324,14 +359,24 @@ export class Mint extends IronfishCommand {
     name?: string,
     metadata?: string,
     transferOwnershipTo?: string,
+    assetData?: RpcAsset,
   ): Promise<boolean> {
     const nameString = name ? `\nName: ${name}` : ''
     const metadataString = metadata ? `\nMetadata: ${metadata}` : ''
+
+    const renderedAmount = CurrencyUtils.render(
+      amount,
+      !!assetId,
+      assetId,
+      assetData?.verification,
+    )
+    const renderedFee = CurrencyUtils.render(fee, true)
+
     this.log(
       `You are about to mint an asset with the account ${account}:${nameString}${metadataString}`,
     )
-    this.log(`Amount: ${CurrencyUtils.renderIron(amount, !!assetId, assetId)}`)
-    this.log(`Fee: ${CurrencyUtils.renderIron(fee, true)}`)
+    this.log(`Amount: ${renderedAmount}`)
+    this.log(`Fee: ${renderedFee}`)
 
     if (transferOwnershipTo) {
       this.log(
@@ -340,27 +385,5 @@ export class Mint extends IronfishCommand {
     }
 
     return CliUx.ux.confirm('Do you confirm (Y/N)?')
-  }
-
-  async isAssetOwner(
-    client: RpcClient,
-    assetId: string,
-    ownerPublicKey: string,
-  ): Promise<boolean> {
-    try {
-      const assetResponse = await client.chain.getAsset({ id: assetId })
-      if (assetResponse.content.owner === ownerPublicKey) {
-        return true
-      }
-    } catch (e) {
-      if (ErrorUtils.isNotFoundError(e)) {
-        // Asset doesn't exist yet, so this account would be the creator and owner for the initial mint
-        return true
-      } else {
-        throw e
-      }
-    }
-
-    return false
   }
 }

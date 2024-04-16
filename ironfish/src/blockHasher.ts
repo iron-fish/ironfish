@@ -23,7 +23,7 @@ export class BlockHasher {
     }
   }
 
-  serializeHeader(header: RawBlockHeader): BlockHash {
+  serializeHeader(header: RawBlockHeader): Buffer {
     if (this.consensus.isActive('enableFishHash', header.sequence)) {
       return serializeHeaderFishHash(header)
     }

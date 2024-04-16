@@ -51,8 +51,8 @@ routes.register<typeof GetAssetsRequestSchema, GetAssetsResponse>(
           confirmations: request.data.confirmations,
         }),
         supply: asset.supply !== null ? CurrencyUtils.encode(asset.supply) : undefined,
-        verification: node.assetsVerifier.verify(asset.id),
         createdTransactionHash: asset.createdTransactionHash.toString('hex'),
+        verification: node.assetsVerifier.verify(asset.id),
       })
     }
 

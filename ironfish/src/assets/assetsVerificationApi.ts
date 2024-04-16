@@ -5,8 +5,18 @@ import axios, { AxiosAdapter, AxiosError, AxiosRequestConfig, AxiosResponse } fr
 import url, { URL } from 'url'
 import { FileSystem } from '../fileSystems'
 
-type GetVerifiedAssetsResponse = {
-  assets: Array<{ identifier: string }>
+export type VerifiedAssetMetadata = {
+  symbol: string
+  decimals?: number
+  logoURI?: string
+  website?: string
+}
+
+export type VerifiedAssetMetadataResponse = { identifier: string } & VerifiedAssetMetadata
+
+type GetAssetDataResponse = {
+  version?: number
+  assets: VerifiedAssetMetadataResponse[]
 }
 
 type GetVerifiedAssetsRequestHeaders = {
@@ -18,28 +28,30 @@ type GetVerifiedAssetsResponseHeaders = {
 }
 
 export class VerifiedAssets {
-  private readonly assetIds: Set<string> = new Set()
+  private readonly assets: Map<string, VerifiedAssetMetadataResponse> = new Map()
   private lastModified?: string
 
   export(): ExportedVerifiedAssets {
     return {
-      assetIds: Array.from(this.assetIds),
+      assets: Array.from(this.assets.values()),
       lastModified: this.lastModified,
     }
   }
 
   static restore(options: ExportedVerifiedAssets): VerifiedAssets {
     const verifiedAssets = new VerifiedAssets()
-    options.assetIds.forEach((identifier) => verifiedAssets.assetIds.add(identifier))
+    options.assets.forEach((assetData) =>
+      verifiedAssets.assets.set(assetData.identifier, sanitizedAssetData(assetData)),
+    )
     verifiedAssets.lastModified = options.lastModified
     return verifiedAssets
   }
 
-  isVerified(assetId: Buffer | string): boolean {
+  getAssetData(assetId: Buffer | string): VerifiedAssetMetadata | undefined {
     if (!(typeof assetId === 'string')) {
       assetId = assetId.toString('hex')
     }
-    return this.assetIds.has(assetId)
+    return this.assets.get(assetId)
   }
 }
 
@@ -49,10 +61,10 @@ export class VerifiedAssets {
 // issues:
 // - `VerifiedAssets` is a class with methods, and the type-check logic as well
 //   as the serialization logic expect methods to be serialized.
-// - The `assetIds` field from `VerifiedAssets` is a `Set`, which is not
+// - The `assets` field from `VerifiedAssets` is a `Map`, which is not
 //   properly supported by the cache serializer.
 export type ExportedVerifiedAssets = {
-  assetIds: string[]
+  assets: VerifiedAssetMetadataResponse[]
   lastModified?: string
 }
 
@@ -63,7 +75,7 @@ export class AssetsVerificationApi {
   readonly url: string
 
   constructor(options: { files: FileSystem; url?: string; timeout?: number }) {
-    this.url = options?.url || 'https://api.ironfish.network/assets/verified'
+    this.url = options?.url || 'https://api.ironfish.network/assets/verified_metadata'
     this.timeout = options?.timeout ?? 30 * 1000 // 30 seconds
     this.adapter = isFileUrl(this.url)
       ? axiosFileAdapter(options.files)
@@ -86,19 +98,22 @@ export class AssetsVerificationApi {
       headers['if-modified-since'] = verifiedAssets['lastModified']
     }
     return axios
-      .get<GetVerifiedAssetsResponse>(this.url, {
+      .get<GetAssetDataResponse>(this.url, {
         headers: headers,
         timeout: this.timeout,
         adapter: this.adapter,
       })
       .then(
         (response: {
-          data: GetVerifiedAssetsResponse
+          data: GetAssetDataResponse
           headers: GetVerifiedAssetsResponseHeaders
         }) => {
-          verifiedAssets['assetIds'].clear()
-          response.data.assets.forEach(({ identifier }) => {
-            return verifiedAssets['assetIds'].add(identifier)
+          verifiedAssets['assets'].clear()
+          response.data.assets.forEach((assetData) => {
+            return verifiedAssets['assets'].set(
+              assetData.identifier,
+              sanitizedAssetData(assetData),
+            )
           })
           verifiedAssets['lastModified'] = response.headers['last-modified']
           return true
@@ -120,7 +135,7 @@ const isFileUrl = (url: string): boolean => {
 
 const axiosFileAdapter =
   (files: FileSystem) =>
-  (config: AxiosRequestConfig): Promise<AxiosResponse<GetVerifiedAssetsResponse>> => {
+  (config: AxiosRequestConfig): Promise<AxiosResponse<GetAssetDataResponse>> => {
     if (!config.url) {
       return Promise.reject(new Error('url is undefined'))
     }
@@ -130,7 +145,7 @@ const axiosFileAdapter =
     return files
       .readFile(path)
       .then(JSON.parse)
-      .then((data: GetVerifiedAssetsResponse) => ({
+      .then((data: GetAssetDataResponse) => ({
         data,
         status: 0,
         statusText: '',
@@ -138,3 +153,15 @@ const axiosFileAdapter =
         config: config,
       }))
   }
+
+const sanitizedAssetData = (
+  assetData: VerifiedAssetMetadataResponse,
+): VerifiedAssetMetadataResponse => {
+  return {
+    identifier: assetData.identifier,
+    symbol: assetData.symbol,
+    decimals: assetData.decimals,
+    logoURI: assetData.logoURI,
+    website: assetData.website,
+  }
+}

@@ -2,12 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Logger } from '../../logger'
-import { IDatabase, IDatabaseTransaction } from '../../storage'
+import { IDatabase } from '../../storage'
 import { createDB } from '../../storage/utils'
-import { Account } from '../../wallet'
 import { Database, Migration, MigrationContext } from '../migration'
-import { GetStores } from './024-unspent-notes/stores'
 
 export class Migration024 extends Migration {
   path = __filename
@@ -17,55 +14,18 @@ export class Migration024 extends Migration {
     return createDB({ location: context.config.walletDatabasePath })
   }
 
-  async forward(
-    context: MigrationContext,
-    db: IDatabase,
-    tx: IDatabaseTransaction | undefined,
-    logger: Logger,
-  ): Promise<void> {
-    const stores = GetStores(db)
+  /*
+   * This migration pre-dated the network reset in f483d9aeb87eda3101ae2c602e19d3ebb88897b6
+   *
+   * All assets, transactions, and notes from before the reset are no longer valid.
+   *
+   * These data need to be deleted before the node can run, so there is no need
+   * to run this migration.
+   */
 
-    const accounts = []
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  async forward(): Promise<void> {}
 
-    for await (const accountValue of stores.old.accounts.getAllValuesIter()) {
-      accounts.push(
-        new Account({
-          ...accountValue,
-          createdAt: null,
-          proofAuthorizingKey: null,
-          walletDb: context.wallet.walletDb,
-        }),
-      )
-    }
-
-    logger.info(`Indexing unspent notes for ${accounts.length} accounts`)
-
-    for (const account of accounts) {
-      let unspentNotes = 0
-
-      logger.info(` Indexing unspent notes for account ${account.name}`)
-      for await (const [[, noteHash], note] of stores.old.decryptedNotes.getAllIter(
-        undefined,
-        account.prefixRange,
-      )) {
-        if (note.sequence === null || note.spent) {
-          continue
-        }
-
-        await stores.new.unspentNoteHashes.put(
-          [account.prefix, note.note.assetId(), note.sequence, note.note.value(), noteHash],
-          null,
-        )
-        unspentNotes++
-      }
-
-      logger.info(` Indexed ${unspentNotes} unspent notes for account ${account.name}`)
-    }
-  }
-
-  async backward(context: MigrationContext, db: IDatabase): Promise<void> {
-    const stores = GetStores(db)
-
-    await stores.new.unspentNoteHashes.clear()
-  }
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  async backward(): Promise<void> {}
 }

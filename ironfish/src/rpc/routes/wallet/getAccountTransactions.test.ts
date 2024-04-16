@@ -11,10 +11,7 @@ import {
 } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { AsyncUtils } from '../../../utils'
-import {
-  GetAccountTransactionsRequest,
-  GetAccountTransactionsResponse,
-} from './getAccountTransactions'
+import { GetAccountTransactionsRequest } from './getAccountTransactions'
 
 describe('Route wallet/getAccountTransactions', () => {
   const routeTest = createRouteTest(true)
@@ -41,8 +38,8 @@ describe('Route wallet/getAccountTransactions', () => {
     const node = routeTest.node
     const account = await useAccountFixture(node.wallet, 'invalid-sequence')
 
-    const response = routeTest.client
-      .request<unknown, GetAccountTransactionsResponse>('wallet/getAccountTransactions', {
+    const response = routeTest.client.wallet
+      .getAccountTransactionsStream({
         account: account.name,
         sequence: 0,
       })
@@ -78,13 +75,10 @@ describe('Route wallet/getAccountTransactions', () => {
     await expect(node.chain).toAddBlock(block)
     await node.wallet.updateHead()
 
-    const response = routeTest.client.request<unknown, GetAccountTransactionsResponse>(
-      'wallet/getAccountTransactions',
-      {
-        account: account.name,
-        sequence: block.header.sequence,
-      },
-    )
+    const response = routeTest.client.wallet.getAccountTransactionsStream({
+      account: account.name,
+      sequence: block.header.sequence,
+    })
 
     const blockTransactionHashes = block.transactions
       .map((transaction) => transaction.hash())
@@ -109,12 +103,9 @@ describe('Route wallet/getAccountTransactions', () => {
     await expect(node.chain).toAddBlock(blockB)
     await node.wallet.updateHead()
 
-    const response = routeTest.client.request<unknown, GetAccountTransactionsResponse>(
-      'wallet/getAccountTransactions',
-      {
-        account: account.name,
-      },
-    )
+    const response = routeTest.client.wallet.getAccountTransactionsStream({
+      account: account.name,
+    })
 
     const transactions = await AsyncUtils.materialize(response.contentStream())
     expect(transactions).toHaveLength(2)
@@ -128,13 +119,10 @@ describe('Route wallet/getAccountTransactions', () => {
     await expect(node.chain).toAddBlock(blockA)
     await node.wallet.updateHead()
 
-    const response = routeTest.client.request<unknown, GetAccountTransactionsResponse>(
-      'wallet/getAccountTransactions',
-      {
-        account: account.name,
-        notes: true,
-      },
-    )
+    const response = routeTest.client.wallet.getAccountTransactionsStream({
+      account: account.name,
+      notes: true,
+    })
 
     const transactions = await AsyncUtils.materialize(response.contentStream())
     expect(transactions).toHaveLength(1)
@@ -151,13 +139,10 @@ describe('Route wallet/getAccountTransactions', () => {
 
     const { transaction } = await useTxSpendsFixture(node, { account })
 
-    const response = routeTest.client.request<unknown, GetAccountTransactionsResponse>(
-      'wallet/getAccountTransactions',
-      {
-        account: account.name,
-        spends: true,
-      },
-    )
+    const response = routeTest.client.wallet.getAccountTransactionsStream({
+      account: account.name,
+      spends: true,
+    })
 
     const transactions = await AsyncUtils.materialize(response.contentStream())
     expect(transactions).toHaveLength(2)
@@ -197,10 +182,8 @@ describe('Route wallet/getAccountTransactions', () => {
       account: account.name,
     }
 
-    const defaultSortResponse = routeTest.client.request<
-      unknown,
-      GetAccountTransactionsResponse
-    >('wallet/getAccountTransactions', defaultSort)
+    const defaultSortResponse =
+      routeTest.client.wallet.getAccountTransactionsStream(defaultSort)
 
     const defaultSortTransactions = await AsyncUtils.materialize(
       defaultSortResponse.contentStream(),
@@ -215,10 +198,8 @@ describe('Route wallet/getAccountTransactions', () => {
       reverse: true,
     }
 
-    const reverseSortResponse = routeTest.client.request<
-      unknown,
-      GetAccountTransactionsResponse
-    >('wallet/getAccountTransactions', reverseSort)
+    const reverseSortResponse =
+      routeTest.client.wallet.getAccountTransactionsStream(reverseSort)
 
     const reverseSortTransactions = await AsyncUtils.materialize(
       reverseSortResponse.contentStream(),
@@ -233,10 +214,8 @@ describe('Route wallet/getAccountTransactions', () => {
       reverse: false,
     }
 
-    const forwardSortResponse = routeTest.client.request<
-      unknown,
-      GetAccountTransactionsResponse
-    >('wallet/getAccountTransactions', forwardSort)
+    const forwardSortResponse =
+      routeTest.client.wallet.getAccountTransactionsStream(forwardSort)
 
     const forwardSortTransactions = await AsyncUtils.materialize(
       forwardSortResponse.contentStream(),

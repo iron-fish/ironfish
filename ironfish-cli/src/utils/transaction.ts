@@ -5,15 +5,103 @@
 import {
   createRootLogger,
   CurrencyUtils,
+  GetUnsignedTransactionNotesResponse,
   Logger,
   PromiseUtils,
   RawTransaction,
+  RpcAsset,
   RpcClient,
   TimeUtils,
   TransactionStatus,
   UnsignedTransaction,
 } from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
+import { ProgressBar } from '../types'
+import { getAssetsByIDs } from './asset'
+
+export class TransactionTimer {
+  private progressBar: ProgressBar | undefined
+  private startTime: number | undefined
+  private endTime: number | undefined
+  private estimateInMs: number
+  private timer: NodeJS.Timer | undefined
+
+  constructor(spendPostTime: number, raw: RawTransaction) {
+    // if spendPostTime is 0, we don't have enough data to estimate the time to send a transaction
+
+    this.estimateInMs =
+      spendPostTime > 0 ? Math.max(Math.ceil(spendPostTime * raw.spends.length), 1000) : -1
+  }
+
+  getEstimateInMs(): number {
+    return this.estimateInMs
+  }
+
+  getStartTime(): number {
+    if (!this.startTime) {
+      throw new Error('TransactionTimer not started')
+    }
+    return this.startTime
+  }
+
+  getEndTime(): number {
+    if (!this.endTime) {
+      throw new Error('TransactionTimer not ended')
+    }
+    return this.endTime
+  }
+
+  start() {
+    this.startTime = performance.now()
+
+    if (this.estimateInMs <= 0) {
+      CliUx.ux.action.start('Sending the transaction')
+      return
+    }
+
+    this.progressBar = CliUx.ux.progress({
+      format: '{title}: [{bar}] {percentage}% | {estimate}',
+    }) as ProgressBar
+
+    this.progressBar.start(100, 0, {
+      title: 'Sending the transaction',
+      estimate: TimeUtils.renderSpan(this.estimateInMs, { hideMilliseconds: true }),
+    })
+
+    this.timer = setInterval(() => {
+      if (!this.progressBar || !this.startTime) {
+        return
+      }
+      const durationInMs = performance.now() - this.startTime
+      const timeRemaining = this.estimateInMs - durationInMs
+      const progress = Math.round((durationInMs / this.estimateInMs) * 100)
+
+      this.progressBar.update(progress, {
+        estimate: TimeUtils.renderSpan(timeRemaining, { hideMilliseconds: true }),
+      })
+    }, 1000)
+  }
+
+  end() {
+    if (!this.startTime) {
+      // transaction timer has not been started
+      return
+    }
+
+    this.endTime = performance.now()
+
+    if (!this.progressBar || !this.timer || this.estimateInMs <= 0) {
+      CliUx.ux.action.stop()
+      return
+    }
+
+    clearInterval(this.timer)
+    this.progressBar.update(100, {
+      estimate: 'done',
+    })
+    this.progressBar.stop()
+  }
+}
 
 export async function renderUnsignedTransactionDetails(
   client: RpcClient,
@@ -22,6 +110,17 @@ export async function renderUnsignedTransactionDetails(
   logger?: Logger,
 ): Promise<void> {
   logger = logger ?? createRootLogger()
+
+  let response
+  if (unsignedTransaction.notes.length > 0) {
+    response = await client.wallet.getUnsignedTransactionNotes({
+      account,
+      unsignedTransaction: unsignedTransaction.serialize().toString('hex'),
+    })
+  }
+
+  const assetIds = collectAssetIds(unsignedTransaction, response?.content)
+  const assetLookup = await getAssetsByIDs(client, assetIds, account, undefined)
 
   if (unsignedTransaction.mints.length > 0) {
     logger.log('')
@@ -35,9 +134,15 @@ export async function renderUnsignedTransactionDetails(
       }
       logger.log('')
 
+      const renderedAmount = CurrencyUtils.render(
+        mint.value,
+        false,
+        mint.asset.id().toString('hex'),
+        assetLookup[mint.asset.id().toString('hex')].verification,
+      )
       logger.log(`Asset ID:      ${mint.asset.id().toString('hex')}`)
       logger.log(`Name:          ${mint.asset.name().toString('utf8')}`)
-      logger.log(`Amount:        ${CurrencyUtils.renderIron(mint.value, false)}`)
+      logger.log(`Amount:        ${renderedAmount}`)
 
       if (mint.transferOwnershipTo) {
         logger.log(
@@ -62,8 +167,14 @@ export async function renderUnsignedTransactionDetails(
       }
       logger.log('')
 
+      const renderedAmount = CurrencyUtils.render(
+        burn.value,
+        false,
+        burn.assetId.toString('hex'),
+        assetLookup[burn.assetId.toString('hex')].verification,
+      )
       logger.log(`Asset ID:      ${burn.assetId.toString('hex')}`)
-      logger.log(`Amount:        ${CurrencyUtils.renderIron(burn.value, false)}`)
+      logger.log(`Amount:        ${renderedAmount}`)
       logger.log('')
     }
   }
@@ -90,7 +201,13 @@ export async function renderUnsignedTransactionDetails(
       }
       logger.log('')
 
-      logger.log(`Amount:        ${CurrencyUtils.renderIron(note.value, true, note.assetId)}`)
+      const renderedAmount = CurrencyUtils.render(
+        note.value,
+        true,
+        note.assetId,
+        assetLookup[note.assetId].verification,
+      )
+      logger.log(`Amount:        ${renderedAmount}`)
       logger.log(`Memo:          ${note.memo}`)
       logger.log(`Recipient:     ${note.owner}`)
       logger.log(`Sender:        ${note.sender}`)
@@ -108,7 +225,13 @@ export async function renderUnsignedTransactionDetails(
       }
       logger.log('')
 
-      logger.log(`Amount:        ${CurrencyUtils.renderIron(note.value, true, note.assetId)}`)
+      const renderedAmount = CurrencyUtils.render(
+        note.value,
+        true,
+        note.assetId,
+        assetLookup[note.assetId].verification,
+      )
+      logger.log(`Amount:        ${renderedAmount}`)
       logger.log(`Memo:          ${note.memo}`)
       logger.log(`Recipient:     ${note.owner}`)
       logger.log(`Sender:        ${note.sender}`)
@@ -128,7 +251,7 @@ export async function renderUnsignedTransactionDetails(
 
 export function displayTransactionSummary(
   transaction: RawTransaction,
-  assetId: string,
+  asset: RpcAsset,
   amount: bigint,
   from: string,
   to: string,
@@ -137,8 +260,8 @@ export function displayTransactionSummary(
 ): void {
   logger = logger ?? createRootLogger()
 
-  const amountString = CurrencyUtils.renderIron(amount, true, assetId)
-  const feeString = CurrencyUtils.renderIron(transaction.fee, true)
+  const amountString = CurrencyUtils.render(amount, true, asset.id, asset.verification)
+  const feeString = CurrencyUtils.render(transaction.fee, true)
 
   const summary = `\
 \nTRANSACTION SUMMARY:
@@ -241,4 +364,31 @@ export async function watchTransaction(options: {
       break
     }
   }
+}
+
+function collectAssetIds(
+  unsignedTransaction: UnsignedTransaction,
+  notes?: GetUnsignedTransactionNotesResponse,
+): string[] {
+  const assetIds = new Set<string>()
+
+  for (const mint of unsignedTransaction.mints) {
+    assetIds.add(mint.asset.id().toString('hex'))
+  }
+
+  for (const burn of unsignedTransaction.burns) {
+    assetIds.add(burn.assetId.toString('hex'))
+  }
+
+  if (notes) {
+    for (const receivedNote of notes.receivedNotes) {
+      assetIds.add(receivedNote.assetId)
+    }
+
+    for (const sentNotes of notes.sentNotes) {
+      assetIds.add(sentNotes.assetId)
+    }
+  }
+
+  return Array.from(assetIds)
 }

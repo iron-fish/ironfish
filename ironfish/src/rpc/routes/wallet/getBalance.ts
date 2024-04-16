@@ -32,7 +32,7 @@ export type GetBalanceResponse = {
   /**
    * @deprecated Please use getAsset endpoint to get this information
    * */
-  assetVerification: AssetVerification
+  assetVerification: { status: AssetVerification['status'] }
 }
 
 export const GetBalanceRequestSchema: yup.ObjectSchema<GetBalanceRequest> = yup
@@ -84,7 +84,7 @@ routes.register<typeof GetBalanceRequestSchema, GetBalanceResponse>(
     request.end({
       account: account.name,
       assetId: assetId.toString('hex'),
-      assetVerification: node.assetsVerifier.verify(assetId),
+      assetVerification: { status: node.assetsVerifier.verify(assetId).status },
       confirmed: balance.confirmed.toString(),
       unconfirmed: balance.unconfirmed.toString(),
       unconfirmedCount: balance.unconfirmedCount,

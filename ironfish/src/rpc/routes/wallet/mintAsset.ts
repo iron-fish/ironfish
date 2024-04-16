@@ -143,11 +143,11 @@ routes.register<typeof MintAssetRequestSchema, MintAssetResponse>(
         nonce: asset.nonce,
         creator: asset.creator.toString('hex'),
         owner: asset.owner.toString('hex'),
-        verification: context.assetsVerifier.verify(mint.asset.id()),
         status: await context.wallet.getAssetStatus(account, asset, {
           confirmations: request.data.confirmations,
         }),
         createdTransactionHash: asset.createdTransactionHash.toString('hex'),
+        verification: context.assetsVerifier.verify(mint.asset.id()),
       },
       transaction: await serializeRpcWalletTransaction(
         context.config,

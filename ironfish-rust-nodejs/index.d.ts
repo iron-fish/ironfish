@@ -250,6 +250,20 @@ export namespace multisig {
     proofAuthorizingKey: string
     keyPackages: Array<ParticipantKeyPackage>
   }
+  export function dkgRound1(selfIdentity: string, minSigners: number, participantIdentities: Array<string>): DkgRound1Packages
+  export interface DkgRound1Packages {
+    encryptedSecretPackage: string
+    publicPackage: string
+  }
+  export function dkgRound2(secret: string, encryptedSecretPackage: string, publicPackages: Array<string>): DkgRound2Packages
+  export interface DkgRound2PublicPackage {
+    recipientIdentity: string
+    publicPackage: string
+  }
+  export interface DkgRound2Packages {
+    encryptedSecretPackage: string
+    publicPackages: Array<DkgRound2PublicPackage>
+  }
   export function aggregateSignatureShares(publicKeyPackageStr: string, signingPackageStr: string, signatureSharesArr: Array<string>): Buffer
   export class ParticipantSecret {
     constructor(jsBytes: Buffer)

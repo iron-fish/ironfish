@@ -110,7 +110,7 @@ export interface IDatabaseStore<Schema extends DatabaseSchema> {
   ): Promise<SchemaValue<Schema> | undefined>
 
   /**
-   * Used to check if the the database has a given key
+   * Used to check if the database has a given key
 
   * @param key - The key to check
   * @param transaction - If provided, the operation will use the transaction.

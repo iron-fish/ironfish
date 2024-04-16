@@ -14,7 +14,6 @@ import {
   U32_ENCODING_BE,
 } from '../../storage'
 import { Database, Migration, MigrationContext } from '../migration'
-import { GetOldAccounts } from './021-add-version-to-accounts/schemaOld'
 
 export class Migration017 extends Migration {
   path = __filename
@@ -30,30 +29,7 @@ export class Migration017 extends Migration {
     tx: IDatabaseTransaction | undefined,
     logger: Logger,
   ): Promise<void> {
-    const accounts = await GetOldAccounts(context, db, tx)
-
-    logger.info(`Re-indexing transactions for ${accounts.length} accounts`)
-    logger.info('')
-
-    for (const account of accounts) {
-      let transactionCount = 0
-
-      logger.info(`Indexing on-chain transactions for account ${account.name}`)
-      for await (const transactionValue of account.getTransactions()) {
-        await context.wallet.walletDb.saveTransaction(
-          account,
-          transactionValue.transaction.hash(),
-          transactionValue,
-        )
-        transactionCount++
-      }
-
-      logger.info(` Indexed ${transactionCount} transactions for account ${account.name}`)
-      logger.info('')
-    }
-
     logger.info('Clearing data from old datastores...')
-
     const { sequenceToNoteHash, sequenceToTransactionHash, pendingTransactionHashes } =
       this.getOldStores(db)
 
@@ -62,46 +38,8 @@ export class Migration017 extends Migration {
     await pendingTransactionHashes.clear()
   }
 
-  async backward(context: MigrationContext, db: IDatabase): Promise<void> {
-    const accounts = await GetOldAccounts(context, db)
-
-    const { sequenceToNoteHash, sequenceToTransactionHash, pendingTransactionHashes } =
-      this.getOldStores(db)
-
-    for (const account of accounts) {
-      for await (const transactionValue of account.getTransactions()) {
-        const transactionHash = transactionValue.transaction.hash()
-
-        for (const note of transactionValue.transaction.notes) {
-          if (transactionValue.sequence !== null) {
-            const sequence = transactionValue.sequence
-
-            const decryptedNoteValue = await account.getDecryptedNote(note.hash())
-
-            if (decryptedNoteValue === undefined) {
-              continue
-            }
-
-            await sequenceToNoteHash.put([account.prefix, [sequence, note.hash()]], null)
-            await sequenceToTransactionHash.put(
-              [account.prefix, [sequence, transactionHash]],
-              null,
-            )
-          } else {
-            const expiration = transactionValue.transaction.expiration()
-            await pendingTransactionHashes.put(
-              [account.prefix, [expiration, transactionHash]],
-              null,
-            )
-          }
-        }
-      }
-    }
-
-    await context.wallet.walletDb.sequenceToNoteHash.clear()
-    await context.wallet.walletDb.sequenceToTransactionHash.clear()
-    await context.wallet.walletDb.pendingTransactionHashes.clear()
-  }
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  async backward(): Promise<void> {}
 
   getOldStores(db: IDatabase): {
     sequenceToNoteHash: IDatabaseStore<DatabaseSchema>

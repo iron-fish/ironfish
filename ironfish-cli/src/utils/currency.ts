@@ -3,18 +3,23 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Asset } from '@ironfish/rust-nodejs'
-import { Assert, CurrencyUtils, Logger, RpcClient } from '@ironfish/sdk'
+import { Assert, CurrencyUtils, Logger, RpcAssetVerification, RpcClient } from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
 
+/**
+ * This prompts the user to enter an amount of currency in the major
+ * denomination and returns the value in the minor denomination
+ */
 export async function promptCurrency(options: {
   client: Pick<RpcClient, 'wallet'>
   text: string
   logger: Logger
   required: true
   minimum?: bigint
+  assetId?: string
+  assetVerification?: RpcAssetVerification
   balance?: {
     account?: string
-    assetId?: string
     confirmations?: number
   }
 }): Promise<bigint>
@@ -25,9 +30,10 @@ export async function promptCurrency(options: {
   logger: Logger
   required?: boolean
   minimum?: bigint
+  assetId?: string
+  assetVerification?: RpcAssetVerification
   balance?: {
     account?: string
-    assetId?: string
     confirmations?: number
   }
 }): Promise<bigint | null> {
@@ -36,11 +42,17 @@ export async function promptCurrency(options: {
   if (options.balance) {
     const balance = await options.client.wallet.getAccountBalance({
       account: options.balance.account,
-      assetId: options.balance.assetId ?? Asset.nativeId().toString('hex'),
+      assetId: options.assetId ?? Asset.nativeId().toString('hex'),
       confirmations: options.balance.confirmations,
     })
 
-    text += ` (balance ${CurrencyUtils.renderIron(balance.content.available)})`
+    const renderedAvailable = CurrencyUtils.render(
+      balance.content.available,
+      false,
+      options.assetId,
+      options.assetVerification,
+    )
+    text += ` (balance ${renderedAvailable})`
   }
 
   // eslint-disable-next-line no-constant-condition
@@ -53,7 +65,11 @@ export async function promptCurrency(options: {
       return null
     }
 
-    const [amount, error] = CurrencyUtils.decodeIronTry(input)
+    const [amount, error] = CurrencyUtils.tryMajorToMinor(
+      input,
+      options.assetId,
+      options.assetVerification,
+    )
 
     if (error) {
       options.logger.error(`Error: ${error.reason}`)
@@ -63,7 +79,13 @@ export async function promptCurrency(options: {
     Assert.isNotNull(amount)
 
     if (options.minimum != null && amount < options.minimum) {
-      options.logger.error(`Error: Minimum is ${CurrencyUtils.renderIron(options.minimum)}`)
+      const renderedMinimum = CurrencyUtils.render(
+        options.minimum,
+        false,
+        options.assetId,
+        options.assetVerification,
+      )
+      options.logger.error(`Error: Minimum is ${renderedMinimum}`)
       continue
     }
 
