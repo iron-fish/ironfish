@@ -5,19 +5,22 @@
 use crate::{structs::NativeUnsignedTransaction, to_napi_err};
 use ironfish::{
     frost::{keys::KeyPackage, round2, Randomizer},
-    frost_utils::{signing_package::SigningPackage, split_spender_key::split_spender_key},
+    frost_utils::{
+        account_keys::derive_account_keys, signing_package::SigningPackage,
+        split_spender_key::split_spender_key,
+    },
     participant::{Identity, Secret},
     serializing::{bytes_to_hex, fr::FrSerializable, hex_to_vec_bytes},
     SaplingKey,
 };
 use ironfish_frost::{
-    dkg::round1::PublicPackage, keys::PublicKeyPackage, multienc,
-    nonces::deterministic_signing_nonces, signature_share::SignatureShare,
-    signing_commitment::SigningCommitment,
+    dkg, keys::PublicKeyPackage, multienc, nonces::deterministic_signing_nonces,
+    signature_share::SignatureShare, signing_commitment::SigningCommitment,
 };
 use napi::{bindgen_prelude::*, JsBuffer};
 use napi_derive::napi;
 use rand::thread_rng;
+use std::io;
 use std::ops::Deref;
 
 #[napi(namespace = "multisig")]
@@ -26,41 +29,32 @@ pub const IDENTITY_LEN: u32 = ironfish::frost_utils::IDENTITY_LEN as u32;
 #[napi(namespace = "multisig")]
 pub const SECRET_LEN: u32 = ironfish_frost::participant::SECRET_LEN as u32;
 
-fn try_deserialize_identities<I, S>(signers: I) -> Result<Vec<Identity>>
+fn try_deserialize<I, S, F, T>(items: I, deserialize_item: F) -> Result<Vec<T>>
 where
     I: IntoIterator<Item = S>,
     S: Deref<Target = str>,
+    F: for<'a> Fn(&'a [u8]) -> io::Result<T>,
 {
-    signers
+    items
         .into_iter()
-        .try_fold(Vec::new(), |mut signers, serialized_identity| {
-            let serialized_identity =
-                hex_to_vec_bytes(&serialized_identity).map_err(to_napi_err)?;
-            Identity::deserialize_from(&serialized_identity[..])
-                .map(|identity| {
-                    signers.push(identity);
-                    signers
+        .try_fold(Vec::new(), |mut items, serialized_item| {
+            let serialized_item = hex_to_vec_bytes(&serialized_item).map_err(to_napi_err)?;
+            deserialize_item(&serialized_item[..])
+                .map(|item| {
+                    items.push(item);
+                    items
                 })
                 .map_err(to_napi_err)
         })
 }
 
-fn try_deserialize_public_packages<I, S>(public_packages: I) -> Result<Vec<PublicPackage>>
+#[inline]
+fn try_deserialize_identities<I, S>(signers: I) -> Result<Vec<Identity>>
 where
     I: IntoIterator<Item = S>,
     S: Deref<Target = str>,
 {
-    public_packages
-        .into_iter()
-        .try_fold(Vec::new(), |mut public_packages, serialized_package| {
-            let serialized_package = hex_to_vec_bytes(&serialized_package).map_err(to_napi_err)?;
-            PublicPackage::deserialize_from(&serialized_package[..])
-                .map(|public_package| {
-                    public_packages.push(public_package);
-                    public_packages
-                })
-                .map_err(to_napi_err)
-        })
+    try_deserialize(signers, |bytes| Identity::deserialize_from(bytes))
 }
 
 #[napi(namespace = "multisig")]
@@ -383,7 +377,7 @@ pub fn dkg_round1(
         Identity::deserialize_from(&hex_to_vec_bytes(&self_identity).map_err(to_napi_err)?[..])?;
     let participant_identities = try_deserialize_identities(participant_identities)?;
 
-    let (encrypted_secret_package, public_package) = ironfish_frost::dkg::round1::round1(
+    let (encrypted_secret_package, public_package) = dkg::round1::round1(
         &self_identity,
         min_signers,
         &participant_identities,
@@ -410,11 +404,13 @@ pub fn dkg_round2(
     public_packages: Vec<String>,
 ) -> Result<DkgRound2Packages> {
     let secret = Secret::deserialize_from(&hex_to_vec_bytes(&secret).map_err(to_napi_err)?[..])?;
-    let public_packages = try_deserialize_public_packages(public_packages)?;
+    let public_packages = try_deserialize(public_packages, |bytes| {
+        dkg::round1::PublicPackage::deserialize_from(bytes)
+    })?;
     let encrypted_secret_package =
         hex_to_vec_bytes(&encrypted_secret_package).map_err(to_napi_err)?;
 
-    let (encrypted_secret_package, public_packages) = ironfish_frost::dkg::round2::round2(
+    let (encrypted_secret_package, public_packages) = dkg::round2::round2(
         &secret,
         &encrypted_secret_package,
         &public_packages,
@@ -446,4 +442,51 @@ pub struct DkgRound2PublicPackage {
 pub struct DkgRound2Packages {
     pub encrypted_secret_package: String,
     pub public_packages: Vec<DkgRound2PublicPackage>,
+}
+
+#[napi(object, namespace = "multisig")]
+pub fn dkg_round3(
+    secret: &ParticipantSecret,
+    round2_secret_package: String,
+    round1_public_packages: Vec<String>,
+    round2_public_packages: Vec<String>,
+) -> Result<DkgRound3Packages> {
+    let round2_secret_package = hex_to_vec_bytes(&round2_secret_package).map_err(to_napi_err)?;
+    let round1_public_packages = try_deserialize(round1_public_packages, |bytes| {
+        dkg::round1::PublicPackage::deserialize_from(bytes)
+    })?;
+    let round2_public_packages = try_deserialize(round2_public_packages, |bytes| {
+        dkg::round2::PublicPackage::deserialize_from(bytes)
+    })?;
+
+    let (key_package, public_key_package, group_secret_key) = dkg::round3::round3(
+        &secret.secret,
+        &round2_secret_package,
+        round1_public_packages.iter(),
+        round2_public_packages.iter(),
+    )
+    .map_err(to_napi_err)?;
+
+    let account_keys = derive_account_keys(public_key_package.verifying_key(), &group_secret_key);
+
+    Ok(DkgRound3Packages {
+        public_address: account_keys.public_address.hex_public_address(),
+        key_package: bytes_to_hex(&key_package.serialize().map_err(to_napi_err)?),
+        public_key_package: bytes_to_hex(&public_key_package.serialize()),
+        view_key: account_keys.view_key.hex_key(),
+        incoming_view_key: account_keys.incoming_viewing_key.hex_key(),
+        outgoing_view_key: account_keys.outgoing_viewing_key.hex_key(),
+        proof_authorizing_key: account_keys.proof_authorizing_key.hex_key(),
+    })
+}
+
+#[napi(object, namespace = "multisig")]
+pub struct DkgRound3Packages {
+    pub public_address: String,
+    pub key_package: String,
+    pub public_key_package: String,
+    pub view_key: String,
+    pub incoming_view_key: String,
+    pub outgoing_view_key: String,
+    pub proof_authorizing_key: String,
 }

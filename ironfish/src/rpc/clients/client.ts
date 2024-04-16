@@ -37,6 +37,8 @@ import type {
   DkgRound1Response,
   DkgRound2Request,
   DkgRound2Response,
+  DkgRound3Request,
+  DkgRound3Response,
   EstimateFeeRateRequest,
   EstimateFeeRateResponse,
   EstimateFeeRatesRequest,
@@ -287,6 +289,13 @@ export abstract class RpcClient {
         round2: (params: DkgRound2Request): Promise<RpcResponseEnded<DkgRound2Response>> => {
           return this.request<DkgRound2Response>(
             `${ApiNamespace.wallet}/multisig/dkg/round2`,
+            params,
+          ).waitForEnd()
+        },
+
+        round3: (params: DkgRound3Request): Promise<RpcResponseEnded<DkgRound3Response>> => {
+          return this.request<DkgRound3Response>(
+            `${ApiNamespace.wallet}/multisig/dkg/round3`,
             params,
           ).waitForEnd()
         },
