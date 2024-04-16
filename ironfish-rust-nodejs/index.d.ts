@@ -264,6 +264,16 @@ export namespace multisig {
     encryptedSecretPackage: string
     publicPackages: Array<DkgRound2PublicPackage>
   }
+  export function dkgRound3(secret: ParticipantSecret, round2SecretPackage: string, round1PublicPackages: Array<string>, round2PublicPackages: Array<string>): DkgRound3Packages
+  export interface DkgRound3Packages {
+    publicAddress: string
+    keyPackage: string
+    publicKeyPackage: string
+    viewKey: string
+    incomingViewKey: string
+    outgoingViewKey: string
+    proofAuthorizingKey: string
+  }
   export function aggregateSignatureShares(publicKeyPackageStr: string, signingPackageStr: string, signatureSharesArr: Array<string>): Buffer
   export class ParticipantSecret {
     constructor(jsBytes: Buffer)
