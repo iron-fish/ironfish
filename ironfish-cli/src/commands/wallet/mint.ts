@@ -6,7 +6,6 @@ import {
   BufferUtils,
   CreateTransactionRequest,
   CurrencyUtils,
-  ErrorUtils,
   isValidPublicAddress,
   RawTransaction,
   RawTransactionSerde,
@@ -191,8 +190,7 @@ export class Mint extends IronfishCommand {
       try {
         const assetRequest = await client.chain.getAsset({ id: assetId })
         assetData = assetRequest.content
-        const isAssetOwner = this.isAssetOwner(assetData, accountPublicKey)
-        if (!isAssetOwner) {
+        if (assetData.owner !== accountPublicKey) {
           this.error(`The account '${account}' does not own this asset.`)
         }
       } catch (e) {
@@ -387,22 +385,5 @@ export class Mint extends IronfishCommand {
     }
 
     return CliUx.ux.confirm('Do you confirm (Y/N)?')
-  }
-
-  isAssetOwner(asset: RpcAsset, ownerPublicKey: string): boolean {
-    try {
-      if (asset.owner === ownerPublicKey) {
-        return true
-      }
-    } catch (e) {
-      if (ErrorUtils.isNotFoundError(e)) {
-        // Asset doesn't exist yet, so this account would be the creator and owner for the initial mint
-        return true
-      } else {
-        throw e
-      }
-    }
-
-    return false
   }
 }
