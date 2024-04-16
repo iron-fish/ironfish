@@ -2,18 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::{
+    errors::IronfishError, IncomingViewKey, OutgoingViewKey, PublicAddress, SaplingKey, ViewKey,
+};
 use group::GroupEncoding;
-use ironfish_frost::participant::Identity;
-use ironfish_frost::{frost::keys::KeyPackage, keys::PublicKeyPackage};
-use ironfish_zkp::constants::PROOF_GENERATION_KEY_GENERATOR;
-use jubjub::SubgroupPoint;
+use ironfish_frost::{frost::keys::KeyPackage, keys::PublicKeyPackage, participant::Identity};
 use rand::thread_rng;
 use std::collections::HashMap;
-
-use crate::{
-    errors::{IronfishError, IronfishErrorKind},
-    IncomingViewKey, OutgoingViewKey, PublicAddress, SaplingKey, ViewKey,
-};
 
 use super::split_secret::split_secret;
 
@@ -37,31 +32,18 @@ pub fn split_spender_key(
     let (key_packages, public_key_package) =
         split_secret(spender_key, identities, min_signers, thread_rng())?;
 
-    let proof_authorizing_key = spender_key.sapling_proof_generation_key().nsk;
-
-    let authorizing_key = public_key_package.verifying_key().serialize();
-    let authorizing_key = Option::from(SubgroupPoint::from_bytes(&authorizing_key))
-        .ok_or_else(|| IronfishError::new(IronfishErrorKind::InvalidAuthorizingKey))?;
-
-    let nullifier_deriving_key = *PROOF_GENERATION_KEY_GENERATOR * proof_authorizing_key;
-
-    let view_key = ViewKey {
-        authorizing_key,
-        nullifier_deriving_key,
-    };
-
-    let incoming_view_key = spender_key.incoming_view_key().clone();
-    let outgoing_view_key: OutgoingViewKey = group_secret_key.outgoing_view_key().clone();
-
-    let public_address = incoming_view_key.public_address();
+    assert_eq!(
+        public_key_package.verifying_key().serialize(),
+        spender_key.view_key().authorizing_key.to_bytes()
+    );
 
     Ok(TrustedDealerKeyPackages {
-        public_address,
+        public_address: spender_key.public_address(),
         public_key_package,
-        view_key,
-        incoming_view_key,
-        outgoing_view_key,
-        proof_authorizing_key,
+        view_key: spender_key.view_key().clone(),
+        incoming_view_key: spender_key.incoming_view_key().clone(),
+        outgoing_view_key: group_secret_key.outgoing_view_key().clone(),
+        proof_authorizing_key: spender_key.sapling_proof_generation_key().nsk,
         key_packages,
     })
 }
