@@ -6,11 +6,12 @@ import {
   BufferUtils,
   CreateTransactionRequest,
   CurrencyUtils,
-  ErrorUtils,
   isValidPublicAddress,
   RawTransaction,
   RawTransactionSerde,
+  RPC_ERROR_CODES,
   RpcAsset,
+  RpcRequestError,
   Transaction,
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
@@ -186,10 +187,19 @@ export class Mint extends IronfishCommand {
 
     let assetData
     if (assetId) {
-      assetData = (await client.chain.getAsset({ id: assetId })).content
-      const isAssetOwner = this.isAssetOwner(assetData, accountPublicKey)
-      if (!isAssetOwner) {
-        this.error(`The account '${account}' does not own this asset.`)
+      try {
+        const assetRequest = await client.chain.getAsset({ id: assetId })
+        assetData = assetRequest.content
+        if (assetData.owner !== accountPublicKey) {
+          this.error(`The account '${account}' does not own this asset.`)
+        }
+      } catch (e) {
+        if (e instanceof RpcRequestError && e.code === RPC_ERROR_CODES.NOT_FOUND.valueOf()) {
+          // Do nothing, not finding an asset is acceptable since we're likely
+          // to be minting one for the first time
+        } else {
+          throw e
+        }
       }
     }
 
@@ -215,7 +225,8 @@ export class Mint extends IronfishCommand {
         text: 'Enter the amount',
         minimum: 0n,
         logger: this.logger,
-        asset: assetData,
+        assetId: assetId,
+        assetVerification: assetData?.verification,
       })
     }
 
@@ -230,7 +241,8 @@ export class Mint extends IronfishCommand {
       outputs: [],
       mints: [
         {
-          assetId,
+          // Only provide the asset id if we are not minting an asset for the first time
+          ...(assetData != null ? { assetId } : {}),
           name,
           metadata,
           value: CurrencyUtils.encode(amount),
@@ -373,22 +385,5 @@ export class Mint extends IronfishCommand {
     }
 
     return CliUx.ux.confirm('Do you confirm (Y/N)?')
-  }
-
-  isAssetOwner(asset: RpcAsset, ownerPublicKey: string): boolean {
-    try {
-      if (asset.owner === ownerPublicKey) {
-        return true
-      }
-    } catch (e) {
-      if (ErrorUtils.isNotFoundError(e)) {
-        // Asset doesn't exist yet, so this account would be the creator and owner for the initial mint
-        return true
-      } else {
-        throw e
-      }
-    }
-
-    return false
   }
 }
