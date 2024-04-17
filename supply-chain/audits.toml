@@ -40,11 +40,41 @@ who = "Andrea <andrea@iflabs.network>"
 criteria = "safe-to-deploy"
 version = "1.0.0"
 
+[[audits.h2]]
+who = "Andrea <andrea@iflabs.network>"
+criteria = "safe-to-deploy"
+delta = "0.4.0 -> 0.3.26"
+
+[[audits.hashbrown]]
+who = "Andrea <andrea@iflabs.network>"
+criteria = "safe-to-deploy"
+delta = "0.14.0 -> 0.14.3"
+
+[[audits.indexmap]]
+who = "Andrea <andrea@iflabs.network>"
+criteria = "safe-to-deploy"
+delta = "1.9.3 -> 2.2.6"
+
 [[audits.jubjub]]
 who = "Andrea <andrea@iflabs.network>"
 criteria = "safe-to-deploy"
 delta = "0.9.0 -> 0.9.0@git:a1a0c2ed69eec4d5d5e87842e2a40849f7fa4633"
 notes = "Fork of the official jubjub owned by Iron Fish"
+
+[[audits.mio]]
+who = "Andrea <andrea@iflabs.network>"
+criteria = "safe-to-deploy"
+delta = "0.8.8 -> 0.8.11"
+
+[[audits.openssl]]
+who = "Andrea <andrea@iflabs.network>"
+criteria = "safe-to-deploy"
+delta = "0.10.59 -> 0.10.64"
+
+[[audits.openssl-sys]]
+who = "Andrea <andrea@iflabs.network>"
+criteria = "safe-to-deploy"
+delta = "0.9.95 -> 0.9.102"
 
 [[audits.reddsa]]
 who = "Andrea <andrea@iflabs.network>"
