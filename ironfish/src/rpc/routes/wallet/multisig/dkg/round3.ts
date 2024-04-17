@@ -17,7 +17,10 @@ export type DkgRound3Request = {
   round2PublicPackages: Array<string>
 }
 
-export type DkgRound3Response = Record<string, never>
+export type DkgRound3Response = {
+  name: string
+  publicAddress: string
+}
 
 export const DkgRound3RequestSchema: yup.ObjectSchema<DkgRound3Request> = yup
   .object({
@@ -29,7 +32,10 @@ export const DkgRound3RequestSchema: yup.ObjectSchema<DkgRound3Request> = yup
   .defined()
 
 export const DkgRound3ResponseSchema: yup.ObjectSchema<DkgRound3Response> = yup
-  .object<Record<string, never>>({})
+  .object({
+    name: yup.string().defined(),
+    publicAddress: yup.string().defined(),
+  })
   .defined()
 
 routes.register<typeof DkgRound3RequestSchema, DkgRound3Response>(
@@ -84,10 +90,13 @@ routes.register<typeof DkgRound3RequestSchema, DkgRound3Response>(
       },
     }
 
-    await node.wallet.importAccount(accountImport)
+    const account = await node.wallet.importAccount(accountImport)
 
     // TODO: add an option to skip rescan
 
-    request.end({})
+    request.end({
+      name: account.name,
+      publicAddress: account.publicAddress,
+    })
   },
 )
