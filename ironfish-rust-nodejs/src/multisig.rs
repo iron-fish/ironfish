@@ -11,11 +11,8 @@ use ironfish::{
     SaplingKey,
 };
 use ironfish_frost::{
-    dkg::round1::{import_secret_package, PublicPackage},
-    keys::PublicKeyPackage,
-    multienc,
-    nonces::deterministic_signing_nonces,
-    signature_share::SignatureShare,
+    dkg::round1::PublicPackage, keys::PublicKeyPackage, multienc,
+    nonces::deterministic_signing_nonces, signature_share::SignatureShare,
     signing_commitment::SigningCommitment,
 };
 use napi::{bindgen_prelude::*, JsBuffer};
@@ -414,16 +411,12 @@ pub fn dkg_round2(
 ) -> Result<DkgRound2Packages> {
     let secret = Secret::deserialize_from(&hex_to_vec_bytes(&secret).map_err(to_napi_err)?[..])?;
     let public_packages = try_deserialize_public_packages(public_packages)?;
-
-    let secret_package = import_secret_package(
-        &hex_to_vec_bytes(&encrypted_secret_package).map_err(to_napi_err)?,
-        &secret,
-    )
-    .map_err(to_napi_err)?;
+    let encrypted_secret_package =
+        hex_to_vec_bytes(&encrypted_secret_package).map_err(to_napi_err)?;
 
     let (encrypted_secret_package, public_packages) = ironfish_frost::dkg::round2::round2(
-        &secret.to_identity(),
-        &secret_package,
+        &secret,
+        &encrypted_secret_package,
         &public_packages,
         thread_rng(),
     )
