@@ -390,13 +390,14 @@ describe('Route wallet/importAccount', () => {
             name: testCaseFile,
           })
 
+          const name = 'new-account-name'
           const response = await routeTest.client.wallet.importAccount({
             account: testCase,
-            name: testCaseFile,
+            name,
           })
 
           expect(response.status).toBe(200)
-          expect(response.content.name).not.toBeNull()
+          expect(response.content.name).toEqual(name)
         }
       })
     })

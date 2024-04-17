@@ -1526,7 +1526,7 @@ export class Wallet {
 
   async importAccount(accountValue: AccountImport): Promise<Account> {
     let multisigKeys = accountValue.multisigKeys
-    let name = accountValue.name
+    const name = accountValue.name
 
     if (
       accountValue.multisigKeys &&
@@ -1539,7 +1539,6 @@ export class Wallet {
         throw new Error('Cannot import identity without a corresponding multisig secret')
       }
 
-      name = multisigSecret.name
       multisigKeys = {
         keyPackage: accountValue.multisigKeys.keyPackage,
         publicKeyPackage: accountValue.multisigKeys.publicKeyPackage,
