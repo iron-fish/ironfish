@@ -284,12 +284,13 @@ export async function serializeRpcAccountStatus(
 export async function tryDecodeAccountWithMultisigSecrets(
   wallet: Wallet,
   value: string,
+  options?: { name?: string },
 ): Promise<AccountImport | undefined> {
   const encoder = new Base64JsonEncoder()
 
   for await (const { name, secret } of wallet.walletDb.getMultisigSecrets()) {
     try {
-      return encoder.decode(value, { name, multisigSecret: secret })
+      return encoder.decode(value, { name: options?.name ?? name, multisigSecret: secret })
     } catch (e: unknown) {
       continue
     }
