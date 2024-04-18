@@ -386,6 +386,7 @@ export class Mint extends IronfishCommand {
 
     await confirmOperation({
       confirmMessage: confirmMessage.join('\n'),
+      cancelledMessage: 'Mint aborted.',
       confirm,
     })
   }

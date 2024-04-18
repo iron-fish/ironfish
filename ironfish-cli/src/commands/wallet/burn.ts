@@ -280,6 +280,7 @@ export class Burn extends IronfishCommand {
     await confirmOperation({
       confirm,
       confirmMessage: `You are about to burn: ${renderedAmount} plus a transaction fee of ${renderedFee} with the account ${account}\nDo you confirm(Y/N)?`,
+      cancelledMessage: 'Burn aborted.',
     })
   }
 }

@@ -283,6 +283,7 @@ export class Send extends IronfishCommand {
 
     await confirmOperation({
       confirm: flags.confirm,
+      cancelledMessage: 'Transaction aborted.',
     })
 
     transactionTimer.start()

@@ -329,6 +329,7 @@ export class CombineNotesCommand extends IronfishCommand {
 
     await confirmOperation({
       confirm: flags.confirm,
+      cancelledMessage: 'Combine aborted.',
     })
 
     transactionTimer.start()
