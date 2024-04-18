@@ -11,6 +11,7 @@ import {
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
+import { longPrompt } from '../../utils/longPrompt'
 
 export class PostCommand extends IronfishCommand {
   static summary = 'Post a raw transaction'
@@ -26,6 +27,7 @@ export class PostCommand extends IronfishCommand {
     ...RemoteFlags,
     account: Flags.string({
       description: 'The account that created the raw transaction',
+      char: 'f',
       required: false,
     }),
     confirm: Flags.boolean({
@@ -42,14 +44,19 @@ export class PostCommand extends IronfishCommand {
   static args = [
     {
       name: 'transaction',
-      required: true,
       description: 'The raw transaction in hex encoding',
     },
   ]
 
   async start(): Promise<void> {
     const { flags, args } = await this.parse(PostCommand)
-    const transaction = args.transaction as string
+    let transaction = args.transaction as string | undefined
+
+    if (!transaction) {
+      transaction = await longPrompt('Enter the raw transaction in hex encoding', {
+        required: true,
+      })
+    }
 
     const serialized = Buffer.from(transaction, 'hex')
     const raw = RawTransactionSerde.deserialize(serialized)
