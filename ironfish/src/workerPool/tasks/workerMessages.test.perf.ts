@@ -67,6 +67,7 @@ describe('WorkerMessages', () => {
     for (const transaction of transactions) {
       for (const note of transaction.notes) {
         payload.push({
+          accountId: account.id,
           serializedNote: note.serialize(),
           incomingViewKey: account.incomingViewKey,
           outgoingViewKey: account.outgoingViewKey,
