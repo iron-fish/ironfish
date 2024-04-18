@@ -17,7 +17,7 @@ export class DkgRound3Command extends IronfishCommand {
       description: 'The name of the secret to use for decryption during DKG',
       required: true,
     }),
-    name: Flags.string({
+    accountName: Flags.string({
       char: 'n',
       description: 'The name to set for the imported account',
     }),
@@ -92,7 +92,7 @@ export class DkgRound3Command extends IronfishCommand {
 
     const response = await client.wallet.multisig.dkg.round3({
       secretName: flags.secretName,
-      accountName: flags.name,
+      accountName: flags.accountName,
       round2SecretPackage,
       round1PublicPackages,
       round2PublicPackages,
