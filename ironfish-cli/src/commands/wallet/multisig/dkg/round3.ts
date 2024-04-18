@@ -92,7 +92,7 @@ export class DkgRound3Command extends IronfishCommand {
 
     const response = await client.wallet.multisig.dkg.round3({
       secretName: flags.secretName,
-      name: flags.name,
+      accountName: flags.name,
       round2SecretPackage,
       round1PublicPackages,
       round2PublicPackages,

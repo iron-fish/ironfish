@@ -15,7 +15,7 @@ export type DkgRound3Request = {
   round2SecretPackage: string
   round1PublicPackages: Array<string>
   round2PublicPackages: Array<string>
-  name?: string
+  accountName?: string
 }
 
 export type DkgRound3Response = {
@@ -29,7 +29,7 @@ export const DkgRound3RequestSchema: yup.ObjectSchema<DkgRound3Request> = yup
     round2SecretPackage: yup.string().defined(),
     round1PublicPackages: yup.array().of(yup.string().defined()).defined(),
     round2PublicPackages: yup.array().of(yup.string().defined()).defined(),
-    name: yup.string().optional(),
+    accountName: yup.string().optional(),
   })
   .defined()
 
@@ -76,7 +76,7 @@ routes.register<typeof DkgRound3RequestSchema, DkgRound3Response>(
     )
 
     const accountImport = {
-      name: request.data.name ?? secretName,
+      name: request.data.accountName ?? secretName,
       version: ACCOUNT_SCHEMA_VERSION,
       createdAt: null,
       spendingKey: null,

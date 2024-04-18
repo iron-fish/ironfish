@@ -59,7 +59,7 @@ describe('Route multisig/dkg/round3', () => {
       secretNames.map((secretName, index) =>
         routeTest.client.wallet.multisig.dkg.round3({
           secretName,
-          name: secretNamesToName[secretName],
+          accountName: secretNamesToName[secretName],
           round2SecretPackage: round2Packages[index].content.encryptedSecretPackage,
           round1PublicPackages: round1Packages.map((pkg) => pkg.content.publicPackage),
           round2PublicPackages: round2Packages.flatMap((pkg) =>
