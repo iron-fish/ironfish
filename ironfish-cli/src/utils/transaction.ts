@@ -4,6 +4,7 @@
 
 import { Asset } from '@ironfish/rust-nodejs'
 import {
+  assetMetadataWithDefaults,
   createRootLogger,
   CurrencyUtils,
   GetUnsignedTransactionNotesResponse,
@@ -259,9 +260,8 @@ export async function renderRawTransactionDetails(
   const assetIds = collectRawTransactionAssetIds(rawTransaction)
   const assetLookup = await getAssetVerificationByIds(client, assetIds, account, undefined)
   const feeString = CurrencyUtils.render(rawTransaction.fee, true)
-  const from = rawTransaction.outputs.length
-    ? rawTransaction.outputs[0].note.sender()
-    : '<See Details>'
+  // Every transaction except for a miners transaction should have at least 1 spend for the transaction fee
+  const from = rawTransaction.spends.length ? rawTransaction.spends[0].note.owner() : null
 
   const summary = `\
 \n===================
@@ -270,10 +270,6 @@ Transaction Summary
 
 From            ${from}
 Fee             ${feeString}
-Notes           ${
-    rawTransaction.outputs.length
-  } (Additional notes will be added to return unspent assets to the sender)
-Spends          ${rawTransaction.spends.length}
 Expiration      ${
     rawTransaction.expiration !== null ? rawTransaction.expiration.toString() : ''
   }`
@@ -282,7 +278,7 @@ Expiration      ${
   if (rawTransaction.mints.length > 0) {
     logger.log('')
     logger.log('==================')
-    logger.log('Mints')
+    logger.log(`Mints (${rawTransaction.mints.length})`)
     logger.log('==================')
 
     for (const [i, mint] of rawTransaction.mints.entries()) {
@@ -316,7 +312,7 @@ Expiration      ${
   if (rawTransaction.burns.length > 0) {
     logger.log('')
     logger.log('==================')
-    logger.log('Burns')
+    logger.log(`Burns (${rawTransaction.burns.length})`)
     logger.log('==================')
 
     for (const [i, burn] of rawTransaction.burns.entries()) {
@@ -340,7 +336,7 @@ Expiration      ${
   if (rawTransaction.spends.length > 0) {
     logger.log('')
     logger.log('==================')
-    logger.log('Spends')
+    logger.log(`Spends (${rawTransaction.spends.length})`)
     logger.log('==================')
 
     for (const [i, { note }] of rawTransaction.spends.entries()) {
@@ -349,13 +345,12 @@ Expiration      ${
       }
       logger.log('')
 
-      const renderedAmount = CurrencyUtils.render(
-        note.value(),
-        true,
+      const { symbol } = assetMetadataWithDefaults(
         note.assetId().toString('hex'),
         assetLookup[note.assetId().toString('hex')],
       )
-      logger.log(`Amount:        ${renderedAmount}`)
+      logger.log(`Asset:          ${symbol}`)
+      logger.log(`Note Hash:      ${note.hash().toString('hex')}`)
       logger.log('')
     }
   }
@@ -363,7 +358,9 @@ Expiration      ${
   if (rawTransaction.outputs.length > 0) {
     logger.log('')
     logger.log('==================')
-    logger.log('Notes (Additional notes will be added to return unspent assets to the sender)')
+    logger.log(
+      `Notes (${rawTransaction.outputs.length}) (Additional notes will be added to return unspent assets to the sender)`,
+    )
     logger.log('==================')
 
     for (const [i, { note }] of rawTransaction.outputs.entries()) {
