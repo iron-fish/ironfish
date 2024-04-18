@@ -155,23 +155,24 @@ export class TransactionsCommand extends IronfishCommand {
 
       const group = this.getRowGroup(index, assetCount, transactionRows.length)
 
+      const transactionRow = {
+        group,
+        assetId,
+        assetName: asset.name,
+        amount,
+        assetDecimals: asset.verification.decimals,
+        assetSymbol: asset.verification.symbol,
+      }
+
       // include full transaction details in first row or non-cli-formatted output
       if (transactionRows.length === 0 || format !== Format.cli) {
         transactionRows.push({
           ...transaction,
-          group,
-          assetId,
-          assetName: asset.name,
-          amount,
+          ...transactionRow,
           feePaid,
         })
       } else {
-        transactionRows.push({
-          group,
-          assetId,
-          assetName: asset.name,
-          amount,
-        })
+        transactionRows.push(transactionRow)
       }
     }
 
