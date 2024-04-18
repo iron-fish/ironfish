@@ -483,7 +483,7 @@ export class Wallet {
       }
     })
 
-    const decryptAccounts = (
+    const shouldDecryptAccounts = (
       await Promise.all(
         accounts.map((a) =>
           this.shouldDecryptForAccount(blockHeader, a).then(
@@ -494,17 +494,22 @@ export class Wallet {
     )
       .filter((v) => v[1])
       .map((v) => v[0])
+
+    const shouldDecryptAccountIds = new Set(shouldDecryptAccounts.map((a) => a.id))
+
     const decryptedTransactions = await Promise.all(
       transactions.map(({ transaction, initialNoteIndex }) =>
-        this.decryptNotes(transaction, initialNoteIndex, false, decryptAccounts).then((r) => ({
-          result: r,
-          transaction,
-        })),
+        this.decryptNotes(transaction, initialNoteIndex, false, shouldDecryptAccounts).then(
+          (r) => ({
+            result: r,
+            transaction,
+          }),
+        ),
       ),
     )
 
-    // account id -> transaction hash -> DecryptedNote[]
-    const decryptedNotesMap: Map<string, Map<string, DecryptedNote[]>> = new Map()
+    // account id -> transaction hash -> Array<DecryptedNote>
+    const decryptedNotesMap: Map<string, Map<string, Array<DecryptedNote>>> = new Map()
     for (const { transaction, result } of decryptedTransactions) {
       for (const [accountId, decryptedNotes] of result) {
         if (!decryptedNotes.length) {
@@ -512,7 +517,7 @@ export class Wallet {
         }
 
         const accountTxnsMap =
-          decryptedNotesMap.get(accountId) ?? new Map<string, DecryptedNote[]>()
+          decryptedNotesMap.get(accountId) ?? new Map<string, Array<DecryptedNote>>()
         accountTxnsMap.set(transaction.hash().toString('base64'), decryptedNotes)
         decryptedNotesMap.set(accountId, accountTxnsMap)
       }
@@ -528,18 +533,20 @@ export class Wallet {
       await this.walletDb.db.transaction(async (tx) => {
         let assetBalanceDeltas = new AssetBalances()
         const accountTxnsMap = decryptedNotesMap.get(account.id)
-        const txns = transactions.map((t): [Transaction, DecryptedNote[]] => [
-          t.transaction,
-          accountTxnsMap?.get(t.transaction.hash().toString('base64')) ?? [],
-        ])
+        const txns = transactions.map((t) => ({
+          transaction: t.transaction,
+          decryptedNotes: accountTxnsMap?.get(t.transaction.hash().toString('base64')) ?? [],
+        }))
 
-        assetBalanceDeltas = await this.connectBlockTransactions(
-          blockHeader,
-          txns,
-          account,
-          scan,
-          tx,
-        )
+        if (shouldDecryptAccountIds.has(account.id)) {
+          assetBalanceDeltas = await this.connectBlockTransactions(
+            blockHeader,
+            txns,
+            account,
+            scan,
+            tx,
+          )
+        }
 
         await account.updateUnconfirmedBalances(
           assetBalanceDeltas,
@@ -591,14 +598,14 @@ export class Wallet {
 
   private async connectBlockTransactions(
     blockHeader: WalletBlockHeader,
-    transactions: Array<[Transaction, DecryptedNote[]]>,
+    transactions: Array<{ transaction: Transaction; decryptedNotes: Array<DecryptedNote> }>,
     account: Account,
     scan?: ScanState,
     tx?: IDatabaseTransaction,
   ): Promise<AssetBalances> {
     const assetBalanceDeltas = new AssetBalances()
 
-    for (const [transaction, decryptedNotes] of transactions) {
+    for (const { transaction, decryptedNotes } of transactions) {
       if (scan && scan.isAborted) {
         return assetBalanceDeltas
       }
