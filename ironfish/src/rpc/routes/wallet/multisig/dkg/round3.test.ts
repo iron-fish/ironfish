@@ -49,7 +49,7 @@ describe('Route multisig/dkg/round3', () => {
     )
 
     // Perform DKG round 3
-    await Promise.all(
+    const round3Responses = await Promise.all(
       secretNames.map((secretName, index) =>
         routeTest.client.wallet.multisig.dkg.round3({
           secretName,
@@ -78,6 +78,12 @@ describe('Route multisig/dkg/round3', () => {
     const expectedPublicKey = publicKeys[0]
     for (const publicKey of publicKeys) {
       expect(publicKey).toBe(expectedPublicKey)
+    }
+
+    // Check all the responses match
+    expect(round3Responses).toHaveLength(publicKeys.length)
+    for (let i = 0; i < round3Responses.length; i++) {
+      expect(round3Responses[i].content.publicAddress).toEqual(publicKeys[i])
     }
   })
 
