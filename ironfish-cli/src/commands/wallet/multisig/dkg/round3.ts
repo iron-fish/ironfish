@@ -5,6 +5,7 @@ import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
 import { longPrompt } from '../../../../utils/longPrompt'
+import { MultisigDkgJson } from '../../../../utils/multisig'
 
 export class DkgRound3Command extends IronfishCommand {
   static description = 'Perform round3 of the DKG protocol for multisig account creation'
@@ -21,24 +22,30 @@ export class DkgRound3Command extends IronfishCommand {
       char: 'e',
       description: 'The encrypted secret package created during DKG round2',
     }),
-    round1PublicPackages: Flags.string({
+    round1PublicPackage: Flags.string({
       char: 'p',
       description:
         'The public package that a participant generated during DKG round1 (may be specified multiple times for multiple participants). Must include your own round1 public package',
       multiple: true,
     }),
-    round2PublicPackages: Flags.string({
+    round2PublicPackage: Flags.string({
       char: 'q',
       description:
         'The public package that a participant generated during DKG round2 where the recipient matches the identity associated with the secret',
       multiple: true,
+    }),
+    path: Flags.string({
+      description: 'Path to a JSON file containing DKG data',
     }),
   }
 
   async start(): Promise<void> {
     const { flags } = await this.parse(DkgRound3Command)
 
-    let round2SecretPackage = flags.round2SecretPackage
+    const loaded = await MultisigDkgJson.load(this.sdk.fileSystem, flags.path)
+    const options = MultisigDkgJson.resolveFlags(flags, loaded)
+
+    let round2SecretPackage = options.round2SecretPackage
     if (!round2SecretPackage) {
       round2SecretPackage = await CliUx.ux.prompt(
         `Enter the encrypted secret package for secret ${flags.secretName}`,
@@ -48,7 +55,7 @@ export class DkgRound3Command extends IronfishCommand {
       )
     }
 
-    let round1PublicPackages = flags.round1PublicPackages
+    let round1PublicPackages = options.round1PublicPackage
     if (!round1PublicPackages || round1PublicPackages.length < 2) {
       const input = await longPrompt(
         'Enter public packages separated by commas, one for each participant',
@@ -66,7 +73,7 @@ export class DkgRound3Command extends IronfishCommand {
     }
     round1PublicPackages = round1PublicPackages.map((i) => i.trim())
 
-    let round2PublicPackages = flags.round2PublicPackages
+    let round2PublicPackages = options.round2PublicPackage
     if (!round2PublicPackages) {
       const input = await longPrompt(
         'Enter public packages separated by commas, one for each participant',

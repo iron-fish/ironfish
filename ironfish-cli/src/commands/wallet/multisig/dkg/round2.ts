@@ -5,6 +5,7 @@ import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
 import { longPrompt } from '../../../../utils/longPrompt'
+import { MultisigDkgJson } from '../../../../utils/multisig'
 
 export class DkgRound2Command extends IronfishCommand {
   static description = 'Perform round2 of the DKG protocol for multisig account creation'
@@ -17,24 +18,30 @@ export class DkgRound2Command extends IronfishCommand {
       description: 'The name of the secret to use for encryption during DKG',
       required: true,
     }),
-    encryptedSecretPackage: Flags.string({
+    round1SecretPackage: Flags.string({
       char: 'e',
       description: 'The ecrypted secret package created during DKG round1',
     }),
-    publicPackage: Flags.string({
+    round1PublicPackage: Flags.string({
       char: 'p',
       description:
         'The public package that a participant generated during DKG round1 (may be specified multiple times for multiple participants). Must include your own round1 public package',
       multiple: true,
+    }),
+    path: Flags.string({
+      description: 'Path to a JSON file containing DKG data',
     }),
   }
 
   async start(): Promise<void> {
     const { flags } = await this.parse(DkgRound2Command)
 
-    let encryptedSecretPackage = flags.encryptedSecretPackage
-    if (!encryptedSecretPackage) {
-      encryptedSecretPackage = await CliUx.ux.prompt(
+    const loaded = await MultisigDkgJson.load(this.sdk.fileSystem, flags.path)
+    const options = MultisigDkgJson.resolveFlags(flags, loaded)
+
+    let round1SecretPackage = options.round1SecretPackage
+    if (!round1SecretPackage) {
+      round1SecretPackage = await CliUx.ux.prompt(
         `Enter the encrypted secret package for secret ${flags.secretName}`,
         {
           required: true,
@@ -42,30 +49,30 @@ export class DkgRound2Command extends IronfishCommand {
       )
     }
 
-    let publicPackages = flags.publicPackage
-    if (!publicPackages || publicPackages.length < 2) {
+    let round1PublicPackages = options.round1PublicPackage
+    if (!round1PublicPackages || round1PublicPackages.length < 2) {
       const input = await longPrompt(
         'Enter public packages separated by commas, one for each participant',
         {
           required: true,
         },
       )
-      publicPackages = input.split(',')
+      round1PublicPackages = input.split(',')
 
-      if (publicPackages.length < 2) {
+      if (round1PublicPackages.length < 2) {
         this.error(
           'Must include a public package for each participant; at least 2 participants required',
         )
       }
     }
-    publicPackages = publicPackages.map((i) => i.trim())
+    round1PublicPackages = round1PublicPackages.map((i) => i.trim())
 
     const client = await this.sdk.connectRpc()
 
     const response = await client.wallet.multisig.dkg.round2({
       secretName: flags.secretName,
-      encryptedSecretPackage,
-      publicPackages,
+      encryptedSecretPackage: round1SecretPackage,
+      publicPackages: round1PublicPackages,
     })
 
     this.log('\nEncrypted Secret Package:\n')

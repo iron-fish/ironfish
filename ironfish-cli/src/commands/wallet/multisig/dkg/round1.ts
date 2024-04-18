@@ -5,6 +5,7 @@ import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
 import { longPrompt } from '../../../../utils/longPrompt'
+import { MultisigDkgJson } from '../../../../utils/multisig'
 
 export class DkgRound1Command extends IronfishCommand {
   static description = 'Perform round1 of the DKG protocol for multisig account creation'
@@ -26,19 +27,25 @@ export class DkgRound1Command extends IronfishCommand {
       char: 'm',
       description: 'Minimum number of signers to meet signing threshold',
     }),
+    path: Flags.string({
+      description: 'Path to a JSON file containing DKG data',
+    }),
   }
 
   async start(): Promise<void> {
     const { flags } = await this.parse(DkgRound1Command)
 
-    let secretName = flags.secretName
+    const loaded = await MultisigDkgJson.load(this.sdk.fileSystem, flags.path)
+    const options = MultisigDkgJson.resolveFlags(flags, loaded)
+
+    let secretName = options.secretName
     if (!secretName) {
       secretName = await CliUx.ux.prompt('Enter the name of the secret to use', {
         required: true,
       })
     }
 
-    let identities = flags.identity
+    let identities = options.identity
     if (!identities || identities.length < 2) {
       const input = await longPrompt('Enter the identities separated by commas', {
         required: true,
@@ -51,7 +58,7 @@ export class DkgRound1Command extends IronfishCommand {
     }
     identities = identities.map((i) => i.trim())
 
-    let minSigners = flags.minSigners
+    let minSigners = options.minSigners
     if (!minSigners) {
       const input = await CliUx.ux.prompt('Enter the number of minimum signers', {
         required: true,
