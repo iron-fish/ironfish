@@ -13,6 +13,7 @@ import {
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { IronFlag, RemoteFlags, ValueFlag } from '../../flags'
+import { confirmOperation } from '../../utils'
 import { selectAsset } from '../../utils/asset'
 import { promptCurrency } from '../../utils/currency'
 import { getExplorer } from '../../utils/explorer'
@@ -207,9 +208,7 @@ export class Burn extends IronfishCommand {
       this.exit(0)
     }
 
-    if (!flags.confirm && !(await this.confirm(assetData, amount, raw.fee, account))) {
-      this.error('Transaction aborted.')
-    }
+    await this.confirm(assetData, amount, raw.fee, account, flags.confirm)
 
     CliUx.ux.action.start('Sending the transaction')
 
@@ -273,13 +272,15 @@ export class Burn extends IronfishCommand {
     amount: bigint,
     fee: bigint,
     account: string,
-  ): Promise<boolean> {
+    confirm?: boolean,
+  ): Promise<void> {
     const renderedAmount = CurrencyUtils.render(amount, true, asset.id, asset.verification)
     const renderedFee = CurrencyUtils.render(fee, true)
-    this.log(
-      `You are about to burn: ${renderedAmount} plus a transaction fee of ${renderedFee} with the account ${account}`,
-    )
 
-    return CliUx.ux.confirm('Do you confirm (Y/N)?')
+    await confirmOperation({
+      confirm,
+      confirmMessage: `You are about to burn: ${renderedAmount} plus a transaction fee of ${renderedFee} with the account ${account}\nDo you confirm(Y/N)?`,
+      cancelledMessage: 'Burn aborted.',
+    })
   }
 }

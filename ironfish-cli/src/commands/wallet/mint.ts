@@ -17,6 +17,7 @@ import {
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { IronFlag, RemoteFlags, ValueFlag } from '../../flags'
+import { confirmOperation } from '../../utils'
 import { selectAsset } from '../../utils/asset'
 import { promptCurrency } from '../../utils/currency'
 import { getExplorer } from '../../utils/explorer'
@@ -277,21 +278,17 @@ export class Mint extends IronfishCommand {
       this.exit(0)
     }
 
-    if (
-      !flags.confirm &&
-      !(await this.confirm(
-        account,
-        amount,
-        raw.fee,
-        assetId,
-        name,
-        metadata,
-        flags.transferOwnershipTo,
-        assetData,
-      ))
-    ) {
-      this.error('Transaction aborted.')
-    }
+    await this.confirm(
+      account,
+      amount,
+      raw.fee,
+      assetId,
+      name,
+      metadata,
+      flags.transferOwnershipTo,
+      flags.confirm,
+      assetData,
+    )
 
     CliUx.ux.action.start('Sending the transaction')
 
@@ -359,8 +356,9 @@ export class Mint extends IronfishCommand {
     name?: string,
     metadata?: string,
     transferOwnershipTo?: string,
+    confirm?: boolean,
     assetData?: RpcAsset,
-  ): Promise<boolean> {
+  ): Promise<void> {
     const nameString = name ? `\nName: ${name}` : ''
     const metadataString = metadata ? `\nMetadata: ${metadata}` : ''
 
@@ -372,18 +370,24 @@ export class Mint extends IronfishCommand {
     )
     const renderedFee = CurrencyUtils.render(fee, true)
 
-    this.log(
+    const confirmMessage = [
       `You are about to mint an asset with the account ${account}:${nameString}${metadataString}`,
-    )
-    this.log(`Amount: ${renderedAmount}`)
-    this.log(`Fee: ${renderedFee}`)
+      `Amount: ${renderedAmount}`,
+      `Fee: ${renderedFee}`,
+    ]
 
     if (transferOwnershipTo) {
-      this.log(
+      confirmMessage.push(
         `Ownership of this asset will be transferred to ${transferOwnershipTo}. The current account will no longer have any permission to mint or modify this asset. This cannot be undone.`,
       )
     }
 
-    return CliUx.ux.confirm('Do you confirm (Y/N)?')
+    confirmMessage.push('Do you confirm (Y/N)?')
+
+    await confirmOperation({
+      confirmMessage: confirmMessage.join('\n'),
+      cancelledMessage: 'Mint aborted.',
+      confirm,
+    })
   }
 }
