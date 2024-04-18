@@ -6,9 +6,11 @@ import { Asset } from '@ironfish/rust-nodejs'
 import {
   BufferUtils,
   CurrencyUtils,
+  RPC_ERROR_CODES,
   RpcAsset,
   RpcAssetVerification,
   RpcClient,
+  RpcRequestError,
   StringUtils,
 } from '@ironfish/sdk'
 import chalk from 'chalk'
@@ -155,6 +157,33 @@ export async function selectAsset(
   ])
 
   return response.asset
+}
+
+export async function getAssetVerificationByIds(
+  client: Pick<RpcClient, 'wallet'>,
+  assetIds: string[],
+  account: string | undefined,
+  confirmations: number | undefined,
+): Promise<{ [key: string]: RpcAssetVerification }> {
+  assetIds = [...new Set(assetIds)]
+  const assets = await Promise.all(
+    assetIds.map((id) =>
+      client.wallet.getAsset({ id, account, confirmations }).catch((e) => {
+        if (e instanceof RpcRequestError && e.code === RPC_ERROR_CODES.NOT_FOUND.valueOf()) {
+          return undefined
+        } else {
+          throw e
+        }
+      }),
+    ),
+  )
+  const assetLookup: { [key: string]: RpcAssetVerification } = {}
+  assets.forEach((asset) => {
+    if (asset) {
+      assetLookup[asset.content.id] = asset.content.verification
+    }
+  })
+  return assetLookup
 }
 
 export async function getAssetsByIDs(
