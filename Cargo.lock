@@ -123,26 +123,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf9ff0bbfd639f15c74af777d81383cf53efb7c93613f6cab67c6c11e05bbf8b"
 
 [[package]]
-name = "bellman"
-version = "0.13.1"
-source = "git+https://github.com/iron-fish/bellman?rev=1cc52ca33e6db14233f1cbc0c9c5b7c822b229ec#1cc52ca33e6db14233f1cbc0c9c5b7c822b229ec"
-dependencies = [
- "bitvec",
- "blake2s_simd",
- "byteorder",
- "crossbeam-channel",
- "ff 0.12.1",
- "group 0.12.1",
- "lazy_static",
- "log",
- "num_cpus",
- "pairing 0.22.0",
- "rand_core",
- "rayon",
- "subtle",
-]
-
-[[package]]
 name = "bellperson"
 version = "0.24.1"
 source = "git+https://github.com/iron-fish/bellperson.git?branch=blstrs#37b9976bcd96986cbdc71ae09fc455015e3dfac0"
@@ -159,7 +139,7 @@ dependencies = [
  "group 0.12.1",
  "log",
  "memmap2",
- "pairing 0.22.0",
+ "pairing",
  "rand",
  "rand_core",
  "rayon",
@@ -222,15 +202,6 @@ dependencies = [
  "radium",
  "tap",
  "wyz",
-]
-
-[[package]]
-name = "blake2"
-version = "0.10.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "46502ad458c9a52b69d4d4d32775c788b7a1b85e8bc9d482d92250fc0e3f8efe"
-dependencies = [
- "digest 0.10.6",
 ]
 
 [[package]]
@@ -309,8 +280,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a3c196a77437e7cc2fb515ce413a6401291578b5afc8ecb29a3c7ab957f05941"
 dependencies = [
  "ff 0.12.1",
- "group 0.12.1",
- "pairing 0.22.0",
  "rand_core",
  "subtle",
 ]
@@ -349,7 +318,7 @@ dependencies = [
  "byte-slice-cast",
  "ff 0.12.1",
  "group 0.12.1",
- "pairing 0.22.0",
+ "pairing",
  "rand_core",
  "serde",
  "subtle",
@@ -1344,28 +1313,9 @@ checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
 name = "hex-literal"
-version = "0.1.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ddc2928beef125e519d69ae1baa8c37ea2e0d3848545217f6db0179c5eb1d639"
-dependencies = [
- "hex-literal-impl",
- "proc-macro-hack",
-]
-
-[[package]]
-name = "hex-literal"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6fe2267d4ed49bc07b63801559be28c718ea06c4738b7a03c94df7386d2cde46"
-
-[[package]]
-name = "hex-literal-impl"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "520870c3213943eb8d7803e80180d12a6c7ceb4ae74602544529d1643dc4ddda"
-dependencies = [
- "proc-macro-hack",
-]
 
 [[package]]
 name = "hmac"
@@ -1527,7 +1477,7 @@ dependencies = [
  "fish_hash",
  "group 0.12.1",
  "hex",
- "hex-literal 0.4.1",
+ "hex-literal",
  "ironfish-frost",
  "ironfish_zkp",
  "jubjub 0.9.0 (git+https://github.com/iron-fish/jubjub.git?branch=blstrs)",
@@ -1557,22 +1507,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ironfish-phase2"
-version = "0.2.2"
-dependencies = [
- "bellman",
- "blake2",
- "bls12_381 0.7.1",
- "byteorder",
- "ff 0.12.1",
- "group 0.12.1",
- "pairing 0.22.0",
- "rand",
- "rand_chacha",
- "rayon",
-]
-
-[[package]]
 name = "ironfish-rust-nodejs"
 version = "0.1.0"
 dependencies = [
@@ -1585,21 +1519,6 @@ dependencies = [
  "napi-build",
  "napi-derive",
  "rand",
-]
-
-[[package]]
-name = "ironfish_mpc"
-version = "0.2.0"
-dependencies = [
- "blake2",
- "byteorder",
- "hex-literal 0.1.4",
- "ironfish-phase2",
- "ironfish_zkp",
- "pairing 0.23.0",
- "rand",
- "rand_chacha",
- "rand_seeder",
 ]
 
 [[package]]
@@ -2031,15 +1950,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pairing"
-version = "0.23.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "81fec4625e73cf41ef4bb6846cafa6d44736525f442ba45e407c4a000a13996f"
-dependencies = [
- "group 0.13.0",
-]
-
-[[package]]
 name = "password-hash"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2205,21 +2115,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5b40af805b3121feab8a3c29f04d8ad262fa8e0561883e7653e024ae4479e6de"
 
 [[package]]
-name = "proc-macro-hack"
-version = "0.4.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d7f95648580798cc44ff8efb9bb0d7ee5205ea32e087b31b0732f3e8c2648ee2"
-dependencies = [
- "proc-macro-hack-impl",
-]
-
-[[package]]
-name = "proc-macro-hack-impl"
-version = "0.4.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7be55bf0ae1635f4d7c7ddd6efc05c631e98a82104a73d35550bbc52db960027"
-
-[[package]]
 name = "proc-macro2"
 version = "1.0.60"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2271,15 +2166,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec0be4795e2f6a28069bec0b5ff3e2ac9bafc99e6a9a7dc3547996c5c816922c"
 dependencies = [
  "getrandom",
-]
-
-[[package]]
-name = "rand_seeder"
-version = "0.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf2890aaef0aa82719a50e808de264f9484b74b442e1a3a0e5ee38243ac40bdb"
-dependencies = [
- "rand_core",
 ]
 
 [[package]]
@@ -3453,3 +3339,8 @@ dependencies = [
  "syn 1.0.107",
  "synstructure",
 ]
+
+[[patch.unused]]
+name = "bellman"
+version = "0.13.1"
+source = "git+https://github.com/iron-fish/bellman?rev=1cc52ca33e6db14233f1cbc0c9c5b7c822b229ec#1cc52ca33e6db14233f1cbc0c9c5b7c822b229ec"
