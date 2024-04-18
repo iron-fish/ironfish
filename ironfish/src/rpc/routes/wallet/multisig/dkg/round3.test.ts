@@ -48,11 +48,18 @@ describe('Route multisig/dkg/round3', () => {
       ),
     )
 
+    // Only override 2/3 names
+    const secretNamesToName = {
+      [secretNames[0]]: 'foo',
+      [secretNames[2]]: 'bar',
+    }
+
     // Perform DKG round 3
     const round3Responses = await Promise.all(
       secretNames.map((secretName, index) =>
         routeTest.client.wallet.multisig.dkg.round3({
           secretName,
+          name: secretNamesToName[secretName],
           round2SecretPackage: round2Packages[index].content.encryptedSecretPackage,
           round1PublicPackages: round1Packages.map((pkg) => pkg.content.publicPackage),
           round2PublicPackages: round2Packages.flatMap((pkg) =>
@@ -71,7 +78,9 @@ describe('Route multisig/dkg/round3', () => {
       secretNames.map(
         async (account) =>
           (
-            await routeTest.client.wallet.getAccountPublicKey({ account })
+            await routeTest.client.wallet.getAccountPublicKey({
+              account: secretNamesToName[account] ?? account,
+            })
           ).content.publicKey,
       ),
     )
@@ -83,6 +92,9 @@ describe('Route multisig/dkg/round3', () => {
     // Check all the responses match
     expect(round3Responses).toHaveLength(publicKeys.length)
     for (let i = 0; i < round3Responses.length; i++) {
+      expect(round3Responses[i].content.name).toEqual(
+        secretNamesToName[secretNames[i]] ?? secretNames[i],
+      )
       expect(round3Responses[i].content.publicAddress).toEqual(publicKeys[i])
     }
   })
