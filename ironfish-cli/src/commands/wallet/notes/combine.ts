@@ -16,6 +16,7 @@ import { CliUx, Flags } from '@oclif/core'
 import inquirer from 'inquirer'
 import { IronfishCommand } from '../../../command'
 import { IronFlag, RemoteFlags } from '../../../flags'
+import { confirmOperation } from '../../../utils'
 import { getExplorer } from '../../../utils/explorer'
 import { selectFee } from '../../../utils/fees'
 import { fetchNotes } from '../../../utils/note'
@@ -326,12 +327,9 @@ export class CombineNotesCommand extends IronfishCommand {
       })}`,
     )
 
-    if (!flags.confirm) {
-      const confirmed = await CliUx.ux.confirm('Do you confirm (Y/N)?')
-      if (!confirmed) {
-        this.error('Transaction aborted.')
-      }
-    }
+    await confirmOperation({
+      confirm: flags.confirm,
+    })
 
     transactionTimer.start()
 
