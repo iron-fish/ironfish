@@ -504,16 +504,17 @@ export class Wallet {
     )
 
     // account id -> transaction hash -> DecryptedNote[]
-    const m: Map<string, Map<string, DecryptedNote[]>> = new Map()
+    const decryptedNotesMap: Map<string, Map<string, DecryptedNote[]>> = new Map()
     for (const { transaction, result } of decryptedTransactions) {
       for (const [accountId, decryptedNotes] of result) {
         if (!decryptedNotes.length) {
           continue
         }
 
-        const accountTxnsMap = m.get(accountId) ?? new Map<string, DecryptedNote[]>()
+        const accountTxnsMap =
+          decryptedNotesMap.get(accountId) ?? new Map<string, DecryptedNote[]>()
         accountTxnsMap.set(transaction.hash().toString('base64'), decryptedNotes)
-        m.set(accountId, accountTxnsMap)
+        decryptedNotesMap.set(accountId, accountTxnsMap)
       }
     }
 
@@ -526,7 +527,7 @@ export class Wallet {
 
       await this.walletDb.db.transaction(async (tx) => {
         let assetBalanceDeltas = new AssetBalances()
-        const accountTxnsMap = m.get(account.id)
+        const accountTxnsMap = decryptedNotesMap.get(account.id)
         const txns = transactions.map((t): [Transaction, DecryptedNote[]] => [
           t.transaction,
           accountTxnsMap?.get(t.transaction.hash().toString('base64')) ?? [],
