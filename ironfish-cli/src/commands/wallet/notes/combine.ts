@@ -76,6 +76,11 @@ export class CombineNotesCommand extends IronfishCommand {
       default: false,
       description: 'Force run the benchmark to measure the time to combine 1 note',
     }),
+    rawTransaction: Flags.boolean({
+      default: false,
+      description:
+        'Return raw transaction. Use it to create a transaction but not post to the network',
+    }),
   }
 
   private async selectNotesToCombine(spendPostTimeMs: number): Promise<number> {
@@ -318,6 +323,13 @@ export class CombineNotesCommand extends IronfishCommand {
     ).content
 
     displayTransactionSummary(raw, assetData, amount, from, to, memo)
+
+    if (flags.rawTransaction) {
+      this.log('Raw Transaction')
+      this.log(RawTransactionSerde.serialize(raw).toString('hex'))
+      this.log(`Run "ironfish wallet:post" to post the raw transaction. `)
+      this.exit(0)
+    }
 
     const transactionTimer = new TransactionTimer(spendPostTime, raw)
 
