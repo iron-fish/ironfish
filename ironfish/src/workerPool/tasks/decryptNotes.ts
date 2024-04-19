@@ -11,7 +11,6 @@ import { WorkerTask } from './workerTask'
 
 export interface DecryptNoteOptions {
   serializedNote: Buffer
-  accountId: string
   incomingViewKey: string
   outgoingViewKey: string
   viewKey: string
@@ -20,7 +19,6 @@ export interface DecryptNoteOptions {
 }
 
 export interface DecryptedNote {
-  accountId: string
   index: number | null
   forSpender: boolean
   hash: Buffer
@@ -44,7 +42,6 @@ export class DecryptNotesRequest extends WorkerMessage {
       bw.writeU8(flags)
 
       bw.writeBytes(payload.serializedNote)
-      bw.writeVarString(payload.accountId, 'utf8')
       bw.writeBytes(Buffer.from(payload.incomingViewKey, 'hex'))
       bw.writeBytes(Buffer.from(payload.outgoingViewKey, 'hex'))
       bw.writeBytes(Buffer.from(payload.viewKey, 'hex'))
@@ -64,7 +61,6 @@ export class DecryptNotesRequest extends WorkerMessage {
       const hasCurrentNoteIndex = flags & (1 << 0)
       const decryptForSpender = Boolean(flags & (1 << 1))
       const serializedNote = reader.readBytes(ENCRYPTED_NOTE_LENGTH)
-      const accountId = reader.readVarString('utf8')
       const incomingViewKey = reader.readBytes(ACCOUNT_KEY_LENGTH).toString('hex')
       const outgoingViewKey = reader.readBytes(ACCOUNT_KEY_LENGTH).toString('hex')
       const viewKey = reader.readBytes(VIEW_KEY_LENGTH).toString('hex')
@@ -72,7 +68,6 @@ export class DecryptNotesRequest extends WorkerMessage {
 
       payloads.push({
         serializedNote,
-        accountId,
         incomingViewKey,
         outgoingViewKey,
         currentNoteIndex,
@@ -89,7 +84,6 @@ export class DecryptNotesRequest extends WorkerMessage {
     for (const payload of this.payloads) {
       size += 1
       size += ENCRYPTED_NOTE_LENGTH
-      size += bufio.sizeVarString(payload.accountId, 'utf8')
       size += ACCOUNT_KEY_LENGTH
       size += ACCOUNT_KEY_LENGTH
       size += VIEW_KEY_LENGTH
@@ -121,7 +115,6 @@ export class DecryptNotesResponse extends WorkerMessage {
         flags |= Number(note.forSpender) << 2
         bw.writeU8(flags)
         bw.writeHash(note.hash)
-        bw.writeVarString(note.accountId, 'utf8')
         bw.writeBytes(note.serializedNote)
 
         if (note.index) {
@@ -151,7 +144,6 @@ export class DecryptNotesResponse extends WorkerMessage {
       const hasNullifier = flags & (1 << 1)
       const forSpender = Boolean(flags & (1 << 2))
       const hash = reader.readHash()
-      const accountId = reader.readVarString('utf8')
       const serializedNote = reader.readBytes(DECRYPTED_NOTE_LENGTH)
 
       let index = null
@@ -165,7 +157,6 @@ export class DecryptNotesResponse extends WorkerMessage {
       }
 
       notes.push({
-        accountId,
         forSpender,
         index,
         hash,
@@ -185,7 +176,6 @@ export class DecryptNotesResponse extends WorkerMessage {
 
       if (note) {
         size += 1 + 32 + DECRYPTED_NOTE_LENGTH
-        size += bufio.sizeVarString(note.accountId, 'utf8')
 
         if (note.index) {
           size += 4
@@ -215,7 +205,6 @@ export class DecryptNotesTask extends WorkerTask {
     const decryptedNotes = []
 
     for (const {
-      accountId,
       serializedNote,
       incomingViewKey,
       outgoingViewKey,
@@ -229,7 +218,6 @@ export class DecryptNotesTask extends WorkerTask {
       const receivedNote = note.decryptNoteForOwner(incomingViewKey)
       if (receivedNote && receivedNote.value() !== 0n) {
         decryptedNotes.push({
-          accountId,
           index: currentNoteIndex,
           forSpender: false,
           hash: note.hash(),
@@ -247,7 +235,6 @@ export class DecryptNotesTask extends WorkerTask {
         const spentNote = note.decryptNoteForSpender(outgoingViewKey)
         if (spentNote && spentNote.value() !== 0n) {
           decryptedNotes.push({
-            accountId,
             index: currentNoteIndex,
             forSpender: true,
             hash: note.hash(),

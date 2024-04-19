@@ -412,7 +412,9 @@ export class Wallet {
       ))
 
     const batchSize = 20
-    const notePromises: Array<Promise<Array<DecryptedNote>>> = []
+    const notePromises: Array<
+      Promise<Array<{ accountId: string; decryptedNote: DecryptedNote }>>
+    > = []
     let decryptNotesPayloads = []
     for (const account of accountsToCheck) {
       let currentNoteIndex = initialNoteIndex
@@ -420,12 +422,14 @@ export class Wallet {
       for (const note of transaction.notes) {
         decryptNotesPayloads.push({
           accountId: account.id,
-          serializedNote: note.serialize(),
-          incomingViewKey: account.incomingViewKey,
-          outgoingViewKey: account.outgoingViewKey,
-          viewKey: account.viewKey,
-          currentNoteIndex,
-          decryptForSpender,
+          options: {
+            serializedNote: note.serialize(),
+            incomingViewKey: account.incomingViewKey,
+            outgoingViewKey: account.outgoingViewKey,
+            viewKey: account.viewKey,
+            currentNoteIndex,
+            decryptForSpender,
+          },
         })
 
         if (currentNoteIndex) {
@@ -445,23 +449,33 @@ export class Wallet {
 
     const decryptedNotesByAccountId = new Map<string, Array<DecryptedNote>>()
     const flatPromises = (await Promise.all(notePromises)).flat()
-    for (const decryptedNote of flatPromises) {
-      const accountNotes = decryptedNotesByAccountId.get(decryptedNote.accountId) ?? []
-      accountNotes.push(decryptedNote)
-      decryptedNotesByAccountId.set(decryptedNote.accountId, accountNotes)
+    for (const decryptedNoteResponse of flatPromises) {
+      const accountNotes = decryptedNotesByAccountId.get(decryptedNoteResponse.accountId) ?? []
+      accountNotes.push(decryptedNoteResponse.decryptedNote)
+      decryptedNotesByAccountId.set(decryptedNoteResponse.accountId, accountNotes)
     }
 
     return decryptedNotesByAccountId
   }
 
   async decryptNotesFromTransaction(
-    decryptNotesPayloads: Array<DecryptNoteOptions>,
-  ): Promise<Array<DecryptedNote>> {
-    const decryptedNotes = []
-    const response = await this.workerPool.decryptNotes(decryptNotesPayloads)
-    for (const decryptedNote of response) {
+    decryptNotesPayloads: Array<{ accountId: string; options: DecryptNoteOptions }>,
+  ): Promise<Array<{ accountId: string; decryptedNote: DecryptedNote }>> {
+    const decryptedNotes: Array<{ accountId: string; decryptedNote: DecryptedNote }> = []
+    const response = await this.workerPool.decryptNotes(
+      decryptNotesPayloads.map((p) => p.options),
+    )
+
+    // Job should return same number of nullable notes as requests
+    Assert.isEqual(response.length, decryptNotesPayloads.length)
+
+    for (let i = 0; i < response.length; i++) {
+      const decryptedNote = response[i]
       if (decryptedNote) {
-        decryptedNotes.push(decryptedNote)
+        decryptedNotes.push({
+          accountId: decryptNotesPayloads[i].accountId,
+          decryptedNote,
+        })
       }
     }
 
@@ -503,10 +517,6 @@ export class Wallet {
     const decryptedNotesMap: Map<string, BufferMap<Array<DecryptedNote>>> = new Map()
     for (const { transaction, result } of decryptedTransactions) {
       for (const [accountId, decryptedNotes] of result) {
-        if (!decryptedNotes.length) {
-          continue
-        }
-
         const accountTxnsMap =
           decryptedNotesMap.get(accountId) ?? new BufferMap<Array<DecryptedNote>>()
         accountTxnsMap.set(transaction.hash(), decryptedNotes)

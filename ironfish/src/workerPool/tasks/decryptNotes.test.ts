@@ -19,7 +19,6 @@ describe('DecryptNotesRequest', () => {
     const request = new DecryptNotesRequest(
       [
         {
-          accountId: 'accountId',
           serializedNote: Buffer.alloc(ENCRYPTED_NOTE_LENGTH, 1),
           incomingViewKey: Buffer.alloc(ACCOUNT_KEY_LENGTH, 1).toString('hex'),
           outgoingViewKey: Buffer.alloc(ACCOUNT_KEY_LENGTH, 1).toString('hex'),
@@ -40,7 +39,6 @@ describe('DecryptNotesRequest', () => {
 
     const request = new DecryptNotesRequest(
       Array.from({ length }, () => ({
-        accountId: 'accountId',
         serializedNote: Buffer.alloc(ENCRYPTED_NOTE_LENGTH, 1),
         incomingViewKey: Buffer.alloc(ACCOUNT_KEY_LENGTH, 1).toString('hex'),
         outgoingViewKey: Buffer.alloc(ACCOUNT_KEY_LENGTH, 1).toString('hex'),
@@ -61,7 +59,6 @@ describe('DecryptNotesResponse', () => {
     const response = new DecryptNotesResponse(
       [
         {
-          accountId: 'accountId',
           forSpender: false,
           index: 1,
           hash: Buffer.alloc(32, 1),
@@ -82,7 +79,6 @@ describe('DecryptNotesResponse', () => {
 
     const request = new DecryptNotesResponse(
       Array.from({ length }, () => ({
-        accountId: 'accountId',
         forSpender: false,
         index: 1,
         hash: Buffer.alloc(32, 1),
@@ -109,7 +105,6 @@ describe('DecryptNotesTask', () => {
       const index = 2
       const request = new DecryptNotesRequest([
         {
-          accountId: account.id,
           serializedNote: transaction.getNote(0).serialize(),
           incomingViewKey: account.incomingViewKey,
           outgoingViewKey: account.outgoingViewKey,
@@ -147,7 +142,6 @@ describe('DecryptNotesTask', () => {
       const index = 3
       const requestSpender = new DecryptNotesRequest([
         {
-          accountId: accountA.id,
           serializedNote: transaction.getNote(0).serialize(),
           incomingViewKey: accountA.incomingViewKey,
           outgoingViewKey: accountA.outgoingViewKey,
@@ -172,7 +166,6 @@ describe('DecryptNotesTask', () => {
 
       const requestNoSpender = new DecryptNotesRequest([
         {
-          accountId: accountA.id,
           serializedNote: transaction.getNote(0).serialize(),
           incomingViewKey: accountA.incomingViewKey,
           outgoingViewKey: accountA.outgoingViewKey,
