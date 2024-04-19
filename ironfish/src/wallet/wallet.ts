@@ -483,18 +483,9 @@ export class Wallet {
       }
     })
 
-    const shouldDecryptAccounts = (
-      await Promise.all(
-        accounts.map((a) =>
-          this.shouldDecryptForAccount(blockHeader, a).then(
-            (shouldDecrypt): [Account, boolean] => [a, shouldDecrypt],
-          ),
-        ),
-      )
+    const shouldDecryptAccounts = await AsyncUtils.filter(accounts, (a) =>
+      this.shouldDecryptForAccount(blockHeader, a),
     )
-      .filter((v) => v[1])
-      .map((v) => v[0])
-
     const shouldDecryptAccountIds = new Set(shouldDecryptAccounts.map((a) => a.id))
 
     const decryptedTransactions = await Promise.all(
