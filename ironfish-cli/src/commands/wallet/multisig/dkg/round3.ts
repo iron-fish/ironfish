@@ -5,6 +5,7 @@ import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
 import { longPrompt } from '../../../../utils/longPrompt'
+import { selectSecret } from '../../../../utils/multisig'
 
 export class DkgRound3Command extends IronfishCommand {
   static description = 'Perform round3 of the DKG protocol for multisig account creation'
@@ -15,7 +16,6 @@ export class DkgRound3Command extends IronfishCommand {
     secretName: Flags.string({
       char: 's',
       description: 'The name of the secret to use for decryption during DKG',
-      required: true,
     }),
     accountName: Flags.string({
       char: 'n',
@@ -42,10 +42,17 @@ export class DkgRound3Command extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(DkgRound3Command)
 
+    const client = await this.sdk.connectRpc()
+
+    let secretName = flags.secretName
+    if (!secretName) {
+      secretName = await selectSecret(client)
+    }
+
     let round2SecretPackage = flags.round2SecretPackage
     if (!round2SecretPackage) {
       round2SecretPackage = await CliUx.ux.prompt(
-        `Enter the encrypted secret package for secret ${flags.secretName}`,
+        `Enter the encrypted secret package for secret ${secretName}`,
         {
           required: true,
         },
@@ -88,10 +95,8 @@ export class DkgRound3Command extends IronfishCommand {
     }
     round2PublicPackages = round2PublicPackages.map((i) => i.trim())
 
-    const client = await this.sdk.connectRpc()
-
     const response = await client.wallet.multisig.dkg.round3({
-      secretName: flags.secretName,
+      secretName: secretName,
       accountName: flags.accountName,
       round2SecretPackage,
       round1PublicPackages,

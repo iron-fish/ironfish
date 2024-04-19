@@ -1,7 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { FileSystem, YupUtils } from '@ironfish/sdk'
+import { FileSystem, RpcClient, YupUtils } from '@ironfish/sdk'
+import { CliUx } from '@oclif/core'
+import inquirer from 'inquirer'
 import * as yup from 'yup'
 
 export type MultisigTransactionOptions = {
@@ -67,4 +69,51 @@ function resolveFlags(
 export const MultisigTransactionJson = {
   load,
   resolveFlags,
+}
+
+export async function selectSecret(
+  client: Pick<RpcClient, 'wallet'>,
+  options?: { allowCreateNew?: boolean },
+): Promise<string> {
+  const identitiesResponse = await client.wallet.multisig.getIdentities()
+
+  const choices = []
+  for (const { name } of identitiesResponse.content.identities) {
+    choices.push({
+      name,
+      value: name,
+    })
+  }
+
+  choices.sort((a, b) => a.name.localeCompare(b.name))
+
+  const createNewLabel = '[create new secret]'
+  if (options?.allowCreateNew) {
+    choices.push({
+      name: createNewLabel,
+      value: createNewLabel,
+    })
+  }
+
+  const selection = await inquirer.prompt<{
+    name: string
+  }>([
+    {
+      name: 'name',
+      message: 'Select participant secret name',
+      type: 'list',
+      choices,
+    },
+  ])
+
+  if (selection.name === createNewLabel) {
+    const name = await CliUx.ux.prompt('Enter a name for the new participant secret', {
+      required: true,
+    })
+
+    await client.wallet.multisig.createParticipant({ name })
+    return name
+  } else {
+    return selection.name
+  }
 }
