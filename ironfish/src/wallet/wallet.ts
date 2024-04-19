@@ -509,7 +509,7 @@ export class Wallet {
     )
 
     // account id -> transaction hash -> Array<DecryptedNote>
-    const decryptedNotesMap: Map<string, Map<string, Array<DecryptedNote>>> = new Map()
+    const decryptedNotesMap: Map<string, BufferMap<Array<DecryptedNote>>> = new Map()
     for (const { transaction, result } of decryptedTransactions) {
       for (const [accountId, decryptedNotes] of result) {
         if (!decryptedNotes.length) {
@@ -517,8 +517,8 @@ export class Wallet {
         }
 
         const accountTxnsMap =
-          decryptedNotesMap.get(accountId) ?? new Map<string, Array<DecryptedNote>>()
-        accountTxnsMap.set(transaction.hash().toString('base64'), decryptedNotes)
+          decryptedNotesMap.get(accountId) ?? new BufferMap<Array<DecryptedNote>>()
+        accountTxnsMap.set(transaction.hash(), decryptedNotes)
         decryptedNotesMap.set(accountId, accountTxnsMap)
       }
     }
@@ -535,7 +535,7 @@ export class Wallet {
         const accountTxnsMap = decryptedNotesMap.get(account.id)
         const txns = transactions.map((t) => ({
           transaction: t.transaction,
-          decryptedNotes: accountTxnsMap?.get(t.transaction.hash().toString('base64')) ?? [],
+          decryptedNotes: accountTxnsMap?.get(t.transaction.hash()) ?? [],
         }))
 
         if (shouldDecryptAccountIds.has(account.id)) {
