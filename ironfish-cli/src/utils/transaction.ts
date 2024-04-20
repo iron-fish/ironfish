@@ -295,10 +295,10 @@ Expiration      ${
         asset.id().toString('hex'),
         assetLookup[asset.id().toString('hex')],
       )
-      logger.log(`Asset ID:      ${asset.id().toString('hex')}`)
-      logger.log(`Name:          ${mint.name}`)
-      logger.log(`Metadata:      ${mint.metadata}`)
-      logger.log(`Amount:        ${renderedAmount}`)
+      logger.log(`Amount         ${renderedAmount}`)
+      logger.log(`Asset ID       ${asset.id().toString('hex')}`)
+      logger.log(`Name           ${mint.name}`)
+      logger.log(`Metadata       ${mint.metadata}`)
 
       if (mint.transferOwnershipTo) {
         logger.log(
@@ -327,8 +327,8 @@ Expiration      ${
         burn.assetId.toString('hex'),
         assetLookup[burn.assetId.toString('hex')],
       )
-      logger.log(`Asset ID:      ${burn.assetId.toString('hex')}`)
-      logger.log(`Amount:        ${renderedAmount}`)
+      logger.log(`Amount         ${renderedAmount}`)
+      logger.log(`Asset ID       ${burn.assetId.toString('hex')}`)
       logger.log('')
     }
   }
@@ -349,8 +349,8 @@ Expiration      ${
         note.assetId().toString('hex'),
         assetLookup[note.assetId().toString('hex')],
       )
-      logger.log(`Asset:          ${symbol}`)
-      logger.log(`Note Hash:      ${note.hash().toString('hex')}`)
+      logger.log(`Asset           ${symbol}`)
+      logger.log(`Note Hash       ${note.hash().toString('hex')}`)
       logger.log('')
     }
   }
@@ -369,16 +369,21 @@ Expiration      ${
       }
       logger.log('')
 
-      const renderedAmount = CurrencyUtils.render(
-        note.value(),
-        true,
+      const { symbol } = assetMetadataWithDefaults(
         note.assetId().toString('hex'),
         assetLookup[note.assetId().toString('hex')],
       )
-      logger.log(`Amount:        ${renderedAmount}`)
-      logger.log(`Memo:          ${note.memo().toString('utf-8')}`)
-      logger.log(`Recipient:     ${note.owner()}`)
-      logger.log(`Sender:        ${note.sender()}`)
+      const renderedAmount = CurrencyUtils.render(
+        note.value(),
+        false,
+        note.assetId().toString('hex'),
+        assetLookup[note.assetId().toString('hex')],
+      )
+      logger.log(`Amount         ${renderedAmount}`)
+      logger.log(`Asset          ${symbol}`)
+      logger.log(`Memo           ${note.memo().toString('utf-8')}`)
+      logger.log(`Recipient      ${note.owner()}`)
+      logger.log(`Sender         ${note.sender()}`)
       logger.log('')
     }
   }
