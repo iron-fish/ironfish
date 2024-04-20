@@ -171,7 +171,7 @@ export const MAXIMUM_ORE_AMOUNT = 2n ** 64n
 export const MINIMUM_IRON_AMOUNT = CurrencyUtils.renderIron(MINIMUM_ORE_AMOUNT)
 export const MAXIMUM_IRON_AMOUNT = CurrencyUtils.renderIron(MAXIMUM_ORE_AMOUNT)
 
-function assetMetadataWithDefaults(
+export function assetMetadataWithDefaults(
   assetId?: string,
   verifiedAssetMetadata?: {
     decimals?: number
