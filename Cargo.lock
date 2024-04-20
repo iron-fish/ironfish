@@ -3339,8 +3339,3 @@ dependencies = [
  "syn 1.0.107",
  "synstructure",
 ]
-
-[[patch.unused]]
-name = "bellman"
-version = "0.13.1"
-source = "git+https://github.com/iron-fish/bellman?rev=1cc52ca33e6db14233f1cbc0c9c5b7c822b229ec#1cc52ca33e6db14233f1cbc0c9c5b7c822b229ec"
