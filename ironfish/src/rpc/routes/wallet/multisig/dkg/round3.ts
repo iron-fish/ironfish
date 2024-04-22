@@ -16,6 +16,7 @@ export type DkgRound3Request = {
   round1PublicPackages: Array<string>
   round2PublicPackages: Array<string>
   accountName?: string
+  rescan?: boolean
 }
 
 export type DkgRound3Response = {
@@ -30,6 +31,7 @@ export const DkgRound3RequestSchema: yup.ObjectSchema<DkgRound3Request> = yup
     round1PublicPackages: yup.array().of(yup.string().defined()).defined(),
     round2PublicPackages: yup.array().of(yup.string().defined()).defined(),
     accountName: yup.string().optional(),
+    rescan: yup.boolean().optional().default(false),
   })
   .defined()
 
@@ -94,7 +96,13 @@ routes.register<typeof DkgRound3RequestSchema, DkgRound3Response>(
 
     const account = await node.wallet.importAccount(accountImport)
 
-    // TODO: add an option to skip rescan
+    if (request.data.rescan) {
+      if (node.wallet.nodeClient) {
+        void node.wallet.scanTransactions(undefined, true)
+      }
+    } else {
+      await node.wallet.skipRescan(account)
+    }
 
     request.end({
       name: account.name,
