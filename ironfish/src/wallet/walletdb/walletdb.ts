@@ -1297,32 +1297,4 @@ export class WalletDB {
       yield value
     }
   }
-
-  async addParticipantIdentity(
-    account: Account,
-    identity: Buffer,
-    tx?: IDatabaseTransaction,
-  ): Promise<void> {
-    await this.participantIdentities.put([account.prefix, identity], { identity }, tx)
-  }
-
-  async deleteParticipantIdentity(
-    account: Account,
-    identity: Buffer,
-    tx?: IDatabaseTransaction,
-  ): Promise<void> {
-    await this.participantIdentities.del([account.prefix, identity], tx)
-  }
-
-  async *getParticipantIdentities(
-    account: Account,
-    tx?: IDatabaseTransaction,
-  ): AsyncGenerator<Buffer> {
-    for await (const [_, identity] of this.participantIdentities.getAllKeysIter(
-      tx,
-      account.prefixRange,
-    )) {
-      yield identity
-    }
-  }
 }
