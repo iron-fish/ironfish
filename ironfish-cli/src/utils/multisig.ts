@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { FileSystem, RpcClient, YupUtils } from '@ironfish/sdk'
-import { CliUx } from '@oclif/core'
 import inquirer from 'inquirer'
 import * as yup from 'yup'
 
@@ -71,10 +70,7 @@ export const MultisigTransactionJson = {
   resolveFlags,
 }
 
-export async function selectSecret(
-  client: Pick<RpcClient, 'wallet'>,
-  options?: { allowCreateNew?: boolean },
-): Promise<string> {
+export async function selectSecret(client: Pick<RpcClient, 'wallet'>): Promise<string> {
   const identitiesResponse = await client.wallet.multisig.getIdentities()
 
   const choices = []
@@ -87,14 +83,6 @@ export async function selectSecret(
 
   choices.sort((a, b) => a.name.localeCompare(b.name))
 
-  const createNewLabel = '[create new secret]'
-  if (options?.allowCreateNew) {
-    choices.push({
-      name: createNewLabel,
-      value: createNewLabel,
-    })
-  }
-
   const selection = await inquirer.prompt<{
     name: string
   }>([
@@ -106,14 +94,5 @@ export async function selectSecret(
     },
   ])
 
-  if (selection.name === createNewLabel) {
-    const name = await CliUx.ux.prompt('Enter a name for the new participant secret', {
-      required: true,
-    })
-
-    await client.wallet.multisig.createParticipant({ name })
-    return name
-  } else {
-    return selection.name
-  }
+  return selection.name
 }

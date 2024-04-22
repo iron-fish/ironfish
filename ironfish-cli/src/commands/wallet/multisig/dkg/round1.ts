@@ -36,7 +36,7 @@ export class DkgRound1Command extends IronfishCommand {
 
     let secretName = flags.secretName
     if (!secretName) {
-      secretName = await selectSecret(client, { allowCreateNew: true })
+      secretName = await selectSecret(client)
     }
 
     let identities = flags.identity
