@@ -5,6 +5,7 @@ import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
 import { longPrompt } from '../../../../utils/longPrompt'
+import { selectSecret } from '../../../../utils/multisig'
 
 export class DkgRound1Command extends IronfishCommand {
   static description = 'Perform round1 of the DKG protocol for multisig account creation'
@@ -31,11 +32,11 @@ export class DkgRound1Command extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(DkgRound1Command)
 
+    const client = await this.sdk.connectRpc()
+
     let secretName = flags.secretName
     if (!secretName) {
-      secretName = await CliUx.ux.prompt('Enter the name of the secret to use', {
-        required: true,
-      })
+      secretName = await selectSecret(client)
     }
 
     let identities = flags.identity
@@ -61,8 +62,6 @@ export class DkgRound1Command extends IronfishCommand {
         this.error('Minimum number of signers must be at least 2')
       }
     }
-
-    const client = await this.sdk.connectRpc()
 
     const response = await client.wallet.multisig.dkg.round1({
       secretName: secretName,
