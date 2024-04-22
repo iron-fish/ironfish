@@ -4,7 +4,6 @@
 import { multisig } from '@ironfish/rust-nodejs'
 import { BufferSet } from 'buffer-map'
 import * as yup from 'yup'
-import { AsyncUtils } from '../../../../utils'
 import { AssertMultisigSigner } from '../../../../wallet'
 import { RpcValidationError } from '../../../adapters'
 import { ApiNamespace } from '../../namespaces'
@@ -39,7 +38,7 @@ export const CreateSignatureShareResponseSchema: yup.ObjectSchema<CreateSignatur
 routes.register<typeof CreateSignatureShareRequestSchema, CreateSignatureShareResponse>(
   `${ApiNamespace.wallet}/multisig/createSignatureShare`,
   CreateSignatureShareRequestSchema,
-  async (request, node): Promise<void> => {
+  (request, node) => {
     AssertHasRpcContext(request, node, 'wallet')
 
     const account = getAccount(node.wallet, request.data.account)
@@ -49,10 +48,7 @@ routes.register<typeof CreateSignatureShareRequestSchema, CreateSignatureShareRe
       Buffer.from(request.data.signingPackage, 'hex'),
     )
 
-    const participantIdentities = new BufferSet(
-      await AsyncUtils.materialize(node.wallet.walletDb.getParticipantIdentities(account)),
-    )
-
+    const participantIdentities = new BufferSet(account.getMultisigParticipantIdentities())
     for (const signer of signingPackage.signers()) {
       if (!participantIdentities.has(signer)) {
         throw new RpcValidationError(

@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { multisig } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
 import { AssertMultisig } from '../../../../wallet'
 import { ApiNamespace } from '../../namespaces'
@@ -39,10 +38,9 @@ routes.register<typeof GetAccountIdentitiesRequestSchema, GetAccountIdentitiesRe
     const account = getAccount(context.wallet, request.data.account)
     AssertMultisig(account)
 
-    const publicKeyPackage = new multisig.PublicKeyPackage(
-      account.multisigKeys.publicKeyPackage,
-    )
-    const identities = publicKeyPackage.identities().map((identity) => identity.toString('hex'))
+    const identities = account
+      .getMultisigParticipantIdentities()
+      .map((identity) => identity.toString('hex'))
 
     request.end({ identities })
   },

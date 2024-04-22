@@ -1640,16 +1640,6 @@ export class Wallet {
       } else {
         await account.updateHead(null, tx)
       }
-
-      if (account.multisigKeys) {
-        const publicKeyPackage = new multisig.PublicKeyPackage(
-          account.multisigKeys.publicKeyPackage,
-        )
-
-        for (const identity of publicKeyPackage.identities()) {
-          await this.walletDb.addParticipantIdentity(account, identity, tx)
-        }
-      }
     })
 
     this.accounts.set(account.id, account)
