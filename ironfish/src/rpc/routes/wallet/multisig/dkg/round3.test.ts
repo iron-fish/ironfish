@@ -1,7 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Assert } from '../../../../../assert'
 import { createRouteTest } from '../../../../../testUtilities/routeTest'
+import { AsyncUtils } from '../../../../../utils'
 
 function removeOneElement<T>(array: Array<T>): Array<T> {
   const newArray = [...array]
@@ -15,6 +17,7 @@ describe('Route multisig/dkg/round3', () => {
 
   it('should create round 3 packages', async () => {
     const secretNames = ['secret-0', 'secret-1', 'secret-2']
+    const accountNames = ['account-0', 'account-1', 'account-2']
 
     // Create participants and retrieve their identities
     await Promise.all(
@@ -48,18 +51,12 @@ describe('Route multisig/dkg/round3', () => {
       ),
     )
 
-    // Only override 2/3 names
-    const secretNamesToName = {
-      [secretNames[0]]: 'foo',
-      [secretNames[2]]: 'bar',
-    }
-
     // Perform DKG round 3
     const round3Responses = await Promise.all(
       secretNames.map((secretName, index) =>
         routeTest.client.wallet.multisig.dkg.round3({
           secretName,
-          accountName: secretNamesToName[secretName],
+          accountName: accountNames[index],
           round2SecretPackage: round2Packages[index].content.encryptedSecretPackage,
           round1PublicPackages: round1Packages.map((pkg) => pkg.content.publicPackage),
           round2PublicPackages: round2Packages.flatMap((pkg) =>
@@ -75,12 +72,10 @@ describe('Route multisig/dkg/round3', () => {
 
     // Check that all accounts that got imported after round 3 have the same public address
     const publicKeys = await Promise.all(
-      secretNames.map(
+      accountNames.map(
         async (account) =>
           (
-            await routeTest.client.wallet.getAccountPublicKey({
-              account: secretNamesToName[account] ?? account,
-            })
+            await routeTest.client.wallet.getAccountPublicKey({ account })
           ).content.publicKey,
       ),
     )
@@ -92,10 +87,24 @@ describe('Route multisig/dkg/round3', () => {
     // Check all the responses match
     expect(round3Responses).toHaveLength(publicKeys.length)
     for (let i = 0; i < round3Responses.length; i++) {
-      expect(round3Responses[i].content.name).toEqual(
-        secretNamesToName[secretNames[i]] ?? secretNames[i],
-      )
+      expect(round3Responses[i].content.name).toEqual(accountNames[i])
       expect(round3Responses[i].content.publicAddress).toEqual(publicKeys[i])
+    }
+
+    // Check that the imported accounts all know about other participants'
+    // identities
+    const expectedIdentities = participants.map(({ identity }) => identity)
+    expectedIdentities.sort()
+    for (const accountName of accountNames) {
+      const account = routeTest.wallet.getAccountByName(accountName)
+      Assert.isNotNull(account)
+      const knownIdentities = (
+        await AsyncUtils.materialize(
+          routeTest.wallet.walletDb.getParticipantIdentities(account),
+        )
+      ).map((identity) => identity.toString('hex'))
+      knownIdentities.sort()
+      expect(knownIdentities).toStrictEqual(expectedIdentities)
     }
   })
 
