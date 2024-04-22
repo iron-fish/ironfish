@@ -49,9 +49,5 @@ export class MultisigIdentityCreate extends IronfishCommand {
 
     this.log('Identity:')
     this.log(response.content.identity)
-
-    this.log()
-    this.log('Next step:')
-    this.log('Send the identity to the multisig account dealer.')
   }
 }
