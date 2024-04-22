@@ -62,7 +62,7 @@ export class DkgRound3Command extends IronfishCommand {
     let round1PublicPackages = flags.round1PublicPackages
     if (!round1PublicPackages || round1PublicPackages.length < 2) {
       const input = await longPrompt(
-        'Enter public packages separated by commas, one for each participant',
+        'Enter round 1 public packages separated by commas, one for each participant',
         {
           required: true,
         },
@@ -80,7 +80,7 @@ export class DkgRound3Command extends IronfishCommand {
     let round2PublicPackages = flags.round2PublicPackages
     if (!round2PublicPackages) {
       const input = await longPrompt(
-        'Enter public packages separated by commas, one for each participant',
+        'Enter round 2 public packages separated by commas, one for each participant',
         {
           required: true,
         },
