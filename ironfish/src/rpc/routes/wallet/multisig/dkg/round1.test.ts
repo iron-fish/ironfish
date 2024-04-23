@@ -9,17 +9,18 @@ describe('Route multisig/dkg/round1', () => {
   const routeTest = createRouteTest()
 
   it('should create round 1 packages', async () => {
-    const secretName = 'name'
-    await routeTest.client.wallet.multisig.createParticipant({ name: secretName })
+    const participantName = 'name'
+    await routeTest.client.wallet.multisig.createParticipant({ name: participantName })
 
-    const identity = (await routeTest.client.wallet.multisig.getIdentity({ name: secretName }))
-      .content.identity
+    const identity = (
+      await routeTest.client.wallet.multisig.getIdentity({ name: participantName })
+    ).content.identity
     const otherParticipants = Array.from({ length: 2 }, () => ({
       identity: multisig.ParticipantSecret.random().toIdentity().serialize().toString('hex'),
     }))
     const participants = [{ identity }, ...otherParticipants]
 
-    const request = { secretName, minSigners: 2, participants }
+    const request = { participantName, minSigners: 2, participants }
     const response = await routeTest.client.wallet.multisig.dkg.round1(request)
 
     expect(response.content).toMatchObject({
@@ -27,25 +28,33 @@ describe('Route multisig/dkg/round1', () => {
       round1PublicPackage: expect.any(String),
     })
 
+<<<<<<< HEAD
     // Ensure that the round 1 secret package can be decrypted
     const secretValue = await routeTest.node.wallet.walletDb.getMultisigSecretByName(secretName)
+=======
+    // Ensure that the encrypted secret package can be decrypted
+    const secretValue = await routeTest.node.wallet.walletDb.getMultisigSecretByName(
+      participantName,
+    )
+>>>>>>> 739831827 (renames secretName to participantName)
     Assert.isNotUndefined(secretValue)
     const secret = new multisig.ParticipantSecret(secretValue.secret)
     secret.decryptData(Buffer.from(response.content.round1SecretPackage, 'hex'))
   })
 
   it('should fail if the named secret does not exist', async () => {
-    const secretName = 'name'
-    await routeTest.client.wallet.multisig.createParticipant({ name: secretName })
+    const participantName = 'name'
+    await routeTest.client.wallet.multisig.createParticipant({ name: participantName })
 
-    const identity = (await routeTest.client.wallet.multisig.getIdentity({ name: secretName }))
-      .content.identity
+    const identity = (
+      await routeTest.client.wallet.multisig.getIdentity({ name: participantName })
+    ).content.identity
     const otherParticipants = Array.from({ length: 2 }, () => ({
       identity: multisig.ParticipantSecret.random().toIdentity().serialize().toString('hex'),
     }))
     const participants = [{ identity }, ...otherParticipants]
 
-    const request = { secretName: 'otherName', minSigners: 2, participants }
+    const request = { participantName: 'otherName', minSigners: 2, participants }
 
     await expect(routeTest.client.wallet.multisig.dkg.round1(request)).rejects.toThrow(
       expect.objectContaining({
@@ -56,8 +65,8 @@ describe('Route multisig/dkg/round1', () => {
   })
 
   it('should add the named identity if it is not in the list of participants', async () => {
-    const secretName = 'name'
-    await routeTest.client.wallet.multisig.createParticipant({ name: secretName })
+    const participantName = 'name'
+    await routeTest.client.wallet.multisig.createParticipant({ name: participantName })
 
     // only pass in one participant
     const participants = [
@@ -66,7 +75,7 @@ describe('Route multisig/dkg/round1', () => {
       },
     ]
 
-    const request = { secretName, minSigners: 2, participants }
+    const request = { participantName, minSigners: 2, participants }
 
     const response = await routeTest.client.wallet.multisig.dkg.round1(request)
 
@@ -77,17 +86,18 @@ describe('Route multisig/dkg/round1', () => {
   })
 
   it('should fail if minSigners is too low', async () => {
-    const secretName = 'name'
-    await routeTest.client.wallet.multisig.createParticipant({ name: secretName })
+    const participantName = 'name'
+    await routeTest.client.wallet.multisig.createParticipant({ name: participantName })
 
-    const identity = (await routeTest.client.wallet.multisig.getIdentity({ name: secretName }))
-      .content.identity
+    const identity = (
+      await routeTest.client.wallet.multisig.getIdentity({ name: participantName })
+    ).content.identity
     const otherParticipants = Array.from({ length: 2 }, () => ({
       identity: multisig.ParticipantSecret.random().toIdentity().serialize().toString('hex'),
     }))
     const participants = [{ identity }, ...otherParticipants]
 
-    const request = { secretName, minSigners: 1, participants }
+    const request = { participantName, minSigners: 1, participants }
 
     await expect(routeTest.client.wallet.multisig.dkg.round1(request)).rejects.toThrow(
       expect.objectContaining({
@@ -98,17 +108,18 @@ describe('Route multisig/dkg/round1', () => {
   })
 
   it('should fail if minSigners exceeds the number of participants', async () => {
-    const secretName = 'name'
-    await routeTest.client.wallet.multisig.createParticipant({ name: secretName })
+    const participantName = 'name'
+    await routeTest.client.wallet.multisig.createParticipant({ name: participantName })
 
-    const identity = (await routeTest.client.wallet.multisig.getIdentity({ name: secretName }))
-      .content.identity
+    const identity = (
+      await routeTest.client.wallet.multisig.getIdentity({ name: participantName })
+    ).content.identity
     const otherParticipants = Array.from({ length: 2 }, () => ({
       identity: multisig.ParticipantSecret.random().toIdentity().serialize().toString('hex'),
     }))
     const participants = [{ identity }, ...otherParticipants]
 
-    const request = { secretName, minSigners: 4, participants }
+    const request = { participantName, minSigners: 4, participants }
 
     await expect(routeTest.client.wallet.multisig.dkg.round1(request)).rejects.toThrow(
       expect.objectContaining({

@@ -9,7 +9,7 @@ import { routes } from '../../../router'
 import { AssertHasRpcContext } from '../../../rpcContext'
 
 export type DkgRound2Request = {
-  secretName: string
+  participantName: string
   round1SecretPackage: string
   round1PublicPackages: Array<string>
 }
@@ -21,6 +21,7 @@ export type DkgRound2Response = {
 
 export const DkgRound2RequestSchema: yup.ObjectSchema<DkgRound2Request> = yup
   .object({
+    participantName: yup.string().defined(),
     secretName: yup.string().defined(),
     round1SecretPackage: yup.string().defined(),
     round1PublicPackages: yup.array().of(yup.string().defined()).defined(),
@@ -40,12 +41,12 @@ routes.register<typeof DkgRound2RequestSchema, DkgRound2Response>(
   async (request, node): Promise<void> => {
     AssertHasRpcContext(request, node, 'wallet')
 
-    const { secretName, round1SecretPackage, round1PublicPackages } = request.data
-    const multisigSecret = await node.wallet.walletDb.getMultisigSecretByName(secretName)
+    const { participantName, round1SecretPackage, round1PublicPackages } = request.data
+    const multisigSecret = await node.wallet.walletDb.getMultisigSecretByName(participantName)
 
     if (!multisigSecret) {
       throw new RpcValidationError(
-        `Multisig secret with name '${secretName}' not found`,
+        `Multisig secret with name '${participantName}' not found`,
         400,
         RPC_ERROR_CODES.MULTISIG_SECRET_NOT_FOUND,
       )

@@ -11,7 +11,7 @@ import { ApiNamespace } from '../../../namespaces'
 import { routes } from '../../../router'
 
 export type DkgRound3Request = {
-  secretName: string
+  participantName: string
   round2SecretPackage: string
   round1PublicPackages: Array<string>
   round2PublicPackages: Array<string>
@@ -26,7 +26,7 @@ export type DkgRound3Response = {
 
 export const DkgRound3RequestSchema: yup.ObjectSchema<DkgRound3Request> = yup
   .object({
-    secretName: yup.string().defined(),
+    participantName: yup.string().defined(),
     round2SecretPackage: yup.string().defined(),
     round1PublicPackages: yup.array().of(yup.string().defined()).defined(),
     round2PublicPackages: yup.array().of(yup.string().defined()).defined(),
@@ -48,12 +48,12 @@ routes.register<typeof DkgRound3RequestSchema, DkgRound3Response>(
   async (request, node): Promise<void> => {
     Assert.isInstanceOf(node, FullNode)
 
-    const { secretName } = request.data
-    const multisigSecret = await node.wallet.walletDb.getMultisigSecretByName(secretName)
+    const { participantName } = request.data
+    const multisigSecret = await node.wallet.walletDb.getMultisigSecretByName(participantName)
 
     if (!multisigSecret) {
       throw new RpcValidationError(
-        `Multisig secret with name '${secretName}' not found`,
+        `Multisig secret with name '${participantName}' not found`,
         400,
         RPC_ERROR_CODES.MULTISIG_SECRET_NOT_FOUND,
       )
@@ -78,7 +78,7 @@ routes.register<typeof DkgRound3RequestSchema, DkgRound3Response>(
     )
 
     const accountImport = {
-      name: request.data.accountName ?? secretName,
+      name: request.data.accountName ?? participantName,
       version: ACCOUNT_SCHEMA_VERSION,
       createdAt: null,
       spendingKey: null,

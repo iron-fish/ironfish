@@ -15,24 +15,24 @@ describe('Route multisig/dkg/round3', () => {
   const routeTest = createRouteTest()
 
   it('should create round 3 packages', async () => {
-    const secretNames = ['secret-0', 'secret-1', 'secret-2']
+    const participantNames = ['secret-0', 'secret-1', 'secret-2']
     const accountNames = ['account-0', 'account-1', 'account-2']
 
     // Create participants and retrieve their identities
     await Promise.all(
-      secretNames.map((name) => routeTest.client.wallet.multisig.createParticipant({ name })),
+      participantNames.map((name) => routeTest.client.wallet.multisig.createParticipant({ name })),
     )
     const participants = await Promise.all(
-      secretNames.map(
+      participantNames.map(
         async (name) => (await routeTest.client.wallet.multisig.getIdentity({ name })).content,
       ),
     )
 
     // Perform DKG round 1
     const round1Packages = await Promise.all(
-      secretNames.map((secretName) =>
+      participantNames.map((participantName) =>
         routeTest.client.wallet.multisig.dkg.round1({
-          secretName,
+          participantName,
           minSigners: 2,
           participants,
         }),
@@ -41,20 +41,26 @@ describe('Route multisig/dkg/round3', () => {
 
     // Perform DKG round 2
     const round2Packages = await Promise.all(
-      secretNames.map((secretName, index) =>
+      participantNames.map((participantName, index) =>
         routeTest.client.wallet.multisig.dkg.round2({
+<<<<<<< HEAD
           secretName,
           round1SecretPackage: round1Packages[index].content.round1SecretPackage,
           round1PublicPackages: round1Packages.map((pkg) => pkg.content.round1PublicPackage),
+=======
+          participantName,
+          encryptedSecretPackage: round1Packages[index].content.encryptedSecretPackage,
+          publicPackages: round1Packages.map((pkg) => pkg.content.publicPackage),
+>>>>>>> 739831827 (renames secretName to participantName)
         }),
       ),
     )
 
     // Perform DKG round 3
     const round3Responses = await Promise.all(
-      secretNames.map((secretName, index) =>
+      participantNames.map((participantName, index) =>
         routeTest.client.wallet.multisig.dkg.round3({
-          secretName,
+          participantName,
           accountName: accountNames[index],
           round2SecretPackage: round2Packages[index].content.round2SecretPackage,
           round1PublicPackages: round1Packages.map((pkg) => pkg.content.round1PublicPackage),
@@ -99,23 +105,23 @@ describe('Route multisig/dkg/round3', () => {
   })
 
   it('should fail if not all round 1 packages are passed as an input', async () => {
-    const secretNames = ['secret-0', 'secret-1', 'secret-2']
+    const participantNames = ['secret-0', 'secret-1', 'secret-2']
 
     // Create participants and retrieve their identities
     await Promise.all(
-      secretNames.map((name) => routeTest.client.wallet.multisig.createParticipant({ name })),
+      participantNames.map((name) => routeTest.client.wallet.multisig.createParticipant({ name })),
     )
     const participants = await Promise.all(
-      secretNames.map(
+      participantNames.map(
         async (name) => (await routeTest.client.wallet.multisig.getIdentity({ name })).content,
       ),
     )
 
     // Perform DKG round 1
     const round1Packages = await Promise.all(
-      secretNames.map((secretName) =>
+      participantNames.map((participantName) =>
         routeTest.client.wallet.multisig.dkg.round1({
-          secretName,
+          participantName,
           minSigners: 2,
           participants,
         }),
@@ -124,11 +130,17 @@ describe('Route multisig/dkg/round3', () => {
 
     // Perform DKG round 2
     const round2Packages = await Promise.all(
-      secretNames.map((secretName, index) =>
+      participantNames.map((participantName, index) =>
         routeTest.client.wallet.multisig.dkg.round2({
+<<<<<<< HEAD
           secretName,
           round1SecretPackage: round1Packages[index].content.round1SecretPackage,
           round1PublicPackages: round1Packages.map((pkg) => pkg.content.round1PublicPackage),
+=======
+          participantName,
+          encryptedSecretPackage: round1Packages[index].content.encryptedSecretPackage,
+          publicPackages: round1Packages.map((pkg) => pkg.content.publicPackage),
+>>>>>>> 739831827 (renames secretName to participantName)
         }),
       ),
     )
@@ -136,8 +148,13 @@ describe('Route multisig/dkg/round3', () => {
     // Perform DKG round 3
     await expect(
       routeTest.client.wallet.multisig.dkg.round3({
+<<<<<<< HEAD
         secretName: secretNames[0],
         round2SecretPackage: round2Packages[0].content.round2SecretPackage,
+=======
+        participantName: participantNames[0],
+        round2SecretPackage: round2Packages[0].content.encryptedSecretPackage,
+>>>>>>> 739831827 (renames secretName to participantName)
         round1PublicPackages: removeOneElement(
           round1Packages.map((pkg) => pkg.content.round1PublicPackage),
         ),
@@ -147,23 +164,23 @@ describe('Route multisig/dkg/round3', () => {
   })
 
   it('should fail if not all round 2 packages are passed as an input', async () => {
-    const secretNames = ['secret-0', 'secret-1', 'secret-2']
+    const participantNames = ['secret-0', 'secret-1', 'secret-2']
 
     // Create participants and retrieve their identities
     await Promise.all(
-      secretNames.map((name) => routeTest.client.wallet.multisig.createParticipant({ name })),
+      participantNames.map((name) => routeTest.client.wallet.multisig.createParticipant({ name })),
     )
     const participants = await Promise.all(
-      secretNames.map(
+      participantNames.map(
         async (name) => (await routeTest.client.wallet.multisig.getIdentity({ name })).content,
       ),
     )
 
     // Perform DKG round 1
     const round1Packages = await Promise.all(
-      secretNames.map((secretName) =>
+      participantNames.map((participantName) =>
         routeTest.client.wallet.multisig.dkg.round1({
-          secretName,
+          participantName,
           minSigners: 2,
           participants,
         }),
@@ -172,11 +189,17 @@ describe('Route multisig/dkg/round3', () => {
 
     // Perform DKG round 2
     const round2Packages = await Promise.all(
-      secretNames.map((secretName, index) =>
+      participantNames.map((participantName, index) =>
         routeTest.client.wallet.multisig.dkg.round2({
+<<<<<<< HEAD
           secretName,
           round1SecretPackage: round1Packages[index].content.round1SecretPackage,
           round1PublicPackages: round1Packages.map((pkg) => pkg.content.round1PublicPackage),
+=======
+          participantName,
+          encryptedSecretPackage: round1Packages[index].content.encryptedSecretPackage,
+          publicPackages: round1Packages.map((pkg) => pkg.content.publicPackage),
+>>>>>>> 739831827 (renames secretName to participantName)
         }),
       ),
     )
@@ -184,12 +207,18 @@ describe('Route multisig/dkg/round3', () => {
     // Perform DKG round 3
     await expect(
       routeTest.client.wallet.multisig.dkg.round3({
+<<<<<<< HEAD
         secretName: secretNames[0],
         round2SecretPackage: round2Packages[0].content.round2SecretPackage,
         round1PublicPackages: round1Packages.map((pkg) => pkg.content.round1PublicPackage),
+=======
+        participantName: participantNames[0],
+        round2SecretPackage: round2Packages[0].content.encryptedSecretPackage,
+        round1PublicPackages: round1Packages.map((pkg) => pkg.content.publicPackage),
+>>>>>>> 739831827 (renames secretName to participantName)
         // Here we cannot just remove any one element to perform this test,
         // because `round2Packages[0]` does not contain any useful
-        // information for `secretName[0]`, hence if that gets removed, the
+        // information for `participantName[0]`, hence if that gets removed, the
         // operation won't fail. This is why we call `slice()`
         round2PublicPackages: removeOneElement(
           round2Packages.slice(1).map((pkg) => pkg.content.round2PublicPackage),
@@ -199,23 +228,23 @@ describe('Route multisig/dkg/round3', () => {
   })
 
   it('should fail passing the wrong round 2 secret package', async () => {
-    const secretNames = ['secret-0', 'secret-1', 'secret-2']
+    const participantNames = ['secret-0', 'secret-1', 'secret-2']
 
     // Create participants and retrieve their identities
     await Promise.all(
-      secretNames.map((name) => routeTest.client.wallet.multisig.createParticipant({ name })),
+      participantNames.map((name) => routeTest.client.wallet.multisig.createParticipant({ name })),
     )
     const participants = await Promise.all(
-      secretNames.map(
+      participantNames.map(
         async (name) => (await routeTest.client.wallet.multisig.getIdentity({ name })).content,
       ),
     )
 
     // Perform DKG round 1
     const round1Packages = await Promise.all(
-      secretNames.map((secretName) =>
+      participantNames.map((participantName) =>
         routeTest.client.wallet.multisig.dkg.round1({
-          secretName,
+          participantName,
           minSigners: 2,
           participants,
         }),
@@ -224,11 +253,17 @@ describe('Route multisig/dkg/round3', () => {
 
     // Perform DKG round 2
     const round2Packages = await Promise.all(
-      secretNames.map((secretName, index) =>
+      participantNames.map((participantName, index) =>
         routeTest.client.wallet.multisig.dkg.round2({
+<<<<<<< HEAD
           secretName,
           round1SecretPackage: round1Packages[index].content.round1SecretPackage,
           round1PublicPackages: round1Packages.map((pkg) => pkg.content.round1PublicPackage),
+=======
+          participantName,
+          encryptedSecretPackage: round1Packages[index].content.encryptedSecretPackage,
+          publicPackages: round1Packages.map((pkg) => pkg.content.publicPackage),
+>>>>>>> 739831827 (renames secretName to participantName)
         }),
       ),
     )
@@ -236,10 +271,17 @@ describe('Route multisig/dkg/round3', () => {
     // Perform DKG round 3
     await expect(
       routeTest.client.wallet.multisig.dkg.round3({
+<<<<<<< HEAD
         secretName: secretNames[0],
         round2SecretPackage: round2Packages[1].content.round2SecretPackage,
         round1PublicPackages: round1Packages.map((pkg) => pkg.content.round1PublicPackage),
         round2PublicPackages: round2Packages.map((pkg) => pkg.content.round2PublicPackage),
+=======
+        participantName: participantNames[0],
+        round2SecretPackage: round2Packages[1].content.encryptedSecretPackage,
+        round1PublicPackages: round1Packages.map((pkg) => pkg.content.publicPackage),
+        round2PublicPackages: round2Packages.map((pkg) => pkg.content.publicPackages),
+>>>>>>> 739831827 (renames secretName to participantName)
       }),
     ).rejects.toThrow('decryption error: aead::Error')
   })
