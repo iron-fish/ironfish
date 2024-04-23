@@ -61,13 +61,21 @@ export class CurrencyUtils {
       decimals?: number
     },
   ): [bigint, null] | [null, Error] {
+    const { decimals } = assetMetadataWithDefaults(assetId, verifiedAssetMetadata)
     try {
-      const { decimals } = assetMetadataWithDefaults(assetId, verifiedAssetMetadata)
-      const parsed = parseFixed(amount.toString(), decimals).toBigInt()
-      return [parsed, null]
+      const { value, decimals: parsedDecimals } = FixedNumberUtils.tryDecodeDecimal(
+        amount.toString(),
+      )
+
+      if (parsedDecimals > decimals) {
+        return [null, new Error('major value is too small')]
+      }
+
+      const minorValue = value * 10n ** BigInt(decimals - parsedDecimals)
+      return [minorValue, null]
     } catch (e) {
-      if (isParseFixedError(e)) {
-        return [null, new Error(e.reason)]
+      if (e instanceof Error) {
+        return [null, e]
       }
       throw e
     }

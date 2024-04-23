@@ -43,7 +43,7 @@ export class FixedNumberUtils {
     const split = input.split('.')
 
     if (split.length > 2) {
-      throw new Error('Invalid number of decimals')
+      throw new Error('too many decimal points')
     } else if (split.length === 1) {
       return { value: BigInt(split[0]), decimals: 0 }
     } else {
