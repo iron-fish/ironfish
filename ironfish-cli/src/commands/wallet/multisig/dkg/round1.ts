@@ -21,7 +21,7 @@ export class DkgRound1Command extends IronfishCommand {
     identity: Flags.string({
       char: 'i',
       description:
-        'The identity of the participants will generate the group keys (may be specified multiple times to add multiple participants). Must include the identity for participantName',
+        'The identity of the participants will generate the group keys (may be specified multiple times to add multiple participants)',
       multiple: true,
     }),
     minSigners: Flags.integer({
