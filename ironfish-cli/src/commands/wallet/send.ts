@@ -163,7 +163,7 @@ export class Send extends IronfishCommand {
       )
 
       if (error) {
-        this.error(`${error.reason}`)
+        this.error(`${error.message}`)
       }
 
       amount = parsedAmount

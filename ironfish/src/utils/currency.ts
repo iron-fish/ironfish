@@ -60,14 +60,14 @@ export class CurrencyUtils {
     verifiedAssetMetadata?: {
       decimals?: number
     },
-  ): [bigint, null] | [null, ParseFixedError] {
+  ): [bigint, null] | [null, Error] {
     try {
       const { decimals } = assetMetadataWithDefaults(assetId, verifiedAssetMetadata)
       const parsed = parseFixed(amount.toString(), decimals).toBigInt()
       return [parsed, null]
     } catch (e) {
       if (isParseFixedError(e)) {
-        return [null, e]
+        return [null, new Error(e.reason)]
       }
       throw e
     }
@@ -126,12 +126,12 @@ export class CurrencyUtils {
   }
 }
 
-export interface ParseFixedError extends Error {
+interface ParseFixedError extends Error {
   code: 'INVALID_ARGUMENT' | 'NUMERIC_FAULT'
   reason: string
 }
 
-export function isParseFixedError(error: unknown): error is ParseFixedError {
+function isParseFixedError(error: unknown): error is ParseFixedError {
   return (
     ErrorUtils.isNodeError(error) &&
     (error['code'] === 'INVALID_ARGUMENT' || error['code'] === 'NUMERIC_FAULT') &&
