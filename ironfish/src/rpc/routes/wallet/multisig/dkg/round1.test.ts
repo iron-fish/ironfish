@@ -23,15 +23,15 @@ describe('Route multisig/dkg/round1', () => {
     const response = await routeTest.client.wallet.multisig.dkg.round1(request)
 
     expect(response.content).toMatchObject({
-      encryptedSecretPackage: expect.any(String),
-      publicPackage: expect.any(String),
+      round1SecretPackage: expect.any(String),
+      round1PublicPackage: expect.any(String),
     })
 
-    // Ensure that the encrypted secret package can be decrypted
+    // Ensure that the round 1 secret package can be decrypted
     const secretValue = await routeTest.node.wallet.walletDb.getMultisigSecretByName(secretName)
     Assert.isNotUndefined(secretValue)
     const secret = new multisig.ParticipantSecret(secretValue.secret)
-    secret.decryptData(Buffer.from(response.content.encryptedSecretPackage, 'hex'))
+    secret.decryptData(Buffer.from(response.content.round1SecretPackage, 'hex'))
   })
 
   it('should fail if the named secret does not exist', async () => {
@@ -71,8 +71,8 @@ describe('Route multisig/dkg/round1', () => {
     const response = await routeTest.client.wallet.multisig.dkg.round1(request)
 
     expect(response.content).toMatchObject({
-      encryptedSecretPackage: expect.any(String),
-      publicPackage: expect.any(String),
+      round1SecretPackage: expect.any(String),
+      round1PublicPackage: expect.any(String),
     })
   })
 

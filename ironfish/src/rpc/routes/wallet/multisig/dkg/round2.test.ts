@@ -28,25 +28,25 @@ describe('Route multisig/dkg/round2', () => {
 
     const round2Request = {
       secretName: secretName1,
-      encryptedSecretPackage: round1Response1.content.encryptedSecretPackage,
-      publicPackages: [
-        round1Response1.content.publicPackage,
-        round1Response2.content.publicPackage,
+      round1SecretPackage: round1Response1.content.round1SecretPackage,
+      round1PublicPackages: [
+        round1Response1.content.round1PublicPackage,
+        round1Response2.content.round1PublicPackage,
       ],
     }
 
     const round2Response = await routeTest.client.wallet.multisig.dkg.round2(round2Request)
 
     expect(round2Response.content).toMatchObject({
-      encryptedSecretPackage: expect.any(String),
+      round2SecretPackage: expect.any(String),
     })
   })
 
   it('should fail if the named secret does not exist', async () => {
     const request = {
       secretName: 'fakeName',
-      encryptedSecretPackage: 'foo',
-      publicPackages: ['bar', 'baz'],
+      round1SecretPackage: 'foo',
+      round1PublicPackages: ['bar', 'baz'],
     }
 
     await expect(routeTest.client.wallet.multisig.dkg.round2(request)).rejects.toThrow(

@@ -23,18 +23,18 @@ export class DkgRound3Command extends IronfishCommand {
     }),
     round2SecretPackage: Flags.string({
       char: 'e',
-      description: 'The encrypted secret package created during DKG round2',
+      description: 'The encrypted secret package created during DKG round 2',
     }),
     round1PublicPackages: Flags.string({
       char: 'p',
       description:
-        'The public package that a participant generated during DKG round1 (may be specified multiple times for multiple participants). Must include your own round1 public package',
+        'The public package that a participant generated during DKG round 1 (may be specified multiple times for multiple participants). Must include your own round 1 public package',
       multiple: true,
     }),
     round2PublicPackages: Flags.string({
       char: 'q',
       description:
-        'The public package that a participant generated during DKG round2 where the recipient matches the identity associated with the secret',
+        'The public package that a participant generated during DKG round 2 (may be specified multiple times for multiple participants). Your own round 2 public package is optional; if included, it will be ignored',
       multiple: true,
     }),
   }
@@ -52,7 +52,7 @@ export class DkgRound3Command extends IronfishCommand {
     let round2SecretPackage = flags.round2SecretPackage
     if (!round2SecretPackage) {
       round2SecretPackage = await CliUx.ux.prompt(
-        `Enter the encrypted secret package for secret ${secretName}`,
+        `Enter the encrypted round 2 secret package for secret ${secretName}`,
         {
           required: true,
         },
@@ -71,7 +71,7 @@ export class DkgRound3Command extends IronfishCommand {
 
       if (round1PublicPackages.length < 2) {
         this.error(
-          'Must include a public package for each participant; at least 2 participants required',
+          'Must include a round 1 public package for each participant; at least 2 participants required',
         )
       }
     }

@@ -250,13 +250,13 @@ export namespace multisig {
   }
   export function dkgRound1(selfIdentity: string, minSigners: number, participantIdentities: Array<string>): DkgRound1Packages
   export interface DkgRound1Packages {
-    encryptedSecretPackage: string
-    publicPackage: string
+    round1SecretPackage: string
+    round1PublicPackage: string
   }
-  export function dkgRound2(secret: string, encryptedSecretPackage: string, publicPackages: Array<string>): DkgRound2Packages
+  export function dkgRound2(secret: string, round1SecretPackage: string, round1PublicPackages: Array<string>): DkgRound2Packages
   export interface DkgRound2Packages {
-    encryptedSecretPackage: string
-    publicPackages: string
+    round2SecretPackage: string
+    round2PublicPackage: string
   }
   export function dkgRound3(secret: ParticipantSecret, round2SecretPackage: string, round1PublicPackages: Array<string>, round2PublicPackages: Array<string>): DkgRound3Packages
   export interface DkgRound3Packages {

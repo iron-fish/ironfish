@@ -377,7 +377,7 @@ pub fn dkg_round1(
         Identity::deserialize_from(&hex_to_vec_bytes(&self_identity).map_err(to_napi_err)?[..])?;
     let participant_identities = try_deserialize_identities(participant_identities)?;
 
-    let (encrypted_secret_package, public_package) = dkg::round1::round1(
+    let (round1_secret_package, round1_public_package) = dkg::round1::round1(
         &self_identity,
         min_signers,
         &participant_identities,
@@ -386,48 +386,47 @@ pub fn dkg_round1(
     .map_err(to_napi_err)?;
 
     Ok(DkgRound1Packages {
-        encrypted_secret_package: bytes_to_hex(&encrypted_secret_package),
-        public_package: bytes_to_hex(&public_package.serialize()),
+        round1_secret_package: bytes_to_hex(&round1_secret_package),
+        round1_public_package: bytes_to_hex(&round1_public_package.serialize()),
     })
 }
 
 #[napi(object, namespace = "multisig")]
 pub struct DkgRound1Packages {
-    pub encrypted_secret_package: String,
-    pub public_package: String,
+    pub round1_secret_package: String,
+    pub round1_public_package: String,
 }
 
 #[napi(namespace = "multisig")]
 pub fn dkg_round2(
     secret: String,
-    encrypted_secret_package: String,
-    public_packages: Vec<String>,
+    round1_secret_package: String,
+    round1_public_packages: Vec<String>,
 ) -> Result<DkgRound2Packages> {
     let secret = Secret::deserialize_from(&hex_to_vec_bytes(&secret).map_err(to_napi_err)?[..])?;
-    let public_packages = try_deserialize(public_packages, |bytes| {
+    let round1_public_packages = try_deserialize(round1_public_packages, |bytes| {
         dkg::round1::PublicPackage::deserialize_from(bytes)
     })?;
-    let encrypted_secret_package =
-        hex_to_vec_bytes(&encrypted_secret_package).map_err(to_napi_err)?;
+    let round1_secret_package = hex_to_vec_bytes(&round1_secret_package).map_err(to_napi_err)?;
 
-    let (encrypted_secret_package, public_packages) = dkg::round2::round2(
+    let (round2_secret_package, round2_public_package) = dkg::round2::round2(
         &secret,
-        &encrypted_secret_package,
-        &public_packages,
+        &round1_secret_package,
+        &round1_public_packages,
         thread_rng(),
     )
     .map_err(to_napi_err)?;
 
     Ok(DkgRound2Packages {
-        encrypted_secret_package: bytes_to_hex(&encrypted_secret_package),
-        public_packages: bytes_to_hex(&public_packages.serialize()),
+        round2_secret_package: bytes_to_hex(&round2_secret_package),
+        round2_public_package: bytes_to_hex(&round2_public_package.serialize()),
     })
 }
 
 #[napi(object, namespace = "multisig")]
 pub struct DkgRound2Packages {
-    pub encrypted_secret_package: String,
-    pub public_packages: String,
+    pub round2_secret_package: String,
+    pub round2_public_package: String,
 }
 
 #[napi(object, namespace = "multisig")]
