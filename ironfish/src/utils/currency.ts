@@ -5,7 +5,6 @@
 import { formatFixed, parseFixed } from '@ethersproject/bignumber'
 import { isNativeIdentifier } from './asset'
 import { BigIntUtils } from './bigint'
-import { ErrorUtils } from './error'
 import { FixedNumberUtils } from './fixedNumber'
 
 export class CurrencyUtils {
@@ -132,20 +131,6 @@ export class CurrencyUtils {
 
     return ore
   }
-}
-
-interface ParseFixedError extends Error {
-  code: 'INVALID_ARGUMENT' | 'NUMERIC_FAULT'
-  reason: string
-}
-
-function isParseFixedError(error: unknown): error is ParseFixedError {
-  return (
-    ErrorUtils.isNodeError(error) &&
-    (error['code'] === 'INVALID_ARGUMENT' || error['code'] === 'NUMERIC_FAULT') &&
-    'reason' in error &&
-    typeof error['reason'] === 'string'
-  )
 }
 
 const IRON_DECIMAL_PLACES = 8
