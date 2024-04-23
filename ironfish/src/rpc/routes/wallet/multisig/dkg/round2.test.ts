@@ -27,19 +27,11 @@ describe('Route multisig/dkg/round2', () => {
     const round1Response2 = await routeTest.client.wallet.multisig.dkg.round1(round1Request2)
 
     const round2Request = {
-<<<<<<< HEAD
-      secretName: secretName1,
+      participantName: participantName1,
       round1SecretPackage: round1Response1.content.round1SecretPackage,
       round1PublicPackages: [
         round1Response1.content.round1PublicPackage,
         round1Response2.content.round1PublicPackage,
-=======
-      participantName: participantName1,
-      encryptedSecretPackage: round1Response1.content.encryptedSecretPackage,
-      publicPackages: [
-        round1Response1.content.publicPackage,
-        round1Response2.content.publicPackage,
->>>>>>> 739831827 (renames secretName to participantName)
       ],
     }
 
@@ -52,15 +44,9 @@ describe('Route multisig/dkg/round2', () => {
 
   it('should fail if the named secret does not exist', async () => {
     const request = {
-<<<<<<< HEAD
-      secretName: 'fakeName',
+      participantName: 'fakeName',
       round1SecretPackage: 'foo',
       round1PublicPackages: ['bar', 'baz'],
-=======
-      participantName: 'fakeName',
-      encryptedSecretPackage: 'foo',
-      publicPackages: ['bar', 'baz'],
->>>>>>> 739831827 (renames secretName to participantName)
     }
 
     await expect(routeTest.client.wallet.multisig.dkg.round2(request)).rejects.toThrow(

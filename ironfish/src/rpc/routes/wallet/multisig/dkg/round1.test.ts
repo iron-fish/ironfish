@@ -28,15 +28,10 @@ describe('Route multisig/dkg/round1', () => {
       round1PublicPackage: expect.any(String),
     })
 
-<<<<<<< HEAD
-    // Ensure that the round 1 secret package can be decrypted
-    const secretValue = await routeTest.node.wallet.walletDb.getMultisigSecretByName(secretName)
-=======
     // Ensure that the encrypted secret package can be decrypted
     const secretValue = await routeTest.node.wallet.walletDb.getMultisigSecretByName(
       participantName,
     )
->>>>>>> 739831827 (renames secretName to participantName)
     Assert.isNotUndefined(secretValue)
     const secret = new multisig.ParticipantSecret(secretValue.secret)
     secret.decryptData(Buffer.from(response.content.round1SecretPackage, 'hex'))
