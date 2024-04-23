@@ -22,7 +22,6 @@ export type DkgRound2Response = {
 export const DkgRound2RequestSchema: yup.ObjectSchema<DkgRound2Request> = yup
   .object({
     participantName: yup.string().defined(),
-    secretName: yup.string().defined(),
     round1SecretPackage: yup.string().defined(),
     round1PublicPackages: yup.array().of(yup.string().defined()).defined(),
   })
