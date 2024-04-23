@@ -20,7 +20,9 @@ describe('Route multisig/dkg/round3', () => {
 
     // Create participants and retrieve their identities
     await Promise.all(
-      participantNames.map((name) => routeTest.client.wallet.multisig.createParticipant({ name })),
+      participantNames.map((name) =>
+        routeTest.client.wallet.multisig.createParticipant({ name }),
+      ),
     )
     const participants = await Promise.all(
       participantNames.map(
@@ -109,7 +111,9 @@ describe('Route multisig/dkg/round3', () => {
 
     // Create participants and retrieve their identities
     await Promise.all(
-      participantNames.map((name) => routeTest.client.wallet.multisig.createParticipant({ name })),
+      participantNames.map((name) =>
+        routeTest.client.wallet.multisig.createParticipant({ name }),
+      ),
     )
     const participants = await Promise.all(
       participantNames.map(
@@ -168,7 +172,9 @@ describe('Route multisig/dkg/round3', () => {
 
     // Create participants and retrieve their identities
     await Promise.all(
-      participantNames.map((name) => routeTest.client.wallet.multisig.createParticipant({ name })),
+      participantNames.map((name) =>
+        routeTest.client.wallet.multisig.createParticipant({ name }),
+      ),
     )
     const participants = await Promise.all(
       participantNames.map(
@@ -232,7 +238,9 @@ describe('Route multisig/dkg/round3', () => {
 
     // Create participants and retrieve their identities
     await Promise.all(
-      participantNames.map((name) => routeTest.client.wallet.multisig.createParticipant({ name })),
+      participantNames.map((name) =>
+        routeTest.client.wallet.multisig.createParticipant({ name }),
+      ),
     )
     const participants = await Promise.all(
       participantNames.map(
