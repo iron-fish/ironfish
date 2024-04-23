@@ -87,9 +87,16 @@ export class DkgRound3Command extends IronfishCommand {
       )
       round2PublicPackages = input.split(',')
 
-      if (round2PublicPackages.length !== round1PublicPackages.length - 1) {
+      // Our own public package is optional in this step (if provided, it will
+      // be ignored), so we can accept both `n` and `n-1` packages
+      if (
+        round2PublicPackages.length < round1PublicPackages.length - 1 ||
+        round2PublicPackages.length > round1PublicPackages.length
+      ) {
+        // Suggest to provide `n-1` packages; don't mention the `n` case to
+        // avoid making the error message too hard to decipher.
         this.error(
-          'The number of round 2 public packages must be 1 less than the number of round 1 public packages',
+          'The number of round 2 public packages should be 1 less than the number of round 1 public packages',
         )
       }
     }

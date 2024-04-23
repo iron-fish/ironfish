@@ -418,30 +418,16 @@ pub fn dkg_round2(
     )
     .map_err(to_napi_err)?;
 
-    let public_packages = public_packages
-        .iter()
-        .map(|p| DkgRound2PublicPackage {
-            recipient_identity: bytes_to_hex(&p.recipient_identity().serialize()),
-            public_package: bytes_to_hex(&p.serialize()),
-        })
-        .collect();
-
     Ok(DkgRound2Packages {
         encrypted_secret_package: bytes_to_hex(&encrypted_secret_package),
-        public_packages,
+        public_packages: bytes_to_hex(&public_packages.serialize()),
     })
-}
-
-#[napi(object, namespace = "multisig")]
-pub struct DkgRound2PublicPackage {
-    pub recipient_identity: String,
-    pub public_package: String,
 }
 
 #[napi(object, namespace = "multisig")]
 pub struct DkgRound2Packages {
     pub encrypted_secret_package: String,
-    pub public_packages: Vec<DkgRound2PublicPackage>,
+    pub public_packages: String,
 }
 
 #[napi(object, namespace = "multisig")]
@@ -456,7 +442,7 @@ pub fn dkg_round3(
         dkg::round1::PublicPackage::deserialize_from(bytes)
     })?;
     let round2_public_packages = try_deserialize(round2_public_packages, |bytes| {
-        dkg::round2::PublicPackage::deserialize_from(bytes)
+        dkg::round2::CombinedPublicPackage::deserialize_from(bytes)
     })?;
 
     let (key_package, public_key_package, group_secret_key) = dkg::round3::round3(
