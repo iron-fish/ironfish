@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../../../../../assert'
 import { createRouteTest } from '../../../../../testUtilities/routeTest'
-import { AsyncUtils } from '../../../../../utils'
 
 function removeOneElement<T>(array: Array<T>): Array<T> {
   const newArray = [...array]
@@ -93,17 +92,14 @@ describe('Route multisig/dkg/round3', () => {
 
     // Check that the imported accounts all know about other participants'
     // identities
-    const expectedIdentities = participants.map(({ identity }) => identity)
-    expectedIdentities.sort()
+    const expectedIdentities = participants.map(({ identity }) => identity).sort()
     for (const accountName of accountNames) {
       const account = routeTest.wallet.getAccountByName(accountName)
       Assert.isNotNull(account)
-      const knownIdentities = (
-        await AsyncUtils.materialize(
-          routeTest.wallet.walletDb.getParticipantIdentities(account),
-        )
-      ).map((identity) => identity.toString('hex'))
-      knownIdentities.sort()
+      const knownIdentities = account
+        .getMultisigParticipantIdentities()
+        .map((identity) => identity.toString('hex'))
+        .sort()
       expect(knownIdentities).toStrictEqual(expectedIdentities)
     }
   })
