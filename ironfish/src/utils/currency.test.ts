@@ -154,15 +154,6 @@ describe('CurrencyUtils', () => {
     })
   })
 
-  it('renderIron', () => {
-    expect(CurrencyUtils.renderIron(0n)).toEqual('0.00000000')
-    expect(CurrencyUtils.renderIron(1n)).toEqual('0.00000001')
-    expect(CurrencyUtils.renderIron(100n)).toEqual('0.00000100')
-    expect(CurrencyUtils.renderIron(10000n)).toEqual('0.00010000')
-    expect(CurrencyUtils.renderIron(100000000n)).toEqual('1.00000000')
-    expect(CurrencyUtils.renderIron(1n, true)).toEqual('$IRON 0.00000001')
-  })
-
   it('renderOre', () => {
     expect(CurrencyUtils.renderOre(0n)).toEqual('0')
     expect(CurrencyUtils.renderOre(1n)).toEqual('1')
