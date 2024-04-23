@@ -9,8 +9,6 @@ import { ErrorUtils } from './error'
 import { FixedNumberUtils } from './fixedNumber'
 
 export class CurrencyUtils {
-  static locale?: string
-
   /**
    * Serializes ore as iron with up to 8 decimal places
    */
