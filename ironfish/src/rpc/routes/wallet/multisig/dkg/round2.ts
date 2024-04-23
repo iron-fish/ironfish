@@ -10,27 +10,27 @@ import { AssertHasRpcContext } from '../../../rpcContext'
 
 export type DkgRound2Request = {
   secretName: string
-  encryptedSecretPackage: string
-  publicPackages: Array<string>
+  round1SecretPackage: string
+  round1PublicPackages: Array<string>
 }
 
 export type DkgRound2Response = {
-  encryptedSecretPackage: string
-  publicPackages: string
+  round2SecretPackage: string
+  round2PublicPackage: string
 }
 
 export const DkgRound2RequestSchema: yup.ObjectSchema<DkgRound2Request> = yup
   .object({
     secretName: yup.string().defined(),
-    encryptedSecretPackage: yup.string().defined(),
-    publicPackages: yup.array().of(yup.string().defined()).defined(),
+    round1SecretPackage: yup.string().defined(),
+    round1PublicPackages: yup.array().of(yup.string().defined()).defined(),
   })
   .defined()
 
 export const DkgRound2ResponseSchema: yup.ObjectSchema<DkgRound2Response> = yup
   .object({
-    encryptedSecretPackage: yup.string().defined(),
-    publicPackages: yup.string().defined(),
+    round2SecretPackage: yup.string().defined(),
+    round2PublicPackage: yup.string().defined(),
   })
   .defined()
 
@@ -40,7 +40,7 @@ routes.register<typeof DkgRound2RequestSchema, DkgRound2Response>(
   async (request, node): Promise<void> => {
     AssertHasRpcContext(request, node, 'wallet')
 
-    const { secretName, encryptedSecretPackage, publicPackages } = request.data
+    const { secretName, round1SecretPackage, round1PublicPackages } = request.data
     const multisigSecret = await node.wallet.walletDb.getMultisigSecretByName(secretName)
 
     if (!multisigSecret) {
@@ -53,7 +53,7 @@ routes.register<typeof DkgRound2RequestSchema, DkgRound2Response>(
 
     const secret = multisigSecret.secret.toString('hex')
 
-    const packages = multisig.dkgRound2(secret, encryptedSecretPackage, publicPackages)
+    const packages = multisig.dkgRound2(secret, round1SecretPackage, round1PublicPackages)
 
     request.end(packages)
   },

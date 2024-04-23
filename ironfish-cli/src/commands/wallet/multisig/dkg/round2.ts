@@ -17,14 +17,14 @@ export class DkgRound2Command extends IronfishCommand {
       char: 's',
       description: 'The name of the secret to use for encryption during DKG',
     }),
-    encryptedSecretPackage: Flags.string({
+    round1SecretPackage: Flags.string({
       char: 'e',
-      description: 'The ecrypted secret package created during DKG round1',
+      description: 'The encrypted secret package created during DKG round 1',
     }),
-    publicPackage: Flags.string({
+    round1PublicPackages: Flags.string({
       char: 'p',
       description:
-        'The public package that a participant generated during DKG round1 (may be specified multiple times for multiple participants). Must include your own round1 public package',
+        'The public packages that each participant generated during DKG round 1 (may be specified multiple times for multiple participants). Must include your own round 1 public package',
       multiple: true,
     }),
   }
@@ -39,50 +39,46 @@ export class DkgRound2Command extends IronfishCommand {
       secretName = await selectSecret(client)
     }
 
-    let encryptedSecretPackage = flags.encryptedSecretPackage
-    if (!encryptedSecretPackage) {
-      encryptedSecretPackage = await CliUx.ux.prompt(
-        `Enter the encrypted secret package for secret ${secretName}`,
-        {
-          required: true,
-        },
+    let round1SecretPackage = flags.round1SecretPackage
+    if (!round1SecretPackage) {
+      round1SecretPackage = await CliUx.ux.prompt(
+        `Enter the round 1 secret package for secret ${secretName}`,
+        { required: true },
       )
     }
 
-    let publicPackages = flags.publicPackage
-    if (!publicPackages || publicPackages.length < 2) {
+    let round1PublicPackages = flags.round1PublicPackages
+    if (!round1PublicPackages || round1PublicPackages.length < 2) {
       const input = await longPrompt(
-        'Enter public packages separated by commas, one for each participant',
-        {
-          required: true,
-        },
+        'Enter round 1 public packages separated by commas, one for each participant',
+        { required: true },
       )
-      publicPackages = input.split(',')
+      round1PublicPackages = input.split(',')
 
-      if (publicPackages.length < 2) {
+      if (round1PublicPackages.length < 2) {
         this.error(
-          'Must include a public package for each participant; at least 2 participants required',
+          'Must include a round 1 public package for each participant; at least 2 participants required',
         )
       }
     }
-    publicPackages = publicPackages.map((i) => i.trim())
+    round1PublicPackages = round1PublicPackages.map((i) => i.trim())
 
     const response = await client.wallet.multisig.dkg.round2({
       secretName,
-      encryptedSecretPackage,
-      publicPackages,
+      round1SecretPackage,
+      round1PublicPackages,
     })
 
-    this.log('\nEncrypted Secret Package:\n')
-    this.log(response.content.encryptedSecretPackage)
+    this.log('\nRound 2 Encrypted Secret Package:\n')
+    this.log(response.content.round2SecretPackage)
     this.log()
 
-    this.log('\nPublic Package:\n')
-    this.log(response.content.publicPackages)
+    this.log('\nRound 2 Public Package:\n')
+    this.log(response.content.round2PublicPackage)
     this.log()
 
     this.log()
     this.log('Next step:')
-    this.log('Send the public package to each participant')
+    this.log('Send the round 2 public package to each participant')
   }
 }

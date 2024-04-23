@@ -192,8 +192,8 @@ describe('multisig RPC integration', () => {
       participants.map(({ name }, index) =>
         routeTest.client.wallet.multisig.dkg.round2({
           secretName: name,
-          encryptedSecretPackage: round1Packages[index].content.encryptedSecretPackage,
-          publicPackages: round1Packages.map((pkg) => pkg.content.publicPackage),
+          round1SecretPackage: round1Packages[index].content.round1SecretPackage,
+          round1PublicPackages: round1Packages.map((pkg) => pkg.content.round1PublicPackage),
         }),
       ),
     )
@@ -203,9 +203,9 @@ describe('multisig RPC integration', () => {
       participants.map(async ({ name }, index) => {
         await routeTest.client.wallet.multisig.dkg.round3({
           secretName: name,
-          round2SecretPackage: round2Packages[index].content.encryptedSecretPackage,
-          round1PublicPackages: round1Packages.map((pkg) => pkg.content.publicPackage),
-          round2PublicPackages: round2Packages.map((pkg) => pkg.content.publicPackages),
+          round2SecretPackage: round2Packages[index].content.round2SecretPackage,
+          round1PublicPackages: round1Packages.map((pkg) => pkg.content.round1PublicPackage),
+          round2PublicPackages: round2Packages.map((pkg) => pkg.content.round2PublicPackage),
         })
 
         const participantAccount = routeTest.wallet.getAccountByName(name)

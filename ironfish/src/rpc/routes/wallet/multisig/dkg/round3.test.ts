@@ -44,8 +44,8 @@ describe('Route multisig/dkg/round3', () => {
       secretNames.map((secretName, index) =>
         routeTest.client.wallet.multisig.dkg.round2({
           secretName,
-          encryptedSecretPackage: round1Packages[index].content.encryptedSecretPackage,
-          publicPackages: round1Packages.map((pkg) => pkg.content.publicPackage),
+          round1SecretPackage: round1Packages[index].content.round1SecretPackage,
+          round1PublicPackages: round1Packages.map((pkg) => pkg.content.round1PublicPackage),
         }),
       ),
     )
@@ -56,9 +56,9 @@ describe('Route multisig/dkg/round3', () => {
         routeTest.client.wallet.multisig.dkg.round3({
           secretName,
           accountName: accountNames[index],
-          round2SecretPackage: round2Packages[index].content.encryptedSecretPackage,
-          round1PublicPackages: round1Packages.map((pkg) => pkg.content.publicPackage),
-          round2PublicPackages: round2Packages.map((pkg) => pkg.content.publicPackages),
+          round2SecretPackage: round2Packages[index].content.round2SecretPackage,
+          round1PublicPackages: round1Packages.map((pkg) => pkg.content.round1PublicPackage),
+          round2PublicPackages: round2Packages.map((pkg) => pkg.content.round2PublicPackage),
         }),
       ),
     )
@@ -127,8 +127,8 @@ describe('Route multisig/dkg/round3', () => {
       secretNames.map((secretName, index) =>
         routeTest.client.wallet.multisig.dkg.round2({
           secretName,
-          encryptedSecretPackage: round1Packages[index].content.encryptedSecretPackage,
-          publicPackages: round1Packages.map((pkg) => pkg.content.publicPackage),
+          round1SecretPackage: round1Packages[index].content.round1SecretPackage,
+          round1PublicPackages: round1Packages.map((pkg) => pkg.content.round1PublicPackage),
         }),
       ),
     )
@@ -137,11 +137,11 @@ describe('Route multisig/dkg/round3', () => {
     await expect(
       routeTest.client.wallet.multisig.dkg.round3({
         secretName: secretNames[0],
-        round2SecretPackage: round2Packages[0].content.encryptedSecretPackage,
+        round2SecretPackage: round2Packages[0].content.round2SecretPackage,
         round1PublicPackages: removeOneElement(
-          round1Packages.map((pkg) => pkg.content.publicPackage),
+          round1Packages.map((pkg) => pkg.content.round1PublicPackage),
         ),
-        round2PublicPackages: round2Packages.map((pkg) => pkg.content.publicPackages),
+        round2PublicPackages: round2Packages.map((pkg) => pkg.content.round2PublicPackage),
       }),
     ).rejects.toThrow('invalid input: expected 3 round 1 public packages, got 2')
   })
@@ -175,8 +175,8 @@ describe('Route multisig/dkg/round3', () => {
       secretNames.map((secretName, index) =>
         routeTest.client.wallet.multisig.dkg.round2({
           secretName,
-          encryptedSecretPackage: round1Packages[index].content.encryptedSecretPackage,
-          publicPackages: round1Packages.map((pkg) => pkg.content.publicPackage),
+          round1SecretPackage: round1Packages[index].content.round1SecretPackage,
+          round1PublicPackages: round1Packages.map((pkg) => pkg.content.round1PublicPackage),
         }),
       ),
     )
@@ -185,14 +185,14 @@ describe('Route multisig/dkg/round3', () => {
     await expect(
       routeTest.client.wallet.multisig.dkg.round3({
         secretName: secretNames[0],
-        round2SecretPackage: round2Packages[0].content.encryptedSecretPackage,
-        round1PublicPackages: round1Packages.map((pkg) => pkg.content.publicPackage),
+        round2SecretPackage: round2Packages[0].content.round2SecretPackage,
+        round1PublicPackages: round1Packages.map((pkg) => pkg.content.round1PublicPackage),
         // Here we cannot just remove any one element to perform this test,
         // because `round2Packages[0]` does not contain any useful
         // information for `secretName[0]`, hence if that gets removed, the
         // operation won't fail. This is why we call `slice()`
         round2PublicPackages: removeOneElement(
-          round2Packages.slice(1).map((pkg) => pkg.content.publicPackages),
+          round2Packages.slice(1).map((pkg) => pkg.content.round2PublicPackage),
         ),
       }),
     ).rejects.toThrow('invalid input: expected 2 round 2 public packages, got 1')
@@ -227,8 +227,8 @@ describe('Route multisig/dkg/round3', () => {
       secretNames.map((secretName, index) =>
         routeTest.client.wallet.multisig.dkg.round2({
           secretName,
-          encryptedSecretPackage: round1Packages[index].content.encryptedSecretPackage,
-          publicPackages: round1Packages.map((pkg) => pkg.content.publicPackage),
+          round1SecretPackage: round1Packages[index].content.round1SecretPackage,
+          round1PublicPackages: round1Packages.map((pkg) => pkg.content.round1PublicPackage),
         }),
       ),
     )
@@ -237,9 +237,9 @@ describe('Route multisig/dkg/round3', () => {
     await expect(
       routeTest.client.wallet.multisig.dkg.round3({
         secretName: secretNames[0],
-        round2SecretPackage: round2Packages[1].content.encryptedSecretPackage,
-        round1PublicPackages: round1Packages.map((pkg) => pkg.content.publicPackage),
-        round2PublicPackages: round2Packages.map((pkg) => pkg.content.publicPackages),
+        round2SecretPackage: round2Packages[1].content.round2SecretPackage,
+        round1PublicPackages: round1Packages.map((pkg) => pkg.content.round1PublicPackage),
+        round2PublicPackages: round2Packages.map((pkg) => pkg.content.round2PublicPackage),
       }),
     ).rejects.toThrow('decryption error: aead::Error')
   })

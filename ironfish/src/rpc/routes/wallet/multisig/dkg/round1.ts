@@ -15,8 +15,8 @@ export type DkgRound1Request = {
 }
 
 export type DkgRound1Response = {
-  encryptedSecretPackage: string
-  publicPackage: string
+  round1SecretPackage: string
+  round1PublicPackage: string
 }
 
 export const DkgRound1RequestSchema: yup.ObjectSchema<DkgRound1Request> = yup
@@ -32,8 +32,8 @@ export const DkgRound1RequestSchema: yup.ObjectSchema<DkgRound1Request> = yup
 
 export const DkgRound1ResponseSchema: yup.ObjectSchema<DkgRound1Response> = yup
   .object({
-    encryptedSecretPackage: yup.string().defined(),
-    publicPackage: yup.string().defined(),
+    round1SecretPackage: yup.string().defined(),
+    round1PublicPackage: yup.string().defined(),
   })
   .defined()
 

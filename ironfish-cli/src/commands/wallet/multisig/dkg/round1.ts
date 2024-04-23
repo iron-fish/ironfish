@@ -69,15 +69,15 @@ export class DkgRound1Command extends IronfishCommand {
       minSigners: minSigners,
     })
 
-    this.log('\nEncrypted Secret Package:\n')
-    this.log(response.content.encryptedSecretPackage)
+    this.log('\nRound 1 Encrypted Secret Package:\n')
+    this.log(response.content.round1SecretPackage)
     this.log()
 
-    this.log('\nPublic Package:\n')
-    this.log(response.content.publicPackage)
+    this.log('\nRound 1 Public Package:\n')
+    this.log(response.content.round1PublicPackage)
     this.log()
 
     this.log('Next step:')
-    this.log('Send the public package to each participant')
+    this.log('Send the round 1 public package to each participant')
   }
 }
