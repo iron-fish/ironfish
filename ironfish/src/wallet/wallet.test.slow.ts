@@ -1362,7 +1362,9 @@ describe('Wallet', () => {
       ...trustedDealerPackage,
     })
 
-    const storedIdentities = account.getMultisigParticipantIdentities()
+    const storedIdentities = account
+      .getMultisigParticipantIdentities()
+      .map((identity) => identity.toString('hex'))
     expect(identities.sort()).toEqual(storedIdentities.sort())
   })
 })
