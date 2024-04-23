@@ -205,13 +205,7 @@ describe('multisig RPC integration', () => {
           secretName: name,
           round2SecretPackage: round2Packages[index].content.encryptedSecretPackage,
           round1PublicPackages: round1Packages.map((pkg) => pkg.content.publicPackage),
-          round2PublicPackages: round2Packages.flatMap((pkg) =>
-            pkg.content.publicPackages
-              .filter(
-                ({ recipientIdentity }) => recipientIdentity === participants[index].identity,
-              )
-              .map(({ publicPackage }) => publicPackage),
-          ),
+          round2PublicPackages: round2Packages.map((pkg) => pkg.content.publicPackages),
         })
 
         const participantAccount = routeTest.wallet.getAccountByName(name)

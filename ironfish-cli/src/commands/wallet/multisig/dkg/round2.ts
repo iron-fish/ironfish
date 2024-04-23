@@ -77,17 +77,12 @@ export class DkgRound2Command extends IronfishCommand {
     this.log(response.content.encryptedSecretPackage)
     this.log()
 
-    this.log('\nPublic Packages:\n')
-    for (const { recipientIdentity, publicPackage } of response.content.publicPackages) {
-      this.log('Recipient Identity')
-      this.log(recipientIdentity)
-      this.log('----------------')
-      this.log(publicPackage)
-      this.log()
-    }
+    this.log('\nPublic Package:\n')
+    this.log(response.content.publicPackages)
+    this.log()
 
     this.log()
     this.log('Next step:')
-    this.log('Send each public package to the participant with the matching identity')
+    this.log('Send the public package to each participant')
   }
 }

@@ -58,13 +58,7 @@ describe('Route multisig/dkg/round3', () => {
           accountName: accountNames[index],
           round2SecretPackage: round2Packages[index].content.encryptedSecretPackage,
           round1PublicPackages: round1Packages.map((pkg) => pkg.content.publicPackage),
-          round2PublicPackages: round2Packages.flatMap((pkg) =>
-            pkg.content.publicPackages
-              .filter(
-                ({ recipientIdentity }) => recipientIdentity === participants[index].identity,
-              )
-              .map(({ publicPackage }) => publicPackage),
-          ),
+          round2PublicPackages: round2Packages.map((pkg) => pkg.content.publicPackages),
         }),
       ),
     )
@@ -147,11 +141,7 @@ describe('Route multisig/dkg/round3', () => {
         round1PublicPackages: removeOneElement(
           round1Packages.map((pkg) => pkg.content.publicPackage),
         ),
-        round2PublicPackages: round2Packages.flatMap((pkg) =>
-          pkg.content.publicPackages
-            .filter(({ recipientIdentity }) => recipientIdentity === participants[0].identity)
-            .map(({ publicPackage }) => publicPackage),
-        ),
+        round2PublicPackages: round2Packages.map((pkg) => pkg.content.publicPackages),
       }),
     ).rejects.toThrow('invalid input: expected 3 round 1 public packages, got 2')
   })
@@ -197,12 +187,12 @@ describe('Route multisig/dkg/round3', () => {
         secretName: secretNames[0],
         round2SecretPackage: round2Packages[0].content.encryptedSecretPackage,
         round1PublicPackages: round1Packages.map((pkg) => pkg.content.publicPackage),
+        // Here we cannot just remove any one element to perform this test,
+        // because `round2Packages[0]` does not contain any useful
+        // information for `secretName[0]`, hence if that gets removed, the
+        // operation won't fail. This is why we call `slice()`
         round2PublicPackages: removeOneElement(
-          round2Packages.flatMap((pkg) =>
-            pkg.content.publicPackages
-              .filter(({ recipientIdentity }) => recipientIdentity === participants[0].identity)
-              .map(({ publicPackage }) => publicPackage),
-          ),
+          round2Packages.slice(1).map((pkg) => pkg.content.publicPackages),
         ),
       }),
     ).rejects.toThrow('invalid input: expected 2 round 2 public packages, got 1')
@@ -249,11 +239,7 @@ describe('Route multisig/dkg/round3', () => {
         secretName: secretNames[0],
         round2SecretPackage: round2Packages[1].content.encryptedSecretPackage,
         round1PublicPackages: round1Packages.map((pkg) => pkg.content.publicPackage),
-        round2PublicPackages: round2Packages.flatMap((pkg) =>
-          pkg.content.publicPackages
-            .filter(({ recipientIdentity }) => recipientIdentity === participants[0].identity)
-            .map(({ publicPackage }) => publicPackage),
-        ),
+        round2PublicPackages: round2Packages.map((pkg) => pkg.content.publicPackages),
       }),
     ).rejects.toThrow('decryption error: aead::Error')
   })
