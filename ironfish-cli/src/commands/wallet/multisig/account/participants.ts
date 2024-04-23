@@ -6,13 +6,16 @@ import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
 
 export class MultisigAccountParticipants extends IronfishCommand {
-  static description = `List the participant identities for a multisig account`
+  static description = `List all participant identities in the group for a multisig account`
+
+  static aliases = ['wallet:multisig:participants']
+  static deprecateAliases = true
 
   static flags = {
     ...RemoteFlags,
     account: Flags.string({
       char: 'f',
-      description: 'The account to list identities for',
+      description: 'The account to list group identities for',
     }),
   }
 
