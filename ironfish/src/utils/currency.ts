@@ -9,8 +9,6 @@ import { ErrorUtils } from './error'
 import { FixedNumberUtils } from './fixedNumber'
 
 export class CurrencyUtils {
-  static locale?: string
-
   /**
    * Serializes ore as iron with up to 8 decimal places
    */
@@ -107,27 +105,6 @@ export class CurrencyUtils {
   }
 
   /*
-   * Renders ore as iron for human-readable purposes
-   */
-  static renderIron(amount: bigint | string, includeTicker = false, assetId?: string): string {
-    if (typeof amount === 'string') {
-      amount = this.decode(amount)
-    }
-
-    const iron = FixedNumberUtils.render(amount, 8)
-
-    if (includeTicker) {
-      let ticker = '$IRON'
-      if (assetId && !isNativeIdentifier(assetId)) {
-        ticker = assetId
-      }
-      return `${ticker} ${iron}`
-    }
-
-    return iron
-  }
-
-  /*
    * Renders ore for human-readable purposes
    */
   static renderOre(amount: bigint | string, includeTicker = false, assetId?: string): string {
@@ -168,8 +145,6 @@ const IRON_SYMBOL = '$IRON'
 export const ORE_TO_IRON = 100000000
 export const MINIMUM_ORE_AMOUNT = 0n
 export const MAXIMUM_ORE_AMOUNT = 2n ** 64n
-export const MINIMUM_IRON_AMOUNT = CurrencyUtils.renderIron(MINIMUM_ORE_AMOUNT)
-export const MAXIMUM_IRON_AMOUNT = CurrencyUtils.renderIron(MAXIMUM_ORE_AMOUNT)
 
 export function assetMetadataWithDefaults(
   assetId?: string,
