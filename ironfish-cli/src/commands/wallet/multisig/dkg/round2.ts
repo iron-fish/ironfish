@@ -13,9 +13,10 @@ export class DkgRound2Command extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
-    secretName: Flags.string({
-      char: 's',
+    participantName: Flags.string({
+      char: 'n',
       description: 'The name of the secret to use for encryption during DKG',
+      aliases: ['name'],
     }),
     round1SecretPackage: Flags.string({
       char: 'e',
@@ -34,15 +35,15 @@ export class DkgRound2Command extends IronfishCommand {
 
     const client = await this.sdk.connectRpc()
 
-    let secretName = flags.secretName
-    if (!secretName) {
-      secretName = await selectSecret(client)
+    let participantName = flags.participantName
+    if (!participantName) {
+      participantName = await selectSecret(client)
     }
 
     let round1SecretPackage = flags.round1SecretPackage
     if (!round1SecretPackage) {
       round1SecretPackage = await CliUx.ux.prompt(
-        `Enter the round 1 secret package for secret ${secretName}`,
+        `Enter the round 1 secret package for participant ${participantName}`,
         { required: true },
       )
     }
@@ -64,7 +65,7 @@ export class DkgRound2Command extends IronfishCommand {
     round1PublicPackages = round1PublicPackages.map((i) => i.trim())
 
     const response = await client.wallet.multisig.dkg.round2({
-      secretName,
+      participantName,
       round1SecretPackage,
       round1PublicPackages,
     })

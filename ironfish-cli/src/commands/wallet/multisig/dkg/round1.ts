@@ -13,14 +13,15 @@ export class DkgRound1Command extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
-    secretName: Flags.string({
-      char: 's',
+    participantName: Flags.string({
+      char: 'n',
       description: 'The name of the secret to use for encryption during DKG',
+      aliases: ['name'],
     }),
     identity: Flags.string({
       char: 'i',
       description:
-        'The identity of the participants will generate the group keys (may be specified multiple times to add multiple participants). Must include the identity for secretName',
+        'The identity of the participants will generate the group keys (may be specified multiple times to add multiple participants)',
       multiple: true,
     }),
     minSigners: Flags.integer({
@@ -34,9 +35,9 @@ export class DkgRound1Command extends IronfishCommand {
 
     const client = await this.sdk.connectRpc()
 
-    let secretName = flags.secretName
-    if (!secretName) {
-      secretName = await selectSecret(client)
+    let participantName = flags.participantName
+    if (!participantName) {
+      participantName = await selectSecret(client)
     }
 
     let identities = flags.identity
@@ -64,7 +65,7 @@ export class DkgRound1Command extends IronfishCommand {
     }
 
     const response = await client.wallet.multisig.dkg.round1({
-      secretName: secretName,
+      participantName,
       participants: identities.map((identity) => ({ identity })),
       minSigners: minSigners,
     })

@@ -106,10 +106,10 @@ describe('multisig RPC integration', () => {
   }
 
   function createParticipants(
-    secretNames: Array<string>,
+    participantNames: Array<string>,
   ): Promise<Array<{ name: string; identity: string }>> {
     return Promise.all(
-      secretNames.map(async (name) => {
+      participantNames.map(async (name) => {
         const identity = (await routeTest.client.wallet.multisig.createParticipant({ name }))
           .content.identity
         return { name, identity }
@@ -180,7 +180,7 @@ describe('multisig RPC integration', () => {
     const round1Packages = await Promise.all(
       participants.map(({ name }) =>
         routeTest.client.wallet.multisig.dkg.round1({
-          secretName: name,
+          participantName: name,
           minSigners,
           participants,
         }),
@@ -191,7 +191,7 @@ describe('multisig RPC integration', () => {
     const round2Packages = await Promise.all(
       participants.map(({ name }, index) =>
         routeTest.client.wallet.multisig.dkg.round2({
-          secretName: name,
+          participantName: name,
           round1SecretPackage: round1Packages[index].content.round1SecretPackage,
           round1PublicPackages: round1Packages.map((pkg) => pkg.content.round1PublicPackage),
         }),
@@ -202,7 +202,7 @@ describe('multisig RPC integration', () => {
     const participantAccounts = await Promise.all(
       participants.map(async ({ name }, index) => {
         await routeTest.client.wallet.multisig.dkg.round3({
-          secretName: name,
+          participantName: name,
           round2SecretPackage: round2Packages[index].content.round2SecretPackage,
           round1PublicPackages: round1Packages.map((pkg) => pkg.content.round1PublicPackage),
           round2PublicPackages: round2Packages.map((pkg) => pkg.content.round2PublicPackage),
