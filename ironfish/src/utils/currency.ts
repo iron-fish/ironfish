@@ -5,7 +5,6 @@
 import { formatFixed, parseFixed } from '@ethersproject/bignumber'
 import { isNativeIdentifier } from './asset'
 import { BigIntUtils } from './bigint'
-import { ErrorUtils } from './error'
 import { FixedNumberUtils } from './fixedNumber'
 
 export class CurrencyUtils {
@@ -60,13 +59,21 @@ export class CurrencyUtils {
     verifiedAssetMetadata?: {
       decimals?: number
     },
-  ): [bigint, null] | [null, ParseFixedError] {
+  ): [bigint, null] | [null, Error] {
+    const { decimals } = assetMetadataWithDefaults(assetId, verifiedAssetMetadata)
     try {
-      const { decimals } = assetMetadataWithDefaults(assetId, verifiedAssetMetadata)
-      const parsed = parseFixed(amount.toString(), decimals).toBigInt()
-      return [parsed, null]
+      const { value, decimals: parsedDecimals } = FixedNumberUtils.tryDecodeDecimal(
+        amount.toString(),
+      )
+
+      if (parsedDecimals > decimals) {
+        return [null, new Error('major value is too small')]
+      }
+
+      const minorValue = value * 10n ** BigInt(decimals - parsedDecimals)
+      return [minorValue, null]
     } catch (e) {
-      if (isParseFixedError(e)) {
+      if (e instanceof Error) {
         return [null, e]
       }
       throw e
@@ -124,20 +131,6 @@ export class CurrencyUtils {
 
     return ore
   }
-}
-
-export interface ParseFixedError extends Error {
-  code: 'INVALID_ARGUMENT' | 'NUMERIC_FAULT'
-  reason: string
-}
-
-export function isParseFixedError(error: unknown): error is ParseFixedError {
-  return (
-    ErrorUtils.isNodeError(error) &&
-    (error['code'] === 'INVALID_ARGUMENT' || error['code'] === 'NUMERIC_FAULT') &&
-    'reason' in error &&
-    typeof error['reason'] === 'string'
-  )
 }
 
 const IRON_DECIMAL_PLACES = 8

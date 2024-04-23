@@ -213,7 +213,7 @@ export class Mint extends IronfishCommand {
       )
 
       if (error) {
-        this.error(`${error.reason}`)
+        this.error(`${error.message}`)
       }
 
       amount = parsedAmount

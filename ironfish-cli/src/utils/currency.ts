@@ -72,7 +72,7 @@ export async function promptCurrency(options: {
     )
 
     if (error) {
-      options.logger.error(`Error: ${error.reason}`)
+      options.logger.error(`Error: ${error.message}`)
       continue
     }
 
