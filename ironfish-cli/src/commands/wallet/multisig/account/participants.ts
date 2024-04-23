@@ -8,9 +8,6 @@ import { RemoteFlags } from '../../../../flags'
 export class MultisigAccountParticipants extends IronfishCommand {
   static description = `List all participant identities in the group for a multisig account`
 
-  static aliases = ['wallet:multisig:participants']
-  static deprecateAliases = true
-
   static flags = {
     ...RemoteFlags,
     account: Flags.string({
