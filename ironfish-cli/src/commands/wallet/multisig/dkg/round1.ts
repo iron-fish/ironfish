@@ -43,7 +43,7 @@ export class DkgRound1Command extends IronfishCommand {
     let identities = flags.identity
     if (!identities || identities.length < 2) {
       const input = await longPrompt(
-        'Enter the identities of all participants separated by commas',
+        'Enter the identities of all participants, separated by commas',
         {
           required: true,
         },

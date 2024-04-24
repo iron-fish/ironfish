@@ -48,7 +48,7 @@ export class CreateSigningCommitmentCommand extends IronfishCommand {
     let identities = options.identity
     if (!identities || identities.length < 2) {
       const input = await longPrompt(
-        'Enter the identities of all participants who will sign the transaction separated by commas',
+        'Enter the identities of all participants who will sign the transaction, separated by commas',
         {
           required: true,
         },
