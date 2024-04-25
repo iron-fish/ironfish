@@ -9,7 +9,6 @@ import { longPrompt } from '../../../../utils/longPrompt'
 
 export class MultisigCreateDealer extends IronfishCommand {
   static description = `Create a set of multisig accounts from participant identities`
-  static hidden = true
 
   static flags = {
     ...RemoteFlags,

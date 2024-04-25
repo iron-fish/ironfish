@@ -9,7 +9,6 @@ import { selectSecret } from '../../../../utils/multisig'
 
 export class DkgRound3Command extends IronfishCommand {
   static description = 'Perform round3 of the DKG protocol for multisig account creation'
-  static hidden = true
 
   static flags = {
     ...RemoteFlags,
