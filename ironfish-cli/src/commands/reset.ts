@@ -13,6 +13,7 @@ import {
   VerboseFlag,
   VerboseFlagKey,
 } from '../flags'
+import { confirmOperation } from '../utils'
 
 export default class Reset extends IronfishCommand {
   static description = 'Reset the node to its initial state'
@@ -60,12 +61,11 @@ export default class Reset extends IronfishCommand {
       networkIdMessage +
       `\n\nAre you sure? (Y)es / (N)o`
 
-    const confirmed = flags.confirm || (await CliUx.ux.confirm(message))
-
-    if (!confirmed) {
-      this.log('Reset aborted.')
-      this.exit(0)
-    }
+    await confirmOperation({
+      confirm: flags.confirm,
+      confirmMessage: message,
+      cancelledMessage: 'Reset aborted.',
+    })
 
     CliUx.ux.action.start('Deleting databases...')
 

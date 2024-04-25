@@ -102,6 +102,34 @@ describe('Route wallet/importAccount', () => {
     })
   })
 
+  it('should import a spending account with the specified name', async () => {
+    const key = generateKey()
+
+    const accountName = 'bar'
+    const overriddenAccountName = 'not-bar'
+    const response = await routeTest.client.wallet.importAccount({
+      account: {
+        name: accountName,
+        viewKey: key.viewKey,
+        spendingKey: key.spendingKey,
+        publicAddress: key.publicAddress,
+        incomingViewKey: key.incomingViewKey,
+        outgoingViewKey: key.outgoingViewKey,
+        proofAuthorizingKey: null,
+        version: 1,
+        createdAt: null,
+      },
+      name: overriddenAccountName,
+      rescan: false,
+    })
+
+    expect(response.status).toBe(200)
+    expect(response.content).toMatchObject({
+      name: overriddenAccountName,
+      isDefaultAccount: false, // This is false because the default account is already imported in a previous test
+    })
+  })
+
   describe('import rescanning', () => {
     let nodeClient: RpcClient | null = null
 
@@ -390,13 +418,14 @@ describe('Route wallet/importAccount', () => {
             name: testCaseFile,
           })
 
+          const name = 'new-account-name'
           const response = await routeTest.client.wallet.importAccount({
             account: testCase,
-            name: testCaseFile,
+            name,
           })
 
           expect(response.status).toBe(200)
-          expect(response.content.name).not.toBeNull()
+          expect(response.content.name).toEqual(name)
         }
       })
     })

@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { Asset } from '@ironfish/rust-nodejs'
 import {
+  assetMetadataWithDefaults,
   createRootLogger,
   CurrencyUtils,
   GetUnsignedTransactionNotesResponse,
@@ -17,7 +19,7 @@ import {
 } from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
 import { ProgressBar } from '../types'
-import { getAssetsByIDs } from './asset'
+import { getAssetsByIDs, getAssetVerificationByIds } from './asset'
 
 export class TransactionTimer {
   private progressBar: ProgressBar | undefined
@@ -249,6 +251,146 @@ export async function renderUnsignedTransactionDetails(
   logger.log('')
 }
 
+export async function renderRawTransactionDetails(
+  client: Pick<RpcClient, 'wallet'>,
+  rawTransaction: RawTransaction,
+  account: string,
+  logger: Logger,
+): Promise<void> {
+  const assetIds = collectRawTransactionAssetIds(rawTransaction)
+  const assetLookup = await getAssetVerificationByIds(client, assetIds, account, undefined)
+  const feeString = CurrencyUtils.render(rawTransaction.fee, true)
+  // Every transaction except for a miners transaction should have at least 1 spend for the transaction fee
+  const from = rawTransaction.spends.length ? rawTransaction.spends[0].note.owner() : null
+
+  const summary = `\
+\n===================
+Transaction Summary
+===================
+
+From            ${from}
+Fee             ${feeString}
+Expiration      ${
+    rawTransaction.expiration !== null ? rawTransaction.expiration.toString() : ''
+  }`
+  logger.log(summary)
+
+  if (rawTransaction.mints.length > 0) {
+    logger.log('')
+    logger.log('==================')
+    logger.log(`Mints (${rawTransaction.mints.length})`)
+    logger.log('==================')
+
+    for (const [i, mint] of rawTransaction.mints.entries()) {
+      if (i !== 0) {
+        logger.log('------------------')
+      }
+      logger.log('')
+
+      const asset = new Asset(mint.creator, mint.name, mint.metadata)
+
+      const renderedAmount = CurrencyUtils.render(
+        mint.value,
+        false,
+        asset.id().toString('hex'),
+        assetLookup[asset.id().toString('hex')],
+      )
+      logger.log(`Amount         ${renderedAmount}`)
+      logger.log(`Asset ID       ${asset.id().toString('hex')}`)
+      logger.log(`Name           ${mint.name}`)
+      logger.log(`Metadata       ${mint.metadata}`)
+
+      if (mint.transferOwnershipTo) {
+        logger.log(
+          `Ownership of asset will be transferred to ${mint.transferOwnershipTo}. The current account will no longer have any permission to mint or modify asset. This action cannot be undone.`,
+        )
+      }
+      logger.log('')
+    }
+  }
+
+  if (rawTransaction.burns.length > 0) {
+    logger.log('')
+    logger.log('==================')
+    logger.log(`Burns (${rawTransaction.burns.length})`)
+    logger.log('==================')
+
+    for (const [i, burn] of rawTransaction.burns.entries()) {
+      if (i !== 0) {
+        logger.log('------------------')
+      }
+      logger.log('')
+
+      const renderedAmount = CurrencyUtils.render(
+        burn.value,
+        false,
+        burn.assetId.toString('hex'),
+        assetLookup[burn.assetId.toString('hex')],
+      )
+      logger.log(`Amount         ${renderedAmount}`)
+      logger.log(`Asset ID       ${burn.assetId.toString('hex')}`)
+      logger.log('')
+    }
+  }
+
+  if (rawTransaction.spends.length > 0) {
+    logger.log('')
+    logger.log('==================')
+    logger.log(`Spends (${rawTransaction.spends.length})`)
+    logger.log('==================')
+
+    for (const [i, { note }] of rawTransaction.spends.entries()) {
+      if (i !== 0) {
+        logger.log('------------------')
+      }
+      logger.log('')
+
+      const { symbol } = assetMetadataWithDefaults(
+        note.assetId().toString('hex'),
+        assetLookup[note.assetId().toString('hex')],
+      )
+      logger.log(`Asset           ${symbol}`)
+      logger.log(`Note Hash       ${note.hash().toString('hex')}`)
+      logger.log('')
+    }
+  }
+
+  if (rawTransaction.outputs.length > 0) {
+    logger.log('')
+    logger.log('==================')
+    logger.log(
+      `Notes (${rawTransaction.outputs.length}) (Additional notes will be added to return unspent assets to the sender)`,
+    )
+    logger.log('==================')
+
+    for (const [i, { note }] of rawTransaction.outputs.entries()) {
+      if (i !== 0) {
+        logger.log('------------------')
+      }
+      logger.log('')
+
+      const { symbol } = assetMetadataWithDefaults(
+        note.assetId().toString('hex'),
+        assetLookup[note.assetId().toString('hex')],
+      )
+      const renderedAmount = CurrencyUtils.render(
+        note.value(),
+        false,
+        note.assetId().toString('hex'),
+        assetLookup[note.assetId().toString('hex')],
+      )
+      logger.log(`Amount         ${renderedAmount}`)
+      logger.log(`Asset          ${symbol}`)
+      logger.log(`Memo           ${note.memo().toString('utf-8')}`)
+      logger.log(`Recipient      ${note.owner()}`)
+      logger.log(`Sender         ${note.sender()}`)
+      logger.log('')
+    }
+  }
+
+  logger.log('')
+}
+
 export function displayTransactionSummary(
   transaction: RawTransaction,
   asset: RpcAsset,
@@ -364,6 +506,29 @@ export async function watchTransaction(options: {
       break
     }
   }
+}
+
+function collectRawTransactionAssetIds(rawTransaction: RawTransaction): string[] {
+  const assetIds = new Set<string>()
+
+  for (const mint of rawTransaction.mints) {
+    const newAsset = new Asset(mint.creator, mint.name, mint.metadata)
+    assetIds.add(newAsset.id().toString('hex'))
+  }
+
+  for (const burn of rawTransaction.burns) {
+    assetIds.add(burn.assetId.toString('hex'))
+  }
+
+  for (const spend of rawTransaction.spends) {
+    assetIds.add(spend.note.assetId().toString('hex'))
+  }
+
+  for (const output of rawTransaction.outputs) {
+    assetIds.add(output.note.assetId().toString('hex'))
+  }
+
+  return Array.from(assetIds)
 }
 
 function collectAssetIds(

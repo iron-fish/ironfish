@@ -1,16 +1,12 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import {
-  CurrencyUtils,
-  RawTransaction,
-  RawTransactionSerde,
-  RpcClient,
-  Transaction,
-} from '@ironfish/sdk'
+import { RawTransaction, RawTransactionSerde, RpcClient, Transaction } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
+import { longPrompt } from '../../utils/longPrompt'
+import { renderRawTransactionDetails } from '../../utils/transaction'
 
 export class PostCommand extends IronfishCommand {
   static summary = 'Post a raw transaction'
@@ -26,6 +22,7 @@ export class PostCommand extends IronfishCommand {
     ...RemoteFlags,
     account: Flags.string({
       description: 'The account that created the raw transaction',
+      char: 'f',
       required: false,
     }),
     confirm: Flags.boolean({
@@ -42,14 +39,19 @@ export class PostCommand extends IronfishCommand {
   static args = [
     {
       name: 'transaction',
-      required: true,
       description: 'The raw transaction in hex encoding',
     },
   ]
 
   async start(): Promise<void> {
     const { flags, args } = await this.parse(PostCommand)
-    const transaction = args.transaction as string
+    let transaction = args.transaction as string | undefined
+
+    if (!transaction) {
+      transaction = await longPrompt('Enter the raw transaction in hex encoding', {
+        required: true,
+      })
+    }
 
     const serialized = Buffer.from(transaction, 'hex')
     const raw = RawTransactionSerde.deserialize(serialized)
@@ -111,16 +113,7 @@ export class PostCommand extends IronfishCommand {
       this.error('Can not find an account to confirm the transaction')
     }
 
-    let spending = 0n
-    for (const output of raw.outputs) {
-      spending += output.note.value()
-    }
-
-    const renderedSpending = CurrencyUtils.render(spending, true)
-    const renderedFee = CurrencyUtils.render(raw.fee, true)
-    this.log(
-      `You are about to post a transaction that sends ${renderedSpending}, with ${raw.mints.length} mints and ${raw.burns.length} burns with a fee ${renderedFee} using account ${account}`,
-    )
+    await renderRawTransactionDetails(client, raw, account, this.logger)
 
     return CliUx.ux.confirm('Do you want to post this (Y/N)?')
   }

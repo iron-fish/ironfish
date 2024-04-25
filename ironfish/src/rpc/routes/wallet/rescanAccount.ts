@@ -8,13 +8,14 @@ import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import { AssertHasRpcContext } from '../rpcContext'
 
-export type RescanAccountRequest = { follow?: boolean; from?: number }
+export type RescanAccountRequest = { follow?: boolean; from?: number; full?: boolean }
 export type RescanAccountResponse = { sequence: number; startedAt: number; endSequence: number }
 
 export const RescanAccountRequestSchema: yup.ObjectSchema<RescanAccountRequest> = yup
   .object({
     follow: yup.boolean().optional(),
     from: yup.number().optional(),
+    full: yup.boolean().optional(),
   })
   .defined()
 
@@ -43,7 +44,7 @@ routes.register<typeof RescanAccountRequestSchema, RescanAccountResponse>(
         await context.wallet.updateHeadState.abort()
       }
 
-      await context.wallet.reset()
+      await context.wallet.reset({ resetCreatedAt: request.data.full })
 
       let fromHash = undefined
       if (request.data.from && request.data.from > GENESIS_BLOCK_SEQUENCE) {

@@ -5,21 +5,22 @@ import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
 import { longPrompt } from '../../../../utils/longPrompt'
+import { selectSecret } from '../../../../utils/multisig'
 
 export class DkgRound1Command extends IronfishCommand {
   static description = 'Perform round1 of the DKG protocol for multisig account creation'
-  static hidden = true
 
   static flags = {
     ...RemoteFlags,
-    secretName: Flags.string({
-      char: 's',
+    participantName: Flags.string({
+      char: 'n',
       description: 'The name of the secret to use for encryption during DKG',
+      aliases: ['name'],
     }),
     identity: Flags.string({
       char: 'i',
       description:
-        'The identity of the participants will generate the group keys (may be specified multiple times to add multiple participants). Must include the identity for secretName',
+        'The identity of the participants will generate the group keys (may be specified multiple times to add multiple participants)',
       multiple: true,
     }),
     minSigners: Flags.integer({
@@ -31,18 +32,21 @@ export class DkgRound1Command extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(DkgRound1Command)
 
-    let secretName = flags.secretName
-    if (!secretName) {
-      secretName = await CliUx.ux.prompt('Enter the name of the secret to use', {
-        required: true,
-      })
+    const client = await this.sdk.connectRpc()
+
+    let participantName = flags.participantName
+    if (!participantName) {
+      participantName = await selectSecret(client)
     }
 
     let identities = flags.identity
     if (!identities || identities.length < 2) {
-      const input = await longPrompt('Enter the identities separated by commas', {
-        required: true,
-      })
+      const input = await longPrompt(
+        'Enter the identities of all participants, separated by commas',
+        {
+          required: true,
+        },
+      )
       identities = input.split(',')
 
       if (identities.length < 2) {
@@ -62,23 +66,21 @@ export class DkgRound1Command extends IronfishCommand {
       }
     }
 
-    const client = await this.sdk.connectRpc()
-
     const response = await client.wallet.multisig.dkg.round1({
-      secretName: secretName,
+      participantName,
       participants: identities.map((identity) => ({ identity })),
       minSigners: minSigners,
     })
 
-    this.log('\nEncrypted Secret Package:\n')
-    this.log(response.content.encryptedSecretPackage)
+    this.log('\nRound 1 Encrypted Secret Package:\n')
+    this.log(response.content.round1SecretPackage)
     this.log()
 
-    this.log('\nPublic Package:\n')
-    this.log(response.content.publicPackage)
+    this.log('\nRound 1 Public Package:\n')
+    this.log(response.content.round1PublicPackage)
     this.log()
 
     this.log('Next step:')
-    this.log('Send the public package to each participant')
+    this.log('Send the round 1 public package to each participant')
   }
 }

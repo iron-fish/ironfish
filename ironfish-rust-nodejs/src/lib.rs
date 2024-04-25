@@ -16,7 +16,6 @@ use ironfish::mining;
 use ironfish::sapling_bls12;
 
 pub mod fish_hash;
-pub mod mpc;
 pub mod multisig;
 pub mod nacl;
 pub mod rolling_filter;

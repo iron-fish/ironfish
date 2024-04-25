@@ -5,7 +5,7 @@ import { generateKey } from '@ironfish/rust-nodejs'
 import { Assert } from '../../../../assert'
 import { useAccountAndAddFundsFixture, useUnsignedTxFixture } from '../../../../testUtilities'
 import { createRouteTest } from '../../../../testUtilities/routeTest'
-import { ACCOUNT_SCHEMA_VERSION } from '../../../../wallet'
+import { ACCOUNT_SCHEMA_VERSION, AssertMultisig } from '../../../../wallet'
 
 describe('Route wallt/multisig/createSignatureShare', () => {
   const routeTest = createRouteTest()
@@ -108,14 +108,21 @@ describe('Route wallt/multisig/createSignatureShare', () => {
       })
     ).content.signingPackage
 
-    // Remove one participant from the participants store to simulate unknown signer
+    // Alter the public key package to replace one identity with another, so
+    // that we can later pretend that we created a signature share from an
+    // unknown identity
     const account = routeTest.wallet.getAccountByName(accountNames[0])
     Assert.isNotNull(account)
+    AssertMultisig(account)
 
-    await routeTest.wallet.walletDb.deleteParticipantIdentity(
-      account,
-      Buffer.from(participants[1].identity, 'hex'),
+    const fromIdentity = participants[1].identity
+    const toIdentity = participants[2].identity
+    account.multisigKeys.publicKeyPackage = account.multisigKeys.publicKeyPackage.replace(
+      fromIdentity,
+      toIdentity,
     )
+
+    await routeTest.wallet.walletDb.setAccount(account)
 
     // Attempt to create signature share
     await expect(

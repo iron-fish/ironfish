@@ -5,12 +5,9 @@
 import { formatFixed, parseFixed } from '@ethersproject/bignumber'
 import { isNativeIdentifier } from './asset'
 import { BigIntUtils } from './bigint'
-import { ErrorUtils } from './error'
 import { FixedNumberUtils } from './fixedNumber'
 
 export class CurrencyUtils {
-  static locale?: string
-
   /**
    * Serializes ore as iron with up to 8 decimal places
    */
@@ -62,13 +59,21 @@ export class CurrencyUtils {
     verifiedAssetMetadata?: {
       decimals?: number
     },
-  ): [bigint, null] | [null, ParseFixedError] {
+  ): [bigint, null] | [null, Error] {
+    const { decimals } = assetMetadataWithDefaults(assetId, verifiedAssetMetadata)
     try {
-      const { decimals } = assetMetadataWithDefaults(assetId, verifiedAssetMetadata)
-      const parsed = parseFixed(amount.toString(), decimals).toBigInt()
-      return [parsed, null]
+      const { value, decimals: parsedDecimals } = FixedNumberUtils.tryDecodeDecimal(
+        amount.toString(),
+      )
+
+      if (parsedDecimals > decimals) {
+        return [null, new Error('major value is too small')]
+      }
+
+      const minorValue = value * 10n ** BigInt(decimals - parsedDecimals)
+      return [minorValue, null]
     } catch (e) {
-      if (isParseFixedError(e)) {
+      if (e instanceof Error) {
         return [null, e]
       }
       throw e
@@ -107,27 +112,6 @@ export class CurrencyUtils {
   }
 
   /*
-   * Renders ore as iron for human-readable purposes
-   */
-  static renderIron(amount: bigint | string, includeTicker = false, assetId?: string): string {
-    if (typeof amount === 'string') {
-      amount = this.decode(amount)
-    }
-
-    const iron = FixedNumberUtils.render(amount, 8)
-
-    if (includeTicker) {
-      let ticker = '$IRON'
-      if (assetId && !isNativeIdentifier(assetId)) {
-        ticker = assetId
-      }
-      return `${ticker} ${iron}`
-    }
-
-    return iron
-  }
-
-  /*
    * Renders ore for human-readable purposes
    */
   static renderOre(amount: bigint | string, includeTicker = false, assetId?: string): string {
@@ -149,29 +133,13 @@ export class CurrencyUtils {
   }
 }
 
-export interface ParseFixedError extends Error {
-  code: 'INVALID_ARGUMENT' | 'NUMERIC_FAULT'
-  reason: string
-}
-
-export function isParseFixedError(error: unknown): error is ParseFixedError {
-  return (
-    ErrorUtils.isNodeError(error) &&
-    (error['code'] === 'INVALID_ARGUMENT' || error['code'] === 'NUMERIC_FAULT') &&
-    'reason' in error &&
-    typeof error['reason'] === 'string'
-  )
-}
-
 const IRON_DECIMAL_PLACES = 8
 const IRON_SYMBOL = '$IRON'
 export const ORE_TO_IRON = 100000000
 export const MINIMUM_ORE_AMOUNT = 0n
 export const MAXIMUM_ORE_AMOUNT = 2n ** 64n
-export const MINIMUM_IRON_AMOUNT = CurrencyUtils.renderIron(MINIMUM_ORE_AMOUNT)
-export const MAXIMUM_IRON_AMOUNT = CurrencyUtils.renderIron(MAXIMUM_ORE_AMOUNT)
 
-function assetMetadataWithDefaults(
+export function assetMetadataWithDefaults(
   assetId?: string,
   verifiedAssetMetadata?: {
     decimals?: number

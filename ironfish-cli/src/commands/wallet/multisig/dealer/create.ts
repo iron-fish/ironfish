@@ -9,7 +9,6 @@ import { longPrompt } from '../../../../utils/longPrompt'
 
 export class MultisigCreateDealer extends IronfishCommand {
   static description = `Create a set of multisig accounts from participant identities`
-  static hidden = true
 
   static flags = {
     ...RemoteFlags,
@@ -38,9 +37,12 @@ export class MultisigCreateDealer extends IronfishCommand {
 
     let identities = flags.identity
     if (!identities || identities.length < 2) {
-      const input = await longPrompt('Enter the identities separated by commas', {
-        required: true,
-      })
+      const input = await longPrompt(
+        'Enter the identities of all participants, separated by commas',
+        {
+          required: true,
+        },
+      )
       identities = input.split(',')
 
       if (identities.length < 2) {

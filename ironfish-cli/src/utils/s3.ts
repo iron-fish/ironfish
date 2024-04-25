@@ -2,29 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import type { Readable } from 'stream'
 import { CognitoIdentity } from '@aws-sdk/client-cognito-identity'
 import {
   AbortMultipartUploadCommand,
   CompleteMultipartUploadCommand,
   CreateMultipartUploadCommand,
-  DeleteObjectCommand,
-  DeleteObjectCommandOutput,
-  GetObjectCommand,
-  HeadObjectCommand,
-  HeadObjectCommandOutput,
-  ListObjectsCommand,
-  ListObjectsCommandInput,
-  PutObjectCommand,
   S3Client,
   UploadPartCommand,
 } from '@aws-sdk/client-s3'
-import { GetSecretValueCommand, SecretsManagerClient } from '@aws-sdk/client-secrets-manager'
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { Credentials } from '@aws-sdk/types/dist-types/credentials'
 import { Assert, ErrorUtils, Logger } from '@ironfish/sdk'
 import fsAsync from 'fs/promises'
-import { pipeline } from 'stream/promises'
 
 // AWS requires that upload parts be at least 5MB
 const MINIMUM_MULTIPART_FILE_SIZE = 5 * 1024 * 1024
@@ -44,9 +32,6 @@ class UploadMultipartError extends UploadToBucketError {}
 class UploadLastMultipartError extends UploadToBucketError {}
 class UploadReadFileError extends UploadToBucketError {}
 class UploadFailedError extends UploadToBucketError {}
-
-const R2_SECRET_NAME = 'r2-prod-access-key'
-const R2_ENDPOINT = `https://a93bebf26da4c2fe205f71c896afcf89.r2.cloudflarestorage.com`
 
 export type R2Secret = {
   r2AccessKeyId: string
@@ -205,43 +190,6 @@ async function uploadToBucket(
     })
 }
 
-async function downloadFromBucket(
-  s3: S3Client,
-  bucket: string,
-  keyName: string,
-  output: string,
-): Promise<void> {
-  const command = new GetObjectCommand({ Bucket: bucket, Key: keyName })
-  const response = await s3.send(command)
-  if (response.Body) {
-    const fileHandle = await fsAsync.open(output, 'w')
-    const ws = fileHandle.createWriteStream()
-
-    await pipeline(response.Body as Readable, ws)
-
-    ws.close()
-    await fileHandle.close()
-  }
-}
-
-async function getPresignedUploadUrl(
-  s3: S3Client,
-  bucket: string,
-  keyName: string,
-  expiresInSeconds: number,
-): Promise<string> {
-  const command = new PutObjectCommand({
-    Bucket: bucket,
-    Key: keyName,
-  })
-
-  const signedUrl = await getSignedUrl(s3, command, {
-    expiresIn: expiresInSeconds,
-  })
-
-  return signedUrl
-}
-
 /**
  * Returns an HTTPS URL to a file in S3.
  * https://docs.aws.amazon.com/AmazonS3/latest/userguide/transfer-acceleration-getting-started.html
@@ -263,46 +211,6 @@ function getDownloadUrl(
   }
 
   return `https://${bucket}.${regionString}.amazonaws.com/${key}`
-}
-
-async function getObjectMetadata(
-  s3: S3Client,
-  bucket: string,
-  key: string,
-): Promise<HeadObjectCommandOutput> {
-  const command = new HeadObjectCommand({ Bucket: bucket, Key: key })
-  const response = await s3.send(command)
-  return response
-}
-
-async function getBucketObjects(s3: S3Client, bucket: string): Promise<string[]> {
-  let truncated = true
-  let commandParams: ListObjectsCommandInput = { Bucket: bucket }
-  const keys: string[] = []
-
-  while (truncated) {
-    const command = new ListObjectsCommand(commandParams)
-    const response = await s3.send(command)
-
-    for (const obj of response.Contents || []) {
-      if (obj.Key !== undefined) {
-        keys.push(obj.Key)
-      }
-    }
-
-    truncated = response.IsTruncated || false
-    commandParams = { Bucket: bucket, Marker: response.Contents?.slice(-1)[0]?.Key }
-  }
-
-  return keys
-}
-
-async function deleteFromBucket(
-  s3Client: S3Client,
-  bucket: string,
-  fileName: string,
-): Promise<DeleteObjectCommandOutput> {
-  return s3Client.send(new DeleteObjectCommand({ Bucket: bucket, Key: fileName }))
 }
 
 function getS3Client(
@@ -328,31 +236,6 @@ function getS3Client(
     useDualstackEndpoint,
     region,
   })
-}
-
-function getR2S3Client(credentials: {
-  r2AccessKeyId: string
-  r2SecretAccessKey: string
-}): S3Client {
-  return new S3Client({
-    region: 'auto',
-    endpoint: R2_ENDPOINT,
-    credentials: {
-      accessKeyId: credentials.r2AccessKeyId,
-      secretAccessKey: credentials.r2SecretAccessKey,
-    },
-  })
-}
-
-async function getR2Credentials(region?: string): Promise<R2Secret | undefined> {
-  const client = new SecretsManagerClient({ region })
-  const command = new GetSecretValueCommand({ SecretId: R2_SECRET_NAME })
-  const response = await client.send(command)
-  if (response.SecretString === undefined) {
-    return
-  } else {
-    return JSON.parse(response.SecretString) as R2Secret
-  }
 }
 
 async function getCognitoIdentityCredentials(): Promise<Credentials> {
@@ -384,15 +267,8 @@ async function getCognitoIdentityCredentials(): Promise<Credentials> {
 }
 
 export const S3Utils = {
-  deleteFromBucket,
-  downloadFromBucket,
-  getBucketObjects,
   getCognitoIdentityCredentials,
   getDownloadUrl,
-  getObjectMetadata,
-  getPresignedUploadUrl,
-  getR2Credentials,
-  getR2S3Client,
   getS3Client,
   uploadToBucket,
 }

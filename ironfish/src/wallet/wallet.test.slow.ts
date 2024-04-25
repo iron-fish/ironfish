@@ -1362,11 +1362,9 @@ describe('Wallet', () => {
       ...trustedDealerPackage,
     })
 
-    const storedIdentities: string[] = []
-    for await (const identity of node.wallet.walletDb.getParticipantIdentities(account)) {
-      storedIdentities.push(identity.toString('hex'))
-    }
-
+    const storedIdentities = account
+      .getMultisigParticipantIdentities()
+      .map((identity) => identity.toString('hex'))
     expect(identities.sort()).toEqual(storedIdentities.sort())
   })
 })

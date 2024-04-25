@@ -149,4 +149,25 @@ describe('Route wallet/rescanAccount', () => {
     expect(updateHead).not.toHaveBeenCalled()
     expect(scanTransactions).toHaveBeenCalledTimes(1)
   })
+
+  it('resets createdAt on accounts on full rescans', async () => {
+    const chain = routeTest.node.chain
+
+    let accountReloaded = routeTest.node.wallet.getAccountByName(account.name)
+    expect(accountReloaded).toBeDefined()
+    expect(accountReloaded?.createdAt?.hash).toEqualHash(chain.genesis.hash)
+
+    jest.spyOn(routeTest.node.wallet, 'scanTransactions').mockReturnValue(Promise.resolve())
+
+    await routeTest.client
+      .request<RescanAccountResponse>('wallet/rescanAccount', {
+        follow: false,
+        full: true,
+      })
+      .waitForEnd()
+
+    accountReloaded = routeTest.node.wallet.getAccountByName(account.name)
+    expect(accountReloaded).toBeDefined()
+    expect(accountReloaded?.createdAt).toBeNull()
+  })
 })

@@ -14,6 +14,7 @@ import {
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { HexFlag, IronFlag, RemoteFlags, ValueFlag } from '../../flags'
+import { confirmOperation } from '../../utils'
 import { selectAsset } from '../../utils/asset'
 import { promptCurrency } from '../../utils/currency'
 import { getExplorer } from '../../utils/explorer'
@@ -162,7 +163,7 @@ export class Send extends IronfishCommand {
       )
 
       if (error) {
-        this.error(`${error.reason}`)
+        this.error(`${error.message}`)
       }
 
       amount = parsedAmount
@@ -280,12 +281,10 @@ export class Send extends IronfishCommand {
       )
     }
 
-    if (!flags.confirm) {
-      const confirmed = await CliUx.ux.confirm('Do you confirm (Y/N)?')
-      if (!confirmed) {
-        this.error('Transaction aborted.')
-      }
-    }
+    await confirmOperation({
+      confirm: flags.confirm,
+      cancelledMessage: 'Transaction aborted.',
+    })
 
     transactionTimer.start()
 

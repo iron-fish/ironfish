@@ -57,6 +57,7 @@ routes.register<typeof ImportAccountRequestSchema, ImportResponse>(
           accountImport = await tryDecodeAccountWithMultisigSecrets(
             context.wallet,
             request.data.account,
+            { name },
           )
         }
 
@@ -65,6 +66,9 @@ routes.register<typeof ImportAccountRequestSchema, ImportResponse>(
         }
       } else {
         accountImport = deserializeRpcAccountImport(request.data.account)
+        if (request.data.name) {
+          accountImport.name = request.data.name
+        }
       }
 
       account = await context.wallet.importAccount(accountImport)

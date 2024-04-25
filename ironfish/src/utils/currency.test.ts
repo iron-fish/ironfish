@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
-import { CurrencyUtils, isParseFixedError } from './currency'
+import { CurrencyUtils } from './currency'
 
 describe('CurrencyUtils', () => {
   it('encode', () => {
@@ -94,7 +94,7 @@ describe('CurrencyUtils', () => {
     it('should return an error if the given amount cannot be parsed', () => {
       const [value, err] = CurrencyUtils.tryMajorToMinor('1.0.0')
       expect(value).toBeNull()
-      expect(isParseFixedError(err)).toEqual(true)
+      expect(err?.message).toEqual('too many decimal points')
     })
   })
 
@@ -152,15 +152,6 @@ describe('CurrencyUtils', () => {
         `FOO 1.00`,
       )
     })
-  })
-
-  it('renderIron', () => {
-    expect(CurrencyUtils.renderIron(0n)).toEqual('0.00000000')
-    expect(CurrencyUtils.renderIron(1n)).toEqual('0.00000001')
-    expect(CurrencyUtils.renderIron(100n)).toEqual('0.00000100')
-    expect(CurrencyUtils.renderIron(10000n)).toEqual('0.00010000')
-    expect(CurrencyUtils.renderIron(100000000n)).toEqual('1.00000000')
-    expect(CurrencyUtils.renderIron(1n, true)).toEqual('$IRON 0.00000001')
   })
 
   it('renderOre', () => {
