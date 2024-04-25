@@ -6,6 +6,7 @@ import {
   RawTransaction,
   RawTransactionSerde,
   RpcClient,
+  Transaction,
   UnsignedTransaction,
 } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
@@ -15,6 +16,7 @@ import { RemoteFlags } from '../../../flags'
 import { longPrompt } from '../../../utils/longPrompt'
 import {
   renderRawTransactionDetails,
+  renderTransactionDetails,
   renderUnsignedTransactionDetails,
 } from '../../../utils/transaction'
 
@@ -29,7 +31,8 @@ export class TransactionViewCommand extends IronfishCommand {
     }),
     transaction: Flags.string({
       char: 't',
-      description: 'The hex-encoded raw transaction or unsigned transaction to view',
+      description:
+        'The hex-encoded transaction, raw transaction, or unsigned transaction to view',
     }),
   }
 
@@ -43,7 +46,7 @@ export class TransactionViewCommand extends IronfishCommand {
     let transactionString = flags.transaction as string
     if (!transactionString) {
       transactionString = await longPrompt(
-        'Enter the hex-encoded raw transaction or unsigned transaction to view',
+        'Enter the hex-encoded transaction, raw transaction, or unsigned transaction to view',
         {
           required: true,
         },
@@ -65,9 +68,12 @@ export class TransactionViewCommand extends IronfishCommand {
       )
     }
 
-    this.error(
-      'Unable to deserialize transaction input as a raw transacton or an unsigned transaction',
-    )
+    const transaction = this.tryDeserializeTransaction(transactionString)
+    if (transaction) {
+      return await renderTransactionDetails(client, transaction, account, this.logger)
+    }
+
+    this.error('Unable to deserialize transaction input')
   }
 
   async selectAccount(client: Pick<RpcClient, 'wallet'>): Promise<string> {
@@ -117,6 +123,18 @@ export class TransactionViewCommand extends IronfishCommand {
         `Failed to deserialize transaction as UnsignedTransaction: ${ErrorUtils.renderError(
           e,
         )}`,
+      )
+
+      return undefined
+    }
+  }
+
+  tryDeserializeTransaction(transaction: string): Transaction | undefined {
+    try {
+      return new Transaction(Buffer.from(transaction, 'hex'))
+    } catch (e) {
+      this.logger.debug(
+        `Failed to deserialize transaction as Transaction: ${ErrorUtils.renderError(e)}`,
       )
 
       return undefined

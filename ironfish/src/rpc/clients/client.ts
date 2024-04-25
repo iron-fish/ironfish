@@ -115,6 +115,8 @@ import type {
   GetPublicKeyResponse,
   GetRpcStatusRequest,
   GetRpcStatusResponse,
+  GetTransactionNotesRequest,
+  GetTransactionNotesResponse,
   GetTransactionRequest,
   GetTransactionResponse,
   GetTransactionStreamRequest,
@@ -451,6 +453,15 @@ export abstract class RpcClient {
         `${ApiNamespace.wallet}/getAccountTransactions`,
         params,
       )
+    },
+
+    getTransactionNotes: (
+      params: GetTransactionNotesRequest,
+    ): Promise<RpcResponseEnded<GetTransactionNotesResponse>> => {
+      return this.request<GetTransactionNotesResponse>(
+        `${ApiNamespace.wallet}/getTransactionNotes`,
+        params,
+      ).waitForEnd()
     },
 
     getUnsignedTransactionNotes: (

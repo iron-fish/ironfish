@@ -7,6 +7,7 @@ import {
   assetMetadataWithDefaults,
   createRootLogger,
   CurrencyUtils,
+  GetTransactionNotesResponse,
   GetUnsignedTransactionNotesResponse,
   Logger,
   PromiseUtils,
@@ -14,9 +15,12 @@ import {
   RpcAsset,
   RpcClient,
   TimeUtils,
+  Transaction,
   TransactionStatus,
   UnsignedTransaction,
 } from '@ironfish/sdk'
+import { BurnDescription } from '@ironfish/sdk/src/primitives/burnDescription'
+import { MintDescription } from '@ironfish/sdk/src/primitives/mintDescription'
 import { CliUx } from '@oclif/core'
 import { ProgressBar } from '../types'
 import { getAssetsByIDs, getAssetVerificationByIds } from './asset'
@@ -105,14 +109,36 @@ export class TransactionTimer {
   }
 }
 
+export async function renderTransactionDetails(
+  client: RpcClient,
+  transaction: Transaction,
+  account?: string,
+  logger?: Logger,
+): Promise<void> {
+  let response
+  if (transaction.notes.length > 0) {
+    response = await client.wallet.getTransactionNotes({
+      account,
+      transaction: transaction.serialize().toString('hex'),
+    })
+  }
+
+  await _renderTransactionDetails(
+    client,
+    transaction.mints,
+    transaction.burns,
+    account,
+    response?.content,
+    logger,
+  )
+}
+
 export async function renderUnsignedTransactionDetails(
   client: RpcClient,
   unsignedTransaction: UnsignedTransaction,
   account?: string,
   logger?: Logger,
 ): Promise<void> {
-  logger = logger ?? createRootLogger()
-
   let response
   if (unsignedTransaction.notes.length > 0) {
     response = await client.wallet.getUnsignedTransactionNotes({
@@ -121,16 +147,36 @@ export async function renderUnsignedTransactionDetails(
     })
   }
 
-  const assetIds = collectAssetIds(unsignedTransaction, response?.content)
+  await _renderTransactionDetails(
+    client,
+    unsignedTransaction.mints,
+    unsignedTransaction.burns,
+    account,
+    response?.content,
+    logger,
+  )
+}
+
+async function _renderTransactionDetails(
+  client: RpcClient,
+  mints: MintDescription[],
+  burns: BurnDescription[],
+  account?: string,
+  notes?: GetTransactionNotesResponse | GetUnsignedTransactionNotesResponse,
+  logger?: Logger,
+): Promise<void> {
+  logger = logger ?? createRootLogger()
+
+  const assetIds = collectAssetIds(mints, burns, notes)
   const assetLookup = await getAssetsByIDs(client, assetIds, account, undefined)
 
-  if (unsignedTransaction.mints.length > 0) {
+  if (mints.length > 0) {
     logger.log('')
     logger.log('==================')
     logger.log('Transaction Mints:')
     logger.log('==================')
 
-    for (const [i, mint] of unsignedTransaction.mints.entries()) {
+    for (const [i, mint] of mints.entries()) {
       if (i !== 0) {
         logger.log('------------------')
       }
@@ -157,13 +203,13 @@ export async function renderUnsignedTransactionDetails(
     }
   }
 
-  if (unsignedTransaction.burns.length > 0) {
+  if (burns.length > 0) {
     logger.log('')
     logger.log('==================')
     logger.log('Transaction Burns:')
     logger.log('==================')
 
-    for (const [i, burn] of unsignedTransaction.burns.entries()) {
+    for (const [i, burn] of burns.entries()) {
       if (i !== 0) {
         logger.log('------------------')
       }
@@ -181,18 +227,13 @@ export async function renderUnsignedTransactionDetails(
     }
   }
 
-  if (unsignedTransaction.notes.length > 0) {
-    const response = await client.wallet.getUnsignedTransactionNotes({
-      account,
-      unsignedTransaction: unsignedTransaction.serialize().toString('hex'),
-    })
-
+  if (notes) {
     logger.log('')
     logger.log('==================')
     logger.log('Notes sent:')
     logger.log('==================')
 
-    for (const [i, note] of response.content.sentNotes.entries()) {
+    for (const [i, note] of notes.sentNotes.entries()) {
       // Skip logger since we'll re-render for received notes
       if (note.owner === note.sender) {
         continue
@@ -221,7 +262,7 @@ export async function renderUnsignedTransactionDetails(
     logger.log('Notes received:')
     logger.log('==================')
 
-    for (const [i, note] of response.content.receivedNotes.entries()) {
+    for (const [i, note] of notes.receivedNotes.entries()) {
       if (i !== 0) {
         logger.log('------------------')
       }
@@ -240,7 +281,7 @@ export async function renderUnsignedTransactionDetails(
       logger.log('')
     }
 
-    if (!response.content.sentNotes.length && !response.content.receivedNotes.length) {
+    if (!notes.sentNotes.length && !notes.receivedNotes.length) {
       logger.log('')
       logger.log('------------------')
       logger.log('Account unable to decrypt any notes in this transaction')
@@ -532,16 +573,17 @@ function collectRawTransactionAssetIds(rawTransaction: RawTransaction): string[]
 }
 
 function collectAssetIds(
-  unsignedTransaction: UnsignedTransaction,
-  notes?: GetUnsignedTransactionNotesResponse,
+  mints: MintDescription[],
+  burns: BurnDescription[],
+  notes?: GetTransactionNotesResponse | GetUnsignedTransactionNotesResponse,
 ): string[] {
   const assetIds = new Set<string>()
 
-  for (const mint of unsignedTransaction.mints) {
+  for (const mint of mints) {
     assetIds.add(mint.asset.id().toString('hex'))
   }
 
-  for (const burn of unsignedTransaction.burns) {
+  for (const burn of burns) {
     assetIds.add(burn.assetId.toString('hex'))
   }
 
