@@ -9,7 +9,7 @@ import {
   DEFAULT_USE_RPC_IPC,
   DEFAULT_USE_RPC_TCP,
   DEFAULT_USE_RPC_TLS,
-  FixedNumberUtils,
+  Exponent,
   MAXIMUM_ORE_AMOUNT,
   MINIMUM_ORE_AMOUNT,
 } from '@ironfish/sdk'
@@ -167,7 +167,7 @@ export const ValueFlag = Flags.custom<string>({
   parse: async (input, _ctx, opts) => {
     return new Promise((resolve, reject) => {
       try {
-        FixedNumberUtils.tryDecodeDecimal(input)
+        Exponent.tryParse(input)
         resolve(input)
       } catch (e) {
         reject(new Error(`The number inputted for ${opts.name} is invalid.`))

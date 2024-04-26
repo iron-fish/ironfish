@@ -5,7 +5,7 @@
 import { formatFixed, parseFixed } from '@ethersproject/bignumber'
 import { isNativeIdentifier } from './asset'
 import { BigIntUtils } from './bigint'
-import { FixedNumberUtils } from './fixedNumber'
+import { Exponent } from './exponent'
 
 export class CurrencyUtils {
   /**
@@ -62,22 +62,39 @@ export class CurrencyUtils {
   ): [bigint, null] | [null, Error] {
     const { decimals } = assetMetadataWithDefaults(assetId, verifiedAssetMetadata)
     try {
-      const { value, decimals: parsedDecimals } = FixedNumberUtils.tryDecodeDecimal(
-        amount.toString(),
-      )
+      const majorValue = Exponent.tryParse(amount.toString())
+      const minorValue = majorValue.mul(new Exponent(1n, decimals))
+      const minorBigIntValue = minorValue.tryToBigInt()
 
-      if (parsedDecimals > decimals) {
-        return [null, new Error('major value is too small')]
-      }
-
-      const minorValue = value * 10n ** BigInt(decimals - parsedDecimals)
-      return [minorValue, null]
+      return [minorBigIntValue, null]
     } catch (e) {
       if (e instanceof Error) {
         return [null, e]
       }
       throw e
     }
+  }
+
+  /**
+   * Renders values for human-readable purposes:
+   * - Renders $IRON in the major denomination, with 8 decimal places
+   * - If a custom asset, and `decimals` is provided, it will render the custom
+   *     asset in the major denomination with the decimal places
+   * - If a custom asset, and `decimals` is not provided, it will render the
+   *     custom asset in the minor denomination with no decimal places
+   */
+  static minorToMajor(
+    amount: bigint,
+    assetId?: string,
+    verifiedAssetMetadata?: {
+      decimals?: number
+    },
+  ): string {
+    const { decimals } = assetMetadataWithDefaults(assetId, verifiedAssetMetadata)
+    const minorValue = new Exponent(amount)
+    const majorValue = minorValue.mul(new Exponent(1n, -decimals))
+
+    return majorValue.render(decimals)
   }
 
   /**
@@ -97,18 +114,14 @@ export class CurrencyUtils {
       symbol?: string
     },
   ): string {
-    if (typeof amount === 'string') {
-      amount = this.decode(amount)
-    }
-
-    const { decimals, symbol } = assetMetadataWithDefaults(assetId, verifiedAssetMetadata)
-    const majorDenominationAmount = FixedNumberUtils.render(amount, decimals)
+    const majorValue = this.minorToMajor(BigInt(amount), assetId, verifiedAssetMetadata)
+    const { symbol } = assetMetadataWithDefaults(assetId, verifiedAssetMetadata)
 
     if (includeSymbol) {
-      return `${symbol} ${majorDenominationAmount}`
+      return `${symbol} ${majorValue}`
     }
 
-    return majorDenominationAmount
+    return majorValue
   }
 
   /*
