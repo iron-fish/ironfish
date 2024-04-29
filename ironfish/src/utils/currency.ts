@@ -5,7 +5,7 @@
 import { formatFixed, parseFixed } from '@ethersproject/bignumber'
 import { isNativeIdentifier } from './asset'
 import { BigIntUtils } from './bigint'
-import { Exponent } from './exponent'
+import { DecimalUtils } from './decimalUtils'
 
 export class CurrencyUtils {
   /**
@@ -61,12 +61,16 @@ export class CurrencyUtils {
     },
   ): [bigint, null] | [null, Error] {
     const { decimals } = assetMetadataWithDefaults(assetId, verifiedAssetMetadata)
-    try {
-      const majorValue = Exponent.tryParse(amount.toString())
-      const minorValue = majorValue.mul(new Exponent(1n, decimals))
-      const minorBigIntValue = minorValue.tryToBigInt()
 
-      return [minorBigIntValue, null]
+    try {
+      const majorValue = DecimalUtils.tryDecode(amount.toString())
+      const minorValue = { value: majorValue.value, decimals: majorValue.decimals + decimals }
+
+      if (minorValue.decimals < 0) {
+        throw new Error('amount is too small to fit into the minor denomination')
+      }
+
+      return [minorValue.value * BigInt(10n ** BigInt(minorValue.decimals)), null]
     } catch (e) {
       if (e instanceof Error) {
         return [null, e]
@@ -76,12 +80,17 @@ export class CurrencyUtils {
   }
 
   /**
-   * Renders values for human-readable purposes:
-   * - Renders $IRON in the major denomination, with 8 decimal places
-   * - If a custom asset, and `decimals` is provided, it will render the custom
-   *     asset in the major denomination with the decimal places
-   * - If a custom asset, and `decimals` is not provided, it will render the
-   *     custom asset in the minor denomination with no decimal places
+   * Renders a value in a minor denomination as the major denomination:
+   * - $IRON is always going to have 8 decimal places.
+   * - If a custom asset, and `decimals` is provided, it will give the value
+   * followed by a digit for each decimal place
+   * - If a custom asset, and `decimals` is not provided, it will assume the
+   * value is already in minor denomination with no decimal places
+   *
+   * Examples:
+   * 100000000 = 1 $IRON
+   * A custom asset with 2 decimal places: 100 = 1
+   * A custom asset with no decimal places: 1 = 1
    */
   static minorToMajor(
     amount: bigint,
@@ -91,10 +100,8 @@ export class CurrencyUtils {
     },
   ): string {
     const { decimals } = assetMetadataWithDefaults(assetId, verifiedAssetMetadata)
-    const minorValue = new Exponent(amount)
-    const majorValue = minorValue.mul(new Exponent(1n, -decimals))
 
-    return majorValue.render(decimals)
+    return DecimalUtils.render(amount, -decimals, decimals)
   }
 
   /**
