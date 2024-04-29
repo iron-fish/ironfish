@@ -98,6 +98,62 @@ describe('CurrencyUtils', () => {
     })
   })
 
+  describe('minorToMajor', () => {
+    // Randomly generated custom asset ID
+    const assetId = '1a75bf033c1c1925cfcd1a77461364e77c6e861c2a3acabaf9e398e980146651'
+
+    it('should return ore in iron denomination with no extra parameters', () => {
+      expect(CurrencyUtils.minorToMajor(0n)).toEqual({ value: 0n, decimals: 0 })
+      expect(CurrencyUtils.minorToMajor(100000000n)).toEqual({ value: 1n, decimals: 0 })
+      expect(CurrencyUtils.minorToMajor(10000000000n)).toEqual({ value: 1n, decimals: 2 })
+
+      expect(CurrencyUtils.minorToMajor(1000n)).toEqual({ value: 1n, decimals: -5 })
+    })
+
+    it('should return ore in iron denomination with even with incorrect parameters', () => {
+      expect(
+        CurrencyUtils.minorToMajor(0n, Asset.nativeId().toString('hex'), { decimals: 4 }),
+      ).toEqual({ value: 0n, decimals: 0 })
+      expect(
+        CurrencyUtils.minorToMajor(100000000n, Asset.nativeId().toString('hex'), {
+          decimals: 4,
+        }),
+      ).toEqual({ value: 1n, decimals: 0 })
+      expect(
+        CurrencyUtils.minorToMajor(10000000000n, Asset.nativeId().toString('hex'), {
+          decimals: 4,
+        }),
+      ).toEqual({ value: 1n, decimals: 2 })
+
+      expect(
+        CurrencyUtils.minorToMajor(1000n, Asset.nativeId().toString('hex'), {
+          decimals: 4,
+        }),
+      ).toEqual({ value: 1n, decimals: -5 })
+    })
+
+    it('should return an asset value with 0 decimals by default', () => {
+      expect(CurrencyUtils.minorToMajor(1n, assetId)).toEqual({ value: 1n, decimals: 0 })
+      expect(CurrencyUtils.minorToMajor(100n, assetId)).toEqual({ value: 1n, decimals: 2 })
+      expect(CurrencyUtils.minorToMajor(100n, assetId)).toEqual({ value: 1n, decimals: 2 })
+    })
+
+    it('should return an asset value using the given decimals', () => {
+      expect(CurrencyUtils.minorToMajor(1n, assetId, { decimals: 2 })).toEqual({
+        value: 1n,
+        decimals: -2,
+      })
+      expect(CurrencyUtils.minorToMajor(100n, assetId, { decimals: 2 })).toEqual({
+        value: 1n,
+        decimals: 0,
+      })
+      expect(CurrencyUtils.minorToMajor(123n, assetId, { decimals: 2 })).toEqual({
+        value: 123n,
+        decimals: -2,
+      })
+    })
+  })
+
   describe('render', () => {
     // Randomly generated custom asset ID
     const assetId = '1a75bf033c1c1925cfcd1a77461364e77c6e861c2a3acabaf9e398e980146651'

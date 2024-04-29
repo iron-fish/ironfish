@@ -10,11 +10,9 @@ export class DecimalUtils {
    *      1 * 10 ^ 0 with 2 min precision => '1.00' \
    */
   static render(value: bigint | number, decimals: number, minPrecision: number = 0): string {
-    value = BigInt(value)
-
-    const { value: normalizedValue, decimals: numZeros } = this.normalize(value)
-    value = normalizedValue
-    decimals = decimals + numZeros
+    const normalized = this.normalize({ value: BigInt(value), decimals })
+    value = normalized.value
+    decimals = normalized.decimals
 
     if (value < 0) {
       return `-${this.render(value * -1n, decimals, minPrecision)}`
@@ -65,9 +63,7 @@ export class DecimalUtils {
     const whole = trimFromStart(split[0], '0')
     const fraction = trimFromEnd(split[1], '0')
 
-    const decimals = fraction.length
-    const { value, decimals: normalizedDecimals } = this.normalize(BigInt(whole + fraction))
-    return { value, decimals: Number(BigInt(-decimals + normalizedDecimals)) }
+    return this.normalize({ value: BigInt(whole + fraction), decimals: -fraction.length })
   }
 
   /**
@@ -75,7 +71,15 @@ export class DecimalUtils {
    * e.g. 1000    => 1   * 10 ^ 3 => { value: 1, decimals: 3 } \
    *      4530000 => 453 * 10 ^ 4 => { value: 453, decimals: 4 }
    */
-  private static normalize(value: bigint): { value: bigint; decimals: number } {
+  static normalize(input: { value: bigint; decimals: number }): {
+    value: bigint
+    decimals: number
+  } {
+    if (input.value === 0n) {
+      return { value: 0n, decimals: 0 }
+    }
+    const { value, decimals } = input
+
     let dividedValue = value
     let numZeros = 0
     while (dividedValue % 10n === 0n && dividedValue !== 0n) {
@@ -83,7 +87,7 @@ export class DecimalUtils {
       numZeros++
     }
 
-    return { value: dividedValue, decimals: numZeros }
+    return { value: dividedValue, decimals: decimals + numZeros }
   }
 }
 

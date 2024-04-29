@@ -98,10 +98,10 @@ export class CurrencyUtils {
     verifiedAssetMetadata?: {
       decimals?: number
     },
-  ): string {
+  ): { value: bigint; decimals: number } {
     const { decimals } = assetMetadataWithDefaults(assetId, verifiedAssetMetadata)
 
-    return DecimalUtils.render(amount, -decimals, decimals)
+    return DecimalUtils.normalize({ value: amount, decimals: -decimals })
   }
 
   /**
@@ -121,14 +121,20 @@ export class CurrencyUtils {
       symbol?: string
     },
   ): string {
-    const majorValue = this.minorToMajor(BigInt(amount), assetId, verifiedAssetMetadata)
-    const { symbol } = assetMetadataWithDefaults(assetId, verifiedAssetMetadata)
+    const { value: majorValue, decimals: majorDecimals } = this.minorToMajor(
+      BigInt(amount),
+      assetId,
+      verifiedAssetMetadata,
+    )
+    const { symbol, decimals } = assetMetadataWithDefaults(assetId, verifiedAssetMetadata)
+
+    const renderedValue = DecimalUtils.render(majorValue, majorDecimals, decimals)
 
     if (includeSymbol) {
-      return `${symbol} ${majorValue}`
+      return `${symbol} ${renderedValue}`
     }
 
-    return majorValue
+    return renderedValue
   }
 
   /*
