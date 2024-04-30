@@ -63,14 +63,15 @@ export class CurrencyUtils {
     const { decimals } = assetMetadataWithDefaults(assetId, verifiedAssetMetadata)
 
     try {
-      const majorValue = DecimalUtils.tryDecode(amount.toString())
-      const minorValue = { value: majorValue.value, decimals: majorValue.decimals + decimals }
+      const major = DecimalUtils.tryDecode(amount.toString())
+      const minor = { value: major.value, decimals: major.decimals + decimals }
 
-      if (minorValue.decimals < 0) {
-        throw new Error('amount is too small to fit into the minor denomination')
+      if (minor.decimals < 0) {
+        return [null, Error('amount is too small to fit into the minor denomination')]
       }
 
-      return [minorValue.value * BigInt(10n ** BigInt(minorValue.decimals)), null]
+      const minorValue = minor.value * 10n ** BigInt(minor.decimals)
+      return [minorValue, null]
     } catch (e) {
       if (e instanceof Error) {
         return [null, e]
