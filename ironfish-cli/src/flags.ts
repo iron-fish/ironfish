@@ -3,13 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import {
   CurrencyUtils,
+  DecimalUtils,
   DEFAULT_CONFIG_NAME,
   DEFAULT_DATA_DIR,
   DEFAULT_USE_RPC_HTTP,
   DEFAULT_USE_RPC_IPC,
   DEFAULT_USE_RPC_TCP,
   DEFAULT_USE_RPC_TLS,
-  FixedNumberUtils,
   MAXIMUM_ORE_AMOUNT,
   MINIMUM_ORE_AMOUNT,
 } from '@ironfish/sdk'
@@ -167,7 +167,7 @@ export const ValueFlag = Flags.custom<string>({
   parse: async (input, _ctx, opts) => {
     return new Promise((resolve, reject) => {
       try {
-        FixedNumberUtils.tryDecodeDecimal(input)
+        DecimalUtils.tryDecode(input)
         resolve(input)
       } catch (e) {
         reject(new Error(`The number inputted for ${opts.name} is invalid.`))
