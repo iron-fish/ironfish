@@ -58,10 +58,6 @@
     "oclif:version": "oclif readme && git add README.md"
   },
   "dependencies": {
-    "@aws-sdk/client-cognito-identity": "3",
-    "@aws-sdk/client-s3": "3",
-    "@aws-sdk/client-secrets-manager": "3",
-    "@aws-sdk/s3-request-presigner": "3",
     "@ironfish/rust-nodejs": "2.3.0",
     "@ironfish/sdk": "2.3.0",
     "@oclif/core": "1.23.1",
