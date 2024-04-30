@@ -42,14 +42,14 @@ describe('DecimalUtils', () => {
   it('tryParse', () => {
     expect(DecimalUtils.tryDecode('1')).toEqual({ value: 1n, decimals: 0 })
     expect(DecimalUtils.tryDecode('-1')).toEqual({ value: -1n, decimals: 0 })
-    expect(DecimalUtils.tryDecode('10')).toEqual({ value: 10n, decimals: 0 })
+    expect(DecimalUtils.tryDecode('10')).toEqual({ value: 1n, decimals: 1 })
     expect(DecimalUtils.tryDecode('123')).toEqual({ value: 123n, decimals: 0 })
 
     expect(DecimalUtils.tryDecode('0')).toEqual({ value: 0n, decimals: 0 })
     expect(DecimalUtils.tryDecode('0.0')).toEqual({ value: 0n, decimals: 0 })
 
-    expect(DecimalUtils.tryDecode('100.000')).toEqual({ value: 100n, decimals: 0 })
-    expect(DecimalUtils.tryDecode('-100.000')).toEqual({ value: -100n, decimals: 0 })
+    expect(DecimalUtils.tryDecode('100.000')).toEqual({ value: 1n, decimals: 2 })
+    expect(DecimalUtils.tryDecode('-100.000')).toEqual({ value: -1n, decimals: 2 })
     expect(DecimalUtils.tryDecode('100.001')).toEqual({ value: 100001n, decimals: -3 })
     expect(DecimalUtils.tryDecode('-100.001')).toEqual({ value: -100001n, decimals: -3 })
 

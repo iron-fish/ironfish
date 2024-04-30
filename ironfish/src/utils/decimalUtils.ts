@@ -57,7 +57,7 @@ export class DecimalUtils {
     }
 
     if (split.length === 1) {
-      return { value: BigInt(split[0]), decimals: 0 }
+      return this.normalize({ value: BigInt(split[0]), decimals: 0 })
     }
 
     const whole = trimFromStart(split[0], '0')
