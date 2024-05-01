@@ -7,6 +7,8 @@ import type {
   AcceptTransactionResponse,
   AddPeerRequest,
   AddPeerResponse,
+  AddSignatureRequest,
+  AddSignatureResponse,
   AddTransactionRequest,
   AddTransactionResponse,
   AggregateSignatureSharesRequest,
@@ -53,16 +55,16 @@ import type {
   GetAccountIdentitiesResponse,
   GetAccountNotesStreamRequest,
   GetAccountNotesStreamResponse,
-  GetAccountsRequest,
-  GetAccountsResponse,
-  GetAccountsStatusRequest,
-  GetAccountsStatusResponse,
   GetAccountStatusRequest,
   GetAccountStatusResponse,
   GetAccountTransactionRequest,
   GetAccountTransactionResponse,
   GetAccountTransactionsRequest,
   GetAccountTransactionsResponse,
+  GetAccountsRequest,
+  GetAccountsResponse,
+  GetAccountsStatusRequest,
+  GetAccountsStatusResponse,
   GetAssetRequest,
   GetAssetResponse,
   GetAssetsRequest,
@@ -103,10 +105,10 @@ import type {
   GetNetworkInfoResponse,
   GetNodeStatusRequest,
   GetNodeStatusResponse,
-  GetNotesRequest,
-  GetNotesResponse,
   GetNoteWitnessRequest,
   GetNoteWitnessResponse,
+  GetNotesRequest,
+  GetNotesResponse,
   GetPeerMessagesRequest,
   GetPeerMessagesResponse,
   GetPeerRequest,
@@ -172,7 +174,6 @@ import type {
   UseAccountResponse,
 } from '../routes'
 import { ApiNamespace } from '../routes/namespaces'
-import { AddSignatureRequest, AddSignatureResponse } from '../routes/wallet/addSignature'
 
 export abstract class RpcClient {
   abstract request<TEnd = unknown, TStream = unknown>(
