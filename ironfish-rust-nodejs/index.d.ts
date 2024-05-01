@@ -230,6 +230,7 @@ export class UnsignedTransaction {
   hash(): Buffer
   signingPackage(nativeIdentiferCommitments: Array<string>): string
   sign(spenderHexKey: string): Buffer
+  addSignature(signatures: string): Buffer
 }
 export class FoundBlockResult {
   randomness: string

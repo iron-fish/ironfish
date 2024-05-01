@@ -22,7 +22,7 @@ use std::{
 use crate::{
     errors::{IronfishError, IronfishErrorKind},
     frost_utils::signing_package::SigningPackage,
-    serializing::read_scalar,
+    serializing::{hex_to_bytes, read_scalar},
     transaction::Blake2b,
     OutputDescription, SaplingKey, Transaction,
 };
@@ -236,6 +236,38 @@ impl UnsignedTransaction {
         }
 
         // Sign mints now that we have the data needed to be signed
+        let mut mint_descriptions = Vec::with_capacity(self.mints.len());
+        for mint in self.mints.drain(0..) {
+            mint_descriptions.push(mint.add_signature(signature));
+        }
+
+        let transaction = Transaction {
+            version: self.version,
+            expiration: self.expiration,
+            fee: self.fee,
+            spends: spend_descriptions,
+            outputs: self.outputs.clone(),
+            mints: mint_descriptions,
+            burns: self.burns.clone(),
+            binding_signature: self.binding_signature,
+            randomized_public_key: self.randomized_public_key.clone(),
+        };
+
+        Ok(transaction)
+    }
+
+    pub fn add_signature(
+        &mut self,
+        signature_string: String,
+    ) -> Result<Transaction, IronfishError> {
+        let signature_bytes: [u8; 64] = hex_to_bytes(&signature_string)?;
+        let signature = Signature::read(&signature_bytes[..])?;
+
+        let mut spend_descriptions = Vec::with_capacity(self.spends.len());
+        for spend in self.spends.drain(0..) {
+            spend_descriptions.push(spend.add_signature(signature));
+        }
+
         let mut mint_descriptions = Vec::with_capacity(self.mints.len());
         for mint in self.mints.drain(0..) {
             mint_descriptions.push(mint.add_signature(signature));

@@ -460,6 +460,19 @@ impl NativeUnsignedTransaction {
 
         Ok(Buffer::from(vec))
     }
+
+    #[napi]
+    pub fn add_signature(&mut self, signatures: String) -> Result<Buffer> {
+        let signed_transaction = self
+            .transaction
+            .add_signature(signatures)
+            .map_err(to_napi_err)?;
+
+        let mut vec: Vec<u8> = vec![];
+        signed_transaction.write(&mut vec).map_err(to_napi_err)?;
+
+        Ok(Buffer::from(vec))
+    }
 }
 
 #[napi(namespace = "multisig")]

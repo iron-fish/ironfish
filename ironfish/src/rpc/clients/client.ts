@@ -7,6 +7,8 @@ import type {
   AcceptTransactionResponse,
   AddPeerRequest,
   AddPeerResponse,
+  AddSignatureRequest,
+  AddSignatureResponse,
   AddTransactionRequest,
   AddTransactionResponse,
   AggregateSignatureSharesRequest,
@@ -535,6 +537,15 @@ export abstract class RpcClient {
 
     getAssets: (params: GetAssetsRequest): RpcResponse<void, GetAssetsResponse> => {
       return this.request<void, GetAssetsResponse>(`${ApiNamespace.wallet}/getAssets`, params)
+    },
+
+    addSignatureToTransaction: (
+      params: AddSignatureRequest,
+    ): Promise<RpcResponseEnded<AddSignatureResponse>> => {
+      return this.request<AddSignatureResponse>(
+        `${ApiNamespace.wallet}/addSignature`,
+        params,
+      ).waitForEnd()
     },
 
     postTransaction: (
