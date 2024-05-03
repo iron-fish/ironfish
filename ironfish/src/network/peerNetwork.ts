@@ -62,7 +62,7 @@ import { BAN_SCORE, KnownBlockHashesValue, Peer } from './peers/peer'
 import { PeerConnectionManager } from './peers/peerConnectionManager'
 import { PeerManager } from './peers/peerManager'
 import { TransactionFetcher } from './transactionFetcher'
-import { IsomorphicWebSocketConstructor, NodeDataChannelType } from './types'
+import { IsomorphicWebSocketConstructor } from './types'
 import { getBlockSize } from './utils/serializers'
 import { parseUrl, WebSocketAddress } from './utils/url'
 import {
@@ -159,7 +159,6 @@ export class PeerNetwork {
     identity: PrivateIdentity
     agent?: string
     webSocket: IsomorphicWebSocketConstructor
-    nodeDataChannel: NodeDataChannelType
     listen?: boolean
     port?: number
     bootstrapNodes?: string[]
@@ -195,7 +194,6 @@ export class PeerNetwork {
       VERSION_PROTOCOL,
       options.chain,
       options.webSocket,
-      options.nodeDataChannel,
       options.networkId,
       this.enableSyncing,
     )
