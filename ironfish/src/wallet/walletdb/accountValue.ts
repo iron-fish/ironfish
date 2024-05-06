@@ -23,6 +23,7 @@ export interface AccountValue {
   outgoingViewKey: string
   publicAddress: string
   createdAt: HeadValue | null
+  syncingEnabled?: boolean
   multisigKeys?: MultisigKeys
   proofAuthorizingKey: string | null
 }

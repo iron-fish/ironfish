@@ -155,7 +155,11 @@ import type {
   SetConfigResponse,
   ShowChainRequest,
   ShowChainResponse,
+  StartSyncingRequest,
+  StartSyncingResponse,
   StopNodeResponse,
+  StopSyncingRequest,
+  StopSyncingResponse,
   SubmitBlockRequest,
   SubmitBlockResponse,
   UnsetConfigRequest,
@@ -574,6 +578,24 @@ export abstract class RpcClient {
     ): Promise<RpcResponseEnded<BuildTransactionResponse>> => {
       return this.request<BuildTransactionResponse>(
         `${ApiNamespace.wallet}/buildTransaction`,
+        params,
+      ).waitForEnd()
+    },
+
+    startSyncing: (
+      params: StartSyncingRequest,
+    ): Promise<RpcResponseEnded<StartSyncingResponse>> => {
+      return this.request<StartSyncingResponse>(
+        `${ApiNamespace.wallet}/startSyncing`,
+        params,
+      ).waitForEnd()
+    },
+
+    stopSyncing: (
+      params: StopSyncingRequest,
+    ): Promise<RpcResponseEnded<StopSyncingResponse>> => {
+      return this.request<StopSyncingResponse>(
+        `${ApiNamespace.wallet}/stopSyncing`,
         params,
       ).waitForEnd()
     },

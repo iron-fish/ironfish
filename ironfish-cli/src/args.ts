@@ -6,3 +6,14 @@ export function parseNumber(input: string): number | null {
   const parsed = Number(input)
   return isNaN(parsed) ? null : parsed
 }
+
+export function parseBoolean(input: string): boolean | null {
+  const lower = input.toLowerCase().trim()
+  if (lower === 'true') {
+    return true
+  }
+  if (lower === 'false') {
+    return false
+  }
+  return null
+}
