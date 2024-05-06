@@ -9,10 +9,8 @@ import { WebRtcConnection } from './webRtcConnection'
 describe('WebRtcConnection', () => {
   describe('send', () => {
     describe('with no datachannel', () => {
-      it('returns false', async () => {
-        const nodeDataChannel = await import('node-datachannel')
-
-        const connection = new WebRtcConnection(nodeDataChannel, false, createRootLogger())
+      it('returns false', () => {
+        const connection = new WebRtcConnection(false, createRootLogger())
         const message = new IdentifyMessage({
           agent: '',
           head: Buffer.alloc(32, 0),
@@ -31,10 +29,8 @@ describe('WebRtcConnection', () => {
     })
 
     describe('with a valid message', () => {
-      it('serializes and sends the message on the datachannel', async () => {
-        const nodeDataChannel = await import('node-datachannel')
-
-        const connection = new WebRtcConnection(nodeDataChannel, true, createRootLogger())
+      it('serializes and sends the message on the datachannel', () => {
+        const connection = new WebRtcConnection(true, createRootLogger())
         const sendSpy = jest.spyOn(connection, '_send')
 
         const message = new IdentifyMessage({

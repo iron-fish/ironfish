@@ -3,15 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import type { Logger } from '../../../logger'
-// @ts-expect-error Allow type-only import https://github.com/microsoft/TypeScript/issues/49721
-import type { DataChannel, DescriptionType, PeerConnection } from 'node-datachannel'
 import colors from 'colors/safe'
+import { DataChannel, DescriptionType, PeerConnection } from 'node-datachannel'
 import { Assert } from '../../../assert'
 import { Event } from '../../../event'
 import { MetricsMonitor } from '../../../metrics'
 import { ErrorUtils } from '../../../utils'
 import { parseNetworkMessage } from '../../messageRegistry'
-import { NodeDataChannelType } from '../../types'
 import { MAX_MESSAGE_SIZE } from '../../version'
 import { Connection, ConnectionDirection, ConnectionType } from './connection'
 import { NetworkError } from './errors'
@@ -57,7 +55,6 @@ export class WebRtcConnection extends Connection {
   onSignal = new Event<[SignalData]>()
 
   constructor(
-    nodeDataChannel: NodeDataChannelType,
     initiator: boolean,
     logger: Logger,
     metrics?: MetricsMonitor,
@@ -70,7 +67,7 @@ export class WebRtcConnection extends Connection {
       metrics,
     )
 
-    this.peer = new nodeDataChannel.PeerConnection('peer', {
+    this.peer = new PeerConnection('peer', {
       iceServers: options.stunServers ?? [],
       maxMessageSize: MAX_MESSAGE_SIZE,
     })
@@ -222,7 +219,7 @@ export class WebRtcConnection extends Connection {
     this.datachannel?.close()
 
     try {
-      this.peer.destroy()
+      this.peer.close()
     } catch (e) {
       // peer.destroy() may throw "It seems peer-connection is closed" if the
       // peer connection has been disposed already
