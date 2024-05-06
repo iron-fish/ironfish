@@ -12,6 +12,7 @@ import { RpcNotFoundError, RpcValidationError } from '../../adapters'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import { RpcBlock, RpcBlockSchema, serializeRpcBlockHeader } from '../types'
+import { serializeRpcTransaction } from './utils'
 
 export type GetBlockRequest = {
   search?: string
@@ -109,40 +110,7 @@ routes.register<typeof GetBlockRequestSchema, GetBlockResponse>(
     const transactions: GetBlockResponse['block']['transactions'] = []
 
     for (const tx of block.transactions) {
-      transactions.push({
-        hash: tx.hash().toString('hex'),
-        size: getTransactionSize(tx),
-        fee: Number(tx.fee()),
-        expiration: tx.expiration(),
-        notes: tx.notes.map((note) => ({
-          commitment: note.hash().toString('hex'),
-          hash: note.hash().toString('hex'),
-          serialized: note.serialize().toString('hex'),
-        })),
-        spends: tx.spends.map((spend) => ({
-          nullifier: spend.nullifier.toString('hex'),
-          commitment: spend.commitment.toString('hex'),
-          size: spend.size,
-        })),
-        mints: tx.mints.map((mint) => ({
-          id: mint.asset.id().toString('hex'),
-          metadata: BufferUtils.toHuman(mint.asset.metadata()),
-          name: BufferUtils.toHuman(mint.asset.name()),
-          creator: mint.asset.creator().toString('hex'),
-          value: mint.value.toString(),
-          transferOwnershipTo: mint.transferOwnershipTo?.toString('hex'),
-          assetId: mint.asset.id().toString('hex'),
-          assetName: mint.asset.name().toString('hex'),
-        })),
-        burns: tx.burns.map((burn) => ({
-          id: burn.assetId.toString('hex'),
-          value: burn.value.toString(),
-          assetId: burn.assetId.toString('hex'),
-          assetName: '',
-        })),
-        signature: tx.transactionSignature().toString('hex'),
-        ...(request.data?.serialized ? { serialized: tx.serialize().toString('hex') } : {}),
-      })
+      transactions.push(serializeRpcTransaction(tx))
     }
 
     const main = await context.chain.isHeadChain(header)

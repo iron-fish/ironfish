@@ -12,6 +12,7 @@ import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import { RpcBlock, RpcBlockSchema, serializeRpcBlockHeader } from '../types'
 import { RpcTransaction } from './types'
+import { serializeRpcTransaction } from './utils'
 
 const MAX_BLOCKS_RANGE = 30
 
@@ -89,39 +90,7 @@ const getBlockWithSequence = async (node: FullNode, sequence: number): Promise<R
   const transactions: RpcTransaction[] = []
 
   for (const tx of block.transactions) {
-    transactions.push({
-      hash: tx.hash().toString('hex'),
-      size: getTransactionSize(tx),
-      fee: Number(tx.fee()),
-      expiration: tx.expiration(),
-      notes: tx.notes.map((note) => ({
-        commitment: note.hash().toString('hex'),
-        hash: note.hash().toString('hex'),
-        serialized: note.serialize().toString('hex'),
-      })),
-      spends: tx.spends.map((spend) => ({
-        nullifier: spend.nullifier.toString('hex'),
-        commitment: spend.commitment.toString('hex'),
-        size: spend.size,
-      })),
-      mints: tx.mints.map((mint) => ({
-        id: mint.asset.id().toString('hex'),
-        metadata: BufferUtils.toHuman(mint.asset.metadata()),
-        name: BufferUtils.toHuman(mint.asset.name()),
-        creator: mint.asset.creator().toString('hex'),
-        value: mint.value.toString(),
-        transferOwnershipTo: mint.transferOwnershipTo?.toString('hex'),
-        assetId: mint.asset.id().toString('hex'),
-        assetName: mint.asset.name().toString('hex'),
-      })),
-      burns: tx.burns.map((burn) => ({
-        id: burn.assetId.toString('hex'),
-        value: burn.value.toString(),
-        assetId: burn.assetId.toString('hex'),
-        assetName: '',
-      })),
-      signature: tx.transactionSignature().toString('hex'),
-    })
+    transactions.push(serializeRpcTransaction(tx))
   }
   const blockHeaderResponse = serializeRpcBlockHeader(header)
   return {
