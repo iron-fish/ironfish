@@ -3,10 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
-import { getBlockSize, getTransactionSize } from '../../../network/utils/serializers'
+import { getBlockSize } from '../../../network/utils/serializers'
 import { FullNode } from '../../../node'
 import { GENESIS_BLOCK_SEQUENCE } from '../../../primitives/block'
-import { BufferUtils } from '../../../utils'
 import { RpcNotFoundError, RpcValidationError } from '../../adapters'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
@@ -51,7 +50,7 @@ routes.register<typeof GetBlocksRequestSchema, GetBlocksResponse>(
   async (request, context): Promise<void> => {
     Assert.isInstanceOf(context, FullNode)
 
-    // Use negative numbers to start from the head of the chain
+    // Use negative numbers to start from the genesis block of the chain
     if (request.data.start <= 0) {
       request.data.start = Math.max(request.data.start, GENESIS_BLOCK_SEQUENCE)
     }
