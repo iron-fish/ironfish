@@ -72,7 +72,7 @@ jobs:
         working-directory: ./ironfish-rust-nodejs
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: bindings-${{ matrix.settings.target }}
           path: ironfish-rust-nodejs/*.node
@@ -124,7 +124,7 @@ jobs:
           node-version: 18
 
       - name: Download artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: bindings-${{ matrix.settings.target }}
           path: ./ironfish-rust-nodejs
