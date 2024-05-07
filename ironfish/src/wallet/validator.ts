@@ -2,7 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { isValidPublicAddress as nativeIsValidPublicAddress } from '@ironfish/rust-nodejs'
+import {
+  generatePublicAddressFromIncomingViewKey,
+  isValidPublicAddress as nativeIsValidPublicAddress,
+} from '@ironfish/rust-nodejs'
 import { AccountValue } from './walletdb/accountValue'
 
 const SPENDING_KEY_LENGTH = 64
@@ -30,6 +33,10 @@ export function isValidOutgoingViewKey(outgoingViewKey: string): boolean {
     outgoingViewKey.length === OUTGOING_VIEW_KEY_LENGTH &&
     haveAllowedCharacters(outgoingViewKey)
   )
+}
+
+export function isValidIVKAndPublicAddressPair(ivk: string, publicAddress: string): boolean {
+  return generatePublicAddressFromIncomingViewKey(ivk) === publicAddress
 }
 
 export function isValidViewKey(viewKey: string): boolean {
@@ -75,6 +82,15 @@ export function validateAccount(toImport: Partial<AccountValue>): void {
 
   if (toImport.spendingKey && !isValidSpendingKey(toImport.spendingKey)) {
     throw new Error(`Provided spending key ${toImport.spendingKey} is invalid`)
+  }
+
+  if (!isValidIVKAndPublicAddressPair(toImport.incomingViewKey, toImport.publicAddress)) {
+    const generatedPublicAddress = generatePublicAddressFromIncomingViewKey(
+      toImport.incomingViewKey,
+    )
+    throw new Error(
+      `Public address ${toImport.publicAddress} does not match public address generated from incoming view key ${generatedPublicAddress}`,
+    )
   }
 }
 
