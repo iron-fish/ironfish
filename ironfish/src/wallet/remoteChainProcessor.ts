@@ -68,7 +68,7 @@ export class RemoteChainProcessor {
 
       const blockHeader: WalletBlockHeader = {
         hash: Buffer.from(block.hash, 'hex'),
-        previousBlockHash: Buffer.from(block.previous, 'hex'),
+        previousBlockHash: Buffer.from(block.previousBlockHash, 'hex'),
         sequence: block.sequence,
         timestamp: new Date(block.timestamp),
       }
