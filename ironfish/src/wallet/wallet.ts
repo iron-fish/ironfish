@@ -84,6 +84,7 @@ export enum TransactionType {
   SEND = 'send',
   RECEIVE = 'receive',
   MINER = 'miner',
+  BRIDGE = 'bridge',
 }
 
 export type TransactionOutput = {
@@ -1461,6 +1462,51 @@ export class Wallet {
     return AssetStatus.PENDING
   }
 
+  isBridgeTransaction(account: Account, transaction: TransactionValue): boolean {
+    const notesForSpender = transaction.transaction.notes.reduce((acc: Note[], note) => {
+      const result = note.decryptNoteForSpender(account.outgoingViewKey)
+
+      if (
+        result &&
+        result.sender() === account.publicAddress &&
+        result.owner() !== account.publicAddress
+      ) {
+        acc.push(result)
+      }
+
+      return acc
+    }, [])
+
+    if (notesForSpender.length !== 2) {
+      return false
+    }
+
+    let [bridgeNote, feeNote] = notesForSpender
+
+    // ensure at least 1 note is a fee note
+    const isFeeNote = (note: Note) => {
+      return note.memo().toString().includes('{"type": "fee_payment"}')
+    }
+
+    const isBridgeNoteFeeNote = isFeeNote(bridgeNote)
+
+    if (!isBridgeNoteFeeNote && !isFeeNote(feeNote)) {
+      return false
+    }
+
+    if (isBridgeNoteFeeNote) {
+      ;[bridgeNote, feeNote] = [feeNote, bridgeNote]
+    }
+
+    const bridgeAddresses = [
+      '06102d319ab7e77b914a1bd135577f3e266fd82a3e537a02db281421ed8b3d13'.toLowerCase(),
+      'db2cf6ec67addde84cc1092378ea22e7bb2eecdeecac5e43febc1cb8fb64b5e5'.toLowerCase(),
+      '3bE494deb669ff8d943463bb6042eabcf0c5346cf444d569e07204487716cb85'.toLowerCase(),
+    ]
+
+    return bridgeAddresses.includes(bridgeNote.owner().toLowerCase())
+  }
+
   async getTransactionType(
     account: Account,
     transaction: TransactionValue,
@@ -1468,6 +1514,10 @@ export class Wallet {
   ): Promise<TransactionType> {
     if (transaction.transaction.isMinersFee()) {
       return TransactionType.MINER
+    }
+
+    if (this.isBridgeTransaction(account, transaction)) {
+      return TransactionType.BRIDGE
     }
 
     for (const spend of transaction.transaction.spends) {
