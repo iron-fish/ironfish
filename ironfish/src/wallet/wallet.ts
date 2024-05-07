@@ -118,7 +118,6 @@ export class Wallet {
   private readonly createTransactionMutex: Mutex
   private readonly eventLoopAbortController: AbortController
   private eventLoopPromise: Promise<void> | null = null
-  private eventLoopResolve: PromiseResolve<void> | null = null
 
   constructor({
     config,
@@ -332,7 +331,6 @@ export class Wallet {
 
     const [promise, resolve] = PromiseUtils.split<void>()
     this.eventLoopPromise = promise
-    this.eventLoopResolve = resolve
 
     await this.updateHead()
     void this.syncTransactionGossip()
@@ -344,7 +342,6 @@ export class Wallet {
 
     resolve()
     this.eventLoopPromise = null
-    this.eventLoopResolve = null
   }
 
   async syncTransactionGossip(): Promise<void> {
