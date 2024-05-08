@@ -165,7 +165,10 @@ export async function renderGraph(
   }
 }
 
-export const serializeRpcTransaction = (tx: Transaction): RpcTransaction => {
+export const serializeRpcTransaction = (
+  tx: Transaction,
+  serialized?: boolean,
+): RpcTransaction => {
   return {
     hash: tx.hash().toString('hex'),
     size: getTransactionSize(tx),
@@ -198,5 +201,6 @@ export const serializeRpcTransaction = (tx: Transaction): RpcTransaction => {
       assetName: '',
     })),
     signature: tx.transactionSignature().toString('hex'),
+    ...(serialized ? { serialized: tx.serialize().toString('hex') } : {}),
   }
 }

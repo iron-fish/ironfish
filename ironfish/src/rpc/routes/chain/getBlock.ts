@@ -109,7 +109,7 @@ routes.register<typeof GetBlockRequestSchema, GetBlockResponse>(
     const transactions: GetBlockResponse['block']['transactions'] = []
 
     for (const tx of block.transactions) {
-      transactions.push(serializeRpcTransaction(tx))
+      transactions.push(serializeRpcTransaction(tx, request.data.serialized))
     }
 
     const main = await context.chain.isHeadChain(header)
