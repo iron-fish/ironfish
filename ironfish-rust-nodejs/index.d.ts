@@ -68,6 +68,7 @@ export interface Key {
 export function generateKey(): Key
 export function spendingKeyToWords(privateKey: string, languageCode: LanguageCode): string
 export function wordsToSpendingKey(words: string, languageCode: LanguageCode): string
+export function generatePublicAddressFromIncomingViewKey(ivkString: string): string
 export function generateKeyFromPrivateKey(privateKey: string): Key
 export function initializeSapling(): void
 export function isValidPublicAddress(hexAddress: string): boolean

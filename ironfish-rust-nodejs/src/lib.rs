@@ -6,6 +6,7 @@ use std::fmt::Display;
 
 use ironfish::keys::Language;
 use ironfish::serializing::bytes_to_hex;
+use ironfish::IncomingViewKey;
 use ironfish::PublicAddress;
 use ironfish::SaplingKey;
 
@@ -94,6 +95,13 @@ pub fn spending_key_to_words(private_key: String, language_code: LanguageCode) -
 pub fn words_to_spending_key(words: String, language_code: LanguageCode) -> Result<String> {
     let key = SaplingKey::from_words(words, language_code.into()).map_err(to_napi_err)?;
     Ok(key.hex_spending_key())
+}
+
+#[napi]
+pub fn generate_public_address_from_incoming_view_key(ivk_string: String) -> Result<String> {
+    let ivk = IncomingViewKey::from_hex(&ivk_string).map_err(to_napi_err)?;
+    let address = PublicAddress::from_view_key(&ivk);
+    Ok(address.hex_public_address())
 }
 
 #[napi]
