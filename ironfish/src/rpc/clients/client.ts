@@ -5,6 +5,8 @@ import type { RpcResponse, RpcResponseEnded } from '../response'
 import type {
   AcceptTransactionRequest,
   AcceptTransactionResponse,
+  AddKnownTransactionsRequest,
+  AddKnownTransactionsResponse,
   AddPeerRequest,
   AddPeerResponse,
   AddTransactionRequest,
@@ -306,6 +308,15 @@ export abstract class RpcClient {
           ).waitForEnd()
         },
       },
+    },
+
+    addKnownTransactions: (
+      params: AddKnownTransactionsRequest,
+    ): Promise<RpcResponseEnded<AddKnownTransactionsResponse>> => {
+      return this.request<AddKnownTransactionsResponse>(
+        `${ApiNamespace.wallet}/addKnownTransactions`,
+        params,
+      ).waitForEnd()
     },
 
     getAccounts: (
