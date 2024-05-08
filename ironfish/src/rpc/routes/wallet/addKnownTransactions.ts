@@ -65,8 +65,8 @@ routes.register<typeof AddKnownTransactionsRequestSchema, AddKnownTransactionsRe
     }
 
     // Validate the start/end parameters
-    const head = await account.getHead()
-    const lastBlockSequence = head?.sequence ?? GENESIS_BLOCK_SEQUENCE - 1
+    const accountHead = await account.getHead()
+    const lastBlockSequence = accountHead?.sequence ?? GENESIS_BLOCK_SEQUENCE - 1
     // Reject request if it doesn't connect to the account head
     if (
       request.data.start > lastBlockSequence + 1 ||
@@ -76,6 +76,15 @@ routes.register<typeof AddKnownTransactionsRequestSchema, AddKnownTransactionsRe
         `Account head is ${lastBlockSequence}, so start must be at most ${
           lastBlockSequence + 1
         } and end must be at least ${lastBlockSequence + 2}.`,
+        RPC_ERROR_CODES.ERROR,
+        409,
+      )
+    }
+    if (request.data.end > context.chain.head.sequence + 1) {
+      throw new RpcResponseError(
+        `Chain head is ${lastBlockSequence}, so end must be at most ${
+          context.chain.head.sequence + 1
+        }.`,
         RPC_ERROR_CODES.ERROR,
         409,
       )
@@ -179,7 +188,7 @@ routes.register<typeof AddKnownTransactionsRequestSchema, AddKnownTransactionsRe
     })
 
     // Sort the list by block sequence, ascending
-    transactionList.sort((a, b) => a.header.sequence - b.header.sequence)
+    transactionWithNotesList.sort((a, b) => a.header.sequence - b.header.sequence)
 
     // Connect each block
     for (const blockTransactions of transactionWithNotesList) {
@@ -189,6 +198,17 @@ routes.register<typeof AddKnownTransactionsRequestSchema, AddKnownTransactionsRe
         blockTransactions.transactions,
         true,
       )
+    }
+
+    // If last block isn't end - 1, connect end-1
+    const last = transactionWithNotesList.at(-1)
+    if (!last || last.header.sequence < request.data.end - 1) {
+      const header = await context.chain.getHeaderAtSequence(request.data.end - 1)
+      Assert.isNotNull(
+        header,
+        `Should have validated that a block at ${request.data.end - 1} exists.`,
+      )
+      await context.wallet.connectBlockForAccount(account, header, [], false)
     }
 
     // const processor = new ChainProcessor({
