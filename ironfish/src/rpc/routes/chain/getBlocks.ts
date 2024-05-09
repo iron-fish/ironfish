@@ -13,8 +13,6 @@ import { RpcBlock, RpcBlockSchema, serializeRpcBlockHeader } from '../types'
 import { RpcTransaction } from './types'
 import { serializeRpcTransaction } from './utils'
 
-const MAX_BLOCKS_RANGE = 30
-
 export type GetBlocksRequest = {
   /**
    * The starting block height (inclusive).
@@ -61,10 +59,6 @@ routes.register<typeof GetBlocksRequestSchema, GetBlocksResponse>(
     // Use negative numbers to start from the genesis block of the chain
     if (request.data.start <= 0) {
       request.data.start = Math.max(request.data.start, GENESIS_BLOCK_SEQUENCE)
-    }
-
-    if (request.data.end - request.data.start > MAX_BLOCKS_RANGE) {
-      request.data.end = request.data.start + MAX_BLOCKS_RANGE
     }
 
     const blocks: { block: RpcBlock }[] = []
