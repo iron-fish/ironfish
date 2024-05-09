@@ -599,6 +599,31 @@ describe('Wallet', () => {
 
       expect(await node.wallet.getEarliestHeadHash()).toEqual(null)
     })
+
+    it('should skip accounts with syncing disabled', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+      const accountB = await useAccountFixture(node.wallet, 'accountB')
+
+      await node.wallet.updateHead()
+      accountA.updateSyncingEnabled(false)
+
+      const blockA = await useMinerBlockFixture(node.chain, 2, accountA)
+      await node.chain.addBlock(blockA)
+      const blockB = await useMinerBlockFixture(node.chain, 3, accountA)
+      await node.chain.addBlock(blockB)
+      await node.wallet.updateHead()
+
+      expect((await accountA.getHead())?.sequence).toBe(1)
+      expect((await accountB.getHead())?.sequence).toBe(3)
+
+      expect(await node.wallet.getEarliestHeadHash()).toEqual(blockB.header.hash)
+
+      accountB.updateSyncingEnabled(false)
+
+      expect(await node.wallet.getEarliestHeadHash()).toBeNull()
+    })
   })
 
   describe('getLatestHeadHash', () => {
@@ -620,6 +645,35 @@ describe('Wallet', () => {
       await accountC.updateHead(null)
 
       expect(await node.wallet.getLatestHeadHash()).toEqual(blockB.header.hash)
+    })
+
+    it('should skip accounts with syncing disabled', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+      const accountB = await useAccountFixture(node.wallet, 'accountB')
+
+      const blockA = await useMinerBlockFixture(node.chain, 2, accountA)
+      await node.chain.addBlock(blockA)
+
+      await node.wallet.updateHead()
+      accountA.updateSyncingEnabled(false)
+
+      const blockB = await useMinerBlockFixture(node.chain, 3, accountA)
+      await node.chain.addBlock(blockB)
+      await node.wallet.updateHead()
+
+      accountA.updateSyncingEnabled(true)
+      accountB.updateSyncingEnabled(false)
+
+      expect((await accountA.getHead())?.sequence).toBe(2)
+      expect((await accountB.getHead())?.sequence).toBe(3)
+
+      expect(await node.wallet.getLatestHeadHash()).toEqual(blockA.header.hash)
+
+      accountA.updateSyncingEnabled(false)
+
+      expect(await node.wallet.getLatestHeadHash()).toBeNull()
     })
   })
 
@@ -2088,6 +2142,28 @@ describe('Wallet', () => {
       expect(decryptSpy).toHaveBeenCalledTimes(1)
       expect(decryptSpy.mock.lastCall?.[3]).toEqual([accountA])
     })
+
+    it('should skip updating accounts with syncingEnabled set to false', async () => {
+      const { node } = await nodeTest.createSetup()
+      const accountA: Account = await useAccountFixture(node.wallet, 'a')
+      const accountB: Account = await useAccountFixture(node.wallet, 'b')
+      await node.wallet.updateHead()
+
+      accountA.updateSyncingEnabled(false)
+
+      const block2 = await useMinerBlockFixture(node.chain, 2, undefined)
+      await node.chain.addBlock(block2)
+      const block3 = await useMinerBlockFixture(node.chain, 3, undefined)
+      await node.chain.addBlock(block3)
+      await node.wallet.updateHead()
+
+      const aHead = await accountA.getHead()
+      const bHead = await accountB.getHead()
+      Assert.isNotNull(aHead)
+      Assert.isNotNull(bHead)
+      expect(aHead.sequence).toBe(1)
+      expect(bHead.sequence).toBe(3)
+    })
   })
 
   describe('getAssetStatus', () => {
@@ -2499,6 +2575,40 @@ describe('Wallet', () => {
       // accountA2.createdAt should be reset to blockA1, the point of the fork
       expect(accountA2.createdAt?.hash).toEqualHash(blockA1.header.hash)
       expect(accountA2.createdAt?.sequence).toEqual(blockA1.header.sequence)
+    })
+
+    it('should skip disconnecting for accounts with syncingEnabled set to false', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+      const accountB = await useAccountFixture(node.wallet, 'b')
+
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA1)
+      const blockA2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA2)
+
+      await node.wallet.updateHead()
+
+      let accountAHead = await accountA.getHead()
+      let accountBHead = await accountB.getHead()
+
+      expect(accountAHead?.hash).toEqualHash(blockA2.header.hash)
+      expect(accountBHead?.hash).toEqualHash(blockA2.header.hash)
+
+      accountA.updateSyncingEnabled(false)
+
+      await node.chain.blockchainDb.db.transaction(async (tx) => {
+        await node.chain.disconnect(blockA2, tx)
+      })
+
+      await node.wallet.updateHead()
+
+      accountAHead = await accountA.getHead()
+      accountBHead = await accountB.getHead()
+
+      expect(accountAHead?.hash).toEqualHash(blockA2.header.hash)
+      expect(accountBHead?.hash).toEqualHash(blockA2.header.previousBlockHash)
     })
   })
 
