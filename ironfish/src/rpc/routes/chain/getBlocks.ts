@@ -68,7 +68,7 @@ routes.register<typeof GetBlocksRequestSchema, GetBlocksResponse>(
 
     const blocks: { block: RpcBlock }[] = []
     for (let seq = request.data.start; seq <= request.data.end; seq++) {
-      const block = await getBlockWithSequence(context, seq, request.data.serialized)
+      const block = await getBlockAtSequence(context, seq, request.data.serialized)
       blocks.push({ block: block })
     }
 
@@ -76,7 +76,7 @@ routes.register<typeof GetBlocksRequestSchema, GetBlocksResponse>(
   },
 )
 
-const getBlockWithSequence = async (
+const getBlockAtSequence = async (
   node: FullNode,
   sequence: number,
   serialized?: boolean,
