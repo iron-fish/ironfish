@@ -24,7 +24,7 @@ describe('Route chain/getBlocks', () => {
     const hash2 = blockA2.header.hash.toString('hex')
 
     // Find block matching request sequence range
-    let response = await routeTest.client.chain.getBlocks({ start: 1, end: 4 })
+    let response = await routeTest.client.chain.getBlocks({ start: 1, end: 3 })
     expect(response.content.blocks).toHaveLength(3)
     const blocks = response.content.blocks
     expect(blocks[0]).toMatchObject({
@@ -61,7 +61,7 @@ describe('Route chain/getBlocks', () => {
     )
 
     // Find block with negative start sequence
-    response = await routeTest.client.chain.getBlocks({ start: -1, end: 2 })
+    response = await routeTest.client.chain.getBlocks({ start: -1, end: 1 })
     expect(response.content.blocks).toHaveLength(1)
     expect(response.content.blocks[0]).toMatchObject({
       block: {
@@ -79,7 +79,7 @@ describe('Route chain/getBlocks', () => {
     await expect(node.chain).toAddBlock(block)
     const hash = block.header.hash.toString('hex')
 
-    const response = await routeTest.client.chain.getBlocks({ start: 3, end: 4 })
+    const response = await routeTest.client.chain.getBlocks({ start: 3, end: 3 })
     expect(response.content.blocks).toHaveLength(1)
     expect(response.content.blocks[0]).toMatchObject({
       block: {

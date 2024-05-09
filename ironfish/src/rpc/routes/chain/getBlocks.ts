@@ -19,7 +19,7 @@ export type GetBlocksRequest = {
    */
   start: number
   /**
-   * The ending block height (exclusive).
+   * The ending block height (inclusive).
    */
   end: number
 }
@@ -62,7 +62,7 @@ routes.register<typeof GetBlocksRequestSchema, GetBlocksResponse>(
     }
 
     const blocks: { block: RpcBlock }[] = []
-    for (let seq = request.data.start; seq < request.data.end; seq++) {
+    for (let seq = request.data.start; seq <= request.data.end; seq++) {
       const block = await getBlockWithSequence(context, seq)
       blocks.push({ block: block })
     }
