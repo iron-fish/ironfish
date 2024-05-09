@@ -22,6 +22,10 @@ export type GetBlocksRequest = {
    * The ending block sequence (inclusive).
    */
   end: number
+  /**
+   * Additionally return block transactions in serialized format.
+   */
+  serialized?: boolean
 }
 
 export type GetBlocksResponse = {
@@ -31,8 +35,9 @@ export type GetBlocksResponse = {
 export const GetBlocksRequestSchema: yup.ObjectSchema<GetBlocksRequest> = yup
   .object()
   .shape({
-    start: yup.number(),
-    end: yup.number(),
+    start: yup.number().defined(),
+    end: yup.number().defined(),
+    serialized: yup.boolean().optional(),
   })
   .defined()
 
@@ -63,7 +68,7 @@ routes.register<typeof GetBlocksRequestSchema, GetBlocksResponse>(
 
     const blocks: { block: RpcBlock }[] = []
     for (let seq = request.data.start; seq <= request.data.end; seq++) {
-      const block = await getBlockWithSequence(context, seq)
+      const block = await getBlockWithSequence(context, seq, request.data.serialized)
       blocks.push({ block: block })
     }
 
@@ -71,7 +76,11 @@ routes.register<typeof GetBlocksRequestSchema, GetBlocksResponse>(
   },
 )
 
-const getBlockWithSequence = async (node: FullNode, sequence: number): Promise<RpcBlock> => {
+const getBlockWithSequence = async (
+  node: FullNode,
+  sequence: number,
+  serialized?: boolean,
+): Promise<RpcBlock> => {
   const header = await node.chain.getHeaderAtSequence(sequence)
   let error = ''
   if (!header) {
@@ -91,7 +100,7 @@ const getBlockWithSequence = async (node: FullNode, sequence: number): Promise<R
   const transactions: RpcTransaction[] = []
 
   for (const tx of block.transactions) {
-    transactions.push(serializeRpcTransaction(tx))
+    transactions.push(serializeRpcTransaction(tx, serialized))
   }
   const blockHeaderResponse = serializeRpcBlockHeader(header)
   return {
