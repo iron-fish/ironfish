@@ -27,7 +27,7 @@ export type GetBlocksRequest = {
 }
 
 export type GetBlocksResponse = {
-  blocks: RpcBlock[]
+  blocks: { block: RpcBlock }[]
 }
 
 export const GetBlocksRequestSchema: yup.ObjectSchema<GetBlocksRequest> = yup
@@ -40,7 +40,15 @@ export const GetBlocksRequestSchema: yup.ObjectSchema<GetBlocksRequest> = yup
 
 export const GetBlocksResponseSchema: yup.ObjectSchema<GetBlocksResponse> = yup
   .object({
-    blocks: yup.array(RpcBlockSchema).defined(),
+    blocks: yup
+      .array(
+        yup
+          .object({
+            block: RpcBlockSchema.defined(),
+          })
+          .defined(),
+      )
+      .defined(),
   })
   .defined()
 
@@ -59,10 +67,10 @@ routes.register<typeof GetBlocksRequestSchema, GetBlocksResponse>(
       request.data.end = request.data.start + MAX_BLOCKS_RANGE
     }
 
-    const blocks: RpcBlock[] = []
+    const blocks: { block: RpcBlock }[] = []
     for (let seq = request.data.start; seq < request.data.end; seq++) {
       const block = await getBlockWithSequence(context, seq)
-      blocks.push(block)
+      blocks.push({ block: block })
     }
 
     request.end({ blocks })

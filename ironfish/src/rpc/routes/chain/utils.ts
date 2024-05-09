@@ -6,11 +6,11 @@ import { Assert } from '../../../assert'
 import { Blockchain } from '../../../blockchain'
 import { VerificationResult } from '../../../consensus/verifier'
 import { createRootLogger, Logger } from '../../../logger'
+import { getTransactionSize } from '../../../network/utils/serializers'
+import { Transaction } from '../../../primitives'
 import { BlockHeader } from '../../../primitives/blockheader'
 import { BlockchainUtils, BufferUtils, HashUtils } from '../../../utils'
 import { RpcTransaction } from './types'
-import { Transaction } from '../../../primitives'
-import { getTransactionSize } from '../../../network/utils/serializers'
 
 const DEFAULT_OPTIONS = {
   seq: true,

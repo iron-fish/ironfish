@@ -88,6 +88,6 @@ describe('Route chain/getBlocks', () => {
       },
     })
 
-    expect(response.content.blocks[0].transactions[0].fee).toBe(-2000000001)
+    expect(response.content.blocks[0].block.transactions[0].fee).toBe(-2000000001)
   })
 })
