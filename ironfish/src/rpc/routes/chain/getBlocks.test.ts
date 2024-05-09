@@ -1,93 +1,129 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { useBlockWithTx, useMinerBlockFixture } from '../../../testUtilities'
+import { Assert } from '../../../assert'
+import { Transaction } from '../../../primitives'
+import { useBlockWithTx } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
-import { RPC_ERROR_CODES } from '../../adapters'
 
 describe('Route chain/getBlocks', () => {
-  const routeTest = createRouteTest()
+  const routeTest = createRouteTest(true)
+  let genesisHash = ''
+  let block2Hash = ''
+  let block3Hash = ''
 
-  it('Processes sequence inputs', async () => {
+  beforeAll(async () => {
     // Create a 3 block chain
-    const { chain } = routeTest
-    await chain.open()
+    const { chain, node } = routeTest
 
-    const blockA1 = await useMinerBlockFixture(chain)
-    await expect(chain).toAddBlock(blockA1)
-    const blockA2 = await useMinerBlockFixture(chain)
-    await expect(chain).toAddBlock(blockA2)
+    const { previous: block2, block: block3 } = await useBlockWithTx(node)
+    await chain.addBlock(block3)
 
-    // Get hash of blocks
-    const hash0 = chain.genesis.hash.toString('hex')
-    const hash1 = blockA1.header.hash.toString('hex')
-    const hash2 = blockA2.header.hash.toString('hex')
+    genesisHash = chain.genesis.hash.toString('hex')
+    block2Hash = block2.header.hash.toString('hex')
+    block3Hash = block3.header.hash.toString('hex')
+  })
 
-    // Find block matching request sequence range
-    let response = await routeTest.client.chain.getBlocks({ start: 1, end: 3 })
+  it('Returns blocks in range', async () => {
+    const response = await routeTest.client.chain.getBlocks({ start: 1, end: 3 })
     expect(response.content.blocks).toHaveLength(3)
-    const blocks = response.content.blocks
-    expect(blocks[0]).toMatchObject({
+    expect(response.content.blocks[0]).toMatchObject({
       block: {
-        hash: hash0,
+        hash: genesisHash,
         sequence: 1,
       },
     })
-    expect(blocks[1]).toMatchObject({
+    expect(response.content.blocks[1]).toMatchObject({
       block: {
-        hash: hash1,
+        hash: block2Hash,
         sequence: 2,
       },
     })
-    expect(blocks[2]).toMatchObject({
+    expect(response.content.blocks[2]).toMatchObject({
       block: {
-        hash: hash2,
+        hash: block3Hash,
         sequence: 3,
       },
     })
+    expect(response.content.blocks[2].block.transactions[0].fee).toBe(-2000000001)
+  })
 
-    // Now miss on a unexpected block sequence
-    await expect(
-      routeTest.client.chain.getBlocks({
-        start: 5,
-        end: 6,
-      }),
-    ).rejects.toThrow(
-      expect.objectContaining({
-        status: 404,
-        code: RPC_ERROR_CODES.NOT_FOUND,
-        message: expect.stringContaining('No block found with sequence'),
-      }),
-    )
-
-    // Find block with negative start sequence
-    response = await routeTest.client.chain.getBlocks({ start: -1, end: 1 })
-    expect(response.content.blocks).toHaveLength(1)
+  it('Returns at most latest block if requesting blocks past end of the chain', async () => {
+    const response = await routeTest.client.chain.getBlocks({ start: 2, end: 5 })
+    expect(response.content.blocks).toHaveLength(2)
     expect(response.content.blocks[0]).toMatchObject({
       block: {
-        hash: hash0,
-        sequence: 1,
+        hash: block2Hash,
+        sequence: 2,
+      },
+    })
+    expect(response.content.blocks[1]).toMatchObject({
+      block: {
+        hash: block3Hash,
+        sequence: 3,
       },
     })
   })
 
-  it('Receives transactions from a matched block', async () => {
-    // Create separate test case for showing transactions
-    const { node } = routeTest
-
-    const { block } = await useBlockWithTx(node)
-    await expect(node.chain).toAddBlock(block)
-    const hash = block.header.hash.toString('hex')
-
-    const response = await routeTest.client.chain.getBlocks({ start: 3, end: 3 })
+  it('Returns 1 block when start equals end', async () => {
+    const response = await routeTest.client.chain.getBlocks({ start: 2, end: 2 })
     expect(response.content.blocks).toHaveLength(1)
     expect(response.content.blocks[0]).toMatchObject({
       block: {
-        hash: hash,
+        hash: block2Hash,
+        sequence: 2,
+      },
+    })
+  })
+
+  it('Errors when requesting end before start', async () => {
+    await expect(routeTest.client.chain.getBlocks({ start: 3, end: 2 })).rejects.toThrow(
+      'end must be greater than or equal to start',
+    )
+  })
+
+  it('Negative ranges start from end of chain', async () => {
+    const response = await routeTest.client.chain.getBlocks({ start: -1, end: 0 })
+    expect(response.content.blocks).toHaveLength(2)
+    expect(response.content.blocks[0]).toMatchObject({
+      block: {
+        hash: block2Hash,
+        sequence: 2,
+      },
+    })
+    expect(response.content.blocks[1]).toMatchObject({
+      block: {
+        hash: block3Hash,
         sequence: 3,
       },
     })
+  })
 
-    expect(response.content.blocks[0].block.transactions[0].fee).toBe(-2000000001)
+  it('Returns serialized transactions when serialized is true', async () => {
+    let response = await routeTest.client.chain.getBlocks({ start: 3, end: 3 })
+    expect(response.content.blocks).toHaveLength(1)
+    expect(response.content.blocks[0]).toMatchObject({
+      block: {
+        hash: block3Hash,
+        sequence: 3,
+      },
+    })
+    expect(response.content.blocks[0].block.transactions[0].serialized).toBeUndefined()
+
+    response = await routeTest.client.chain.getBlocks({ start: 3, end: 3, serialized: true })
+    expect(response.content.blocks).toHaveLength(1)
+    expect(response.content.blocks[0]).toMatchObject({
+      block: {
+        hash: block3Hash,
+        sequence: 3,
+      },
+    })
+    expect(typeof response.content.blocks[0].block.transactions[0].serialized).toBe('string')
+
+    Assert.isNotUndefined(response.content.blocks[0].block.transactions[0].serialized)
+    const txn = new Transaction(
+      Buffer.from(response.content.blocks[0].block.transactions[0].serialized, 'hex'),
+    )
+    expect(txn.fee().toString()).toBe('-2000000001')
   })
 })

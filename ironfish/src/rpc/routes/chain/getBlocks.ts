@@ -1,11 +1,12 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import type { Blockchain } from '../../../blockchain'
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { getBlockSize } from '../../../network/utils/serializers'
 import { FullNode } from '../../../node'
-import { GENESIS_BLOCK_SEQUENCE } from '../../../primitives/block'
+import { BlockchainUtils } from '../../../utils/blockchain'
 import { RpcNotFoundError, RpcValidationError } from '../../adapters'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
@@ -15,11 +16,11 @@ import { serializeRpcTransaction } from './utils'
 
 export type GetBlocksRequest = {
   /**
-   * The starting block sequence (inclusive).
+   * The starting block sequence (inclusive). Negative numbers start from the end of the chain (with 0 being the latest block).
    */
   start: number
   /**
-   * The ending block sequence (inclusive).
+   * The ending block sequence (inclusive). If past the end of the chain, will return at most the latest block.
    */
   end: number
   /**
@@ -61,14 +62,18 @@ routes.register<typeof GetBlocksRequestSchema, GetBlocksResponse>(
   async (request, context): Promise<void> => {
     Assert.isInstanceOf(context, FullNode)
 
-    // Use negative numbers to start from the genesis block of the chain
-    if (request.data.start <= 0) {
-      request.data.start = Math.max(request.data.start, GENESIS_BLOCK_SEQUENCE)
+    if (request.data.end < request.data.start) {
+      throw new RpcValidationError(`end must be greater than or equal to start`)
     }
 
+    const { start, stop: end } = BlockchainUtils.getBlockRange(context.chain, {
+      start: request.data.start,
+      stop: request.data.end,
+    })
+
     const blocks: { block: RpcBlock }[] = []
-    for (let seq = request.data.start; seq <= request.data.end; seq++) {
-      const block = await getBlockAtSequence(context, seq, request.data.serialized)
+    for (let seq = start; seq <= end; seq++) {
+      const block = await getBlockAtSequence(context.chain, seq, request.data.serialized)
       blocks.push({ block: block })
     }
 
@@ -77,11 +82,11 @@ routes.register<typeof GetBlocksRequestSchema, GetBlocksResponse>(
 )
 
 const getBlockAtSequence = async (
-  node: FullNode,
+  chain: Blockchain,
   sequence: number,
   serialized?: boolean,
 ): Promise<RpcBlock> => {
-  const header = await node.chain.getHeaderAtSequence(sequence)
+  const header = await chain.getHeaderAtSequence(sequence)
   let error = ''
   if (!header) {
     error = `No block found with sequence ${sequence}`
@@ -92,7 +97,7 @@ const getBlockAtSequence = async (
     throw new RpcValidationError('Block header was saved to database without a note size')
   }
 
-  const block = await node.chain.getBlock(header)
+  const block = await chain.getBlock(header)
   if (!block) {
     throw new RpcNotFoundError(`No block with header ${header.hash.toString('hex')}`)
   }
