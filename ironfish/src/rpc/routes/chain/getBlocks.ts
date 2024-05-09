@@ -15,11 +15,11 @@ import { serializeRpcTransaction } from './utils'
 
 export type GetBlocksRequest = {
   /**
-   * The starting block height (inclusive).
+   * The starting block sequence (inclusive).
    */
   start: number
   /**
-   * The ending block height (inclusive).
+   * The ending block sequence (inclusive).
    */
   end: number
 }
