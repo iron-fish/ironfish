@@ -9,9 +9,10 @@ pub struct PublicMemo(pub [u8; 256]);
 pub struct Transfer {
     pub(crate) asset_id: AssetIdentifier,
     pub(crate) amount: u64,
+    // TODO assumes we are using same public address space for these accounts
     pub(crate) to: PublicAddress,
     // TODO is this a reasonable memo size
-    pub(crate) memo: PublicMemo
+    pub(crate) memo: PublicMemo,
 }
 
 impl Transfer {
@@ -27,7 +28,12 @@ impl Transfer {
         reader.read_exact(&mut memo_buf)?;
         let memo = PublicMemo(memo_buf);
 
-        Ok(Self { asset_id, amount, to, memo })
+        Ok(Self {
+            asset_id,
+            amount,
+            to,
+            memo,
+        })
     }
 
     pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {

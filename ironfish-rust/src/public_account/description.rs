@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use ed25519_dalek::{Signature, VerifyingKey, Verifier};
+use ed25519_dalek::{Signature, Verifier, VerifyingKey};
 use std::io;
 
 use crate::errors::{IronfishError, IronfishErrorKind};
@@ -10,10 +10,9 @@ use crate::errors::{IronfishError, IronfishErrorKind};
 use super::transfer::Transfer;
 
 #[derive(Clone)]
-pub struct PublicAccountCreateDescription {
+pub struct PublicAccountDescription {
     /// TODO(jwp): do we need a separate account address for later migration
     /// pub(crate) account_address: EthereumAddress
-
     // Minimum number of required signers
     pub(crate) threshold: i16,
     // Signers of the public account
@@ -22,10 +21,9 @@ pub struct PublicAccountCreateDescription {
     pub(crate) signatures: Vec<Signature>,
     // asset transfers
     pub(crate) transfers: Vec<Transfer>,
-
 }
 
-impl PublicAccountCreateDescription {
+impl PublicAccountDescription {
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
         let mut threshold_buf = [0; 2];
         reader.read_exact(&mut threshold_buf)?;
@@ -66,7 +64,12 @@ impl PublicAccountCreateDescription {
             transfers.push(transfer);
         }
 
-        Ok(Self { threshold, signers, signatures, transfers })
+        Ok(Self {
+            threshold,
+            signers,
+            signatures,
+            transfers,
+        })
     }
 
     pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
@@ -115,17 +118,24 @@ impl PublicAccountCreateDescription {
     pub fn verify(&self) -> Result<(), IronfishError> {
         self.valid()?;
 
-        let hash = &PublicAccountCreateDescription::hash(&self.threshold, &self.signers, &self.transfers)?;
-        let is_valid = self.signers.iter().zip(&self.signatures).any(|(signer, signature)| {
-            signer.verify(hash, signature).is_ok()
-        });
+        let hash =
+            &PublicAccountDescription::hash(&self.threshold, &self.signers, &self.transfers)?;
+        let is_valid = self
+            .signers
+            .iter()
+            .zip(&self.signatures)
+            .any(|(signer, signature)| signer.verify(hash, signature).is_ok());
         if !is_valid {
             return Err(IronfishError::new(IronfishErrorKind::InvalidSignature));
         }
         Ok(())
     }
 
-    pub fn hash(threshold: &i16, signers: &Vec<VerifyingKey>, transfers: &Vec<Transfer>) -> Result<[u8; 32], IronfishError> {
+    pub fn hash(
+        threshold: &i16,
+        signers: &Vec<VerifyingKey>,
+        transfers: &Vec<Transfer>,
+    ) -> Result<[u8; 32], IronfishError> {
         // TODO(jwp): verify which hashers supported by axelar
         let mut hasher = blake3::Hasher::new();
         hasher.update(&threshold.to_le_bytes());
@@ -149,7 +159,7 @@ mod tests {
 
     #[test]
     fn test_public_account_create_description() {
-        let mut csprng = OsRng{};
+        let mut csprng = OsRng {};
         let key = SaplingKey::generate_key();
         let public_address = key.public_address();
         let mut signing_key = SigningKey::generate(&mut csprng);
@@ -160,21 +170,24 @@ mod tests {
             to: public_address,
             memo: PublicMemo([0; 256]),
         };
-        let hash = PublicAccountCreateDescription::hash(&1, &vec![verifying_key], &vec![transfer]).expect("Should successfully hash");
+        let hash = PublicAccountDescription::hash(&1, &vec![verifying_key], &vec![transfer])
+            .expect("Should successfully hash");
         let signature = signing_key.sign(&hash);
 
-        let original = PublicAccountCreateDescription {
+        let original = PublicAccountDescription {
             threshold: 1,
             signers: vec![verifying_key],
             signatures: vec![signature],
             transfers: vec![transfer],
         };
-        original.verify().expect("Should be valid/verified creation");
+        original
+            .verify()
+            .expect("Should be valid/verified creation");
 
         let mut buffer = Vec::new();
         original.write(&mut buffer).unwrap();
 
-        let read = PublicAccountCreateDescription::read(&buffer[..]).unwrap();
+        let read = PublicAccountDescription::read(&buffer[..]).unwrap();
 
         assert_eq!(original.threshold, read.threshold);
         assert_eq!(original.signers, read.signers);
