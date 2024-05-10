@@ -75,6 +75,8 @@ import type {
   GetBannedPeersResponse,
   GetBlockRequest,
   GetBlockResponse,
+  GetBlocksRequest,
+  GetBlocksResponse,
   GetChainInfoRequest,
   GetChainInfoResponse,
   GetConfigRequest,
@@ -827,6 +829,13 @@ export abstract class RpcClient {
     getBlock: (params: GetBlockRequest): Promise<RpcResponseEnded<GetBlockResponse>> => {
       return this.request<GetBlockResponse>(
         `${ApiNamespace.chain}/getBlock`,
+        params,
+      ).waitForEnd()
+    },
+
+    getBlocks: (params: GetBlocksRequest): Promise<RpcResponseEnded<GetBlocksResponse>> => {
+      return this.request<GetBlocksResponse>(
+        `${ApiNamespace.chain}/getBlocks`,
         params,
       ).waitForEnd()
     },
