@@ -59,6 +59,7 @@ pub enum IronfishErrorKind {
     InvalidTransaction,
     InvalidTransactionVersion,
     InvalidViewingKey,
+    InvalidVerifyingKey,
     InvalidWord,
     Io,
     IsSmallOrder,

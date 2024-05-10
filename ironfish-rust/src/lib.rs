@@ -13,6 +13,7 @@ pub mod merkle_note_hash;
 pub mod mining;
 pub mod nacl;
 pub mod note;
+pub mod public_account;
 pub mod rolling_filter;
 pub mod sapling_bls12;
 pub mod serializing;
