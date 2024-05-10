@@ -23,9 +23,9 @@ pub struct PublicAccountCreateDescription {
 
 impl PublicAccountCreateDescription {
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
-        let mut threshold_buf = [0; 1];
+        let mut threshold_buf = [0; 2];
         reader.read_exact(&mut threshold_buf)?;
-        let threshold = threshold_buf[0] as i16;
+        let threshold = i16::from_le_bytes(threshold_buf);
 
         let mut signers_len_buf = [0; 2];
         reader.read_exact(&mut signers_len_buf)?;
@@ -77,11 +77,11 @@ impl PublicAccountCreateDescription {
 
     pub fn verify(&self) -> Result<(), IronfishError> {
         if self.threshold < 1 {
-            return Err(IronfishError::new(IronfishErrorKind::InvalidData));
+            return Err(IronfishError::new(IronfishErrorKind::InvalidThreshold));
         }
 
         if self.signers.len() < self.threshold as usize {
-            return Err(IronfishError::new(IronfishErrorKind::InvalidData));
+            return Err(IronfishError::new(IronfishErrorKind::InvalidThreshold));
         }
 
         if self.signatures.len() < self.threshold as usize {
@@ -89,8 +89,9 @@ impl PublicAccountCreateDescription {
         }
 
         // verify signatures
+        let hash = &PublicAccountCreateDescription::hash(&self.threshold, &self.signers);
         let is_valid = self.signers.iter().zip(&self.signatures).any(|(signer, signature)| {
-            signer.verify(&self.hash(), signature).is_ok()
+            signer.verify(hash, signature).is_ok()
         });
         if !is_valid {
             return Err(IronfishError::new(IronfishErrorKind::InvalidSignature));
@@ -100,13 +101,45 @@ impl PublicAccountCreateDescription {
         Ok(())
     }
 
-    pub fn hash(&self) -> [u8; 32] {
+    pub fn hash(threshold: &i16, signers: &Vec<VerifyingKey>) -> [u8; 32] {
         // TODO(jwp): verify which hashers supported by axelar
         let mut hasher = blake3::Hasher::new();
-        hasher.update(&self.threshold.to_le_bytes());
-        for signer in &self.signers {
+        hasher.update(&threshold.to_le_bytes());
+        for signer in signers {
             hasher.update(signer.as_bytes());
         }
         hasher.finalize().into()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ed25519_dalek::{ed25519::signature::SignerMut, SigningKey};
+    use rand::rngs::OsRng;
+
+    #[test]
+    fn test_public_account_create_description() {
+        let mut csprng = OsRng{};
+        let mut signing_key = SigningKey::generate(&mut csprng);
+        let verifying_key = signing_key.verifying_key();
+        let hash = PublicAccountCreateDescription::hash(&1, &vec![verifying_key]);
+        let signature = signing_key.sign(&hash);
+
+        let original = PublicAccountCreateDescription {
+            threshold: 1,
+            signers: vec![verifying_key],
+            signatures: vec![signature],
+        };
+        original.verify().expect("Should be valid creation");
+
+        let mut buffer = Vec::new();
+        original.write(&mut buffer).unwrap();
+
+        let read = PublicAccountCreateDescription::read(&buffer[..]).unwrap();
+
+        assert_eq!(original.threshold, read.threshold);
+        assert_eq!(original.signers, read.signers);
+        assert_eq!(original.signatures, read.signatures);
     }
 }

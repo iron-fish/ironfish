@@ -56,6 +56,7 @@ pub enum IronfishErrorKind {
     InvalidSigningKey,
     InvalidSpendProof,
     InvalidSpendSignature,
+    InvalidThreshold,
     InvalidTransaction,
     InvalidTransactionVersion,
     InvalidViewingKey,
