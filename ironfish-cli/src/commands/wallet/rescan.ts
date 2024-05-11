@@ -29,7 +29,7 @@ export class RescanCommand extends IronfishCommand {
       hidden: true,
     }),
     full: Flags.boolean({
-      description: 'Force a full rescan of the chain starting from the genesis block',
+      description: 'Remove `createdAt` from accounts before rescanning',
     }),
   }
 
