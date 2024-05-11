@@ -1,9 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { generateKeyFromPrivateKey } from '@ironfish/rust-nodejs'
-import { Assert } from '../../../assert'
-import { deserializeRpcAccountMultisigKeys } from '../../../rpc/routes/wallet/serializers'
+import { deserializeRpcAccountImport } from '../../../rpc/routes/wallet/serializers'
 import { RpcAccountImport } from '../../../rpc/routes/wallet/types'
 import { validateAccount } from '../../validator'
 import { AccountImport } from '../accountImport'
@@ -25,31 +23,10 @@ export class JsonEncoder implements AccountEncoder {
     let account: RpcAccountImport
     try {
       account = JSON.parse(value) as RpcAccountImport
-      if (account.createdAt && !account.createdAt.hash) {
-        account.createdAt = null
-      }
-      const accountImport = {
-        ...account,
-        name: options?.name ? options.name : account.name,
-        createdAt: account.createdAt
-          ? {
-              hash: Buffer.from(account.createdAt.hash, 'hex'),
-              sequence: account.createdAt.sequence,
-            }
-          : null,
-        multisigKeys: account.multisigKeys
-          ? deserializeRpcAccountMultisigKeys(account.multisigKeys)
-          : undefined,
-      }
+      const accountImport = deserializeRpcAccountImport(account)
 
-      if (!accountImport.viewKey) {
-        Assert.isNotNull(
-          accountImport.spendingKey,
-          'Imported account missing both viewKey and spendingKey',
-        )
-
-        const key = generateKeyFromPrivateKey(accountImport.spendingKey)
-        accountImport.viewKey = key.viewKey
+      if (options?.name) {
+        accountImport.name = options.name
       }
 
       validateAccount(accountImport)
