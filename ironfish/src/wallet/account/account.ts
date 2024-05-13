@@ -76,38 +76,25 @@ export class Account {
   readonly multisigKeys?: MultisigKeys
   readonly proofAuthorizingKey: string | null
 
-  constructor({
-    id,
-    name,
-    publicAddress,
-    walletDb,
-    spendingKey,
-    viewKey,
-    incomingViewKey,
-    outgoingViewKey,
-    version,
-    createdAt,
-    multisigKeys,
-    proofAuthorizingKey,
-  }: AccountValue & { walletDb: WalletDB }) {
-    this.id = id
-    this.name = name
-    this.spendingKey = spendingKey
-    this.viewKey = viewKey
-    this.incomingViewKey = incomingViewKey
-    this.outgoingViewKey = outgoingViewKey
-    this.publicAddress = publicAddress
+  constructor({ accountValue, walletDb }: { accountValue: AccountValue; walletDb: WalletDB }) {
+    this.id = accountValue.id
+    this.name = accountValue.name
+    this.spendingKey = accountValue.spendingKey
+    this.viewKey = accountValue.viewKey
+    this.incomingViewKey = accountValue.incomingViewKey
+    this.outgoingViewKey = accountValue.outgoingViewKey
+    this.publicAddress = accountValue.publicAddress
 
-    this.prefix = calculateAccountPrefix(id)
+    this.prefix = calculateAccountPrefix(accountValue.id)
     this.prefixRange = StorageUtils.getPrefixKeyRange(this.prefix)
 
-    this.displayName = `${name} (${id.slice(0, 7)})`
+    this.displayName = `${accountValue.name} (${accountValue.id.slice(0, 7)})`
 
     this.walletDb = walletDb
-    this.version = version ?? 1
-    this.createdAt = createdAt
-    this.multisigKeys = multisigKeys
-    this.proofAuthorizingKey = proofAuthorizingKey
+    this.version = accountValue.version ?? 1
+    this.createdAt = accountValue.createdAt
+    this.multisigKeys = accountValue.multisigKeys
+    this.proofAuthorizingKey = accountValue.proofAuthorizingKey
   }
 
   isSpendingAccount(): this is SpendingAccount {

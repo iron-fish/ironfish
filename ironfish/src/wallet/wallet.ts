@@ -228,11 +228,7 @@ export class Wallet {
 
   private async load(): Promise<void> {
     for await (const accountValue of this.walletDb.loadAccounts()) {
-      const account = new Account({
-        ...accountValue,
-        walletDb: this.walletDb,
-      })
-
+      const account = new Account({ accountValue, walletDb: this.walletDb })
       this.accounts.set(account.id, account)
     }
 
@@ -1511,16 +1507,18 @@ export class Wallet {
     }
 
     const account = new Account({
-      version: ACCOUNT_SCHEMA_VERSION,
-      id: uuid(),
-      name,
-      incomingViewKey: key.incomingViewKey,
-      outgoingViewKey: key.outgoingViewKey,
-      proofAuthorizingKey: key.proofAuthorizingKey,
-      publicAddress: key.publicAddress,
-      spendingKey: key.spendingKey,
-      viewKey: key.viewKey,
-      createdAt,
+      accountValue: {
+        version: ACCOUNT_SCHEMA_VERSION,
+        id: uuid(),
+        name,
+        incomingViewKey: key.incomingViewKey,
+        outgoingViewKey: key.outgoingViewKey,
+        proofAuthorizingKey: key.proofAuthorizingKey,
+        publicAddress: key.publicAddress,
+        spendingKey: key.spendingKey,
+        viewKey: key.viewKey,
+        createdAt,
+      },
       walletDb: this.walletDb,
     })
 
@@ -1612,11 +1610,13 @@ export class Wallet {
     }
 
     const account = new Account({
-      ...accountValue,
-      id: uuid(),
-      createdAt,
-      name,
-      multisigKeys,
+      accountValue: {
+        ...accountValue,
+        id: uuid(),
+        createdAt,
+        name,
+        multisigKeys,
+      },
       walletDb: this.walletDb,
     })
 
@@ -1662,11 +1662,14 @@ export class Wallet {
     },
   ): Promise<void> {
     const newAccount = new Account({
-      ...account,
-      createdAt: options?.resetCreatedAt ? null : account.createdAt,
-      id: uuid(),
+      accountValue: {
+        ...account,
+        createdAt: options?.resetCreatedAt ? null : account.createdAt,
+        id: uuid(),
+      },
       walletDb: this.walletDb,
     })
+
     this.logger.debug(`Resetting account name: ${account.name}, id: ${account.id}`)
 
     await this.walletDb.db.withTransaction(options?.tx, async (tx) => {
