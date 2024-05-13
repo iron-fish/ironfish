@@ -75,6 +75,7 @@ export async function selectAsset(
     showNativeAsset: boolean
     showNonCreatorAsset: boolean
     showSingleAssetChoice: boolean
+    filter?: (asset: RpcAsset) => boolean
     confirmations?: number
     filter?: (asset: RpcAsset) => boolean
   },
