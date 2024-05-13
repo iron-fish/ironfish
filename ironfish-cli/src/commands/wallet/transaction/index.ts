@@ -13,6 +13,10 @@ import { CliUx } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 import { getAssetsByIDs } from '../../../utils'
+import {
+  isIncomingChainportBridgeTransaction,
+  isOutgoingChainportBridgeTransaction,
+} from '../../../utils/chainport'
 
 export class TransactionCommand extends IronfishCommand {
   static description = `Display an account transaction`
@@ -57,10 +61,16 @@ export class TransactionCommand extends IronfishCommand {
     Assert.isNotUndefined(response.content.transaction.spends)
 
     const renderedFee = CurrencyUtils.render(response.content.transaction.fee, true)
+    let transactionType = response.content.transaction.type.toString()
+    if (isOutgoingChainportBridgeTransaction(response.content.transaction)) {
+      transactionType = 'Outgoing Chainport Bridge'
+    } else if (isIncomingChainportBridgeTransaction(response.content.transaction)) {
+      transactionType = 'Incoming Chainport Bridge'
+    }
     this.log(`Transaction: ${hash}`)
     this.log(`Account: ${response.content.account}`)
     this.log(`Status: ${response.content.transaction.status}`)
-    this.log(`Type: ${response.content.transaction.type}`)
+    this.log(`Type: ${transactionType}`)
     this.log(`Timestamp: ${TimeUtils.renderString(response.content.transaction.timestamp)}`)
     this.log(`Fee: ${renderedFee}`)
     if (response.content.transaction.blockHash && response.content.transaction.blockSequence) {
