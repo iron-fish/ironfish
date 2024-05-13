@@ -6,7 +6,12 @@ import { TESTNET } from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
-import { fetchChainportNetworks, getChainportTransactionStatus } from '../../../utils/chainport'
+import {
+  fetchChainportNetworks,
+  getChainportTransactionStatus,
+  isIncomingChainportBridgeTransaction,
+  isOutgoingChainportBridgeTransaction,
+} from '../../../utils/chainport'
 
 export class StatusCommand extends IronfishCommand {
   static description = `Display an account transaction`
@@ -34,9 +39,29 @@ export class StatusCommand extends IronfishCommand {
     const client = await this.sdk.connectRpc()
     const { args } = await this.parse(StatusCommand)
     const hash = args.hash as string
+    const account = args.account as string | undefined
 
-    // TODO: Add test to check whether a transaction is a bridge transaction sent by this account.
-    // If it is not a bridge transaction, return early with a message.
+    const response = await client.wallet.getAccountTransaction({
+      account,
+      hash,
+    })
+
+    if (!response.content.transaction) {
+      this.log(`No transaction found by hash ${hash}`)
+      return
+    }
+
+    const isOutgoingBridgeTransaction = isOutgoingChainportBridgeTransaction(
+      response.content.transaction,
+    )
+    const isIncomingBridgeTransaction = isIncomingChainportBridgeTransaction(
+      response.content.transaction,
+    )
+
+    if (!isOutgoingBridgeTransaction && !isIncomingBridgeTransaction) {
+      this.log(`This transaction is not a chainport bridge transaction`)
+      return
+    }
 
     const networkId = (await client.chain.getNetworkInfo()).content.networkId
 
@@ -66,6 +91,8 @@ export class StatusCommand extends IronfishCommand {
         // This ~should~ not happen
         this.error('Target network not supported')
       }
+
+      this.log(`Direction: ${isOutgoingBridgeTransaction ? 'Outgoing' : 'Incoming'}`)
 
       this.log(`Target network: ${targetNetwork.name}`)
 
