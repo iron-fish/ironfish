@@ -178,30 +178,35 @@ export const isOutgoingChainportBridgeTransaction = (
 ) => {
   const config = getNetworkConfig(networkId)
   if (transaction.type !== TransactionType.SEND) {
+    console.log('not send')
     return false
   }
 
   if (!transaction.notes) {
+    console.log('no notes')
     return false
   }
 
   if (transaction.notes.length < 2) {
+    console.log('not enough notes')
     return false
   }
 
-  const bridgeAddresses = config.outgoingAddresses
+  const bridgeAddresses = config.outgoingAddresses.map((address) => address.toLowerCase())
 
   const bridgeNote = transaction.notes.find((note) =>
     bridgeAddresses.includes(note.owner.toLowerCase()),
   )
 
   if (!bridgeNote) {
+    console.log('no bridge note')
     return false
   }
 
   const feeNote = transaction.notes.find((note) => note.memo === '{"type": "fee_payment"}')
 
   if (!feeNote) {
+    console.log('no fee note')
     return false
   }
 

@@ -10,7 +10,6 @@ import {
   RawTransactionSerde,
   RpcAsset,
   RpcClient,
-  TESTNET,
   Transaction,
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
@@ -87,10 +86,6 @@ export class BridgeCommand extends IronfishCommand {
     }
 
     const networkId = (await client.chain.getNetworkInfo()).content.networkId
-
-    if (networkId !== TESTNET.id) {
-      CliUx.ux.error('This command is only available on testnet')
-    }
 
     const { amount, selectedNetwork, from, to, assetId } = await this.getInputs(
       client,

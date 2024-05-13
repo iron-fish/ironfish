@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { TESTNET } from '@ironfish/sdk'
-import { CliUx } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 import {
@@ -51,10 +49,14 @@ export class StatusCommand extends IronfishCommand {
       return
     }
 
+    const networkId = (await client.chain.getNetworkInfo()).content.networkId
+
     const isOutgoingBridgeTransaction = isOutgoingChainportBridgeTransaction(
+      networkId,
       response.content.transaction,
     )
     const isIncomingBridgeTransaction = isIncomingChainportBridgeTransaction(
+      networkId,
       response.content.transaction,
     )
 
@@ -63,11 +65,7 @@ export class StatusCommand extends IronfishCommand {
       return
     }
 
-    const networkId = (await client.chain.getNetworkInfo()).content.networkId
-
-    if (networkId !== TESTNET.id) {
-      CliUx.ux.error('This command is only available on testnet')
-    }
+    this.log(`Transaction status on Ironfish: ${response.content.transaction.status}`)
 
     const transactionStatus = await getChainportTransactionStatus(networkId, hash)
 
