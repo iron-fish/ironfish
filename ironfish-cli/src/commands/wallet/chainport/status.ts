@@ -2,23 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import axios from 'axios'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
-import { fetchChainportNetworks } from '../../../utils/chainport'
-
-type ChainportTransactionStatus = {
-  base_network_id?: number
-  base_tx_hash?: string
-  base_tx_status?: number
-  base_token_address?: string
-  target_network_id?: number
-  target_tx_hash?: string
-  target_tx_status?: number
-  target_token_address?: string
-  created_at?: string
-  port_in_ack?: boolean
-}
+import {
+  fetchChainportNetworks,
+  getChainportTransactionStatus,
+  isIncomingChainportBridgeTransaction,
+  isOutgoingChainportBridgeTransaction,
+} from '../../../utils/chainport'
 
 export class StatusCommand extends IronfishCommand {
   static description = `Display an account transaction`
@@ -43,23 +34,44 @@ export class StatusCommand extends IronfishCommand {
   ]
 
   async start(): Promise<void> {
+    const client = await this.sdk.connectRpc()
     const { args } = await this.parse(StatusCommand)
     const hash = args.hash as string
+    const account = args.account as string | undefined
 
-    // TODO: Add test to check whether a transaction is a bridge transaction sent by this account.
-    // If it is not a bridge transaction, return early with a message.
+    const response = await client.wallet.getAccountTransaction({
+      account,
+      hash,
+    })
 
-    const url = `https://preprod-api.chainport.io/api/port?base_tx_hash=${hash}&base_network_id=22`
+    if (!response.content.transaction) {
+      this.log(`No transaction found by hash ${hash}`)
+      return
+    }
 
-    this.logger.debug(`Checking status of transaction ${hash}...`)
-    this.logger.debug(`GET ${url}`)
+    const networkId = (await client.chain.getNetworkInfo()).content.networkId
 
-    const response = await axios(url)
-    const data = response.data as ChainportTransactionStatus
+    const isOutgoingBridgeTransaction = isOutgoingChainportBridgeTransaction(
+      networkId,
+      response.content.transaction,
+    )
+    const isIncomingBridgeTransaction = isIncomingChainportBridgeTransaction(
+      networkId,
+      response.content.transaction,
+    )
 
-    this.logger.debug(JSON.stringify(data, null, 2))
+    if (!isOutgoingBridgeTransaction && !isIncomingBridgeTransaction) {
+      this.log(`This transaction is not a chainport bridge transaction`)
+      return
+    }
 
-    if (Object.keys(data).length === 0) {
+    this.log(`Transaction status on Ironfish: ${response.content.transaction.status}`)
+
+    const transactionStatus = await getChainportTransactionStatus(networkId, hash)
+
+    this.logger.debug(JSON.stringify(transactionStatus, null, 2))
+
+    if (Object.keys(transactionStatus).length === 0) {
       this.log(`Source transaction has not reached the minimum number of confirmations yet.`)
       this.log(
         `You can use ironfish wallet:transaction to check the status of the transaction on Ironfish.`,
@@ -67,24 +79,26 @@ export class StatusCommand extends IronfishCommand {
       return
     }
 
-    if (data.target_tx_hash && data.target_network_id) {
+    if (transactionStatus.target_tx_hash && transactionStatus.target_network_id) {
       this.log('\nTransaction status on target network:')
-      const networks = await fetchChainportNetworks()
+      const networks = await fetchChainportNetworks(networkId)
 
-      const targetNetwork = networks[data.target_network_id]
+      const targetNetwork = networks[transactionStatus.target_network_id]
 
       if (!targetNetwork) {
         // This ~should~ not happen
         this.error('Target network not supported')
       }
 
+      this.log(`Direction: ${isOutgoingBridgeTransaction ? 'Outgoing' : 'Incoming'}`)
+
       this.log(`Target network: ${targetNetwork.name}`)
 
-      this.log(`Target transaction hash: ${data.target_tx_hash}`)
+      this.log(`Target transaction hash: ${transactionStatus.target_tx_hash}`)
 
       this.log(
         `You can view the transaction status here: ${
-          targetNetwork.explorer_url + 'tx/' + data.target_tx_hash
+          targetNetwork.explorer_url + 'tx/' + transactionStatus.target_tx_hash
         }`,
       )
     }

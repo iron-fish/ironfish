@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { RpcWalletTransaction, TransactionType } from '@ironfish/sdk'
+import { MAINNET, RpcWalletTransaction, TESTNET, TransactionType } from '@ironfish/sdk'
 import axios from 'axios'
 
 export type ChainportBridgeTransaction = {
@@ -52,32 +52,91 @@ export type ChainportVerifiedToken = {
   is_lifi: boolean
 }
 
-export const fetchChainportNetworks = async () => {
+export type ChainportTransactionStatus = {
+  base_network_id?: number
+  base_tx_hash?: string
+  base_tx_status?: number
+  base_token_address?: string
+  target_network_id?: number
+  target_tx_hash?: string
+  target_tx_status?: number
+  target_token_address?: string
+  created_at?: string
+  port_in_ack?: boolean
+}
+
+const config = {
+  [TESTNET.id]: {
+    endpoint: 'https://preprod-api.chainport.io',
+    outgoingAddresses: [
+      '06102d319ab7e77b914a1bd135577f3e266fd82a3e537a02db281421ed8b3d13',
+      'db2cf6ec67addde84cc1092378ea22e7bb2eecdeecac5e43febc1cb8fb64b5e5',
+      '3bE494deb669ff8d943463bb6042eabcf0c5346cf444d569e07204487716cb85',
+    ],
+    incomingAddresses: ['06102d319ab7e77b914a1bd135577f3e266fd82a3e537a02db281421ed8b3d13'],
+  },
+  [MAINNET.id]: {
+    endpoint: 'https://api.chainport.io',
+    outgoingAddresses: [],
+    incomingAddresses: [],
+  },
+}
+
+const getNetworkConfig = (network_id: number) => {
+  if (network_id !== TESTNET.id && network_id !== MAINNET.id) {
+    throw new Error(`Unsupported network ${network_id} for chainport`)
+  }
+
+  if (network_id === MAINNET.id) {
+    throw new Error(`Mainnet is not yet supported.`)
+  }
+
+  return config[network_id]
+}
+
+export const getChainportTransactionStatus = async (network_id: number, hash: string) => {
+  const config = getNetworkConfig(network_id)
+  const url = `${config.endpoint}/api/port?base_tx_hash=${hash}&base_network_id=22`
+
+  const response = await axios(url)
+  const data = response.data as ChainportTransactionStatus
+
+  return data
+}
+
+export const fetchChainportNetworks = async (network_id: number) => {
+  const config = getNetworkConfig(network_id)
   const response: {
     data: {
       cp_network_ids: {
         [key: string]: ChainportNetwork
       }
     }
-  } = await axios.get('https://preprod-api.chainport.io/meta')
+  } = await axios.get(`${config.endpoint}/meta`)
 
   return response.data.cp_network_ids
 }
 
-export const fetchChainportVerifiedTokens = async () => {
+export const fetchChainportVerifiedTokens = async (network_id: number) => {
+  const config = getNetworkConfig(network_id)
+
   const response: {
     data: { verified_tokens: ChainportVerifiedToken[] }
-  } = await axios.get('https://preprod-api.chainport.io/token/list?network_name=IRONFISH')
+  } = await axios.get(`${config.endpoint}/token/list?network_name=IRONFISH`)
   return response.data.verified_tokens
 }
 
 export const fetchBridgeTransactionDetails = async (
+  networkId: number,
   amount: bigint,
   assetId: string,
   to: string,
   selectedNetwork: string,
 ) => {
-  const url = `https://preprod-api.chainport.io/ironfish/metadata?raw_amount=${amount.toString()}&asset_id=${assetId}&target_network_id=${selectedNetwork}&target_web3_address=${to}`
+  const config = getNetworkConfig(networkId)
+  const url = `${
+    config.endpoint
+  }/ironfish/metadata?raw_amount=${amount.toString()}&asset_id=${assetId}&target_network_id=${selectedNetwork}&target_web3_address=${to}`
 
   const response: {
     data: ChainportBridgeTransaction
@@ -86,7 +145,12 @@ export const fetchBridgeTransactionDetails = async (
   return response.data
 }
 
-export const isIncomingChainportBridgeTransaction = (transaction: RpcWalletTransaction) => {
+export const isIncomingChainportBridgeTransaction = (
+  networkId: number,
+  transaction: RpcWalletTransaction,
+) => {
+  const config = getNetworkConfig(networkId)
+
   if (transaction.type !== TransactionType.RECEIVE) {
     return false
   }
@@ -96,9 +160,10 @@ export const isIncomingChainportBridgeTransaction = (transaction: RpcWalletTrans
   }
 
   for (const note of transaction.notes) {
+    const incomingAddresses = config.incomingAddresses
     if (
       note.sender.toLowerCase() !==
-      '06102d319ab7e77b914a1bd135577f3e266fd82a3e537a02db281421ed8b3d13'.toLowerCase()
+      incomingAddresses.find((address) => address.toLowerCase() === note.sender.toLowerCase())
     ) {
       return false
     }
@@ -107,7 +172,11 @@ export const isIncomingChainportBridgeTransaction = (transaction: RpcWalletTrans
   return true
 }
 
-export const isOutgoingChainportBridgeTransaction = (transaction: RpcWalletTransaction) => {
+export const isOutgoingChainportBridgeTransaction = (
+  networkId: number,
+  transaction: RpcWalletTransaction,
+) => {
+  const config = getNetworkConfig(networkId)
   if (transaction.type !== TransactionType.SEND) {
     return false
   }
@@ -120,11 +189,7 @@ export const isOutgoingChainportBridgeTransaction = (transaction: RpcWalletTrans
     return false
   }
 
-  const bridgeAddresses = [
-    '06102d319ab7e77b914a1bd135577f3e266fd82a3e537a02db281421ed8b3d13'.toLowerCase(),
-    'db2cf6ec67addde84cc1092378ea22e7bb2eecdeecac5e43febc1cb8fb64b5e5'.toLowerCase(),
-    '3bE494deb669ff8d943463bb6042eabcf0c5346cf444d569e07204487716cb85'.toLowerCase(),
-  ]
+  const bridgeAddresses = config.outgoingAddresses.map((address) => address.toLowerCase())
 
   const bridgeNote = transaction.notes.find((note) =>
     bridgeAddresses.includes(note.owner.toLowerCase()),
