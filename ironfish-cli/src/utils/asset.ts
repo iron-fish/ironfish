@@ -75,6 +75,7 @@ export async function selectAsset(
     showNativeAsset: boolean
     showNonCreatorAsset: boolean
     showSingleAssetChoice: boolean
+    filter?: (asset: RpcAsset) => boolean
     confirmations?: number
   },
 ): Promise<
@@ -121,6 +122,11 @@ export async function selectAsset(
       id: balances[0].assetId,
       name: assetLookup[balances[0].assetId].name,
     }
+  }
+
+  const filter = options.filter
+  if (filter) {
+    balances = balances.filter((balance) => filter(assetLookup[balance.assetId]))
   }
 
   const choices = balances.map((balance) => {
