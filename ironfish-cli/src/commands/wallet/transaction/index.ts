@@ -46,6 +46,8 @@ export class TransactionCommand extends IronfishCommand {
 
     const client = await this.sdk.connectRpc()
 
+    const networkId = (await client.chain.getNetworkInfo()).content.networkId
+
     const response = await client.wallet.getAccountTransaction({
       account,
       hash,
@@ -62,9 +64,9 @@ export class TransactionCommand extends IronfishCommand {
 
     const renderedFee = CurrencyUtils.render(response.content.transaction.fee, true)
     let transactionType = response.content.transaction.type.toString()
-    if (isOutgoingChainportBridgeTransaction(response.content.transaction)) {
+    if (isOutgoingChainportBridgeTransaction(networkId, response.content.transaction)) {
       transactionType = 'Outgoing Chainport Bridge'
-    } else if (isIncomingChainportBridgeTransaction(response.content.transaction)) {
+    } else if (isIncomingChainportBridgeTransaction(networkId, response.content.transaction)) {
       transactionType = 'Incoming Chainport Bridge'
     }
     this.log(`Transaction: ${hash}`)
