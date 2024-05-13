@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { RpcWalletTransaction, TransactionType } from '@ironfish/sdk'
+import { MAINNET, RpcWalletTransaction, TESTNET, TransactionType } from '@ironfish/sdk'
 import axios from 'axios'
 
 export type ChainportBridgeTransaction = {
@@ -52,32 +52,62 @@ export type ChainportVerifiedToken = {
   is_lifi: boolean
 }
 
-export const fetchChainportNetworks = async () => {
+export type ChainportTransactionStatus = {
+  base_network_id?: number
+  base_tx_hash?: string
+  base_tx_status?: number
+  base_token_address?: string
+  target_network_id?: number
+  target_tx_hash?: string
+  target_tx_status?: number
+  target_token_address?: string
+  created_at?: string
+  port_in_ack?: boolean
+}
+
+const ENDPOINTS = {
+  [TESTNET.id]: 'https://preprod-api.chainport.io',
+  [MAINNET.id]: 'https://api.chainport.io',
+}
+
+export const getChainportTransactionStatus = async (network_id: number, hash: string) => {
+  const url = `${ENDPOINTS[network_id]}/api/port?base_tx_hash=${hash}&base_network_id=22`
+
+  const response = await axios(url)
+  const data = response.data as ChainportTransactionStatus
+
+  return data
+}
+
+export const fetchChainportNetworks = async (network_id: number) => {
   const response: {
     data: {
       cp_network_ids: {
         [key: string]: ChainportNetwork
       }
     }
-  } = await axios.get('https://preprod-api.chainport.io/meta')
+  } = await axios.get(`${ENDPOINTS[network_id]}/meta`)
 
   return response.data.cp_network_ids
 }
 
-export const fetchChainportVerifiedTokens = async () => {
+export const fetchChainportVerifiedTokens = async (network_id: number) => {
   const response: {
     data: { verified_tokens: ChainportVerifiedToken[] }
-  } = await axios.get('https://preprod-api.chainport.io/token/list?network_name=IRONFISH')
+  } = await axios.get(`${ENDPOINTS[network_id]}/token/list?network_name=IRONFISH`)
   return response.data.verified_tokens
 }
 
 export const fetchBridgeTransactionDetails = async (
+  networkId: number,
   amount: bigint,
   assetId: string,
   to: string,
   selectedNetwork: string,
 ) => {
-  const url = `https://preprod-api.chainport.io/ironfish/metadata?raw_amount=${amount.toString()}&asset_id=${assetId}&target_network_id=${selectedNetwork}&target_web3_address=${to}`
+  const url = `${
+    ENDPOINTS[networkId]
+  }/ironfish/metadata?raw_amount=${amount.toString()}&asset_id=${assetId}&target_network_id=${selectedNetwork}&target_web3_address=${to}`
 
   const response: {
     data: ChainportBridgeTransaction

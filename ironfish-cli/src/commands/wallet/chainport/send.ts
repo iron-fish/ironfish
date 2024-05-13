@@ -92,9 +92,13 @@ export class BridgeCommand extends IronfishCommand {
       CliUx.ux.error('This command is only available on testnet')
     }
 
-    const { amount, selectedNetwork, from, to, assetId } = await this.getInputs(client)
+    const { amount, selectedNetwork, from, to, assetId } = await this.getInputs(
+      client,
+      networkId,
+    )
 
     const rawTransaction = await this.constructBridgeTransaction(
+      networkId,
       client,
       amount,
       assetId,
@@ -148,7 +152,7 @@ export class BridgeCommand extends IronfishCommand {
     )
   }
 
-  private async getInputs(client: RpcClient) {
+  private async getInputs(client: RpcClient, networkId: number) {
     const { flags } = await this.parse(BridgeCommand)
 
     let from = flags.account?.trim()
@@ -182,7 +186,7 @@ export class BridgeCommand extends IronfishCommand {
       this.error('Expiration sequence must be non-negative')
     }
 
-    const tokens = await fetchChainportVerifiedTokens()
+    const tokens = await fetchChainportVerifiedTokens(networkId)
 
     if (assetId == null) {
       const asset = await selectAsset(client, from, {
@@ -227,7 +231,7 @@ export class BridgeCommand extends IronfishCommand {
       })
     ).content
 
-    const selectedNetwork = await this.selectNetwork(targetNetworks)
+    const selectedNetwork = await this.selectNetwork(networkId, targetNetworks)
 
     let amount
     if (flags.amount) {
@@ -262,6 +266,7 @@ export class BridgeCommand extends IronfishCommand {
   }
 
   private async constructBridgeTransaction(
+    networkId: number,
     client: RpcClient,
     amount: bigint,
     assetId: string,
@@ -271,7 +276,13 @@ export class BridgeCommand extends IronfishCommand {
   ) {
     const { flags } = await this.parse(BridgeCommand)
 
-    const txn = await fetchBridgeTransactionDetails(amount, assetId, to, selectedNetwork)
+    const txn = await fetchBridgeTransactionDetails(
+      networkId,
+      amount,
+      assetId,
+      to,
+      selectedNetwork,
+    )
 
     const params: CreateTransactionRequest = {
       account: from,
@@ -385,8 +396,8 @@ Expiration                     ${raw.expiration ? raw.expiration.toString() : ''
     this.logger.log(summary)
   }
 
-  async selectNetwork(targetNetworks: number[]): Promise<string> {
-    const networks = await fetchChainportNetworks()
+  async selectNetwork(networkId: number, targetNetworks: number[]): Promise<string> {
+    const networks = await fetchChainportNetworks(networkId)
     const choices = Object.keys(networks).map((key) => {
       return {
         name: networks[key].label,
