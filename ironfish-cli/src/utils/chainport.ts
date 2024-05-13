@@ -86,10 +86,6 @@ export const fetchBridgeTransactionDetails = async (
   return response.data
 }
 
-export const decodeChainportMemo = (memoHex: string) => {
-  return Buffer.from(memoHex, 'hex').toString()
-}
-
 export const isIncomingChainportBridgeTransaction = (transaction: RpcWalletTransaction) => {
   if (transaction.type !== TransactionType.RECEIVE) {
     return false
