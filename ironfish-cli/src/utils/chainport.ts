@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { RpcWalletTransaction, TransactionType } from '@ironfish/sdk'
 import axios from 'axios'
 
 export type ChainportBridgeTransaction = {
@@ -83,4 +84,65 @@ export const fetchBridgeTransactionDetails = async (
   } = await axios.get(url)
 
   return response.data
+}
+
+export const decodeChainportMemo = (memoHex: string) => {
+  return Buffer.from(memoHex, 'hex').toString()
+}
+
+export const isIncomingChainportBridgeTransaction = (transaction: RpcWalletTransaction) => {
+  if (transaction.type !== TransactionType.RECEIVE) {
+    return false
+  }
+
+  if (!transaction.notes) {
+    return false
+  }
+
+  for (const note of transaction.notes) {
+    if (
+      note.sender.toLowerCase() !==
+      '06102d319ab7e77b914a1bd135577f3e266fd82a3e537a02db281421ed8b3d13'.toLowerCase()
+    ) {
+      return false
+    }
+  }
+
+  return true
+}
+
+export const isOutgoingChainportBridgeTransaction = (transaction: RpcWalletTransaction) => {
+  if (transaction.type !== TransactionType.SEND) {
+    return false
+  }
+
+  if (!transaction.notes) {
+    return false
+  }
+
+  if (transaction.notes.length < 2) {
+    return false
+  }
+
+  const bridgeAddresses = [
+    '06102d319ab7e77b914a1bd135577f3e266fd82a3e537a02db281421ed8b3d13'.toLowerCase(),
+    'db2cf6ec67addde84cc1092378ea22e7bb2eecdeecac5e43febc1cb8fb64b5e5'.toLowerCase(),
+    '3bE494deb669ff8d943463bb6042eabcf0c5346cf444d569e07204487716cb85'.toLowerCase(),
+  ]
+
+  const bridgeNote = transaction.notes.find((note) =>
+    bridgeAddresses.includes(note.owner.toLowerCase()),
+  )
+
+  if (!bridgeNote) {
+    return false
+  }
+
+  const feeNote = transaction.notes.find((note) => note.memo === '{"type": "fee_payment"}')
+
+  if (!feeNote) {
+    return false
+  }
+
+  return true
 }
