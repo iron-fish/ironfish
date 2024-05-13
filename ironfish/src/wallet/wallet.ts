@@ -399,21 +399,14 @@ export class Wallet {
     transaction: Transaction,
     initialNoteIndex: number | null,
     decryptForSpender: boolean,
-    accounts?: Array<Account>,
+    accounts: ReadonlyArray<Account>,
   ): Promise<Map<string, Array<DecryptedNote>>> {
-    const accountsToCheck =
-      accounts ||
-      (await AsyncUtils.filter(
-        this.listAccounts(),
-        async (a) => await this.isAccountUpToDate(a),
-      ))
-
     const batchSize = 20
     const notePromises: Array<
       Promise<Array<{ accountId: string; decryptedNote: DecryptedNote }>>
     > = []
     let decryptNotesPayloads = []
-    for (const account of accountsToCheck) {
+    for (const account of accounts) {
       let currentNoteIndex = initialNoteIndex
 
       for (const note of transaction.notes) {
