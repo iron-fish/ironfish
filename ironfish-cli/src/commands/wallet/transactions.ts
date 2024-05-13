@@ -14,7 +14,10 @@ import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { getAssetsByIDs } from '../../utils'
-import { isOutgoingChainportBridgeTransaction } from '../../utils/chainport'
+import {
+  isIncomingChainportBridgeTransaction,
+  isOutgoingChainportBridgeTransaction,
+} from '../../utils/chainport'
 import { Format, TableCols } from '../../utils/table'
 
 const { sort: _, ...tableFlags } = CliUx.ux.table.flags()
@@ -85,9 +88,13 @@ export class TransactionsCommand extends IronfishCommand {
     let hasTransactions = false
 
     for await (const transaction of response.contentStream()) {
-      transaction.type = isOutgoingChainportBridgeTransaction(transaction)
-        ? ('Bridge (outgoing)' as TransactionType)
-        : transaction.type
+      if (flags.notes) {
+        if (isOutgoingChainportBridgeTransaction(transaction)) {
+          transaction.type = 'Bridge (outgoing)' as TransactionType
+        } else if (isIncomingChainportBridgeTransaction(transaction)) {
+          transaction.type = 'Bridge (incoming)' as TransactionType
+        }
+      }
 
       let transactionRows: PartialRecursive<TransactionRow>[]
       if (flags.notes) {
