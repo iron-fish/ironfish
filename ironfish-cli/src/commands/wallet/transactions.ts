@@ -85,11 +85,13 @@ export class TransactionsCommand extends IronfishCommand {
     let showHeader = !flags['no-header']
     let hasTransactions = false
 
+    const networkId = (await client.chain.getNetworkInfo()).content.networkId
+
     for await (const transaction of response.contentStream()) {
       if (flags.notes) {
-        if (isOutgoingChainportBridgeTransaction(transaction)) {
+        if (isOutgoingChainportBridgeTransaction(networkId, transaction)) {
           transaction.type = 'Bridge (outgoing)' as TransactionType
-        } else if (isIncomingChainportBridgeTransaction(transaction)) {
+        } else if (isIncomingChainportBridgeTransaction(networkId, transaction)) {
           transaction.type = 'Bridge (incoming)' as TransactionType
         }
       }
