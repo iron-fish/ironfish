@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { TESTNET } from '@ironfish/sdk'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 import {
@@ -38,6 +39,11 @@ export class StatusCommand extends IronfishCommand {
     const { args } = await this.parse(StatusCommand)
     const hash = args.hash as string
     const account = args.account as string | undefined
+    const networkId = (await client.chain.getNetworkInfo()).content.networkId
+
+    if (networkId !== TESTNET.id) {
+      this.error(`Chainport transactions are only available on testnet.`)
+    }
 
     const response = await client.wallet.getAccountTransaction({
       account,
@@ -48,8 +54,6 @@ export class StatusCommand extends IronfishCommand {
       this.log(`No transaction found by hash ${hash}`)
       return
     }
-
-    const networkId = (await client.chain.getNetworkInfo()).content.networkId
 
     const isOutgoingBridgeTransaction = isOutgoingChainportBridgeTransaction(
       networkId,
