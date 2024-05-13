@@ -86,6 +86,14 @@ export class TransactionsCommand extends IronfishCommand {
     let hasTransactions = false
 
     for await (const transaction of response.contentStream()) {
+      if (flags.notes) {
+        if (isOutgoingChainportBridgeTransaction(transaction)) {
+          transaction.type = 'Bridge (outgoing)' as TransactionType
+        } else if (isIncomingChainportBridgeTransaction(transaction)) {
+          transaction.type = 'Bridge (incoming)' as TransactionType
+        }
+      }
+
       let transactionRows: PartialRecursive<TransactionRow>[]
       if (flags.notes) {
         Assert.isNotUndefined(transaction.notes)

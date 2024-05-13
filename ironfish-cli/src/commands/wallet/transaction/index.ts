@@ -72,7 +72,7 @@ export class TransactionCommand extends IronfishCommand {
     }
     this.log(`Account: ${response.content.account}`)
     this.log(`Status: ${response.content.transaction.status}`)
-    this.log(`Type: ${response.content.transaction.type}`)
+    this.log(`Type: ${transactionType}`)
     this.log(`Timestamp: ${TimeUtils.renderString(response.content.transaction.timestamp)}`)
     this.log(`Fee: ${renderedFee}`)
     if (response.content.transaction.blockHash && response.content.transaction.blockSequence) {
