@@ -65,13 +65,38 @@ export type ChainportTransactionStatus = {
   port_in_ack?: boolean
 }
 
-const ENDPOINTS = {
-  [TESTNET.id]: 'https://preprod-api.chainport.io',
-  [MAINNET.id]: 'https://api.chainport.io',
+const config = {
+  [TESTNET.id]: {
+    endpoint: 'https://preprod-api.chainport.io',
+    outgoingAddresses: [
+      '06102d319ab7e77b914a1bd135577f3e266fd82a3e537a02db281421ed8b3d13',
+      'db2cf6ec67addde84cc1092378ea22e7bb2eecdeecac5e43febc1cb8fb64b5e5',
+      '3bE494deb669ff8d943463bb6042eabcf0c5346cf444d569e07204487716cb85',
+    ],
+    incomingAddresses: ['06102d319ab7e77b914a1bd135577f3e266fd82a3e537a02db281421ed8b3d13'],
+  },
+  [MAINNET.id]: {
+    endpoint: 'https://api.chainport.io',
+    outgoingAddresses: [],
+    incomingAddresses: [],
+  },
+}
+
+const getNetworkConfig = (network_id: number) => {
+  if (network_id !== TESTNET.id && network_id !== MAINNET.id) {
+    throw new Error(`Unsupported network ${network_id} for chainport`)
+  }
+
+  if (network_id === MAINNET.id) {
+    throw new Error(`Mainnet is not yet supported.`)
+  }
+
+  return config[network_id]
 }
 
 export const getChainportTransactionStatus = async (network_id: number, hash: string) => {
-  const url = `${ENDPOINTS[network_id]}/api/port?base_tx_hash=${hash}&base_network_id=22`
+  const config = getNetworkConfig(network_id)
+  const url = `${config.endpoint}/api/port?base_tx_hash=${hash}&base_network_id=22`
 
   const response = await axios(url)
   const data = response.data as ChainportTransactionStatus
@@ -80,21 +105,24 @@ export const getChainportTransactionStatus = async (network_id: number, hash: st
 }
 
 export const fetchChainportNetworks = async (network_id: number) => {
+  const config = getNetworkConfig(network_id)
   const response: {
     data: {
       cp_network_ids: {
         [key: string]: ChainportNetwork
       }
     }
-  } = await axios.get(`${ENDPOINTS[network_id]}/meta`)
+  } = await axios.get(`${config.endpoint}/meta`)
 
   return response.data.cp_network_ids
 }
 
 export const fetchChainportVerifiedTokens = async (network_id: number) => {
+  const config = getNetworkConfig(network_id)
+
   const response: {
     data: { verified_tokens: ChainportVerifiedToken[] }
-  } = await axios.get(`${ENDPOINTS[network_id]}/token/list?network_name=IRONFISH`)
+  } = await axios.get(`${config.endpoint}/token/list?network_name=IRONFISH`)
   return response.data.verified_tokens
 }
 
@@ -105,8 +133,9 @@ export const fetchBridgeTransactionDetails = async (
   to: string,
   selectedNetwork: string,
 ) => {
+  const config = getNetworkConfig(networkId)
   const url = `${
-    ENDPOINTS[networkId]
+    config.endpoint
   }/ironfish/metadata?raw_amount=${amount.toString()}&asset_id=${assetId}&target_network_id=${selectedNetwork}&target_web3_address=${to}`
 
   const response: {
@@ -116,7 +145,12 @@ export const fetchBridgeTransactionDetails = async (
   return response.data
 }
 
-export const isIncomingChainportBridgeTransaction = (transaction: RpcWalletTransaction) => {
+export const isIncomingChainportBridgeTransaction = (
+  networkId: number,
+  transaction: RpcWalletTransaction,
+) => {
+  const config = getNetworkConfig(networkId)
+
   if (transaction.type !== TransactionType.RECEIVE) {
     return false
   }
@@ -126,9 +160,10 @@ export const isIncomingChainportBridgeTransaction = (transaction: RpcWalletTrans
   }
 
   for (const note of transaction.notes) {
+    const incomingAddresses = config.incomingAddresses
     if (
       note.sender.toLowerCase() !==
-      '06102d319ab7e77b914a1bd135577f3e266fd82a3e537a02db281421ed8b3d13'.toLowerCase()
+      incomingAddresses.find((address) => address.toLowerCase() === note.sender.toLowerCase())
     ) {
       return false
     }
@@ -137,7 +172,11 @@ export const isIncomingChainportBridgeTransaction = (transaction: RpcWalletTrans
   return true
 }
 
-export const isOutgoingChainportBridgeTransaction = (transaction: RpcWalletTransaction) => {
+export const isOutgoingChainportBridgeTransaction = (
+  networkId: number,
+  transaction: RpcWalletTransaction,
+) => {
+  const config = getNetworkConfig(networkId)
   if (transaction.type !== TransactionType.SEND) {
     return false
   }
@@ -150,11 +189,7 @@ export const isOutgoingChainportBridgeTransaction = (transaction: RpcWalletTrans
     return false
   }
 
-  const bridgeAddresses = [
-    '06102d319ab7e77b914a1bd135577f3e266fd82a3e537a02db281421ed8b3d13'.toLowerCase(),
-    'db2cf6ec67addde84cc1092378ea22e7bb2eecdeecac5e43febc1cb8fb64b5e5'.toLowerCase(),
-    '3bE494deb669ff8d943463bb6042eabcf0c5346cf444d569e07204487716cb85'.toLowerCase(),
-  ]
+  const bridgeAddresses = config.outgoingAddresses
 
   const bridgeNote = transaction.notes.find((note) =>
     bridgeAddresses.includes(note.owner.toLowerCase()),
