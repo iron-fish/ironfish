@@ -149,6 +149,10 @@ export const isIncomingChainportBridgeTransaction = (
   networkId: number,
   transaction: RpcWalletTransaction,
 ) => {
+  if (networkId !== TESTNET.id) {
+    return false
+  }
+
   const config = getNetworkConfig(networkId)
 
   if (transaction.type !== TransactionType.RECEIVE) {
@@ -176,6 +180,10 @@ export const isOutgoingChainportBridgeTransaction = (
   networkId: number,
   transaction: RpcWalletTransaction,
 ) => {
+  if (networkId !== TESTNET.id) {
+    return false
+  }
+
   const config = getNetworkConfig(networkId)
   if (transaction.type !== TransactionType.SEND) {
     return false
