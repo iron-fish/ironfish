@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { TESTNET } from '@ironfish/sdk'
-import { CliUx } from '@oclif/core'
+import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 import {
@@ -12,6 +12,7 @@ import {
   isIncomingChainportBridgeTransaction,
   isOutgoingChainportBridgeTransaction,
 } from '../../../utils/chainport'
+import { watchTransaction } from '../../../utils/transaction'
 
 export class StatusCommand extends IronfishCommand {
   static description = `Display the status of an outgoing chainport bridge transaction`
@@ -19,6 +20,10 @@ export class StatusCommand extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
+    watch: Flags.boolean({
+      default: false,
+      description: 'Wait for the transaction to be confirmed',
+    }),
   }
 
   static args = [
@@ -37,7 +42,7 @@ export class StatusCommand extends IronfishCommand {
 
   async start(): Promise<void> {
     const client = await this.sdk.connectRpc()
-    const { args } = await this.parse(StatusCommand)
+    const { flags, args } = await this.parse(StatusCommand)
     const hash = args.hash as string
     const account = args.account as string | undefined
     const networkId = (await client.chain.getNetworkInfo()).content.networkId
@@ -71,8 +76,6 @@ export class StatusCommand extends IronfishCommand {
       return
     }
 
-    this.log(`Transaction status on Ironfish: ${response.content.transaction.status}`)
-
     if (isIncomingBridgeTransaction) {
       this.log(`This transaction is an incoming chainport bridge transaction`)
       // TODO: Add support for incoming chainport bridge transactions
@@ -80,17 +83,23 @@ export class StatusCommand extends IronfishCommand {
       return
     }
 
-    CliUx.ux.action.start('Fetching target network status')
+    if (flags.watch) {
+      await watchTransaction({
+        client,
+        logger: this.logger,
+        account,
+        hash,
+      })
+    } else {
+      this.log(`Transaction status on Ironfish: ${response.content.transaction.status}`)
+    }
+
     const transactionStatus = await getChainportTransactionStatus(networkId, hash)
 
     this.logger.debug(JSON.stringify(transactionStatus, null, 2))
 
     if (Object.keys(transactionStatus).length === 0) {
-      this.log(`Source transaction has not reached the minimum number of confirmations yet.`)
-      this.log(
-        `You can use ironfish wallet:transaction to check the status of the transaction on Ironfish.`,
-      )
-      CliUx.ux.action.stop()
+      this.log(`Transaction status not found on target network`)
       return
     }
 
@@ -113,6 +122,7 @@ export class StatusCommand extends IronfishCommand {
 \nTRANSACTION STATUS:
 Direction                    Outgoing
 Ironfish Network             ${networkId === 0 ? 'Testnet' : 'Mainnet'}
+Ironfish Transaction Status  ${response.content.transaction.status}
 Source Transaction Hash      ${hash}
 Target Network               ${targetNetwork.name}
 Target Transaction Hash      ${transactionStatus.target_tx_hash}
