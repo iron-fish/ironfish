@@ -187,6 +187,7 @@ export class Wallet {
     try {
       let hashChanged = false
       do {
+        this.chainProcessor.hash = await this.getEarliestHeadHash()
         hashChanged = (
           await this.chainProcessor.update({ signal: scan.abortController.signal })
         ).hashChanged
@@ -200,20 +201,6 @@ export class Wallet {
       scan.signalComplete()
       this.updateHeadState = null
     }
-  }
-
-  async shouldRescan(): Promise<boolean> {
-    if (this.scan) {
-      return false
-    }
-
-    for (const account of this.accounts.values()) {
-      if (!(await this.isAccountUpToDate(account))) {
-        return true
-      }
-    }
-
-    return false
   }
 
   async open(): Promise<void> {
@@ -236,12 +223,6 @@ export class Wallet {
       this.accounts.set(account.id, account)
     }
 
-    const latestHead = await this.getLatestHead()
-    if (latestHead) {
-      this.chainProcessor.hash = latestHead.hash
-      this.chainProcessor.sequence = latestHead.sequence
-    }
-
     const meta = await this.walletDb.loadAccountsMeta()
     this.defaultAccount = meta.defaultAccountId
   }
@@ -250,8 +231,6 @@ export class Wallet {
     this.accounts.clear()
 
     this.defaultAccount = null
-    this.chainProcessor.hash = null
-    this.chainProcessor.sequence = null
   }
 
   async close(): Promise<void> {
@@ -270,18 +249,6 @@ export class Wallet {
     }
     this.isStarted = true
 
-    if (this.chainProcessor.hash) {
-      const hasHeadBlock = await this.chainHasBlock(this.chainProcessor.hash)
-
-      if (!hasHeadBlock) {
-        throw new Error(
-          `Wallet has scanned to block ${this.chainProcessor.hash.toString(
-            'hex',
-          )}, but node's chain does not contain that block. Unable to sync from node without rescan.`,
-        )
-      }
-    }
-
     const chainHead = await this.getChainHead()
 
     for (const account of this.listAccounts()) {
@@ -299,10 +266,6 @@ export class Wallet {
         )
         await account.updateCreatedAt(null)
       }
-    }
-
-    if (!this.scan && (await this.shouldRescan())) {
-      void this.scanTransactions()
     }
 
     void this.eventLoop()
@@ -382,8 +345,6 @@ export class Wallet {
 
   async reset(options?: { resetCreatedAt?: boolean }): Promise<void> {
     await this.resetAccounts(options)
-
-    this.chainProcessor.hash = null
   }
 
   private async resetAccounts(options?: {
@@ -831,10 +792,6 @@ export class Wallet {
         .hashChanged
     } while (hashChanged)
 
-    // Update chainProcessor following scan
-    this.chainProcessor.hash = scanProcessor.hash
-    this.chainProcessor.sequence = scanProcessor.sequence
-
     this.logger.info(
       `Finished scanning for transactions after ${Math.floor(
         (Date.now() - scan.startedAt) / 1000,
@@ -1036,7 +993,7 @@ export class Wallet {
     try {
       this.assertHasAccount(options.account)
 
-      if (!(await this.isAccountUpToDate(options.account))) {
+      if (!(await this.isAccountUpToDate(options.account, confirmations))) {
         throw new Error('Your account must finish scanning before sending a transaction.')
       }
 
@@ -1522,12 +1479,6 @@ export class Wallet {
       await account.updateHead(createdAt, tx)
     })
 
-    // If this is the first account, set the chainProcessor state
-    if (this.accounts.size === 0 && createdAt) {
-      this.chainProcessor.hash = createdAt.hash
-      this.chainProcessor.sequence = createdAt.sequence
-    }
-
     this.accounts.set(account.id, account)
 
     if (options.setDefault) {
@@ -1538,14 +1489,9 @@ export class Wallet {
   }
 
   async skipRescan(account: Account, tx?: IDatabaseTransaction): Promise<void> {
-    const hash = this.chainProcessor.hash
-    const sequence = this.chainProcessor.sequence
+    const { hash, sequence } = await this.getChainHead()
 
-    if (hash === null || sequence === null) {
-      await account.updateHead(null, tx)
-    } else {
-      await account.updateHead({ hash, sequence }, tx)
-    }
+    await account.updateHead({ hash, sequence }, tx)
   }
 
   async importAccount(accountValue: AccountImport): Promise<Account> {
@@ -1815,14 +1761,16 @@ export class Wallet {
     return latestHead ? latestHead.hash : null
   }
 
-  async isAccountUpToDate(account: Account): Promise<boolean> {
+  async isAccountUpToDate(account: Account, confirmations?: number): Promise<boolean> {
     const head = await account.getHead()
-    Assert.isNotUndefined(
-      head,
-      `isAccountUpToDate: No head hash found for account ${account.displayName}`,
-    )
 
-    return BufferUtils.equalsNullable(head?.hash ?? null, this.chainProcessor.hash)
+    if (head === null) {
+      return false
+    }
+
+    confirmations = confirmations ?? this.config.get('confirmations')
+    const chainHead = await this.getChainHead()
+    return chainHead.sequence - head.sequence <= confirmations
   }
 
   protected assertHasAccount(account: Account): void {
