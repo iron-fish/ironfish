@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { TESTNET } from '@ironfish/sdk'
+import { CliUx } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 import {
@@ -13,7 +14,7 @@ import {
 } from '../../../utils/chainport'
 
 export class StatusCommand extends IronfishCommand {
-  static description = `Display an account transaction`
+  static description = `Display the status of an outgoing chainport bridge transaction`
   static hidden = true
 
   static flags = {
@@ -66,11 +67,20 @@ export class StatusCommand extends IronfishCommand {
 
     if (!isOutgoingBridgeTransaction && !isIncomingBridgeTransaction) {
       this.log(`This transaction is not a chainport bridge transaction`)
+
       return
     }
 
     this.log(`Transaction status on Ironfish: ${response.content.transaction.status}`)
 
+    if (isIncomingBridgeTransaction) {
+      this.log(`This transaction is an incoming chainport bridge transaction`)
+      // TODO: Add support for incoming chainport bridge transactions
+      // This involved decoding the memohex to get the source network id and transaction hash
+      return
+    }
+
+    CliUx.ux.action.start('Fetching target network status')
     const transactionStatus = await getChainportTransactionStatus(networkId, hash)
 
     this.logger.debug(JSON.stringify(transactionStatus, null, 2))
@@ -80,12 +90,17 @@ export class StatusCommand extends IronfishCommand {
       this.log(
         `You can use ironfish wallet:transaction to check the status of the transaction on Ironfish.`,
       )
+      CliUx.ux.action.stop()
       return
     }
 
-    if (transactionStatus.target_tx_hash && transactionStatus.target_network_id) {
-      this.log('\nTransaction status on target network:')
+    if (
+      isOutgoingBridgeTransaction &&
+      transactionStatus.target_tx_hash &&
+      transactionStatus.target_network_id
+    ) {
       const networks = await fetchChainportNetworks(networkId)
+      CliUx.ux.action.stop()
 
       const targetNetwork = networks[transactionStatus.target_network_id]
 
@@ -94,17 +109,18 @@ export class StatusCommand extends IronfishCommand {
         this.error('Target network not supported')
       }
 
-      this.log(`Direction: ${isOutgoingBridgeTransaction ? 'Outgoing' : 'Incoming'}`)
-
-      this.log(`Target network: ${targetNetwork.name}`)
-
-      this.log(`Target transaction hash: ${transactionStatus.target_tx_hash}`)
-
-      this.log(
-        `You can view the transaction status here: ${
-          targetNetwork.explorer_url + 'tx/' + transactionStatus.target_tx_hash
-        }`,
-      )
+      const summary = `\
+\nTRANSACTION STATUS:
+Direction                    Outgoing
+Ironfish Network             ${networkId === 0 ? 'Testnet' : 'Mainnet'}
+Source Transaction Hash      ${hash}
+Target Network               ${targetNetwork.name}
+Target Transaction Hash      ${transactionStatus.target_tx_hash}
+Explorer URL                 ${
+        targetNetwork.explorer_url + 'tx/' + transactionStatus.target_tx_hash
+      }  
+      `
+      this.log(summary)
     }
   }
 }
