@@ -51,7 +51,7 @@ export class StatusCommand extends IronfishCommand {
       this.error(`Chainport transactions are only available on testnet.`)
     }
 
-    const response = await client.wallet.getAccountTransaction({
+    let response = await client.wallet.getAccountTransaction({
       account,
       hash,
     })
@@ -90,6 +90,10 @@ export class StatusCommand extends IronfishCommand {
         account,
         hash,
       })
+      response = await client.wallet.getAccountTransaction({
+        account,
+        hash,
+      })
     } else {
       this.log(`Transaction status on Ironfish: ${response.content.transaction.status}`)
     }
@@ -118,12 +122,18 @@ export class StatusCommand extends IronfishCommand {
         this.error('Target network not supported')
       }
 
-      const summary = `\
+      let summary = `\
 \nTRANSACTION STATUS:
 Direction                    Outgoing
 Ironfish Network             ${networkId === 0 ? 'Testnet' : 'Mainnet'}
-Ironfish Transaction Status  ${response.content.transaction.status}
-Source Transaction Hash      ${hash}
+`
+
+      if (response.content.transaction) {
+        summary += `Ironfish Transaction Status  ${response.content.transaction.status}
+`
+      }
+
+      summary += `Source Transaction Hash      ${hash}
 Target Network               ${targetNetwork.name}
 Target Transaction Hash      ${transactionStatus.target_tx_hash}
 Explorer URL                 ${
