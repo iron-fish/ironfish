@@ -30,6 +30,34 @@ describe('Route wallet/getAccountStatus', () => {
           sequence: routeTest.chain.head.sequence,
           inChain: true,
         },
+        syncingEnabled: true,
+        viewOnly: false,
+      },
+    })
+  })
+
+  it('returns false if syncing is disabled', async () => {
+    const account = await routeTest.node.wallet.createAccount(uuid(), {
+      setCreatedAt: true,
+      setDefault: true,
+    })
+    await routeTest.client.wallet.stopSyncing({ account: account.name })
+
+    const response = await routeTest.client.wallet.getAccountStatus({
+      account: account.name,
+    })
+
+    expect(response.status).toBe(200)
+    expect(response.content).toMatchObject({
+      account: {
+        name: account.name,
+        id: account.id,
+        head: {
+          hash: routeTest.chain.head.hash.toString('hex'),
+          sequence: routeTest.chain.head.sequence,
+          inChain: true,
+        },
+        syncingEnabled: false,
         viewOnly: false,
       },
     })
