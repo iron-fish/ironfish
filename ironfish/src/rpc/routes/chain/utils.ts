@@ -180,6 +180,7 @@ export const serializeRpcBlock = (block: Block, serialized?: boolean): RpcBlock 
     transactions,
   }
 }
+
 export const serializeRpcTransaction = (
   tx: Transaction,
   serialized?: boolean,
