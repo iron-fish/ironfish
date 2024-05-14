@@ -5,7 +5,7 @@
 use ed25519_dalek::{Signature, Verifier, VerifyingKey};
 use std::io;
 
-use crate::errors::{IronfishError, IronfishErrorKind};
+use crate::{errors::{IronfishError, IronfishErrorKind}, PublicAddress};
 
 use super::transfer::Transfer;
 
@@ -22,6 +22,8 @@ pub struct PublicAccountDescription {
     pub(crate) signatures: Vec<Signature>,
     // asset transfers
     pub(crate) transfers: Vec<Transfer>,
+    // address of the account
+    pub(crate) address: PublicAddress,
 }
 
 impl PublicAccountDescription {
@@ -68,17 +70,21 @@ impl PublicAccountDescription {
             let transfer = Transfer::read(&mut reader)?;
             transfers.push(transfer);
         }
+        let address = PublicAddress::read(&mut reader)?;
+
 
         Ok(Self {
             version,
             threshold,
             signers,
             signatures,
+            address,
             transfers,
         })
     }
 
     pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
+        // TODO: think about ideal ordering here
         writer.write_all(&self.version.to_le_bytes())?;
         
         writer.write_all(&self.threshold.to_le_bytes())?;
@@ -104,6 +110,8 @@ impl PublicAccountDescription {
             transfer.write(&mut writer)?;
         }
 
+        self.address.write(&mut writer)?;
+
         Ok(())
     }
 
@@ -127,7 +135,7 @@ impl PublicAccountDescription {
         self.valid()?;
 
         let hash =
-            &PublicAccountDescription::hash(&self.version, &self.threshold, &self.signers, &self.transfers)?;
+            &PublicAccountDescription::hash(&self.version, &self.threshold, &self.signers, &self.address, &self.transfers)?;
         let is_valid = self
             .signers
             .iter()
@@ -143,6 +151,7 @@ impl PublicAccountDescription {
         version: &u8,
         threshold: &i16,
         signers: &Vec<VerifyingKey>,
+        address: &PublicAddress,
         transfers: &Vec<Transfer>,
     ) -> Result<[u8; 32], IronfishError> {
         // TODO(jwp): verify which hashers supported by axelar
@@ -155,6 +164,7 @@ impl PublicAccountDescription {
         for transfer in transfers {
             hasher.update(&transfer.as_bytes()?);
         }
+        hasher.update(&address.public_address());
         Ok(hasher.finalize().into())
     }
 }
@@ -180,7 +190,7 @@ mod tests {
             to: public_address,
             memo: PublicMemo([0; 256]),
         };
-        let hash = PublicAccountDescription::hash(&1, &1, &vec![verifying_key], &vec![transfer])
+        let hash = PublicAccountDescription::hash(&1, &1, &vec![verifying_key], &public_address, &vec![transfer])
             .expect("Should successfully hash");
         let signature = signing_key.sign(&hash);
 
@@ -189,6 +199,7 @@ mod tests {
             threshold: 1,
             signers: vec![verifying_key],
             signatures: vec![signature],
+            address: public_address,
             transfers: vec![transfer],
         };
         original
