@@ -13,6 +13,7 @@ use super::transfer::Transfer;
 pub struct PublicAccountDescription {
     /// TODO(jwp): do we need a separate account address for later migration
     /// pub(crate) account_address: EthereumAddress
+    pub(crate) version: u8,
     // Minimum number of required signers
     pub(crate) threshold: i16,
     // Signers of the public account
@@ -25,6 +26,10 @@ pub struct PublicAccountDescription {
 
 impl PublicAccountDescription {
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
+        let mut version_buf = [0; 1];
+        reader.read_exact(&mut version_buf)?;
+        let version = version_buf[0];
+        
         let mut threshold_buf = [0; 2];
         reader.read_exact(&mut threshold_buf)?;
         let threshold = i16::from_le_bytes(threshold_buf);
@@ -65,6 +70,7 @@ impl PublicAccountDescription {
         }
 
         Ok(Self {
+            version,
             threshold,
             signers,
             signatures,
@@ -73,6 +79,8 @@ impl PublicAccountDescription {
     }
 
     pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
+        writer.write_all(&self.version.to_le_bytes())?;
+        
         writer.write_all(&self.threshold.to_le_bytes())?;
 
         let signers_len = self.signers.len() as i16;
@@ -119,7 +127,7 @@ impl PublicAccountDescription {
         self.valid()?;
 
         let hash =
-            &PublicAccountDescription::hash(&self.threshold, &self.signers, &self.transfers)?;
+            &PublicAccountDescription::hash(&self.version, &self.threshold, &self.signers, &self.transfers)?;
         let is_valid = self
             .signers
             .iter()
@@ -132,12 +140,14 @@ impl PublicAccountDescription {
     }
 
     pub fn hash(
+        version: &u8,
         threshold: &i16,
         signers: &Vec<VerifyingKey>,
         transfers: &Vec<Transfer>,
     ) -> Result<[u8; 32], IronfishError> {
         // TODO(jwp): verify which hashers supported by axelar
         let mut hasher = blake3::Hasher::new();
+        hasher.update(&version.to_le_bytes());
         hasher.update(&threshold.to_le_bytes());
         for signer in signers {
             hasher.update(signer.as_bytes());
@@ -170,11 +180,12 @@ mod tests {
             to: public_address,
             memo: PublicMemo([0; 256]),
         };
-        let hash = PublicAccountDescription::hash(&1, &vec![verifying_key], &vec![transfer])
+        let hash = PublicAccountDescription::hash(&1, &1, &vec![verifying_key], &vec![transfer])
             .expect("Should successfully hash");
         let signature = signing_key.sign(&hash);
 
         let original = PublicAccountDescription {
+            version: 1,
             threshold: 1,
             signers: vec![verifying_key],
             signatures: vec![signature],
