@@ -165,6 +165,7 @@ export class Wallet {
       await this.connectBlock(header, transactions)
       await this.expireTransactions(header.sequence)
       await this.rebroadcastTransactions(header.sequence)
+      this.updateHeadState?.signal(header.sequence)
     })
 
     this.chainProcessor.onRemove.on(async ({ header, transactions }) => {
@@ -179,10 +180,12 @@ export class Wallet {
       return
     }
 
-    // TODO: this isn't right, as the scan state doesn't get its sequence or
-    // endSequence set properly
     const scan = new ScanState()
     this.updateHeadState = scan
+
+    // Fetch current chain head sequence
+    const chainHead = await this.getChainHead()
+    this.updateHeadState.endSequence = chainHead.sequence
 
     try {
       let hashChanged = false
