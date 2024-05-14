@@ -36,7 +36,7 @@ describe('Route wallet/getAccountsStatus', () => {
             sequence: routeTest.chain.head.sequence,
             inChain: true,
           },
-          syncingEnabled: true,
+          scanningEnabled: true,
           viewOnly: false,
         },
       ],
@@ -61,19 +61,19 @@ describe('Route wallet/getAccountsStatus', () => {
           name: account.name,
           id: account.id,
           head: null,
-          syncingEnabled: true,
+          scanningEnabled: true,
           viewOnly: true,
         },
       ],
     })
   })
 
-  it('returns false when syncing is disabled', async () => {
+  it('returns false when scanning is disabled', async () => {
     const account = await routeTest.node.wallet.createAccount(uuid(), {
       setCreatedAt: true,
       setDefault: true,
     })
-    await routeTest.client.wallet.stopSyncing({ account: account.name })
+    await routeTest.client.wallet.stopScanning({ account: account.name })
     const response = await routeTest.client.wallet.getAccountsStatus()
 
     expect(response.status).toBe(200)
@@ -87,7 +87,7 @@ describe('Route wallet/getAccountsStatus', () => {
             sequence: routeTest.chain.head.sequence,
             inChain: true,
           },
-          syncingEnabled: false,
+          scanningEnabled: false,
           viewOnly: false,
         },
       ],

@@ -484,7 +484,7 @@ export class Wallet {
     scan?: ScanState,
   ): Promise<void> {
     const accounts = await AsyncUtils.filter(this.listAccounts(), async (account) => {
-      if (!account.syncingEnabled) {
+      if (!account.scanningEnabled) {
         return false
       }
 
@@ -716,7 +716,7 @@ export class Wallet {
     transactions: WalletBlockTransaction[],
   ): Promise<void> {
     const accounts = await AsyncUtils.filter(this.listAccounts(), async (account) => {
-      if (!account.syncingEnabled) {
+      if (!account.scanningEnabled) {
         return false
       }
 
@@ -1807,7 +1807,7 @@ export class Wallet {
   async getEarliestHeadHash(): Promise<Buffer | null> {
     let earliestHead = null
     for (const account of this.accounts.values()) {
-      if (!account.syncingEnabled) {
+      if (!account.scanningEnabled) {
         continue
       }
 
@@ -1829,7 +1829,7 @@ export class Wallet {
     let latestHead = null
 
     for (const account of this.accounts.values()) {
-      if (!account.syncingEnabled) {
+      if (!account.scanningEnabled) {
         continue
       }
 

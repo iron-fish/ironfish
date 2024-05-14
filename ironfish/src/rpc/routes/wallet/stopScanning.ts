@@ -7,27 +7,27 @@ import { routes } from '../router'
 import { AssertHasRpcContext } from '../rpcContext'
 import { getAccount } from './utils'
 
-export type StopSyncingRequest = { account: string }
-export type StopSyncingResponse = undefined
+export type StopScanningRequest = { account: string }
+export type StopScanningResponse = undefined
 
-export const StopSyncingRequestSchema: yup.ObjectSchema<StopSyncingRequest> = yup
+export const StopScanningRequestSchema: yup.ObjectSchema<StopScanningRequest> = yup
   .object({
     account: yup.string().defined(),
   })
   .defined()
 
-export const StopSyncingResponseSchema: yup.MixedSchema<StopSyncingResponse> = yup
+export const StopScanningResponseSchema: yup.MixedSchema<StopScanningResponse> = yup
   .mixed()
   .oneOf([undefined] as const)
 
-routes.register<typeof StopSyncingRequestSchema, StopSyncingResponse>(
-  `${ApiNamespace.wallet}/stopSyncing`,
-  StopSyncingRequestSchema,
+routes.register<typeof StopScanningRequestSchema, StopScanningResponse>(
+  `${ApiNamespace.wallet}/stopScanning`,
+  StopScanningRequestSchema,
   (request, context): void => {
     AssertHasRpcContext(request, context, 'wallet')
 
     const account = getAccount(context.wallet, request.data.account)
-    account.updateSyncingEnabled(false)
+    account.updateScanningEnabled(false)
     request.end()
   },
 )

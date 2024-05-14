@@ -600,14 +600,14 @@ describe('Wallet', () => {
       expect(await node.wallet.getEarliestHeadHash()).toEqual(null)
     })
 
-    it('should skip accounts with syncing disabled', async () => {
+    it('should skip accounts with scanning disabled', async () => {
       const { node } = nodeTest
 
       const accountA = await useAccountFixture(node.wallet, 'accountA')
       const accountB = await useAccountFixture(node.wallet, 'accountB')
 
       await node.wallet.updateHead()
-      accountA.updateSyncingEnabled(false)
+      accountA.updateScanningEnabled(false)
 
       const blockA = await useMinerBlockFixture(node.chain, 2, accountA)
       await node.chain.addBlock(blockA)
@@ -620,7 +620,7 @@ describe('Wallet', () => {
 
       expect(await node.wallet.getEarliestHeadHash()).toEqual(blockB.header.hash)
 
-      accountB.updateSyncingEnabled(false)
+      accountB.updateScanningEnabled(false)
 
       expect(await node.wallet.getEarliestHeadHash()).toBeNull()
     })
@@ -647,7 +647,7 @@ describe('Wallet', () => {
       expect(await node.wallet.getLatestHeadHash()).toEqual(blockB.header.hash)
     })
 
-    it('should skip accounts with syncing disabled', async () => {
+    it('should skip accounts with scanning disabled', async () => {
       const { node } = nodeTest
 
       const accountA = await useAccountFixture(node.wallet, 'accountA')
@@ -657,21 +657,21 @@ describe('Wallet', () => {
       await node.chain.addBlock(blockA)
 
       await node.wallet.updateHead()
-      accountA.updateSyncingEnabled(false)
+      accountA.updateScanningEnabled(false)
 
       const blockB = await useMinerBlockFixture(node.chain, 3, accountA)
       await node.chain.addBlock(blockB)
       await node.wallet.updateHead()
 
-      accountA.updateSyncingEnabled(true)
-      accountB.updateSyncingEnabled(false)
+      accountA.updateScanningEnabled(true)
+      accountB.updateScanningEnabled(false)
 
       expect((await accountA.getHead())?.sequence).toBe(2)
       expect((await accountB.getHead())?.sequence).toBe(3)
 
       expect(await node.wallet.getLatestHeadHash()).toEqual(blockA.header.hash)
 
-      accountA.updateSyncingEnabled(false)
+      accountA.updateScanningEnabled(false)
 
       expect(await node.wallet.getLatestHeadHash()).toBeNull()
     })
@@ -2143,13 +2143,13 @@ describe('Wallet', () => {
       expect(decryptSpy.mock.lastCall?.[3]).toEqual([accountA])
     })
 
-    it('should skip updating accounts with syncingEnabled set to false', async () => {
+    it('should skip updating accounts with scanningEnabled set to false', async () => {
       const { node } = await nodeTest.createSetup()
       const accountA: Account = await useAccountFixture(node.wallet, 'a')
       const accountB: Account = await useAccountFixture(node.wallet, 'b')
       await node.wallet.updateHead()
 
-      accountA.updateSyncingEnabled(false)
+      accountA.updateScanningEnabled(false)
 
       const block2 = await useMinerBlockFixture(node.chain, 2, undefined)
       await node.chain.addBlock(block2)
@@ -2577,7 +2577,7 @@ describe('Wallet', () => {
       expect(accountA2.createdAt?.sequence).toEqual(blockA1.header.sequence)
     })
 
-    it('should skip disconnecting for accounts with syncingEnabled set to false', async () => {
+    it('should skip disconnecting for accounts with scanningEnabled set to false', async () => {
       const { node } = await nodeTest.createSetup()
 
       const accountA = await useAccountFixture(node.wallet, 'a')
@@ -2596,7 +2596,7 @@ describe('Wallet', () => {
       expect(accountAHead?.hash).toEqualHash(blockA2.header.hash)
       expect(accountBHead?.hash).toEqualHash(blockA2.header.hash)
 
-      accountA.updateSyncingEnabled(false)
+      accountA.updateScanningEnabled(false)
 
       await node.chain.blockchainDb.db.transaction(async (tx) => {
         await node.chain.disconnect(blockA2, tx)

@@ -155,11 +155,11 @@ import type {
   SetConfigResponse,
   ShowChainRequest,
   ShowChainResponse,
-  StartSyncingRequest,
-  StartSyncingResponse,
+  StartScanningRequest,
+  StartScanningResponse,
   StopNodeResponse,
-  StopSyncingRequest,
-  StopSyncingResponse,
+  StopScanningRequest,
+  StopScanningResponse,
   SubmitBlockRequest,
   SubmitBlockResponse,
   UnsetConfigRequest,
@@ -582,20 +582,20 @@ export abstract class RpcClient {
       ).waitForEnd()
     },
 
-    startSyncing: (
-      params: StartSyncingRequest,
-    ): Promise<RpcResponseEnded<StartSyncingResponse>> => {
-      return this.request<StartSyncingResponse>(
-        `${ApiNamespace.wallet}/startSyncing`,
+    startScanning: (
+      params: StartScanningRequest,
+    ): Promise<RpcResponseEnded<StartScanningResponse>> => {
+      return this.request<StartScanningResponse>(
+        `${ApiNamespace.wallet}/startScanning`,
         params,
       ).waitForEnd()
     },
 
-    stopSyncing: (
-      params: StopSyncingRequest,
-    ): Promise<RpcResponseEnded<StopSyncingResponse>> => {
-      return this.request<StopSyncingResponse>(
-        `${ApiNamespace.wallet}/stopSyncing`,
+    stopScanning: (
+      params: StopScanningRequest,
+    ): Promise<RpcResponseEnded<StopScanningResponse>> => {
+      return this.request<StopScanningResponse>(
+        `${ApiNamespace.wallet}/stopScanning`,
         params,
       ).waitForEnd()
     },

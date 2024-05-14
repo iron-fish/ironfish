@@ -5,8 +5,8 @@ import { parseBoolean } from '../../args'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
-export class SyncingCommand extends IronfishCommand {
-  static description = `Enable or disable syncing for an account`
+export class ScanningCommand extends IronfishCommand {
+  static description = `Enable or disable scanning for an account`
 
   static flags = {
     ...RemoteFlags,
@@ -27,7 +27,7 @@ export class SyncingCommand extends IronfishCommand {
   ]
 
   async start(): Promise<void> {
-    const { args } = await this.parse(SyncingCommand)
+    const { args } = await this.parse(ScanningCommand)
     const account = args.account as string | undefined
     const enabled = args.enabled as boolean | null | undefined
 
@@ -42,15 +42,15 @@ export class SyncingCommand extends IronfishCommand {
     const client = await this.sdk.connectRpc()
 
     if (enabled) {
-      await client.wallet.startSyncing({
+      await client.wallet.startScanning({
         account: account,
       })
-      this.log(`Started syncing for account ${account}.`)
+      this.log(`Started scanning for account ${account}.`)
     } else {
-      await client.wallet.stopSyncing({
+      await client.wallet.stopScanning({
         account: account,
       })
-      this.log(`Stopped syncing for account ${account}.`)
+      this.log(`Stopped scanning for account ${account}.`)
     }
   }
 }

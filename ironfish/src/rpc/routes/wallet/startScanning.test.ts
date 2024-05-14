@@ -8,9 +8,9 @@
 import { v4 as uuid } from 'uuid'
 import { Assert } from '../../../assert'
 import { createRouteTest } from '../../../testUtilities/routeTest'
-import { StartSyncingResponse } from './startSyncing'
+import { StartScanningResponse } from './startScanning'
 
-describe('Route wallet/startSyncing', () => {
+describe('Route wallet/startScanning', () => {
   const routeTest = createRouteTest()
   let accountName: string
 
@@ -20,44 +20,44 @@ describe('Route wallet/startSyncing', () => {
     await routeTest.node.wallet.setDefaultAccount(accountName)
   })
 
-  it('Should set syncing to true', async () => {
+  it('Should set scanning to true', async () => {
     let account = routeTest.node.wallet.getAccountByName(accountName)
     Assert.isNotNull(account)
-    account.updateSyncingEnabled(false)
-    expect(account.syncingEnabled).toBe(false)
+    account.updateScanningEnabled(false)
+    expect(account.scanningEnabled).toBe(false)
 
     await routeTest.client
-      .request<StartSyncingResponse>('wallet/startSyncing', {
+      .request<StartScanningResponse>('wallet/startScanning', {
         account: accountName,
       })
       .waitForEnd()
 
     account = routeTest.node.wallet.getAccountByName(accountName)
     Assert.isNotNull(account)
-    expect(account.syncingEnabled).toBe(true)
+    expect(account.scanningEnabled).toBe(true)
   })
 
-  it('Should do nothing if syncing is already started', async () => {
+  it('Should do nothing if scanning is already started', async () => {
     let account = routeTest.node.wallet.getAccountByName(accountName)
     Assert.isNotNull(account)
-    account.updateSyncingEnabled(true)
-    expect(account.syncingEnabled).toBe(true)
+    account.updateScanningEnabled(true)
+    expect(account.scanningEnabled).toBe(true)
 
     await routeTest.client
-      .request<StartSyncingResponse>('wallet/startSyncing', {
+      .request<StartScanningResponse>('wallet/startScanning', {
         account: accountName,
       })
       .waitForEnd()
 
     account = routeTest.node.wallet.getAccountByName(accountName)
     Assert.isNotNull(account)
-    expect(account.syncingEnabled).toBe(true)
+    expect(account.scanningEnabled).toBe(true)
   })
 
   it(`Should error if the account doesn't exist`, async () => {
     await expect(async () => {
       await routeTest.client
-        .request<StartSyncingResponse>('wallet/startSyncing', {
+        .request<StartScanningResponse>('wallet/startScanning', {
           account: 'foo',
         })
         .waitForEnd()
@@ -67,7 +67,7 @@ describe('Route wallet/startSyncing', () => {
   it(`Should error if the no account is passed`, async () => {
     await expect(async () => {
       await routeTest.client
-        .request<StartSyncingResponse>('wallet/startSyncing', {})
+        .request<StartScanningResponse>('wallet/startScanning', {})
         .waitForEnd()
     }).rejects.toThrow('account must be defined')
   })

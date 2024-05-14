@@ -71,7 +71,7 @@ export class Account {
   readonly version: number
   publicAddress: string
   createdAt: HeadValue | null
-  syncingEnabled: boolean
+  scanningEnabled: boolean
   readonly prefix: Buffer
   readonly prefixRange: DatabaseKeyRange
   readonly multisigKeys?: MultisigKeys
@@ -94,7 +94,7 @@ export class Account {
     this.walletDb = walletDb
     this.version = accountValue.version ?? 1
     this.createdAt = accountValue.createdAt
-    this.syncingEnabled = accountValue.syncingEnabled ?? true
+    this.scanningEnabled = accountValue.scanningEnabled ?? true
     this.multisigKeys = accountValue.multisigKeys
     this.proofAuthorizingKey = accountValue.proofAuthorizingKey
   }
@@ -1253,11 +1253,9 @@ export class Account {
     await this.walletDb.setAccount(this, tx)
   }
 
-  updateSyncingEnabled(syncingEnabled: boolean): void {
+  updateScanningEnabled(scanningEnabled: boolean): void {
     // TODO: Save this in DB
-    // TODO: As soon as account heads are no longer at the same block as the chain processor, like when stopping-then-starting
-    // syncing, the accounts no longer sync. should we restart the chain processor when syncingEnabled changes?
-    this.syncingEnabled = syncingEnabled
+    this.scanningEnabled = scanningEnabled
   }
 
   async getTransactionNotes(
