@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { TESTNET } from '@ironfish/sdk'
-import { CliUx, Flags } from '@oclif/core'
+import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 import {
@@ -113,7 +113,6 @@ export class StatusCommand extends IronfishCommand {
       transactionStatus.target_network_id
     ) {
       const networks = await fetchChainportNetworks(networkId)
-      CliUx.ux.action.stop()
 
       const targetNetwork = networks[transactionStatus.target_network_id]
 
