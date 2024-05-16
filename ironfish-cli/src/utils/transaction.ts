@@ -465,12 +465,15 @@ export async function watchTransaction(options: {
   hash: string
   account?: string
   confirmations?: number
-  waitUntil?: TransactionStatus
+  waitUntil?: TransactionStatus[]
   pollFrequencyMs?: number
   logger?: Logger
 }): Promise<void> {
   const logger = options.logger ?? createRootLogger()
-  const waitUntil = options.waitUntil ?? TransactionStatus.CONFIRMED
+  const waitUntil = options.waitUntil ?? [
+    TransactionStatus.CONFIRMED,
+    TransactionStatus.EXPIRED,
+  ]
   const pollFrequencyMs = options.pollFrequencyMs ?? 10000
 
   let lastTime = Date.now()
@@ -488,8 +491,8 @@ export async function watchTransaction(options: {
   let currentStatus = prevStatus
 
   // If the transaction is already in the desired state, return
-  if (currentStatus === waitUntil) {
-    logger.log(`Transaction ${options.hash} is ${waitUntil}`)
+  if (currentStatus !== 'not found' && waitUntil.includes(currentStatus)) {
+    logger.log(`Transaction ${options.hash} is ${currentStatus}`)
     return
   }
 
@@ -540,7 +543,7 @@ export async function watchTransaction(options: {
     const span = TimeUtils.renderSpan(0, { hideMilliseconds: true })
     CliUx.ux.action.status = `${currentStatus} ${span}`
 
-    if (currentStatus === waitUntil) {
+    if (currentStatus !== 'not found' && waitUntil.includes(currentStatus)) {
       const duration = now - startTime
       const span = TimeUtils.renderSpan(duration, { hideMilliseconds: true })
       CliUx.ux.action.stop(`done after ${span}`)
