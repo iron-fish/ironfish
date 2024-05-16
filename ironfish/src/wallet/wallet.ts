@@ -993,10 +993,6 @@ export class Wallet {
     try {
       this.assertHasAccount(options.account)
 
-      if (!(await this.isAccountUpToDate(options.account, confirmations))) {
-        throw new Error('Your account must finish scanning before sending a transaction.')
-      }
-
       const transactionVersionSequenceDelta = TransactionUtils.versionSequenceDelta(
         expiration ? expiration - heaviestHead.sequence : expiration,
       )
