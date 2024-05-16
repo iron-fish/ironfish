@@ -12,6 +12,7 @@ import {
 import { CliUx } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
+import { getAssetsByIDs } from '../../../utils'
 
 export class TransactionCommand extends IronfishCommand {
   static description = `Display an account transaction`
@@ -138,14 +139,29 @@ export class TransactionCommand extends IronfishCommand {
       })
     }
 
-    if (response.content.transaction.assetBalanceDeltas) {
+    const assetBalanceDeltas = response.content.transaction.assetBalanceDeltas
+    if (assetBalanceDeltas) {
+      const assetLookup = await getAssetsByIDs(
+        client,
+        assetBalanceDeltas.map((b) => b.assetId),
+        account,
+        undefined,
+      )
+
       this.log(`\n---Asset Balance Deltas---\n`)
-      CliUx.ux.table(response.content.transaction.assetBalanceDeltas, {
+      CliUx.ux.table(assetBalanceDeltas, {
         assetId: {
           header: 'Asset ID',
         },
         delta: {
           header: 'Balance Change',
+          get: (assetBalanceDelta) =>
+            CurrencyUtils.render(
+              assetBalanceDelta.delta,
+              false,
+              assetBalanceDelta.assetId,
+              assetLookup[assetBalanceDelta.assetId].verification,
+            ),
         },
       })
     }
