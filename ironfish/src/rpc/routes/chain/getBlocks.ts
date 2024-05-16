@@ -1,18 +1,15 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import type { Blockchain } from '../../../blockchain'
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
-import { getBlockSize } from '../../../network/utils/serializers'
 import { FullNode } from '../../../node'
 import { BlockchainUtils } from '../../../utils/blockchain'
 import { RpcNotFoundError, RpcValidationError } from '../../adapters'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
-import { RpcBlock, RpcBlockSchema, serializeRpcBlockHeader } from '../types'
-import { RpcTransaction } from './types'
-import { serializeRpcTransaction } from './utils'
+import { RpcBlock, RpcBlockSchema } from '../types'
+import { serializeRpcBlock } from './utils'
 
 export type GetBlocksRequest = {
   /**
@@ -72,45 +69,18 @@ routes.register<typeof GetBlocksRequestSchema, GetBlocksResponse>(
     })
 
     const blocks: { block: RpcBlock }[] = []
+
     for (let seq = start; seq <= end; seq++) {
-      const block = await getBlockAtSequence(context.chain, seq, request.data.serialized)
-      blocks.push({ block: block })
+      const block = await context.chain.getBlockAtSequence(seq)
+
+      if (block == null) {
+        throw new RpcNotFoundError(`No block found at sequence ${seq}`)
+      }
+
+      const serialized = serializeRpcBlock(block, request.data.serialized)
+      blocks.push({ block: serialized })
     }
 
     request.end({ blocks })
   },
 )
-
-const getBlockAtSequence = async (
-  chain: Blockchain,
-  sequence: number,
-  serialized?: boolean,
-): Promise<RpcBlock> => {
-  const header = await chain.getHeaderAtSequence(sequence)
-  let error = ''
-  if (!header) {
-    error = `No block found with sequence ${sequence}`
-    throw new RpcNotFoundError(error)
-  }
-
-  if (header.noteSize === null) {
-    throw new RpcValidationError('Block header was saved to database without a note size')
-  }
-
-  const block = await chain.getBlock(header)
-  if (!block) {
-    throw new RpcNotFoundError(`No block with header ${header.hash.toString('hex')}`)
-  }
-
-  const transactions: RpcTransaction[] = []
-
-  for (const tx of block.transactions) {
-    transactions.push(serializeRpcTransaction(tx, serialized))
-  }
-  const blockHeaderResponse = serializeRpcBlockHeader(header)
-  return {
-    ...blockHeaderResponse,
-    size: getBlockSize(block),
-    transactions,
-  }
-}

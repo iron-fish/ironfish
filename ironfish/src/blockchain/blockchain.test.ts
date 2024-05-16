@@ -1962,6 +1962,19 @@ describe('Blockchain', () => {
     })
   })
 
+  describe('getBlockAtSequence()', () => {
+    it('should fetch block at a sequence', async () => {
+      const block = await nodeTest.chain.getBlockAtSequence(nodeTest.chain.head.sequence)
+      expect(block?.header.sequence).toEqual(nodeTest.chain.head.sequence)
+      expect(block?.header.hash).toEqualBuffer(nodeTest.chain.head.hash)
+    })
+
+    it('should return null if no block at a sequence', async () => {
+      const block = await nodeTest.chain.getBlockAtSequence(nodeTest.chain.head.sequence + 1)
+      expect(block).toBeNull()
+    })
+  })
+
   describe('createMinersFee()', () => {
     it('Creates transactions with the correct version based on the sequence', async () => {
       const spendingKey = generateKey().spendingKey
