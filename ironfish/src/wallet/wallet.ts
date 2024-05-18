@@ -1769,6 +1769,15 @@ export class Wallet {
     return null
   }
 
+  getAccountByPublicAddress(publicAddress: string): Account | null {
+    for (const account of this.accounts.values()) {
+      if (publicAddress === account.publicAddress) {
+        return account
+      }
+    }
+    return null
+  }
+
   getAccount(id: string): Account | null {
     const account = this.accounts.get(id)
 

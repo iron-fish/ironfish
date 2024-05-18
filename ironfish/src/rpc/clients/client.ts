@@ -53,6 +53,8 @@ import type {
   GetAccountIdentitiesResponse,
   GetAccountNotesStreamRequest,
   GetAccountNotesStreamResponse,
+  GetAccountRequest,
+  GetAccountResponse,
   GetAccountsRequest,
   GetAccountsResponse,
   GetAccountsStatusRequest,
@@ -304,6 +306,13 @@ export abstract class RpcClient {
           ).waitForEnd()
         },
       },
+    },
+
+    getAccount: (params: GetAccountRequest): Promise<RpcResponseEnded<GetAccountResponse>> => {
+      return this.request<GetAccountResponse>(
+        `${ApiNamespace.wallet}/getAccount`,
+        params,
+      ).waitForEnd()
     },
 
     getAccounts: (
