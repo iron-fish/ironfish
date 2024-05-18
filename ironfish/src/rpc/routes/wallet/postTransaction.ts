@@ -3,12 +3,16 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { RawTransactionSerde } from '../../../primitives/rawTransaction'
+import { RpcValidationError } from '../../adapters'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import { AssertHasRpcContext } from '../rpcContext'
 import { getAccount } from './utils'
 
 export type PostTransactionRequest = {
+  /**
+   * @deprecated account determined automatically from raw transaction descriptions
+   */
   account?: string
   transaction: string
   broadcast?: boolean
@@ -44,10 +48,15 @@ routes.register<typeof PostTransactionRequestSchema, PostTransactionResponse>(
   async (request, context): Promise<void> => {
     AssertHasRpcContext(request, context, 'wallet')
 
-    const account = getAccount(context.wallet, request.data.account)
-
     const bytes = Buffer.from(request.data.transaction, 'hex')
     const raw = RawTransactionSerde.deserialize(bytes)
+
+    const sender = raw.sender()
+    if (sender === undefined) {
+      throw new RpcValidationError('Unable to determine sender account for raw transaction')
+    }
+
+    const account = getAccount(context.wallet, sender)
 
     const { accepted, broadcasted, transaction } = await context.wallet.post({
       transaction: raw,
