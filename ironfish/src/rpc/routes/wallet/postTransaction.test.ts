@@ -44,6 +44,7 @@ describe('Route wallet/postTransaction', () => {
       'accountB',
     )
     const addSpy = jest.spyOn(routeTest.node.wallet, 'addPendingTransaction')
+    const broadcastSpy = jest.spyOn(routeTest.node.wallet, 'broadcastTransaction')
 
     const rawTransaction = await createRawTransaction({
       wallet: routeTest.node.wallet,
@@ -56,6 +57,7 @@ describe('Route wallet/postTransaction', () => {
     })
 
     expect(addSpy).toHaveBeenCalledTimes(1)
+    expect(broadcastSpy).toHaveBeenCalledTimes(1)
     expect(response.status).toBe(200)
     expect(response.content.transaction).toBeDefined()
     const transaction = new Transaction(Buffer.from(response.content.transaction, 'hex'))
