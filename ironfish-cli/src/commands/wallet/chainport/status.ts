@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { TESTNET } from '@ironfish/sdk'
+import { TESTNET, TransactionStatus } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
@@ -98,12 +98,22 @@ export class StatusCommand extends IronfishCommand {
       this.log(`Transaction status on Ironfish: ${response.content.transaction.status}`)
     }
 
+    if (response.content.transaction?.status !== TransactionStatus.CONFIRMED) {
+      this.log(`Transaction not confirmed on Ironfish`)
+      return
+    }
+
     const transactionStatus = await getChainportTransactionStatus(networkId, hash)
 
     this.logger.debug(JSON.stringify(transactionStatus, null, 2))
 
     if (Object.keys(transactionStatus).length === 0) {
-      this.log(`Transaction status not found on target network`)
+      this.log(
+        `Transaction status not found on target network.
+
+Note: Bridge transactions may take up to 30 minutes to surface on the target network.
+If this issue persists, please contact chainport support: https://app.chainport.io/`,
+      )
       return
     }
 
