@@ -326,7 +326,7 @@ export class CombineNotesCommand extends IronfishCommand {
 
     if (flags.rawTransaction) {
       this.log('Raw Transaction')
-      this.log(RawTransactionSerde.serialize(raw).toString('hex'))
+      this.log(createTransactionBytes.toString('hex'))
       this.log(`Run "ironfish wallet:post" to post the raw transaction. `)
       this.exit(0)
     }
