@@ -1769,9 +1769,9 @@ export class Wallet {
     return null
   }
 
-  getAccountByAddress(address: string): Account | null {
+  getAccountByPublicAddress(publicAddress: string): Account | null {
     for (const account of this.accounts.values()) {
-      if (address === account.publicAddress) {
+      if (publicAddress === account.publicAddress) {
         return account
       }
     }

@@ -4,7 +4,7 @@
 
 import { Transaction } from '../../../primitives'
 import { RawTransactionSerde } from '../../../primitives/rawTransaction'
-import { useAccountFixture } from '../../../testUtilities'
+import { useAccountAndAddFundsFixture, useAccountFixture } from '../../../testUtilities'
 import { createRawTransaction } from '../../../testUtilities/helpers/transaction'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 
@@ -12,12 +12,17 @@ describe('Route wallet/postTransaction', () => {
   const routeTest = createRouteTest(true)
 
   it('should post a raw transaction and not broadcast', async () => {
-    const account = await useAccountFixture(routeTest.node.wallet, 'accountA')
+    const account = await useAccountAndAddFundsFixture(
+      routeTest.node.wallet,
+      routeTest.node.chain,
+      'accountA',
+    )
     const addSpy = jest.spyOn(routeTest.node.wallet, 'addPendingTransaction')
 
     const rawTransaction = await createRawTransaction({
       wallet: routeTest.node.wallet,
       from: account,
+      to: account,
     })
 
     const response = await routeTest.client.wallet.postTransaction({
@@ -34,12 +39,17 @@ describe('Route wallet/postTransaction', () => {
   })
 
   it('should post a raw transaction', async () => {
-    const account = await useAccountFixture(routeTest.node.wallet, 'existingAccount')
+    const account = await useAccountAndAddFundsFixture(
+      routeTest.node.wallet,
+      routeTest.node.chain,
+      'accountA',
+    )
     const addSpy = jest.spyOn(routeTest.node.wallet, 'addPendingTransaction')
 
     const rawTransaction = await createRawTransaction({
       wallet: routeTest.node.wallet,
       from: account,
+      to: account,
     })
 
     const response = await routeTest.client.wallet.postTransaction({

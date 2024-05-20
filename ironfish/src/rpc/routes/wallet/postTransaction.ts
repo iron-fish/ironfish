@@ -7,7 +7,6 @@ import { RpcValidationError } from '../../adapters'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import { AssertHasRpcContext } from '../rpcContext'
-import { getAccount } from './utils'
 
 export type PostTransactionRequest = {
   /**
@@ -56,7 +55,13 @@ routes.register<typeof PostTransactionRequestSchema, PostTransactionResponse>(
       throw new RpcValidationError('Unable to determine sender account for raw transaction')
     }
 
-    const account = getAccount(context.wallet, sender)
+    const account = context.wallet.getAccountByPublicAddress(sender)
+
+    if (account === null) {
+      throw new RpcValidationError(
+        `Wallet does not contain sender account with public address ${sender}. Unable to post transaction.`,
+      )
+    }
 
     const { accepted, broadcasted, transaction } = await context.wallet.post({
       transaction: raw,
