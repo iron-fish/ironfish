@@ -27,7 +27,6 @@ describe('Route wallet/postTransaction', () => {
 
     const response = await routeTest.client.wallet.postTransaction({
       transaction: RawTransactionSerde.serialize(rawTransaction).toString('hex'),
-      account: account.name,
       broadcast: false,
     })
 
@@ -42,7 +41,7 @@ describe('Route wallet/postTransaction', () => {
     const account = await useAccountAndAddFundsFixture(
       routeTest.node.wallet,
       routeTest.node.chain,
-      'accountA',
+      'accountB',
     )
     const addSpy = jest.spyOn(routeTest.node.wallet, 'addPendingTransaction')
 
@@ -54,7 +53,6 @@ describe('Route wallet/postTransaction', () => {
 
     const response = await routeTest.client.wallet.postTransaction({
       transaction: RawTransactionSerde.serialize(rawTransaction).toString('hex'),
-      account: account.name,
     })
 
     expect(addSpy).toHaveBeenCalledTimes(1)
@@ -65,7 +63,7 @@ describe('Route wallet/postTransaction', () => {
   })
 
   it("should return an error if the transaction won't deserialize", async () => {
-    const account = await useAccountFixture(routeTest.node.wallet, 'accountB')
+    const account = await useAccountFixture(routeTest.node.wallet, 'accountC')
 
     await expect(
       routeTest.client.wallet.postTransaction({
