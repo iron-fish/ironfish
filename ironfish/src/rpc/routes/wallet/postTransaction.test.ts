@@ -43,6 +43,8 @@ describe('Route wallet/postTransaction', () => {
       routeTest.node.chain,
       'accountB',
     )
+
+    const postSpy = jest.spyOn(routeTest.node.wallet, 'post')
     const addSpy = jest.spyOn(routeTest.node.wallet, 'addPendingTransaction')
     const broadcastSpy = jest.spyOn(routeTest.node.wallet, 'broadcastTransaction')
 
@@ -56,6 +58,7 @@ describe('Route wallet/postTransaction', () => {
       transaction: RawTransactionSerde.serialize(rawTransaction).toString('hex'),
     })
 
+    expect(postSpy).toHaveBeenCalledTimes(1)
     expect(addSpy).toHaveBeenCalledTimes(1)
     expect(broadcastSpy).toHaveBeenCalledTimes(1)
     expect(response.status).toBe(200)
