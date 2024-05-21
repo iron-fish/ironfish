@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { generateKey } from '@ironfish/rust-nodejs'
-import { Bech32m } from '../../../utils'
-import { AccountImport } from '../../walletdb/accountValue'
-import { ACCOUNT_SCHEMA_VERSION } from '../account'
+import { Bech32m } from '../../utils'
+import { ACCOUNT_SCHEMA_VERSION } from '../account/account'
+import { AccountImport } from '../walletdb/accountValue'
 import { BECH32_ACCOUNT_PREFIX, Bech32Encoder } from './bech32'
 
 describe('Bech32AccountEncoder', () => {

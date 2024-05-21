@@ -5,11 +5,11 @@ import { Assert } from '../../../assert'
 import { useAccountFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { Account } from '../../../wallet'
-import { Base64JsonEncoder } from '../../../wallet/account/encoder/base64json'
-import { AccountFormat } from '../../../wallet/account/encoder/encoder'
-import { JsonEncoder } from '../../../wallet/account/encoder/json'
-import { MnemonicEncoder } from '../../../wallet/account/encoder/mnemonic'
-import { SpendingKeyEncoder } from '../../../wallet/account/encoder/spendingKey'
+import { Base64JsonEncoder } from '../../../wallet/exporter/base64json'
+import { AccountFormat } from '../../../wallet/exporter/encoder'
+import { JsonEncoder } from '../../../wallet/exporter/json'
+import { MnemonicEncoder } from '../../../wallet/exporter/mnemonic'
+import { SpendingKeyEncoder } from '../../../wallet/exporter/spendingKey'
 
 describe('Route wallet/exportAccount', () => {
   const routeTest = createRouteTest(true)

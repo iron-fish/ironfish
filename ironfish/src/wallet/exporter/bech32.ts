@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { PUBLIC_ADDRESS_LENGTH } from '@ironfish/rust-nodejs'
 import bufio, { EncodingError } from 'bufio'
-import { Bech32m } from '../../../utils'
-import { AccountImport, KEY_LENGTH, VIEW_KEY_LENGTH } from '../../walletdb/accountValue'
-import { ACCOUNT_SCHEMA_VERSION } from '../account'
+import { Bech32m } from '../../utils'
+import { ACCOUNT_SCHEMA_VERSION } from '../account/account'
+import { AccountImport, KEY_LENGTH, VIEW_KEY_LENGTH } from '../walletdb/accountValue'
 import { AccountDecodingOptions, AccountEncoder, DecodeFailed, DecodeInvalid } from './encoder'
 import { MultisigKeysEncoding } from './multisigKeys'
 
