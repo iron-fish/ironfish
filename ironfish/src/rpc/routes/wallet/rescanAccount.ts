@@ -12,7 +12,8 @@ export type RescanAccountRequest = {
   follow?: boolean
   from?: number
   /**
-   * If true, removes createdAt from accounts before rescanning.
+   * Rescan from the genesis block, ignoring the 'createdAt' field on accounts.
+   * Useful if an account may have received a transaction before its 'createdAt' block.
    */
   full?: boolean
 }
