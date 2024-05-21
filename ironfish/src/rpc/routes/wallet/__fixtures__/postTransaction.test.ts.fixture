@@ -1,1 +1,62 @@
-{}
+{
+  "Route wallet/postTransaction should post a raw transaction and not broadcast": [
+    {
+      "version": 4,
+      "id": "1ebd62d8-f699-4ad3-b162-7a194414b634",
+      "name": "accountA",
+      "spendingKey": "d0201978a1598b67b51d1f5a973e828e6645c5676a3ba05d15ad31645b5d98fb",
+      "viewKey": "ce624c5d1932fa1221eff354ddee0cea70e15363f36773c257cfe8273c9d871536364fcc8c7391bc8e2f7a21800418af8ef75ec919b84c08f979d737a6469d06",
+      "incomingViewKey": "114712a796209c2cabca3d975b5b52e1bf131a99db608b1c07d11c2a28910801",
+      "outgoingViewKey": "badd56c2d44b14287fab1b8a9d1e4ee5f38f09d33a6ed7da99869c1f146186b3",
+      "publicAddress": "fc27f3a2aba632a1c17ae73384adee2f6e126c530237bd6d0de3e9b8582d0b4e",
+      "createdAt": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      },
+      "proofAuthorizingKey": "183bfa4a9317618c6a90caaea2a5279cddff7193c439036ce336d6f6c72e2701"
+    }
+  ],
+  "Route wallet/postTransaction should post a raw transaction": [
+    {
+      "version": 4,
+      "id": "fa2a1685-6a2d-420f-9825-64ccdd38e201",
+      "name": "accountA",
+      "spendingKey": "3d1a4907c8b9a11b089c2277145fb7cc292a35145561a49b23b3553e89182e66",
+      "viewKey": "8eea83f69148a01fa3249902ed25c328416e399032c8a534f2ae5fd1ad0a5ce4f6dd9379ec59e048c9adaf5224e48b9c5a19bf2d2d9e81f2d5230a7943e6a02f",
+      "incomingViewKey": "c9fdc6ea5666b337af948b15238e7bf7a0e55281b313de093f0a48a7d7efbc07",
+      "outgoingViewKey": "1667d4fa7e56519f28bb5e997dd1a3c57795f7253ec5e0f3ed4da45f7eeb733b",
+      "publicAddress": "5583b176d25562258bdcd2e33afd38b9f6c9df409afa7c351708b6d6286b4024",
+      "createdAt": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      },
+      "proofAuthorizingKey": "47517176a8513d22c94acd64d90adebd2f63cc49b00df7b7041b4c4949265e08"
+    }
+  ],
+  "Route wallet/postTransaction should return an error if the transaction won't deserialize": [
+    {
+      "version": 4,
+      "id": "cc8a5936-175b-483b-8416-14ead3b30873",
+      "name": "accountC",
+      "spendingKey": "97c016e9473a075c78e0dafa852596e5be51a0bdeb9f0b299f1618d2dbf92030",
+      "viewKey": "2cd632bd2833c252d3c29f4accffdecd73557fab8fee94bd4e1b4b72460608e306ba26b638525fe712f48d231b4f3786f660f74aa8a582a38d3d61cc3dafe35f",
+      "incomingViewKey": "94e4835bcd1944837f63969c622cc5f602d3b1ad5f7176999a37e8a96cf5bc01",
+      "outgoingViewKey": "1aa20669e74cf859baa359402397e43ea45260f0d91798488e3ade5fc29363a9",
+      "publicAddress": "32a883604bf3a07bd2e929c7cd8e631b91c3278537418c5c1b03a83bb9e5f7c3",
+      "createdAt": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      },
+      "proofAuthorizingKey": "6ea0b1e6d41da93bd71d8fcf4bda20c45ebec9e6a6312700bbacad2ac23ff00b"
+    }
+  ]
+}
