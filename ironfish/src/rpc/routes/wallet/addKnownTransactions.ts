@@ -4,7 +4,7 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { FullNode } from '../../../node'
-import { BlockHeader, GENESIS_BLOCK_SEQUENCE, Transaction } from '../../../primitives'
+import { BlockHeader, Transaction } from '../../../primitives'
 import { DecryptedNote } from '../../../workerPool/tasks/decryptNotes'
 import { RPC_ERROR_CODES, RpcResponseError, RpcValidationError } from '../../adapters'
 import { ApiNamespace } from '../namespaces'
@@ -12,12 +12,16 @@ import { routes } from '../router'
 import { getAccount } from './utils'
 
 export type AddKnownTransactionsRequest = {
-  account: string
-  start: number
   /**
-   * Last block (exclusive). Account head should be end - 1 when this finishes.
+   * Name of the account to update.
    */
-  end: number
+  account: string
+  start: string
+  /**
+   * Last block (inclusive). Account head will be set to this
+   * when the request finishes successfully.
+   */
+  end: string
   transactions: { hash: string }[]
 }
 
@@ -27,8 +31,8 @@ export const AddKnownTransactionsRequestSchema: yup.ObjectSchema<AddKnownTransac
   yup
     .object({
       account: yup.string().defined(),
-      start: yup.number().min(0).defined(),
-      end: yup.number().min(0).defined(),
+      start: yup.string().defined(),
+      end: yup.string().defined(),
       transactions: yup
         .array(
           yup
@@ -45,15 +49,28 @@ export const AddKnownTransactionsResponseSchema: yup.MixedSchema<AddKnownTransac
   yup.mixed().oneOf([undefined] as const)
 
 routes.register<typeof AddKnownTransactionsRequestSchema, AddKnownTransactionsResponse>(
-  `${ApiNamespace.wallet}/addTransaction`,
+  `${ApiNamespace.wallet}/addKnownTransactions`,
   AddKnownTransactionsRequestSchema,
   async (request, context): Promise<void> => {
     Assert.isInstanceOf(context, FullNode)
 
-    if (request.data.start >= request.data.end) {
-      throw new RpcValidationError('End block must be greater than start block.')
+    // Validate start and end header hashes
+    const startHeader = await context.chain.getHeader(Buffer.from(request.data.start, 'hex'))
+    const endHeader = await context.chain.getHeader(Buffer.from(request.data.end, 'hex'))
+
+    if (!startHeader || !(await context.chain.isHeadChain(startHeader))) {
+      throw new RpcValidationError('Start block is not on the head chain.')
     }
 
+    if (!endHeader || !(await context.chain.isHeadChain(endHeader))) {
+      throw new RpcValidationError('End block is not on the head chain.')
+    }
+
+    if (startHeader.sequence > endHeader.sequence) {
+      throw new RpcValidationError('End block must be greater than or equal to start block.')
+    }
+
+    // Validate account state
     const account = getAccount(context.wallet, request.data.account)
 
     if (account.syncingEnabled) {
@@ -64,29 +81,45 @@ routes.register<typeof AddKnownTransactionsRequestSchema, AddKnownTransactionsRe
       )
     }
 
-    // Validate the start/end parameters
-    const accountHead = await account.getHead()
-    const lastBlockSequence = accountHead?.sequence ?? GENESIS_BLOCK_SEQUENCE - 1
-    // Reject request if it doesn't connect to the account head
-    if (
-      request.data.start > lastBlockSequence + 1 ||
-      request.data.end < lastBlockSequence + 2
-    ) {
-      throw new RpcResponseError(
-        `Account head is ${lastBlockSequence}, so start must be at most ${
-          lastBlockSequence + 1
-        } and end must be at least ${lastBlockSequence + 2}.`,
-        RPC_ERROR_CODES.ERROR,
-        409,
-      )
+    // Validate account head is compatible with start and end blocks
+    let accountHead = await account.getHead()
+
+    if (accountHead !== null) {
+      const accountHeader = await context.chain.getHeader(accountHead.hash)
+      if (!accountHeader) {
+        throw new Error(`accountHead ${accountHead.hash.toString('hex')} not found in chain`)
+      }
+
+      const fork = await context.chain.findFork(startHeader, accountHeader)
+
+      // if fork is startHeader
+      //  - rewind accountHead to the block before startHeader
+      //  - You could also ignore all blocks before and including accountHead. (Note that this also
+      //    applies if startHeader == accountHead). You'd need to check startHeader and accountHead
+      //    are on the head chain, else you'd still need to rewind accountHead.
+      // if fork is accountHead or neither:
+      //  - if startHeader.previousBlockHash is fork, we're okay. if needed, rewind accountHead
+      //    to the block before startHeader
+      //  - otherwise there's a gap between accountHead and startHeader, so reject
+      if (!fork.equals(startHeader) && !startHeader.previousBlockHash.equals(fork.hash)) {
+        const nextHash = (await context.chain.getNextHash(fork.hash)) ?? fork.hash
+        throw new RpcValidationError(`Start must be ${nextHash?.toString('hex')} or earlier.`)
+      }
+
+      // TODO: test startheader as genesis
+      while (accountHead && !accountHead.hash.equals(startHeader.previousBlockHash)) {
+        const header: BlockHeader | null = await context.chain.getHeader(accountHead.hash)
+        Assert.isNotNull(header, 'Account head must be in chain')
+        const transactions = await context.chain.getBlockTransactions(header)
+        await context.wallet.disconnectBlockForAccount(account, header, transactions)
+        accountHead = await account.getHead()
+      }
     }
-    if (request.data.end > context.chain.head.sequence + 1) {
-      throw new RpcResponseError(
-        `Chain head is ${lastBlockSequence}, so end must be at most ${
-          context.chain.head.sequence + 1
-        }.`,
-        RPC_ERROR_CODES.ERROR,
-        409,
+
+    // When accountHead is null, startHeader should be the genesis block, else we have gaps
+    if (accountHead === null && !startHeader.equals(context.chain.genesis)) {
+      throw new RpcValidationError(
+        `Start must be ${context.chain.genesis.hash.toString('hex')} if account head is null.`,
       )
     }
 
@@ -115,9 +148,9 @@ routes.register<typeof AddKnownTransactionsRequestSchema, AddKnownTransactionsRe
             'hex',
           )} for transaction ${hash} doesn't exist in the chain.`,
         )
-      } else if (blockHeader.sequence < request.data.start) {
+      } else if (blockHeader.sequence < startHeader.sequence) {
         throw new RpcResponseError(`Transaction ${hash} is before the start.`)
-      } else if (blockHeader.sequence >= request.data.end) {
+      } else if (blockHeader.sequence > endHeader.sequence) {
         throw new RpcResponseError(`Transaction ${hash} is after the end.`)
       }
 
@@ -202,53 +235,10 @@ routes.register<typeof AddKnownTransactionsRequestSchema, AddKnownTransactionsRe
 
     // If last block isn't end - 1, connect end-1
     const last = transactionWithNotesList.at(-1)
-    if (!last || last.header.sequence < request.data.end - 1) {
-      const header = await context.chain.getHeaderAtSequence(request.data.end - 1)
-      Assert.isNotNull(
-        header,
-        `Should have validated that a block at ${request.data.end - 1} exists.`,
-      )
-      await context.wallet.connectBlockForAccount(account, header, [], false)
+    if (!last || last.header.equals(endHeader)) {
+      await context.wallet.connectBlockForAccount(account, endHeader, [], false)
     }
 
-    // const processor = new ChainProcessor({
-    //   logger: context.logger,
-    //   chain: context.chain,
-    //   head: hash,
-    // })
-
-    // processor.onAdd.on(async (bh) => {
-    //   const txns = await context.chain.getBlockTransactions(bh)
-    //   const knownTxns = txns.filter((t) => transactionSet.has(t.transaction.hash()))
-
-    //   const decryptedTransactions = await Promise.all(
-    //     knownTxns.map(({ transaction, initialNoteIndex }) =>
-    //       context.wallet
-    //         .decryptNotes(transaction, initialNoteIndex, false, [account])
-    //         .then((r) => ({
-    //           result: r,
-    //           transaction,
-    //         })),
-    //     ),
-    //   )
-
-    //   // transaction hash -> Array<DecryptedNote>
-    //   const decryptedNotesMap: BufferMap<Array<DecryptedNote>> = new BufferMap()
-    //   for (const { transaction, result } of decryptedTransactions) {
-    //     for (const [_, decryptedNotes] of result) {
-    //       decryptedNotesMap.set(transaction.hash(), decryptedNotes)
-    //     }
-    //   }
-
-    //   await context.wallet.connectBlockForAccount(account, bh, knownTxns)
-    // })
-
-    // processor.onRemove.on(async (bh) => {
-    //   const txns = await context.chain.getBlockTransactions(bh)
-    //   await context.wallet.disconnectBlock(bh, txns)
-    // })
-
-    // await processor.update()
     request.end()
   },
 )
