@@ -8,7 +8,15 @@ import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import { AssertHasRpcContext } from '../rpcContext'
 
-export type RescanAccountRequest = { follow?: boolean; from?: number; full?: boolean }
+export type RescanAccountRequest = {
+  follow?: boolean
+  from?: number
+  /**
+   * Rescan from the genesis block, ignoring the 'createdAt' field on accounts.
+   * Useful if an account may have received a transaction before its 'createdAt' block.
+   */
+  full?: boolean
+}
 export type RescanAccountResponse = { sequence: number; startedAt: number; endSequence: number }
 
 export const RescanAccountRequestSchema: yup.ObjectSchema<RescanAccountRequest> = yup
