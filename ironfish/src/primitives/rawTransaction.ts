@@ -187,6 +187,16 @@ export class RawTransaction {
 
     return posted
   }
+
+  sender(): string | undefined {
+    if (this.spends.length > 0) {
+      return this.spends[0].note.owner()
+    } else if (this.outputs.length > 0) {
+      return this.outputs[0].note.sender()
+    } else if (this.mints.length > 0) {
+      return this.mints[0].creator
+    }
+  }
 }
 
 export class RawTransactionSerde {

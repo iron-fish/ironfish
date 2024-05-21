@@ -24,6 +24,7 @@ export class PostCommand extends IronfishCommand {
       description: 'The account that created the raw transaction',
       char: 'f',
       required: false,
+      deprecated: true,
     }),
     confirm: Flags.boolean({
       default: false,
@@ -59,7 +60,7 @@ export class PostCommand extends IronfishCommand {
     const client = await this.sdk.connectRpc()
 
     if (!flags.confirm) {
-      const confirm = await this.confirm(client, raw, flags.account)
+      const confirm = await this.confirm(client, raw)
 
       if (!confirm) {
         this.exit(0)
@@ -70,7 +71,6 @@ export class PostCommand extends IronfishCommand {
 
     const response = await client.wallet.postTransaction({
       transaction,
-      account: flags.account,
       broadcast: flags.broadcast,
     })
 
@@ -96,25 +96,38 @@ export class PostCommand extends IronfishCommand {
     }
   }
 
-  async confirm(
-    client: Pick<RpcClient, 'wallet'>,
-    raw: RawTransaction,
-    account?: string,
-  ): Promise<boolean> {
-    if (!account) {
-      const response = await client.wallet.getDefaultAccount()
+  async confirm(client: Pick<RpcClient, 'wallet'>, raw: RawTransaction): Promise<boolean> {
+    const senderAddress = raw.sender()
 
-      if (response.content.account) {
-        account = response.content.account.name
-      }
+    if (!senderAddress) {
+      this.error('Unable to determine sender for raw transaction')
     }
 
+    const account = await this.getAccountName(client, senderAddress)
+
     if (!account) {
-      this.error('Can not find an account to confirm the transaction')
+      this.error(
+        `Wallet does not contain sender account with public address ${senderAddress}. Unable to post transaction.`,
+      )
     }
 
     await renderRawTransactionDetails(client, raw, account, this.logger)
 
     return CliUx.ux.confirm('Do you want to post this (Y/N)?')
+  }
+
+  async getAccountName(
+    client: Pick<RpcClient, 'wallet'>,
+    publicAddress: string,
+  ): Promise<string | undefined> {
+    const accountNames = await client.wallet.getAccounts()
+
+    for (const accountName of accountNames.content.accounts) {
+      const publicKey = await client.wallet.getAccountPublicKey({ account: accountName })
+
+      if (publicKey.content.publicKey === publicAddress) {
+        return accountName
+      }
+    }
   }
 }
