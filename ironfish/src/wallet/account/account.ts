@@ -14,6 +14,7 @@ import { StorageUtils } from '../../storage/database/utils'
 import { WithNonNull, WithRequired } from '../../utils'
 import { DecryptedNote } from '../../workerPool/tasks/decryptNotes'
 import { AssetBalances } from '../assetBalances'
+import { isSignerMultisig } from '../exporter/multisigKeys'
 import { MultisigKeys, MultisigSigner } from '../interfaces/multisigKeys'
 import { WalletBlockHeader } from '../remoteChainProcessor'
 import { AccountValue } from '../walletdb/accountValue'
@@ -23,7 +24,6 @@ import { DecryptedNoteValue } from '../walletdb/decryptedNoteValue'
 import { HeadValue } from '../walletdb/headValue'
 import { TransactionValue } from '../walletdb/transactionValue'
 import { WalletDB } from '../walletdb/walletdb'
-import { isSignerMultisig } from '../exporter/multisigKeys'
 
 export const ACCOUNT_KEY_LENGTH = 32
 

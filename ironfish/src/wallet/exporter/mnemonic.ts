@@ -8,8 +8,8 @@ import {
   wordsToSpendingKey,
 } from '@ironfish/rust-nodejs'
 import { LanguageUtils } from '../../utils'
-import { AccountImport } from '../walletdb/accountValue'
 import { ACCOUNT_SCHEMA_VERSION } from '../account/account'
+import { AccountImport } from '../walletdb/accountValue'
 import {
   AccountDecodingOptions,
   AccountEncoder,

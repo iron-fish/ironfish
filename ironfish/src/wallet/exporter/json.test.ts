@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { generateKey } from '@ironfish/rust-nodejs'
-import { Assert } from '../../../assert'
-import { AccountImport } from '../../walletdb/accountValue'
-import { ACCOUNT_SCHEMA_VERSION } from '../account'
+import { Assert } from '../../assert'
+import { ACCOUNT_SCHEMA_VERSION } from '../account/account'
+import { AccountImport } from '../walletdb/accountValue'
 import { JsonEncoder } from './json'
 describe('JsonEncoder', () => {
   describe('encoding/decoding', () => {
