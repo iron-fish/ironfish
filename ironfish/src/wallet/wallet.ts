@@ -743,39 +743,47 @@ export class Wallet {
     })
 
     for (const account of accounts) {
-      const assetBalanceDeltas = new AssetBalances()
+      await this.disconnectBlockForAccount(account, header, transactions)
+    }
+  }
 
-      await this.walletDb.db.transaction(async (tx) => {
-        for (const { transaction } of transactions.slice().reverse()) {
-          const transactionDeltas = await account.disconnectTransaction(header, transaction, tx)
+  async disconnectBlockForAccount(
+    account: Account,
+    header: WalletBlockHeader,
+    transactions: WalletBlockTransaction[],
+  ) {
+    const assetBalanceDeltas = new AssetBalances()
 
-          assetBalanceDeltas.update(transactionDeltas)
+    await this.walletDb.db.transaction(async (tx) => {
+      for (const { transaction } of transactions.slice().reverse()) {
+        const transactionDeltas = await account.disconnectTransaction(header, transaction, tx)
 
-          if (transaction.isMinersFee()) {
-            await account.deleteTransaction(transaction, tx)
-          }
+        assetBalanceDeltas.update(transactionDeltas)
+
+        if (transaction.isMinersFee()) {
+          await account.deleteTransaction(transaction, tx)
         }
+      }
 
-        await account.updateUnconfirmedBalances(
-          assetBalanceDeltas,
-          header.previousBlockHash,
-          header.sequence - 1,
-          tx,
-        )
+      await account.updateUnconfirmedBalances(
+        assetBalanceDeltas,
+        header.previousBlockHash,
+        header.sequence - 1,
+        tx,
+      )
 
-        await account.updateHead(
+      await account.updateHead(
+        { hash: header.previousBlockHash, sequence: header.sequence - 1 },
+        tx,
+      )
+
+      if (account.createdAt?.hash.equals(header.hash)) {
+        await account.updateCreatedAt(
           { hash: header.previousBlockHash, sequence: header.sequence - 1 },
           tx,
         )
-
-        if (account.createdAt?.hash.equals(header.hash)) {
-          await account.updateCreatedAt(
-            { hash: header.previousBlockHash, sequence: header.sequence - 1 },
-            tx,
-          )
-        }
-      })
-    }
+      }
+    })
   }
 
   async addPendingTransaction(transaction: Transaction): Promise<void> {
