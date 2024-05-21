@@ -23,7 +23,7 @@ import { DecryptedNoteValue } from '../walletdb/decryptedNoteValue'
 import { HeadValue } from '../walletdb/headValue'
 import { TransactionValue } from '../walletdb/transactionValue'
 import { WalletDB } from '../walletdb/walletdb'
-import { isSignerMultisig } from './encoder/multisigKeys'
+import { isSignerMultisig } from '../exporter/multisigKeys'
 
 export const ACCOUNT_KEY_LENGTH = 32
 

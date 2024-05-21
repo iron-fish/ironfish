@@ -7,9 +7,9 @@ import {
   spendingKeyToWords,
   wordsToSpendingKey,
 } from '@ironfish/rust-nodejs'
-import { LanguageUtils } from '../../../utils'
-import { AccountImport } from '../../walletdb/accountValue'
-import { ACCOUNT_SCHEMA_VERSION } from '../account'
+import { LanguageUtils } from '../../utils'
+import { AccountImport } from '../walletdb/accountValue'
+import { ACCOUNT_SCHEMA_VERSION } from '../account/account'
 import {
   AccountDecodingOptions,
   AccountEncoder,

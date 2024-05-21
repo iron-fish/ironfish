@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { LanguageKey, LanguageUtils } from '../../../utils'
-import { encodeAccount } from '../../../wallet/account/encoder/account'
-import { AccountFormat } from '../../../wallet/account/encoder/encoder'
+import { encodeAccount } from '../../../wallet/exporter/account'
+import { AccountFormat } from '../../../wallet/exporter/encoder'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import { AssertHasRpcContext } from '../rpcContext'
