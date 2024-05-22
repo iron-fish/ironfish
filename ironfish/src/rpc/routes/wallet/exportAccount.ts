@@ -3,11 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { LanguageKey, LanguageUtils } from '../../../utils'
-import { encodeAccount } from '../../../wallet/exporter/account'
-import { AccountFormat } from '../../../wallet/exporter/encoder'
+import { AccountFormat, encodeAccountImport } from '../../../wallet/exporter/account'
+import { toAccountImport } from '../../../wallet/exporter/accountImport'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import { AssertHasRpcContext } from '../rpcContext'
+import { serializeRpcImportAccount } from '../wallet/utils'
 import { RpcAccountImport } from './types'
 import { getAccount } from './utils'
 
@@ -42,32 +43,23 @@ routes.register<typeof ExportAccountRequestSchema, ExportAccountResponse>(
   (request, node): void => {
     AssertHasRpcContext(request, node, 'wallet')
 
+    const viewOnly = request.data.viewOnly ?? false
     const account = getAccount(node.wallet, request.data.account)
-    const { id: _, ...accountInfo } = account.serialize()
-    if (request.data.viewOnly) {
-      accountInfo.spendingKey = null
-      if (accountInfo.multisigKeys) {
-        accountInfo.multisigKeys = {
-          publicKeyPackage: accountInfo.multisigKeys.publicKeyPackage,
-        }
-      }
-    }
 
-    if (!request.data.format) {
-      let createdAt = null
-      if (accountInfo.createdAt) {
-        createdAt = {
-          hash: accountInfo.createdAt.hash.toString('hex'),
-          sequence: accountInfo.createdAt.sequence,
-        }
-      }
+    if (request.data.format) {
+      const value = toAccountImport(account, viewOnly)
 
-      request.end({ account: { ...accountInfo, createdAt } })
-    } else {
-      const encoded = encodeAccount(accountInfo, request.data.format, {
+      const encoded = encodeAccountImport(value, request.data.format, {
         language: request.data.language,
       })
+
       request.end({ account: encoded })
+      return
     }
+
+    // For backwards compatibility, we must send back an RpcAccountImport
+    const exported = toAccountImport(account, viewOnly)
+    const serialized = serializeRpcImportAccount(exported)
+    request.end({ account: serialized })
   },
 )

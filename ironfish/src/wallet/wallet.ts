@@ -50,6 +50,7 @@ import {
   MaxMemoLengthError,
   NotEnoughFundsError,
 } from './errors'
+import { AccountImport } from './exporter/accountImport'
 import { MintAssetOptions } from './interfaces/mintAssetOptions'
 import { isMultisigSignerTrustedDealerImport } from './interfaces/multisigKeys'
 import {
@@ -58,7 +59,6 @@ import {
   WalletBlockTransaction,
 } from './remoteChainProcessor'
 import { validateAccount } from './validator'
-import { AccountImport } from './walletdb/accountValue'
 import { AssetValue } from './walletdb/assetValue'
 import { DecryptedNoteValue } from './walletdb/decryptedNoteValue'
 import { HeadValue } from './walletdb/headValue'

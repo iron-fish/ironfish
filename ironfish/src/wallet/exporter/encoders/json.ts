@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { generateKeyFromPrivateKey } from '@ironfish/rust-nodejs'
-import { Assert } from '../../assert'
-import { RpcAccountImport } from '../../rpc/routes/wallet/types'
-import { deserializeRpcAccountMultisigKeys } from '../../rpc/routes/wallet/utils'
-import { validateAccount } from '../validator'
-import { AccountImport } from '../walletdb/accountValue'
-import { AccountDecodingOptions, AccountEncoder, DecodeFailed } from './encoder'
+import { Assert } from '../../../assert'
+import { RpcAccountImport } from '../../../rpc/routes/wallet/types'
+import { deserializeRpcAccountMultisigKeys } from '../../../rpc/routes/wallet/utils'
+import { validateAccount } from '../../validator'
+import { AccountImport } from '../accountImport'
+import { AccountDecodingOptions, AccountEncoder, DecodeFailed } from '../encoder'
 
 export class JsonEncoder implements AccountEncoder {
   encode(value: AccountImport): string {

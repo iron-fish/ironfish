@@ -15,6 +15,7 @@ export function encodeEncryptedMultisigAccount(
   const identity = Buffer.isBuffer(options.identity)
     ? new multisig.ParticipantIdentity(options.identity)
     : options.identity
+
   return identity.encryptData(value)
 }
 
