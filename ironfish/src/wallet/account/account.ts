@@ -94,7 +94,7 @@ export class Account {
     this.walletDb = walletDb
     this.version = accountValue.version ?? 1
     this.createdAt = accountValue.createdAt
-    this.scanningEnabled = accountValue.scanningEnabled ?? true
+    this.scanningEnabled = accountValue.scanningEnabled
     this.multisigKeys = accountValue.multisigKeys
     this.proofAuthorizingKey = accountValue.proofAuthorizingKey
   }
