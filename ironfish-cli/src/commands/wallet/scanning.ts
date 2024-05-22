@@ -23,7 +23,7 @@ export class ScanningCommand extends IronfishCommand {
       parse: (input: string): Promise<'true' | 'false' | null> =>
         Promise.resolve(parseBoolean(input)),
       required: true,
-      description: 'true if scanning should be enabled, else false',
+      description: 'True if scanning should be enabled, else false',
     },
   ]
 
