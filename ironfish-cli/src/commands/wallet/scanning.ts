@@ -16,13 +16,13 @@ export class ScanningCommand extends IronfishCommand {
     {
       name: 'account',
       required: true,
-      description: 'The sequence to start at (inclusive, genesis block is 1)',
+      description: 'Name of the account to update',
     },
     {
       name: 'enabled',
       parse: (input: string): Promise<boolean | null> => Promise.resolve(parseBoolean(input)),
-      required: false,
-      description: 'The sequence to end at (inclusive)',
+      required: true,
+      description: 'True if scanning should be enabled, else false',
     },
   ]
 
