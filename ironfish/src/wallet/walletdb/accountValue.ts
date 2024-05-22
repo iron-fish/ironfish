@@ -5,9 +5,9 @@ import { PUBLIC_ADDRESS_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { IDatabaseEncoding } from '../../storage'
 import { ACCOUNT_KEY_LENGTH } from '../account/account'
-import { MultisigKeysEncoding } from '../exporter/multisigKeys'
 import { MultisigKeys, MultisigKeysImport } from '../interfaces/multisigKeys'
 import { HeadValue, NullableHeadValueEncoding } from './headValue'
+import { MultisigKeysEncoding } from './multisigKeys'
 
 export const KEY_LENGTH = ACCOUNT_KEY_LENGTH
 export const VIEW_KEY_LENGTH = 64
