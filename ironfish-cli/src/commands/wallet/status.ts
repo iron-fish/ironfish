@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { CliUx } from '@oclif/core'
+import chalk from 'chalk'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
@@ -44,6 +45,10 @@ export class StatusCommand extends IronfishCommand {
         sequence: {
           get: (row) => row.head?.sequence ?? 'NULL',
           header: 'Head Sequence',
+        },
+        scanningEnabled: {
+          get: (row) => (row.scanningEnabled ? chalk.green('✓') : ''),
+          header: 'Scanning Enabled',
         },
       },
       {
