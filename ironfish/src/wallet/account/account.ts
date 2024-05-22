@@ -114,6 +114,7 @@ export class Account {
       outgoingViewKey: this.outgoingViewKey,
       publicAddress: this.publicAddress,
       createdAt: this.createdAt,
+      scanningEnabled: this.scanningEnabled,
       multisigKeys: this.multisigKeys,
       proofAuthorizingKey: this.proofAuthorizingKey,
     }
@@ -1253,9 +1254,12 @@ export class Account {
     await this.walletDb.setAccount(this, tx)
   }
 
-  updateScanningEnabled(scanningEnabled: boolean): void {
-    // TODO: Save this in DB
+  async updateScanningEnabled(
+    scanningEnabled: boolean,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
     this.scanningEnabled = scanningEnabled
+    await this.walletDb.setAccount(this, tx)
   }
 
   async getTransactionNotes(

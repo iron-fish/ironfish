@@ -23,11 +23,11 @@ export const StartScanningResponseSchema: yup.MixedSchema<StartScanningResponse>
 routes.register<typeof StartScanningRequestSchema, StartScanningResponse>(
   `${ApiNamespace.wallet}/startScanning`,
   StartScanningRequestSchema,
-  (request, context): void => {
+  async (request, context): Promise<void> => {
     AssertHasRpcContext(request, context, 'wallet')
 
     const account = getAccount(context.wallet, request.data.account)
-    account.updateScanningEnabled(true)
+    await account.updateScanningEnabled(true)
     request.end()
   },
 )

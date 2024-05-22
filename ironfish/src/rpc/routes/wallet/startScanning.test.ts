@@ -23,7 +23,7 @@ describe('Route wallet/startScanning', () => {
   it('Should set scanning to true', async () => {
     let account = routeTest.node.wallet.getAccountByName(accountName)
     Assert.isNotNull(account)
-    account.updateScanningEnabled(false)
+    await account.updateScanningEnabled(false)
     expect(account.scanningEnabled).toBe(false)
 
     await routeTest.client
@@ -40,7 +40,7 @@ describe('Route wallet/startScanning', () => {
   it('Should do nothing if scanning is already started', async () => {
     let account = routeTest.node.wallet.getAccountByName(accountName)
     Assert.isNotNull(account)
-    account.updateScanningEnabled(true)
+    await account.updateScanningEnabled(true)
     expect(account.scanningEnabled).toBe(true)
 
     await routeTest.client
