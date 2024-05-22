@@ -101,24 +101,24 @@ export async function serializeRpcWalletTransaction(
   }
 }
 
-export const serializeRpcImportAccount = (encoded: AccountImport): RpcAccountImport => {
-  const createdAt = encoded.createdAt
+export const serializeRpcImportAccount = (accountImport: AccountImport): RpcAccountImport => {
+  const createdAt = accountImport.createdAt
     ? {
-        hash: encoded.createdAt.hash.toString('hex'),
-        sequence: encoded.createdAt.sequence,
+        hash: accountImport.createdAt.hash.toString('hex'),
+        sequence: accountImport.createdAt.sequence,
       }
     : null
 
   return {
-    version: encoded.version,
-    name: encoded.name,
-    viewKey: encoded.viewKey,
-    incomingViewKey: encoded.incomingViewKey,
-    outgoingViewKey: encoded.outgoingViewKey,
-    publicAddress: encoded.publicAddress,
-    spendingKey: encoded.spendingKey,
-    multisigKeys: encoded.multisigKeys,
-    proofAuthorizingKey: encoded.proofAuthorizingKey,
+    version: accountImport.version,
+    name: accountImport.name,
+    viewKey: accountImport.viewKey,
+    incomingViewKey: accountImport.incomingViewKey,
+    outgoingViewKey: accountImport.outgoingViewKey,
+    publicAddress: accountImport.publicAddress,
+    spendingKey: accountImport.spendingKey,
+    multisigKeys: accountImport.multisigKeys,
+    proofAuthorizingKey: accountImport.proofAuthorizingKey,
     createdAt: createdAt,
   }
 }
