@@ -6,6 +6,7 @@ import { useAccountFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { Account } from '../../../wallet'
 import { AccountFormat } from '../../../wallet/exporter/account'
+import { toAccountImport } from '../../../wallet/exporter/accountImport'
 import { Base64JsonEncoder } from '../../../wallet/exporter/encoders/base64json'
 import { JsonEncoder } from '../../../wallet/exporter/encoders/json'
 import { MnemonicEncoder } from '../../../wallet/exporter/encoders/mnemonic'
@@ -68,7 +69,7 @@ describe('Route wallet/exportAccount', () => {
 
     expect(response.status).toBe(200)
 
-    const { id: _, ...accountImport } = account.serialize()
+    const accountImport = toAccountImport(account, false)
     expect(response.content.account).toEqual(new JsonEncoder().encode(accountImport))
   })
 
@@ -78,7 +79,7 @@ describe('Route wallet/exportAccount', () => {
       format: AccountFormat.Base64Json,
     })
 
-    const { id: _, ...accountImport } = account.serialize()
+    const accountImport = toAccountImport(account, false)
 
     expect(response.status).toBe(200)
     expect(response.content.account).toEqual(new Base64JsonEncoder().encode(accountImport))
