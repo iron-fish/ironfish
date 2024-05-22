@@ -10,7 +10,7 @@ use crate::{
     PublicAddress,
 };
 
-use super::transfer::Transfer;
+use super::transfer::{self, Transfer};
 
 #[derive(Clone)]
 pub struct PublicAccountDescription {
@@ -34,7 +34,6 @@ impl PublicAccountDescription {
         version: u8,
         min_signers: u16,
         signers: Vec<VerifyingKey>,
-        signatures: Vec<Signature>,
         transfers: Vec<Transfer>,
         address: PublicAddress,
     ) -> Result<PublicAccountDescription, IronfishError> {
@@ -42,7 +41,7 @@ impl PublicAccountDescription {
             version,
             min_signers,
             signers,
-            signatures,
+            signatures: vec![],
             address,
             transfers,
         };
@@ -149,10 +148,6 @@ impl PublicAccountDescription {
             return Err(IronfishError::new(IronfishErrorKind::InvalidThreshold));
         }
 
-        if self.signatures.len() < self.min_signers as usize {
-            return Err(IronfishError::new(IronfishErrorKind::InvalidData));
-        }
-
         let unique_signers: Vec<_> = self.signers.iter().collect();
         if unique_signers.len() != self.signers.len() {
             return Err(IronfishError::new(IronfishErrorKind::DuplicateSigner));
@@ -169,13 +164,7 @@ impl PublicAccountDescription {
     pub fn verify(&self) -> Result<(), IronfishError> {
         self.valid()?;
 
-        let hash = &PublicAccountDescription::hash(
-            &self.version,
-            &self.min_signers,
-            &self.signers,
-            &self.address,
-            &self.transfers,
-        )?;
+        let hash = &self.hash()?;
         for signature in &self.signatures {
             let is_valid = self.signers.iter().any(|signer| signer.verify(hash, signature).is_ok());
     
@@ -187,24 +176,29 @@ impl PublicAccountDescription {
     }
 
     pub fn hash(
-        version: &u8,
-        threshold: &u16,
-        signers: &Vec<VerifyingKey>,
-        address: &PublicAddress,
-        transfers: &Vec<Transfer>,
+        &self
     ) -> Result<[u8; 32], IronfishError> {
         // TODO(jwp): verify which hashers supported by axelar
         let mut hasher = blake3::Hasher::new();
-        hasher.update(&version.to_le_bytes());
-        hasher.update(&threshold.to_le_bytes());
-        for signer in signers {
+        hasher.update(&self.version.to_le_bytes());
+        hasher.update(&self.min_signers.to_le_bytes());
+        let signer_len = self.signers.len() as u16;
+        hasher.update(&signer_len.to_le_bytes());
+        for signer in &self.signers {
             hasher.update(signer.as_bytes());
         }
-        for transfer in transfers {
+        let transfer_len = self.transfers.len() as u16;
+        hasher.update(&transfer_len.to_le_bytes());
+        for transfer in &self.transfers {
             hasher.update(&transfer.as_bytes()?);
         }
-        hasher.update(&address.public_address());
+        hasher.update(&self.address.public_address());
         Ok(hasher.finalize().into())
+    }
+
+    pub fn add_signatures(&mut self, signatures: Vec<Signature>) -> Result<(), IronfishError> {
+        self.signatures.extend(signatures);
+        self.verify()
     }
 
     pub fn version(&self) -> u8 {
@@ -237,15 +231,14 @@ mod tests {
     use crate::{assets::asset_identifier, public_account::transfer::PublicMemo, SaplingKey};
 
     use super::*;
-    use ed25519_dalek::{ed25519::signature::SignerMut, SigningKey};
-    use rand::rngs::OsRng;
+    use ed25519_dalek::{ed25519::signature::Signer, SigningKey};
 
     #[test]
     fn test_public_account_create_description() {
-        let mut csprng = OsRng {};
+        let mut csprng = rand::thread_rng();
         let key = SaplingKey::generate_key();
         let public_address = key.public_address();
-        let mut signing_key = SigningKey::generate(&mut csprng);
+        let signing_key = SigningKey::generate(&mut csprng);
         let verifying_key = signing_key.verifying_key();
         let transfer = Transfer {
             asset_id: asset_identifier::NATIVE_ASSET,
@@ -253,28 +246,22 @@ mod tests {
             to: public_address,
             memo: PublicMemo([0; 256]),
         };
-        let hash = PublicAccountDescription::hash(
-            &1,
-            &1,
-            &vec![verifying_key],
-            &public_address,
-            &vec![transfer],
-        )
-        .expect("Should successfully hash");
-        let signature = signing_key.sign(&hash);
-
-        let original = PublicAccountDescription::new(
+        let mut original = PublicAccountDescription::new(
             1,
             1,
             vec![verifying_key],
-            vec![signature],
             vec![transfer],
             public_address,
         )
         .expect("Should successfully create description");
 
+        let hash = original
+            .hash()
+            .expect("Should successfully hash");
+        let signature = signing_key.sign(&hash);
+
         original
-            .verify()
+            .add_signatures(vec![signature])
             .expect("Should be valid/verified creation");
 
         let mut buffer = Vec::new();
