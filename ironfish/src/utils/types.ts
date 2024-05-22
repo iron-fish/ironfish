@@ -59,3 +59,6 @@ export type WithNonNull<T, K extends keyof T> = T & { [P in K]: NonNullable<T[P]
 
 // When used requires that an optional property K be defined in type T
 export type WithRequired<T, K extends keyof T> = T & { [P in K]-?: T[P] }
+
+// When used removes undefined from a type union
+export type NonUndefined<T> = T extends undefined ? never : T
