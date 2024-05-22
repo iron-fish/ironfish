@@ -7,13 +7,15 @@ export function parseNumber(input: string): number | null {
   return isNaN(parsed) ? null : parsed
 }
 
-export function parseBoolean(input: string): boolean | null {
+/**
+ * Oclif currently rejects falsy args as if they weren't included,
+ * so this function returns the strings 'true' or 'false' instead. This
+ * is fixed in newer versions of oclif.
+ */
+export function parseBoolean(input: string): 'true' | 'false' | null {
   const lower = input.toLowerCase().trim()
-  if (lower === 'true') {
-    return true
-  }
-  if (lower === 'false') {
-    return false
+  if (lower === 'true' || lower === 'false') {
+    return lower
   }
   return null
 }

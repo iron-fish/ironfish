@@ -20,24 +20,17 @@ export class ScanningCommand extends IronfishCommand {
     },
     {
       name: 'enabled',
-      parse: (input: string): Promise<boolean | null> => Promise.resolve(parseBoolean(input)),
+      parse: (input: string): Promise<'true' | 'false' | null> =>
+        Promise.resolve(parseBoolean(input)),
       required: true,
-      description: 'True if scanning should be enabled, else false',
+      description: 'true if scanning should be enabled, else false',
     },
   ]
 
   async start(): Promise<void> {
     const { args } = await this.parse(ScanningCommand)
-    const account = args.account as string | undefined
-    const enabled = args.enabled as boolean | null | undefined
-
-    if (account == null) {
-      this.error(`Must pass a valid account name.`)
-    }
-
-    if (enabled == null) {
-      this.error(`Must pass either true or false.`)
-    }
+    const account = args.account as string
+    const enabled = args.enabled as 'true' | 'false'
 
     const client = await this.sdk.connectRpc()
 
