@@ -153,6 +153,16 @@ impl PublicAccountDescription {
             return Err(IronfishError::new(IronfishErrorKind::InvalidData));
         }
 
+        let unique_signers: Vec<_> = self.signers.iter().collect();
+        if unique_signers.len() != self.signers.len() {
+            return Err(IronfishError::new(IronfishErrorKind::DuplicateSigner));
+        }
+    
+        let unique_signatures: Vec<_> = self.signatures.iter().collect();
+        if unique_signatures.len() != self.signatures.len() {
+            return Err(IronfishError::new(IronfishErrorKind::DuplicateSignature));
+        }
+
         Ok(())
     }
 
@@ -166,13 +176,12 @@ impl PublicAccountDescription {
             &self.address,
             &self.transfers,
         )?;
-        let is_valid = self
-            .signers
-            .iter()
-            .zip(&self.signatures)
-            .any(|(signer, signature)| signer.verify(hash, signature).is_ok());
-        if !is_valid {
-            return Err(IronfishError::new(IronfishErrorKind::InvalidSignature));
+        for signature in &self.signatures {
+            let is_valid = self.signers.iter().any(|signer| signer.verify(hash, signature).is_ok());
+    
+            if !is_valid {
+                return Err(IronfishError::new(IronfishErrorKind::InvalidSignature));
+            }
         }
         Ok(())
     }

@@ -26,6 +26,8 @@ pub struct IronfishError {
 pub enum IronfishErrorKind {
     BellpersonSynthesis,
     CryptoBox,
+    DuplicateSignature,
+    DuplicateSigner,
     FrostLibError,
     FailedSignatureAggregation,
     FailedSignatureVerification,
