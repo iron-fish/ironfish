@@ -607,7 +607,7 @@ describe('Wallet', () => {
       const accountB = await useAccountFixture(node.wallet, 'accountB')
 
       await node.wallet.updateHead()
-      accountA.updateScanningEnabled(false)
+      await accountA.updateScanningEnabled(false)
 
       const blockA = await useMinerBlockFixture(node.chain, 2, accountA)
       await node.chain.addBlock(blockA)
@@ -620,7 +620,7 @@ describe('Wallet', () => {
 
       expect(await node.wallet.getEarliestHeadHash()).toEqual(blockB.header.hash)
 
-      accountB.updateScanningEnabled(false)
+      await accountB.updateScanningEnabled(false)
 
       expect(await node.wallet.getEarliestHeadHash()).toBeNull()
     })
@@ -657,21 +657,21 @@ describe('Wallet', () => {
       await node.chain.addBlock(blockA)
 
       await node.wallet.updateHead()
-      accountA.updateScanningEnabled(false)
+      await accountA.updateScanningEnabled(false)
 
       const blockB = await useMinerBlockFixture(node.chain, 3, accountA)
       await node.chain.addBlock(blockB)
       await node.wallet.updateHead()
 
-      accountA.updateScanningEnabled(true)
-      accountB.updateScanningEnabled(false)
+      await accountA.updateScanningEnabled(true)
+      await accountB.updateScanningEnabled(false)
 
       expect((await accountA.getHead())?.sequence).toBe(2)
       expect((await accountB.getHead())?.sequence).toBe(3)
 
       expect(await node.wallet.getLatestHeadHash()).toEqual(blockA.header.hash)
 
-      accountA.updateScanningEnabled(false)
+      await accountA.updateScanningEnabled(false)
 
       expect(await node.wallet.getLatestHeadHash()).toBeNull()
     })
@@ -2149,7 +2149,7 @@ describe('Wallet', () => {
       const accountB: Account = await useAccountFixture(node.wallet, 'b')
       await node.wallet.updateHead()
 
-      accountA.updateScanningEnabled(false)
+      await accountA.updateScanningEnabled(false)
 
       const block2 = await useMinerBlockFixture(node.chain, 2, undefined)
       await node.chain.addBlock(block2)
@@ -2596,7 +2596,7 @@ describe('Wallet', () => {
       expect(accountAHead?.hash).toEqualHash(blockA2.header.hash)
       expect(accountBHead?.hash).toEqualHash(blockA2.header.hash)
 
-      accountA.updateScanningEnabled(false)
+      await accountA.updateScanningEnabled(false)
 
       await node.chain.blockchainDb.db.transaction(async (tx) => {
         await node.chain.disconnect(blockA2, tx)

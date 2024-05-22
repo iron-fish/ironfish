@@ -23,11 +23,11 @@ export const StopScanningResponseSchema: yup.MixedSchema<StopScanningResponse> =
 routes.register<typeof StopScanningRequestSchema, StopScanningResponse>(
   `${ApiNamespace.wallet}/stopScanning`,
   StopScanningRequestSchema,
-  (request, context): void => {
+  async (request, context): Promise<void> => {
     AssertHasRpcContext(request, context, 'wallet')
 
     const account = getAccount(context.wallet, request.data.account)
-    account.updateScanningEnabled(false)
+    await account.updateScanningEnabled(false)
     request.end()
   },
 )

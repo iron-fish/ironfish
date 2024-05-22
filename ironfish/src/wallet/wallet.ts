@@ -1528,6 +1528,7 @@ export class Wallet {
         publicAddress: key.publicAddress,
         spendingKey: key.spendingKey,
         viewKey: key.viewKey,
+        scanningEnabled: true,
         createdAt,
       },
       walletDb: this.walletDb,
@@ -1627,6 +1628,7 @@ export class Wallet {
         createdAt,
         name,
         multisigKeys,
+        scanningEnabled: true,
       },
       walletDb: this.walletDb,
     })
