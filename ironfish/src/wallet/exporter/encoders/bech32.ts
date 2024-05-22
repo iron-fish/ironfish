@@ -6,9 +6,9 @@ import bufio, { EncodingError } from 'bufio'
 import { Bech32m } from '../../../utils'
 import { ACCOUNT_SCHEMA_VERSION } from '../../account/account'
 import { KEY_LENGTH, VIEW_KEY_LENGTH } from '../../walletdb/accountValue'
-import { MultisigKeysEncoding } from '../../walletdb/multisigKeys'
 import { AccountImport } from '../accountImport'
 import { AccountDecodingOptions, AccountEncoder, DecodeFailed, DecodeInvalid } from '../encoder'
+import { MultisigKeysEncoding } from './multisigKeys'
 
 export const BECH32_ACCOUNT_PREFIX = 'ifaccount'
 
