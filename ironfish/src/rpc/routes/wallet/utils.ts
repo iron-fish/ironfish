@@ -10,7 +10,7 @@ import {
   isMultisigSignerImport,
   isMultisigSignerTrustedDealerImport,
   MultisigKeysImport,
-} from '../../../wallet/interfaces/multisigKeys'
+} from '../../../wallet/exporter/multisig'
 import { AssetValue } from '../../../wallet/walletdb/assetValue'
 import { DecryptedNoteValue } from '../../../wallet/walletdb/decryptedNoteValue'
 import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
