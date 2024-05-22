@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { generateKey, multisig } from '@ironfish/rust-nodejs'
-import { ACCOUNT_SCHEMA_VERSION } from '../account/account'
-import { AccountImport } from '../walletdb/accountValue'
+import { ACCOUNT_SCHEMA_VERSION } from '../../account/account'
+import { AccountImport } from '../accountImport'
 import {
   BASE64_JSON_ACCOUNT_PREFIX,
   BASE64_JSON_MULTISIG_ENCRYPTED_ACCOUNT_PREFIX,

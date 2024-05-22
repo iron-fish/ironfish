@@ -3,11 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { PUBLIC_ADDRESS_LENGTH } from '@ironfish/rust-nodejs'
 import bufio, { EncodingError } from 'bufio'
-import { Bech32m } from '../../utils'
-import { ACCOUNT_SCHEMA_VERSION } from '../account/account'
-import { AccountImport, KEY_LENGTH, VIEW_KEY_LENGTH } from '../walletdb/accountValue'
-import { MultisigKeysEncoding } from '../walletdb/multisigKeys'
-import { AccountDecodingOptions, AccountEncoder, DecodeFailed, DecodeInvalid } from './encoder'
+import { Bech32m } from '../../../utils'
+import { ACCOUNT_SCHEMA_VERSION } from '../../account/account'
+import { KEY_LENGTH, VIEW_KEY_LENGTH } from '../../walletdb/accountValue'
+import { MultisigKeysEncoding } from '../../walletdb/multisigKeys'
+import { AccountImport } from '../accountImport'
+import { AccountDecodingOptions, AccountEncoder, DecodeFailed, DecodeInvalid } from '../encoder'
 
 export const BECH32_ACCOUNT_PREFIX = 'ifaccount'
 

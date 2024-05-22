@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { multisig } from '@ironfish/rust-nodejs'
 import { LanguageKey } from '../../utils'
-import { AccountImport } from '../walletdb/accountValue'
+import { AccountImport } from './accountImport'
 
 export class DecodeInvalid extends Error {}
 
@@ -24,13 +24,6 @@ export class MultisigSecretNotFound extends DecodeInvalid {
   name = this.constructor.name
 }
 
-export enum AccountFormat {
-  Base64Json = 'Base64Json',
-  JSON = 'JSON',
-  Mnemonic = 'Mnemonic',
-  SpendingKey = 'SpendingKey',
-}
-
 export interface MultisigIdentityEncryption {
   kind: 'MultisigIdentity'
   identity: multisig.ParticipantIdentity | Buffer
@@ -48,6 +41,7 @@ export function isMultisigIdentityEncryption(
 export type AccountEncodingOptions = {
   language?: LanguageKey
   encryptWith?: AccountEncryptionMethod
+  viewOnly?: boolean
 }
 
 export type AccountDecodingOptions = {
@@ -61,6 +55,5 @@ export type AccountDecodingOptions = {
 
 export type AccountEncoder = {
   encode(value: AccountImport, options?: AccountEncodingOptions): string
-
   decode(value: string, options?: AccountDecodingOptions): AccountImport
 }

@@ -5,12 +5,12 @@ import { Config } from '../../../fileStores'
 import { Note } from '../../../primitives'
 import { BufferUtils, CurrencyUtils } from '../../../utils'
 import { Account, Base64JsonEncoder, Wallet } from '../../../wallet'
+import { AccountImport } from '../../../wallet/exporter/accountImport'
 import {
   isMultisigSignerImport,
   isMultisigSignerTrustedDealerImport,
   MultisigKeysImport,
 } from '../../../wallet/interfaces/multisigKeys'
-import { AccountImport } from '../../../wallet/walletdb/accountValue'
 import { AssetValue } from '../../../wallet/walletdb/assetValue'
 import { DecryptedNoteValue } from '../../../wallet/walletdb/decryptedNoteValue'
 import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
@@ -98,6 +98,28 @@ export async function serializeRpcWalletTransaction(
     status,
     assetBalanceDeltas,
     confirmations,
+  }
+}
+
+export const serializeRpcImportAccount = (encoded: AccountImport): RpcAccountImport => {
+  const createdAt = encoded.createdAt
+    ? {
+        hash: encoded.createdAt.hash.toString('hex'),
+        sequence: encoded.createdAt.sequence,
+      }
+    : null
+
+  return {
+    version: encoded.version,
+    name: encoded.name,
+    viewKey: encoded.viewKey,
+    incomingViewKey: encoded.incomingViewKey,
+    outgoingViewKey: encoded.outgoingViewKey,
+    publicAddress: encoded.publicAddress,
+    spendingKey: encoded.spendingKey,
+    multisigKeys: encoded.multisigKeys,
+    proofAuthorizingKey: encoded.proofAuthorizingKey,
+    createdAt: createdAt,
   }
 }
 

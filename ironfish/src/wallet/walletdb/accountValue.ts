@@ -5,7 +5,7 @@ import { PUBLIC_ADDRESS_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { IDatabaseEncoding } from '../../storage'
 import { ACCOUNT_KEY_LENGTH } from '../account/account'
-import { MultisigKeys, MultisigKeysImport } from '../interfaces/multisigKeys'
+import { MultisigKeys } from '../interfaces/multisigKeys'
 import { HeadValue, NullableHeadValueEncoding } from './headValue'
 import { MultisigKeysEncoding } from './multisigKeys'
 
@@ -24,19 +24,6 @@ export interface AccountValue {
   publicAddress: string
   createdAt: HeadValue | null
   multisigKeys?: MultisigKeys
-  proofAuthorizingKey: string | null
-}
-
-export type AccountImport = {
-  version: number
-  name: string
-  spendingKey: string | null
-  viewKey: string
-  incomingViewKey: string
-  outgoingViewKey: string
-  publicAddress: string
-  createdAt: HeadValue | null
-  multisigKeys?: MultisigKeysImport
   proofAuthorizingKey: string | null
 }
 
