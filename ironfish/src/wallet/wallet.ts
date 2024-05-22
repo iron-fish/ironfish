@@ -51,8 +51,8 @@ import {
   NotEnoughFundsError,
 } from './errors'
 import { AccountImport } from './exporter/accountImport'
+import { isMultisigSignerTrustedDealerImport } from './exporter/multisig'
 import { MintAssetOptions } from './interfaces/mintAssetOptions'
-import { isMultisigSignerTrustedDealerImport } from './interfaces/multisigKeys'
 import {
   RemoteChainProcessor,
   WalletBlockHeader,
