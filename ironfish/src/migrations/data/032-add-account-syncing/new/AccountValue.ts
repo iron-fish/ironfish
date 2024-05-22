@@ -3,13 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { PUBLIC_ADDRESS_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
-import { IDatabaseEncoding } from '../../storage'
-import { ACCOUNT_KEY_LENGTH } from '../account/account'
-import { MultisigKeys } from '../interfaces/multisigKeys'
-import { HeadValue, NullableHeadValueEncoding } from './headValue'
-import { MultisigKeysEncoding } from './multisigKeys'
+import { IDatabaseEncoding } from '../../../../storage'
+import { HeadValue, NullableHeadValueEncoding } from './HeadValue'
 
-export const KEY_LENGTH = ACCOUNT_KEY_LENGTH
+const KEY_LENGTH = 32
 export const VIEW_KEY_LENGTH = 64
 const VERSION_LENGTH = 2
 
@@ -24,7 +21,10 @@ export interface AccountValue {
   publicAddress: string
   createdAt: HeadValue | null
   scanningEnabled?: boolean
-  multisigKeys?: MultisigKeys
+  multisigKeys?: {
+    secret: string
+    keyPackage: string
+  }
   proofAuthorizingKey: string | null
 }
 
@@ -57,9 +57,8 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     }
 
     if (value.multisigKeys) {
-      const encoding = new MultisigKeysEncoding()
-      bw.writeU64(encoding.getSize(value.multisigKeys))
-      bw.writeBytes(encoding.serialize(value.multisigKeys))
+      bw.writeVarBytes(Buffer.from(value.multisigKeys.secret, 'hex'))
+      bw.writeVarBytes(Buffer.from(value.multisigKeys.keyPackage, 'hex'))
     }
 
     if (value.proofAuthorizingKey) {
@@ -94,9 +93,10 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
 
     let multisigKeys = undefined
     if (hasMultisigKeys) {
-      const multisigKeysLength = reader.readU64()
-      const encoding = new MultisigKeysEncoding()
-      multisigKeys = encoding.deserialize(reader.readBytes(multisigKeysLength))
+      multisigKeys = {
+        secret: reader.readVarBytes().toString('hex'),
+        keyPackage: reader.readVarBytes().toString('hex'),
+      }
     }
 
     const proofAuthorizingKey = hasProofAuthorizingKey
@@ -139,9 +139,8 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     }
 
     if (value.multisigKeys) {
-      const encoding = new MultisigKeysEncoding()
-      size += 8 // size of multi sig keys
-      size += encoding.getSize(value.multisigKeys)
+      size += bufio.sizeVarString(value.multisigKeys.secret, 'hex')
+      size += bufio.sizeVarString(value.multisigKeys.keyPackage, 'hex')
     }
     if (value.proofAuthorizingKey) {
       size += KEY_LENGTH
