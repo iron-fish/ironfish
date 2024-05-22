@@ -18,8 +18,8 @@ export type AccountImport = {
   proofAuthorizingKey: string | null
 }
 
-export function toAccountImport(account: Account): AccountImport {
-  return {
+export function toAccountImport(account: Account, viewOnly: boolean): AccountImport {
+  const value = {
     version: account.version,
     name: account.name,
     spendingKey: account.spendingKey,
@@ -31,4 +31,16 @@ export function toAccountImport(account: Account): AccountImport {
     multisigKeys: account.multisigKeys,
     proofAuthorizingKey: account.proofAuthorizingKey,
   }
+
+  if (viewOnly) {
+    value.spendingKey = null
+
+    if (value.multisigKeys) {
+      value.multisigKeys = {
+        publicKeyPackage: value.multisigKeys.publicKeyPackage,
+      }
+    }
+  }
+
+  return value
 }

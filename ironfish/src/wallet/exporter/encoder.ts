@@ -41,7 +41,6 @@ export function isMultisigIdentityEncryption(
 export type AccountEncodingOptions = {
   language?: LanguageKey
   encryptWith?: AccountEncryptionMethod
-  viewOnly?: boolean
 }
 
 export type AccountDecodingOptions = {

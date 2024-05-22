@@ -3,11 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { LanguageKey, LanguageUtils } from '../../../utils'
-import {
-  AccountFormat,
-  decodeAccountImport,
-  encodeAccountImport,
-} from '../../../wallet/exporter/account'
+import { AccountFormat, encodeAccountImport } from '../../../wallet/exporter/account'
 import { toAccountImport } from '../../../wallet/exporter/accountImport'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
@@ -47,13 +43,13 @@ routes.register<typeof ExportAccountRequestSchema, ExportAccountResponse>(
   (request, node): void => {
     AssertHasRpcContext(request, node, 'wallet')
 
+    const viewOnly = request.data.viewOnly ?? false
     const account = getAccount(node.wallet, request.data.account)
 
     if (request.data.format) {
-      const value = toAccountImport(account)
+      const value = toAccountImport(account, viewOnly)
 
       const encoded = encodeAccountImport(value, request.data.format, {
-        viewOnly: request.data.viewOnly,
         language: request.data.language,
       })
 
@@ -62,15 +58,8 @@ routes.register<typeof ExportAccountRequestSchema, ExportAccountResponse>(
     }
 
     // For backwards compatibility, we must send back an RpcAccountImport
-
-    const serialized = serializeRpcImportAccount(
-      decodeAccountImport(
-        encodeAccountImport(toAccountImport(account), AccountFormat.JSON, {
-          viewOnly: request.data.viewOnly,
-        }),
-      ),
-    )
-
+    const exported = toAccountImport(account, viewOnly)
+    const serialized = serializeRpcImportAccount(exported)
     request.end({ account: serialized })
   },
 )

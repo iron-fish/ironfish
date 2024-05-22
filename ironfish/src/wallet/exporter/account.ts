@@ -32,16 +32,6 @@ export function encodeAccountImport(
   format: AccountFormat,
   options: AccountEncodingOptions = {},
 ): string {
-  if (options.viewOnly) {
-    value.spendingKey = null
-
-    if (value.multisigKeys) {
-      value.multisigKeys = {
-        publicKeyPackage: value.multisigKeys.publicKeyPackage,
-      }
-    }
-  }
-
   switch (format) {
     case AccountFormat.JSON:
       return new JsonEncoder().encode(value)
