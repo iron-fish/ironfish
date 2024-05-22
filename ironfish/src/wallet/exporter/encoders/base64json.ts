@@ -24,9 +24,9 @@ export class Base64JsonEncoder implements AccountEncoder {
         const encrypted = encodeEncryptedMultisigAccount(binary, options.encryptWith)
         const encoded = encrypted.toString('base64')
         return `${BASE64_JSON_MULTISIG_ENCRYPTED_ACCOUNT_PREFIX}${encoded}`
-      } else {
-        throw new Error('Unknown encryption method requested')
       }
+
+      throw new Error('Unknown encryption method requested')
     }
 
     const encoded = binary.toString('base64')
