@@ -61,7 +61,7 @@ routes.register<typeof ExportAccountRequestSchema, ExportAccountResponse>(
       return
     }
 
-    // Backwards compatability path we must send back an RpcAccountImport
+    // For backwards compatibility, we must send back an RpcAccountImport
 
     const serialized = serializeRpcImportAccount(
       decodeAccountImport(
