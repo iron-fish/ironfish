@@ -10,7 +10,7 @@ use crate::{
     PublicAddress,
 };
 
-use super::transfer::{self, Transfer};
+use super::transfer::{Transfer};
 
 #[derive(Clone)]
 pub struct PublicAccountDescription {
@@ -152,7 +152,7 @@ impl PublicAccountDescription {
         if unique_signers.len() != self.signers.len() {
             return Err(IronfishError::new(IronfishErrorKind::DuplicateSigner));
         }
-    
+
         let unique_signatures: Vec<_> = self.signatures.iter().collect();
         if unique_signatures.len() != self.signatures.len() {
             return Err(IronfishError::new(IronfishErrorKind::DuplicateSignature));
@@ -161,13 +161,16 @@ impl PublicAccountDescription {
         Ok(())
     }
 
-    pub fn verify(&self) -> Result<(), IronfishError> {
+    fn verify(&self) -> Result<(), IronfishError> {
         self.valid()?;
 
         let hash = &self.hash()?;
         for signature in &self.signatures {
-            let is_valid = self.signers.iter().any(|signer| signer.verify(hash, signature).is_ok());
-    
+            let is_valid = self
+                .signers
+                .iter()
+                .any(|signer| signer.verify(hash, signature).is_ok());
+
             if !is_valid {
                 return Err(IronfishError::new(IronfishErrorKind::InvalidSignature));
             }
@@ -175,9 +178,7 @@ impl PublicAccountDescription {
         Ok(())
     }
 
-    pub fn hash(
-        &self
-    ) -> Result<[u8; 32], IronfishError> {
+    pub fn hash(&self) -> Result<[u8; 32], IronfishError> {
         // TODO(jwp): verify which hashers supported by axelar
         let mut hasher = blake3::Hasher::new();
         hasher.update(&self.version.to_le_bytes());
@@ -255,9 +256,7 @@ mod tests {
         )
         .expect("Should successfully create description");
 
-        let hash = original
-            .hash()
-            .expect("Should successfully hash");
+        let hash = original.hash().expect("Should successfully hash");
         let signature = signing_key.sign(&hash);
 
         original

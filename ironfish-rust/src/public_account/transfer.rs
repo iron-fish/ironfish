@@ -8,7 +8,7 @@ pub struct PublicMemo(pub [u8; 256]);
 #[derive(Clone, Copy)]
 pub struct Transfer {
     pub(crate) asset_id: AssetIdentifier,
-    pub(crate) amount: u64,
+    pub(crate) amount: i64,
     // TODO assumes we are using same public address space for these accounts
     pub(crate) to: PublicAddress,
     // TODO is this a reasonable memo size
@@ -20,7 +20,7 @@ impl Transfer {
         let asset_id = AssetIdentifier::read(&mut reader)?;
         let mut amount_buf = [0; 8];
         reader.read_exact(&mut amount_buf)?;
-        let amount = u64::from_le_bytes(amount_buf);
+        let amount = i64::from_le_bytes(amount_buf);
 
         let to = PublicAddress::read(&mut reader)?;
 
