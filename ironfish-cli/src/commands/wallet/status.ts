@@ -4,13 +4,14 @@
 import { CliUx } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
+import { TableFlags } from '../../utils/table'
 
 export class StatusCommand extends IronfishCommand {
   static description = `Get status of all accounts`
 
   static flags = {
     ...RemoteFlags,
-    ...CliUx.ux.table.flags(),
+    ...TableFlags,
   }
 
   async start(): Promise<void> {

@@ -14,9 +14,9 @@ import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { getAssetsByIDs } from '../../utils'
-import { Format, TableCols } from '../../utils/table'
+import { Format, TableCols, TableFlags } from '../../utils/table'
 
-const { sort: _, ...tableFlags } = CliUx.ux.table.flags()
+const { sort: _, ...tableFlags } = TableFlags
 export class TransactionsCommand extends IronfishCommand {
   static description = `Display the account transactions`
 

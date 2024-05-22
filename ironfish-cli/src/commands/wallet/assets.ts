@@ -13,7 +13,7 @@ import { CliUx } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { renderAssetWithVerificationStatus } from '../../utils'
-import { TableCols } from '../../utils/table'
+import { TableCols, TableFlags } from '../../utils/table'
 
 const MAX_ASSET_METADATA_COLUMN_WIDTH = ASSET_METADATA_LENGTH + 1
 const MIN_ASSET_METADATA_COLUMN_WIDTH = ASSET_METADATA_LENGTH / 2 + 1
@@ -21,14 +21,12 @@ const MIN_ASSET_METADATA_COLUMN_WIDTH = ASSET_METADATA_LENGTH / 2 + 1
 const MAX_ASSET_NAME_COLUMN_WIDTH = ASSET_NAME_LENGTH + 1
 const MIN_ASSET_NAME_COLUMN_WIDTH = ASSET_NAME_LENGTH / 2 + 1
 
-const { ...tableFlags } = CliUx.ux.table.flags()
-
 export class AssetsCommand extends IronfishCommand {
   static description = `Display the wallet's assets`
 
   static flags = {
     ...RemoteFlags,
-    ...tableFlags,
+    ...TableFlags,
   }
 
   static args = [
