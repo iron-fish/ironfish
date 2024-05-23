@@ -101,11 +101,11 @@ export class BridgeCommand extends IronfishCommand {
       networkId,
       client,
       amount,
-      asset,
-      network,
-      assetData,
-      to,
       from,
+      to,
+      network,
+      asset,
+      assetData,
     )
 
     const confirmed = await CliUx.ux.confirm('Do you confirm (Y/N)?')
@@ -276,11 +276,11 @@ export class BridgeCommand extends IronfishCommand {
     networkId: number,
     client: RpcClient,
     amount: bigint,
-    asset: ChainportVerifiedToken,
-    network: ChainportNetwork,
-    assetData: RpcAsset,
-    to: string,
     from: string,
+    to: string,
+    network: ChainportNetwork,
+    asset: ChainportVerifiedToken,
+    assetData: RpcAsset,
   ) {
     const { flags } = await this.parse(BridgeCommand)
 
