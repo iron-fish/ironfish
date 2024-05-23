@@ -62,7 +62,7 @@ describe('WalletDB', () => {
 
       const block1 = await useMinerBlockFixture(node.chain, undefined, account)
       await expect(node.chain).toAddBlock(block1)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       for (let i = 1; i < 3; i++) {
         const transaction = await useTxFixture(node.wallet, account, account)
@@ -71,7 +71,7 @@ describe('WalletDB', () => {
             transaction,
           ]),
         )
-        await node.wallet.updateHead()
+        await node.wallet.scan()
       }
 
       const walletDb = node.wallet.walletDb
@@ -132,7 +132,7 @@ describe('WalletDB', () => {
 
       const block = await useMinerBlockFixture(node.chain, 0, account)
       await node.chain.addBlock(block)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const noteHash: Buffer = block.transactions[0].notes[0].hash()
       const decryptedNote = await account.getDecryptedNote(noteHash)
@@ -309,7 +309,7 @@ describe('WalletDB', () => {
       for (let i = 2; i < 6; i++) {
         const block = await useMinerBlockFixture(node.chain, i, account)
         await node.chain.addBlock(block)
-        await node.wallet.updateHead()
+        await node.wallet.scan()
 
         noteHashes.push(block.transactions[0].notes[0].hash())
       }
@@ -337,7 +337,7 @@ describe('WalletDB', () => {
       for (let i = 2; i < 6; i++) {
         const block = await useMinerBlockFixture(node.chain, i, account)
         await node.chain.addBlock(block)
-        await node.wallet.updateHead()
+        await node.wallet.scan()
 
         noteHashes.push(block.transactions[0].notes[0].hash())
       }
@@ -367,7 +367,7 @@ describe('WalletDB', () => {
       for (let i = 2; i < 6; i++) {
         const block = await useMinerBlockFixture(node.chain, i, account)
         await node.chain.addBlock(block)
-        await node.wallet.updateHead()
+        await node.wallet.scan()
 
         transactionHashes.push(block.transactions[0].hash())
       }

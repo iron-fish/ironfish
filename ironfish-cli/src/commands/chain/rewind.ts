@@ -136,15 +136,17 @@ async function rewindWalletHead(
       })
       speed.start()
 
-      wallet.chainProcessor.onRemove.on((_) => {
-        speed.add(1)
-        bar.update(++rewound, {
-          speed: speed.rate1s.toFixed(2),
-          estimate: TimeUtils.renderEstimate(rewound, toRewind, speed.rate1m),
-        })
-      })
+      const scan = await wallet.scanner.scan()
 
-      await wallet.updateHead()
+      if (scan) {
+        scan.onTransaction.on((_) => {
+          speed.add(1)
+          bar.update(++rewound, {
+            speed: speed.rate1s.toFixed(2),
+            estimate: TimeUtils.renderEstimate(rewound, toRewind, speed.rate1m),
+          })
+        })
+      }
 
       bar.stop()
       speed.stop()

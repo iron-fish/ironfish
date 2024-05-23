@@ -30,10 +30,10 @@ export function useAccountFixture(
       const account = await wallet.importAccount(accountData)
 
       if (accountData) {
-        if (wallet.chainProcessor.hash && wallet.chainProcessor.sequence) {
+        if (wallet.scanner.state?.hash && wallet.scanner.state?.sequence) {
           await account.updateHead({
-            hash: wallet.chainProcessor.hash,
-            sequence: wallet.chainProcessor.sequence,
+            hash: wallet.scanner.state.hash,
+            sequence: wallet.scanner.state.sequence,
           })
         } else {
           await account.updateHead(null)
@@ -55,6 +55,7 @@ export async function useAccountAndAddFundsFixture(
   const account = await useAccountFixture(wallet, generate, options)
   const block = await useMinerBlockFixture(chain, undefined, account)
   await expect(chain).toAddBlock(block)
-  await wallet.updateHead()
+  const scan = await wallet.scan()
+  await scan?.wait()
   return account
 }

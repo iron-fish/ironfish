@@ -1,12 +1,12 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Assert } from '../assert'
-import { Event } from '../event'
-import { Logger } from '../logger'
-import { Transaction } from '../primitives'
-import { FollowChainStreamResponse, RpcClient } from '../rpc'
-import { BufferUtils } from '../utils'
+import { Assert } from '../../assert'
+import { Event } from '../../event'
+import { Logger } from '../../logger'
+import { Transaction } from '../../primitives'
+import { FollowChainStreamResponse, RpcClient } from '../../rpc'
+import { BufferUtils } from '../../utils'
 
 export type WalletBlockHeader = {
   hash: Buffer
@@ -28,6 +28,7 @@ export class RemoteChainProcessor {
   maxQueueSize: number
 
   onAdd = new Event<[{ header: WalletBlockHeader; transactions: WalletBlockTransaction[] }]>()
+
   onRemove = new Event<
     [{ header: WalletBlockHeader; transactions: WalletBlockTransaction[] }]
   >()
@@ -46,6 +47,7 @@ export class RemoteChainProcessor {
 
   async update({ signal }: { signal?: AbortSignal } = {}): Promise<{ hashChanged: boolean }> {
     Assert.isNotNull(this.nodeClient)
+
     const chainStream = this.nodeClient.chain.followChainStream({
       head: this.hash?.toString('hex') ?? null,
       serialized: true,

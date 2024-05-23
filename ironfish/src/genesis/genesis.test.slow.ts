@@ -93,7 +93,7 @@ describe('Create genesis block', () => {
     const addBlock = await chain.addBlock(block)
     expect(addBlock.isAdded).toBeTruthy()
 
-    await node.wallet.updateHead()
+    await node.wallet.scan()
 
     // Check that the balance is what's expected
     await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
@@ -129,8 +129,7 @@ describe('Create genesis block', () => {
     expect(deserializedBlock.header.target.asBigInt()).toEqual(Target.maxTarget().asBigInt())
 
     const accountNewNode = await newNode.wallet.importAccount(account)
-    await newNode.wallet.updateHead()
-    await newNode.wallet.scanTransactions()
+    await newNode.wallet.scan()
 
     await expect(
       newNode.wallet.getBalance(accountNewNode, Asset.nativeId()),
@@ -277,7 +276,7 @@ describe('addGenesisTransaction', () => {
     const addedBlock = await chain.addBlock(deserializedBlock)
     expect(addedBlock.isAdded).toBe(true)
 
-    await node.wallet.updateHead()
+    await node.wallet.scan()
 
     // Check that the balance is what's expected
     await expect(node.wallet.getBalance(account1, Asset.nativeId())).resolves.toMatchObject({

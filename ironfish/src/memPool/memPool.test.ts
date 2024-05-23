@@ -381,7 +381,7 @@ describe('MemPool', () => {
           undefined,
         )
         await expect(node.chain).toAddBlock(block)
-        await node.wallet.updateHead()
+        await node.wallet.scan()
 
         const note = transaction.getNote(1).decryptNoteForOwner(accountA.incomingViewKey)
         Assert.isNotUndefined(note)
@@ -540,11 +540,11 @@ describe('MemPool', () => {
 
       const block1 = await useMinerBlockFixture(chain, undefined, account)
       await expect(chain).toAddBlock(block1)
-      await wallet.updateHead()
+      await wallet.scan()
 
       const block2 = await useMinerBlockFixture(chain, undefined, account)
       await expect(chain).toAddBlock(block2)
-      await wallet.updateHead()
+      await wallet.scan()
 
       const transaction1 = await useTxFixture(wallet, account, account)
       expect(memPool.acceptTransaction(transaction1)).toBe(true)
@@ -610,7 +610,7 @@ describe('MemPool', () => {
 
       const minersBlock = await useMinerBlockFixture(node.chain, 2, accountA)
       await node.chain.addBlock(minersBlock)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const transaction1 = await useTxFixture(
         node.wallet,
@@ -659,7 +659,7 @@ describe('MemPool', () => {
 
       const minersBlock = await useMinerBlockFixture(node.chain, 2, accountA)
       await node.chain.addBlock(minersBlock)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const transaction1 = await useTxFixture(
         node.wallet,

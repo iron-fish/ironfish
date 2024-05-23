@@ -28,14 +28,11 @@ export class RescanCommand extends IronfishCommand {
       description: 'Sequence to start account rescan from',
       hidden: true,
     }),
-    full: Flags.boolean({
-      description: `Rescan from the genesis block, ignoring the 'createdAt' field on accounts. Useful if an account may have received a transaction before its 'createdAt' block.`,
-    }),
   }
 
   async start(): Promise<void> {
     const { flags } = await this.parse(RescanCommand)
-    const { follow, local, from, full } = flags
+    const { follow, local, from } = flags
 
     if (local && !follow) {
       this.error('You cannot pass both --local and --no-follow')
@@ -47,7 +44,7 @@ export class RescanCommand extends IronfishCommand {
       stdout: true,
     })
 
-    const response = client.wallet.rescanAccountStream({ follow, from, full })
+    const response = client.wallet.rescan({ follow, from })
 
     const speed = new Meter()
 

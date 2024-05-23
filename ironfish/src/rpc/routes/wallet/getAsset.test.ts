@@ -62,7 +62,7 @@ describe('Route chain.getAsset', () => {
     const asset = new Asset(account.publicAddress, name, 'metadata')
     const mintBlock = await useMintBlockFixture({ node, account, asset, value })
     await expect(node.chain).toAddBlock(mintBlock)
-    await node.wallet.updateHead()
+    await node.wallet.scan()
 
     return { asset, mintBlock }
   }
@@ -98,7 +98,7 @@ describe('Route chain.getAsset', () => {
     const minerBlock = await useMinerBlockFixture(node.chain, undefined, account)
     await expect(node.chain).toAddBlock(minerBlock)
 
-    await node.wallet.updateHead()
+    await node.wallet.scan()
 
     const value = 10n
     const { asset, pendingMint } = await createPendingAsset({

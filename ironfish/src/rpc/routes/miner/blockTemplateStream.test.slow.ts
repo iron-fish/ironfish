@@ -65,7 +65,7 @@ describe('Block template stream', () => {
 
     // Generate a transaction on that block with an expiry at sequence 3
     await expect(nodeTest.chain).toAddBlock(block2)
-    await nodeTest.wallet.updateHead()
+    await nodeTest.wallet.scan()
     const tx = await useTxFixture(
       nodeTest.node.wallet,
       importedAccount,

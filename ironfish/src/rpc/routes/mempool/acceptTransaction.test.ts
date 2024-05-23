@@ -54,7 +54,7 @@ describe('Route mempool/acceptTransaction', () => {
 
     const block = await useMinerBlockFixture(node.chain, 2, account)
     await expect(node.chain).toAddBlock(block)
-    await wallet.updateHead()
+    await wallet.scan()
 
     const transaction = await usePostTxFixture({
       node,

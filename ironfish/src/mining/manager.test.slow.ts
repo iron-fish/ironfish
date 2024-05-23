@@ -77,7 +77,7 @@ describe('Mining manager', () => {
 
       const previous = await useMinerBlockFixture(chain, 2, account, node.wallet)
       await expect(chain).toAddBlock(previous)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const transaction = await useTxFixture(node.wallet, account, account)
 
@@ -121,7 +121,7 @@ describe('Mining manager', () => {
       await expect(nodeB.chain).toAddBlock(blockB2)
 
       // This transaction will be invalid after the reorg
-      await nodeA.wallet.updateHead()
+      await nodeA.wallet.scan()
       const invalidTx = await useTxFixture(nodeA.wallet, accountA, accountB)
 
       await expect(nodeA.chain).toAddBlock(blockB1)
@@ -153,7 +153,7 @@ describe('Mining manager', () => {
 
       const block1 = await useMinerBlockFixture(chain, undefined, account, wallet)
       await expect(chain).toAddBlock(block1)
-      await wallet.updateHead()
+      await wallet.scan()
 
       const transaction = await useTxFixture(
         wallet,
@@ -194,7 +194,7 @@ describe('Mining manager', () => {
         const block = await useMinerBlockFixture(chain, undefined, accountA)
         await expect(chain).toAddBlock(block)
       }
-      await wallet.updateHead()
+      await wallet.scan()
 
       // Initial mint of an asset, sets the asset owner in the internal state
       const mintTx1 = await usePostTxFixture({
@@ -298,7 +298,7 @@ describe('Mining manager', () => {
         const block = await useMinerBlockFixture(chain, undefined, account)
         await expect(chain).toAddBlock(block)
       }
-      await wallet.updateHead()
+      await wallet.scan()
 
       const mintTx1 = await usePostTxFixture({
         node,
@@ -355,7 +355,7 @@ describe('Mining manager', () => {
 
       const block1 = await useMinerBlockFixture(chain, undefined, account, wallet)
       await expect(chain).toAddBlock(block1)
-      await wallet.updateHead()
+      await wallet.scan()
 
       const transaction = await useTxFixture(
         wallet,
@@ -451,7 +451,7 @@ describe('Mining manager', () => {
 
       const block1 = await useMinerBlockFixture(chain, undefined, account, wallet)
       await expect(chain).toAddBlock(block1)
-      await wallet.updateHead()
+      await wallet.scan()
 
       const transaction = await useTxFixture(
         wallet,
@@ -489,7 +489,7 @@ describe('Mining manager', () => {
 
         const previous = await useMinerBlockFixture(chain, 2, account, node.wallet)
         await expect(chain).toAddBlock(previous)
-        await node.wallet.updateHead()
+        await node.wallet.scan()
 
         const transaction = await useTxFixture(node.wallet, account, account)
 

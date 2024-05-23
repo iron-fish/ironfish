@@ -21,7 +21,7 @@ describe('Route wallet/getAccountsStatus', () => {
     const block = await useMinerBlockFixture(routeTest.chain, 2, account, routeTest.wallet)
 
     await expect(routeTest.chain).toAddBlock(block)
-    await routeTest.wallet.updateHead()
+    await routeTest.wallet.scan()
 
     const response = await routeTest.client.wallet.getAccountsStatus()
 

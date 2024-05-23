@@ -55,7 +55,7 @@ describe('Route wallet/createTransaction', () => {
 
       await Promise.all([expect(routeTest.node.chain).toAddBlock(block)])
 
-      await Promise.all([routeTest.node.wallet.updateHead()])
+      await Promise.all([routeTest.node.wallet.scan()])
     }
 
     const response = await routeTest.client.wallet.createTransaction({

@@ -25,7 +25,7 @@ describe('UnsignedTransaction', () => {
       nodeTest.wallet,
     )
     await expect(nodeTest.chain).toAddBlock(block)
-    await nodeTest.wallet.updateHead()
+    await nodeTest.wallet.scan()
 
     const burnValue = 2n
     const burn = {

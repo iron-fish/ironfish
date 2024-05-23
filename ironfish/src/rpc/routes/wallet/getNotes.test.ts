@@ -30,7 +30,7 @@ describe('Route wallet/getNotes', () => {
       transaction: blockTransaction,
     } = await useBlockWithTx(node, account, account, true)
     await node.chain.addBlock(block)
-    await node.wallet.updateHead()
+    await node.wallet.scan()
 
     transaction = blockTransaction
 

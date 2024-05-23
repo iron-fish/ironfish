@@ -34,7 +34,7 @@ describe('Route wallet/setAccountHead', () => {
 
     it('Succeeds when start is non-genesis block', async () => {
       const account = await useAccountFixture(routeTest.wallet, 'foo')
-      await routeTest.wallet.updateHead()
+      await routeTest.wallet.scan()
       expect((await account.getHead())?.hash).toEqualBuffer(routeTest.chain.genesis.hash)
 
       const block1 = await useMinerBlockFixture(routeTest.chain)
@@ -120,7 +120,7 @@ describe('Route wallet/setAccountHead', () => {
 
   it('throws if gap between start and account head', async () => {
     const account = await useAccountFixture(routeTest.wallet, 'foo')
-    await routeTest.wallet.updateHead()
+    await routeTest.wallet.scan()
 
     const block1 = await useMinerBlockFixture(routeTest.chain, undefined, account)
     await expect(routeTest.chain).toAddBlock(block1)
@@ -145,7 +145,7 @@ describe('Route wallet/setAccountHead', () => {
     const account = await useAccountFixture(routeTest.wallet, 'foo')
     const block1 = await useMinerBlockFixture(routeTest.chain, undefined, account)
     await expect(routeTest.chain).toAddBlock(block1)
-    await routeTest.wallet.updateHead()
+    await routeTest.wallet.scan()
     expect((await account.getHead())?.hash).toEqualBuffer(block1.header.hash)
 
     await account.updateScanningEnabled(false)
@@ -175,7 +175,7 @@ describe('Route wallet/setAccountHead', () => {
 
     const block1 = await useMinerBlockFixture(routeTest.chain)
     await expect(routeTest.chain).toAddBlock(block1)
-    await routeTest.wallet.updateHead()
+    await routeTest.wallet.scan()
     expect((await account.getHead())?.hash).toEqualBuffer(block1.header.hash)
 
     await account.updateScanningEnabled(false)

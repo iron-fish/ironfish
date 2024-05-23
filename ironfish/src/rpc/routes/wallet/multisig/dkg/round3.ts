@@ -98,7 +98,7 @@ routes.register<typeof DkgRound3RequestSchema, DkgRound3Response>(
 
     if (request.data.rescan) {
       if (node.wallet.nodeClient) {
-        void node.wallet.scanTransactions(undefined, true)
+        void node.wallet.scan({ force: true })
       }
     } else {
       await node.wallet.skipRescan(account)

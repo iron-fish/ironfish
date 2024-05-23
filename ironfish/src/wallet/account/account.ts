@@ -15,7 +15,7 @@ import { WithNonNull, WithRequired } from '../../utils'
 import { DecryptedNote } from '../../workerPool/tasks/decryptNotes'
 import { AssetBalances } from '../assetBalances'
 import { MultisigKeys, MultisigSigner } from '../interfaces/multisigKeys'
-import { WalletBlockHeader } from '../remoteChainProcessor'
+import { WalletBlockHeader } from '../scanner/remoteChainProcessor'
 import { AccountValue } from '../walletdb/accountValue'
 import { AssetValue } from '../walletdb/assetValue'
 import { BalanceValue } from '../walletdb/balanceValue'
@@ -289,23 +289,20 @@ export class Account {
       return
     }
 
-    await this.walletDb.putAsset(
-      this,
+    const asset = {
+      blockHash: blockHeader?.hash ?? null,
+      createdTransactionHash,
       id,
-      {
-        blockHash: blockHeader?.hash ?? null,
-        createdTransactionHash,
-        id,
-        metadata,
-        name,
-        nonce,
-        creator,
-        owner,
-        sequence: blockHeader?.sequence ?? null,
-        supply: null,
-      },
-      tx,
-    )
+      metadata,
+      name,
+      nonce,
+      creator,
+      owner,
+      sequence: blockHeader?.sequence ?? null,
+      supply: null,
+    }
+
+    await this.walletDb.putAsset(this, id, asset, tx)
   }
 
   async updateAssetWithBlockHeader(

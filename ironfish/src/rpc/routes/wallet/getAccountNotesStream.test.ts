@@ -17,7 +17,7 @@ describe('Route wallet/getAccountNotesStream', () => {
 
     const { previous, block, transaction } = await useBlockWithTx(node, account, account)
     await expect(node.chain).toAddBlock(block)
-    await node.wallet.updateHead()
+    await node.wallet.scan()
 
     const response = routeTest.client.wallet.getAccountNotesStream({
       account: account.name,

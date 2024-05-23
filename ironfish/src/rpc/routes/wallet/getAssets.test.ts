@@ -64,7 +64,7 @@ describe('Route wallet/getAssets', () => {
     const asset = new Asset(account.publicAddress, name, 'metadata')
     const mintBlock = await useMintBlockFixture({ node, account, asset, value })
     await expect(node.chain).toAddBlock(mintBlock)
-    await node.wallet.updateHead()
+    await node.wallet.scan()
 
     return { asset, mintBlock }
   }

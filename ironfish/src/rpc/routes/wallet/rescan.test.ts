@@ -8,15 +8,19 @@
 import { v4 as uuid } from 'uuid'
 import { useMinerBlockFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
-import { Account, ScanState } from '../../../wallet'
-import { RescanAccountResponse } from './rescanAccount'
+import { Account } from '../../../wallet'
+import { ScanState } from '../../../wallet/scanner/scanState'
+import { RescanResponse } from './rescan'
 
 describe('Route wallet/rescanAccount', () => {
   const routeTest = createRouteTest()
   let account: Account
 
   beforeEach(async () => {
-    jest.spyOn(routeTest.node.wallet, 'updateHead').mockImplementationOnce(async () => {})
+    jest
+      .spyOn(routeTest.node.wallet, 'scan')
+      .mockImplementationOnce(async () => Promise.resolve(null))
+
     account = await routeTest.node.wallet.createAccount(uuid())
     await routeTest.node.wallet.setDefaultAccount(account.name)
   })
@@ -27,7 +31,7 @@ describe('Route wallet/rescanAccount', () => {
       routeTest.node.wallet.scan = scan
 
       const response = routeTest.client
-        .request<RescanAccountResponse>('wallet/rescanAccount', {
+        .request<RescanResponse>('wallet/rescanAccount', {
           follow: false,
         })
         .waitForEnd()
@@ -44,7 +48,7 @@ describe('Route wallet/rescanAccount', () => {
       const wait = jest.spyOn(scan, 'wait').mockImplementationOnce(async () => {})
 
       await routeTest.client
-        .request<RescanAccountResponse>('wallet/rescanAccount', {
+        .request<RescanResponse>('wallet/rescanAccount', {
           follow: true,
         })
         .waitForEnd()
@@ -59,7 +63,7 @@ describe('Route wallet/rescanAccount', () => {
       jest.spyOn(scan, 'wait').mockImplementationOnce(async () => {})
 
       const response = await routeTest.client
-        .request<RescanAccountResponse>('wallet/rescanAccount', {
+        .request<RescanResponse>('wallet/rescanAccount', {
           follow: true,
         })
         .waitForEnd()
@@ -74,7 +78,7 @@ describe('Route wallet/rescanAccount', () => {
       .mockReturnValue(Promise.resolve())
 
     const response = await routeTest.client
-      .request<RescanAccountResponse>('wallet/rescanAccount', {
+      .request<RescanResponse>('wallet/rescanAccount', {
         follow: false,
       })
       .waitForEnd()
@@ -91,7 +95,7 @@ describe('Route wallet/rescanAccount', () => {
       .mockReturnValue(Promise.resolve())
 
     await routeTest.client
-      .request<RescanAccountResponse>('wallet/rescanAccount', {
+      .request<RescanResponse>('wallet/rescanAccount', {
         follow: false,
       })
       .waitForEnd()
@@ -115,7 +119,7 @@ describe('Route wallet/rescanAccount', () => {
     const updateHead = jest.spyOn(account, 'updateHead').mockReturnValue(Promise.resolve())
 
     await routeTest.client
-      .request<RescanAccountResponse>('wallet/rescanAccount', {
+      .request<RescanResponse>('wallet/rescanAccount', {
         follow: false,
         from: 2,
       })
@@ -139,7 +143,7 @@ describe('Route wallet/rescanAccount', () => {
     const updateHead = jest.spyOn(account, 'updateHead').mockReturnValue(Promise.resolve())
 
     await routeTest.client
-      .request<RescanAccountResponse>('wallet/rescanAccount', {
+      .request<RescanResponse>('wallet/rescanAccount', {
         follow: false,
         from: 1,
       })
@@ -160,7 +164,7 @@ describe('Route wallet/rescanAccount', () => {
     jest.spyOn(routeTest.node.wallet, 'scanTransactions').mockReturnValue(Promise.resolve())
 
     await routeTest.client
-      .request<RescanAccountResponse>('wallet/rescanAccount', {
+      .request<RescanResponse>('wallet/rescanAccount', {
         follow: false,
         full: true,
       })

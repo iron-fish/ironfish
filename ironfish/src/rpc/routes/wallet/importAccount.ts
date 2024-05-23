@@ -89,7 +89,7 @@ routes.register<typeof ImportAccountRequestSchema, ImportResponse>(
 
     if (request.data.rescan) {
       if (context.wallet.nodeClient) {
-        void context.wallet.scanTransactions(undefined, true)
+        void context.wallet.scan({ force: true })
       }
     } else {
       await context.wallet.skipRescan(account)
