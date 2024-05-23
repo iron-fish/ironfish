@@ -197,8 +197,9 @@ impl PublicAccountDescription {
         Ok(hasher.finalize().into())
     }
 
-    pub fn sign(&mut self, signatures: &Vec<Signature>) -> Result<(), IronfishError> {
-        self.verify(signatures)?;
+    pub fn sign(&mut self, signatures: impl IntoIterator<Item = Signature>) -> Result<(), IronfishError> {
+        let signatures = signatures.into_iter().collect::<Vec<_>>();
+        self.verify(&signatures)?;
         self.signatures.extend(signatures);
         Ok(())
     }
@@ -211,15 +212,15 @@ impl PublicAccountDescription {
         self.min_signers
     }
 
-    pub fn signers(&self) -> &Vec<VerifyingKey> {
+    pub fn signers(&self) -> &[VerifyingKey] {
         &self.signers
     }
 
-    pub fn signatures(&self) -> &Vec<Signature> {
+    pub fn signatures(&self) -> &[Signature] {
         &self.signatures
     }
 
-    pub fn transfers(&self) -> &Vec<Transfer> {
+    pub fn transfers(&self) -> &[Transfer] {
         &self.transfers
     }
 
@@ -261,7 +262,7 @@ mod tests {
         let signature = signing_key.sign(&hash);
 
         original
-            .sign(&vec![signature])
+            .sign(vec![signature])
             .expect("Should be valid/verified creation");
         
         assert_eq!(original.signatures.len(), 1);
