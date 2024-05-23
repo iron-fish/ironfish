@@ -343,7 +343,7 @@ export class BridgeCommand extends IronfishCommand {
     )
     const feeString = CurrencyUtils.render(raw.fee, true)
 
-    const destinationChainFeeString = CurrencyUtils.render(
+    const targetChainFeeString = CurrencyUtils.render(
       BigInt(txn.gas_fee_output.amount),
       true,
       asset.web3_address,
@@ -377,13 +377,15 @@ export class BridgeCommand extends IronfishCommand {
 
     const summary = `\
 \nBRIDGE TRANSACTION SUMMARY:
+
 From                           ${from}
 To                             ${to}
 Target Network                 ${network.name}
+Estimated Amount Received      ${bridgeAmountString}
 
-Bridge Amount                  ${bridgeAmountString}
+Fees:
 Chainport Fee                  ${bridgeFeeAmountString}
-Destination Network Fee        ${destinationChainFeeString}
+Target Network Fee             ${targetChainFeeString}
 Ironfish Network Fee           ${feeString}
 
 Outputs                        ${raw.outputs.length}
