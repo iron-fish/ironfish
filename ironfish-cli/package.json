@@ -93,7 +93,9 @@
       "@oclif/plugin-warn-if-update-available",
       "@oclif/plugin-autocomplete"
     ],
-    "topics": {}
+    "topics": {
+      "wallet:scanning": { "description": "Turn on or off scanning for accounts" }
+    }
   },
   "bin": {
     "ironfish": "./bin/run"
