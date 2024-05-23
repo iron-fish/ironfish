@@ -129,14 +129,14 @@ export const fetchChainportVerifiedTokens = async (network_id: number) => {
 export const fetchBridgeTransactionDetails = async (
   networkId: number,
   amount: bigint,
-  assetId: string,
   to: string,
-  selectedNetwork: string,
+  network: ChainportNetwork,
+  asset: ChainportVerifiedToken,
 ) => {
   const config = getNetworkConfig(networkId)
-  const url = `${
-    config.endpoint
-  }/ironfish/metadata?raw_amount=${amount.toString()}&asset_id=${assetId}&target_network_id=${selectedNetwork}&target_web3_address=${to}`
+  const url = `${config.endpoint}/ironfish/metadata?raw_amount=${amount.toString()}&asset_id=${
+    asset.web3_address
+  }&target_network_id=${network.chainport_network_id.toString()}&target_web3_address=${to}`
 
   const response: {
     data: ChainportBridgeTransaction
