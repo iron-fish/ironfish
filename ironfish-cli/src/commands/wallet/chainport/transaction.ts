@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { TESTNET, TransactionStatus } from '@ironfish/sdk'
-import { Flags } from '@oclif/core'
+import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 import {
@@ -14,8 +14,8 @@ import {
 } from '../../../utils/chainport'
 import { watchTransaction } from '../../../utils/transaction'
 
-export class StatusCommand extends IronfishCommand {
-  static description = `Display the status of an outgoing chainport bridge transaction`
+export class TransactionCommand extends IronfishCommand {
+  static description = `Display the status of a chainport bridge transaction`
   static hidden = true
 
   static flags = {
@@ -42,7 +42,7 @@ export class StatusCommand extends IronfishCommand {
 
   async start(): Promise<void> {
     const client = await this.sdk.connectRpc()
-    const { flags, args } = await this.parse(StatusCommand)
+    const { flags, args } = await this.parse(TransactionCommand)
     const hash = args.hash as string
     const account = args.account as string | undefined
     const networkId = (await client.chain.getNetworkInfo()).content.networkId
@@ -103,7 +103,9 @@ export class StatusCommand extends IronfishCommand {
       return
     }
 
+    CliUx.ux.action.start('Fetching transaction status on target network')
     const transactionStatus = await getChainportTransactionStatus(networkId, hash)
+    CliUx.ux.action.stop()
 
     this.logger.debug(JSON.stringify(transactionStatus, null, 2))
 
