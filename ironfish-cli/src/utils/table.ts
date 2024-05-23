@@ -148,16 +148,5 @@ export const TableFlags = {
     default(context) {
       return Promise.resolve(!context.flags['truncate'])
     },
-    relationships: [
-      {
-        type: 'all',
-        flags: [
-          {
-            name: 'truncate',
-            when: async (flags) => Promise.resolve(flags['truncate'] === true),
-          },
-        ],
-      },
-    ],
   }),
 }
