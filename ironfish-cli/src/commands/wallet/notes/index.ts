@@ -5,9 +5,9 @@ import { CurrencyUtils, RpcAsset } from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
-import { TableCols } from '../../../utils/table'
+import { TableCols, TableFlags } from '../../../utils/table'
 
-const { sort: _, ...tableFlags } = CliUx.ux.table.flags()
+const { sort: _, ...tableFlags } = TableFlags
 export class NotesCommand extends IronfishCommand {
   static description = `Display the account notes`
 

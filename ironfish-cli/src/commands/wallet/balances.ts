@@ -6,6 +6,7 @@ import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { compareAssets, renderAssetWithVerificationStatus } from '../../utils'
+import { TableFlags } from '../../utils/table'
 
 type AssetBalancePairs = { asset: RpcAsset; balance: GetBalancesResponse['balances'][number] }
 
@@ -14,7 +15,7 @@ export class BalancesCommand extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
-    ...CliUx.ux.table.flags(),
+    ...TableFlags,
     all: Flags.boolean({
       default: false,
       description: `Also show unconfirmed balance, head hash, and head sequence`,
@@ -120,6 +121,6 @@ export class BalancesCommand extends IronfishCommand {
       ),
     )
 
-    CliUx.ux.table(assetBalancePairs, columns, flags)
+    CliUx.ux.table(assetBalancePairs, columns, { ...flags })
   }
 }

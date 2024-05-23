@@ -6,8 +6,9 @@ import { CliUx, Flags } from '@oclif/core'
 import blessed from 'blessed'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
+import { TableFlags } from '../../utils/table'
 
-const { sort, ...tableFlags } = CliUx.ux.table.flags()
+const { sort, ...tableFlags } = TableFlags
 
 export class BannedCommand extends IronfishCommand {
   static description = `List all banned peers`
