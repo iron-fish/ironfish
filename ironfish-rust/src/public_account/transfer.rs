@@ -5,6 +5,8 @@ use crate::{assets::asset_identifier::AssetIdentifier, errors::IronfishError, Pu
 #[derive(Clone, Copy)]
 pub struct PublicMemo(pub [u8; 256]);
 
+pub const TRANSFER_BYTE_SIZE: usize = 32 + 8 + 32 + 256;
+
 #[derive(Clone, Copy)]
 pub struct Transfer {
     pub(crate) asset_id: AssetIdentifier,
@@ -36,18 +38,18 @@ impl Transfer {
         })
     }
 
-    pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
-        self.asset_id.write(&mut writer)?;
-        writer.write_all(&self.amount.to_le_bytes())?;
-        self.to.write(&mut writer)?;
-        writer.write_all(&self.memo.0)?;
-
-        Ok(())
-    }
-
-    pub fn as_bytes(&self) -> Result<Vec<u8>, IronfishError> {
-        let mut bytes = Vec::new();
-        self.write(&mut bytes)?;
+    pub fn to_bytes(&self) -> Result<[u8; TRANSFER_BYTE_SIZE], IronfishError> {
+        let mut bytes = [0u8; TRANSFER_BYTE_SIZE];
+        bytes[0..32].copy_from_slice(self.asset_id.as_bytes());
+        bytes[32..40].copy_from_slice(&self.amount.to_le_bytes());
+        bytes[40..72].copy_from_slice(&self.to.public_address());
+        bytes[72..328].copy_from_slice(&self.memo.0);
         Ok(bytes)
+    }
+    
+    pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
+        let bytes = self.to_bytes()?;
+        writer.write_all(&bytes)?;
+        Ok(())
     }
 }

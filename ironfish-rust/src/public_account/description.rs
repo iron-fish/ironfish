@@ -3,14 +3,15 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use ed25519_dalek::{Signature, Verifier, VerifyingKey};
-use std::io;
+use std::{collections::HashMap, io};
 
 use crate::{
     errors::{IronfishError, IronfishErrorKind},
     PublicAddress,
 };
 
-use super::transfer::{Transfer};
+use super::transfer::Transfer;
+use std::collections::HashSet;
 
 #[derive(Clone)]
 pub struct PublicAccountDescription {
@@ -33,17 +34,17 @@ impl PublicAccountDescription {
     pub fn new(
         version: u8,
         min_signers: u16,
-        signers: Vec<VerifyingKey>,
-        transfers: Vec<Transfer>,
+        signers:impl IntoIterator<Item = VerifyingKey>,
+        transfers: impl IntoIterator<Item = Transfer>,
         address: PublicAddress,
     ) -> Result<PublicAccountDescription, IronfishError> {
         let description = Self {
             version,
             min_signers,
-            signers,
+            signers: signers.into_iter().collect(),
             signatures: vec![],
             address,
-            transfers,
+            transfers: transfers.into_iter().collect(),
         };
 
         description.valid()?;
@@ -148,33 +149,32 @@ impl PublicAccountDescription {
             return Err(IronfishError::new(IronfishErrorKind::InvalidThreshold));
         }
 
-        let unique_signers: Vec<_> = self.signers.iter().collect();
+        let unique_signers: HashSet<_> = self.signers.iter().collect();
         if unique_signers.len() != self.signers.len() {
             return Err(IronfishError::new(IronfishErrorKind::DuplicateSigner));
-        }
-
-        let unique_signatures: Vec<_> = self.signatures.iter().collect();
-        if unique_signatures.len() != self.signatures.len() {
-            return Err(IronfishError::new(IronfishErrorKind::DuplicateSignature));
         }
 
         Ok(())
     }
 
-    fn verify(&self) -> Result<(), IronfishError> {
+    fn verify(&self, signatures: &Vec<Signature>) -> Result<(), IronfishError> {
         self.valid()?;
 
-        let hash = &self.hash()?;
-        for signature in &self.signatures {
-            let is_valid = self
+        let mut signers = HashMap::new();
+        let hash = self.hash()?;
+        for signature in signatures {
+            let signer = self
                 .signers
                 .iter()
-                .any(|signer| signer.verify(hash, signature).is_ok());
-
-            if !is_valid {
-                return Err(IronfishError::new(IronfishErrorKind::InvalidSignature));
-            }
+                .filter(|signer| signer.verify(&hash, &signature).is_ok())
+                .next();
+            match signer {
+                None => return Err(IronfishError::new(IronfishErrorKind::InvalidSignature)),
+                Some(signer) => signers.entry(signer.clone()).and_modify(|count| *count += 1).or_insert(1),
+            };
         }
+        if signers.len() < self.min_signers.into() { return Err(IronfishError::new(IronfishErrorKind::SignatureThresholdNotMet)) }
+        if signers.values().any(|count| *count > 1) { return Err(IronfishError::new(IronfishErrorKind::DuplicateSigner)) }
         Ok(())
     }
 
@@ -191,15 +191,16 @@ impl PublicAccountDescription {
         let transfer_len = self.transfers.len() as u16;
         hasher.update(&transfer_len.to_le_bytes());
         for transfer in &self.transfers {
-            hasher.update(&transfer.as_bytes()?);
+            hasher.update(&transfer.to_bytes()?);
         }
         hasher.update(&self.address.public_address());
         Ok(hasher.finalize().into())
     }
 
-    pub fn add_signatures(&mut self, signatures: Vec<Signature>) -> Result<(), IronfishError> {
+    pub fn sign(&mut self, signatures: &Vec<Signature>) -> Result<(), IronfishError> {
+        self.verify(signatures)?;
         self.signatures.extend(signatures);
-        self.verify()
+        Ok(())
     }
 
     pub fn version(&self) -> u8 {
@@ -260,8 +261,10 @@ mod tests {
         let signature = signing_key.sign(&hash);
 
         original
-            .add_signatures(vec![signature])
+            .sign(&vec![signature])
             .expect("Should be valid/verified creation");
+        
+        assert_eq!(original.signatures.len(), 1);
 
         let mut buffer = Vec::new();
         original.write(&mut buffer).unwrap();

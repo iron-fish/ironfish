@@ -55,6 +55,7 @@ pub enum IronfishErrorKind {
     InvalidSecret,
     InvalidRandomizer,
     InvalidSignature,
+    InvalidSigner,
     InvalidSigningKey,
     InvalidSpendProof,
     InvalidSpendSignature,
@@ -68,6 +69,7 @@ pub enum IronfishErrorKind {
     IsSmallOrder,
     RandomnessError,
     RoundTwoSigningFailure,
+    SignatureThresholdNotMet,
     TryFromInt,
     Utf8,
 }
