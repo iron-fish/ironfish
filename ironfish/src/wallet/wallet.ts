@@ -484,6 +484,10 @@ export class Wallet {
     scan?: ScanState,
   ): Promise<void> {
     const accounts = await AsyncUtils.filter(this.listAccounts(), async (account) => {
+      if (!account.scanningEnabled) {
+        return false
+      }
+
       const accountHead = await account.getHead()
 
       if (!accountHead) {
@@ -712,6 +716,10 @@ export class Wallet {
     transactions: WalletBlockTransaction[],
   ): Promise<void> {
     const accounts = await AsyncUtils.filter(this.listAccounts(), async (account) => {
+      if (!account.scanningEnabled) {
+        return false
+      }
+
       const accountHead = await account.getHead()
 
       return BufferUtils.equalsNullable(accountHead?.hash ?? null, header.hash)
@@ -1520,6 +1528,7 @@ export class Wallet {
         publicAddress: key.publicAddress,
         spendingKey: key.spendingKey,
         viewKey: key.viewKey,
+        scanningEnabled: true,
         createdAt,
       },
       walletDb: this.walletDb,
@@ -1619,6 +1628,7 @@ export class Wallet {
         createdAt,
         name,
         multisigKeys,
+        scanningEnabled: true,
       },
       walletDb: this.walletDb,
     })
@@ -1799,6 +1809,10 @@ export class Wallet {
   async getEarliestHeadHash(): Promise<Buffer | null> {
     let earliestHead = null
     for (const account of this.accounts.values()) {
+      if (!account.scanningEnabled) {
+        continue
+      }
+
       const head = await account.getHead()
 
       if (!head) {
@@ -1817,6 +1831,10 @@ export class Wallet {
     let latestHead = null
 
     for (const account of this.accounts.values()) {
+      if (!account.scanningEnabled) {
+        continue
+      }
+
       const head = await account.getHead()
 
       if (!head) {

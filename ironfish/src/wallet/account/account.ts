@@ -71,6 +71,7 @@ export class Account {
   readonly version: number
   publicAddress: string
   createdAt: HeadValue | null
+  scanningEnabled: boolean
   readonly prefix: Buffer
   readonly prefixRange: DatabaseKeyRange
   readonly multisigKeys?: MultisigKeys
@@ -93,6 +94,7 @@ export class Account {
     this.walletDb = walletDb
     this.version = accountValue.version ?? 1
     this.createdAt = accountValue.createdAt
+    this.scanningEnabled = accountValue.scanningEnabled
     this.multisigKeys = accountValue.multisigKeys
     this.proofAuthorizingKey = accountValue.proofAuthorizingKey
   }
@@ -112,6 +114,7 @@ export class Account {
       outgoingViewKey: this.outgoingViewKey,
       publicAddress: this.publicAddress,
       createdAt: this.createdAt,
+      scanningEnabled: this.scanningEnabled,
       multisigKeys: this.multisigKeys,
       proofAuthorizingKey: this.proofAuthorizingKey,
     }
@@ -1248,6 +1251,14 @@ export class Account {
   async updateCreatedAt(createdAt: HeadValue | null, tx?: IDatabaseTransaction): Promise<void> {
     this.createdAt = createdAt
 
+    await this.walletDb.setAccount(this, tx)
+  }
+
+  async updateScanningEnabled(
+    scanningEnabled: boolean,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    this.scanningEnabled = scanningEnabled
     await this.walletDb.setAccount(this, tx)
   }
 

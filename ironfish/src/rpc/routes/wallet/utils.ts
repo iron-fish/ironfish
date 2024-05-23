@@ -299,6 +299,7 @@ export async function serializeRpcAccountStatus(
           inChain: wallet.nodeClient ? await wallet.chainHasBlock(head.hash) : null,
         }
       : null,
+    scanningEnabled: account.scanningEnabled,
     viewOnly: !account.isSpendingAccount(),
   }
 }

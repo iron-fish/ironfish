@@ -3,13 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { PUBLIC_ADDRESS_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
-import { IDatabaseEncoding } from '../../storage'
-import { ACCOUNT_KEY_LENGTH } from '../account/account'
-import { MultisigKeys } from '../interfaces/multisigKeys'
-import { HeadValue, NullableHeadValueEncoding } from './headValue'
-import { MultisigKeysEncoding } from './multisigKeys'
+import { IDatabaseEncoding } from '../../../../storage'
+import { HeadValue, NullableHeadValueEncoding } from './HeadValue'
+import { MultisigKeys, MultisigKeysEncoding } from './MultisigKeys'
 
-export const KEY_LENGTH = ACCOUNT_KEY_LENGTH
+const KEY_LENGTH = 32
 export const VIEW_KEY_LENGTH = 64
 const VERSION_LENGTH = 2
 
@@ -23,7 +21,6 @@ export interface AccountValue {
   outgoingViewKey: string
   publicAddress: string
   createdAt: HeadValue | null
-  scanningEnabled: boolean
   multisigKeys?: MultisigKeys
   proofAuthorizingKey: string | null
 }
@@ -36,16 +33,13 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     flags |= Number(!!value.createdAt) << 1
     flags |= Number(!!value.multisigKeys) << 2
     flags |= Number(!!value.proofAuthorizingKey) << 3
-    flags |= Number(!!value.scanningEnabled) << 4
     bw.writeU8(flags)
     bw.writeU16(value.version)
     bw.writeVarString(value.id, 'utf8')
     bw.writeVarString(value.name, 'utf8')
-
     if (value.spendingKey) {
       bw.writeBytes(Buffer.from(value.spendingKey, 'hex'))
     }
-
     bw.writeBytes(Buffer.from(value.viewKey, 'hex'))
     bw.writeBytes(Buffer.from(value.incomingViewKey, 'hex'))
     bw.writeBytes(Buffer.from(value.outgoingViewKey, 'hex'))
@@ -77,7 +71,6 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     const hasCreatedAt = flags & (1 << 1)
     const hasMultisigKeys = flags & (1 << 2)
     const hasProofAuthorizingKey = flags & (1 << 3)
-    const scanningEnabled = Boolean(flags & (1 << 4))
     const id = reader.readVarString('utf8')
     const name = reader.readVarString('utf8')
     const spendingKey = hasSpendingKey ? reader.readBytes(KEY_LENGTH).toString('hex') : null
@@ -113,7 +106,6 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
       spendingKey,
       publicAddress,
       createdAt,
-      scanningEnabled,
       multisigKeys,
       proofAuthorizingKey,
     }
@@ -132,12 +124,10 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     size += KEY_LENGTH
     size += KEY_LENGTH
     size += PUBLIC_ADDRESS_LENGTH
-
     if (value.createdAt) {
       const encoding = new NullableHeadValueEncoding()
       size += encoding.nonNullSize
     }
-
     if (value.multisigKeys) {
       const encoding = new MultisigKeysEncoding()
       size += 8 // size of multi sig keys
