@@ -238,7 +238,7 @@ export class BridgeCommand extends IronfishCommand {
       assetData.verification.status = 'verified'
     }
 
-    const network = await this.selectNetwork(networkId, targetNetworks)
+    const network = await this.selectNetwork(networkId, targetNetworks, asset)
 
     let amount
     if (flags.amount) {
@@ -395,7 +395,11 @@ Expiration                     ${raw.expiration ? raw.expiration.toString() : ''
     this.logger.log(summary)
   }
 
-  async selectNetwork(networkId: number, targetNetworks: number[]): Promise<ChainportNetwork> {
+  async selectNetwork(
+    networkId: number,
+    targetNetworks: number[],
+    asset: ChainportVerifiedToken,
+  ): Promise<ChainportNetwork> {
     const networks = await fetchChainportNetworks(networkId)
     const choices = Object.keys(networks).map((key) => {
       return {
@@ -413,7 +417,7 @@ Expiration                     ${raw.expiration ? raw.expiration.toString() : ''
     }>([
       {
         name: 'selection',
-        message: `Select the network you would like to bridge IRON to`,
+        message: `Select the network you would like to bridge ${asset.symbol} to`,
         type: 'list',
         choices: filteredChoices,
       },
