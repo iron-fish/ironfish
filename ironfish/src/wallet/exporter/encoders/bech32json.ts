@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Bech32m } from '../../../utils'
-import { AccountImport } from '../../walletdb/accountValue'
-import { AccountDecodingOptions, AccountEncoder, DecodeFailed } from './encoder'
+import { AccountImport } from '../accountImport'
+import { AccountDecodingOptions, AccountEncoder, DecodeFailed } from '../encoder'
 import { JsonEncoder } from './json'
 export class Bech32JsonEncoder implements AccountEncoder {
   /**

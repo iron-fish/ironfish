@@ -21,9 +21,9 @@ import { AssetValue } from '../walletdb/assetValue'
 import { BalanceValue } from '../walletdb/balanceValue'
 import { DecryptedNoteValue } from '../walletdb/decryptedNoteValue'
 import { HeadValue } from '../walletdb/headValue'
+import { isSignerMultisig } from '../walletdb/multisigKeys'
 import { TransactionValue } from '../walletdb/transactionValue'
 import { WalletDB } from '../walletdb/walletdb'
-import { isSignerMultisig } from './encoder/multisigKeys'
 
 export const ACCOUNT_KEY_LENGTH = 32
 
@@ -71,43 +71,32 @@ export class Account {
   readonly version: number
   publicAddress: string
   createdAt: HeadValue | null
+  scanningEnabled: boolean
   readonly prefix: Buffer
   readonly prefixRange: DatabaseKeyRange
   readonly multisigKeys?: MultisigKeys
   readonly proofAuthorizingKey: string | null
 
-  constructor({
-    id,
-    name,
-    publicAddress,
-    walletDb,
-    spendingKey,
-    viewKey,
-    incomingViewKey,
-    outgoingViewKey,
-    version,
-    createdAt,
-    multisigKeys,
-    proofAuthorizingKey,
-  }: AccountValue & { walletDb: WalletDB }) {
-    this.id = id
-    this.name = name
-    this.spendingKey = spendingKey
-    this.viewKey = viewKey
-    this.incomingViewKey = incomingViewKey
-    this.outgoingViewKey = outgoingViewKey
-    this.publicAddress = publicAddress
+  constructor({ accountValue, walletDb }: { accountValue: AccountValue; walletDb: WalletDB }) {
+    this.id = accountValue.id
+    this.name = accountValue.name
+    this.spendingKey = accountValue.spendingKey
+    this.viewKey = accountValue.viewKey
+    this.incomingViewKey = accountValue.incomingViewKey
+    this.outgoingViewKey = accountValue.outgoingViewKey
+    this.publicAddress = accountValue.publicAddress
 
-    this.prefix = calculateAccountPrefix(id)
+    this.prefix = calculateAccountPrefix(accountValue.id)
     this.prefixRange = StorageUtils.getPrefixKeyRange(this.prefix)
 
-    this.displayName = `${name} (${id.slice(0, 7)})`
+    this.displayName = `${accountValue.name} (${accountValue.id.slice(0, 7)})`
 
     this.walletDb = walletDb
-    this.version = version ?? 1
-    this.createdAt = createdAt
-    this.multisigKeys = multisigKeys
-    this.proofAuthorizingKey = proofAuthorizingKey
+    this.version = accountValue.version ?? 1
+    this.createdAt = accountValue.createdAt
+    this.scanningEnabled = accountValue.scanningEnabled
+    this.multisigKeys = accountValue.multisigKeys
+    this.proofAuthorizingKey = accountValue.proofAuthorizingKey
   }
 
   isSpendingAccount(): this is SpendingAccount {
@@ -125,6 +114,7 @@ export class Account {
       outgoingViewKey: this.outgoingViewKey,
       publicAddress: this.publicAddress,
       createdAt: this.createdAt,
+      scanningEnabled: this.scanningEnabled,
       multisigKeys: this.multisigKeys,
       proofAuthorizingKey: this.proofAuthorizingKey,
     }
@@ -1261,6 +1251,14 @@ export class Account {
   async updateCreatedAt(createdAt: HeadValue | null, tx?: IDatabaseTransaction): Promise<void> {
     this.createdAt = createdAt
 
+    await this.walletDb.setAccount(this, tx)
+  }
+
+  async updateScanningEnabled(
+    scanningEnabled: boolean,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    this.scanningEnabled = scanningEnabled
     await this.walletDb.setAccount(this, tx)
   }
 

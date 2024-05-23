@@ -153,6 +153,8 @@ import type {
   SendTransactionResponse,
   SetConfigRequest,
   SetConfigResponse,
+  SetScanningRequest,
+  SetScanningResponse,
   ShowChainRequest,
   ShowChainResponse,
   StopNodeResponse,
@@ -574,6 +576,15 @@ export abstract class RpcClient {
     ): Promise<RpcResponseEnded<BuildTransactionResponse>> => {
       return this.request<BuildTransactionResponse>(
         `${ApiNamespace.wallet}/buildTransaction`,
+        params,
+      ).waitForEnd()
+    },
+
+    setScanning: (
+      params: SetScanningRequest,
+    ): Promise<RpcResponseEnded<SetScanningResponse>> => {
+      return this.request<SetScanningResponse>(
+        `${ApiNamespace.wallet}/setScanning`,
         params,
       ).waitForEnd()
     },

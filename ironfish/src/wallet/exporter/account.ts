@@ -1,20 +1,15 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Assert } from '../../../assert'
-import { AccountImport } from '../../walletdb/accountValue'
-import { Base64JsonEncoder } from './base64json'
-import { Bech32Encoder } from './bech32'
-import { Bech32JsonEncoder } from './bech32json'
-import {
-  AccountDecodingOptions,
-  AccountEncodingOptions,
-  AccountFormat,
-  DecodeFailed,
-} from './encoder'
-import { JsonEncoder } from './json'
-import { MnemonicEncoder } from './mnemonic'
-import { SpendingKeyEncoder } from './spendingKey'
+import { Assert } from '../../assert'
+import { AccountImport } from './accountImport'
+import { AccountDecodingOptions, AccountEncodingOptions, DecodeFailed } from './encoder'
+import { Base64JsonEncoder } from './encoders/base64json'
+import { Bech32Encoder } from './encoders/bech32'
+import { Bech32JsonEncoder } from './encoders/bech32json'
+import { JsonEncoder } from './encoders/json'
+import { MnemonicEncoder } from './encoders/mnemonic'
+import { SpendingKeyEncoder } from './encoders/spendingKey'
 
 const ENCODER_VERSIONS = [
   JsonEncoder,
@@ -25,7 +20,14 @@ const ENCODER_VERSIONS = [
   Base64JsonEncoder,
 ]
 
-export function encodeAccount(
+export enum AccountFormat {
+  Base64Json = 'Base64Json',
+  JSON = 'JSON',
+  Mnemonic = 'Mnemonic',
+  SpendingKey = 'SpendingKey',
+}
+
+export function encodeAccountImport(
   value: AccountImport,
   format: AccountFormat,
   options: AccountEncodingOptions = {},
@@ -44,7 +46,7 @@ export function encodeAccount(
   }
 }
 
-export function decodeAccount(
+export function decodeAccountImport(
   value: string,
   options: AccountDecodingOptions = {},
 ): AccountImport {

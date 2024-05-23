@@ -5,12 +5,12 @@ import { Config } from '../../../fileStores'
 import { Note } from '../../../primitives'
 import { BufferUtils, CurrencyUtils } from '../../../utils'
 import { Account, Base64JsonEncoder, Wallet } from '../../../wallet'
+import { AccountImport } from '../../../wallet/exporter/accountImport'
 import {
   isMultisigSignerImport,
   isMultisigSignerTrustedDealerImport,
   MultisigKeysImport,
-} from '../../../wallet/interfaces/multisigKeys'
-import { AccountImport } from '../../../wallet/walletdb/accountValue'
+} from '../../../wallet/exporter/multisig'
 import { AssetValue } from '../../../wallet/walletdb/assetValue'
 import { DecryptedNoteValue } from '../../../wallet/walletdb/decryptedNoteValue'
 import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
@@ -98,6 +98,28 @@ export async function serializeRpcWalletTransaction(
     status,
     assetBalanceDeltas,
     confirmations,
+  }
+}
+
+export const serializeRpcImportAccount = (accountImport: AccountImport): RpcAccountImport => {
+  const createdAt = accountImport.createdAt
+    ? {
+        hash: accountImport.createdAt.hash.toString('hex'),
+        sequence: accountImport.createdAt.sequence,
+      }
+    : null
+
+  return {
+    version: accountImport.version,
+    name: accountImport.name,
+    viewKey: accountImport.viewKey,
+    incomingViewKey: accountImport.incomingViewKey,
+    outgoingViewKey: accountImport.outgoingViewKey,
+    publicAddress: accountImport.publicAddress,
+    spendingKey: accountImport.spendingKey,
+    multisigKeys: accountImport.multisigKeys,
+    proofAuthorizingKey: accountImport.proofAuthorizingKey,
+    createdAt: createdAt,
   }
 }
 
@@ -277,6 +299,7 @@ export async function serializeRpcAccountStatus(
           inChain: wallet.nodeClient ? await wallet.chainHasBlock(head.hash) : null,
         }
       : null,
+    scanningEnabled: account.scanningEnabled,
     viewOnly: !account.isSpendingAccount(),
   }
 }

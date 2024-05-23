@@ -6,10 +6,11 @@ import { Assert } from '../../../assert'
 import { Blockchain } from '../../../blockchain'
 import { VerificationResult } from '../../../consensus/verifier'
 import { createRootLogger, Logger } from '../../../logger'
-import { getTransactionSize } from '../../../network/utils/serializers'
-import { Transaction } from '../../../primitives'
+import { getBlockSize, getTransactionSize } from '../../../network/utils/serializers'
+import { Block, Transaction } from '../../../primitives'
 import { BlockHeader } from '../../../primitives/blockheader'
 import { BlockchainUtils, BufferUtils, HashUtils } from '../../../utils'
+import { RpcBlock, serializeRpcBlockHeader } from '../types'
 import { RpcTransaction } from './types'
 
 const DEFAULT_OPTIONS = {
@@ -162,6 +163,21 @@ export async function renderGraph(
     if (!last) {
       content.push(indent + '')
     }
+  }
+}
+
+export const serializeRpcBlock = (block: Block, serialized?: boolean): RpcBlock => {
+  const blockHeaderResponse = serializeRpcBlockHeader(block.header)
+
+  const transactions: RpcTransaction[] = []
+  for (const tx of block.transactions) {
+    transactions.push(serializeRpcTransaction(tx, serialized))
+  }
+
+  return {
+    ...blockHeaderResponse,
+    size: getBlockSize(block),
+    transactions,
   }
 }
 

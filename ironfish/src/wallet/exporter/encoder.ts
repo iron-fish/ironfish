@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { multisig } from '@ironfish/rust-nodejs'
-import { LanguageKey } from '../../../utils'
-import { AccountImport } from '../../walletdb/accountValue'
+import { LanguageKey } from '../../utils'
+import { AccountImport } from './accountImport'
 
 export class DecodeInvalid extends Error {}
 
@@ -22,13 +22,6 @@ export class DecodeFailed extends Error {
 
 export class MultisigSecretNotFound extends DecodeInvalid {
   name = this.constructor.name
-}
-
-export enum AccountFormat {
-  Base64Json = 'Base64Json',
-  JSON = 'JSON',
-  Mnemonic = 'Mnemonic',
-  SpendingKey = 'SpendingKey',
 }
 
 export interface MultisigIdentityEncryption {
@@ -61,6 +54,5 @@ export type AccountDecodingOptions = {
 
 export type AccountEncoder = {
   encode(value: AccountImport, options?: AccountEncodingOptions): string
-
   decode(value: string, options?: AccountDecodingOptions): AccountImport
 }

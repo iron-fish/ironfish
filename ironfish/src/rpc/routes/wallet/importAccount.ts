@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { DecodeInvalidName, MultisigSecretNotFound } from '../../../wallet'
-import { decodeAccount } from '../../../wallet/account/encoder/account'
-import { BASE64_JSON_MULTISIG_ENCRYPTED_ACCOUNT_PREFIX } from '../../../wallet/account/encoder/base64json'
 import { DuplicateAccountNameError } from '../../../wallet/errors'
+import { decodeAccountImport } from '../../../wallet/exporter/account'
+import { BASE64_JSON_MULTISIG_ENCRYPTED_ACCOUNT_PREFIX } from '../../../wallet/exporter/encoders/base64json'
 import { RPC_ERROR_CODES, RpcValidationError } from '../../adapters'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
@@ -62,7 +62,7 @@ routes.register<typeof ImportAccountRequestSchema, ImportResponse>(
         }
 
         if (!accountImport) {
-          accountImport = decodeAccount(request.data.account, { name })
+          accountImport = decodeAccountImport(request.data.account, { name })
         }
       } else {
         accountImport = deserializeRpcAccountImport(request.data.account)

@@ -36,6 +36,7 @@ describe('Route wallet/getAccountsStatus', () => {
             sequence: routeTest.chain.head.sequence,
             inChain: true,
           },
+          scanningEnabled: true,
           viewOnly: false,
         },
       ],
@@ -60,7 +61,34 @@ describe('Route wallet/getAccountsStatus', () => {
           name: account.name,
           id: account.id,
           head: null,
+          scanningEnabled: true,
           viewOnly: true,
+        },
+      ],
+    })
+  })
+
+  it('returns false when scanning is disabled', async () => {
+    const account = await routeTest.node.wallet.createAccount(uuid(), {
+      setCreatedAt: true,
+      setDefault: true,
+    })
+    await routeTest.client.wallet.setScanning({ account: account.name, enabled: false })
+    const response = await routeTest.client.wallet.getAccountsStatus()
+
+    expect(response.status).toBe(200)
+    expect(response.content).toMatchObject({
+      accounts: [
+        {
+          name: account.name,
+          id: account.id,
+          head: {
+            hash: routeTest.chain.head.hash.toString('hex'),
+            sequence: routeTest.chain.head.sequence,
+            inChain: true,
+          },
+          scanningEnabled: false,
+          viewOnly: false,
         },
       ],
     })

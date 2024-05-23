@@ -29,7 +29,7 @@ export class RescanCommand extends IronfishCommand {
       hidden: true,
     }),
     full: Flags.boolean({
-      description: 'Force a full rescan of the chain starting from the genesis block',
+      description: `Rescan from the genesis block, ignoring the 'createdAt' field on accounts. Useful if an account may have received a transaction before its 'createdAt' block.`,
     }),
   }
 

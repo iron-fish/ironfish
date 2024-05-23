@@ -87,7 +87,7 @@ export class TransactionViewCommand extends IronfishCommand {
       })
     }
 
-    choices.sort()
+    choices.sort((a, b) => a.account.localeCompare(b.account))
 
     const selection = await inquirer.prompt<{
       account: string

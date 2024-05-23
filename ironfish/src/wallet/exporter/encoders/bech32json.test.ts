@@ -4,6 +4,7 @@
 
 import { Assert } from '../../../assert'
 import { Bech32JsonEncoder } from './bech32json'
+
 describe('Bech32JsonEncoder', () => {
   describe('encoding/decoding', () => {
     it('encodes the value into a AccountImport and deserializes to the original value', () => {

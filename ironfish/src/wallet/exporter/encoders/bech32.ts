@@ -4,9 +4,10 @@
 import { PUBLIC_ADDRESS_LENGTH } from '@ironfish/rust-nodejs'
 import bufio, { EncodingError } from 'bufio'
 import { Bech32m } from '../../../utils'
-import { AccountImport, KEY_LENGTH, VIEW_KEY_LENGTH } from '../../walletdb/accountValue'
-import { ACCOUNT_SCHEMA_VERSION } from '../account'
-import { AccountDecodingOptions, AccountEncoder, DecodeFailed, DecodeInvalid } from './encoder'
+import { ACCOUNT_SCHEMA_VERSION } from '../../account/account'
+import { KEY_LENGTH, VIEW_KEY_LENGTH } from '../../walletdb/accountValue'
+import { AccountImport } from '../accountImport'
+import { AccountDecodingOptions, AccountEncoder, DecodeFailed, DecodeInvalid } from '../encoder'
 import { MultisigKeysEncoding } from './multisigKeys'
 
 export const BECH32_ACCOUNT_PREFIX = 'ifaccount'

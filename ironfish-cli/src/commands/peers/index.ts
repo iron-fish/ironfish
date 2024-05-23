@@ -7,6 +7,7 @@ import blessed from 'blessed'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { CommandFlags } from '../../types'
+import { TableFlags } from '../../utils/table'
 
 type GetPeerResponsePeer = GetPeersResponse['peers'][0]
 
@@ -17,7 +18,7 @@ export class ListCommand extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
-    ...CliUx.ux.table.flags(),
+    ...TableFlags,
     follow: Flags.boolean({
       char: 'f',
       default: false,

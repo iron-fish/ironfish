@@ -8,15 +8,15 @@ import {
   wordsToSpendingKey,
 } from '@ironfish/rust-nodejs'
 import { LanguageUtils } from '../../../utils'
-import { AccountImport } from '../../walletdb/accountValue'
-import { ACCOUNT_SCHEMA_VERSION } from '../account'
+import { ACCOUNT_SCHEMA_VERSION } from '../../account/account'
+import { AccountImport } from '../accountImport'
 import {
   AccountDecodingOptions,
   AccountEncoder,
   AccountEncodingOptions,
   DecodeFailed,
   DecodeInvalidName,
-} from './encoder'
+} from '../encoder'
 
 export class MnemonicEncoder implements AccountEncoder {
   encode(value: AccountImport, options: AccountEncodingOptions): string {

@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import bufio from 'bufio'
-import { Assert } from '../../../assert'
-import { IDatabaseEncoding } from '../../../storage'
-import { MultisigKeys, MultisigSigner } from '../../interfaces/multisigKeys'
+import { Assert } from '../../assert'
+import { IDatabaseEncoding } from '../../storage'
+import { MultisigKeys, MultisigSigner } from '../interfaces/multisigKeys'
 
 export class MultisigKeysEncoding implements IDatabaseEncoding<MultisigKeys> {
   serialize(value: MultisigKeys): Buffer {

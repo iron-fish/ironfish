@@ -9,7 +9,7 @@ import { createRawTransaction } from '../../../testUtilities/helpers/transaction
 import { createRouteTest } from '../../../testUtilities/routeTest'
 
 describe('Route wallet/postTransaction', () => {
-  const routeTest = createRouteTest(true)
+  const routeTest = createRouteTest()
 
   it('should post a raw transaction and not broadcast', async () => {
     const account = await useAccountFixture(routeTest.node.wallet, 'accountA')
@@ -18,11 +18,18 @@ describe('Route wallet/postTransaction', () => {
     const rawTransaction = await createRawTransaction({
       wallet: routeTest.node.wallet,
       from: account,
+      mints: [
+        {
+          creator: account.publicAddress,
+          name: 'test',
+          metadata: 'test',
+          value: 1n,
+        },
+      ],
     })
 
     const response = await routeTest.client.wallet.postTransaction({
       transaction: RawTransactionSerde.serialize(rawTransaction).toString('hex'),
-      account: account.name,
       broadcast: false,
     })
 
@@ -34,20 +41,25 @@ describe('Route wallet/postTransaction', () => {
   })
 
   it('should post a raw transaction', async () => {
-    const account = await useAccountFixture(routeTest.node.wallet, 'existingAccount')
-    const addSpy = jest.spyOn(routeTest.node.wallet, 'addPendingTransaction')
+    const account = await useAccountFixture(routeTest.node.wallet, 'accountA')
 
     const rawTransaction = await createRawTransaction({
       wallet: routeTest.node.wallet,
       from: account,
+      mints: [
+        {
+          creator: account.publicAddress,
+          name: 'test',
+          metadata: 'test',
+          value: 1n,
+        },
+      ],
     })
 
     const response = await routeTest.client.wallet.postTransaction({
       transaction: RawTransactionSerde.serialize(rawTransaction).toString('hex'),
-      account: account.name,
     })
 
-    expect(addSpy).toHaveBeenCalledTimes(1)
     expect(response.status).toBe(200)
     expect(response.content.transaction).toBeDefined()
     const transaction = new Transaction(Buffer.from(response.content.transaction, 'hex'))
@@ -55,7 +67,7 @@ describe('Route wallet/postTransaction', () => {
   })
 
   it("should return an error if the transaction won't deserialize", async () => {
-    const account = await useAccountFixture(routeTest.node.wallet, 'accountB')
+    const account = await useAccountFixture(routeTest.node.wallet, 'accountC')
 
     await expect(
       routeTest.client.wallet.postTransaction({

@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { generateKey } from '@ironfish/rust-nodejs'
 import { Bech32m } from '../../../utils'
-import { AccountImport } from '../../walletdb/accountValue'
-import { ACCOUNT_SCHEMA_VERSION } from '../account'
+import { ACCOUNT_SCHEMA_VERSION } from '../../account/account'
+import { AccountImport } from '../accountImport'
 import { BECH32_ACCOUNT_PREFIX, Bech32Encoder } from './bech32'
 
 describe('Bech32AccountEncoder', () => {

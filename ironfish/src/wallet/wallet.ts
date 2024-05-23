@@ -50,15 +50,15 @@ import {
   MaxMemoLengthError,
   NotEnoughFundsError,
 } from './errors'
+import { AccountImport } from './exporter/accountImport'
+import { isMultisigSignerTrustedDealerImport } from './exporter/multisig'
 import { MintAssetOptions } from './interfaces/mintAssetOptions'
-import { isMultisigSignerTrustedDealerImport } from './interfaces/multisigKeys'
 import {
   RemoteChainProcessor,
   WalletBlockHeader,
   WalletBlockTransaction,
 } from './remoteChainProcessor'
 import { validateAccount } from './validator'
-import { AccountImport } from './walletdb/accountValue'
 import { AssetValue } from './walletdb/assetValue'
 import { DecryptedNoteValue } from './walletdb/decryptedNoteValue'
 import { HeadValue } from './walletdb/headValue'
@@ -165,6 +165,7 @@ export class Wallet {
       await this.connectBlock(header, transactions)
       await this.expireTransactions(header.sequence)
       await this.rebroadcastTransactions(header.sequence)
+      this.updateHeadState?.signal(header.sequence)
     })
 
     this.chainProcessor.onRemove.on(async ({ header, transactions }) => {
@@ -179,10 +180,12 @@ export class Wallet {
       return
     }
 
-    // TODO: this isn't right, as the scan state doesn't get its sequence or
-    // endSequence set properly
     const scan = new ScanState()
     this.updateHeadState = scan
+
+    // Fetch current chain head sequence
+    const chainHead = await this.getChainHead()
+    this.updateHeadState.endSequence = chainHead.sequence
 
     try {
       let hashChanged = false
@@ -215,11 +218,7 @@ export class Wallet {
 
   private async load(): Promise<void> {
     for await (const accountValue of this.walletDb.loadAccounts()) {
-      const account = new Account({
-        ...accountValue,
-        walletDb: this.walletDb,
-      })
-
+      const account = new Account({ accountValue, walletDb: this.walletDb })
       this.accounts.set(account.id, account)
     }
 
@@ -439,6 +438,10 @@ export class Wallet {
     scan?: ScanState,
   ): Promise<void> {
     const accounts = await AsyncUtils.filter(this.listAccounts(), async (account) => {
+      if (!account.scanningEnabled) {
+        return false
+      }
+
       const accountHead = await account.getHead()
 
       if (!accountHead) {
@@ -667,6 +670,10 @@ export class Wallet {
     transactions: WalletBlockTransaction[],
   ): Promise<void> {
     const accounts = await AsyncUtils.filter(this.listAccounts(), async (account) => {
+      if (!account.scanningEnabled) {
+        return false
+      }
+
       const accountHead = await account.getHead()
 
       return BufferUtils.equalsNullable(accountHead?.hash ?? null, header.hash)
@@ -1457,16 +1464,19 @@ export class Wallet {
     }
 
     const account = new Account({
-      version: ACCOUNT_SCHEMA_VERSION,
-      id: uuid(),
-      name,
-      incomingViewKey: key.incomingViewKey,
-      outgoingViewKey: key.outgoingViewKey,
-      proofAuthorizingKey: key.proofAuthorizingKey,
-      publicAddress: key.publicAddress,
-      spendingKey: key.spendingKey,
-      viewKey: key.viewKey,
-      createdAt,
+      accountValue: {
+        version: ACCOUNT_SCHEMA_VERSION,
+        id: uuid(),
+        name,
+        incomingViewKey: key.incomingViewKey,
+        outgoingViewKey: key.outgoingViewKey,
+        proofAuthorizingKey: key.proofAuthorizingKey,
+        publicAddress: key.publicAddress,
+        spendingKey: key.spendingKey,
+        viewKey: key.viewKey,
+        scanningEnabled: true,
+        createdAt,
+      },
       walletDb: this.walletDb,
     })
 
@@ -1547,11 +1557,14 @@ export class Wallet {
     }
 
     const account = new Account({
-      ...accountValue,
-      id: uuid(),
-      createdAt,
-      name,
-      multisigKeys,
+      accountValue: {
+        ...accountValue,
+        id: uuid(),
+        createdAt,
+        name,
+        multisigKeys,
+        scanningEnabled: true,
+      },
       walletDb: this.walletDb,
     })
 
@@ -1597,11 +1610,14 @@ export class Wallet {
     },
   ): Promise<void> {
     const newAccount = new Account({
-      ...account,
-      createdAt: options?.resetCreatedAt ? null : account.createdAt,
-      id: uuid(),
+      accountValue: {
+        ...account,
+        createdAt: options?.resetCreatedAt ? null : account.createdAt,
+        id: uuid(),
+      },
       walletDb: this.walletDb,
     })
+
     this.logger.debug(`Resetting account name: ${account.name}, id: ${account.id}`)
 
     await this.walletDb.db.withTransaction(options?.tx, async (tx) => {
@@ -1698,6 +1714,15 @@ export class Wallet {
     return null
   }
 
+  getAccountByPublicAddress(publicAddress: string): Account | null {
+    for (const account of this.accounts.values()) {
+      if (publicAddress === account.publicAddress) {
+        return account
+      }
+    }
+    return null
+  }
+
   getAccount(id: string): Account | null {
     const account = this.accounts.get(id)
 
@@ -1719,6 +1744,10 @@ export class Wallet {
   async getEarliestHeadHash(): Promise<Buffer | null> {
     let earliestHead = null
     for (const account of this.accounts.values()) {
+      if (!account.scanningEnabled) {
+        continue
+      }
+
       const head = await account.getHead()
 
       if (!head) {
@@ -1737,6 +1766,10 @@ export class Wallet {
     let latestHead = null
 
     for (const account of this.accounts.values()) {
+      if (!account.scanningEnabled) {
+        continue
+      }
+
       const head = await account.getHead()
 
       if (!head) {

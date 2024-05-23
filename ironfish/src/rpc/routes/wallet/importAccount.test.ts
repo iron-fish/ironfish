@@ -6,10 +6,10 @@ import fs from 'fs'
 import path from 'path'
 import { createTrustedDealerKeyPackages } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
-import { encodeAccount } from '../../../wallet/account/encoder/account'
-import { Bech32Encoder } from '../../../wallet/account/encoder/bech32'
-import { Bech32JsonEncoder } from '../../../wallet/account/encoder/bech32json'
-import { AccountFormat } from '../../../wallet/account/encoder/encoder'
+import { AccountFormat, encodeAccountImport } from '../../../wallet/exporter/account'
+import { AccountImport } from '../../../wallet/exporter/accountImport'
+import { Bech32Encoder } from '../../../wallet/exporter/encoders/bech32'
+import { Bech32JsonEncoder } from '../../../wallet/exporter/encoders/bech32json'
 import { RpcClient } from '../../clients'
 
 describe('Route wallet/importAccount', () => {
@@ -177,7 +177,7 @@ describe('Route wallet/importAccount', () => {
   })
 
   describe('when importing string version of account', () => {
-    const createAccountImport = (name: string) => {
+    const createAccountImport = (name: string): AccountImport => {
       const key = generateKey()
       const accountName = name
       return {
@@ -195,7 +195,7 @@ describe('Route wallet/importAccount', () => {
 
     it('should import a string json encoded account', async () => {
       const name = 'json'
-      const jsonString = encodeAccount(createAccountImport(name), AccountFormat.JSON)
+      const jsonString = encodeAccountImport(createAccountImport(name), AccountFormat.JSON)
 
       const response = await routeTest.client.wallet.importAccount({
         account: jsonString,
@@ -243,7 +243,7 @@ describe('Route wallet/importAccount', () => {
 
     it('should import a base64 encoded account', async () => {
       const name = 'base64'
-      const base64 = encodeAccount(createAccountImport(name), AccountFormat.Base64Json)
+      const base64 = encodeAccountImport(createAccountImport(name), AccountFormat.Base64Json)
 
       const response = await routeTest.client.wallet.importAccount({
         account: base64,
@@ -321,9 +321,13 @@ describe('Route wallet/importAccount', () => {
 
         const identity = (await routeTest.client.wallet.multisig.createParticipant({ name }))
           .content.identity
-        const base64 = encodeAccount(createAccountImport(name), AccountFormat.Base64Json, {
-          encryptWith: { kind: 'MultisigIdentity', identity: Buffer.from(identity, 'hex') },
-        })
+        const base64 = encodeAccountImport(
+          createAccountImport(name),
+          AccountFormat.Base64Json,
+          {
+            encryptWith: { kind: 'MultisigIdentity', identity: Buffer.from(identity, 'hex') },
+          },
+        )
 
         const response = await routeTest.client.wallet.importAccount({
           name,
@@ -342,9 +346,13 @@ describe('Route wallet/importAccount', () => {
         const name = 'multisig-encrypted-base64 (no key)'
 
         const identity = multisig.ParticipantSecret.random().toIdentity()
-        const base64 = encodeAccount(createAccountImport(name), AccountFormat.Base64Json, {
-          encryptWith: { kind: 'MultisigIdentity', identity },
-        })
+        const base64 = encodeAccountImport(
+          createAccountImport(name),
+          AccountFormat.Base64Json,
+          {
+            encryptWith: { kind: 'MultisigIdentity', identity },
+          },
+        )
 
         await expect(
           routeTest.client.wallet.importAccount({
@@ -367,9 +375,13 @@ describe('Route wallet/importAccount', () => {
 
         await routeTest.client.wallet.multisig.createParticipant({ name })
         const encryptingParticipant = multisig.ParticipantSecret.random().toIdentity()
-        const base64 = encodeAccount(createAccountImport(name), AccountFormat.Base64Json, {
-          encryptWith: { kind: 'MultisigIdentity', identity: encryptingParticipant },
-        })
+        const base64 = encodeAccountImport(
+          createAccountImport(name),
+          AccountFormat.Base64Json,
+          {
+            encryptWith: { kind: 'MultisigIdentity', identity: encryptingParticipant },
+          },
+        )
 
         await expect(
           routeTest.client.wallet.importAccount({

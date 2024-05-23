@@ -211,6 +211,7 @@ export type RpcAccountStatus = {
     sequence: number
     inChain: boolean | null
   } | null
+  scanningEnabled: boolean
   viewOnly: boolean
 }
 
@@ -226,6 +227,7 @@ export const RpcAccountStatusSchema: yup.ObjectSchema<RpcAccountStatus> = yup
       })
       .nullable()
       .defined(),
+    scanningEnabled: yup.boolean().defined(),
     viewOnly: yup.boolean().defined(),
   })
   .defined()

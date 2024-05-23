@@ -4,9 +4,10 @@
 
 import { generateKey } from '@ironfish/rust-nodejs'
 import { Assert } from '../../../assert'
-import { AccountImport } from '../../walletdb/accountValue'
-import { ACCOUNT_SCHEMA_VERSION } from '../account'
+import { ACCOUNT_SCHEMA_VERSION } from '../../account/account'
+import { AccountImport } from '../accountImport'
 import { JsonEncoder } from './json'
+
 describe('JsonEncoder', () => {
   describe('encoding/decoding', () => {
     it('encodes the value into a AccountImport and deserializes to the original value', () => {

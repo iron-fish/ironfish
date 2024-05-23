@@ -5,11 +5,12 @@ import { Assert } from '../../../assert'
 import { useAccountFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { Account } from '../../../wallet'
-import { Base64JsonEncoder } from '../../../wallet/account/encoder/base64json'
-import { AccountFormat } from '../../../wallet/account/encoder/encoder'
-import { JsonEncoder } from '../../../wallet/account/encoder/json'
-import { MnemonicEncoder } from '../../../wallet/account/encoder/mnemonic'
-import { SpendingKeyEncoder } from '../../../wallet/account/encoder/spendingKey'
+import { AccountFormat } from '../../../wallet/exporter/account'
+import { toAccountImport } from '../../../wallet/exporter/accountImport'
+import { Base64JsonEncoder } from '../../../wallet/exporter/encoders/base64json'
+import { JsonEncoder } from '../../../wallet/exporter/encoders/json'
+import { MnemonicEncoder } from '../../../wallet/exporter/encoders/mnemonic'
+import { SpendingKeyEncoder } from '../../../wallet/exporter/encoders/spendingKey'
 
 describe('Route wallet/exportAccount', () => {
   const routeTest = createRouteTest(true)
@@ -68,7 +69,7 @@ describe('Route wallet/exportAccount', () => {
 
     expect(response.status).toBe(200)
 
-    const { id: _, ...accountImport } = account.serialize()
+    const accountImport = toAccountImport(account, false)
     expect(response.content.account).toEqual(new JsonEncoder().encode(accountImport))
   })
 
@@ -78,7 +79,7 @@ describe('Route wallet/exportAccount', () => {
       format: AccountFormat.Base64Json,
     })
 
-    const { id: _, ...accountImport } = account.serialize()
+    const accountImport = toAccountImport(account, false)
 
     expect(response.status).toBe(200)
     expect(response.content.account).toEqual(new Base64JsonEncoder().encode(accountImport))
