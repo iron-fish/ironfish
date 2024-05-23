@@ -92,10 +92,8 @@ export class BridgeCommand extends IronfishCommand {
       this.error(`Chainport transactions are only available on testnet.`)
     }
 
-    const { amount, selectedNetwork, from, to, selectedAsset } = await this.getInputs(
-      client,
-      networkId,
-    )
+    const { amount, selectedNetwork, from, to, selectedAsset, assetData } =
+      await this.getInputs(client, networkId)
 
     const rawTransaction = await this.constructBridgeTransaction(
       networkId,
@@ -103,6 +101,7 @@ export class BridgeCommand extends IronfishCommand {
       amount,
       selectedAsset,
       selectedNetwork,
+      assetData,
       to,
       from,
     )
@@ -268,7 +267,7 @@ export class BridgeCommand extends IronfishCommand {
         },
       })
     }
-    return { amount, selectedNetwork, from, to, selectedAsset }
+    return { amount, selectedNetwork, from, to, selectedAsset, assetData }
   }
 
   private async constructBridgeTransaction(
@@ -277,6 +276,7 @@ export class BridgeCommand extends IronfishCommand {
     amount: bigint,
     selectedAsset: ChainportVerifiedToken,
     selectedNetwork: ChainportNetwork,
+    assetData: RpcAsset,
     to: string,
     from: string,
   ) {
@@ -322,13 +322,6 @@ export class BridgeCommand extends IronfishCommand {
       rawTransaction = RawTransactionSerde.deserialize(bytes)
     }
 
-    const assetData = (
-      await client.wallet.getAsset({
-        account: from,
-        id: selectedAsset.web3_address,
-      })
-    ).content
-
     this.bridgeSummary(txn, rawTransaction, from, to, selectedAsset, assetData, selectedNetwork)
 
     return rawTransaction
@@ -346,19 +339,11 @@ export class BridgeCommand extends IronfishCommand {
     const bridgeAmount =
       BigInt(txn.bridge_output.amount) - BigInt(txn.bridge_fee.source_token_fee_amount ?? 0)
 
-    const assetInfo =
-      assetData.verification.status === 'unverified'
-        ? {
-            decimals: asset.decimals,
-            symbol: asset.symbol,
-          }
-        : assetData.verification
-
     const bridgeAmountString = CurrencyUtils.render(
       bridgeAmount,
       true,
       asset.web3_address,
-      assetInfo,
+      assetData.verification,
     )
     const feeString = CurrencyUtils.render(raw.fee, true)
 
@@ -366,7 +351,7 @@ export class BridgeCommand extends IronfishCommand {
       BigInt(txn.gas_fee_output.amount),
       true,
       asset.web3_address,
-      assetInfo,
+      assetData.verification,
     )
 
     let bridgeFeeAmountString: string
@@ -390,7 +375,7 @@ export class BridgeCommand extends IronfishCommand {
         BigInt(txn.bridge_fee.source_token_fee_amount ?? 0),
         true,
         asset.web3_address,
-        assetInfo,
+        assetData.verification,
       )
     }
 
