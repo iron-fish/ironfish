@@ -7,27 +7,28 @@ import { routes } from '../router'
 import { AssertHasRpcContext } from '../rpcContext'
 import { getAccount } from './utils'
 
-export type StartScanningRequest = { account: string }
-export type StartScanningResponse = undefined
+export type SetScanningRequest = { account: string; enabled: boolean }
+export type SetScanningResponse = undefined
 
-export const StartScanningRequestSchema: yup.ObjectSchema<StartScanningRequest> = yup
+export const SetScanningRequestSchema: yup.ObjectSchema<SetScanningRequest> = yup
   .object({
     account: yup.string().defined(),
+    enabled: yup.boolean().defined(),
   })
   .defined()
 
-export const StartScanningResponseSchema: yup.MixedSchema<StartScanningResponse> = yup
+export const SetScanningResponseSchema: yup.MixedSchema<SetScanningResponse> = yup
   .mixed()
   .oneOf([undefined] as const)
 
-routes.register<typeof StartScanningRequestSchema, StartScanningResponse>(
-  `${ApiNamespace.wallet}/startScanning`,
-  StartScanningRequestSchema,
+routes.register<typeof SetScanningRequestSchema, SetScanningResponse>(
+  `${ApiNamespace.wallet}/setScanning`,
+  SetScanningRequestSchema,
   async (request, context): Promise<void> => {
     AssertHasRpcContext(request, context, 'wallet')
 
     const account = getAccount(context.wallet, request.data.account)
-    await account.updateScanningEnabled(true)
+    await account.updateScanningEnabled(request.data.enabled)
     request.end()
   },
 )

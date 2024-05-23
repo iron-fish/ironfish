@@ -35,13 +35,15 @@ export class ScanningCommand extends IronfishCommand {
     const client = await this.sdk.connectRpc()
 
     if (enabled === 'true') {
-      await client.wallet.startScanning({
+      await client.wallet.setScanning({
         account: account,
+        enabled: true,
       })
       this.log(`Started scanning for account ${account}.`)
     } else {
-      await client.wallet.stopScanning({
+      await client.wallet.setScanning({
         account: account,
+        enabled: false,
       })
       this.log(`Stopped scanning for account ${account}.`)
     }

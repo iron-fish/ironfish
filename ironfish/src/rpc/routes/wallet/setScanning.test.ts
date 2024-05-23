@@ -8,9 +8,9 @@
 import { v4 as uuid } from 'uuid'
 import { Assert } from '../../../assert'
 import { createRouteTest } from '../../../testUtilities/routeTest'
-import { StopScanningResponse } from './stopScanning'
+import { SetScanningResponse } from './setScanning'
 
-describe('Route wallet/stopScanning', () => {
+describe('Route wallet/setScanning', () => {
   const routeTest = createRouteTest()
   let accountName: string
 
@@ -20,6 +20,24 @@ describe('Route wallet/stopScanning', () => {
     await routeTest.node.wallet.setDefaultAccount(accountName)
   })
 
+  it('Should set scanning to true', async () => {
+    let account = routeTest.node.wallet.getAccountByName(accountName)
+    Assert.isNotNull(account)
+    await account.updateScanningEnabled(false)
+    expect(account.scanningEnabled).toBe(false)
+
+    await routeTest.client
+      .request<SetScanningResponse>('wallet/setScanning', {
+        account: accountName,
+        enabled: true,
+      })
+      .waitForEnd()
+
+    account = routeTest.node.wallet.getAccountByName(accountName)
+    Assert.isNotNull(account)
+    expect(account.scanningEnabled).toBe(true)
+  })
+
   it('Should set scanning to false', async () => {
     let account = routeTest.node.wallet.getAccountByName(accountName)
     Assert.isNotNull(account)
@@ -27,14 +45,33 @@ describe('Route wallet/stopScanning', () => {
     expect(account.scanningEnabled).toBe(true)
 
     await routeTest.client
-      .request<StopScanningResponse>('wallet/stopScanning', {
+      .request<SetScanningResponse>('wallet/setScanning', {
         account: accountName,
+        enabled: false,
       })
       .waitForEnd()
 
     account = routeTest.node.wallet.getAccountByName(accountName)
     Assert.isNotNull(account)
     expect(account.scanningEnabled).toBe(false)
+  })
+
+  it('Should do nothing if scanning is already started', async () => {
+    let account = routeTest.node.wallet.getAccountByName(accountName)
+    Assert.isNotNull(account)
+    await account.updateScanningEnabled(true)
+    expect(account.scanningEnabled).toBe(true)
+
+    await routeTest.client
+      .request<SetScanningResponse>('wallet/setScanning', {
+        account: accountName,
+        enabled: true,
+      })
+      .waitForEnd()
+
+    account = routeTest.node.wallet.getAccountByName(accountName)
+    Assert.isNotNull(account)
+    expect(account.scanningEnabled).toBe(true)
   })
 
   it('Should do nothing if scanning is already stopped', async () => {
@@ -44,8 +81,9 @@ describe('Route wallet/stopScanning', () => {
     expect(account.scanningEnabled).toBe(false)
 
     await routeTest.client
-      .request<StopScanningResponse>('wallet/stopScanning', {
+      .request<SetScanningResponse>('wallet/setScanning', {
         account: accountName,
+        enabled: false,
       })
       .waitForEnd()
 
@@ -57,17 +95,18 @@ describe('Route wallet/stopScanning', () => {
   it(`Should error if the account doesn't exist`, async () => {
     await expect(async () => {
       await routeTest.client
-        .request<StopScanningResponse>('wallet/stopScanning', {
+        .request<SetScanningResponse>('wallet/setScanning', {
           account: 'foo',
+          enabled: false,
         })
         .waitForEnd()
     }).rejects.toThrow('No account with name foo')
   })
 
-  it(`Should error if the no account is passed`, async () => {
+  it(`Should error if no account is passed`, async () => {
     await expect(async () => {
       await routeTest.client
-        .request<StopScanningResponse>('wallet/stopScanning', {})
+        .request<SetScanningResponse>('wallet/setScanning', { enabled: false })
         .waitForEnd()
     }).rejects.toThrow('account must be defined')
   })

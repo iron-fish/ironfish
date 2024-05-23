@@ -73,7 +73,7 @@ describe('Route wallet/getAccountsStatus', () => {
       setCreatedAt: true,
       setDefault: true,
     })
-    await routeTest.client.wallet.stopScanning({ account: account.name })
+    await routeTest.client.wallet.setScanning({ account: account.name, enabled: false })
     const response = await routeTest.client.wallet.getAccountsStatus()
 
     expect(response.status).toBe(200)

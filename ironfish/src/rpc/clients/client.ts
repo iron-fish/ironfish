@@ -153,13 +153,11 @@ import type {
   SendTransactionResponse,
   SetConfigRequest,
   SetConfigResponse,
+  SetScanningRequest,
+  SetScanningResponse,
   ShowChainRequest,
   ShowChainResponse,
-  StartScanningRequest,
-  StartScanningResponse,
   StopNodeResponse,
-  StopScanningRequest,
-  StopScanningResponse,
   SubmitBlockRequest,
   SubmitBlockResponse,
   UnsetConfigRequest,
@@ -582,20 +580,11 @@ export abstract class RpcClient {
       ).waitForEnd()
     },
 
-    startScanning: (
-      params: StartScanningRequest,
-    ): Promise<RpcResponseEnded<StartScanningResponse>> => {
-      return this.request<StartScanningResponse>(
-        `${ApiNamespace.wallet}/startScanning`,
-        params,
-      ).waitForEnd()
-    },
-
-    stopScanning: (
-      params: StopScanningRequest,
-    ): Promise<RpcResponseEnded<StopScanningResponse>> => {
-      return this.request<StopScanningResponse>(
-        `${ApiNamespace.wallet}/stopScanning`,
+    setScanning: (
+      params: SetScanningRequest,
+    ): Promise<RpcResponseEnded<SetScanningResponse>> => {
+      return this.request<SetScanningResponse>(
+        `${ApiNamespace.wallet}/setScanning`,
         params,
       ).waitForEnd()
     },
