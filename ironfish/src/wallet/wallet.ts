@@ -1606,6 +1606,7 @@ export class Wallet {
     account: Account,
     options?: {
       resetCreatedAt?: boolean
+      resetScanningEnabled?: boolean
       tx?: IDatabaseTransaction
     },
   ): Promise<void> {
@@ -1613,6 +1614,7 @@ export class Wallet {
       accountValue: {
         ...account,
         createdAt: options?.resetCreatedAt ? null : account.createdAt,
+        scanningEnabled: options?.resetScanningEnabled ? true : account.scanningEnabled,
         id: uuid(),
       },
       walletDb: this.walletDb,
@@ -1622,7 +1624,23 @@ export class Wallet {
 
     await this.walletDb.db.withTransaction(options?.tx, async (tx) => {
       await this.walletDb.setAccount(newAccount, tx)
-      await newAccount.updateHead(null, tx)
+
+      if (newAccount.createdAt !== null) {
+        const previousBlockHash = await this.chainGetPreviousBlockHash(
+          newAccount.createdAt.hash,
+        )
+
+        const head = previousBlockHash
+          ? {
+              hash: previousBlockHash,
+              sequence: newAccount.createdAt.sequence - 1,
+            }
+          : null
+
+        await newAccount.updateHead(head, tx)
+      } else {
+        await newAccount.updateHead(null, tx)
+      }
 
       if (account.id === this.defaultAccount) {
         await this.walletDb.setDefaultAccount(newAccount.id, tx)

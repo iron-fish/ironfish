@@ -7614,5 +7614,26 @@
         }
       ]
     }
+  ],
+  "Wallet resetAccount should optionally set scanningEnabled to true": [
+    {
+      "version": 4,
+      "id": "ea4a9b60-de87-4cf4-b093-249e90c9d9fe",
+      "name": "a",
+      "spendingKey": "ec993ba1afd03f883466ea3604132bc271b49bf3c3e4c1bb832433a57bc8bd51",
+      "viewKey": "799e8abdc92e35d6fbbc4005f219eacff1c39cae5da213bddf90d2909fbed4a59d450476bdbf03244a98a88e992b33353c3110bb2914eb48b5ba69a5051ac7ca",
+      "incomingViewKey": "578c717325daa5b0cc46bf6b93656141088b754fbda450c132dff8c3adf68b04",
+      "outgoingViewKey": "96f508550783c99dcc36d2ec73fabb0e15b837d46bb4d53a62ff4e25cdf7067c",
+      "publicAddress": "589acf9cc8c595260b057882a0ef0057fbb47a24cd1b1df81f3f72ab3c02ff3f",
+      "createdAt": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      },
+      "scanningEnabled": true,
+      "proofAuthorizingKey": "e7abb82abbee07a221cca4959bfaa09e690e7ebbb2bc0db4678e66956421950c"
+    }
   ]
 }

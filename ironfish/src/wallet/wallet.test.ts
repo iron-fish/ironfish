@@ -2606,6 +2606,21 @@ describe('Wallet', () => {
       // createdAt should now be null
       expect(accountB.createdAt).toBeNull()
     })
+
+    it('should optionally set scanningEnabled to true', async () => {
+      const { node } = await nodeTest.createSetup()
+      const account = await useAccountFixture(node.wallet, 'a')
+
+      await account.updateScanningEnabled(false)
+
+      await node.wallet.resetAccount(account, { resetScanningEnabled: true })
+
+      // load accountB from wallet again because resetAccount creates a new account instance
+      const newAccount = node.wallet.getAccountByName(account.name)
+      Assert.isNotNull(newAccount)
+
+      expect(newAccount.scanningEnabled).toBe(true)
+    })
   })
 
   describe('getTransactionType', () => {
