@@ -5,6 +5,7 @@ import { PUBLIC_ADDRESS_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { IDatabaseEncoding } from '../../../../storage'
 import { HeadValue, NullableHeadValueEncoding } from './HeadValue'
+import { MultisigKeys, MultisigKeysEncoding } from './MultisigKeys'
 
 const KEY_LENGTH = 32
 export const VIEW_KEY_LENGTH = 64
@@ -20,10 +21,7 @@ export interface AccountValue {
   outgoingViewKey: string
   publicAddress: string
   createdAt: HeadValue | null
-  multisigKeys?: {
-    secret: string
-    keyPackage: string
-  }
+  multisigKeys?: MultisigKeys
   proofAuthorizingKey: string | null
 }
 
@@ -53,8 +51,9 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     }
 
     if (value.multisigKeys) {
-      bw.writeVarBytes(Buffer.from(value.multisigKeys.secret, 'hex'))
-      bw.writeVarBytes(Buffer.from(value.multisigKeys.keyPackage, 'hex'))
+      const encoding = new MultisigKeysEncoding()
+      bw.writeU64(encoding.getSize(value.multisigKeys))
+      bw.writeBytes(encoding.serialize(value.multisigKeys))
     }
 
     if (value.proofAuthorizingKey) {
@@ -88,10 +87,9 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
 
     let multisigKeys = undefined
     if (hasMultisigKeys) {
-      multisigKeys = {
-        secret: reader.readVarBytes().toString('hex'),
-        keyPackage: reader.readVarBytes().toString('hex'),
-      }
+      const multisigKeysLength = reader.readU64()
+      const encoding = new MultisigKeysEncoding()
+      multisigKeys = encoding.deserialize(reader.readBytes(multisigKeysLength))
     }
 
     const proofAuthorizingKey = hasProofAuthorizingKey
@@ -131,8 +129,9 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
       size += encoding.nonNullSize
     }
     if (value.multisigKeys) {
-      size += bufio.sizeVarString(value.multisigKeys.secret, 'hex')
-      size += bufio.sizeVarString(value.multisigKeys.keyPackage, 'hex')
+      const encoding = new MultisigKeysEncoding()
+      size += 8 // size of multi sig keys
+      size += encoding.getSize(value.multisigKeys)
     }
     if (value.proofAuthorizingKey) {
       size += KEY_LENGTH
