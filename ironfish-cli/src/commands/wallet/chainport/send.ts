@@ -26,6 +26,7 @@ import {
   fetchBridgeTransactionDetails,
   fetchChainportNetworks,
   fetchChainportVerifiedTokens,
+  showChainportTransactionSummary,
 } from '../../../utils/chainport'
 import { promptCurrency } from '../../../utils/currency'
 import { getExplorer } from '../../../utils/explorer'
@@ -120,16 +121,13 @@ export class BridgeCommand extends IronfishCommand {
 
     const bytes = Buffer.from(postTransaction.content.transaction, 'hex')
     const transaction = new Transaction(bytes)
+    const hash = transaction.hash().toString('hex')
 
     if (postTransaction.content.accepted === false) {
-      this.warn(
-        `Transaction '${transaction.hash().toString('hex')}' was not accepted into the mempool`,
-      )
+      this.warn(`Transaction '${hash}' was not accepted into the mempool`)
     }
 
-    const transactionUrl = getExplorer(networkId)?.getTransactionUrl(
-      transaction.hash().toString('hex'),
-    )
+    const transactionUrl = getExplorer(networkId)?.getTransactionUrl(hash)
 
     if (transactionUrl) {
       this.log(`\nBlock explorer: ${transactionUrl}`)
@@ -142,8 +140,12 @@ export class BridgeCommand extends IronfishCommand {
         client,
         logger: this.logger,
         account: from,
-        hash: transaction.hash().toString('hex'),
+        hash,
       })
+
+      await showChainportTransactionSummary(hash, networkId, this.logger)
+
+      return
     }
 
     this.log(
