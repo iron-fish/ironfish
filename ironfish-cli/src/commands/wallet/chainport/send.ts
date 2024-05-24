@@ -400,7 +400,9 @@ Expiration                     ${raw.expiration ? raw.expiration.toString() : ''
     targetNetworks: number[],
     asset: ChainportVerifiedToken,
   ): Promise<ChainportNetwork> {
+    CliUx.ux.action.start('Fetching available networks')
     const networks = await fetchChainportNetworks(networkId)
+    CliUx.ux.action.stop()
     const choices = Object.keys(networks).map((key) => {
       return {
         name: networks[key].label,
