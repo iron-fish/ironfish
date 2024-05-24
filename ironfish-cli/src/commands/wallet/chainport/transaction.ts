@@ -3,14 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { TESTNET, TransactionStatus } from '@ironfish/sdk'
-import { CliUx, Flags } from '@oclif/core'
+import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 import {
-  fetchChainportNetworks,
-  getChainportTransactionStatus,
   isIncomingChainportBridgeTransaction,
   isOutgoingChainportBridgeTransaction,
+  showChainportTransactionSummary,
 } from '../../../utils/chainport'
 import { watchTransaction } from '../../../utils/transaction'
 
@@ -51,23 +50,25 @@ export class TransactionCommand extends IronfishCommand {
       this.error(`Chainport transactions are only available on testnet.`)
     }
 
-    let response = await client.wallet.getAccountTransaction({
-      account,
-      hash,
-    })
+    let transaction = (
+      await client.wallet.getAccountTransaction({
+        account,
+        hash,
+      })
+    ).content.transaction
 
-    if (!response.content.transaction) {
+    if (!transaction) {
       this.log(`No transaction found by hash ${hash}`)
       return
     }
 
     const isOutgoingBridgeTransaction = isOutgoingChainportBridgeTransaction(
       networkId,
-      response.content.transaction,
+      transaction,
     )
     const isIncomingBridgeTransaction = isIncomingChainportBridgeTransaction(
       networkId,
-      response.content.transaction,
+      transaction,
     )
 
     if (!isOutgoingBridgeTransaction && !isIncomingBridgeTransaction) {
@@ -90,68 +91,22 @@ export class TransactionCommand extends IronfishCommand {
         account,
         hash,
       })
-      response = await client.wallet.getAccountTransaction({
-        account,
-        hash,
-      })
+
+      transaction = (
+        await client.wallet.getAccountTransaction({
+          account,
+          hash,
+        })
+      ).content.transaction
     } else {
-      this.log(`Transaction status on Ironfish: ${response.content.transaction.status}`)
+      this.log(`Transaction status on Ironfish: ${transaction.status}`)
     }
 
-    if (response.content.transaction?.status !== TransactionStatus.CONFIRMED) {
+    if (transaction?.status !== TransactionStatus.CONFIRMED) {
       this.log(`Transaction not confirmed on Ironfish`)
       return
     }
 
-    CliUx.ux.action.start('Fetching transaction status on target network')
-    const transactionStatus = await getChainportTransactionStatus(networkId, hash)
-    CliUx.ux.action.stop()
-
-    this.logger.debug(JSON.stringify(transactionStatus, null, 2))
-
-    if (Object.keys(transactionStatus).length === 0) {
-      this.log(
-        `Transaction status not found on target network.
-
-Note: Bridge transactions may take up to 30 minutes to surface on the target network.
-If this issue persists, please contact chainport support: https://app.chainport.io/`,
-      )
-      return
-    }
-
-    if (
-      isOutgoingBridgeTransaction &&
-      transactionStatus.target_tx_hash &&
-      transactionStatus.target_network_id
-    ) {
-      const networks = await fetchChainportNetworks(networkId)
-
-      const targetNetwork = networks[transactionStatus.target_network_id]
-
-      if (!targetNetwork) {
-        // This ~should~ not happen
-        this.error('Target network not supported')
-      }
-
-      let summary = `\
-\nTRANSACTION STATUS:
-Direction                    Outgoing
-Ironfish Network             ${networkId === 0 ? 'Testnet' : 'Mainnet'}
-`
-
-      if (response.content.transaction) {
-        summary += `Ironfish Transaction Status  ${response.content.transaction.status}
-`
-      }
-
-      summary += `Source Transaction Hash      ${hash}
-Target Network               ${targetNetwork.name}
-Target Transaction Hash      ${transactionStatus.target_tx_hash}
-Explorer URL                 ${
-        targetNetwork.explorer_url + 'tx/' + transactionStatus.target_tx_hash
-      }  
-      `
-      this.log(summary)
-    }
+    await showChainportTransactionSummary(transaction.hash, networkId, this.logger)
   }
 }
