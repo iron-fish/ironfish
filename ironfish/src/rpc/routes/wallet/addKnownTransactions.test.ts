@@ -15,7 +15,7 @@ describe('Route wallet/addKnownTransactions', () => {
     await expect(routeTest.chain).toAddBlock(block)
     expect((await routeTest.wallet.getBalance(account, Asset.nativeId())).available).toBe(0n)
 
-    account.updateSyncingEnabled(false)
+    await account.updateScanningEnabled(false)
 
     const response = await routeTest.client.wallet.addKnownTransactions({
       account: account.name,
@@ -74,7 +74,7 @@ describe('Route wallet/addKnownTransactions', () => {
     await expect(routeTest.chain).toAddBlock(block)
     await expect(account.getHead()).resolves.toBeNull()
 
-    account.updateSyncingEnabled(false)
+    await account.updateScanningEnabled(false)
 
     await expect(() =>
       routeTest.client.wallet.addKnownTransactions({
@@ -90,13 +90,16 @@ describe('Route wallet/addKnownTransactions', () => {
 
   it('throws if gap between start and account head', async () => {
     const account = await useAccountFixture(routeTest.wallet, 'foo')
+    await routeTest.wallet.updateHead()
+
     const block1 = await useMinerBlockFixture(routeTest.chain, undefined, account)
     await expect(routeTest.chain).toAddBlock(block1)
     const block2 = await useMinerBlockFixture(routeTest.chain, undefined, account)
     await expect(routeTest.chain).toAddBlock(block2)
+
     expect((await account.getHead())?.hash).toEqualBuffer(routeTest.chain.genesis.hash)
 
-    account.updateSyncingEnabled(false)
+    await account.updateScanningEnabled(false)
 
     await expect(() =>
       routeTest.client.wallet.addKnownTransactions({
@@ -115,7 +118,7 @@ describe('Route wallet/addKnownTransactions', () => {
     await routeTest.wallet.updateHead()
     expect((await account.getHead())?.hash).toEqualBuffer(block1.header.hash)
 
-    account.updateSyncingEnabled(false)
+    await account.updateScanningEnabled(false)
 
     const response = await routeTest.client.wallet.addKnownTransactions({
       account: account.name,

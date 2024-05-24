@@ -73,9 +73,9 @@ routes.register<typeof AddKnownTransactionsRequestSchema, AddKnownTransactionsRe
     // Validate account state
     const account = getAccount(context.wallet, request.data.account)
 
-    if (account.syncingEnabled) {
+    if (account.scanningEnabled) {
       throw new RpcResponseError(
-        `Cannot add known transactions while account syncing is enabled. Try calling wallet/stopSyncing first.`,
+        `Cannot add known transactions while account syncing is enabled. Try calling wallet/stopScanning first.`,
         RPC_ERROR_CODES.ERROR,
         409,
       )
