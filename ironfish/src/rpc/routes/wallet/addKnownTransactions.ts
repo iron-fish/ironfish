@@ -92,22 +92,27 @@ routes.register<typeof AddKnownTransactionsRequestSchema, AddKnownTransactionsRe
 
       const fork = await context.chain.findFork(startHeader, accountHeader)
 
-      // if fork is startHeader
-      //  - rewind accountHead to the block before startHeader
+      // If fork is startHeader:
+      //  - This means startHeader is linearly older than accountHead.
+      //  - We will rewind accountHead to the block before startHeader.
       //  - You could also ignore all blocks before and including accountHead. (Note that this also
-      //    applies if startHeader == accountHead). You'd need to check startHeader and accountHead
-      //    are on the head chain, else you'd still need to rewind accountHead.
-      // if fork is accountHead or neither:
-      //  - if startHeader.previousBlockHash is fork, we're okay. if needed, rewind accountHead
-      //    to the block before startHeader
-      //  - otherwise there's a gap between accountHead and startHeader, so reject
-      if (!fork.equals(startHeader) && !startHeader.previousBlockHash.equals(fork.hash)) {
+      //    applies if startHeader == accountHead). We choose not to because it keeps the code simpler
+      //    for now.
+      // If fork is accountHead or neither:
+      //  - This means accountHead is earlier than startHeader.
+      //  - we want to abort if there's a gap between accountHead and startHeader, since there may be
+      //    transactions in the gap relevant to the account. (alternatively, we could consider scanning
+      //    all blocks in the gap, as in a typical wallet scanß)
+      //  - If fork is startHeader.previousBlockHash, the fork directly connects to startHeader, so
+      //    rewind accountHead to startHeader.previousBlockHash. Note that we must rewind, we cannot
+      //    ignore blocks in this case because the accountHead is on a different chain.
+      //  - Otherwise there's a gap between accountHead and startHeader, so abort
+      if (!fork.equals(startHeader) && !fork.hash.equals(startHeader.previousBlockHash)) {
         const nextHash = (await context.chain.getNextHash(fork.hash)) ?? fork.hash
         throw new RpcValidationError(`Start must be ${nextHash?.toString('hex')} or earlier.`)
       }
 
-      // TODO: test startheader as genesis
-      while (accountHead && !accountHead.hash.equals(startHeader.previousBlockHash)) {
+      while (accountHead !== null && !accountHead.hash.equals(startHeader.previousBlockHash)) {
         const header: BlockHeader | null = await context.chain.getHeader(accountHead.hash)
         Assert.isNotNull(header, 'Account head must be in chain')
         const transactions = await context.chain.getBlockTransactions(header)
@@ -233,7 +238,7 @@ routes.register<typeof AddKnownTransactionsRequestSchema, AddKnownTransactionsRe
       )
     }
 
-    // If last block isn't end - 1, connect end-1
+    // If last block isn't end, connect end
     const last = transactionWithNotesList.at(-1)
     if (!last || !last.header.equals(endHeader)) {
       await context.wallet.connectBlockForAccount(account, endHeader, [], false)

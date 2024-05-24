@@ -9,26 +9,56 @@ import { createRouteTest } from '../../../testUtilities/routeTest'
 describe('Route wallet/addKnownTransactions', () => {
   const routeTest = createRouteTest()
 
-  it('updates the account head and adds transactions', async () => {
-    const account = await useAccountFixture(routeTest.wallet, 'foo')
-    const block = await useMinerBlockFixture(routeTest.chain, undefined, account)
-    await expect(routeTest.chain).toAddBlock(block)
-    expect((await routeTest.wallet.getBalance(account, Asset.nativeId())).available).toBe(0n)
+  describe('Updates the account head and adds transactions', () => {
+    it('Succeeds when start is genesis block', async () => {
+      const account = await useAccountFixture(routeTest.wallet, 'foo')
+      const block = await useMinerBlockFixture(routeTest.chain, undefined, account)
+      await expect(routeTest.chain).toAddBlock(block)
+      expect((await routeTest.wallet.getBalance(account, Asset.nativeId())).available).toBe(0n)
 
-    await account.updateScanningEnabled(false)
+      await account.updateScanningEnabled(false)
 
-    const response = await routeTest.client.wallet.addKnownTransactions({
-      account: account.name,
-      start: routeTest.chain.genesis.hash.toString('hex'),
-      end: block.header.hash.toString('hex'),
-      transactions: [{ hash: block.transactions[0].hash().toString('hex') }],
+      const response = await routeTest.client.wallet.addKnownTransactions({
+        account: account.name,
+        start: routeTest.chain.genesis.hash.toString('hex'),
+        end: block.header.hash.toString('hex'),
+        transactions: [{ hash: block.transactions[0].hash().toString('hex') }],
+      })
+
+      expect(response.status).toBe(200)
+      expect((await account.getHead())?.hash).toEqualBuffer(block.header.hash)
+      expect((await routeTest.wallet.getBalance(account, Asset.nativeId())).available).toBe(
+        2000000000n,
+      )
     })
 
-    expect(response.status).toBe(200)
-    expect((await account.getHead())?.hash).toEqualBuffer(block.header.hash)
-    expect((await routeTest.wallet.getBalance(account, Asset.nativeId())).available).toBe(
-      2000000000n,
-    )
+    it('Succeeds when start is non-genesis block', async () => {
+      const account = await useAccountFixture(routeTest.wallet, 'foo')
+      await routeTest.wallet.updateHead()
+      expect((await account.getHead())?.hash).toEqualBuffer(routeTest.chain.genesis.hash)
+
+      const block1 = await useMinerBlockFixture(routeTest.chain)
+      await expect(routeTest.chain).toAddBlock(block1)
+
+      const block2 = await useMinerBlockFixture(routeTest.chain, undefined, account)
+      await expect(routeTest.chain).toAddBlock(block2)
+      expect((await routeTest.wallet.getBalance(account, Asset.nativeId())).available).toBe(0n)
+
+      await account.updateScanningEnabled(false)
+
+      const response = await routeTest.client.wallet.addKnownTransactions({
+        account: account.name,
+        start: block1.header.hash.toString('hex'),
+        end: block2.header.hash.toString('hex'),
+        transactions: [{ hash: block2.transactions[0].hash().toString('hex') }],
+      })
+
+      expect(response.status).toBe(200)
+      expect((await account.getHead())?.hash).toEqualBuffer(block2.header.hash)
+      expect((await routeTest.wallet.getBalance(account, Asset.nativeId())).available).toBe(
+        2000000000n,
+      )
+    })
   })
 
   it('throws if start or end hashes not in chain', async () => {
@@ -131,6 +161,42 @@ describe('Route wallet/addKnownTransactions', () => {
     expect((await account.getHead())?.hash).toEqualBuffer(block1.header.hash)
     expect((await routeTest.wallet.getBalance(account, Asset.nativeId())).available).toBe(
       2000000000n,
+    )
+  })
+
+  it('accepts start blocks on a fork', async () => {
+    const account = await useAccountFixture(routeTest.wallet, 'foo')
+
+    const { node: node2 } = await routeTest.createSetup()
+    const node2Block1 = await useMinerBlockFixture(node2.chain, undefined, account)
+    await expect(node2.chain).toAddBlock(node2Block1)
+    const node2Block2 = await useMinerBlockFixture(node2.chain, undefined, account)
+    await expect(node2.chain).toAddBlock(node2Block2)
+
+    const block1 = await useMinerBlockFixture(routeTest.chain)
+    await expect(routeTest.chain).toAddBlock(block1)
+    await routeTest.wallet.updateHead()
+    expect((await account.getHead())?.hash).toEqualBuffer(block1.header.hash)
+
+    await account.updateScanningEnabled(false)
+
+    await expect(routeTest.chain).toAddBlock(node2Block1)
+    await expect(routeTest.chain).toAddBlock(node2Block2)
+
+    const response = await routeTest.client.wallet.addKnownTransactions({
+      account: account.name,
+      start: node2Block1.header.hash.toString('hex'),
+      end: node2Block2.header.hash.toString('hex'),
+      transactions: [
+        { hash: node2Block1.transactions[0].hash().toString('hex') },
+        { hash: node2Block2.transactions[0].hash().toString('hex') },
+      ],
+    })
+
+    expect(response.status).toBe(200)
+    expect((await account.getHead())?.hash).toEqualBuffer(node2Block2.header.hash)
+    expect((await routeTest.wallet.getBalance(account, Asset.nativeId())).available).toBe(
+      4000000000n,
     )
   })
 
