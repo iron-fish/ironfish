@@ -26,6 +26,7 @@ import {
   fetchBridgeTransactionDetails,
   fetchChainportNetworks,
   fetchChainportVerifiedTokens,
+  getChainportTransactionStatus,
 } from '../../../utils/chainport'
 import { promptCurrency } from '../../../utils/currency'
 import { getExplorer } from '../../../utils/explorer'
@@ -120,16 +121,13 @@ export class BridgeCommand extends IronfishCommand {
 
     const bytes = Buffer.from(postTransaction.content.transaction, 'hex')
     const transaction = new Transaction(bytes)
+    const hash = transaction.hash().toString('hex')
 
     if (postTransaction.content.accepted === false) {
-      this.warn(
-        `Transaction '${transaction.hash().toString('hex')}' was not accepted into the mempool`,
-      )
+      this.warn(`Transaction '${hash}' was not accepted into the mempool`)
     }
 
-    const transactionUrl = getExplorer(networkId)?.getTransactionUrl(
-      transaction.hash().toString('hex'),
-    )
+    const transactionUrl = getExplorer(networkId)?.getTransactionUrl(hash)
 
     if (transactionUrl) {
       this.log(`\nBlock explorer: ${transactionUrl}`)
@@ -142,8 +140,40 @@ export class BridgeCommand extends IronfishCommand {
         client,
         logger: this.logger,
         account: from,
-        hash: transaction.hash().toString('hex'),
+        hash,
       })
+
+      CliUx.ux.action.start('Fetching transaction status on target network')
+      const transactionStatus = await getChainportTransactionStatus(networkId, hash)
+      CliUx.ux.action.stop()
+
+      if (Object.keys(transactionStatus).length === 0) {
+        this.log(
+          `Transaction status not found on target network.
+  
+  Note: Bridge transactions may take up to 30 minutes to surface on the target network.
+  If this issue persists, please contact chainport support: https://app.chainport.io/`,
+        )
+
+        return
+      }
+
+      let summary = `\
+\nTRANSACTION STATUS:
+Direction                    Outgoing
+Ironfish Network             ${networkId === 0 ? 'Testnet' : 'Mainnet'}
+`
+
+      summary += `Source Transaction Hash      ${hash}
+Target Network               ${network.name}
+Target Transaction Hash      ${transactionStatus.target_tx_hash}
+Explorer URL                 ${
+        network.explorer_url + 'tx/' + transactionStatus.target_tx_hash
+      }  
+      `
+      this.log(summary)
+
+      return
     }
 
     this.log(
