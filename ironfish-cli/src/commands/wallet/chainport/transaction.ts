@@ -51,23 +51,25 @@ export class TransactionCommand extends IronfishCommand {
       this.error(`Chainport transactions are only available on testnet.`)
     }
 
-    let response = await client.wallet.getAccountTransaction({
-      account,
-      hash,
-    })
+    let transaction = (
+      await client.wallet.getAccountTransaction({
+        account,
+        hash,
+      })
+    ).content.transaction
 
-    if (!response.content.transaction) {
+    if (!transaction) {
       this.log(`No transaction found by hash ${hash}`)
       return
     }
 
     const isOutgoingBridgeTransaction = isOutgoingChainportBridgeTransaction(
       networkId,
-      response.content.transaction,
+      transaction,
     )
     const isIncomingBridgeTransaction = isIncomingChainportBridgeTransaction(
       networkId,
-      response.content.transaction,
+      transaction,
     )
 
     if (!isOutgoingBridgeTransaction && !isIncomingBridgeTransaction) {
@@ -90,15 +92,18 @@ export class TransactionCommand extends IronfishCommand {
         account,
         hash,
       })
-      response = await client.wallet.getAccountTransaction({
-        account,
-        hash,
-      })
+
+      transaction = (
+        await client.wallet.getAccountTransaction({
+          account,
+          hash,
+        })
+      ).content.transaction
     } else {
-      this.log(`Transaction status on Ironfish: ${response.content.transaction.status}`)
+      this.log(`Transaction status on Ironfish: ${transaction.status}`)
     }
 
-    if (response.content.transaction?.status !== TransactionStatus.CONFIRMED) {
+    if (transaction?.status !== TransactionStatus.CONFIRMED) {
       this.log(`Transaction not confirmed on Ironfish`)
       return
     }
@@ -139,8 +144,8 @@ Direction                    Outgoing
 Ironfish Network             ${networkId === 0 ? 'Testnet' : 'Mainnet'}
 `
 
-      if (response.content.transaction) {
-        summary += `Ironfish Transaction Status  ${response.content.transaction.status}
+      if (transaction) {
+        summary += `Ironfish Transaction Status  ${transaction.status}
 `
       }
 
