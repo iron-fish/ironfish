@@ -235,7 +235,7 @@ routes.register<typeof AddKnownTransactionsRequestSchema, AddKnownTransactionsRe
 
     // If last block isn't end - 1, connect end-1
     const last = transactionWithNotesList.at(-1)
-    if (!last || last.header.equals(endHeader)) {
+    if (!last || !last.header.equals(endHeader)) {
       await context.wallet.connectBlockForAccount(account, endHeader, [], false)
     }
 

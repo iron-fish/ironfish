@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Asset } from '@ironfish/rust-nodejs'
-import { useAccountFixture, useMinerBlockFixture } from '../../../testUtilities/fixtures'
+import { useAccountAndAddFundsFixture, useAccountFixture, useMinerBlockFixture } from '../../../testUtilities/fixtures'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 
 describe('Route wallet/addKnownTransactions', () => {
@@ -129,6 +129,29 @@ describe('Route wallet/addKnownTransactions', () => {
 
     expect(response.status).toBe(200)
     expect((await account.getHead())?.hash).toEqualBuffer(block1.header.hash)
+    expect((await routeTest.wallet.getBalance(account, Asset.nativeId())).available).toBe(
+      2000000000n,
+    )
+  })
+
+  it('updates the account head to end', async () => {
+    const account = await useAccountFixture(routeTest.wallet, 'foo')
+    const block1 = await useMinerBlockFixture(routeTest.chain, undefined, account)
+    await expect(routeTest.chain).toAddBlock(block1)
+    const block2 = await useMinerBlockFixture(routeTest.chain)
+    await expect(routeTest.chain).toAddBlock(block2)
+
+    await account.updateScanningEnabled(false)
+
+    const response = await routeTest.client.wallet.addKnownTransactions({
+      account: account.name,
+      start: routeTest.chain.genesis.hash.toString('hex'),
+      end: block2.header.hash.toString('hex'),
+      transactions: [{ hash: block1.transactions[0].hash().toString('hex') }],
+    })
+
+    expect(response.status).toBe(200)
+    expect((await account.getHead())?.hash).toEqualBuffer(block2.header.hash)
     expect((await routeTest.wallet.getBalance(account, Asset.nativeId())).available).toBe(
       2000000000n,
     )
