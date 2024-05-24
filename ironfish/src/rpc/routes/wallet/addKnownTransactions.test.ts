@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Asset } from '@ironfish/rust-nodejs'
-import { useAccountAndAddFundsFixture, useAccountFixture, useMinerBlockFixture } from '../../../testUtilities/fixtures'
+import { useAccountFixture, useMinerBlockFixture } from '../../../testUtilities/fixtures'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 
 describe('Route wallet/addKnownTransactions', () => {
