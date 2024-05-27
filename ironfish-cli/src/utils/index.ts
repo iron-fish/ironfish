@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 export * from './asset'
+export * from './chainport/index'
 export * from './confirm'
 export * from './editor'
 export * from './platform'
