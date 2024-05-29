@@ -65,6 +65,7 @@ pub enum IronfishErrorKind {
     RandomnessError,
     RoundTwoSigningFailure,
     TryFromInt,
+    Unsupported,
     Utf8,
 }
 

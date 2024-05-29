@@ -17,6 +17,7 @@ pub mod rolling_filter;
 pub mod sapling_bls12;
 pub mod serializing;
 pub mod signal_catcher;
+pub mod signing;
 pub mod transaction;
 pub mod util;
 pub mod witness;
