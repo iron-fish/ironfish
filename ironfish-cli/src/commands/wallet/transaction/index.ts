@@ -76,25 +76,17 @@ export class TransactionCommand extends IronfishCommand {
 
     if (chainportTxnDetails.isChainportTransaction) {
       if (chainportTxnDetails && response.content.transaction.type === TransactionType.SEND) {
-        if (chainportTxnDetails.details) {
-          transactionType =
-            'Outgoing Chainport Bridge\nSource chain: ' +
-            chainportTxnDetails.details.network +
-            ' \nSource address: ' +
-            chainportTxnDetails.details.address
-        } else {
-          transactionType = 'Outgoing Chainport Bridge'
-        }
+        transactionType =
+          'Outgoing Chainport Bridge' +
+          (chainportTxnDetails.details
+            ? `\nSource chain: ${chainportTxnDetails.details.network}\nSource address: ${chainportTxnDetails.details.address}`
+            : '')
       } else {
-        if (chainportTxnDetails.details) {
-          transactionType =
-            'Incoming Chainport Bridge\nSource chain: ' +
-            chainportTxnDetails.details.network +
-            ' \nSource address: ' +
-            chainportTxnDetails.details.address
-        } else {
-          transactionType = 'Incoming Chainport Bridge'
-        }
+        transactionType =
+          'Incoming Chainport Bridge' +
+          (chainportTxnDetails.details
+            ? `\nSource chain: ${chainportTxnDetails.details.network}\nSource address: ${chainportTxnDetails.details.address}`
+            : '')
       }
     }
 
