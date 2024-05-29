@@ -15,8 +15,8 @@ import { RemoteFlags } from '../../../flags'
 import { getAssetsByIDs } from '../../../utils'
 import {
   fetchChainportNetworks,
-  incomingBridgeTransactionDetails,
-  isOutgoingChainportBridgeTransaction,
+  getIncomingBridgeTransactionDetails,
+  getOutgoingBridgeTransactionDetails,
 } from '../../../utils/chainport'
 
 export class TransactionCommand extends IronfishCommand {
@@ -68,12 +68,12 @@ export class TransactionCommand extends IronfishCommand {
 
     const chainportNetworks = await fetchChainportNetworks(networkId)
 
-    const outgoing = isOutgoingChainportBridgeTransaction(
+    const outgoing = getOutgoingBridgeTransactionDetails(
       networkId,
       response.content.transaction,
       chainportNetworks,
     )
-    const incoming = incomingBridgeTransactionDetails(
+    const incoming = getIncomingBridgeTransactionDetails(
       networkId,
       response.content.transaction,
       chainportNetworks,

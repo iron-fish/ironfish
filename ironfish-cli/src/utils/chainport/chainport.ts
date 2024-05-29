@@ -154,7 +154,7 @@ export const fetchBridgeTransactionDetails = async (
   return response.data
 }
 
-export const incomingBridgeTransactionDetails = (
+export const getIncomingBridgeTransactionDetails = (
   networkId: number,
   transaction: RpcWalletTransaction,
   networks: { [key: string]: ChainportNetwork } | undefined = undefined,
@@ -223,7 +223,7 @@ export const incomingBridgeTransactionDetails = (
   }
 }
 
-export const isOutgoingChainportBridgeTransaction = (
+export const getOutgoingBridgeTransactionDetails = (
   networkId: number,
   transaction: RpcWalletTransaction,
   networks: { [key: string]: ChainportNetwork } | undefined = undefined,
