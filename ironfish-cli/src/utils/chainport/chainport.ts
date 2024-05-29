@@ -1,9 +1,17 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Logger, MAINNET, RpcWalletTransaction, TESTNET, TransactionType } from '@ironfish/sdk'
+import {
+  Logger,
+  MAINNET,
+  RpcWalletNote,
+  RpcWalletTransaction,
+  TESTNET,
+  TransactionType,
+} from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
 import axios from 'axios'
+import { ChainportMemoMetadata } from './metadata'
 
 export type ChainportBridgeTransaction = {
   bridge_output: {
@@ -146,23 +154,30 @@ export const fetchBridgeTransactionDetails = async (
   return response.data
 }
 
-export const isIncomingChainportBridgeTransaction = (
+export const incomingBridgeTransactionDetails = (
   networkId: number,
   transaction: RpcWalletTransaction,
-) => {
-  if (networkId !== TESTNET.id) {
-    return false
+  networks: { [key: string]: ChainportNetwork } | undefined = undefined,
+): {
+  isIncomingTransaction: boolean
+  details?: {
+    network: string
+    address: string
+  }
+} => {
+  if (
+    networkId !== TESTNET.id ||
+    transaction.type !== TransactionType.RECEIVE ||
+    !transaction.notes
+  ) {
+    return {
+      isIncomingTransaction: false,
+    }
   }
 
   const config = getNetworkConfig(networkId)
 
-  if (transaction.type !== TransactionType.RECEIVE) {
-    return false
-  }
-
-  if (!transaction.notes) {
-    return false
-  }
+  let bridgeNote: RpcWalletNote | undefined = undefined
 
   for (const note of transaction.notes) {
     const incomingAddresses = config.incomingAddresses
@@ -170,33 +185,67 @@ export const isIncomingChainportBridgeTransaction = (
       note.sender.toLowerCase() !==
       incomingAddresses.find((address) => address.toLowerCase() === note.sender.toLowerCase())
     ) {
-      return false
+      return {
+        isIncomingTransaction: false,
+      }
+    }
+    bridgeNote = note
+  }
+
+  if (!bridgeNote) {
+    return {
+      isIncomingTransaction: false,
     }
   }
 
-  return true
+  if (!networks) {
+    return {
+      isIncomingTransaction: true,
+    }
+  }
+
+  const [sourceNetwork, address, _] = ChainportMemoMetadata.decode(
+    Buffer.from(bridgeNote?.memoHex).toString(),
+  )
+
+  if (!networks[sourceNetwork]) {
+    return {
+      isIncomingTransaction: true,
+    }
+  }
+
+  return {
+    isIncomingTransaction: true,
+    details: {
+      network: networks[sourceNetwork].name || 'Unknown',
+      address: address,
+    },
+  }
 }
 
 export const isOutgoingChainportBridgeTransaction = (
   networkId: number,
   transaction: RpcWalletTransaction,
-) => {
-  if (networkId !== TESTNET.id) {
-    return false
+  networks: { [key: string]: ChainportNetwork } | undefined = undefined,
+): {
+  isOutgoingTransaction: boolean
+  details?: {
+    network: string
+    address: string
+  }
+} => {
+  if (
+    networkId !== TESTNET.id ||
+    transaction.type !== TransactionType.SEND ||
+    !transaction.notes ||
+    transaction.notes.length < 2
+  ) {
+    return {
+      isOutgoingTransaction: false,
+    }
   }
 
   const config = getNetworkConfig(networkId)
-  if (transaction.type !== TransactionType.SEND) {
-    return false
-  }
-
-  if (!transaction.notes) {
-    return false
-  }
-
-  if (transaction.notes.length < 2) {
-    return false
-  }
 
   const bridgeAddresses = config.outgoingAddresses.map((address) => address.toLowerCase())
 
@@ -205,16 +254,42 @@ export const isOutgoingChainportBridgeTransaction = (
   )
 
   if (!bridgeNote) {
-    return false
+    return {
+      isOutgoingTransaction: false,
+    }
   }
 
   const feeNote = transaction.notes.find((note) => note.memo === '{"type": "fee_payment"}')
 
   if (!feeNote) {
-    return false
+    return {
+      isOutgoingTransaction: false,
+    }
   }
 
-  return true
+  if (!networks) {
+    return {
+      isOutgoingTransaction: true,
+    }
+  }
+
+  const [sourceNetwork, address, _] = ChainportMemoMetadata.decode(
+    Buffer.from(bridgeNote.memoHex).toString(),
+  )
+
+  if (!networks[sourceNetwork]) {
+    return {
+      isOutgoingTransaction: true,
+    }
+  }
+
+  return {
+    isOutgoingTransaction: true,
+    details: {
+      network: networks[sourceNetwork].name || 'Unknown',
+      address: address,
+    },
+  }
 }
 
 export const showChainportTransactionSummary = async (
