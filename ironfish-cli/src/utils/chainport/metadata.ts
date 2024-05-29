@@ -2,6 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+/**
+ * Chainport memo metadata encoding and decoding
+ * The metadata is encoded in a 64 character hex string
+ * The first bit is a flag to indicate if the transaction is to IronFish or from IronFish
+ * The next 10 bits are the network id
+ * The rest of the bits are the address
+ */
 export class ChainportMemoMetadata {
   constructor() {}
 
@@ -53,7 +60,7 @@ export class ChainportMemoMetadata {
     return hexString.padStart(64, '0')
   }
 
-  public static decode(encodedHex: string) {
+  public static decode(encodedHex: string): [number, string, boolean] {
     const hexInteger = BigInt('0x' + encodedHex)
     const encodedString = hexInteger.toString(2)
     const padded = encodedString.padStart(250, '0')
