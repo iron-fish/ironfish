@@ -89,9 +89,11 @@ export class TransactionsCommand extends IronfishCommand {
 
     for await (const transaction of response.contentStream()) {
       if (flags.notes) {
-        if (isOutgoingChainportBridgeTransaction(networkId, transaction)) {
+        if (getOutgoingBridgeTransactionDetails(networkId, transaction).isOutgoingTransaction) {
           transaction.type = 'Bridge (outgoing)' as TransactionType
-        } else if (isIncomingChainportBridgeTransaction(networkId, transaction)) {
+        } else if (
+          getIncomingBridgeTransactionDetails(networkId, transaction).isIncomingTransaction
+        ) {
           transaction.type = 'Bridge (incoming)' as TransactionType
         }
       }
