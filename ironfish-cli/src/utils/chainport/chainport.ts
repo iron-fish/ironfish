@@ -80,7 +80,7 @@ export const showChainportTransactionSummary = async (
       `Transaction status not found on target network.
 
 Note: Bridge transactions may take up to 30 minutes to surface on the target network.
-If this issue persists, please contact chainport support: https://app.chainport.io/`,
+If this issue persists, please contact chainport support: https://helpdesk.chainport.io/`,
     )
     return
   }
