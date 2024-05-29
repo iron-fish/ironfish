@@ -7,9 +7,9 @@ import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 import {
-    incomingBridgeTransactionDetails,
-    isOutgoingChainportBridgeTransaction,
-    showChainportTransactionSummary,
+  incomingBridgeTransactionDetails,
+  isOutgoingChainportBridgeTransaction,
+  showChainportTransactionSummary,
 } from '../../../utils/chainport'
 import { watchTransaction } from '../../../utils/transaction'
 
@@ -65,8 +65,11 @@ export class TransactionCommand extends IronfishCommand {
     const isOutgoingBridgeTransaction = isOutgoingChainportBridgeTransaction(
       networkId,
       transaction,
-    )
-    const isIncomingBridgeTransaction = incomingBridgeTransactionDetails(networkId, transaction)
+    ).isOutgoingTransaction
+    const isIncomingBridgeTransaction = incomingBridgeTransactionDetails(
+      networkId,
+      transaction,
+    ).isIncomingTransaction
 
     if (!isOutgoingBridgeTransaction && !isIncomingBridgeTransaction) {
       this.log(`This transaction is not a chainport bridge transaction`)
