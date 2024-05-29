@@ -194,26 +194,29 @@ export class TransactionCommand extends IronfishCommand {
         )
       } else {
         this.log(`\n---Chainport Bridge Transaction Details---\n`)
-        const allDetails = {
-          network: chainportTxnDetails.details.network,
-          address: chainportTxnDetails.details.address,
-          direction:
-            response.content.transaction.type === TransactionType.SEND
-              ? 'Outgoing'
-              : 'Incoming',
-        }
-
-        CliUx.ux.table([allDetails], {
-          network: {
-            header: 'Network',
+        CliUx.ux.table(
+          [
+            {
+              network: chainportTxnDetails.details.network,
+              address: chainportTxnDetails.details.address,
+              direction:
+                response.content.transaction.type === TransactionType.SEND
+                  ? 'Outgoing'
+                  : 'Incoming',
+            },
+          ],
+          {
+            network: {
+              header: 'Network',
+            },
+            address: {
+              header: 'Address',
+            },
+            direction: {
+              header: 'Direction',
+            },
           },
-          address: {
-            header: 'Address',
-          },
-          direction: {
-            header: 'Direction',
-          },
-        })
+        )
       }
     }
   }
