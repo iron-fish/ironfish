@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { RpcWalletNote, RpcWalletTransaction, TESTNET, TransactionType } from '@ironfish/sdk'
-import { getNetworkConfig } from './chainport'
+import { getNetworkConfig } from './config'
 import { ChainportMemoMetadata } from './metadata'
 import { ChainportNetwork } from './types'
 
