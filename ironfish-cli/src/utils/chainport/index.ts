@@ -6,4 +6,3 @@ export * from './chainport'
 export * from './details'
 export * from './metadata'
 export * from './types'
-
