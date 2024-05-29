@@ -64,31 +64,7 @@ export class TransactionCommand extends IronfishCommand {
     Assert.isNotUndefined(response.content.transaction.spends)
 
     const renderedFee = CurrencyUtils.render(response.content.transaction.fee, true)
-    let transactionType = response.content.transaction.type.toString()
-
-    const chainportNetworks = await fetchChainportNetworks(networkId)
-
-    const chainportTxnDetails = getChainportTransactionDetails(
-      networkId,
-      response.content.transaction,
-      chainportNetworks,
-    )
-
-    if (chainportTxnDetails.isChainportTransaction) {
-      if (chainportTxnDetails && response.content.transaction.type === TransactionType.SEND) {
-        transactionType =
-          'Outgoing Chainport Bridge' +
-          (chainportTxnDetails.details
-            ? `\nSource chain: ${chainportTxnDetails.details.network}\nSource address: ${chainportTxnDetails.details.address}`
-            : '')
-      } else {
-        transactionType =
-          'Incoming Chainport Bridge' +
-          (chainportTxnDetails.details
-            ? `\nSource chain: ${chainportTxnDetails.details.network}\nSource address: ${chainportTxnDetails.details.address}`
-            : '')
-      }
-    }
+    const transactionType = response.content.transaction.type.toString()
 
     this.log(`Transaction: ${hash}`)
     this.log(`Account: ${response.content.account}`)
@@ -197,6 +173,51 @@ export class TransactionCommand extends IronfishCommand {
             ),
         },
       })
+    }
+
+    const chainportNetworks = await fetchChainportNetworks(networkId)
+
+    const chainportTxnDetails = getChainportTransactionDetails(
+      networkId,
+      response.content.transaction,
+      chainportNetworks,
+    )
+
+    if (chainportTxnDetails.isChainportTransaction) {
+      if (!chainportTxnDetails.details) {
+        this.log(
+          `\nThis transaction is an ${
+            response.content.transaction.type === TransactionType.RECEIVE
+              ? 'Incoming'
+              : 'Outgoing'
+          } Chainport Bridge Transaction.\n`,
+        )
+      } else {
+        this.log(`\n---Chainport Bridge Transaction Details---\n`)
+        CliUx.ux.table(
+          [
+            {
+              network: chainportTxnDetails.details.network,
+              address: chainportTxnDetails.details.address,
+              direction:
+                response.content.transaction.type === TransactionType.SEND
+                  ? 'Outgoing'
+                  : 'Incoming',
+            },
+          ],
+          {
+            network: {
+              header: 'Network',
+            },
+            address: {
+              header: 'Address',
+            },
+            direction: {
+              header: 'Direction',
+            },
+          },
+        )
+      }
     }
   }
 }
