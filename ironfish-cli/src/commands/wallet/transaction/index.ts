@@ -200,5 +200,50 @@ export class TransactionCommand extends IronfishCommand {
         },
       })
     }
+
+    const chainportNetworks = await fetchChainportNetworks(networkId)
+
+    const chainportTxnDetails = getChainportTransactionDetails(
+      networkId,
+      response.content.transaction,
+      chainportNetworks,
+    )
+
+    if (chainportTxnDetails.isChainportTransaction) {
+      if (!chainportTxnDetails.details) {
+        this.log(
+          `\nThis transaction is an ${
+            response.content.transaction.type === TransactionType.RECEIVE
+              ? 'Incoming'
+              : 'Outgoing'
+          } Chainport Bridge Transaction.\n`,
+        )
+      } else {
+        this.log(`\n---Chainport Bridge Transaction Details---\n`)
+        CliUx.ux.table(
+          [
+            {
+              network: chainportTxnDetails.details.network,
+              address: chainportTxnDetails.details.address,
+              direction:
+                response.content.transaction.type === TransactionType.SEND
+                  ? 'Outgoing'
+                  : 'Incoming',
+            },
+          ],
+          {
+            network: {
+              header: 'Network',
+            },
+            address: {
+              header: 'Address',
+            },
+            direction: {
+              header: 'Direction',
+            },
+          },
+        )
+      }
+    }
   }
 }
