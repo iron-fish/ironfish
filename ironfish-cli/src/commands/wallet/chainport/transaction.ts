@@ -64,9 +64,7 @@ export class TransactionCommand extends IronfishCommand {
     const chainportTxnDetails = getChainportTransactionDetails(networkId, transaction)
 
     if (!chainportTxnDetails.isChainportTransaction) {
-      this.log(`This transaction is not a chainport bridge transaction`)
-
-      return
+      this.error(`This transaction is not a chainport bridge transaction`)
     }
 
     if (transaction.type === TransactionType.RECEIVE) {

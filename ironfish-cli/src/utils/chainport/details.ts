@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { RpcWalletNote, RpcWalletTransaction, TESTNET, TransactionType } from '@ironfish/sdk'
+import { RpcWalletTransaction, TESTNET, TransactionType } from '@ironfish/sdk'
 import { getNetworkConfig } from './config'
 import { ChainportMemoMetadata } from './metadata'
 import { ChainportNetwork } from './types'
@@ -25,112 +25,119 @@ export const getChainportTransactionDetails = (
     }
   }
 
-  if (!transaction.notes) {
+  const config = getNetworkConfig(networkId)
+
+  if (![TransactionType.RECEIVE, TransactionType.SEND].includes(transaction.type)) {
     return {
       isChainportTransaction: false,
     }
   }
 
-  const config = getNetworkConfig(networkId)
+  return transaction.type === TransactionType.RECEIVE
+    ? isIncomingChainportBridgeTransaction(transaction, config, networks)
+    : isOutgoingChainportBridgeTransaction(transaction, config, networks)
+}
 
-  if (transaction.type === TransactionType.RECEIVE) {
-    let bridgeNote: RpcWalletNote | undefined = undefined
-
-    for (const note of transaction.notes) {
-      const incomingAddresses = config.incomingAddresses
-      if (
-        note.sender.toLowerCase() !==
-        incomingAddresses.find((address) => address.toLowerCase() === note.sender.toLowerCase())
-      ) {
-        return {
-          isChainportTransaction: false,
-        }
-      }
-      bridgeNote = note
+const isIncomingChainportBridgeTransaction = (
+  transaction: RpcWalletTransaction,
+  config: { incomingAddresses: string[] },
+  networks: { [key: string]: ChainportNetwork } | undefined = undefined,
+) => {
+  if (!transaction.notes || transaction.notes.length < 1) {
+    return {
+      isChainportTransaction: false,
     }
+  }
 
-    if (!bridgeNote) {
-      return {
-        isChainportTransaction: false,
-      }
-    }
+  const bridgeNote = transaction.notes[0]
 
-    if (!networks) {
-      return {
-        isChainportTransaction: true,
-      }
-    }
+  const incomingAddresses = config.incomingAddresses
 
-    const [sourceNetwork, address, _] = ChainportMemoMetadata.decode(
-      Buffer.from(bridgeNote?.memoHex).toString(),
+  if (
+    !incomingAddresses.find(
+      (address) => address.toLowerCase() === bridgeNote.sender.toLowerCase(),
     )
-
-    if (!networks[sourceNetwork]) {
-      return {
-        isChainportTransaction: true,
-      }
+  ) {
+    return {
+      isChainportTransaction: false,
     }
+  }
 
+  if (!networks) {
     return {
       isChainportTransaction: true,
-      details: {
-        network: networks[sourceNetwork].name || 'Unknown',
-        address: address,
-      },
     }
-  } else if (transaction.type === TransactionType.SEND) {
-    if (transaction.notes.length < 2) {
-      return {
-        isChainportTransaction: false,
-      }
-    }
+  }
 
-    const bridgeAddresses = config.outgoingAddresses.map((address) => address.toLowerCase())
+  const [sourceNetwork, address, _] = ChainportMemoMetadata.decode(
+    Buffer.from(bridgeNote.memoHex).toString(),
+  )
 
-    const bridgeNote = transaction.notes.find((note) =>
-      bridgeAddresses.includes(note.owner.toLowerCase()),
-    )
-
-    if (!bridgeNote) {
-      return {
-        isChainportTransaction: false,
-      }
-    }
-
-    const feeNote = transaction.notes.find((note) => note.memo === '{"type": "fee_payment"}')
-
-    if (!feeNote) {
-      return {
-        isChainportTransaction: false,
-      }
-    }
-
-    if (!networks) {
-      return {
-        isChainportTransaction: true,
-      }
-    }
-
-    const [sourceNetwork, address, _] = ChainportMemoMetadata.decode(
-      Buffer.from(bridgeNote.memoHex).toString(),
-    )
-
-    if (!networks[sourceNetwork]) {
-      return {
-        isChainportTransaction: true,
-      }
-    }
-
+  if (!networks[sourceNetwork]) {
     return {
       isChainportTransaction: true,
-      details: {
-        network: networks[sourceNetwork].name || 'Unknown',
-        address: address,
-      },
     }
   }
 
   return {
-    isChainportTransaction: false,
+    isChainportTransaction: true,
+    details: {
+      network: networks[sourceNetwork].name || 'Unknown',
+      address: address,
+    },
+  }
+}
+
+const isOutgoingChainportBridgeTransaction = (
+  transaction: RpcWalletTransaction,
+  config: { outgoingAddresses: string[] },
+  networks: { [key: string]: ChainportNetwork } | undefined = undefined,
+) => {
+  if (!transaction.notes || transaction.notes.length < 2) {
+    return {
+      isChainportTransaction: false,
+    }
+  }
+
+  if (!transaction.notes.find((note) => note.memo === '{"type": "fee_payment"}')) {
+    return {
+      isChainportTransaction: false,
+    }
+  }
+
+  const bridgeNote = transaction.notes.find((note) =>
+    config.outgoingAddresses
+      .map((address) => address.toLowerCase())
+      .includes(note.owner.toLowerCase()),
+  )
+
+  if (!bridgeNote) {
+    return {
+      isChainportTransaction: false,
+    }
+  }
+
+  if (!networks) {
+    return {
+      isChainportTransaction: true,
+    }
+  }
+
+  const [sourceNetwork, address, _] = ChainportMemoMetadata.decode(
+    Buffer.from(bridgeNote.memoHex).toString(),
+  )
+
+  if (!networks[sourceNetwork]) {
+    return {
+      isChainportTransaction: true,
+    }
+  }
+
+  return {
+    isChainportTransaction: true,
+    details: {
+      network: networks[sourceNetwork].name || 'Unknown',
+      address: address,
+    },
   }
 }
