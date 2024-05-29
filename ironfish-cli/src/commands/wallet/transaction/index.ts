@@ -14,8 +14,9 @@ import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 import { getAssetsByIDs } from '../../../utils'
 import {
-  isIncomingChainportBridgeTransaction,
-  isOutgoingChainportBridgeTransaction,
+  fetchChainportNetworks,
+  getIncomingBridgeTransactionDetails,
+  getOutgoingBridgeTransactionDetails,
 } from '../../../utils/chainport'
 
 export class TransactionCommand extends IronfishCommand {
@@ -64,11 +65,42 @@ export class TransactionCommand extends IronfishCommand {
 
     const renderedFee = CurrencyUtils.render(response.content.transaction.fee, true)
     let transactionType = response.content.transaction.type.toString()
-    if (isOutgoingChainportBridgeTransaction(networkId, response.content.transaction)) {
-      transactionType = 'Outgoing Chainport Bridge'
-    } else if (isIncomingChainportBridgeTransaction(networkId, response.content.transaction)) {
-      transactionType = 'Incoming Chainport Bridge'
+
+    const chainportNetworks = await fetchChainportNetworks(networkId)
+
+    const outgoing = getOutgoingBridgeTransactionDetails(
+      networkId,
+      response.content.transaction,
+      chainportNetworks,
+    )
+    const incoming = getIncomingBridgeTransactionDetails(
+      networkId,
+      response.content.transaction,
+      chainportNetworks,
+    )
+
+    if (outgoing.isOutgoingTransaction) {
+      if (outgoing.details) {
+        transactionType =
+          'Outgoing Chainport Bridge\nSource chain: ' +
+          outgoing.details.network +
+          ' \nSource address: ' +
+          outgoing.details.address
+      } else {
+        transactionType = 'Outgoing Chainport Bridge'
+      }
+    } else if (incoming.isIncomingTransaction) {
+      if (incoming.details) {
+        transactionType =
+          'Incoming Chainport Bridge\nSource chain: ' +
+          incoming.details.network +
+          ' \nSource address: ' +
+          incoming.details.address
+      } else {
+        transactionType = 'Incoming Chainport Bridge'
+      }
     }
+
     this.log(`Transaction: ${hash}`)
     this.log(`Account: ${response.content.account}`)
     this.log(`Status: ${response.content.transaction.status}`)

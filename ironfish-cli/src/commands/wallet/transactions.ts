@@ -15,8 +15,8 @@ import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { getAssetsByIDs } from '../../utils'
 import {
-  isIncomingChainportBridgeTransaction,
-  isOutgoingChainportBridgeTransaction,
+  getIncomingBridgeTransactionDetails,
+  getOutgoingBridgeTransactionDetails,
 } from '../../utils/chainport'
 import { Format, TableCols, TableFlags } from '../../utils/table'
 
@@ -91,9 +91,11 @@ export class TransactionsCommand extends IronfishCommand {
 
     for await (const transaction of response.contentStream()) {
       if (flags.notes) {
-        if (isOutgoingChainportBridgeTransaction(networkId, transaction)) {
+        if (getOutgoingBridgeTransactionDetails(networkId, transaction).isOutgoingTransaction) {
           transaction.type = 'Bridge (outgoing)' as TransactionType
-        } else if (isIncomingChainportBridgeTransaction(networkId, transaction)) {
+        } else if (
+          getIncomingBridgeTransactionDetails(networkId, transaction).isIncomingTransaction
+        ) {
           transaction.type = 'Bridge (incoming)' as TransactionType
         }
       }
