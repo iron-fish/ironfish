@@ -1,17 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import {
-  Logger,
-  MAINNET,
-  RpcWalletNote,
-  RpcWalletTransaction,
-  TESTNET,
-  TransactionType,
-} from '@ironfish/sdk'
+import { Logger, MAINNET, TESTNET } from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
 import axios from 'axios'
-import { ChainportMemoMetadata } from './metadata'
 import {
   ChainportBridgeTransaction,
   ChainportNetwork,
@@ -36,7 +28,7 @@ const config = {
   },
 }
 
-const getNetworkConfig = (networkId: number) => {
+export const getNetworkConfig = (networkId: number) => {
   if (networkId !== TESTNET.id && networkId !== MAINNET.id) {
     throw new Error(`Unsupported network ${networkId} for chainport`)
   }
@@ -97,144 +89,6 @@ export const fetchBridgeTransactionDetails = async (
   } = await axios.get(url)
 
   return response.data
-}
-
-export const getIncomingBridgeTransactionDetails = (
-  networkId: number,
-  transaction: RpcWalletTransaction,
-  networks: { [key: string]: ChainportNetwork } | undefined = undefined,
-): {
-  isIncomingTransaction: boolean
-  details?: {
-    network: string
-    address: string
-  }
-} => {
-  if (
-    networkId !== TESTNET.id ||
-    transaction.type !== TransactionType.RECEIVE ||
-    !transaction.notes
-  ) {
-    return {
-      isIncomingTransaction: false,
-    }
-  }
-
-  const config = getNetworkConfig(networkId)
-
-  let bridgeNote: RpcWalletNote | undefined = undefined
-
-  for (const note of transaction.notes) {
-    const incomingAddresses = config.incomingAddresses
-    if (
-      note.sender.toLowerCase() !==
-      incomingAddresses.find((address) => address.toLowerCase() === note.sender.toLowerCase())
-    ) {
-      return {
-        isIncomingTransaction: false,
-      }
-    }
-    bridgeNote = note
-  }
-
-  if (!bridgeNote) {
-    return {
-      isIncomingTransaction: false,
-    }
-  }
-
-  if (!networks) {
-    return {
-      isIncomingTransaction: true,
-    }
-  }
-
-  const [sourceNetwork, address, _] = ChainportMemoMetadata.decode(
-    Buffer.from(bridgeNote?.memoHex).toString(),
-  )
-
-  if (!networks[sourceNetwork]) {
-    return {
-      isIncomingTransaction: true,
-    }
-  }
-
-  return {
-    isIncomingTransaction: true,
-    details: {
-      network: networks[sourceNetwork].name || 'Unknown',
-      address: address,
-    },
-  }
-}
-
-export const getOutgoingBridgeTransactionDetails = (
-  networkId: number,
-  transaction: RpcWalletTransaction,
-  networks: { [key: string]: ChainportNetwork } | undefined = undefined,
-): {
-  isOutgoingTransaction: boolean
-  details?: {
-    network: string
-    address: string
-  }
-} => {
-  if (
-    networkId !== TESTNET.id ||
-    transaction.type !== TransactionType.SEND ||
-    !transaction.notes ||
-    transaction.notes.length < 2
-  ) {
-    return {
-      isOutgoingTransaction: false,
-    }
-  }
-
-  const config = getNetworkConfig(networkId)
-
-  const bridgeAddresses = config.outgoingAddresses.map((address) => address.toLowerCase())
-
-  const bridgeNote = transaction.notes.find((note) =>
-    bridgeAddresses.includes(note.owner.toLowerCase()),
-  )
-
-  if (!bridgeNote) {
-    return {
-      isOutgoingTransaction: false,
-    }
-  }
-
-  const feeNote = transaction.notes.find((note) => note.memo === '{"type": "fee_payment"}')
-
-  if (!feeNote) {
-    return {
-      isOutgoingTransaction: false,
-    }
-  }
-
-  if (!networks) {
-    return {
-      isOutgoingTransaction: true,
-    }
-  }
-
-  const [sourceNetwork, address, _] = ChainportMemoMetadata.decode(
-    Buffer.from(bridgeNote.memoHex).toString(),
-  )
-
-  if (!networks[sourceNetwork]) {
-    return {
-      isOutgoingTransaction: true,
-    }
-  }
-
-  return {
-    isOutgoingTransaction: true,
-    details: {
-      network: networks[sourceNetwork].name || 'Unknown',
-      address: address,
-    },
-  }
 }
 
 export const showChainportTransactionSummary = async (

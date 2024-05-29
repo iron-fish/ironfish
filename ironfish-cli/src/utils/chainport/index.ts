@@ -3,5 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 export * from './chainport'
+export * from './details'
 export * from './metadata'
 export * from './types'
+

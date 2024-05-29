@@ -8,6 +8,7 @@ import {
   RpcAsset,
   RpcWalletNote,
   TimeUtils,
+  TransactionType,
 } from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
@@ -15,8 +16,7 @@ import { RemoteFlags } from '../../../flags'
 import { getAssetsByIDs } from '../../../utils'
 import {
   fetchChainportNetworks,
-  getIncomingBridgeTransactionDetails,
-  getOutgoingBridgeTransactionDetails,
+  getChainportTransactionDetails,
 } from '../../../utils/chainport'
 
 export class TransactionCommand extends IronfishCommand {
@@ -68,36 +68,33 @@ export class TransactionCommand extends IronfishCommand {
 
     const chainportNetworks = await fetchChainportNetworks(networkId)
 
-    const outgoing = getOutgoingBridgeTransactionDetails(
-      networkId,
-      response.content.transaction,
-      chainportNetworks,
-    )
-    const incoming = getIncomingBridgeTransactionDetails(
+    const chainportTxnDetails = getChainportTransactionDetails(
       networkId,
       response.content.transaction,
       chainportNetworks,
     )
 
-    if (outgoing.isOutgoingTransaction) {
-      if (outgoing.details) {
-        transactionType =
-          'Outgoing Chainport Bridge\nSource chain: ' +
-          outgoing.details.network +
-          ' \nSource address: ' +
-          outgoing.details.address
+    if (chainportTxnDetails.isChainportTransaction) {
+      if (chainportTxnDetails && response.content.transaction.type === TransactionType.SEND) {
+        if (chainportTxnDetails.details) {
+          transactionType =
+            'Outgoing Chainport Bridge\nSource chain: ' +
+            chainportTxnDetails.details.network +
+            ' \nSource address: ' +
+            chainportTxnDetails.details.address
+        } else {
+          transactionType = 'Outgoing Chainport Bridge'
+        }
       } else {
-        transactionType = 'Outgoing Chainport Bridge'
-      }
-    } else if (incoming.isIncomingTransaction) {
-      if (incoming.details) {
-        transactionType =
-          'Incoming Chainport Bridge\nSource chain: ' +
-          incoming.details.network +
-          ' \nSource address: ' +
-          incoming.details.address
-      } else {
-        transactionType = 'Incoming Chainport Bridge'
+        if (chainportTxnDetails.details) {
+          transactionType =
+            'Incoming Chainport Bridge\nSource chain: ' +
+            chainportTxnDetails.details.network +
+            ' \nSource address: ' +
+            chainportTxnDetails.details.address
+        } else {
+          transactionType = 'Incoming Chainport Bridge'
+        }
       }
     }
 

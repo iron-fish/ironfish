@@ -2,13 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { TESTNET, TransactionStatus } from '@ironfish/sdk'
+import { TESTNET, TransactionStatus, TransactionType } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 import {
-  getIncomingBridgeTransactionDetails,
-  getOutgoingBridgeTransactionDetails,
+  getChainportTransactionDetails,
   showChainportTransactionSummary,
 } from '../../../utils/chainport'
 import { watchTransaction } from '../../../utils/transaction'
@@ -62,22 +61,15 @@ export class TransactionCommand extends IronfishCommand {
       return
     }
 
-    const isOutgoingBridgeTransaction = getOutgoingBridgeTransactionDetails(
-      networkId,
-      transaction,
-    ).isOutgoingTransaction
-    const isIncomingBridgeTransaction = getIncomingBridgeTransactionDetails(
-      networkId,
-      transaction,
-    ).isIncomingTransaction
+    const chainportTxnDetails = getChainportTransactionDetails(networkId, transaction)
 
-    if (!isOutgoingBridgeTransaction && !isIncomingBridgeTransaction) {
+    if (!chainportTxnDetails.isChainportTransaction) {
       this.log(`This transaction is not a chainport bridge transaction`)
 
       return
     }
 
-    if (isIncomingBridgeTransaction) {
+    if (transaction.type === TransactionType.RECEIVE) {
       this.log(`This transaction is an incoming chainport bridge transaction`)
       // TODO: Add support for incoming chainport bridge transactions
       // This involved decoding the memohex to get the source network id and transaction hash
