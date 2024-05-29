@@ -83,20 +83,20 @@ const config = {
   },
 }
 
-const getNetworkConfig = (network_id: number) => {
-  if (network_id !== TESTNET.id && network_id !== MAINNET.id) {
-    throw new Error(`Unsupported network ${network_id} for chainport`)
+const getNetworkConfig = (networkId: number) => {
+  if (networkId !== TESTNET.id && networkId !== MAINNET.id) {
+    throw new Error(`Unsupported network ${networkId} for chainport`)
   }
 
-  if (network_id === MAINNET.id) {
+  if (networkId === MAINNET.id) {
     throw new Error(`Mainnet is not yet supported.`)
   }
 
-  return config[network_id]
+  return config[networkId]
 }
 
-export const getChainportTransactionStatus = async (network_id: number, hash: string) => {
-  const config = getNetworkConfig(network_id)
+export const getChainportTransactionStatus = async (networkId: number, hash: string) => {
+  const config = getNetworkConfig(networkId)
   const url = `${config.endpoint}/api/port?base_tx_hash=${hash}&base_network_id=22`
 
   const response = await axios(url)
@@ -105,8 +105,8 @@ export const getChainportTransactionStatus = async (network_id: number, hash: st
   return data
 }
 
-export const fetchChainportNetworks = async (network_id: number) => {
-  const config = getNetworkConfig(network_id)
+export const fetchChainportNetworks = async (networkId: number) => {
+  const config = getNetworkConfig(networkId)
   const response: {
     data: {
       cp_network_ids: {
@@ -118,8 +118,8 @@ export const fetchChainportNetworks = async (network_id: number) => {
   return response.data.cp_network_ids
 }
 
-export const fetchChainportVerifiedTokens = async (network_id: number) => {
-  const config = getNetworkConfig(network_id)
+export const fetchChainportVerifiedTokens = async (networkId: number) => {
+  const config = getNetworkConfig(networkId)
 
   const response: {
     data: { verified_tokens: ChainportVerifiedToken[] }
