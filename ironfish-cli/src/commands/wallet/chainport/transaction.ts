@@ -7,6 +7,7 @@ import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 import {
+  fetchChainportNetworks,
   getChainportTransactionDetails,
   showChainportTransactionSummary,
 } from '../../../utils/chainport'
@@ -61,17 +62,32 @@ export class TransactionCommand extends IronfishCommand {
       return
     }
 
-    const chainportTxnDetails = getChainportTransactionDetails(networkId, transaction)
+    const networks = await fetchChainportNetworks(networkId)
+
+    const chainportTxnDetails = getChainportTransactionDetails(networkId, transaction, networks)
 
     if (!chainportTxnDetails.isChainportTransaction) {
       this.error(`This transaction is not a chainport bridge transaction`)
     }
 
     if (transaction.type === TransactionType.RECEIVE) {
-      this.log(`This transaction is an incoming chainport bridge transaction`)
-      // TODO: Add support for incoming chainport bridge transactions
-      // This involved decoding the memohex to get the source network id and transaction hash
-      return
+      if (chainportTxnDetails.details) {
+        const summary = `\
+\nTRANSACTION SUMMARY:
+Direction                    Incoming
+Ironfish Network             ${networkId === 0 ? 'Testnet' : 'Mainnet'}
+Status on Ironfish           ${transaction.status}
+Source Address               ${chainportTxnDetails.details.address}
+Source Network               ${chainportTxnDetails.details.network}
+`
+        this.log(summary)
+        return
+      } else {
+        this.log(
+          `This transaction is an incoming chainport bridge transaction. Error fetching transaction details.`,
+        )
+        return
+      }
     }
 
     if (flags.watch) {
