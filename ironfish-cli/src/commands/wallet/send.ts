@@ -216,7 +216,7 @@ export class Send extends IronfishCommand {
 
     let expiration = flags.expiration
     if ((flags.rawTransaction || flags.unsignedTransaction) && expiration === undefined) {
-      expiration = await promptExpiration({ logger: this.logger })
+      expiration = await promptExpiration({ logger: this.logger, client: client })
     }
 
     if (expiration !== undefined && expiration < 0) {
