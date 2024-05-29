@@ -94,7 +94,7 @@ If this issue persists, please contact chainport support: https://app.chainport.
   }
 
   const summary = `\
-\nTRANSACTION STATUS:
+\nTRANSACTION SUMMARY:
 Direction                    Outgoing
 Ironfish Network             ${networkId === 0 ? 'Testnet' : 'Mainnet'}
 Source Transaction Hash      ${hash}
