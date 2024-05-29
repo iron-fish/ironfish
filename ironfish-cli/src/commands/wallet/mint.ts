@@ -20,6 +20,7 @@ import { IronFlag, RemoteFlags, ValueFlag } from '../../flags'
 import { confirmOperation } from '../../utils'
 import { selectAsset } from '../../utils/asset'
 import { promptCurrency } from '../../utils/currency'
+import { promptExpiration } from '../../utils/expiration'
 import { getExplorer } from '../../utils/explorer'
 import { selectFee } from '../../utils/fees'
 import { watchTransaction } from '../../utils/transaction'
@@ -138,11 +139,6 @@ export class Mint extends IronfishCommand {
     const publicKeyResponse = await client.wallet.getAccountPublicKey({ account })
     const accountPublicKey = publicKeyResponse.content.publicKey
 
-    if (flags.expiration !== undefined && flags.expiration < 0) {
-      this.log('Expiration sequence must be non-negative')
-      this.exit(1)
-    }
-
     let assetId = flags.assetId
     let metadata = flags.metadata
     let name = flags.name
@@ -237,6 +233,16 @@ export class Mint extends IronfishCommand {
       }
     }
 
+    let expiration = flags.expiration
+    if (flags.rawTransaction && expiration === undefined) {
+      expiration = await promptExpiration({ logger: this.logger, client: client })
+    }
+
+    if (expiration !== undefined && expiration < 0) {
+      this.log('Expiration sequence must be non-negative')
+      this.exit(1)
+    }
+
     const params: CreateTransactionRequest = {
       account,
       outputs: [],
@@ -252,7 +258,7 @@ export class Mint extends IronfishCommand {
       ],
       fee: flags.fee ? CurrencyUtils.encode(flags.fee) : null,
       feeRate: flags.feeRate ? CurrencyUtils.encode(flags.feeRate) : null,
-      expiration: flags.expiration,
+      expiration: expiration,
       confirmations: flags.confirmations,
     }
 

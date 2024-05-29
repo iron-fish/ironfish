@@ -17,6 +17,7 @@ import { HexFlag, IronFlag, RemoteFlags, ValueFlag } from '../../flags'
 import { confirmOperation } from '../../utils'
 import { selectAsset } from '../../utils/asset'
 import { promptCurrency } from '../../utils/currency'
+import { promptExpiration } from '../../utils/expiration'
 import { getExplorer } from '../../utils/explorer'
 import { selectFee } from '../../utils/fees'
 import { getSpendPostTimeInMs, updateSpendPostTimeInMs } from '../../utils/spendPostTime'
@@ -213,7 +214,12 @@ export class Send extends IronfishCommand {
       this.exit(1)
     }
 
-    if (flags.expiration !== undefined && flags.expiration < 0) {
+    let expiration = flags.expiration
+    if ((flags.rawTransaction || flags.unsignedTransaction) && expiration === undefined) {
+      expiration = await promptExpiration({ logger: this.logger, client: client })
+    }
+
+    if (expiration !== undefined && expiration < 0) {
       this.log('Expiration sequence must be non-negative')
       this.exit(1)
     }
@@ -230,7 +236,7 @@ export class Send extends IronfishCommand {
       ],
       fee: flags.fee ? CurrencyUtils.encode(flags.fee) : null,
       feeRate: flags.feeRate ? CurrencyUtils.encode(flags.feeRate) : null,
-      expiration: flags.expiration,
+      expiration: expiration,
       confirmations: flags.confirmations,
       notes: flags.note,
     }

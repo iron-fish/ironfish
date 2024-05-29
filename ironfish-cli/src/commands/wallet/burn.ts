@@ -16,6 +16,7 @@ import { IronFlag, RemoteFlags, ValueFlag } from '../../flags'
 import { confirmOperation } from '../../utils'
 import { selectAsset } from '../../utils/asset'
 import { promptCurrency } from '../../utils/currency'
+import { promptExpiration } from '../../utils/expiration'
 import { getExplorer } from '../../utils/explorer'
 import { selectFee } from '../../utils/fees'
 import { watchTransaction } from '../../utils/transaction'
@@ -169,6 +170,16 @@ export class Burn extends IronfishCommand {
           confirmations: flags.confirmations,
         },
       })
+    }
+
+    let expiration = flags.expiration
+    if (flags.rawTransaction && expiration === undefined) {
+      expiration = await promptExpiration({ logger: this.logger, client: client })
+    }
+
+    if (expiration !== undefined && expiration < 0) {
+      this.log('Expiration sequence must be non-negative')
+      this.exit(1)
     }
 
     const params: CreateTransactionRequest = {
