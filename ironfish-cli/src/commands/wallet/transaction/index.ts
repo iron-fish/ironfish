@@ -7,7 +7,7 @@ import {
   CurrencyUtils,
   RpcAsset,
   RpcWalletNote,
-  TimeUtils,
+  TimeUtils
 } from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
