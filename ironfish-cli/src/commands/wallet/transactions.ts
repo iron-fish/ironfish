@@ -23,6 +23,10 @@ export class TransactionsCommand extends IronfishCommand {
   static flags = {
     ...RemoteFlags,
     ...tableFlags,
+    account: Flags.string({
+      char: 'a',
+      description: 'Name of the account to get transactions for',
+    }),
     hash: Flags.string({
       char: 't',
       description: 'Transaction hash to get details for',
@@ -50,13 +54,14 @@ export class TransactionsCommand extends IronfishCommand {
     {
       name: 'account',
       required: false,
-      description: 'Name of the account',
+      description: 'Name of the account. DEPRECATED: use --account flag',
     },
   ]
 
   async start(): Promise<void> {
     const { flags, args } = await this.parse(TransactionsCommand)
-    const account = args.account as string | undefined
+    // TODO: remove account arg
+    const account = (flags.account ? flags.account : args.account) as string | undefined
 
     const format: Format =
       flags.csv || flags.output === 'csv'

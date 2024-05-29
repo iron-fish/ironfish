@@ -16,6 +16,10 @@ export class BalanceCommand extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
+    account: Flags.string({
+      char: 'a',
+      description: 'Name of the account to get balance for',
+    }),
     explain: Flags.boolean({
       default: false,
       description: 'Explain your balance',
@@ -38,13 +42,14 @@ export class BalanceCommand extends IronfishCommand {
     {
       name: 'account',
       required: false,
-      description: 'Name of the account to get balance for',
+      description: 'Name of the account to get balance for. DEPRECATED: use --account flag',
     },
   ]
 
   async start(): Promise<void> {
     const { flags, args } = await this.parse(BalanceCommand)
-    const account = args.account as string | undefined
+    // TODO: remove account arg
+    const account = (flags.account ? flags.account : args.account) as string | undefined
 
     const client = await this.sdk.connectRpc()
 
