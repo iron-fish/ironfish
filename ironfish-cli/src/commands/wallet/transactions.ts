@@ -13,11 +13,7 @@ import {
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { getAssetsByIDs } from '../../utils'
-import {
-  getIncomingBridgeTransactionDetails,
-  getOutgoingBridgeTransactionDetails,
-} from '../../utils/chainport'
+import { extractChainportDataFromTransaction, getAssetsByIDs } from '../../utils'
 import { Format, TableCols, TableFlags } from '../../utils/table'
 
 const { sort: _, ...tableFlags } = TableFlags
@@ -91,12 +87,12 @@ export class TransactionsCommand extends IronfishCommand {
 
     for await (const transaction of response.contentStream()) {
       if (flags.notes) {
-        if (getOutgoingBridgeTransactionDetails(networkId, transaction).isOutgoingTransaction) {
-          transaction.type = 'Bridge (outgoing)' as TransactionType
-        } else if (
-          getIncomingBridgeTransactionDetails(networkId, transaction).isIncomingTransaction
-        ) {
-          transaction.type = 'Bridge (incoming)' as TransactionType
+        const chainportTxnDetails = extractChainportDataFromTransaction(networkId, transaction)
+        if (chainportTxnDetails) {
+          transaction.type =
+            chainportTxnDetails.type === TransactionType.SEND
+              ? ('Bridge (outgoing)' as TransactionType)
+              : ('Bridge (incoming)' as TransactionType)
         }
       }
 
