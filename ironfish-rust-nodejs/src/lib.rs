@@ -21,6 +21,7 @@ pub mod multisig;
 pub mod nacl;
 pub mod rolling_filter;
 pub mod signal_catcher;
+pub mod signing;
 pub mod structs;
 
 fn to_napi_err(err: impl Display) -> napi::Error {

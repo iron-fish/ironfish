@@ -115,7 +115,7 @@ impl SaplingKey {
     }
 
     /// Load a new key from a Read implementation (e.g: socket, file)
-    pub fn read<R: io::Read>(reader: &mut R) -> Result<Self, IronfishError> {
+    pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
         let mut spending_key = [0; SPEND_KEY_SIZE];
         reader.read_exact(&mut spending_key)?;
         Self::new(spending_key)
