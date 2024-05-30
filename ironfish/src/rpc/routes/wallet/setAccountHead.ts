@@ -11,14 +11,15 @@ import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import { getAccount } from './utils'
 
-export type AddKnownTransactionsRequest = {
+export type SetAccountHeadRequest = {
   /**
    * Name of the account to update.
    */
   account: string
   /**
-   * Starting block hash (inclusive). This block must connect to the
-   * account head with no gaps.
+   * Starting block hash (inclusive). Used to verify that you haven't accidentally skipped
+   * decrypting transactions in blocks between the account head and this block hash.
+   * This block must connect to the account head with no gaps.
    */
   start: string
   /**
@@ -33,32 +34,32 @@ export type AddKnownTransactionsRequest = {
   transactions: { hash: string }[]
 }
 
-export type AddKnownTransactionsResponse = undefined
+export type SetAccountHeadResponse = undefined
 
-export const AddKnownTransactionsRequestSchema: yup.ObjectSchema<AddKnownTransactionsRequest> =
-  yup
-    .object({
-      account: yup.string().defined(),
-      start: yup.string().defined(),
-      end: yup.string().defined(),
-      transactions: yup
-        .array(
-          yup
-            .object({
-              hash: yup.string().defined(),
-            })
-            .defined(),
-        )
-        .defined(),
-    })
-    .defined()
+export const SetAccountHeadRequestSchema: yup.ObjectSchema<SetAccountHeadRequest> = yup
+  .object({
+    account: yup.string().defined(),
+    start: yup.string().defined(),
+    end: yup.string().defined(),
+    transactions: yup
+      .array(
+        yup
+          .object({
+            hash: yup.string().defined(),
+          })
+          .defined(),
+      )
+      .defined(),
+  })
+  .defined()
 
-export const AddKnownTransactionsResponseSchema: yup.MixedSchema<AddKnownTransactionsResponse> =
-  yup.mixed().oneOf([undefined] as const)
+export const SetAccountHeadResponseSchema: yup.MixedSchema<SetAccountHeadResponse> = yup
+  .mixed()
+  .oneOf([undefined] as const)
 
-routes.register<typeof AddKnownTransactionsRequestSchema, AddKnownTransactionsResponse>(
-  `${ApiNamespace.wallet}/addKnownTransactions`,
-  AddKnownTransactionsRequestSchema,
+routes.register<typeof SetAccountHeadRequestSchema, SetAccountHeadResponse>(
+  `${ApiNamespace.wallet}/setAccountHead`,
+  SetAccountHeadRequestSchema,
   async (request, context): Promise<void> => {
     Assert.isInstanceOf(context, FullNode)
 
@@ -83,7 +84,7 @@ routes.register<typeof AddKnownTransactionsRequestSchema, AddKnownTransactionsRe
 
     if (account.scanningEnabled) {
       throw new RpcResponseError(
-        `Cannot add known transactions while account syncing is enabled. Try calling wallet/stopScanning first.`,
+        `Cannot set account head while account scanning is enabled. Try calling wallet/stopScanning first.`,
         RPC_ERROR_CODES.ERROR,
         409,
       )

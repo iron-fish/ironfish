@@ -6,7 +6,7 @@ import { Asset } from '@ironfish/rust-nodejs'
 import { useAccountFixture, useMinerBlockFixture } from '../../../testUtilities/fixtures'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 
-describe('Route wallet/addKnownTransactions', () => {
+describe('Route wallet/setAccountHead', () => {
   const routeTest = createRouteTest()
 
   describe('Updates the account head and adds transactions', () => {
@@ -18,7 +18,7 @@ describe('Route wallet/addKnownTransactions', () => {
 
       await account.updateScanningEnabled(false)
 
-      const response = await routeTest.client.wallet.addKnownTransactions({
+      const response = await routeTest.client.wallet.setAccountHead({
         account: account.name,
         start: routeTest.chain.genesis.hash.toString('hex'),
         end: block.header.hash.toString('hex'),
@@ -46,7 +46,7 @@ describe('Route wallet/addKnownTransactions', () => {
 
       await account.updateScanningEnabled(false)
 
-      const response = await routeTest.client.wallet.addKnownTransactions({
+      const response = await routeTest.client.wallet.setAccountHead({
         account: account.name,
         start: block1.header.hash.toString('hex'),
         end: block2.header.hash.toString('hex'),
@@ -65,7 +65,7 @@ describe('Route wallet/addKnownTransactions', () => {
     const account = await useAccountFixture(routeTest.wallet, 'foo')
 
     await expect(() =>
-      routeTest.client.wallet.addKnownTransactions({
+      routeTest.client.wallet.setAccountHead({
         account: account.name,
         start: 'fff',
         end: 'eee',
@@ -74,7 +74,7 @@ describe('Route wallet/addKnownTransactions', () => {
     ).rejects.toThrow('Start block is not on the head chain.')
 
     await expect(() =>
-      routeTest.client.wallet.addKnownTransactions({
+      routeTest.client.wallet.setAccountHead({
         account: account.name,
         start: routeTest.chain.genesis.hash.toString('hex'),
         end: 'eee',
@@ -87,13 +87,13 @@ describe('Route wallet/addKnownTransactions', () => {
     const account = await useAccountFixture(routeTest.wallet, 'foo')
 
     await expect(() =>
-      routeTest.client.wallet.addKnownTransactions({
+      routeTest.client.wallet.setAccountHead({
         account: account.name,
         start: routeTest.chain.genesis.hash.toString('hex'),
         end: routeTest.chain.genesis.hash.toString('hex'),
         transactions: [],
       }),
-    ).rejects.toThrow('Cannot add known transactions while account syncing is enabled.')
+    ).rejects.toThrow('Cannot set account head while account scanning is enabled.')
   })
 
   it('throws if account head is null and start is not genesis', async () => {
@@ -107,7 +107,7 @@ describe('Route wallet/addKnownTransactions', () => {
     await account.updateScanningEnabled(false)
 
     await expect(() =>
-      routeTest.client.wallet.addKnownTransactions({
+      routeTest.client.wallet.setAccountHead({
         account: account.name,
         start: block.header.hash.toString('hex'),
         end: block.header.hash.toString('hex'),
@@ -132,7 +132,7 @@ describe('Route wallet/addKnownTransactions', () => {
     await account.updateScanningEnabled(false)
 
     await expect(() =>
-      routeTest.client.wallet.addKnownTransactions({
+      routeTest.client.wallet.setAccountHead({
         account: account.name,
         start: block2.header.hash.toString('hex'),
         end: block2.header.hash.toString('hex'),
@@ -150,7 +150,7 @@ describe('Route wallet/addKnownTransactions', () => {
 
     await account.updateScanningEnabled(false)
 
-    const response = await routeTest.client.wallet.addKnownTransactions({
+    const response = await routeTest.client.wallet.setAccountHead({
       account: account.name,
       start: routeTest.chain.genesis.hash.toString('hex'),
       end: block1.header.hash.toString('hex'),
@@ -183,7 +183,7 @@ describe('Route wallet/addKnownTransactions', () => {
     await expect(routeTest.chain).toAddBlock(node2Block1)
     await expect(routeTest.chain).toAddBlock(node2Block2)
 
-    const response = await routeTest.client.wallet.addKnownTransactions({
+    const response = await routeTest.client.wallet.setAccountHead({
       account: account.name,
       start: node2Block1.header.hash.toString('hex'),
       end: node2Block2.header.hash.toString('hex'),
@@ -209,7 +209,7 @@ describe('Route wallet/addKnownTransactions', () => {
 
     await account.updateScanningEnabled(false)
 
-    const response = await routeTest.client.wallet.addKnownTransactions({
+    const response = await routeTest.client.wallet.setAccountHead({
       account: account.name,
       start: routeTest.chain.genesis.hash.toString('hex'),
       end: block2.header.hash.toString('hex'),

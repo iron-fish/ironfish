@@ -5,8 +5,6 @@ import type { RpcResponse, RpcResponseEnded } from '../response'
 import type {
   AcceptTransactionRequest,
   AcceptTransactionResponse,
-  AddKnownTransactionsRequest,
-  AddKnownTransactionsResponse,
   AddPeerRequest,
   AddPeerResponse,
   AddTransactionRequest,
@@ -153,6 +151,8 @@ import type {
   RescanAccountResponse,
   SendTransactionRequest,
   SendTransactionResponse,
+  SetAccountHeadRequest,
+  SetAccountHeadResponse,
   SetConfigRequest,
   SetConfigResponse,
   SetScanningRequest,
@@ -310,11 +310,11 @@ export abstract class RpcClient {
       },
     },
 
-    addKnownTransactions: (
-      params: AddKnownTransactionsRequest,
-    ): Promise<RpcResponseEnded<AddKnownTransactionsResponse>> => {
-      return this.request<AddKnownTransactionsResponse>(
-        `${ApiNamespace.wallet}/addKnownTransactions`,
+    setAccountHead: (
+      params: SetAccountHeadRequest,
+    ): Promise<RpcResponseEnded<SetAccountHeadResponse>> => {
+      return this.request<SetAccountHeadResponse>(
+        `${ApiNamespace.wallet}/setAccountHead`,
         params,
       ).waitForEnd()
     },
