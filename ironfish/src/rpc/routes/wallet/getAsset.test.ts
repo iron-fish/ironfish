@@ -14,7 +14,7 @@ import {
   usePostTxFixture,
 } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
-import { AssetStatus, SpendingAccount } from '../../../wallet'
+import { AssetStatus, getAssetStatus, SpendingAccount } from '../../../wallet'
 
 describe('Route chain.getAsset', () => {
   const routeTest = createRouteTest()
@@ -125,9 +125,7 @@ describe('Route chain.getAsset', () => {
       metadata: asset.metadata().toString('hex'),
       name: asset.name().toString('hex'),
       nonce: asset.nonce(),
-      status: await node.wallet.getAssetStatus(account, accountAsset, {
-        confirmations: 0,
-      }),
+      status: await getAssetStatus(account, accountAsset, 0),
       verification: node.assetsVerifier.verify(asset.id()),
     })
   })

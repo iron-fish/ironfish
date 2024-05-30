@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { NodeUtils, TransactionStatus } from '@ironfish/sdk'
+import { getTransactionStatus, NodeUtils, TransactionStatus } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
@@ -49,7 +49,11 @@ export default class PruneCommand extends IronfishCommand {
           let count = 0
 
           for await (const transactionValue of account.getTransactions()) {
-            const status = await node.wallet.getTransactionStatus(account, transactionValue)
+            const status = await getTransactionStatus(
+              account,
+              transactionValue,
+              node.config.get('confirmations'),
+            )
 
             if (status === TransactionStatus.EXPIRED) {
               count = +1

@@ -6,6 +6,7 @@ import { Assert } from '../../../assert'
 import { useAccountFixture, useMinerBlockFixture, useTxFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { CurrencyUtils } from '../../../utils'
+import { getAssetStatus } from '../../../wallet'
 import { serializeRpcWalletTransaction } from './utils'
 
 describe('Route wallet/mintAsset', () => {
@@ -129,9 +130,7 @@ describe('Route wallet/mintAsset', () => {
           supply: undefined,
           owner: accountAsset.owner.toString('hex'),
           createdTransactionHash: accountAsset.createdTransactionHash.toString('hex'),
-          status: await node.wallet.getAssetStatus(account, accountAsset, {
-            confirmations: 0,
-          }),
+          status: await getAssetStatus(account, accountAsset, 0),
           verification: node.assetsVerifier.verify(asset.id()),
         },
         transaction: await serializeRpcWalletTransaction(

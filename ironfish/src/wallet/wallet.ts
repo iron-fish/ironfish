@@ -21,7 +21,7 @@ import { NoteHasher } from '../merkletree'
 import { Side } from '../merkletree/merkletree'
 import { Witness } from '../merkletree/witness'
 import { Mutex } from '../mutex'
-import { GENESIS_BLOCK_PREVIOUS, GENESIS_BLOCK_SEQUENCE } from '../primitives/block'
+import { GENESIS_BLOCK_PREVIOUS } from '../primitives/block'
 import { BurnDescription } from '../primitives/burnDescription'
 import { MintDescription } from '../primitives/mintDescription'
 import { Note } from '../primitives/note'
@@ -62,29 +62,7 @@ import { validateAccount } from './validator'
 import { AssetValue } from './walletdb/assetValue'
 import { DecryptedNoteValue } from './walletdb/decryptedNoteValue'
 import { HeadValue } from './walletdb/headValue'
-import { TransactionValue } from './walletdb/transactionValue'
 import { WalletDB } from './walletdb/walletdb'
-
-export enum AssetStatus {
-  CONFIRMED = 'confirmed',
-  PENDING = 'pending',
-  UNCONFIRMED = 'unconfirmed',
-  UNKNOWN = 'unknown',
-}
-
-export enum TransactionStatus {
-  CONFIRMED = 'confirmed',
-  EXPIRED = 'expired',
-  PENDING = 'pending',
-  UNCONFIRMED = 'unconfirmed',
-  UNKNOWN = 'unknown',
-}
-
-export enum TransactionType {
-  SEND = 'send',
-  RECEIVE = 'receive',
-  MINER = 'miner',
-}
 
 export type TransactionOutput = {
   publicAddress: string
@@ -1345,100 +1323,6 @@ export class Wallet {
         await account.expireTransaction(transaction)
       }
     }
-  }
-
-  async getTransactionStatus(
-    account: Account,
-    transaction: TransactionValue,
-    options?: {
-      headSequence?: number | null
-      confirmations?: number
-    },
-    tx?: IDatabaseTransaction,
-  ): Promise<TransactionStatus> {
-    const confirmations = options?.confirmations ?? this.config.get('confirmations')
-
-    const headSequence = options?.headSequence ?? (await account.getHead(tx))?.sequence
-
-    if (!headSequence) {
-      return TransactionStatus.UNKNOWN
-    }
-
-    if (transaction.sequence) {
-      const isConfirmed =
-        transaction.sequence === GENESIS_BLOCK_SEQUENCE ||
-        headSequence - transaction.sequence >= confirmations
-
-      return isConfirmed ? TransactionStatus.CONFIRMED : TransactionStatus.UNCONFIRMED
-    } else {
-      const isExpired = isExpiredSequence(transaction.transaction.expiration(), headSequence)
-
-      return isExpired ? TransactionStatus.EXPIRED : TransactionStatus.PENDING
-    }
-  }
-
-  /**
-   * Note: This logic will be deprecated when we move the field `status` from the Asset response object. The status field has
-   * more to do with the transaction than the asset itself.
-   *
-   * The getTransactionStatus field above is more relevant.
-   *
-   * @param account Account
-   * @param assetValue AssetValue
-   * @param options: { headSequence?: number | null;  confirmations?: number}
-   * @returns Promise<AssetStatus>
-   */
-  async getAssetStatus(
-    account: Account,
-    assetValue: AssetValue,
-    options?: {
-      headSequence?: number | null
-      confirmations?: number
-    },
-  ): Promise<AssetStatus> {
-    const confirmations = options?.confirmations ?? this.config.get('confirmations')
-
-    const headSequence = options?.headSequence ?? (await account.getHead())?.sequence
-    if (!headSequence) {
-      return AssetStatus.UNKNOWN
-    }
-
-    if (assetValue.sequence) {
-      const confirmed = headSequence - assetValue.sequence >= confirmations
-      return confirmed ? AssetStatus.CONFIRMED : AssetStatus.UNCONFIRMED
-    }
-
-    return AssetStatus.PENDING
-  }
-
-  async getTransactionType(
-    account: Account,
-    transaction: TransactionValue,
-    tx?: IDatabaseTransaction,
-  ): Promise<TransactionType> {
-    if (transaction.transaction.isMinersFee()) {
-      return TransactionType.MINER
-    }
-
-    for (const spend of transaction.transaction.spends) {
-      if ((await account.getNoteHash(spend.nullifier, tx)) !== undefined) {
-        return TransactionType.SEND
-      }
-    }
-
-    for (const note of transaction.transaction.notes) {
-      const decryptedNote = await account.getDecryptedNote(note.hash(), tx)
-
-      if (!decryptedNote) {
-        continue
-      }
-
-      if (decryptedNote.note.sender() === account.publicAddress) {
-        return TransactionType.SEND
-      }
-    }
-
-    return TransactionType.RECEIVE
   }
 
   async createAccount(
