@@ -485,42 +485,59 @@ export class Wallet {
         return
       }
 
-      await this.walletDb.db.transaction(async (tx) => {
-        let assetBalanceDeltas = new AssetBalances()
-        const accountTxnsMap = decryptedNotesMap.get(account.id)
-        const txns = transactions.map((t) => ({
-          transaction: t.transaction,
-          decryptedNotes: accountTxnsMap?.get(t.transaction.hash()) ?? [],
-        }))
+      const accountTxnsMap = decryptedNotesMap.get(account.id)
+      const txns = transactions.map((t) => ({
+        transaction: t.transaction,
+        decryptedNotes: accountTxnsMap?.get(t.transaction.hash()) ?? [],
+      }))
 
-        if (shouldDecryptAccountIds.has(account.id)) {
-          assetBalanceDeltas = await this.connectBlockTransactions(
-            blockHeader,
-            txns,
-            account,
-            scan,
-            tx,
-          )
-        }
+      await this.connectBlockForAccount(
+        account,
+        blockHeader,
+        txns,
+        shouldDecryptAccountIds.has(account.id),
+        scan,
+      )
+    }
+  }
 
-        await account.updateUnconfirmedBalances(
-          assetBalanceDeltas,
-          blockHeader.hash,
-          blockHeader.sequence,
+  async connectBlockForAccount(
+    account: Account,
+    blockHeader: WalletBlockHeader,
+    transactions: { transaction: Transaction; decryptedNotes: DecryptedNote[] }[],
+    shouldDecrypt: boolean,
+    scan?: ScanState,
+  ): Promise<void> {
+    let assetBalanceDeltas = new AssetBalances()
+
+    await this.walletDb.db.transaction(async (tx) => {
+      if (shouldDecrypt) {
+        assetBalanceDeltas = await this.connectBlockTransactions(
+          blockHeader,
+          transactions,
+          account,
+          scan,
           tx,
         )
+      }
 
-        await account.updateHead({ hash: blockHeader.hash, sequence: blockHeader.sequence }, tx)
+      await account.updateUnconfirmedBalances(
+        assetBalanceDeltas,
+        blockHeader.hash,
+        blockHeader.sequence,
+        tx,
+      )
 
-        const accountHasTransaction = assetBalanceDeltas.size > 0
-        if (account.createdAt === null && accountHasTransaction) {
-          await account.updateCreatedAt(
-            { hash: blockHeader.hash, sequence: blockHeader.sequence },
-            tx,
-          )
-        }
-      })
-    }
+      await account.updateHead({ hash: blockHeader.hash, sequence: blockHeader.sequence }, tx)
+
+      const accountHasTransaction = assetBalanceDeltas.size > 0
+      if (account.createdAt === null && accountHasTransaction) {
+        await account.updateCreatedAt(
+          { hash: blockHeader.hash, sequence: blockHeader.sequence },
+          tx,
+        )
+      }
+    })
   }
 
   async shouldDecryptForAccount(
@@ -680,39 +697,47 @@ export class Wallet {
     })
 
     for (const account of accounts) {
-      const assetBalanceDeltas = new AssetBalances()
+      await this.disconnectBlockForAccount(account, header, transactions)
+    }
+  }
 
-      await this.walletDb.db.transaction(async (tx) => {
-        for (const { transaction } of transactions.slice().reverse()) {
-          const transactionDeltas = await account.disconnectTransaction(header, transaction, tx)
+  async disconnectBlockForAccount(
+    account: Account,
+    header: WalletBlockHeader,
+    transactions: WalletBlockTransaction[],
+  ) {
+    const assetBalanceDeltas = new AssetBalances()
 
-          assetBalanceDeltas.update(transactionDeltas)
+    await this.walletDb.db.transaction(async (tx) => {
+      for (const { transaction } of transactions.slice().reverse()) {
+        const transactionDeltas = await account.disconnectTransaction(header, transaction, tx)
 
-          if (transaction.isMinersFee()) {
-            await account.deleteTransaction(transaction, tx)
-          }
+        assetBalanceDeltas.update(transactionDeltas)
+
+        if (transaction.isMinersFee()) {
+          await account.deleteTransaction(transaction, tx)
         }
+      }
 
-        await account.updateUnconfirmedBalances(
-          assetBalanceDeltas,
-          header.previousBlockHash,
-          header.sequence - 1,
-          tx,
-        )
+      await account.updateUnconfirmedBalances(
+        assetBalanceDeltas,
+        header.previousBlockHash,
+        header.sequence - 1,
+        tx,
+      )
 
-        await account.updateHead(
+      await account.updateHead(
+        { hash: header.previousBlockHash, sequence: header.sequence - 1 },
+        tx,
+      )
+
+      if (account.createdAt?.hash.equals(header.hash)) {
+        await account.updateCreatedAt(
           { hash: header.previousBlockHash, sequence: header.sequence - 1 },
           tx,
         )
-
-        if (account.createdAt?.hash.equals(header.hash)) {
-          await account.updateCreatedAt(
-            { hash: header.previousBlockHash, sequence: header.sequence - 1 },
-            tx,
-          )
-        }
-      })
-    }
+      }
+    })
   }
 
   async addPendingTransaction(transaction: Transaction): Promise<void> {

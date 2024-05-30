@@ -151,6 +151,8 @@ import type {
   RescanAccountResponse,
   SendTransactionRequest,
   SendTransactionResponse,
+  SetAccountHeadRequest,
+  SetAccountHeadResponse,
   SetConfigRequest,
   SetConfigResponse,
   SetScanningRequest,
@@ -306,6 +308,15 @@ export abstract class RpcClient {
           ).waitForEnd()
         },
       },
+    },
+
+    setAccountHead: (
+      params: SetAccountHeadRequest,
+    ): Promise<RpcResponseEnded<SetAccountHeadResponse>> => {
+      return this.request<SetAccountHeadResponse>(
+        `${ApiNamespace.wallet}/setAccountHead`,
+        params,
+      ).waitForEnd()
     },
 
     getAccounts: (
