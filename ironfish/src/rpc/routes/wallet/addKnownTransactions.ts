@@ -16,12 +16,20 @@ export type AddKnownTransactionsRequest = {
    * Name of the account to update.
    */
   account: string
+  /**
+   * Starting block hash (inclusive). This block must connect to the
+   * account head with no gaps.
+   */
   start: string
   /**
-   * Last block (inclusive). Account head will be set to this
+   * Last block hash (inclusive). Account head will be set to this
    * when the request finishes successfully.
    */
   end: string
+  /**
+   * Hashes of transactions between start and end in which the account
+   * is either a sender or a recipient.
+   */
   transactions: { hash: string }[]
 }
 
@@ -113,6 +121,11 @@ routes.register<typeof AddKnownTransactionsRequestSchema, AddKnownTransactionsRe
       }
 
       while (accountHead !== null && !accountHead.hash.equals(startHeader.previousBlockHash)) {
+        if (request.closed) {
+          request.end()
+          return
+        }
+
         const header: BlockHeader | null = await context.chain.getHeader(accountHead.hash)
         Assert.isNotNull(header, 'Account head must be in chain')
         const transactions = await context.chain.getBlockTransactions(header)
@@ -230,6 +243,11 @@ routes.register<typeof AddKnownTransactionsRequestSchema, AddKnownTransactionsRe
 
     // Connect each block
     for (const blockTransactions of transactionWithNotesList) {
+      if (request.closed) {
+        request.end()
+        return
+      }
+
       await context.wallet.connectBlockForAccount(
         account,
         blockTransactions.header,
