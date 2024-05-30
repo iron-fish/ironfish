@@ -26,6 +26,7 @@ export type GetBalanceResponse = {
   pending: string
   pendingCount: number
   available: string
+  availableNoteCount: number
   confirmations: number
   blockHash: string | null
   sequence: number | null
@@ -56,6 +57,7 @@ export const GetBalanceResponseSchema: yup.ObjectSchema<GetBalanceResponse> = yu
     pendingCount: yup.number().defined(),
     confirmed: yup.string().defined(),
     available: yup.string().defined(),
+    availableNoteCount: yup.number().defined(),
     confirmations: yup.number().defined(),
     blockHash: yup.string().nullable(true).defined(),
     sequence: yup.number().nullable(true).defined(),
@@ -90,6 +92,7 @@ routes.register<typeof GetBalanceRequestSchema, GetBalanceResponse>(
       unconfirmedCount: balance.unconfirmedCount,
       pending: balance.pending.toString(),
       available: balance.available.toString(),
+      availableNoteCount: balance.availableNoteCount,
       pendingCount: balance.pendingCount,
       confirmations: confirmations,
       blockHash: balance.blockHash?.toString('hex') ?? null,

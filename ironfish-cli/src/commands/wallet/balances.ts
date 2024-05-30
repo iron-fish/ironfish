@@ -86,6 +86,10 @@ export class BalancesCommand extends IronfishCommand {
     if (flags.all) {
       columns = {
         ...columns,
+        availableNotes: {
+          header: 'Available Notes',
+          get: ({ balance }) => balance.availableNoteCount,
+        },
         confirmed: {
           header: 'Confirmed Balance',
           get: ({ asset, balance }) =>
