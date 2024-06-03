@@ -6,6 +6,7 @@ import { TESTNET } from '@ironfish/sdk'
 
 const config = {
   [TESTNET.id]: {
+    chainportId: 22,
     endpoint: 'https://preprod-api.chainport.io',
     outgoingAddresses: [
       '06102d319ab7e77b914a1bd135577f3e266fd82a3e537a02db281421ed8b3d13',
