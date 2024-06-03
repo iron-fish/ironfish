@@ -15,8 +15,8 @@ import {
 import { CliUx, Flags } from '@oclif/core'
 import inquirer from 'inquirer'
 import { IronfishCommand } from '../../../command'
-import { IronFlag, RemoteFlags } from '../../../flags'
-import { confirmOperation } from '../../../utils'
+import { HexFlag, IronFlag, RemoteFlags } from '../../../flags'
+import { confirmOperation, getAssetsByIDs, selectAsset } from '../../../utils'
 import { getExplorer } from '../../../utils/explorer'
 import { selectFee } from '../../../utils/fees'
 import { fetchNotes } from '../../../utils/note'
@@ -80,6 +80,10 @@ export class CombineNotesCommand extends IronfishCommand {
       default: false,
       description:
         'Return raw transaction. Use it to create a transaction but not post to the network',
+    }),
+    assetId: HexFlag({
+      char: 'i',
+      description: 'The identifier for the asset to combine notes for',
     }),
   }
 
@@ -219,6 +223,7 @@ export class CombineNotesCommand extends IronfishCommand {
 
     let to = flags.to
     let from = flags.account
+    let assetId = flags.assetId
 
     if (!from) {
       const response = await client.wallet.getDefaultAccount()
@@ -241,7 +246,22 @@ export class CombineNotesCommand extends IronfishCommand {
       to = response.content.publicKey
     }
 
-    await this.ensureUserHasEnoughNotesToCombine(client, from)
+    if (!assetId) {
+      const asset = await selectAsset(client, from, {
+        action: 'combine notes for',
+        showNativeAsset: true,
+        showNonCreatorAsset: true,
+        showSingleAssetChoice: false,
+      })
+
+      assetId = asset?.id
+
+      if (!assetId) {
+        assetId = Asset.nativeId().toString('hex')
+      }
+    }
+
+    await this.ensureUserHasEnoughNotesToCombine(client, from, assetId)
 
     let spendPostTime = getSpendPostTimeInMs(this.sdk)
 
@@ -255,7 +275,7 @@ export class CombineNotesCommand extends IronfishCommand {
       numberOfNotes = await this.selectNotesToCombine(spendPostTime)
     }
 
-    let notes = await fetchNotes(client, from, numberOfNotes)
+    let notes = await fetchNotes(client, from, assetId, numberOfNotes)
 
     // If the user doesn't have enough notes for their selection, we reduce the number of notes so that
     // the largest note can be used for fees.
@@ -265,7 +285,7 @@ export class CombineNotesCommand extends IronfishCommand {
 
     notes = notes.slice(0, numberOfNotes)
 
-    const amountIncludingFees = notes.reduce((acc, note) => acc + BigInt(note.value), 0n)
+    const totalAmount = notes.reduce((acc, note) => acc + BigInt(note.value), 0n)
 
     const memo =
       flags.memo?.trim() ??
@@ -278,7 +298,8 @@ export class CombineNotesCommand extends IronfishCommand {
       outputs: [
         {
           publicAddress: to,
-          amount: CurrencyUtils.encode(amountIncludingFees),
+          assetId,
+          amount: CurrencyUtils.encode(totalAmount),
           memo,
         },
       ],
@@ -302,8 +323,11 @@ export class CombineNotesCommand extends IronfishCommand {
       raw = RawTransactionSerde.deserialize(bytes)
     }
 
-    // This allows for a single note output.
-    const amount = amountIncludingFees - raw.fee
+    let amount = totalAmount
+    // This allows for a single note output when combining native notes
+    if (assetId === Asset.nativeId().toString('hex')) {
+      amount = totalAmount - raw.fee
+    }
     params.outputs[0].amount = CurrencyUtils.encode(amount)
     params.fee = CurrencyUtils.encode(raw.fee)
 
@@ -314,15 +338,11 @@ export class CombineNotesCommand extends IronfishCommand {
     )
     raw = RawTransactionSerde.deserialize(createTransactionBytes)
 
-    // TODO(mat): We need to add asset support here for bridges, etc.
-    const assetData = (
-      await client.wallet.getAsset({
-        id: Asset.nativeId().toString('hex'),
-        account: from,
-      })
-    ).content
+    // Always fetch native asset details to account for change notes
+    const assetIds = [assetId, Asset.nativeId().toString('hex')]
+    const assetData = await getAssetsByIDs(client, assetIds, from, undefined)
 
-    displayTransactionSummary(raw, assetData, amount, from, to, memo)
+    displayTransactionSummary(raw, assetData[assetId], amount, from, to, memo)
 
     if (flags.rawTransaction) {
       this.log('Raw Transaction')
@@ -407,8 +427,12 @@ export class CombineNotesCommand extends IronfishCommand {
     }
   }
 
-  private async ensureUserHasEnoughNotesToCombine(client: RpcClient, from: string) {
-    const notes = await fetchNotes(client, from, 10)
+  private async ensureUserHasEnoughNotesToCombine(
+    client: RpcClient,
+    from: string,
+    assetId: string,
+  ) {
+    const notes = await fetchNotes(client, from, assetId, 10)
 
     if (notes.length < 3) {
       this.log(`Your notes are already combined. You currently have ${notes.length} notes.`)
@@ -420,7 +444,7 @@ export class CombineNotesCommand extends IronfishCommand {
     client: RpcClient,
     from: string,
     transaction: Transaction,
-    assetData: RpcAsset,
+    assetData: { [key: string]: RpcAsset },
   ) {
     const resultingNotes = (
       await client.wallet.getAccountTransaction({
@@ -431,21 +455,30 @@ export class CombineNotesCommand extends IronfishCommand {
 
     if (resultingNotes) {
       this.log('')
-      CliUx.ux.table(resultingNotes, {
-        hash: {
-          header: 'Notes Created',
-          get: (note) => note.noteHash,
+      CliUx.ux.table(
+        resultingNotes,
+        {
+          hash: {
+            header: 'Notes Created',
+            get: (note) => note.noteHash,
+          },
+          value: {
+            header: 'Value',
+            get: (note) =>
+              CurrencyUtils.render(
+                note.value,
+                true,
+                note.assetId,
+                assetData[note.assetId].verification,
+              ),
+          },
+          owner: {
+            header: 'Owner',
+            get: (note) => note.owner,
+          },
         },
-        value: {
-          header: 'Value',
-          get: (note) =>
-            CurrencyUtils.render(note.value, true, assetData.id, assetData.verification),
-        },
-        owner: {
-          header: 'Owner',
-          get: (note) => note.owner,
-        },
-      })
+        { 'no-truncate': true },
+      )
       this.log('')
     }
   }
