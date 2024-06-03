@@ -3,13 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Blockchain } from '../../blockchain'
 import { AccountValue, AssertSpending, SpendingAccount, Wallet } from '../../wallet'
+import { HeadValue } from '../../wallet/walletdb/headValue'
 import { useMinerBlockFixture } from './blocks'
 import { FixtureGenerate, useFixture } from './fixture'
 
 export function useAccountFixture(
   wallet: Wallet,
   generate: FixtureGenerate<SpendingAccount> | string = 'test',
-  options?: { setCreatedAt?: boolean; setDefault?: boolean },
+  options?: { createdAt?: HeadValue | null; setDefault?: boolean },
 ): Promise<SpendingAccount> {
   if (typeof generate === 'string') {
     const name = generate
@@ -50,7 +51,7 @@ export async function useAccountAndAddFundsFixture(
   wallet: Wallet,
   chain: Blockchain,
   generate: FixtureGenerate<SpendingAccount> | string = 'test',
-  options?: { setCreatedAt?: boolean; setDefault?: boolean },
+  options?: { createdAt?: HeadValue | null; setDefault?: boolean },
 ): Promise<SpendingAccount> {
   const account = await useAccountFixture(wallet, generate, options)
   const block = await useMinerBlockFixture(chain, undefined, account)

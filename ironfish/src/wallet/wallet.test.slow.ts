@@ -557,8 +557,8 @@ describe('Wallet', () => {
     const nodeA = nodeTest.node
     const { node: nodeB } = await nodeTest.createSetup()
 
-    const accountA = await useAccountFixture(nodeA.wallet, 'testA', { setCreatedAt: false })
-    const accountB = await useAccountFixture(nodeB.wallet, 'testB', { setCreatedAt: false })
+    const accountA = await useAccountFixture(nodeA.wallet, 'testA', { createdAt: null })
+    const accountB = await useAccountFixture(nodeB.wallet, 'testB', { createdAt: null })
 
     const accountBNodeA = await nodeA.wallet.importAccount(accountB)
 
@@ -713,8 +713,8 @@ describe('Wallet', () => {
     const nodeA = nodeTest.node
     const { node: nodeB } = await nodeTest.createSetup()
 
-    const accountA = await useAccountFixture(nodeA.wallet, 'testA', { setCreatedAt: false })
-    const accountB = await useAccountFixture(nodeB.wallet, 'testB', { setCreatedAt: false })
+    const accountA = await useAccountFixture(nodeA.wallet, 'testA', { createdAt: null })
+    const accountB = await useAccountFixture(nodeB.wallet, 'testB', { createdAt: null })
     const accountBNodeA = await nodeA.wallet.importAccount(accountB)
     const accountANodeB = await nodeB.wallet.importAccount(accountA)
 
@@ -823,8 +823,8 @@ describe('Wallet', () => {
     const nodeA = nodeTest.node
     const { node: nodeB } = await nodeTest.createSetup()
 
-    const accountA = await useAccountFixture(nodeA.wallet, 'testA', { setCreatedAt: false })
-    const accountB = await useAccountFixture(nodeB.wallet, 'testB', { setCreatedAt: false })
+    const accountA = await useAccountFixture(nodeA.wallet, 'testA', { createdAt: null })
+    const accountB = await useAccountFixture(nodeB.wallet, 'testB', { createdAt: null })
     const accountBNodeA = await nodeA.wallet.importAccount(accountB)
     const accountANodeB = await nodeB.wallet.importAccount(accountA)
 

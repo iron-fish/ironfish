@@ -362,7 +362,7 @@ describe('Wallet', () => {
       const { wallet, chain } = await nodeTest.createSetup({ config: { enableWallet: false } })
 
       // Create a new account but don't give it an account birthday so the wallet head does not update
-      await useAccountFixture(wallet, 'test', { setCreatedAt: false })
+      await useAccountFixture(wallet, 'test', { createdAt: null })
 
       const block1 = await useMinerBlockFixture(chain)
       await expect(chain).toAddBlock(block1)
@@ -682,9 +682,7 @@ describe('Wallet', () => {
       const { node: nodeA } = await nodeTest.createSetup()
       const { node: nodeB } = await nodeTest.createSetup()
 
-      const accountA = await useAccountFixture(nodeA.wallet, 'accountA', {
-        setCreatedAt: false,
-      })
+      const accountA = await useAccountFixture(nodeA.wallet, 'accountA', { createdAt: null })
       expect(accountA.createdAt).toBe(null)
 
       // create blocks and add them to both chains
@@ -713,9 +711,7 @@ describe('Wallet', () => {
       const { node: nodeA } = await nodeTest.createSetup()
       const { node: nodeB } = await nodeTest.createSetup()
 
-      const accountA = await useAccountFixture(nodeA.wallet, 'accountA', {
-        setCreatedAt: false,
-      })
+      const accountA = await useAccountFixture(nodeA.wallet, 'accountA', { createdAt: null })
       expect(accountA.createdAt).toBe(null)
 
       // create blocks and add them to both chains
@@ -746,9 +742,7 @@ describe('Wallet', () => {
       const { node: nodeA } = await nodeTest.createSetup()
       const { node: nodeB } = await nodeTest.createSetup()
 
-      const accountA = await useAccountFixture(nodeA.wallet, 'accountA', {
-        setCreatedAt: false,
-      })
+      const accountA = await useAccountFixture(nodeA.wallet, 'accountA', { createdAt: null })
       expect(accountA.createdAt).toBe(null)
 
       // create blocks but only add them to one chain
@@ -1947,7 +1941,7 @@ describe('Wallet', () => {
     it('should set null account.createdAt for the first on-chain transaction of an account', async () => {
       const { node } = await nodeTest.createSetup()
 
-      const accountA = await useAccountFixture(node.wallet, 'accountA', { setCreatedAt: false })
+      const accountA = await useAccountFixture(node.wallet, 'accountA', { createdAt: null })
 
       expect(accountA.createdAt).toBeNull()
 
@@ -1962,8 +1956,8 @@ describe('Wallet', () => {
     it('should not set account.createdAt if the account has no transaction on the block', async () => {
       const { node } = await nodeTest.createSetup()
 
-      const accountA = await useAccountFixture(node.wallet, 'accountA', { setCreatedAt: false })
-      const accountB = await useAccountFixture(node.wallet, 'accountB', { setCreatedAt: false })
+      const accountA = await useAccountFixture(node.wallet, 'accountA', { createdAt: null })
+      const accountB = await useAccountFixture(node.wallet, 'accountB', { createdAt: null })
 
       expect(accountA.createdAt).toBeNull()
       expect(accountB.createdAt).toBeNull()
@@ -1978,7 +1972,7 @@ describe('Wallet', () => {
     it('should not set account.createdAt if it is not null', async () => {
       const { node } = await nodeTest.createSetup()
 
-      const accountA = await useAccountFixture(node.wallet, 'accountA', { setCreatedAt: false })
+      const accountA = await useAccountFixture(node.wallet, 'accountA', { createdAt: null })
 
       expect(accountA.createdAt).toBeNull()
 
