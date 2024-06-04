@@ -1,222 +1,332 @@
 {
   "poolShares start throws an error if the pool account does not exist": [
     {
-      "version": 4,
-      "id": "ccb4e47c-e624-44ab-ba66-5f30042b1101",
-      "name": "default",
-      "spendingKey": "e7526b9ea902e194d08f385be09bc49e4d67d9614ee1045fbd32be9c43a22588",
-      "viewKey": "aecda4dd100c068ba6532272b4d15f6c3e7149591613e1da746caf9a08494dee3ec9ff5fca4d208aa967467444e305bd0d45166ef619f39b51b1b350146a25b3",
-      "incomingViewKey": "b9c3f23f49342ed85a339dbf85a0a6b1661427d8ef4dcf082e41055e58cd9403",
-      "outgoingViewKey": "6b8ad452b4063349b791b875bfdd97ec695fa3b6f3a9be86e4a773feea585e9f",
-      "publicAddress": "a4c934d9323e3f6511edf065193c3078afaf1df742ccd0c43bd17b4f77b737a1",
-      "createdAt": {
+      "value": {
+        "version": 4,
+        "id": "b3d50349-eeb5-40f4-8285-616ac57cae37",
+        "name": "default",
+        "spendingKey": "4914414bb22066cdae1ea52f533b5c7c3e2e3346be649141668a2ed0f59b815c",
+        "viewKey": "ee89c05fb5c6762b4061e4442e8311c03c33e6b5dce7a8d9243eb82bcc4b170ea3bbb23f3098d7f2a047bb64540361f9c9659365abc4eca8fbd8cf8e09188a07",
+        "incomingViewKey": "87a3ecf1ca4dd036258b3f890bc9801fe83cd6b3fa68f348a3ecfe3c578dd400",
+        "outgoingViewKey": "d3f1c7d7c9a6e3955b8d7ec4450fd702f92bafff6c21bda57e9718507c25730b",
+        "publicAddress": "5027b5e54378805079d897b7e91c4a6e2a675336f051d3ad5c8d2ce6c123602e",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "5ef5551b68c929c3db7fa60475baf1928055ac16e13c655353bdf4616b25e303"
+      },
+      "head": {
         "hash": {
           "type": "Buffer",
           "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
         },
         "sequence": 1
-      },
-      "proofAuthorizingKey": "b4b1e264b2c3cefe9656c62f23317478066128fb5d43b2406ddfcb6501d62403"
+      }
     }
   ],
   "poolShares start throws an error if the node has no default account": [
     {
-      "version": 4,
-      "id": "7fec52c5-e111-4d83-928e-a05e11cff60e",
-      "name": "default",
-      "spendingKey": "f11a10119cf49dc26452ee41de69ac929e6c5e1dbfa909c888dd9656aa15fce3",
-      "viewKey": "ea22bbec52a279e2b56fc07240ac9b0664be2fdaaaa26d27f812b9f133144d0f96bc93c59dd7d626335d3a55cc8d1254690ed52c38181bd43786ebb0f63d0fe8",
-      "incomingViewKey": "60c6d0261d6750c4ffca5cff51a3d8adaf644d3aaa1b519ef22391e93773c701",
-      "outgoingViewKey": "68ade7fedb420e158689d242b7e33902a578a7b19bb8df918b46ffd3c1552dfc",
-      "publicAddress": "7d7b8319dc6de034ad45e7faba821aef900e564d38fb540b5e7f310497f4c036",
-      "createdAt": {
+      "value": {
+        "version": 4,
+        "id": "63ff7d6c-cd0b-4929-8e7f-fa67b72f063d",
+        "name": "default",
+        "spendingKey": "40da74d94344eccac8bbfdc4e31fdd7d136c06b653bd975a84c749d616d6769e",
+        "viewKey": "bc014a8d7e646e226afab67f359b33cdcbdc02001c0276f7b129bf0ed4bf762499353ecbdf078084675329a0b1cf3b3a53e5acb1ac449eaa9b4dd912602b7fc0",
+        "incomingViewKey": "0af64e07af2ddeb44152f1e62cfd2e4863b1fecbbc736b81d905a457f058c905",
+        "outgoingViewKey": "a6c9ecfccb11d543bdce4479fe5d29547c36bbc882e17f1066982d7aca9ffc98",
+        "publicAddress": "59b6001e83fd3a6b80daedf3ab1ad67f496806bad088ceb43248fb45481e0c6d",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "7196ee451cc1f7b95e3e53bfb44f3b45c05a6e8ae1a1df58812ab8f9ef871600"
+      },
+      "head": {
         "hash": {
           "type": "Buffer",
           "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
         },
         "sequence": 1
-      },
-      "proofAuthorizingKey": "7b72463633dcdf75b8330e6acc06d935b2ba04d159728f0c7ab44ed9dcc80d03"
+      }
     }
   ],
   "poolShares start does not check for the pool account if payouts are disabled": [
     {
-      "version": 4,
-      "id": "bb994546-6968-40ec-bc3e-c8b2d141e46a",
-      "name": "default",
-      "spendingKey": "1f9690e3ebf38756a3ee555c108ac2d74bcd0ebc838dd002e0e96a4c29012bee",
-      "viewKey": "fbbb49523409ab3ee11dc29b5f83ea8bcb07db511d5993a0135320cbf463d7d59afb6932051cf3ef7b99e59fd35e954f18cc44b9d1e876ad73d365a9e78748ae",
-      "incomingViewKey": "2f6deb85107fba46d90e3552fbefdfd0e090c359dbc3f318f628d52f371cac06",
-      "outgoingViewKey": "712e21fb1779e5df1e29077c0116a5aa7c9bb9d6c521bd5929e504bd54aaa6be",
-      "publicAddress": "023c806d55a36f6b0dbcfbf8dfc5cebf678e1362d74f5cd2d69fed0be596be01",
-      "createdAt": {
+      "value": {
+        "version": 4,
+        "id": "1bd7aa11-8762-4df2-ad99-26c6f68ada8b",
+        "name": "default",
+        "spendingKey": "8be82b9bc6903d37af0d21c4a4a4a5909696b970be13727d8825cb9b40a3a5ca",
+        "viewKey": "db804847335755377748a66bf54314af6690fb58a2f77e0a2b35246be3f85a1b3837580e2c6ab065db2bba46b806ec1b9f23cb6d9e74b0411aab7607f56418d1",
+        "incomingViewKey": "8872fbb3e00fc3958350f1e7d0d66885273fb549a525a8be04ea5765cc99f800",
+        "outgoingViewKey": "ea4e8f4d3cb8d7194434449d6ef1efd34f1151bc1a234ebfc97fbd8d9fac57fb",
+        "publicAddress": "c31f7d5cddf9f7b6f128994bb177df7337909a02abc80eea9a2c44c0b0894fe8",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "079c06e6a6e3f4b2028746645e573ffd4a1276bcd05d35d63fa7c3d8d2f18802"
+      },
+      "head": {
         "hash": {
           "type": "Buffer",
           "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
         },
         "sequence": 1
-      },
-      "proofAuthorizingKey": "9e136e974d746723ab15dcb19f457db7960cfea7bdceaa30f5d083e9737ca202"
+      }
     }
   ],
   "poolShares shareRate": [
     {
-      "version": 4,
-      "id": "a3a432e7-bd28-4823-953b-38141708366c",
-      "name": "default",
-      "spendingKey": "942d41836e028615131821fc0ba389577c26d31c3e0eb9dbd7861c8edb9d4f84",
-      "viewKey": "cc26000cb7c9b0d5e25c82601fb8ba135bd823bda34c4a5b95b1c09777c4ef354d4e07ef60d58cce34a2c7272a4029d92c3d6f439dbfeab11db3a51cdf08fd17",
-      "incomingViewKey": "213163b7c0860ebe26aa73517361fba216d6ec3d187a89c22296908e6fa01303",
-      "outgoingViewKey": "8a45286c6150f974f06d1648db731aee5929a600af8c0934a141038790706c2d",
-      "publicAddress": "5ba1cf3664f25c5a16237784e3e6b761907b488ddf17697028d7dca02e1a644a",
-      "createdAt": {
+      "value": {
+        "version": 4,
+        "id": "047bc266-0c4b-4ec4-8db3-cbe1547237c0",
+        "name": "default",
+        "spendingKey": "e1c2c35fa209caca6b253819645b94cdd466804b6a0cb45a5df5f386c218bbeb",
+        "viewKey": "38c290aedc2e776e6ebaf43762a56dc01bde0bbeec0a87cd3f1bca23092271dc339d729147ad4c1063db363d56355614da75dd580cf5c0492f51090e91de57f1",
+        "incomingViewKey": "4cfcbe06a42ac4f3cb1db0c753da6ff2d1cb25e3f46024371891ce3f6a3ddf00",
+        "outgoingViewKey": "47676f95061e5e707ecd16782f8645fb36ef16a794bf0f24950b0fc01d80aaaa",
+        "publicAddress": "4d45c3aea5a48a6894e6308c5d589609a8aff83aab6904ad7d292870db743ecd",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "0242b47067514d1b3b96fe24e45fa8b73bf7a4b21c1207244cacd6e82e508105"
+      },
+      "head": {
         "hash": {
           "type": "Buffer",
           "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
         },
         "sequence": 1
-      },
-      "proofAuthorizingKey": "b52bfa247906a9b8adfcf47353641bf129c30fe7a8e3ced0438653e5a832430a"
+      }
     }
   ],
   "poolShares rolloverPayoutPeriod": [
     {
-      "version": 4,
-      "id": "dbeee77b-f8fa-47a9-9629-53a9057ba6e2",
-      "name": "default",
-      "spendingKey": "7275d1f429a47a307589bb6e20d4c909eda83e59c332ca7056e571dcf29f31ce",
-      "viewKey": "9fdd2b7e4f5dff21a39894db729501781bf92f29b7c663a7cf8f5a3ee64358baa39298d9ec8eb3158eb38edd214c15ac079b46d1d87dbe8697ffe981394a0641",
-      "incomingViewKey": "abe355dfba52c6c024cf6f8a1dce6e506dd07a8fb9704c145e20e25d8a74bd02",
-      "outgoingViewKey": "6f15cb17d90c6a5bfb434826e889fb4bc63e2af4e47c49f0de4c911b05c7a8e0",
-      "publicAddress": "462f5f8ede9b85fef935259811592452b187226f03513e021e2b938096234d49",
-      "createdAt": {
+      "value": {
+        "version": 4,
+        "id": "59d18d7e-dfc9-4679-a9eb-b2aeaeb8982e",
+        "name": "default",
+        "spendingKey": "513510d8a6da026bad0ce785cc94ce4337407f68057241b7be85b5f6b9769501",
+        "viewKey": "fecbd041bb1d87200cc24f7008ca4d2bb01e597590226902075585b7c00b6bd177de2d11a8667dd488278608d68d8bf2fa570a5512abd4c3f6968f20a6862318",
+        "incomingViewKey": "b74980171ab8da217ec9c25fdb3dd77d6a626abacad0c731be6f8c786dfa5001",
+        "outgoingViewKey": "5d3c66ea054912516a3550e37274f30508ddc4e19d23642e37a8d96a9d050675",
+        "publicAddress": "8c7579199c84c07df79808b7ea99d7a6a7ea22d75e250be8882ed63e5ca9c280",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "cf0457e9962e621b71dbc95e81f8000fd9a294b9d5dd2b3eded85435d3ed8908"
+      },
+      "head": {
         "hash": {
           "type": "Buffer",
           "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
         },
         "sequence": 1
-      },
-      "proofAuthorizingKey": "5a72c047892816544a80fdb881dbb9c7296246942f8af0a61681fb4f3e65a002"
+      }
     }
   ],
   "poolShares blocks": [
     {
-      "version": 4,
-      "id": "668be655-6051-4274-9d64-dd105e2f9079",
-      "name": "default",
-      "spendingKey": "a159e8cc45fd6211138fbba8bfb54020f86181b2519a79827ba049b6d1b61bdf",
-      "viewKey": "8ed99cb59c6575d0ac40b4e5008fbfdffda090c2588915fb5f8c152ae3891af3100152e56634f060ee0e52c06d1ff0d73d7c666e6c8ec9e5a6358f8cf2bce10c",
-      "incomingViewKey": "9bb54e4abc2540d616baed9f6ffaef8e10dd1f278e7ced3100b60c58e7968901",
-      "outgoingViewKey": "81ce8b8629a55b3daaa2015a24705fa29b3ccfe1e03ce2db0f6c7e9422bf8f5d",
-      "publicAddress": "ce767f4dcc8161206ef03dcc89410145e90ca12d2617fcd12337cb73d99968e7",
-      "createdAt": {
+      "value": {
+        "version": 4,
+        "id": "32430fbd-e4bc-411c-879f-283712bbd985",
+        "name": "default",
+        "spendingKey": "2bc20368496260f4e44b9fcd59061bd4a5da8ab81336357f46f4e17cecd6c4a6",
+        "viewKey": "ae63ae3542c5416be25515ea4a8917ab0df2b6811299872abfdce389acb9d731db0544e2c210219114a8e00b9b818a8e3b918ba6bcf496130a42ce2838ae3a0d",
+        "incomingViewKey": "39f13ace0cf8ffb3fc8d75b969ff684033dff87863fc4105591cadbcafd43501",
+        "outgoingViewKey": "cf431b5ad0fc17afacba829cdab91aa9ba7edd2b4f9185f5c0e0a8dc322b34d7",
+        "publicAddress": "b96df9d9a26a555ae9885b6654a08844dd2eb4f4243bd1d3e2be8b569feaa604",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "353fe3e92360a04a3cf902212728ff5ec7bcafe55317de20542decc0ce343404"
+      },
+      "head": {
         "hash": {
           "type": "Buffer",
           "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
         },
         "sequence": 1
-      },
-      "proofAuthorizingKey": "35e23c688e59a6f82a213e7019fb57aebf12a24e137bd5c9bbe3954e0090680e"
+      }
     }
   ],
   "poolShares transactions expected flow": [
     {
-      "version": 4,
-      "id": "330b3d07-a9b6-4fe0-b3d6-0d09f39af5a8",
-      "name": "default",
-      "spendingKey": "2ee7ea035819a055353487ac6c08e22d8131af3716cb7aa36969bfea186be348",
-      "viewKey": "e4520f58b8b2fed7ed1ce74494ac379cab50876961e6e9d344ba93d2d8e134ba2fa03debd8fea728041432863eb5028e8b1aa1d815aea81b33506ade4bcd8d4c",
-      "incomingViewKey": "b6b3ce5def39f7285670ffa562dda1331684c3d2e3ea44fe75b10d2206242407",
-      "outgoingViewKey": "5d84878b8f709a072b2b98cddbc0feb12394dd9172c5721b7c5a21e29e45fa90",
-      "publicAddress": "5ff851dcf4aae3e3ea80f2073a78c5b01d4b7ad950d1c9a7cd290bc34dcdc59c",
-      "createdAt": {
+      "value": {
+        "version": 4,
+        "id": "dbaf4fb7-195b-40af-872b-f82f864c22fc",
+        "name": "default",
+        "spendingKey": "eaccd2360d5e66c8e78ee9ff35a63dd5fd49d5df39568d562fd62b220dc71cc2",
+        "viewKey": "3c23ec0b3205324c2c954a24ebf12c462e66879831254f445fa1889610983f8d40a44653d7484d7a63611df82a8f3fa23e78459ea928f193ed1e376dbe6d69a4",
+        "incomingViewKey": "20ff23ebfb5597528c3ca9d8f8a041ea9bb68131bb732f47cd4ab95b857ae207",
+        "outgoingViewKey": "1d0bd639631318ddc6c0eea6eb706a61ca7b39cb38adca32ba6fbfba2fba76c7",
+        "publicAddress": "0a0fce51eb25432cd813ef2ba136fcdb3faab1cf0fa5533ff50b40e942777fbe",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "e373347425a709c8c8c79deceeb67a30dfc4d2d1359a73727f6f4a3bf67f6d02"
+      },
+      "head": {
         "hash": {
           "type": "Buffer",
           "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
         },
         "sequence": 1
-      },
-      "proofAuthorizingKey": "f79902ae77bb9ab66f04ed83c84ec7e8c38e7288f88c598ca56343951d746903"
+      }
     }
   ],
   "poolShares transactions expired transactions should mark shares unpaid": [
     {
-      "version": 4,
-      "id": "932ae07e-eb08-421f-8875-76fca6c54a62",
-      "name": "default",
-      "spendingKey": "f7e3f931c4279c1d2b7ab96aed8bf64a992627075aa6e25427d077097b9770c4",
-      "viewKey": "049af5f33aacdf2c14e5fd17f09b4212f7b1db9155bbf8a5f582801f1c8305e83ef34c4d117b1b25d9c9b46e75d81971a3196c5070563ada3a342e304985381d",
-      "incomingViewKey": "e11058871820170576e84b21a56042caa820d110852ebb8e714da8b424936807",
-      "outgoingViewKey": "59ec6752d922ac25bbb4bfd71cbfcb561b61d7ed70972374699b5695c6b39beb",
-      "publicAddress": "c7cdd15ffe7abf4f3f3bb55429c5a42ed769b775c7159447ec53dd1d8ba655a3",
-      "createdAt": {
+      "value": {
+        "version": 4,
+        "id": "cda085da-d4aa-49bf-9b53-1ef291c862eb",
+        "name": "default",
+        "spendingKey": "7b8c3b7a73f57b666effc1b61ee9fed8066cba88b66319a6633bb7f435343dcb",
+        "viewKey": "b9a54d899a3e0acb1c83f6d7fb162dc6ca4eb1e1bf931eca7ac9491690a4f6e633227ef483627e8316f3c10ec4f4687480ceae0d93bd5f7ede1588a0a14231bd",
+        "incomingViewKey": "130c83bad9142ca196f0aa26c780f9fffc50662101c7f1813669fad6a95fd302",
+        "outgoingViewKey": "fac7695f687c20bf5f30097822871d0e105d6923354c80e01c53702843998f28",
+        "publicAddress": "0c0765adce3b83ce0d5079bf1ca4a6f55e0e808cf45da5ffca38c397da571035",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "abd7b92057b8941ef9ed367ae3782f0fd6a6239207998000334ba247f4dc850c"
+      },
+      "head": {
         "hash": {
           "type": "Buffer",
           "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
         },
         "sequence": 1
-      },
-      "proofAuthorizingKey": "00e098d65d935f425fd69f6e263b8063a2469b76d90b66d0b62c385553a18804"
+      }
     }
   ],
   "poolShares createNewPayout": [
     {
-      "version": 4,
-      "id": "947dfe00-6e80-4baa-96cf-bce425fa2826",
-      "name": "default",
-      "spendingKey": "ba1f07e6297fb0eefc034ac593f30fff43cceb88fb4c3acee66cdffaeb48f9b9",
-      "viewKey": "2d4ef09a3bc81cb3fcfb1363f6c97e9b88a1e2034970af659adddc64986972075cf66819cebf0fb759d2741a356d7beec72aff1577e9043f4f0a2cbb208c5469",
-      "incomingViewKey": "537b9383684cace49563ea1eccc039f77c6f1a03113bc62756e538f019924b07",
-      "outgoingViewKey": "9b6cd6e95f1c239647e7402de35265bf6a7cb81f182a230140e7f5f9d9249aef",
-      "publicAddress": "12acc9f73bfec59088e6aff2171851bdfa32f7e0ca180719d45123863c4ec026",
-      "createdAt": {
+      "value": {
+        "version": 4,
+        "id": "f1982969-1c75-4435-ad30-82081f302818",
+        "name": "default",
+        "spendingKey": "b82751a69605cde4dfacec6c41577e2e382c781de572d441c0207c9a5ad6c6f8",
+        "viewKey": "7c759b05c5139f83e9e1f7404b717732afb169d9bae385f3bd8338a9211c84a75ed58d12e39bddd5ee20f9cd13f92f4968a70f677706742f55034dc8d8277aa6",
+        "incomingViewKey": "52e1d50fcb297adc74efac12ad9243ae273f7d1b1d1fe4f1acd8cc4454f80103",
+        "outgoingViewKey": "e88079cd703323c773801344df8a0d1033f51d0453158da397469f1fa146c3d9",
+        "publicAddress": "a50e88a71199085a5e4cc22da74e2b8920bed8b2a0176c2287f9193dad78b11e",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "660f68b64cb4cd709dfa5c3bcd50ead4625917d24129804a7b56c31e09d74700"
+      },
+      "head": {
         "hash": {
           "type": "Buffer",
           "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
         },
         "sequence": 1
-      },
-      "proofAuthorizingKey": "cf244840baff855d1961abbf6f1e8c3f8caa8889d892559646ab4fa26cb6360c"
+      }
     }
   ],
   "poolShares sendTransaction throws an error if no account exists with accountName": [
     {
-      "version": 4,
-      "id": "963de077-19ab-4bd1-8d73-8db371d81d60",
-      "name": "default",
-      "spendingKey": "1583b82f4098c531376c6e615007e4966944a0fdbb6b5e94a84bff11b65aa25e",
-      "viewKey": "d0ac602927f00ff60d9b2e65b3b3ae62f629eb923218eeda3012b625114649d10714650a07d2ec33adbec5b404ec96b01bd818e8317db02e205d3945871f9c2d",
-      "incomingViewKey": "c7463c377d95accdd8ab2598ce6c01f95c3863c8a5e257b7f8486b3347d1da02",
-      "outgoingViewKey": "aff141421d818fc8c86dacfc770df8dd75d93c42a131f72fcad1306298811ada",
-      "publicAddress": "3c3ceae1a9daf8c6518f0dcaf1d1b68fbbc624df644421ee872163e0c2ab0eeb",
-      "createdAt": {
+      "value": {
+        "version": 4,
+        "id": "430e8c00-28fe-4577-b656-7915956de12b",
+        "name": "default",
+        "spendingKey": "dad0183a0e38886d09e812e0f7c26000286a39f69dd343455053217365dbc840",
+        "viewKey": "f8535a75096230f0177113b09c83d4f8134a78b9f02f7bd7aeed09c021b790428150114b4b39c8f964afa8087dc1e9ebf36189d8add53a562037466c5618a4a7",
+        "incomingViewKey": "1ca2b9c3f0938d589882d5b0833c730a6f43760253df3f1c119f1a97098a6b05",
+        "outgoingViewKey": "0352e1e8550063c44db4650d1b6c41bbac14006b7bf70e2cb1a0345faad610b0",
+        "publicAddress": "ab9581ef2e7da183ffc59800f1f4a46b53f76453af231fd2a387e8986f8be433",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "9b5f2327935d5d7c437a12e09b75aa7d78b249565f6f762a5daa083c229a9c01"
+      },
+      "head": {
         "hash": {
           "type": "Buffer",
           "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
         },
         "sequence": 1
-      },
-      "proofAuthorizingKey": "c3ed0bea6a027f8d674764d8bdfbed540c095dfd69a852cab2b9d8e98a48a50a"
+      }
     }
   ],
   "poolShares sendTransaction throws an error if node has no default account": [
     {
-      "version": 4,
-      "id": "ec853731-d394-42c7-bc95-6fe53ac4d231",
-      "name": "default",
-      "spendingKey": "268f9cb039de7865b672326eb0c2fe78593ba9bc9567315c6eca542d0f8e93cf",
-      "viewKey": "74248eb0e1fc4956621585f2e08e4d7f54806f8ac4e27ee3d8f63e53c0a6674792456a0446b4dbe070f476d1657888be33d5535d9848d54955ed7f4a72a63812",
-      "incomingViewKey": "940c7ed9a69934254c12cbb995fa58288295233d2ede0fd8de292417529db106",
-      "outgoingViewKey": "79f9fbc2b3321eea00a450d374f35a8f9853fdef6c0601528674be5b7e143631",
-      "publicAddress": "65a393884d111cd1c433dd16788b622be77b6e98e9b786018183b64678a41d94",
-      "createdAt": {
+      "value": {
+        "version": 4,
+        "id": "79d2f7e1-daa4-4088-947f-80f5ad03b922",
+        "name": "default",
+        "spendingKey": "39ed7a0581e4152d289e973cf546b423e32b1795b2547a617dfcdf0e6d5a8426",
+        "viewKey": "5aa494ed35696278fd7cffdfe8eceb2dd37cd9a14df62cd5698732ddcd51ad53e2be442da3992ca5cef8931587055c5148c1b06b5c33c88fafeb865d6fc15463",
+        "incomingViewKey": "49b8d4b2c719ca5698895b50b4aa32aacd6e064614a23ae90ff50fd3be4e5204",
+        "outgoingViewKey": "a9eb8ca8bfc8800c1f6f17ba3dec7cd5f2339e50bd3437793cfb111c98006ba8",
+        "publicAddress": "87a83a757a57f39b7ea8068f719424841683f54979e1f8d67e931e6f1d34ad29",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "10061c16222a3db20989a9eaa9e23f214877e88bd026481ec1824cb7fa651600"
+      },
+      "head": {
         "hash": {
           "type": "Buffer",
           "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
         },
         "sequence": 1
-      },
-      "proofAuthorizingKey": "574e31643095f07ec192cbbe0407316c789c50207b29e6a5c56bbba646d4ee04"
+      }
     }
   ]
 }

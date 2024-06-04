@@ -1,42 +1,62 @@
 {
   "CreateMinersFeeTask execute posts a v1 miners fee transaction": [
     {
-      "version": 4,
-      "id": "e7b61131-d3ed-4bf9-bfb8-6adb6d699865",
-      "name": "test",
-      "spendingKey": "fd0ba8a830b1da10b918b4da7a47cd0173f9218f4f80ef53a5253619433ec36f",
-      "viewKey": "4996a31b3389f2241247915959a1604d31ca4c39fd7c599996c72f6d16eecbbdb58882836765803bc35f08204939b678e56879fb39e865d5a57459771c2d84d9",
-      "incomingViewKey": "de929f7c6f5d1629628c70f4f6a68abbffb7b0dc83ed0eee00a4b0ebdc2e8d06",
-      "outgoingViewKey": "47caaf5d7dd3945da7174307b87128ae98dc78fb2494e2d8ecd66faa91b7f60f",
-      "publicAddress": "de2eb27d077f174b29d0d892445cff347e8ca415c38eff8ba201d3ecc006fa8f",
-      "createdAt": {
+      "value": {
+        "version": 4,
+        "id": "e50dfb0c-2e95-478b-96bf-35d57bdf8031",
+        "name": "test",
+        "spendingKey": "ea3c83686414c28ebbe38a37a4c32214450937b077a760bab1e20e49d7d35284",
+        "viewKey": "bf483804e931086aeb43918ad173c7ac8dc38a631a8fe2924bad53b6e26253bea35d01834112e331fbb05be477fa4d16dba1a01e017c4e2534186f1fdafc5591",
+        "incomingViewKey": "a5869707993c17bde08e7ee001f34580d661f3784d0868e49e3bbc4ef7177901",
+        "outgoingViewKey": "454bbb0bb377f5b47789bdf67dbe02dd82638837d09f6f94e189e44a217f2298",
+        "publicAddress": "8e682b65721c34bff195424374c376dfa23ec736a118b2d1b9febdf89dd9b9dc",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "873f3b30ab6dc060f7ef791c2f2eda3540b9b19f514bfd7c84e5eb6fe1732102"
+      },
+      "head": {
         "hash": {
           "type": "Buffer",
           "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
         },
         "sequence": 1
-      },
-      "proofAuthorizingKey": "594a2c600c1d5b924beaa8e5aef394f275ad4ea5c46063109c39203eed1b7f0c"
+      }
     }
   ],
   "CreateMinersFeeTask execute posts a v2 miners fee transaction": [
     {
-      "version": 4,
-      "id": "f8e0cc3c-45dd-4584-809d-05c7019f2659",
-      "name": "test",
-      "spendingKey": "45481b5db2335ec6129dd371c926101c417297be5a97d4231f3545263fd05e5c",
-      "viewKey": "91f26f294ee165867578067f4225805e3a3bf4ec6acded11002f058cdae9dc4966f8a6360b7cf78a8d0138a0b337fe0691e43e5b1d852f91201d25bfcdcceb67",
-      "incomingViewKey": "b667cb4871ec7d5becd53e5bf518d7b27cdbeffae2b63da5ecbfd4d87ca62303",
-      "outgoingViewKey": "fee015707e9a0b0fa3dbd111fb55bdaa4e3ea2677623733d559c3ce28d82ba0b",
-      "publicAddress": "501887f10d5a001d1bc3c9a3113a82659a27da09aa822eadb809d3ff7ece5aea",
-      "createdAt": {
+      "value": {
+        "version": 4,
+        "id": "b6618c82-0084-4d87-a5e9-ddccc9ad0bc9",
+        "name": "test",
+        "spendingKey": "224edddb2726cb19036fdaa317ac8202d1858ea08d6044f1e01c5f768acda942",
+        "viewKey": "5423ee7942ca3dc5a5ec36002f3e868081026c82ac06942aa9009a92201581cb38b883fbe25683d38e37d2f40d946292d5af34a6523e707817e6a2645dea696c",
+        "incomingViewKey": "40c120be9cc2df52fd80ffd8e5dce581af849b82b0eb17dd1085f9ebeef53102",
+        "outgoingViewKey": "912a3af11e929016fbdfa097b9d9f43adc51fa9338797fc07864d57ba582e9cb",
+        "publicAddress": "eae823d3859e9ac3eb5f5cab0511045925200a0f6912e4d39d863639ab831b62",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "03cd048ea145f76b9c000bed18a64150670d80cae6378ae0917fddaa0fdd300c"
+      },
+      "head": {
         "hash": {
           "type": "Buffer",
           "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
         },
         "sequence": 1
-      },
-      "proofAuthorizingKey": "3a8a7eaf883cff37015b883a7bfcb0960319fe775debe14f66596f47fb789a03"
+      }
     }
   ]
 }

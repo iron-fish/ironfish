@@ -1,42 +1,62 @@
 {
   "Route wallet/buildTransaction should build a raw transaction": [
     {
-      "version": 4,
-      "id": "c76700f7-cf55-4717-8689-779de12cb65e",
-      "name": "existingAccount",
-      "spendingKey": "905259c723109ef72f7707258d5763c55015f89763e34e83248eb69f04616a7e",
-      "viewKey": "14f05e4a71b6feef95ee095e29abfe43b67ed489bc8b8dc85fa9b534949aa35e6bebf31281761695a440d49121a5c9d0c9956f07315a1c1061d1188adc237a5e",
-      "incomingViewKey": "8707746185accd9feaefd9250c104e38162144e2689efabc7315c7e17d34ac03",
-      "outgoingViewKey": "09bd17f64fc2431ae0b240152c9c5d89ea85beb26b42cec6a5b598c10cad08f7",
-      "publicAddress": "22ce0addc9b6efe57db0707fbcba17b4884703d1afd1e0e9f19fbbd2dfc4f017",
-      "createdAt": {
+      "value": {
+        "version": 4,
+        "id": "33dafa7f-79fc-4b11-afbe-a1012660d039",
+        "name": "existingAccount",
+        "spendingKey": "f5ab9e123aea6d3fd6a330a30831fb6bc13f398461e098d6a64a9a11f49e4f84",
+        "viewKey": "cb5fc2e10e8c12371da5bf9de153f8006c2494e16836f58b4d1a253d6a8d65735bc37f3d7c1dc993d6f7574b95f729dcfb2f7feefea95fe054190e643caeba5e",
+        "incomingViewKey": "849717589844d4e42c9be13d713df837cf97d02ce6ed6f2dfff875ccc4addd04",
+        "outgoingViewKey": "81f131c9386cf723baaa43f8a76f640d2fdd5eac75c851b939865b11b6288dff",
+        "publicAddress": "1177d57efbb7f96700435b3203ec0329d3e45e63dc48c5cc8b3bded938245814",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "155de11aa23f4ac0a50b6fbd29e07f74ae085ac5bad5e9f6e74094020d756e0d"
+      },
+      "head": {
         "hash": {
           "type": "Buffer",
           "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
         },
         "sequence": 1
-      },
-      "proofAuthorizingKey": "19cbef40545d10ba84ee29ac25cbab1b3096b70e8317df074d60b57bbca1b205"
+      }
     }
   ],
   "Route wallet/buildTransaction should produce output that can be signed": [
     {
-      "version": 4,
-      "id": "f85b40bd-2296-4186-b72f-bbe9824bf945",
-      "name": "signingAccount",
-      "spendingKey": "26284be45bd15d4f9b3a449ac597515474bdacac56036f17bde9855c1677aa78",
-      "viewKey": "9cf8ef0a9d9b492098920fee55c50d15e769496ac5c2cc2621102c9049f7b60c646f6e80d71bdeef720fcb22910c1c1846e32c8d2220c22b79324335487a98a4",
-      "incomingViewKey": "8a4616ac47161d07656ce2eb4702b0a2ae8f0147cb809a1f59ab8deb51dc6601",
-      "outgoingViewKey": "16ec6057961074f0cd0dcf324512d65bbf74bad7855831b116c776905448cf19",
-      "publicAddress": "8b9cc7507cdb91a7269601fdba32729b50b1da98087eb23bd0c83dacc602efe7",
-      "createdAt": {
+      "value": {
+        "version": 4,
+        "id": "269fc18f-d18f-49ea-ab0f-583cab1fc244",
+        "name": "signingAccount",
+        "spendingKey": "bfe07c0b3d2bd9393103ed57ac842bcd6dc4a0a0ff7006cf249a0d3c03deed04",
+        "viewKey": "824d820588971da9eac7973c9622f00f7e67e10309ae631ee36f6dcd2b7626b8a927a861e5d32f85e38d46726da600e974eaf03cc7ee829b756d094a236f5ae8",
+        "incomingViewKey": "5b0868aca4ce720601cb9ce78ef60d7e291908da692b3b687e2be739754e7c06",
+        "outgoingViewKey": "e745b95a7bb3a5bde4c583280f338930cc4c82d0349f265bfb0555f2a6086415",
+        "publicAddress": "b75cb540d8226141ca2a5a91bdc97aaa138999b68c89cec2b0ecc1f14a8a2c66",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "2dd41964382ba2a0c3302cf671c782846c66f86f14c3c53d3da7b8c5c55c1c0e"
+      },
+      "head": {
         "hash": {
           "type": "Buffer",
           "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
         },
         "sequence": 1
-      },
-      "proofAuthorizingKey": "be48389962fe2bc58b90d6439e7fa51b4ec9dbf0f1f0446a2bc2e01aab23030a"
+      }
     },
     {
       "header": {
@@ -44,15 +64,15 @@
         "previousBlockHash": "4791D7AE9F97DF100EF1558E84772D6A09B43762388283F75C6F20A32A88AA86",
         "noteCommitment": {
           "type": "Buffer",
-          "data": "base64:0AG7sbvs/e0TLd0R3FB+Tg9LEZ8teGQYIr2Uty5pkB8="
+          "data": "base64:Vo8SrRv4TNTuvwIha0umtRTHdn/EfcCeL+JttOcRB0A="
         },
         "transactionCommitment": {
           "type": "Buffer",
-          "data": "base64:9kkpI9qP58C8yAYYWrHD94aZlsyOLSSGhc2Vyj9Mrj0="
+          "data": "base64:9Esy/zvVDQP79weAZPswkKUxTF0YWoRSxNAO5qePLA0="
         },
         "target": "9282972777491357380673661573939192202192629606981189395159182914949423",
         "randomness": "0",
-        "timestamp": 1708551329241,
+        "timestamp": 1717538742072,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 4,
         "work": "0"
@@ -60,29 +80,39 @@
       "transactions": [
         {
           "type": "Buffer",
-          "data": "base64:AQAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzKiP////8AAAAA8mEIW2DmRsB36nTLY8xl7/LgVezphYUuRdLDwZ7pCD6ZxXanuITrbPwu+egxsTIyD3kG/2LkR0v8ycuxLRRKpx9M/9YBA9L+2p9BIJegFf6GhO3lIy44pDay8gmmlSdCemwYHqIAqXhVZxtBoz3OiyvC319gomDElUBK1wTCgz8TzMC4VpcseWDbd6Q7wS0kygcM4vg+8UxEpuljkNCmXTE73MPk7JcWQbtNkoh9i0aHzruYu8zU7yZWUFyYwfp9W+FMCgRobl/zZbXYTbfURFacmsDlVV2XdnZqf6tmmm7g86wN0bWeWCsNYqMkvPhYwoEXJjH5bs5uF3bNshWfaMdmqly8y1TAw04E3TvTzsACv78zt4sMW7P4PXakB4QfpcmWR9kJF4cUcGiVj6hGeJNUEmavIgAirMUSy/bmtB21QhGsArsW/oCKRYZGio2AHlymOOM/Co8Xwt/eBTIqZmGv2l2NMaJ1DFxWTrIFGJYCioYq3GhoAkMGBF9vAn2syf8OMxwnEwrvzX8/by9qEZBvpLadbPf+UgQIV8lMAGduUlxCFbVoAjQY1WIgJkPt2G9aNftB/MbhSslIkrFRSmBRtKqE4Jzi03BgX4jaCBNcYGagvAkHE0lyb24gRmlzaCBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwXyf5Tim2j5SGVrUrbJv/ZQeSe/byei7ntQO9A1fV7MtNMTGj468a/oDBzVkbsuwuoLBD75t122BED4V/pIBADQ=="
+          "data": "base64:AQAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzKiP////8AAAAATba0obAO9OOEo/EyhiL59b25/u0Qs2BZDCNTnWe+R0apAHjVPZvRAFw4uzyEwLXBEwoxPWDFKusHI2FgwzAXFsBgsmvolyeufIM/bGr59GC0BI9yXeN+yKJOdT2ENgVAvwF3PJeMbc9IWyqlGnV7jQ6qh2ooKLjvlPEO5WOvR4gA2ahfl5Cv+hbPkAk+oUrEjqFtqDBplutFNm/mHy4QtKWx/K/vIhXVZAAnL5KxbG+N9ag/HNxNVa7ICkirco3CUkCtWLzVD9HfoK6f0eRxBJDd2N2z8jPhMaPvz4nH/LLpykaYI/8OZU7cTHo5PlUHNkB0TcGcLGE+scJR18NV6A2ysc7joXYduKS+QI0kuOJJ6/FKyecieIxHj/t2new6WIks1sgJPahDXux+6KD8PPTzL2gQK3YPPy+8ayzEWZIJm4mAs8YWJyjxD6kPku2RnLznU1VulzH9FjU6AQifsf6bn0HlSEx/q0+86WoGYEErzOWkkb7mcS01fx8Q4YfOsll52uJX8E87V2FHJR/WwHDaW3Wm3POeK0EjYahuo4gsW+Ix37psUwaB1N1WyLo+fUFQGcjmsksx4ziBPnhG6v/zV5GnWaGFM5UeG6YrXMw/1kAh30Ko1Ulyb24gRmlzaCBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwKSwKyLvDmvM1jgKrl9jTfoD1xEBN6seZEbwEXBsapZK4xd1Izm8V0sqchwmVZ6zdaYsDL4aG0fBN0vU0f4DPDQ=="
         }
       ]
     }
   ],
   "Route wallet/buildTransaction should return an error if the transaction won't deserialize": [
     {
-      "version": 4,
-      "id": "62c2f606-a5ab-406d-b786-91fa19a773d2",
-      "name": "accountB",
-      "spendingKey": "8c0c843fd867e07967f84392c272f823e762d97d4f1ed9dc12264fa0dd653c8b",
-      "viewKey": "29ed3e6d6889f0e7cd1a53ddaa7745adef575f1af18b63a845be444b71b9f33424ed728efbc03e4fd754ca2b4cf6f3e952f7edb0472c34a098700f26d7898d4c",
-      "incomingViewKey": "644f3642d06544968a1bed680ac39bdb21e966bd45a3335e4339b1eb8914e802",
-      "outgoingViewKey": "251f3dcf25c2655039d33fd950d36cb6d914b0a00365ad683d12f0f018dbf846",
-      "publicAddress": "bb20bbf87ffde063ce0d82675634966f3f57e4c690aaa8451272ca3d14fa4b3e",
-      "createdAt": {
+      "value": {
+        "version": 4,
+        "id": "0ad03267-3a2b-4835-a280-07e4f4a66065",
+        "name": "accountB",
+        "spendingKey": "9e8120a6bab2fb9907472a7efdc25466b1a11ab2672c68b9e08d2bdb9c150874",
+        "viewKey": "0cbcf853c4312bfa0af623b3c111a4bb6264ffa87bd35f7d80bcbd6055952a9d49acd72bdcd559b414727a0021fb43ace1fc3e6954d4e1264efcc02779dbda51",
+        "incomingViewKey": "b355667fc634bc7d180c5537414a791e9bc9470a26e94b4d8646ee5d3e432501",
+        "outgoingViewKey": "c5e8362fd2f9e59ba132d90954f4ae35ac21299925002a4848034864f52aa2f1",
+        "publicAddress": "46317c39273f2703ae32946c4c1da6c5014e363aeb3429813da569788bcc7710",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:w0CZimMp/grNx4WBQ130MuO0VZJ/mzDO8F0h3CWo40A="
+          },
+          "sequence": 2
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "928e3bcc1edcaf60a089e5ca0ba5dac0b41f08cabca30bf8af3a9d61681fc806"
+      },
+      "head": {
         "hash": {
           "type": "Buffer",
-          "data": "base64:eCDoMt5NrqmePfJqIEScaIU22737GxPbuCZQXDvN9o4="
+          "data": "base64:w0CZimMp/grNx4WBQ130MuO0VZJ/mzDO8F0h3CWo40A="
         },
         "sequence": 2
-      },
-      "proofAuthorizingKey": "aff2b0e89e0e8c9b267e34bd0489f345042f60dbd81ea39d08e1c122badd4308"
+      }
     }
   ]
 }
