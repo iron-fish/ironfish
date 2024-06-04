@@ -7,8 +7,8 @@ import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 import {
-  fetchChainportNetworks,
-  getChainportTransactionDetails,
+  extractChainportDataFromTransaction,
+  fetchChainportNetworkMap,
   showChainportTransactionSummary,
 } from '../../../utils/chainport'
 import { watchTransaction } from '../../../utils/transaction'
@@ -62,23 +62,25 @@ export class TransactionCommand extends IronfishCommand {
       return
     }
 
-    const networks = await fetchChainportNetworks(networkId)
+    const networks = await fetchChainportNetworkMap(networkId)
 
-    const chainportTxnDetails = getChainportTransactionDetails(networkId, transaction, networks)
+    const chainportTxnDetails = extractChainportDataFromTransaction(networkId, transaction)
 
-    if (!chainportTxnDetails.isChainportTransaction) {
+    if (!chainportTxnDetails) {
       this.error(`This transaction is not a chainport bridge transaction`)
     }
 
-    if (transaction.type === TransactionType.RECEIVE) {
-      if (chainportTxnDetails.details) {
+    const network = networks[chainportTxnDetails.chainportNetworkId]
+
+    if (chainportTxnDetails.type === TransactionType.RECEIVE) {
+      if (network) {
         const summary = `\
 \nTRANSACTION SUMMARY:
 Direction                    Incoming
 Ironfish Network             ${networkId === 0 ? 'Testnet' : 'Mainnet'}
 Status on Ironfish           ${transaction.status}
-Source Address               ${chainportTxnDetails.details.address}
-Source Network               ${chainportTxnDetails.details.network}
+Source Address               ${chainportTxnDetails.address}
+Source Network               ${network.name}
 `
         this.log(summary)
         return

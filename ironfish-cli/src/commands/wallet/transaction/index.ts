@@ -15,8 +15,8 @@ import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 import { getAssetsByIDs } from '../../../utils'
 import {
-  fetchChainportNetworks,
-  getChainportTransactionDetails,
+  extractChainportDataFromTransaction,
+  fetchChainportNetworkMap,
 } from '../../../utils/chainport'
 
 export class TransactionCommand extends IronfishCommand {
@@ -175,16 +175,17 @@ export class TransactionCommand extends IronfishCommand {
       })
     }
 
-    const chainportNetworks = await fetchChainportNetworks(networkId)
+    const chainportNetworks = await fetchChainportNetworkMap(networkId)
 
-    const chainportTxnDetails = getChainportTransactionDetails(
+    const chainportTxnDetails = extractChainportDataFromTransaction(
       networkId,
       response.content.transaction,
-      chainportNetworks,
     )
 
-    if (chainportTxnDetails.isChainportTransaction) {
-      if (!chainportTxnDetails.details) {
+    if (chainportTxnDetails) {
+      const network = chainportNetworks[chainportTxnDetails.chainportNetworkId]
+
+      if (!network) {
         this.log(
           `\nThis transaction is an ${
             response.content.transaction.type === TransactionType.RECEIVE
@@ -197,8 +198,8 @@ export class TransactionCommand extends IronfishCommand {
         CliUx.ux.table(
           [
             {
-              network: chainportTxnDetails.details.network,
-              address: chainportTxnDetails.details.address,
+              network: network.name,
+              address: chainportTxnDetails.address,
               direction:
                 response.content.transaction.type === TransactionType.SEND
                   ? 'Outgoing'
