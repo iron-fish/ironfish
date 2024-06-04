@@ -14,7 +14,7 @@ const config = {
       '3be494deb669ff8d943463bb6042eabcf0c5346cf444d569e07204487716cb85',
     ]),
     incomingAddresses: new Set([
-      '06102d319ab7e77b914a1bd135577f3e266fd82a3e537a02db281421ed8b3d13'.toLowerCase(),
+      '06102d319ab7e77b914a1bd135577f3e266fd82a3e537a02db281421ed8b3d13',
     ]),
   },
 } // MAINNET support to follow
