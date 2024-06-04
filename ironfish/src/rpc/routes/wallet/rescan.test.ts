@@ -28,8 +28,9 @@ describe('Route wallet/rescan', () => {
     const scan = new ScanState(head, head)
     routeTest.node.wallet.scanner.state = scan
 
-    const abortSpy = jest.spyOn(scan, 'abort').mockImplementationOnce(async () => {
+    const abortSpy = jest.spyOn(scan, 'abort').mockImplementationOnce(() => {
       routeTest.node.wallet.scanner.state = null
+      return Promise.resolve()
     })
 
     const response = await routeTest.client.wallet.rescan({ follow: true }).waitForEnd()

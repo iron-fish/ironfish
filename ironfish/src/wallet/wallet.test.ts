@@ -398,6 +398,73 @@ describe('Wallet', () => {
 
       expect(connectSpy).not.toHaveBeenCalled()
     })
+
+    it('should scan until the chain head', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      // create an account so that the wallet will sync
+      await useAccountFixture(node.wallet, 'a')
+
+      // update wallet to genesis block
+      await node.wallet.scan()
+
+      const block2 = await useMinerBlockFixture(node.chain, undefined)
+      await expect(node.chain).toAddBlock(block2)
+      const block3 = await useMinerBlockFixture(node.chain, undefined)
+      await expect(node.chain).toAddBlock(block3)
+
+      expect(node.chain.head.hash).toEqualHash(block3.header.hash)
+
+      let head = await node.wallet.getEarliestHead()
+      expect(head?.hash).toEqualHash(node.chain.genesis.hash)
+
+      // set max syncing queue to 1 so that wallet only fetches one block at a time
+      node.wallet.scanner.maxQueueSize = 1
+
+      await node.wallet.scan()
+
+      head = await node.wallet.getEarliestHead()
+      expect(head?.hash).toEqualHash(node.chain.head.hash)
+    })
+
+    it('should start from null account head', async () => {
+      // G -> 1 -> 2
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+
+      const block1 = await useMinerBlockFixture(node.chain, 2, accountA)
+      await expect(node.chain).toAddBlock(block1)
+      await node.wallet.scan()
+
+      // create a second account and import it so that its head hash is null
+      const { node: nodeB } = await nodeTest.createSetup()
+      const toImport = await useAccountFixture(nodeB.wallet, 'accountB')
+
+      const accountB = await node.wallet.importAccount(toImport)
+
+      // Confirm pre-rescan state
+      await expect(accountA.getHead()).resolves.toEqual({
+        hash: block1.header.hash,
+        sequence: block1.header.sequence,
+      })
+      await expect(accountB.getHead()).resolves.toEqual(null)
+
+      // Add second block
+      const block2 = await useMinerBlockFixture(node.chain, 3, accountA)
+      await expect(node.chain).toAddBlock(block2)
+
+      await node.wallet.scan()
+
+      await expect(accountA.getHead()).resolves.toEqual({
+        hash: block2.header.hash,
+        sequence: block2.header.sequence,
+      })
+      await expect(accountB.getHead()).resolves.toEqual({
+        hash: block2.header.hash,
+        sequence: block2.header.sequence,
+      })
+    })
   })
 
   describe('getBalances', () => {
@@ -2841,75 +2908,6 @@ describe('Wallet', () => {
       expect(resetAccount).not.toHaveBeenCalled()
 
       expect(account.createdAt).toBeNull()
-    })
-  })
-
-  describe('scan', () => {
-    it('should scan until the chain head', async () => {
-      const { node } = await nodeTest.createSetup()
-
-      // create an account so that the wallet will sync
-      await useAccountFixture(node.wallet, 'a')
-
-      // update wallet to genesis block
-      await node.wallet.scan()
-
-      const block2 = await useMinerBlockFixture(node.chain, undefined)
-      await expect(node.chain).toAddBlock(block2)
-      const block3 = await useMinerBlockFixture(node.chain, undefined)
-      await expect(node.chain).toAddBlock(block3)
-
-      expect(node.chain.head.hash).toEqualHash(block3.header.hash)
-
-      let head = await node.wallet.getEarliestHead()
-      expect(head?.hash).toEqualHash(node.chain.genesis.hash)
-
-      // set max syncing queue to 1 so that wallet only fetches one block at a time
-      node.wallet.scanner.maxQueueSize = 1
-
-      await node.wallet.scan()
-
-      head = await node.wallet.getEarliestHead()
-      expect(head?.hash).toEqualHash(node.chain.head.hash)
-    })
-
-    it('should start from null account head', async () => {
-      // G -> 1 -> 2
-      const { node } = nodeTest
-
-      const accountA = await useAccountFixture(node.wallet, 'accountA')
-
-      const block1 = await useMinerBlockFixture(node.chain, 2, accountA)
-      await expect(node.chain).toAddBlock(block1)
-      await node.wallet.scan()
-
-      // create a second account and import it so that its head hash is null
-      const { node: nodeB } = await nodeTest.createSetup()
-      const toImport = await useAccountFixture(nodeB.wallet, 'accountB')
-
-      const accountB = await node.wallet.importAccount(toImport)
-
-      // Confirm pre-rescan state
-      await expect(accountA.getHead()).resolves.toEqual({
-        hash: block1.header.hash,
-        sequence: block1.header.sequence,
-      })
-      await expect(accountB.getHead()).resolves.toEqual(null)
-
-      // Add second block
-      const block2 = await useMinerBlockFixture(node.chain, 3, accountA)
-      await expect(node.chain).toAddBlock(block2)
-
-      await node.wallet.scan()
-
-      await expect(accountA.getHead()).resolves.toEqual({
-        hash: block2.header.hash,
-        sequence: block2.header.sequence,
-      })
-      await expect(accountB.getHead()).resolves.toEqual({
-        hash: block2.header.hash,
-        sequence: block2.header.sequence,
-      })
     })
   })
 })
