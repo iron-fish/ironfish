@@ -97,9 +97,7 @@ describe('Route wallet/setAccountHead', () => {
   })
 
   it('throws if account head is null and start is not genesis', async () => {
-    const account = await useAccountFixture(routeTest.wallet, 'foo', {
-      setCreatedAt: false,
-    })
+    const account = await useAccountFixture(routeTest.wallet, 'foo', { createdAt: null })
     const block = await useMinerBlockFixture(routeTest.chain, undefined, account)
     await expect(routeTest.chain).toAddBlock(block)
     await expect(account.getHead()).resolves.toBeNull()
