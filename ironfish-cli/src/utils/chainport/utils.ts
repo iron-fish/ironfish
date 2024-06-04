@@ -72,9 +72,9 @@ const getOutgoingChainportTransactionData = (
     return undefined
   }
 
-  const bridgeNote = transaction.notes.find((note) => {
-    return isAddressInSet(note.owner, config.outgoingAddresses)
-  })
+  const bridgeNote = transaction.notes.find((note) =>
+    isAddressInSet(note.owner, config.outgoingAddresses),
+  )
 
   if (!bridgeNote) {
     return undefined
