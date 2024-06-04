@@ -51,7 +51,9 @@ const getIncomingChainportTransactionData = (
     return undefined
   }
 
-  const [sourceNetwork, address, _] = ChainportMemoMetadata.decode(bridgeNote.memoHex)
+  const [sourceNetwork, address, _] = ChainportMemoMetadata.decode(
+    Buffer.from(bridgeNote.memoHex).toString(),
+  )
 
   return {
     type: TransactionType.RECEIVE,
@@ -72,15 +74,17 @@ const getOutgoingChainportTransactionData = (
     return undefined
   }
 
-  const bridgeNote = transaction.notes.find((note) =>
-    isAddressInSet(note.owner, config.outgoingAddresses),
-  )
+  const bridgeNote = transaction.notes.find((note) => {
+    return isAddressInSet(note.owner, config.outgoingAddresses)
+  })
 
   if (!bridgeNote) {
     return undefined
   }
 
-  const [sourceNetwork, address, _] = ChainportMemoMetadata.decode(bridgeNote.memoHex)
+  const [sourceNetwork, address, _] = ChainportMemoMetadata.decode(
+    Buffer.from(bridgeNote.memoHex).toString(),
+  )
 
   return {
     type: TransactionType.SEND,

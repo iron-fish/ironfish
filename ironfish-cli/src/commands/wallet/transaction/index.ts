@@ -7,7 +7,7 @@ import {
   CurrencyUtils,
   RpcAsset,
   RpcWalletNote,
-  TimeUtils
+  TimeUtils,
 } from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
@@ -201,16 +201,17 @@ export class TransactionCommand extends IronfishCommand {
       })
     }
 
-    const chainportNetworks = await fetchChainportNetworks(networkId)
+    const chainportNetworks = await fetchChainportNetworkMap(networkId)
 
-    const chainportTxnDetails = getChainportTransactionDetails(
+    const chainportTxnDetails = extractChainportDataFromTransaction(
       networkId,
       response.content.transaction,
-      chainportNetworks,
     )
 
-    if (chainportTxnDetails.isChainportTransaction) {
-      if (!chainportTxnDetails.details) {
+    if (chainportTxnDetails) {
+      const network = chainportNetworks[chainportTxnDetails.chainportNetworkId]
+
+      if (!network) {
         this.log(
           `\nThis transaction is an ${
             response.content.transaction.type === TransactionType.RECEIVE
@@ -223,8 +224,8 @@ export class TransactionCommand extends IronfishCommand {
         CliUx.ux.table(
           [
             {
-              network: chainportTxnDetails.details.network,
-              address: chainportTxnDetails.details.address,
+              network: network.name,
+              address: chainportTxnDetails.address,
               direction:
                 response.content.transaction.type === TransactionType.SEND
                   ? 'Outgoing'

@@ -23,8 +23,8 @@ import {
   ChainportBridgeTransaction,
   ChainportNetwork,
   ChainportVerifiedToken,
-  fetchBridgeTransactionDetails,
-  fetchChainportNetworks,
+  fetchChainportBridgeTransaction,
+  fetchChainportNetworkMap,
   fetchChainportVerifiedTokens,
   showChainportTransactionSummary,
 } from '../../../utils/chainport'
@@ -286,7 +286,7 @@ export class BridgeCommand extends IronfishCommand {
   ) {
     const { flags } = await this.parse(BridgeCommand)
 
-    const txn = await fetchBridgeTransactionDetails(networkId, amount, to, network, asset)
+    const txn = await fetchChainportBridgeTransaction(networkId, amount, to, network, asset)
 
     const params: CreateTransactionRequest = {
       account: from,
@@ -403,7 +403,7 @@ Expiration                     ${raw.expiration ? raw.expiration.toString() : ''
     asset: ChainportVerifiedToken,
   ): Promise<ChainportNetwork> {
     CliUx.ux.action.start('Fetching available networks')
-    const networks = await fetchChainportNetworks(networkId)
+    const networks = await fetchChainportNetworkMap(networkId)
     CliUx.ux.action.stop()
     const choices = Object.keys(networks).map((key) => {
       return {
