@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Blockchain } from '../../blockchain'
 import { AccountValue, AssertSpending, SpendingAccount, Wallet } from '../../wallet'
+import { HeadValue } from '../../wallet/walletdb/headValue'
 import { useMinerBlockFixture } from './blocks'
 import { FixtureGenerate, useFixture } from './fixture'
 
@@ -22,24 +23,27 @@ export function useAccountFixture(
   }
 
   return useFixture(generate, {
-    serialize: (account: SpendingAccount): AccountValue => {
-      return account.serialize()
+    serialize: async (
+      account: SpendingAccount,
+    ): Promise<{
+      value: AccountValue
+      head: HeadValue | null
+    }> => {
+      return {
+        value: account.serialize(),
+        head: await account.getHead(),
+      }
     },
 
-    deserialize: async (accountData: AccountValue): Promise<SpendingAccount> => {
-      const account = await wallet.importAccount(accountData)
-
-      if (accountData) {
-        if (wallet.scanner.state?.hash && wallet.scanner.state?.sequence) {
-          await account.updateHead({
-            hash: wallet.scanner.state.hash,
-            sequence: wallet.scanner.state.sequence,
-          })
-        } else {
-          await account.updateHead(null)
-        }
-      }
-
+    deserialize: async ({
+      value,
+      head,
+    }: {
+      value: AccountValue
+      head: HeadValue | null
+    }): Promise<SpendingAccount> => {
+      const account = await wallet.importAccount(value)
+      await account.updateHead(head)
       AssertSpending(account)
       return account
     },

@@ -8,14 +8,12 @@ import { AssertHasRpcContext } from '../rpcContext'
 
 export type RescanRequest = {
   follow?: boolean
-  from?: number
 }
 export type RescanResponse = { sequence: number; startedAt: number; endSequence: number }
 
 export const RescanRequestSchema: yup.ObjectSchema<RescanRequest> = yup
   .object({
     follow: yup.boolean().optional(),
-    from: yup.number().optional(),
     full: yup.boolean().optional(),
   })
   .defined()
@@ -35,7 +33,7 @@ routes.register<typeof RescanRequestSchema, RescanResponse>(
     AssertHasRpcContext(request, context, 'wallet', 'logger')
 
     while (context.wallet.scanner.running) {
-      context.logger.warn('Aborting scanning to start a full wallet rescan.')
+      context.logger.debug('Aborting scanning to start a full wallet rescan.')
       await context.wallet.scanner.abort()
     }
 
@@ -43,7 +41,7 @@ routes.register<typeof RescanRequestSchema, RescanResponse>(
       resetScanningEnabled: true,
     })
 
-    const scan = await context.wallet.scan({ force: true })
+    const scan = await context.wallet.scan({ force: true, wait: false })
 
     if (request.data.follow && scan) {
       const onTransaction = (sequence: number, endSequence: number) => {

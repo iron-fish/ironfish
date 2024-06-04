@@ -318,7 +318,7 @@ describe('Wallet', () => {
     })
   })
 
-  describe('scanTransactions', () => {
+  describe('scan', () => {
     it('should update head status', async () => {
       // G -> 1 -> 2
       const { node } = nodeTest
@@ -382,7 +382,6 @@ describe('Wallet', () => {
       await expect(chain).toAddBlock(block1)
 
       await wallet.scan()
-      await wallet.scanner.wait()
 
       await expect(accountA.getHead()).resolves.toEqual({
         hash: block1.header.hash,
@@ -396,7 +395,6 @@ describe('Wallet', () => {
       const connectSpy = jest.spyOn(wallet, 'connectBlockForAccount')
 
       await wallet.scan()
-      await wallet.scanner.wait()
 
       expect(connectSpy).not.toHaveBeenCalled()
     })
@@ -506,7 +504,7 @@ describe('Wallet', () => {
     })
   })
 
-  describe('getEarliestHeadHash', () => {
+  describe('getEarliestHead', () => {
     it('should return the earliest head hash', async () => {
       const { node } = nodeTest
 
@@ -524,7 +522,7 @@ describe('Wallet', () => {
       await accountB.updateHead(blockB.header)
       await accountC.updateHead(null)
 
-      expect(await node.wallet.getEarliestHeadHash()).toEqual(null)
+      expect(await node.wallet.getEarliestHead()).toEqual(null)
     })
 
     it('should skip accounts with scanning disabled', async () => {
@@ -545,11 +543,11 @@ describe('Wallet', () => {
       expect((await accountA.getHead())?.sequence).toBe(1)
       expect((await accountB.getHead())?.sequence).toBe(3)
 
-      expect(await node.wallet.getEarliestHeadHash()).toEqual(blockB.header.hash)
+      expect((await node.wallet.getEarliestHead())?.hash).toEqualBuffer(blockB.header.hash)
 
       await accountB.updateScanningEnabled(false)
 
-      expect(await node.wallet.getEarliestHeadHash()).toBeNull()
+      expect(await node.wallet.getEarliestHead()).toBeNull()
     })
   })
 

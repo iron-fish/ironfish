@@ -112,7 +112,7 @@ export class WalletScanner {
         start = await this.wallet.getChainGenesis()
       }
 
-      this.logger.info(`Scan starting from block ${start.sequence} to ${end.sequence}`)
+      this.logger.debug(`Scan starting from block ${start.sequence} to ${end.sequence}`)
 
       const scan = new ScanState(start, end)
       this.state = scan
@@ -125,7 +125,7 @@ export class WalletScanner {
         }
       })()
         .then(() => {
-          this.logger.info(
+          this.logger.debug(
             `Finished scanning for transactions after ${Math.floor(
               (Date.now() - scan.startedAt) / 1000,
             )} seconds`,

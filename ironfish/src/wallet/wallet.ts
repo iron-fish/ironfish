@@ -155,14 +155,28 @@ export class Wallet {
     start,
     end,
     force,
-  }: { start?: HeadValue; end?: HeadValue; force?: boolean } = {}): Promise<ScanState | null> {
+    wait,
+  }: {
+    start?: HeadValue
+    end?: HeadValue
+    force?: boolean
+    wait?: boolean
+  } = {}): Promise<ScanState | null> {
+    wait = wait ?? true
+
     Assert.isTrue(this.isOpen, 'Cannot start a scan if wallet is not loaded')
 
     if (!this.config.get('enableWallet')) {
       return null
     }
 
-    return this.scanner.scan({ start, end, force })
+    const scan = await this.scanner.scan({ start, end, force })
+
+    if (scan && wait) {
+      await scan.wait()
+    }
+
+    return scan
   }
 
   async open(): Promise<void> {
@@ -1614,11 +1628,6 @@ export class Wallet {
     }
 
     return earliestHead
-  }
-
-  async getEarliestHeadHash(): Promise<Buffer | null> {
-    const earliestHead = await this.getEarliestHead()
-    return earliestHead ? earliestHead.hash : null
   }
 
   async getLatestHead(): Promise<HeadValue | null> {
