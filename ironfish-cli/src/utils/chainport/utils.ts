@@ -20,6 +20,7 @@ export const extractChainportDataFromTransaction = (
   networkId: number,
   transaction: RpcWalletTransaction,
 ): ChainportTransactionData => {
+  console.log('extractChainportDataFromTransaction')
   const config = getConfig(networkId)
 
   if (transaction.type === TransactionType.SEND) {
@@ -41,9 +42,7 @@ const getIncomingChainportTransactionData = (
     return undefined
   }
 
-  const [sourceNetwork, address, _] = ChainportMemoMetadata.decode(
-    Buffer.from(bridgeNote.memoHex).toString(),
-  )
+  const [sourceNetwork, address, _] = ChainportMemoMetadata.decode(bridgeNote.memoHex)
 
   return {
     type: TransactionType.RECEIVE,
@@ -72,9 +71,7 @@ const getOutgoingChainportTransactionData = (
     return undefined
   }
 
-  const [sourceNetwork, address, _] = ChainportMemoMetadata.decode(
-    Buffer.from(bridgeNote.memoHex).toString(),
-  )
+  const [sourceNetwork, address, _] = ChainportMemoMetadata.decode(bridgeNote.memoHex)
 
   return {
     type: TransactionType.SEND,
