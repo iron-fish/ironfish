@@ -130,7 +130,7 @@ routes.register<typeof SetAccountHeadRequestSchema, SetAccountHeadResponse>(
         const header: BlockHeader | null = await context.chain.getHeader(accountHead.hash)
         Assert.isNotNull(header, 'Account head must be in chain')
         const transactions = await context.chain.getBlockTransactions(header)
-        await context.wallet.disconnectBlockForAccount(account, header, transactions)
+        await account.disconnectBlock(header, transactions)
         accountHead = await account.getHead()
       }
     }
@@ -249,18 +249,13 @@ routes.register<typeof SetAccountHeadRequestSchema, SetAccountHeadResponse>(
         return
       }
 
-      await context.wallet.connectBlockForAccount(
-        account,
-        blockTransactions.header,
-        blockTransactions.transactions,
-        true,
-      )
+      await account.connectBlock(blockTransactions.header, blockTransactions.transactions, true)
     }
 
     // If last block isn't end, connect end
     const last = transactionWithNotesList.at(-1)
     if (!last || !last.header.equals(endHeader)) {
-      await context.wallet.connectBlockForAccount(account, endHeader, [], false)
+      await account.connectBlock(endHeader, [], false)
     }
 
     request.end()
