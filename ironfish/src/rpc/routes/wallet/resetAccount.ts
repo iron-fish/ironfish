@@ -33,6 +33,7 @@ routes.register<typeof ResetAccountRequestSchema, ResetAccountResponse>(
     AssertHasRpcContext(request, context, 'wallet', 'logger')
 
     const account = getAccount(context.wallet, request.data.account)
+    await account.updateScanningEnabled(request.data.resetScanningEnabled ? true : false)
 
     await context.wallet.resetAccount(account, {
       resetCreatedAt: request.data.resetCreatedAt,
