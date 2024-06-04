@@ -11,7 +11,6 @@ export async function fetchNotes(
 ) {
   const noteSize = await getNoteTreeSize(client)
 
-  // TODO(mat): We need to add asset support here for bridges, etc.
   const getNotesResponse = await client.wallet.getNotes({
     account,
     pageSize: notesToCombine,
