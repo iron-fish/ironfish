@@ -1,18 +1,21 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Asset } from '@ironfish/rust-nodejs'
 import { Assert, RpcClient } from '@ironfish/sdk'
 
-export async function fetchNotes(client: RpcClient, account: string, notesToCombine: number) {
+export async function fetchNotes(
+  client: RpcClient,
+  account: string,
+  assetId: string,
+  notesToCombine: number,
+) {
   const noteSize = await getNoteTreeSize(client)
 
-  // TODO(mat): We need to add asset support here for bridges, etc.
   const getNotesResponse = await client.wallet.getNotes({
     account,
     pageSize: notesToCombine,
     filter: {
-      assetId: Asset.nativeId().toString('hex'),
+      assetId,
       spent: false,
     },
   })

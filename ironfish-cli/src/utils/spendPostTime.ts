@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Asset } from '@ironfish/rust-nodejs'
 import {
   BenchUtils,
   CreateTransactionRequest,
@@ -62,7 +63,7 @@ export async function benchmarkSpendPostTime(
     })
   ).content.publicKey
 
-  const notes = await fetchNotes(client, account, 10)
+  const notes = await fetchNotes(client, account, Asset.nativeId().toString('hex'), 10)
 
   // Not enough notes in the account to measure the time to combine a note
   if (notes.length < 3) {
