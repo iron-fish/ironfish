@@ -11,8 +11,8 @@ jest.mock('./metadata')
 
 describe('isChainportTransaction', () => {
   const mockConfig = {
-    incomingAddresses: ['incoming1', 'incoming2'],
-    outgoingAddresses: ['outgoing1', 'outgoing2'],
+    incomingAddresses: new Set(['incoming1', 'incoming2']),
+    outgoingAddresses: new Set(['outgoing1', 'outgoing2']),
   }
 
   beforeEach(() => {

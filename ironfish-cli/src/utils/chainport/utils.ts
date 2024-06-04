@@ -31,11 +31,11 @@ export const extractChainportDataFromTransaction = (
 
 const getIncomingChainportTransactionData = (
   transaction: RpcWalletTransaction,
-  config: { incomingAddresses: string[] },
+  config: { incomingAddresses: Set<string> },
 ): ChainportTransactionData => {
   const bridgeNote = transaction.notes?.[0]
 
-  if (!bridgeNote || !isAddressInList(bridgeNote.sender, config.incomingAddresses)) {
+  if (!bridgeNote || !isAddressInSet(bridgeNote.sender, config.incomingAddresses)) {
     return undefined
   }
 
@@ -52,7 +52,7 @@ const getIncomingChainportTransactionData = (
 
 const getOutgoingChainportTransactionData = (
   transaction: RpcWalletTransaction,
-  config: { outgoingAddresses: string[] },
+  config: { outgoingAddresses: Set<string> },
 ): ChainportTransactionData => {
   if (!transaction.notes || transaction.notes.length < 2) {
     return undefined
@@ -63,7 +63,7 @@ const getOutgoingChainportTransactionData = (
   }
 
   const bridgeNote = transaction.notes.find((note) =>
-    isAddressInList(note.owner, config.outgoingAddresses),
+    isAddressInSet(note.owner, config.outgoingAddresses),
   )
 
   if (!bridgeNote) {
@@ -81,6 +81,6 @@ const getOutgoingChainportTransactionData = (
   }
 }
 
-const isAddressInList = (address: string, addressList: string[]): boolean => {
-  return addressList.some((addr) => addr.toLowerCase() === address.toLowerCase())
+const isAddressInSet = (address: string, addressSet: Set<string>): boolean => {
+  return addressSet.has(address.toLowerCase())
 }
