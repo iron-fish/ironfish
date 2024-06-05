@@ -86,7 +86,10 @@ export class TransactionsCommand extends IronfishCommand {
     const networkId = (await client.chain.getNetworkInfo()).content.networkId
 
     for await (const transaction of response.contentStream()) {
+      let transactionRows: PartialRecursive<TransactionRow>[]
       if (flags.notes) {
+        Assert.isNotUndefined(transaction.notes)
+
         const chainportTxnDetails = extractChainportDataFromTransaction(networkId, transaction)
         if (chainportTxnDetails) {
           transaction.type =
@@ -94,11 +97,7 @@ export class TransactionsCommand extends IronfishCommand {
               ? ('Bridge (outgoing)' as TransactionType)
               : ('Bridge (incoming)' as TransactionType)
         }
-      }
 
-      let transactionRows: PartialRecursive<TransactionRow>[]
-      if (flags.notes) {
-        Assert.isNotUndefined(transaction.notes)
         const assetLookup = await getAssetsByIDs(
           client,
           transaction.notes.map((n) => n.assetId) || [],

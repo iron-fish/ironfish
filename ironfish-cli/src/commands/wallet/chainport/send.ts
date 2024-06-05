@@ -12,6 +12,7 @@ import {
   RpcClient,
   TESTNET,
   Transaction,
+  TransactionType,
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import inquirer from 'inquirer'
@@ -23,10 +24,10 @@ import {
   ChainportBridgeTransaction,
   ChainportNetwork,
   ChainportVerifiedToken,
+  displayChainportTransactionSummary,
   fetchChainportBridgeTransaction,
   fetchChainportNetworkMap,
   fetchChainportVerifiedTokens,
-  showChainportTransactionSummary,
 } from '../../../utils/chainport'
 import { promptCurrency } from '../../../utils/currency'
 import { getExplorer } from '../../../utils/explorer'
@@ -143,7 +144,17 @@ export class BridgeCommand extends IronfishCommand {
         hash,
       })
 
-      await showChainportTransactionSummary(hash, networkId, this.logger)
+      await displayChainportTransactionSummary(
+        networkId,
+        hash,
+        {
+          address: to,
+          type: TransactionType.SEND,
+          chainportNetworkId: network.chainport_network_id,
+        },
+        network,
+        this.logger,
+      )
 
       return
     }

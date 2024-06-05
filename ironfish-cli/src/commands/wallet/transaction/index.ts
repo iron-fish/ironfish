@@ -8,16 +8,17 @@ import {
   RpcAsset,
   RpcWalletNote,
   TimeUtils,
-  TransactionType,
 } from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 import { getAssetsByIDs } from '../../../utils'
 import {
+  displayChainportTransactionSummary,
   extractChainportDataFromTransaction,
   fetchChainportNetworkMap,
 } from '../../../utils/chainport'
+import { getExplorer } from '../../../utils/explorer'
 
 export class TransactionCommand extends IronfishCommand {
   static description = `Display an account transaction`
@@ -65,8 +66,12 @@ export class TransactionCommand extends IronfishCommand {
 
     const renderedFee = CurrencyUtils.render(response.content.transaction.fee, true)
     const transactionType = response.content.transaction.type.toString()
+    const explorerUrl = getExplorer(networkId)?.getTransactionUrl(hash)
 
     this.log(`Transaction: ${hash}`)
+    if (explorerUrl) {
+      this.log(`Explorer: ${explorerUrl}`)
+    }
     this.log(`Account: ${response.content.account}`)
     this.log(`Status: ${response.content.transaction.status}`)
     this.log(`Type: ${transactionType}`)
@@ -175,50 +180,21 @@ export class TransactionCommand extends IronfishCommand {
       })
     }
 
-    const chainportNetworks = await fetchChainportNetworkMap(networkId)
-
     const chainportTxnDetails = extractChainportDataFromTransaction(
       networkId,
       response.content.transaction,
     )
 
     if (chainportTxnDetails) {
-      const network = chainportNetworks[chainportTxnDetails.chainportNetworkId]
+      const chainportNetworks = await fetchChainportNetworkMap(networkId)
 
-      if (!network) {
-        this.log(
-          `\nThis transaction is an ${
-            response.content.transaction.type === TransactionType.RECEIVE
-              ? 'Incoming'
-              : 'Outgoing'
-          } Chainport Bridge Transaction.\n`,
-        )
-      } else {
-        this.log(`\n---Chainport Bridge Transaction Details---\n`)
-        CliUx.ux.table(
-          [
-            {
-              network: network.name,
-              address: chainportTxnDetails.address,
-              direction:
-                response.content.transaction.type === TransactionType.SEND
-                  ? 'Outgoing'
-                  : 'Incoming',
-            },
-          ],
-          {
-            network: {
-              header: 'Network',
-            },
-            address: {
-              header: 'Address',
-            },
-            direction: {
-              header: 'Direction',
-            },
-          },
-        )
-      }
+      await displayChainportTransactionSummary(
+        networkId,
+        hash,
+        chainportTxnDetails,
+        chainportNetworks[chainportTxnDetails.chainportNetworkId],
+        this.logger,
+      )
     }
   }
 }

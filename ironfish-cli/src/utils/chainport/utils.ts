@@ -2,13 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Logger, RpcWalletTransaction, TransactionType } from '@ironfish/sdk'
+import {
+  defaultNetworkName,
+  Logger,
+  RpcWalletTransaction,
+  TransactionType,
+} from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
-import { getConfig } from './config'
+import { getConfig, isNetworkSupportedByChainport } from './config'
 import { ChainportMemoMetadata } from './metadata'
-import { fetchChainportNetworkMap, fetchChainportTransactionStatus } from './requests'
+import { fetchChainportTransactionStatus } from './requests'
+import { ChainportNetwork } from './types'
 
-type ChainportTransactionData =
+export type ChainportTransactionData =
   | {
       type: TransactionType.SEND | TransactionType.RECEIVE
       chainportNetworkId: number
@@ -20,6 +26,10 @@ export const extractChainportDataFromTransaction = (
   networkId: number,
   transaction: RpcWalletTransaction,
 ): ChainportTransactionData => {
+  if (isNetworkSupportedByChainport(networkId) === false) {
+    return undefined
+  }
+
   const config = getConfig(networkId)
 
   if (transaction.type === TransactionType.SEND) {
@@ -83,47 +93,119 @@ const isAddressInSet = (address: string, addressSet: Set<string>): boolean => {
   return addressSet.has(address.toLowerCase())
 }
 
-export const showChainportTransactionSummary = async (
-  hash: string,
+export const displayChainportTransactionSummary = async (
   networkId: number,
+  hash: string,
+  data: ChainportTransactionData,
+  network: ChainportNetwork | undefined,
   logger: Logger,
 ) => {
-  CliUx.ux.action.start('Fetching transaction status on target network')
-  const networks = await fetchChainportNetworkMap(networkId)
-  const transactionStatus = await fetchChainportTransactionStatus(networkId, hash)
-  CliUx.ux.action.stop()
+  if (!data) {
+    return
+  }
 
-  logger.debug(JSON.stringify(transactionStatus, null, 2))
-
-  if (Object.keys(transactionStatus).length === 0 || !transactionStatus.target_network_id) {
+  if (!network) {
     logger.log(
-      `Transaction status not found on target network.
-
-Note: Bridge transactions may take up to 30 minutes to surface on the target network.
-If this issue persists, please contact chainport support: https://helpdesk.chainport.io/`,
+      `This transaction is a ${
+        data.type === TransactionType.SEND ? 'outgoing' : 'incoming'
+      } chainport bridge transaction. Error fetching network details.`,
     )
     return
   }
 
-  const targetNetwork = networks[transactionStatus.target_network_id]
+  logger.log(`\n---Chainport Bridge Transaction Details---\n`)
 
-  if (!targetNetwork) {
-    // This ~should~ not happen
-    logger.error('Target network not supported')
-    return
+  if (data.type === TransactionType.RECEIVE) {
+    CliUx.ux.table(
+      [
+        {
+          direction: 'Incoming',
+          network: defaultNetworkName(networkId),
+          sourceNetwork: network.name,
+          sourceAddress: data.address,
+        },
+      ],
+      {
+        direction: {
+          header: 'Direction',
+        },
+        network: {
+          header: 'Ironfish Network',
+        },
+        sourceNetwork: {
+          header: 'Source Network',
+        },
+        sourceAddress: {
+          header: 'Source Account',
+        },
+      },
+      {
+        'no-truncate': true,
+      },
+    )
+
+    // const transactionUrl = getExplorer(networkId)?.getTransactionUrl(hash)
+    // logger.log(`
+    // Target Explorer Transaction      ${transactionUrl}
+    // Source Explorer Account          ${network.explorer_url + 'address/' + data.address}
+    //   `)
+  } else {
+    CliUx.ux.action.start('Fetching transaction information on target network')
+    const transactionStatus = await fetchChainportTransactionStatus(networkId, hash)
+    CliUx.ux.action.stop()
+
+    logger.debug(JSON.stringify(transactionStatus, null, 2))
+
+    if (Object.keys(transactionStatus).length === 0 || !transactionStatus.target_network_id) {
+      logger.log(
+        `Transaction status not found on target network.
+
+Note: Bridge transactions may take up to 30 minutes to surface on the target network.
+If this issue persists, please contact chainport support: https://helpdesk.chainport.io/`,
+      )
+      return
+    }
+
+    logger.log('')
+    CliUx.ux.table(
+      [
+        {
+          direction: 'Outgoing',
+          network: defaultNetworkName(networkId),
+          source_transaction_hash: hash,
+          target_network: network.name,
+          target_transaction_hash: transactionStatus.target_tx_hash,
+        },
+      ],
+      {
+        direction: {
+          header: 'Direction',
+        },
+        network: {
+          header: 'Ironfish Network',
+        },
+        source_transaction_hash: {
+          header: 'Source Transaction Hash',
+        },
+        target_network: {
+          header: 'Target Network',
+        },
+        target_transaction_hash: {
+          header: 'Target Transaction Hash',
+        },
+      },
+      {
+        'no-truncate': true,
+      },
+    )
+
+    logger.log('')
+    // const transactionUrl = getExplorer(networkId)?.getTransactionUrl(hash)
+    // logger.log(`
+    // Source Explorer Transaction          ${transactionUrl}
+    // Target Explorer Transaction          ${
+    //   network.explorer_url + 'tx/' + transactionStatus.target_tx_hash
+    // }
+    //   `)
   }
-
-  const summary = `\
-\nTRANSACTION SUMMARY:
-Direction                    Outgoing
-Ironfish Network             ${networkId === 0 ? 'Testnet' : 'Mainnet'}
-Source Transaction Hash      ${hash}
-Target Network               ${targetNetwork.name}
-Target Transaction Hash      ${transactionStatus.target_tx_hash}
-Explorer URL                 ${
-    targetNetwork.explorer_url + 'tx/' + transactionStatus.target_tx_hash
-  }  
-`
-
-  logger.log(summary)
 }

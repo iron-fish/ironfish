@@ -19,6 +19,10 @@ const config = {
   },
 } // MAINNET support to follow
 
+export const isNetworkSupportedByChainport = (networkId: number) => {
+  return !!config[networkId]
+}
+
 export const getConfig = (networkId: number) => {
   if (!config[networkId]) {
     throw new Error(`Unsupported network ${networkId} for chainport`)
