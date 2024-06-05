@@ -1468,8 +1468,7 @@ export class Wallet {
 
   async createAccount(
     name: string,
-    options: { setCreatedAt?: boolean; setDefault?: boolean } = {
-      setCreatedAt: true,
+    options: { createdAt?: HeadValue | null; setDefault?: boolean } = {
       setDefault: false,
     },
   ): Promise<Account> {
@@ -1480,7 +1479,9 @@ export class Wallet {
     const key = generateKey()
 
     let createdAt: HeadValue | null = null
-    if (options.setCreatedAt && this.nodeClient) {
+    if (options.createdAt !== undefined) {
+      createdAt = options.createdAt
+    } else if (this.nodeClient) {
       try {
         createdAt = await this.getChainHead()
       } catch {

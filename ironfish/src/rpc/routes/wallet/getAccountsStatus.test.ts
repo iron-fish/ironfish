@@ -14,7 +14,6 @@ describe('Route wallet/getAccountsStatus', () => {
 
   it('should return account head', async () => {
     const account = await routeTest.node.wallet.createAccount(uuid(), {
-      setCreatedAt: true,
       setDefault: true,
     })
 
@@ -70,7 +69,6 @@ describe('Route wallet/getAccountsStatus', () => {
 
   it('returns false when scanning is disabled', async () => {
     const account = await routeTest.node.wallet.createAccount(uuid(), {
-      setCreatedAt: true,
       setDefault: true,
     })
     await routeTest.client.wallet.setScanning({ account: account.name, enabled: false })
