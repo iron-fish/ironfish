@@ -1899,13 +1899,13 @@
     supports-color "^8.1.1"
     tslib "^2"
 
-"@oclif/core@1.23.1":
-  version "1.23.1"
-  resolved "https://registry.yarnpkg.com/@oclif/core/-/core-1.23.1.tgz#bebbbc4e02a4c1a4216d64165f892037f8a1e14a"
-  integrity sha512-nz7wVGesJ1Qg74p1KNKluZpQ3Z042mqdaRlczEI4Xwqj5s9jjdDBCDHNkiGzV4UAKzicVzipNj6qqhyUWKYnaA==
+"@oclif/core@1.26.0":
+  version "1.26.0"
+  resolved "https://registry.yarnpkg.com/@oclif/core/-/core-1.26.0.tgz#35f2e913e2d533d5384b88e5cdb02dc8158ebfd9"
+  integrity sha512-VzvxKsFOLSlmAPloeLAQHGbOe3o2eP+/T7czf5WsBS69GrsIMYHSNnOXbYoKozbpkFUX9xe1Moc2j2g3s9OmWw==
   dependencies:
     "@oclif/linewrap" "^1.0.0"
-    "@oclif/screen" "^3.0.3"
+    "@oclif/screen" "^3.0.4"
     ansi-escapes "^4.3.2"
     ansi-styles "^4.3.0"
     cardinal "^2.1.1"
@@ -2134,11 +2134,6 @@
   version "3.0.2"
   resolved "https://registry.yarnpkg.com/@oclif/screen/-/screen-3.0.2.tgz#969054308fe98d130c02844a45cc792199b75670"
   integrity sha512-S/SF/XYJeevwIgHFmVDAFRUvM3m+OjhvCAYMk78ZJQCYCQ5wS7j+LTt1ZEv2jpEEGg2tx/F6TYYWxddNAYHrFQ==
-
-"@oclif/screen@^3.0.3":
-  version "3.0.4"
-  resolved "https://registry.yarnpkg.com/@oclif/screen/-/screen-3.0.4.tgz#663db0ecaf23f3184e7f01886ed578060e4a7f1c"
-  integrity sha512-IMsTN1dXEXaOSre27j/ywGbBjrzx0FNd1XmuhCWCB9NTPrhWI1Ifbz+YLSEcstfQfocYsrbrIessxXb2oon4lA==
 
 "@oclif/screen@^3.0.4":
   version "3.0.8"

@@ -60,7 +60,7 @@
   "dependencies": {
     "@ironfish/rust-nodejs": "2.3.0",
     "@ironfish/sdk": "2.3.0",
-    "@oclif/core": "1.23.1",
+    "@oclif/core": "1.26.0",
     "@oclif/plugin-autocomplete": "1.3.10",
     "@oclif/plugin-help": "5.1.12",
     "@oclif/plugin-not-found": "2.3.1",
