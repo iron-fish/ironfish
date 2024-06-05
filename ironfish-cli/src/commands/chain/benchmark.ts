@@ -32,8 +32,6 @@ export default class Benchmark extends IronfishCommand {
     }),
   }
 
-  static args = []
-
   async start(): Promise<void> {
     const { flags } = await this.parse(Benchmark)
     const { blocks } = flags

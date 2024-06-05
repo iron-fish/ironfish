@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Args } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
@@ -13,17 +14,16 @@ export class AddressCommand extends IronfishCommand {
     ...RemoteFlags,
   }
 
-  static args = [
-    {
-      name: 'account',
+  static args = {
+    account: Args.string({
       required: false,
       description: 'Name of the account to get the address for',
-    },
-  ]
+    }),
+  }
 
   async start(): Promise<void> {
     const { args } = await this.parse(AddressCommand)
-    const account = args.account as string | undefined
+    const account = args.account
 
     const client = await this.sdk.connectRpc()
 

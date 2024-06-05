@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { RPC_ERROR_CODES, RpcRequestError } from '@ironfish/sdk'
-import { Flags, ux } from '@oclif/core'
+import { Args, Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { importFile, importPipe, longPrompt } from '../../utils/input'
@@ -25,18 +25,17 @@ export class ImportCommand extends IronfishCommand {
     }),
   }
 
-  static args = [
-    {
-      name: 'blob',
+  static args = {
+    blob: Args.string({
       parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: false,
       description: 'The copy-pasted output of wallet:export; or, a raw spending key',
-    },
-  ]
+    }),
+  }
 
   async start(): Promise<void> {
     const { flags, args } = await this.parse(ImportCommand)
-    const blob = args.blob as string | undefined
+    const blob = args.blob
 
     const client = await this.sdk.connectRpc()
 

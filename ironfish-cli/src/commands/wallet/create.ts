@@ -2,20 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { ux } from '@oclif/core'
+import { Args, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
 export class CreateCommand extends IronfishCommand {
   static description = `Create a new account for sending and receiving coins`
 
-  static args = [
-    {
-      name: 'account',
+  static args = {
+    account: Args.string({
       required: false,
       description: 'Name of the account',
-    },
-  ]
+    }),
+  }
 
   static flags = {
     ...RemoteFlags,

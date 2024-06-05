@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { AccountFormat, ErrorUtils, LanguageUtils } from '@ironfish/sdk'
-import { Flags, ux } from '@oclif/core'
+import { Args, Flags, ux } from '@oclif/core'
 import fs from 'fs'
 import jsonColorizer from 'json-colorizer'
 import path from 'path'
@@ -42,13 +42,12 @@ export class ExportCommand extends IronfishCommand {
     }),
   }
 
-  static args = [
-    {
-      name: 'account',
+  static args = {
+    account: Args.string({
       required: false,
       description: 'Name of the account to export',
-    },
-  ]
+    }),
+  }
 
   async start(): Promise<void> {
     const { flags, args } = await this.parse(ExportCommand)

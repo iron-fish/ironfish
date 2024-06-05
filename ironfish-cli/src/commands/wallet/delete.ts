@@ -2,21 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Flags, ux } from '@oclif/core'
+import { Args, Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
 export class DeleteCommand extends IronfishCommand {
   static description = `Permanently delete an account`
 
-  static args = [
-    {
-      name: 'account',
+  static args = {
+    account: Args.string({
       parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: true,
       description: 'Name of the account',
-    },
-  ]
+    }),
+  }
 
   static flags = {
     ...RemoteFlags,
@@ -33,7 +32,7 @@ export class DeleteCommand extends IronfishCommand {
     const { args, flags } = await this.parse(DeleteCommand)
     const confirm = flags.confirm
     const wait = flags.wait
-    const account = args.account as string
+    const account = args.account
 
     const client = await this.sdk.connectRpc()
 

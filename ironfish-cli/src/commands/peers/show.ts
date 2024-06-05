@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { GetPeerMessagesResponse, GetPeerResponse, TimeUtils } from '@ironfish/sdk'
+import { Args } from '@oclif/core'
 import colors from 'colors/safe'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -12,13 +13,12 @@ type GetPeerMessagesResponseMessages = GetPeerMessagesResponse['messages'][0]
 export class ShowCommand extends IronfishCommand {
   static description = `Display info about a peer`
 
-  static args = [
-    {
-      name: 'identity',
+  static args = {
+    identity: Args.string({
       required: true,
       description: 'Identity of the peer',
-    },
-  ]
+    }),
+  }
 
   static flags = {
     ...RemoteFlags,
@@ -27,7 +27,8 @@ export class ShowCommand extends IronfishCommand {
   async start(): Promise<void> {
     const { args } = await this.parse(ShowCommand)
 
-    const identity = (args.identity as string).trim()
+    // TODO(mat): Move trim into parse function like the others
+    const identity = args.identity.trim()
 
     await this.sdk.client.connect()
     const [peer, messages] = await Promise.all([

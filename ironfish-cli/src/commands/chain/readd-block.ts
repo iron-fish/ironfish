@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { ux } from '@oclif/core'
+import { Args, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
 
@@ -15,18 +15,17 @@ export default class ReAddBlock extends IronfishCommand {
     ...LocalFlags,
   }
 
-  static args = [
-    {
-      name: 'hash',
+  static args = {
+    hash: Args.string({
       parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: true,
       description: 'The hash of the block in hex format',
-    },
-  ]
+    }),
+  }
 
   async start(): Promise<void> {
     const { args } = await this.parse(ReAddBlock)
-    const hash = Buffer.from(args.hash as string, 'hex')
+    const hash = Buffer.from(args.hash, 'hex')
 
     ux.action.start(`Opening node`)
     const node = await this.sdk.node()

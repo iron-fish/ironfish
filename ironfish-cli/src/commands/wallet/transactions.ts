@@ -10,7 +10,7 @@ import {
   RpcAsset,
   TransactionType,
 } from '@ironfish/sdk'
-import { Flags, ux } from '@oclif/core'
+import { Args, Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { getAssetsByIDs } from '../../utils'
@@ -51,18 +51,17 @@ export class TransactionsCommand extends IronfishCommand {
     }),
   }
 
-  static args = [
-    {
-      name: 'account',
+  static args = {
+    account: Args.string({
       required: false,
       description: 'Name of the account. DEPRECATED: use --account flag',
-    },
-  ]
+    }),
+  }
 
   async start(): Promise<void> {
     const { flags, args } = await this.parse(TransactionsCommand)
     // TODO: remove account arg
-    const account = flags.account ? flags.account : (args.account as string | undefined)
+    const account = flags.account ? flags.account : args.account
 
     const format: Format =
       flags.csv || flags.output === 'csv'

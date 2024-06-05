@@ -10,7 +10,7 @@ import {
   TimeUtils,
   Wallet,
 } from '@ironfish/sdk'
-import { Command, ux } from '@oclif/core'
+import { Args, Command, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
 import { ProgressBar } from '../../types'
@@ -19,20 +19,18 @@ export default class Rewind extends IronfishCommand {
   static description =
     'Rewind the chain database to the given sequence by deleting all blocks with greater sequences'
 
-  static args = [
-    {
-      name: 'to',
+  static args = {
+    to: Args.string({
       parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: true,
       description: 'The block sequence to rewind to',
-    },
-    {
-      name: 'from',
+    }),
+    from: Args.string({
       parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: false,
       description: 'The sequence to start removing blocks from',
-    },
-  ]
+    }),
+  }
 
   static flags = {
     ...LocalFlags,

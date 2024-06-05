@@ -2,9 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-export function parseNumber(input: string): number | null {
+export function parseNumber(input: string): Promise<number> {
   const parsed = Number(input)
-  return isNaN(parsed) ? null : parsed
+  if (isNaN(parsed)) {
+    return Promise.reject(`Invalid number: ${input}`)
+  } else {
+    return Promise.resolve(parsed)
+  }
 }
 
 /**

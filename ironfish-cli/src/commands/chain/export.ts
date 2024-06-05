@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { AsyncUtils, GENESIS_BLOCK_SEQUENCE } from '@ironfish/sdk'
-import { Flags, ux } from '@oclif/core'
+import { Args, Flags, ux } from '@oclif/core'
 import fs from 'fs'
 import { parseNumber } from '../../args'
 import { IronfishCommand } from '../../command'
@@ -22,21 +22,22 @@ export default class Export extends IronfishCommand {
     }),
   }
 
-  static args = [
-    {
-      name: 'start',
-      parse: (input: string): Promise<number | null> => Promise.resolve(parseNumber(input)),
+  static args = {
+    // TODO(mat): Verify these new parse methods function about the same. We
+    // also shouldn't need to be doing verification of this nullable number type
+    // in the logic anymore, so remove that too
+    start: Args.integer({
+      parse: (input: string): Promise<number> => parseNumber(input),
       default: Number(GENESIS_BLOCK_SEQUENCE),
       required: false,
       description: 'The sequence to start at (inclusive, genesis block is 1)',
-    },
-    {
-      name: 'stop',
-      parse: (input: string): Promise<number | null> => Promise.resolve(parseNumber(input)),
+    }),
+    stop: Args.integer({
+      parse: (input: string): Promise<number> => parseNumber(input),
       required: false,
       description: 'The sequence to end at (inclusive)',
-    },
-  ]
+    }),
+  }
 
   async start(): Promise<void> {
     const { flags, args } = await this.parse(Export)

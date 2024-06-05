@@ -2,23 +2,24 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { DEFAULT_WEBSOCKET_PORT, parseUrl } from '@ironfish/sdk'
+import { Args } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
 export class AddCommand extends IronfishCommand {
   static description = `Attempt to connect to a peer through websockets`
 
-  static args = [
-    {
-      name: 'address',
+  static args = {
+    // TODO(mat): Verify usage of url flag here.. Either need built in URL type or Args.custom
+    address: Args.url({
       parse: (
         input: string,
       ): Promise<{ protocol: string | null; hostname: string | null; port: number | null }> =>
         Promise.resolve(parseUrl(input.trim())),
       required: true,
       description: `The address of the peer to connect to in the form {host}:{port}`,
-    },
-  ]
+    }),
+  }
 
   static flags = {
     ...RemoteFlags,
