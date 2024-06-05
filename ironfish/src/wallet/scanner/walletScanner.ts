@@ -132,8 +132,11 @@ export class WalletScanner {
           )
         })
         .finally(() => {
-          this.state?.signalComplete()
-          this.state = null
+          if (this.state === scan) {
+            this.state = null
+          }
+
+          scan.signalComplete()
           unlock()
         })
 
