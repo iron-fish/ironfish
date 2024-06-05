@@ -10,7 +10,6 @@ import { Mutex } from '../../mutex'
 import { RpcClient } from '../../rpc'
 import { AsyncUtils, BufferUtils, HashUtils } from '../../utils'
 import { DecryptedNote } from '../../workerPool/tasks/decryptNotes'
-import { HeadValue } from '../walletdb/headValue'
 import {
   RemoteChainProcessor,
   WalletBlockHeader,
@@ -56,27 +55,12 @@ export class WalletScanner {
     }
   }
 
-  async scan({
-    force,
-  }: {
-    force?: boolean
-  } = {}): Promise<ScanState | null> {
-    if (this.wallet.listAccounts().length === 0) {
-      return null
-    }
-
-    if (this.running && !force) {
-      this.logger.debug('Skipping Scan, already scanning.')
-      return null
-    }
-
-    if (this.running && force) {
-      this.logger.debug('Aborting scan in progress and starting new scan.')
-      await this.abort()
-    }
-
-    await this.state?.wait()
+  async scan(): Promise<ScanState | null> {
     const unlock = await this.lock.lock()
+
+    if (this.running) {
+      return null
+    }
 
     try {
       const start = await this.wallet.getEarliestHead()
@@ -99,18 +83,24 @@ export class WalletScanner {
         this.state?.signal(header)
       })
 
-      if (start === null) {
-        start = await this.wallet.getChainGenesis()
-      }
+      // Once we set up ChainProcessor, if the start is null we want to use
+      // genesis head for the ScanState for proper progress tracking
+      const scanStart = start ?? (await this.wallet.getChainGenesis())
+      const scan = new ScanState(scanStart, end)
 
-      this.logger.debug(`Scan starting from block ${start.sequence} to ${end.sequence}`)
-
-      const scan = new ScanState(start, end)
       this.state = scan
+      unlock()
+
+      this.logger.debug(
+        `Scan starting from block ${scan.start.sequence} to ${scan.start.sequence}`,
+      )
 
       void (async () => {
         let hashChanged = true
         while (hashChanged) {
+          const head = await this.wallet.getEarliestHead()
+          chainProcessor.hash = head?.hash ?? null
+
           const result = await chainProcessor.update({ signal: scan.abortController.signal })
           hashChanged = result.hashChanged
         }
@@ -128,13 +118,11 @@ export class WalletScanner {
           }
 
           scan.signalComplete()
-          unlock()
         })
 
       return scan
-    } catch (e) {
+    } finally {
       unlock()
-      throw e
     }
   }
 

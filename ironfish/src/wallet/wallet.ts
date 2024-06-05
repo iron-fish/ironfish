@@ -166,7 +166,21 @@ export class Wallet {
       return null
     }
 
-    const scan = await this.scanner.scan({ force })
+    if (this.listAccounts().length === 0) {
+      return null
+    }
+
+    if (this.scanner.running && !force) {
+      this.logger.debug('Skipping Scan, already scanning.')
+      return null
+    }
+
+    if (this.scanner.running && force) {
+      this.logger.debug('Aborting scan in progress and starting new scan.')
+      await this.scanner.abort()
+    }
+
+    const scan = await this.scanner.scan()
 
     if (scan && wait) {
       await scan.wait()
@@ -1342,7 +1356,6 @@ export class Wallet {
 
   async skipRescan(account: Account, tx?: IDatabaseTransaction): Promise<void> {
     const { hash, sequence } = await this.getChainHead()
-
     await account.updateHead({ hash, sequence }, tx)
   }
 
