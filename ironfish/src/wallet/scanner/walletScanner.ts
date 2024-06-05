@@ -57,11 +57,9 @@ export class WalletScanner {
   }
 
   async scan({
-    start,
     end,
     force,
   }: {
-    start?: HeadValue | null
     end?: HeadValue | null
     force?: boolean
   } = {}): Promise<ScanState | null> {
@@ -83,9 +81,7 @@ export class WalletScanner {
     const unlock = await this.lock.lock()
 
     try {
-      if (!start) {
-        start = await this.wallet.getEarliestHead()
-      }
+      const start = await this.wallet.getEarliestHead()
 
       if (!end) {
         end = await this.wallet.getChainHead()
