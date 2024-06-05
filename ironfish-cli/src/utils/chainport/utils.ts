@@ -126,8 +126,6 @@ Target (Ironfish) Network:    ${defaultNetworkName(networkId)}`)
   const transactionStatus = await fetchChainportTransactionStatus(networkId, hash)
   CliUx.ux.action.stop()
 
-  logger.debug(JSON.stringify(transactionStatus, null, 2))
-
   if (Object.keys(transactionStatus).length === 0 || !transactionStatus.target_network_id) {
     logger.log(
       `Transaction status not found on target network.
