@@ -149,6 +149,8 @@ import type {
   RenameAccountResponse,
   RescanRequest,
   RescanResponse,
+  ResetAccountRequest,
+  ResetAccountResponse,
   SendTransactionRequest,
   SendTransactionResponse,
   SetAccountHeadRequest,
@@ -367,6 +369,15 @@ export abstract class RpcClient {
     ): Promise<RpcResponseEnded<RemoveAccountResponse>> => {
       return this.request<RemoveAccountResponse>(
         `${ApiNamespace.wallet}/removeAccount`,
+        params,
+      ).waitForEnd()
+    },
+
+    resetAccount: (
+      params: ResetAccountRequest,
+    ): Promise<RpcResponseEnded<ResetAccountResponse>> => {
+      return this.request<ResetAccountResponse>(
+        `${ApiNamespace.wallet}/resetAccount`,
         params,
       ).waitForEnd()
     },
