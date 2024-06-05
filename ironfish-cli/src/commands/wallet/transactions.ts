@@ -14,6 +14,7 @@ import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { getAssetsByIDs } from '../../utils'
+import { extractChainportDataFromTransaction } from '../../utils/chainport'
 import { Format, TableCols, TableFlags } from '../../utils/table'
 
 const { sort: _, ...tableFlags } = TableFlags
@@ -77,6 +78,7 @@ export class TransactionsCommand extends IronfishCommand {
       confirmations: flags.confirmations,
       notes: flags.notes,
     })
+    const networkId = (await client.chain.getNetworkInfo()).content.networkId
 
     const columns = this.getColumns(flags.extended, flags.notes, format)
 
@@ -93,6 +95,14 @@ export class TransactionsCommand extends IronfishCommand {
           account,
           flags.confirmations,
         )
+
+        if (extractChainportDataFromTransaction(networkId, transaction)) {
+          transaction.type =
+            transaction.type === TransactionType.SEND
+              ? ('Bridge (outgoing)' as TransactionType)
+              : ('Bridge (incoming)' as TransactionType)
+        }
+
         transactionRows = this.getTransactionRowsByNote(assetLookup, transaction, format)
       } else {
         const assetLookup = await getAssetsByIDs(
@@ -255,7 +265,7 @@ export class TransactionsCommand extends IronfishCommand {
       },
       type: {
         header: 'Type',
-        minWidth: 8,
+        minWidth: notes ? 18 : 8,
       },
       hash: {
         header: 'Hash',
