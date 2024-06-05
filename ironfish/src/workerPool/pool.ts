@@ -221,12 +221,17 @@ export class WorkerPool {
   }
 
   private execute(request: Readonly<WorkerMessage>): Job {
+    // Ensure that workers are started before handling jobs
+    this.start()
+
     const job = new Job(request)
     job.onEnded.once(this.jobEnded)
     job.onChange.on(this.jobChange)
     job.onChange.emit(job, 'init')
 
-    // If there are no workers, execute in process
+    // If there are no workers, execute in process. The previous call to
+    // start() should ensure that the correct number of workers are started,
+    // but the constructor allows numWorkers to be 0
     if (this.workers.length === 0) {
       void job.execute()
       return job
