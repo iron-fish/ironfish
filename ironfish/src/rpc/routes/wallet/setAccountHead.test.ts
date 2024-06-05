@@ -22,7 +22,12 @@ describe('Route wallet/setAccountHead', () => {
         account: account.name,
         start: routeTest.chain.genesis.hash.toString('hex'),
         end: block.header.hash.toString('hex'),
-        transactions: [{ hash: block.transactions[0].hash().toString('hex') }],
+        blocks: [
+          {
+            hash: block.header.hash.toString('hex'),
+            transactions: [{ hash: block.transactions[0].hash().toString('hex') }],
+          },
+        ],
       })
 
       expect(response.status).toBe(200)
@@ -50,7 +55,12 @@ describe('Route wallet/setAccountHead', () => {
         account: account.name,
         start: block1.header.hash.toString('hex'),
         end: block2.header.hash.toString('hex'),
-        transactions: [{ hash: block2.transactions[0].hash().toString('hex') }],
+        blocks: [
+          {
+            hash: block2.header.hash.toString('hex'),
+            transactions: [{ hash: block2.transactions[0].hash().toString('hex') }],
+          },
+        ],
       })
 
       expect(response.status).toBe(200)
@@ -69,7 +79,7 @@ describe('Route wallet/setAccountHead', () => {
         account: account.name,
         start: 'fff',
         end: 'eee',
-        transactions: [],
+        blocks: [],
       }),
     ).rejects.toThrow('Start block is not on the head chain.')
 
@@ -78,7 +88,7 @@ describe('Route wallet/setAccountHead', () => {
         account: account.name,
         start: routeTest.chain.genesis.hash.toString('hex'),
         end: 'eee',
-        transactions: [],
+        blocks: [],
       }),
     ).rejects.toThrow('End block is not on the head chain.')
   })
@@ -91,7 +101,7 @@ describe('Route wallet/setAccountHead', () => {
         account: account.name,
         start: routeTest.chain.genesis.hash.toString('hex'),
         end: routeTest.chain.genesis.hash.toString('hex'),
-        transactions: [],
+        blocks: [],
       }),
     ).rejects.toThrow('Cannot set account head while account scanning is enabled.')
   })
@@ -109,7 +119,12 @@ describe('Route wallet/setAccountHead', () => {
         account: account.name,
         start: block.header.hash.toString('hex'),
         end: block.header.hash.toString('hex'),
-        transactions: [{ hash: block.transactions[0].hash().toString('hex') }],
+        blocks: [
+          {
+            hash: block.header.hash.toString('hex'),
+            transactions: [{ hash: block.transactions[0].hash().toString('hex') }],
+          },
+        ],
       }),
     ).rejects.toThrow(
       `Start must be ${routeTest.chain.genesis.hash.toString('hex')} if account head is null`,
@@ -134,7 +149,7 @@ describe('Route wallet/setAccountHead', () => {
         account: account.name,
         start: block2.header.hash.toString('hex'),
         end: block2.header.hash.toString('hex'),
-        transactions: [],
+        blocks: [],
       }),
     ).rejects.toThrow(`Start must be ${block1.header.hash.toString('hex')} or earlier`)
   })
@@ -152,7 +167,12 @@ describe('Route wallet/setAccountHead', () => {
       account: account.name,
       start: routeTest.chain.genesis.hash.toString('hex'),
       end: block1.header.hash.toString('hex'),
-      transactions: [{ hash: block1.transactions[0].hash().toString('hex') }],
+      blocks: [
+        {
+          hash: block1.header.hash.toString('hex'),
+          transactions: [{ hash: block1.transactions[0].hash().toString('hex') }],
+        },
+      ],
     })
 
     expect(response.status).toBe(200)
@@ -185,9 +205,15 @@ describe('Route wallet/setAccountHead', () => {
       account: account.name,
       start: node2Block1.header.hash.toString('hex'),
       end: node2Block2.header.hash.toString('hex'),
-      transactions: [
-        { hash: node2Block1.transactions[0].hash().toString('hex') },
-        { hash: node2Block2.transactions[0].hash().toString('hex') },
+      blocks: [
+        {
+          hash: node2Block1.header.hash.toString('hex'),
+          transactions: [{ hash: node2Block1.transactions[0].hash().toString('hex') }],
+        },
+        {
+          hash: node2Block2.header.hash.toString('hex'),
+          transactions: [{ hash: node2Block2.transactions[0].hash().toString('hex') }],
+        },
       ],
     })
 
@@ -211,7 +237,12 @@ describe('Route wallet/setAccountHead', () => {
       account: account.name,
       start: routeTest.chain.genesis.hash.toString('hex'),
       end: block2.header.hash.toString('hex'),
-      transactions: [{ hash: block1.transactions[0].hash().toString('hex') }],
+      blocks: [
+        {
+          hash: block1.header.hash.toString('hex'),
+          transactions: [{ hash: block1.transactions[0].hash().toString('hex') }],
+        },
+      ],
     })
 
     expect(response.status).toBe(200)

@@ -31,7 +31,7 @@ export type SetAccountHeadRequest = {
    * Hashes of transactions between start and end in which the account
    * is either a sender or a recipient.
    */
-  transactions: { hash: string }[]
+  blocks: { hash: string; transactions: { hash: string }[] }[]
 }
 
 export type SetAccountHeadResponse = undefined
@@ -41,11 +41,20 @@ export const SetAccountHeadRequestSchema: yup.ObjectSchema<SetAccountHeadRequest
     account: yup.string().defined(),
     start: yup.string().defined(),
     end: yup.string().defined(),
-    transactions: yup
+    blocks: yup
       .array(
         yup
           .object({
             hash: yup.string().defined(),
+            transactions: yup
+              .array(
+                yup
+                  .object({
+                    hash: yup.string().defined(),
+                  })
+                  .defined(),
+              )
+              .defined(),
           })
           .defined(),
       )
@@ -142,57 +151,56 @@ routes.register<typeof SetAccountHeadRequestSchema, SetAccountHeadResponse>(
       )
     }
 
-    // Push hashes into a set, then drain the set into a map of block header -> full transactions
-    const transactionSet = new Set(
-      request.data.transactions.map((t) => t.hash.toLowerCase().trim()),
-    )
-
+    // Fetch block headers and transactions for hashes
     const transactionList: {
       header: BlockHeader
       transactions: { transaction: Transaction; initialNoteIndex: number }[]
     }[] = []
 
-    while (transactionSet.size > 0) {
-      const [hash] = transactionSet
-      const blockHash = await context.chain.getBlockHashByTransactionHash(
-        Buffer.from(hash, 'hex'),
-      )
-      if (blockHash === null) {
-        throw new RpcResponseError(`Transaction ${hash} doesn't exist in the chain.`)
-      }
-      const blockHeader = await context.chain.getHeader(blockHash)
-      if (blockHeader === null) {
-        throw new RpcResponseError(
-          `Block ${blockHash.toString(
-            'hex',
-          )} for transaction ${hash} doesn't exist in the chain.`,
-        )
-      } else if (blockHeader.sequence < startHeader.sequence) {
-        throw new RpcResponseError(`Transaction ${hash} is before the start.`)
-      } else if (blockHeader.sequence > endHeader.sequence) {
-        throw new RpcResponseError(`Transaction ${hash} is after the end.`)
+    for (const b of request.data.blocks) {
+      if (b.transactions.length === 0) {
+        throw new RpcValidationError(`Block ${b.hash} must have at least one transaction.`)
       }
 
-      const transactions = await context.chain.getBlockTransactions(blockHeader)
-      const result: {
-        header: BlockHeader
-        transactions: { transaction: Transaction; initialNoteIndex: number }[]
-      } = {
-        header: blockHeader,
-        transactions: [],
+      const header = await context.chain.getHeader(Buffer.from(b.hash, 'hex'))
+      if (header === null) {
+        throw new RpcResponseError(`Block ${b.hash} doesn't exist in the chain.`)
+      } else if (header.sequence < startHeader.sequence) {
+        throw new RpcResponseError(`Block ${b.hash} is before start.`)
+      } else if (header.sequence > endHeader.sequence) {
+        throw new RpcResponseError(`Block ${b.hash} is after end.`)
       }
-      for (const txn of transactions) {
-        const txnHash = txn.transaction.hash().toString('hex')
-        if (transactionSet.has(txnHash)) {
-          result.transactions.push({
-            transaction: txn.transaction,
-            initialNoteIndex: txn.initialNoteIndex,
+
+      const blockTransactions = await context.chain.getBlockTransactions(header)
+      const transactionHashes = new Set(b.transactions.map((t) => t.hash))
+      const transactions: { transaction: Transaction; initialNoteIndex: number }[] = []
+
+      for (const transaction of blockTransactions) {
+        const hash = transaction.transaction.hash().toString('hex')
+        if (transactionHashes.has(hash)) {
+          transactions.push({
+            transaction: transaction.transaction,
+            initialNoteIndex: transaction.initialNoteIndex,
           })
-          transactionSet.delete(txnHash)
+
+          transactionHashes.delete(hash)
+          if (transactionHashes.size === 0) {
+            break
+          }
         }
       }
 
-      transactionList.push(result)
+      if (transactionHashes.size > 0) {
+        const missingTransactions = [...transactionHashes]
+        throw new RpcValidationError(
+          `Block ${b.hash} does not include transactions: ${missingTransactions.join(', ')}`,
+        )
+      }
+
+      transactionList.push({
+        header: header,
+        transactions: transactions,
+      })
     }
 
     // Decrypt all of the known transactions
