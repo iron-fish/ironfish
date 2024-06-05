@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { CurrencyUtils, RpcAsset } from '@ironfish/sdk'
-import { CliUx, Flags } from '@oclif/core'
+import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 import { TableCols, TableFlags } from '../../../utils/table'
@@ -49,7 +49,7 @@ export class NotesCommand extends IronfishCommand {
         )
       }
 
-      CliUx.ux.table(
+      ux.table(
         [note],
         {
           memo: {

@@ -10,7 +10,7 @@ import {
   RpcAsset,
   TransactionType,
 } from '@ironfish/sdk'
-import { CliUx, Flags } from '@oclif/core'
+import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { getAssetsByIDs } from '../../utils'
@@ -119,7 +119,7 @@ export class TransactionsCommand extends IronfishCommand {
         transactionRows = this.getTransactionRows(assetLookup, transaction, format)
       }
 
-      CliUx.ux.table(transactionRows, columns, {
+      ux.table(transactionRows, columns, {
         printLine: this.log.bind(this),
         ...flags,
         'no-header': !showHeader,
@@ -259,8 +259,8 @@ export class TransactionsCommand extends IronfishCommand {
     extended: boolean,
     notes: boolean,
     format: Format,
-  ): CliUx.Table.table.Columns<PartialRecursive<TransactionRow>> {
-    let columns: CliUx.Table.table.Columns<PartialRecursive<TransactionRow>> = {
+  ): ux.Table.table.Columns<PartialRecursive<TransactionRow>> {
+    let columns: ux.Table.table.Columns<PartialRecursive<TransactionRow>> = {
       timestamp: TableCols.timestamp({
         streaming: true,
       }),

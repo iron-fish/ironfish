@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { CliUx, Flags } from '@oclif/core'
+import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
@@ -37,21 +37,21 @@ export class DeleteCommand extends IronfishCommand {
 
     const client = await this.sdk.connectRpc()
 
-    CliUx.ux.action.start(`Deleting account '${account}'`)
+    ux.action.start(`Deleting account '${account}'`)
     const response = await client.wallet.removeAccount({ account, confirm, wait })
-    CliUx.ux.action.stop()
+    ux.action.stop()
 
     if (response.content.needsConfirm) {
-      const value = await CliUx.ux.prompt(`Are you sure? Type ${account} to confirm`)
+      const value = await ux.prompt(`Are you sure? Type ${account} to confirm`)
 
       if (value !== account) {
         this.log(`Aborting: ${value} did not match ${account}`)
         this.exit(1)
       }
 
-      CliUx.ux.action.start(`Deleting account '${account}'`)
+      ux.action.start(`Deleting account '${account}'`)
       await client.wallet.removeAccount({ account, confirm: true, wait })
-      CliUx.ux.action.stop()
+      ux.action.stop()
     }
 
     this.log(`Account '${account}' successfully deleted.`)

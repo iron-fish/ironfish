@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { RawTransaction, RawTransactionSerde, RpcClient, Transaction } from '@ironfish/sdk'
-import { CliUx, Flags } from '@oclif/core'
+import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { longPrompt } from '../../utils/input'
@@ -67,14 +67,14 @@ export class PostCommand extends IronfishCommand {
       }
     }
 
-    CliUx.ux.action.start(`Posting the transaction`)
+    ux.action.start(`Posting the transaction`)
 
     const response = await client.wallet.postTransaction({
       transaction,
       broadcast: flags.broadcast,
     })
 
-    CliUx.ux.action.stop()
+    ux.action.stop()
 
     const posted = new Transaction(Buffer.from(response.content.transaction, 'hex'))
 
@@ -113,7 +113,7 @@ export class PostCommand extends IronfishCommand {
 
     await renderRawTransactionDetails(client, raw, account, this.logger)
 
-    return CliUx.ux.confirm('Do you want to post this (Y/N)?')
+    return ux.confirm('Do you want to post this (Y/N)?')
   }
 
   async getAccountName(

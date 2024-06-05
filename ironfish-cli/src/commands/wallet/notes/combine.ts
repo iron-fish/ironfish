@@ -12,7 +12,7 @@ import {
   TimeUtils,
   Transaction,
 } from '@ironfish/sdk'
-import { CliUx, Flags } from '@oclif/core'
+import { Flags, ux } from '@oclif/core'
 import inquirer from 'inquirer'
 import { IronfishCommand } from '../../../command'
 import { HexFlag, IronFlag, RemoteFlags } from '../../../flags'
@@ -131,7 +131,7 @@ export class CombineNotesCommand extends IronfishCommand {
 
     // eslint-disable-next-line no-constant-condition
     while (true) {
-      const result = await CliUx.ux.prompt('Enter the number of notes', {
+      const result = await ux.prompt('Enter the number of notes', {
         required: true,
       })
 
@@ -289,7 +289,7 @@ export class CombineNotesCommand extends IronfishCommand {
 
     const memo =
       flags.memo?.trim() ??
-      (await CliUx.ux.prompt('Enter the memo (or leave blank)', { required: false }))
+      (await ux.prompt('Enter the memo (or leave blank)', { required: false }))
 
     const expiration = await this.calculateExpiration(client, spendPostTime, numberOfNotes)
 
@@ -455,7 +455,7 @@ export class CombineNotesCommand extends IronfishCommand {
 
     if (resultingNotes) {
       this.log('')
-      CliUx.ux.table(
+      ux.table(
         resultingNotes,
         {
           hash: {

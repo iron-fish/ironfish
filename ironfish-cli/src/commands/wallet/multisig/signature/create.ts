@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { multisig } from '@ironfish/rust-nodejs'
 import { UnsignedTransaction } from '@ironfish/sdk'
-import { CliUx, Flags } from '@oclif/core'
+import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
 import { longPrompt } from '../../../../utils/input'
@@ -62,7 +62,7 @@ export class CreateSignatureShareCommand extends IronfishCommand {
     )
 
     if (!flags.confirm) {
-      const confirmed = await CliUx.ux.confirm('Confirm new signature share creation (Y/N)')
+      const confirmed = await ux.confirm('Confirm new signature share creation (Y/N)')
       if (!confirmed) {
         this.error('Creating signature share aborted')
       }

@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { CliUx, Flags } from '@oclif/core'
+import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
 import { longPrompt } from '../../../../utils/input'
@@ -51,7 +51,7 @@ export class DkgRound3Command extends IronfishCommand {
 
     let round2SecretPackage = flags.round2SecretPackage
     if (!round2SecretPackage) {
-      round2SecretPackage = await CliUx.ux.prompt(
+      round2SecretPackage = await ux.prompt(
         `Enter the encrypted secret package for participant ${participantName}`,
         {
           required: true,

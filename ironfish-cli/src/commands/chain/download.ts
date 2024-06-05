@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { ErrorUtils, FileUtils, Meter, NodeUtils, TimeUtils } from '@ironfish/sdk'
-import { CliUx, Flags } from '@oclif/core'
+import { Flags, ux } from '@oclif/core'
 import fsAsync from 'fs/promises'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
@@ -79,7 +79,7 @@ export default class Download extends IronfishCommand {
       const spaceRequired = FileUtils.formatFileSize(manifest.file_size * 2)
 
       if (!flags.confirm) {
-        const confirm = await CliUx.ux.confirm(
+        const confirm = await ux.confirm(
           `Download ${fileSize} snapshot to update from block ${headSequence} to ${manifest.block_sequence}? ` +
             `\nAt least ${spaceRequired} of free disk space is required to download and unzip the snapshot file.` +
             `\nAre you sure? (Y)es / (N)o`,
@@ -94,7 +94,7 @@ export default class Download extends IronfishCommand {
       const snapshotPath = await Downloader.snapshotPath()
       this.log(`Downloading snapshot from ${snapshotUrl} to ${snapshotPath}`)
 
-      const bar = CliUx.ux.progress({
+      const bar = ux.progress({
         barCompleteChar: '\u2588',
         barIncompleteChar: '\u2591',
         format:
@@ -136,7 +136,7 @@ export default class Download extends IronfishCommand {
       downloadedSnapshot = new DownloadedSnapshot(this.sdk, path)
     }
 
-    const progressBar = CliUx.ux.progress({
+    const progressBar = ux.progress({
       barCompleteChar: '\u2588',
       barIncompleteChar: '\u2591',
       format:
@@ -162,18 +162,18 @@ export default class Download extends IronfishCommand {
       },
     )
 
-    CliUx.ux.action.start(
+    ux.action.start(
       `Replacing existing chain data at ${downloadedSnapshot.chainDatabasePath} before importing snapshot`,
     )
 
     await downloadedSnapshot.replaceDatabase()
 
-    CliUx.ux.action.stop('done')
+    ux.action.stop('done')
 
     if (flags.cleanup) {
-      CliUx.ux.action.start(`Cleaning up snapshot file at ${downloadedSnapshot.file}`)
+      ux.action.start(`Cleaning up snapshot file at ${downloadedSnapshot.file}`)
       await fsAsync.rm(downloadedSnapshot.file)
-      CliUx.ux.action.stop('done')
+      ux.action.stop('done')
     }
   }
 }

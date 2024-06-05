@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { RPC_ERROR_CODES, RpcRequestError } from '@ironfish/sdk'
-import { CliUx, Flags } from '@oclif/core'
+import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
 
@@ -21,7 +21,7 @@ export class MultisigIdentityCreate extends IronfishCommand {
     const { flags } = await this.parse(MultisigIdentityCreate)
     let name = flags.name
     if (!name) {
-      name = await CliUx.ux.prompt('Enter a name for the identity', {
+      name = await ux.prompt('Enter a name for the identity', {
         required: true,
       })
     }
@@ -38,7 +38,7 @@ export class MultisigIdentityCreate extends IronfishCommand {
         ) {
           this.log()
           this.log(e.codeMessage)
-          name = await CliUx.ux.prompt('Enter a new name for the identity', {
+          name = await ux.prompt('Enter a new name for the identity', {
             required: true,
           })
         } else {

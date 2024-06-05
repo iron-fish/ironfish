@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { BufferUtils, CurrencyUtils, GetBalancesResponse, RpcAsset } from '@ironfish/sdk'
-import { CliUx, Flags } from '@oclif/core'
+import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { compareAssets, renderAssetWithVerificationStatus } from '../../utils'
@@ -65,7 +65,7 @@ export class BalancesCommand extends IronfishCommand {
       })
     }
 
-    let columns: CliUx.Table.table.Columns<AssetBalancePairs> = {
+    let columns: ux.Table.table.Columns<AssetBalancePairs> = {
       assetName: {
         header: 'Asset Name',
         get: ({ asset }) =>
@@ -130,6 +130,6 @@ export class BalancesCommand extends IronfishCommand {
       ),
     )
 
-    CliUx.ux.table(assetBalancePairs, columns, { ...flags })
+    ux.table(assetBalancePairs, columns, { ...flags })
   }
 }

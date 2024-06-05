@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { CurrencyUtils, Transaction } from '@ironfish/sdk'
-import { CliUx, Flags } from '@oclif/core'
+import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
 import { longPrompt } from '../../../../utils/input'
@@ -62,7 +62,7 @@ export class MultisigSign extends IronfishCommand {
     }
     signatureShares = signatureShares.map((s) => s.trim())
 
-    CliUx.ux.action.start('Signing the multisig transaction')
+    ux.action.start('Signing the multisig transaction')
 
     const client = await this.sdk.connectRpc()
 
@@ -76,7 +76,7 @@ export class MultisigSign extends IronfishCommand {
     const bytes = Buffer.from(response.content.transaction, 'hex')
     const transaction = new Transaction(bytes)
 
-    CliUx.ux.action.stop()
+    ux.action.stop()
 
     if (flags.broadcast && response.content.accepted === false) {
       this.warn(

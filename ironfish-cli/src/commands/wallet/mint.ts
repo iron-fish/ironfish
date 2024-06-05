@@ -14,7 +14,7 @@ import {
   RpcRequestError,
   Transaction,
 } from '@ironfish/sdk'
-import { CliUx, Flags } from '@oclif/core'
+import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { IronFlag, RemoteFlags, ValueFlag } from '../../flags'
 import { confirmOperation } from '../../utils'
@@ -147,18 +147,18 @@ export class Mint extends IronfishCommand {
     // name is provided
     let isMintingNewAsset = Boolean(name || metadata)
     if (!assetId && !metadata && !name) {
-      isMintingNewAsset = await CliUx.ux.confirm('Do you want to create a new asset (Y/N)?')
+      isMintingNewAsset = await ux.confirm('Do you want to create a new asset (Y/N)?')
     }
 
     if (isMintingNewAsset) {
       if (!name) {
-        name = await CliUx.ux.prompt('Enter the name for the new asset', {
+        name = await ux.prompt('Enter the name for the new asset', {
           required: true,
         })
       }
 
       if (!metadata) {
-        metadata = await CliUx.ux.prompt('Enter metadata for the new asset', {
+        metadata = await ux.prompt('Enter metadata for the new asset', {
           default: '',
           required: false,
         })
@@ -296,7 +296,7 @@ export class Mint extends IronfishCommand {
       assetData,
     )
 
-    CliUx.ux.action.start('Sending the transaction')
+    ux.action.start('Sending the transaction')
 
     const response = await client.wallet.postTransaction({
       transaction: RawTransactionSerde.serialize(raw).toString('hex'),
@@ -306,7 +306,7 @@ export class Mint extends IronfishCommand {
     const bytes = Buffer.from(response.content.transaction, 'hex')
     const transaction = new Transaction(bytes)
 
-    CliUx.ux.action.stop()
+    ux.action.stop()
 
     const minted = transaction.mints[0]
 

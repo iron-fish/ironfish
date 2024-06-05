@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { getFeeRate, GetMempoolTransactionResponse, MinMax, Transaction } from '@ironfish/sdk'
-import { CliUx, Flags } from '@oclif/core'
+import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { CommandFlags } from '../../types'
@@ -154,7 +154,7 @@ function renderTable(
   response: GetMempoolTransactionResponse[],
   flags: CommandFlags<typeof TransactionsCommand>,
 ): string {
-  const columns: CliUx.Table.table.Columns<TransactionRow> = {
+  const columns: ux.Table.table.Columns<TransactionRow> = {
     position: {
       header: 'POSITION',
       minWidth: 4,
@@ -210,7 +210,7 @@ function renderTable(
   let result = ''
 
   const limit = flags.csv ? 0 : flags.show
-  CliUx.ux.table(getRows(response, limit), columns, {
+  ux.table(getRows(response, limit), columns, {
     printLine: (line) => (result += `${String(line)}\n`),
     ...flags,
   })

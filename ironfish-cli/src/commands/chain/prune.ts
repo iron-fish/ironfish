@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { BlockchainUtils } from '@ironfish/sdk'
-import { CliUx, Flags } from '@oclif/core'
+import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
 
@@ -34,11 +34,11 @@ export default class Prune extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(Prune)
 
-    CliUx.ux.action.start(`Opening node`)
+    ux.action.start(`Opening node`)
     const node = await this.sdk.node()
     await node.openDB()
     await node.chain.open()
-    CliUx.ux.action.stop('done.')
+    ux.action.stop('done.')
 
     if (flags.prune) {
       const { start, stop } = BlockchainUtils.getBlockRange(node.chain, {
@@ -77,9 +77,9 @@ export default class Prune extends IronfishCommand {
     }
 
     if (flags.compact) {
-      CliUx.ux.action.start(`Compacting Database`)
+      ux.action.start(`Compacting Database`)
       await node.chain.blockchainDb.compact()
-      CliUx.ux.action.stop()
+      ux.action.stop()
     }
 
     await node.chain.close()

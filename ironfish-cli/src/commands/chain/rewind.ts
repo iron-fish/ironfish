@@ -10,7 +10,7 @@ import {
   TimeUtils,
   Wallet,
 } from '@ironfish/sdk'
-import { CliUx, Command } from '@oclif/core'
+import { Command, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
 import { ProgressBar } from '../../types'
@@ -192,7 +192,7 @@ async function removeBlocks(
 }
 
 function getProgressBar(label: string): ProgressBar {
-  return CliUx.ux.progress({
+  return ux.progress({
     barCompleteChar: '\u2588',
     barIncompleteChar: '\u2591',
     format: `${label}: [{bar}] {percentage}% | {value} / {total} blocks | {speed}/s | ETA: {estimate}`,

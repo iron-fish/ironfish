@@ -9,7 +9,7 @@ import {
   PUBLIC_ADDRESS_LENGTH,
 } from '@ironfish/rust-nodejs'
 import { BufferUtils } from '@ironfish/sdk'
-import { CliUx, Flags } from '@oclif/core'
+import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { renderAssetWithVerificationStatus } from '../../utils'
@@ -60,7 +60,7 @@ export class AssetsCommand extends IronfishCommand {
     let showHeader = !flags['no-header']
 
     for await (const asset of response.contentStream()) {
-      CliUx.ux.table(
+      ux.table(
         [asset],
         {
           name: TableCols.fixedWidth({

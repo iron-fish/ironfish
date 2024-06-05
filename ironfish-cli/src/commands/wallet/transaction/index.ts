@@ -9,7 +9,7 @@ import {
   RpcWalletNote,
   TimeUtils,
 } from '@ironfish/sdk'
-import { CliUx, Flags } from '@oclif/core'
+import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 import {
@@ -98,9 +98,9 @@ export class TransactionCommand extends IronfishCommand {
     if (chainportTxnDetails) {
       this.log(`\n---Chainport Bridge Transaction Summary---\n`)
 
-      CliUx.ux.action.start('Fetching network details')
+      ux.action.start('Fetching network details')
       const chainportNetworks = await fetchChainportNetworkMap(networkId)
-      CliUx.ux.action.stop()
+      ux.action.stop()
 
       await displayChainportTransactionSummary(
         networkId,
@@ -130,7 +130,7 @@ export class TransactionCommand extends IronfishCommand {
         })
       }
 
-      CliUx.ux.table(noteAssetPairs, {
+      ux.table(noteAssetPairs, {
         amount: {
           header: 'Amount',
           get: ({ asset, note }) =>
@@ -161,7 +161,7 @@ export class TransactionCommand extends IronfishCommand {
 
     if (response.content.transaction.spends.length > 0) {
       this.log(`\n---Spends---\n`)
-      CliUx.ux.table(response.content.transaction.spends, {
+      ux.table(response.content.transaction.spends, {
         size: {
           header: 'Size',
           get: (spend) => spend.size,
@@ -187,7 +187,7 @@ export class TransactionCommand extends IronfishCommand {
       )
 
       this.log(`\n---Asset Balance Deltas---\n`)
-      CliUx.ux.table(assetBalanceDeltas, {
+      ux.table(assetBalanceDeltas, {
         assetId: {
           header: 'Asset ID',
         },

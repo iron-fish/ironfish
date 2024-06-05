@@ -10,7 +10,7 @@ import {
   RpcAsset,
   Transaction,
 } from '@ironfish/sdk'
-import { CliUx, Flags } from '@oclif/core'
+import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { IronFlag, RemoteFlags, ValueFlag } from '../../flags'
 import { confirmOperation } from '../../utils'
@@ -221,7 +221,7 @@ export class Burn extends IronfishCommand {
 
     await this.confirm(assetData, amount, raw.fee, account, flags.confirm)
 
-    CliUx.ux.action.start('Sending the transaction')
+    ux.action.start('Sending the transaction')
 
     const response = await client.wallet.postTransaction({
       transaction: RawTransactionSerde.serialize(raw).toString('hex'),
@@ -231,7 +231,7 @@ export class Burn extends IronfishCommand {
     const bytes = Buffer.from(response.content.transaction, 'hex')
     const transaction = new Transaction(bytes)
 
-    CliUx.ux.action.stop()
+    ux.action.stop()
 
     if (response.content.accepted === false) {
       this.warn(

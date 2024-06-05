@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { FullNode, PEER_STORE_FILE_NAME } from '@ironfish/sdk'
-import { CliUx, Flags } from '@oclif/core'
+import { Flags, ux } from '@oclif/core'
 import fsAsync from 'fs/promises'
 import { IronfishCommand } from '../command'
 import {
@@ -67,7 +67,7 @@ export default class Reset extends IronfishCommand {
       cancelledMessage: 'Reset aborted.',
     })
 
-    CliUx.ux.action.start('Deleting databases...')
+    ux.action.start('Deleting databases...')
 
     await Promise.all([
       fsAsync.rm(chainDatabasePath, { recursive: true, force: true }),
@@ -86,6 +86,6 @@ export default class Reset extends IronfishCommand {
     await node.wallet.open()
     await node.wallet.reset({ resetCreatedAt: networkChanged })
 
-    CliUx.ux.action.stop('Databases deleted successfully')
+    ux.action.stop('Databases deleted successfully')
   }
 }

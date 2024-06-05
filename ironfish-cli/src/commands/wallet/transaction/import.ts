@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { CliUx, Flags } from '@oclif/core'
+import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 import { importFile, importPipe, longPrompt } from '../../../utils/input'
@@ -55,16 +55,16 @@ export class TransactionImportCommand extends IronfishCommand {
     } else if (!process.stdin.isTTY) {
       transaction = await importPipe()
     } else {
-      CliUx.ux.error(`Invalid import type`)
+      ux.error(`Invalid import type`)
     }
 
-    CliUx.ux.action.start(`Importing transaction`)
+    ux.action.start(`Importing transaction`)
     const client = await this.sdk.connectRpc()
     const response = await client.wallet.addTransaction({
       transaction,
       broadcast: flags.broadcast,
     })
-    CliUx.ux.action.stop()
+    ux.action.stop()
 
     this.log(`Transaction imported for accounts: ${response.content.accounts.join(', ')}`)
   }

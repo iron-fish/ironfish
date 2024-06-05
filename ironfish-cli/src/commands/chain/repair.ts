@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert, BlockHeader, FullNode, IDatabaseTransaction, TimeUtils } from '@ironfish/sdk'
 import { Meter } from '@ironfish/sdk'
-import { CliUx, Flags } from '@oclif/core'
+import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
 import { ProgressBar } from '../../types'
@@ -38,15 +38,15 @@ export default class RepairChain extends IronfishCommand {
     const { flags } = await this.parse(RepairChain)
 
     const speed = new Meter()
-    const progress = CliUx.ux.progress({
+    const progress = ux.progress({
       format: '{title}: [{bar}] {value}/{total} {percentage}% {speed}/sec | {estimate}',
     }) as ProgressBar
 
-    CliUx.ux.action.start(`Opening node`)
+    ux.action.start(`Opening node`)
     const node = await this.sdk.node()
     await node.openDB()
     await node.chain.open()
-    CliUx.ux.action.stop('done.')
+    ux.action.stop('done.')
 
     if (node.chain.isEmpty) {
       this.log(`Chain is too corrupt. Delete your DB at ${node.config.chainDatabasePath}`)
@@ -59,7 +59,7 @@ export default class RepairChain extends IronfishCommand {
 
     const confirmed =
       flags.confirm ||
-      (await CliUx.ux.confirm(
+      (await ux.confirm(
         `\n⚠️ If you start repairing your database, you MUST finish the\n` +
           `process or your database will be in a corrupt state. Repairing\n` +
           `may take ${estimate} or longer.\n\n` +
@@ -79,13 +79,13 @@ export default class RepairChain extends IronfishCommand {
   async repairChain(node: FullNode, speed: Meter, progress: ProgressBar): Promise<void> {
     Assert.isNotNull(node.chain.head)
 
-    CliUx.ux.action.start('Clearing hash to next hash table')
+    ux.action.start('Clearing hash to next hash table')
     await node.chain.clearHashToNextHash()
-    CliUx.ux.action.stop()
+    ux.action.stop()
 
-    CliUx.ux.action.start('Clearing Sequence to hash table')
+    ux.action.start('Clearing Sequence to hash table')
     await node.chain.clearSequenceToHash()
-    CliUx.ux.action.stop()
+    ux.action.stop()
 
     const total = Number(node.chain.head.sequence)
     let done = 0
@@ -148,14 +148,14 @@ export default class RepairChain extends IronfishCommand {
     let prev = await node.chain.getHeaderAtSequence(TREE_START - 1)
     const noteSize = prev && prev.noteSize !== null ? prev.noteSize : 0
 
-    CliUx.ux.action.start('Clearing notes MerkleTree')
+    ux.action.start('Clearing notes MerkleTree')
     await node.chain.notes.truncate(noteSize)
-    CliUx.ux.action.stop()
+    ux.action.stop()
 
-    CliUx.ux.action.start('Clearing nullifier set')
+    ux.action.start('Clearing nullifier set')
     await node.chain.nullifiers.clear()
 
-    CliUx.ux.action.stop()
+    ux.action.stop()
 
     speed.reset()
     progress.start(total, TREE_START, {

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { AsyncUtils, GENESIS_BLOCK_SEQUENCE } from '@ironfish/sdk'
-import { CliUx, Flags } from '@oclif/core'
+import { Flags, ux } from '@oclif/core'
 import fs from 'fs'
 import { parseNumber } from '../../args'
 import { IronfishCommand } from '../../command'
@@ -57,7 +57,7 @@ export default class Export extends IronfishCommand {
     const { start, stop } = await AsyncUtils.first(stream.contentStream())
     this.log(`Exporting chain from ${start} -> ${stop} to ${exportPath}`)
 
-    const progress = CliUx.ux.progress({
+    const progress = ux.progress({
       format: 'Exporting blocks: [{bar}] {value}/{total} {percentage}% | ETA: {eta}s',
     }) as ProgressBar
 
