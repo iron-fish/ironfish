@@ -87,6 +87,23 @@ export class TransactionCommand extends IronfishCommand {
     this.log(`Burns Count: ${response.content.transaction.burns.length}`)
     this.log(`Sender: ${response.content.transaction.notes[0].sender}`)
 
+    const chainportTxnDetails = extractChainportDataFromTransaction(
+      networkId,
+      response.content.transaction,
+    )
+
+    if (chainportTxnDetails) {
+      const chainportNetworks = await fetchChainportNetworkMap(networkId)
+
+      await displayChainportTransactionSummary(
+        networkId,
+        hash,
+        chainportTxnDetails,
+        chainportNetworks[chainportTxnDetails.chainportNetworkId],
+        this.logger,
+      )
+    }
+
     if (response.content.transaction.notes.length > 0) {
       this.log(`\n---Notes---\n`)
 
@@ -178,23 +195,6 @@ export class TransactionCommand extends IronfishCommand {
             ),
         },
       })
-    }
-
-    const chainportTxnDetails = extractChainportDataFromTransaction(
-      networkId,
-      response.content.transaction,
-    )
-
-    if (chainportTxnDetails) {
-      const chainportNetworks = await fetchChainportNetworkMap(networkId)
-
-      await displayChainportTransactionSummary(
-        networkId,
-        hash,
-        chainportTxnDetails,
-        chainportNetworks[chainportTxnDetails.chainportNetworkId],
-        this.logger,
-      )
     }
   }
 }
