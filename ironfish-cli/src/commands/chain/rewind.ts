@@ -136,7 +136,7 @@ async function rewindWalletHead(
       })
       speed.start()
 
-      const scan = await wallet.scanner.scan()
+      const scan = await wallet.scan({ wait: false })
 
       if (scan) {
         scan.onTransaction.on((_) => {

@@ -55,11 +55,11 @@ export class WalletScanner {
     }
   }
 
-  async scan(): Promise<ScanState | null> {
+  async scan(): Promise<ScanState> {
     const unlock = await this.lock.lock()
 
-    if (this.running) {
-      return null
+    if (this.state) {
+      return this.state
     }
 
     try {

@@ -182,7 +182,7 @@ export class Wallet {
 
     const scan = await this.scanner.scan()
 
-    if (scan && wait) {
+    if (wait) {
       await scan.wait()
     }
 
