@@ -57,10 +57,8 @@ export class WalletScanner {
   }
 
   async scan({
-    end,
     force,
   }: {
-    end?: HeadValue | null
     force?: boolean
   } = {}): Promise<ScanState | null> {
     if (this.wallet.listAccounts().length === 0) {
@@ -82,10 +80,7 @@ export class WalletScanner {
 
     try {
       const start = await this.wallet.getEarliestHead()
-
-      if (!end) {
-        end = await this.wallet.getChainHead()
-      }
+      const end = await this.wallet.getChainHead()
 
       const chainProcessor = new RemoteChainProcessor({
         logger: this.logger,

@@ -152,11 +152,9 @@ export class Wallet {
    * for it to complete.
    */
   async scan({
-    end,
     force,
     wait,
   }: {
-    end?: HeadValue
     force?: boolean
     wait?: boolean
   } = {}): Promise<ScanState | null> {
@@ -168,7 +166,7 @@ export class Wallet {
       return null
     }
 
-    const scan = await this.scanner.scan({ end, force })
+    const scan = await this.scanner.scan({ force })
 
     if (scan && wait) {
       await scan.wait()
