@@ -113,8 +113,6 @@ export const displayChainportTransactionSummary = async (
     return
   }
 
-  logger.log(`\n---Chainport Bridge Transaction Details---\n`)
-
   if (data.type === TransactionType.RECEIVE) {
     logger.log(`
 Direction:                    Incoming
