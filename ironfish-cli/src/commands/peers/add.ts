@@ -1,8 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { DEFAULT_WEBSOCKET_PORT, parseUrl } from '@ironfish/sdk'
+import { DEFAULT_WEBSOCKET_PORT } from '@ironfish/sdk'
 import { Args } from '@oclif/core'
+import { parseUrl } from '../../args'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
@@ -12,10 +13,7 @@ export class AddCommand extends IronfishCommand {
   static args = {
     // TODO(mat): Verify usage of url flag here.. Either need built in URL type or Args.custom
     address: Args.url({
-      parse: (
-        input: string,
-      ): Promise<{ protocol: string | null; hostname: string | null; port: number | null }> =>
-        Promise.resolve(parseUrl(input.trim())),
+      parse: (input: string): Promise<URL> => parseUrl(input),
       required: true,
       description: `The address of the peer to connect to in the form {host}:{port}`,
     }),
@@ -28,25 +26,19 @@ export class AddCommand extends IronfishCommand {
   async start(): Promise<void> {
     const { args } = await this.parse(AddCommand)
 
-    const address = args.address as {
-      protocol: string | null
-      hostname: string | null
-      port: number | null
-    }
-
     const connected = await this.sdk.client.tryConnect()
     if (!connected) {
       this.log('Could not connect to node')
       this.exit(0)
     }
 
-    if (!address.hostname) {
+    if (!args.address.hostname) {
       this.error(`Could not parse the given url`)
     }
 
     const request = {
-      host: address.hostname,
-      port: address.port || DEFAULT_WEBSOCKET_PORT,
+      host: args.address.hostname,
+      port: Number(args.address.port || DEFAULT_WEBSOCKET_PORT),
       whitelist: true,
     }
 

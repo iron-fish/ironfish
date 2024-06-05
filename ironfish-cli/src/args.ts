@@ -11,6 +11,16 @@ export function parseNumber(input: string): Promise<number> {
   }
 }
 
+// TODO(mat): No idea if this remotely works the way I expect yet
+export function parseUrl(input: string): Promise<URL> {
+  const parsed = new URL(input)
+  if (parsed.hostname == null || parsed.port == null || parsed.protocol == null) {
+    return Promise.reject(`Invalid URL: ${input}`)
+  } else {
+    return Promise.resolve(parsed)
+  }
+}
+
 /**
  * Oclif currently rejects falsy args as if they weren't included,
  * so this function returns the strings 'true' or 'false' instead. This
