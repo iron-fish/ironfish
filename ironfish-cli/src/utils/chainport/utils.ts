@@ -9,12 +9,12 @@ import {
   TransactionType,
 } from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
-import { getConfig } from './config'
+import { getConfig, isNetworkSupportedByChainport } from './config'
 import { ChainportMemoMetadata } from './metadata'
 import { fetchChainportTransactionStatus } from './requests'
 import { ChainportNetwork } from './types'
 
-type ChainportTransactionData =
+export type ChainportTransactionData =
   | {
       type: TransactionType.SEND | TransactionType.RECEIVE
       chainportNetworkId: number
@@ -26,6 +26,10 @@ export const extractChainportDataFromTransaction = (
   networkId: number,
   transaction: RpcWalletTransaction,
 ): ChainportTransactionData => {
+  if (isNetworkSupportedByChainport(networkId) === false) {
+    return undefined
+  }
+
   const config = getConfig(networkId)
 
   if (transaction.type === TransactionType.SEND) {
