@@ -37,9 +37,7 @@ routes.register<typeof RescanRequestSchema, RescanResponse>(
       await context.wallet.scanner.abort()
     }
 
-    await context.wallet.resetAccounts({
-      resetScanningEnabled: true,
-    })
+    await context.wallet.resetAccounts()
 
     const scan = await context.wallet.scan({ force: true, wait: false })
 
