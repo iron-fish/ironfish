@@ -5,7 +5,7 @@ import { ACCOUNT_SCHEMA_VERSION, RpcClient } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
-import { longPrompt } from '../../../../utils/longPrompt'
+import { longPrompt } from '../../../../utils/input'
 
 export class MultisigCreateDealer extends IronfishCommand {
   static description = `Create a set of multisig accounts from participant identities`

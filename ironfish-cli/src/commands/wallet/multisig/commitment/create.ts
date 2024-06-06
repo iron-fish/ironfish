@@ -5,7 +5,7 @@ import { UnsignedTransaction } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
-import { longPrompt } from '../../../../utils/longPrompt'
+import { longPrompt } from '../../../../utils/input'
 import { MultisigTransactionJson } from '../../../../utils/multisig'
 import { renderUnsignedTransactionDetails } from '../../../../utils/transaction'
 

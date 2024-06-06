@@ -13,7 +13,7 @@ import { Flags } from '@oclif/core'
 import inquirer from 'inquirer'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
-import { longPrompt } from '../../../utils/longPrompt'
+import { longPrompt } from '../../../utils/input'
 import {
   renderRawTransactionDetails,
   renderTransactionDetails,

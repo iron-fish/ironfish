@@ -5,7 +5,7 @@ import { RawTransaction, RawTransactionSerde, RpcClient, Transaction } from '@ir
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { longPrompt } from '../../utils/longPrompt'
+import { longPrompt } from '../../utils/input'
 import { renderRawTransactionDetails } from '../../utils/transaction'
 
 export class PostCommand extends IronfishCommand {
