@@ -151,7 +151,7 @@ export class WalletScanner {
       }
     })
 
-    const shouldDecryptAccounts = await AsyncUtils.filter(accounts, (a) =>
+    const shouldDecryptAccounts = accounts.filter((a) =>
       this.wallet.shouldDecryptForAccount(blockHeader, a),
     )
 
