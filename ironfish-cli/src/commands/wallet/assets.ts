@@ -44,7 +44,7 @@ export class AssetsCommand extends IronfishCommand {
   async start(): Promise<void> {
     const { flags, args } = await this.parse(AssetsCommand)
     // TODO: remove account arg
-    const account = (flags.account ? flags.account : args.account) as string | undefined
+    const account = flags.account ? flags.account : (args.account as string | undefined)
 
     const client = await this.sdk.connectRpc()
     const response = client.wallet.getAssets({

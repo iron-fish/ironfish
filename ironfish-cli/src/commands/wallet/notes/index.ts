@@ -31,7 +31,7 @@ export class NotesCommand extends IronfishCommand {
   async start(): Promise<void> {
     const { flags, args } = await this.parse(NotesCommand)
     // TODO: remove account arg
-    const account = (flags.account ? flags.account : args.account) as string | undefined
+    const account = flags.account ? flags.account : (args.account as string | undefined)
 
     const assetLookup: Map<string, RpcAsset> = new Map()
 

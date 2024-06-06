@@ -61,7 +61,7 @@ export class TransactionsCommand extends IronfishCommand {
   async start(): Promise<void> {
     const { flags, args } = await this.parse(TransactionsCommand)
     // TODO: remove account arg
-    const account = (flags.account ? flags.account : args.account) as string | undefined
+    const account = flags.account ? flags.account : (args.account as string | undefined)
 
     const format: Format =
       flags.csv || flags.output === 'csv'

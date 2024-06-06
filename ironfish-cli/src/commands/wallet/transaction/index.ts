@@ -43,7 +43,7 @@ export class TransactionCommand extends IronfishCommand {
     const { flags, args } = await this.parse(TransactionCommand)
     const hash = args.hash as string
     // TODO: remove account arg
-    const account = (flags.account ? flags.account : args.account) as string | undefined
+    const account = flags.account ? flags.account : (args.account as string | undefined)
 
     const client = await this.sdk.connectRpc()
 
