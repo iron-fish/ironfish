@@ -20,7 +20,7 @@ describe('Route wallet/getTransactionNotes', () => {
 
     const block = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
     await expect(node.chain).toAddBlock(block)
-    await node.wallet.updateHead()
+    await node.wallet.scan()
 
     const burnValue = 2n
     const burn = {

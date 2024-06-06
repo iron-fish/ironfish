@@ -1,22 +1,32 @@
 {
   "": [
     {
-      "version": 4,
-      "id": "6c492c06-5492-4f5a-b8f4-13922e162901",
-      "name": "test",
-      "spendingKey": "61bd868b502345852e2f27d7a78a9e92e5f32c303040600399c3a467f4726009",
-      "viewKey": "b6b33e5da244e48fa3b3cc9263659fe48bc01c21be52d0c5966cbfe311f099cd0384229b5f7545689308498939005e54307fb7890818eac20c28c7c00ed9406f",
-      "incomingViewKey": "0b2e720e2bd5b1d903e486e333054c4ec4870f4de3fd8349e660cbd9fe1f5d01",
-      "outgoingViewKey": "ece2e946d43c5e7f3bd0ed13909c89c5dfd4637c69a7f982a0ed498a89d80cae",
-      "publicAddress": "94aa93ccb8ba1ff4cf7d86eb34dd7002aef3fccd1950bf51758179a281a43950",
-      "createdAt": {
+      "value": {
+        "version": 4,
+        "id": "7961d05b-dc0c-4fd9-a4e1-7de4d0375193",
+        "name": "test",
+        "spendingKey": "fc62961659d592086625a5c48bf9e433ef3904f37d638566a10d663686ea3817",
+        "viewKey": "a6c9e3e300096d5d8576d50f78ba8f2f9f048909b0bb2f028f6ba7628956517295db57458a43b00a6b75ffe054dd626e26fd04c83bd6f8884405af68ccf7d125",
+        "incomingViewKey": "ae39e3705c743eeaea88059de7268210da9466129ccba9287f3bf41d256e1803",
+        "outgoingViewKey": "85e2ebc57a0c56d268bb5e8f0bf99bb5e5956b13e3aca328d0252780bd6e2823",
+        "publicAddress": "0bd6b11903fbcc630679c1010f179bd1a1e5a8d0de9c05fdbb9ebe282376a54b",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "f61d253bb43b46757a77fa5822d8bf4f9589074d01b7cd2dd80e6b066fef8d02"
+      },
+      "head": {
         "hash": {
           "type": "Buffer",
           "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
         },
         "sequence": 1
-      },
-      "proofAuthorizingKey": "8ec4d16913e3e0488a7d077073a25cb547a774cfbf37adb8069180d19e838f08"
+      }
     }
   ]
 }

@@ -34,7 +34,7 @@ describe('Route wallet/buildTransaction', () => {
 
     const block = await useMinerBlockFixture(routeTest.node.chain, undefined, account)
     await routeTest.node.chain.addBlock(block)
-    await routeTest.node.wallet.updateHead()
+    await routeTest.node.wallet.scan()
 
     const rawTransaction = await createRawTransaction({
       wallet: routeTest.node.wallet,

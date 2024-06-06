@@ -58,7 +58,7 @@ describe('Verify Transaction', () => {
     for (let i = 0; i < Math.max(...TEST_AMOUNTS.map((t) => t.spends)); i++) {
       const block = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
       await node.chain.addBlock(block)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
     }
 
     // Generate asset for the tests
@@ -70,7 +70,7 @@ describe('Verify Transaction', () => {
       value: BigInt(Math.max(...TEST_AMOUNTS.map((t) => t.burns))),
     })
     await node.chain.addBlock(block)
-    await node.wallet.updateHead()
+    await node.wallet.scan()
   })
 
   for (const input of TEST_AMOUNTS) {

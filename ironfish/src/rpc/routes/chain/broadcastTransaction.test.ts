@@ -19,7 +19,7 @@ describe('Route chain/broadcastTransaction', () => {
     const block2 = await useMinerBlockFixture(node.chain, 2, account)
 
     await node.chain.addBlock(block2)
-    await node.wallet.updateHead()
+    await node.wallet.scan()
 
     const transaction = await useTxFixture(node.wallet, account, account)
 
@@ -45,7 +45,7 @@ describe('Route chain/broadcastTransaction', () => {
     const block2 = await useMinerBlockFixture(node.chain, 2, account)
 
     await node.chain.addBlock(block2)
-    await node.wallet.updateHead()
+    await node.wallet.scan()
 
     const transaction = await useTxFixture(node.wallet, account, account)
 
@@ -77,7 +77,7 @@ describe('Route chain/broadcastTransaction', () => {
     const block2 = await useMinerBlockFixture(node.chain, 2, account)
 
     await node.chain.addBlock(block2)
-    await node.wallet.updateHead()
+    await node.wallet.scan()
 
     const transaction = await useTxFixture(node.wallet, account, account)
 
@@ -107,7 +107,7 @@ describe('Route chain/broadcastTransaction', () => {
     const block2 = await useMinerBlockFixture(node.chain, 2, account)
 
     await node.chain.addBlock(block2)
-    await node.wallet.updateHead()
+    await node.wallet.scan()
 
     const transaction = await useTxFixture(node.wallet, account, account)
 

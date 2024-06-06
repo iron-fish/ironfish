@@ -184,16 +184,22 @@ function renderStatus(content: GetNodeStatusResponse, debugOutput: boolean): str
 
   let accountStatus
   if (content.accounts.scanning === undefined) {
-    accountStatus = `${content.accounts.head.hash}`
-
-    if (content.accounts.head.sequence !== -1) {
-      accountStatus += ` (${content.accounts.head.sequence})`
-    }
+    accountStatus = `IDLE`
   } else {
     accountStatus = `SCANNING`
 
     if (content.accounts.scanning.sequence !== -1) {
       accountStatus += ` - ${content.accounts.scanning.sequence} / ${content.accounts.scanning.endSequence}`
+    }
+
+    const duration = Date.now() - content.accounts.scanning.startedAt
+    const durationRendered = TimeUtils.renderSpan(duration, {
+      hideMilliseconds: true,
+      forceSecond: true,
+    })
+
+    if (durationRendered) {
+      accountStatus += ` (${durationRendered})`
     }
   }
 

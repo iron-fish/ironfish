@@ -31,7 +31,7 @@ describe('BuildTransactionRequest', () => {
       nodeTest.wallet,
     )
     await expect(nodeTest.chain).toAddBlock(block)
-    await nodeTest.wallet.updateHead()
+    await nodeTest.wallet.scan()
 
     const raw = await createRawTransaction({
       wallet: nodeTest.wallet,
@@ -68,7 +68,7 @@ describe('BuildTransactionResponse', () => {
       nodeTest.wallet,
     )
     await expect(nodeTest.chain).toAddBlock(block)
-    await nodeTest.wallet.updateHead()
+    await nodeTest.wallet.scan()
 
     const transaction = await useUnsignedTxFixture(nodeTest.wallet, account, account)
 
@@ -97,7 +97,7 @@ describe('BuildTransactionTask', () => {
       nodeTest.wallet,
     )
     await expect(nodeTest.chain).toAddBlock(block)
-    await nodeTest.wallet.updateHead()
+    await nodeTest.wallet.scan()
 
     const raw = await createRawTransaction({
       wallet: nodeTest.wallet,

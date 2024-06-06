@@ -14,7 +14,7 @@ describe('Route event/onTransactionGossip', () => {
     const block2 = await useMinerBlockFixture(node.chain, 2, account)
 
     await expect(node.chain).toAddBlock(block2)
-    await node.wallet.updateHead()
+    await node.wallet.scan()
 
     const transaction = await useTxFixture(node.wallet, account, account)
 

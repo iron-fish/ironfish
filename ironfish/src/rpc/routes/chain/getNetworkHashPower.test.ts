@@ -24,7 +24,7 @@ describe('Route chain/getNetworkHashPower', () => {
       )
 
       await Promise.all([expect(routeTest.node.chain).toAddBlock(block)])
-      await Promise.all([routeTest.node.wallet.updateHead()])
+      await Promise.all([routeTest.node.wallet.scan()])
     }
     const response = await routeTest.client.chain.getNetworkHashPower({})
     expect(response.content).toEqual(
@@ -46,7 +46,7 @@ describe('Route chain/getNetworkHashPower', () => {
       )
 
       await Promise.all([expect(routeTest.node.chain).toAddBlock(block)])
-      await Promise.all([routeTest.node.wallet.updateHead()])
+      await Promise.all([routeTest.node.wallet.scan()])
     }
 
     const offset = -3

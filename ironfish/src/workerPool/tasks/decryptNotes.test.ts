@@ -134,7 +134,7 @@ describe('DecryptNotesTask', () => {
 
       const block2 = await useMinerBlockFixture(nodeTest.chain, 2, accountA)
       await expect(nodeTest.chain).toAddBlock(block2)
-      await nodeTest.wallet.updateHead()
+      await nodeTest.wallet.scan()
 
       const transaction = await useTxFixture(nodeTest.wallet, accountA, accountB)
 

@@ -31,7 +31,7 @@ describe('RawTransaction', () => {
       nodeTest.wallet,
     )
     await expect(nodeTest.chain).toAddBlock(block)
-    await nodeTest.wallet.updateHead()
+    await nodeTest.wallet.scan()
     const { unconfirmed } = await account.getUnconfirmedBalance(Asset.nativeId())
 
     const burn = {
@@ -102,7 +102,7 @@ describe('RawTransaction', () => {
       nodeTest.wallet,
     )
     await expect(nodeTest.chain).toAddBlock(block)
-    await nodeTest.wallet.updateHead()
+    await nodeTest.wallet.scan()
 
     const mint = {
       creator: account.publicAddress,
@@ -139,7 +139,7 @@ describe('RawTransaction', () => {
       nodeTest.wallet,
     )
     await expect(nodeTest.chain).toAddBlock(block)
-    await nodeTest.wallet.updateHead()
+    await nodeTest.wallet.scan()
 
     const mintBlockA = await useMintBlockFixture({
       node,
@@ -148,7 +148,7 @@ describe('RawTransaction', () => {
       value: BigInt(100_000_000_000_000_000n),
     })
     await expect(nodeTest.chain).toAddBlock(mintBlockA)
-    await nodeTest.wallet.updateHead()
+    await nodeTest.wallet.scan()
 
     const mintBlockB = await useMintBlockFixture({
       node,
@@ -157,7 +157,7 @@ describe('RawTransaction', () => {
       value: BigInt(100_000_000_000_000_000n),
     })
     await expect(nodeTest.chain).toAddBlock(mintBlockB)
-    await nodeTest.wallet.updateHead()
+    await nodeTest.wallet.scan()
 
     const burn = {
       assetId: asset.id(),

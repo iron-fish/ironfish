@@ -238,7 +238,7 @@ export async function useBlockWithTx(
   if (useFee) {
     previous = await useMinerBlockFixture(node.chain, 2, from)
     await node.chain.addBlock(previous)
-    await node.wallet.updateHead()
+    await node.wallet.scan()
   } else {
     const head = await node.chain.getBlock(node.chain.head)
     Assert.isNotNull(head)
@@ -301,7 +301,7 @@ export async function useBlockWithCustomTxs(
     await node.chain.addBlock(previous)
   }
 
-  await node.wallet.updateHead()
+  await node.wallet.scan()
 
   const block = await useBlockFixture(
     node.chain,
@@ -390,7 +390,7 @@ export async function useTxSpendsFixture(
   const block = await useMinerBlockFixture(node.chain, 2, account, node.wallet)
 
   await expect(node.chain).toAddBlock(block)
-  await node.wallet.updateHead()
+  await node.wallet.scan()
 
   const transaction = await useTxFixture(
     node.wallet,

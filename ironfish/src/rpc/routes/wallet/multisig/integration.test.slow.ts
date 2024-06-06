@@ -330,7 +330,7 @@ describe('multisig RPC integration', () => {
 
   async function fundAccount(account: Account, miner: Account): Promise<void> {
     Assert.isNotNull(miner.spendingKey)
-    await routeTest.wallet.updateHead()
+    await routeTest.wallet.scan()
 
     const minersfee = await routeTest.chain.createMinersFee(
       0n,
@@ -341,7 +341,7 @@ describe('multisig RPC integration', () => {
     const addResult = await routeTest.chain.addBlock(newBlock)
     expect(addResult.isAdded).toBeTruthy()
 
-    await routeTest.wallet.updateHead()
+    await routeTest.wallet.scan()
 
     const transaction = await routeTest.wallet.send({
       account: miner,
@@ -366,6 +366,6 @@ describe('multisig RPC integration', () => {
     const addResult2 = await routeTest.chain.addBlock(newBlock2)
     expect(addResult2.isAdded).toBeTruthy()
 
-    await routeTest.wallet.updateHead()
+    await routeTest.wallet.scan()
   }
 })

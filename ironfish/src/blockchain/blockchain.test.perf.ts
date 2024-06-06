@@ -50,7 +50,7 @@ describe('Blockchain', () => {
 
       await Promise.all([nodeA.chain.addBlock(blockA), nodeB.chain.addBlock(blockB)])
 
-      await Promise.all([nodeA.wallet.updateHead(), nodeB.wallet.updateHead()])
+      await Promise.all([nodeA.wallet.scan(), nodeB.wallet.scan()])
 
       blocksA.push(blockA)
       blocksB.push(blockB)

@@ -1026,7 +1026,7 @@ describe('PeerNetwork', () => {
           undefined,
         )
         await expect(chain).toAddBlock(block)
-        await wallet.updateHead()
+        await wallet.scan()
 
         const note = transaction.getNote(1).decryptNoteForOwner(accountA.incomingViewKey)
         Assert.isNotUndefined(note)

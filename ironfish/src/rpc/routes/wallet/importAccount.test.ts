@@ -17,8 +17,8 @@ describe('Route wallet/importAccount', () => {
 
   beforeAll(() => {
     jest
-      .spyOn(routeTest.node.wallet, 'scanTransactions')
-      .mockImplementation(async () => Promise.resolve())
+      .spyOn(routeTest.node.wallet, 'scan')
+      .mockImplementation(async () => Promise.resolve(null))
   })
 
   it('should import a view only account that has no spending key', async () => {

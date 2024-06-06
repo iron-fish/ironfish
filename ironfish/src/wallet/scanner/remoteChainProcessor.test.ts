@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { BlockHeader } from '../primitives'
-import { ALL_API_NAMESPACES, RpcMemoryClient } from '../rpc'
-import { createNodeTest, useMinerBlockFixture } from '../testUtilities'
+import { BlockHeader } from '../../primitives'
+import { ALL_API_NAMESPACES, RpcMemoryClient } from '../../rpc'
+import { createNodeTest, useMinerBlockFixture } from '../../testUtilities'
 import { RemoteChainProcessor, WalletBlockHeader } from './remoteChainProcessor'
 
 describe('RemoteChainProcessor', () => {

@@ -29,7 +29,7 @@ describe('PostTransactionRequest', () => {
       nodeTest.wallet,
     )
     await expect(nodeTest.chain).toAddBlock(block)
-    await nodeTest.wallet.updateHead()
+    await nodeTest.wallet.scan()
 
     const raw = await createRawTransaction({
       wallet: nodeTest.wallet,
@@ -73,7 +73,7 @@ describe('PostTransactionTask', () => {
       nodeTest.wallet,
     )
     await expect(nodeTest.chain).toAddBlock(block)
-    await nodeTest.wallet.updateHead()
+    await nodeTest.wallet.scan()
 
     const raw = await createRawTransaction({
       wallet: nodeTest.wallet,

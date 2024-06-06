@@ -22,7 +22,7 @@ describe('Route wallet/getAccountTransactions', () => {
 
     const block = await useMinerBlockFixture(routeTest.chain, undefined, account, node.wallet)
     await expect(node.chain).toAddBlock(block)
-    await node.wallet.updateHead()
+    await node.wallet.scan()
 
     const response = routeTest.client.wallet.getAccountTransactionsStream({
       account: account.name,
@@ -73,7 +73,7 @@ describe('Route wallet/getAccountTransactions', () => {
       mint,
     ])
     await expect(node.chain).toAddBlock(block)
-    await node.wallet.updateHead()
+    await node.wallet.scan()
 
     const response = routeTest.client.wallet.getAccountTransactionsStream({
       account: account.name,
@@ -97,11 +97,11 @@ describe('Route wallet/getAccountTransactions', () => {
 
     const blockA = await useMinerBlockFixture(routeTest.chain, undefined, account, node.wallet)
     await expect(node.chain).toAddBlock(blockA)
-    await node.wallet.updateHead()
+    await node.wallet.scan()
 
     const blockB = await useMinerBlockFixture(routeTest.chain, undefined, account, node.wallet)
     await expect(node.chain).toAddBlock(blockB)
-    await node.wallet.updateHead()
+    await node.wallet.scan()
 
     const response = routeTest.client.wallet.getAccountTransactionsStream({
       account: account.name,
@@ -117,7 +117,7 @@ describe('Route wallet/getAccountTransactions', () => {
 
     const blockA = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
     await expect(node.chain).toAddBlock(blockA)
-    await node.wallet.updateHead()
+    await node.wallet.scan()
 
     const response = routeTest.client.wallet.getAccountTransactionsStream({
       account: account.name,
@@ -172,11 +172,11 @@ describe('Route wallet/getAccountTransactions', () => {
 
     const blockA = await useMinerBlockFixture(routeTest.chain, undefined, account, node.wallet)
     await expect(node.chain).toAddBlock(blockA)
-    await node.wallet.updateHead()
+    await node.wallet.scan()
 
     const blockB = await useMinerBlockFixture(routeTest.chain, undefined, account, node.wallet)
     await expect(node.chain).toAddBlock(blockB)
-    await node.wallet.updateHead()
+    await node.wallet.scan()
 
     const defaultSort: GetAccountTransactionsRequest = {
       account: account.name,

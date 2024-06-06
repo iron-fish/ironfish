@@ -66,7 +66,7 @@ describe('Route chain.getTransactionStream', () => {
     )
 
     // update wallet so it sees newly added asset
-    await wallet.updateHead()
+    await wallet.scan()
 
     // now burn
     const burnBlock = await useBurnBlockFixture({

@@ -23,24 +23,27 @@ export function useAccountFixture(
   }
 
   return useFixture(generate, {
-    serialize: (account: SpendingAccount): AccountValue => {
-      return account.serialize()
+    serialize: async (
+      account: SpendingAccount,
+    ): Promise<{
+      value: AccountValue
+      head: HeadValue | null
+    }> => {
+      return {
+        value: account.serialize(),
+        head: await account.getHead(),
+      }
     },
 
-    deserialize: async (accountData: AccountValue): Promise<SpendingAccount> => {
-      const account = await wallet.importAccount(accountData)
-
-      if (accountData) {
-        if (wallet.chainProcessor.hash && wallet.chainProcessor.sequence) {
-          await account.updateHead({
-            hash: wallet.chainProcessor.hash,
-            sequence: wallet.chainProcessor.sequence,
-          })
-        } else {
-          await account.updateHead(null)
-        }
-      }
-
+    deserialize: async ({
+      value,
+      head,
+    }: {
+      value: AccountValue
+      head: HeadValue | null
+    }): Promise<SpendingAccount> => {
+      const account = await wallet.importAccount(value)
+      await account.updateHead(head)
       AssertSpending(account)
       return account
     },
@@ -56,6 +59,7 @@ export async function useAccountAndAddFundsFixture(
   const account = await useAccountFixture(wallet, generate, options)
   const block = await useMinerBlockFixture(chain, undefined, account)
   await expect(chain).toAddBlock(block)
-  await wallet.updateHead()
+  const scan = await wallet.scan()
+  await scan?.wait()
   return account
 }

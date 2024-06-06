@@ -147,8 +147,10 @@ import type {
   RemoveAccountResponse,
   RenameAccountRequest,
   RenameAccountResponse,
-  RescanAccountRequest,
-  RescanAccountResponse,
+  RescanRequest,
+  RescanResponse,
+  ResetAccountRequest,
+  ResetAccountResponse,
   SendTransactionRequest,
   SendTransactionResponse,
   SetAccountHeadRequest,
@@ -371,6 +373,15 @@ export abstract class RpcClient {
       ).waitForEnd()
     },
 
+    resetAccount: (
+      params: ResetAccountRequest,
+    ): Promise<RpcResponseEnded<ResetAccountResponse>> => {
+      return this.request<ResetAccountResponse>(
+        `${ApiNamespace.wallet}/resetAccount`,
+        params,
+      ).waitForEnd()
+    },
+
     getAccountBalances: (
       params: GetBalancesRequest,
     ): Promise<RpcResponseEnded<GetBalancesResponse>> => {
@@ -389,13 +400,8 @@ export abstract class RpcClient {
       ).waitForEnd()
     },
 
-    rescanAccountStream: (
-      params: RescanAccountRequest = {},
-    ): RpcResponse<void, RescanAccountResponse> => {
-      return this.request<void, RescanAccountResponse>(
-        `${ApiNamespace.wallet}/rescanAccount`,
-        params,
-      )
+    rescan: (params: RescanRequest = {}): RpcResponse<void, RescanResponse> => {
+      return this.request<void, RescanResponse>(`${ApiNamespace.wallet}/rescan`, params)
     },
 
     exportAccount: (

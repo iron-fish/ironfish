@@ -1,54 +1,70 @@
 {
   "Create genesis block Can generate a valid genesis block": [
     {
-      "version": 4,
-      "id": "2d1f3770-2104-41c9-997b-c50a5e3ec3d1",
-      "name": "test",
-      "spendingKey": "93b60264b3807517ba06e856eed323ba190a7a29708815d2c158f34e8d656e01",
-      "viewKey": "03dcbd8710b50160af0d7912296a8d7a7324f7d61e69e8f95cd0ade8a8fbdebc53afa4e7c089eed889ed3ed8b593a149a719e8a0083f5e70de9bcb0e4b427be7",
-      "incomingViewKey": "b61e0b96cbfa3de137a3e095a51e64bb48ae5c1f1c421e8c33974adf7bc02602",
-      "outgoingViewKey": "2bec7771965e7a3bf5115470aaf6a9672e25324eb0fbdf37b5eea0e0e2bed184",
-      "publicAddress": "58f64ffc92042f2232c8f09b79e67a21e08f5df8e7da104e23f7c46db62e372f",
-      "createdAt": null,
-      "proofAuthorizingKey": "1c92855a1646bf48a0700b1455941725de5b0d20cd75ec31142951ebf7a82b0e"
+      "value": {
+        "version": 4,
+        "id": "f4d6cdc4-9074-411d-99b2-3572f31b0cad",
+        "name": "test",
+        "spendingKey": "7f3e625751fd544cdf50a18893cc0c483b511d04cefa9e33830d286be53c9480",
+        "viewKey": "503a88f8516ae0ffc0338517b4b159df660990407d16f669b4845e7ad2379b252a7c5095ec919a5b91861b1eafb69dd00ef62606d5dd12b5f2bca5c8fc19ba0c",
+        "incomingViewKey": "62ec2567e329e5dfc5dc9d6fddf3e748231a783d9bda6771f090832c6b9eb302",
+        "outgoingViewKey": "74e0c7bc9dbe6de56eca5935c0b47d0cd5663fc3772a72060f18713324eaac97",
+        "publicAddress": "74b8fbb37001804cff8855e8b7b6b8d29ea75c53d689aa6fe84e43e0501dc5af",
+        "createdAt": null,
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "abf7fb713327e6aecce7b84f9932362ba26ed8f1ba6b2a4362e29f226001d004"
+      },
+      "head": null
     }
   ],
   "addGenesisTransaction Can create a new genesis block with an added transaction": [
     {
-      "version": 4,
-      "id": "5928d6b3-470f-4e3c-8620-ec4e291b5454",
-      "name": "account1",
-      "spendingKey": "b2f4c1aa4d72a7bea995eefdc445ab890a4f80df2f641dbf31552ae309bcccf8",
-      "viewKey": "64942ea58934d946e12577842d1ca2ae403a87ea87f966c0b53cae6c099934343fa0f65e43de77495d71696881e6408b61a626432bfbadf320e181d350c23f4c",
-      "incomingViewKey": "ee6996cab01d8059dd2215b367fa3a26e0ec0a1d04a26e954a93acc7a6b5b903",
-      "outgoingViewKey": "df6fc75edac1765eb2acdc3b21368092fc949f4ad42089fc3f281e78a5091c37",
-      "publicAddress": "9ea8868f858044265f2d5fcb5089dc7518205ae6b5ebbda061ad0ac8d5decae3",
-      "createdAt": null,
-      "proofAuthorizingKey": "6abef986a2d352c72a37be4cfdffed90f3e70f498fab4e639dbe4f499a493c0a"
+      "value": {
+        "version": 4,
+        "id": "8c08510c-ae4c-4daf-a255-95ab5ffb667b",
+        "name": "account1",
+        "spendingKey": "ed05158d7ec978c62fc3c3188916e73a07c474e102c8478d0d01399132817311",
+        "viewKey": "0345b6ed37322866e871361aa4a49849bd9cdcaa9f4125d69c6f2d523d76fe80bb71d2c89a1b95f8b86eed2793b36509be2a8101ef5cefad7b0a18e8236783a4",
+        "incomingViewKey": "63ea8e81c1ac65124f30dc2adfe8a70c26b43e216d82982a7b337fab2b6f7e06",
+        "outgoingViewKey": "dc6def1bdce5fdf728171ad0737cda9d24187045af02cf058da1444cac03c9bc",
+        "publicAddress": "0237d47af465ee65f0215aa6bd2baed81389d00836e256a003448e6131495a55",
+        "createdAt": null,
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "501826c4ec87f1bb3ad6c8c5577ac2afca9963a9387b1f5e1a2714285c4b0902"
+      },
+      "head": null
     },
     {
-      "version": 4,
-      "id": "8349ff25-e087-4e17-a909-4d94b8476292",
-      "name": "account2",
-      "spendingKey": "45c549336ccc4a1b967c0dab7a3071f91c2efb36b11aecd3c09be5e0fde631fc",
-      "viewKey": "f6f9d4817b4d6f7fb89edee439ff835cadea37af2760084c40b4886afb27301a66535e001ad010dcf4a342df7335ae96ebb425b0decf2e12af5b88da91bcc799",
-      "incomingViewKey": "7b9244224fa467a2636b61e15eb0eb36a74494863a426e8f1f14ded4827e1c01",
-      "outgoingViewKey": "7cfffd4cdbc606cc8aba30ce22a947e582fb3f77f01450973743051f84afbfd5",
-      "publicAddress": "4d799020cf81c7109c6ea2253e45bfe17e69c36c894ab20257cad1621fecc885",
-      "createdAt": null,
-      "proofAuthorizingKey": "5600cec426e23cdebf801ea38f6994c30818a59937a4b73169d341f039cae701"
+      "value": {
+        "version": 4,
+        "id": "64da2ad6-c4ec-4a7c-af0d-69c726dc6d5e",
+        "name": "account2",
+        "spendingKey": "a37bd0b1464ae57937a57d1f0f2feecceb29200c44b5c8260cd861795bc74ac5",
+        "viewKey": "3d6f57523ff0419351cbde3d1d71275e7bddb047a088f61ed8f7fd76ceb449ab05a75c6ea46286724b1b403393b76be50a2c70da08dec1aa0815aebde9b38c4e",
+        "incomingViewKey": "c40e1f6b52b04e2c4a5fe829a8591889f00070bf390824fa38187c291a0d5107",
+        "outgoingViewKey": "519a634c73d39bac768a7363eecf1a8dbb23f4f5da0ac584e09e2e42fd23e87b",
+        "publicAddress": "df8e44aec40b5a38be1401fa559da0cef009e1a569e48ba2fe6c7592b6861e0a",
+        "createdAt": null,
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "d693cd6e56c3e9b94dbb8d8ff933963b3f139aa05c1c30c12c4f18fd9de0fa09"
+      },
+      "head": null
     },
     {
-      "version": 4,
-      "id": "2d8805cd-d1ee-40f7-80a4-08e443ef569d",
-      "name": "account3",
-      "spendingKey": "d0e998f49cce2cf5f4743d17d3089dbf3f5fadee33b8266c7720c36cd86b9ece",
-      "viewKey": "a7f54b3658791cee1d7a6397f783e7237bb371148e93c87051f33d19f921f936cd3c5dfc21b01daa51d50f0d87b590ba22bfcfa8021217d51cb7bd3b5291078b",
-      "incomingViewKey": "04e9dfebb6f652a0bbfbcef441ee4ff9008b1bce4f0507aa38a3de3650a16f00",
-      "outgoingViewKey": "90da19663bd7a16a59530277c1ae0dffc4572fb886fff2f503694678ccca04d0",
-      "publicAddress": "a0815d89e0c0758a8f973fe2a88b758077f9ddc53378041f321fb788ccdba084",
-      "createdAt": null,
-      "proofAuthorizingKey": "60762ba9a4b87700baef0d0365536697ea483ba2924eec999aab1a34c6682e06"
+      "value": {
+        "version": 4,
+        "id": "d7576baf-d2a6-479f-8bfc-032cc1b9b871",
+        "name": "account3",
+        "spendingKey": "429f6ed4cbafe8715a4916e190f0f8ae329f7040217d13144c3dce014bfdcc6e",
+        "viewKey": "24651dabb64766f01dc7755140ad2d95ff01ebe4f7271f46f12bad2fe28579a56556e7a4cf9f43af3725a82b7c4d6c6b365d926e6f89aa9c90450af625ecfa30",
+        "incomingViewKey": "a43010876e1e87d820138e1d1cf4f314940037ee8d85057f5a581d0ece58f800",
+        "outgoingViewKey": "f1523f4246f3add97de2b8269f6a604264ca6212bf69998aef50e32eea899f96",
+        "publicAddress": "76db3612720df76d9ceb1c1f9ea9286c07eab851591cd9044bdb05ad47c22350",
+        "createdAt": null,
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "9d397d3ad43ce28917b6c59f18b305393a4110306d6bdb22c91b1ccd96ccfa08"
+      },
+      "head": null
     }
   ]
 }

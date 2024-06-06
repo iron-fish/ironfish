@@ -57,7 +57,7 @@ describe('Accounts utils', () => {
 
       const { block, transaction } = await useBlockWithTx(node, accountA, accountB, true)
       await node.chain.addBlock(block)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const transactionValue = await accountA.getTransaction(transaction.hash())
 
@@ -87,7 +87,7 @@ describe('Accounts utils', () => {
 
       const { block, transaction } = await useBlockWithTx(node, accountA, accountB, true)
       await node.chain.addBlock(block)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const transactionValue = await accountA.getTransaction(transaction.hash())
 
