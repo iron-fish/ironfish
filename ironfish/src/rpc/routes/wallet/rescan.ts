@@ -14,7 +14,6 @@ export type RescanResponse = { sequence: number; startedAt: number; endSequence:
 export const RescanRequestSchema: yup.ObjectSchema<RescanRequest> = yup
   .object({
     follow: yup.boolean().optional(),
-    full: yup.boolean().optional(),
   })
   .defined()
 
