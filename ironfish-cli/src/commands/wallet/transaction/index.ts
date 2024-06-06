@@ -47,7 +47,6 @@ export class TransactionCommand extends IronfishCommand {
     const account = args.account as string | undefined
 
     const client = await this.sdk.connectRpc()
-
     const networkId = (await client.chain.getNetworkInfo()).content.networkId
 
     const response = await client.wallet.getAccountTransaction({

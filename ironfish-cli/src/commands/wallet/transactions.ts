@@ -90,14 +90,6 @@ export class TransactionsCommand extends IronfishCommand {
       if (flags.notes) {
         Assert.isNotUndefined(transaction.notes)
 
-        const chainportTxnDetails = extractChainportDataFromTransaction(networkId, transaction)
-        if (chainportTxnDetails) {
-          transaction.type =
-            chainportTxnDetails.type === TransactionType.SEND
-              ? ('Bridge (outgoing)' as TransactionType)
-              : ('Bridge (incoming)' as TransactionType)
-        }
-
         const assetLookup = await getAssetsByIDs(
           client,
           transaction.notes.map((n) => n.assetId) || [],
