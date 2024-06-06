@@ -4,6 +4,7 @@
 import { ASSET_ID_LENGTH } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
 import { CurrencyUtils } from '../../../utils'
+import { getAssetStatus } from '../../../wallet'
 import { RpcNotFoundError, RpcValidationError } from '../../adapters'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
@@ -35,7 +36,7 @@ routes.register<typeof GetWalletAssetRequestSchema, GetWalletAssetResponse>(
   `${ApiNamespace.wallet}/getAsset`,
   GetWalletAssetRequestSchema,
   async (request, node): Promise<void> => {
-    AssertHasRpcContext(request, node, 'wallet', 'assetsVerifier')
+    AssertHasRpcContext(request, node, 'wallet', 'assetsVerifier', 'config')
 
     const account = getAccount(node.wallet, request.data.account)
 
@@ -51,6 +52,8 @@ routes.register<typeof GetWalletAssetRequestSchema, GetWalletAssetResponse>(
       throw new RpcNotFoundError(`No asset found with identifier ${request.data.id}`)
     }
 
+    const confirmations = request.data.confirmations ?? node.config.get('confirmations')
+
     request.end({
       createdTransactionHash: asset.createdTransactionHash.toString('hex'),
       creator: asset.creator.toString('hex'),
@@ -59,9 +62,7 @@ routes.register<typeof GetWalletAssetRequestSchema, GetWalletAssetResponse>(
       metadata: asset.metadata.toString('hex'),
       name: asset.name.toString('hex'),
       nonce: asset.nonce,
-      status: await node.wallet.getAssetStatus(account, asset, {
-        confirmations: request.data.confirmations,
-      }),
+      status: await getAssetStatus(account, asset, confirmations),
       supply: asset.supply ? CurrencyUtils.encode(asset.supply) : undefined,
       verification: node.assetsVerifier.verify(asset.id),
     })

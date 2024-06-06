@@ -11,6 +11,7 @@ import {
   isMultisigSignerTrustedDealerImport,
   MultisigKeysImport,
 } from '../../../wallet/exporter/multisig'
+import { getTransactionStatus, getTransactionType } from '../../../wallet/utils/transaction'
 import { AssetValue } from '../../../wallet/walletdb/assetValue'
 import { DecryptedNoteValue } from '../../../wallet/walletdb/decryptedNoteValue'
 import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
@@ -56,11 +57,9 @@ export async function serializeRpcWalletTransaction(
   },
 ): Promise<RpcWalletTransaction> {
   const assetBalanceDeltas = await getAssetBalanceDeltas(account, transaction)
-  const type = await wallet.getTransactionType(account, transaction)
+  const type = await getTransactionType(account, transaction)
   const confirmations = options?.confirmations ?? config.get('confirmations')
-  const status = await wallet.getTransactionStatus(account, transaction, {
-    confirmations,
-  })
+  const status = await getTransactionStatus(account, transaction, confirmations)
 
   return {
     serialized: options?.serialized

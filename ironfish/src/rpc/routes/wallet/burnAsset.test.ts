@@ -11,6 +11,7 @@ import {
 } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { CurrencyUtils } from '../../../utils'
+import { getAssetStatus } from '../../../wallet'
 import { serializeRpcWalletTransaction } from './utils'
 
 describe('Route wallet/burnAsset', () => {
@@ -98,9 +99,7 @@ describe('Route wallet/burnAsset', () => {
           creator: asset.creator().toString('hex'),
           nonce: accountAsset.nonce ?? null,
           owner: accountAsset.owner.toString('hex') ?? '',
-          status: await node.wallet.getAssetStatus(account, accountAsset, {
-            confirmations: 0,
-          }),
+          status: await getAssetStatus(account, accountAsset, 0),
           verification: node.assetsVerifier.verify(asset.id()),
           createdTransactionHash: accountAsset.createdTransactionHash.toString('hex') ?? null,
         },

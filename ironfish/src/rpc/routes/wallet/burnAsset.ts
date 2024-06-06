@@ -4,6 +4,7 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { CurrencyUtils, YupUtils } from '../../../utils'
+import { getAssetStatus } from '../../../wallet'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import { AssertHasRpcContext } from '../rpcContext'
@@ -97,6 +98,8 @@ routes.register<typeof BurnAssetRequestSchema, BurnAssetResponse>(
     const transactionValue = await account.getTransaction(transaction.hash())
     Assert.isNotUndefined(transactionValue)
 
+    const confirmations = request.data.confirmations ?? context.config.get('confirmations')
+
     request.end({
       asset: {
         id: asset.id.toString('hex'),
@@ -105,9 +108,7 @@ routes.register<typeof BurnAssetRequestSchema, BurnAssetResponse>(
         nonce: asset.nonce,
         creator: asset.creator.toString('hex'),
         owner: asset.owner.toString('hex'),
-        status: await context.wallet.getAssetStatus(account, asset, {
-          confirmations: request.data.confirmations,
-        }),
+        status: await getAssetStatus(account, asset, confirmations),
         createdTransactionHash: asset.createdTransactionHash.toString('hex'),
         verification: context.assetsVerifier.verify(asset.id),
       },
