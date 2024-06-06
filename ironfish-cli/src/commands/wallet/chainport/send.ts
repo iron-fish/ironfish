@@ -65,6 +65,12 @@ export class BridgeCommand extends IronfishCommand {
       minimum: 1n,
       flagName: 'fee',
     }),
+    feeRate: IronFlag({
+      char: 'r',
+      description: 'The fee rate amount in IRON/Kilobyte',
+      minimum: 1n,
+      flagName: 'fee rate',
+    }),
     expiration: Flags.integer({
       char: 'e',
       description:
@@ -293,6 +299,7 @@ export class BridgeCommand extends IronfishCommand {
         },
       ],
       fee: flags.fee ? CurrencyUtils.encode(flags.fee) : null,
+      feeRate: flags.feeRate ? CurrencyUtils.encode(flags.feeRate) : null,
       expiration: flags.expiration,
     }
 
