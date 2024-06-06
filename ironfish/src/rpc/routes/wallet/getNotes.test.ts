@@ -10,8 +10,8 @@ import { createRouteTest } from '../../../testUtilities/routeTest'
 import { Account } from '../../../wallet'
 import { RpcResponseEnded } from '../../response'
 import { GetNotesResponse } from './getNotes'
+import { serializeRpcWalletNote } from './serializers'
 import { RpcWalletNote } from './types'
-import { serializeRpcWalletNote } from './utils'
 
 describe('Route wallet/getNotes', () => {
   const routeTest = createRouteTest(true)

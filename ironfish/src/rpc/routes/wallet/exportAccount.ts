@@ -3,12 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { LanguageKey, LanguageUtils } from '../../../utils'
-import { AccountFormat, encodeAccountImport } from '../../../wallet/exporter/account'
-import { toAccountImport } from '../../../wallet/exporter/accountImport'
+import { AccountFormat, encodeAccountImport, toAccountImport } from '../../../wallet/exporter'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import { AssertHasRpcContext } from '../rpcContext'
-import { serializeRpcImportAccount } from '../wallet/utils'
+import { serializeRpcImportAccount } from './serializers'
 import { RpcAccountImport } from './types'
 import { getAccount } from './utils'
 

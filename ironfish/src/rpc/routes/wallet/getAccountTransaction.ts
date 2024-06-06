@@ -6,7 +6,8 @@ import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import { AssertHasRpcContext } from '../rpcContext'
 import { RpcWalletTransaction, RpcWalletTransactionSchema } from '../wallet/types'
-import { getAccount, getAccountDecryptedNotes, serializeRpcWalletTransaction } from './utils'
+import { serializeRpcWalletTransaction } from './serializers'
+import { getAccount, getAccountDecryptedNotes } from './utils'
 
 export type GetAccountTransactionRequest = {
   hash: string

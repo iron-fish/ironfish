@@ -10,8 +10,9 @@ import { RPC_ERROR_CODES, RpcValidationError } from '../../adapters'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import { AssertHasRpcContext } from '../rpcContext'
+import { deserializeRpcAccountImport } from './serializers'
 import { RpcAccountImport } from './types'
-import { deserializeRpcAccountImport, tryDecodeAccountWithMultisigSecrets } from './utils'
+import { tryDecodeAccountWithMultisigSecrets } from './utils'
 
 export class ImportError extends Error {}
 

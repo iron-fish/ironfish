@@ -13,6 +13,7 @@ import { isValidIncomingViewKey, isValidOutgoingViewKey } from '../../../wallet/
 import { RpcValidationError } from '../../adapters/errors'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
+import { serializeRpcBlockHeader } from './serializers'
 import {
   RpcBlockHeader,
   RpcBlockHeaderSchema,
@@ -20,8 +21,7 @@ import {
   RpcBurnSchema,
   RpcMint,
   RpcMintSchema,
-  serializeRpcBlockHeader,
-} from '../types'
+} from './types'
 
 interface Note {
   assetId: string

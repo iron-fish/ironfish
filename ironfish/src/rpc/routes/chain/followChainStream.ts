@@ -11,7 +11,8 @@ import { BlockHashSerdeInstance } from '../../../serde'
 import { BufferUtils, PromiseUtils } from '../../../utils'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
-import { RpcBlock, RpcBlockSchema, serializeRpcBlockHeader } from '../types'
+import { serializeRpcBlockHeader } from './serializers'
+import { RpcBlock, RpcBlockSchema } from './types'
 
 export type FollowChainStreamRequest =
   | {
