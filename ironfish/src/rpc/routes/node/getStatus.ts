@@ -281,6 +281,7 @@ routes.register<typeof GetStatusRequestSchema, GetNodeStatusResponse>(
 
 async function getStatus(node: FullNode): Promise<GetNodeStatusResponse> {
   const walletScanner = node.wallet.scanner.state
+  const walletHead = await node.wallet.getLatestHead()
   const chainDBSizeBytes = await node.chain.blockchainDb.size()
 
   const status: GetNodeStatusResponse = {
@@ -366,8 +367,8 @@ async function getStatus(node: FullNode): Promise<GetNodeStatusResponse> {
     accounts: {
       enabled: node.config.get('enableWallet'),
       head: {
-        hash: '',
-        sequence: -1,
+        hash: walletHead?.hash.toString('hex') ?? '',
+        sequence: walletHead?.sequence ?? -1,
       },
       scanning: walletScanner
         ? {
