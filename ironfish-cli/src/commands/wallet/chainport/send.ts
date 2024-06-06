@@ -76,6 +76,12 @@ export class BridgeCommand extends IronfishCommand {
     const client = await this.sdk.connectRpc()
     const { flags } = await this.parse(BridgeCommand)
 
+    const networkId = (await client.chain.getNetworkInfo()).content.networkId
+
+    if (networkId !== TESTNET.id) {
+      this.error(`Chainport transactions are only available on testnet.`)
+    }
+
     if (!flags.offline) {
       const status = await client.wallet.getNodeStatus()
 
@@ -84,12 +90,6 @@ export class BridgeCommand extends IronfishCommand {
           `Your node must be synced with the Iron Fish network to send a transaction. Please try again later`,
         )
       }
-    }
-
-    const networkId = (await client.chain.getNetworkInfo()).content.networkId
-
-    if (networkId !== TESTNET.id) {
-      this.error(`Chainport transactions are only available on testnet.`)
     }
 
     const { targetNetwork, from, to, amount, asset, assetData } =
