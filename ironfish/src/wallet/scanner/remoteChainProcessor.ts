@@ -4,21 +4,13 @@
 import { Assert } from '../../assert'
 import { Event } from '../../event'
 import { Logger } from '../../logger'
-import { Transaction } from '../../primitives'
-import { FollowChainStreamResponse, RpcClient } from '../../rpc'
+import { BlockHeader, Transaction } from '../../primitives'
+import { RpcClient } from '../../rpc'
+import {
+  deserializeRpcBlockHeader,
+  deserializeRpcTransaction,
+} from '../../rpc/routes/chain/serializers'
 import { BufferUtils } from '../../utils'
-
-export type WalletBlockHeader = {
-  hash: Buffer
-  previousBlockHash: Buffer
-  sequence: number
-  timestamp: Date
-}
-
-export type WalletBlockTransaction = {
-  transaction: Transaction
-  initialNoteIndex: number
-}
 
 export class RemoteChainProcessor {
   hash: Buffer | null = null
@@ -27,10 +19,28 @@ export class RemoteChainProcessor {
   nodeClient: RpcClient | null
   maxQueueSize: number
 
-  onAdd = new Event<[{ header: WalletBlockHeader; transactions: WalletBlockTransaction[] }]>()
+  onAdd = new Event<
+    [
+      {
+        header: BlockHeader
+        transactions: {
+          transaction: Transaction
+          initialNoteIndex: number
+        }[]
+      },
+    ]
+  >()
 
   onRemove = new Event<
-    [{ header: WalletBlockHeader; transactions: WalletBlockTransaction[] }]
+    [
+      {
+        header: BlockHeader
+        transactions: {
+          transaction: Transaction
+          initialNoteIndex: number
+        }[]
+      },
+    ]
   >()
 
   constructor(options: {
@@ -68,49 +78,47 @@ export class RemoteChainProcessor {
         continue
       }
 
-      const blockHeader: WalletBlockHeader = {
-        hash: Buffer.from(block.hash, 'hex'),
-        previousBlockHash: Buffer.from(block.previousBlockHash, 'hex'),
-        sequence: block.sequence,
-        timestamp: new Date(block.timestamp),
-      }
+      const header = deserializeRpcBlockHeader(block)
 
-      const blockTransactions = this.getBlockTransactions(content)
+      const transactions = this.mapTransactionWithNoteIndex(
+        header,
+        block.transactions.map((tx) => deserializeRpcTransaction(tx)),
+      )
 
       if (type === 'connected') {
-        this.hash = blockHeader.hash
-        this.sequence = blockHeader.sequence
-        await this.onAdd.emitAsync({ header: blockHeader, transactions: blockTransactions })
+        this.hash = header.hash
+        this.sequence = header.sequence
+
+        await this.onAdd.emitAsync({ header, transactions })
       } else if (type === 'disconnected') {
-        this.hash = blockHeader.previousBlockHash
-        this.sequence = blockHeader.sequence - 1
+        this.hash = header.previousBlockHash
+        this.sequence = header.sequence - 1
+
         await this.onRemove.emitAsync({
-          header: blockHeader,
-          transactions: blockTransactions,
+          header: header,
+          transactions: transactions,
         })
       }
     }
 
-    return { hashChanged: !BufferUtils.equalsNullable(this.hash, oldHash) }
+    const hashChanged = !BufferUtils.equalsNullable(this.hash, oldHash)
+    return { hashChanged }
   }
 
-  getBlockTransactions(response: FollowChainStreamResponse): WalletBlockTransaction[] {
-    const transactions = []
+  mapTransactionWithNoteIndex(
+    header: BlockHeader,
+    transactions: Transaction[],
+  ): Array<{ transaction: Transaction; initialNoteIndex: number }> {
+    Assert.isNotNull(header.noteSize)
+    let initialNoteIndex = header.noteSize
 
-    Assert.isNotNull(response.block.noteSize)
-    let initialNoteIndex = response.block.noteSize
+    const result = []
 
-    for (const rpcTransaction of response.block.transactions.slice().reverse()) {
-      Assert.isNotUndefined(rpcTransaction.serialized)
-      const transaction = new Transaction(Buffer.from(rpcTransaction.serialized, 'hex'))
+    for (const transaction of transactions.slice().reverse()) {
       initialNoteIndex -= transaction.notes.length
-
-      transactions.push({
-        transaction,
-        initialNoteIndex,
-      })
+      result.push({ transaction, initialNoteIndex })
     }
 
-    return transactions.slice().reverse()
+    return result.slice().reverse()
   }
 }

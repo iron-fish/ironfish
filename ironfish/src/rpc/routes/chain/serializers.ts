@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { getBlockSize, getTransactionSize } from '../../../network/utils/serializers'
-import { Block, BlockHeader, Transaction } from '../../../primitives'
+import { Block, BlockHeader, Target, Transaction } from '../../../primitives'
 import { BufferUtils } from '../../../utils'
 import { RpcBlock, RpcBlockHeader, RpcTransaction } from './types'
 
@@ -23,6 +23,23 @@ export function serializeRpcBlockHeader(header: BlockHeader): RpcBlockHeader {
     work: header.work.toString(),
     noteSize: header.noteSize ?? null,
   }
+}
+
+export function deserializeRpcBlockHeader(header: RpcBlockHeader): BlockHeader {
+  return new BlockHeader(
+    {
+      sequence: header.sequence,
+      previousBlockHash: Buffer.from(header.previousBlockHash, 'hex'),
+      noteCommitment: Buffer.from(header.noteCommitment, 'hex'),
+      transactionCommitment: Buffer.from(header.transactionCommitment, 'hex'),
+      target: new Target(header.target),
+      randomness: BigInt(header.randomness),
+      timestamp: new Date(header.timestamp),
+      graffiti: Buffer.from(header.graffiti, 'hex'),
+    },
+    Buffer.from(header.hash, 'hex'),
+    header.noteSize,
+  )
 }
 
 export const serializeRpcBlock = (block: Block, serialized?: boolean): RpcBlock => {
@@ -78,4 +95,14 @@ export const serializeRpcTransaction = (
     signature: tx.transactionSignature().toString('hex'),
     ...(serialized ? { serialized: tx.serialize().toString('hex') } : {}),
   }
+}
+
+export const deserializeRpcTransaction = (tx: RpcTransaction): Transaction => {
+  if (tx.serialized) {
+    return new Transaction(Buffer.from(tx.serialized, 'hex'))
+  }
+
+  throw new Error(
+    `Deserializing transactions that are not serialized are currently not supported.`,
+  )
 }

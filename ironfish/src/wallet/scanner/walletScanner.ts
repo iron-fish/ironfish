@@ -7,14 +7,11 @@ import { BufferMap } from 'buffer-map'
 import { Config } from '../../fileStores'
 import { Logger } from '../../logger'
 import { Mutex } from '../../mutex'
+import { BlockHeader, Transaction } from '../../primitives'
 import { RpcClient } from '../../rpc'
 import { AsyncUtils, BufferUtils, HashUtils } from '../../utils'
 import { DecryptedNote } from '../../workerPool/tasks/decryptNotes'
-import {
-  RemoteChainProcessor,
-  WalletBlockHeader,
-  WalletBlockTransaction,
-} from './remoteChainProcessor'
+import { RemoteChainProcessor } from './remoteChainProcessor'
 import { ScanState } from './scanState'
 
 export class WalletScanner {
@@ -127,8 +124,8 @@ export class WalletScanner {
   }
 
   async connectBlock(
-    blockHeader: WalletBlockHeader,
-    transactions: WalletBlockTransaction[],
+    blockHeader: BlockHeader,
+    transactions: { transaction: Transaction; initialNoteIndex: number }[],
     abort?: AbortController,
   ): Promise<void> {
     if (blockHeader.sequence % 100 === 0) {
@@ -202,8 +199,8 @@ export class WalletScanner {
   }
 
   async disconnectBlock(
-    header: WalletBlockHeader,
-    transactions: WalletBlockTransaction[],
+    header: BlockHeader,
+    transactions: { transaction: Transaction; initialNoteIndex: number }[],
     abort?: AbortController,
   ): Promise<void> {
     this.logger.debug(`AccountHead DEL: ${header.sequence} => ${Number(header.sequence) - 1}`)

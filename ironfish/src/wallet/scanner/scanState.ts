@@ -4,9 +4,9 @@
 
 import { Event } from '../../event'
 import { Meter } from '../../metrics'
+import { BlockHeader } from '../../primitives'
 import { PromiseResolve, PromiseUtils } from '../../utils'
 import { HeadValue } from '../walletdb/headValue'
-import { WalletBlockHeader } from './remoteChainProcessor'
 
 export class ScanState {
   hash: Buffer | null = null
@@ -43,7 +43,7 @@ export class ScanState {
     return (remaining / this.speed.rate1m) * 1000
   }
 
-  signal(header: WalletBlockHeader): void {
+  signal(header: BlockHeader): void {
     this.hash = header.hash
     this.sequence = header.sequence
     this.speed.add(1)

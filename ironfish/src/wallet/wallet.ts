@@ -21,6 +21,7 @@ import { NoteHasher } from '../merkletree'
 import { Side } from '../merkletree/merkletree'
 import { Witness } from '../merkletree/witness'
 import { Mutex } from '../mutex'
+import { BlockHeader } from '../primitives'
 import { GENESIS_BLOCK_PREVIOUS, GENESIS_BLOCK_SEQUENCE } from '../primitives/block'
 import { BurnDescription } from '../primitives/burnDescription'
 import { MintDescription } from '../primitives/mintDescription'
@@ -50,7 +51,6 @@ import {
 import { AccountImport } from './exporter/accountImport'
 import { isMultisigSignerTrustedDealerImport } from './exporter/multisig'
 import { MintAssetOptions } from './interfaces/mintAssetOptions'
-import { WalletBlockHeader, WalletBlockTransaction } from './scanner/remoteChainProcessor'
 import { ScanState } from './scanner/scanState'
 import { WalletScanner } from './scanner/walletScanner'
 import { validateAccount } from './validator'
@@ -431,7 +431,7 @@ export class Wallet {
 
   async connectBlockForAccount(
     account: Account,
-    blockHeader: WalletBlockHeader,
+    blockHeader: BlockHeader,
     transactions: { transaction: Transaction; decryptedNotes: DecryptedNote[] }[],
     shouldDecrypt: boolean,
   ): Promise<void> {
@@ -466,10 +466,7 @@ export class Wallet {
     })
   }
 
-  async shouldDecryptForAccount(
-    blockHeader: WalletBlockHeader,
-    account: Account,
-  ): Promise<boolean> {
+  async shouldDecryptForAccount(blockHeader: BlockHeader, account: Account): Promise<boolean> {
     if (account.createdAt === null) {
       return true
     }
@@ -495,7 +492,7 @@ export class Wallet {
   }
 
   private async connectBlockTransactions(
-    blockHeader: WalletBlockHeader,
+    blockHeader: BlockHeader,
     transactions: Array<{ transaction: Transaction; decryptedNotes: Array<DecryptedNote> }>,
     account: Account,
     tx?: IDatabaseTransaction,
@@ -521,7 +518,7 @@ export class Wallet {
   private async upsertAssetsFromDecryptedNotes(
     account: Account,
     decryptedNotes: DecryptedNote[],
-    blockHeader: WalletBlockHeader,
+    blockHeader: BlockHeader,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     for (const { serializedNote } of decryptedNotes) {
@@ -605,8 +602,8 @@ export class Wallet {
 
   async disconnectBlockForAccount(
     account: Account,
-    header: WalletBlockHeader,
-    transactions: WalletBlockTransaction[],
+    header: BlockHeader,
+    transactions: { transaction: Transaction; initialNoteIndex: number }[],
   ) {
     const assetBalanceDeltas = new AssetBalances()
 
