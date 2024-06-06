@@ -3,10 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { GetPeersResponse, PromiseUtils } from '@ironfish/sdk'
 import { Flags, ux } from '@oclif/core'
+import { InferredFlags } from '@oclif/core/lib/interfaces'
 import blessed from 'blessed'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { CommandFlags } from '../../types'
 import { TableFlags } from '../../utils/table'
 
 type GetPeerResponsePeer = GetPeersResponse['peers'][0]
@@ -94,7 +94,7 @@ export class ListCommand extends IronfishCommand {
 
 function renderTable(
   content: GetPeersResponse,
-  flags: CommandFlags<typeof ListCommand>,
+  flags: InferredFlags<typeof ListCommand.flags>,
 ): string {
   let columns: ux.Table.table.Columns<GetPeerResponsePeer> = {
     identity: {

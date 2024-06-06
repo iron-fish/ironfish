@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Interfaces } from '@oclif/core'
-
 export interface ProgressBar {
   getTotal(): number
   setTotal(totalValue: number): void
@@ -14,7 +12,3 @@ export interface ProgressBar {
   increment(delta?: number, payload?: Record<string, unknown>): void
   increment(payload?: Record<string, unknown>): void
 }
-
-export type CommandFlags<T> = T extends Interfaces.Input<infer TFlags, infer GFlags>
-  ? Interfaces.ParserOutput<TFlags, GFlags>['flags']
-  : never

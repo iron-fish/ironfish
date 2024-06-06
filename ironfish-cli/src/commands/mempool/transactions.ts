@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { getFeeRate, GetMempoolTransactionResponse, MinMax, Transaction } from '@ironfish/sdk'
 import { Flags, ux } from '@oclif/core'
+import { InferredFlags } from '@oclif/core/lib/interfaces'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { CommandFlags } from '../../types'
 import { TableFlags } from '../../utils/table'
 
 const { sort: _, ...tableFlags } = TableFlags
@@ -152,7 +152,7 @@ type TransactionRow = {
 
 function renderTable(
   response: GetMempoolTransactionResponse[],
-  flags: CommandFlags<typeof TransactionsCommand>,
+  flags: InferredFlags<typeof TransactionsCommand.flags>,
 ): string {
   const columns: ux.Table.table.Columns<TransactionRow> = {
     position: {
