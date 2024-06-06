@@ -89,7 +89,6 @@ export class TransactionsCommand extends IronfishCommand {
       let transactionRows: PartialRecursive<TransactionRow>[]
       if (flags.notes) {
         Assert.isNotUndefined(transaction.notes)
-
         const assetLookup = await getAssetsByIDs(
           client,
           transaction.notes.map((n) => n.assetId) || [],
