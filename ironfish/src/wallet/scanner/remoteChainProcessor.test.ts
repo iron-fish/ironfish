@@ -5,18 +5,18 @@
 import { BlockHeader } from '../../primitives'
 import { ALL_API_NAMESPACES, RpcMemoryClient } from '../../rpc'
 import { createNodeTest, useMinerBlockFixture } from '../../testUtilities'
-import { RemoteChainProcessor, WalletBlockHeader } from './remoteChainProcessor'
+import { RemoteChainProcessor } from './remoteChainProcessor'
 
 describe('RemoteChainProcessor', () => {
   const nodeTest = createNodeTest()
 
-  function getWalletBlockHeader(blockHeader: BlockHeader): WalletBlockHeader {
-    return {
+  function getExpectingHeader(blockHeader: BlockHeader): unknown {
+    return expect.objectContaining({
       hash: blockHeader.hash,
       previousBlockHash: blockHeader.previousBlockHash,
       sequence: blockHeader.sequence,
       timestamp: blockHeader.timestamp,
-    }
+    })
   }
 
   it('processes chain', async () => {
@@ -46,7 +46,7 @@ describe('RemoteChainProcessor', () => {
       maxQueueSize: 10,
     })
 
-    const onEvent: jest.Mock<void, [WalletBlockHeader, 'add' | 'remove']> = jest.fn()
+    const onEvent: jest.Mock<void, [BlockHeader, 'add' | 'remove']> = jest.fn()
     processor.onAdd.on((block) => onEvent(block.header, 'add'))
     processor.onRemove.on((block) => onEvent(block.header, 'remove'))
 
@@ -58,7 +58,7 @@ describe('RemoteChainProcessor', () => {
 
     await processor.update()
     expect(processor.hash?.equals(blockA1.header.hash)).toBe(true)
-    expect(onEvent).toHaveBeenNthCalledWith(1, getWalletBlockHeader(blockA1.header), 'add')
+    expect(onEvent).toHaveBeenNthCalledWith(1, getExpectingHeader(blockA1.header), 'add')
     expect(onEvent).toHaveBeenCalledTimes(1)
 
     // G -> A1
@@ -68,9 +68,9 @@ describe('RemoteChainProcessor', () => {
 
     await processor.update()
     expect(processor.hash?.equals(blockB2.header.hash)).toBe(true)
-    expect(onEvent).toHaveBeenNthCalledWith(2, getWalletBlockHeader(blockA1.header), 'remove')
-    expect(onEvent).toHaveBeenNthCalledWith(3, getWalletBlockHeader(blockB1.header), 'add')
-    expect(onEvent).toHaveBeenNthCalledWith(4, getWalletBlockHeader(blockB2.header), 'add')
+    expect(onEvent).toHaveBeenNthCalledWith(2, getExpectingHeader(blockA1.header), 'remove')
+    expect(onEvent).toHaveBeenNthCalledWith(3, getExpectingHeader(blockB1.header), 'add')
+    expect(onEvent).toHaveBeenNthCalledWith(4, getExpectingHeader(blockB2.header), 'add')
     expect(onEvent).toHaveBeenCalledTimes(4)
 
     // G -> A1 -> A2 -> A3
@@ -80,11 +80,11 @@ describe('RemoteChainProcessor', () => {
 
     await processor.update()
     expect(processor.hash?.equals(blockA3.header.hash)).toBe(true)
-    expect(onEvent).toHaveBeenNthCalledWith(5, getWalletBlockHeader(blockB2.header), 'remove')
-    expect(onEvent).toHaveBeenNthCalledWith(6, getWalletBlockHeader(blockB1.header), 'remove')
-    expect(onEvent).toHaveBeenNthCalledWith(7, getWalletBlockHeader(blockA1.header), 'add')
-    expect(onEvent).toHaveBeenNthCalledWith(8, getWalletBlockHeader(blockA2.header), 'add')
-    expect(onEvent).toHaveBeenNthCalledWith(9, getWalletBlockHeader(blockA3.header), 'add')
+    expect(onEvent).toHaveBeenNthCalledWith(5, getExpectingHeader(blockB2.header), 'remove')
+    expect(onEvent).toHaveBeenNthCalledWith(6, getExpectingHeader(blockB1.header), 'remove')
+    expect(onEvent).toHaveBeenNthCalledWith(7, getExpectingHeader(blockA1.header), 'add')
+    expect(onEvent).toHaveBeenNthCalledWith(8, getExpectingHeader(blockA2.header), 'add')
+    expect(onEvent).toHaveBeenNthCalledWith(9, getExpectingHeader(blockA3.header), 'add')
     expect(onEvent).toHaveBeenCalledTimes(9)
   })
 
@@ -101,7 +101,7 @@ describe('RemoteChainProcessor', () => {
       maxQueueSize: 10,
     })
 
-    const onEvent: jest.Mock<void, [WalletBlockHeader, 'add' | 'remove']> = jest.fn()
+    const onEvent: jest.Mock<void, [BlockHeader, 'add' | 'remove']> = jest.fn()
     processor.onAdd.on((block) => onEvent(block.header, 'add'))
     processor.onRemove.on((block) => onEvent(block.header, 'remove'))
 
@@ -128,8 +128,8 @@ describe('RemoteChainProcessor', () => {
 
     await processor.update()
     expect(processor.hash?.equals(blockA1.header.hash)).toBe(true)
-    expect(onEvent).toHaveBeenNthCalledWith(4, getWalletBlockHeader(blockA3.header), 'remove')
-    expect(onEvent).toHaveBeenNthCalledWith(5, getWalletBlockHeader(blockA2.header), 'remove')
+    expect(onEvent).toHaveBeenNthCalledWith(4, getExpectingHeader(blockA3.header), 'remove')
+    expect(onEvent).toHaveBeenNthCalledWith(5, getExpectingHeader(blockA2.header), 'remove')
   })
 
   it('cancels updates when abort signal is triggered', async () => {
