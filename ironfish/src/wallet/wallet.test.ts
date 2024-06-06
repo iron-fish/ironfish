@@ -618,8 +618,8 @@ describe('Wallet', () => {
     })
   })
 
-  describe('getLatestHeadHash', () => {
-    it('should return the latest head hash', async () => {
+  describe('getLatestHead', () => {
+    it('should return the latest head', async () => {
       const { node } = nodeTest
 
       const accountA = await useAccountFixture(node.wallet, 'accountA')
@@ -636,7 +636,9 @@ describe('Wallet', () => {
       await accountB.updateHead(blockB.header)
       await accountC.updateHead(null)
 
-      expect(await node.wallet.getLatestHeadHash()).toEqual(blockB.header.hash)
+      const head = await node.wallet.getLatestHead()
+      expect(head?.hash).toEqualBuffer(blockB.header.hash)
+      expect(head?.sequence).toEqual(blockB.header.sequence)
     })
 
     it('should skip accounts with scanning disabled', async () => {
@@ -661,11 +663,13 @@ describe('Wallet', () => {
       expect((await accountA.getHead())?.sequence).toBe(2)
       expect((await accountB.getHead())?.sequence).toBe(3)
 
-      expect(await node.wallet.getLatestHeadHash()).toEqual(blockA.header.hash)
+      const head = await node.wallet.getLatestHead()
+      expect(head?.hash).toEqualBuffer(blockA.header.hash)
+      expect(head?.sequence).toEqual(blockA.header.sequence)
 
       await accountA.updateScanningEnabled(false)
 
-      expect(await node.wallet.getLatestHeadHash()).toBeNull()
+      expect(await node.wallet.getLatestHead()).toBeNull()
     })
   })
 

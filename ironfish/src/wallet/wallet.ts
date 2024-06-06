@@ -1662,12 +1662,6 @@ export class Wallet {
     return latestHead
   }
 
-  async getLatestHeadHash(): Promise<Buffer | null> {
-    const latestHead = await this.getLatestHead()
-
-    return latestHead ? latestHead.hash : null
-  }
-
   async isAccountUpToDate(account: Account, confirmations?: number): Promise<boolean> {
     const head = await account.getHead()
 
