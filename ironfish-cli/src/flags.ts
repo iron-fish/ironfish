@@ -10,6 +10,7 @@ import {
   DEFAULT_USE_RPC_IPC,
   DEFAULT_USE_RPC_TCP,
   DEFAULT_USE_RPC_TLS,
+  LanguageKey,
   MAXIMUM_ORE_AMOUNT,
   MINIMUM_ORE_AMOUNT,
 } from '@ironfish/sdk'
@@ -186,5 +187,16 @@ export const HexFlag = Flags.custom<string>({
     }
 
     return Promise.resolve(input)
+  },
+})
+
+export const EnumLanguageKeyFlag = Flags.custom<LanguageKey, { choices: Array<LanguageKey> }>({
+  parse: async (input, _ctx, opts) => {
+    const parsed = opts.choices.find((valid) => valid === input)
+    if (parsed) {
+      return Promise.resolve(parsed)
+    } else {
+      return Promise.reject(`Invalid choice: ${input}`)
+    }
   },
 })

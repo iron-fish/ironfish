@@ -7,7 +7,7 @@ import fs from 'fs'
 import jsonColorizer from 'json-colorizer'
 import path from 'path'
 import { IronfishCommand } from '../../command'
-import { ColorFlag, ColorFlagKey, RemoteFlags } from '../../flags'
+import { ColorFlag, ColorFlagKey, EnumLanguageKeyFlag, RemoteFlags } from '../../flags'
 
 export class ExportCommand extends IronfishCommand {
   static description = `Export an account`
@@ -23,10 +23,10 @@ export class ExportCommand extends IronfishCommand {
       default: false,
       description: 'Export an account to a mnemonic 24 word phrase',
     }),
-    language: Flags.enum({
+    language: EnumLanguageKeyFlag({
       description: 'Language to use for mnemonic export',
       required: false,
-      options: LanguageUtils.LANGUAGE_KEYS,
+      choices: LanguageUtils.LANGUAGE_KEYS,
     }),
     json: Flags.boolean({
       default: false,
