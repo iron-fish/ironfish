@@ -1823,6 +1823,7 @@ describe('Accounts', () => {
         confirmed: 2000000000n,
         unconfirmed: 2000000000n,
         available: 2000000000n,
+        availableNoteCount: 1,
       })
 
       await useTxFixture(node.wallet, accountA, accountB)
@@ -1831,6 +1832,7 @@ describe('Accounts', () => {
         pending: balanceA.unconfirmed - 1n,
         pendingCount: 1,
         available: 0n,
+        availableNoteCount: 0,
       })
     })
 
@@ -1848,6 +1850,7 @@ describe('Accounts', () => {
         confirmed: 2000000000n,
         unconfirmed: 2000000000n,
         available: 2000000000n,
+        availableNoteCount: 1,
       })
 
       const { block: block3 } = await useBlockWithTx(node, accountA, accountB, false)
@@ -1859,6 +1862,7 @@ describe('Accounts', () => {
         confirmed: 1999999998n,
         unconfirmed: 1999999998n,
         available: 1999999998n,
+        availableNoteCount: 1,
       })
 
       // with 1 confirmation, available balance should not include the spent note or change
@@ -1866,6 +1870,7 @@ describe('Accounts', () => {
         confirmed: 2000000000n,
         unconfirmed: 1999999998n,
         available: 0n,
+        availableNoteCount: 0,
       })
     })
 
@@ -1886,6 +1891,7 @@ describe('Accounts', () => {
         confirmed: 4000000000n,
         unconfirmed: 4000000000n,
         available: 4000000000n,
+        availableNoteCount: 2,
       })
 
       const { block: block4 } = await useBlockWithTx(node, accountA, accountB, false)
@@ -1897,6 +1903,7 @@ describe('Accounts', () => {
         confirmed: 3999999998n,
         unconfirmed: 3999999998n,
         available: 3999999998n,
+        availableNoteCount: 2,
       })
 
       // with 1 confirmation, available balance should not include the spent note or change
@@ -1904,6 +1911,7 @@ describe('Accounts', () => {
         confirmed: 4000000000n,
         unconfirmed: 3999999998n,
         available: 2000000000n,
+        availableNoteCount: 1,
       })
 
       // set confirmations to 1 so that new transaction can only spend the last note
@@ -1918,6 +1926,7 @@ describe('Accounts', () => {
         unconfirmed: 3999999998n,
         pending: 3999999997n,
         available: 0n,
+        availableNoteCount: 0,
         pendingCount: 1,
         unconfirmedCount: 1,
       })
@@ -1936,6 +1945,7 @@ describe('Accounts', () => {
         unconfirmed: 0n,
         pending: 0n,
         available: 0n,
+        availableNoteCount: 0,
       })
 
       const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
@@ -1948,6 +1958,7 @@ describe('Accounts', () => {
         unconfirmed: 2000000000n,
         pending: 2000000000n,
         available: 2000000000n,
+        availableNoteCount: 1,
       })
 
       // confirmed and available balances should be 0 if block is unconfirmed
@@ -1957,6 +1968,7 @@ describe('Accounts', () => {
         unconfirmed: 2000000000n,
         pending: 2000000000n,
         available: 0n,
+        availableNoteCount: 0,
       })
     })
   })

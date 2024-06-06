@@ -121,7 +121,9 @@ export class BalanceCommand extends IronfishCommand {
     )
     this.log('')
 
-    this.log(`Your available balance is made of notes on the chain that are safe to spend`)
+    this.log(
+      `Your available balance is made of ${response.availableNoteCount} notes on the chain that are safe to spend`,
+    )
     this.log(`Available: ${renderedAvailable}`)
     this.log('')
 
