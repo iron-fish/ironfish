@@ -15,7 +15,8 @@ import { WithNonNull, WithRequired } from '../../utils'
 import { DecryptedNote } from '../../workerPool/tasks/decryptNotes'
 import { AssetBalances } from '../assetBalances'
 import { MultisigKeys, MultisigSigner } from '../interfaces/multisigKeys'
-import { WalletBlockHeader } from '../remoteChainProcessor'
+import { WalletBlockHeader, WalletBlockTransaction } from '../remoteChainProcessor'
+import { ScanState } from '../wallet'
 import { AccountValue } from '../walletdb/accountValue'
 import { AssetValue } from '../walletdb/assetValue'
 import { BalanceValue } from '../walletdb/balanceValue'
@@ -171,6 +172,69 @@ export class Account {
     tx?: IDatabaseTransaction,
   ): Promise<DecryptedNoteValue | undefined> {
     return await this.walletDb.loadDecryptedNote(this, hash, tx)
+  }
+
+  async connectBlock(
+    blockHeader: WalletBlockHeader,
+    transactions: { transaction: Transaction; decryptedNotes: DecryptedNote[] }[],
+    shouldDecrypt: boolean,
+    scan?: ScanState,
+  ): Promise<void> {
+    let assetBalanceDeltas = new AssetBalances()
+
+    await this.walletDb.db.transaction(async (tx) => {
+      if (shouldDecrypt) {
+        assetBalanceDeltas = await this.connectBlockTransactions(
+          blockHeader,
+          transactions,
+          scan,
+          tx,
+        )
+      }
+
+      await this.updateUnconfirmedBalances(
+        assetBalanceDeltas,
+        blockHeader.hash,
+        blockHeader.sequence,
+        tx,
+      )
+
+      await this.updateHead({ hash: blockHeader.hash, sequence: blockHeader.sequence }, tx)
+
+      const hasTransaction = assetBalanceDeltas.size > 0
+      if (this.createdAt === null && hasTransaction) {
+        await this.updateCreatedAt(
+          { hash: blockHeader.hash, sequence: blockHeader.sequence },
+          tx,
+        )
+      }
+    })
+  }
+
+  private async connectBlockTransactions(
+    blockHeader: WalletBlockHeader,
+    transactions: Array<{ transaction: Transaction; decryptedNotes: Array<DecryptedNote> }>,
+    scan?: ScanState,
+    tx?: IDatabaseTransaction,
+  ): Promise<AssetBalances> {
+    const assetBalanceDeltas = new AssetBalances()
+
+    for (const { transaction, decryptedNotes } of transactions) {
+      if (scan && scan.isAborted) {
+        return assetBalanceDeltas
+      }
+
+      const transactionDeltas = await this.connectTransaction(
+        blockHeader,
+        transaction,
+        decryptedNotes,
+        tx,
+      )
+
+      assetBalanceDeltas.update(transactionDeltas)
+    }
+
+    return assetBalanceDeltas
   }
 
   async connectTransaction(
@@ -642,6 +706,41 @@ export class Account {
       }
 
       await this.walletDb.saveTransaction(this, transaction.hash(), transactionValue, tx)
+    })
+  }
+
+  async disconnectBlock(header: WalletBlockHeader, transactions: WalletBlockTransaction[]) {
+    const assetBalanceDeltas = new AssetBalances()
+
+    await this.walletDb.db.transaction(async (tx) => {
+      for (const { transaction } of transactions.slice().reverse()) {
+        const transactionDeltas = await this.disconnectTransaction(header, transaction, tx)
+
+        assetBalanceDeltas.update(transactionDeltas)
+
+        if (transaction.isMinersFee()) {
+          await this.deleteTransaction(transaction, tx)
+        }
+      }
+
+      await this.updateUnconfirmedBalances(
+        assetBalanceDeltas,
+        header.previousBlockHash,
+        header.sequence - 1,
+        tx,
+      )
+
+      await this.updateHead(
+        { hash: header.previousBlockHash, sequence: header.sequence - 1 },
+        tx,
+      )
+
+      if (this.createdAt?.hash.equals(header.hash)) {
+        await this.updateCreatedAt(
+          { hash: header.previousBlockHash, sequence: header.sequence - 1 },
+          tx,
+        )
+      }
     })
   }
 
