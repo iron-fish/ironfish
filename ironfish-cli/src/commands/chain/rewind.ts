@@ -118,10 +118,10 @@ async function rewindWalletHead(
   wallet: Wallet,
   sequence: number,
 ): Promise<void> {
-  const walletHeadHash = await wallet.getLatestHeadHash()
+  const latestHead = await wallet.getLatestHead()
 
-  if (walletHeadHash) {
-    const walletHead = await chain.getHeader(walletHeadHash)
+  if (latestHead) {
+    const walletHead = await chain.getHeader(latestHead.hash)
 
     if (walletHead && walletHead.sequence > sequence) {
       const bar = getProgressBar('Rewiding wallet')

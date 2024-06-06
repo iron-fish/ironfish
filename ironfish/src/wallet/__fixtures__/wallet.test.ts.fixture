@@ -1769,7 +1769,7 @@
       ]
     }
   ],
-  "Wallet getLatestHeadHash should return the latest head hash": [
+  "Wallet getLatestHead should return the latest head": [
     {
       "value": {
         "version": 4,
@@ -1935,7 +1935,7 @@
       ]
     }
   ],
-  "Wallet getLatestHeadHash should skip accounts with scanning disabled": [
+  "Wallet getLatestHead should skip accounts with scanning disabled": [
     {
       "value": {
         "version": 4,
