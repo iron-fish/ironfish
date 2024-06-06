@@ -11,7 +11,7 @@ import { AssetStatus } from '../../../wallet'
 import { RpcNotFoundError, RpcValidationError } from '../../adapters'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
-import { RpcAsset, RpcAssetSchema } from '../types'
+import { RpcAsset, RpcAssetSchema } from './types'
 
 export type GetAssetRequest = {
   id: string

@@ -10,7 +10,8 @@ import { getBlockSize, getTransactionSize } from '../../../network/utils/seriali
 import { Block, Transaction } from '../../../primitives'
 import { BlockHeader } from '../../../primitives/blockheader'
 import { BlockchainUtils, BufferUtils, HashUtils } from '../../../utils'
-import { RpcBlock, serializeRpcBlockHeader } from '../types'
+import { serializeRpcBlockHeader } from './serializers'
+import { RpcBlock } from './types'
 import { RpcTransaction } from './types'
 
 const DEFAULT_OPTIONS = {

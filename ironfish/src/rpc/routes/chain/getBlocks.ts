@@ -8,7 +8,7 @@ import { BlockchainUtils } from '../../../utils/blockchain'
 import { RpcNotFoundError, RpcValidationError } from '../../adapters'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
-import { RpcBlock, RpcBlockSchema } from '../types'
+import { RpcBlock, RpcBlockSchema } from './types'
 import { serializeRpcBlock } from './utils'
 
 export type GetBlocksRequest = {

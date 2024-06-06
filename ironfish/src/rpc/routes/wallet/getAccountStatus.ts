@@ -5,8 +5,9 @@ import * as yup from 'yup'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import { AssertHasRpcContext } from '../rpcContext'
+import { serializeRpcAccountStatus } from './serializers'
 import { RpcAccountStatus, RpcAccountStatusSchema } from './types'
-import { getAccount, serializeRpcAccountStatus } from './utils'
+import { getAccount } from './utils'
 
 export type GetAccountStatusRequest = { account: string }
 

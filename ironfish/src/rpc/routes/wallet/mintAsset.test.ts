@@ -6,7 +6,7 @@ import { Assert } from '../../../assert'
 import { useAccountFixture, useMinerBlockFixture, useTxFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { CurrencyUtils } from '../../../utils'
-import { serializeRpcWalletTransaction } from './utils'
+import { serializeRpcWalletTransaction } from './serializers'
 
 describe('Route wallet/mintAsset', () => {
   const routeTest = createRouteTest(true)

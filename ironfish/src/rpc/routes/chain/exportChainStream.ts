@@ -7,7 +7,8 @@ import { FullNode } from '../../../node'
 import { BlockchainUtils } from '../../../utils/blockchain'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
-import { RpcBlockHeader, RpcBlockHeaderSchema, serializeRpcBlockHeader } from '../types'
+import { serializeRpcBlockHeader } from './serializers'
+import { RpcBlockHeader, RpcBlockHeaderSchema } from './types'
 
 export type ExportChainStreamRequest =
   | {
