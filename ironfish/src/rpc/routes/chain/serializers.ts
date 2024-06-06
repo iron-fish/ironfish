@@ -38,6 +38,7 @@ export function deserializeRpcBlockHeader(header: RpcBlockHeader): BlockHeader {
       graffiti: Buffer.from(header.graffiti, 'hex'),
     },
     Buffer.from(header.hash, 'hex'),
+    header.noteSize,
   )
 }
 
