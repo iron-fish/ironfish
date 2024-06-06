@@ -85,8 +85,6 @@ export class TransactionsCommand extends IronfishCommand {
     let showHeader = !flags['no-header']
     let hasTransactions = false
 
-    const networkId = (await client.chain.getNetworkInfo()).content.networkId
-
     for await (const transaction of response.contentStream()) {
       let transactionRows: PartialRecursive<TransactionRow>[]
       if (flags.notes) {

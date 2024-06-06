@@ -47,7 +47,6 @@ export class TransactionCommand extends IronfishCommand {
     const account = args.account as string | undefined
 
     const client = await this.sdk.connectRpc()
-    const networkId = (await client.chain.getNetworkInfo()).content.networkId
 
     const networkId = (await client.chain.getNetworkInfo()).content.networkId
 
@@ -74,7 +73,7 @@ export class TransactionCommand extends IronfishCommand {
     }
     this.log(`Account: ${response.content.account}`)
     this.log(`Status: ${response.content.transaction.status}`)
-    this.log(`Type: ${transactionType}`)
+    this.log(`Type: ${response.content.transaction.type}`)
     this.log(`Timestamp: ${TimeUtils.renderString(response.content.transaction.timestamp)}`)
     this.log(`Fee: ${renderedFee}`)
     if (response.content.transaction.blockHash && response.content.transaction.blockSequence) {
