@@ -14,9 +14,7 @@ import {
   MAXIMUM_ORE_AMOUNT,
   MINIMUM_ORE_AMOUNT,
 } from '@ironfish/sdk'
-import { Flags, Interfaces } from '@oclif/core'
-
-type CompletableOptionFlag = Interfaces.CompletableOptionFlag<unknown>
+import { Flags } from '@oclif/core'
 
 export const VerboseFlagKey = 'verbose'
 export const ConfigFlagKey = 'config'
@@ -98,36 +96,34 @@ export const RpcUseHttpFlag = Flags.boolean({
   allowNo: true,
 })
 
-const localFlags: Record<string, CompletableOptionFlag> = {}
-localFlags[VerboseFlagKey] = VerboseFlag as unknown as CompletableOptionFlag
-localFlags[ConfigFlagKey] = ConfigFlag as unknown as CompletableOptionFlag
-localFlags[DataDirFlagKey] = DataDirFlag as unknown as CompletableOptionFlag
-
 /**
  * These flags should usually be used on any command that starts a node,
  * or uses a database to execute the command
  */
-export const LocalFlags = localFlags
-
-const remoteFlags: Record<string, CompletableOptionFlag> = {}
-remoteFlags[VerboseFlagKey] = VerboseFlag as unknown as CompletableOptionFlag
-remoteFlags[ConfigFlagKey] = ConfigFlag as unknown as CompletableOptionFlag
-remoteFlags[DataDirFlagKey] = DataDirFlag as unknown as CompletableOptionFlag
-remoteFlags[RpcUseTcpFlagKey] = RpcUseTcpFlag as unknown as CompletableOptionFlag
-remoteFlags[RpcUseIpcFlagKey] = RpcUseIpcFlag as unknown as CompletableOptionFlag
-remoteFlags[RpcTcpHostFlagKey] = RpcTcpHostFlag as unknown as CompletableOptionFlag
-remoteFlags[RpcTcpPortFlagKey] = RpcTcpPortFlag as unknown as CompletableOptionFlag
-remoteFlags[RpcHttpHostFlagKey] = RpcHttpHostFlag as unknown as CompletableOptionFlag
-remoteFlags[RpcHttpPortFlagKey] = RpcHttpPortFlag as unknown as CompletableOptionFlag
-remoteFlags[RpcUseHttpFlagKey] = RpcUseHttpFlag as unknown as CompletableOptionFlag
-remoteFlags[RpcTcpTlsFlagKey] = RpcTcpTlsFlag as unknown as CompletableOptionFlag
-remoteFlags[RpcAuthFlagKey] = RpcAuthFlag as unknown as CompletableOptionFlag
+export const LocalFlags = {
+  [VerboseFlagKey]: VerboseFlag,
+  [ConfigFlagKey]: ConfigFlag,
+  [DataDirFlagKey]: DataDirFlag,
+}
 
 /**
  * These flags should usually be used on any command that uses an
  * RPC client to connect to a node to run the command
  */
-export const RemoteFlags = remoteFlags
+export const RemoteFlags = {
+  [VerboseFlagKey]: VerboseFlag,
+  [ConfigFlagKey]: ConfigFlag,
+  [DataDirFlagKey]: DataDirFlag,
+  [RpcUseTcpFlagKey]: RpcUseTcpFlag,
+  [RpcUseIpcFlagKey]: RpcUseIpcFlag,
+  [RpcTcpHostFlagKey]: RpcTcpHostFlag,
+  [RpcTcpPortFlagKey]: RpcTcpPortFlag,
+  [RpcHttpHostFlagKey]: RpcHttpHostFlag,
+  [RpcHttpPortFlagKey]: RpcHttpPortFlag,
+  [RpcUseHttpFlagKey]: RpcUseHttpFlag,
+  [RpcTcpTlsFlagKey]: RpcTcpTlsFlag,
+  [RpcAuthFlagKey]: RpcAuthFlag,
+}
 
 export type IronOpts = { minimum?: bigint; flagName: string }
 
