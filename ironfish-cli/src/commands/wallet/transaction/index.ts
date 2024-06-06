@@ -12,7 +12,13 @@ import {
 import { CliUx } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
-import { getAssetsByIDs } from '../../../utils'
+import {
+  displayChainportTransactionSummary,
+  extractChainportDataFromTransaction,
+  fetchChainportNetworkMap,
+  getAssetsByIDs,
+} from '../../../utils'
+import { getExplorer } from '../../../utils/explorer'
 
 export class TransactionCommand extends IronfishCommand {
   static description = `Display an account transaction`
@@ -41,6 +47,7 @@ export class TransactionCommand extends IronfishCommand {
     const account = args.account as string | undefined
 
     const client = await this.sdk.connectRpc()
+    const networkId = (await client.chain.getNetworkInfo()).content.networkId
 
     const response = await client.wallet.getAccountTransaction({
       account,
@@ -57,7 +64,12 @@ export class TransactionCommand extends IronfishCommand {
     Assert.isNotUndefined(response.content.transaction.spends)
 
     const renderedFee = CurrencyUtils.render(response.content.transaction.fee, true)
+    const explorerUrl = getExplorer(networkId)?.getTransactionUrl(hash)
+
     this.log(`Transaction: ${hash}`)
+    if (explorerUrl) {
+      this.log(`Explorer: ${explorerUrl}`)
+    }
     this.log(`Account: ${response.content.account}`)
     this.log(`Status: ${response.content.transaction.status}`)
     this.log(`Type: ${response.content.transaction.type}`)
@@ -72,6 +84,27 @@ export class TransactionCommand extends IronfishCommand {
     this.log(`Mints Count: ${response.content.transaction.mints.length}`)
     this.log(`Burns Count: ${response.content.transaction.burns.length}`)
     this.log(`Sender: ${response.content.transaction.notes[0].sender}`)
+
+    const chainportTxnDetails = extractChainportDataFromTransaction(
+      networkId,
+      response.content.transaction,
+    )
+
+    if (chainportTxnDetails) {
+      this.log(`\n---Chainport Bridge Transaction Summary---\n`)
+
+      CliUx.ux.action.start('Fetching network details')
+      const chainportNetworks = await fetchChainportNetworkMap(networkId)
+      CliUx.ux.action.stop()
+
+      await displayChainportTransactionSummary(
+        networkId,
+        hash,
+        chainportTxnDetails,
+        chainportNetworks[chainportTxnDetails.chainportNetworkId],
+        this.logger,
+      )
+    }
 
     if (response.content.transaction.notes.length > 0) {
       this.log(`\n---Notes---\n`)
