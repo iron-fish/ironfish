@@ -8313,62 +8313,6 @@
       ]
     }
   ],
-  "Wallet shouldDecryptForAccount should set the account createdAt if the account was created on a different chain": [
-    {
-      "value": {
-        "version": 4,
-        "id": "92fbb704-54ee-40cf-8859-bb6d07593f41",
-        "name": "test",
-        "spendingKey": "d64ef0f2414b800f3436fc3aa847fbfe84f88c092396dfe7985b2377dcfcbb03",
-        "viewKey": "a63467df1056011c2d3714477029597ed800ae9a66c9295148138c7a2ba73bb2bde9c89e8cc615a3d782acbb105896926862dd2ea353b26a75d1fc407f6d28a7",
-        "incomingViewKey": "1ce97b3b295420bb75b04a7017dc71b6c7e94e56605232df0550214623fa6b04",
-        "outgoingViewKey": "da37098ee679995765b46e47854922a09b739b1c15d4c580bd31847107980a20",
-        "publicAddress": "6895181f5b40cda36d6c43a1eb705afb7a8676be57a001b4b312cb1337021041",
-        "createdAt": {
-          "hash": {
-            "type": "Buffer",
-            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
-          },
-          "sequence": 1
-        },
-        "scanningEnabled": true,
-        "proofAuthorizingKey": "7b5159ee6bb1a3cf3d6385743ef356e9abf5c1e10a0dce5b9e92a9d660717405"
-      },
-      "head": {
-        "hash": {
-          "type": "Buffer",
-          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
-        },
-        "sequence": 1
-      }
-    },
-    {
-      "header": {
-        "sequence": 2,
-        "previousBlockHash": "4791D7AE9F97DF100EF1558E84772D6A09B43762388283F75C6F20A32A88AA86",
-        "noteCommitment": {
-          "type": "Buffer",
-          "data": "base64:LEQ78rlPDXg2G1nkbH+vmW6+l9vaRqnSKgIJ8qouWgU="
-        },
-        "transactionCommitment": {
-          "type": "Buffer",
-          "data": "base64:yO7O5jDWB8T9ToU4g8nlzDAx+hs6a9XELkn7AehcT5k="
-        },
-        "target": "9282972777491357380673661573939192202192629606981189395159182914949423",
-        "randomness": "0",
-        "timestamp": 1717539006874,
-        "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
-        "noteSize": 4,
-        "work": "0"
-      },
-      "transactions": [
-        {
-          "type": "Buffer",
-          "data": "base64:AQAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzKiP////8AAAAAyn99yH93HHJ0ltYcLt8GJdDB8+7bKExm8M/n/QmtdhCAtvzNC5dD+hkYqMVG/nf5KP9LSRnAJLbFIIFffuKBMzc8bKnNaBf6RJHqU1nNTiKrXRWVIuEkBES9Ae6UnPvUEfDn+1LsO2D1IV4zcRuRUU5DeTyI3LAgp8iMdlAwd+oKN6MYP6/dWI6lLmTW3aEiFFDCbZUZb2NpaZYfz2M4KvJXi/agzfcleNBJ8pAL7ECE2o0LPuAPRHNTek0l2+D24wvMSbV5pZupOUvFtxDXYbJJcNBUTjxMM0/MEIdmI1j8vT67RFZXp51bXqFcLF7FpO7N+vkkUD6N6J4ov+miPrNdKRl5W5oEHf+VhT/qZpbnk6yLjPNzufwwQOT5NK8715VYz2wQ0Oshzh2Bq/HpOh2nEn+hnGlOwfBloQpaCGWWx64ZZ7YEtaS7YMVSsd4JvaLobyawzQdjFzSUKyk78KPQGIueg/9owQcKLhUx9OQ/plOp6v5m3+ypEP8nKXgxlrzEXxt807mT22mAFOCnr4gD01kG2CEiXOxrU8PLyDLi838/V4iV0ECxeE1Rn1r+T2pCB7n2SmiIDDVxDEJuSgBGE8jdoN+puJL5OTuugoBIugt41l3t4klyb24gRmlzaCBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAw4e1Ja1Wt02y3kycLDaK3StMQNcRFuCtmYE+JGN4CTsKSV714eIFcGR3DL7etk6tQlgV3W+O5TvkyCtKATsQ0AA=="
-        }
-      ]
-    }
-  ],
   "Wallet scan should scan until the chain head": [
     {
       "value": {

@@ -2840,9 +2840,7 @@ describe('Wallet', () => {
 
       const block = await useMinerBlockFixture(node.chain, 2)
 
-      await expect(node.wallet.shouldDecryptForAccount(block.header, account)).resolves.toBe(
-        true,
-      )
+      expect(node.wallet.shouldDecryptForAccount(block.header, account)).toBe(true)
     })
 
     it('should return true for an account with createdAt earlier than the header', async () => {
@@ -2854,9 +2852,7 @@ describe('Wallet', () => {
 
       const block = await useMinerBlockFixture(node.chain, 2)
 
-      await expect(node.wallet.shouldDecryptForAccount(block.header, account)).resolves.toBe(
-        true,
-      )
+      expect(node.wallet.shouldDecryptForAccount(block.header, account)).toBe(true)
     })
 
     it('should return false for an account created after the header', async () => {
@@ -2868,9 +2864,7 @@ describe('Wallet', () => {
 
       const block = await useMinerBlockFixture(node.chain, 2)
 
-      await expect(node.wallet.shouldDecryptForAccount(block.header, account)).resolves.toBe(
-        false,
-      )
+      expect(node.wallet.shouldDecryptForAccount(block.header, account)).toBe(false)
     })
 
     it('should return true for an account created at the header', async () => {
@@ -2882,30 +2876,7 @@ describe('Wallet', () => {
 
       await account.updateCreatedAt(block.header)
 
-      await expect(node.wallet.shouldDecryptForAccount(block.header, account)).resolves.toBe(
-        true,
-      )
-    })
-
-    it('should set the account createdAt if the account was created on a different chain', async () => {
-      const { node } = nodeTest
-
-      const account = await useAccountFixture(node.wallet)
-
-      // set createdAt at fake block at sequence 2
-      await account.updateCreatedAt({ hash: Buffer.alloc(32), sequence: 2 })
-
-      const resetAccount = jest.spyOn(node.wallet, 'resetAccount')
-
-      const block = await useMinerBlockFixture(node.chain, 2)
-
-      await expect(node.wallet.shouldDecryptForAccount(block.header, account)).resolves.toBe(
-        false,
-      )
-
-      expect(resetAccount).not.toHaveBeenCalled()
-
-      expect(account.createdAt).toBeNull()
+      expect(node.wallet.shouldDecryptForAccount(block.header, account)).toBe(true)
     })
   })
 })

@@ -466,25 +466,12 @@ export class Wallet {
     })
   }
 
-  async shouldDecryptForAccount(blockHeader: BlockHeader, account: Account): Promise<boolean> {
+  shouldDecryptForAccount(blockHeader: BlockHeader, account: Account): boolean {
     if (account.createdAt === null) {
       return true
     }
 
     if (account.createdAt.sequence > blockHeader.sequence) {
-      return false
-    }
-
-    if (
-      account.createdAt.sequence === blockHeader.sequence &&
-      !account.createdAt.hash.equals(blockHeader.hash)
-    ) {
-      this.logger.warn(
-        `Account ${account.name} createdAt refers to a block that is not on the node's chain. Stopping scan for this account.`,
-      )
-      await account.updateCreatedAt(null)
-      // Sets head to null to avoid connecting blocks for this account
-      await account.updateHead(null)
       return false
     }
 
@@ -1686,7 +1673,9 @@ export class Wallet {
   }
 
   async chainHasBlock(hash: Buffer): Promise<boolean> {
-    return (await this.chainGetBlock({ hash: hash.toString('hex') })) !== null
+    const block = await this.chainGetBlock({ hash: hash.toString('hex') })
+
+    return block !== null && block.metadata.main
   }
 
   async chainGetBlock(request: GetBlockRequest): Promise<GetBlockResponse | null> {
