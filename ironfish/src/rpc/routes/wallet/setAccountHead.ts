@@ -93,7 +93,7 @@ routes.register<typeof SetAccountHeadRequestSchema, SetAccountHeadResponse>(
 
     if (account.scanningEnabled) {
       throw new RpcResponseError(
-        `Cannot set account head while account scanning is enabled. Try calling wallet/stopScanning first.`,
+        `Cannot set account head while account scanning is enabled. Try calling wallet/setScanning first.`,
         RPC_ERROR_CODES.ERROR,
         409,
       )
