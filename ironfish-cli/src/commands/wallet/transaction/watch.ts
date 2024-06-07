@@ -11,6 +11,10 @@ export class WatchTxCommand extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
+    account: Flags.string({
+      char: 'a',
+      description: 'Name of the account to get transaction details for',
+    }),
     confirmations: Flags.integer({
       required: false,
       description: 'Minimum number of blocks confirmations for a transaction',
@@ -27,14 +31,15 @@ export class WatchTxCommand extends IronfishCommand {
     {
       name: 'account',
       required: false,
-      description: 'Name of the account',
+      description: 'Name of the account. DEPRECATED: use --account flag',
     },
   ]
 
   async start(): Promise<void> {
     const { flags, args } = await this.parse(WatchTxCommand)
     const hash = args.hash as string
-    const account = args.account as string | undefined
+    // TODO: remove account arg
+    const account = flags.account ? flags.account : (args.account as string | undefined)
 
     const client = await this.sdk.connectRpc()
 

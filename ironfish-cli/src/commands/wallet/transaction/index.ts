@@ -9,7 +9,7 @@ import {
   RpcWalletNote,
   TimeUtils,
 } from '@ironfish/sdk'
-import { CliUx } from '@oclif/core'
+import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 import {
@@ -25,6 +25,10 @@ export class TransactionCommand extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
+    account: Flags.string({
+      char: 'a',
+      description: 'Name of the account to get transaction details for',
+    }),
   }
 
   static args = [
@@ -37,14 +41,15 @@ export class TransactionCommand extends IronfishCommand {
     {
       name: 'account',
       required: false,
-      description: 'Name of the account',
+      description: 'Name of the account. DEPRECATED: use --account flag',
     },
   ]
 
   async start(): Promise<void> {
-    const { args } = await this.parse(TransactionCommand)
+    const { flags, args } = await this.parse(TransactionCommand)
     const hash = args.hash as string
-    const account = args.account as string | undefined
+    // TODO: remove account arg
+    const account = flags.account ? flags.account : (args.account as string | undefined)
 
     const client = await this.sdk.connectRpc()
     const networkId = (await client.chain.getNetworkInfo()).content.networkId

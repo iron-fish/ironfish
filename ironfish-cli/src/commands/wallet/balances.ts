@@ -16,6 +16,10 @@ export class BalancesCommand extends IronfishCommand {
   static flags = {
     ...RemoteFlags,
     ...TableFlags,
+    account: Flags.string({
+      char: 'a',
+      description: 'Name of the account to get balances for',
+    }),
     all: Flags.boolean({
       default: false,
       description: `Also show unconfirmed balance, head hash, and head sequence`,
@@ -30,7 +34,7 @@ export class BalancesCommand extends IronfishCommand {
     {
       name: 'account',
       required: false,
-      description: 'Name of the account to get balances for',
+      description: 'Name of the account to get balances for. DEPRECATED: use --account flag',
     },
   ]
 
@@ -38,7 +42,8 @@ export class BalancesCommand extends IronfishCommand {
     const { flags, args } = await this.parse(BalancesCommand)
     const client = await this.sdk.connectRpc()
 
-    const account = args.account as string | undefined
+    // TODO: remove account arg
+    const account = flags.account ? flags.account : (args.account as string | undefined)
     const response = await client.wallet.getAccountBalances({
       account,
       confirmations: flags.confirmations,
