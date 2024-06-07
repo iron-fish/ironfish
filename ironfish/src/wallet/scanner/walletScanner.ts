@@ -4,6 +4,7 @@
 
 import type { Wallet } from '../wallet'
 import { BufferMap } from 'buffer-map'
+import { Assert } from '../../assert'
 import { Config } from '../../fileStores'
 import { Logger } from '../../logger'
 import { Mutex } from '../../mutex'
@@ -125,7 +126,7 @@ export class WalletScanner {
 
   async connectBlock(
     blockHeader: BlockHeader,
-    transactions: { transaction: Transaction; initialNoteIndex: number }[],
+    transactions: Transaction[],
     abort?: AbortController,
   ): Promise<void> {
     if (blockHeader.sequence % 100 === 0) {
@@ -157,13 +158,14 @@ export class WalletScanner {
     const shouldDecryptAccountIds = new Set(shouldDecryptAccounts.map((a) => a.id))
 
     const decryptedTransactions = await Promise.all(
-      transactions.map(({ transaction, initialNoteIndex }) =>
-        this.wallet
-          .decryptNotes(transaction, initialNoteIndex, false, shouldDecryptAccounts)
-          .then((r) => ({
-            result: r,
-            transaction,
-          })),
+      getTransactionsWithNoteIndex(blockHeader, transactions).map(
+        ({ transaction, initialNoteIndex }) =>
+          this.wallet
+            .decryptNotes(transaction, initialNoteIndex, false, shouldDecryptAccounts)
+            .then((r) => ({
+              result: r,
+              transaction,
+            })),
       ),
     )
 
@@ -184,9 +186,10 @@ export class WalletScanner {
       }
 
       const accountTxnsMap = decryptedNotesMap.get(account.id)
-      const txns = transactions.map((t) => ({
-        transaction: t.transaction,
-        decryptedNotes: accountTxnsMap?.get(t.transaction.hash()) ?? [],
+
+      const txns = transactions.map((transaction) => ({
+        transaction,
+        decryptedNotes: accountTxnsMap?.get(transaction.hash()) ?? [],
       }))
 
       await this.wallet.connectBlockForAccount(
@@ -200,7 +203,7 @@ export class WalletScanner {
 
   async disconnectBlock(
     header: BlockHeader,
-    transactions: { transaction: Transaction; initialNoteIndex: number }[],
+    transactions: Transaction[],
     abort?: AbortController,
   ): Promise<void> {
     this.logger.debug(`AccountHead DEL: ${header.sequence} => ${Number(header.sequence) - 1}`)
@@ -223,4 +226,21 @@ export class WalletScanner {
       await this.wallet.disconnectBlockForAccount(account, header, transactions)
     }
   }
+}
+
+function getTransactionsWithNoteIndex(
+  header: BlockHeader,
+  transactions: Transaction[],
+): Array<{ transaction: Transaction; initialNoteIndex: number }> {
+  Assert.isNotNull(header.noteSize)
+  let initialNoteIndex = header.noteSize
+
+  const result = []
+
+  for (const transaction of transactions.slice().reverse()) {
+    initialNoteIndex -= transaction.notes.length
+    result.push({ transaction, initialNoteIndex })
+  }
+
+  return result.slice().reverse()
 }
