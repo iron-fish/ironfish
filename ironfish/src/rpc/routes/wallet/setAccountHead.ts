@@ -28,8 +28,8 @@ export type SetAccountHeadRequest = {
    */
   end: string
   /**
-   * Hashes of transactions between start and end in which the account
-   * is either a sender or a recipient.
+   * Blocks between start and end (inclusive) that contain transactions in which the
+   * account is either a sender or a recipient.
    */
   blocks: { hash: string; transactions: { hash: string }[] }[]
 }
