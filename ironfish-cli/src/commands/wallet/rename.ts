@@ -13,8 +13,7 @@ export class RenameCommand extends IronfishCommand {
       required: true,
       description: 'Name of the account to rename',
     }),
-    // TODO(mat): Do we need to do 'new-name', or does oclif do some magic like flags now?
-    'new-name': Args.string({
+    newName: Args.string({
       required: true,
       description: 'New name to assign to the account',
     }),
@@ -26,8 +25,7 @@ export class RenameCommand extends IronfishCommand {
 
   async start(): Promise<void> {
     const { args } = await this.parse(RenameCommand)
-    const account = args.account
-    const newName = args['new-name']
+    const { account, newName } = args
 
     const client = await this.sdk.connectRpc()
     await client.wallet.renameAccount({ account, newName })
