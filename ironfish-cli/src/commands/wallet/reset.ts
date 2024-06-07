@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { CliUx, Flags } from '@oclif/core'
+import { Args, Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
@@ -25,20 +25,19 @@ export class ResetCommand extends IronfishCommand {
     }),
   }
 
-  static args = [
-    {
-      name: 'account',
+  static args = {
+    account: Args.string({
       required: true,
       description: 'Name of the account to reset',
-    },
-  ]
+    }),
+  }
 
   async start(): Promise<void> {
     const { args, flags } = await this.parse(ResetCommand)
-    const account = args.account as string
+    const account = args.account
 
     if (!flags.confirm) {
-      const confirm = await CliUx.ux.confirm(
+      const confirm = await ux.confirm(
         `Are you sure you want to reset the account ${account}` +
           `\nThis will delete your transactions.` +
           `\nYour keys will not be deleted.` +

@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { AccountFormat, ErrorUtils, LanguageUtils } from '@ironfish/sdk'
-import { CliUx, Flags } from '@oclif/core'
+import { Args, Flags, ux } from '@oclif/core'
 import fs from 'fs'
 import jsonColorizer from 'json-colorizer'
 import path from 'path'
 import { IronfishCommand } from '../../command'
-import { ColorFlag, ColorFlagKey, RemoteFlags } from '../../flags'
+import { ColorFlag, ColorFlagKey, EnumLanguageKeyFlag, RemoteFlags } from '../../flags'
 
 export class ExportCommand extends IronfishCommand {
   static description = `Export an account`
@@ -23,10 +23,10 @@ export class ExportCommand extends IronfishCommand {
       default: false,
       description: 'Export an account to a mnemonic 24 word phrase',
     }),
-    language: Flags.enum({
+    language: EnumLanguageKeyFlag({
       description: 'Language to use for mnemonic export',
       required: false,
-      options: LanguageUtils.LANGUAGE_KEYS,
+      choices: LanguageUtils.LANGUAGE_KEYS,
     }),
     json: Flags.boolean({
       default: false,
@@ -42,13 +42,12 @@ export class ExportCommand extends IronfishCommand {
     }),
   }
 
-  static args = [
-    {
-      name: 'account',
+  static args = {
+    account: Args.string({
       required: false,
       description: 'Name of the account to export',
-    },
-  ]
+    }),
+  }
 
   async start(): Promise<void> {
     const { flags, args } = await this.parse(ExportCommand)
@@ -93,7 +92,7 @@ export class ExportCommand extends IronfishCommand {
         if (fs.existsSync(resolved)) {
           this.log(`There is already an account backup at ${exportPath}`)
 
-          const confirmed = await CliUx.ux.confirm(
+          const confirmed = await ux.confirm(
             `\nOverwrite the account backup with new file?\nAre you sure? (Y)es / (N)o`,
           )
 

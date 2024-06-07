@@ -10,7 +10,7 @@ import {
   RpcAsset,
   TransactionType,
 } from '@ironfish/sdk'
-import { CliUx, Flags } from '@oclif/core'
+import { Args, Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { getAssetsByIDs } from '../../utils'
@@ -51,18 +51,17 @@ export class TransactionsCommand extends IronfishCommand {
     }),
   }
 
-  static args = [
-    {
-      name: 'account',
+  static args = {
+    account: Args.string({
       required: false,
       description: 'Name of the account. DEPRECATED: use --account flag',
-    },
-  ]
+    }),
+  }
 
   async start(): Promise<void> {
     const { flags, args } = await this.parse(TransactionsCommand)
     // TODO: remove account arg
-    const account = flags.account ? flags.account : (args.account as string | undefined)
+    const account = flags.account ? flags.account : args.account
 
     const format: Format =
       flags.csv || flags.output === 'csv'
@@ -119,7 +118,7 @@ export class TransactionsCommand extends IronfishCommand {
         transactionRows = this.getTransactionRows(assetLookup, transaction, format)
       }
 
-      CliUx.ux.table(transactionRows, columns, {
+      ux.table(transactionRows, columns, {
         printLine: this.log.bind(this),
         ...flags,
         'no-header': !showHeader,
@@ -259,8 +258,8 @@ export class TransactionsCommand extends IronfishCommand {
     extended: boolean,
     notes: boolean,
     format: Format,
-  ): CliUx.Table.table.Columns<PartialRecursive<TransactionRow>> {
-    let columns: CliUx.Table.table.Columns<PartialRecursive<TransactionRow>> = {
+  ): ux.Table.table.Columns<PartialRecursive<TransactionRow>> {
+    let columns: ux.Table.table.Columns<PartialRecursive<TransactionRow>> = {
       timestamp: TableCols.timestamp({
         streaming: true,
       }),

@@ -11,7 +11,7 @@ import {
   TimeUtils,
   Transaction,
 } from '@ironfish/sdk'
-import { CliUx, Flags } from '@oclif/core'
+import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { HexFlag, IronFlag, RemoteFlags, ValueFlag } from '../../flags'
 import { confirmOperation } from '../../utils'
@@ -200,14 +200,14 @@ export class Send extends IronfishCommand {
     }
 
     if (!to) {
-      to = await CliUx.ux.prompt('Enter the public address of the recipient', {
+      to = await ux.prompt('Enter the public address of the recipient', {
         required: true,
       })
     }
 
     const memo =
       flags.memo?.trim() ??
-      (await CliUx.ux.prompt('Enter the memo (or leave blank)', { required: false }))
+      (await ux.prompt('Enter the memo (or leave blank)', { required: false }))
 
     if (!isValidPublicAddress(to)) {
       this.log(`A valid public address is required`)

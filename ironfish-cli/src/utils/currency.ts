@@ -4,7 +4,7 @@
 
 import { Asset } from '@ironfish/rust-nodejs'
 import { Assert, CurrencyUtils, Logger, RpcAssetVerification, RpcClient } from '@ironfish/sdk'
-import { CliUx } from '@oclif/core'
+import { ux } from '@oclif/core'
 
 /**
  * This prompts the user to enter an amount of currency in the major
@@ -57,7 +57,7 @@ export async function promptCurrency(options: {
 
   // eslint-disable-next-line no-constant-condition
   while (true) {
-    const input = await CliUx.ux.prompt(text, {
+    const input = await ux.prompt(text, {
       required: options.required,
     })
 

@@ -21,7 +21,7 @@ import {
 } from '@ironfish/sdk'
 import { BurnDescription } from '@ironfish/sdk/src/primitives/burnDescription'
 import { MintDescription } from '@ironfish/sdk/src/primitives/mintDescription'
-import { CliUx } from '@oclif/core'
+import { ux } from '@oclif/core'
 import { ProgressBar } from '../types'
 import { getAssetsByIDs, getAssetVerificationByIds } from './asset'
 
@@ -61,11 +61,11 @@ export class TransactionTimer {
     this.startTime = performance.now()
 
     if (this.estimateInMs <= 0) {
-      CliUx.ux.action.start('Sending the transaction')
+      ux.action.start('Sending the transaction')
       return
     }
 
-    this.progressBar = CliUx.ux.progress({
+    this.progressBar = ux.progress({
       format: '{title}: [{bar}] {percentage}% | {estimate}',
     }) as ProgressBar
 
@@ -97,7 +97,7 @@ export class TransactionTimer {
     this.endTime = performance.now()
 
     if (!this.progressBar || !this.timer || this.estimateInMs <= 0) {
-      CliUx.ux.action.stop()
+      ux.action.stop()
       return
     }
 
@@ -498,9 +498,9 @@ export async function watchTransaction(options: {
 
   logger.log(`Watching transaction ${options.hash}`)
 
-  CliUx.ux.action.start(`Current Status`)
+  ux.action.start(`Current Status`)
   const span = TimeUtils.renderSpan(0, { hideMilliseconds: true })
-  CliUx.ux.action.status = `${currentStatus} ${span}`
+  ux.action.status = `${currentStatus} ${span}`
 
   // eslint-disable-next-line no-constant-condition
   while (true) {
@@ -513,14 +513,14 @@ export async function watchTransaction(options: {
     currentStatus = response?.content.transaction?.status ?? 'not found'
 
     if (prevStatus !== 'not found' && currentStatus === 'not found') {
-      CliUx.ux.action.stop(`Transaction ${options.hash} deleted while watching it.`)
+      ux.action.stop(`Transaction ${options.hash} deleted while watching it.`)
       break
     }
 
     if (currentStatus === prevStatus) {
       const duration = Date.now() - lastTime
       const span = TimeUtils.renderSpan(duration, { hideMilliseconds: true })
-      CliUx.ux.action.status = `${currentStatus} ${span}`
+      ux.action.status = `${currentStatus} ${span}`
       await PromiseUtils.sleep(pollFrequencyMs)
       continue
     }
@@ -530,7 +530,7 @@ export async function watchTransaction(options: {
     const duration = now - lastTime
     lastTime = now
 
-    CliUx.ux.action.stop(
+    ux.action.stop(
       `${prevStatus} -> ${currentStatus}: ${TimeUtils.renderSpan(duration, {
         hideMilliseconds: true,
       })}`,
@@ -539,14 +539,14 @@ export async function watchTransaction(options: {
     last = response
     prevStatus = currentStatus
 
-    CliUx.ux.action.start(`Current Status`)
+    ux.action.start(`Current Status`)
     const span = TimeUtils.renderSpan(0, { hideMilliseconds: true })
-    CliUx.ux.action.status = `${currentStatus} ${span}`
+    ux.action.status = `${currentStatus} ${span}`
 
     if (currentStatus !== 'not found' && waitUntil.includes(currentStatus)) {
       const duration = now - startTime
       const span = TimeUtils.renderSpan(duration, { hideMilliseconds: true })
-      CliUx.ux.action.stop(`done after ${span}`)
+      ux.action.stop(`done after ${span}`)
       break
     }
   }

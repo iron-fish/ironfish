@@ -12,7 +12,7 @@ import {
   StratumTcpClient,
   StratumTlsClient,
 } from '@ironfish/sdk'
-import { CliUx, Flags } from '@oclif/core'
+import { Flags, ux } from '@oclif/core'
 import dns from 'dns'
 import os from 'os'
 import { IronfishCommand } from '../../command'
@@ -174,12 +174,12 @@ export class Miner extends IronfishCommand {
   }
 
   displayHashrate(miner: MiningPoolMiner | MiningSoloMiner): void {
-    CliUx.ux.action.start(`Hashrate`)
+    ux.action.start(`Hashrate`)
 
     const updateHashPower = () => {
       const rate = Math.max(0, Math.floor(miner.hashRate.rate5s))
       const formatted = `${FileUtils.formatHashRate(rate)}/s (${rate})`
-      CliUx.ux.action.status = formatted
+      ux.action.status = formatted
     }
 
     this.updateInterval = setInterval(updateHashPower, 1000)

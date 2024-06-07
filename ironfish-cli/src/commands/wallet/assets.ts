@@ -9,7 +9,7 @@ import {
   PUBLIC_ADDRESS_LENGTH,
 } from '@ironfish/rust-nodejs'
 import { BufferUtils } from '@ironfish/sdk'
-import { CliUx, Flags } from '@oclif/core'
+import { Args, Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { renderAssetWithVerificationStatus } from '../../utils'
@@ -33,18 +33,17 @@ export class AssetsCommand extends IronfishCommand {
     }),
   }
 
-  static args = [
-    {
-      name: 'account',
+  static args = {
+    account: Args.string({
       required: false,
       description: 'Name of the account. DEPRECATED: use --account flag',
-    },
-  ]
+    }),
+  }
 
   async start(): Promise<void> {
     const { flags, args } = await this.parse(AssetsCommand)
     // TODO: remove account arg
-    const account = flags.account ? flags.account : (args.account as string | undefined)
+    const account = flags.account ? flags.account : args.account
 
     const client = await this.sdk.connectRpc()
     const response = client.wallet.getAssets({
@@ -60,7 +59,7 @@ export class AssetsCommand extends IronfishCommand {
     let showHeader = !flags['no-header']
 
     for await (const asset of response.contentStream()) {
-      CliUx.ux.table(
+      ux.table(
         [asset],
         {
           name: TableCols.fixedWidth({

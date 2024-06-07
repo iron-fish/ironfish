@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { BufferUtils, CurrencyUtils, GetBalancesResponse, RpcAsset } from '@ironfish/sdk'
-import { CliUx, Flags } from '@oclif/core'
+import { Args, Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { compareAssets, renderAssetWithVerificationStatus } from '../../utils'
@@ -30,20 +30,19 @@ export class BalancesCommand extends IronfishCommand {
     }),
   }
 
-  static args = [
-    {
-      name: 'account',
+  static args = {
+    account: Args.string({
       required: false,
       description: 'Name of the account to get balances for. DEPRECATED: use --account flag',
-    },
-  ]
+    }),
+  }
 
   async start(): Promise<void> {
     const { flags, args } = await this.parse(BalancesCommand)
     const client = await this.sdk.connectRpc()
 
     // TODO: remove account arg
-    const account = flags.account ? flags.account : (args.account as string | undefined)
+    const account = flags.account ? flags.account : args.account
     const response = await client.wallet.getAccountBalances({
       account,
       confirmations: flags.confirmations,
@@ -65,7 +64,7 @@ export class BalancesCommand extends IronfishCommand {
       })
     }
 
-    let columns: CliUx.Table.table.Columns<AssetBalancePairs> = {
+    let columns: ux.Table.table.Columns<AssetBalancePairs> = {
       assetName: {
         header: 'Asset Name',
         get: ({ asset }) =>
@@ -130,6 +129,6 @@ export class BalancesCommand extends IronfishCommand {
       ),
     )
 
-    CliUx.ux.table(assetBalancePairs, columns, { ...flags })
+    ux.table(assetBalancePairs, columns, { ...flags })
   }
 }

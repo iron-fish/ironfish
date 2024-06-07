@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { BenchUtils, IronfishSdk, NodeUtils } from '@ironfish/sdk'
-import { CliUx, Flags } from '@oclif/core'
+import { Flags, ux } from '@oclif/core'
 import blessed from 'blessed'
 import fs from 'fs/promises'
 import path from 'path'
@@ -32,16 +32,14 @@ export default class Benchmark extends IronfishCommand {
     }),
   }
 
-  static args = []
-
   async start(): Promise<void> {
     const { flags } = await this.parse(Benchmark)
     const { blocks } = flags
 
-    CliUx.ux.action.start(`Opening node`)
+    ux.action.start(`Opening node`)
     const node = await this.sdk.node()
     await NodeUtils.waitForOpen(node)
-    CliUx.ux.action.stop('done.')
+    ux.action.stop('done.')
 
     let targetDirectory
     if (!flags.targetdir) {
@@ -51,7 +49,7 @@ export default class Benchmark extends IronfishCommand {
       targetDirectory = path.join(flags.targetdir)
     }
 
-    CliUx.ux.action.start(`Opening node in ${targetDirectory}`)
+    ux.action.start(`Opening node in ${targetDirectory}`)
 
     const noLoggingConfig = Object.assign({}, this.sdk.config.overrides)
     noLoggingConfig.logLevel = '*:error'
@@ -65,7 +63,7 @@ export default class Benchmark extends IronfishCommand {
     const tempNode = await tmpSdk.node()
     await NodeUtils.waitForOpen(tempNode)
     tempNode.workerPool.start()
-    CliUx.ux.action.stop('done.')
+    ux.action.stop('done.')
 
     const startingSequence = tempNode.chain.head.sequence
     const startingHeader = await node.chain.getHeaderAtSequence(startingSequence)

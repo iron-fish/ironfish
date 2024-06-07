@@ -13,7 +13,7 @@ import {
   TESTNET,
   Transaction,
 } from '@ironfish/sdk'
-import { CliUx, Flags } from '@oclif/core'
+import { Flags, ux } from '@oclif/core'
 import inquirer from 'inquirer'
 import * as validator from 'web3-validator'
 import { IronfishCommand } from '../../../command'
@@ -171,7 +171,7 @@ export class BridgeCommand extends IronfishCommand {
     }
 
     if (!to) {
-      to = await CliUx.ux.prompt('Enter the public address of the recipient', {
+      to = await ux.prompt('Enter the public address of the recipient', {
         required: true,
       })
     }
@@ -370,17 +370,17 @@ export class BridgeCommand extends IronfishCommand {
 
     const summary = `\
  \nBRIDGE TRANSACTION SUMMARY:
- 
+
  From                           ${from}
  To                             ${to}
  Target Network                 ${network.name}
  Estimated Amount Received      ${bridgeAmount}
- 
+
  Fees:
  Chainport Fee                  ${chainportFee}
  Target Network Fee             ${targetNetworkFee}
  Ironfish Network Fee           ${ironfishNetworkFee}
- 
+
  Outputs                        ${raw.outputs.length}
  Spends                         ${raw.spends.length}
  Expiration                     ${raw.expiration ? raw.expiration.toString() : ''}
@@ -393,9 +393,9 @@ export class BridgeCommand extends IronfishCommand {
     targetNetworks: number[],
     asset: ChainportVerifiedToken,
   ): Promise<ChainportNetwork> {
-    CliUx.ux.action.start('Fetching available networks')
+    ux.action.start('Fetching available networks')
     const networks = await fetchChainportNetworkMap(networkId)
-    CliUx.ux.action.stop()
+    ux.action.stop()
 
     const choices = Object.keys(networks).map((key) => {
       return {

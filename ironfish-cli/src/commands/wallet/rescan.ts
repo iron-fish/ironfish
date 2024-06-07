@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Meter, TimeUtils } from '@ironfish/sdk'
-import { CliUx, Flags } from '@oclif/core'
+import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { ProgressBar } from '../../types'
@@ -36,7 +36,7 @@ export class RescanCommand extends IronfishCommand {
 
     const client = await this.sdk.connectRpc(local)
 
-    CliUx.ux.action.start('Asking node to start scanning', undefined, {
+    ux.action.start('Asking node to start scanning', undefined, {
       stdout: true,
     })
 
@@ -44,7 +44,7 @@ export class RescanCommand extends IronfishCommand {
 
     const speed = new Meter()
 
-    const progress = CliUx.ux.progress({
+    const progress = ux.progress({
       format: 'Scanning Blocks: [{bar}] {value}/{total} {percentage}% {speed}/sec | {estimate}',
     }) as ProgressBar
 
@@ -54,7 +54,7 @@ export class RescanCommand extends IronfishCommand {
     try {
       for await (const { endSequence, sequence } of response.contentStream()) {
         if (!started) {
-          CliUx.ux.action.stop()
+          ux.action.stop()
           speed.start()
           progress.start(endSequence, 0)
           started = true

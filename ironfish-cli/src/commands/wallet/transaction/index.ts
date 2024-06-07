@@ -9,7 +9,7 @@ import {
   RpcWalletNote,
   TimeUtils,
 } from '@ironfish/sdk'
-import { CliUx, Flags } from '@oclif/core'
+import { Args, Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 import {
@@ -31,25 +31,23 @@ export class TransactionCommand extends IronfishCommand {
     }),
   }
 
-  static args = [
-    {
-      name: 'hash',
+  static args = {
+    hash: Args.string({
       parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: true,
       description: 'Hash of the transaction',
-    },
-    {
-      name: 'account',
+    }),
+    account: Args.string({
       required: false,
       description: 'Name of the account. DEPRECATED: use --account flag',
-    },
-  ]
+    }),
+  }
 
   async start(): Promise<void> {
     const { flags, args } = await this.parse(TransactionCommand)
-    const hash = args.hash as string
+    const hash = args.hash
     // TODO: remove account arg
-    const account = flags.account ? flags.account : (args.account as string | undefined)
+    const account = flags.account ? flags.account : args.account
 
     const client = await this.sdk.connectRpc()
     const networkId = (await client.chain.getNetworkInfo()).content.networkId
@@ -98,9 +96,9 @@ export class TransactionCommand extends IronfishCommand {
     if (chainportTxnDetails) {
       this.log(`\n---Chainport Bridge Transaction Summary---\n`)
 
-      CliUx.ux.action.start('Fetching network details')
+      ux.action.start('Fetching network details')
       const chainportNetworks = await fetchChainportNetworkMap(networkId)
-      CliUx.ux.action.stop()
+      ux.action.stop()
 
       await displayChainportTransactionSummary(
         networkId,
@@ -130,7 +128,7 @@ export class TransactionCommand extends IronfishCommand {
         })
       }
 
-      CliUx.ux.table(noteAssetPairs, {
+      ux.table(noteAssetPairs, {
         amount: {
           header: 'Amount',
           get: ({ asset, note }) =>
@@ -161,7 +159,7 @@ export class TransactionCommand extends IronfishCommand {
 
     if (response.content.transaction.spends.length > 0) {
       this.log(`\n---Spends---\n`)
-      CliUx.ux.table(response.content.transaction.spends, {
+      ux.table(response.content.transaction.spends, {
         size: {
           header: 'Size',
           get: (spend) => spend.size,
@@ -187,7 +185,7 @@ export class TransactionCommand extends IronfishCommand {
       )
 
       this.log(`\n---Asset Balance Deltas---\n`)
-      CliUx.ux.table(assetBalanceDeltas, {
+      ux.table(assetBalanceDeltas, {
         assetId: {
           header: 'Asset ID',
         },

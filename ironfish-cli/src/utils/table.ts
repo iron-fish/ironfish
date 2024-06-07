@@ -4,7 +4,7 @@
 
 import { ASSET_NAME_LENGTH } from '@ironfish/rust-nodejs'
 import { Assert, BufferUtils, TimeUtils } from '@ironfish/sdk'
-import { CliUx, Flags } from '@oclif/core'
+import { Flags, ux } from '@oclif/core'
 import { table } from '@oclif/core/lib/cli-ux/styled/table'
 
 /**
@@ -134,7 +134,7 @@ export enum Format {
 
 export const TableCols = { timestamp, asset, fixedWidth }
 
-const { 'no-truncate': _, ...tableFlags } = CliUx.ux.table.flags()
+const { 'no-truncate': _, ...tableFlags } = ux.table.flags()
 
 export const TableFlags = {
   ...tableFlags,

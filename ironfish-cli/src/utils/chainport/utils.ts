@@ -8,7 +8,7 @@ import {
   RpcWalletTransaction,
   TransactionType,
 } from '@ironfish/sdk'
-import { CliUx } from '@oclif/core'
+import { ux } from '@oclif/core'
 import { getConfig, isNetworkSupportedByChainport } from './config'
 import { ChainportMemoMetadata } from './metadata'
 import { fetchChainportTransactionStatus } from './requests'
@@ -124,9 +124,9 @@ Target (Ironfish) Network:    ${defaultNetworkName(networkId)}`)
     return
   }
 
-  CliUx.ux.action.start('Fetching transaction information on target network')
+  ux.action.start('Fetching transaction information on target network')
   const transactionStatus = await fetchChainportTransactionStatus(networkId, hash)
-  CliUx.ux.action.stop()
+  ux.action.stop()
 
   if (Object.keys(transactionStatus).length === 0 || !transactionStatus.target_network_id) {
     logger.log(

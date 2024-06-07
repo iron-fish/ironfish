@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { UnsignedTransaction } from '@ironfish/sdk'
-import { CliUx, Flags } from '@oclif/core'
+import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
 import { longPrompt } from '../../../../utils/input'
@@ -81,7 +81,7 @@ export class CreateSigningCommitmentCommand extends IronfishCommand {
     )
 
     if (!flags.confirm) {
-      const confirmed = await CliUx.ux.confirm('Confirm signing commitment creation (Y/N)')
+      const confirmed = await ux.confirm('Confirm signing commitment creation (Y/N)')
       if (!confirmed) {
         this.error('Creating signing commitment aborted')
       }

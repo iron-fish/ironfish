@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { ACCOUNT_SCHEMA_VERSION, RpcClient } from '@ironfish/sdk'
-import { CliUx, Flags } from '@oclif/core'
+import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
 import { longPrompt } from '../../../../utils/input'
@@ -53,7 +53,7 @@ export class MultisigCreateDealer extends IronfishCommand {
 
     let minSigners = flags.minSigners
     if (!minSigners) {
-      const input = await CliUx.ux.prompt('Enter the number of minimum signers', {
+      const input = await ux.prompt('Enter the number of minimum signers', {
         required: true,
       })
       minSigners = parseInt(input)
@@ -81,7 +81,7 @@ export class MultisigCreateDealer extends IronfishCommand {
 
     if (flags.importCoordinator) {
       this.log()
-      CliUx.ux.action.start('Importing the coordinator as a view-only account')
+      ux.action.start('Importing the coordinator as a view-only account')
 
       await client.wallet.importAccount({
         account: {
@@ -103,7 +103,7 @@ export class MultisigCreateDealer extends IronfishCommand {
         },
       })
 
-      CliUx.ux.action.stop()
+      ux.action.stop()
     }
 
     for (const [i, { identity, account }] of response.content.participantAccounts.entries()) {
@@ -128,8 +128,7 @@ export class MultisigCreateDealer extends IronfishCommand {
 
     let name = inputName
     do {
-      name =
-        name ?? (await CliUx.ux.prompt('Enter a name for the coordinator', { required: true }))
+      name = name ?? (await ux.prompt('Enter a name for the coordinator', { required: true }))
 
       if (accountNames.has(name)) {
         this.log(`Account with name ${name} already exists`)

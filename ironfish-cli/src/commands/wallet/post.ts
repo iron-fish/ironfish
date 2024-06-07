@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { RawTransaction, RawTransactionSerde, RpcClient, Transaction } from '@ironfish/sdk'
-import { CliUx, Flags } from '@oclif/core'
+import { Args, Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { longPrompt } from '../../utils/input'
@@ -37,16 +37,15 @@ export class PostCommand extends IronfishCommand {
     }),
   }
 
-  static args = [
-    {
-      name: 'transaction',
+  static args = {
+    transaction: Args.string({
       description: 'The raw transaction in hex encoding',
-    },
-  ]
+    }),
+  }
 
   async start(): Promise<void> {
     const { flags, args } = await this.parse(PostCommand)
-    let transaction = args.transaction as string | undefined
+    let transaction = args.transaction
 
     if (!transaction) {
       transaction = await longPrompt('Enter the raw transaction in hex encoding', {
@@ -67,14 +66,14 @@ export class PostCommand extends IronfishCommand {
       }
     }
 
-    CliUx.ux.action.start(`Posting the transaction`)
+    ux.action.start(`Posting the transaction`)
 
     const response = await client.wallet.postTransaction({
       transaction,
       broadcast: flags.broadcast,
     })
 
-    CliUx.ux.action.stop()
+    ux.action.stop()
 
     const posted = new Transaction(Buffer.from(response.content.transaction, 'hex'))
 
@@ -113,7 +112,7 @@ export class PostCommand extends IronfishCommand {
 
     await renderRawTransactionDetails(client, raw, account, this.logger)
 
-    return CliUx.ux.confirm('Do you want to post this (Y/N)?')
+    return ux.confirm('Do you want to post this (Y/N)?')
   }
 
   async getAccountName(
