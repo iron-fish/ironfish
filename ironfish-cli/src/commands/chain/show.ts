@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Args } from '@oclif/core'
-import { parseNumber } from '../../args'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
 
@@ -15,13 +14,11 @@ export default class Show extends IronfishCommand {
 
   static args = {
     start: Args.integer({
-      parse: (input: string): Promise<number> => parseNumber(input),
       default: -50,
       required: false,
       description: 'The sequence to start at (inclusive, genesis block is 1)',
     }),
     stop: Args.integer({
-      parse: (input: string): Promise<number> => parseNumber(input),
       required: false,
       description: 'The sequence to end at (inclusive)',
     }),

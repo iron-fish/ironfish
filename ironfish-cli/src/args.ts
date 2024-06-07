@@ -2,15 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-export function parseNumber(input: string): Promise<number> {
-  const parsed = Number(input)
-  if (isNaN(parsed)) {
-    return Promise.reject(`Invalid number: ${input}`)
-  } else {
-    return Promise.resolve(parsed)
-  }
-}
-
 // TODO(mat): No idea if this remotely works the way I expect yet
 export function parseUrl(input: string): Promise<URL> {
   const parsed = new URL(input)

@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { FileUtils } from '@ironfish/sdk'
 import { Args, Flags } from '@oclif/core'
-import { parseNumber } from '../../args'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
 
@@ -21,7 +20,6 @@ export default class Power extends IronfishCommand {
 
   static args = {
     block: Args.integer({
-      parse: (input: string): Promise<number> => parseNumber(input),
       required: false,
       description: 'The sequence of the block to estimate network speed for',
     }),

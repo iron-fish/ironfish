@@ -11,7 +11,6 @@ export default class Asset extends IronfishCommand {
 
   static args = {
     id: Args.string({
-      // TODO(mat): Do we still need these parse functions? Revisit once we can build..
       parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: true,
       description: 'The identifier of the asset',

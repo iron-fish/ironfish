@@ -4,7 +4,6 @@
 import { AsyncUtils, GENESIS_BLOCK_SEQUENCE } from '@ironfish/sdk'
 import { Args, Flags, ux } from '@oclif/core'
 import fs from 'fs'
-import { parseNumber } from '../../args'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { ProgressBar } from '../../types'
@@ -23,17 +22,12 @@ export default class Export extends IronfishCommand {
   }
 
   static args = {
-    // TODO(mat): Verify these new parse methods function about the same. We
-    // also shouldn't need to be doing verification of this nullable number type
-    // in the logic anymore, so remove that too
     start: Args.integer({
-      parse: (input: string): Promise<number> => parseNumber(input),
       default: Number(GENESIS_BLOCK_SEQUENCE),
       required: false,
       description: 'The sequence to start at (inclusive, genesis block is 1)',
     }),
     stop: Args.integer({
-      parse: (input: string): Promise<number> => parseNumber(input),
       required: false,
       description: 'The sequence to end at (inclusive)',
     }),
