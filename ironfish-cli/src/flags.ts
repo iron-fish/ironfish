@@ -188,11 +188,11 @@ export const HexFlag = Flags.custom<string>({
 
 export const EnumLanguageKeyFlag = Flags.custom<LanguageKey, { choices: Array<LanguageKey> }>({
   parse: async (input, _ctx, opts) => {
-    const parsed = opts.choices.find((valid) => valid === input)
+    const parsed = opts.choices.find((valid) => valid.toLowerCase() === input.toLowerCase())
     if (parsed) {
       return Promise.resolve(parsed)
     } else {
-      return Promise.reject(`Invalid choice: ${input}`)
+      return Promise.reject(new Error(`Invalid choice: ${input}`))
     }
   },
 })
