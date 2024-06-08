@@ -28,8 +28,8 @@ export type SetAccountHeadRequest = {
    */
   end: string
   /**
-   * Hashes of transactions between start and end in which the account
-   * is either a sender or a recipient.
+   * Blocks between start and end (inclusive) that contain transactions in which the
+   * account is either a sender or a recipient.
    */
   blocks: { hash: string; transactions: { hash: string }[] }[]
 }
@@ -93,7 +93,7 @@ routes.register<typeof SetAccountHeadRequestSchema, SetAccountHeadResponse>(
 
     if (account.scanningEnabled) {
       throw new RpcResponseError(
-        `Cannot set account head while account scanning is enabled. Try calling wallet/stopScanning first.`,
+        `Cannot set account head while account scanning is enabled. Try calling wallet/setScanning first.`,
         RPC_ERROR_CODES.ERROR,
         409,
       )
