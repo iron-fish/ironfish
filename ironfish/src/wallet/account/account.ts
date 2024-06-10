@@ -91,7 +91,7 @@ export class Account {
     this.displayName = `${accountValue.name} (${accountValue.id.slice(0, 7)})`
 
     this.walletDb = walletDb
-    this.version = accountValue.version ?? 1
+    this.version = accountValue.version
     this.createdAt = accountValue.createdAt
     this.scanningEnabled = accountValue.scanningEnabled
     this.multisigKeys = accountValue.multisigKeys

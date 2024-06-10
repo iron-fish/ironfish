@@ -163,14 +163,14 @@ export type RpcMultisigKeys = {
 }
 
 export type RpcAccountImport = {
-  version: number
+  version?: number
   name: string
-  viewKey: string
+  viewKey?: string
   incomingViewKey: string
   outgoingViewKey: string
   publicAddress: string
   spendingKey: string | null
-  createdAt: { hash: string; sequence: number } | null
+  createdAt: { hash: string; sequence: number } | string | null
   multisigKeys?: RpcMultisigKeys
   proofAuthorizingKey: string | null
 }
