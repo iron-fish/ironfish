@@ -20,19 +20,6 @@ export function parseUrl(input: string): Promise<Url> {
   }
 }
 
-/**
- * Oclif currently rejects falsy args as if they weren't included,
- * so this function returns the strings 'true' or 'false' instead. This
- * is fixed in newer versions of oclif.
- */
-export function parseBoolean(input: string): 'true' | 'false' | null {
-  const lower = input.toLowerCase().trim()
-  if (lower === 'true' || lower === 'false') {
-    return lower
-  }
-  return null
-}
-
 export const UrlArg = Args.custom<Url>({
   parse: async (input: string) => parseUrl(input),
 })
