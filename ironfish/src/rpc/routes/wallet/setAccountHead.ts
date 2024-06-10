@@ -4,7 +4,7 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { FullNode } from '../../../node'
-import { BlockHeader, Transaction } from '../../../primitives'
+import { Block, BlockHeader, Transaction } from '../../../primitives'
 import { DecryptedNote } from '../../../workerPool/tasks/decryptNotes'
 import { RPC_ERROR_CODES, RpcResponseError, RpcValidationError } from '../../adapters'
 import { ApiNamespace } from '../namespaces'
@@ -136,11 +136,13 @@ routes.register<typeof SetAccountHeadRequestSchema, SetAccountHeadResponse>(
           return
         }
 
-        const header: BlockHeader | null = await context.chain.getHeader(accountHead.hash)
-        Assert.isNotNull(header, 'Account head must be in chain')
-        const blockTransactions = await context.chain.getBlockTransactions(header)
-        const transactions = blockTransactions.map((txn) => txn.transaction)
-        await context.wallet.disconnectBlockForAccount(account, header, transactions)
+        const block: Block | null = await context.chain.getBlock(accountHead.hash)
+        Assert.isNotNull(block, 'Account head must be in chain')
+        await context.wallet.disconnectBlockForAccount(
+          account,
+          block.header,
+          block.transactions,
+        )
         accountHead = await account.getHead()
       }
     }
