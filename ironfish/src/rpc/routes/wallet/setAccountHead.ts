@@ -138,7 +138,8 @@ routes.register<typeof SetAccountHeadRequestSchema, SetAccountHeadResponse>(
 
         const header: BlockHeader | null = await context.chain.getHeader(accountHead.hash)
         Assert.isNotNull(header, 'Account head must be in chain')
-        const transactions = await context.chain.getBlockTransactions(header)
+        const blockTransactions = await context.chain.getBlockTransactions(header)
+        const transactions = blockTransactions.map((txn) => txn.transaction)
         await context.wallet.disconnectBlockForAccount(account, header, transactions)
         accountHead = await account.getHead()
       }

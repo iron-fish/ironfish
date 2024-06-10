@@ -19,29 +19,8 @@ export class RemoteChainProcessor {
   nodeClient: RpcClient | null
   maxQueueSize: number
 
-  onAdd = new Event<
-    [
-      {
-        header: BlockHeader
-        transactions: {
-          transaction: Transaction
-          initialNoteIndex: number
-        }[]
-      },
-    ]
-  >()
-
-  onRemove = new Event<
-    [
-      {
-        header: BlockHeader
-        transactions: {
-          transaction: Transaction
-          initialNoteIndex: number
-        }[]
-      },
-    ]
-  >()
+  onAdd = new Event<[{ header: BlockHeader; transactions: Transaction[] }]>()
+  onRemove = new Event<[{ header: BlockHeader; transactions: Transaction[] }]>()
 
   constructor(options: {
     logger: Logger
@@ -79,11 +58,7 @@ export class RemoteChainProcessor {
       }
 
       const header = deserializeRpcBlockHeader(block)
-
-      const transactions = this.mapTransactionWithNoteIndex(
-        header,
-        block.transactions.map((tx) => deserializeRpcTransaction(tx)),
-      )
+      const transactions = block.transactions.map(deserializeRpcTransaction)
 
       if (type === 'connected') {
         this.hash = header.hash
@@ -103,22 +78,5 @@ export class RemoteChainProcessor {
 
     const hashChanged = !BufferUtils.equalsNullable(this.hash, oldHash)
     return { hashChanged }
-  }
-
-  mapTransactionWithNoteIndex(
-    header: BlockHeader,
-    transactions: Transaction[],
-  ): Array<{ transaction: Transaction; initialNoteIndex: number }> {
-    Assert.isNotNull(header.noteSize)
-    let initialNoteIndex = header.noteSize
-
-    const result = []
-
-    for (const transaction of transactions.slice().reverse()) {
-      initialNoteIndex -= transaction.notes.length
-      result.push({ transaction, initialNoteIndex })
-    }
-
-    return result.slice().reverse()
   }
 }

@@ -603,12 +603,12 @@ export class Wallet {
   async disconnectBlockForAccount(
     account: Account,
     header: BlockHeader,
-    transactions: { transaction: Transaction; initialNoteIndex: number }[],
+    transactions: Transaction[],
   ) {
     const assetBalanceDeltas = new AssetBalances()
 
     await this.walletDb.db.transaction(async (tx) => {
-      for (const { transaction } of transactions.slice().reverse()) {
+      for (const transaction of transactions.slice().reverse()) {
         const transactionDeltas = await account.disconnectTransaction(header, transaction, tx)
 
         assetBalanceDeltas.update(transactionDeltas)

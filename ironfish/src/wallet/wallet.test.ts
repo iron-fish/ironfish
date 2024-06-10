@@ -1665,7 +1665,10 @@ describe('Wallet', () => {
       await expect(node.chain).toAddBlock(blockA2)
 
       const transactions = await node.chain.getBlockTransactions(blockA2.header)
-      await node.wallet.scanner.connectBlock(blockA2.header, transactions)
+      await node.wallet.scanner.connectBlock(
+        blockA2.header,
+        transactions.map((t) => t.transaction),
+      )
 
       const transactionValue = await accountA.getTransaction(transaction.hash())
 
@@ -1688,7 +1691,10 @@ describe('Wallet', () => {
       await expect(node.chain).toAddBlock(blockA2)
 
       const transactions = await node.chain.getBlockTransactions(blockA2.header)
-      await node.wallet.scanner.connectBlock(blockA2.header, transactions)
+      await node.wallet.scanner.connectBlock(
+        blockA2.header,
+        transactions.map((t) => t.transaction),
+      )
 
       const accountAHead = await accountA.getHead()
 
@@ -1712,7 +1718,10 @@ describe('Wallet', () => {
       await expect(node.chain).toAddBlock(blockA2)
 
       const transactions = await node.chain.getBlockTransactions(blockA2.header)
-      await node.wallet.scanner.connectBlock(blockA2.header, transactions)
+      await node.wallet.scanner.connectBlock(
+        blockA2.header,
+        transactions.map((t) => t.transaction),
+      )
 
       const balanceAfter = await accountA.getUnconfirmedBalance(Asset.nativeId())
       expect(balanceAfter.unconfirmed).toEqual(1999999998n)
@@ -1731,13 +1740,19 @@ describe('Wallet', () => {
       await expect(node.chain).toAddBlock(blockA2)
 
       const transactions = await node.chain.getBlockTransactions(blockA2.header)
-      await node.wallet.scanner.connectBlock(blockA2.header, transactions)
+      await node.wallet.scanner.connectBlock(
+        blockA2.header,
+        transactions.map((t) => t.transaction),
+      )
 
       let accountAHead = await accountA.getHead()
       expect(accountAHead?.hash).toEqualHash(blockA2.header.hash)
 
       // Try to connect A2 again
-      await node.wallet.scanner.connectBlock(blockA1.header, transactions)
+      await node.wallet.scanner.connectBlock(
+        blockA1.header,
+        transactions.map((t) => t.transaction),
+      )
 
       // accountA head hash should be unchanged
       accountAHead = await accountA.getHead()
@@ -1757,7 +1772,10 @@ describe('Wallet', () => {
       await expect(node.chain).toAddBlock(blockA2)
 
       const transactionsA2 = await node.chain.getBlockTransactions(blockA2.header)
-      await node.wallet.scanner.connectBlock(blockA2.header, transactionsA2)
+      await node.wallet.scanner.connectBlock(
+        blockA2.header,
+        transactionsA2.map((t) => t.transaction),
+      )
 
       let accountAHead = await accountA.getHead()
       expect(accountAHead?.hash).toEqualHash(blockA2.header.hash)
@@ -1766,7 +1784,10 @@ describe('Wallet', () => {
 
       // Try to connect A1 again
       const transactionsA1 = await node.chain.getBlockTransactions(blockA1.header)
-      await node.wallet.scanner.connectBlock(blockA1.header, transactionsA1)
+      await node.wallet.scanner.connectBlock(
+        blockA1.header,
+        transactionsA1.map((t) => t.transaction),
+      )
 
       expect(updateHeadSpy).not.toHaveBeenCalled()
 
@@ -1795,7 +1816,10 @@ describe('Wallet', () => {
 
       // Try to connect A3
       const transactionsA3 = await node.chain.getBlockTransactions(blockA3.header)
-      await node.wallet.scanner.connectBlock(blockA3.header, transactionsA3)
+      await node.wallet.scanner.connectBlock(
+        blockA3.header,
+        transactionsA3.map((t) => t.transaction),
+      )
 
       expect(updateHeadSpy).not.toHaveBeenCalled()
 
@@ -2085,13 +2109,19 @@ describe('Wallet', () => {
       Assert.isNotNull(accountA)
 
       const transactions = await nodeA.chain.getBlockTransactions(nodeA.chain.genesis)
-      await nodeA.wallet.scanner.connectBlock(nodeA.chain.genesis, transactions)
+      await nodeA.wallet.scanner.connectBlock(
+        nodeA.chain.genesis,
+        transactions.map((t) => t.transaction),
+      )
 
       const decryptSpy = jest.spyOn(nodeA.wallet, 'decryptNotes')
 
       // reconnect block2
       const transactions2 = await nodeA.chain.getBlockTransactions(block2.header)
-      await nodeA.wallet.scanner.connectBlock(block2.header, transactions2)
+      await nodeA.wallet.scanner.connectBlock(
+        block2.header,
+        transactions2.map((t) => t.transaction),
+      )
 
       // see that decryption was skipped for accountB
       expect(decryptSpy).toHaveBeenCalledTimes(1)
@@ -2277,7 +2307,10 @@ describe('Wallet', () => {
 
       // Try to disconnect blockA1
       const transactions = await node.chain.getBlockTransactions(blockA1.header)
-      await node.wallet.scanner.disconnectBlock(blockA1.header, transactions)
+      await node.wallet.scanner.disconnectBlock(
+        blockA1.header,
+        transactions.map((t) => t.transaction),
+      )
 
       // Verify accountA head hash unchanged
       accountAHead = await accountA.getHead()
@@ -2303,7 +2336,10 @@ describe('Wallet', () => {
 
       // Try to disconnect blockA2
       const transactions = await node.chain.getBlockTransactions(blockA2.header)
-      await node.wallet.scanner.disconnectBlock(blockA2.header, transactions)
+      await node.wallet.scanner.disconnectBlock(
+        blockA2.header,
+        transactions.map((t) => t.transaction),
+      )
 
       expect(updateHeadSpy).not.toHaveBeenCalled()
 
@@ -2330,7 +2366,10 @@ describe('Wallet', () => {
 
       // disconnect blockA1
       const transactions = await node.chain.getBlockTransactions(blockA1.header)
-      await node.wallet.scanner.disconnectBlock(blockA1.header, transactions)
+      await node.wallet.scanner.disconnectBlock(
+        blockA1.header,
+        transactions.map((t) => t.transaction),
+      )
 
       await expect(accountA.hasTransaction(transaction.hash())).resolves.toEqual(false)
     })
@@ -2372,7 +2411,10 @@ describe('Wallet', () => {
       })
 
       const transactions = await node.chain.getBlockTransactions(blockA2.header)
-      await node.wallet.scanner.disconnectBlock(blockA2.header, transactions)
+      await node.wallet.scanner.disconnectBlock(
+        blockA2.header,
+        transactions.map((t) => t.transaction),
+      )
 
       await expect(accountA.getUnconfirmedBalance(Asset.nativeId())).resolves.toMatchObject({
         blockHash: blockA1.header.hash,
@@ -2440,7 +2482,10 @@ describe('Wallet', () => {
       })
 
       const transactions = await node.chain.getBlockTransactions(blockA3.header)
-      await node.wallet.scanner.disconnectBlock(blockA3.header, transactions)
+      await node.wallet.scanner.disconnectBlock(
+        blockA3.header,
+        transactions.map((t) => t.transaction),
+      )
 
       await expect(accountA.getUnconfirmedBalance(Asset.nativeId())).resolves.toMatchObject({
         blockHash: mintBlock.header.hash,
@@ -2477,7 +2522,10 @@ describe('Wallet', () => {
 
       // disconnect block3 so that accountB's createdAt is updated
       const transactions = await node.chain.getBlockTransactions(block3.header)
-      await node.wallet.scanner.disconnectBlock(block3.header, transactions)
+      await node.wallet.scanner.disconnectBlock(
+        block3.header,
+        transactions.map((t) => t.transaction),
+      )
 
       // accountB.createdAt should now reference block2, the previous block from block3
       expect(accountB.createdAt?.hash).toEqualHash(block2.header.hash)
