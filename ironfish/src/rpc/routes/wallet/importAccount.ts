@@ -10,14 +10,12 @@ import { RPC_ERROR_CODES, RpcValidationError } from '../../adapters'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import { AssertHasRpcContext } from '../rpcContext'
-import { deserializeRpcAccountImport } from './serializers'
-import { RpcAccountImport } from './types'
 import { tryDecodeAccountWithMultisigSecrets } from './utils'
 
 export class ImportError extends Error {}
 
 export type ImportAccountRequest = {
-  account: RpcAccountImport | string
+  account: string
   name?: string
   rescan?: boolean
 }
@@ -31,7 +29,7 @@ export const ImportAccountRequestSchema: yup.ObjectSchema<ImportAccountRequest> 
   .object({
     rescan: yup.boolean().optional().default(true),
     name: yup.string().optional(),
-    account: yup.mixed<RpcAccountImport | string>().defined(),
+    account: yup.string().defined(),
   })
   .defined()
 
@@ -51,25 +49,18 @@ routes.register<typeof ImportAccountRequestSchema, ImportResponse>(
     let account
     try {
       let accountImport = null
-      if (typeof request.data.account === 'string') {
-        const name = request.data.name
+      const name = request.data.name
 
-        if (request.data.account.startsWith(BASE64_JSON_MULTISIG_ENCRYPTED_ACCOUNT_PREFIX)) {
-          accountImport = await tryDecodeAccountWithMultisigSecrets(
-            context.wallet,
-            request.data.account,
-            { name },
-          )
-        }
+      if (request.data.account.startsWith(BASE64_JSON_MULTISIG_ENCRYPTED_ACCOUNT_PREFIX)) {
+        accountImport = await tryDecodeAccountWithMultisigSecrets(
+          context.wallet,
+          request.data.account,
+          { name },
+        )
+      }
 
-        if (!accountImport) {
-          accountImport = decodeAccountImport(request.data.account, { name })
-        }
-      } else {
-        accountImport = deserializeRpcAccountImport(request.data.account)
-        if (request.data.name) {
-          accountImport.name = request.data.name
-        }
+      if (!accountImport) {
+        accountImport = decodeAccountImport(request.data.account, { name })
       }
 
       account = await context.wallet.importAccount(accountImport)

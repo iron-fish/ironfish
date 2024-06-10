@@ -7,8 +7,6 @@ import { AccountFormat, encodeAccountImport, toAccountImport } from '../../../wa
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import { AssertHasRpcContext } from '../rpcContext'
-import { serializeRpcImportAccount } from './serializers'
-import { RpcAccountImport } from './types'
 import { getAccount } from './utils'
 
 export type ExportAccountRequest = {
@@ -18,7 +16,7 @@ export type ExportAccountRequest = {
   language?: LanguageKey
 }
 export type ExportAccountResponse = {
-  account: string | RpcAccountImport | null
+  account: string
 }
 
 export const ExportAccountRequestSchema: yup.ObjectSchema<ExportAccountRequest> = yup
@@ -32,7 +30,7 @@ export const ExportAccountRequestSchema: yup.ObjectSchema<ExportAccountRequest> 
 
 export const ExportAccountResponseSchema: yup.ObjectSchema<ExportAccountResponse> = yup
   .object({
-    account: yup.mixed<RpcAccountImport | string>().nullable(),
+    account: yup.string().defined(),
   })
   .defined()
 
@@ -42,23 +40,16 @@ routes.register<typeof ExportAccountRequestSchema, ExportAccountResponse>(
   (request, node): void => {
     AssertHasRpcContext(request, node, 'wallet')
 
+    const format = request.data.format ?? AccountFormat.Base64Json
     const viewOnly = request.data.viewOnly ?? false
+
     const account = getAccount(node.wallet, request.data.account)
+    const value = toAccountImport(account, viewOnly)
 
-    if (request.data.format) {
-      const value = toAccountImport(account, viewOnly)
+    const encoded = encodeAccountImport(value, format, {
+      language: request.data.language,
+    })
 
-      const encoded = encodeAccountImport(value, request.data.format, {
-        language: request.data.language,
-      })
-
-      request.end({ account: encoded })
-      return
-    }
-
-    // For backwards compatibility, we must send back an RpcAccountImport
-    const exported = toAccountImport(account, viewOnly)
-    const serialized = serializeRpcImportAccount(exported)
-    request.end({ account: serialized })
+    request.end({ account: encoded })
   },
 )
