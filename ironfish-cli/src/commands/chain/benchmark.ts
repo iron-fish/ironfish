@@ -20,7 +20,6 @@ export default class Benchmark extends IronfishCommand {
     ...LocalFlags,
     targetdir: Flags.string({
       char: 't',
-      parse: (input: string) => Promise.resolve(input.trim()),
       required: false,
       description: 'Path to the temporary directory to use to test',
     }),

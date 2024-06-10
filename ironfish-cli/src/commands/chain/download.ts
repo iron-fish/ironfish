@@ -18,18 +18,15 @@ export default class Download extends IronfishCommand {
     ...LocalFlags,
     manifestUrl: Flags.string({
       char: 'm',
-      parse: (input: string) => Promise.resolve(input.trim()),
       description: 'Manifest url to download snapshot from',
     }),
     path: Flags.string({
       char: 'p',
-      parse: (input: string) => Promise.resolve(input.trim()),
       required: false,
       description: 'Path to a downloaded snapshot file to import',
     }),
     output: Flags.string({
       char: 'o',
-      parse: (input: string) => Promise.resolve(input.trim()),
       required: false,
       description: 'Output folder to download the snapshot file to',
     }),

@@ -153,8 +153,8 @@ export class BridgeCommand extends IronfishCommand {
   private async getAndValidateInputs(client: RpcClient, networkId: number) {
     const { flags } = await this.parse(BridgeCommand)
 
-    let from = flags.account?.trim()
-    let to = flags.to?.trim()
+    let from = flags.account
+    let to = flags.to
     let assetId = flags.assetId
 
     if (!from) {

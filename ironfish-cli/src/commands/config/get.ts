@@ -12,7 +12,6 @@ export class GetCommand extends IronfishCommand {
 
   static args = {
     name: Args.string({
-      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: true,
       description: 'Name of the config item',
     }),
@@ -41,7 +40,7 @@ export class GetCommand extends IronfishCommand {
 
   async start(): Promise<void> {
     const { args, flags } = await this.parse(GetCommand)
-    const name = args.name.trim()
+    const name = args.name
 
     const client = await this.sdk.connectRpc(flags.local)
 

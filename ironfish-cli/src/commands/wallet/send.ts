@@ -116,8 +116,8 @@ export class Send extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(Send)
     let assetId = flags.assetId
-    let to = flags.to?.trim()
-    let from = flags.account?.trim()
+    let to = flags.to
+    let from = flags.account
 
     const client = await this.sdk.connectRpc()
 
@@ -206,8 +206,7 @@ export class Send extends IronfishCommand {
     }
 
     const memo =
-      flags.memo?.trim() ??
-      (await ux.prompt('Enter the memo (or leave blank)', { required: false }))
+      flags.memo ?? (await ux.prompt('Enter the memo (or leave blank)', { required: false }))
 
     if (!isValidPublicAddress(to)) {
       this.log(`A valid public address is required`)

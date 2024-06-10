@@ -26,9 +26,7 @@ export class ShowCommand extends IronfishCommand {
 
   async start(): Promise<void> {
     const { args } = await this.parse(ShowCommand)
-
-    // TODO(mat): Move trim into parse function like the others
-    const identity = args.identity.trim()
+    const identity = args.identity
 
     await this.sdk.client.connect()
     const [peer, messages] = await Promise.all([

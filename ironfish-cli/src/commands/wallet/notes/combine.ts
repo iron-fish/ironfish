@@ -288,8 +288,7 @@ export class CombineNotesCommand extends IronfishCommand {
     const totalAmount = notes.reduce((acc, note) => acc + BigInt(note.value), 0n)
 
     const memo =
-      flags.memo?.trim() ??
-      (await ux.prompt('Enter the memo (or leave blank)', { required: false }))
+      flags.memo ?? (await ux.prompt('Enter the memo (or leave blank)', { required: false }))
 
     const expiration = await this.calculateExpiration(client, spendPostTime, numberOfNotes)
 
