@@ -44,8 +44,8 @@ export default class Export extends IronfishCommand {
     const client = await this.sdk.connectRpc()
 
     const stream = client.chain.exportChainStream({
-      start: args.start as number | null,
-      stop: args.stop as number | null,
+      start: args.start,
+      stop: args.stop,
     })
 
     const { start, stop } = await AsyncUtils.first(stream.contentStream())

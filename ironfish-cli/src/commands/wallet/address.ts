@@ -23,7 +23,7 @@ export class AddressCommand extends IronfishCommand {
 
   async start(): Promise<void> {
     const { args } = await this.parse(AddressCommand)
-    const account = args.account
+    const { account } = args
 
     const client = await this.sdk.connectRpc()
 

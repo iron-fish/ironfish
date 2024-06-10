@@ -21,7 +21,7 @@ export class BroadcastCommand extends IronfishCommand {
 
   async start(): Promise<void> {
     const { args } = await this.parse(BroadcastCommand)
-    const transaction = args.transaction
+    const { transaction } = args
 
     ux.action.start(`Broadcasting transaction`)
     const client = await this.sdk.connectRpc()

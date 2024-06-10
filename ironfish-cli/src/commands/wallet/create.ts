@@ -22,7 +22,7 @@ export class CreateCommand extends IronfishCommand {
 
   async start(): Promise<void> {
     const { args } = await this.parse(CreateCommand)
-    let name = args.account as string
+    let name = args.account
 
     if (!name) {
       name = await ux.prompt('Enter the name of the account', {

@@ -51,10 +51,8 @@ export class ExportCommand extends IronfishCommand {
 
   async start(): Promise<void> {
     const { flags, args } = await this.parse(ExportCommand)
-    const { color, local } = flags
-    const account = args.account as string
-    const exportPath = flags.path
-    const viewOnly = flags.viewonly
+    const { color, local, path: exportPath, viewonly: viewOnly } = flags
+    const { account } = args
 
     if (flags.language) {
       flags.mnemonic = true

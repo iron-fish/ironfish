@@ -34,7 +34,7 @@ export class ResetCommand extends IronfishCommand {
 
   async start(): Promise<void> {
     const { args, flags } = await this.parse(ResetCommand)
-    const account = args.account
+    const { account } = args
 
     if (!flags.confirm) {
       const confirm = await ux.confirm(

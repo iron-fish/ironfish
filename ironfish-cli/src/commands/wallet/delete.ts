@@ -29,9 +29,8 @@ export class DeleteCommand extends IronfishCommand {
 
   async start(): Promise<void> {
     const { args, flags } = await this.parse(DeleteCommand)
-    const confirm = flags.confirm
-    const wait = flags.wait
-    const account = args.account
+    const { confirm, wait } = flags
+    const { account } = args
 
     const client = await this.sdk.connectRpc()
 

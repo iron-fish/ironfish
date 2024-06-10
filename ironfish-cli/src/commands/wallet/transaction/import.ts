@@ -32,7 +32,7 @@ export class TransactionImportCommand extends IronfishCommand {
 
   async start(): Promise<void> {
     const { flags, args } = await this.parse(TransactionImportCommand)
-    const txArg = args.transaction
+    const { transaction: txArg } = args
 
     let transaction
 
