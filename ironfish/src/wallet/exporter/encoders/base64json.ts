@@ -6,6 +6,7 @@ import {
   AccountDecodingOptions,
   AccountEncoder,
   AccountEncodingOptions,
+  DecodeFailed,
   isMultisigIdentityEncryption,
 } from '../encoder'
 import { decodeEncryptedMultisigAccount, encodeEncryptedMultisigAccount } from '../multisig'
@@ -47,6 +48,6 @@ export class Base64JsonEncoder implements AccountEncoder {
       return new JsonEncoder().decode(json, options)
     }
 
-    throw new Error('Invalid prefix for base64 encoded account')
+    throw new DecodeFailed('Invalid prefix for base64 encoded account')
   }
 }
