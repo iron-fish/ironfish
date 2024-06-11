@@ -5,6 +5,7 @@ import { Asset, multisig, verifyTransactions } from '@ironfish/rust-nodejs'
 import { Assert } from '../../../../assert'
 import { createRouteTest } from '../../../../testUtilities/routeTest'
 import { Account, ACCOUNT_SCHEMA_VERSION, AssertMultisigSigner } from '../../../../wallet'
+import { AccountImport } from '../../../../wallet/exporter'
 
 function shuffleArray<T>(array: Array<T>): Array<T> {
   // Durstenfeld shuffle (https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle#The_modern_algorithm)
@@ -149,18 +150,20 @@ describe('multisig RPC integration', () => {
       participantAccounts.push(participantAccount)
     }
 
+    const account: AccountImport = {
+      version: ACCOUNT_SCHEMA_VERSION,
+      name: 'coordinator',
+      spendingKey: null,
+      createdAt: null,
+      multisigKeys: {
+        publicKeyPackage: trustedDealerPackage.publicKeyPackage,
+      },
+      ...trustedDealerPackage,
+    }
+
     // import an account to serve as the coordinator
     await routeTest.client.wallet.importAccount({
-      account: {
-        version: ACCOUNT_SCHEMA_VERSION,
-        name: 'coordinator',
-        spendingKey: null,
-        createdAt: null,
-        multisigKeys: {
-          publicKeyPackage: trustedDealerPackage.publicKeyPackage,
-        },
-        ...trustedDealerPackage,
-      },
+      account: JSON.stringify(account),
       rescan: false,
     })
 

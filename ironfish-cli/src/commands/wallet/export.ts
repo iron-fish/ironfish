@@ -74,7 +74,7 @@ export class ExportCommand extends IronfishCommand {
       language: flags.language,
     })
 
-    let output = response.content.account as string
+    let output = response.content.account
     if (color && flags.json && !exportPath) {
       output = jsonColorizer(output)
     }

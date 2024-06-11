@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { ACCOUNT_SCHEMA_VERSION, RpcClient } from '@ironfish/sdk'
+import { AccountImport } from '@ironfish/sdk/src/wallet/exporter'
 import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
@@ -83,24 +84,26 @@ export class MultisigCreateDealer extends IronfishCommand {
       this.log()
       ux.action.start('Importing the coordinator as a view-only account')
 
-      await client.wallet.importAccount({
-        account: {
-          name,
-          version: ACCOUNT_SCHEMA_VERSION,
-          createdAt: {
-            hash: createdAt.hash.toString('hex'),
-            sequence: createdAt.sequence,
-          },
-          spendingKey: null,
-          viewKey: response.content.viewKey,
-          incomingViewKey: response.content.incomingViewKey,
-          outgoingViewKey: response.content.outgoingViewKey,
-          publicAddress: response.content.publicAddress,
-          proofAuthorizingKey: response.content.proofAuthorizingKey,
-          multisigKeys: {
-            publicKeyPackage: response.content.publicKeyPackage,
-          },
+      const account: AccountImport = {
+        name,
+        version: ACCOUNT_SCHEMA_VERSION,
+        createdAt: {
+          hash: createdAt.hash,
+          sequence: createdAt.sequence,
         },
+        spendingKey: null,
+        viewKey: response.content.viewKey,
+        incomingViewKey: response.content.incomingViewKey,
+        outgoingViewKey: response.content.outgoingViewKey,
+        publicAddress: response.content.publicAddress,
+        proofAuthorizingKey: response.content.proofAuthorizingKey,
+        multisigKeys: {
+          publicKeyPackage: response.content.publicKeyPackage,
+        },
+      }
+
+      await client.wallet.importAccount({
+        account: JSON.stringify(account),
       })
 
       ux.action.stop()

@@ -5,6 +5,7 @@ import { multisig } from '@ironfish/rust-nodejs'
 import { useAccountAndAddFundsFixture, useUnsignedTxFixture } from '../../../../testUtilities'
 import { createRouteTest } from '../../../../testUtilities/routeTest'
 import { ACCOUNT_SCHEMA_VERSION } from '../../../../wallet'
+import { AccountImport } from '../../../../wallet/exporter'
 
 describe('Route wallet/multisig/createSigningCommitment', () => {
   const routeTest = createRouteTest()
@@ -39,22 +40,24 @@ describe('Route wallet/multisig/createSigningCommitment', () => {
       await routeTest.client.wallet.multisig.createTrustedDealerKeyPackage(request)
     ).content
 
+    const account: AccountImport = {
+      name: 'td',
+      version: ACCOUNT_SCHEMA_VERSION,
+      viewKey: trustedDealerPackage.viewKey,
+      incomingViewKey: trustedDealerPackage.incomingViewKey,
+      outgoingViewKey: trustedDealerPackage.outgoingViewKey,
+      publicAddress: trustedDealerPackage.publicAddress,
+      spendingKey: null,
+      createdAt: null,
+      multisigKeys: {
+        publicKeyPackage: trustedDealerPackage.publicKeyPackage,
+      },
+      proofAuthorizingKey: null,
+    }
+
     const importAccountRequest = {
       name: 'td',
-      account: {
-        name: 'td',
-        version: ACCOUNT_SCHEMA_VERSION,
-        viewKey: trustedDealerPackage.viewKey,
-        incomingViewKey: trustedDealerPackage.incomingViewKey,
-        outgoingViewKey: trustedDealerPackage.outgoingViewKey,
-        publicAddress: trustedDealerPackage.publicAddress,
-        spendingKey: null,
-        createdAt: null,
-        multisigKeys: {
-          publicKeyPackage: trustedDealerPackage.publicKeyPackage,
-        },
-        proofAuthorizingKey: null,
-      },
+      account: JSON.stringify(account),
     }
 
     const importAccountResponse = await routeTest.client.wallet.importAccount(

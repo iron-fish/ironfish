@@ -24,25 +24,26 @@ describe('Route wallet/importAccount', () => {
   it('should import a view only account that has no spending key', async () => {
     const key = generateKey()
 
-    const accountName = 'foo'
+    const account: AccountImport = {
+      name: 'foo',
+      viewKey: key.viewKey,
+      spendingKey: null,
+      publicAddress: key.publicAddress,
+      incomingViewKey: key.incomingViewKey,
+      outgoingViewKey: key.outgoingViewKey,
+      proofAuthorizingKey: null,
+      version: 1,
+      createdAt: null,
+    }
+
     const response = await routeTest.client.wallet.importAccount({
-      account: {
-        name: accountName,
-        viewKey: key.viewKey,
-        spendingKey: null,
-        publicAddress: key.publicAddress,
-        incomingViewKey: key.incomingViewKey,
-        outgoingViewKey: key.outgoingViewKey,
-        proofAuthorizingKey: null,
-        version: 1,
-        createdAt: null,
-      },
+      account: JSON.stringify(account),
       rescan: false,
     })
 
     expect(response.status).toBe(200)
     expect(response.content).toMatchObject({
-      name: accountName,
+      name: 'foo',
       isDefaultAccount: true,
     })
   })
@@ -50,28 +51,29 @@ describe('Route wallet/importAccount', () => {
   it('should import a multisig account that has no spending key', async () => {
     const trustedDealerPackages = createTrustedDealerKeyPackages()
 
-    const accountName = 'multisig'
-    const response = await routeTest.client.wallet.importAccount({
-      account: {
-        version: 1,
-        name: accountName,
-        viewKey: trustedDealerPackages.viewKey,
-        incomingViewKey: trustedDealerPackages.incomingViewKey,
-        outgoingViewKey: trustedDealerPackages.outgoingViewKey,
-        publicAddress: trustedDealerPackages.publicAddress,
-        spendingKey: null,
-        createdAt: null,
-        proofAuthorizingKey: trustedDealerPackages.proofAuthorizingKey,
-        multisigKeys: {
-          publicKeyPackage: trustedDealerPackages.publicKeyPackage,
-        },
+    const account: AccountImport = {
+      version: 1,
+      name: 'multisig',
+      viewKey: trustedDealerPackages.viewKey,
+      incomingViewKey: trustedDealerPackages.incomingViewKey,
+      outgoingViewKey: trustedDealerPackages.outgoingViewKey,
+      publicAddress: trustedDealerPackages.publicAddress,
+      spendingKey: null,
+      createdAt: null,
+      proofAuthorizingKey: trustedDealerPackages.proofAuthorizingKey,
+      multisigKeys: {
+        publicKeyPackage: trustedDealerPackages.publicKeyPackage,
       },
+    }
+
+    const response = await routeTest.client.wallet.importAccount({
+      account: JSON.stringify(account),
       rescan: false,
     })
 
     expect(response.status).toBe(200)
     expect(response.content).toMatchObject({
-      name: accountName,
+      name: 'multisig',
       isDefaultAccount: false,
     })
   })
@@ -81,7 +83,7 @@ describe('Route wallet/importAccount', () => {
 
     const accountName = 'bar'
     const response = await routeTest.client.wallet.importAccount({
-      account: {
+      account: JSON.stringify({
         name: accountName,
         viewKey: key.viewKey,
         spendingKey: key.spendingKey,
@@ -91,7 +93,7 @@ describe('Route wallet/importAccount', () => {
         proofAuthorizingKey: null,
         version: 1,
         createdAt: null,
-      },
+      }),
       rescan: false,
     })
 
@@ -108,7 +110,7 @@ describe('Route wallet/importAccount', () => {
     const accountName = 'bar'
     const overriddenAccountName = 'not-bar'
     const response = await routeTest.client.wallet.importAccount({
-      account: {
+      account: JSON.stringify({
         name: accountName,
         viewKey: key.viewKey,
         spendingKey: key.spendingKey,
@@ -118,7 +120,7 @@ describe('Route wallet/importAccount', () => {
         proofAuthorizingKey: null,
         version: 1,
         createdAt: null,
-      },
+      }),
       name: overriddenAccountName,
       rescan: false,
     })
@@ -151,18 +153,20 @@ describe('Route wallet/importAccount', () => {
       const skipRescanSpy = jest.spyOn(routeTest.node.wallet, 'skipRescan')
 
       const accountName = 'baz'
+      const account: AccountImport = {
+        name: accountName,
+        viewKey: key.viewKey,
+        spendingKey: key.spendingKey,
+        publicAddress: key.publicAddress,
+        incomingViewKey: key.incomingViewKey,
+        outgoingViewKey: key.outgoingViewKey,
+        proofAuthorizingKey: null,
+        version: 1,
+        createdAt: null,
+      }
+
       const response = await routeTest.client.wallet.importAccount({
-        account: {
-          name: accountName,
-          viewKey: key.viewKey,
-          spendingKey: key.spendingKey,
-          publicAddress: key.publicAddress,
-          incomingViewKey: key.incomingViewKey,
-          outgoingViewKey: key.outgoingViewKey,
-          proofAuthorizingKey: null,
-          version: 1,
-          createdAt: null,
-        },
+        account: JSON.stringify(account),
         // set rescan to true so that skipRescan should not be called
         rescan: true,
       })
