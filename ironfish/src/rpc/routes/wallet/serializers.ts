@@ -1,12 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { generateKeyFromPrivateKey } from '@ironfish/rust-nodejs'
-import { Assert } from '../../../assert'
 import { Config } from '../../../fileStores'
 import { BufferUtils, CurrencyUtils } from '../../../utils'
-import { Account, ACCOUNT_SCHEMA_VERSION, Wallet } from '../../../wallet'
-import { AccountImport } from '../../../wallet/exporter/accountImport'
+import { Account, Wallet } from '../../../wallet'
 import {
   isMultisigSignerImport,
   isMultisigSignerTrustedDealerImport,
@@ -17,7 +14,6 @@ import { DecryptedNoteValue } from '../../../wallet/walletdb/decryptedNoteValue'
 import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
 import {
   RpcAccountAssetBalanceDelta,
-  RpcAccountImport,
   RpcAccountStatus,
   RpcMultisigKeys,
   RpcWalletNote,
@@ -97,57 +93,6 @@ export async function serializeRpcWalletTransaction(
     status,
     assetBalanceDeltas,
     confirmations,
-  }
-}
-
-export const serializeRpcImportAccount = (accountImport: AccountImport): RpcAccountImport => {
-  const createdAt = accountImport.createdAt
-    ? {
-        hash: accountImport.createdAt.hash.toString('hex'),
-        sequence: accountImport.createdAt.sequence,
-      }
-    : null
-
-  return {
-    version: accountImport.version,
-    name: accountImport.name,
-    viewKey: accountImport.viewKey,
-    incomingViewKey: accountImport.incomingViewKey,
-    outgoingViewKey: accountImport.outgoingViewKey,
-    publicAddress: accountImport.publicAddress,
-    spendingKey: accountImport.spendingKey,
-    multisigKeys: accountImport.multisigKeys,
-    proofAuthorizingKey: accountImport.proofAuthorizingKey,
-    createdAt: createdAt,
-  }
-}
-
-export function deserializeRpcAccountImport(accountImport: RpcAccountImport): AccountImport {
-  let viewKey: string
-  if (accountImport.viewKey) {
-    viewKey = accountImport.viewKey
-  } else {
-    Assert.isNotNull(
-      accountImport.spendingKey,
-      'Imported account missing both viewKey and spendingKey',
-    )
-    viewKey = generateKeyFromPrivateKey(accountImport.spendingKey).viewKey
-  }
-
-  return {
-    version: ACCOUNT_SCHEMA_VERSION,
-    ...accountImport,
-    viewKey,
-    createdAt:
-      accountImport.createdAt && typeof accountImport.createdAt === 'object'
-        ? {
-            hash: Buffer.from(accountImport.createdAt.hash, 'hex'),
-            sequence: accountImport.createdAt.sequence,
-          }
-        : null,
-    multisigKeys: accountImport.multisigKeys
-      ? deserializeRpcAccountMultisigKeys(accountImport.multisigKeys)
-      : undefined,
   }
 }
 

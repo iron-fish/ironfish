@@ -48,12 +48,11 @@ import {
   MaxMemoLengthError,
   NotEnoughFundsError,
 } from './errors'
-import { AccountImport } from './exporter/accountImport'
+import { AccountImport, validateAccountImport } from './exporter/accountImport'
 import { isMultisigSignerTrustedDealerImport } from './exporter/multisig'
 import { MintAssetOptions } from './interfaces/mintAssetOptions'
 import { ScanState } from './scanner/scanState'
 import { WalletScanner } from './scanner/walletScanner'
-import { validateAccount } from './validator'
 import { AssetValue } from './walletdb/assetValue'
 import { DecryptedNoteValue } from './walletdb/decryptedNoteValue'
 import { HeadValue } from './walletdb/headValue'
@@ -1393,7 +1392,7 @@ export class Wallet {
       throw new Error(`Account already exists with provided spending key`)
     }
 
-    validateAccount(accountValue)
+    validateAccountImport(accountValue)
 
     let createdAt = accountValue.createdAt
 

@@ -12,10 +12,6 @@ export type YupSchemaResult<S extends yup.Schema<unknown, unknown>> = UnwrapProm
   ReturnType<S['validate']>
 >
 
-export type YupSchemaResultSync<S extends yup.Schema<unknown, unknown>> = ReturnType<
-  S['validate']
->
-
 export class YupUtils {
   static isPositiveInteger = yup.number().integer().min(0)
   static isPort = yup.number().integer().min(1).max(65535)
@@ -83,7 +79,7 @@ export class YupUtils {
     value: unknown,
     options?: yup.ValidateOptions<unknown>,
   ):
-    | { result: YupSchemaResultSync<S>; error: null }
+    | { result: YupSchemaResult<S>; error: null }
     | { result: null; error: yup.ValidationError } {
     if (!options) {
       options = { stripUnknown: true }
@@ -94,7 +90,7 @@ export class YupUtils {
     }
 
     try {
-      const result = schema.validateSync(value, options) as YupSchemaResultSync<S>
+      const result = schema.validateSync(value, options) as YupSchemaResult<S>
       return { result: result, error: null }
     } catch (e) {
       if (e instanceof yup.ValidationError) {

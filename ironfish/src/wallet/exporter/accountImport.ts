@@ -1,8 +1,16 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { generatePublicAddressFromIncomingViewKey } from '@ironfish/rust-nodejs'
 import { Account } from '../account/account'
-import { HeadValue } from '../walletdb/headValue'
+import {
+  isValidIncomingViewKey,
+  isValidIVKAndPublicAddressPair,
+  isValidOutgoingViewKey,
+  isValidPublicAddress,
+  isValidSpendingKey,
+  isValidViewKey,
+} from '../validator'
 import { MultisigKeysImport } from './multisig'
 
 export type AccountImport = {
@@ -13,7 +21,10 @@ export type AccountImport = {
   incomingViewKey: string
   outgoingViewKey: string
   publicAddress: string
-  createdAt: HeadValue | null
+  createdAt: {
+    hash: Buffer
+    sequence: number
+  } | null
   multisigKeys?: MultisigKeysImport
   proofAuthorizingKey: string | null
 }
@@ -43,4 +54,55 @@ export function toAccountImport(account: Account, viewOnly: boolean): AccountImp
   }
 
   return value
+}
+
+export function validateAccountImport(toImport: AccountImport): void {
+  if (!toImport.name) {
+    throw new Error(`Imported account has no name`)
+  }
+
+  if (!toImport.publicAddress) {
+    throw new Error(`Imported account has no public address`)
+  }
+
+  if (!isValidPublicAddress(toImport.publicAddress)) {
+    throw new Error(`Provided public address ${toImport.publicAddress} is invalid`)
+  }
+
+  if (!toImport.outgoingViewKey) {
+    throw new Error(`Imported account has no outgoing view key`)
+  }
+
+  if (!isValidOutgoingViewKey(toImport.outgoingViewKey)) {
+    throw new Error(`Provided outgoing view key ${toImport.outgoingViewKey} is invalid`)
+  }
+
+  if (!toImport.incomingViewKey) {
+    throw new Error(`Imported account has no incoming view key`)
+  }
+
+  if (!isValidIncomingViewKey(toImport.incomingViewKey)) {
+    throw new Error(`Provided incoming view key ${toImport.incomingViewKey} is invalid`)
+  }
+
+  if (!toImport.viewKey) {
+    throw new Error(`Imported account has no view key`)
+  }
+
+  if (!isValidViewKey(toImport.viewKey)) {
+    throw new Error(`Provided view key ${toImport.viewKey} is invalid`)
+  }
+
+  if (toImport.spendingKey && !isValidSpendingKey(toImport.spendingKey)) {
+    throw new Error(`Provided spending key ${toImport.spendingKey} is invalid`)
+  }
+
+  if (!isValidIVKAndPublicAddressPair(toImport.incomingViewKey, toImport.publicAddress)) {
+    const generatedPublicAddress = generatePublicAddressFromIncomingViewKey(
+      toImport.incomingViewKey,
+    )
+    throw new Error(
+      `Public address ${toImport.publicAddress} does not match public address generated from incoming view key ${generatedPublicAddress}`,
+    )
+  }
 }
