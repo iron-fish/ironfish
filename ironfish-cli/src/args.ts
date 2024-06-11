@@ -12,7 +12,7 @@ type Url = {
 }
 
 export function parseUrl(input: string): Promise<Url> {
-  const parsed = parseUrlSdk(input.trim())
+  const parsed = parseUrlSdk(input)
   if (parsed.hostname != null) {
     return Promise.resolve(parsed as Url)
   } else {

@@ -23,7 +23,6 @@ export class WatchTxCommand extends IronfishCommand {
 
   static args = {
     hash: Args.string({
-      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: true,
       description: 'Hash of the transaction',
     }),

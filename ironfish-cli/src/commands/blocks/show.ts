@@ -10,7 +10,6 @@ export default class ShowBlock extends IronfishCommand {
 
   static args = {
     search: Args.string({
-      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: true,
       description: 'The hash or sequence of the block to look at',
     }),
