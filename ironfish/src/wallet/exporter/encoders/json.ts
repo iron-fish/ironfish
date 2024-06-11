@@ -58,32 +58,33 @@ type AccountEncodedJSON = {
   outgoingViewKey: string
   publicAddress: string
   spendingKey: string | null
-  createdAt: { hash: string; sequence: number } | string | null
+  createdAt?: { hash: string; sequence: number } | string | null
   multisigKeys?: {
     identity?: string
     secret?: string
     keyPackage?: string
     publicKeyPackage: string
   }
-  proofAuthorizingKey: string | null
+  proofAuthorizingKey?: string | null
 }
 
 const AccountEncodedJSONSchema: yup.ObjectSchema<AccountEncodedJSON> = yup
   .object({
     name: yup.string().defined(),
     spendingKey: yup.string().nullable().defined(),
-    viewKey: yup.string().defined(),
+    viewKey: yup.string().optional(),
     publicAddress: yup.string().defined(),
     incomingViewKey: yup.string().defined(),
     outgoingViewKey: yup.string().defined(),
-    version: yup.number().defined(),
+    version: yup.number().optional(),
     createdAt: yup
       .object({
         hash: yup.string().defined(),
         sequence: yup.number().defined(),
       })
       .nullable()
-      .defined(),
+      .optional()
+      .default(undefined),
     multisigKeys: yup
       .object({
         secret: yup.string().optional(),
@@ -91,8 +92,9 @@ const AccountEncodedJSONSchema: yup.ObjectSchema<AccountEncodedJSON> = yup
         keyPackage: yup.string().optional(),
         publicKeyPackage: yup.string().defined(),
       })
-      .optional(),
-    proofAuthorizingKey: yup.string().nullable().defined(),
+      .optional()
+      .default(undefined),
+    proofAuthorizingKey: yup.string().nullable().optional(),
   })
   .defined()
 
@@ -134,6 +136,7 @@ function deserializeAccountEncodedJSON(raw: AccountEncodedJSON): AccountImport {
     version: ACCOUNT_SCHEMA_VERSION,
     ...raw,
     viewKey,
+    proofAuthorizingKey: raw.proofAuthorizingKey ?? null,
     createdAt:
       raw.createdAt && typeof raw.createdAt === 'object'
         ? {
