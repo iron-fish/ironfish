@@ -6,12 +6,12 @@ import fs from 'fs'
 import path from 'path'
 import { createTrustedDealerKeyPackages } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
+import { JsonEncoder } from '../../../wallet'
 import { AccountFormat, encodeAccountImport } from '../../../wallet/exporter/account'
 import { AccountImport } from '../../../wallet/exporter/accountImport'
 import { Bech32Encoder } from '../../../wallet/exporter/encoders/bech32'
 import { Bech32JsonEncoder } from '../../../wallet/exporter/encoders/bech32json'
 import { RpcClient } from '../../clients'
-import { JsonEncoder } from '../../../wallet'
 
 describe('Route wallet/importAccount', () => {
   const routeTest = createRouteTest(true)
@@ -317,6 +317,8 @@ describe('Route wallet/importAccount', () => {
 
         expect(response.status).toBe(200)
         expect(response.content.name).not.toBeNull()
+
+        await routeTest.client.wallet.removeAccount({ account: testCaseFile })
       }
     })
 
