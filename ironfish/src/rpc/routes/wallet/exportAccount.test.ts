@@ -22,42 +22,33 @@ describe('Route wallet/exportAccount', () => {
   })
 
   it('should export a default account', async () => {
+    await routeTest.wallet.setDefaultAccount(account.name)
+
     const response = await routeTest.client.wallet.exportAccount({
-      account: account.name,
       viewOnly: false,
+      format: AccountFormat.SpendingKey,
     })
 
     expect(response.status).toBe(200)
-    expect(response.content).toMatchObject({
-      account: {
-        name: account.name,
-        spendingKey: account.spendingKey,
-        viewKey: account.viewKey,
-        incomingViewKey: account.incomingViewKey,
-        outgoingViewKey: account.outgoingViewKey,
-        publicAddress: account.publicAddress,
-        version: account.version,
-      },
-    })
+    expect(response.content.account).toEqual(new SpendingKeyEncoder().encode(account))
   })
 
   it('should omit spending key when view only account is requested', async () => {
     const response = await routeTest.client.wallet.exportAccount({
       account: account.name,
       viewOnly: true,
+      format: AccountFormat.JSON,
     })
 
     expect(response.status).toBe(200)
-    expect(response.content).toMatchObject({
-      account: {
-        name: account.name,
-        spendingKey: null,
-        viewKey: account.viewKey,
-        incomingViewKey: account.incomingViewKey,
-        outgoingViewKey: account.outgoingViewKey,
-        publicAddress: account.publicAddress,
-        version: account.version,
-      },
+    expect(JSON.parse(response.content.account)).toMatchObject({
+      name: account.name,
+      spendingKey: null,
+      viewKey: account.viewKey,
+      incomingViewKey: account.incomingViewKey,
+      outgoingViewKey: account.outgoingViewKey,
+      publicAddress: account.publicAddress,
+      version: account.version,
     })
   })
 
@@ -162,21 +153,20 @@ describe('Route wallet/exportAccount', () => {
     const response = await routeTest.client.wallet.exportAccount({
       account: accountNames[0],
       viewOnly: false,
+      format: AccountFormat.JSON,
     })
 
     expect(response.status).toBe(200)
-    expect(response.content).toMatchObject({
-      account: {
-        name: accountNames[0],
-        spendingKey: null,
-        viewKey: trustedDealerPackage.viewKey,
-        incomingViewKey: trustedDealerPackage.incomingViewKey,
-        outgoingViewKey: trustedDealerPackage.outgoingViewKey,
-        publicAddress: trustedDealerPackage.publicAddress,
-        multisigKeys: {
-          secret: multisigSecret.secret.toString('hex'),
-          publicKeyPackage: trustedDealerPackage.publicKeyPackage,
-        },
+    expect(JSON.parse(response.content.account)).toMatchObject({
+      name: accountNames[0],
+      spendingKey: null,
+      viewKey: trustedDealerPackage.viewKey,
+      incomingViewKey: trustedDealerPackage.incomingViewKey,
+      outgoingViewKey: trustedDealerPackage.outgoingViewKey,
+      publicAddress: trustedDealerPackage.publicAddress,
+      multisigKeys: {
+        secret: multisigSecret.secret.toString('hex'),
+        publicKeyPackage: trustedDealerPackage.publicKeyPackage,
       },
     })
   })
@@ -221,20 +211,19 @@ describe('Route wallet/exportAccount', () => {
     const response = await routeTest.client.wallet.exportAccount({
       account: accountNames[0],
       viewOnly: false,
+      format: AccountFormat.JSON,
     })
 
     expect(response.status).toBe(200)
-    expect(response.content).toMatchObject({
-      account: {
-        name: accountNames[0],
-        spendingKey: null,
-        viewKey: trustedDealerPackage.viewKey,
-        incomingViewKey: trustedDealerPackage.incomingViewKey,
-        outgoingViewKey: trustedDealerPackage.outgoingViewKey,
-        publicAddress: trustedDealerPackage.publicAddress,
-        multisigKeys: {
-          publicKeyPackage: trustedDealerPackage.publicKeyPackage,
-        },
+    expect(JSON.parse(response.content.account)).toMatchObject({
+      name: accountNames[0],
+      spendingKey: null,
+      viewKey: trustedDealerPackage.viewKey,
+      incomingViewKey: trustedDealerPackage.incomingViewKey,
+      outgoingViewKey: trustedDealerPackage.outgoingViewKey,
+      publicAddress: trustedDealerPackage.publicAddress,
+      multisigKeys: {
+        publicKeyPackage: trustedDealerPackage.publicKeyPackage,
       },
     })
   })
