@@ -37,6 +37,24 @@ describe('Base64JsonEncoder', () => {
     expect(isBase64(encoded.slice(BASE64_JSON_ACCOUNT_PREFIX.length))).toBe(true)
   })
 
+  it('renames account when name is passed', () => {
+    const accountImport: AccountImport = {
+      version: ACCOUNT_SCHEMA_VERSION,
+      name: 'test',
+      spendingKey: key.spendingKey,
+      viewKey: key.viewKey,
+      incomingViewKey: key.incomingViewKey,
+      outgoingViewKey: key.outgoingViewKey,
+      publicAddress: key.publicAddress,
+      createdAt: null,
+      proofAuthorizingKey: key.proofAuthorizingKey,
+    }
+
+    const encoded = encoder.encode(accountImport)
+    const decoded = encoder.decode(encoded, { name: 'foo' })
+    expect(decoded.name).toBe('foo')
+  })
+
   it('encodes the account as a base64 string and decodes the string', () => {
     const accountImport: AccountImport = {
       version: ACCOUNT_SCHEMA_VERSION,
