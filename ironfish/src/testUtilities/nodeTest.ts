@@ -107,7 +107,6 @@ export class NodeTest {
 
     const node = await sdk.node({
       autoSeed: this.options?.autoSeed,
-      fishHashContext: FISH_HASH_CONTEXT,
       ...networkOptions,
     })
 
