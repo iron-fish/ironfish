@@ -2,15 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { DecodeInvalidName, MultisigSecretNotFound } from '../../../wallet'
+import { DecodeInvalidName } from '../../../wallet'
 import { DuplicateAccountNameError } from '../../../wallet/errors'
 import { decodeAccountImport } from '../../../wallet/exporter/account'
-import { BASE64_JSON_MULTISIG_ENCRYPTED_ACCOUNT_PREFIX } from '../../../wallet/exporter/encoders/base64json'
+import { decryptEncodedAccount } from '../../../wallet/exporter/encryption'
 import { RPC_ERROR_CODES, RpcValidationError } from '../../adapters'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import { AssertHasRpcContext } from '../rpcContext'
-import { tryDecodeAccountWithMultisigSecrets } from './utils'
 
 export class ImportError extends Error {}
 
@@ -44,26 +43,28 @@ routes.register<typeof ImportAccountRequestSchema, ImportResponse>(
   `${ApiNamespace.wallet}/importAccount`,
   ImportAccountRequestSchema,
   async (request, context): Promise<void> => {
-    AssertHasRpcContext(request, context, 'wallet')
-
-    let account
     try {
-      let accountImport = null
-      const name = request.data.name
+      AssertHasRpcContext(request, context, 'wallet')
 
-      if (request.data.account.startsWith(BASE64_JSON_MULTISIG_ENCRYPTED_ACCOUNT_PREFIX)) {
-        accountImport = await tryDecodeAccountWithMultisigSecrets(
-          context.wallet,
-          request.data.account,
-          { name },
-        )
+      request.data.account = await decryptEncodedAccount(request.data.account, context.wallet)
+
+      const decoded = decodeAccountImport(request.data.account, { name: request.data.name })
+      const account = await context.wallet.importAccount(decoded)
+
+      if (!context.wallet.hasDefaultAccount) {
+        await context.wallet.setDefaultAccount(account.name)
       }
 
-      if (!accountImport) {
-        accountImport = decodeAccountImport(request.data.account, { name })
+      if (!request.data.rescan) {
+        await context.wallet.skipRescan(account)
       }
 
-      account = await context.wallet.importAccount(accountImport)
+      const isDefaultAccount = context.wallet.getDefaultAccount()?.id === account.id
+
+      request.end({
+        name: account.name,
+        isDefaultAccount,
+      })
     } catch (e) {
       if (e instanceof DuplicateAccountNameError) {
         throw new RpcValidationError(e.message, 400, RPC_ERROR_CODES.DUPLICATE_ACCOUNT_NAME)
@@ -73,25 +74,8 @@ routes.register<typeof ImportAccountRequestSchema, ImportResponse>(
           400,
           RPC_ERROR_CODES.IMPORT_ACCOUNT_NAME_REQUIRED,
         )
-      } else if (e instanceof MultisigSecretNotFound) {
-        throw new RpcValidationError(e.message, 400, RPC_ERROR_CODES.MULTISIG_SECRET_NOT_FOUND)
       }
       throw e
     }
-
-    if (!request.data.rescan) {
-      await context.wallet.skipRescan(account)
-    }
-
-    let isDefaultAccount = false
-    if (!context.wallet.hasDefaultAccount) {
-      await context.wallet.setDefaultAccount(account.name)
-      isDefaultAccount = true
-    }
-
-    request.end({
-      name: account.name,
-      isDefaultAccount,
-    })
   },
 )

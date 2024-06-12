@@ -11,6 +11,7 @@ import { AccountFormat, encodeAccountImport } from '../../../wallet/exporter/acc
 import { AccountImport } from '../../../wallet/exporter/accountImport'
 import { Bech32Encoder } from '../../../wallet/exporter/encoders/bech32'
 import { Bech32JsonEncoder } from '../../../wallet/exporter/encoders/bech32json'
+import { encryptEncodedAccount } from '../../../wallet/exporter/encryption'
 import { RpcClient } from '../../clients'
 
 describe('Route wallet/importAccount', () => {
@@ -322,131 +323,67 @@ describe('Route wallet/importAccount', () => {
       }
     })
 
-    describe('with multisig encryption', () => {
-      it('should import a base64 encoded account', async () => {
-        const name = 'multisig-encrypted-base64'
+    it('should import an encrypted account', async () => {
+      const name = 'multisig-encrypted-base64'
 
-        const identity = (await routeTest.client.wallet.multisig.createParticipant({ name }))
-          .content.identity
-        const base64 = encodeAccountImport(
-          createAccountImport(name),
-          AccountFormat.Base64Json,
-          {
-            encryptWith: { kind: 'MultisigIdentity', identity: Buffer.from(identity, 'hex') },
-          },
+      const identity = await routeTest.wallet.createMultisigSecret(name)
+      const account = createAccountImport(name)
+      const encoded = encodeAccountImport(account, AccountFormat.JSON)
+
+      const encrypted = encryptEncodedAccount(encoded, {
+        kind: 'MultisigIdentity',
+        identity: new multisig.ParticipantIdentity(identity),
+      })
+
+      const response = await routeTest.client.wallet.importAccount({
+        name,
+        account: encrypted,
+        rescan: false,
+      })
+
+      expect(response.status).toBe(200)
+      expect(response.content.name).toBe(name)
+    })
+
+    it('should import old account export formats', async () => {
+      const testCaseSuffix = '.txt'
+      const keySuffix = '.key'
+      const testCaseDir = path.join(__dirname, '__importTestCases__', 'multisigEncrypted')
+      const importTestCaseFiles = fs
+        .readdirSync(testCaseDir, { withFileTypes: true })
+        .filter(
+          (testCaseFile) => testCaseFile.isFile() && testCaseFile.name.endsWith(testCaseSuffix),
         )
+        .map((testCaseFile) => testCaseFile.name)
 
+      expect(importTestCaseFiles.length).toBeGreaterThan(0)
+
+      for (const testCaseFile of importTestCaseFiles) {
+        const testCase = await fs.promises.readFile(path.join(testCaseDir, testCaseFile), {
+          encoding: 'ascii',
+        })
+
+        const keyFile = testCaseFile.slice(0, -testCaseSuffix.length) + keySuffix
+        const key = await fs.promises.readFile(path.join(testCaseDir, keyFile), {
+          encoding: 'ascii',
+        })
+        const secret = new multisig.ParticipantSecret(Buffer.from(key, 'hex'))
+        const identity = secret.toIdentity()
+
+        await routeTest.node.wallet.walletDb.putMultisigSecret(identity.serialize(), {
+          secret: secret.serialize(),
+          name: testCaseFile,
+        })
+
+        const name = 'new-account-name'
         const response = await routeTest.client.wallet.importAccount({
+          account: testCase,
           name,
-          account: base64,
-          rescan: false,
         })
 
         expect(response.status).toBe(200)
-        expect(response.content).toMatchObject({
-          name,
-          isDefaultAccount: false, // This is false because the default account is already imported in a previous test
-        })
-      })
-
-      it('should fail to import a base64 encoded account if no multisig identity was generated', async () => {
-        const name = 'multisig-encrypted-base64 (no key)'
-
-        const identity = multisig.ParticipantSecret.random().toIdentity()
-        const base64 = encodeAccountImport(
-          createAccountImport(name),
-          AccountFormat.Base64Json,
-          {
-            encryptWith: { kind: 'MultisigIdentity', identity },
-          },
-        )
-
-        await expect(
-          routeTest.client.wallet.importAccount({
-            name,
-            account: base64,
-            rescan: false,
-          }),
-        ).rejects.toThrow(
-          expect.objectContaining({
-            message: expect.stringContaining(
-              'Encrypted multisig account cannot be decrypted without a corresponding multisig secret',
-            ),
-            status: 400,
-          }),
-        )
-      })
-
-      it('should fail to import a base64 encode account if the wrong multisig identity is used', async () => {
-        const name = 'multisig-encrypted-base64 (wrong key)'
-
-        await routeTest.client.wallet.multisig.createParticipant({ name })
-        const encryptingParticipant = multisig.ParticipantSecret.random().toIdentity()
-        const base64 = encodeAccountImport(
-          createAccountImport(name),
-          AccountFormat.Base64Json,
-          {
-            encryptWith: { kind: 'MultisigIdentity', identity: encryptingParticipant },
-          },
-        )
-
-        await expect(
-          routeTest.client.wallet.importAccount({
-            name,
-            account: base64,
-            rescan: false,
-          }),
-        ).rejects.toThrow(
-          expect.objectContaining({
-            message: expect.stringContaining(
-              'Encrypted multisig account cannot be decrypted without a corresponding multisig secret',
-            ),
-            status: 400,
-          }),
-        )
-      })
-
-      it('should import old account export formats', async () => {
-        const testCaseSuffix = '.txt'
-        const keySuffix = '.key'
-        const testCaseDir = path.join(__dirname, '__importTestCases__', 'multisigEncrypted')
-        const importTestCaseFiles = fs
-          .readdirSync(testCaseDir, { withFileTypes: true })
-          .filter(
-            (testCaseFile) =>
-              testCaseFile.isFile() && testCaseFile.name.endsWith(testCaseSuffix),
-          )
-          .map((testCaseFile) => testCaseFile.name)
-
-        expect(importTestCaseFiles.length).toBeGreaterThan(0)
-
-        for (const testCaseFile of importTestCaseFiles) {
-          const testCase = await fs.promises.readFile(path.join(testCaseDir, testCaseFile), {
-            encoding: 'ascii',
-          })
-
-          const keyFile = testCaseFile.slice(0, -testCaseSuffix.length) + keySuffix
-          const key = await fs.promises.readFile(path.join(testCaseDir, keyFile), {
-            encoding: 'ascii',
-          })
-          const secret = new multisig.ParticipantSecret(Buffer.from(key, 'hex'))
-          const identity = secret.toIdentity()
-
-          await routeTest.node.wallet.walletDb.putMultisigSecret(identity.serialize(), {
-            secret: secret.serialize(),
-            name: testCaseFile,
-          })
-
-          const name = 'new-account-name'
-          const response = await routeTest.client.wallet.importAccount({
-            account: testCase,
-            name,
-          })
-
-          expect(response.status).toBe(200)
-          expect(response.content.name).toEqual(name)
-        }
-      })
+        expect(response.content.name).toEqual(name)
+      }
     })
   })
 })
