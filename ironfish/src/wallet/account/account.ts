@@ -23,7 +23,7 @@ import { HeadValue } from '../walletdb/headValue'
 import { isSignerMultisig } from '../walletdb/multisigKeys'
 import { TransactionValue } from '../walletdb/transactionValue'
 import { WalletDB } from '../walletdb/walletdb'
-import * as sodium from 'libsodium-wrappers';
+import sodium from 'libsodium-wrappers';
 
 export const ACCOUNT_KEY_LENGTH = 32
 
