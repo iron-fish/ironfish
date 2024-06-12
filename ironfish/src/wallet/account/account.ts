@@ -23,6 +23,7 @@ import { HeadValue } from '../walletdb/headValue'
 import { isSignerMultisig } from '../walletdb/multisigKeys'
 import { TransactionValue } from '../walletdb/transactionValue'
 import { WalletDB } from '../walletdb/walletdb'
+import * as sodium from 'libsodium-wrappers';
 
 export const ACCOUNT_KEY_LENGTH = 32
 
@@ -76,6 +77,9 @@ export class Account {
   readonly multisigKeys?: MultisigKeys
   readonly proofAuthorizingKey: string | null
 
+  encryptedSpendingKey: Buffer | null
+  nonce: Buffer | null
+
   constructor({ accountValue, walletDb }: { accountValue: AccountValue; walletDb: WalletDB }) {
     this.id = accountValue.id
     this.name = accountValue.name
@@ -96,6 +100,22 @@ export class Account {
     this.scanningEnabled = accountValue.scanningEnabled
     this.multisigKeys = accountValue.multisigKeys
     this.proofAuthorizingKey = accountValue.proofAuthorizingKey
+
+    this.encryptedSpendingKey = null
+    this.nonce = null
+
+    void this.encrypt();
+  }
+
+  async encrypt(): Promise<void> {
+    if (this.spendingKey) {
+      const password = Buffer.from('password', 'hex');
+      const { cipherText, nonce } = await encrypt(this.spendingKey, password);
+      this.encryptedSpendingKey = Buffer.from(cipherText)
+      this.nonce = Buffer.from(nonce)
+      console.log(this.encryptedSpendingKey)
+      console.log(this.nonce)
+    }
   }
 
   isSpendingAccount(): this is SpendingAccount {
@@ -1291,4 +1311,35 @@ export function calculateAccountPrefix(id: string): Buffer {
   const prefix = Buffer.alloc(4)
   prefix.writeUInt32BE(hash)
   return prefix
+}
+
+
+export async function encrypt(message: string, key: Uint8Array, additionalData?: Uint8Array): Promise<{ cipherText: Uint8Array, nonce: Uint8Array }> {
+  await sodium.ready;
+  const nonce = sodium.randombytes_buf(sodium.crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);
+  const messageBytes = new TextEncoder().encode(message);
+
+  const cipherText = sodium.crypto_aead_xchacha20poly1305_ietf_encrypt(
+    messageBytes,
+    additionalData || null,
+    null,
+    nonce,
+    key
+  );
+
+  return { cipherText, nonce };
+}
+
+export async function decrypt(cipherText: Uint8Array, nonce: Uint8Array, key: Uint8Array, additionalData?: Uint8Array): Promise<string> {
+  await sodium.ready;
+
+  const decryptedBytes = sodium.crypto_aead_xchacha20poly1305_ietf_decrypt(
+    null,
+    cipherText,
+    additionalData || null,
+    nonce,
+    key
+  );
+
+  return new TextDecoder().decode(decryptedBytes);
 }
