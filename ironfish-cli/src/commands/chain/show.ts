@@ -26,8 +26,7 @@ export default class Show extends IronfishCommand {
 
   async start(): Promise<void> {
     const { args } = await this.parse(Show)
-    const start = args.start as number | null
-    const stop = args.stop as number | null
+    const { start, stop } = args
 
     this.log(`Getting the chain blocks...`)
     await this.sdk.client.connect()

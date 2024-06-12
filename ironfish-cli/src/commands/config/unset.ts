@@ -27,7 +27,7 @@ export class UnsetCommand extends IronfishCommand {
 
   async start(): Promise<void> {
     const { args, flags } = await this.parse(UnsetCommand)
-    const name = args.name
+    const { name } = args
 
     const client = await this.sdk.connectRpc(flags.local)
     await client.config.unsetConfig({ name })

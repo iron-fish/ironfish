@@ -34,7 +34,7 @@ export class ImportCommand extends IronfishCommand {
 
   async start(): Promise<void> {
     const { flags, args } = await this.parse(ImportCommand)
-    const blob = args.blob
+    const { blob } = args
 
     const client = await this.sdk.connectRpc()
 

@@ -21,7 +21,7 @@ export class ScanningOffCommand extends IronfishCommand {
 
   async start(): Promise<void> {
     const { args } = await this.parse(ScanningOffCommand)
-    const account = args.account
+    const { account } = args
 
     const client = await this.sdk.connectRpc()
 

@@ -43,7 +43,7 @@ export class TransactionViewCommand extends IronfishCommand {
 
     const account = flags.account ?? (await this.selectAccount(client))
 
-    let transactionString = flags.transaction as string
+    let transactionString = flags.transaction
     if (!transactionString) {
       transactionString = await longPrompt(
         'Enter the hex-encoded transaction, raw transaction, or unsigned transaction to view',

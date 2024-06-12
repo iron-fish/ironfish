@@ -21,7 +21,7 @@ export default class ShowBlock extends IronfishCommand {
 
   async start(): Promise<void> {
     const { args } = await this.parse(ShowBlock)
-    const search = args.search
+    const { search } = args
 
     const client = await this.sdk.connectRpc()
     const data = await client.chain.getBlock({ search })

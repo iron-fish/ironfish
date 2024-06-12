@@ -34,7 +34,7 @@ export class WatchTxCommand extends IronfishCommand {
 
   async start(): Promise<void> {
     const { flags, args } = await this.parse(WatchTxCommand)
-    const hash = args.hash
+    const { hash } = args
     // TODO: remove account arg
     const account = flags.account ? flags.account : args.account
 

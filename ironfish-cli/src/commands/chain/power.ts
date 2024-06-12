@@ -27,7 +27,7 @@ export default class Power extends IronfishCommand {
 
   async start(): Promise<void> {
     const { flags, args } = await this.parse(Power)
-    const block = args.block as number | null | undefined
+    const { block } = args
 
     const client = await this.sdk.connectRpc()
 

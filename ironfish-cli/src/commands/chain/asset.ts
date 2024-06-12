@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Assert, BufferUtils } from '@ironfish/sdk'
+import { BufferUtils } from '@ironfish/sdk'
 import { Args } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -22,8 +22,7 @@ export default class Asset extends IronfishCommand {
 
   async start(): Promise<void> {
     const { args } = await this.parse(Asset)
-    Assert.isString(args.id)
-    const assetId = args.id
+    const { id: assetId } = args
 
     const client = await this.sdk.connectRpc()
     const data = await client.chain.getAsset({ id: assetId })
