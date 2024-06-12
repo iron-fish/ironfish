@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { ACCOUNT_SCHEMA_VERSION, RpcClient } from '@ironfish/sdk'
+import { ACCOUNT_SCHEMA_VERSION, JsonEncoder, RpcClient } from '@ironfish/sdk'
 import { AccountImport } from '@ironfish/sdk/src/wallet/exporter'
 import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
@@ -103,7 +103,7 @@ export class MultisigCreateDealer extends IronfishCommand {
       }
 
       await client.wallet.importAccount({
-        account: JSON.stringify(account),
+        account: new JsonEncoder().encode(account),
       })
 
       ux.action.stop()

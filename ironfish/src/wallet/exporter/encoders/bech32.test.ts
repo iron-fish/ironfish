@@ -31,6 +31,23 @@ describe('Bech32AccountEncoder', () => {
     expect(decoded).toMatchObject(accountImport)
   })
 
+  it('renames account when name is passed', () => {
+    const encoded = encoder.encode({
+      version: ACCOUNT_SCHEMA_VERSION,
+      name: 'test',
+      spendingKey: key.spendingKey,
+      viewKey: key.viewKey,
+      incomingViewKey: key.incomingViewKey,
+      outgoingViewKey: key.outgoingViewKey,
+      publicAddress: key.publicAddress,
+      createdAt: null,
+      proofAuthorizingKey: key.proofAuthorizingKey,
+    })
+
+    const decoded = encoder.decode(encoded, { name: 'foo' })
+    expect(decoded.name).toEqual('foo')
+  })
+
   it('encodes and decodes accounts with non-null createdAt', () => {
     const accountImport: AccountImport = {
       version: ACCOUNT_SCHEMA_VERSION,

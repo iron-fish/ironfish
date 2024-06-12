@@ -6,6 +6,7 @@ import fs from 'fs'
 import path from 'path'
 import { createTrustedDealerKeyPackages } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
+import { JsonEncoder } from '../../../wallet'
 import { AccountFormat, encodeAccountImport } from '../../../wallet/exporter/account'
 import { AccountImport } from '../../../wallet/exporter/accountImport'
 import { Bech32Encoder } from '../../../wallet/exporter/encoders/bech32'
@@ -37,7 +38,7 @@ describe('Route wallet/importAccount', () => {
     }
 
     const response = await routeTest.client.wallet.importAccount({
-      account: JSON.stringify(account),
+      account: new JsonEncoder().encode(account),
       rescan: false,
     })
 
@@ -67,7 +68,7 @@ describe('Route wallet/importAccount', () => {
     }
 
     const response = await routeTest.client.wallet.importAccount({
-      account: JSON.stringify(account),
+      account: new JsonEncoder().encode(account),
       rescan: false,
     })
 
@@ -83,7 +84,7 @@ describe('Route wallet/importAccount', () => {
 
     const accountName = 'bar'
     const response = await routeTest.client.wallet.importAccount({
-      account: JSON.stringify({
+      account: new JsonEncoder().encode({
         name: accountName,
         viewKey: key.viewKey,
         spendingKey: key.spendingKey,
@@ -110,7 +111,7 @@ describe('Route wallet/importAccount', () => {
     const accountName = 'bar'
     const overriddenAccountName = 'not-bar'
     const response = await routeTest.client.wallet.importAccount({
-      account: JSON.stringify({
+      account: new JsonEncoder().encode({
         name: accountName,
         viewKey: key.viewKey,
         spendingKey: key.spendingKey,
@@ -166,7 +167,7 @@ describe('Route wallet/importAccount', () => {
       }
 
       const response = await routeTest.client.wallet.importAccount({
-        account: JSON.stringify(account),
+        account: new JsonEncoder().encode(account),
         // set rescan to true so that skipRescan should not be called
         rescan: true,
       })
@@ -316,6 +317,8 @@ describe('Route wallet/importAccount', () => {
 
         expect(response.status).toBe(200)
         expect(response.content.name).not.toBeNull()
+
+        await routeTest.client.wallet.removeAccount({ account: testCaseFile })
       }
     })
 

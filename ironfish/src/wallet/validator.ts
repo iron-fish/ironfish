@@ -6,7 +6,6 @@ import {
   generatePublicAddressFromIncomingViewKey,
   isValidPublicAddress as nativeIsValidPublicAddress,
 } from '@ironfish/rust-nodejs'
-import { AccountValue } from './walletdb/accountValue'
 
 const SPENDING_KEY_LENGTH = 64
 const INCOMING_VIEW_KEY_LENGTH = 64
@@ -35,57 +34,6 @@ export function isValidIVKAndPublicAddressPair(ivk: string, publicAddress: strin
 
 export function isValidViewKey(viewKey: string): boolean {
   return viewKey.length === VIEW_KEY_LENGTH && isHexEncoding(viewKey)
-}
-
-export function validateAccount(toImport: Partial<AccountValue>): void {
-  if (!toImport.name) {
-    throw new Error(`Imported account has no name`)
-  }
-
-  if (!toImport.publicAddress) {
-    throw new Error(`Imported account has no public address`)
-  }
-
-  if (!isValidPublicAddress(toImport.publicAddress)) {
-    throw new Error(`Provided public address ${toImport.publicAddress} is invalid`)
-  }
-
-  if (!toImport.outgoingViewKey) {
-    throw new Error(`Imported account has no outgoing view key`)
-  }
-
-  if (!isValidOutgoingViewKey(toImport.outgoingViewKey)) {
-    throw new Error(`Provided outgoing view key ${toImport.outgoingViewKey} is invalid`)
-  }
-
-  if (!toImport.incomingViewKey) {
-    throw new Error(`Imported account has no incoming view key`)
-  }
-
-  if (!isValidIncomingViewKey(toImport.incomingViewKey)) {
-    throw new Error(`Provided incoming view key ${toImport.incomingViewKey} is invalid`)
-  }
-
-  if (!toImport.viewKey) {
-    throw new Error(`Imported account has no view key`)
-  }
-
-  if (!isValidViewKey(toImport.viewKey)) {
-    throw new Error(`Provided view key ${toImport.viewKey} is invalid`)
-  }
-
-  if (toImport.spendingKey && !isValidSpendingKey(toImport.spendingKey)) {
-    throw new Error(`Provided spending key ${toImport.spendingKey} is invalid`)
-  }
-
-  if (!isValidIVKAndPublicAddressPair(toImport.incomingViewKey, toImport.publicAddress)) {
-    const generatedPublicAddress = generatePublicAddressFromIncomingViewKey(
-      toImport.incomingViewKey,
-    )
-    throw new Error(
-      `Public address ${toImport.publicAddress} does not match public address generated from incoming view key ${generatedPublicAddress}`,
-    )
-  }
 }
 
 function isHexEncoding(text: string): boolean {

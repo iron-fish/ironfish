@@ -162,47 +162,6 @@ export type RpcMultisigKeys = {
   publicKeyPackage: string
 }
 
-export type RpcAccountImport = {
-  version?: number
-  name: string
-  viewKey?: string
-  incomingViewKey: string
-  outgoingViewKey: string
-  publicAddress: string
-  spendingKey: string | null
-  createdAt: { hash: string; sequence: number } | string | null
-  multisigKeys?: RpcMultisigKeys
-  proofAuthorizingKey: string | null
-}
-
-export const RpcAccountImportSchema: yup.ObjectSchema<RpcAccountImport> = yup
-  .object({
-    name: yup.string().defined(),
-    spendingKey: yup.string().nullable().defined(),
-    viewKey: yup.string().defined(),
-    publicAddress: yup.string().defined(),
-    incomingViewKey: yup.string().defined(),
-    outgoingViewKey: yup.string().defined(),
-    version: yup.number().defined(),
-    createdAt: yup
-      .object({
-        hash: yup.string().defined(),
-        sequence: yup.number().defined(),
-      })
-      .nullable()
-      .defined(),
-    multisigKeys: yup
-      .object({
-        secret: yup.string().optional(),
-        identity: yup.string().optional(),
-        keyPackage: yup.string().optional(),
-        publicKeyPackage: yup.string().defined(),
-      })
-      .optional(),
-    proofAuthorizingKey: yup.string().nullable().defined(),
-  })
-  .defined()
-
 export type RpcAccountStatus = {
   name: string
   id: string
