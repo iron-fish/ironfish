@@ -1,15 +1,11 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import '../../../testUtilities'
 import { generateKey } from '@ironfish/rust-nodejs'
 import { ACCOUNT_SCHEMA_VERSION } from '../../account/account'
 import { AccountImport } from '../accountImport'
 import { BASE64_JSON_ACCOUNT_PREFIX, Base64JsonEncoder } from './base64json'
-
-const isBase64 = (s: string): boolean => {
-  const rebuilt = Buffer.from(s, 'base64').toString('base64')
-  return s === rebuilt
-}
 
 describe('Base64JsonEncoder', () => {
   const key = generateKey()
@@ -30,7 +26,7 @@ describe('Base64JsonEncoder', () => {
 
     const encoded = encoder.encode(accountImport)
     expect(encoded.startsWith(BASE64_JSON_ACCOUNT_PREFIX)).toBe(true)
-    expect(isBase64(encoded.slice(BASE64_JSON_ACCOUNT_PREFIX.length))).toBe(true)
+    expect(encoded.slice(BASE64_JSON_ACCOUNT_PREFIX.length)).toBeBase64()
   })
 
   it('renames account when name is passed', () => {

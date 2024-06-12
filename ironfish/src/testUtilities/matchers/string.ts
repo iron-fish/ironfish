@@ -4,11 +4,6 @@
 
 import { makeResult } from './utils'
 
-// const isBase64 = (s: string): boolean => {
-//   const s === Buffer.from(s, 'base64').toString('base64')
-//   return s === rebuilt
-// }
-
 function toBeBase64(self: string | null | undefined): jest.CustomMatcherResult {
   const pass = !!self && self === Buffer.from(self, 'base64').toString('base64')
 
