@@ -12,8 +12,7 @@ import { AccountDecodingOptions, AccountEncoder, DecodeFailed } from '../encoder
 
 export class JsonEncoder implements AccountEncoder {
   encode(value: AccountImport): string {
-    const encoded = serializeAccountEncodedJSON(value)
-    return JSON.stringify(encoded)
+    return JSON.stringify(value)
   }
 
   decode(value: string, options?: AccountDecodingOptions): AccountImport {
@@ -58,7 +57,7 @@ type AccountEncodedJSON = {
   outgoingViewKey: string
   publicAddress: string
   spendingKey: string | null
-  createdAt?: { hash: string; sequence: number; networkId?: number } | string | null
+  createdAt?: { hash?: string; sequence: number; networkId?: number } | string | null
   multisigKeys?: {
     identity?: string
     secret?: string
@@ -79,7 +78,7 @@ const AccountEncodedJSONSchema: yup.ObjectSchema<AccountEncodedJSON> = yup
     version: yup.number().optional(),
     createdAt: yup
       .object({
-        hash: yup.string().defined(),
+        hash: yup.string().optional(),
         sequence: yup.number().defined(),
         networkId: yup.number().optional(),
       })
@@ -99,29 +98,6 @@ const AccountEncodedJSONSchema: yup.ObjectSchema<AccountEncodedJSON> = yup
     networkId: yup.number().optional(),
   })
   .defined()
-
-const serializeAccountEncodedJSON = (accountImport: AccountImport): AccountEncodedJSON => {
-  const createdAt = accountImport.createdAt
-    ? {
-        hash: accountImport.createdAt.hash.toString('hex'),
-        sequence: accountImport.createdAt.sequence,
-        networkId: accountImport.createdAt.networkId,
-      }
-    : null
-
-  return {
-    version: accountImport.version,
-    name: accountImport.name,
-    viewKey: accountImport.viewKey,
-    incomingViewKey: accountImport.incomingViewKey,
-    outgoingViewKey: accountImport.outgoingViewKey,
-    publicAddress: accountImport.publicAddress,
-    spendingKey: accountImport.spendingKey,
-    multisigKeys: accountImport.multisigKeys,
-    proofAuthorizingKey: accountImport.proofAuthorizingKey,
-    createdAt: createdAt,
-  }
-}
 
 /**
  * Converts a AccountEncodedJSON to AccountImport
@@ -143,7 +119,6 @@ function deserializeAccountEncodedJSON(raw: AccountEncodedJSON): AccountImport {
     createdAt:
       raw.createdAt && typeof raw.createdAt === 'object'
         ? {
-            hash: Buffer.from(raw.createdAt.hash, 'hex'),
             sequence: raw.createdAt.sequence,
             networkId: raw.createdAt.networkId,
           }

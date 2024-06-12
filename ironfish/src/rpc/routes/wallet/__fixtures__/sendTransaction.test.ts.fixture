@@ -11,10 +11,6 @@
         "outgoingViewKey": "8c6cadba724f8592dc9507ed9f61eb2741359257a270f72c934b2bf67dc82a98",
         "publicAddress": "70f5854f5b3ade4103359302a767a052df050ea16a5a31356ddaabb78b4409c8",
         "createdAt": {
-          "hash": {
-            "type": "Buffer",
-            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
-          },
           "sequence": 1
         },
         "scanningEnabled": true,
@@ -41,10 +37,6 @@
         "outgoingViewKey": "27580db2948fdfc7913281bb49079ee5a4fb5b47e58b5f9d2f6be701daa6d027",
         "publicAddress": "49c5001e590c22fec19e7129012070482a7180e08639ea763980f9e54deb4a1c",
         "createdAt": {
-          "hash": {
-            "type": "Buffer",
-            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
-          },
           "sequence": 1
         },
         "scanningEnabled": true,
@@ -75,10 +67,6 @@
         "outgoingViewKey": "d8cb7863a95db6f5c1f4df76ada81ee2af438e26a9a510204ef521c3f431d57b",
         "publicAddress": "59931555d82a7e0636b9a05a603b7000fd2cfa0773a0dd62a2b14e1ffdfc006f",
         "createdAt": {
-          "hash": {
-            "type": "Buffer",
-            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
-          },
           "sequence": 1
         },
         "scanningEnabled": true,
@@ -109,10 +97,6 @@
         "outgoingViewKey": "b840aabc7d8b0b46d9a0112b9abee731379d4ba063816cc8d4980ba3a1a1fce8",
         "publicAddress": "36b4e6de88f58da11e4b82d2d91a617f3d8e25e60816045e059ea574b7d74137",
         "createdAt": {
-          "hash": {
-            "type": "Buffer",
-            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
-          },
           "sequence": 1
         },
         "scanningEnabled": true,
@@ -143,10 +127,6 @@
         "outgoingViewKey": "cc1859327b56f18b337a096fab92314fcf08731a8cdce09f50c703b991fcf5ea",
         "publicAddress": "78b7a7b4e17dcd40fbebdfa45bbcb5cd4a2ce4564ac79a005efe0e881ac49a4d",
         "createdAt": {
-          "hash": {
-            "type": "Buffer",
-            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
-          },
           "sequence": 1
         },
         "scanningEnabled": true,

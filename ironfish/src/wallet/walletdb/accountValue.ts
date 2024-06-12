@@ -6,7 +6,6 @@ import bufio from 'bufio'
 import { IDatabaseEncoding } from '../../storage'
 import { ACCOUNT_KEY_LENGTH } from '../account/account'
 import { MultisigKeys } from '../interfaces/multisigKeys'
-import { HeadValue, NullableHeadValueEncoding } from './headValue'
 import { MultisigKeysEncoding } from './multisigKeys'
 
 export const KEY_LENGTH = ACCOUNT_KEY_LENGTH
@@ -22,7 +21,7 @@ export interface AccountValue {
   incomingViewKey: string
   outgoingViewKey: string
   publicAddress: string
-  createdAt: HeadValue | null
+  createdAt: { sequence: number } | null
   scanningEnabled: boolean
   multisigKeys?: MultisigKeys
   proofAuthorizingKey: string | null
@@ -52,8 +51,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     bw.writeBytes(Buffer.from(value.publicAddress, 'hex'))
 
     if (value.createdAt) {
-      const encoding = new NullableHeadValueEncoding()
-      bw.writeBytes(encoding.serialize(value.createdAt))
+      bw.writeU32(value.createdAt.sequence)
     }
 
     if (value.multisigKeys) {
@@ -88,8 +86,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
 
     let createdAt = null
     if (hasCreatedAt) {
-      const encoding = new NullableHeadValueEncoding()
-      createdAt = encoding.deserialize(reader.readBytes(encoding.nonNullSize))
+      createdAt = { sequence: reader.readU32() }
     }
 
     let multisigKeys = undefined
@@ -134,8 +131,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     size += PUBLIC_ADDRESS_LENGTH
 
     if (value.createdAt) {
-      const encoding = new NullableHeadValueEncoding()
-      size += encoding.nonNullSize
+      size += 4
     }
 
     if (value.multisigKeys) {

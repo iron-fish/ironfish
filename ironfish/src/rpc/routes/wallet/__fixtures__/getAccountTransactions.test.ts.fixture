@@ -11,10 +11,6 @@
         "outgoingViewKey": "ecab6a979d93e8890e37b9392c63d136d3b4f06c5820389948e6b78fb45d2acf",
         "publicAddress": "1669ebd494118dd327a537f7313b7f219f36c8a8df1d0367d5fa1862a1282905",
         "createdAt": {
-          "hash": {
-            "type": "Buffer",
-            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
-          },
           "sequence": 1
         },
         "scanningEnabled": true,
@@ -67,10 +63,6 @@
         "outgoingViewKey": "9972c1973d3cdbf0ca9e3c89d297112e4a633f260a1ae4e8fe803ac8a5b3ae77",
         "publicAddress": "651e9efd2f33806f5932340e5bb25e6c269b57b8418adec2c4ae7e2cdd339284",
         "createdAt": {
-          "hash": {
-            "type": "Buffer",
-            "data": "base64:t+mxzH/fp+FaoQn6sCUggzOA+WZM4aBjyWht6rR67II="
-          },
           "sequence": 2
         },
         "scanningEnabled": true,
@@ -97,10 +89,6 @@
         "outgoingViewKey": "890004c4706cc2b6b76e19b1a7f210b1a0a3c764673972920fb84a154136c10a",
         "publicAddress": "aba8bfae6ee0b62242f85d69d3743f6e034691883722b70dc020f6013086dd54",
         "createdAt": {
-          "hash": {
-            "type": "Buffer",
-            "data": "base64:t+mxzH/fp+FaoQn6sCUggzOA+WZM4aBjyWht6rR67II="
-          },
           "sequence": 2
         },
         "scanningEnabled": true,
@@ -161,10 +149,6 @@
         "outgoingViewKey": "b19370eb29c9a01b4ff939748cde1ebbf07873a773715af4cad122b35de8a5d5",
         "publicAddress": "33a45213821885bb12acea38620ae55931fd8a70be61699b1a9b1555e4307d6f",
         "createdAt": {
-          "hash": {
-            "type": "Buffer",
-            "data": "base64:pNbbBr/Y5tiJAMwxnkbM8z+uZlDeKdOpVJoOLDAAGJI="
-          },
           "sequence": 3
         },
         "scanningEnabled": true,
@@ -243,10 +227,6 @@
         "outgoingViewKey": "ca2e7c8eaf41eb59b6d4c4ab85c0c25cb41acb124d23f87674c31427d5ed5b79",
         "publicAddress": "92eb4c07d4a7ba8a0af23d1c29fb01be57b33037ce907a1957a8cfcfe2054dd8",
         "createdAt": {
-          "hash": {
-            "type": "Buffer",
-            "data": "base64:S8LuedCTjYjAqo1cyrzZ0WRCidXLcYDA29KLKWKssjQ="
-          },
           "sequence": 5
         },
         "scanningEnabled": true,
@@ -299,10 +279,6 @@
         "outgoingViewKey": "8c7994e3756b18a2ed09b9368e12a17d0917c9a37cb4ae5544776dd095cc8556",
         "publicAddress": "0a8e5563a69a95a48ee38ed8852a79b53e8a1c5c5a9a2d3d943afe04e975f35a",
         "createdAt": {
-          "hash": {
-            "type": "Buffer",
-            "data": "base64:/+AnFuU8fZ8zAMfzr6lbyQkX+J4JcbaE9DEQ2pRnScA="
-          },
           "sequence": 6
         },
         "scanningEnabled": true,
@@ -359,10 +335,6 @@
         "outgoingViewKey": "3b491d19af145fcc0b1b02da8cb5b993f239506980c30f81dadf98d4eaa6aef0",
         "publicAddress": "bcae24c16aa078d03317a071f5e7d9bb910f2477fdde6f1ff1971d9824f0d24e",
         "createdAt": {
-          "hash": {
-            "type": "Buffer",
-            "data": "base64:TVjH3I5G+XS9w70BexUxosBJrzfFgQk3xF3zVJ97CNE="
-          },
           "sequence": 7
         },
         "scanningEnabled": true,

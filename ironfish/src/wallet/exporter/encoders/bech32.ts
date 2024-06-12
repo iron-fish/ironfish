@@ -46,7 +46,6 @@ export class Bech32Encoder implements AccountEncoder {
 
     bw.writeU8(Number(!!value.createdAt))
     if (value.createdAt) {
-      bw.writeBytes(value.createdAt.hash)
       bw.writeU32(value.createdAt.sequence)
     }
 
@@ -114,7 +113,6 @@ export class Bech32Encoder implements AccountEncoder {
     }
     size += 1 // createdAt byte
     if (value.createdAt) {
-      size += 32 // block hash
       size += 4 // block sequence
     }
     size += 1 // multisigKeys byte
@@ -147,11 +145,10 @@ function decoderV1(
 
   const hasCreatedAt = reader.readU8() === 1
 
+  // TODO handle old versions
   let createdAt = null
   if (hasCreatedAt) {
-    const hash = reader.readBytes(32)
-    const sequence = reader.readU32()
-    createdAt = { hash, sequence }
+    createdAt = { sequence: reader.readU32() }
   }
 
   return {

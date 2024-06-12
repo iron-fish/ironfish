@@ -73,12 +73,7 @@ export class MultisigCreateDealer extends IronfishCommand {
     })
 
     const chainResponse = await client.chain.getChainInfo()
-    const hash = Buffer.from(chainResponse.content.currentBlockIdentifier.hash, 'hex')
-    const sequence = Number(chainResponse.content.currentBlockIdentifier.index)
-    const createdAt = {
-      hash,
-      sequence,
-    }
+    const createdAt = Number(chainResponse.content.currentBlockIdentifier.index)
 
     if (flags.importCoordinator) {
       this.log()
@@ -87,10 +82,7 @@ export class MultisigCreateDealer extends IronfishCommand {
       const account: AccountImport = {
         name,
         version: ACCOUNT_SCHEMA_VERSION,
-        createdAt: {
-          hash: createdAt.hash,
-          sequence: createdAt.sequence,
-        },
+        createdAt,
         spendingKey: null,
         viewKey: response.content.viewKey,
         incomingViewKey: response.content.incomingViewKey,

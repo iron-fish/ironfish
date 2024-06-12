@@ -22,7 +22,7 @@ import { Side } from '../merkletree/merkletree'
 import { Witness } from '../merkletree/witness'
 import { Mutex } from '../mutex'
 import { BlockHeader } from '../primitives'
-import { GENESIS_BLOCK_PREVIOUS, GENESIS_BLOCK_SEQUENCE } from '../primitives/block'
+import { GENESIS_BLOCK_SEQUENCE } from '../primitives/block'
 import { BurnDescription } from '../primitives/burnDescription'
 import { MintDescription } from '../primitives/mintDescription'
 import { Note } from '../primitives/note'
@@ -441,10 +441,8 @@ export class Wallet {
 
       const accountHasTransaction = assetBalanceDeltas.size > 0
       if (account.createdAt === null && accountHasTransaction) {
-        await account.updateCreatedAt(
-          { hash: blockHeader.hash, sequence: blockHeader.sequence },
-          tx,
-        )
+        const sequence = Math.max(1, blockHeader.sequence - this.config.get('confirmations'))
+        await account.updateCreatedAt({ sequence }, tx)
       }
     })
   }
@@ -1265,7 +1263,7 @@ export class Wallet {
 
   async createAccount(
     name: string,
-    options: { createdAt?: HeadValue | null; setDefault?: boolean } = {
+    options: { createdAt?: { sequence: number } | null; setDefault?: boolean } = {
       setDefault: false,
     },
   ): Promise<Account> {
@@ -1275,14 +1273,20 @@ export class Wallet {
 
     const key = generateKey()
 
-    let createdAt: HeadValue | null = null
-    if (options.createdAt !== undefined) {
-      createdAt = options.createdAt
-    } else if (this.nodeClient) {
-      try {
-        createdAt = await this.getChainHead()
-      } catch {
-        this.logger.warn('Failed to fetch chain head from node client')
+    let createdAt = options.createdAt ?? null
+    let head: HeadValue | null = null
+    if (this.nodeClient) {
+      if (createdAt) {
+        const block = await this.chainGetBlock(createdAt)
+        head = block
+          ? {
+              hash: Buffer.from(block.block.hash, 'hex'),
+              sequence: block.block.sequence,
+            }
+          : null
+      } else if (options.createdAt !== null) {
+        head = await this.getChainHead()
+        createdAt = { sequence: Math.max(1, head.sequence - this.config.get('confirmations')) }
       }
     }
 
@@ -1305,7 +1309,7 @@ export class Wallet {
 
     await this.walletDb.db.transaction(async (tx) => {
       await this.walletDb.setAccount(account, tx)
-      await account.updateHead(createdAt, tx)
+      await account.updateHead(head, tx)
     })
 
     this.accounts.set(account.id, account)
@@ -1382,12 +1386,12 @@ export class Wallet {
       await this.walletDb.setAccount(account, tx)
 
       if (createdAt !== null) {
-        const previousBlockHash = await this.chainGetPreviousBlockHash(createdAt.hash)
+        const block = await this.chainGetBlock(createdAt)
 
-        const head = previousBlockHash
+        const head = block
           ? {
-              hash: previousBlockHash,
-              sequence: createdAt.sequence - 1,
+              hash: Buffer.from(block.block.hash, 'hex'),
+              sequence: block.block.sequence,
             }
           : null
 
@@ -1436,14 +1440,12 @@ export class Wallet {
       await this.walletDb.setAccount(newAccount, tx)
 
       if (newAccount.createdAt !== null) {
-        const previousBlockHash = await this.chainGetPreviousBlockHash(
-          newAccount.createdAt.hash,
-        )
+        const block = await this.chainGetBlock(newAccount.createdAt)
 
-        const head = previousBlockHash
+        const head = block
           ? {
-              hash: previousBlockHash,
-              sequence: newAccount.createdAt.sequence - 1,
+              hash: Buffer.from(block.block.hash, 'hex'),
+              sequence: block.block.sequence,
             }
           : null
 
@@ -1652,22 +1654,6 @@ export class Wallet {
       this.logger.error(ErrorUtils.renderError(error, true))
       throw error
     }
-  }
-
-  async chainGetPreviousBlockHash(hash: Buffer): Promise<Buffer | null> {
-    const block = await this.chainGetBlock({ hash: hash.toString('hex') })
-
-    if (block === null) {
-      return null
-    }
-
-    const previousBlockHash = Buffer.from(block.block.previousBlockHash, 'hex')
-
-    if (previousBlockHash.equals(GENESIS_BLOCK_PREVIOUS)) {
-      return null
-    }
-
-    return previousBlockHash
   }
 
   private async getChainAsset(id: Buffer): Promise<{

@@ -11,10 +11,6 @@
         "outgoingViewKey": "b75446854bab30c717f322b4feabc9296522d9a134686db7d5da1983df964db5",
         "publicAddress": "25e53d32c286a95ac67d4efbcd35ca0841757d7c1be5be333c59ec5d2c1a4f47",
         "createdAt": {
-          "hash": {
-            "type": "Buffer",
-            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
-          },
           "sequence": 1
         },
         "scanningEnabled": true,
