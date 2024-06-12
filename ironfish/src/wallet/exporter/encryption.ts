@@ -22,7 +22,7 @@ export const BASE64_JSON_MULTISIG_ENCRYPTED_ACCOUNT_PREFIX = 'ifmsaccount'
 
 /**
  * This returns the decrypted account if decryption was successful
- * or returns the original unnecrypted input if encryption was not
+ * or returns the original unencrypted input if encryption was not
  * successful
  */
 export async function decryptEncodedAccount(
