@@ -732,8 +732,10 @@ describe('Wallet', () => {
       expect(accountB.createdAt?.hash).toEqualHash(block3.header.hash)
       expect(accountB.createdAt?.sequence).toEqual(3)
 
-      expect(accountB.networkId).toEqual(nodeB.wallet.networkId)
-      const accountBImport = await nodeB.wallet.importAccount(accountB)
+      const accountBImport = await nodeB.wallet.importAccount({
+        ...accountB,
+        networkId: nodeB.wallet.networkId,
+      })
 
       expect(accountBImport.createdAt?.hash).toEqualHash(block3.header.hash)
       expect(accountBImport.createdAt?.sequence).toEqual(3)
@@ -759,7 +761,10 @@ describe('Wallet', () => {
       // create an account so that createdAt will be non-null
       const accountB = await useAccountFixture(nodeA.wallet, 'accountB')
 
-      const accountBImport = await nodeB.wallet.importAccount(accountB)
+      const accountBImport = await nodeB.wallet.importAccount({
+        ...accountB,
+        networkId: nodeB.wallet.networkId,
+      })
 
       expect(accountBImport.createdAt?.hash).toEqualHash(block3.header.hash)
       expect(accountBImport.createdAt?.sequence).toEqual(3)
