@@ -2,8 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Note } from '../../../primitives'
-import { Account, Base64JsonEncoder, Wallet } from '../../../wallet'
-import { AccountImport } from '../../../wallet/exporter/accountImport'
+import { Account, Wallet } from '../../../wallet'
 import { DecryptedNoteValue } from '../../../wallet/walletdb/decryptedNoteValue'
 import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
 import { WorkerPool } from '../../../workerPool'
@@ -107,22 +106,4 @@ export async function getAccountDecryptedNotes(
   }
 
   return serializedNotes
-}
-
-export async function tryDecodeAccountWithMultisigSecrets(
-  wallet: Wallet,
-  value: string,
-  options?: { name?: string },
-): Promise<AccountImport | undefined> {
-  const encoder = new Base64JsonEncoder()
-
-  for await (const { name, secret } of wallet.walletDb.getMultisigSecrets()) {
-    try {
-      return encoder.decode(value, { name: options?.name ?? name, multisigSecret: secret })
-    } catch (e: unknown) {
-      continue
-    }
-  }
-
-  return undefined
 }
