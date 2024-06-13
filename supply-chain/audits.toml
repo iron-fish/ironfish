@@ -50,6 +50,11 @@ who = "Andrea <andrea@iflabs.network>"
 criteria = "safe-to-deploy"
 delta = "0.14.0 -> 0.14.3"
 
+[[audits.hermit-abi]]
+who = "Andrea <andrea@iflabs.network>"
+criteria = "safe-to-deploy"
+delta = "0.2.6 -> 0.3.3"
+
 [[audits.indexmap]]
 who = "Andrea <andrea@iflabs.network>"
 criteria = "safe-to-deploy"

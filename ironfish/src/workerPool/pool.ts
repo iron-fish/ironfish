@@ -2,9 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { UnsignedTransaction } from '@ironfish/rust-nodejs'
+import { getCpuCount, UnsignedTransaction } from '@ironfish/rust-nodejs'
 import _ from 'lodash'
-import os from 'os'
 import { VerificationResult, VerificationResultReason } from '../consensus'
 import { createRootLogger, Logger } from '../logger'
 import { Meter, MetricsMonitor } from '../metrics'
@@ -321,15 +320,29 @@ export class WorkerPool {
  * Calculates the number of workers to use based on machine's number of cpus
  */
 export function calculateWorkers(nodeWorkers: number, nodeWorkersMax: number): number {
-  let workers = nodeWorkers
-  if (workers === -1) {
-    workers = os.cpus().length - 1
-
-    const maxWorkers = nodeWorkersMax
-    if (maxWorkers !== -1) {
-      workers = Math.min(workers, maxWorkers)
-    }
+  if (nodeWorkers >= 0) {
+    // If `nodeWorkers` is explicitly set, use that. We intentionally ignore
+    // `nodeWorkersMax` because this is the original behavior when
+    // `nodeWorkersMax` was first introduced, and changing that would be a
+    // backwards-incompatible change.
+    return nodeWorkers
   }
 
-  return workers
+  // `nodeWorkers` was not provided. Calculate an optimal value, without
+  // exceeding `nodeWorkersMax` (if provided).
+  //
+  // The -1 in the calculation for both `workers` and `maxWorkers` is to allow
+  // room to the node main process, as well as to reduce the impact on the
+  // user's system responsiveness
+  //
+  // `maxWorkers` is capped at 16 because each worker can consume several MiB
+  // of memory, and this can cause issues on systems with many CPUs but limited
+  // amount of memory. Also, even on systems with enough memory, increasing the
+  // worker pool beyond certain limits is unlikely to improve performance, so
+  // there is no concrete benefit in using as many workers as possible.
+  const { availableParallelism, physicalCount } = getCpuCount()
+  const workers = nodeWorkers >= 0 ? nodeWorkers : availableParallelism - 1
+  const maxWorkers = nodeWorkersMax >= 0 ? nodeWorkersMax : Math.min(physicalCount, 16)
+
+  return Math.min(workers, maxWorkers)
 }

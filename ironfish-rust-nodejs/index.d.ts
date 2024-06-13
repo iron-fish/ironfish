@@ -72,6 +72,20 @@ export function generatePublicAddressFromIncomingViewKey(ivkString: string): str
 export function generateKeyFromPrivateKey(privateKey: string): Key
 export function initializeSapling(): void
 export function isValidPublicAddress(hexAddress: string): boolean
+/**
+ * Return the number of processing units available to the system and to the current process.
+ *
+ * Note that the numbers returned by this method may change during the lifetime of the process.
+ * Examples of events that may cause the numbers to change:
+ * - enabling/disabling Simultaneous Multi-Threading (SMT)
+ * - enabling/disabling individual CPU threads or CPU cores
+ * - on Linux, changing CPU affinity masks for the process
+ * - on Linux, changing cgroup quotas for the process
+ *
+ * Also note that these numbers may not be accurate when running in a virtual machine or in a
+ * sandboxed environment.
+ */
+export function getCpuCount(): CpuCount
 export class FishHashContext {
   constructor(full: boolean)
   prebuildDataset(threads: number): void
@@ -229,6 +243,32 @@ export class ThreadPoolHandler {
   pause(): void
   getFoundBlock(): FoundBlockResult | null
   getHashRateSubmission(): number
+}
+export class CpuCount {
+  /**
+   * Estimate of the number of threads that can run simultaneously on the system. This is
+   * usually the same as `logical_count`, but on some systems (e.g. Linux), users can set limits
+   * on individual processes, and so `available_parallelism` may sometimes be lower than
+   * `logical_count`.
+   */
+  availableParallelism: number
+  /**
+   * Total number of 'logical CPUs', or 'virtual CPUs' or 'CPU threads' available on the system.
+   * This number differs from `physical_count` on systems that have Simultaneous Multi-Threading
+   * (SMT) enabled; on systems that do not have SMT enabled, `logical_count` and
+   * `physical_count` should be the same number.
+   *
+   * Note, on some systems and configurations, not all logical CPUs may be available to the
+   * current process, see `available_parallelism`.
+   */
+  logicalCount: number
+  /**
+   * Total number of CPU cores available on the system.
+   *
+   * Note, on some systems and configurations, not all physical CPUs may be available to the
+   * current process, see `available_parallelism`.
+   */
+  physicalCount: number
 }
 export namespace multisig {
   export const IDENTITY_LEN: number
