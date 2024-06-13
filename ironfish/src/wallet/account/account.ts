@@ -80,7 +80,7 @@ export class Account {
   encryptedSpendingKey: Buffer | null
   nonce: Buffer | null
 
-  constructor({ accountValue, walletDb }: { accountValue: AccountValue; walletDb: WalletDB }) {
+  constructor({ accountValue, walletDb, encryptedSpendingKey, nonce }: { accountValue: AccountValue; walletDb: WalletDB, encryptedSpendingKey?: Buffer, nonce?: Buffer }) {
     this.id = accountValue.id
     this.name = accountValue.name
     this.spendingKey = accountValue.spendingKey
@@ -101,21 +101,8 @@ export class Account {
     this.multisigKeys = accountValue.multisigKeys
     this.proofAuthorizingKey = accountValue.proofAuthorizingKey
 
-    this.encryptedSpendingKey = null
-    this.nonce = null
-
-    void this.encrypt();
-  }
-
-  async encrypt(): Promise<void> {
-    if (this.spendingKey) {
-      const password = Buffer.from('password', 'hex');
-      const { cipherText, nonce } = await encrypt(this.spendingKey, password);
-      this.encryptedSpendingKey = Buffer.from(cipherText)
-      this.nonce = Buffer.from(nonce)
-      console.log(this.encryptedSpendingKey)
-      console.log(this.nonce)
-    }
+    this.encryptedSpendingKey = encryptedSpendingKey ?? null
+    this.nonce = nonce ?? null
   }
 
   isSpendingAccount(): this is SpendingAccount {

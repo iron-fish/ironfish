@@ -40,6 +40,7 @@ import { AccountsDBMeta, MetaValue, MetaValueEncoding } from './metaValue'
 import { MultisigSecretValue, MultisigSecretValueEncoding } from './multisigSecretValue'
 import { ParticipantIdentity, ParticipantIdentityEncoding } from './participantIdentity'
 import { TransactionValue, TransactionValueEncoding } from './transactionValue'
+import sodium from 'libsodium-wrappers';
 
 const VERSION_DATABASE_ACCOUNTS = 32
 
@@ -1296,5 +1297,48 @@ export class WalletDB {
     for await (const value of this.multisigSecrets.getAllValuesIter(tx)) {
       yield value
     }
+  }
+
+  async encrypt(account: Account, passphrase: string, tx?: IDatabaseTransaction): Promise<Account> {
+    if (!account.spendingKey) {
+      return account;
+    }
+
+    await sodium.ready;
+    const nonce = sodium.randombytes_buf(sodium.crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);
+    const messageBytes = new TextEncoder().encode(account.spendingKey);
+
+    const cipherText = sodium.crypto_aead_xchacha20poly1305_ietf_encrypt(
+      messageBytes,
+      null,
+      null,
+      nonce,
+      Buffer.from(passphrase, 'hex')
+    );
+
+    const updatedAccount = new Account({
+      accountValue: {
+        createdAt: account.createdAt,
+        id: account.id,
+        incomingViewKey: account.incomingViewKey,
+        outgoingViewKey: account.outgoingViewKey,
+        name: account.name,
+        proofAuthorizingKey: account.proofAuthorizingKey,
+        publicAddress: account.publicAddress,
+        scanningEnabled: account.scanningEnabled,
+        version: account.version,
+        viewKey: account.viewKey,
+        multisigKeys: account.multisigKeys,
+
+        spendingKey: null,
+      },
+      walletDb: this,
+
+      encryptedSpendingKey: Buffer.from(cipherText),
+      nonce: Buffer.from(nonce),
+    });
+
+    await this.accounts.put(account.id, updatedAccount.serialize(), tx)
+    return updatedAccount;
   }
 }
