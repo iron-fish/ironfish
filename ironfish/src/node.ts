@@ -391,7 +391,7 @@ export class FullNode {
     }
 
     if (this.config.get('enableWallet')) {
-      await this.wallet.start()
+      this.wallet.start()
     }
 
     this.peerNetwork.start()
@@ -464,7 +464,7 @@ export class FullNode {
       }
       case 'enableWallet': {
         if (newValue) {
-          await this.wallet.start()
+          this.wallet.start()
         } else {
           await this.wallet.stop()
         }
