@@ -324,6 +324,7 @@ export class FullNode {
       database: walletDB,
       workerPool,
       consensus: network.consensus,
+      networkId: network.id,
       nodeClient: memoryClient,
       logger,
     })

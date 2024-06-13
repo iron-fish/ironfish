@@ -66,6 +66,7 @@ type AccountEncodedJSON = {
     publicKeyPackage: string
   }
   proofAuthorizingKey?: string | null
+  networkId?: number
 }
 
 const AccountEncodedJSONSchema: yup.ObjectSchema<AccountEncodedJSON> = yup
@@ -95,6 +96,7 @@ const AccountEncodedJSONSchema: yup.ObjectSchema<AccountEncodedJSON> = yup
       .optional()
       .default(undefined),
     proofAuthorizingKey: yup.string().nullable().optional(),
+    networkId: yup.number().optional(),
   })
   .defined()
 
@@ -117,6 +119,7 @@ const serializeAccountEncodedJSON = (accountImport: AccountImport): AccountEncod
     multisigKeys: accountImport.multisigKeys,
     proofAuthorizingKey: accountImport.proofAuthorizingKey,
     createdAt: createdAt,
+    networkId: accountImport.networkId,
   }
 }
 

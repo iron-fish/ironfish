@@ -99,6 +99,7 @@ export class Wallet {
   readonly nodeClient: RpcClient | null
   private readonly config: Config
   private readonly consensus: Consensus
+  readonly networkId: number
 
   protected rebroadcastAfter: number
   protected defaultAccount: string | null = null
@@ -117,6 +118,7 @@ export class Wallet {
     rebroadcastAfter,
     workerPool,
     consensus,
+    networkId,
     nodeClient,
   }: {
     config: Config
@@ -125,6 +127,7 @@ export class Wallet {
     rebroadcastAfter?: number
     workerPool: WorkerPool
     consensus: Consensus
+    networkId: number
     nodeClient: RpcClient | null
   }) {
     this.config = config
@@ -132,6 +135,7 @@ export class Wallet {
     this.walletDb = database
     this.workerPool = workerPool
     this.consensus = consensus
+    this.networkId = networkId
     this.nodeClient = nodeClient || null
     this.rebroadcastAfter = rebroadcastAfter ?? 10
     this.createTransactionMutex = new Mutex()
@@ -200,7 +204,10 @@ export class Wallet {
 
   private async load(): Promise<void> {
     for await (const accountValue of this.walletDb.loadAccounts()) {
-      const account = new Account({ accountValue, walletDb: this.walletDb })
+      const account = new Account({
+        accountValue,
+        walletDb: this.walletDb,
+      })
       this.accounts.set(account.id, account)
     }
 
@@ -1355,21 +1362,9 @@ export class Wallet {
     validateAccountImport(accountValue)
 
     let createdAt = accountValue.createdAt
-
-    if (createdAt && !this.nodeClient) {
-      this.logger.debug(
-        `Wallet not connected to node to verify that account createdAt block ${createdAt.hash.toString(
-          'hex',
-        )} (${createdAt.sequence}) in chain. Setting createdAt to null`,
-      )
-      createdAt = null
-    }
-
-    if (createdAt !== null && !(await this.chainHasBlock(createdAt.hash))) {
-      this.logger.debug(
-        `Account ${accountValue.name} createdAt block ${createdAt.hash.toString('hex')} (${
-          createdAt.sequence
-        }) not found in the chain. Setting createdAt to null.`,
+    if (accountValue.networkId !== this.networkId) {
+      this.logger.warn(
+        `Account ${accountValue.name} networkId ${accountValue.networkId} does not match wallet networkId ${this.networkId}. Setting createdAt to null.`,
       )
       createdAt = null
     }

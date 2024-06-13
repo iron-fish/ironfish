@@ -27,9 +27,14 @@ export type AccountImport = {
   } | null
   multisigKeys?: MultisigKeysImport
   proofAuthorizingKey: string | null
+  networkId?: number
 }
 
-export function toAccountImport(account: Account, viewOnly: boolean): AccountImport {
+export function toAccountImport(
+  account: Account,
+  viewOnly: boolean,
+  networkId: number,
+): AccountImport {
   const value = {
     version: account.version,
     name: account.name,
@@ -41,6 +46,7 @@ export function toAccountImport(account: Account, viewOnly: boolean): AccountImp
     createdAt: account.createdAt,
     multisigKeys: account.multisigKeys,
     proofAuthorizingKey: account.proofAuthorizingKey,
+    networkId,
   }
 
   if (viewOnly) {

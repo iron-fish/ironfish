@@ -709,7 +709,7 @@ describe('Wallet', () => {
       expect(accountImport1.viewKey).toEqual(accountImport2.viewKey)
     })
 
-    it('should set createdAt if that block is in the chain', async () => {
+    it('should set createdAt if networkId matches', async () => {
       const { node: nodeA } = await nodeTest.createSetup()
       const { node: nodeB } = await nodeTest.createSetup()
 
@@ -732,13 +732,14 @@ describe('Wallet', () => {
       expect(accountB.createdAt?.hash).toEqualHash(block3.header.hash)
       expect(accountB.createdAt?.sequence).toEqual(3)
 
+      expect(accountB.networkId).toEqual(nodeB.wallet.networkId)
       const accountBImport = await nodeB.wallet.importAccount(accountB)
 
       expect(accountBImport.createdAt?.hash).toEqualHash(block3.header.hash)
       expect(accountBImport.createdAt?.sequence).toEqual(3)
     })
 
-    it('should set account head to block before createdAt if that block is in the chain', async () => {
+    it('should set account head to block before createdAt if networkId matches', async () => {
       const { node: nodeA } = await nodeTest.createSetup()
       const { node: nodeB } = await nodeTest.createSetup()
 
@@ -769,7 +770,7 @@ describe('Wallet', () => {
       expect(accountBImportHead?.sequence).toEqual(2)
     })
 
-    it('should set createdAt to null if that block is not in the chain', async () => {
+    it('should set createdAt to null if networkId does not match', async () => {
       const { node: nodeA } = await nodeTest.createSetup()
       const { node: nodeB } = await nodeTest.createSetup()
 
@@ -790,7 +791,7 @@ describe('Wallet', () => {
       expect(accountB.createdAt?.hash).toEqualHash(block3.header.hash)
       expect(accountB.createdAt?.sequence).toEqual(3)
 
-      const accountBImport = await nodeB.wallet.importAccount(accountB)
+      const accountBImport = await nodeB.wallet.importAccount({ ...accountB, networkId: 42 })
 
       expect(accountBImport.createdAt).toBeDefined()
     })

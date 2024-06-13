@@ -49,6 +49,7 @@ describe('Route wallet/exportAccount', () => {
       outgoingViewKey: account.outgoingViewKey,
       publicAddress: account.publicAddress,
       version: account.version,
+      networkId: routeTest.wallet.networkId,
     })
   })
 
@@ -60,7 +61,7 @@ describe('Route wallet/exportAccount', () => {
 
     expect(response.status).toBe(200)
 
-    const accountImport = toAccountImport(account, false)
+    const accountImport = toAccountImport(account, false, routeTest.wallet.networkId)
     expect(response.content.account).toEqual(new JsonEncoder().encode(accountImport))
   })
 
@@ -70,7 +71,7 @@ describe('Route wallet/exportAccount', () => {
       format: AccountFormat.Base64Json,
     })
 
-    const accountImport = toAccountImport(account, false)
+    const accountImport = toAccountImport(account, false, routeTest.wallet.networkId)
 
     expect(response.status).toBe(200)
     expect(response.content.account).toEqual(new Base64JsonEncoder().encode(accountImport))
