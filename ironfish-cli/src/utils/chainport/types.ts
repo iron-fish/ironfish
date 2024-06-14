@@ -52,15 +52,17 @@ export type ChainportVerifiedToken = {
   is_lifi: boolean
 }
 
-export type ChainportTransactionStatus = {
-  base_network_id?: number
-  base_tx_hash?: string
-  base_tx_status?: number
-  base_token_address?: string
-  target_network_id?: number
-  target_tx_hash?: string
-  target_tx_status?: number
-  target_token_address?: string
-  created_at?: string
-  port_in_ack?: boolean
-}
+export type ChainportTransactionStatus =
+  | Record<string, never> // empty object
+  | {
+      base_network_id: number | null
+      base_tx_hash: string | null
+      base_tx_status: number | null
+      base_token_address: string | null
+      target_network_id: number | null
+      target_tx_hash: string | null
+      target_tx_status: number | null
+      target_token_address: string | null
+      created_at: string | null
+      port_in_ack: boolean | null
+    }

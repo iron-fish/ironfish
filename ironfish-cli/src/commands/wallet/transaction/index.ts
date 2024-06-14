@@ -56,16 +56,18 @@ export class TransactionCommand extends IronfishCommand {
       hash,
     })
 
-    if (!response.content.transaction) {
+    const transaction = response.content.transaction
+
+    if (!transaction) {
       this.log(`No transaction found by hash ${hash}`)
       return
     }
 
     // by default the notes and spends should be returned
-    Assert.isNotUndefined(response.content.transaction.notes)
-    Assert.isNotUndefined(response.content.transaction.spends)
+    Assert.isNotUndefined(transaction.notes)
+    Assert.isNotUndefined(transaction.spends)
 
-    const renderedFee = CurrencyUtils.render(response.content.transaction.fee, true)
+    const renderedFee = CurrencyUtils.render(transaction.fee, true)
     const explorerUrl = getExplorer(networkId)?.getTransactionUrl(hash)
 
     this.log(`Transaction: ${hash}`)
@@ -73,24 +75,21 @@ export class TransactionCommand extends IronfishCommand {
       this.log(`Explorer: ${explorerUrl}`)
     }
     this.log(`Account: ${response.content.account}`)
-    this.log(`Status: ${response.content.transaction.status}`)
-    this.log(`Type: ${response.content.transaction.type}`)
-    this.log(`Timestamp: ${TimeUtils.renderString(response.content.transaction.timestamp)}`)
+    this.log(`Status: ${transaction.status}`)
+    this.log(`Type: ${transaction.type}`)
+    this.log(`Timestamp: ${TimeUtils.renderString(transaction.timestamp)}`)
     this.log(`Fee: ${renderedFee}`)
-    if (response.content.transaction.blockHash && response.content.transaction.blockSequence) {
-      this.log(`Block Hash: ${response.content.transaction.blockHash}`)
-      this.log(`Block Sequence: ${response.content.transaction.blockSequence}`)
+    if (transaction.blockHash && transaction.blockSequence) {
+      this.log(`Block Hash: ${transaction.blockHash}`)
+      this.log(`Block Sequence: ${transaction.blockSequence}`)
     }
-    this.log(`Notes Count: ${response.content.transaction.notes.length}`)
-    this.log(`Spends Count: ${response.content.transaction.spends.length}`)
-    this.log(`Mints Count: ${response.content.transaction.mints.length}`)
-    this.log(`Burns Count: ${response.content.transaction.burns.length}`)
-    this.log(`Sender: ${response.content.transaction.notes[0].sender}`)
+    this.log(`Notes Count: ${transaction.notes.length}`)
+    this.log(`Spends Count: ${transaction.spends.length}`)
+    this.log(`Mints Count: ${transaction.mints.length}`)
+    this.log(`Burns Count: ${transaction.burns.length}`)
+    this.log(`Sender: ${transaction.notes[0].sender}`)
 
-    const chainportTxnDetails = extractChainportDataFromTransaction(
-      networkId,
-      response.content.transaction,
-    )
+    const chainportTxnDetails = extractChainportDataFromTransaction(networkId, transaction)
 
     if (chainportTxnDetails) {
       this.log(`\n---Chainport Bridge Transaction Summary---\n`)
@@ -101,14 +100,14 @@ export class TransactionCommand extends IronfishCommand {
 
       await displayChainportTransactionSummary(
         networkId,
-        hash,
+        transaction,
         chainportTxnDetails,
         chainportNetworks[chainportTxnDetails.chainportNetworkId],
         this.logger,
       )
     }
 
-    if (response.content.transaction.notes.length > 0) {
+    if (transaction.notes.length > 0) {
       this.log(`\n---Notes---\n`)
 
       const noteAssetPairs: {
@@ -116,7 +115,7 @@ export class TransactionCommand extends IronfishCommand {
         asset: RpcAsset
       }[] = []
 
-      for (const note of response.content.transaction.notes) {
+      for (const note of transaction.notes) {
         const asset = await client.wallet.getAsset({
           id: note.assetId,
         })
@@ -156,9 +155,9 @@ export class TransactionCommand extends IronfishCommand {
       })
     }
 
-    if (response.content.transaction.spends.length > 0) {
+    if (transaction.spends.length > 0) {
       this.log(`\n---Spends---\n`)
-      ux.table(response.content.transaction.spends, {
+      ux.table(transaction.spends, {
         size: {
           header: 'Size',
           get: (spend) => spend.size,
@@ -174,7 +173,7 @@ export class TransactionCommand extends IronfishCommand {
       })
     }
 
-    const assetBalanceDeltas = response.content.transaction.assetBalanceDeltas
+    const assetBalanceDeltas = transaction.assetBalanceDeltas
     if (assetBalanceDeltas) {
       const assetLookup = await getAssetsByIDs(
         client,

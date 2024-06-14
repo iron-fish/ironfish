@@ -6,6 +6,7 @@ import {
   defaultNetworkName,
   Logger,
   RpcWalletTransaction,
+  TransactionStatus,
   TransactionType,
 } from '@ironfish/sdk'
 import { ux } from '@oclif/core'
@@ -95,7 +96,7 @@ const isAddressInSet = (address: string, addressSet: Set<string>): boolean => {
 
 export const displayChainportTransactionSummary = async (
   networkId: number,
-  hash: string,
+  transaction: RpcWalletTransaction,
   data: ChainportTransactionData,
   network: ChainportNetwork | undefined,
   logger: Logger,
@@ -113,38 +114,69 @@ export const displayChainportTransactionSummary = async (
     return
   }
 
+  // Chainport does not give us a way to determine the source transaction hash of an incoming bridge transaction
+  // So we can only display the source network and address
   if (data.type === TransactionType.RECEIVE) {
     logger.log(`
 Direction:                    Incoming
 Source Network:               ${network.name}
-Source Address:               ${data.address}
-Source Explorer Account:      ${network.explorer_url + 'address/' + data.address}
+       Address:               ${data.address}
+       Explorer Account:      ${network.explorer_url + 'address/' + data.address}
 Target (Ironfish) Network:    ${defaultNetworkName(networkId)}`)
 
     return
   }
 
-  ux.action.start('Fetching transaction information on target network')
-  const transactionStatus = await fetchChainportTransactionStatus(networkId, hash)
-  ux.action.stop()
+  const basicInfo = `
+Direction:                    Outgoing
+==============================================
+Source Network:               ${defaultNetworkName(networkId)}
+       Transaction Status:    ${transaction.status}
+       Transaction Hash:      ${transaction.hash}
+==============================================
+Target Network:               ${network.name}
+       Address:               ${data.address}
+       Explorer Account:      ${network.explorer_url + 'address/' + data.address}`
 
-  if (Object.keys(transactionStatus).length === 0 || !transactionStatus.target_network_id) {
-    logger.log(
-      `Transaction status not found on target network.
-Note: Bridge transactions may take up to 30 minutes to surface on the target network.
-If this issue persists, please contact chainport support: https://helpdesk.chainport.io/`,
-    )
+  // We'll wait to show the transaction status if the transaction is still pending on Ironfish
+  if (transaction.status !== TransactionStatus.CONFIRMED) {
+    logger.log(basicInfo)
     return
   }
 
-  logger.log(`
-Direction:                    Outgoing
-Source Network:               ${defaultNetworkName(networkId)}
-Source Transaction Hash:      ${hash}
-Target Network:               ${network.name}
-Target Address:               ${data.address}
-Target Transaction Hash:      ${transactionStatus.target_tx_hash}
-Target Explorer Transaction:  ${
-    network.explorer_url + 'tx/' + transactionStatus.target_tx_hash
-  }`)
+  ux.action.start('Fetching transaction information on target network')
+  const transactionStatus = await fetchChainportTransactionStatus(networkId, transaction.hash)
+  logger.log(`Transaction status fetched`)
+  ux.action.stop()
+
+  logger.log(basicInfo)
+
+  if (Object.keys(transactionStatus).length === 0) {
+    logger.log(`
+Transaction status not found on target network.
+Note: Bridge transactions may take up to 30 minutes to surface on the target network.
+If this issue persists, please contact chainport support: https://helpdesk.chainport.io/`)
+    return
+  }
+
+  if (!transactionStatus.base_tx_hash || !transactionStatus.base_tx_status) {
+    logger.log(`       Transaction Status:    pending`)
+    return
+  }
+
+  if (transactionStatus.target_tx_hash === null) {
+    logger.log(`       Transaction Status:    pending`)
+    return
+  }
+
+  if (transactionStatus.target_tx_status === 1) {
+    logger.log(`       Transaction Status:    completed`)
+  } else {
+    logger.log(`       Transaction Status:    in progress`)
+  }
+
+  logger.log(`       Transaction Hash:      ${transactionStatus.target_tx_hash}
+       Explorer Transaction:  ${
+         network.explorer_url + 'tx/' + transactionStatus.target_tx_hash
+       }`)
 }
