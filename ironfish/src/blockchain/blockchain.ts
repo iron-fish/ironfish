@@ -1586,7 +1586,7 @@ export class VerifyError extends Error {
   score: number
 
   constructor(reason: VerificationResultReason, score = 0) {
-    super()
+    super(reason)
 
     this.reason = reason
     this.score = score
