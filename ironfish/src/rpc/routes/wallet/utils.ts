@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Assert } from '../../../assert'
 import { Note } from '../../../primitives'
 import { Account, Wallet } from '../../../wallet'
 import { DecryptedNoteValue } from '../../../wallet/walletdb/decryptedNoteValue'
@@ -37,6 +38,14 @@ export async function getTransactionNotes(
 ): Promise<Array<DecryptedNoteValue>> {
   const notes = []
   const decryptNotesPayloads = []
+  const accountKeys = [
+    {
+      accountId: account.id,
+      incomingViewKey: account.incomingViewKey,
+      outgoingViewKey: account.outgoingViewKey,
+      viewKey: account.viewKey,
+    },
+  ]
 
   let accountHasSpend = false
   for (const spend of transaction.transaction.spends) {
@@ -58,16 +67,17 @@ export async function getTransactionNotes(
 
     decryptNotesPayloads.push({
       serializedNote: note.serialize(),
-      incomingViewKey: account.incomingViewKey,
-      outgoingViewKey: account.outgoingViewKey,
-      viewKey: account.viewKey,
       currentNoteIndex: null,
-      decryptForSpender: true,
     })
   }
 
   if (accountHasSpend && decryptNotesPayloads.length > 0) {
-    const decryptedSends = await workerPool.decryptNotes(decryptNotesPayloads)
+    const decryptedSends = (
+      await workerPool.decryptNotes(accountKeys, decryptNotesPayloads, {
+        decryptForSpender: true,
+      })
+    ).get(account.id)
+    Assert.isNotUndefined(decryptedSends)
 
     for (const note of decryptedSends) {
       if (note === null) {

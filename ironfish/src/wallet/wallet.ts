@@ -39,7 +39,7 @@ import {
   TransactionUtils,
 } from '../utils'
 import { WorkerPool } from '../workerPool'
-import { DecryptedNote, DecryptNoteOptions } from '../workerPool/tasks/decryptNotes'
+import { DecryptedNote, DecryptNotesItem } from '../workerPool/tasks/decryptNotes'
 import { Account, ACCOUNT_SCHEMA_VERSION } from './account/account'
 import { AssetBalances } from './assetBalances'
 import {
@@ -341,75 +341,63 @@ export class Wallet {
     decryptForSpender: boolean,
     accounts: ReadonlyArray<Account>,
   ): Promise<Map<string, Array<DecryptedNote>>> {
-    const batchSize = 20
-    const notePromises: Array<
-      Promise<Array<{ accountId: string; decryptedNote: DecryptedNote }>>
-    > = []
+    const workloadSize = 20
+    const notePromises: Array<Promise<Map<string, Array<DecryptedNote | null>>>> = []
     let decryptNotesPayloads = []
-    for (const account of accounts) {
-      let currentNoteIndex = initialNoteIndex
 
-      for (const note of transaction.notes) {
-        decryptNotesPayloads.push({
-          accountId: account.id,
-          options: {
-            serializedNote: note.serialize(),
-            incomingViewKey: account.incomingViewKey,
-            outgoingViewKey: account.outgoingViewKey,
-            viewKey: account.viewKey,
-            currentNoteIndex,
-            decryptForSpender,
-          },
-        })
+    let currentNoteIndex = initialNoteIndex
 
-        if (currentNoteIndex) {
-          currentNoteIndex++
-        }
+    for (const note of transaction.notes) {
+      decryptNotesPayloads.push({
+        serializedNote: note.serialize(),
+        currentNoteIndex,
+        decryptForSpender,
+      })
 
-        if (decryptNotesPayloads.length >= batchSize) {
-          notePromises.push(this.decryptNotesFromTransaction(decryptNotesPayloads))
-          decryptNotesPayloads = []
-        }
+      if (currentNoteIndex) {
+        currentNoteIndex++
+      }
+
+      if (accounts.length * decryptNotesPayloads.length >= workloadSize) {
+        notePromises.push(this.decryptNotesFromTransaction(accounts, decryptNotesPayloads))
+        decryptNotesPayloads = []
       }
     }
 
     if (decryptNotesPayloads.length) {
-      notePromises.push(this.decryptNotesFromTransaction(decryptNotesPayloads))
+      notePromises.push(this.decryptNotesFromTransaction(accounts, decryptNotesPayloads))
     }
 
-    const decryptedNotesByAccountId = new Map<string, Array<DecryptedNote>>()
-    const flatPromises = (await Promise.all(notePromises)).flat()
-    for (const decryptedNoteResponse of flatPromises) {
-      const accountNotes = decryptedNotesByAccountId.get(decryptedNoteResponse.accountId) ?? []
-      accountNotes.push(decryptedNoteResponse.decryptedNote)
-      decryptedNotesByAccountId.set(decryptedNoteResponse.accountId, accountNotes)
+    const mergedResults: Map<string, Array<DecryptedNote>> = new Map()
+    for (const account of accounts) {
+      mergedResults.set(account.id, [])
     }
-
-    return decryptedNotesByAccountId
-  }
-
-  async decryptNotesFromTransaction(
-    decryptNotesPayloads: Array<{ accountId: string; options: DecryptNoteOptions }>,
-  ): Promise<Array<{ accountId: string; decryptedNote: DecryptedNote }>> {
-    const decryptedNotes: Array<{ accountId: string; decryptedNote: DecryptedNote }> = []
-    const response = await this.workerPool.decryptNotes(
-      decryptNotesPayloads.map((p) => p.options),
-    )
-
-    // Job should return same number of nullable notes as requests
-    Assert.isEqual(response.length, decryptNotesPayloads.length)
-
-    for (let i = 0; i < response.length; i++) {
-      const decryptedNote = response[i]
-      if (decryptedNote) {
-        decryptedNotes.push({
-          accountId: decryptNotesPayloads[i].accountId,
-          decryptedNote,
-        })
+    for (const promise of notePromises) {
+      const partialResult = await promise
+      for (const [accountId, decryptedNotes] of partialResult.entries()) {
+        const list = mergedResults.get(accountId)
+        Assert.isNotUndefined(list)
+        list.push(...(decryptedNotes.filter((note) => note !== null) as Array<DecryptedNote>))
       }
     }
 
-    return decryptedNotes
+    return mergedResults
+  }
+
+  private decryptNotesFromTransaction(
+    accounts: ReadonlyArray<Account>,
+    encryptedNotes: Array<DecryptNotesItem>,
+  ): Promise<Map<string, Array<DecryptedNote | null>>> {
+    const accountKeys = accounts.map((account) => ({
+      accountId: account.id,
+      incomingViewKey: account.incomingViewKey,
+      outgoingViewKey: account.outgoingViewKey,
+      viewKey: account.viewKey,
+    }))
+
+    return this.workerPool.decryptNotes(accountKeys, encryptedNotes, {
+      decryptForSpender: false,
+    })
   }
 
   async connectBlockForAccount(
