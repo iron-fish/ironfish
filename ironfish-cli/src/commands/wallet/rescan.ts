@@ -2,11 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Meter, TimeUtils } from '@ironfish/sdk'
 import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { ProgressBar } from '../../types'
+import { ProgressBar, ProgressBarPresets } from '../../ui'
 import { hasUserResponseError } from '../../utils'
 
 export class RescanCommand extends IronfishCommand {
@@ -42,38 +41,23 @@ export class RescanCommand extends IronfishCommand {
 
     const response = client.wallet.rescan({ follow })
 
-    const speed = new Meter()
-
-    const progress = ux.progress({
-      format: 'Scanning Blocks: [{bar}] {value}/{total} {percentage}% {speed}/sec | {estimate}',
-    }) as ProgressBar
+    const progress = new ProgressBar('Scanning blocks', {
+      preset: ProgressBarPresets.withSpeed,
+    })
 
     let started = false
-    let lastSequence = 0
-
     try {
       for await (const { endSequence, sequence } of response.contentStream()) {
         if (!started) {
           ux.action.stop()
-          speed.start()
           progress.start(endSequence, 0)
           started = true
         }
 
-        const completed = sequence - lastSequence
-        lastSequence = sequence
-
-        speed.add(completed)
-        progress.increment(completed)
-
-        progress.update({
-          estimate: TimeUtils.renderEstimate(sequence, endSequence, speed.rate1m),
-          speed: speed.rate1s.toFixed(0),
-        })
+        progress.update(sequence)
       }
     } catch (error) {
       progress?.stop()
-      speed.stop()
 
       if (hasUserResponseError(error)) {
         this.error(error.codeMessage)
@@ -82,7 +66,6 @@ export class RescanCommand extends IronfishCommand {
       throw error
     }
 
-    speed.stop()
     progress?.stop()
     this.log(follow ? 'Scanning Complete' : 'Scan started in background')
   }

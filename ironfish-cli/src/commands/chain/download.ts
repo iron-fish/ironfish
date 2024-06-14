@@ -1,13 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { ErrorUtils, FileUtils, Meter, NodeUtils, TimeUtils } from '@ironfish/sdk'
+import { ErrorUtils, FileUtils, NodeUtils } from '@ironfish/sdk'
 import { Flags, ux } from '@oclif/core'
 import fsAsync from 'fs/promises'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
 import { DownloadedSnapshot, getDefaultManifestUrl, SnapshotDownloader } from '../../snapshot'
-import { ProgressBar } from '../../types'
+import { ProgressBar, ProgressBarPresets } from '../../ui'
 
 export default class Download extends IronfishCommand {
   static hidden = false
@@ -91,34 +91,17 @@ export default class Download extends IronfishCommand {
       const snapshotPath = await Downloader.snapshotPath()
       this.log(`Downloading snapshot from ${snapshotUrl} to ${snapshotPath}`)
 
-      const bar = ux.progress({
-        barCompleteChar: '\u2588',
-        barIncompleteChar: '\u2591',
-        format:
-          'Downloading snapshot: [{bar}] {percentage}% | {downloadedSize} / {fileSize} | {speed}/s | ETA: {estimate}',
-      }) as ProgressBar
-
-      bar.start(manifest.file_size, 0, {
-        fileSize,
-        downloadedSize: FileUtils.formatFileSize(0),
-        speed: '0',
-        estimate: TimeUtils.renderEstimate(0, 0, 0),
+      const downloadBar = new ProgressBar('Downloading snapshot', {
+        preset: ProgressBarPresets.withSpeed,
+        formatFn: FileUtils.formatFileSize,
       })
 
-      const speed = new Meter()
-      speed.start()
+      downloadBar.start(manifest.file_size, 0)
 
       await Downloader.download((prev, curr) => {
-        speed.add(curr - prev)
-
-        bar.update(curr, {
-          downloadedSize: FileUtils.formatFileSize(curr),
-          speed: FileUtils.formatFileSize(speed.rate1s),
-          estimate: TimeUtils.renderEstimate(curr, manifest.file_size, speed.rate1m),
-        })
+        downloadBar.update(curr)
       }).catch((error) => {
-        bar.stop()
-        speed.stop()
+        downloadBar.stop()
         this.logger.error(ErrorUtils.renderError(error))
 
         this.exit(1)
@@ -133,29 +116,16 @@ export default class Download extends IronfishCommand {
       downloadedSnapshot = new DownloadedSnapshot(this.sdk, path)
     }
 
-    const progressBar = ux.progress({
-      barCompleteChar: '\u2588',
-      barIncompleteChar: '\u2591',
-      format:
-        'Unzipping snapshot: [{bar}] {percentage}% | {value} / {total} entries | {speed}/s | ETA: {estimate}',
-    }) as ProgressBar
-
-    progressBar.start(0, 0, {
-      speed: '0',
-      estimate: TimeUtils.renderEstimate(0, 0, 0),
+    const unzipBar = new ProgressBar('Unzipping snapshot', {
+      preset: ProgressBarPresets.withSpeed,
     })
 
-    const speed = new Meter()
-    speed.start()
+    unzipBar.start(0, 0)
 
     await downloadedSnapshot.unzip(
       (totalEntries: number, prevExtracted: number, currExtracted: number) => {
-        progressBar.setTotal(totalEntries)
-        speed.add(currExtracted - prevExtracted)
-        progressBar.update(currExtracted, {
-          speed: speed.rate1s.toFixed(2),
-          estimate: TimeUtils.renderEstimate(currExtracted, totalEntries, speed.rate1m),
-        })
+        unzipBar.setTotal(totalEntries)
+        unzipBar.update(currExtracted)
       },
     )
 
