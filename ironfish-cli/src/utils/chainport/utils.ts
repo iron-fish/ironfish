@@ -152,11 +152,10 @@ Target Network:               ${network.name}
   logger.log(basicInfo)
 
   if (Object.keys(transactionStatus).length === 0) {
-    logger.log(
-      `Transaction status not found on target network.
+    logger.log(`
+Transaction status not found on target network.
 Note: Bridge transactions may take up to 30 minutes to surface on the target network.
-If this issue persists, please contact chainport support: https://helpdesk.chainport.io/`,
-    )
+If this issue persists, please contact chainport support: https://helpdesk.chainport.io/`)
     return
   }
 
