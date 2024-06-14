@@ -37,9 +37,9 @@ describe('Route wallet/resetAccount', () => {
     Assert.isNotNull(newAccount)
 
     expect((await newAccount.getBalance(Asset.nativeId(), 0))?.confirmed).toBe(0n)
-    expect(newAccount.createdAt).toEqual(account.createdAt)
+    expect(newAccount.createdAt?.sequence).toEqual(account.createdAt?.sequence)
     expect(newAccount.scanningEnabled).toBe(false)
-    expect((await newAccount.getHead())?.hash).toEqualBuffer(routeTest.chain.genesis.hash)
+    expect((await newAccount.getHead())?.hash).toEqualBuffer(block1.header.hash)
   })
 
   it('resets createdAt if resetCreatedAt is passed', async () => {

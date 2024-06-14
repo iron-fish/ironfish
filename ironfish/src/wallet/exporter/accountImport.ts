@@ -22,7 +22,6 @@ export type AccountImport = {
   outgoingViewKey: string
   publicAddress: string
   createdAt: {
-    hash: Buffer
     sequence: number
     networkId?: number
   } | null

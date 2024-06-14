@@ -3,12 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { PUBLIC_ADDRESS_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
-import { IDatabaseEncoding } from '../../storage'
-import { ACCOUNT_KEY_LENGTH } from '../account/account'
-import { MultisigKeys } from '../interfaces/multisigKeys'
-import { MultisigKeysEncoding } from './multisigKeys'
+import { IDatabaseEncoding } from '../../../../storage'
+import { HeadValue, NullableHeadValueEncoding } from './HeadValue'
+import { MultisigKeys, MultisigKeysEncoding } from './MultisigKeys'
 
-export const KEY_LENGTH = ACCOUNT_KEY_LENGTH
+const KEY_LENGTH = 32
 export const VIEW_KEY_LENGTH = 64
 const VERSION_LENGTH = 2
 
@@ -21,7 +20,7 @@ export interface AccountValue {
   incomingViewKey: string
   outgoingViewKey: string
   publicAddress: string
-  createdAt: { sequence: number } | null
+  createdAt: HeadValue | null
   scanningEnabled: boolean
   multisigKeys?: MultisigKeys
   proofAuthorizingKey: string | null
@@ -51,7 +50,8 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     bw.writeBytes(Buffer.from(value.publicAddress, 'hex'))
 
     if (value.createdAt) {
-      bw.writeU32(value.createdAt.sequence)
+      const encoding = new NullableHeadValueEncoding()
+      bw.writeBytes(encoding.serialize(value.createdAt))
     }
 
     if (value.multisigKeys) {
@@ -86,7 +86,8 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
 
     let createdAt = null
     if (hasCreatedAt) {
-      createdAt = { sequence: reader.readU32() }
+      const encoding = new NullableHeadValueEncoding()
+      createdAt = encoding.deserialize(reader.readBytes(encoding.nonNullSize))
     }
 
     let multisigKeys = undefined
@@ -131,7 +132,8 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     size += PUBLIC_ADDRESS_LENGTH
 
     if (value.createdAt) {
-      size += 4
+      const encoding = new NullableHeadValueEncoding()
+      size += encoding.nonNullSize
     }
 
     if (value.multisigKeys) {

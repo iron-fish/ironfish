@@ -57,13 +57,7 @@ describe('Bech32AccountEncoder', () => {
       incomingViewKey: key.incomingViewKey,
       outgoingViewKey: key.outgoingViewKey,
       publicAddress: key.publicAddress,
-      createdAt: {
-        hash: Buffer.from(
-          '0000000000000000000000000000000000000000000000000000000000000000',
-          'hex',
-        ),
-        sequence: 1,
-      },
+      createdAt: { sequence: 1 },
       proofAuthorizingKey: key.proofAuthorizingKey,
     }
 

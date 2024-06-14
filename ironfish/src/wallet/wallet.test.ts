@@ -306,7 +306,10 @@ describe('Wallet', () => {
         hash: block1.header.hash,
         sequence: block1.header.sequence,
       })
-      await expect(accountB.getHead()).resolves.toEqual(null)
+      Assert.isNotNull(accountB.createdAt)
+      await expect(accountB.getHead()).resolves.toMatchObject({
+        sequence: accountB.createdAt.sequence,
+      })
 
       // Add second block
       const block2 = await useMinerBlockFixture(node.chain, 3, accountA)
@@ -414,7 +417,10 @@ describe('Wallet', () => {
         hash: block1.header.hash,
         sequence: block1.header.sequence,
       })
-      await expect(accountB.getHead()).resolves.toEqual(null)
+      Assert.isNotNull(accountB.createdAt)
+      await expect(accountB.getHead()).resolves.toMatchObject({
+        sequence: accountB.createdAt.sequence,
+      })
 
       // Add second block
       const block2 = await useMinerBlockFixture(node.chain, 3, accountA)
@@ -739,7 +745,7 @@ describe('Wallet', () => {
       expect(accountBImport.createdAt?.sequence).toEqual(3)
     })
 
-    it('should set account head to block before createdAt if networkId matches', async () => {
+    it('should set account head to createdAt block if networkId matches', async () => {
       const { node: nodeA } = await nodeTest.createSetup()
       const { node: nodeB } = await nodeTest.createSetup()
 
@@ -767,8 +773,7 @@ describe('Wallet', () => {
 
       const accountBImportHead = await accountBImport.getHead()
 
-      expect(accountBImportHead?.hash).toEqualHash(block2.header.hash)
-      expect(accountBImportHead?.sequence).toEqual(2)
+      expect(accountBImportHead?.sequence).toEqual(3)
     })
 
     it('should set createdAt to null if networkId does not match', async () => {
@@ -2061,7 +2066,6 @@ describe('Wallet', () => {
       // create second account with createdAt at block 3
       const accountB = await useAccountFixture(nodeA.wallet, 'b')
 
-      expect(accountB.createdAt).not.toBeNull()
       expect(accountB.createdAt?.sequence).toEqual(block3.header.sequence)
 
       // reset wallet
@@ -2538,7 +2542,7 @@ describe('Wallet', () => {
 
       const accountA = await useAccountFixture(node.wallet, 'a')
 
-      await node.wallet.resetAccount(accountA)
+      await node.wallet.resetAccount(accountA, { resetCreatedAt: true })
 
       const newAccountA = node.wallet.getAccountByName('a')
 
@@ -2776,7 +2780,7 @@ describe('Wallet', () => {
 
       const account = await useAccountFixture(node.wallet)
 
-      await account.updateCreatedAt({ hash: Buffer.alloc(32), sequence: 1 })
+      await account.updateCreatedAt({ sequence: 1 })
 
       const block = await useMinerBlockFixture(node.chain, 2)
 
@@ -2788,7 +2792,7 @@ describe('Wallet', () => {
 
       const account = await useAccountFixture(node.wallet)
 
-      await account.updateCreatedAt({ hash: Buffer.alloc(32), sequence: 3 })
+      await account.updateCreatedAt({ sequence: 3 })
 
       const block = await useMinerBlockFixture(node.chain, 2)
 
