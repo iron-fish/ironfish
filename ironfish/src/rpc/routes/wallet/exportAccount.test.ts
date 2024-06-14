@@ -49,7 +49,6 @@ describe('Route wallet/exportAccount', () => {
       outgoingViewKey: account.outgoingViewKey,
       publicAddress: account.publicAddress,
       version: account.version,
-      networkId: routeTest.wallet.networkId,
     })
   })
 

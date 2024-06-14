@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Blockchain } from '../../blockchain'
-import { AccountValue, AssertSpending, SpendingAccount, Wallet } from '../../wallet'
+import { Account, AccountValue, AssertSpending, SpendingAccount, Wallet } from '../../wallet'
+import { toAccountImport } from '../../wallet/exporter'
 import { HeadValue } from '../../wallet/walletdb/headValue'
 import { useMinerBlockFixture } from './blocks'
 import { FixtureGenerate, useFixture } from './fixture'
@@ -42,10 +43,13 @@ export function useAccountFixture(
       value: AccountValue
       head: HeadValue | null
     }): Promise<SpendingAccount> => {
-      const account = await wallet.importAccount({ ...value, networkId: wallet.networkId })
-      await account.updateHead(head)
-      AssertSpending(account)
-      return account
+      const account = new Account({ accountValue: value, walletDb: wallet.walletDb })
+      const imported = await wallet.importAccount(
+        toAccountImport(account, false, wallet.networkId),
+      )
+      await imported.updateHead(head)
+      AssertSpending(imported)
+      return imported
     },
   })
 }

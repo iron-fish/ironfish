@@ -23,6 +23,7 @@ import {
 import { AsyncUtils, BufferUtils, ORE_TO_IRON } from '../utils'
 import { Account, TransactionStatus, TransactionType } from '../wallet'
 import { MaxMemoLengthError } from './errors'
+import { toAccountImport } from './exporter'
 import { AssetStatus, Wallet } from './wallet'
 
 describe('Wallet', () => {
@@ -732,10 +733,9 @@ describe('Wallet', () => {
       expect(accountB.createdAt?.hash).toEqualHash(block3.header.hash)
       expect(accountB.createdAt?.sequence).toEqual(3)
 
-      const accountBImport = await nodeB.wallet.importAccount({
-        ...accountB,
-        networkId: nodeB.wallet.networkId,
-      })
+      const accountBImport = await nodeB.wallet.importAccount(
+        toAccountImport(accountB, false, nodeB.wallet.networkId),
+      )
 
       expect(accountBImport.createdAt?.hash).toEqualHash(block3.header.hash)
       expect(accountBImport.createdAt?.sequence).toEqual(3)
@@ -761,10 +761,9 @@ describe('Wallet', () => {
       // create an account so that createdAt will be non-null
       const accountB = await useAccountFixture(nodeA.wallet, 'accountB')
 
-      const accountBImport = await nodeB.wallet.importAccount({
-        ...accountB,
-        networkId: nodeB.wallet.networkId,
-      })
+      const accountBImport = await nodeB.wallet.importAccount(
+        toAccountImport(accountB, false, nodeB.wallet.networkId),
+      )
 
       expect(accountBImport.createdAt?.hash).toEqualHash(block3.header.hash)
       expect(accountBImport.createdAt?.sequence).toEqual(3)
@@ -796,7 +795,9 @@ describe('Wallet', () => {
       expect(accountB.createdAt?.hash).toEqualHash(block3.header.hash)
       expect(accountB.createdAt?.sequence).toEqual(3)
 
-      const accountBImport = await nodeB.wallet.importAccount({ ...accountB, networkId: 42 })
+      const accountBImport = await nodeB.wallet.importAccount(
+        toAccountImport(accountB, false, 42),
+      )
 
       expect(accountBImport.createdAt).toBeDefined()
     })

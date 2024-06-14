@@ -204,10 +204,7 @@ export class Wallet {
 
   private async load(): Promise<void> {
     for await (const accountValue of this.walletDb.loadAccounts()) {
-      const account = new Account({
-        accountValue,
-        walletDb: this.walletDb,
-      })
+      const account = new Account({ accountValue, walletDb: this.walletDb })
       this.accounts.set(account.id, account)
     }
 
@@ -1362,9 +1359,9 @@ export class Wallet {
     validateAccountImport(accountValue)
 
     let createdAt = accountValue.createdAt
-    if (accountValue.networkId !== this.networkId) {
+    if (createdAt?.networkId !== this.networkId) {
       this.logger.warn(
-        `Account ${accountValue.name} networkId ${accountValue.networkId} does not match wallet networkId ${this.networkId}. Setting createdAt to null.`,
+        `Account ${accountValue.name} networkId ${createdAt?.networkId} does not match wallet networkId ${this.networkId}. Setting createdAt to null.`,
       )
       createdAt = null
     }
