@@ -43,13 +43,16 @@ export function useAccountFixture(
       value: AccountValue
       head: HeadValue | null
     }): Promise<SpendingAccount> => {
-      const account = new Account({ accountValue: value, walletDb: wallet.walletDb })
-      const imported = await wallet.importAccount(
-        toAccountImport(account, false, wallet.networkId),
-      )
-      await imported.updateHead(head)
-      AssertSpending(imported)
-      return imported
+      const createdAt = value.createdAt
+        ? { ...value.createdAt, networkId: wallet.networkId }
+        : null
+      const account = await wallet.importAccount({
+        ...value,
+        createdAt,
+      })
+      await account.updateHead(head)
+      AssertSpending(account)
+      return account
     },
   })
 }
