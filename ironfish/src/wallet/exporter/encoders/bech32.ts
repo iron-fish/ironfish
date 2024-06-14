@@ -14,16 +14,18 @@ export const BECH32_ACCOUNT_PREFIX = 'ifaccount'
 
 type Bech32Decoder = (
   reader: bufio.BufferReader,
+  version: number,
   options?: AccountDecodingOptions,
 ) => AccountImport
 
 export class Bech32Encoder implements AccountEncoder {
-  VERSION = 3
+  VERSION = 4
 
   VERSION_DECODERS: Map<number, Bech32Decoder> = new Map([
     [1, decoderV1],
     [2, decoderV2],
     [3, decoderV3],
+    [4, decoderV4],
   ])
 
   /**
@@ -87,7 +89,7 @@ export class Bech32Encoder implements AccountEncoder {
         throw new DecodeInvalid(`Encoded account version ${version} not supported.`)
       }
 
-      return decoder(reader, options)
+      return decoder(reader, version, options)
     } catch (e) {
       if (e instanceof EncodingError) {
         throw new DecodeFailed(
@@ -132,6 +134,7 @@ export class Bech32Encoder implements AccountEncoder {
 
 function decoderV1(
   reader: bufio.BufferReader,
+  version: number,
   options?: AccountDecodingOptions,
 ): AccountImport {
   const name = reader.readVarString('utf8')
@@ -145,9 +148,12 @@ function decoderV1(
 
   const hasCreatedAt = reader.readU8() === 1
 
-  // TODO handle old versions
   let createdAt = null
   if (hasCreatedAt) {
+    if (version <= 3) {
+      // must read hash from older versions
+      reader.readBytes(32)
+    }
     createdAt = { sequence: reader.readU32() }
   }
 
@@ -166,9 +172,10 @@ function decoderV1(
 
 function decoderV2(
   reader: bufio.BufferReader,
+  version: number,
   options?: AccountDecodingOptions,
 ): AccountImport {
-  const accountImport = decoderV1(reader, options)
+  const accountImport = decoderV1(reader, version, options)
 
   let multisigKeys = undefined
 
@@ -187,9 +194,10 @@ function decoderV2(
 
 function decoderV3(
   reader: bufio.BufferReader,
+  version: number,
   options?: AccountDecodingOptions,
 ): AccountImport {
-  const accountImport = decoderV2(reader, options)
+  const accountImport = decoderV2(reader, version, options)
 
   const hasProofAuthorizingKey = reader.readU8() === 1
   const proofAuthorizingKey = hasProofAuthorizingKey
@@ -200,4 +208,12 @@ function decoderV3(
     ...accountImport,
     proofAuthorizingKey,
   }
+}
+
+function decoderV4(
+  reader: bufio.BufferReader,
+  version: number,
+  options?: AccountDecodingOptions,
+): AccountImport {
+  return decoderV3(reader, version, options)
 }
