@@ -138,7 +138,7 @@ Target Network:               ${network.name}
        Address:               ${data.address}
        Explorer Account:      ${network.explorer_url + 'address/' + data.address}`
 
-  // We'll wait to show the transaction status if the transaction is still pending
+  // We'll wait to show the transaction status if the transaction is still pending on Ironfish
   if (transaction.status !== TransactionStatus.CONFIRMED) {
     logger.log(basicInfo)
     return
@@ -151,10 +151,12 @@ Target Network:               ${network.name}
 
   logger.log(basicInfo)
 
-  const errorMessage = `\nTransaction status not found on target network. \nNote: Bridge transactions may take up to 30 minutes to surface on the target network. \nIf this issue persists, please contact chainport support: https://helpdesk.chainport.io/`
-
   if (Object.keys(transactionStatus).length === 0) {
-    logger.log(errorMessage)
+    logger.log(
+      `Transaction status not found on target network.
+Note: Bridge transactions may take up to 30 minutes to surface on the target network.
+If this issue persists, please contact chainport support: https://helpdesk.chainport.io/`,
+    )
     return
   }
 
@@ -163,33 +165,19 @@ Target Network:               ${network.name}
     return
   }
 
-  // If the source bridge transaction has reached the minimum confirmation threshold,
-  // but the target bridge transaction hasn't been sent yet -> base_tx_hash is set and
-  // base_tx_status is 1, but target_tx_hash and target_tx_status are null
   if (transactionStatus.target_tx_hash === null) {
     logger.log(`       Transaction Status:    in progress`)
     return
   }
 
-  // If the target bridge transaction was sent, transaction.status
+  if (transactionStatus.target_tx_status === 1) {
+    logger.log(`       Transaction Status:    completed`)
+  } else {
+    logger.log(`       Transaction Status:    in progress`)
+  }
 
-  if (transactionStatus.target_tx_hash) {
-    // When the port is confirmed to be complete on the target chain target_tx_status is 1
-    if (transactionStatus.target_tx_status === 1) {
-      logger.log(`       Transaction Status:    completed`)
-    }
-    // if the port is still in progress target_tx_status is null
-    else {
-      logger.log(`       Transaction Status:    in progress`)
-    }
-
-    logger.log(`       Transaction Hash:      ${transactionStatus.target_tx_hash}
+  logger.log(`       Transaction Hash:      ${transactionStatus.target_tx_hash}
        Explorer Transaction:  ${
          network.explorer_url + 'tx/' + transactionStatus.target_tx_hash
        }`)
-
-    return
-  }
-
-  logger.error(errorMessage)
 }
