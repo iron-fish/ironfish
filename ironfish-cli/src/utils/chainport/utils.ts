@@ -161,12 +161,12 @@ If this issue persists, please contact chainport support: https://helpdesk.chain
   }
 
   if (!transactionStatus.base_tx_hash || !transactionStatus.base_tx_status) {
-    logger.log(`       Transaction Status:    in progress`)
+    logger.log(`       Transaction Status:    pending`)
     return
   }
 
   if (transactionStatus.target_tx_hash === null) {
-    logger.log(`       Transaction Status:    in progress`)
+    logger.log(`       Transaction Status:    pending`)
     return
   }
 
