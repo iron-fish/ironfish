@@ -73,7 +73,7 @@ export class MultisigCreateDealer extends IronfishCommand {
     })
 
     const chainResponse = await client.chain.getChainInfo()
-    const createdAt = Number(chainResponse.content.currentBlockIdentifier.index)
+    const createdAt = { sequence: Number(chainResponse.content.currentBlockIdentifier.index) }
 
     if (flags.importCoordinator) {
       this.log()

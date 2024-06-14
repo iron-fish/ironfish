@@ -306,7 +306,10 @@ describe('Wallet', () => {
         hash: block1.header.hash,
         sequence: block1.header.sequence,
       })
-      await expect(accountB.getHead()).resolves.toEqual(null)
+      Assert.isNotNull(accountB.createdAt)
+      await expect(accountB.getHead()).resolves.toMatchObject({
+        sequence: accountB.createdAt.sequence,
+      })
 
       // Add second block
       const block2 = await useMinerBlockFixture(node.chain, 3, accountA)
@@ -414,7 +417,10 @@ describe('Wallet', () => {
         hash: block1.header.hash,
         sequence: block1.header.sequence,
       })
-      await expect(accountB.getHead()).resolves.toEqual(null)
+      Assert.isNotNull(accountB.createdAt)
+      await expect(accountB.getHead()).resolves.toMatchObject({
+        sequence: accountB.createdAt.sequence,
+      })
 
       // Add second block
       const block2 = await useMinerBlockFixture(node.chain, 3, accountA)
