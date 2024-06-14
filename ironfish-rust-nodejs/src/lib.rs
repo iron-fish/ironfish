@@ -22,6 +22,7 @@ pub mod nacl;
 pub mod rolling_filter;
 pub mod signal_catcher;
 pub mod structs;
+pub mod xchacha20poly1305;
 
 fn to_napi_err(err: impl Display) -> napi::Error {
     Error::from_reason(err.to_string())
