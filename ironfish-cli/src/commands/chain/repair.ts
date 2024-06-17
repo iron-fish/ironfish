@@ -2,11 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert, BlockHeader, FullNode, IDatabaseTransaction, TimeUtils } from '@ironfish/sdk'
-import { Meter } from '@ironfish/sdk'
 import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
-import { ProgressBar } from '../../types'
+import { ProgressBar, ProgressBarPresets } from '../../ui'
 
 const TREE_BATCH = 1000
 const TREE_START = 1
@@ -37,10 +36,7 @@ export default class RepairChain extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(RepairChain)
 
-    const speed = new Meter()
-    const progress = ux.progress({
-      format: '{title}: [{bar}] {value}/{total} {percentage}% {speed}/sec | {estimate}',
-    }) as ProgressBar
+    const progress = new ProgressBar('', { preset: ProgressBarPresets.withSpeed })
 
     ux.action.start(`Opening node`)
     const node = await this.sdk.node()
@@ -70,13 +66,13 @@ export default class RepairChain extends IronfishCommand {
       return
     }
 
-    await this.repairChain(node, speed, progress)
-    await this.repairTrees(node, speed, progress, flags.force)
+    await this.repairChain(node, progress)
+    await this.repairTrees(node, progress, flags.force)
 
     this.log('Repair complete.')
   }
 
-  async repairChain(node: FullNode, speed: Meter, progress: ProgressBar): Promise<void> {
+  async repairChain(node: FullNode, progress: ProgressBar): Promise<void> {
     Assert.isNotNull(node.chain.head)
 
     ux.action.start('Clearing hash to next hash table')
@@ -91,11 +87,8 @@ export default class RepairChain extends IronfishCommand {
     let done = 0
     let head: BlockHeader | null = node.chain.head
 
-    speed.start()
     progress.start(total, 0, {
       title: 'Repairing head chain tables',
-      speed: '-',
-      estimate: '-',
     })
 
     while (head && head.sequence > BigInt(0)) {
@@ -104,24 +97,13 @@ export default class RepairChain extends IronfishCommand {
 
       head = await node.chain.getHeader(head.previousBlockHash)
 
-      done++
-      speed.add(1)
-      progress.increment()
-      progress.update({
-        estimate: TimeUtils.renderEstimate(done, total, speed.rate1m),
-        speed: speed.rate1s.toFixed(0),
-      })
+      progress.update(++done)
     }
 
     progress.stop()
   }
 
-  async repairTrees(
-    node: FullNode,
-    speed: Meter,
-    progress: ProgressBar,
-    force: boolean,
-  ): Promise<void> {
+  async repairTrees(node: FullNode, progress: ProgressBar, force: boolean): Promise<void> {
     Assert.isNotNull(node.chain.head)
 
     const noNotes = (await node.chain.notes.size()) === 0
@@ -157,11 +139,9 @@ export default class RepairChain extends IronfishCommand {
 
     ux.action.stop()
 
-    speed.reset()
+    progress.resetMeter()
     progress.start(total, TREE_START, {
       title: 'Reconstructing merkle trees',
-      speed: '-',
-      estimate: '-',
     })
 
     while (block) {
@@ -190,8 +170,6 @@ export default class RepairChain extends IronfishCommand {
         return this.exit(1)
       }
 
-      done++
-
       if (TREE_END !== null && Number(block.header.sequence) >= TREE_END) {
         break
       }
@@ -200,12 +178,7 @@ export default class RepairChain extends IronfishCommand {
       header = await node.chain.getNext(block.header, tx)
       block = header ? await node.chain.getBlock(header, tx) : null
 
-      speed.add(1)
-      progress.increment()
-      progress.update({
-        estimate: TimeUtils.renderEstimate(done, total, speed.rate1m),
-        speed: speed.rate1s.toFixed(0),
-      })
+      progress.update(++done)
 
       if (tx.size > TREE_BATCH) {
         await tx.commit()

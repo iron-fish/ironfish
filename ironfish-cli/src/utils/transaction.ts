@@ -22,7 +22,7 @@ import {
 import { BurnDescription } from '@ironfish/sdk/src/primitives/burnDescription'
 import { MintDescription } from '@ironfish/sdk/src/primitives/mintDescription'
 import { ux } from '@oclif/core'
-import { ProgressBar } from '../types'
+import { ProgressBar, ProgressBarPresets } from '../ui'
 import { getAssetsByIDs, getAssetVerificationByIds } from './asset'
 
 export class TransactionTimer {
@@ -65,12 +65,11 @@ export class TransactionTimer {
       return
     }
 
-    this.progressBar = ux.progress({
-      format: '{title}: [{bar}] {percentage}% | {estimate}',
-    }) as ProgressBar
+    this.progressBar = new ProgressBar('Sending transaction', {
+      preset: ProgressBarPresets.basic,
+    })
 
     this.progressBar.start(100, 0, {
-      title: 'Sending the transaction',
       estimate: TimeUtils.renderSpan(this.estimateInMs, { hideMilliseconds: true }),
     })
 
