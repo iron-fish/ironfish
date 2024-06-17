@@ -120,42 +120,60 @@ export class DecryptNotesResponse extends WorkerMessage {
   }
 
   serializePayload(bw: bufio.StaticWriter | bufio.BufferWriter): void {
-    // TODO: the majority of responses will have 0 decrypted notes. It make sense to
-    // return a more compact serialization in that case.
-    for (const note of this.notes) {
-      const hasDecryptedNote = Number(!!note)
-      bw.writeU8(hasDecryptedNote)
+    // The majority of responses will have 0 decrypted notes. A small
+    // percentage of responses will have a few decrypted notes. It's
+    // practically rare that a response will contain a large number of
+    // decrypted notes. For this reason, it makes sense to optimize for the
+    // case where the decrypted notes are 0 or close to 0.
+    //
+    // Here we use a sparse serialization: we write the length of the array at
+    // the beginning, and then we serialize only the non-null notes, prefixing
+    // them with their position in the array.
+    //
+    // In the most common case (0 decrypted notes), the total serialization
+    // size will be 4 bytes, irrespective of how many items the response has.
+    // In the second common case (few decrypted notes), the serialization size
+    // may still be smaller, or at least very close to, the size that a dense
+    // serialization would provide. In the most rare case (most/all decrypted
+    // notes), a sparse serialization has more overhead than a dense
+    // serialization, but that's an occurrence so rare and specific that we
+    // don't need to optimize for it.
 
-      if (note) {
-        let flags = 0
-        flags |= Number(!!note.index) << 0
-        flags |= Number(!!note.nullifier) << 1
-        flags |= Number(note.forSpender) << 2
-        bw.writeU8(flags)
-        bw.writeHash(note.hash)
-        bw.writeBytes(note.serializedNote)
+    bw.writeU32(this.notes.length)
 
-        if (note.index) {
-          bw.writeU32(note.index)
-        }
+    for (const [arrayIndex, note] of this.notes.entries()) {
+      if (!note) {
+        continue
+      }
 
-        if (note.nullifier) {
-          bw.writeHash(note.nullifier)
-        }
+      bw.writeU32(arrayIndex)
+
+      let flags = 0
+      flags |= Number(!!note.index) << 0
+      flags |= Number(!!note.nullifier) << 1
+      flags |= Number(note.forSpender) << 2
+      bw.writeU8(flags)
+      bw.writeHash(note.hash)
+      bw.writeBytes(note.serializedNote)
+
+      if (note.index) {
+        bw.writeU32(note.index)
+      }
+
+      if (note.nullifier) {
+        bw.writeHash(note.nullifier)
       }
     }
   }
 
   static deserializePayload(jobId: number, buffer: Buffer): DecryptNotesResponse {
     const reader = bufio.read(buffer)
-    const notes = []
+
+    const arrayLength = reader.readU32()
+    const notes = Array(arrayLength).fill(null) as Array<DecryptedNote | null>
 
     while (reader.left() > 0) {
-      const hasDecryptedNote = reader.readU8()
-      if (!hasDecryptedNote) {
-        notes.push(null)
-        continue
-      }
+      const arrayIndex = reader.readU32()
 
       const flags = reader.readU8()
       const hasIndex = flags & (1 << 0)
@@ -174,34 +192,34 @@ export class DecryptNotesResponse extends WorkerMessage {
         nullifier = reader.readHash()
       }
 
-      notes.push({
+      notes[arrayIndex] = {
         forSpender,
         index,
         hash,
         nullifier,
         serializedNote,
-      })
+      }
     }
 
     return new DecryptNotesResponse(notes, jobId)
   }
 
   getSize(): number {
-    let size = 0
+    let size = 4
 
     for (const note of this.notes) {
-      size += 1
+      if (!note) {
+        continue
+      }
 
-      if (note) {
-        size += 1 + 32 + DECRYPTED_NOTE_LENGTH
+      size += 4 + 1 + 32 + DECRYPTED_NOTE_LENGTH
 
-        if (note.index) {
-          size += 4
-        }
+      if (note.index) {
+        size += 4
+      }
 
-        if (note.nullifier) {
-          size += 32
-        }
+      if (note.nullifier) {
+        size += 32
       }
     }
 
