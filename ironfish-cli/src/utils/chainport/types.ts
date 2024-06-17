@@ -17,8 +17,8 @@ export type ChainportBridgeTransaction = {
     memo: string
   }
   bridge_fee: {
-    source_token_fee_amount: number | null
-    portx_fee_amount: number
+    source_token_fee_amount: string
+    portx_fee_amount: string
     is_portx_fee_payment: boolean
   }
 }
