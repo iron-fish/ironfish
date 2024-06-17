@@ -56,6 +56,8 @@ pub mod mints;
 pub mod outputs;
 pub mod spends;
 pub mod unsigned;
+pub mod data;
+pub mod data_type;
 
 mod utils;
 mod value_balances;
