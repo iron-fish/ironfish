@@ -1,7 +1,12 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import axios, { AxiosAdapter, AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios'
+import axios, {
+  AxiosAdapter,
+  AxiosError,
+  AxiosResponse,
+  InternalAxiosRequestConfig,
+} from 'axios'
 import url, { URL } from 'url'
 import { FileSystem } from '../fileSystems'
 
@@ -79,7 +84,7 @@ export class AssetsVerificationApi {
     this.timeout = options?.timeout ?? 30 * 1000 // 30 seconds
     this.adapter = isFileUrl(this.url)
       ? axiosFileAdapter(options.files)
-      : axios.defaults.adapter
+      : axios.getAdapter(axios.defaults.adapter)
   }
 
   async getVerifiedAssets(): Promise<VerifiedAssets> {
@@ -103,22 +108,19 @@ export class AssetsVerificationApi {
         timeout: this.timeout,
         adapter: this.adapter,
       })
-      .then(
-        (response: {
-          data: GetAssetDataResponse
-          headers: GetVerifiedAssetsResponseHeaders
-        }) => {
-          verifiedAssets['assets'].clear()
-          response.data.assets.forEach((assetData) => {
-            return verifiedAssets['assets'].set(
-              assetData.identifier,
-              sanitizedAssetData(assetData),
-            )
-          })
-          verifiedAssets['lastModified'] = response.headers['last-modified']
-          return true
-        },
-      )
+      .then((response) => {
+        verifiedAssets['assets'].clear()
+        response.data.assets.forEach((assetData) => {
+          return verifiedAssets['assets'].set(
+            assetData.identifier,
+            sanitizedAssetData(assetData),
+          )
+        })
+        verifiedAssets['lastModified'] = (response.headers as GetVerifiedAssetsResponseHeaders)[
+          'last-modified'
+        ]
+        return true
+      })
       .catch((error: AxiosError) => {
         if (error.response?.status === 304) {
           return false
@@ -134,8 +136,8 @@ const isFileUrl = (url: string): boolean => {
 }
 
 const axiosFileAdapter =
-  (files: FileSystem) =>
-  (config: AxiosRequestConfig): Promise<AxiosResponse<GetAssetDataResponse>> => {
+  (files: FileSystem): AxiosAdapter =>
+  (config: InternalAxiosRequestConfig): Promise<AxiosResponse<GetAssetDataResponse>> => {
     if (!config.url) {
       return Promise.reject(new Error('url is undefined'))
     }
@@ -145,13 +147,15 @@ const axiosFileAdapter =
     return files
       .readFile(path)
       .then(JSON.parse)
-      .then((data: GetAssetDataResponse) => ({
-        data,
-        status: 0,
-        statusText: '',
-        headers: {},
-        config: config,
-      }))
+      .then(
+        (data): AxiosResponse<GetAssetDataResponse> => ({
+          data: data as GetAssetDataResponse,
+          status: 0,
+          statusText: '',
+          headers: {},
+          config: config,
+        }),
+      )
   }
 
 const sanitizedAssetData = (
