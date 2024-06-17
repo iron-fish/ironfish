@@ -24,6 +24,13 @@ export class WalletScanner {
   state: ScanState | null = null
   lock: Mutex = new Mutex()
 
+  /**
+   * A snapshot of the account IDs that have `scanningEnabled` set to true.
+   * Used to tell whether accounts were added/removed from the wallet during
+   * scanning (in which case the scanning head is readjusted).
+   */
+  private scanningAccountIds = new Set<string>()
+
   constructor(options: {
     logger: Logger
     nodeClient: RpcClient | null
@@ -53,6 +60,27 @@ export class WalletScanner {
     }
   }
 
+  /**
+   * Replace `scanningAccountIds` with fresh values from the wallet. Returns a
+   * boolean indicating whether `scanningAccountIds` has changed (meaning that
+   * some accounts were added/removed during the scan).
+   */
+  private refreshScanningAccounts(): boolean {
+    const accountIdsFromWallet = this.wallet
+      .listAccounts()
+      .filter((account) => account.scanningEnabled)
+      .map((account) => account.id)
+
+    if (accountIdsFromWallet.length === this.scanningAccountIds.size) {
+      if (accountIdsFromWallet.every((accountId) => this.scanningAccountIds.has(accountId))) {
+        return false
+      }
+    }
+
+    this.scanningAccountIds = new Set(accountIdsFromWallet)
+    return true
+  }
+
   async scan(): Promise<ScanState> {
     const unlock = await this.lock.lock()
 
@@ -61,6 +89,8 @@ export class WalletScanner {
     }
 
     try {
+      this.refreshScanningAccounts()
+
       const start = await this.wallet.getEarliestHead()
       const end = await this.wallet.getChainHead()
 
@@ -96,8 +126,10 @@ export class WalletScanner {
       void (async () => {
         let hashChanged = true
         while (hashChanged) {
-          const head = await this.wallet.getEarliestHead()
-          chainProcessor.hash = head?.hash ?? null
+          if (this.refreshScanningAccounts()) {
+            const head = await this.wallet.getEarliestHead()
+            chainProcessor.hash = head?.hash ?? null
+          }
 
           const result = await chainProcessor.update({ signal: scan.abortController.signal })
           hashChanged = result.hashChanged
