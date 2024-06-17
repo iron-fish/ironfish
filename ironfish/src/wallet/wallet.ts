@@ -146,6 +146,7 @@ export class Wallet {
 
     this.scanner = new WalletScanner({
       wallet: this,
+      workerPool: this.workerPool,
       logger: this.logger,
       config: this.config,
       nodeClient: this.nodeClient,
@@ -614,7 +615,6 @@ export class Wallet {
 
     for (const account of accounts) {
       const decryptedNotes = decryptedNotesByAccountId.get(account.id) ?? []
-
       await this.backfillAssets(account, decryptedNotes, transaction.mints)
       await account.addPendingTransaction(transaction, decryptedNotes, head.sequence)
     }

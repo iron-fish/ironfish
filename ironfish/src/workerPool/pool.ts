@@ -225,7 +225,7 @@ export class WorkerPool {
     await this.execute(request).result()
   }
 
-  private execute(request: Readonly<WorkerMessage>): Job {
+  execute(request: Readonly<WorkerMessage>): Job {
     // Ensure that workers are started before handling jobs
     this.start()
 

@@ -305,6 +305,14 @@ export type ConfigOptions = {
   walletSyncingMaxQueueSize: number
 
   /**
+   * The max number of blocks that may be processed in parallel when syncing.
+   * By default, this number is automatically calculated from the number of
+   * workers available (see `nodeWorkers` and `nodeWorkersMax`). You may set
+   * this number to limit the memory usage during syncing.
+   */
+  walletSyncingMaxConcurrency: number
+
+  /**
    * Whether or not to build the full fish hash context at node startup. Setting this
    * to `true` will slightly increase node performance but use ~4.5GB more RAM. The majority of
    * network users will not need this speed increase and so should keep the default of `false`.
@@ -390,6 +398,7 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     incomingWebSocketWhitelist: yup.array(yup.string().trim().defined()),
     walletGossipTransactionsMaxQueueSize: yup.number(),
     walletSyncingMaxQueueSize: yup.number(),
+    walletSyncingMaxConcurrency: yup.number().integer(),
     fishHashFullContext: yup.boolean(),
   })
   .defined()
@@ -499,6 +508,7 @@ export class Config<
       incomingWebSocketWhitelist: [],
       walletGossipTransactionsMaxQueueSize: 1000,
       walletSyncingMaxQueueSize: 100,
+      walletSyncingMaxConcurrency: -1,
       fishHashFullContext: false,
     }
   }
