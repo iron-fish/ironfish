@@ -96,7 +96,6 @@ const AccountEncodedJSONSchema: yup.ObjectSchema<AccountEncodedJSON> = yup
       .optional()
       .default(undefined),
     proofAuthorizingKey: yup.string().nullable().optional(),
-    networkId: yup.number().optional(),
   })
   .defined()
 

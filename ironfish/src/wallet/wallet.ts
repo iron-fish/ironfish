@@ -1360,9 +1360,11 @@ export class Wallet {
 
     let createdAt = accountValue.createdAt
     if (createdAt?.networkId !== this.networkId) {
-      this.logger.warn(
-        `Account ${accountValue.name} networkId ${createdAt?.networkId} does not match wallet networkId ${this.networkId}. Setting createdAt to null.`,
-      )
+      if (createdAt?.networkId !== undefined) {
+        this.logger.warn(
+          `Account ${accountValue.name} networkId ${createdAt?.networkId} does not match wallet networkId ${this.networkId}. Setting createdAt to null.`,
+        )
+      }
       createdAt = null
     }
 
