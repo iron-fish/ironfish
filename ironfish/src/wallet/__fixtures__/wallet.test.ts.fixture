@@ -2045,7 +2045,7 @@
       }
     }
   ],
-  "Wallet importAccount should set createdAt if that block is in the chain": [
+  "Wallet importAccount should set createdAt if networkId matches": [
     {
       "value": {
         "version": 4,
@@ -2143,7 +2143,7 @@
       }
     }
   ],
-  "Wallet importAccount should set account head to block before createdAt if that block is in the chain": [
+  "Wallet importAccount should set account head to block before createdAt if networkId matches": [
     {
       "value": {
         "version": 4,
@@ -2241,7 +2241,7 @@
       }
     }
   ],
-  "Wallet importAccount should set createdAt to null if that block is not in the chain": [
+  "Wallet importAccount should set createdAt to null if networkId does not match": [
     {
       "value": {
         "version": 4,

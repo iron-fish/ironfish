@@ -58,7 +58,7 @@ type AccountEncodedJSON = {
   outgoingViewKey: string
   publicAddress: string
   spendingKey: string | null
-  createdAt?: { hash: string; sequence: number } | string | null
+  createdAt?: { hash: string; sequence: number; networkId?: number } | string | null
   multisigKeys?: {
     identity?: string
     secret?: string
@@ -81,6 +81,7 @@ const AccountEncodedJSONSchema: yup.ObjectSchema<AccountEncodedJSON> = yup
       .object({
         hash: yup.string().defined(),
         sequence: yup.number().defined(),
+        networkId: yup.number().optional(),
       })
       .nullable()
       .optional()
@@ -103,6 +104,7 @@ const serializeAccountEncodedJSON = (accountImport: AccountImport): AccountEncod
     ? {
         hash: accountImport.createdAt.hash.toString('hex'),
         sequence: accountImport.createdAt.sequence,
+        networkId: accountImport.createdAt.networkId,
       }
     : null
 
@@ -142,6 +144,7 @@ function deserializeAccountEncodedJSON(raw: AccountEncodedJSON): AccountImport {
         ? {
             hash: Buffer.from(raw.createdAt.hash, 'hex'),
             sequence: raw.createdAt.sequence,
+            networkId: raw.createdAt.networkId,
           }
         : null,
     multisigKeys: raw.multisigKeys

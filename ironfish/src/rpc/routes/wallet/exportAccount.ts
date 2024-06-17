@@ -44,7 +44,7 @@ routes.register<typeof ExportAccountRequestSchema, ExportAccountResponse>(
     const viewOnly = request.data.viewOnly ?? false
 
     const account = getAccount(node.wallet, request.data.account)
-    const value = toAccountImport(account, viewOnly)
+    const value = toAccountImport(account, viewOnly, node.wallet.networkId)
 
     const encoded = encodeAccountImport(value, format, {
       language: request.data.language,

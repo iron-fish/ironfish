@@ -24,12 +24,24 @@ export type AccountImport = {
   createdAt: {
     hash: Buffer
     sequence: number
+    networkId?: number
   } | null
   multisigKeys?: MultisigKeysImport
   proofAuthorizingKey: string | null
 }
 
-export function toAccountImport(account: Account, viewOnly: boolean): AccountImport {
+export function toAccountImport(
+  account: Account,
+  viewOnly: boolean,
+  networkId: number,
+): AccountImport {
+  const createdAt = account.createdAt
+    ? {
+        ...account.createdAt,
+        networkId,
+      }
+    : null
+
   const value = {
     version: account.version,
     name: account.name,
@@ -38,7 +50,7 @@ export function toAccountImport(account: Account, viewOnly: boolean): AccountImp
     incomingViewKey: account.incomingViewKey,
     outgoingViewKey: account.outgoingViewKey,
     publicAddress: account.publicAddress,
-    createdAt: account.createdAt,
+    createdAt,
     multisigKeys: account.multisigKeys,
     proofAuthorizingKey: account.proofAuthorizingKey,
   }
