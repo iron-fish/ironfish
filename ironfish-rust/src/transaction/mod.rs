@@ -51,6 +51,8 @@ use self::{
 };
 
 pub mod burns;
+pub mod data;
+pub mod data_type;
 pub mod mints;
 pub mod outputs;
 pub mod spends;
