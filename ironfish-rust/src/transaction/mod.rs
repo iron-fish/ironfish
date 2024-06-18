@@ -3,6 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use blstrs::Bls12;
+use data::DataDescription;
+use data_type::DataType;
 use ff::Field;
 use outputs::OutputBuilder;
 use spends::{SpendBuilder, UnsignedSpendDescription};
@@ -122,6 +124,10 @@ pub struct ProposedTransaction {
     public_key_randomness: jubjub::Fr,
     // NOTE: If adding fields here, you may need to add fields to
     // signature hash method, and also to Transaction.
+
+    // can attach arbitrary data to transaction, will initially be used for EVM transactions
+
+    data: Vec<DataDescription>,
 }
 
 impl ProposedTransaction {
@@ -135,6 +141,7 @@ impl ProposedTransaction {
             value_balances: ValueBalances::new(),
             expiration: 0,
             public_key_randomness: jubjub::Fr::random(thread_rng()),
+            data: vec![],
         }
     }
 
@@ -167,6 +174,14 @@ impl ProposedTransaction {
         self.value_balances.add(asset.id(), value.try_into()?)?;
 
         self.mints.push(MintBuilder::new(asset, value));
+
+        Ok(())
+    }
+
+    pub fn add_data(&mut self, data_type: DataType, data: Vec<u8>) -> Result<(), IronfishError> {
+        let data_description = DataDescription::new(data_type, data)?;
+
+        self.data.push(data_description);
 
         Ok(())
     }
@@ -317,6 +332,7 @@ impl ProposedTransaction {
             mints: unsigned_mints,
             outputs: output_descriptions,
             spends: unsigned_spends,
+            data: self.data.clone(),
             version: self.version,
             fee: intended_transaction_fee,
             binding_signature,
@@ -446,6 +462,10 @@ impl ProposedTransaction {
             burn.serialize_signature_fields(&mut hasher)?;
         }
 
+        for data in &self.data {
+            data.write(&mut hasher)?;
+        }
+
         let mut hash_result = [0; 32];
         hash_result[..].clone_from_slice(hasher.finalize().as_ref());
         Ok(hash_result)
@@ -562,6 +582,9 @@ pub struct Transaction {
     /// List of burn descriptions
     burns: Vec<BurnDescription>,
 
+    /// List of data descriptions
+    data: Vec<DataDescription>,
+
     /// Signature calculated from accumulating randomness with all the spends
     /// and outputs when the transaction was created.
     binding_signature: Signature,
@@ -590,6 +613,7 @@ impl Transaction {
         let num_outputs = reader.read_u64::<LittleEndian>()?;
         let num_mints = reader.read_u64::<LittleEndian>()?;
         let num_burns = reader.read_u64::<LittleEndian>()?;
+        let num_data = reader.read_u64::<LittleEndian>()?;
         let fee = reader.read_i64::<LittleEndian>()?;
         let expiration = reader.read_u32::<LittleEndian>()?;
         let randomized_public_key = redjubjub::PublicKey::read(&mut reader)?;
@@ -614,6 +638,11 @@ impl Transaction {
             burns.push(BurnDescription::read(&mut reader)?);
         }
 
+        let mut data = Vec::with_capacity(num_data as usize);
+        for _ in 0..num_data {
+            data.push(DataDescription::read(&mut reader)?);
+        }
+
         let binding_signature = Signature::read(&mut reader)?;
 
         Ok(Transaction {
@@ -623,6 +652,7 @@ impl Transaction {
             outputs,
             mints,
             burns,
+            data,
             binding_signature,
             expiration,
             randomized_public_key,
@@ -637,6 +667,7 @@ impl Transaction {
         writer.write_u64::<LittleEndian>(self.outputs.len() as u64)?;
         writer.write_u64::<LittleEndian>(self.mints.len() as u64)?;
         writer.write_u64::<LittleEndian>(self.burns.len() as u64)?;
+        writer.write_u64::<LittleEndian>(self.data.len() as u64)?;
         writer.write_i64::<LittleEndian>(self.fee)?;
         writer.write_u32::<LittleEndian>(self.expiration)?;
         writer.write_all(&self.randomized_public_key.0.to_bytes())?;
@@ -655,6 +686,10 @@ impl Transaction {
 
         for burns in self.burns.iter() {
             burns.write(&mut writer)?;
+        }
+
+        for data in self.data.iter() {
+            data.write(&mut writer)?;
         }
 
         self.binding_signature.write(&mut writer)?;
@@ -687,6 +722,10 @@ impl Transaction {
 
     pub fn burns(&self) -> &Vec<BurnDescription> {
         &self.burns
+    }
+
+    pub fn data(&self) -> &Vec<DataDescription> {
+        &self.data
     }
 
     /// Get the transaction fee for this transaction. Miners should generally
@@ -739,6 +778,10 @@ impl Transaction {
 
         for burn in self.burns.iter() {
             burn.serialize_signature_fields(&mut hasher)?;
+        }
+
+        for data in self.data.iter() {
+            data.write(&mut hasher)?;
         }
 
         let mut hash_result = [0; 32];

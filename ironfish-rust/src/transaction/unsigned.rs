@@ -28,8 +28,7 @@ use crate::{
 };
 
 use super::{
-    burns::BurnDescription, mints::UnsignedMintDescription, spends::UnsignedSpendDescription,
-    TransactionVersion, SIGNATURE_HASH_PERSONALIZATION, TRANSACTION_SIGNATURE_VERSION,
+    burns::BurnDescription, data::DataDescription, mints::UnsignedMintDescription, spends::UnsignedSpendDescription, TransactionVersion, SIGNATURE_HASH_PERSONALIZATION, TRANSACTION_SIGNATURE_VERSION
 };
 
 #[derive(Clone)]
@@ -49,6 +48,9 @@ pub struct UnsignedTransaction {
 
     /// List of burn descriptions
     pub(crate) burns: Vec<BurnDescription>,
+
+    /// List of data
+    pub(crate) data: Vec<DataDescription>,
 
     /// Signature calculated from accumulating randomness with all the spends
     /// and outputs when the transaction was created.
@@ -84,6 +86,8 @@ impl UnsignedTransaction {
         let num_outputs = reader.read_u64::<LittleEndian>()?;
         let num_mints = reader.read_u64::<LittleEndian>()?;
         let num_burns = reader.read_u64::<LittleEndian>()?;
+        // TODO: this is backwards incompatible, would cause problems for transactions in flight
+        let num_data = reader.read_u64::<LittleEndian>()?;
         let fee = reader.read_i64::<LittleEndian>()?;
         let expiration = reader.read_u32::<LittleEndian>()?;
         let randomized_public_key = redjubjub::PublicKey::read(&mut reader)?;
@@ -109,6 +113,11 @@ impl UnsignedTransaction {
             burns.push(BurnDescription::read(&mut reader)?);
         }
 
+        let mut data = Vec::with_capacity(num_data as usize);
+        for _ in 0..num_data {
+            data.push(DataDescription::read(&mut reader)?);
+        }
+
         let binding_signature = Signature::read(&mut reader)?;
 
         Ok(UnsignedTransaction {
@@ -118,6 +127,7 @@ impl UnsignedTransaction {
             outputs,
             mints,
             burns,
+            data,
             binding_signature,
             expiration,
             randomized_public_key,
@@ -133,6 +143,7 @@ impl UnsignedTransaction {
         writer.write_u64::<LittleEndian>(self.outputs.len() as u64)?;
         writer.write_u64::<LittleEndian>(self.mints.len() as u64)?;
         writer.write_u64::<LittleEndian>(self.burns.len() as u64)?;
+        writer.write_u64::<LittleEndian>(self.data.len() as u64)?;
         writer.write_i64::<LittleEndian>(self.fee)?;
         writer.write_u32::<LittleEndian>(self.expiration)?;
         writer.write_all(&self.randomized_public_key.0.to_bytes())?;
@@ -152,6 +163,10 @@ impl UnsignedTransaction {
 
         for burns in self.burns.iter() {
             burns.write(&mut writer)?;
+        }
+
+        for data in self.data.iter() {
+            data.write(&mut writer)?;
         }
 
         self.binding_signature.write(&mut writer)?;
@@ -188,6 +203,10 @@ impl UnsignedTransaction {
 
         for burn in self.burns.iter() {
             burn.serialize_signature_fields(&mut hasher)?;
+        }
+
+        for data in self.data.iter() {
+            data.write(&mut hasher)?;
         }
 
         let mut hash_result = [0; 32];
@@ -249,6 +268,7 @@ impl UnsignedTransaction {
             outputs: self.outputs.clone(),
             mints: mint_descriptions,
             burns: self.burns.clone(),
+            data: self.data.clone(),
             binding_signature: self.binding_signature,
             randomized_public_key: self.randomized_public_key.clone(),
         };
@@ -281,6 +301,7 @@ impl UnsignedTransaction {
             outputs: self.outputs.clone(),
             mints: mint_descriptions,
             burns: self.burns.clone(),
+            data: self.data.clone(),
             binding_signature: self.binding_signature,
             randomized_public_key: self.randomized_public_key.clone(),
         })

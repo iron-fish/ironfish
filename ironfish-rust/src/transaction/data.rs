@@ -9,8 +9,8 @@ use std::io;
 
 #[derive(Clone)]
 pub struct DataDescription {
-    data_type: DataType,
-    data: Vec<u8>,
+    pub(crate) data_type: DataType,
+    pub(crate) data: Vec<u8>,
 }
 
 impl DataDescription {

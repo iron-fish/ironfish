@@ -8,6 +8,7 @@ use std::collections::{BTreeMap, HashMap};
 use super::internal_batch_verify_transactions;
 use super::{ProposedTransaction, Transaction};
 use crate::test_util::create_multisig_identities;
+use crate::transaction::data_type::DataType;
 use crate::transaction::tests::split_spender_key::split_spender_key;
 use crate::{
     assets::{asset::Asset, asset_identifier::NATIVE_ASSET},
@@ -206,6 +207,64 @@ fn test_transaction_simple() {
         .unwrap();
     assert_eq!(received_note.sender, spender_key_clone.public_address());
 }
+
+
+#[test]
+fn test_transaction_data() {
+    let spender_key = SaplingKey::generate_key();
+    let receiver_key = SaplingKey::generate_key();
+    let sender_key = SaplingKey::generate_key();
+    let spender_key_clone = spender_key.clone();
+
+    let in_note = Note::new(
+        spender_key.public_address(),
+        42,
+        "",
+        NATIVE_ASSET,
+        sender_key.public_address(),
+    );
+    let out_note = Note::new(
+        receiver_key.public_address(),
+        40,
+        "",
+        NATIVE_ASSET,
+        spender_key.public_address(),
+    );
+    let witness = make_fake_witness(&in_note);
+
+    let mut transaction = ProposedTransaction::new(TransactionVersion::latest());
+    transaction.add_spend(in_note, &witness).unwrap();
+    assert_eq!(transaction.spends.len(), 1);
+    transaction.add_output(out_note).unwrap();
+    assert_eq!(transaction.outputs.len(), 1);
+    transaction.add_data(DataType::Undefined, vec![1, 2, 3, 4, 5])
+        .expect("should be able to add data");
+
+    let public_transaction = transaction
+        .post(&spender_key, None, 1)
+        .expect("should be able to post transaction");
+    verify_transaction(&public_transaction).expect("Should be able to verify transaction");
+    assert_eq!(public_transaction.fee(), 1);
+
+    // A change note was created
+    assert_eq!(public_transaction.outputs.len(), 2);
+    assert_eq!(public_transaction.spends.len(), 1);
+    assert_eq!(public_transaction.mints.len(), 0);
+    assert_eq!(public_transaction.burns.len(), 0);
+    assert_eq!(public_transaction.data.len(), 1);
+
+    // check data matches input
+    let data = public_transaction.data().first().expect("should be 1 data");
+    assert_eq!(data.data_type, DataType::Undefined);
+    assert_eq!(data.data, vec![1, 2, 3, 4, 5]);
+
+    let received_note = public_transaction.outputs[1]
+        .merkle_note()
+        .decrypt_note_for_owner(&spender_key_clone.incoming_viewing_key)
+        .unwrap();
+    assert_eq!(received_note.sender, spender_key_clone.public_address());
+}
+
 
 #[test]
 fn test_proposed_transaction_build() {
