@@ -12,8 +12,6 @@ export class TestEvmCommand extends IronfishCommand {
   static flags = { ...LocalFlags }
 
   async start(): Promise<void> {
-    const flags = await this.parse(TestEvmCommand)
-
     const node = await this.sdk.node()
     await node.openDB()
 
@@ -27,7 +25,7 @@ export class TestEvmCommand extends IronfishCommand {
     const address = new Address(hexToBytes('0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b'))
 
     let balance = (await evmState.manager.getAccount(address))?.balance ?? 0n
-    console.log(`Account at address ${address.toString()} has balance ${balance}`)
+    this.log(`Account at address ${address.toString()} has balance ${balance}`)
 
     const account = new Account(BigInt(0), balance + 1000n)
 
@@ -37,7 +35,7 @@ export class TestEvmCommand extends IronfishCommand {
     await evmState.manager.flush()
 
     balance = (await evmState.manager.getAccount(address))?.balance ?? 0n
-    console.log(`Account at address ${address.toString()} has balance ${balance}`)
+    this.log(`Account at address ${address.toString()} has balance ${balance}`)
 
     await node.closeDB()
   }
