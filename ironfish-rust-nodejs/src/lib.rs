@@ -122,7 +122,8 @@ pub fn generate_key_from_private_key(private_key: String) -> Result<Key> {
 
 #[napi]
 pub fn initialize_sapling() {
-    let _ = sapling_bls12::SAPLING.clone();
+    // Deref the `SAPLING` lazy-static, to ensure it gets initialized
+    let _ = &*sapling_bls12::SAPLING;
 }
 
 #[napi(constructor)]
