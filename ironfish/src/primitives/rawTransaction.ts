@@ -17,7 +17,6 @@ import {
   UnsignedTransaction,
 } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
-import { Data } from 'ws'
 import { Assert } from '../assert'
 import { Witness } from '../merkletree'
 import { NoteHasher } from '../merkletree/hasher'
@@ -159,6 +158,10 @@ export class RawTransaction {
       }
 
       builder.burn(burn.assetId, burn.value)
+    }
+
+    for (const data of this.data) {
+      builder.data(data.dataType, data.data)
     }
 
     if (this.expiration !== null) {

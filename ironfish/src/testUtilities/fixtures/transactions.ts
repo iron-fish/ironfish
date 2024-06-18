@@ -5,7 +5,6 @@ import { Asset } from '@ironfish/rust-nodejs'
 import { Assert } from '../../assert'
 import { FullNode } from '../../node'
 import { BurnDescription } from '../../primitives/burnDescription'
-import { DataDescription } from '../../primitives/dataDescription'
 import { MintData } from '../../primitives/rawTransaction'
 import { SerializedTransaction, Transaction } from '../../primitives/transaction'
 import { UnsignedTransaction } from '../../primitives/unsignedTransaction'
@@ -38,7 +37,6 @@ export async function usePostTxFixture(options: {
   }[]
   mints?: MintData[]
   burns?: BurnDescription[]
-  data?: DataDescription[]
   restore?: boolean
 }): Promise<Transaction> {
   return useTxFixture(

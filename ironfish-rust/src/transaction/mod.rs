@@ -108,6 +108,10 @@ pub struct ProposedTransaction {
     /// balancing and effects are handled by outputs.
     burns: Vec<BurnBuilder>,
 
+    // can attach arbitrary data to transaction, will initially be used for EVM transactions
+
+    data: Vec<DataDescription>,
+
     /// The balance of all the spends minus all the outputs. The difference
     /// is the fee paid to the miner for mining the transaction.
     value_balances: ValueBalances,
@@ -124,10 +128,6 @@ pub struct ProposedTransaction {
     public_key_randomness: jubjub::Fr,
     // NOTE: If adding fields here, you may need to add fields to
     // signature hash method, and also to Transaction.
-
-    // can attach arbitrary data to transaction, will initially be used for EVM transactions
-
-    data: Vec<DataDescription>,
 }
 
 impl ProposedTransaction {
@@ -138,10 +138,10 @@ impl ProposedTransaction {
             outputs: vec![],
             mints: vec![],
             burns: vec![],
+            data: vec![],
             value_balances: ValueBalances::new(),
             expiration: 0,
             public_key_randomness: jubjub::Fr::random(thread_rng()),
-            data: vec![],
         }
     }
 

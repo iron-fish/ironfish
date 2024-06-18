@@ -28,6 +28,7 @@ export type SerializedTransaction = Buffer
 export enum TransactionVersion {
   V1 = 1,
   V2 = 2,
+  V3 = 3,
 }
 
 export class TransactionFeatures {
@@ -70,14 +71,17 @@ export class Transaction {
     const reader = bufio.read(this.transactionPostedSerialized, true)
 
     this._version = reader.readU8() // 1
-    if (this._version < TransactionVersion.V1 || this._version > TransactionVersion.V2) {
+    if (this._version < TransactionVersion.V1 || this._version > TransactionVersion.V3) {
       throw new UnsupportedVersionError(this._version)
     }
     const _spendsLength = reader.readU64() // 8
     const _notesLength = reader.readU64() // 8
     const _mintsLength = reader.readU64() // 8
     const _burnsLength = reader.readU64() // 8
-    const _dataLength = reader.readU64() // 8
+    let _dataLength = 0
+    if (this._version >= TransactionVersion.V3) {
+      _dataLength = reader.readU64() // 8
+    }
     this._fee = reader.readBigI64() // 8
     this._expiration = reader.readU32() // 4
     // randomized public key of sender
@@ -146,13 +150,16 @@ export class Transaction {
       return { assetId, value }
     })
 
-    this.data = Array.from({ length: _dataLength }, () => {
-      const dataType = reader.readU8()
-      const length = reader.readU32()
-      const data = reader.readBytes(length, true)
-
-      return { dataType, data }
-    })
+    if (this._version >= TransactionVersion.V3) {
+      this.data = Array.from({ length: _dataLength }, () => {
+        const dataType = reader.readU8()
+        const dataLength = reader.readU32()
+        const data = reader.readBytes(dataLength, true)
+        return { dataType, data }
+      })
+    } else {
+      this.data = []
+    }
 
     this._signature = reader.readBytes(TRANSACTION_SIGNATURE_LENGTH, true)
   }

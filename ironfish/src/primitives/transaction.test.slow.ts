@@ -10,7 +10,6 @@ import {
   useMintBlockFixture,
   usePostTxFixture,
 } from '../testUtilities'
-import { DataType } from './dataDescription'
 import { Transaction } from './transaction'
 
 describe('Transaction', () => {
@@ -105,8 +104,6 @@ describe('Transaction', () => {
 
     await wallet.scan()
 
-    const hexData = 'deadbeef'
-
     const originalTransaction = await usePostTxFixture({
       node,
       wallet,
@@ -130,7 +127,6 @@ describe('Transaction', () => {
         },
       ],
       burns: [{ assetId: asset.id(), value: burnAmount }],
-      data: [{ dataType: DataType.Undefined, data: Buffer.from(hexData, 'hex') }],
     })
 
     // Deserialize the transaction so we can verify deserialization is working properly
@@ -144,7 +140,6 @@ describe('Transaction', () => {
     expect(transaction.notes.length).toEqual(3)
     expect(transaction.mints.length).toEqual(1)
     expect(transaction.burns.length).toEqual(1)
-    expect(transaction.data.length).toEqual(1)
 
     const mint = transaction.mints[0]
     expect(mint).toMatchObject({
@@ -158,12 +153,6 @@ describe('Transaction', () => {
     expect(burn).toMatchObject({
       assetId: asset.id(),
       value: burnAmount,
-    })
-
-    const data = transaction.data[0]
-    expect(data).toMatchObject({
-      dataType: DataType.Undefined,
-      data: Buffer.from(hexData, 'hex'),
     })
   })
 
