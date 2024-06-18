@@ -73,6 +73,9 @@ export class TransactionsCommand extends IronfishCommand {
         : Format.cli
 
     const client = await this.sdk.connectRpc()
+
+    const networkId = (await client.chain.getNetworkInfo()).content.networkId
+
     const response = client.wallet.getAccountTransactionsStream({
       account,
       hash: flags.hash,
@@ -82,7 +85,6 @@ export class TransactionsCommand extends IronfishCommand {
       confirmations: flags.confirmations,
       notes: flags.notes,
     })
-    const networkId = (await client.chain.getNetworkInfo()).content.networkId
 
     const columns = this.getColumns(flags.extended, flags.notes, format)
 
