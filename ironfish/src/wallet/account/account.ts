@@ -77,10 +77,17 @@ export class Account {
   readonly multisigKeys?: MultisigKeys
   readonly proofAuthorizingKey: string | null
 
-  encryptedSpendingKey: Buffer | null
-  nonce: Buffer | null
+  encryptedSpendingKey: string | null
+  nonce: string | null
+  salt: string | null
 
-  constructor({ accountValue, walletDb, encryptedSpendingKey, nonce }: { accountValue: AccountValue; walletDb: WalletDB, encryptedSpendingKey?: Buffer, nonce?: Buffer }) {
+  constructor({
+    accountValue,
+    walletDb,
+    encryptedSpendingKey,
+    nonce,
+    salt,
+  }: { accountValue: AccountValue; walletDb: WalletDB, encryptedSpendingKey?: string, nonce?: string, salt?: string }) {
     this.id = accountValue.id
     this.name = accountValue.name
     this.spendingKey = accountValue.spendingKey
@@ -103,6 +110,7 @@ export class Account {
 
     this.encryptedSpendingKey = encryptedSpendingKey ?? null
     this.nonce = nonce ?? null
+    this.salt = salt ?? null
   }
 
   isSpendingAccount(): this is SpendingAccount {

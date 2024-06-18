@@ -9,7 +9,7 @@ use pbkdf2::{
     password_hash::{PasswordHasher, Salt, SaltString},
     Params, Pbkdf2,
 };
-use rand::thread_rng;
+use rand::{thread_rng, RngCore};
 
 const PBKDF2_ITERATIONS: u32 = 100_000;
 const KEY_LENGTH: usize = 32; // 256-bit key
@@ -52,7 +52,9 @@ pub fn encrypt(passphrase: String, plaintext: String) -> EncryptResult {
     let key = derive_key(passphrase, salt.to_string());
 
     let cipher = XChaCha20Poly1305::new(&key);
-    let nonce = XNonce::from_slice(&[0u8; 24]);
+    let mut nonce_bytes = [0u8; 24];
+    thread_rng().fill_bytes(&mut nonce_bytes);
+    let nonce = XNonce::from_slice(&nonce_bytes);
 
     let ciphertext = cipher
         .encrypt(nonce, plaintext.as_bytes())

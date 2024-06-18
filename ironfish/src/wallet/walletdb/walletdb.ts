@@ -1334,8 +1334,8 @@ export class WalletDB {
       },
       walletDb: this,
 
-      encryptedSpendingKey: Buffer.from(cipherText),
-      nonce: Buffer.from(nonce),
+      // encryptedSpendingKey: Buffer.from(cipherText),
+      // nonce: Buffer.from(nonce),
     });
 
     await this.accounts.put(account.id, updatedAccount.serialize(), tx)

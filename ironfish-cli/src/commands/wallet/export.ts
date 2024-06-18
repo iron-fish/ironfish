@@ -67,10 +67,16 @@ export class ExportCommand extends IronfishCommand {
       : AccountFormat.Base64Json
 
     const client = await this.sdk.connectRpc(local)
+
+    const passphrase = await ux.prompt('Enter the wallet passphrase', {
+      required: true,
+    })
+    
     const response = await client.wallet.exportAccount({
       account,
       viewOnly,
       format,
+      passphrase,
       language: flags.language,
     })
 
