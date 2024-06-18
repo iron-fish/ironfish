@@ -3,6 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import {
   Asset,
+  decrypt,
+  encrypt,
   generateKey,
   MEMO_LENGTH,
   multisig,
@@ -250,6 +252,7 @@ export class Wallet {
     }
 
     void this.eventLoop()
+    void this.encrypt('testing')
   }
 
   async stop(): Promise<void> {
@@ -1801,5 +1804,15 @@ export class Wallet {
 
       return identity.serialize()
     })
+  }
+
+  async encrypt(passphrase: string): Promise<void> {
+    for (const account of this.accounts.values()) {
+      console.log(account.spendingKey!)
+      const encrypted = encrypt(passphrase, account.spendingKey!);
+      console.log(encrypted)
+      const decrypted = decrypt(passphrase, encrypted.salt, encrypted.nonce, encrypted.ciphertext)
+      console.log(decrypted)
+    }
   }
 }

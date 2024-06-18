@@ -47,6 +47,13 @@ export const TRANSACTION_EXPIRATION_LENGTH: number
 export const TRANSACTION_FEE_LENGTH: number
 export const LATEST_TRANSACTION_VERSION: number
 export function verifyTransactions(serializedTransactions: Array<Buffer>): boolean
+export interface EncryptResult {
+  salt: string
+  nonce: string
+  ciphertext: string
+}
+export function encrypt(passphrase: string, plaintext: string): EncryptResult
+export function decrypt(passphrase: string, saltHex: string, nonceHex: string, ciphertextHex: string): string
 export const enum LanguageCode {
   English = 0,
   ChineseSimplified = 1,

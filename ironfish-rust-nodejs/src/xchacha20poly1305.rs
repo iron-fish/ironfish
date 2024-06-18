@@ -1,4 +1,4 @@
-use ironfish::serializing::{bytes_to_hex, hex_to_bytes};
+use ironfish::serializing::{bytes_to_hex, hex_to_bytes, hex_to_vec_bytes};
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 
@@ -26,17 +26,14 @@ fn derive_key(passphrase: String, salt: String) -> Key {
        rounds: PBKDF2_ITERATIONS, 
     };
 
-    let output = Pbkdf2.hash_password_customized(passphrase.as_bytes(), None, None, params, Salt::from_b64(&salt).unwrap())
+    let hash = Pbkdf2.hash_password_customized(passphrase.as_bytes(), None, None, params, Salt::from_b64(&salt).unwrap())
         .unwrap()
         .hash
-        .unwrap()
-        .as_bytes()
-        .fill(&mut key)
         .unwrap();
-
-    output.as_bytes().fill(&mut key);
-    // key[0..32].fill(&mut output.as_bytes()[..]);
+    let hash_bytes = hash.as_bytes();
     
+    key.copy_from_slice(&hash_bytes[..KEY_LENGTH]);
+
     Key::from(key)
 }
 
@@ -48,7 +45,7 @@ pub struct EncryptResult {
 }
 
 #[napi]
-fn encrypt(passphrase: String, plaintext: String) -> EncryptResult {
+pub fn encrypt(passphrase: String, plaintext: String) -> EncryptResult {
     let salt = SaltString::generate(&mut thread_rng());
     let key = derive_key(passphrase, salt.to_string());
     
@@ -58,20 +55,34 @@ fn encrypt(passphrase: String, plaintext: String) -> EncryptResult {
     let ciphertext = cipher.encrypt(nonce, plaintext.as_bytes()).expect("encryption failure!");
 
     EncryptResult {
-        salt: salt.to_string(),
+        salt: bytes_to_hex(salt.as_str().as_bytes()),
         nonce: bytes_to_hex(&nonce.to_vec()[..]),
         ciphertext: bytes_to_hex(&ciphertext[..]),
     }
 }
 
 #[napi]
-fn decrypt(passphrase: String, salt_hex: String, nonce_hex: String, ciphertext_hex: String) -> Vec<u8> {
-    let salt = hex_to_bytes(&salt_hex).unwrap();
-    let nonce = XNonce::from_slice(&hex_to_bytes(&nonce_hex).unwrap());
-    let ciphertext = hex_to_bytes(&ciphertext_hex).unwrap();
+pub fn decrypt(passphrase: String, salt_hex: String, nonce_hex: String, ciphertext_hex: String) -> String {
+    let salt = hex_to_vec_bytes(&salt_hex).unwrap();
+    let nonce_vec = &hex_to_vec_bytes(&nonce_hex).unwrap();
+    let nonce = XNonce::from_slice(nonce_vec);
+    let ciphertext = hex_to_vec_bytes(&ciphertext_hex).unwrap();
 
-    let key = derive_key(passphrase, salt_hex);
+    let key = derive_key(passphrase, bytes_to_hex(&salt[..]));
     
     let cipher = XChaCha20Poly1305::new(&key);
-    cipher.decrypt(nonce, ciphertext.as_ref()).expect("decryption failure!")
+    
+    match cipher.decrypt(nonce, ciphertext.as_ref()) {
+        Ok(decrypted) => {
+            bytes_to_hex(&decrypted[..])
+        }
+        Err(err) => {
+            eprintln!("Decryption failed: {:?}", err);
+            eprintln!("Decryption failed: {:?}", err);
+            eprintln!("Decryption failed: {:?}", err);
+            eprintln!("Decryption failed: {:?}", err);
+
+            bytes_to_hex("".as_bytes())
+        }
+    }
 }
