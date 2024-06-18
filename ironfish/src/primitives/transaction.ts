@@ -16,6 +16,7 @@ import {
 import { blake3 } from '@napi-rs/blake-hash'
 import bufio from 'bufio'
 import { BurnDescription } from './burnDescription'
+import { DataDescription } from './dataDescription'
 import { MintDescription } from './mintDescription'
 import { NoteEncrypted } from './noteEncrypted'
 import { Spend } from './spend'
@@ -51,6 +52,7 @@ export class Transaction {
   public readonly spends: Spend[]
   public readonly mints: MintDescription[]
   public readonly burns: BurnDescription[]
+  public readonly data: DataDescription[]
 
   private readonly _version: TransactionVersion
   private readonly _fee: bigint
@@ -75,6 +77,7 @@ export class Transaction {
     const _notesLength = reader.readU64() // 8
     const _mintsLength = reader.readU64() // 8
     const _burnsLength = reader.readU64() // 8
+    const _dataLength = reader.readU64() // 8
     this._fee = reader.readBigI64() // 8
     this._expiration = reader.readU32() // 4
     // randomized public key of sender
@@ -141,6 +144,14 @@ export class Transaction {
       const value = reader.readBigU64()
 
       return { assetId, value }
+    })
+
+    this.data = Array.from({ length: _dataLength }, () => {
+      const dataType = reader.readU8()
+      const length = reader.readU32()
+      const data = reader.readBytes(length, true)
+
+      return { dataType, data }
     })
 
     this._signature = reader.readBytes(TRANSACTION_SIGNATURE_LENGTH, true)

@@ -442,7 +442,7 @@ fn test_transaction_version_is_checked() {
 
     let mut transaction = [0u8; 256];
 
-    let valid_versions = [1u8, 2u8];
+    let valid_versions = [1u8, 2u8, 3u8];
     let invalid_versions = (u8::MIN..=u8::MAX)
         .filter(|v| !valid_versions.contains(v))
         .collect::<Vec<u8>>();

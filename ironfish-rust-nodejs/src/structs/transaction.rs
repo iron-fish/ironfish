@@ -253,6 +253,15 @@ impl NativeTransaction {
         Ok(())
     }
 
+    #[napi]
+    pub fn data(&mut self, data_type: u8,data: JsBuffer) -> Result<()> {
+        let data_type = data_type.try_into().map_err(to_napi_err)?;
+        let data = data.into_value()?;
+        self.transaction.add_data(data_type, data.as_ref().to_vec()).map_err(to_napi_err)?;
+
+        Ok(())
+    }
+
     /// Special case for posting a miners fee transaction. Miner fee transactions
     /// are unique in that they generate currency. They do not have any spends
     /// or change and therefore have a negative transaction fee. In normal use,

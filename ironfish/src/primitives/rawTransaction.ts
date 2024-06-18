@@ -17,6 +17,7 @@ import {
   UnsignedTransaction,
 } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
+import { Data } from 'ws'
 import { Assert } from '../assert'
 import { Witness } from '../merkletree'
 import { NoteHasher } from '../merkletree/hasher'
@@ -24,6 +25,7 @@ import { Side } from '../merkletree/merkletree'
 import { CurrencyUtils } from '../utils/currency'
 import { AssetBalances } from '../wallet/assetBalances'
 import { BurnDescription } from './burnDescription'
+import { DataDescription } from './dataDescription'
 import { Note } from './note'
 import { NoteEncrypted, NoteEncryptedHash, SerializedNoteEncryptedHash } from './noteEncrypted'
 import { SPEND_SERIALIZED_SIZE_IN_BYTE } from './spend'
@@ -48,6 +50,7 @@ export class RawTransaction {
   mints: MintData[] = []
   burns: BurnDescription[] = []
   outputs: { note: Note }[] = []
+  data: DataDescription[] = []
 
   spends: {
     note: Note
@@ -70,6 +73,7 @@ export class RawTransaction {
     size += 8 // notes length
     size += 8 // mints length
     size += 8 // burns length
+    size += 8 // data length
     size += TRANSACTION_FEE_LENGTH // fee
     size += TRANSACTION_EXPIRATION_LENGTH // expiration
     size += TRANSACTION_PUBLIC_KEY_RANDOMNESS_LENGTH // public key randomness
@@ -93,7 +97,9 @@ export class RawTransaction {
       .reduce((size, mintSize) => size + mintSize, 0)
     size += this.burns.length * (ASSET_ID_LENGTH + 8)
     size += TRANSACTION_SIGNATURE_LENGTH // signature
-
+    size += this.data
+      .map((data) => data.data.length)
+      .reduce((size, dataSize) => size + dataSize, 0)
     // Each asset might have a change note, which would need to be accounted for
     const assetTotals = new AssetBalances()
     for (const mint of this.mints) {

@@ -113,7 +113,7 @@ mod tests {
         assert_eq!(TransactionVersion::from_u8(1), Some(V1));
         assert_eq!(TransactionVersion::from_u8(2), Some(V2));
         assert_eq!(TransactionVersion::from_u8(3), Some(V3));
-        for i in 3..=255 {
+        for i in 4..=255 {
             assert_eq!(TransactionVersion::from_u8(i), None);
         }
     }
