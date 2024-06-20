@@ -15,7 +15,12 @@ import {
 import { BenchUtils, CurrencyUtils, PromiseUtils, SegmentResults } from '../../utils'
 import { SpendingAccount } from '../../wallet'
 import { CreateMinersFeeRequest } from './createMinersFee'
-import { DecryptNoteOptions, DecryptNotesRequest } from './decryptNotes'
+import {
+  DecryptNotesAccountKey,
+  DecryptNotesItem,
+  DecryptNotesOptions,
+  DecryptNotesRequest,
+} from './decryptNotes'
 import { WORKER_MESSAGE_HEADER_SIZE } from './workerMessage'
 
 describe('WorkerMessages', () => {
@@ -63,23 +68,23 @@ describe('WorkerMessages', () => {
     const { block, transactions } = await useBlockWithTxs(nodeTest.node, txCount, account)
     await expect(nodeTest.chain).toAddBlock(block)
 
-    const payload: DecryptNoteOptions[] = []
+    const accountKeys: DecryptNotesAccountKey = { ...account }
+
+    const items: DecryptNotesItem[] = []
     for (const transaction of transactions) {
       for (const note of transaction.notes) {
-        payload.push({
+        items.push({
           serializedNote: note.serialize(),
-          incomingViewKey: account.incomingViewKey,
-          outgoingViewKey: account.outgoingViewKey,
-          viewKey: account.viewKey,
           currentNoteIndex: 0,
-          decryptForSpender: true,
         })
       }
     }
 
-    expect(payload.length).toEqual(100)
+    const options: DecryptNotesOptions = { decryptForSpender: true }
 
-    const message = new DecryptNotesRequest(payload)
+    expect(items.length).toEqual(100)
+
+    const message = new DecryptNotesRequest([accountKeys], items, options)
 
     const expectedLength = message.getSize() + WORKER_MESSAGE_HEADER_SIZE
 
