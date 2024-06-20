@@ -1377,7 +1377,7 @@ export class Wallet {
         const head = previousBlock
           ? {
               hash: Buffer.from(previousBlock.block.hash, 'hex'),
-              sequence: createdAt.sequence - 1,
+              sequence: previousBlock.block.sequence,
             }
           : null
 
@@ -1433,7 +1433,7 @@ export class Wallet {
         const head = previousBlock
           ? {
               hash: Buffer.from(previousBlock.block.hash, 'hex'),
-              sequence: newAccount.createdAt.sequence - 1,
+              sequence: previousBlock.block.sequence,
             }
           : null
 
