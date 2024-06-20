@@ -5,6 +5,7 @@ import axios from 'axios'
 import { getConfig } from './config'
 import {
   ChainportBridgeTransaction,
+  ChainportError,
   ChainportNetwork,
   ChainportTransactionStatus,
   ChainportVerifiedToken,
@@ -19,38 +20,28 @@ export const fetchChainportTransactionStatus = async (
   const config = getConfig(networkId)
   const url = `${config.endpoint}/api/port?base_tx_hash=${hash}&base_network_id=${config.chainportId}`
 
-  const response: {
-    data: ChainportTransactionStatus
-  } = await axios.get(url)
-
-  return response.data
+  return await makeChainportRequest<ChainportTransactionStatus>(url)
 }
 
 export const fetchChainportNetworkMap = async (
   networkId: number,
 ): Promise<{ [key: string]: ChainportNetwork }> => {
   const config = getConfig(networkId)
-  const response: {
-    data: {
-      cp_network_ids: {
-        [key: string]: ChainportNetwork
-      }
-    }
-  } = await axios.get(`${config.endpoint}/meta`)
+  const url = `${config.endpoint}/meta`
 
-  return response.data.cp_network_ids
+  return (
+    await makeChainportRequest<{ cp_network_ids: { [key: string]: ChainportNetwork } }>(url)
+  ).cp_network_ids
 }
 
 export const fetchChainportVerifiedTokens = async (
   networkId: number,
 ): Promise<ChainportVerifiedToken[]> => {
   const config = getConfig(networkId)
+  const url = `${config.endpoint}/token/list?network_name=IRONFISH`
 
-  const response: {
-    data: { verified_tokens: ChainportVerifiedToken[] }
-  } = await axios.get(`${config.endpoint}/token/list?network_name=IRONFISH`)
-
-  return response.data.verified_tokens
+  return (await makeChainportRequest<{ verified_tokens: ChainportVerifiedToken[] }>(url))
+    .verified_tokens
 }
 
 export const fetchChainportBridgeTransaction = async (
@@ -65,9 +56,22 @@ export const fetchChainportBridgeTransaction = async (
     asset.web3_address
   }&target_network_id=${network.chainport_network_id.toString()}&target_web3_address=${to}`
 
-  const response: {
-    data: ChainportBridgeTransaction
-  } = await axios.get(url)
+  return await makeChainportRequest<ChainportBridgeTransaction>(url)
+}
 
-  return response.data
+const makeChainportRequest = async <T extends object>(url: string): Promise<T> => {
+  const response = await axios
+    .get<T | ChainportError>(url)
+    .then((response) => {
+      if ('Error' in response.data) {
+        throw new Error(response.data.Error)
+      }
+
+      return response.data
+    })
+    .catch((error) => {
+      throw new Error('Chainport error: ' + error)
+    })
+
+  return response
 }

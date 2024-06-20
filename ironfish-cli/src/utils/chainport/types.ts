@@ -66,3 +66,7 @@ export type ChainportTransactionStatus =
       created_at: string | null
       port_in_ack: boolean | null
     }
+
+export type ChainportError = {
+  Error: string
+}
