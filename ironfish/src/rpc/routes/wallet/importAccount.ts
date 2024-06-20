@@ -17,6 +17,7 @@ export type ImportAccountRequest = {
   account: string
   name?: string
   rescan?: boolean
+  createdAt?: number
 }
 
 export type ImportResponse = {
@@ -29,6 +30,7 @@ export const ImportAccountRequestSchema: yup.ObjectSchema<ImportAccountRequest> 
     rescan: yup.boolean().optional().default(true),
     name: yup.string().optional(),
     account: yup.string().defined(),
+    createdAt: yup.number().optional(),
   })
   .defined()
 
@@ -49,7 +51,9 @@ routes.register<typeof ImportAccountRequestSchema, ImportResponse>(
       request.data.account = await decryptEncodedAccount(request.data.account, context.wallet)
 
       const decoded = decodeAccountImport(request.data.account, { name: request.data.name })
-      const account = await context.wallet.importAccount(decoded)
+      const account = await context.wallet.importAccount(decoded, {
+        createdAt: request.data.createdAt,
+      })
 
       if (!context.wallet.hasDefaultAccount) {
         await context.wallet.setDefaultAccount(account.name)

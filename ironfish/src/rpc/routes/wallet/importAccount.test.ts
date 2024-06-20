@@ -4,7 +4,7 @@
 import { generateKey, LanguageCode, multisig, spendingKeyToWords } from '@ironfish/rust-nodejs'
 import fs from 'fs'
 import path from 'path'
-import { createTrustedDealerKeyPackages } from '../../../testUtilities'
+import { createTrustedDealerKeyPackages, useMinerBlockFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { JsonEncoder } from '../../../wallet'
 import { AccountFormat, encodeAccountImport } from '../../../wallet/exporter/account'
@@ -385,5 +385,31 @@ describe('Route wallet/importAccount', () => {
         expect(response.content.name).toEqual(name)
       }
     })
+  })
+
+  it('should set the account createdAt field to the createdAt sequence', async () => {
+    const name = 'createdAtTest'
+    const spendingKey = generateKey().spendingKey
+
+    // add block to chain that will serve as the account head
+    const block2 = await useMinerBlockFixture(routeTest.node.chain)
+    await expect(routeTest.node.chain).toAddBlock(block2)
+
+    const createdAtSequence = 3
+
+    const response = await routeTest.client.wallet.importAccount({
+      account: spendingKey,
+      name: name,
+      rescan: false,
+      createdAt: createdAtSequence,
+    })
+
+    expect(response.status).toBe(200)
+    const account = routeTest.node.wallet.getAccountByName(name)
+    expect(account).toBeDefined()
+    expect(account?.createdAt?.sequence).toEqual(createdAtSequence)
+
+    const accountHead = await account?.getHead()
+    expect(accountHead?.sequence).toEqual(createdAtSequence - 1)
   })
 })
