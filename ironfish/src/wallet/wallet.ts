@@ -1310,7 +1310,10 @@ export class Wallet {
     await account.updateHead({ hash, sequence }, tx)
   }
 
-  async importAccount(accountValue: AccountImport): Promise<Account> {
+  async importAccount(
+    accountValue: AccountImport,
+    options?: { createdAt?: number },
+  ): Promise<Account> {
     let multisigKeys = accountValue.multisigKeys
     const name = accountValue.name
 
@@ -1346,7 +1349,15 @@ export class Wallet {
 
     validateAccountImport(accountValue)
 
-    let createdAt = accountValue.createdAt
+    let createdAt = options?.createdAt
+      ? {
+          sequence: options?.createdAt,
+          // hash is no longer used, set to empty buffer
+          hash: Buffer.alloc(32, 0),
+          networkId: this.networkId,
+        }
+      : accountValue.createdAt
+
     if (createdAt?.networkId !== this.networkId) {
       if (createdAt?.networkId !== undefined) {
         this.logger.warn(

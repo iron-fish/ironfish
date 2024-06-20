@@ -23,6 +23,9 @@ export class ImportCommand extends IronfishCommand {
     name: Flags.string({
       description: 'the name to use for the account',
     }),
+    createdAt: Flags.integer({
+      description: 'Block sequence to begin scanning from for the imported account',
+    }),
   }
 
   static args = {
@@ -87,6 +90,7 @@ export class ImportCommand extends IronfishCommand {
           account,
           rescan: flags.rescan,
           name: flags.name,
+          createdAt: flags.createdAt,
         })
       } catch (e) {
         if (
