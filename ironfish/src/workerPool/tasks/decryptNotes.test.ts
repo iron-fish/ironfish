@@ -32,6 +32,7 @@ describe('DecryptNotesRequest', () => {
       ],
       {
         decryptForSpender: true,
+        skipNoteValidation: false,
       },
       0,
     )

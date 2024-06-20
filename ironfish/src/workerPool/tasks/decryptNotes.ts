@@ -12,6 +12,7 @@ import { WorkerTask } from './workerTask'
 
 export interface DecryptNotesOptions {
   decryptForSpender: boolean
+  skipNoteValidation?: boolean
 }
 
 export interface DecryptNotesAccountKey {
@@ -53,9 +54,12 @@ export class DecryptNotesRequest extends WorkerMessage {
   }
 
   serializePayload(bw: bufio.StaticWriter | bufio.BufferWriter): void {
-    bw.writeU8(this.options.decryptForSpender ? 1 : 0)
-    bw.writeU32(this.accountKeys.length)
+    const flags =
+      (Number(this.options.decryptForSpender) << 0) |
+      (Number(this.options.skipNoteValidation ?? false) << 1)
+    bw.writeU8(flags)
 
+    bw.writeU32(this.accountKeys.length)
     for (const key of this.accountKeys) {
       bw.writeBytes(Buffer.from(key.incomingViewKey, 'hex'))
       bw.writeBytes(Buffer.from(key.outgoingViewKey, 'hex'))
@@ -71,9 +75,14 @@ export class DecryptNotesRequest extends WorkerMessage {
   static deserializePayload(jobId: number, buffer: Buffer): DecryptNotesRequest {
     const reader = bufio.read(buffer, true)
 
+    const flags = reader.readU8()
+    const options = {
+      decryptForSpender: !!(flags & (1 << 0)),
+      skipNoteValidation: !!(flags & (1 << 1)),
+    }
+
     const accountKeys = []
     const encryptedNotes = []
-    const options = { decryptForSpender: reader.readU8() !== 0 }
 
     const keysLength = reader.readU32()
     for (let i = 0; i < keysLength; i++) {
@@ -272,7 +281,9 @@ export class DecryptNotesTask extends WorkerTask {
     const decryptedNotes = []
 
     for (const { serializedNote, currentNoteIndex } of encryptedNotes) {
-      const note = new NoteEncrypted(serializedNote)
+      const note = new NoteEncrypted(serializedNote, {
+        skipValidation: options.skipNoteValidation,
+      })
 
       for (const { incomingViewKey, outgoingViewKey, viewKey } of accountKeys) {
         // Try decrypting the note as the owner

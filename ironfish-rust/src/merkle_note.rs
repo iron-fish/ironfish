@@ -2,7 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::{errors::IronfishError, keys::EphemeralKeyPair, serializing::read_point};
+use crate::{
+    errors::IronfishError,
+    keys::EphemeralKeyPair,
+    serializing::{read_point, read_point_unchecked},
+};
 
 /// Implement a merkle note to store all the values that need to go into a merkle tree.
 /// A tree containing these values can serve as a snapshot of the entire chain.
@@ -39,7 +43,7 @@ pub const NOTE_ENCRYPTION_MINER_KEYS: &[u8; NOTE_ENCRYPTION_KEY_SIZE] =
     b"Iron Fish note encryption miner key000000000000000000000000000000000000000000000";
 const SHARED_KEY_PERSONALIZATION: &[u8; 16] = b"Iron Fish Keyenc";
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct MerkleNote {
     /// Randomized value commitment. Sometimes referred to as
     /// `cv` in the literature. It's calculated by multiplying a value by a
@@ -145,11 +149,35 @@ impl MerkleNote {
         }
     }
 
-    /// Load a MerkleNote from the given stream
+    /// Load a MerkleNote from the given reader.
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
         let value_commitment = read_point(&mut reader)?;
         let note_commitment = read_scalar(&mut reader)?;
         let ephemeral_public_key = read_point(&mut reader)?;
+
+        let mut encrypted_note = [0; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE];
+        reader.read_exact(&mut encrypted_note[..])?;
+        let mut note_encryption_keys = [0; NOTE_ENCRYPTION_KEY_SIZE];
+        reader.read_exact(&mut note_encryption_keys[..])?;
+
+        Ok(MerkleNote {
+            value_commitment,
+            note_commitment,
+            ephemeral_public_key,
+            encrypted_note,
+            note_encryption_keys,
+        })
+    }
+
+    /// Load a MerkleNote from the given reader, skipping some expensive validity checks on the
+    /// input.
+    ///
+    /// This method is faster than [`read()`], but it requires trusted or pre-validated input.
+    /// Passing invalid input may result in erroneous calculations or security risks.
+    pub fn read_unchecked<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
+        let value_commitment = read_point_unchecked(&mut reader)?;
+        let note_commitment = read_scalar(&mut reader)?;
+        let ephemeral_public_key = read_point_unchecked(&mut reader)?;
 
         let mut encrypted_note = [0; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE];
         reader.read_exact(&mut encrypted_note[..])?;
@@ -531,5 +559,42 @@ mod test {
         assert!(merkle_note
             .decrypt_note_for_spender(spender_key.outgoing_view_key())
             .is_err());
+    }
+
+    #[test]
+    fn test_serialization_roundtrip() {
+        let spender_key = SaplingKey::generate_key();
+        let note = Note::new(
+            spender_key.public_address(),
+            42,
+            "",
+            NATIVE_ASSET,
+            spender_key.public_address(),
+        );
+        let diffie_hellman_keys = EphemeralKeyPair::new();
+
+        let value_commitment = ValueCommitment::new(note.value, note.asset_generator());
+
+        let merkle_note = MerkleNote::new(
+            spender_key.outgoing_view_key(),
+            &note,
+            &value_commitment,
+            &diffie_hellman_keys,
+        );
+
+        let mut serialization = Vec::new();
+
+        merkle_note
+            .write(&mut serialization)
+            .expect("serialization failed");
+
+        assert_eq!(
+            MerkleNote::read(&serialization[..]).expect("deserialization failed"),
+            merkle_note
+        );
+        assert_eq!(
+            MerkleNote::read_unchecked(&serialization[..]).expect("deserialization failed"),
+            merkle_note
+        );
     }
 }

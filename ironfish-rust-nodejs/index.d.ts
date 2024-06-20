@@ -117,7 +117,7 @@ export class Asset {
 }
 export type NativeNoteEncrypted = NoteEncrypted
 export class NoteEncrypted {
-  constructor(jsBytes: Buffer)
+  constructor(jsBytes: Buffer, skipValidation?: boolean | undefined | null)
   serialize(): Buffer
   equals(other: NoteEncrypted): boolean
   /**

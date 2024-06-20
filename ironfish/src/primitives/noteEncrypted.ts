@@ -22,9 +22,16 @@ export class NoteEncrypted {
 
   private noteEncrypted: NativeNoteEncrypted | null = null
   private referenceCount = 0
+  /**
+   * Used to record whether the note has already been previously validated, and
+   * thus does not need to be checked anymore after parsing. Used to speed up
+   * construction of `NativeNoteEncrypted` in `takeReference`.
+   */
+  private skipValidation: boolean
 
-  constructor(noteEncryptedSerialized: Buffer) {
+  constructor(noteEncryptedSerialized: Buffer, options?: { skipValidation?: boolean }) {
     this.noteEncryptedSerialized = noteEncryptedSerialized
+    this.skipValidation = options?.skipValidation ?? false
 
     const reader = bufio.read(noteEncryptedSerialized, true)
 
@@ -57,7 +64,11 @@ export class NoteEncrypted {
   takeReference(): NativeNoteEncrypted {
     this.referenceCount++
     if (this.noteEncrypted === null) {
-      this.noteEncrypted = new NativeNoteEncrypted(this.noteEncryptedSerialized)
+      this.noteEncrypted = new NativeNoteEncrypted(
+        this.noteEncryptedSerialized,
+        this.skipValidation,
+      )
+      this.skipValidation = true
     }
     return this.noteEncrypted
   }

@@ -37,9 +37,16 @@ pub struct NativeNoteEncrypted {
 #[napi]
 impl NativeNoteEncrypted {
     #[napi(constructor)]
-    pub fn new(js_bytes: JsBuffer) -> Result<Self> {
+    pub fn new(js_bytes: JsBuffer, skip_validation: Option<bool>) -> Result<Self> {
         let bytes = js_bytes.into_value()?;
-        let note = MerkleNote::read(bytes.as_ref()).map_err(to_napi_err)?;
+        let skip_validation = skip_validation.unwrap_or(false);
+
+        let note = if !skip_validation {
+            MerkleNote::read(bytes.as_ref())
+        } else {
+            MerkleNote::read_unchecked(bytes.as_ref())
+        }
+        .map_err(to_napi_err)?;
 
         Ok(NativeNoteEncrypted { note })
     }

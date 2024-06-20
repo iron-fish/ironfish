@@ -82,6 +82,7 @@ export class WalletScanner {
 
       const decryptor = new BackgroundNoteDecryptor(this.workerPool, this.config, {
         decryptForSpender: false,
+        skipNoteValidation: true,
       })
 
       const chainProcessor = this.getChainProcessor(start)

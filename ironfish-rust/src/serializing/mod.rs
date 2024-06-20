@@ -34,6 +34,16 @@ pub(crate) fn read_point<G: GroupEncoding, R: io::Read>(mut reader: R) -> Result
         .ok_or_else(|| IronfishError::new(IronfishErrorKind::InvalidData))
 }
 
+pub(crate) fn read_point_unchecked<G: GroupEncoding, R: io::Read>(
+    mut reader: R,
+) -> Result<G, IronfishError> {
+    let mut point_repr = G::Repr::default();
+    reader.read_exact(point_repr.as_mut())?;
+
+    Option::from(G::from_bytes_unchecked(&point_repr))
+        .ok_or_else(|| IronfishError::new(IronfishErrorKind::InvalidData))
+}
+
 /// Output the bytes as a hexadecimal String
 pub fn bytes_to_hex(bytes: &[u8]) -> String {
     let mut hex: Vec<u8> = vec![0; bytes.len() * 2];
