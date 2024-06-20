@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import type { Blockchain } from '../blockchain'
 import {
   Asset,
   generateKey,
@@ -120,6 +121,7 @@ export class Wallet {
     consensus,
     networkId,
     nodeClient,
+    chain,
   }: {
     config: Config
     database: WalletDB
@@ -129,6 +131,7 @@ export class Wallet {
     consensus: Consensus
     networkId: number
     nodeClient: RpcClient | null
+    chain: Blockchain | null
   }) {
     this.config = config
     this.logger = logger.withTag('accounts')
@@ -144,9 +147,9 @@ export class Wallet {
     this.scanner = new WalletScanner({
       wallet: this,
       logger: this.logger,
+      config: this.config,
       nodeClient: this.nodeClient,
-      maxQueueSize: this.config.get('walletSyncingMaxQueueSize'),
-      config: config,
+      chain: chain,
     })
   }
 
