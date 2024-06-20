@@ -14,7 +14,7 @@ import {
 import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { HexFlag, IronFlag, RemoteFlags, ValueFlag } from '../../flags'
-import { confirmOperation } from '../../utils'
+import { confirmOrQuit } from '../../ui'
 import { selectAsset } from '../../utils/asset'
 import { promptCurrency } from '../../utils/currency'
 import { promptExpiration } from '../../utils/expiration'
@@ -286,10 +286,7 @@ export class Send extends IronfishCommand {
       )
     }
 
-    await confirmOperation({
-      confirm: flags.confirm,
-      cancelledMessage: 'Transaction aborted.',
-    })
+    await confirmOrQuit('', flags.confirm)
 
     transactionTimer.start()
 

@@ -13,7 +13,7 @@ import {
   VerboseFlag,
   VerboseFlagKey,
 } from '../flags'
-import { confirmOperation } from '../utils'
+import { confirmOrQuit } from '../ui'
 
 export default class Reset extends IronfishCommand {
   static description = 'Reset the node to its initial state'
@@ -54,18 +54,14 @@ export default class Reset extends IronfishCommand {
     }
 
     const message =
-      '\nYou are about to destroy your local copy of the blockchain. The following directories and files will be deleted:\n' +
+      'You are about to destroy your local copy of the blockchain. The following directories and files will be deleted:\n' +
       `\nBlockchain: ${chainDatabasePath}` +
       `\nHosts: ${hostFilePath}` +
       '\nYour wallet, accounts, and keys will NOT be deleted.' +
       networkIdMessage +
-      `\n\nAre you sure? (Y)es / (N)o`
+      `\n\nAre you sure?`
 
-    await confirmOperation({
-      confirm: flags.confirm,
-      confirmMessage: message,
-      cancelledMessage: 'Reset aborted.',
-    })
+    await confirmOrQuit(message, flags.confirm)
 
     ux.action.start('Deleting databases...')
 

@@ -17,7 +17,7 @@ import {
 import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { IronFlag, RemoteFlags, ValueFlag } from '../../flags'
-import { confirmOperation } from '../../utils'
+import { confirmOrQuit, confirmPrompt } from '../../ui'
 import { selectAsset } from '../../utils/asset'
 import { promptCurrency } from '../../utils/currency'
 import { promptExpiration } from '../../utils/expiration'
@@ -147,7 +147,7 @@ export class Mint extends IronfishCommand {
     // name is provided
     let isMintingNewAsset = Boolean(name || metadata)
     if (!assetId && !metadata && !name) {
-      isMintingNewAsset = await ux.confirm('Do you want to create a new asset (Y/N)?')
+      isMintingNewAsset = await confirmPrompt('Do you want to create a new asset?')
     }
 
     if (isMintingNewAsset) {
@@ -388,12 +388,8 @@ export class Mint extends IronfishCommand {
       )
     }
 
-    confirmMessage.push('Do you confirm (Y/N)?')
+    confirmMessage.push('Do you confirm?')
 
-    await confirmOperation({
-      confirmMessage: confirmMessage.join('\n'),
-      cancelledMessage: 'Mint aborted.',
-      confirm,
-    })
+    await confirmOrQuit(confirmMessage.join('\n'), confirm)
   }
 }

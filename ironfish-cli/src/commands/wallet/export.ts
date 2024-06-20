@@ -2,12 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { AccountFormat, ErrorUtils, LanguageUtils } from '@ironfish/sdk'
-import { Args, Flags, ux } from '@oclif/core'
+import { Args, Flags } from '@oclif/core'
 import fs from 'fs'
 import jsonColorizer from 'json-colorizer'
 import path from 'path'
 import { IronfishCommand } from '../../command'
 import { ColorFlag, ColorFlagKey, EnumLanguageKeyFlag, RemoteFlags } from '../../flags'
+import { confirmOrQuit } from '../../ui'
 
 export class ExportCommand extends IronfishCommand {
   static description = `Export an account`
@@ -88,15 +89,10 @@ export class ExportCommand extends IronfishCommand {
         }
 
         if (fs.existsSync(resolved)) {
-          this.log(`There is already an account backup at ${exportPath}`)
-
-          const confirmed = await ux.confirm(
-            `\nOverwrite the account backup with new file?\nAre you sure? (Y)es / (N)o`,
+          await confirmOrQuit(
+            `There is already an account backup at ${exportPath}` +
+              `\n\nOverwrite the account backup with new file?`,
           )
-
-          if (!confirmed) {
-            this.exit(1)
-          }
         }
 
         await fs.promises.writeFile(resolved, output)

@@ -13,7 +13,7 @@ import {
 import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { IronFlag, RemoteFlags, ValueFlag } from '../../flags'
-import { confirmOperation } from '../../utils'
+import { confirmOrQuit } from '../../ui'
 import { selectAsset } from '../../utils/asset'
 import { promptCurrency } from '../../utils/currency'
 import { promptExpiration } from '../../utils/expiration'
@@ -288,10 +288,9 @@ export class Burn extends IronfishCommand {
     const renderedAmount = CurrencyUtils.render(amount, true, asset.id, asset.verification)
     const renderedFee = CurrencyUtils.render(fee, true)
 
-    await confirmOperation({
+    await confirmOrQuit(
+      `You are about to burn ${renderedAmount} plus a transaction fee of ${renderedFee} with the account ${account}\nDo you confirm?`,
       confirm,
-      confirmMessage: `You are about to burn: ${renderedAmount} plus a transaction fee of ${renderedFee} with the account ${account}\nDo you confirm(Y/N)?`,
-      cancelledMessage: 'Burn aborted.',
-    })
+    )
   }
 }

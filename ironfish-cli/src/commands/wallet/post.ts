@@ -1,10 +1,11 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { RawTransaction, RawTransactionSerde, RpcClient, Transaction } from '@ironfish/sdk'
+import { RawTransactionSerde, RpcClient, Transaction } from '@ironfish/sdk'
 import { Args, Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
+import { confirmOrQuit } from '../../ui'
 import { longPrompt } from '../../utils/input'
 import { renderRawTransactionDetails } from '../../utils/transaction'
 
@@ -58,13 +59,21 @@ export class PostCommand extends IronfishCommand {
 
     const client = await this.sdk.connectRpc()
 
-    if (!flags.confirm) {
-      const confirm = await this.confirm(client, raw)
-
-      if (!confirm) {
-        this.exit(0)
-      }
+    const senderAddress = raw.sender()
+    if (!senderAddress) {
+      this.error('Unable to determine sender for raw transaction')
     }
+
+    const account = await this.getAccountName(client, senderAddress)
+    if (!account) {
+      this.error(
+        `Wallet does not contain sender account with public address ${senderAddress}. Unable to post transaction.`,
+      )
+    }
+
+    await renderRawTransactionDetails(client, raw, account, this.logger)
+
+    await confirmOrQuit('Do you want to post this?', flags.confirm)
 
     ux.action.start(`Posting the transaction`)
 
@@ -93,26 +102,6 @@ export class PostCommand extends IronfishCommand {
     if (!flags.broadcast) {
       this.log(`\nRun "ironfish wallet:transaction:add" to add the transaction to your wallet`)
     }
-  }
-
-  async confirm(client: Pick<RpcClient, 'wallet'>, raw: RawTransaction): Promise<boolean> {
-    const senderAddress = raw.sender()
-
-    if (!senderAddress) {
-      this.error('Unable to determine sender for raw transaction')
-    }
-
-    const account = await this.getAccountName(client, senderAddress)
-
-    if (!account) {
-      this.error(
-        `Wallet does not contain sender account with public address ${senderAddress}. Unable to post transaction.`,
-      )
-    }
-
-    await renderRawTransactionDetails(client, raw, account, this.logger)
-
-    return ux.confirm('Do you want to post this (Y/N)?')
   }
 
   async getAccountName(

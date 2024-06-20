@@ -4,7 +4,6 @@
 
 export * from './asset'
 export * from './chainport'
-export * from './confirm'
 export * from './editor'
 export * from './platform'
 export * from './rpc'
