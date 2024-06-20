@@ -36,7 +36,6 @@ pub enum IronfishErrorKind {
     InvalidBalance,
     InvalidCommitment,
     InvalidData,
-    InvalidDataType,
     InvalidDecryptionKey,
     InvalidDiversificationPoint,
     InvalidEntropy,
