@@ -24,7 +24,7 @@ import { Side } from '../merkletree/merkletree'
 import { CurrencyUtils } from '../utils/currency'
 import { AssetBalances } from '../wallet/assetBalances'
 import { BurnDescription } from './burnDescription'
-import { DataDescription } from './dataDescription'
+import { EvmDescription } from './evmDescription'
 import { Note } from './note'
 import { NoteEncrypted, NoteEncryptedHash, SerializedNoteEncryptedHash } from './noteEncrypted'
 import { SPEND_SERIALIZED_SIZE_IN_BYTE } from './spend'
@@ -49,7 +49,7 @@ export class RawTransaction {
   mints: MintData[] = []
   burns: BurnDescription[] = []
   outputs: { note: Note }[] = []
-  data: DataDescription[] = []
+  evm: EvmDescription | null = null
 
   spends: {
     note: Note
@@ -72,7 +72,6 @@ export class RawTransaction {
     size += 8 // notes length
     size += 8 // mints length
     size += 8 // burns length
-    size += 8 // data length
     size += TRANSACTION_FEE_LENGTH // fee
     size += TRANSACTION_EXPIRATION_LENGTH // expiration
     size += TRANSACTION_PUBLIC_KEY_RANDOMNESS_LENGTH // public key randomness
@@ -95,10 +94,12 @@ export class RawTransaction {
       })
       .reduce((size, mintSize) => size + mintSize, 0)
     size += this.burns.length * (ASSET_ID_LENGTH + 8)
+    if (this.version >= TransactionVersion.V3) {
+      size += 1
+      // TODO: add size for evm data
+    }
     size += TRANSACTION_SIGNATURE_LENGTH // signature
-    size += this.data
-      .map((data) => data.data.length)
-      .reduce((size, dataSize) => size + dataSize, 0)
+
     // Each asset might have a change note, which would need to be accounted for
     const assetTotals = new AssetBalances()
     for (const mint of this.mints) {
@@ -159,9 +160,16 @@ export class RawTransaction {
 
       builder.burn(burn.assetId, burn.value)
     }
-
-    for (const data of this.data) {
-      builder.data(data.dataType, data.data)
+    if (this.evm !== null) {
+      builder.evm(
+        this.evm?.nonce,
+        this.evm?.to,
+        this.evm?.value,
+        this.evm?.data,
+        this.evm?.v,
+        this.evm?.r,
+        this.evm?.s,
+      )
     }
 
     if (this.expiration !== null) {
@@ -208,6 +216,7 @@ export class RawTransaction {
   }
 }
 
+// TODO update serde to include evm data
 export class RawTransactionSerde {
   static serialize(raw: RawTransaction): Buffer {
     const bw = bufio.write(this.getSize(raw))

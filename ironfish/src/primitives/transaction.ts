@@ -16,7 +16,7 @@ import {
 import { blake3 } from '@napi-rs/blake-hash'
 import bufio from 'bufio'
 import { BurnDescription } from './burnDescription'
-import { DataDescription } from './dataDescription'
+import { EvmDescription } from './evmDescription'
 import { MintDescription } from './mintDescription'
 import { NoteEncrypted } from './noteEncrypted'
 import { Spend } from './spend'
@@ -53,7 +53,7 @@ export class Transaction {
   public readonly spends: Spend[]
   public readonly mints: MintDescription[]
   public readonly burns: BurnDescription[]
-  public readonly data: DataDescription[]
+  public readonly evm: EvmDescription | null = null
 
   private readonly _version: TransactionVersion
   private readonly _fee: bigint
@@ -78,10 +78,6 @@ export class Transaction {
     const _notesLength = reader.readU64() // 8
     const _mintsLength = reader.readU64() // 8
     const _burnsLength = reader.readU64() // 8
-    let _dataLength = 0
-    if (this._version >= TransactionVersion.V3) {
-      _dataLength = reader.readU64() // 8
-    }
     this._fee = reader.readBigI64() // 8
     this._expiration = reader.readU32() // 4
     // randomized public key of sender
@@ -151,14 +147,27 @@ export class Transaction {
     })
 
     if (this._version >= TransactionVersion.V3) {
-      this.data = Array.from({ length: _dataLength }, () => {
-        const dataType = reader.readU8()
+      const evmPresent = reader.readBytes(1)
+      if (evmPresent[0] === 1) {
+        const nonce = reader.readBigU64()
+
+        const toPresent = reader.readBytes(1)
+        let to = Buffer.alloc(0)
+
+        if (toPresent[0] === 1) {
+          to = reader.readBytes(20)
+        }
+        const value = reader.readBigU64()
+
         const dataLength = reader.readU32()
-        const data = reader.readBytes(dataLength, true)
-        return { dataType, data }
-      })
-    } else {
-      this.data = []
+        const data = reader.readBytes(dataLength)
+
+        const v = reader.readU8()
+
+        const r = reader.readBytes(32)
+        const s = reader.readBytes(32)
+        this.evm = { nonce, to, value, data, v, r, s }
+      }
     }
 
     this._signature = reader.readBytes(TRANSACTION_SIGNATURE_LENGTH, true)

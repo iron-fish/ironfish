@@ -24,7 +24,6 @@ import { Mutex } from '../mutex'
 import { BlockHeader } from '../primitives'
 import { GENESIS_BLOCK_PREVIOUS, GENESIS_BLOCK_SEQUENCE } from '../primitives/block'
 import { BurnDescription } from '../primitives/burnDescription'
-import { DataDescription } from '../primitives/dataDescription'
 import { MintDescription } from '../primitives/mintDescription'
 import { Note } from '../primitives/note'
 import { NoteEncrypted } from '../primitives/noteEncrypted'
@@ -782,7 +781,6 @@ export class Wallet {
     outputs?: TransactionOutput[]
     mints?: MintData[]
     burns?: BurnDescription[]
-    data?: DataDescription[]
     fee?: bigint
     feeRate?: bigint
     expiration?: number
@@ -839,10 +837,6 @@ export class Wallet {
 
       if (options.burns) {
         raw.burns = options.burns
-      }
-
-      if (options.data) {
-        raw.data = options.data
       }
 
       if (options.outputs) {

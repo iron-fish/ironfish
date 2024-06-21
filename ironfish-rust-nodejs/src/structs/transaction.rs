@@ -15,6 +15,7 @@ use ironfish::frost_utils::signing_package::SigningPackage;
 use ironfish::serializing::bytes_to_hex;
 use ironfish::serializing::fr::FrSerializable;
 use ironfish::serializing::hex_to_vec_bytes;
+use ironfish::transaction::evm::EvmDescription;
 use ironfish::transaction::unsigned::UnsignedTransaction;
 use ironfish::transaction::{
     batch_verify_transactions, TransactionVersion, TRANSACTION_EXPIRATION_SIZE,
@@ -27,6 +28,7 @@ use ironfish::{
 use ironfish_frost::keys::PublicKeyPackage;
 use ironfish_frost::signature_share::SignatureShare;
 use ironfish_frost::signing_commitment::SigningCommitment;
+use napi::JsNumber;
 use napi::{
     bindgen_prelude::{i64n, BigInt, Buffer, Env, Object, Result, Undefined},
     JsBuffer,
@@ -254,11 +256,46 @@ impl NativeTransaction {
     }
 
     #[napi]
-    pub fn data(&mut self, data_type: u8,data: JsBuffer) -> Result<()> {
-        let data_type = data_type.try_into().map_err(to_napi_err)?;
-        let data = data.into_value()?;
-        self.transaction.add_data(data_type, data.as_ref().to_vec()).map_err(to_napi_err)?;
+    pub fn evm(&mut self, nonce: BigInt, to: JsBuffer, value: BigInt, data: JsBuffer, v: u8, r: JsBuffer, s: JsBuffer) -> Result<()> {
+        // if to length is 0, return none, else set the address
+        let to_vec = to.into_value()?.to_vec();
+        let to = if to_vec.len() == 0 {
+            None
+        } else {
+            // make sure vec is exactly 20 bytes, read the 20 bytes into array
+            if to_vec.len() != 20 {
+                return Err(to_napi_err(&format!("EVM to address must be 20 bytes, got {} bytes", to_vec.len())));            }
+            let mut to_bytes = [0u8; 20];
+            to_bytes.copy_from_slice(&to_vec);
+            Some(to_bytes)
+        };
 
+        // read r and s into arrays
+        let r_vec = r.into_value()?.to_vec();
+        let s_vec = s.into_value()?.to_vec();
+        if r_vec.len() != 32 {
+            return Err(to_napi_err("EVM r must be 32 bytes"));
+        }
+        if s_vec.len() != 32 {
+            return Err(to_napi_err("EVM s must be 32 bytes"));
+        }
+        let mut r = [0u8; 32];
+        r.copy_from_slice(&r_vec);
+        let mut s = [0u8; 32];
+        s.copy_from_slice(&s_vec);
+    
+        let evm_description = EvmDescription::new(
+            nonce.get_u64().1,
+            to,
+            value.get_u64().1,
+            data.into_value()?.to_vec(),
+            v,
+            r,
+            s,
+        );
+        // Assuming `add_evm_data` is a method that takes `EvmDescription`
+        self.transaction.add_evm(evm_description).map_err(to_napi_err)?;
+    
         Ok(())
     }
 

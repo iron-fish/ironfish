@@ -210,7 +210,7 @@ fn test_transaction_simple() {
 
 
 #[test]
-fn test_transaction_data() {
+fn test_evm_transaction() {
     let spender_key = SaplingKey::generate_key();
     let receiver_key = SaplingKey::generate_key();
     let sender_key = SaplingKey::generate_key();

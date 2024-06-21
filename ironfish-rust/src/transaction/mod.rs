@@ -611,7 +611,6 @@ impl Transaction {
         let num_outputs = reader.read_u64::<LittleEndian>()?;
         let num_mints = reader.read_u64::<LittleEndian>()?;
         let num_burns = reader.read_u64::<LittleEndian>()?;
-        let num_data = reader.read_u64::<LittleEndian>()?;
         let fee = reader.read_i64::<LittleEndian>()?;
         let expiration = reader.read_u32::<LittleEndian>()?;
         let randomized_public_key = redjubjub::PublicKey::read(&mut reader)?;

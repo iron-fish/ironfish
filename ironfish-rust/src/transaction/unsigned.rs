@@ -222,6 +222,10 @@ impl UnsignedTransaction {
         Ok(hash_result)
     }
 
+    pub fn has_evm(&self) -> bool {
+        self.version.has_evm()
+    }
+
     pub fn aggregate_signature_shares(
         &mut self,
         public_key_package: &PublicKeyPackage,

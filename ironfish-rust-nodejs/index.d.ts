@@ -193,7 +193,7 @@ export class Transaction {
   mint(asset: Asset, value: bigint, transferOwnershipTo?: string | undefined | null): void
   /** Burn some supply of a given asset and value as part of this transaction. */
   burn(assetIdJsBytes: Buffer, value: bigint): void
-  data(dataType: number, data: Buffer): void
+  evm(nonce: bigint, to: Buffer, value: bigint, data: Buffer, v: number, r: Buffer, s: Buffer): void
   /**
    * Special case for posting a miners fee transaction. Miner fee transactions
    * are unique in that they generate currency. They do not have any spends
