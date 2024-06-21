@@ -8,6 +8,7 @@
 import { v4 as uuid } from 'uuid'
 import { useMinerBlockFixture } from '../../../testUtilities/fixtures'
 import { createRouteTest } from '../../../testUtilities/routeTest'
+import { toAccountImport } from '../../../wallet/exporter'
 
 describe('Route wallet/getAccountsStatus', () => {
   const routeTest = createRouteTest()
@@ -45,11 +46,8 @@ describe('Route wallet/getAccountsStatus', () => {
   it('should return true for view-only accounts', async () => {
     let account = await routeTest.wallet.createAccount('temp')
     await routeTest.wallet.removeAccountByName('temp')
-    account = await routeTest.wallet.importAccount({
-      ...account,
-      name: 'viewonly',
-      spendingKey: null,
-    })
+    account.name = 'viewonly'
+    account = await routeTest.wallet.importAccount(toAccountImport(account, { viewOnly: true }))
 
     const response = await routeTest.client.wallet.getAccountsStatus()
 

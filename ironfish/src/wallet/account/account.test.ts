@@ -389,7 +389,7 @@ describe('Accounts', () => {
 
       const accountA = await useAccountFixture(nodeA.wallet, 'accountA')
       const accountB = await nodeB.wallet.importAccount(
-        toAccountImport(accountA, false, nodeB.network.id),
+        toAccountImport(accountA, { networkId: nodeB.network.id }),
       )
 
       // Ensure both nodes for the same account have the same note
@@ -628,7 +628,7 @@ describe('Accounts', () => {
       // Create a fresh node and import the account so that the transactions
       // are synced to the wallet through the block and not through transaction creation
       const freshAccountA = await freshNode.wallet.importAccount(
-        toAccountImport(accountA, false, freshNode.network.id),
+        toAccountImport(accountA, { networkId: freshNode.network.id }),
       )
       for await (const header of node.chain.iterateTo(node.chain.genesis)) {
         if (header.sequence === 1) {
@@ -922,7 +922,7 @@ describe('Accounts', () => {
 
       const accountA = await useAccountFixture(nodeA.wallet, 'accountA')
       const accountB = await nodeB.wallet.importAccount(
-        toAccountImport(accountA, false, nodeB.network.id),
+        toAccountImport(accountA, { networkId: nodeB.network.id }),
       )
 
       // Ensure both nodes for the same account have the same note
@@ -990,7 +990,7 @@ describe('Accounts', () => {
 
       // import account onto nodeB to simulate connecting transaction not seen as pending
       const accountAnodeB = await nodeB.wallet.importAccount(
-        toAccountImport(accountAnodeA, false, nodeB.network.id),
+        toAccountImport(accountAnodeA, { networkId: nodeB.network.id }),
       )
 
       const block2 = await useMinerBlockFixture(
@@ -2147,7 +2147,7 @@ describe('Accounts', () => {
 
       const accountA = await useAccountFixture(nodeA.wallet, 'accountA')
       const accountB = await nodeB.wallet.importAccount(
-        toAccountImport(accountA, false, nodeB.network.id),
+        toAccountImport(accountA, { networkId: nodeB.network.id }),
       )
 
       // Ensure both nodes for the same account have the same note

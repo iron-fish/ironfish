@@ -17,6 +17,7 @@ import {
 } from '../testUtilities'
 import { acceptsAllTarget } from '../testUtilities/helpers/blockchain'
 import { AssertMultisigSigner } from '../wallet'
+import { toAccountImport } from './exporter'
 
 describe('Wallet', () => {
   const nodeTest = createNodeTest()
@@ -560,7 +561,9 @@ describe('Wallet', () => {
     const accountA = await useAccountFixture(nodeA.wallet, 'testA', { createdAt: null })
     const accountB = await useAccountFixture(nodeB.wallet, 'testB', { createdAt: null })
 
-    const accountBNodeA = await nodeA.wallet.importAccount(accountB)
+    const accountBNodeA = await nodeA.wallet.importAccount(
+      toAccountImport(accountB, { networkId: nodeA.network.id }),
+    )
 
     // Create and add A1
     const blockA1 = await useMinerBlockFixture(nodeA.chain, 2, accountA, nodeA.wallet)
@@ -715,8 +718,8 @@ describe('Wallet', () => {
 
     const accountA = await useAccountFixture(nodeA.wallet, 'testA', { createdAt: null })
     const accountB = await useAccountFixture(nodeB.wallet, 'testB', { createdAt: null })
-    const accountBNodeA = await nodeA.wallet.importAccount(accountB)
-    const accountANodeB = await nodeB.wallet.importAccount(accountA)
+    const accountBNodeA = await nodeA.wallet.importAccount(toAccountImport(accountB))
+    const accountANodeB = await nodeB.wallet.importAccount(toAccountImport(accountA))
 
     // Create and add Block 1
     const block1 = await useMinerBlockFixture(nodeA.chain, 3, accountA)
@@ -825,8 +828,8 @@ describe('Wallet', () => {
 
     const accountA = await useAccountFixture(nodeA.wallet, 'testA', { createdAt: null })
     const accountB = await useAccountFixture(nodeB.wallet, 'testB', { createdAt: null })
-    const accountBNodeA = await nodeA.wallet.importAccount(accountB)
-    const accountANodeB = await nodeB.wallet.importAccount(accountA)
+    const accountBNodeA = await nodeA.wallet.importAccount(toAccountImport(accountB))
+    const accountANodeB = await nodeB.wallet.importAccount(toAccountImport(accountA))
 
     // Create and add Block A1
     const blockA1 = await useMinerBlockFixture(nodeA.chain, 2, accountA, nodeA.wallet)
