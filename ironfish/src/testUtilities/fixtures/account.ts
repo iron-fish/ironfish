@@ -10,7 +10,7 @@ import { FixtureGenerate, useFixture } from './fixture'
 export function useAccountFixture(
   wallet: Wallet,
   generate: FixtureGenerate<SpendingAccount> | string = 'test',
-  options?: { createdAt?: { sequence: number } | null; setDefault?: boolean },
+  options?: { createdAt?: number | null; setDefault?: boolean },
 ): Promise<SpendingAccount> {
   if (typeof generate === 'string') {
     const name = generate
@@ -42,13 +42,13 @@ export function useAccountFixture(
       value: AccountValue
       head: HeadValue | null
     }): Promise<SpendingAccount> => {
-      const createdAt = value.createdAt
-        ? { ...value.createdAt, networkId: wallet.networkId }
-        : null
-      const account = await wallet.importAccount({
-        ...value,
-        createdAt,
-      })
+      const account = await wallet.importAccount(
+        {
+          ...value,
+          createdAt: null,
+        },
+        { createdAt: value.createdAt ? value.createdAt : undefined },
+      )
       await account.updateHead(head)
       AssertSpending(account)
       return account
@@ -60,7 +60,7 @@ export async function useAccountAndAddFundsFixture(
   wallet: Wallet,
   chain: Blockchain,
   generate: FixtureGenerate<SpendingAccount> | string = 'test',
-  options?: { createdAt?: { sequence: number } | null; setDefault?: boolean },
+  options?: { createdAt?: number | null; setDefault?: boolean },
 ): Promise<SpendingAccount> {
   const account = await useAccountFixture(wallet, generate, options)
   const block = await useMinerBlockFixture(chain, undefined, account)

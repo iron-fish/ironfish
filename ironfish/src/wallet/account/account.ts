@@ -69,7 +69,7 @@ export class Account {
   readonly outgoingViewKey: string
   readonly version: number
   publicAddress: string
-  createdAt: { sequence: number } | null
+  createdAt: number | null
   scanningEnabled: boolean
   readonly prefix: Buffer
   readonly prefixRange: DatabaseKeyRange
@@ -1243,10 +1243,7 @@ export class Account {
     await this.walletDb.saveHead(this, head, tx)
   }
 
-  async updateCreatedAt(
-    createdAt: { sequence: number } | null,
-    tx?: IDatabaseTransaction,
-  ): Promise<void> {
+  async updateCreatedAt(createdAt: number | null, tx?: IDatabaseTransaction): Promise<void> {
     this.createdAt = createdAt
 
     await this.walletDb.setAccount(this, tx)

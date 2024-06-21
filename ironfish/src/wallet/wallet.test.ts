@@ -299,7 +299,9 @@ describe('Wallet', () => {
       const { node: nodeB } = await nodeTest.createSetup()
       const toImport = await useAccountFixture(nodeB.wallet, 'accountB')
 
-      const accountB = await node.wallet.importAccount(toImport)
+      const accountB = await node.wallet.importAccount(
+        toAccountImport(toImport, { networkId: node.network.id }),
+      )
 
       // Confirm pre-rescan state
       await expect(accountA.getHead()).resolves.toEqual({
@@ -308,7 +310,7 @@ describe('Wallet', () => {
       })
       Assert.isNotNull(accountB.createdAt)
       await expect(accountB.getHead()).resolves.toMatchObject({
-        sequence: accountB.createdAt.sequence,
+        sequence: accountB.createdAt,
       })
 
       // Add second block
@@ -410,7 +412,9 @@ describe('Wallet', () => {
       const { node: nodeB } = await nodeTest.createSetup()
       const toImport = await useAccountFixture(nodeB.wallet, 'accountB')
 
-      const accountB = await node.wallet.importAccount(toImport)
+      const accountB = await node.wallet.importAccount(
+        toAccountImport(toImport, { networkId: nodeB.network.id }),
+      )
 
       // Confirm pre-rescan state
       await expect(accountA.getHead()).resolves.toEqual({
@@ -419,7 +423,7 @@ describe('Wallet', () => {
       })
       Assert.isNotNull(accountB.createdAt)
       await expect(accountB.getHead()).resolves.toMatchObject({
-        sequence: accountB.createdAt.sequence,
+        sequence: accountB.createdAt,
       })
 
       // Add second block
@@ -653,7 +657,7 @@ describe('Wallet', () => {
 
       expect(node.wallet.accountExists(account.name)).toEqual(true)
 
-      await expect(node.wallet.importAccount(account)).rejects.toThrow(
+      await expect(node.wallet.importAccount(toAccountImport(account))).rejects.toThrow(
         'Account already exists with the name',
       )
     })
@@ -668,7 +672,7 @@ describe('Wallet', () => {
       const clone = { ...account }
       clone.name = 'Different name'
 
-      await expect(node.wallet.importAccount(clone)).rejects.toThrow(
+      await expect(node.wallet.importAccount(toAccountImport(clone))).rejects.toThrow(
         'Account already exists with provided spending key',
       )
     })
@@ -736,13 +740,13 @@ describe('Wallet', () => {
       // create an account so that createdAt will be non-null
       const accountB = await useAccountFixture(nodeA.wallet, 'accountB')
 
-      expect(accountB.createdAt?.sequence).toEqual(3)
+      expect(accountB.createdAt).toEqual(3)
 
       const accountBImport = await nodeB.wallet.importAccount(
-        toAccountImport(accountB, false, nodeB.wallet.networkId),
+        toAccountImport(accountB, { networkId: nodeB.wallet.networkId }),
       )
 
-      expect(accountBImport.createdAt?.sequence).toEqual(3)
+      expect(accountBImport.createdAt).toEqual(3)
     })
 
     it('should set account head to createdAt block if networkId matches', async () => {
@@ -766,10 +770,10 @@ describe('Wallet', () => {
       const accountB = await useAccountFixture(nodeA.wallet, 'accountB')
 
       const accountBImport = await nodeB.wallet.importAccount(
-        toAccountImport(accountB, false, nodeB.wallet.networkId),
+        toAccountImport(accountB, { networkId: nodeB.wallet.networkId }),
       )
 
-      expect(accountBImport.createdAt?.sequence).toEqual(3)
+      expect(accountBImport.createdAt).toEqual(3)
 
       const accountBImportHead = await accountBImport.getHead()
 
@@ -794,10 +798,10 @@ describe('Wallet', () => {
       // create an account on nodeA so that createdAt will be non-null
       const accountB = await useAccountFixture(nodeA.wallet, 'accountB')
 
-      expect(accountB.createdAt?.sequence).toEqual(3)
+      expect(accountB.createdAt).toEqual(3)
 
       const accountBImport = await nodeB.wallet.importAccount(
-        toAccountImport(accountB, false, 42),
+        toAccountImport(accountB, { networkId: 42 }),
       )
 
       expect(accountBImport.createdAt).toBeDefined()
@@ -944,7 +948,7 @@ describe('Wallet', () => {
 
       const account = await node.wallet.createAccount('test')
 
-      expect(account.createdAt?.sequence).toEqual(block2.header.sequence)
+      expect(account.createdAt).toEqual(block2.header.sequence)
     })
 
     it('should set account head to the chain head', async () => {
@@ -1965,7 +1969,9 @@ describe('Wallet', () => {
       const accountB = await useAccountFixture(node.wallet, 'b')
 
       // import accountB to second node not used to create transaction
-      const accountAImport = await node2.wallet.importAccount(accountA)
+      const accountAImport = await node2.wallet.importAccount(
+        toAccountImport(accountA, { networkId: node.network.id }),
+      )
 
       const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await expect(node.chain).toAddBlock(blockA1)
@@ -2011,7 +2017,7 @@ describe('Wallet', () => {
       await node.chain.addBlock(block2)
       await node.wallet.scan()
 
-      expect(accountA.createdAt?.sequence).toEqual(block2.header.sequence)
+      expect(accountA.createdAt).toEqual(block2.header.sequence)
     })
 
     it('should not set account.createdAt if the account has no transaction on the block', async () => {
@@ -2041,14 +2047,14 @@ describe('Wallet', () => {
       await node.chain.addBlock(block2)
       await node.wallet.scan()
 
-      expect(accountA.createdAt?.sequence).toEqual(block2.header.sequence)
+      expect(accountA.createdAt).toEqual(block2.header.sequence)
 
       const block3 = await useMinerBlockFixture(node.chain, 3, accountA)
       await node.chain.addBlock(block3)
       await node.wallet.scan()
 
       // see that createdAt is unchanged
-      expect(accountA.createdAt?.sequence).toEqual(block2.header.sequence)
+      expect(accountA.createdAt).toEqual(block2.header.sequence)
     })
 
     it('should skip decryption for accounts with createdAt later than the block header', async () => {
@@ -2066,7 +2072,7 @@ describe('Wallet', () => {
       // create second account with createdAt at block 3
       const accountB = await useAccountFixture(nodeA.wallet, 'b')
 
-      expect(accountB.createdAt?.sequence).toEqual(block3.header.sequence)
+      expect(accountB.createdAt).toEqual(block3.header.sequence)
 
       // reset wallet
       await nodeA.wallet.reset()
@@ -2578,7 +2584,7 @@ describe('Wallet', () => {
       // create second account so that createdAt will be non-null
       let accountB: Account | null = await useAccountFixture(node.wallet, 'b')
 
-      expect(accountB.createdAt?.sequence).toEqual(block2.header.sequence)
+      expect(accountB.createdAt).toEqual(block2.header.sequence)
 
       await node.wallet.resetAccount(accountB, { resetCreatedAt: false })
 
@@ -2587,7 +2593,7 @@ describe('Wallet', () => {
       Assert.isNotNull(accountB)
 
       // createdAt should still refer to block2
-      expect(accountB.createdAt?.sequence).toEqual(block2.header.sequence)
+      expect(accountB.createdAt).toEqual(block2.header.sequence)
 
       // reset createdAt
       await node.wallet.resetAccount(accountB, { resetCreatedAt: true })
@@ -2780,7 +2786,7 @@ describe('Wallet', () => {
 
       const account = await useAccountFixture(node.wallet)
 
-      await account.updateCreatedAt({ sequence: 1 })
+      await account.updateCreatedAt(1)
 
       const block = await useMinerBlockFixture(node.chain, 2)
 
@@ -2792,7 +2798,7 @@ describe('Wallet', () => {
 
       const account = await useAccountFixture(node.wallet)
 
-      await account.updateCreatedAt({ sequence: 3 })
+      await account.updateCreatedAt(3)
 
       const block = await useMinerBlockFixture(node.chain, 2)
 
@@ -2806,7 +2812,7 @@ describe('Wallet', () => {
 
       const block = await useMinerBlockFixture(node.chain, 2)
 
-      await account.updateCreatedAt(block.header)
+      await account.updateCreatedAt(block.header.sequence)
 
       expect(node.wallet.shouldDecryptForAccount(block.header, account)).toBe(true)
     })

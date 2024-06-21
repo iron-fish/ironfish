@@ -21,7 +21,7 @@ export interface AccountValue {
   incomingViewKey: string
   outgoingViewKey: string
   publicAddress: string
-  createdAt: { sequence: number } | null
+  createdAt: number | null
   scanningEnabled: boolean
   multisigKeys?: MultisigKeys
   proofAuthorizingKey: string | null
@@ -51,7 +51,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     bw.writeBytes(Buffer.from(value.publicAddress, 'hex'))
 
     if (value.createdAt) {
-      bw.writeU32(value.createdAt.sequence)
+      bw.writeU32(value.createdAt)
     }
 
     if (value.multisigKeys) {
@@ -86,7 +86,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
 
     let createdAt = null
     if (hasCreatedAt) {
-      createdAt = { sequence: reader.readU32() }
+      createdAt = reader.readU32()
     }
 
     let multisigKeys = undefined

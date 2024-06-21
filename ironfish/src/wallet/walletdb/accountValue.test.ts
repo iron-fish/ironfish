@@ -18,7 +18,7 @@ describe('AccountValueEncoding', () => {
       spendingKey: key.spendingKey,
       viewKey: key.viewKey,
       version: 1,
-      createdAt: { sequence: 1 },
+      createdAt: 1,
       scanningEnabled: true,
       proofAuthorizingKey: key.proofAuthorizingKey,
     }

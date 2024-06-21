@@ -80,8 +80,7 @@ routes.register<
       keyPackages,
     } = multisig.generateAndSplitKey(request.data.minSigners, identities)
 
-    const latestHeader = node.chain.latest
-    const createdAt = { sequence: latestHeader.sequence, networkId: node.network.id }
+    const createdAt = { sequence: node.chain.latest.sequence, networkId: node.network.id }
 
     const participants = keyPackages.map(({ identity, keyPackage }) => {
       const account: AccountImport = {

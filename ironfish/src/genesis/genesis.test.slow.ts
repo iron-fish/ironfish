@@ -7,6 +7,7 @@ import { Target } from '../primitives/target'
 import { IJSON } from '../serde'
 import { createNodeTest, useAccountFixture } from '../testUtilities'
 import { acceptsAllTarget } from '../testUtilities/helpers/blockchain'
+import { toAccountImport } from '../wallet/exporter'
 import { addGenesisTransaction } from './addGenesisTransaction'
 import { GenesisBlockInfo, makeGenesisBlock } from './makeGenesisBlock'
 
@@ -128,7 +129,7 @@ describe('Create genesis block', () => {
     expect(deserializedBlock.header.timestamp.valueOf()).toEqual(info.timestamp)
     expect(deserializedBlock.header.target.asBigInt()).toEqual(Target.maxTarget().asBigInt())
 
-    const accountNewNode = await newNode.wallet.importAccount(account)
+    const accountNewNode = await newNode.wallet.importAccount(toAccountImport(account))
     await newNode.wallet.scan()
 
     await expect(
@@ -262,9 +263,9 @@ describe('addGenesisTransaction', () => {
     const { chain, node } = await nodeTest.createSetup()
 
     // Import accounts
-    const account1 = await node.wallet.importAccount(account1Original)
-    const account2 = await node.wallet.importAccount(account2Original)
-    const account3 = await node.wallet.importAccount(account3Original)
+    const account1 = await node.wallet.importAccount(toAccountImport(account1Original))
+    const account2 = await node.wallet.importAccount(toAccountImport(account2Original))
+    const account3 = await node.wallet.importAccount(toAccountImport(account3Original))
 
     // Next, serialize it in the same way that the genesis command serializes it
     const serialized = BlockSerde.serialize(block)

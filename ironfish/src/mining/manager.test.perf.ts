@@ -14,6 +14,7 @@ import {
 } from '../testUtilities'
 import { BenchUtils } from '../utils'
 import { Account, SpendingAccount } from '../wallet'
+import { toAccountImport } from '../wallet/exporter'
 
 type Results = { mempoolSize: number; numTransactions: number; elapsed: number }
 
@@ -99,7 +100,7 @@ describe('MiningManager', () => {
     // Initialize a fresh node to get a fresh mempool and re-import the
     // necessary stuff
     const { chain, node, wallet } = await nodeTest.createSetup()
-    await wallet.importAccount(account)
+    await wallet.importAccount(toAccountImport(account))
     await wallet.setDefaultAccount(account.name)
     for (const block of blocks) {
       await expect(chain).toAddBlock(block)

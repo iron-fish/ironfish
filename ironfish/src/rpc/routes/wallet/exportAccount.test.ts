@@ -30,7 +30,9 @@ describe('Route wallet/exportAccount', () => {
     })
 
     expect(response.status).toBe(200)
-    expect(response.content.account).toEqual(new SpendingKeyEncoder().encode(account))
+    expect(response.content.account).toEqual(
+      new SpendingKeyEncoder().encode(toAccountImport(account)),
+    )
   })
 
   it('should omit spending key when view only account is requested', async () => {
@@ -60,7 +62,7 @@ describe('Route wallet/exportAccount', () => {
 
     expect(response.status).toBe(200)
 
-    const accountImport = toAccountImport(account, false, routeTest.wallet.networkId)
+    const accountImport = toAccountImport(account)
     expect(response.content.account).toEqual(new JsonEncoder().encode(accountImport))
   })
 
@@ -70,7 +72,7 @@ describe('Route wallet/exportAccount', () => {
       format: AccountFormat.Base64Json,
     })
 
-    const accountImport = toAccountImport(account, false, routeTest.wallet.networkId)
+    const accountImport = toAccountImport(account)
 
     expect(response.status).toBe(200)
     expect(response.content.account).toEqual(new Base64JsonEncoder().encode(accountImport))
@@ -83,7 +85,9 @@ describe('Route wallet/exportAccount', () => {
     })
 
     expect(response.status).toBe(200)
-    expect(response.content.account).toEqual(new SpendingKeyEncoder().encode(account))
+    expect(response.content.account).toEqual(
+      new SpendingKeyEncoder().encode(toAccountImport(account)),
+    )
   })
 
   it('should return an error when exporting a view only account in the spending key format', async () => {
@@ -103,7 +107,9 @@ describe('Route wallet/exportAccount', () => {
     })
 
     expect(response.status).toBe(200)
-    expect(response.content.account).toEqual(new MnemonicEncoder().encode(account, {}))
+    expect(response.content.account).toEqual(
+      new MnemonicEncoder().encode(toAccountImport(account), {}),
+    )
   })
 
   it('should return an error when exporting a view only account in the mnemonic format', async () => {

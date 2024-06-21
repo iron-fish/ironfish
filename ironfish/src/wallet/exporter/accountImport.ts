@@ -11,6 +11,7 @@ import {
   isValidSpendingKey,
   isValidViewKey,
 } from '../validator'
+import { AccountValue } from '../walletdb/accountValue'
 import { MultisigKeysImport } from './multisig'
 
 export type AccountImport = {
@@ -30,14 +31,16 @@ export type AccountImport = {
 }
 
 export function toAccountImport(
-  account: Account,
-  viewOnly: boolean,
-  networkId: number,
+  account: Account | AccountValue,
+  options?: {
+    viewOnly?: boolean
+    networkId?: number
+  },
 ): AccountImport {
   const createdAt = account.createdAt
     ? {
-        ...account.createdAt,
-        networkId,
+        sequence: account.createdAt,
+        networkId: options?.networkId,
       }
     : null
 
@@ -54,7 +57,7 @@ export function toAccountImport(
     proofAuthorizingKey: account.proofAuthorizingKey,
   }
 
-  if (viewOnly) {
+  if (options?.viewOnly) {
     value.spendingKey = null
 
     if (value.multisigKeys) {

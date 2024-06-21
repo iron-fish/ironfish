@@ -432,8 +432,10 @@ export class Wallet {
 
       const accountHasTransaction = assetBalanceDeltas.size > 0
       if (account.createdAt === null && accountHasTransaction) {
-        const sequence = Math.max(1, blockHeader.sequence - this.config.get('confirmations'))
-        await account.updateCreatedAt({ sequence }, tx)
+        await account.updateCreatedAt(
+          Math.max(1, blockHeader.sequence - this.config.get('confirmations')),
+          tx,
+        )
       }
     })
   }
@@ -443,7 +445,7 @@ export class Wallet {
       return true
     }
 
-    if (account.createdAt.sequence > blockHeader.sequence) {
+    if (account.createdAt > blockHeader.sequence) {
       return false
     }
 
@@ -1254,7 +1256,7 @@ export class Wallet {
 
   async createAccount(
     name: string,
-    options: { createdAt?: { sequence: number } | null; setDefault?: boolean } = {
+    options: { createdAt?: number | null; setDefault?: boolean } = {
       setDefault: false,
     },
   ): Promise<Account> {
@@ -1268,7 +1270,7 @@ export class Wallet {
     let head: HeadValue | null = null
     if (this.nodeClient) {
       if (createdAt) {
-        const block = await this.chainGetBlock(createdAt)
+        const block = await this.chainGetBlock({ sequence: createdAt })
         head = block
           ? {
               hash: Buffer.from(block.block.hash, 'hex'),
@@ -1277,7 +1279,7 @@ export class Wallet {
           : null
       } else if (options.createdAt !== null) {
         head = await this.getChainHead()
-        createdAt = { sequence: Math.max(1, head.sequence - this.config.get('confirmations')) }
+        createdAt = Math.max(1, head.sequence - this.config.get('confirmations'))
       }
     }
 
@@ -1359,8 +1361,6 @@ export class Wallet {
     let createdAt = options?.createdAt
       ? {
           sequence: options?.createdAt,
-          // hash is no longer used, set to empty buffer
-          hash: Buffer.alloc(32, 0),
           networkId: this.networkId,
         }
       : accountValue.createdAt
@@ -1378,7 +1378,7 @@ export class Wallet {
       accountValue: {
         ...accountValue,
         id: uuid(),
-        createdAt,
+        createdAt: createdAt ? createdAt.sequence : null,
         name,
         multisigKeys,
         scanningEnabled: true,
@@ -1444,7 +1444,7 @@ export class Wallet {
       await this.walletDb.setAccount(newAccount, tx)
 
       if (newAccount.createdAt !== null) {
-        const block = await this.chainGetBlock(newAccount.createdAt)
+        const block = await this.chainGetBlock({ sequence: newAccount.createdAt })
 
         const head = block
           ? {

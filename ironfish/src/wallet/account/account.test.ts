@@ -17,6 +17,7 @@ import {
   useTxFixture,
 } from '../../testUtilities'
 import { AsyncUtils } from '../../utils/async'
+import { toAccountImport } from '../exporter'
 import { BalanceValue } from '../walletdb/balanceValue'
 import { Account } from './account'
 
@@ -387,7 +388,9 @@ describe('Accounts', () => {
       const { node: nodeB } = await nodeTest.createSetup()
 
       const accountA = await useAccountFixture(nodeA.wallet, 'accountA')
-      const accountB = await nodeB.wallet.importAccount(accountA)
+      const accountB = await nodeB.wallet.importAccount(
+        toAccountImport(accountA, false, nodeB.network.id),
+      )
 
       // Ensure both nodes for the same account have the same note
       const block = await useMinerBlockFixture(nodeA.chain, undefined, accountA, nodeA.wallet)
@@ -624,7 +627,9 @@ describe('Accounts', () => {
 
       // Create a fresh node and import the account so that the transactions
       // are synced to the wallet through the block and not through transaction creation
-      const freshAccountA = await freshNode.wallet.importAccount(accountA)
+      const freshAccountA = await freshNode.wallet.importAccount(
+        toAccountImport(accountA, false, freshNode.network.id),
+      )
       for await (const header of node.chain.iterateTo(node.chain.genesis)) {
         if (header.sequence === 1) {
           continue
@@ -916,7 +921,9 @@ describe('Accounts', () => {
       const { node: nodeB } = await nodeTest.createSetup()
 
       const accountA = await useAccountFixture(nodeA.wallet, 'accountA')
-      const accountB = await nodeB.wallet.importAccount(accountA)
+      const accountB = await nodeB.wallet.importAccount(
+        toAccountImport(accountA, false, nodeB.network.id),
+      )
 
       // Ensure both nodes for the same account have the same note
       const block1 = await useMinerBlockFixture(nodeA.chain, undefined, accountA, nodeA.wallet)
@@ -982,7 +989,9 @@ describe('Accounts', () => {
       const accountAnodeA = await useAccountFixture(nodeA.wallet, 'accountA')
 
       // import account onto nodeB to simulate connecting transaction not seen as pending
-      const accountAnodeB = await nodeB.wallet.importAccount(accountAnodeA)
+      const accountAnodeB = await nodeB.wallet.importAccount(
+        toAccountImport(accountAnodeA, false, nodeB.network.id),
+      )
 
       const block2 = await useMinerBlockFixture(
         nodeA.chain,
@@ -2137,7 +2146,9 @@ describe('Accounts', () => {
       const { node: nodeB } = await nodeTest.createSetup()
 
       const accountA = await useAccountFixture(nodeA.wallet, 'accountA')
-      const accountB = await nodeB.wallet.importAccount(accountA)
+      const accountB = await nodeB.wallet.importAccount(
+        toAccountImport(accountA, false, nodeB.network.id),
+      )
 
       // Ensure both nodes for the same account have the same note
       const block = await useMinerBlockFixture(nodeA.chain, undefined, accountA, nodeA.wallet)
