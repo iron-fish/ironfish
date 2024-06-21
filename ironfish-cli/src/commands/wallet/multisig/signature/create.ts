@@ -3,9 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { multisig } from '@ironfish/rust-nodejs'
 import { UnsignedTransaction } from '@ironfish/sdk'
-import { Flags, ux } from '@oclif/core'
+import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
+import { confirmOrQuit } from '../../../../ui'
 import { longPrompt } from '../../../../utils/input'
 import { MultisigTransactionJson } from '../../../../utils/multisig'
 import { renderUnsignedTransactionDetails } from '../../../../utils/transaction'
@@ -62,10 +63,7 @@ export class CreateSignatureShareCommand extends IronfishCommand {
     )
 
     if (!flags.confirm) {
-      const confirmed = await ux.confirm('Confirm new signature share creation (Y/N)')
-      if (!confirmed) {
-        this.error('Creating signature share aborted')
-      }
+      await confirmOrQuit('Confirm new signature share creation')
     }
 
     const signatureShareResponse = await client.wallet.multisig.createSignatureShare({

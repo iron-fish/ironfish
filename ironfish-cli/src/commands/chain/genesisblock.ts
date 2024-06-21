@@ -16,6 +16,7 @@ import { Flags, ux } from '@oclif/core'
 import fs from 'fs/promises'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
+import { confirmOrQuit } from '../../ui'
 
 export default class GenesisBlockCommand extends IronfishCommand {
   static description = 'Create and serialize a genesis block'
@@ -171,10 +172,7 @@ export default class GenesisBlockCommand extends IronfishCommand {
     if (flags.dry) {
       this.exit(0)
     } else {
-      const result = await ux.confirm('\nCreate the genesis block? (y)es / (n)o')
-      if (!result) {
-        this.exit(0)
-      }
+      await confirmOrQuit('Create the genesis block?')
     }
 
     this.log('\nBuilding a genesis block...')

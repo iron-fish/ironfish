@@ -3,7 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Assert, Meter, TimeUtils } from '@ironfish/sdk'
+import { ux } from '@oclif/core'
 import * as cliProgress from 'cli-progress'
+import inquirer from 'inquirer'
 
 const progressBarCompleteChar = '\u2588'
 const progressBarIncompleteChar = '\u2591'
@@ -107,5 +109,30 @@ export class ProgressBar {
   setTotal(total: number): void {
     this.total = total
     this.bar.setTotal(total)
+  }
+}
+
+export async function confirmPrompt(message: string): Promise<boolean> {
+  const result: { prompt: boolean } = await inquirer.prompt({
+    type: 'confirm',
+    // Add a new-line for readability, manually. If the prefix is set to a new-line, it seems to
+    // add a space before the message, which is unwanted.
+    message: `\n${message}`,
+    name: 'prompt',
+    prefix: '',
+  })
+  return result.prompt
+}
+
+export async function confirmOrQuit(message?: string, confirm?: boolean): Promise<void> {
+  if (confirm) {
+    return
+  }
+
+  const confirmed = await confirmPrompt(message || 'Do you confirm?')
+
+  if (!confirmed) {
+    ux.log('Operation aborted.')
+    ux.exit(0)
   }
 }

@@ -5,7 +5,7 @@ import { Assert, BlockHeader, FullNode, IDatabaseTransaction, TimeUtils } from '
 import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
-import { ProgressBar, ProgressBarPresets } from '../../ui'
+import { confirmOrQuit, ProgressBar, ProgressBarPresets } from '../../ui'
 
 const TREE_BATCH = 1000
 const TREE_START = 1
@@ -53,18 +53,13 @@ export default class RepairChain extends IronfishCommand {
     const total = Number(node.chain.head.sequence)
     const estimate = TimeUtils.renderEstimate(0, total, SPEED_ESTIMATE)
 
-    const confirmed =
-      flags.confirm ||
-      (await ux.confirm(
-        `\n⚠️ If you start repairing your database, you MUST finish the\n` +
-          `process or your database will be in a corrupt state. Repairing\n` +
-          `may take ${estimate} or longer.\n\n` +
-          `Are you SURE? (y)es / (n)o`,
-      ))
-
-    if (!confirmed) {
-      return
-    }
+    await confirmOrQuit(
+      `⚠️ If you start repairing your database, you MUST finish the` +
+        `\nprocess or your database will be in a corrupt state. Repairing` +
+        `\nmay take ${estimate} or longer.` +
+        `\n\nAre you sure?`,
+      flags.confirm,
+    )
 
     await this.repairChain(node, progress)
     await this.repairTrees(node, progress, flags.force)

@@ -18,7 +18,8 @@ import inquirer from 'inquirer'
 import * as validator from 'web3-validator'
 import { IronfishCommand } from '../../../command'
 import { HexFlag, IronFlag, RemoteFlags, ValueFlag } from '../../../flags'
-import { confirmOperation, selectAsset } from '../../../utils'
+import { confirmOrQuit } from '../../../ui'
+import { selectAsset } from '../../../utils'
 import {
   ChainportBridgeTransaction,
   ChainportNetwork,
@@ -113,7 +114,7 @@ export class BridgeCommand extends IronfishCommand {
       assetData,
     )
 
-    await confirmOperation({})
+    await confirmOrQuit()
 
     const postTransaction = await client.wallet.postTransaction({
       transaction: RawTransactionSerde.serialize(rawTransaction).toString('hex'),

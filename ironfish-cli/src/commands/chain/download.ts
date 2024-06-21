@@ -7,7 +7,7 @@ import fsAsync from 'fs/promises'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
 import { DownloadedSnapshot, getDefaultManifestUrl, SnapshotDownloader } from '../../snapshot'
-import { ProgressBar, ProgressBarPresets } from '../../ui'
+import { confirmOrQuit, ProgressBar, ProgressBarPresets } from '../../ui'
 
 export default class Download extends IronfishCommand {
   static hidden = false
@@ -75,17 +75,12 @@ export default class Download extends IronfishCommand {
       const fileSize = FileUtils.formatFileSize(manifest.file_size)
       const spaceRequired = FileUtils.formatFileSize(manifest.file_size * 2)
 
-      if (!flags.confirm) {
-        const confirm = await ux.confirm(
-          `Download ${fileSize} snapshot to update from block ${headSequence} to ${manifest.block_sequence}? ` +
-            `\nAt least ${spaceRequired} of free disk space is required to download and unzip the snapshot file.` +
-            `\nAre you sure? (Y)es / (N)o`,
-        )
-
-        if (!confirm) {
-          this.exit(0)
-        }
-      }
+      await confirmOrQuit(
+        `Download ${fileSize} snapshot to update from block ${headSequence} to ${manifest.block_sequence}? ` +
+          `\nAt least ${spaceRequired} of free disk space is required to download and unzip the snapshot file.` +
+          `\nAre you sure?`,
+        flags.confirm,
+      )
 
       const snapshotUrl = await Downloader.snapshotURL()
       const snapshotPath = await Downloader.snapshotPath()

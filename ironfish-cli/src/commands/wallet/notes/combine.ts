@@ -16,7 +16,8 @@ import { Flags, ux } from '@oclif/core'
 import inquirer from 'inquirer'
 import { IronfishCommand } from '../../../command'
 import { HexFlag, IronFlag, RemoteFlags } from '../../../flags'
-import { confirmOperation, getAssetsByIDs, selectAsset } from '../../../utils'
+import { confirmOrQuit } from '../../../ui'
+import { getAssetsByIDs, selectAsset } from '../../../utils'
 import { getExplorer } from '../../../utils/explorer'
 import { selectFee } from '../../../utils/fees'
 import { fetchNotes } from '../../../utils/note'
@@ -358,10 +359,7 @@ export class CombineNotesCommand extends IronfishCommand {
       })}`,
     )
 
-    await confirmOperation({
-      confirm: flags.confirm,
-      cancelledMessage: 'Combine aborted.',
-    })
+    await confirmOrQuit('', flags.confirm)
 
     transactionTimer.start()
 

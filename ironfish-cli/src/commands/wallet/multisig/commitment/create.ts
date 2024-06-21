@@ -2,9 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { UnsignedTransaction } from '@ironfish/sdk'
-import { Flags, ux } from '@oclif/core'
+import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
+import { confirmOrQuit } from '../../../../ui'
 import { longPrompt } from '../../../../utils/input'
 import { MultisigTransactionJson } from '../../../../utils/multisig'
 import { renderUnsignedTransactionDetails } from '../../../../utils/transaction'
@@ -80,12 +81,7 @@ export class CreateSigningCommitmentCommand extends IronfishCommand {
       this.logger,
     )
 
-    if (!flags.confirm) {
-      const confirmed = await ux.confirm('Confirm signing commitment creation (Y/N)')
-      if (!confirmed) {
-        this.error('Creating signing commitment aborted')
-      }
-    }
+    await confirmOrQuit('Confirm signing commitment creation', flags.confirm)
 
     const response = await client.wallet.multisig.createSigningCommitment({
       account: flags.account,
