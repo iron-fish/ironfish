@@ -28,7 +28,7 @@ use crate::{
 };
 
 use super::{
-    burns::BurnDescription, data::DataDescription, mints::UnsignedMintDescription, spends::UnsignedSpendDescription, TransactionVersion, SIGNATURE_HASH_PERSONALIZATION, TRANSACTION_SIGNATURE_VERSION
+    burns::BurnDescription, evm::EvmDescription, mints::UnsignedMintDescription, spends::UnsignedSpendDescription, TransactionVersion, SIGNATURE_HASH_PERSONALIZATION, TRANSACTION_SIGNATURE_VERSION
 };
 
 #[derive(Clone)]
@@ -50,7 +50,7 @@ pub struct UnsignedTransaction {
     pub(crate) burns: Vec<BurnDescription>,
 
     /// List of data
-    pub(crate) data: Vec<DataDescription>,
+    pub(crate) evm: Option<EvmDescription>,
 
     /// Signature calculated from accumulating randomness with all the spends
     /// and outputs when the transaction was created.
@@ -113,10 +113,12 @@ impl UnsignedTransaction {
             burns.push(BurnDescription::read(&mut reader)?);
         }
 
-        let mut data = Vec::with_capacity(num_data as usize);
-        for _ in 0..num_data {
-            data.push(DataDescription::read(&mut reader)?);
-        }
+        let evm = if version.has_evm() && reader.read_u8()? == 1 {
+            Some(EvmDescription::read(&mut reader)?)
+        } else {
+            None
+        };
+
 
         let binding_signature = Signature::read(&mut reader)?;
 
@@ -127,7 +129,7 @@ impl UnsignedTransaction {
             outputs,
             mints,
             burns,
-            data,
+            evm,
             binding_signature,
             expiration,
             randomized_public_key,
@@ -143,7 +145,6 @@ impl UnsignedTransaction {
         writer.write_u64::<LittleEndian>(self.outputs.len() as u64)?;
         writer.write_u64::<LittleEndian>(self.mints.len() as u64)?;
         writer.write_u64::<LittleEndian>(self.burns.len() as u64)?;
-        writer.write_u64::<LittleEndian>(self.data.len() as u64)?;
         writer.write_i64::<LittleEndian>(self.fee)?;
         writer.write_u32::<LittleEndian>(self.expiration)?;
         writer.write_all(&self.randomized_public_key.0.to_bytes())?;
@@ -165,8 +166,13 @@ impl UnsignedTransaction {
             burns.write(&mut writer)?;
         }
 
-        for data in self.data.iter() {
-            data.write(&mut writer)?;
+        if self.version.has_evm() {
+            if let Some(ref evm) = self.evm {
+                writer.write_u8(1)?;
+                evm.write(&mut writer)?;
+            } else {
+                writer.write_u8(0)?;
+            }
         }
 
         self.binding_signature.write(&mut writer)?;
@@ -205,8 +211,10 @@ impl UnsignedTransaction {
             burn.serialize_signature_fields(&mut hasher)?;
         }
 
-        for data in self.data.iter() {
-            data.write(&mut hasher)?;
+        if self.version.has_evm() {
+            if let Some(ref evm) = self.evm {
+                evm.write(&mut hasher)?;
+            }
         }
 
         let mut hash_result = [0; 32];
@@ -268,7 +276,7 @@ impl UnsignedTransaction {
             outputs: self.outputs.clone(),
             mints: mint_descriptions,
             burns: self.burns.clone(),
-            data: self.data.clone(),
+            evm: self.evm.clone(),
             binding_signature: self.binding_signature,
             randomized_public_key: self.randomized_public_key.clone(),
         };
@@ -301,7 +309,7 @@ impl UnsignedTransaction {
             outputs: self.outputs.clone(),
             mints: mint_descriptions,
             burns: self.burns.clone(),
-            data: self.data.clone(),
+            evm: self.evm.clone(),
             binding_signature: self.binding_signature,
             randomized_public_key: self.randomized_public_key.clone(),
         })

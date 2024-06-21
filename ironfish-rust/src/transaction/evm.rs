@@ -11,7 +11,7 @@ use std::io;
 
 use crate::errors::IronfishError;
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct EvmDescription {
     pub(crate) nonce: u64,
     // TODO: gas price and limit here, or in the top layer of the transaction

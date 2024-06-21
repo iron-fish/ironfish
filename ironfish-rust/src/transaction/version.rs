@@ -39,6 +39,10 @@ impl TransactionVersion {
             _ => None,
         }
     }
+    
+    pub fn has_evm(self) -> bool {
+        self >= Self::V3
+    }
 
     pub const fn latest() -> Self {
         Self::V3

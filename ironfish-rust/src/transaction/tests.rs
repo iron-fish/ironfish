@@ -8,7 +8,7 @@ use std::collections::{BTreeMap, HashMap};
 use super::internal_batch_verify_transactions;
 use super::{ProposedTransaction, Transaction};
 use crate::test_util::create_multisig_identities;
-use crate::transaction::data_type::DataType;
+use crate::transaction::evm::EvmDescription;
 use crate::transaction::tests::split_spender_key::split_spender_key;
 use crate::{
     assets::{asset::Asset, asset_identifier::NATIVE_ASSET},
@@ -232,12 +232,31 @@ fn test_transaction_data() {
     );
     let witness = make_fake_witness(&in_note);
 
+    let evm = EvmDescription {
+        nonce: 9,
+        to: Some([0x35; 20]),
+        value: 1_000_000_000_000_000_000,
+        data: vec![],
+        v: 27,
+        r: [
+            0x5e, 0x1d, 0x3a, 0x76, 0xfb, 0xf8, 0x24, 0x22, 0x0e, 0x27, 0xb5, 0xd1, 0xf8, 0xd0,
+            0x78, 0x48, 0xe8, 0xa4, 0x41, 0x4b, 0x78, 0xb6, 0xd0, 0xf1, 0xe9, 0xc2, 0xb4, 0xd3,
+            0xd6, 0xd3, 0xd3, 0xe5,
+        ],
+        s: [
+            0x7e, 0x1d, 0x3a, 0x76, 0xfb, 0xf8, 0x24, 0x22, 0x0e, 0x27, 0xb5, 0xd1, 0xf8, 0xd0,
+            0x78, 0x48, 0xe8, 0xa4, 0x41, 0x4b, 0x78, 0xb6, 0xd0, 0xf1, 0xe9, 0xc2, 0xb4, 0xd3,
+            0xd6, 0xd3, 0xd3, 0xe5,
+        ],
+    };
+    let evm_clone = evm.clone();
+
     let mut transaction = ProposedTransaction::new(TransactionVersion::latest());
     transaction.add_spend(in_note, &witness).unwrap();
     assert_eq!(transaction.spends.len(), 1);
     transaction.add_output(out_note).unwrap();
     assert_eq!(transaction.outputs.len(), 1);
-    transaction.add_data(DataType::Undefined, vec![1, 2, 3, 4, 5])
+    transaction.add_evm(evm)
         .expect("should be able to add data");
 
     let public_transaction = transaction
@@ -251,12 +270,11 @@ fn test_transaction_data() {
     assert_eq!(public_transaction.spends.len(), 1);
     assert_eq!(public_transaction.mints.len(), 0);
     assert_eq!(public_transaction.burns.len(), 0);
-    assert_eq!(public_transaction.data.len(), 1);
+    // assert evm to be some
+    assert!(public_transaction.evm.is_some());
 
-    // check data matches input
-    let data = public_transaction.data().first().expect("should be 1 data");
-    assert_eq!(data.data_type, DataType::Undefined);
-    assert_eq!(data.data, vec![1, 2, 3, 4, 5]);
+    // check equality for evm description vs one above
+    assert_eq!(public_transaction.evm, Some(evm_clone));
 
     let received_note = public_transaction.outputs[1]
         .merkle_note()
