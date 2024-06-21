@@ -29,7 +29,7 @@ export class Migration033 extends Migration {
       logger.debug(` Migrating account ${accountValue.name}`)
 
       const createdAt = accountValue.createdAt
-        ? { sequence: Math.max(1, accountValue.createdAt.sequence - confirmations) }
+        ? Math.max(1, accountValue.createdAt.sequence - confirmations)
         : null
 
       const migrated = {
