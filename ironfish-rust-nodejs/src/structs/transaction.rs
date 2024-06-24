@@ -256,6 +256,7 @@ impl NativeTransaction {
     }
 
     #[napi]
+    #[allow(clippy::too_many_arguments)]
     pub fn evm(
         &mut self,
         nonce: BigInt,
