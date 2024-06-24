@@ -5,7 +5,6 @@ import axios from 'axios'
 import { getConfig } from './config'
 import {
   ChainportBridgeTransaction,
-  ChainportError,
   ChainportNetwork,
   ChainportTransactionStatus,
   ChainportVerifiedToken,
@@ -61,12 +60,8 @@ export const fetchChainportBridgeTransaction = async (
 
 const makeChainportRequest = async <T extends object>(url: string): Promise<T> => {
   const response = await axios
-    .get<T | ChainportError>(url)
+    .get<T>(url)
     .then((response) => {
-      if ('Error' in response.data) {
-        throw new Error(response.data.Error)
-      }
-
       return response.data
     })
     .catch((error) => {
