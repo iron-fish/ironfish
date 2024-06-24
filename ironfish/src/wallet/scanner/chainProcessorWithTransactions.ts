@@ -25,7 +25,12 @@ export class ChainProcessorWithTransactions {
     return this.chainProcessor.update(options)
   }
 
-  constructor(options: { logger?: Logger; chain: Blockchain; head: Buffer | null }) {
+  constructor(options: {
+    logger?: Logger
+    chain: Blockchain
+    head: Buffer | null
+    maxQueueSize?: number | null
+  }) {
     this.chainProcessor = new ChainProcessor(options)
 
     this.chainProcessor.onAdd.on(async (header: BlockHeader) => {

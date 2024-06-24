@@ -35,11 +35,18 @@ export class ChainProcessor {
   logger: Logger
   onAdd = new Event<[block: BlockHeader]>()
   onRemove = new Event<[block: BlockHeader]>()
+  maxQueueSize: number | null
 
-  constructor(options: { logger?: Logger; chain: Blockchain; head: Buffer | null }) {
+  constructor(options: {
+    logger?: Logger
+    chain: Blockchain
+    head: Buffer | null
+    maxQueueSize?: number | null
+  }) {
     this.chain = options.chain
     this.logger = (options.logger ?? createRootLogger()).withTag('chainprocessor')
     this.hash = options.head
+    this.maxQueueSize = options.maxQueueSize ?? null
   }
 
   private async add(header: BlockHeader): Promise<void> {
@@ -73,6 +80,8 @@ export class ChainProcessor {
       `Chain processor head not found in chain: ${this.hash.toString('hex')}`,
     )
 
+    let blockCount = 0
+
     const fork = await this.chain.findFork(head, chainHead)
 
     // All cases can be handled by rewinding to the fork point
@@ -92,6 +101,11 @@ export class ChainProcessor {
       await this.remove(remove)
       this.hash = remove.previousBlockHash
       this.sequence = remove.sequence - 1
+
+      blockCount++
+      if (this.maxQueueSize && blockCount >= this.maxQueueSize) {
+        return { hashChanged: !oldHash || !this.hash.equals(oldHash) }
+      }
     }
 
     const iterForwards = this.chain.iterateTo(fork, chainHead, undefined, false)
@@ -108,6 +122,11 @@ export class ChainProcessor {
       await this.add(add)
       this.hash = add.hash
       this.sequence = add.sequence
+
+      blockCount++
+      if (this.maxQueueSize && blockCount >= this.maxQueueSize) {
+        return { hashChanged: !oldHash || !this.hash.equals(oldHash) }
+      }
     }
 
     return { hashChanged: !oldHash || !this.hash.equals(oldHash) }
