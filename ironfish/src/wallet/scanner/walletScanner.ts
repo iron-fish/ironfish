@@ -1,8 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import type { Blockchain } from '../../blockchain'
-import type { RpcClient } from '../../rpc'
+
 import type { Wallet } from '../wallet'
 import { BufferMap } from 'buffer-map'
 import { Assert } from '../../assert'
@@ -10,36 +9,32 @@ import { Config } from '../../fileStores'
 import { Logger } from '../../logger'
 import { Mutex } from '../../mutex'
 import { BlockHeader, Transaction } from '../../primitives'
+import { RpcClient } from '../../rpc'
 import { AsyncUtils, BufferUtils, HashUtils } from '../../utils'
 import { DecryptedNote } from '../../workerPool/tasks/decryptNotes'
-import { HeadValue } from '../walletdb/headValue'
-import { ChainProcessorWithTransactions } from './chainProcessorWithTransactions'
 import { RemoteChainProcessor } from './remoteChainProcessor'
 import { ScanState } from './scanState'
 
 export class WalletScanner {
   readonly logger: Logger
+  readonly nodeClient: RpcClient | null
   readonly wallet: Wallet
-  readonly config: Config
 
-  readonly chain: Blockchain | null = null
-  readonly nodeClient: RpcClient | null = null
-
+  maxQueueSize: number
   state: ScanState | null = null
   lock: Mutex = new Mutex()
 
   constructor(options: {
     logger: Logger
+    nodeClient: RpcClient | null
     wallet: Wallet
+    maxQueueSize: number
     config: Config
-    nodeClient?: RpcClient | null
-    chain?: Blockchain | null
   }) {
     this.logger = options.logger
+    this.nodeClient = options.nodeClient
     this.wallet = options.wallet
-    this.config = options.config
-    this.chain = options.chain ?? null
-    this.nodeClient = options.nodeClient ?? null
+    this.maxQueueSize = options.maxQueueSize
   }
 
   get running(): boolean {
@@ -69,7 +64,12 @@ export class WalletScanner {
       const start = await this.wallet.getEarliestHead()
       const end = await this.wallet.getChainHead()
 
-      const chainProcessor = this.getChainProcessor(start)
+      const chainProcessor = new RemoteChainProcessor({
+        logger: this.logger,
+        nodeClient: this.nodeClient,
+        maxQueueSize: this.maxQueueSize,
+        head: start?.hash ?? null,
+      })
 
       chainProcessor.onAdd.on(async ({ header, transactions }) => {
         await this.connectBlock(header, transactions, this.state?.abortController)
@@ -225,31 +225,6 @@ export class WalletScanner {
 
       await this.wallet.disconnectBlockForAccount(account, header, transactions)
     }
-  }
-
-  getChainProcessor(
-    start: HeadValue | null,
-  ): ChainProcessorWithTransactions | RemoteChainProcessor {
-    const head = start?.hash ?? null
-
-    if (this.chain) {
-      return new ChainProcessorWithTransactions({
-        logger: this.logger,
-        chain: this.chain,
-        head,
-      })
-    }
-
-    if (this.nodeClient) {
-      return new RemoteChainProcessor({
-        logger: this.logger,
-        nodeClient: this.nodeClient,
-        maxQueueSize: this.config.get('walletSyncingMaxQueueSize'),
-        head,
-      })
-    }
-
-    throw new Error('WalletScanner requires either chain or client')
   }
 }
 

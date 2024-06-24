@@ -385,7 +385,7 @@ describe('Wallet', () => {
       expect(head?.hash).toEqualHash(node.chain.genesis.hash)
 
       // set max syncing queue to 1 so that wallet only fetches one block at a time
-      node.wallet.scanner.config.set('walletSyncingMaxQueueSize', 1)
+      node.wallet.scanner.maxQueueSize = 1
 
       await node.wallet.scan()
 

@@ -327,7 +327,6 @@ export class FullNode {
       networkId: network.id,
       nodeClient: memoryClient,
       logger,
-      chain,
     })
 
     const node = new FullNode({
