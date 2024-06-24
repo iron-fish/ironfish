@@ -5,6 +5,7 @@ import { BufferUtils, CurrencyUtils, GetBalancesResponse, RpcAsset } from '@iron
 import { Args, Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
+import { table, TableColumn, TableColumns } from '../../ui'
 import { compareAssets, renderAssetWithVerificationStatus } from '../../utils'
 import { TableFlags } from '../../utils/table'
 
@@ -130,5 +131,29 @@ export class BalancesCommand extends IronfishCommand {
     )
 
     ux.table(assetBalancePairs, columns, { ...flags })
+
+    const columns2: TableColumns<AssetBalancePairs> = {
+      assetName: {
+        header: 'Asset Name',
+        get: ({ asset }) =>
+          renderAssetWithVerificationStatus(
+            BufferUtils.toHuman(Buffer.from(asset.name, 'hex')),
+            {
+              verification: asset.verification,
+              outputType: flags.output,
+            },
+          ),
+      },
+      'asset.id': {
+        header: 'Asset Id',
+        get: ({ asset }) => asset.id,
+      },
+      available: {
+        header: 'Available Balance',
+        get: ({ asset, balance }) =>
+          CurrencyUtils.render(balance.available, false, asset.id, asset.verification),
+      },
+    }
+    table(assetBalancePairs, columns2)
   }
 }

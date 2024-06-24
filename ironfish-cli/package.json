@@ -77,6 +77,7 @@
     "inquirer": "8.2.5",
     "json-colorizer": "2.2.2",
     "keccak": "3.0.4",
+    "string-width": "4.2.3",
     "supports-hyperlinks": "2.2.0",
     "tar": "6.1.11",
     "uuid": "8.3.2"

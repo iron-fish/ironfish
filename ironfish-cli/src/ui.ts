@@ -4,11 +4,14 @@
 
 import { Assert, Meter, TimeUtils } from '@ironfish/sdk'
 import { ux } from '@oclif/core'
+import chalk from 'chalk'
 import * as cliProgress from 'cli-progress'
 import inquirer from 'inquirer'
+import stringWidth from 'string-width'
 
 const progressBarCompleteChar = '\u2588'
 const progressBarIncompleteChar = '\u2591'
+const WIDE_DASH = '─'
 
 export const ProgressBarPresets = {
   basic: {
@@ -135,4 +138,176 @@ export async function confirmOrQuit(message?: string, confirm?: boolean): Promis
     ux.log('Operation aborted.')
     ux.exit(0)
   }
+}
+
+export interface TableColumn<T extends Record<string, unknown>> {
+  // The return type of this function can be extended, it's really just to avoid
+  // being `unknown`. Anything that has a `.toString()` function can be added
+  // here with no extra changes.
+  get(this: void, row: T): string | number | bigint | boolean
+  header: string
+}
+
+export type TableColumns<T extends Record<string, unknown>> = { [key: string]: TableColumn<T> }
+
+export interface TableOptions {
+  [key: string]: unknown
+  output?: string
+}
+
+export function table<T extends Record<string, unknown>>(
+  data: T[],
+  columns: TableColumns<T>,
+  options: TableOptions,
+): void {
+  new Table(data, columns, options).render()
+}
+
+// TODO(mat): filter
+// TODO(mat): sort
+// TODO(mat): default value without a getter function?
+// TODO(mat): Roll our custom truncate/no-truncate logic into the flags
+// TODO(mat): Check other flags
+class Table<T extends Record<string, unknown>> {
+  data: T[]
+  columns: (TableColumn<T> & { key: string; width?: number })[]
+  options: TableOptions
+
+  constructor(data: T[], columns: TableColumns<T>, options: TableOptions) {
+    this.data = data
+    this.columns = Object.entries(columns).map(([key, column]) => {
+      return {
+        ...column,
+        key,
+      }
+    })
+    this.options = {
+      output: options.csv ? 'csv' : options.output,
+    }
+  }
+
+  render() {
+    // Generate the rendered text to be displayed
+    const rows: Record<string, string>[] = []
+    for (const data of this.data) {
+      const row: Record<string, string> = {}
+      for (const column of this.columns) {
+        row[column.key] = column.get(data).toString()
+      }
+      rows.push(row)
+    }
+
+    switch (this.options.output) {
+      case 'csv': {
+        this.renderCsv(rows)
+        break
+      }
+
+      case 'json': {
+        this.renderJson(rows)
+        break
+      }
+
+      default: {
+        this.renderTerminal(rows)
+      }
+    }
+  }
+
+  renderCsv(rows: Record<string, string>[]) {
+    const columnHeaders = []
+    for (const column of this.columns) {
+      columnHeaders.push(sanitizeCsvValue(column.header))
+    }
+    console.log(columnHeaders.join(','))
+
+    for (const row of rows) {
+      const rowValues = []
+      for (const value of Object.values(row)) {
+        rowValues.push(sanitizeCsvValue(value))
+      }
+      console.log(rowValues.join(','))
+    }
+  }
+
+  renderJson(rows: Record<string, string>[]) {
+    console.log(JSON.stringify(rows, null, 2))
+  }
+
+  renderTerminal(rows: Record<string, string>[]) {
+    // Find column lengths
+    for (const column of this.columns) {
+      // TODO(mat): This should just be a simple map, and not attached to the
+      // column object itself
+      column.width = maxColumnLength(column.key, column.header, rows)
+    }
+
+    // Print headers
+    const columnHeaders = []
+    for (const column of this.columns) {
+      Assert.isNotUndefined(column.width)
+      const spacerLength = column.width - stringWidth(column.header)
+      columnHeaders.push(`${column.header}${' '.repeat(spacerLength)}`)
+    }
+    console.log(chalk.bold('', columnHeaders.join(' ')))
+
+    // Print header underline
+    const columnUnderlines = []
+    for (const column of this.columns) {
+      Assert.isNotUndefined(column.width)
+      columnUnderlines.push(WIDE_DASH.repeat(column.width))
+    }
+    console.log(chalk.bold('', columnUnderlines.join(' ')))
+
+    // Print rows
+    for (const row of rows) {
+      const rowValues = []
+      for (const [key, value] of Object.entries(row)) {
+        const column = this.columns.find((c) => c.key === key)
+        // TODO(mat): Come up with meaningful messages for all the asserts in this file
+        Assert.isNotUndefined(column)
+        Assert.isNotUndefined(column.width)
+        const spacerLength = column.width - stringWidth(value)
+        rowValues.push(`${value}${' '.repeat(spacerLength)}`)
+      }
+      // TODO(mat): All console.logs will probably be replaced with ux.stdout?
+      console.log('', rowValues.join(' '))
+    }
+  }
+}
+
+function maxColumnLength<T extends Record<string, string>>(
+  columnName: string,
+  columnHeader: string,
+  data: T[],
+): number {
+  let maxLength = stringWidth(columnHeader)
+  for (const row of data) {
+    const length = stringWidth(row[columnName])
+    if (length > maxLength) {
+      maxLength = length
+    }
+  }
+
+  return maxLength
+}
+
+function sanitizeCsvValue(value: string): string {
+  const newValue = value
+
+  // Double-quotes must be escaped with another double-quote
+  newValue.replace('"', '""')
+
+  // If the value contains any of these special characters, it needs to be
+  // wrapped in double-quotes
+  if (
+    newValue.includes('"') ||
+    newValue.includes('\r') ||
+    newValue.includes('\n') ||
+    newValue.includes(',')
+  ) {
+    return `"${newValue}"`
+  }
+
+  return newValue
 }
