@@ -4,12 +4,13 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { CurrencyUtils, YupUtils } from '../../../utils'
+import { RpcAsset, RpcAssetSchema, RpcBurn, RpcBurnSchema } from '../chain/types'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import { AssertHasRpcContext } from '../rpcContext'
-import { RpcAsset, RpcAssetSchema, RpcBurn, RpcBurnSchema } from '../types'
+import { serializeRpcWalletTransaction } from './serializers'
 import { RpcWalletTransaction, RpcWalletTransactionSchema } from './types'
-import { getAccount, serializeRpcWalletTransaction } from './utils'
+import { getAccount } from './utils'
 
 export interface BurnAssetRequest {
   account?: string

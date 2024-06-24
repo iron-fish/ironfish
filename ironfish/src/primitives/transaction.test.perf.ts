@@ -37,7 +37,7 @@ describe('Transaction', () => {
     for (let i = 0; i < Math.max(...TEST_AMOUNTS.map((t) => t.spends)); i++) {
       const block = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
       await node.chain.addBlock(block)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
     }
   })
 

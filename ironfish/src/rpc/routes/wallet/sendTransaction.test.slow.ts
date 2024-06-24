@@ -24,7 +24,7 @@ describe('Route wallet/sendTransaction (with note selection)', () => {
       routeTest.node.wallet,
     )
     await expect(routeTest.node.chain).toAddBlock(block)
-    await routeTest.node.wallet.updateHead()
+    await routeTest.node.wallet.scan()
 
     const decryptedNotes = await AsyncUtils.materialize(sender.getNotes())
     const notes = decryptedNotes.map((note) => note.note.hash().toString('hex'))

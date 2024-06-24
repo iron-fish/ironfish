@@ -14,12 +14,13 @@ import {
   RpcRequestError,
   Transaction,
 } from '@ironfish/sdk'
-import { CliUx, Flags } from '@oclif/core'
+import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { IronFlag, RemoteFlags, ValueFlag } from '../../flags'
-import { confirmOperation } from '../../utils'
+import { confirmOrQuit, confirmPrompt } from '../../ui'
 import { selectAsset } from '../../utils/asset'
 import { promptCurrency } from '../../utils/currency'
+import { promptExpiration } from '../../utils/expiration'
 import { getExplorer } from '../../utils/explorer'
 import { selectFee } from '../../utils/fees'
 import { watchTransaction } from '../../utils/transaction'
@@ -138,11 +139,6 @@ export class Mint extends IronfishCommand {
     const publicKeyResponse = await client.wallet.getAccountPublicKey({ account })
     const accountPublicKey = publicKeyResponse.content.publicKey
 
-    if (flags.expiration !== undefined && flags.expiration < 0) {
-      this.log('Expiration sequence must be non-negative')
-      this.exit(1)
-    }
-
     let assetId = flags.assetId
     let metadata = flags.metadata
     let name = flags.name
@@ -151,18 +147,18 @@ export class Mint extends IronfishCommand {
     // name is provided
     let isMintingNewAsset = Boolean(name || metadata)
     if (!assetId && !metadata && !name) {
-      isMintingNewAsset = await CliUx.ux.confirm('Do you want to create a new asset (Y/N)?')
+      isMintingNewAsset = await confirmPrompt('Do you want to create a new asset?')
     }
 
     if (isMintingNewAsset) {
       if (!name) {
-        name = await CliUx.ux.prompt('Enter the name for the new asset', {
+        name = await ux.prompt('Enter the name for the new asset', {
           required: true,
         })
       }
 
       if (!metadata) {
-        metadata = await CliUx.ux.prompt('Enter metadata for the new asset', {
+        metadata = await ux.prompt('Enter metadata for the new asset', {
           default: '',
           required: false,
         })
@@ -237,6 +233,16 @@ export class Mint extends IronfishCommand {
       }
     }
 
+    let expiration = flags.expiration
+    if (flags.rawTransaction && expiration === undefined) {
+      expiration = await promptExpiration({ logger: this.logger, client: client })
+    }
+
+    if (expiration !== undefined && expiration < 0) {
+      this.log('Expiration sequence must be non-negative')
+      this.exit(1)
+    }
+
     const params: CreateTransactionRequest = {
       account,
       outputs: [],
@@ -252,7 +258,7 @@ export class Mint extends IronfishCommand {
       ],
       fee: flags.fee ? CurrencyUtils.encode(flags.fee) : null,
       feeRate: flags.feeRate ? CurrencyUtils.encode(flags.feeRate) : null,
-      expiration: flags.expiration,
+      expiration: expiration,
       confirmations: flags.confirmations,
     }
 
@@ -290,7 +296,7 @@ export class Mint extends IronfishCommand {
       assetData,
     )
 
-    CliUx.ux.action.start('Sending the transaction')
+    ux.action.start('Sending the transaction')
 
     const response = await client.wallet.postTransaction({
       transaction: RawTransactionSerde.serialize(raw).toString('hex'),
@@ -300,7 +306,7 @@ export class Mint extends IronfishCommand {
     const bytes = Buffer.from(response.content.transaction, 'hex')
     const transaction = new Transaction(bytes)
 
-    CliUx.ux.action.stop()
+    ux.action.stop()
 
     const minted = transaction.mints[0]
 
@@ -382,12 +388,8 @@ export class Mint extends IronfishCommand {
       )
     }
 
-    confirmMessage.push('Do you confirm (Y/N)?')
+    confirmMessage.push('Do you confirm?')
 
-    await confirmOperation({
-      confirmMessage: confirmMessage.join('\n'),
-      cancelledMessage: 'Mint aborted.',
-      confirm,
-    })
+    await confirmOrQuit(confirmMessage.join('\n'), confirm)
   }
 }

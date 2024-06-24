@@ -6,7 +6,7 @@ import { Assert } from '../../../assert'
 import { useAccountFixture, useMinerBlockFixture, useTxFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { CurrencyUtils } from '../../../utils'
-import { serializeRpcWalletTransaction } from './utils'
+import { serializeRpcWalletTransaction } from './serializers'
 
 describe('Route wallet/mintAsset', () => {
   const routeTest = createRouteTest(true)
@@ -74,7 +74,7 @@ describe('Route wallet/mintAsset', () => {
 
       const block = await useMinerBlockFixture(routeTest.chain, undefined, account, node.wallet)
       await expect(node.chain).toAddBlock(block)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
       const newOwner = accountB.publicAddress

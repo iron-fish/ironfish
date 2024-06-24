@@ -33,7 +33,7 @@ describe('Verify Block', () => {
     const block1 = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
 
     await node.chain.addBlock(block1)
-    await node.wallet.updateHead()
+    await node.wallet.scan()
 
     // Split enough notes to create the transactions we need
     const transactionAmount = Math.max(...TEST_AMOUNTS.map((t) => t.numTransactions))
@@ -51,7 +51,7 @@ describe('Verify Block', () => {
     ])
 
     await node.chain.addBlock(block2)
-    await node.wallet.updateHead()
+    await node.wallet.scan()
 
     for (let i = 0; i < transactionAmount; i++) {
       const tx = await useTxFixture(node.wallet, account, account, undefined, 0n)

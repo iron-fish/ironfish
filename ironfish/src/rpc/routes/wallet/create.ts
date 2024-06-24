@@ -32,7 +32,7 @@ routes.register<typeof CreateAccountRequestSchema, CreateAccountResponse>(
 
     const account = await context.wallet.createAccount(name)
     if (context.wallet.nodeClient) {
-      void context.wallet.scanTransactions()
+      void context.wallet.scan()
     }
 
     let isDefaultAccount = false

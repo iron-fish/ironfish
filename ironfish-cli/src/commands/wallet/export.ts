@@ -2,12 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { AccountFormat, ErrorUtils, LanguageUtils } from '@ironfish/sdk'
-import { CliUx, Flags } from '@oclif/core'
+import { Args, Flags } from '@oclif/core'
 import fs from 'fs'
 import jsonColorizer from 'json-colorizer'
 import path from 'path'
 import { IronfishCommand } from '../../command'
-import { ColorFlag, ColorFlagKey, RemoteFlags } from '../../flags'
+import { ColorFlag, ColorFlagKey, EnumLanguageKeyFlag, RemoteFlags } from '../../flags'
+import { confirmOrQuit } from '../../ui'
 
 export class ExportCommand extends IronfishCommand {
   static description = `Export an account`
@@ -23,10 +24,10 @@ export class ExportCommand extends IronfishCommand {
       default: false,
       description: 'Export an account to a mnemonic 24 word phrase',
     }),
-    language: Flags.enum({
+    language: EnumLanguageKeyFlag({
       description: 'Language to use for mnemonic export',
       required: false,
-      options: LanguageUtils.LANGUAGE_KEYS,
+      choices: LanguageUtils.LANGUAGE_KEYS,
     }),
     json: Flags.boolean({
       default: false,
@@ -42,20 +43,17 @@ export class ExportCommand extends IronfishCommand {
     }),
   }
 
-  static args = [
-    {
-      name: 'account',
+  static args = {
+    account: Args.string({
       required: false,
       description: 'Name of the account to export',
-    },
-  ]
+    }),
+  }
 
   async start(): Promise<void> {
     const { flags, args } = await this.parse(ExportCommand)
-    const { color, local } = flags
-    const account = args.account as string
-    const exportPath = flags.path
-    const viewOnly = flags.viewonly
+    const { color, local, path: exportPath, viewonly: viewOnly } = flags
+    const { account } = args
 
     if (flags.language) {
       flags.mnemonic = true
@@ -75,7 +73,7 @@ export class ExportCommand extends IronfishCommand {
       language: flags.language,
     })
 
-    let output = response.content.account as string
+    let output = response.content.account
     if (color && flags.json && !exportPath) {
       output = jsonColorizer(output)
     }
@@ -91,15 +89,10 @@ export class ExportCommand extends IronfishCommand {
         }
 
         if (fs.existsSync(resolved)) {
-          this.log(`There is already an account backup at ${exportPath}`)
-
-          const confirmed = await CliUx.ux.confirm(
-            `\nOverwrite the account backup with new file?\nAre you sure? (Y)es / (N)o`,
+          await confirmOrQuit(
+            `There is already an account backup at ${exportPath}` +
+              `\n\nOverwrite the account backup with new file?`,
           )
-
-          if (!confirmed) {
-            this.exit(1)
-          }
         }
 
         await fs.promises.writeFile(resolved, output)

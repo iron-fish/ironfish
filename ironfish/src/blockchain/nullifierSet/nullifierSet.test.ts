@@ -28,17 +28,17 @@ describe('NullifierSet', () => {
     const block2 = await useMinerBlockFixture(node.chain, 2, accountA)
     await expect(node.chain).toAddBlock(block2)
 
-    await node.wallet.updateHead()
+    await node.wallet.scan()
 
     const { block: block3 } = await useBlockWithTx(node, accountA, accountA, false)
     await expect(node.chain).toAddBlock(block3)
 
-    await node.wallet.updateHead()
+    await node.wallet.scan()
 
     const { block: block4 } = await useBlockWithTx(node, accountA, accountA, false)
     await expect(node.chain).toAddBlock(block4)
 
-    await node.wallet.updateHead()
+    await node.wallet.scan()
 
     Assert.isNotNull(block1)
     const block1Nullifiers = block1.transactions

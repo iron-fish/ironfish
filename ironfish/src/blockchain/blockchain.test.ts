@@ -492,7 +492,7 @@ describe('Blockchain', () => {
       // Create nodeA blocks
       const blockA1 = await useMinerBlockFixture(nodeA.chain, undefined, accountA)
       await expect(nodeA.chain).toAddBlock(blockA1)
-      await nodeA.wallet.updateHead()
+      await nodeA.wallet.scan()
 
       const { block: blockA2 } = await useBlockWithTx(nodeA, accountA, accountA, false)
       await expect(nodeA.chain).toAddBlock(blockA2)
@@ -500,11 +500,11 @@ describe('Blockchain', () => {
       // Create nodeB blocks
       const blockB1 = await useMinerBlockFixture(nodeB.chain, undefined, accountB)
       await expect(nodeB.chain).toAddBlock(blockB1)
-      await nodeB.wallet.updateHead()
+      await nodeB.wallet.scan()
 
       const blockB2 = await useMinerBlockFixture(nodeB.chain, undefined, accountB)
       await expect(nodeB.chain).toAddBlock(blockB2)
-      await nodeB.wallet.updateHead()
+      await nodeB.wallet.scan()
 
       const { block: blockB3 } = await useBlockWithTx(nodeB, accountB, accountB, false)
       await expect(nodeB.chain).toAddBlock(blockB3)
@@ -773,7 +773,7 @@ describe('Blockchain', () => {
     const block2 = await useMinerBlockFixture(chain, undefined, accountA)
     await expect(chain).toAddBlock(block2)
 
-    await node.wallet.updateHead()
+    await node.wallet.scan()
 
     const minersFeeTx = await useMinersTxFixture(node, accountA, undefined, 0)
     const tx = await useTxFixture(node.wallet, accountA, accountA)
@@ -796,7 +796,7 @@ describe('Blockchain', () => {
     const block2 = await useMinerBlockFixture(chain, undefined, accountA)
     await expect(chain).toAddBlock(block2)
 
-    await node.wallet.updateHead()
+    await node.wallet.scan()
 
     const minersFeeTx = await useMinersTxFixture(node, accountA, undefined, 0)
     const tx = await useTxFixture(node.wallet, accountA, accountA)
@@ -817,7 +817,7 @@ describe('Blockchain', () => {
     const block2 = await useMinerBlockFixture(chain, undefined, accountA)
     await expect(chain).toAddBlock(block2)
 
-    await node.wallet.updateHead()
+    await node.wallet.scan()
 
     const minersFeeTx = await useMinersTxFixture(node, accountA, undefined, 0)
     const tx = await useTxFixture(node.wallet, accountA, accountA)
@@ -867,7 +867,7 @@ describe('Blockchain', () => {
     await expect(chain).toAddBlock(block2)
 
     // Now create the double spend
-    await node.wallet.updateHead()
+    await node.wallet.scan()
     const tx = await useTxFixture(node.wallet, accountA, accountB)
 
     // Spend the transaction for the first time
@@ -984,7 +984,7 @@ describe('Blockchain', () => {
       undefined,
     )
     await expect(chain).toAddBlock(block)
-    await node.wallet.updateHead()
+    await node.wallet.scan()
 
     const note = transaction.getNote(1).decryptNoteForOwner(accountA.incomingViewKey)
     Assert.isNotUndefined(note)
@@ -1041,7 +1041,7 @@ describe('Blockchain', () => {
     await expect(nodeB.chain).toAddBlock(blockB2)
 
     // Now create the double spend tx
-    await nodeB.wallet.updateHead()
+    await nodeB.wallet.scan()
     const tx = await useTxFixture(nodeB.wallet, accountA, accountB)
 
     const blockB3 = await useMinerBlockFixture(nodeB.chain, undefined, undefined, undefined, [
@@ -1708,7 +1708,7 @@ describe('Blockchain', () => {
           value: mintValue,
         })
         await expect(node.chain).toAddBlock(block)
-        await node.wallet.updateHead()
+        await node.wallet.scan()
 
         // Verify Node A has the asset
         const record = await node.chain.getAssetById(assetId)
@@ -1959,6 +1959,19 @@ describe('Blockchain', () => {
         const blockHashA = await nodeA.chain.getBlockHashByTransactionHash(transaction.hash())
         expect(blockHashA).toBeNull()
       }
+    })
+  })
+
+  describe('getBlockAtSequence()', () => {
+    it('should fetch block at a sequence', async () => {
+      const block = await nodeTest.chain.getBlockAtSequence(nodeTest.chain.head.sequence)
+      expect(block?.header.sequence).toEqual(nodeTest.chain.head.sequence)
+      expect(block?.header.hash).toEqualBuffer(nodeTest.chain.head.hash)
+    })
+
+    it('should return null if no block at a sequence', async () => {
+      const block = await nodeTest.chain.getBlockAtSequence(nodeTest.chain.head.sequence + 1)
+      expect(block).toBeNull()
     })
   })
 

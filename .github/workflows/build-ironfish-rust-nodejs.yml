@@ -72,7 +72,7 @@ jobs:
         working-directory: ./ironfish-rust-nodejs
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: bindings-${{ matrix.settings.target }}
           path: ironfish-rust-nodejs/*.node
@@ -85,8 +85,11 @@ jobs:
       fail-fast: false
       matrix:
         settings:
-          - host: macos-latest
+          - host: macos-13
             target: x86_64-apple-darwin
+
+          - host: macos-latest
+            target: aarch64-apple-darwin
 
           - host: windows-latest
             target: x86_64-pc-windows-msvc
@@ -124,7 +127,7 @@ jobs:
           node-version: 18
 
       - name: Download artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: bindings-${{ matrix.settings.target }}
           path: ./ironfish-rust-nodejs

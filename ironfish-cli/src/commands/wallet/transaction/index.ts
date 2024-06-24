@@ -9,70 +9,105 @@ import {
   RpcWalletNote,
   TimeUtils,
 } from '@ironfish/sdk'
-import { CliUx } from '@oclif/core'
+import { Args, Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
+import {
+  displayChainportTransactionSummary,
+  extractChainportDataFromTransaction,
+  fetchChainportNetworkMap,
+  getAssetsByIDs,
+} from '../../../utils'
+import { getExplorer } from '../../../utils/explorer'
 
 export class TransactionCommand extends IronfishCommand {
   static description = `Display an account transaction`
 
   static flags = {
     ...RemoteFlags,
+    account: Flags.string({
+      char: 'a',
+      description: 'Name of the account to get transaction details for',
+    }),
   }
 
-  static args = [
-    {
-      name: 'hash',
-      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
+  static args = {
+    hash: Args.string({
       required: true,
       description: 'Hash of the transaction',
-    },
-    {
-      name: 'account',
+    }),
+    account: Args.string({
       required: false,
-      description: 'Name of the account',
-    },
-  ]
+      description: 'Name of the account. DEPRECATED: use --account flag',
+    }),
+  }
 
   async start(): Promise<void> {
-    const { args } = await this.parse(TransactionCommand)
-    const hash = args.hash as string
-    const account = args.account as string | undefined
+    const { flags, args } = await this.parse(TransactionCommand)
+    const { hash } = args
+    // TODO: remove account arg
+    const account = flags.account ? flags.account : args.account
 
     const client = await this.sdk.connectRpc()
+    const networkId = (await client.chain.getNetworkInfo()).content.networkId
 
     const response = await client.wallet.getAccountTransaction({
       account,
       hash,
     })
 
-    if (!response.content.transaction) {
+    const transaction = response.content.transaction
+
+    if (!transaction) {
       this.log(`No transaction found by hash ${hash}`)
       return
     }
 
     // by default the notes and spends should be returned
-    Assert.isNotUndefined(response.content.transaction.notes)
-    Assert.isNotUndefined(response.content.transaction.spends)
+    Assert.isNotUndefined(transaction.notes)
+    Assert.isNotUndefined(transaction.spends)
 
-    const renderedFee = CurrencyUtils.render(response.content.transaction.fee, true)
+    const renderedFee = CurrencyUtils.render(transaction.fee, true)
+    const explorerUrl = getExplorer(networkId)?.getTransactionUrl(hash)
+
     this.log(`Transaction: ${hash}`)
-    this.log(`Account: ${response.content.account}`)
-    this.log(`Status: ${response.content.transaction.status}`)
-    this.log(`Type: ${response.content.transaction.type}`)
-    this.log(`Timestamp: ${TimeUtils.renderString(response.content.transaction.timestamp)}`)
-    this.log(`Fee: ${renderedFee}`)
-    if (response.content.transaction.blockHash && response.content.transaction.blockSequence) {
-      this.log(`Block Hash: ${response.content.transaction.blockHash}`)
-      this.log(`Block Sequence: ${response.content.transaction.blockSequence}`)
+    if (explorerUrl) {
+      this.log(`Explorer: ${explorerUrl}`)
     }
-    this.log(`Notes Count: ${response.content.transaction.notes.length}`)
-    this.log(`Spends Count: ${response.content.transaction.spends.length}`)
-    this.log(`Mints Count: ${response.content.transaction.mints.length}`)
-    this.log(`Burns Count: ${response.content.transaction.burns.length}`)
-    this.log(`Sender: ${response.content.transaction.notes[0].sender}`)
+    this.log(`Account: ${response.content.account}`)
+    this.log(`Status: ${transaction.status}`)
+    this.log(`Type: ${transaction.type}`)
+    this.log(`Timestamp: ${TimeUtils.renderString(transaction.timestamp)}`)
+    this.log(`Fee: ${renderedFee}`)
+    if (transaction.blockHash && transaction.blockSequence) {
+      this.log(`Block Hash: ${transaction.blockHash}`)
+      this.log(`Block Sequence: ${transaction.blockSequence}`)
+    }
+    this.log(`Notes Count: ${transaction.notes.length}`)
+    this.log(`Spends Count: ${transaction.spends.length}`)
+    this.log(`Mints Count: ${transaction.mints.length}`)
+    this.log(`Burns Count: ${transaction.burns.length}`)
+    this.log(`Sender: ${transaction.notes[0].sender}`)
 
-    if (response.content.transaction.notes.length > 0) {
+    const chainportTxnDetails = extractChainportDataFromTransaction(networkId, transaction)
+
+    if (chainportTxnDetails) {
+      this.log(`\n---Chainport Bridge Transaction Summary---\n`)
+
+      ux.action.start('Fetching network details')
+      const chainportNetworks = await fetchChainportNetworkMap(networkId)
+      ux.action.stop()
+
+      await displayChainportTransactionSummary(
+        networkId,
+        transaction,
+        chainportTxnDetails,
+        chainportNetworks[chainportTxnDetails.chainportNetworkId],
+        this.logger,
+      )
+    }
+
+    if (transaction.notes.length > 0) {
       this.log(`\n---Notes---\n`)
 
       const noteAssetPairs: {
@@ -80,7 +115,7 @@ export class TransactionCommand extends IronfishCommand {
         asset: RpcAsset
       }[] = []
 
-      for (const note of response.content.transaction.notes) {
+      for (const note of transaction.notes) {
         const asset = await client.wallet.getAsset({
           id: note.assetId,
         })
@@ -91,7 +126,7 @@ export class TransactionCommand extends IronfishCommand {
         })
       }
 
-      CliUx.ux.table(noteAssetPairs, {
+      ux.table(noteAssetPairs, {
         amount: {
           header: 'Amount',
           get: ({ asset, note }) =>
@@ -120,9 +155,9 @@ export class TransactionCommand extends IronfishCommand {
       })
     }
 
-    if (response.content.transaction.spends.length > 0) {
+    if (transaction.spends.length > 0) {
       this.log(`\n---Spends---\n`)
-      CliUx.ux.table(response.content.transaction.spends, {
+      ux.table(transaction.spends, {
         size: {
           header: 'Size',
           get: (spend) => spend.size,
@@ -138,14 +173,29 @@ export class TransactionCommand extends IronfishCommand {
       })
     }
 
-    if (response.content.transaction.assetBalanceDeltas) {
+    const assetBalanceDeltas = transaction.assetBalanceDeltas
+    if (assetBalanceDeltas) {
+      const assetLookup = await getAssetsByIDs(
+        client,
+        assetBalanceDeltas.map((b) => b.assetId),
+        account,
+        undefined,
+      )
+
       this.log(`\n---Asset Balance Deltas---\n`)
-      CliUx.ux.table(response.content.transaction.assetBalanceDeltas, {
+      ux.table(assetBalanceDeltas, {
         assetId: {
           header: 'Asset ID',
         },
         delta: {
           header: 'Balance Change',
+          get: (assetBalanceDelta) =>
+            CurrencyUtils.render(
+              assetBalanceDelta.delta,
+              false,
+              assetBalanceDelta.assetId,
+              assetLookup[assetBalanceDelta.assetId].verification,
+            ),
         },
       })
     }

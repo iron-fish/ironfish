@@ -12,10 +12,11 @@ import {
   makeGenesisBlock,
   Target,
 } from '@ironfish/sdk'
-import { CliUx, Flags } from '@oclif/core'
+import { Flags, ux } from '@oclif/core'
 import fs from 'fs/promises'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
+import { confirmOrQuit } from '../../ui'
 
 export default class GenesisBlockCommand extends IronfishCommand {
   static description = 'Create and serialize a genesis block'
@@ -134,7 +135,7 @@ export default class GenesisBlockCommand extends IronfishCommand {
     this.log(`Genesis block will be created with the following values:`)
     this.log(`\nDifficulty: ${target.toDifficulty()}\n`)
     this.log(`Allocations:`)
-    const columns: CliUx.Table.table.Columns<GenesisBlockAllocation> = {
+    const columns: ux.Table.table.Columns<GenesisBlockAllocation> = {
       identity: {
         header: 'ADDRESS',
         get: (row: GenesisBlockAllocation) => row.publicAddress,
@@ -151,7 +152,7 @@ export default class GenesisBlockCommand extends IronfishCommand {
       },
     }
 
-    CliUx.ux.table(info.allocations, columns, {
+    ux.table(info.allocations, columns, {
       printLine: this.log.bind(this),
     })
 
@@ -171,10 +172,7 @@ export default class GenesisBlockCommand extends IronfishCommand {
     if (flags.dry) {
       this.exit(0)
     } else {
-      const result = await CliUx.ux.confirm('\nCreate the genesis block? (y)es / (n)o')
-      if (!result) {
-        this.exit(0)
-      }
+      await confirmOrQuit('Create the genesis block?')
     }
 
     this.log('\nBuilding a genesis block...')

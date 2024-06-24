@@ -7,7 +7,7 @@ import { BufferUtils } from '../../../utils/buffer'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import { AssertHasRpcContext } from '../rpcContext'
-import { RpcUnsignedTransactionNote, RpcUnsignedTransactionNoteSchema } from './types'
+import { RpcTransactionNote, RpcTransactionNoteSchema } from './types'
 import { getAccount } from './utils'
 
 export type GetUnsignedTransactionNotesRequest = {
@@ -16,8 +16,8 @@ export type GetUnsignedTransactionNotesRequest = {
 }
 
 export type GetUnsignedTransactionNotesResponse = {
-  receivedNotes: RpcUnsignedTransactionNote[]
-  sentNotes: RpcUnsignedTransactionNote[]
+  receivedNotes: RpcTransactionNote[]
+  sentNotes: RpcTransactionNote[]
 }
 
 export const GetUnsignedTransactionNotesRequestSchema: yup.ObjectSchema<GetUnsignedTransactionNotesRequest> =
@@ -31,8 +31,8 @@ export const GetUnsignedTransactionNotesRequestSchema: yup.ObjectSchema<GetUnsig
 export const GetUnsignedTransactionNotesResponseSchema: yup.ObjectSchema<GetUnsignedTransactionNotesResponse> =
   yup
     .object({
-      receivedNotes: yup.array(RpcUnsignedTransactionNoteSchema).defined(),
-      sentNotes: yup.array(RpcUnsignedTransactionNoteSchema).defined(),
+      receivedNotes: yup.array(RpcTransactionNoteSchema).defined(),
+      sentNotes: yup.array(RpcTransactionNoteSchema).defined(),
     })
     .defined()
 
@@ -51,8 +51,8 @@ routes.register<
       Buffer.from(request.data.unsignedTransaction, 'hex'),
     )
 
-    const receivedNotes: RpcUnsignedTransactionNote[] = []
-    const sentNotes: RpcUnsignedTransactionNote[] = []
+    const receivedNotes: RpcTransactionNote[] = []
+    const sentNotes: RpcTransactionNote[] = []
 
     for (const note of unsignedTransaction.notes) {
       const receivedNote = note.decryptNoteForOwner(account.incomingViewKey)

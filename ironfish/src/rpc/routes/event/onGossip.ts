@@ -5,9 +5,10 @@ import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { FullNode } from '../../../node'
 import { BlockHeader } from '../../../primitives'
+import { RpcBlockHeader, RpcBlockHeaderSchema } from '../chain'
+import { serializeRpcBlockHeader } from '../chain/serializers'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
-import { RpcBlockHeader, RpcBlockHeaderSchema, serializeRpcBlockHeader } from '../types'
 
 export type OnGossipRequest = undefined
 export type OnGossipResponse = { blockHeader: RpcBlockHeader }

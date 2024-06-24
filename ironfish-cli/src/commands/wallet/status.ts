@@ -1,16 +1,18 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { CliUx } from '@oclif/core'
+import { ux } from '@oclif/core'
+import chalk from 'chalk'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
+import { TableFlags } from '../../utils/table'
 
 export class StatusCommand extends IronfishCommand {
   static description = `Get status of all accounts`
 
   static flags = {
     ...RemoteFlags,
-    ...CliUx.ux.table.flags(),
+    ...TableFlags,
   }
 
   async start(): Promise<void> {
@@ -20,7 +22,7 @@ export class StatusCommand extends IronfishCommand {
 
     const response = await client.wallet.getAccountsStatus()
 
-    CliUx.ux.table(
+    ux.table(
       response.content.accounts,
       {
         name: {
@@ -44,6 +46,10 @@ export class StatusCommand extends IronfishCommand {
         sequence: {
           get: (row) => row.head?.sequence ?? 'NULL',
           header: 'Head Sequence',
+        },
+        scanningEnabled: {
+          get: (row) => (row.scanningEnabled ? chalk.green('✓') : ''),
+          header: 'Scanning Enabled',
         },
       },
       {

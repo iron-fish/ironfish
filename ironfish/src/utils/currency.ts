@@ -5,7 +5,7 @@
 import { formatFixed, parseFixed } from '@ethersproject/bignumber'
 import { isNativeIdentifier } from './asset'
 import { BigIntUtils } from './bigint'
-import { FixedNumberUtils } from './fixedNumber'
+import { DecimalUtils } from './decimalUtils'
 
 export class CurrencyUtils {
   /**
@@ -61,16 +61,16 @@ export class CurrencyUtils {
     },
   ): [bigint, null] | [null, Error] {
     const { decimals } = assetMetadataWithDefaults(assetId, verifiedAssetMetadata)
-    try {
-      const { value, decimals: parsedDecimals } = FixedNumberUtils.tryDecodeDecimal(
-        amount.toString(),
-      )
 
-      if (parsedDecimals > decimals) {
-        return [null, new Error('major value is too small')]
+    try {
+      const major = DecimalUtils.tryDecode(amount.toString())
+      const minor = { value: major.value, decimals: major.decimals + decimals }
+
+      if (minor.decimals < 0) {
+        return [null, Error('amount is too small to fit into the minor denomination')]
       }
 
-      const minorValue = value * 10n ** BigInt(decimals - parsedDecimals)
+      const minorValue = minor.value * 10n ** BigInt(minor.decimals)
       return [minorValue, null]
     } catch (e) {
       if (e instanceof Error) {
@@ -78,6 +78,31 @@ export class CurrencyUtils {
       }
       throw e
     }
+  }
+
+  /**
+   * Renders a value in a minor denomination as the major denomination:
+   * - $IRON is always going to have 8 decimal places.
+   * - If a custom asset, and `decimals` is provided, it will give the value
+   * followed by a digit for each decimal place
+   * - If a custom asset, and `decimals` is not provided, it will assume the
+   * value is already in minor denomination with no decimal places
+   *
+   * Examples:
+   * 100000000 = 1 $IRON
+   * A custom asset with 2 decimal places: 100 = 1
+   * A custom asset with no decimal places: 1 = 1
+   */
+  static minorToMajor(
+    amount: bigint,
+    assetId?: string,
+    verifiedAssetMetadata?: {
+      decimals?: number
+    },
+  ): { value: bigint; decimals: number } {
+    const { decimals } = assetMetadataWithDefaults(assetId, verifiedAssetMetadata)
+
+    return DecimalUtils.normalize({ value: amount, decimals: -decimals })
   }
 
   /**
@@ -97,18 +122,20 @@ export class CurrencyUtils {
       symbol?: string
     },
   ): string {
-    if (typeof amount === 'string') {
-      amount = this.decode(amount)
-    }
+    const { value: majorValue, decimals: majorDecimals } = this.minorToMajor(
+      BigInt(amount),
+      assetId,
+      verifiedAssetMetadata,
+    )
+    const { symbol, decimals } = assetMetadataWithDefaults(assetId, verifiedAssetMetadata)
 
-    const { decimals, symbol } = assetMetadataWithDefaults(assetId, verifiedAssetMetadata)
-    const majorDenominationAmount = FixedNumberUtils.render(amount, decimals)
+    const renderedValue = DecimalUtils.render(majorValue, majorDecimals, decimals)
 
     if (includeSymbol) {
-      return `${symbol} ${majorDenominationAmount}`
+      return `${symbol} ${renderedValue}`
     }
 
-    return majorDenominationAmount
+    return renderedValue
   }
 
   /*

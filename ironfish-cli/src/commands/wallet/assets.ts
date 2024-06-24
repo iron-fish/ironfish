@@ -9,11 +9,11 @@ import {
   PUBLIC_ADDRESS_LENGTH,
 } from '@ironfish/rust-nodejs'
 import { BufferUtils } from '@ironfish/sdk'
-import { CliUx } from '@oclif/core'
+import { Args, Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { renderAssetWithVerificationStatus } from '../../utils'
-import { TableCols } from '../../utils/table'
+import { TableCols, TableFlags } from '../../utils/table'
 
 const MAX_ASSET_METADATA_COLUMN_WIDTH = ASSET_METADATA_LENGTH + 1
 const MIN_ASSET_METADATA_COLUMN_WIDTH = ASSET_METADATA_LENGTH / 2 + 1
@@ -21,27 +21,29 @@ const MIN_ASSET_METADATA_COLUMN_WIDTH = ASSET_METADATA_LENGTH / 2 + 1
 const MAX_ASSET_NAME_COLUMN_WIDTH = ASSET_NAME_LENGTH + 1
 const MIN_ASSET_NAME_COLUMN_WIDTH = ASSET_NAME_LENGTH / 2 + 1
 
-const { ...tableFlags } = CliUx.ux.table.flags()
-
 export class AssetsCommand extends IronfishCommand {
   static description = `Display the wallet's assets`
 
   static flags = {
     ...RemoteFlags,
-    ...tableFlags,
+    ...TableFlags,
+    account: Flags.string({
+      char: 'a',
+      description: 'Name of the account to get assets for',
+    }),
   }
 
-  static args = [
-    {
-      name: 'account',
+  static args = {
+    account: Args.string({
       required: false,
-      description: 'Name of the account',
-    },
-  ]
+      description: 'Name of the account. DEPRECATED: use --account flag',
+    }),
+  }
 
   async start(): Promise<void> {
     const { flags, args } = await this.parse(AssetsCommand)
-    const account = args.account as string | undefined
+    // TODO: remove account arg
+    const account = flags.account ? flags.account : args.account
 
     const client = await this.sdk.connectRpc()
     const response = client.wallet.getAssets({
@@ -57,7 +59,7 @@ export class AssetsCommand extends IronfishCommand {
     let showHeader = !flags['no-header']
 
     for await (const asset of response.contentStream()) {
-      CliUx.ux.table(
+      ux.table(
         [asset],
         {
           name: TableCols.fixedWidth({

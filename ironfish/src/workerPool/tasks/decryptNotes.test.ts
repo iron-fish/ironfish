@@ -19,14 +19,20 @@ describe('DecryptNotesRequest', () => {
     const request = new DecryptNotesRequest(
       [
         {
-          serializedNote: Buffer.alloc(ENCRYPTED_NOTE_LENGTH, 1),
           incomingViewKey: Buffer.alloc(ACCOUNT_KEY_LENGTH, 1).toString('hex'),
           outgoingViewKey: Buffer.alloc(ACCOUNT_KEY_LENGTH, 1).toString('hex'),
           viewKey: Buffer.alloc(VIEW_KEY_LENGTH, 1).toString('hex'),
-          currentNoteIndex: 2,
-          decryptForSpender: true,
         },
       ],
+      [
+        {
+          serializedNote: Buffer.alloc(ENCRYPTED_NOTE_LENGTH, 1),
+          currentNoteIndex: 2,
+        },
+      ],
+      {
+        decryptForSpender: true,
+      },
       0,
     )
     const buffer = serializePayloadToBuffer(request)
@@ -35,22 +41,26 @@ describe('DecryptNotesRequest', () => {
   })
 
   it('serializes over 255 notes', () => {
-    const length = 600
+    const numNotes = 600
+    const numAccounts = 200
 
     const request = new DecryptNotesRequest(
-      Array.from({ length }, () => ({
-        serializedNote: Buffer.alloc(ENCRYPTED_NOTE_LENGTH, 1),
+      Array.from({ length: numAccounts }, () => ({
         incomingViewKey: Buffer.alloc(ACCOUNT_KEY_LENGTH, 1).toString('hex'),
         outgoingViewKey: Buffer.alloc(ACCOUNT_KEY_LENGTH, 1).toString('hex'),
         viewKey: Buffer.alloc(VIEW_KEY_LENGTH, 1).toString('hex'),
-        currentNoteIndex: 2,
-        decryptForSpender: true,
       })),
+      Array.from({ length: numNotes }, () => ({
+        serializedNote: Buffer.alloc(ENCRYPTED_NOTE_LENGTH, 1),
+        currentNoteIndex: 2,
+      })),
+      { decryptForSpender: true },
       0,
     )
     const buffer = serializePayloadToBuffer(request)
     const deserializedRequest = DecryptNotesRequest.deserializePayload(request.jobId, buffer)
-    expect(deserializedRequest.payloads).toHaveLength(length)
+    expect(deserializedRequest.encryptedNotes).toHaveLength(numNotes)
+    expect(deserializedRequest.accountKeys).toHaveLength(numAccounts)
   })
 })
 
@@ -103,16 +113,22 @@ describe('DecryptNotesTask', () => {
 
       const task = new DecryptNotesTask()
       const index = 2
-      const request = new DecryptNotesRequest([
-        {
-          serializedNote: transaction.getNote(0).serialize(),
-          incomingViewKey: account.incomingViewKey,
-          outgoingViewKey: account.outgoingViewKey,
-          viewKey: account.viewKey,
-          currentNoteIndex: 2,
-          decryptForSpender: true,
-        },
-      ])
+      const request = new DecryptNotesRequest(
+        [
+          {
+            incomingViewKey: account.incomingViewKey,
+            outgoingViewKey: account.outgoingViewKey,
+            viewKey: account.viewKey,
+          },
+        ],
+        [
+          {
+            serializedNote: transaction.getNote(0).serialize(),
+            currentNoteIndex: 2,
+          },
+        ],
+        { decryptForSpender: true },
+      )
       const response = task.execute(request)
 
       expect(response).toMatchObject({
@@ -134,22 +150,28 @@ describe('DecryptNotesTask', () => {
 
       const block2 = await useMinerBlockFixture(nodeTest.chain, 2, accountA)
       await expect(nodeTest.chain).toAddBlock(block2)
-      await nodeTest.wallet.updateHead()
+      await nodeTest.wallet.scan()
 
       const transaction = await useTxFixture(nodeTest.wallet, accountA, accountB)
 
       const task = new DecryptNotesTask()
       const index = 3
-      const requestSpender = new DecryptNotesRequest([
-        {
-          serializedNote: transaction.getNote(0).serialize(),
-          incomingViewKey: accountA.incomingViewKey,
-          outgoingViewKey: accountA.outgoingViewKey,
-          viewKey: accountA.viewKey,
-          currentNoteIndex: 3,
-          decryptForSpender: true,
-        },
-      ])
+      const requestSpender = new DecryptNotesRequest(
+        [
+          {
+            incomingViewKey: accountA.incomingViewKey,
+            outgoingViewKey: accountA.outgoingViewKey,
+            viewKey: accountA.viewKey,
+          },
+        ],
+        [
+          {
+            serializedNote: transaction.getNote(0).serialize(),
+            currentNoteIndex: 3,
+          },
+        ],
+        { decryptForSpender: true },
+      )
       const responseSpender = task.execute(requestSpender)
 
       expect(responseSpender).toMatchObject({
@@ -164,16 +186,22 @@ describe('DecryptNotesTask', () => {
         ],
       })
 
-      const requestNoSpender = new DecryptNotesRequest([
-        {
-          serializedNote: transaction.getNote(0).serialize(),
-          incomingViewKey: accountA.incomingViewKey,
-          outgoingViewKey: accountA.outgoingViewKey,
-          viewKey: accountA.viewKey,
-          currentNoteIndex: 3,
-          decryptForSpender: false,
-        },
-      ])
+      const requestNoSpender = new DecryptNotesRequest(
+        [
+          {
+            incomingViewKey: accountA.incomingViewKey,
+            outgoingViewKey: accountA.outgoingViewKey,
+            viewKey: accountA.viewKey,
+          },
+        ],
+        [
+          {
+            serializedNote: transaction.getNote(0).serialize(),
+            currentNoteIndex: 3,
+          },
+        ],
+        { decryptForSpender: false },
+      )
       const responseNoSpender = task.execute(requestNoSpender)
 
       expect(responseNoSpender).toMatchObject({ notes: [null] })

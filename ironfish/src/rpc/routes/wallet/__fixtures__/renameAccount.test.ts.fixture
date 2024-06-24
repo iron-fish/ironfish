@@ -1,22 +1,32 @@
 {
   "Route wallet/renameAccount renames existing account": [
     {
-      "version": 4,
-      "id": "42254ef9-75dc-46c0-9ee2-b6c32fc5ac97",
-      "name": "existingAccount",
-      "spendingKey": "78c219fdb7c06b86713a96971fba5fed51d741ea59932ad6f20607d85ff2ae24",
-      "viewKey": "2025e1306c5c4730ae8a03f49adce7bb91db5ef65b70b8efd29611374c8e36831547bf43d984b912f29c93bfa10a66c6361ec3baea747d3857b763392f11acd1",
-      "incomingViewKey": "d9066be951a7cd3c68c440384bab796b35150998c833627ed0032493c03a0a01",
-      "outgoingViewKey": "1fd488354847dc9ec855b50dc4a9d6b930bc602bb695c7091af77e80ed1f8fcb",
-      "publicAddress": "2d94890c53eb3b0b000eabecba330cf7a722eef27ffb724316021fb1cdc4051b",
-      "createdAt": {
+      "value": {
+        "version": 4,
+        "id": "524dc648-29a5-48f7-882e-db0b456e6651",
+        "name": "existingAccount",
+        "spendingKey": "51c5bc0788aa3ee7fd1d4ac3d37902bf5713faf64e7054978c0335620cfea203",
+        "viewKey": "727aca9a31c4043884c8e949ec8ea1382798701434101183f6a448cff67ec013fc755f73344f6f6bb0154d355f6dd2177784ea7d3c0e54f16d691f432adc45c8",
+        "incomingViewKey": "6f21ea316d55e76d28e06320b8b7f0fcc44409a281fc5c628c2bec6704c09604",
+        "outgoingViewKey": "7324cb7e93bbec6336492cc55a6818cd1ee3fe797899ca3341f36897e21928cd",
+        "publicAddress": "92a34aae04c8d01b3e97a1f43698ec14a88373bd457d9e8eccf0ef2f50ac1d0d",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "6751cac5f8a52448bdcea6856295cd100a1731ac96f073be888ff1060eb0c103"
+      },
+      "head": {
         "hash": {
           "type": "Buffer",
           "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
         },
         "sequence": 1
-      },
-      "proofAuthorizingKey": "6d70e4eccda70207007df591cc8647aab6a50e2222a54aa4b490d0864b711906"
+      }
     }
   ]
 }

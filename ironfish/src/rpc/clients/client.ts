@@ -75,6 +75,8 @@ import type {
   GetBannedPeersResponse,
   GetBlockRequest,
   GetBlockResponse,
+  GetBlocksRequest,
+  GetBlocksResponse,
   GetChainInfoRequest,
   GetChainInfoResponse,
   GetConfigRequest,
@@ -115,6 +117,8 @@ import type {
   GetPublicKeyResponse,
   GetRpcStatusRequest,
   GetRpcStatusResponse,
+  GetTransactionNotesRequest,
+  GetTransactionNotesResponse,
   GetTransactionRequest,
   GetTransactionResponse,
   GetTransactionStreamRequest,
@@ -143,12 +147,18 @@ import type {
   RemoveAccountResponse,
   RenameAccountRequest,
   RenameAccountResponse,
-  RescanAccountRequest,
-  RescanAccountResponse,
+  RescanRequest,
+  RescanResponse,
+  ResetAccountRequest,
+  ResetAccountResponse,
   SendTransactionRequest,
   SendTransactionResponse,
+  SetAccountHeadRequest,
+  SetAccountHeadResponse,
   SetConfigRequest,
   SetConfigResponse,
+  SetScanningRequest,
+  SetScanningResponse,
   ShowChainRequest,
   ShowChainResponse,
   StopNodeResponse,
@@ -302,6 +312,15 @@ export abstract class RpcClient {
       },
     },
 
+    setAccountHead: (
+      params: SetAccountHeadRequest,
+    ): Promise<RpcResponseEnded<SetAccountHeadResponse>> => {
+      return this.request<SetAccountHeadResponse>(
+        `${ApiNamespace.wallet}/setAccountHead`,
+        params,
+      ).waitForEnd()
+    },
+
     getAccounts: (
       params: GetAccountsRequest = undefined,
     ): Promise<RpcResponseEnded<GetAccountsResponse>> => {
@@ -354,6 +373,15 @@ export abstract class RpcClient {
       ).waitForEnd()
     },
 
+    resetAccount: (
+      params: ResetAccountRequest,
+    ): Promise<RpcResponseEnded<ResetAccountResponse>> => {
+      return this.request<ResetAccountResponse>(
+        `${ApiNamespace.wallet}/resetAccount`,
+        params,
+      ).waitForEnd()
+    },
+
     getAccountBalances: (
       params: GetBalancesRequest,
     ): Promise<RpcResponseEnded<GetBalancesResponse>> => {
@@ -372,13 +400,8 @@ export abstract class RpcClient {
       ).waitForEnd()
     },
 
-    rescanAccountStream: (
-      params: RescanAccountRequest = {},
-    ): RpcResponse<void, RescanAccountResponse> => {
-      return this.request<void, RescanAccountResponse>(
-        `${ApiNamespace.wallet}/rescanAccount`,
-        params,
-      )
+    rescan: (params: RescanRequest = {}): RpcResponse<void, RescanResponse> => {
+      return this.request<void, RescanResponse>(`${ApiNamespace.wallet}/rescan`, params)
     },
 
     exportAccount: (
@@ -451,6 +474,15 @@ export abstract class RpcClient {
         `${ApiNamespace.wallet}/getAccountTransactions`,
         params,
       )
+    },
+
+    getTransactionNotes: (
+      params: GetTransactionNotesRequest,
+    ): Promise<RpcResponseEnded<GetTransactionNotesResponse>> => {
+      return this.request<GetTransactionNotesResponse>(
+        `${ApiNamespace.wallet}/getTransactionNotes`,
+        params,
+      ).waitForEnd()
     },
 
     getUnsignedTransactionNotes: (
@@ -561,6 +593,15 @@ export abstract class RpcClient {
     ): Promise<RpcResponseEnded<BuildTransactionResponse>> => {
       return this.request<BuildTransactionResponse>(
         `${ApiNamespace.wallet}/buildTransaction`,
+        params,
+      ).waitForEnd()
+    },
+
+    setScanning: (
+      params: SetScanningRequest,
+    ): Promise<RpcResponseEnded<SetScanningResponse>> => {
+      return this.request<SetScanningResponse>(
+        `${ApiNamespace.wallet}/setScanning`,
         params,
       ).waitForEnd()
     },
@@ -816,6 +857,13 @@ export abstract class RpcClient {
     getBlock: (params: GetBlockRequest): Promise<RpcResponseEnded<GetBlockResponse>> => {
       return this.request<GetBlockResponse>(
         `${ApiNamespace.chain}/getBlock`,
+        params,
+      ).waitForEnd()
+    },
+
+    getBlocks: (params: GetBlocksRequest): Promise<RpcResponseEnded<GetBlocksResponse>> => {
+      return this.request<GetBlocksResponse>(
+        `${ApiNamespace.chain}/getBlocks`,
         params,
       ).waitForEnd()
     },

@@ -5,8 +5,9 @@ import * as yup from 'yup'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import { AssertHasRpcContext } from '../rpcContext'
+import { serializeRpcWalletNote } from './serializers'
 import { RpcWalletNote, RpcWalletNoteSchema } from './types'
-import { getAccount, serializeRpcWalletNote } from './utils'
+import { getAccount } from './utils'
 
 const DEFAULT_PAGE_SIZE = 100
 

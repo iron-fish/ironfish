@@ -11,7 +11,7 @@ import {
 } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { CurrencyUtils } from '../../../utils'
-import { serializeRpcWalletTransaction } from './utils'
+import { serializeRpcWalletTransaction } from './serializers'
 
 describe('Route wallet/burnAsset', () => {
   const routeTest = createRouteTest(true)
@@ -58,14 +58,14 @@ describe('Route wallet/burnAsset', () => {
 
       const block = await useMinerBlockFixture(routeTest.chain, undefined, account, node.wallet)
       await expect(node.chain).toAddBlock(block)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
       const assetId = asset.id()
       const value = BigInt(10)
       const mintBlock = await useMintBlockFixture({ node, account, asset, value })
       await expect(node.chain).toAddBlock(mintBlock)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const burnValue = BigInt(2)
       const burnTransaction = await usePostTxFixture({

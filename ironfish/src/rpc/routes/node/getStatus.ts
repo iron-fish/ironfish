@@ -98,9 +98,12 @@ export type GetNodeStatusResponse = {
   accounts: {
     enabled: boolean
     scanning?: {
+      hash: string
       sequence: number
+      startSequence: number
       endSequence: number
       startedAt: number
+      speed: number
     }
     head: {
       hash: string
@@ -235,9 +238,12 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetNodeStatusResponse> = 
         enabled: yup.boolean().defined(),
         scanning: yup
           .object({
+            hash: yup.string().defined(),
             sequence: yup.number().defined(),
+            startSequence: yup.number().defined(),
             endSequence: yup.number().defined(),
             startedAt: yup.number().defined(),
+            speed: yup.number().defined(),
           })
           .optional(),
       })
@@ -274,15 +280,8 @@ routes.register<typeof GetStatusRequestSchema, GetNodeStatusResponse>(
 )
 
 async function getStatus(node: FullNode): Promise<GetNodeStatusResponse> {
-  let accountsScanning
-  if (node.wallet.scan !== null) {
-    accountsScanning = {
-      sequence: node.wallet.scan.sequence,
-      endSequence: node.wallet.scan.endSequence,
-      startedAt: node.wallet.scan.startedAt,
-    }
-  }
-
+  const walletScanner = node.wallet.scanner.state
+  const walletHead = await node.wallet.getLatestHead()
   const chainDBSizeBytes = await node.chain.blockchainDb.size()
 
   const status: GetNodeStatusResponse = {
@@ -366,12 +365,21 @@ async function getStatus(node: FullNode): Promise<GetNodeStatusResponse> {
       speed: MathUtils.round(node.workerPool.speed?.rate5s ?? 0, 2),
     },
     accounts: {
-      scanning: accountsScanning,
       enabled: node.config.get('enableWallet'),
       head: {
-        hash: node.wallet.chainProcessor.hash?.toString('hex') ?? '',
-        sequence: node.wallet.chainProcessor.sequence ?? -1,
+        hash: walletHead?.hash.toString('hex') ?? '',
+        sequence: walletHead?.sequence ?? -1,
       },
+      scanning: walletScanner
+        ? {
+            sequence: walletScanner.sequence ?? -1,
+            hash: walletScanner?.hash?.toString('hex') ?? '',
+            startSequence: walletScanner.start.sequence,
+            endSequence: walletScanner.end.sequence,
+            startedAt: walletScanner.startedAt,
+            speed: walletScanner.speed.rate5m,
+          }
+        : undefined,
     },
   }
 

@@ -21,7 +21,8 @@ import { NoteHasher } from '../merkletree'
 import { Side } from '../merkletree/merkletree'
 import { Witness } from '../merkletree/witness'
 import { Mutex } from '../mutex'
-import { GENESIS_BLOCK_PREVIOUS, GENESIS_BLOCK_SEQUENCE } from '../primitives/block'
+import { BlockHeader } from '../primitives'
+import { GENESIS_BLOCK_SEQUENCE } from '../primitives/block'
 import { BurnDescription } from '../primitives/burnDescription'
 import { MintDescription } from '../primitives/mintDescription'
 import { Note } from '../primitives/note'
@@ -32,16 +33,13 @@ import { GetBlockRequest, GetBlockResponse, RpcClient } from '../rpc'
 import { IDatabaseTransaction } from '../storage/database/transaction'
 import {
   AsyncUtils,
-  BufferUtils,
   ErrorUtils,
-  HashUtils,
-  PromiseResolve,
   PromiseUtils,
   SetTimeoutToken,
   TransactionUtils,
 } from '../utils'
 import { WorkerPool } from '../workerPool'
-import { DecryptedNote, DecryptNoteOptions } from '../workerPool/tasks/decryptNotes'
+import { DecryptedNote, DecryptNotesItem } from '../workerPool/tasks/decryptNotes'
 import { Account, ACCOUNT_SCHEMA_VERSION } from './account/account'
 import { AssetBalances } from './assetBalances'
 import {
@@ -50,15 +48,11 @@ import {
   MaxMemoLengthError,
   NotEnoughFundsError,
 } from './errors'
+import { AccountImport, validateAccountImport } from './exporter/accountImport'
+import { isMultisigSignerTrustedDealerImport } from './exporter/multisig'
 import { MintAssetOptions } from './interfaces/mintAssetOptions'
-import { isMultisigSignerTrustedDealerImport } from './interfaces/multisigKeys'
-import {
-  RemoteChainProcessor,
-  WalletBlockHeader,
-  WalletBlockTransaction,
-} from './remoteChainProcessor'
-import { validateAccount } from './validator'
-import { AccountImport } from './walletdb/accountValue'
+import { ScanState } from './scanner/scanState'
+import { WalletScanner } from './scanner/walletScanner'
 import { AssetValue } from './walletdb/assetValue'
 import { DecryptedNoteValue } from './walletdb/decryptedNoteValue'
 import { HeadValue } from './walletdb/headValue'
@@ -97,17 +91,15 @@ export class Wallet {
   readonly onAccountImported = new Event<[account: Account]>()
   readonly onAccountRemoved = new Event<[account: Account]>()
 
-  scan: ScanState | null = null
-  updateHeadState: ScanState | null = null
-
   protected readonly accounts = new Map<string, Account>()
   readonly walletDb: WalletDB
   private readonly logger: Logger
   readonly workerPool: WorkerPool
-  readonly chainProcessor: RemoteChainProcessor
+  readonly scanner: WalletScanner
   readonly nodeClient: RpcClient | null
   private readonly config: Config
   private readonly consensus: Consensus
+  readonly networkId: number
 
   protected rebroadcastAfter: number
   protected defaultAccount: string | null = null
@@ -118,7 +110,6 @@ export class Wallet {
   private readonly createTransactionMutex: Mutex
   private readonly eventLoopAbortController: AbortController
   private eventLoopPromise: Promise<void> | null = null
-  private eventLoopResolve: PromiseResolve<void> | null = null
 
   constructor({
     config,
@@ -127,6 +118,7 @@ export class Wallet {
     rebroadcastAfter,
     workerPool,
     consensus,
+    networkId,
     nodeClient,
   }: {
     config: Config
@@ -135,6 +127,7 @@ export class Wallet {
     rebroadcastAfter?: number
     workerPool: WorkerPool
     consensus: Consensus
+    networkId: number
     nodeClient: RpcClient | null
   }) {
     this.config = config
@@ -142,79 +135,61 @@ export class Wallet {
     this.walletDb = database
     this.workerPool = workerPool
     this.consensus = consensus
+    this.networkId = networkId
     this.nodeClient = nodeClient || null
     this.rebroadcastAfter = rebroadcastAfter ?? 10
     this.createTransactionMutex = new Mutex()
     this.eventLoopAbortController = new AbortController()
 
-    this.chainProcessor = new RemoteChainProcessor({
+    this.scanner = new WalletScanner({
+      wallet: this,
       logger: this.logger,
       nodeClient: this.nodeClient,
-      head: null,
       maxQueueSize: this.config.get('walletSyncingMaxQueueSize'),
-    })
-
-    this.chainProcessor.onAdd.on(async ({ header, transactions }) => {
-      if (Number(header.sequence) % this.config.get('walletSyncingMaxQueueSize') === 0) {
-        this.logger.info(
-          'Added block' +
-            ` seq: ${Number(header.sequence)},` +
-            ` hash: ${HashUtils.renderHash(header.hash)}`,
-        )
-      }
-
-      await this.connectBlock(header, transactions)
-      await this.expireTransactions(header.sequence)
-      await this.rebroadcastTransactions(header.sequence)
-    })
-
-    this.chainProcessor.onRemove.on(async ({ header, transactions }) => {
-      this.logger.debug(`AccountHead DEL: ${header.sequence} => ${Number(header.sequence) - 1}`)
-
-      await this.disconnectBlock(header, transactions)
+      config: config,
     })
   }
 
-  async updateHead(): Promise<void> {
-    if (this.scan || this.updateHeadState || this.accounts.size === 0) {
-      return
+  /**
+   * This starts a scan and returns when the scan has started and does not wait
+   * for it to complete.
+   */
+  async scan({
+    force,
+    wait,
+  }: {
+    force?: boolean
+    wait?: boolean
+  } = {}): Promise<ScanState | null> {
+    wait = wait ?? true
+
+    Assert.isTrue(this.isOpen, 'Cannot start a scan if wallet is not loaded')
+
+    if (!this.config.get('enableWallet')) {
+      return null
     }
 
-    // TODO: this isn't right, as the scan state doesn't get its sequence or
-    // endSequence set properly
-    const scan = new ScanState()
-    this.updateHeadState = scan
-
-    try {
-      let hashChanged = false
-      do {
-        hashChanged = (
-          await this.chainProcessor.update({ signal: scan.abortController.signal })
-        ).hashChanged
-        if (hashChanged) {
-          this.logger.debug(
-            `Updated Accounts Head: ${String(this.chainProcessor.hash?.toString('hex'))}`,
-          )
-        }
-      } while (hashChanged)
-    } finally {
-      scan.signalComplete()
-      this.updateHeadState = null
-    }
-  }
-
-  async shouldRescan(): Promise<boolean> {
-    if (this.scan) {
-      return false
+    if (this.listAccounts().length === 0) {
+      return null
     }
 
-    for (const account of this.accounts.values()) {
-      if (!(await this.isAccountUpToDate(account))) {
-        return true
-      }
+    if (this.scanner.running && !force) {
+      this.logger.debug('Skipping Scan, already scanning.')
+      return null
     }
 
-    return false
+    if (this.scanner.running && force) {
+      this.logger.debug('Aborting scan in progress and starting new scan.')
+      await this.scanner.abort()
+    }
+
+    const scan = await this.scanner.scan()
+
+    if (wait) {
+      await scan.wait()
+    }
+
+    return scan
   }
 
   async open(): Promise<void> {
@@ -229,18 +204,8 @@ export class Wallet {
 
   private async load(): Promise<void> {
     for await (const accountValue of this.walletDb.loadAccounts()) {
-      const account = new Account({
-        ...accountValue,
-        walletDb: this.walletDb,
-      })
-
+      const account = new Account({ accountValue, walletDb: this.walletDb })
       this.accounts.set(account.id, account)
-    }
-
-    const latestHead = await this.getLatestHead()
-    if (latestHead) {
-      this.chainProcessor.hash = latestHead.hash
-      this.chainProcessor.sequence = latestHead.sequence
     }
 
     const meta = await this.walletDb.loadAccountsMeta()
@@ -251,8 +216,6 @@ export class Wallet {
     this.accounts.clear()
 
     this.defaultAccount = null
-    this.chainProcessor.hash = null
-    this.chainProcessor.sequence = null
   }
 
   async close(): Promise<void> {
@@ -265,47 +228,11 @@ export class Wallet {
     this.unload()
   }
 
-  async start(): Promise<void> {
+  start(): void {
     if (this.isStarted) {
       return
     }
     this.isStarted = true
-
-    if (this.chainProcessor.hash) {
-      const hasHeadBlock = await this.chainHasBlock(this.chainProcessor.hash)
-
-      if (!hasHeadBlock) {
-        throw new Error(
-          `Wallet has scanned to block ${this.chainProcessor.hash.toString(
-            'hex',
-          )}, but node's chain does not contain that block. Unable to sync from node without rescan.`,
-        )
-      }
-    }
-
-    const chainHead = await this.getChainHead()
-
-    for (const account of this.listAccounts()) {
-      if (account.createdAt === null) {
-        continue
-      }
-
-      if (account.createdAt.sequence > chainHead.sequence) {
-        continue
-      }
-
-      if (!(await this.chainHasBlock(account.createdAt.hash))) {
-        this.logger.warn(
-          `Account ${account.name} createdAt refers to a block that is not on the node's chain. Resetting to null.`,
-        )
-        await account.updateCreatedAt(null)
-      }
-    }
-
-    if (!this.scan && (await this.shouldRescan())) {
-      void this.scanTransactions()
-    }
-
     void this.eventLoop()
   }
 
@@ -319,9 +246,8 @@ export class Wallet {
       clearTimeout(this.eventLoopTimeout)
     }
 
-    await Promise.all([this.scan?.abort(), this.updateHeadState?.abort()])
+    await this.scanner.abort()
     this.eventLoopAbortController.abort()
-
     await this.eventLoopPromise
   }
 
@@ -332,11 +258,20 @@ export class Wallet {
 
     const [promise, resolve] = PromiseUtils.split<void>()
     this.eventLoopPromise = promise
-    this.eventLoopResolve = resolve
 
-    await this.updateHead()
+    if (!this.scanner.running) {
+      void this.scan()
+    }
+
     void this.syncTransactionGossip()
     await this.cleanupDeletedAccounts()
+
+    const head = await this.getLatestHead()
+
+    if (head) {
+      await this.expireTransactions(head.sequence)
+      await this.rebroadcastTransactions(head.sequence)
+    }
 
     if (this.isStarted) {
       this.eventLoopTimeout = setTimeout(() => void this.eventLoop(), 1000)
@@ -344,7 +279,6 @@ export class Wallet {
 
     resolve()
     this.eventLoopPromise = null
-    this.eventLoopResolve = null
   }
 
   async syncTransactionGossip(): Promise<void> {
@@ -383,15 +317,18 @@ export class Wallet {
     }
   }
 
-  async reset(options?: { resetCreatedAt?: boolean }): Promise<void> {
+  async reset(options?: {
+    resetCreatedAt?: boolean
+    resetScanningEnabled?: boolean
+    tx?: IDatabaseTransaction
+  }): Promise<void> {
     await this.resetAccounts(options)
-
-    this.chainProcessor.hash = null
   }
 
-  private async resetAccounts(options?: {
-    tx?: IDatabaseTransaction
+  async resetAccounts(options?: {
     resetCreatedAt?: boolean
+    resetScanningEnabled?: boolean
+    tx?: IDatabaseTransaction
   }): Promise<void> {
     for (const account of this.listAccounts()) {
       await this.resetAccount(account, options)
@@ -402,177 +339,105 @@ export class Wallet {
     transaction: Transaction,
     initialNoteIndex: number | null,
     decryptForSpender: boolean,
-    accounts?: Array<Account>,
+    accounts: ReadonlyArray<Account>,
   ): Promise<Map<string, Array<DecryptedNote>>> {
-    const accountsToCheck =
-      accounts ||
-      (await AsyncUtils.filter(
-        this.listAccounts(),
-        async (a) => await this.isAccountUpToDate(a),
-      ))
-
-    const batchSize = 20
-    const notePromises: Array<
-      Promise<Array<{ accountId: string; decryptedNote: DecryptedNote }>>
-    > = []
+    const workloadSize = 20
+    const notePromises: Array<Promise<Map<string, Array<DecryptedNote | null>>>> = []
     let decryptNotesPayloads = []
-    for (const account of accountsToCheck) {
-      let currentNoteIndex = initialNoteIndex
 
-      for (const note of transaction.notes) {
-        decryptNotesPayloads.push({
-          accountId: account.id,
-          options: {
-            serializedNote: note.serialize(),
-            incomingViewKey: account.incomingViewKey,
-            outgoingViewKey: account.outgoingViewKey,
-            viewKey: account.viewKey,
-            currentNoteIndex,
-            decryptForSpender,
-          },
-        })
+    let currentNoteIndex = initialNoteIndex
 
-        if (currentNoteIndex) {
-          currentNoteIndex++
-        }
+    for (const note of transaction.notes) {
+      decryptNotesPayloads.push({
+        serializedNote: note.serialize(),
+        currentNoteIndex,
+        decryptForSpender,
+      })
 
-        if (decryptNotesPayloads.length >= batchSize) {
-          notePromises.push(this.decryptNotesFromTransaction(decryptNotesPayloads))
-          decryptNotesPayloads = []
-        }
+      if (currentNoteIndex) {
+        currentNoteIndex++
+      }
+
+      if (accounts.length * decryptNotesPayloads.length >= workloadSize) {
+        notePromises.push(this.decryptNotesFromTransaction(accounts, decryptNotesPayloads))
+        decryptNotesPayloads = []
       }
     }
 
     if (decryptNotesPayloads.length) {
-      notePromises.push(this.decryptNotesFromTransaction(decryptNotesPayloads))
+      notePromises.push(this.decryptNotesFromTransaction(accounts, decryptNotesPayloads))
     }
 
-    const decryptedNotesByAccountId = new Map<string, Array<DecryptedNote>>()
-    const flatPromises = (await Promise.all(notePromises)).flat()
-    for (const decryptedNoteResponse of flatPromises) {
-      const accountNotes = decryptedNotesByAccountId.get(decryptedNoteResponse.accountId) ?? []
-      accountNotes.push(decryptedNoteResponse.decryptedNote)
-      decryptedNotesByAccountId.set(decryptedNoteResponse.accountId, accountNotes)
-    }
-
-    return decryptedNotesByAccountId
-  }
-
-  async decryptNotesFromTransaction(
-    decryptNotesPayloads: Array<{ accountId: string; options: DecryptNoteOptions }>,
-  ): Promise<Array<{ accountId: string; decryptedNote: DecryptedNote }>> {
-    const decryptedNotes: Array<{ accountId: string; decryptedNote: DecryptedNote }> = []
-    const response = await this.workerPool.decryptNotes(
-      decryptNotesPayloads.map((p) => p.options),
-    )
-
-    // Job should return same number of nullable notes as requests
-    Assert.isEqual(response.length, decryptNotesPayloads.length)
-
-    for (let i = 0; i < response.length; i++) {
-      const decryptedNote = response[i]
-      if (decryptedNote) {
-        decryptedNotes.push({
-          accountId: decryptNotesPayloads[i].accountId,
-          decryptedNote,
-        })
-      }
-    }
-
-    return decryptedNotes
-  }
-
-  async connectBlock(
-    blockHeader: WalletBlockHeader,
-    transactions: WalletBlockTransaction[],
-    scan?: ScanState,
-  ): Promise<void> {
-    const accounts = await AsyncUtils.filter(this.listAccounts(), async (account) => {
-      const accountHead = await account.getHead()
-
-      if (!accountHead) {
-        return blockHeader.sequence === 1
-      } else {
-        return BufferUtils.equalsNullable(accountHead.hash, blockHeader.previousBlockHash)
-      }
-    })
-
-    const shouldDecryptAccounts = await AsyncUtils.filter(accounts, (a) =>
-      this.shouldDecryptForAccount(blockHeader, a),
-    )
-    const shouldDecryptAccountIds = new Set(shouldDecryptAccounts.map((a) => a.id))
-
-    const decryptedTransactions = await Promise.all(
-      transactions.map(({ transaction, initialNoteIndex }) =>
-        this.decryptNotes(transaction, initialNoteIndex, false, shouldDecryptAccounts).then(
-          (r) => ({
-            result: r,
-            transaction,
-          }),
-        ),
-      ),
-    )
-
-    // account id -> transaction hash -> Array<DecryptedNote>
-    const decryptedNotesMap: Map<string, BufferMap<Array<DecryptedNote>>> = new Map()
-    for (const { transaction, result } of decryptedTransactions) {
-      for (const [accountId, decryptedNotes] of result) {
-        const accountTxnsMap =
-          decryptedNotesMap.get(accountId) ?? new BufferMap<Array<DecryptedNote>>()
-        accountTxnsMap.set(transaction.hash(), decryptedNotes)
-        decryptedNotesMap.set(accountId, accountTxnsMap)
-      }
-    }
-
+    const mergedResults: Map<string, Array<DecryptedNote>> = new Map()
     for (const account of accounts) {
-      if (scan && scan.isAborted) {
-        scan.signalComplete()
-        this.scan = null
-        return
+      mergedResults.set(account.id, [])
+    }
+    for (const promise of notePromises) {
+      const partialResult = await promise
+      for (const [accountId, decryptedNotes] of partialResult.entries()) {
+        const list = mergedResults.get(accountId)
+        Assert.isNotUndefined(list)
+        list.push(...(decryptedNotes.filter((note) => note !== null) as Array<DecryptedNote>))
       }
+    }
 
-      await this.walletDb.db.transaction(async (tx) => {
-        let assetBalanceDeltas = new AssetBalances()
-        const accountTxnsMap = decryptedNotesMap.get(account.id)
-        const txns = transactions.map((t) => ({
-          transaction: t.transaction,
-          decryptedNotes: accountTxnsMap?.get(t.transaction.hash()) ?? [],
-        }))
+    return mergedResults
+  }
 
-        if (shouldDecryptAccountIds.has(account.id)) {
-          assetBalanceDeltas = await this.connectBlockTransactions(
-            blockHeader,
-            txns,
-            account,
-            scan,
-            tx,
-          )
-        }
+  private decryptNotesFromTransaction(
+    accounts: ReadonlyArray<Account>,
+    encryptedNotes: Array<DecryptNotesItem>,
+  ): Promise<Map<string, Array<DecryptedNote | null>>> {
+    const accountKeys = accounts.map((account) => ({
+      accountId: account.id,
+      incomingViewKey: account.incomingViewKey,
+      outgoingViewKey: account.outgoingViewKey,
+      viewKey: account.viewKey,
+    }))
 
-        await account.updateUnconfirmedBalances(
-          assetBalanceDeltas,
-          blockHeader.hash,
-          blockHeader.sequence,
+    return this.workerPool.decryptNotes(accountKeys, encryptedNotes, {
+      decryptForSpender: false,
+    })
+  }
+
+  async connectBlockForAccount(
+    account: Account,
+    blockHeader: BlockHeader,
+    transactions: { transaction: Transaction; decryptedNotes: DecryptedNote[] }[],
+    shouldDecrypt: boolean,
+  ): Promise<void> {
+    let assetBalanceDeltas = new AssetBalances()
+
+    await this.walletDb.db.transaction(async (tx) => {
+      if (shouldDecrypt) {
+        assetBalanceDeltas = await this.connectBlockTransactions(
+          blockHeader,
+          transactions,
+          account,
           tx,
         )
+      }
 
-        await account.updateHead({ hash: blockHeader.hash, sequence: blockHeader.sequence }, tx)
+      await account.updateUnconfirmedBalances(
+        assetBalanceDeltas,
+        blockHeader.hash,
+        blockHeader.sequence,
+        tx,
+      )
 
-        const accountHasTransaction = assetBalanceDeltas.size > 0
-        if (account.createdAt === null && accountHasTransaction) {
-          await account.updateCreatedAt(
-            { hash: blockHeader.hash, sequence: blockHeader.sequence },
-            tx,
-          )
-        }
-      })
-    }
+      await account.updateHead({ hash: blockHeader.hash, sequence: blockHeader.sequence }, tx)
+
+      const accountHasTransaction = assetBalanceDeltas.size > 0
+      if (account.createdAt === null && accountHasTransaction) {
+        await account.updateCreatedAt(
+          { hash: blockHeader.hash, sequence: blockHeader.sequence },
+          tx,
+        )
+      }
+    })
   }
 
-  async shouldDecryptForAccount(
-    blockHeader: WalletBlockHeader,
-    account: Account,
-  ): Promise<boolean> {
+  shouldDecryptForAccount(blockHeader: BlockHeader, account: Account): boolean {
     if (account.createdAt === null) {
       return true
     }
@@ -581,36 +446,18 @@ export class Wallet {
       return false
     }
 
-    if (
-      account.createdAt.sequence === blockHeader.sequence &&
-      !account.createdAt.hash.equals(blockHeader.hash)
-    ) {
-      this.logger.warn(
-        `Account ${account.name} createdAt refers to a block that is not on the node's chain. Stopping scan for this account.`,
-      )
-      await account.updateCreatedAt(null)
-      // Sets head to null to avoid connecting blocks for this account
-      await account.updateHead(null)
-      return false
-    }
-
     return true
   }
 
   private async connectBlockTransactions(
-    blockHeader: WalletBlockHeader,
+    blockHeader: BlockHeader,
     transactions: Array<{ transaction: Transaction; decryptedNotes: Array<DecryptedNote> }>,
     account: Account,
-    scan?: ScanState,
     tx?: IDatabaseTransaction,
   ): Promise<AssetBalances> {
     const assetBalanceDeltas = new AssetBalances()
 
     for (const { transaction, decryptedNotes } of transactions) {
-      if (scan && scan.isAborted) {
-        return assetBalanceDeltas
-      }
-
       const transactionDeltas = await account.connectTransaction(
         blockHeader,
         transaction,
@@ -629,7 +476,7 @@ export class Wallet {
   private async upsertAssetsFromDecryptedNotes(
     account: Account,
     decryptedNotes: DecryptedNote[],
-    blockHeader: WalletBlockHeader,
+    blockHeader: BlockHeader,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     for (const { serializedNote } of decryptedNotes) {
@@ -711,50 +558,36 @@ export class Wallet {
     return asset
   }
 
-  async disconnectBlock(
-    header: WalletBlockHeader,
-    transactions: WalletBlockTransaction[],
-  ): Promise<void> {
-    const accounts = await AsyncUtils.filter(this.listAccounts(), async (account) => {
-      const accountHead = await account.getHead()
+  async disconnectBlockForAccount(
+    account: Account,
+    header: BlockHeader,
+    transactions: Transaction[],
+  ) {
+    const assetBalanceDeltas = new AssetBalances()
 
-      return BufferUtils.equalsNullable(accountHead?.hash ?? null, header.hash)
+    await this.walletDb.db.transaction(async (tx) => {
+      for (const transaction of transactions.slice().reverse()) {
+        const transactionDeltas = await account.disconnectTransaction(header, transaction, tx)
+
+        assetBalanceDeltas.update(transactionDeltas)
+
+        if (transaction.isMinersFee()) {
+          await account.deleteTransaction(transaction, tx)
+        }
+      }
+
+      await account.updateUnconfirmedBalances(
+        assetBalanceDeltas,
+        header.previousBlockHash,
+        header.sequence - 1,
+        tx,
+      )
+
+      await account.updateHead(
+        { hash: header.previousBlockHash, sequence: header.sequence - 1 },
+        tx,
+      )
     })
-
-    for (const account of accounts) {
-      const assetBalanceDeltas = new AssetBalances()
-
-      await this.walletDb.db.transaction(async (tx) => {
-        for (const { transaction } of transactions.slice().reverse()) {
-          const transactionDeltas = await account.disconnectTransaction(header, transaction, tx)
-
-          assetBalanceDeltas.update(transactionDeltas)
-
-          if (transaction.isMinersFee()) {
-            await account.deleteTransaction(transaction, tx)
-          }
-        }
-
-        await account.updateUnconfirmedBalances(
-          assetBalanceDeltas,
-          header.previousBlockHash,
-          header.sequence - 1,
-          tx,
-        )
-
-        await account.updateHead(
-          { hash: header.previousBlockHash, sequence: header.sequence - 1 },
-          tx,
-        )
-
-        if (account.createdAt?.hash.equals(header.hash)) {
-          await account.updateCreatedAt(
-            { hash: header.previousBlockHash, sequence: header.sequence - 1 },
-            tx,
-          )
-        }
-      })
-    }
   }
 
   async addPendingTransaction(transaction: Transaction): Promise<void> {
@@ -784,77 +617,6 @@ export class Wallet {
     }
   }
 
-  async scanTransactions(fromHash?: Buffer, force?: boolean): Promise<void> {
-    if (!this.isOpen) {
-      throw new Error('Cannot start a scan if accounts are not loaded')
-    }
-
-    if (!this.config.get('enableWallet')) {
-      this.logger.info('Skipping Scan, wallet is not started.')
-      return
-    }
-
-    if (this.scan) {
-      if (force) {
-        this.logger.info('Aborting scan in progress and starting new scan.')
-        await this.scan.abort()
-      } else {
-        this.logger.info('Skipping Scan, already scanning.')
-        return
-      }
-    }
-
-    const scan = new ScanState()
-    this.scan = scan
-
-    // If we are updating the account head, we need to wait until its finished
-    // but setting this.scan is our lock so updating the head doesn't run again
-    await this.updateHeadState?.wait()
-
-    const startHash = fromHash ?? (await this.getEarliestHeadHash())
-
-    // Fetch current chain head sequence
-    const chainHead = await this.getChainHead()
-    scan.endSequence = chainHead.sequence
-
-    this.logger.info(`Scan starting from block ${startHash?.toString('hex') ?? 'null'}`)
-
-    const scanProcessor = new RemoteChainProcessor({
-      logger: this.logger,
-      nodeClient: this.nodeClient,
-      head: startHash,
-      maxQueueSize: this.config.get('walletSyncingMaxQueueSize'),
-    })
-
-    scanProcessor.onAdd.on(async ({ header, transactions }) => {
-      await this.connectBlock(header, transactions, scan)
-      scan.signal(header.sequence)
-    })
-
-    scanProcessor.onRemove.on(async ({ header, transactions }) => {
-      await this.disconnectBlock(header, transactions)
-    })
-
-    let hashChanged = false
-    do {
-      hashChanged = (await scanProcessor.update({ signal: scan.abortController.signal }))
-        .hashChanged
-    } while (hashChanged)
-
-    // Update chainProcessor following scan
-    this.chainProcessor.hash = scanProcessor.hash
-    this.chainProcessor.sequence = scanProcessor.sequence
-
-    this.logger.info(
-      `Finished scanning for transactions after ${Math.floor(
-        (Date.now() - scan.startedAt) / 1000,
-      )} seconds`,
-    )
-
-    scan.signalComplete()
-    this.scan = null
-  }
-
   async *getBalances(
     account: Account,
     confirmations?: number,
@@ -866,6 +628,7 @@ export class Wallet {
     pendingCount: number
     confirmed: bigint
     available: bigint
+    availableNoteCount: number
     blockHash: Buffer | null
     sequence: number | null
   }> {
@@ -889,6 +652,7 @@ export class Wallet {
     pendingCount: number
     pending: bigint
     available: bigint
+    availableNoteCount: number
     blockHash: Buffer | null
     sequence: number | null
   }> {
@@ -1045,10 +809,6 @@ export class Wallet {
 
     try {
       this.assertHasAccount(options.account)
-
-      if (!(await this.isAccountUpToDate(options.account))) {
-        throw new Error('Your account must finish scanning before sending a transaction.')
-      }
 
       const transactionVersionSequenceDelta = TransactionUtils.versionSequenceDelta(
         expiration ? expiration - heaviestHead.sequence : expiration,
@@ -1493,8 +1253,7 @@ export class Wallet {
 
   async createAccount(
     name: string,
-    options: { setCreatedAt?: boolean; setDefault?: boolean } = {
-      setCreatedAt: true,
+    options: { createdAt?: HeadValue | null; setDefault?: boolean } = {
       setDefault: false,
     },
   ): Promise<Account> {
@@ -1505,7 +1264,9 @@ export class Wallet {
     const key = generateKey()
 
     let createdAt: HeadValue | null = null
-    if (options.setCreatedAt && this.nodeClient) {
+    if (options.createdAt !== undefined) {
+      createdAt = options.createdAt
+    } else if (this.nodeClient) {
       try {
         createdAt = await this.getChainHead()
       } catch {
@@ -1514,16 +1275,19 @@ export class Wallet {
     }
 
     const account = new Account({
-      version: ACCOUNT_SCHEMA_VERSION,
-      id: uuid(),
-      name,
-      incomingViewKey: key.incomingViewKey,
-      outgoingViewKey: key.outgoingViewKey,
-      proofAuthorizingKey: key.proofAuthorizingKey,
-      publicAddress: key.publicAddress,
-      spendingKey: key.spendingKey,
-      viewKey: key.viewKey,
-      createdAt,
+      accountValue: {
+        version: ACCOUNT_SCHEMA_VERSION,
+        id: uuid(),
+        name,
+        incomingViewKey: key.incomingViewKey,
+        outgoingViewKey: key.outgoingViewKey,
+        proofAuthorizingKey: key.proofAuthorizingKey,
+        publicAddress: key.publicAddress,
+        spendingKey: key.spendingKey,
+        viewKey: key.viewKey,
+        scanningEnabled: true,
+        createdAt,
+      },
       walletDb: this.walletDb,
     })
 
@@ -1531,12 +1295,6 @@ export class Wallet {
       await this.walletDb.setAccount(account, tx)
       await account.updateHead(createdAt, tx)
     })
-
-    // If this is the first account, set the chainProcessor state
-    if (this.accounts.size === 0 && createdAt) {
-      this.chainProcessor.hash = createdAt.hash
-      this.chainProcessor.sequence = createdAt.sequence
-    }
 
     this.accounts.set(account.id, account)
 
@@ -1548,17 +1306,14 @@ export class Wallet {
   }
 
   async skipRescan(account: Account, tx?: IDatabaseTransaction): Promise<void> {
-    const hash = this.chainProcessor.hash
-    const sequence = this.chainProcessor.sequence
-
-    if (hash === null || sequence === null) {
-      await account.updateHead(null, tx)
-    } else {
-      await account.updateHead({ hash, sequence }, tx)
-    }
+    const { hash, sequence } = await this.getChainHead()
+    await account.updateHead({ hash, sequence }, tx)
   }
 
-  async importAccount(accountValue: AccountImport): Promise<Account> {
+  async importAccount(
+    accountValue: AccountImport,
+    options?: { createdAt?: number },
+  ): Promise<Account> {
     let multisigKeys = accountValue.multisigKeys
     const name = accountValue.name
 
@@ -1592,34 +1347,35 @@ export class Wallet {
       throw new Error(`Account already exists with provided spending key`)
     }
 
-    validateAccount(accountValue)
+    validateAccountImport(accountValue)
 
-    let createdAt = accountValue.createdAt
+    let createdAt = options?.createdAt
+      ? {
+          sequence: options?.createdAt,
+          // hash is no longer used, set to empty buffer
+          hash: Buffer.alloc(32, 0),
+          networkId: this.networkId,
+        }
+      : accountValue.createdAt
 
-    if (createdAt && !this.nodeClient) {
-      this.logger.debug(
-        `Wallet not connected to node to verify that account createdAt block ${createdAt.hash.toString(
-          'hex',
-        )} (${createdAt.sequence}) in chain. Setting createdAt to null`,
-      )
-      createdAt = null
-    }
-
-    if (createdAt !== null && !(await this.chainHasBlock(createdAt.hash))) {
-      this.logger.debug(
-        `Account ${accountValue.name} createdAt block ${createdAt.hash.toString('hex')} (${
-          createdAt.sequence
-        }) not found in the chain. Setting createdAt to null.`,
-      )
+    if (createdAt?.networkId !== this.networkId) {
+      if (createdAt?.networkId !== undefined) {
+        this.logger.warn(
+          `Account ${accountValue.name} networkId ${createdAt?.networkId} does not match wallet networkId ${this.networkId}. Setting createdAt to null.`,
+        )
+      }
       createdAt = null
     }
 
     const account = new Account({
-      ...accountValue,
-      id: uuid(),
-      createdAt,
-      name,
-      multisigKeys,
+      accountValue: {
+        ...accountValue,
+        id: uuid(),
+        createdAt,
+        name,
+        multisigKeys,
+        scanningEnabled: true,
+      },
       walletDb: this.walletDb,
     })
 
@@ -1627,12 +1383,12 @@ export class Wallet {
       await this.walletDb.setAccount(account, tx)
 
       if (createdAt !== null) {
-        const previousBlockHash = await this.chainGetPreviousBlockHash(createdAt.hash)
+        const previousBlock = await this.chainGetBlock({ sequence: createdAt.sequence - 1 })
 
-        const head = previousBlockHash
+        const head = previousBlock
           ? {
-              hash: previousBlockHash,
-              sequence: createdAt.sequence - 1,
+              hash: Buffer.from(previousBlock.block.hash, 'hex'),
+              sequence: previousBlock.block.sequence,
             }
           : null
 
@@ -1661,20 +1417,41 @@ export class Wallet {
     account: Account,
     options?: {
       resetCreatedAt?: boolean
+      resetScanningEnabled?: boolean
       tx?: IDatabaseTransaction
     },
   ): Promise<void> {
     const newAccount = new Account({
-      ...account,
-      createdAt: options?.resetCreatedAt ? null : account.createdAt,
-      id: uuid(),
+      accountValue: {
+        ...account,
+        createdAt: options?.resetCreatedAt ? null : account.createdAt,
+        scanningEnabled: options?.resetScanningEnabled ? true : account.scanningEnabled,
+        id: uuid(),
+      },
       walletDb: this.walletDb,
     })
+
     this.logger.debug(`Resetting account name: ${account.name}, id: ${account.id}`)
 
     await this.walletDb.db.withTransaction(options?.tx, async (tx) => {
       await this.walletDb.setAccount(newAccount, tx)
-      await newAccount.updateHead(null, tx)
+
+      if (newAccount.createdAt !== null) {
+        const previousBlock = await this.chainGetBlock({
+          sequence: newAccount.createdAt.sequence - 1,
+        })
+
+        const head = previousBlock
+          ? {
+              hash: Buffer.from(previousBlock.block.hash, 'hex'),
+              sequence: previousBlock.block.sequence,
+            }
+          : null
+
+        await newAccount.updateHead(head, tx)
+      } else {
+        await newAccount.updateHead(null, tx)
+      }
 
       if (account.id === this.defaultAccount) {
         await this.walletDb.setDefaultAccount(newAccount.id, tx)
@@ -1721,7 +1498,7 @@ export class Wallet {
       return
     }
 
-    if (this.scan || this.updateHeadState) {
+    if (this.scanner.running) {
       return
     }
 
@@ -1766,6 +1543,15 @@ export class Wallet {
     return null
   }
 
+  getAccountByPublicAddress(publicAddress: string): Account | null {
+    for (const account of this.accounts.values()) {
+      if (publicAddress === account.publicAddress) {
+        return account
+      }
+    }
+    return null
+  }
+
   getAccount(id: string): Account | null {
     const account = this.accounts.get(id)
 
@@ -1784,9 +1570,13 @@ export class Wallet {
     return this.getAccount(this.defaultAccount)
   }
 
-  async getEarliestHeadHash(): Promise<Buffer | null> {
+  async getEarliestHead(): Promise<HeadValue | null> {
     let earliestHead = null
     for (const account of this.accounts.values()) {
+      if (!account.scanningEnabled) {
+        continue
+      }
+
       const head = await account.getHead()
 
       if (!head) {
@@ -1798,13 +1588,17 @@ export class Wallet {
       }
     }
 
-    return earliestHead ? earliestHead.hash : null
+    return earliestHead
   }
 
   async getLatestHead(): Promise<HeadValue | null> {
     let latestHead = null
 
     for (const account of this.accounts.values()) {
+      if (!account.scanningEnabled) {
+        continue
+      }
+
       const head = await account.getHead()
 
       if (!head) {
@@ -1819,20 +1613,16 @@ export class Wallet {
     return latestHead
   }
 
-  async getLatestHeadHash(): Promise<Buffer | null> {
-    const latestHead = await this.getLatestHead()
-
-    return latestHead ? latestHead.hash : null
-  }
-
-  async isAccountUpToDate(account: Account): Promise<boolean> {
+  async isAccountUpToDate(account: Account, confirmations?: number): Promise<boolean> {
     const head = await account.getHead()
-    Assert.isNotUndefined(
-      head,
-      `isAccountUpToDate: No head hash found for account ${account.displayName}`,
-    )
 
-    return BufferUtils.equalsNullable(head?.hash ?? null, this.chainProcessor.hash)
+    if (head === null) {
+      return false
+    }
+
+    confirmations = confirmations ?? this.config.get('confirmations')
+    const chainHead = await this.getChainHead()
+    return chainHead.sequence - head.sequence <= confirmations
   }
 
   protected assertHasAccount(account: Account): void {
@@ -1863,22 +1653,6 @@ export class Wallet {
       this.logger.error(ErrorUtils.renderError(error, true))
       throw error
     }
-  }
-
-  async chainGetPreviousBlockHash(hash: Buffer): Promise<Buffer | null> {
-    const block = await this.chainGetBlock({ hash: hash.toString('hex') })
-
-    if (block === null) {
-      return null
-    }
-
-    const previousBlockHash = Buffer.from(block.block.previousBlockHash, 'hex')
-
-    if (previousBlockHash.equals(GENESIS_BLOCK_PREVIOUS)) {
-      return null
-    }
-
-    return previousBlockHash
   }
 
   private async getChainAsset(id: Buffer): Promise<{
@@ -1912,7 +1686,21 @@ export class Wallet {
     }
   }
 
-  private async getChainHead(): Promise<{ hash: Buffer; sequence: number }> {
+  async getChainGenesis(): Promise<HeadValue> {
+    try {
+      Assert.isNotNull(this.nodeClient)
+      const response = await this.nodeClient.chain.getChainInfo()
+      return {
+        hash: Buffer.from(response.content.genesisBlockIdentifier.hash, 'hex'),
+        sequence: GENESIS_BLOCK_SEQUENCE,
+      }
+    } catch (error: unknown) {
+      this.logger.error(ErrorUtils.renderError(error, true))
+      throw error
+    }
+  }
+
+  async getChainHead(): Promise<HeadValue> {
     try {
       Assert.isNotNull(this.nodeClient)
       const response = await this.nodeClient.chain.getChainInfo()
@@ -1950,48 +1738,5 @@ export class Wallet {
 
       return identity.serialize()
     })
-  }
-}
-
-export class ScanState {
-  onTransaction = new Event<[sequence: number, endSequence: number]>()
-
-  sequence = -1
-  endSequence = -1
-
-  readonly startedAt: number
-  readonly abortController: AbortController
-  private runningPromise: Promise<void>
-  private runningResolve: PromiseResolve<void>
-
-  constructor() {
-    const [promise, resolve] = PromiseUtils.split<void>()
-    this.runningPromise = promise
-    this.runningResolve = resolve
-
-    this.abortController = new AbortController()
-    this.startedAt = Date.now()
-  }
-
-  get isAborted(): boolean {
-    return this.abortController.signal.aborted
-  }
-
-  signal(sequence: number): void {
-    this.sequence = sequence
-    this.onTransaction.emit(sequence, this.endSequence)
-  }
-
-  signalComplete(): void {
-    this.runningResolve()
-  }
-
-  async abort(): Promise<void> {
-    this.abortController.abort()
-    return this.wait()
-  }
-
-  wait(): Promise<void> {
-    return this.runningPromise
   }
 }

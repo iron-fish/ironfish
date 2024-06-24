@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { CliUx } from '@oclif/core'
+import { Args, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
 
@@ -15,24 +15,22 @@ export default class ReAddBlock extends IronfishCommand {
     ...LocalFlags,
   }
 
-  static args = [
-    {
-      name: 'hash',
-      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
+  static args = {
+    hash: Args.string({
       required: true,
       description: 'The hash of the block in hex format',
-    },
-  ]
+    }),
+  }
 
   async start(): Promise<void> {
     const { args } = await this.parse(ReAddBlock)
-    const hash = Buffer.from(args.hash as string, 'hex')
+    const hash = Buffer.from(args.hash, 'hex')
 
-    CliUx.ux.action.start(`Opening node`)
+    ux.action.start(`Opening node`)
     const node = await this.sdk.node()
     await node.openDB()
     await node.chain.open()
-    CliUx.ux.action.stop('done.')
+    ux.action.stop('done.')
 
     const block = await node.chain.getBlock(hash)
 

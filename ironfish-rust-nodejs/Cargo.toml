@@ -34,6 +34,7 @@ napi = { version = "2.13.2", features = ["napi6"] }
 napi-derive = "2.13.0"
 jubjub = { git = "https://github.com/iron-fish/jubjub.git", branch = "blstrs" }
 rand = "0.8.5"
+num_cpus = "1.16.0"
 
 [build-dependencies]
 napi-build = "2.0.1"

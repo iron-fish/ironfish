@@ -11,12 +11,13 @@ import { Assert } from '../../../assert'
 import { CurrencyUtils, YupUtils } from '../../../utils'
 import { MintAssetOptions } from '../../../wallet/interfaces/mintAssetOptions'
 import { RpcValidationError } from '../../adapters'
+import { RpcAsset, RpcAssetSchema, RpcMint, RpcMintSchema } from '../chain'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import { AssertHasRpcContext } from '../rpcContext'
-import { RpcAsset, RpcAssetSchema, RpcMint, RpcMintSchema } from '../types'
+import { serializeRpcWalletTransaction } from './serializers'
 import { RpcWalletTransaction, RpcWalletTransactionSchema } from './types'
-import { getAccount, serializeRpcWalletTransaction } from './utils'
+import { getAccount } from './utils'
 
 export interface MintAssetRequest {
   account?: string

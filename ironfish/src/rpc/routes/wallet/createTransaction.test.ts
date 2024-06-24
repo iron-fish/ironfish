@@ -72,7 +72,7 @@ describe('Route wallet/createTransaction', () => {
 
       await expect(routeTest.node.chain).toAddBlock(block)
 
-      await routeTest.node.wallet.updateHead()
+      await routeTest.node.wallet.scan()
     }
     const response = await routeTest.client.wallet.createTransaction(REQUEST_PARAMS)
 
@@ -103,7 +103,7 @@ describe('Route wallet/createTransaction', () => {
 
       await expect(routeTest.node.chain).toAddBlock(block)
 
-      await routeTest.node.wallet.updateHead()
+      await routeTest.node.wallet.scan()
     }
 
     const response = await routeTest.client.wallet.createTransaction(
@@ -137,7 +137,7 @@ describe('Route wallet/createTransaction', () => {
 
       await expect(routeTest.node.chain).toAddBlock(block)
 
-      await routeTest.node.wallet.updateHead()
+      await routeTest.node.wallet.scan()
     }
 
     const response = await routeTest.client.wallet.createTransaction({
@@ -181,7 +181,7 @@ describe('Route wallet/createTransaction', () => {
 
       await expect(routeTest.node.chain).toAddBlock(block)
 
-      await routeTest.node.wallet.updateHead()
+      await routeTest.node.wallet.scan()
     }
 
     const response = await routeTest.client.wallet.createTransaction({
@@ -224,7 +224,7 @@ describe('Route wallet/createTransaction', () => {
 
       await expect(routeTest.node.chain).toAddBlock(block)
 
-      await routeTest.node.wallet.updateHead()
+      await routeTest.node.wallet.scan()
     }
 
     const asset = new Asset(sender.publicAddress, 'mint-asset', 'metadata')
@@ -279,7 +279,7 @@ describe('Route wallet/createTransaction', () => {
 
       await expect(routeTest.node.chain).toAddBlock(block)
 
-      await routeTest.node.wallet.updateHead()
+      await routeTest.node.wallet.scan()
     }
 
     await expect(
@@ -317,7 +317,7 @@ describe('Route wallet/createTransaction', () => {
 
       await expect(routeTest.node.chain).toAddBlock(block)
 
-      await routeTest.node.wallet.updateHead()
+      await routeTest.node.wallet.scan()
     }
 
     await expect(
@@ -352,7 +352,7 @@ describe('Route wallet/createTransaction', () => {
     )
 
     await expect(routeTest.node.chain).toAddBlock(block)
-    await routeTest.node.wallet.updateHead()
+    await routeTest.node.wallet.scan()
 
     const asset = new Asset(sender.publicAddress, 'mint-asset', 'metadata')
 
@@ -486,7 +486,7 @@ describe('Route wallet/createTransaction', () => {
 
       await expect(routeTest.node.chain).toAddBlock(block)
 
-      await routeTest.node.wallet.updateHead()
+      await routeTest.node.wallet.scan()
     }
 
     const decryptedNotes = await AsyncUtils.materialize(sender.getNotes())
@@ -523,7 +523,7 @@ describe('Route wallet/createTransaction', () => {
 
     await expect(routeTest.node.chain).toAddBlock(block)
 
-    await routeTest.node.wallet.updateHead()
+    await routeTest.node.wallet.scan()
 
     const response = await routeTest.client.wallet.createTransaction({
       account: 'existingAccount',
@@ -564,7 +564,7 @@ describe('Route wallet/createTransaction', () => {
 
     await expect(routeTest.node.chain).toAddBlock(block)
 
-    await routeTest.node.wallet.updateHead()
+    await routeTest.node.wallet.scan()
 
     const response = await routeTest.client.wallet.createTransaction({
       account: 'existingAccount',

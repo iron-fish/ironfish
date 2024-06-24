@@ -4,6 +4,7 @@
 
 import {
   isValidIncomingViewKey,
+  isValidIVKAndPublicAddressPair,
   isValidOutgoingViewKey,
   isValidPublicAddress,
   isValidSpendingKey,
@@ -98,5 +99,19 @@ describe('account-validator tests', () => {
     const INVALID_OUTGOING_KEY =
       '49534715229172ee0b7bc8acde878a4e37380e76688c8d8f0d27141af52c6b2dd'
     expect(isValidOutgoingViewKey(INVALID_OUTGOING_KEY)).toBe(false)
+  })
+
+  test('valid IVK and public key should return true', () => {
+    const VALID_IVK = '47b16e89282489410827f8f30322c09ea81207be7c5611a10b19b9c9dd802a06'
+    const VALID_PUBLIC_ADDRESS =
+      '07bc05ae07cefaaddead6ec77e4539cedab3270ce2fe9c9b0d5b326af8524c50'
+    expect(isValidIVKAndPublicAddressPair(VALID_IVK, VALID_PUBLIC_ADDRESS)).toBe(true)
+  })
+
+  test('invalid IVK and public key should return false', () => {
+    const VALID_IVK = '47b16e89282489410827f8f30322c09ea81207be7c5611a10b19b9c9dd802a06'
+    const VALID_PUBLIC_ADDRESS =
+      '4d2b1d7ddc444dda84dc6b682c0faae31c01b91a31794f69246f5d5cd9255837'
+    expect(isValidIVKAndPublicAddressPair(VALID_IVK, VALID_PUBLIC_ADDRESS)).toBe(false)
   })
 })

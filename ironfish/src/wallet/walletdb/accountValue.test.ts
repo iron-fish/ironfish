@@ -22,6 +22,7 @@ describe('AccountValueEncoding', () => {
         hash: Buffer.alloc(32, 0),
         sequence: 1,
       },
+      scanningEnabled: true,
       proofAuthorizingKey: key.proofAuthorizingKey,
     }
     const buffer = encoder.serialize(value)
@@ -44,6 +45,7 @@ describe('AccountValueEncoding', () => {
       viewKey: key.viewKey,
       version: 1,
       createdAt: null,
+      scanningEnabled: true,
       multisigKeys: {
         publicKeyPackage: 'cccc',
         secret: 'deaf',

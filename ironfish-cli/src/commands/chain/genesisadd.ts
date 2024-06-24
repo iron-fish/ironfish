@@ -10,10 +10,11 @@ import {
   IJSON,
   isValidPublicAddress,
 } from '@ironfish/sdk'
-import { CliUx, Flags } from '@oclif/core'
+import { Flags, ux } from '@oclif/core'
 import fs from 'fs/promises'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
+import { confirmOrQuit } from '../../ui'
 
 export default class GenesisAddCommand extends IronfishCommand {
   static hidden = true
@@ -79,7 +80,7 @@ export default class GenesisAddCommand extends IronfishCommand {
     // Log genesis block info
     this.log(`Genesis block will be modified with the following values in a new transaction:`)
     this.log(`Allocations:`)
-    const columns: CliUx.Table.table.Columns<GenesisBlockAllocation> = {
+    const columns: ux.Table.table.Columns<GenesisBlockAllocation> = {
       identity: {
         header: 'ADDRESS',
         get: (row: GenesisBlockAllocation) => row.publicAddress,
@@ -96,7 +97,7 @@ export default class GenesisAddCommand extends IronfishCommand {
       },
     }
 
-    CliUx.ux.table(allocations, columns, {
+    ux.table(allocations, columns, {
       printLine: this.log.bind(this),
     })
 
@@ -116,10 +117,7 @@ export default class GenesisAddCommand extends IronfishCommand {
     if (flags.dry) {
       this.exit(0)
     } else {
-      const result = await CliUx.ux.confirm('\nCreate new genesis block? (y)es / (n)o')
-      if (!result) {
-        this.exit(0)
-      }
+      await confirmOrQuit('Create new genesis block?')
     }
 
     this.log('\nBuilding a genesis block...')

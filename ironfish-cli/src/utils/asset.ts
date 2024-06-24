@@ -76,6 +76,7 @@ export async function selectAsset(
     showNonCreatorAsset: boolean
     showSingleAssetChoice: boolean
     confirmations?: number
+    filter?: (asset: RpcAsset) => boolean
   },
 ): Promise<
   | {
@@ -123,20 +124,40 @@ export async function selectAsset(
     }
   }
 
+  const filter = options.filter
+  if (filter) {
+    balances = balances.filter((balance) => filter(assetLookup[balance.assetId]))
+  }
+
+  // Show verified assets at top of the list
+  balances = balances.sort((asset1, asset2) => {
+    const verified1 = assetLookup[asset1.assetId].verification.status === 'verified'
+    const verified2 = assetLookup[asset2.assetId].verification.status === 'verified'
+    if (verified1 && verified2) {
+      return 0
+    }
+
+    return verified1 ? -1 : 1
+  })
+
   const choices = balances.map((balance) => {
+    const asset = assetLookup[balance.assetId]
+
     const assetName = BufferUtils.toHuman(Buffer.from(assetLookup[balance.assetId].name, 'hex'))
+    const assetNameWithVerification = renderAssetWithVerificationStatus(assetName, asset)
 
     const renderedAvailable = CurrencyUtils.render(
       balance.available,
       false,
       balance.assetId,
-      assetLookup[balance.assetId].verification,
+      asset.verification,
     )
-    const name = `${balance.assetId} (${assetName}) (${renderedAvailable})`
+
+    const name = `${balance.assetId} (${assetNameWithVerification}) (${renderedAvailable})`
 
     const value = {
       id: balance.assetId,
-      name: assetLookup[balance.assetId].name,
+      name: asset.name,
     }
 
     return { value, name }

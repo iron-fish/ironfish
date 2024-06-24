@@ -1,13 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { ErrorUtils, FileUtils, Meter, NodeUtils, TimeUtils } from '@ironfish/sdk'
-import { CliUx, Flags } from '@oclif/core'
+import { ErrorUtils, FileUtils, NodeUtils } from '@ironfish/sdk'
+import { Flags, ux } from '@oclif/core'
 import fsAsync from 'fs/promises'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
 import { DownloadedSnapshot, getDefaultManifestUrl, SnapshotDownloader } from '../../snapshot'
-import { ProgressBar } from '../../types'
+import { confirmOrQuit, ProgressBar, ProgressBarPresets } from '../../ui'
 
 export default class Download extends IronfishCommand {
   static hidden = false
@@ -18,18 +18,15 @@ export default class Download extends IronfishCommand {
     ...LocalFlags,
     manifestUrl: Flags.string({
       char: 'm',
-      parse: (input: string) => Promise.resolve(input.trim()),
       description: 'Manifest url to download snapshot from',
     }),
     path: Flags.string({
       char: 'p',
-      parse: (input: string) => Promise.resolve(input.trim()),
       required: false,
       description: 'Path to a downloaded snapshot file to import',
     }),
     output: Flags.string({
       char: 'o',
-      parse: (input: string) => Promise.resolve(input.trim()),
       required: false,
       description: 'Output folder to download the snapshot file to',
     }),
@@ -78,50 +75,28 @@ export default class Download extends IronfishCommand {
       const fileSize = FileUtils.formatFileSize(manifest.file_size)
       const spaceRequired = FileUtils.formatFileSize(manifest.file_size * 2)
 
-      if (!flags.confirm) {
-        const confirm = await CliUx.ux.confirm(
-          `Download ${fileSize} snapshot to update from block ${headSequence} to ${manifest.block_sequence}? ` +
-            `\nAt least ${spaceRequired} of free disk space is required to download and unzip the snapshot file.` +
-            `\nAre you sure? (Y)es / (N)o`,
-        )
-
-        if (!confirm) {
-          this.exit(0)
-        }
-      }
+      await confirmOrQuit(
+        `Download ${fileSize} snapshot to update from block ${headSequence} to ${manifest.block_sequence}? ` +
+          `\nAt least ${spaceRequired} of free disk space is required to download and unzip the snapshot file.` +
+          `\nAre you sure?`,
+        flags.confirm,
+      )
 
       const snapshotUrl = await Downloader.snapshotURL()
       const snapshotPath = await Downloader.snapshotPath()
       this.log(`Downloading snapshot from ${snapshotUrl} to ${snapshotPath}`)
 
-      const bar = CliUx.ux.progress({
-        barCompleteChar: '\u2588',
-        barIncompleteChar: '\u2591',
-        format:
-          'Downloading snapshot: [{bar}] {percentage}% | {downloadedSize} / {fileSize} | {speed}/s | ETA: {estimate}',
-      }) as ProgressBar
-
-      bar.start(manifest.file_size, 0, {
-        fileSize,
-        downloadedSize: FileUtils.formatFileSize(0),
-        speed: '0',
-        estimate: TimeUtils.renderEstimate(0, 0, 0),
+      const downloadBar = new ProgressBar('Downloading snapshot', {
+        preset: ProgressBarPresets.withSpeed,
+        formatFn: FileUtils.formatFileSize,
       })
 
-      const speed = new Meter()
-      speed.start()
+      downloadBar.start(manifest.file_size, 0)
 
       await Downloader.download((prev, curr) => {
-        speed.add(curr - prev)
-
-        bar.update(curr, {
-          downloadedSize: FileUtils.formatFileSize(curr),
-          speed: FileUtils.formatFileSize(speed.rate1s),
-          estimate: TimeUtils.renderEstimate(curr, manifest.file_size, speed.rate1m),
-        })
+        downloadBar.update(curr)
       }).catch((error) => {
-        bar.stop()
-        speed.stop()
+        downloadBar.stop()
         this.logger.error(ErrorUtils.renderError(error))
 
         this.exit(1)
@@ -136,44 +111,31 @@ export default class Download extends IronfishCommand {
       downloadedSnapshot = new DownloadedSnapshot(this.sdk, path)
     }
 
-    const progressBar = CliUx.ux.progress({
-      barCompleteChar: '\u2588',
-      barIncompleteChar: '\u2591',
-      format:
-        'Unzipping snapshot: [{bar}] {percentage}% | {value} / {total} entries | {speed}/s | ETA: {estimate}',
-    }) as ProgressBar
-
-    progressBar.start(0, 0, {
-      speed: '0',
-      estimate: TimeUtils.renderEstimate(0, 0, 0),
+    const unzipBar = new ProgressBar('Unzipping snapshot', {
+      preset: ProgressBarPresets.withSpeed,
     })
 
-    const speed = new Meter()
-    speed.start()
+    unzipBar.start(0, 0)
 
     await downloadedSnapshot.unzip(
       (totalEntries: number, prevExtracted: number, currExtracted: number) => {
-        progressBar.setTotal(totalEntries)
-        speed.add(currExtracted - prevExtracted)
-        progressBar.update(currExtracted, {
-          speed: speed.rate1s.toFixed(2),
-          estimate: TimeUtils.renderEstimate(currExtracted, totalEntries, speed.rate1m),
-        })
+        unzipBar.setTotal(totalEntries)
+        unzipBar.update(currExtracted)
       },
     )
 
-    CliUx.ux.action.start(
+    ux.action.start(
       `Replacing existing chain data at ${downloadedSnapshot.chainDatabasePath} before importing snapshot`,
     )
 
     await downloadedSnapshot.replaceDatabase()
 
-    CliUx.ux.action.stop('done')
+    ux.action.stop('done')
 
     if (flags.cleanup) {
-      CliUx.ux.action.start(`Cleaning up snapshot file at ${downloadedSnapshot.file}`)
+      ux.action.start(`Cleaning up snapshot file at ${downloadedSnapshot.file}`)
       await fsAsync.rm(downloadedSnapshot.file)
-      CliUx.ux.action.stop('done')
+      ux.action.stop('done')
     }
   }
 }

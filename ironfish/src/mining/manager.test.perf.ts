@@ -40,7 +40,7 @@ describe('MiningManager', () => {
     const block1 = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
 
     await node.chain.addBlock(block1)
-    await node.wallet.updateHead()
+    await node.wallet.scan()
     blocks.push(block1)
 
     // Split enough notes to create the transactions we need
@@ -58,7 +58,7 @@ describe('MiningManager', () => {
     ])
 
     await node.chain.addBlock(block2)
-    await node.wallet.updateHead()
+    await node.wallet.scan()
     blocks.push(block2)
 
     for (let i = 0; i < transactionAmount; i++) {
@@ -104,7 +104,7 @@ describe('MiningManager', () => {
     for (const block of blocks) {
       await expect(chain).toAddBlock(block)
     }
-    await wallet.updateHead()
+    await wallet.scan()
 
     // Add appropriate number of transactions to the mempool
     for (let i = 0; i < mempoolSize; i++) {

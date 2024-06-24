@@ -2,11 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Meter, TimeUtils } from '@ironfish/sdk'
-import { CliUx, Flags } from '@oclif/core'
+import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { ProgressBar } from '../../types'
+import { ProgressBar, ProgressBarPresets } from '../../ui'
 import { hasUserResponseError } from '../../utils'
 
 export class RescanCommand extends IronfishCommand {
@@ -24,18 +23,11 @@ export class RescanCommand extends IronfishCommand {
       default: false,
       description: 'Force the rescan to not connect via RPC',
     }),
-    from: Flags.integer({
-      description: 'Sequence to start account rescan from',
-      hidden: true,
-    }),
-    full: Flags.boolean({
-      description: 'Force a full rescan of the chain starting from the genesis block',
-    }),
   }
 
   async start(): Promise<void> {
     const { flags } = await this.parse(RescanCommand)
-    const { follow, local, from, full } = flags
+    const { follow, local } = flags
 
     if (local && !follow) {
       this.error('You cannot pass both --local and --no-follow')
@@ -43,44 +35,29 @@ export class RescanCommand extends IronfishCommand {
 
     const client = await this.sdk.connectRpc(local)
 
-    CliUx.ux.action.start('Asking node to start scanning', undefined, {
+    ux.action.start('Asking node to start scanning', undefined, {
       stdout: true,
     })
 
-    const response = client.wallet.rescanAccountStream({ follow, from, full })
+    const response = client.wallet.rescan({ follow })
 
-    const speed = new Meter()
-
-    const progress = CliUx.ux.progress({
-      format: 'Scanning Blocks: [{bar}] {value}/{total} {percentage}% {speed}/sec | {estimate}',
-    }) as ProgressBar
+    const progress = new ProgressBar('Scanning blocks', {
+      preset: ProgressBarPresets.withSpeed,
+    })
 
     let started = false
-    let lastSequence = 0
-
     try {
       for await (const { endSequence, sequence } of response.contentStream()) {
         if (!started) {
-          CliUx.ux.action.stop()
-          speed.start()
+          ux.action.stop()
           progress.start(endSequence, 0)
           started = true
         }
 
-        const completed = sequence - lastSequence
-        lastSequence = sequence
-
-        speed.add(completed)
-        progress.increment(completed)
-
-        progress.update({
-          estimate: TimeUtils.renderEstimate(sequence, endSequence, speed.rate1m),
-          speed: speed.rate1s.toFixed(0),
-        })
+        progress.update(sequence)
       }
     } catch (error) {
       progress?.stop()
-      speed.stop()
 
       if (hasUserResponseError(error)) {
         this.error(error.codeMessage)
@@ -89,7 +66,6 @@ export class RescanCommand extends IronfishCommand {
       throw error
     }
 
-    speed.stop()
     progress?.stop()
     this.log(follow ? 'Scanning Complete' : 'Scan started in background')
   }

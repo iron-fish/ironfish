@@ -7,7 +7,7 @@ import { PeerNetwork } from '../../../network'
 import { FullNode } from '../../../node'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
-import { ConnectionState, RpcPeerResponse, RpcPeerResponseSchema } from '../types'
+import { ConnectionState, RpcPeerResponse, RpcPeerResponseSchema } from './types'
 
 export type GetPeersRequest =
   | undefined

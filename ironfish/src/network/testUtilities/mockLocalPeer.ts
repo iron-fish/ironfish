@@ -6,30 +6,9 @@ import { Blockchain } from '../../blockchain'
 import { mockChain } from '../../testUtilities/mocks'
 import { PrivateIdentity } from '../identity'
 import { LocalPeer } from '../peers/localPeer'
-import { NodeDataChannelType } from '../types'
 import { VERSION_PROTOCOL } from '../version'
 import { WebSocketClient } from '../webSocketClient'
 import { mockPrivateIdentity } from './mockPrivateIdentity'
-
-const mockNodeDataChannel: NodeDataChannelType = {
-  PeerConnection: class {
-    onLocalDescription() {}
-    onLocalCandidate() {}
-    onDataChannel() {}
-    createDataChannel() {
-      return {
-        onOpen: () => {},
-        onError: () => {},
-        onClosed: () => {},
-        onMessage: () => {},
-        close: () => {},
-        isOpen: () => {},
-        sendMessage: () => {},
-        sendMessageBinary: () => {},
-      }
-    }
-  },
-} as unknown as NodeDataChannelType
 
 /**
  * Utility to create a fake "keypair" for testing the network layer
@@ -52,7 +31,6 @@ export function mockLocalPeer({
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     chain || mockChain(),
     WebSocketClient,
-    mockNodeDataChannel,
     0,
     true,
   )

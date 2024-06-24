@@ -9,13 +9,19 @@ import { VIEW_KEY_LENGTH } from '../../wallet/walletdb/accountValue'
 import { WorkerMessage, WorkerMessageType } from './workerMessage'
 import { WorkerTask } from './workerTask'
 
-export interface DecryptNoteOptions {
-  serializedNote: Buffer
+export interface DecryptNotesOptions {
+  decryptForSpender: boolean
+}
+
+export interface DecryptNotesAccountKey {
   incomingViewKey: string
   outgoingViewKey: string
   viewKey: string
+}
+
+export interface DecryptNotesItem {
+  serializedNote: Buffer
   currentNoteIndex: number | null
-  decryptForSpender: boolean
 }
 
 export interface DecryptedNote {
@@ -26,72 +32,82 @@ export interface DecryptedNote {
   serializedNote: Buffer
 }
 
-export class DecryptNotesRequest extends WorkerMessage {
-  readonly payloads: Array<DecryptNoteOptions>
+const NO_NOTE_INDEX: number = (1 << 32) - 1
 
-  constructor(payloads: Array<DecryptNoteOptions>, jobId?: number) {
+export class DecryptNotesRequest extends WorkerMessage {
+  readonly accountKeys: ReadonlyArray<DecryptNotesAccountKey>
+  readonly encryptedNotes: ReadonlyArray<DecryptNotesItem>
+  readonly options: DecryptNotesOptions
+
+  constructor(
+    accountKeys: ReadonlyArray<DecryptNotesAccountKey>,
+    encryptedNotes: ReadonlyArray<DecryptNotesItem>,
+    options: DecryptNotesOptions,
+    jobId?: number,
+  ) {
     super(WorkerMessageType.DecryptNotes, jobId)
-    this.payloads = payloads
+    this.accountKeys = accountKeys
+    this.encryptedNotes = encryptedNotes
+    this.options = options
   }
 
   serializePayload(bw: bufio.StaticWriter | bufio.BufferWriter): void {
-    for (const payload of this.payloads) {
-      let flags = 0
-      flags |= Number(!!payload.currentNoteIndex) << 0
-      flags |= Number(payload.decryptForSpender) << 1
-      bw.writeU8(flags)
+    bw.writeU8(this.options.decryptForSpender ? 1 : 0)
+    bw.writeU32(this.accountKeys.length)
 
-      bw.writeBytes(payload.serializedNote)
-      bw.writeBytes(Buffer.from(payload.incomingViewKey, 'hex'))
-      bw.writeBytes(Buffer.from(payload.outgoingViewKey, 'hex'))
-      bw.writeBytes(Buffer.from(payload.viewKey, 'hex'))
+    for (const key of this.accountKeys) {
+      bw.writeBytes(Buffer.from(key.incomingViewKey, 'hex'))
+      bw.writeBytes(Buffer.from(key.outgoingViewKey, 'hex'))
+      bw.writeBytes(Buffer.from(key.viewKey, 'hex'))
+    }
 
-      if (payload.currentNoteIndex) {
-        bw.writeU32(payload.currentNoteIndex)
-      }
+    for (const note of this.encryptedNotes) {
+      bw.writeBytes(note.serializedNote)
+      bw.writeU32(note.currentNoteIndex ?? NO_NOTE_INDEX)
     }
   }
 
   static deserializePayload(jobId: number, buffer: Buffer): DecryptNotesRequest {
     const reader = bufio.read(buffer, true)
-    const payloads = []
 
-    while (reader.left() > 0) {
-      const flags = reader.readU8()
-      const hasCurrentNoteIndex = flags & (1 << 0)
-      const decryptForSpender = Boolean(flags & (1 << 1))
-      const serializedNote = reader.readBytes(ENCRYPTED_NOTE_LENGTH)
+    const accountKeys = []
+    const encryptedNotes = []
+    const options = { decryptForSpender: reader.readU8() !== 0 }
+
+    const keysLength = reader.readU32()
+    for (let i = 0; i < keysLength; i++) {
       const incomingViewKey = reader.readBytes(ACCOUNT_KEY_LENGTH).toString('hex')
       const outgoingViewKey = reader.readBytes(ACCOUNT_KEY_LENGTH).toString('hex')
       const viewKey = reader.readBytes(VIEW_KEY_LENGTH).toString('hex')
-      const currentNoteIndex = hasCurrentNoteIndex ? reader.readU32() : null
+      accountKeys.push({ incomingViewKey, outgoingViewKey, viewKey })
+    }
 
-      payloads.push({
+    while (reader.left() > 0) {
+      const serializedNote = reader.readBytes(ENCRYPTED_NOTE_LENGTH)
+      let currentNoteIndex: number | null = reader.readU32()
+      if (currentNoteIndex === NO_NOTE_INDEX) {
+        currentNoteIndex = null
+      }
+      encryptedNotes.push({
         serializedNote,
-        incomingViewKey,
-        outgoingViewKey,
         currentNoteIndex,
-        decryptForSpender,
-        viewKey,
       })
     }
 
-    return new DecryptNotesRequest(payloads, jobId)
+    return new DecryptNotesRequest(accountKeys, encryptedNotes, options, jobId)
   }
 
   getSize(): number {
-    let size = 0
-    for (const payload of this.payloads) {
-      size += 1
-      size += ENCRYPTED_NOTE_LENGTH
-      size += ACCOUNT_KEY_LENGTH
-      size += ACCOUNT_KEY_LENGTH
-      size += VIEW_KEY_LENGTH
-      if (payload.currentNoteIndex) {
-        size += 4
-      }
-    }
-    return size
+    const optionsSize = 1
+    const keySize = ACCOUNT_KEY_LENGTH + ACCOUNT_KEY_LENGTH + VIEW_KEY_LENGTH
+    const noteSize = ENCRYPTED_NOTE_LENGTH + 4
+
+    return (
+      optionsSize +
+      4 +
+      keySize * this.accountKeys.length +
+      noteSize * this.encryptedNotes.length
+    )
   }
 }
 
@@ -104,40 +120,60 @@ export class DecryptNotesResponse extends WorkerMessage {
   }
 
   serializePayload(bw: bufio.StaticWriter | bufio.BufferWriter): void {
-    for (const note of this.notes) {
-      const hasDecryptedNote = Number(!!note)
-      bw.writeU8(hasDecryptedNote)
+    // The majority of responses will have 0 decrypted notes. A small
+    // percentage of responses will have a few decrypted notes. It's
+    // practically rare that a response will contain a large number of
+    // decrypted notes. For this reason, it makes sense to optimize for the
+    // case where the decrypted notes are 0 or close to 0.
+    //
+    // Here we use a sparse serialization: we write the length of the array at
+    // the beginning, and then we serialize only the non-null notes, prefixing
+    // them with their position in the array.
+    //
+    // In the most common case (0 decrypted notes), the total serialization
+    // size will be 4 bytes, irrespective of how many items the response has.
+    // In the second common case (few decrypted notes), the serialization size
+    // may still be smaller, or at least very close to, the size that a dense
+    // serialization would provide. In the most rare case (most/all decrypted
+    // notes), a sparse serialization has more overhead than a dense
+    // serialization, but that's an occurrence so rare and specific that we
+    // don't need to optimize for it.
 
-      if (note) {
-        let flags = 0
-        flags |= Number(!!note.index) << 0
-        flags |= Number(!!note.nullifier) << 1
-        flags |= Number(note.forSpender) << 2
-        bw.writeU8(flags)
-        bw.writeHash(note.hash)
-        bw.writeBytes(note.serializedNote)
+    bw.writeU32(this.notes.length)
 
-        if (note.index) {
-          bw.writeU32(note.index)
-        }
+    for (const [arrayIndex, note] of this.notes.entries()) {
+      if (!note) {
+        continue
+      }
 
-        if (note.nullifier) {
-          bw.writeHash(note.nullifier)
-        }
+      bw.writeU32(arrayIndex)
+
+      let flags = 0
+      flags |= Number(!!note.index) << 0
+      flags |= Number(!!note.nullifier) << 1
+      flags |= Number(note.forSpender) << 2
+      bw.writeU8(flags)
+      bw.writeHash(note.hash)
+      bw.writeBytes(note.serializedNote)
+
+      if (note.index) {
+        bw.writeU32(note.index)
+      }
+
+      if (note.nullifier) {
+        bw.writeHash(note.nullifier)
       }
     }
   }
 
   static deserializePayload(jobId: number, buffer: Buffer): DecryptNotesResponse {
     const reader = bufio.read(buffer)
-    const notes = []
+
+    const arrayLength = reader.readU32()
+    const notes = Array(arrayLength).fill(null) as Array<DecryptedNote | null>
 
     while (reader.left() > 0) {
-      const hasDecryptedNote = reader.readU8()
-      if (!hasDecryptedNote) {
-        notes.push(null)
-        continue
-      }
+      const arrayIndex = reader.readU32()
 
       const flags = reader.readU8()
       const hasIndex = flags & (1 << 0)
@@ -156,34 +192,34 @@ export class DecryptNotesResponse extends WorkerMessage {
         nullifier = reader.readHash()
       }
 
-      notes.push({
+      notes[arrayIndex] = {
         forSpender,
         index,
         hash,
         nullifier,
         serializedNote,
-      })
+      }
     }
 
     return new DecryptNotesResponse(notes, jobId)
   }
 
   getSize(): number {
-    let size = 0
+    let size = 4
 
     for (const note of this.notes) {
-      size += 1
+      if (!note) {
+        continue
+      }
 
-      if (note) {
-        size += 1 + 32 + DECRYPTED_NOTE_LENGTH
+      size += 4 + 1 + 32 + DECRYPTED_NOTE_LENGTH
 
-        if (note.index) {
-          size += 4
-        }
+      if (note.index) {
+        size += 4
+      }
 
-        if (note.nullifier) {
-          size += 32
-        }
+      if (note.nullifier) {
+        size += 32
       }
     }
 
@@ -201,51 +237,51 @@ export class DecryptNotesTask extends WorkerTask {
     return DecryptNotesTask.instance
   }
 
-  execute({ payloads, jobId }: DecryptNotesRequest): DecryptNotesResponse {
+  execute({
+    accountKeys,
+    encryptedNotes,
+    options,
+    jobId,
+  }: DecryptNotesRequest): DecryptNotesResponse {
     const decryptedNotes = []
 
-    for (const {
-      serializedNote,
-      incomingViewKey,
-      outgoingViewKey,
-      viewKey,
-      currentNoteIndex,
-      decryptForSpender,
-    } of payloads) {
+    for (const { serializedNote, currentNoteIndex } of encryptedNotes) {
       const note = new NoteEncrypted(serializedNote)
 
-      // Try decrypting the note as the owner
-      const receivedNote = note.decryptNoteForOwner(incomingViewKey)
-      if (receivedNote && receivedNote.value() !== 0n) {
-        decryptedNotes.push({
-          index: currentNoteIndex,
-          forSpender: false,
-          hash: note.hash(),
-          nullifier:
-            currentNoteIndex !== null
-              ? receivedNote.nullifier(viewKey, BigInt(currentNoteIndex))
-              : null,
-          serializedNote: receivedNote.serialize(),
-        })
-        continue
-      }
-
-      if (decryptForSpender) {
-        // Try decrypting the note as the spender
-        const spentNote = note.decryptNoteForSpender(outgoingViewKey)
-        if (spentNote && spentNote.value() !== 0n) {
+      for (const { incomingViewKey, outgoingViewKey, viewKey } of accountKeys) {
+        // Try decrypting the note as the owner
+        const receivedNote = note.decryptNoteForOwner(incomingViewKey)
+        if (receivedNote && receivedNote.value() !== 0n) {
           decryptedNotes.push({
             index: currentNoteIndex,
-            forSpender: true,
+            forSpender: false,
             hash: note.hash(),
-            nullifier: null,
-            serializedNote: spentNote.serialize(),
+            nullifier:
+              currentNoteIndex !== null
+                ? receivedNote.nullifier(viewKey, BigInt(currentNoteIndex))
+                : null,
+            serializedNote: receivedNote.serialize(),
           })
           continue
         }
-      }
 
-      decryptedNotes.push(null)
+        if (options.decryptForSpender) {
+          // Try decrypting the note as the spender
+          const spentNote = note.decryptNoteForSpender(outgoingViewKey)
+          if (spentNote && spentNote.value() !== 0n) {
+            decryptedNotes.push({
+              index: currentNoteIndex,
+              forSpender: true,
+              hash: note.hash(),
+              nullifier: null,
+              serializedNote: spentNote.serialize(),
+            })
+            continue
+          }
+        }
+
+        decryptedNotes.push(null)
+      }
     }
 
     return new DecryptNotesResponse(decryptedNotes, jobId)

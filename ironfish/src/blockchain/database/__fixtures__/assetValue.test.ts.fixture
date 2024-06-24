@@ -1,22 +1,32 @@
 {
   "AssetValueEncoding serializes the value into a buffer and deserializes to the original value": [
     {
-      "version": 4,
-      "id": "b8a43f33-0636-4786-9fc8-b7bf87257b67",
-      "name": "test",
-      "spendingKey": "4a1979963f7f0db832ae3d42cc840249d2403b0eae2927ab657bcb9cfcdeb58e",
-      "viewKey": "7ce178f4022833c5ae85a8e98554f3bada412c677fff62afaf30bb9e40b91d5051c7f7aba66c886a6dbc5610c407fee5f030b26aa9aeef938ad8e81fb4492072",
-      "incomingViewKey": "7891921190321a71410795e6545af974b9d4e4e82f020c3b96a1688b668f0203",
-      "outgoingViewKey": "be5171e4d7012183e98cc76a0ef6f859fd76a513843bb97159ddfc105f9a9b94",
-      "publicAddress": "a2a321f012364a95429e88e0804f68958e995fe78a94132a59027569eb5840e5",
-      "createdAt": {
+      "value": {
+        "version": 4,
+        "id": "27b4d13b-ab46-4a2e-a4cc-7abedda05a8b",
+        "name": "test",
+        "spendingKey": "e6a52d481d7bdf9de78a9f1c12298f710282bc34f0be6a317aafe98260118181",
+        "viewKey": "e31fdc30c676f40c128d0782502fa3a7156fcc61358279de988d056a8740806d0f43b1838bd362774878f6a3c63f5d383df969f4d27e3f538fc2797e04a79c6a",
+        "incomingViewKey": "b075942e9c29e7ef20bffb9216da127476d0befc246c968587686c40e3ae0600",
+        "outgoingViewKey": "de67a5e14b8911282873502631d9f7449c37ace371e6bc757847251544f7f225",
+        "publicAddress": "107ad9374229cbb43a822f9b617658e06432dec804a4ddee38835a014e6d1865",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "3cd46bb64213e76a9fbc6d94b735b115ecca1df9ea4045a4a20fdd4655bb2603"
+      },
+      "head": {
         "hash": {
           "type": "Buffer",
           "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
         },
         "sequence": 1
-      },
-      "proofAuthorizingKey": "236f4d01e6545a967f6b6a2c9ae87a9890b680418860f944ea4c3a43cbdc8e02"
+      }
     }
   ]
 }

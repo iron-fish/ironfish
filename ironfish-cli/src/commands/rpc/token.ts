@@ -11,7 +11,6 @@ export default class Token extends IronfishCommand {
   static flags = {
     ...LocalFlags,
     token: Flags.string({
-      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: false,
       description: 'Set the RPC auth token to <value>',
     }),

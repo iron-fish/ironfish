@@ -90,13 +90,20 @@ export type ConfigOptions = {
   /**
    * The number of CPU workers to use for long-running node operations, like creating
    * transactions and verifying blocks. 0 disables workers (this is likely to cause
-   * performance issues), and -1 auto-detects based on the number of CPU cores.
+   * performance issues), and -1 auto-detects an optimal value based on the number of
+   * CPU cores (without exceeding `nodeWorkersMax`).
+   *
    * Each worker uses several hundred MB of memory, so try a lower value to reduce memory
    * consumption.
    */
   nodeWorkers: number
   /**
-   * The max number of node workers. See config "nodeWorkers"
+   * The max number of node workers. See also `nodeWorkers". If -1, it defaults to the
+   * number of CPU cores available to the system (capped at 16).
+   *
+   * Note that on system with Simultaneous Multithreading (SMT, also known as
+   * Hyper-Threading on Intel processors), the number of CPU cores is usually half of the
+   * number of virtual CPUs.
    */
   nodeWorkersMax: number
   peerPort: number
@@ -448,7 +455,7 @@ export class Config<
       blockGraffiti: '',
       nodeName: '',
       nodeWorkers: -1,
-      nodeWorkersMax: 6,
+      nodeWorkersMax: -1,
       peerPort: DEFAULT_WEBSOCKET_PORT,
       rpcTcpHost: 'localhost',
       rpcTcpPort: 8020,

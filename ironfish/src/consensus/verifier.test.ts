@@ -128,7 +128,7 @@ describe('Verifier', () => {
 
       const blockA = await useMinerBlockFixture(nodeTest.chain, 2, account)
       await expect(nodeTest.node.chain).toAddBlock(blockA)
-      await nodeTest.node.wallet.updateHead()
+      await nodeTest.node.wallet.scan()
 
       const transaction = await usePostTxFixture({
         node: nodeTest.node,
@@ -380,7 +380,7 @@ describe('Verifier', () => {
 
       const blockA = await useMinerBlockFixture(nodeTest.chain, 2, account)
       await expect(nodeTest.node.chain).toAddBlock(blockA)
-      await nodeTest.node.wallet.updateHead()
+      await nodeTest.node.wallet.scan()
 
       const blockB = await useMintBlockFixture({
         node: nodeTest.node,
@@ -389,7 +389,7 @@ describe('Verifier', () => {
         value: BigInt(5),
       })
       await expect(nodeTest.node.chain).toAddBlock(blockB)
-      await nodeTest.node.wallet.updateHead()
+      await nodeTest.node.wallet.scan()
 
       const blockC = await useBurnBlockFixture({
         node: nodeTest.node,

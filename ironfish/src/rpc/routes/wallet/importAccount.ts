@@ -2,23 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { DecodeInvalidName, MultisigSecretNotFound } from '../../../wallet'
-import { decodeAccount } from '../../../wallet/account/encoder/account'
-import { BASE64_JSON_MULTISIG_ENCRYPTED_ACCOUNT_PREFIX } from '../../../wallet/account/encoder/base64json'
+import { DecodeInvalidName } from '../../../wallet'
 import { DuplicateAccountNameError } from '../../../wallet/errors'
+import { decodeAccountImport } from '../../../wallet/exporter/account'
+import { decryptEncodedAccount } from '../../../wallet/exporter/encryption'
 import { RPC_ERROR_CODES, RpcValidationError } from '../../adapters'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import { AssertHasRpcContext } from '../rpcContext'
-import { RpcAccountImport } from './types'
-import { deserializeRpcAccountImport, tryDecodeAccountWithMultisigSecrets } from './utils'
 
 export class ImportError extends Error {}
 
 export type ImportAccountRequest = {
-  account: RpcAccountImport | string
+  account: string
   name?: string
   rescan?: boolean
+  createdAt?: number
 }
 
 export type ImportResponse = {
@@ -30,7 +29,8 @@ export const ImportAccountRequestSchema: yup.ObjectSchema<ImportAccountRequest> 
   .object({
     rescan: yup.boolean().optional().default(true),
     name: yup.string().optional(),
-    account: yup.mixed<RpcAccountImport | string>().defined(),
+    account: yup.string().defined(),
+    createdAt: yup.number().optional(),
   })
   .defined()
 
@@ -45,33 +45,30 @@ routes.register<typeof ImportAccountRequestSchema, ImportResponse>(
   `${ApiNamespace.wallet}/importAccount`,
   ImportAccountRequestSchema,
   async (request, context): Promise<void> => {
-    AssertHasRpcContext(request, context, 'wallet')
-
-    let account
     try {
-      let accountImport = null
-      if (typeof request.data.account === 'string') {
-        const name = request.data.name
+      AssertHasRpcContext(request, context, 'wallet')
 
-        if (request.data.account.startsWith(BASE64_JSON_MULTISIG_ENCRYPTED_ACCOUNT_PREFIX)) {
-          accountImport = await tryDecodeAccountWithMultisigSecrets(
-            context.wallet,
-            request.data.account,
-            { name },
-          )
-        }
+      request.data.account = await decryptEncodedAccount(request.data.account, context.wallet)
 
-        if (!accountImport) {
-          accountImport = decodeAccount(request.data.account, { name })
-        }
-      } else {
-        accountImport = deserializeRpcAccountImport(request.data.account)
-        if (request.data.name) {
-          accountImport.name = request.data.name
-        }
+      const decoded = decodeAccountImport(request.data.account, { name: request.data.name })
+      const account = await context.wallet.importAccount(decoded, {
+        createdAt: request.data.createdAt,
+      })
+
+      if (!context.wallet.hasDefaultAccount) {
+        await context.wallet.setDefaultAccount(account.name)
       }
 
-      account = await context.wallet.importAccount(accountImport)
+      if (!request.data.rescan) {
+        await context.wallet.skipRescan(account)
+      }
+
+      const isDefaultAccount = context.wallet.getDefaultAccount()?.id === account.id
+
+      request.end({
+        name: account.name,
+        isDefaultAccount,
+      })
     } catch (e) {
       if (e instanceof DuplicateAccountNameError) {
         throw new RpcValidationError(e.message, 400, RPC_ERROR_CODES.DUPLICATE_ACCOUNT_NAME)
@@ -81,29 +78,8 @@ routes.register<typeof ImportAccountRequestSchema, ImportResponse>(
           400,
           RPC_ERROR_CODES.IMPORT_ACCOUNT_NAME_REQUIRED,
         )
-      } else if (e instanceof MultisigSecretNotFound) {
-        throw new RpcValidationError(e.message, 400, RPC_ERROR_CODES.MULTISIG_SECRET_NOT_FOUND)
       }
       throw e
     }
-
-    if (request.data.rescan) {
-      if (context.wallet.nodeClient) {
-        void context.wallet.scanTransactions(undefined, true)
-      }
-    } else {
-      await context.wallet.skipRescan(account)
-    }
-
-    let isDefaultAccount = false
-    if (!context.wallet.hasDefaultAccount) {
-      await context.wallet.setDefaultAccount(account.name)
-      isDefaultAccount = true
-    }
-
-    request.end({
-      name: account.name,
-      isDefaultAccount,
-    })
   },
 )

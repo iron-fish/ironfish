@@ -6,7 +6,7 @@ import { Assert } from '../../assert'
 import { Blockchain } from '../../blockchain'
 import { Identity, PrivateIdentity, privateIdentityToIdentity } from '../identity'
 import { IdentifyMessage } from '../messages/identify'
-import { IsomorphicWebSocketConstructor, NodeDataChannelType } from '../types'
+import { IsomorphicWebSocketConstructor } from '../types'
 
 /**
  * Wraps configuration needed for establishing connections with other peers
@@ -24,8 +24,6 @@ export class LocalPeer {
   readonly version: number
   // constructor for either a Node WebSocket or a browser WebSocket
   readonly webSocket: IsomorphicWebSocketConstructor
-  // asynchronously imported WebRTC datachannel library
-  readonly nodeDataChannel: NodeDataChannelType
   // the unique ID number of the network
   readonly networkId: number
   // true if the peer supports syncing and gossip messages
@@ -42,7 +40,6 @@ export class LocalPeer {
     version: number,
     chain: Blockchain,
     webSocket: IsomorphicWebSocketConstructor,
-    nodeDataChannel: NodeDataChannelType,
     networkId: number,
     enableSyncing: boolean,
   ) {
@@ -55,7 +52,6 @@ export class LocalPeer {
     this.enableSyncing = enableSyncing
 
     this.webSocket = webSocket
-    this.nodeDataChannel = nodeDataChannel
     this.port = null
     this.name = null
   }

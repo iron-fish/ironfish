@@ -23,16 +23,11 @@ import {
 import { AsyncUtils, BufferUtils, ORE_TO_IRON } from '../utils'
 import { Account, TransactionStatus, TransactionType } from '../wallet'
 import { MaxMemoLengthError } from './errors'
+import { toAccountImport } from './exporter'
 import { AssetStatus, Wallet } from './wallet'
 
 describe('Wallet', () => {
   const nodeTest = createNodeTest()
-
-  it('should throw an error when chain processor head does not exist in chain', async () => {
-    nodeTest.wallet['chainProcessor'].hash = Buffer.from('0')
-
-    await expect(nodeTest.wallet.start()).rejects.toThrow()
-  })
 
   it('should handle transaction created on fork', async () => {
     const { node: nodeA } = await nodeTest.createSetup()
@@ -52,7 +47,7 @@ describe('Wallet', () => {
     await expect(nodeB.chain).toAddBlock(blockB2)
 
     // Check nodeA balance
-    await nodeA.wallet.updateHead()
+    await nodeA.wallet.scan()
     await expect(nodeA.wallet.getBalance(accountA, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(2000000000),
       unconfirmed: BigInt(2000000000),
@@ -81,7 +76,7 @@ describe('Wallet', () => {
       valid: false,
     })
 
-    await nodeA.wallet.updateHead()
+    await nodeA.wallet.scan()
     await expect(nodeA.wallet.getBalance(accountA, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(0),
       unconfirmed: BigInt(0),
@@ -111,7 +106,7 @@ describe('Wallet', () => {
 
     const blockA1 = await useMinerBlockFixture(nodeA.chain, undefined, accountA, nodeA.wallet)
     await expect(nodeA.chain).toAddBlock(blockA1)
-    await nodeA.wallet.updateHead()
+    await nodeA.wallet.scan()
 
     const blockB1 = await useMinerBlockFixture(nodeB.chain, undefined, accountB)
     await expect(nodeB.chain).toAddBlock(blockB1)
@@ -123,7 +118,7 @@ describe('Wallet', () => {
     // Notes from this transaction will not be on chain after the reorg
     const { block: blockA2 } = await useBlockWithTx(nodeA, accountA, accountB, false)
     await expect(nodeA.chain).toAddBlock(blockA2)
-    await nodeA.wallet.updateHead()
+    await nodeA.wallet.scan()
 
     // re-org
     await expect(nodeA.chain).toAddBlock(blockB1)
@@ -131,7 +126,7 @@ describe('Wallet', () => {
     await expect(nodeA.chain).toAddBlock(blockB3)
     expect(nodeA.chain.head.hash.equals(blockB3.header.hash)).toBe(true)
 
-    await nodeA.wallet.updateHead()
+    await nodeA.wallet.scan()
 
     const notesOnChainA = await AsyncUtils.materialize(
       accountA['walletDb'].loadNotesInSequenceRange(accountA, 0, nodeB.chain.head.sequence),
@@ -159,7 +154,7 @@ describe('Wallet', () => {
 
     const blockA1 = await useMinerBlockFixture(nodeA.chain, undefined, accountA, nodeA.wallet)
     await expect(nodeA.chain).toAddBlock(blockA1)
-    await nodeA.wallet.updateHead()
+    await nodeA.wallet.scan()
 
     const blockB1 = await useMinerBlockFixture(nodeB.chain, undefined, accountB)
     await expect(nodeB.chain).toAddBlock(blockB1)
@@ -176,7 +171,7 @@ describe('Wallet', () => {
       false,
     )
     await expect(nodeA.chain).toAddBlock(blockA2)
-    await nodeA.wallet.updateHead()
+    await nodeA.wallet.scan()
 
     await expect(nodeA.wallet.getBalance(accountA, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(1999999998),
@@ -191,7 +186,7 @@ describe('Wallet', () => {
     await expect(nodeA.chain).toAddBlock(blockB2)
     await expect(nodeA.chain).toAddBlock(blockB3)
     expect(nodeA.chain.head.hash.equals(blockB3.header.hash)).toBe(true)
-    await nodeA.wallet.updateHead()
+    await nodeA.wallet.scan()
 
     await expect(nodeA.wallet.getBalance(accountA, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(0),
@@ -216,7 +211,7 @@ describe('Wallet', () => {
 
     const blockA1 = await useMinerBlockFixture(nodeA.chain, undefined, accountA, nodeA.wallet)
     await expect(nodeA.chain).toAddBlock(blockA1)
-    await nodeA.wallet.updateHead()
+    await nodeA.wallet.scan()
 
     const blockB1 = await useMinerBlockFixture(nodeB.chain, undefined, accountB)
     await expect(nodeB.chain).toAddBlock(blockB1)
@@ -228,7 +223,7 @@ describe('Wallet', () => {
     // This transaction will be invalid after the reorg
     const { block: blockA2 } = await useBlockWithTx(nodeA, accountA, accountB, false)
     await expect(nodeA.chain).toAddBlock(blockA2)
-    await nodeA.wallet.updateHead()
+    await nodeA.wallet.scan()
 
     // Create a transaction that spends notes from the invalid transaction
     const forkSpendTx = await useTxFixture(nodeA.wallet, accountA, accountB)
@@ -246,7 +241,7 @@ describe('Wallet', () => {
     await expect(nodeA.chain).toAddBlock(blockB2)
     await expect(nodeA.chain).toAddBlock(blockB3)
     expect(nodeA.chain.head.hash.equals(blockB3.header.hash)).toBe(true)
-    await nodeA.wallet.updateHead()
+    await nodeA.wallet.scan()
 
     const forkSpendNote = await accountA.getDecryptedNote(forkSpendNoteHash)
     expect(forkSpendNote).toBeDefined()
@@ -262,14 +257,14 @@ describe('Wallet', () => {
       const accountA = await useAccountFixture(node.wallet, 'a')
       const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await node.chain.addBlock(blockA1)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const transaction = await useTxFixture(node.wallet, accountA, accountA)
       const block = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet, [
         transaction,
       ])
       await node.chain.addBlock(block)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const rawTransaction = new RawTransaction(TransactionVersion.V2)
 
@@ -289,67 +284,7 @@ describe('Wallet', () => {
     })
   })
 
-  describe('load', () => {
-    it('should set chainProcessor hash and sequence', async () => {
-      const { node } = await nodeTest.createSetup()
-
-      const accountA = await useAccountFixture(node.wallet, 'a')
-
-      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
-      await expect(node.chain).toAddBlock(blockA1)
-      await node.wallet.updateHead()
-
-      expect(node.wallet.chainProcessor.hash).toEqualHash(blockA1.header.hash)
-      expect(node.wallet.chainProcessor.sequence).toEqual(blockA1.header.sequence)
-
-      node.wallet['unload']()
-
-      expect(node.wallet.chainProcessor.hash).toBeNull()
-      expect(node.wallet.chainProcessor.sequence).toBeNull()
-
-      await node.wallet['load']()
-
-      expect(node.wallet.chainProcessor.hash).toEqualHash(blockA1.header.hash)
-      expect(node.wallet.chainProcessor.sequence).toEqual(blockA1.header.sequence)
-    })
-  })
-
-  describe('start', () => {
-    it('should reset account.createdAt if not in chain', async () => {
-      const { node } = await nodeTest.createSetup()
-
-      const accountA = await useAccountFixture(node.wallet, 'a')
-
-      // set accountA's createdAt block off the chain
-      await accountA.updateCreatedAt({ hash: Buffer.alloc(32), sequence: 1 })
-
-      jest.spyOn(node.wallet, 'scanTransactions').mockReturnValue(Promise.resolve())
-      jest.spyOn(node.wallet, 'eventLoop').mockReturnValue(Promise.resolve())
-
-      await node.wallet.start()
-
-      expect(accountA.createdAt).toBeNull()
-    })
-
-    it('should not reset account.createdAt if its sequence is ahead of the chainProcessor', async () => {
-      const { node } = await nodeTest.createSetup()
-
-      const accountA = await useAccountFixture(node.wallet, 'a')
-
-      // set accountA's createdAt block off the chain
-      await accountA.updateCreatedAt({ hash: Buffer.alloc(32), sequence: 10 })
-
-      const resetAccountSpy = jest.spyOn(node.wallet, 'resetAccount')
-      jest.spyOn(node.wallet, 'scanTransactions').mockReturnValue(Promise.resolve())
-      jest.spyOn(node.wallet, 'eventLoop').mockReturnValue(Promise.resolve())
-
-      await node.wallet.start()
-
-      expect(resetAccountSpy).toHaveBeenCalledTimes(0)
-    })
-  })
-
-  describe('scanTransactions', () => {
+  describe('scan', () => {
     it('should update head status', async () => {
       // G -> 1 -> 2
       const { node } = nodeTest
@@ -358,7 +293,7 @@ describe('Wallet', () => {
 
       const block1 = await useMinerBlockFixture(node.chain, 2, accountA)
       await expect(node.chain).toAddBlock(block1)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       // create a second account and import it so that its head hash is null
       const { node: nodeB } = await nodeTest.createSetup()
@@ -366,25 +301,18 @@ describe('Wallet', () => {
 
       const accountB = await node.wallet.importAccount(toImport)
 
-      const block2 = await useMinerBlockFixture(node.chain, 2, accountA)
-      await expect(node.chain).toAddBlock(block2)
-
+      // Confirm pre-rescan state
       await expect(accountA.getHead()).resolves.toEqual({
         hash: block1.header.hash,
         sequence: block1.header.sequence,
       })
       await expect(accountB.getHead()).resolves.toEqual(null)
 
-      await node.wallet.updateHead()
+      // Add second block
+      const block2 = await useMinerBlockFixture(node.chain, 3, accountA)
+      await expect(node.chain).toAddBlock(block2)
 
-      // Confirm pre-rescan state
-      await expect(accountA.getHead()).resolves.toEqual({
-        hash: block2.header.hash,
-        sequence: block2.header.sequence,
-      })
-      await expect(accountB.getHead()).resolves.toEqual(null)
-
-      await node.wallet.scanTransactions()
+      await node.wallet.scan()
 
       await expect(accountA.getHead()).resolves.toEqual({
         hash: block2.header.hash,
@@ -396,52 +324,18 @@ describe('Wallet', () => {
       })
     })
 
-    it('should rescan and update chain processor', async () => {
-      const { chain, wallet } = nodeTest
-
-      await useAccountFixture(wallet, 'accountA')
-
-      const block1 = await useMinerBlockFixture(chain)
-      await expect(chain).toAddBlock(block1)
-
-      // Test this works even if processor is not reset
-      await wallet.updateHead()
-      expect(wallet['chainProcessor']['hash']?.equals(block1.header.hash)).toBe(true)
-
-      const block2 = await useMinerBlockFixture(chain)
-      await expect(chain).toAddBlock(block2)
-
-      // Should update the chain processor to block2
-      await wallet.scanTransactions()
-      expect(wallet['chainProcessor']['hash']?.equals(block2.header.hash)).toBe(true)
-
-      // Now with a reset chain processor should go to end of chain
-      await wallet.reset()
-      expect(wallet['chainProcessor']['hash']).toBe(null)
-
-      // This should carry the chain processor to block2
-      await wallet.scanTransactions()
-      expect(wallet['chainProcessor']['hash']?.equals(block2.header.hash)).toBe(true)
-    })
-
     it('should not scan if wallet is disabled', async () => {
       const { wallet, chain } = await nodeTest.createSetup({ config: { enableWallet: false } })
 
       // Create a new account but don't give it an account birthday so the wallet head does not update
-      await useAccountFixture(wallet, 'test', { setCreatedAt: false })
+      await useAccountFixture(wallet, 'test', { createdAt: null })
 
       const block1 = await useMinerBlockFixture(chain)
       await expect(chain).toAddBlock(block1)
 
-      expect(wallet['chainProcessor']['hash']).toBeNull()
-
-      const connectSpy = jest.spyOn(wallet, 'connectBlock')
-
-      await expect(wallet.shouldRescan()).resolves.toBe(false)
-
-      await wallet.scanTransactions()
-
-      expect(connectSpy).not.toHaveBeenCalled()
+      const scanSpy = jest.spyOn(wallet.scanner, 'scan')
+      await wallet.scan()
+      expect(scanSpy).not.toHaveBeenCalled()
     })
 
     it('should not scan if all accounts are up to date', async () => {
@@ -453,8 +347,7 @@ describe('Wallet', () => {
       const block1 = await useMinerBlockFixture(chain)
       await expect(chain).toAddBlock(block1)
 
-      await wallet.updateHead()
-      expect(wallet['chainProcessor']['hash']?.equals(block1.header.hash)).toBe(true)
+      await wallet.scan()
 
       await expect(accountA.getHead()).resolves.toEqual({
         hash: block1.header.hash,
@@ -465,13 +358,78 @@ describe('Wallet', () => {
         sequence: block1.header.sequence,
       })
 
-      const connectSpy = jest.spyOn(wallet, 'connectBlock')
+      const connectSpy = jest.spyOn(wallet, 'connectBlockForAccount')
 
-      await expect(wallet.shouldRescan()).resolves.toBe(false)
-
-      await wallet.scanTransactions()
+      await wallet.scan()
 
       expect(connectSpy).not.toHaveBeenCalled()
+    })
+
+    it('should scan until the chain head', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      // create an account so that the wallet will sync
+      await useAccountFixture(node.wallet, 'a')
+
+      // update wallet to genesis block
+      await node.wallet.scan()
+
+      const block2 = await useMinerBlockFixture(node.chain, undefined)
+      await expect(node.chain).toAddBlock(block2)
+      const block3 = await useMinerBlockFixture(node.chain, undefined)
+      await expect(node.chain).toAddBlock(block3)
+
+      expect(node.chain.head.hash).toEqualHash(block3.header.hash)
+
+      let head = await node.wallet.getEarliestHead()
+      expect(head?.hash).toEqualHash(node.chain.genesis.hash)
+
+      // set max syncing queue to 1 so that wallet only fetches one block at a time
+      node.wallet.scanner.maxQueueSize = 1
+
+      await node.wallet.scan()
+
+      head = await node.wallet.getEarliestHead()
+      expect(head?.hash).toEqualHash(node.chain.head.hash)
+    })
+
+    it('should start from null account head', async () => {
+      // G -> 1 -> 2
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+
+      const block1 = await useMinerBlockFixture(node.chain, 2, accountA)
+      await expect(node.chain).toAddBlock(block1)
+      await node.wallet.scan()
+
+      // create a second account and import it so that its head hash is null
+      const { node: nodeB } = await nodeTest.createSetup()
+      const toImport = await useAccountFixture(nodeB.wallet, 'accountB')
+
+      const accountB = await node.wallet.importAccount(toImport)
+
+      // Confirm pre-rescan state
+      await expect(accountA.getHead()).resolves.toEqual({
+        hash: block1.header.hash,
+        sequence: block1.header.sequence,
+      })
+      await expect(accountB.getHead()).resolves.toEqual(null)
+
+      // Add second block
+      const block2 = await useMinerBlockFixture(node.chain, 3, accountA)
+      await expect(node.chain).toAddBlock(block2)
+
+      await node.wallet.scan()
+
+      await expect(accountA.getHead()).resolves.toEqual({
+        hash: block2.header.hash,
+        sequence: block2.header.sequence,
+      })
+      await expect(accountB.getHead()).resolves.toEqual({
+        hash: block2.header.hash,
+        sequence: block2.header.sequence,
+      })
     })
   })
 
@@ -482,7 +440,7 @@ describe('Wallet', () => {
 
       const mined = await useMinerBlockFixture(node.chain, 2, account)
       await expect(node.chain).toAddBlock(mined)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const asset = new Asset(account.publicAddress, 'fakeasset', 'metadata')
       const value = BigInt(10)
@@ -494,7 +452,7 @@ describe('Wallet', () => {
         sequence: 3,
       })
       await expect(node.chain).toAddBlock(mintBlock)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const balances = new BufferMap<{
         confirmed: bigint
@@ -563,8 +521,8 @@ describe('Wallet', () => {
       await nodeB.chain.addBlock(blockA4)
       await nodeB.chain.addBlock(blockA5)
 
-      await nodeA.wallet.updateHead()
-      await nodeB.wallet.updateHead()
+      await nodeA.wallet.scan()
+      await nodeB.wallet.scan()
 
       expect(nodeA.chain.head.hash.equals(blockA5.header.hash)).toBe(true)
       expect(nodeB.chain.head.hash.equals(blockA5.header.hash)).toBe(true)
@@ -579,7 +537,7 @@ describe('Wallet', () => {
     })
   })
 
-  describe('getEarliestHeadHash', () => {
+  describe('getEarliestHead', () => {
     it('should return the earliest head hash', async () => {
       const { node } = nodeTest
 
@@ -597,12 +555,37 @@ describe('Wallet', () => {
       await accountB.updateHead(blockB.header)
       await accountC.updateHead(null)
 
-      expect(await node.wallet.getEarliestHeadHash()).toEqual(null)
+      expect(await node.wallet.getEarliestHead()).toEqual(null)
+    })
+
+    it('should skip accounts with scanning disabled', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+      const accountB = await useAccountFixture(node.wallet, 'accountB')
+
+      await node.wallet.scan()
+      await accountA.updateScanningEnabled(false)
+
+      const blockA = await useMinerBlockFixture(node.chain, 2, accountA)
+      await node.chain.addBlock(blockA)
+      const blockB = await useMinerBlockFixture(node.chain, 3, accountA)
+      await node.chain.addBlock(blockB)
+      await node.wallet.scan()
+
+      expect((await accountA.getHead())?.sequence).toBe(1)
+      expect((await accountB.getHead())?.sequence).toBe(3)
+
+      expect((await node.wallet.getEarliestHead())?.hash).toEqualBuffer(blockB.header.hash)
+
+      await accountB.updateScanningEnabled(false)
+
+      expect(await node.wallet.getEarliestHead()).toBeNull()
     })
   })
 
-  describe('getLatestHeadHash', () => {
-    it('should return the latest head hash', async () => {
+  describe('getLatestHead', () => {
+    it('should return the latest head', async () => {
       const { node } = nodeTest
 
       const accountA = await useAccountFixture(node.wallet, 'accountA')
@@ -619,7 +602,40 @@ describe('Wallet', () => {
       await accountB.updateHead(blockB.header)
       await accountC.updateHead(null)
 
-      expect(await node.wallet.getLatestHeadHash()).toEqual(blockB.header.hash)
+      const head = await node.wallet.getLatestHead()
+      expect(head?.hash).toEqualBuffer(blockB.header.hash)
+      expect(head?.sequence).toEqual(blockB.header.sequence)
+    })
+
+    it('should skip accounts with scanning disabled', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+      const accountB = await useAccountFixture(node.wallet, 'accountB')
+
+      const blockA = await useMinerBlockFixture(node.chain, 2, accountA)
+      await node.chain.addBlock(blockA)
+
+      await node.wallet.scan()
+      await accountA.updateScanningEnabled(false)
+
+      const blockB = await useMinerBlockFixture(node.chain, 3, accountA)
+      await node.chain.addBlock(blockB)
+      await node.wallet.scan()
+
+      await accountA.updateScanningEnabled(true)
+      await accountB.updateScanningEnabled(false)
+
+      expect((await accountA.getHead())?.sequence).toBe(2)
+      expect((await accountB.getHead())?.sequence).toBe(3)
+
+      const head = await node.wallet.getLatestHead()
+      expect(head?.hash).toEqualBuffer(blockA.header.hash)
+      expect(head?.sequence).toEqual(blockA.header.sequence)
+
+      await accountA.updateScanningEnabled(false)
+
+      expect(await node.wallet.getLatestHead()).toBeNull()
     })
   })
 
@@ -694,62 +710,59 @@ describe('Wallet', () => {
       expect(accountImport1.viewKey).toEqual(accountImport2.viewKey)
     })
 
-    it('should set createdAt if that block is in the chain', async () => {
+    it('should set createdAt if networkId matches', async () => {
       const { node: nodeA } = await nodeTest.createSetup()
       const { node: nodeB } = await nodeTest.createSetup()
 
-      const accountA = await useAccountFixture(nodeA.wallet, 'accountA', {
-        setCreatedAt: false,
-      })
+      const accountA = await useAccountFixture(nodeA.wallet, 'accountA', { createdAt: null })
       expect(accountA.createdAt).toBe(null)
 
       // create blocks and add them to both chains
       const block2 = await useMinerBlockFixture(nodeA.chain, 2)
       await nodeA.chain.addBlock(block2)
       await nodeB.chain.addBlock(block2)
-      await nodeA.wallet.updateHead()
+      await nodeA.wallet.scan()
       const block3 = await useMinerBlockFixture(nodeA.chain, 3)
       await nodeA.chain.addBlock(block3)
       await nodeB.chain.addBlock(block3)
-      await nodeA.wallet.updateHead()
+      await nodeA.wallet.scan()
 
       // create an account so that createdAt will be non-null
       const accountB = await useAccountFixture(nodeA.wallet, 'accountB')
 
-      expect(accountB.createdAt?.hash).toEqualHash(block3.header.hash)
       expect(accountB.createdAt?.sequence).toEqual(3)
 
-      const accountBImport = await nodeB.wallet.importAccount(accountB)
+      const accountBImport = await nodeB.wallet.importAccount(
+        toAccountImport(accountB, false, nodeB.wallet.networkId),
+      )
 
-      expect(accountBImport.createdAt?.hash).toEqualHash(block3.header.hash)
       expect(accountBImport.createdAt?.sequence).toEqual(3)
     })
 
-    it('should set account head to block before createdAt if that block is in the chain', async () => {
+    it('should set account head to block before createdAt if networkId matches', async () => {
       const { node: nodeA } = await nodeTest.createSetup()
       const { node: nodeB } = await nodeTest.createSetup()
 
-      const accountA = await useAccountFixture(nodeA.wallet, 'accountA', {
-        setCreatedAt: false,
-      })
+      const accountA = await useAccountFixture(nodeA.wallet, 'accountA', { createdAt: null })
       expect(accountA.createdAt).toBe(null)
 
       // create blocks and add them to both chains
       const block2 = await useMinerBlockFixture(nodeA.chain, 2)
       await nodeA.chain.addBlock(block2)
       await nodeB.chain.addBlock(block2)
-      await nodeA.wallet.updateHead()
+      await nodeA.wallet.scan()
       const block3 = await useMinerBlockFixture(nodeA.chain, 3)
       await nodeA.chain.addBlock(block3)
       await nodeB.chain.addBlock(block3)
-      await nodeA.wallet.updateHead()
+      await nodeA.wallet.scan()
 
       // create an account so that createdAt will be non-null
       const accountB = await useAccountFixture(nodeA.wallet, 'accountB')
 
-      const accountBImport = await nodeB.wallet.importAccount(accountB)
+      const accountBImport = await nodeB.wallet.importAccount(
+        toAccountImport(accountB, false, nodeB.wallet.networkId),
+      )
 
-      expect(accountBImport.createdAt?.hash).toEqualHash(block3.header.hash)
       expect(accountBImport.createdAt?.sequence).toEqual(3)
 
       const accountBImportHead = await accountBImport.getHead()
@@ -758,30 +771,29 @@ describe('Wallet', () => {
       expect(accountBImportHead?.sequence).toEqual(2)
     })
 
-    it('should set createdAt to null if that block is not in the chain', async () => {
+    it('should set createdAt to null if networkId does not match', async () => {
       const { node: nodeA } = await nodeTest.createSetup()
       const { node: nodeB } = await nodeTest.createSetup()
 
-      const accountA = await useAccountFixture(nodeA.wallet, 'accountA', {
-        setCreatedAt: false,
-      })
+      const accountA = await useAccountFixture(nodeA.wallet, 'accountA', { createdAt: null })
       expect(accountA.createdAt).toBe(null)
 
       // create blocks but only add them to one chain
       const block2 = await useMinerBlockFixture(nodeA.chain, 2)
       await nodeA.chain.addBlock(block2)
-      await nodeA.wallet.updateHead()
+      await nodeA.wallet.scan()
       const block3 = await useMinerBlockFixture(nodeA.chain, 3)
       await nodeA.chain.addBlock(block3)
-      await nodeA.wallet.updateHead()
+      await nodeA.wallet.scan()
 
       // create an account on nodeA so that createdAt will be non-null
       const accountB = await useAccountFixture(nodeA.wallet, 'accountB')
 
-      expect(accountB.createdAt?.hash).toEqualHash(block3.header.hash)
       expect(accountB.createdAt?.sequence).toEqual(3)
 
-      const accountBImport = await nodeB.wallet.importAccount(accountB)
+      const accountBImport = await nodeB.wallet.importAccount(
+        toAccountImport(accountB, false, 42),
+      )
 
       expect(accountBImport.createdAt).toBeDefined()
     })
@@ -798,7 +810,7 @@ describe('Wallet', () => {
       const block1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await node.chain.addBlock(block1)
 
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       await useTxFixture(
         node.wallet,
@@ -826,7 +838,7 @@ describe('Wallet', () => {
       const block1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await node.chain.addBlock(block1)
 
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       await useTxFixture(node.wallet, accountA, accountB, undefined, undefined, 0)
 
@@ -848,7 +860,7 @@ describe('Wallet', () => {
       const block2 = await useMinerBlockFixture(node.chain, 2, accountA, node.wallet)
       await node.chain.addBlock(block2)
 
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const tx = await useTxFixture(node.wallet, accountA, accountB, undefined, undefined, 3)
 
@@ -890,7 +902,7 @@ describe('Wallet', () => {
       const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await node.chain.addBlock(block2)
 
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const transaction = await useTxFixture(
         node.wallet,
@@ -927,7 +939,6 @@ describe('Wallet', () => {
 
       const account = await node.wallet.createAccount('test')
 
-      expect(account.createdAt?.hash).toEqualHash(block2.header.hash)
       expect(account.createdAt?.sequence).toEqual(block2.header.sequence)
     })
 
@@ -990,7 +1001,7 @@ describe('Wallet', () => {
       const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await expect(node.chain).toAddBlock(blockA1)
 
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const transaction = blockA1.minersFee
 
@@ -1041,7 +1052,7 @@ describe('Wallet', () => {
       const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await expect(node.chain).toAddBlock(blockA1)
 
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const transaction = blockA1.minersFee
 
@@ -1083,7 +1094,7 @@ describe('Wallet', () => {
       const blockA3 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await expect(node.chain).toAddBlock(blockA3)
 
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const notes = [blockA2.minersFee.notes[0].hash()]
 
@@ -1120,7 +1131,7 @@ describe('Wallet', () => {
       const blockA3 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await expect(node.chain).toAddBlock(blockA3)
 
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const notes = [blockA2.minersFee.notes[0].hash(), blockA3.minersFee.notes[0].hash()]
 
@@ -1157,7 +1168,7 @@ describe('Wallet', () => {
       const blockA3 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await expect(node.chain).toAddBlock(blockA3)
 
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const notes = [blockA2.minersFee.notes[0].hash()]
 
@@ -1198,13 +1209,13 @@ describe('Wallet', () => {
       const blockA2 = await useMinerBlockFixture(nodeA.chain, undefined, accountA, nodeA.wallet)
       await expect(nodeA.chain).toAddBlock(blockA2)
       await expect(nodeB.chain).toAddBlock(blockA2)
-      await nodeA.wallet.updateHead()
-      await nodeB.wallet.updateHead()
+      await nodeA.wallet.scan()
+      await nodeB.wallet.scan()
 
       // add blockA3 to chain A
       const blockA3 = await useMinerBlockFixture(nodeA.chain)
       await expect(nodeA.chain).toAddBlock(blockA3)
-      await nodeA.wallet.updateHead()
+      await nodeA.wallet.scan()
 
       // set confirmations so that witness will use confirmed tree size at blockA2
       nodeA.config.set('confirmations', 1)
@@ -1221,51 +1232,16 @@ describe('Wallet', () => {
       await expect(nodeB.chain).toAddBlock(blockB3)
       const blockB4 = await useMinerBlockFixture(nodeB.chain, undefined, accountB)
       await expect(nodeB.chain).toAddBlock(blockB4)
-      await nodeB.wallet.updateHead()
+      await nodeB.wallet.scan()
 
       // reorg chain A
       await expect(nodeA.chain).toAddBlock(blockB3)
       await expect(nodeA.chain).toAddBlock(blockB4)
       expect(nodeA.chain.head.hash.equals(blockB4.header.hash)).toBe(true)
-      await nodeA.wallet.updateHead()
+      await nodeA.wallet.scan()
 
       const reorgVerification = await nodeA.chain.verifier.verifyTransactionAdd(transaction)
       expect(reorgVerification.valid).toBe(true)
-    })
-
-    it('throw error if account is not fully synced when creating transaction', async () => {
-      // Create an account A
-      const accountA = await useAccountFixture(nodeTest.wallet, 'testA')
-      const accountB = await useAccountFixture(nodeTest.wallet, 'testB')
-
-      // Create a block with a miner's fee
-      const block = await useMinerBlockFixture(nodeTest.node.chain, 2, accountA)
-      await nodeTest.chain.addBlock(block)
-      await nodeTest.wallet.updateHead()
-
-      // Modify the headhash
-      const headhash = await nodeTest.wallet.getLatestHeadHash()
-      Assert.isNotNull(headhash)
-      headhash[0] = 0
-      await accountA.updateHead({ hash: headhash, sequence: 2 })
-
-      const response = nodeTest.wallet.createTransaction({
-        account: accountA,
-        outputs: [
-          {
-            publicAddress: accountB.publicAddress,
-            amount: BigInt(1),
-            memo: Buffer.alloc(32),
-            assetId: Asset.nativeId(),
-          },
-        ],
-        fee: 1n,
-        expiration: 0,
-      })
-
-      await expect(response).rejects.toThrow(
-        'Your account must finish scanning before sending a transaction.',
-      )
     })
 
     describe('should create transactions with the correct version', () => {
@@ -1293,7 +1269,7 @@ describe('Wallet', () => {
         const block = await useMinerBlockFixture(chain, undefined, account, wallet)
         const { isAdded } = await chain.addBlock(block)
         Assert.isTrue(isAdded)
-        await wallet.updateHead()
+        await wallet.scan()
 
         Assert.isEqual(chain.head.sequence, 2)
       })
@@ -1331,13 +1307,13 @@ describe('Wallet', () => {
 
       const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await expect(node.chain).toAddBlock(blockA1)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       // create and mint an asset
       const asset = new Asset(accountA.publicAddress, 'mint-asset', 'metadata')
       const blockA2 = await useMintBlockFixture({ node, account: accountA, asset, value: 10n })
       await expect(node.chain).toAddBlock(blockA2)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       // create transaction to mint asset and send to another address
       const rawTransaction = await node.wallet.createTransaction({
@@ -1376,7 +1352,7 @@ describe('Wallet', () => {
       const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await expect(node.chain).toAddBlock(blockA1)
 
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const transaction = blockA1.minersFee
 
@@ -1403,7 +1379,7 @@ describe('Wallet', () => {
       const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await expect(node.chain).toAddBlock(blockA1)
 
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const transaction = blockA1.minersFee
 
@@ -1431,7 +1407,7 @@ describe('Wallet', () => {
       const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await expect(node.chain).toAddBlock(blockA1)
 
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const transaction = await useTxFixture(node.wallet, accountA, accountB)
 
@@ -1455,7 +1431,7 @@ describe('Wallet', () => {
       const blockA2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await expect(node.chain).toAddBlock(blockA2)
 
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const transaction = await useTxFixture(
         node.wallet,
@@ -1469,7 +1445,7 @@ describe('Wallet', () => {
       const blockA3 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await expect(node.chain).toAddBlock(blockA3)
 
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const transactionValue = await accountA.getTransaction(transaction.hash())
       Assert.isNotUndefined(transactionValue)
@@ -1491,7 +1467,7 @@ describe('Wallet', () => {
       const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await expect(node.chain).toAddBlock(blockA1)
 
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const transaction = await useTxFixture(
         node.wallet,
@@ -1525,7 +1501,7 @@ describe('Wallet', () => {
       const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await expect(node.chain).toAddBlock(blockA1)
 
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const transaction = blockA1.minersFee
 
@@ -1555,7 +1531,7 @@ describe('Wallet', () => {
 
       const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await node.chain.addBlock(block2)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       // create expired transaction
       const transaction = await useTxFixture(
@@ -1569,7 +1545,7 @@ describe('Wallet', () => {
 
       const block3 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await node.chain.addBlock(block3)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const transactionValue = await accountA.getTransaction(transaction.hash())
       Assert.isNotUndefined(transactionValue)
@@ -1597,7 +1573,7 @@ describe('Wallet', () => {
 
       const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await expect(node.chain).toAddBlock(blockA1)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const decryptSpy = jest.spyOn(node.wallet, 'decryptNotes')
 
@@ -1620,7 +1596,7 @@ describe('Wallet', () => {
 
       const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await expect(node.chain).toAddBlock(blockA1)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const { unconfirmed } = await accountA.getBalance(Asset.nativeId(), 0)
 
@@ -1650,13 +1626,16 @@ describe('Wallet', () => {
 
       const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await expect(node.chain).toAddBlock(blockA1)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const { block: blockA2, transaction } = await useBlockWithTx(node, accountA, accountB)
       await expect(node.chain).toAddBlock(blockA2)
 
       const transactions = await node.chain.getBlockTransactions(blockA2.header)
-      await node.wallet.connectBlock(blockA2.header, transactions)
+      await node.wallet.scanner.connectBlock(
+        blockA2.header,
+        transactions.map((t) => t.transaction),
+      )
 
       const transactionValue = await accountA.getTransaction(transaction.hash())
 
@@ -1673,13 +1652,16 @@ describe('Wallet', () => {
 
       const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await expect(node.chain).toAddBlock(blockA1)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const { block: blockA2 } = await useBlockWithTx(node, accountA, accountB)
       await expect(node.chain).toAddBlock(blockA2)
 
       const transactions = await node.chain.getBlockTransactions(blockA2.header)
-      await node.wallet.connectBlock(blockA2.header, transactions)
+      await node.wallet.scanner.connectBlock(
+        blockA2.header,
+        transactions.map((t) => t.transaction),
+      )
 
       const accountAHead = await accountA.getHead()
 
@@ -1694,7 +1676,7 @@ describe('Wallet', () => {
 
       const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await expect(node.chain).toAddBlock(blockA1)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const balanceBefore = await accountA.getUnconfirmedBalance(Asset.nativeId())
       expect(balanceBefore.unconfirmed).toEqual(2000000000n)
@@ -1703,7 +1685,10 @@ describe('Wallet', () => {
       await expect(node.chain).toAddBlock(blockA2)
 
       const transactions = await node.chain.getBlockTransactions(blockA2.header)
-      await node.wallet.connectBlock(blockA2.header, transactions)
+      await node.wallet.scanner.connectBlock(
+        blockA2.header,
+        transactions.map((t) => t.transaction),
+      )
 
       const balanceAfter = await accountA.getUnconfirmedBalance(Asset.nativeId())
       expect(balanceAfter.unconfirmed).toEqual(1999999998n)
@@ -1716,19 +1701,25 @@ describe('Wallet', () => {
 
       const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await expect(node.chain).toAddBlock(blockA1)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const blockA2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await expect(node.chain).toAddBlock(blockA2)
 
       const transactions = await node.chain.getBlockTransactions(blockA2.header)
-      await node.wallet.connectBlock(blockA2.header, transactions)
+      await node.wallet.scanner.connectBlock(
+        blockA2.header,
+        transactions.map((t) => t.transaction),
+      )
 
       let accountAHead = await accountA.getHead()
       expect(accountAHead?.hash).toEqualHash(blockA2.header.hash)
 
       // Try to connect A2 again
-      await node.wallet.connectBlock(blockA1.header, transactions)
+      await node.wallet.scanner.connectBlock(
+        blockA1.header,
+        transactions.map((t) => t.transaction),
+      )
 
       // accountA head hash should be unchanged
       accountAHead = await accountA.getHead()
@@ -1742,13 +1733,16 @@ describe('Wallet', () => {
 
       const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await expect(node.chain).toAddBlock(blockA1)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const blockA2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await expect(node.chain).toAddBlock(blockA2)
 
       const transactionsA2 = await node.chain.getBlockTransactions(blockA2.header)
-      await node.wallet.connectBlock(blockA2.header, transactionsA2)
+      await node.wallet.scanner.connectBlock(
+        blockA2.header,
+        transactionsA2.map((t) => t.transaction),
+      )
 
       let accountAHead = await accountA.getHead()
       expect(accountAHead?.hash).toEqualHash(blockA2.header.hash)
@@ -1757,7 +1751,10 @@ describe('Wallet', () => {
 
       // Try to connect A1 again
       const transactionsA1 = await node.chain.getBlockTransactions(blockA1.header)
-      await node.wallet.connectBlock(blockA1.header, transactionsA1)
+      await node.wallet.scanner.connectBlock(
+        blockA1.header,
+        transactionsA1.map((t) => t.transaction),
+      )
 
       expect(updateHeadSpy).not.toHaveBeenCalled()
 
@@ -1772,7 +1769,7 @@ describe('Wallet', () => {
 
       const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await expect(node.chain).toAddBlock(blockA1)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const blockA2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await expect(node.chain).toAddBlock(blockA2)
@@ -1786,7 +1783,10 @@ describe('Wallet', () => {
 
       // Try to connect A3
       const transactionsA3 = await node.chain.getBlockTransactions(blockA3.header)
-      await node.wallet.connectBlock(blockA3.header, transactionsA3)
+      await node.wallet.scanner.connectBlock(
+        blockA3.header,
+        transactionsA3.map((t) => t.transaction),
+      )
 
       expect(updateHeadSpy).not.toHaveBeenCalled()
 
@@ -1802,7 +1802,7 @@ describe('Wallet', () => {
 
       const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await expect(node.chain).toAddBlock(blockA1)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       await expect(accountA.getUnconfirmedBalance(Asset.nativeId())).resolves.toMatchObject({
         blockHash: blockA1.header.hash,
@@ -1817,7 +1817,7 @@ describe('Wallet', () => {
 
       const blockA2 = await useMinerBlockFixture(node.chain, undefined, accountB, node.wallet)
       await expect(node.chain).toAddBlock(blockA2)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       await expect(accountA.getUnconfirmedBalance(Asset.nativeId())).resolves.toMatchObject({
         blockHash: blockA2.header.hash,
@@ -1838,7 +1838,7 @@ describe('Wallet', () => {
 
       const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await expect(node.chain).toAddBlock(blockA1)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       await expect(accountA.getUnconfirmedBalance(Asset.nativeId())).resolves.toMatchObject({
         blockHash: blockA1.header.hash,
@@ -1856,7 +1856,7 @@ describe('Wallet', () => {
         sequence: 3,
       })
       await expect(node.chain).toAddBlock(mintBlock)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       await expect(accountA.getUnconfirmedBalance(Asset.nativeId())).resolves.toMatchObject({
         blockHash: mintBlock.header.hash,
@@ -1871,7 +1871,7 @@ describe('Wallet', () => {
 
       const blockA3 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await expect(node.chain).toAddBlock(blockA3)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       await expect(accountA.getUnconfirmedBalance(Asset.nativeId())).resolves.toMatchObject({
         blockHash: blockA3.header.hash,
@@ -1898,7 +1898,7 @@ describe('Wallet', () => {
         node.wallet,
       )
       await expect(node.chain).toAddBlock(minerBlock)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const asset = new Asset(accountA.publicAddress, 'fakeasset', 'metadata')
       const value = BigInt(10)
@@ -1910,7 +1910,7 @@ describe('Wallet', () => {
         sequence: 3,
       })
       await expect(node.chain).toAddBlock(mintBlock)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const transaction = await usePostTxFixture({
         node,
@@ -1924,7 +1924,7 @@ describe('Wallet', () => {
         transaction,
       ])
       await expect(node.chain).toAddBlock(block)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       expect(await accountA['walletDb'].getAsset(accountA, asset.id())).toEqual({
         blockHash: mintBlock.header.hash,
@@ -1965,8 +1965,8 @@ describe('Wallet', () => {
       const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await expect(node.chain).toAddBlock(blockA1)
       await expect(node2.chain).toAddBlock(blockA1)
-      await node.wallet.updateHead()
-      await node2.wallet.updateHead()
+      await node.wallet.scan()
+      await node2.wallet.scan()
 
       const { unconfirmed } = await accountAImport.getBalance(Asset.nativeId(), 0)
 
@@ -1984,13 +1984,13 @@ describe('Wallet', () => {
       )
       await expect(node.chain).toAddBlock(blockA2)
       await expect(node2.chain).toAddBlock(blockA2)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       await expect(accountA.hasTransaction(transaction.hash())).resolves.toBe(true)
       await expect(accountAImport.hasTransaction(transaction.hash())).resolves.toBe(false)
 
       // update node2 so that transaction is connected to imported account
-      await node2.wallet.updateHead()
+      await node2.wallet.scan()
 
       await expect(accountAImport.hasTransaction(transaction.hash())).resolves.toBe(true)
     })
@@ -1998,30 +1998,29 @@ describe('Wallet', () => {
     it('should set null account.createdAt for the first on-chain transaction of an account', async () => {
       const { node } = await nodeTest.createSetup()
 
-      const accountA = await useAccountFixture(node.wallet, 'accountA', { setCreatedAt: false })
+      const accountA = await useAccountFixture(node.wallet, 'accountA', { createdAt: null })
 
       expect(accountA.createdAt).toBeNull()
 
       const block2 = await useMinerBlockFixture(node.chain, 2, accountA)
       await node.chain.addBlock(block2)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
-      expect(accountA.createdAt?.hash).toEqualHash(block2.header.hash)
       expect(accountA.createdAt?.sequence).toEqual(block2.header.sequence)
     })
 
     it('should not set account.createdAt if the account has no transaction on the block', async () => {
       const { node } = await nodeTest.createSetup()
 
-      const accountA = await useAccountFixture(node.wallet, 'accountA', { setCreatedAt: false })
-      const accountB = await useAccountFixture(node.wallet, 'accountB', { setCreatedAt: false })
+      const accountA = await useAccountFixture(node.wallet, 'accountA', { createdAt: null })
+      const accountB = await useAccountFixture(node.wallet, 'accountB', { createdAt: null })
 
       expect(accountA.createdAt).toBeNull()
       expect(accountB.createdAt).toBeNull()
 
       const block2 = await useMinerBlockFixture(node.chain, 2, accountA)
       await node.chain.addBlock(block2)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       expect(accountB.createdAt).toBeNull()
     })
@@ -2029,23 +2028,21 @@ describe('Wallet', () => {
     it('should not set account.createdAt if it is not null', async () => {
       const { node } = await nodeTest.createSetup()
 
-      const accountA = await useAccountFixture(node.wallet, 'accountA', { setCreatedAt: false })
+      const accountA = await useAccountFixture(node.wallet, 'accountA', { createdAt: null })
 
       expect(accountA.createdAt).toBeNull()
 
       const block2 = await useMinerBlockFixture(node.chain, 2, accountA)
       await node.chain.addBlock(block2)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
-      expect(accountA.createdAt?.hash).toEqualHash(block2.header.hash)
       expect(accountA.createdAt?.sequence).toEqual(block2.header.sequence)
 
       const block3 = await useMinerBlockFixture(node.chain, 3, accountA)
       await node.chain.addBlock(block3)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       // see that createdAt is unchanged
-      expect(accountA.createdAt?.hash).toEqualHash(block2.header.hash)
       expect(accountA.createdAt?.sequence).toEqual(block2.header.sequence)
     })
 
@@ -2056,16 +2053,15 @@ describe('Wallet', () => {
 
       const block2 = await useMinerBlockFixture(nodeA.chain, 2, undefined)
       await nodeA.chain.addBlock(block2)
-      await nodeA.wallet.updateHead()
+      await nodeA.wallet.scan()
       const block3 = await useMinerBlockFixture(nodeA.chain, 2, undefined)
       await nodeA.chain.addBlock(block3)
-      await nodeA.wallet.updateHead()
+      await nodeA.wallet.scan()
 
       // create second account with createdAt at block 3
       const accountB = await useAccountFixture(nodeA.wallet, 'b')
 
       expect(accountB.createdAt).not.toBeNull()
-      expect(accountB.createdAt?.hash).toEqualHash(block3.header.hash)
       expect(accountB.createdAt?.sequence).toEqual(block3.header.sequence)
 
       // reset wallet
@@ -2076,17 +2072,45 @@ describe('Wallet', () => {
       Assert.isNotNull(accountA)
 
       const transactions = await nodeA.chain.getBlockTransactions(nodeA.chain.genesis)
-      await nodeA.wallet.connectBlock(nodeA.chain.genesis, transactions)
+      await nodeA.wallet.scanner.connectBlock(
+        nodeA.chain.genesis,
+        transactions.map((t) => t.transaction),
+      )
 
       const decryptSpy = jest.spyOn(nodeA.wallet, 'decryptNotes')
 
       // reconnect block2
       const transactions2 = await nodeA.chain.getBlockTransactions(block2.header)
-      await nodeA.wallet.connectBlock(block2.header, transactions2)
+      await nodeA.wallet.scanner.connectBlock(
+        block2.header,
+        transactions2.map((t) => t.transaction),
+      )
 
       // see that decryption was skipped for accountB
       expect(decryptSpy).toHaveBeenCalledTimes(1)
       expect(decryptSpy.mock.lastCall?.[3]).toEqual([accountA])
+    })
+
+    it('should skip updating accounts with scanningEnabled set to false', async () => {
+      const { node } = await nodeTest.createSetup()
+      const accountA: Account = await useAccountFixture(node.wallet, 'a')
+      const accountB: Account = await useAccountFixture(node.wallet, 'b')
+      await node.wallet.scan()
+
+      await accountA.updateScanningEnabled(false)
+
+      const block2 = await useMinerBlockFixture(node.chain, 2, undefined)
+      await node.chain.addBlock(block2)
+      const block3 = await useMinerBlockFixture(node.chain, 3, undefined)
+      await node.chain.addBlock(block3)
+      await node.wallet.scan()
+
+      const aHead = await accountA.getHead()
+      const bHead = await accountB.getHead()
+      Assert.isNotNull(aHead)
+      Assert.isNotNull(bHead)
+      expect(aHead.sequence).toBe(1)
+      expect(bHead.sequence).toBe(3)
     })
   })
 
@@ -2097,7 +2121,7 @@ describe('Wallet', () => {
 
       const mined = await useMinerBlockFixture(node.chain, 2, account)
       await expect(node.chain).toAddBlock(mined)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const asset = new Asset(account.publicAddress, 'asset', 'metadata')
       const value = BigInt(10)
@@ -2116,7 +2140,7 @@ describe('Wallet', () => {
 
       // Add to a block and check different confirmation ranges
       await expect(node.chain).toAddBlock(mintBlock)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
       assetValue = await node.wallet.walletDb.getAsset(account, asset.id())
       Assert.isNotUndefined(assetValue)
       expect(await node.wallet.getAssetStatus(account, assetValue)).toEqual(
@@ -2141,12 +2165,12 @@ describe('Wallet', () => {
 
       const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await expect(node.chain).toAddBlock(blockA1)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const { block: blockA2, transaction } = await useBlockWithTx(node, accountA, accountB)
       await expect(node.chain).toAddBlock(blockA2)
 
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       let transactionValue = await accountA.getTransaction(transaction.hash())
 
@@ -2158,7 +2182,7 @@ describe('Wallet', () => {
         await node.chain.disconnect(blockA2, tx)
       })
 
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       transactionValue = await accountA.getTransaction(transaction.hash())
 
@@ -2175,12 +2199,12 @@ describe('Wallet', () => {
 
       const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await expect(node.chain).toAddBlock(blockA1)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const { block: blockA2 } = await useBlockWithTx(node, accountA, accountB)
       await expect(node.chain).toAddBlock(blockA2)
 
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       let accountAHead = await accountA.getHead()
 
@@ -2190,7 +2214,7 @@ describe('Wallet', () => {
         await node.chain.disconnect(blockA2, tx)
       })
 
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       accountAHead = await accountA.getHead()
 
@@ -2205,7 +2229,7 @@ describe('Wallet', () => {
 
       const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await expect(node.chain).toAddBlock(blockA1)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const balanceBefore = await accountA.getUnconfirmedBalance(Asset.nativeId())
       expect(balanceBefore.unconfirmed).toEqual(2000000000n)
@@ -2213,7 +2237,7 @@ describe('Wallet', () => {
       const { block: blockA2 } = await useBlockWithTx(node, accountA, accountB, false)
       await expect(node.chain).toAddBlock(blockA2)
 
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const balanceAfterConnect = await accountA.getUnconfirmedBalance(Asset.nativeId())
       expect(balanceAfterConnect.unconfirmed).toEqual(1999999998n)
@@ -2222,7 +2246,7 @@ describe('Wallet', () => {
         await node.chain.disconnect(blockA2, tx)
       })
 
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const balanceAfterDisconnect = await accountA.getUnconfirmedBalance(Asset.nativeId())
       expect(balanceAfterDisconnect.unconfirmed).toEqual(2000000000n)
@@ -2235,18 +2259,21 @@ describe('Wallet', () => {
 
       const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await expect(node.chain).toAddBlock(blockA1)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const blockA2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await expect(node.chain).toAddBlock(blockA2)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       let accountAHead = await accountA.getHead()
       expect(accountAHead?.hash).toEqualHash(blockA2.header.hash)
 
       // Try to disconnect blockA1
       const transactions = await node.chain.getBlockTransactions(blockA1.header)
-      await node.wallet.disconnectBlock(blockA1.header, transactions)
+      await node.wallet.scanner.disconnectBlock(
+        blockA1.header,
+        transactions.map((t) => t.transaction),
+      )
 
       // Verify accountA head hash unchanged
       accountAHead = await accountA.getHead()
@@ -2260,7 +2287,7 @@ describe('Wallet', () => {
 
       const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await expect(node.chain).toAddBlock(blockA1)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const blockA2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await node.chain.addBlock(blockA2)
@@ -2272,7 +2299,10 @@ describe('Wallet', () => {
 
       // Try to disconnect blockA2
       const transactions = await node.chain.getBlockTransactions(blockA2.header)
-      await node.wallet.disconnectBlock(blockA2.header, transactions)
+      await node.wallet.scanner.disconnectBlock(
+        blockA2.header,
+        transactions.map((t) => t.transaction),
+      )
 
       expect(updateHeadSpy).not.toHaveBeenCalled()
 
@@ -2291,7 +2321,7 @@ describe('Wallet', () => {
       Assert.isTrue(transaction.isMinersFee())
 
       await expect(node.chain).toAddBlock(blockA1)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const accountAHead = await accountA.getHead()
       expect(accountAHead?.hash).toEqualHash(blockA1.header.hash)
@@ -2299,7 +2329,10 @@ describe('Wallet', () => {
 
       // disconnect blockA1
       const transactions = await node.chain.getBlockTransactions(blockA1.header)
-      await node.wallet.disconnectBlock(blockA1.header, transactions)
+      await node.wallet.scanner.disconnectBlock(
+        blockA1.header,
+        transactions.map((t) => t.transaction),
+      )
 
       await expect(accountA.hasTransaction(transaction.hash())).resolves.toEqual(false)
     })
@@ -2312,7 +2345,7 @@ describe('Wallet', () => {
 
       const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await expect(node.chain).toAddBlock(blockA1)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       await expect(accountA.getUnconfirmedBalance(Asset.nativeId())).resolves.toMatchObject({
         blockHash: blockA1.header.hash,
@@ -2327,7 +2360,7 @@ describe('Wallet', () => {
 
       const blockA2 = await useMinerBlockFixture(node.chain, undefined, accountB, node.wallet)
       await expect(node.chain).toAddBlock(blockA2)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       await expect(accountA.getUnconfirmedBalance(Asset.nativeId())).resolves.toMatchObject({
         blockHash: blockA2.header.hash,
@@ -2341,7 +2374,10 @@ describe('Wallet', () => {
       })
 
       const transactions = await node.chain.getBlockTransactions(blockA2.header)
-      await node.wallet.disconnectBlock(blockA2.header, transactions)
+      await node.wallet.scanner.disconnectBlock(
+        blockA2.header,
+        transactions.map((t) => t.transaction),
+      )
 
       await expect(accountA.getUnconfirmedBalance(Asset.nativeId())).resolves.toMatchObject({
         blockHash: blockA1.header.hash,
@@ -2362,7 +2398,7 @@ describe('Wallet', () => {
 
       const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await expect(node.chain).toAddBlock(blockA1)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       await expect(accountA.getUnconfirmedBalance(Asset.nativeId())).resolves.toMatchObject({
         blockHash: blockA1.header.hash,
@@ -2380,7 +2416,7 @@ describe('Wallet', () => {
         sequence: 3,
       })
       await expect(node.chain).toAddBlock(mintBlock)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       await expect(accountA.getUnconfirmedBalance(Asset.nativeId())).resolves.toMatchObject({
         blockHash: mintBlock.header.hash,
@@ -2395,7 +2431,7 @@ describe('Wallet', () => {
 
       const blockA3 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await expect(node.chain).toAddBlock(blockA3)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       await expect(accountA.getUnconfirmedBalance(Asset.nativeId())).resolves.toMatchObject({
         blockHash: blockA3.header.hash,
@@ -2409,7 +2445,10 @@ describe('Wallet', () => {
       })
 
       const transactions = await node.chain.getBlockTransactions(blockA3.header)
-      await node.wallet.disconnectBlock(blockA3.header, transactions)
+      await node.wallet.scanner.disconnectBlock(
+        blockA3.header,
+        transactions.map((t) => t.transaction),
+      )
 
       await expect(accountA.getUnconfirmedBalance(Asset.nativeId())).resolves.toMatchObject({
         blockHash: mintBlock.header.hash,
@@ -2423,82 +2462,38 @@ describe('Wallet', () => {
       })
     })
 
-    it('should update an account createdAt field if that block is disconnected', async () => {
+    it('should skip disconnecting for accounts with scanningEnabled set to false', async () => {
       const { node } = await nodeTest.createSetup()
 
-      // create an account so that wallet will scan transactions
-      await useAccountFixture(node.wallet, 'accountA')
+      const accountA = await useAccountFixture(node.wallet, 'a')
+      const accountB = await useAccountFixture(node.wallet, 'b')
 
-      const block2 = await useMinerBlockFixture(node.chain, 2)
-      await node.chain.addBlock(block2)
-      await node.wallet.updateHead()
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA1)
+      const blockA2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA2)
 
-      const block3 = await useMinerBlockFixture(node.chain, 3)
-      await node.chain.addBlock(block3)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
-      // create a second account with createdAt referencing block3
-      const accountB = await useAccountFixture(node.wallet, 'accountB')
+      let accountAHead = await accountA.getHead()
+      let accountBHead = await accountB.getHead()
 
-      expect(accountB.createdAt).not.toBeNull()
-      expect(accountB.createdAt?.hash).toEqualHash(block3.header.hash)
-      expect(accountB.createdAt?.sequence).toEqual(block3.header.sequence)
+      expect(accountAHead?.hash).toEqualHash(blockA2.header.hash)
+      expect(accountBHead?.hash).toEqualHash(blockA2.header.hash)
 
-      // disconnect block3 so that accountB's createdAt is updated
-      const transactions = await node.chain.getBlockTransactions(block3.header)
-      await node.wallet.disconnectBlock(block3.header, transactions)
+      await accountA.updateScanningEnabled(false)
 
-      // accountB.createdAt should now reference block2, the previous block from block3
-      expect(accountB.createdAt?.hash).toEqualHash(block2.header.hash)
-      expect(accountB.createdAt?.sequence).toEqual(block2.header.sequence)
-    })
+      await node.chain.blockchainDb.db.transaction(async (tx) => {
+        await node.chain.disconnect(blockA2, tx)
+      })
 
-    it('should reset createdAt to the fork point on a fork', async () => {
-      const { node: nodeA } = await nodeTest.createSetup()
-      const { node: nodeB } = await nodeTest.createSetup()
+      await node.wallet.scan()
 
-      // create account so that wallet scans transactions
-      await useAccountFixture(nodeA.wallet, 'a1')
+      accountAHead = await accountA.getHead()
+      accountBHead = await accountB.getHead()
 
-      // create block and add to both chains
-      const blockA1 = await useMinerBlockFixture(nodeA.chain, undefined)
-      await expect(nodeA.chain).toAddBlock(blockA1)
-      await expect(nodeB.chain).toAddBlock(blockA1)
-      await nodeA.wallet.updateHead()
-
-      // create blocks but don't add to nodeB
-      const blockA2 = await useMinerBlockFixture(nodeA.chain, undefined)
-      await expect(nodeA.chain).toAddBlock(blockA2)
-      await nodeA.wallet.updateHead()
-
-      const blockA3 = await useMinerBlockFixture(nodeA.chain, undefined)
-      await expect(nodeA.chain).toAddBlock(blockA3)
-      await nodeA.wallet.updateHead()
-
-      // create accountA2 at blockA3
-      const accountA2 = await useAccountFixture(nodeA.wallet, 'a2')
-
-      expect(accountA2.createdAt?.hash).toEqualHash(blockA3.header.hash)
-      expect(accountA2.createdAt?.sequence).toEqual(blockA3.header.sequence)
-
-      // create fork on nodeB
-      const blockB2 = await useMinerBlockFixture(nodeB.chain, undefined)
-      await expect(nodeB.chain).toAddBlock(blockB2)
-      const blockB3 = await useMinerBlockFixture(nodeB.chain, undefined)
-      await expect(nodeB.chain).toAddBlock(blockB3)
-      const blockB4 = await useMinerBlockFixture(nodeB.chain, undefined)
-      await expect(nodeB.chain).toAddBlock(blockB4)
-
-      // re-org
-      await expect(nodeA.chain).toAddBlock(blockB2)
-      await expect(nodeA.chain).toAddBlock(blockB3)
-      await expect(nodeA.chain).toAddBlock(blockB4)
-      expect(nodeA.chain.head.hash.equals(blockB4.header.hash)).toBe(true)
-      await nodeA.wallet.updateHead()
-
-      // accountA2.createdAt should be reset to blockA1, the point of the fork
-      expect(accountA2.createdAt?.hash).toEqualHash(blockA1.header.hash)
-      expect(accountA2.createdAt?.sequence).toEqual(blockA1.header.sequence)
+      expect(accountAHead?.hash).toEqualHash(blockA2.header.hash)
+      expect(accountBHead?.hash).toEqualHash(blockA2.header.previousBlockHash)
     })
   })
 
@@ -2574,12 +2569,11 @@ describe('Wallet', () => {
 
       const block2 = await useMinerBlockFixture(node.chain, 2)
       await node.chain.addBlock(block2)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       // create second account so that createdAt will be non-null
       let accountB: Account | null = await useAccountFixture(node.wallet, 'b')
 
-      expect(accountB.createdAt?.hash).toEqualHash(block2.header.hash)
       expect(accountB.createdAt?.sequence).toEqual(block2.header.sequence)
 
       await node.wallet.resetAccount(accountB, { resetCreatedAt: false })
@@ -2589,7 +2583,6 @@ describe('Wallet', () => {
       Assert.isNotNull(accountB)
 
       // createdAt should still refer to block2
-      expect(accountB.createdAt?.hash).toEqualHash(block2.header.hash)
       expect(accountB.createdAt?.sequence).toEqual(block2.header.sequence)
 
       // reset createdAt
@@ -2601,6 +2594,21 @@ describe('Wallet', () => {
       // createdAt should now be null
       expect(accountB.createdAt).toBeNull()
     })
+
+    it('should optionally set scanningEnabled to true', async () => {
+      const { node } = await nodeTest.createSetup()
+      const account = await useAccountFixture(node.wallet, 'a')
+
+      await account.updateScanningEnabled(false)
+
+      await node.wallet.resetAccount(account, { resetScanningEnabled: true })
+
+      // load accountB from wallet again because resetAccount creates a new account instance
+      const newAccount = node.wallet.getAccountByName(account.name)
+      Assert.isNotNull(newAccount)
+
+      expect(newAccount.scanningEnabled).toBe(true)
+    })
   })
 
   describe('getTransactionType', () => {
@@ -2611,7 +2619,7 @@ describe('Wallet', () => {
 
       const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await expect(node.chain).toAddBlock(blockA1)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const transaction = blockA1.transactions[0]
 
@@ -2632,11 +2640,11 @@ describe('Wallet', () => {
 
       const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await expect(node.chain).toAddBlock(blockA1)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const { block: blockA2, transaction } = await useBlockWithTx(node, accountA, accountB)
       await expect(node.chain).toAddBlock(blockA2)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const transactionValue = await accountA.getTransaction(transaction.hash())
 
@@ -2654,7 +2662,7 @@ describe('Wallet', () => {
 
       const blockA1 = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
       await expect(node.chain).toAddBlock(blockA1)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const asset = new Asset(account.publicAddress, 'fakeasset', 'metadata')
       const value = BigInt(10)
@@ -2666,7 +2674,7 @@ describe('Wallet', () => {
         sequence: 3,
       })
       await expect(node.chain).toAddBlock(mintBlock)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const transaction = mintBlock.transactions.find((tx) => !tx.isMinersFee())
 
@@ -2688,7 +2696,7 @@ describe('Wallet', () => {
 
       const blockA1 = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
       await expect(node.chain).toAddBlock(blockA1)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const asset = new Asset(account.publicAddress, 'fakeasset', 'metadata')
       const value = BigInt(10)
@@ -2700,7 +2708,7 @@ describe('Wallet', () => {
         sequence: 3,
       })
       await expect(node.chain).toAddBlock(mintBlock)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const burnValue = BigInt(2)
       const burnBlock = await useBurnBlockFixture({
@@ -2711,7 +2719,7 @@ describe('Wallet', () => {
         sequence: 4,
       })
       await expect(node.chain).toAddBlock(burnBlock)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const transaction = burnBlock.transactions.find((tx) => !tx.isMinersFee())
 
@@ -2734,11 +2742,11 @@ describe('Wallet', () => {
 
       const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await expect(node.chain).toAddBlock(blockA1)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const { block: blockA2, transaction } = await useBlockWithTx(node, accountA, accountB)
       await expect(node.chain).toAddBlock(blockA2)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const transactionValue = await accountB.getTransaction(transaction.hash())
 
@@ -2760,9 +2768,7 @@ describe('Wallet', () => {
 
       const block = await useMinerBlockFixture(node.chain, 2)
 
-      await expect(node.wallet.shouldDecryptForAccount(block.header, account)).resolves.toBe(
-        true,
-      )
+      expect(node.wallet.shouldDecryptForAccount(block.header, account)).toBe(true)
     })
 
     it('should return true for an account with createdAt earlier than the header', async () => {
@@ -2774,9 +2780,7 @@ describe('Wallet', () => {
 
       const block = await useMinerBlockFixture(node.chain, 2)
 
-      await expect(node.wallet.shouldDecryptForAccount(block.header, account)).resolves.toBe(
-        true,
-      )
+      expect(node.wallet.shouldDecryptForAccount(block.header, account)).toBe(true)
     })
 
     it('should return false for an account created after the header', async () => {
@@ -2788,9 +2792,7 @@ describe('Wallet', () => {
 
       const block = await useMinerBlockFixture(node.chain, 2)
 
-      await expect(node.wallet.shouldDecryptForAccount(block.header, account)).resolves.toBe(
-        false,
-      )
+      expect(node.wallet.shouldDecryptForAccount(block.header, account)).toBe(false)
     })
 
     it('should return true for an account created at the header', async () => {
@@ -2802,63 +2804,7 @@ describe('Wallet', () => {
 
       await account.updateCreatedAt(block.header)
 
-      await expect(node.wallet.shouldDecryptForAccount(block.header, account)).resolves.toBe(
-        true,
-      )
-    })
-
-    it('should set the account createdAt if the account was created on a different chain', async () => {
-      const { node } = nodeTest
-
-      const account = await useAccountFixture(node.wallet)
-
-      // set createdAt at fake block at sequence 2
-      await account.updateCreatedAt({ hash: Buffer.alloc(32), sequence: 2 })
-
-      const resetAccount = jest.spyOn(node.wallet, 'resetAccount')
-
-      const block = await useMinerBlockFixture(node.chain, 2)
-
-      await expect(node.wallet.shouldDecryptForAccount(block.header, account)).resolves.toBe(
-        false,
-      )
-
-      expect(resetAccount).not.toHaveBeenCalled()
-
-      expect(account.createdAt).toBeNull()
-    })
-  })
-
-  describe('updateHead', () => {
-    it('should update until the chainProcessor reaches the chain head', async () => {
-      const { node } = await nodeTest.createSetup()
-
-      // create an account so that the wallet will sync
-      await useAccountFixture(node.wallet, 'a')
-
-      // update wallet to genesis block
-      await node.wallet.updateHead()
-
-      const block2 = await useMinerBlockFixture(node.chain, undefined)
-      await expect(node.chain).toAddBlock(block2)
-      const block3 = await useMinerBlockFixture(node.chain, undefined)
-      await expect(node.chain).toAddBlock(block3)
-
-      expect(node.chain.head.hash).toEqualHash(block3.header.hash)
-      expect(node.wallet.chainProcessor.hash).toEqualHash(node.chain.genesis.hash)
-
-      // set max syncing queue to 1 so that wallet only fetches one block at a time
-      node.wallet.chainProcessor.maxQueueSize = 1
-
-      const updateSpy = jest.spyOn(node.wallet.chainProcessor, 'update')
-
-      await node.wallet.updateHead()
-
-      // chainProcessor should sync all the way to head with one call to updateHead
-      expect(node.wallet.chainProcessor.hash).toEqualHash(node.chain.head.hash)
-
-      // one call for each block and a third to find that hash doesn't change
-      expect(updateSpy).toHaveBeenCalledTimes(3)
+      expect(node.wallet.shouldDecryptForAccount(block.header, account)).toBe(true)
     })
   })
 })

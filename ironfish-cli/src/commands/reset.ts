@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { FullNode, PEER_STORE_FILE_NAME } from '@ironfish/sdk'
-import { CliUx, Flags } from '@oclif/core'
+import { Flags, ux } from '@oclif/core'
 import fsAsync from 'fs/promises'
 import { IronfishCommand } from '../command'
 import {
@@ -13,7 +13,7 @@ import {
   VerboseFlag,
   VerboseFlagKey,
 } from '../flags'
-import { confirmOperation } from '../utils'
+import { confirmOrQuit } from '../ui'
 
 export default class Reset extends IronfishCommand {
   static description = 'Reset the node to its initial state'
@@ -54,20 +54,16 @@ export default class Reset extends IronfishCommand {
     }
 
     const message =
-      '\nYou are about to destroy your local copy of the blockchain. The following directories and files will be deleted:\n' +
+      'You are about to destroy your local copy of the blockchain. The following directories and files will be deleted:\n' +
       `\nBlockchain: ${chainDatabasePath}` +
       `\nHosts: ${hostFilePath}` +
       '\nYour wallet, accounts, and keys will NOT be deleted.' +
       networkIdMessage +
-      `\n\nAre you sure? (Y)es / (N)o`
+      `\n\nAre you sure?`
 
-    await confirmOperation({
-      confirm: flags.confirm,
-      confirmMessage: message,
-      cancelledMessage: 'Reset aborted.',
-    })
+    await confirmOrQuit(message, flags.confirm)
 
-    CliUx.ux.action.start('Deleting databases...')
+    ux.action.start('Deleting databases...')
 
     await Promise.all([
       fsAsync.rm(chainDatabasePath, { recursive: true, force: true }),
@@ -86,6 +82,6 @@ export default class Reset extends IronfishCommand {
     await node.wallet.open()
     await node.wallet.reset({ resetCreatedAt: networkChanged })
 
-    CliUx.ux.action.stop('Databases deleted successfully')
+    ux.action.stop('Databases deleted successfully')
   }
 }

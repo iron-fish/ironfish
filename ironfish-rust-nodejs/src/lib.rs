@@ -3,9 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::fmt::Display;
+use std::num::NonZeroUsize;
 
 use ironfish::keys::Language;
 use ironfish::serializing::bytes_to_hex;
+use ironfish::IncomingViewKey;
 use ironfish::PublicAddress;
 use ironfish::SaplingKey;
 
@@ -97,6 +99,13 @@ pub fn words_to_spending_key(words: String, language_code: LanguageCode) -> Resu
 }
 
 #[napi]
+pub fn generate_public_address_from_incoming_view_key(ivk_string: String) -> Result<String> {
+    let ivk = IncomingViewKey::from_hex(&ivk_string).map_err(to_napi_err)?;
+    let address = PublicAddress::from_view_key(&ivk);
+    Ok(address.hex_public_address())
+}
+
+#[napi]
 pub fn generate_key_from_private_key(private_key: String) -> Result<Key> {
     let sapling_key = SaplingKey::from_hex(&private_key).map_err(to_napi_err)?;
 
@@ -114,7 +123,8 @@ pub fn generate_key_from_private_key(private_key: String) -> Result<Key> {
 
 #[napi]
 pub fn initialize_sapling() {
-    let _ = sapling_bls12::SAPLING.clone();
+    // Deref the `SAPLING` lazy-static, to ensure it gets initialized
+    let _ = &*sapling_bls12::SAPLING;
 }
 
 #[napi(constructor)]
@@ -196,4 +206,49 @@ impl ThreadPoolHandler {
 #[napi]
 pub fn is_valid_public_address(hex_address: String) -> bool {
     PublicAddress::from_hex(&hex_address).is_ok()
+}
+
+#[napi]
+pub struct CpuCount {
+    /// Estimate of the number of threads that can run simultaneously on the system. This is
+    /// usually the same as `logical_count`, but on some systems (e.g. Linux), users can set limits
+    /// on individual processes, and so `available_parallelism` may sometimes be lower than
+    /// `logical_count`.
+    pub available_parallelism: u32,
+    /// Total number of 'logical CPUs', or 'virtual CPUs' or 'CPU threads' available on the system.
+    /// This number differs from `physical_count` on systems that have Simultaneous Multi-Threading
+    /// (SMT) enabled; on systems that do not have SMT enabled, `logical_count` and
+    /// `physical_count` should be the same number.
+    ///
+    /// Note, on some systems and configurations, not all logical CPUs may be available to the
+    /// current process, see `available_parallelism`.
+    pub logical_count: u32,
+    /// Total number of CPU cores available on the system.
+    ///
+    /// Note, on some systems and configurations, not all physical CPUs may be available to the
+    /// current process, see `available_parallelism`.
+    pub physical_count: u32,
+}
+
+/// Return the number of processing units available to the system and to the current process.
+///
+/// Note that the numbers returned by this method may change during the lifetime of the process.
+/// Examples of events that may cause the numbers to change:
+/// - enabling/disabling Simultaneous Multi-Threading (SMT)
+/// - enabling/disabling individual CPU threads or CPU cores
+/// - on Linux, changing CPU affinity masks for the process
+/// - on Linux, changing cgroup quotas for the process
+///
+/// Also note that these numbers may not be accurate when running in a virtual machine or in a
+/// sandboxed environment.
+#[napi]
+pub fn get_cpu_count() -> CpuCount {
+    let logical_count = num_cpus::get();
+    CpuCount {
+        available_parallelism: std::thread::available_parallelism()
+            .map(NonZeroUsize::get)
+            .unwrap_or(logical_count) as u32,
+        logical_count: logical_count as u32,
+        physical_count: num_cpus::get_physical() as u32,
+    }
 }

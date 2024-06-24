@@ -12,12 +12,8 @@ import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import { AssertHasRpcContext } from '../rpcContext'
 import { RpcWalletTransaction, RpcWalletTransactionSchema } from '../wallet/types'
-import {
-  getAccount,
-  getAccountDecryptedNotes,
-  getAssetBalanceDeltas,
-  serializeRpcWalletTransaction,
-} from './utils'
+import { serializeRpcWalletTransaction } from './serializers'
+import { getAccount, getAccountDecryptedNotes } from './utils'
 
 export type GetAccountTransactionsRequest = {
   account?: string
@@ -138,8 +134,6 @@ const streamTransaction = async (
     },
   )
 
-  const assetBalanceDeltas = await getAssetBalanceDeltas(account, transaction)
-
   let notes = undefined
   if (request.data.notes) {
     notes = await getAccountDecryptedNotes(wallet.workerPool, account, transaction)
@@ -156,7 +150,6 @@ const streamTransaction = async (
 
   const serialized = {
     ...serializedTransaction,
-    assetBalanceDeltas,
     notes,
     spends,
   }

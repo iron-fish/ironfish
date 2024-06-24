@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { ConfigOptions } from '@ironfish/sdk'
-import { Flags } from '@oclif/core'
+import { Args, Flags } from '@oclif/core'
 import jsonColorizer from 'json-colorizer'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -10,14 +10,12 @@ import { RemoteFlags } from '../../flags'
 export class GetCommand extends IronfishCommand {
   static description = `Print out one config value`
 
-  static args = [
-    {
-      name: 'name',
-      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
+  static args = {
+    name: Args.string({
       required: true,
       description: 'Name of the config item',
-    },
-  ]
+    }),
+  }
 
   static flags = {
     ...RemoteFlags,
@@ -42,7 +40,7 @@ export class GetCommand extends IronfishCommand {
 
   async start(): Promise<void> {
     const { args, flags } = await this.parse(GetCommand)
-    const name = (args.name as string).trim()
+    const { name } = args
 
     const client = await this.sdk.connectRpc(flags.local)
 

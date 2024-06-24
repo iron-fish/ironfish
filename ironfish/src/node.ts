@@ -22,7 +22,7 @@ import { Migrator } from './migrations'
 import { MiningManager } from './mining'
 import { PeerNetwork, PrivateIdentity, privateIdentityToIdentity } from './network'
 import { isHexSecretKey } from './network/identity'
-import { IsomorphicWebSocketConstructor, NodeDataChannelType } from './network/types'
+import { IsomorphicWebSocketConstructor } from './network/types'
 import { getNetworkDefinition } from './networks'
 import { Network } from './networks/network'
 import { Package } from './package'
@@ -70,7 +70,6 @@ export class FullNode {
     workerPool,
     logger,
     webSocket,
-    nodeDataChannel,
     privateIdentity,
     peerStore,
     assetsVerifier,
@@ -87,7 +86,6 @@ export class FullNode {
     workerPool: WorkerPool
     logger: Logger
     webSocket: IsomorphicWebSocketConstructor
-    nodeDataChannel: NodeDataChannelType
     privateIdentity: PrivateIdentity
     peerStore: PeerStore
     assetsVerifier: AssetsVerifier
@@ -148,7 +146,6 @@ export class FullNode {
       bootstrapNodes: config.getArray('bootstrapNodes'),
       stunServers: config.getArray('p2pStunServers'),
       webSocket: webSocket,
-      nodeDataChannel: nodeDataChannel,
       node: this,
       chain: chain,
       metrics: this.metrics,
@@ -327,11 +324,10 @@ export class FullNode {
       database: walletDB,
       workerPool,
       consensus: network.consensus,
+      networkId: network.id,
       nodeClient: memoryClient,
       logger,
     })
-
-    const nodeDataChannel = await import('node-datachannel')
 
     const node = new FullNode({
       pkg,
@@ -345,7 +341,6 @@ export class FullNode {
       workerPool,
       logger,
       webSocket,
-      nodeDataChannel,
       privateIdentity,
       peerStore,
       assetsVerifier,
@@ -397,7 +392,7 @@ export class FullNode {
     }
 
     if (this.config.get('enableWallet')) {
-      await this.wallet.start()
+      this.wallet.start()
     }
 
     this.peerNetwork.start()
@@ -470,7 +465,7 @@ export class FullNode {
       }
       case 'enableWallet': {
         if (newValue) {
-          await this.wallet.start()
+          this.wallet.start()
         } else {
           await this.wallet.stop()
         }

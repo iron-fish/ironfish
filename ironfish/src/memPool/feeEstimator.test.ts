@@ -116,7 +116,7 @@ describe('FeeEstimator', () => {
       )
 
       await node.chain.addBlock(block)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const { block: block2, transaction: transaction2 } = await useBlockWithTx(
         node,
@@ -129,7 +129,7 @@ describe('FeeEstimator', () => {
       )
 
       await node.chain.addBlock(block2)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const feeEstimator = new FeeEstimator({
         consensus: node.chain.consensus,

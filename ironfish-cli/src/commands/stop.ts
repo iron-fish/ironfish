@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { FullNode } from '@ironfish/sdk'
-import { CliUx } from '@oclif/core'
+import { ux } from '@oclif/core'
 import { IronfishCommand } from '../command'
 import { RemoteFlags } from '../flags'
 
@@ -20,10 +20,10 @@ export default class StopCommand extends IronfishCommand {
 
     await this.sdk.client.connect()
 
-    CliUx.ux.action.start('Asking node to shut down...')
+    ux.action.start('Asking node to shut down...')
 
     await this.sdk.client.node.stopNode()
 
-    CliUx.ux.action.stop('done.')
+    ux.action.stop('done.')
   }
 }

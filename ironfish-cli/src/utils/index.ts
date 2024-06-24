@@ -3,11 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 export * from './asset'
-export * from './confirm'
+export * from './chainport'
 export * from './editor'
 export * from './platform'
 export * from './rpc'
-export * from './s3'
-export * from './tar'
 export * from './terminal'
 export * from './types'

@@ -3,12 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { LanguageKey, LanguageUtils } from '../../../utils'
-import { encodeAccount } from '../../../wallet/account/encoder/account'
-import { AccountFormat } from '../../../wallet/account/encoder/encoder'
+import { AccountFormat, encodeAccountImport, toAccountImport } from '../../../wallet/exporter'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import { AssertHasRpcContext } from '../rpcContext'
-import { RpcAccountImport } from './types'
 import { getAccount } from './utils'
 
 export type ExportAccountRequest = {
@@ -18,7 +16,7 @@ export type ExportAccountRequest = {
   language?: LanguageKey
 }
 export type ExportAccountResponse = {
-  account: string | RpcAccountImport | null
+  account: string
 }
 
 export const ExportAccountRequestSchema: yup.ObjectSchema<ExportAccountRequest> = yup
@@ -32,7 +30,7 @@ export const ExportAccountRequestSchema: yup.ObjectSchema<ExportAccountRequest> 
 
 export const ExportAccountResponseSchema: yup.ObjectSchema<ExportAccountResponse> = yup
   .object({
-    account: yup.mixed<RpcAccountImport | string>().nullable(),
+    account: yup.string().defined(),
   })
   .defined()
 
@@ -42,32 +40,16 @@ routes.register<typeof ExportAccountRequestSchema, ExportAccountResponse>(
   (request, node): void => {
     AssertHasRpcContext(request, node, 'wallet')
 
+    const format = request.data.format ?? AccountFormat.Base64Json
+    const viewOnly = request.data.viewOnly ?? false
+
     const account = getAccount(node.wallet, request.data.account)
-    const { id: _, ...accountInfo } = account.serialize()
-    if (request.data.viewOnly) {
-      accountInfo.spendingKey = null
-      if (accountInfo.multisigKeys) {
-        accountInfo.multisigKeys = {
-          publicKeyPackage: accountInfo.multisigKeys.publicKeyPackage,
-        }
-      }
-    }
+    const value = toAccountImport(account, viewOnly, node.wallet.networkId)
 
-    if (!request.data.format) {
-      let createdAt = null
-      if (accountInfo.createdAt) {
-        createdAt = {
-          hash: accountInfo.createdAt.hash.toString('hex'),
-          sequence: accountInfo.createdAt.sequence,
-        }
-      }
+    const encoded = encodeAccountImport(value, format, {
+      language: request.data.language,
+    })
 
-      request.end({ account: { ...accountInfo, createdAt } })
-    } else {
-      const encoded = encodeAccount(accountInfo, request.data.format, {
-        language: request.data.language,
-      })
-      request.end({ account: encoded })
-    }
+    request.end({ account: encoded })
   },
 )

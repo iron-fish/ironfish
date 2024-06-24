@@ -53,7 +53,7 @@ describe('Transaction', () => {
     // Create a block with a miner's fee
     const block1 = await useMinerBlockFixture(nodeA.chain, 2, accountA)
     await nodeA.chain.addBlock(block1)
-    await nodeA.wallet.updateHead()
+    await nodeA.wallet.scan()
 
     const raw = await nodeA.wallet.createTransaction({
       account: accountA,
@@ -102,7 +102,7 @@ describe('Transaction', () => {
     })
     await chain.addBlock(block2)
 
-    await wallet.updateHead()
+    await wallet.scan()
 
     const originalTransaction = await usePostTxFixture({
       node,

@@ -10,19 +10,24 @@ import {
   RpcAsset,
   TransactionType,
 } from '@ironfish/sdk'
-import { CliUx, Flags } from '@oclif/core'
+import { Args, Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { getAssetsByIDs } from '../../utils'
-import { Format, TableCols } from '../../utils/table'
+import { extractChainportDataFromTransaction } from '../../utils/chainport'
+import { Format, TableCols, TableFlags } from '../../utils/table'
 
-const { sort: _, ...tableFlags } = CliUx.ux.table.flags()
+const { sort: _, ...tableFlags } = TableFlags
 export class TransactionsCommand extends IronfishCommand {
   static description = `Display the account transactions`
 
   static flags = {
     ...RemoteFlags,
     ...tableFlags,
+    account: Flags.string({
+      char: 'a',
+      description: 'Name of the account to get transactions for',
+    }),
     hash: Flags.string({
       char: 't',
       description: 'Transaction hash to get details for',
@@ -46,17 +51,17 @@ export class TransactionsCommand extends IronfishCommand {
     }),
   }
 
-  static args = [
-    {
-      name: 'account',
+  static args = {
+    account: Args.string({
       required: false,
-      description: 'Name of the account',
-    },
-  ]
+      description: 'Name of the account. DEPRECATED: use --account flag',
+    }),
+  }
 
   async start(): Promise<void> {
     const { flags, args } = await this.parse(TransactionsCommand)
-    const account = args.account as string | undefined
+    // TODO: remove account arg
+    const account = flags.account ? flags.account : args.account
 
     const format: Format =
       flags.csv || flags.output === 'csv'
@@ -68,6 +73,9 @@ export class TransactionsCommand extends IronfishCommand {
         : Format.cli
 
     const client = await this.sdk.connectRpc()
+
+    const networkId = (await client.chain.getNetworkInfo()).content.networkId
+
     const response = client.wallet.getAccountTransactionsStream({
       account,
       hash: flags.hash,
@@ -93,6 +101,14 @@ export class TransactionsCommand extends IronfishCommand {
           account,
           flags.confirmations,
         )
+
+        if (extractChainportDataFromTransaction(networkId, transaction)) {
+          transaction.type =
+            transaction.type === TransactionType.SEND
+              ? ('Bridge (outgoing)' as TransactionType)
+              : ('Bridge (incoming)' as TransactionType)
+        }
+
         transactionRows = this.getTransactionRowsByNote(assetLookup, transaction, format)
       } else {
         const assetLookup = await getAssetsByIDs(
@@ -104,7 +120,7 @@ export class TransactionsCommand extends IronfishCommand {
         transactionRows = this.getTransactionRows(assetLookup, transaction, format)
       }
 
-      CliUx.ux.table(transactionRows, columns, {
+      ux.table(transactionRows, columns, {
         printLine: this.log.bind(this),
         ...flags,
         'no-header': !showHeader,
@@ -244,8 +260,8 @@ export class TransactionsCommand extends IronfishCommand {
     extended: boolean,
     notes: boolean,
     format: Format,
-  ): CliUx.Table.table.Columns<PartialRecursive<TransactionRow>> {
-    let columns: CliUx.Table.table.Columns<PartialRecursive<TransactionRow>> = {
+  ): ux.Table.table.Columns<PartialRecursive<TransactionRow>> {
+    let columns: ux.Table.table.Columns<PartialRecursive<TransactionRow>> = {
       timestamp: TableCols.timestamp({
         streaming: true,
       }),
@@ -255,7 +271,7 @@ export class TransactionsCommand extends IronfishCommand {
       },
       type: {
         header: 'Type',
-        minWidth: 8,
+        minWidth: notes ? 18 : 8,
       },
       hash: {
         header: 'Hash',

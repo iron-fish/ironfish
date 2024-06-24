@@ -10,12 +10,13 @@ import {
   RpcAsset,
   Transaction,
 } from '@ironfish/sdk'
-import { CliUx, Flags } from '@oclif/core'
+import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { IronFlag, RemoteFlags, ValueFlag } from '../../flags'
-import { confirmOperation } from '../../utils'
+import { confirmOrQuit } from '../../ui'
 import { selectAsset } from '../../utils/asset'
 import { promptCurrency } from '../../utils/currency'
+import { promptExpiration } from '../../utils/expiration'
 import { getExplorer } from '../../utils/explorer'
 import { selectFee } from '../../utils/fees'
 import { watchTransaction } from '../../utils/transaction'
@@ -171,6 +172,16 @@ export class Burn extends IronfishCommand {
       })
     }
 
+    let expiration = flags.expiration
+    if (flags.rawTransaction && expiration === undefined) {
+      expiration = await promptExpiration({ logger: this.logger, client: client })
+    }
+
+    if (expiration !== undefined && expiration < 0) {
+      this.log('Expiration sequence must be non-negative')
+      this.exit(1)
+    }
+
     const params: CreateTransactionRequest = {
       account,
       outputs: [],
@@ -210,7 +221,7 @@ export class Burn extends IronfishCommand {
 
     await this.confirm(assetData, amount, raw.fee, account, flags.confirm)
 
-    CliUx.ux.action.start('Sending the transaction')
+    ux.action.start('Sending the transaction')
 
     const response = await client.wallet.postTransaction({
       transaction: RawTransactionSerde.serialize(raw).toString('hex'),
@@ -220,7 +231,7 @@ export class Burn extends IronfishCommand {
     const bytes = Buffer.from(response.content.transaction, 'hex')
     const transaction = new Transaction(bytes)
 
-    CliUx.ux.action.stop()
+    ux.action.stop()
 
     if (response.content.accepted === false) {
       this.warn(
@@ -277,10 +288,9 @@ export class Burn extends IronfishCommand {
     const renderedAmount = CurrencyUtils.render(amount, true, asset.id, asset.verification)
     const renderedFee = CurrencyUtils.render(fee, true)
 
-    await confirmOperation({
+    await confirmOrQuit(
+      `You are about to burn ${renderedAmount} plus a transaction fee of ${renderedFee} with the account ${account}\nDo you confirm?`,
       confirm,
-      confirmMessage: `You are about to burn: ${renderedAmount} plus a transaction fee of ${renderedFee} with the account ${account}\nDo you confirm(Y/N)?`,
-      cancelledMessage: 'Burn aborted.',
-    })
+    )
   }
 }

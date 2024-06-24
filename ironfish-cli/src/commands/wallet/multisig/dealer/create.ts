@@ -1,11 +1,12 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { ACCOUNT_SCHEMA_VERSION, RpcClient } from '@ironfish/sdk'
-import { CliUx, Flags } from '@oclif/core'
+import { ACCOUNT_SCHEMA_VERSION, JsonEncoder, RpcClient } from '@ironfish/sdk'
+import { AccountImport } from '@ironfish/sdk/src/wallet/exporter'
+import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
-import { longPrompt } from '../../../../utils/longPrompt'
+import { longPrompt } from '../../../../utils/input'
 
 export class MultisigCreateDealer extends IronfishCommand {
   static description = `Create a set of multisig accounts from participant identities`
@@ -53,7 +54,7 @@ export class MultisigCreateDealer extends IronfishCommand {
 
     let minSigners = flags.minSigners
     if (!minSigners) {
-      const input = await CliUx.ux.prompt('Enter the number of minimum signers', {
+      const input = await ux.prompt('Enter the number of minimum signers', {
         required: true,
       })
       minSigners = parseInt(input)
@@ -81,29 +82,31 @@ export class MultisigCreateDealer extends IronfishCommand {
 
     if (flags.importCoordinator) {
       this.log()
-      CliUx.ux.action.start('Importing the coordinator as a view-only account')
+      ux.action.start('Importing the coordinator as a view-only account')
+
+      const account: AccountImport = {
+        name,
+        version: ACCOUNT_SCHEMA_VERSION,
+        createdAt: {
+          hash: createdAt.hash,
+          sequence: createdAt.sequence,
+        },
+        spendingKey: null,
+        viewKey: response.content.viewKey,
+        incomingViewKey: response.content.incomingViewKey,
+        outgoingViewKey: response.content.outgoingViewKey,
+        publicAddress: response.content.publicAddress,
+        proofAuthorizingKey: response.content.proofAuthorizingKey,
+        multisigKeys: {
+          publicKeyPackage: response.content.publicKeyPackage,
+        },
+      }
 
       await client.wallet.importAccount({
-        account: {
-          name,
-          version: ACCOUNT_SCHEMA_VERSION,
-          createdAt: {
-            hash: createdAt.hash.toString('hex'),
-            sequence: createdAt.sequence,
-          },
-          spendingKey: null,
-          viewKey: response.content.viewKey,
-          incomingViewKey: response.content.incomingViewKey,
-          outgoingViewKey: response.content.outgoingViewKey,
-          publicAddress: response.content.publicAddress,
-          proofAuthorizingKey: response.content.proofAuthorizingKey,
-          multisigKeys: {
-            publicKeyPackage: response.content.publicKeyPackage,
-          },
-        },
+        account: new JsonEncoder().encode(account),
       })
 
-      CliUx.ux.action.stop()
+      ux.action.stop()
     }
 
     for (const [i, { identity, account }] of response.content.participantAccounts.entries()) {
@@ -128,8 +131,7 @@ export class MultisigCreateDealer extends IronfishCommand {
 
     let name = inputName
     do {
-      name =
-        name ?? (await CliUx.ux.prompt('Enter a name for the coordinator', { required: true }))
+      name = name ?? (await ux.prompt('Enter a name for the coordinator', { required: true }))
 
       if (accountNames.has(name)) {
         this.log(`Account with name ${name} already exists`)

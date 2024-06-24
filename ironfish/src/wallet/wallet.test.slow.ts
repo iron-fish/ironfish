@@ -46,7 +46,7 @@ describe('Wallet', () => {
     const chain = nodeTest.chain
 
     const account = await useAccountFixture(node.wallet, 'test')
-    await node.wallet.updateHead()
+    await node.wallet.scan()
 
     // Initial balance should be 0
     await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
@@ -54,7 +54,7 @@ describe('Wallet', () => {
       unconfirmed: BigInt(0),
     })
 
-    await node.wallet.updateHead()
+    await node.wallet.scan()
 
     // Balance after adding the genesis block should be 0
     await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
@@ -68,7 +68,7 @@ describe('Wallet', () => {
     const addResult = await chain.addBlock(newBlock)
     expect(addResult.isAdded).toBeTruthy()
 
-    await node.wallet.updateHead()
+    await node.wallet.scan()
 
     // Account should now have a balance of 2000000000 after adding the miner's fee
     await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
@@ -91,7 +91,7 @@ describe('Wallet', () => {
     })
 
     // Balance after adding the genesis block should be 0
-    await node.wallet.updateHead()
+    await node.wallet.scan()
     await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(0),
       unconfirmed: BigInt(0),
@@ -104,7 +104,7 @@ describe('Wallet', () => {
     expect(addResult.isAdded).toBeTruthy()
 
     // Account should now have a balance of 2000000000 after adding the miner's fee
-    await node.wallet.updateHead()
+    await node.wallet.scan()
     await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(2000000000),
       unconfirmed: BigInt(2000000000),
@@ -137,7 +137,7 @@ describe('Wallet', () => {
     expect(addResult2.isAdded).toBeTruthy()
 
     // Balance after adding the transaction that spends 2 should be 1999999998
-    await node.wallet.updateHead()
+    await node.wallet.scan()
     await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(1999999998),
       unconfirmed: BigInt(1999999998),
@@ -158,7 +158,7 @@ describe('Wallet', () => {
     })
 
     // Balance after adding the genesis block should be 0
-    await node.wallet.updateHead()
+    await node.wallet.scan()
     await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(0),
       unconfirmed: BigInt(0),
@@ -171,7 +171,7 @@ describe('Wallet', () => {
     expect(addResult.isAdded).toBeTruthy()
 
     // Account should now have a balance of 2000000000 after adding the miner's fee
-    await node.wallet.updateHead()
+    await node.wallet.scan()
     await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(2000000000),
       unconfirmed: BigInt(2000000000),
@@ -207,7 +207,7 @@ describe('Wallet', () => {
     expect(addResult2.isAdded).toBeTruthy()
 
     // Balance after adding the transaction that spends 2 should be 1999999998
-    await node.wallet.updateHead()
+    await node.wallet.scan()
     await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(1999999998),
       unconfirmed: BigInt(1999999998),
@@ -228,7 +228,7 @@ describe('Wallet', () => {
     })
 
     // Balance after adding the genesis block should be 0
-    await node.wallet.updateHead()
+    await node.wallet.scan()
     await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(0),
       unconfirmed: BigInt(0),
@@ -241,7 +241,7 @@ describe('Wallet', () => {
     expect(addResult.isAdded).toBeTruthy()
 
     // Account should now have a balance of 2000000000 after adding the miner's fee
-    await node.wallet.updateHead()
+    await node.wallet.scan()
     await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(2000000000),
       unconfirmed: BigInt(2000000000),
@@ -288,7 +288,7 @@ describe('Wallet', () => {
     expect(addResult2.isAdded).toBeTruthy()
 
     // Balance after adding the transaction that spends 6 should be 1999999994
-    await node.wallet.updateHead()
+    await node.wallet.scan()
     await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(1999999994),
       unconfirmed: BigInt(1999999994),
@@ -335,7 +335,7 @@ describe('Wallet', () => {
     })
 
     // Balance after adding the genesis block should be 0
-    await node.wallet.updateHead()
+    await node.wallet.scan()
     await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(0),
       unconfirmed: BigInt(0),
@@ -348,7 +348,7 @@ describe('Wallet', () => {
     expect(addResult.isAdded).toBeTruthy()
 
     // Account should now have a balance of 2000000000 after adding the miner's fee
-    await node.wallet.updateHead()
+    await node.wallet.scan()
     await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(2000000000),
       unconfirmed: BigInt(2000000000),
@@ -420,7 +420,7 @@ describe('Wallet', () => {
     })
 
     // Balance after adding the genesis block should be 0
-    await node.wallet.updateHead()
+    await node.wallet.scan()
     await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(0),
       unconfirmed: BigInt(0),
@@ -432,7 +432,7 @@ describe('Wallet', () => {
     await expect(chain).toAddBlock(newBlock)
 
     // Account should now have a balance of 2000000000 after adding the miner's fee
-    await node.wallet.updateHead()
+    await node.wallet.scan()
     await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(2000000000),
       unconfirmed: BigInt(2000000000),
@@ -492,7 +492,7 @@ describe('Wallet', () => {
     expect(addedBlock.isAdded).toBe(true)
 
     // Initial balance should be 2000000000
-    await nodeA.wallet.updateHead()
+    await nodeA.wallet.scan()
     await expect(nodeA.wallet.getBalance(accountA, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(2000000000),
       unconfirmed: BigInt(2000000000),
@@ -527,7 +527,7 @@ describe('Wallet', () => {
     })
 
     await nodeA.chain.addBlock(block2)
-    await nodeA.wallet.updateHead()
+    await nodeA.wallet.scan()
 
     // Attempting to create another transaction for account A
     // to account C should not throw an error
@@ -557,8 +557,8 @@ describe('Wallet', () => {
     const nodeA = nodeTest.node
     const { node: nodeB } = await nodeTest.createSetup()
 
-    const accountA = await useAccountFixture(nodeA.wallet, 'testA', { setCreatedAt: false })
-    const accountB = await useAccountFixture(nodeB.wallet, 'testB', { setCreatedAt: false })
+    const accountA = await useAccountFixture(nodeA.wallet, 'testA', { createdAt: null })
+    const accountB = await useAccountFixture(nodeB.wallet, 'testB', { createdAt: null })
 
     const accountBNodeA = await nodeA.wallet.importAccount(accountB)
 
@@ -578,8 +578,8 @@ describe('Wallet', () => {
     expect(addedBlock.isAdded).toBe(true)
 
     // Update account head and check all balances
-    await nodeA.wallet.updateHead()
-    await nodeB.wallet.updateHead()
+    await nodeA.wallet.scan()
+    await nodeB.wallet.scan()
 
     await expect(nodeA.wallet.getBalance(accountA, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(2000000000),
@@ -598,11 +598,11 @@ describe('Wallet', () => {
 
     // Copy block B1 to nodeA
     await nodeA.chain.addBlock(blockB1)
-    await nodeA.wallet.updateHead()
+    await nodeA.wallet.scan()
 
     // Copy block B2 to nodeA
     await nodeA.chain.addBlock(blockB2)
-    await nodeA.wallet.updateHead()
+    await nodeA.wallet.scan()
     await expect(nodeA.wallet.getBalance(accountA, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(0),
       unconfirmed: BigInt(0),
@@ -647,8 +647,8 @@ describe('Wallet', () => {
     expect(addResultViewOnly.isAdded).toBeTruthy()
 
     // Account should now have a balance of 2000000000 after adding the miner's fee
-    await node.wallet.updateHead()
-    await viewOnlyNode.wallet.updateHead()
+    await node.wallet.scan()
+    await viewOnlyNode.wallet.scan()
     await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(2000000000),
       unconfirmed: BigInt(2000000000),
@@ -689,8 +689,8 @@ describe('Wallet', () => {
     expect(addResultViewOnly2.isAdded).toBeTruthy()
 
     // Balance after adding the transaction that spends 2 should be 1999999998
-    await node.wallet.updateHead()
-    await viewOnlyNode.wallet.updateHead()
+    await node.wallet.scan()
+    await viewOnlyNode.wallet.scan()
     await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(1999999998),
       unconfirmed: BigInt(1999999998),
@@ -713,8 +713,8 @@ describe('Wallet', () => {
     const nodeA = nodeTest.node
     const { node: nodeB } = await nodeTest.createSetup()
 
-    const accountA = await useAccountFixture(nodeA.wallet, 'testA', { setCreatedAt: false })
-    const accountB = await useAccountFixture(nodeB.wallet, 'testB', { setCreatedAt: false })
+    const accountA = await useAccountFixture(nodeA.wallet, 'testA', { createdAt: null })
+    const accountB = await useAccountFixture(nodeB.wallet, 'testB', { createdAt: null })
     const accountBNodeA = await nodeA.wallet.importAccount(accountB)
     const accountANodeB = await nodeB.wallet.importAccount(accountA)
 
@@ -725,7 +725,7 @@ describe('Wallet', () => {
     addedBlock = await nodeB.chain.addBlock(block1)
     expect(addedBlock.isAdded).toBe(true)
 
-    await nodeA.wallet.updateHead()
+    await nodeA.wallet.scan()
 
     // Create and add A2
     const blockA2 = await useBlockFixture(
@@ -774,8 +774,8 @@ describe('Wallet', () => {
     expect(addedBlock.isAdded).toBe(true)
 
     // Update account head and check all balances
-    await nodeA.wallet.updateHead()
-    await nodeB.wallet.updateHead()
+    await nodeA.wallet.scan()
+    await nodeB.wallet.scan()
 
     await expect(nodeA.wallet.getBalance(accountA, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(1999999998),
@@ -797,7 +797,7 @@ describe('Wallet', () => {
     // Copy block B2 and B3 to nodeA
     await nodeA.chain.addBlock(blockB2)
     await nodeA.chain.addBlock(blockB3)
-    await nodeA.wallet.updateHead()
+    await nodeA.wallet.scan()
 
     // B should not have confirmed coins yet because the transaction isn't on a block
     // A should still have confirmed coins because the transaction isn't on a block
@@ -823,8 +823,8 @@ describe('Wallet', () => {
     const nodeA = nodeTest.node
     const { node: nodeB } = await nodeTest.createSetup()
 
-    const accountA = await useAccountFixture(nodeA.wallet, 'testA', { setCreatedAt: false })
-    const accountB = await useAccountFixture(nodeB.wallet, 'testB', { setCreatedAt: false })
+    const accountA = await useAccountFixture(nodeA.wallet, 'testA', { createdAt: null })
+    const accountB = await useAccountFixture(nodeB.wallet, 'testB', { createdAt: null })
     const accountBNodeA = await nodeA.wallet.importAccount(accountB)
     const accountANodeB = await nodeB.wallet.importAccount(accountA)
 
@@ -838,7 +838,7 @@ describe('Wallet', () => {
     expect(addedBlock.isAdded).toBe(true)
 
     // Generate a transaction from account A to account B
-    await nodeB.wallet.updateHead()
+    await nodeB.wallet.scan()
 
     // Create and add A2
     const blockA2 = await useBlockFixture(
@@ -897,8 +897,8 @@ describe('Wallet', () => {
     expect(addedBlock.isAdded).toBe(true)
 
     // Update account head and check all balances
-    await nodeA.wallet.updateHead()
-    await nodeB.wallet.updateHead()
+    await nodeA.wallet.scan()
+    await nodeB.wallet.scan()
 
     await expect(nodeA.wallet.getBalance(accountA, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(1999999998),
@@ -920,7 +920,7 @@ describe('Wallet', () => {
     // Copy block B2 and B3 to nodeA
     await nodeA.chain.addBlock(blockB2)
     await nodeA.chain.addBlock(blockB3)
-    await nodeA.wallet.updateHead()
+    await nodeA.wallet.scan()
 
     // B should not have confirmed coins yet because the transaction isn't on a block
     // A should still have confirmed coins because the transaction isn't on a block
@@ -963,7 +963,7 @@ describe('Wallet', () => {
 
         const mined = await useMinerBlockFixture(node.chain, 2, account)
         await expect(node.chain).toAddBlock(mined)
-        await node.wallet.updateHead()
+        await node.wallet.scan()
 
         const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
 
@@ -976,7 +976,7 @@ describe('Wallet', () => {
           sequence: 3,
         })
         await expect(node.chain).toAddBlock(mintBlockA)
-        await node.wallet.updateHead()
+        await node.wallet.scan()
 
         const mintValueB = BigInt(10)
         const transaction = await useTxFixture(node.wallet, account, account, () => {
@@ -993,7 +993,7 @@ describe('Wallet', () => {
           await node.chain.createMinersFee(transaction.fee(), 4, generateKey().spendingKey),
         )
         await expect(node.chain).toAddBlock(mintBlock)
-        await node.wallet.updateHead()
+        await node.wallet.scan()
 
         expect(await node.wallet.getBalance(account, asset.id())).toMatchObject({
           unconfirmed: BigInt(mintValueA + mintValueB),
@@ -1010,7 +1010,7 @@ describe('Wallet', () => {
 
         const mined = await useMinerBlockFixture(node.chain, 2, account)
         await expect(node.chain).toAddBlock(mined)
-        await node.wallet.updateHead()
+        await node.wallet.scan()
 
         const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
         const mintValue = BigInt(10)
@@ -1045,7 +1045,7 @@ describe('Wallet', () => {
 
         const mined = await useMinerBlockFixture(node.chain, 2, account)
         await expect(node.chain).toAddBlock(mined)
-        await node.wallet.updateHead()
+        await node.wallet.scan()
 
         const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
         const value = BigInt(10)
@@ -1057,7 +1057,7 @@ describe('Wallet', () => {
           sequence: 3,
         })
         await expect(node.chain).toAddBlock(mintBlock)
-        await node.wallet.updateHead()
+        await node.wallet.scan()
 
         expect(await node.wallet.getBalance(account, asset.id())).toMatchObject({
           unconfirmed: BigInt(value),
@@ -1075,13 +1075,13 @@ describe('Wallet', () => {
 
       const mined = await useMinerBlockFixture(node.chain, 2, account)
       await expect(node.chain).toAddBlock(mined)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
       const value = BigInt(10)
       const mintBlock = await useMintBlockFixture({ node, account, asset, value, sequence: 3 })
       await expect(node.chain).toAddBlock(mintBlock)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const burnValue = BigInt(2)
       const transaction = await usePostTxFixture({
@@ -1100,13 +1100,13 @@ describe('Wallet', () => {
 
       const mined = await useMinerBlockFixture(node.chain, 2, account)
       await expect(node.chain).toAddBlock(mined)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
       const value = BigInt(10)
       const mintBlock = await useMintBlockFixture({ node, account, asset, value, sequence: 3 })
       await expect(node.chain).toAddBlock(mintBlock)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       const burnValue = BigInt(2)
       const burnBlock = await useBurnBlockFixture({
@@ -1117,7 +1117,7 @@ describe('Wallet', () => {
         sequence: 4,
       })
       await expect(node.chain).toAddBlock(burnBlock)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       expect(await node.wallet.getBalance(account, asset.id())).toMatchObject({
         unconfirmed: BigInt(8),
@@ -1200,13 +1200,13 @@ describe('Wallet', () => {
       })
 
       // When importing an account through the SDK, we need to kick off a scan.
-      await node.wallet.scanTransactions()
+      await node.wallet.scan()
 
       // mine block to send IRON to multisig account
       const miner = await useAccountFixture(node.wallet, 'miner')
       const block = await useMinerBlockFixture(node.chain, undefined, miner)
       await expect(node.chain).toAddBlock(block)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       // we are using participant B and sending the transaction below from participant A
       // to make it extremely obvious that the participants in the multisig account control
@@ -1234,7 +1234,7 @@ describe('Wallet', () => {
       const addResult2 = await node.chain.addBlock(newBlock2)
       expect(addResult2.isAdded).toBeTruthy()
 
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       // verify multisig account can see its IRON
       expect(await node.wallet.getBalance(participantA, Asset.nativeId())).toMatchObject({
@@ -1320,7 +1320,7 @@ describe('Wallet', () => {
       const frostBlock = await node.chain.newBlock([frostTransaction], minersfee3)
       await node.chain.addBlock(newBlock2)
       await expect(node.chain).toAddBlock(frostBlock)
-      await node.wallet.updateHead()
+      await node.wallet.scan()
 
       expect(await node.wallet.getBalance(recipient, Asset.nativeId())).toMatchObject({
         unconfirmed: BigInt(2),

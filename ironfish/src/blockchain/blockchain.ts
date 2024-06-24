@@ -854,6 +854,25 @@ export class Blockchain {
   }
 
   /**
+   * Get the block on the main chain at the given sequence, if it exists.
+   */
+  async getBlockAtSequence(sequence: number, tx?: IDatabaseTransaction): Promise<Block | null> {
+    return this.blockchainDb.db.withTransaction(tx, async (tx) => {
+      const header = await this.blockchainDb.getBlockHeaderAtSequence(sequence)
+      if (!header) {
+        return null
+      }
+
+      const transactions = await this.blockchainDb.getTransactions(header.hash, tx)
+      if (!transactions) {
+        return null
+      }
+
+      return new Block(header, transactions.transactions)
+    })
+  }
+
+  /**
    * Returns true if the blockchain has a block at the given hash
    */
   async hasBlock(hash: BlockHash, tx?: IDatabaseTransaction): Promise<boolean> {
@@ -1567,7 +1586,7 @@ export class VerifyError extends Error {
   score: number
 
   constructor(reason: VerificationResultReason, score = 0) {
-    super()
+    super(reason)
 
     this.reason = reason
     this.score = score

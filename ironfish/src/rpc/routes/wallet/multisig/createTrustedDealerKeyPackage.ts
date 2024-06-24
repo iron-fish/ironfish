@@ -5,7 +5,9 @@ import { multisig } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
 import { Assert } from '../../../../assert'
 import { FullNode } from '../../../../node'
-import { ACCOUNT_SCHEMA_VERSION, Base64JsonEncoder } from '../../../../wallet'
+import { ACCOUNT_SCHEMA_VERSION, JsonEncoder } from '../../../../wallet'
+import { AccountImport } from '../../../../wallet/exporter'
+import { encryptEncodedAccount } from '../../../../wallet/exporter/encryption'
 import { ApiNamespace } from '../../namespaces'
 import { routes } from '../../router'
 
@@ -66,8 +68,8 @@ routes.register<
   (request, node): void => {
     Assert.isInstanceOf(node, FullNode)
 
-    const { minSigners, participants } = request.data
-    const identities = participants.map((p) => p.identity)
+    const identities = request.data.participants.map((p) => p.identity)
+
     const {
       publicAddress,
       publicKeyPackage,
@@ -76,42 +78,46 @@ routes.register<
       outgoingViewKey,
       proofAuthorizingKey,
       keyPackages,
-    } = multisig.generateAndSplitKey(minSigners, identities)
+    } = multisig.generateAndSplitKey(request.data.minSigners, identities)
 
-    const latestHeader = node.chain.latest
     const createdAt = {
-      hash: latestHeader.hash,
-      sequence: latestHeader.sequence,
+      hash: node.chain.latest.hash,
+      sequence: node.chain.latest.sequence,
     }
 
-    const encoder = new Base64JsonEncoder()
-    const participantAccounts = keyPackages.map(({ identity, keyPackage }) => ({
-      identity,
-      account: encoder.encode(
-        {
-          name: identity,
-          version: ACCOUNT_SCHEMA_VERSION,
-          createdAt,
-          spendingKey: null,
-          viewKey,
-          incomingViewKey,
-          outgoingViewKey,
-          publicAddress,
-          proofAuthorizingKey,
-          multisigKeys: {
-            identity,
-            keyPackage,
-            publicKeyPackage,
-          },
+    const participants = keyPackages.map(({ identity, keyPackage }) => {
+      const account: AccountImport = {
+        name: identity,
+        version: ACCOUNT_SCHEMA_VERSION,
+        createdAt,
+        spendingKey: null,
+        viewKey,
+        incomingViewKey,
+        outgoingViewKey,
+        publicAddress,
+        proofAuthorizingKey,
+        multisigKeys: {
+          identity,
+          keyPackage,
+          publicKeyPackage,
         },
-        {
-          encryptWith: {
-            kind: 'MultisigIdentity',
-            identity: Buffer.from(identity, 'hex'),
-          },
-        },
-      ),
-    }))
+      }
+
+      const encoder = new JsonEncoder()
+      const encoded = encoder.encode(account)
+
+      const participant = new multisig.ParticipantIdentity(Buffer.from(identity, 'hex'))
+
+      const encrypted = encryptEncodedAccount(encoded, {
+        kind: 'MultisigIdentity',
+        identity: participant,
+      })
+
+      return {
+        identity,
+        account: encrypted,
+      }
+    })
 
     request.end({
       publicAddress,
@@ -120,7 +126,7 @@ routes.register<
       incomingViewKey,
       outgoingViewKey,
       proofAuthorizingKey,
-      participantAccounts,
+      participantAccounts: participants,
     })
   },
 )

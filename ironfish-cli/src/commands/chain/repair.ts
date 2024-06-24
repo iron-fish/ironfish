@@ -2,11 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert, BlockHeader, FullNode, IDatabaseTransaction, TimeUtils } from '@ironfish/sdk'
-import { Meter } from '@ironfish/sdk'
-import { CliUx, Flags } from '@oclif/core'
+import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
-import { ProgressBar } from '../../types'
+import { confirmOrQuit, ProgressBar, ProgressBarPresets } from '../../ui'
 
 const TREE_BATCH = 1000
 const TREE_START = 1
@@ -37,16 +36,13 @@ export default class RepairChain extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(RepairChain)
 
-    const speed = new Meter()
-    const progress = CliUx.ux.progress({
-      format: '{title}: [{bar}] {value}/{total} {percentage}% {speed}/sec | {estimate}',
-    }) as ProgressBar
+    const progress = new ProgressBar('', { preset: ProgressBarPresets.withSpeed })
 
-    CliUx.ux.action.start(`Opening node`)
+    ux.action.start(`Opening node`)
     const node = await this.sdk.node()
     await node.openDB()
     await node.chain.open()
-    CliUx.ux.action.stop('done.')
+    ux.action.stop('done.')
 
     if (node.chain.isEmpty) {
       this.log(`Chain is too corrupt. Delete your DB at ${node.config.chainDatabasePath}`)
@@ -57,45 +53,37 @@ export default class RepairChain extends IronfishCommand {
     const total = Number(node.chain.head.sequence)
     const estimate = TimeUtils.renderEstimate(0, total, SPEED_ESTIMATE)
 
-    const confirmed =
-      flags.confirm ||
-      (await CliUx.ux.confirm(
-        `\n⚠️ If you start repairing your database, you MUST finish the\n` +
-          `process or your database will be in a corrupt state. Repairing\n` +
-          `may take ${estimate} or longer.\n\n` +
-          `Are you SURE? (y)es / (n)o`,
-      ))
+    await confirmOrQuit(
+      `⚠️ If you start repairing your database, you MUST finish the` +
+        `\nprocess or your database will be in a corrupt state. Repairing` +
+        `\nmay take ${estimate} or longer.` +
+        `\n\nAre you sure?`,
+      flags.confirm,
+    )
 
-    if (!confirmed) {
-      return
-    }
-
-    await this.repairChain(node, speed, progress)
-    await this.repairTrees(node, speed, progress, flags.force)
+    await this.repairChain(node, progress)
+    await this.repairTrees(node, progress, flags.force)
 
     this.log('Repair complete.')
   }
 
-  async repairChain(node: FullNode, speed: Meter, progress: ProgressBar): Promise<void> {
+  async repairChain(node: FullNode, progress: ProgressBar): Promise<void> {
     Assert.isNotNull(node.chain.head)
 
-    CliUx.ux.action.start('Clearing hash to next hash table')
+    ux.action.start('Clearing hash to next hash table')
     await node.chain.clearHashToNextHash()
-    CliUx.ux.action.stop()
+    ux.action.stop()
 
-    CliUx.ux.action.start('Clearing Sequence to hash table')
+    ux.action.start('Clearing Sequence to hash table')
     await node.chain.clearSequenceToHash()
-    CliUx.ux.action.stop()
+    ux.action.stop()
 
     const total = Number(node.chain.head.sequence)
     let done = 0
-    let head = node.chain.head as BlockHeader | null
+    let head: BlockHeader | null = node.chain.head
 
-    speed.start()
     progress.start(total, 0, {
       title: 'Repairing head chain tables',
-      speed: '-',
-      estimate: '-',
     })
 
     while (head && head.sequence > BigInt(0)) {
@@ -104,24 +92,13 @@ export default class RepairChain extends IronfishCommand {
 
       head = await node.chain.getHeader(head.previousBlockHash)
 
-      done++
-      speed.add(1)
-      progress.increment()
-      progress.update({
-        estimate: TimeUtils.renderEstimate(done, total, speed.rate1m),
-        speed: speed.rate1s.toFixed(0),
-      })
+      progress.update(++done)
     }
 
     progress.stop()
   }
 
-  async repairTrees(
-    node: FullNode,
-    speed: Meter,
-    progress: ProgressBar,
-    force: boolean,
-  ): Promise<void> {
+  async repairTrees(node: FullNode, progress: ProgressBar, force: boolean): Promise<void> {
     Assert.isNotNull(node.chain.head)
 
     const noNotes = (await node.chain.notes.size()) === 0
@@ -148,20 +125,18 @@ export default class RepairChain extends IronfishCommand {
     let prev = await node.chain.getHeaderAtSequence(TREE_START - 1)
     const noteSize = prev && prev.noteSize !== null ? prev.noteSize : 0
 
-    CliUx.ux.action.start('Clearing notes MerkleTree')
+    ux.action.start('Clearing notes MerkleTree')
     await node.chain.notes.truncate(noteSize)
-    CliUx.ux.action.stop()
+    ux.action.stop()
 
-    CliUx.ux.action.start('Clearing nullifier set')
+    ux.action.start('Clearing nullifier set')
     await node.chain.nullifiers.clear()
 
-    CliUx.ux.action.stop()
+    ux.action.stop()
 
-    speed.reset()
+    progress.resetMeter()
     progress.start(total, TREE_START, {
       title: 'Reconstructing merkle trees',
-      speed: '-',
-      estimate: '-',
     })
 
     while (block) {
@@ -190,8 +165,6 @@ export default class RepairChain extends IronfishCommand {
         return this.exit(1)
       }
 
-      done++
-
       if (TREE_END !== null && Number(block.header.sequence) >= TREE_END) {
         break
       }
@@ -200,12 +173,7 @@ export default class RepairChain extends IronfishCommand {
       header = await node.chain.getNext(block.header, tx)
       block = header ? await node.chain.getBlock(header, tx) : null
 
-      speed.add(1)
-      progress.increment()
-      progress.update({
-        estimate: TimeUtils.renderEstimate(done, total, speed.rate1m),
-        speed: speed.rate1s.toFixed(0),
-      })
+      progress.update(++done)
 
       if (tx.size > TREE_BATCH) {
         await tx.commit()

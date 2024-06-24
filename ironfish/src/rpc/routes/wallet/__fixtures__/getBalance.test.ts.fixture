@@ -1,62 +1,92 @@
 {
   "Route wallet/getBalance with a valid account returns balance of the native asset": [
     {
-      "version": 4,
-      "id": "6071960d-d58e-4336-993a-a61b99eecbc9",
-      "name": "accountA",
-      "spendingKey": "711112e4c13115b2597b5d6013d136a65e332b0fb746627782872db375859128",
-      "viewKey": "eb2e092e02732886e27634afa20dc0a190847991374e8558795d5898d18c4d4f2bf68fd4d2d25689da6346de360c415810184aa3ae4b25f38f8489146598166a",
-      "incomingViewKey": "538703e81935a39aeb09cbb04aef7cd082f614ce5350515e286f5d89cfe0ba00",
-      "outgoingViewKey": "53d04d231f4fa6098ccf3dc401a6066f55f82c2cd459a41d4ac1ea1950de4083",
-      "publicAddress": "4dc326cab02fbbb0b437aad970c64ea679892327a80ca6c205be7ed9025cc88d",
-      "createdAt": {
+      "value": {
+        "version": 4,
+        "id": "52c255c6-5ded-48d4-b96d-c2fe3ea3e9b8",
+        "name": "accountA",
+        "spendingKey": "c28dba5b927a45b93dd55dd642a776010e1b258084b32ac16cee815eb4b69277",
+        "viewKey": "743f609888b8d9cce8524346293027e16b9f2c5c5d2297a33a188e01c40999cec40ca84dc7df8dbdbc6c20b9ab9fbd093f297285b492e715e9a4b4f9f051d600",
+        "incomingViewKey": "168a0b262ff8e611f9455ae2189bbfcc81058f996f6ccce6e21be0197e789e00",
+        "outgoingViewKey": "1a7780e356f6ff92687dd172e417c1d11db1db67e2612f72bbf75d7af9f2a51f",
+        "publicAddress": "729b67146151c1ac6498339f39b29854f7338137088d95dc8204fc5c5476094a",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "6fe09a2a90f14af29013780e8c8864c6d1fab8b78891c7c8981b878d214a6104"
+      },
+      "head": {
         "hash": {
           "type": "Buffer",
           "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
         },
         "sequence": 1
-      },
-      "proofAuthorizingKey": "33c1bea69852d71fd137de14c5747c576b13fd8615ebd44009ce40f26666ef00"
+      }
     }
   ],
   "Route wallet/getBalance with a valid account returns balance of an arbitrary asset": [
     {
-      "version": 4,
-      "id": "63417c2e-94b9-4eb8-a4ea-d244e77c0ac5",
-      "name": "accountB",
-      "spendingKey": "0dbafde1f9731d59fac8a028b6c13f23b00519efc254a88ee5e6dbd6189d261e",
-      "viewKey": "15c676c8ba040d23b103a0615de37ab7021c11e2e6c5b17cbb02c298812a72b23b6f3f0989f24c1a9f1748fbeff0d91222d6f901a20105efdc460716ec406714",
-      "incomingViewKey": "74a8965c836f792fc4b07e1e1d7eb682cdc6bff3f79b1d1acc56195cdd32fc00",
-      "outgoingViewKey": "0ada83c82bf67dd3f9dc2847a3933dc8aa1dca4048b1658147b77484a1fb2f76",
-      "publicAddress": "1c2fd8ddc28df111df93c95662ccabbbdab2a803c84b402122875fbff3d0fcf0",
-      "createdAt": {
+      "value": {
+        "version": 4,
+        "id": "26bca817-04be-4dc3-b1ba-9e97a815364e",
+        "name": "accountB",
+        "spendingKey": "0c731e6f2f1323b864f2f68119ddf9ab2ae08a1b3bd4ab4a84928e38a9367980",
+        "viewKey": "989f04e7ed117d9f69d80c54bed9497b6c8fa83550e6835eb16a39e5bff92ad37c0a118cba506db5a3d8ec92376adcfcea66047f47bd56db1c3d133c6f912a38",
+        "incomingViewKey": "d1c5a5cfb2137d7a560a7073582fbd3711675313963557a8b1da9c0745f4ae00",
+        "outgoingViewKey": "9e76dbb76ca0eaab4aa1f317f670c200983a658d7173432158b924eaa601dc08",
+        "publicAddress": "f0b5e7f518003051809e4fd6c8834d3dd192f08650f3b6cd0333384e5f732336",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "994201f9f78b5f6d855e79e3cb5fe411b5f1270710dce85f0eabfc61f6ee3e0b"
+      },
+      "head": {
         "hash": {
           "type": "Buffer",
           "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
         },
         "sequence": 1
-      },
-      "proofAuthorizingKey": "8884c139408ad08111efefdb18091eaa1276e785f58e2ac02f66927af1183a01"
+      }
     }
   ],
   "Route wallet/getBalance with a valid account returns asset verification information": [
     {
-      "version": 4,
-      "id": "85c03f25-d382-4608-930b-2507fccc509d",
-      "name": "accountC",
-      "spendingKey": "7fd3040bf345f831d81edb0ba34f0233dbd6c7ff47714319e10bb92951940506",
-      "viewKey": "4dd602ad3c2b91f61e61a6f872ff04a21ce0e0faedc0227e44ac49e40719f901d463c4b713d1216f7a9e0650e03e06ffd9287b11c8e17651e56d4b0e703a9d49",
-      "incomingViewKey": "4f6124557fceb0da0a158f4b87ad1f9bb94b294be64c6baecc6fddc376791f02",
-      "outgoingViewKey": "fd301a4cf4c5c6f5e88d8e3351de6a3716fcf1f8a666debad877a4c93513197c",
-      "publicAddress": "cb7e685507d9f34176a1395c852f4af24342c6d4546b3baf6d54de55e1ae89de",
-      "createdAt": {
+      "value": {
+        "version": 4,
+        "id": "a34a1c02-d4c3-41eb-a536-a48352ac1474",
+        "name": "accountC",
+        "spendingKey": "b78c39f9bceebde813c1dce3cf40560a09baa731308324cbcfb653754cff08dc",
+        "viewKey": "562249b7ac5215b2c51ded99ea7f51cd9e2b1c3af5d65f6f5776ab9630d26b5a6d4bb12439850f6e4da60fffcd94dc7bc09a6bcf83ea9593e4565dbaa39401bf",
+        "incomingViewKey": "9290d8cc63d915b1f3c7379b5793babdee36788481b6cf9984c7d596b8793d04",
+        "outgoingViewKey": "46f90576b523c19844a2f88366effbc0027dfa1ae0a617a0af2394bdd7a789e8",
+        "publicAddress": "bac4ec835217387d0781872dff60dd24b21d94096d4029d3ad468a7209650eef",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "b12805e6fa39dc04436ee7526d503264e2fae9684bf35f6242f9907d5acebe04"
+      },
+      "head": {
         "hash": {
           "type": "Buffer",
           "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
         },
         "sequence": 1
-      },
-      "proofAuthorizingKey": "6c0c6aceaea8a5a17137016c3ac5f6a02460b7c399d925833374b31054f43408"
+      }
     }
   ]
 }

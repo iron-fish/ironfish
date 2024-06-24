@@ -11,12 +11,13 @@ import {
   TimeUtils,
   Transaction,
 } from '@ironfish/sdk'
-import { CliUx, Flags } from '@oclif/core'
+import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { HexFlag, IronFlag, RemoteFlags, ValueFlag } from '../../flags'
-import { confirmOperation } from '../../utils'
+import { confirmOrQuit } from '../../ui'
 import { selectAsset } from '../../utils/asset'
 import { promptCurrency } from '../../utils/currency'
+import { promptExpiration } from '../../utils/expiration'
 import { getExplorer } from '../../utils/explorer'
 import { selectFee } from '../../utils/fees'
 import { getSpendPostTimeInMs, updateSpendPostTimeInMs } from '../../utils/spendPostTime'
@@ -115,8 +116,8 @@ export class Send extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(Send)
     let assetId = flags.assetId
-    let to = flags.to?.trim()
-    let from = flags.account?.trim()
+    let to = flags.to
+    let from = flags.account
 
     const client = await this.sdk.connectRpc()
 
@@ -199,21 +200,25 @@ export class Send extends IronfishCommand {
     }
 
     if (!to) {
-      to = await CliUx.ux.prompt('Enter the public address of the recipient', {
+      to = await ux.prompt('Enter the public address of the recipient', {
         required: true,
       })
     }
 
     const memo =
-      flags.memo?.trim() ??
-      (await CliUx.ux.prompt('Enter the memo (or leave blank)', { required: false }))
+      flags.memo ?? (await ux.prompt('Enter the memo (or leave blank)', { required: false }))
 
     if (!isValidPublicAddress(to)) {
       this.log(`A valid public address is required`)
       this.exit(1)
     }
 
-    if (flags.expiration !== undefined && flags.expiration < 0) {
+    let expiration = flags.expiration
+    if ((flags.rawTransaction || flags.unsignedTransaction) && expiration === undefined) {
+      expiration = await promptExpiration({ logger: this.logger, client: client })
+    }
+
+    if (expiration !== undefined && expiration < 0) {
       this.log('Expiration sequence must be non-negative')
       this.exit(1)
     }
@@ -230,7 +235,7 @@ export class Send extends IronfishCommand {
       ],
       fee: flags.fee ? CurrencyUtils.encode(flags.fee) : null,
       feeRate: flags.feeRate ? CurrencyUtils.encode(flags.feeRate) : null,
-      expiration: flags.expiration,
+      expiration: expiration,
       confirmations: flags.confirmations,
       notes: flags.note,
     }
@@ -281,10 +286,7 @@ export class Send extends IronfishCommand {
       )
     }
 
-    await confirmOperation({
-      confirm: flags.confirm,
-      cancelledMessage: 'Transaction aborted.',
-    })
+    await confirmOrQuit('', flags.confirm)
 
     transactionTimer.start()
 

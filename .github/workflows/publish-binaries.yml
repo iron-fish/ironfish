@@ -16,7 +16,7 @@ jobs:
       fail-fast: false
       matrix:
         settings:
-          - host: macos-latest
+          - host: macos-13
             arch: x86_64
             system: apple
 
@@ -29,7 +29,7 @@ jobs:
             arch: x86_64
             system: linux
 
-          - host: macos-latest-xlarge
+          - host: macos-latest
             arch: arm64
             system: apple
 

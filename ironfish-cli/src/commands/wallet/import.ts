@@ -1,11 +1,11 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { PromiseUtils, RPC_ERROR_CODES, RpcRequestError } from '@ironfish/sdk'
-import { CliUx, Flags } from '@oclif/core'
+import { RPC_ERROR_CODES, RpcRequestError } from '@ironfish/sdk'
+import { Args, Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { longPrompt } from '../../utils/longPrompt'
+import { importFile, importPipe, longPrompt } from '../../utils/input'
 
 export class ImportCommand extends IronfishCommand {
   static description = `Import an account`
@@ -23,20 +23,21 @@ export class ImportCommand extends IronfishCommand {
     name: Flags.string({
       description: 'the name to use for the account',
     }),
+    createdAt: Flags.integer({
+      description: 'Block sequence to begin scanning from for the imported account',
+    }),
   }
 
-  static args = [
-    {
-      name: 'blob',
-      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
+  static args = {
+    blob: Args.string({
       required: false,
       description: 'The copy-pasted output of wallet:export; or, a raw spending key',
-    },
-  ]
+    }),
+  }
 
   async start(): Promise<void> {
     const { flags, args } = await this.parse(ImportCommand)
-    const blob = args.blob as string | undefined
+    const { blob } = args
 
     const client = await this.sdk.connectRpc()
 
@@ -51,13 +52,15 @@ export class ImportCommand extends IronfishCommand {
     if (blob) {
       account = blob
     } else if (flags.path) {
-      account = await this.importFile(flags.path)
+      account = await importFile(this.sdk.fileSystem, flags.path)
     } else if (process.stdin.isTTY) {
-      account = await this.importTTY()
+      account = await longPrompt('Paste the output of wallet:export, or your spending key', {
+        required: true,
+      })
     } else if (!process.stdin.isTTY) {
-      account = await this.importPipe()
+      account = await importPipe()
     } else {
-      CliUx.ux.error(`Invalid import type`)
+      ux.error(`Invalid import type`)
     }
 
     const accountsResponse = await client.wallet.getAccounts()
@@ -69,7 +72,7 @@ export class ImportCommand extends IronfishCommand {
       this.log()
       this.log(`Found existing account with name '${flags.name}'`)
 
-      const name = await CliUx.ux.prompt('Enter a different name for the account', {
+      const name = await ux.prompt('Enter a different name for the account', {
         required: true,
       })
       if (name === flags.name) {
@@ -87,6 +90,7 @@ export class ImportCommand extends IronfishCommand {
           account,
           rescan: flags.rescan,
           name: flags.name,
+          createdAt: flags.createdAt,
         })
       } catch (e) {
         if (
@@ -101,7 +105,7 @@ export class ImportCommand extends IronfishCommand {
             this.log(e.codeMessage)
           }
 
-          const name = await CliUx.ux.prompt(message, {
+          const name = await ux.prompt(message, {
             required: true,
           })
           if (name === flags.name) {
@@ -124,36 +128,5 @@ export class ImportCommand extends IronfishCommand {
     } else {
       this.log(`Run "ironfish wallet:use ${name}" to set the account as default`)
     }
-  }
-
-  async importFile(path: string): Promise<string> {
-    const resolved = this.sdk.fileSystem.resolve(path)
-    const data = await this.sdk.fileSystem.readFile(resolved)
-    return data.trim()
-  }
-
-  async importPipe(): Promise<string> {
-    let data = ''
-
-    const onData = (dataIn: string): void => {
-      data += dataIn.trim()
-    }
-
-    process.stdin.setEncoding('utf8')
-    process.stdin.on('data', onData)
-
-    while (!process.stdin.readableEnded) {
-      await PromiseUtils.sleep(100)
-    }
-
-    process.stdin.off('data', onData)
-
-    return data
-  }
-
-  async importTTY(): Promise<string> {
-    return await longPrompt('Paste the output of wallet:export, or your spending key', {
-      required: true,
-    })
   }
 }

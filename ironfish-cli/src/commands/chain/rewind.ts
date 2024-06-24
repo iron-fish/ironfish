@@ -1,38 +1,26 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import {
-  Assert,
-  Blockchain,
-  FullNode,
-  Meter,
-  NodeUtils,
-  TimeUtils,
-  Wallet,
-} from '@ironfish/sdk'
-import { CliUx, Command } from '@oclif/core'
+import { Assert, Blockchain, FullNode, NodeUtils, Wallet } from '@ironfish/sdk'
+import { Args, Command } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
-import { ProgressBar } from '../../types'
+import { ProgressBar, ProgressBarPresets } from '../../ui'
 
 export default class Rewind extends IronfishCommand {
   static description =
     'Rewind the chain database to the given sequence by deleting all blocks with greater sequences'
 
-  static args = [
-    {
-      name: 'to',
-      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
+  static args = {
+    to: Args.string({
       required: true,
       description: 'The block sequence to rewind to',
-    },
-    {
-      name: 'from',
-      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
+    }),
+    from: Args.string({
       required: false,
       description: 'The sequence to start removing blocks from',
-    },
-  ]
+    }),
+  }
 
   static flags = {
     ...LocalFlags,
@@ -82,14 +70,9 @@ export const rewindChainTo = async (
 }
 
 async function disconnectBlocks(chain: Blockchain, toDisconnect: number): Promise<void> {
-  const bar = getProgressBar('Disconnecting blocks')
-  const speed = new Meter()
+  const bar = new ProgressBar('Disconnecting blocks', { preset: ProgressBarPresets.withSpeed })
 
-  bar.start(toDisconnect, 0, {
-    speed: '0',
-    estimate: TimeUtils.renderEstimate(0, 0, 0),
-  })
-  speed.start()
+  bar.start(toDisconnect, 0)
 
   let disconnected = 0
 
@@ -102,15 +85,10 @@ async function disconnectBlocks(chain: Blockchain, toDisconnect: number): Promis
       await chain.disconnect(headBlock, tx)
     })
 
-    speed.add(1)
-    bar.update(++disconnected, {
-      speed: speed.rate1s.toFixed(2),
-      estimate: TimeUtils.renderEstimate(disconnected, toDisconnect, speed.rate1m),
-    })
+    bar.update(++disconnected)
   }
 
   bar.stop()
-  speed.stop()
 }
 
 async function rewindWalletHead(
@@ -118,36 +96,28 @@ async function rewindWalletHead(
   wallet: Wallet,
   sequence: number,
 ): Promise<void> {
-  const walletHeadHash = await wallet.getLatestHeadHash()
+  const latestHead = await wallet.getLatestHead()
 
-  if (walletHeadHash) {
-    const walletHead = await chain.getHeader(walletHeadHash)
+  if (latestHead) {
+    const walletHead = await chain.getHeader(latestHead.hash)
 
     if (walletHead && walletHead.sequence > sequence) {
-      const bar = getProgressBar('Rewiding wallet')
-      const speed = new Meter()
+      const bar = new ProgressBar('Rewinding wallet', { preset: ProgressBarPresets.withSpeed })
 
       const toRewind = walletHead.sequence - sequence
       let rewound = 0
 
-      bar.start(toRewind, 0, {
-        speed: '0',
-        estimate: TimeUtils.renderEstimate(0, 0, 0),
-      })
-      speed.start()
+      bar.start(toRewind, 0)
 
-      wallet.chainProcessor.onRemove.on((_) => {
-        speed.add(1)
-        bar.update(++rewound, {
-          speed: speed.rate1s.toFixed(2),
-          estimate: TimeUtils.renderEstimate(rewound, toRewind, speed.rate1m),
+      const scan = await wallet.scan({ wait: false })
+
+      if (scan) {
+        scan.onTransaction.on((_) => {
+          bar.update(++rewound)
         })
-      })
-
-      await wallet.updateHead()
+      }
 
       bar.stop()
-      speed.stop()
     }
   }
 }
@@ -158,14 +128,9 @@ async function removeBlocks(
   fromSequence: number,
 ): Promise<void> {
   const toRemove = fromSequence - sequence
-  const bar = getProgressBar('Removing blocks')
-  const speed = new Meter()
+  const bar = new ProgressBar('Removing blocks', { preset: ProgressBarPresets.withSpeed })
 
-  bar.start(toRemove, 0, {
-    speed: '0',
-    estimate: TimeUtils.renderEstimate(0, 0, 0),
-  })
-  speed.start()
+  bar.start(toRemove, 0)
 
   let removed = 0
 
@@ -178,21 +143,8 @@ async function removeBlocks(
 
     fromSequence--
 
-    speed.add(1)
-    bar.update(++removed, {
-      speed: speed.rate1s.toFixed(2),
-      estimate: TimeUtils.renderEstimate(removed, toRemove, speed.rate1m),
-    })
+    bar.update(++removed)
   }
 
-  speed.stop()
   bar.stop()
-}
-
-function getProgressBar(label: string): ProgressBar {
-  return CliUx.ux.progress({
-    barCompleteChar: '\u2588',
-    barIncompleteChar: '\u2591',
-    format: `${label}: [{bar}] {percentage}% | {value} / {total} blocks | {speed}/s | ETA: {estimate}`,
-  }) as ProgressBar
 }

@@ -6,7 +6,7 @@ import { Asset } from '@ironfish/rust-nodejs'
 import { BufferMap, BufferSet } from 'buffer-map'
 import MurmurHash3 from 'imurmurhash'
 import { Assert } from '../../assert'
-import { Transaction } from '../../primitives'
+import { BlockHeader, Transaction } from '../../primitives'
 import { GENESIS_BLOCK_SEQUENCE } from '../../primitives/block'
 import { Note } from '../../primitives/note'
 import { DatabaseKeyRange, IDatabaseTransaction } from '../../storage'
@@ -15,15 +15,14 @@ import { WithNonNull, WithRequired } from '../../utils'
 import { DecryptedNote } from '../../workerPool/tasks/decryptNotes'
 import { AssetBalances } from '../assetBalances'
 import { MultisigKeys, MultisigSigner } from '../interfaces/multisigKeys'
-import { WalletBlockHeader } from '../remoteChainProcessor'
 import { AccountValue } from '../walletdb/accountValue'
 import { AssetValue } from '../walletdb/assetValue'
 import { BalanceValue } from '../walletdb/balanceValue'
 import { DecryptedNoteValue } from '../walletdb/decryptedNoteValue'
 import { HeadValue } from '../walletdb/headValue'
+import { isSignerMultisig } from '../walletdb/multisigKeys'
 import { TransactionValue } from '../walletdb/transactionValue'
 import { WalletDB } from '../walletdb/walletdb'
-import { isSignerMultisig } from './encoder/multisigKeys'
 
 export const ACCOUNT_KEY_LENGTH = 32
 
@@ -71,43 +70,32 @@ export class Account {
   readonly version: number
   publicAddress: string
   createdAt: HeadValue | null
+  scanningEnabled: boolean
   readonly prefix: Buffer
   readonly prefixRange: DatabaseKeyRange
   readonly multisigKeys?: MultisigKeys
   readonly proofAuthorizingKey: string | null
 
-  constructor({
-    id,
-    name,
-    publicAddress,
-    walletDb,
-    spendingKey,
-    viewKey,
-    incomingViewKey,
-    outgoingViewKey,
-    version,
-    createdAt,
-    multisigKeys,
-    proofAuthorizingKey,
-  }: AccountValue & { walletDb: WalletDB }) {
-    this.id = id
-    this.name = name
-    this.spendingKey = spendingKey
-    this.viewKey = viewKey
-    this.incomingViewKey = incomingViewKey
-    this.outgoingViewKey = outgoingViewKey
-    this.publicAddress = publicAddress
+  constructor({ accountValue, walletDb }: { accountValue: AccountValue; walletDb: WalletDB }) {
+    this.id = accountValue.id
+    this.name = accountValue.name
+    this.spendingKey = accountValue.spendingKey
+    this.viewKey = accountValue.viewKey
+    this.incomingViewKey = accountValue.incomingViewKey
+    this.outgoingViewKey = accountValue.outgoingViewKey
+    this.publicAddress = accountValue.publicAddress
 
-    this.prefix = calculateAccountPrefix(id)
+    this.prefix = calculateAccountPrefix(accountValue.id)
     this.prefixRange = StorageUtils.getPrefixKeyRange(this.prefix)
 
-    this.displayName = `${name} (${id.slice(0, 7)})`
+    this.displayName = `${accountValue.name} (${accountValue.id.slice(0, 7)})`
 
     this.walletDb = walletDb
-    this.version = version ?? 1
-    this.createdAt = createdAt
-    this.multisigKeys = multisigKeys
-    this.proofAuthorizingKey = proofAuthorizingKey
+    this.version = accountValue.version
+    this.createdAt = accountValue.createdAt
+    this.scanningEnabled = accountValue.scanningEnabled
+    this.multisigKeys = accountValue.multisigKeys
+    this.proofAuthorizingKey = accountValue.proofAuthorizingKey
   }
 
   isSpendingAccount(): this is SpendingAccount {
@@ -125,6 +113,7 @@ export class Account {
       outgoingViewKey: this.outgoingViewKey,
       publicAddress: this.publicAddress,
       createdAt: this.createdAt,
+      scanningEnabled: this.scanningEnabled,
       multisigKeys: this.multisigKeys,
       proofAuthorizingKey: this.proofAuthorizingKey,
     }
@@ -184,7 +173,7 @@ export class Account {
   }
 
   async connectTransaction(
-    blockHeader: WalletBlockHeader,
+    blockHeader: BlockHeader,
     transaction: Transaction,
     decryptedNotes: Array<DecryptedNote>,
     tx?: IDatabaseTransaction,
@@ -299,23 +288,20 @@ export class Account {
       return
     }
 
-    await this.walletDb.putAsset(
-      this,
+    const asset = {
+      blockHash: blockHeader?.hash ?? null,
+      createdTransactionHash,
       id,
-      {
-        blockHash: blockHeader?.hash ?? null,
-        createdTransactionHash,
-        id,
-        metadata,
-        name,
-        nonce,
-        creator,
-        owner,
-        sequence: blockHeader?.sequence ?? null,
-        supply: null,
-      },
-      tx,
-    )
+      metadata,
+      name,
+      nonce,
+      creator,
+      owner,
+      sequence: blockHeader?.sequence ?? null,
+      supply: null,
+    }
+
+    await this.walletDb.putAsset(this, id, asset, tx)
   }
 
   async updateAssetWithBlockHeader(
@@ -501,7 +487,7 @@ export class Account {
   }
 
   private async deleteDisconnectedMintsFromAssetsStore(
-    blockHeader: WalletBlockHeader,
+    blockHeader: BlockHeader,
     transaction: Transaction,
     receivedAssets: BufferSet | null,
     tx: IDatabaseTransaction,
@@ -656,7 +642,7 @@ export class Account {
   }
 
   async disconnectTransaction(
-    blockHeader: WalletBlockHeader,
+    blockHeader: BlockHeader,
     transaction: Transaction,
     tx?: IDatabaseTransaction,
   ): Promise<AssetBalances> {
@@ -943,6 +929,7 @@ export class Account {
     pending: bigint
     pendingCount: number
     available: bigint
+    availableNoteCount: number
     blockHash: Buffer | null
     sequence: number | null
   }> {
@@ -967,12 +954,8 @@ export class Account {
         count: 0,
       }
 
-      const available = await this.calculateAvailableBalance(
-        head.sequence,
-        assetId,
-        confirmations,
-        tx,
-      )
+      const { balance: available, noteCount: availableNoteCount } =
+        await this.calculateAvailableBalance(head.sequence, assetId, confirmations, tx)
 
       yield {
         assetId,
@@ -982,6 +965,7 @@ export class Account {
         pending: balance.unconfirmed + pendingDelta,
         pendingCount,
         available,
+        availableNoteCount,
         blockHash: balance.blockHash,
         sequence: balance.sequence,
       }
@@ -1004,6 +988,7 @@ export class Account {
     pending: bigint
     pendingCount: number
     available: bigint
+    availableNoteCount: number
     blockHash: Buffer | null
     sequence: number | null
   }> {
@@ -1016,6 +1001,7 @@ export class Account {
         available: 0n,
         unconfirmedCount: 0,
         pendingCount: 0,
+        availableNoteCount: 0,
         blockHash: null,
         sequence: null,
       }
@@ -1036,20 +1022,17 @@ export class Account {
       tx,
     )
 
-    const available = await this.calculateAvailableBalance(
-      head.sequence,
-      assetId,
-      confirmations,
-      tx,
-    )
+    const { balance: available, noteCount: availableNoteCount } =
+      await this.calculateAvailableBalance(head.sequence, assetId, confirmations, tx)
 
     return {
       unconfirmed: balance.unconfirmed,
       unconfirmedCount,
       confirmed: balance.unconfirmed - unconfirmedDelta,
       pending: balance.unconfirmed + pendingDelta,
-      available,
       pendingCount,
+      available,
+      availableNoteCount,
       blockHash: balance.blockHash,
       sequence: balance.sequence,
     }
@@ -1169,8 +1152,9 @@ export class Account {
     assetId: Buffer,
     confirmations: number,
     tx?: IDatabaseTransaction,
-  ): Promise<bigint> {
-    let available = 0n
+  ): Promise<{ balance: bigint; noteCount: number }> {
+    let balance = 0n
+    let noteCount = 0
 
     const maxConfirmedSequence = Math.max(headSequence - confirmations, GENESIS_BLOCK_SEQUENCE)
 
@@ -1180,10 +1164,11 @@ export class Account {
       maxConfirmedSequence,
       tx,
     )) {
-      available += value
+      balance += value
+      noteCount++
     }
 
-    return available
+    return { balance, noteCount }
   }
 
   async getUnconfirmedBalances(tx?: IDatabaseTransaction): Promise<BufferMap<BalanceValue>> {
@@ -1261,6 +1246,14 @@ export class Account {
   async updateCreatedAt(createdAt: HeadValue | null, tx?: IDatabaseTransaction): Promise<void> {
     this.createdAt = createdAt
 
+    await this.walletDb.setAccount(this, tx)
+  }
+
+  async updateScanningEnabled(
+    scanningEnabled: boolean,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    this.scanningEnabled = scanningEnabled
     await this.walletDb.setAccount(this, tx)
   }
 

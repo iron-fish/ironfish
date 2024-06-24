@@ -2,8 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { FileUtils } from '@ironfish/sdk'
-import { Flags } from '@oclif/core'
-import { parseNumber } from '../../args'
+import { Args, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
 
@@ -19,18 +18,16 @@ export default class Power extends IronfishCommand {
     }),
   }
 
-  static args = [
-    {
-      name: 'block',
-      parse: (input: string): Promise<number | null> => Promise.resolve(parseNumber(input)),
+  static args = {
+    block: Args.integer({
       required: false,
       description: 'The sequence of the block to estimate network speed for',
-    },
-  ]
+    }),
+  }
 
   async start(): Promise<void> {
     const { flags, args } = await this.parse(Power)
-    const block = args.block as number | null | undefined
+    const { block } = args
 
     const client = await this.sdk.connectRpc()
 

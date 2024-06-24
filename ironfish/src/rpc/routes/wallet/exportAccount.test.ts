@@ -5,11 +5,12 @@ import { Assert } from '../../../assert'
 import { useAccountFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { Account } from '../../../wallet'
-import { Base64JsonEncoder } from '../../../wallet/account/encoder/base64json'
-import { AccountFormat } from '../../../wallet/account/encoder/encoder'
-import { JsonEncoder } from '../../../wallet/account/encoder/json'
-import { MnemonicEncoder } from '../../../wallet/account/encoder/mnemonic'
-import { SpendingKeyEncoder } from '../../../wallet/account/encoder/spendingKey'
+import { AccountFormat } from '../../../wallet/exporter/account'
+import { toAccountImport } from '../../../wallet/exporter/accountImport'
+import { Base64JsonEncoder } from '../../../wallet/exporter/encoders/base64json'
+import { JsonEncoder } from '../../../wallet/exporter/encoders/json'
+import { MnemonicEncoder } from '../../../wallet/exporter/encoders/mnemonic'
+import { SpendingKeyEncoder } from '../../../wallet/exporter/encoders/spendingKey'
 
 describe('Route wallet/exportAccount', () => {
   const routeTest = createRouteTest(true)
@@ -21,42 +22,33 @@ describe('Route wallet/exportAccount', () => {
   })
 
   it('should export a default account', async () => {
+    await routeTest.wallet.setDefaultAccount(account.name)
+
     const response = await routeTest.client.wallet.exportAccount({
-      account: account.name,
       viewOnly: false,
+      format: AccountFormat.SpendingKey,
     })
 
     expect(response.status).toBe(200)
-    expect(response.content).toMatchObject({
-      account: {
-        name: account.name,
-        spendingKey: account.spendingKey,
-        viewKey: account.viewKey,
-        incomingViewKey: account.incomingViewKey,
-        outgoingViewKey: account.outgoingViewKey,
-        publicAddress: account.publicAddress,
-        version: account.version,
-      },
-    })
+    expect(response.content.account).toEqual(new SpendingKeyEncoder().encode(account))
   })
 
   it('should omit spending key when view only account is requested', async () => {
     const response = await routeTest.client.wallet.exportAccount({
       account: account.name,
       viewOnly: true,
+      format: AccountFormat.JSON,
     })
 
     expect(response.status).toBe(200)
-    expect(response.content).toMatchObject({
-      account: {
-        name: account.name,
-        spendingKey: null,
-        viewKey: account.viewKey,
-        incomingViewKey: account.incomingViewKey,
-        outgoingViewKey: account.outgoingViewKey,
-        publicAddress: account.publicAddress,
-        version: account.version,
-      },
+    expect(JSON.parse(response.content.account)).toMatchObject({
+      name: account.name,
+      spendingKey: null,
+      viewKey: account.viewKey,
+      incomingViewKey: account.incomingViewKey,
+      outgoingViewKey: account.outgoingViewKey,
+      publicAddress: account.publicAddress,
+      version: account.version,
     })
   })
 
@@ -68,7 +60,7 @@ describe('Route wallet/exportAccount', () => {
 
     expect(response.status).toBe(200)
 
-    const { id: _, ...accountImport } = account.serialize()
+    const accountImport = toAccountImport(account, false, routeTest.wallet.networkId)
     expect(response.content.account).toEqual(new JsonEncoder().encode(accountImport))
   })
 
@@ -78,7 +70,7 @@ describe('Route wallet/exportAccount', () => {
       format: AccountFormat.Base64Json,
     })
 
-    const { id: _, ...accountImport } = account.serialize()
+    const accountImport = toAccountImport(account, false, routeTest.wallet.networkId)
 
     expect(response.status).toBe(200)
     expect(response.content.account).toEqual(new Base64JsonEncoder().encode(accountImport))
@@ -161,21 +153,20 @@ describe('Route wallet/exportAccount', () => {
     const response = await routeTest.client.wallet.exportAccount({
       account: accountNames[0],
       viewOnly: false,
+      format: AccountFormat.JSON,
     })
 
     expect(response.status).toBe(200)
-    expect(response.content).toMatchObject({
-      account: {
-        name: accountNames[0],
-        spendingKey: null,
-        viewKey: trustedDealerPackage.viewKey,
-        incomingViewKey: trustedDealerPackage.incomingViewKey,
-        outgoingViewKey: trustedDealerPackage.outgoingViewKey,
-        publicAddress: trustedDealerPackage.publicAddress,
-        multisigKeys: {
-          secret: multisigSecret.secret.toString('hex'),
-          publicKeyPackage: trustedDealerPackage.publicKeyPackage,
-        },
+    expect(JSON.parse(response.content.account)).toMatchObject({
+      name: accountNames[0],
+      spendingKey: null,
+      viewKey: trustedDealerPackage.viewKey,
+      incomingViewKey: trustedDealerPackage.incomingViewKey,
+      outgoingViewKey: trustedDealerPackage.outgoingViewKey,
+      publicAddress: trustedDealerPackage.publicAddress,
+      multisigKeys: {
+        secret: multisigSecret.secret.toString('hex'),
+        publicKeyPackage: trustedDealerPackage.publicKeyPackage,
       },
     })
   })
@@ -220,20 +211,19 @@ describe('Route wallet/exportAccount', () => {
     const response = await routeTest.client.wallet.exportAccount({
       account: accountNames[0],
       viewOnly: false,
+      format: AccountFormat.JSON,
     })
 
     expect(response.status).toBe(200)
-    expect(response.content).toMatchObject({
-      account: {
-        name: accountNames[0],
-        spendingKey: null,
-        viewKey: trustedDealerPackage.viewKey,
-        incomingViewKey: trustedDealerPackage.incomingViewKey,
-        outgoingViewKey: trustedDealerPackage.outgoingViewKey,
-        publicAddress: trustedDealerPackage.publicAddress,
-        multisigKeys: {
-          publicKeyPackage: trustedDealerPackage.publicKeyPackage,
-        },
+    expect(JSON.parse(response.content.account)).toMatchObject({
+      name: accountNames[0],
+      spendingKey: null,
+      viewKey: trustedDealerPackage.viewKey,
+      incomingViewKey: trustedDealerPackage.incomingViewKey,
+      outgoingViewKey: trustedDealerPackage.outgoingViewKey,
+      publicAddress: trustedDealerPackage.publicAddress,
+      multisigKeys: {
+        publicKeyPackage: trustedDealerPackage.publicKeyPackage,
       },
     })
   })

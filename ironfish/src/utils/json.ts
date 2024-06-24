@@ -30,7 +30,7 @@ function parse<T = unknown>(data: string, fileName?: string): T {
 function tryParse<T = unknown>(
   data: string,
   fileName?: string,
-): [T, null] | [null, ParseJsonError] {
+): [result: T, error: null] | [result: null, error: ParseJsonError] {
   try {
     const config = parseJson(data, fileName || '') as T
     return [config, null]
