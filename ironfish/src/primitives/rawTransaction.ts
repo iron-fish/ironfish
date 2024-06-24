@@ -315,7 +315,7 @@ export class RawTransactionSerde {
         bw.writeBytes(raw.evm.s)
       }
     } else {
-      Assert.isUndefined(raw.evm, 'Version 3 and above only has evm descriptions')
+      Assert.isNull(raw.evm, 'Version 3 and above only has evm descriptions')
     }
 
     return bw.render()
