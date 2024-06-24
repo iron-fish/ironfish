@@ -1,6 +1,6 @@
 {
   "name": "ironfish",
-  "version": "2.3.0",
+  "version": "2.6.0",
   "description": "CLI for running and interacting with an Iron Fish node",
   "author": "Iron Fish <contact@ironfish.network> (https://ironfish.network)",
   "main": "build/src/index.js",
@@ -58,8 +58,8 @@
     "oclif:version": "oclif readme && git add README.md"
   },
   "dependencies": {
-    "@ironfish/rust-nodejs": "2.3.0",
-    "@ironfish/sdk": "2.3.0",
+    "@ironfish/rust-nodejs": "2.5.0",
+    "@ironfish/sdk": "2.6.0",
     "@oclif/core": "3.27.0",
     "@oclif/plugin-autocomplete": "1.3.10",
     "@oclif/plugin-help": "5.1.12",
