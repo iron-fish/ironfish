@@ -15,7 +15,6 @@ import {
 } from '@ironfish/sdk'
 import { Flags, ux } from '@oclif/core'
 import inquirer from 'inquirer'
-import * as validator from 'web3-validator'
 import { IronfishCommand } from '../../../command'
 import { HexFlag, IronFlag, RemoteFlags, ValueFlag } from '../../../flags'
 import { confirmOrQuit } from '../../../ui'
@@ -28,6 +27,7 @@ import {
   fetchChainportNetworkMap,
   fetchChainportVerifiedTokens,
 } from '../../../utils/chainport'
+import { isEthereumAddress } from '../../../utils/chainport/address'
 import { promptCurrency } from '../../../utils/currency'
 import { getExplorer } from '../../../utils/explorer'
 import { selectFee } from '../../../utils/fees'
@@ -178,7 +178,7 @@ export class BridgeCommand extends IronfishCommand {
       })
     }
 
-    if (!validator.isAddress(to)) {
+    if (!isEthereumAddress(to)) {
       this.error('Invalid to ethereum address')
     }
 
