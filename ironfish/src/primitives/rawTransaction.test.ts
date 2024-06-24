@@ -359,6 +359,114 @@ describe('RawTransactionSerde', () => {
     expect(IsNoteWitnessEqual(deserialized.spends[0].witness, raw.spends[0].witness)).toBe(true)
   })
 
+  it('serializes and deserializes a v3 transaction', async () => {
+    const accountA = await useAccountFixture(nodeTest.wallet, 'accountA')
+    const accountB = await useAccountFixture(nodeTest.wallet, 'accountB')
+    const asset = new Asset(accountA.publicAddress, 'asset', 'metadata')
+    const assetName = 'asset'
+    const assetMetadata = 'metadata'
+
+    const note = new Note(
+      new NativeNote(
+        generateKey().publicAddress,
+        5n,
+        Buffer.from('memo'),
+        asset.id(),
+        accountA.publicAddress,
+      ).serialize(),
+    )
+
+    const witness = makeFakeWitness(note)
+
+    const raw = new RawTransaction(TransactionVersion.V3)
+    raw.expiration = 60
+    raw.fee = 1337n
+
+    raw.mints = [
+      {
+        creator: accountA.publicAddress,
+        name: assetName,
+        metadata: assetMetadata,
+        value: 5n,
+      },
+      {
+        creator: accountA.publicAddress,
+        name: assetName,
+        metadata: assetMetadata,
+        value: 4n,
+        transferOwnershipTo: accountB.publicAddress,
+      },
+    ]
+
+    raw.burns = [
+      {
+        assetId: asset.id(),
+        value: 5n,
+      },
+    ]
+
+    raw.outputs = [
+      {
+        note: note,
+      },
+    ]
+
+    raw.spends = [{ note, witness }]
+
+    const dataStr = 'deadbeef'
+    const data = Buffer.from(dataStr, 'hex')
+
+    const to = Buffer.from('deadbeefdeadbeefdeadbeefdeadbeefdeadbeef', 'hex')
+    //32 bytes
+    const sigBytes = Buffer.from(
+      'deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef',
+      'hex',
+    )
+    raw.evm = {
+      nonce: 0n,
+      to,
+      value: 100_000_000_000_000_000n,
+      data,
+      v: 0,
+      r: sigBytes,
+      s: sigBytes,
+    }
+
+    const serialized = RawTransactionSerde.serialize(raw)
+    expect(serialized.length).toEqual(RawTransactionSerde.getSize(raw))
+    const deserialized = RawTransactionSerde.deserialize(serialized)
+
+    expect(deserialized).toMatchObject({
+      expiration: raw.expiration,
+      fee: raw.fee,
+    })
+
+    expect(RawTransactionSerde.serialize(deserialized).equals(serialized)).toBe(true)
+    expect(deserialized.version).toEqual(TransactionVersion.V3)
+    expect(deserialized.outputs[0].note).toEqual(raw.outputs[0].note)
+    expect(deserialized.burns[0].assetId).toEqual(asset.id())
+    expect(deserialized.burns[0].value).toEqual(5n)
+    expect(deserialized.mints[0].name).toEqual(assetName)
+    expect(deserialized.mints[0].metadata).toEqual(assetMetadata)
+    expect(deserialized.mints[0].value).toEqual(5n)
+
+    expect(deserialized.mints[1].name).toEqual(assetName)
+    expect(deserialized.mints[1].metadata).toEqual(assetMetadata)
+    expect(deserialized.mints[1].value).toEqual(4n)
+    expect(deserialized.mints[1].transferOwnershipTo).toEqual(accountB.publicAddress)
+
+    expect(deserialized.spends[0].note).toEqual(raw.spends[0].note)
+    expect(IsNoteWitnessEqual(deserialized.spends[0].witness, raw.spends[0].witness)).toBe(true)
+
+    expect(deserialized.evm?.data.toString('hex')).toBe(dataStr)
+    expect(deserialized.evm?.to.toString('hex')).toBe(to.toString('hex'))
+    expect(deserialized.evm?.value).toBe(100_000_000_000_000_000n)
+    expect(deserialized.evm?.nonce).toBe(0n)
+    expect(deserialized.evm?.v).toBe(0)
+    expect(deserialized.evm?.r.toString('hex')).toBe(sigBytes.toString('hex'))
+    expect(deserialized.evm?.s.toString('hex')).toBe(sigBytes.toString('hex'))
+  })
+
   it('serializes and deserializes a transaction with unicode characters', () => {
     const assetName = '吉锕涩偶讷'
     const assetMetadata = '💪💎🚀'

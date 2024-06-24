@@ -304,12 +304,9 @@ export class RawTransactionSerde {
     if (raw.version >= TransactionVersion.V3) {
       bw.writeU8(Number(raw.evm !== null))
       if (raw.evm !== null) {
-        bw.writeU8(1) // evm present
         bw.writeBigU64(raw.evm.nonce)
         bw.writeU8(Number(raw.evm.to.length > 0))
-        if (raw.evm.to.length > 0) {
-          bw.writeBytes(raw.evm.to)
-        }
+        bw.writeBytes(raw.evm.to)
         bw.writeBigU64(raw.evm.value)
         bw.writeU32(raw.evm.data.length)
         bw.writeBytes(raw.evm.data)
@@ -317,6 +314,8 @@ export class RawTransactionSerde {
         bw.writeBytes(raw.evm.r)
         bw.writeBytes(raw.evm.s)
       }
+    } else {
+      Assert.isUndefined(raw.evm, 'Version 3 and above only has evm descriptions')
     }
 
     return bw.render()
@@ -461,7 +460,6 @@ export class RawTransactionSerde {
     if (raw.version >= TransactionVersion.V3) {
       size += 1 // evm present
       if (raw.evm !== null) {
-        size += 1 // evm present
         size += 8 // nonce
         size += 1 // to present bool
         if (raw.evm.to.length > 0) {
