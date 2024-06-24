@@ -106,7 +106,6 @@ pub struct ProposedTransaction {
     burns: Vec<BurnBuilder>,
 
     // can attach arbitrary data to transaction, will initially be used for EVM transactions
-
     evm: Option<EvmDescription>,
 
     /// The balance of all the spends minus all the outputs. The difference
@@ -176,7 +175,6 @@ impl ProposedTransaction {
     }
 
     pub fn add_evm(&mut self, evm_description: EvmDescription) -> Result<(), IronfishError> {
-
         self.evm = Some(evm_description);
 
         Ok(())
@@ -458,7 +456,7 @@ impl ProposedTransaction {
             burn.serialize_signature_fields(&mut hasher)?;
         }
 
-        if (self.version.has_evm()) {
+        if self.version.has_evm() {
             if let Some(ref evm) = self.evm {
                 evm.write(&mut hasher)?;
             }
@@ -782,7 +780,7 @@ impl Transaction {
             burn.serialize_signature_fields(&mut hasher)?;
         }
 
-        if (self.version.has_evm()) {
+        if self.version.has_evm() {
             if let Some(ref evm) = self.evm {
                 evm.write(&mut hasher)?;
             }

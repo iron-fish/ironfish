@@ -17,6 +17,7 @@ const consensusParameters = {
   maxBlockSizeBytes: 524288,
   minFee: 0,
   enableAssetOwnership: 1,
+  enableEvmDescriptions: 100001,
   enforceSequentialBlockTime: 1,
   enableFishHash: 100001,
   enableIncreasedDifficultyChange: 100001,

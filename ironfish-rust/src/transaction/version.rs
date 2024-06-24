@@ -17,9 +17,9 @@ pub enum TransactionVersion {
     /// Adds the `transfer_ownership_to` field of
     /// [`MintDescription`](crate::transaction::mints::MintDescription).
     V2,
-    /// Adds the `data` field of 
+    /// Adds the `data` field of
     /// [`DataDescription`](crate::transaction::data::DataDescription).
-    V3
+    V3,
 }
 
 impl TransactionVersion {
@@ -39,7 +39,7 @@ impl TransactionVersion {
             _ => None,
         }
     }
-    
+
     pub fn has_evm(self) -> bool {
         self >= Self::V3
     }

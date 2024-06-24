@@ -28,7 +28,9 @@ use crate::{
 };
 
 use super::{
-    burns::BurnDescription, evm::EvmDescription, mints::UnsignedMintDescription, spends::UnsignedSpendDescription, TransactionVersion, SIGNATURE_HASH_PERSONALIZATION, TRANSACTION_SIGNATURE_VERSION
+    burns::BurnDescription, evm::EvmDescription, mints::UnsignedMintDescription,
+    spends::UnsignedSpendDescription, TransactionVersion, SIGNATURE_HASH_PERSONALIZATION,
+    TRANSACTION_SIGNATURE_VERSION,
 };
 
 #[derive(Clone)]
@@ -86,8 +88,6 @@ impl UnsignedTransaction {
         let num_outputs = reader.read_u64::<LittleEndian>()?;
         let num_mints = reader.read_u64::<LittleEndian>()?;
         let num_burns = reader.read_u64::<LittleEndian>()?;
-        // TODO: this is backwards incompatible, would cause problems for transactions in flight
-        let num_data = reader.read_u64::<LittleEndian>()?;
         let fee = reader.read_i64::<LittleEndian>()?;
         let expiration = reader.read_u32::<LittleEndian>()?;
         let randomized_public_key = redjubjub::PublicKey::read(&mut reader)?;
@@ -118,7 +118,6 @@ impl UnsignedTransaction {
         } else {
             None
         };
-
 
         let binding_signature = Signature::read(&mut reader)?;
 

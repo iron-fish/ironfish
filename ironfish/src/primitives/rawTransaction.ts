@@ -162,13 +162,13 @@ export class RawTransaction {
     }
     if (this.evm !== null) {
       builder.evm(
-        this.evm?.nonce,
-        this.evm?.to,
-        this.evm?.value,
-        this.evm?.data,
-        this.evm?.v,
-        this.evm?.r,
-        this.evm?.s,
+        this.evm.nonce,
+        this.evm.to,
+        this.evm.value,
+        this.evm.data,
+        this.evm.v,
+        this.evm.r,
+        this.evm.s,
       )
     }
 

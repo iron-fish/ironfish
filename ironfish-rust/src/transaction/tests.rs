@@ -208,7 +208,6 @@ fn test_transaction_simple() {
     assert_eq!(received_note.sender, spender_key_clone.public_address());
 }
 
-
 #[test]
 fn test_evm_transaction() {
     let spender_key = SaplingKey::generate_key();
@@ -256,7 +255,8 @@ fn test_evm_transaction() {
     assert_eq!(transaction.spends.len(), 1);
     transaction.add_output(out_note).unwrap();
     assert_eq!(transaction.outputs.len(), 1);
-    transaction.add_evm(evm)
+    transaction
+        .add_evm(evm)
         .expect("should be able to add data");
 
     let public_transaction = transaction
@@ -282,7 +282,6 @@ fn test_evm_transaction() {
         .unwrap();
     assert_eq!(received_note.sender, spender_key_clone.public_address());
 }
-
 
 #[test]
 fn test_proposed_transaction_build() {
@@ -464,7 +463,7 @@ fn test_transaction_version_is_checked() {
     let invalid_versions = (u8::MIN..=u8::MAX)
         .filter(|v| !valid_versions.contains(v))
         .collect::<Vec<u8>>();
-    assert_eq!(invalid_versions.len(), 254);
+    assert_eq!(invalid_versions.len(), 253);
 
     // Verify that valid versions are correctly deserialized
     for version in valid_versions {

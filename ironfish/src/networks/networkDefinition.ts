@@ -27,6 +27,7 @@ export const ConsensusParametersSchema: yup.ObjectSchema<ConsensusParameters> = 
     maxBlockSizeBytes: yup.number().integer().defined(),
     minFee: yup.number().integer().defined(),
     enableAssetOwnership: yup.mixed<ActivationSequence>().defined(),
+    enableEvmDescriptions: yup.mixed<ActivationSequence>().defined(),
     enforceSequentialBlockTime: yup.mixed<ActivationSequence>().defined(),
     enableFishHash: yup.mixed<ActivationSequence>().defined(),
     enableIncreasedDifficultyChange: yup.mixed<ActivationSequence>().defined(),

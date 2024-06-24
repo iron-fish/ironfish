@@ -13,6 +13,7 @@ describe('Consensus', () => {
     targetBucketTimeInSeconds: 4,
     maxBlockSizeBytes: 5,
     minFee: 6,
+    enableEvmDescriptions: 100,
     enableAssetOwnership: 7,
     enforceSequentialBlockTime: 8,
     enableFishHash: 9,
@@ -41,6 +42,7 @@ describe('Consensus', () => {
       expect(consensus.isActive('enforceSequentialBlockTime', 7)).toBe(false)
       expect(consensus.isActive('enableFishHash', 8)).toBe(false)
       expect(consensus.isActive('enableIncreasedDifficultyChange', 9)).toBe(false)
+      expect(consensus.isActive('enableEvmDescriptions', 99)).toBe(false)
     })
 
     it('returns true when the sequence is equal to the upgrade number', () => {
@@ -53,6 +55,7 @@ describe('Consensus', () => {
       expect(consensus.isActive('enforceSequentialBlockTime', 8)).toBe(true)
       expect(consensus.isActive('enableFishHash', 9)).toBe(true)
       expect(consensus.isActive('enableIncreasedDifficultyChange', 10)).toBe(true)
+      expect(consensus.isActive('enableEvmDescriptions', 100)).toBe(true)
     })
 
     it('returns true when the sequence is greater than the upgrade number', () => {
@@ -65,6 +68,7 @@ describe('Consensus', () => {
       expect(consensus.isActive('enforceSequentialBlockTime', 9)).toBe(true)
       expect(consensus.isActive('enableFishHash', 10)).toBe(true)
       expect(consensus.isActive('enableIncreasedDifficultyChange', 11)).toBe(true)
+      expect(consensus.isActive('enableEvmDescriptions', 101)).toBe(true)
     })
 
     it('uses a minimum sequence of 1 if given a smaller sequence', () => {
@@ -103,6 +107,7 @@ describe('Consensus', () => {
       expect(consensus.getActiveTransactionVersion(6)).toEqual(TransactionVersion.V1)
       expect(consensus.getActiveTransactionVersion(7)).toEqual(TransactionVersion.V2)
       expect(consensus.getActiveTransactionVersion(8)).toEqual(TransactionVersion.V2)
+      expect(consensus.getActiveTransactionVersion(100)).toEqual(TransactionVersion.V3)
     })
 
     it('returns V1 transaction when activation flag is never', () => {
