@@ -70,7 +70,13 @@ const makeChainportRequest = async <T extends object>(url: string): Promise<T> =
       return response.data
     })
     .catch((error) => {
-      throw new Error('Chainport error: ' + error)
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      const chainportError = error.response?.data?.error?.description as string
+      if (chainportError) {
+        throw new Error(chainportError)
+      } else {
+        throw new Error('Chainport error - ' + error)
+      }
     })
 
   return response
