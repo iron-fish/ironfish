@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { multisig } from '@ironfish/rust-nodejs'
+import { decrypt, encrypt, multisig } from '@ironfish/rust-nodejs'
 import { Asset } from '@ironfish/rust-nodejs'
 import { BufferMap, BufferSet } from 'buffer-map'
 import MurmurHash3 from 'imurmurhash'
@@ -64,7 +64,7 @@ export class Account {
   readonly id: string
   readonly displayName: string
   name: string
-  readonly spendingKey: string | null
+  spendingKey: string | null
   readonly viewKey: string
   readonly incomingViewKey: string
   readonly outgoingViewKey: string
@@ -77,6 +77,7 @@ export class Account {
   readonly multisigKeys?: MultisigKeys
   readonly proofAuthorizingKey: string | null
 
+  encrypted: boolean
   encryptedSpendingKey: string | null
   nonce: string | null
   salt: string | null
@@ -108,6 +109,7 @@ export class Account {
     this.multisigKeys = accountValue.multisigKeys
     this.proofAuthorizingKey = accountValue.proofAuthorizingKey
 
+    this.encrypted = false
     this.encryptedSpendingKey = encryptedSpendingKey ?? null
     this.nonce = nonce ?? null
     this.salt = salt ?? null
@@ -1297,6 +1299,24 @@ export class Account {
     const publicKeyPackage = new multisig.PublicKeyPackage(this.multisigKeys.publicKeyPackage)
     return publicKeyPackage.identities()
   }
+
+  encrypt(passphrase: string): void {
+    const output = encrypt(passphrase, this.spendingKey!);
+    this.encrypted = true
+    this.encryptedSpendingKey = output.ciphertext;
+    this.spendingKey = null;
+    this.nonce = output.nonce;
+    this.salt = output.salt;
+  }
+
+  decrypt(passphrase: string): void {
+    const output = decrypt(passphrase, this.salt!, this.nonce!, this.encryptedSpendingKey!)
+    this.encrypted = false
+    this.encryptedSpendingKey = null
+    this.spendingKey = output
+    this.nonce = null
+    this.salt = null
+  }
 }
 
 export function calculateAccountPrefix(id: string): Buffer {
@@ -1306,35 +1326,4 @@ export function calculateAccountPrefix(id: string): Buffer {
   const prefix = Buffer.alloc(4)
   prefix.writeUInt32BE(hash)
   return prefix
-}
-
-
-export async function encrypt(message: string, key: Uint8Array, additionalData?: Uint8Array): Promise<{ cipherText: Uint8Array, nonce: Uint8Array }> {
-  await sodium.ready;
-  const nonce = sodium.randombytes_buf(sodium.crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);
-  const messageBytes = new TextEncoder().encode(message);
-
-  const cipherText = sodium.crypto_aead_xchacha20poly1305_ietf_encrypt(
-    messageBytes,
-    additionalData || null,
-    null,
-    nonce,
-    key
-  );
-
-  return { cipherText, nonce };
-}
-
-export async function decrypt(cipherText: Uint8Array, nonce: Uint8Array, key: Uint8Array, additionalData?: Uint8Array): Promise<string> {
-  await sodium.ready;
-
-  const decryptedBytes = sodium.crypto_aead_xchacha20poly1305_ietf_decrypt(
-    null,
-    cipherText,
-    additionalData || null,
-    nonce,
-    key
-  );
-
-  return new TextDecoder().decode(decryptedBytes);
 }

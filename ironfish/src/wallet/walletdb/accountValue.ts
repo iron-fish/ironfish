@@ -17,6 +17,10 @@ export interface AccountValue {
   version: number
   id: string
   name: string
+
+  encrypted?: boolean
+  encryptedBlob?: Buffer
+
   spendingKey: string | null
   viewKey: string
   incomingViewKey: string
@@ -37,10 +41,17 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     flags |= Number(!!value.multisigKeys) << 2
     flags |= Number(!!value.proofAuthorizingKey) << 3
     flags |= Number(!!value.scanningEnabled) << 4
+    flags |= Number(!!value.encrypted) << 5
+
     bw.writeU8(flags)
     bw.writeU16(value.version)
     bw.writeVarString(value.id, 'utf8')
     bw.writeVarString(value.name, 'utf8')
+
+    if (!!value.encrypted && value.encryptedBlob) {
+      bw.writeVarBytes(value.encryptedBlob)
+      return bw.render();
+    }
 
     if (value.spendingKey) {
       bw.writeBytes(Buffer.from(value.spendingKey, 'hex'))
@@ -78,13 +89,42 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     const hasMultisigKeys = flags & (1 << 2)
     const hasProofAuthorizingKey = flags & (1 << 3)
     const scanningEnabled = Boolean(flags & (1 << 4))
+    const encrypted = Boolean(flags & (1 << 5))
     const id = reader.readVarString('utf8')
     const name = reader.readVarString('utf8')
-    const spendingKey = hasSpendingKey ? reader.readBytes(KEY_LENGTH).toString('hex') : null
-    const viewKey = reader.readBytes(VIEW_KEY_LENGTH).toString('hex')
-    const incomingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
-    const outgoingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
-    const publicAddress = reader.readBytes(PUBLIC_ADDRESS_LENGTH).toString('hex')
+
+    let spendingKey = null
+    let viewKey = ''
+    let incomingViewKey = ''
+    let outgoingViewKey = ''
+    let publicAddress = ''
+
+    if (encrypted) {
+      const encryptedBlob = reader.readVarBytes()
+      return {
+        version,
+        id,
+        name,
+        encrypted: true,
+        encryptedBlob,
+
+        viewKey,
+        incomingViewKey,
+        outgoingViewKey,
+        spendingKey,
+        publicAddress,
+        scanningEnabled,
+        createdAt: null,
+        multisigKeys: undefined,
+        proofAuthorizingKey: null,
+      }
+    }
+
+    spendingKey = hasSpendingKey ? reader.readBytes(KEY_LENGTH).toString('hex') : null
+    viewKey = reader.readBytes(VIEW_KEY_LENGTH).toString('hex')
+    incomingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
+    outgoingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
+    publicAddress = reader.readBytes(PUBLIC_ADDRESS_LENGTH).toString('hex')
 
     let createdAt = null
     if (hasCreatedAt) {

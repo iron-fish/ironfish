@@ -1808,10 +1808,13 @@ export class Wallet {
 
   async encrypt(passphrase: string): Promise<void> {
     for (const account of this.accounts.values()) {
-      const output = encrypt(passphrase, account.spendingKey!);
-      account.encryptedSpendingKey = output.ciphertext;
-      account.nonce = output.nonce;
-      account.salt = output.salt;
+      account.encrypt(passphrase)
+    }
+  }
+
+  async decrypt(passphrase: string): Promise<void> {
+    for (const account of this.accounts.values()) {
+      account.decrypt(passphrase)
     }
   }
 }
