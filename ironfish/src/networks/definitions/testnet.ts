@@ -6,6 +6,7 @@ import type { NetworkDefinition } from '../networkDefinition'
 import { ConsensusParameters } from '../../consensus'
 
 const HARDFORK_1_ACTIVATION_TESTNET = 419_193
+const HARDFORK_2_ACTIVATION_TESTNET = 1_000_000
 
 const TESTNET_CONSENSUS: ConsensusParameters = {
   allowedBlockFutureSeconds: 15,
@@ -15,6 +16,7 @@ const TESTNET_CONSENSUS: ConsensusParameters = {
   maxBlockSizeBytes: 524288,
   minFee: 1,
   enableAssetOwnership: null,
+  enableEvmDescriptions: HARDFORK_2_ACTIVATION_TESTNET,
   enforceSequentialBlockTime: HARDFORK_1_ACTIVATION_TESTNET,
   enableFishHash: HARDFORK_1_ACTIVATION_TESTNET,
   enableIncreasedDifficultyChange: HARDFORK_1_ACTIVATION_TESTNET,

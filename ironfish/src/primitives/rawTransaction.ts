@@ -24,6 +24,7 @@ import { Side } from '../merkletree/merkletree'
 import { CurrencyUtils } from '../utils/currency'
 import { AssetBalances } from '../wallet/assetBalances'
 import { BurnDescription } from './burnDescription'
+import { EvmDescription } from './evmDescription'
 import { Note } from './note'
 import { NoteEncrypted, NoteEncryptedHash, SerializedNoteEncryptedHash } from './noteEncrypted'
 import { SPEND_SERIALIZED_SIZE_IN_BYTE } from './spend'
@@ -48,6 +49,7 @@ export class RawTransaction {
   mints: MintData[] = []
   burns: BurnDescription[] = []
   outputs: { note: Note }[] = []
+  evm: EvmDescription | null = null
 
   spends: {
     note: Note
@@ -92,6 +94,10 @@ export class RawTransaction {
       })
       .reduce((size, mintSize) => size + mintSize, 0)
     size += this.burns.length * (ASSET_ID_LENGTH + 8)
+    if (this.version >= TransactionVersion.V3) {
+      size += 1
+      // TODO: add size for evm data
+    }
     size += TRANSACTION_SIGNATURE_LENGTH // signature
 
     // Each asset might have a change note, which would need to be accounted for
@@ -115,6 +121,25 @@ export class RawTransaction {
         size += PROOF_LENGTH + NoteEncrypted.size
       }
     }
+
+    if (this.version >= TransactionVersion.V3) {
+      size += 1 // evm present
+      if (this.evm !== null) {
+        size += 1 // evm present
+        size += 8 // nonce
+        size += 1 // to present bool
+        if (this.evm.to.length > 0) {
+          size += 20 // to
+        }
+        size += 8 // value
+        size += 4 // data length
+        size += this.evm.data.length // data
+        size += 1 // v
+        size += 32 // r
+        size += 32 // s
+      }
+    }
+
     return size
   }
 
@@ -153,6 +178,17 @@ export class RawTransaction {
       }
 
       builder.burn(burn.assetId, burn.value)
+    }
+    if (this.evm !== null) {
+      builder.evm(
+        this.evm.nonce,
+        this.evm.to,
+        this.evm.value,
+        this.evm.data,
+        this.evm.v,
+        this.evm.r,
+        this.evm.s,
+      )
     }
 
     if (this.expiration !== null) {
@@ -199,6 +235,7 @@ export class RawTransaction {
   }
 }
 
+// TODO update serde to include evm data
 export class RawTransactionSerde {
   static serialize(raw: RawTransaction): Buffer {
     const bw = bufio.write(this.getSize(raw))
@@ -262,6 +299,23 @@ export class RawTransactionSerde {
     bw.writeU8(Number(raw.expiration != null))
     if (raw.expiration != null) {
       bw.writeU32(raw.expiration)
+    }
+
+    if (raw.version >= TransactionVersion.V3) {
+      bw.writeU8(Number(raw.evm !== null))
+      if (raw.evm !== null) {
+        bw.writeBigU64(raw.evm.nonce)
+        bw.writeU8(Number(raw.evm.to.length > 0))
+        bw.writeBytes(raw.evm.to)
+        bw.writeBigU64(raw.evm.value)
+        bw.writeU32(raw.evm.data.length)
+        bw.writeBytes(raw.evm.data)
+        bw.writeU8(raw.evm.v)
+        bw.writeBytes(raw.evm.r)
+        bw.writeBytes(raw.evm.s)
+      }
+    } else {
+      Assert.isNull(raw.evm, 'Version 3 and above only has evm descriptions')
     }
 
     return bw.render()
@@ -329,6 +383,26 @@ export class RawTransactionSerde {
       raw.expiration = reader.readU32()
     }
 
+    if (raw.version >= TransactionVersion.V3) {
+      const evmPresent = reader.readU8()
+      if (evmPresent) {
+        const nonce = reader.readBigU64()
+        const toPresent = reader.readU8()
+        let to = Buffer.alloc(0)
+        if (toPresent) {
+          to = reader.readBytes(20)
+        }
+        const value = reader.readBigU64()
+        const dataLength = reader.readU32()
+        const data = reader.readBytes(dataLength)
+        const v = reader.readU8()
+        const r = reader.readBytes(32)
+        const s = reader.readBytes(32)
+
+        raw.evm = { nonce, to, value, data, v, r, s }
+      }
+    }
+
     return raw
   }
 
@@ -381,6 +455,23 @@ export class RawTransactionSerde {
     size += 1 // has expiration sequence
     if (raw.expiration != null) {
       size += TRANSACTION_EXPIRATION_LENGTH // raw.expiration
+    }
+
+    if (raw.version >= TransactionVersion.V3) {
+      size += 1 // evm present
+      if (raw.evm !== null) {
+        size += 8 // nonce
+        size += 1 // to present bool
+        if (raw.evm.to.length > 0) {
+          size += 20 // to
+        }
+        size += 8 // value
+        size += 4 // data length
+        size += raw.evm.data.length // data
+        size += 1 // v
+        size += 32 // r
+        size += 32 // s
+      }
     }
 
     return size

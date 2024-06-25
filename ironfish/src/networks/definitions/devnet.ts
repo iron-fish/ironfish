@@ -12,6 +12,7 @@ const DEVNET_CONSENSUS: ConsensusParameters = {
   maxBlockSizeBytes: 524288,
   minFee: 0,
   enableAssetOwnership: null,
+  enableEvmDescriptions: null,
   enforceSequentialBlockTime: 1,
   enableFishHash: null,
   enableIncreasedDifficultyChange: null,

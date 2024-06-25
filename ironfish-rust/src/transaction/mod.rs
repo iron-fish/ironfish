@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use blstrs::Bls12;
+use evm::EvmDescription;
 use ff::Field;
 use outputs::OutputBuilder;
 use spends::{SpendBuilder, UnsignedSpendDescription};
@@ -104,6 +105,9 @@ pub struct ProposedTransaction {
     /// balancing and effects are handled by outputs.
     burns: Vec<BurnBuilder>,
 
+    // can attach arbitrary data to transaction, will initially be used for EVM transactions
+    evm: Option<EvmDescription>,
+
     /// The balance of all the spends minus all the outputs. The difference
     /// is the fee paid to the miner for mining the transaction.
     value_balances: ValueBalances,
@@ -130,6 +134,7 @@ impl ProposedTransaction {
             outputs: vec![],
             mints: vec![],
             burns: vec![],
+            evm: None,
             value_balances: ValueBalances::new(),
             expiration: 0,
             public_key_randomness: jubjub::Fr::random(thread_rng()),
@@ -165,6 +170,12 @@ impl ProposedTransaction {
         self.value_balances.add(asset.id(), value.try_into()?)?;
 
         self.mints.push(MintBuilder::new(asset, value));
+
+        Ok(())
+    }
+
+    pub fn add_evm(&mut self, evm_description: EvmDescription) -> Result<(), IronfishError> {
+        self.evm = Some(evm_description);
 
         Ok(())
     }
@@ -315,6 +326,7 @@ impl ProposedTransaction {
             mints: unsigned_mints,
             outputs: output_descriptions,
             spends: unsigned_spends,
+            evm: self.evm.clone(),
             version: self.version,
             fee: intended_transaction_fee,
             binding_signature,
@@ -444,6 +456,12 @@ impl ProposedTransaction {
             burn.serialize_signature_fields(&mut hasher)?;
         }
 
+        if self.version.has_evm() {
+            if let Some(ref evm) = self.evm {
+                evm.write(&mut hasher)?;
+            }
+        }
+
         let mut hash_result = [0; 32];
         hash_result[..].clone_from_slice(hasher.finalize().as_ref());
         Ok(hash_result)
@@ -560,6 +578,9 @@ pub struct Transaction {
     /// List of burn descriptions
     burns: Vec<BurnDescription>,
 
+    /// List of data descriptions
+    evm: Option<EvmDescription>,
+
     /// Signature calculated from accumulating randomness with all the spends
     /// and outputs when the transaction was created.
     binding_signature: Signature,
@@ -612,6 +633,12 @@ impl Transaction {
             burns.push(BurnDescription::read(&mut reader)?);
         }
 
+        let evm = if version.has_evm() && reader.read_u8()? == 1 {
+            Some(EvmDescription::read(&mut reader)?)
+        } else {
+            None
+        };
+
         let binding_signature = Signature::read(&mut reader)?;
 
         Ok(Transaction {
@@ -621,6 +648,7 @@ impl Transaction {
             outputs,
             mints,
             burns,
+            evm,
             binding_signature,
             expiration,
             randomized_public_key,
@@ -655,6 +683,15 @@ impl Transaction {
             burns.write(&mut writer)?;
         }
 
+        if self.version.has_evm() {
+            if let Some(ref evm) = self.evm {
+                writer.write_u8(1)?;
+                evm.write(&mut writer)?;
+            } else {
+                writer.write_u8(0)?;
+            }
+        }
+
         self.binding_signature.write(&mut writer)?;
 
         Ok(())
@@ -685,6 +722,10 @@ impl Transaction {
 
     pub fn burns(&self) -> &Vec<BurnDescription> {
         &self.burns
+    }
+
+    pub fn evm(&self) -> &Option<EvmDescription> {
+        &self.evm
     }
 
     /// Get the transaction fee for this transaction. Miners should generally
@@ -737,6 +778,12 @@ impl Transaction {
 
         for burn in self.burns.iter() {
             burn.serialize_signature_fields(&mut hasher)?;
+        }
+
+        if self.version.has_evm() {
+            if let Some(ref evm) = self.evm {
+                evm.write(&mut hasher)?;
+            }
         }
 
         let mut hash_result = [0; 32];

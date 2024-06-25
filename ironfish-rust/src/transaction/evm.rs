@@ -11,7 +11,7 @@ use std::io;
 
 use crate::errors::IronfishError;
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct EvmDescription {
     pub(crate) nonce: u64,
     // TODO: gas price and limit here, or in the top layer of the transaction
@@ -26,6 +26,25 @@ pub struct EvmDescription {
 }
 
 impl EvmDescription {
+    pub fn new(
+        nonce: u64,
+        to: Option<[u8; 20]>,
+        value: u64,
+        data: Vec<u8>,
+        v: u8,
+        r: [u8; 32],
+        s: [u8; 32],
+    ) -> Self {
+        Self {
+            nonce,
+            to,
+            value,
+            data,
+            v,
+            r,
+            s,
+        }
+    }
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, io::Error> {
         let nonce = reader.read_u64::<LittleEndian>()?;
 

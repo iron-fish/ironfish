@@ -45,6 +45,11 @@ export type ConsensusParameters = {
   enableAssetOwnership: ActivationSequence
 
   /**
+   * The block height that enables the use of V3 transactions for EVM Description
+   */
+  enableEvmDescriptions: ActivationSequence
+
+  /**
    * Before upgrade we have block timestamp smaller than previous block. After this
    * block we enforce the block timestamps in the sequential order as the block sequences.
    */
@@ -98,7 +103,9 @@ export class Consensus {
   }
 
   getActiveTransactionVersion(sequence: number): TransactionVersion {
-    if (this.isActive('enableAssetOwnership', sequence)) {
+    if (this.isActive('enableEvmDescriptions', sequence)) {
+      return TransactionVersion.V3
+    } else if (this.isActive('enableAssetOwnership', sequence)) {
       return TransactionVersion.V2
     } else {
       return TransactionVersion.V1

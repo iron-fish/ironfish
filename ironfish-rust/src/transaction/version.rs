@@ -17,6 +17,9 @@ pub enum TransactionVersion {
     /// Adds the `transfer_ownership_to` field of
     /// [`MintDescription`](crate::transaction::mints::MintDescription).
     V2,
+    /// Adds the `data` field of
+    /// [`DataDescription`](crate::transaction::data::DataDescription).
+    V3,
 }
 
 impl TransactionVersion {
@@ -24,6 +27,7 @@ impl TransactionVersion {
         match self {
             Self::V1 => 1,
             Self::V2 => 2,
+            Self::V3 => 3,
         }
     }
 
@@ -31,12 +35,17 @@ impl TransactionVersion {
         match value {
             1 => Some(Self::V1),
             2 => Some(Self::V2),
+            3 => Some(Self::V3),
             _ => None,
         }
     }
 
+    pub fn has_evm(self) -> bool {
+        self >= Self::V3
+    }
+
     pub const fn latest() -> Self {
-        Self::V2
+        Self::V3
     }
 
     pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
@@ -99,6 +108,7 @@ mod tests {
     fn test_as_u8() {
         assert_eq!(V1.as_u8(), 1);
         assert_eq!(V2.as_u8(), 2);
+        assert_eq!(V3.as_u8(), 3);
     }
 
     #[test]
@@ -106,7 +116,8 @@ mod tests {
         assert_eq!(TransactionVersion::from_u8(0), None);
         assert_eq!(TransactionVersion::from_u8(1), Some(V1));
         assert_eq!(TransactionVersion::from_u8(2), Some(V2));
-        for i in 3..=255 {
+        assert_eq!(TransactionVersion::from_u8(3), Some(V3));
+        for i in 4..=255 {
             assert_eq!(TransactionVersion::from_u8(i), None);
         }
     }

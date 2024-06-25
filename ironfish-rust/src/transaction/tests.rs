@@ -8,6 +8,7 @@ use std::collections::{BTreeMap, HashMap};
 use super::internal_batch_verify_transactions;
 use super::{ProposedTransaction, Transaction};
 use crate::test_util::create_multisig_identities;
+use crate::transaction::evm::EvmDescription;
 use crate::transaction::tests::split_spender_key::split_spender_key;
 use crate::{
     assets::{asset::Asset, asset_identifier::NATIVE_ASSET},
@@ -208,6 +209,81 @@ fn test_transaction_simple() {
 }
 
 #[test]
+fn test_evm_transaction() {
+    let spender_key = SaplingKey::generate_key();
+    let receiver_key = SaplingKey::generate_key();
+    let sender_key = SaplingKey::generate_key();
+    let spender_key_clone = spender_key.clone();
+
+    let in_note = Note::new(
+        spender_key.public_address(),
+        42,
+        "",
+        NATIVE_ASSET,
+        sender_key.public_address(),
+    );
+    let out_note = Note::new(
+        receiver_key.public_address(),
+        40,
+        "",
+        NATIVE_ASSET,
+        spender_key.public_address(),
+    );
+    let witness = make_fake_witness(&in_note);
+
+    let evm = EvmDescription {
+        nonce: 9,
+        to: Some([0x35; 20]),
+        value: 1_000_000_000_000_000_000,
+        data: vec![],
+        v: 27,
+        r: [
+            0x5e, 0x1d, 0x3a, 0x76, 0xfb, 0xf8, 0x24, 0x22, 0x0e, 0x27, 0xb5, 0xd1, 0xf8, 0xd0,
+            0x78, 0x48, 0xe8, 0xa4, 0x41, 0x4b, 0x78, 0xb6, 0xd0, 0xf1, 0xe9, 0xc2, 0xb4, 0xd3,
+            0xd6, 0xd3, 0xd3, 0xe5,
+        ],
+        s: [
+            0x7e, 0x1d, 0x3a, 0x76, 0xfb, 0xf8, 0x24, 0x22, 0x0e, 0x27, 0xb5, 0xd1, 0xf8, 0xd0,
+            0x78, 0x48, 0xe8, 0xa4, 0x41, 0x4b, 0x78, 0xb6, 0xd0, 0xf1, 0xe9, 0xc2, 0xb4, 0xd3,
+            0xd6, 0xd3, 0xd3, 0xe5,
+        ],
+    };
+    let evm_clone = evm.clone();
+
+    let mut transaction = ProposedTransaction::new(TransactionVersion::latest());
+    transaction.add_spend(in_note, &witness).unwrap();
+    assert_eq!(transaction.spends.len(), 1);
+    transaction.add_output(out_note).unwrap();
+    assert_eq!(transaction.outputs.len(), 1);
+    transaction
+        .add_evm(evm)
+        .expect("should be able to add data");
+
+    let public_transaction = transaction
+        .post(&spender_key, None, 1)
+        .expect("should be able to post transaction");
+    verify_transaction(&public_transaction).expect("Should be able to verify transaction");
+    assert_eq!(public_transaction.fee(), 1);
+
+    // A change note was created
+    assert_eq!(public_transaction.outputs.len(), 2);
+    assert_eq!(public_transaction.spends.len(), 1);
+    assert_eq!(public_transaction.mints.len(), 0);
+    assert_eq!(public_transaction.burns.len(), 0);
+    // assert evm to be some
+    assert!(public_transaction.evm.is_some());
+
+    // check equality for evm description vs one above
+    assert_eq!(public_transaction.evm, Some(evm_clone));
+
+    let received_note = public_transaction.outputs[1]
+        .merkle_note()
+        .decrypt_note_for_owner(&spender_key_clone.incoming_viewing_key)
+        .unwrap();
+    assert_eq!(received_note.sender, spender_key_clone.public_address());
+}
+
+#[test]
 fn test_proposed_transaction_build() {
     let spender_key = SaplingKey::generate_key();
     let receiver_key = SaplingKey::generate_key();
@@ -383,11 +459,11 @@ fn test_transaction_version_is_checked() {
 
     let mut transaction = [0u8; 256];
 
-    let valid_versions = [1u8, 2u8];
+    let valid_versions = [1u8, 2u8, 3u8];
     let invalid_versions = (u8::MIN..=u8::MAX)
         .filter(|v| !valid_versions.contains(v))
         .collect::<Vec<u8>>();
-    assert_eq!(invalid_versions.len(), 254);
+    assert_eq!(invalid_versions.len(), 253);
 
     // Verify that valid versions are correctly deserialized
     for version in valid_versions {

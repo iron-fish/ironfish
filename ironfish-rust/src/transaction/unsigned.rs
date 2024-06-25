@@ -28,8 +28,9 @@ use crate::{
 };
 
 use super::{
-    burns::BurnDescription, mints::UnsignedMintDescription, spends::UnsignedSpendDescription,
-    TransactionVersion, SIGNATURE_HASH_PERSONALIZATION, TRANSACTION_SIGNATURE_VERSION,
+    burns::BurnDescription, evm::EvmDescription, mints::UnsignedMintDescription,
+    spends::UnsignedSpendDescription, TransactionVersion, SIGNATURE_HASH_PERSONALIZATION,
+    TRANSACTION_SIGNATURE_VERSION,
 };
 
 #[derive(Clone)]
@@ -49,6 +50,9 @@ pub struct UnsignedTransaction {
 
     /// List of burn descriptions
     pub(crate) burns: Vec<BurnDescription>,
+
+    /// List of data
+    pub(crate) evm: Option<EvmDescription>,
 
     /// Signature calculated from accumulating randomness with all the spends
     /// and outputs when the transaction was created.
@@ -109,6 +113,12 @@ impl UnsignedTransaction {
             burns.push(BurnDescription::read(&mut reader)?);
         }
 
+        let evm = if version.has_evm() && reader.read_u8()? == 1 {
+            Some(EvmDescription::read(&mut reader)?)
+        } else {
+            None
+        };
+
         let binding_signature = Signature::read(&mut reader)?;
 
         Ok(UnsignedTransaction {
@@ -118,6 +128,7 @@ impl UnsignedTransaction {
             outputs,
             mints,
             burns,
+            evm,
             binding_signature,
             expiration,
             randomized_public_key,
@@ -152,6 +163,15 @@ impl UnsignedTransaction {
 
         for burns in self.burns.iter() {
             burns.write(&mut writer)?;
+        }
+
+        if self.version.has_evm() {
+            if let Some(ref evm) = self.evm {
+                writer.write_u8(1)?;
+                evm.write(&mut writer)?;
+            } else {
+                writer.write_u8(0)?;
+            }
         }
 
         self.binding_signature.write(&mut writer)?;
@@ -190,9 +210,19 @@ impl UnsignedTransaction {
             burn.serialize_signature_fields(&mut hasher)?;
         }
 
+        if self.version.has_evm() {
+            if let Some(ref evm) = self.evm {
+                evm.write(&mut hasher)?;
+            }
+        }
+
         let mut hash_result = [0; 32];
         hash_result[..].clone_from_slice(hasher.finalize().as_ref());
         Ok(hash_result)
+    }
+
+    pub fn has_evm(&self) -> bool {
+        self.version.has_evm()
     }
 
     pub fn aggregate_signature_shares(
@@ -249,6 +279,7 @@ impl UnsignedTransaction {
             outputs: self.outputs.clone(),
             mints: mint_descriptions,
             burns: self.burns.clone(),
+            evm: self.evm.clone(),
             binding_signature: self.binding_signature,
             randomized_public_key: self.randomized_public_key.clone(),
         };
@@ -281,6 +312,7 @@ impl UnsignedTransaction {
             outputs: self.outputs.clone(),
             mints: mint_descriptions,
             burns: self.burns.clone(),
+            evm: self.evm.clone(),
             binding_signature: self.binding_signature,
             randomized_public_key: self.randomized_public_key.clone(),
         })
