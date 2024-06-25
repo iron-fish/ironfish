@@ -52,7 +52,7 @@ export class DkgRound3Command extends IronfishCommand {
     let round2SecretPackage = flags.round2SecretPackage
     if (!round2SecretPackage) {
       round2SecretPackage = await ux.prompt(
-        `Enter the encrypted secret package for participant ${participantName}`,
+        `Enter the round 2 encrypted secret package for participant ${participantName}`,
         {
           required: true,
         },
