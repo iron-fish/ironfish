@@ -1586,7 +1586,7 @@ dependencies = [
 [[package]]
 name = "jubjub"
 version = "0.9.0"
-source = "git+https://github.com/iron-fish/jubjub.git?branch=blstrs#a1a0c2ed69eec4d5d5e87842e2a40849f7fa4633"
+source = "git+https://github.com/iron-fish/jubjub.git?branch=blstrs#6fac532975e23acd3fa670bc0383d027f09403e5"
 dependencies = [
  "bitvec",
  "blst",
