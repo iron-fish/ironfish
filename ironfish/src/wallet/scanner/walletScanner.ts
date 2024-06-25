@@ -236,6 +236,7 @@ export class WalletScanner {
       return new ChainProcessorWithTransactions({
         logger: this.logger,
         chain: this.chain,
+        maxQueueSize: this.config.get('walletSyncingMaxQueueSize'),
         head,
       })
     }

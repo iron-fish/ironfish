@@ -138,4 +138,36 @@ describe('ChainProcessor', () => {
     expect(result.hashChanged).toEqual(false)
     expect(processor.hash).toEqual(chain.genesis.hash)
   })
+
+  it('limits blocks processed with maxQueueSize', async () => {
+    const { chain } = nodeTest
+
+    const block1 = await useMinerBlockFixture(chain)
+    await expect(chain).toAddBlock(block1)
+    const block2 = await useMinerBlockFixture(chain)
+    await expect(chain).toAddBlock(block2)
+
+    expect(chain.head.hash).toEqual(block2.header.hash)
+
+    const onEvent: jest.Mock<void, [BlockHeader, 'add' | 'remove']> = jest.fn()
+
+    const processor = new ChainProcessor({ chain, head: null })
+    processor.onAdd.on((block) => onEvent(block, 'add'))
+    processor.onRemove.on((block) => onEvent(block, 'remove'))
+
+    processor.hash = chain.genesis.hash
+    processor.maxQueueSize = 1
+    await processor.update()
+    expect(onEvent).toHaveBeenCalledTimes(1)
+    expect(onEvent).toHaveBeenNthCalledWith(1, block1.header, 'add')
+
+    onEvent.mockReset()
+
+    processor.hash = chain.genesis.hash
+    processor.maxQueueSize = null
+    await processor.update()
+    expect(onEvent).toHaveBeenCalledTimes(2)
+    expect(onEvent).toHaveBeenNthCalledWith(1, block1.header, 'add')
+    expect(onEvent).toHaveBeenNthCalledWith(2, block2.header, 'add')
+  })
 })
