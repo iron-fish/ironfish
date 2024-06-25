@@ -128,6 +128,9 @@ impl MerkleNote {
         diffie_hellman_keys: &EphemeralKeyPair,
         note_encryption_keys: [u8; NOTE_ENCRYPTION_KEY_SIZE],
     ) -> MerkleNote {
+        #[cfg(feature = "note-encryption-stats")]
+        stats::inc_construct();
+
         let secret_key = diffie_hellman_keys.secret();
         let public_key = diffie_hellman_keys.public();
 
@@ -180,10 +183,16 @@ impl MerkleNote {
         &self,
         owner_view_key: &IncomingViewKey,
     ) -> Result<Note, IronfishError> {
+        #[cfg(feature = "note-encryption-stats")]
+        stats::inc_decrypt_note_for_owner();
+
         let shared_secret = owner_view_key.shared_secret(&self.ephemeral_public_key);
         let note =
             Note::from_owner_encrypted(owner_view_key, &shared_secret, &self.encrypted_note)?;
         note.verify_commitment(self.note_commitment)?;
+
+        #[cfg(feature = "note-encryption-stats")]
+        stats::inc_decrypt_note_for_owner_ok();
         Ok(note)
     }
 
@@ -191,6 +200,9 @@ impl MerkleNote {
         &self,
         spender_key: &OutgoingViewKey,
     ) -> Result<Note, IronfishError> {
+        #[cfg(feature = "note-encryption-stats")]
+        stats::inc_decrypt_note_for_spender();
+
         let encryption_key = calculate_key_for_encryption_keys(
             spender_key,
             &self.value_commitment,
@@ -206,6 +218,9 @@ impl MerkleNote {
         let note =
             Note::from_spender_encrypted(public_address.0, &shared_key, &self.encrypted_note)?;
         note.verify_commitment(self.note_commitment)?;
+
+        #[cfg(feature = "note-encryption-stats")]
+        stats::inc_decrypt_note_for_spender_ok();
         Ok(note)
     }
 }
@@ -267,6 +282,82 @@ fn calculate_key_for_encryption_keys(
         .as_bytes()
         .try_into()
         .expect("has has incorrect length")
+}
+
+#[cfg(feature = "note-encryption-stats")]
+pub mod stats {
+    use std::sync::atomic::AtomicUsize;
+    use std::sync::atomic::Ordering::Relaxed;
+
+    static CONSTRUCT_CALLS: AtomicUsize = AtomicUsize::new(0);
+
+    static DECRYPT_FOR_OWNER_CALLS: AtomicUsize = AtomicUsize::new(0);
+    static DECRYPT_FOR_OWNER_OK_CALLS: AtomicUsize = AtomicUsize::new(0);
+
+    static DECRYPT_FOR_SPENDER_CALLS: AtomicUsize = AtomicUsize::new(0);
+    static DECRYPT_FOR_SPENDER_OK_CALLS: AtomicUsize = AtomicUsize::new(0);
+
+    /// Statistics on the operations performed by the [`ironfish::merkle_note`] module.
+    #[derive(Copy, Clone, PartialEq, Eq, Debug)]
+    pub struct Stats {
+        /// Number of [`MerkleNote::construct()`] calls made so far.
+        pub construct: usize,
+        /// Number of [`MerkleNote::decrypt_note_for_owner()`] calls made so far.
+        pub decrypt_note_for_owner: CallResultStats,
+        /// Number of [`MerkleNote::decrypt_note_for_spender()`] calls made so far.
+        pub decrypt_note_for_spender: CallResultStats,
+    }
+
+    /// Statistics for a function that returns a `Result`.
+    #[derive(Copy, Clone, PartialEq, Eq, Debug)]
+    pub struct CallResultStats {
+        /// Number of calls to a function performed so far. This includes both successful (`Ok`)
+        /// and unsuccessful (`Err`) calls.
+        pub total: usize,
+        /// Number of calls to a function performed so far that returned a successful (`Ok`)
+        /// result.
+        pub successful: usize,
+    }
+
+    #[inline(always)]
+    pub(super) fn inc_construct() {
+        CONSTRUCT_CALLS.fetch_add(1, Relaxed);
+    }
+
+    #[inline(always)]
+    pub(super) fn inc_decrypt_note_for_owner() {
+        DECRYPT_FOR_OWNER_CALLS.fetch_add(1, Relaxed);
+    }
+
+    #[inline(always)]
+    pub(super) fn inc_decrypt_note_for_owner_ok() {
+        DECRYPT_FOR_OWNER_OK_CALLS.fetch_add(1, Relaxed);
+    }
+
+    #[inline(always)]
+    pub(super) fn inc_decrypt_note_for_spender() {
+        DECRYPT_FOR_SPENDER_CALLS.fetch_add(1, Relaxed);
+    }
+
+    #[inline(always)]
+    pub(super) fn inc_decrypt_note_for_spender_ok() {
+        DECRYPT_FOR_SPENDER_OK_CALLS.fetch_add(1, Relaxed);
+    }
+
+    #[must_use]
+    pub fn get() -> Stats {
+        Stats {
+            construct: CONSTRUCT_CALLS.load(Relaxed),
+            decrypt_note_for_owner: CallResultStats {
+                total: DECRYPT_FOR_OWNER_CALLS.load(Relaxed),
+                successful: DECRYPT_FOR_OWNER_OK_CALLS.load(Relaxed),
+            },
+            decrypt_note_for_spender: CallResultStats {
+                total: DECRYPT_FOR_SPENDER_CALLS.load(Relaxed),
+                successful: DECRYPT_FOR_SPENDER_OK_CALLS.load(Relaxed),
+            },
+        }
+    }
 }
 
 #[cfg(test)]

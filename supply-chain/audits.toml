@@ -89,6 +89,16 @@ delta = "0.5.1 -> 0.5.1@git:311baf8865f6e21527d1f20750d8f2cf5c9e531a"
 importable = false
 notes = "Unreleased changes required by ironfish-frost to support multisig wallets"
 
+[[audits.signal-hook]]
+who = "andrea <andrea@iflabs.network>"
+criteria = "safe-to-deploy"
+version = "0.3.17"
+
+[[audits.signal-hook-registry]]
+who = "andrea <andrea@iflabs.network>"
+criteria = "safe-to-deploy"
+delta = "1.4.1 -> 1.4.2"
+
 [[audits.siphasher]]
 who = "Andrea <andrea@iflabs.network>"
 criteria = "safe-to-deploy"

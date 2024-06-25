@@ -14,6 +14,7 @@
     "artifacts": "napi artifacts",
     "build": "yarn clean && napi build --platform --release",
     "build:debug": "napi build --platform",
+    "build:stats": "yarn clean && napi build --platform --release --features=stats",
     "prepublishOnly": "napi prepublish --skip-gh-release",
     "test:slow": "jest --testPathIgnorePatterns --testMatch \"**/*.test.slow.ts\"",
     "clean": "rimraf target"

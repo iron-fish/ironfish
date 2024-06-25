@@ -26,6 +26,7 @@ workspace = true
 [features]
 benchmark = []
 download-params = ["dep:reqwest"]
+note-encryption-stats = []
 
 [lib]
 name = "ironfish"
