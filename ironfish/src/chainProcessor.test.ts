@@ -170,4 +170,31 @@ describe('ChainProcessor', () => {
     expect(onEvent).toHaveBeenNthCalledWith(1, block1.header, 'add')
     expect(onEvent).toHaveBeenNthCalledWith(2, block2.header, 'add')
   })
+
+  it('should remain stable if hash is head', async () => {
+    const { chain } = nodeTest
+
+    const block = await useMinerBlockFixture(chain)
+    await expect(chain).toAddBlock(block)
+    expect(chain.head.hash).toEqual(block.header.hash)
+
+    const onEvent: jest.Mock<void, [BlockHeader, 'add' | 'remove']> = jest.fn()
+
+    const processor = new ChainProcessor({ chain, head: chain.genesis.hash })
+    processor.onAdd.on((block) => onEvent(block, 'add'))
+    processor.onRemove.on((block) => onEvent(block, 'remove'))
+
+    let result = await processor.update()
+    expect(result.hashChanged).toBe(true)
+    expect(processor.hash).toEqualBuffer(block.header.hash)
+    expect(onEvent).toHaveBeenCalledTimes(1)
+    expect(onEvent).toHaveBeenNthCalledWith(1, block.header, 'add')
+
+    onEvent.mockReset()
+
+    result = await processor.update()
+    expect(result.hashChanged).toBe(false)
+    expect(processor.hash).toEqualBuffer(block.header.hash)
+    expect(onEvent).toHaveBeenCalledTimes(0)
+  })
 })

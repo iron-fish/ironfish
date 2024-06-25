@@ -58,8 +58,6 @@ export class ChainProcessor {
   }
 
   async update({ signal }: { signal?: AbortSignal } = {}): Promise<{ hashChanged: boolean }> {
-    const oldHash = this.hash
-
     if (!this.hash) {
       await this.add(this.chain.genesis)
       this.hash = this.chain.genesis.hash
@@ -81,6 +79,7 @@ export class ChainProcessor {
     )
 
     let blockCount = 0
+    let hashChanged = false
 
     const fork = await this.chain.findFork(head, chainHead)
 
@@ -91,7 +90,7 @@ export class ChainProcessor {
 
     for await (const remove of iterBackwards) {
       if (signal?.aborted) {
-        return { hashChanged: !oldHash || !this.hash.equals(oldHash) }
+        return { hashChanged }
       }
 
       if (remove.hash.equals(fork.hash)) {
@@ -101,10 +100,11 @@ export class ChainProcessor {
       await this.remove(remove)
       this.hash = remove.previousBlockHash
       this.sequence = remove.sequence - 1
-
+      hashChanged = true
       blockCount++
+
       if (this.maxQueueSize && blockCount >= this.maxQueueSize) {
-        return { hashChanged: !oldHash || !this.hash.equals(oldHash) }
+        return { hashChanged }
       }
     }
 
@@ -112,7 +112,7 @@ export class ChainProcessor {
 
     for await (const add of iterForwards) {
       if (signal?.aborted) {
-        return { hashChanged: !oldHash || !this.hash.equals(oldHash) }
+        return { hashChanged }
       }
 
       if (add.hash.equals(fork.hash)) {
@@ -122,13 +122,14 @@ export class ChainProcessor {
       await this.add(add)
       this.hash = add.hash
       this.sequence = add.sequence
-
+      hashChanged = true
       blockCount++
+
       if (this.maxQueueSize && blockCount >= this.maxQueueSize) {
-        return { hashChanged: !oldHash || !this.hash.equals(oldHash) }
+        return { hashChanged }
       }
     }
 
-    return { hashChanged: !oldHash || !this.hash.equals(oldHash) }
+    return { hashChanged }
   }
 }
