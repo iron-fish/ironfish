@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { BatchDBOp, DB, EncodingOpts } from '@ethereumjs/util'
-import { IDatabase, IDatabaseEncoding, IDatabaseStore, IDatabaseTransaction } from '../storage'
+import { BatchOperation, IDatabase, IDatabaseEncoding, IDatabaseStore } from '../storage'
 
 type EvmStateSchema = {
   key: string
@@ -32,45 +32,28 @@ export class EvmStateDB implements DB<string, Uint8Array> {
     })
   }
 
-  async get(
-    key: string,
-    _encodingOpts?: EncodingOpts,
-    tx?: IDatabaseTransaction,
-  ): Promise<Uint8Array | undefined> {
-    return this.store.get(key, tx)
+  async get(key: string, _encodingOpts?: EncodingOpts): Promise<Uint8Array | undefined> {
+    return this.store.get(key)
   }
 
-  async put(
-    key: string,
-    value: Uint8Array,
-    _encodingOpts?: EncodingOpts,
-    tx?: IDatabaseTransaction,
-  ): Promise<void> {
-    return this.store.put(key, Buffer.from(value), tx)
+  async put(key: string, value: Uint8Array): Promise<void> {
+    return this.store.put(key, Buffer.from(value))
   }
 
-  async del(
-    key: string,
-    _encodingOpts?: EncodingOpts,
-    tx?: IDatabaseTransaction,
-  ): Promise<void> {
-    return this.store.del(key, tx)
+  async del(key: string): Promise<void> {
+    return this.store.del(key)
   }
 
-  async batch(
-    opStack: BatchDBOp<string, Uint8Array>[],
-    _encodingOpts?: EncodingOpts,
-    tx?: IDatabaseTransaction,
-  ): Promise<void> {
-    await this.db.withTransaction(tx, async (tx) => {
-      for (const op of opStack) {
-        if (op.type === 'put') {
-          await this.put(op.key, op.value, undefined, tx)
-        } else if (op.type === 'del') {
-          await this.del(op.key, undefined, tx)
-        }
+  async batch(opStack: BatchDBOp<string, Uint8Array>[]): Promise<void> {
+    const writes: BatchOperation<EvmStateSchema, string, Uint8Array>[] = []
+    for (const op of opStack) {
+      if (op.type === 'put') {
+        writes.push([this.store, op.key, op.value])
+      } else if (op.type === 'del') {
+        writes.push([this.store, op.key])
       }
-    })
+    }
+    await this.db.batch(writes)
   }
 
   shallowCopy(): EvmStateDB {

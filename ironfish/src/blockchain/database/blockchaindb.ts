@@ -1,7 +1,11 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { DefaultStateManager } from '@ethereumjs/statemanager'
+import { Trie } from '@ethereumjs/trie'
+import { ValueEncoding } from '@ethereumjs/util'
 import { Assert } from '../../assert'
+import { EvmStateDB } from '../../evm/database'
 import { FileSystem } from '../../fileSystems'
 import { BlockHeader } from '../../primitives'
 import { BlockHash } from '../../primitives/blockheader'
@@ -53,6 +57,8 @@ export class BlockchainDB {
   assets: IDatabaseStore<AssetSchema>
   // TransactionHash -> BlockHash
   transactionHashToBlockHash: IDatabaseStore<TransactionHashToBlockHashSchema>
+
+  stateManager: DefaultStateManager
 
   constructor(options: { location: string; files: FileSystem }) {
     this.location = options.location
@@ -110,6 +116,14 @@ export class BlockchainDB {
       name: 'tb',
       keyEncoding: BUFFER_ENCODING,
       valueEncoding: BUFFER_ENCODING,
+    })
+
+    this.stateManager = new DefaultStateManager({
+      trie: new Trie({
+        db: new EvmStateDB(this.db),
+        valueEncoding: ValueEncoding.Bytes,
+        useRootPersistence: true,
+      }),
     })
   }
 
@@ -344,11 +358,91 @@ export class BlockchainDB {
     return this.db.getVersion()
   }
 
-  transaction(): IDatabaseTransaction {
-    return this.db.transaction()
+  transaction<TResult>(
+    handler: (transaction: BlockchainDBTransaction) => Promise<TResult>,
+  ): Promise<TResult>
+  transaction(): BlockchainDBTransaction
+  transaction(
+    handler?: (transaction: BlockchainDBTransaction) => Promise<unknown>,
+  ): IDatabaseTransaction | Promise<unknown> {
+    if (handler === undefined) {
+      return new BlockchainDBTransaction(this.db, this.stateManager)
+    }
+
+    return this.withTransaction(null, handler)
+  }
+
+  // TODO(hughy): this is copied from Database. can/should we reuse the underlying implementation?
+  async withTransaction<TResult>(
+    transaction: BlockchainDBTransaction | undefined | null,
+    handler: (transaction: BlockchainDBTransaction) => Promise<TResult>,
+  ): Promise<TResult> {
+    const created = !transaction
+    transaction = transaction || this.transaction()
+
+    try {
+      await transaction.acquireLock()
+      const result = await handler(transaction)
+      if (created) {
+        await transaction.commit()
+      }
+      return result
+    } catch (error: unknown) {
+      if (created) {
+        await transaction.abort()
+      }
+      throw error
+    }
   }
 
   async size(): Promise<number> {
     return this.db.size()
+  }
+}
+
+export class BlockchainDBTransaction implements IDatabaseTransaction {
+  tx: IDatabaseTransaction
+  stateManager: DefaultStateManager
+  checkpoint = false
+
+  constructor(db: IDatabase, stateManager: DefaultStateManager) {
+    this.tx = db.transaction()
+    this.stateManager = stateManager
+  }
+
+  async acquireLock(): Promise<void> {
+    if (!this.checkpoint) {
+      await this.stateManager.checkpoint()
+      this.checkpoint = true
+    }
+    await this.tx.acquireLock()
+  }
+
+  async update(): Promise<void> {
+    if (this.checkpoint) {
+      await this.stateManager.commit()
+      this.checkpoint = false
+    }
+    await this.tx.update()
+  }
+
+  async commit(): Promise<void> {
+    if (this.checkpoint) {
+      await this.stateManager.commit()
+      this.checkpoint = false
+    }
+    await this.tx.commit()
+  }
+
+  async abort(): Promise<void> {
+    if (this.checkpoint) {
+      await this.stateManager.revert()
+      this.checkpoint = false
+    }
+    await this.tx.abort()
+  }
+
+  get size(): number {
+    return this.tx.size
   }
 }

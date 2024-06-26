@@ -1,7 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Assert, BlockHeader, FullNode, IDatabaseTransaction, TimeUtils } from '@ironfish/sdk'
+import {
+  Assert,
+  BlockchainDBTransaction,
+  BlockHeader,
+  FullNode,
+  TimeUtils,
+} from '@ironfish/sdk'
 import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
@@ -124,7 +130,7 @@ export default class RepairChain extends IronfishCommand {
     const total = TREE_END ? TREE_END - TREE_START : Number(node.chain.head.sequence)
     let done = 0
 
-    let tx: IDatabaseTransaction | null = null
+    let tx: BlockchainDBTransaction | null = null
     let header = await node.chain.getHeaderAtSequence(TREE_START)
     let block = header ? await node.chain.getBlock(header) : null
     let prev = await node.chain.getHeaderAtSequence(TREE_START - 1)
@@ -146,7 +152,7 @@ export default class RepairChain extends IronfishCommand {
 
     while (block) {
       if (tx === null) {
-        tx = node.chain.blockchainDb.db.transaction()
+        tx = node.chain.blockchainDb.transaction()
       }
 
       await node.chain.saveConnect(block, prev || null, tx)
