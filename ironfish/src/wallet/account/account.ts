@@ -15,7 +15,10 @@ import { WithNonNull, WithRequired } from '../../utils'
 import { DecryptedNote } from '../../workerPool/tasks/decryptNotes'
 import { AssetBalances } from '../assetBalances'
 import { MultisigKeys, MultisigSigner } from '../interfaces/multisigKeys'
-import { AccountValue } from '../walletdb/accountValue'
+import {
+  DecryptedAccountValue,
+  EncryptedAccountValue,
+} from '../walletdb/accountValue'
 import { AssetValue } from '../walletdb/assetValue'
 import { BalanceValue } from '../walletdb/balanceValue'
 import { DecryptedNoteValue } from '../walletdb/decryptedNoteValue'
@@ -57,6 +60,31 @@ export function AssertMultisigSigner(
   )
 }
 
+export class EncryptedAccount {
+  private readonly walletDb: WalletDB
+
+  readonly id: string
+  readonly data: string
+
+  readonly prefix: Buffer
+  readonly prefixRange: DatabaseKeyRange
+
+  constructor({
+    accountValue,
+    walletDb,
+  }: {
+    accountValue: EncryptedAccountValue
+    walletDb: WalletDB
+  }) {
+    this.id = accountValue.id
+    this.data = accountValue.data
+
+    this.prefix = calculateAccountPrefix(accountValue.id)
+    this.prefixRange = StorageUtils.getPrefixKeyRange(this.prefix)
+    this.walletDb = walletDb
+  }
+}
+
 export class Account {
   private readonly walletDb: WalletDB
 
@@ -76,7 +104,13 @@ export class Account {
   readonly multisigKeys?: MultisigKeys
   readonly proofAuthorizingKey: string | null
 
-  constructor({ accountValue, walletDb }: { accountValue: AccountValue; walletDb: WalletDB }) {
+  constructor({
+    accountValue,
+    walletDb,
+  }: {
+    accountValue: DecryptedAccountValue
+    walletDb: WalletDB
+  }) {
     this.id = accountValue.id
     this.name = accountValue.name
     this.spendingKey = accountValue.spendingKey
@@ -102,8 +136,9 @@ export class Account {
     return this.spendingKey !== null
   }
 
-  serialize(): AccountValue {
+  serialize(): DecryptedAccountValue {
     return {
+      encrypted: false,
       version: this.version,
       id: this.id,
       name: this.name,

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { PUBLIC_ADDRESS_LENGTH } from '@ironfish/rust-nodejs'
-import bufio from 'bufio'
+import bufio, { BufferReader } from 'bufio'
 import { IDatabaseEncoding } from '../../storage'
 import { ACCOUNT_KEY_LENGTH } from '../account/account'
 import { MultisigKeys } from '../interfaces/multisigKeys'
@@ -13,7 +13,15 @@ export const KEY_LENGTH = ACCOUNT_KEY_LENGTH
 export const VIEW_KEY_LENGTH = 64
 const VERSION_LENGTH = 2
 
-export interface AccountValue {
+export interface EncryptedAccountValue {
+  encrypted: true
+  version: number
+  id: string
+  data: string
+}
+
+export interface DecryptedAccountValue {
+  encrypted: false
   version: number
   id: string
   name: string
@@ -28,8 +36,31 @@ export interface AccountValue {
   proofAuthorizingKey: string | null
 }
 
+export type AccountValue = EncryptedAccountValue | DecryptedAccountValue
+
 export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
   serialize(value: AccountValue): Buffer {
+    if (value.encrypted) {
+      return this.serializeEncrypted(value)
+    } else {
+      return this.serializeDecrypted(value)
+    }
+  }
+
+  serializeEncrypted(value: EncryptedAccountValue): Buffer {
+    const bw = bufio.write(this.getSize(value))
+
+    let flags = 0
+    flags |= Number(!!value.encrypted) << 5
+    bw.writeU8(flags)
+    bw.writeU16(value.version)
+    bw.writeVarString(value.id, 'utf8')
+
+    bw.writeVarString(value.data, 'utf8')
+    return bw.render()
+  }
+
+  serializeDecrypted(value: DecryptedAccountValue): Buffer {
     const bw = bufio.write(this.getSize(value))
     let flags = 0
     flags |= Number(!!value.spendingKey) << 0
@@ -37,6 +68,8 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     flags |= Number(!!value.multisigKeys) << 2
     flags |= Number(!!value.proofAuthorizingKey) << 3
     flags |= Number(!!value.scanningEnabled) << 4
+    flags |= Number(!!value.encrypted) << 5
+
     bw.writeU8(flags)
     bw.writeU16(value.version)
     bw.writeVarString(value.id, 'utf8')
@@ -72,6 +105,28 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
   deserialize(buffer: Buffer): AccountValue {
     const reader = bufio.read(buffer, true)
     const flags = reader.readU8()
+    const encrypted = Boolean(flags & (1 << 5))
+
+    if (encrypted) {
+      return this.deserializeEncrypted(reader)
+    } else {
+      return this.deserializeDecrypted(reader, flags)
+    }
+  }
+
+  deserializeEncrypted(reader: BufferReader): EncryptedAccountValue {
+    const version = reader.readU16()
+    const id = reader.readVarString('utf8')
+    const data = reader.readVarString('utf8')
+    return {
+      encrypted: true,
+      version,
+      id,
+      data,
+    }
+  }
+
+  deserializeDecrypted(reader: BufferReader, flags: number): DecryptedAccountValue {
     const version = reader.readU16()
     const hasSpendingKey = flags & (1 << 0)
     const hasCreatedAt = flags & (1 << 1)
@@ -104,6 +159,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
       : null
 
     return {
+      encrypted: false,
       version,
       id,
       name,
@@ -120,6 +176,23 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
   }
 
   getSize(value: AccountValue): number {
+    if (value.encrypted) {
+      return this.getSizeEncrypted(value)
+    } else {
+      return this.getSizeDecrypted(value)
+    }
+  }
+
+  getSizeEncrypted(value: EncryptedAccountValue): number {
+    let size = 0
+    size += 1 // flags
+    size += VERSION_LENGTH
+    size += bufio.sizeVarString(value.id, 'utf8')
+    size += bufio.sizeVarString(value.data, 'utf8')
+    return size
+  }
+
+  getSizeDecrypted(value: DecryptedAccountValue): number {
     let size = 0
     size += 1 // flags
     size += VERSION_LENGTH
