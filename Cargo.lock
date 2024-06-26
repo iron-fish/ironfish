@@ -1481,6 +1481,7 @@ dependencies = [
  "lazy_static",
  "libc",
  "rand",
+ "rand_core",
  "reqwest",
  "sha2 0.10.6",
  "tiny-bip39",
