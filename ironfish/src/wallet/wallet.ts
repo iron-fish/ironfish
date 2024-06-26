@@ -94,6 +94,7 @@ export class Wallet {
 
   private locked: boolean
 
+  protected readonly encryptedAccounts = new Map<string, EncryptedAccount>()
   protected readonly accounts = new Map<string, Account>()
   readonly walletDb: WalletDB
   private readonly logger: Logger
@@ -214,11 +215,11 @@ export class Wallet {
       if (accountValue.encrypted) {
         this.locked = true
 
-        const _encryptedAccount = new EncryptedAccount({
+        const encryptedAccount = new EncryptedAccount({
           accountValue,
           walletDb: this.walletDb,
         })
-        // TODO: store it
+        this.encryptedAccounts.set(encryptedAccount.id, encryptedAccount)
       } else {
         const account = new Account({
           accountValue,
@@ -1787,5 +1788,20 @@ export class Wallet {
 
       return identity.serialize()
     })
+  }
+
+  unlock(passphrase: string, timeout: number = 5 * 1000): void {
+    for (const account of this.encryptedAccounts.values()) {
+      this.accounts.set(
+        account.id,
+        account.decrypt(passphrase)
+      )
+    }
+
+    setTimeout(this.lock, timeout)
+  }
+
+  lock(): void {
+    this.accounts.clear()
   }
 }

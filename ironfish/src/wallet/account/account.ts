@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { multisig } from '@ironfish/rust-nodejs'
+import { decrypt, multisig } from '@ironfish/rust-nodejs'
 import { Asset } from '@ironfish/rust-nodejs'
 import { BufferMap, BufferSet } from 'buffer-map'
 import MurmurHash3 from 'imurmurhash'
@@ -64,6 +64,8 @@ export class EncryptedAccount {
   private readonly walletDb: WalletDB
 
   readonly id: string
+  readonly salt: string
+  readonly nonce: string
   readonly data: string
 
   readonly prefix: Buffer
@@ -77,11 +79,23 @@ export class EncryptedAccount {
     walletDb: WalletDB
   }) {
     this.id = accountValue.id
+    this.salt = accountValue.salt
+    this.nonce = accountValue.nonce
     this.data = accountValue.data
 
     this.prefix = calculateAccountPrefix(accountValue.id)
     this.prefixRange = StorageUtils.getPrefixKeyRange(this.prefix)
     this.walletDb = walletDb
+  }
+
+  decrypt(passphrase: string): Account {
+    const decryptedAccountValue = decrypt(passphrase, this.salt, this.nonce, this.data)
+    if (!decryptedAccountValue) {
+      throw new Error('Failed to decrypt payload')
+    }
+
+    const accountValue = JSON.parse(decryptedAccountValue) as DecryptedAccountValue
+    return new Account({ accountValue, walletDb: this.walletDb })
   }
 }
 

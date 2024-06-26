@@ -17,6 +17,8 @@ export interface EncryptedAccountValue {
   encrypted: true
   version: number
   id: string
+  salt: string
+  nonce: string
   data: string
 }
 
@@ -56,6 +58,8 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     bw.writeU16(value.version)
     bw.writeVarString(value.id, 'utf8')
 
+    bw.writeVarString(value.salt, 'utf8')
+    bw.writeVarString(value.nonce, 'utf8')
     bw.writeVarString(value.data, 'utf8')
     return bw.render()
   }
@@ -117,11 +121,15 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
   deserializeEncrypted(reader: BufferReader): EncryptedAccountValue {
     const version = reader.readU16()
     const id = reader.readVarString('utf8')
+    const salt = reader.readVarString('utf8')
+    const nonce = reader.readVarString('utf8')
     const data = reader.readVarString('utf8')
     return {
       encrypted: true,
       version,
       id,
+      salt,
+      nonce,
       data,
     }
   }
@@ -188,6 +196,8 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     size += 1 // flags
     size += VERSION_LENGTH
     size += bufio.sizeVarString(value.id, 'utf8')
+    size += bufio.sizeVarString(value.salt, 'utf8')
+    size += bufio.sizeVarString(value.nonce, 'utf8')
     size += bufio.sizeVarString(value.data, 'utf8')
     return size
   }
