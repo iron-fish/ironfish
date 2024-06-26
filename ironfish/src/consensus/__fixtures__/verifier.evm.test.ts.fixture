@@ -114,5 +114,121 @@
         "sequence": 1
       }
     }
+  ],
+  "Verifier EVM Transaction returns true on evm transactions": [
+    {
+      "value": {
+        "version": 4,
+        "id": "b2be6227-0e5a-4cc9-b305-5464d2242841",
+        "name": "sender",
+        "spendingKey": "b934a58bc43f66deb2bf15039d8703db23f1d5ba0b7b75b0bfa30dcb578118f9",
+        "viewKey": "d579136d0b2a33f5d1c678194cb003347d5eb3c7765cf8af6dbdef2c1538e9f3ea7e1bf2485183255c9c1a58bc3dd0694223f0b0b43a44fe22b66145ae4d7b1a",
+        "incomingViewKey": "fd9f2b2ed65f082b2bf01f68e46d514717d5d3265fde33d68b685680768dd002",
+        "outgoingViewKey": "2f0c34efbfad6c8c40e2aaecaf6ea6cbe85284d96bcacfa3c7cab7990d60d820",
+        "publicAddress": "f976b7d1c6f964de2666b86ebd3a243bab821442c768a30265d1625e3dee2f8a",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "c6b293d50d63d1c4729bf58da173dfa1063227d9e67943f1f8e4e19b1b793b0c"
+      },
+      "head": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      }
+    },
+    {
+      "value": {
+        "version": 4,
+        "id": "363b06d2-d885-4148-a06e-40970ac4d4ba",
+        "name": "recipient",
+        "spendingKey": "54debf1a81d3812c93cb06de47aaec202346c09694d6079c31b3774b214894a1",
+        "viewKey": "cca42a6c452063fca1bb1794a5e530baf94a957d6d261b63171e9377ab905829891573205dbac8c54e78630cfca1dd7063469983d3cfc95a1b5179a5bed64ab2",
+        "incomingViewKey": "5c9682196d2ee2c10eee214d678443f62971c2922214cb69e63340a4318eec02",
+        "outgoingViewKey": "6658d78c29e76a178442bf589042a4cb41081540caba5de8522a076b995c002a",
+        "publicAddress": "eff7b47a40ba396e65701498d81f12f72a43e980d8069d614a036350a5e5182d",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "20f57626fd78afc515be0bbaed9392dd48f7760a0f9c51ea9156e544fc229209"
+      },
+      "head": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      }
+    }
+  ],
+  "Verifier EVM Transaction returns false when evm transaction has invalid signature": [
+    {
+      "value": {
+        "version": 4,
+        "id": "bf41e412-7f7b-48c6-a257-c00ab6c80290",
+        "name": "sender",
+        "spendingKey": "7531c7adbd1238c5b761c085b32aef8620d1b2a398b4503f27000f7bde1bb71d",
+        "viewKey": "4171cf41ce9f79d1994b4fa709d6b38b8a8f196a6e914d3dea33ed1c4fc6c59c8d6d6595b1bd1d0af1b622f31231291fe051f728007ca5da5d7848c57cdb2c12",
+        "incomingViewKey": "7366f40096bc149b37293552902c434f554cf011825cc65ee26edd591dd1aa07",
+        "outgoingViewKey": "b87ffc7a03c959152082acca63d2fe49d5a3fdcfe863947a7bef0e32d21c16ab",
+        "publicAddress": "87f9c4973f3c2062618b229b5508188557025581039005ee753531e51e3c82c3",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "cfaf3608f885e27d3360da5638745b44ea4dda01ddcb1e0ef06516330c75520e"
+      },
+      "head": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      }
+    },
+    {
+      "value": {
+        "version": 4,
+        "id": "7724892a-a5e3-4172-aac2-c69a363dbacd",
+        "name": "recipient",
+        "spendingKey": "cacd94b0568b04b943efbfe07df4e7cb96ba04c2ab2851604e885d80739d749d",
+        "viewKey": "26fbfac7d9be73c7c2602643fede443a9d127a8d34e42399779aee3e77acdf1757ab99d918ed68f49a2d0e5f2403715602784809a508f0a26438e48cfc455853",
+        "incomingViewKey": "dfc59816c0649b141cac2869f4e53f35257221383bd89eec3a6dfd5330044607",
+        "outgoingViewKey": "6e9943f794829cf0018869c21d77f8c258ff593026dcaf0835b3a5848d7ffa8c",
+        "publicAddress": "13f769a306b9a70b9e13c0ae87663c65e843d205a12735df9673114db117ba23",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "a41450e3ec494cf7c8331db10df656b904de3edecec2fe26cb681bddecc4bc07"
+      },
+      "head": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      }
+    }
   ]
 }

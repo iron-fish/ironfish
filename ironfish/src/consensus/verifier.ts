@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { LegacyTransaction } from '@ethereumjs/tx'
 import { Asset } from '@ironfish/rust-nodejs'
 import { BufferMap, BufferSet } from 'buffer-map'
 import { Assert } from '../assert'
@@ -333,17 +332,17 @@ export class Verifier {
       }
     }
 
-    const nullifierVerify = Verifier.verifyInternalNullifiers(transaction.spends)
+    const nullifierVerify = this.verifyInternalNullifiers(transaction.spends)
     if (!nullifierVerify.valid) {
       return nullifierVerify
     }
 
-    const mintVerify = Verifier.verifyMints(transaction.mints)
+    const mintVerify = this.verifyMints(transaction.mints)
     if (!mintVerify.valid) {
       return mintVerify
     }
 
-    const burnVerify = Verifier.verifyBurns(transaction.burns)
+    const burnVerify = this.verifyBurns(transaction.burns)
     if (!burnVerify.valid) {
       return burnVerify
     }

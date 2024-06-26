@@ -7,7 +7,6 @@ jest.mock('ws')
 import '../testUtilities/matchers/blockchain'
 import { LegacyTransaction } from '@ethereumjs/tx'
 import { Account as EthAccount, Address } from '@ethereumjs/util'
-import { DEVNET_GENESIS } from '../networks'
 import { Transaction } from '../primitives'
 import { EvmDescription, legacyTransactionToEvmDescription } from '../primitives/evmDescription'
 import { TransactionVersion } from '../primitives/transaction'
@@ -17,27 +16,7 @@ import { VerificationResultReason } from './verifier'
 
 describe('Verifier', () => {
   describe('EVM Transaction', () => {
-    const nodeTest = createNodeTest(undefined, {
-      networkDefinition: {
-        id: 1000,
-        bootstrapNodes: [],
-        genesis: DEVNET_GENESIS,
-        consensus: {
-          allowedBlockFutureSeconds: 15,
-          genesisSupplyInIron: 42000000,
-          targetBlockTimeInSeconds: 60,
-          targetBucketTimeInSeconds: 10,
-          maxBlockSizeBytes: 524288,
-          minFee: 0,
-          enableAssetOwnership: null,
-          enableEvmDescriptions: 1,
-          enforceSequentialBlockTime: 1,
-          enableFishHash: null,
-          enableIncreasedDifficultyChange: null,
-          checkpoints: [],
-        },
-      },
-    })
+    const nodeTest = createNodeTest()
 
     beforeAll(() => {
       jest
@@ -45,7 +24,6 @@ describe('Verifier', () => {
         .mockImplementation(() => TransactionVersion.V3)
     })
 
-    // TODO write failure test
     it('returns true on evm transactions', async () => {
       const senderAccountIf = await useAccountFixture(nodeTest.node.wallet, 'sender')
       const recipientAccountIf = await useAccountFixture(nodeTest.node.wallet, 'recipient')
