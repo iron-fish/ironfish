@@ -134,6 +134,20 @@ impl Asset {
         Asset::new_with_nonce(creator, name, metadata, nonce)
     }
 
+    pub fn read_unchecked<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
+        let creator = PublicAddress::read_unchecked(&mut reader)?;
+
+        let mut name = [0; NAME_LENGTH];
+        reader.read_exact(&mut name[..])?;
+
+        let mut metadata = [0; METADATA_LENGTH];
+        reader.read_exact(&mut metadata[..])?;
+
+        let nonce = reader.read_u8()?;
+
+        Asset::new_with_nonce(creator, name, metadata, nonce)
+    }
+
     /// Stow the bytes of this struct in the given writer.
     pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
         self.creator.write(&mut writer)?;
