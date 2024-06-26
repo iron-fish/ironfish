@@ -41,7 +41,7 @@ import {
 } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { DecryptedNote, DecryptNotesItem } from '../workerPool/tasks/decryptNotes'
-import { Account, ACCOUNT_SCHEMA_VERSION } from './account/account'
+import { Account, ACCOUNT_SCHEMA_VERSION, EncryptedAccount } from './account/account'
 import { AssetBalances } from './assetBalances'
 import {
   DuplicateAccountNameError,
@@ -91,6 +91,8 @@ export type TransactionOutput = {
 export class Wallet {
   readonly onAccountImported = new Event<[account: Account]>()
   readonly onAccountRemoved = new Event<[account: Account]>()
+
+  private locked: boolean
 
   protected readonly accounts = new Map<string, Account>()
   readonly walletDb: WalletDB
@@ -143,6 +145,7 @@ export class Wallet {
     this.rebroadcastAfter = rebroadcastAfter ?? 10
     this.createTransactionMutex = new Mutex()
     this.eventLoopAbortController = new AbortController()
+    this.locked = false
 
     this.scanner = new WalletScanner({
       wallet: this,
@@ -207,8 +210,22 @@ export class Wallet {
 
   private async load(): Promise<void> {
     for await (const accountValue of this.walletDb.loadAccounts()) {
-      const account = new Account({ accountValue, walletDb: this.walletDb })
-      this.accounts.set(account.id, account)
+      // Just do this for the first run
+      if (accountValue.encrypted) {
+        this.locked = true
+
+        const _encryptedAccount = new EncryptedAccount({
+          accountValue,
+          walletDb: this.walletDb,
+        })
+        // TODO: store it
+      } else {
+        const account = new Account({
+          accountValue,
+          walletDb: this.walletDb,
+        })
+        this.accounts.set(account.id, account)
+      }
     }
 
     const meta = await this.walletDb.loadAccountsMeta()
@@ -695,6 +712,8 @@ export class Wallet {
   }
 
   async mint(account: Account, options: MintAssetOptions): Promise<Transaction> {
+    Assert.isNotNull(account.publicAddress)
+
     let mintData: MintData
 
     if ('assetId' in options) {
@@ -778,6 +797,8 @@ export class Wallet {
     expirationDelta?: number
     confirmations?: number
   }): Promise<RawTransaction> {
+    Assert.isNotNull(options.account.publicAddress)
+
     const heaviestHead = await this.getChainHead()
     if (heaviestHead === null) {
       throw new Error('You must have a genesis block to create a transaction')
@@ -881,6 +902,11 @@ export class Wallet {
     Assert.isNotNull(
       options.account.proofAuthorizingKey,
       'proofAuthorizingKey is required to build transactions',
+    )
+    Assert.isNotNull(options.account.viewKey, 'viewKey is required to build transactions')
+    Assert.isNotNull(
+      options.account.outgoingViewKey,
+      'outgoingViewKey is required to build transactions',
     )
 
     const transaction = await this.workerPool.buildTransaction(
@@ -1279,6 +1305,7 @@ export class Wallet {
 
     const account = new Account({
       accountValue: {
+        encrypted: false,
         version: ACCOUNT_SCHEMA_VERSION,
         id: uuid(),
         name,
@@ -1373,6 +1400,7 @@ export class Wallet {
     const account = new Account({
       accountValue: {
         ...accountValue,
+        encrypted: false,
         id: uuid(),
         createdAt,
         name,
@@ -1424,15 +1452,25 @@ export class Wallet {
       tx?: IDatabaseTransaction
     },
   ): Promise<void> {
-    const newAccount = new Account({
-      accountValue: {
-        ...account,
-        createdAt: options?.resetCreatedAt ? null : account.createdAt,
-        scanningEnabled: options?.resetScanningEnabled ? true : account.scanningEnabled,
-        id: uuid(),
-      },
-      walletDb: this.walletDb,
-    })
+    const accountValue = account.serialize()
+    let newAccount: Account
+
+    if (accountValue.encrypted) {
+      newAccount = new Account({
+        accountValue,
+        walletDb: this.walletDb,
+      })
+    } else {
+      newAccount = new Account({
+        accountValue: {
+          ...accountValue,
+          createdAt: options?.resetCreatedAt ? null : account.createdAt,
+          scanningEnabled: options?.resetScanningEnabled ? true : account.scanningEnabled,
+          id: uuid(),
+        },
+        walletDb: this.walletDb,
+      })
+    }
 
     this.logger.debug(`Resetting account name: ${account.name}, id: ${account.id}`)
 
@@ -1629,12 +1667,20 @@ export class Wallet {
   }
 
   protected assertHasAccount(account: Account): void {
+    if (account.name === null) {
+      return
+    }
+
     if (!this.accountExists(account.name)) {
       throw new Error(`No account found with name ${account.name}`)
     }
   }
 
   protected assertNotHasAccount(account: Account): void {
+    if (account.name === null) {
+      return
+    }
+
     if (this.accountExists(account.name)) {
       throw new Error(`No account found with name ${account.name}`)
     }
