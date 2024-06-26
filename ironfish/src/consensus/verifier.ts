@@ -575,15 +575,22 @@ export class Verifier {
     // verify signature
 
     const tx = evmDescriptionToLegacyTransaction(evmDescription)
-    console.log('legacy2', tx.toJSON())
-    const result = await this.chain.evm.runTx({
-      tx,
-    })
-
-    if (result.execResult.exceptionError) {
-      return { valid: false, reason: VerificationResultReason.EVM_TRANSACTION_FAILED }
+    try {
+      const result = await this.chain.evm.runTx({ tx })
+      if (result.execResult.exceptionError) {
+        return { valid: false, reason: VerificationResultReason.EVM_TRANSACTION_FAILED }
+      }
+      return { valid: true }
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('Invalid Signature')) {
+        return {
+          valid: false,
+          reason: VerificationResultReason.EVM_TRANSACTION_INVALID_SIGNATURE,
+        }
+      } else {
+        return { valid: false, reason: VerificationResultReason.EVM_UNKNOWN_ERROR }
+      }
     }
-    return { valid: true }
   }
 
   /**
@@ -745,6 +752,8 @@ export enum VerificationResultReason {
   CHECKPOINT_REORG = 'Cannot add block that re-orgs past the last checkpoint',
   EVM_NOT_INITIALIZED = 'EVM is not initialized',
   EVM_TRANSACTION_FAILED = 'EVM transaction failed',
+  EVM_TRANSACTION_INVALID_SIGNATURE = 'EVM transaction has invalid signature',
+  EVM_UNKNOWN_ERROR = 'EVM unknown error',
 }
 
 /**
