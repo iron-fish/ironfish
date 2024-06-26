@@ -114,7 +114,7 @@ export class Asset {
   static nativeId(): Buffer
   id(): Buffer
   serialize(): Buffer
-  static deserialize(jsBytes: Buffer): NativeAsset
+  static deserialize(jsBytes: Buffer, skipValidation?: boolean | undefined | null): NativeAsset
 }
 export type NativeNoteEncrypted = NoteEncrypted
 export class NoteEncrypted {

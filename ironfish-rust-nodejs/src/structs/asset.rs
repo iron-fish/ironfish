@@ -91,9 +91,15 @@ impl NativeAsset {
     }
 
     #[napi(factory)]
-    pub fn deserialize(js_bytes: JsBuffer) -> Result<Self> {
+    pub fn deserialize(js_bytes: JsBuffer, skip_validation: Option<bool>) -> Result<Self> {
         let bytes = js_bytes.into_value()?;
-        let asset = Asset::read(bytes.as_ref()).map_err(to_napi_err)?;
+        let skip_validation = skip_validation.unwrap_or(false);
+        let asset = if !skip_validation {
+            Asset::read(bytes.as_ref())
+        } else {
+            Asset::read_unchecked(bytes.as_ref())
+        }
+        .map_err(to_napi_err)?;
 
         Ok(NativeAsset { asset })
     }
