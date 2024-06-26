@@ -62,7 +62,7 @@ export class Transaction {
   private transactionPosted: TransactionPosted | null = null
   private referenceCount = 0
 
-  constructor(transactionPostedSerialized: Buffer) {
+  constructor(transactionPostedSerialized: Buffer, options?: { skipValidation?: boolean }) {
     this.transactionPostedSerialized = transactionPostedSerialized
 
     const reader = bufio.read(this.transactionPostedSerialized, true)
@@ -109,14 +109,14 @@ export class Transaction {
       reader.seek(PROOF_LENGTH)
 
       // output note
-      return new NoteEncrypted(reader.readBytes(ENCRYPTED_NOTE_LENGTH, true))
+      return new NoteEncrypted(reader.readBytes(ENCRYPTED_NOTE_LENGTH, true), options)
     })
 
     this.mints = Array.from({ length: _mintsLength }, () => {
       // proof
       reader.seek(PROOF_LENGTH)
 
-      const asset = Asset.deserialize(reader.readBytes(ASSET_LENGTH))
+      const asset = Asset.deserialize(reader.readBytes(ASSET_LENGTH), options?.skipValidation)
       const value = reader.readBigU64()
 
       let owner = null
