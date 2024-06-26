@@ -4,11 +4,13 @@
 
 use std::collections::{BTreeMap, HashMap};
 
-#[cfg(test)]
 use super::internal_batch_verify_transactions;
+use super::unsigned::UnsignedTransaction;
 use super::{ProposedTransaction, Transaction};
+use crate::serializing::{bytes_to_hex, hex_to_vec_bytes};
 use crate::test_util::create_multisig_identities;
 use crate::transaction::tests::split_spender_key::split_spender_key;
+use crate::transaction::TRANSACTION_PUBLIC_KEY_SIZE;
 use crate::{
     assets::{asset::Asset, asset_identifier::NATIVE_ASSET},
     errors::{IronfishError, IronfishErrorKind},
@@ -23,6 +25,8 @@ use crate::{
         TRANSACTION_EXPIRATION_SIZE, TRANSACTION_FEE_SIZE, TRANSACTION_SIGNATURE_SIZE,
     },
 };
+#[cfg(test)]
+use group::GroupEncoding;
 
 use ff::Field;
 use ironfish_frost::{
@@ -836,4 +840,48 @@ fn test_aggregate_signature_shares() {
 
     // verify transaction
     verify_transaction(&signed_transaction).expect("should be able to verify transaction");
+}
+
+#[test]
+fn test_sign_zondax() {
+    let spender_key =
+        SaplingKey::from_hex("eedb03842adc584156cc3bad24d9c576b24362e0fd859ae5373983321204ba05")
+            .unwrap();
+
+    let unsigned_transaction_bytes = hex_to_vec_bytes("0201000000000000000200000000000000000000000000000000000000000000000100000000000000000000002c23b3915d26540f2ecfcf138bb51f145f53b9d877e7b3826d40d9e6ff9080d82cd1197250b281e33bd1a07596ca592945921e1aca567a5c5b6312127407b6002cd1197250b281e33bd1a07596ca592945921e1aca567a5c5b6312127407b600af5ea5e0945ce8b007fa185929d64ef00920ba7451fde8ea27ee0ddfd845e2724ca90700eed1be5e8a293ac8576d7122b370af823e472c064ea890a103cac5f9a7813ddbd0beec2967cdfd3db8fb34317c7052b257a17df1551717a05efbd26f054828dbf424e4b07cf7b0e5ff1569a3f712cdd377c00eadde037b0126c59c468945a6c317eb334451ea23b4d7b8cf21b329269c5786122e9b21e345505163d3ca7d8d0104808f86fa352d46687f903957fc40f33ca89f2736ca01607a389d4b2151de24a15cc35771b5095008c1963b694e561d81746696da13c5b04eaabb6b0e3f684b198e277582eaffd70e2106fb6587e7bd1d8879ce89c42f9baf586648780500008a2895e8293d5bbc0344ccf5854c313b3bc1449955aa61307fdf643a4c2d3da100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a31d76fb30429f838635364df372112f330ed43222451945ca3cb1d38a256b70e5677be0a8be52efbd68f019eaeaf1b7b554aa988a49bf830a40e20b6d1fbd0a9633f60d4d39a99523f1aa7c1d07ee1044bbe020fb13edd03ab47a8e0167c24e057185d2dc25846d1069484d75c11939ea11235e1da041267e57e1a59ec1b639efd9bd209e016e9b643cfc801f931c6c9340ac130c1304d6458b2aa7fffd2b506df411b56549d4571acd4621db5fc3e366a2aa38da3d49506c9ee1de84467225ad6592cc2ecd9830fd7923ed6d4770eb1b5fe790dc98f2f57c16feb2bb7747d54ae2fbf4fd5974be44f22971bcae6ad19f38842e5d48399b2c4afe8cc16c4b4eca876887b7797dea7f5d7b16e2123602d9739831890e87db5948e8152fbebfe4814398bd7f4c37fce857374a3c79394326fffca81d83d903062ae354859e7d503225c25462bc3168404602d186b749f639e0f3604d6145cb74c14787cb433e6704ee8168aceece474bddff70447d59cd2582d3075b6f8ae0cab4cd7d1e74849875828b4413e7f80b5ab695359439ba1a9e9f23bc2bfe7f181c3d8f422d1a68bec25b9a4132af125712602def13b2a93fb7e4951f7f878d7543747364e0a40f81f4a415df00fffc1fc8cf2be472b325224dc5c1dd8d78b9b7d270ecba38e4bd0c0579ddc3cf179ce667ce8ae6269688fa8d64699d7e9325c240fc575262142406f96f4777dbb800229268790cfb9476cd0a274362682c4e53627c036efd6972f6f4aed48d76c22f50bb783af6064958b0b14a235f91d9332d9620c82cfc275bcab024d77a43e7eb94c6020eeb8ff0ec37f9d3bfdebef8c487b0db4207354b39e294d774c1f1d0091607ea88730a5e0e90c691ecbdfc6c3424710c418215fd4375480c99960fa4cf927b99ac538aa2b61ede02290bb13b007da8b47d0b5d8add3058109bbc88dcb504dcc87c5de26a7fe2c2fbfa1b60a94a6c5b067bd16c5145b95e6872516e132784b9c8b73348ade3eccd7b1d9a9eba0a0d16f648532e27d25fa0ed629b68a19ac62726f8c827ff074a522990bfb62f25728cf0fcbc976baecbe8ef5e78f5bd0c11b0c5c1384b14fd7fb84fe9630fef0a2625e838a4593b85e088823db2c74e198aa8e2be9d7553cc3cad2b781aa6507f681b0d4f1dd32df0c7f84714d6392aee045240b2313d7aefe1a5ce7371f7fde3dcdf92a716f9f4ce230efbb430d671c9fd4972daa55db027813601e465ab376a3e4abc778953bbf9cc92f8f5199852cce5638451c683cdebc912663c29be6f3512e7fbc83d1a6a0e66acd3e4fb50619436b9b9e4342d1b24f4ea3c7cfd38baca95e0765aa14f5f034982d2c238c32c829cf56efc7a9daee7833fffdede0e6dfcb45f8ff79fdef2757774c65434f83840a2d1037cbc35890e3bf897f8e60fa073af65036fe8fb82eb87b412624a9ce2b96536e8bcd954f50e9925df0c446a691ee91ea040d9da0dca304b83370e4e0933f6aaba81266a1221a5db24a5b3204981f2148e2f7e15f0884131a47d5d97d1b85f2dc7c4e05e42370e").expect("should read unsigned transaction bytes");
+
+    let unsigned_transaction = UnsignedTransaction::read(&unsigned_transaction_bytes[..])
+        .expect("should deserialize unsigned transaction");
+
+    let transaction_hash_bytes = unsigned_transaction.transaction_signature_hash().unwrap();
+    println!("{}", bytes_to_hex(&transaction_hash_bytes));
+    println!("c5031c241ee5e89776d1964bd2247eb50b04b096bc29d683f80be71636486b97");
+
+    let private_key = redjubjub::PrivateKey(spender_key.spend_authorizing_key);
+    let randomized_private_key = private_key.randomize(unsigned_transaction.public_key_randomness);
+
+    let transaction_randomized_public_key =
+        redjubjub::PublicKey(spender_key.view_key.authorizing_key.into()).randomize(
+            unsigned_transaction.public_key_randomness,
+            *SPENDING_KEY_GENERATOR,
+        );
+
+    let mut data_to_be_signed = [0; 64];
+    data_to_be_signed[..TRANSACTION_PUBLIC_KEY_SIZE]
+        .copy_from_slice(&transaction_randomized_public_key.0.to_bytes());
+    data_to_be_signed[32..].copy_from_slice(&transaction_hash_bytes[..]);
+
+    let signature = randomized_private_key.sign(
+        &data_to_be_signed,
+        &mut thread_rng(),
+        *SPENDING_KEY_GENERATOR,
+    );
+
+    let mut serialized_signature = vec![];
+    signature
+        .write(&mut serialized_signature)
+        .expect("serializing signature should not fail");
+
+    println!("{}", bytes_to_hex(&serialized_signature));
+    println!("00115b9e1d1bf1b2f917478055884dc9a3457d427bba82db5c5207ec73ce452fd0029511f26281c174501f88ddce26df48458b34d9079027ab92116ede992b0d")
 }
