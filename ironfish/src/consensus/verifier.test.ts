@@ -5,6 +5,8 @@
 jest.mock('ws')
 
 import '../testUtilities/matchers/blockchain'
+import { LegacyTransaction } from '@ethereumjs/tx'
+import { Account as EthAccount, Address } from '@ethereumjs/util'
 import {
   Asset,
   generateKey,
@@ -17,6 +19,7 @@ import { Assert } from '../assert'
 import { getBlockSize, getBlockWithMinersFeeSize } from '../network/utils/serializers'
 import { Block, BlockHeader, Transaction } from '../primitives'
 import { transactionCommitment } from '../primitives/blockheader'
+import { EvmDescription, legacyTransactionToEvmDescription } from '../primitives/evmDescription'
 import { MintDescription } from '../primitives/mintDescription'
 import { Target } from '../primitives/target'
 import { SerializedTransaction, TransactionVersion } from '../primitives/transaction'
@@ -33,6 +36,7 @@ import {
 } from '../testUtilities'
 import { useFixture } from '../testUtilities/fixtures/fixture'
 import { Account, Wallet } from '../wallet'
+import { Consensus } from './consensus'
 import { VerificationResultReason, Verifier } from './verifier'
 
 describe('Verifier', () => {

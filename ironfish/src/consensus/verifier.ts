@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { LegacyTransaction } from '@ethereumjs/tx'
 import { Asset } from '@ironfish/rust-nodejs'
 import { BufferMap, BufferSet } from 'buffer-map'
 import { Assert } from '../assert'
@@ -15,6 +16,7 @@ import { Spend } from '../primitives'
 import { Block, GENESIS_BLOCK_SEQUENCE } from '../primitives/block'
 import { BlockHeader, transactionCommitment } from '../primitives/blockheader'
 import { BurnDescription } from '../primitives/burnDescription'
+import { EvmDescription, evmDescriptionToLegacyTransaction } from '../primitives/evmDescription'
 import { MintDescription } from '../primitives/mintDescription'
 import { Target } from '../primitives/target'
 import { Transaction } from '../primitives/transaction'
@@ -112,6 +114,11 @@ export class Verifier {
       const burnVerify = Verifier.verifyBurns(tx.burns)
       if (!burnVerify.valid) {
         return burnVerify
+      }
+
+      const evmVerify = await this.verifyEvmDescription(tx.evm)
+      if (!evmVerify.valid) {
+        return evmVerify
       }
 
       transactionBatch.push(tx)
@@ -250,6 +257,14 @@ export class Verifier {
       return verificationResult
     }
 
+    // TODO(jwp): cannot add to verifyCreatedTransaction requires access to blockchain
+    // which isn't available in standalone wallet, which uses this method
+
+    const evmVerify = await this.verifyEvmDescription(transaction.evm)
+    if (!evmVerify.valid) {
+      return evmVerify
+    }
+
     try {
       verificationResult = await this.workerPool.verifyTransactions([transaction])
     } catch {
@@ -318,17 +333,17 @@ export class Verifier {
       }
     }
 
-    const nullifierVerify = this.verifyInternalNullifiers(transaction.spends)
+    const nullifierVerify = Verifier.verifyInternalNullifiers(transaction.spends)
     if (!nullifierVerify.valid) {
       return nullifierVerify
     }
 
-    const mintVerify = this.verifyMints(transaction.mints)
+    const mintVerify = Verifier.verifyMints(transaction.mints)
     if (!mintVerify.valid) {
       return mintVerify
     }
 
-    const burnVerify = this.verifyBurns(transaction.burns)
+    const burnVerify = Verifier.verifyBurns(transaction.burns)
     if (!burnVerify.valid) {
       return burnVerify
     }
@@ -548,6 +563,29 @@ export class Verifier {
     return { valid: true }
   }
 
+  async verifyEvmDescription(
+    evmDescription: EvmDescription | null,
+  ): Promise<VerificationResult> {
+    if (!evmDescription) {
+      return { valid: true }
+    }
+    if (!this.chain.evm) {
+      return { valid: false, reason: VerificationResultReason.EVM_NOT_INITIALIZED }
+    }
+    // verify signature
+
+    const tx = evmDescriptionToLegacyTransaction(evmDescription)
+    console.log('legacy2', tx.toJSON())
+    const result = await this.chain.evm.runTx({
+      tx,
+    })
+
+    if (result.execResult.exceptionError) {
+      return { valid: false, reason: VerificationResultReason.EVM_TRANSACTION_FAILED }
+    }
+    return { valid: true }
+  }
+
   /**
    * Given an iterator over some spends, verify that none of the spends reveal
    * the same nullifier as any other in the group. Should be checked at both the
@@ -705,6 +743,8 @@ export enum VerificationResultReason {
   TRANSACTION_EXPIRED = 'Transaction expired',
   VERIFY_TRANSACTION = 'Verify_transaction',
   CHECKPOINT_REORG = 'Cannot add block that re-orgs past the last checkpoint',
+  EVM_NOT_INITIALIZED = 'EVM is not initialized',
+  EVM_TRANSACTION_FAILED = 'EVM transaction failed',
 }
 
 /**

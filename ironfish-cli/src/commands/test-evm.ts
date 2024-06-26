@@ -4,7 +4,7 @@
 import { LegacyTransaction } from '@ethereumjs/tx'
 import { Account, Address } from '@ethereumjs/util'
 import { generateKey } from '@ironfish/rust-nodejs'
-import { IronfishEvm } from '@ironfish/sdk'
+import { IronfishEvm } from '@ironfish/sdk/src/evm'
 import { IronfishCommand } from '../command'
 import { LocalFlags } from '../flags'
 
