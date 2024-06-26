@@ -1798,10 +1798,12 @@ export class Wallet {
       )
     }
 
+    this.locked = false
     setTimeout(this.lock, timeout)
   }
 
   lock(): void {
+    this.locked = true
     this.accounts.clear()
   }
 }

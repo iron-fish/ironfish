@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { decrypt, multisig } from '@ironfish/rust-nodejs'
+import { decrypt, encrypt, multisig } from '@ironfish/rust-nodejs'
 import { Asset } from '@ironfish/rust-nodejs'
 import { BufferMap, BufferSet } from 'buffer-map'
 import MurmurHash3 from 'imurmurhash'
@@ -1330,6 +1330,22 @@ export class Account {
     AssertMultisig(this)
     const publicKeyPackage = new multisig.PublicKeyPackage(this.multisigKeys.publicKeyPackage)
     return publicKeyPackage.identities()
+  }
+
+  encrypt(passphrase: string): EncryptedAccount {
+    const payload = JSON.stringify(this.serialize())
+    const encryptedResult = encrypt(passphrase, payload)
+    return new EncryptedAccount({
+      accountValue: {
+        version: this.version,
+        id: this.id,
+        data: encryptedResult.ciphertext,
+        nonce: encryptedResult.nonce,
+        salt: encryptedResult.salt,
+        encrypted: true,
+      },
+      walletDb: this.walletDb,
+    })
   }
 }
 
