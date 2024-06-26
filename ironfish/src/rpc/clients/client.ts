@@ -172,6 +172,7 @@ import type {
   UseAccountResponse,
 } from '../routes'
 import { ApiNamespace } from '../routes/namespaces'
+import { UnlockWalletRequest, UnlockWalletResponse } from '../routes/wallet/unlock'
 
 export abstract class RpcClient {
   abstract request<TEnd = unknown, TStream = unknown>(
@@ -602,6 +603,13 @@ export abstract class RpcClient {
     ): Promise<RpcResponseEnded<SetScanningResponse>> => {
       return this.request<SetScanningResponse>(
         `${ApiNamespace.wallet}/setScanning`,
+        params,
+      ).waitForEnd()
+    },
+
+    unlock: (params: UnlockWalletRequest): Promise<RpcResponseEnded<UnlockWalletResponse>> => {
+      return this.request<UnlockWalletResponse>(
+        `${ApiNamespace.wallet}/unlock`,
         params,
       ).waitForEnd()
     },

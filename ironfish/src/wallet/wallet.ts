@@ -95,7 +95,7 @@ export class Wallet {
   private locked: boolean
 
   protected readonly encryptedAccounts = new Map<string, EncryptedAccount>()
-  protected readonly accounts = new Map<string, Account>()
+  protected accounts = new Map<string, Account>()
   readonly walletDb: WalletDB
   private readonly logger: Logger
   readonly workerPool: WorkerPool
@@ -1792,18 +1792,16 @@ export class Wallet {
 
   unlock(passphrase: string, timeout: number = 5 * 1000): void {
     for (const account of this.encryptedAccounts.values()) {
-      this.accounts.set(
-        account.id,
-        account.decrypt(passphrase)
-      )
+      const decryptedAccount = account.decrypt(passphrase)
+      this.accounts.set(account.id, decryptedAccount)
     }
 
     this.locked = false
-    setTimeout(this.lock, timeout)
+    setTimeout(() => this.lock(), timeout)
   }
 
   lock(): void {
     this.locked = true
-    this.accounts.clear()
+    this.accounts = new Map<string, Account>()
   }
 }

@@ -1,6 +1,8 @@
 use ironfish::serializing::{bytes_to_hex, hex_to_vec_bytes};
-use napi_derive::napi;
 use napi::bindgen_prelude::*;
+use napi_derive::napi;
+
+use std::str::FromStr;
 
 use chacha20poly1305::aead::Aead;
 use chacha20poly1305::{Key, KeyInit, XChaCha20Poly1305, XNonce};
@@ -8,7 +10,7 @@ use pbkdf2::{
     password_hash::{PasswordHasher, Salt, SaltString},
     Params, Pbkdf2,
 };
-use rand::thread_rng;
+use rand::{thread_rng, RngCore};
 
 const PBKDF2_ITERATIONS: u32 = 100_000;
 const KEY_LENGTH: usize = 32; // 256-bit key
@@ -51,14 +53,16 @@ pub fn encrypt(passphrase: String, plaintext: String) -> EncryptResult {
     let key = derive_key(passphrase, salt.to_string());
 
     let cipher = XChaCha20Poly1305::new(&key);
-    let nonce = XNonce::from_slice(&[0u8; 24]);
+    let mut nonce_bytes = [0u8; 24];
+    thread_rng().fill_bytes(&mut nonce_bytes);
+    let nonce = XNonce::from_slice(&nonce_bytes);
 
     let ciphertext = cipher
         .encrypt(nonce, plaintext.as_bytes())
         .expect("encryption failure!");
 
     EncryptResult {
-        salt: bytes_to_hex(salt.as_str().as_bytes()),
+        salt: String::from_str(salt.as_str()).unwrap(),
         nonce: bytes_to_hex(&nonce.to_vec()[..]),
         ciphertext: bytes_to_hex(&ciphertext[..]),
     }
@@ -71,17 +75,15 @@ pub fn decrypt(
     nonce_hex: String,
     ciphertext_hex: String,
 ) -> Result<Option<String>> {
-    let salt = hex_to_vec_bytes(&salt_hex).unwrap();
     let nonce_vec = &hex_to_vec_bytes(&nonce_hex).unwrap();
     let nonce = XNonce::from_slice(nonce_vec);
     let ciphertext = hex_to_vec_bytes(&ciphertext_hex).unwrap();
 
-    let key = derive_key(passphrase, bytes_to_hex(&salt[..]));
-
+    let key = derive_key(passphrase, salt_hex);
     let cipher = XChaCha20Poly1305::new(&key);
 
     match cipher.decrypt(nonce, ciphertext.as_ref()) {
-        Ok(decrypted) => Ok(Some(bytes_to_hex(&decrypted[..]))),
+        Ok(decrypted) => Ok(Some(String::from_utf8(decrypted.to_vec()).unwrap())),
         Err(_) => {
           Ok(None)
         }
