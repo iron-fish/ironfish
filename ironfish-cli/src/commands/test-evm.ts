@@ -1,8 +1,10 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Account, Address, hexToBytes } from '@ethereumjs/util'
-import { Assert, EvmState } from '@ironfish/sdk'
+import { LegacyTransaction } from '@ethereumjs/tx'
+import { Account, Address } from '@ethereumjs/util'
+import { generateKey } from '@ironfish/rust-nodejs'
+import { IronfishEvm } from '@ironfish/sdk'
 import { IronfishCommand } from '../command'
 import { LocalFlags } from '../flags'
 
@@ -15,27 +17,49 @@ export class TestEvmCommand extends IronfishCommand {
     const node = await this.sdk.node()
     await node.openDB()
 
-    const blockchainDb = node.chain.blockchainDb
+    const evm = await IronfishEvm.create(node.chain.blockchainDb)
 
-    const evmState: EvmState = new EvmState(blockchainDb.db)
-    await evmState.init()
+    const senderKey = generateKey()
+    const receipientKey = generateKey()
 
-    Assert.isNotNull(evmState.manager)
+    const senderPrivateKey = Uint8Array.from(Buffer.from(senderKey.spendingKey, 'hex'))
+    const recipientPrivateKey = Uint8Array.from(Buffer.from(receipientKey.spendingKey, 'hex'))
 
-    const address = new Address(hexToBytes('0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b'))
+    const senderAddress = Address.fromPrivateKey(senderPrivateKey)
+    const recipientAddress = Address.fromPrivateKey(recipientPrivateKey)
 
-    let balance = (await evmState.manager.getAccount(address))?.balance ?? 0n
-    this.log(`Account at address ${address.toString()} has balance ${balance}`)
+    const senderAccount = new Account(BigInt(0), 500000n)
 
-    const account = new Account(BigInt(0), balance + 1000n)
+    await evm.stateManager.checkpoint()
+    await evm.stateManager.putAccount(senderAddress, senderAccount)
+    await evm.stateManager.commit()
 
-    await evmState.manager.checkpoint()
-    await evmState.manager.putAccount(address, account)
-    await evmState.manager.commit()
-    await evmState.manager.flush()
+    let senderBalance = (await evm.stateManager.getAccount(senderAddress))?.balance ?? 0n
+    this.log(
+      `Sender account at address ${senderAddress.toString()} has balance ${senderBalance}`,
+    )
 
-    balance = (await evmState.manager.getAccount(address))?.balance ?? 0n
-    this.log(`Account at address ${address.toString()} has balance ${balance}`)
+    const tx = new LegacyTransaction({
+      to: recipientAddress,
+      value: 200000n,
+      gasLimit: 21000n,
+      gasPrice: 7n,
+    })
+
+    this.log(
+      `Sending ${tx.value} from ${senderAddress.toString()} to ${recipientAddress.toString()}`,
+    )
+    const result = await evm.runTx({ tx: tx.sign(senderPrivateKey) })
+    this.log(`Amount spent for gas: ${result.amountSpent}`)
+
+    senderBalance = (await evm.stateManager.getAccount(senderAddress))?.balance ?? 0n
+    this.log(`Sender at address ${recipientAddress.toString()} has balance ${senderBalance}`)
+
+    const recipientBalance =
+      (await evm.stateManager.getAccount(recipientAddress))?.balance ?? 0n
+    this.log(
+      `Recipient at address ${recipientAddress.toString()} has balance ${recipientBalance}`,
+    )
 
     await node.closeDB()
   }
