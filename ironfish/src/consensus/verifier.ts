@@ -575,6 +575,7 @@ export class Verifier {
 
     const tx = evmDescriptionToLegacyTransaction(evmDescription)
     try {
+      // TODO(jwp): use a new method to verify the transaction without committing state, will require db tx
       const result = await this.chain.evm.runTx({ tx })
       if (result.execResult.exceptionError) {
         return { valid: false, reason: VerificationResultReason.EVM_TRANSACTION_FAILED }
