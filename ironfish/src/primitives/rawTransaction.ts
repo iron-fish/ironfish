@@ -127,6 +127,8 @@ export class RawTransaction {
       if (this.evm !== null) {
         size += 1 // evm present
         size += 8 // nonce
+        size += 8 // gas price
+        size += 8 // gas limit
         size += 1 // to present bool
         if (this.evm.to.length > 0) {
           size += 20 // to
@@ -307,6 +309,8 @@ export class RawTransactionSerde {
       bw.writeU8(Number(raw.evm !== null))
       if (raw.evm !== null) {
         bw.writeBigU64(raw.evm.nonce)
+        bw.writeBigU64(raw.evm.gasPrice)
+        bw.writeBigU64(raw.evm.gasLimit)
         bw.writeU8(Number(raw.evm.to.length > 0))
         bw.writeBytes(raw.evm.to)
         bw.writeBigU64(raw.evm.value)
@@ -465,6 +469,8 @@ export class RawTransactionSerde {
       size += 1 // evm present
       if (raw.evm !== null) {
         size += 8 // nonce
+        size += 8 // gasPrice
+        size += 8 // gasLimit
         size += 1 // to present bool
         if (raw.evm.to.length > 0) {
           size += 20 // to
