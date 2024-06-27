@@ -30,7 +30,7 @@ describe('BlockchainDBTransaction', () => {
     expect(newAccount?.balance).toEqual(100000n)
   })
 
-  it('should not update the stateManager state root if tx succeeds', async () => {
+  it('should update the stateManager state root if tx succeeds', async () => {
     const { node } = nodeTest
     const stateManager = node.chain.blockchainDb.stateManager
     const stateRoot = await stateManager.getStateRoot()
