@@ -30,11 +30,12 @@ export class TestEvmCommand extends IronfishCommand {
 
     const senderAccount = new Account(BigInt(0), 500000n)
 
-    await evm.stateManager.checkpoint()
-    await evm.stateManager.putAccount(senderAddress, senderAccount)
-    await evm.stateManager.commit()
+    await node.chain.blockchainDb.stateManager.checkpoint()
+    await node.chain.blockchainDb.stateManager.putAccount(senderAddress, senderAccount)
+    await node.chain.blockchainDb.stateManager.commit()
 
-    let senderBalance = (await evm.stateManager.getAccount(senderAddress))?.balance ?? 0n
+    let senderBalance =
+      (await node.chain.blockchainDb.stateManager.getAccount(senderAddress))?.balance ?? 0n
     this.log(
       `Sender account at address ${senderAddress.toString()} has balance ${senderBalance}`,
     )
@@ -52,11 +53,12 @@ export class TestEvmCommand extends IronfishCommand {
     const result = await evm.runTx({ tx: tx.sign(senderPrivateKey) })
     this.log(`Amount spent for gas: ${result.amountSpent}`)
 
-    senderBalance = (await evm.stateManager.getAccount(senderAddress))?.balance ?? 0n
+    senderBalance =
+      (await node.chain.blockchainDb.stateManager.getAccount(senderAddress))?.balance ?? 0n
     this.log(`Sender at address ${recipientAddress.toString()} has balance ${senderBalance}`)
 
     const recipientBalance =
-      (await evm.stateManager.getAccount(recipientAddress))?.balance ?? 0n
+      (await node.chain.blockchainDb.stateManager.getAccount(recipientAddress))?.balance ?? 0n
     this.log(
       `Recipient at address ${recipientAddress.toString()} has balance ${recipientBalance}`,
     )
