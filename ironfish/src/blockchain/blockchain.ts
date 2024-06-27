@@ -49,7 +49,7 @@ import { BUFFER_ENCODING, IDatabaseTransaction } from '../storage'
 import { AsyncUtils, BenchUtils, HashUtils } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { AssetValue } from './database/assetValue'
-import { BlockchainDB } from './database/blockchaindb'
+import { BlockchainDB, BlockchainDBTransaction } from './database/blockchaindb'
 import { TransactionsValue } from './database/transactions'
 import { NullifierSet } from './nullifierSet/nullifierSet'
 
@@ -552,6 +552,17 @@ export class Blockchain {
     return this.consensus.checkpoints.get(header.sequence)?.equals(header.hash) ?? false
   }
 
+  isEvmAsset(assetId: Buffer, tx?: BlockchainDBTransaction): Promise<boolean> {
+    return this.blockchainDb.assetIdToContract.has(assetId, tx)
+  }
+
+  getEvmContractByAssetId(
+    assetId: Buffer,
+    tx?: BlockchainDBTransaction,
+  ): Promise<Buffer | undefined> {
+    return this.blockchainDb.assetIdToContract.get(assetId, tx)
+  }
+
   private async connect(
     block: Block,
     prev: BlockHeader | null,
@@ -1014,15 +1025,12 @@ export class Blockchain {
         timestamp,
         graffiti,
       }
-
       const header = this.newBlockHeaderFromRaw(rawHeader, noteSize, BigInt(0))
-
       const block = new Block(header, transactions)
       if (verifyBlock && !previousBlockHash.equals(GENESIS_BLOCK_PREVIOUS)) {
         // since we're creating a block that hasn't been mined yet, don't
         // verify target because it'll always fail target check here
         const verification = await this.verifier.verifyBlock(block, { verifyTarget: false })
-
         if (!verification.valid) {
           throw new Error(verification.reason)
         }
@@ -1289,6 +1297,7 @@ export class Blockchain {
         block.header.hash,
         tx,
       )
+      await this.saveConnectedEvmMints(transaction, tx)
     }
 
     const verify = await this.verifier.verifyConnectedBlock(block, tx)
@@ -1398,6 +1407,24 @@ export class Blockchain {
         },
         tx,
       )
+    }
+  }
+
+  private async saveConnectedEvmMints(
+    transaction: Transaction,
+    tx: IDatabaseTransaction,
+  ): Promise<void> {
+    // TODO(jwp): This is a temporary solution to store the contract address, the initial mint needs to store the owner,
+    // using the "to" field for now
+    for (const { asset } of transaction.mints) {
+      if (await this.blockchainDb.assetIdToContract.has(asset.id())) {
+        return
+      }
+      if (!transaction.evm) {
+        return
+      }
+
+      await this.blockchainDb.assetIdToContract.put(asset.id(), transaction.evm.to, tx)
     }
   }
 

@@ -7,6 +7,7 @@ import { Blockchain } from '../../blockchain'
 import { FullNode } from '../../node'
 import { Block, BlockSerde, SerializedBlock } from '../../primitives/block'
 import { BurnDescription } from '../../primitives/burnDescription'
+import { EvmDescription } from '../../primitives/evmDescription'
 import { Note } from '../../primitives/note'
 import { NoteEncrypted } from '../../primitives/noteEncrypted'
 import { MintData, RawTransaction } from '../../primitives/rawTransaction'
@@ -290,6 +291,7 @@ export async function useBlockWithCustomTxs(
     to?: SpendingAccount
     from: SpendingAccount
     outputs?: TransactionOutput[]
+    evm?: EvmDescription
   }[],
 ): Promise<{
   block: Block
@@ -307,7 +309,7 @@ export async function useBlockWithCustomTxs(
     node.chain,
     async () => {
       const transactions: Transaction[] = []
-      for (const { fee, to, from, outputs } of transactionInputs) {
+      for (const { fee, to, from, outputs, evm } of transactionInputs) {
         const raw = await node.wallet.createTransaction({
           account: from,
           outputs: outputs ?? [
@@ -321,6 +323,7 @@ export async function useBlockWithCustomTxs(
           fee: fee ?? 1n,
           expiration: 0,
           expirationDelta: 0,
+          evm,
         })
 
         const transaction = await node.workerPool.postTransaction(raw, from.spendingKey)
