@@ -2,6 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { BufferMap } from 'buffer-map'
+import { IDatabaseStore } from './store'
+import { DatabaseSchema, SchemaKey, SchemaValue } from './types'
+
 /**
  * Stores all operations applied to the transaction and then applies
  * them atomically to the database once it's committed. Locks the
@@ -18,6 +22,8 @@
  * or write is performed on it.
  */
 export interface IDatabaseTransaction {
+  cache: BufferMap<unknown>
+
   /**
    * Lock the database
    */
@@ -37,6 +43,33 @@ export interface IDatabaseTransaction {
    * Abort the transaction and release the database lock
    * */
   abort(): Promise<void>
+
+  has<Schema extends DatabaseSchema>(
+    store: IDatabaseStore<Schema>,
+    key: SchemaKey<Schema>,
+  ): Promise<boolean>
+
+  get<Schema extends DatabaseSchema>(
+    store: IDatabaseStore<Schema>,
+    key: SchemaKey<Schema>,
+  ): Promise<SchemaValue<Schema> | undefined>
+
+  put<Schema extends DatabaseSchema>(
+    store: IDatabaseStore<Schema>,
+    key: SchemaKey<Schema>,
+    value: SchemaValue<Schema>,
+  ): Promise<void>
+
+  add<Schema extends DatabaseSchema>(
+    store: IDatabaseStore<Schema>,
+    key: SchemaKey<Schema>,
+    value: SchemaValue<Schema>,
+  ): Promise<void>
+
+  del<Schema extends DatabaseSchema>(
+    store: IDatabaseStore<Schema>,
+    key: SchemaKey<Schema>,
+  ): Promise<void>
 
   /**
    * The number of pending operations

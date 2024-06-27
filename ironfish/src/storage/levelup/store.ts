@@ -58,7 +58,7 @@ export class LevelupStore<Schema extends DatabaseSchema> extends DatabaseStore<S
   ): Promise<SchemaValue<Schema> | undefined> {
     const [encodedKey] = this.encode(key)
 
-    if (ENABLE_TRANSACTIONS && transaction instanceof LevelupTransaction) {
+    if (ENABLE_TRANSACTIONS && transaction) {
       return transaction.get(this, key)
     }
 
@@ -92,7 +92,6 @@ export class LevelupStore<Schema extends DatabaseSchema> extends DatabaseStore<S
     )
 
     if (ENABLE_TRANSACTIONS && transaction) {
-      Assert.isInstanceOf(transaction, LevelupTransaction)
       await transaction.acquireLock()
 
       for (const [key, value] of transaction.cache.entries()) {
@@ -222,15 +221,12 @@ export class LevelupStore<Schema extends DatabaseSchema> extends DatabaseStore<S
     key: SchemaKey<Schema>,
     value: SchemaValue<Schema>,
     transaction?: IDatabaseTransaction,
-  ): Promise<void>
-  async put(a: unknown, b: unknown, c?: unknown): Promise<void> {
-    const { key, value, transaction } = parsePut<Schema>(a, b, c)
-
+  ): Promise<void> {
     if (key === undefined) {
       throw new Error('No key defined')
     }
 
-    if (ENABLE_TRANSACTIONS && transaction instanceof LevelupTransaction) {
+    if (ENABLE_TRANSACTIONS && transaction) {
       return transaction.put(this, key, value)
     }
 
@@ -242,14 +238,12 @@ export class LevelupStore<Schema extends DatabaseSchema> extends DatabaseStore<S
     key: SchemaKey<Schema>,
     value: SchemaValue<Schema>,
     transaction?: IDatabaseTransaction,
-  ): Promise<void>
-  async add(a: unknown, b: unknown, c?: unknown): Promise<void> {
-    const { key, value, transaction } = parsePut<Schema>(a, b, c)
+  ): Promise<void> {
     if (key === undefined) {
       throw new Error('No key defined')
     }
 
-    if (ENABLE_TRANSACTIONS && transaction instanceof LevelupTransaction) {
+    if (ENABLE_TRANSACTIONS && transaction) {
       return transaction.add(this, key, value)
     }
 
@@ -262,7 +256,7 @@ export class LevelupStore<Schema extends DatabaseSchema> extends DatabaseStore<S
   }
 
   async del(key: SchemaKey<Schema>, transaction?: IDatabaseTransaction): Promise<void> {
-    if (ENABLE_TRANSACTIONS && transaction instanceof LevelupTransaction) {
+    if (ENABLE_TRANSACTIONS && transaction) {
       return transaction.del(this, key)
     }
 
@@ -292,41 +286,5 @@ export class LevelupStore<Schema extends DatabaseSchema> extends DatabaseStore<S
       return this.valueEncoding.deserialize(value)
     }
     return value
-  }
-}
-
-function parsePut<Schema extends DatabaseSchema>(
-  keyOrValue: unknown,
-  valueOrTransaction: unknown,
-  transaction?: unknown,
-): {
-  key?: SchemaKey<Schema>
-  value?: SchemaValue<Schema>
-  transaction?: IDatabaseTransaction
-} {
-  if (transaction instanceof LevelupTransaction) {
-    return {
-      key: keyOrValue as SchemaKey<Schema>,
-      value: valueOrTransaction as SchemaValue<Schema>,
-      transaction: transaction,
-    }
-  }
-
-  if (valueOrTransaction instanceof LevelupTransaction) {
-    return {
-      value: keyOrValue as SchemaValue<Schema>,
-      transaction: valueOrTransaction,
-    }
-  }
-
-  if (valueOrTransaction !== undefined) {
-    return {
-      key: keyOrValue as SchemaKey<Schema>,
-      value: valueOrTransaction as SchemaValue<Schema>,
-    }
-  }
-
-  return {
-    value: keyOrValue as SchemaValue<Schema>,
   }
 }

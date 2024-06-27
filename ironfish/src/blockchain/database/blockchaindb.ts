@@ -4,6 +4,7 @@
 import { DefaultStateManager } from '@ethereumjs/statemanager'
 import { Trie } from '@ethereumjs/trie'
 import { ValueEncoding } from '@ethereumjs/util'
+import { BufferMap } from 'buffer-map'
 import { Assert } from '../../assert'
 import { EvmStateDB } from '../../evm/database'
 import { FileSystem } from '../../fileSystems'
@@ -12,9 +13,12 @@ import { BlockHash } from '../../primitives/blockheader'
 import { TransactionHash } from '../../primitives/transaction'
 import {
   BUFFER_ENCODING,
+  DatabaseSchema,
   IDatabase,
   IDatabaseStore,
   IDatabaseTransaction,
+  SchemaKey,
+  SchemaValue,
   StringEncoding,
   U32_ENCODING,
 } from '../../storage'
@@ -404,10 +408,12 @@ export class BlockchainDBTransaction implements IDatabaseTransaction {
   tx: IDatabaseTransaction
   stateManager: DefaultStateManager
   checkpoint = false
+  cache: BufferMap<unknown>
 
   constructor(db: IDatabase, stateManager: DefaultStateManager) {
     this.tx = db.transaction()
     this.stateManager = stateManager
+    this.cache = this.tx.cache
   }
 
   async acquireLock(): Promise<void> {
@@ -444,5 +450,42 @@ export class BlockchainDBTransaction implements IDatabaseTransaction {
 
   get size(): number {
     return this.tx.size
+  }
+
+  has<Schema extends DatabaseSchema>(
+    store: IDatabaseStore<Schema>,
+    key: SchemaKey<Schema>,
+  ): Promise<boolean> {
+    return this.tx.has(store, key)
+  }
+
+  get<Schema extends DatabaseSchema>(
+    store: IDatabaseStore<Schema>,
+    key: SchemaKey<Schema>,
+  ): Promise<SchemaValue<Schema> | undefined> {
+    return this.tx.get(store, key)
+  }
+
+  put<Schema extends DatabaseSchema>(
+    store: IDatabaseStore<Schema>,
+    key: SchemaKey<Schema>,
+    value: SchemaValue<Schema>,
+  ): Promise<void> {
+    return this.tx.put(store, key, value)
+  }
+
+  add<Schema extends DatabaseSchema>(
+    store: IDatabaseStore<Schema>,
+    key: SchemaKey<Schema>,
+    value: SchemaValue<Schema>,
+  ): Promise<void> {
+    return this.tx.add(store, key, value)
+  }
+
+  del<Schema extends DatabaseSchema>(
+    store: IDatabaseStore<Schema>,
+    key: SchemaKey<Schema>,
+  ): Promise<void> {
+    return this.tx.del(store, key)
   }
 }
