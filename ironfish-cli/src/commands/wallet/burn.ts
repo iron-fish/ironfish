@@ -72,6 +72,12 @@ export class Burn extends IronfishCommand {
       description:
         'Return raw transaction. Use it to create a transaction but not post to the network',
     }),
+    unsignedTransaction: Flags.boolean({
+      default: false,
+      description:
+        'Return a serialized UnsignedTransaction. Use it to create a transaction and build proofs but not post to the network',
+      exclusive: ['rawTransaction'],
+    }),
     expiration: Flags.integer({
       char: 'e',
       description:
@@ -173,7 +179,7 @@ export class Burn extends IronfishCommand {
     }
 
     let expiration = flags.expiration
-    if (flags.rawTransaction && expiration === undefined) {
+    if ((flags.rawTransaction || flags.unsignedTransaction) && expiration === undefined) {
       expiration = await promptExpiration({ logger: this.logger, client: client })
     }
 
@@ -216,6 +222,16 @@ export class Burn extends IronfishCommand {
       this.log('Raw Transaction')
       this.log(RawTransactionSerde.serialize(raw).toString('hex'))
       this.log(`Run "ironfish wallet:post" to post the raw transaction. `)
+      this.exit(0)
+    }
+
+    if (flags.unsignedTransaction) {
+      const response = await client.wallet.buildTransaction({
+        account,
+        rawTransaction: RawTransactionSerde.serialize(raw).toString('hex'),
+      })
+      this.log('Unsigned Transaction')
+      this.log(response.content.unsignedTransaction)
       this.exit(0)
     }
 
