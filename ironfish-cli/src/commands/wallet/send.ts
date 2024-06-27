@@ -96,7 +96,6 @@ export class Send extends IronfishCommand {
         'Return raw transaction. Use it to create a transaction but not post to the network',
     }),
     unsignedTransaction: Flags.boolean({
-      hidden: true,
       default: false,
       description:
         'Return a serialized UnsignedTransaction. Use it to create a transaction and build proofs but not post to the network',
