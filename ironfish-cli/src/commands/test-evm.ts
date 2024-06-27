@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { LegacyTransaction } from '@ethereumjs/tx'
-import { Account, Address } from '@ethereumjs/util'
+import { Account, Address, hexToBytes } from '@ethereumjs/util'
 import { generateKey } from '@ironfish/rust-nodejs'
 import { IronfishEvm } from '@ironfish/sdk'
 import { IronfishCommand } from '../command'
@@ -34,16 +34,19 @@ export class TestEvmCommand extends IronfishCommand {
     await evm.stateManager.putAccount(senderAddress, senderAccount)
     await evm.stateManager.commit()
 
-    let senderBalance = (await evm.stateManager.getAccount(senderAddress))?.balance ?? 0n
+    const senderBalance = (await evm.stateManager.getAccount(senderAddress))?.balance ?? 0n
     this.log(
       `Sender account at address ${senderAddress.toString()} has balance ${senderBalance}`,
     )
 
+    const MINT = 0xfa
+    const codes = [MINT]
+    const data = hexToBytes(`0x${codes.map((c) => c.toString(16)).join('')}`)
+
     const tx = new LegacyTransaction({
-      to: recipientAddress,
-      value: 200000n,
-      gasLimit: 21000n,
+      gasLimit: 58290n,
       gasPrice: 7n,
+      data,
     })
 
     this.log(
@@ -51,15 +54,16 @@ export class TestEvmCommand extends IronfishCommand {
     )
     const result = await evm.runTx({ tx: tx.sign(senderPrivateKey) })
     this.log(`Amount spent for gas: ${result.amountSpent}`)
+    this.log(`Created address: ${result.createdAddress?.toString()}`)
 
-    senderBalance = (await evm.stateManager.getAccount(senderAddress))?.balance ?? 0n
-    this.log(`Sender at address ${recipientAddress.toString()} has balance ${senderBalance}`)
+    // senderBalance = (await evm.stateManager.getAccount(senderAddress))?.balance ?? 0n
+    // this.log(`Sender at address ${recipientAddress.toString()} has balance ${senderBalance}`)
 
-    const recipientBalance =
-      (await evm.stateManager.getAccount(recipientAddress))?.balance ?? 0n
-    this.log(
-      `Recipient at address ${recipientAddress.toString()} has balance ${recipientBalance}`,
-    )
+    // const recipientBalance =
+    //   (await evm.stateManager.getAccount(recipientAddress))?.balance ?? 0n
+    // this.log(
+    //   `Recipient at address ${recipientAddress.toString()} has balance ${recipientBalance}`,
+    // )
 
     await node.closeDB()
   }
