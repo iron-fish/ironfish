@@ -25,6 +25,7 @@ pub struct EvmDescription {
 }
 
 impl EvmDescription {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         nonce: u64,
         gas_price: u64,
