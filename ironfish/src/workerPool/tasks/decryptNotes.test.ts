@@ -101,6 +101,39 @@ describe('DecryptNotesResponse', () => {
     const deserializedResponse = DecryptNotesResponse.deserializePayload(request.jobId, buffer)
     expect(deserializedResponse.notes).toHaveLength(length)
   })
+
+  describe('mapToAccounts', () => {
+    it('returns a map linking each account to its notes', () => {
+      const accounts = 'abcdefghijklmnopqrstuvwxyz'
+        .split('')
+        .map((letter) => ({ accountId: letter }))
+      const notesPerAccount = 100
+      const length = accounts.length * notesPerAccount
+
+      const request = new DecryptNotesResponse(
+        Array.from({ length }, () => ({
+          forSpender: false,
+          index: 1,
+          hash: Buffer.alloc(32, 1),
+          nullifier: Buffer.alloc(32, 1),
+          serializedNote: Buffer.alloc(DECRYPTED_NOTE_LENGTH, 1),
+        })),
+        0,
+      )
+
+      const accountsToNotes = request.mapToAccounts(accounts)
+      expect(accountsToNotes.size).toBe(accounts.length)
+
+      const returnedAccounts = Array.from(accountsToNotes.keys())
+        .sort()
+        .map((accountId) => ({ accountId }))
+      expect(returnedAccounts).toEqual(accounts)
+
+      for (const notes of accountsToNotes.values()) {
+        expect(notes.length).toBe(notesPerAccount)
+      }
+    })
+  })
 })
 
 describe('DecryptNotesTask', () => {

@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { DECRYPTED_NOTE_LENGTH, ENCRYPTED_NOTE_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
+import { Assert } from '../../assert'
 import { NoteEncrypted } from '../../primitives/noteEncrypted'
 import { ACCOUNT_KEY_LENGTH } from '../../wallet'
 import { VIEW_KEY_LENGTH } from '../../wallet/walletdb/accountValue'
@@ -224,6 +225,31 @@ export class DecryptNotesResponse extends WorkerMessage {
     }
 
     return size
+  }
+
+  /**
+   * Groups each note in the response by the account it belongs to. The
+   * `accounts` passed must be in the same order as the `accountKeys` in the
+   * `DecryptNotesRequest` that generated this response.
+   */
+  mapToAccounts(
+    accounts: ReadonlyArray<{ accountId: string }>,
+  ): Map<string, Array<DecryptedNote | null>> {
+    const decryptedNotesByAccount: Array<
+      [accountId: string, notes: Array<DecryptedNote | null>]
+    > = accounts.map(({ accountId }) => [accountId, []])
+
+    let noteIndex = 0
+    while (noteIndex < this.notes.length) {
+      for (const [_, accountNotes] of decryptedNotesByAccount) {
+        const nextNote: DecryptedNote | null | undefined = this.notes[noteIndex++]
+        Assert.isNotUndefined(nextNote)
+        accountNotes.push(nextNote)
+      }
+    }
+
+    Assert.isEqual(noteIndex, this.notes.length)
+    return new Map(decryptedNotesByAccount)
   }
 }
 
