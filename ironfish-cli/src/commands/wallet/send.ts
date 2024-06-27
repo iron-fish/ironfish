@@ -254,6 +254,8 @@ export class Send extends IronfishCommand {
       raw = RawTransactionSerde.deserialize(bytes)
     }
 
+    displayTransactionSummary(raw, assetData, amount, from, to, memo)
+
     if (flags.rawTransaction) {
       this.log('Raw Transaction')
       this.log(RawTransactionSerde.serialize(raw).toString('hex'))
@@ -270,8 +272,6 @@ export class Send extends IronfishCommand {
       this.log(response.content.unsignedTransaction)
       this.exit(0)
     }
-
-    displayTransactionSummary(raw, assetData, amount, from, to, memo)
 
     const spendPostTime = getSpendPostTimeInMs(this.sdk)
 
