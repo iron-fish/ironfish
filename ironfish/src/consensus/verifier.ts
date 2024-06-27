@@ -15,6 +15,7 @@ import { Spend } from '../primitives'
 import { Block, GENESIS_BLOCK_SEQUENCE } from '../primitives/block'
 import { BlockHeader, transactionCommitment } from '../primitives/blockheader'
 import { BurnDescription } from '../primitives/burnDescription'
+import { EvmDescription, evmDescriptionToLegacyTransaction } from '../primitives/evmDescription'
 import { MintDescription } from '../primitives/mintDescription'
 import { Target } from '../primitives/target'
 import { Transaction } from '../primitives/transaction'
@@ -112,6 +113,11 @@ export class Verifier {
       const burnVerify = Verifier.verifyBurns(tx.burns)
       if (!burnVerify.valid) {
         return burnVerify
+      }
+
+      const evmVerify = await this.verifyEvmDescription(tx.evm)
+      if (!evmVerify.valid) {
+        return evmVerify
       }
 
       transactionBatch.push(tx)
@@ -248,6 +254,14 @@ export class Verifier {
 
     if (!verificationResult.valid) {
       return verificationResult
+    }
+
+    // TODO(jwp): cannot add to verifyCreatedTransaction requires access to blockchain
+    // which isn't available in standalone wallet, which uses this method
+
+    const evmVerify = await this.verifyEvmDescription(transaction.evm)
+    if (!evmVerify.valid) {
+      return evmVerify
     }
 
     try {
@@ -548,6 +562,37 @@ export class Verifier {
     return { valid: true }
   }
 
+  async verifyEvmDescription(
+    evmDescription: EvmDescription | null,
+  ): Promise<VerificationResult> {
+    if (!evmDescription) {
+      return { valid: true }
+    }
+    if (!this.chain.evm) {
+      return { valid: false, reason: VerificationResultReason.EVM_NOT_INITIALIZED }
+    }
+    // verify signature
+
+    const tx = evmDescriptionToLegacyTransaction(evmDescription)
+    try {
+      // TODO(jwp): use a new method to verify the transaction without committing state, will require db tx
+      const result = await this.chain.evm.runTx({ tx })
+      if (result.execResult.exceptionError) {
+        return { valid: false, reason: VerificationResultReason.EVM_TRANSACTION_FAILED }
+      }
+      return { valid: true }
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('Invalid Signature')) {
+        return {
+          valid: false,
+          reason: VerificationResultReason.EVM_TRANSACTION_INVALID_SIGNATURE,
+        }
+      } else {
+        return { valid: false, reason: VerificationResultReason.EVM_UNKNOWN_ERROR }
+      }
+    }
+  }
+
   /**
    * Given an iterator over some spends, verify that none of the spends reveal
    * the same nullifier as any other in the group. Should be checked at both the
@@ -705,6 +750,10 @@ export enum VerificationResultReason {
   TRANSACTION_EXPIRED = 'Transaction expired',
   VERIFY_TRANSACTION = 'Verify_transaction',
   CHECKPOINT_REORG = 'Cannot add block that re-orgs past the last checkpoint',
+  EVM_NOT_INITIALIZED = 'EVM is not initialized',
+  EVM_TRANSACTION_FAILED = 'EVM transaction failed',
+  EVM_TRANSACTION_INVALID_SIGNATURE = 'EVM transaction has invalid signature',
+  EVM_UNKNOWN_ERROR = 'EVM unknown error',
 }
 
 /**

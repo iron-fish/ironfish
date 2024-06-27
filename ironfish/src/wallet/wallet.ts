@@ -24,6 +24,7 @@ import { Mutex } from '../mutex'
 import { BlockHeader } from '../primitives'
 import { GENESIS_BLOCK_PREVIOUS, GENESIS_BLOCK_SEQUENCE } from '../primitives/block'
 import { BurnDescription } from '../primitives/burnDescription'
+import { EvmDescription } from '../primitives/evmDescription'
 import { MintDescription } from '../primitives/mintDescription'
 import { Note } from '../primitives/note'
 import { NoteEncrypted } from '../primitives/noteEncrypted'
@@ -98,7 +99,7 @@ export class Wallet {
   readonly scanner: WalletScanner
   readonly nodeClient: RpcClient | null
   private readonly config: Config
-  private readonly consensus: Consensus
+  readonly consensus: Consensus
   readonly networkId: number
 
   protected rebroadcastAfter: number
@@ -781,6 +782,7 @@ export class Wallet {
     outputs?: TransactionOutput[]
     mints?: MintData[]
     burns?: BurnDescription[]
+    evm?: EvmDescription
     fee?: bigint
     feeRate?: bigint
     expiration?: number
@@ -859,6 +861,10 @@ export class Wallet {
 
       if (options.feeRate) {
         raw.fee = getFee(options.feeRate, raw.postedSize(options.account.publicAddress))
+      }
+
+      if (options.evm) {
+        raw.evm = options.evm
       }
 
       await this.fund(raw, {

@@ -10,6 +10,7 @@ import { BlockHasher } from '../blockHasher'
 import { Consensus } from '../consensus'
 import { VerificationResultReason, Verifier } from '../consensus/verifier'
 import { Event } from '../event'
+import { IronfishEvm } from '../evm'
 import { Config } from '../fileStores'
 import { FileSystem } from '../fileSystems'
 import { createRootLogger, Logger } from '../logger'
@@ -61,6 +62,8 @@ export class Blockchain {
   location: string
   files: FileSystem
   consensus: Consensus
+  // TODO: the EVM creation is async, so this has to be optional for the constructor
+  evm?: IronfishEvm
   seedGenesisBlock: SerializedBlock
   config: Config
   blockHasher: BlockHasher
@@ -237,6 +240,8 @@ export class Blockchain {
 
     this.opened = true
     await this.blockchainDb.open()
+    this.evm = await IronfishEvm.create(this.blockchainDb)
+
     await this.load()
   }
 
