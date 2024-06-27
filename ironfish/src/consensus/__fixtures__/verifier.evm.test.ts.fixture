@@ -1,15 +1,15 @@
 {
-  "Verifier EVM Transaction returns true on evm transactions": [
+  "": [
     {
       "value": {
         "version": 4,
-        "id": "3ed9a1a1-c085-4a38-8b2a-3b3692f5fa44",
+        "id": "edba1dd4-e15c-4335-ad79-0f56aa4fb334",
         "name": "sender",
-        "spendingKey": "47f051fb6f4dc763b45db5f34aeebcf080081df655a51374f820435df44cf626",
-        "viewKey": "6cbd70603ff328b27d7642399866ad1cd67b80e9f0cd85765afe1eabe8bb49a0e85ad75b4ea2cb2923798cb41ec0d829a8ce0df3beccb1b0b273b98c00338dee",
-        "incomingViewKey": "a5323d9daa5b5f34b8d5d0581f780f60763356cef413353aca10c5d08144b203",
-        "outgoingViewKey": "25d877e234fdc9185bc1f0f87370f967db8bf75361a3919b81379079b760d4ed",
-        "publicAddress": "4ce40164b4c24ee1698a7b602e97274441aad96cb803e6f462af262773b05dda",
+        "spendingKey": "1f36dae8f5e6d188301a65098c78b5c422e36d6b53ab1cff5576a03658ece774",
+        "viewKey": "3d566e0879e330d169b540db1059b27e85742d0df20f9baf4d2ae1643ef2e10cf0342934e4dab55d5943cc66b4cef88e8d5a79809a38711faf50a07543177442",
+        "incomingViewKey": "f36c975c9ba750a5c85e39c5dd3e1c135bb0f0af8b5a69f7e06831ba4e8a7e06",
+        "outgoingViewKey": "7a1c4031b5f4af95f63ccd992e92ddb31e67e6027a3971d457b2f69e4618a294",
+        "publicAddress": "bf20c6992f1c1becad09d3e20a359600fd230410c0de54433ef148c9b070ee04",
         "createdAt": {
           "hash": {
             "type": "Buffer",
@@ -18,7 +18,7 @@
           "sequence": 1
         },
         "scanningEnabled": true,
-        "proofAuthorizingKey": "695ae67caf4b6ac57af02aebb9d6564e12fdc6a1af26f8d1e6dec457ca7dbc03"
+        "proofAuthorizingKey": "04b25067c3e13b10a897d7a02883a940147bcfa03063a65ad646ac502bda9201"
       },
       "head": {
         "hash": {
@@ -31,13 +31,13 @@
     {
       "value": {
         "version": 4,
-        "id": "c056f1e8-d1c4-45c7-8fb7-8015e9560c2f",
+        "id": "ee3f94a6-3ff9-4490-9ec2-adb6977867a6",
         "name": "recipient",
-        "spendingKey": "2c49ae562f4fab95fbaa6f831d4fcbcf0ef9623406f67d1a3a150e6ce6d83695",
-        "viewKey": "12e3a9f84efbae7ff563279bc153619c1957777d061e42dc13062bc8aa4f92a20dda90d7607047552e19dc0f0ce4c7ae156df523e4b9dbc300f74a6c393ac873",
-        "incomingViewKey": "257c5c82505376124345d6b8d88a68fcd1d9957ef8e6e3b81dd7ccfac23e0007",
-        "outgoingViewKey": "8b988b785bd3da32f6079efbb938366e9cd7d3fb0fc085d7a7f9a63fa698e35f",
-        "publicAddress": "4abeb1a80c50d2eb068514c77173e8868a95607811c6875cf8d02524fda141f2",
+        "spendingKey": "3c6db80ed00cfab077c2c72ebd86f10099da45ff675d2e68275e838de32214d4",
+        "viewKey": "28e8eb0a6e9d3e059ed3a7241726b3cffaba2375703f3624fb36cca2039e23c05bf80ccfb7db70fffa0ef445794fb1e60b449cfbf30aca7675947738e3dc72ac",
+        "incomingViewKey": "508e05125dd9762da453beadc83470ca0e09fdde1ce9e56e7cd85081b4f6cf01",
+        "outgoingViewKey": "ccde2320821c6f0b7f9aef25c1213d2ce4f8cf94ba7f5d5ac76048614ebe9ceb",
+        "publicAddress": "05a12e41eeae55d882b2f0de2d28d87265e48741be158b8271a8115a851ea3e5",
         "createdAt": {
           "hash": {
             "type": "Buffer",
@@ -46,7 +46,181 @@
           "sequence": 1
         },
         "scanningEnabled": true,
-        "proofAuthorizingKey": "aa7f5e05482d90f1290b3ddff5ee233ba554e24063c009fa7d54deb3a49e6701"
+        "proofAuthorizingKey": "25888b39b5f3176634b7bdbd4d9f95af6402e6cf102d0e386805147283574d04"
+      },
+      "head": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      }
+    }
+  ],
+  "Verifier EVM Transaction returns true on evm transactions": [
+    {
+      "value": {
+        "version": 4,
+        "id": "8e6681d4-0b44-4b4b-ba2f-5897003f5f0a",
+        "name": "sender",
+        "spendingKey": "c65a2164bce38cffc121f303bed50f813660f9af9839325a4e9189e2ea185981",
+        "viewKey": "d602c736807645d32f4afe192735473cdd946d83615e28482010f1c24d2ca4ed79d2d9853da66c389c0b9e8739a656565d83c75471c0f3a7a37630d940daedb6",
+        "incomingViewKey": "0e916d11619592fa125209b603d41c61bc6f343b6084995dc45154db9879f701",
+        "outgoingViewKey": "bfcbca969e67b7e43f0103e307de0f14e20861242f5610577f69b0841a260427",
+        "publicAddress": "1e1095090af59b2de403e9dfde95642d48b1e25328765e915ed87c7865792f52",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "5f6bdc0671b99ced2b16d7dbff44b9cd53cd91df3c01c58d6b95fff023295c03"
+      },
+      "head": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      }
+    },
+    {
+      "value": {
+        "version": 4,
+        "id": "ffab45ea-658e-4b28-a57b-939d4c136bdf",
+        "name": "recipient",
+        "spendingKey": "ce7b7134730247647eab640902bce39f2741030d0cf6ba0aaac2e4160d38a825",
+        "viewKey": "95c483c3d229a74ce5b1c00c50086eb8a0b6093fd1f7a873c828f8eb85cdc8c8c692f957bb57ffab6828a71f08b2fb0e0672713cb9a3438e1ef78127d8e4663c",
+        "incomingViewKey": "1c9501871cdb91d628c610a341e0b38fc958e948178ab2b5d2e4d9ab9ef4e805",
+        "outgoingViewKey": "052f09fe1bd296bd933aebfe2ab49ef90ccc3efc8bd8698e3034eaf1944cff8c",
+        "publicAddress": "38e2eaa6917a02907c4bada59c961f58261eabe3849b6fc4ff6019c0bbc695d8",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "c1940ec5751f8e570150888a93f9a88060788cc1ff242e8310b486d94fdc0f07"
+      },
+      "head": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      }
+    }
+  ],
+  "Verifier EVM Transaction returns false on global account mint non-evm": [
+    {
+      "value": {
+        "version": 4,
+        "id": "0e721902-2104-454a-bace-a4beb4515ffa",
+        "name": "sender",
+        "spendingKey": "dda030051b079804fcde4f8acee3b0326ba67478f9873f9627e3fd74002b47f4",
+        "viewKey": "aec4ea69cc6f2da8c1a9be239b346b8aea0d959e3940441c4cc91d9cdb9f066a7eaad226ee18ffba2e9810e7ade0fd455a14e11a5200f9d0a4e55c67122a355f",
+        "incomingViewKey": "4d581271c25d71d24b5c6bbfc4f901c6bc346818e3ae152b3d6cd5be78c71c03",
+        "outgoingViewKey": "3cc28cbd828991cb2dab393dbf633ed98b6a6e4d2df9beced62dabdb7820bdca",
+        "publicAddress": "5020bfc5ea75baaf74d407c5150dcdfbc84ba730c77f08a0d527918535799b43",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "43cb505a3d76b6e27e62e86633d49f2338b15d2343376c025d47578e1b2ced05"
+      },
+      "head": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      }
+    },
+    {
+      "value": {
+        "version": 4,
+        "id": "f2cd4732-3c92-4afa-8ec1-f9c4ea0c6e32",
+        "name": "recipient",
+        "spendingKey": "eb8cfc936faf61df2b1b07abbf244834cedf550f15a3f7b9ee2392036ae72203",
+        "viewKey": "64c9599b53e1fdee6e1f0b2b50fba18feffca62ce603f5d3df0f17547ce9c036a753d44451f391e56bf41384b8adea0a94987f3be2bfae77f56624dd6b6c36d8",
+        "incomingViewKey": "799d162d9344deab6a5808b452167904a1ecf41713a4825dd09bde5d80cd7901",
+        "outgoingViewKey": "230fe2f36bf898175191aa2929ef03058bdd30edc315e8d2f46b45f3bc6de754",
+        "publicAddress": "8f3644bbb1ee6955b53de1890245c2bf7fa8de5f675b36fc76b3b4a3a58330e0",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "6c6e386beb32bbb76e8ca52bdd7d3c17d17362a7cb3ed48e9e168a711da8fd01"
+      },
+      "head": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      }
+    }
+  ],
+  "Verifier EVM Transaction returns false on mismatch mint length": [
+    {
+      "value": {
+        "version": 4,
+        "id": "cd489ca4-ee50-4b76-94ca-494bfe2ebb1d",
+        "name": "sender",
+        "spendingKey": "fb3176f6ebd88014bd0ca7062d22a6e469ceed65a9bedc01c52ed61a79526b8e",
+        "viewKey": "97215b7fa3037a7a511b85e78ee3c7ef99cfa61c4f0ba223ae28c9f5f9b213b71dbfe4d103f8bce3f84a6c68846bc66eb6346070716c9c002dde9c7be5f30f94",
+        "incomingViewKey": "7f8ed25e08a72217c11147b823ea7661242417323bd86f4246f3ff7a8b79db02",
+        "outgoingViewKey": "29b76fc0f11fec32754c8415bc2501c26332b8db2141b77b8fa2dd986daac042",
+        "publicAddress": "ceb30921f6de94c737e8cc60e7ade0e540e1a68e00a80f310ce6d07fc6d8e7db",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "0da70e449da3913325feb84a6170d20c17128e5d7ca024e2d49f4a6e40de3b08"
+      },
+      "head": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      }
+    },
+    {
+      "value": {
+        "version": 4,
+        "id": "33062f14-14f5-4e71-82e9-5b93c4f25ee3",
+        "name": "recipient",
+        "spendingKey": "885518ea768da587cc4e995ae4f70fbd4eb0f601494de46c74a0fa3ea21b5b18",
+        "viewKey": "5743c47622c3adb456c33852fc659fb638657097e71d0761439fbda0dcaae78ccfb2d77f40cc736871ad9b380173c3c2454461c7122b15a4d328134f4828cd07",
+        "incomingViewKey": "c900c309f68088ca88a0d30d4e29f480d428dab5ecfe48b709872d123afbf404",
+        "outgoingViewKey": "dd173906e210cd835fa44ccb9b5760686076afcb80d6ae375657c0416eacf8d5",
+        "publicAddress": "7433b9e931ff65affee3401c65feb775d0a4c657b23d026df2fa76b171cede8b",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "d6fe31441c133fbdb014853935d80a18d584440f27640a7cdb774020275f8b0d"
       },
       "head": {
         "hash": {
@@ -61,13 +235,13 @@
     {
       "value": {
         "version": 4,
-        "id": "39cc824c-f90d-42ba-b7dd-8377eb089ccb",
+        "id": "0761a109-7b39-4cad-9dd6-d527923a14b6",
         "name": "sender",
-        "spendingKey": "327378cef46904b4b58d5350dbdd59e270e4a587f70aad967467c7fc95445663",
-        "viewKey": "b22504c10c6a2738eea1396fe22a5e1606d25432018e8a578bc7c91a22b982344314f200622b877c74c4e0d06a2cc35c939b7f2b38cb91b85b1020af61c718d7",
-        "incomingViewKey": "55ca57408ee6224f5e094a5338ae643c77a8d0f9603aaf2c2e75cc12d9cef804",
-        "outgoingViewKey": "b5b9eef1ab5f4c2aacdfad843d17024363dfd5eba3389d0be215612083ed2a80",
-        "publicAddress": "2dc5eabcfa3d5588cdb97088236c7d3fb37b5f6f5adce6e1d98963b5546e06a2",
+        "spendingKey": "1ef95ed024c9090c5fd69dba0482c2bc469abd5f82c4b762de86da09be9c2734",
+        "viewKey": "192d5786a49fa39b37065e4d8f44d88da5c150a9cdb13ffa5e8846a78c2fa0d7e52bf35fd379a236ee347ecbb992f115bac9e0648426ef5e901ef66dfa40538b",
+        "incomingViewKey": "1a93ca6fb06e92303eadd5329e24708e34de4c14fffac78a1c09a7f7da452801",
+        "outgoingViewKey": "6a8c4bd7c18c3c0dad1a3b171a86f7fae18d59d85d409ada4a8732dc80afdba2",
+        "publicAddress": "fc43e2cd8428412168ad2aa4319b36403a2347c807c73f7698a1e5ff08e9b016",
         "createdAt": {
           "hash": {
             "type": "Buffer",
@@ -76,7 +250,7 @@
           "sequence": 1
         },
         "scanningEnabled": true,
-        "proofAuthorizingKey": "cc860198d722b2a325c5eb04cc703ca1604dc3b9d9f9b62b75da8677f57f9807"
+        "proofAuthorizingKey": "60ca864297571eb43141c0fe33cbd851826f8205f12a4fcd7bf3490dde495a0a"
       },
       "head": {
         "hash": {
@@ -89,13 +263,13 @@
     {
       "value": {
         "version": 4,
-        "id": "9d4e2660-f77e-409f-b71e-df2333d66256",
+        "id": "1eb1606b-6eb5-483b-b6ea-d121535425c8",
         "name": "recipient",
-        "spendingKey": "d566c51fe2a8824af53cd8f647e7434c766a906e95475e11baf88afe4ff94d13",
-        "viewKey": "cf289d8490482810d310a50670a108d188f5fa93b8e72e00adb08223eb7ecdb3e97f1f3bdd313e424ae2baa6ed536ba0a1dfaaefdca965f96df1b94826ca05b1",
-        "incomingViewKey": "b6e1be41b7487fc03b826efb466c314162721296f8c06a1d89d679d8317f0304",
-        "outgoingViewKey": "672c24822b1c94a7f4f78fe406dc927fa57b1f69261b1437833d80e6c4868cb6",
-        "publicAddress": "8ca1061f0028a63a1ef2362296ecacec9910bc6b4ade547cd4fe473ea3a6d934",
+        "spendingKey": "eb8f7b0ecdc95b1eb390bd62c4116be79592f73888d61b5e9c53d9b849290a2c",
+        "viewKey": "2683c0188a4b3c998ef9a530f9cd1bba504e03233d3033b5c511ed1a9a080035f87dfef1446b0b0c6df9e57c27ea3f6ba7a2912a012250768562c67b60bbddbd",
+        "incomingViewKey": "d749fa65853d4dfeea0021101eec48fb632ff0a37a5043351cb661328044d205",
+        "outgoingViewKey": "49e9076be5b1354bcef932853fec86678c51cffa7fef448e32d57c0df20b43d4",
+        "publicAddress": "9f038e61e00a9cf3a2e6e2af0e91ef03c051590ecf4c3c8bc0dcbd765189073e",
         "createdAt": {
           "hash": {
             "type": "Buffer",
@@ -104,7 +278,7 @@
           "sequence": 1
         },
         "scanningEnabled": true,
-        "proofAuthorizingKey": "7edbb625cb4e52088fe33cba6f7d36874c5a2c3cb13df8947e98d4f83ba7080c"
+        "proofAuthorizingKey": "2d46db979a9f013930cf00cc2739610c9561245fe57a4b7abaf8a20146402204"
       },
       "head": {
         "hash": {
