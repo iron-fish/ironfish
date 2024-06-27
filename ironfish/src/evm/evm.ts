@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { EVM } from '@ethereumjs/evm'
+import { EVM, EVMRunCodeOpts, ExecResult } from '@ethereumjs/evm'
 import { DefaultStateManager } from '@ethereumjs/statemanager'
 import { Trie } from '@ethereumjs/trie'
 import { ValueEncoding } from '@ethereumjs/util'
@@ -29,7 +29,29 @@ export class IronfishEvm {
     })
     const stateManager = new DefaultStateManager({ trie })
 
-    const evm = await EVM.create({ blockchain, stateManager })
+    const evm = await EVM.create({
+      blockchain,
+      stateManager,
+      customOpcodes: [
+        {
+          opcode: 0xfa,
+          opcodeName: 'mint',
+          baseFee: 200,
+          logicFunction: function (runState) {
+            const callValue = runState.interpreter.getCallData()
+            const caller = runState.interpreter.getCaller()
+            console.log('mint', callValue, caller)
+          },
+        },
+      ],
+    })
+
+    evm.events.on('step', (step) => {
+      if (step.opcode.name) {
+        console.log('return', step.returnStack)
+        console.log('mint called from', step.address.toString())
+      }
+    })
 
     const vm = await VM.create({ evm, stateManager })
 
