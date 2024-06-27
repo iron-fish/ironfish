@@ -96,7 +96,6 @@ export class Send extends IronfishCommand {
         'Return raw transaction. Use it to create a transaction but not post to the network',
     }),
     unsignedTransaction: Flags.boolean({
-      hidden: true,
       default: false,
       description:
         'Return a serialized UnsignedTransaction. Use it to create a transaction and build proofs but not post to the network',
@@ -255,6 +254,8 @@ export class Send extends IronfishCommand {
       raw = RawTransactionSerde.deserialize(bytes)
     }
 
+    displayTransactionSummary(raw, assetData, amount, from, to, memo)
+
     if (flags.rawTransaction) {
       this.log('Raw Transaction')
       this.log(RawTransactionSerde.serialize(raw).toString('hex'))
@@ -271,8 +272,6 @@ export class Send extends IronfishCommand {
       this.log(response.content.unsignedTransaction)
       this.exit(0)
     }
-
-    displayTransactionSummary(raw, assetData, amount, from, to, memo)
 
     const spendPostTime = getSpendPostTimeInMs(this.sdk)
 
