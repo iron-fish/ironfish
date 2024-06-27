@@ -233,6 +233,8 @@ fn test_evm_transaction() {
 
     let evm = EvmDescription {
         nonce: 9,
+        gas_price: 1,
+        gas_limit: 2_000_000,
         to: Some([0x35; 20]),
         value: 1_000_000_000_000_000_000,
         data: vec![],

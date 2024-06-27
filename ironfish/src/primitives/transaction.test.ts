@@ -19,6 +19,8 @@ describe('Transaction', () => {
     )
     raw.evm = {
       nonce: 0n,
+      gasPrice: 1n,
+      gasLimit: 1000000000n,
       to,
       value: 100_000_000_000_000_000n,
       data,
@@ -37,6 +39,8 @@ describe('Transaction', () => {
     expect(deserialized.evm?.to.toString('hex')).toBe(to.toString('hex'))
     expect(deserialized.evm?.value).toBe(100_000_000_000_000_000n)
     expect(deserialized.evm?.nonce).toBe(0n)
+    expect(deserialized.evm?.gasPrice).toBe(1n)
+    expect(deserialized.evm?.gasLimit).toBe(1000000000n)
     expect(deserialized.evm?.v).toBe(0)
     expect(deserialized.evm?.r.toString('hex')).toBe(sigBytes.toString('hex'))
     expect(deserialized.evm?.s.toString('hex')).toBe(sigBytes.toString('hex'))

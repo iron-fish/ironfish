@@ -424,6 +424,8 @@ describe('RawTransactionSerde', () => {
     )
     raw.evm = {
       nonce: 0n,
+      gasPrice: 1n,
+      gasLimit: 10000000000n,
       to,
       value: 100_000_000_000_000_000n,
       data,

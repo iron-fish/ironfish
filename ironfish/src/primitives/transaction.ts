@@ -150,6 +150,8 @@ export class Transaction {
       const evmPresent = reader.readBytes(1)
       if (evmPresent[0] === 1) {
         const nonce = reader.readBigU64()
+        const gasPrice = reader.readBigU64()
+        const gasLimit = reader.readBigU64()
 
         const toPresent = reader.readBytes(1)
         let to = Buffer.alloc(0)
@@ -166,7 +168,7 @@ export class Transaction {
 
         const r = reader.readBytes(32)
         const s = reader.readBytes(32)
-        this.evm = { nonce, to, value, data, v, r, s }
+        this.evm = { nonce, gasPrice, gasLimit, to, value, data, v, r, s }
       }
     }
 

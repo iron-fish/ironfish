@@ -260,6 +260,8 @@ impl NativeTransaction {
     pub fn evm(
         &mut self,
         nonce: BigInt,
+        gas_price: BigInt,
+        gas_limit: BigInt,
         to: JsBuffer,
         value: BigInt,
         data: JsBuffer,
@@ -300,6 +302,8 @@ impl NativeTransaction {
 
         let evm_description = EvmDescription::new(
             nonce.get_u64().1,
+            gas_price.get_u64().1,
+            gas_limit.get_u64().1,
             to,
             value.get_u64().1,
             data.into_value()?.to_vec(),

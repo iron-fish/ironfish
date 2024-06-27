@@ -6,6 +6,8 @@ import { bigIntToBytes, bytesToBigInt } from '@ethereumjs/util'
 
 export interface EvmDescription {
   nonce: bigint
+  gasPrice: bigint
+  gasLimit: bigint
   to: Buffer
   value: bigint
   data: Buffer
@@ -17,6 +19,8 @@ export interface EvmDescription {
 export function legacyTransactionToEvmDescription(tx: LegacyTransaction): EvmDescription {
   return {
     nonce: BigInt(tx.nonce),
+    gasPrice: tx.gasPrice,
+    gasLimit: tx.gasLimit,
     to: tx.to ? Buffer.from(tx.to.bytes) : Buffer.alloc(0),
     value: BigInt(tx.value),
     data: Buffer.from(tx.data),
@@ -36,7 +40,7 @@ export function evmDescriptionToLegacyTransaction(desc: EvmDescription): LegacyT
     r: desc.r.length > 0 ? bytesToBigInt(desc.r) : undefined,
     s: desc.s.length > 0 ? bytesToBigInt(desc.s) : undefined,
     // TODO(jwp) gas constants are hardcoded
-    gasLimit: 21000n,
-    gasPrice: 7n,
+    gasLimit: desc.gasLimit,
+    gasPrice: desc.gasPrice,
   })
 }
