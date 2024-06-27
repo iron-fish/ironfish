@@ -14,9 +14,8 @@ use crate::errors::IronfishError;
 #[derive(Clone, PartialEq, Debug)]
 pub struct EvmDescription {
     pub(crate) nonce: u64,
-    // TODO: gas price and limit here, or in the top layer of the transaction
-    // pub(crate) gas_price: u64,
-    // pub(crate) gas_limit: u64,
+    pub(crate) gas_price: u64,
+    pub(crate) gas_limit: u64,
     pub(crate) to: Option<[u8; 20]>,
     pub(crate) value: u64,
     pub(crate) data: Vec<u8>,
@@ -28,6 +27,8 @@ pub struct EvmDescription {
 impl EvmDescription {
     pub fn new(
         nonce: u64,
+        gas_price: u64,
+        gas_limit: u64,
         to: Option<[u8; 20]>,
         value: u64,
         data: Vec<u8>,
@@ -37,6 +38,8 @@ impl EvmDescription {
     ) -> Self {
         Self {
             nonce,
+            gas_price,
+            gas_limit,
             to,
             value,
             data,
@@ -47,6 +50,8 @@ impl EvmDescription {
     }
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, io::Error> {
         let nonce = reader.read_u64::<LittleEndian>()?;
+        let gas_price = reader.read_u64::<LittleEndian>()?;
+        let gas_limit = reader.read_u64::<LittleEndian>()?;
 
         let to_present = reader.read_u8()?; // Read a byte to check if 'to' is present
         let mut to = None;
@@ -76,6 +81,8 @@ impl EvmDescription {
 
         Ok(Self {
             nonce,
+            gas_price,
+            gas_limit,
             to,
             value,
             data,
@@ -87,6 +94,8 @@ impl EvmDescription {
 
     pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
         writer.write_u64::<LittleEndian>(self.nonce)?;
+        writer.write_u64::<LittleEndian>(self.gas_price)?;
+        writer.write_u64::<LittleEndian>(self.gas_limit)?;
 
         if let Some(to) = &self.to {
             writer.write_u8(1)?; // Indicate 'to' is present
@@ -114,6 +123,8 @@ mod tests {
     fn test_transaction() {
         let original_transaction = EvmDescription {
             nonce: 9,
+            gas_price: 1,
+            gas_limit: 2_000_000,
             to: Some([0x35; 20]),
             value: 1_000_000_000_000_000_000,
             data: vec![],
@@ -139,6 +150,8 @@ mod tests {
 
         // Check that the read data is the same as the original data
         assert_eq!(read_transaction.nonce, original_transaction.nonce);
+        assert_eq!(read_transaction.gas_price, original_transaction.gas_price);
+        assert_eq!(read_transaction.gas_limit, original_transaction.gas_limit);
         assert_eq!(read_transaction.to, original_transaction.to);
         assert_eq!(read_transaction.value, original_transaction.value);
         assert_eq!(read_transaction.data, original_transaction.data);

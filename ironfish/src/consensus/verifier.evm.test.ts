@@ -46,7 +46,7 @@ describe('Verifier', () => {
         to: recipientAddress,
         value: 200000n,
         gasLimit: 21000n,
-        gasPrice: 7n,
+        gasPrice: 1n,
       })
       const signed = tx.sign(senderPrivateKey)
 

@@ -182,6 +182,8 @@ export class RawTransaction {
     if (this.evm !== null) {
       builder.evm(
         this.evm.nonce,
+        this.evm.gasPrice,
+        this.evm.gasLimit,
         this.evm.to,
         this.evm.value,
         this.evm.data,
@@ -387,6 +389,8 @@ export class RawTransactionSerde {
       const evmPresent = reader.readU8()
       if (evmPresent) {
         const nonce = reader.readBigU64()
+        const gasPrice = reader.readBigU64()
+        const gasLimit = reader.readBigU64()
         const toPresent = reader.readU8()
         let to = Buffer.alloc(0)
         if (toPresent) {
@@ -399,7 +403,7 @@ export class RawTransactionSerde {
         const r = reader.readBytes(32)
         const s = reader.readBytes(32)
 
-        raw.evm = { nonce, to, value, data, v, r, s }
+        raw.evm = { nonce, gasPrice, gasLimit, to, value, data, v, r, s }
       }
     }
 
