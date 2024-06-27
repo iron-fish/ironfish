@@ -1297,4 +1297,11 @@ export class WalletDB {
       yield value
     }
   }
+
+  async encryptAccount(account: Account, passphrase: string, tx?: IDatabaseTransaction): Promise<void> {
+    await this.db.withTransaction(tx, async (tx) => {
+      const encrypted = account.encrypt(passphrase);
+      await this.accounts.put(account.id, encrypted.serialize(), tx)
+    })
+  }
 }

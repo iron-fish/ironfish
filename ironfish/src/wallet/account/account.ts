@@ -60,6 +60,7 @@ export function AssertMultisigSigner(
 export class EncryptedAccount {
   private readonly walletDb: WalletDB
 
+  readonly version: number
   readonly id: string
   readonly salt: string
   readonly nonce: string
@@ -75,6 +76,7 @@ export class EncryptedAccount {
     accountValue: EncryptedAccountValue
     walletDb: WalletDB
   }) {
+    this.version = accountValue.version
     this.id = accountValue.id
     this.salt = accountValue.salt
     this.nonce = accountValue.nonce
@@ -93,6 +95,17 @@ export class EncryptedAccount {
 
     const accountValue = JSON.parse(decryptedAccountValue) as DecryptedAccountValue
     return new Account({ accountValue, walletDb: this.walletDb })
+  }
+
+  serialize(): EncryptedAccountValue {
+    return {
+      encrypted: true,
+      version: this.version,
+      id: this.id,
+      salt: this.salt,
+      data: this.data,
+      nonce: this.nonce,
+    }
   }
 }
 

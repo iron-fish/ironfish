@@ -1804,4 +1804,8 @@ export class Wallet {
     this.locked = true
     this.accounts = new Map<string, Account>()
   }
+
+  async encrypt(passphrase: string): Promise<void> {
+    await this.walletDb.encryptAccounts(passphrase)
+  }
 }
