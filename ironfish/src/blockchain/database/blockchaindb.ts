@@ -24,6 +24,7 @@ import {
 import { createDB } from '../../storage/utils'
 import {
   AssetSchema,
+  AssetToContractSchema,
   HashToNextSchema,
   HeadersSchema,
   MetaSchema,
@@ -58,6 +59,8 @@ export class BlockchainDB {
   hashToNextHash: IDatabaseStore<HashToNextSchema>
   // Asset Identifier -> Asset
   assets: IDatabaseStore<AssetSchema>
+  // Asset Identifier -> Contract Address
+  assetIdToContract: IDatabaseStore<AssetToContractSchema>
   // TransactionHash -> BlockHash
   transactionHashToBlockHash: IDatabaseStore<TransactionHashToBlockHashSchema>
 
@@ -113,6 +116,12 @@ export class BlockchainDB {
       name: 'bA',
       keyEncoding: BUFFER_ENCODING,
       valueEncoding: new AssetValueEncoding(),
+    })
+
+    this.assetIdToContract = this.db.addStore({
+      name: 'ae',
+      keyEncoding: BUFFER_ENCODING,
+      valueEncoding: BUFFER_ENCODING,
     })
 
     this.transactionHashToBlockHash = this.db.addStore({
