@@ -329,14 +329,17 @@ export class Wallet {
     await this.resetAccounts(options)
   }
 
-  async resetAccounts(options?: {
+  resetAccounts(options?: {
     resetCreatedAt?: boolean
     resetScanningEnabled?: boolean
     tx?: IDatabaseTransaction
   }): Promise<void> {
-    for (const account of this.listAccounts()) {
-      await this.resetAccount(account, options)
-    }
+    return this.walletDb.db.withTransaction(options?.tx, async (tx) => {
+      const txOptions = { ...options, tx }
+      for (const account of this.listAccounts()) {
+        await this.resetAccount(account, txOptions)
+      }
+    })
   }
 
   async decryptNotes(
@@ -1573,47 +1576,51 @@ export class Wallet {
     return this.getAccount(this.defaultAccount)
   }
 
-  async getEarliestHead(): Promise<HeadValue | null> {
-    let earliestHead = null
-    for (const account of this.accounts.values()) {
-      if (!account.scanningEnabled) {
-        continue
+  getEarliestHead(tx?: IDatabaseTransaction): Promise<HeadValue | null> {
+    return this.walletDb.db.withTransaction(tx, async (tx) => {
+      let earliestHead = null
+      for (const account of this.accounts.values()) {
+        if (!account.scanningEnabled) {
+          continue
+        }
+
+        const head = await account.getHead(tx)
+
+        if (!head) {
+          return null
+        }
+
+        if (!earliestHead || earliestHead.sequence > head.sequence) {
+          earliestHead = head
+        }
       }
 
-      const head = await account.getHead()
-
-      if (!head) {
-        return null
-      }
-
-      if (!earliestHead || earliestHead.sequence > head.sequence) {
-        earliestHead = head
-      }
-    }
-
-    return earliestHead
+      return earliestHead
+    })
   }
 
-  async getLatestHead(): Promise<HeadValue | null> {
-    let latestHead = null
+  getLatestHead(tx?: IDatabaseTransaction): Promise<HeadValue | null> {
+    return this.walletDb.db.withTransaction(tx, async (tx) => {
+      let latestHead = null
 
-    for (const account of this.accounts.values()) {
-      if (!account.scanningEnabled) {
-        continue
+      for (const account of this.accounts.values()) {
+        if (!account.scanningEnabled) {
+          continue
+        }
+
+        const head = await account.getHead(tx)
+
+        if (!head) {
+          continue
+        }
+
+        if (!latestHead || latestHead.sequence < head.sequence) {
+          latestHead = head
+        }
       }
 
-      const head = await account.getHead()
-
-      if (!head) {
-        continue
-      }
-
-      if (!latestHead || latestHead.sequence < head.sequence) {
-        latestHead = head
-      }
-    }
-
-    return latestHead
+      return latestHead
+    })
   }
 
   async isAccountUpToDate(account: Account, confirmations?: number): Promise<boolean> {

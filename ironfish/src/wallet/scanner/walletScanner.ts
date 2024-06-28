@@ -10,7 +10,7 @@ import { Config } from '../../fileStores'
 import { Logger } from '../../logger'
 import { Mutex } from '../../mutex'
 import { BlockHeader, Transaction } from '../../primitives'
-import { AsyncUtils, BufferUtils, HashUtils } from '../../utils'
+import { BufferUtils, HashUtils } from '../../utils'
 import { WorkerPool } from '../../workerPool'
 import { ChainProcessorWithTransactions } from './chainProcessorWithTransactions'
 import { BackgroundNoteDecryptor } from './noteDecryptor'
@@ -223,21 +223,14 @@ export class WalletScanner {
   ): Promise<void> {
     this.logger.debug(`AccountHead DEL: ${header.sequence} => ${Number(header.sequence) - 1}`)
 
-    const accounts = await AsyncUtils.filter(this.wallet.listAccounts(), async (account) => {
-      if (!account.scanningEnabled) {
-        return false
-      }
+    const accounts = (await this.getScanningAccountsWithHead()).filter(({ head }) =>
+      BufferUtils.equalsNullable(head?.hash, header.hash),
+    )
 
-      const accountHead = await account.getHead()
-
-      return BufferUtils.equalsNullable(accountHead?.hash ?? null, header.hash)
-    })
-
-    for (const account of accounts) {
+    for (const { account } of accounts) {
       if (abort?.signal.aborted) {
         return
       }
-
       await this.wallet.disconnectBlockForAccount(account, header, transactions)
     }
   }
@@ -284,18 +277,28 @@ export class WalletScanner {
     )
   }
 
+  private getScanningAccountsWithHead(): Promise<
+    Array<{ account: Account; head: HeadValue | null }>
+  > {
+    return this.wallet.walletDb.db.withTransaction(null, async (tx) =>
+      Promise.all(
+        this.wallet
+          .listAccounts()
+          .filter((account) => account.scanningEnabled)
+          .map(async (account) => ({
+            account,
+            head: await account.getHead(tx),
+          })),
+      ),
+    )
+  }
+
   /**
    * Replaces `scanningAccounts` with fresh values from the wallet.
    */
   private async refreshScanningAccounts(): Promise<void> {
-    this.scanningAccounts = await Promise.all(
-      this.wallet
-        .listAccounts()
-        .filter((account) => account.scanningEnabled)
-        .map(async (account) => ({
-          account,
-          scanFrom: await account.getHead(),
-        })),
+    this.scanningAccounts = (await this.getScanningAccountsWithHead()).map(
+      ({ account, head }) => ({ account, scanFrom: head }),
     )
   }
 
