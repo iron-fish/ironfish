@@ -47,6 +47,11 @@ export interface AssetSchema extends DatabaseSchema {
   value: AssetValue
 }
 
+export interface AssetToContractSchema extends DatabaseSchema {
+  key: Buffer
+  value: Buffer
+}
+
 export interface TransactionHashToBlockHashSchema extends DatabaseSchema {
   key: TransactionHash
   value: BlockHash
