@@ -45,11 +45,11 @@ import {
 } from '../primitives/noteEncrypted'
 import { Target } from '../primitives/target'
 import { Transaction, TransactionHash } from '../primitives/transaction'
-import { BUFFER_ENCODING } from '../storage'
+import { BUFFER_ENCODING, IDatabaseTransaction } from '../storage'
 import { AsyncUtils, BenchUtils, HashUtils } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { AssetValue } from './database/assetValue'
-import { BlockchainDB, BlockchainDBTransaction } from './database/blockchaindb'
+import { BlockchainDB } from './database/blockchaindb'
 import { TransactionsValue } from './database/transactions'
 import { NullifierSet } from './nullifierSet/nullifierSet'
 
@@ -93,11 +93,11 @@ export class Blockchain {
   // When ever the blockchain becomes synced
   onSynced = new Event<[]>()
   // When ever a block is added to the heaviest chain and the trees have been updated
-  onConnectBlock = new Event<[block: Block, tx?: BlockchainDBTransaction]>()
+  onConnectBlock = new Event<[block: Block, tx?: IDatabaseTransaction]>()
   // When ever a block is removed from the heaviest chain, trees have not been updated yet
-  onDisconnectBlock = new Event<[block: Block, tx?: BlockchainDBTransaction]>()
+  onDisconnectBlock = new Event<[block: Block, tx?: IDatabaseTransaction]>()
   // When ever a block is added to a fork
-  onForkBlock = new Event<[block: Block, tx?: BlockchainDBTransaction]>()
+  onForkBlock = new Event<[block: Block, tx?: IDatabaseTransaction]>()
   // When ever the blockchain is reorganized
   onReorganize = new Event<[oldHead: BlockHeader, newHead: BlockHeader, fork: BlockHeader]>()
 
@@ -382,7 +382,7 @@ export class Blockchain {
   async findFork(
     headerA: BlockHeader | Block,
     headerB: BlockHeader | Block,
-    tx?: BlockchainDBTransaction,
+    tx?: IDatabaseTransaction,
   ): Promise<BlockHeader> {
     if (headerA instanceof Block) {
       headerA = headerA.header
@@ -425,7 +425,7 @@ export class Blockchain {
   async *iterateTo(
     start: BlockHeader,
     end?: BlockHeader,
-    tx?: BlockchainDBTransaction,
+    tx?: IDatabaseTransaction,
     reachable = true,
   ): AsyncGenerator<BlockHeader, void, void> {
     let lastHeader: BlockHeader | null = null
@@ -455,7 +455,7 @@ export class Blockchain {
   async *iterateToHashes(
     start: BlockHeader,
     end?: BlockHeader,
-    tx?: BlockchainDBTransaction,
+    tx?: IDatabaseTransaction,
     reachable = true,
   ): AsyncGenerator<BlockHash, void, void> {
     let current = start.hash as BlockHash | null
@@ -497,7 +497,7 @@ export class Blockchain {
   async *iterateFrom(
     start: BlockHeader,
     end?: BlockHeader,
-    tx?: BlockchainDBTransaction,
+    tx?: IDatabaseTransaction,
     reachable = true,
   ): AsyncGenerator<BlockHeader, void, void> {
     let current = start as BlockHeader | null
@@ -555,7 +555,7 @@ export class Blockchain {
   private async connect(
     block: Block,
     prev: BlockHeader | null,
-    tx: BlockchainDBTransaction,
+    tx: IDatabaseTransaction,
   ): Promise<{ isFork: boolean }> {
     const start = BenchUtils.start()
 
@@ -596,7 +596,7 @@ export class Blockchain {
     return { isFork: isFork }
   }
 
-  async disconnect(block: Block, tx: BlockchainDBTransaction): Promise<void> {
+  async disconnect(block: Block, tx: IDatabaseTransaction): Promise<void> {
     Assert.isTrue(
       block.header.hash.equals(this.head.hash),
       `Cannot disconnect ${HashUtils.renderHash(
@@ -619,7 +619,7 @@ export class Blockchain {
     await this.onDisconnectBlock.emitAsync(block, tx)
   }
 
-  private async reconnect(block: Block, tx: BlockchainDBTransaction): Promise<void> {
+  private async reconnect(block: Block, tx: IDatabaseTransaction): Promise<void> {
     Assert.isTrue(
       block.header.previousBlockHash.equals(this.head.hash),
       `Reconnecting block ${block.header.hash.toString('hex')} (${
@@ -649,7 +649,7 @@ export class Blockchain {
   private async addForkToChain(
     block: Block,
     prev: BlockHeader | null,
-    tx: BlockchainDBTransaction,
+    tx: IDatabaseTransaction,
   ): Promise<void> {
     const verifyBlockAdd = this.verifier.verifyBlockAdd(block, prev).catch((_) => {
       return { valid: false, reason: VerificationResultReason.ERROR }
@@ -696,7 +696,7 @@ export class Blockchain {
   private async addHeadToChain(
     block: Block,
     prev: BlockHeader | null,
-    tx: BlockchainDBTransaction,
+    tx: IDatabaseTransaction,
   ): Promise<void> {
     if (prev && !block.header.previousBlockHash.equals(this.head.hash)) {
       this.logger.warn(
@@ -755,10 +755,7 @@ export class Blockchain {
    * Disconnects all blocks on another fork, and reconnects blocks
    * on the new head chain before `head`
    */
-  private async reorganizeChain(
-    newHead: BlockHeader,
-    tx: BlockchainDBTransaction,
-  ): Promise<void> {
+  private async reorganizeChain(newHead: BlockHeader, tx: IDatabaseTransaction): Promise<void> {
     const oldHead = this.head
     Assert.isNotNull(oldHead, 'No genesis block with fork')
 
@@ -836,7 +833,7 @@ export class Blockchain {
    */
   async getBlock(
     hashOrHeader: BlockHash | BlockHeader,
-    tx?: BlockchainDBTransaction,
+    tx?: IDatabaseTransaction,
   ): Promise<Block | null> {
     const blockHeader = hashOrHeader instanceof BlockHeader ? hashOrHeader : null
     const blockHash = hashOrHeader instanceof BlockHeader ? hashOrHeader.hash : hashOrHeader
@@ -864,10 +861,7 @@ export class Blockchain {
   /**
    * Get the block on the main chain at the given sequence, if it exists.
    */
-  async getBlockAtSequence(
-    sequence: number,
-    tx?: BlockchainDBTransaction,
-  ): Promise<Block | null> {
+  async getBlockAtSequence(sequence: number, tx?: IDatabaseTransaction): Promise<Block | null> {
     return this.blockchainDb.withTransaction(tx, async (tx) => {
       const header = await this.blockchainDb.getBlockHeaderAtSequence(sequence)
       if (!header) {
@@ -886,7 +880,7 @@ export class Blockchain {
   /**
    * Returns true if the blockchain has a block at the given hash
    */
-  async hasBlock(hash: BlockHash, tx?: BlockchainDBTransaction): Promise<boolean> {
+  async hasBlock(hash: BlockHash, tx?: IDatabaseTransaction): Promise<boolean> {
     const header = await this.blockchainDb.getBlockHeader(hash, tx)
     return !!header
   }
@@ -894,7 +888,7 @@ export class Blockchain {
   /**
    * Returns true if the blockchain has any blocks at the given sequence
    */
-  async hasHashesAtSequence(sequence: number, tx?: BlockchainDBTransaction): Promise<boolean> {
+  async hasHashesAtSequence(sequence: number, tx?: IDatabaseTransaction): Promise<boolean> {
     const hashes = await this.getHashesAtSequence(sequence, tx)
 
     if (!hashes) {
@@ -907,29 +901,26 @@ export class Blockchain {
   /**
    * Returns an array of hashes for any blocks at the given sequence
    */
-  async getHashesAtSequence(
-    sequence: number,
-    tx?: BlockchainDBTransaction,
-  ): Promise<BlockHash[]> {
+  async getHashesAtSequence(sequence: number, tx?: IDatabaseTransaction): Promise<BlockHash[]> {
     return this.blockchainDb.getBlockHashesAtSequence(sequence, tx)
   }
 
   async putTransaction(
     hash: Buffer,
     value: TransactionsValue,
-    tx?: BlockchainDBTransaction,
+    tx?: IDatabaseTransaction,
   ): Promise<void> {
     return this.blockchainDb.putTransaction(hash, value, tx)
   }
 
-  async clearSequenceToHash(tx?: BlockchainDBTransaction): Promise<void> {
+  async clearSequenceToHash(tx?: IDatabaseTransaction): Promise<void> {
     return this.blockchainDb.clearSequenceToHash(tx)
   }
 
   async putSequenceToHash(
     sequence: number,
     hash: Buffer,
-    tx?: BlockchainDBTransaction,
+    tx?: IDatabaseTransaction,
   ): Promise<void> {
     return this.blockchainDb.putSequenceToHash(sequence, hash, tx)
   }
@@ -1047,18 +1038,18 @@ export class Blockchain {
     })
   }
 
-  async getHeader(hash: BlockHash, tx?: BlockchainDBTransaction): Promise<BlockHeader | null> {
+  async getHeader(hash: BlockHash, tx?: IDatabaseTransaction): Promise<BlockHeader | null> {
     return (await this.blockchainDb.getBlockHeader(hash, tx)) || null
   }
 
   async getPrevious(
     header: BlockHeader,
-    tx?: BlockchainDBTransaction,
+    tx?: IDatabaseTransaction,
   ): Promise<BlockHeader | null> {
     return this.getHeader(header.previousBlockHash, tx)
   }
 
-  async getNextHash(hash: BlockHash, tx?: BlockchainDBTransaction): Promise<BlockHash | null> {
+  async getNextHash(hash: BlockHash, tx?: IDatabaseTransaction): Promise<BlockHash | null> {
     const next = await this.blockchainDb.getNextHash(hash, tx)
     return next || null
   }
@@ -1068,7 +1059,7 @@ export class Blockchain {
    */
   async getHashAtSequence(
     sequence: number,
-    tx?: BlockchainDBTransaction,
+    tx?: IDatabaseTransaction,
   ): Promise<BlockHash | null> {
     const hash = await this.blockchainDb.getBlockHashAtSequence(sequence, tx)
     return hash || null
@@ -1076,7 +1067,7 @@ export class Blockchain {
 
   async getBlockHashByTransactionHash(
     transactionHash: TransactionHash,
-    tx?: BlockchainDBTransaction,
+    tx?: IDatabaseTransaction,
   ): Promise<BlockHash | null> {
     const hash = await this.blockchainDb.getBlockHashByTransactionHash(transactionHash, tx)
     return hash || null
@@ -1084,7 +1075,7 @@ export class Blockchain {
 
   async transactionHashHasBlock(
     transactionHash: TransactionHash,
-    tx?: BlockchainDBTransaction,
+    tx?: IDatabaseTransaction,
   ): Promise<boolean> {
     return this.blockchainDb.transactionHashHasBlock(transactionHash, tx)
   }
@@ -1104,12 +1095,12 @@ export class Blockchain {
 
   async getHeadersAtSequence(
     sequence: number,
-    tx?: BlockchainDBTransaction,
+    tx?: IDatabaseTransaction,
   ): Promise<BlockHeader[]> {
     return this.blockchainDb.getBlockHeadersAtSequence(sequence, tx)
   }
 
-  async isHeadChain(header: BlockHeader, tx?: BlockchainDBTransaction): Promise<boolean> {
+  async isHeadChain(header: BlockHeader, tx?: IDatabaseTransaction): Promise<boolean> {
     const hash = await this.getHashAtSequence(header.sequence, tx)
 
     if (!hash) {
@@ -1119,10 +1110,7 @@ export class Blockchain {
     return hash.equals(header.hash)
   }
 
-  async getNext(
-    header: BlockHeader,
-    tx?: BlockchainDBTransaction,
-  ): Promise<BlockHeader | null> {
+  async getNext(header: BlockHeader, tx?: IDatabaseTransaction): Promise<BlockHeader | null> {
     const hash = await this.getNextHash(header.hash, tx)
 
     if (!hash) {
@@ -1132,15 +1120,11 @@ export class Blockchain {
     return this.getHeader(hash, tx)
   }
 
-  async putNextHash(
-    hash: Buffer,
-    nextHash: Buffer,
-    tx?: BlockchainDBTransaction,
-  ): Promise<void> {
+  async putNextHash(hash: Buffer, nextHash: Buffer, tx?: IDatabaseTransaction): Promise<void> {
     return this.blockchainDb.putNextHash(hash, nextHash, tx)
   }
 
-  async clearHashToNextHash(tx?: BlockchainDBTransaction): Promise<void> {
+  async clearHashToNextHash(tx?: IDatabaseTransaction): Promise<void> {
     return this.blockchainDb.clearHashToNextHash(tx)
   }
 
@@ -1195,7 +1179,7 @@ export class Blockchain {
   async *iterateBlockHeaders(
     fromHash: Buffer | null = null,
     toHash: Buffer | null = null,
-    tx?: BlockchainDBTransaction,
+    tx?: IDatabaseTransaction,
     reachable = true,
   ): AsyncGenerator<BlockHeader, void, void> {
     let from: BlockHeader | null
@@ -1222,7 +1206,7 @@ export class Blockchain {
 
   async getBlockTransactions(
     header: BlockHeader,
-    tx?: BlockchainDBTransaction,
+    tx?: IDatabaseTransaction,
   ): Promise<
     {
       transaction: Transaction
@@ -1263,7 +1247,7 @@ export class Blockchain {
   async saveConnect(
     block: Block,
     prev: BlockHeader | null,
-    tx: BlockchainDBTransaction,
+    tx: IDatabaseTransaction,
   ): Promise<void> {
     const { valid, reason } = await this.verifier.verifyBlockConnect(block, tx)
 
@@ -1319,7 +1303,7 @@ export class Blockchain {
   private async saveDisconnect(
     block: Block,
     prev: BlockHeader,
-    tx: BlockchainDBTransaction,
+    tx: IDatabaseTransaction,
   ): Promise<void> {
     // Invert all the mints and burns that were applied from this block's transactions.
     // Iterate in reverse order to ensure changes are undone opposite from how
@@ -1349,7 +1333,7 @@ export class Blockchain {
     block: Block,
     prev: BlockHeader | null,
     fork: boolean,
-    tx: BlockchainDBTransaction,
+    tx: IDatabaseTransaction,
   ): Promise<void> {
     const hash = block.header.hash
     const sequence = block.header.sequence
@@ -1374,7 +1358,7 @@ export class Blockchain {
 
   private async saveConnectedMintsToAssetsStore(
     transaction: Transaction,
-    tx: BlockchainDBTransaction,
+    tx: IDatabaseTransaction,
   ): Promise<void> {
     for (const {
       asset,
@@ -1419,7 +1403,7 @@ export class Blockchain {
 
   private async saveConnectedBurnsToAssetsStore(
     transaction: Transaction,
-    tx: BlockchainDBTransaction,
+    tx: IDatabaseTransaction,
   ): Promise<void> {
     for (const { assetId, value } of transaction.burns) {
       const existingAsset = await this.blockchainDb.getAsset(assetId, tx)
@@ -1448,7 +1432,7 @@ export class Blockchain {
 
   private async deleteDisconnectedBurnsFromAssetsStore(
     transaction: Transaction,
-    tx: BlockchainDBTransaction,
+    tx: IDatabaseTransaction,
   ): Promise<void> {
     for (const { assetId, value } of transaction.burns.slice().reverse()) {
       const existingAsset = await this.blockchainDb.getAsset(assetId, tx)
@@ -1476,7 +1460,7 @@ export class Blockchain {
 
   private async deleteDisconnectedMintsFromAssetsStore(
     transaction: Transaction,
-    tx: BlockchainDBTransaction,
+    tx: IDatabaseTransaction,
   ): Promise<void> {
     for (const { asset, value, owner: originalOwner, transferOwnershipTo } of transaction.mints
       .slice()
@@ -1534,10 +1518,7 @@ export class Blockchain {
     this.onSynced.emit()
   }
 
-  async getAssetById(
-    assetId: Buffer,
-    tx?: BlockchainDBTransaction,
-  ): Promise<AssetValue | null> {
+  async getAssetById(assetId: Buffer, tx?: IDatabaseTransaction): Promise<AssetValue | null> {
     if (Asset.nativeId().equals(assetId)) {
       return {
         createdTransactionHash: GENESIS_BLOCK_PREVIOUS,
