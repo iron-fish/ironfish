@@ -4,7 +4,6 @@
 import { DefaultStateManager } from '@ethereumjs/statemanager'
 import { Trie } from '@ethereumjs/trie'
 import { ValueEncoding } from '@ethereumjs/util'
-import { BufferMap } from 'buffer-map'
 import { Assert } from '../../assert'
 import { EvmStateDB } from '../../evm/database'
 import { FileSystem } from '../../fileSystems'
@@ -408,7 +407,7 @@ export class BlockchainDBTransaction implements IDatabaseTransaction {
   tx: IDatabaseTransaction
   stateManager: DefaultStateManager
   checkpoint = false
-  cache: BufferMap<unknown>
+  cache: Map<Buffer, unknown>
 
   constructor(db: IDatabase, stateManager: DefaultStateManager) {
     this.tx = db.transaction()

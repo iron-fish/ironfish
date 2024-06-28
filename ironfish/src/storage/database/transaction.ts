@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { BufferMap } from 'buffer-map'
 import { IDatabaseStore } from './store'
 import { DatabaseSchema, SchemaKey, SchemaValue } from './types'
 
@@ -22,7 +21,7 @@ import { DatabaseSchema, SchemaKey, SchemaValue } from './types'
  * or write is performed on it.
  */
 export interface IDatabaseTransaction {
-  cache: BufferMap<unknown>
+  cache: Map<Buffer, unknown>
 
   /**
    * Lock the database

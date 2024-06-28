@@ -14,15 +14,21 @@ declare module 'buffer-map' {
     delete(key: Buffer): boolean
     clear(): void
 
-    [Symbol.iterator](): Iterator<[Buffer, T]>
+    [Symbol.iterator](): Generator<[Buffer, T]>
 
     *entries(): Generator<[Buffer, T]>
     *keys(): Generator<Buffer>
     *values(): Generator<T>
+    forEach(
+      callbackfn: (value: T, key: Buffer, map: Map<Buffer, T>) => void,
+      thisArg?: BufferMap<T>,
+    ): void
 
     toKeys(): Buffer[]
     toValues(): T[]
     toArray(): T[]
+
+    [Symbol.toStringTag]: string
   }
 
   export class BufferSet<T = Buffer> implements Iterable<Buffer> {
