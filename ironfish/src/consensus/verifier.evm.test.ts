@@ -98,7 +98,7 @@ describe('Verifier', () => {
 
       expect(result).toEqual({
         valid: false,
-        reason: VerificationResultReason.GLOBAL_MINT_NON_EVM,
+        reason: VerificationResultReason.EVM_MINT_NON_EVM,
       })
     })
 

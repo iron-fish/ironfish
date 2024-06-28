@@ -2,11 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { Address } from '@ethereumjs/util'
 import { Asset } from '@ironfish/rust-nodejs'
 import { BufferMap, BufferSet } from 'buffer-map'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
-import { EvmResult, IronfishEvm } from '../evm'
+import { BlockchainDBTransaction } from '../blockchain/database/blockchaindb'
+import { EvmResult } from '../evm'
 import {
   getBlockSize,
   getBlockWithMinersFeeSize,
@@ -116,17 +118,18 @@ export class Verifier {
         return burnVerify
       }
 
-      if (!tx.evm) {
-        const noMints = Verifier.verifyNoGlobalMints(tx)
-        if (!noMints.valid) {
-          return noMints
-        }
-      } else {
-        const evmVerify = await this.verifyEvm(tx)
-        if (!evmVerify.valid) {
-          return evmVerify
-        }
-      }
+      // TODO(jwp): verifier here is for miners, verifyBlockConnect should also contain this logic, add below
+      // if (!tx.evm) {
+      //   const noMints = await this.verifyNoEvmMints(tx)
+      //   if (!noMints.valid) {
+      //     return noMints
+      //   }
+      // } else {
+      //   const evmVerify = await this.verifyEvm(tx)
+      //   if (!evmVerify.valid) {
+      //     return evmVerify
+      //   }
+      // }
 
       transactionBatch.push(tx)
 
@@ -268,7 +271,7 @@ export class Verifier {
     // which isn't available in standalone wallet, which uses this method
 
     if (!transaction.evm) {
-      const noMints = Verifier.verifyNoGlobalMints(transaction)
+      const noMints = await this.verifyNoEvmMints(transaction)
       if (!noMints.valid) {
         return noMints
       }
@@ -577,23 +580,28 @@ export class Verifier {
     return { valid: true }
   }
 
-  static verifyNoGlobalMints(transaction: Transaction): VerificationResult {
+  async verifyNoEvmMints(
+    transaction: Transaction,
+    tx?: BlockchainDBTransaction,
+  ): Promise<VerificationResult> {
     for (const mint of transaction.mints) {
-      if (mint.asset.creator().toString('hex') === IronfishEvm.publicAddress) {
-        return { valid: false, reason: VerificationResultReason.GLOBAL_MINT_NON_EVM }
+      if (await this.chain.isEvmAsset(mint.asset.id(), tx)) {
+        return { valid: false, reason: VerificationResultReason.EVM_MINT_NON_EVM }
       }
     }
-
     return { valid: true }
   }
 
-  async verifyEvm(tx: Transaction): Promise<VerificationResult> {
+  async verifyEvm(
+    transaction: Transaction,
+    tx?: BlockchainDBTransaction,
+  ): Promise<VerificationResult> {
     // TODO(jwp): handle these more cleanly after hughs changes
-    if (!tx.evm || !this.chain.evm) {
+    if (!transaction.evm || !this.chain.evm) {
       return { valid: true }
     }
 
-    const evmTx = evmDescriptionToLegacyTransaction(tx.evm)
+    const evmTx = evmDescriptionToLegacyTransaction(transaction.evm)
     let result: EvmResult
     try {
       result = await this.chain.evm.verifyTx({ tx: evmTx })
@@ -611,9 +619,14 @@ export class Verifier {
       }
     }
     for (const item of [...result.shields, ...result.unshields]) {
-      // TODO(jwp): verify this will deterministically create same address
-      const asset = new Asset(IronfishEvm.publicAddress, item.contract.toString(), '')
-      if (asset.id().toString('hex') !== item.assetId.toString('hex')) {
+      const contract = await this.chain.getEvmContractByAssetId(item.assetId, tx)
+      if (!contract) {
+        // contract not registered yet, ie first mint, skip validation
+        // TODO(jwp): is there attack vector here?
+        continue
+      }
+      const contractAddress = new Address(contract)
+      if (contractAddress !== item.contract) {
         return { valid: false, reason: VerificationResultReason.EVM_ASSET_MISMATCH }
       }
     }
@@ -630,11 +643,11 @@ export class Verifier {
       unshieldBalance.set(unshield.assetId, unshield.amount)
     }
 
-    for (const mint of tx.mints) {
+    for (const mint of transaction.mints) {
       mintBalance.set(mint.asset.id(), mint.value)
     }
 
-    for (const burn of tx.burns) {
+    for (const burn of transaction.burns) {
       burnBalance.set(burn.assetId, burn.value)
     }
 
@@ -798,7 +811,6 @@ export enum VerificationResultReason {
   DOUBLE_SPEND = 'Double spend',
   DUPLICATE = 'Duplicate',
   DUPLICATE_TRANSACTION = 'Transaction is a duplicate',
-  GLOBAL_MINT_NON_EVM = 'Global mint in non-EVM transaction',
   ERROR = 'Error',
   GOSSIPED_GENESIS_BLOCK = 'Peer gossiped its genesis block',
   GRAFFITI = 'Graffiti field is not 32 bytes in length',
@@ -829,6 +841,7 @@ export enum VerificationResultReason {
   TRANSACTION_EXPIRED = 'Transaction expired',
   VERIFY_TRANSACTION = 'Verify_transaction',
   CHECKPOINT_REORG = 'Cannot add block that re-orgs past the last checkpoint',
+  EVM_MINT_NON_EVM = 'EVM asset mint in non-EVM transaction',
   EVM_NOT_INITIALIZED = 'EVM is not initialized',
   EVM_TRANSACTION_FAILED = 'EVM transaction failed',
   EVM_TRANSACTION_INVALID_SIGNATURE = 'EVM transaction has invalid signature',
@@ -836,7 +849,8 @@ export enum VerificationResultReason {
   EVM_MINT_BALANCE_MISMATCH = 'EVM mint/shield balance mismatch',
   EVM_BURN_LENGTH_MISMATCH = 'EVM burn/unshield length mismatch',
   EVM_BURN_BALANCE_MISMATCH = 'EVM burn/unshield balance mismatch',
-  EVM_ASSET_MISMATCH = 'EVM shield/unshield asset mismatch',
+  EVM_ASSET_MISMATCH = 'EVM shield/unshield did not come from correct contract',
+  EVM_ASSET_NOT_FOUND = 'EVM shield/unshield asset not found',
   EVM_UNKNOWN_ERROR = 'EVM unknown error',
 }
 
