@@ -12,8 +12,8 @@ export class JobAbortedMessage extends WorkerMessage {
     return
   }
 
-  static deserializePayload(): JobAbortedError {
-    return new JobAbortedError()
+  static deserializePayload(): JobAbortedMessage {
+    return new JobAbortedMessage()
   }
 
   getSize(): number {

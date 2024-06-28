@@ -223,7 +223,7 @@ export class Worker {
       case WorkerMessageType.DecryptNotes:
         return DecryptNotesRequest.deserializePayload(jobId, request)
       case WorkerMessageType.JobAborted:
-        throw new Error('JobAbort should not be sent as a request')
+        return JobAbortedMessage.deserializePayload()
       case WorkerMessageType.JobError:
         throw new Error('JobError should not be sent as a request')
       case WorkerMessageType.Sleep:
