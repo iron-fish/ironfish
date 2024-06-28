@@ -63,7 +63,7 @@ jobs:
         run: yarn --non-interactive --frozen-lockfile
 
       - name: Run tests
-        run: yarn test:coverage --maxWorkers=2 --workerIdleMemoryLimit=2000MB
+        run: yarn test:coverage --maxWorkers=4 --workerIdleMemoryLimit=2000MB
 
       - name: Check for missing fixtures
         run: |
@@ -100,7 +100,7 @@ jobs:
         run: yarn --non-interactive --frozen-lockfile
 
       - name: Run slow tests & coverage
-        run: yarn test:slow:coverage --maxWorkers=2 --workerIdleMemoryLimit=2000MB
+        run: yarn test:slow:coverage --maxWorkers=4 --workerIdleMemoryLimit=2000MB
 
       - name: Check for missing fixtures
         run: |

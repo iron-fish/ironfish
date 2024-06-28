@@ -33,10 +33,10 @@ jobs:
         run: node ./tools/delete-fixtures.js
 
       - name: Run tests
-        run: JEST_TIMEOUT=1000000000 yarn test:coverage --maxWorkers=2 --workerIdleMemoryLimit=2000MB
+        run: JEST_TIMEOUT=1000000000 yarn test:coverage --maxWorkers=4 --workerIdleMemoryLimit=2000MB
 
       - name: Run slow tests
-        run: JEST_TIMEOUT=1000000000 yarn test:slow:coverage --maxWorkers=2 --workerIdleMemoryLimit=2000MB
+        run: JEST_TIMEOUT=1000000000 yarn test:slow:coverage --maxWorkers=4 --workerIdleMemoryLimit=2000MB
 
       - name: Report Status
         if: always()
