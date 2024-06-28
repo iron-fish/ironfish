@@ -21,6 +21,7 @@ import { Migration029 } from './029-backfill-assets-owner-wallet'
 import { Migration030 } from './030-value-to-unspent-note'
 import { Migration031 } from './031-add-pak-to-account'
 import { Migration032 } from './032-add-account-scanning'
+import { Migration033 } from './033-account-created-at-sequence'
 
 export const MIGRATIONS = [
   Migration014,
@@ -42,4 +43,5 @@ export const MIGRATIONS = [
   Migration030,
   Migration031,
   Migration032,
+  Migration033,
 ]

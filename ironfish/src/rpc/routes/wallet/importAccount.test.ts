@@ -407,7 +407,7 @@ describe('Route wallet/importAccount', () => {
     expect(response.status).toBe(200)
     const account = routeTest.node.wallet.getAccountByName(name)
     expect(account).toBeDefined()
-    expect(account?.createdAt?.sequence).toEqual(createdAtSequence)
+    expect(account?.createdAt).toEqual(createdAtSequence)
 
     const accountHead = await account?.getHead()
     expect(accountHead?.sequence).toEqual(createdAtSequence - 1)

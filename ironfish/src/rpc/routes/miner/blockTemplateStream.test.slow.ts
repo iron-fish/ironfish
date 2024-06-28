@@ -11,6 +11,7 @@ import {
 import { flushTimeout } from '../../../testUtilities/helpers/tests'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { PromiseUtils } from '../../../utils'
+import { toAccountImport } from '../../../wallet/exporter'
 
 describe('Block template stream', () => {
   const routeTest = createRouteTest()
@@ -52,7 +53,7 @@ describe('Block template stream', () => {
     // Create another node
     const nodeTest = createNodeTest()
     await nodeTest.setup()
-    const importedAccount = await nodeTest.wallet.importAccount(account)
+    const importedAccount = await nodeTest.wallet.importAccount(toAccountImport(account))
     await nodeTest.wallet.setDefaultAccount(account.name)
 
     // Generate a block

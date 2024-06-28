@@ -22,7 +22,7 @@ describe('Route wallet/resetAccount', () => {
 
     const account = await useAccountAndAddFundsFixture(routeTest.wallet, routeTest.chain)
 
-    expect(account.createdAt?.sequence).toEqual(block1.header.sequence)
+    expect(account.createdAt).toEqual(block1.header.sequence)
     expect((await account.getBalance(Asset.nativeId(), 0))?.confirmed).toBe(2000000000n)
 
     await account.updateScanningEnabled(false)
@@ -39,7 +39,7 @@ describe('Route wallet/resetAccount', () => {
     expect((await newAccount.getBalance(Asset.nativeId(), 0))?.confirmed).toBe(0n)
     expect(newAccount.createdAt).toEqual(account.createdAt)
     expect(newAccount.scanningEnabled).toBe(false)
-    expect((await newAccount.getHead())?.hash).toEqualBuffer(routeTest.chain.genesis.hash)
+    expect((await newAccount.getHead())?.hash).toEqualBuffer(block1.header.hash)
   })
 
   it('resets createdAt if resetCreatedAt is passed', async () => {
@@ -49,7 +49,7 @@ describe('Route wallet/resetAccount', () => {
 
     const account = await useAccountAndAddFundsFixture(routeTest.wallet, routeTest.chain)
 
-    expect(account.createdAt?.sequence).toEqual(block1.header.sequence)
+    expect(account.createdAt).toEqual(block1.header.sequence)
 
     await routeTest.client
       .request<ResetAccountResponse>('wallet/resetAccount', {

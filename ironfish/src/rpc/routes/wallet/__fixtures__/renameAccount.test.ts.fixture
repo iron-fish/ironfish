@@ -10,13 +10,7 @@
         "incomingViewKey": "6f21ea316d55e76d28e06320b8b7f0fcc44409a281fc5c628c2bec6704c09604",
         "outgoingViewKey": "7324cb7e93bbec6336492cc55a6818cd1ee3fe797899ca3341f36897e21928cd",
         "publicAddress": "92a34aae04c8d01b3e97a1f43698ec14a88373bd457d9e8eccf0ef2f50ac1d0d",
-        "createdAt": {
-          "hash": {
-            "type": "Buffer",
-            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
-          },
-          "sequence": 1
-        },
+        "createdAt": 1,
         "scanningEnabled": true,
         "proofAuthorizingKey": "6751cac5f8a52448bdcea6856295cd100a1731ac96f073be888ff1060eb0c103"
       },

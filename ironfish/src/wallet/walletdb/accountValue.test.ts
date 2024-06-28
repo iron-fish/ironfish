@@ -18,10 +18,7 @@ describe('AccountValueEncoding', () => {
       spendingKey: key.spendingKey,
       viewKey: key.viewKey,
       version: 1,
-      createdAt: {
-        hash: Buffer.alloc(32, 0),
-        sequence: 1,
-      },
+      createdAt: 1,
       scanningEnabled: true,
       proofAuthorizingKey: key.proofAuthorizingKey,
     }

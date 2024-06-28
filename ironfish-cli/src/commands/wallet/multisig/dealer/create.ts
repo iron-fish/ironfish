@@ -72,25 +72,21 @@ export class MultisigCreateDealer extends IronfishCommand {
       participants: identities.map((identity) => ({ identity })),
     })
 
-    const chainResponse = await client.chain.getChainInfo()
-    const hash = Buffer.from(chainResponse.content.currentBlockIdentifier.hash, 'hex')
-    const sequence = Number(chainResponse.content.currentBlockIdentifier.index)
-    const createdAt = {
-      hash,
-      sequence,
-    }
-
     if (flags.importCoordinator) {
+      const chainResponse = await client.chain.getChainInfo()
+      const networkResponse = await client.chain.getNetworkInfo()
+      const createdAt = {
+        sequence: Number(chainResponse.content.currentBlockIdentifier.index),
+        networkId: networkResponse.content.networkId,
+      }
+
       this.log()
       ux.action.start('Importing the coordinator as a view-only account')
 
       const account: AccountImport = {
         name,
         version: ACCOUNT_SCHEMA_VERSION,
-        createdAt: {
-          hash: createdAt.hash,
-          sequence: createdAt.sequence,
-        },
+        createdAt,
         spendingKey: null,
         viewKey: response.content.viewKey,
         incomingViewKey: response.content.incomingViewKey,

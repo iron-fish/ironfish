@@ -433,7 +433,7 @@ export class Wallet {
       const accountHasTransaction = assetBalanceDeltas.size > 0
       if (account.createdAt === null && accountHasTransaction) {
         await account.updateCreatedAt(
-          { hash: blockHeader.hash, sequence: blockHeader.sequence },
+          Math.max(1, blockHeader.sequence - this.config.get('confirmations')),
           tx,
         )
       }
@@ -445,7 +445,7 @@ export class Wallet {
       return true
     }
 
-    if (account.createdAt.sequence > blockHeader.sequence) {
+    if (account.createdAt > blockHeader.sequence) {
       return false
     }
 
@@ -1256,7 +1256,7 @@ export class Wallet {
 
   async createAccount(
     name: string,
-    options: { createdAt?: HeadValue | null; setDefault?: boolean } = {
+    options: { createdAt?: number | null; setDefault?: boolean } = {
       setDefault: false,
     },
   ): Promise<Account> {
@@ -1266,14 +1266,20 @@ export class Wallet {
 
     const key = generateKey()
 
-    let createdAt: HeadValue | null = null
-    if (options.createdAt !== undefined) {
-      createdAt = options.createdAt
-    } else if (this.nodeClient) {
-      try {
-        createdAt = await this.getChainHead()
-      } catch {
-        this.logger.warn('Failed to fetch chain head from node client')
+    let createdAt = options.createdAt ?? null
+    let head: HeadValue | null = null
+    if (this.nodeClient) {
+      if (createdAt) {
+        const block = await this.chainGetBlock({ sequence: createdAt })
+        head = block
+          ? {
+              hash: Buffer.from(block.block.hash, 'hex'),
+              sequence: block.block.sequence,
+            }
+          : null
+      } else if (options.createdAt !== null) {
+        head = await this.getChainHead()
+        createdAt = Math.max(1, head.sequence - this.config.get('confirmations'))
       }
     }
 
@@ -1296,7 +1302,7 @@ export class Wallet {
 
     await this.walletDb.db.transaction(async (tx) => {
       await this.walletDb.setAccount(account, tx)
-      await account.updateHead(createdAt, tx)
+      await account.updateHead(head, tx)
     })
 
     this.accounts.set(account.id, account)
@@ -1355,8 +1361,6 @@ export class Wallet {
     let createdAt = options?.createdAt
       ? {
           sequence: options?.createdAt,
-          // hash is no longer used, set to empty buffer
-          hash: Buffer.alloc(32, 0),
           networkId: this.networkId,
         }
       : accountValue.createdAt
@@ -1374,7 +1378,7 @@ export class Wallet {
       accountValue: {
         ...accountValue,
         id: uuid(),
-        createdAt,
+        createdAt: createdAt ? createdAt.sequence : null,
         name,
         multisigKeys,
         scanningEnabled: true,
@@ -1386,12 +1390,12 @@ export class Wallet {
       await this.walletDb.setAccount(account, tx)
 
       if (createdAt !== null) {
-        const previousBlock = await this.chainGetBlock({ sequence: createdAt.sequence - 1 })
+        const block = await this.chainGetBlock(createdAt)
 
-        const head = previousBlock
+        const head = block
           ? {
-              hash: Buffer.from(previousBlock.block.hash, 'hex'),
-              sequence: previousBlock.block.sequence,
+              hash: Buffer.from(block.block.hash, 'hex'),
+              sequence: block.block.sequence,
             }
           : null
 
@@ -1440,14 +1444,12 @@ export class Wallet {
       await this.walletDb.setAccount(newAccount, tx)
 
       if (newAccount.createdAt !== null) {
-        const previousBlock = await this.chainGetBlock({
-          sequence: newAccount.createdAt.sequence - 1,
-        })
+        const block = await this.chainGetBlock({ sequence: newAccount.createdAt })
 
-        const head = previousBlock
+        const head = block
           ? {
-              hash: Buffer.from(previousBlock.block.hash, 'hex'),
-              sequence: previousBlock.block.sequence,
+              hash: Buffer.from(block.block.hash, 'hex'),
+              sequence: block.block.sequence,
             }
           : null
 
