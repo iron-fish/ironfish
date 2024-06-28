@@ -552,6 +552,17 @@ export class Blockchain {
     return this.consensus.checkpoints.get(header.sequence)?.equals(header.hash) ?? false
   }
 
+  isEvmAsset(assetId: Buffer, tx?: BlockchainDBTransaction): Promise<boolean> {
+    return this.blockchainDb.assetIdToContract.has(assetId, tx)
+  }
+
+  getEvmContractByAssetId(
+    assetId: Buffer,
+    tx?: BlockchainDBTransaction,
+  ): Promise<Buffer | undefined> {
+    return this.blockchainDb.assetIdToContract.get(assetId, tx)
+  }
+
   private async connect(
     block: Block,
     prev: BlockHeader | null,
