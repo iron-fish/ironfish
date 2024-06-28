@@ -19,6 +19,7 @@ import {
   SchemaKey,
   SchemaValue,
   StringEncoding,
+  TransactionalDatabase,
   U32_ENCODING,
 } from '../../storage'
 import { createDB } from '../../storage/utils'
@@ -39,7 +40,7 @@ import { TransactionsValue, TransactionsValueEncoding } from './transactions'
 
 export const VERSION_DATABASE_CHAIN = 28
 
-export class BlockchainDB {
+export class BlockchainDB extends TransactionalDatabase {
   db: IDatabase
   location: string
   files: FileSystem
@@ -64,6 +65,7 @@ export class BlockchainDB {
   stateManager: DefaultStateManager
 
   constructor(options: { location: string; files: FileSystem }) {
+    super()
     this.location = options.location
     this.files = options.files
     this.db = createDB({ location: options.location })
@@ -362,40 +364,17 @@ export class BlockchainDB {
   }
 
   transaction<TResult>(
-    handler: (transaction: BlockchainDBTransaction) => Promise<TResult>,
+    handler: (transaction: IDatabaseTransaction) => Promise<TResult>,
   ): Promise<TResult>
   transaction(): BlockchainDBTransaction
   transaction(
-    handler?: (transaction: BlockchainDBTransaction) => Promise<unknown>,
+    handler?: (transaction: IDatabaseTransaction) => Promise<unknown>,
   ): IDatabaseTransaction | Promise<unknown> {
     if (handler === undefined) {
       return new BlockchainDBTransaction(this.db, this.stateManager)
     }
 
     return this.withTransaction(null, handler)
-  }
-
-  // TODO(hughy): this is copied from Database. can/should we reuse the underlying implementation?
-  async withTransaction<TResult>(
-    transaction: BlockchainDBTransaction | undefined | null,
-    handler: (transaction: BlockchainDBTransaction) => Promise<TResult>,
-  ): Promise<TResult> {
-    const created = !transaction
-    transaction = transaction || this.transaction()
-
-    try {
-      await transaction.acquireLock()
-      const result = await handler(transaction)
-      if (created) {
-        await transaction.commit()
-      }
-      return result
-    } catch (error: unknown) {
-      if (created) {
-        await transaction.abort()
-      }
-      throw error
-    }
   }
 
   async size(): Promise<number> {

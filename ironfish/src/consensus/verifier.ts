@@ -6,7 +6,6 @@ import { Asset } from '@ironfish/rust-nodejs'
 import { BufferMap, BufferSet } from 'buffer-map'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
-import { BlockchainDBTransaction } from '../blockchain/database/blockchaindb'
 import {
   getBlockSize,
   getBlockWithMinersFeeSize,
@@ -20,6 +19,7 @@ import { EvmDescription, evmDescriptionToLegacyTransaction } from '../primitives
 import { MintDescription } from '../primitives/mintDescription'
 import { Target } from '../primitives/target'
 import { Transaction } from '../primitives/transaction'
+import { IDatabaseTransaction } from '../storage'
 import { BufferUtils } from '../utils/buffer'
 import { WorkerPool } from '../workerPool'
 import { Consensus } from './consensus'
@@ -352,7 +352,7 @@ export class Verifier {
 
   async verifyTransactionSpends(
     transaction: Transaction,
-    tx?: BlockchainDBTransaction,
+    tx?: IDatabaseTransaction,
   ): Promise<VerificationResult> {
     return this.chain.blockchainDb.withTransaction(tx, async (tx) => {
       const notesSize = await this.chain.notes.size(tx)
@@ -375,7 +375,7 @@ export class Verifier {
 
   async verifyTransactionAdd(
     transaction: Transaction,
-    tx?: BlockchainDBTransaction,
+    tx?: IDatabaseTransaction,
   ): Promise<VerificationResult> {
     let validity = await this.verifyTransactionSpends(transaction, tx)
 
@@ -436,7 +436,7 @@ export class Verifier {
    */
   async verifyConnectedSpends(
     block: Block,
-    tx?: BlockchainDBTransaction,
+    tx?: IDatabaseTransaction,
   ): Promise<VerificationResult> {
     return this.chain.blockchainDb.withTransaction(tx, async (tx) => {
       const previousNotesSize = block.header.noteSize
@@ -458,7 +458,7 @@ export class Verifier {
    */
   async verifyBlockConnect(
     block: Block,
-    tx?: BlockchainDBTransaction,
+    tx?: IDatabaseTransaction,
   ): Promise<VerificationResult> {
     const mintOwnersValid = await this.verifyMintOwners(block.mints(), tx)
     if (!mintOwnersValid.valid) {
@@ -496,7 +496,7 @@ export class Verifier {
   async verifySpend(
     spend: Spend,
     notesSize: number,
-    tx?: BlockchainDBTransaction,
+    tx?: IDatabaseTransaction,
   ): Promise<VerificationResultReason | undefined> {
     if (spend.size > notesSize) {
       return VerificationResultReason.NOTE_COMMITMENT_SIZE_TOO_LARGE
@@ -521,7 +521,7 @@ export class Verifier {
    */
   async verifyConnectedBlock(
     block: Block,
-    tx?: BlockchainDBTransaction,
+    tx?: IDatabaseTransaction,
   ): Promise<VerificationResult> {
     return this.chain.blockchainDb.withTransaction(tx, async (tx) => {
       const header = block.header
@@ -620,7 +620,7 @@ export class Verifier {
    */
   verifyUnseenTransaction(
     transaction: Transaction,
-    tx?: BlockchainDBTransaction,
+    tx?: IDatabaseTransaction,
   ): Promise<VerificationResult> {
     return this.chain.blockchainDb.withTransaction(tx, async (tx) => {
       if (await this.chain.transactionHashHasBlock(transaction.hash(), tx)) {
@@ -640,7 +640,7 @@ export class Verifier {
   async verifyMintOwnersIncremental(
     mints: Iterable<MintDescription>,
     lastKnownAssetOwners?: BufferMap<Buffer>,
-    tx?: BlockchainDBTransaction,
+    tx?: IDatabaseTransaction,
   ): Promise<{ valid: boolean; assetOwners: BufferMap<Buffer> }> {
     const assetOwners = new BufferMap<Buffer>()
 
@@ -703,7 +703,7 @@ export class Verifier {
    */
   async verifyMintOwners(
     mints: Iterable<MintDescription>,
-    tx?: BlockchainDBTransaction,
+    tx?: IDatabaseTransaction,
   ): Promise<VerificationResult> {
     const { valid } = await this.verifyMintOwnersIncremental(mints, undefined, tx)
     if (valid) {

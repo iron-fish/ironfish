@@ -168,7 +168,44 @@ export interface IDatabase {
   size(): Promise<number>
 }
 
-export abstract class Database implements IDatabase {
+export abstract class TransactionalDatabase {
+  abstract transaction(): IDatabaseTransaction
+
+  abstract transaction<TResult>(
+    handler: (transaction: IDatabaseTransaction) => Promise<TResult>,
+  ): Promise<TResult>
+
+  /*
+  Safety wrapper in case you don't know if you've been given a transaction or not
+  This will create and commit it at the end if it if it hasn't been passed in.
+
+  Usually this is solved by a context that's threaded through the application
+  and keeps track of this, but we don't have a context.
+  */
+  async withTransaction<TResult>(
+    transaction: IDatabaseTransaction | undefined | null,
+    handler: (transaction: IDatabaseTransaction) => Promise<TResult>,
+  ): Promise<TResult> {
+    const created = !transaction
+    transaction = transaction || this.transaction()
+
+    try {
+      await transaction.acquireLock()
+      const result = await handler(transaction)
+      if (created) {
+        await transaction.commit()
+      }
+      return result
+    } catch (error: unknown) {
+      if (created) {
+        await transaction.abort()
+      }
+      throw error
+    }
+  }
+}
+
+export abstract class Database extends TransactionalDatabase implements IDatabase {
   stores = new Array<IDatabaseStore<DatabaseSchema>>()
 
   abstract get isOpen(): boolean
@@ -179,12 +216,6 @@ export abstract class Database implements IDatabase {
   abstract getVersion(): Promise<number>
   abstract putVersion(version: number): Promise<void>
   abstract compact(): Promise<void>
-
-  abstract transaction(): IDatabaseTransaction
-
-  abstract transaction<TResult>(
-    handler: (transaction: IDatabaseTransaction) => Promise<TResult>,
-  ): Promise<TResult>
 
   abstract batch(): IDatabaseBatch
 
@@ -231,33 +262,4 @@ export abstract class Database implements IDatabase {
   }
 
   abstract size(): Promise<number>
-
-  /*
-  Safety wrapper in case you don't know if you've been given a transaction or not
-  This will create and commit it at the end if it if it hasn't been passed in.
-
-  Usually this is solved by a context that's threaded through the application
-  and keeps track of this, but we don't have a context.
-  */
-  async withTransaction<TResult>(
-    transaction: IDatabaseTransaction | undefined | null,
-    handler: (transaction: IDatabaseTransaction) => Promise<TResult>,
-  ): Promise<TResult> {
-    const created = !transaction
-    transaction = transaction || this.transaction()
-
-    try {
-      await transaction.acquireLock()
-      const result = await handler(transaction)
-      if (created) {
-        await transaction.commit()
-      }
-      return result
-    } catch (error: unknown) {
-      if (created) {
-        await transaction.abort()
-      }
-      throw error
-    }
-  }
 }
