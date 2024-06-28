@@ -81,7 +81,7 @@ async function disconnectBlocks(chain: Blockchain, toDisconnect: number): Promis
 
     Assert.isNotNull(headBlock)
 
-    await chain.blockchainDb.db.transaction(async (tx) => {
+    await chain.blockchainDb.transaction(async (tx) => {
       await chain.disconnect(headBlock, tx)
     })
 

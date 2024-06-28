@@ -38,9 +38,9 @@ describe('Verifier', () => {
 
       const senderAccount = new EthAccount(BigInt(0), 500000n)
 
-      await nodeTest.chain.evm?.stateManager.checkpoint()
-      await nodeTest.chain.evm?.stateManager.putAccount(senderAddress, senderAccount)
-      await nodeTest.chain.evm?.stateManager.commit()
+      await nodeTest.chain.blockchainDb.stateManager.checkpoint()
+      await nodeTest.chain.blockchainDb.stateManager.putAccount(senderAddress, senderAccount)
+      await nodeTest.chain.blockchainDb.stateManager.commit()
 
       const tx = new LegacyTransaction({
         to: recipientAddress,
@@ -81,9 +81,9 @@ describe('Verifier', () => {
 
       const senderAccount = new EthAccount(BigInt(0), 500000n)
 
-      await nodeTest.chain.evm?.stateManager.checkpoint()
-      await nodeTest.chain.evm?.stateManager.putAccount(senderAddress, senderAccount)
-      await nodeTest.chain.evm?.stateManager.commit()
+      await nodeTest.chain.blockchainDb.stateManager.checkpoint()
+      await nodeTest.chain.blockchainDb.stateManager.putAccount(senderAddress, senderAccount)
+      await nodeTest.chain.blockchainDb.stateManager.commit()
 
       const tx = new LegacyTransaction({
         to: recipientAddress,

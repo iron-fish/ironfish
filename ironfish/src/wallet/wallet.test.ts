@@ -2187,7 +2187,7 @@ describe('Wallet', () => {
       expect(transactionValue?.blockHash).toEqualHash(blockA2.header.hash)
       expect(transactionValue?.sequence).toEqual(blockA2.header.sequence)
 
-      await node.chain.blockchainDb.db.transaction(async (tx) => {
+      await node.chain.blockchainDb.transaction(async (tx) => {
         await node.chain.disconnect(blockA2, tx)
       })
 
@@ -2219,7 +2219,7 @@ describe('Wallet', () => {
 
       expect(accountAHead?.hash).toEqualHash(blockA2.header.hash)
 
-      await node.chain.blockchainDb.db.transaction(async (tx) => {
+      await node.chain.blockchainDb.transaction(async (tx) => {
         await node.chain.disconnect(blockA2, tx)
       })
 
@@ -2251,7 +2251,7 @@ describe('Wallet', () => {
       const balanceAfterConnect = await accountA.getUnconfirmedBalance(Asset.nativeId())
       expect(balanceAfterConnect.unconfirmed).toEqual(1999999998n)
 
-      await node.chain.blockchainDb.db.transaction(async (tx) => {
+      await node.chain.blockchainDb.transaction(async (tx) => {
         await node.chain.disconnect(blockA2, tx)
       })
 
@@ -2492,7 +2492,7 @@ describe('Wallet', () => {
 
       await accountA.updateScanningEnabled(false)
 
-      await node.chain.blockchainDb.db.transaction(async (tx) => {
+      await node.chain.blockchainDb.transaction(async (tx) => {
         await node.chain.disconnect(blockA2, tx)
       })
 
