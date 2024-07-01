@@ -1129,13 +1129,13 @@ export class WalletDB {
   }
 
   async cleanupDeletedAccounts(recordsToCleanup: number, signal?: AbortSignal): Promise<void> {
-    for (const [accountId] of await this.accountIdsToCleanup.getAll()) {
+    for await (const [accountId] of this.accountIdsToCleanup.getAllIter()) {
       const prefix = calculateAccountPrefix(accountId)
       const range = StorageUtils.getPrefixKeyRange(prefix)
 
       for (const store of this.cacheStores) {
         for await (const key of store.getAllKeysIter(undefined, range)) {
-          if (signal?.aborted === true || recordsToCleanup === 0) {
+          if (signal?.aborted === true || recordsToCleanup <= 0) {
             return
           }
 
@@ -1145,6 +1145,7 @@ export class WalletDB {
       }
 
       await this.accountIdsToCleanup.del(accountId)
+      recordsToCleanup--
     }
   }
 
