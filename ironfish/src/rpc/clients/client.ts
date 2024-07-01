@@ -33,6 +33,8 @@ import type {
   CreateTransactionResponse,
   CreateTrustedDealerKeyPackageRequest,
   CreateTrustedDealerKeyPackageResponse,
+  DecryptWalletRequest,
+  DecryptWalletResponse,
   DkgRound1Request,
   DkgRound1Response,
   DkgRound2Request,
@@ -611,6 +613,15 @@ export abstract class RpcClient {
     unlock: (params: UnlockWalletRequest): Promise<RpcResponseEnded<UnlockWalletResponse>> => {
       return this.request<UnlockWalletResponse>(
         `${ApiNamespace.wallet}/unlock`,
+        params,
+      ).waitForEnd()
+    },
+
+    decrypt: (
+      params: DecryptWalletRequest,
+    ): Promise<RpcResponseEnded<DecryptWalletResponse>> => {
+      return this.request<DecryptWalletResponse>(
+        `${ApiNamespace.wallet}/decrypt`,
         params,
       ).waitForEnd()
     },
