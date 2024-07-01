@@ -227,15 +227,21 @@ impl UnsignedTransaction {
                 IronfishError::new_with_source(IronfishErrorKind::FailedSignatureVerification, e)
             })?;
 
-        let signature = { Signature::read(&mut authorizing_group_signature.serialize().as_ref())? };
+        let serialized_signature = authorizing_group_signature.serialize();
 
-        // Sign spends now that we have the data needed to be signed
+        let transaction = self.add_signature(serialized_signature)?;
+
+        Ok(transaction)
+    }
+
+    pub fn add_signature(&mut self, signature: [u8; 64]) -> Result<Transaction, IronfishError> {
+        let signature = Signature::read(&signature[..])?;
+
         let mut spend_descriptions = Vec::with_capacity(self.spends.len());
         for spend in self.spends.drain(0..) {
             spend_descriptions.push(spend.add_signature(signature));
         }
 
-        // Sign mints now that we have the data needed to be signed
         let mut mint_descriptions = Vec::with_capacity(self.mints.len());
         for mint in self.mints.drain(0..) {
             mint_descriptions.push(mint.add_signature(signature));

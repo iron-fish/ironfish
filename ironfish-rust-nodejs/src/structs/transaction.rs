@@ -460,6 +460,25 @@ impl NativeUnsignedTransaction {
 
         Ok(Buffer::from(vec))
     }
+
+    #[napi]
+    pub fn add_signature(&mut self, signature: JsBuffer) -> Result<Buffer> {
+        let bytes = signature.into_value()?;
+
+        let mut signature_bytes = [0u8; 64];
+
+        signature_bytes.copy_from_slice(bytes.as_ref());
+
+        let signed_transaction = self
+            .transaction
+            .add_signature(signature_bytes)
+            .map_err(to_napi_err)?;
+
+        let mut vec: Vec<u8> = vec![];
+        signed_transaction.write(&mut vec).map_err(to_napi_err)?;
+
+        Ok(Buffer::from(vec))
+    }
 }
 
 #[napi(namespace = "multisig")]
