@@ -1805,7 +1805,24 @@ export class Wallet {
     this.accounts = new Map<string, Account>()
   }
 
-  async encrypt(passphrase: string): Promise<void> {
-    await this.walletDb.encryptAccounts(passphrase)
+  async encrypt(passphrase: string, tx?: IDatabaseTransaction): Promise<void> {
+    await this.walletDb.db.withTransaction(tx, async (tx) => {
+      for (const account of this.accounts.values()) {
+        await this.walletDb.encryptAccount(account, passphrase, tx)
+      }
+    })
+
+    this.accounts.clear()
+    for await (const accountValue of this.walletDb.loadAccounts()) {
+      if (accountValue.encrypted) {
+        this.locked = true
+
+        const encryptedAccount = new EncryptedAccount({
+          accountValue,
+          walletDb: this.walletDb,
+        })
+        this.encryptedAccounts.set(encryptedAccount.id, encryptedAccount)
+      }
+    }
   }
 }
