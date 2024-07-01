@@ -12,6 +12,8 @@ import IronfishApp, {
   ResponseViewKey,
 } from '@zondax/ledger-ironfish'
 
+// LedgerConnection exception class
+
 export class Ledger {
   app: IronfishApp | undefined
   logger: Logger
@@ -25,16 +27,27 @@ export class Ledger {
   connect = async () => {
     const transport = await TransportNodeHid.create(3000, 3000)
 
-    const app = new IronfishApp(transport)
+    if (transport.deviceModel) {
+      this.logger.debug(`${transport.deviceModel.productName} found.`)
+    }
 
+    const app = new IronfishApp(transport)
     const appInfo = await app.appInfo()
+
     this.logger.debug(appInfo.appName ?? 'no app name')
 
     if (appInfo.appName !== 'Ironfish') {
-      this.logger.debug(appInfo.appName ?? 'no app name')
-      this.logger.debug(appInfo.returnCode.toString())
+      this.logger.debug(appInfo.returnCode.toString(16))
       this.logger.debug(appInfo.errorMessage.toString())
-      throw new Error('Please open the Iron Fish app on your ledger device')
+
+      // references:
+      // https://github.com/LedgerHQ/ledger-live/blob/173bb3c84cc855f83ab8dc49362bc381afecc31e/libs/ledgerjs/packages/errors/src/index.ts#L263
+      // https://github.com/Zondax/ledger-ironfish/blob/bf43a4b8d403d15138699ee3bb1a3d6dfdb428bc/docs/APDUSPEC.md?plain=1#L25
+      if (appInfo.returnCode === 0x5515) {
+        throw new Error('Please unlock your Ledger device.')
+      }
+
+      throw new Error('Please open the Iron Fish app on your Ledger device.')
     }
 
     if (appInfo.appVersion) {
@@ -42,8 +55,6 @@ export class Ledger {
     }
 
     this.app = app
-
-    return { app, PATH: this.PATH }
   }
 
   getPublicAddress = async () => {

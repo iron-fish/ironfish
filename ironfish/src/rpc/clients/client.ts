@@ -55,16 +55,16 @@ import type {
   GetAccountIdentitiesResponse,
   GetAccountNotesStreamRequest,
   GetAccountNotesStreamResponse,
-  GetAccountsRequest,
-  GetAccountsResponse,
-  GetAccountsStatusRequest,
-  GetAccountsStatusResponse,
   GetAccountStatusRequest,
   GetAccountStatusResponse,
   GetAccountTransactionRequest,
   GetAccountTransactionResponse,
   GetAccountTransactionsRequest,
   GetAccountTransactionsResponse,
+  GetAccountsRequest,
+  GetAccountsResponse,
+  GetAccountsStatusRequest,
+  GetAccountsStatusResponse,
   GetAssetRequest,
   GetAssetResponse,
   GetAssetsRequest,
@@ -105,10 +105,10 @@ import type {
   GetNetworkInfoResponse,
   GetNodeStatusRequest,
   GetNodeStatusResponse,
-  GetNotesRequest,
-  GetNotesResponse,
   GetNoteWitnessRequest,
   GetNoteWitnessResponse,
+  GetNotesRequest,
+  GetNotesResponse,
   GetPeerMessagesRequest,
   GetPeerMessagesResponse,
   GetPeerRequest,
@@ -564,6 +564,15 @@ export abstract class RpcClient {
     ): Promise<RpcResponseEnded<AddSignatureResponse>> => {
       return this.request<AddSignatureResponse>(
         `${ApiNamespace.wallet}/addSignature`,
+        params,
+      ).waitForEnd()
+    },
+
+    signTransaction: (
+      params: SignTransactionRequest,
+    ): Promise<RpcResponseEnded<SignTransactionResponse>> => {
+      return this.request<SignTransactionResponse>(
+        `${ApiNamespace.wallet}/signTransaction`,
         params,
       ).waitForEnd()
     },
