@@ -172,6 +172,7 @@ import type {
   UseAccountResponse,
 } from '../routes'
 import { ApiNamespace } from '../routes/namespaces'
+import { AddSignatureRequest, AddSignatureResponse } from '../routes/wallet/addSignature'
 
 export abstract class RpcClient {
   abstract request<TEnd = unknown, TStream = unknown>(
@@ -551,6 +552,15 @@ export abstract class RpcClient {
     ): Promise<RpcResponseEnded<AddTransactionResponse>> => {
       return this.request<AddTransactionResponse>(
         `${ApiNamespace.wallet}/addTransaction`,
+        params,
+      ).waitForEnd()
+    },
+
+    addSignature: (
+      params: AddSignatureRequest,
+    ): Promise<RpcResponseEnded<AddSignatureResponse>> => {
+      return this.request<AddSignatureResponse>(
+        `${ApiNamespace.wallet}/addSignature`,
         params,
       ).waitForEnd()
     },
