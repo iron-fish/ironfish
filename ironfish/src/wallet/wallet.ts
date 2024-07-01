@@ -1825,4 +1825,25 @@ export class Wallet {
       }
     }
   }
+
+  async decrypt(passphrase: string, tx?: IDatabaseTransaction): Promise<void> {
+    await this.walletDb.db.withTransaction(tx, async (tx) => {
+      for (const account of this.encryptedAccounts.values()) {
+        await this.walletDb.decryptAccount(account, passphrase, tx)
+      }
+    })
+
+    this.encryptedAccounts.clear()
+    for await (const accountValue of this.walletDb.loadAccounts()) {
+      if (!accountValue.encrypted) {
+        this.locked = false
+
+        const account = new Account({
+          accountValue,
+          walletDb: this.walletDb,
+        })
+        this.accounts.set(account.id, account)
+      }
+    }
+  }
 }

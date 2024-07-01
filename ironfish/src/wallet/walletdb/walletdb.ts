@@ -30,7 +30,7 @@ import { getPrefixesKeyRange, StorageUtils } from '../../storage/database/utils'
 import { createDB } from '../../storage/utils'
 import { BufferUtils } from '../../utils'
 import { WorkerPool } from '../../workerPool'
-import { Account, calculateAccountPrefix } from '../account/account'
+import { Account, calculateAccountPrefix, EncryptedAccount } from '../account/account'
 import { AccountValue, AccountValueEncoding } from './accountValue'
 import { AssetValue, AssetValueEncoding } from './assetValue'
 import { BalanceValue, BalanceValueEncoding } from './balanceValue'
@@ -1306,6 +1306,17 @@ export class WalletDB {
     await this.db.withTransaction(tx, async (tx) => {
       const encrypted = account.encrypt(passphrase)
       await this.accounts.put(account.id, encrypted.serialize(), tx)
+    })
+  }
+
+  async decryptAccount(
+    account: EncryptedAccount,
+    passphrase: string,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    await this.db.withTransaction(tx, async (tx) => {
+      const decrypted = account.decrypt(passphrase)
+      await this.accounts.put(account.id, decrypted.serialize(), tx)
     })
   }
 }
