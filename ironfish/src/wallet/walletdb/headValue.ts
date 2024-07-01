@@ -16,7 +16,12 @@ export class NullableHeadValueEncoding implements IDatabaseEncoding<HeadValue | 
     const bw = bufio.write(this.getSize(value))
 
     if (value) {
-      bw.writeHash(value.hash)
+      if ('data' in value.hash) {
+        const hash = Buffer.from(value.hash['data'] as Uint8Array)
+        bw.writeHash(hash)
+      } else {
+        bw.writeHash(value.hash)
+      }
       bw.writeU32(value.sequence)
     }
 
