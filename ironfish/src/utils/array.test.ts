@@ -5,16 +5,14 @@ import { ArrayUtils } from './array'
 
 describe('ArrayUtils', () => {
   it('shuffles array', () => {
-    let items: number[] = []
-
+    const items: number[] = []
     for (let i = 0; i <= 10000; ++i) {
       items.push(i)
     }
 
-    items = ArrayUtils.shuffle(items)
-
-    const shuffled = items[0] !== 0 && items[500] !== 500 && items[1000] !== 1000
-    expect(shuffled).toBe(true)
+    const shuffled = ArrayUtils.shuffle(items)
+    expect(shuffled).not.toEqual(items)
+    expect(shuffled.sort()).toEqual(items)
   })
 
   it('sample a random item', () => {
