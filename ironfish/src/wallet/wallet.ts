@@ -321,23 +321,26 @@ export class Wallet {
     }
   }
 
-  async reset(options?: {
-    resetCreatedAt?: boolean
-    resetScanningEnabled?: boolean
-    tx?: IDatabaseTransaction
-  }): Promise<void> {
-    await this.resetAccounts(options)
+  async reset(
+    options?: {
+      resetCreatedAt?: boolean
+      resetScanningEnabled?: boolean
+    },
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    await this.resetAccounts(options, tx)
   }
 
-  resetAccounts(options?: {
-    resetCreatedAt?: boolean
-    resetScanningEnabled?: boolean
-    tx?: IDatabaseTransaction
-  }): Promise<void> {
-    return this.walletDb.db.withTransaction(options?.tx, async (tx) => {
-      const txOptions = { ...options, tx }
+  resetAccounts(
+    options?: {
+      resetCreatedAt?: boolean
+      resetScanningEnabled?: boolean
+    },
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    return this.walletDb.db.withTransaction(tx, async (tx) => {
       for (const account of this.listAccounts()) {
-        await this.resetAccount(account, txOptions)
+        await this.resetAccount(account, options, tx)
       }
     })
   }
@@ -1424,8 +1427,8 @@ export class Wallet {
     options?: {
       resetCreatedAt?: boolean
       resetScanningEnabled?: boolean
-      tx?: IDatabaseTransaction
     },
+    tx?: IDatabaseTransaction,
   ): Promise<void> {
     const newAccount = new Account({
       accountValue: {
@@ -1439,7 +1442,7 @@ export class Wallet {
 
     this.logger.debug(`Resetting account name: ${account.name}, id: ${account.id}`)
 
-    await this.walletDb.db.withTransaction(options?.tx, async (tx) => {
+    await this.walletDb.db.withTransaction(tx, async (tx) => {
       await this.walletDb.setAccount(newAccount, tx)
 
       if (newAccount.createdAt !== null) {
