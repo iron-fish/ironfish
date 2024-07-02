@@ -23,17 +23,18 @@ pub struct PublicAddress(pub(crate) SubgroupPoint);
 
 impl PublicAddress {
     /// Initialize a public address from its 32 byte representation.
-    pub fn new(
-        public_address_bytes: &[u8; PUBLIC_ADDRESS_SIZE],
-    ) -> Result<PublicAddress, IronfishError> {
-        assert!(public_address_bytes.len() == 32);
-        let public_address_non_prime = SubgroupPoint::from_bytes(public_address_bytes);
+    pub fn new(bytes: &[u8; PUBLIC_ADDRESS_SIZE]) -> Result<Self, IronfishError> {
+        Option::from(SubgroupPoint::from_bytes(bytes))
+            .map(PublicAddress)
+            .ok_or_else(|| IronfishError::new(IronfishErrorKind::InvalidPaymentAddress))
+    }
 
-        if public_address_non_prime.is_some().into() {
-            Ok(PublicAddress(public_address_non_prime.unwrap()))
-        } else {
-            Err(IronfishError::new(IronfishErrorKind::InvalidPaymentAddress))
-        }
+    /// Initialize a public address from its 32 byte representation, without performing expensive
+    /// checks on the validity of the address.
+    pub fn new_unchecked(bytes: &[u8; PUBLIC_ADDRESS_SIZE]) -> Result<Self, IronfishError> {
+        Option::from(SubgroupPoint::from_bytes_unchecked(bytes))
+            .map(PublicAddress)
+            .ok_or_else(|| IronfishError::new(IronfishErrorKind::InvalidPaymentAddress))
     }
 
     /// Load a public address from a Read implementation (e.g: socket, file)
@@ -41,6 +42,12 @@ impl PublicAddress {
         let mut address_bytes = [0; PUBLIC_ADDRESS_SIZE];
         reader.read_exact(&mut address_bytes)?;
         Self::new(&address_bytes)
+    }
+
+    pub fn read_unchecked<R: io::Read>(reader: &mut R) -> Result<Self, IronfishError> {
+        let mut address_bytes = [0; PUBLIC_ADDRESS_SIZE];
+        reader.read_exact(&mut address_bytes)?;
+        Self::new_unchecked(&address_bytes)
     }
 
     /// Initialize a public address from a sapling key. Typically constructed from
