@@ -38,6 +38,24 @@ export class IronfishEvm {
       events: [],
     }
   }
+
+  async simulateTx(opts: RunTxOpts): Promise<RunTxResult> {
+    return this.withStatelessVM(async (vm) => {
+      return vm.runTx(opts)
+    })
+  }
+
+  private async withStatelessVM<TResult>(handler: (copy: VM) => TResult): Promise<TResult> {
+    const vm = await this.vm.shallowCopy()
+
+    await vm.evm.journal.checkpoint()
+
+    try {
+      return handler(vm)
+    } finally {
+      await vm.evm.journal.revert()
+    }
+  }
 }
 
 type EvmShield = {
