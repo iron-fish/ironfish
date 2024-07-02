@@ -6,6 +6,7 @@ import { Config } from '../../fileStores'
 import { BlockHeader } from '../../primitives'
 import { Transaction } from '../../primitives/transaction'
 import { AsyncQueue } from '../../utils/asyncQueue'
+import { PromiseUtils } from '../../utils/promise'
 import { WorkerPool } from '../../workerPool'
 import { Job } from '../../workerPool/job'
 import {
@@ -23,6 +24,14 @@ export type DecryptNotesFromTransactionsCallback = (
   transactions: Array<{ transaction: Transaction; decryptedNotes: Array<DecryptedNote> }>,
 ) => Promise<void>
 
+type DecryptQueueValue = {
+  job: Job
+  accounts: ReadonlyArray<Account>
+  blockHeader: BlockHeader
+  transactions: ReadonlyArray<Transaction>
+  callback: DecryptNotesFromTransactionsCallback
+}
+
 export class BackgroundNoteDecryptor {
   private isStarted = false
 
@@ -34,13 +43,7 @@ export class BackgroundNoteDecryptor {
 
   private readonly workerPool: WorkerPool
   private readonly options: DecryptNotesOptions
-  private readonly decryptQueue: AsyncQueue<{
-    job: Job
-    accounts: ReadonlyArray<Account>
-    blockHeader: BlockHeader
-    transactions: ReadonlyArray<Transaction>
-    callback: DecryptNotesFromTransactionsCallback
-  }>
+  private readonly decryptQueue: AsyncQueue<DecryptQueueValue>
 
   constructor(workerPool: WorkerPool, config: Config, options: DecryptNotesOptions) {
     this.workerPool = workerPool
@@ -81,13 +84,30 @@ export class BackgroundNoteDecryptor {
   }
 
   private async decryptLoop(): Promise<void> {
+    let resolve: (value: DecryptQueueValue | void) => unknown
+    let reject: (reason?: unknown) => void
+
+    this.onStopped.then(
+      (value) => resolve?.(value),
+      (err) => reject?.(err),
+    )
+
     while (this.isStarted) {
       if (this.decryptQueue.isEmpty() && this.triggerFlushed) {
         this.triggerFlushed()
         this.triggerFlushed = null
       }
 
-      const item = await Promise.race([this.decryptQueue.pop(), this.onStopped])
+      const [promise, resolveNew, rejectNew] = PromiseUtils.split<DecryptQueueValue | void>()
+      resolve = resolveNew
+      reject = rejectNew
+
+      this.decryptQueue.pop().then(
+        (value) => resolve(value),
+        (err) => reject(err),
+      )
+
+      const item = await promise
       if (!item) {
         break
       }
