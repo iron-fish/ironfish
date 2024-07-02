@@ -1478,6 +1478,7 @@ export class Wallet {
 
   async removeAccount(account: Account, tx?: IDatabaseTransaction): Promise<void> {
     this.accounts.delete(account.id)
+
     await this.walletDb.db.withTransaction(tx, async (tx) => {
       if (account.id === this.defaultAccount) {
         await this.walletDb.setDefaultAccount(null, tx)
