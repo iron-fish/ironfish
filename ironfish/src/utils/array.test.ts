@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Assert } from '../assert'
 import { ArrayUtils } from './array'
 
 describe('ArrayUtils', () => {
@@ -12,19 +13,27 @@ describe('ArrayUtils', () => {
 
     const shuffled = ArrayUtils.shuffle(items)
     expect(shuffled).not.toEqual(items)
-    expect(shuffled.sort()).toEqual(items)
+    expect(shuffled.sort((a, b) => a - b)).toEqual(items)
   })
 
   it('sample a random item', () => {
-    let sample = ArrayUtils.sample([0, 1, 2])
-    expect(sample).toBeGreaterThanOrEqual(0)
-    expect(sample).toBeLessThanOrEqual(2)
+    // single element
+    expect(ArrayUtils.sample([2])).toBe(2)
 
-    sample = ArrayUtils.sample([2])
-    expect(sample).toBe(2)
+    // empty array
+    expect(ArrayUtils.sample([])).toBeNull()
 
-    sample = ArrayUtils.sample([])
-    expect(sample).toBeNull()
+    // test randomness
+    const samples = [0, 1, 2]
+    const found = new Set(samples)
+
+    for (let i = 0; i < 10000; ++i) {
+      const sample = ArrayUtils.sample(samples)
+      Assert.isNotNull(sample)
+      found.delete(sample)
+    }
+
+    expect(found.size).toBe(0)
   })
 
   it('removes an item in places', () => {
