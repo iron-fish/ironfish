@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import type { SpiedFunction } from 'jest-mock'
 import { Asset, generateKey } from '@ironfish/rust-nodejs'
 import { BlockSerde, SerializedBlock } from '../primitives/block'
 import { Target } from '../primitives/target'
@@ -13,8 +14,8 @@ import { GenesisBlockInfo, makeGenesisBlock } from './makeGenesisBlock'
 describe('Read genesis block', () => {
   const nodeTest = createNodeTest()
 
-  let targetMeetsSpy: jest.SpyInstance
-  let targetSpy: jest.SpyInstance
+  let targetMeetsSpy: SpiedFunction<typeof Target.meets>
+  let targetSpy: SpiedFunction<typeof Target.calculateTarget>
 
   beforeAll(() => {
     targetMeetsSpy = jest.spyOn(Target, 'meets').mockImplementation(() => true)
@@ -41,8 +42,8 @@ describe('Read genesis block', () => {
 
 describe('Create genesis block', () => {
   const nodeTest = createNodeTest(false, { autoSeed: false })
-  let targetMeetsSpy: jest.SpyInstance
-  let targetSpy: jest.SpyInstance
+  let targetMeetsSpy: SpiedFunction<typeof Target.meets>
+  let targetSpy: SpiedFunction<typeof Target.calculateTarget>
 
   beforeAll(() => {
     targetMeetsSpy = jest.spyOn(Target, 'meets').mockImplementation(() => true)
@@ -151,8 +152,8 @@ describe('Create genesis block', () => {
 
 describe('addGenesisTransaction', () => {
   const nodeTest = createNodeTest(false, { autoSeed: false })
-  let targetMeetsSpy: jest.SpyInstance
-  let targetSpy: jest.SpyInstance
+  let targetMeetsSpy: SpiedFunction<typeof Target.meets>
+  let targetSpy: SpiedFunction<typeof Target.calculateTarget>
 
   beforeAll(() => {
     targetMeetsSpy = jest.spyOn(Target, 'meets').mockImplementation(() => true)

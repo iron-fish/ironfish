@@ -51,7 +51,7 @@ describe('TransactionFetcher', () => {
     expect(sentPeers).toHaveLength(1)
 
     expect(sentPeers[0].sendSpy).toHaveBeenCalledWith(
-      new PooledTransactionsRequest([hash], expect.any(Number)),
+      new PooledTransactionsRequest([hash], expect.any(Number) as unknown as number),
     )
 
     await peerNetwork.stop()

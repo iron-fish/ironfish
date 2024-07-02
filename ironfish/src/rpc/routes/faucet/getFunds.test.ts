@@ -25,7 +25,9 @@ describe('Route faucet.getFunds', () => {
     it('returns a 200 status code', async () => {
       routeTest.node.config.set('getFundsApi', 'foo.com')
 
-      axios.post = jest.fn().mockImplementationOnce(() => Promise.resolve({ data: { id: 5 } }))
+      axios.post = jest
+        .fn<typeof axios.post>()
+        .mockResolvedValueOnce({ data: { id: 5 } }) as typeof axios.post
 
       const response = await routeTest.client
         .request('faucet/getFunds', {
@@ -46,7 +48,7 @@ describe('Route faucet.getFunds', () => {
 
   describe('when too many faucet requests have been made', () => {
     it('throws an error', async () => {
-      axios.post = jest.fn().mockImplementationOnce(() => {
+      axios.post = jest.fn<typeof axios.post>().mockImplementationOnce(() => {
         throw {
           response: {
             data: {
@@ -55,7 +57,7 @@ describe('Route faucet.getFunds', () => {
             },
           },
         }
-      })
+      }) as typeof axios.post
       await expect(
         routeTest.client.faucet.getFunds({ account: accountName, email }),
       ).rejects.toThrow(RpcRequestError)
@@ -65,7 +67,9 @@ describe('Route faucet.getFunds', () => {
   describe('when the API request fails', () => {
     it('throws an error', async () => {
       const apiResponse = new Error('API failure') as AxiosError
-      axios.post = jest.fn().mockRejectedValueOnce(apiResponse)
+      axios.post = jest
+        .fn<typeof axios.post>()
+        .mockRejectedValueOnce(apiResponse) as typeof axios.post
       await expect(
         routeTest.client.faucet.getFunds({ account: accountName, email }),
       ).rejects.toThrow('API failure')

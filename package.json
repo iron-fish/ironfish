@@ -36,7 +36,6 @@
     "coverage:upload": "lerna exec '\"yarn codecov -t $CODECOV_TOKEN -f ./coverage/clover.xml -F $LERNA_PACKAGE_NAME -p $ROOT_PATH/ --disable=gcov\"'"
   },
   "devDependencies": {
-    "@types/jest": "29.5.8",
     "@typescript-eslint/eslint-plugin": "6.19.0",
     "@typescript-eslint/parser": "6.19.0",
     "codecov": "3.8.3",

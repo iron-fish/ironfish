@@ -86,7 +86,9 @@ describe('Telemetry', () => {
 
       const points = telemetry['points']
       expect(points).toHaveLength(currentPointsLength + 1)
-      expect(points[points.length - 1]).toMatchObject(mockMetric)
+      expect(points[points.length - 1]).toMatchObject(
+        mockMetric as unknown as Record<string, unknown>,
+      )
     })
   })
 

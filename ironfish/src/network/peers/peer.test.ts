@@ -358,7 +358,7 @@ describe('punish', () => {
       connections: { webSocket: connection },
     })
 
-    const onBannedHandler = jest.fn()
+    const onBannedHandler = jest.fn<(reason: string) => void>()
     peer.onBanned.on(onBannedHandler)
     peer.punish(BAN_SCORE.MAX, 'TESTING')
 

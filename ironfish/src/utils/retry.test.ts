@@ -10,7 +10,7 @@ describe('Retry', () => {
   jest.useFakeTimers({ legacyFakeTimers: false })
 
   it('immediately returns when there is no error', async () => {
-    const fn = jest.fn().mockResolvedValue(123)
+    const fn = jest.fn<() => Promise<unknown>>().mockResolvedValue(123)
     const retry = new Retry({
       delay: 1000,
       jitter: 0.2,
@@ -23,7 +23,7 @@ describe('Retry', () => {
 
   describe('without maxRetries', () => {
     it('keeps retrying until the function succeeds', async () => {
-      const fn = jest.fn()
+      const fn = jest.fn<() => Promise<unknown>>()
       const retry = new Retry({
         delay: 1000,
         jitter: 0.2,
@@ -53,7 +53,7 @@ describe('Retry', () => {
   describe('with maxRetries', () => {
     it('keeps retrying until the maximum number of retries is reached', async () => {
       const maxRetries = 0 //10
-      const fn = jest.fn()
+      const fn = jest.fn<() => Promise<unknown>>()
       const retry = new Retry({
         delay: 1000,
         jitter: 0.2,

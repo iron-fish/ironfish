@@ -167,9 +167,9 @@ describe('Database', () => {
 
     const clearRange = StorageUtils.getPrefixKeyRange(Buffer.from('2'))
 
-    expect(await testStore.getAllKeys()).toMatchObject(['1', '2a', '2b', '3'])
+    expect(await testStore.getAllKeys()).toEqual(['1', '2a', '2b', '3'])
     await testStore.clear(undefined, clearRange)
-    expect(await testStore.getAllKeys()).toMatchObject(['1', '3'])
+    expect(await testStore.getAllKeys()).toEqual(['1', '3'])
   })
 
   it('should clear store in a transaction', async () => {
@@ -205,9 +205,9 @@ describe('Database', () => {
 
       const clearRange = StorageUtils.getPrefixKeyRange(Buffer.from('2'))
 
-      await expect(testStore.getAllKeys(tx)).resolves.toMatchObject(['1', '2a', '2b', '3'])
+      await expect(testStore.getAllKeys(tx)).resolves.toEqual(['1', '2a', '2b', '3'])
       await testStore.clear(tx, clearRange)
-      await expect(testStore.getAllKeys(tx)).resolves.toMatchObject(['1', '3'])
+      await expect(testStore.getAllKeys(tx)).resolves.toEqual(['1', '3'])
     })
   })
 
@@ -617,8 +617,8 @@ describe('Database', () => {
       await db.metaStore.put('c', 1002)
       await db.metaStore.put('d', 1003)
 
-      await expect(db.metaStore.getAllKeys()).resolves.toMatchObject(['a', 'b', 'c', 'd'])
-      await expect(db.metaStore.getAllValues()).resolves.toMatchObject([1000, 1001, 1002, 1003])
+      await expect(db.metaStore.getAllKeys()).resolves.toEqual(['a', 'b', 'c', 'd'])
+      await expect(db.metaStore.getAllValues()).resolves.toEqual([1000, 1001, 1002, 1003])
     })
 
     it('should get all keys and values in a range', async () => {
@@ -635,14 +635,14 @@ describe('Database', () => {
           gte: Buffer.from('b'),
           lt: Buffer.from('d'),
         }),
-      ).resolves.toMatchObject([1001, 1002])
+      ).resolves.toEqual([1001, 1002])
 
       await expect(
         db.metaStore.getAllKeys(undefined, {
           gte: Buffer.from('b'),
           lt: Buffer.from('d'),
         }),
-      ).resolves.toMatchObject(['b', 'c'])
+      ).resolves.toEqual(['b', 'c'])
     })
 
     it('should encode and decode keys', async () => {
@@ -759,27 +759,27 @@ describe('Database', () => {
       await db.transaction(async (tx) => {
         await expect(
           db.metaStore.getAllKeys(tx, undefined, { ordered: true }),
-        ).resolves.toMatchObject(['a', 'b', 'd', 'e'])
+        ).resolves.toEqual(['a', 'b', 'd', 'e'])
         await expect(
           db.metaStore.getAllValues(tx, undefined, { ordered: true }),
-        ).resolves.toMatchObject([1001, 1003, 1002, 1000])
+        ).resolves.toEqual([1001, 1003, 1002, 1000])
 
         await db.metaStore.put('a', 1004, tx)
         await db.metaStore.put('c', 999, tx)
 
         await expect(
           db.metaStore.getAllKeys(tx, undefined, { ordered: true }),
-        ).resolves.toMatchObject(['a', 'b', 'c', 'd', 'e'])
+        ).resolves.toEqual(['a', 'b', 'c', 'd', 'e'])
         await expect(
           db.metaStore.getAllValues(tx, undefined, { ordered: true }),
-        ).resolves.toMatchObject([1004, 1003, 999, 1002, 1000])
+        ).resolves.toEqual([1004, 1003, 999, 1002, 1000])
 
         await expect(
           db.metaStore.getAllKeys(tx, undefined, { ordered: true, reverse: true }),
-        ).resolves.toMatchObject(['e', 'd', 'c', 'b', 'a'])
+        ).resolves.toEqual(['e', 'd', 'c', 'b', 'a'])
         await expect(
           db.metaStore.getAllValues(tx, undefined, { ordered: true, reverse: true }),
-        ).resolves.toMatchObject([1000, 1002, 999, 1003, 1004])
+        ).resolves.toEqual([1000, 1002, 999, 1003, 1004])
       })
     })
   })

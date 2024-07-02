@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import type { Mock } from 'jest-mock'
 import { ChainProcessor } from './chainProcessor'
 import { BlockHeader } from './primitives/blockheader'
 import { createNodeTest, useMinerBlockFixture } from './testUtilities'
@@ -32,7 +33,7 @@ describe('ChainProcessor', () => {
       head: chain.genesis.hash,
     })
 
-    const onEvent: jest.Mock<void, [BlockHeader, 'add' | 'remove']> = jest.fn()
+    const onEvent: Mock<(header: BlockHeader, event: 'add' | 'remove') => void> = jest.fn()
     processor.onAdd.on((block) => onEvent(block, 'add'))
     processor.onRemove.on((block) => onEvent(block, 'remove'))
 
@@ -82,7 +83,7 @@ describe('ChainProcessor', () => {
       head: chain.genesis.hash,
     })
 
-    const onEvent: jest.Mock<void, [BlockHeader, 'add' | 'remove']> = jest.fn()
+    const onEvent: Mock<(header: BlockHeader, event: 'add' | 'remove') => void> = jest.fn()
     processor.onAdd.on((block) => onEvent(block, 'add'))
     processor.onRemove.on((block) => onEvent(block, 'remove'))
 
@@ -149,7 +150,7 @@ describe('ChainProcessor', () => {
 
     expect(chain.head.hash).toEqual(block2.header.hash)
 
-    const onEvent: jest.Mock<void, [BlockHeader, 'add' | 'remove']> = jest.fn()
+    const onEvent: Mock<(header: BlockHeader, event: 'add' | 'remove') => void> = jest.fn()
 
     const processor = new ChainProcessor({ chain, head: null })
     processor.onAdd.on((block) => onEvent(block, 'add'))
@@ -178,7 +179,7 @@ describe('ChainProcessor', () => {
     await expect(chain).toAddBlock(block)
     expect(chain.head.hash).toEqual(block.header.hash)
 
-    const onEvent: jest.Mock<void, [BlockHeader, 'add' | 'remove']> = jest.fn()
+    const onEvent: Mock<(header: BlockHeader, event: 'add' | 'remove') => void> = jest.fn()
 
     const processor = new ChainProcessor({ chain, head: chain.genesis.hash })
     processor.onAdd.on((block) => onEvent(block, 'add'))

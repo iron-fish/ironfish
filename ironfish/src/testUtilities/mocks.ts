@@ -30,7 +30,7 @@ export function mockWallet(): any {
 
 export function mockVerifier(): any {
   return {
-    verifyNewTransaction: jest.fn().mockResolvedValue({}),
+    verifyNewTransaction: jest.fn<(...args: any[]) => Promise<object>>().mockResolvedValue({}),
   }
 }
 
@@ -107,6 +107,6 @@ export function mockWorkerPool(): any {
 
 export function mockConfig(values: Record<string, any>): any {
   return {
-    get: jest.fn((x) => values[x]),
+    get: jest.fn((x: string) => values[x]),
   }
 }

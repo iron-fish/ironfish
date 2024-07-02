@@ -65,9 +65,7 @@ describe('SubmitTelemetryResponse', () => {
 describe('SubmitTelemetryTask', () => {
   describe('execute', () => {
     it('submits points to the API', async () => {
-      const submitTelemetryPointsToApi = jest
-        .spyOn(axios, 'post')
-        .mockImplementationOnce(jest.fn())
+      const submitTelemetryPointsToApi = jest.spyOn(axios, 'post').mockResolvedValueOnce(null)
       const mockMetric: Metric = {
         measurement: 'node',
         fields: [

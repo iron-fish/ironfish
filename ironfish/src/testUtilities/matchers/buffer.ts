@@ -2,13 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import type { SyncExpectationResult } from 'expect'
 import { diff } from 'jest-diff'
 import { makeResult } from './utils'
 
 function toEqualBuffer(
   self: Buffer | null | undefined,
   other: Buffer | null | undefined,
-): jest.CustomMatcherResult {
+): SyncExpectationResult {
   const pass = self === other || (!self && !other) || (self && other && self.equals(other))
 
   if (!pass) {
@@ -28,10 +29,9 @@ function toEqualBuffer(
 
 expect.extend({ toEqualBuffer: toEqualBuffer })
 
-declare global {
-  namespace jest {
-    interface Matchers<R> {
-      toEqualBuffer(other: Buffer | null | undefined): R
-    }
+declare module 'expect' {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  interface Matchers<R extends void | Promise<void>, T = unknown> {
+    toEqualBuffer(other: Buffer | null | undefined): R
   }
 }

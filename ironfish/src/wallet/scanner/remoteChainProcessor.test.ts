@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import type { Mock } from 'jest-mock'
 import { BlockHeader } from '../../primitives'
 import { ALL_API_NAMESPACES, RpcMemoryClient } from '../../rpc'
 import { createNodeTest, useMinerBlockFixture } from '../../testUtilities'
@@ -46,7 +47,7 @@ describe('RemoteChainProcessor', () => {
       maxQueueSize: 10,
     })
 
-    const onEvent: jest.Mock<void, [BlockHeader, 'add' | 'remove']> = jest.fn()
+    const onEvent: Mock<(header: BlockHeader, event: 'add' | 'remove') => void> = jest.fn()
     processor.onAdd.on((block) => onEvent(block.header, 'add'))
     processor.onRemove.on((block) => onEvent(block.header, 'remove'))
 
@@ -101,7 +102,7 @@ describe('RemoteChainProcessor', () => {
       maxQueueSize: 10,
     })
 
-    const onEvent: jest.Mock<void, [BlockHeader, 'add' | 'remove']> = jest.fn()
+    const onEvent: Mock<(header: BlockHeader, event: 'add' | 'remove') => void> = jest.fn()
     processor.onAdd.on((block) => onEvent(block.header, 'add'))
     processor.onRemove.on((block) => onEvent(block.header, 'remove'))
 

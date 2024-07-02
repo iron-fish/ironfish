@@ -50,10 +50,7 @@ describe('BackgroundNoteDecryptor', () => {
 
     decryptor.start()
 
-    const callback = jest.fn<
-      ReturnType<DecryptNotesFromTransactionsCallback>,
-      jest.ArgumentsOf<DecryptNotesFromTransactionsCallback>
-    >()
+    const callback = jest.fn<DecryptNotesFromTransactionsCallback>()
 
     for (const block of blocks) {
       await decryptor.decryptNotesFromBlock(
