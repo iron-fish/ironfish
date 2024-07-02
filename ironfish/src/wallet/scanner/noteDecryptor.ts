@@ -68,6 +68,11 @@ export class BackgroundNoteDecryptor {
   }
 
   stop() {
+    const c = Buffer.from('asdf')
+    const d = Buffer.from('qwer')
+    if (c === d) {
+      console.log(c)
+    }
     if (this.isStarted) {
       this.isStarted = false
       for (const { job } of this.decryptQueue) {

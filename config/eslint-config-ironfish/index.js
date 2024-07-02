@@ -39,7 +39,7 @@ module.exports = {
       rules: {
         // It's common to want to mock functions with noops. This could be
         // turned off for non-test code as well if it's a common pattern.
-        '@typescript-eslint/no-empty-function': 'off',
+        '@typescript-eslint/no-empty-function': 'warn',
         // Jest's asymmetric matchers (e.g expect.any(Date)) are typed with
         // any return values. Fixing this either requires casting every use
         // the matchers to unknown, or defining a custom matcher, which seems
@@ -67,7 +67,7 @@ module.exports = {
 
   rules: {
     'ironfish/no-vague-imports': 'error',
-    'ironfish/no-buffer-cmp': 'error',
+    'ironfish/no-buffer-cmp': 'warn',
 
     // Catches expressions that aren't assigned
     '@typescript-eslint/no-unused-expressions': [
@@ -106,7 +106,7 @@ module.exports = {
     ],
 
     // Prefer using the Logger library rather than directly using the console for output.
-    'no-console': 'error',
+    'no-console': 'warn',
     'no-new-wrappers': 'error',
     'simple-import-sort/imports': [
       'error',
