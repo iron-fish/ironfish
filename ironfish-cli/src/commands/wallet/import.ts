@@ -1,11 +1,17 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { RPC_ERROR_CODES, RpcRequestError } from '@ironfish/sdk'
+import {
+  AccountFormat,
+  encodeAccountImport,
+  RPC_ERROR_CODES,
+  RpcRequestError,
+} from '@ironfish/sdk'
 import { Args, Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { importFile, importPipe, longPrompt } from '../../utils/input'
+import { Ledger } from '../../utils/ledger'
 
 export class ImportCommand extends IronfishCommand {
   static description = `Import an account`
@@ -26,6 +32,11 @@ export class ImportCommand extends IronfishCommand {
     createdAt: Flags.integer({
       description: 'Block sequence to begin scanning from for the imported account',
     }),
+    ledger: Flags.boolean({
+      description: 'import a view-only account from a ledger device',
+      default: false,
+      exclusive: ['path'],
+    }),
   }
 
   static args = {
@@ -43,9 +54,16 @@ export class ImportCommand extends IronfishCommand {
 
     let account: string
 
-    if (blob && blob.length !== 0 && flags.path && flags.path.length !== 0) {
+    if (
+      blob &&
+      blob.length !== 0 &&
+      ((flags.path && flags.path.length !== 0) || flags.ledger)
+    ) {
       this.error(
-        `Your command includes an unexpected argument. Please pass either --path or the output of wallet:export.`,
+        `Your command includes an unexpected argument. Please pass only 1 of the following: 
+    1. the output of wallet:export OR
+    2. --path to import an account from a file OR
+    3. --ledger to import an account from a ledger device`,
       )
     }
 
@@ -59,6 +77,8 @@ export class ImportCommand extends IronfishCommand {
       })
     } else if (!process.stdin.isTTY) {
       account = await importPipe()
+    } else if (flags.ledger) {
+      account = await this.importLedger()
     } else {
       ux.error(`Invalid import type`)
     }
@@ -128,5 +148,12 @@ export class ImportCommand extends IronfishCommand {
     } else {
       this.log(`Run "ironfish wallet:use ${name}" to set the account as default`)
     }
+  }
+
+  async importLedger(): Promise<string> {
+    const ledger = new Ledger(this.logger)
+    await ledger.connect()
+    const account = await ledger.importAccount()
+    return encodeAccountImport(account, AccountFormat.Base64Json)
   }
 }

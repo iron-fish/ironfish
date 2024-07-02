@@ -70,6 +70,8 @@
     "axios": "1.7.2",
     "bech32": "2.0.0",
     "blessed": "0.1.81",
+    "@ledgerhq/hw-transport-node-hid": "6.28.6",
+    "@zondax/ledger-ironfish": "0.1.0",
     "blru": "0.1.6",
     "buffer-map": "0.0.7",
     "chalk": "4.1.2",
