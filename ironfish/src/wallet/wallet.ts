@@ -92,7 +92,7 @@ export class Wallet {
   readonly onAccountImported = new Event<[account: Account]>()
   readonly onAccountRemoved = new Event<[account: Account]>()
 
-  private locked: boolean
+  locked: boolean
 
   protected readonly encryptedAccounts = new Map<string, EncryptedAccount>()
   protected accounts = new Map<string, Account>()
