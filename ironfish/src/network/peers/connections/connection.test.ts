@@ -71,7 +71,9 @@ describe('Connection', () => {
         features: defaultFeatures(),
       })
 
-      const _sendSpy = jest.spyOn(connection, '_send').mockImplementationOnce(jest.fn())
+      const _sendSpy = jest
+        .spyOn(connection, '_send')
+        .mockImplementationOnce(jest.fn<(data: Buffer) => boolean>())
 
       expect(connection.send(message)).toBe(false)
       expect(_sendSpy).not.toHaveBeenCalled()

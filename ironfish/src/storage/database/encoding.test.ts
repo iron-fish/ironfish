@@ -109,38 +109,38 @@ describe('Encoding', () => {
       await expect(prefixStore.get(['b', 'b'])).resolves.toBe('b')
 
       // Iteration operations
-      await expect(prefixStore.getAllValues()).resolves.toMatchObject(['a', 'b'])
-      await expect(prefixStore.getAllKeys()).resolves.toMatchObject([
+      await expect(prefixStore.getAllValues()).resolves.toEqual(['a', 'b'])
+      await expect(prefixStore.getAllKeys()).resolves.toEqual([
         ['a', 'a'],
         ['b', 'b'],
       ])
-      await expect(prefixStore.getAllValues(undefined, keyRangeA)).resolves.toMatchObject(['a'])
-      await expect(prefixStore.getAllValues(undefined, keyRangeB)).resolves.toMatchObject(['b'])
+      await expect(prefixStore.getAllValues(undefined, keyRangeA)).resolves.toEqual(['a'])
+      await expect(prefixStore.getAllValues(undefined, keyRangeB)).resolves.toEqual(['b'])
 
       await prefixStore.clear(undefined, keyRangeA)
 
       await expect(prefixStore.get(['a', 'a'])).resolves.toBe(undefined)
       await expect(prefixStore.get(['b', 'b'])).resolves.toBe('b')
-      await expect(prefixStore.getAllValues(undefined, keyRangeA)).resolves.toMatchObject([])
-      await expect(prefixStore.getAllValues(undefined, keyRangeB)).resolves.toMatchObject(['b'])
+      await expect(prefixStore.getAllValues(undefined, keyRangeA)).resolves.toEqual([])
+      await expect(prefixStore.getAllValues(undefined, keyRangeB)).resolves.toEqual(['b'])
 
       await prefixStore.clear(undefined, keyRangeB)
 
       // Now try transactions
       await db.transaction(async (tx) => {
         await prefixStore.put(['a', 'a'], 'a', tx)
-        await expect(prefixStore.getAllValues(tx, keyRangeA)).resolves.toMatchObject(['a'])
+        await expect(prefixStore.getAllValues(tx, keyRangeA)).resolves.toEqual(['a'])
         await prefixStore.clear(tx, keyRangeA)
-        await expect(prefixStore.getAllValues(tx, keyRangeA)).resolves.toMatchObject([])
+        await expect(prefixStore.getAllValues(tx, keyRangeA)).resolves.toEqual([])
 
         await prefixStore.put(['b', 'b'], 'b', tx)
-        await expect(prefixStore.getAllValues(tx, keyRangeB)).resolves.toMatchObject(['b'])
+        await expect(prefixStore.getAllValues(tx, keyRangeB)).resolves.toEqual(['b'])
         await prefixStore.clear(tx, keyRangeB)
-        await expect(prefixStore.getAllValues(tx, keyRangeB)).resolves.toMatchObject([])
+        await expect(prefixStore.getAllValues(tx, keyRangeB)).resolves.toEqual([])
       })
 
-      await expect(prefixStore.getAllValues(undefined, keyRangeA)).resolves.toMatchObject([])
-      await expect(prefixStore.getAllValues(undefined, keyRangeB)).resolves.toMatchObject([])
+      await expect(prefixStore.getAllValues(undefined, keyRangeA)).resolves.toEqual([])
+      await expect(prefixStore.getAllValues(undefined, keyRangeB)).resolves.toEqual([])
     })
 
     it('should error with incorrect prefix size', async () => {

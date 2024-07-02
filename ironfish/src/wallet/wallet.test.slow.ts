@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import type { SpiedFunction } from 'jest-mock'
 import { Asset, ASSET_ID_LENGTH, generateKey, multisig } from '@ironfish/rust-nodejs'
 import { Assert } from '../assert'
 import { Transaction } from '../primitives'
@@ -20,8 +21,8 @@ import { AssertMultisigSigner } from '../wallet'
 
 describe('Wallet', () => {
   const nodeTest = createNodeTest()
-  let targetMeetsSpy: jest.SpyInstance
-  let targetSpy: jest.SpyInstance
+  let targetMeetsSpy: SpiedFunction<typeof Target.meets>
+  let targetSpy: SpiedFunction<typeof Target.calculateTarget>
 
   beforeAll(async () => {
     targetMeetsSpy = jest.spyOn(Target, 'meets').mockImplementation(() => true)

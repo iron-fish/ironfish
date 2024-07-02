@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import type { SpiedFunction } from 'jest-mock'
 import { Assert } from '../../assert'
 import { Identity, isIdentity } from '../identity'
 import { GetBlockHeadersResponse } from '../messages/getBlockHeaders'
@@ -91,7 +92,7 @@ export const getConnectedPeersWithSpies = (
   count: number,
 ): {
   peer: Peer
-  sendSpy: jest.SpyInstance<Connection | null, [message: NetworkMessage]>
+  sendSpy: SpiedFunction<(message: NetworkMessage) => Connection | null>
 }[] => {
   return [...Array<null>(count)].map((_) => {
     const { peer } = getConnectedPeer(peerManager)

@@ -9,6 +9,7 @@ import { Assert } from '../../assert'
 import { canInitiateWebRTC, privateIdentityToIdentity } from '../identity'
 import { DisconnectingMessage, DisconnectingReason } from '../messages/disconnecting'
 import { IdentifyMessage } from '../messages/identify'
+import { NetworkMessage } from '../messages/networkMessage'
 import { PeerListMessage } from '../messages/peerList'
 import { PeerListRequestMessage } from '../messages/peerListRequest'
 import { SignalMessage } from '../messages/signal'
@@ -30,12 +31,13 @@ import { NetworkMessageType } from '../types'
 import { formatWebSocketAddress } from '../utils'
 import { VERSION_PROTOCOL, VERSION_PROTOCOL_MIN } from '../version'
 import {
+  Connection,
   ConnectionDirection,
   ConnectionType,
   WebRtcConnection,
   WebSocketConnection,
 } from './connections'
-import { BAN_SCORE } from './peer'
+import { BAN_SCORE, Peer } from './peer'
 import { defaultFeatures } from './peerFeatures'
 import { PeerManager } from './peerManager'
 
@@ -495,7 +497,7 @@ describe('PeerManager', () => {
 
       // Create the peer to broker the connection through
       const { peer: brokeringPeer } = getConnectedPeer(peers)
-      const brokerPeerSendMock = jest.fn()
+      const brokerPeerSendMock = jest.fn<(message: NetworkMessage) => Connection | null>()
       brokeringPeer.send = brokerPeerSendMock
 
       // Create the peer to connect to WebRTC through
@@ -733,7 +735,7 @@ describe('PeerManager', () => {
 
   it('Emits onConnectedPeersChanged when a peer enters CONNECTED or DISCONNECTED', () => {
     const pm = new PeerManager(mockLocalPeer(), mockPeerStore())
-    const onConnectedPeersChangedMock = jest.fn()
+    const onConnectedPeersChangedMock = jest.fn<() => void>()
     pm.onConnectedPeersChanged.on(onConnectedPeersChangedMock)
 
     const { peer: connecting } = getConnectingPeer(pm)
@@ -1118,7 +1120,8 @@ describe('PeerManager', () => {
         mockLocalPeer({ identity: webRtcLocalIdentity() }),
         mockPeerStore(),
       )
-      const initWebRtcConnectionMock = jest.fn()
+      const initWebRtcConnectionMock =
+        jest.fn<(peer: Peer, initiator: boolean) => WebRtcConnection>()
       pm['initWebRtcConnection'] = initWebRtcConnectionMock
 
       const { peer, connection } = getConnectedPeer(pm, webRtcCannotInitiateIdentity())
@@ -1142,7 +1145,8 @@ describe('PeerManager', () => {
         mockLocalPeer({ identity: webRtcLocalIdentity() }),
         mockPeerStore(),
       )
-      const initWebRtcConnectionMock = jest.fn()
+      const initWebRtcConnectionMock =
+        jest.fn<(peer: Peer, initiator: boolean) => WebRtcConnection>()
       pm['initWebRtcConnection'] = initWebRtcConnectionMock
 
       const { peer, connection } = getConnectedPeer(pm, webRtcCanInitiateIdentity())
@@ -1184,7 +1188,7 @@ describe('PeerManager', () => {
       peer1.onMessage.emit(message, peer1Connection)
 
       const reply = new DisconnectingMessage({
-        disconnectUntil: expect.any(Number),
+        disconnectUntil: expect.any(Number) as unknown as number,
         reason: DisconnectingReason.Congested,
         sourceIdentity: pm.localPeer.publicIdentity,
         destinationIdentity: webRtcCanInitiateIdentity(),
@@ -1286,7 +1290,7 @@ describe('PeerManager', () => {
       peer1.onMessage.emit(message, peer1Connection)
 
       const reply = new DisconnectingMessage({
-        disconnectUntil: expect.any(Number),
+        disconnectUntil: expect.any(Number) as unknown as number,
         reason: DisconnectingReason.Congested,
         sourceIdentity: pm.localPeer.publicIdentity,
         destinationIdentity: webRtcCannotInitiateIdentity(),

@@ -277,7 +277,9 @@ describe('MemPool', () => {
     describe('with an expired sequence', () => {
       const nodeTest = createNodeTest()
 
-      afterEach(() => jest.restoreAllMocks())
+      afterEach(() => {
+        jest.restoreAllMocks()
+      })
 
       it('returns false', async () => {
         const { node } = nodeTest

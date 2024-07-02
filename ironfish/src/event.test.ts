@@ -44,7 +44,7 @@ describe('Event', () => {
   it('should remove once', () => {
     const event = new Event<[]>()
 
-    const mock = jest.fn()
+    const mock = jest.fn<() => void>()
 
     event.once(mock)
 

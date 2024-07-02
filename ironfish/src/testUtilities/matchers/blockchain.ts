@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import type { AsyncExpectationResult, SyncExpectationResult } from 'expect'
 import { diff } from 'jest-diff'
 import { Blockchain } from '../../blockchain'
 import { Block } from '../../primitives/block'
@@ -12,7 +13,7 @@ import { makeError, makeResult } from './utils'
 function toEqualHash(
   self: BlockHash | null | undefined,
   other: BlockHash | null | undefined,
-): jest.CustomMatcherResult {
+): SyncExpectationResult {
   let error: string | null = null
 
   if (!self || !other) {
@@ -26,7 +27,7 @@ function toEqualHash(
   return makeError(error, `Expected two serde elements to match, but they didn't`)
 }
 
-function toEqualNullifier(self: Nullifier, other: Nullifier): jest.CustomMatcherResult {
+function toEqualNullifier(self: Nullifier, other: Nullifier): SyncExpectationResult {
   let error: string | null = null
 
   if (!self || !other) {
@@ -40,7 +41,7 @@ function toEqualNullifier(self: Nullifier, other: Nullifier): jest.CustomMatcher
   return makeError(error, `Expected two serde elements to match, but they didn't`)
 }
 
-async function toAddBlock(self: Blockchain, other: Block): Promise<jest.CustomMatcherResult> {
+async function toAddBlock(self: Blockchain, other: Block): AsyncExpectationResult {
   const result = await self.addBlock(other)
 
   if (!result.isAdded) {
@@ -50,10 +51,7 @@ async function toAddBlock(self: Blockchain, other: Block): Promise<jest.CustomMa
   return makeResult(true, `Expected to not add block at ${String(other.header.sequence)}`)
 }
 
-async function toAddDoubleSpendBlock(
-  self: Blockchain,
-  other: Block,
-): Promise<jest.CustomMatcherResult> {
+async function toAddDoubleSpendBlock(self: Blockchain, other: Block): AsyncExpectationResult {
   // Mock data stores to allow creation of a double spend chain
   const transactionHashMock = jest
     .spyOn(self, 'transactionHashHasBlock')
@@ -83,13 +81,12 @@ expect.extend({
   toAddDoubleSpendBlock: toAddDoubleSpendBlock,
 })
 
-declare global {
-  namespace jest {
-    interface Matchers<R> {
-      toEqualNullifier(other: Nullifier): R
-      toEqualHash(other: BlockHash | null | undefined): R
-      toAddBlock(block: Block): Promise<R>
-      toAddDoubleSpendBlock(block: Block): Promise<R>
-    }
+declare module 'expect' {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  interface Matchers<R extends void | Promise<void>, T = unknown> {
+    toEqualNullifier(other: Nullifier): R
+    toEqualHash(other: BlockHash | null | undefined): R
+    toAddBlock(block: Block): Promise<R>
+    toAddDoubleSpendBlock(block: Block): Promise<R>
   }
 }

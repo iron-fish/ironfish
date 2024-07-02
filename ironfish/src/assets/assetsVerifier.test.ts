@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import type { SpyInstance } from 'jest-mock'
 import nock from 'nock'
 import { VerifiedAssetsCacheStore } from '../fileStores/verifiedAssets'
 import { NodeFileProvider } from '../fileSystems'
@@ -35,7 +36,7 @@ const assetData3 = {
 describe('AssetsVerifier', () => {
   jest.useFakeTimers()
 
-  const waitForRefreshToFinish = async (refreshSpy: jest.SpyInstance) => {
+  const waitForRefreshToFinish = async (refreshSpy: SpyInstance) => {
     for (const result of refreshSpy.mock.results) {
       await result.value
     }

@@ -111,7 +111,7 @@ describe('PeerNetwork', () => {
 
       expect(peerNetwork.isReady).toBe(false)
 
-      const readyChanged = jest.fn()
+      const readyChanged = jest.fn<(ready: boolean) => void>()
       peerNetwork.onIsReadyChanged.on(readyChanged)
 
       peerNetwork.start()
@@ -893,7 +893,8 @@ describe('PeerNetwork', () => {
         // Don't sync incoming transactions to wallet since its done async and will
         // attempt to update the wallet after the test has finished
         peerNetwork.onTransactionGossipReceived.clear()
-        const onTransactionGossipReceivedSpy = jest.fn()
+        const onTransactionGossipReceivedSpy =
+          jest.fn<(transaction: Transaction, valid: boolean) => void>()
         peerNetwork.onTransactionGossipReceived.on(onTransactionGossipReceivedSpy)
 
         await peerNetwork.peerManager.onMessage.emitAsync(
@@ -1161,7 +1162,8 @@ describe('PeerNetwork', () => {
         // Don't sync incoming transactions to wallet since its done async and will
         // attempt to update the wallet after the test has finished
         peerNetwork.onTransactionGossipReceived.clear()
-        const onTransactionGossipReceivedSpy = jest.fn()
+        const onTransactionGossipReceivedSpy =
+          jest.fn<(transaction: Transaction, valid: boolean) => void>()
         peerNetwork.onTransactionGossipReceived.on(onTransactionGossipReceivedSpy)
 
         await peerNetwork.peerManager.onMessage.emitAsync(

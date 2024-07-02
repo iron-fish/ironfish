@@ -2059,7 +2059,7 @@ describe('Wallet', () => {
       ).toEqual(AssetStatus.UNCONFIRMED)
 
       // Remove the head and check status
-      jest.spyOn(account, 'getHead').mockResolvedValueOnce(Promise.resolve(null))
+      jest.spyOn(account, 'getHead').mockResolvedValueOnce(null)
       expect(await node.wallet.getAssetStatus(account, assetValue)).toEqual(AssetStatus.UNKNOWN)
     })
   })
