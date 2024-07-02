@@ -68,6 +68,7 @@ module.exports = {
   rules: {
     'ironfish/no-vague-imports': 'error',
     'ironfish/no-buffer-cmp': 'error',
+    'ironfish/no-promise-race': 'error',
 
     // Catches expressions that aren't assigned
     '@typescript-eslint/no-unused-expressions': [

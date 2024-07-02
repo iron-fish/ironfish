@@ -42,4 +42,19 @@ module.exports.rules = {
       };
     },
   },
+  "no-promise-race": {
+    create(context) {
+      return {
+        MemberExpression: function (node) {
+          if (node.object.name === 'Promise' && node.property.name === 'race') {
+            context.report({
+              node,
+              message:
+                "Promise.race leaks memory. You can work around it by using PromiseUtils.split to pass resolve/reject to other Promises. See https://github.com/nodejs/node/issues/17469#issuecomment-685216777 for more details.",
+            });
+          }
+        },
+      };
+    },
+  },
 };

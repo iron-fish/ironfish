@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { AsyncQueue } from './asyncQueue'
+import { PromiseUtils } from './promise'
 
 describe('AsyncQueue', () => {
   it('yields items in the same order as they were added', async () => {
@@ -81,7 +82,11 @@ describe('AsyncQueue', () => {
         () => 'otherPromise',
       )
 
-      const resolved = await Promise.race([pushPromise, otherPromise])
+      const [promise, res, rej] = PromiseUtils.split()
+      pushPromise.then(res, rej)
+      otherPromise.then(res, rej)
+
+      const resolved = await promise
       expect(resolved).toBe('otherPromise')
 
       // After popping an element, the promise returned by push should resolve
@@ -101,7 +106,11 @@ describe('AsyncQueue', () => {
         () => 'otherPromise',
       )
 
-      const resolved = await Promise.race([popPromise, otherPromise])
+      const [promise, res, rej] = PromiseUtils.split()
+      popPromise.then(res, rej)
+      otherPromise.then(res, rej)
+
+      const resolved = await promise
       expect(resolved).toBe('otherPromise')
 
       // After pushing a new element, the promise returned by pop should
