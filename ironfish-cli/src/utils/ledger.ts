@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Assert, createRootLogger, Logger } from '@ironfish/sdk'
+import { createRootLogger, Logger } from '@ironfish/sdk'
 import { AccountImport } from '@ironfish/sdk/src/wallet/exporter'
 import TransportNodeHid from '@ledgerhq/hw-transport-node-hid'
 import IronfishApp, {
@@ -139,14 +139,12 @@ export class Ledger {
 
     const response: ResponseSign = await this.app.sign(this.PATH, buffer)
 
-    if (!response.signatures) {
+    if (!response.signature) {
       this.logger.debug(`No signatures returned.`)
       this.logger.debug(response.returnCode.toString())
       throw new Error(response.errorMessage)
     }
 
-    Assert.isEqual(response.signatures.length, 1)
-
-    return response.signatures[0]
+    return response.signature
   }
 }
