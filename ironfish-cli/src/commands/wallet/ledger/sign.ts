@@ -77,6 +77,8 @@ export class LedgerSign extends IronfishCommand {
 
     const signature = (await ledger.sign(unsignedTransaction)).toString('hex')
 
+    this.log(`Signature: ${signature}`)
+
     const addSignatureResponse = await client.wallet.addSignature({
       unsignedTransaction,
       signature,
