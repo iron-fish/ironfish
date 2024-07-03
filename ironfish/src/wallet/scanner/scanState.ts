@@ -51,6 +51,7 @@ export class ScanState {
   }
 
   signalComplete(): void {
+    this.speed.stop()
     this.runningResolve()
   }
 
