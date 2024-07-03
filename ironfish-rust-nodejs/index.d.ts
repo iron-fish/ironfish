@@ -86,6 +86,7 @@ export function isValidPublicAddress(hexAddress: string): boolean
  * sandboxed environment.
  */
 export function getCpuCount(): CpuCount
+export function generateRandomizedPublicKey(viewKeyString: string, publicKeyRandomnessString: string): string
 export class FishHashContext {
   constructor(full: boolean)
   prebuildDataset(threads: number): void
@@ -226,6 +227,7 @@ export type NativeUnsignedTransaction = UnsignedTransaction
 export class UnsignedTransaction {
   constructor(jsBytes: Buffer)
   serialize(): Buffer
+  randomizedPublicKey(): string
   publicKeyRandomness(): string
   hash(): Buffer
   signingPackage(nativeIdentiferCommitments: Array<string>): string

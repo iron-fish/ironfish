@@ -7,6 +7,8 @@ import type {
   AcceptTransactionResponse,
   AddPeerRequest,
   AddPeerResponse,
+  AddSignatureRequest,
+  AddSignatureResponse,
   AddTransactionRequest,
   AddTransactionResponse,
   AggregateSignatureSharesRequest,
@@ -161,6 +163,8 @@ import type {
   SetScanningResponse,
   ShowChainRequest,
   ShowChainResponse,
+  SignTransactionRequest,
+  SignTransactionResponse,
   StopNodeResponse,
   SubmitBlockRequest,
   SubmitBlockResponse,
@@ -172,7 +176,6 @@ import type {
   UseAccountResponse,
 } from '../routes'
 import { ApiNamespace } from '../routes/namespaces'
-import { AddSignatureRequest, AddSignatureResponse } from '../routes/wallet/addSignature'
 
 export abstract class RpcClient {
   abstract request<TEnd = unknown, TStream = unknown>(
@@ -570,6 +573,15 @@ export abstract class RpcClient {
     ): Promise<RpcResponseEnded<CreateTransactionResponse>> => {
       return this.request<CreateTransactionResponse>(
         `${ApiNamespace.wallet}/createTransaction`,
+        params,
+      ).waitForEnd()
+    },
+
+    signTransaction: (
+      params: SignTransactionRequest,
+    ): Promise<RpcResponseEnded<SignTransactionResponse>> => {
+      return this.request<SignTransactionResponse>(
+        `${ApiNamespace.wallet}/signTransaction`,
         params,
       ).waitForEnd()
     },

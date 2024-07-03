@@ -321,6 +321,10 @@ impl UnsignedTransaction {
         self.public_key_randomness
     }
 
+    pub fn randomized_public_key_bytes(&self) -> [u8; 32] {
+        self.randomized_public_key.0.to_bytes()
+    }
+
     pub fn outputs(&self) -> &Vec<OutputDescription> {
         &self.outputs
     }
