@@ -12,11 +12,11 @@ import {
   makeGenesisBlock,
   Target,
 } from '@ironfish/sdk'
-import { Flags, ux } from '@oclif/core'
+import { Flags } from '@oclif/core'
 import fs from 'fs/promises'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
-import { confirmOrQuit } from '../../ui'
+import { confirmOrQuit, table, TableColumns } from '../../ui'
 
 export default class GenesisBlockCommand extends IronfishCommand {
   static description = 'Create and serialize a genesis block'
@@ -135,7 +135,7 @@ export default class GenesisBlockCommand extends IronfishCommand {
     this.log(`Genesis block will be created with the following values:`)
     this.log(`\nDifficulty: ${target.toDifficulty()}\n`)
     this.log(`Allocations:`)
-    const columns: ux.Table.table.Columns<GenesisBlockAllocation> = {
+    const columns: TableColumns<GenesisBlockAllocation> = {
       identity: {
         header: 'ADDRESS',
         get: (row: GenesisBlockAllocation) => row.publicAddress,
@@ -152,7 +152,7 @@ export default class GenesisBlockCommand extends IronfishCommand {
       },
     }
 
-    ux.table(info.allocations, columns, {
+    table(info.allocations, columns, {
       printLine: this.log.bind(this),
     })
 

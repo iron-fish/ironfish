@@ -16,7 +16,7 @@ import { Flags, ux } from '@oclif/core'
 import inquirer from 'inquirer'
 import { IronfishCommand } from '../../../command'
 import { HexFlag, IronFlag, RemoteFlags } from '../../../flags'
-import { confirmOrQuit } from '../../../ui'
+import { confirmOrQuit, table } from '../../../ui'
 import { getAssetsByIDs, selectAsset } from '../../../utils'
 import { getExplorer } from '../../../utils/explorer'
 import { selectFee } from '../../../utils/fees'
@@ -452,7 +452,7 @@ export class CombineNotesCommand extends IronfishCommand {
 
     if (resultingNotes) {
       this.log('')
-      ux.table(
+      table(
         resultingNotes,
         {
           hash: {

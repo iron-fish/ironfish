@@ -1,10 +1,10 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { ux } from '@oclif/core'
 import chalk from 'chalk'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
+import { table } from '../../ui'
 import { TableFlags } from '../../utils/table'
 
 export class StatusCommand extends IronfishCommand {
@@ -22,17 +22,20 @@ export class StatusCommand extends IronfishCommand {
 
     const response = await client.wallet.getAccountsStatus()
 
-    ux.table(
+    table(
       response.content.accounts,
       {
         name: {
+          get: (row) => row.name,
           header: 'Account Name',
           minWidth: 11,
         },
         id: {
+          get: (row) => row.id,
           header: 'Account ID',
         },
         viewOnly: {
+          get: (row) => row.viewOnly,
           header: 'View Only',
         },
         headHash: {

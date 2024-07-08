@@ -2,10 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { BannedPeerResponse, GetBannedPeersResponse, PromiseUtils } from '@ironfish/sdk'
-import { Flags, ux } from '@oclif/core'
+import { Flags } from '@oclif/core'
 import blessed from 'blessed'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
+import { table, TableColumns } from '../../ui'
 import { TableFlags } from '../../utils/table'
 
 const { sort, ...tableFlags } = TableFlags
@@ -67,7 +68,7 @@ export class BannedCommand extends IronfishCommand {
 }
 
 function renderTable(content: GetBannedPeersResponse): string {
-  const columns: ux.Table.table.Columns<BannedPeerResponse> = {
+  const columns: TableColumns<BannedPeerResponse> = {
     identity: {
       minWidth: 45,
       header: 'IDENTITY',
@@ -86,7 +87,7 @@ function renderTable(content: GetBannedPeersResponse): string {
 
   let result = ''
 
-  ux.table(content.peers, columns, {
+  table(content.peers, columns, {
     printLine: (line) => (result += `${String(line)}\n`),
   })
 
