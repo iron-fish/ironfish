@@ -51,7 +51,7 @@ jobs:
             echo "Runner architecture does not match specified architecture"
             exit 1
           fi
-      
+
       # needed for distutils, which is used by nodegyp, arm64 mac runners have 3.12
       - name: Set up Python
         uses: actions/setup-python@v3
@@ -193,7 +193,7 @@ jobs:
           xcrun notarytool submit "${{ steps.set_paths.outputs.zip }}" --keychain-profile "notarytool-profile" --wait
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.set_paths.outputs.name }}
           path: tools/${{ steps.set_paths.outputs.zip }}
