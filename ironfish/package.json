@@ -1,6 +1,6 @@
 {
   "name": "@ironfish/sdk",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "description": "SDK for running and interacting with an Iron Fish node",
   "author": "Iron Fish <contact@ironfish.network> (https://ironfish.network)",
   "main": "build/src/index.js",
