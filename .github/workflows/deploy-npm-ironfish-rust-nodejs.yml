@@ -34,7 +34,7 @@ jobs:
         run: npm install --no-workspaces
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: ironfish-rust-nodejs/artifacts
 
