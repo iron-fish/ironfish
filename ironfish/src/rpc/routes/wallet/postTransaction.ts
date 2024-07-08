@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { RawTransactionSerde } from '../../../primitives/rawTransaction'
+import { Account } from '../../../wallet'
 import { RpcValidationError } from '../../adapters'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
@@ -55,7 +56,9 @@ routes.register<typeof PostTransactionRequestSchema, PostTransactionResponse>(
       throw new RpcValidationError('Unable to determine sender account for raw transaction')
     }
 
-    const account = context.wallet.getAccountByPublicAddress(sender)
+    const account = context.wallet.findAccount(
+      (account: Account) => account.publicAddress === sender && account.isSpendingAccount(),
+    )
 
     if (account === null) {
       throw new RpcValidationError(

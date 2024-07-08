@@ -1544,22 +1544,18 @@ export class Wallet {
     this.defaultAccount = nextId
   }
 
-  getAccountByName(name: string): Account | null {
+  findAccount(predicate: (account: Account) => boolean): Account | null {
     for (const account of this.accounts.values()) {
-      if (name === account.name) {
+      if (predicate(account)) {
         return account
       }
     }
+
     return null
   }
 
-  getAccountByPublicAddress(publicAddress: string): Account | null {
-    for (const account of this.accounts.values()) {
-      if (publicAddress === account.publicAddress) {
-        return account
-      }
-    }
-    return null
+  getAccountByName(name: string): Account | null {
+    return this.findAccount((account) => account.name === name)
   }
 
   getAccount(id: string): Account | null {
