@@ -43,6 +43,15 @@ export class DuplicateAccountNameError extends Error {
   }
 }
 
+export class DuplicateSpendingKeyError extends Error {
+  name = this.constructor.name
+
+  constructor(name: string) {
+    super()
+    this.message = `Account already exists with provided spending key: ${name}`
+  }
+}
+
 export class DuplicateMultisigSecretNameError extends Error {
   name = this.constructor.name
 

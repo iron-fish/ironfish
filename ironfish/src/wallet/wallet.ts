@@ -46,6 +46,7 @@ import { AssetBalances } from './assetBalances'
 import {
   DuplicateAccountNameError,
   DuplicateMultisigSecretNameError,
+  DuplicateSpendingKeyError,
   MaxMemoLengthError,
   NotEnoughFundsError,
 } from './errors'
@@ -1348,12 +1349,14 @@ export class Wallet {
       throw new DuplicateAccountNameError(name)
     }
 
-    const accounts = this.listAccounts()
-    if (
-      accountValue.spendingKey &&
-      accounts.find((a) => accountValue.spendingKey === a.spendingKey)
-    ) {
-      throw new Error(`Account already exists with provided spending key`)
+    if (accountValue.spendingKey) {
+      const duplicateSpendingAccount = this.listAccounts().find(
+        (a) => accountValue.spendingKey === a.spendingKey,
+      )
+
+      if (duplicateSpendingAccount) {
+        throw new DuplicateSpendingKeyError(duplicateSpendingAccount.name)
+      }
     }
 
     validateAccountImport(accountValue)

@@ -22,7 +22,11 @@ import {
 } from '../testUtilities'
 import { AsyncUtils, BufferUtils, ORE_TO_IRON } from '../utils'
 import { Account, TransactionStatus, TransactionType } from '../wallet'
-import { MaxMemoLengthError } from './errors'
+import {
+  DuplicateAccountNameError,
+  DuplicateSpendingKeyError,
+  MaxMemoLengthError,
+} from './errors'
 import { toAccountImport } from './exporter'
 import { AssetStatus, Wallet } from './wallet'
 
@@ -499,7 +503,7 @@ describe('Wallet', () => {
       expect(node.wallet.accountExists(account.name)).toEqual(true)
 
       await expect(node.wallet.importAccount(account)).rejects.toThrow(
-        'Account already exists with the name',
+        DuplicateAccountNameError,
       )
     })
 
@@ -513,9 +517,7 @@ describe('Wallet', () => {
       const clone = { ...account }
       clone.name = 'Different name'
 
-      await expect(node.wallet.importAccount(clone)).rejects.toThrow(
-        'Account already exists with provided spending key',
-      )
+      await expect(node.wallet.importAccount(clone)).rejects.toThrow(DuplicateSpendingKeyError)
     })
 
     it('should be able to import an account from solely its view keys', async () => {
