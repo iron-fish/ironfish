@@ -1,4 +1,4 @@
-FROM node:20-bookworm as build
+FROM node:20-bookworm AS build
 ENV PATH="/root/.cargo/bin:${PATH}"
 
 RUN \
