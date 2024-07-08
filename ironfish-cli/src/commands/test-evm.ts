@@ -4,7 +4,7 @@
 import { LegacyTransaction } from '@ethereumjs/tx'
 import { Account, Address } from '@ethereumjs/util'
 import { generateKey } from '@ironfish/rust-nodejs'
-import { IronfishEvm } from '@ironfish/sdk/src/evm'
+import { IronfishEvm } from '@ironfish/sdk'
 import { IronfishCommand } from '../command'
 import { LocalFlags } from '../flags'
 
@@ -50,7 +50,8 @@ export class TestEvmCommand extends IronfishCommand {
     this.log(
       `Sending ${tx.value} from ${senderAddress.toString()} to ${recipientAddress.toString()}`,
     )
-    const result = await evm.runTx({ tx: tx.sign(senderPrivateKey) })
+    const signed = tx.sign(senderPrivateKey)
+    const result = await evm.simulateTx({ tx: signed })
     this.log(`Amount spent for gas: ${result.amountSpent}`)
 
     senderBalance =

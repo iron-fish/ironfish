@@ -48,12 +48,12 @@ export class IronfishEvm {
   private async withStatelessVM<TResult>(handler: (copy: VM) => TResult): Promise<TResult> {
     const vm = await this.vm.shallowCopy()
 
-    await vm.evm.journal.checkpoint()
+    await vm.evm.stateManager.checkpoint()
 
     try {
       return handler(vm)
     } finally {
-      await vm.evm.journal.revert()
+      await vm.evm.stateManager.revert()
     }
   }
 }
