@@ -1,9 +1,10 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Flags, ux } from '@oclif/core'
+import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
+import { inputPrompt } from '../../../../ui'
 import { longPrompt } from '../../../../utils/input'
 import { selectSecret } from '../../../../utils/multisig'
 
@@ -41,9 +42,9 @@ export class DkgRound2Command extends IronfishCommand {
 
     let round1SecretPackage = flags.round1SecretPackage
     if (!round1SecretPackage) {
-      round1SecretPackage = await ux.prompt(
+      round1SecretPackage = await inputPrompt(
         `Enter the round 1 secret package for participant ${participantName}`,
-        { required: true },
+        true,
       )
     }
 

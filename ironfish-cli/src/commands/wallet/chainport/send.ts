@@ -17,7 +17,7 @@ import { Flags, ux } from '@oclif/core'
 import inquirer from 'inquirer'
 import { IronfishCommand } from '../../../command'
 import { HexFlag, IronFlag, RemoteFlags, ValueFlag } from '../../../flags'
-import { confirmOrQuit } from '../../../ui'
+import { confirmOrQuit, inputPrompt } from '../../../ui'
 import { selectAsset } from '../../../utils'
 import {
   ChainportBridgeTransaction,
@@ -173,9 +173,7 @@ export class BridgeCommand extends IronfishCommand {
     }
 
     if (!to) {
-      to = await ux.prompt('Enter the public address of the recipient', {
-        required: true,
-      })
+      to = await inputPrompt('Enter the public address of the recipient', true)
     }
 
     if (!isEthereumAddress(to)) {

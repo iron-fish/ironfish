@@ -11,10 +11,10 @@ import {
   TimeUtils,
   Transaction,
 } from '@ironfish/sdk'
-import { Flags, ux } from '@oclif/core'
+import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { HexFlag, IronFlag, RemoteFlags, ValueFlag } from '../../flags'
-import { confirmOrQuit } from '../../ui'
+import { confirmOrQuit, inputPrompt } from '../../ui'
 import { selectAsset } from '../../utils/asset'
 import { promptCurrency } from '../../utils/currency'
 import { promptExpiration } from '../../utils/expiration'
@@ -199,13 +199,10 @@ export class Send extends IronfishCommand {
     }
 
     if (!to) {
-      to = await ux.prompt('Enter the public address of the recipient', {
-        required: true,
-      })
+      to = await inputPrompt('Enter the public address of the recipient', true)
     }
 
-    const memo =
-      flags.memo ?? (await ux.prompt('Enter the memo (or leave blank)', { required: false }))
+    const memo = flags.memo ?? (await inputPrompt('Enter the memo (or leave blank)'))
 
     if (!isValidPublicAddress(to)) {
       this.log(`A valid public address is required`)

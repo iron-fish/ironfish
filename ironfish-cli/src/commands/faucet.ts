@@ -7,6 +7,7 @@ import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../command'
 import { RemoteFlags } from '../flags'
 import { ONE_FISH_IMAGE, TWO_FISH_IMAGE } from '../images'
+import { inputPrompt } from '../ui'
 
 const FAUCET_DISABLED = false
 
@@ -47,9 +48,7 @@ export class FaucetCommand extends IronfishCommand {
 
     if (!email) {
       email =
-        (await ux.prompt('Enter your email to stay updated with Iron Fish', {
-          required: false,
-        })) || undefined
+        (await inputPrompt('Enter your email to stay updated with Iron Fish')) || undefined
     }
 
     // Create an account if one is not set
@@ -59,9 +58,7 @@ export class FaucetCommand extends IronfishCommand {
     if (!accountName) {
       this.log(`You don't have a default account set up yet. Let's create one first!`)
       accountName =
-        (await ux.prompt('Please enter the name of your new Iron Fish account', {
-          required: false,
-        })) || 'default'
+        (await inputPrompt('Please enter the name of your new Iron Fish account')) || 'default'
 
       await client.wallet.createAccount({ name: accountName, default: true })
     }
@@ -89,17 +86,17 @@ export class FaucetCommand extends IronfishCommand {
     this.log(
       `
 
-    ${TWO_FISH_IMAGE}
+        ${TWO_FISH_IMAGE}
 
-Congratulations! The Iron Fish Faucet just added your request to the queue!
+    Congratulations! The Iron Fish Faucet just added your request to the queue!
 
-It will be processed within the next hour and $IRON will be sent directly to your account.
+    It will be processed within the next hour and $IRON will be sent directly to your account.
 
-Check your balance by running:
-  - ironfish wallet:balance
+    Check your balance by running:
+      - ironfish wallet:balance
 
-Learn how to send a transaction by running:
-  - ironfish wallet:send --help`,
+    Learn how to send a transaction by running:
+      - ironfish wallet:send --help`,
     )
   }
 }
