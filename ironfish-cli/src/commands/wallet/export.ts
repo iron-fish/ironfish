@@ -90,7 +90,7 @@ export class ExportCommand extends IronfishCommand {
         timeout: flags.timeout,
       })
     }
-    
+
     const response = await client.wallet.exportAccount({
       account,
       viewOnly,

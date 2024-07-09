@@ -33,6 +33,6 @@ export class UnlockCommand extends IronfishCommand {
 
     const client = await this.sdk.connectRpc()
     await client.wallet.unlock({ passphrase, timeout })
-    this.log(`Unlocked the wallet for ${(timeout ?? 5000)}ms`)
+    this.log(`Unlocked the wallet for ${timeout ?? 5000}ms`)
   }
 }

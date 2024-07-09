@@ -1,12 +1,12 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Assert } from '@ironfish/sdk'
 import { Flags, ux } from '@oclif/core'
 import chalk from 'chalk'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { TableFlags } from '../../utils/table'
-import { Assert } from '@ironfish/sdk'
 
 export class StatusCommand extends IronfishCommand {
   static description = `Get status of all accounts`

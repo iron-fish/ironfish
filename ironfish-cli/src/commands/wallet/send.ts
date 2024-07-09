@@ -138,7 +138,7 @@ export class Send extends IronfishCommand {
         )
       }
     }
-    
+
     let passphrase = flags.passphrase
     if (status.content.accounts.locked && !passphrase) {
       passphrase = await ux.prompt('Enter your passphrase to unlock the wallet', {
