@@ -221,6 +221,7 @@ export class Wallet {
         })
         this.encryptedAccounts.set(encryptedAccount.id, encryptedAccount)
       } else {
+        this.locked = false
         const account = new Account({
           accountValue,
           walletDb: this.walletDb,
@@ -1800,9 +1801,11 @@ export class Wallet {
     setTimeout(() => this.lock(), timeout)
   }
 
-  lock(): void {
+  async lock(): Promise<void> {
     this.locked = true
-    this.accounts = new Map<string, Account>()
+    this.encryptedAccounts.clear()
+    this.accounts.clear()
+    await this.load()
   }
 
   async encrypt(passphrase: string, tx?: IDatabaseTransaction): Promise<void> {
