@@ -8,49 +8,41 @@ import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import { AssertHasRpcContext } from '../rpcContext'
 
-export type AddSignatureRequest = {
+export type SignTransactionRequest = {
   unsignedTransaction: string
-  signature: string
 }
 
-export type AddSignatureResponse = {
+export type SignTransactionResponse = {
   transaction: string
   account: string
 }
 
-export const AddSignatureRequestSchema: yup.ObjectSchema<AddSignatureRequest> = yup
+export const SignTransactionRequestSchema: yup.ObjectSchema<SignTransactionRequest> = yup
   .object({
     unsignedTransaction: yup.string().defined(),
-    signature: yup.string().defined(),
   })
   .defined()
 
-export const AddSignatureResponseSchema: yup.ObjectSchema<AddSignatureResponse> = yup
+export const SignTransactionResponseSchema: yup.ObjectSchema<SignTransactionResponse> = yup
   .object({
     transaction: yup.string().defined(),
     account: yup.string().defined(),
   })
   .defined()
 
-routes.register<typeof AddSignatureRequestSchema, AddSignatureResponse>(
-  `${ApiNamespace.wallet}/addSignature`,
-  AddSignatureRequestSchema,
-  (request, node): void => {
-    AssertHasRpcContext(request, node, 'wallet')
+routes.register<typeof SignTransactionRequestSchema, SignTransactionResponse>(
+  `${ApiNamespace.wallet}/signTransaction`,
+  SignTransactionRequestSchema,
+  (request, context): void => {
+    AssertHasRpcContext(request, context, 'wallet')
     const unsignedTransaction = new UnsignedTransaction(
       Buffer.from(request.data.unsignedTransaction, 'hex'),
     )
 
-    const buffer = Buffer.from(request.data.signature, 'hex')
-
-    if (buffer.length !== 64) {
-      throw new Error('Invalid signature length')
-    }
-
     const publicKeyRandomness = unsignedTransaction.publicKeyRandomness()
     const randomizedPublicKey = unsignedTransaction.randomizedPublicKey()
 
-    const account = node.wallet.findAccount(
+    const account = context.wallet.findAccount(
       (account: Account) =>
         generateRandomizedPublicKey(account.viewKey, publicKeyRandomness) ===
         randomizedPublicKey,
@@ -60,7 +52,11 @@ routes.register<typeof AddSignatureRequestSchema, AddSignatureResponse>(
       throw new Error('Wallet does not contain sender account for this transaction.')
     }
 
-    const serialized = unsignedTransaction.addSignature(buffer)
+    if (!account.spendingKey) {
+      throw new Error('Account does not have a spending key')
+    }
+
+    const serialized = unsignedTransaction.sign(account.spendingKey)
 
     request.end({
       transaction: serialized.toString('hex'),

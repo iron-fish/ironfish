@@ -5,12 +5,15 @@
 use std::fmt::Display;
 use std::num::NonZeroUsize;
 
+use ironfish::keys::generate_randomized_public_key;
 use ironfish::keys::Language;
 use ironfish::serializing::bytes_to_hex;
+use ironfish::serializing::fr::FrSerializable;
 use ironfish::IncomingViewKey;
 use ironfish::PublicAddress;
 use ironfish::SaplingKey;
 
+use ironfish::ViewKey;
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 
@@ -254,4 +257,20 @@ pub fn get_cpu_count() -> CpuCount {
         logical_count: logical_count as u32,
         physical_count: num_cpus::get_physical() as u32,
     }
+}
+
+#[napi(js_name = "generateRandomizedPublicKey")]
+pub fn randomize_pk(
+    view_key_string: String,
+    public_key_randomness_string: String,
+) -> Result<String> {
+    let view_key = ViewKey::from_hex(&view_key_string).map_err(to_napi_err)?;
+
+    let public_key_randomness =
+        jubjub::Fr::from_hex(&public_key_randomness_string).map_err(to_napi_err)?;
+
+    let public_key =
+        generate_randomized_public_key(view_key, public_key_randomness).map_err(to_napi_err)?;
+
+    Ok(bytes_to_hex(&public_key))
 }

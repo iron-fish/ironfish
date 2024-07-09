@@ -406,6 +406,12 @@ impl NativeUnsignedTransaction {
     }
 
     #[napi]
+    pub fn randomized_public_key(&self) -> String {
+        let bytes = self.transaction.randomized_public_key_bytes();
+        bytes_to_hex(&bytes)
+    }
+
+    #[napi]
     pub fn public_key_randomness(&self) -> String {
         let bytes = self.transaction.public_key_randomness().to_bytes();
         bytes_to_hex(&bytes)
