@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
 import {
+  Assert,
   CreateTransactionRequest,
   CurrencyUtils,
   isValidPublicAddress,
@@ -111,6 +112,14 @@ export class Send extends IronfishCommand {
       description: 'The note hashes to include in the transaction',
       multiple: true,
     }),
+    passphrase: Flags.string({
+      required: false,
+      description: 'Passphrase for wallet',
+    }),
+    timeout: Flags.integer({
+      required: false,
+      description: 'Timeout to unlock for wallet',
+    }),
   }
 
   async start(): Promise<void> {
@@ -120,15 +129,29 @@ export class Send extends IronfishCommand {
     let from = flags.account
 
     const client = await this.sdk.connectRpc()
+    const status = await client.wallet.getNodeStatus()
 
     if (!flags.offline) {
-      const status = await client.wallet.getNodeStatus()
-
       if (!status.content.blockchain.synced) {
         this.error(
           `Your node must be synced with the Iron Fish network to send a transaction. Please try again later`,
         )
       }
+    }
+    
+    let passphrase = flags.passphrase
+    if (status.content.accounts.locked && !passphrase) {
+      passphrase = await ux.prompt('Enter your passphrase to unlock the wallet', {
+        required: true,
+      })
+    }
+
+    if (status.content.accounts.locked) {
+      Assert.isNotUndefined(passphrase)
+      await client.wallet.unlock({
+        passphrase,
+        timeout: flags.timeout,
+      })
     }
 
     if (assetId == null) {
