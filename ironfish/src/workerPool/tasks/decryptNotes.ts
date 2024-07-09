@@ -285,10 +285,14 @@ export class DecryptNotesTask extends WorkerTask {
         skipValidation: options.skipNoteValidation,
       })
 
-      for (const { incomingViewKey, outgoingViewKey, viewKey } of accountKeys) {
+      const receivedNotes = note.decryptNoteForOwners(
+        accountKeys.map(({ incomingViewKey }) => incomingViewKey),
+      )
+
+      for (const [i, receivedNote] of receivedNotes.entries()) {
         // Try decrypting the note as the owner
-        const receivedNote = note.decryptNoteForOwner(incomingViewKey)
         if (receivedNote && receivedNote.value() !== 0n) {
+          const { viewKey } = accountKeys[i]
           decryptedNotes.push({
             index: currentNoteIndex,
             forSpender: false,
@@ -304,6 +308,7 @@ export class DecryptNotesTask extends WorkerTask {
 
         if (options.decryptForSpender) {
           // Try decrypting the note as the spender
+          const { outgoingViewKey } = accountKeys[i]
           const spentNote = note.decryptNoteForSpender(outgoingViewKey)
           if (spentNote && spentNote.value() !== 0n) {
             decryptedNotes.push({

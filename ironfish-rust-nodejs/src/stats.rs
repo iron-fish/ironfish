@@ -29,6 +29,7 @@ fn print_stats(colors: bool) {
          {highlight}Elliptic Curve Point Multiplication Stats:\n\
          • affine muls: {affine_muls}\n\
          • extended muls: {extended_muls}\n\
+         • extended vector muls: {extended_mul_many_calls} calls / {extended_mul_many_operands} points\n\
          Note Encryption Stats:\n\
          • total: {note_construct}\n\
          Note Decryption Stats:\n\
@@ -39,6 +40,8 @@ fn print_stats(colors: bool) {
         reset = if colors { "\x1b[0m" } else { "" },
         affine_muls = ecpm_stats.affine_muls,
         extended_muls = ecpm_stats.extended_muls,
+        extended_mul_many_calls = ecpm_stats.extended_mul_many_calls,
+        extended_mul_many_operands = ecpm_stats.extended_mul_many_operands,
         note_construct = note_stats.construct,
         note_dec_for_owner = note_stats.decrypt_note_for_owner.total,
         note_dec_for_owner_ok = note_stats.decrypt_note_for_owner.successful,

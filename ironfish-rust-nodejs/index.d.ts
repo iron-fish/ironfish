@@ -133,6 +133,7 @@ export class NoteEncrypted {
   static combineHash(depth: number, jsLeft: Buffer, jsRight: Buffer): Buffer
   /** Returns undefined if the note was unable to be decrypted with the given key. */
   decryptNoteForOwner(incomingHexKey: string): Buffer | null
+  decryptNoteForOwners(incomingHexKeys: Array<string>): Array<Buffer | undefined | null>
   /** Returns undefined if the note was unable to be decrypted with the given key. */
   decryptNoteForSpender(outgoingHexKey: string): Buffer | null
 }

@@ -63,7 +63,7 @@ delta = "1.9.3 -> 2.2.6"
 [[audits.jubjub]]
 who = "Andrea <andrea@iflabs.network>"
 criteria = "safe-to-deploy"
-delta = "0.9.0 -> 0.9.0@git:6fac532975e23acd3fa670bc0383d027f09403e5"
+delta = "0.9.0 -> 0.9.0@git:531157cfa7b81ade207e819ef50c563843b10e30"
 importable = false
 notes = "Fork of the official jubjub owned by Iron Fish"
 

@@ -33,7 +33,7 @@ ironfish = { path = "../ironfish-rust" }
 ironfish-frost = { git = "https://github.com/iron-fish/ironfish-frost.git", branch = "main" }
 napi = { version = "2.13.2", features = ["napi6"] }
 napi-derive = "2.13.0"
-jubjub = { git = "https://github.com/iron-fish/jubjub.git", branch = "blstrs" }
+jubjub = { git = "https://github.com/iron-fish/jubjub.git", branch = "blstrs", features = ["multiply-many"] }
 rand = "0.8.5"
 num_cpus = "1.16.0"
 signal-hook = { version = "0.3.17", optional = true, default-features = false, features = ["iterator"] }

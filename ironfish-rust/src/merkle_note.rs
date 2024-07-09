@@ -212,7 +212,7 @@ impl MerkleNote {
         owner_view_key: &IncomingViewKey,
     ) -> Result<Note, IronfishError> {
         #[cfg(feature = "note-encryption-stats")]
-        stats::inc_decrypt_note_for_owner();
+        stats::inc_decrypt_note_for_owner(1);
 
         let shared_secret = owner_view_key.shared_secret(&self.ephemeral_public_key);
         let note =
@@ -220,8 +220,38 @@ impl MerkleNote {
         note.verify_commitment(self.note_commitment)?;
 
         #[cfg(feature = "note-encryption-stats")]
-        stats::inc_decrypt_note_for_owner_ok();
+        stats::inc_decrypt_note_for_owner_ok(1);
         Ok(note)
+    }
+
+    pub fn decrypt_note_for_owners(
+        &self,
+        owner_view_keys: &[IncomingViewKey],
+    ) -> Vec<Result<Note, IronfishError>> {
+        #[cfg(feature = "note-encryption-stats")]
+        stats::inc_decrypt_note_for_owner(owner_view_keys.len());
+
+        let shared_secrets =
+            IncomingViewKey::shared_secrets(owner_view_keys, &self.ephemeral_public_key);
+
+        let result = owner_view_keys
+            .iter()
+            .zip(shared_secrets.iter())
+            .map(move |(owner_view_key, shared_secret)| {
+                let note = Note::from_owner_encrypted(
+                    owner_view_key,
+                    shared_secret,
+                    &self.encrypted_note,
+                )?;
+                note.verify_commitment(self.note_commitment)?;
+                Ok(note)
+            })
+            .collect::<Vec<Result<Note, IronfishError>>>();
+
+        #[cfg(feature = "note-encryption-stats")]
+        stats::inc_decrypt_note_for_owner_ok(result.iter().filter(move |res| res.is_ok()).count());
+
+        result
     }
 
     pub fn decrypt_note_for_spender(
@@ -353,13 +383,13 @@ pub mod stats {
     }
 
     #[inline(always)]
-    pub(super) fn inc_decrypt_note_for_owner() {
-        DECRYPT_FOR_OWNER_CALLS.fetch_add(1, Relaxed);
+    pub(super) fn inc_decrypt_note_for_owner(count: usize) {
+        DECRYPT_FOR_OWNER_CALLS.fetch_add(count, Relaxed);
     }
 
     #[inline(always)]
-    pub(super) fn inc_decrypt_note_for_owner_ok() {
-        DECRYPT_FOR_OWNER_OK_CALLS.fetch_add(1, Relaxed);
+    pub(super) fn inc_decrypt_note_for_owner_ok(count: usize) {
+        DECRYPT_FOR_OWNER_OK_CALLS.fetch_add(count, Relaxed);
     }
 
     #[inline(always)]

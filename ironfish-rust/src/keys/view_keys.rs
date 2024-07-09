@@ -85,6 +85,21 @@ impl IncomingViewKey {
     pub(crate) fn shared_secret(&self, ephemeral_public_key: &SubgroupPoint) -> [u8; 32] {
         shared_secret(&self.view_key, ephemeral_public_key, ephemeral_public_key)
     }
+
+    pub(crate) fn shared_secrets(
+        slice: &[Self],
+        ephemeral_public_key: &SubgroupPoint,
+    ) -> Vec<[u8; 32]> {
+        let raw_view_keys = slice
+            .iter()
+            .map(move |ivk| ivk.view_key.to_bytes())
+            .collect::<Vec<[u8; 32]>>();
+        shared_secrets(
+            &raw_view_keys[..],
+            ephemeral_public_key,
+            ephemeral_public_key,
+        )
+    }
 }
 
 /// Contains two keys that are required (along with outgoing view key)
@@ -217,12 +232,36 @@ impl OutgoingViewKey {
 ///     key (Bob's public key) to get the final shared secret
 ///
 /// The resulting key can be used in any symmetric cipher
+#[must_use]
 pub(crate) fn shared_secret(
     secret_key: &jubjub::Fr,
     other_public_key: &SubgroupPoint,
     reference_public_key: &SubgroupPoint,
 ) -> [u8; 32] {
     let shared_secret = (other_public_key * secret_key).to_bytes();
+    hash_shared_secret(&shared_secret, reference_public_key)
+}
+
+/// Equivalent to calling `shared_secret()` multiple times on the same
+/// `other_public_key`/`reference_public_key`, but more efficient.
+#[must_use]
+pub(crate) fn shared_secrets(
+    secret_keys: &[[u8; 32]],
+    other_public_key: &SubgroupPoint,
+    reference_public_key: &SubgroupPoint,
+) -> Vec<[u8; 32]> {
+    let shared_secrets = other_public_key.as_extended().multiply_many(secret_keys);
+    shared_secrets
+        .into_iter()
+        .map(move |shared_secret| {
+            hash_shared_secret(&shared_secret.to_bytes(), reference_public_key)
+        })
+        .collect()
+}
+
+#[inline]
+#[must_use]
+fn hash_shared_secret(shared_secret: &[u8; 32], reference_public_key: &SubgroupPoint) -> [u8; 32] {
     let reference_bytes = reference_public_key.to_bytes();
 
     let mut hasher = Blake2b::new()
@@ -230,10 +269,11 @@ pub(crate) fn shared_secret(
         .personal(DIFFIE_HELLMAN_PERSONALIZATION)
         .to_state();
 
-    hasher.update(&shared_secret);
+    hasher.update(&shared_secret[..]);
     hasher.update(&reference_bytes);
+
     let mut hash_result = [0; 32];
-    hash_result[..].clone_from_slice(hasher.finalize().as_ref());
+    hash_result[..].copy_from_slice(hasher.finalize().as_ref());
     hash_result
 }
 

@@ -89,6 +89,18 @@ export class NoteEncrypted {
     }
   }
 
+  decryptNoteForOwners(ownerHexKeys: Array<string>): Array<Note | undefined> {
+    if (ownerHexKeys.length === 0) {
+      return []
+    } else if (ownerHexKeys.length === 1) {
+      return [this.decryptNoteForOwner(ownerHexKeys[0])]
+    }
+
+    const notes = this.takeReference().decryptNoteForOwners(ownerHexKeys)
+    this.returnReference()
+    return notes.map((note) => (note ? new Note(note) : undefined))
+  }
+
   decryptNoteForSpender(spenderHexKey: string): Note | undefined {
     const note = this.takeReference().decryptNoteForSpender(spenderHexKey)
     this.returnReference()
