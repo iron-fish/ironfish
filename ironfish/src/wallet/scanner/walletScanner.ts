@@ -267,8 +267,7 @@ export class WalletScanner {
    */
   private haveWalletAccountsChanged(): boolean {
     const accountIds = new Set(
-      this.wallet
-        .listAccounts()
+      this.wallet.accounts
         .filter((account) => account.scanningEnabled)
         .map((account) => account.id),
     )
@@ -283,8 +282,7 @@ export class WalletScanner {
   > {
     return this.wallet.walletDb.db.withTransaction(null, async (tx) =>
       Promise.all(
-        this.wallet
-          .listAccounts()
+        this.wallet.accounts
           .filter((account) => account.scanningEnabled)
           .map(async (account) => ({
             account,

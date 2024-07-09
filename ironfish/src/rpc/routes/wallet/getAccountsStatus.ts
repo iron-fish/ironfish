@@ -32,9 +32,7 @@ routes.register<typeof GetAccountsStatusRequestSchema, GetAccountsStatusResponse
     AssertHasRpcContext(request, node, 'wallet')
 
     const accounts = await Promise.all(
-      node.wallet
-        .listAccounts()
-        .map((account) => serializeRpcAccountStatus(node.wallet, account)),
+      node.wallet.accounts.map((account) => serializeRpcAccountStatus(node.wallet, account)),
     )
 
     request.end({ accounts })

@@ -174,7 +174,7 @@ export class Wallet {
       return null
     }
 
-    if (this.listAccounts().length === 0) {
+    if (this.accounts.length === 0) {
       return null
     }
 
@@ -340,7 +340,7 @@ export class Wallet {
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     return this.walletDb.db.withTransaction(tx, async (tx) => {
-      for (const account of this.listAccounts()) {
+      for (const account of this.accounts) {
         await this.resetAccount(account, options, tx)
       }
     })
@@ -603,7 +603,7 @@ export class Wallet {
 
   async addPendingTransaction(transaction: Transaction): Promise<void> {
     const accounts = await AsyncUtils.filter(
-      this.listAccounts(),
+      this.accounts,
       async (account) => !(await account.hasTransaction(transaction.hash())),
     )
 
@@ -1350,7 +1350,7 @@ export class Wallet {
     }
 
     if (accountValue.spendingKey) {
-      const duplicateSpendingAccount = this.listAccounts().find(
+      const duplicateSpendingAccount = this.accounts.find(
         (a) => accountValue.spendingKey === a.spendingKey,
       )
 
@@ -1417,7 +1417,7 @@ export class Wallet {
     return account
   }
 
-  listAccounts(): Account[] {
+  get accounts(): Account[] {
     return Array.from(this.accountById.values())
   }
 

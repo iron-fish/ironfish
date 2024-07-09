@@ -53,7 +53,7 @@ routes.register<typeof AddTransactionRequestSchema, AddTransactionResponse>(
 
     await context.wallet.addPendingTransaction(transaction)
 
-    const accounts = await AsyncUtils.filter(context.wallet.listAccounts(), (account) =>
+    const accounts = await AsyncUtils.filter(context.wallet.accounts, (account) =>
       account.hasTransaction(transaction.hash()),
     )
 
