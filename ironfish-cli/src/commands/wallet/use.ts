@@ -35,17 +35,19 @@ export class UseCommand extends IronfishCommand {
     
     let passphrase = flags.passphrase
     const status = await client.wallet.getNodeStatus()
-    if (!passphrase && status.content.accounts.locked) {
+    if (status.content.accounts.locked && !passphrase) {
       passphrase = await ux.prompt('Enter your passphrase to unlock the wallet', {
         required: true,
       })
     }
 
-    Assert.isNotUndefined(passphrase)
-    await client.wallet.unlock({
-      passphrase,
-      timeout: flags.timeout,
-    })
+    if (status.content.accounts.locked) {
+      Assert.isNotUndefined(passphrase)
+      await client.wallet.unlock({
+        passphrase,
+        timeout: flags.timeout,
+      })
+    }
 
     await client.wallet.useAccount({ account })
     this.log(`The default account is now: ${account}`)
