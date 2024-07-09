@@ -13,10 +13,10 @@ import {
 import { Args, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { table, TableColumns } from '../../ui'
+import { table, TableColumns, TableFlags } from '../../ui'
 import { getAssetsByIDs } from '../../utils'
 import { extractChainportDataFromTransaction } from '../../utils/chainport'
-import { Format, TableCols, TableFlags } from '../../utils/table'
+import { Format, TableCols } from '../../utils/table'
 
 const { sort: _, ...tableFlags } = TableFlags
 export class TransactionsCommand extends IronfishCommand {

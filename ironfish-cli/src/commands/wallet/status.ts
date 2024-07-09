@@ -4,8 +4,7 @@
 import chalk from 'chalk'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { table } from '../../ui'
-import { TableFlags } from '../../utils/table'
+import { table, TableFlags } from '../../ui'
 
 export class StatusCommand extends IronfishCommand {
   static description = `Get status of all accounts`

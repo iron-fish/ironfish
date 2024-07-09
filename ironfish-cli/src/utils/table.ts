@@ -4,7 +4,6 @@
 
 import { ASSET_NAME_LENGTH } from '@ironfish/rust-nodejs'
 import { Assert, BufferUtils, TimeUtils } from '@ironfish/sdk'
-import { Flags, ux } from '@oclif/core'
 import { table } from '@oclif/core/lib/cli-ux/styled/table'
 import { TableColumn } from '../ui'
 
@@ -133,20 +132,3 @@ export enum Format {
 }
 
 export const TableCols = { timestamp, asset, fixedWidth }
-
-const { 'no-truncate': _, ...tableFlags } = ux.table.flags()
-
-export const TableFlags = {
-  ...tableFlags,
-  truncate: Flags.boolean({
-    description: 'truncate output to fit screen',
-    default: false,
-    allowNo: true,
-  }),
-  'no-truncate': Flags.boolean({
-    hidden: true,
-    default(context) {
-      return Promise.resolve(!context.flags['truncate'])
-    },
-  }),
-}

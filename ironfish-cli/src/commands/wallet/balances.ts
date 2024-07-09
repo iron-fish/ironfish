@@ -5,9 +5,8 @@ import { BufferUtils, CurrencyUtils, GetBalancesResponse, RpcAsset } from '@iron
 import { Args, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { table, TableColumns } from '../../ui'
+import { table, TableColumns, TableFlags } from '../../ui'
 import { compareAssets, renderAssetWithVerificationStatus } from '../../utils'
-import { TableFlags } from '../../utils/table'
 
 type AssetBalancePairs = { asset: RpcAsset; balance: GetBalancesResponse['balances'][number] }
 

@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Assert } from '@ironfish/sdk'
-import { ux } from '@oclif/core'
+import { Flags, ux } from '@oclif/core'
 import chalk from 'chalk'
 import { orderBy } from 'natural-orderby'
 import stringWidth from 'string-width'
@@ -29,6 +29,27 @@ export interface TableOptions {
   output?: string
   printLine?(this: void, s: unknown): unknown
   sort?: string
+}
+
+export const TableFlags = {
+  csv: Flags.boolean({
+    description: 'output is csv format [alias: --output=csv]',
+  }),
+  extended: Flags.boolean({
+    description: 'show extra columns',
+  }),
+  'no-header': Flags.boolean({
+    description: 'hide table header from output',
+    exclusive: ['csv'],
+  }),
+  output: Flags.string({
+    description: 'output in a more machine friendly format',
+    exclusive: ['csv'],
+    options: ['csv', 'json'],
+  }),
+  sort: Flags.string({
+    description: "property to sort by (prepend '-' for descending)",
+  }),
 }
 
 export function table<T extends Record<string, unknown>>(

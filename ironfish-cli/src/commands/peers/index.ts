@@ -7,8 +7,7 @@ import { InferredFlags } from '@oclif/core/lib/interfaces'
 import blessed from 'blessed'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { table, TableColumns } from '../../ui'
-import { TableFlags } from '../../utils/table'
+import { table, TableColumns, TableFlags } from '../../ui'
 
 type GetPeerResponsePeer = GetPeersResponse['peers'][0]
 

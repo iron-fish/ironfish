@@ -5,8 +5,8 @@ import { CurrencyUtils, RpcAsset } from '@ironfish/sdk'
 import { Args, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
-import { table } from '../../../ui'
-import { TableCols, TableFlags } from '../../../utils/table'
+import { table, TableFlags } from '../../../ui'
+import { TableCols } from '../../../utils/table'
 
 const { sort: _, ...tableFlags } = TableFlags
 export class NotesCommand extends IronfishCommand {

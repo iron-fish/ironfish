@@ -6,8 +6,7 @@ import { Flags } from '@oclif/core'
 import { InferredFlags } from '@oclif/core/lib/interfaces'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { table, TableColumns } from '../../ui'
-import { TableFlags } from '../../utils/table'
+import { table, TableColumns, TableFlags } from '../../ui'
 
 const { sort: _, ...tableFlags } = TableFlags
 
