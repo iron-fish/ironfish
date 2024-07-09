@@ -135,6 +135,8 @@ import type {
   ImportResponse,
   IsValidPublicAddressRequest,
   IsValidPublicAddressResponse,
+  LockWalletRequest,
+  LockWalletResponse,
   MintAssetRequest,
   MintAssetResponse,
   OnGossipRequest,
@@ -606,6 +608,13 @@ export abstract class RpcClient {
     ): Promise<RpcResponseEnded<SetScanningResponse>> => {
       return this.request<SetScanningResponse>(
         `${ApiNamespace.wallet}/setScanning`,
+        params,
+      ).waitForEnd()
+    },
+
+    lock: (params: LockWalletRequest): Promise<RpcResponseEnded<LockWalletResponse>> => {
+      return this.request<LockWalletResponse>(
+        `${ApiNamespace.wallet}/lock`,
         params,
       ).waitForEnd()
     },
