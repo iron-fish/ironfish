@@ -1,8 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { AccountFormat, ErrorUtils, LanguageUtils } from '@ironfish/sdk'
-import { Args, Flags } from '@oclif/core'
+import { AccountFormat, Assert, ErrorUtils, LanguageUtils } from '@ironfish/sdk'
+import { Args, Flags, ux } from '@oclif/core'
 import fs from 'fs'
 import jsonColorizer from 'json-colorizer'
 import path from 'path'
@@ -41,6 +41,14 @@ export class ExportCommand extends IronfishCommand {
       default: false,
       description: 'Export an account as a view-only account',
     }),
+    passphrase: Flags.string({
+      required: false,
+      description: 'Passphrase for wallet',
+    }),
+    timeout: Flags.integer({
+      required: false,
+      description: 'Timeout to unlock for wallet',
+    }),
   }
 
   static args = {
@@ -66,6 +74,23 @@ export class ExportCommand extends IronfishCommand {
       : AccountFormat.Base64Json
 
     const client = await this.sdk.connectRpc(local)
+
+    let passphrase = flags.passphrase
+    const status = await client.wallet.getNodeStatus()
+    if (status.content.accounts.locked && !passphrase) {
+      passphrase = await ux.prompt('Enter your passphrase to unlock the wallet', {
+        required: true,
+      })
+    }
+
+    if (status.content.accounts.locked) {
+      Assert.isNotUndefined(passphrase)
+      await client.wallet.unlock({
+        passphrase,
+        timeout: flags.timeout,
+      })
+    }
+    
     const response = await client.wallet.exportAccount({
       account,
       viewOnly,
