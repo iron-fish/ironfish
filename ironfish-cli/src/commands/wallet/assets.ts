@@ -8,7 +8,7 @@ import {
   ASSET_NAME_LENGTH,
   PUBLIC_ADDRESS_LENGTH,
 } from '@ironfish/rust-nodejs'
-import { BufferUtils } from '@ironfish/sdk'
+import { Assert, BufferUtils } from '@ironfish/sdk'
 import { Args, Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -31,6 +31,14 @@ export class AssetsCommand extends IronfishCommand {
       char: 'a',
       description: 'Name of the account to get assets for',
     }),
+    passphrase: Flags.string({
+      required: false,
+      description: 'Passphrase for wallet',
+    }),
+    timeout: Flags.integer({
+      required: false,
+      description: 'Timeout to unlock for wallet',
+    }),
   }
 
   static args = {
@@ -46,6 +54,23 @@ export class AssetsCommand extends IronfishCommand {
     const account = flags.account ? flags.account : args.account
 
     const client = await this.sdk.connectRpc()
+
+    let passphrase = flags.passphrase
+    const status = await client.wallet.getNodeStatus()
+    if (status.content.accounts.locked && !passphrase) {
+      passphrase = await ux.prompt('Enter your passphrase to unlock the wallet', {
+        required: true,
+      })
+    }
+
+    if (status.content.accounts.locked) {
+      Assert.isNotUndefined(passphrase)
+      await client.wallet.unlock({
+        passphrase,
+        timeout: flags.timeout,
+      })
+    }
+
     const response = client.wallet.getAssets({
       account,
     })
