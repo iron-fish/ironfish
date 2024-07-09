@@ -54,7 +54,7 @@ export default class PruneCommand extends IronfishCommand {
 
       accounts = [account]
     } else {
-      accounts = node.wallet.listAccounts()
+      accounts = node.wallet.accounts
     }
 
     if (flags.expire) {

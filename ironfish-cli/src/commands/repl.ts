@@ -48,7 +48,7 @@ export default class Repl extends IronfishCommand {
     this.log('\n  Get a block at a sequence')
     this.log(`  > await chain.getHeaderAtSequence(1)`)
     this.log('\n  List all account names')
-    this.log(`  > wallet.listAccounts().map((a) => a.name)`)
+    this.log(`  > wallet.accounts.map((a) => a.name)`)
     this.log(`\n  Get the balance of an account`)
     this.log(`  > const account = await wallet.getAccountByName('default')`)
     this.log(`  > await wallet.getBalances(account)`)
