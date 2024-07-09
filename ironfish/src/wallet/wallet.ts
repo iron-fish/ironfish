@@ -93,7 +93,7 @@ export class Wallet {
   readonly onAccountImported = new Event<[account: Account]>()
   readonly onAccountRemoved = new Event<[account: Account]>()
 
-  protected readonly accounts = new Map<string, Account>()
+  protected readonly accountById = new Map<string, Account>()
   readonly walletDb: WalletDB
   private readonly logger: Logger
   readonly workerPool: WorkerPool
@@ -210,7 +210,7 @@ export class Wallet {
   private async load(): Promise<void> {
     for await (const accountValue of this.walletDb.loadAccounts()) {
       const account = new Account({ accountValue, walletDb: this.walletDb })
-      this.accounts.set(account.id, account)
+      this.accountById.set(account.id, account)
     }
 
     const meta = await this.walletDb.loadAccountsMeta()
@@ -218,7 +218,7 @@ export class Wallet {
   }
 
   private unload(): void {
-    this.accounts.clear()
+    this.accountById.clear()
 
     this.defaultAccount = null
   }
@@ -1108,7 +1108,7 @@ export class Wallet {
   }
 
   async rebroadcastTransactions(sequence: number): Promise<void> {
-    for (const account of this.accounts.values()) {
+    for (const account of this.accountById.values()) {
       if (this.eventLoopAbortController.signal.aborted) {
         return
       }
@@ -1152,7 +1152,7 @@ export class Wallet {
   }
 
   async expireTransactions(sequence: number): Promise<void> {
-    for (const account of this.accounts.values()) {
+    for (const account of this.accountById.values()) {
       if (this.eventLoopAbortController.signal.aborted) {
         return
       }
@@ -1306,7 +1306,7 @@ export class Wallet {
       await account.updateHead(createdAt, tx)
     })
 
-    this.accounts.set(account.id, account)
+    this.accountById.set(account.id, account)
 
     if (options.setDefault) {
       await this.setDefaultAccount(account.name)
@@ -1410,7 +1410,7 @@ export class Wallet {
       }
     })
 
-    this.accounts.set(account.id, account)
+    this.accountById.set(account.id, account)
     this.logger.debug(`Account ${account.id} imported successfully`)
     this.onAccountImported.emit(account)
 
@@ -1418,7 +1418,7 @@ export class Wallet {
   }
 
   listAccounts(): Account[] {
-    return Array.from(this.accounts.values())
+    return Array.from(this.accountById.values())
   }
 
   accountExists(name: string): boolean {
@@ -1470,7 +1470,7 @@ export class Wallet {
         this.defaultAccount = newAccount.id
       }
 
-      this.accounts.set(newAccount.id, newAccount)
+      this.accountById.set(newAccount.id, newAccount)
 
       await this.removeAccount(account, tx)
     })
@@ -1486,7 +1486,7 @@ export class Wallet {
   }
 
   async removeAccount(account: Account, tx?: IDatabaseTransaction): Promise<void> {
-    this.accounts.delete(account.id)
+    this.accountById.delete(account.id)
 
     await this.walletDb.db.withTransaction(tx, async (tx) => {
       if (account.id === this.defaultAccount) {
@@ -1548,7 +1548,7 @@ export class Wallet {
   }
 
   findAccount(predicate: (account: Account) => boolean): Account | null {
-    for (const account of this.accounts.values()) {
+    for (const account of this.accountById.values()) {
       if (predicate(account)) {
         return account
       }
@@ -1562,7 +1562,7 @@ export class Wallet {
   }
 
   getAccount(id: string): Account | null {
-    const account = this.accounts.get(id)
+    const account = this.accountById.get(id)
 
     if (account) {
       return account
@@ -1582,7 +1582,7 @@ export class Wallet {
   getEarliestHead(tx?: IDatabaseTransaction): Promise<HeadValue | null> {
     return this.walletDb.db.withTransaction(tx, async (tx) => {
       let earliestHead = null
-      for (const account of this.accounts.values()) {
+      for (const account of this.accountById.values()) {
         if (!account.scanningEnabled) {
           continue
         }
@@ -1606,7 +1606,7 @@ export class Wallet {
     return this.walletDb.db.withTransaction(tx, async (tx) => {
       let latestHead = null
 
-      for (const account of this.accounts.values()) {
+      for (const account of this.accountById.values()) {
         if (!account.scanningEnabled) {
           continue
         }
