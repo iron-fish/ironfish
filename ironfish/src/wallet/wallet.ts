@@ -1790,7 +1790,7 @@ export class Wallet {
     })
   }
 
-  unlock(passphrase: string, timeout: number = 5 * 1000): void {
+  unlock(passphrase: string, timeout: number = 5 * 60 * 1000): void {
     for (const account of this.encryptedAccounts.values()) {
       const decryptedAccount = account.decrypt(passphrase)
       this.accounts.set(account.id, decryptedAccount)
