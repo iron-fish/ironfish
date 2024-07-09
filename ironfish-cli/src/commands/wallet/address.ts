@@ -1,9 +1,10 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Args } from '@oclif/core'
+import { Args, Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
+import { Assert } from '@ironfish/sdk'
 
 export class AddressCommand extends IronfishCommand {
   static description = `Display your account address
@@ -12,6 +13,14 @@ export class AddressCommand extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
+    passphrase: Flags.string({
+      required: false,
+      description: 'Passphrase for wallet',
+    }),
+    timeout: Flags.integer({
+      required: false,
+      description: 'Timeout to unlock for wallet',
+    }),
   }
 
   static args = {
@@ -22,10 +31,26 @@ export class AddressCommand extends IronfishCommand {
   }
 
   async start(): Promise<void> {
-    const { args } = await this.parse(AddressCommand)
+    const { args, flags } = await this.parse(AddressCommand)
     const { account } = args
 
     const client = await this.sdk.connectRpc()
+
+    let passphrase = flags.passphrase
+    const status = await client.wallet.getNodeStatus()
+    if (status.content.accounts.locked && !passphrase) {
+      passphrase = await ux.prompt('Enter your passphrase to unlock the wallet', {
+        required: true,
+      })
+    }
+
+    if (status.content.accounts.locked) {
+      Assert.isNotUndefined(passphrase)
+      await client.wallet.unlock({
+        passphrase,
+        timeout: flags.timeout,
+      })
+    }
 
     const response = await client.wallet.getAccountPublicKey({
       account: account,
