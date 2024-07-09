@@ -49,6 +49,14 @@ export class TransactionsCommand extends IronfishCommand {
       default: false,
       description: 'Include data from transaction output notes',
     }),
+    passphrase: Flags.string({
+      required: false,
+      description: 'Passphrase for wallet',
+    }),
+    timeout: Flags.integer({
+      required: false,
+      description: 'Timeout to unlock for wallet',
+    }),
   }
 
   static args = {
@@ -73,6 +81,20 @@ export class TransactionsCommand extends IronfishCommand {
         : Format.cli
 
     const client = await this.sdk.connectRpc()
+
+    let passphrase = flags.passphrase
+    const status = await client.wallet.getNodeStatus()
+    if (!passphrase && status.content.accounts.locked) {
+      passphrase = await ux.prompt('Enter your passphrase to unlock the wallet', {
+        required: true,
+      })
+    }
+
+    Assert.isNotUndefined(passphrase)
+    await client.wallet.unlock({
+      passphrase,
+      timeout: flags.timeout,
+    })
 
     const networkId = (await client.chain.getNetworkInfo()).content.networkId
 
