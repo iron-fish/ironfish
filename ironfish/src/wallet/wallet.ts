@@ -602,9 +602,8 @@ export class Wallet {
   }
 
   async addPendingTransaction(transaction: Transaction): Promise<void> {
-    const accounts = await AsyncUtils.filter(
-      this.accounts,
-      async (account) => !(await account.hasTransaction(transaction.hash())),
+    const accounts = await AsyncUtils.reject(this.accounts, (account) =>
+      account.hasTransaction(transaction.hash()),
     )
 
     if (accounts.length === 0) {

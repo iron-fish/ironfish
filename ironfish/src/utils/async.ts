@@ -57,4 +57,13 @@ export class AsyncUtils {
 
     return array.filter((_, index) => include[index])
   }
+
+  static async reject<T>(
+    array: Array<T>,
+    predicate: (item: T) => Promise<boolean>,
+  ): Promise<Array<T>> {
+    const reject = await Promise.all(array.map(predicate))
+
+    return array.filter((_, index) => !reject[index])
+  }
 }
