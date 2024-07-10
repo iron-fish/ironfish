@@ -10,12 +10,13 @@ import {
   RpcAsset,
   TransactionType,
 } from '@ironfish/sdk'
-import { Args, Flags, ux } from '@oclif/core'
+import { Args, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
+import { table, TableColumns, TableFlags } from '../../ui'
 import { getAssetsByIDs } from '../../utils'
 import { extractChainportDataFromTransaction } from '../../utils/chainport'
-import { Format, TableCols, TableFlags } from '../../utils/table'
+import { Format, TableCols } from '../../utils/table'
 
 const { sort: _, ...tableFlags } = TableFlags
 export class TransactionsCommand extends IronfishCommand {
@@ -68,8 +69,6 @@ export class TransactionsCommand extends IronfishCommand {
         ? Format.csv
         : flags.output === 'json'
         ? Format.json
-        : flags.output === 'yaml'
-        ? Format.yaml
         : Format.cli
 
     const client = await this.sdk.connectRpc()
@@ -120,7 +119,7 @@ export class TransactionsCommand extends IronfishCommand {
         transactionRows = this.getTransactionRows(assetLookup, transaction, format)
       }
 
-      ux.table(transactionRows, columns, {
+      table(transactionRows, columns, {
         printLine: this.log.bind(this),
         ...flags,
         'no-header': !showHeader,
@@ -260,48 +259,57 @@ export class TransactionsCommand extends IronfishCommand {
     extended: boolean,
     notes: boolean,
     format: Format,
-  ): ux.Table.table.Columns<PartialRecursive<TransactionRow>> {
-    let columns: ux.Table.table.Columns<PartialRecursive<TransactionRow>> = {
+  ): TableColumns<PartialRecursive<TransactionRow>> {
+    let columns: TableColumns<PartialRecursive<TransactionRow>> = {
       timestamp: TableCols.timestamp({
         streaming: true,
       }),
       status: {
         header: 'Status',
         minWidth: 12,
+        get: (row) => row.status ?? '',
       },
       type: {
         header: 'Type',
         minWidth: notes ? 18 : 8,
+        get: (row) => row.type ?? '',
       },
       hash: {
         header: 'Hash',
         minWidth: 32,
+        get: (row) => row.hash ?? '',
       },
       notesCount: {
         header: 'Notes',
         minWidth: 5,
         extended: true,
+        get: (row) => row.notesCount ?? '',
       },
       spendsCount: {
         header: 'Spends',
         minWidth: 5,
         extended: true,
+        get: (row) => row.spendsCount ?? '',
       },
       mintsCount: {
         header: 'Mints',
         minWidth: 5,
         extended: true,
+        get: (row) => row.mintsCount ?? '',
       },
       burnsCount: {
         header: 'Burns',
         minWidth: 5,
         extended: true,
+        get: (row) => row.burnsCount ?? '',
       },
       expiration: {
         header: 'Expiration',
+        get: (row) => row.expiration ?? '',
       },
       submittedSequence: {
         header: 'Submitted Sequence',
+        get: (row) => row.submittedSequence ?? '',
       },
       feePaid: {
         header: 'Fee Paid ($IRON)',
@@ -327,12 +335,15 @@ export class TransactionsCommand extends IronfishCommand {
         ...columns,
         sender: {
           header: 'Sender Address',
+          get: (row) => row.sender ?? '',
         },
         recipient: {
           header: 'Recipient Address',
+          get: (row) => row.recipient ?? '',
         },
         memo: {
           header: 'Memo',
+          get: (row) => row.memo ?? '',
         },
       }
     }
@@ -342,6 +353,7 @@ export class TransactionsCommand extends IronfishCommand {
         group: {
           header: '',
           minWidth: 3,
+          get: (row) => row.group ?? '',
         },
         ...columns,
       }
@@ -385,4 +397,5 @@ type TransactionRow = {
   submittedSequence: number
   sender: string
   recipient: string
+  memo?: string
 }

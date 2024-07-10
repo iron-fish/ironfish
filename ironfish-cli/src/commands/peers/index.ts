@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { GetPeersResponse, PromiseUtils } from '@ironfish/sdk'
-import { Flags, ux } from '@oclif/core'
+import { Flags } from '@oclif/core'
 import { InferredFlags } from '@oclif/core/lib/interfaces'
 import blessed from 'blessed'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { TableFlags } from '../../utils/table'
+import { table, TableColumns, TableFlags } from '../../ui'
 
 type GetPeerResponsePeer = GetPeersResponse['peers'][0]
 
@@ -96,7 +96,7 @@ function renderTable(
   content: GetPeersResponse,
   flags: InferredFlags<typeof ListCommand.flags>,
 ): string {
-  let columns: ux.Table.table.Columns<GetPeerResponsePeer> = {
+  let columns: TableColumns<GetPeerResponsePeer> = {
     identity: {
       header: 'IDENTITY',
       get: (row: GetPeerResponsePeer) => {
@@ -224,7 +224,7 @@ function renderTable(
 
   let result = ''
 
-  ux.table(peers, columns, {
+  table(peers, columns, {
     printLine: (line) => (result += `${String(line)}\n`),
     ...flags,
   })

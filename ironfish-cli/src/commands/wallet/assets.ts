@@ -9,11 +9,12 @@ import {
   PUBLIC_ADDRESS_LENGTH,
 } from '@ironfish/rust-nodejs'
 import { BufferUtils } from '@ironfish/sdk'
-import { Args, Flags, ux } from '@oclif/core'
+import { Args, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
+import { table, TableFlags } from '../../ui'
 import { renderAssetWithVerificationStatus } from '../../utils'
-import { TableCols, TableFlags } from '../../utils/table'
+import { TableCols } from '../../utils/table'
 
 const MAX_ASSET_METADATA_COLUMN_WIDTH = ASSET_METADATA_LENGTH + 1
 const MIN_ASSET_METADATA_COLUMN_WIDTH = ASSET_METADATA_LENGTH / 2 + 1
@@ -59,7 +60,7 @@ export class AssetsCommand extends IronfishCommand {
     let showHeader = !flags['no-header']
 
     for await (const asset of response.contentStream()) {
-      ux.table(
+      table(
         [asset],
         {
           name: TableCols.fixedWidth({
@@ -77,6 +78,7 @@ export class AssetsCommand extends IronfishCommand {
           id: {
             header: 'ID',
             minWidth: ASSET_ID_LENGTH + 1,
+            get: (row) => row.id,
           },
           metadata: TableCols.fixedWidth({
             header: 'Metadata',
@@ -85,6 +87,7 @@ export class AssetsCommand extends IronfishCommand {
           }),
           createdTransactionHash: {
             header: 'Created Transaction Hash',
+            get: (row) => row.createdTransactionHash,
           },
           supply: {
             header: 'Supply',

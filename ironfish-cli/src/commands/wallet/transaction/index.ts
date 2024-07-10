@@ -12,6 +12,7 @@ import {
 import { Args, Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
+import { table } from '../../../ui'
 import {
   displayChainportTransactionSummary,
   extractChainportDataFromTransaction,
@@ -126,7 +127,7 @@ export class TransactionCommand extends IronfishCommand {
         })
       }
 
-      ux.table(noteAssetPairs, {
+      table(noteAssetPairs, {
         amount: {
           header: 'Amount',
           get: ({ asset, note }) =>
@@ -157,7 +158,7 @@ export class TransactionCommand extends IronfishCommand {
 
     if (transaction.spends.length > 0) {
       this.log(`\n---Spends---\n`)
-      ux.table(transaction.spends, {
+      table(transaction.spends, {
         size: {
           header: 'Size',
           get: (spend) => spend.size,
@@ -183,9 +184,10 @@ export class TransactionCommand extends IronfishCommand {
       )
 
       this.log(`\n---Asset Balance Deltas---\n`)
-      ux.table(assetBalanceDeltas, {
+      table(assetBalanceDeltas, {
         assetId: {
           header: 'Asset ID',
+          get: (assetBalanceDelta) => assetBalanceDelta.assetId,
         },
         delta: {
           header: 'Balance Change',

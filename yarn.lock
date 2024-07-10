@@ -7975,6 +7975,11 @@ natural-compare@^1.4.0:
   resolved "https://registry.yarnpkg.com/natural-compare/-/natural-compare-1.4.0.tgz#4abebfeed7541f2c27acfb29bdbbd15c8d5ba4f7"
   integrity sha1-Sr6/7tdUHywnrPspvbvRXI1bpPc=
 
+natural-orderby@3.0.2:
+  version "3.0.2"
+  resolved "https://registry.yarnpkg.com/natural-orderby/-/natural-orderby-3.0.2.tgz#1b874d685fbd68beab2c6e7d14f298e03d631ec3"
+  integrity sha512-x7ZdOwBxZCEm9MM7+eQCjkrNLrW3rkBKNHVr78zbtqnMGVNlnDi6C/eUEYgxHNrcbu0ymvjzcwIL/6H1iHri9g==
+
 natural-orderby@^2.0.3:
   version "2.0.3"
   resolved "https://registry.yarnpkg.com/natural-orderby/-/natural-orderby-2.0.3.tgz#8623bc518ba162f8ff1cdb8941d74deb0fdcc016"
@@ -9827,6 +9832,15 @@ string-length@^4.0.1:
     char-regex "^1.0.2"
     strip-ansi "^6.0.0"
 
+string-width@4.2.3, "string-width@^1.0.2 || 2 || 3 || 4", string-width@^4.0.0, string-width@^4.1.0, string-width@^4.2.0, string-width@^4.2.3:
+  version "4.2.3"
+  resolved "https://registry.yarnpkg.com/string-width/-/string-width-4.2.3.tgz#269c7117d27b05ad2e536830a8ec895ef9c6d010"
+  integrity sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==
+  dependencies:
+    emoji-regex "^8.0.0"
+    is-fullwidth-code-point "^3.0.0"
+    strip-ansi "^6.0.1"
+
 string-width@^1.0.1:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/string-width/-/string-width-1.0.2.tgz#118bdf5b8cdc51a2a7e70d211e07e2b0b9b107d3"
@@ -9835,15 +9849,6 @@ string-width@^1.0.1:
     code-point-at "^1.0.0"
     is-fullwidth-code-point "^1.0.0"
     strip-ansi "^3.0.0"
-
-"string-width@^1.0.2 || 2 || 3 || 4", string-width@^4.0.0, string-width@^4.1.0, string-width@^4.2.0, string-width@^4.2.3:
-  version "4.2.3"
-  resolved "https://registry.yarnpkg.com/string-width/-/string-width-4.2.3.tgz#269c7117d27b05ad2e536830a8ec895ef9c6d010"
-  integrity sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==
-  dependencies:
-    emoji-regex "^8.0.0"
-    is-fullwidth-code-point "^3.0.0"
-    strip-ansi "^6.0.1"
 
 string-width@^2.0.0:
   version "2.1.1"
