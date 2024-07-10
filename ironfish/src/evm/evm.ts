@@ -40,14 +40,12 @@ export class IronfishEvm {
   }
 
   async simulateTx(opts: RunTxOpts): Promise<RunTxResult> {
-    return this.withStatelessVM(async (vm) => {
+    return this.withCopy(async (vm) => {
       return vm.runTx(opts)
     })
   }
 
-  private async withStatelessVM<TResult>(
-    handler: (copy: VM) => Promise<TResult>,
-  ): Promise<TResult> {
+  private async withCopy<TResult>(handler: (copy: VM) => Promise<TResult>): Promise<TResult> {
     const vm = await this.vm.shallowCopy()
 
     await vm.evm.stateManager.checkpoint()
