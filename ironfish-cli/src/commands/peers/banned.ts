@@ -19,7 +19,7 @@ export class BannedCommand extends IronfishCommand {
     sort: {
       ...sort,
       exclusive: ['follow'],
-    },
+    } as typeof sort,
     follow: Flags.boolean({
       char: 'f',
       default: false,

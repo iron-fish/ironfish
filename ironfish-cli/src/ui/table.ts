@@ -79,7 +79,7 @@ class Table<T extends Record<string, unknown>> {
       extended: options.extended || false,
       'no-header': options['no-header'],
       output: options.csv ? 'csv' : options.output,
-      printLine: options.printLine ?? ux.log.bind(ux),
+      printLine: options.printLine ?? ux.stdout.bind(ux),
       sort: options.sort,
     }
   }

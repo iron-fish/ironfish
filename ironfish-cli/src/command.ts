@@ -12,7 +12,7 @@ import {
   RpcConnectionError,
 } from '@ironfish/sdk'
 import { Command, Config } from '@oclif/core'
-import { CLIError, ExitError } from '@oclif/core/lib/errors'
+import { CLIError, ExitError } from '@oclif/core/errors'
 import {
   ConfigFlagKey,
   DataDirFlagKey,
