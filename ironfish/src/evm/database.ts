@@ -57,7 +57,7 @@ export class EvmStateDB implements DB<string, Uint8Array> {
   }
 
   shallowCopy(): EvmStateDB {
-    return new EvmStateDB(this.db)
+    return this
   }
 
   async open(): Promise<void> {
