@@ -41,6 +41,7 @@
     "consola": "2.15.0",
     "date-fns": "2.16.1",
     "decimal.js": "10.4.3",
+    "ethers": "6.13.1",
     "fastpriorityqueue": "0.7.1",
     "imurmurhash": "0.1.4",
     "level-errors": "2.0.1",
@@ -53,6 +54,7 @@
     "sqlite": "4.0.23",
     "sqlite3": "5.1.6",
     "uuid": "8.3.2",
+    "web3": "4.10.0",
     "ws": "8.12.1",
     "yup": "0.29.3"
   },

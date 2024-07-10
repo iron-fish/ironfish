@@ -23,13 +23,15 @@ export class EvmStateDB implements DB<string, Uint8Array> {
 
   store: IDatabaseStore<EvmStateSchema>
 
-  constructor(db: IDatabase) {
+  constructor(db: IDatabase, store?: IDatabaseStore<EvmStateSchema>) {
     this.db = db
-    this.store = this.db.addStore({
-      name: 'evm',
-      keyEncoding: new HexStringEncoding(),
-      valueEncoding: new EvmStateEncoding(),
-    })
+    this.store =
+      store ||
+      this.db.addStore({
+        name: 'evm',
+        keyEncoding: new HexStringEncoding(),
+        valueEncoding: new EvmStateEncoding(),
+      })
   }
 
   async get(key: string, _encodingOpts?: EncodingOpts): Promise<Uint8Array | undefined> {
@@ -57,7 +59,7 @@ export class EvmStateDB implements DB<string, Uint8Array> {
   }
 
   shallowCopy(): EvmStateDB {
-    return new EvmStateDB(this.db)
+    return new EvmStateDB(this.db, this.store)
   }
 
   async open(): Promise<void> {
