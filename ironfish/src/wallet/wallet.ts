@@ -401,9 +401,9 @@ export class Wallet {
   ): Promise<Map<string, Array<DecryptedNote | null>>> {
     const accountKeys = accounts.map((account) => ({
       accountId: account.id,
-      incomingViewKey: account.incomingViewKey,
-      outgoingViewKey: account.outgoingViewKey,
-      viewKey: account.viewKey,
+      incomingViewKey: Buffer.from(account.incomingViewKey, 'hex'),
+      outgoingViewKey: Buffer.from(account.outgoingViewKey, 'hex'),
+      viewKey: Buffer.from(account.viewKey, 'hex'),
     }))
 
     return this.workerPool.decryptNotes(accountKeys, encryptedNotes, {

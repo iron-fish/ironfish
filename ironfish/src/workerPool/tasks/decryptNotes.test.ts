@@ -12,16 +12,21 @@ import {
 } from '../../testUtilities'
 import { ACCOUNT_KEY_LENGTH } from '../../wallet'
 import { VIEW_KEY_LENGTH } from '../../wallet/walletdb/accountValue'
-import { DecryptNotesRequest, DecryptNotesResponse, DecryptNotesTask } from './decryptNotes'
+import {
+  DecryptNotesRequest,
+  DecryptNotesResponse,
+  DecryptNotesSharedAccountKeys,
+  DecryptNotesTask,
+} from './decryptNotes'
 
 describe('DecryptNotesRequest', () => {
   it('serializes the object to a buffer and deserializes to the original object', () => {
     const request = new DecryptNotesRequest(
       [
         {
-          incomingViewKey: Buffer.alloc(ACCOUNT_KEY_LENGTH, 1).toString('hex'),
-          outgoingViewKey: Buffer.alloc(ACCOUNT_KEY_LENGTH, 1).toString('hex'),
-          viewKey: Buffer.alloc(VIEW_KEY_LENGTH, 1).toString('hex'),
+          incomingViewKey: Buffer.alloc(ACCOUNT_KEY_LENGTH, 1),
+          outgoingViewKey: Buffer.alloc(ACCOUNT_KEY_LENGTH, 1),
+          viewKey: Buffer.alloc(VIEW_KEY_LENGTH, 1),
         },
       ],
       [
@@ -37,7 +42,43 @@ describe('DecryptNotesRequest', () => {
       0,
     )
     const buffer = serializePayloadToBuffer(request)
-    const deserializedRequest = DecryptNotesRequest.deserializePayload(request.jobId, buffer)
+    const deserializedRequest = DecryptNotesRequest.deserializePayload(
+      request.jobId,
+      buffer,
+      null,
+    )
+    expect(deserializedRequest).toEqual(request)
+  })
+
+  it('serializes the object to a buffer and deserializes to the original object with shared memory keys', () => {
+    const sharedKeys = new DecryptNotesSharedAccountKeys([
+      {
+        incomingViewKey: Buffer.alloc(ACCOUNT_KEY_LENGTH, 1),
+        outgoingViewKey: Buffer.alloc(ACCOUNT_KEY_LENGTH, 1),
+        viewKey: Buffer.alloc(VIEW_KEY_LENGTH, 1),
+      },
+    ])
+    const request = new DecryptNotesRequest(
+      sharedKeys,
+      [
+        {
+          serializedNote: Buffer.alloc(ENCRYPTED_NOTE_LENGTH, 1),
+          currentNoteIndex: 2,
+        },
+      ],
+      {
+        decryptForSpender: true,
+        skipNoteValidation: false,
+      },
+      0,
+    )
+    const buffer = serializePayloadToBuffer(request)
+    const sharedMemory = request.getSharedMemoryPayload()
+    const deserializedRequest = DecryptNotesRequest.deserializePayload(
+      request.jobId,
+      buffer,
+      sharedMemory,
+    )
     expect(deserializedRequest).toEqual(request)
   })
 
@@ -47,9 +88,9 @@ describe('DecryptNotesRequest', () => {
 
     const request = new DecryptNotesRequest(
       Array.from({ length: numAccounts }, () => ({
-        incomingViewKey: Buffer.alloc(ACCOUNT_KEY_LENGTH, 1).toString('hex'),
-        outgoingViewKey: Buffer.alloc(ACCOUNT_KEY_LENGTH, 1).toString('hex'),
-        viewKey: Buffer.alloc(VIEW_KEY_LENGTH, 1).toString('hex'),
+        incomingViewKey: Buffer.alloc(ACCOUNT_KEY_LENGTH, 1),
+        outgoingViewKey: Buffer.alloc(ACCOUNT_KEY_LENGTH, 1),
+        viewKey: Buffer.alloc(VIEW_KEY_LENGTH, 1),
       })),
       Array.from({ length: numNotes }, () => ({
         serializedNote: Buffer.alloc(ENCRYPTED_NOTE_LENGTH, 1),
@@ -59,7 +100,11 @@ describe('DecryptNotesRequest', () => {
       0,
     )
     const buffer = serializePayloadToBuffer(request)
-    const deserializedRequest = DecryptNotesRequest.deserializePayload(request.jobId, buffer)
+    const deserializedRequest = DecryptNotesRequest.deserializePayload(
+      request.jobId,
+      buffer,
+      null,
+    )
     expect(deserializedRequest.encryptedNotes).toHaveLength(numNotes)
     expect(deserializedRequest.accountKeys).toHaveLength(numAccounts)
   })
@@ -150,9 +195,9 @@ describe('DecryptNotesTask', () => {
       const request = new DecryptNotesRequest(
         [
           {
-            incomingViewKey: account.incomingViewKey,
-            outgoingViewKey: account.outgoingViewKey,
-            viewKey: account.viewKey,
+            incomingViewKey: Buffer.from(account.incomingViewKey, 'hex'),
+            outgoingViewKey: Buffer.from(account.outgoingViewKey, 'hex'),
+            viewKey: Buffer.from(account.viewKey, 'hex'),
           },
         ],
         [
@@ -193,9 +238,9 @@ describe('DecryptNotesTask', () => {
       const requestSpender = new DecryptNotesRequest(
         [
           {
-            incomingViewKey: accountA.incomingViewKey,
-            outgoingViewKey: accountA.outgoingViewKey,
-            viewKey: accountA.viewKey,
+            incomingViewKey: Buffer.from(accountA.incomingViewKey, 'hex'),
+            outgoingViewKey: Buffer.from(accountA.outgoingViewKey, 'hex'),
+            viewKey: Buffer.from(accountA.viewKey, 'hex'),
           },
         ],
         [
@@ -223,9 +268,9 @@ describe('DecryptNotesTask', () => {
       const requestNoSpender = new DecryptNotesRequest(
         [
           {
-            incomingViewKey: accountA.incomingViewKey,
-            outgoingViewKey: accountA.outgoingViewKey,
-            viewKey: accountA.viewKey,
+            incomingViewKey: Buffer.from(accountA.incomingViewKey, 'hex'),
+            outgoingViewKey: Buffer.from(accountA.outgoingViewKey, 'hex'),
+            viewKey: Buffer.from(accountA.viewKey, 'hex'),
           },
         ],
         [

@@ -37,7 +37,7 @@ pub struct IncomingViewKey {
 
 impl IncomingViewKey {
     /// load view key from a Read implementation
-    pub fn read<R: io::Read>(reader: &mut R) -> Result<Self, IronfishError> {
+    pub fn read<R: io::Read>(reader: R) -> Result<Self, IronfishError> {
         let view_key = read_scalar(reader)?;
         Ok(IncomingViewKey { view_key })
     }
@@ -174,6 +174,13 @@ pub struct OutgoingViewKey {
 }
 
 impl OutgoingViewKey {
+    /// load view key from a Read implementation
+    pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
+        let mut view_key = [0u8; 32];
+        reader.read_exact(&mut view_key)?;
+        Ok(OutgoingViewKey { view_key })
+    }
+
     /// Load a key from a string of hexadecimal digits
     pub fn from_hex(value: &str) -> Result<Self, IronfishError> {
         match hex_to_bytes(value) {

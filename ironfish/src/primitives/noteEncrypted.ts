@@ -15,6 +15,14 @@ export type NoteEncryptedHash = Buffer
 export type SerializedNoteEncryptedHash = Buffer
 export type SerializedNoteEncrypted = Buffer
 
+const ensureBuffer = (value: Buffer | string): Buffer => {
+  if (typeof value === 'string') {
+    return Buffer.from(value, 'hex')
+  } else {
+    return value
+  }
+}
+
 export class NoteEncrypted {
   private readonly noteEncryptedSerialized: Buffer
 
@@ -81,28 +89,28 @@ export class NoteEncrypted {
     }
   }
 
-  decryptNoteForOwner(ownerHexKey: string): Note | undefined {
-    const note = this.takeReference().decryptNoteForOwner(ownerHexKey)
+  decryptNoteForOwner(incomingViewKey: Buffer | string): Note | undefined {
+    const note = this.takeReference().decryptNoteForOwner(ensureBuffer(incomingViewKey))
     this.returnReference()
     if (note) {
       return new Note(note)
     }
   }
 
-  decryptNoteForOwners(ownerHexKeys: Array<string>): Array<Note | undefined> {
-    if (ownerHexKeys.length === 0) {
+  decryptNoteForOwners(incomingViewKeys: Array<Buffer>): Array<Note | undefined> {
+    if (incomingViewKeys.length === 0) {
       return []
-    } else if (ownerHexKeys.length === 1) {
-      return [this.decryptNoteForOwner(ownerHexKeys[0])]
+    } else if (incomingViewKeys.length === 1) {
+      return [this.decryptNoteForOwner(incomingViewKeys[0])]
     }
 
-    const notes = this.takeReference().decryptNoteForOwners(ownerHexKeys)
+    const notes = this.takeReference().decryptNoteForOwners(incomingViewKeys)
     this.returnReference()
     return notes.map((note) => (note ? new Note(note) : undefined))
   }
 
-  decryptNoteForSpender(spenderHexKey: string): Note | undefined {
-    const note = this.takeReference().decryptNoteForSpender(spenderHexKey)
+  decryptNoteForSpender(outgoingViewKey: Buffer | string): Note | undefined {
+    const note = this.takeReference().decryptNoteForSpender(ensureBuffer(outgoingViewKey))
     this.returnReference()
     if (note) {
       return new Note(note)

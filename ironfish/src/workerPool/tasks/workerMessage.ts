@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import bufio from 'bufio'
+import { MessagePort, Worker as WorkerThread } from 'worker_threads'
 import { Serializable } from '../../common/serializable'
 import { WorkerHeader } from '../interfaces/workerHeader'
 
@@ -34,6 +35,10 @@ export abstract class WorkerMessage implements Serializable {
   abstract serializePayload(bw: bufio.StaticWriter | bufio.BufferWriter): void
   abstract getSize(): number
 
+  getSharedMemoryPayload(): SharedArrayBuffer | null {
+    return null
+  }
+
   static deserializeHeader(buffer: Buffer): WorkerHeader {
     const br = bufio.read(buffer)
     const jobId = Number(br.readU64())
@@ -46,11 +51,31 @@ export abstract class WorkerMessage implements Serializable {
     }
   }
 
+  /**
+   * Serializes the contents of this message into a `Buffer` to be sent to a
+   * worker.
+   *
+   * Note that the `Buffer` will be *transferred* to the destination worker.
+   * This means that the buffer will become inutilizable from the sending
+   * context once sent. For this reason, it's important that the returned
+   * `Buffer` does not reference any memory that will be needed later by the
+   * sending context. An easy way to ensure that is to create a new `Buffer`
+   * every time this method is called.
+   *
+   * See https://developer.mozilla.org/en-US/docs/Web/API/Worker/postMessage
+   * for more details on transfers.
+   */
   serialize(): Buffer {
     const bw = bufio.write(WORKER_MESSAGE_HEADER_SIZE + this.getSize())
     bw.writeU64(this.jobId)
     bw.writeU8(this.type)
     this.serializePayload(bw)
     return bw.render()
+  }
+
+  post(thread: WorkerThread | MessagePort) {
+    const body = this.serialize().buffer
+    const sharedData = this.getSharedMemoryPayload()
+    thread.postMessage([body, sharedData], [body])
   }
 }

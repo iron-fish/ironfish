@@ -132,10 +132,10 @@ export class NoteEncrypted {
    */
   static combineHash(depth: number, jsLeft: Buffer, jsRight: Buffer): Buffer
   /** Returns undefined if the note was unable to be decrypted with the given key. */
-  decryptNoteForOwner(incomingHexKey: string): Buffer | null
-  decryptNoteForOwners(incomingHexKeys: Array<string>): Array<Buffer | undefined | null>
+  decryptNoteForOwner(incomingViewKey: Buffer): Buffer | null
+  decryptNoteForOwners(incomingViewKeys: Array<Buffer>): Array<Buffer | undefined | null>
   /** Returns undefined if the note was unable to be decrypted with the given key. */
-  decryptNoteForSpender(outgoingHexKey: string): Buffer | null
+  decryptNoteForSpender(outgoingViewKey: Buffer): Buffer | null
 }
 export type NativeNote = Note
 export class Note {
