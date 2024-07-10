@@ -10,15 +10,19 @@ import { VIEW_KEY_LENGTH } from '../../wallet/walletdb/accountValue'
 import { WorkerMessage, WorkerMessageType } from './workerMessage'
 import { WorkerTask } from './workerTask'
 
+const NO_NOTE_INDEX: number = (1 << 32) - 1
+
+const ACCOUNT_KEY_SIZE: number = ACCOUNT_KEY_LENGTH + ACCOUNT_KEY_LENGTH + VIEW_KEY_LENGTH
+
 export interface DecryptNotesOptions {
   decryptForSpender: boolean
   skipNoteValidation?: boolean
 }
 
 export interface DecryptNotesAccountKey {
-  incomingViewKey: string
-  outgoingViewKey: string
-  viewKey: string
+  incomingViewKey: Buffer
+  outgoingViewKey: Buffer
+  viewKey: Buffer
 }
 
 export interface DecryptNotesItem {
@@ -34,15 +38,91 @@ export interface DecryptedNote {
   serializedNote: Buffer
 }
 
-const NO_NOTE_INDEX: number = (1 << 32) - 1
+export type DecryptNotesAccountKeys =
+  | DecryptNotesInlineAccountKeys
+  | DecryptNotesSharedAccountKeys
+export type ReadonlyDecryptNotesAccountKeys =
+  | ReadonlyDecryptNotesInlineAccountKeys
+  | DecryptNotesSharedAccountKeys
+
+export type DecryptNotesInlineAccountKeys = Array<DecryptNotesAccountKey>
+export type ReadonlyDecryptNotesInlineAccountKeys = ReadonlyArray<DecryptNotesAccountKey>
+
+export class DecryptNotesSharedAccountKeys {
+  readonly length: number
+  readonly sharedBuffer: SharedArrayBuffer
+
+  constructor(accountKeys: ReadonlyArray<DecryptNotesAccountKey> | SharedArrayBuffer) {
+    if (accountKeys instanceof SharedArrayBuffer) {
+      this.length = Math.trunc(accountKeys.byteLength / ACCOUNT_KEY_SIZE)
+      this.sharedBuffer = accountKeys
+    } else {
+      this.length = accountKeys.length
+      this.sharedBuffer = DecryptNotesSharedAccountKeys.serialize(accountKeys)
+    }
+  }
+
+  at(index: number): DecryptNotesAccountKey | undefined {
+    if (index >= this.length) {
+      return undefined
+    }
+
+    const incomingViewKeyStart = index * ACCOUNT_KEY_LENGTH
+    const outgoingViewKeyStart = this.length * ACCOUNT_KEY_LENGTH + index * ACCOUNT_KEY_LENGTH
+    const viewKeyStart = 2 * this.length * ACCOUNT_KEY_LENGTH + index * VIEW_KEY_LENGTH
+
+    return {
+      incomingViewKey: Buffer.from(this.sharedBuffer, incomingViewKeyStart, ACCOUNT_KEY_LENGTH),
+      outgoingViewKey: Buffer.from(this.sharedBuffer, outgoingViewKeyStart, ACCOUNT_KEY_LENGTH),
+      viewKey: Buffer.from(this.sharedBuffer, viewKeyStart, VIEW_KEY_LENGTH),
+    }
+  }
+
+  map<T>(fn: (key: DecryptNotesAccountKey) => T): Array<T> {
+    const result = new Array<T>()
+    for (let index = 0; index < this.length; index++) {
+      const key = this.at(index)
+      Assert.isNotUndefined(key)
+      result.push(fn(key))
+    }
+    return result
+  }
+
+  private static serialize(
+    accountKeys: ReadonlyArray<DecryptNotesAccountKey>,
+  ): SharedArrayBuffer {
+    const size = ACCOUNT_KEY_SIZE * accountKeys.length
+
+    const buffer = new SharedArrayBuffer(size)
+    const array = new Uint8Array(buffer)
+    let offset = 0
+
+    const write = (bytes: Buffer) => {
+      array.set(bytes, offset)
+      offset += bytes.length
+    }
+
+    for (const key of accountKeys) {
+      write(key.incomingViewKey)
+    }
+    for (const key of accountKeys) {
+      write(key.outgoingViewKey)
+    }
+    for (const key of accountKeys) {
+      write(key.viewKey)
+    }
+
+    return buffer
+  }
+}
 
 export class DecryptNotesRequest extends WorkerMessage {
-  readonly accountKeys: ReadonlyArray<DecryptNotesAccountKey>
+  readonly accountKeys: ReadonlyDecryptNotesAccountKeys
   readonly encryptedNotes: ReadonlyArray<DecryptNotesItem>
   readonly options: DecryptNotesOptions
 
   constructor(
-    accountKeys: ReadonlyArray<DecryptNotesAccountKey>,
+    accountKeys: ReadonlyDecryptNotesAccountKeys,
     encryptedNotes: ReadonlyArray<DecryptNotesItem>,
     options: DecryptNotesOptions,
     jobId?: number,
@@ -56,14 +136,17 @@ export class DecryptNotesRequest extends WorkerMessage {
   serializePayload(bw: bufio.StaticWriter | bufio.BufferWriter): void {
     const flags =
       (Number(this.options.decryptForSpender) << 0) |
-      (Number(this.options.skipNoteValidation ?? false) << 1)
+      (Number(this.options.skipNoteValidation ?? false) << 1) |
+      (Number(this.accountKeys instanceof DecryptNotesSharedAccountKeys) << 2)
     bw.writeU8(flags)
 
-    bw.writeU32(this.accountKeys.length)
-    for (const key of this.accountKeys) {
-      bw.writeBytes(Buffer.from(key.incomingViewKey, 'hex'))
-      bw.writeBytes(Buffer.from(key.outgoingViewKey, 'hex'))
-      bw.writeBytes(Buffer.from(key.viewKey, 'hex'))
+    if (!(this.accountKeys instanceof DecryptNotesSharedAccountKeys)) {
+      bw.writeU32(this.accountKeys.length)
+      for (const key of this.accountKeys) {
+        bw.writeBytes(key.incomingViewKey)
+        bw.writeBytes(key.outgoingViewKey)
+        bw.writeBytes(key.viewKey)
+      }
     }
 
     for (const note of this.encryptedNotes) {
@@ -72,7 +155,19 @@ export class DecryptNotesRequest extends WorkerMessage {
     }
   }
 
-  static deserializePayload(jobId: number, buffer: Buffer): DecryptNotesRequest {
+  getSharedMemoryPayload(): SharedArrayBuffer | null {
+    if (this.accountKeys instanceof DecryptNotesSharedAccountKeys) {
+      return this.accountKeys.sharedBuffer
+    } else {
+      return null
+    }
+  }
+
+  static deserializePayload(
+    jobId: number,
+    buffer: Buffer,
+    sharedAccountKeys: SharedArrayBuffer | null,
+  ): DecryptNotesRequest {
     const reader = bufio.read(buffer, true)
 
     const flags = reader.readU8()
@@ -80,18 +175,31 @@ export class DecryptNotesRequest extends WorkerMessage {
       decryptForSpender: !!(flags & (1 << 0)),
       skipNoteValidation: !!(flags & (1 << 1)),
     }
+    const hasSharedAccountKeys = flags & (1 << 2)
 
-    const accountKeys = []
-    const encryptedNotes = []
-
-    const keysLength = reader.readU32()
-    for (let i = 0; i < keysLength; i++) {
-      const incomingViewKey = reader.readBytes(ACCOUNT_KEY_LENGTH).toString('hex')
-      const outgoingViewKey = reader.readBytes(ACCOUNT_KEY_LENGTH).toString('hex')
-      const viewKey = reader.readBytes(VIEW_KEY_LENGTH).toString('hex')
-      accountKeys.push({ incomingViewKey, outgoingViewKey, viewKey })
+    let accountKeys: DecryptNotesAccountKeys
+    if (hasSharedAccountKeys) {
+      Assert.isNotNull(
+        sharedAccountKeys,
+        'expected account keys to be provided as a SharedArrayBuffer',
+      )
+      accountKeys = new DecryptNotesSharedAccountKeys(sharedAccountKeys)
+    } else {
+      Assert.isNull(
+        sharedAccountKeys,
+        'account keys are already inline in the message, they should not be provided as a SharedArrayBuffer',
+      )
+      const keysLength = reader.readU32()
+      accountKeys = new Array<DecryptNotesAccountKey>()
+      for (let i = 0; i < keysLength; i++) {
+        const incomingViewKey = reader.readBytes(ACCOUNT_KEY_LENGTH)
+        const outgoingViewKey = reader.readBytes(ACCOUNT_KEY_LENGTH)
+        const viewKey = reader.readBytes(VIEW_KEY_LENGTH)
+        accountKeys.push({ incomingViewKey, outgoingViewKey, viewKey })
+      }
     }
 
+    const encryptedNotes = []
     while (reader.left() > 0) {
       const serializedNote = reader.readBytes(ENCRYPTED_NOTE_LENGTH)
       let currentNoteIndex: number | null = reader.readU32()
@@ -109,15 +217,14 @@ export class DecryptNotesRequest extends WorkerMessage {
 
   getSize(): number {
     const optionsSize = 1
-    const keySize = ACCOUNT_KEY_LENGTH + ACCOUNT_KEY_LENGTH + VIEW_KEY_LENGTH
     const noteSize = ENCRYPTED_NOTE_LENGTH + 4
+    let accountKeysSize = 0
 
-    return (
-      optionsSize +
-      4 +
-      keySize * this.accountKeys.length +
-      noteSize * this.encryptedNotes.length
-    )
+    if (!(this.accountKeys instanceof DecryptNotesSharedAccountKeys)) {
+      accountKeysSize += 4 + ACCOUNT_KEY_SIZE * this.accountKeys.length
+    }
+
+    return optionsSize + accountKeysSize + noteSize * this.encryptedNotes.length
   }
 }
 
@@ -279,27 +386,27 @@ export class DecryptNotesTask extends WorkerTask {
     jobId,
   }: DecryptNotesRequest): DecryptNotesResponse {
     const decryptedNotes = []
+    const incomingViewKeys = accountKeys.map(({ incomingViewKey }) => incomingViewKey)
+    const noteOptions = {
+      skipValidation: options.skipNoteValidation,
+    }
 
     for (const { serializedNote, currentNoteIndex } of encryptedNotes) {
-      const note = new NoteEncrypted(serializedNote, {
-        skipValidation: options.skipNoteValidation,
-      })
-
-      const receivedNotes = note.decryptNoteForOwners(
-        accountKeys.map(({ incomingViewKey }) => incomingViewKey),
-      )
+      const note = new NoteEncrypted(serializedNote, noteOptions)
+      const receivedNotes = note.decryptNoteForOwners(incomingViewKeys)
 
       for (const [i, receivedNote] of receivedNotes.entries()) {
         // Try decrypting the note as the owner
         if (receivedNote && receivedNote.value() !== 0n) {
-          const { viewKey } = accountKeys[i]
+          const key = accountKeys.at(i)
+          Assert.isNotUndefined(key)
           decryptedNotes.push({
             index: currentNoteIndex,
             forSpender: false,
             hash: note.hash(),
             nullifier:
               currentNoteIndex !== null
-                ? receivedNote.nullifier(viewKey, BigInt(currentNoteIndex))
+                ? receivedNote.nullifier(key.viewKey.toString('hex'), BigInt(currentNoteIndex))
                 : null,
             serializedNote: receivedNote.serialize(),
           })
@@ -308,8 +415,9 @@ export class DecryptNotesTask extends WorkerTask {
 
         if (options.decryptForSpender) {
           // Try decrypting the note as the spender
-          const { outgoingViewKey } = accountKeys[i]
-          const spentNote = note.decryptNoteForSpender(outgoingViewKey)
+          const key = accountKeys.at(i)
+          Assert.isNotUndefined(key)
+          const spentNote = note.decryptNoteForSpender(key.outgoingViewKey)
           if (spentNote && spentNote.value() !== 0n) {
             decryptedNotes.push({
               index: currentNoteIndex,

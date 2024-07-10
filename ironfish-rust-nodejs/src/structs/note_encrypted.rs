@@ -134,9 +134,9 @@ impl NativeNoteEncrypted {
 
     /// Returns undefined if the note was unable to be decrypted with the given key.
     #[napi]
-    pub fn decrypt_note_for_owner(&self, incoming_hex_key: String) -> Result<Option<Buffer>> {
+    pub fn decrypt_note_for_owner(&self, incoming_view_key: JsBuffer) -> Result<Option<Buffer>> {
         let incoming_view_key =
-            IncomingViewKey::from_hex(&incoming_hex_key).map_err(to_napi_err)?;
+            IncomingViewKey::read(&*incoming_view_key.into_value()?).map_err(to_napi_err)?;
         let decrypted_note = self.note.decrypt_note_for_owner(&incoming_view_key);
         decrypted_note_to_buffer(decrypted_note).map_err(to_napi_err)
     }
@@ -144,21 +144,20 @@ impl NativeNoteEncrypted {
     #[napi]
     pub fn decrypt_note_for_owners(
         &self,
-        incoming_hex_keys: Vec<String>,
+        incoming_view_keys: Vec<JsBuffer>,
     ) -> Result<Vec<Option<Buffer>>> {
-        let incoming_view_keys = try_map(&incoming_hex_keys[..], |hex_key| {
-            IncomingViewKey::from_hex(hex_key)
-        })
-        .map_err(to_napi_err)?;
+        let incoming_view_keys = try_map(incoming_view_keys, |incoming_view_key| {
+            IncomingViewKey::read(&*incoming_view_key.into_value()?).map_err(to_napi_err)
+        })?;
         let decrypted_notes = self.note.decrypt_note_for_owners(&incoming_view_keys);
         try_map(decrypted_notes, decrypted_note_to_buffer).map_err(to_napi_err)
     }
 
     /// Returns undefined if the note was unable to be decrypted with the given key.
     #[napi]
-    pub fn decrypt_note_for_spender(&self, outgoing_hex_key: String) -> Result<Option<Buffer>> {
+    pub fn decrypt_note_for_spender(&self, outgoing_view_key: JsBuffer) -> Result<Option<Buffer>> {
         let outgoing_view_key =
-            OutgoingViewKey::from_hex(&outgoing_hex_key).map_err(to_napi_err)?;
+            OutgoingViewKey::read(&*outgoing_view_key.into_value()?).map_err(to_napi_err)?;
         let decrypted_note = self.note.decrypt_note_for_spender(&outgoing_view_key);
         decrypted_note_to_buffer(decrypted_note).map_err(to_napi_err)
     }

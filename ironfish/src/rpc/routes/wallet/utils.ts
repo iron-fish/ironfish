@@ -41,9 +41,9 @@ export async function getTransactionNotes(
   const accountKeys = [
     {
       accountId: account.id,
-      incomingViewKey: account.incomingViewKey,
-      outgoingViewKey: account.outgoingViewKey,
-      viewKey: account.viewKey,
+      incomingViewKey: Buffer.from(account.incomingViewKey, 'hex'),
+      outgoingViewKey: Buffer.from(account.outgoingViewKey, 'hex'),
+      viewKey: Buffer.from(account.viewKey, 'hex'),
     },
   ]
 

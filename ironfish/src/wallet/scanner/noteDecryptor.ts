@@ -14,6 +14,7 @@ import {
   DecryptNotesOptions,
   DecryptNotesRequest,
   DecryptNotesResponse,
+  DecryptNotesSharedAccountKeys,
 } from '../../workerPool/tasks/decryptNotes'
 import { JobAbortedError } from '../../workerPool/tasks/jobAbort'
 import { Account } from '../account/account'
@@ -24,11 +25,11 @@ export type DecryptNotesFromTransactionsCallback = (
   transactions: Array<{ transaction: Transaction; decryptedNotes: Array<DecryptedNote> }>,
 ) => Promise<void>
 
-type DecryptQueueValue = {
+type DecryptQueueItem = {
   job: Job
-  accounts: ReadonlyArray<Account>
   blockHeader: BlockHeader
   transactions: ReadonlyArray<Transaction>
+  accounts: ReadonlyArray<Account>
   callback: DecryptNotesFromTransactionsCallback
 }
 
@@ -43,7 +44,10 @@ export class BackgroundNoteDecryptor {
 
   private readonly workerPool: WorkerPool
   private readonly options: DecryptNotesOptions
-  private readonly decryptQueue: AsyncQueue<DecryptQueueValue>
+  private readonly decryptQueue: AsyncQueue<DecryptQueueItem>
+
+  private accounts: ReadonlyArray<Account>
+  private sharedAccountKeys: DecryptNotesSharedAccountKeys
 
   constructor(workerPool: WorkerPool, config: Config, options: DecryptNotesOptions) {
     this.workerPool = workerPool
@@ -56,6 +60,9 @@ export class BackgroundNoteDecryptor {
     }
     queueSize = Math.max(queueSize, 1)
     this.decryptQueue = new AsyncQueue(queueSize)
+
+    this.accounts = []
+    this.sharedAccountKeys = new DecryptNotesSharedAccountKeys([])
   }
 
   start(abort?: AbortController) {
@@ -84,7 +91,7 @@ export class BackgroundNoteDecryptor {
   }
 
   private async decryptLoop(): Promise<void> {
-    let resolve: (value: DecryptQueueValue | void) => unknown
+    let resolve: (value: DecryptQueueItem | void) => unknown
     let reject: (reason?: unknown) => void
 
     this.onStopped.then(
@@ -98,7 +105,7 @@ export class BackgroundNoteDecryptor {
         this.triggerFlushed = null
       }
 
-      const [promise, resolveNew, rejectNew] = PromiseUtils.split<DecryptQueueValue | void>()
+      const [promise, resolveNew, rejectNew] = PromiseUtils.split<DecryptQueueItem | void>()
       resolve = resolveNew
       reject = rejectNew
 
@@ -112,7 +119,7 @@ export class BackgroundNoteDecryptor {
         break
       }
 
-      const { job, accounts, blockHeader, transactions, callback } = item
+      const { job, blockHeader, transactions, accounts, callback } = item
 
       let decryptNotesResponse
       try {
@@ -166,15 +173,12 @@ export class BackgroundNoteDecryptor {
       throw new Error('decryptor was not started')
     }
 
+    this.updateAccounts(accounts)
+
     if (!this.triggerFlushed) {
       this.onFlushed = new Promise((resolve) => (this.triggerFlushed = resolve))
     }
 
-    const accountKeys = accounts.map((account) => ({
-      incomingViewKey: account.incomingViewKey,
-      outgoingViewKey: account.outgoingViewKey,
-      viewKey: account.viewKey,
-    }))
     Assert.isNotNull(blockHeader.noteSize)
 
     const encryptedNotes = []
@@ -190,7 +194,7 @@ export class BackgroundNoteDecryptor {
     }
 
     const decryptNotesRequest = new DecryptNotesRequest(
-      accountKeys,
+      this.sharedAccountKeys,
       encryptedNotes,
       this.options,
     )
@@ -198,11 +202,34 @@ export class BackgroundNoteDecryptor {
 
     return this.decryptQueue.push({
       job,
-      accounts,
       blockHeader,
       transactions,
+      accounts: this.accounts,
       callback,
     })
+  }
+
+  private updateAccounts(newAccounts: ReadonlyArray<Account>) {
+    if (
+      newAccounts.length === this.accounts.length &&
+      newAccounts.every((account, index) => account === this.accounts[index])
+    ) {
+      // No change
+      return
+    }
+
+    // Because `decryptLoop` does not use `this.accounts` or
+    // `this.sharedAccountKeys` directly, we can swap their value without the
+    // need to flush the queue. This is safe as long as the value is not
+    // mutated.
+    this.accounts = newAccounts
+    this.sharedAccountKeys = new DecryptNotesSharedAccountKeys(
+      newAccounts.map((account) => ({
+        incomingViewKey: Buffer.from(account.incomingViewKey, 'hex'),
+        outgoingViewKey: Buffer.from(account.outgoingViewKey, 'hex'),
+        viewKey: Buffer.from(account.viewKey, 'hex'),
+      })),
+    )
   }
 }
 

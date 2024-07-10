@@ -68,7 +68,11 @@ describe('WorkerMessages', () => {
     const { block, transactions } = await useBlockWithTxs(nodeTest.node, txCount, account)
     await expect(nodeTest.chain).toAddBlock(block)
 
-    const accountKeys: DecryptNotesAccountKey = { ...account }
+    const accountKeys: DecryptNotesAccountKey = {
+      incomingViewKey: Buffer.from(account.incomingViewKey, 'hex'),
+      outgoingViewKey: Buffer.from(account.outgoingViewKey, 'hex'),
+      viewKey: Buffer.from(account.viewKey, 'hex'),
+    }
 
     const items: DecryptNotesItem[] = []
     for (const transaction of transactions) {
