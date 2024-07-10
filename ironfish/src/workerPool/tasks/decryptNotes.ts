@@ -229,9 +229,9 @@ export class DecryptNotesRequest extends WorkerMessage {
 }
 
 export class DecryptNotesResponse extends WorkerMessage {
-  readonly notes: Array<DecryptedNote | null>
+  readonly notes: Array<DecryptedNote | undefined>
 
-  constructor(notes: Array<DecryptedNote | null>, jobId: number) {
+  constructor(notes: Array<DecryptedNote | undefined>, jobId: number) {
     super(WorkerMessageType.DecryptNotes, jobId)
     this.notes = notes
   }
@@ -258,12 +258,15 @@ export class DecryptNotesResponse extends WorkerMessage {
 
     bw.writeU32(this.notes.length)
 
-    for (const [arrayIndex, note] of this.notes.entries()) {
+    // `this.notes` may be a sparse array. Using `forEach()` will skip the
+    // unset slots (as opposed to using `for (... of this.notes)`, which will
+    // iterate over the unset slots).
+    this.notes.forEach((note, notesArrayIndex) => {
       if (!note) {
-        continue
+        return
       }
 
-      bw.writeU32(arrayIndex)
+      bw.writeU32(notesArrayIndex)
 
       let flags = 0
       flags |= Number(!!note.index) << 0
@@ -280,17 +283,17 @@ export class DecryptNotesResponse extends WorkerMessage {
       if (note.nullifier) {
         bw.writeHash(note.nullifier)
       }
-    }
+    })
   }
 
   static deserializePayload(jobId: number, buffer: Buffer): DecryptNotesResponse {
     const reader = bufio.read(buffer)
 
-    const arrayLength = reader.readU32()
-    const notes = Array(arrayLength).fill(null) as Array<DecryptedNote | null>
+    const notes = new Array<DecryptedNote | undefined>()
+    notes.length = reader.readU32()
 
     while (reader.left() > 0) {
-      const arrayIndex = reader.readU32()
+      const notesArrayIndex = reader.readU32()
 
       const flags = reader.readU8()
       const hasIndex = flags & (1 << 0)
@@ -309,7 +312,7 @@ export class DecryptNotesResponse extends WorkerMessage {
         nullifier = reader.readHash()
       }
 
-      notes[arrayIndex] = {
+      notes[notesArrayIndex] = {
         forSpender,
         index,
         hash,
@@ -322,11 +325,11 @@ export class DecryptNotesResponse extends WorkerMessage {
   }
 
   getSize(): number {
-    let size = 4
-
-    for (const note of this.notes) {
+    // `this.notes` may be a sparse array. `reduce()` won't visit the unset
+    // slots in that case.
+    return this.notes.reduce((size, note) => {
       if (!note) {
-        continue
+        return size
       }
 
       size += 4 + 1 + 32 + DECRYPTED_NOTE_LENGTH
@@ -338,9 +341,9 @@ export class DecryptNotesResponse extends WorkerMessage {
       if (note.nullifier) {
         size += 32
       }
-    }
 
-    return size
+      return size
+    }, 4)
   }
 
   /**
@@ -350,21 +353,33 @@ export class DecryptNotesResponse extends WorkerMessage {
    */
   mapToAccounts(
     accounts: ReadonlyArray<{ accountId: string }>,
-  ): Map<string, Array<DecryptedNote | null>> {
-    const decryptedNotesByAccount: Array<
-      [accountId: string, notes: Array<DecryptedNote | null>]
-    > = accounts.map(({ accountId }) => [accountId, []])
-
-    let noteIndex = 0
-    while (noteIndex < this.notes.length) {
-      for (const [_, accountNotes] of decryptedNotesByAccount) {
-        const nextNote: DecryptedNote | null | undefined = this.notes[noteIndex++]
-        Assert.isNotUndefined(nextNote)
-        accountNotes.push(nextNote)
-      }
+  ): Map<string, Array<DecryptedNote | undefined>> {
+    if (
+      !(this.notes.length === 0 && accounts.length === 0) &&
+      this.notes.length % accounts.length !== 0
+    ) {
+      throw new Error(
+        `${this.notes.length} notes cannot be mapped to ${accounts.length} accounts`,
+      )
     }
 
-    Assert.isEqual(noteIndex, this.notes.length)
+    const notesPerAccount = Math.trunc(this.notes.length / accounts.length)
+
+    const decryptedNotesByAccount: Array<
+      [accountId: string, notes: Array<DecryptedNote | undefined>]
+    > = accounts.map(({ accountId }) => {
+      const accountNotes: Array<DecryptedNote | undefined> = []
+      accountNotes.length = notesPerAccount
+      return [accountId, accountNotes]
+    })
+
+    this.notes.forEach((note, notesArrayIndex) => {
+      const accountIndex = notesArrayIndex % accounts.length
+      const accountNotesArrayIndex = Math.trunc(notesArrayIndex / accounts.length)
+      const [_accountId, accountNotes] = decryptedNotesByAccount[accountIndex]
+      accountNotes[accountNotesArrayIndex] = note
+    })
+
     return new Map(decryptedNotesByAccount)
   }
 }
@@ -391,16 +406,19 @@ export class DecryptNotesTask extends WorkerTask {
       skipValidation: options.skipNoteValidation,
     }
 
+    decryptedNotes.length = incomingViewKeys.length * encryptedNotes.length
+
+    let decryptedNoteIndex = 0
     for (const { serializedNote, currentNoteIndex } of encryptedNotes) {
       const note = new NoteEncrypted(serializedNote, noteOptions)
       const receivedNotes = note.decryptNoteForOwners(incomingViewKeys)
 
-      for (const [i, receivedNote] of receivedNotes.entries()) {
+      for (const [accountIndex, receivedNote] of receivedNotes.entries()) {
         // Try decrypting the note as the owner
         if (receivedNote && receivedNote.value() !== 0n) {
-          const key = accountKeys.at(i)
+          const key = accountKeys.at(accountIndex)
           Assert.isNotUndefined(key)
-          decryptedNotes.push({
+          decryptedNotes[decryptedNoteIndex++] = {
             index: currentNoteIndex,
             forSpender: false,
             hash: note.hash(),
@@ -409,28 +427,28 @@ export class DecryptNotesTask extends WorkerTask {
                 ? receivedNote.nullifier(key.viewKey.toString('hex'), BigInt(currentNoteIndex))
                 : null,
             serializedNote: receivedNote.serialize(),
-          })
+          }
           continue
         }
 
         if (options.decryptForSpender) {
           // Try decrypting the note as the spender
-          const key = accountKeys.at(i)
+          const key = accountKeys.at(accountIndex)
           Assert.isNotUndefined(key)
           const spentNote = note.decryptNoteForSpender(key.outgoingViewKey)
           if (spentNote && spentNote.value() !== 0n) {
-            decryptedNotes.push({
+            decryptedNotes[decryptedNoteIndex++] = {
               index: currentNoteIndex,
               forSpender: true,
               hash: note.hash(),
               nullifier: null,
               serializedNote: spentNote.serialize(),
-            })
+            }
             continue
           }
         }
 
-        decryptedNotes.push(null)
+        decryptedNoteIndex++
       }
     }
 

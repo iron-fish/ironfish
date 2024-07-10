@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { DECRYPTED_NOTE_LENGTH, ENCRYPTED_NOTE_LENGTH } from '@ironfish/rust-nodejs'
+import { Assert } from '../../assert'
 import {
   createNodeTest,
   serializePayloadToBuffer,
@@ -13,6 +14,7 @@ import {
 import { ACCOUNT_KEY_LENGTH } from '../../wallet'
 import { VIEW_KEY_LENGTH } from '../../wallet/walletdb/accountValue'
 import {
+  DecryptedNote,
   DecryptNotesRequest,
   DecryptNotesResponse,
   DecryptNotesSharedAccountKeys,
@@ -121,7 +123,7 @@ describe('DecryptNotesResponse', () => {
           nullifier: Buffer.alloc(32, 1),
           serializedNote: Buffer.alloc(DECRYPTED_NOTE_LENGTH, 1),
         },
-        null,
+        undefined,
       ],
       0,
     )
@@ -146,6 +148,38 @@ describe('DecryptNotesResponse', () => {
     const buffer = serializePayloadToBuffer(request)
     const deserializedResponse = DecryptNotesResponse.deserializePayload(request.jobId, buffer)
     expect(deserializedResponse.notes).toHaveLength(length)
+  })
+
+  it('uses sparses arrays to minimize memory usage', () => {
+    const notes = []
+    const notesLength = 10000
+    const testNote = {
+      forSpender: false,
+      index: 1,
+      hash: Buffer.alloc(32, 1),
+      nullifier: Buffer.alloc(32, 1),
+      serializedNote: Buffer.alloc(DECRYPTED_NOTE_LENGTH, 1),
+    }
+    notes[1000] = testNote
+    notes[2000] = testNote
+    notes[3000] = testNote
+    notes.length = notesLength
+    expect(notes).toHaveLength(notesLength)
+
+    const response = new DecryptNotesResponse(notes, 0)
+    const buffer = serializePayloadToBuffer(response)
+    const deserializedResponse = DecryptNotesResponse.deserializePayload(response.jobId, buffer)
+
+    expect(deserializedResponse.notes).toHaveLength(notesLength)
+    expect(deserializedResponse.notes).toEqual(notes)
+
+    const explicitlySetNotes = new Array<DecryptedNote>()
+    deserializedResponse.notes.forEach((note) => {
+      Assert.isNotUndefined(note)
+      explicitlySetNotes.push(note)
+    })
+    expect(explicitlySetNotes).toHaveLength(3)
+    expect(explicitlySetNotes).toEqual([testNote, testNote, testNote])
   })
 
   describe('mapToAccounts', () => {
@@ -283,7 +317,7 @@ describe('DecryptNotesTask', () => {
       )
       const responseNoSpender = task.execute(requestNoSpender)
 
-      expect(responseNoSpender).toMatchObject({ notes: [null] })
+      expect(responseNoSpender).toMatchObject({ notes: [undefined] })
     })
   })
 })

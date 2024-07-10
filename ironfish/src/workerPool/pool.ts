@@ -196,7 +196,7 @@ export class WorkerPool {
     accountKeys: ReadonlyArray<{ accountId: string } & DecryptNotesAccountKey>,
     encryptedNotes: ReadonlyArray<DecryptNotesItem>,
     options: DecryptNotesOptions,
-  ): Promise<Map<string, Array<DecryptedNote | null>>> {
+  ): Promise<Map<string, Array<DecryptedNote | undefined>>> {
     const request = new DecryptNotesRequest(accountKeys, encryptedNotes, options)
 
     const response = await this.execute(request).result()

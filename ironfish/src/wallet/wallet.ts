@@ -353,7 +353,7 @@ export class Wallet {
     accounts: ReadonlyArray<Account>,
   ): Promise<Map<string, Array<DecryptedNote>>> {
     const workloadSize = 20
-    const notePromises: Array<Promise<Map<string, Array<DecryptedNote | null>>>> = []
+    const notePromises: Array<Promise<Map<string, Array<DecryptedNote | undefined>>>> = []
     let decryptNotesPayloads = []
 
     let currentNoteIndex = initialNoteIndex
@@ -388,7 +388,9 @@ export class Wallet {
       for (const [accountId, decryptedNotes] of partialResult.entries()) {
         const list = mergedResults.get(accountId)
         Assert.isNotUndefined(list)
-        list.push(...(decryptedNotes.filter((note) => note !== null) as Array<DecryptedNote>))
+        list.push(
+          ...(decryptedNotes.filter((note) => note !== undefined) as Array<DecryptedNote>),
+        )
       }
     }
 
@@ -398,7 +400,7 @@ export class Wallet {
   private decryptNotesFromTransaction(
     accounts: ReadonlyArray<Account>,
     encryptedNotes: Array<DecryptNotesItem>,
-  ): Promise<Map<string, Array<DecryptedNote | null>>> {
+  ): Promise<Map<string, Array<DecryptedNote | undefined>>> {
     const accountKeys = accounts.map((account) => ({
       accountId: account.id,
       incomingViewKey: Buffer.from(account.incomingViewKey, 'hex'),

@@ -239,7 +239,7 @@ export class BackgroundNoteDecryptor {
 function* regroupNotes(
   accounts: ReadonlyArray<Account>,
   transactions: ReadonlyArray<Transaction>,
-  decryptedNotes: ReadonlyMap<string, ReadonlyArray<DecryptedNote | null>>,
+  decryptedNotes: ReadonlyMap<string, ReadonlyArray<DecryptedNote | undefined>>,
 ): Generator<{
   account: Account
   decryptedTransactions: Array<{
@@ -249,7 +249,8 @@ function* regroupNotes(
 }> {
   for (const account of accounts) {
     let notesOffset = 0
-    const flatNotes: ReadonlyArray<DecryptedNote | null> = decryptedNotes.get(account.id) ?? []
+    const flatNotes: ReadonlyArray<DecryptedNote | undefined> =
+      decryptedNotes.get(account.id) ?? []
     const groupedNotes: Array<{
       transaction: Transaction
       decryptedNotes: Array<DecryptedNote>
@@ -258,7 +259,7 @@ function* regroupNotes(
     for (const transaction of transactions) {
       const decryptedNotes = flatNotes
         .slice(notesOffset, notesOffset + transaction.notes.length)
-        .filter((note) => note !== null) as Array<DecryptedNote>
+        .filter((note) => note !== undefined) as Array<DecryptedNote>
       groupedNotes.push({ transaction, decryptedNotes })
       notesOffset += transaction.notes.length
     }

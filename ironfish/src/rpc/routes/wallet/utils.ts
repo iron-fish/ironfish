@@ -80,7 +80,7 @@ export async function getTransactionNotes(
     Assert.isNotUndefined(decryptedSends)
 
     for (const note of decryptedSends) {
-      if (note === null) {
+      if (note === undefined) {
         continue
       }
 
