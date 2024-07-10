@@ -5,12 +5,22 @@ import { LegacyTransaction } from '@ethereumjs/tx'
 import { Account as EthAccount, Address } from '@ethereumjs/util'
 import { Assert } from '../assert'
 import { createNodeTest, useAccountFixture } from '../testUtilities'
+import { EvmStateEncoding, HexStringEncoding } from './database'
 
 describe('IronfishEvm', () => {
   describe('simulateTx', () => {
     const nodeTest = createNodeTest()
 
-    it('returns true on evm transactions', async () => {
+    it('does not modify database', async () => {
+      const mockStateStore = nodeTest.chain.blockchainDb.db.addStore(
+        {
+          name: 'evm',
+          keyEncoding: new HexStringEncoding(),
+          valueEncoding: new EvmStateEncoding(),
+        },
+        false,
+      )
+
       const senderAccountIf = await useAccountFixture(nodeTest.node.wallet, 'sender')
       const recipientAccountIf = await useAccountFixture(nodeTest.node.wallet, 'recipient')
 
@@ -39,6 +49,8 @@ describe('IronfishEvm', () => {
       })
       const signed = tx.sign(senderPrivateKey)
 
+      const dbSizeBefore = (await mockStateStore.getAllKeys()).length
+
       Assert.isNotUndefined(nodeTest.chain.evm)
 
       const result = await nodeTest.chain.evm.simulateTx({ tx: signed })
@@ -48,8 +60,10 @@ describe('IronfishEvm', () => {
       const senderAccountAfter = await nodeTest.chain.blockchainDb.stateManager.getAccount(
         senderAddress,
       )
-
       expect(senderAccountAfter?.balance).toEqual(senderAccountBefore.balance)
+
+      const dbSizeAfter = (await mockStateStore.getAllKeys()).length
+      expect(dbSizeAfter).toEqual(dbSizeBefore)
     })
   })
 })

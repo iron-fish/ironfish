@@ -1,5 +1,5 @@
 {
-  "IronfishEvm simulateTx returns true on evm transactions": [
+  "IronfishEvm simulateTx does not modify database": [
     {
       "value": {
         "version": 4,

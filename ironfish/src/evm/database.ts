@@ -14,7 +14,7 @@ export class HexStringEncoding implements IDatabaseEncoding<string> {
   deserialize = (buffer: Buffer): string => buffer.toString('hex')
 }
 
-class EvmStateEncoding implements IDatabaseEncoding<Uint8Array> {
+export class EvmStateEncoding implements IDatabaseEncoding<Uint8Array> {
   serialize = (value: Uint8Array): Buffer => Buffer.from(value)
   deserialize = (buffer: Buffer): Uint8Array => buffer
 }
