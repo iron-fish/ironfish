@@ -5,6 +5,7 @@
 import { Args, Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
+import { inputPrompt } from '../../ui'
 
 export class DeleteCommand extends IronfishCommand {
   static description = `Permanently delete an account`
@@ -39,7 +40,7 @@ export class DeleteCommand extends IronfishCommand {
     ux.action.stop()
 
     if (response.content.needsConfirm) {
-      const value = await ux.prompt(`Are you sure? Type ${account} to confirm`)
+      const value = await inputPrompt(`Are you sure? Type ${account} to confirm`)
 
       if (value !== account) {
         this.log(`Aborting: ${value} did not match ${account}`)

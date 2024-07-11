@@ -17,7 +17,7 @@ import {
 import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { IronFlag, RemoteFlags, ValueFlag } from '../../flags'
-import { confirmOrQuit, confirmPrompt } from '../../ui'
+import { confirmOrQuit, confirmPrompt, inputPrompt } from '../../ui'
 import { selectAsset } from '../../utils/asset'
 import { promptCurrency } from '../../utils/currency'
 import { promptExpiration } from '../../utils/expiration'
@@ -158,16 +158,11 @@ export class Mint extends IronfishCommand {
 
     if (isMintingNewAsset) {
       if (!name) {
-        name = await ux.prompt('Enter the name for the new asset', {
-          required: true,
-        })
+        name = await inputPrompt('Enter the name for the new asset', true)
       }
 
       if (!metadata) {
-        metadata = await ux.prompt('Enter metadata for the new asset', {
-          default: '',
-          required: false,
-        })
+        metadata = await inputPrompt('Enter metadata for the new asset')
       }
 
       const newAsset = new Asset(accountPublicKey, name, metadata)

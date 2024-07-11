@@ -10,6 +10,7 @@ import {
 import { Args, Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
+import { inputPrompt } from '../../ui'
 import { importFile, importPipe, longPrompt } from '../../utils/input'
 import { Ledger } from '../../utils/ledger'
 
@@ -92,9 +93,7 @@ export class ImportCommand extends IronfishCommand {
       this.log()
       this.log(`Found existing account with name '${flags.name}'`)
 
-      const name = await ux.prompt('Enter a different name for the account', {
-        required: true,
-      })
+      const name = await inputPrompt('Enter a different name for the account', true)
       if (name === flags.name) {
         this.error(`Entered the same name: '${name}'`)
       }
@@ -125,9 +124,7 @@ export class ImportCommand extends IronfishCommand {
             this.log(e.codeMessage)
           }
 
-          const name = await ux.prompt(message, {
-            required: true,
-          })
+          const name = await inputPrompt(message, true)
           if (name === flags.name) {
             this.error(`Entered the same name: '${name}'`)
           }
