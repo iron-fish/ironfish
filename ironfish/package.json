@@ -20,6 +20,9 @@
     "node": ">=18"
   },
   "dependencies": {
+    "@ethereumjs/statemanager": "2.3.0",
+    "@ethereumjs/trie": "6.2.0",
+    "@ethereumjs/util": "9.0.3",
     "@ethersproject/bignumber": "5.7.0",
     "@fast-csv/format": "4.3.5",
     "@ironfish/rust-nodejs": "2.4.0",
