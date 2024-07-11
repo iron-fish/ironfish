@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { ux } from '@oclif/core'
+import { PromiseUtils } from '@ironfish/sdk'
 import { IronfishCommand } from '../command'
 import { ONE_FISH_IMAGE, TWO_FISH_IMAGE } from '../images'
 
@@ -40,7 +40,7 @@ export default class SwimCommand extends IronfishCommand {
       console.clear()
       this.renderPixels(pixels)
       this.log('The hex fish are coming...')
-      await ux.wait(32)
+      await PromiseUtils.sleep(32)
     }
 
     // eslint-disable-next-line no-console

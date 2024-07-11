@@ -24,7 +24,4 @@ if (Number(process.versions.node.split('.')[0]) < MIN_NODE_VERSION) {
   process.exit(1)
 }
 
-require('@oclif/core')
-  .run()
-  .then(require('@oclif/core/flush'))
-  .catch(require('@oclif/core/handle'))
+require('@oclif/core').execute({ dir: __dirname })

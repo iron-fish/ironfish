@@ -48,7 +48,7 @@ export async function confirmOrQuit(message?: string, confirm?: boolean): Promis
   const confirmed = await confirmPrompt(message || 'Do you confirm?')
 
   if (!confirmed) {
-    ux.log('Operation aborted.')
+    ux.stdout('Operation aborted.')
     ux.exit(0)
   }
 }
