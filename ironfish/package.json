@@ -41,6 +41,7 @@
     "consola": "2.15.0",
     "date-fns": "2.16.1",
     "decimal.js": "10.4.3",
+    "ethers": "6.13.1",
     "fastpriorityqueue": "0.7.1",
     "imurmurhash": "0.1.4",
     "level-errors": "2.0.1",
