@@ -150,6 +150,8 @@ export class BlockHeader {
    */
   public readonly graffiti: Buffer
 
+  public readonly stateRoot?: Buffer
+
   /**
    * (For internal uses - excluded when sent over the network)
    * The size of the notes tree after adding transactions from this block.
@@ -173,6 +175,7 @@ export class BlockHeader {
     this.randomness = raw.randomness
     this.timestamp = raw.timestamp || new Date()
     this.graffiti = raw.graffiti
+    this.stateRoot = raw.stateRoot
     this.noteSize = noteSize ?? null
     this.work = work
     this.hash = hash
@@ -203,6 +206,9 @@ export class BlockHeader {
     bw.writeBigU256BE(this.target.asBigInt())
     bw.writeU64(this.timestamp.getTime())
     bw.writeBytes(this.graffiti)
+    if (this.stateRoot) {
+      bw.writeHash(this.stateRoot)
+    }
 
     return bw.render()
   }
@@ -225,6 +231,7 @@ export class BlockHeader {
       randomness: this.randomness,
       timestamp: this.timestamp,
       graffiti: this.graffiti,
+      stateRoot: this.stateRoot,
     }
   }
 }
@@ -238,6 +245,7 @@ export type RawBlockHeader = {
   randomness: bigint
   timestamp: Date
   graffiti: Buffer
+  stateRoot?: Buffer
 }
 
 export type SerializedBlockHeader = {
@@ -251,6 +259,7 @@ export type SerializedBlockHeader = {
   noteSize: number | null
   work?: string
   graffiti: string
+  stateRoot?: Buffer
 }
 
 export class BlockHeaderSerde {
@@ -266,6 +275,7 @@ export class BlockHeaderSerde {
       graffiti: GraffitiSerdeInstance.serialize(header.graffiti),
       noteSize: header.noteSize,
       work: header.work.toString(),
+      stateRoot: header.stateRoot,
     }
   }
 
@@ -282,6 +292,7 @@ export class BlockHeaderSerde {
         randomness: BigInt(data.randomness),
         timestamp: new Date(data.timestamp),
         graffiti: Buffer.from(GraffitiSerdeInstance.deserialize(data.graffiti)),
+        stateRoot: data.stateRoot,
       },
       data.noteSize,
       data.work ? BigInt(data.work) : BigInt(0),

@@ -1004,6 +1004,8 @@ export class Blockchain {
 
       graffiti = graffiti ? graffiti : Buffer.alloc(32)
 
+      const stateRoot = Buffer.from(await this.blockchainDb.stateManager.getStateRoot())
+
       const rawHeader = {
         sequence: previousSequence + 1,
         previousBlockHash,
@@ -1013,6 +1015,7 @@ export class Blockchain {
         randomness: BigInt(0),
         timestamp,
         graffiti,
+        stateRoot,
       }
 
       const header = this.newBlockHeaderFromRaw(rawHeader, noteSize, BigInt(0))
@@ -1282,6 +1285,7 @@ export class Blockchain {
     await this.nullifiers.connectBlock(block, tx)
 
     for (const transaction of block.transactions) {
+      // TODO(hughy): execute evm transaction
       await this.saveConnectedMintsToAssetsStore(transaction, tx)
       await this.saveConnectedBurnsToAssetsStore(transaction, tx)
       await this.blockchainDb.putTransactionHashToBlockHash(
