@@ -8,10 +8,7 @@ import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { longPrompt } from '../../utils/input'
 import { Ledger } from '../../utils/ledger'
-import {
-  renderTransactionDetails,
-  watchTransaction
-} from '../../utils/transaction'
+import { renderTransactionDetails, watchTransaction } from '../../utils/transaction'
 
 export class SignTransaction extends IronfishCommand {
   static description = `Sign an unsigned transaction`
