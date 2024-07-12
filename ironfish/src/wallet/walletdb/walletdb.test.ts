@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset, multisig } from '@ironfish/rust-nodejs'
+import { randomBytes } from 'crypto'
 import { Assert } from '../../assert'
 import {
   createNodeTest,
@@ -354,6 +355,51 @@ describe('WalletDB', () => {
       expect(lowerRangeNotes.length).toEqual(2)
       expect(lowerRangeNotes[0].hash).toEqual(noteHashes[0])
       expect(lowerRangeNotes[1].hash).toEqual(noteHashes[1])
+    })
+  })
+
+  describe('loadNoteHash', () => {
+    it('loads the hash of a note given its nullifier', async () => {
+      const node = (await nodeTest.createSetup()).node
+      const walletDb = node.wallet.walletDb
+      const account = await useAccountFixture(node.wallet)
+
+      const noteHash = randomBytes(32)
+      const nullifier = randomBytes(32)
+
+      await expect(walletDb.loadNoteHash(account, nullifier)).resolves.toBeUndefined()
+      await walletDb.saveNullifierNoteHash(account, nullifier, noteHash)
+      await expect(walletDb.loadNoteHash(account, nullifier)).resolves.toEqual(noteHash)
+    })
+
+    it('avoids hitting the database if the nullifier is known to be not present', async () => {
+      const node = (await nodeTest.createSetup()).node
+      const walletDb = node.wallet.walletDb
+      const account = await useAccountFixture(node.wallet)
+
+      const noteHash = randomBytes(32)
+      // Randomly generated nullifiers. Using a static string instead of
+      // randomBytes() because loadNoteHash uses a bloom filter, which is a
+      // probabilistic data structure. Using a random value for each test run
+      // would make the test flaky.
+      const nullifier = Buffer.from(
+        'efc9eaadc6668b24900994670acad2010b497cbefdf7a27f5f463eba59b3ed14',
+        'hex',
+      )
+      const absentNullifier = Buffer.from(
+        '820fabbe98bc7a7054700861949b83cfaeb00f3b8ab4028299be7315a4c7b551',
+        'hex',
+      )
+
+      await walletDb.saveNullifierNoteHash(account, nullifier, noteHash)
+
+      const getSpy = jest.spyOn(walletDb.nullifierToNoteHash, 'get')
+      await expect(walletDb.loadNoteHash(account, nullifier)).resolves.toEqual(noteHash)
+      expect(getSpy).toHaveBeenCalled()
+
+      getSpy.mockClear()
+      await expect(walletDb.loadNoteHash(account, absentNullifier)).resolves.toBeUndefined()
+      expect(getSpy).not.toHaveBeenCalled()
     })
   })
 
