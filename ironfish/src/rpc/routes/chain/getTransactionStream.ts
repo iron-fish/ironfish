@@ -15,12 +15,12 @@ import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 import { serializeRpcBlockHeader } from './serializers'
 import {
-  RpcBlockHeader,
-  RpcBlockHeaderSchema,
-  RpcBurn,
-  RpcBurnSchema,
-  RpcMint,
-  RpcMintSchema,
+    RpcBlockHeader,
+    RpcBlockHeaderSchema,
+    RpcBurn,
+    RpcBurnSchema,
+    RpcMint,
+    RpcMintSchema,
 } from './types'
 
 interface Note {
