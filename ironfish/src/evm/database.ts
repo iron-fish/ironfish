@@ -25,6 +25,7 @@ export class EvmStateDB implements DB<string, Uint8Array> {
 
   constructor(db: IDatabase) {
     this.db = db
+
     this.store = this.db.addStore({
       name: 'evm',
       keyEncoding: new HexStringEncoding(),
@@ -64,7 +65,7 @@ export class EvmStateDB implements DB<string, Uint8Array> {
   }
 
   shallowCopy(): DB<string, Uint8Array> {
-    return new EvmStateDB(this.db)
+    return this
   }
 
   open(): Promise<void> {

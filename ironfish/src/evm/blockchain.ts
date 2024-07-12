@@ -33,7 +33,6 @@ export class EVMBlockchain {
   }
 
   shallowCopy(): EVMBlockchain {
-    console.log('shallowcopy called')
     return new EVMBlockchain(this.blockchainDb)
   }
 }
