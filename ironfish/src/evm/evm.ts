@@ -3,8 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { EVM } from '@ethereumjs/evm'
 import { RunTxOpts, RunTxResult, VM } from '@ethereumjs/vm'
+import { ethers } from 'ethers'
 import { BlockchainDB } from '../blockchain/database/blockchaindb'
 import { EvmBlockchain } from './blockchain'
+import { contractInterface } from './global_contract'
 
 export class IronfishEvm {
   private vm: VM
@@ -24,6 +26,17 @@ export class IronfishEvm {
   }
 
   async runTx(opts: RunTxOpts): Promise<RunTxResult> {
-    return this.vm.runTx(opts)
+    const result = await this.vm.runTx(opts)
+
+    const encryptedNotes: string[] = []
+
+    for (const log of result.receipt.logs) {
+      const event = contractInterface.decodeEventLog('EncryptedNote', log[2])
+      const hexBytes = event.getValue('note') as string
+      const bytes = ethers.getBytes(hexBytes)
+      encryptedNotes.push(Buffer.from(bytes).toString('ascii'))
+    }
+
+    return result
   }
 }

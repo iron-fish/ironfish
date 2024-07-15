@@ -4,11 +4,9 @@
 import { LegacyTransaction } from '@ethereumjs/tx'
 import { Account, Address } from '@ethereumjs/util'
 import { generateKey } from '@ironfish/rust-nodejs'
-import { IronfishEvm } from '@ironfish/sdk'
-import { ethers } from 'ethers'
+import { IronfishEvm, UTXOContract } from '@ironfish/sdk'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
-import { ABI, DEPLOY_DATA } from './global_contract'
 
 export class TestEvmCommand extends IronfishCommand {
   static description = `Test adding EVM support to the Iron Fish network`
@@ -35,7 +33,7 @@ export class TestEvmCommand extends IronfishCommand {
     const tx = new LegacyTransaction({
       gasLimit: 1_000_000n,
       gasPrice: 7n,
-      data: DEPLOY_DATA,
+      data: UTXOContract.DEPLOY_DATA,
     })
 
     const result = await evm.runTx({ tx: tx.sign(senderPrivateKey) })
@@ -58,8 +56,8 @@ export class TestEvmCommand extends IronfishCommand {
 
     this.log(`Contract created at: ${globalContractAddress.toString()}`)
 
-    const utxoI = new ethers.Interface(ABI)
-    const data2 = utxoI.encodeFunctionData('shield_test', [])
+    const hello = Buffer.from('Hello World!', 'ascii')
+    const data2 = UTXOContract.contractInterface.encodeFunctionData('shield', [hello])
 
     const tx2 = new LegacyTransaction({
       nonce: 1n,
