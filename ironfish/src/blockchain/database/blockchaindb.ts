@@ -1,11 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { DefaultStateManager } from '@ethereumjs/statemanager'
-import { Trie } from '@ethereumjs/trie'
-import { ValueEncoding } from '@ethereumjs/util'
 import { Assert } from '../../assert'
-import { EvmStateDB } from '../../evm/database'
+import { IronfishStateManager } from '../../evm/stateManager'
 import { FileSystem } from '../../fileSystems'
 import { BlockHeader } from '../../primitives'
 import { BlockHash } from '../../primitives/blockheader'
@@ -65,7 +62,7 @@ export class BlockchainDB extends TransactionalDatabase {
   // TransactionHash -> BlockHash
   transactionHashToBlockHash: IDatabaseStore<TransactionHashToBlockHashSchema>
 
-  stateManager: DefaultStateManager
+  stateManager: IronfishStateManager
 
   constructor(options: { location: string; files: FileSystem }) {
     super()
@@ -132,18 +129,13 @@ export class BlockchainDB extends TransactionalDatabase {
       valueEncoding: BUFFER_ENCODING,
     })
 
-    this.stateManager = new DefaultStateManager({
-      trie: new Trie({
-        db: new EvmStateDB(this.db),
-        valueEncoding: ValueEncoding.Bytes,
-        useRootPersistence: true,
-      }),
-    })
+    this.stateManager = new IronfishStateManager(this.db)
   }
 
   async open(): Promise<void> {
     await this.files.mkdir(this.location, { recursive: true })
     await this.db.open()
+    await this.stateManager.open()
     await this.db.upgrade(VERSION_DATABASE_CHAIN)
   }
 
@@ -393,11 +385,11 @@ export class BlockchainDB extends TransactionalDatabase {
 
 export class BlockchainDBTransaction implements IDatabaseTransaction {
   tx: IDatabaseTransaction
-  stateManager: DefaultStateManager
+  stateManager: IronfishStateManager
   checkpoint = false
   cache: Map<Buffer, unknown>
 
-  constructor(db: IDatabase, stateManager: DefaultStateManager) {
+  constructor(db: IDatabase, stateManager: IronfishStateManager) {
     this.tx = db.transaction()
     this.stateManager = stateManager
     this.cache = this.tx.cache
