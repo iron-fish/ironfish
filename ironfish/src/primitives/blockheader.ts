@@ -197,7 +197,7 @@ export class BlockHeader {
    * Serialize the block header into a buffer for hashing and mining
    */
   serialize(): Buffer {
-    const bw = bufio.write(this.getSize())
+    const bw = bufio.write(getHeaderSize(this))
     bw.writeBigU64BE(this.randomness)
     bw.writeU32(this.sequence)
     bw.writeHash(this.previousBlockHash)
@@ -211,14 +211,6 @@ export class BlockHeader {
     }
 
     return bw.render()
-  }
-
-  getSize(): number {
-    let size = 180
-    if (this.stateCommitment) {
-      size += 32
-    }
-    return size
   }
 
   equals(other: BlockHeader): boolean {
@@ -306,4 +298,12 @@ export class BlockHeaderSerde {
       data.work ? BigInt(data.work) : BigInt(0),
     )
   }
+}
+
+export function getHeaderSize(header: BlockHeader | RawBlockHeader): number {
+  let size = 180
+  if (header.stateCommitment) {
+    size += 32
+  }
+  return size
 }

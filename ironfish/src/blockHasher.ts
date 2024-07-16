@@ -7,7 +7,7 @@ import { blake3 } from '@napi-rs/blake-hash'
 import bufio from 'bufio'
 import { Assert } from './assert'
 import { Consensus } from './consensus'
-import { BlockHash, RawBlockHeader } from './primitives/blockheader'
+import { BlockHash, getHeaderSize, RawBlockHeader } from './primitives/blockheader'
 
 export class BlockHasher {
   private readonly consensus: Consensus
@@ -32,7 +32,12 @@ export class BlockHasher {
   }
 
   hashHeader(header: RawBlockHeader): BlockHash {
+    const evmActive = this.consensus.isActive('enableEvmDescriptions', header.sequence)
     const useFishHash = this.consensus.isActive('enableFishHash', header.sequence)
+
+    if (evmActive) {
+      Assert.isNotUndefined(header.stateCommitment)
+    }
 
     if (useFishHash) {
       Assert.isNotNull(this.fishHashContext, 'FishHash context was not initialized')
@@ -47,7 +52,7 @@ export class BlockHasher {
 }
 
 export function serializeHeaderBlake3(header: RawBlockHeader): Buffer {
-  const bw = bufio.write(180)
+  const bw = bufio.write(getHeaderSize(header))
   bw.writeBigU64BE(header.randomness)
   bw.writeU32(header.sequence)
   bw.writeHash(header.previousBlockHash)
@@ -56,12 +61,15 @@ export function serializeHeaderBlake3(header: RawBlockHeader): Buffer {
   bw.writeBigU256BE(header.target.asBigInt())
   bw.writeU64(header.timestamp.getTime())
   bw.writeBytes(header.graffiti)
+  if (header.stateCommitment) {
+    bw.writeHash(header.stateCommitment)
+  }
 
   return bw.render()
 }
 
 export function serializeHeaderFishHash(header: RawBlockHeader): Buffer {
-  const bw = bufio.write(180)
+  const bw = bufio.write(getHeaderSize(header))
   bw.writeBytes(header.graffiti)
   bw.writeU32(header.sequence)
   bw.writeHash(header.previousBlockHash)
@@ -70,6 +78,9 @@ export function serializeHeaderFishHash(header: RawBlockHeader): Buffer {
   bw.writeBigU256BE(header.target.asBigInt())
   bw.writeU64(header.timestamp.getTime())
   bw.writeBigU64BE(header.randomness)
+  if (header.stateCommitment) {
+    bw.writeHash(header.stateCommitment)
+  }
 
   return bw.render()
 }
