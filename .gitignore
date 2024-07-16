@@ -46,3 +46,12 @@ lerna-debug.log*
 bin/ironfish-cli/databases
 .dockerignore
 ironfish-cli/segfault.log
+
+# ironfish-contracts
+ironfish-contracts/.env
+ironfish-contracts/cache
+ironfish-contracts/artifacts
+ironfish-contracts/typechain
+ironfish-contracts/typechain-types
+ironfish-contracts/coverage
+ironfish-contracts/coverage.json
