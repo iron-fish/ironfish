@@ -1005,7 +1005,10 @@ export class Blockchain {
 
       graffiti = graffiti ? graffiti : Buffer.alloc(32)
 
-      const stateCommitment = Buffer.from(await this.blockchainDb.stateManager.getStateRoot())
+      let stateCommitment = undefined
+      if (this.consensus.isActive('enableEvmDescriptions', previousSequence + 1)) {
+        stateCommitment = Buffer.from(await this.blockchainDb.stateManager.getStateRoot())
+      }
 
       const rawHeader = {
         sequence: previousSequence + 1,
