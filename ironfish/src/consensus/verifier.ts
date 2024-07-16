@@ -537,11 +537,11 @@ export class Verifier {
         return spendVerification
       }
 
-      const stateRoot = await this.chain.blockchainDb.stateManager.getStateRoot()
+      const stateCommitment = await this.chain.blockchainDb.stateManager.getStateRoot()
       // TODO(hughy): add hard fork activation logic
-      // for now, allow block headers not to have stateRoot
-      if (header.stateRoot && !header.stateRoot?.equals(stateRoot)) {
-        return { valid: false, reason: VerificationResultReason.EVM_STATE_ROOT }
+      // for now, allow block headers not to have stateCommitment
+      if (header.stateCommitment && !header.stateCommitment?.equals(stateCommitment)) {
+        return { valid: false, reason: VerificationResultReason.EVM_STATE_COMMITMENT }
       }
 
       return { valid: true }
@@ -761,7 +761,7 @@ export enum VerificationResultReason {
   EVM_TRANSACTION_FAILED = 'EVM transaction failed',
   EVM_TRANSACTION_INVALID_SIGNATURE = 'EVM transaction has invalid signature',
   EVM_UNKNOWN_ERROR = 'EVM unknown error',
-  EVM_STATE_ROOT = 'EVM state root not equal',
+  EVM_STATE_COMMITMENT = 'EVM state commitment does not match',
 }
 
 /**

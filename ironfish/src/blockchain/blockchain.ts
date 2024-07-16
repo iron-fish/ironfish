@@ -1004,7 +1004,7 @@ export class Blockchain {
 
       graffiti = graffiti ? graffiti : Buffer.alloc(32)
 
-      const stateRoot = Buffer.from(await this.blockchainDb.stateManager.getStateRoot())
+      const stateCommitment = Buffer.from(await this.blockchainDb.stateManager.getStateRoot())
 
       const rawHeader = {
         sequence: previousSequence + 1,
@@ -1015,7 +1015,7 @@ export class Blockchain {
         randomness: BigInt(0),
         timestamp,
         graffiti,
-        stateRoot,
+        stateCommitment,
       }
 
       const header = this.newBlockHeaderFromRaw(rawHeader, noteSize, BigInt(0))
