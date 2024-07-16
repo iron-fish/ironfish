@@ -537,11 +537,11 @@ export class Verifier {
         return spendVerification
       }
 
-      const stateCommitment = await this.chain.blockchainDb.stateManager.getStateRoot()
-      // TODO(hughy): add hard fork activation logic
-      // for now, allow block headers not to have stateCommitment
-      if (header.stateCommitment && !header.stateCommitment?.equals(stateCommitment)) {
-        return { valid: false, reason: VerificationResultReason.EVM_STATE_COMMITMENT }
+      if (this.chain.consensus.isActive('enableEvmDescriptions', header.sequence)) {
+        const stateCommitment = await this.chain.blockchainDb.stateManager.getStateRoot()
+        if (!header.stateCommitment?.equals(stateCommitment)) {
+          return { valid: false, reason: VerificationResultReason.EVM_STATE_COMMITMENT }
+        }
       }
 
       return { valid: true }

@@ -995,6 +995,7 @@ export class Blockchain {
         for (const note of transaction.notes) {
           blockNotes.push(note)
         }
+        // TODO: execute EVM transactions
       }
 
       await this.notes.addBatch(blockNotes, tx)
