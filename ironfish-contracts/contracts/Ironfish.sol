@@ -2,11 +2,21 @@
 pragma solidity ^0.8.18;
 
 contract Ironfish {
-    event Shield(string assetId, uint amount);
+    event Shield(
+        bytes32 ironfishAddress,
+        bytes32 ironfishAssetId,
+        address contractAddress,
+        uint amount
+    );
 
     constructor() {}
 
-    function shield(string calldata assetId, uint amount) public {
-        emit Shield(assetId, amount);
+    function shield(
+        bytes32 ironfishAddress,
+        bytes32 ironfishAssetId,
+        uint amount
+    ) public {
+        // msg.sender is the contract address of the ERC20 token
+        emit Shield(ironfishAddress, ironfishAssetId, msg.sender, amount);
     }
 }

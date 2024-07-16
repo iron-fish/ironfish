@@ -4,15 +4,19 @@
 
 jest.mock('ws')
 
-import '../testUtilities/matchers/blockchain'
 import { LegacyTransaction } from '@ethereumjs/tx'
-import { Account as EthAccount, Address } from '@ethereumjs/util'
+import { Address, Account as EthAccount } from '@ethereumjs/util'
+import { Asset } from '@ironfish/rust-nodejs'
+import { ethers } from 'ethers'
 import { Assert } from '../assert'
+import { EvmShield } from '../evm'
+import { ContractArtifact } from '../evm/globalContract'
 import { FullNode } from '../node'
 import { Transaction } from '../primitives'
 import { EvmDescription, legacyTransactionToEvmDescription } from '../primitives/evmDescription'
 import { TransactionVersion } from '../primitives/transaction'
 import { createNodeTest, useAccountFixture, useMinerBlockFixture } from '../testUtilities'
+import '../testUtilities/matchers/blockchain'
 import { SpendingAccount } from '../wallet'
 import { Consensus } from './consensus'
 import { VerificationResultReason } from './verifier'
@@ -22,7 +26,7 @@ describe('Verifier', () => {
     const nodeTest = createNodeTest()
     let node: FullNode
     let senderAccountIf: SpendingAccount
-    let evmDescription: EvmDescription
+    let description: EvmDescription
     let evmSenderAddress: Address
     let evmRecipientAddress: Address
     let evmPrivateKey: Uint8Array
@@ -46,7 +50,7 @@ describe('Verifier', () => {
       evmSenderAddress = Address.fromPrivateKey(evmPrivateKey)
       evmRecipientAddress = Address.fromPrivateKey(recipientPrivateKey)
 
-      const senderAccount = new EthAccount(BigInt(0), 500000n)
+      const senderAccount = new EthAccount(BigInt(0), 500_000_000n)
 
       await node.chain.blockchainDb.stateManager.checkpoint()
       await node.chain.blockchainDb.stateManager.putAccount(evmSenderAddress, senderAccount)
@@ -61,7 +65,7 @@ describe('Verifier', () => {
       })
       const signed = tx.sign(evmPrivateKey)
 
-      evmDescription = legacyTransactionToEvmDescription(signed)
+      description = legacyTransactionToEvmDescription(signed)
     })
 
     it('verify transaction returns true on valid evm transaction', async () => {
@@ -71,13 +75,124 @@ describe('Verifier', () => {
         fee: 0n,
         expiration: 0,
         expirationDelta: 0,
-        evm: evmDescription,
+        evm: description,
       })
       const transaction = raw.post(senderAccountIf.spendingKey || '')
       const deserialized = new Transaction(transaction.serialize())
       const result = await node.chain.verifier.verifyNewTransaction(deserialized)
 
       expect(result).toEqual({ valid: true })
+    })
+
+    it('verify transaction returns true on valid contract deployment transaction', async () => {
+      // Deploy the global contract
+      const tx = new LegacyTransaction({
+        gasLimit: 1_000_000n,
+        gasPrice: 7n,
+        data: ContractArtifact.bytecode,
+      })
+
+      const signed = tx.sign(evmPrivateKey)
+
+      description = legacyTransactionToEvmDescription(signed)
+
+      const raw = await node.wallet.createTransaction({
+        account: senderAccountIf,
+        outputs: [],
+        fee: 0n,
+        expiration: 0,
+        expirationDelta: 0,
+        evm: description,
+      })
+
+      const transaction = raw.post(senderAccountIf.spendingKey || '')
+      const deserialized = new Transaction(transaction.serialize())
+      const result = await node.chain.verifier.verifyNewTransaction(deserialized)
+
+      expect(result).toEqual({ valid: true })
+    })
+
+    it('verify transaction returns true on valid shield transaction', async () => {
+      let tx: LegacyTransaction
+
+      tx = new LegacyTransaction({
+        gasLimit: 1_000_000n,
+        gasPrice: 7n,
+        data: ContractArtifact.bytecode,
+        nonce: 0n,
+      })
+
+      Assert.isNotUndefined(node.chain.evm)
+
+      const result = await node.chain.evm.runTx({ tx: tx.sign(evmPrivateKey) })
+      const globalContractAddress = result?.createdAddress
+
+      Assert.isNotUndefined(globalContractAddress)
+
+      const contract = await node.chain.blockchainDb.stateManager.getAccount(
+        globalContractAddress,
+      )
+
+      expect(contract).toBeDefined()
+
+      const globalContract = new ethers.Interface(ContractArtifact.abi)
+
+      const encodedFunctionData = globalContract.encodeFunctionData('shield', [
+        Buffer.from(senderAccountIf.publicAddress, 'hex'),
+        Asset.nativeId(),
+        100n,
+      ])
+
+      tx = new LegacyTransaction({
+        nonce: 1n,
+        gasLimit: 100_000n,
+        to: globalContractAddress,
+        gasPrice: 7n,
+        data: encodedFunctionData,
+      })
+
+      let signed = tx.sign(evmPrivateKey)
+
+      description = legacyTransactionToEvmDescription(signed)
+
+      const raw = await node.wallet.createTransaction({
+        account: senderAccountIf,
+        outputs: [],
+        fee: 0n,
+        expiration: 0,
+        expirationDelta: 0,
+        evm: description,
+      })
+
+      const transaction = raw.post(senderAccountIf.spendingKey || '')
+      const deserialized = new Transaction(transaction.serialize())
+      const verificationResult = await node.chain.verifier.verifyNewTransaction(deserialized)
+
+      expect(verificationResult).toEqual({ valid: true })
+
+      tx = new LegacyTransaction({
+        nonce: 1n,
+        gasLimit: 100_000n,
+        to: globalContractAddress,
+        gasPrice: 7n,
+        data: encodedFunctionData,
+      })
+
+      signed = tx.sign(evmPrivateKey)
+
+      const evmResult = await node.chain.evm.verifyTx({ tx: signed })
+
+      const shieldEvents = evmResult.events.filter(
+        (event) => event.name === 'shield',
+      ) as EvmShield[]
+
+      expect(shieldEvents).toHaveLength(1)
+      expect(shieldEvents[0].amount).toEqual(100n)
+      expect(shieldEvents[0].ironfishAddress.toString('hex')).toEqual(
+        senderAccountIf.publicAddress,
+      )
+      expect(shieldEvents[0].caller).toEqual(evmSenderAddress)
+      expect(shieldEvents[0].assetId).toEqual(Asset.nativeId())
     })
 
     it('verify transaction returns false on global account mint non-evm', async () => {
@@ -96,7 +211,7 @@ describe('Verifier', () => {
         fee: 0n,
         expiration: 0,
         expirationDelta: 0,
-        evm: evmDescription,
+        evm: description,
       })
       const transaction = raw.post(senderAccountIf.spendingKey || '')
       // first mint can occur in any transaction
@@ -140,7 +255,7 @@ describe('Verifier', () => {
 
     it('verify transaction returns false when evm transaction has invalid signature', async () => {
       // Change the signature to be invalid
-      const busted = { ...evmDescription, s: Buffer.alloc(32) }
+      const busted = { ...description, s: Buffer.alloc(32) }
 
       const raw = await node.wallet.createTransaction({
         account: senderAccountIf,
