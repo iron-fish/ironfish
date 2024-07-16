@@ -18,7 +18,7 @@ import { BurnDescription } from '../primitives/burnDescription'
 import { EvmDescription, evmDescriptionToLegacyTransaction } from '../primitives/evmDescription'
 import { MintDescription } from '../primitives/mintDescription'
 import { Target } from '../primitives/target'
-import { Transaction } from '../primitives/transaction'
+import { Transaction, TransactionVersion } from '../primitives/transaction'
 import { IDatabaseTransaction } from '../storage'
 import { BufferUtils } from '../utils/buffer'
 import { WorkerPool } from '../workerPool'
@@ -306,8 +306,11 @@ export class Verifier {
     return { valid: true }
   }
 
-  static getMaxTransactionBytes(maxBlockSizeBytes: number): number {
-    return maxBlockSizeBytes - getBlockWithMinersFeeSize()
+  static getMaxTransactionBytes(
+    maxBlockSizeBytes: number,
+    transactionVersion: TransactionVersion,
+  ): number {
+    return maxBlockSizeBytes - getBlockWithMinersFeeSize(transactionVersion)
   }
 
   /**
@@ -320,7 +323,10 @@ export class Verifier {
   ): VerificationResult {
     if (
       getTransactionSize(transaction) >
-      Verifier.getMaxTransactionBytes(consensus.parameters.maxBlockSizeBytes)
+      Verifier.getMaxTransactionBytes(
+        consensus.parameters.maxBlockSizeBytes,
+        transaction.version(),
+      )
     ) {
       return { valid: false, reason: VerificationResultReason.MAX_TRANSACTION_SIZE_EXCEEDED }
     }

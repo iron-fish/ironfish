@@ -12,8 +12,8 @@ import { MetricsMonitor } from '../metrics'
 import {
   getBlockSize,
   getBlockWithMinersFeeSize,
+  getMinersFeeTransactionSize,
   getTransactionSize,
-  MINERS_FEE_TRANSACTION_SIZE_BYTES,
 } from '../network/utils/serializers'
 import { FullNode } from '../node'
 import { Block } from '../primitives/block'
@@ -309,7 +309,10 @@ export class MiningManager {
   ): Promise<SerializedBlockTemplate> {
     const newBlockSequence = currentBlock.header.sequence + 1
 
-    let currBlockSize = getBlockWithMinersFeeSize()
+    const transactionVersion =
+      this.chain.consensus.getActiveTransactionVersion(newBlockSequence)
+
+    let currBlockSize = getBlockWithMinersFeeSize(transactionVersion)
     let transactions: Transaction[] = []
 
     let minersFee: Transaction
@@ -338,7 +341,7 @@ export class MiningManager {
 
     const txSize = getTransactionSize(minersFee)
     Assert.isEqual(
-      MINERS_FEE_TRANSACTION_SIZE_BYTES,
+      getMinersFeeTransactionSize(transactionVersion),
       txSize,
       "Incorrect miner's fee transaction size used during block creation",
     )

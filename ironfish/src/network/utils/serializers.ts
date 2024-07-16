@@ -11,9 +11,7 @@ import {
 } from '../../primitives/block'
 import { RawBlockHeader } from '../../primitives/blockheader'
 import { Target } from '../../primitives/target'
-import { Transaction } from '../../primitives/transaction'
-
-export const MINERS_FEE_TRANSACTION_SIZE_BYTES = 664
+import { Transaction, TransactionVersion } from '../../primitives/transaction'
 
 const BLOCK_TRANSACTIONS_LENGTH_BYTES = 2
 
@@ -106,10 +104,20 @@ export function getBlockSize(block: RawBlock): number {
   return size
 }
 
-export function getBlockWithMinersFeeSize(): number {
+export function getBlockWithMinersFeeSize(transactionVersion: TransactionVersion): number {
   return (
-    getBlockHeaderSize() + BLOCK_TRANSACTIONS_LENGTH_BYTES + MINERS_FEE_TRANSACTION_SIZE_BYTES
+    getBlockHeaderSize() +
+    BLOCK_TRANSACTIONS_LENGTH_BYTES +
+    getMinersFeeTransactionSize(transactionVersion)
   )
+}
+
+export function getMinersFeeTransactionSize(transactionVersion: TransactionVersion): number {
+  let size = 664
+  if (transactionVersion >= TransactionVersion.V3) {
+    size += 1
+  }
+  return size
 }
 
 export function writeCompactBlock(
