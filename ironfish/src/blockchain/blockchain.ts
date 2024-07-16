@@ -10,7 +10,7 @@ import { BlockHasher } from '../blockHasher'
 import { Consensus } from '../consensus'
 import { VerificationResultReason, Verifier } from '../consensus/verifier'
 import { Event } from '../event'
-import { IronfishEvm } from '../evm'
+import { INITIAL_STATE_ROOT, IronfishEvm } from '../evm'
 import { Config } from '../fileStores'
 import { FileSystem } from '../fileSystems'
 import { createRootLogger, Logger } from '../logger'
@@ -1328,6 +1328,12 @@ export class Blockchain {
       this.notes.truncate(prev.noteSize, tx),
       this.nullifiers.disconnectBlock(block, tx),
     ])
+
+    // Revert state root to revert evm transactions in the disconnected block.
+    // Revert to initial root if previous header preceded EVM activation
+    await this.blockchainDb.stateManager.setStateRoot(
+      prev.stateCommitment ?? INITIAL_STATE_ROOT,
+    )
 
     await this.blockchainDb.putMetaHash('head', prev.hash, tx)
 

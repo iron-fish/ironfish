@@ -6,6 +6,13 @@ import { RunTxOpts, RunTxResult, VM } from '@ethereumjs/vm'
 import { BlockchainDB } from '../blockchain/database/blockchaindb'
 import { EvmBlockchain } from './blockchain'
 
+export const INITIAL_STATE_ROOT = Buffer.from(
+  // TODO(hughy): replace with state root after inserting global contract
+  // keccak256 hash of RLP-encoded empty string
+  '56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421',
+  'hex',
+)
+
 export class IronfishEvm {
   private vm: VM
 
