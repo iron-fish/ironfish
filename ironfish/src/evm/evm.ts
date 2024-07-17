@@ -35,26 +35,35 @@ export class IronfishEvm {
     // TODO(jwp) from custom opcodes populate shields and unshields
     return {
       result,
-      shields: [],
-      unshields: [],
+      events: [],
     }
   }
 }
 
 type EvmShield = {
-  contract: Address
+  name: 'shield'
+  ironfishAddress: Buffer
+  caller: Address
   assetId: Buffer
   amount: bigint
 }
 
 type EvmUnshield = {
-  contract: Address
+  name: 'unshield'
   assetId: Buffer
   amount: bigint
 }
 
+type TransferOwnership = {
+  name: 'transferOwnership'
+  caller: Address
+  assetId: Buffer
+  newOwner: Address
+}
+
+type UTXOEvent = EvmShield | EvmUnshield | TransferOwnership
+
 export type EvmResult = {
   result: RunTxResult
-  shields: EvmShield[]
-  unshields: EvmUnshield[]
+  events: UTXOEvent[]
 }
