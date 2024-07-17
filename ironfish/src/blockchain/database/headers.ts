@@ -35,6 +35,10 @@ export class HeaderEncoding implements IDatabaseEncoding<HeaderValue> {
     bw.writeVarBytes(BigIntUtils.toBytesLE(value.header.work))
     bw.writeHash(value.header.hash)
 
+    if (value.header.stateCommitment) {
+      bw.writeHash(value.header.stateCommitment)
+    }
+
     return bw.render()
   }
 
@@ -53,6 +57,11 @@ export class HeaderEncoding implements IDatabaseEncoding<HeaderValue> {
     const work = BigIntUtils.fromBytesLE(reader.readVarBytes())
     const hash = reader.readHash()
 
+    let stateCommitment = undefined
+    if (reader.left()) {
+      stateCommitment = reader.readHash()
+    }
+
     const rawHeader = {
       sequence,
       previousBlockHash,
@@ -62,6 +71,7 @@ export class HeaderEncoding implements IDatabaseEncoding<HeaderValue> {
       randomness,
       timestamp: new Date(timestamp),
       graffiti,
+      stateCommitment,
     }
     const header = new BlockHeader(rawHeader, hash, noteSize, work)
 
@@ -81,6 +91,9 @@ export class HeaderEncoding implements IDatabaseEncoding<HeaderValue> {
     size += 32 // graffiti
     size += bufio.sizeVarBytes(BigIntUtils.toBytesLE(value.header.work))
     size += 32 // hash
+    if (value.header.stateCommitment) {
+      size += 32
+    }
 
     return size
   }

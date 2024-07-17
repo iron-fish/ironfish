@@ -10,7 +10,7 @@ import { BlockHasher } from '../blockHasher'
 import { Consensus } from '../consensus'
 import { VerificationResultReason, Verifier } from '../consensus/verifier'
 import { Event } from '../event'
-import { IronfishEvm } from '../evm'
+import { INITIAL_STATE_ROOT, IronfishEvm } from '../evm'
 import { Config } from '../fileStores'
 import { FileSystem } from '../fileSystems'
 import { createRootLogger, Logger } from '../logger'
@@ -1006,6 +1006,7 @@ export class Blockchain {
         for (const note of transaction.notes) {
           blockNotes.push(note)
         }
+        // TODO: execute EVM transactions
       }
 
       await this.notes.addBatch(blockNotes, tx)
@@ -1014,6 +1015,11 @@ export class Blockchain {
       const noteSize = await this.notes.size(tx)
 
       graffiti = graffiti ? graffiti : Buffer.alloc(32)
+
+      let stateCommitment = undefined
+      if (this.consensus.isActive('enableEvmDescriptions', previousSequence + 1)) {
+        stateCommitment = Buffer.from(await this.blockchainDb.stateManager.getStateRoot())
+      }
 
       const rawHeader = {
         sequence: previousSequence + 1,
@@ -1024,6 +1030,7 @@ export class Blockchain {
         randomness: BigInt(0),
         timestamp,
         graffiti,
+        stateCommitment,
       }
       const header = this.newBlockHeaderFromRaw(rawHeader, noteSize, BigInt(0))
       const block = new Block(header, transactions)
@@ -1290,6 +1297,7 @@ export class Blockchain {
     await this.nullifiers.connectBlock(block, tx)
 
     for (const transaction of block.transactions) {
+      // TODO(hughy): execute evm transaction
       await this.saveConnectedMintsToAssetsStore(transaction, tx)
       await this.saveConnectedBurnsToAssetsStore(transaction, tx)
       await this.blockchainDb.putTransactionHashToBlockHash(
@@ -1332,6 +1340,12 @@ export class Blockchain {
       this.notes.truncate(prev.noteSize, tx),
       this.nullifiers.disconnectBlock(block, tx),
     ])
+
+    // Revert state root to revert evm transactions in the disconnected block.
+    // Revert to initial root if previous header preceded EVM activation
+    await this.blockchainDb.stateManager.setStateRoot(
+      prev.stateCommitment ?? INITIAL_STATE_ROOT,
+    )
 
     await this.blockchainDb.putMetaHash('head', prev.hash, tx)
 

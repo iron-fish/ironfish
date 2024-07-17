@@ -19,6 +19,7 @@ export type SerializedBlockTemplate = {
     randomness: string
     timestamp: number
     graffiti: string
+    stateCommitment?: string
   }
   transactions: string[]
   previousBlockInfo?: {
@@ -38,6 +39,7 @@ export class RawBlockTemplateSerde {
       randomness: BigIntUtils.writeBigU64BE(block.header.randomness).toString('hex'),
       timestamp: block.header.timestamp.getTime(),
       graffiti: block.header.graffiti.toString('hex'),
+      stateCommitment: block.header.stateCommitment?.toString('hex'),
     }
     const previousBlockInfo = {
       target: BigIntUtils.writeBigU256BE(previousBlock.header.target.asBigInt()).toString(
@@ -71,6 +73,9 @@ export class RawBlockTemplateSerde {
         ),
         timestamp: new Date(blockTemplate.header.timestamp),
         graffiti: Buffer.from(blockTemplate.header.graffiti, 'hex'),
+        stateCommitment: blockTemplate.header.stateCommitment
+          ? Buffer.from(blockTemplate.header.stateCommitment, 'hex')
+          : undefined,
       },
       transactions: blockTemplate.transactions.map(
         (t) => new Transaction(Buffer.from(t, 'hex')),

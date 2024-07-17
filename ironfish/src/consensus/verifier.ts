@@ -21,7 +21,7 @@ import { BurnDescription } from '../primitives/burnDescription'
 import { evmDescriptionToLegacyTransaction } from '../primitives/evmDescription'
 import { MintDescription } from '../primitives/mintDescription'
 import { Target } from '../primitives/target'
-import { Transaction } from '../primitives/transaction'
+import { Transaction, TransactionVersion } from '../primitives/transaction'
 import { IDatabaseTransaction } from '../storage'
 import { BufferUtils } from '../utils/buffer'
 import { WorkerPool } from '../workerPool'
@@ -324,8 +324,11 @@ export class Verifier {
     return { valid: true }
   }
 
-  static getMaxTransactionBytes(maxBlockSizeBytes: number): number {
-    return maxBlockSizeBytes - getBlockWithMinersFeeSize()
+  static getMaxTransactionBytes(
+    maxBlockSizeBytes: number,
+    transactionVersion: TransactionVersion,
+  ): number {
+    return maxBlockSizeBytes - getBlockWithMinersFeeSize(transactionVersion)
   }
 
   /**
@@ -338,7 +341,10 @@ export class Verifier {
   ): VerificationResult {
     if (
       getTransactionSize(transaction) >
-      Verifier.getMaxTransactionBytes(consensus.parameters.maxBlockSizeBytes)
+      Verifier.getMaxTransactionBytes(
+        consensus.parameters.maxBlockSizeBytes,
+        transaction.version(),
+      )
     ) {
       return { valid: false, reason: VerificationResultReason.MAX_TRANSACTION_SIZE_EXCEEDED }
     }
@@ -553,6 +559,13 @@ export class Verifier {
       const spendVerification = await this.verifyConnectedSpends(block, tx)
       if (!spendVerification.valid) {
         return spendVerification
+      }
+
+      if (this.chain.consensus.isActive('enableEvmDescriptions', header.sequence)) {
+        const stateCommitment = await this.chain.blockchainDb.stateManager.getStateRoot()
+        if (!header.stateCommitment?.equals(stateCommitment)) {
+          return { valid: false, reason: VerificationResultReason.EVM_STATE_COMMITMENT }
+        }
       }
 
       return { valid: true }
@@ -813,6 +826,7 @@ export enum VerificationResultReason {
   EVM_ASSET_MISMATCH = 'EVM shield/unshield did not come from correct contract',
   EVM_ASSET_NOT_FOUND = 'EVM shield/unshield asset not found',
   EVM_UNKNOWN_ERROR = 'EVM unknown error',
+  EVM_STATE_COMMITMENT = 'EVM state commitment does not match',
 }
 
 /**

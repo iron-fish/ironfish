@@ -367,7 +367,9 @@ describe('Mining manager', () => {
       )
 
       node.memPool.acceptTransaction(transaction)
-      chain.consensus.parameters.maxBlockSizeBytes = getBlockWithMinersFeeSize()
+      chain.consensus.parameters.maxBlockSizeBytes = getBlockWithMinersFeeSize(
+        transaction.version(),
+      )
 
       const templates = await collectTemplates(node.miningManager, 2)
       const fullTemplate = templates.find((t) => t.transactions.length > 1)
@@ -376,7 +378,7 @@ describe('Mining manager', () => {
 
       // Expand max block size, should allow transaction to be added to block
       chain.consensus.parameters.maxBlockSizeBytes =
-        getBlockWithMinersFeeSize() + getTransactionSize(transaction)
+        getBlockWithMinersFeeSize(transaction.version()) + getTransactionSize(transaction)
 
       const templates2 = await collectTemplates(node.miningManager, 2)
       const fullTemplate2 = templates2.find((t) => t.transactions.length > 1)

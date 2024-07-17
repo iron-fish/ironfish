@@ -150,6 +150,8 @@ export class BlockHeader {
    */
   public readonly graffiti: Buffer
 
+  public readonly stateCommitment?: Buffer
+
   /**
    * (For internal uses - excluded when sent over the network)
    * The size of the notes tree after adding transactions from this block.
@@ -173,6 +175,7 @@ export class BlockHeader {
     this.randomness = raw.randomness
     this.timestamp = raw.timestamp || new Date()
     this.graffiti = raw.graffiti
+    this.stateCommitment = raw.stateCommitment
     this.noteSize = noteSize ?? null
     this.work = work
     this.hash = hash
@@ -194,7 +197,7 @@ export class BlockHeader {
    * Serialize the block header into a buffer for hashing and mining
    */
   serialize(): Buffer {
-    const bw = bufio.write(180)
+    const bw = bufio.write(getHeaderSize(this))
     bw.writeBigU64BE(this.randomness)
     bw.writeU32(this.sequence)
     bw.writeHash(this.previousBlockHash)
@@ -203,6 +206,9 @@ export class BlockHeader {
     bw.writeBigU256BE(this.target.asBigInt())
     bw.writeU64(this.timestamp.getTime())
     bw.writeBytes(this.graffiti)
+    if (this.stateCommitment) {
+      bw.writeHash(this.stateCommitment)
+    }
 
     return bw.render()
   }
@@ -225,6 +231,7 @@ export class BlockHeader {
       randomness: this.randomness,
       timestamp: this.timestamp,
       graffiti: this.graffiti,
+      stateCommitment: this.stateCommitment,
     }
   }
 }
@@ -238,6 +245,7 @@ export type RawBlockHeader = {
   randomness: bigint
   timestamp: Date
   graffiti: Buffer
+  stateCommitment?: Buffer
 }
 
 export type SerializedBlockHeader = {
@@ -251,6 +259,7 @@ export type SerializedBlockHeader = {
   noteSize: number | null
   work?: string
   graffiti: string
+  stateCommitment?: Buffer
 }
 
 export class BlockHeaderSerde {
@@ -266,6 +275,7 @@ export class BlockHeaderSerde {
       graffiti: GraffitiSerdeInstance.serialize(header.graffiti),
       noteSize: header.noteSize,
       work: header.work.toString(),
+      stateCommitment: header.stateCommitment,
     }
   }
 
@@ -282,9 +292,18 @@ export class BlockHeaderSerde {
         randomness: BigInt(data.randomness),
         timestamp: new Date(data.timestamp),
         graffiti: Buffer.from(GraffitiSerdeInstance.deserialize(data.graffiti)),
+        stateCommitment: data.stateCommitment,
       },
       data.noteSize,
       data.work ? BigInt(data.work) : BigInt(0),
     )
   }
+}
+
+export function getHeaderSize(header: BlockHeader | RawBlockHeader): number {
+  let size = 180
+  if (header.stateCommitment) {
+    size += 32
+  }
+  return size
 }
