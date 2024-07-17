@@ -8,7 +8,7 @@ import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { longPrompt } from '../../utils/input'
 import { Ledger } from '../../utils/ledger'
-import { watchTransaction } from '../../utils/transaction'
+import { renderTransactionDetails, watchTransaction } from '../../utils/transaction'
 
 export class SignTransaction extends IronfishCommand {
   static description = `Sign an unsigned transaction`
@@ -72,6 +72,8 @@ export class SignTransaction extends IronfishCommand {
     this.log(`\nSigned Transaction: ${signedTransaction}`)
     this.log(`\nHash: ${transaction.hash().toString('hex')}`)
     this.log(`Fee: ${CurrencyUtils.render(transaction.fee(), true)}`)
+
+    await renderTransactionDetails(client, transaction, account, this.logger)
 
     if (flags.broadcast && response.content.accepted === false) {
       this.error(
