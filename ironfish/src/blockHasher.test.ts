@@ -5,6 +5,7 @@
 import { blake3 } from '@napi-rs/blake-hash'
 import { BlockHasher, serializeHeaderBlake3, serializeHeaderFishHash } from './blockHasher'
 import { Consensus } from './consensus'
+import { INITIAL_STATE_ROOT } from './evm'
 import { Target } from './primitives'
 import { RawBlockHeader } from './primitives/blockheader'
 import { FISH_HASH_CONTEXT } from './testUtilities'
@@ -43,6 +44,7 @@ describe('Hashes blocks with correct hashing algorithm', () => {
     randomness: BigInt(25),
     timestamp: new Date(1598467858637),
     graffiti: Buffer.alloc(32, 'graffiti'),
+    stateCommitment: INITIAL_STATE_ROOT,
   }
 
   it('Hashes block headers with blake3 before the activation sequence', () => {

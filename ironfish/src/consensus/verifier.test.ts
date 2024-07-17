@@ -85,7 +85,9 @@ describe('Verifier', () => {
 
     it('returns false on transactions larger than max size', async () => {
       const { transaction } = await useTxSpendsFixture(nodeTest.node)
-      nodeTest.chain.consensus.parameters.maxBlockSizeBytes = getBlockWithMinersFeeSize()
+      nodeTest.chain.consensus.parameters.maxBlockSizeBytes = getBlockWithMinersFeeSize(
+        transaction.version(),
+      )
 
       const result = Verifier.verifyCreatedTransaction(transaction, nodeTest.chain.consensus)
 
