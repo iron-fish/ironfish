@@ -552,15 +552,15 @@ export class Blockchain {
     return this.consensus.checkpoints.get(header.sequence)?.equals(header.hash) ?? false
   }
 
-  isEvmAsset(assetId: Buffer, tx?: BlockchainDBTransaction): Promise<boolean> {
-    return this.blockchainDb.assetIdToContract.has(assetId, tx)
+  async isEvmAsset(assetId: Buffer, tx?: BlockchainDBTransaction): Promise<boolean> {
+    return (await this.getEvmContractAndTokenIdByAssetId(assetId, tx)) !== undefined
   }
 
-  getEvmContractByAssetId(
+  getEvmContractAndTokenIdByAssetId(
     assetId: Buffer,
     tx?: BlockchainDBTransaction,
-  ): Promise<Buffer | undefined> {
-    return this.blockchainDb.assetIdToContract.get(assetId, tx)
+  ): Promise<[Buffer, number] | undefined> {
+    return this.blockchainDb.getContractAndTokenByAssetId(assetId, tx)
   }
 
   private async connect(
@@ -1417,14 +1417,19 @@ export class Blockchain {
     // TODO(jwp): This is a temporary solution to store the contract address, the initial mint needs to store the owner,
     // using the "to" field for now
     for (const { asset } of transaction.mints) {
-      if (await this.blockchainDb.assetIdToContract.has(asset.id())) {
+      if (await this.blockchainDb.getContractAndTokenByAssetId(asset.id(), tx)) {
         return
       }
       if (!transaction.evm) {
         return
       }
 
-      await this.blockchainDb.assetIdToContract.put(asset.id(), transaction.evm.to, tx)
+      await this.blockchainDb.putAssetIdContractTokenMapping(
+        asset.id(),
+        transaction.evm.to,
+        1,
+        tx,
+      )
     }
   }
 

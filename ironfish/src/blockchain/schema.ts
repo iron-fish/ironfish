@@ -47,7 +47,12 @@ export interface AssetSchema extends DatabaseSchema {
   value: AssetValue
 }
 
-export interface AssetToContractSchema extends DatabaseSchema {
+export interface AssetToContractTokenSchema extends DatabaseSchema {
+  key: Buffer
+  value: Buffer
+}
+
+export interface ContractTokenToAssetSchema extends DatabaseSchema {
   key: Buffer
   value: Buffer
 }

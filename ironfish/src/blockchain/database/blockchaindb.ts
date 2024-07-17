@@ -22,7 +22,8 @@ import {
 import { createDB } from '../../storage/utils'
 import {
   AssetSchema,
-  AssetToContractSchema,
+  AssetToContractTokenSchema,
+  ContractTokenToAssetSchema,
   HashToNextSchema,
   HeadersSchema,
   MetaSchema,
@@ -57,8 +58,10 @@ export class BlockchainDB extends TransactionalDatabase {
   hashToNextHash: IDatabaseStore<HashToNextSchema>
   // Asset Identifier -> Asset
   assets: IDatabaseStore<AssetSchema>
-  // Asset Identifier -> Contract Address
-  assetIdToContract: IDatabaseStore<AssetToContractSchema>
+  // Asset Identifier -> Contract Address + Token ID
+  assetIdToContractToken: IDatabaseStore<AssetToContractTokenSchema>
+  // Contract Address + Token ID -> Asset Identifier
+  contractTokenToAssetId: IDatabaseStore<ContractTokenToAssetSchema>
   // TransactionHash -> BlockHash
   transactionHashToBlockHash: IDatabaseStore<TransactionHashToBlockHashSchema>
 
@@ -117,8 +120,14 @@ export class BlockchainDB extends TransactionalDatabase {
       valueEncoding: new AssetValueEncoding(),
     })
 
-    this.assetIdToContract = this.db.addStore({
-      name: 'ae',
+    this.assetIdToContractToken = this.db.addStore({
+      name: 'act',
+      keyEncoding: BUFFER_ENCODING,
+      valueEncoding: BUFFER_ENCODING,
+    })
+
+    this.contractTokenToAssetId = this.db.addStore({
+      name: 'cta',
       keyEncoding: BUFFER_ENCODING,
       valueEncoding: BUFFER_ENCODING,
     })
@@ -152,6 +161,39 @@ export class BlockchainDB extends TransactionalDatabase {
 
   async deleteHeader(hash: Buffer, tx?: IDatabaseTransaction): Promise<void> {
     return this.headers.del(hash, tx)
+  }
+
+  async getAssetIdByContractToken(
+    contract: Buffer,
+    tokenId: number,
+    tx?: IDatabaseTransaction,
+  ): Promise<Buffer | undefined> {
+    const key = Buffer.concat([contract, Buffer.from(String(tokenId))])
+    return this.contractTokenToAssetId.get(key, tx)
+  }
+
+  async getContractAndTokenByAssetId(
+    assetId: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<[Buffer, number] | undefined> {
+    const buf = await this.assetIdToContractToken.get(assetId, tx)
+    if (!buf) {
+      return undefined
+    }
+    const contract = buf.subarray(0, 20)
+    const tokenId = Number(buf.subarray(20).toString())
+    return [contract, tokenId]
+  }
+
+  async putAssetIdContractTokenMapping(
+    assetId: Buffer,
+    contract: Buffer,
+    tokenId: number,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    const contractTokenBuffer = Buffer.concat([contract, Buffer.from(String(tokenId))])
+    await this.assetIdToContractToken.put(assetId, contractTokenBuffer, tx)
+    await this.contractTokenToAssetId.put(contractTokenBuffer, assetId, tx)
   }
 
   async putBlockHeader(
