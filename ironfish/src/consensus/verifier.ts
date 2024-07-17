@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Address } from '@ethereumjs/util'
+// import { Address } from '@ethereumjs/util'
 import { Asset } from '@ironfish/rust-nodejs'
 import { BufferMap, BufferSet } from 'buffer-map'
 import { Assert } from '../assert'
@@ -594,7 +594,7 @@ export class Verifier {
 
   async verifyEvm(
     transaction: Transaction,
-    tx?: BlockchainDBTransaction,
+    // tx?: BlockchainDBTransaction,
   ): Promise<VerificationResult> {
     // TODO(jwp): handle these more cleanly after hughs changes
     if (!transaction.evm || !this.chain.evm) {
@@ -627,18 +627,18 @@ export class Verifier {
         return { valid: false, reason: VerificationResultReason.EVM_UNKNOWN_ERROR }
       }
     }
-    for (const item of [...result.shields, ...result.unshields]) {
-      const contract = await this.chain.getEvmContractByAssetId(item.assetId, tx)
-      if (!contract) {
-        // contract not registered yet, ie first mint, skip validation
-        // TODO(jwp): is there attack vector here?
-        continue
-      }
-      const contractAddress = new Address(contract)
-      if (contractAddress !== item.contract) {
-        return { valid: false, reason: VerificationResultReason.EVM_ASSET_MISMATCH }
-      }
-    }
+    // for (const item of [...result.shields, ...result.unshields]) {
+    //   const contract = await this.chain.getEvmContractByAssetId(item.assetId, tx)
+    //   if (!contract) {
+    //     // contract not registered yet, ie first mint, skip validation
+    //     // TODO(jwp): is there attack vector here?
+    //     continue
+    //   }
+    //   const contractAddress = new Address(contract)
+    //   if (contractAddress !== item) {
+    //     return { valid: false, reason: VerificationResultReason.EVM_ASSET_MISMATCH }
+    //   }
+    // }
 
     // TODO(jwp): verify shielding/mints balance
     return { valid: true }
