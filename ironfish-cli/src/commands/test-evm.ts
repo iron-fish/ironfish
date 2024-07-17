@@ -4,7 +4,7 @@
 import { LegacyTransaction } from '@ethereumjs/tx'
 import { Account, Address } from '@ethereumjs/util'
 import { generateKey } from '@ironfish/rust-nodejs'
-import { IronfishEvm } from '@ironfish/sdk/src/evm'
+import { IronfishEvm } from '@ironfish/sdk'
 import { IronfishCommand } from '../command'
 import { LocalFlags } from '../flags'
 
@@ -44,7 +44,6 @@ export class TestEvmCommand extends IronfishCommand {
       to: recipientAddress,
       value: 200000n,
       gasLimit: 21000n,
-      gasPrice: 7n,
     })
 
     this.log(

@@ -6,6 +6,7 @@ import { Address } from '@ethereumjs/util'
 import { RunTxOpts, RunTxResult, VM } from '@ethereumjs/vm'
 import { BlockchainDB } from '../blockchain/database/blockchaindb'
 import { EvmBlockchain } from './blockchain'
+import { Block } from '@ethereumjs/block'
 
 export class IronfishEvm {
   private vm: VM
@@ -25,6 +26,7 @@ export class IronfishEvm {
   }
 
   async runTx(opts: RunTxOpts): Promise<RunTxResult> {
+    opts.block = Block.fromBlockData({ header: { baseFeePerGas: 0n } })
     return this.vm.runTx(opts)
   }
 

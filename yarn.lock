@@ -360,7 +360,7 @@
   resolved "https://registry.yarnpkg.com/@eslint/js/-/js-8.56.0.tgz#ef20350fec605a7f7035a01764731b2de0f3782b"
   integrity sha512-gMsVel9D7f2HLkBma9VbtzZRehRogVRfbr++f06nL2vnCGCNlzOD+/MUov/F4p8myyAHspEhVobgjpX64q5m6A==
 
-"@ethereumjs/block@^5.2.0":
+"@ethereumjs/block@5.2.0", "@ethereumjs/block@^5.2.0":
   version "5.2.0"
   resolved "https://registry.yarnpkg.com/@ethereumjs/block/-/block-5.2.0.tgz#f6722dcce597150a7a8fc32803f5e8dcdfdeebeb"
   integrity sha512-NuVDtD58zyjm5lO3AKPaelzX9VywNwRpDF7WTCY0SKFlD5OeewK5Rdb6LWhwmdQ0ngiIg0Nh/36AQ/8W1nEhjw==
