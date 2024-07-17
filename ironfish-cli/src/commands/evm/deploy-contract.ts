@@ -25,7 +25,7 @@ export class TestEvmCommand extends IronfishCommand {
     const senderPrivateKey = Uint8Array.from(Buffer.from(senderKey.spendingKey, 'hex'))
     const senderAddress = Address.fromPrivateKey(senderPrivateKey)
 
-    const senderAccount = new Account(BigInt(0), 50_000_000n)
+    const senderAccount = new Account(BigInt(0), 0n)
 
     await node.chain.blockchainDb.stateManager.checkpoint()
     await node.chain.blockchainDb.stateManager.putAccount(senderAddress, senderAccount)
@@ -34,7 +34,6 @@ export class TestEvmCommand extends IronfishCommand {
     // Deploy the global contract
     const tx = new LegacyTransaction({
       gasLimit: 1_000_000n,
-      gasPrice: 7n,
       data: DEPLOY_DATA,
     })
 
@@ -65,7 +64,6 @@ export class TestEvmCommand extends IronfishCommand {
       nonce: 1n,
       gasLimit: 100_000n,
       to: globalContractAddress,
-      gasPrice: 7n,
       data: data2,
     })
 

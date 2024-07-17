@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Block } from '@ethereumjs/block'
 import { EVM } from '@ethereumjs/evm'
 import { Address } from '@ethereumjs/util'
 import { RunTxOpts, RunTxResult, VM } from '@ethereumjs/vm'
@@ -25,6 +26,7 @@ export class IronfishEvm {
   }
 
   async runTx(opts: RunTxOpts): Promise<RunTxResult> {
+    opts.block = Block.fromBlockData({ header: { baseFeePerGas: 0n } })
     return this.vm.runTx(opts)
   }
 
