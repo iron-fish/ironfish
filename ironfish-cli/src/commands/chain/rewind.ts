@@ -8,8 +8,9 @@ import { LocalFlags } from '../../flags'
 import { ProgressBar, ProgressBarPresets } from '../../ui'
 
 export default class Rewind extends IronfishCommand {
-  static description =
-    'Rewind the chain database to the given sequence by deleting all blocks with greater sequences'
+  static description = 'rewind the blockchain to a block'
+
+  static hidden = true
 
   static args = {
     to: Args.string({
