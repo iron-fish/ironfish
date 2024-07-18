@@ -5,11 +5,11 @@ import { Block } from '@ethereumjs/block'
 import { EVM } from '@ethereumjs/evm'
 import { Address } from '@ethereumjs/util'
 import { RunTxOpts, RunTxResult, VM } from '@ethereumjs/vm'
+import ContractArtifact from '@ironfish/ironfish-contracts'
 import { ethers } from 'ethers'
 import { Assert } from '../assert'
 import { BlockchainDB } from '../blockchain/database/blockchaindb'
 import { EvmBlockchain } from './blockchain'
-import { ContractArtifact } from './globalContract'
 
 export const INITIAL_STATE_ROOT = Buffer.from(
   // TODO(hughy): replace with state root after inserting global contract
@@ -77,8 +77,6 @@ export class IronfishEvm {
     return {
       result,
       events: [...shields],
-      // shields,
-      // unshields: [],
     }
   }
 
@@ -117,14 +115,7 @@ export type EvmUnshield = {
   amount: bigint
 }
 
-export type TransferOwnership = {
-  name: 'transferOwnership'
-  caller: Address
-  assetId: Buffer
-  newOwner: Address
-}
-
-export type UTXOEvent = EvmShield | EvmUnshield | TransferOwnership
+type UTXOEvent = EvmShield | EvmUnshield
 
 export type EvmResult = {
   result: RunTxResult
