@@ -170,6 +170,9 @@ describe('Verifier', () => {
 
       expect(verificationResult).toEqual({ valid: true })
 
+      // runTx to update state
+      await node.chain.evm.runTx({ tx: signed })
+
       tx = new LegacyTransaction({
         nonce: 2n,
         gasLimit: 100_000n,

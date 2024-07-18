@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // import { Address } from '@ethereumjs/util'
+import { VM } from '@ethereumjs/vm'
 import { Asset } from '@ironfish/rust-nodejs'
 import { BufferMap, BufferSet } from 'buffer-map'
 import { Assert } from '../assert'
@@ -84,63 +85,73 @@ export class Verifier {
     let transactionBatch: Transaction[] = []
     let runningNotesCount = 0
     const transactionHashes = new BufferSet()
-    for (const [idx, transaction] of block.transactions.entries()) {
-      if (transaction.version() !== transactionVersion) {
-        return {
-          valid: false,
-          reason: VerificationResultReason.INVALID_TRANSACTION_VERSION,
+
+    Assert.isNotUndefined(this.chain.evm)
+    const transactionsValid = await this.chain.evm.withCopy(async (vm) => {
+      for (const [idx, transaction] of block.transactions.entries()) {
+        if (transaction.version() !== transactionVersion) {
+          return {
+            valid: false,
+            reason: VerificationResultReason.INVALID_TRANSACTION_VERSION,
+          }
+        }
+
+        if (isExpiredSequence(transaction.expiration(), block.header.sequence)) {
+          return {
+            valid: false,
+            reason: VerificationResultReason.TRANSACTION_EXPIRED,
+          }
+        }
+
+        if (transactionHashes.has(transaction.hash())) {
+          return {
+            valid: false,
+            reason: VerificationResultReason.DUPLICATE_TRANSACTION,
+          }
+        }
+
+        transactionHashes.add(transaction.hash())
+
+        const mintVerify = Verifier.verifyMints(transaction.mints)
+        if (!mintVerify.valid) {
+          return mintVerify
+        }
+
+        const burnVerify = Verifier.verifyBurns(transaction.burns)
+        if (!burnVerify.valid) {
+          return burnVerify
+        }
+
+        // TODO(jwp): verifier here is for miners, verifyBlockConnect should also contain this logic, add below
+        if (!transaction.evm) {
+          const noMints = await this.verifyNoEvmMints(transaction)
+          if (!noMints.valid) {
+            return noMints
+          }
+        } else {
+          const evmVerify = await this.verifyEvm(transaction, vm)
+          if (!evmVerify.valid) {
+            return evmVerify
+          }
+        }
+
+        transactionBatch.push(transaction)
+
+        runningNotesCount += transaction.notes.length
+
+        if (runningNotesCount >= notesLimit || idx === block.transactions.length - 1) {
+          verificationPromises.push(this.workerPool.verifyTransactions(transactionBatch))
+
+          transactionBatch = []
+          runningNotesCount = 0
         }
       }
 
-      if (isExpiredSequence(transaction.expiration(), block.header.sequence)) {
-        return {
-          valid: false,
-          reason: VerificationResultReason.TRANSACTION_EXPIRED,
-        }
-      }
+      return { valid: true }
+    })
 
-      if (transactionHashes.has(transaction.hash())) {
-        return {
-          valid: false,
-          reason: VerificationResultReason.DUPLICATE_TRANSACTION,
-        }
-      }
-
-      transactionHashes.add(transaction.hash())
-
-      const mintVerify = Verifier.verifyMints(transaction.mints)
-      if (!mintVerify.valid) {
-        return mintVerify
-      }
-
-      const burnVerify = Verifier.verifyBurns(transaction.burns)
-      if (!burnVerify.valid) {
-        return burnVerify
-      }
-
-      // TODO(jwp): verifier here is for miners, verifyBlockConnect should also contain this logic, add below
-      if (!transaction.evm) {
-        const noMints = await this.verifyNoEvmMints(transaction)
-        if (!noMints.valid) {
-          return noMints
-        }
-      } else {
-        const evmVerify = await this.verifyEvm(transaction)
-        if (!evmVerify.valid) {
-          return evmVerify
-        }
-      }
-
-      transactionBatch.push(transaction)
-
-      runningNotesCount += transaction.notes.length
-
-      if (runningNotesCount >= notesLimit || idx === block.transactions.length - 1) {
-        verificationPromises.push(this.workerPool.verifyTransactions(transactionBatch))
-
-        transactionBatch = []
-        runningNotesCount = 0
-      }
+    if (!transactionsValid.valid) {
+      return transactionsValid
     }
 
     const verificationResults = await Promise.all(verificationPromises)
@@ -276,7 +287,10 @@ export class Verifier {
         return noMints
       }
     } else {
-      const evmVerify = await this.verifyEvm(transaction)
+      Assert.isNotUndefined(this.chain.evm)
+      const evmVerify = await this.chain.evm.withCopy(async (vm) => {
+        return this.verifyEvm(transaction, vm)
+      })
       if (!evmVerify.valid) {
         return evmVerify
       }
@@ -607,6 +621,7 @@ export class Verifier {
 
   async verifyEvm(
     transaction: Transaction,
+    vm?: VM,
     // tx?: BlockchainDBTransaction,
   ): Promise<VerificationResult> {
     // TODO(jwp): handle these more cleanly after hughs changes
@@ -618,7 +633,7 @@ export class Verifier {
     let result: EvmResult
     // TODO(jwp) on EVM error, seems to be throwing rather than just providing error in execResult, can't get EvmError type
     try {
-      result = await this.chain.evm.verifyTx({ tx: evmTx })
+      result = await this.chain.evm.verifyTx({ tx: evmTx }, vm)
       if (result.result.execResult.exceptionError) {
         return { valid: false, reason: VerificationResultReason.EVM_TRANSACTION_FAILED }
       }
