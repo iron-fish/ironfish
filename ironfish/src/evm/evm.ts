@@ -5,8 +5,10 @@ import { Block } from '@ethereumjs/block'
 import { EVM } from '@ethereumjs/evm'
 import { Address } from '@ethereumjs/util'
 import { RunTxOpts, RunTxResult, VM } from '@ethereumjs/vm'
+import { ethers } from 'ethers'
 import { BlockchainDB } from '../blockchain/database/blockchaindb'
 import { EvmBlockchain } from './blockchain'
+import { ContractArtifact } from './globalContract'
 
 export const INITIAL_STATE_ROOT = Buffer.from(
   // TODO(hughy): replace with state root after inserting global contract
@@ -42,9 +44,38 @@ export class IronfishEvm {
     const result = await this.runTx(opts)
 
     // TODO(jwp) from custom opcodes populate shields and unshields
+
+    const shields: EvmShield[] = []
+
+    for (const log of result.receipt.logs) {
+      // todo: placeholder until we determine an address
+      // if (Buffer.from(log[0]).toString('hex') !== 'globalContractAddress') {
+      //   continue
+      // }
+
+      try {
+        const globalContract = new ethers.Interface(ContractArtifact.abi)
+        const [ironfishAddress, assetId, caller, amount] = globalContract.decodeEventLog(
+          'Shield',
+          log[2],
+        )
+        shields.push({
+          name: 'shield',
+          ironfishAddress: Buffer.from((ironfishAddress as string).slice(2), 'hex'),
+          caller: Address.fromString(caller as string),
+          assetId: Buffer.from((assetId as string).slice(2), 'hex'),
+          amount: amount as bigint,
+        })
+      } catch (e) {
+        continue
+      }
+    }
+
     return {
       result,
-      events: [],
+      events: [...shields],
+      // shields,
+      // unshields: [],
     }
   }
 
@@ -67,28 +98,28 @@ export class IronfishEvm {
   }
 }
 
-type EvmShield = {
+export type EvmShield = {
   name: 'shield'
   ironfishAddress: Buffer
-  caller: Address
   assetId: Buffer
+  caller: Address
   amount: bigint
 }
 
-type EvmUnshield = {
+export type EvmUnshield = {
   name: 'unshield'
   assetId: Buffer
   amount: bigint
 }
 
-type TransferOwnership = {
+export type TransferOwnership = {
   name: 'transferOwnership'
   caller: Address
   assetId: Buffer
   newOwner: Address
 }
 
-type UTXOEvent = EvmShield | EvmUnshield | TransferOwnership
+export type UTXOEvent = EvmShield | EvmUnshield | TransferOwnership
 
 export type EvmResult = {
   result: RunTxResult

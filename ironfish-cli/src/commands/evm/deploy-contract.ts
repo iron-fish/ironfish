@@ -3,12 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { LegacyTransaction } from '@ethereumjs/tx'
 import { Account, Address } from '@ethereumjs/util'
-import { generateKey } from '@ironfish/rust-nodejs'
-import { IronfishEvm } from '@ironfish/sdk'
+import { Asset, generateKey } from '@ironfish/rust-nodejs'
+import { Assert, ContractArtifact, IronfishEvm } from '@ironfish/sdk'
 import { ethers } from 'ethers'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
-import { ABI, DEPLOY_DATA } from './global_contract'
 
 export class TestEvmCommand extends IronfishCommand {
   static description = `Test adding EVM support to the Iron Fish network`
@@ -22,6 +21,7 @@ export class TestEvmCommand extends IronfishCommand {
     const evm = await IronfishEvm.create(node.chain.blockchainDb)
 
     const senderKey = generateKey()
+
     const senderPrivateKey = Uint8Array.from(Buffer.from(senderKey.spendingKey, 'hex'))
     const senderAddress = Address.fromPrivateKey(senderPrivateKey)
 
@@ -34,7 +34,8 @@ export class TestEvmCommand extends IronfishCommand {
     // Deploy the global contract
     const tx = new LegacyTransaction({
       gasLimit: 1_000_000n,
-      data: DEPLOY_DATA,
+      gasPrice: 7n,
+      data: ContractArtifact.bytecode,
     })
 
     const result = await evm.runTx({ tx: tx.sign(senderPrivateKey) })
@@ -43,7 +44,6 @@ export class TestEvmCommand extends IronfishCommand {
 
     if (!globalContractAddress) {
       this.error('Contract creation of address failed')
-      return
     }
 
     const contract = await node.chain.blockchainDb.stateManager.getAccount(
@@ -52,13 +52,17 @@ export class TestEvmCommand extends IronfishCommand {
 
     if (!contract) {
       this.error('Contract creation failed')
-      return
     }
 
     this.log(`Contract created at: ${globalContractAddress.toString()}`)
 
-    const utxoI = new ethers.Interface(ABI)
-    const data2 = utxoI.encodeFunctionData('shield_test', [])
+    const globalContract = new ethers.Interface(ContractArtifact.abi)
+
+    const data2 = globalContract.encodeFunctionData('shield', [
+      Buffer.from(senderKey.publicAddress, 'hex'),
+      Asset.nativeId(),
+      100n,
+    ])
 
     const tx2 = new LegacyTransaction({
       nonce: 1n,
@@ -68,9 +72,29 @@ export class TestEvmCommand extends IronfishCommand {
     })
 
     const result2 = await evm.runTx({ tx: tx2.sign(senderPrivateKey) })
-    for (const log of result2.receipt.logs) {
-      this.log(`Log Output: ${Buffer.from(log[2]).toString('ascii')}`)
+
+    Assert.isEqual(result2.receipt.logs.length, 1)
+
+    const log = result2.receipt.logs[0]
+
+    this.log('Contract Address')
+    this.log(Buffer.from(log[0]).toString('hex'))
+
+    // logging topics
+    for (const topic of log[1]) {
+      this.log(Buffer.from(topic).toString('ascii'))
     }
+
+    const [ironfishAddress, assetId, caller, amount] = globalContract.decodeEventLog(
+      'Shield',
+      log[2],
+    )
+    Assert.isEqual(ironfishAddress as string, '0x' + senderKey.publicAddress)
+
+    Assert.isEqual(assetId as string, '0x' + Asset.nativeId().toString('hex'))
+
+    Assert.isEqual((caller as string).toUpperCase(), senderAddress.toString().toUpperCase())
+    Assert.isEqual(amount as bigint, 100n)
 
     await node.closeDB()
   }
