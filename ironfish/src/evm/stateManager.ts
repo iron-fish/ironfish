@@ -26,10 +26,4 @@ export class IronfishStateManager extends DefaultStateManager {
       common: this.common,
     })
   }
-
-  async abort(): Promise<void> {
-    while (this._checkpointCount) {
-      await this.revert()
-    }
-  }
 }

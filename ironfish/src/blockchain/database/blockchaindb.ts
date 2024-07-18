@@ -463,7 +463,7 @@ export class BlockchainDBTransaction implements IDatabaseTransaction {
 
   async abort(): Promise<void> {
     if (this.stateRoot) {
-      await this.stateManager.abort()
+      await this.stateManager.revert()
       await this.stateManager.setStateRoot(this.stateRoot)
       this.stateRoot = null
     }

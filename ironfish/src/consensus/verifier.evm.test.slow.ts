@@ -322,9 +322,7 @@ describe('Verifier', () => {
         node.wallet,
         [transaction, transaction2],
       )
-      await expect(invalidBlock).rejects.toThrow(
-        VerificationResultReason.EVM_TRANSACTION_INSUFFICIENT_BALANCE,
-      )
+      await expect(invalidBlock).rejects.toThrow("sender doesn't have enough funds")
     })
   })
 })
