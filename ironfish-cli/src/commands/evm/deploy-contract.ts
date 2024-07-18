@@ -34,7 +34,6 @@ export class TestEvmCommand extends IronfishCommand {
     // Deploy the global contract
     const tx = new LegacyTransaction({
       gasLimit: 1_000_000n,
-      gasPrice: 7n,
       data: ContractArtifact.bytecode,
     })
 

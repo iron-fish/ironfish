@@ -1,12 +1,18 @@
 {
-  "name": "contracts",
+  "name": "@ironfish/ironfish-contracts",
   "version": "1.0.0",
   "description": "Ironfish contracts for EVM layer interactions",
-  "main": "index.js",
+  "main": "./build/index.js",
   "license": "MIT",
+  "scripts": {
+    "build": "yarn hardhat compile && tsc -b",
+    "test": "yarn hardhat test"
+  },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
     "@nomicfoundation/hardhat-ethers": "^3.0.0",
+    "@nomicfoundation/hardhat-ignition": "0.15.5",
+    "@nomicfoundation/hardhat-ignition-ethers": "0.15.5",
     "@nomicfoundation/hardhat-network-helpers": "^1.0.0",
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
     "@nomicfoundation/hardhat-verify": "^2.0.0",
