@@ -428,7 +428,7 @@ export class BlockchainDB extends TransactionalDatabase {
 export class BlockchainDBTransaction implements IDatabaseTransaction {
   tx: IDatabaseTransaction
   stateManager: IronfishStateManager
-  checkpoint = false
+  stateRoot: Uint8Array | null = null
   cache: Map<Buffer, unknown>
 
   constructor(db: IDatabase, stateManager: IronfishStateManager) {
@@ -438,33 +438,34 @@ export class BlockchainDBTransaction implements IDatabaseTransaction {
   }
 
   async acquireLock(): Promise<void> {
-    if (!this.checkpoint) {
+    if (!this.stateRoot) {
+      this.stateRoot = await this.stateManager.getStateRoot()
       await this.stateManager.checkpoint()
-      this.checkpoint = true
     }
     await this.tx.acquireLock()
   }
 
   async update(): Promise<void> {
-    if (this.checkpoint) {
+    if (this.stateRoot) {
       await this.stateManager.commit()
-      this.checkpoint = false
+      this.stateRoot = null
     }
     await this.tx.update()
   }
 
   async commit(): Promise<void> {
-    if (this.checkpoint) {
+    if (this.stateRoot) {
       await this.stateManager.commit()
-      this.checkpoint = false
+      this.stateRoot = null
     }
     await this.tx.commit()
   }
 
   async abort(): Promise<void> {
-    if (this.checkpoint) {
-      await this.stateManager.revert()
-      this.checkpoint = false
+    if (this.stateRoot) {
+      await this.stateManager.abort()
+      await this.stateManager.setStateRoot(this.stateRoot)
+      this.stateRoot = null
     }
     await this.tx.abort()
   }
