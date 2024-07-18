@@ -52,7 +52,6 @@ export class IronfishEvm {
       // if (Buffer.from(log[0]).toString('hex') !== 'globalContractAddress') {
       //   continue
       // }
-
       try {
         const globalContract = new ethers.Interface(ContractArtifact.abi)
         const [ironfishAddress, assetId, caller, amount] = globalContract.decodeEventLog(
@@ -70,7 +69,6 @@ export class IronfishEvm {
         continue
       }
     }
-
     return {
       result,
       events: [...shields],

@@ -654,6 +654,41 @@ export class Verifier {
     // }
 
     // TODO(jwp): verify shielding/mints balance
+
+    const shieldBalance: BufferMap<bigint> = new BufferMap()
+    const mintBalance: BufferMap<bigint> = new BufferMap()
+
+    for (const event of result.events) {
+      // TODO(jwp): handle native asset as output balance (will require decrypting notes and comparing)
+      if (event.assetId.equals(Asset.nativeId())) {
+        continue
+      }
+      if (event.name === 'shield') {
+        shieldBalance.set(event.assetId, event.amount)
+      }
+    }
+    for (const mint of transaction.mints) {
+      if (mint.asset.id().equals(Asset.nativeId())) {
+        continue
+      }
+      mintBalance.set(mint.asset.id(), mint.value)
+    }
+
+    // verify mints equals shields and burns equals unshields
+    if (mintBalance.size !== shieldBalance.size) {
+      return {
+        valid: false,
+        reason: VerificationResultReason.EVM_MINT_LENGTH_MISMATCH,
+      }
+    }
+    for (const [assetId, value] of mintBalance) {
+      if (shieldBalance.get(assetId) !== value) {
+        return {
+          valid: false,
+          reason: VerificationResultReason.EVM_MINT_BALANCE_MISMATCH,
+        }
+      }
+    }
     return { valid: true }
   }
 

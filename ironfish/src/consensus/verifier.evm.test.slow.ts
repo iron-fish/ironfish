@@ -137,9 +137,16 @@ describe('Verifier', () => {
 
       const globalContract = new ethers.Interface(ContractArtifact.abi)
 
+      const assetMetadata = {
+        creator: senderAccountIf.publicAddress,
+        name: 'foo',
+        metadata: '',
+      }
+      const asset = new Asset(assetMetadata.creator, assetMetadata.name, assetMetadata.metadata)
+
       const encodedFunctionData = globalContract.encodeFunctionData('shield', [
         Buffer.from(senderAccountIf.publicAddress, 'hex'),
-        Asset.nativeId(),
+        asset.id(),
         100n,
       ])
 
@@ -161,6 +168,12 @@ describe('Verifier', () => {
         fee: 0n,
         expiration: 0,
         expirationDelta: 0,
+        mints: [
+          {
+            ...assetMetadata,
+            value: 100n,
+          },
+        ],
         evm: description,
       })
 
@@ -192,66 +205,8 @@ describe('Verifier', () => {
         senderAccountIf.publicAddress,
       )
       expect(shieldEvents[0].caller).toEqual(evmSenderAddress)
-      expect(shieldEvents[0].assetId).toEqual(Asset.nativeId())
+      expect(shieldEvents[0].assetId).toEqual(asset.id())
     })
-
-    it('verify transaction returns false on global account mint non-evm', async () => {
-      // TODO(jwp): use proof generation key of IronfishEvm to create mint, but senderAccount for transaction
-      const mint = {
-        creator: senderAccountIf.publicAddress,
-        name: '0x00000000000000000000000000000000002cd37f',
-        metadata: '',
-        value: 1n,
-      }
-
-      const raw = await node.wallet.createTransaction({
-        account: senderAccountIf,
-        outputs: [],
-        mints: [mint],
-        fee: 0n,
-        expiration: 0,
-        expirationDelta: 0,
-        evm: description,
-      })
-      const transaction = raw.post(senderAccountIf.spendingKey || '')
-      // first mint can occur in any transaction
-      const block = await useMinerBlockFixture(
-        node.chain,
-        undefined,
-        senderAccountIf,
-        node.wallet,
-        [transaction],
-      )
-      await expect(node.chain).toAddBlock(block)
-
-      const mint2 = {
-        creator: senderAccountIf.publicAddress,
-        name: '0x00000000000000000000000000000000002cd37f',
-        metadata: '',
-        value: 2n,
-      }
-
-      const raw2 = await node.wallet.createTransaction({
-        account: senderAccountIf,
-        outputs: [],
-        mints: [mint2],
-        fee: 0n,
-        expiration: 0,
-        expirationDelta: 0,
-      })
-      const transaction2 = raw2.post(senderAccountIf.spendingKey || '')
-
-      const deserialized = new Transaction(transaction2.serialize())
-      // Try to mint again, this time should fail
-      const result = await node.chain.verifier.verifyNewTransaction(deserialized)
-
-      expect(result).toEqual({
-        valid: false,
-        reason: VerificationResultReason.EVM_MINT_NON_EVM,
-      })
-    })
-
-    // TODO(jwp): test mint/burn mismatch balance/length
 
     it('verify transaction returns false when evm transaction has invalid signature', async () => {
       // Change the signature to be invalid
