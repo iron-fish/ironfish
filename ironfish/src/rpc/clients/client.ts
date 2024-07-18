@@ -926,11 +926,11 @@ export abstract class RpcClient {
 
     getTransaction: (
       params: GetTransactionRequest,
-    ): RpcResponse<void, GetTransactionResponse> => {
-      return this.request<void, GetTransactionResponse>(
+    ): Promise<RpcResponseEnded<GetTransactionResponse>> => {
+      return this.request<GetTransactionResponse>(
         `${ApiNamespace.chain}/getTransaction`,
         params,
-      )
+      ).waitForEnd()
     },
 
     getConsensusParameters: (

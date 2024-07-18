@@ -95,6 +95,7 @@ routes.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
     const { transaction, initialNoteIndex } = foundTransaction
 
     const rawTransaction: GetTransactionResponse = {
+      blockHash: blockHashBuffer.toString('hex'),
       fee: Number(transaction.fee()),
       expiration: transaction.expiration(),
       hash: transaction.hash().toString('hex'),
@@ -130,7 +131,6 @@ routes.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
         commitment: spend.commitment.toString('hex'),
         size: spend.size,
       })),
-      blockHash: blockHashBuffer.toString('hex'),
     }
 
     request.end(rawTransaction)
