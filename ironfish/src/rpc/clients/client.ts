@@ -907,7 +907,7 @@ export abstract class RpcClient {
     },
 
     getNetworkHashPower: (
-      params: GetNetworkHashPowerRequest,
+      params: GetNetworkHashPowerRequest = undefined,
     ): Promise<RpcResponseEnded<GetNetworkHashPowerResponse>> => {
       return this.request<GetNetworkHashPowerResponse>(
         `${ApiNamespace.chain}/getNetworkHashPower`,
