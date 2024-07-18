@@ -3,10 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { BufferUtils } from '@ironfish/sdk'
 import { Args } from '@oclif/core'
-import { IronfishCommand } from '../../command'
-import { RemoteFlags } from '../../flags'
+import { IronfishCommand } from '../../../command'
+import { RemoteFlags } from '../../../flags'
 
-export default class Asset extends IronfishCommand {
+export default class AssetInfo extends IronfishCommand {
   static description = 'Get the asset info'
 
   static args = {
@@ -21,7 +21,7 @@ export default class Asset extends IronfishCommand {
   }
 
   async start(): Promise<void> {
-    const { args } = await this.parse(Asset)
+    const { args } = await this.parse(AssetInfo)
     const { id: assetId } = args
 
     const client = await this.sdk.connectRpc()
