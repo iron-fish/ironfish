@@ -4,8 +4,9 @@
 
 jest.mock('ws')
 
+import '../testUtilities/matchers/blockchain'
 import { LegacyTransaction } from '@ethereumjs/tx'
-import { Address, Account as EthAccount } from '@ethereumjs/util'
+import { Account as EthAccount, Address } from '@ethereumjs/util'
 import { Asset } from '@ironfish/rust-nodejs'
 import { ethers } from 'ethers'
 import { Assert } from '../assert'
@@ -16,7 +17,6 @@ import { Transaction } from '../primitives'
 import { EvmDescription, legacyTransactionToEvmDescription } from '../primitives/evmDescription'
 import { TransactionVersion } from '../primitives/transaction'
 import { createNodeTest, useAccountFixture, useMinerBlockFixture } from '../testUtilities'
-import '../testUtilities/matchers/blockchain'
 import { SpendingAccount } from '../wallet'
 import { Consensus } from './consensus'
 import { VerificationResultReason } from './verifier'
