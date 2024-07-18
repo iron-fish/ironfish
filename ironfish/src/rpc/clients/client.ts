@@ -161,8 +161,6 @@ import type {
   SetConfigResponse,
   SetScanningRequest,
   SetScanningResponse,
-  ShowChainRequest,
-  ShowChainResponse,
   SignTransactionRequest,
   SignTransactionResponse,
   StopNodeResponse,
@@ -913,15 +911,6 @@ export abstract class RpcClient {
     ): Promise<RpcResponseEnded<GetNetworkHashPowerResponse>> => {
       return this.request<GetNetworkHashPowerResponse>(
         `${ApiNamespace.chain}/getNetworkHashPower`,
-        params,
-      ).waitForEnd()
-    },
-
-    showChain: (
-      params: ShowChainRequest = undefined,
-    ): Promise<RpcResponseEnded<ShowChainResponse>> => {
-      return this.request<ShowChainResponse>(
-        `${ApiNamespace.chain}/showChain`,
         params,
       ).waitForEnd()
     },
