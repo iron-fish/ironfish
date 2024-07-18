@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { Assert } from '../assert'
 import { ActivationSequence, Checkpoint, ConsensusParameters } from '../consensus'
 import { Config, InternalStore } from '../fileStores'
 import { FileSystem } from '../fileSystems'
@@ -80,6 +81,16 @@ export function defaultNetworkName(networkId: number): string | undefined {
       return 'Mainnet'
     case 2:
       return 'Devnet'
+  }
+}
+
+export function renderNetworkName(networkId: number): string {
+  if (isDefaultNetworkId(networkId)) {
+    const defaultName = defaultNetworkName(networkId)
+    Assert.isNotUndefined(defaultName)
+    return defaultName
+  } else {
+    return `Custom Network ${networkId}`
   }
 }
 
