@@ -9,5 +9,5 @@
     "resolveJsonModule": true,
     "outDir": "build",
   },
-  "include": ["./index.ts"],
+  "include": ["./index.ts", "./artifacts/contracts/**/*.json"],
 }
