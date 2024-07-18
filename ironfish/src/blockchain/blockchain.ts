@@ -37,7 +37,6 @@ import {
   RawBlockHeader,
   transactionCommitment,
 } from '../primitives/blockheader'
-import { evmDescriptionToLegacyTransaction } from '../primitives/evmDescription'
 import {
   NoteEncrypted,
   NoteEncryptedHash,
@@ -1008,10 +1007,10 @@ export class Blockchain {
           blockNotes.push(note)
         }
         if (transaction.evm) {
-          Assert.isNotUndefined(this.evm, 'EVM instance not initialized')
-
-          const evmTx = evmDescriptionToLegacyTransaction(transaction.evm)
-          await this.evm.runTx({ tx: evmTx })
+          const evmVerify = await this.verifier.verifyEvm(transaction)
+          if (!evmVerify.valid) {
+            throw Error(evmVerify.reason)
+          }
         }
       }
 
@@ -1313,10 +1312,10 @@ export class Blockchain {
       await this.saveConnectedEvmMints(transaction, tx)
 
       if (transaction.evm) {
-        Assert.isNotUndefined(this.evm, 'EVM instance not initialized')
-
-        const evmTx = evmDescriptionToLegacyTransaction(transaction.evm)
-        await this.evm.runTx({ tx: evmTx })
+        const evmVerify = await this.verifier.verifyEvm(transaction)
+        if (!evmVerify.valid) {
+          throw Error(evmVerify.reason)
+        }
       }
     }
 

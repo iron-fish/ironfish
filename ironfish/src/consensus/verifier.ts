@@ -86,72 +86,64 @@ export class Verifier {
     let runningNotesCount = 0
     const transactionHashes = new BufferSet()
 
-    Assert.isNotUndefined(this.chain.evm)
-    const transactionsValid = await this.chain.evm.withCopy(async (vm) => {
-      for (const [idx, transaction] of block.transactions.entries()) {
-        if (transaction.version() !== transactionVersion) {
-          return {
-            valid: false,
-            reason: VerificationResultReason.INVALID_TRANSACTION_VERSION,
-          }
-        }
-
-        if (isExpiredSequence(transaction.expiration(), block.header.sequence)) {
-          return {
-            valid: false,
-            reason: VerificationResultReason.TRANSACTION_EXPIRED,
-          }
-        }
-
-        if (transactionHashes.has(transaction.hash())) {
-          return {
-            valid: false,
-            reason: VerificationResultReason.DUPLICATE_TRANSACTION,
-          }
-        }
-
-        transactionHashes.add(transaction.hash())
-
-        const mintVerify = Verifier.verifyMints(transaction.mints)
-        if (!mintVerify.valid) {
-          return mintVerify
-        }
-
-        const burnVerify = Verifier.verifyBurns(transaction.burns)
-        if (!burnVerify.valid) {
-          return burnVerify
-        }
-
-        // TODO(jwp): verifier here is for miners, verifyBlockConnect should also contain this logic, add below
-        if (!transaction.evm) {
-          const noMints = await this.verifyNoEvmMints(transaction)
-          if (!noMints.valid) {
-            return noMints
-          }
-        } else {
-          const evmVerify = await this.verifyEvm(transaction, vm)
-          if (!evmVerify.valid) {
-            return evmVerify
-          }
-        }
-
-        transactionBatch.push(transaction)
-
-        runningNotesCount += transaction.notes.length
-
-        if (runningNotesCount >= notesLimit || idx === block.transactions.length - 1) {
-          verificationPromises.push(this.workerPool.verifyTransactions(transactionBatch))
-
-          transactionBatch = []
-          runningNotesCount = 0
+    for (const [idx, transaction] of block.transactions.entries()) {
+      if (transaction.version() !== transactionVersion) {
+        return {
+          valid: false,
+          reason: VerificationResultReason.INVALID_TRANSACTION_VERSION,
         }
       }
 
-      return { valid: true }
-    })
+      if (isExpiredSequence(transaction.expiration(), block.header.sequence)) {
+        return {
+          valid: false,
+          reason: VerificationResultReason.TRANSACTION_EXPIRED,
+        }
+      }
 
-    if (!transactionsValid.valid) {
-      return transactionsValid
+      if (transactionHashes.has(transaction.hash())) {
+        return {
+          valid: false,
+          reason: VerificationResultReason.DUPLICATE_TRANSACTION,
+        }
+      }
+
+      transactionHashes.add(transaction.hash())
+
+      const mintVerify = Verifier.verifyMints(transaction.mints)
+      if (!mintVerify.valid) {
+        return mintVerify
+      }
+
+      const burnVerify = Verifier.verifyBurns(transaction.burns)
+      if (!burnVerify.valid) {
+        return burnVerify
+      }
+
+      // TODO(jwp): verifier here is for miners, verifyBlockConnect should also contain this logic, add below
+      if (!transaction.evm) {
+        const noMints = await this.verifyNoEvmMints(transaction)
+        if (!noMints.valid) {
+          return noMints
+        }
+      } else {
+        // TODO(hughy): do not verify evm transactions again because they are verified during block construction
+        // const evmVerify = await this.verifyEvm(transaction, vm)
+        // if (!evmVerify.valid) {
+        //   return evmVerify
+        // }
+      }
+
+      transactionBatch.push(transaction)
+
+      runningNotesCount += transaction.notes.length
+
+      if (runningNotesCount >= notesLimit || idx === block.transactions.length - 1) {
+        verificationPromises.push(this.workerPool.verifyTransactions(transactionBatch))
+
+        transactionBatch = []
+        runningNotesCount = 0
+      }
     }
 
     const verificationResults = await Promise.all(verificationPromises)
