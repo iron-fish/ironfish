@@ -171,7 +171,7 @@ describe('Verifier', () => {
       expect(verificationResult).toEqual({ valid: true })
 
       tx = new LegacyTransaction({
-        nonce: 1n,
+        nonce: 2n,
         gasLimit: 100_000n,
         to: globalContractAddress,
         gasPrice: 7n,
