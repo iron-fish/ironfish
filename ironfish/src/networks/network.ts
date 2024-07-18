@@ -1,11 +1,10 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Assert } from '../assert'
 import { Consensus } from '../consensus'
 import { SerializedBlock } from '../primitives/block'
 import { MathUtils } from '../utils'
-import { defaultNetworkName, isDefaultNetworkId, NetworkDefinition } from './networkDefinition'
+import { isDefaultNetworkId, NetworkDefinition, renderNetworkName } from './networkDefinition'
 
 export class Network {
   readonly default: boolean
@@ -23,14 +22,7 @@ export class Network {
     this.consensus = new Consensus({ ...definition.consensus })
     this.genesis = definition.genesis
     this.bootstrapNodes = definition.bootstrapNodes
-
-    if (this.default) {
-      const defaultName = defaultNetworkName(definition.id)
-      Assert.isNotUndefined(defaultName)
-      this.name = defaultName
-    } else {
-      this.name = `Custom Network ${definition.id}`
-    }
+    this.name = renderNetworkName(definition.id)
   }
 
   /**
