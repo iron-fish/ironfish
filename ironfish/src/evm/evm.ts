@@ -2,10 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Block } from '@ethereumjs/block'
-import { EVM } from '@ethereumjs/evm'
+import { EVM, Log } from '@ethereumjs/evm'
 import { Address } from '@ethereumjs/util'
 import { RunTxOpts, RunTxResult, VM } from '@ethereumjs/vm'
 import ContractArtifact from '@ironfish/ironfish-contracts'
+import { blake3 } from '@napi-rs/blake-hash'
 import { ethers } from 'ethers'
 import { Assert } from '../assert'
 import { BlockchainDB } from '../blockchain/database/blockchaindb'
@@ -50,33 +51,11 @@ export class IronfishEvm {
 
     // TODO(jwp) from custom opcodes populate shields and unshields
 
-    const shields: EvmShield[] = []
+    const events = this.decodeLogs(result.receipt.logs)
 
-    for (const log of result.receipt.logs) {
-      // todo: placeholder until we determine an address
-      // if (Buffer.from(log[0]).toString('hex') !== 'globalContractAddress') {
-      //   continue
-      // }
-      try {
-        const globalContract = new ethers.Interface(ContractArtifact.abi)
-        const [ironfishAddress, assetId, caller, amount] = globalContract.decodeEventLog(
-          'Shield',
-          log[2],
-        )
-        shields.push({
-          name: 'shield',
-          ironfishAddress: Buffer.from((ironfishAddress as string).slice(2), 'hex'),
-          caller: Address.fromString(caller as string),
-          assetId: Buffer.from((assetId as string).slice(2), 'hex'),
-          amount: amount as bigint,
-        })
-      } catch (e) {
-        continue
-      }
-    }
     return {
       result,
-      events: [...shields],
+      events,
     }
   }
 
@@ -98,6 +77,54 @@ export class IronfishEvm {
     } finally {
       await vm.evm.stateManager.revert()
     }
+  }
+
+  decodeLogs(logs: Log[]): UTXOEvent[] {
+    const globalContract = new ethers.Interface(ContractArtifact.abi)
+
+    const events: UTXOEvent[] = []
+
+    for (const log of logs) {
+      // todo: placeholder until we determine an address
+      // if (Buffer.from(log[0]).toString('hex') !== 'globalContractAddress') {
+      //   continue
+      // }
+
+      try {
+        const [ironfishAddress, tokenId, caller, amount] = globalContract.decodeEventLog(
+          'Shield',
+          log[2],
+        )
+
+        events.push({
+          name: 'shield',
+          ironfishAddress: Buffer.from((ironfishAddress as string).slice(2), 'hex'),
+          caller: Address.fromString(caller as string),
+          assetId: this.getAssetId(caller as string, tokenId as bigint),
+          amount: amount as bigint,
+        })
+      } catch (e) {
+        try {
+          const [caller, tokenId, amount] = globalContract.decodeEventLog('UnShield', log[2])
+
+          events.push({
+            name: 'unshield',
+            assetId: this.getAssetId(caller as string, tokenId as bigint),
+            amount: amount as bigint,
+          })
+        } catch (e) {
+          continue
+        }
+      }
+    }
+
+    return events
+  }
+
+  private getAssetId(caller: string, tokenId: bigint): Buffer {
+    // TODO: Make compatible with other assetIDs
+    //       hardcode mapping the native asset id with the global contract address
+    return blake3(caller + tokenId.toString())
   }
 }
 
