@@ -9,7 +9,7 @@ import { RemoteFlags } from '../../../flags'
 import * as ui from '../../../ui'
 
 export class TransactionInfo extends IronfishCommand {
-  static description = 'Display info about a transaction'
+  static description = 'show transaction information'
 
   static flags = {
     ...RemoteFlags,

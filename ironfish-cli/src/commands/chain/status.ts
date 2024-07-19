@@ -7,7 +7,7 @@ import { LocalFlags } from '../../flags'
 import * as ui from '../../ui'
 
 export default class ChainStatus extends IronfishCommand {
-  static description = 'show the status of the chain'
+  static description = 'show chain information'
 
   static flags = {
     ...LocalFlags,

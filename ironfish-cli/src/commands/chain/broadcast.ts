@@ -6,7 +6,7 @@ import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
 export class BroadcastCommand extends IronfishCommand {
-  static description = `Broadcast a transaction to the network`
+  static description = 'broadcast a transaction to the network'
 
   static flags = {
     ...RemoteFlags,

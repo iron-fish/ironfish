@@ -7,7 +7,7 @@ import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 
 export default class AssetInfo extends IronfishCommand {
-  static description = 'Get the asset info'
+  static description = 'show asset information'
 
   static args = {
     id: Args.string({

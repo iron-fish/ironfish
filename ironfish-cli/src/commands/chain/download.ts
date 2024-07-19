@@ -10,9 +10,7 @@ import { DownloadedSnapshot, getDefaultManifestUrl, SnapshotDownloader } from '.
 import { confirmOrQuit, ProgressBar, ProgressBarPresets } from '../../ui'
 
 export default class Download extends IronfishCommand {
-  static hidden = false
-
-  static description = `Download and import a chain snapshot`
+  static description = 'download the chain'
 
   static flags = {
     ...LocalFlags,
