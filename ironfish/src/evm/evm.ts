@@ -6,6 +6,7 @@ import { EVM } from '@ethereumjs/evm'
 import { Address } from '@ethereumjs/util'
 import { RunTxOpts, RunTxResult, VM } from '@ethereumjs/vm'
 import { ethers } from 'ethers'
+import { Assert } from '../assert'
 import { BlockchainDB } from '../blockchain/database/blockchaindb'
 import { EvmBlockchain } from './blockchain'
 import { ContractArtifact } from './globalContract'
@@ -18,28 +19,30 @@ export const INITIAL_STATE_ROOT = Buffer.from(
 )
 
 export class IronfishEvm {
-  private vm: VM
+  private vm: VM | null
+  private blockchainDb: BlockchainDB
 
-  constructor(vm: VM) {
-    this.vm = vm
+  constructor(blockchainDb: BlockchainDB) {
+    this.vm = null
+    this.blockchainDb = blockchainDb
   }
 
-  static async create(blockchainDb: BlockchainDB): Promise<IronfishEvm> {
-    const blockchain = new EvmBlockchain(blockchainDb)
+  async open(): Promise<void> {
+    const blockchain = new EvmBlockchain(this.blockchainDb)
 
-    const evm = await EVM.create({ blockchain, stateManager: blockchainDb.stateManager })
+    const evm = await EVM.create({ blockchain, stateManager: this.blockchainDb.stateManager })
 
-    const vm = await VM.create({ evm, stateManager: blockchainDb.stateManager })
-
-    return new IronfishEvm(vm)
+    this.vm = await VM.create({ evm, stateManager: this.blockchainDb.stateManager })
   }
 
   async runTx(opts: RunTxOpts): Promise<RunTxResult> {
+    Assert.isNotNull(this.vm, 'EVM not initialized')
     opts.block = Block.fromBlockData({ header: { baseFeePerGas: 0n } })
     return this.vm.runTx(opts)
   }
 
   async verifyTx(opts: RunTxOpts, vm?: VM): Promise<EvmResult> {
+    Assert.isNotNull(this.vm, 'EVM not initialized')
     vm = vm ?? this.vm
 
     opts.block = Block.fromBlockData({ header: { baseFeePerGas: 0n } })
@@ -89,6 +92,7 @@ export class IronfishEvm {
   }
 
   async withCopy<TResult>(handler: (copy: VM) => Promise<TResult>): Promise<TResult> {
+    Assert.isNotNull(this.vm, 'EVM not initialized')
     const vm = await this.vm.shallowCopy()
 
     await vm.evm.stateManager.checkpoint()
