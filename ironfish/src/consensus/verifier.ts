@@ -239,7 +239,7 @@ export class Verifier {
       if (
         current.timestamp.getTime() <
         previousHeader.timestamp.getTime() -
-        this.chain.consensus.parameters.allowedBlockFutureSeconds * 1000
+          this.chain.consensus.parameters.allowedBlockFutureSeconds * 1000
       ) {
         return { valid: false, reason: VerificationResultReason.BLOCK_TOO_OLD }
       }

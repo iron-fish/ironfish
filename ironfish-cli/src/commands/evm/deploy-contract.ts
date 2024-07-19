@@ -18,7 +18,8 @@ export class TestEvmCommand extends IronfishCommand {
     const node = await this.sdk.node()
     await node.openDB()
 
-    const evm = await IronfishEvm.create(node.chain.blockchainDb)
+    const evm = new IronfishEvm(node.chain.blockchainDb)
+    await evm.open()
 
     const senderKey = generateKey()
 
