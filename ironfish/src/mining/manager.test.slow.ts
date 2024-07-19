@@ -546,6 +546,94 @@ describe('Mining manager', () => {
       expect(node.memPool.count()).toBe(1)
     })
 
+    it('should not create block templates with invalid evm transactions', async () => {
+      const { node, chain } = nodeTest
+      const { miningManager } = node
+
+      jest
+        .spyOn(node.chain.consensus, 'getActiveTransactionVersion')
+        .mockImplementation(() => TransactionVersion.V3)
+
+      const account = await useAccountFixture(nodeTest.node.wallet, 'account')
+      await nodeTest.node.wallet.setDefaultAccount(account.name)
+
+      const previous = await useMinerBlockFixture(chain, 2, account, node.wallet)
+      await expect(chain).toAddBlock(previous)
+      await node.wallet.scan()
+
+      const ethAddress = Address.fromPrivateKey(Buffer.from(account.spendingKey, 'hex'))
+      const ethAccount = new EthAccount(0n, 1000n)
+
+      const evmRecipientAddress = Address.fromString(
+        '0x3c6c6d51f71a0f146cf79843e888feb20258f567',
+      )
+
+      await node.chain.blockchainDb.transaction(async (_) => {
+        await node.chain.blockchainDb.stateManager.putAccount(ethAddress, ethAccount)
+      })
+
+      const tx1 = new LegacyTransaction({
+        nonce: 0n,
+        to: evmRecipientAddress,
+        value: 10n,
+        gasLimit: 21000n,
+      })
+      const signed1 = tx1.sign(Buffer.from(account.spendingKey, 'hex'))
+
+      const description = legacyTransactionToEvmDescription(signed1)
+
+      const raw1 = await node.wallet.createTransaction({
+        account,
+        evm: description,
+        // set fee to 1 to ensure that this tx is higher in mempool
+        fee: 1n,
+      })
+
+      const transaction1 = raw1.post(account.spendingKey)
+
+      // tx2 is invalid after tx1 due to insufficient balance
+      const tx2 = new LegacyTransaction({
+        nonce: 1n,
+        to: evmRecipientAddress,
+        value: 1000n,
+        gasLimit: 21000n,
+      })
+      const signed2 = tx2.sign(Buffer.from(account.spendingKey, 'hex'))
+
+      const raw2 = await node.wallet.createTransaction({
+        account,
+        evm: legacyTransactionToEvmDescription(signed2),
+        fee: 0n,
+      })
+
+      const transaction2 = raw2.post(account.spendingKey)
+
+      expect(node.memPool.count()).toBe(0)
+      node.memPool.acceptTransaction(transaction1)
+      node.memPool.acceptTransaction(transaction2)
+      expect(node.memPool.count()).toBe(2)
+
+      const block = await useMinerBlockFixture(chain, 2)
+      await expect(chain).toAddBlock(block)
+
+      // Wait for the first 2 block templates
+      const templates = await collectTemplates(miningManager, 2)
+      const fullTemplate = templates.find((t) => t.transactions.length > 1)
+
+      Assert.isNotUndefined(fullTemplate)
+
+      expect(fullTemplate.header.previousBlockHash).toBe(chain.head.hash.toString('hex'))
+
+      // template only has minersFee and 1 valid evm transaction
+      expect(fullTemplate.transactions).toHaveLength(2)
+
+      const minersFee = new Transaction(Buffer.from(fullTemplate.transactions[0], 'hex'))
+      expect(isTransactionMine(minersFee, account)).toBe(true)
+
+      expect(fullTemplate.transactions[1]).toEqual(transaction1.serialize().toString('hex'))
+      expect(node.memPool.count()).toBe(2)
+    })
+
     describe('with preemptive block creation disabled', () => {
       const nodeTest = createNodeTest(false, {
         config: { miningForce: true, preemptiveBlockMining: false },
