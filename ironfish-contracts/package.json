@@ -6,7 +6,8 @@
   "license": "MIT",
   "scripts": {
     "build": "yarn hardhat compile && tsc -b",
-    "test": "yarn hardhat test"
+    "test": "yarn hardhat test",
+    "lint": ""
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
