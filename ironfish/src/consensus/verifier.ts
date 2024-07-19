@@ -667,6 +667,15 @@ export class Verifier {
       return mintResult
     }
 
+    const burnResult = Verifier.verifyEvmBurns(transaction, result)
+    if (!burnResult.valid) {
+      return burnResult
+    }
+
+    return { valid: true }
+  }
+
+  static verifyEvmMints(transaction: Transaction, result: EvmResult): VerificationResult {
     const assetBalanceDeltas = new AssetBalances()
 
     for (const event of result.events) {
@@ -694,34 +703,23 @@ export class Verifier {
   }
 
   static verifyEvmBurns(transaction: Transaction, result: EvmResult): VerificationResult {
-    const unshieldBalance: BufferMap<bigint> = new BufferMap()
-    const burnBalance: BufferMap<bigint> = new BufferMap()
+    // TODO(jwp): handle native asset as output balance (will require decrypting notes and comparing)
+    const assetBalanceDeltas = new AssetBalances()
 
     for (const event of result.events) {
-      // TODO(jwp): handle native asset as output balance (will require decrypting notes and comparing)
       if (event.assetId.equals(Asset.nativeId())) {
         continue
       }
       if (event.name === 'unshield') {
-        unshieldBalance.set(event.assetId, event.amount)
+        assetBalanceDeltas.increment(event.assetId, event.amount)
       }
     }
     for (const burn of transaction.burns) {
-      if (burn.assetId.equals(Asset.nativeId())) {
-        continue
-      }
-      burnBalance.set(burn.assetId, burn.value)
+      assetBalanceDeltas.increment(burn.assetId, -burn.value)
     }
 
-    // verify mints equals shields and burns equals unshields
-    if (burnBalance.size !== unshieldBalance.size) {
-      return {
-        valid: false,
-        reason: VerificationResultReason.EVM_BURN_LENGTH_MISMATCH,
-      }
-    }
-    for (const [assetId, value] of burnBalance) {
-      if (unshieldBalance.get(assetId) !== value) {
+    for (const [_, value] of assetBalanceDeltas) {
+      if (value !== 0n) {
         return {
           valid: false,
           reason: VerificationResultReason.EVM_BURN_BALANCE_MISMATCH,
@@ -893,9 +891,7 @@ export enum VerificationResultReason {
   EVM_TRANSACTION_FAILED = 'EVM transaction failed',
   EVM_TRANSACTION_INVALID_SIGNATURE = 'EVM transaction has invalid signature',
   EVM_TRANSACTION_INSUFFICIENT_BALANCE = 'EVM sender account has insufficient balance',
-  EVM_MINT_LENGTH_MISMATCH = 'EVM mint/shield length mismatch',
   EVM_MINT_BALANCE_MISMATCH = 'EVM mint/shield balance mismatch',
-  EVM_BURN_LENGTH_MISMATCH = 'EVM burn/unshield length mismatch',
   EVM_BURN_BALANCE_MISMATCH = 'EVM burn/unshield balance mismatch',
   EVM_ASSET_MISMATCH = 'EVM shield/unshield did not come from correct contract',
   EVM_ASSET_NOT_FOUND = 'EVM shield/unshield asset not found',
