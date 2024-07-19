@@ -63,7 +63,7 @@ export class Blockchain {
   files: FileSystem
   consensus: Consensus
   // TODO: the EVM creation is async, so this has to be optional for the constructor
-  evm?: IronfishEvm
+  evm: IronfishEvm
   seedGenesisBlock: SerializedBlock
   config: Config
   blockHasher: BlockHasher
@@ -197,6 +197,7 @@ export class Blockchain {
       defaultValue: Buffer.alloc(32),
     })
 
+    this.evm = new IronfishEvm(this.blockchainDb)
     this.nullifiers = new NullifierSet({ db: this.blockchainDb.db, name: 'u' })
   }
 
@@ -239,9 +240,9 @@ export class Blockchain {
     }
 
     this.opened = true
-    await this.blockchainDb.open()
-    this.evm = await IronfishEvm.create(this.blockchainDb)
 
+    await this.blockchainDb.open()
+    await this.evm.open()
     await this.load()
   }
 

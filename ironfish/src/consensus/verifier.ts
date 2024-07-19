@@ -280,7 +280,6 @@ export class Verifier {
         return noMints
       }
     } else {
-      Assert.isNotUndefined(this.chain.evm)
       const evmVerify = await this.chain.evm.withCopy(async (vm) => {
         return this.verifyEvm(transaction, vm)
       })
@@ -618,7 +617,7 @@ export class Verifier {
     // tx?: BlockchainDBTransaction,
   ): Promise<VerificationResult> {
     // TODO(jwp): handle these more cleanly after hughs changes
-    if (!transaction.evm || !this.chain.evm) {
+    if (!transaction.evm) {
       return { valid: true }
     }
 
