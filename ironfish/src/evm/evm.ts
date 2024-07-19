@@ -39,9 +39,11 @@ export class IronfishEvm {
     return this.vm.runTx(opts)
   }
 
-  async verifyTx(opts: RunTxOpts): Promise<EvmResult> {
-    // TODO(jwp) add db transaction and roll back
-    const result = await this.runTx(opts)
+  async verifyTx(opts: RunTxOpts, vm?: VM): Promise<EvmResult> {
+    vm = vm ?? this.vm
+
+    opts.block = Block.fromBlockData({ header: { baseFeePerGas: 0n } })
+    const result = await vm.runTx(opts)
 
     // TODO(jwp) from custom opcodes populate shields and unshields
 
@@ -81,11 +83,12 @@ export class IronfishEvm {
 
   async simulateTx(opts: RunTxOpts): Promise<RunTxResult> {
     return this.withCopy(async (vm) => {
+      opts.block = Block.fromBlockData({ header: { baseFeePerGas: 0n } })
       return vm.runTx(opts)
     })
   }
 
-  private async withCopy<TResult>(handler: (copy: VM) => Promise<TResult>): Promise<TResult> {
+  async withCopy<TResult>(handler: (copy: VM) => Promise<TResult>): Promise<TResult> {
     const vm = await this.vm.shallowCopy()
 
     await vm.evm.stateManager.checkpoint()

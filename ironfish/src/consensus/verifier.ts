@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // import { Address } from '@ethereumjs/util'
+import { VM } from '@ethereumjs/vm'
 import { Asset } from '@ironfish/rust-nodejs'
 import { BufferMap, BufferSet } from 'buffer-map'
 import { Assert } from '../assert'
@@ -84,6 +85,7 @@ export class Verifier {
     let transactionBatch: Transaction[] = []
     let runningNotesCount = 0
     const transactionHashes = new BufferSet()
+
     for (const [idx, transaction] of block.transactions.entries()) {
       if (transaction.version() !== transactionVersion) {
         return {
@@ -125,10 +127,11 @@ export class Verifier {
           return noMints
         }
       } else {
-        const evmVerify = await this.verifyEvm(transaction)
-        if (!evmVerify.valid) {
-          return evmVerify
-        }
+        // TODO(hughy): do not verify evm transactions again because they are verified during block construction
+        // const evmVerify = await this.verifyEvm(transaction, vm)
+        // if (!evmVerify.valid) {
+        //   return evmVerify
+        // }
       }
 
       transactionBatch.push(transaction)
@@ -276,7 +279,10 @@ export class Verifier {
         return noMints
       }
     } else {
-      const evmVerify = await this.verifyEvm(transaction)
+      Assert.isNotUndefined(this.chain.evm)
+      const evmVerify = await this.chain.evm.withCopy(async (vm) => {
+        return this.verifyEvm(transaction, vm)
+      })
       if (!evmVerify.valid) {
         return evmVerify
       }
@@ -607,6 +613,7 @@ export class Verifier {
 
   async verifyEvm(
     transaction: Transaction,
+    vm?: VM,
     // tx?: BlockchainDBTransaction,
   ): Promise<VerificationResult> {
     // TODO(jwp): handle these more cleanly after hughs changes
@@ -618,7 +625,7 @@ export class Verifier {
     let result: EvmResult
     // TODO(jwp) on EVM error, seems to be throwing rather than just providing error in execResult, can't get EvmError type
     try {
-      result = await this.chain.evm.verifyTx({ tx: evmTx })
+      result = await this.chain.evm.verifyTx({ tx: evmTx }, vm)
       if (result.result.execResult.exceptionError) {
         return { valid: false, reason: VerificationResultReason.EVM_TRANSACTION_FAILED }
       }

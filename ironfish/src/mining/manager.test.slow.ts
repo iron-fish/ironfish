@@ -1,10 +1,12 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { LegacyTransaction } from '@ethereumjs/tx'
+import { Account as EthAccount, Address } from '@ethereumjs/util'
 import { Assert } from '../assert'
 import { VerificationResultReason } from '../consensus'
 import { getBlockWithMinersFeeSize, getTransactionSize } from '../network/utils/serializers'
-import { Target, Transaction } from '../primitives'
+import { legacyTransactionToEvmDescription, Target, Transaction } from '../primitives'
 import { TransactionVersion } from '../primitives/transaction'
 import { BlockTemplateSerde, SerializedBlockTemplate } from '../serde'
 import {
@@ -475,6 +477,73 @@ describe('Mining manager', () => {
       expect(templates.length).toEqual(3)
 
       expect(templates[0]).toEqual(templates[2])
+    })
+
+    it('should create block templates with evm transactions', async () => {
+      const { node, chain } = nodeTest
+      const { miningManager } = node
+
+      jest
+        .spyOn(node.chain.consensus, 'getActiveTransactionVersion')
+        .mockImplementation(() => TransactionVersion.V3)
+
+      const account = await useAccountFixture(nodeTest.node.wallet, 'account')
+      await nodeTest.node.wallet.setDefaultAccount(account.name)
+
+      const previous = await useMinerBlockFixture(chain, 2, account, node.wallet)
+      await expect(chain).toAddBlock(previous)
+      await node.wallet.scan()
+
+      const ethAddress = Address.fromPrivateKey(Buffer.from(account.spendingKey, 'hex'))
+      const ethAccount = new EthAccount(0n, 1000n)
+
+      const evmRecipientAddress = Address.fromString(
+        '0x3c6c6d51f71a0f146cf79843e888feb20258f567',
+      )
+
+      await node.chain.blockchainDb.transaction(async (_) => {
+        await node.chain.blockchainDb.stateManager.putAccount(ethAddress, ethAccount)
+      })
+
+      const tx = new LegacyTransaction({
+        nonce: 0n,
+        to: evmRecipientAddress,
+        value: 10n,
+        gasLimit: 21000n,
+      })
+      const signed = tx.sign(Buffer.from(account.spendingKey, 'hex'))
+
+      const description = legacyTransactionToEvmDescription(signed)
+
+      const raw = await node.wallet.createTransaction({
+        account,
+        evm: description,
+        fee: 0n,
+      })
+
+      const transaction = raw.post(account.spendingKey)
+
+      expect(node.memPool.count()).toBe(0)
+      node.memPool.acceptTransaction(transaction)
+      expect(node.memPool.count()).toBe(1)
+
+      const block = await useMinerBlockFixture(chain, 2)
+      await expect(chain).toAddBlock(block)
+
+      // Wait for the first 2 block templates
+      const templates = await collectTemplates(miningManager, 2)
+      const fullTemplate = templates.find((t) => t.transactions.length > 1)
+
+      Assert.isNotUndefined(fullTemplate)
+
+      expect(fullTemplate.header.previousBlockHash).toBe(chain.head.hash.toString('hex'))
+      expect(fullTemplate.transactions).toHaveLength(2)
+
+      const minersFee = new Transaction(Buffer.from(fullTemplate.transactions[0], 'hex'))
+      expect(isTransactionMine(minersFee, account)).toBe(true)
+
+      expect(fullTemplate.transactions[1]).toEqual(transaction.serialize().toString('hex'))
+      expect(node.memPool.count()).toBe(1)
     })
 
     describe('with preemptive block creation disabled', () => {
