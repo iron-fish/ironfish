@@ -648,20 +648,7 @@ export class Verifier {
         return { valid: false, reason: VerificationResultReason.EVM_UNKNOWN_ERROR }
       }
     }
-    // for (const item of [...result.shields, ...result.unshields]) {
-    //   const contract = await this.chain.getEvmContractByAssetId(item.assetId, tx)
-    //   if (!contract) {
-    //     // contract not registered yet, ie first mint, skip validation
-    //     // TODO(jwp): is there attack vector here?
-    //     continue
-    //   }
-    //   const contractAddress = new Address(contract)
-    //   if (contractAddress !== item) {
-    //     return { valid: false, reason: VerificationResultReason.EVM_ASSET_MISMATCH }
-    //   }
-    // }
 
-    // TODO(jwp): verify shielding/mints balance
     const mintResult = Verifier.verifyEvmMints(transaction, result)
     if (!mintResult.valid) {
       return mintResult
@@ -715,6 +702,9 @@ export class Verifier {
       }
     }
     for (const burn of transaction.burns) {
+      if (burn.assetId.equals(Asset.nativeId())) {
+        continue
+      }
       assetBalanceDeltas.increment(burn.assetId, -burn.value)
     }
 
