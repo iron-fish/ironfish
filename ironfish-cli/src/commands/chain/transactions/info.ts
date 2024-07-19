@@ -6,6 +6,7 @@ import { CurrencyUtils, FileUtils } from '@ironfish/sdk'
 import { Args } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
+import * as ui from '../../../ui'
 
 export class TransactionInfo extends IronfishCommand {
   static description = 'Display info about a transaction'
@@ -32,16 +33,18 @@ export class TransactionInfo extends IronfishCommand {
 
     const transaction = response.content
 
-    this.log(`
-Block hash:          ${transaction.blockHash}
-Transaction hash:    ${transaction.hash}
-Fee:                 ${CurrencyUtils.render(transaction.fee.toString(), true)}
-Expiration sequence: ${transaction.expiration}
-Transaction size:    ${FileUtils.formatMemorySize(transaction.size)}
-Notes output:        ${transaction.notes.length}
-Notes spent:         ${transaction.spends.length}
-Mint count:          ${transaction.mints.length}
-Burn count:          ${transaction.burns.length}
-    `)
+    this.log(
+      ui.card({
+        'Block hash': transaction.blockHash,
+        'Transaction hash': transaction.hash,
+        Fee: CurrencyUtils.render(transaction.fee.toString(), true),
+        'Expiration sequence': transaction.expiration,
+        'Transaction size': FileUtils.formatMemorySize(transaction.size),
+        'Notes output': transaction.notes.length,
+        'Notes spent': transaction.spends.length,
+        'Mint count': transaction.mints.length,
+        'Burn count': transaction.burns.length,
+      }),
+    )
   }
 }
