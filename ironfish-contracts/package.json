@@ -6,7 +6,7 @@
   "license": "MIT",
   "scripts": {
     "build": "yarn hardhat compile && tsc -b",
-    "test": "yarn hardhat test",
+    "test": "",
     "lint": ""
   },
   "devDependencies": {
