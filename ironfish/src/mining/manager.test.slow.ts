@@ -480,12 +480,12 @@ describe('Mining manager', () => {
     })
 
     it('should create block templates with evm transactions', async () => {
-      jest
-        .spyOn(Consensus.prototype, 'getActiveTransactionVersion')
-        .mockImplementation(() => TransactionVersion.V3)
-
       const { node, chain } = nodeTest
       const { miningManager } = node
+
+      jest
+        .spyOn(node.chain.consensus, 'getActiveTransactionVersion')
+        .mockImplementation(() => TransactionVersion.V3)
 
       const account = await useAccountFixture(nodeTest.node.wallet, 'account')
       await nodeTest.node.wallet.setDefaultAccount(account.name)
