@@ -5,3 +5,4 @@
 export * from './prompt'
 export * from './progressBar'
 export * from './table'
+export * from './card'
