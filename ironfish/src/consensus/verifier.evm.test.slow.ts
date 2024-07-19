@@ -10,16 +10,21 @@ import { Account as EthAccount, Address } from '@ethereumjs/util'
 import { Asset } from '@ironfish/rust-nodejs'
 import { ethers } from 'ethers'
 import { Assert } from '../assert'
-import { EvmShield } from '../evm'
+import { EvmResult, EvmShield } from '../evm'
 import { ContractArtifact } from '../evm/globalContract'
 import { FullNode } from '../node'
 import { Transaction } from '../primitives'
 import { EvmDescription, legacyTransactionToEvmDescription } from '../primitives/evmDescription'
 import { TransactionVersion } from '../primitives/transaction'
-import { createNodeTest, useAccountFixture, useMinerBlockFixture } from '../testUtilities'
+import {
+  createNodeTest,
+  useAccountFixture,
+  useMinerBlockFixture,
+  useMintBlockFixture,
+} from '../testUtilities'
 import { SpendingAccount } from '../wallet'
 import { Consensus } from './consensus'
-import { VerificationResultReason } from './verifier'
+import { VerificationResultReason, Verifier } from './verifier'
 
 describe('Verifier', () => {
   describe('EVM Transaction', () => {
@@ -30,6 +35,8 @@ describe('Verifier', () => {
     let evmSenderAddress: Address
     let evmRecipientAddress: Address
     let evmPrivateKey: Uint8Array
+    let asset: Asset
+    let assetMetadata: { creator: string; name: string; metadata: string }
 
     beforeEach(async () => {
       jest
@@ -41,6 +48,13 @@ describe('Verifier', () => {
 
       senderAccountIf = await useAccountFixture(node.wallet, 'sender')
       const recipientAccountIf = await useAccountFixture(node.wallet, 'recipient')
+
+      assetMetadata = {
+        creator: senderAccountIf.publicAddress,
+        name: 'foo',
+        metadata: '',
+      }
+      asset = new Asset(assetMetadata.creator, assetMetadata.name, assetMetadata.metadata)
 
       evmPrivateKey = Uint8Array.from(Buffer.from(senderAccountIf.spendingKey || '', 'hex'))
       const recipientPrivateKey = Uint8Array.from(
@@ -136,13 +150,6 @@ describe('Verifier', () => {
       expect(contract).toBeDefined()
 
       const globalContract = new ethers.Interface(ContractArtifact.abi)
-
-      const assetMetadata = {
-        creator: senderAccountIf.publicAddress,
-        name: 'foo',
-        metadata: '',
-      }
-      const asset = new Asset(assetMetadata.creator, assetMetadata.name, assetMetadata.metadata)
 
       const encodedFunctionData = globalContract.encodeFunctionData('shield', [
         Buffer.from(senderAccountIf.publicAddress, 'hex'),
@@ -283,6 +290,50 @@ describe('Verifier', () => {
       await expect(invalidBlock).rejects.toThrow(
         VerificationResultReason.EVM_TRANSACTION_INSUFFICIENT_BALANCE,
       )
+    })
+
+    it('verifies burns match unshield events', async () => {
+      const mintBlock = await useMintBlockFixture({
+        node,
+        account: senderAccountIf,
+        asset,
+        value: 200n,
+      })
+      await expect(node.chain).toAddBlock(mintBlock)
+      await node.wallet.scan()
+
+      const raw = await node.wallet.createTransaction({
+        account: senderAccountIf,
+        outputs: [],
+        fee: 0n,
+        expiration: 0,
+        expirationDelta: 0,
+        burns: [
+          {
+            assetId: asset.id(),
+            value: 100n,
+          },
+        ],
+        evm: description,
+        confirmations: 0,
+      })
+
+      const transaction = raw.post(senderAccountIf.spendingKey || '')
+
+      const evmResult = {
+        events: [
+          {
+            name: 'unshield',
+            ironfishAddress: Buffer.from(senderAccountIf.publicAddress, 'hex'),
+            caller: evmSenderAddress,
+            assetId: asset.id(),
+            amount: 100n,
+          },
+        ],
+      } as unknown as EvmResult
+
+      const result = Verifier.verifyEvmBurns(transaction, evmResult)
+      expect(result).toEqual({ valid: true })
     })
   })
 })

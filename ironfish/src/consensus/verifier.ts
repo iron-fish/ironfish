@@ -662,6 +662,10 @@ export class Verifier {
     // }
 
     // TODO(jwp): verify shielding/mints balance
+    const mintResult = Verifier.verifyEvmMints(transaction, result)
+    if (!mintResult.valid) {
+      return mintResult
+    }
 
     const assetBalanceDeltas = new AssetBalances()
 
@@ -683,6 +687,44 @@ export class Verifier {
         return {
           valid: false,
           reason: VerificationResultReason.EVM_MINT_BALANCE_MISMATCH,
+        }
+      }
+    }
+    return { valid: true }
+  }
+
+  static verifyEvmBurns(transaction: Transaction, result: EvmResult): VerificationResult {
+    const unshieldBalance: BufferMap<bigint> = new BufferMap()
+    const burnBalance: BufferMap<bigint> = new BufferMap()
+
+    for (const event of result.events) {
+      // TODO(jwp): handle native asset as output balance (will require decrypting notes and comparing)
+      if (event.assetId.equals(Asset.nativeId())) {
+        continue
+      }
+      if (event.name === 'unshield') {
+        unshieldBalance.set(event.assetId, event.amount)
+      }
+    }
+    for (const burn of transaction.burns) {
+      if (burn.assetId.equals(Asset.nativeId())) {
+        continue
+      }
+      burnBalance.set(burn.assetId, burn.value)
+    }
+
+    // verify mints equals shields and burns equals unshields
+    if (burnBalance.size !== unshieldBalance.size) {
+      return {
+        valid: false,
+        reason: VerificationResultReason.EVM_BURN_LENGTH_MISMATCH,
+      }
+    }
+    for (const [assetId, value] of burnBalance) {
+      if (unshieldBalance.get(assetId) !== value) {
+        return {
+          valid: false,
+          reason: VerificationResultReason.EVM_BURN_BALANCE_MISMATCH,
         }
       }
     }
