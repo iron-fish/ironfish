@@ -4,7 +4,7 @@
 import { LegacyTransaction } from '@ethereumjs/tx'
 import { Account as EthAccount, Address } from '@ethereumjs/util'
 import { Assert } from '../assert'
-import { Consensus, VerificationResultReason } from '../consensus'
+import { VerificationResultReason } from '../consensus'
 import { getBlockWithMinersFeeSize, getTransactionSize } from '../network/utils/serializers'
 import { legacyTransactionToEvmDescription, Target, Transaction } from '../primitives'
 import { TransactionVersion } from '../primitives/transaction'
