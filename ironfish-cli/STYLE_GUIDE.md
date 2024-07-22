@@ -69,6 +69,20 @@ However, if prompting is required to complete a command, this means the user wil
 
 ## Output
 
+When designing the output for a command, commands should output human readable output and not machine readable output. This means you should use components under the `ui` module such as `card`, `table`, or normal logs. It's fine if you only display a simplified version of the output.If the user needs the full data in machine readable format they can use the `--json` flag.
+
+You can categorize commands in a few ways, and you will design their output differently depending on the purpose of the command. You have output commands (status, chain:blocks:info, wallet:transactions), operation commands (stop, wallet:rename).
+
+### JSON Output
+
+We want to support JSON output in all data commands. This will allow developers to use our CLI for basic automating purposes avoiding the need to set up an HTTP client.
+
+If a command returns data it should have `static enableJsonFlag = true` and return an object with the JSON data in the command. The output JSON will automatically be colorized. See more here, https://oclif.io/docs/json/
+
+It's OK to both return an object and use `log` even if JSON is not enabled. If you need custom logic and don't want to rely on returning the JSON, you can use `jsonEnabled()` and the `ui.json()` component to manually log colorized JSON.
+
+This is not necessary for operation commands that perform actions and quit such as `wallet:rename`.
+
 ### Progress
 
 Many commands need to run long running operations. The CLI should not look like it's unresponsive. For example, `ironfish wallet:post` posts a transaction and optionally sends it to the network:
