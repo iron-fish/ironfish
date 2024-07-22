@@ -695,7 +695,10 @@ export class Verifier {
 
     for (const event of result.events) {
       if (event.assetId.equals(Asset.nativeId())) {
-        continue
+        return {
+          valid: false,
+          reason: VerificationResultReason.EVM_UNSHIELD_EVENT_NATIVE_ASSET,
+        }
       }
       if (event.name === 'unshield') {
         assetBalanceDeltas.increment(event.assetId, event.amount)
@@ -883,6 +886,7 @@ export enum VerificationResultReason {
   EVM_TRANSACTION_INSUFFICIENT_BALANCE = 'EVM sender account has insufficient balance',
   EVM_MINT_BALANCE_MISMATCH = 'EVM mint/shield balance mismatch',
   EVM_BURN_BALANCE_MISMATCH = 'EVM burn/unshield balance mismatch',
+  EVM_UNSHIELD_EVENT_NATIVE_ASSET = 'EVM unshield event for native asset',
   EVM_ASSET_MISMATCH = 'EVM shield/unshield did not come from correct contract',
   EVM_ASSET_NOT_FOUND = 'EVM shield/unshield asset not found',
   EVM_UNKNOWN_ERROR = 'EVM unknown error',
