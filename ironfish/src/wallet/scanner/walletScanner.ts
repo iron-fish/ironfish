@@ -234,6 +234,12 @@ export class WalletScanner {
       }
       await this.wallet.disconnectBlockForAccount(account, header, transactions)
     }
+
+    for (const account of this.scanningAccounts) {
+      if (account.scanFrom && BufferUtils.equalsNullable(account.scanFrom.hash, header.hash)) {
+        account.scanFrom = null
+      }
+    }
   }
 
   getChainProcessor(
