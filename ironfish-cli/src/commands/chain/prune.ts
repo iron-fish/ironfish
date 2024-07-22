@@ -7,9 +7,7 @@ import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
 
 export default class Prune extends IronfishCommand {
-  static description = 'Remove old blocks from the chain'
-
-  static hidden = false
+  static description = 'remove unused blocks from the chain'
 
   static flags = {
     ...LocalFlags,

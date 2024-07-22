@@ -9,8 +9,6 @@ import { LocalFlags } from '../../flags'
 export default class PruneCommand extends IronfishCommand {
   static description = 'Removes expired transactions from the wallet'
 
-  static hidden = false
-
   static flags = {
     ...LocalFlags,
     dryrun: Flags.boolean({

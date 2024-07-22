@@ -104,6 +104,12 @@
     "topics": {
       "wallet:scanning": {
         "description": "Turn on or off scanning for accounts"
+      },
+      "chain:blocks": {
+        "description": "commands to look at blocks"
+      },
+      "chain:assets": {
+        "description": "commands to look at assets"
       }
     }
   },

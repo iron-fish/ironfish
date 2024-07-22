@@ -7,7 +7,7 @@ import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
 
 export default class Power extends IronfishCommand {
-  static description = "Show the network's hash power per second"
+  static description = "show the network's mining power"
 
   static flags = {
     ...LocalFlags,
