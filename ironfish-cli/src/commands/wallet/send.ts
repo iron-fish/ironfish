@@ -15,7 +15,7 @@ import {
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { HexFlag, IronFlag, RemoteFlags, ValueFlag } from '../../flags'
-import { confirmOrQuit, inputPrompt } from '../../ui'
+import * as ui from '../../ui'
 import { selectAsset } from '../../utils/asset'
 import { promptCurrency } from '../../utils/currency'
 import { promptExpiration } from '../../utils/expiration'
@@ -205,10 +205,10 @@ export class Send extends IronfishCommand {
     }
 
     if (!to) {
-      to = await inputPrompt('Enter the public address of the recipient', true)
+      to = await ui.inputPrompt('Enter the public address of the recipient', true)
     }
 
-    const memo = flags.memo ?? (await inputPrompt('Enter the memo (or leave blank)'))
+    const memo = flags.memo ?? (await ui.inputPrompt('Enter the memo (or leave blank)'))
 
     if (!isValidPublicAddress(to)) {
       this.log(`A valid public address is required`)
@@ -293,7 +293,7 @@ export class Send extends IronfishCommand {
       )
     }
 
-    await confirmOrQuit('', flags.confirm)
+    await ui.confirmOrQuit('', flags.confirm)
 
     transactionTimer.start()
 
@@ -341,9 +341,13 @@ export class Send extends IronfishCommand {
     )
     const renderedFee = CurrencyUtils.render(transaction.fee(), true)
     this.log(`Sent ${renderedAmount} to ${to} from ${from}`)
-    this.log(`Hash: ${transaction.hash().toString('hex')}`)
-    this.log(`Fee: ${renderedFee}`)
-    this.log(`Memo: ${memo}`)
+    this.log(
+      ui.card({
+        Hash: transaction.hash().toString('hex'),
+        Fee: renderedFee,
+        Memo: memo,
+      }),
+    )
 
     const networkId = (await client.chain.getNetworkInfo()).content.networkId
     const transactionUrl = getExplorer(networkId)?.getTransactionUrl(
@@ -420,7 +424,7 @@ export class Send extends IronfishCommand {
     this.log(`\nHash: ${transaction.hash().toString('hex')}`)
     this.log(`Fee: ${CurrencyUtils.render(transaction.fee(), true)}`)
 
-    await confirmOrQuit('', confirm)
+    await ui.confirmOrQuit('', confirm)
 
     const addTransactionResponse = await client.wallet.addTransaction({
       transaction: signedTransaction,

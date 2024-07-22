@@ -16,6 +16,7 @@ import { Flags } from '@oclif/core'
 import blessed from 'blessed'
 import dns from 'dns'
 import { IronfishCommand } from '../../../command'
+import * as ui from '../../../ui'
 
 export class PoolStatus extends IronfishCommand {
   static description = `Show the status of a mining pool`
@@ -105,23 +106,26 @@ export class PoolStatus extends IronfishCommand {
   }
 
   renderStatus(status: MiningStatusMessage): string {
-    let result = ''
-    result += `Status of mining pool '${status.name}':\n`
-    result += `Miners:                ${status.miners}\n`
-    result += `Hashrate:              ${FileUtils.formatHashRate(status.hashRate)}\n`
-    result += `Shares pending payout: ${status.sharesPending}\n`
-    result += `Clients:               ${status.clients}\n`
-    result += `Bans:                  ${status.bans}\n`
+    let data: Record<string, unknown> = {
+      'Status of mining pool': status.name,
+      Miners: status.miners,
+      Hashrate: FileUtils.formatHashRate(status.hashRate),
+      'Shares pending payout': status.sharesPending,
+      Clients: status.clients,
+      Bans: status.bans,
+    }
 
     if (status.addressStatus) {
-      result += `\nMining status for address '${status.addressStatus.publicAddress}':\n`
-      result += `Number of miners:      ${status.addressStatus.miners}\n`
-      result += `Connected miners:      ${status.addressStatus.connectedMiners.join(', ')}\n`
-      result += `Hashrate:              ${FileUtils.formatHashRate(
-        status.addressStatus.hashRate,
-      )}\n`
-      result += `Shares pending payout: ${status.addressStatus.sharesPending}`
+      data = {
+        ...data,
+        'Mining status for address': status.addressStatus.publicAddress,
+        'Number of miners': status.addressStatus.miners,
+        'Connected miners': status.addressStatus.connectedMiners.join(', '),
+        Hashrate: FileUtils.formatHashRate(status.addressStatus.hashRate),
+        'Shares pending payout': status.addressStatus.sharesPending,
+      }
     }
-    return result
+
+    return ui.card(data)
   }
 }

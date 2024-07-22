@@ -17,7 +17,7 @@ import {
 import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { IronFlag, RemoteFlags, ValueFlag } from '../../flags'
-import { confirmOrQuit, confirmPrompt, inputPrompt } from '../../ui'
+import * as ui from '../../ui'
 import { selectAsset } from '../../utils/asset'
 import { promptCurrency } from '../../utils/currency'
 import { promptExpiration } from '../../utils/expiration'
@@ -153,16 +153,16 @@ export class Mint extends IronfishCommand {
     // name is provided
     let isMintingNewAsset = Boolean(name || metadata)
     if (!assetId && !metadata && !name) {
-      isMintingNewAsset = await confirmPrompt('Do you want to create a new asset?')
+      isMintingNewAsset = await ui.confirmPrompt('Do you want to create a new asset?')
     }
 
     if (isMintingNewAsset) {
       if (!name) {
-        name = await inputPrompt('Enter the name for the new asset', true)
+        name = await ui.inputPrompt('Enter the name for the new asset', true)
       }
 
       if (!metadata) {
-        metadata = await inputPrompt('Enter metadata for the new asset')
+        metadata = await ui.inputPrompt('Enter metadata for the new asset')
       }
 
       const newAsset = new Asset(accountPublicKey, name, metadata)
@@ -339,10 +339,14 @@ export class Mint extends IronfishCommand {
     )
     const renderedFee = CurrencyUtils.render(transaction.fee(), true)
     this.log(`Minted asset ${BufferUtils.toHuman(minted.asset.name())} from ${account}`)
-    this.log(`Asset Identifier: ${minted.asset.id().toString('hex')}`)
-    this.log(`Value: ${renderedValue}`)
-    this.log(`Fee: ${renderedFee}`)
-    this.log(`Hash: ${transaction.hash().toString('hex')}`)
+    this.log(
+      ui.card({
+        'Asset Identifier': minted.asset.id().toString('hex'),
+        Value: renderedValue,
+        Fee: renderedFee,
+        Hash: transaction.hash().toString('hex'),
+      }),
+    )
 
     const networkId = (await client.chain.getNetworkInfo()).content.networkId
     const transactionUrl = getExplorer(networkId)?.getTransactionUrl(
@@ -401,6 +405,6 @@ export class Mint extends IronfishCommand {
 
     confirmMessage.push('Do you confirm?')
 
-    await confirmOrQuit(confirmMessage.join('\n'), confirm)
+    await ui.confirmOrQuit(confirmMessage.join('\n'), confirm)
   }
 }

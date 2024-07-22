@@ -7,6 +7,7 @@ import { Flags } from '@oclif/core'
 import blessed from 'blessed'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
+import * as ui from '../../ui'
 
 export default class Status extends IronfishCommand {
   static description = 'Show the status of the Mempool'
@@ -63,10 +64,11 @@ function renderStatus(content: GetMempoolStatusResponse): string {
   const maxStorage = FileUtils.formatMemorySize(content.maxSizeBytes)
   const saturationPercentage = ((content.sizeBytes / content.maxSizeBytes) * 100).toFixed(2)
 
-  return `\
-Tx Count           ${content.size}
-Memory             ${storage} / ${maxStorage} (${saturationPercentage}%)
-Eviction Cache     ${content.recentlyEvictedCache.size} / ${content.recentlyEvictedCache.maxSize}
-Evictions          ${content.evictions}
-Head Sequence      ${content.headSequence}`
+  return ui.card({
+    'Tx Count': content.size,
+    Memory: `${storage} / ${maxStorage} (${saturationPercentage}%)`,
+    'Eviction Cache': `${content.recentlyEvictedCache.size} / ${content.recentlyEvictedCache.maxSize}`,
+    Evictions: content.evictions,
+    'Head Sequence': content.headSequence,
+  })
 }
