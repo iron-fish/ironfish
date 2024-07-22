@@ -11,7 +11,7 @@ import ContractArtifact from '@ironfish/ironfish-contracts'
 import { Asset } from '@ironfish/rust-nodejs'
 import { ethers } from 'ethers'
 import { Assert } from '../assert'
-import { EvmResult, EvmShield } from '../evm'
+import { EvmResult, EvmShield, GLOBAL_IF_ACCOUNT } from '../evm'
 import { FullNode } from '../node'
 import { Transaction } from '../primitives'
 import { EvmDescription, legacyTransactionToEvmDescription } from '../primitives/evmDescription'
@@ -22,7 +22,7 @@ import {
   useMinerBlockFixture,
   useMintBlockFixture,
 } from '../testUtilities'
-import { SpendingAccount } from '../wallet'
+import { AssertSpending, decodeAccountImport, SpendingAccount } from '../wallet'
 import { Consensus } from './consensus'
 import { VerificationResultReason, Verifier } from './verifier'
 
@@ -46,7 +46,12 @@ describe('Verifier', () => {
       const { node: n } = await nodeTest.createSetup()
       node = n
 
-      senderAccountIf = await useAccountFixture(node.wallet, 'sender')
+      const globalAccount = await node.wallet.importAccount(
+        decodeAccountImport(GLOBAL_IF_ACCOUNT.spendingKey, { name: 'sender' }),
+      )
+      AssertSpending(globalAccount)
+      senderAccountIf = globalAccount
+
       const recipientAccountIf = await useAccountFixture(node.wallet, 'recipient')
 
       assetMetadata = {
@@ -151,9 +156,17 @@ describe('Verifier', () => {
 
       const globalContract = new ethers.Interface(ContractArtifact.abi)
 
+      const tokenId = 2n
+      const assetMetadata = {
+        creator: senderAccountIf.publicAddress,
+        name: `${evmSenderAddress.toString().toLowerCase()}_${tokenId.toString()}`,
+        metadata: '',
+      }
+      const asset = new Asset(assetMetadata.creator, assetMetadata.name, assetMetadata.metadata)
+
       const encodedFunctionData = globalContract.encodeFunctionData('shield', [
         Buffer.from(senderAccountIf.publicAddress, 'hex'),
-        asset.id(),
+        tokenId,
         100n,
       ])
 

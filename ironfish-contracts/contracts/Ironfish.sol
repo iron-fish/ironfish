@@ -27,7 +27,9 @@ contract Ironfish {
     }
 
     function shield_iron(bytes32 ironfishAddress) public payable {
-        emit Shield(ironfishAddress, 0, address(this), msg.value);
+        // Replace this hardcoded address with address(this) once we find a way to hardcode the
+        // global address of the contract
+        emit Shield(ironfishAddress, 0, 0xc0ffee254729296a45a3885639AC7E10F9d54979, msg.value);
     }
 
     function unshield(uint tokenId, uint amount) public {

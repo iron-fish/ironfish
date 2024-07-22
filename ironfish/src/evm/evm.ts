@@ -6,7 +6,7 @@ import { EVM, Log } from '@ethereumjs/evm'
 import { Address } from '@ethereumjs/util'
 import { RunTxOpts, RunTxResult, VM } from '@ethereumjs/vm'
 import ContractArtifact from '@ironfish/ironfish-contracts'
-import { blake3 } from '@napi-rs/blake-hash'
+import { Asset, generateKey } from '@ironfish/rust-nodejs'
 import { ethers } from 'ethers'
 import { Assert } from '../assert'
 import { BlockchainDB } from '../blockchain/database/blockchaindb'
@@ -18,6 +18,11 @@ export const INITIAL_STATE_ROOT = Buffer.from(
   '56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421',
   'hex',
 )
+
+export const GLOBAL_IF_ACCOUNT = generateKey()
+
+// TODO: placeholder until we determine the global contract address
+const NATIVE_ASSET_CONTRACT_ADDRESS = '0xc0ffee254729296a45a3885639AC7E10F9d54979'
 
 export class IronfishEvm {
   private vm: VM | null
@@ -122,9 +127,15 @@ export class IronfishEvm {
   }
 
   private getAssetId(caller: string, tokenId: bigint): Buffer {
-    // TODO: Make compatible with other assetIDs
-    //       hardcode mapping the native asset id with the global contract address
-    return blake3(caller + tokenId.toString())
+    // TODO: replace with actual global contract address
+    if (caller === NATIVE_ASSET_CONTRACT_ADDRESS) {
+      return Asset.nativeId()
+    }
+
+    const name = `${caller.toLowerCase()}_${tokenId.toString()}`
+    const asset = new Asset(GLOBAL_IF_ACCOUNT.publicAddress, name, '')
+
+    return asset.id()
   }
 }
 
