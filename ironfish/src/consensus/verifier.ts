@@ -647,21 +647,21 @@ export class Verifier {
         return { valid: false, reason: VerificationResultReason.EVM_UNKNOWN_ERROR }
       }
     }
-    // for (const item of [...result.shields, ...result.unshields]) {
-    //   const contract = await this.chain.getEvmContractByAssetId(item.assetId, tx)
-    //   if (!contract) {
-    //     // contract not registered yet, ie first mint, skip validation
-    //     // TODO(jwp): is there attack vector here?
-    //     continue
-    //   }
-    //   const contractAddress = new Address(contract)
-    //   if (contractAddress !== item) {
-    //     return { valid: false, reason: VerificationResultReason.EVM_ASSET_MISMATCH }
-    //   }
-    // }
 
-    // TODO(jwp): verify shielding/mints balance
+    const mintResult = Verifier.verifyEvmMints(transaction, result)
+    if (!mintResult.valid) {
+      return mintResult
+    }
 
+    const burnResult = Verifier.verifyEvmBurns(transaction, result)
+    if (!burnResult.valid) {
+      return burnResult
+    }
+
+    return { valid: true }
+  }
+
+  static verifyEvmMints(transaction: Transaction, result: EvmResult): VerificationResult {
     const assetBalanceDeltas = new AssetBalances()
 
     for (const event of result.events) {
@@ -682,6 +682,39 @@ export class Verifier {
         return {
           valid: false,
           reason: VerificationResultReason.EVM_MINT_BALANCE_MISMATCH,
+        }
+      }
+    }
+    return { valid: true }
+  }
+
+  static verifyEvmBurns(transaction: Transaction, result: EvmResult): VerificationResult {
+    // TODO(jwp): handle native asset as output balance (will require decrypting notes and comparing)
+    const assetBalanceDeltas = new AssetBalances()
+
+    for (const event of result.events) {
+      if (event.assetId.equals(Asset.nativeId())) {
+        return {
+          valid: false,
+          reason: VerificationResultReason.EVM_UNSHIELD_EVENT_NATIVE_ASSET,
+        }
+      }
+      if (event.name === 'unshield') {
+        assetBalanceDeltas.increment(event.assetId, event.amount)
+      }
+    }
+    for (const burn of transaction.burns) {
+      if (burn.assetId.equals(Asset.nativeId())) {
+        continue
+      }
+      assetBalanceDeltas.increment(burn.assetId, -burn.value)
+    }
+
+    for (const [_, value] of assetBalanceDeltas) {
+      if (value !== 0n) {
+        return {
+          valid: false,
+          reason: VerificationResultReason.EVM_BURN_BALANCE_MISMATCH,
         }
       }
     }
@@ -850,10 +883,9 @@ export enum VerificationResultReason {
   EVM_TRANSACTION_FAILED = 'EVM transaction failed',
   EVM_TRANSACTION_INVALID_SIGNATURE = 'EVM transaction has invalid signature',
   EVM_TRANSACTION_INSUFFICIENT_BALANCE = 'EVM sender account has insufficient balance',
-  EVM_MINT_LENGTH_MISMATCH = 'EVM mint/shield length mismatch',
   EVM_MINT_BALANCE_MISMATCH = 'EVM mint/shield balance mismatch',
-  EVM_BURN_LENGTH_MISMATCH = 'EVM burn/unshield length mismatch',
   EVM_BURN_BALANCE_MISMATCH = 'EVM burn/unshield balance mismatch',
+  EVM_UNSHIELD_EVENT_NATIVE_ASSET = 'EVM unshield event for native asset',
   EVM_ASSET_MISMATCH = 'EVM shield/unshield did not come from correct contract',
   EVM_ASSET_NOT_FOUND = 'EVM shield/unshield asset not found',
   EVM_UNKNOWN_ERROR = 'EVM unknown error',
