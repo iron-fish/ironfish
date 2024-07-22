@@ -54,13 +54,6 @@ describe('Verifier', () => {
 
       const recipientAccountIf = await useAccountFixture(node.wallet, 'recipient')
 
-      assetMetadata = {
-        creator: senderAccountIf.publicAddress,
-        name: 'foo',
-        metadata: '',
-      }
-      asset = new Asset(assetMetadata.creator, assetMetadata.name, assetMetadata.metadata)
-
       evmPrivateKey = Uint8Array.from(Buffer.from(senderAccountIf.spendingKey || '', 'hex'))
       const recipientPrivateKey = Uint8Array.from(
         Buffer.from(recipientAccountIf.spendingKey, 'hex'),
@@ -68,6 +61,13 @@ describe('Verifier', () => {
 
       evmSenderAddress = Address.fromPrivateKey(evmPrivateKey)
       evmRecipientAddress = Address.fromPrivateKey(recipientPrivateKey)
+
+      assetMetadata = {
+        creator: senderAccountIf.publicAddress,
+        name: `${evmSenderAddress.toString().toLowerCase()}_${2n.toString()}`,
+        metadata: '',
+      }
+      asset = new Asset(assetMetadata.creator, assetMetadata.name, assetMetadata.metadata)
 
       const senderAccount = new EthAccount(BigInt(0), 500_000_000n)
 
@@ -156,17 +156,9 @@ describe('Verifier', () => {
 
       const globalContract = new ethers.Interface(ContractArtifact.abi)
 
-      const tokenId = 2n
-      const assetMetadata = {
-        creator: senderAccountIf.publicAddress,
-        name: `${evmSenderAddress.toString().toLowerCase()}_${tokenId.toString()}`,
-        metadata: '',
-      }
-      const asset = new Asset(assetMetadata.creator, assetMetadata.name, assetMetadata.metadata)
-
       const encodedFunctionData = globalContract.encodeFunctionData('shield', [
         Buffer.from(senderAccountIf.publicAddress, 'hex'),
-        tokenId,
+        2n,
         100n,
       ])
 
