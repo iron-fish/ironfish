@@ -6,7 +6,7 @@ import { EVM, Log } from '@ethereumjs/evm'
 import { Address } from '@ethereumjs/util'
 import { RunTxOpts, RunTxResult, VM } from '@ethereumjs/vm'
 import ContractArtifact from '@ironfish/ironfish-contracts'
-import { Asset, generateKey } from '@ironfish/rust-nodejs'
+import { Asset, generateKeyFromPrivateKey } from '@ironfish/rust-nodejs'
 import { ethers } from 'ethers'
 import { Assert } from '../assert'
 import { BlockchainDB } from '../blockchain/database/blockchaindb'
@@ -19,7 +19,9 @@ export const INITIAL_STATE_ROOT = Buffer.from(
   'hex',
 )
 
-export const GLOBAL_IF_ACCOUNT = generateKey()
+export const GLOBAL_IF_ACCOUNT = generateKeyFromPrivateKey(
+  'a19c574ddaf90fb35e69f1b3f07adfbce0caf0db91ba29f7a7f5d4abe1e8c684',
+)
 
 // TODO: placeholder until we determine the global contract address
 const NATIVE_ASSET_CONTRACT_ADDRESS = '0xc0ffee254729296a45a3885639AC7E10F9d54979'
