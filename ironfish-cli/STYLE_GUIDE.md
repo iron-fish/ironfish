@@ -69,7 +69,7 @@ However, if prompting is required to complete a command, this means the user wil
 
 ## Output
 
-When designing the output for a command, commands should output human readable output and not machine readable output. This means you should use components under the `ui` module such as `card`, `table`, or normal logs. It's fine if you only display a simplified version of the output.If the user needs the full data in machine readable format they can use the `--json` flag.
+When designing the output for a command, commands should output human readable output and not machine readable output. This means you should use components under the `ui` module such as `card`, `table`, or normal logs. It's fine if you only display a simplified version of the output. If the user needs the full data in machine readable format they can use the `--json` flag.
 
 You can categorize commands in a few ways, and you will design their output differently depending on the purpose of the command. You have output commands (status, chain:blocks:info, wallet:transactions), operation commands (stop, wallet:rename).
 
