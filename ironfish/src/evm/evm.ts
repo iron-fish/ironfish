@@ -2,14 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Block } from '@ethereumjs/block'
-import { EVM } from '@ethereumjs/evm'
+import { EVM, Log } from '@ethereumjs/evm'
 import { Address } from '@ethereumjs/util'
 import { RunTxOpts, RunTxResult, VM } from '@ethereumjs/vm'
+import ContractArtifact from '@ironfish/ironfish-contracts'
+import { Asset, generateKeyFromPrivateKey } from '@ironfish/rust-nodejs'
 import { ethers } from 'ethers'
 import { Assert } from '../assert'
 import { BlockchainDB } from '../blockchain/database/blockchaindb'
 import { EvmBlockchain } from './blockchain'
-import { ContractArtifact } from './globalContract'
 
 export const INITIAL_STATE_ROOT = Buffer.from(
   // TODO(hughy): replace with state root after inserting global contract
@@ -17,6 +18,13 @@ export const INITIAL_STATE_ROOT = Buffer.from(
   '56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421',
   'hex',
 )
+
+export const GLOBAL_IF_ACCOUNT = generateKeyFromPrivateKey(
+  'a19c574ddaf90fb35e69f1b3f07adfbce0caf0db91ba29f7a7f5d4abe1e8c684',
+)
+
+// TODO: placeholder until we determine the global contract address
+const NATIVE_ASSET_CONTRACT_ADDRESS = '0xc0ffee254729296a45a3885639AC7E10F9d54979'
 
 export class IronfishEvm {
   private vm: VM | null
@@ -50,35 +58,11 @@ export class IronfishEvm {
 
     // TODO(jwp) from custom opcodes populate shields and unshields
 
-    const shields: EvmShield[] = []
+    const events = this.decodeLogs(result.receipt.logs)
 
-    for (const log of result.receipt.logs) {
-      // todo: placeholder until we determine an address
-      // if (Buffer.from(log[0]).toString('hex') !== 'globalContractAddress') {
-      //   continue
-      // }
-      try {
-        const globalContract = new ethers.Interface(ContractArtifact.abi)
-        const [ironfishAddress, assetId, caller, amount] = globalContract.decodeEventLog(
-          'Shield',
-          log[2],
-        )
-        shields.push({
-          name: 'shield',
-          ironfishAddress: Buffer.from((ironfishAddress as string).slice(2), 'hex'),
-          caller: Address.fromString(caller as string),
-          assetId: Buffer.from((assetId as string).slice(2), 'hex'),
-          amount: amount as bigint,
-        })
-      } catch (e) {
-        continue
-      }
-    }
     return {
       result,
-      events: [...shields],
-      // shields,
-      // unshields: [],
+      events,
     }
   }
 
@@ -101,6 +85,60 @@ export class IronfishEvm {
       await vm.evm.stateManager.revert()
     }
   }
+
+  decodeLogs(logs: Log[]): UTXOEvent[] {
+    const globalContract = new ethers.Interface(ContractArtifact.abi)
+
+    const events: UTXOEvent[] = []
+
+    for (const log of logs) {
+      // todo: placeholder until we determine an address
+      // if (Buffer.from(log[0]).toString('hex') !== 'globalContractAddress') {
+      //   continue
+      // }
+
+      try {
+        const [ironfishAddress, tokenId, caller, amount] = globalContract.decodeEventLog(
+          'Shield',
+          log[2],
+        )
+
+        events.push({
+          name: 'shield',
+          ironfishAddress: Buffer.from((ironfishAddress as string).slice(2), 'hex'),
+          caller: Address.fromString(caller as string),
+          assetId: this.getAssetId(caller as string, tokenId as bigint),
+          amount: amount as bigint,
+        })
+      } catch (e) {
+        try {
+          const [caller, tokenId, amount] = globalContract.decodeEventLog('UnShield', log[2])
+
+          events.push({
+            name: 'unshield',
+            assetId: this.getAssetId(caller as string, tokenId as bigint),
+            amount: amount as bigint,
+          })
+        } catch (e) {
+          continue
+        }
+      }
+    }
+
+    return events
+  }
+
+  private getAssetId(caller: string, tokenId: bigint): Buffer {
+    // TODO: replace with actual global contract address
+    if (caller === NATIVE_ASSET_CONTRACT_ADDRESS) {
+      return Asset.nativeId()
+    }
+
+    const name = `${caller.toLowerCase()}_${tokenId.toString()}`
+    const asset = new Asset(GLOBAL_IF_ACCOUNT.publicAddress, name, '')
+
+    return asset.id()
+  }
 }
 
 export type EvmShield = {
@@ -117,14 +155,7 @@ export type EvmUnshield = {
   amount: bigint
 }
 
-export type TransferOwnership = {
-  name: 'transferOwnership'
-  caller: Address
-  assetId: Buffer
-  newOwner: Address
-}
-
-export type UTXOEvent = EvmShield | EvmUnshield | TransferOwnership
+type UTXOEvent = EvmShield | EvmUnshield
 
 export type EvmResult = {
   result: RunTxResult

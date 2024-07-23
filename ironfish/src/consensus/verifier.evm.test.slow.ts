@@ -7,11 +7,11 @@ jest.mock('ws')
 import '../testUtilities/matchers/blockchain'
 import { LegacyTransaction } from '@ethereumjs/tx'
 import { Account as EthAccount, Address } from '@ethereumjs/util'
+import ContractArtifact from '@ironfish/ironfish-contracts'
 import { Asset } from '@ironfish/rust-nodejs'
 import { ethers } from 'ethers'
 import { Assert } from '../assert'
-import { EvmResult, EvmShield } from '../evm'
-import { ContractArtifact } from '../evm/globalContract'
+import { EvmResult, EvmShield, GLOBAL_IF_ACCOUNT } from '../evm'
 import { FullNode } from '../node'
 import { Transaction } from '../primitives'
 import { EvmDescription, legacyTransactionToEvmDescription } from '../primitives/evmDescription'
@@ -22,7 +22,7 @@ import {
   useMinerBlockFixture,
   useMintBlockFixture,
 } from '../testUtilities'
-import { SpendingAccount } from '../wallet'
+import { AssertSpending, decodeAccountImport, SpendingAccount } from '../wallet'
 import { Consensus } from './consensus'
 import { VerificationResultReason, Verifier } from './verifier'
 
@@ -46,15 +46,13 @@ describe('Verifier', () => {
       const { node: n } = await nodeTest.createSetup()
       node = n
 
-      senderAccountIf = await useAccountFixture(node.wallet, 'sender')
-      const recipientAccountIf = await useAccountFixture(node.wallet, 'recipient')
+      const globalAccount = await node.wallet.importAccount(
+        decodeAccountImport(GLOBAL_IF_ACCOUNT.spendingKey, { name: 'sender' }),
+      )
+      AssertSpending(globalAccount)
+      senderAccountIf = globalAccount
 
-      assetMetadata = {
-        creator: senderAccountIf.publicAddress,
-        name: 'foo',
-        metadata: '',
-      }
-      asset = new Asset(assetMetadata.creator, assetMetadata.name, assetMetadata.metadata)
+      const recipientAccountIf = await useAccountFixture(node.wallet, 'recipient')
 
       evmPrivateKey = Uint8Array.from(Buffer.from(senderAccountIf.spendingKey || '', 'hex'))
       const recipientPrivateKey = Uint8Array.from(
@@ -63,6 +61,13 @@ describe('Verifier', () => {
 
       evmSenderAddress = Address.fromPrivateKey(evmPrivateKey)
       evmRecipientAddress = Address.fromPrivateKey(recipientPrivateKey)
+
+      assetMetadata = {
+        creator: senderAccountIf.publicAddress,
+        name: `${evmSenderAddress.toString().toLowerCase()}_${2n.toString()}`,
+        metadata: '',
+      }
+      asset = new Asset(assetMetadata.creator, assetMetadata.name, assetMetadata.metadata)
 
       const senderAccount = new EthAccount(BigInt(0), 500_000_000n)
 
@@ -153,7 +158,7 @@ describe('Verifier', () => {
 
       const encodedFunctionData = globalContract.encodeFunctionData('shield', [
         Buffer.from(senderAccountIf.publicAddress, 'hex'),
-        asset.id(),
+        2n,
         100n,
       ])
 

@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { LegacyTransaction } from '@ethereumjs/tx'
 import { Account, Address } from '@ethereumjs/util'
-import { Asset, generateKey } from '@ironfish/rust-nodejs'
+import { generateKey } from '@ironfish/rust-nodejs'
 import { Assert, ContractArtifact, IronfishEvm } from '@ironfish/sdk'
 import { ethers } from 'ethers'
 import { IronfishCommand } from '../../command'
@@ -35,7 +35,6 @@ export class TestEvmCommand extends IronfishCommand {
     // Deploy the global contract
     const tx = new LegacyTransaction({
       gasLimit: 1_000_000n,
-      gasPrice: 7n,
       data: ContractArtifact.bytecode,
     })
 
@@ -61,7 +60,7 @@ export class TestEvmCommand extends IronfishCommand {
 
     const data2 = globalContract.encodeFunctionData('shield', [
       Buffer.from(senderKey.publicAddress, 'hex'),
-      Asset.nativeId(),
+      2n,
       100n,
     ])
 
@@ -86,14 +85,13 @@ export class TestEvmCommand extends IronfishCommand {
       this.log(Buffer.from(topic).toString('ascii'))
     }
 
-    const [ironfishAddress, assetId, caller, amount] = globalContract.decodeEventLog(
+    const [ironfishAddress, tokenId, caller, amount] = globalContract.decodeEventLog(
       'Shield',
       log[2],
     )
     Assert.isEqual(ironfishAddress as string, '0x' + senderKey.publicAddress)
 
-    Assert.isEqual(assetId as string, '0x' + Asset.nativeId().toString('hex'))
-
+    Assert.isEqual(tokenId as bigint, 2n)
     Assert.isEqual((caller as string).toUpperCase(), senderAddress.toString().toUpperCase())
     Assert.isEqual(amount as bigint, 100n)
 
