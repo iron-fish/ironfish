@@ -9,6 +9,7 @@ import path from 'path'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
 import { IronfishCliPKG } from '../../package'
+import * as ui from '../../ui'
 
 export default class Benchmark extends IronfishCommand {
   static description =
@@ -78,7 +79,7 @@ export default class Benchmark extends IronfishCommand {
       return this.error(`Chain must have at least ${blocks} blocks`)
     }
 
-    if (!tempNode.chain.head.hash.equals(startingHeader?.hash)) {
+    if (!tempNode.chain.head.hash.equals(startingHeader.hash)) {
       return this.error(`The two chains do not match at sequence ${startingSequence}`)
     }
 
@@ -158,11 +159,12 @@ function renderStatus(
   totalNotes: number,
   sequence?: number,
 ): string {
-  return `\
-Current Block        ${sequence ? sequence.toString() : '-'}
-Blocks Processed     ${totalBlocks.toString()}
-Blocks/sec           ${totalMs ? (totalBlocks / (totalMs / 1000)).toFixed(2) : 0}
-Transactions/sec     ${totalMs ? (totalTransactions / (totalMs / 1000)).toFixed(2) : 0}
-Spends/sec           ${totalMs ? (totalSpends / (totalMs / 1000)).toFixed(2) : 0}
-Notes/sec            ${totalMs ? (totalNotes / (totalMs / 1000)).toFixed(2) : 0}`
+  return ui.card({
+    'Current Block': sequence ? sequence.toString() : '-',
+    'Blocks Processed': totalBlocks.toString(),
+    'Blocks/sec': totalMs ? (totalBlocks / (totalMs / 1000)).toFixed(2) : 0,
+    'Transactions/sec': totalMs ? (totalTransactions / (totalMs / 1000)).toFixed(2) : 0,
+    'Spends/sec': totalMs ? (totalSpends / (totalMs / 1000)).toFixed(2) : 0,
+    'Notes/sec': totalMs ? (totalNotes / (totalMs / 1000)).toFixed(2) : 0,
+  })
 }
