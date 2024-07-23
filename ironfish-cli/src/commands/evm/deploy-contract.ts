@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { LegacyTransaction } from '@ethereumjs/tx'
-import { Account, Address } from '@ethereumjs/util'
+import { Account, Address, hexToBytes } from '@ethereumjs/util'
 import { generateKey } from '@ironfish/rust-nodejs'
 import { Assert, ContractArtifact, IronfishEvm } from '@ironfish/sdk'
 import { ethers } from 'ethers'
@@ -32,19 +32,16 @@ export class TestEvmCommand extends IronfishCommand {
     await node.chain.blockchainDb.stateManager.putAccount(senderAddress, senderAccount)
     await node.chain.blockchainDb.stateManager.commit()
 
-    // Deploy the global contract
-    const tx = new LegacyTransaction({
-      gasLimit: 1_000_000n,
-      data: ContractArtifact.bytecode,
-    })
+    const globalContractAddress = Address.fromString(
+      '0xffffffffffffffffffffffffffffffffffffffff',
+    )
 
-    const result = await evm.runTx({ tx: tx.sign(senderPrivateKey) })
-
-    const globalContractAddress = result.createdAddress
-
-    if (!globalContractAddress) {
-      this.error('Contract creation of address failed')
-    }
+    await node.chain.blockchainDb.stateManager.checkpoint()
+    await node.chain.blockchainDb.stateManager.putContractCode(
+      globalContractAddress,
+      hexToBytes(ContractArtifact.deployedBytecode),
+    )
+    await node.chain.blockchainDb.stateManager.commit()
 
     const contract = await node.chain.blockchainDb.stateManager.getAccount(
       globalContractAddress,
@@ -58,24 +55,24 @@ export class TestEvmCommand extends IronfishCommand {
 
     const globalContract = new ethers.Interface(ContractArtifact.abi)
 
-    const data2 = globalContract.encodeFunctionData('shield', [
+    const data = globalContract.encodeFunctionData('shield', [
       Buffer.from(senderKey.publicAddress, 'hex'),
       2n,
       100n,
     ])
 
-    const tx2 = new LegacyTransaction({
-      nonce: 1n,
+    const tx = new LegacyTransaction({
+      nonce: 0n,
       gasLimit: 100_000n,
       to: globalContractAddress,
-      data: data2,
+      data: data,
     })
 
-    const result2 = await evm.runTx({ tx: tx2.sign(senderPrivateKey) })
+    const result = await evm.runTx({ tx: tx.sign(senderPrivateKey) })
 
-    Assert.isEqual(result2.receipt.logs.length, 1)
+    Assert.isEqual(result.receipt.logs.length, 1)
 
-    const log = result2.receipt.logs[0]
+    const log = result.receipt.logs[0]
 
     this.log('Contract Address')
     this.log(Buffer.from(log[0]).toString('hex'))
