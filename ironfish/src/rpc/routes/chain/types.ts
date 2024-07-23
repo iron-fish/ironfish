@@ -21,7 +21,7 @@ export const RpcSpendSchema: yup.ObjectSchema<RpcSpend> = yup
 
 export type RpcEncryptedNote = {
   hash: string
-  serialized: string
+  serialized?: string
   /**
    * @deprecated Please use hash instead
    */
@@ -32,7 +32,7 @@ export const RpcEncryptedNoteSchema: yup.ObjectSchema<RpcEncryptedNote> = yup
   .object({
     commitment: yup.string().defined(),
     hash: yup.string().defined(),
-    serialized: yup.string().defined(),
+    serialized: yup.string().optional(),
   })
   .defined()
 
