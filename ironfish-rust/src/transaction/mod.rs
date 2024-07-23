@@ -55,6 +55,7 @@ pub mod burns;
 pub mod evm;
 pub mod mints;
 pub mod outputs;
+pub mod public_iron;
 pub mod spends;
 pub mod unsigned;
 
