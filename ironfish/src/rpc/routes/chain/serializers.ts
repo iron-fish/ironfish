@@ -4,8 +4,9 @@
 
 import { getBlockSize, getTransactionSize } from '../../../network/utils/serializers'
 import { Block, BlockHeader, Target, Transaction } from '../../../primitives'
+import { NoteEncrypted } from '../../../primitives/noteEncrypted'
 import { BufferUtils } from '../../../utils'
-import { RpcBlock, RpcBlockHeader, RpcTransaction } from './types'
+import { RpcBlock, RpcBlockHeader, RpcEncryptedNote, RpcTransaction } from './types'
 
 export function serializeRpcBlockHeader(header: BlockHeader): RpcBlockHeader {
   return {
@@ -57,6 +58,17 @@ export const serializeRpcBlock = (block: Block, serialized?: boolean): RpcBlock 
   }
 }
 
+export const serializeRpcEncryptedNote = (
+  note: NoteEncrypted,
+  serialized?: boolean,
+): RpcEncryptedNote => {
+  return {
+    commitment: note.hash().toString('hex'),
+    hash: note.hash().toString('hex'),
+    ...(serialized ? { serialized: note.serialize().toString('hex') } : undefined),
+  }
+}
+
 export const serializeRpcTransaction = (
   tx: Transaction,
   serialized?: boolean,
@@ -66,11 +78,9 @@ export const serializeRpcTransaction = (
     size: getTransactionSize(tx),
     fee: Number(tx.fee()),
     expiration: tx.expiration(),
-    notes: tx.notes.map((note) => ({
-      commitment: note.hash().toString('hex'),
-      hash: note.hash().toString('hex'),
-      serialized: note.serialize().toString('hex'),
-    })),
+    notes: tx.notes.map((note) => {
+      return serializeRpcEncryptedNote(note, serialized)
+    }),
     spends: tx.spends.map((spend) => ({
       nullifier: spend.nullifier.toString('hex'),
       commitment: spend.commitment.toString('hex'),
