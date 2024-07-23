@@ -144,7 +144,7 @@ export class IronfishEvm {
   }
 
   private getAssetId(caller: string, tokenId: bigint): Buffer {
-    if (caller === GLOBAL_CONTRACT_ADDRESS.toString()) {
+    if (caller.toLowerCase() === GLOBAL_CONTRACT_ADDRESS.toString().toLowerCase()) {
       return Asset.nativeId()
     }
 
@@ -169,7 +169,7 @@ export type EvmUnshield = {
   amount: bigint
 }
 
-type UTXOEvent = EvmShield | EvmUnshield
+export type UTXOEvent = EvmShield | EvmUnshield
 
 export type EvmResult = {
   result: RunTxResult
