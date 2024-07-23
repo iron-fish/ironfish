@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Block } from '@ethereumjs/block'
 import { EVM, Log } from '@ethereumjs/evm'
-import { Address } from '@ethereumjs/util'
+import { Address, hexToBytes } from '@ethereumjs/util'
 import { RunTxOpts, RunTxResult, VM } from '@ethereumjs/vm'
 import ContractArtifact from '@ironfish/ironfish-contracts'
 import { Asset, generateKeyFromPrivateKey } from '@ironfish/rust-nodejs'
@@ -13,8 +13,11 @@ import { BlockchainDB } from '../blockchain/database/blockchaindb'
 import { EvmBlockchain } from './blockchain'
 
 export const INITIAL_STATE_ROOT = Buffer.from(
-  // TODO(hughy): replace with state root after inserting global contract
-  // keccak256 hash of RLP-encoded empty string
+  'ac5cd27fc15e3718bb61f74d0bdb707844fd4ff9e0726e12027436ca5b9d54a4',
+  'hex',
+)
+
+const NULL_STATE_ROOT = Buffer.from(
   '56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421',
   'hex',
 )
@@ -23,8 +26,9 @@ export const GLOBAL_IF_ACCOUNT = generateKeyFromPrivateKey(
   'a19c574ddaf90fb35e69f1b3f07adfbce0caf0db91ba29f7a7f5d4abe1e8c684',
 )
 
-// TODO: placeholder until we determine the global contract address
-const NATIVE_ASSET_CONTRACT_ADDRESS = '0xc0ffee254729296a45a3885639AC7E10F9d54979'
+export const GLOBAL_CONTRACT_ADDRESS = Address.fromString(
+  '0xffffffffffffffffffffffffffffffffffffffff',
+)
 
 export class IronfishEvm {
   private vm: VM | null
@@ -33,6 +37,19 @@ export class IronfishEvm {
   constructor(blockchainDb: BlockchainDB) {
     this.vm = null
     this.blockchainDb = blockchainDb
+  }
+
+  async load(): Promise<void> {
+    const stateRoot = await this.blockchainDb.stateManager.getStateRoot()
+
+    if (Buffer.from(stateRoot).equals(NULL_STATE_ROOT)) {
+      await this.blockchainDb.stateManager.checkpoint()
+      await this.blockchainDb.stateManager.putContractCode(
+        GLOBAL_CONTRACT_ADDRESS,
+        hexToBytes(ContractArtifact.deployedBytecode),
+      )
+      await this.blockchainDb.stateManager.commit()
+    }
   }
 
   async open(): Promise<void> {
@@ -55,8 +72,6 @@ export class IronfishEvm {
 
     opts.block = Block.fromBlockData({ header: { baseFeePerGas: 0n } })
     const result = await vm.runTx(opts)
-
-    // TODO(jwp) from custom opcodes populate shields and unshields
 
     const events = this.decodeLogs(result.receipt.logs)
 
@@ -129,8 +144,7 @@ export class IronfishEvm {
   }
 
   private getAssetId(caller: string, tokenId: bigint): Buffer {
-    // TODO: replace with actual global contract address
-    if (caller === NATIVE_ASSET_CONTRACT_ADDRESS) {
+    if (caller === GLOBAL_CONTRACT_ADDRESS.toString()) {
       return Asset.nativeId()
     }
 
