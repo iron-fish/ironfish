@@ -77,6 +77,10 @@ export class BridgeCommand extends IronfishCommand {
       description:
         'The block sequence after which the transaction will be removed from the mempool. Set to 0 for no expiration.',
     }),
+    offline: Flags.boolean({
+      default: false,
+      description: 'Allow offline transaction creation',
+    }),
   }
 
   async start(): Promise<void> {
