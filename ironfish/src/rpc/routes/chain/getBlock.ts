@@ -10,9 +10,8 @@ import { GENESIS_BLOCK_SEQUENCE } from '../../../primitives/block'
 import { RpcNotFoundError, RpcValidationError } from '../../adapters'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
-import { serializeRpcBlockHeader } from './serializers'
+import { serializeRpcBlockHeader, serializeRpcTransaction } from './serializers'
 import { RpcBlock, RpcBlockSchema } from './types'
-import { serializeRpcTransaction } from './utils'
 
 export type GetBlockRequest = {
   search?: string
