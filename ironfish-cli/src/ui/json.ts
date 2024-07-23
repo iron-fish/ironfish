@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-export * from './card'
-export * from './json'
-export * from './progressBar'
-export * from './prompt'
-export * from './table'
+import jsonColorizer from 'json-colorizer'
+
+export function json(data: unknown): string {
+  return jsonColorizer(JSON.stringify(data, undefined, '  '))
+}

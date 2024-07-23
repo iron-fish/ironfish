@@ -11,7 +11,7 @@ import {
   Logger,
   RpcConnectionError,
 } from '@ironfish/sdk'
-import { Command, Config } from '@oclif/core'
+import { Command, Config, ux } from '@oclif/core'
 import { CLIError, ExitError } from '@oclif/core/errors'
 import {
   ConfigFlagKey,
@@ -33,6 +33,7 @@ import {
   VerboseFlagKey,
 } from './flags'
 import { IronfishCliPKG } from './package'
+import * as ui from './ui'
 import { hasUserResponseError } from './utils'
 
 export type SIGNALS = 'SIGTERM' | 'SIGINT' | 'SIGUSR2'
@@ -73,11 +74,11 @@ export abstract class IronfishCommand extends Command {
     this.logger = createRootLogger().withTag(this.ctor.id)
   }
 
-  abstract start(): Promise<void> | void
+  abstract start(): Promise<unknown> | void
 
-  async run(): Promise<void> {
+  async run(): Promise<unknown> {
     try {
-      await this.start()
+      return await this.start()
     } catch (error: unknown) {
       if (hasUserResponseError(error)) {
         this.log(error.codeMessage)
@@ -216,6 +217,13 @@ export abstract class IronfishCommand extends Command {
 
   closeFromSignal(signal: NodeJS.Signals): Promise<unknown> {
     throw new Error(`Not implemented closeFromSignal: ${signal}`)
+  }
+
+  // Override the built-in logJson method to implement our own colorizer that
+  // works with default terminal colors instead of requiring a theme to be
+  // configured.
+  logJson(json: unknown): void {
+    ux.stdout(ui.json(json))
   }
 }
 
