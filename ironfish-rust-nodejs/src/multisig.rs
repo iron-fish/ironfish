@@ -2,21 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::{structs::NativeUnsignedTransaction, to_napi_err};
+use crate::to_napi_err;
 use ironfish::{
-    frost::{keys::KeyPackage, round2, Randomizer},
-    frost_utils::{
-        account_keys::derive_account_keys, signing_package::SigningPackage,
-        split_spender_key::split_spender_key,
-    },
+    frost_utils::{account_keys::derive_account_keys, split_spender_key::split_spender_key},
     participant::{Identity, Secret},
     serializing::{bytes_to_hex, fr::FrSerializable, hex_to_vec_bytes},
     SaplingKey,
 };
-use ironfish_frost::{
-    dkg, keys::PublicKeyPackage, multienc, nonces::deterministic_signing_nonces,
-    signature_share::SignatureShare, signing_commitment::SigningCommitment,
-};
+use ironfish_frost::{dkg, dkg::round3::PublicKeyPackage, multienc};
 use napi::{bindgen_prelude::*, JsBuffer};
 use napi_derive::napi;
 use rand::thread_rng;
@@ -54,81 +47,10 @@ where
     I: IntoIterator<Item = S>,
     S: Deref<Target = str>,
 {
-    try_deserialize(signers, |bytes| Identity::deserialize_from(bytes))
-}
-
-#[napi(namespace = "multisig")]
-pub fn create_signing_commitment(
-    secret: String,
-    key_package: String,
-    transaction_hash: JsBuffer,
-    signers: Vec<String>,
-) -> Result<String> {
-    let secret = Secret::deserialize_from(&hex_to_vec_bytes(&secret).map_err(to_napi_err)?[..])?;
-    let key_package =
-        KeyPackage::deserialize(&hex_to_vec_bytes(&key_package).map_err(to_napi_err)?)
-            .map_err(to_napi_err)?;
-    let transaction_hash = transaction_hash.into_value()?;
-    let signers = try_deserialize_identities(signers)?;
-
-    let signing_commitment = SigningCommitment::from_secrets(
-        &secret,
-        key_package.signing_share(),
-        &transaction_hash,
-        &signers,
-    );
-
-    let bytes = signing_commitment.serialize();
-    Ok(bytes_to_hex(&bytes[..]))
-}
-
-#[napi(namespace = "multisig")]
-pub fn create_signature_share(
-    secret: String,
-    key_package: String,
-    signing_package: String,
-) -> Result<String> {
-    let secret = Secret::deserialize_from(&hex_to_vec_bytes(&secret).map_err(to_napi_err)?[..])?;
-    let identity = secret.to_identity();
-    let key_package =
-        KeyPackage::deserialize(&hex_to_vec_bytes(&key_package).map_err(to_napi_err)?[..])
-            .map_err(to_napi_err)?;
-
-    let signing_package =
-        SigningPackage::read(&hex_to_vec_bytes(&signing_package).map_err(to_napi_err)?[..])
-            .map_err(to_napi_err)?;
-
-    let transaction_hash = signing_package
-        .unsigned_transaction
-        .transaction_signature_hash()
-        .map_err(to_napi_err)?;
-
-    let randomizer = Randomizer::deserialize(
-        &signing_package
-            .unsigned_transaction
-            .public_key_randomness()
-            .to_bytes(),
-    )
-    .map_err(to_napi_err)?;
-
-    let nonces = deterministic_signing_nonces(
-        key_package.signing_share(),
-        &transaction_hash,
-        &signing_package.signers,
-    );
-
-    let signature_share = round2::sign(
-        &signing_package.frost_signing_package,
-        &nonces,
-        &key_package,
-        randomizer,
-    )
-    .map_err(to_napi_err)?;
-
-    let signature_share = SignatureShare::from_frost(signature_share, identity);
-    let bytes = signature_share.serialize();
-
-    Ok(bytes_to_hex(&bytes[..]))
+    try_deserialize(signers, |bytes| {
+        Identity::deserialize_from(bytes)
+            .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, format!("{:?}", err)))
+    })
 }
 
 #[napi(namespace = "multisig")]
@@ -143,7 +65,7 @@ impl ParticipantSecret {
         let bytes = js_bytes.into_value()?;
         Secret::deserialize_from(bytes.as_ref())
             .map(|secret| ParticipantSecret { secret })
-            .map_err(to_napi_err)
+            .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, format!("{:?}", err)).into())
     }
 
     #[napi]
@@ -166,11 +88,9 @@ impl ParticipantSecret {
     #[napi]
     pub fn decrypt_data(&self, js_bytes: JsBuffer) -> Result<Buffer> {
         let bytes = js_bytes.into_value()?;
-        let encrypted_blob =
-            multienc::MultiRecipientBlob::deserialize_from(bytes.as_ref()).map_err(to_napi_err)?;
-        multienc::decrypt(&self.secret, &encrypted_blob)
+        multienc::decrypt(&self.secret, &bytes)
             .map(Buffer::from)
-            .map_err(to_napi_err)
+            .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, format!("{:?}", err)).into())
     }
 }
 
@@ -186,7 +106,7 @@ impl ParticipantIdentity {
         let bytes = js_bytes.into_value()?;
         Identity::deserialize_from(bytes.as_ref())
             .map(|identity| ParticipantIdentity { identity })
-            .map_err(to_napi_err)
+            .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, format!("{:?}", err)).into())
     }
 
     #[napi]
@@ -198,10 +118,7 @@ impl ParticipantIdentity {
     pub fn encrypt_data(&self, js_bytes: JsBuffer) -> Result<Buffer> {
         let bytes = js_bytes.into_value()?;
         let encrypted_blob = multienc::encrypt(&bytes, [&self.identity], thread_rng());
-        encrypted_blob
-            .serialize()
-            .map(Buffer::from)
-            .map_err(to_napi_err)
+        Ok(Buffer::from(encrypted_blob))
     }
 }
 
@@ -279,8 +196,8 @@ impl NativePublicKeyPackage {
     pub fn new(value: String) -> Result<NativePublicKeyPackage> {
         let bytes = hex_to_vec_bytes(&value).map_err(to_napi_err)?;
 
-        let public_key_package =
-            PublicKeyPackage::deserialize_from(&bytes[..]).map_err(to_napi_err)?;
+        let public_key_package = PublicKeyPackage::deserialize_from(&bytes[..])
+            .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, format!("{:?}", err)))?;
 
         Ok(NativePublicKeyPackage { public_key_package })
     }
@@ -297,73 +214,6 @@ impl NativePublicKeyPackage {
     #[napi]
     pub fn min_signers(&self) -> u16 {
         self.public_key_package.min_signers()
-    }
-}
-
-#[napi(js_name = "SigningCommitment", namespace = "multisig")]
-pub struct NativeSigningCommitment {
-    signing_commitment: SigningCommitment,
-}
-
-#[napi(namespace = "multisig")]
-impl NativeSigningCommitment {
-    #[napi(constructor)]
-    pub fn new(js_bytes: JsBuffer) -> Result<NativeSigningCommitment> {
-        let bytes = js_bytes.into_value()?;
-        SigningCommitment::deserialize_from(bytes.as_ref())
-            .map(|signing_commitment| NativeSigningCommitment { signing_commitment })
-            .map_err(to_napi_err)
-    }
-
-    #[napi]
-    pub fn identity(&self) -> Buffer {
-        Buffer::from(self.signing_commitment.identity().serialize().as_slice())
-    }
-
-    #[napi]
-    pub fn verify_checksum(
-        &self,
-        transaction_hash: JsBuffer,
-        signer_identities: Vec<String>,
-    ) -> Result<bool> {
-        let transaction_hash = transaction_hash.into_value()?;
-        let signer_identities = try_deserialize_identities(signer_identities)?;
-        Ok(self
-            .signing_commitment
-            .verify_checksum(&transaction_hash, &signer_identities)
-            .is_ok())
-    }
-}
-
-#[napi(js_name = "SigningPackage", namespace = "multisig")]
-pub struct NativeSigningPackage {
-    signing_package: SigningPackage,
-}
-
-#[napi(namespace = "multisig")]
-impl NativeSigningPackage {
-    #[napi(constructor)]
-    pub fn new(js_bytes: JsBuffer) -> Result<NativeSigningPackage> {
-        let bytes = js_bytes.into_value()?;
-        SigningPackage::read(bytes.as_ref())
-            .map(|signing_package| NativeSigningPackage { signing_package })
-            .map_err(to_napi_err)
-    }
-
-    #[napi]
-    pub fn unsigned_transaction(&self) -> NativeUnsignedTransaction {
-        NativeUnsignedTransaction {
-            transaction: self.signing_package.unsigned_transaction.clone(),
-        }
-    }
-
-    #[napi]
-    pub fn signers(&self) -> Vec<Buffer> {
-        self.signing_package
-            .signers
-            .iter()
-            .map(|signer| Buffer::from(&signer.serialize()[..]))
-            .collect()
     }
 }
 
@@ -403,9 +253,11 @@ pub fn dkg_round2(
     round1_secret_package: String,
     round1_public_packages: Vec<String>,
 ) -> Result<DkgRound2Packages> {
-    let secret = Secret::deserialize_from(&hex_to_vec_bytes(&secret).map_err(to_napi_err)?[..])?;
+    let secret = Secret::deserialize_from(&hex_to_vec_bytes(&secret).map_err(to_napi_err)?[..])
+        .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, format!("{:?}", err)))?;
     let round1_public_packages = try_deserialize(round1_public_packages, |bytes| {
         dkg::round1::PublicPackage::deserialize_from(bytes)
+            .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, format!("{:?}", err)))
     })?;
     let round1_secret_package = hex_to_vec_bytes(&round1_secret_package).map_err(to_napi_err)?;
 
@@ -439,9 +291,11 @@ pub fn dkg_round3(
     let round2_secret_package = hex_to_vec_bytes(&round2_secret_package).map_err(to_napi_err)?;
     let round1_public_packages = try_deserialize(round1_public_packages, |bytes| {
         dkg::round1::PublicPackage::deserialize_from(bytes)
+            .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, format!("{:?}", err)))
     })?;
     let round2_public_packages = try_deserialize(round2_public_packages, |bytes| {
         dkg::round2::CombinedPublicPackage::deserialize_from(bytes)
+            .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, format!("{:?}", err)))
     })?;
 
     let (key_package, public_key_package, group_secret_key) = dkg::round3::round3(

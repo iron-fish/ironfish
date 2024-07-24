@@ -4,24 +4,15 @@
 
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use group::GroupEncoding;
-use ironfish_frost::{
-    frost::{
-        aggregate, round1::SigningCommitments, round2::SignatureShare, Identifier,
-        RandomizedParams, Randomizer, SigningPackage as FrostSigningPackage,
-    },
-    keys::PublicKeyPackage,
-    participant::Identity,
-};
+
 
 use ironfish_zkp::redjubjub::{self, Signature};
 use std::{
-    collections::BTreeMap,
     io::{self, Write},
 };
 
 use crate::{
-    errors::{IronfishError, IronfishErrorKind},
-    frost_utils::signing_package::SigningPackage,
+    errors::{IronfishError},
     serializing::read_scalar,
     transaction::Blake2b,
     OutputDescription, SaplingKey, Transaction,
@@ -195,45 +186,6 @@ impl UnsignedTransaction {
         Ok(hash_result)
     }
 
-    pub fn aggregate_signature_shares(
-        &mut self,
-        public_key_package: &PublicKeyPackage,
-        authorizing_signing_package: &FrostSigningPackage,
-        authorizing_signature_shares: BTreeMap<Identifier, SignatureShare>,
-    ) -> Result<Transaction, IronfishError> {
-        // Create the transaction signature hash
-        let data_to_sign = self.transaction_signature_hash()?;
-
-        let randomizer = Randomizer::deserialize(&self.public_key_randomness.to_bytes())
-            .map_err(|e| IronfishError::new_with_source(IronfishErrorKind::InvalidRandomizer, e))?;
-        let randomized_params =
-            RandomizedParams::from_randomizer(public_key_package.verifying_key(), randomizer);
-
-        let authorizing_group_signature = aggregate(
-            authorizing_signing_package,
-            &authorizing_signature_shares,
-            public_key_package.frost_public_key_package(),
-            &randomized_params,
-        )
-        .map_err(|e| {
-            IronfishError::new_with_source(IronfishErrorKind::FailedSignatureAggregation, e)
-        })?;
-
-        // Verify the signature with the public keys
-        randomized_params
-            .randomized_verifying_key()
-            .verify(&data_to_sign, &authorizing_group_signature)
-            .map_err(|e| {
-                IronfishError::new_with_source(IronfishErrorKind::FailedSignatureVerification, e)
-            })?;
-
-        let serialized_signature = authorizing_group_signature.serialize();
-
-        let transaction = self.add_signature(serialized_signature)?;
-
-        Ok(transaction)
-    }
-
     pub fn add_signature(&mut self, signature: [u8; 64]) -> Result<Transaction, IronfishError> {
         let signature = Signature::read(&signature[..])?;
 
@@ -289,30 +241,6 @@ impl UnsignedTransaction {
             burns: self.burns.clone(),
             binding_signature: self.binding_signature,
             randomized_public_key: self.randomized_public_key.clone(),
-        })
-    }
-
-    // Creates frost signing package for use in round two of FROST multisig protocol
-    // only applicable for multisig transactions
-    pub fn signing_package<Iter>(&self, commitments: Iter) -> Result<SigningPackage, IronfishError>
-    where
-        Iter: IntoIterator<Item = (Identity, SigningCommitments)>,
-    {
-        let data_to_sign = self.transaction_signature_hash()?;
-
-        let mut commitments_map = BTreeMap::new();
-        let mut signers = Vec::new();
-        for (signer_identity, signer_commitments) in commitments {
-            commitments_map.insert(signer_identity.to_frost_identifier(), signer_commitments);
-            signers.push(signer_identity);
-        }
-
-        let frost_signing_package = FrostSigningPackage::new(commitments_map, &data_to_sign);
-
-        Ok(SigningPackage {
-            unsigned_transaction: self.clone(),
-            frost_signing_package,
-            signers,
         })
     }
 

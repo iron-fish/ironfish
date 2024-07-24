@@ -43,7 +43,7 @@ chacha20poly1305 = "0.9.0"
 crypto_box = { version = "0.9", features = ["std"] }
 ff = "0.12.0"
 group = "0.12.0"
-ironfish-frost = { git = "https://github.com/iron-fish/ironfish-frost.git", branch = "main" }
+ironfish-frost = { git = "https://github.com/iron-fish/ironfish-frost.git", branch = "no-std-multiencode" }
 fish_hash = "0.3.0"
 ironfish_zkp = { version = "0.2.0", path = "../ironfish-zkp" }
 jubjub = { git = "https://github.com/iron-fish/jubjub.git", branch = "blstrs", features = ["multiply-many"] }

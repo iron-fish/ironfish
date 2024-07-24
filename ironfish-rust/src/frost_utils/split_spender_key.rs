@@ -6,7 +6,9 @@ use crate::{
     errors::IronfishError, IncomingViewKey, OutgoingViewKey, PublicAddress, SaplingKey, ViewKey,
 };
 use group::GroupEncoding;
-use ironfish_frost::{frost::keys::KeyPackage, keys::PublicKeyPackage, participant::Identity};
+use ironfish_frost::{
+    dkg::round3::PublicKeyPackage, frost::keys::KeyPackage, participant::Identity,
+};
 use rand::thread_rng;
 use std::collections::HashMap;
 

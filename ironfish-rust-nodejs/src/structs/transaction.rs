@@ -4,14 +4,10 @@
 
 use std::cell::RefCell;
 
-use std::collections::BTreeMap;
 use std::convert::TryInto;
 
 use ironfish::assets::asset_identifier::AssetIdentifier;
 use ironfish::frost::round1::SigningCommitments;
-use ironfish::frost::round2::SignatureShare as FrostSignatureShare;
-use ironfish::frost::Identifier;
-use ironfish::frost_utils::signing_package::SigningPackage;
 use ironfish::serializing::bytes_to_hex;
 use ironfish::serializing::fr::FrSerializable;
 use ironfish::serializing::hex_to_vec_bytes;
@@ -24,9 +20,6 @@ use ironfish::{
     MerkleNoteHash, OutgoingViewKey, ProposedTransaction, PublicAddress, SaplingKey, Transaction,
     ViewKey,
 };
-use ironfish_frost::keys::PublicKeyPackage;
-use ironfish_frost::signature_share::SignatureShare;
-use ironfish_frost::signing_commitment::SigningCommitment;
 use napi::{
     bindgen_prelude::{i64n, BigInt, Buffer, Env, Object, Result, Undefined},
     JsBuffer,
@@ -485,46 +478,4 @@ impl NativeUnsignedTransaction {
 
         Ok(Buffer::from(vec))
     }
-}
-
-#[napi(namespace = "multisig")]
-pub fn aggregate_signature_shares(
-    public_key_package_str: String,
-    signing_package_str: String,
-    signature_shares_arr: Vec<String>,
-) -> Result<Buffer> {
-    let public_key_package = PublicKeyPackage::deserialize_from(
-        &hex_to_vec_bytes(&public_key_package_str).map_err(to_napi_err)?[..],
-    )
-    .map_err(to_napi_err)?;
-
-    let bytes = hex_to_vec_bytes(&signing_package_str).map_err(to_napi_err)?;
-    let signing_package = SigningPackage::read(&bytes[..]).map_err(to_napi_err)?;
-
-    let mut unsigned_transaction = signing_package.unsigned_transaction;
-
-    let mut signature_shares = BTreeMap::<Identifier, FrostSignatureShare>::new();
-    for signature_share in signature_shares_arr.iter() {
-        let iss = SignatureShare::deserialize_from(
-            &hex_to_vec_bytes(signature_share).map_err(to_napi_err)?[..],
-        )
-        .map_err(to_napi_err)?;
-        signature_shares.insert(
-            iss.identity().to_frost_identifier(),
-            *iss.frost_signature_share(),
-        );
-    }
-
-    let signed_transaction = unsigned_transaction
-        .aggregate_signature_shares(
-            &public_key_package,
-            &signing_package.frost_signing_package,
-            signature_shares,
-        )
-        .map_err(to_napi_err)?;
-
-    let mut vec: Vec<u8> = vec![];
-    signed_transaction.write(&mut vec).map_err(to_napi_err)?;
-
-    Ok(Buffer::from(vec))
 }

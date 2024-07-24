@@ -99,3 +99,39 @@ impl Sapling {
         groth16::Parameters::read(bytes, false).unwrap()
     }
 }
+
+mod io {
+
+    #[derive(Clone, Debug)]
+    pub struct Error;
+
+    // pub(crate) type Result<T> = core::result::Result<T, Error>;
+
+    pub trait Read {
+        fn read(&mut self, buf: &mut [u8]) -> Result<usize, Error>;
+
+        fn read_exact(&mut self, mut buf: &mut [u8]) -> Result<(), Error> {
+            while !buf.is_empty() {
+                match self.read(buf) {
+                    Ok(0) => break,
+                    Ok(n) => {
+                        buf = &mut buf[n..];
+                    }
+                    Err(e) => return Err(e),
+                }
+            }
+            if buf.is_empty() {
+                Ok(())
+            } else {
+                Err(Error)
+            }
+        }
+
+        fn by_ref(&mut self) -> &mut Self
+        where
+            Self: Sized,
+        {
+            self
+        }
+    }
+}

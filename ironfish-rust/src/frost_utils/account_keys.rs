@@ -21,13 +21,6 @@ pub struct MultisigAccountKeys {
     pub public_address: PublicAddress,
 }
 
-/// Derives the account keys for a multisig account, realizing the following key hierarchy:
-///
-/// ```
-///                 ak ─┐
-///                     ├─ ivk ── pk
-///   gsk ── nsk ── nk ─┘
-/// ```
 pub fn derive_account_keys(
     authorizing_key: &VerifyingKey,
     group_secret_key: &[u8; 32],

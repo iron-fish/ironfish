@@ -4,12 +4,12 @@
 
 use ironfish_frost::participant::Identity;
 use ironfish_frost::{
+    dkg::round3::PublicKeyPackage,
     frost::{
         frost::keys::split,
         keys::{IdentifierList, KeyPackage},
         SigningKey,
     },
-    keys::PublicKeyPackage,
 };
 use rand::{CryptoRng, RngCore};
 use std::{
