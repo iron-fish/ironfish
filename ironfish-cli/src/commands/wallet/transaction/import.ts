@@ -9,7 +9,7 @@ import { importFile, importPipe, longPrompt } from '../../../utils/input'
 export class TransactionImportCommand extends IronfishCommand {
   static description = `Import a transaction into your wallet`
 
-  static aliases = ['wallet:transaction:add']
+  static hiddenAliases = ['wallet:transaction:add']
 
   static flags = {
     ...RemoteFlags,
