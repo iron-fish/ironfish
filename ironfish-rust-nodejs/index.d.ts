@@ -304,6 +304,7 @@ export namespace multisig {
     round2PublicPackage: string
   }
   export function dkgRound3(secret: ParticipantSecret, round2SecretPackage: string, round1PublicPackages: Array<string>, round2PublicPackages: Array<string>): DkgRound3Packages
+  export function deriveAccountKeysNodejs(keyPackageStr: string, publicKeyPackageStr: string, groupSecretKeyStr: string): DkgRound3Packages
   export interface DkgRound3Packages {
     publicAddress: string
     keyPackage: string
