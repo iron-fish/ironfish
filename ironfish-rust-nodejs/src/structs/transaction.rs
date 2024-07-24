@@ -7,10 +7,8 @@ use std::cell::RefCell;
 use std::convert::TryInto;
 
 use ironfish::assets::asset_identifier::AssetIdentifier;
-use ironfish::frost::round1::SigningCommitments;
 use ironfish::serializing::bytes_to_hex;
 use ironfish::serializing::fr::FrSerializable;
-use ironfish::serializing::hex_to_vec_bytes;
 use ironfish::transaction::unsigned::UnsignedTransaction;
 use ironfish::transaction::{
     batch_verify_transactions, TransactionVersion, TRANSACTION_EXPIRATION_SIZE,
@@ -418,34 +416,6 @@ impl NativeUnsignedTransaction {
             .map_err(to_napi_err)?;
 
         Ok(Buffer::from(hash.as_ref()))
-    }
-
-    #[napi]
-    pub fn signing_package(&self, native_identifer_commitments: Vec<String>) -> Result<String> {
-        let mut commitments = Vec::new();
-
-        for identifier_commitment in native_identifer_commitments {
-            let bytes = hex_to_vec_bytes(&identifier_commitment).map_err(to_napi_err)?;
-            let signing_commitment =
-                SigningCommitment::deserialize_from(&bytes[..]).map_err(to_napi_err)?;
-
-            let commitment = SigningCommitments::new(
-                *signing_commitment.hiding(),
-                *signing_commitment.binding(),
-            );
-
-            commitments.push((signing_commitment.identity().clone(), commitment));
-        }
-
-        let signing_package = self
-            .transaction
-            .signing_package(commitments)
-            .map_err(to_napi_err)?;
-
-        let mut vec: Vec<u8> = vec![];
-        signing_package.write(&mut vec).map_err(to_napi_err)?;
-
-        Ok(bytes_to_hex(&vec))
     }
 
     #[napi]

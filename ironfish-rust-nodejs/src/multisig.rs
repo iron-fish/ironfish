@@ -223,8 +223,12 @@ pub fn dkg_round1(
     min_signers: u16,
     participant_identities: Vec<String>,
 ) -> Result<DkgRound1Packages> {
-    let self_identity =
-        Identity::deserialize_from(&hex_to_vec_bytes(&self_identity).map_err(to_napi_err)?[..])?;
+    let self_identity = Identity::deserialize_from(
+        &hex_to_vec_bytes(&self_identity)
+            .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, format!("{:?}", err)))?[..],
+    )
+    .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, format!("{:?}", err)))?;
+
     let participant_identities = try_deserialize_identities(participant_identities)?;
 
     let (round1_secret_package, round1_public_package) = dkg::round1::round1(
