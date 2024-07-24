@@ -89,12 +89,12 @@ export class WalletScanner {
 
       chainProcessor.onAdd.on(async ({ header, transactions }) => {
         await this.connectBlock(header, transactions, decryptor, this.state?.abortController)
-        this.state?.signal(header)
+        this.state?.signal(header, 'connect')
       })
 
       chainProcessor.onRemove.on(async ({ header, transactions }) => {
         await this.disconnectBlock(header, transactions, this.state?.abortController)
-        this.state?.signal(header)
+        this.state?.signal(header, 'disconnect')
       })
 
       // Once we set up ChainProcessor, if the start is null we want to use
