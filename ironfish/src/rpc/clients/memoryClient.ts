@@ -30,7 +30,5 @@ export class RpcMemoryClient extends RpcClient {
     return RpcMemoryAdapter.requestStream<TEnd, TStream>(this.router, route, data)
   }
 
-  close(): void {
-    return
-  }
+  close(): void {}
 }
