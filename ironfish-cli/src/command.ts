@@ -9,6 +9,7 @@ import {
   InternalOptions,
   IronfishSdk,
   Logger,
+  RpcClient,
   RpcConnectionError,
 } from '@ironfish/sdk'
 import { Command, Config, ux } from '@oclif/core'
@@ -69,6 +70,8 @@ export abstract class IronfishCommand extends Command {
    */
   closing = false
 
+  client: RpcClient | null = null
+
   constructor(argv: string[], config: Config) {
     super(argv, config)
     this.logger = createRootLogger().withTag(this.ctor.id)
@@ -78,7 +81,9 @@ export abstract class IronfishCommand extends Command {
 
   async run(): Promise<unknown> {
     try {
-      return await this.start()
+      const json = await this.start()
+      this.client?.close()
+      return json
     } catch (error: unknown) {
       if (hasUserResponseError(error)) {
         this.log(error.codeMessage)
@@ -224,6 +229,12 @@ export abstract class IronfishCommand extends Command {
   // configured.
   logJson(json: unknown): void {
     ux.stdout(ui.json(json))
+  }
+
+  async connectRpc(forceLocal = false, forceRemote = false): Promise<RpcClient> {
+    const client = await this.sdk.connectRpc(forceLocal, forceRemote)
+    this.client = client
+    return client
   }
 }
 

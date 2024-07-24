@@ -55,7 +55,7 @@ export class CreateSigningPackage extends IronfishCommand {
     }
     commitments = commitments.map((s) => s.trim())
 
-    const client = await this.sdk.connectRpc()
+    const client = await this.connectRpc()
 
     const signingPackageResponse = await client.wallet.multisig.createSigningPackage({
       account: flags.account,

@@ -13,7 +13,7 @@ export class MultisigParticipants extends IronfishCommand {
   }
 
   async start(): Promise<void> {
-    const client = await this.sdk.connectRpc()
+    const client = await this.connectRpc()
     const response = await client.wallet.multisig.getIdentities()
 
     const participants = []

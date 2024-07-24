@@ -35,7 +35,7 @@ export class NotesCommand extends IronfishCommand {
 
     const assetLookup: Map<string, RpcAsset> = new Map()
 
-    const client = await this.sdk.connectRpc()
+    const client = await this.connectRpc()
 
     const response = client.wallet.getAccountNotesStream({ account })
 

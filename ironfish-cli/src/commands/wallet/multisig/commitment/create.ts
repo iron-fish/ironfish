@@ -69,7 +69,7 @@ export class CreateSigningCommitmentCommand extends IronfishCommand {
       })
     }
 
-    const client = await this.sdk.connectRpc()
+    const client = await this.connectRpc()
     const unsignedTransaction = new UnsignedTransaction(
       Buffer.from(unsignedTransactionInput, 'hex'),
     )

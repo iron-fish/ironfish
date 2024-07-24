@@ -45,7 +45,7 @@ export class ResetCommand extends IronfishCommand {
       flags.confirm,
     )
 
-    const client = await this.sdk.connectRpc()
+    const client = await this.connectRpc()
 
     await client.wallet.resetAccount({
       account,

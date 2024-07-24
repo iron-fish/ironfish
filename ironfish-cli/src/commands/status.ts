@@ -35,7 +35,7 @@ export default class Status extends IronfishCommand {
     const { flags } = await this.parse(Status)
 
     if (!flags.follow) {
-      const client = await this.sdk.connectRpc()
+      const client = await this.connectRpc()
       const response = await client.node.getStatus()
       this.log(renderStatus(response.content, flags.all))
       this.exit(0)

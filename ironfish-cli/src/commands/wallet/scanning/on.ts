@@ -23,7 +23,7 @@ export class ScanningOnCommand extends IronfishCommand {
     const { args } = await this.parse(ScanningOnCommand)
     const { account } = args
 
-    const client = await this.sdk.connectRpc()
+    const client = await this.connectRpc()
 
     await client.wallet.setScanning({
       account: account,

@@ -25,7 +25,7 @@ export default class AssetInfo extends IronfishCommand {
     const { args } = await this.parse(AssetInfo)
     const { id: assetId } = args
 
-    const client = await this.sdk.connectRpc()
+    const client = await this.connectRpc()
     const data = await client.chain.getAsset({ id: assetId })
 
     this.log(

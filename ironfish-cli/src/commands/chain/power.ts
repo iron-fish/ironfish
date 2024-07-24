@@ -29,7 +29,7 @@ export default class Power extends IronfishCommand {
     const { flags, args } = await this.parse(Power)
     const { block } = args
 
-    const client = await this.sdk.connectRpc()
+    const client = await this.connectRpc()
 
     const data = await client.chain.getNetworkHashPower({
       sequence: block,

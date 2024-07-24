@@ -51,7 +51,7 @@ export class BalanceCommand extends IronfishCommand {
     // TODO: remove account arg
     const account = flags.account ? flags.account : args.account
 
-    const client = await this.sdk.connectRpc()
+    const client = await this.connectRpc()
 
     const response = await client.wallet.getAccountBalance({
       account,

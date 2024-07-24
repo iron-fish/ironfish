@@ -27,7 +27,7 @@ export default class BlockInfo extends IronfishCommand {
     const { args } = await this.parse(BlockInfo)
     const { search } = args
 
-    const client = await this.sdk.connectRpc()
+    const client = await this.connectRpc()
     const data = await client.chain.getBlock({ search })
     const blockData = data.content
 

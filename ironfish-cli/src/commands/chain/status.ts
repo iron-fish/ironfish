@@ -14,7 +14,7 @@ export default class ChainStatus extends IronfishCommand {
   }
 
   async start(): Promise<void> {
-    const client = await this.sdk.connectRpc()
+    const client = await this.connectRpc()
 
     const [status, difficulty, power] = await Promise.all([
       client.node.getStatus(),

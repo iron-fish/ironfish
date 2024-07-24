@@ -17,7 +17,7 @@ export class StatusCommand extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(StatusCommand)
 
-    const client = await this.sdk.connectRpc()
+    const client = await this.connectRpc()
 
     const response = await client.wallet.getAccountsStatus()
 
