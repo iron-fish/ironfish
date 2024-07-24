@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert, Blockchain, BlockchainUtils, FullNode, NodeUtils, Wallet } from '@ironfish/sdk'
-import { Args, Command } from '@oclif/core'
+import { Args, Command, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
 import { ProgressBar, ProgressBarPresets } from '../../ui'
@@ -25,21 +25,27 @@ export default class Rewind extends IronfishCommand {
 
   static flags = {
     ...LocalFlags,
+    wallet: Flags.boolean({
+      default: true,
+      allowNo: true,
+      description: 'should the wallet be rewinded',
+    }),
   }
 
   async start(): Promise<void> {
-    const { args } = await this.parse(Rewind)
+    const { args, flags } = await this.parse(Rewind)
 
     const node = await this.sdk.node()
     await NodeUtils.waitForOpen(node)
 
-    await rewindChainTo(this, node, args.to, args.from)
+    await rewindChainTo(this, node, flags.wallet, args.to, args.from)
   }
 }
 
 export const rewindChainTo = async (
   command: Command,
   node: FullNode,
+  rewindWallet: boolean,
   to: number,
   from?: number,
 ): Promise<void> => {
@@ -65,7 +71,11 @@ export const rewindChainTo = async (
   )
 
   await disconnectBlocks(chain, blockCount)
-  await rewindWalletHead(chain, wallet)
+
+  if (rewindWallet) {
+    await rewindWalletHead(chain, wallet)
+  }
+
   await removeBlocks(chain, start, stop)
 }
 
