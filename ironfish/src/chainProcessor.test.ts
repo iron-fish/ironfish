@@ -207,7 +207,7 @@ describe('ChainProcessor', () => {
     processor.onAdd.on((block) => onEvent(block, 'add'))
     processor.onRemove.on((block) => onEvent(block, 'remove'))
 
-    let result = await processor.update()
+    const result = await processor.update()
     expect(result.hashChanged).toBe(false)
     expect(processor.hash).toEqualBuffer(MISSING_HEAD)
     expect(onEvent).toHaveBeenCalledTimes(0)
