@@ -4,7 +4,6 @@
 import { AccountFormat, ErrorUtils, LanguageUtils } from '@ironfish/sdk'
 import { Args, Flags } from '@oclif/core'
 import fs from 'fs'
-import jsonColorizer from 'json-colorizer'
 import path from 'path'
 import { IronfishCommand } from '../../command'
 import { ColorFlag, ColorFlagKey, EnumLanguageKeyFlag, RemoteFlags } from '../../flags'
@@ -12,6 +11,7 @@ import { confirmOrQuit } from '../../ui'
 
 export class ExportCommand extends IronfishCommand {
   static description = `Export an account`
+  static enableJsonFlag = true
 
   static flags = {
     ...RemoteFlags,
@@ -28,10 +28,6 @@ export class ExportCommand extends IronfishCommand {
       description: 'Language to use for mnemonic export',
       required: false,
       choices: LanguageUtils.LANGUAGE_KEYS,
-    }),
-    json: Flags.boolean({
-      default: false,
-      description: 'Output the account as JSON, rather than the default bech32',
     }),
     path: Flags.string({
       description: 'The path to export the account to',
@@ -50,9 +46,9 @@ export class ExportCommand extends IronfishCommand {
     }),
   }
 
-  async start(): Promise<void> {
+  async start(): Promise<unknown> {
     const { flags, args } = await this.parse(ExportCommand)
-    const { color, local, path: exportPath, viewonly: viewOnly } = flags
+    const { local, path: exportPath, viewonly: viewOnly } = flags
     const { account } = args
 
     if (flags.language) {
@@ -73,10 +69,7 @@ export class ExportCommand extends IronfishCommand {
       language: flags.language,
     })
 
-    let output = response.content.account
-    if (color && flags.json && !exportPath) {
-      output = jsonColorizer(output)
-    }
+    const output = response.content.account
 
     if (exportPath) {
       let resolved = this.sdk.fileSystem.resolve(exportPath)
@@ -110,5 +103,9 @@ export class ExportCommand extends IronfishCommand {
     }
 
     this.log(output)
+
+    if (flags.json) {
+      return output
+    }
   }
 }
