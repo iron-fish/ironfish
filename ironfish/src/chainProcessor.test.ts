@@ -198,4 +198,18 @@ describe('ChainProcessor', () => {
     expect(processor.hash).toEqualBuffer(block.header.hash)
     expect(onEvent).toHaveBeenCalledTimes(0)
   })
+
+  it('should not crash if head not found', async () => {
+    const MISSING_HEAD = Buffer.alloc(32, 'helloworld')
+    const processor = new ChainProcessor({ chain: nodeTest.chain, head: MISSING_HEAD })
+
+    const onEvent: Mock<(header: BlockHeader, event: 'add' | 'remove') => void> = jest.fn()
+    processor.onAdd.on((block) => onEvent(block, 'add'))
+    processor.onRemove.on((block) => onEvent(block, 'remove'))
+
+    const result = await processor.update()
+    expect(result.hashChanged).toBe(false)
+    expect(processor.hash).toEqualBuffer(MISSING_HEAD)
+    expect(onEvent).toHaveBeenCalledTimes(0)
+  })
 })

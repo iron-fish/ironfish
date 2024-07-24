@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import type { Blockchain } from './blockchain'
 import type { BlockHeader } from './primitives'
-import { Assert } from './assert'
 import { Event } from './event'
 import { createRootLogger, Logger } from './logger'
 
@@ -73,13 +72,13 @@ export class ChainProcessor {
 
     const head = await this.chain.getHeader(this.hash)
 
-    Assert.isNotNull(
-      head,
-      `Chain processor head not found in chain: ${this.hash.toString('hex')}`,
-    )
-
     let blockCount = 0
     let hashChanged = false
+
+    if (!head) {
+      this.logger.warn('ChainProcessor could not find head in blockchain.')
+      return { hashChanged }
+    }
 
     const fork = await this.chain.findFork(head, chainHead)
 
