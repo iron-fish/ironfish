@@ -8,22 +8,11 @@ import fs from 'fs/promises'
 import repl from 'node:repl'
 import path from 'path'
 import { IronfishCommand } from '../command'
-import {
-  ConfigFlag,
-  ConfigFlagKey,
-  DataDirFlag,
-  DataDirFlagKey,
-  VerboseFlag,
-  VerboseFlagKey,
-} from '../flags'
 
 export default class Repl extends IronfishCommand {
   static description = 'An interactive terminal to the node'
 
   static flags = {
-    [VerboseFlagKey]: VerboseFlag,
-    [ConfigFlagKey]: ConfigFlag,
-    [DataDirFlagKey]: DataDirFlag,
     opendb: Flags.boolean({
       description: 'open the databases',
       allowNo: true,

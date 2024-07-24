@@ -8,7 +8,6 @@ import os from 'os'
 import path from 'path'
 import { promisify } from 'util'
 import { IronfishCommand } from '../../command'
-import { ConfigFlag, ConfigFlagKey, DataDirFlag, DataDirFlagKey } from '../../flags'
 import { launchEditor } from '../../utils'
 
 const mkdtempAsync = promisify(mkdtemp)
@@ -21,8 +20,6 @@ export class EditCommand extends IronfishCommand {
   Set the editor in either EDITOR environment variable, or set 'editor' in your ironfish config`
 
   static flags = {
-    [ConfigFlagKey]: ConfigFlag,
-    [DataDirFlagKey]: DataDirFlag,
     remote: Flags.boolean({
       default: false,
       description: 'Connect to the node when editing the config',

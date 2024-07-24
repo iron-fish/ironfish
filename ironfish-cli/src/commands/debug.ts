@@ -13,17 +13,12 @@ import { execSync } from 'child_process'
 import os from 'os'
 import { getHeapStatistics } from 'v8'
 import { IronfishCommand } from '../command'
-import { LocalFlags } from '../flags'
 
 const SPACE_BUFFER = 8
 
 export default class Debug extends IronfishCommand {
   static description = 'Show debug information to help locate issues'
   static hidden = true
-
-  static flags = {
-    ...LocalFlags,
-  }
 
   async start(): Promise<void> {
     const node = await this.sdk.node({ autoSeed: false })

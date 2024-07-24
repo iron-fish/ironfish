@@ -97,23 +97,10 @@ export const RpcUseHttpFlag = Flags.boolean({
 })
 
 /**
- * These flags should usually be used on any command that starts a node,
- * or uses a database to execute the command
- */
-export const LocalFlags = {
-  [VerboseFlagKey]: VerboseFlag,
-  [ConfigFlagKey]: ConfigFlag,
-  [DataDirFlagKey]: DataDirFlag,
-}
-
-/**
  * These flags should usually be used on any command that uses an
  * RPC client to connect to a node to run the command
  */
 export const RemoteFlags = {
-  [VerboseFlagKey]: VerboseFlag,
-  [ConfigFlagKey]: ConfigFlag,
-  [DataDirFlagKey]: DataDirFlag,
   [RpcUseTcpFlagKey]: RpcUseTcpFlag,
   [RpcUseIpcFlagKey]: RpcUseIpcFlag,
   [RpcTcpHostFlagKey]: RpcTcpHostFlag,

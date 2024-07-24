@@ -4,13 +4,11 @@
 import { NodeUtils, TransactionStatus } from '@ironfish/sdk'
 import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
-import { LocalFlags } from '../../flags'
 
 export default class PruneCommand extends IronfishCommand {
   static description = 'Removes expired transactions from the wallet'
 
   static flags = {
-    ...LocalFlags,
     dryrun: Flags.boolean({
       default: false,
       description: 'Dry run prune first',

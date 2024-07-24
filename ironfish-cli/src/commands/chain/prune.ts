@@ -4,13 +4,11 @@
 import { BlockchainUtils } from '@ironfish/sdk'
 import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
-import { LocalFlags } from '../../flags'
 
 export default class Prune extends IronfishCommand {
   static description = 'remove unused blocks from the chain'
 
   static flags = {
-    ...LocalFlags,
     dry: Flags.boolean({
       default: false,
       description: 'Dry run prune first',

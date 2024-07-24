@@ -4,7 +4,6 @@
 import { BufferUtils, TimeUtils } from '@ironfish/sdk'
 import { Args } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
-import { LocalFlags } from '../../../flags'
 import * as ui from '../../../ui'
 
 export default class BlockInfo extends IronfishCommand {
@@ -15,10 +14,6 @@ export default class BlockInfo extends IronfishCommand {
       required: true,
       description: 'The hash or sequence of the block to look at',
     }),
-  }
-
-  static flags = {
-    ...LocalFlags,
   }
 
   static enableJsonFlag: boolean = true
