@@ -39,7 +39,7 @@ export class BalancesCommand extends IronfishCommand {
 
   async start(): Promise<void> {
     const { flags, args } = await this.parse(BalancesCommand)
-    const client = await this.sdk.connectRpc()
+    const client = await this.connectRpc()
 
     // TODO: remove account arg
     const account = flags.account ? flags.account : args.account

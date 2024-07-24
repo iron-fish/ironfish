@@ -176,6 +176,8 @@ import type {
 import { ApiNamespace } from '../routes/namespaces'
 
 export abstract class RpcClient {
+  abstract close(): void
+
   abstract request<TEnd = unknown, TStream = unknown>(
     route: string,
     data?: unknown,

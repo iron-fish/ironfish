@@ -81,7 +81,7 @@ export class Miner extends IronfishCommand {
       let publicAddress = flags.address
 
       if (publicAddress == null) {
-        const client = await this.sdk.connectRpc()
+        const client = await this.connectRpc()
         const publicKeyResponse = await client.wallet.getAccountPublicKey()
 
         publicAddress = publicKeyResponse.content.publicKey

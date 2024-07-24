@@ -86,7 +86,7 @@ export class BridgeCommand extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(BridgeCommand)
 
-    const client = await this.sdk.connectRpc()
+    const client = await this.connectRpc()
 
     const networkId = (await client.chain.getNetworkInfo()).content.networkId
 

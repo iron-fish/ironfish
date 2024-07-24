@@ -39,7 +39,7 @@ export class EditCommand extends IronfishCommand {
       this.exit(code || undefined)
     }
 
-    const client = await this.sdk.connectRpc(!flags.remote)
+    const client = await this.connectRpc(!flags.remote)
     const response = await client.config.getConfig({ user: true })
     const output = JSON.stringify(response.content, undefined, '   ')
 

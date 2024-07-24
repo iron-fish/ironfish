@@ -62,7 +62,7 @@ export class MultisigCreateDealer extends IronfishCommand {
       }
     }
 
-    const client = await this.sdk.connectRpc()
+    const client = await this.connectRpc()
 
     const name = await this.getCoordinatorName(client, flags.name?.trim())
 

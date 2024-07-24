@@ -25,7 +25,7 @@ export class TransactionInfo extends IronfishCommand {
   async start(): Promise<void> {
     const { args } = await this.parse(TransactionInfo)
 
-    const client = await this.sdk.connectRpc()
+    const client = await this.connectRpc()
 
     const response = await client.chain.getTransaction({
       transactionHash: args.hash,

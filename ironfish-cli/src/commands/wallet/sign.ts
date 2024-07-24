@@ -35,7 +35,7 @@ export class SignTransaction extends IronfishCommand {
 
   async start(): Promise<void> {
     const { flags } = await this.parse(SignTransaction)
-    const client = await this.sdk.connectRpc()
+    const client = await this.connectRpc()
 
     if (!flags.broadcast && flags.watch) {
       this.error('Cannot use --watch without --broadcast')

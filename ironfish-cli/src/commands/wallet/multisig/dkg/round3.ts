@@ -43,7 +43,7 @@ export class DkgRound3Command extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(DkgRound3Command)
 
-    const client = await this.sdk.connectRpc()
+    const client = await this.connectRpc()
 
     let participantName = flags.participantName
     if (!participantName) {

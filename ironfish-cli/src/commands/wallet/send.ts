@@ -124,7 +124,7 @@ export class Send extends IronfishCommand {
     let to = flags.to
     let from = flags.account
 
-    const client = await this.sdk.connectRpc()
+    const client = await this.connectRpc()
 
     if (!flags.offline) {
       const status = await client.wallet.getNodeStatus()

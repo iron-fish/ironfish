@@ -33,7 +33,7 @@ export class DeleteCommand extends IronfishCommand {
     const { confirm, wait } = flags
     const { account } = args
 
-    const client = await this.sdk.connectRpc()
+    const client = await this.connectRpc()
 
     ux.action.start(`Deleting account '${account}'`)
     const response = await client.wallet.removeAccount({ account, confirm, wait })

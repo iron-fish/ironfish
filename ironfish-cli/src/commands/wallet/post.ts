@@ -57,7 +57,7 @@ export class PostCommand extends IronfishCommand {
     const serialized = Buffer.from(transaction, 'hex')
     const raw = RawTransactionSerde.deserialize(serialized)
 
-    const client = await this.sdk.connectRpc()
+    const client = await this.connectRpc()
 
     const senderAddress = raw.sender()
     if (!senderAddress) {

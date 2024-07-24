@@ -34,7 +34,7 @@ export class FaucetCommand extends IronfishCommand {
       this.exit(1)
     }
 
-    const client = await this.sdk.connectRpc()
+    const client = await this.connectRpc()
     const networkInfoResponse = await client.chain.getNetworkInfo()
 
     if (networkInfoResponse.content === null || networkInfoResponse.content.networkId !== 0) {

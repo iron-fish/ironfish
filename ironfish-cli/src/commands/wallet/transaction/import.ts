@@ -57,7 +57,7 @@ export class TransactionImportCommand extends IronfishCommand {
     }
 
     ux.action.start(`Importing transaction`)
-    const client = await this.sdk.connectRpc()
+    const client = await this.connectRpc()
     const response = await client.wallet.addTransaction({
       transaction,
       broadcast: flags.broadcast,

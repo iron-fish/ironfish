@@ -71,7 +71,7 @@ export class TransactionsCommand extends IronfishCommand {
         ? Format.json
         : Format.cli
 
-    const client = await this.sdk.connectRpc()
+    const client = await this.connectRpc()
 
     const networkId = (await client.chain.getNetworkInfo()).content.networkId
 

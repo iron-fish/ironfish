@@ -41,7 +41,7 @@ export default class Export extends IronfishCommand {
 
     const exportPath = this.sdk.fileSystem.join(exportDir, 'data.json')
 
-    const client = await this.sdk.connectRpc()
+    const client = await this.connectRpc()
 
     const stream = client.chain.exportChainStream({
       start: args.start,

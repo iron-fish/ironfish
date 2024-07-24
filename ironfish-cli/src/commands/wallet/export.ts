@@ -65,7 +65,7 @@ export class ExportCommand extends IronfishCommand {
       ? AccountFormat.JSON
       : AccountFormat.Base64Json
 
-    const client = await this.sdk.connectRpc(local)
+    const client = await this.connectRpc(local)
     const response = await client.wallet.exportAccount({
       account,
       viewOnly,

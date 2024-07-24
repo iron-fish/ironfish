@@ -25,7 +25,7 @@ export class MultisigIdentityCreate extends IronfishCommand {
       name = await inputPrompt('Enter a name for the identity', true)
     }
 
-    const client = await this.sdk.connectRpc()
+    const client = await this.connectRpc()
     let response
     while (!response) {
       try {

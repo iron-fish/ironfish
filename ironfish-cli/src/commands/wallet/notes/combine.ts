@@ -218,7 +218,7 @@ export class CombineNotesCommand extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(CombineNotesCommand)
 
-    const client = await this.sdk.connectRpc()
+    const client = await this.connectRpc()
 
     let to = flags.to
     let from = flags.account
