@@ -81,9 +81,7 @@ export abstract class IronfishCommand extends Command {
 
   async run(): Promise<unknown> {
     try {
-      const json = await this.start()
-      this.client?.close()
-      return json
+      return await this.start()
     } catch (error: unknown) {
       if (hasUserResponseError(error)) {
         this.log(error.codeMessage)
@@ -109,6 +107,8 @@ export abstract class IronfishCommand extends Command {
       } else {
         throw error
       }
+    } finally {
+      this.client?.close()
     }
 
     this.exit(0)
