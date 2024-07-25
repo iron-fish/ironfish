@@ -38,7 +38,7 @@ export class IronfishStateManager extends DefaultStateManager {
     }
 
     try {
-      return handler()
+      return await handler()
     } finally {
       await this.setStateRoot(currentRoot)
     }
