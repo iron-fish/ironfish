@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Block } from '@ethereumjs/block'
 import { EVM, Log } from '@ethereumjs/evm'
-import { Address, hexToBytes } from '@ethereumjs/util'
+import { Account, Address, hexToBytes } from '@ethereumjs/util'
 import { RunTxOpts, RunTxResult, VM } from '@ethereumjs/vm'
 import ContractArtifact from '@ironfish/ironfish-contracts'
 import { Asset, generateKeyFromPrivateKey } from '@ironfish/rust-nodejs'
@@ -152,6 +152,17 @@ export class IronfishEvm {
     const asset = new Asset(GLOBAL_IF_ACCOUNT.publicAddress, name, '')
 
     return asset.id()
+  }
+
+  async getAccount(address: Address, stateRoot?: Uint8Array): Promise<Account | undefined> {
+    return this.blockchainDb.stateManager.withStateRoot(stateRoot, async () => {
+      return this.blockchainDb.stateManager.getAccount(address)
+    })
+  }
+
+  async getBalance(address: Address, stateRoot?: Uint8Array): Promise<bigint | undefined> {
+    const account = await this.getAccount(address, stateRoot)
+    return account?.balance
   }
 }
 
