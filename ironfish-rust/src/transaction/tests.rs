@@ -249,8 +249,8 @@ fn test_evm_transaction() {
             0x78, 0x48, 0xe8, 0xa4, 0x41, 0x4b, 0x78, 0xb6, 0xd0, 0xf1, 0xe9, 0xc2, 0xb4, 0xd3,
             0xd6, 0xd3, 0xd3, 0xe5,
         ],
-        public_iron: 0,
         private_iron: 0,
+        public_iron: 0,
     };
     let evm_clone = evm.clone();
 
@@ -283,6 +283,134 @@ fn test_evm_transaction() {
     let received_note = public_transaction.outputs[1]
         .merkle_note()
         .decrypt_note_for_owner(&spender_key_clone.incoming_viewing_key)
+        .unwrap();
+    assert_eq!(received_note.sender, spender_key_clone.public_address());
+}
+
+#[test]
+fn test_evm_transaction_public_iron() {
+    let spender_key = SaplingKey::generate_key();
+    let sender_key = SaplingKey::generate_key();
+
+    let in_note = Note::new(
+        spender_key.public_address(),
+        42,
+        "",
+        NATIVE_ASSET,
+        sender_key.public_address(),
+    );
+    let witness = make_fake_witness(&in_note);
+
+    let evm = EvmDescription {
+        nonce: 9,
+        gas_price: 1,
+        gas_limit: 2_000_000,
+        to: Some([0x35; 20]),
+        value: 1_000_000_000_000_000_000,
+        data: vec![],
+        v: 27,
+        r: [
+            0x5e, 0x1d, 0x3a, 0x76, 0xfb, 0xf8, 0x24, 0x22, 0x0e, 0x27, 0xb5, 0xd1, 0xf8, 0xd0,
+            0x78, 0x48, 0xe8, 0xa4, 0x41, 0x4b, 0x78, 0xb6, 0xd0, 0xf1, 0xe9, 0xc2, 0xb4, 0xd3,
+            0xd6, 0xd3, 0xd3, 0xe5,
+        ],
+        s: [
+            0x7e, 0x1d, 0x3a, 0x76, 0xfb, 0xf8, 0x24, 0x22, 0x0e, 0x27, 0xb5, 0xd1, 0xf8, 0xd0,
+            0x78, 0x48, 0xe8, 0xa4, 0x41, 0x4b, 0x78, 0xb6, 0xd0, 0xf1, 0xe9, 0xc2, 0xb4, 0xd3,
+            0xd6, 0xd3, 0xd3, 0xe5,
+        ],
+        private_iron: 0,
+        public_iron: 41,
+    };
+    let evm_clone = evm.clone();
+
+    let mut transaction = ProposedTransaction::new(TransactionVersion::latest());
+    transaction.add_spend(in_note, &witness).unwrap();
+    assert_eq!(transaction.spends.len(), 1);
+    transaction
+        .add_evm(evm)
+        .expect("should be able to add data");
+
+    let public_transaction = transaction
+        .post(&spender_key, None, 1)
+        .expect("should be able to post transaction");
+    verify_transaction(&public_transaction).expect("Should be able to verify transaction");
+    assert_eq!(public_transaction.fee(), 1);
+
+    // A change note was created
+    assert_eq!(public_transaction.spends.len(), 1);
+    assert_eq!(public_transaction.mints.len(), 0);
+    assert_eq!(public_transaction.burns.len(), 0);
+    // assert evm to be some
+    assert!(public_transaction.evm.is_some());
+
+    // check equality for evm description vs one above
+    assert_eq!(public_transaction.evm, Some(evm_clone));
+}
+
+#[test]
+fn test_evm_transaction_private_iron() {
+    let spender_key = SaplingKey::generate_key();
+    let receiver_key = SaplingKey::generate_key();
+    let spender_key_clone = spender_key.clone();
+
+    let out_note = Note::new(
+        receiver_key.public_address(),
+        41,
+        "",
+        NATIVE_ASSET,
+        spender_key.public_address(),
+    );
+
+    let evm = EvmDescription {
+        nonce: 9,
+        gas_price: 1,
+        gas_limit: 2_000_000,
+        to: Some([0x35; 20]),
+        value: 1_000_000_000_000_000_000,
+        data: vec![],
+        v: 27,
+        r: [
+            0x5e, 0x1d, 0x3a, 0x76, 0xfb, 0xf8, 0x24, 0x22, 0x0e, 0x27, 0xb5, 0xd1, 0xf8, 0xd0,
+            0x78, 0x48, 0xe8, 0xa4, 0x41, 0x4b, 0x78, 0xb6, 0xd0, 0xf1, 0xe9, 0xc2, 0xb4, 0xd3,
+            0xd6, 0xd3, 0xd3, 0xe5,
+        ],
+        s: [
+            0x7e, 0x1d, 0x3a, 0x76, 0xfb, 0xf8, 0x24, 0x22, 0x0e, 0x27, 0xb5, 0xd1, 0xf8, 0xd0,
+            0x78, 0x48, 0xe8, 0xa4, 0x41, 0x4b, 0x78, 0xb6, 0xd0, 0xf1, 0xe9, 0xc2, 0xb4, 0xd3,
+            0xd6, 0xd3, 0xd3, 0xe5,
+        ],
+        private_iron: 42,
+        public_iron: 0,
+    };
+    let evm_clone = evm.clone();
+
+    let mut transaction = ProposedTransaction::new(TransactionVersion::latest());
+    transaction.add_output(out_note).unwrap();
+    assert_eq!(transaction.outputs.len(), 1);
+    transaction
+        .add_evm(evm)
+        .expect("should be able to add data");
+
+    let public_transaction = transaction
+        .post(&spender_key, None, 1)
+        .expect("should be able to post transaction");
+    verify_transaction(&public_transaction).expect("Should be able to verify transaction");
+    assert_eq!(public_transaction.fee(), 1);
+
+    // A change note was created
+    assert_eq!(public_transaction.outputs.len(), 1);
+    assert_eq!(public_transaction.mints.len(), 0);
+    assert_eq!(public_transaction.burns.len(), 0);
+    // assert evm to be some
+    assert!(public_transaction.evm.is_some());
+
+    // check equality for evm description vs one above
+    assert_eq!(public_transaction.evm, Some(evm_clone));
+
+    let received_note = public_transaction.outputs[0]
+        .merkle_note()
+        .decrypt_note_for_owner(&receiver_key.incoming_viewing_key)
         .unwrap();
     assert_eq!(received_note.sender, spender_key_clone.public_address());
 }
