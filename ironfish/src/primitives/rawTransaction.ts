@@ -192,6 +192,8 @@ export class RawTransaction {
         this.evm.v,
         this.evm.r,
         this.evm.s,
+        this.evm.privateIron,
+        this.evm.publicIron,
       )
     }
 
@@ -406,8 +408,22 @@ export class RawTransactionSerde {
         const v = reader.readU8()
         const r = reader.readBytes(32)
         const s = reader.readBytes(32)
+        const privateIron = reader.readBigU64()
+        const publicIron = reader.readBigU64()
 
-        raw.evm = { nonce, gasPrice, gasLimit, to, value, data, v, r, s }
+        raw.evm = {
+          nonce,
+          gasPrice,
+          gasLimit,
+          to,
+          value,
+          data,
+          v,
+          r,
+          s,
+          privateIron,
+          publicIron,
+        }
       }
     }
 

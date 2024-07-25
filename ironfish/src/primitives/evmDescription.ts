@@ -14,6 +14,8 @@ export interface EvmDescription {
   v: number
   r: Buffer
   s: Buffer
+  privateIron: bigint
+  publicIron: bigint
 }
 
 export function legacyTransactionToEvmDescription(tx: LegacyTransaction): EvmDescription {
@@ -27,6 +29,8 @@ export function legacyTransactionToEvmDescription(tx: LegacyTransaction): EvmDes
     v: Number(tx.v),
     r: tx.r ? Buffer.from(bigIntToBytes(tx.r)) : Buffer.alloc(0),
     s: tx.s ? Buffer.from(bigIntToBytes(tx.s)) : Buffer.alloc(0),
+    privateIron: BigInt(0),
+    publicIron: BigInt(0),
   }
 }
 
