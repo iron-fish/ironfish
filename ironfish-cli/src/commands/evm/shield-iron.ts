@@ -2,9 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { LegacyTransaction } from '@ethereumjs/tx'
-import { Account, Address, hexToBytes } from '@ethereumjs/util'
-import { generateKey } from '@ironfish/rust-nodejs'
-import { Assert, ContractArtifact, IronfishEvm } from '@ironfish/sdk'
+import { Account, Address } from '@ethereumjs/util'
+import { Asset, generateKey } from '@ironfish/rust-nodejs'
+import {
+  Assert,
+  ContractArtifact,
+  EvmShield,
+  GLOBAL_CONTRACT_ADDRESS,
+  IronfishEvm,
+} from '@ironfish/sdk'
 import { ethers } from 'ethers'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
@@ -26,71 +32,54 @@ export class TestEvmCommand extends IronfishCommand {
     const senderPrivateKey = Uint8Array.from(Buffer.from(senderKey.spendingKey, 'hex'))
     const senderAddress = Address.fromPrivateKey(senderPrivateKey)
 
-    const senderAccount = new Account(BigInt(0), 0n)
+    const senderAccount = new Account(BigInt(0), 10n)
 
     await node.chain.blockchainDb.stateManager.checkpoint()
     await node.chain.blockchainDb.stateManager.putAccount(senderAddress, senderAccount)
     await node.chain.blockchainDb.stateManager.commit()
 
-    const globalContractAddress = Address.fromString(
-      '0xffffffffffffffffffffffffffffffffffffffff',
-    )
-
-    await node.chain.blockchainDb.stateManager.checkpoint()
-    await node.chain.blockchainDb.stateManager.putContractCode(
-      globalContractAddress,
-      hexToBytes(ContractArtifact.deployedBytecode),
-    )
-    await node.chain.blockchainDb.stateManager.commit()
-
     const contract = await node.chain.blockchainDb.stateManager.getAccount(
-      globalContractAddress,
+      GLOBAL_CONTRACT_ADDRESS,
     )
 
     if (!contract) {
       this.error('Contract creation failed')
     }
 
-    this.log(`Contract created at: ${globalContractAddress.toString()}`)
+    this.log(`Contract created at: ${GLOBAL_CONTRACT_ADDRESS.toString()}`)
 
     const globalContract = new ethers.Interface(ContractArtifact.abi)
 
-    const data = globalContract.encodeFunctionData('shield', [
+    const data = globalContract.encodeFunctionData('shield_iron', [
       Buffer.from(senderKey.publicAddress, 'hex'),
-      2n,
-      100n,
     ])
 
     const tx = new LegacyTransaction({
       nonce: 0n,
       gasLimit: 100_000n,
-      to: globalContractAddress,
+      value: 10n,
+      to: GLOBAL_CONTRACT_ADDRESS,
       data: data,
     })
 
     const result = await evm.runTx({ tx: tx.sign(senderPrivateKey) })
 
-    Assert.isEqual(result.receipt.logs.length, 1)
+    const logEvents = evm.decodeLogs(result.receipt.logs)
 
-    const log = result.receipt.logs[0]
+    Assert.isEqual(logEvents.length, 1)
+    const log = logEvents[0] as EvmShield
 
     this.log('Contract Address')
-    this.log(Buffer.from(log[0]).toString('hex'))
+    this.log(log.caller.toString())
 
-    // logging topics
-    for (const topic of log[1]) {
-      this.log(Buffer.from(topic).toString('ascii'))
-    }
-
-    const [ironfishAddress, tokenId, caller, amount] = globalContract.decodeEventLog(
-      'Shield',
-      log[2],
+    const native = Asset.nativeId().toString('hex')
+    Assert.isEqual(log.ironfishAddress.toString('hex'), senderKey.publicAddress)
+    Assert.isEqual(log.assetId.toString('hex'), native)
+    Assert.isEqual(
+      log.caller.toString().toUpperCase(),
+      GLOBAL_CONTRACT_ADDRESS.toString().toUpperCase(),
     )
-    Assert.isEqual(ironfishAddress as string, '0x' + senderKey.publicAddress)
-
-    Assert.isEqual(tokenId as bigint, 2n)
-    Assert.isEqual((caller as string).toUpperCase(), senderAddress.toString().toUpperCase())
-    Assert.isEqual(amount as bigint, 100n)
+    Assert.isEqual(log.amount, 10n)
 
     await node.closeDB()
   }

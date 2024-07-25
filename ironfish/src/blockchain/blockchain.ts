@@ -307,6 +307,8 @@ export class Blockchain {
     if (this._head) {
       this.updateSynced()
     }
+
+    await this.evm.load()
   }
 
   async close(): Promise<void> {
