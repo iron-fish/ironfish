@@ -13,7 +13,7 @@ import { BlockchainDB } from '../blockchain/database/blockchaindb'
 import { EvmBlockchain } from './blockchain'
 
 export const INITIAL_STATE_ROOT = Buffer.from(
-  'ac5cd27fc15e3718bb61f74d0bdb707844fd4ff9e0726e12027436ca5b9d54a4',
+  'eee0297983d99f68337badb8ca509a53da6332a74cb7e2aa878c1abcfbccfccb',
   'hex',
 )
 
