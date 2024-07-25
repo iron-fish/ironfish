@@ -4,13 +4,11 @@
 import { FileUtils } from '@ironfish/sdk'
 import { Args, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
-import { LocalFlags } from '../../flags'
 
 export default class Power extends IronfishCommand {
   static description = "show the network's mining power"
 
   static flags = {
-    ...LocalFlags,
     history: Flags.integer({
       required: false,
       description:

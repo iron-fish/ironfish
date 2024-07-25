@@ -15,7 +15,6 @@ import {
 import { Flags } from '@oclif/core'
 import fs from 'fs/promises'
 import { IronfishCommand } from '../../command'
-import { LocalFlags } from '../../flags'
 import { confirmOrQuit, table, TableColumns } from '../../ui'
 
 export default class GenesisBlockCommand extends IronfishCommand {
@@ -24,7 +23,6 @@ export default class GenesisBlockCommand extends IronfishCommand {
   static hidden = true
 
   static flags = {
-    ...LocalFlags,
     account: Flags.string({
       char: 'a',
       required: false,

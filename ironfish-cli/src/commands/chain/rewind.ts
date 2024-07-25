@@ -4,7 +4,6 @@
 import { Assert, Blockchain, BlockchainUtils, FullNode, NodeUtils, Wallet } from '@ironfish/sdk'
 import { Args, Command, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
-import { LocalFlags } from '../../flags'
 import { ProgressBar, ProgressBarPresets } from '../../ui'
 
 export default class Rewind extends IronfishCommand {
@@ -24,7 +23,6 @@ export default class Rewind extends IronfishCommand {
   }
 
   static flags = {
-    ...LocalFlags,
     wallet: Flags.boolean({
       default: true,
       allowNo: true,

@@ -15,7 +15,9 @@ import {
 import { Command, Config, ux } from '@oclif/core'
 import { CLIError, ExitError } from '@oclif/core/errors'
 import {
+  ConfigFlag,
   ConfigFlagKey,
+  DataDirFlag,
   DataDirFlagKey,
   RpcAuthFlagKey,
   RpcHttpHostFlagKey,
@@ -71,6 +73,12 @@ export abstract class IronfishCommand extends Command {
   closing = false
 
   client: RpcClient | null = null
+
+  public static baseFlags = {
+    [VerboseFlagKey]: VerboseFlag,
+    [ConfigFlagKey]: ConfigFlag,
+    [DataDirFlagKey]: DataDirFlag,
+  }
 
   constructor(argv: string[], config: Config) {
     super(argv, config)

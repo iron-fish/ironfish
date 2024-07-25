@@ -3,13 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
-import { LocalFlags } from '../../flags'
 
 export default class Token extends IronfishCommand {
   static description = 'Get or set the RPC auth token'
 
   static flags = {
-    ...LocalFlags,
     token: Flags.string({
       required: false,
       description: 'Set the RPC auth token to <value>',

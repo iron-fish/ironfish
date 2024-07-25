@@ -3,15 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
-import { ConfigFlag, ConfigFlagKey, DataDirFlag, DataDirFlagKey, LocalFlags } from '../../flags'
 
 export class StartCommand extends IronfishCommand {
   static description = `Run migrations`
 
   static flags = {
-    ...LocalFlags,
-    [ConfigFlagKey]: ConfigFlag,
-    [DataDirFlagKey]: DataDirFlag,
     dry: Flags.boolean({
       default: false,
       description: 'Dry run migrations first',

@@ -7,10 +7,6 @@ import inspector from 'node:inspector'
 import { v4 as uuid } from 'uuid'
 import { IronfishCommand, SIGNALS } from '../command'
 import {
-  ConfigFlag,
-  ConfigFlagKey,
-  DataDirFlag,
-  DataDirFlagKey,
   RpcAuthFlag,
   RpcAuthFlagKey,
   RpcHttpHostFlag,
@@ -29,8 +25,6 @@ import {
   RpcUseIpcFlagKey,
   RpcUseTcpFlag,
   RpcUseTcpFlagKey,
-  VerboseFlag,
-  VerboseFlagKey,
 } from '../flags'
 import { ONE_FISH_IMAGE } from '../images'
 
@@ -41,9 +35,6 @@ export default class Start extends IronfishCommand {
   static description = 'Start the node'
 
   static flags = {
-    [VerboseFlagKey]: VerboseFlag,
-    [ConfigFlagKey]: ConfigFlag,
-    [DataDirFlagKey]: DataDirFlag,
     [RpcUseIpcFlagKey]: { ...RpcUseIpcFlag, allowNo: true } as typeof RpcUseIpcFlag,
     [RpcUseTcpFlagKey]: { ...RpcUseTcpFlag, allowNo: true } as typeof RpcUseTcpFlag,
     [RpcUseHttpFlagKey]: { ...RpcUseHttpFlag, allowNo: true } as typeof RpcUseHttpFlag,

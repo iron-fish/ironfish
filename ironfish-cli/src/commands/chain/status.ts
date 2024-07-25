@@ -3,15 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { FileUtils, renderNetworkName } from '@ironfish/sdk'
 import { IronfishCommand } from '../../command'
-import { LocalFlags } from '../../flags'
 import * as ui from '../../ui'
 
 export default class ChainStatus extends IronfishCommand {
   static description = 'show chain information'
-
-  static flags = {
-    ...LocalFlags,
-  }
 
   async start(): Promise<void> {
     const client = await this.connectRpc()

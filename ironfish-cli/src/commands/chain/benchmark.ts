@@ -7,7 +7,6 @@ import blessed from 'blessed'
 import fs from 'fs/promises'
 import path from 'path'
 import { IronfishCommand } from '../../command'
-import { LocalFlags } from '../../flags'
 import { IronfishCliPKG } from '../../package'
 import * as ui from '../../ui'
 
@@ -18,7 +17,6 @@ export default class Benchmark extends IronfishCommand {
   static hidden = true
 
   static flags = {
-    ...LocalFlags,
     targetdir: Flags.string({
       char: 't',
       required: false,
