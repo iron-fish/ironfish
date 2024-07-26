@@ -73,4 +73,21 @@ describe('Route eth/getAccount', () => {
     expect(response.content.balance).toEqual(CurrencyUtils.encode(ethAccount1.balance))
     expect(response.content.nonce).toEqual(String(ethAccount1.nonce))
   })
+
+  it('should return empty account if account not found', async () => {
+    const { node } = routeTest
+    node.chain.consensus.parameters.enableEvmDescriptions = 2
+
+    const account = await useAccountFixture(node.wallet, 'test3')
+    const address = Address.fromPrivateKey(Buffer.from(account.spendingKey, 'hex'))
+
+    const response = await routeTest.client.eth.getAccount({
+      address: address.toString(),
+      blockReference: '1',
+    })
+
+    expect(response.status).toEqual(200)
+    expect(response.content.balance).toEqual('0')
+    expect(response.content.nonce).toEqual('0')
+  })
 })

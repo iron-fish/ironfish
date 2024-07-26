@@ -55,7 +55,12 @@ routes.register<typeof GetAccountRequestSchema, GetAccountResponse>(
 
     const account = await node.chain.evm.getAccount(address, block.header.stateCommitment)
     if (!account) {
-      throw new RpcNotFoundError(`No account found with address ${request.data.address}`)
+      return request.end({
+        codeHash: '',
+        storageRoot: '',
+        balance: '0',
+        nonce: '0',
+      })
     }
 
     request.end({

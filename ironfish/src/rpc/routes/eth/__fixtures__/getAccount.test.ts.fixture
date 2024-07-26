@@ -148,5 +148,35 @@
         }
       ]
     }
+  ],
+  "Route eth/getAccount should return empty account if account not found": [
+    {
+      "value": {
+        "version": 4,
+        "id": "3540ef70-527b-4e6a-b149-e5f2f30c8bf5",
+        "name": "test3",
+        "spendingKey": "a6fcd1eb7b40e8b9edf2c36431042bd11246c4855fb4eea59e4b3a55e9fd31af",
+        "viewKey": "7f6cf7cafd19236060ebd924783705dd19e00b9c4590115887ec1471cc34e23b8e13140328e1abd7a2933135adf52feae5372920743a1e2a9e4d856b0123f038",
+        "incomingViewKey": "583587f288b871da63786a65312f1df6a576d1a5e0b62d1f64422b298b817506",
+        "outgoingViewKey": "499cb7be49ab3c102140d8cc475e50ef8f36469e2591225b1b735ab5caad0fb1",
+        "publicAddress": "f1319a89dec2a90aa13396faa3dfc63dbeecd4f4b79b798ae17e84bd9e40fc1e",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "e59392ef30f3034ddbf99a959dba9b5ab0184e0bfd11b0e51c141c8e5d98280a"
+      },
+      "head": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      }
+    }
   ]
 }
