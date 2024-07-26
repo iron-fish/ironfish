@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Account as EthAccount, Address } from '@ethereumjs/util'
 import { Asset, generateKey, MEMO_LENGTH } from '@ironfish/rust-nodejs'
 import { BufferMap, BufferSet } from 'buffer-map'
 import { v4 as uuid } from 'uuid'
@@ -2816,6 +2817,39 @@ describe('Wallet', () => {
       await account.updateCreatedAt(block.header)
 
       expect(node.wallet.shouldDecryptForAccount(block.header, account)).toBe(true)
+    })
+  })
+
+  describe('getEthAccount', () => {
+    it('should be empty if the account is not stored in the state trie', async () => {
+      const { node } = nodeTest
+
+      const account = await useAccountFixture(node.wallet, 'test')
+
+      const ethAccount = await node.wallet.getEthAccount(account)
+
+      expect(ethAccount.balance).toEqual(0n)
+      expect(ethAccount.nonce).toEqual(0n)
+    })
+
+    it('should return account balance and nonce stored in state trie', async () => {
+      const { node } = nodeTest
+
+      const account = await useAccountFixture(node.wallet, 'test')
+
+      Assert.isNotNull(account.ethAddress)
+      await node.chain.blockchainDb.stateManager.checkpoint()
+      await node.chain.blockchainDb.stateManager.putAccount(
+        Address.fromString(account.ethAddress),
+        new EthAccount(0n, 1n),
+      )
+      await node.chain.blockchainDb.stateManager.commit()
+
+      const block2 = await useMinerBlockFixture(node.chain, 2, account)
+      await expect(node.chain).toAddBlock(block2)
+
+      const ethAccount = await node.wallet.getEthAccount(account)
+      expect(ethAccount.balance).toEqual(1n)
     })
   })
 })

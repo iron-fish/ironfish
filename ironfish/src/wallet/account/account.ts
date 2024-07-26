@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Address } from '@ethereumjs/util'
 import { multisig } from '@ironfish/rust-nodejs'
 import { Asset } from '@ironfish/rust-nodejs'
 import { BufferMap, BufferSet } from 'buffer-map'
@@ -75,6 +76,15 @@ export class Account {
   readonly prefixRange: DatabaseKeyRange
   readonly multisigKeys?: MultisigKeys
   readonly proofAuthorizingKey: string | null
+
+  // TODO(hughy): persist ethAddress and export for view-only accounts
+  get ethAddress(): string | null {
+    if (!this.spendingKey) {
+      return null
+    }
+
+    return Address.fromPrivateKey(Buffer.from(this.spendingKey, 'hex')).toString()
+  }
 
   constructor({ accountValue, walletDb }: { accountValue: AccountValue; walletDb: WalletDB }) {
     this.id = accountValue.id
