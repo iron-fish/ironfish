@@ -155,9 +155,8 @@ export class IronfishEvm {
   }
 
   async getAccount(address: Address, stateRoot?: Uint8Array): Promise<Account | undefined> {
-    return this.blockchainDb.stateManager.withStateRoot(stateRoot, async () => {
-      return this.blockchainDb.stateManager.getAccount(address)
-    })
+    const sm = await this.blockchainDb.stateManager.withStateRoot(stateRoot)
+    return sm.getAccount(address)
   }
 
   async getBalance(address: Address, stateRoot?: Uint8Array): Promise<bigint | undefined> {
