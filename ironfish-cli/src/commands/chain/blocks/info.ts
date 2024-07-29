@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { BufferUtils, TimeUtils } from '@ironfish/sdk'
+import { BufferUtils, CurrencyUtils, TimeUtils } from '@ironfish/sdk'
 import { Args } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import * as ui from '../../../ui'
@@ -26,6 +26,8 @@ export default class BlockInfo extends IronfishCommand {
     const data = await client.chain.getBlock({ search })
     const blockData = data.content
 
+    const miningReward = blockData.block.transactions[0]
+
     this.log(
       ui.card({
         Hash: blockData.block.hash,
@@ -36,6 +38,7 @@ export default class BlockInfo extends IronfishCommand {
         Difficulty: blockData.block.difficulty,
         Timestamp: TimeUtils.renderString(blockData.block.timestamp),
         Graffiti: BufferUtils.toHuman(Buffer.from(blockData.block.graffiti, 'hex')),
+        'Mining Reward': CurrencyUtils.render((miningReward.fee * -1).toString(), true),
         'Transaction Count': blockData.block.transactions.length,
       }),
     )
