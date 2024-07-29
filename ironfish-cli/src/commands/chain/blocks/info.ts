@@ -8,6 +8,7 @@ import * as ui from '../../../ui'
 
 export default class BlockInfo extends IronfishCommand {
   static description = 'Show the block header of a requested hash or sequence'
+  static enableJsonFlag = true
 
   static args = {
     search: Args.string({
@@ -15,8 +16,6 @@ export default class BlockInfo extends IronfishCommand {
       description: 'The hash or sequence of the block to look at',
     }),
   }
-
-  static enableJsonFlag: boolean = true
 
   async start(): Promise<unknown> {
     const { args } = await this.parse(BlockInfo)

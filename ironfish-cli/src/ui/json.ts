@@ -5,5 +5,12 @@
 import jsonColorizer from 'json-colorizer'
 
 export function json(data: unknown): string {
-  return jsonColorizer(JSON.stringify(data, undefined, '  '))
+  let output = data
+
+  // Only try to stringify JSON output if it is not already a string
+  if (typeof data !== 'string') {
+    output = JSON.stringify(data, undefined, '  ')
+  }
+
+  return jsonColorizer(output)
 }
