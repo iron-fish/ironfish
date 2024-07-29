@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Block } from '@ethereumjs/block'
 import { EVM, Log } from '@ethereumjs/evm'
-import { Address, hexToBytes } from '@ethereumjs/util'
+import { Account, Address, hexToBytes } from '@ethereumjs/util'
 import { RunTxOpts, RunTxResult, VM } from '@ethereumjs/vm'
 import ContractArtifact from '@ironfish/ironfish-contracts'
 import { Asset, generateKeyFromPrivateKey } from '@ironfish/rust-nodejs'
@@ -13,7 +13,7 @@ import { BlockchainDB } from '../blockchain/database/blockchaindb'
 import { EvmBlockchain } from './blockchain'
 
 export const INITIAL_STATE_ROOT = Buffer.from(
-  'eee0297983d99f68337badb8ca509a53da6332a74cb7e2aa878c1abcfbccfccb',
+  'c7cd565517b3b4bf2fc0198bfcf12f4e0e9e4e1d1098388725212b07c61f951f',
   'hex',
 )
 
@@ -44,6 +44,8 @@ export class IronfishEvm {
 
     if (Buffer.from(stateRoot).equals(NULL_STATE_ROOT)) {
       await this.blockchainDb.stateManager.checkpoint()
+      const globalAccount = new Account(0n, 10000000000000000n)
+      await this.blockchainDb.stateManager.putAccount(GLOBAL_CONTRACT_ADDRESS, globalAccount)
       await this.blockchainDb.stateManager.putContractCode(
         GLOBAL_CONTRACT_ADDRESS,
         hexToBytes(ContractArtifact.deployedBytecode),
