@@ -3,12 +3,18 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { FileUtils, renderNetworkName } from '@ironfish/sdk'
 import { IronfishCommand } from '../../command'
+import { ColorFlag, ColorFlagKey } from '../../flags'
 import * as ui from '../../ui'
 
 export default class ChainStatus extends IronfishCommand {
   static description = 'show chain information'
+  static enableJsonFlag = true
 
-  async start(): Promise<void> {
+  static flags = {
+    [ColorFlagKey]: ColorFlag,
+  }
+
+  async start(): Promise<unknown> {
     const client = await this.connectRpc()
 
     const [status, difficulty, power] = await Promise.all([
@@ -30,5 +36,15 @@ export default class ChainStatus extends IronfishCommand {
         Power: FileUtils.formatHashRate(power.content.hashesPerSecond),
       }),
     )
+
+    return {
+      blockchain: status.content.blockchain,
+      difficulty: difficulty.content,
+      power: power.content,
+      node: {
+        network: renderNetworkName(status.content.node.networkId),
+        networkId: status.content.node.networkId,
+      },
+    }
   }
 }
