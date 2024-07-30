@@ -4,6 +4,7 @@
 import { BufferUtils, CurrencyUtils, TimeUtils } from '@ironfish/sdk'
 import { Args } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
+import { ColorFlag, ColorFlagKey } from '../../../flags'
 import * as ui from '../../../ui'
 
 export default class BlockInfo extends IronfishCommand {
@@ -15,6 +16,10 @@ export default class BlockInfo extends IronfishCommand {
       required: true,
       description: 'The hash or sequence of the block to look at',
     }),
+  }
+
+  static flags = {
+    [ColorFlagKey]: ColorFlag,
   }
 
   async start(): Promise<unknown> {
