@@ -4,11 +4,12 @@
 import { BufferUtils } from '@ironfish/sdk'
 import { Args } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
-import { RemoteFlags } from '../../../flags'
+import { ColorFlag, ColorFlagKey, RemoteFlags } from '../../../flags'
 import * as ui from '../../../ui'
 
 export default class AssetInfo extends IronfishCommand {
   static description = 'show asset information'
+  static enableJsonFlag = true
 
   static args = {
     id: Args.string({
@@ -19,9 +20,10 @@ export default class AssetInfo extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
+    [ColorFlagKey]: ColorFlag,
   }
 
-  async start(): Promise<void> {
+  async start(): Promise<unknown> {
     const { args } = await this.parse(AssetInfo)
     const { id: assetId } = args
 
@@ -39,5 +41,7 @@ export default class AssetInfo extends IronfishCommand {
         'Transaction Created': data.content.createdTransactionHash,
       }),
     )
+
+    return data.content
   }
 }
