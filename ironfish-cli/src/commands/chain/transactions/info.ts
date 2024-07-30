@@ -5,14 +5,16 @@
 import { CurrencyUtils, FileUtils } from '@ironfish/sdk'
 import { Args } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
-import { RemoteFlags } from '../../../flags'
+import { ColorFlag, ColorFlagKey, RemoteFlags } from '../../../flags'
 import * as ui from '../../../ui'
 
 export class TransactionInfo extends IronfishCommand {
   static description = 'show transaction information'
+  static enableJsonFlag = true
 
   static flags = {
     ...RemoteFlags,
+    [ColorFlagKey]: ColorFlag,
   }
 
   static args = {
@@ -22,7 +24,7 @@ export class TransactionInfo extends IronfishCommand {
     }),
   }
 
-  async start(): Promise<void> {
+  async start(): Promise<unknown> {
     const { args } = await this.parse(TransactionInfo)
 
     const client = await this.connectRpc()
@@ -46,5 +48,7 @@ export class TransactionInfo extends IronfishCommand {
         'Burn count': transaction.burns.length,
       }),
     )
+
+    return transaction
   }
 }
