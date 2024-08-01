@@ -64,12 +64,12 @@ describe('multisig RPC integration', () => {
     }, 100000)
 
     // eslint-disable-next-line jest/expect-expect
-    it('should create a verified transaction using 2 signers (minumum: 2, maximum: 3), no-std fixtures', async () => {
+    it('should create a verified transaction using 2 signers (minumum: 2, maximum: 2), no-std fixtures', async () => {
       return runTest({
         setupMethod: setupWithDistributedKeyGenNoStd,
         numSigners: 2,
         minSigners: 2,
-        numParticipants: 3,
+        numParticipants: 2,
       })
     }, 100000)
 
@@ -250,33 +250,25 @@ describe('multisig RPC integration', () => {
     participantAccounts: Array<Account>
     coordinatorAccount: Account
   }> {
-    // Sets up test with ironfish-frost (no-std) derived fixtures
-    const secret1Str =
-      '727d1e1d5078330c3235534168334cc3f9d109aef910be9b10a1772c987a3de9ae2398587781de038493a7f8bb42cc0a1c0d608ddd23898f763bd4d1115d53d641'
-    const secret2Str =
-      '72520b51392c0917314319882e5b4a55f6c2a37461ba1f76e0b6e8e1386534a809ee574570d70882849b5653cb7089fd333192181dc1550f28a1725e931ae21530'
-    const secret3Str =
-      '72d55118e79c33c042a22f0f71070250ae637cc2654241572c92ab260a2602d4286029ce39296e96c5433951103e82becf3b1f5219aeb3e46e1688bef51cc099d3'
-    const keyPackage1 =
-      '00c3d2051e681a54df987a571364b071cfa2f0065a5999779042ef50e2b033af4a8ab5970cad371b36afd26e4a323f3f4977c0c5c5c6a4685854251dae07df2f3628ef24018ef03cd55b8113c0a202b07440a3e5d6b526e31aaea6c09d6e2df0958cced4588de220e9da7cb5509034f6f8b8c17cb4895ec7da38738e343ccbb291ebb907e502'
-
-    const keyPackage2 =
-      '00c3d2051edbe8399eb105d6455412c6c42cff9f903f003dd74fb3d6938b8b2f50431d9404ff71b230e5f99d9682ab403b062912c8f12d37c03069102a2f7ba814b2564609ecbeac123df15471d76fb263be502ac496682a9f83316591d20289e907878b478de220e9da7cb5509034f6f8b8c17cb4895ec7da38738e343ccbb291ebb907e502'
-
-    const keyPackage3 =
-      '00c3d2051ea9331e86e03b1d8ce2d1a262436d0c6b6edd02781529a573992e3d6cc2ec8a00b70391f3af698e4fe3139ae9ea059ef9be8ad1ca4f2eef4f81241e82be17310880c477a2e8d06d909afa5bcdb605aceadcdb232ffd469c121d88109e3929f0a98de220e9da7cb5509034f6f8b8c17cb4895ec7da38738e343ccbb291ebb907e502'
-
-    const publicKeyPackage =
-      'e600000000c3d2051e03a9331e86e03b1d8ce2d1a262436d0c6b6edd02781529a573992e3d6cc2ec8a0080c477a2e8d06d909afa5bcdb605aceadcdb232ffd469c121d88109e3929f0a9dbe8399eb105d6455412c6c42cff9f903f003dd74fb3d6938b8b2f50431d9404ecbeac123df15471d76fb263be502ac496682a9f83316591d20289e907878b47681a54df987a571364b071cfa2f0065a5999779042ef50e2b033af4a8ab5970c8ef03cd55b8113c0a202b07440a3e5d6b526e31aaea6c09d6e2df0958cced4588de220e9da7cb5509034f6f8b8c17cb4895ec7da38738e343ccbb291ebb907e50300000072a5280a4b0a18b9fd467bdd1965a65140b09e9a0b2a01c9041da55875b3671aed649490780a2605cb9135fdfff830db7becc8bba79c40aee164259e912d69d1325a09e6a0d1a799c8eebfeb6df1a5bc872ccd5e382a2c71bfc351056108b262a69719b6dcda628a83846a0736fc6323a3971388e62cd0a0458b230dae8a363c067241aae8878bfff50a5123c4e9618554b5cd75365f496c9d0bd18add2e2ff38af893af89a2057608205ac22d039945334af51aab4377ccd877deb59220bd1a857cefbbb455c79f0c00947441ba3920f2c8103923f3e154d431d1ff012261cbf0cc75194bd55ea9d2d129e1016da1fe89065d6b0ce482ff21e4f40d401880ca730e72e5f48e28cc1546027126c8e84f77b6843e592dd6e56fefff122758618408afff00677794df9947b7d97deca16c48e62cf8fff3fef677daa2398330f3f5d76d06e1224c782caeef102f6f4fe91fbe2176b1010ad2a0d4423b6fccbe29e2787b1d8a882abd2251c5867b0f6f02f1fbc91f3a75936526d695b87a5097fe50bd380b0200'
-    const groupSecretKey = 'f77b275ed7a78714dc0c48dc5d499f7e2b413e2e294a5b186de0705556125d18'
-
     // get secret buffer from test in no-std, add them here
-    const secret1 = new multisig.ParticipantSecret(Buffer.from(secret1Str, 'hex'))
+    const secret1 = new multisig.ParticipantSecret(
+      Buffer.from([
+        114, 212, 49, 241, 224, 201, 214, 96, 253, 234, 196, 147, 16, 114, 64, 136, 14, 2, 90,
+        15, 25, 9, 3, 204, 180, 100, 93, 128, 55, 72, 83, 138, 132, 93, 107, 169, 248, 45, 217,
+        4, 165, 189, 213, 110, 191, 122, 46, 228, 85, 87, 32, 88, 66, 53, 100, 178, 99, 132,
+        135, 21, 12, 41, 126, 96, 182,
+      ]),
+    )
     const identity1 = secret1.toIdentity().serialize()
-    const secret2 = new multisig.ParticipantSecret(Buffer.from(secret2Str, 'hex'))
+    const secret2 = new multisig.ParticipantSecret(
+      Buffer.from([
+        114, 187, 249, 168, 103, 43, 108, 7, 116, 175, 15, 108, 192, 94, 149, 21, 188, 205, 118,
+        159, 21, 30, 237, 55, 89, 87, 67, 19, 216, 245, 75, 28, 206, 194, 46, 238, 191, 228,
+        106, 4, 35, 56, 22, 45, 68, 223, 105, 67, 100, 22, 123, 28, 36, 76, 75, 193, 35, 111, 2,
+        223, 227, 135, 119, 124, 242,
+      ]),
+    )
     const identity2 = secret2.toIdentity().serialize()
-    const secret3 = new multisig.ParticipantSecret(Buffer.from(secret3Str, 'hex'))
-    const identity3 = secret3.toIdentity().serialize()
 
     await routeTest.wallet.walletDb.putMultisigSecret(identity1, {
       name: 'foo',
@@ -286,29 +278,75 @@ describe('multisig RPC integration', () => {
       name: 'bar',
       secret: secret2.serialize(),
     })
-    await routeTest.wallet.walletDb.putMultisigSecret(identity3, {
-      name: 'baz',
-      secret: secret3.serialize(),
-    })
 
+    const keyPackage1Arr = [
+      0, 195, 210, 5, 30, 99, 168, 19, 242, 71, 221, 114, 243, 99, 212, 38, 154, 26, 198, 46,
+      157, 67, 64, 135, 182, 39, 53, 65, 117, 110, 185, 166, 194, 134, 72, 244, 13, 231, 25,
+      117, 166, 191, 147, 222, 124, 122, 37, 252, 36, 99, 135, 59, 184, 245, 183, 32, 239, 112,
+      110, 213, 184, 152, 105, 194, 17, 43, 204, 164, 3, 194, 189, 72, 150, 6, 150, 78, 206,
+      212, 47, 61, 187, 116, 105, 220, 22, 189, 64, 12, 36, 51, 37, 212, 145, 94, 116, 178, 209,
+      50, 133, 31, 39, 17, 128, 79, 237, 148, 83, 205, 216, 213, 111, 138, 69, 4, 64, 4, 136,
+      25, 226, 46, 132, 67, 234, 250, 46, 21, 167, 104, 37, 67, 177, 25, 149, 2,
+    ]
+
+    const keyPackage2Arr = [
+      0, 195, 210, 5, 30, 59, 31, 213, 23, 149, 125, 60, 209, 164, 248, 25, 225, 146, 147, 224,
+      41, 205, 145, 80, 250, 61, 36, 110, 31, 146, 86, 106, 136, 186, 236, 127, 7, 218, 197,
+      205, 58, 109, 37, 21, 147, 130, 27, 108, 10, 43, 4, 236, 223, 85, 69, 45, 48, 206, 79,
+      216, 200, 181, 79, 122, 49, 173, 49, 12, 14, 71, 236, 30, 106, 38, 202, 99, 224, 198, 7,
+      13, 42, 158, 133, 30, 25, 189, 12, 157, 205, 106, 9, 59, 153, 235, 203, 99, 242, 230, 100,
+      2, 228, 17, 128, 79, 237, 148, 83, 205, 216, 213, 111, 138, 69, 4, 64, 4, 136, 25, 226,
+      46, 132, 67, 234, 250, 46, 21, 167, 104, 37, 67, 177, 25, 149, 2,
+    ]
+
+    const publicKeyPackageArr = [
+      166, 0, 0, 0, 0, 195, 210, 5, 30, 2, 59, 31, 213, 23, 149, 125, 60, 209, 164, 248, 25,
+      225, 146, 147, 224, 41, 205, 145, 80, 250, 61, 36, 110, 31, 146, 86, 106, 136, 186, 236,
+      127, 7, 71, 236, 30, 106, 38, 202, 99, 224, 198, 7, 13, 42, 158, 133, 30, 25, 189, 12,
+      157, 205, 106, 9, 59, 153, 235, 203, 99, 242, 230, 100, 2, 228, 99, 168, 19, 242, 71, 221,
+      114, 243, 99, 212, 38, 154, 26, 198, 46, 157, 67, 64, 135, 182, 39, 53, 65, 117, 110, 185,
+      166, 194, 134, 72, 244, 13, 194, 189, 72, 150, 6, 150, 78, 206, 212, 47, 61, 187, 116,
+      105, 220, 22, 189, 64, 12, 36, 51, 37, 212, 145, 94, 116, 178, 209, 50, 133, 31, 39, 17,
+      128, 79, 237, 148, 83, 205, 216, 213, 111, 138, 69, 4, 64, 4, 136, 25, 226, 46, 132, 67,
+      234, 250, 46, 21, 167, 104, 37, 67, 177, 25, 149, 2, 0, 0, 0, 114, 74, 119, 222, 130, 99,
+      78, 38, 205, 60, 41, 201, 219, 43, 52, 110, 44, 77, 173, 209, 211, 24, 150, 205, 114, 137,
+      152, 201, 0, 183, 124, 109, 217, 186, 199, 249, 57, 92, 215, 245, 13, 84, 15, 12, 2, 145,
+      174, 16, 115, 127, 131, 134, 108, 3, 187, 108, 223, 118, 252, 46, 179, 12, 114, 174, 6,
+      33, 84, 161, 211, 175, 30, 62, 150, 14, 99, 245, 180, 206, 227, 15, 89, 135, 196, 8, 48,
+      174, 82, 34, 131, 224, 227, 229, 236, 53, 45, 160, 195, 219, 83, 102, 188, 78, 188, 109,
+      127, 118, 109, 22, 158, 77, 185, 84, 134, 139, 247, 42, 127, 100, 22, 154, 224, 89, 50,
+      178, 221, 238, 78, 14, 1, 114, 47, 118, 27, 67, 116, 82, 234, 125, 80, 5, 23, 107, 34, 74,
+      188, 122, 185, 128, 46, 84, 194, 85, 11, 196, 124, 42, 106, 198, 207, 178, 239, 125, 211,
+      153, 172, 15, 45, 165, 83, 238, 112, 106, 39, 38, 123, 27, 222, 78, 247, 136, 167, 178,
+      166, 93, 241, 204, 143, 54, 49, 94, 198, 146, 12, 2, 235, 110, 74, 14, 199, 134, 138, 59,
+      77, 169, 1, 110, 37, 162, 251, 43, 189, 252, 47, 247, 111, 184, 115, 0, 100, 222, 32, 198,
+      254, 196, 5, 112, 235, 166, 222, 145, 16, 158, 63, 146, 80, 140, 77, 2, 95, 159, 242, 57,
+      82, 138, 247, 33, 155, 8, 11, 62, 221, 227, 105, 197, 113, 214, 249, 7, 2, 0,
+    ]
+
+    const groupSecretKeyArr = [
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0,
+    ]
+
+    const publicKeyPackage = publicKeyPackageArr
+      .map((byte) => byte.toString(16).padStart(2, '0'))
+      .join('')
+    const groupSecretKey = groupSecretKeyArr
+      .map((byte) => byte.toString(16).padStart(2, '0'))
+      .join('')
     const participants = [
       {
         name: 'foo',
         secret: secret1,
         identity: identity1.toString('hex'),
-        keyPackage: keyPackage1,
+        keyPackage: keyPackage1Arr.map((byte) => byte.toString(16).padStart(2, '0')).join(''),
       },
       {
         name: 'bar',
         secret: secret2,
         identity: secret2.toIdentity().serialize().toString('hex'),
-        keyPackage: keyPackage2,
-      },
-      {
-        name: 'baz',
-        secret: secret3,
-        identity: secret3.toIdentity().serialize().toString('hex'),
-        keyPackage: keyPackage3,
+        keyPackage: keyPackage2Arr.map((byte) => byte.toString(16).padStart(2, '0')).join(''),
       },
     ]
 
