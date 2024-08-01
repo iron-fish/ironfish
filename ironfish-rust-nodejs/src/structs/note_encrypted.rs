@@ -2,19 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::to_napi_err;
+use ironfish::merkle_note::NOTE_ENCRYPTION_KEY_SIZE;
+use ironfish::note::ENCRYPTED_NOTE_SIZE;
+use ironfish::note::PLAINTEXT_NOTE_SIZE;
+use ironfish::serializing::aead::MAC_SIZE;
 use ironfish::IncomingViewKey;
+use ironfish::MerkleNote;
 use ironfish::MerkleNoteHash;
+use ironfish::Note;
 use ironfish::OutgoingViewKey;
 use napi::bindgen_prelude::*;
 use napi::JsBuffer;
 use napi_derive::napi;
-
-use ironfish::merkle_note::NOTE_ENCRYPTION_KEY_SIZE;
-use ironfish::note::ENCRYPTED_NOTE_SIZE;
-use ironfish::serializing::aead::MAC_SIZE;
-use ironfish::MerkleNote;
-
-use crate::to_napi_err;
 
 #[napi]
 pub const NOTE_ENCRYPTION_KEY_LENGTH: u32 = NOTE_ENCRYPTION_KEY_SIZE as u32;
@@ -29,6 +29,33 @@ pub const ENCRYPTED_NOTE_PLAINTEXT_LENGTH: u32 = ENCRYPTED_NOTE_SIZE as u32 + MA
 pub const ENCRYPTED_NOTE_LENGTH: u32 =
     NOTE_ENCRYPTION_KEY_LENGTH + ENCRYPTED_NOTE_PLAINTEXT_LENGTH + 96;
 
+#[inline]
+fn try_map<T, I, F, R, E>(items: I, f: F) -> std::result::Result<Vec<R>, E>
+where
+    I: IntoIterator<Item = T>,
+    I::IntoIter: ExactSizeIterator,
+    F: Fn(T) -> std::result::Result<R, E>,
+{
+    let items = items.into_iter();
+    let mut result = Vec::with_capacity(items.len());
+    for item in items {
+        result.push(f(item)?);
+    }
+    Ok(result)
+}
+
+#[inline]
+fn decrypted_note_to_buffer<E>(note: std::result::Result<Note, E>) -> Result<Option<Buffer>> {
+    match note {
+        Ok(note) => {
+            let mut buf = [0u8; PLAINTEXT_NOTE_SIZE];
+            note.write(&mut buf[..]).map_err(to_napi_err)?;
+            Ok(Some(Buffer::from(&buf[..])))
+        }
+        Err(_) => Ok(None),
+    }
+}
+
 #[napi(js_name = "NoteEncrypted")]
 pub struct NativeNoteEncrypted {
     pub(crate) note: MerkleNote,
@@ -37,9 +64,16 @@ pub struct NativeNoteEncrypted {
 #[napi]
 impl NativeNoteEncrypted {
     #[napi(constructor)]
-    pub fn new(js_bytes: JsBuffer) -> Result<Self> {
+    pub fn new(js_bytes: JsBuffer, skip_validation: Option<bool>) -> Result<Self> {
         let bytes = js_bytes.into_value()?;
-        let note = MerkleNote::read(bytes.as_ref()).map_err(to_napi_err)?;
+        let skip_validation = skip_validation.unwrap_or(false);
+
+        let note = if !skip_validation {
+            MerkleNote::read(bytes.as_ref())
+        } else {
+            MerkleNote::read_unchecked(bytes.as_ref())
+        }
+        .map_err(to_napi_err)?;
 
         Ok(NativeNoteEncrypted { note })
     }
@@ -100,34 +134,31 @@ impl NativeNoteEncrypted {
 
     /// Returns undefined if the note was unable to be decrypted with the given key.
     #[napi]
-    pub fn decrypt_note_for_owner(&self, incoming_hex_key: String) -> Result<Option<Buffer>> {
+    pub fn decrypt_note_for_owner(&self, incoming_view_key: JsBuffer) -> Result<Option<Buffer>> {
         let incoming_view_key =
-            IncomingViewKey::from_hex(&incoming_hex_key).map_err(to_napi_err)?;
+            IncomingViewKey::read(&*incoming_view_key.into_value()?).map_err(to_napi_err)?;
+        let decrypted_note = self.note.decrypt_note_for_owner(&incoming_view_key);
+        decrypted_note_to_buffer(decrypted_note).map_err(to_napi_err)
+    }
 
-        Ok(match self.note.decrypt_note_for_owner(&incoming_view_key) {
-            Ok(note) => {
-                let mut vec = vec![];
-                note.write(&mut vec).map_err(to_napi_err)?;
-                Some(Buffer::from(vec))
-            }
-            Err(_) => None,
-        })
+    #[napi]
+    pub fn decrypt_note_for_owners(
+        &self,
+        incoming_view_keys: Vec<JsBuffer>,
+    ) -> Result<Vec<Option<Buffer>>> {
+        let incoming_view_keys = try_map(incoming_view_keys, |incoming_view_key| {
+            IncomingViewKey::read(&*incoming_view_key.into_value()?).map_err(to_napi_err)
+        })?;
+        let decrypted_notes = self.note.decrypt_note_for_owners(&incoming_view_keys);
+        try_map(decrypted_notes, decrypted_note_to_buffer).map_err(to_napi_err)
     }
 
     /// Returns undefined if the note was unable to be decrypted with the given key.
     #[napi]
-    pub fn decrypt_note_for_spender(&self, outgoing_hex_key: String) -> Result<Option<Buffer>> {
+    pub fn decrypt_note_for_spender(&self, outgoing_view_key: JsBuffer) -> Result<Option<Buffer>> {
         let outgoing_view_key =
-            OutgoingViewKey::from_hex(&outgoing_hex_key).map_err(to_napi_err)?;
-        Ok(
-            match self.note.decrypt_note_for_spender(&outgoing_view_key) {
-                Ok(note) => {
-                    let mut vec = vec![];
-                    note.write(&mut vec).map_err(to_napi_err)?;
-                    Some(Buffer::from(vec))
-                }
-                Err(_) => None,
-            },
-        )
+            OutgoingViewKey::read(&*outgoing_view_key.into_value()?).map_err(to_napi_err)?;
+        let decrypted_note = self.note.decrypt_note_for_spender(&outgoing_view_key);
+        decrypted_note_to_buffer(decrypted_note).map_err(to_napi_err)
     }
 }

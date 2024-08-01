@@ -13,6 +13,7 @@ import { Flags } from '@oclif/core'
 import blessed from 'blessed'
 import { IronfishCommand } from '../command'
 import { RemoteFlags } from '../flags'
+import * as ui from '../ui'
 
 export default class Status extends IronfishCommand {
   static description = 'Show the status of the node'
@@ -34,7 +35,7 @@ export default class Status extends IronfishCommand {
     const { flags } = await this.parse(Status)
 
     if (!flags.follow) {
-      const client = await this.sdk.connectRpc()
+      const client = await this.connectRpc()
       const response = await client.node.getStatus()
       this.log(renderStatus(response.content, flags.all))
       this.exit(0)
@@ -214,22 +215,22 @@ function renderStatus(content: GetNodeStatusResponse, debugOutput: boolean): str
     ? [cores, current, rollingAvg].join(', ')
     : [cores, current].join(', ')
 
-  return `\
-Version              ${content.node.version} @ ${content.node.git}
-Node                 ${nodeStatus}
-Node Name            ${content.node.nodeName}
-Peer ID              ${content.peerNetwork.publicIdentity}
-Block Graffiti       ${blockGraffiti}
-Network              ${network}
-Memory               ${memoryStatus}
-CPU                  ${cpuStatus}
-P2P Network          ${peerNetworkStatus}
-Mining               ${miningDirectorStatus}
-Mem Pool             ${memPoolStatus}
-Syncer               ${blockSyncerStatus}
-Blockchain           ${blockchainStatus}
-Accounts             ${accountStatus}
-Telemetry            ${telemetryStatus}
-Workers              ${workersStatus}
-`
+  return ui.card({
+    Version: `${content.node.version} @ ${content.node.git}`,
+    Node: nodeStatus,
+    'Node Name': content.node.nodeName,
+    'Peed ID': content.peerNetwork.publicIdentity,
+    'Block Graffiti': blockGraffiti,
+    Network: network,
+    Memory: memoryStatus,
+    CPU: cpuStatus,
+    'P2P Network': peerNetworkStatus,
+    Mining: miningDirectorStatus,
+    'Mem Pool': memPoolStatus,
+    Syncer: blockSyncerStatus,
+    Blockchain: blockchainStatus,
+    Accounts: accountStatus,
+    Telemetry: telemetryStatus,
+    Workers: workersStatus,
+  })
 }

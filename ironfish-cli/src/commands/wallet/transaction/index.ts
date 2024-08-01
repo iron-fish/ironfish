@@ -12,6 +12,7 @@ import {
 import { Args, Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
+import * as ui from '../../../ui'
 import {
   displayChainportTransactionSummary,
   extractChainportDataFromTransaction,
@@ -48,7 +49,7 @@ export class TransactionCommand extends IronfishCommand {
     // TODO: remove account arg
     const account = flags.account ? flags.account : args.account
 
-    const client = await this.sdk.connectRpc()
+    const client = await this.connectRpc()
     const networkId = (await client.chain.getNetworkInfo()).content.networkId
 
     const response = await client.wallet.getAccountTransaction({
@@ -70,24 +71,27 @@ export class TransactionCommand extends IronfishCommand {
     const renderedFee = CurrencyUtils.render(transaction.fee, true)
     const explorerUrl = getExplorer(networkId)?.getTransactionUrl(hash)
 
-    this.log(`Transaction: ${hash}`)
+    const data: Record<string, unknown> = {
+      Transaction: hash,
+    }
     if (explorerUrl) {
-      this.log(`Explorer: ${explorerUrl}`)
+      data['Explorer'] = explorerUrl
     }
-    this.log(`Account: ${response.content.account}`)
-    this.log(`Status: ${transaction.status}`)
-    this.log(`Type: ${transaction.type}`)
-    this.log(`Timestamp: ${TimeUtils.renderString(transaction.timestamp)}`)
-    this.log(`Fee: ${renderedFee}`)
+    data['Account'] = response.content.account
+    data['Status'] = transaction.status
+    data['Type'] = transaction.type
+    data['Timestamp'] = TimeUtils.renderString(transaction.timestamp)
+    data['Fee'] = renderedFee
     if (transaction.blockHash && transaction.blockSequence) {
-      this.log(`Block Hash: ${transaction.blockHash}`)
-      this.log(`Block Sequence: ${transaction.blockSequence}`)
+      data['Block Hash'] = transaction.blockHash
+      data['Block Sequence'] = transaction.blockSequence
     }
-    this.log(`Notes Count: ${transaction.notes.length}`)
-    this.log(`Spends Count: ${transaction.spends.length}`)
-    this.log(`Mints Count: ${transaction.mints.length}`)
-    this.log(`Burns Count: ${transaction.burns.length}`)
-    this.log(`Sender: ${transaction.notes[0].sender}`)
+    data['Notes Count'] = transaction.notes.length
+    data['Spends Count'] = transaction.spends.length
+    data['Mints Count'] = transaction.mints.length
+    data['Burns Count'] = transaction.burns.length
+    data['Sender'] = transaction.notes[0].sender
+    this.log(ui.card(data))
 
     const chainportTxnDetails = extractChainportDataFromTransaction(networkId, transaction)
 
@@ -126,7 +130,7 @@ export class TransactionCommand extends IronfishCommand {
         })
       }
 
-      ux.table(noteAssetPairs, {
+      ui.table(noteAssetPairs, {
         amount: {
           header: 'Amount',
           get: ({ asset, note }) =>
@@ -157,7 +161,7 @@ export class TransactionCommand extends IronfishCommand {
 
     if (transaction.spends.length > 0) {
       this.log(`\n---Spends---\n`)
-      ux.table(transaction.spends, {
+      ui.table(transaction.spends, {
         size: {
           header: 'Size',
           get: (spend) => spend.size,
@@ -183,9 +187,10 @@ export class TransactionCommand extends IronfishCommand {
       )
 
       this.log(`\n---Asset Balance Deltas---\n`)
-      ux.table(assetBalanceDeltas, {
+      ui.table(assetBalanceDeltas, {
         assetId: {
           header: 'Asset ID',
+          get: (assetBalanceDelta) => assetBalanceDelta.assetId,
         },
         delta: {
           header: 'Balance Change',

@@ -71,7 +71,7 @@ describe('BlockFetcher', () => {
     expect(sentPeers).toHaveLength(1)
 
     expect(sentPeers[0].sendSpy).toHaveBeenCalledWith(
-      new GetCompactBlockRequest(hash, expect.any(Number)),
+      new GetCompactBlockRequest(hash, expect.any(Number) as unknown as number),
     )
 
     await peerNetwork.stop()
@@ -177,7 +177,11 @@ describe('BlockFetcher', () => {
     expect(peers[0].sendSpy.mock.calls).toHaveLength(1)
     const request = peers[0].sendSpy.mock.calls[0][0]
     expect(request).toEqual(
-      new GetBlockTransactionsRequest(block.header.hash, [1, 0, 1, 0], expect.any(Number)),
+      new GetBlockTransactionsRequest(
+        block.header.hash,
+        [1, 0, 1, 0],
+        expect.any(Number) as unknown as number,
+      ),
     )
 
     expect(await chain.hasBlock(block.header.hash)).toBe(false)

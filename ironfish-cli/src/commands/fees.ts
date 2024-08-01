@@ -26,7 +26,7 @@ export class FeeCommand extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(FeeCommand)
 
-    const client = await this.sdk.connectRpc()
+    const client = await this.connectRpc()
 
     if (flags.explain) {
       await this.explainFeeRates(client)

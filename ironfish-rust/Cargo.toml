@@ -26,6 +26,7 @@ workspace = true
 [features]
 benchmark = []
 download-params = ["dep:reqwest"]
+note-encryption-stats = []
 
 [lib]
 name = "ironfish"
@@ -45,7 +46,7 @@ group = "0.12.0"
 ironfish-frost = { git = "https://github.com/iron-fish/ironfish-frost.git", branch = "main" }
 fish_hash = "0.3.0"
 ironfish_zkp = { version = "0.2.0", path = "../ironfish-zkp" }
-jubjub = { git = "https://github.com/iron-fish/jubjub.git", branch = "blstrs" }
+jubjub = { git = "https://github.com/iron-fish/jubjub.git", branch = "blstrs", features = ["multiply-many"] }
 lazy_static = "1.4.0"
 libc = "0.2.126" # sub-dependency that needs a pinned version until a new release of cpufeatures: https://github.com/RustCrypto/utils/pull/789
 rand = "0.8.5"

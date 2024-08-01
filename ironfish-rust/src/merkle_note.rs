@@ -2,7 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::{errors::IronfishError, keys::EphemeralKeyPair, serializing::read_point};
+use crate::{
+    errors::IronfishError,
+    keys::EphemeralKeyPair,
+    serializing::{read_point, read_point_unchecked},
+};
 
 /// Implement a merkle note to store all the values that need to go into a merkle tree.
 /// A tree containing these values can serve as a snapshot of the entire chain.
@@ -39,7 +43,7 @@ pub const NOTE_ENCRYPTION_MINER_KEYS: &[u8; NOTE_ENCRYPTION_KEY_SIZE] =
     b"Iron Fish note encryption miner key000000000000000000000000000000000000000000000";
 const SHARED_KEY_PERSONALIZATION: &[u8; 16] = b"Iron Fish Keyenc";
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct MerkleNote {
     /// Randomized value commitment. Sometimes referred to as
     /// `cv` in the literature. It's calculated by multiplying a value by a
@@ -128,6 +132,9 @@ impl MerkleNote {
         diffie_hellman_keys: &EphemeralKeyPair,
         note_encryption_keys: [u8; NOTE_ENCRYPTION_KEY_SIZE],
     ) -> MerkleNote {
+        #[cfg(feature = "note-encryption-stats")]
+        stats::inc_construct();
+
         let secret_key = diffie_hellman_keys.secret();
         let public_key = diffie_hellman_keys.public();
 
@@ -142,11 +149,35 @@ impl MerkleNote {
         }
     }
 
-    /// Load a MerkleNote from the given stream
+    /// Load a MerkleNote from the given reader.
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
         let value_commitment = read_point(&mut reader)?;
         let note_commitment = read_scalar(&mut reader)?;
         let ephemeral_public_key = read_point(&mut reader)?;
+
+        let mut encrypted_note = [0; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE];
+        reader.read_exact(&mut encrypted_note[..])?;
+        let mut note_encryption_keys = [0; NOTE_ENCRYPTION_KEY_SIZE];
+        reader.read_exact(&mut note_encryption_keys[..])?;
+
+        Ok(MerkleNote {
+            value_commitment,
+            note_commitment,
+            ephemeral_public_key,
+            encrypted_note,
+            note_encryption_keys,
+        })
+    }
+
+    /// Load a MerkleNote from the given reader, skipping some expensive validity checks on the
+    /// input.
+    ///
+    /// This method is faster than [`read()`], but it requires trusted or pre-validated input.
+    /// Passing invalid input may result in erroneous calculations or security risks.
+    pub fn read_unchecked<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
+        let value_commitment = read_point_unchecked(&mut reader)?;
+        let note_commitment = read_scalar(&mut reader)?;
+        let ephemeral_public_key = read_point_unchecked(&mut reader)?;
 
         let mut encrypted_note = [0; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE];
         reader.read_exact(&mut encrypted_note[..])?;
@@ -180,17 +211,56 @@ impl MerkleNote {
         &self,
         owner_view_key: &IncomingViewKey,
     ) -> Result<Note, IronfishError> {
+        #[cfg(feature = "note-encryption-stats")]
+        stats::inc_decrypt_note_for_owner(1);
+
         let shared_secret = owner_view_key.shared_secret(&self.ephemeral_public_key);
         let note =
             Note::from_owner_encrypted(owner_view_key, &shared_secret, &self.encrypted_note)?;
         note.verify_commitment(self.note_commitment)?;
+
+        #[cfg(feature = "note-encryption-stats")]
+        stats::inc_decrypt_note_for_owner_ok(1);
         Ok(note)
+    }
+
+    pub fn decrypt_note_for_owners(
+        &self,
+        owner_view_keys: &[IncomingViewKey],
+    ) -> Vec<Result<Note, IronfishError>> {
+        #[cfg(feature = "note-encryption-stats")]
+        stats::inc_decrypt_note_for_owner(owner_view_keys.len());
+
+        let shared_secrets =
+            IncomingViewKey::shared_secrets(owner_view_keys, &self.ephemeral_public_key);
+
+        let result = owner_view_keys
+            .iter()
+            .zip(shared_secrets.iter())
+            .map(move |(owner_view_key, shared_secret)| {
+                let note = Note::from_owner_encrypted(
+                    owner_view_key,
+                    shared_secret,
+                    &self.encrypted_note,
+                )?;
+                note.verify_commitment(self.note_commitment)?;
+                Ok(note)
+            })
+            .collect::<Vec<Result<Note, IronfishError>>>();
+
+        #[cfg(feature = "note-encryption-stats")]
+        stats::inc_decrypt_note_for_owner_ok(result.iter().filter(move |res| res.is_ok()).count());
+
+        result
     }
 
     pub fn decrypt_note_for_spender(
         &self,
         spender_key: &OutgoingViewKey,
     ) -> Result<Note, IronfishError> {
+        #[cfg(feature = "note-encryption-stats")]
+        stats::inc_decrypt_note_for_spender();
+
         let encryption_key = calculate_key_for_encryption_keys(
             spender_key,
             &self.value_commitment,
@@ -206,6 +276,9 @@ impl MerkleNote {
         let note =
             Note::from_spender_encrypted(public_address.0, &shared_key, &self.encrypted_note)?;
         note.verify_commitment(self.note_commitment)?;
+
+        #[cfg(feature = "note-encryption-stats")]
+        stats::inc_decrypt_note_for_spender_ok();
         Ok(note)
     }
 }
@@ -267,6 +340,82 @@ fn calculate_key_for_encryption_keys(
         .as_bytes()
         .try_into()
         .expect("has has incorrect length")
+}
+
+#[cfg(feature = "note-encryption-stats")]
+pub mod stats {
+    use std::sync::atomic::AtomicUsize;
+    use std::sync::atomic::Ordering::Relaxed;
+
+    static CONSTRUCT_CALLS: AtomicUsize = AtomicUsize::new(0);
+
+    static DECRYPT_FOR_OWNER_CALLS: AtomicUsize = AtomicUsize::new(0);
+    static DECRYPT_FOR_OWNER_OK_CALLS: AtomicUsize = AtomicUsize::new(0);
+
+    static DECRYPT_FOR_SPENDER_CALLS: AtomicUsize = AtomicUsize::new(0);
+    static DECRYPT_FOR_SPENDER_OK_CALLS: AtomicUsize = AtomicUsize::new(0);
+
+    /// Statistics on the operations performed by the [`ironfish::merkle_note`] module.
+    #[derive(Copy, Clone, PartialEq, Eq, Debug)]
+    pub struct Stats {
+        /// Number of [`MerkleNote::construct()`] calls made so far.
+        pub construct: usize,
+        /// Number of [`MerkleNote::decrypt_note_for_owner()`] calls made so far.
+        pub decrypt_note_for_owner: CallResultStats,
+        /// Number of [`MerkleNote::decrypt_note_for_spender()`] calls made so far.
+        pub decrypt_note_for_spender: CallResultStats,
+    }
+
+    /// Statistics for a function that returns a `Result`.
+    #[derive(Copy, Clone, PartialEq, Eq, Debug)]
+    pub struct CallResultStats {
+        /// Number of calls to a function performed so far. This includes both successful (`Ok`)
+        /// and unsuccessful (`Err`) calls.
+        pub total: usize,
+        /// Number of calls to a function performed so far that returned a successful (`Ok`)
+        /// result.
+        pub successful: usize,
+    }
+
+    #[inline(always)]
+    pub(super) fn inc_construct() {
+        CONSTRUCT_CALLS.fetch_add(1, Relaxed);
+    }
+
+    #[inline(always)]
+    pub(super) fn inc_decrypt_note_for_owner(count: usize) {
+        DECRYPT_FOR_OWNER_CALLS.fetch_add(count, Relaxed);
+    }
+
+    #[inline(always)]
+    pub(super) fn inc_decrypt_note_for_owner_ok(count: usize) {
+        DECRYPT_FOR_OWNER_OK_CALLS.fetch_add(count, Relaxed);
+    }
+
+    #[inline(always)]
+    pub(super) fn inc_decrypt_note_for_spender() {
+        DECRYPT_FOR_SPENDER_CALLS.fetch_add(1, Relaxed);
+    }
+
+    #[inline(always)]
+    pub(super) fn inc_decrypt_note_for_spender_ok() {
+        DECRYPT_FOR_SPENDER_OK_CALLS.fetch_add(1, Relaxed);
+    }
+
+    #[must_use]
+    pub fn get() -> Stats {
+        Stats {
+            construct: CONSTRUCT_CALLS.load(Relaxed),
+            decrypt_note_for_owner: CallResultStats {
+                total: DECRYPT_FOR_OWNER_CALLS.load(Relaxed),
+                successful: DECRYPT_FOR_OWNER_OK_CALLS.load(Relaxed),
+            },
+            decrypt_note_for_spender: CallResultStats {
+                total: DECRYPT_FOR_SPENDER_CALLS.load(Relaxed),
+                successful: DECRYPT_FOR_SPENDER_OK_CALLS.load(Relaxed),
+            },
+        }
+    }
 }
 
 #[cfg(test)]
@@ -440,5 +589,42 @@ mod test {
         assert!(merkle_note
             .decrypt_note_for_spender(spender_key.outgoing_view_key())
             .is_err());
+    }
+
+    #[test]
+    fn test_serialization_roundtrip() {
+        let spender_key = SaplingKey::generate_key();
+        let note = Note::new(
+            spender_key.public_address(),
+            42,
+            "",
+            NATIVE_ASSET,
+            spender_key.public_address(),
+        );
+        let diffie_hellman_keys = EphemeralKeyPair::new();
+
+        let value_commitment = ValueCommitment::new(note.value, note.asset_generator());
+
+        let merkle_note = MerkleNote::new(
+            spender_key.outgoing_view_key(),
+            &note,
+            &value_commitment,
+            &diffie_hellman_keys,
+        );
+
+        let mut serialization = Vec::new();
+
+        merkle_note
+            .write(&mut serialization)
+            .expect("serialization failed");
+
+        assert_eq!(
+            MerkleNote::read(&serialization[..]).expect("deserialization failed"),
+            merkle_note
+        );
+        assert_eq!(
+            MerkleNote::read_unchecked(&serialization[..]).expect("deserialization failed"),
+            merkle_note
+        );
     }
 }

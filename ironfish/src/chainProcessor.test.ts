@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import type { Mock } from 'jest-mock'
 import { ChainProcessor } from './chainProcessor'
 import { BlockHeader } from './primitives/blockheader'
 import { createNodeTest, useMinerBlockFixture } from './testUtilities'
@@ -32,7 +33,7 @@ describe('ChainProcessor', () => {
       head: chain.genesis.hash,
     })
 
-    const onEvent: jest.Mock<void, [BlockHeader, 'add' | 'remove']> = jest.fn()
+    const onEvent: Mock<(header: BlockHeader, event: 'add' | 'remove') => void> = jest.fn()
     processor.onAdd.on((block) => onEvent(block, 'add'))
     processor.onRemove.on((block) => onEvent(block, 'remove'))
 
@@ -82,7 +83,7 @@ describe('ChainProcessor', () => {
       head: chain.genesis.hash,
     })
 
-    const onEvent: jest.Mock<void, [BlockHeader, 'add' | 'remove']> = jest.fn()
+    const onEvent: Mock<(header: BlockHeader, event: 'add' | 'remove') => void> = jest.fn()
     processor.onAdd.on((block) => onEvent(block, 'add'))
     processor.onRemove.on((block) => onEvent(block, 'remove'))
 
@@ -137,5 +138,78 @@ describe('ChainProcessor', () => {
 
     expect(result.hashChanged).toEqual(false)
     expect(processor.hash).toEqual(chain.genesis.hash)
+  })
+
+  it('limits blocks processed with maxQueueSize', async () => {
+    const { chain } = nodeTest
+
+    const block1 = await useMinerBlockFixture(chain)
+    await expect(chain).toAddBlock(block1)
+    const block2 = await useMinerBlockFixture(chain)
+    await expect(chain).toAddBlock(block2)
+
+    expect(chain.head.hash).toEqual(block2.header.hash)
+
+    const onEvent: Mock<(header: BlockHeader, event: 'add' | 'remove') => void> = jest.fn()
+
+    const processor = new ChainProcessor({ chain, head: null })
+    processor.onAdd.on((block) => onEvent(block, 'add'))
+    processor.onRemove.on((block) => onEvent(block, 'remove'))
+
+    processor.hash = chain.genesis.hash
+    processor.maxQueueSize = 1
+    await processor.update()
+    expect(onEvent).toHaveBeenCalledTimes(1)
+    expect(onEvent).toHaveBeenNthCalledWith(1, block1.header, 'add')
+
+    onEvent.mockReset()
+
+    processor.hash = chain.genesis.hash
+    processor.maxQueueSize = null
+    await processor.update()
+    expect(onEvent).toHaveBeenCalledTimes(2)
+    expect(onEvent).toHaveBeenNthCalledWith(1, block1.header, 'add')
+    expect(onEvent).toHaveBeenNthCalledWith(2, block2.header, 'add')
+  })
+
+  it('should remain stable if hash is head', async () => {
+    const { chain } = nodeTest
+
+    const block = await useMinerBlockFixture(chain)
+    await expect(chain).toAddBlock(block)
+    expect(chain.head.hash).toEqual(block.header.hash)
+
+    const onEvent: Mock<(header: BlockHeader, event: 'add' | 'remove') => void> = jest.fn()
+
+    const processor = new ChainProcessor({ chain, head: chain.genesis.hash })
+    processor.onAdd.on((block) => onEvent(block, 'add'))
+    processor.onRemove.on((block) => onEvent(block, 'remove'))
+
+    let result = await processor.update()
+    expect(result.hashChanged).toBe(true)
+    expect(processor.hash).toEqualBuffer(block.header.hash)
+    expect(onEvent).toHaveBeenCalledTimes(1)
+    expect(onEvent).toHaveBeenNthCalledWith(1, block.header, 'add')
+
+    onEvent.mockReset()
+
+    result = await processor.update()
+    expect(result.hashChanged).toBe(false)
+    expect(processor.hash).toEqualBuffer(block.header.hash)
+    expect(onEvent).toHaveBeenCalledTimes(0)
+  })
+
+  it('should not crash if head not found', async () => {
+    const MISSING_HEAD = Buffer.alloc(32, 'helloworld')
+    const processor = new ChainProcessor({ chain: nodeTest.chain, head: MISSING_HEAD })
+
+    const onEvent: Mock<(header: BlockHeader, event: 'add' | 'remove') => void> = jest.fn()
+    processor.onAdd.on((block) => onEvent(block, 'add'))
+    processor.onRemove.on((block) => onEvent(block, 'remove'))
+
+    const result = await processor.update()
+    expect(result.hashChanged).toBe(false)
+    expect(processor.hash).toEqualBuffer(MISSING_HEAD)
+    expect(onEvent).toHaveBeenCalledTimes(0)
   })
 })

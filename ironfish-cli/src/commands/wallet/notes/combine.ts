@@ -12,11 +12,11 @@ import {
   TimeUtils,
   Transaction,
 } from '@ironfish/sdk'
-import { Flags, ux } from '@oclif/core'
+import { Flags } from '@oclif/core'
 import inquirer from 'inquirer'
 import { IronfishCommand } from '../../../command'
 import { HexFlag, IronFlag, RemoteFlags } from '../../../flags'
-import { confirmOrQuit } from '../../../ui'
+import { confirmOrQuit, inputPrompt, table } from '../../../ui'
 import { getAssetsByIDs, selectAsset } from '../../../utils'
 import { getExplorer } from '../../../utils/explorer'
 import { selectFee } from '../../../utils/fees'
@@ -132,9 +132,7 @@ export class CombineNotesCommand extends IronfishCommand {
 
     // eslint-disable-next-line no-constant-condition
     while (true) {
-      const result = await ux.prompt('Enter the number of notes', {
-        required: true,
-      })
+      const result = await inputPrompt('Enter the number of notes', true)
 
       const notesToCombine = parseInt(result)
 
@@ -220,7 +218,7 @@ export class CombineNotesCommand extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(CombineNotesCommand)
 
-    const client = await this.sdk.connectRpc()
+    const client = await this.connectRpc()
 
     let to = flags.to
     let from = flags.account
@@ -288,8 +286,7 @@ export class CombineNotesCommand extends IronfishCommand {
 
     const totalAmount = notes.reduce((acc, note) => acc + BigInt(note.value), 0n)
 
-    const memo =
-      flags.memo ?? (await ux.prompt('Enter the memo (or leave blank)', { required: false }))
+    const memo = flags.memo ?? (await inputPrompt('Enter the memo (or leave blank)'))
 
     const expiration = await this.calculateExpiration(client, spendPostTime, numberOfNotes)
 
@@ -452,7 +449,7 @@ export class CombineNotesCommand extends IronfishCommand {
 
     if (resultingNotes) {
       this.log('')
-      ux.table(
+      table(
         resultingNotes,
         {
           hash: {

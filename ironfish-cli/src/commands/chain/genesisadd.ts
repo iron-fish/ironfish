@@ -10,17 +10,15 @@ import {
   IJSON,
   isValidPublicAddress,
 } from '@ironfish/sdk'
-import { Flags, ux } from '@oclif/core'
+import { Flags } from '@oclif/core'
 import fs from 'fs/promises'
 import { IronfishCommand } from '../../command'
-import { LocalFlags } from '../../flags'
-import { confirmOrQuit } from '../../ui'
+import { confirmOrQuit, table, TableColumns } from '../../ui'
 
 export default class GenesisAddCommand extends IronfishCommand {
   static hidden = true
 
   static flags = {
-    ...LocalFlags,
     account: Flags.string({
       char: 'a',
       required: true,
@@ -80,7 +78,7 @@ export default class GenesisAddCommand extends IronfishCommand {
     // Log genesis block info
     this.log(`Genesis block will be modified with the following values in a new transaction:`)
     this.log(`Allocations:`)
-    const columns: ux.Table.table.Columns<GenesisBlockAllocation> = {
+    const columns: TableColumns<GenesisBlockAllocation> = {
       identity: {
         header: 'ADDRESS',
         get: (row: GenesisBlockAllocation) => row.publicAddress,
@@ -97,7 +95,7 @@ export default class GenesisAddCommand extends IronfishCommand {
       },
     }
 
-    ux.table(allocations, columns, {
+    table(allocations, columns, {
       printLine: this.log.bind(this),
     })
 

@@ -38,7 +38,7 @@ routes.register<typeof GetAccountsRequestSchema, GetAccountsResponse>(
         accounts = [defaultAccount]
       }
     } else {
-      accounts = node.wallet.listAccounts()
+      accounts = node.wallet.accounts
     }
 
     const names = accounts.map((a) => (request.data?.displayName ? a.displayName : a.name))

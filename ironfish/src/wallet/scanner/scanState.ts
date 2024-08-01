@@ -16,7 +16,9 @@ export class ScanState {
   readonly end: HeadValue
   readonly startedAt: number
   readonly abortController: AbortController
-  readonly onTransaction = new Event<[sequence: number, endSequence: number]>()
+  readonly onTransaction = new Event<
+    [sequence: number, endSequence: number, action: 'connect' | 'disconnect']
+  >()
   readonly speed = new Meter()
 
   private runningPromise: Promise<void>
@@ -43,11 +45,11 @@ export class ScanState {
     return (remaining / this.speed.rate1m) * 1000
   }
 
-  signal(header: BlockHeader): void {
+  signal(header: BlockHeader, action: 'connect' | 'disconnect'): void {
     this.hash = header.hash
     this.sequence = header.sequence
     this.speed.add(1)
-    this.onTransaction.emit(header.sequence, this.end.sequence)
+    this.onTransaction.emit(header.sequence, this.end.sequence, action)
   }
 
   signalComplete(): void {

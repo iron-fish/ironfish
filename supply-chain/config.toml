@@ -37,7 +37,7 @@ audit-as-crates-io = true
 [policy.ironfish_zkp]
 audit-as-crates-io = true
 
-[policy."jubjub:0.9.0@git:a1a0c2ed69eec4d5d5e87842e2a40849f7fa4633"]
+[policy."jubjub:0.9.0@git:531157cfa7b81ade207e819ef50c563843b10e30"]
 audit-as-crates-io = true
 
 [policy."reddsa:0.5.1@git:311baf8865f6e21527d1f20750d8f2cf5c9e531a"]
@@ -180,10 +180,6 @@ criteria = "safe-to-deploy"
 
 [[exemptions.clap_lex]]
 version = "0.2.4"
-criteria = "safe-to-deploy"
-
-[[exemptions.cobs]]
-version = "0.2.3"
 criteria = "safe-to-deploy"
 
 [[exemptions.const-crc32]]

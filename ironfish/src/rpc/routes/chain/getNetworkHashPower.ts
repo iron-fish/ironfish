@@ -9,10 +9,12 @@ import { RpcValidationError } from '../../adapters'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
 
-export type GetNetworkHashPowerRequest = {
-  blocks?: number | null // number of blocks to look back
-  sequence?: number | null // the sequence of the latest block from when to estimate the network speed
-}
+export type GetNetworkHashPowerRequest =
+  | {
+      blocks?: number | null // number of blocks to look back
+      sequence?: number | null // the sequence of the latest block from when to estimate the network speed
+    }
+  | undefined
 
 export type GetNetworkHashPowerResponse = {
   hashesPerSecond: number
@@ -26,7 +28,7 @@ export const GetNetworkHashPowerRequestSchema: yup.ObjectSchema<GetNetworkHashPo
       blocks: yup.number().nullable().optional(),
       sequence: yup.number().nullable().optional(),
     })
-    .defined()
+    .optional()
 
 export const GetNetworkHashPowerResponseSchema: yup.ObjectSchema<GetNetworkHashPowerResponse> =
   yup

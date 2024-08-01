@@ -285,7 +285,7 @@ describe('IronfishSdk', () => {
 
         expect(connect).toHaveBeenCalledTimes(1)
         expect(client).toBeInstanceOf(RpcIpcClient)
-        expect(client).toMatchObject(sdk.client)
+        expect(client).toEqual(sdk.client)
       })
     })
 
@@ -303,7 +303,7 @@ describe('IronfishSdk', () => {
 
         expect(connect).toHaveBeenCalledTimes(1)
         expect(client).toBeInstanceOf(RpcTcpClient)
-        expect(client).toMatchObject(sdk.client)
+        expect(client).toEqual(sdk.client)
       })
     })
   })

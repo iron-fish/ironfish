@@ -406,6 +406,12 @@ impl NativeUnsignedTransaction {
     }
 
     #[napi]
+    pub fn randomized_public_key(&self) -> String {
+        let bytes = self.transaction.randomized_public_key_bytes();
+        bytes_to_hex(&bytes)
+    }
+
+    #[napi]
     pub fn public_key_randomness(&self) -> String {
         let bytes = self.transaction.public_key_randomness().to_bytes();
         bytes_to_hex(&bytes)
@@ -457,6 +463,25 @@ impl NativeUnsignedTransaction {
 
         let mut vec: Vec<u8> = vec![];
         posted_transaction.write(&mut vec).map_err(to_napi_err)?;
+
+        Ok(Buffer::from(vec))
+    }
+
+    #[napi]
+    pub fn add_signature(&mut self, signature: JsBuffer) -> Result<Buffer> {
+        let bytes = signature.into_value()?;
+
+        let mut signature_bytes = [0u8; 64];
+
+        signature_bytes.copy_from_slice(bytes.as_ref());
+
+        let signed_transaction = self
+            .transaction
+            .add_signature(signature_bytes)
+            .map_err(to_napi_err)?;
+
+        let mut vec: Vec<u8> = vec![];
+        signed_transaction.write(&mut vec).map_err(to_napi_err)?;
 
         Ok(Buffer::from(vec))
     }

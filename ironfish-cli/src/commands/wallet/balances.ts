@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { BufferUtils, CurrencyUtils, GetBalancesResponse, RpcAsset } from '@ironfish/sdk'
-import { Args, Flags, ux } from '@oclif/core'
+import { Args, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
+import { table, TableColumns, TableFlags } from '../../ui'
 import { compareAssets, renderAssetWithVerificationStatus } from '../../utils'
-import { TableFlags } from '../../utils/table'
 
 type AssetBalancePairs = { asset: RpcAsset; balance: GetBalancesResponse['balances'][number] }
 
@@ -39,7 +39,7 @@ export class BalancesCommand extends IronfishCommand {
 
   async start(): Promise<void> {
     const { flags, args } = await this.parse(BalancesCommand)
-    const client = await this.sdk.connectRpc()
+    const client = await this.connectRpc()
 
     // TODO: remove account arg
     const account = flags.account ? flags.account : args.account
@@ -64,7 +64,7 @@ export class BalancesCommand extends IronfishCommand {
       })
     }
 
-    let columns: ux.Table.table.Columns<AssetBalancePairs> = {
+    let columns: TableColumns<AssetBalancePairs> = {
       assetName: {
         header: 'Asset Name',
         get: ({ asset }) =>
@@ -129,6 +129,6 @@ export class BalancesCommand extends IronfishCommand {
       ),
     )
 
-    ux.table(assetBalancePairs, columns, { ...flags })
+    table(assetBalancePairs, columns, { ...flags })
   }
 }

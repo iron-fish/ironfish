@@ -34,6 +34,7 @@ export const VerboseFlag = Flags.boolean({
   char: 'v',
   default: false,
   description: 'Set logging level to verbose',
+  helpGroup: 'GLOBAL',
 })
 
 export const ColorFlag = Flags.boolean({
@@ -45,6 +46,7 @@ export const ColorFlag = Flags.boolean({
 export const ConfigFlag = Flags.string({
   default: DEFAULT_CONFIG_NAME,
   description: 'The name of the config file to use',
+  helpGroup: 'GLOBAL',
 })
 
 export const DataDirFlag = Flags.string({
@@ -52,6 +54,7 @@ export const DataDirFlag = Flags.string({
   default: DEFAULT_DATA_DIR,
   description: 'The path to the data dir',
   env: 'IRONFISH_DATA_DIR',
+  helpGroup: 'GLOBAL',
 })
 
 export const RpcUseIpcFlag = Flags.boolean({
@@ -97,23 +100,10 @@ export const RpcUseHttpFlag = Flags.boolean({
 })
 
 /**
- * These flags should usually be used on any command that starts a node,
- * or uses a database to execute the command
- */
-export const LocalFlags = {
-  [VerboseFlagKey]: VerboseFlag,
-  [ConfigFlagKey]: ConfigFlag,
-  [DataDirFlagKey]: DataDirFlag,
-}
-
-/**
  * These flags should usually be used on any command that uses an
  * RPC client to connect to a node to run the command
  */
 export const RemoteFlags = {
-  [VerboseFlagKey]: VerboseFlag,
-  [ConfigFlagKey]: ConfigFlag,
-  [DataDirFlagKey]: DataDirFlag,
   [RpcUseTcpFlagKey]: RpcUseTcpFlag,
   [RpcUseIpcFlagKey]: RpcUseIpcFlag,
   [RpcTcpHostFlagKey]: RpcTcpHostFlag,

@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import type { Mock } from 'jest-mock'
 import { RpcWalletNote, RpcWalletTransaction, TransactionType } from '@ironfish/sdk'
 import { getConfig } from './config'
 import { ChainportMemoMetadata } from './metadata'
@@ -16,7 +17,7 @@ describe('isChainportTransaction', () => {
   }
 
   beforeEach(() => {
-    ;(getConfig as jest.Mock).mockReturnValue(mockConfig)
+    ;(getConfig as Mock).mockReturnValue(mockConfig)
   })
 
   it('should return false for non-SEND/RECEIVE transactions', () => {
@@ -42,7 +43,7 @@ describe('isChainportTransaction', () => {
     })
 
     it('should return true for valid incoming chainport transaction', () => {
-      ;(ChainportMemoMetadata.decode as jest.Mock).mockReturnValue([1, 'address'])
+      ;(ChainportMemoMetadata.decode as Mock).mockReturnValue([1, 'address'])
 
       const transaction = {
         type: TransactionType.RECEIVE,
@@ -92,7 +93,7 @@ describe('isChainportTransaction', () => {
     })
 
     it('should return true for valid outgoing chainport transaction', () => {
-      ;(ChainportMemoMetadata.decode as jest.Mock).mockReturnValue([1, 'address'])
+      ;(ChainportMemoMetadata.decode as Mock).mockReturnValue([1, 'address'])
       const transaction = {
         type: TransactionType.SEND,
         notes: [

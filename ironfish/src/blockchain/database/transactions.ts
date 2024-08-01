@@ -27,7 +27,7 @@ export class TransactionsValueEncoding implements IDatabaseEncoding<Transactions
     const transactions = []
 
     while (reader.left()) {
-      transactions.push(new Transaction(reader.readVarBytes()))
+      transactions.push(new Transaction(reader.readVarBytes(), { skipValidation: true }))
     }
 
     return { transactions }

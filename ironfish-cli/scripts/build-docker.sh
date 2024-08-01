@@ -3,8 +3,14 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 
 cat .gitignore - > .dockerignore <<EOF
-# do not send the .git directory to the Docker daemon to make builds faster
+# Do not send all the files from the .git directory to the Docker daemon to
+# make builds faster. Send only the strictly necessary files/directories to
+# make git know the hash of the HEAD.
 .git
+!.git/HEAD
+!.git/refs
+!.git/objects
+.git/objects/*
 EOF
 
 echo "Building Docker Image"

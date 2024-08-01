@@ -277,7 +277,9 @@ describe('MemPool', () => {
     describe('with an expired sequence', () => {
       const nodeTest = createNodeTest()
 
-      afterEach(() => jest.restoreAllMocks())
+      afterEach(() => {
+        jest.restoreAllMocks()
+      })
 
       it('returns false', async () => {
         const { node } = nodeTest
@@ -596,10 +598,10 @@ describe('MemPool', () => {
       await chain.removeBlock(block.header.hash)
 
       expect(memPool.get(transaction.hash())).toBeDefined()
-      expect([...memPool.orderedTransactions()]).toContainEqual(transaction)
+      expect(memPool.orderedTransactions()).toContainEqual(transaction)
 
       expect(memPool.exists(minersFee.hash())).toBe(false)
-      expect([...memPool.orderedTransactions()]).not.toContainEqual(minersFee)
+      expect(memPool.orderedTransactions()).not.toContainEqual(minersFee)
     })
 
     it('does not add back in transactions with overlapping nullifiers if fee is smaller', async () => {

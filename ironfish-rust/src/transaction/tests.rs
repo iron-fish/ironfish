@@ -6,7 +6,9 @@ use std::collections::{BTreeMap, HashMap};
 
 #[cfg(test)]
 use super::internal_batch_verify_transactions;
-use super::{ProposedTransaction, Transaction};
+
+use super::{ProposedTransaction, Transaction, TRANSACTION_PUBLIC_KEY_SIZE};
+
 use crate::test_util::create_multisig_identities;
 use crate::transaction::tests::split_spender_key::split_spender_key;
 use crate::{
@@ -23,8 +25,8 @@ use crate::{
         TRANSACTION_EXPIRATION_SIZE, TRANSACTION_FEE_SIZE, TRANSACTION_SIGNATURE_SIZE,
     },
 };
-
 use ff::Field;
+use group::GroupEncoding;
 use ironfish_frost::{
     frost::{round2, round2::SignatureShare, Identifier, Randomizer},
     nonces::deterministic_signing_nonces,
@@ -836,4 +838,80 @@ fn test_aggregate_signature_shares() {
 
     // verify transaction
     verify_transaction(&signed_transaction).expect("should be able to verify transaction");
+}
+
+#[test]
+fn test_add_signature_by_building_transaction() {
+    let spender_key = SaplingKey::generate_key();
+
+    // create notes
+
+    let in_note = Note::new(
+        spender_key.public_address(),
+        42,
+        "",
+        NATIVE_ASSET,
+        spender_key.public_address(),
+    );
+
+    let out_note = Note::new(
+        spender_key.public_address(),
+        40,
+        "",
+        NATIVE_ASSET,
+        spender_key.public_address(),
+    );
+
+    let mut transaction = ProposedTransaction::new(TransactionVersion::latest());
+
+    transaction
+        .add_spend(in_note.clone(), &make_fake_witness(&in_note.clone()))
+        .unwrap();
+
+    transaction.add_output(out_note).unwrap();
+
+    let public_address: crate::PublicAddress = spender_key.public_address();
+
+    let intended_fee = 1;
+
+    let mut unsigned_transaction = transaction
+        .build(
+            spender_key.proof_authorizing_key,
+            spender_key.view_key().clone(),
+            spender_key.outgoing_view_key().clone(),
+            intended_fee,
+            Some(public_address),
+        )
+        .expect("should be able to build unsigned transaction");
+
+    let private_key = redjubjub::PrivateKey(spender_key.spend_authorizing_key);
+    let randomized_private_key = private_key.randomize(unsigned_transaction.public_key_randomness);
+    let transaction_hash_bytes = unsigned_transaction.transaction_signature_hash().unwrap();
+
+    let transaction_randomized_public_key =
+        redjubjub::PublicKey(spender_key.view_key.authorizing_key.into()).randomize(
+            unsigned_transaction.public_key_randomness,
+            *SPENDING_KEY_GENERATOR,
+        );
+
+    let mut data_to_be_signed = [0; 64];
+    data_to_be_signed[..TRANSACTION_PUBLIC_KEY_SIZE]
+        .copy_from_slice(&transaction_randomized_public_key.0.to_bytes());
+    data_to_be_signed[32..].copy_from_slice(&transaction_hash_bytes[..]);
+
+    let signature = randomized_private_key.sign(
+        &data_to_be_signed,
+        &mut thread_rng(),
+        *SPENDING_KEY_GENERATOR,
+    );
+
+    let mut signature_bytes: [u8; 64] = [0; 64];
+
+    signature.write(signature_bytes.as_mut()).unwrap();
+
+    let signed = unsigned_transaction
+        .add_signature(signature_bytes)
+        .expect("should be able to sign transaction");
+
+    verify_transaction(&signed).expect("should be able to verify transaction");
 }

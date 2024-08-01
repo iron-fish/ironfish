@@ -64,7 +64,7 @@ export class MultisigSign extends IronfishCommand {
 
     ux.action.start('Signing the multisig transaction')
 
-    const client = await this.sdk.connectRpc()
+    const client = await this.connectRpc()
 
     const response = await client.wallet.multisig.aggregateSignatureShares({
       account: flags.account,

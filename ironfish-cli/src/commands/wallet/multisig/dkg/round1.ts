@@ -1,9 +1,10 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Flags, ux } from '@oclif/core'
+import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
+import { inputPrompt } from '../../../../ui'
 import { longPrompt } from '../../../../utils/input'
 import { selectSecret } from '../../../../utils/multisig'
 
@@ -32,7 +33,7 @@ export class DkgRound1Command extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(DkgRound1Command)
 
-    const client = await this.sdk.connectRpc()
+    const client = await this.connectRpc()
 
     let participantName = flags.participantName
     if (!participantName) {
@@ -57,9 +58,7 @@ export class DkgRound1Command extends IronfishCommand {
 
     let minSigners = flags.minSigners
     if (!minSigners) {
-      const input = await ux.prompt('Enter the number of minimum signers', {
-        required: true,
-      })
+      const input = await inputPrompt('Enter the number of minimum signers', true)
       minSigners = parseInt(input)
       if (isNaN(minSigners) || minSigners < 2) {
         this.error('Minimum number of signers must be at least 2')

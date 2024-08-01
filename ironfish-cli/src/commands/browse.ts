@@ -4,15 +4,12 @@
 import { Platform } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../command'
-import { ConfigFlag, ConfigFlagKey, DataDirFlag, DataDirFlagKey } from '../flags'
 import { PlatformUtils } from '../utils'
 
 export class BrowseCommand extends IronfishCommand {
   static description = `Browse to your data directory`
 
   static flags = {
-    [ConfigFlagKey]: ConfigFlag,
-    [DataDirFlagKey]: DataDirFlag,
     cd: Flags.boolean({
       default: false,
       description: 'print the directory where the data directory is',

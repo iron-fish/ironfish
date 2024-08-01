@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import type { Blockchain } from './blockchain'
 import type { BlockHeader } from './primitives'
-import { Assert } from './assert'
 import { Event } from './event'
 import { createRootLogger, Logger } from './logger'
 
@@ -35,11 +34,18 @@ export class ChainProcessor {
   logger: Logger
   onAdd = new Event<[block: BlockHeader]>()
   onRemove = new Event<[block: BlockHeader]>()
+  maxQueueSize: number | null
 
-  constructor(options: { logger?: Logger; chain: Blockchain; head: Buffer | null }) {
+  constructor(options: {
+    logger?: Logger
+    chain: Blockchain
+    head: Buffer | null
+    maxQueueSize?: number | null
+  }) {
     this.chain = options.chain
     this.logger = (options.logger ?? createRootLogger()).withTag('chainprocessor')
     this.hash = options.head
+    this.maxQueueSize = options.maxQueueSize ?? null
   }
 
   private async add(header: BlockHeader): Promise<void> {
@@ -51,8 +57,6 @@ export class ChainProcessor {
   }
 
   async update({ signal }: { signal?: AbortSignal } = {}): Promise<{ hashChanged: boolean }> {
-    const oldHash = this.hash
-
     if (!this.hash) {
       await this.add(this.chain.genesis)
       this.hash = this.chain.genesis.hash
@@ -68,10 +72,13 @@ export class ChainProcessor {
 
     const head = await this.chain.getHeader(this.hash)
 
-    Assert.isNotNull(
-      head,
-      `Chain processor head not found in chain: ${this.hash.toString('hex')}`,
-    )
+    let blockCount = 0
+    let hashChanged = false
+
+    if (!head) {
+      this.logger.warn('ChainProcessor could not find head in blockchain.')
+      return { hashChanged }
+    }
 
     const fork = await this.chain.findFork(head, chainHead)
 
@@ -82,7 +89,7 @@ export class ChainProcessor {
 
     for await (const remove of iterBackwards) {
       if (signal?.aborted) {
-        return { hashChanged: !oldHash || !this.hash.equals(oldHash) }
+        return { hashChanged }
       }
 
       if (remove.hash.equals(fork.hash)) {
@@ -92,13 +99,19 @@ export class ChainProcessor {
       await this.remove(remove)
       this.hash = remove.previousBlockHash
       this.sequence = remove.sequence - 1
+      hashChanged = true
+      blockCount++
+
+      if (this.maxQueueSize && blockCount >= this.maxQueueSize) {
+        return { hashChanged }
+      }
     }
 
     const iterForwards = this.chain.iterateTo(fork, chainHead, undefined, false)
 
     for await (const add of iterForwards) {
       if (signal?.aborted) {
-        return { hashChanged: !oldHash || !this.hash.equals(oldHash) }
+        return { hashChanged }
       }
 
       if (add.hash.equals(fork.hash)) {
@@ -108,8 +121,14 @@ export class ChainProcessor {
       await this.add(add)
       this.hash = add.hash
       this.sequence = add.sequence
+      hashChanged = true
+      blockCount++
+
+      if (this.maxQueueSize && blockCount >= this.maxQueueSize) {
+        return { hashChanged }
+      }
     }
 
-    return { hashChanged: !oldHash || !this.hash.equals(oldHash) }
+    return { hashChanged }
   }
 }

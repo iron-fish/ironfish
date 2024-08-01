@@ -15,6 +15,14 @@ export type NoteEncryptedHash = Buffer
 export type SerializedNoteEncryptedHash = Buffer
 export type SerializedNoteEncrypted = Buffer
 
+const ensureBuffer = (value: Buffer | string): Buffer => {
+  if (typeof value === 'string') {
+    return Buffer.from(value, 'hex')
+  } else {
+    return value
+  }
+}
+
 export class NoteEncrypted {
   private readonly noteEncryptedSerialized: Buffer
 
@@ -22,9 +30,16 @@ export class NoteEncrypted {
 
   private noteEncrypted: NativeNoteEncrypted | null = null
   private referenceCount = 0
+  /**
+   * Used to record whether the note has already been previously validated, and
+   * thus does not need to be checked anymore after parsing. Used to speed up
+   * construction of `NativeNoteEncrypted` in `takeReference`.
+   */
+  private skipValidation: boolean
 
-  constructor(noteEncryptedSerialized: Buffer) {
+  constructor(noteEncryptedSerialized: Buffer, options?: { skipValidation?: boolean }) {
     this.noteEncryptedSerialized = noteEncryptedSerialized
+    this.skipValidation = options?.skipValidation ?? false
 
     const reader = bufio.read(noteEncryptedSerialized, true)
 
@@ -57,7 +72,11 @@ export class NoteEncrypted {
   takeReference(): NativeNoteEncrypted {
     this.referenceCount++
     if (this.noteEncrypted === null) {
-      this.noteEncrypted = new NativeNoteEncrypted(this.noteEncryptedSerialized)
+      this.noteEncrypted = new NativeNoteEncrypted(
+        this.noteEncryptedSerialized,
+        this.skipValidation,
+      )
+      this.skipValidation = true
     }
     return this.noteEncrypted
   }
@@ -70,16 +89,28 @@ export class NoteEncrypted {
     }
   }
 
-  decryptNoteForOwner(ownerHexKey: string): Note | undefined {
-    const note = this.takeReference().decryptNoteForOwner(ownerHexKey)
+  decryptNoteForOwner(incomingViewKey: Buffer | string): Note | undefined {
+    const note = this.takeReference().decryptNoteForOwner(ensureBuffer(incomingViewKey))
     this.returnReference()
     if (note) {
       return new Note(note)
     }
   }
 
-  decryptNoteForSpender(spenderHexKey: string): Note | undefined {
-    const note = this.takeReference().decryptNoteForSpender(spenderHexKey)
+  decryptNoteForOwners(incomingViewKeys: Array<Buffer>): Array<Note | undefined> {
+    if (incomingViewKeys.length === 0) {
+      return []
+    } else if (incomingViewKeys.length === 1) {
+      return [this.decryptNoteForOwner(incomingViewKeys[0])]
+    }
+
+    const notes = this.takeReference().decryptNoteForOwners(incomingViewKeys)
+    this.returnReference()
+    return notes.map((note) => (note ? new Note(note) : undefined))
+  }
+
+  decryptNoteForSpender(outgoingViewKey: Buffer | string): Note | undefined {
+    const note = this.takeReference().decryptNoteForSpender(ensureBuffer(outgoingViewKey))
     this.returnReference()
     if (note) {
       return new Note(note)

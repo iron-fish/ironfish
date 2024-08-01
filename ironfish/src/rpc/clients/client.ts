@@ -7,6 +7,8 @@ import type {
   AcceptTransactionResponse,
   AddPeerRequest,
   AddPeerResponse,
+  AddSignatureRequest,
+  AddSignatureResponse,
   AddTransactionRequest,
   AddTransactionResponse,
   AggregateSignatureSharesRequest,
@@ -159,8 +161,8 @@ import type {
   SetConfigResponse,
   SetScanningRequest,
   SetScanningResponse,
-  ShowChainRequest,
-  ShowChainResponse,
+  SignTransactionRequest,
+  SignTransactionResponse,
   StopNodeResponse,
   SubmitBlockRequest,
   SubmitBlockResponse,
@@ -174,6 +176,8 @@ import type {
 import { ApiNamespace } from '../routes/namespaces'
 
 export abstract class RpcClient {
+  abstract close(): void
+
   abstract request<TEnd = unknown, TStream = unknown>(
     route: string,
     data?: unknown,
@@ -555,11 +559,29 @@ export abstract class RpcClient {
       ).waitForEnd()
     },
 
+    addSignature: (
+      params: AddSignatureRequest,
+    ): Promise<RpcResponseEnded<AddSignatureResponse>> => {
+      return this.request<AddSignatureResponse>(
+        `${ApiNamespace.wallet}/addSignature`,
+        params,
+      ).waitForEnd()
+    },
+
     createTransaction: (
       params: CreateTransactionRequest,
     ): Promise<RpcResponseEnded<CreateTransactionResponse>> => {
       return this.request<CreateTransactionResponse>(
         `${ApiNamespace.wallet}/createTransaction`,
+        params,
+      ).waitForEnd()
+    },
+
+    signTransaction: (
+      params: SignTransactionRequest,
+    ): Promise<RpcResponseEnded<SignTransactionResponse>> => {
+      return this.request<SignTransactionResponse>(
+        `${ApiNamespace.wallet}/signTransaction`,
         params,
       ).waitForEnd()
     },
@@ -887,19 +909,10 @@ export abstract class RpcClient {
     },
 
     getNetworkHashPower: (
-      params: GetNetworkHashPowerRequest,
+      params: GetNetworkHashPowerRequest = undefined,
     ): Promise<RpcResponseEnded<GetNetworkHashPowerResponse>> => {
       return this.request<GetNetworkHashPowerResponse>(
         `${ApiNamespace.chain}/getNetworkHashPower`,
-        params,
-      ).waitForEnd()
-    },
-
-    showChain: (
-      params: ShowChainRequest = undefined,
-    ): Promise<RpcResponseEnded<ShowChainResponse>> => {
-      return this.request<ShowChainResponse>(
-        `${ApiNamespace.chain}/showChain`,
         params,
       ).waitForEnd()
     },
@@ -915,11 +928,11 @@ export abstract class RpcClient {
 
     getTransaction: (
       params: GetTransactionRequest,
-    ): RpcResponse<void, GetTransactionResponse> => {
-      return this.request<void, GetTransactionResponse>(
+    ): Promise<RpcResponseEnded<GetTransactionResponse>> => {
+      return this.request<GetTransactionResponse>(
         `${ApiNamespace.chain}/getTransaction`,
         params,
-      )
+      ).waitForEnd()
     },
 
     getConsensusParameters: (

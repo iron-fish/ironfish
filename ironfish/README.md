@@ -55,5 +55,5 @@ const node = sdk.node()
 node.start()
 
 // List all accounts from the wallet
-console.log(await node.wallet.listAccounts())
+console.log(node.wallet.accounts)
 ```

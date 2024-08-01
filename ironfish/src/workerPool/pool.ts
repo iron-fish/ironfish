@@ -4,7 +4,6 @@
 
 import { getCpuCount, UnsignedTransaction } from '@ironfish/rust-nodejs'
 import _ from 'lodash'
-import { Assert } from '../assert'
 import { VerificationResult, VerificationResultReason } from '../consensus'
 import { createRootLogger, Logger } from '../logger'
 import { Meter, MetricsMonitor } from '../metrics'
@@ -197,7 +196,7 @@ export class WorkerPool {
     accountKeys: ReadonlyArray<{ accountId: string } & DecryptNotesAccountKey>,
     encryptedNotes: ReadonlyArray<DecryptNotesItem>,
     options: DecryptNotesOptions,
-  ): Promise<Map<string, Array<DecryptedNote | null>>> {
+  ): Promise<Map<string, Array<DecryptedNote | undefined>>> {
     const request = new DecryptNotesRequest(accountKeys, encryptedNotes, options)
 
     const response = await this.execute(request).result()
@@ -205,28 +204,7 @@ export class WorkerPool {
       throw new Error('Invalid response')
     }
 
-    // The response contains a linear array of notes for efficiency, but we
-    // need to return a more structured response
-
-    const decryptedNotesByAccount = new Map<string, Array<DecryptedNote | null>>()
-    for (const { accountId } of accountKeys) {
-      decryptedNotesByAccount.set(accountId, [])
-    }
-
-    let index = 0
-    for (const _ of encryptedNotes) {
-      for (const { accountId } of accountKeys) {
-        const nextNote: DecryptedNote | null | undefined = response.notes[index++]
-        const accountDecryptedNotes = decryptedNotesByAccount.get(accountId)
-        Assert.isNotUndefined(nextNote)
-        Assert.isNotUndefined(accountDecryptedNotes)
-        accountDecryptedNotes.push(nextNote)
-      }
-    }
-
-    Assert.isEqual(index, response.notes.length)
-
-    return decryptedNotesByAccount
+    return response.mapToAccounts(accountKeys)
   }
 
   /**
@@ -247,7 +225,7 @@ export class WorkerPool {
     await this.execute(request).result()
   }
 
-  private execute(request: Readonly<WorkerMessage>): Job {
+  execute(request: Readonly<WorkerMessage>): Job {
     // Ensure that workers are started before handling jobs
     this.start()
 

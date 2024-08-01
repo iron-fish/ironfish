@@ -9,7 +9,7 @@ import { RemoteFlags } from '../../flags'
 import { ProgressBar } from '../../ui'
 
 export default class Export extends IronfishCommand {
-  static description = 'Export part of the chain database to JSON'
+  static description = 'export the chain to a file'
 
   static flags = {
     ...RemoteFlags,
@@ -41,7 +41,7 @@ export default class Export extends IronfishCommand {
 
     const exportPath = this.sdk.fileSystem.join(exportDir, 'data.json')
 
-    const client = await this.sdk.connectRpc()
+    const client = await this.connectRpc()
 
     const stream = client.chain.exportChainStream({
       start: args.start,

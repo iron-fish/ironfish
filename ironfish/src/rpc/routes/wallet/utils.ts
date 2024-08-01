@@ -41,9 +41,9 @@ export async function getTransactionNotes(
   const accountKeys = [
     {
       accountId: account.id,
-      incomingViewKey: account.incomingViewKey,
-      outgoingViewKey: account.outgoingViewKey,
-      viewKey: account.viewKey,
+      incomingViewKey: Buffer.from(account.incomingViewKey, 'hex'),
+      outgoingViewKey: Buffer.from(account.outgoingViewKey, 'hex'),
+      viewKey: Buffer.from(account.viewKey, 'hex'),
     },
   ]
 
@@ -80,7 +80,7 @@ export async function getTransactionNotes(
     Assert.isNotUndefined(decryptedSends)
 
     for (const note of decryptedSends) {
-      if (note === null) {
+      if (note === undefined) {
         continue
       }
 

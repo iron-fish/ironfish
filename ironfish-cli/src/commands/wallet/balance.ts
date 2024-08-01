@@ -5,6 +5,7 @@ import { CurrencyUtils, GetBalanceResponse, isNativeIdentifier, RpcAsset } from 
 import { Args, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
+import * as ui from '../../ui'
 import { renderAssetWithVerificationStatus } from '../../utils'
 
 export class BalanceCommand extends IronfishCommand {
@@ -50,7 +51,7 @@ export class BalanceCommand extends IronfishCommand {
     // TODO: remove account arg
     const account = flags.account ? flags.account : args.account
 
-    const client = await this.sdk.connectRpc()
+    const client = await this.connectRpc()
 
     const response = await client.wallet.getAccountBalance({
       account,
@@ -86,18 +87,26 @@ export class BalanceCommand extends IronfishCommand {
     const renderedUnconfirmed = renderValue(response.content.unconfirmed, asset, assetName)
     const renderedPending = renderValue(response.content.pending, asset, assetName)
     if (flags.all) {
-      this.log(`Account: ${response.content.account}`)
-      this.log(`Head Hash: ${response.content.blockHash || 'NULL'}`)
-      this.log(`Head Sequence: ${response.content.sequence || 'NULL'}`)
-      this.log(`Available:   ${renderedAvailable}`)
-      this.log(`Confirmed:   ${renderedConfirmed}`)
-      this.log(`Unconfirmed: ${renderedUnconfirmed}`)
-      this.log(`Pending:     ${renderedPending}`)
+      this.log(
+        ui.card({
+          Account: response.content.account,
+          'Head Hash': response.content.blockHash || 'NULL',
+          'Head Sequence': response.content.sequence || 'NULL',
+          Available: renderedAvailable,
+          Confirmed: renderedConfirmed,
+          Unconfirmed: renderedUnconfirmed,
+          Pending: renderedPending,
+        }),
+      )
       return
     }
 
-    this.log(`Account: ${response.content.account}`)
-    this.log(`Available Balance: ${renderedAvailable}`)
+    this.log(
+      ui.card({
+        Account: response.content.account,
+        'Available Balance': renderedAvailable,
+      }),
+    )
   }
 
   explainBalance(response: GetBalanceResponse, asset: RpcAsset, assetName: string): void {

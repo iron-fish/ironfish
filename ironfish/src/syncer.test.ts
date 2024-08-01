@@ -113,7 +113,7 @@ describe('Syncer', () => {
     const syncFromSpy = jest.spyOn(syncer, 'syncFrom')
 
     const [promise, , reject] = PromiseUtils.split<void>()
-    syncFromSpy.mockResolvedValue(promise)
+    syncFromSpy.mockReturnValue(promise)
     syncer['startSync'](peer)
 
     expect(syncer.stopping).not.toBe(null)
@@ -143,7 +143,7 @@ describe('Syncer', () => {
     const syncFromSpy = jest.spyOn(syncer, 'syncFrom')
 
     const [promise, resolve] = PromiseUtils.split<void>()
-    syncFromSpy.mockResolvedValue(promise)
+    syncFromSpy.mockReturnValue(promise)
     syncer['startSync'](peer)
 
     expect(syncer.stopping).not.toBe(null)
@@ -264,7 +264,7 @@ describe('Syncer', () => {
     const syncFromSpy = jest.spyOn(syncer, 'syncFrom')
 
     const [promise, resolve] = PromiseUtils.split<void>()
-    syncFromSpy.mockResolvedValue(promise)
+    syncFromSpy.mockReturnValue(promise)
     syncer['startSync'](peer)
 
     // Set the nextMeasureTime to be less than now, which is the trigger to

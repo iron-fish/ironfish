@@ -17,7 +17,7 @@ import { Flags, ux } from '@oclif/core'
 import inquirer from 'inquirer'
 import { IronfishCommand } from '../../../command'
 import { HexFlag, IronFlag, RemoteFlags, ValueFlag } from '../../../flags'
-import { confirmOrQuit } from '../../../ui'
+import { confirmOrQuit, inputPrompt } from '../../../ui'
 import { selectAsset } from '../../../utils'
 import {
   ChainportBridgeTransaction,
@@ -77,12 +77,16 @@ export class BridgeCommand extends IronfishCommand {
       description:
         'The block sequence after which the transaction will be removed from the mempool. Set to 0 for no expiration.',
     }),
+    offline: Flags.boolean({
+      default: false,
+      description: 'Allow offline transaction creation',
+    }),
   }
 
   async start(): Promise<void> {
     const { flags } = await this.parse(BridgeCommand)
 
-    const client = await this.sdk.connectRpc()
+    const client = await this.connectRpc()
 
     const networkId = (await client.chain.getNetworkInfo()).content.networkId
 
@@ -173,9 +177,7 @@ export class BridgeCommand extends IronfishCommand {
     }
 
     if (!to) {
-      to = await ux.prompt('Enter the public address of the recipient', {
-        required: true,
-      })
+      to = await inputPrompt('Enter the public address of the recipient', true)
     }
 
     if (!isEthereumAddress(to)) {

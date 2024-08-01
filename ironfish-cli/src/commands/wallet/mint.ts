@@ -17,7 +17,7 @@ import {
 import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { IronFlag, RemoteFlags, ValueFlag } from '../../flags'
-import { confirmOrQuit, confirmPrompt } from '../../ui'
+import * as ui from '../../ui'
 import { selectAsset } from '../../utils/asset'
 import { promptCurrency } from '../../utils/currency'
 import { promptExpiration } from '../../utils/expiration'
@@ -106,11 +106,17 @@ export class Mint extends IronfishCommand {
       description: 'The public address of the account to transfer ownership of this asset to.',
       required: false,
     }),
+    unsignedTransaction: Flags.boolean({
+      default: false,
+      description:
+        'Return a serialized UnsignedTransaction. Use it to create a transaction and build proofs but not post to the network',
+      exclusive: ['rawTransaction'],
+    }),
   }
 
   async start(): Promise<void> {
     const { flags } = await this.parse(Mint)
-    const client = await this.sdk.connectRpc()
+    const client = await this.connectRpc()
 
     if (!flags.offline) {
       const status = await client.wallet.getNodeStatus()
@@ -147,21 +153,16 @@ export class Mint extends IronfishCommand {
     // name is provided
     let isMintingNewAsset = Boolean(name || metadata)
     if (!assetId && !metadata && !name) {
-      isMintingNewAsset = await confirmPrompt('Do you want to create a new asset?')
+      isMintingNewAsset = await ui.confirmPrompt('Do you want to create a new asset?')
     }
 
     if (isMintingNewAsset) {
       if (!name) {
-        name = await ux.prompt('Enter the name for the new asset', {
-          required: true,
-        })
+        name = await ui.inputPrompt('Enter the name for the new asset', true)
       }
 
       if (!metadata) {
-        metadata = await ux.prompt('Enter metadata for the new asset', {
-          default: '',
-          required: false,
-        })
+        metadata = await ui.inputPrompt('Enter metadata for the new asset')
       }
 
       const newAsset = new Asset(accountPublicKey, name, metadata)
@@ -234,7 +235,7 @@ export class Mint extends IronfishCommand {
     }
 
     let expiration = flags.expiration
-    if (flags.rawTransaction && expiration === undefined) {
+    if ((flags.rawTransaction || flags.unsignedTransaction) && expiration === undefined) {
       expiration = await promptExpiration({ logger: this.logger, client: client })
     }
 
@@ -284,6 +285,16 @@ export class Mint extends IronfishCommand {
       this.exit(0)
     }
 
+    if (flags.unsignedTransaction) {
+      const response = await client.wallet.buildTransaction({
+        account,
+        rawTransaction: RawTransactionSerde.serialize(raw).toString('hex'),
+      })
+      this.log('Unsigned Transaction')
+      this.log(response.content.unsignedTransaction)
+      this.exit(0)
+    }
+
     await this.confirm(
       account,
       amount,
@@ -328,10 +339,14 @@ export class Mint extends IronfishCommand {
     )
     const renderedFee = CurrencyUtils.render(transaction.fee(), true)
     this.log(`Minted asset ${BufferUtils.toHuman(minted.asset.name())} from ${account}`)
-    this.log(`Asset Identifier: ${minted.asset.id().toString('hex')}`)
-    this.log(`Value: ${renderedValue}`)
-    this.log(`Fee: ${renderedFee}`)
-    this.log(`Hash: ${transaction.hash().toString('hex')}`)
+    this.log(
+      ui.card({
+        'Asset Identifier': minted.asset.id().toString('hex'),
+        Value: renderedValue,
+        Fee: renderedFee,
+        Hash: transaction.hash().toString('hex'),
+      }),
+    )
 
     const networkId = (await client.chain.getNetworkInfo()).content.networkId
     const transactionUrl = getExplorer(networkId)?.getTransactionUrl(
@@ -390,6 +405,6 @@ export class Mint extends IronfishCommand {
 
     confirmMessage.push('Do you confirm?')
 
-    await confirmOrQuit(confirmMessage.join('\n'), confirm)
+    await ui.confirmOrQuit(confirmMessage.join('\n'), confirm)
   }
 }

@@ -2,9 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Args, ux } from '@oclif/core'
+import { Args } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
+import { inputPrompt } from '../../ui'
 
 export class CreateCommand extends IronfishCommand {
   static description = `Create a new account for sending and receiving coins`
@@ -25,12 +26,10 @@ export class CreateCommand extends IronfishCommand {
     let name = args.account
 
     if (!name) {
-      name = await ux.prompt('Enter the name of the account', {
-        required: true,
-      })
+      name = await inputPrompt('Enter the name of the account', true)
     }
 
-    const client = await this.sdk.connectRpc()
+    const client = await this.connectRpc()
 
     this.log(`Creating account ${name}`)
     const result = await client.wallet.createAccount({ name })

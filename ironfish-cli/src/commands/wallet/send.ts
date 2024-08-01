@@ -8,18 +8,20 @@ import {
   isValidPublicAddress,
   RawTransaction,
   RawTransactionSerde,
+  RpcClient,
   TimeUtils,
   Transaction,
 } from '@ironfish/sdk'
-import { Flags, ux } from '@oclif/core'
+import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { HexFlag, IronFlag, RemoteFlags, ValueFlag } from '../../flags'
-import { confirmOrQuit } from '../../ui'
+import * as ui from '../../ui'
 import { selectAsset } from '../../utils/asset'
 import { promptCurrency } from '../../utils/currency'
 import { promptExpiration } from '../../utils/expiration'
 import { getExplorer } from '../../utils/explorer'
 import { selectFee } from '../../utils/fees'
+import { Ledger } from '../../utils/ledger'
 import { getSpendPostTimeInMs, updateSpendPostTimeInMs } from '../../utils/spendPostTime'
 import {
   displayTransactionSummary,
@@ -96,7 +98,6 @@ export class Send extends IronfishCommand {
         'Return raw transaction. Use it to create a transaction but not post to the network',
     }),
     unsignedTransaction: Flags.boolean({
-      hidden: true,
       default: false,
       description:
         'Return a serialized UnsignedTransaction. Use it to create a transaction and build proofs but not post to the network',
@@ -111,6 +112,10 @@ export class Send extends IronfishCommand {
       description: 'The note hashes to include in the transaction',
       multiple: true,
     }),
+    ledger: Flags.boolean({
+      default: false,
+      description: 'Send a transaction using a Ledger device',
+    }),
   }
 
   async start(): Promise<void> {
@@ -119,7 +124,7 @@ export class Send extends IronfishCommand {
     let to = flags.to
     let from = flags.account
 
-    const client = await this.sdk.connectRpc()
+    const client = await this.connectRpc()
 
     if (!flags.offline) {
       const status = await client.wallet.getNodeStatus()
@@ -200,13 +205,10 @@ export class Send extends IronfishCommand {
     }
 
     if (!to) {
-      to = await ux.prompt('Enter the public address of the recipient', {
-        required: true,
-      })
+      to = await ui.inputPrompt('Enter the public address of the recipient', true)
     }
 
-    const memo =
-      flags.memo ?? (await ux.prompt('Enter the memo (or leave blank)', { required: false }))
+    const memo = flags.memo ?? (await ui.inputPrompt('Enter the memo (or leave blank)'))
 
     if (!isValidPublicAddress(to)) {
       this.log(`A valid public address is required`)
@@ -255,6 +257,8 @@ export class Send extends IronfishCommand {
       raw = RawTransactionSerde.deserialize(bytes)
     }
 
+    displayTransactionSummary(raw, assetData, amount, from, to, memo)
+
     if (flags.rawTransaction) {
       this.log('Raw Transaction')
       this.log(RawTransactionSerde.serialize(raw).toString('hex'))
@@ -272,7 +276,10 @@ export class Send extends IronfishCommand {
       this.exit(0)
     }
 
-    displayTransactionSummary(raw, assetData, amount, from, to, memo)
+    if (flags.ledger) {
+      await this.sendTransactionWithLedger(client, raw, from, flags.watch, flags.confirm)
+      this.exit(0)
+    }
 
     const spendPostTime = getSpendPostTimeInMs(this.sdk)
 
@@ -286,7 +293,7 @@ export class Send extends IronfishCommand {
       )
     }
 
-    await confirmOrQuit('', flags.confirm)
+    await ui.confirmOrQuit('', flags.confirm)
 
     transactionTimer.start()
 
@@ -334,9 +341,13 @@ export class Send extends IronfishCommand {
     )
     const renderedFee = CurrencyUtils.render(transaction.fee(), true)
     this.log(`Sent ${renderedAmount} to ${to} from ${from}`)
-    this.log(`Hash: ${transaction.hash().toString('hex')}`)
-    this.log(`Fee: ${renderedFee}`)
-    this.log(`Memo: ${memo}`)
+    this.log(
+      ui.card({
+        Hash: transaction.hash().toString('hex'),
+        Fee: renderedFee,
+        Memo: memo,
+      }),
+    )
 
     const networkId = (await client.chain.getNetworkInfo()).content.networkId
     const transactionUrl = getExplorer(networkId)?.getTransactionUrl(
@@ -348,6 +359,85 @@ export class Send extends IronfishCommand {
     }
 
     if (flags.watch) {
+      this.log('')
+
+      await watchTransaction({
+        client,
+        logger: this.logger,
+        account: from,
+        hash: transaction.hash().toString('hex'),
+      })
+    }
+  }
+
+  private async sendTransactionWithLedger(
+    client: RpcClient,
+    raw: RawTransaction,
+    from: string | undefined,
+    watch: boolean,
+    confirm: boolean,
+  ): Promise<void> {
+    const ledger = new Ledger(this.logger)
+    try {
+      await ledger.connect()
+    } catch (e) {
+      if (e instanceof Error) {
+        this.error(e.message)
+      } else {
+        throw e
+      }
+    }
+
+    const publicKey = (await client.wallet.getAccountPublicKey({ account: from })).content
+      .publicKey
+
+    const ledgerPublicKey = await ledger.getPublicAddress()
+
+    if (publicKey !== ledgerPublicKey) {
+      this.error(
+        `The public key on the ledger device does not match the public key of the account '${from}'`,
+      )
+    }
+
+    const buildTransactionResponse = await client.wallet.buildTransaction({
+      account: from,
+      rawTransaction: RawTransactionSerde.serialize(raw).toString('hex'),
+    })
+
+    const unsignedTransaction = buildTransactionResponse.content.unsignedTransaction
+
+    const signature = (await ledger.sign(unsignedTransaction)).toString('hex')
+
+    this.log(`\nSignature: ${signature}`)
+
+    const addSignatureResponse = await client.wallet.addSignature({
+      unsignedTransaction,
+      signature,
+    })
+
+    const signedTransaction = addSignatureResponse.content.transaction
+    const bytes = Buffer.from(signedTransaction, 'hex')
+
+    const transaction = new Transaction(bytes)
+
+    this.log(`\nSigned Transaction: ${signedTransaction}`)
+    this.log(`\nHash: ${transaction.hash().toString('hex')}`)
+    this.log(`Fee: ${CurrencyUtils.render(transaction.fee(), true)}`)
+
+    await ui.confirmOrQuit('', confirm)
+
+    const addTransactionResponse = await client.wallet.addTransaction({
+      transaction: signedTransaction,
+      broadcast: true,
+    })
+
+    if (addTransactionResponse.content.accepted === false) {
+      this.error(
+        `Transaction '${transaction.hash().toString('hex')}' was not accepted into the mempool`,
+      )
+    }
+
+    if (watch) {
       this.log('')
 
       await watchTransaction({

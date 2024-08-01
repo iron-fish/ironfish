@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import type { Blockchain } from '../blockchain'
 import {
   Asset,
   generateKey,
@@ -45,6 +46,7 @@ import { AssetBalances } from './assetBalances'
 import {
   DuplicateAccountNameError,
   DuplicateMultisigSecretNameError,
+  DuplicateSpendingKeyError,
   MaxMemoLengthError,
   NotEnoughFundsError,
 } from './errors'
@@ -91,7 +93,7 @@ export class Wallet {
   readonly onAccountImported = new Event<[account: Account]>()
   readonly onAccountRemoved = new Event<[account: Account]>()
 
-  protected readonly accounts = new Map<string, Account>()
+  protected readonly accountById = new Map<string, Account>()
   readonly walletDb: WalletDB
   private readonly logger: Logger
   readonly workerPool: WorkerPool
@@ -120,6 +122,7 @@ export class Wallet {
     consensus,
     networkId,
     nodeClient,
+    chain,
   }: {
     config: Config
     database: WalletDB
@@ -129,6 +132,7 @@ export class Wallet {
     consensus: Consensus
     networkId: number
     nodeClient: RpcClient | null
+    chain: Blockchain | null
   }) {
     this.config = config
     this.logger = logger.withTag('accounts')
@@ -143,10 +147,11 @@ export class Wallet {
 
     this.scanner = new WalletScanner({
       wallet: this,
+      workerPool: this.workerPool,
       logger: this.logger,
+      config: this.config,
       nodeClient: this.nodeClient,
-      maxQueueSize: this.config.get('walletSyncingMaxQueueSize'),
-      config: config,
+      chain: chain,
     })
   }
 
@@ -169,7 +174,7 @@ export class Wallet {
       return null
     }
 
-    if (this.listAccounts().length === 0) {
+    if (this.accounts.length === 0) {
       return null
     }
 
@@ -205,7 +210,7 @@ export class Wallet {
   private async load(): Promise<void> {
     for await (const accountValue of this.walletDb.loadAccounts()) {
       const account = new Account({ accountValue, walletDb: this.walletDb })
-      this.accounts.set(account.id, account)
+      this.accountById.set(account.id, account)
     }
 
     const meta = await this.walletDb.loadAccountsMeta()
@@ -213,7 +218,7 @@ export class Wallet {
   }
 
   private unload(): void {
-    this.accounts.clear()
+    this.accountById.clear()
 
     this.defaultAccount = null
   }
@@ -317,22 +322,28 @@ export class Wallet {
     }
   }
 
-  async reset(options?: {
-    resetCreatedAt?: boolean
-    resetScanningEnabled?: boolean
-    tx?: IDatabaseTransaction
-  }): Promise<void> {
-    await this.resetAccounts(options)
+  async reset(
+    options?: {
+      resetCreatedAt?: boolean
+      resetScanningEnabled?: boolean
+    },
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    await this.resetAccounts(options, tx)
   }
 
-  async resetAccounts(options?: {
-    resetCreatedAt?: boolean
-    resetScanningEnabled?: boolean
-    tx?: IDatabaseTransaction
-  }): Promise<void> {
-    for (const account of this.listAccounts()) {
-      await this.resetAccount(account, options)
-    }
+  resetAccounts(
+    options?: {
+      resetCreatedAt?: boolean
+      resetScanningEnabled?: boolean
+    },
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    return this.walletDb.db.withTransaction(tx, async (tx) => {
+      for (const account of this.accounts) {
+        await this.resetAccount(account, options, tx)
+      }
+    })
   }
 
   async decryptNotes(
@@ -342,7 +353,7 @@ export class Wallet {
     accounts: ReadonlyArray<Account>,
   ): Promise<Map<string, Array<DecryptedNote>>> {
     const workloadSize = 20
-    const notePromises: Array<Promise<Map<string, Array<DecryptedNote | null>>>> = []
+    const notePromises: Array<Promise<Map<string, Array<DecryptedNote | undefined>>>> = []
     let decryptNotesPayloads = []
 
     let currentNoteIndex = initialNoteIndex
@@ -377,7 +388,9 @@ export class Wallet {
       for (const [accountId, decryptedNotes] of partialResult.entries()) {
         const list = mergedResults.get(accountId)
         Assert.isNotUndefined(list)
-        list.push(...(decryptedNotes.filter((note) => note !== null) as Array<DecryptedNote>))
+        list.push(
+          ...(decryptedNotes.filter((note) => note !== undefined) as Array<DecryptedNote>),
+        )
       }
     }
 
@@ -387,12 +400,12 @@ export class Wallet {
   private decryptNotesFromTransaction(
     accounts: ReadonlyArray<Account>,
     encryptedNotes: Array<DecryptNotesItem>,
-  ): Promise<Map<string, Array<DecryptedNote | null>>> {
+  ): Promise<Map<string, Array<DecryptedNote | undefined>>> {
     const accountKeys = accounts.map((account) => ({
       accountId: account.id,
-      incomingViewKey: account.incomingViewKey,
-      outgoingViewKey: account.outgoingViewKey,
-      viewKey: account.viewKey,
+      incomingViewKey: Buffer.from(account.incomingViewKey, 'hex'),
+      outgoingViewKey: Buffer.from(account.outgoingViewKey, 'hex'),
+      viewKey: Buffer.from(account.viewKey, 'hex'),
     }))
 
     return this.workerPool.decryptNotes(accountKeys, encryptedNotes, {
@@ -592,7 +605,7 @@ export class Wallet {
 
   async addPendingTransaction(transaction: Transaction): Promise<void> {
     const accounts = await AsyncUtils.filter(
-      this.listAccounts(),
+      this.accounts,
       async (account) => !(await account.hasTransaction(transaction.hash())),
     )
 
@@ -611,7 +624,6 @@ export class Wallet {
 
     for (const account of accounts) {
       const decryptedNotes = decryptedNotesByAccountId.get(account.id) ?? []
-
       await this.backfillAssets(account, decryptedNotes, transaction.mints)
       await account.addPendingTransaction(transaction, decryptedNotes, head.sequence)
     }
@@ -1098,7 +1110,7 @@ export class Wallet {
   }
 
   async rebroadcastTransactions(sequence: number): Promise<void> {
-    for (const account of this.accounts.values()) {
+    for (const account of this.accountById.values()) {
       if (this.eventLoopAbortController.signal.aborted) {
         return
       }
@@ -1142,7 +1154,7 @@ export class Wallet {
   }
 
   async expireTransactions(sequence: number): Promise<void> {
-    for (const account of this.accounts.values()) {
+    for (const account of this.accountById.values()) {
       if (this.eventLoopAbortController.signal.aborted) {
         return
       }
@@ -1296,7 +1308,7 @@ export class Wallet {
       await account.updateHead(createdAt, tx)
     })
 
-    this.accounts.set(account.id, account)
+    this.accountById.set(account.id, account)
 
     if (options.setDefault) {
       await this.setDefaultAccount(account.name)
@@ -1339,12 +1351,14 @@ export class Wallet {
       throw new DuplicateAccountNameError(name)
     }
 
-    const accounts = this.listAccounts()
-    if (
-      accountValue.spendingKey &&
-      accounts.find((a) => accountValue.spendingKey === a.spendingKey)
-    ) {
-      throw new Error(`Account already exists with provided spending key`)
+    if (accountValue.spendingKey) {
+      const duplicateSpendingAccount = this.accounts.find(
+        (a) => accountValue.spendingKey === a.spendingKey,
+      )
+
+      if (duplicateSpendingAccount) {
+        throw new DuplicateSpendingKeyError(duplicateSpendingAccount.name)
+      }
     }
 
     validateAccountImport(accountValue)
@@ -1398,15 +1412,15 @@ export class Wallet {
       }
     })
 
-    this.accounts.set(account.id, account)
+    this.accountById.set(account.id, account)
     this.logger.debug(`Account ${account.id} imported successfully`)
     this.onAccountImported.emit(account)
 
     return account
   }
 
-  listAccounts(): Account[] {
-    return Array.from(this.accounts.values())
+  get accounts(): Account[] {
+    return Array.from(this.accountById.values())
   }
 
   accountExists(name: string): boolean {
@@ -1418,8 +1432,8 @@ export class Wallet {
     options?: {
       resetCreatedAt?: boolean
       resetScanningEnabled?: boolean
-      tx?: IDatabaseTransaction
     },
+    tx?: IDatabaseTransaction,
   ): Promise<void> {
     const newAccount = new Account({
       accountValue: {
@@ -1433,7 +1447,7 @@ export class Wallet {
 
     this.logger.debug(`Resetting account name: ${account.name}, id: ${account.id}`)
 
-    await this.walletDb.db.withTransaction(options?.tx, async (tx) => {
+    await this.walletDb.db.withTransaction(tx, async (tx) => {
       await this.walletDb.setAccount(newAccount, tx)
 
       if (newAccount.createdAt !== null) {
@@ -1458,7 +1472,7 @@ export class Wallet {
         this.defaultAccount = newAccount.id
       }
 
-      this.accounts.set(newAccount.id, newAccount)
+      this.accountById.set(newAccount.id, newAccount)
 
       await this.removeAccount(account, tx)
     })
@@ -1474,7 +1488,8 @@ export class Wallet {
   }
 
   async removeAccount(account: Account, tx?: IDatabaseTransaction): Promise<void> {
-    this.accounts.delete(account.id)
+    this.accountById.delete(account.id)
+
     await this.walletDb.db.withTransaction(tx, async (tx) => {
       if (account.id === this.defaultAccount) {
         await this.walletDb.setDefaultAccount(null, tx)
@@ -1534,26 +1549,22 @@ export class Wallet {
     this.defaultAccount = nextId
   }
 
-  getAccountByName(name: string): Account | null {
-    for (const account of this.accounts.values()) {
-      if (name === account.name) {
+  findAccount(predicate: (account: Account) => boolean): Account | null {
+    for (const account of this.accountById.values()) {
+      if (predicate(account)) {
         return account
       }
     }
+
     return null
   }
 
-  getAccountByPublicAddress(publicAddress: string): Account | null {
-    for (const account of this.accounts.values()) {
-      if (publicAddress === account.publicAddress) {
-        return account
-      }
-    }
-    return null
+  getAccountByName(name: string): Account | null {
+    return this.findAccount((account) => account.name === name)
   }
 
   getAccount(id: string): Account | null {
-    const account = this.accounts.get(id)
+    const account = this.accountById.get(id)
 
     if (account) {
       return account
@@ -1570,47 +1581,51 @@ export class Wallet {
     return this.getAccount(this.defaultAccount)
   }
 
-  async getEarliestHead(): Promise<HeadValue | null> {
-    let earliestHead = null
-    for (const account of this.accounts.values()) {
-      if (!account.scanningEnabled) {
-        continue
+  getEarliestHead(tx?: IDatabaseTransaction): Promise<HeadValue | null> {
+    return this.walletDb.db.withTransaction(tx, async (tx) => {
+      let earliestHead = null
+      for (const account of this.accountById.values()) {
+        if (!account.scanningEnabled) {
+          continue
+        }
+
+        const head = await account.getHead(tx)
+
+        if (!head) {
+          return null
+        }
+
+        if (!earliestHead || earliestHead.sequence > head.sequence) {
+          earliestHead = head
+        }
       }
 
-      const head = await account.getHead()
-
-      if (!head) {
-        return null
-      }
-
-      if (!earliestHead || earliestHead.sequence > head.sequence) {
-        earliestHead = head
-      }
-    }
-
-    return earliestHead
+      return earliestHead
+    })
   }
 
-  async getLatestHead(): Promise<HeadValue | null> {
-    let latestHead = null
+  getLatestHead(tx?: IDatabaseTransaction): Promise<HeadValue | null> {
+    return this.walletDb.db.withTransaction(tx, async (tx) => {
+      let latestHead = null
 
-    for (const account of this.accounts.values()) {
-      if (!account.scanningEnabled) {
-        continue
+      for (const account of this.accountById.values()) {
+        if (!account.scanningEnabled) {
+          continue
+        }
+
+        const head = await account.getHead(tx)
+
+        if (!head) {
+          continue
+        }
+
+        if (!latestHead || latestHead.sequence < head.sequence) {
+          latestHead = head
+        }
       }
 
-      const head = await account.getHead()
-
-      if (!head) {
-        continue
-      }
-
-      if (!latestHead || latestHead.sequence < head.sequence) {
-        latestHead = head
-      }
-    }
-
-    return latestHead
+      return latestHead
+    })
   }
 
   async isAccountUpToDate(account: Account, confirmations?: number): Promise<boolean> {

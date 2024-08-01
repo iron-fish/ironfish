@@ -1,6 +1,6 @@
 {
   "name": "@ironfish/rust-nodejs-linux-arm64-gnu",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "os": [
     "linux"
   ],

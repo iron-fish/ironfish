@@ -13,7 +13,7 @@ import {
 import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { IronFlag, RemoteFlags, ValueFlag } from '../../flags'
-import { confirmOrQuit } from '../../ui'
+import * as ui from '../../ui'
 import { selectAsset } from '../../utils/asset'
 import { promptCurrency } from '../../utils/currency'
 import { promptExpiration } from '../../utils/expiration'
@@ -72,6 +72,12 @@ export class Burn extends IronfishCommand {
       description:
         'Return raw transaction. Use it to create a transaction but not post to the network',
     }),
+    unsignedTransaction: Flags.boolean({
+      default: false,
+      description:
+        'Return a serialized UnsignedTransaction. Use it to create a transaction and build proofs but not post to the network',
+      exclusive: ['rawTransaction'],
+    }),
     expiration: Flags.integer({
       char: 'e',
       description:
@@ -89,7 +95,7 @@ export class Burn extends IronfishCommand {
 
   async start(): Promise<void> {
     const { flags } = await this.parse(Burn)
-    const client = await this.sdk.connectRpc()
+    const client = await this.connectRpc()
 
     if (!flags.offline) {
       const status = await client.wallet.getNodeStatus()
@@ -173,7 +179,7 @@ export class Burn extends IronfishCommand {
     }
 
     let expiration = flags.expiration
-    if (flags.rawTransaction && expiration === undefined) {
+    if ((flags.rawTransaction || flags.unsignedTransaction) && expiration === undefined) {
       expiration = await promptExpiration({ logger: this.logger, client: client })
     }
 
@@ -219,6 +225,16 @@ export class Burn extends IronfishCommand {
       this.exit(0)
     }
 
+    if (flags.unsignedTransaction) {
+      const response = await client.wallet.buildTransaction({
+        account,
+        rawTransaction: RawTransactionSerde.serialize(raw).toString('hex'),
+      })
+      this.log('Unsigned Transaction')
+      this.log(response.content.unsignedTransaction)
+      this.exit(0)
+    }
+
     await this.confirm(assetData, amount, raw.fee, account, flags.confirm)
 
     ux.action.start('Sending the transaction')
@@ -252,10 +268,14 @@ export class Burn extends IronfishCommand {
     )
 
     this.log(`Burned asset ${assetName} from ${account}`)
-    this.log(`Asset Identifier: ${assetId}`)
-    this.log(`Amount: ${renderedAmount}`)
-    this.log(`Hash: ${transaction.hash().toString('hex')}`)
-    this.log(`Fee: ${CurrencyUtils.render(transaction.fee(), true)}`)
+    this.log(
+      ui.card({
+        'Asset Identifier': assetId,
+        Amount: renderedAmount,
+        Hash: transaction.hash().toString('hex'),
+        Fee: CurrencyUtils.render(transaction.fee(), true),
+      }),
+    )
 
     const networkId = (await client.chain.getNetworkInfo()).content.networkId
     const transactionUrl = getExplorer(networkId)?.getTransactionUrl(
@@ -288,7 +308,7 @@ export class Burn extends IronfishCommand {
     const renderedAmount = CurrencyUtils.render(amount, true, asset.id, asset.verification)
     const renderedFee = CurrencyUtils.render(fee, true)
 
-    await confirmOrQuit(
+    await ui.confirmOrQuit(
       `You are about to burn ${renderedAmount} plus a transaction fee of ${renderedFee} with the account ${account}\nDo you confirm?`,
       confirm,
     )

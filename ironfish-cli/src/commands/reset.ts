@@ -5,23 +5,12 @@ import { FullNode, PEER_STORE_FILE_NAME } from '@ironfish/sdk'
 import { Flags, ux } from '@oclif/core'
 import fsAsync from 'fs/promises'
 import { IronfishCommand } from '../command'
-import {
-  ConfigFlag,
-  ConfigFlagKey,
-  DataDirFlag,
-  DataDirFlagKey,
-  VerboseFlag,
-  VerboseFlagKey,
-} from '../flags'
 import { confirmOrQuit } from '../ui'
 
 export default class Reset extends IronfishCommand {
   static description = 'Reset the node to its initial state'
 
   static flags = {
-    [VerboseFlagKey]: VerboseFlag,
-    [ConfigFlagKey]: ConfigFlag,
-    [DataDirFlagKey]: DataDirFlag,
     networkId: Flags.integer({
       char: 'i',
       default: undefined,

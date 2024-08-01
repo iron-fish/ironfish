@@ -76,11 +76,11 @@ describe('Demonstrate the Sapling API', () => {
     expect(encryptedNote.hash().byteLength).toBe(32)
     expect(encryptedNote.equals(encryptedNote)).toBe(true)
 
-    const decryptedNoteBuffer = encryptedNote.decryptNoteForOwner(key.incomingViewKey)
+    const decryptedNoteBuffer = encryptedNote.decryptNoteForOwner(Buffer.from(key.incomingViewKey, 'hex'))
     expect(decryptedNoteBuffer).toBeInstanceOf(Buffer)
     expect(decryptedNoteBuffer!.byteLength).toBe(DECRYPTED_NOTE_LENGTH)
 
-    const decryptedSpenderNote = encryptedNote.decryptNoteForSpender(key.outgoingViewKey)
+    const decryptedSpenderNote = encryptedNote.decryptNoteForSpender(Buffer.from(key.outgoingViewKey, 'hex'))
     expect(decryptedSpenderNote).toBe(null)
 
     const decryptedNote = Note.deserialize(decryptedNoteBuffer!)
@@ -104,7 +104,7 @@ describe('Demonstrate the Sapling API', () => {
     const transaction = new Transaction(LATEST_TRANSACTION_VERSION)
     transaction.setExpiration(10)
     const encryptedNote = new NoteEncrypted(postedMinersFeeTransaction.getNote(0))
-    const decryptedNote = Note.deserialize(encryptedNote.decryptNoteForOwner(key.incomingViewKey)!)
+    const decryptedNote = Note.deserialize(encryptedNote.decryptNoteForOwner(Buffer.from(key.incomingViewKey, 'hex'))!)
     const newNote = new Note(recipientKey.publicAddress, 15n, Buffer.from('receive'), Asset.nativeId(), minersFeeNote.owner())
 
     let currentHash = encryptedNote.hash()

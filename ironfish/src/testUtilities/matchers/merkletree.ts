@@ -2,19 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import type { AsyncExpectationResult, SyncExpectationResult } from 'expect'
 import { diff } from 'jest-diff'
 import { MerkleTree, Witness, WitnessSide } from '../../merkletree'
 import { NodeValue } from '../../merkletree/schema'
 import { makeError } from './utils'
 
-declare global {
-  namespace jest {
-    interface Matchers<R> {
-      toHaveLeaves(characters: string, parents: number[]): Promise<R>
-      toHaveNodes(nodeSpecs: [number, WitnessSide, number, string][]): Promise<R>
-      toMatchTree(other: MerkleTree<string, string, string, string>): Promise<R>
-      toMatchWitness(treeSize: number, rootHash: string, authPath: [WitnessSide, string][]): R
-    }
+declare module 'expect' {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  interface Matchers<R extends void | Promise<void>, T = unknown> {
+    toHaveLeaves(characters: string, parents: number[]): Promise<R>
+    toHaveNodes(nodeSpecs: [number, WitnessSide, number, string][]): Promise<R>
+    toMatchTree(other: MerkleTree<string, string, string, string>): Promise<R>
+    toMatchWitness(treeSize: number, rootHash: string, authPath: [WitnessSide, string][]): R
   }
 }
 
@@ -23,7 +23,7 @@ expect.extend({
     tree: MerkleTree<string, string, string, string>,
     characters: string,
     parents: number[],
-  ): Promise<jest.CustomMatcherResult> {
+  ): AsyncExpectationResult {
     let error: string | null = null
     const treeSize = await tree.size()
 
@@ -54,7 +54,7 @@ expect.extend({
   async toHaveNodes(
     tree: MerkleTree<string, string, string, string>,
     nodeSpecs: [number, WitnessSide, number, string][],
-  ): Promise<jest.CustomMatcherResult> {
+  ): AsyncExpectationResult {
     let error: string | null = null
 
     const treeNodes = await tree.nodes.getAllValues()
@@ -105,7 +105,7 @@ expect.extend({
   async toMatchTree(
     tree: MerkleTree<string, string, string, string>,
     other: MerkleTree<string, string, string, string>,
-  ): Promise<jest.CustomMatcherResult> {
+  ): AsyncExpectationResult {
     let error: string | null = null
     const treeLeafCount = await tree.getCount('Leaves')
     const treeNodeCount = await tree.getCount('Nodes')
@@ -152,7 +152,7 @@ expect.extend({
     treeSize: number,
     rootHash: string,
     authenticationPath: [WitnessSide, string][],
-  ): jest.CustomMatcherResult {
+  ): SyncExpectationResult {
     let error: string | null = null
 
     if (witness === undefined) {

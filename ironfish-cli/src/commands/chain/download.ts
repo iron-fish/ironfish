@@ -5,17 +5,13 @@ import { ErrorUtils, FileUtils, NodeUtils } from '@ironfish/sdk'
 import { Flags, ux } from '@oclif/core'
 import fsAsync from 'fs/promises'
 import { IronfishCommand } from '../../command'
-import { LocalFlags } from '../../flags'
 import { DownloadedSnapshot, getDefaultManifestUrl, SnapshotDownloader } from '../../snapshot'
 import { confirmOrQuit, ProgressBar, ProgressBarPresets } from '../../ui'
 
 export default class Download extends IronfishCommand {
-  static hidden = false
-
-  static description = `Download and import a chain snapshot`
+  static description = 'download the chain'
 
   static flags = {
-    ...LocalFlags,
     manifestUrl: Flags.string({
       char: 'm',
       description: 'Manifest url to download snapshot from',

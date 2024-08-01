@@ -29,6 +29,7 @@ import {
 import { getPrefixesKeyRange, StorageUtils } from '../../storage/database/utils'
 import { createDB } from '../../storage/utils'
 import { BufferUtils } from '../../utils'
+import { BloomFilter } from '../../utils/bloomFilter'
 import { WorkerPool } from '../../workerPool'
 import { Account, calculateAccountPrefix } from '../account/account'
 import { AccountValue, AccountValueEncoding } from './accountValue'
@@ -146,6 +147,8 @@ export class WalletDB {
   }>
 
   cacheStores: Array<IDatabaseStore<DatabaseSchema>>
+
+  nullifierBloomFilter: BloomFilter | null = null
 
   constructor({
     files,
@@ -740,12 +743,40 @@ export class WalletDB {
     }
   }
 
+  private loadNullifierBloomFilter(tx?: IDatabaseTransaction): Promise<BloomFilter> {
+    if (this.nullifierBloomFilter) {
+      return Promise.resolve(this.nullifierBloomFilter)
+    } else {
+      return this.db.withTransaction(tx, async (tx) => {
+        if (this.nullifierBloomFilter) {
+          // A concurrent call to this function already created the filter
+          return this.nullifierBloomFilter
+        }
+
+        const nullifierBloomFilter = new BloomFilter(0x800000) // 1 MiB bloom filter
+        for await (const [_accountPrefix, nullifier] of this.nullifierToNoteHash.getAllKeysIter(
+          tx,
+        )) {
+          nullifierBloomFilter.put(nullifier)
+        }
+
+        this.nullifierBloomFilter = nullifierBloomFilter
+        return nullifierBloomFilter
+      })
+    }
+  }
+
   async loadNoteHash(
     account: Account,
     nullifier: Buffer,
     tx?: IDatabaseTransaction,
   ): Promise<Buffer | undefined> {
-    return this.nullifierToNoteHash.get([account.prefix, nullifier], tx)
+    const nullifierFilter = await this.loadNullifierBloomFilter(tx)
+    if (nullifierFilter.maybeHas(nullifier)) {
+      return this.nullifierToNoteHash.get([account.prefix, nullifier], tx)
+    } else {
+      return undefined
+    }
   }
 
   async saveNullifierNoteHash(
@@ -755,6 +786,9 @@ export class WalletDB {
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.nullifierToNoteHash.put([account.prefix, nullifier], noteHash, tx)
+    if (this.nullifierBloomFilter) {
+      this.nullifierBloomFilter.put(nullifier)
+    }
   }
 
   async *loadNullifierToNoteHash(
@@ -780,6 +814,9 @@ export class WalletDB {
     nullifier: Buffer,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
+    // `nullifierBloomFilter` is unchanged after calling this method. The
+    // assumption is that this method is called rarely, and so special logic to
+    // "reset" the bloom filter is not deemed necessary.
     await this.nullifierToNoteHash.del([account.prefix, nullifier], tx)
   }
 
@@ -791,7 +828,7 @@ export class WalletDB {
   ): Promise<void> {
     await this.db.withTransaction(tx, async (tx) => {
       if (note.nullifier) {
-        await this.nullifierToNoteHash.put([account.prefix, note.nullifier], noteHash, tx)
+        await this.saveNullifierNoteHash(account, note.nullifier, noteHash, tx)
       }
 
       await this.setNoteHashSequence(account, noteHash, note.sequence, tx)
@@ -1129,13 +1166,13 @@ export class WalletDB {
   }
 
   async cleanupDeletedAccounts(recordsToCleanup: number, signal?: AbortSignal): Promise<void> {
-    for (const [accountId] of await this.accountIdsToCleanup.getAll()) {
+    for await (const [accountId] of this.accountIdsToCleanup.getAllIter()) {
       const prefix = calculateAccountPrefix(accountId)
       const range = StorageUtils.getPrefixKeyRange(prefix)
 
       for (const store of this.cacheStores) {
         for await (const key of store.getAllKeysIter(undefined, range)) {
-          if (signal?.aborted === true || recordsToCleanup === 0) {
+          if (signal?.aborted === true || recordsToCleanup <= 0) {
             return
           }
 
@@ -1145,6 +1182,7 @@ export class WalletDB {
       }
 
       await this.accountIdsToCleanup.del(accountId)
+      recordsToCleanup--
     }
   }
 
@@ -1228,7 +1266,12 @@ export class WalletDB {
     nullifier: Buffer,
     tx?: IDatabaseTransaction,
   ): Promise<Buffer | undefined> {
-    return this.nullifierToTransactionHash.get([account.prefix, nullifier], tx)
+    const nullifierFilter = await this.loadNullifierBloomFilter(tx)
+    if (nullifierFilter.maybeHas(nullifier)) {
+      return this.nullifierToTransactionHash.get([account.prefix, nullifier], tx)
+    } else {
+      return undefined
+    }
   }
 
   async saveNullifierToTransactionHash(
@@ -1242,6 +1285,9 @@ export class WalletDB {
       transaction.hash(),
       tx,
     )
+    if (this.nullifierBloomFilter) {
+      this.nullifierBloomFilter.put(nullifier)
+    }
   }
 
   async deleteNullifierToTransactionHash(
@@ -1249,6 +1295,9 @@ export class WalletDB {
     nullifier: Buffer,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
+    // `nullifierBloomFilter` is unchanged after calling this method. The
+    // assumption is that this method is called rarely, and so special logic to
+    // "reset" the bloom filter is not deemed necessary.
     await this.nullifierToTransactionHash.del([account.prefix, nullifier], tx)
   }
 

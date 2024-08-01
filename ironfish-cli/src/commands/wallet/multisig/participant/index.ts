@@ -20,7 +20,7 @@ export class MultisigIdentity extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(MultisigIdentity)
 
-    const client = await this.sdk.connectRpc()
+    const client = await this.connectRpc()
 
     if (flags.name) {
       const response = await client.wallet.multisig.getIdentity({ name: flags.name })

@@ -35,6 +35,12 @@ pub const ENCRYPTED_NOTE_SIZE: usize =
 // + 32 memo
 // + 32 sender address
 // = 136
+pub const PLAINTEXT_NOTE_SIZE: usize = PUBLIC_ADDRESS_SIZE
+    + ASSET_ID_LENGTH
+    + AMOUNT_VALUE_SIZE
+    + SCALAR_SIZE
+    + MEMO_SIZE
+    + PUBLIC_ADDRESS_SIZE;
 pub const SCALAR_SIZE: usize = 32;
 pub const MEMO_SIZE: usize = 32;
 pub const AMOUNT_VALUE_SIZE: usize = 8;
@@ -105,7 +111,7 @@ pub struct Note {
     pub(crate) sender: PublicAddress,
 }
 
-impl<'a> Note {
+impl Note {
     /// Construct a new Note.
     pub fn new(
         owner: PublicAddress,
@@ -158,7 +164,7 @@ impl<'a> Note {
     /// This should generally never be used to serialize to disk or the network.
     /// It is primarily added as a device for transmitting the note across
     /// thread boundaries.
-    pub fn write<W: io::Write>(&self, mut writer: &mut W) -> Result<(), IronfishError> {
+    pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
         self.owner.write(&mut writer)?;
         self.asset_id.write(&mut writer)?;
         writer.write_u64::<LittleEndian>(self.value)?;
@@ -179,7 +185,7 @@ impl<'a> Note {
     /// This function allows the owner to decrypt the note using the derived
     /// shared secret and their own view key.
     pub fn from_owner_encrypted(
-        owner_view_key: &'a IncomingViewKey,
+        owner_view_key: &IncomingViewKey,
         shared_secret: &[u8; 32],
         encrypted_bytes: &[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE],
     ) -> Result<Self, IronfishError> {
@@ -349,10 +355,9 @@ impl<'a> Note {
     ) -> Result<(jubjub::Fr, AssetIdentifier, u64, Memo, PublicAddress), IronfishError> {
         let plaintext_bytes: [u8; ENCRYPTED_NOTE_SIZE] =
             aead::decrypt(shared_secret, encrypted_bytes)?;
+        let mut reader = &plaintext_bytes[..];
 
-        let mut reader = plaintext_bytes[..].as_ref();
-
-        let randomness: jubjub::Fr = read_scalar(&mut reader)?;
+        let randomness = read_scalar(&mut reader)?;
         let value = reader.read_u64::<LittleEndian>()?;
 
         let mut memo = Memo::default();

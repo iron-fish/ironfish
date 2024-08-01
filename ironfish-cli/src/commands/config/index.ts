@@ -2,13 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Flags } from '@oclif/core'
-import jsonColorizer from 'json-colorizer'
 import { IronfishCommand } from '../../command'
 import { ColorFlag, ColorFlagKey } from '../../flags'
 import { RemoteFlags } from '../../flags'
+import * as ui from '../../ui'
 
 export class ShowCommand extends IronfishCommand {
   static description = `Print out the entire config`
+  static enableJsonFlag = true
 
   static flags = {
     ...RemoteFlags,
@@ -22,16 +23,15 @@ export class ShowCommand extends IronfishCommand {
     }),
   }
 
-  async start(): Promise<void> {
+  async start(): Promise<unknown> {
     const { flags } = await this.parse(ShowCommand)
 
-    const client = await this.sdk.connectRpc(flags.local)
+    const client = await this.connectRpc(flags.local)
     const response = await client.config.getConfig({ user: flags.user })
+    const config = response.content
 
-    let output = JSON.stringify(response.content, undefined, '   ')
-    if (flags.color) {
-      output = jsonColorizer(output)
-    }
-    this.log(output)
+    this.log(ui.card(config))
+
+    return config
   }
 }

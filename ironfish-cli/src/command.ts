@@ -9,12 +9,15 @@ import {
   InternalOptions,
   IronfishSdk,
   Logger,
+  RpcClient,
   RpcConnectionError,
 } from '@ironfish/sdk'
-import { Command, Config } from '@oclif/core'
-import { CLIError, ExitError } from '@oclif/core/lib/errors'
+import { Command, Config, ux } from '@oclif/core'
+import { CLIError, ExitError } from '@oclif/core/errors'
 import {
+  ConfigFlag,
   ConfigFlagKey,
+  DataDirFlag,
   DataDirFlagKey,
   RpcAuthFlagKey,
   RpcHttpHostFlagKey,
@@ -33,6 +36,7 @@ import {
   VerboseFlagKey,
 } from './flags'
 import { IronfishCliPKG } from './package'
+import * as ui from './ui'
 import { hasUserResponseError } from './utils'
 
 export type SIGNALS = 'SIGTERM' | 'SIGINT' | 'SIGUSR2'
@@ -68,16 +72,24 @@ export abstract class IronfishCommand extends Command {
    */
   closing = false
 
+  client: RpcClient | null = null
+
+  public static baseFlags = {
+    [VerboseFlagKey]: VerboseFlag,
+    [ConfigFlagKey]: ConfigFlag,
+    [DataDirFlagKey]: DataDirFlag,
+  }
+
   constructor(argv: string[], config: Config) {
     super(argv, config)
     this.logger = createRootLogger().withTag(this.ctor.id)
   }
 
-  abstract start(): Promise<void> | void
+  abstract start(): Promise<unknown> | void
 
-  async run(): Promise<void> {
+  async run(): Promise<unknown> {
     try {
-      await this.start()
+      return await this.start()
     } catch (error: unknown) {
       if (hasUserResponseError(error)) {
         this.log(error.codeMessage)
@@ -103,16 +115,15 @@ export abstract class IronfishCommand extends Command {
       } else {
         throw error
       }
+    } finally {
+      this.client?.close()
     }
 
     this.exit(0)
   }
 
   async init(): Promise<void> {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
-    const commandClass = this.constructor as any
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    const { flags } = await this.parse(commandClass)
+    const { flags } = await this.parse(this.ctor)
 
     // Get the flags from the flag object which is unknown
     const dataDirFlag = getFlag(flags, DataDirFlagKey)
@@ -219,6 +230,19 @@ export abstract class IronfishCommand extends Command {
 
   closeFromSignal(signal: NodeJS.Signals): Promise<unknown> {
     throw new Error(`Not implemented closeFromSignal: ${signal}`)
+  }
+
+  // Override the built-in logJson method to implement our own colorizer that
+  // works with default terminal colors instead of requiring a theme to be
+  // configured.
+  logJson(json: unknown): void {
+    ux.stdout(ui.json(json))
+  }
+
+  async connectRpc(forceLocal = false, forceRemote = false): Promise<RpcClient> {
+    const client = await this.sdk.connectRpc(forceLocal, forceRemote)
+    this.client = client
+    return client
   }
 }
 

@@ -4,13 +4,14 @@
 import { FileUtils } from '@ironfish/sdk'
 import { Args, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
-import { LocalFlags } from '../../flags'
+import { ColorFlag, ColorFlagKey } from '../../flags'
 
 export default class Power extends IronfishCommand {
-  static description = "Show the network's hash power per second"
+  static description = "show the network's mining power"
+  static enableJsonFlag = true
 
   static flags = {
-    ...LocalFlags,
+    [ColorFlagKey]: ColorFlag,
     history: Flags.integer({
       required: false,
       description:
@@ -25,14 +26,13 @@ export default class Power extends IronfishCommand {
     }),
   }
 
-  async start(): Promise<void> {
+  async start(): Promise<unknown> {
     const { flags, args } = await this.parse(Power)
-    const { block } = args
 
-    const client = await this.sdk.connectRpc()
+    const client = await this.connectRpc()
 
     const data = await client.chain.getNetworkHashPower({
-      sequence: block,
+      sequence: args.block,
       blocks: flags.history,
     })
 
@@ -41,5 +41,7 @@ export default class Power extends IronfishCommand {
     this.log(
       `The network power for block ${data.content.sequence} was ${formattedHashesPerSecond} averaged over ${data.content.blocks} previous blocks.`,
     )
+
+    return data.content
   }
 }

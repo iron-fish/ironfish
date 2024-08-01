@@ -63,7 +63,8 @@ delta = "1.9.3 -> 2.2.6"
 [[audits.jubjub]]
 who = "Andrea <andrea@iflabs.network>"
 criteria = "safe-to-deploy"
-delta = "0.9.0 -> 0.9.0@git:a1a0c2ed69eec4d5d5e87842e2a40849f7fa4633"
+delta = "0.9.0 -> 0.9.0@git:531157cfa7b81ade207e819ef50c563843b10e30"
+importable = false
 notes = "Fork of the official jubjub owned by Iron Fish"
 
 [[audits.mio]]
@@ -87,6 +88,16 @@ criteria = "safe-to-deploy"
 delta = "0.5.1 -> 0.5.1@git:311baf8865f6e21527d1f20750d8f2cf5c9e531a"
 importable = false
 notes = "Unreleased changes required by ironfish-frost to support multisig wallets"
+
+[[audits.signal-hook]]
+who = "andrea <andrea@iflabs.network>"
+criteria = "safe-to-deploy"
+version = "0.3.17"
+
+[[audits.signal-hook-registry]]
+who = "andrea <andrea@iflabs.network>"
+criteria = "safe-to-deploy"
+delta = "1.4.1 -> 1.4.2"
 
 [[audits.siphasher]]
 who = "Andrea <andrea@iflabs.network>"

@@ -6,13 +6,8 @@ import { Assert } from '../../../assert'
 import { Blockchain } from '../../../blockchain'
 import { VerificationResult } from '../../../consensus/verifier'
 import { createRootLogger, Logger } from '../../../logger'
-import { getBlockSize, getTransactionSize } from '../../../network/utils/serializers'
-import { Block, Transaction } from '../../../primitives'
 import { BlockHeader } from '../../../primitives/blockheader'
-import { BlockchainUtils, BufferUtils, HashUtils } from '../../../utils'
-import { serializeRpcBlockHeader } from './serializers'
-import { RpcBlock } from './types'
-import { RpcTransaction } from './types'
+import { BlockchainUtils, HashUtils } from '../../../utils'
 
 const DEFAULT_OPTIONS = {
   seq: true,
@@ -164,60 +159,5 @@ export async function renderGraph(
     if (!last) {
       content.push(indent + '')
     }
-  }
-}
-
-export const serializeRpcBlock = (block: Block, serialized?: boolean): RpcBlock => {
-  const blockHeaderResponse = serializeRpcBlockHeader(block.header)
-
-  const transactions: RpcTransaction[] = []
-  for (const tx of block.transactions) {
-    transactions.push(serializeRpcTransaction(tx, serialized))
-  }
-
-  return {
-    ...blockHeaderResponse,
-    size: getBlockSize(block),
-    transactions,
-  }
-}
-
-export const serializeRpcTransaction = (
-  tx: Transaction,
-  serialized?: boolean,
-): RpcTransaction => {
-  return {
-    hash: tx.hash().toString('hex'),
-    size: getTransactionSize(tx),
-    fee: Number(tx.fee()),
-    expiration: tx.expiration(),
-    notes: tx.notes.map((note) => ({
-      commitment: note.hash().toString('hex'),
-      hash: note.hash().toString('hex'),
-      serialized: note.serialize().toString('hex'),
-    })),
-    spends: tx.spends.map((spend) => ({
-      nullifier: spend.nullifier.toString('hex'),
-      commitment: spend.commitment.toString('hex'),
-      size: spend.size,
-    })),
-    mints: tx.mints.map((mint) => ({
-      id: mint.asset.id().toString('hex'),
-      metadata: BufferUtils.toHuman(mint.asset.metadata()),
-      name: BufferUtils.toHuman(mint.asset.name()),
-      creator: mint.asset.creator().toString('hex'),
-      value: mint.value.toString(),
-      transferOwnershipTo: mint.transferOwnershipTo?.toString('hex'),
-      assetId: mint.asset.id().toString('hex'),
-      assetName: mint.asset.name().toString('hex'),
-    })),
-    burns: tx.burns.map((burn) => ({
-      id: burn.assetId.toString('hex'),
-      value: burn.value.toString(),
-      assetId: burn.assetId.toString('hex'),
-      assetName: '',
-    })),
-    signature: tx.transactionSignature().toString('hex'),
-    ...(serialized ? { serialized: tx.serialize().toString('hex') } : {}),
   }
 }

@@ -61,9 +61,9 @@ export class Worker {
 
   send(message: WorkerMessage): void {
     if (this.thread) {
-      this.thread.postMessage(message.serialize())
+      message.post(this.thread)
     } else if (this.parent) {
-      this.parent.postMessage(message.serialize())
+      message.post(this.parent)
     } else {
       throw new Error(`Cannot send message: no thread or worker`)
     }
@@ -115,7 +115,10 @@ export class Worker {
     initializeSapling()
   }
 
-  private onMessageFromParent = (request: Uint8Array): void => {
+  private onMessageFromParent = ([request, sharedMemory]: [
+    request: Uint8Array,
+    sharedMemory: SharedArrayBuffer | null,
+  ]): void => {
     const message = Buffer.from(request)
 
     let header: WorkerHeader
@@ -130,7 +133,7 @@ export class Worker {
 
     let requestBody: WorkerMessage
     try {
-      requestBody = this.parseRequest(jobId, type, body)
+      requestBody = this.parseRequest(jobId, type, body, sharedMemory)
     } catch {
       const args = `(jobId: ${jobId}, type: ${WorkerMessageType[type]}, body: '${body.toString(
         'hex',
@@ -165,7 +168,10 @@ export class Worker {
       })
   }
 
-  private onMessageFromWorker = (response: Uint8Array): void => {
+  private onMessageFromWorker = ([response, _sharedMemory]: [
+    response: Uint8Array,
+    sharedMemory: SharedArrayBuffer | null,
+  ]): void => {
     const message = Buffer.from(response)
 
     let header: WorkerHeader
@@ -214,16 +220,21 @@ export class Worker {
     return
   }
 
-  private parseRequest(jobId: number, type: WorkerMessageType, request: Buffer): WorkerMessage {
+  private parseRequest(
+    jobId: number,
+    type: WorkerMessageType,
+    request: Buffer,
+    sharedMemory: SharedArrayBuffer | null,
+  ): WorkerMessage {
     switch (type) {
       case WorkerMessageType.CreateMinersFee:
         return CreateMinersFeeRequest.deserializePayload(jobId, request)
       case WorkerMessageType.PostTransaction:
         return PostTransactionRequest.deserializePayload(jobId, request)
       case WorkerMessageType.DecryptNotes:
-        return DecryptNotesRequest.deserializePayload(jobId, request)
+        return DecryptNotesRequest.deserializePayload(jobId, request, sharedMemory)
       case WorkerMessageType.JobAborted:
-        throw new Error('JobAbort should not be sent as a request')
+        return JobAbortedMessage.deserializePayload()
       case WorkerMessageType.JobError:
         throw new Error('JobError should not be sent as a request')
       case WorkerMessageType.Sleep:

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { setLogLevelFromConfig } from '@ironfish/sdk'
 import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -33,11 +34,17 @@ export class RescanCommand extends IronfishCommand {
       this.error('You cannot pass both --local and --no-follow')
     }
 
-    const client = await this.sdk.connectRpc(local)
+    const client = await this.connectRpc(local)
 
     ux.action.start('Asking node to start scanning', undefined, {
       stdout: true,
     })
+
+    // Suppress log messages from the wallet scanner, to prevent those messages
+    // from interfering with the progress bar. This problem can occur only if
+    // not connected to a remote node (i.e. we're running with the in-memory
+    // rpc).
+    setLogLevelFromConfig('wallet:error')
 
     const response = client.wallet.rescan({ follow })
 

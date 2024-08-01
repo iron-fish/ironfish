@@ -9,7 +9,7 @@ import { importFile, importPipe, longPrompt } from '../../../utils/input'
 export class TransactionImportCommand extends IronfishCommand {
   static description = `Import a transaction into your wallet`
 
-  static aliases = ['wallet:transaction:add']
+  static hiddenAliases = ['wallet:transaction:add']
 
   static flags = {
     ...RemoteFlags,
@@ -57,7 +57,7 @@ export class TransactionImportCommand extends IronfishCommand {
     }
 
     ux.action.start(`Importing transaction`)
-    const client = await this.sdk.connectRpc()
+    const client = await this.connectRpc()
     const response = await client.wallet.addTransaction({
       transaction,
       broadcast: flags.broadcast,

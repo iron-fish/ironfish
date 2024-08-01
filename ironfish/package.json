@@ -1,6 +1,6 @@
 {
   "name": "@ironfish/sdk",
-  "version": "2.4.1",
+  "version": "2.5.0",
   "description": "SDK for running and interacting with an Iron Fish node",
   "author": "Iron Fish <contact@ironfish.network> (https://ironfish.network)",
   "main": "build/src/index.js",
@@ -22,7 +22,7 @@
   "dependencies": {
     "@ethersproject/bignumber": "5.7.0",
     "@fast-csv/format": "4.3.5",
-    "@ironfish/rust-nodejs": "2.4.0",
+    "@ironfish/rust-nodejs": "2.5.0",
     "@napi-rs/blake-hash": "1.3.3",
     "axios": "1.7.2",
     "bech32": "2.0.0",
@@ -41,6 +41,7 @@
     "leveldown": "6.1.1",
     "levelup": "4.4.0",
     "lodash": "4.17.21",
+    "nock": "13.5.4",
     "node-datachannel": "0.8.0",
     "node-forge": "1.3.1",
     "parse-json": "5.2.0",
@@ -71,7 +72,6 @@
     "@types/buffer-json": "2.0.0",
     "@types/colors": "1.2.1",
     "@types/imurmurhash": "0.1.1",
-    "@types/jest": "29.5.8",
     "@types/leveldown": "4.0.2",
     "@types/levelup": "4.3.0",
     "@types/lodash": "4.14.170",

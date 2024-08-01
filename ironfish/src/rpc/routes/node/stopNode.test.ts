@@ -7,7 +7,7 @@ describe('Route node.getStatus', () => {
   const routeTest = createRouteTest()
 
   it('should get status', async () => {
-    routeTest.node.shutdown = jest.fn()
+    routeTest.node.shutdown = jest.fn<() => Promise<void>>()
 
     const response = await routeTest.client.node.stopNode()
     expect(response.status).toBe(200)

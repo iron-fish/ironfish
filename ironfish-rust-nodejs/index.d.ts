@@ -86,6 +86,7 @@ export function isValidPublicAddress(hexAddress: string): boolean
  * sandboxed environment.
  */
 export function getCpuCount(): CpuCount
+export function generateRandomizedPublicKey(viewKeyString: string, publicKeyRandomnessString: string): string
 export class FishHashContext {
   constructor(full: boolean)
   prebuildDataset(threads: number): void
@@ -113,11 +114,11 @@ export class Asset {
   static nativeId(): Buffer
   id(): Buffer
   serialize(): Buffer
-  static deserialize(jsBytes: Buffer): NativeAsset
+  static deserialize(jsBytes: Buffer, skipValidation?: boolean | undefined | null): NativeAsset
 }
 export type NativeNoteEncrypted = NoteEncrypted
 export class NoteEncrypted {
-  constructor(jsBytes: Buffer)
+  constructor(jsBytes: Buffer, skipValidation?: boolean | undefined | null)
   serialize(): Buffer
   equals(other: NoteEncrypted): boolean
   /**
@@ -131,9 +132,10 @@ export class NoteEncrypted {
    */
   static combineHash(depth: number, jsLeft: Buffer, jsRight: Buffer): Buffer
   /** Returns undefined if the note was unable to be decrypted with the given key. */
-  decryptNoteForOwner(incomingHexKey: string): Buffer | null
+  decryptNoteForOwner(incomingViewKey: Buffer): Buffer | null
+  decryptNoteForOwners(incomingViewKeys: Array<Buffer>): Array<Buffer | undefined | null>
   /** Returns undefined if the note was unable to be decrypted with the given key. */
-  decryptNoteForSpender(outgoingHexKey: string): Buffer | null
+  decryptNoteForSpender(outgoingViewKey: Buffer): Buffer | null
 }
 export type NativeNote = Note
 export class Note {
@@ -226,10 +228,12 @@ export type NativeUnsignedTransaction = UnsignedTransaction
 export class UnsignedTransaction {
   constructor(jsBytes: Buffer)
   serialize(): Buffer
+  randomizedPublicKey(): string
   publicKeyRandomness(): string
   hash(): Buffer
   signingPackage(nativeIdentiferCommitments: Array<string>): string
   sign(spenderHexKey: string): Buffer
+  addSignature(signature: Buffer): Buffer
 }
 export class FoundBlockResult {
   randomness: string

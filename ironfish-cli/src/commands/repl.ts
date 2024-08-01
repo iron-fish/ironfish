@@ -8,22 +8,11 @@ import fs from 'fs/promises'
 import repl from 'node:repl'
 import path from 'path'
 import { IronfishCommand } from '../command'
-import {
-  ConfigFlag,
-  ConfigFlagKey,
-  DataDirFlag,
-  DataDirFlagKey,
-  VerboseFlag,
-  VerboseFlagKey,
-} from '../flags'
 
 export default class Repl extends IronfishCommand {
   static description = 'An interactive terminal to the node'
 
   static flags = {
-    [VerboseFlagKey]: VerboseFlag,
-    [ConfigFlagKey]: ConfigFlag,
-    [DataDirFlagKey]: DataDirFlag,
     opendb: Flags.boolean({
       description: 'open the databases',
       allowNo: true,
@@ -48,7 +37,7 @@ export default class Repl extends IronfishCommand {
     this.log('\n  Get a block at a sequence')
     this.log(`  > await chain.getHeaderAtSequence(1)`)
     this.log('\n  List all account names')
-    this.log(`  > wallet.listAccounts().map((a) => a.name)`)
+    this.log(`  > wallet.accounts.map((a) => a.name)`)
     this.log(`\n  Get the balance of an account`)
     this.log(`  > const account = await wallet.getAccountByName('default')`)
     this.log(`  > await wallet.getBalances(account)`)

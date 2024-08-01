@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Logger, RpcClient } from '@ironfish/sdk'
-import { ux } from '@oclif/core'
+import { inputPrompt } from '../ui'
 
 export async function promptExpiration(options: {
   client: RpcClient
@@ -17,7 +17,7 @@ export async function promptExpiration(options: {
 
     const prompt = `Enter an expiration block sequence for the transaction. You can also enter 0 for no expiration, or leave blank to use the default. The current chain head is ${headSequence}`
 
-    const input = await ux.prompt(prompt, { required: false })
+    const input = await inputPrompt(prompt)
     if (!input) {
       return
     }

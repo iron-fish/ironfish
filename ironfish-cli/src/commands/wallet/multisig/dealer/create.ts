@@ -6,6 +6,7 @@ import { AccountImport } from '@ironfish/sdk/src/wallet/exporter'
 import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
+import { inputPrompt } from '../../../../ui'
 import { longPrompt } from '../../../../utils/input'
 
 export class MultisigCreateDealer extends IronfishCommand {
@@ -54,16 +55,14 @@ export class MultisigCreateDealer extends IronfishCommand {
 
     let minSigners = flags.minSigners
     if (!minSigners) {
-      const input = await ux.prompt('Enter the number of minimum signers', {
-        required: true,
-      })
+      const input = await inputPrompt('Enter the number of minimum signers', true)
       minSigners = parseInt(input)
       if (isNaN(minSigners) || minSigners < 2) {
         this.error('Minimum number of signers must be at least 2')
       }
     }
 
-    const client = await this.sdk.connectRpc()
+    const client = await this.connectRpc()
 
     const name = await this.getCoordinatorName(client, flags.name?.trim())
 
@@ -131,7 +130,7 @@ export class MultisigCreateDealer extends IronfishCommand {
 
     let name = inputName
     do {
-      name = name ?? (await ux.prompt('Enter a name for the coordinator', { required: true }))
+      name = name ?? (await inputPrompt('Enter a name for the coordinator', true))
 
       if (accountNames.has(name)) {
         this.log(`Account with name ${name} already exists`)

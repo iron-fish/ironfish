@@ -1,72 +1,80 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Assert, Blockchain, FullNode, NodeUtils, Wallet } from '@ironfish/sdk'
-import { Args, Command } from '@oclif/core'
+import { Assert, Blockchain, BlockchainUtils, FullNode, NodeUtils, Wallet } from '@ironfish/sdk'
+import { Args, Command, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
-import { LocalFlags } from '../../flags'
 import { ProgressBar, ProgressBarPresets } from '../../ui'
 
 export default class Rewind extends IronfishCommand {
-  static description =
-    'Rewind the chain database to the given sequence by deleting all blocks with greater sequences'
+  static description = 'rewind the blockchain to a block'
+
+  static hidden = true
 
   static args = {
-    to: Args.string({
+    to: Args.integer({
       required: true,
       description: 'The block sequence to rewind to',
     }),
-    from: Args.string({
+    from: Args.integer({
       required: false,
       description: 'The sequence to start removing blocks from',
     }),
   }
 
   static flags = {
-    ...LocalFlags,
+    wallet: Flags.boolean({
+      default: true,
+      allowNo: true,
+      description: 'should the wallet be rewinded',
+    }),
   }
 
   async start(): Promise<void> {
-    const { args } = await this.parse(Rewind)
+    const { args, flags } = await this.parse(Rewind)
 
     const node = await this.sdk.node()
     await NodeUtils.waitForOpen(node)
 
-    await rewindChainTo(this, node, Number(args.to), Number(args.from))
+    await rewindChainTo(this, node, flags.wallet, args.to, args.from)
   }
 }
 
 export const rewindChainTo = async (
   command: Command,
   node: FullNode,
+  rewindWallet: boolean,
   to: number,
   from?: number,
 ): Promise<void> => {
   const chain = node.chain
   const wallet = node.wallet
 
-  const sequence = to
+  const { start, stop } = BlockchainUtils.getBlockRange(node.chain, {
+    start: to,
+    stop: from,
+  })
 
-  const fromSequence = from ? Math.max(from, chain.latest.sequence) : chain.latest.sequence
+  const blockCount = stop - start
 
-  const toDisconnect = fromSequence - sequence
-
-  if (toDisconnect <= 0) {
+  if (blockCount <= 0) {
     command.log(
-      `Chain head currently at ${fromSequence}. Cannot rewind to ${sequence} because it is is greater than the latest sequence in the chain.`,
+      `Chain head currently at ${stop}. Cannot rewind to ${start} because it is is greater than the latest sequence in the chain.`,
     )
     command.exit(1)
   }
 
   command.log(
-    `Chain currently has blocks up to ${fromSequence}. Rewinding ${toDisconnect} blocks to ${sequence}.`,
+    `Chain currently has blocks up to ${stop}. Rewinding ${blockCount} blocks to ${start}.`,
   )
 
-  await disconnectBlocks(chain, toDisconnect)
+  await disconnectBlocks(chain, blockCount)
 
-  await rewindWalletHead(chain, wallet, sequence)
+  if (rewindWallet) {
+    await rewindWalletHead(chain, wallet)
+  }
 
-  await removeBlocks(chain, sequence, fromSequence)
+  await removeBlocks(chain, start, stop)
 }
 
 async function disconnectBlocks(chain: Blockchain, toDisconnect: number): Promise<void> {
@@ -91,34 +99,34 @@ async function disconnectBlocks(chain: Blockchain, toDisconnect: number): Promis
   bar.stop()
 }
 
-async function rewindWalletHead(
-  chain: Blockchain,
-  wallet: Wallet,
-  sequence: number,
-): Promise<void> {
-  const latestHead = await wallet.getLatestHead()
+async function rewindWalletHead(chain: Blockchain, wallet: Wallet): Promise<void> {
+  const walletHead = await wallet.getLatestHead()
 
-  if (latestHead) {
-    const walletHead = await chain.getHeader(latestHead.hash)
+  if (!walletHead) {
+    return
+  }
 
-    if (walletHead && walletHead.sequence > sequence) {
-      const bar = new ProgressBar('Rewinding wallet', { preset: ProgressBarPresets.withSpeed })
+  if (walletHead.sequence > chain.head.sequence) {
+    const total = walletHead.sequence - chain.head.sequence
 
-      const toRewind = walletHead.sequence - sequence
-      let rewound = 0
+    const bar = new ProgressBar('Rewinding wallet', { preset: ProgressBarPresets.withSpeed })
+    bar.start(total, 0)
 
-      bar.start(toRewind, 0)
+    const scan = await wallet.scan({ wait: false })
 
-      const scan = await wallet.scan({ wait: false })
+    if (scan) {
+      scan.onTransaction.on((sequence, _, action) => {
+        if (action === 'connect') {
+          bar.update(total - Math.abs(sequence - chain.head.sequence))
+        } else {
+          bar.update(total - Math.abs(sequence - 1 - chain.head.sequence))
+        }
+      })
 
-      if (scan) {
-        scan.onTransaction.on((_) => {
-          bar.update(++rewound)
-        })
-      }
-
-      bar.stop()
+      await scan.wait()
     }
+
+    bar.stop()
   }
 }
 

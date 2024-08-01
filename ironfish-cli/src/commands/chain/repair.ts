@@ -4,7 +4,6 @@
 import { Assert, BlockHeader, FullNode, IDatabaseTransaction, TimeUtils } from '@ironfish/sdk'
 import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
-import { LocalFlags } from '../../flags'
 import { confirmOrQuit, ProgressBar, ProgressBarPresets } from '../../ui'
 
 const TREE_BATCH = 1000
@@ -20,7 +19,6 @@ export default class RepairChain extends IronfishCommand {
   static hidden = true
 
   static flags = {
-    ...LocalFlags,
     confirm: Flags.boolean({
       char: 'c',
       default: false,
