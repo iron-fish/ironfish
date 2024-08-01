@@ -175,8 +175,10 @@ impl ProposedTransaction {
     }
 
     pub fn add_evm(&mut self, evm_description: EvmDescription) -> Result<(), IronfishError> {
-        self.value_balances.add(&NATIVE_ASSET, evm_description.private_iron.try_into()?)?;
-        self.value_balances.subtract(&NATIVE_ASSET, evm_description.public_iron.try_into()?)?;
+        self.value_balances
+            .add(&NATIVE_ASSET, evm_description.private_iron.try_into()?)?;
+        self.value_balances
+            .subtract(&NATIVE_ASSET, evm_description.public_iron.try_into()?)?;
         self.evm = Some(evm_description);
 
         Ok(())
@@ -802,8 +804,13 @@ impl Transaction {
         &self,
         binding_verification_key: &ExtendedPoint,
     ) -> Result<(), IronfishError> {
-        let value_balance =
-            calculate_value_balance(binding_verification_key, self.fee, &self.mints, &self.burns, &self.evm)?;
+        let value_balance = calculate_value_balance(
+            binding_verification_key,
+            self.fee,
+            &self.mints,
+            &self.burns,
+            &self.evm,
+        )?;
 
         let mut data_to_verify_signature = [0; 64];
         data_to_verify_signature[..32].copy_from_slice(&value_balance.to_bytes());
@@ -867,8 +874,10 @@ fn calculate_value_balance(
     }
 
     if let Some(evm) = evm {
-        value_balance_point -= *NATIVE_VALUE_COMMITMENT_GENERATOR * jubjub::Fr::from(evm.public_iron);
-        value_balance_point += *NATIVE_VALUE_COMMITMENT_GENERATOR * jubjub::Fr::from(evm.private_iron);
+        value_balance_point -=
+            *NATIVE_VALUE_COMMITMENT_GENERATOR * jubjub::Fr::from(evm.public_iron);
+        value_balance_point +=
+            *NATIVE_VALUE_COMMITMENT_GENERATOR * jubjub::Fr::from(evm.private_iron);
     }
 
     Ok(value_balance_point)
