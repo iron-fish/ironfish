@@ -268,6 +268,8 @@ impl NativeTransaction {
         v: u8,
         r: JsBuffer,
         s: JsBuffer,
+        private_iron: BigInt,
+        public_iron: BigInt,
     ) -> Result<()> {
         // if to length is 0, return none, else set the address
         let to_vec = to.into_value()?.to_vec();
@@ -310,6 +312,8 @@ impl NativeTransaction {
             v,
             r,
             s,
+            private_iron.get_u64().1,
+            public_iron.get_u64().1,
         );
         // Assuming `add_evm_data` is a method that takes `EvmDescription`
         self.transaction

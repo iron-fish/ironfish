@@ -22,6 +22,8 @@ pub struct EvmDescription {
     pub(crate) v: u8,
     pub(crate) r: [u8; 32],
     pub(crate) s: [u8; 32],
+    pub(crate) private_iron: u64,
+    pub(crate) public_iron: u64,
 }
 
 impl EvmDescription {
@@ -36,6 +38,8 @@ impl EvmDescription {
         v: u8,
         r: [u8; 32],
         s: [u8; 32],
+        private_iron: u64,
+        public_iron: u64,
     ) -> Self {
         Self {
             nonce,
@@ -47,6 +51,8 @@ impl EvmDescription {
             v,
             r,
             s,
+            private_iron,
+            public_iron,
         }
     }
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, io::Error> {
@@ -80,6 +86,9 @@ impl EvmDescription {
         let mut s = [0u8; 32];
         reader.read_exact(&mut s)?;
 
+        let private_iron = reader.read_u64::<LittleEndian>()?;
+        let public_iron = reader.read_u64::<LittleEndian>()?;
+
         Ok(Self {
             nonce,
             gas_price,
@@ -90,6 +99,8 @@ impl EvmDescription {
             v,
             r,
             s,
+            private_iron,
+            public_iron,
         })
     }
 
@@ -111,6 +122,8 @@ impl EvmDescription {
         writer.write_u8(self.v)?;
         writer.write_all(&self.r)?;
         writer.write_all(&self.s)?;
+        writer.write_u64::<LittleEndian>(self.private_iron)?;
+        writer.write_u64::<LittleEndian>(self.public_iron)?;
 
         Ok(())
     }
@@ -140,6 +153,8 @@ mod tests {
                 0x78, 0x48, 0xe8, 0xa4, 0x41, 0x4b, 0x78, 0xb6, 0xd0, 0xf1, 0xe9, 0xc2, 0xb4, 0xd3,
                 0xd6, 0xd3, 0xd3, 0xe5,
             ],
+            private_iron: 0,
+            public_iron: 0,
         };
 
         // Write the Transaction to a Vec<u8>

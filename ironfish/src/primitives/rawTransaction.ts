@@ -192,6 +192,8 @@ export class RawTransaction {
         this.evm.v,
         this.evm.r,
         this.evm.s,
+        this.evm.privateIron,
+        this.evm.publicIron,
       )
     }
 
@@ -319,6 +321,8 @@ export class RawTransactionSerde {
         bw.writeU8(raw.evm.v)
         bw.writeBytes(raw.evm.r)
         bw.writeBytes(raw.evm.s)
+        bw.writeBigU64(raw.evm.privateIron)
+        bw.writeBigU64(raw.evm.publicIron)
       }
     } else {
       Assert.isNull(raw.evm, 'Version 3 and above only has evm descriptions')
@@ -406,8 +410,22 @@ export class RawTransactionSerde {
         const v = reader.readU8()
         const r = reader.readBytes(32)
         const s = reader.readBytes(32)
+        const privateIron = reader.readBigU64()
+        const publicIron = reader.readBigU64()
 
-        raw.evm = { nonce, gasPrice, gasLimit, to, value, data, v, r, s }
+        raw.evm = {
+          nonce,
+          gasPrice,
+          gasLimit,
+          to,
+          value,
+          data,
+          v,
+          r,
+          s,
+          privateIron,
+          publicIron,
+        }
       }
     }
 
@@ -481,6 +499,8 @@ export class RawTransactionSerde {
         size += 1 // v
         size += 32 // r
         size += 32 // s
+        size += 8 // privateIron
+        size += 8 // publicIron
       }
     }
 

@@ -432,6 +432,8 @@ describe('RawTransactionSerde', () => {
       v: 0,
       r: sigBytes,
       s: sigBytes,
+      publicIron: 0n,
+      privateIron: 0n,
     }
 
     const serialized = RawTransactionSerde.serialize(raw)

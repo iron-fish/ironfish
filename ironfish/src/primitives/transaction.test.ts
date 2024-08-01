@@ -27,6 +27,8 @@ describe('Transaction', () => {
       v: 0,
       r: sigBytes,
       s: sigBytes,
+      privateIron: 0n,
+      publicIron: 0n,
     }
     const key = generateKey()
     const tx = raw.post(key.spendingKey)
