@@ -247,12 +247,10 @@ fn test_evm_transaction() {
     assert_eq!(transaction.spends.len(), 1);
     transaction.add_output(out_note).unwrap();
     assert_eq!(transaction.outputs.len(), 1);
-    println!("spends before: {:?}", transaction.spends.len());
     transaction
         .add_evm(evm)
         .expect("should be able to add data");
 
-    println!("spends after: {:?}", transaction.spends.len());
     let public_transaction = transaction
         .post(&spender_key, None, 1)
         .expect("should be able to post transaction");
