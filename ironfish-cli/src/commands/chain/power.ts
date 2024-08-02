@@ -10,6 +10,13 @@ export default class Power extends IronfishCommand {
   static description = "show the network's mining power"
   static enableJsonFlag = true
 
+  static args = {
+    block: Args.integer({
+      required: false,
+      description: 'The sequence of the block to estimate network speed for',
+    }),
+  }
+
   static flags = {
     ...RemoteFlags,
     ...JsonFlags,
@@ -17,13 +24,6 @@ export default class Power extends IronfishCommand {
       required: false,
       description:
         'The number of blocks to look back to calculate the network hashes per second',
-    }),
-  }
-
-  static args = {
-    block: Args.integer({
-      required: false,
-      description: 'The sequence of the block to estimate network speed for',
     }),
   }
 

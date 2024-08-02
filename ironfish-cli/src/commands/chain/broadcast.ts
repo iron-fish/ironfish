@@ -8,15 +8,15 @@ import { RemoteFlags } from '../../flags'
 export class BroadcastCommand extends IronfishCommand {
   static description = 'broadcast a transaction to the network'
 
-  static flags = {
-    ...RemoteFlags,
-  }
-
   static args = {
     transaction: Args.string({
       required: true,
       description: 'The transaction in hex encoding',
     }),
+  }
+
+  static flags = {
+    ...RemoteFlags,
   }
 
   async start(): Promise<void> {
