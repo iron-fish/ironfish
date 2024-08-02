@@ -4,13 +4,14 @@
 import { FileUtils } from '@ironfish/sdk'
 import { Args, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
-import { ColorFlag, ColorFlagKey } from '../../flags'
+import { ColorFlag, ColorFlagKey, RemoteFlags } from '../../flags'
 
 export default class Power extends IronfishCommand {
   static description = "show the network's mining power"
   static enableJsonFlag = true
 
   static flags = {
+    ...RemoteFlags,
     [ColorFlagKey]: ColorFlag,
     history: Flags.integer({
       required: false,
