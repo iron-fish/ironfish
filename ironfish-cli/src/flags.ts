@@ -68,43 +68,52 @@ export const DataDirFlag = Flags.string({
 export const RpcUseIpcFlag = Flags.boolean({
   default: DEFAULT_USE_RPC_IPC,
   description: 'Connect to the RPC over IPC (default)',
+  helpGroup: 'RPC',
 })
 
 export const RpcUseTcpFlag = Flags.boolean({
   default: DEFAULT_USE_RPC_TCP,
   description: 'Connect to the RPC over TCP',
+  helpGroup: 'RPC',
 })
 
 export const RpcTcpHostFlag = Flags.string({
   description: 'The TCP host to listen for connections on',
+  helpGroup: 'RPC',
 })
 
 export const RpcTcpPortFlag = Flags.integer({
   description: 'The TCP port to listen for connections on',
+  helpGroup: 'RPC',
 })
 
 export const RpcTcpTlsFlag = Flags.boolean({
   default: DEFAULT_USE_RPC_TLS,
   description: 'Encrypt TCP connection to the RPC over TLS',
   allowNo: true,
+  helpGroup: 'RPC',
 })
 
 export const RpcAuthFlag = Flags.string({
   description: 'The RPC auth token',
+  helpGroup: 'RPC',
 })
 
 export const RpcHttpHostFlag = Flags.string({
   description: 'The HTTP host to listen for connections on',
+  helpGroup: 'RPC',
 })
 
 export const RpcHttpPortFlag = Flags.integer({
   description: 'The HTTP port to listen for connections on',
+  helpGroup: 'RPC',
 })
 
 export const RpcUseHttpFlag = Flags.boolean({
   default: DEFAULT_USE_RPC_HTTP,
   description: 'Connect to the RPC over HTTP',
   allowNo: true,
+  helpGroup: 'RPC',
 })
 
 /**
