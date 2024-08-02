@@ -18,6 +18,7 @@ import { Flags } from '@oclif/core'
 
 export const VerboseFlagKey = 'verbose'
 export const ConfigFlagKey = 'config'
+export const JsonFlagKey = 'json'
 export const ColorFlagKey = 'color'
 export const DataDirFlagKey = 'datadir'
 export const RpcUseIpcFlagKey = 'rpc.ipc'
@@ -37,10 +38,17 @@ export const VerboseFlag = Flags.boolean({
   helpGroup: 'GLOBAL',
 })
 
+export const JsonFlag = Flags.boolean({
+  default: false,
+  description: 'format output as json',
+  helpGroup: 'OUTPUT',
+})
+
 export const ColorFlag = Flags.boolean({
   default: true,
   allowNo: true,
   description: 'Should colorize the output',
+  helpGroup: 'OUTPUT',
 })
 
 export const ConfigFlag = Flags.string({
@@ -113,6 +121,15 @@ export const RemoteFlags = {
   [RpcUseHttpFlagKey]: RpcUseHttpFlag,
   [RpcTcpTlsFlagKey]: RpcTcpTlsFlag,
   [RpcAuthFlagKey]: RpcAuthFlag,
+}
+
+/**
+ * Flags to include if your command returns JSON
+ * you must also use enableJsonFlag = true
+ */
+export const JsonFlags = {
+  [JsonFlagKey]: JsonFlag,
+  [ColorFlagKey]: ColorFlag,
 }
 
 export type IronOpts = { minimum?: bigint; flagName: string }
