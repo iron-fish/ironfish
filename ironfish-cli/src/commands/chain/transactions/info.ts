@@ -12,16 +12,16 @@ export class TransactionInfo extends IronfishCommand {
   static description = 'show transaction information'
   static enableJsonFlag = true
 
-  static flags = {
-    ...RemoteFlags,
-    ...JsonFlags,
-  }
-
   static args = {
     hash: Args.string({
       required: true,
       description: 'Hash of the transaction',
     }),
+  }
+
+  static flags = {
+    ...RemoteFlags,
+    ...JsonFlags,
   }
 
   async start(): Promise<unknown> {
