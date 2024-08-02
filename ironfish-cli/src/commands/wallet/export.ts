@@ -6,7 +6,7 @@ import { Args, Flags } from '@oclif/core'
 import fs from 'fs'
 import path from 'path'
 import { IronfishCommand } from '../../command'
-import { ColorFlag, ColorFlagKey, EnumLanguageKeyFlag, RemoteFlags } from '../../flags'
+import { EnumLanguageKeyFlag, JsonFlags, RemoteFlags } from '../../flags'
 import { confirmOrQuit } from '../../ui'
 
 export class ExportCommand extends IronfishCommand {
@@ -15,7 +15,7 @@ export class ExportCommand extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
-    [ColorFlagKey]: ColorFlag,
+    ...JsonFlags,
     local: Flags.boolean({
       default: false,
       description: 'Export an account without an online node',
