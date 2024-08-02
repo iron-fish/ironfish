@@ -28,7 +28,7 @@ use crate::{
 };
 
 use super::{
-    burns::BurnDescription, evm::EvmDescription, mints::UnsignedMintDescription,
+    burns::BurnDescription, evm::UnsignedEvmDescription, mints::UnsignedMintDescription,
     spends::UnsignedSpendDescription, TransactionVersion, SIGNATURE_HASH_PERSONALIZATION,
     TRANSACTION_SIGNATURE_VERSION,
 };
@@ -52,7 +52,7 @@ pub struct UnsignedTransaction {
     pub(crate) burns: Vec<BurnDescription>,
 
     /// List of data
-    pub(crate) evm: Option<EvmDescription>,
+    pub(crate) evm: Option<UnsignedEvmDescription>,
 
     /// Signature calculated from accumulating randomness with all the spends
     /// and outputs when the transaction was created.
@@ -114,7 +114,7 @@ impl UnsignedTransaction {
         }
 
         let evm = if version.has_evm() && reader.read_u8()? == 1 {
-            Some(EvmDescription::read(&mut reader)?)
+            Some(UnsignedEvmDescription::read(&mut reader)?)
         } else {
             None
         };
@@ -212,7 +212,7 @@ impl UnsignedTransaction {
 
         if self.version.has_evm() {
             if let Some(ref evm) = self.evm {
-                evm.write(&mut hasher)?;
+                evm.serialize_signature_fields(&mut hasher)?;
             }
         }
 
@@ -231,6 +231,9 @@ impl UnsignedTransaction {
         authorizing_signing_package: &FrostSigningPackage,
         authorizing_signature_shares: BTreeMap<Identifier, SignatureShare>,
     ) -> Result<Transaction, IronfishError> {
+        // TODO(hughy): assert earlier in FROST signing flow
+        assert!(self.evm.is_none());
+
         // Create the transaction signature hash
         let data_to_sign = self.transaction_signature_hash()?;
 
@@ -279,7 +282,7 @@ impl UnsignedTransaction {
             outputs: self.outputs.clone(),
             mints: mint_descriptions,
             burns: self.burns.clone(),
-            evm: self.evm.clone(),
+            evm: None,
             binding_signature: self.binding_signature,
             randomized_public_key: self.randomized_public_key.clone(),
         };
@@ -304,6 +307,11 @@ impl UnsignedTransaction {
             mint_descriptions.push(mint.sign(spender_key, &data_to_sign)?);
         }
 
+        let evm_description = self
+            .evm
+            .as_ref()
+            .map(|unsigned_evm| unsigned_evm.clone().sign(spender_key));
+
         Ok(Transaction {
             version: self.version,
             expiration: self.expiration,
@@ -312,7 +320,7 @@ impl UnsignedTransaction {
             outputs: self.outputs.clone(),
             mints: mint_descriptions,
             burns: self.burns.clone(),
-            evm: self.evm.clone(),
+            evm: evm_description,
             binding_signature: self.binding_signature,
             randomized_public_key: self.randomized_public_key.clone(),
         })

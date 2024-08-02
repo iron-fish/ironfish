@@ -164,12 +164,13 @@ export class Transaction {
         const dataLength = reader.readU32()
         const data = reader.readBytes(dataLength)
 
-        const v = reader.readU8()
-
-        const r = reader.readBytes(32)
-        const s = reader.readBytes(32)
         const privateIron = reader.readBigU64()
         const publicIron = reader.readBigU64()
+
+        const v = reader.readU64()
+        const r = reader.readBytes(32)
+        const s = reader.readBytes(32)
+
         this.evm = {
           nonce,
           gasPrice,

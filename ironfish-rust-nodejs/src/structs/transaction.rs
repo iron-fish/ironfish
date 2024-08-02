@@ -15,7 +15,7 @@ use ironfish::frost_utils::signing_package::SigningPackage;
 use ironfish::serializing::bytes_to_hex;
 use ironfish::serializing::fr::FrSerializable;
 use ironfish::serializing::hex_to_vec_bytes;
-use ironfish::transaction::evm::EvmDescription;
+use ironfish::transaction::evm::UnsignedEvmDescription;
 use ironfish::transaction::unsigned::UnsignedTransaction;
 use ironfish::transaction::{
     batch_verify_transactions, TransactionVersion, TRANSACTION_EXPIRATION_SIZE,
@@ -265,9 +265,6 @@ impl NativeTransaction {
         to: JsBuffer,
         value: BigInt,
         data: JsBuffer,
-        v: u8,
-        r: JsBuffer,
-        s: JsBuffer,
         private_iron: BigInt,
         public_iron: BigInt,
     ) -> Result<()> {
@@ -288,34 +285,16 @@ impl NativeTransaction {
             Some(to_bytes)
         };
 
-        // read r and s into arrays
-        let r_vec = r.into_value()?.to_vec();
-        let s_vec = s.into_value()?.to_vec();
-        if r_vec.len() != 32 {
-            return Err(to_napi_err("EVM r must be 32 bytes"));
-        }
-        if s_vec.len() != 32 {
-            return Err(to_napi_err("EVM s must be 32 bytes"));
-        }
-        let mut r = [0u8; 32];
-        r.copy_from_slice(&r_vec);
-        let mut s = [0u8; 32];
-        s.copy_from_slice(&s_vec);
-
-        let evm_description = EvmDescription::new(
+        let evm_description = UnsignedEvmDescription::new(
             nonce.get_u64().1,
             gas_price.get_u64().1,
             gas_limit.get_u64().1,
             to,
             value.get_u64().1,
             data.into_value()?.to_vec(),
-            v,
-            r,
-            s,
             private_iron.get_u64().1,
             public_iron.get_u64().1,
         );
-        // Assuming `add_evm_data` is a method that takes `EvmDescription`
         self.transaction
             .add_evm(evm_description)
             .map_err(to_napi_err)?;

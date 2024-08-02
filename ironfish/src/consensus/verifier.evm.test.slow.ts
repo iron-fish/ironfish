@@ -8,7 +8,7 @@ import '../testUtilities/matchers/blockchain'
 import { LegacyTransaction } from '@ethereumjs/tx'
 import { Account as EthAccount, Address } from '@ethereumjs/util'
 import ContractArtifact from '@ironfish/ironfish-contracts'
-import { Asset } from '@ironfish/rust-nodejs'
+import { Asset, TRANSACTION_SIGNATURE_LENGTH } from '@ironfish/rust-nodejs'
 import { ethers } from 'ethers'
 import { Assert } from '../assert'
 import { EvmResult, EvmShield, GLOBAL_IF_ACCOUNT } from '../evm'
@@ -193,7 +193,7 @@ describe('Verifier', () => {
         evm: description,
       })
 
-      const transaction = raw.post(senderAccountIf.spendingKey || '')
+      const transaction = raw.post(senderAccountIf.spendingKey)
       const deserialized = new Transaction(transaction.serialize())
       const verificationResult = await node.chain.verifier.verifyNewTransaction(deserialized)
 
@@ -229,19 +229,25 @@ describe('Verifier', () => {
     })
 
     it('verify transaction returns false when evm transaction has invalid signature', async () => {
-      // Change the signature to be invalid
-      const busted = { ...description, s: Buffer.alloc(32) }
-
       const raw = await node.wallet.createTransaction({
         account: senderAccountIf,
         outputs: [],
         fee: 0n,
         expiration: 0,
         expirationDelta: 0,
-        evm: busted,
+        evm: description,
       })
       const transaction = raw.post(senderAccountIf.spendingKey || '')
-      const deserialized = new Transaction(transaction.serialize())
+
+      const serialized = transaction.serialize()
+      // replace end of evm description signature to make signature invalid
+      serialized.fill(
+        0,
+        serialized.length - TRANSACTION_SIGNATURE_LENGTH - 32,
+        serialized.length - TRANSACTION_SIGNATURE_LENGTH,
+      )
+      const deserialized = new Transaction(serialized)
+
       const result = await node.chain.verifier.verifyNewTransaction(deserialized)
 
       expect(result).toEqual({

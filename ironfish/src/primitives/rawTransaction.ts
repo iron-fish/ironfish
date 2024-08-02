@@ -24,7 +24,7 @@ import { Side } from '../merkletree/merkletree'
 import { CurrencyUtils } from '../utils/currency'
 import { AssetBalances } from '../wallet/assetBalances'
 import { BurnDescription } from './burnDescription'
-import { EvmDescription } from './evmDescription'
+import { UnsignedEvmDescription } from './evmDescription'
 import { Note } from './note'
 import { NoteEncrypted, NoteEncryptedHash, SerializedNoteEncryptedHash } from './noteEncrypted'
 import { SPEND_SERIALIZED_SIZE_IN_BYTE } from './spend'
@@ -49,7 +49,7 @@ export class RawTransaction {
   mints: MintData[] = []
   burns: BurnDescription[] = []
   outputs: { note: Note }[] = []
-  evm: EvmDescription | null = null
+  evm: UnsignedEvmDescription | null = null
 
   spends: {
     note: Note
@@ -189,9 +189,6 @@ export class RawTransaction {
         this.evm.to,
         this.evm.value,
         this.evm.data,
-        this.evm.v,
-        this.evm.r,
-        this.evm.s,
         this.evm.privateIron,
         this.evm.publicIron,
       )
@@ -318,9 +315,6 @@ export class RawTransactionSerde {
         bw.writeBigU64(raw.evm.value)
         bw.writeU32(raw.evm.data.length)
         bw.writeBytes(raw.evm.data)
-        bw.writeU8(raw.evm.v)
-        bw.writeBytes(raw.evm.r)
-        bw.writeBytes(raw.evm.s)
         bw.writeBigU64(raw.evm.privateIron)
         bw.writeBigU64(raw.evm.publicIron)
       }
@@ -407,9 +401,6 @@ export class RawTransactionSerde {
         const value = reader.readBigU64()
         const dataLength = reader.readU32()
         const data = reader.readBytes(dataLength)
-        const v = reader.readU8()
-        const r = reader.readBytes(32)
-        const s = reader.readBytes(32)
         const privateIron = reader.readBigU64()
         const publicIron = reader.readBigU64()
 
@@ -420,9 +411,6 @@ export class RawTransactionSerde {
           to,
           value,
           data,
-          v,
-          r,
-          s,
           privateIron,
           publicIron,
         }
@@ -496,9 +484,6 @@ export class RawTransactionSerde {
         size += 8 // value
         size += 4 // data length
         size += raw.evm.data.length // data
-        size += 1 // v
-        size += 32 // r
-        size += 32 // s
         size += 8 // privateIron
         size += 8 // publicIron
       }

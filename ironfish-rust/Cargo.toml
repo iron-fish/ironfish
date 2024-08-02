@@ -51,6 +51,7 @@ libc = "0.2.126" # sub-dependency that needs a pinned version until a new releas
 rand = "0.8.5"
 tiny-bip39 = "1.0"
 xxhash-rust = { version = "0.8.5", features = ["xxh3"] }
+reth-primitives = { git = "https://github.com/paradigmxyz/reth.git", version = "1.0.3" }
 
 [dev-dependencies]
 hex-literal = "0.4"
