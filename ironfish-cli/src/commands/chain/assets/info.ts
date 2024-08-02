@@ -4,7 +4,7 @@
 import { BufferUtils } from '@ironfish/sdk'
 import { Args } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
-import { ColorFlag, ColorFlagKey, RemoteFlags } from '../../../flags'
+import { JsonFlags, RemoteFlags } from '../../../flags'
 import * as ui from '../../../ui'
 
 export default class AssetInfo extends IronfishCommand {
@@ -20,7 +20,7 @@ export default class AssetInfo extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
-    [ColorFlagKey]: ColorFlag,
+    ...JsonFlags,
   }
 
   async start(): Promise<unknown> {

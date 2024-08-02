@@ -5,7 +5,7 @@
 import { CurrencyUtils, FileUtils } from '@ironfish/sdk'
 import { Args } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
-import { ColorFlag, ColorFlagKey, RemoteFlags } from '../../../flags'
+import { JsonFlags, RemoteFlags } from '../../../flags'
 import * as ui from '../../../ui'
 
 export class TransactionInfo extends IronfishCommand {
@@ -14,7 +14,7 @@ export class TransactionInfo extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
-    [ColorFlagKey]: ColorFlag,
+    ...JsonFlags,
   }
 
   static args = {
