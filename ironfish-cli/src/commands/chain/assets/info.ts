@@ -11,6 +11,14 @@ export default class AssetInfo extends IronfishCommand {
   static description = 'show asset information'
   static enableJsonFlag = true
 
+  static examples = [
+    {
+      description: 'show the native $IRON asset info',
+      command:
+        'ironfish chain:assets:info 51f33a2f14f92735e562dc658a5639279ddca3d5079a6d1242b2a588a9cbf44c',
+    },
+  ]
+
   static args = {
     id: Args.string({
       required: true,
