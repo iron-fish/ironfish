@@ -105,7 +105,7 @@ export default class Start extends IronfishCommand {
     }),
     wallet: Flags.boolean({
       allowNo: true,
-      default: true,
+      default: undefined,
       description: `Enable the node's wallet to scan transactions and decrypt notes from the blockchain`,
     }),
   }
