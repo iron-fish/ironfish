@@ -63,7 +63,6 @@
     "@ironfish/sdk": "2.5.0",
     "@ledgerhq/hw-transport-node-hid": "6.29.1",
     "@oclif/core": "4.0.11",
-    "@oclif/plugin-autocomplete": "3.1.6",
     "@oclif/plugin-help": "6.2.5",
     "@oclif/plugin-not-found": "3.2.10",
     "@oclif/plugin-warn-if-update-available": "3.1.8",
@@ -98,8 +97,7 @@
     "plugins": [
       "@oclif/plugin-help",
       "@oclif/plugin-not-found",
-      "@oclif/plugin-warn-if-update-available",
-      "@oclif/plugin-autocomplete"
+      "@oclif/plugin-warn-if-update-available"
     ],
     "topics": {
       "wallet:scanning": {
