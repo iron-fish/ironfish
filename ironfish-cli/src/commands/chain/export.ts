@@ -9,7 +9,7 @@ import { RemoteFlags } from '../../flags'
 import { ProgressBar } from '../../ui'
 
 export default class Export extends IronfishCommand {
-  static description = 'export the chain to a file'
+  static description = 'export the blockchain to a file'
 
   static args = {
     start: Args.integer({

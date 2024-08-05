@@ -8,7 +8,7 @@ import { RemoteFlags } from '../../flags'
 import { GossipForkCounter } from '../../utils/gossipForkCounter'
 
 export default class ForksCommand extends IronfishCommand {
-  static description = 'detect forks that are being mined'
+  static description = 'show forks that are being mined'
 
   static flags = {
     ...RemoteFlags,

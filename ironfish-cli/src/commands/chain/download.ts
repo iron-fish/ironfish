@@ -9,7 +9,7 @@ import { DownloadedSnapshot, getDefaultManifestUrl, SnapshotDownloader } from '.
 import { confirmOrQuit, ProgressBar, ProgressBarPresets } from '../../ui'
 
 export default class Download extends IronfishCommand {
-  static description = 'download the chain'
+  static description = 'download the blockchain quickly'
 
   static flags = {
     manifestUrl: Flags.string({
