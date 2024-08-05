@@ -111,6 +111,21 @@
       },
       "chain:assets": {
         "description": "commands to look at assets"
+      },
+      "rpc": {
+        "description": "commands for the RPC server"
+      },
+      "miners": {
+        "description": "commands for mining"
+      },
+      "mempool": {
+        "description": "commands for the mempool"
+      },
+      "wallet": {
+        "description": "commands for the wallet"
+      },
+      "workers": {
+        "description": "commands for the worker pool"
       }
     }
   },

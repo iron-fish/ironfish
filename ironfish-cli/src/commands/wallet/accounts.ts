@@ -6,7 +6,7 @@ import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
 export class AccountsCommand extends IronfishCommand {
-  static description = `List all the accounts on the node`
+  static description = `list accounts in the wallet`
 
   static flags = {
     ...RemoteFlags,

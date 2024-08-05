@@ -4,7 +4,7 @@
 import { IronfishCommand } from '../../command'
 
 export class StatusCommand extends IronfishCommand {
-  static description = `List all the migration statuses`
+  static description = `list data migrations`
 
   async start(): Promise<void> {
     await this.parse(StatusCommand)

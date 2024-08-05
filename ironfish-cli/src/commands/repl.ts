@@ -10,7 +10,7 @@ import path from 'path'
 import { IronfishCommand } from '../command'
 
 export default class Repl extends IronfishCommand {
-  static description = 'An interactive terminal to the node'
+  static description = 'start an interactive session'
 
   static flags = {
     opendb: Flags.boolean({

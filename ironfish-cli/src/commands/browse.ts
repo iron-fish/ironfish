@@ -7,7 +7,7 @@ import { IronfishCommand } from '../command'
 import { PlatformUtils } from '../utils'
 
 export class BrowseCommand extends IronfishCommand {
-  static description = `Browse to your data directory`
+  static description = 'open the data folder'
 
   static flags = {
     cd: Flags.boolean({

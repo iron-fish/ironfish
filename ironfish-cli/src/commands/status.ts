@@ -16,7 +16,7 @@ import { RemoteFlags } from '../flags'
 import * as ui from '../ui'
 
 export default class Status extends IronfishCommand {
-  static description = 'Show the status of the node'
+  static description = "show the node's status"
 
   static flags = {
     ...RemoteFlags,

@@ -8,7 +8,7 @@ import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
 export default class Status extends IronfishCommand {
-  static description = 'Show the status of the worker pool'
+  static description = 'show worker pool information'
 
   static flags = {
     ...RemoteFlags,

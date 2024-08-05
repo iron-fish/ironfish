@@ -9,7 +9,7 @@ import { RemoteFlags } from '../../flags'
 import * as ui from '../../ui'
 
 export default class Status extends IronfishCommand {
-  static description = 'Show the status of the RPC layer'
+  static description = 'show RPC server information'
 
   static flags = {
     ...RemoteFlags,
