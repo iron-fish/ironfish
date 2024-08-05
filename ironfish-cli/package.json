@@ -105,6 +105,9 @@
       "wallet:scanning": {
         "description": "Turn on or off scanning for accounts"
       },
+      "chain": {
+        "description": "commands for the blockchain"
+      },
       "chain:blocks": {
         "description": "commands to look at blocks"
       },

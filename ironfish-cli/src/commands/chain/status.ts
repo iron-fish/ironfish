@@ -7,7 +7,7 @@ import { JsonFlags, RemoteFlags } from '../../flags'
 import * as ui from '../../ui'
 
 export default class ChainStatus extends IronfishCommand {
-  static description = 'show chain information'
+  static description = 'show blockchain information'
   static enableJsonFlag = true
 
   static flags = {
