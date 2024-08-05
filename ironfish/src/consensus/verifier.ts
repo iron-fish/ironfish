@@ -889,7 +889,6 @@ export enum VerificationResultReason {
   EVM_TRANSACTION_INSUFFICIENT_BALANCE = 'EVM sender account has insufficient balance',
   EVM_MINT_BALANCE_MISMATCH = 'EVM mint/shield balance mismatch',
   EVM_BURN_BALANCE_MISMATCH = 'EVM burn/unshield balance mismatch',
-  EVM_UNSHIELD_EVENT_NATIVE_ASSET = 'EVM unshield event for native asset',
   EVM_ASSET_MISMATCH = 'EVM shield/unshield did not come from correct contract',
   EVM_ASSET_NOT_FOUND = 'EVM shield/unshield asset not found',
   EVM_UNKNOWN_ERROR = 'EVM unknown error',
