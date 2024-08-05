@@ -175,6 +175,10 @@ impl ProposedTransaction {
     }
 
     pub fn add_evm(&mut self, evm_description: EvmDescription) -> Result<(), IronfishError> {
+        self.value_balances
+            .add(&NATIVE_ASSET, evm_description.private_iron.try_into()?)?;
+        self.value_balances
+            .subtract(&NATIVE_ASSET, evm_description.public_iron.try_into()?)?;
         self.evm = Some(evm_description);
 
         Ok(())
@@ -313,7 +317,7 @@ impl ProposedTransaction {
 
         // Create and verify binding signature keys
         let (binding_signature_private_key, binding_signature_public_key) =
-            self.binding_signature_keys(&unsigned_mints, &burn_descriptions)?;
+            self.binding_signature_keys(&unsigned_mints, &burn_descriptions, &self.evm)?;
 
         let binding_signature = self.binding_signature(
             &binding_signature_private_key,
@@ -498,6 +502,7 @@ impl ProposedTransaction {
         &self,
         mints: &[UnsignedMintDescription],
         burns: &[BurnDescription],
+        evm: &Option<EvmDescription>,
     ) -> Result<(redjubjub::PrivateKey, redjubjub::PublicKey), IronfishError> {
         // A "private key" manufactured from a bunch of randomness added for each
         // spend and output.
@@ -522,7 +527,7 @@ impl ProposedTransaction {
             PublicKey::from_private(&private_key, *VALUE_COMMITMENT_RANDOMNESS_GENERATOR);
 
         let value_balance =
-            self.calculate_value_balance(&binding_verification_key, mints, burns)?;
+            self.calculate_value_balance(&binding_verification_key, mints, burns, evm)?;
 
         // Confirm that the public key derived from the binding signature key matches
         // the final value balance point. The binding verification key is how verifiers
@@ -540,6 +545,7 @@ impl ProposedTransaction {
         binding_verification_key: &ExtendedPoint,
         mints: &[UnsignedMintDescription],
         burns: &[BurnDescription],
+        evm: &Option<EvmDescription>,
     ) -> Result<ExtendedPoint, IronfishError> {
         let mints_descriptions: Vec<MintDescription> =
             mints.iter().map(|m| m.description.clone()).collect();
@@ -549,6 +555,7 @@ impl ProposedTransaction {
             *self.value_balances.fee(),
             &mints_descriptions,
             burns,
+            evm,
         )
     }
 }
@@ -797,8 +804,13 @@ impl Transaction {
         &self,
         binding_verification_key: &ExtendedPoint,
     ) -> Result<(), IronfishError> {
-        let value_balance =
-            calculate_value_balance(binding_verification_key, self.fee, &self.mints, &self.burns)?;
+        let value_balance = calculate_value_balance(
+            binding_verification_key,
+            self.fee,
+            &self.mints,
+            &self.burns,
+            &self.evm,
+        )?;
 
         let mut data_to_verify_signature = [0; 64];
         data_to_verify_signature[..32].copy_from_slice(&value_balance.to_bytes());
@@ -845,6 +857,7 @@ fn calculate_value_balance(
     fee: i64,
     mints: &[MintDescription],
     burns: &[BurnDescription],
+    evm: &Option<EvmDescription>,
 ) -> Result<ExtendedPoint, IronfishError> {
     let fee_point = fee_to_point(fee)?;
 
@@ -858,6 +871,13 @@ fn calculate_value_balance(
     for burn in burns {
         let burn_generator = burn.asset_id.value_commitment_generator();
         value_balance_point -= burn_generator * jubjub::Fr::from(burn.value);
+    }
+
+    if let Some(evm) = evm {
+        value_balance_point -=
+            *NATIVE_VALUE_COMMITMENT_GENERATOR * jubjub::Fr::from(evm.public_iron);
+        value_balance_point +=
+            *NATIVE_VALUE_COMMITMENT_GENERATOR * jubjub::Fr::from(evm.private_iron);
     }
 
     Ok(value_balance_point)
