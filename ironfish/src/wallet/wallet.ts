@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Account as EthAccount } from '@ethereumjs/util'
 import {
   Asset,
   generateKey,
@@ -674,6 +675,31 @@ export class Wallet {
     this.assertHasAccount(account)
 
     return account.getBalance(assetId, confirmations)
+  }
+
+  async getEthAccount(
+    account: Account,
+    options?: { confirmations?: number },
+  ): Promise<EthAccount> {
+    Assert.isNotNull(this.nodeClient)
+
+    this.assertHasAccount(account)
+    Assert.isNotNull(account.ethAddress)
+
+    const head = await account.getHead()
+    if (!head) {
+      return new EthAccount(0n, 0n)
+    }
+
+    const confirmations = options?.confirmations ?? this.config.get('confirmations')
+
+    // TODO(hughy): consider persisting unconfirmed account state
+    const response = await this.nodeClient.eth.getAccount({
+      address: account.ethAddress,
+      blockReference: String(head.sequence - confirmations),
+    })
+
+    return new EthAccount(BigInt(response.content.nonce), BigInt(response.content.balance))
   }
 
   async send(options: {

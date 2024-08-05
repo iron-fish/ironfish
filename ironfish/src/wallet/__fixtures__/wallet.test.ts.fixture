@@ -8120,5 +8120,91 @@
         }
       ]
     }
+  ],
+  "Wallet getEthAccount should be empty if the account is not stored in the state trie": [
+    {
+      "value": {
+        "version": 4,
+        "id": "894dbbce-a5e2-4268-92aa-8bb94a6a0afc",
+        "name": "test",
+        "spendingKey": "1f884be2be447389910800921c3b4235fa847c611e5f2c0a8e0d78d013980728",
+        "viewKey": "6b4989ccedc73f52a24fd65bc43427171b1ab4cd6467a9223f2fb2ee9bb494021b493f52481faf22fc5fdb5e8563e8dfd84cc3b4f274789bc0fe4d74b92e07b1",
+        "incomingViewKey": "7630df5673ad32e7cc9e5f64361262b82b6b299ffe40c91adc643c94cb07ce04",
+        "outgoingViewKey": "e7db0a6813bf8d7af2966ec189ceeb2e324c670479d6e1e5e6f9bfe16d96cd43",
+        "publicAddress": "59cf1f75f672433617263f3694158e08599dc580c2659a4eabcdc487024d2de5",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "c557a8bd638b2c685cf6ccea3d2a086b4fb0fccf8f2cf300a2933fe51f4ea20b"
+      },
+      "head": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      }
+    }
+  ],
+  "Wallet getEthAccount should return account balance and nonce stored in state trie": [
+    {
+      "value": {
+        "version": 4,
+        "id": "21c252c3-3bbe-4ee2-9510-f8e73f5fe4e4",
+        "name": "test",
+        "spendingKey": "ab8f4a0d99f0756baa89bb0d6dcc8c0021bf5fda5440fe552e910da4d2d1b5e5",
+        "viewKey": "55d37ceae5fb4b3d684684d50c77178aa4921ed288602945546d17f3483d2cb05c4ed21765a35b89b6d4569d807e60b29e982b42758acc88bbac7f88f6a7b824",
+        "incomingViewKey": "54ca99972cc34f87717c87d0f4ceb24545f3ecb00906a41c83c2b70d48c1db05",
+        "outgoingViewKey": "5ecd71f3458cc174f988e5dcecb92c26f357415eb1c449efea75dac143ba3eb5",
+        "publicAddress": "6de96238c5f5edb0bc9ed57d040913c2bbc6f6cb1ade85c2dce27d13b1db74c5",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "b6ab7442ca57e27b7171dcbd9519db276d9c4582ebea47223187f2509abfcc0b"
+      },
+      "head": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      }
+    },
+    {
+      "header": {
+        "sequence": 2,
+        "previousBlockHash": "4791D7AE9F97DF100EF1558E84772D6A09B43762388283F75C6F20A32A88AA86",
+        "noteCommitment": {
+          "type": "Buffer",
+          "data": "base64:EJ4yzU7+JhJQ+s0BjSSIoPB4ijJz5TE9a11YWQR1xkw="
+        },
+        "transactionCommitment": {
+          "type": "Buffer",
+          "data": "base64:VPquuUaSevVJT5jupOSSA4WWEB35F0TXf6wZVmLkt9c="
+        },
+        "target": "9282972777491357380673661573939192202192629606981189395159182914949423",
+        "randomness": "0",
+        "timestamp": 1722029812182,
+        "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
+        "noteSize": 4,
+        "work": "0"
+      },
+      "transactions": [
+        {
+          "type": "Buffer",
+          "data": "base64:AQAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzKiP////8AAAAA5II433IPyW6thN3EAXHMJvRYt6lq7yuoVj1wWN3ZPMWlvt6QGK9VEKGWL7KjEiCva4l0VwfmR/QAOaXPSlJ9EMQjhodYeSOdu65pDGuRpFGw8gVHO3uOdZG2fEzpEf0NgDwVUwpEhszmeS4bXXSp7jnNbvlWYKDFSlzhzJ1Dg4wT3zioLGewfoBJeG5UOy7VFycyGfQI4g5sw98+g0IES9vGUFsQxhpN3/ZJtXz29uCK91ULXAU1rONFftCERrBf7s2sisub+v339LNUDkMNWlh+hkoZ4c0v2CdxnKbmmvRTfaMQpM/SBHF3QCToqmI/MWnJcNjaQGNuxCmDO7ZSEMxmA5jZdA2A9ukjO5GDYWS9MGfs18UJ4zfXSYGaefRR5S0Fc5aW8Haf4Uef3lHnRyAPr5rhhLqSLGT6fuWdWMRmhmfxkwjjLRAvFlnmIqAZ2YEDRTzBKEDoQ+LhIOCvpbNJcTtwLn0qyyZr0C7dOOtruUplRHHN49//AXoCLCcjPkJVXEBFB54ujuJUaYfyRTrXbyR2k47Nssp1S9tEC+kaGs29TN76t0mwH9JZkwE3cNLMtYomlFYKO0m287f66gMTKwmBCfvX0HSjSvjvYmwNATjzuy5dDklyb24gRmlzaCBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwUslwTMZM3S5nM2j0KK4bPI2Kla77fsClAiDbk3qchLAvKeyySWWwiliF0dRopVi+E3938yga6YTfSqMJj2iJBg=="
+        }
+      ]
+    }
   ]
 }
