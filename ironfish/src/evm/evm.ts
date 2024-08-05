@@ -155,6 +155,16 @@ export class IronfishEvm {
 
     return asset.id()
   }
+
+  async getAccount(address: Address, stateRoot?: Uint8Array): Promise<Account | undefined> {
+    const sm = await this.blockchainDb.stateManager.withStateRoot(stateRoot)
+    return sm.getAccount(address)
+  }
+
+  async getBalance(address: Address, stateRoot?: Uint8Array): Promise<bigint | undefined> {
+    const account = await this.getAccount(address, stateRoot)
+    return account?.balance
+  }
 }
 
 export type EvmShield = {

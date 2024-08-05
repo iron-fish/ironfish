@@ -26,4 +26,12 @@ export class IronfishStateManager extends DefaultStateManager {
       common: this.common,
     })
   }
+
+  async withStateRoot(stateRoot: Uint8Array | undefined): Promise<DefaultStateManager> {
+    const stateManager = this.shallowCopy()
+    if (stateRoot) {
+      await stateManager.setStateRoot(stateRoot)
+    }
+    return stateManager
+  }
 }

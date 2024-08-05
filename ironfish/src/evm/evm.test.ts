@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { LegacyTransaction } from '@ethereumjs/tx'
 import { Account as EthAccount, Address } from '@ethereumjs/util'
+import { generateKey } from '@ironfish/rust-nodejs'
 import { Assert } from '../assert'
 import { createNodeTest, useAccountFixture } from '../testUtilities'
 import { EvmStateEncoding, HexStringEncoding } from './database'
@@ -64,6 +65,50 @@ describe('IronfishEvm', () => {
 
       const dbSizeAfter = (await mockStateStore.getAllKeys()).length
       expect(dbSizeAfter).toEqual(dbSizeBefore)
+    })
+  })
+
+  describe('getBalance', () => {
+    const nodeTest = createNodeTest()
+
+    it('fetches the account balance at the current state root', async () => {
+      const key = generateKey()
+
+      const address = Address.fromPrivateKey(Buffer.from(key.spendingKey, 'hex'))
+
+      const { node } = nodeTest
+
+      await node.chain.blockchainDb.stateManager.checkpoint()
+      await node.chain.blockchainDb.stateManager.putAccount(address, new EthAccount(0n, 10n))
+      await node.chain.blockchainDb.stateManager.commit()
+
+      const balance = await node.chain.evm.getBalance(address)
+
+      expect(balance).toEqual(10n)
+    })
+
+    it('fetches the account balance at the past state roots', async () => {
+      const key = generateKey()
+
+      const address = Address.fromPrivateKey(Buffer.from(key.spendingKey, 'hex'))
+
+      const { node } = nodeTest
+
+      await node.chain.blockchainDb.stateManager.checkpoint()
+      await node.chain.blockchainDb.stateManager.putAccount(address, new EthAccount(0n, 10n))
+      await node.chain.blockchainDb.stateManager.commit()
+
+      const stateRoot = await node.chain.blockchainDb.stateManager.getStateRoot()
+
+      await node.chain.blockchainDb.stateManager.checkpoint()
+      await node.chain.blockchainDb.stateManager.putAccount(address, new EthAccount(0n, 20n))
+      await node.chain.blockchainDb.stateManager.commit()
+
+      const pastBalance = await node.chain.evm.getBalance(address, stateRoot)
+      expect(pastBalance).toEqual(10n)
+
+      const currentBalance = await node.chain.evm.getBalance(address)
+      expect(currentBalance).toEqual(20n)
     })
   })
 })
