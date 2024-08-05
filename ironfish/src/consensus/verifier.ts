@@ -665,10 +665,6 @@ export class Verifier {
     const assetBalanceDeltas = new AssetBalances()
 
     for (const event of result.events) {
-      // TODO(jwp): handle native asset as output balance (will require decrypting notes and comparing)
-      if (event.assetId.equals(Asset.nativeId())) {
-        continue
-      }
       if (event.name === 'shield') {
         assetBalanceDeltas.increment(event.assetId, -event.amount)
       }
@@ -676,6 +672,8 @@ export class Verifier {
     for (const mint of transaction.mints) {
       assetBalanceDeltas.increment(mint.asset.id(), mint.value)
     }
+
+    assetBalanceDeltas.increment(Asset.nativeId(), transaction.evm?.privateIron || 0n)
 
     for (const [_, value] of assetBalanceDeltas) {
       if (value !== 0n) {
@@ -693,22 +691,15 @@ export class Verifier {
     const assetBalanceDeltas = new AssetBalances()
 
     for (const event of result.events) {
-      if (event.assetId.equals(Asset.nativeId())) {
-        return {
-          valid: false,
-          reason: VerificationResultReason.EVM_UNSHIELD_EVENT_NATIVE_ASSET,
-        }
-      }
       if (event.name === 'unshield') {
         assetBalanceDeltas.increment(event.assetId, event.amount)
       }
     }
     for (const burn of transaction.burns) {
-      if (burn.assetId.equals(Asset.nativeId())) {
-        continue
-      }
       assetBalanceDeltas.increment(burn.assetId, -burn.value)
     }
+
+    assetBalanceDeltas.increment(Asset.nativeId(), (transaction.evm?.publicIron || 0n) * -1n)
 
     for (const [_, value] of assetBalanceDeltas) {
       if (value !== 0n) {
