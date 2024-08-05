@@ -14,4 +14,5 @@ export enum ApiNamespace {
   worker = 'worker',
   rpc = 'rpc',
   mempool = 'mempool',
+  eth = 'eth',
 }

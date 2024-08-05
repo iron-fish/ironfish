@@ -171,6 +171,7 @@ import type {
   UseAccountRequest,
   UseAccountResponse,
 } from '../routes'
+import { GetAccountRequest, GetAccountResponse } from '../routes/eth'
 import { ApiNamespace } from '../routes/namespaces'
 
 export abstract class RpcClient {
@@ -997,6 +998,15 @@ export abstract class RpcClient {
     ): Promise<RpcResponseEnded<UploadConfigResponse>> => {
       return this.request<UploadConfigResponse>(
         `${ApiNamespace.config}/uploadConfig`,
+        params,
+      ).waitForEnd()
+    },
+  }
+
+  eth = {
+    getAccount: (params: GetAccountRequest): Promise<RpcResponseEnded<GetAccountResponse>> => {
+      return this.request<GetAccountResponse>(
+        `${ApiNamespace.eth}/getAccount`,
         params,
       ).waitForEnd()
     },
