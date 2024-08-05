@@ -662,6 +662,13 @@ export class Verifier {
   }
 
   static verifyEvmMints(transaction: Transaction, result: EvmResult): VerificationResult {
+    if (!transaction.evm) {
+      return {
+        valid: false,
+        reason: VerificationResultReason.EVM_MINT_BALANCE_MISMATCH,
+      }
+    }
+
     const assetBalanceDeltas = new AssetBalances()
 
     for (const event of result.events) {
@@ -673,7 +680,7 @@ export class Verifier {
       assetBalanceDeltas.increment(mint.asset.id(), mint.value)
     }
 
-    assetBalanceDeltas.increment(Asset.nativeId(), transaction.evm?.privateIron || 0n)
+    assetBalanceDeltas.increment(Asset.nativeId(), transaction.evm.privateIron || 0n)
 
     for (const [_, value] of assetBalanceDeltas) {
       if (value !== 0n) {
@@ -687,7 +694,13 @@ export class Verifier {
   }
 
   static verifyEvmBurns(transaction: Transaction, result: EvmResult): VerificationResult {
-    // TODO(jwp): handle native asset as output balance (will require decrypting notes and comparing)
+    if (!transaction.evm) {
+      return {
+        valid: false,
+        reason: VerificationResultReason.EVM_BURN_BALANCE_MISMATCH,
+      }
+    }
+
     const assetBalanceDeltas = new AssetBalances()
 
     for (const event of result.events) {
@@ -699,7 +712,7 @@ export class Verifier {
       assetBalanceDeltas.increment(burn.assetId, -burn.value)
     }
 
-    assetBalanceDeltas.increment(Asset.nativeId(), (transaction.evm?.publicIron || 0n) * -1n)
+    assetBalanceDeltas.increment(Asset.nativeId(), (transaction.evm.publicIron || 0n) * -1n)
 
     for (const [_, value] of assetBalanceDeltas) {
       if (value !== 0n) {
