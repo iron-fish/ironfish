@@ -686,6 +686,11 @@ export class Blockchain {
       throw new VerifyError(reason, BAN_SCORE.MAX)
     }
 
+    // set state root back to head
+    await this.blockchainDb.stateManager.setStateRoot(
+      this.head.stateCommitment ?? INITIAL_STATE_ROOT,
+    )
+
     await tx.update()
     this.notes.pastRootTxCommitted(tx)
 
@@ -957,6 +962,7 @@ export class Blockchain {
     graffiti?: Buffer,
     previous?: BlockHeader,
     verifyBlock = true,
+    verifyEvm = true,
   ): Promise<Block> {
     const transactions = [minersFee, ...userTransactions]
 
@@ -1009,12 +1015,6 @@ export class Blockchain {
         for (const note of transaction.notes) {
           blockNotes.push(note)
         }
-        if (transaction.evm) {
-          const evmVerify = await this.verifier.verifyEvm(transaction)
-          if (!evmVerify.valid) {
-            throw Error(evmVerify.reason)
-          }
-        }
       }
 
       await this.notes.addBatch(blockNotes, tx)
@@ -1045,7 +1045,10 @@ export class Blockchain {
       if (verifyBlock && !previousBlockHash.equals(GENESIS_BLOCK_PREVIOUS)) {
         // since we're creating a block that hasn't been mined yet, don't
         // verify target because it'll always fail target check here
-        const verification = await this.verifier.verifyBlock(block, { verifyTarget: false })
+        const verification = await this.verifier.verifyBlock(block, {
+          verifyTarget: false,
+          verifyEvm,
+        })
         if (!verification.valid) {
           throw new Error(verification.reason)
         }
@@ -1313,13 +1316,6 @@ export class Blockchain {
         tx,
       )
       await this.saveConnectedEvmMints(transaction, tx)
-
-      if (transaction.evm) {
-        const evmVerify = await this.verifier.verifyEvm(transaction)
-        if (!evmVerify.valid) {
-          throw Error(evmVerify.reason)
-        }
-      }
     }
 
     const verify = await this.verifier.verifyConnectedBlock(block, tx)

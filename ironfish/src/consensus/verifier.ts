@@ -52,7 +52,13 @@ export class Verifier {
    */
   async verifyBlock(
     block: Block,
-    options: { verifyTarget?: boolean } = { verifyTarget: true },
+    options: {
+      verifyTarget?: boolean
+      verifyEvm?: boolean
+    } = {
+      verifyTarget: true,
+      verifyEvm: true,
+    },
   ): Promise<VerificationResult> {
     if (getBlockSize(block) > this.chain.consensus.parameters.maxBlockSizeBytes) {
       return { valid: false, reason: VerificationResultReason.MAX_BLOCK_SIZE_EXCEEDED }
@@ -128,11 +134,12 @@ export class Verifier {
           return noMints
         }
       } else {
-        // TODO(hughy): do not verify evm transactions again because they are verified during block construction
-        // const evmVerify = await this.verifyEvm(transaction, vm)
-        // if (!evmVerify.valid) {
-        //   return evmVerify
-        // }
+        if (options.verifyEvm) {
+          const evmVerify = await this.verifyEvm(transaction)
+          if (!evmVerify.valid) {
+            return evmVerify
+          }
+        }
       }
 
       transactionBatch.push(transaction)
