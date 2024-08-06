@@ -87,6 +87,11 @@ who = "Andrea <andrea@iflabs.network>"
 criteria = "safe-to-deploy"
 delta = "0.9.95 -> 0.9.102"
 
+[[audits.password-hash]]
+who = "Rohan Jadvani <rohan@iflabs.network>"
+criteria = "safe-to-deploy"
+delta = "0.4.2 -> 0.5.0"
+
 [[audits.reddsa]]
 who = "Andrea <andrea@iflabs.network>"
 criteria = "safe-to-deploy"
