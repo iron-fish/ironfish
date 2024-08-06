@@ -18,6 +18,11 @@ criteria = "safe-to-deploy"
 delta = "0.24.1 -> 0.24.1@git:37b9976bcd96986cbdc71ae09fc455015e3dfac0"
 notes = "Fork of the official bellperson owned by Iron Fish"
 
+[[audits.cpufeatures]]
+who = "Rohan Jadvani <rohan@iflabs.network>"
+criteria = "safe-to-deploy"
+delta = "0.2.6 -> 0.2.7"
+
 [[audits.crypto_box]]
 who = "Andrea <andrea@iflabs.network>"
 criteria = "safe-to-deploy"
