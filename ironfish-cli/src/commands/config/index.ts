@@ -8,7 +8,7 @@ import { RemoteFlags } from '../../flags'
 import * as ui from '../../ui'
 
 export class ShowCommand extends IronfishCommand {
-  static description = `Print out the entire config`
+  static description = "show the node's config"
   static enableJsonFlag = true
 
   static flags = {

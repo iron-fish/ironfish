@@ -32,7 +32,7 @@ export const ENABLE_TELEMETRY_CONFIG_KEY = 'enableTelemetry'
 const DEFAULT_ACCOUNT_NAME = 'default'
 
 export default class Start extends IronfishCommand {
-  static description = 'Start the node'
+  static description = 'start the node'
 
   static flags = {
     [RpcUseIpcFlagKey]: { ...RpcUseIpcFlag, allowNo: true } as typeof RpcUseIpcFlag,

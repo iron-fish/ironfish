@@ -7,7 +7,7 @@ import { IronfishCommand } from '../command'
 import { RemoteFlags } from '../flags'
 
 export default class StopCommand extends IronfishCommand {
-  static description = 'Stop the node from running'
+  static description = 'stop the node'
 
   static flags = {
     ...RemoteFlags,

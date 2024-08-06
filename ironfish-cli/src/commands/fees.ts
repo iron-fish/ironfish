@@ -13,7 +13,7 @@ import { IronfishCommand } from '../command'
 import { RemoteFlags } from '../flags'
 
 export class FeeCommand extends IronfishCommand {
-  static description = `Get fee distribution for most recent blocks`
+  static description = 'show network transaction fees'
 
   static flags = {
     ...RemoteFlags,
