@@ -70,6 +70,10 @@ criteria = "safe-to-deploy"
 version = "0.7.20"
 criteria = "safe-to-deploy"
 
+[[exemptions.argon2]]
+version = "0.5.3"
+criteria = "safe-to-deploy"
+
 [[exemptions.atomic-polyfill]]
 version = "0.1.11"
 criteria = "safe-to-deploy"
@@ -104,6 +108,10 @@ criteria = "safe-to-deploy"
 
 [[exemptions.bitvec]]
 version = "1.0.1"
+criteria = "safe-to-deploy"
+
+[[exemptions.blake2]]
+version = "0.10.6"
 criteria = "safe-to-deploy"
 
 [[exemptions.blake2b_simd]]
@@ -199,7 +207,7 @@ version = "0.6.0"
 criteria = "safe-to-deploy"
 
 [[exemptions.cpufeatures]]
-version = "0.2.6"
+version = "0.2.7"
 criteria = "safe-to-deploy"
 
 [[exemptions.criterion]]
@@ -548,6 +556,10 @@ criteria = "safe-to-deploy"
 
 [[exemptions.password-hash]]
 version = "0.3.2"
+criteria = "safe-to-deploy"
+
+[[exemptions.password-hash]]
+version = "0.5.0"
 criteria = "safe-to-deploy"
 
 [[exemptions.pasta_curves]]
