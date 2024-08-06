@@ -36,7 +36,7 @@ pub fn encrypt(plaintext: &[u8], passphrase: &[u8]) -> Result<EncryptOutput, Iro
     let key = derive_key(passphrase, salt.to_string().as_bytes())?;
 
     let cipher = XChaCha20Poly1305::new(&key);
-    let mut nonce_bytes = [0u8; 24];
+    let mut nonce_bytes = [0u8; NONCE_LENGTH];
     thread_rng().fill_bytes(&mut nonce_bytes);
     let nonce = XNonce::from_slice(&nonce_bytes);
 
