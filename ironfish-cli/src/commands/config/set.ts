@@ -6,7 +6,7 @@ import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
 export class SetCommand extends IronfishCommand {
-  static description = `Set a value in the config`
+  static description = `set a single value in the config`
 
   static args = {
     name: Args.string({

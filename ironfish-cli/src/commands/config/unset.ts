@@ -6,7 +6,7 @@ import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
 export class UnsetCommand extends IronfishCommand {
-  static description = `Unset a value in the config and fall back to default`
+  static description = `reset a config value to the default`
 
   static args = {
     name: Args.string({
