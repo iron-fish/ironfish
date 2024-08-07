@@ -66,9 +66,7 @@ impl EncryptOutput {
 
 impl PartialEq for EncryptOutput {
     fn eq(&self, other: &EncryptOutput) -> bool {
-        self.salt == other.salt
-            && self.nonce == other.nonce
-            && self.ciphertext == other.ciphertext
+        self.salt == other.salt && self.nonce == other.nonce && self.ciphertext == other.ciphertext
     }
 }
 
@@ -160,7 +158,9 @@ mod test {
             .expect("should successfully encrypt");
 
         let mut vec: Vec<u8> = vec![];
-        encrypted_output.write(&mut vec).expect("should serialize successfully");
+        encrypted_output
+            .write(&mut vec)
+            .expect("should serialize successfully");
 
         let deserialized = EncryptOutput::read(&vec[..]).expect("should deserialize successfully");
 
