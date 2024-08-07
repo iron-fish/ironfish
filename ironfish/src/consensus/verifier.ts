@@ -662,13 +662,16 @@ export class Verifier {
   }
 
   static verifyEvmMints(transaction: Transaction, result: EvmResult): VerificationResult {
+    if (!transaction.evm) {
+      return {
+        valid: false,
+        reason: VerificationResultReason.EVM_MINT_BALANCE_MISMATCH,
+      }
+    }
+
     const assetBalanceDeltas = new AssetBalances()
 
     for (const event of result.events) {
-      // TODO(jwp): handle native asset as output balance (will require decrypting notes and comparing)
-      if (event.assetId.equals(Asset.nativeId())) {
-        continue
-      }
       if (event.name === 'shield') {
         assetBalanceDeltas.increment(event.assetId, -event.amount)
       }
@@ -676,6 +679,8 @@ export class Verifier {
     for (const mint of transaction.mints) {
       assetBalanceDeltas.increment(mint.asset.id(), mint.value)
     }
+
+    assetBalanceDeltas.increment(Asset.nativeId(), transaction.evm.privateIron)
 
     for (const [_, value] of assetBalanceDeltas) {
       if (value !== 0n) {
@@ -689,26 +694,25 @@ export class Verifier {
   }
 
   static verifyEvmBurns(transaction: Transaction, result: EvmResult): VerificationResult {
-    // TODO(jwp): handle native asset as output balance (will require decrypting notes and comparing)
+    if (!transaction.evm) {
+      return {
+        valid: false,
+        reason: VerificationResultReason.EVM_BURN_BALANCE_MISMATCH,
+      }
+    }
+
     const assetBalanceDeltas = new AssetBalances()
 
     for (const event of result.events) {
-      if (event.assetId.equals(Asset.nativeId())) {
-        return {
-          valid: false,
-          reason: VerificationResultReason.EVM_UNSHIELD_EVENT_NATIVE_ASSET,
-        }
-      }
       if (event.name === 'unshield') {
         assetBalanceDeltas.increment(event.assetId, event.amount)
       }
     }
     for (const burn of transaction.burns) {
-      if (burn.assetId.equals(Asset.nativeId())) {
-        continue
-      }
       assetBalanceDeltas.increment(burn.assetId, -burn.value)
     }
+
+    assetBalanceDeltas.increment(Asset.nativeId(), transaction.evm.publicIron * -1n)
 
     for (const [_, value] of assetBalanceDeltas) {
       if (value !== 0n) {
@@ -885,7 +889,6 @@ export enum VerificationResultReason {
   EVM_TRANSACTION_INSUFFICIENT_BALANCE = 'EVM sender account has insufficient balance',
   EVM_MINT_BALANCE_MISMATCH = 'EVM mint/shield balance mismatch',
   EVM_BURN_BALANCE_MISMATCH = 'EVM burn/unshield balance mismatch',
-  EVM_UNSHIELD_EVENT_NATIVE_ASSET = 'EVM unshield event for native asset',
   EVM_ASSET_MISMATCH = 'EVM shield/unshield did not come from correct contract',
   EVM_ASSET_NOT_FOUND = 'EVM shield/unshield asset not found',
   EVM_UNKNOWN_ERROR = 'EVM unknown error',
