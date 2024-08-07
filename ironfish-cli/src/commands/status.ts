@@ -12,14 +12,16 @@ import {
 import { Flags } from '@oclif/core'
 import blessed from 'blessed'
 import { IronfishCommand } from '../command'
-import { RemoteFlags } from '../flags'
+import { JsonFlags, RemoteFlags } from '../flags'
 import * as ui from '../ui'
 
 export default class Status extends IronfishCommand {
   static description = "show the node's status"
+  static enableJsonFlag = true
 
   static flags = {
     ...RemoteFlags,
+    ...JsonFlags,
     follow: Flags.boolean({
       char: 'f',
       default: false,
@@ -31,14 +33,15 @@ export default class Status extends IronfishCommand {
     }),
   }
 
-  async start(): Promise<void> {
+  async start(): Promise<unknown> {
     const { flags } = await this.parse(Status)
 
     if (!flags.follow) {
       const client = await this.connectRpc()
       const response = await client.node.getStatus()
       this.log(renderStatus(response.content, flags.all))
-      this.exit(0)
+
+      return response.content
     }
 
     // Console log will create display issues with Blessed
@@ -219,7 +222,7 @@ function renderStatus(content: GetNodeStatusResponse, debugOutput: boolean): str
     Version: `${content.node.version} @ ${content.node.git}`,
     Node: nodeStatus,
     'Node Name': content.node.nodeName,
-    'Peed ID': content.peerNetwork.publicIdentity,
+    'Peer ID': content.peerNetwork.publicIdentity,
     'Block Graffiti': blockGraffiti,
     Network: network,
     Memory: memoryStatus,
