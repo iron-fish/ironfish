@@ -4,7 +4,7 @@
 
 use ironfish::{
     serializing::{bytes_to_hex, hex_to_vec_bytes},
-    xchacha20poly1305,
+    xchacha20poly1305::{self, EncryptOutput},
 };
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
@@ -22,4 +22,16 @@ pub fn encrypt(plaintext: String, passphrase: String) -> Result<String> {
     result.write(&mut vec).map_err(to_napi_err)?;
 
     Ok(bytes_to_hex(&vec))
+}
+
+#[napi]
+pub fn decrypt(encrypted_blob: String, passphrase: String) -> Result<String> {
+    let encrypted_blob_bytes = hex_to_vec_bytes(&encrypted_blob).map_err(to_napi_err)?;
+    let passphrase_bytes = hex_to_vec_bytes(&passphrase).map_err(to_napi_err)?;
+
+    let encrypted_output = EncryptOutput::read(&encrypted_blob_bytes[..]).map_err(to_napi_err)?;
+    let result =
+        xchacha20poly1305::decrypt(encrypted_output, &passphrase_bytes).map_err(to_napi_err)?;
+
+    Ok(bytes_to_hex(&result[..]))
 }
