@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::errors::{IronfishError, IronfishErrorKind};
-use chacha20poly1305::aead::{AeadInPlace, NewAead};
-use chacha20poly1305::{ChaCha20Poly1305, Key, Nonce};
+use chacha20poly1305::aead::AeadInPlace;
+use chacha20poly1305::{ChaCha20Poly1305, Key, KeyInit, Nonce};
 
 pub const MAC_SIZE: usize = 16;
 
