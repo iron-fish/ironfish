@@ -1010,7 +1010,8 @@ export class Blockchain {
           blockNotes.push(note)
         }
         if (transaction.evm) {
-          const evmVerify = await this.verifier.verifyEvm(transaction)
+          const evmResult = await this.evm.runDesc(transaction.evm)
+          const evmVerify = this.verifier.verifyEvm(transaction, evmResult)
           if (!evmVerify.valid) {
             throw Error(evmVerify.reason)
           }
@@ -1315,7 +1316,8 @@ export class Blockchain {
       await this.saveConnectedEvmMints(transaction, tx)
 
       if (transaction.evm) {
-        const evmVerify = await this.verifier.verifyEvm(transaction)
+        const evmResult = await this.evm.runDesc(transaction.evm)
+        const evmVerify = this.verifier.verifyEvm(transaction, evmResult)
         if (!evmVerify.valid) {
           throw Error(evmVerify.reason)
         }

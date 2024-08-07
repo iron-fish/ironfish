@@ -10,6 +10,7 @@ import { Asset, generateKeyFromPrivateKey } from '@ironfish/rust-nodejs'
 import { ethers } from 'ethers'
 import { Assert } from '../assert'
 import { BlockchainDB } from '../blockchain/database/blockchaindb'
+import { EvmDescription, evmDescriptionToLegacyTransaction } from '../primitives/evmDescription'
 import { EvmBlockchain } from './blockchain'
 
 export const INITIAL_STATE_ROOT = Buffer.from(
@@ -62,32 +63,38 @@ export class IronfishEvm {
     this.vm = await VM.create({ evm, stateManager: this.blockchainDb.stateManager })
   }
 
-  async runTx(opts: RunTxOpts): Promise<RunTxResult> {
-    Assert.isNotNull(this.vm, 'EVM not initialized')
-    opts.block = Block.fromBlockData({ header: { baseFeePerGas: 0n } })
-    return this.vm.runTx(opts)
+  async runDesc(description: EvmDescription, vm?: VM): Promise<EvmResult> {
+    const tx = evmDescriptionToLegacyTransaction(description)
+    return this.runTx({ tx }, vm)
   }
 
-  async verifyTx(opts: RunTxOpts, vm?: VM): Promise<EvmResult> {
+  async runTx(opts: RunTxOpts, vm?: VM): Promise<EvmResult> {
     Assert.isNotNull(this.vm, 'EVM not initialized')
     vm = vm ?? this.vm
 
     opts.block = Block.fromBlockData({ header: { baseFeePerGas: 0n } })
-    const result = await vm.runTx(opts)
-
-    const events = this.decodeLogs(result.receipt.logs)
-
-    return {
-      result,
-      events,
+    try {
+      const result = await vm.runTx(opts)
+      const events = this.decodeLogs(result.receipt.logs)
+      return {
+        result,
+        events,
+        error: undefined,
+      }
+    } catch (e) {
+      if (e instanceof Error) {
+        return {
+          result: undefined,
+          events: [],
+          error: new EvmError(e.message),
+        }
+      }
+      return {
+        result: undefined,
+        events: [],
+        error: new EvmError('unknown evm execution error'),
+      }
     }
-  }
-
-  async simulateTx(opts: RunTxOpts): Promise<RunTxResult> {
-    return this.withCopy(async (vm) => {
-      opts.block = Block.fromBlockData({ header: { baseFeePerGas: 0n } })
-      return vm.runTx(opts)
-    })
   }
 
   async withCopy<TResult>(handler: (copy: VM) => Promise<TResult>): Promise<TResult> {
@@ -183,7 +190,18 @@ export type EvmUnshield = {
 
 export type UTXOEvent = EvmShield | EvmUnshield
 
-export type EvmResult = {
-  result: RunTxResult
-  events: UTXOEvent[]
+export type EvmResult =
+  | {
+      result: RunTxResult
+      error: undefined
+      events: UTXOEvent[]
+    }
+  | {
+      result: undefined
+      error: EvmError
+      events: UTXOEvent[]
+    }
+
+export class EvmError extends Error {
+  name = this.constructor.name
 }

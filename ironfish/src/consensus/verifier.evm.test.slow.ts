@@ -143,8 +143,12 @@ describe('Verifier', () => {
 
       Assert.isNotUndefined(node.chain.evm)
 
-      const result = await node.chain.evm.runTx({ tx: tx.sign(evmPrivateKey) })
-      const globalContractAddress = result?.createdAddress
+      const { result, error } = await node.chain.evm.runTx({ tx: tx.sign(evmPrivateKey) })
+      if (error) {
+        throw error
+      }
+
+      const globalContractAddress = result.createdAddress
 
       Assert.isNotUndefined(globalContractAddress)
 
@@ -208,7 +212,7 @@ describe('Verifier', () => {
 
       signed = tx.sign(evmPrivateKey)
 
-      const evmResult = await node.chain.evm.verifyTx({ tx: signed })
+      const evmResult = await node.chain.evm.runTx({ tx: signed })
 
       const shieldEvents = evmResult.events.filter(
         (event) => event.name === 'shield',
@@ -337,7 +341,7 @@ describe('Verifier', () => {
         ],
       } as unknown as EvmResult
 
-      const result = Verifier.verifyEvmBurns(transaction, evmResult)
+      const result = Verifier.verifyEvmBurns(transaction, evmResult.events)
       expect(result).toEqual({ valid: true })
     })
   })

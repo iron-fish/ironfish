@@ -9,7 +9,7 @@ import { createNodeTest, useAccountFixture } from '../testUtilities'
 import { EvmStateEncoding, HexStringEncoding } from './database'
 
 describe('IronfishEvm', () => {
-  describe('simulateTx', () => {
+  describe('withCopy', () => {
     const nodeTest = createNodeTest()
 
     it('does not modify database', async () => {
@@ -54,9 +54,11 @@ describe('IronfishEvm', () => {
 
       Assert.isNotUndefined(nodeTest.chain.evm)
 
-      const result = await nodeTest.chain.evm.simulateTx({ tx: signed })
+      const result = await nodeTest.chain.evm.withCopy((vm) => {
+        return nodeTest.chain.evm.runTx({ tx: signed }, vm)
+      })
 
-      expect(result.totalGasSpent).toEqual(21000n)
+      expect(result?.result?.totalGasSpent).toEqual(21000n)
 
       const senderAccountAfter = await nodeTest.chain.blockchainDb.stateManager.getAccount(
         senderAddress,

@@ -1,5 +1,5 @@
 {
-  "IronfishEvm simulateTx does not modify database": [
+  "IronfishEvm withCopy does not modify database": [
     {
       "value": {
         "version": 4,

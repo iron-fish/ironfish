@@ -57,7 +57,10 @@ export class TestEvmCommand extends IronfishCommand {
       data: data,
     })
 
-    const result = await evm.runTx({ tx: tx.sign(senderPrivateKey) })
+    const { result, error } = await evm.runTx({ tx: tx.sign(senderPrivateKey) })
+    if (error) {
+      throw error
+    }
 
     Assert.isEqual(result.receipt.logs.length, 1)
 
