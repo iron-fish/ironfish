@@ -680,7 +680,7 @@ export class Verifier {
       assetBalanceDeltas.increment(mint.asset.id(), mint.value)
     }
 
-    assetBalanceDeltas.increment(Asset.nativeId(), transaction.evm.privateIron || 0n)
+    assetBalanceDeltas.increment(Asset.nativeId(), transaction.evm.privateIron)
 
     for (const [_, value] of assetBalanceDeltas) {
       if (value !== 0n) {
@@ -712,7 +712,7 @@ export class Verifier {
       assetBalanceDeltas.increment(burn.assetId, -burn.value)
     }
 
-    assetBalanceDeltas.increment(Asset.nativeId(), (transaction.evm.publicIron || 0n) * -1n)
+    assetBalanceDeltas.increment(Asset.nativeId(), transaction.evm.publicIron * -1n)
 
     for (const [_, value] of assetBalanceDeltas) {
       if (value !== 0n) {
