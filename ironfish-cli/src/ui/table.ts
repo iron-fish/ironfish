@@ -7,6 +7,7 @@ import { Flags, ux } from '@oclif/core'
 import chalk from 'chalk'
 import { orderBy } from 'natural-orderby'
 import stringWidth from 'string-width'
+import { json } from './json'
 
 const WIDE_DASH = '─'
 
@@ -157,7 +158,7 @@ class Table<T extends Record<string, unknown>> {
   }
 
   renderJson(rows: Record<string, string>[]) {
-    this.options.printLine(JSON.stringify(rows, null, 2))
+    this.options.printLine(json(rows))
   }
 
   renderTerminal(rows: Record<string, string>[]) {
