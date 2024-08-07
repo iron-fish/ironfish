@@ -85,13 +85,13 @@ export class IronfishEvm {
       if (e instanceof Error) {
         return {
           result: undefined,
-          events: [],
+          events: undefined,
           error: new EvmError(e.message),
         }
       }
       return {
         result: undefined,
-        events: [],
+        events: undefined,
         error: new EvmError('unknown evm execution error'),
       }
     }
@@ -199,7 +199,7 @@ export type EvmResult =
   | {
       result: undefined
       error: EvmError
-      events: UTXOEvent[]
+      events: undefined
     }
 
 export class EvmError extends Error {

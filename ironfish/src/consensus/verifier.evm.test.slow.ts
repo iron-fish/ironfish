@@ -214,6 +214,7 @@ describe('Verifier', () => {
 
       const evmResult = await node.chain.evm.runTx({ tx: signed })
 
+      Assert.isNotUndefined(evmResult.events)
       const shieldEvents = evmResult.events.filter(
         (event) => event.name === 'shield',
       ) as EvmShield[]
@@ -341,6 +342,7 @@ describe('Verifier', () => {
         ],
       } as unknown as EvmResult
 
+      Assert.isNotUndefined(evmResult.events)
       const result = Verifier.verifyEvmBurns(transaction, evmResult.events)
       expect(result).toEqual({ valid: true })
     })

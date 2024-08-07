@@ -64,6 +64,7 @@ export class TestEvmCommand extends IronfishCommand {
 
     const { events } = await evm.runTx({ tx: tx.sign(senderPrivateKey) })
 
+    Assert.isNotUndefined(events)
     Assert.isEqual(events.length, 1)
     const log = events[0] as EvmShield
 
