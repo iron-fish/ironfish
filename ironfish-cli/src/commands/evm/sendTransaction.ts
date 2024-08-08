@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { LegacyTransaction } from '@ethereumjs/tx'
 import {
+  Assert,
   legacyTransactionToEvmDescription,
   RawTransaction,
   TransactionVersion,
@@ -58,14 +59,21 @@ export class SendTransactionTestEvmCommand extends IronfishCommand {
 
     const transaction = rawTransaction.post(senderKey.toString('hex'))
 
-    const response = await client.mempool.acceptTransaction({
+    const response = await client.chain.broadcastTransaction({
       transaction: transaction.serialize().toString('hex'),
     })
+    Assert.isNotNull(response.content)
 
     if (response.content.accepted) {
       this.log('Transaction accepted')
     } else {
-      this.log(`Transaction rejected: ${response.content.reason}`)
+      this.log('Transaction not accepted')
+    }
+
+    if (response.content.broadcasted) {
+      this.log('Transaction broadcasted')
+    } else {
+      this.log('Transaction not broadcasted')
     }
   }
 }
