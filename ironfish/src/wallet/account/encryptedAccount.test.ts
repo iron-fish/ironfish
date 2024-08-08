@@ -4,6 +4,7 @@
 import { encrypt } from '@ironfish/rust-nodejs'
 import { useAccountFixture } from '../../testUtilities/fixtures/account'
 import { createNodeTest } from '../../testUtilities/nodeTest'
+import { AccountDecryptionFailedError } from '../errors'
 import { AccountValueEncoding } from '../walletdb/accountValue'
 import { EncryptedAccount } from './encryptedAccount'
 
@@ -44,6 +45,8 @@ describe('EncryptedAccount', () => {
       walletDb: node.wallet.walletDb,
     })
 
-    expect(() => encryptedAccount.decrypt(invalidPassphrase)).toThrow()
+    expect(() => encryptedAccount.decrypt(invalidPassphrase)).toThrow(
+      AccountDecryptionFailedError,
+    )
   })
 })

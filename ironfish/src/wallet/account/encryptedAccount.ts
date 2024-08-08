@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { decrypt } from '@ironfish/rust-nodejs'
+import { AccountDecryptionFailedError } from '../errors'
 import { AccountValueEncoding, EncryptedAccountValue } from '../walletdb/accountValue'
 import { WalletDB } from '../walletdb/walletdb'
 import { Account } from './account'
@@ -16,14 +17,15 @@ export class EncryptedAccount {
   }
 
   decrypt(passphrase: string): Account {
-    const decryptedAccountValue = decrypt(this.data, passphrase)
-    if (!decryptedAccountValue) {
-      throw new Error('Failed to decrypt payload')
-    }
+    try {
+      const decryptedAccountValue = decrypt(this.data, passphrase)
+      const encoder = new AccountValueEncoding()
+      const accountValue = encoder.deserialize(decryptedAccountValue)
 
-    const encoder = new AccountValueEncoding()
-    const accountValue = encoder.deserialize(decryptedAccountValue)
-    return new Account({ accountValue, walletDb: this.walletDb })
+      return new Account({ accountValue, walletDb: this.walletDb })
+    } catch {
+      throw new AccountDecryptionFailedError()
+    }
   }
 
   serialize(): EncryptedAccountValue {
