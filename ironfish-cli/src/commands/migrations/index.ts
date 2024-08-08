@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { DatabaseIsLockedError, DatabaseOpenError, ErrorUtils } from '@ironfish/sdk'
+import { NodeUtils } from '@ironfish/sdk'
 import { IronfishCommand } from '../../command'
 import { JsonFlags } from '../../flags'
 import * as ui from '../../ui'
@@ -19,19 +19,11 @@ export class StatusCommand extends IronfishCommand {
 
     const node = await this.sdk.node()
 
-    let migrationsStatus
-    try {
-      migrationsStatus = await node.migrator.status()
-    } catch (e) {
-      if (e instanceof DatabaseIsLockedError || e instanceof DatabaseOpenError) {
-        this.logToStderr('Database in use, cannot check status of migrations.')
-      } else {
-        this.logToStderr(' ERROR\n')
-        this.logToStderr(ErrorUtils.renderError(e, true))
-      }
+    // Verify the DB is in a state to be opened by the migrator
+    await NodeUtils.waitForOpen(node)
+    await node.closeDB()
 
-      this.exit(1)
-    }
+    const migrationsStatus = await node.migrator.status()
 
     const displayData: Record<string, string> = {}
     for (const { name, applied } of migrationsStatus.migrations) {
