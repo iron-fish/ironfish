@@ -10,20 +10,23 @@ import {
 } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../command'
-import { RemoteFlags } from '../flags'
+import { JsonFlags, RemoteFlags } from '../flags'
+import * as ui from '../ui'
 
 export class FeeCommand extends IronfishCommand {
   static description = 'show network transaction fees'
+  static enableJsonFlag = true
 
   static flags = {
     ...RemoteFlags,
+    ...JsonFlags,
     explain: Flags.boolean({
       default: false,
       description: 'Explain fee rates',
     }),
   }
 
-  async start(): Promise<void> {
+  async start(): Promise<unknown> {
     const { flags } = await this.parse(FeeCommand)
 
     const client = await this.connectRpc()
@@ -35,9 +38,9 @@ export class FeeCommand extends IronfishCommand {
     const feeRates = await client.chain.estimateFeeRates()
 
     this.log('Fee Rates ($ORE/kB)')
-    this.log(`slow:    ${feeRates.content.slow || ''}`)
-    this.log(`average: ${feeRates.content.average || ''}`)
-    this.log(`fast:    ${feeRates.content.fast || ''}`)
+    this.log(ui.card(feeRates.content))
+
+    return feeRates.content
   }
 
   async explainFeeRates(client: RpcClient): Promise<void> {
@@ -62,9 +65,13 @@ export class FeeCommand extends IronfishCommand {
     this.log(
       'The slow, average, and fast rates each come from a percentile in the distribution:',
     )
-    this.log(`slow:    ${slow}th`)
-    this.log(`average: ${average}th`)
-    this.log(`fast:    ${fast}th`)
+    this.log(
+      ui.card({
+        slow: `${slow}th`,
+        average: `${average}th`,
+        fast: `${fast}th`,
+      }),
+    )
     this.log('')
   }
 }
