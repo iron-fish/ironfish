@@ -2,14 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { generateKey } from '@ironfish/rust-nodejs'
-import { AccountValue, AccountValueEncoding } from './accountValue'
+import { AccountValueEncoding, DecryptedAccountValue } from './accountValue'
 
 describe('AccountValueEncoding', () => {
   it('serializes the object into a buffer and deserializes to the original object', () => {
     const encoder = new AccountValueEncoding()
 
     const key = generateKey()
-    const value: AccountValue = {
+    const value: DecryptedAccountValue = {
+      encrypted: false,
       id: 'id',
       name: 'foobar👁️🏃🐟',
       incomingViewKey: key.incomingViewKey,
@@ -34,7 +35,8 @@ describe('AccountValueEncoding', () => {
     const encoder = new AccountValueEncoding()
 
     const key = generateKey()
-    const value: AccountValue = {
+    const value: DecryptedAccountValue = {
+      encrypted: false,
       id: 'id',
       name: 'foobar👁️🏃🐟',
       incomingViewKey: key.incomingViewKey,
