@@ -69,6 +69,7 @@
     "test": "tsc -b && tsc -b tsconfig.test.json && cross-env NODE_OPTIONS=--experimental-vm-modules RUST_BACKTRACE=1 jest --testTimeout=${JEST_TIMEOUT:-5000}",
     "testd": "tsc -b && tsc -b tsconfig.test.json && cross-env RUST_BACKTRACE=1 node --experimental-vm-modules ../node_modules/jest/bin/jest.js --testTimeout=${JEST_TIMEOUT:-5000}",
     "test:slow": "tsc -b && tsc -b tsconfig.test.json && cross-env NODE_OPTIONS=--experimental-vm-modules TEST_INIT_RUST=true RUST_BACKTRACE=1 jest --testMatch \"**/*.test.slow.ts\" --testPathIgnorePatterns --testTimeout=${JEST_TIMEOUT:-60000}",
+    "testd:slow": "tsc -b && tsc -b tsconfig.test.json && cross-env RUST_BACKTRACE=1 node --experimental-vm-modules ../node_modules/jest/bin/jest.js --testMatch \"**/*.test.slow.ts\" --testPathIgnorePatterns --testTimeout=${JEST_TIMEOUT:-60000}",
     "test:perf": "tsc -b && tsc -b tsconfig.test.json && cross-env NODE_OPTIONS=--experimental-vm-modules TEST_INIT_RUST=true jest --testMatch \"**/*.test.perf.ts\" --testPathIgnorePatterns --testTimeout=${JEST_TIMEOUT:-600000} --runInBand",
     "test:perf:report": "tsc -b && tsc -b tsconfig.test.json && cross-env NODE_OPTIONS=--experimental-vm-modules TEST_INIT_RUST=true GENERATE_TEST_REPORT=true jest --config jest.config.js --testMatch \"**/*.test.perf.ts\" --testPathIgnorePatterns --testTimeout=${JEST_TIMEOUT:-600000} --ci",
     "test:coverage:html": "tsc -b tsconfig.test.json && cross-env NODE_OPTIONS=--experimental-vm-modules jest --testPathIgnorePatterns --coverage --coverage-reporters html",

@@ -101,6 +101,11 @@ export class IronfishEvm {
     return this.withCopy(async (vm) => this.runTx(opts, vm))
   }
 
+  async simulateLogs(opts: RunTxOpts): Promise<UTXOEvent[]> {
+    const result = await this.simulateTx(opts)
+    return this.decodeLogs(result.receipt.logs)
+  }
+
   async withCopy<TResult>(handler: (copy: VM) => Promise<TResult>): Promise<TResult> {
     Assert.isNotNull(this.vm, 'EVM not initialized')
     const vm = await this.vm.shallowCopy()
@@ -136,6 +141,7 @@ export class IronfishEvm {
           ironfishAddress: Buffer.from((ironfishAddress as string).slice(2), 'hex'),
           caller: Address.fromString(caller as string),
           assetId: this.getAssetId(caller as string, tokenId as bigint),
+          tokenId: tokenId as bigint,
           amount: amount as bigint,
         })
       } catch (e) {
@@ -183,6 +189,7 @@ export type EvmShield = {
   ironfishAddress: Buffer
   assetId: Buffer
   caller: Address
+  tokenId: bigint
   amount: bigint
 }
 

@@ -15,6 +15,7 @@ import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
 import { Consensus, isExpiredSequence, Verifier } from '../consensus'
 import { Event } from '../event'
+import { GLOBAL_IF_ACCOUNT, UTXOEvent } from '../evm'
 import { Config } from '../fileStores'
 import { createRootLogger, Logger } from '../logger'
 import { getFee } from '../memPool/feeEstimator'
@@ -916,6 +917,81 @@ export class Wallet {
     }
   }
 
+  async createEvmTransaction(options: {
+    evm: EvmDescription
+    evmEvents: UTXOEvent[]
+    expiration?: number
+    expirationDelta?: number
+    account?: Account
+  }): Promise<RawTransaction> {
+    const heaviestHead = await this.getChainHead()
+    if (heaviestHead === null) {
+      throw new Error('You must have a genesis block to create a transaction')
+    }
+
+    const expirationDelta =
+      options.expirationDelta ?? this.config.get('transactionExpirationDelta')
+
+    const expiration = options.expiration ?? heaviestHead.sequence + expirationDelta
+
+    if (isExpiredSequence(expiration, heaviestHead.sequence)) {
+      throw new Error(
+        `Invalid expiration sequence for transaction ${expiration} vs ${heaviestHead.sequence}`,
+      )
+    }
+
+    const raw = new RawTransaction(3)
+    raw.expiration = expiration
+    raw.evm = options.evm
+
+    for (const event of options.evmEvents) {
+      if (event.name === 'shield') {
+        const note = new NativeNote(
+          event.ironfishAddress.toString('hex'),
+          event.amount,
+          Buffer.from(''),
+          event.assetId,
+          GLOBAL_IF_ACCOUNT.publicAddress,
+        )
+
+        raw.outputs.push({ note: new Note(note.serialize()) })
+
+        if (!event.assetId.equals(Asset.nativeId())) {
+          raw.mints.push({
+            creator: GLOBAL_IF_ACCOUNT.publicAddress,
+            name: `${event.caller.toString().toLowerCase()}_${event.tokenId.toString()}`,
+            metadata: '',
+            value: event.amount,
+          })
+        } else {
+          raw.evm.privateIron += event.amount
+        }
+      } else if (event.name === 'unshield') {
+        if (event.assetId.equals(Asset.nativeId())) {
+          raw.evm.publicIron += event.amount
+        } else {
+          raw.burns.push({ assetId: event.assetId, value: event.amount })
+        }
+      }
+    }
+
+    if (raw.burns.length > 0 || raw.evm.publicIron > 0) {
+      Assert.isNotUndefined(options.account, 'must pass an account for unshielding')
+
+      const unlock = await this.createTransactionMutex.lock()
+      const confirmations = this.config.get('confirmations')
+
+      await this.fund(raw, {
+        account: options.account,
+        confirmations: confirmations,
+      })
+
+      unlock()
+    }
+
+    return raw
+  }
+
   async build(options: { transaction: RawTransaction; account: Account }): Promise<{
     transaction: UnsignedTransaction
   }> {
@@ -1084,6 +1160,9 @@ export class Wallet {
       const currentAmount = amountsNeeded.get(asset.id()) ?? 0n
       amountsNeeded.set(asset.id(), currentAmount - mint.value)
     }
+
+    const currentNativeAssetAmount = amountsNeeded.get(Asset.nativeId()) ?? 0n
+    amountsNeeded.set(Asset.nativeId(), currentNativeAssetAmount + (raw.evm?.publicIron || 0n))
 
     return amountsNeeded
   }
