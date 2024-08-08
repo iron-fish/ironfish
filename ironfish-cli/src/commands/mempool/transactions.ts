@@ -31,7 +31,7 @@ const parseMinMax = (input: string): MinMax | undefined => {
 }
 
 export class TransactionsCommand extends IronfishCommand {
-  static description = `List transactions in the mempool`
+  static description = `list mempool transactions`
 
   static flags = {
     ...RemoteFlags,
