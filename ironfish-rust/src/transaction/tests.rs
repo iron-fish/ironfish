@@ -8,7 +8,7 @@ use std::collections::{BTreeMap, HashMap};
 use super::internal_batch_verify_transactions;
 use super::{ProposedTransaction, Transaction};
 use crate::test_util::create_multisig_identities;
-use crate::transaction::evm::EvmDescription;
+use crate::transaction::evm::UnsignedEvmDescription;
 use crate::transaction::tests::split_spender_key::split_spender_key;
 use crate::{
     assets::{asset::Asset, asset_identifier::NATIVE_ASSET},
@@ -231,28 +231,16 @@ fn test_evm_transaction() {
     );
     let witness = make_fake_witness(&in_note);
 
-    let evm = EvmDescription {
-        nonce: 9,
-        gas_price: 1,
-        gas_limit: 2_000_000,
-        to: Some([0x35; 20]),
-        value: 1_000_000_000_000_000_000,
-        data: vec![],
-        v: 27,
-        r: [
-            0x5e, 0x1d, 0x3a, 0x76, 0xfb, 0xf8, 0x24, 0x22, 0x0e, 0x27, 0xb5, 0xd1, 0xf8, 0xd0,
-            0x78, 0x48, 0xe8, 0xa4, 0x41, 0x4b, 0x78, 0xb6, 0xd0, 0xf1, 0xe9, 0xc2, 0xb4, 0xd3,
-            0xd6, 0xd3, 0xd3, 0xe5,
-        ],
-        s: [
-            0x7e, 0x1d, 0x3a, 0x76, 0xfb, 0xf8, 0x24, 0x22, 0x0e, 0x27, 0xb5, 0xd1, 0xf8, 0xd0,
-            0x78, 0x48, 0xe8, 0xa4, 0x41, 0x4b, 0x78, 0xb6, 0xd0, 0xf1, 0xe9, 0xc2, 0xb4, 0xd3,
-            0xd6, 0xd3, 0xd3, 0xe5,
-        ],
-        private_iron: 0,
-        public_iron: 0,
-    };
-    let evm_clone = evm.clone();
+    let evm = UnsignedEvmDescription::new(
+        9,
+        1,
+        2_000_000,
+        Some([0x35; 20]),
+        1_000_000_000_000_000_000,
+        vec![],
+        0,
+        0,
+    );
 
     let mut transaction = ProposedTransaction::new(TransactionVersion::latest());
     transaction.add_spend(in_note, &witness).unwrap();
@@ -277,9 +265,6 @@ fn test_evm_transaction() {
     // assert evm to be some
     assert!(public_transaction.evm.is_some());
 
-    // check equality for evm description vs one above
-    assert_eq!(public_transaction.evm, Some(evm_clone));
-
     let received_note = public_transaction.outputs[1]
         .merkle_note()
         .decrypt_note_for_owner(&spender_key_clone.incoming_viewing_key)
@@ -301,27 +286,16 @@ fn test_evm_transaction_public_iron() {
     );
     let witness = make_fake_witness(&in_note);
 
-    let evm = EvmDescription {
-        nonce: 9,
-        gas_price: 1,
-        gas_limit: 2_000_000,
-        to: Some([0x35; 20]),
-        value: 1_000_000_000_000_000_000,
-        data: vec![],
-        v: 27,
-        r: [
-            0x5e, 0x1d, 0x3a, 0x76, 0xfb, 0xf8, 0x24, 0x22, 0x0e, 0x27, 0xb5, 0xd1, 0xf8, 0xd0,
-            0x78, 0x48, 0xe8, 0xa4, 0x41, 0x4b, 0x78, 0xb6, 0xd0, 0xf1, 0xe9, 0xc2, 0xb4, 0xd3,
-            0xd6, 0xd3, 0xd3, 0xe5,
-        ],
-        s: [
-            0x7e, 0x1d, 0x3a, 0x76, 0xfb, 0xf8, 0x24, 0x22, 0x0e, 0x27, 0xb5, 0xd1, 0xf8, 0xd0,
-            0x78, 0x48, 0xe8, 0xa4, 0x41, 0x4b, 0x78, 0xb6, 0xd0, 0xf1, 0xe9, 0xc2, 0xb4, 0xd3,
-            0xd6, 0xd3, 0xd3, 0xe5,
-        ],
-        private_iron: 0,
-        public_iron: 41,
-    };
+    let evm = UnsignedEvmDescription::new(
+        9,
+        1,
+        2_000_000,
+        Some([0x35; 20]),
+        1_000_000_000_000_000_000,
+        vec![],
+        0,
+        41,
+    );
     let evm_clone = evm.clone();
 
     let mut transaction = ProposedTransaction::new(TransactionVersion::latest());
@@ -345,7 +319,16 @@ fn test_evm_transaction_public_iron() {
     assert!(public_transaction.evm.is_some());
 
     // check equality for evm description vs one above
-    assert_eq!(public_transaction.evm, Some(evm_clone));
+    if let Some(description) = public_transaction.evm {
+        assert_eq!(description.nonce, evm_clone.description.nonce);
+        assert_eq!(description.gas_limit, evm_clone.description.gas_limit);
+        assert_eq!(description.gas_price, evm_clone.description.gas_price);
+        assert_eq!(description.to, evm_clone.description.to);
+        assert_eq!(description.value, evm_clone.description.value);
+        assert_eq!(description.data, evm_clone.description.data);
+        assert_eq!(description.private_iron, evm_clone.description.private_iron);
+        assert_eq!(description.public_iron, evm_clone.description.public_iron);
+    };
 }
 
 #[test]
@@ -362,27 +345,16 @@ fn test_evm_transaction_private_iron() {
         spender_key.public_address(),
     );
 
-    let evm = EvmDescription {
-        nonce: 9,
-        gas_price: 1,
-        gas_limit: 2_000_000,
-        to: Some([0x35; 20]),
-        value: 1_000_000_000_000_000_000,
-        data: vec![],
-        v: 27,
-        r: [
-            0x5e, 0x1d, 0x3a, 0x76, 0xfb, 0xf8, 0x24, 0x22, 0x0e, 0x27, 0xb5, 0xd1, 0xf8, 0xd0,
-            0x78, 0x48, 0xe8, 0xa4, 0x41, 0x4b, 0x78, 0xb6, 0xd0, 0xf1, 0xe9, 0xc2, 0xb4, 0xd3,
-            0xd6, 0xd3, 0xd3, 0xe5,
-        ],
-        s: [
-            0x7e, 0x1d, 0x3a, 0x76, 0xfb, 0xf8, 0x24, 0x22, 0x0e, 0x27, 0xb5, 0xd1, 0xf8, 0xd0,
-            0x78, 0x48, 0xe8, 0xa4, 0x41, 0x4b, 0x78, 0xb6, 0xd0, 0xf1, 0xe9, 0xc2, 0xb4, 0xd3,
-            0xd6, 0xd3, 0xd3, 0xe5,
-        ],
-        private_iron: 42,
-        public_iron: 0,
-    };
+    let evm = UnsignedEvmDescription::new(
+        9,
+        1,
+        2_000_000,
+        Some([0x35; 20]),
+        1_000_000_000_000_000_000,
+        vec![],
+        42,
+        0,
+    );
     let evm_clone = evm.clone();
 
     let mut transaction = ProposedTransaction::new(TransactionVersion::latest());
@@ -406,7 +378,16 @@ fn test_evm_transaction_private_iron() {
     assert!(public_transaction.evm.is_some());
 
     // check equality for evm description vs one above
-    assert_eq!(public_transaction.evm, Some(evm_clone));
+    if let Some(description) = public_transaction.evm {
+        assert_eq!(description.nonce, evm_clone.description.nonce);
+        assert_eq!(description.gas_limit, evm_clone.description.gas_limit);
+        assert_eq!(description.gas_price, evm_clone.description.gas_price);
+        assert_eq!(description.to, evm_clone.description.to);
+        assert_eq!(description.value, evm_clone.description.value);
+        assert_eq!(description.data, evm_clone.description.data);
+        assert_eq!(description.private_iron, evm_clone.description.private_iron);
+        assert_eq!(description.public_iron, evm_clone.description.public_iron);
+    };
 
     let received_note = public_transaction.outputs[0]
         .merkle_note()

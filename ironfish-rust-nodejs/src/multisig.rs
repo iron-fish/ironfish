@@ -429,7 +429,7 @@ pub struct DkgRound2Packages {
     pub round2_public_package: String,
 }
 
-#[napi(object, namespace = "multisig")]
+#[napi(namespace = "multisig")]
 pub fn dkg_round3(
     secret: &ParticipantSecret,
     round2_secret_package: String,

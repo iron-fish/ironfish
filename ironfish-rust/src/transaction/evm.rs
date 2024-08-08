@@ -7,9 +7,92 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+use reth_primitives::{
+    revm_primitives::FixedBytes, sign_message, Address, Transaction, TxKind, TxLegacy, U256,
+};
 use std::io;
 
-use crate::errors::IronfishError;
+use crate::{errors::IronfishError, SaplingKey};
+#[derive(Clone, PartialEq, Debug)]
+pub struct UnsignedEvmDescription {
+    pub(crate) description: EvmDescription,
+}
+
+impl UnsignedEvmDescription {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        nonce: u64,
+        gas_price: u64,
+        gas_limit: u64,
+        to: Option<[u8; 20]>,
+        value: u64,
+        data: Vec<u8>,
+        private_iron: u64,
+        public_iron: u64,
+    ) -> Self {
+        let description = EvmDescription {
+            nonce,
+            gas_price,
+            gas_limit,
+            to,
+            value,
+            data,
+            v: 0,
+            r: [0u8; 32],
+            s: [0u8; 32],
+            private_iron,
+            public_iron,
+        };
+
+        Self { description }
+    }
+
+    pub fn read<R: io::Read>(reader: R) -> Result<Self, io::Error> {
+        let description = EvmDescription::read(reader)?;
+
+        Ok(Self { description })
+    }
+
+    pub fn write<W: io::Write>(&self, writer: W) -> Result<(), IronfishError> {
+        EvmDescription::write(&self.description, writer)
+    }
+
+    pub(crate) fn serialize_signature_fields<W: io::Write>(
+        &self,
+        mut writer: W,
+    ) -> Result<(), IronfishError> {
+        self.description.serialize_signature_fields(&mut writer)
+    }
+
+    pub fn sign(mut self, spender_key: &SaplingKey) -> EvmDescription {
+        let tx_kind = match self.description.to {
+            None => TxKind::Create,
+            Some(address_bytes) => TxKind::Call(Address::from(address_bytes)),
+        };
+        let reth_tx: Transaction = Transaction::Legacy(TxLegacy {
+            nonce: self.description.nonce,
+            gas_price: self.description.gas_price.into(),
+            gas_limit: self.description.gas_limit,
+            to: tx_kind,
+            value: U256::from(self.description.value),
+            input: self.description.data.clone().into(),
+            chain_id: None,
+        });
+
+        // TODO(hughy): add appropriate error handling for signing errors from reth
+        let signature = sign_message(
+            FixedBytes::from(spender_key.spending_key()),
+            reth_tx.signature_hash(),
+        )
+        .unwrap();
+
+        self.description.v = signature.v(None);
+        self.description.r = signature.r.to_be_bytes();
+        self.description.s = signature.s.to_be_bytes();
+
+        self.description
+    }
+}
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct EvmDescription {
@@ -19,7 +102,7 @@ pub struct EvmDescription {
     pub(crate) to: Option<[u8; 20]>,
     pub(crate) value: u64,
     pub(crate) data: Vec<u8>,
-    pub(crate) v: u8,
+    pub(crate) v: u64,
     pub(crate) r: [u8; 32],
     pub(crate) s: [u8; 32],
     pub(crate) private_iron: u64,
@@ -27,34 +110,6 @@ pub struct EvmDescription {
 }
 
 impl EvmDescription {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        nonce: u64,
-        gas_price: u64,
-        gas_limit: u64,
-        to: Option<[u8; 20]>,
-        value: u64,
-        data: Vec<u8>,
-        v: u8,
-        r: [u8; 32],
-        s: [u8; 32],
-        private_iron: u64,
-        public_iron: u64,
-    ) -> Self {
-        Self {
-            nonce,
-            gas_price,
-            gas_limit,
-            to,
-            value,
-            data,
-            v,
-            r,
-            s,
-            private_iron,
-            public_iron,
-        }
-    }
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, io::Error> {
         let nonce = reader.read_u64::<LittleEndian>()?;
         let gas_price = reader.read_u64::<LittleEndian>()?;
@@ -78,16 +133,16 @@ impl EvmDescription {
         let mut data = vec![0; data_len];
         reader.read_exact(&mut data)?;
 
-        let v = reader.read_u8()?;
+        let private_iron = reader.read_u64::<LittleEndian>()?;
+        let public_iron = reader.read_u64::<LittleEndian>()?;
+
+        let v = reader.read_u64::<LittleEndian>()?;
 
         let mut r = [0u8; 32];
         reader.read_exact(&mut r)?;
 
         let mut s = [0u8; 32];
         reader.read_exact(&mut s)?;
-
-        let private_iron = reader.read_u64::<LittleEndian>()?;
-        let public_iron = reader.read_u64::<LittleEndian>()?;
 
         Ok(Self {
             nonce,
@@ -105,6 +160,19 @@ impl EvmDescription {
     }
 
     pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
+        self.serialize_signature_fields(&mut writer)?;
+
+        writer.write_u64::<LittleEndian>(self.v)?;
+        writer.write_all(&self.r)?;
+        writer.write_all(&self.s)?;
+
+        Ok(())
+    }
+
+    pub(crate) fn serialize_signature_fields<W: io::Write>(
+        &self,
+        mut writer: W,
+    ) -> Result<(), IronfishError> {
         writer.write_u64::<LittleEndian>(self.nonce)?;
         writer.write_u64::<LittleEndian>(self.gas_price)?;
         writer.write_u64::<LittleEndian>(self.gas_limit)?;
@@ -119,9 +187,6 @@ impl EvmDescription {
         writer.write_u64::<LittleEndian>(self.value)?;
         writer.write_u32::<LittleEndian>(self.data.len() as u32)?;
         writer.write_all(&self.data)?;
-        writer.write_u8(self.v)?;
-        writer.write_all(&self.r)?;
-        writer.write_all(&self.s)?;
         writer.write_u64::<LittleEndian>(self.private_iron)?;
         writer.write_u64::<LittleEndian>(self.public_iron)?;
 
@@ -132,6 +197,55 @@ impl EvmDescription {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_unsigned_serde() {
+        let original_transaction = UnsignedEvmDescription::new(
+            9,
+            1,
+            2_000_000,
+            Some([0x35; 20]),
+            1_000_000_000_000_000_000,
+            vec![],
+            0,
+            0,
+        );
+
+        // Write the Transaction to a Vec<u8>
+        let mut buffer = Vec::new();
+        original_transaction.write(&mut buffer).unwrap();
+
+        // Read the Transaction back from the Vec<u8>
+        let read_transaction = UnsignedEvmDescription::read(&buffer[..]).unwrap();
+
+        // Check that the read data is the same as the original data
+        assert_eq!(
+            read_transaction.description,
+            original_transaction.description
+        );
+    }
+
+    #[test]
+    fn test_sign() {
+        let key = SaplingKey::generate_key();
+
+        let unsigned = UnsignedEvmDescription::new(
+            9,
+            1,
+            2_000_000,
+            Some([0x35; 20]),
+            1_000_000_000_000_000_000,
+            vec![],
+            0,
+            0,
+        );
+
+        let signed = unsigned.sign(&key);
+
+        assert_ne!(signed.v, 0);
+        assert_ne!(signed.r, [0u8; 32]);
+        assert_ne!(signed.s, [0u8; 32]);
+    }
 
     #[test]
     fn test_transaction() {
