@@ -13,7 +13,13 @@ export const KEY_LENGTH = ACCOUNT_KEY_LENGTH
 export const VIEW_KEY_LENGTH = 64
 const VERSION_LENGTH = 2
 
-export interface AccountValue {
+export interface EncryptedAccountValue {
+  encrypted: true
+  data: Buffer
+}
+
+export interface DecryptedAccountValue {
+  encrypted: false
   version: number
   id: string
   name: string
@@ -28,8 +34,10 @@ export interface AccountValue {
   proofAuthorizingKey: string | null
 }
 
-export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
-  serialize(value: AccountValue): Buffer {
+export type AccountValue = EncryptedAccountValue | DecryptedAccountValue
+
+export class AccountValueEncoding implements IDatabaseEncoding<DecryptedAccountValue> {
+  serialize(value: DecryptedAccountValue): Buffer {
     const bw = bufio.write(this.getSize(value))
     let flags = 0
     flags |= Number(!!value.spendingKey) << 0
@@ -69,7 +77,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     return bw.render()
   }
 
-  deserialize(buffer: Buffer): AccountValue {
+  deserialize(buffer: Buffer): DecryptedAccountValue {
     const reader = bufio.read(buffer, true)
     const flags = reader.readU8()
     const version = reader.readU16()
@@ -104,6 +112,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
       : null
 
     return {
+      encrypted: false,
       version,
       id,
       name,
@@ -119,7 +128,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     }
   }
 
-  getSize(value: AccountValue): number {
+  getSize(value: DecryptedAccountValue): number {
     let size = 0
     size += 1 // flags
     size += VERSION_LENGTH

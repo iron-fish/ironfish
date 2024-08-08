@@ -2,36 +2,31 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use ironfish::{
-    serializing::{bytes_to_hex, hex_to_vec_bytes},
-    xchacha20poly1305::{self, EncryptOutput},
-};
-use napi::bindgen_prelude::*;
+use ironfish::xchacha20poly1305::{self, EncryptOutput};
+use napi::{bindgen_prelude::*, JsBuffer};
 use napi_derive::napi;
 
 use crate::to_napi_err;
 
 #[napi]
-pub fn encrypt(plaintext: String, passphrase: String) -> Result<String> {
-    let plaintext_bytes = hex_to_vec_bytes(&plaintext).map_err(to_napi_err)?;
-    let passphrase_bytes = hex_to_vec_bytes(&passphrase).map_err(to_napi_err)?;
-    let result =
-        xchacha20poly1305::encrypt(&plaintext_bytes, &passphrase_bytes).map_err(to_napi_err)?;
+pub fn encrypt(plaintext: JsBuffer, passphrase: String) -> Result<Buffer> {
+    let plaintext_bytes = plaintext.into_value()?;
+    let result = xchacha20poly1305::encrypt(plaintext_bytes.as_ref(), passphrase.as_bytes())
+        .map_err(to_napi_err)?;
 
     let mut vec: Vec<u8> = vec![];
     result.write(&mut vec).map_err(to_napi_err)?;
 
-    Ok(bytes_to_hex(&vec))
+    Ok(Buffer::from(&vec[..]))
 }
 
 #[napi]
-pub fn decrypt(encrypted_blob: String, passphrase: String) -> Result<String> {
-    let encrypted_blob_bytes = hex_to_vec_bytes(&encrypted_blob).map_err(to_napi_err)?;
-    let passphrase_bytes = hex_to_vec_bytes(&passphrase).map_err(to_napi_err)?;
+pub fn decrypt(encrypted_blob: JsBuffer, passphrase: String) -> Result<Buffer> {
+    let encrypted_bytes = encrypted_blob.into_value()?;
 
-    let encrypted_output = EncryptOutput::read(&encrypted_blob_bytes[..]).map_err(to_napi_err)?;
+    let encrypted_output = EncryptOutput::read(encrypted_bytes.as_ref()).map_err(to_napi_err)?;
     let result =
-        xchacha20poly1305::decrypt(encrypted_output, &passphrase_bytes).map_err(to_napi_err)?;
+        xchacha20poly1305::decrypt(encrypted_output, passphrase.as_bytes()).map_err(to_napi_err)?;
 
-    Ok(bytes_to_hex(&result[..]))
+    Ok(Buffer::from(&result[..]))
 }

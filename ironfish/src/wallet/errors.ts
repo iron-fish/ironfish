@@ -60,3 +60,12 @@ export class DuplicateMultisigSecretNameError extends Error {
     this.message = `Multisig secret already exists with the name ${name}`
   }
 }
+
+export class AccountDecryptionFailedError extends Error {
+  name = this.constructor.name
+
+  constructor() {
+    super()
+    this.message = 'Failed to decrypt account'
+  }
+}

@@ -1288,6 +1288,7 @@ export class Wallet {
 
     const account = new Account({
       accountValue: {
+        encrypted: false,
         version: ACCOUNT_SCHEMA_VERSION,
         id: uuid(),
         name,
@@ -1389,6 +1390,7 @@ export class Wallet {
         name,
         multisigKeys,
         scanningEnabled: true,
+        encrypted: false,
       },
       walletDb: this.walletDb,
     })
@@ -1441,6 +1443,7 @@ export class Wallet {
         createdAt: options?.resetCreatedAt ? null : account.createdAt,
         scanningEnabled: options?.resetScanningEnabled ? true : account.scanningEnabled,
         id: uuid(),
+        encrypted: false,
       },
       walletDb: this.walletDb,
     })

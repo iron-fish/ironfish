@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Blockchain } from '../../blockchain'
-import { AccountValue, AssertSpending, SpendingAccount, Wallet } from '../../wallet'
+import { AssertSpending, SpendingAccount, Wallet } from '../../wallet'
+import { DecryptedAccountValue } from '../../wallet/walletdb/accountValue'
 import { HeadValue } from '../../wallet/walletdb/headValue'
 import { useMinerBlockFixture } from './blocks'
 import { FixtureGenerate, useFixture } from './fixture'
@@ -26,7 +27,7 @@ export function useAccountFixture(
     serialize: async (
       account: SpendingAccount,
     ): Promise<{
-      value: AccountValue
+      value: DecryptedAccountValue
       head: HeadValue | null
     }> => {
       return {
@@ -39,7 +40,7 @@ export function useAccountFixture(
       value,
       head,
     }: {
-      value: AccountValue
+      value: DecryptedAccountValue
       head: HeadValue | null
     }): Promise<SpendingAccount> => {
       const createdAt = value.createdAt
