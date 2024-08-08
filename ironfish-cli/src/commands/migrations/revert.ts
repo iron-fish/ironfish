@@ -4,7 +4,7 @@
 import { IronfishCommand } from '../../command'
 
 export class RevertCommand extends IronfishCommand {
-  static description = `Revert the last run migration`
+  static description = `revert the last run migration`
 
   static hidden = true
 

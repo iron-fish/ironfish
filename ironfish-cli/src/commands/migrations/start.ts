@@ -5,7 +5,7 @@ import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 
 export class StartCommand extends IronfishCommand {
-  static description = `Run migrations`
+  static description = `run migrations`
 
   static flags = {
     dry: Flags.boolean({
