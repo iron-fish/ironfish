@@ -50,7 +50,10 @@ export class TestEvmCommand extends IronfishCommand {
     this.log(
       `Sending ${tx.value} from ${senderAddress.toString()} to ${recipientAddress.toString()}`,
     )
-    const result = await evm.runTx({ tx: tx.sign(senderPrivateKey) })
+    const { result, error } = await evm.runTx({ tx: tx.sign(senderPrivateKey) })
+    if (error) {
+      throw error
+    }
     this.log(`Amount spent for gas: ${result.amountSpent}`)
 
     senderBalance =

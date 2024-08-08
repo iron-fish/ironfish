@@ -62,12 +62,11 @@ export class TestEvmCommand extends IronfishCommand {
       data: data,
     })
 
-    const result = await evm.runTx({ tx: tx.sign(senderPrivateKey) })
+    const { events } = await evm.runTx({ tx: tx.sign(senderPrivateKey) })
 
-    const logEvents = evm.decodeLogs(result.receipt.logs)
-
-    Assert.isEqual(logEvents.length, 1)
-    const log = logEvents[0] as EvmShield
+    Assert.isNotUndefined(events)
+    Assert.isEqual(events.length, 1)
+    const log = events[0] as EvmShield
 
     this.log('Contract Address')
     this.log(log.caller.toString())

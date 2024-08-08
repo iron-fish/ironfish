@@ -292,11 +292,13 @@ export class MiningManager {
 
         // verify that EVM transactions are valid
         if (transaction.evm) {
-          Assert.isNotUndefined(this.chain.evm)
-          const evmVerify = await this.chain.verifier.verifyEvm(transaction, vm)
+          const evmResult = await this.chain.evm.runDesc(transaction.evm, vm)
+          const evmVerify = this.chain.verifier.verifyEvm(transaction, evmResult)
           if (!evmVerify.valid) {
             continue
           }
+
+          totalTransactionFees += evmResult.result?.minerValue ?? 0n
         }
 
         currBlockSize += transactionSize

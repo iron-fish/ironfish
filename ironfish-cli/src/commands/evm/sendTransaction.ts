@@ -51,6 +51,7 @@ export class SendTransactionTestEvmCommand extends IronfishCommand {
       value: BigInt(flags.value),
       gasLimit: 21000n,
       nonce: flags.nonce,
+      gasPrice: 1n,
     })
 
     const rawTransaction = new RawTransaction(TransactionVersion.V3)

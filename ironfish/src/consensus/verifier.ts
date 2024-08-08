@@ -2,14 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-// import { Address } from '@ethereumjs/util'
-import { VM } from '@ethereumjs/vm'
 import { Asset } from '@ironfish/rust-nodejs'
 import { BufferMap, BufferSet } from 'buffer-map'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { BlockchainDBTransaction } from '../blockchain/database/blockchaindb'
-import { EvmResult } from '../evm'
+import { EvmResult, UTXOEvent } from '../evm'
 import {
   getBlockSize,
   getBlockWithMinersFeeSize,
@@ -19,7 +17,6 @@ import { Spend } from '../primitives'
 import { Block, GENESIS_BLOCK_SEQUENCE } from '../primitives/block'
 import { BlockHeader, transactionCommitment } from '../primitives/blockheader'
 import { BurnDescription } from '../primitives/burnDescription'
-import { evmDescriptionToLegacyTransaction } from '../primitives/evmDescription'
 import { MintDescription } from '../primitives/mintDescription'
 import { Target } from '../primitives/target'
 import { Transaction, TransactionVersion } from '../primitives/transaction'
@@ -87,6 +84,7 @@ export class Verifier {
     let runningNotesCount = 0
     const transactionHashes = new BufferSet()
 
+    let totalTransactionFees = 0n
     for (const [idx, transaction] of block.transactions.entries()) {
       if (transaction.version() !== transactionVersion) {
         return {
@@ -128,11 +126,17 @@ export class Verifier {
           return noMints
         }
       } else {
-        // TODO(hughy): do not verify evm transactions again because they are verified during block construction
-        // const evmVerify = await this.verifyEvm(transaction, vm)
-        // if (!evmVerify.valid) {
-        //   return evmVerify
-        // }
+        const evmResult = await this.chain.evm.withCopy(async (vm) => {
+          Assert.isNotNull(transaction.evm)
+          return this.chain.evm.runDesc(transaction.evm, vm)
+        })
+
+        const evmVerify = this.verifyEvm(transaction, evmResult)
+        if (!evmVerify.valid) {
+          return evmVerify
+        }
+
+        totalTransactionFees += evmResult.result?.minerValue ?? 0n
       }
 
       transactionBatch.push(transaction)
@@ -155,7 +159,6 @@ export class Verifier {
     }
 
     // Sum the total transaction fees
-    let totalTransactionFees = 0n
     for (const transaction of otherTransactions) {
       const transactionFee = transaction.fee()
       if (transactionFee < 0) {
@@ -174,7 +177,6 @@ export class Verifier {
 
     // minersFee should be (negative) miningReward + totalTransactionFees
     const miningReward = this.chain.network.miningReward(block.header.sequence)
-
     if (minersFeeTransaction.fee() !== -1n * (BigInt(miningReward) + totalTransactionFees)) {
       return { valid: false, reason: VerificationResultReason.INVALID_MINERS_FEE }
     }
@@ -281,7 +283,9 @@ export class Verifier {
       }
     } else {
       const evmVerify = await this.chain.evm.withCopy(async (vm) => {
-        return this.verifyEvm(transaction, vm)
+        Assert.isNotNull(transaction.evm)
+        const evmResult = await this.chain.evm.runDesc(transaction.evm, vm)
+        return this.verifyEvm(transaction, evmResult)
       })
       if (!evmVerify.valid) {
         return evmVerify
@@ -611,34 +615,17 @@ export class Verifier {
     return { valid: true }
   }
 
-  async verifyEvm(
-    transaction: Transaction,
-    vm?: VM,
-    // tx?: BlockchainDBTransaction,
-  ): Promise<VerificationResult> {
-    // TODO(jwp): handle these more cleanly after hughs changes
-    if (!transaction.evm) {
-      return { valid: true }
-    }
-
-    const evmTx = evmDescriptionToLegacyTransaction(transaction.evm)
-    let result: EvmResult
-    // TODO(jwp) on EVM error, seems to be throwing rather than just providing error in execResult, can't get EvmError type
-    try {
-      result = await this.chain.evm.verifyTx({ tx: evmTx }, vm)
-      if (result.result.execResult.exceptionError) {
-        return { valid: false, reason: VerificationResultReason.EVM_TRANSACTION_FAILED }
-      }
-    } catch (error) {
-      if (error instanceof Error && error.message.includes('Invalid Signature')) {
+  verifyEvm(transaction: Transaction, evmResult: EvmResult): VerificationResult {
+    const { result, error, events } = evmResult
+    if (result && result.execResult.exceptionError) {
+      return { valid: false, reason: VerificationResultReason.EVM_TRANSACTION_FAILED }
+    } else if (error) {
+      if (error.message.includes('Invalid Signature')) {
         return {
           valid: false,
           reason: VerificationResultReason.EVM_TRANSACTION_INVALID_SIGNATURE,
         }
-      } else if (
-        error instanceof Error &&
-        error.message.includes("sender doesn't have enough funds")
-      ) {
+      } else if (error.message.includes("sender doesn't have enough funds")) {
         return {
           valid: false,
           reason: VerificationResultReason.EVM_TRANSACTION_INSUFFICIENT_BALANCE,
@@ -648,12 +635,12 @@ export class Verifier {
       }
     }
 
-    const mintResult = Verifier.verifyEvmMints(transaction, result)
+    const mintResult = Verifier.verifyEvmMints(transaction, events)
     if (!mintResult.valid) {
       return mintResult
     }
 
-    const burnResult = Verifier.verifyEvmBurns(transaction, result)
+    const burnResult = Verifier.verifyEvmBurns(transaction, events)
     if (!burnResult.valid) {
       return burnResult
     }
@@ -661,7 +648,7 @@ export class Verifier {
     return { valid: true }
   }
 
-  static verifyEvmMints(transaction: Transaction, result: EvmResult): VerificationResult {
+  static verifyEvmMints(transaction: Transaction, events: UTXOEvent[]): VerificationResult {
     if (!transaction.evm) {
       return {
         valid: false,
@@ -671,7 +658,7 @@ export class Verifier {
 
     const assetBalanceDeltas = new AssetBalances()
 
-    for (const event of result.events) {
+    for (const event of events) {
       if (event.name === 'shield') {
         assetBalanceDeltas.increment(event.assetId, -event.amount)
       }
@@ -693,7 +680,7 @@ export class Verifier {
     return { valid: true }
   }
 
-  static verifyEvmBurns(transaction: Transaction, result: EvmResult): VerificationResult {
+  static verifyEvmBurns(transaction: Transaction, events: UTXOEvent[]): VerificationResult {
     if (!transaction.evm) {
       return {
         valid: false,
@@ -703,7 +690,7 @@ export class Verifier {
 
     const assetBalanceDeltas = new AssetBalances()
 
-    for (const event of result.events) {
+    for (const event of events) {
       if (event.name === 'unshield') {
         assetBalanceDeltas.increment(event.assetId, event.amount)
       }
