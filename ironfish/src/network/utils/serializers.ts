@@ -29,6 +29,12 @@ export function writeBlockHeader(
 
   Assert.isTrue(header.graffiti.byteLength === GRAFFITI_SIZE)
   bw.writeBytes(header.graffiti)
+
+  bw.writeU8(Number(!!header.stateCommitment))
+  if (header.stateCommitment) {
+    bw.writeHash(header.stateCommitment)
+  }
+
   return bw
 }
 
@@ -42,6 +48,12 @@ export function readBlockHeader(reader: bufio.BufferReader): RawBlockHeader {
   const timestamp = reader.readU64()
   const graffiti = reader.readBytes(GRAFFITI_SIZE)
 
+  let stateCommitment = undefined
+  const hasStateCommitment = !!reader.readU8()
+  if (hasStateCommitment) {
+    stateCommitment = reader.readHash()
+  }
+
   return {
     sequence,
     previousBlockHash,
@@ -51,10 +63,11 @@ export function readBlockHeader(reader: bufio.BufferReader): RawBlockHeader {
     randomness,
     timestamp: new Date(timestamp),
     graffiti,
+    stateCommitment,
   }
 }
 
-export function getBlockHeaderSize(): number {
+export function getBlockHeaderSize(hasStateCommitment = false): number {
   let size = 0
   size += 4 // sequence
   size += 32 // previousBlockHash
@@ -64,6 +77,12 @@ export function getBlockHeaderSize(): number {
   size += 8 // randomness
   size += 8 // timestamp
   size += GRAFFITI_SIZE // graffiti
+
+  size += 1 // hasStateCommitment flag
+  if (hasStateCommitment) {
+    size += 32 // stateCommitment
+  }
+
   return size
 }
 
@@ -94,7 +113,7 @@ export function readBlock(reader: bufio.BufferReader): RawBlock {
 }
 
 export function getBlockSize(block: RawBlock): number {
-  let size = getBlockHeaderSize()
+  let size = getBlockHeaderSize(block.header.stateCommitment !== undefined)
 
   size += BLOCK_TRANSACTIONS_LENGTH_BYTES
   for (const transaction of block.transactions) {
@@ -106,7 +125,8 @@ export function getBlockSize(block: RawBlock): number {
 
 export function getBlockWithMinersFeeSize(transactionVersion: TransactionVersion): number {
   return (
-    getBlockHeaderSize() +
+    // TODO(hughy): avoid using transactionVersion as a proxy for stateCommitment
+    getBlockHeaderSize(transactionVersion === TransactionVersion.V3) +
     BLOCK_TRANSACTIONS_LENGTH_BYTES +
     getMinersFeeTransactionSize(transactionVersion)
   )
@@ -166,7 +186,7 @@ export function readCompactBlock(reader: bufio.BufferReader): CompactBlock {
 }
 
 export function getCompactBlockSize(compactBlock: CompactBlock): number {
-  let size = getBlockHeaderSize()
+  let size = getBlockHeaderSize(compactBlock.header.stateCommitment !== undefined)
 
   size += sizeVarint(compactBlock.transactionHashes.length)
   size += 32 * compactBlock.transactionHashes.length

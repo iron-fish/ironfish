@@ -49,6 +49,7 @@ describe('NewCompactBlockMessage', () => {
         randomness: BigInt(1),
         timestamp: new Date(200000),
         graffiti: Buffer.alloc(32, 'graffiti1', 'utf8'),
+        stateCommitment: undefined,
       },
       transactions: [
         { transaction: transactionA, index: 0 },

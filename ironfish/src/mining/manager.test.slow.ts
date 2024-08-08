@@ -483,9 +483,7 @@ describe('Mining manager', () => {
       const { node, chain } = nodeTest
       const { miningManager } = node
 
-      jest
-        .spyOn(node.chain.consensus, 'getActiveTransactionVersion')
-        .mockImplementation(() => TransactionVersion.V3)
+      node.chain.consensus.parameters.enableEvmDescriptions = 2
 
       const account = await useAccountFixture(nodeTest.node.wallet, 'account')
       await nodeTest.node.wallet.setDefaultAccount(account.name)
@@ -550,9 +548,7 @@ describe('Mining manager', () => {
       const { node, chain } = nodeTest
       const { miningManager } = node
 
-      jest
-        .spyOn(node.chain.consensus, 'getActiveTransactionVersion')
-        .mockImplementation(() => TransactionVersion.V3)
+      node.chain.consensus.parameters.enableEvmDescriptions = 2
 
       const account = await useAccountFixture(nodeTest.node.wallet, 'account')
       await nodeTest.node.wallet.setDefaultAccount(account.name)
