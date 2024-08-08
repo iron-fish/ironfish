@@ -97,6 +97,10 @@ export class IronfishEvm {
     }
   }
 
+  async simulateTx(opts: RunTxOpts): Promise<EvmResult> {
+    return this.withCopy(async (vm) => this.runTx(opts, vm))
+  }
+
   async withCopy<TResult>(handler: (copy: VM) => Promise<TResult>): Promise<TResult> {
     Assert.isNotNull(this.vm, 'EVM not initialized')
     const vm = await this.vm.shallowCopy()
