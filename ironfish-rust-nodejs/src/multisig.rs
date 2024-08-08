@@ -10,7 +10,7 @@ use ironfish::{
         split_spender_key::split_spender_key,
     },
     participant::{Identity, Secret},
-    serializing::{bytes_to_hex, fr::FrSerializable, hex_to_vec_bytes},
+    serializing::{bytes_to_hex, fr::FrSerializable, hex_to_bytes, hex_to_vec_bytes},
     SaplingKey,
 };
 use ironfish_frost::{
@@ -453,6 +453,32 @@ pub fn dkg_round3(
     .map_err(to_napi_err)?;
 
     let account_keys = derive_account_keys(public_key_package.verifying_key(), &group_secret_key);
+
+    Ok(DkgRound3Packages {
+        public_address: account_keys.public_address.hex_public_address(),
+        key_package: bytes_to_hex(&key_package.serialize().map_err(to_napi_err)?),
+        public_key_package: bytes_to_hex(&public_key_package.serialize()),
+        view_key: account_keys.view_key.hex_key(),
+        incoming_view_key: account_keys.incoming_viewing_key.hex_key(),
+        outgoing_view_key: account_keys.outgoing_viewing_key.hex_key(),
+        proof_authorizing_key: account_keys.proof_authorizing_key.hex_key(),
+    })
+}
+
+#[napi(namespace = "multisig")]
+pub fn derive_account_keys_nodejs(
+    key_package_str: String,
+    public_key_package_str: String,
+    group_secret_key_str: String,
+) -> Result<DkgRound3Packages> {
+    let key_package: KeyPackage = KeyPackage::deserialize(&hex_to_vec_bytes(&key_package_str).map_err(to_napi_err)?).map_err(to_napi_err)?;
+    let public_key_package = PublicKeyPackage::deserialize_from(
+        &hex_to_vec_bytes(&public_key_package_str).map_err(to_napi_err)?[..],
+    )
+    .map_err(to_napi_err)?;
+    let group_secret_key: [u8; 32] = hex_to_bytes(&group_secret_key_str).map_err(to_napi_err)?;
+
+    let account_keys = derive_account_keys(&public_key_package.verifying_key(), &group_secret_key);
 
     Ok(DkgRound3Packages {
         public_address: account_keys.public_address.hex_public_address(),
