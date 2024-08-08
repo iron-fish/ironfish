@@ -28,4 +28,22 @@ describe('EncryptedAccount', () => {
     const decryptedData = encoder.serialize(decryptedAccount.serialize())
     expect(data.toString('hex')).toEqual(decryptedData.toString('hex'))
   })
+
+  it('throws an error when an invalid passphrase is used', async () => {
+    const passphrase = 'foobarbaz'
+    const invalidPassphrase = 'fakepassphrase'
+    const { node } = nodeTest
+    const account = await useAccountFixture(node.wallet)
+
+    const encoder = new AccountValueEncoding()
+    const data = encoder.serialize(account.serialize())
+
+    const encryptedData = encrypt(data, passphrase)
+    const encryptedAccount = new EncryptedAccount({
+      data: encryptedData,
+      walletDb: node.wallet.walletDb,
+    })
+
+    expect(() => encryptedAccount.decrypt(invalidPassphrase)).toThrow()
+  })
 })
