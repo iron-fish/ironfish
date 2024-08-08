@@ -136,6 +136,7 @@ export class IronfishEvm {
           ironfishAddress: Buffer.from((ironfishAddress as string).slice(2), 'hex'),
           caller: Address.fromString(caller as string),
           assetId: this.getAssetId(caller as string, tokenId as bigint),
+          tokenId: tokenId as bigint,
           amount: amount as bigint,
         })
       } catch (e) {
@@ -183,6 +184,7 @@ export type EvmShield = {
   ironfishAddress: Buffer
   assetId: Buffer
   caller: Address
+  tokenId: bigint
   amount: bigint
 }
 
