@@ -288,7 +288,7 @@ impl NativeTransaction {
             Some(to_bytes)
         };
 
-        let v = v.map_or(None, |v| Some(v.get_u64().1));
+        let v = v.map(|v| v.get_u64().1);
 
         let r = match r {
             None => None,
