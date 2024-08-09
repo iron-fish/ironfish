@@ -20,7 +20,7 @@ export class EncryptedAccount {
     try {
       const decryptedAccountValue = decrypt(this.data, passphrase)
       const encoder = new AccountValueEncoding()
-      const accountValue = encoder.deserialize(decryptedAccountValue)
+      const accountValue = encoder.deserializeDecrypted(decryptedAccountValue)
 
       return new Account({ accountValue, walletDb: this.walletDb })
     } catch {
