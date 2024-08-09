@@ -4,18 +4,21 @@
 import { LegacyTransaction } from '@ethereumjs/tx'
 import { bigIntToBytes, bytesToBigInt } from '@ethereumjs/util'
 
-export interface EvmDescription {
+export interface UnsignedEvmDescription {
   nonce: bigint
   gasPrice: bigint
   gasLimit: bigint
   to: Buffer
   value: bigint
   data: Buffer
+  privateIron: bigint
+  publicIron: bigint
+}
+
+export interface EvmDescription extends UnsignedEvmDescription {
   v: number
   r: Buffer
   s: Buffer
-  privateIron: bigint
-  publicIron: bigint
 }
 
 export function legacyTransactionToEvmDescription(tx: LegacyTransaction): EvmDescription {

@@ -417,11 +417,6 @@ describe('RawTransactionSerde', () => {
     const data = Buffer.from(dataStr, 'hex')
 
     const to = Buffer.from('deadbeefdeadbeefdeadbeefdeadbeefdeadbeef', 'hex')
-    //32 bytes
-    const sigBytes = Buffer.from(
-      'deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef',
-      'hex',
-    )
     raw.evm = {
       nonce: 0n,
       gasPrice: 1n,
@@ -429,9 +424,6 @@ describe('RawTransactionSerde', () => {
       to,
       value: 100_000_000_000_000_000n,
       data,
-      v: 0,
-      r: sigBytes,
-      s: sigBytes,
       publicIron: 0n,
       privateIron: 0n,
     }
@@ -466,9 +458,6 @@ describe('RawTransactionSerde', () => {
     expect(deserialized.evm?.to.toString('hex')).toBe(to.toString('hex'))
     expect(deserialized.evm?.value).toBe(100_000_000_000_000_000n)
     expect(deserialized.evm?.nonce).toBe(0n)
-    expect(deserialized.evm?.v).toBe(0)
-    expect(deserialized.evm?.r.toString('hex')).toBe(sigBytes.toString('hex'))
-    expect(deserialized.evm?.s.toString('hex')).toBe(sigBytes.toString('hex'))
   })
 
   it('serializes and deserializes a transaction with unicode characters', () => {

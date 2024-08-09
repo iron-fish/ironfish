@@ -12,11 +12,6 @@ describe('Transaction', () => {
     const data = Buffer.from(dataStr, 'hex')
     const raw = new RawTransaction(TransactionVersion.V3)
     const to = Buffer.from('deadbeefdeadbeefdeadbeefdeadbeefdeadbeef', 'hex')
-    //32 bytes
-    const sigBytes = Buffer.from(
-      'deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef',
-      'hex',
-    )
     raw.evm = {
       nonce: 0n,
       gasPrice: 1n,
@@ -24,9 +19,6 @@ describe('Transaction', () => {
       to,
       value: 100_000_000_000_000_000n,
       data,
-      v: 0,
-      r: sigBytes,
-      s: sigBytes,
       privateIron: 0n,
       publicIron: 0n,
     }
@@ -43,8 +35,8 @@ describe('Transaction', () => {
     expect(deserialized.evm?.nonce).toBe(0n)
     expect(deserialized.evm?.gasPrice).toBe(1n)
     expect(deserialized.evm?.gasLimit).toBe(1000000000n)
-    expect(deserialized.evm?.v).toBe(0)
-    expect(deserialized.evm?.r.toString('hex')).toBe(sigBytes.toString('hex'))
-    expect(deserialized.evm?.s.toString('hex')).toBe(sigBytes.toString('hex'))
+    expect(deserialized.evm?.v).toBeDefined()
+    expect(deserialized.evm?.r).toBeDefined()
+    expect(deserialized.evm?.s).toBeDefined()
   })
 })

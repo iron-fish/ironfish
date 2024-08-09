@@ -5,23 +5,23 @@
 
 export const KEY_LENGTH: number
 export const NONCE_LENGTH: number
-export function randomBytes(bytesLength: number): Uint8Array
+export declare function randomBytes(bytesLength: number): Uint8Array
 export interface BoxedMessage {
   nonce: string
   boxedMessage: string
 }
-export function boxMessage(plaintext: string, senderSecretKey: Uint8Array, recipientPublicKey: string): BoxedMessage
-export function unboxMessage(boxedMessage: string, nonce: string, senderPublicKey: string, recipientSecretKey: Uint8Array): string
+export declare function boxMessage(plaintext: string, senderSecretKey: Uint8Array, recipientPublicKey: string): BoxedMessage
+export declare function unboxMessage(boxedMessage: string, nonce: string, senderPublicKey: string, recipientSecretKey: Uint8Array): string
 /**
  * # Safety
  * This is unsafe, it calls libc functions
  */
-export function initSignalHandler(): void
+export declare function initSignalHandler(): void
 /**
  * # Safety
  * This is unsafe, it intentionally crashes
  */
-export function triggerSegfault(): void
+export declare function triggerSegfault(): void
 export const ASSET_ID_LENGTH: number
 export const ASSET_METADATA_LENGTH: number
 export const ASSET_NAME_LENGTH: number
@@ -46,7 +46,7 @@ export const TRANSACTION_PUBLIC_KEY_RANDOMNESS_LENGTH: number
 export const TRANSACTION_EXPIRATION_LENGTH: number
 export const TRANSACTION_FEE_LENGTH: number
 export const LATEST_TRANSACTION_VERSION: number
-export function verifyTransactions(serializedTransactions: Array<Buffer>): boolean
+export declare function verifyTransactions(serializedTransactions: Array<Buffer>): boolean
 export const enum LanguageCode {
   English = 0,
   ChineseSimplified = 1,
@@ -65,13 +65,13 @@ export interface Key {
   publicAddress: string
   proofAuthorizingKey: string
 }
-export function generateKey(): Key
-export function spendingKeyToWords(privateKey: string, languageCode: LanguageCode): string
-export function wordsToSpendingKey(words: string, languageCode: LanguageCode): string
-export function generatePublicAddressFromIncomingViewKey(ivkString: string): string
-export function generateKeyFromPrivateKey(privateKey: string): Key
-export function initializeSapling(): void
-export function isValidPublicAddress(hexAddress: string): boolean
+export declare function generateKey(): Key
+export declare function spendingKeyToWords(privateKey: string, languageCode: LanguageCode): string
+export declare function wordsToSpendingKey(words: string, languageCode: LanguageCode): string
+export declare function generatePublicAddressFromIncomingViewKey(ivkString: string): string
+export declare function generateKeyFromPrivateKey(privateKey: string): Key
+export declare function initializeSapling(): void
+export declare function isValidPublicAddress(hexAddress: string): boolean
 /**
  * Return the number of processing units available to the system and to the current process.
  *
@@ -85,7 +85,7 @@ export function isValidPublicAddress(hexAddress: string): boolean
  * Also note that these numbers may not be accurate when running in a virtual machine or in a
  * sandboxed environment.
  */
-export function getCpuCount(): CpuCount
+export declare function getCpuCount(): CpuCount
 export class FishHashContext {
   constructor(full: boolean)
   prebuildDataset(threads: number): void
@@ -193,7 +193,7 @@ export class Transaction {
   mint(asset: Asset, value: bigint, transferOwnershipTo?: string | undefined | null): void
   /** Burn some supply of a given asset and value as part of this transaction. */
   burn(assetIdJsBytes: Buffer, value: bigint): void
-  evm(nonce: bigint, gasPrice: bigint, gasLimit: bigint, to: Buffer, value: bigint, data: Buffer, v: number, r: Buffer, s: Buffer, privateIron: bigint, publicIron: bigint): void
+  evm(nonce: bigint, gasPrice: bigint, gasLimit: bigint, to: Buffer, value: bigint, data: Buffer, privateIron: bigint, publicIron: bigint): void
   /**
    * Special case for posting a miners fee transaction. Miner fee transactions
    * are unique in that they generate currency. They do not have any spends

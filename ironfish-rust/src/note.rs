@@ -158,6 +158,7 @@ impl<'a> Note {
     /// This should generally never be used to serialize to disk or the network.
     /// It is primarily added as a device for transmitting the note across
     /// thread boundaries.
+    #[allow(clippy::needless_borrows_for_generic_args)]
     pub fn write<W: io::Write>(&self, mut writer: &mut W) -> Result<(), IronfishError> {
         self.owner.write(&mut writer)?;
         self.asset_id.write(&mut writer)?;
