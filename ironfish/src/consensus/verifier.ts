@@ -44,7 +44,7 @@ export class Verifier {
    *  *  All transaction proofs are valid
    *  *  Miner's fee is transaction list fees + miner's reward
    */
-  async verifyBlock(
+  private async _verifyBlock(
     block: Block,
     options: { verifyTarget?: boolean } = { verifyTarget: true },
   ): Promise<VerificationResult> {
@@ -392,22 +392,29 @@ export class Verifier {
     return header.target.targetValue === expectedTarget.targetValue
   }
 
-  // TODO: Rename to verifyBlock but merge verifyBlock into this
-  async verifyBlockAdd(block: Block, prev: BlockHeader | null): Promise<VerificationResult> {
+  async verifyBlock(
+    block: Block,
+    options: {
+      prev?: BlockHeader | null
+      verifyTarget?: boolean
+    } = { verifyTarget: true },
+  ): Promise<VerificationResult> {
     if (block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
       return { valid: true }
     }
 
-    if (!prev) {
+    if (options.prev === null) {
       return { valid: false, reason: VerificationResultReason.PREV_HASH_NULL }
     }
 
-    let verification = this.verifyBlockHeaderContextual(block.header, prev)
-    if (!verification.valid) {
-      return verification
+    if (options.prev) {
+      const verification = this.verifyBlockHeaderContextual(block.header, options.prev)
+      if (!verification.valid) {
+        return verification
+      }
     }
 
-    verification = await this.verifyBlock(block, {})
+    const verification = await this._verifyBlock(block, options)
     if (!verification.valid) {
       return verification
     }

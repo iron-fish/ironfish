@@ -702,7 +702,7 @@ describe('Verifier', () => {
 
         const invalidBlock = new Block(invalidHeader, block.transactions)
 
-        expect(await verifier.verifyBlockAdd(invalidBlock, prevHeader)).toMatchObject({
+        expect(await verifier.verifyBlock(invalidBlock, { prev: prevHeader })).toMatchObject({
           reason: VerificationResultReason.BLOCK_TOO_OLD,
           valid: false,
         })
@@ -723,7 +723,7 @@ describe('Verifier', () => {
 
         const invalidBlock = new Block(invalidHeader, block.transactions)
 
-        expect(await verifier.verifyBlockAdd(invalidBlock, prevHeader)).toMatchObject({
+        expect(await verifier.verifyBlock(invalidBlock, { prev: prevHeader })).toMatchObject({
           reason: VerificationResultReason.TOO_FAR_IN_FUTURE,
           valid: false,
         })
@@ -741,7 +741,7 @@ describe('Verifier', () => {
 
         const invalidBlock = new Block(invalidHeader, block.transactions)
 
-        expect(await verifier.verifyBlockAdd(invalidBlock, prevHeader)).toMatchObject({
+        expect(await verifier.verifyBlock(invalidBlock, { prev: prevHeader })).toMatchObject({
           valid: true,
         })
       })
@@ -758,7 +758,7 @@ describe('Verifier', () => {
 
         const invalidBlock = new Block(invalidHeader, block.transactions)
 
-        expect(await verifier.verifyBlockAdd(invalidBlock, prevHeader)).toMatchObject({
+        expect(await verifier.verifyBlock(invalidBlock, { prev: prevHeader })).toMatchObject({
           valid: true,
         })
       })
@@ -802,7 +802,7 @@ describe('Verifier', () => {
 
         const invalidBlock = new Block(invalidHeader, currentBlock.transactions)
 
-        expect(await verifier.verifyBlockAdd(invalidBlock, prevHeader)).toMatchObject({
+        expect(await verifier.verifyBlock(invalidBlock, { prev: prevHeader })).toMatchObject({
           reason: VerificationResultReason.BLOCK_TOO_OLD,
           valid: false,
         })
@@ -823,7 +823,7 @@ describe('Verifier', () => {
 
         const invalidBlock = new Block(invalidHeader, currentBlock.transactions)
 
-        expect(await verifier.verifyBlockAdd(invalidBlock, prevHeader)).toMatchObject({
+        expect(await verifier.verifyBlock(invalidBlock, { prev: prevHeader })).toMatchObject({
           reason: VerificationResultReason.TOO_FAR_IN_FUTURE,
           valid: false,
         })
@@ -837,7 +837,7 @@ describe('Verifier', () => {
 
         const invalidBlock = new Block(invalidHeader, currentBlock.transactions)
 
-        expect(await verifier.verifyBlockAdd(invalidBlock, prevHeader)).toMatchObject({
+        expect(await verifier.verifyBlock(invalidBlock, { prev: prevHeader })).toMatchObject({
           reason: VerificationResultReason.BLOCK_TOO_OLD,
           valid: false,
         })
@@ -851,7 +851,7 @@ describe('Verifier', () => {
 
         const invalidBlock = new Block(invalidHeader, currentBlock.transactions)
 
-        expect(await verifier.verifyBlockAdd(invalidBlock, prevHeader)).toMatchObject({
+        expect(await verifier.verifyBlock(invalidBlock, { prev: prevHeader })).toMatchObject({
           reason: VerificationResultReason.BLOCK_TOO_OLD,
           valid: false,
         })
@@ -869,7 +869,7 @@ describe('Verifier', () => {
 
         const invalidBlock = new Block(invalidHeader, currentBlock.transactions)
 
-        expect(await verifier.verifyBlockAdd(invalidBlock, prevHeader)).toMatchObject({
+        expect(await verifier.verifyBlock(invalidBlock, { prev: prevHeader })).toMatchObject({
           valid: true,
         })
       })

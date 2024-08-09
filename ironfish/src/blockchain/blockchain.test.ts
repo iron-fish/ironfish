@@ -729,7 +729,7 @@ describe('Blockchain', () => {
     const { node } = await nodeTest.createSetup()
     const block = await useMinerBlockFixture(node.chain)
 
-    let result = await node.chain.verifier.verifyBlockAdd(block, node.chain.genesis)
+    let result = await node.chain.verifier.verifyBlock(block, { prev: node.chain.genesis })
     expect(result).toMatchObject({
       valid: true,
     })
@@ -742,7 +742,7 @@ describe('Blockchain', () => {
       transactions: block.transactions,
     })
 
-    result = await node.chain.verifier.verifyBlockAdd(invalidBlock, node.chain.genesis)
+    result = await node.chain.verifier.verifyBlock(invalidBlock, { prev: node.chain.genesis })
     expect(result).toMatchObject({
       valid: false,
       reason: VerificationResultReason.BLOCK_TOO_OLD,
@@ -834,7 +834,7 @@ describe('Blockchain', () => {
     const { node } = await nodeTest.createSetup()
     const block = await useMinerBlockFixture(node.chain)
 
-    const result = await node.chain.verifier.verifyBlockAdd(block, null)
+    const result = await node.chain.verifier.verifyBlock(block, { prev: null })
     expect(result).toMatchObject({
       valid: false,
       reason: VerificationResultReason.PREV_HASH_NULL,
@@ -850,7 +850,7 @@ describe('Blockchain', () => {
     //Force one byte of the hash to not match the previous hash of the block.
     node.chain.genesis.hash[0] = node.chain.genesis.hash[0] ^ 0xff
 
-    const result = await node.chain.verifier.verifyBlockAdd(block, node.chain.genesis)
+    const result = await node.chain.verifier.verifyBlock(block, { prev: node.chain.genesis })
     expect(result).toMatchObject({
       valid: false,
       reason: VerificationResultReason.PREV_HASH_MISMATCH,

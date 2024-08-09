@@ -1216,11 +1216,7 @@ export class PeerNetwork {
     await this.onNewFullBlock(peer, block, prevHeader)
   }
 
-  private async onNewFullBlock(
-    peer: Peer,
-    block: Block,
-    prevHeader: BlockHeader,
-  ): Promise<void> {
+  private async onNewFullBlock(peer: Peer, block: Block, prev: BlockHeader): Promise<void> {
     if (!this.shouldProcessNewBlocks()) {
       return
     }
@@ -1235,7 +1231,8 @@ export class PeerNetwork {
     this.telemetry.submitNewBlockSeen(block, new Date(), firstPeer)
 
     // verify the full block
-    const verified = await this.chain.verifier.verifyBlockAdd(block, prevHeader)
+    const verified = await this.chain.verifier.verifyBlock(block, { prev })
+
     if (!verified.valid) {
       this.chain.addInvalid(
         block.header.hash,
