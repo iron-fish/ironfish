@@ -103,7 +103,9 @@ export class GetBlockHeadersResponse extends RpcNetworkMessage {
   getSize(): number {
     let size = 0
     size += 2 // headers length
-    size += getBlockHeaderSize() * this.headers.length
+    for (const header of this.headers) {
+      size += getBlockHeaderSize(header.stateCommitment !== undefined)
+    }
 
     return size
   }
