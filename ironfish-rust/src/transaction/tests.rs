@@ -8,7 +8,7 @@ use std::collections::{BTreeMap, HashMap};
 use super::internal_batch_verify_transactions;
 use super::{ProposedTransaction, Transaction};
 use crate::test_util::create_multisig_identities;
-use crate::transaction::evm::UnsignedEvmDescription;
+use crate::transaction::evm::WrappedEvmDescription;
 use crate::transaction::tests::split_spender_key::split_spender_key;
 use crate::{
     assets::{asset::Asset, asset_identifier::NATIVE_ASSET},
@@ -231,7 +231,7 @@ fn test_evm_transaction() {
     );
     let witness = make_fake_witness(&in_note);
 
-    let evm = UnsignedEvmDescription::new(
+    let evm = WrappedEvmDescription::new(
         9,
         1,
         2_000_000,
@@ -240,6 +240,9 @@ fn test_evm_transaction() {
         vec![],
         0,
         0,
+        None,
+        None,
+        None,
     );
 
     let mut transaction = ProposedTransaction::new(TransactionVersion::latest());
@@ -286,7 +289,7 @@ fn test_evm_transaction_public_iron() {
     );
     let witness = make_fake_witness(&in_note);
 
-    let evm = UnsignedEvmDescription::new(
+    let evm = WrappedEvmDescription::new(
         9,
         1,
         2_000_000,
@@ -295,6 +298,9 @@ fn test_evm_transaction_public_iron() {
         vec![],
         0,
         41,
+        None,
+        None,
+        None,
     );
     let evm_clone = evm.clone();
 
@@ -345,7 +351,7 @@ fn test_evm_transaction_private_iron() {
         spender_key.public_address(),
     );
 
-    let evm = UnsignedEvmDescription::new(
+    let evm = WrappedEvmDescription::new(
         9,
         1,
         2_000_000,
@@ -354,6 +360,9 @@ fn test_evm_transaction_private_iron() {
         vec![],
         42,
         0,
+        None,
+        None,
+        None,
     );
     let evm_clone = evm.clone();
 

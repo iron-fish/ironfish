@@ -15,7 +15,7 @@ use ironfish::frost_utils::signing_package::SigningPackage;
 use ironfish::serializing::bytes_to_hex;
 use ironfish::serializing::fr::FrSerializable;
 use ironfish::serializing::hex_to_vec_bytes;
-use ironfish::transaction::evm::UnsignedEvmDescription;
+use ironfish::transaction::evm::WrappedEvmDescription;
 use ironfish::transaction::unsigned::UnsignedTransaction;
 use ironfish::transaction::{
     batch_verify_transactions, TransactionVersion, TRANSACTION_EXPIRATION_SIZE,
@@ -267,6 +267,9 @@ impl NativeTransaction {
         data: JsBuffer,
         private_iron: BigInt,
         public_iron: BigInt,
+        v: Option<BigInt>,
+        r: Option<JsBuffer>,
+        s: Option<JsBuffer>,
     ) -> Result<()> {
         // if to length is 0, return none, else set the address
         let to_vec = to.into_value()?.to_vec();
@@ -285,7 +288,35 @@ impl NativeTransaction {
             Some(to_bytes)
         };
 
-        let evm_description = UnsignedEvmDescription::new(
+        let v = v.map(|v| v.get_u64().1);
+
+        let r = match r {
+            None => None,
+            Some(r) => {
+                let r_vec = r.into_value()?.to_vec();
+                if r_vec.len() != 32 {
+                    return Err(to_napi_err("EVM r must be 32 bytes"));
+                }
+                let mut r = [0u8; 32];
+                r.copy_from_slice(&r_vec);
+                Some(r)
+            }
+        };
+
+        let s = match s {
+            None => None,
+            Some(s) => {
+                let s_vec = s.into_value()?.to_vec();
+                if s_vec.len() != 32 {
+                    return Err(to_napi_err("EVM s must be 32 bytes"));
+                }
+                let mut s = [0u8; 32];
+                s.copy_from_slice(&s_vec);
+                Some(s)
+            }
+        };
+
+        let evm_description = WrappedEvmDescription::new(
             nonce.get_u64().1,
             gas_price.get_u64().1,
             gas_limit.get_u64().1,
@@ -294,7 +325,11 @@ impl NativeTransaction {
             data.into_value()?.to_vec(),
             private_iron.get_u64().1,
             public_iron.get_u64().1,
+            v,
+            r,
+            s,
         );
+
         self.transaction
             .add_evm(evm_description)
             .map_err(to_napi_err)?;

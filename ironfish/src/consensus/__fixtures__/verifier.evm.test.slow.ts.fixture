@@ -212,5 +212,35 @@
         }
       ]
     }
+  ],
+  "Verifier EVM Transaction allows presigned evm descriptions": [
+    {
+      "value": {
+        "version": 4,
+        "id": "b471d748-668c-424e-a2ed-aa4b2ba6df1c",
+        "name": "recipient",
+        "spendingKey": "fa62ae4191d339b42ce8ffdf782e2864baca49cfb784d37b5f52cde929b75c44",
+        "viewKey": "9571dd99d15960829b9a36648231fa0024638c0ccf4d9be71add1ce2e8dfe0d3f3233c705d133ea979ec900ad7b86482cc3afe18f33f1e01fa4ec5f9feed95e7",
+        "incomingViewKey": "21f009a8ae855ead16bc29ac03b61bdd2887ae4f67b1270278a5e90296732902",
+        "outgoingViewKey": "a85b159ae6e5ea2f21d67cdae606963ec145f4d7b50839bff29c98b3ebf9b31f",
+        "publicAddress": "6b9d550c91ec3773f69b17bff605bb9fce871e4a7435ac6da3786f96679f9156",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "d3a021e7a8d7ed31d9fc7c667c093211b6b0f10b4c604ffc86fb1e71dede3801"
+      },
+      "head": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      }
+    }
   ]
 }

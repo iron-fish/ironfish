@@ -24,7 +24,7 @@ import { Side } from '../merkletree/merkletree'
 import { CurrencyUtils } from '../utils/currency'
 import { AssetBalances } from '../wallet/assetBalances'
 import { BurnDescription } from './burnDescription'
-import { UnsignedEvmDescription } from './evmDescription'
+import { EvmDescription } from './evmDescription'
 import { Note } from './note'
 import { NoteEncrypted, NoteEncryptedHash, SerializedNoteEncryptedHash } from './noteEncrypted'
 import { SPEND_SERIALIZED_SIZE_IN_BYTE } from './spend'
@@ -49,7 +49,7 @@ export class RawTransaction {
   mints: MintData[] = []
   burns: BurnDescription[] = []
   outputs: { note: Note }[] = []
-  evm: UnsignedEvmDescription | null = null
+  evm: EvmDescription | null = null
 
   spends: {
     note: Note
@@ -191,6 +191,9 @@ export class RawTransaction {
         this.evm.data,
         this.evm.privateIron,
         this.evm.publicIron,
+        this.evm.v,
+        this.evm.r,
+        this.evm.s,
       )
     }
 
@@ -238,7 +241,6 @@ export class RawTransaction {
   }
 }
 
-// TODO update serde to include evm data
 export class RawTransactionSerde {
   static serialize(raw: RawTransaction): Buffer {
     const bw = bufio.write(this.getSize(raw))

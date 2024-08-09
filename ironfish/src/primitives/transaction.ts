@@ -167,7 +167,7 @@ export class Transaction {
         const privateIron = reader.readBigU64()
         const publicIron = reader.readBigU64()
 
-        const v = reader.readU64()
+        const v = reader.readBigU64()
         const r = reader.readBytes(32)
         const s = reader.readBytes(32)
 
