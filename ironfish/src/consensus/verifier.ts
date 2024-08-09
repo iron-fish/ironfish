@@ -84,6 +84,8 @@ export class Verifier {
     let runningNotesCount = 0
     const transactionHashes = new BufferSet()
 
+    const evmCopy = await this.chain.evm.copy()
+
     let totalTransactionFees = 0n
     for (const [idx, transaction] of block.transactions.entries()) {
       if (transaction.version() !== transactionVersion) {
@@ -126,11 +128,7 @@ export class Verifier {
           return noMints
         }
       } else {
-        const evmResult = await this.chain.evm.withCopy(async (vm) => {
-          Assert.isNotNull(transaction.evm)
-          return this.chain.evm.runDesc(transaction.evm, vm)
-        })
-
+        const evmResult = await evmCopy.runDesc(transaction.evm)
         const evmVerify = this.verifyEvm(transaction, evmResult)
         if (!evmVerify.valid) {
           return evmVerify
@@ -282,11 +280,10 @@ export class Verifier {
         return noMints
       }
     } else {
-      const evmVerify = await this.chain.evm.withCopy(async (vm) => {
-        Assert.isNotNull(transaction.evm)
-        const evmResult = await this.chain.evm.runDesc(transaction.evm, vm)
-        return this.verifyEvm(transaction, evmResult)
-      })
+      const evmCopy = await this.chain.evm.copy()
+
+      const evmResult = await evmCopy.runDesc(transaction.evm)
+      const evmVerify = this.verifyEvm(transaction, evmResult)
       if (!evmVerify.valid) {
         return evmVerify
       }

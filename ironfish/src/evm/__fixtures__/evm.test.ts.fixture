@@ -1,5 +1,5 @@
 {
-  "IronfishEvm withCopy does not modify database": [
+  "IronfishEvm copy does not modify database": [
     {
       "value": {
         "version": 4,

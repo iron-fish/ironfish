@@ -236,76 +236,70 @@ export class MiningManager {
     const assetOwners = new BufferMap<Buffer>()
     let totalTransactionFees = BigInt(0)
 
-    Assert.isNotUndefined(this.chain.evm)
-    await this.chain.evm.withCopy(async (vm) => {
-      for (const transaction of this.memPool.orderedTransactions()) {
-        if (transaction.version() !== transactionVersion) {
-          continue
-        }
+    const evmCopy = await this.chain.evm.copy()
 
-        // Skip transactions that would cause the block to exceed the max size
-        const transactionSize = getTransactionSize(transaction)
-        if (
-          currBlockSize + transactionSize >
-          this.chain.consensus.parameters.maxBlockSizeBytes
-        ) {
-          continue
-        }
-
-        if (isExpiredSequence(transaction.expiration(), sequence)) {
-          continue
-        }
-
-        const isConflicted = transaction.spends.find((spend) => nullifiers.has(spend.nullifier))
-        if (isConflicted) {
-          continue
-        }
-
-        const { valid: isValid } = await this.chain.verifier.verifyTransactionSpends(
-          transaction,
-        )
-        if (!isValid) {
-          continue
-        }
-
-        for (const spend of transaction.spends) {
-          nullifiers.add(spend.nullifier)
-        }
-
-        if (transaction.mints.length) {
-          const mintOwnerResult = await this.chain.verifier.verifyMintOwnersIncremental(
-            transaction.mints,
-            assetOwners,
-          )
-
-          // If the transaction is valid with the state of this new block
-          // template, we need to update the assetOwners map with the latest state
-          // of the owners, accounting for new mints and ownership transfer
-          if (mintOwnerResult.valid) {
-            for (const [assetId, assetOwner] of mintOwnerResult.assetOwners.entries()) {
-              assetOwners.set(assetId, assetOwner)
-            }
-          } else {
-            continue
-          }
-        }
-
-        // verify that EVM transactions are valid
-        if (transaction.evm) {
-          const evmResult = await this.chain.evm.runDesc(transaction.evm, vm)
-          const evmVerify = this.chain.verifier.verifyEvm(transaction, evmResult)
-          if (!evmVerify.valid) {
-            continue
-          }
-
-          totalTransactionFees += evmResult.result?.minerValue ?? 0n
-        }
-
-        currBlockSize += transactionSize
-        totalTransactionFees += transaction.fee()
-        blockTransactions.push(transaction)
+    for (const transaction of this.memPool.orderedTransactions()) {
+      if (transaction.version() !== transactionVersion) {
+        continue
       }
-    })
+
+      // Skip transactions that would cause the block to exceed the max size
+      const transactionSize = getTransactionSize(transaction)
+      if (currBlockSize + transactionSize > this.chain.consensus.parameters.maxBlockSizeBytes) {
+        continue
+      }
+
+      if (isExpiredSequence(transaction.expiration(), sequence)) {
+        continue
+      }
+
+      const isConflicted = transaction.spends.find((spend) => nullifiers.has(spend.nullifier))
+      if (isConflicted) {
+        continue
+      }
+
+      const { valid: isValid } = await this.chain.verifier.verifyTransactionSpends(transaction)
+      if (!isValid) {
+        continue
+      }
+
+      for (const spend of transaction.spends) {
+        nullifiers.add(spend.nullifier)
+      }
+
+      if (transaction.mints.length) {
+        const mintOwnerResult = await this.chain.verifier.verifyMintOwnersIncremental(
+          transaction.mints,
+          assetOwners,
+        )
+
+        // If the transaction is valid with the state of this new block
+        // template, we need to update the assetOwners map with the latest state
+        // of the owners, accounting for new mints and ownership transfer
+        if (mintOwnerResult.valid) {
+          for (const [assetId, assetOwner] of mintOwnerResult.assetOwners.entries()) {
+            assetOwners.set(assetId, assetOwner)
+          }
+        } else {
+          continue
+        }
+      }
+
+      // verify that EVM transactions are valid
+      if (transaction.evm) {
+        const evmResult = await evmCopy.runDesc(transaction.evm)
+        const evmVerify = this.chain.verifier.verifyEvm(transaction, evmResult)
+        if (!evmVerify.valid) {
+          continue
+        }
+
+        totalTransactionFees += evmResult.result?.minerValue ?? 0n
+      }
+
+      currBlockSize += transactionSize
+      totalTransactionFees += transaction.fee()
+      blockTransactions.push(transaction)
+    }
 
     this.metrics.mining_newBlockTransactions.add(BenchUtils.end(startTime))
 
