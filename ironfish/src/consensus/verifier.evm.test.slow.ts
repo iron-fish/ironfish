@@ -8,7 +8,7 @@ import '../testUtilities/matchers/blockchain'
 import { LegacyTransaction } from '@ethereumjs/tx'
 import { Account as EthAccount, Address } from '@ethereumjs/util'
 import ContractArtifact from '@ironfish/ironfish-contracts'
-import { Asset, TRANSACTION_SIGNATURE_LENGTH } from '@ironfish/rust-nodejs'
+import { Asset, generateKey, TRANSACTION_SIGNATURE_LENGTH } from '@ironfish/rust-nodejs'
 import { ethers } from 'ethers'
 import { Assert } from '../assert'
 import { EvmResult, EvmShield, GLOBAL_IF_ACCOUNT } from '../evm'
@@ -255,6 +255,7 @@ describe('Verifier', () => {
         reason: VerificationResultReason.EVM_TRANSACTION_INVALID_SIGNATURE,
       })
     })
+
     it('fails validation when consecutive transaction uses too much balance in a block', async () => {
       const evmAccount = await node.chain.blockchainDb.stateManager.getAccount(evmSenderAddress)
       Assert.isNotUndefined(evmAccount)
@@ -350,6 +351,26 @@ describe('Verifier', () => {
 
       Assert.isNotUndefined(evmResult.events)
       const result = Verifier.verifyEvmBurns(transaction, evmResult.events)
+      expect(result).toEqual({ valid: true })
+    })
+
+    it('allows presigned evm descriptions', async () => {
+      // create transaction with only an evm description
+      const raw = await node.wallet.createTransaction({
+        account: senderAccountIf,
+        outputs: [],
+        fee: 0n,
+        expiration: 0,
+        expirationDelta: 0,
+        evm: description,
+      })
+
+      // post with a different key than signed the evm description
+      const transaction = raw.post(generateKey().spendingKey)
+
+      const deserialized = new Transaction(transaction.serialize())
+      const result = await node.chain.verifier.verifyNewTransaction(deserialized)
+
       expect(result).toEqual({ valid: true })
     })
   })

@@ -14,11 +14,11 @@ use std::io;
 
 use crate::{errors::IronfishError, SaplingKey};
 #[derive(Clone, PartialEq, Debug)]
-pub struct UnsignedEvmDescription {
+pub struct WrappedEvmDescription {
     pub(crate) description: EvmDescription,
 }
 
-impl UnsignedEvmDescription {
+impl WrappedEvmDescription {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         nonce: u64,
@@ -29,6 +29,9 @@ impl UnsignedEvmDescription {
         data: Vec<u8>,
         private_iron: u64,
         public_iron: u64,
+        v: Option<u64>,
+        r: Option<[u8; 32]>,
+        s: Option<[u8; 32]>,
     ) -> Self {
         let description = EvmDescription {
             nonce,
@@ -37,9 +40,9 @@ impl UnsignedEvmDescription {
             to,
             value,
             data,
-            v: 0,
-            r: [0u8; 32],
-            s: [0u8; 32],
+            v: v.map_or(0, |v| v),
+            r: r.map_or([0u8; 32], |r| r),
+            s: s.map_or([0u8; 32], |s| s),
             private_iron,
             public_iron,
         };
@@ -65,6 +68,10 @@ impl UnsignedEvmDescription {
     }
 
     pub fn sign(mut self, spender_key: &SaplingKey) -> EvmDescription {
+        if self.is_signed() {
+            return self.description;
+        }
+
         let tx_kind = match self.description.to {
             None => TxKind::Create,
             Some(address_bytes) => TxKind::Call(Address::from(address_bytes)),
@@ -91,6 +98,12 @@ impl UnsignedEvmDescription {
         self.description.s = signature.s.to_be_bytes();
 
         self.description
+    }
+
+    fn is_signed(&self) -> bool {
+        !(self.description.v == 0
+            && self.description.r == [0u8; 32]
+            && self.description.s == [0u8; 32])
     }
 }
 
@@ -200,7 +213,7 @@ mod tests {
 
     #[test]
     fn test_unsigned_serde() {
-        let original_transaction = UnsignedEvmDescription::new(
+        let original_transaction = WrappedEvmDescription::new(
             9,
             1,
             2_000_000,
@@ -209,6 +222,9 @@ mod tests {
             vec![],
             0,
             0,
+            None,
+            None,
+            None,
         );
 
         // Write the Transaction to a Vec<u8>
@@ -216,7 +232,7 @@ mod tests {
         original_transaction.write(&mut buffer).unwrap();
 
         // Read the Transaction back from the Vec<u8>
-        let read_transaction = UnsignedEvmDescription::read(&buffer[..]).unwrap();
+        let read_transaction = WrappedEvmDescription::read(&buffer[..]).unwrap();
 
         // Check that the read data is the same as the original data
         assert_eq!(
@@ -229,7 +245,7 @@ mod tests {
     fn test_sign() {
         let key = SaplingKey::generate_key();
 
-        let unsigned = UnsignedEvmDescription::new(
+        let unsigned = WrappedEvmDescription::new(
             9,
             1,
             2_000_000,
@@ -238,6 +254,9 @@ mod tests {
             vec![],
             0,
             0,
+            None,
+            None,
+            None,
         );
 
         let signed = unsigned.sign(&key);
@@ -245,6 +264,44 @@ mod tests {
         assert_ne!(signed.v, 0);
         assert_ne!(signed.r, [0u8; 32]);
         assert_ne!(signed.s, [0u8; 32]);
+    }
+
+    #[test]
+    fn test_sign_presigned() {
+        let key = SaplingKey::generate_key();
+
+        let r: [u8; 32] = [
+            0x5e, 0x1d, 0x3a, 0x76, 0xfb, 0xf8, 0x24, 0x22, 0x0e, 0x27, 0xb5, 0xd1, 0xf8, 0xd0,
+            0x78, 0x48, 0xe8, 0xa4, 0x41, 0x4b, 0x78, 0xb6, 0xd0, 0xf1, 0xe9, 0xc2, 0xb4, 0xd3,
+            0xd6, 0xd3, 0xd3, 0xe5,
+        ];
+
+        let s: [u8; 32] = [
+            0x7e, 0x1d, 0x3a, 0x76, 0xfb, 0xf8, 0x24, 0x22, 0x0e, 0x27, 0xb5, 0xd1, 0xf8, 0xd0,
+            0x78, 0x48, 0xe8, 0xa4, 0x41, 0x4b, 0x78, 0xb6, 0xd0, 0xf1, 0xe9, 0xc2, 0xb4, 0xd3,
+            0xd6, 0xd3, 0xd3, 0xe5,
+        ];
+
+        let unsigned = WrappedEvmDescription::new(
+            9,
+            1,
+            2_000_000,
+            Some([0x35; 20]),
+            1_000_000_000_000_000_000,
+            vec![],
+            0,
+            0,
+            Some(38),
+            Some(r),
+            Some(s),
+        );
+
+        // signing a pre-signed description with another key should not mutate the signature
+        let signed = unsigned.sign(&key);
+
+        assert_eq!(signed.v, 38);
+        assert_eq!(signed.r, r);
+        assert_eq!(signed.s, s);
     }
 
     #[test]

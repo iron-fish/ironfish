@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use blstrs::Bls12;
-use evm::{EvmDescription, UnsignedEvmDescription};
+use evm::{EvmDescription, WrappedEvmDescription};
 use ff::Field;
 use outputs::OutputBuilder;
 use spends::{SpendBuilder, UnsignedSpendDescription};
@@ -106,7 +106,7 @@ pub struct ProposedTransaction {
     burns: Vec<BurnBuilder>,
 
     // can attach arbitrary data to transaction, will initially be used for EVM transactions
-    evm: Option<UnsignedEvmDescription>,
+    evm: Option<WrappedEvmDescription>,
 
     /// The balance of all the spends minus all the outputs. The difference
     /// is the fee paid to the miner for mining the transaction.
@@ -174,10 +174,7 @@ impl ProposedTransaction {
         Ok(())
     }
 
-    pub fn add_evm(
-        &mut self,
-        evm_description: UnsignedEvmDescription,
-    ) -> Result<(), IronfishError> {
+    pub fn add_evm(&mut self, evm_description: WrappedEvmDescription) -> Result<(), IronfishError> {
         self.value_balances.add(
             &NATIVE_ASSET,
             evm_description.description.private_iron.try_into()?,
@@ -509,7 +506,7 @@ impl ProposedTransaction {
         &self,
         mints: &[UnsignedMintDescription],
         burns: &[BurnDescription],
-        evm: &Option<UnsignedEvmDescription>,
+        evm: &Option<WrappedEvmDescription>,
     ) -> Result<(redjubjub::PrivateKey, redjubjub::PublicKey), IronfishError> {
         // A "private key" manufactured from a bunch of randomness added for each
         // spend and output.
@@ -552,7 +549,7 @@ impl ProposedTransaction {
         binding_verification_key: &ExtendedPoint,
         mints: &[UnsignedMintDescription],
         burns: &[BurnDescription],
-        evm: &Option<UnsignedEvmDescription>,
+        evm: &Option<WrappedEvmDescription>,
     ) -> Result<ExtendedPoint, IronfishError> {
         let mints_descriptions: Vec<MintDescription> =
             mints.iter().map(|m| m.description.clone()).collect();

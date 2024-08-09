@@ -28,7 +28,7 @@ use crate::{
 };
 
 use super::{
-    burns::BurnDescription, evm::UnsignedEvmDescription, mints::UnsignedMintDescription,
+    burns::BurnDescription, evm::WrappedEvmDescription, mints::UnsignedMintDescription,
     spends::UnsignedSpendDescription, TransactionVersion, SIGNATURE_HASH_PERSONALIZATION,
     TRANSACTION_SIGNATURE_VERSION,
 };
@@ -52,7 +52,7 @@ pub struct UnsignedTransaction {
     pub(crate) burns: Vec<BurnDescription>,
 
     /// List of data
-    pub(crate) evm: Option<UnsignedEvmDescription>,
+    pub(crate) evm: Option<WrappedEvmDescription>,
 
     /// Signature calculated from accumulating randomness with all the spends
     /// and outputs when the transaction was created.
@@ -114,7 +114,7 @@ impl UnsignedTransaction {
         }
 
         let evm = if version.has_evm() && reader.read_u8()? == 1 {
-            Some(UnsignedEvmDescription::read(&mut reader)?)
+            Some(WrappedEvmDescription::read(&mut reader)?)
         } else {
             None
         };
