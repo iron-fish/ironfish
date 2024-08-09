@@ -9,7 +9,7 @@ import { createNodeTest, useAccountFixture } from '../testUtilities'
 import { EvmStateEncoding, HexStringEncoding } from './database'
 
 describe('IronfishEvm', () => {
-  describe('withCopy', () => {
+  describe('copy', () => {
     const nodeTest = createNodeTest()
 
     it('does not modify database', async () => {
@@ -54,9 +54,8 @@ describe('IronfishEvm', () => {
 
       Assert.isNotUndefined(nodeTest.chain.evm)
 
-      const result = await nodeTest.chain.evm.withCopy((vm) => {
-        return nodeTest.chain.evm.runTx({ tx: signed }, vm)
-      })
+      const evmCopy = await nodeTest.chain.evm.copy()
+      const result = await evmCopy.runTx({ tx: signed })
 
       expect(result?.result?.totalGasSpent).toEqual(21000n)
 

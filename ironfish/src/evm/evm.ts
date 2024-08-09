@@ -32,12 +32,25 @@ export const GLOBAL_CONTRACT_ADDRESS = Address.fromString(
 )
 
 export class IronfishEvm {
-  private vm: VM | null
   private blockchainDb: BlockchainDB
+  private vm: VM | null
 
-  constructor(blockchainDb: BlockchainDB) {
-    this.vm = null
+  constructor(blockchainDb: BlockchainDB, vm: VM | null = null) {
     this.blockchainDb = blockchainDb
+    this.vm = vm
+  }
+
+  async copy(revert = true): Promise<IronfishEvm> {
+    Assert.isNotNull(this.vm, 'EVM not initialized')
+
+    const vm = await this.vm.shallowCopy()
+
+    if (revert) {
+      // prevents committing to db by adding additional checkpoint
+      await vm.stateManager.checkpoint()
+    }
+
+    return new IronfishEvm(this.blockchainDb, vm)
   }
 
   async load(): Promise<void> {
@@ -63,18 +76,17 @@ export class IronfishEvm {
     this.vm = await VM.create({ evm, stateManager: this.blockchainDb.stateManager })
   }
 
-  async runDesc(description: EvmDescription, vm?: VM): Promise<EvmResult> {
+  async runDesc(description: EvmDescription): Promise<EvmResult> {
     const tx = evmDescriptionToLegacyTransaction(description)
-    return this.runTx({ tx }, vm)
+    return this.runTx({ tx })
   }
 
-  async runTx(opts: RunTxOpts, vm?: VM): Promise<EvmResult> {
+  async runTx(opts: RunTxOpts): Promise<EvmResult> {
     Assert.isNotNull(this.vm, 'EVM not initialized')
-    vm = vm ?? this.vm
 
     opts.block = Block.fromBlockData({ header: { baseFeePerGas: 0n } })
     try {
-      const result = await vm.runTx(opts)
+      const result = await this.vm.runTx(opts)
       const events = this.decodeLogs(result.receipt.logs)
       return {
         result,
@@ -98,20 +110,8 @@ export class IronfishEvm {
   }
 
   async simulateTx(opts: RunTxOpts): Promise<EvmResult> {
-    return this.withCopy(async (vm) => this.runTx(opts, vm))
-  }
-
-  async withCopy<TResult>(handler: (copy: VM) => Promise<TResult>): Promise<TResult> {
-    Assert.isNotNull(this.vm, 'EVM not initialized')
-    const vm = await this.vm.shallowCopy()
-
-    await vm.evm.stateManager.checkpoint()
-
-    try {
-      return await handler(vm)
-    } finally {
-      await vm.evm.stateManager.revert()
-    }
+    const copy = await this.copy()
+    return copy.runTx(opts)
   }
 
   decodeLogs(logs: Log[]): UTXOEvent[] {
