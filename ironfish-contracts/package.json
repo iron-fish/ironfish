@@ -2,12 +2,11 @@
   "name": "@ironfish/ironfish-contracts",
   "version": "1.0.0",
   "description": "Ironfish contracts for EVM layer interactions",
-  "main": "./build/index.js",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
   "license": "MIT",
   "scripts": {
-    "build": "yarn hardhat compile && tsc -b",
-    "test": "",
-    "lint": ""
+    "build": "yarn hardhat compile && tsc -b"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",

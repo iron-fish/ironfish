@@ -9,5 +9,6 @@
   "include": ["src", "./package.json"],
   "references": [
     { "path": "../ironfish" },
+    { "path": "../ironfish-contracts" },
   ]
 }
