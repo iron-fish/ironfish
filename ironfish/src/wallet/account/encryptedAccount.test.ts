@@ -21,7 +21,11 @@ describe('EncryptedAccount', () => {
 
     const encryptedData = encrypt(data, passphrase)
     const encryptedAccount = new EncryptedAccount({
-      data: encryptedData,
+      encryptedAccountValue: {
+        encrypted: true,
+        id: account.id,
+        data: encryptedData,
+      },
       walletDb: node.wallet.walletDb,
     })
 
@@ -41,7 +45,11 @@ describe('EncryptedAccount', () => {
 
     const encryptedData = encrypt(data, passphrase)
     const encryptedAccount = new EncryptedAccount({
-      data: encryptedData,
+      encryptedAccountValue: {
+        encrypted: true,
+        id: account.id,
+        data: encryptedData,
+      },
       walletDb: node.wallet.walletDb,
     })
 

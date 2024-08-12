@@ -15,6 +15,7 @@ const VERSION_LENGTH = 2
 
 export interface EncryptedAccountValue {
   encrypted: true
+  id: string
   data: Buffer
 }
 
@@ -50,6 +51,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     let flags = 0
     flags |= Number(!!value.encrypted) << 5
     bw.writeU8(flags)
+    bw.writeVarString(value.id, 'utf8')
     bw.writeVarBytes(value.data)
 
     return bw.render()
@@ -115,9 +117,11 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     // Skip flags
     reader.readU8()
 
+    const id = reader.readVarString('utf8')
     const data = reader.readVarBytes()
     return {
       encrypted: true,
+      id,
       data,
     }
   }
@@ -184,6 +188,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
   getSizeEncrypted(value: EncryptedAccountValue): number {
     let size = 0
     size += 1 // flags
+    size += bufio.sizeVarString(value.id, 'utf8')
     size += bufio.sizeVarBytes(value.data)
     return size
   }

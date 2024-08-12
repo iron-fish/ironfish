@@ -42,6 +42,7 @@ import {
 import { WorkerPool } from '../workerPool'
 import { DecryptedNote, DecryptNotesItem } from '../workerPool/tasks/decryptNotes'
 import { Account, ACCOUNT_SCHEMA_VERSION } from './account/account'
+import { EncryptedAccount } from './account/encryptedAccount'
 import { AssetBalances } from './assetBalances'
 import {
   DuplicateAccountNameError,
@@ -94,6 +95,7 @@ export class Wallet {
   readonly onAccountRemoved = new Event<[account: Account]>()
 
   protected readonly accountById = new Map<string, Account>()
+  protected readonly encryptedAccounts = new Map<string, EncryptedAccount>()
   readonly walletDb: WalletDB
   private readonly logger: Logger
   readonly workerPool: WorkerPool
@@ -209,8 +211,16 @@ export class Wallet {
 
   private async load(): Promise<void> {
     for await (const accountValue of this.walletDb.loadAccounts()) {
-      const account = new Account({ accountValue, walletDb: this.walletDb })
-      this.accountById.set(account.id, account)
+      if (accountValue.encrypted) {
+        const encryptedAccount = new EncryptedAccount({
+          encryptedAccountValue: accountValue,
+          walletDb: this.walletDb,
+        })
+        this.encryptedAccounts.set(encryptedAccount.id, encryptedAccount)
+      } else {
+        const account = new Account({ accountValue, walletDb: this.walletDb })
+        this.accountById.set(account.id, account)
+      }
     }
 
     const meta = await this.walletDb.loadAccountsMeta()

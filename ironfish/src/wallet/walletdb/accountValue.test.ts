@@ -94,6 +94,7 @@ describe('AccountValueEncoding', () => {
 
     const encryptedValue: EncryptedAccountValue = {
       encrypted: true,
+      id: value.id,
       data: encryptedData,
     }
 
