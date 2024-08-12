@@ -815,7 +815,6 @@ export class Wallet {
     expiration?: number
     expirationDelta?: number
     confirmations?: number
-    fund?: boolean
   }): Promise<RawTransaction> {
     const heaviestHead = await this.getChainHead()
     if (heaviestHead === null) {
@@ -894,13 +893,12 @@ export class Wallet {
       if (options.evm) {
         raw.evm = options.evm
       }
-      if (options.fund) {
-        await this.fund(raw, {
-          account: options.account,
-          notes: options.notes,
-          confirmations: confirmations,
-        })
-      }
+
+      await this.fund(raw, {
+        account: options.account,
+        notes: options.notes,
+        confirmations: confirmations,
+      })
 
       if (options.feeRate) {
         raw.fee = getFee(options.feeRate, raw.postedSize(options.account.publicAddress))
