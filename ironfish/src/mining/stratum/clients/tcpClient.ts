@@ -19,7 +19,7 @@ export class StratumTcpClient extends StratumClient {
 
   protected onSocketDisconnect = (): void => {
     this.client?.off('error', this.onError)
-    this.client?.off('close', this.onDisconnect)
+    this.client?.off('close', this.onSocketDisconnect)
     this.client?.off('data', this.onSocketData)
     this.onDisconnect()
   }

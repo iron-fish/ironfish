@@ -19,7 +19,7 @@ import { RemoteFlags } from '../../../flags'
 import { getExplorer } from '../../../utils/explorer'
 
 export class StartPool extends IronfishCommand {
-  static description = `Start a mining pool that connects to a node`
+  static description = `start a mining pool`
 
   static flags = {
     ...RemoteFlags,

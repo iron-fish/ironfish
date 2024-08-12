@@ -37,6 +37,7 @@ export abstract class StratumClient {
   readonly version: number
 
   private started: boolean
+  private isClosing = false
   private id: number | null
   private connected: boolean
   private connectWarned: boolean
@@ -85,6 +86,10 @@ export abstract class StratumClient {
   }
 
   private async startConnecting(): Promise<void> {
+    if (this.isClosing) {
+      return
+    }
+
     if (this.disconnectUntil && this.disconnectUntil > Date.now()) {
       this.connectTimeout = setTimeout(() => void this.startConnecting(), 60 * 1000)
       return
@@ -114,6 +119,7 @@ export abstract class StratumClient {
   }
 
   stop(): void {
+    this.isClosing = true
     void this.close()
 
     if (this.connectTimeout) {
@@ -191,11 +197,13 @@ export abstract class StratumClient {
       }
 
       this.logger.info(message)
-    } else {
+    } else if (!this.isClosing) {
       this.logger.info('Disconnected from pool unexpectedly. Reconnecting.')
     }
 
-    this.connectTimeout = setTimeout(() => void this.startConnecting(), 5000)
+    if (!this.isClosing) {
+      this.connectTimeout = setTimeout(() => void this.startConnecting(), 5000)
+    }
   }
 
   protected onError = (error: unknown): void => {
