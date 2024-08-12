@@ -9,18 +9,10 @@ import { Account } from './account'
 
 export class EncryptedAccount {
   private readonly walletDb: WalletDB
-  readonly id: string
   readonly data: Buffer
 
-  constructor({
-    encryptedAccountValue,
-    walletDb,
-  }: {
-    encryptedAccountValue: EncryptedAccountValue
-    walletDb: WalletDB
-  }) {
-    this.id = encryptedAccountValue.id
-    this.data = encryptedAccountValue.data
+  constructor({ data, walletDb }: { data: Buffer; walletDb: WalletDB }) {
+    this.data = data
     this.walletDb = walletDb
   }
 
@@ -39,7 +31,6 @@ export class EncryptedAccount {
   serialize(): EncryptedAccountValue {
     return {
       encrypted: true,
-      id: this.id,
       data: this.data,
     }
   }

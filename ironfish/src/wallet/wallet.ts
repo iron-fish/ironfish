@@ -210,13 +210,13 @@ export class Wallet {
   }
 
   private async load(): Promise<void> {
-    for await (const accountValue of this.walletDb.loadAccounts()) {
+    for await (const [id, accountValue] of this.walletDb.loadAccounts()) {
       if (accountValue.encrypted) {
         const encryptedAccount = new EncryptedAccount({
-          encryptedAccountValue: accountValue,
+          data: accountValue.data,
           walletDb: this.walletDb,
         })
-        this.encryptedAccounts.set(encryptedAccount.id, encryptedAccount)
+        this.encryptedAccounts.set(id, encryptedAccount)
       } else {
         const account = new Account({ accountValue, walletDb: this.walletDb })
         this.accountById.set(account.id, account)

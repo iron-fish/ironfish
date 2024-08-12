@@ -391,9 +391,11 @@ export class WalletDB {
     return meta
   }
 
-  async *loadAccounts(tx?: IDatabaseTransaction): AsyncGenerator<AccountValue, void, unknown> {
-    for await (const account of this.accounts.getAllValuesIter(tx)) {
-      yield account
+  async *loadAccounts(
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<[string, AccountValue], void, unknown> {
+    for await (const [id, account] of this.accounts.getAllIter(tx)) {
+      yield [id, account]
     }
   }
 
