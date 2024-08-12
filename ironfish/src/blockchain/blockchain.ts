@@ -1005,16 +1005,13 @@ export class Blockchain {
       }
 
       const blockNotes = []
+      const evmCopy = await this.evm.copy()
       for (const transaction of transactions) {
         for (const note of transaction.notes) {
           blockNotes.push(note)
         }
         if (transaction.evm) {
-          const evmResult = await this.evm.runDesc(transaction.evm)
-          const evmVerify = this.verifier.verifyEvm(transaction, evmResult)
-          if (!evmVerify.valid) {
-            throw Error(evmVerify.reason)
-          }
+          await evmCopy.runDesc(transaction.evm)
         }
       }
 
@@ -1027,7 +1024,7 @@ export class Blockchain {
 
       let stateCommitment = undefined
       if (this.consensus.isActive('enableEvmDescriptions', previousSequence + 1)) {
-        stateCommitment = Buffer.from(await this.blockchainDb.stateManager.getStateRoot())
+        stateCommitment = await evmCopy.getVMStateRoot()
       }
 
       const rawHeader = {

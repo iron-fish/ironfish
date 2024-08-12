@@ -40,6 +40,11 @@ export class IronfishEvm {
     this.vm = vm
   }
 
+  async getVMStateRoot(): Promise<Buffer> {
+    Assert.isNotNull(this.vm, 'EVM not initialized')
+    return Buffer.from(await this.vm.stateManager.getStateRoot())
+  }
+
   async copy(revert = true): Promise<IronfishEvm> {
     Assert.isNotNull(this.vm, 'EVM not initialized')
 
@@ -136,6 +141,7 @@ export class IronfishEvm {
           ironfishAddress: Buffer.from((ironfishAddress as string).slice(2), 'hex'),
           caller: Address.fromString(caller as string),
           assetId: this.getAssetId(caller as string, tokenId as bigint),
+          tokenId: tokenId as bigint,
           amount: amount as bigint,
         })
       } catch (e) {
@@ -183,6 +189,7 @@ export type EvmShield = {
   ironfishAddress: Buffer
   assetId: Buffer
   caller: Address
+  tokenId: bigint
   amount: bigint
 }
 
