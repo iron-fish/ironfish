@@ -7,7 +7,7 @@ import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
 export class AddCommand extends IronfishCommand {
-  static description = `Attempt to connect to a peer through websockets`
+  static description = `attempt to connect to a peer`
 
   static args = {
     address: UrlArg({

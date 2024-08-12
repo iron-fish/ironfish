@@ -5,13 +5,15 @@ import { GetPeerMessagesResponse, GetPeerResponse, TimeUtils } from '@ironfish/s
 import { Args } from '@oclif/core'
 import colors from 'colors/safe'
 import { IronfishCommand } from '../../command'
-import { RemoteFlags } from '../../flags'
+import { JsonFlags, RemoteFlags } from '../../flags'
 
 type GetPeerResponsePeer = NonNullable<GetPeerResponse['peer']>
 type GetPeerMessagesResponseMessages = GetPeerMessagesResponse['messages'][0]
 
-export class ShowCommand extends IronfishCommand {
-  static description = `Display info about a peer`
+export class PeerInfo extends IronfishCommand {
+  static description = `show peer information`
+  static enableJsonFlag = true
+  static hiddenAliases = ['peers:show']
 
   static args = {
     identity: Args.string({
@@ -22,16 +24,17 @@ export class ShowCommand extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
+    ...JsonFlags,
   }
 
-  async start(): Promise<void> {
-    const { args } = await this.parse(ShowCommand)
+  async start(): Promise<unknown> {
+    const { args } = await this.parse(PeerInfo)
     const { identity } = args
 
-    await this.sdk.client.connect()
+    const client = await this.connectRpc()
     const [peer, messages] = await Promise.all([
-      this.sdk.client.peer.getPeer({ identity }),
-      this.sdk.client.peer.getPeerMessages({ identity }),
+      client.peer.getPeer({ identity }),
+      client.peer.getPeerMessages({ identity }),
     ])
 
     if (peer.content.peer === null) {
@@ -48,7 +51,10 @@ export class ShowCommand extends IronfishCommand {
       }
     }
 
-    this.exit(0)
+    return {
+      ...peer.content,
+      ...messages.content,
+    }
   }
 
   renderPeer(peer: GetPeerResponsePeer): string {
