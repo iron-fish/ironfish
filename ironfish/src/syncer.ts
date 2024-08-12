@@ -605,12 +605,13 @@ export class Syncer {
   async addBlock(
     peer: Peer,
     block: Block,
+    skipVerification: boolean = false,
   ): Promise<{
     added: boolean
     block: Block
     reason: VerificationResultReason | null
   }> {
-    const { isAdded, reason, score } = await this.chain.addBlock(block)
+    const { isAdded, reason, score } = await this.chain.addBlock(block, skipVerification)
 
     this.speed.add(1)
 

@@ -312,7 +312,10 @@ export class Blockchain {
     await this.blockchainDb.close()
   }
 
-  async addBlock(block: Block): Promise<{
+  async addBlock(
+    block: Block,
+    skipVerification: boolean = false,
+  ): Promise<{
     isAdded: boolean
     isFork: boolean | null
     reason: VerificationResultReason | null
@@ -322,7 +325,7 @@ export class Blockchain {
     try {
       connectResult = await this.blockchainDb.db.transaction(async (tx) => {
         if (!this.hasGenesisBlock && block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
-          return await this.connect(block, null, tx)
+          return await this.connect(block, null, tx, skipVerification)
         }
 
         const invalid = this.isInvalid(block.header)
@@ -330,10 +333,12 @@ export class Blockchain {
           throw new VerifyError(invalid, BAN_SCORE.MAX)
         }
 
-        const verify = this.verifier.verifyBlockHeader(block.header)
-        if (!verify.valid) {
-          Assert.isNotUndefined(verify.reason)
-          throw new VerifyError(verify.reason, BAN_SCORE.MAX)
+        if (!skipVerification) {
+          const verify = this.verifier.verifyBlockHeader(block.header)
+          if (!verify.valid) {
+            Assert.isNotUndefined(verify.reason)
+            throw new VerifyError(verify.reason, BAN_SCORE.MAX)
+          }
         }
 
         if (await this.hasBlock(block.header.hash, tx)) {
@@ -348,7 +353,7 @@ export class Blockchain {
           throw new VerifyError(VerificationResultReason.ORPHAN)
         }
 
-        const connectResult = await this.connect(block, previous, tx)
+        const connectResult = await this.connect(block, previous, tx, skipVerification)
 
         this.resolveOrphans(block)
 
@@ -551,6 +556,7 @@ export class Blockchain {
     block: Block,
     prev: BlockHeader | null,
     tx: IDatabaseTransaction,
+    skipVerification: boolean = false,
   ): Promise<{ isFork: boolean }> {
     const start = BenchUtils.start()
 
@@ -568,9 +574,9 @@ export class Blockchain {
     const isFork = !this.isEmpty && !isBlockHeavier(block.header, this.head)
 
     if (isFork) {
-      await this.addForkToChain(block, prev, tx)
+      await this.addForkToChain(block, prev, tx, skipVerification)
     } else {
-      await this.addHeadToChain(block, prev, tx)
+      await this.addHeadToChain(block, prev, tx, skipVerification)
     }
 
     const addTime = BenchUtils.end(start)
@@ -645,26 +651,31 @@ export class Blockchain {
     block: Block,
     prev: BlockHeader | null,
     tx: IDatabaseTransaction,
+    skipVerification: boolean = false,
   ): Promise<void> {
-    const verifyBlockAdd = this.verifier.verifyBlock(block, { prev }).catch((_) => {
-      return { valid: false, reason: VerificationResultReason.ERROR }
-    })
+    if (!skipVerification) {
+      const verifyBlockAdd = this.verifier.verifyBlock(block, { prev }).catch((_) => {
+        return { valid: false, reason: VerificationResultReason.ERROR }
+      })
 
-    await this.saveBlock(block, prev, true, tx)
+      await this.saveBlock(block, prev, true, tx)
 
-    const { valid, reason } = await verifyBlockAdd
-    if (!valid) {
-      Assert.isNotUndefined(reason)
+      const { valid, reason } = await verifyBlockAdd
+      if (!valid) {
+        Assert.isNotUndefined(reason)
 
-      this.logger.warn(
-        `Invalid block adding to fork ${HashUtils.renderHash(block.header.hash)} (${
-          block.header.sequence
-        }): ${reason}`,
-      )
+        this.logger.warn(
+          `Invalid block adding to fork ${HashUtils.renderHash(block.header.hash)} (${
+            block.header.sequence
+          }): ${reason}`,
+        )
 
-      this.addInvalid(block.header.hash, reason)
+        this.addInvalid(block.header.hash, reason)
 
-      throw new VerifyError(reason, BAN_SCORE.MAX)
+        throw new VerifyError(reason, BAN_SCORE.MAX)
+      }
+    } else {
+      await this.saveBlock(block, prev, true, tx)
     }
 
     await tx.update()
@@ -692,6 +703,7 @@ export class Blockchain {
     block: Block,
     prev: BlockHeader | null,
     tx: IDatabaseTransaction,
+    skipVerification: boolean = false,
   ): Promise<void> {
     if (prev && !block.header.previousBlockHash.equals(this.head.hash)) {
       this.logger.warn(
@@ -707,24 +719,28 @@ export class Blockchain {
       await this.reorganizeChain(prev, tx)
     }
 
-    const verifyBlockAdd = this.verifier.verifyBlock(block, { prev }).catch((_) => {
-      return { valid: false, reason: VerificationResultReason.ERROR }
-    })
+    if (!skipVerification) {
+      const verifyBlockAdd = this.verifier.verifyBlock(block, { prev }).catch((_) => {
+        return { valid: false, reason: VerificationResultReason.ERROR }
+      })
 
-    await this.saveBlock(block, prev, false, tx)
+      await this.saveBlock(block, prev, false, tx)
 
-    const { valid, reason } = await verifyBlockAdd
-    if (!valid) {
-      Assert.isNotUndefined(reason)
+      const { valid, reason } = await verifyBlockAdd
+      if (!valid) {
+        Assert.isNotUndefined(reason)
 
-      this.logger.warn(
-        `Invalid block adding to head chain ${HashUtils.renderHash(block.header.hash)} (${
-          block.header.sequence
-        }): ${reason}`,
-      )
+        this.logger.warn(
+          `Invalid block adding to head chain ${HashUtils.renderHash(block.header.hash)} (${
+            block.header.sequence
+          }): ${reason}`,
+        )
 
-      this.addInvalid(block.header.hash, reason)
-      throw new VerifyError(reason, BAN_SCORE.MAX)
+        this.addInvalid(block.header.hash, reason)
+        throw new VerifyError(reason, BAN_SCORE.MAX)
+      }
+    } else {
+      await this.saveBlock(block, prev, false, tx)
     }
 
     await tx.update()

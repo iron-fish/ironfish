@@ -1242,8 +1242,8 @@ export class PeerNetwork {
       return
     }
 
-    // add the block to the chain
-    const result = await this.node.syncer.addBlock(peer, block)
+    // add the block to the chain, skipping verification
+    const result = await this.node.syncer.addBlock(peer, block, true)
 
     // We should have checked if the block is an orphan or duplicate already, so we
     // don't have to handle those cases here. If there was a verification error, the
