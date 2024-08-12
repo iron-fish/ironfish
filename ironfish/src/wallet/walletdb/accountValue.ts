@@ -35,9 +35,27 @@ export interface DecryptedAccountValue {
 }
 
 export type AccountValue = EncryptedAccountValue | DecryptedAccountValue
+export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
+  serialize(value: AccountValue): Buffer {
+    if (value.encrypted) {
+      return this.serializeEncrypted(value)
+    } else {
+      return this.serializeDecrypted(value)
+    }
+  }
 
-export class AccountValueEncoding implements IDatabaseEncoding<DecryptedAccountValue> {
-  serialize(value: DecryptedAccountValue): Buffer {
+  serializeEncrypted(value: EncryptedAccountValue): Buffer {
+    const bw = bufio.write(this.getSize(value))
+
+    let flags = 0
+    flags |= Number(!!value.encrypted) << 5
+    bw.writeU8(flags)
+    bw.writeVarBytes(value.data)
+
+    return bw.render()
+  }
+
+  serializeDecrypted(value: DecryptedAccountValue): Buffer {
     const bw = bufio.write(this.getSize(value))
     let flags = 0
     flags |= Number(!!value.spendingKey) << 0
@@ -45,6 +63,8 @@ export class AccountValueEncoding implements IDatabaseEncoding<DecryptedAccountV
     flags |= Number(!!value.multisigKeys) << 2
     flags |= Number(!!value.proofAuthorizingKey) << 3
     flags |= Number(!!value.scanningEnabled) << 4
+    flags |= Number(!!value.encrypted) << 5
+
     bw.writeU8(flags)
     bw.writeU16(value.version)
     bw.writeVarString(value.id, 'utf8')
@@ -77,7 +97,32 @@ export class AccountValueEncoding implements IDatabaseEncoding<DecryptedAccountV
     return bw.render()
   }
 
-  deserialize(buffer: Buffer): DecryptedAccountValue {
+  deserialize(buffer: Buffer): AccountValue {
+    const reader = bufio.read(buffer, true)
+    const flags = reader.readU8()
+    const encrypted = Boolean(flags & (1 << 5))
+
+    if (encrypted) {
+      return this.deserializeEncrypted(buffer)
+    } else {
+      return this.deserializeDecrypted(buffer)
+    }
+  }
+
+  deserializeEncrypted(buffer: Buffer): EncryptedAccountValue {
+    const reader = bufio.read(buffer, true)
+
+    // Skip flags
+    reader.readU8()
+
+    const data = reader.readVarBytes()
+    return {
+      encrypted: true,
+      data,
+    }
+  }
+
+  deserializeDecrypted(buffer: Buffer): DecryptedAccountValue {
     const reader = bufio.read(buffer, true)
     const flags = reader.readU8()
     const version = reader.readU16()
@@ -128,7 +173,22 @@ export class AccountValueEncoding implements IDatabaseEncoding<DecryptedAccountV
     }
   }
 
-  getSize(value: DecryptedAccountValue): number {
+  getSize(value: AccountValue): number {
+    if (value.encrypted) {
+      return this.getSizeEncrypted(value)
+    } else {
+      return this.getSizeDecrypted(value)
+    }
+  }
+
+  getSizeEncrypted(value: EncryptedAccountValue): number {
+    let size = 0
+    size += 1 // flags
+    size += bufio.sizeVarBytes(value.data)
+    return size
+  }
+
+  getSizeDecrypted(value: DecryptedAccountValue): number {
     let size = 0
     size += 1 // flags
     size += VERSION_LENGTH

@@ -32,7 +32,7 @@ import { BufferUtils } from '../../utils'
 import { BloomFilter } from '../../utils/bloomFilter'
 import { WorkerPool } from '../../workerPool'
 import { Account, calculateAccountPrefix } from '../account/account'
-import { AccountValueEncoding, DecryptedAccountValue } from './accountValue'
+import { AccountValue, AccountValueEncoding, DecryptedAccountValue } from './accountValue'
 import { AssetValue, AssetValueEncoding } from './assetValue'
 import { BalanceValue, BalanceValueEncoding } from './balanceValue'
 import { DecryptedNoteValue, DecryptedNoteValueEncoding } from './decryptedNoteValue'
@@ -54,7 +54,7 @@ export class WalletDB {
   location: string
   files: FileSystem
 
-  accounts: IDatabaseStore<{ key: string; value: DecryptedAccountValue }>
+  accounts: IDatabaseStore<{ key: string; value: AccountValue }>
 
   meta: IDatabaseStore<{
     key: keyof AccountsDBMeta
@@ -395,7 +395,10 @@ export class WalletDB {
     tx?: IDatabaseTransaction,
   ): AsyncGenerator<DecryptedAccountValue, void, unknown> {
     for await (const account of this.accounts.getAllValuesIter(tx)) {
-      yield account
+      // TODO(rohanjadvani): Remove this when encrypted accounts are managed in the wallet
+      if (!account.encrypted) {
+        yield account
+      }
     }
   }
 
