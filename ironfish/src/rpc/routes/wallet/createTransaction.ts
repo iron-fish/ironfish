@@ -10,7 +10,7 @@ import {
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { RawTransactionSerde } from '../../../primitives/rawTransaction'
-import { CurrencyUtils, YupUtils } from '../../../utils'
+import { CurrencyUtils, EthUtils, YupUtils } from '../../../utils'
 import { Wallet } from '../../../wallet'
 import { NotEnoughFundsError } from '../../../wallet/errors'
 import { RPC_ERROR_CODES, RpcValidationError } from '../../adapters/errors'
@@ -39,6 +39,19 @@ export type CreateTransactionRequest = {
     assetId: string
     value: string
   }[]
+  evm?: {
+    nonce: string
+    gasPrice: string
+    gasLimit: string
+    to: string
+    value: string
+    data: string
+    privateIron: string
+    publicIron: string
+    v?: string
+    r?: string
+    s?: string
+  }
   fee?: string | null
   feeRate?: string | null
   expiration?: number
@@ -93,6 +106,22 @@ export const CreateTransactionRequestSchema: yup.ObjectSchema<CreateTransactionR
           .defined(),
       )
       .optional(),
+    evm: yup
+      .object({
+        nonce: yup.string().defined(),
+        gasPrice: yup.string().defined(),
+        gasLimit: yup.string().defined(),
+        to: yup.string().defined(),
+        value: yup.string().defined(),
+        data: yup.string().defined(),
+        publicIron: yup.string().defined(),
+        privateIron: yup.string().defined(),
+        v: yup.string(),
+        r: yup.string(),
+        s: yup.string(),
+      })
+      .optional()
+      .default(undefined),
     fee: YupUtils.currency({ min: 1n }).nullable().optional(),
     feeRate: YupUtils.currency({ min: 1n }).nullable().optional(),
     expiration: yup.number().optional(),
@@ -215,6 +244,28 @@ routes.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
       params.notes = []
       for (const noteHash of request.data.notes) {
         params.notes.push(Buffer.from(noteHash, 'hex'))
+      }
+    }
+
+    if (request.data.evm) {
+      // if 0x is present, remove it
+      const evm = request.data.evm
+      const to = EthUtils.remove0x(evm.to)
+      const data = EthUtils.remove0x(evm.data)
+      const r = evm.r ? EthUtils.remove0x(evm.r) : undefined
+      const s = evm.s ? EthUtils.remove0x(evm.s) : undefined
+      params.evm = {
+        nonce: BigInt(evm.nonce),
+        gasPrice: BigInt(evm.gasPrice),
+        gasLimit: BigInt(evm.gasLimit),
+        to: Buffer.from(to, 'hex'),
+        value: BigInt(evm.value),
+        data: Buffer.from(data, 'hex'),
+        privateIron: BigInt(evm.privateIron),
+        publicIron: BigInt(evm.publicIron),
+        v: evm.v ? BigInt(evm.v) : undefined,
+        r: r ? Buffer.from(r, 'hex') : undefined,
+        s: s ? Buffer.from(s, 'hex') : undefined,
       }
     }
 
