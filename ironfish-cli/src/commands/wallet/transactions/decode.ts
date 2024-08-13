@@ -20,8 +20,9 @@ import {
   renderUnsignedTransactionDetails,
 } from '../../../utils/transaction'
 
-export class TransactionViewCommand extends IronfishCommand {
+export class TransactionsDecodeCommand extends IronfishCommand {
   static description = `View transaction details`
+  static hiddenAliases = ['wallet:transaction:view']
 
   static flags = {
     ...RemoteFlags,
@@ -37,7 +38,7 @@ export class TransactionViewCommand extends IronfishCommand {
   }
 
   async start(): Promise<void> {
-    const { flags } = await this.parse(TransactionViewCommand)
+    const { flags } = await this.parse(TransactionsDecodeCommand)
 
     const client = await this.connectRpc()
 
