@@ -40,11 +40,6 @@ export class IronfishEvm {
     this.vm = vm
   }
 
-  async getVMStateRoot(): Promise<Buffer> {
-    Assert.isNotNull(this.vm, 'EVM not initialized')
-    return Buffer.from(await this.vm.stateManager.getStateRoot())
-  }
-
   async copy(revert = true): Promise<IronfishEvm> {
     Assert.isNotNull(this.vm, 'EVM not initialized')
 
