@@ -171,7 +171,12 @@ import type {
   UseAccountRequest,
   UseAccountResponse,
 } from '../routes'
-import { GetAccountRequest, GetAccountResponse } from '../routes/eth'
+import {
+  GetAccountRequest,
+  GetAccountResponse,
+  SendRawTransactionRequest,
+  SendRawTransactionResponse,
+} from '../routes/eth'
 import { ApiNamespace } from '../routes/namespaces'
 
 export abstract class RpcClient {
@@ -1007,6 +1012,14 @@ export abstract class RpcClient {
     getAccount: (params: GetAccountRequest): Promise<RpcResponseEnded<GetAccountResponse>> => {
       return this.request<GetAccountResponse>(
         `${ApiNamespace.eth}/getAccount`,
+        params,
+      ).waitForEnd()
+    },
+    sendRawTransaction: (
+      params: SendRawTransactionRequest,
+    ): Promise<RpcResponseEnded<SendRawTransactionResponse>> => {
+      return this.request<SendRawTransactionResponse>(
+        `${ApiNamespace.eth}/sendRawTransaction`,
         params,
       ).waitForEnd()
     },
