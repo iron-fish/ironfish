@@ -2,12 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { LegacyTransaction } from '@ethereumjs/tx'
-import {
-  Assert,
-  legacyTransactionToEvmDescription,
-  RawTransaction,
-  TransactionVersion,
-} from '@ironfish/sdk'
+import { Assert } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
@@ -54,14 +49,10 @@ export class SendTransactionTestEvmCommand extends IronfishCommand {
       nonce: flags.nonce,
       gasPrice: 1n,
     })
+    tx.sign(senderKey)
 
-    const rawTransaction = new RawTransaction(TransactionVersion.V3)
-    rawTransaction.evm = legacyTransactionToEvmDescription(tx.sign(senderKey))
-
-    const transaction = rawTransaction.post(senderKey.toString('hex'))
-
-    const response = await client.chain.broadcastTransaction({
-      transaction: transaction.serialize().toString('hex'),
+    const response = await client.eth.sendRawTransaction({
+      transaction: Buffer.from(tx.serialize()).toString('hex'),
     })
     Assert.isNotNull(response.content)
 
