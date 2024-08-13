@@ -4,14 +4,17 @@
 
 import { CurrencyUtils, RpcClient, Transaction } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
-import { IronfishCommand } from '../../command'
-import { RemoteFlags } from '../../flags'
-import { longPrompt } from '../../utils/input'
-import { Ledger } from '../../utils/ledger'
-import { renderTransactionDetails, watchTransaction } from '../../utils/transaction'
+import { IronfishCommand } from '../../../command'
+import { RemoteFlags } from '../../../flags'
+import { longPrompt } from '../../../utils/input'
+import { Ledger } from '../../../utils/ledger'
+import { renderTransactionDetails, watchTransaction } from '../../../utils/transaction'
 
-export class SignTransaction extends IronfishCommand {
+export class TransactionsSignCommand extends IronfishCommand {
   static description = `Sign an unsigned transaction`
+
+  static hiddenAliases = ['wallet:sign']
+
   static flags = {
     ...RemoteFlags,
     unsignedTransaction: Flags.string({
@@ -34,7 +37,7 @@ export class SignTransaction extends IronfishCommand {
   }
 
   async start(): Promise<void> {
-    const { flags } = await this.parse(SignTransaction)
+    const { flags } = await this.parse(TransactionsSignCommand)
     const client = await this.connectRpc()
 
     if (!flags.broadcast && flags.watch) {
