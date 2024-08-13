@@ -3,6 +3,6 @@
   "compilerOptions": {
     "outDir": "build"
   },
-  "include": ["./index.ts", "./artifacts/contracts/**/*.json"],
+  "include": ["./index.ts", "./artifacts/contracts/**/*.json", "./exports/**/*.ts"],
   "exclude": ["src/**/*.test.*"],
 }

@@ -1,3 +1,4 @@
-import CompiledContractJson from "./artifacts/contracts/Ironfish.sol/Ironfish.json"
+import IronfishContractJson from "./artifacts/contracts/Ironfish.sol/Ironfish.json"
 
-export default CompiledContractJson
+export * from "./exports/GoldToken"
+export default IronfishContractJson
