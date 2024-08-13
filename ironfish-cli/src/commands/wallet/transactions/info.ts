@@ -21,8 +21,10 @@ import {
 } from '../../../utils'
 import { getExplorer } from '../../../utils/explorer'
 
-export class TransactionCommand extends IronfishCommand {
+export class TransactionInfoCommand extends IronfishCommand {
   static description = `Display an account transaction`
+
+  static hiddenAliases = ['wallet:transaction']
 
   static flags = {
     ...RemoteFlags,
@@ -44,7 +46,7 @@ export class TransactionCommand extends IronfishCommand {
   }
 
   async start(): Promise<void> {
-    const { flags, args } = await this.parse(TransactionCommand)
+    const { flags, args } = await this.parse(TransactionInfoCommand)
     const { hash } = args
     // TODO: remove account arg
     const account = flags.account ? flags.account : args.account
