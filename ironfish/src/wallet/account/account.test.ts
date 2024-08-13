@@ -2596,4 +2596,17 @@ describe('Accounts', () => {
       expect(accountTransactionHashes).toEqual(blockTransactionHashes)
     })
   })
+
+  describe('encrypt', () => {
+    it('returns an encrypted account that can be decrypted into the original account', async () => {
+      const { node } = nodeTest
+      const account = await useAccountFixture(node.wallet)
+      const passphrase = 'foo'
+
+      const encryptedAccount = account.encrypt(passphrase)
+      const decryptedAccount = encryptedAccount.decrypt(passphrase)
+
+      expect(account.serialize()).toMatchObject(decryptedAccount.serialize())
+    })
+  })
 })

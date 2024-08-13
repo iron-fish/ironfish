@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { multisig } from '@ironfish/rust-nodejs'
+import { encrypt, multisig } from '@ironfish/rust-nodejs'
 import { Asset } from '@ironfish/rust-nodejs'
 import { BufferMap, BufferSet } from 'buffer-map'
 import MurmurHash3 from 'imurmurhash'
@@ -15,7 +15,7 @@ import { WithNonNull, WithRequired } from '../../utils'
 import { DecryptedNote } from '../../workerPool/tasks/decryptNotes'
 import { AssetBalances } from '../assetBalances'
 import { MultisigKeys, MultisigSigner } from '../interfaces/multisigKeys'
-import { DecryptedAccountValue } from '../walletdb/accountValue'
+import { AccountValueEncoding, DecryptedAccountValue } from '../walletdb/accountValue'
 import { AssetValue } from '../walletdb/assetValue'
 import { BalanceValue } from '../walletdb/balanceValue'
 import { DecryptedNoteValue } from '../walletdb/decryptedNoteValue'
@@ -23,6 +23,7 @@ import { HeadValue } from '../walletdb/headValue'
 import { isSignerMultisig } from '../walletdb/multisigKeys'
 import { TransactionValue } from '../walletdb/transactionValue'
 import { WalletDB } from '../walletdb/walletdb'
+import { EncryptedAccount } from './encryptedAccount'
 
 export const ACCOUNT_KEY_LENGTH = 32
 
@@ -1288,6 +1289,17 @@ export class Account {
     AssertMultisig(this)
     const publicKeyPackage = new multisig.PublicKeyPackage(this.multisigKeys.publicKeyPackage)
     return publicKeyPackage.identities()
+  }
+
+  encrypt(passphrase: string): EncryptedAccount {
+    const encoder = new AccountValueEncoding()
+    const serialized = encoder.serialize(this.serialize())
+    const data = encrypt(serialized, passphrase)
+
+    return new EncryptedAccount({
+      data,
+      walletDb: this.walletDb,
+    })
   }
 }
 
