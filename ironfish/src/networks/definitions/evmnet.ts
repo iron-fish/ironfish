@@ -12,7 +12,7 @@ const EVMNET_CONSENSUS: ConsensusParameters = {
   maxBlockSizeBytes: 524288,
   minFee: 0,
   enableAssetOwnership: null,
-  enableEvmDescriptions: 1,
+  enableEvmDescriptions: 2,
   enforceSequentialBlockTime: 1,
   enableFishHash: null,
   enableIncreasedDifficultyChange: null,
