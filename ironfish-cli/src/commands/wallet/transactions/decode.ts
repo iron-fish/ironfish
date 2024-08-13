@@ -42,8 +42,6 @@ export class TransactionsDecodeCommand extends IronfishCommand {
 
     const client = await this.connectRpc()
 
-    const account = flags.account ?? (await this.selectAccount(client))
-
     let transactionString = flags.transaction
     if (!transactionString) {
       transactionString = await longPrompt(
@@ -53,6 +51,8 @@ export class TransactionsDecodeCommand extends IronfishCommand {
         },
       )
     }
+
+    const account = flags.account ?? (await this.selectAccount(client))
 
     const rawTransaction = this.tryDeserializeRawTransaction(transactionString)
     if (rawTransaction) {
