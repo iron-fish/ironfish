@@ -6,8 +6,9 @@ import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 import { watchTransaction } from '../../../utils/transaction'
 
-export class WatchTxCommand extends IronfishCommand {
+export class TransactionsWatchCommand extends IronfishCommand {
   static description = `Wait for the status of an account transaction to confirm or expire`
+  static hiddenAliases = ['wallet:transaction:watch']
 
   static flags = {
     ...RemoteFlags,
@@ -33,7 +34,7 @@ export class WatchTxCommand extends IronfishCommand {
   }
 
   async start(): Promise<void> {
-    const { flags, args } = await this.parse(WatchTxCommand)
+    const { flags, args } = await this.parse(TransactionsWatchCommand)
     const { hash } = args
     // TODO: remove account arg
     const account = flags.account ? flags.account : args.account
