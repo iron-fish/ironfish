@@ -3,18 +3,21 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
+import { JsonFlags } from '../../flags'
 
 export default class Token extends IronfishCommand {
-  static description = 'Get or set the RPC auth token'
+  static description = 'get or set the RPC auth token'
+  static enableJsonFlag = true
 
   static flags = {
+    ...JsonFlags,
     token: Flags.string({
       required: false,
       description: 'Set the RPC auth token to <value>',
     }),
   }
 
-  async start(): Promise<void> {
+  async start(): Promise<unknown> {
     const { flags } = await this.parse(Token)
 
     const internal = this.sdk.internal
@@ -33,5 +36,7 @@ export default class Token extends IronfishCommand {
         this.log('No RPC auth token found.')
       }
     }
+
+    return { rpcAuthToken: token }
   }
 }
