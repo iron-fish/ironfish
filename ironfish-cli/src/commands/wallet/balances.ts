@@ -13,6 +13,13 @@ type AssetBalancePairs = { asset: RpcAsset; balance: GetBalancesResponse['balanc
 export class BalancesCommand extends IronfishCommand {
   static description = `Display the account's balances for all assets`
 
+  static args = {
+    account: Args.string({
+      required: false,
+      description: 'Name of the account to get balances for. DEPRECATED: use --account flag',
+    }),
+  }
+
   static flags = {
     ...RemoteFlags,
     ...TableFlags,
@@ -27,13 +34,6 @@ export class BalancesCommand extends IronfishCommand {
     confirmations: Flags.integer({
       required: false,
       description: 'Minimum number of blocks confirmations for a transaction',
-    }),
-  }
-
-  static args = {
-    account: Args.string({
-      required: false,
-      description: 'Name of the account to get balances for. DEPRECATED: use --account flag',
     }),
   }
 

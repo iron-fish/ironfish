@@ -25,19 +25,19 @@ const MIN_ASSET_NAME_COLUMN_WIDTH = ASSET_NAME_LENGTH / 2 + 1
 export class AssetsCommand extends IronfishCommand {
   static description = `Display the wallet's assets`
 
+  static args = {
+    account: Args.string({
+      required: false,
+      description: 'Name of the account. DEPRECATED: use --account flag',
+    }),
+  }
+
   static flags = {
     ...RemoteFlags,
     ...TableFlags,
     account: Flags.string({
       char: 'a',
       description: 'Name of the account to get assets for',
-    }),
-  }
-
-  static args = {
-    account: Args.string({
-      required: false,
-      description: 'Name of the account. DEPRECATED: use --account flag',
     }),
   }
 

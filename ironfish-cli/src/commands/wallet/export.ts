@@ -13,6 +13,13 @@ export class ExportCommand extends IronfishCommand {
   static description = `Export an account`
   static enableJsonFlag = true
 
+  static args = {
+    account: Args.string({
+      required: false,
+      description: 'Name of the account to export',
+    }),
+  }
+
   static flags = {
     ...RemoteFlags,
     ...JsonFlags,
@@ -36,13 +43,6 @@ export class ExportCommand extends IronfishCommand {
     viewonly: Flags.boolean({
       default: false,
       description: 'Export an account as a view-only account',
-    }),
-  }
-
-  static args = {
-    account: Args.string({
-      required: false,
-      description: 'Name of the account to export',
     }),
   }
 

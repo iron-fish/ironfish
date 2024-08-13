@@ -11,6 +11,13 @@ export class TransactionsImportCommand extends IronfishCommand {
 
   static hiddenAliases = ['wallet:transaction:add', 'wallet:transaction:import']
 
+  static args = {
+    transaction: Args.string({
+      required: false,
+      description: 'The transaction in hex encoding',
+    }),
+  }
+
   static flags = {
     ...RemoteFlags,
     path: Flags.string({
@@ -20,13 +27,6 @@ export class TransactionsImportCommand extends IronfishCommand {
       default: true,
       allowNo: true,
       description: 'Broadcast the transaction to the network after importing',
-    }),
-  }
-
-  static args = {
-    transaction: Args.string({
-      required: false,
-      description: 'The transaction in hex encoding',
     }),
   }
 

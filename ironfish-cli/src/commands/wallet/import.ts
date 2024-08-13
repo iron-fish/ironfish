@@ -17,6 +17,13 @@ import { Ledger } from '../../utils/ledger'
 export class ImportCommand extends IronfishCommand {
   static description = `Import an account`
 
+  static args = {
+    blob: Args.string({
+      required: false,
+      description: 'The copy-pasted output of wallet:export; or, a raw spending key',
+    }),
+  }
+
   static flags = {
     ...RemoteFlags,
     rescan: Flags.boolean({
@@ -37,13 +44,6 @@ export class ImportCommand extends IronfishCommand {
       description: 'import a view-only account from a ledger device',
       default: false,
       exclusive: ['path'],
-    }),
-  }
-
-  static args = {
-    blob: Args.string({
-      required: false,
-      description: 'The copy-pasted output of wallet:export; or, a raw spending key',
     }),
   }
 

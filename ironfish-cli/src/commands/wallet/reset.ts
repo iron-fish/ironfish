@@ -10,6 +10,13 @@ import { confirmOrQuit } from '../../ui'
 export class ResetCommand extends IronfishCommand {
   static description = `Resets the transaction of an account but keeps all keys.`
 
+  static args = {
+    account: Args.string({
+      required: true,
+      description: 'Name of the account to reset',
+    }),
+  }
+
   static flags = {
     ...RemoteFlags,
     resetCreated: Flags.boolean({
@@ -23,13 +30,6 @@ export class ResetCommand extends IronfishCommand {
     confirm: Flags.boolean({
       default: false,
       description: 'Confirm download without asking',
-    }),
-  }
-
-  static args = {
-    account: Args.string({
-      required: true,
-      description: 'Name of the account to reset',
     }),
   }
 

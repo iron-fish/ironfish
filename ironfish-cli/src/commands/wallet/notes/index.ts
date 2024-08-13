@@ -12,19 +12,19 @@ const { sort: _, ...tableFlags } = TableFlags
 export class NotesCommand extends IronfishCommand {
   static description = `Display the account notes`
 
+  static args = {
+    account: Args.string({
+      required: false,
+      description: 'Name of the account to get notes for. DEPRECATED: use --account flag',
+    }),
+  }
+
   static flags = {
     ...RemoteFlags,
     ...tableFlags,
     account: Flags.string({
       char: 'a',
       description: 'Name of the account to get notes for',
-    }),
-  }
-
-  static args = {
-    account: Args.string({
-      required: false,
-      description: 'Name of the account to get notes for. DEPRECATED: use --account flag',
     }),
   }
 

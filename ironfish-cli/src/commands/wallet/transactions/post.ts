@@ -21,6 +21,12 @@ export class TransactionsPostCommand extends IronfishCommand {
 
   static hiddenAliases = ['wallet:post']
 
+  static args = {
+    transaction: Args.string({
+      description: 'The raw transaction in hex encoding',
+    }),
+  }
+
   static flags = {
     ...RemoteFlags,
     account: Flags.string({
@@ -37,12 +43,6 @@ export class TransactionsPostCommand extends IronfishCommand {
       default: true,
       allowNo: true,
       description: 'Broadcast the transaction after posting',
-    }),
-  }
-
-  static args = {
-    transaction: Args.string({
-      description: 'The raw transaction in hex encoding',
     }),
   }
 

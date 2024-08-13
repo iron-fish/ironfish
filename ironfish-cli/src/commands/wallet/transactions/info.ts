@@ -26,14 +26,6 @@ export class TransactionInfoCommand extends IronfishCommand {
 
   static hiddenAliases = ['wallet:transaction']
 
-  static flags = {
-    ...RemoteFlags,
-    account: Flags.string({
-      char: 'a',
-      description: 'Name of the account to get transaction details for',
-    }),
-  }
-
   static args = {
     hash: Args.string({
       required: true,
@@ -42,6 +34,14 @@ export class TransactionInfoCommand extends IronfishCommand {
     account: Args.string({
       required: false,
       description: 'Name of the account. DEPRECATED: use --account flag',
+    }),
+  }
+
+  static flags = {
+    ...RemoteFlags,
+    account: Flags.string({
+      char: 'a',
+      description: 'Name of the account to get transaction details for',
     }),
   }
 

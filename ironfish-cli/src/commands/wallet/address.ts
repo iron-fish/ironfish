@@ -10,15 +10,15 @@ export class AddressCommand extends IronfishCommand {
 
   The address for an account is the accounts public key, see more here: https://ironfish.network/docs/whitepaper/5_account`
 
-  static flags = {
-    ...RemoteFlags,
-  }
-
   static args = {
     account: Args.string({
       required: false,
       description: 'Name of the account to get the address for',
     }),
+  }
+
+  static flags = {
+    ...RemoteFlags,
   }
 
   async start(): Promise<void> {
