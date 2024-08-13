@@ -95,7 +95,7 @@ export class Wallet {
   readonly onAccountRemoved = new Event<[account: Account]>()
 
   protected readonly accountById = new Map<string, Account>()
-  protected readonly encryptedAccounts = new Map<string, EncryptedAccount>()
+  readonly encryptedAccountById = new Map<string, EncryptedAccount>()
   readonly walletDb: WalletDB
   private readonly logger: Logger
   readonly workerPool: WorkerPool
@@ -210,13 +210,16 @@ export class Wallet {
   }
 
   private async load(): Promise<void> {
+    this.encryptedAccountById.clear()
+    this.accountById.clear()
+
     for await (const [id, accountValue] of this.walletDb.loadAccounts()) {
       if (accountValue.encrypted) {
         const encryptedAccount = new EncryptedAccount({
           data: accountValue.data,
           walletDb: this.walletDb,
         })
-        this.encryptedAccounts.set(id, encryptedAccount)
+        this.encryptedAccountById.set(id, encryptedAccount)
       } else {
         const account = new Account({ accountValue, walletDb: this.walletDb })
         this.accountById.set(account.id, account)
@@ -1435,6 +1438,10 @@ export class Wallet {
     return Array.from(this.accountById.values())
   }
 
+  get encryptedAccounts(): EncryptedAccount[] {
+    return Array.from(this.encryptedAccountById.values())
+  }
+
   accountExists(name: string): boolean {
     return this.getAccountByName(name) !== null
   }
@@ -1766,5 +1773,16 @@ export class Wallet {
 
       return identity.serialize()
     })
+  }
+
+  async encrypt(passphrase: string, tx?: IDatabaseTransaction): Promise<void> {
+    const unlock = await this.createTransactionMutex.lock()
+
+    try {
+      await this.walletDb.encryptAccounts(this.accounts, passphrase, tx)
+      await this.load()
+    } finally {
+      unlock()
+    }
   }
 }

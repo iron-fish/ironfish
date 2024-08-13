@@ -2374,4 +2374,32 @@ describe('Wallet', () => {
       expect(node.wallet.shouldDecryptForAccount(block.header, account)).toBe(true)
     })
   })
+
+  describe('encrypt', () => {
+    it('saves encrypted blobs to disk and updates the wallet account fields', async () => {
+      const { node } = nodeTest
+      const passphrase = 'foo'
+
+      const accountA = await useAccountFixture(node.wallet, 'A')
+      const accountB = await useAccountFixture(node.wallet, 'B')
+
+      expect(node.wallet.accounts).toHaveLength(2)
+      expect(node.wallet.encryptedAccounts).toHaveLength(0)
+
+      await node.wallet.encrypt(passphrase)
+
+      expect(node.wallet.accounts).toHaveLength(0)
+      expect(node.wallet.encryptedAccounts).toHaveLength(2)
+
+      const encryptedAccountA = node.wallet.encryptedAccountById.get(accountA.id)
+      Assert.isNotUndefined(encryptedAccountA)
+      const decryptedAccountA = encryptedAccountA.decrypt(passphrase)
+      expect(accountA.serialize()).toMatchObject(decryptedAccountA.serialize())
+
+      const encryptedAccountB = node.wallet.encryptedAccountById.get(accountB.id)
+      Assert.isNotUndefined(encryptedAccountB)
+      const decryptedAccountB = encryptedAccountB.decrypt(passphrase)
+      expect(accountB.serialize()).toMatchObject(decryptedAccountB.serialize())
+    })
+  })
 })

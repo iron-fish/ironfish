@@ -1188,6 +1188,19 @@ export class WalletDB {
     }
   }
 
+  async encryptAccounts(
+    accounts: Account[],
+    passphrase: string,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    await this.db.withTransaction(tx, async (tx) => {
+      for (const account of accounts) {
+        const encryptedAccount = account.encrypt(passphrase)
+        await this.accounts.put(account.id, encryptedAccount.serialize(), tx)
+      }
+    })
+  }
+
   async *loadTransactionsByTime(
     account: Account,
     tx?: IDatabaseTransaction,
