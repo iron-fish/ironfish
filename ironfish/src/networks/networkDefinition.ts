@@ -8,6 +8,7 @@ import { FileSystem } from '../fileSystems'
 import { SerializedBlock } from '../primitives/block'
 import { IJSON } from '../serde'
 import { DEVNET } from './definitions/devnet'
+import { EVMNET } from './definitions/evmnet'
 import { MAINNET } from './definitions/mainnet'
 import { TESTNET } from './definitions/testnet'
 
@@ -117,6 +118,8 @@ export async function getNetworkDefinition(
       networkDefinition = MAINNET
     } else if (networkId === 2) {
       networkDefinition = DEVNET
+    } else if (networkId === 3) {
+      networkDefinition = EVMNET
     } else {
       const networkDefinitionJSON = await files.readFile(config.networkDefinitionPath)
       networkDefinition = await networkDefinitionSchema.validate(
