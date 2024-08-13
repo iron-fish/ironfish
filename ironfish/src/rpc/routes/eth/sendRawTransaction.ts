@@ -46,9 +46,13 @@ routes.register<typeof SendRawTransactionRequestSchema, SendRawTransactionRespon
     const bytes = Buffer.from(request.data.transaction, 'hex')
     const ethTransaction = LegacyTransaction.fromSerializedTx(bytes)
     const evmDescription = legacyTransactionToEvmDescription(ethTransaction)
+
+    const { events } = await node.chain.evm.simulateTx({ tx: ethTransaction })
+    Assert.isNotUndefined(events)
+
     const raw = await node.wallet.createEvmTransaction({
       evm: evmDescription,
-      evmEvents: [],
+      evmEvents: events,
     })
 
     const transaction = await node.wallet.post({
