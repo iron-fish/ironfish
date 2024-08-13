@@ -1005,13 +1005,12 @@ export class Blockchain {
       }
 
       const blockNotes = []
-      const evmCopy = await this.evm.copy()
       for (const transaction of transactions) {
         for (const note of transaction.notes) {
           blockNotes.push(note)
         }
         if (transaction.evm) {
-          await evmCopy.runDesc(transaction.evm)
+          await this.evm.runDesc(transaction.evm)
         }
       }
 
@@ -1024,7 +1023,7 @@ export class Blockchain {
 
       let stateCommitment = undefined
       if (this.consensus.isActive('enableEvmDescriptions', previousSequence + 1)) {
-        stateCommitment = await evmCopy.getVMStateRoot()
+        stateCommitment = Buffer.from(await this.blockchainDb.stateManager.getStateRoot())
       }
 
       const rawHeader = {
@@ -1040,6 +1039,12 @@ export class Blockchain {
       }
       const header = this.newBlockHeaderFromRaw(rawHeader, noteSize, BigInt(0))
       const block = new Block(header, transactions)
+
+      // abort this transaction as we've modified the trees just to get new
+      // merkle roots, but this block isn't mined or accepted yet
+      // abort before block verification to revert stateManager state
+      await tx.abort()
+
       if (verifyBlock && !previousBlockHash.equals(GENESIS_BLOCK_PREVIOUS)) {
         // since we're creating a block that hasn't been mined yet, don't
         // verify target because it'll always fail target check here
@@ -1048,10 +1053,6 @@ export class Blockchain {
           throw new Error(verification.reason)
         }
       }
-
-      // abort this transaction as we've modified the trees just to get new
-      // merkle roots, but this block isn't mined or accepted yet
-      await tx.abort()
 
       this.metrics.chain_newBlock.add(BenchUtils.end(startTime))
 
