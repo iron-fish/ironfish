@@ -16,7 +16,7 @@ export interface EncryptedAccountValue {
   data: Buffer
 }
 
-export interface DecryptedAccountValue {
+export type DecryptedAccountValue = {
   encrypted: false
   version: number
   id: string

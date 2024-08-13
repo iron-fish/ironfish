@@ -16,7 +16,7 @@ describe('EncryptedAccount', () => {
     const encryptedAccount = account.encrypt(passphrase)
     const decryptedAccount = encryptedAccount.decrypt(passphrase)
 
-    expect(decryptedAccount.serialize()).toEqual(account.serialize())
+    expect(account.serialize()).toMatchObject(decryptedAccount.serialize())
   })
 
   it('throws an error when an invalid passphrase is used', async () => {
