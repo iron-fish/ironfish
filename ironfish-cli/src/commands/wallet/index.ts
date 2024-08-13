@@ -8,6 +8,8 @@ import { RemoteFlags } from '../../flags'
 export class AccountsCommand extends IronfishCommand {
   static description = `list accounts in the wallet`
 
+  static hiddenAliases = ['wallet:accounts']
+
   static flags = {
     ...RemoteFlags,
     displayName: Flags.boolean({
