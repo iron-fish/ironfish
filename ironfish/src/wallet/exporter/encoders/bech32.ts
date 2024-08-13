@@ -1,11 +1,11 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { PUBLIC_ADDRESS_LENGTH } from '@ironfish/rust-nodejs'
+import { KEY_LENGTH, PUBLIC_ADDRESS_LENGTH } from '@ironfish/rust-nodejs'
 import bufio, { EncodingError } from 'bufio'
 import { Bech32m } from '../../../utils'
 import { ACCOUNT_SCHEMA_VERSION } from '../../account/account'
-import { KEY_LENGTH, VIEW_KEY_LENGTH } from '../../walletdb/accountValue'
+import { VIEW_KEY_LENGTH } from '../../walletdb/accountValue'
 import { AccountImport } from '../accountImport'
 import { AccountDecodingOptions, AccountEncoder, DecodeFailed, DecodeInvalid } from '../encoder'
 import { MultisigKeysEncoding } from './multisigKeys'

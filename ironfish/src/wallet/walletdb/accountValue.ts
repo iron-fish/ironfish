@@ -1,15 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { PUBLIC_ADDRESS_LENGTH } from '@ironfish/rust-nodejs'
+import { KEY_LENGTH, PUBLIC_ADDRESS_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { IDatabaseEncoding } from '../../storage'
-import { ACCOUNT_KEY_LENGTH } from '../account/account'
 import { MultisigKeys } from '../interfaces/multisigKeys'
 import { HeadValue, NullableHeadValueEncoding } from './headValue'
 import { MultisigKeysEncoding } from './multisigKeys'
 
-export const KEY_LENGTH = ACCOUNT_KEY_LENGTH
 export const VIEW_KEY_LENGTH = 64
 const VERSION_LENGTH = 2
 
