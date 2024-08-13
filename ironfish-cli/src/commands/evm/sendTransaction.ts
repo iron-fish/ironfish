@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { LegacyTransaction } from '@ethereumjs/tx'
-import { Assert } from '@ironfish/sdk'
+import { Assert, EthUtils } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
@@ -21,6 +21,10 @@ export class SendTransactionTestEvmCommand extends IronfishCommand {
       char: 'r',
       description: 'EVM address to send transaction to',
       required: true,
+    }),
+    data: Flags.string({
+      char: 'x',
+      description: 'Raw hex data to send in transaction',
     }),
     value: Flags.integer({
       char: 'a',
@@ -48,6 +52,7 @@ export class SendTransactionTestEvmCommand extends IronfishCommand {
       gasLimit: 21000n,
       nonce: flags.nonce,
       gasPrice: 1n,
+      data: flags.data ? Buffer.from(EthUtils.remove0x(flags.data), 'hex') : undefined,
     })
     tx.sign(senderKey)
 
