@@ -6,10 +6,10 @@ import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 import { importFile, importPipe, longPrompt } from '../../../utils/input'
 
-export class TransactionImportCommand extends IronfishCommand {
+export class TransactionsImportCommand extends IronfishCommand {
   static description = `Import a transaction into your wallet`
 
-  static hiddenAliases = ['wallet:transaction:add']
+  static hiddenAliases = ['wallet:transaction:add', 'wallet:transaction:import']
 
   static flags = {
     ...RemoteFlags,
@@ -31,7 +31,7 @@ export class TransactionImportCommand extends IronfishCommand {
   }
 
   async start(): Promise<void> {
-    const { flags, args } = await this.parse(TransactionImportCommand)
+    const { flags, args } = await this.parse(TransactionsImportCommand)
     const { transaction: txArg } = args
 
     let transaction
