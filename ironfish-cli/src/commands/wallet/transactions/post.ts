@@ -19,6 +19,8 @@ export class TransactionsPostCommand extends IronfishCommand {
     '$ ironfish wallet:post 618c098d8d008c9f78f6155947014901a019d9ec17160dc0f0d1bb1c764b29b4...',
   ]
 
+  static hiddenAliases = ['wallet:post']
+
   static flags = {
     ...RemoteFlags,
     account: Flags.string({
