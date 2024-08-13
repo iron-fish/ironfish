@@ -11,7 +11,7 @@ import { table, TableColumns, TableFlags } from '../../ui'
 const { sort, ...tableFlags } = TableFlags
 
 export class BannedCommand extends IronfishCommand {
-  static description = `List all banned peers`
+  static description = `list banned peers`
 
   static flags = {
     ...RemoteFlags,
