@@ -16,12 +16,15 @@ import { Flags } from '@oclif/core'
 import blessed from 'blessed'
 import dns from 'dns'
 import { IronfishCommand } from '../../../command'
+import { JsonFlags } from '../../../flags'
 import * as ui from '../../../ui'
 
 export class PoolStatus extends IronfishCommand {
-  static description = `Show the status of a mining pool`
+  static description = `show the mining pool's status`
+  static enableJsonFlag = true
 
   static flags = {
+    ...JsonFlags,
     address: Flags.string({
       char: 'a',
       description: 'The public address for which to retrieve pool share data',
@@ -41,7 +44,7 @@ export class PoolStatus extends IronfishCommand {
     }),
   }
 
-  async start(): Promise<void> {
+  async start(): Promise<unknown> {
     const { flags } = await this.parse(PoolStatus)
 
     if (flags.address && !isValidPublicAddress(flags.address)) {
@@ -71,11 +74,17 @@ export class PoolStatus extends IronfishCommand {
     }
 
     if (!flags.follow) {
+      let poolStatus
       stratum.onConnected.on(() => stratum.getStatus(flags.address))
-      stratum.onStatus.on((status) => this.log(this.renderStatus(status)))
+      stratum.onStatus.on((status) => {
+        this.log(this.renderStatus(status))
+        poolStatus = status
+      })
       stratum.start()
       await waitForEmit(stratum.onStatus)
-      this.exit(0)
+      stratum.stop()
+
+      return poolStatus
     }
 
     this.logger.pauseLogs()
