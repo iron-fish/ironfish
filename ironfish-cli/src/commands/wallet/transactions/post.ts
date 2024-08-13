@@ -3,13 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { RawTransactionSerde, RpcClient, Transaction } from '@ironfish/sdk'
 import { Args, Flags, ux } from '@oclif/core'
-import { IronfishCommand } from '../../command'
-import { RemoteFlags } from '../../flags'
-import { confirmOrQuit } from '../../ui'
-import { longPrompt } from '../../utils/input'
-import { renderRawTransactionDetails } from '../../utils/transaction'
+import { IronfishCommand } from '../../../command'
+import { RemoteFlags } from '../../../flags'
+import { confirmOrQuit } from '../../../ui'
+import { longPrompt } from '../../../utils/input'
+import { renderRawTransactionDetails } from '../../../utils/transaction'
 
-export class PostCommand extends IronfishCommand {
+export class TransactionsPostCommand extends IronfishCommand {
   static summary = 'Post a raw transaction'
 
   static description = `Use this command to post a raw transaction.
@@ -45,7 +45,7 @@ export class PostCommand extends IronfishCommand {
   }
 
   async start(): Promise<void> {
-    const { flags, args } = await this.parse(PostCommand)
+    const { flags, args } = await this.parse(TransactionsPostCommand)
     let transaction = args.transaction
 
     if (!transaction) {
