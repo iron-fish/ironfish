@@ -3,6 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Asset, MEMO_LENGTH } from '@ironfish/rust-nodejs'
+import { Assert } from '../../../assert'
+import { Consensus } from '../../../consensus'
+import { TransactionVersion } from '../../../primitives'
 import { RawTransactionSerde } from '../../../primitives/rawTransaction'
 import { useAccountFixture, useMinerBlockFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
@@ -166,6 +169,64 @@ describe('Route wallet/createTransaction', () => {
     expect(rawTransaction.mints.length).toBe(0)
     expect(rawTransaction.spends.length).toBe(1)
     expect(rawTransaction.fee).toBeGreaterThan(0n)
+  })
+
+  it('should generate a valid transaction with EVM description', async () => {
+    const sender = await useAccountFixture(routeTest.node.wallet, 'existingAccount')
+
+    for (let i = 0; i < 3; ++i) {
+      const block = await useMinerBlockFixture(
+        routeTest.chain,
+        undefined,
+        sender,
+        routeTest.node.wallet,
+      )
+
+      await expect(routeTest.node.chain).toAddBlock(block)
+
+      await routeTest.node.wallet.scan()
+    }
+
+    const mockGetActiveTransactionVersion = jest
+      .spyOn(Consensus.prototype, 'getActiveTransactionVersion')
+      .mockImplementation(() => TransactionVersion.V3)
+
+    const response = await routeTest.client.wallet.createTransaction({
+      account: 'existingAccount',
+      outputs: [],
+      evm: {
+        nonce: '1',
+        gasPrice: '20000000000',
+        gasLimit: '21000',
+        to: 'b794f5ea0ba39494ce839613fffba74279579268',
+        value: '1000000000000000000',
+        data: '0x',
+        privateIron: '0',
+        publicIron: '0',
+      },
+      fee: undefined,
+      feeRate: '200',
+    })
+
+    expect(response.status).toBe(200)
+    expect(response.content.transaction).toBeDefined()
+
+    const rawTransactionBytes = Buffer.from(response.content.transaction, 'hex')
+    const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
+
+    expect(rawTransaction.evm).toBeDefined()
+    Assert.isNotNull(rawTransaction.evm)
+    expect(rawTransaction.evm.nonce).toBe(BigInt(1))
+    expect(rawTransaction.evm.gasPrice).toBe(BigInt(20000000000))
+    expect(rawTransaction.evm.gasLimit).toBe(BigInt(21000))
+    expect(rawTransaction.evm.to.toString('hex')).toBe(
+      'b794f5ea0ba39494ce839613fffba74279579268',
+    )
+    expect(rawTransaction.evm.value).toBe(BigInt(1000000000000000000))
+    expect(rawTransaction.evm.data.toString('hex')).toBe('')
+    expect(rawTransaction.evm.privateIron).toBe(BigInt(0))
+    expect(rawTransaction.evm.publicIron).toBe(BigInt(0))
+    mockGetActiveTransactionVersion.mockRestore()
   })
 
   it('should create transaction if fee and fee rate are empty', async () => {
