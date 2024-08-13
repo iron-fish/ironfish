@@ -53,8 +53,6 @@ export const EVMNET_GENESIS = {
 
 /**
  * This account (IronFishGenesisAccount) can be imported to access the funds in the genesis block.
- *
- * If the dev genesis block is ever regenerated, this account will need to be updated.
  */
 export const EVM_GENESIS_ACCOUNT = {
   version: 4,
@@ -69,7 +67,6 @@ export const EVM_GENESIS_ACCOUNT = {
   createdAt: null,
 }
 
-// TODO(IFL-1523): Update proper activation sequence for enableAssetOwnership
 export const EVMNET: NetworkDefinition = {
   id: 3,
   bootstrapNodes: [],
