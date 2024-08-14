@@ -30,7 +30,7 @@ export class TransactionsPostCommand extends IronfishCommand {
   static flags = {
     ...RemoteFlags,
     account: Flags.string({
-      description: 'The account that created the raw transaction',
+      description: 'Name of the account that created the raw transaction',
       char: 'f',
       required: false,
       deprecated: true,

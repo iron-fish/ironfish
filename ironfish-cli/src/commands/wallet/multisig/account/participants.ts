@@ -12,7 +12,7 @@ export class MultisigAccountParticipants extends IronfishCommand {
     ...RemoteFlags,
     account: Flags.string({
       char: 'f',
-      description: 'The account to list group identities for',
+      description: 'Name of the account to list group identities for',
     }),
   }
 

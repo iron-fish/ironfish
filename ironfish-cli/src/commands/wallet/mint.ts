@@ -40,7 +40,7 @@ export class Mint extends IronfishCommand {
     ...RemoteFlags,
     account: Flags.string({
       char: 'f',
-      description: 'The account to mint from',
+      description: 'Name of the account to mint from',
     }),
     fee: IronFlag({
       char: 'o',

@@ -15,7 +15,7 @@ export class CreateSigningPackage extends IronfishCommand {
     ...RemoteFlags,
     account: Flags.string({
       char: 'f',
-      description: 'The account to use when creating the signing package',
+      description: 'Name of the account to use when creating the signing package',
       required: false,
     }),
     unsignedTransaction: Flags.string({
