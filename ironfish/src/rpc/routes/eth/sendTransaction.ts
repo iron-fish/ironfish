@@ -2,8 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { LegacyTransaction } from '@ethereumjs/tx'
-import { Account, Address } from '@ethereumjs/util'
-import { Wallet } from 'ethers/wallet'
+import { Address } from '@ethereumjs/util'
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { GLOBAL_IF_ACCOUNT } from '../../../evm'
