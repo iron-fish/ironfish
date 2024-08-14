@@ -164,7 +164,7 @@ export class EvmUnshieldCommand extends IronfishCommand {
 
     const data = globalContract.encodeFunctionData('unshield', [BigInt(assetId), amount])
 
-    const tx = new LegacyTransaction({
+    const legacyTransaction = new LegacyTransaction({
       nonce: nonce ?? 0n,
       gasLimit: BigInt(1000000),
       gasPrice: BigInt(0),
@@ -173,30 +173,10 @@ export class EvmUnshieldCommand extends IronfishCommand {
       data: data,
     })
 
-    // // Sign the transaction (you'll need to implement a way to get the private key)
-    // const privateKey = await this.getPrivateKey(from) // Implement this method
-    // const signedTx = tx.sign(privateKey)
+    const transaction = legacyTransaction.sign(Buffer.from(privateKey, 'hex'))
 
-    // // Run the transaction
-    // const { events, error } = await evm.runTx({ tx: signedTx })
-
-    // if (error) {
-    //   this.error(`Unshield transaction failed: ${error.message}`)
-    // }
-
-    // Assert.isNotUndefined(events)
-    // Assert.isEqual(events.length, 1)
-    // const log = events[0] as EvmUnshield
-
-    // this.log(`Unshield transaction successful`)
-    // this.log(`Asset ID: ${log.assetId.toString('hex')}`)
-    // this.log(`Amount: ${CurrencyUtils.encode(log.amount)}`)
-
-    // Implement unshield functionality here
-    this.log(
-      `Unshield command not yet implemented. AssetId: ${assetId}, Amount: ${CurrencyUtils.encode(
-        amount,
-      )}, From: ${from}, Nonce: ${nonce ?? 'auto'}`,
-    )
+    await client.eth.sendRawTransaction({
+      transaction: Buffer.from(transaction.serialize()).toString('hex'),
+    })
   }
 }
