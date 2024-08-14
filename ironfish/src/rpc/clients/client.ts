@@ -177,6 +177,10 @@ import {
   SendRawTransactionRequest,
   SendRawTransactionResponse,
 } from '../routes/eth'
+import {
+  EthSendTransactionRequest,
+  EthSendTransactionResponse,
+} from '../routes/eth/sendTransaction'
 import { ApiNamespace } from '../routes/namespaces'
 
 export abstract class RpcClient {
@@ -1020,6 +1024,14 @@ export abstract class RpcClient {
     ): Promise<RpcResponseEnded<SendRawTransactionResponse>> => {
       return this.request<SendRawTransactionResponse>(
         `${ApiNamespace.eth}/sendRawTransaction`,
+        params,
+      ).waitForEnd()
+    },
+    sendTransaction: (
+      params: EthSendTransactionRequest,
+    ): Promise<RpcResponseEnded<EthSendTransactionResponse>> => {
+      return this.request<EthSendTransactionResponse>(
+        `${ApiNamespace.eth}/sendTransaction`,
         params,
       ).waitForEnd()
     },
