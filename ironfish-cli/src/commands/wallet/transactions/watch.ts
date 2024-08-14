@@ -7,7 +7,7 @@ import { RemoteFlags } from '../../../flags'
 import { watchTransaction } from '../../../utils/transaction'
 
 export class TransactionsWatchCommand extends IronfishCommand {
-  static description = `Wait for the status of an account transaction to confirm or expire`
+  static description = `wait for an account transaction to confirm`
   static hiddenAliases = ['wallet:transaction:watch']
 
   static args = {

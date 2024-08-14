@@ -10,7 +10,7 @@ import { ProgressBar, ProgressBarPresets } from '../../ui'
 import { hasUserResponseError } from '../../utils'
 
 export class RescanCommand extends IronfishCommand {
-  static description = `Rescan the blockchain for transactions. Clears wallet disk caches before rescanning.`
+  static description = `resets all accounts balance and rescans`
 
   static flags = {
     ...RemoteFlags,

@@ -6,7 +6,7 @@ import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
 export class RenameCommand extends IronfishCommand {
-  static description = 'Change the name of an account'
+  static description = 'rename the name of an account'
 
   static args = {
     account: Args.string({

@@ -10,7 +10,7 @@ import { TableCols } from '../../../utils/table'
 
 const { sort: _, ...tableFlags } = TableFlags
 export class NotesCommand extends IronfishCommand {
-  static description = `Display the account notes`
+  static description = `list the account's notes`
 
   static args = {
     account: Args.string({

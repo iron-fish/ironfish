@@ -22,7 +22,9 @@ import { selectFee } from '../../utils/fees'
 import { watchTransaction } from '../../utils/transaction'
 
 export class Burn extends IronfishCommand {
-  static description = 'Burn tokens and decrease supply for a given asset'
+  static description = `create a transaction to burn tokens
+
+This will destroy tokens and decrease supply for a given asset.`
 
   static examples = [
     '$ ironfish wallet:burn --assetId 618c098d8d008c9f78f6155947014901a019d9ec17160dc0f0d1bb1c764b29b4 --amount 1000',

@@ -6,7 +6,7 @@ import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
 export class UseCommand extends IronfishCommand {
-  static description = 'Change the default account used by all commands'
+  static description = 'change the default wallet account'
 
   static args = {
     account: Args.string({

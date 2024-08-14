@@ -23,7 +23,7 @@ const MAX_ASSET_NAME_COLUMN_WIDTH = ASSET_NAME_LENGTH + 1
 const MIN_ASSET_NAME_COLUMN_WIDTH = ASSET_NAME_LENGTH / 2 + 1
 
 export class AssetsCommand extends IronfishCommand {
-  static description = `Display the wallet's assets`
+  static description = `list the account's assets`
 
   static args = {
     account: Args.string({

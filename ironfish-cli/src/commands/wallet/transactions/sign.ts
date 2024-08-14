@@ -11,7 +11,7 @@ import { Ledger } from '../../../utils/ledger'
 import { renderTransactionDetails, watchTransaction } from '../../../utils/transaction'
 
 export class TransactionsSignCommand extends IronfishCommand {
-  static description = `Sign an unsigned transaction`
+  static description = `sign an unsigned transaction`
 
   static hiddenAliases = ['wallet:sign']
 
