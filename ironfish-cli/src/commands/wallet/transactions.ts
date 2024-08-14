@@ -22,6 +22,13 @@ const { sort: _, ...tableFlags } = TableFlags
 export class TransactionsCommand extends IronfishCommand {
   static description = `Display the account transactions`
 
+  static args = {
+    account: Args.string({
+      required: false,
+      description: 'Name of the account. DEPRECATED: use --account flag',
+    }),
+  }
+
   static flags = {
     ...RemoteFlags,
     ...tableFlags,
@@ -49,13 +56,6 @@ export class TransactionsCommand extends IronfishCommand {
     notes: Flags.boolean({
       default: false,
       description: 'Include data from transaction output notes',
-    }),
-  }
-
-  static args = {
-    account: Args.string({
-      required: false,
-      description: 'Name of the account. DEPRECATED: use --account flag',
     }),
   }
 

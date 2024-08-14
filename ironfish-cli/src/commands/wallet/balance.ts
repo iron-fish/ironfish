@@ -15,6 +15,13 @@ export class BalanceCommand extends IronfishCommand {
   Available to spend balance is your coins from transactions that have been mined on blocks on your main chain.\n\
   Balance is your coins from all of your transactions, even if they are on forks or not yet included as part of a mined block.'
 
+  static args = {
+    account: Args.string({
+      required: false,
+      description: 'Name of the account to get balance for. DEPRECATED: use --account flag',
+    }),
+  }
+
   static flags = {
     ...RemoteFlags,
     account: Flags.string({
@@ -36,13 +43,6 @@ export class BalanceCommand extends IronfishCommand {
     assetId: Flags.string({
       required: false,
       description: 'Asset identifier to check the balance for',
-    }),
-  }
-
-  static args = {
-    account: Args.string({
-      required: false,
-      description: 'Name of the account to get balance for. DEPRECATED: use --account flag',
     }),
   }
 

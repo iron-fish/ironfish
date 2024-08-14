@@ -10,6 +10,17 @@ export class TransactionsWatchCommand extends IronfishCommand {
   static description = `Wait for the status of an account transaction to confirm or expire`
   static hiddenAliases = ['wallet:transaction:watch']
 
+  static args = {
+    hash: Args.string({
+      required: true,
+      description: 'Hash of the transaction',
+    }),
+    account: Args.string({
+      required: false,
+      description: 'Name of the account. DEPRECATED: use --account flag',
+    }),
+  }
+
   static flags = {
     ...RemoteFlags,
     account: Flags.string({
@@ -19,17 +30,6 @@ export class TransactionsWatchCommand extends IronfishCommand {
     confirmations: Flags.integer({
       required: false,
       description: 'Minimum number of blocks confirmations for a transaction',
-    }),
-  }
-
-  static args = {
-    hash: Args.string({
-      required: true,
-      description: 'Hash of the transaction',
-    }),
-    account: Args.string({
-      required: false,
-      description: 'Name of the account. DEPRECATED: use --account flag',
     }),
   }
 

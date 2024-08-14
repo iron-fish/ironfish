@@ -8,15 +8,15 @@ import { RemoteFlags } from '../../../flags'
 export class ScanningOnCommand extends IronfishCommand {
   static description = `Turn on scanning for an account. Scanning is on by default. The wallet will scan the blockchain for new account transactions.`
 
-  static flags = {
-    ...RemoteFlags,
-  }
-
   static args = {
     account: Args.string({
       required: true,
       description: 'Name of the account to update',
     }),
+  }
+
+  static flags = {
+    ...RemoteFlags,
   }
 
   async start(): Promise<void> {
