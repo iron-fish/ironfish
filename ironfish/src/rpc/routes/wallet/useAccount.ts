@@ -7,12 +7,12 @@ import { routes } from '../router'
 import { AssertHasRpcContext } from '../rpcContext'
 import { getAccount } from './utils'
 
-export type UseAccountRequest = { account: string }
+export type UseAccountRequest = { account?: string }
 export type UseAccountResponse = undefined
 
 export const UseAccountRequestSchema: yup.ObjectSchema<UseAccountRequest> = yup
   .object({
-    account: yup.string().defined(),
+    account: yup.string().optional(),
   })
   .defined()
 
@@ -26,8 +26,12 @@ routes.register<typeof UseAccountRequestSchema, UseAccountResponse>(
   async (request, context): Promise<void> => {
     AssertHasRpcContext(request, context, 'wallet')
 
-    const account = getAccount(context.wallet, request.data.account)
-    await context.wallet.setDefaultAccount(account.name)
+    let accountName = null
+    if (request.data.account) {
+      accountName = getAccount(context.wallet, request.data.account).name
+    }
+
+    await context.wallet.setDefaultAccount(accountName)
     request.end()
   },
 )
