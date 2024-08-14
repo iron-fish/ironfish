@@ -6898,5 +6898,65 @@
         }
       ]
     }
+  ],
+  "Wallet encrypt saves encrypted blobs to disk and updates the wallet account fields": [
+    {
+      "value": {
+        "encrypted": false,
+        "version": 4,
+        "id": "f49b047c-5140-4b7b-9527-ddc262783e91",
+        "name": "A",
+        "spendingKey": "0db21b7c8a42e1690a20a0a5fc7522d5e818e219cb1fdce371525d1b4787f2fa",
+        "viewKey": "024dbfadd8740380a505fd6038604c72f8796bde51cc6c94631cdd626656379c449f9953ceb45323ba12fe175b4b9897715c0f183dacd6a2eb7e8f04a5e9d4c9",
+        "incomingViewKey": "b34d1189c00ee074ecceffee7f5b61272a625df2023dd383af36b1212f576a04",
+        "outgoingViewKey": "1af19d206b9ef93946f1f052ac0bb7375ac3f2e8777ca2e3abeb4104c40d44d0",
+        "publicAddress": "1fbddcc770972a6c3503b7a6fdd174044cf35d3ef171d68e8cf1e5702c16271b",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "c24c3fe541c7f6ea59d3c8a98199dc0b3696928a5abfd4e6314de1b933589a04"
+      },
+      "head": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      }
+    },
+    {
+      "value": {
+        "encrypted": false,
+        "version": 4,
+        "id": "666561d9-6ff7-4ae1-a5e3-e0c3775a0a4b",
+        "name": "B",
+        "spendingKey": "61837c88868454f64f096c139cd7f1dc44e2aba494fa0be78491f65a2dd81b85",
+        "viewKey": "caf7b5e225d20021beea59c56ba2844c07ed646434bed5546c731a1eb7914412c92e38c6695ddbaa28f5818057d3757407b71e59479f1a13f4947a6d4930fa2d",
+        "incomingViewKey": "1b234f2e510f10540665686dcfb850dc00eaf56363a6cfeffcf614ce5d73b301",
+        "outgoingViewKey": "d44acb51dd32912ec1c6d709afbdd8701ee1ea821c019c13da4e0cc5f352b1ed",
+        "publicAddress": "a6186075a14d9d6ead67f208d6329cc5582b0ec77e154bca7e1550e25aa19b4e",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "0f8be35575f3df948fd6f4eba41e378c87d4588b69825e65c6319bd754835e0a"
+      },
+      "head": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      }
+    }
   ]
 }
