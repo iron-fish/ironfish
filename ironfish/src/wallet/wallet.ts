@@ -94,7 +94,7 @@ export class Wallet {
   readonly onAccountImported = new Event<[account: Account]>()
   readonly onAccountRemoved = new Event<[account: Account]>()
 
-  protected readonly accountById = new Map<string, Account>()
+  readonly accountById = new Map<string, Account>()
   readonly encryptedAccountById = new Map<string, EncryptedAccount>()
   readonly walletDb: WalletDB
   private readonly logger: Logger
@@ -1780,6 +1780,17 @@ export class Wallet {
 
     try {
       await this.walletDb.encryptAccounts(this.accounts, passphrase, tx)
+      await this.load()
+    } finally {
+      unlock()
+    }
+  }
+
+  async decrypt(passphrase: string, tx?: IDatabaseTransaction): Promise<void> {
+    const unlock = await this.createTransactionMutex.lock()
+
+    try {
+      await this.walletDb.decryptAccounts(this.encryptedAccounts, passphrase, tx)
       await this.load()
     } finally {
       unlock()
