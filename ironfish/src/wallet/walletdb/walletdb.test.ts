@@ -11,7 +11,9 @@ import {
   useTxFixture,
 } from '../../testUtilities'
 import { AsyncUtils } from '../../utils'
+import { Account } from '../account/account'
 import { EncryptedAccount } from '../account/encryptedAccount'
+import { AccountDecryptionFailedError } from '../errors'
 import { DecryptedNoteValue } from './decryptedNoteValue'
 
 describe('WalletDB', () => {
@@ -490,6 +492,87 @@ describe('WalletDB', () => {
       Assert.isNotUndefined(encryptedAccountB)
       const decryptedAccountB = encryptedAccountB.decrypt(passphrase)
       expect(accountB.serialize()).toMatchObject(decryptedAccountB.serialize())
+    })
+  })
+
+  describe('decryptAccounts', () => {
+    it('stores decrypted accounts', async () => {
+      const node = (await nodeTest.createSetup()).node
+      const walletDb = node.wallet.walletDb
+      const passphrase = 'test'
+
+      const accountA = await useAccountFixture(node.wallet, 'A')
+      const accountB = await useAccountFixture(node.wallet, 'B')
+      await walletDb.encryptAccounts([accountA, accountB], passphrase)
+
+      const encryptedAccountById = new Map<string, EncryptedAccount>()
+      for await (const [id, accountValue] of walletDb.loadAccounts()) {
+        if (!accountValue.encrypted) {
+          throw new Error('Unexpected behavior')
+        }
+
+        encryptedAccountById.set(
+          id,
+          new EncryptedAccount({ data: accountValue.data, walletDb }),
+        )
+      }
+
+      const encryptedAccountA = encryptedAccountById.get(accountA.id)
+      Assert.isNotUndefined(encryptedAccountA)
+      const encryptedAccountB = encryptedAccountById.get(accountB.id)
+      Assert.isNotUndefined(encryptedAccountB)
+
+      await walletDb.decryptAccounts([encryptedAccountA, encryptedAccountB], passphrase)
+
+      const accountById = new Map<string, Account>()
+      for await (const [id, accountValue] of walletDb.loadAccounts()) {
+        if (accountValue.encrypted) {
+          throw new Error('Unexpected behavior')
+        }
+
+        accountById.set(id, new Account({ accountValue, walletDb }))
+      }
+
+      const decryptedAccountA = accountById.get(accountA.id)
+      Assert.isNotUndefined(decryptedAccountA)
+      expect(accountA.serialize()).toMatchObject(decryptedAccountA.serialize())
+
+      const decryptedAccountB = accountById.get(accountB.id)
+      Assert.isNotUndefined(decryptedAccountB)
+      expect(accountB.serialize()).toMatchObject(decryptedAccountB.serialize())
+    })
+
+    it('throws an error with an invalid passphrase', async () => {
+      const node = (await nodeTest.createSetup()).node
+      const walletDb = node.wallet.walletDb
+      const passphrase = 'test'
+      const invalidPassphrase = 'foo'
+
+      const accountA = await useAccountFixture(node.wallet, 'A')
+      const accountB = await useAccountFixture(node.wallet, 'B')
+
+      await walletDb.encryptAccounts([accountA, accountB], passphrase)
+
+      const encryptedAccountById = new Map<string, EncryptedAccount>()
+      for await (const [id, accountValue] of walletDb.loadAccounts()) {
+        if (!accountValue.encrypted) {
+          throw new Error('Unexpected behavior')
+        }
+
+        encryptedAccountById.set(
+          id,
+          new EncryptedAccount({ data: accountValue.data, walletDb }),
+        )
+      }
+
+      const encryptedAccountA = encryptedAccountById.get(accountA.id)
+      Assert.isNotUndefined(encryptedAccountA)
+      const encryptedAccountB = encryptedAccountById.get(accountB.id)
+      Assert.isNotUndefined(encryptedAccountB)
+
+      await expect(
+        walletDb.decryptAccounts([encryptedAccountA, encryptedAccountB], invalidPassphrase),
+      ).rejects.toThrow(AccountDecryptionFailedError)
     })
   })
 })

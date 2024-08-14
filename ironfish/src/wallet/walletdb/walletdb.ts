@@ -32,6 +32,7 @@ import { BufferUtils } from '../../utils'
 import { BloomFilter } from '../../utils/bloomFilter'
 import { WorkerPool } from '../../workerPool'
 import { Account, calculateAccountPrefix } from '../account/account'
+import { EncryptedAccount } from '../account/encryptedAccount'
 import { AccountValue, AccountValueEncoding } from './accountValue'
 import { AssetValue, AssetValueEncoding } from './assetValue'
 import { BalanceValue, BalanceValueEncoding } from './balanceValue'
@@ -1197,6 +1198,19 @@ export class WalletDB {
       for (const account of accounts) {
         const encryptedAccount = account.encrypt(passphrase)
         await this.accounts.put(account.id, encryptedAccount.serialize(), tx)
+      }
+    })
+  }
+
+  async decryptAccounts(
+    encryptedAccounts: EncryptedAccount[],
+    passphrase: string,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    await this.db.withTransaction(tx, async (tx) => {
+      for (const encryptedAccount of encryptedAccounts) {
+        const account = encryptedAccount.decrypt(passphrase)
+        await this.accounts.put(account.id, account.serialize(), tx)
       }
     })
   }

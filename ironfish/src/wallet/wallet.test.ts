@@ -23,6 +23,7 @@ import {
 import { AsyncUtils, BufferUtils, ORE_TO_IRON } from '../utils'
 import { Account, TransactionStatus, TransactionType } from '../wallet'
 import {
+  AccountDecryptionFailedError,
   DuplicateAccountNameError,
   DuplicateSpendingKeyError,
   MaxMemoLengthError,
@@ -2400,6 +2401,52 @@ describe('Wallet', () => {
       Assert.isNotUndefined(encryptedAccountB)
       const decryptedAccountB = encryptedAccountB.decrypt(passphrase)
       expect(accountB.serialize()).toMatchObject(decryptedAccountB.serialize())
+    })
+  })
+
+  describe('decrypt', () => {
+    it('saves decrypted accounts to disk and updates the wallet account fields', async () => {
+      const { node } = nodeTest
+      const passphrase = 'foo'
+
+      const accountA = await useAccountFixture(node.wallet, 'A')
+      const accountB = await useAccountFixture(node.wallet, 'B')
+
+      await node.wallet.encrypt(passphrase)
+      expect(node.wallet.accounts).toHaveLength(0)
+      expect(node.wallet.encryptedAccounts).toHaveLength(2)
+
+      await node.wallet.decrypt(passphrase)
+      expect(node.wallet.accounts).toHaveLength(2)
+      expect(node.wallet.encryptedAccounts).toHaveLength(0)
+
+      const decryptedAccountA = node.wallet.accountById.get(accountA.id)
+      Assert.isNotUndefined(decryptedAccountA)
+      expect(accountA.serialize()).toMatchObject(decryptedAccountA.serialize())
+
+      const decryptedAccountB = node.wallet.accountById.get(accountB.id)
+      Assert.isNotUndefined(decryptedAccountB)
+      expect(accountB.serialize()).toMatchObject(decryptedAccountB.serialize())
+    })
+
+    it('fails with an invalid passphrase', async () => {
+      const { node } = nodeTest
+      const passphrase = 'foo'
+      const invalidPassphrase = 'bar'
+
+      await useAccountFixture(node.wallet, 'A')
+      await useAccountFixture(node.wallet, 'B')
+
+      await node.wallet.encrypt(passphrase)
+      expect(node.wallet.accounts).toHaveLength(0)
+      expect(node.wallet.encryptedAccounts).toHaveLength(2)
+
+      await expect(node.wallet.decrypt(invalidPassphrase)).rejects.toThrow(
+        AccountDecryptionFailedError,
+      )
+
+      expect(node.wallet.accounts).toHaveLength(0)
+      expect(node.wallet.encryptedAccounts).toHaveLength(2)
     })
   })
 })
