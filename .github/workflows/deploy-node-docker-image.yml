@@ -116,6 +116,13 @@ jobs:
           docker tag ironfish ${{ secrets.AWS_NODE_REGISTRY_URL }}/ironfish:${{ github.ref_name }}
           docker push ${{ secrets.AWS_NODE_REGISTRY_URL }}/ironfish:${{ github.ref_name }}
 
+      # Used to deploy a new 'evm' image to AWS
+      - name: Deploy Node Image to AWS:${{ github.ref_name }}
+        if: ${{ github.event.ref_type == 'branch'}}
+        run: |
+          docker tag ironfish ${{ secrets.AWS_NODE_REGISTRY_URL }}/ironfish:${{ github.ref_name }}
+          docker push ${{ secrets.AWS_NODE_REGISTRY_URL }}/ironfish:${{ github.ref_name }}
+
       - name: Deploy Node Image to AWS:testnet
         if: ${{ inputs.aws_tag_testnet }}
         run: |
