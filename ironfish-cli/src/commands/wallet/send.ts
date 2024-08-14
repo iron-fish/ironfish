@@ -42,7 +42,7 @@ export class Send extends IronfishCommand {
     ...RemoteFlags,
     account: Flags.string({
       char: 'f',
-      description: 'The account to send money from',
+      description: 'Name of the account to send money from',
     }),
     amount: ValueFlag({
       char: 'a',

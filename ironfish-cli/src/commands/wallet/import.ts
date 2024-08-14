@@ -32,16 +32,16 @@ export class ImportCommand extends IronfishCommand {
       description: 'Rescan the blockchain once the account is imported',
     }),
     path: Flags.string({
-      description: 'the path to the file containing the account to import',
+      description: 'The path to the file containing the account to import',
     }),
     name: Flags.string({
-      description: 'the name to use for the account',
+      description: 'Name to use for the account',
     }),
     createdAt: Flags.integer({
       description: 'Block sequence to begin scanning from for the imported account',
     }),
     ledger: Flags.boolean({
-      description: 'import a view-only account from a ledger device',
+      description: 'Import a view-only account from a ledger device',
       default: false,
       exclusive: ['path'],
     }),
@@ -61,7 +61,7 @@ export class ImportCommand extends IronfishCommand {
       ((flags.path && flags.path.length !== 0) || flags.ledger)
     ) {
       this.error(
-        `Your command includes an unexpected argument. Please pass only 1 of the following: 
+        `Your command includes an unexpected argument. Please pass only 1 of the following:
     1. the output of wallet:export OR
     2. --path to import an account from a file OR
     3. --ledger to import an account from a ledger device`,

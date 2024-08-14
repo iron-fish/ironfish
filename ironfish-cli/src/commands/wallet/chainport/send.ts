@@ -45,7 +45,7 @@ export class BridgeCommand extends IronfishCommand {
     }),
     account: Flags.string({
       char: 'f',
-      description: 'The account to send the asset from',
+      description: 'Name of the account to send the asset from',
     }),
     to: Flags.string({
       char: 't',

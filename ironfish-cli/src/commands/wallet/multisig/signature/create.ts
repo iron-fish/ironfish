@@ -18,7 +18,7 @@ export class CreateSignatureShareCommand extends IronfishCommand {
     ...RemoteFlags,
     account: Flags.string({
       char: 'f',
-      description: 'The account from which the signature share will be created',
+      description: 'Name of the account from which the signature share will be created',
       required: false,
     }),
     signingPackage: Flags.string({

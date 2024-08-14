@@ -34,7 +34,7 @@ export class Burn extends IronfishCommand {
     ...RemoteFlags,
     account: Flags.string({
       char: 'f',
-      description: 'The account to burn from',
+      description: 'Name of the account to burn from',
     }),
     fee: IronFlag({
       char: 'o',

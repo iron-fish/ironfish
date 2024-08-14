@@ -70,7 +70,7 @@ export class CombineNotesCommand extends IronfishCommand {
     }),
     account: Flags.string({
       char: 'f',
-      description: 'The account to send money from',
+      description: 'Name of the account to send money from',
     }),
     benchmark: Flags.boolean({
       hidden: true,

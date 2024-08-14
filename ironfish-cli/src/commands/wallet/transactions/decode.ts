@@ -28,7 +28,7 @@ export class TransactionsDecodeCommand extends IronfishCommand {
     ...RemoteFlags,
     account: Flags.string({
       char: 'f',
-      description: 'The name of the account to use to for viewing transaction details',
+      description: 'Name of the account to use to for viewing transaction details',
     }),
     transaction: Flags.string({
       char: 't',
