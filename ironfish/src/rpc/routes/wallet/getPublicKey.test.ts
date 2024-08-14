@@ -40,6 +40,7 @@ describe('Route wallet/getPublicKey', () => {
     expect(response.content).toMatchObject({
       account: account.name,
       publicKey: publicAddress,
+      evmPublicAddress: expect.stringContaining('0x'),
     })
   })
 })
