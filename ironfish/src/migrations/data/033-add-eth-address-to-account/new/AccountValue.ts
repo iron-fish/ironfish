@@ -1,18 +1,14 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Address } from '@ethereumjs/util'
 import { PUBLIC_ADDRESS_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
-import { IDatabaseEncoding } from '../../storage'
-import { ACCOUNT_KEY_LENGTH } from '../account/account'
-import { MultisigKeys } from '../interfaces/multisigKeys'
-import { HeadValue, NullableHeadValueEncoding } from './headValue'
-import { MultisigKeysEncoding } from './multisigKeys'
+import { IDatabaseEncoding } from '../../../../storage'
+import { HeadValue, NullableHeadValueEncoding } from './HeadValue'
+import { MultisigKeys, MultisigKeysEncoding } from './MultisigKeys'
 
-export const KEY_LENGTH = ACCOUNT_KEY_LENGTH
+const KEY_LENGTH = 32
 export const VIEW_KEY_LENGTH = 64
-export const EVM_ADDRESS_LENGTH = 20
 const VERSION_LENGTH = 2
 
 export interface AccountValue {
@@ -71,7 +67,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     }
 
     if (value.evmAddress) {
-      bw.writeBytes(Buffer.from(Address.fromString(value.evmAddress).toBytes()))
+      bw.writeBytes(Buffer.from(value.evmAddress, 'utf8'))
     }
 
     return bw.render()
@@ -112,9 +108,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
       ? reader.readBytes(KEY_LENGTH).toString('hex')
       : null
 
-    const evmAddress = hasEvmAddress
-      ? Address.fromString(reader.readBytes(EVM_ADDRESS_LENGTH).toString('hex')).toString()
-      : null
+    const evmAddress = hasEvmAddress ? reader.readBytes(KEY_LENGTH).toString('hex') : null
 
     return {
       version,
@@ -159,9 +153,6 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     }
     if (value.proofAuthorizingKey) {
       size += KEY_LENGTH
-    }
-    if (value.evmAddress) {
-      size += EVM_ADDRESS_LENGTH
     }
 
     return size

@@ -154,6 +154,7 @@ describe('multisig RPC integration', () => {
       version: ACCOUNT_SCHEMA_VERSION,
       name: 'coordinator',
       spendingKey: null,
+      evmAddress: null,
       createdAt: null,
       multisigKeys: {
         publicKeyPackage: trustedDealerPackage.publicKeyPackage,

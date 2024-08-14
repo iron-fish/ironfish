@@ -16,8 +16,8 @@ use ironfish_zkp::constants::{
 use jubjub::SubgroupPoint;
 use rand::prelude::*;
 
+use reth_primitives::Address;
 use std::io;
-
 mod ephemeral;
 pub use ephemeral::EphemeralKeyPair;
 mod public_address;
@@ -73,6 +73,10 @@ pub struct SaplingKey {
     /// transmission key. This key allows the receiver of a note to decrypt its
     /// contents. Derived from view_key contents, this is materialized for convenience
     pub(crate) incoming_viewing_key: IncomingViewKey,
+
+    /// Ethereum address corresponding to the spending key. Used for identifying the account
+    /// on the Ethereum network.
+    pub(crate) evm_address: Address,
 }
 
 impl SaplingKey {
@@ -104,6 +108,11 @@ impl SaplingKey {
             view_key: Self::hash_viewing_key(&authorizing_key, &nullifier_deriving_key)?,
         };
 
+        let eth_private_key = k256::ecdsa::SigningKey::from_slice(&spending_key)
+            .map_err(|_| IronfishError::new(IronfishErrorKind::InvalidData))?;
+
+        let evm_address = Address::from_private_key(&eth_private_key);
+
         Ok(SaplingKey {
             spending_key,
             spend_authorizing_key,
@@ -111,6 +120,7 @@ impl SaplingKey {
             outgoing_viewing_key,
             view_key,
             incoming_viewing_key,
+            evm_address,
         })
     }
 
@@ -266,5 +276,10 @@ impl SaplingKey {
         }
         let scalar = read_scalar(&hash_result[..])?;
         Ok(scalar)
+    }
+
+    // Return the Ethereum address derived from the spending key
+    pub fn evm_address(&self) -> Address {
+        self.evm_address
     }
 }

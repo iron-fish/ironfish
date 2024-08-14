@@ -24,6 +24,7 @@ describe('AccountValueEncoding', () => {
       },
       scanningEnabled: true,
       proofAuthorizingKey: key.proofAuthorizingKey,
+      evmAddress: key.evmAddress,
     }
     const buffer = encoder.serialize(value)
     const deserializedValue = encoder.deserialize(buffer)
@@ -52,6 +53,7 @@ describe('AccountValueEncoding', () => {
         keyPackage: 'beef',
       },
       proofAuthorizingKey: key.proofAuthorizingKey,
+      evmAddress: key.evmAddress,
     }
     const buffer = encoder.serialize(value)
     const deserializedValue = encoder.deserialize(buffer)

@@ -164,6 +164,7 @@ function decoderV1(
     publicAddress,
     createdAt,
     proofAuthorizingKey: null,
+    evmAddress: null,
   }
 }
 

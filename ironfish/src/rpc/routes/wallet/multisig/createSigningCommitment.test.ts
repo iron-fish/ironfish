@@ -49,6 +49,7 @@ describe('Route wallet/multisig/createSigningCommitment', () => {
       publicAddress: trustedDealerPackage.publicAddress,
       spendingKey: null,
       createdAt: null,
+      evmAddress: null,
       multisigKeys: {
         publicKeyPackage: trustedDealerPackage.publicKeyPackage,
       },

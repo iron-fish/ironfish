@@ -2075,6 +2075,7 @@ dependencies = [
  "ironfish-frost",
  "ironfish_zkp",
  "jubjub 0.9.0 (git+https://github.com/iron-fish/jubjub.git?branch=blstrs)",
+ "k256",
  "lazy_static",
  "libc",
  "rand",

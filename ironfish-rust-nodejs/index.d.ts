@@ -64,6 +64,7 @@ export interface Key {
   outgoingViewKey: string
   publicAddress: string
   proofAuthorizingKey: string
+  evmAddress: string
 }
 export declare function generateKey(): Key
 export declare function spendingKeyToWords(privateKey: string, languageCode: LanguageCode): string

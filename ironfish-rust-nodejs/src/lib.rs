@@ -67,6 +67,7 @@ pub struct Key {
     pub outgoing_view_key: String,
     pub public_address: String,
     pub proof_authorizing_key: String,
+    pub evm_address: String,
 }
 
 #[napi]
@@ -82,6 +83,7 @@ pub fn generate_key() -> Key {
         proof_authorizing_key: bytes_to_hex(
             &sapling_key.sapling_proof_generation_key().nsk.to_bytes(),
         ),
+        evm_address: sapling_key.evm_address().to_string(),
     }
 }
 
@@ -118,6 +120,7 @@ pub fn generate_key_from_private_key(private_key: String) -> Result<Key> {
         proof_authorizing_key: bytes_to_hex(
             &sapling_key.sapling_proof_generation_key().nsk.to_bytes(),
         ),
+        evm_address: sapling_key.evm_address().to_string(),
     })
 }
 

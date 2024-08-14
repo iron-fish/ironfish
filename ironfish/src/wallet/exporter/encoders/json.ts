@@ -66,6 +66,7 @@ type AccountEncodedJSON = {
     publicKeyPackage: string
   }
   proofAuthorizingKey?: string | null
+  evmAddress?: string | null
 }
 
 const AccountEncodedJSONSchema: yup.ObjectSchema<AccountEncodedJSON> = yup
@@ -96,6 +97,7 @@ const AccountEncodedJSONSchema: yup.ObjectSchema<AccountEncodedJSON> = yup
       .optional()
       .default(undefined),
     proofAuthorizingKey: yup.string().nullable().optional(),
+    evmAddress: yup.string().nullable().optional(),
   })
   .defined()
 
@@ -119,6 +121,7 @@ const serializeAccountEncodedJSON = (accountImport: AccountImport): AccountEncod
     multisigKeys: accountImport.multisigKeys,
     proofAuthorizingKey: accountImport.proofAuthorizingKey,
     createdAt: createdAt,
+    evmAddress: accountImport.evmAddress,
   }
 }
 
@@ -150,5 +153,6 @@ function deserializeAccountEncodedJSON(raw: AccountEncodedJSON): AccountImport {
     multisigKeys: raw.multisigKeys
       ? deserializeRpcAccountMultisigKeys(raw.multisigKeys)
       : undefined,
+    evmAddress: raw.evmAddress ?? null,
   }
 }
