@@ -110,6 +110,7 @@ export class Wallet {
   protected isStarted = false
   protected isOpen = false
   protected isSyncingTransactionGossip = false
+  locked: boolean
   protected eventLoopTimeout: SetTimeoutToken | null = null
   private readonly createTransactionMutex: Mutex
   private readonly eventLoopAbortController: AbortController
@@ -144,6 +145,7 @@ export class Wallet {
     this.networkId = networkId
     this.nodeClient = nodeClient || null
     this.rebroadcastAfter = rebroadcastAfter ?? 10
+    this.locked = false
     this.createTransactionMutex = new Mutex()
     this.eventLoopAbortController = new AbortController()
 
@@ -220,9 +222,13 @@ export class Wallet {
           walletDb: this.walletDb,
         })
         this.encryptedAccountById.set(id, encryptedAccount)
+
+        this.locked = true
       } else {
         const account = new Account({ accountValue, walletDb: this.walletDb })
         this.accountById.set(account.id, account)
+
+        this.locked = false
       }
     }
 
@@ -231,6 +237,7 @@ export class Wallet {
   }
 
   private unload(): void {
+    this.encryptedAccountById.clear()
     this.accountById.clear()
 
     this.defaultAccount = null
@@ -1792,6 +1799,22 @@ export class Wallet {
     try {
       await this.walletDb.decryptAccounts(this.encryptedAccounts, passphrase, tx)
       await this.load()
+    } finally {
+      unlock()
+    }
+  }
+
+  async lock(tx?: IDatabaseTransaction): Promise<void> {
+    const unlock = await this.createTransactionMutex.lock()
+
+    try {
+      const encrypted = await this.walletDb.accountsEncrypted(tx)
+      if (!encrypted) {
+        return
+      }
+
+      this.accountById.clear()
+      this.locked = true
     } finally {
       unlock()
     }

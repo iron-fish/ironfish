@@ -575,4 +575,41 @@ describe('WalletDB', () => {
       ).rejects.toThrow(AccountDecryptionFailedError)
     })
   })
+
+  describe('accountsEncrypted', () => {
+    it('throws an exception if the encrypted flag is inconsistent', async () => {
+      const node = (await nodeTest.createSetup()).node
+      const walletDb = node.wallet.walletDb
+      const passphrase = 'test'
+
+      await useAccountFixture(node.wallet, 'A')
+      const accountB = await useAccountFixture(node.wallet, 'B')
+
+      await walletDb.accounts.put(accountB.id, accountB.encrypt(passphrase).serialize())
+
+      await expect(walletDb.accountsEncrypted()).rejects.toThrow()
+    })
+
+    it('returns true if the accounts are encrypted', async () => {
+      const node = (await nodeTest.createSetup()).node
+      const walletDb = node.wallet.walletDb
+      const passphrase = 'test'
+
+      const accountA = await useAccountFixture(node.wallet, 'A')
+      const accountB = await useAccountFixture(node.wallet, 'B')
+      await walletDb.encryptAccounts([accountA, accountB], passphrase)
+
+      expect(await walletDb.accountsEncrypted()).toBe(true)
+    })
+
+    it('returns false if the accounts are not encrypted', async () => {
+      const node = (await nodeTest.createSetup()).node
+      const walletDb = node.wallet.walletDb
+
+      await useAccountFixture(node.wallet, 'A')
+      await useAccountFixture(node.wallet, 'B')
+
+      expect(await walletDb.accountsEncrypted()).toBe(false)
+    })
+  })
 })
