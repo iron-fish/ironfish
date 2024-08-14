@@ -79,6 +79,7 @@ describe('JsonEncoder', () => {
           publicKeyPackage: 'cccc',
         },
         proofAuthorizingKey: key.proofAuthorizingKey,
+        evmAddress: key.evmAddress,
       }
 
       const encoder = new JsonEncoder()
@@ -107,6 +108,7 @@ describe('JsonEncoder', () => {
           keyPackage: 'bbbb',
         },
         proofAuthorizingKey: key.proofAuthorizingKey,
+        evmAddress: key.evmAddress,
       }
 
       const encoder = new JsonEncoder()

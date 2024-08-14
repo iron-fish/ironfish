@@ -22,6 +22,7 @@ describe('Base64JsonEncoder', () => {
       publicAddress: key.publicAddress,
       createdAt: null,
       proofAuthorizingKey: key.proofAuthorizingKey,
+      evmAddress: key.evmAddress,
     }
 
     const encoded = encoder.encode(accountImport)
@@ -40,6 +41,7 @@ describe('Base64JsonEncoder', () => {
       publicAddress: key.publicAddress,
       createdAt: null,
       proofAuthorizingKey: key.proofAuthorizingKey,
+      evmAddress: key.evmAddress,
     }
 
     const encoded = encoder.encode(accountImport)
@@ -58,6 +60,7 @@ describe('Base64JsonEncoder', () => {
       publicAddress: key.publicAddress,
       createdAt: null,
       proofAuthorizingKey: key.proofAuthorizingKey,
+      evmAddress: key.evmAddress,
     }
 
     const encoded = encoder.encode(accountImport)
@@ -84,6 +87,7 @@ describe('Base64JsonEncoder', () => {
         sequence: 1,
       },
       proofAuthorizingKey: key.proofAuthorizingKey,
+      evmAddress: key.evmAddress,
     }
 
     const encoded = encoder.encode(accountImport)
@@ -104,6 +108,7 @@ describe('Base64JsonEncoder', () => {
       publicAddress: key.publicAddress,
       createdAt: null,
       proofAuthorizingKey: key.proofAuthorizingKey,
+      evmAddress: key.evmAddress,
     }
 
     const encoded = encoder.encode(accountImport)
@@ -127,6 +132,7 @@ describe('Base64JsonEncoder', () => {
         publicKeyPackage: 'abcdef0000',
       },
       proofAuthorizingKey: key.proofAuthorizingKey,
+      evmAddress: key.evmAddress,
     }
 
     const encoded = encoder.encode(accountImport)
@@ -152,6 +158,7 @@ describe('Base64JsonEncoder', () => {
         keyPackage: 'bbbb',
       },
       proofAuthorizingKey: null,
+      evmAddress: key.evmAddress,
     }
 
     const encoded = encoder.encode(accountImport)
@@ -172,6 +179,7 @@ describe('Base64JsonEncoder', () => {
       publicAddress: key.publicAddress,
       createdAt: null,
       proofAuthorizingKey: null,
+      evmAddress: key.evmAddress,
     }
 
     const encoded = encoder.encode(accountImport)

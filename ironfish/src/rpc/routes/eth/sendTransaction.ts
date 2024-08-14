@@ -8,7 +8,6 @@ import { Assert } from '../../../assert'
 import { GLOBAL_IF_ACCOUNT } from '../../../evm'
 import { FullNode } from '../../../node'
 import { legacyTransactionToEvmDescription } from '../../../primitives'
-import { EthUtils } from '../../../utils/eth'
 import { AssertSpending } from '../../../wallet/account/account'
 import { ApiNamespace } from '../namespaces'
 import { routes } from '../router'
@@ -52,14 +51,12 @@ routes.register<typeof EthSendTransactionRequestSchema, EthSendTransactionRespon
   async (request, node): Promise<void> => {
     Assert.isInstanceOf(node, FullNode)
 
-    const account = node.wallet.listAccounts().find((a) => a.ethAddress === request.data.from)
+    const account = node.wallet.listAccounts().find((a) => a.evmAddress === request.data.from)
     Assert.isNotUndefined(account, 'Account not found')
     AssertSpending(account)
 
-    const ethAccount = account.ethAddress
-      ? await node.chain.evm.getAccount(
-          Address.fromString(EthUtils.prefix0x(account.ethAddress)),
-        )
+    const ethAccount = account.evmAddress
+      ? await node.chain.evm.getAccount(Address.fromString(account.evmAddress))
       : undefined
 
     const nonce = request.data.nonce

@@ -55,7 +55,7 @@ describe('Route eth/sendRawTransaction', () => {
 
     const response = await routeTest.client.eth.sendTransaction({
       to: GLOBAL_CONTRACT_ADDRESS.toString(),
-      from: ifReceivingAccount.ethAddress!.toString(),
+      from: ifReceivingAccount.evmAddress!.toString(),
       data: encodedFunctionData,
     })
 

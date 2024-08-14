@@ -492,7 +492,7 @@ describe('Mining manager', () => {
       await expect(chain).toAddBlock(previous)
       await node.wallet.scan()
 
-      const ethAddress = Address.fromPrivateKey(Buffer.from(account.spendingKey, 'hex'))
+      const evmAddress = Address.fromPrivateKey(Buffer.from(account.spendingKey, 'hex'))
       const ethAccount = new EthAccount(0n, 1000n)
 
       const evmRecipientAddress = Address.fromString(
@@ -500,7 +500,7 @@ describe('Mining manager', () => {
       )
 
       await node.chain.blockchainDb.transaction(async (_) => {
-        await node.chain.blockchainDb.stateManager.putAccount(ethAddress, ethAccount)
+        await node.chain.blockchainDb.stateManager.putAccount(evmAddress, ethAccount)
       })
 
       const tx = new LegacyTransaction({
@@ -557,7 +557,7 @@ describe('Mining manager', () => {
       await expect(chain).toAddBlock(previous)
       await node.wallet.scan()
 
-      const ethAddress = Address.fromPrivateKey(Buffer.from(account.spendingKey, 'hex'))
+      const evmAddress = Address.fromPrivateKey(Buffer.from(account.spendingKey, 'hex'))
       const ethAccount = new EthAccount(0n, 1000n)
 
       const evmRecipientAddress = Address.fromString(
@@ -565,7 +565,7 @@ describe('Mining manager', () => {
       )
 
       await node.chain.blockchainDb.transaction(async (_) => {
-        await node.chain.blockchainDb.stateManager.putAccount(ethAddress, ethAccount)
+        await node.chain.blockchainDb.stateManager.putAccount(evmAddress, ethAccount)
       })
 
       const tx1 = new LegacyTransaction({

@@ -44,6 +44,7 @@ export class SpendingKeyEncoder implements AccountEncoder {
       createdAt: null,
       version: ACCOUNT_SCHEMA_VERSION,
       proofAuthorizingKey: key.proofAuthorizingKey,
+      evmAddress: key.evmAddress,
     }
   }
 }

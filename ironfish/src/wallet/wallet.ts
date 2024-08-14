@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Account as EthAccount } from '@ethereumjs/util'
+import { Account as EthAccount, Address } from '@ethereumjs/util'
 import {
   Asset,
   generateKey,
@@ -685,7 +685,7 @@ export class Wallet {
     Assert.isNotNull(this.nodeClient)
 
     this.assertHasAccount(account)
-    Assert.isNotNull(account.ethAddress)
+    Assert.isNotNull(account.evmAddress)
 
     const head = await account.getHead()
     if (!head) {
@@ -696,7 +696,7 @@ export class Wallet {
 
     // TODO(hughy): consider persisting unconfirmed account state
     const response = await this.nodeClient.eth.getAccount({
-      address: account.ethAddress,
+      address: account.evmAddress,
       blockReference: String(head.sequence - confirmations),
     })
 
@@ -1397,6 +1397,8 @@ export class Wallet {
       }
     }
 
+    const evmAddress = Address.fromPrivateKey(Buffer.from(key.spendingKey, 'hex')).toString()
+
     const account = new Account({
       accountValue: {
         version: ACCOUNT_SCHEMA_VERSION,
@@ -1410,6 +1412,7 @@ export class Wallet {
         viewKey: key.viewKey,
         scanningEnabled: true,
         createdAt,
+        evmAddress,
       },
       walletDb: this.walletDb,
     })

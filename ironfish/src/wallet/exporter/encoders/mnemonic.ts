@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Address } from '@ethereumjs/util'
 import {
   generateKeyFromPrivateKey,
   LanguageCode,
@@ -51,6 +52,10 @@ export class MnemonicEncoder implements AccountEncoder {
     }
 
     const key = generateKeyFromPrivateKey(spendingKey)
+
+    const privateKey = Buffer.from(key.spendingKey, 'hex')
+    const evmAddress = Address.fromPrivateKey(privateKey).toString()
+
     return {
       name: options.name,
       spendingKey: spendingKey,
@@ -61,6 +66,7 @@ export class MnemonicEncoder implements AccountEncoder {
       createdAt: null,
       version: ACCOUNT_SCHEMA_VERSION,
       proofAuthorizingKey: key.proofAuthorizingKey,
+      evmAddress: evmAddress,
     }
   }
 }

@@ -1,18 +1,14 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Address } from '@ethereumjs/util'
 import { PUBLIC_ADDRESS_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
-import { IDatabaseEncoding } from '../../storage'
-import { ACCOUNT_KEY_LENGTH } from '../account/account'
-import { MultisigKeys } from '../interfaces/multisigKeys'
-import { HeadValue, NullableHeadValueEncoding } from './headValue'
-import { MultisigKeysEncoding } from './multisigKeys'
+import { IDatabaseEncoding } from '../../../../storage'
+import { HeadValue, NullableHeadValueEncoding } from './HeadValue'
+import { MultisigKeys, MultisigKeysEncoding } from './MultisigKeys'
 
-export const KEY_LENGTH = ACCOUNT_KEY_LENGTH
+const KEY_LENGTH = 32
 export const VIEW_KEY_LENGTH = 64
-export const EVM_ADDRESS_LENGTH = 20
 const VERSION_LENGTH = 2
 
 export interface AccountValue {
@@ -28,7 +24,6 @@ export interface AccountValue {
   scanningEnabled: boolean
   multisigKeys?: MultisigKeys
   proofAuthorizingKey: string | null
-  evmAddress: string | null
 }
 
 export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
@@ -40,7 +35,6 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     flags |= Number(!!value.multisigKeys) << 2
     flags |= Number(!!value.proofAuthorizingKey) << 3
     flags |= Number(!!value.scanningEnabled) << 4
-    flags |= Number(!!value.evmAddress) << 5
     bw.writeU8(flags)
     bw.writeU16(value.version)
     bw.writeVarString(value.id, 'utf8')
@@ -70,10 +64,6 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
       bw.writeBytes(Buffer.from(value.proofAuthorizingKey, 'hex'))
     }
 
-    if (value.evmAddress) {
-      bw.writeBytes(Buffer.from(Address.fromString(value.evmAddress).toBytes()))
-    }
-
     return bw.render()
   }
 
@@ -86,7 +76,6 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     const hasMultisigKeys = flags & (1 << 2)
     const hasProofAuthorizingKey = flags & (1 << 3)
     const scanningEnabled = Boolean(flags & (1 << 4))
-    const hasEvmAddress = flags & (1 << 5)
     const id = reader.readVarString('utf8')
     const name = reader.readVarString('utf8')
     const spendingKey = hasSpendingKey ? reader.readBytes(KEY_LENGTH).toString('hex') : null
@@ -112,10 +101,6 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
       ? reader.readBytes(KEY_LENGTH).toString('hex')
       : null
 
-    const evmAddress = hasEvmAddress
-      ? Address.fromString(reader.readBytes(EVM_ADDRESS_LENGTH).toString('hex')).toString()
-      : null
-
     return {
       version,
       id,
@@ -129,7 +114,6 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
       scanningEnabled,
       multisigKeys,
       proofAuthorizingKey,
-      evmAddress,
     }
   }
 
@@ -159,9 +143,6 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     }
     if (value.proofAuthorizingKey) {
       size += KEY_LENGTH
-    }
-    if (value.evmAddress) {
-      size += EVM_ADDRESS_LENGTH
     }
 
     return size

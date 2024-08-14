@@ -101,6 +101,7 @@ routes.register<
           keyPackage,
           publicKeyPackage,
         },
+        evmAddress: null,
       }
 
       const encoder = new JsonEncoder()

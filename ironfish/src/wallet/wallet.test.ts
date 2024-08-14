@@ -2837,10 +2837,12 @@ describe('Wallet', () => {
 
       const account = await useAccountFixture(node.wallet, 'test')
 
-      Assert.isNotNull(account.ethAddress)
+      Assert.isNotNull(account.evmAddress)
+      Assert.isNotUndefined(account.evmAddress)
       await node.chain.blockchainDb.stateManager.checkpoint()
+
       await node.chain.blockchainDb.stateManager.putAccount(
-        Address.fromString(account.ethAddress),
+        Address.fromString(account.evmAddress),
         new EthAccount(0n, 1n),
       )
       await node.chain.blockchainDb.stateManager.commit()

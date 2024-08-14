@@ -100,6 +100,7 @@ export class MultisigCreateDealer extends IronfishCommand {
         multisigKeys: {
           publicKeyPackage: response.content.publicKeyPackage,
         },
+        evmAddress: null,
       }
 
       await client.wallet.importAccount({

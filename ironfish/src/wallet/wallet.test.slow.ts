@@ -629,6 +629,7 @@ describe('Wallet', () => {
       name: 'viewonly',
       version: 1,
       spendingKey: null,
+      evmAddress: null,
       publicAddress: account.publicAddress,
       viewKey: account.viewKey,
       outgoingViewKey: account.outgoingViewKey,
@@ -1166,6 +1167,7 @@ describe('Wallet', () => {
         name: trustedDealerPackage.keyPackages[0].identity,
         spendingKey: null,
         createdAt: null,
+        evmAddress: null,
         multisigKeys: getMultisigKeys(0),
         ...trustedDealerPackage,
       })
@@ -1174,6 +1176,7 @@ describe('Wallet', () => {
         name: trustedDealerPackage.keyPackages[1].identity,
         spendingKey: null,
         createdAt: null,
+        evmAddress: null,
         multisigKeys: getMultisigKeys(1),
         ...trustedDealerPackage,
       })
@@ -1182,6 +1185,7 @@ describe('Wallet', () => {
         name: trustedDealerPackage.keyPackages[2].identity,
         spendingKey: null,
         createdAt: null,
+        evmAddress: null,
         multisigKeys: getMultisigKeys(2),
         ...trustedDealerPackage,
       })
@@ -1193,6 +1197,7 @@ describe('Wallet', () => {
         name: 'coordinator',
         spendingKey: null,
         createdAt: null,
+        evmAddress: null,
         multisigKeys: {
           publicKeyPackage: trustedDealerPackage.publicKeyPackage,
         },
@@ -1353,6 +1358,7 @@ describe('Wallet', () => {
       version: 2,
       name: trustedDealerPackage.keyPackages[0].identity,
       spendingKey: null,
+      evmAddress: null,
       createdAt: null,
       multisigKeys: {
         publicKeyPackage: trustedDealerPackage.publicKeyPackage,

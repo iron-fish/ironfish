@@ -90,6 +90,7 @@ routes.register<typeof DkgRound3RequestSchema, DkgRound3Response>(
         keyPackage,
         publicKeyPackage,
       },
+      evmAddress: null,
     }
 
     const account = await node.wallet.importAccount(accountImport)

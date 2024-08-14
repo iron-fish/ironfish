@@ -36,6 +36,7 @@ describe('Route wallet/importAccount', () => {
       proofAuthorizingKey: null,
       version: 1,
       createdAt: null,
+      evmAddress: key.evmAddress,
     }
 
     const response = await routeTest.client.wallet.importAccount({
@@ -66,6 +67,7 @@ describe('Route wallet/importAccount', () => {
       multisigKeys: {
         publicKeyPackage: trustedDealerPackages.publicKeyPackage,
       },
+      evmAddress: null,
     }
 
     const response = await routeTest.client.wallet.importAccount({
@@ -95,6 +97,7 @@ describe('Route wallet/importAccount', () => {
         proofAuthorizingKey: null,
         version: 1,
         createdAt: null,
+        evmAddress: key.evmAddress,
       }),
       rescan: false,
     })
@@ -122,6 +125,7 @@ describe('Route wallet/importAccount', () => {
         proofAuthorizingKey: null,
         version: 1,
         createdAt: null,
+        evmAddress: key.evmAddress,
       }),
       name: overriddenAccountName,
       rescan: false,
@@ -165,6 +169,7 @@ describe('Route wallet/importAccount', () => {
         proofAuthorizingKey: null,
         version: 1,
         createdAt: null,
+        evmAddress: key.evmAddress,
       }
 
       const response = await routeTest.client.wallet.importAccount({
@@ -196,6 +201,7 @@ describe('Route wallet/importAccount', () => {
         version: 1,
         createdAt: null,
         proofAuthorizingKey: key.proofAuthorizingKey,
+        evmAddress: key.evmAddress,
       }
     }
 

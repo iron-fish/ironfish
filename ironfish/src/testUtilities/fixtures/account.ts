@@ -18,6 +18,7 @@ export function useAccountFixture(
     generate = async (): Promise<SpendingAccount> => {
       const account = await wallet.createAccount(name, options)
       AssertSpending(account)
+
       return account
     }
   }
