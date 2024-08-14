@@ -1,7 +1,7 @@
 {
   "_format": "hh-sol-artifact-1",
   "contractName": "IIronfish",
-  "sourceName": "contracts/Gold.sol",
+  "sourceName": "contracts/GoldToken.sol",
   "abi": [
     {
       "inputs": [
