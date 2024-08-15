@@ -1844,7 +1844,7 @@ export class Wallet {
       this.locked = false
     } catch (e) {
       this.logger.debug('Wallet unlock failed')
-      await this.lock()
+      this.accountById.clear()
 
       throw e
     } finally {
