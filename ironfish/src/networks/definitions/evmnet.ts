@@ -69,7 +69,7 @@ export const EVM_GENESIS_ACCOUNT = {
 
 export const EVMNET: NetworkDefinition = {
   id: 3,
-  bootstrapNodes: [],
+  bootstrapNodes: ['evm.test.bn.ironfish.network'],
   genesis: EVMNET_GENESIS,
   consensus: EVMNET_CONSENSUS,
 }
