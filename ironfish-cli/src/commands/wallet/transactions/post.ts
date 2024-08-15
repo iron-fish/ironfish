@@ -22,7 +22,7 @@ export class TransactionsPostCommand extends IronfishCommand {
   static hiddenAliases = ['wallet:post']
 
   static args = {
-    transaction: Args.string({
+    raw_transaction: Args.string({
       description: 'The raw transaction in hex encoding',
     }),
   }
@@ -48,7 +48,7 @@ export class TransactionsPostCommand extends IronfishCommand {
 
   async start(): Promise<void> {
     const { flags, args } = await this.parse(TransactionsPostCommand)
-    let transaction = args.transaction
+    let transaction = args.raw_transaction
 
     if (!transaction) {
       transaction = await longPrompt('Enter the raw transaction in hex encoding', {

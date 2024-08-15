@@ -11,7 +11,7 @@ export class TransactionsWatchCommand extends IronfishCommand {
   static hiddenAliases = ['wallet:transaction:watch']
 
   static args = {
-    hash: Args.string({
+    transaction: Args.string({
       required: true,
       description: 'Hash of the transaction',
     }),
@@ -35,7 +35,7 @@ export class TransactionsWatchCommand extends IronfishCommand {
 
   async start(): Promise<void> {
     const { flags, args } = await this.parse(TransactionsWatchCommand)
-    const { hash } = args
+    const { transaction: hash } = args
     // TODO: remove account arg
     const account = flags.account ? flags.account : args.account
 

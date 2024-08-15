@@ -36,8 +36,9 @@ export class TransactionsCommand extends IronfishCommand {
       char: 'a',
       description: 'Name of the account to get transactions for',
     }),
-    hash: Flags.string({
+    transaction: Flags.string({
       char: 't',
+      aliases: ['hash'],
       description: 'Transaction hash to get details for',
     }),
     sequence: Flags.integer({
@@ -77,7 +78,7 @@ export class TransactionsCommand extends IronfishCommand {
 
     const response = client.wallet.getAccountTransactionsStream({
       account,
-      hash: flags.hash,
+      hash: flags.transaction,
       sequence: flags.sequence,
       limit: flags.limit,
       offset: flags.offset,
