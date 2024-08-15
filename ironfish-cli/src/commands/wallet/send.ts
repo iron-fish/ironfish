@@ -16,7 +16,6 @@ import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { HexFlag, IronFlag, RemoteFlags, ValueFlag } from '../../flags'
 import * as ui from '../../ui'
-import { selectAsset } from '../../utils/asset'
 import { promptCurrency } from '../../utils/currency'
 import { promptExpiration } from '../../utils/expiration'
 import { getExplorer } from '../../utils/explorer'
@@ -137,7 +136,7 @@ export class Send extends IronfishCommand {
     }
 
     if (assetId == null) {
-      const asset = await selectAsset(client, from, {
+      const asset = await ui.assetPrompt(client, from, {
         action: 'send',
         showNativeAsset: true,
         showNonCreatorAsset: true,

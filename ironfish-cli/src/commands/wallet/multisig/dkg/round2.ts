@@ -4,9 +4,7 @@
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
-import { inputPrompt } from '../../../../ui'
-import { longPrompt } from '../../../../utils/input'
-import { selectSecret } from '../../../../utils/multisig'
+import * as ui from '../../../../ui'
 
 export class DkgRound2Command extends IronfishCommand {
   static description = 'Perform round2 of the DKG protocol for multisig account creation'
@@ -37,12 +35,12 @@ export class DkgRound2Command extends IronfishCommand {
 
     let participantName = flags.participantName
     if (!participantName) {
-      participantName = await selectSecret(client)
+      participantName = await ui.multisigSecretPrompt(client)
     }
 
     let round1SecretPackage = flags.round1SecretPackage
     if (!round1SecretPackage) {
-      round1SecretPackage = await inputPrompt(
+      round1SecretPackage = await ui.inputPrompt(
         `Enter the round 1 secret package for participant ${participantName}`,
         true,
       )
@@ -50,7 +48,7 @@ export class DkgRound2Command extends IronfishCommand {
 
     let round1PublicPackages = flags.round1PublicPackages
     if (!round1PublicPackages || round1PublicPackages.length < 2) {
-      const input = await longPrompt(
+      const input = await ui.longPrompt(
         'Enter round 1 public packages, separated by commas, one for each participant',
         { required: true },
       )

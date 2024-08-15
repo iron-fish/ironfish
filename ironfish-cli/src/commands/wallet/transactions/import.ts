@@ -4,7 +4,7 @@
 import { Args, Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
-import { importFile, importPipe, longPrompt } from '../../../utils/input'
+import { importFile, importPipe, longPrompt } from '../../../ui/longPrompt'
 
 export class TransactionsImportCommand extends IronfishCommand {
   static description = `import a transaction into the wallet`

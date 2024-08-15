@@ -5,7 +5,7 @@ import { CurrencyUtils, Transaction } from '@ironfish/sdk'
 import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
-import { longPrompt } from '../../../../utils/input'
+import * as ui from '../../../../ui'
 import { MultisigTransactionJson } from '../../../../utils/multisig'
 import { watchTransaction } from '../../../../utils/transaction'
 
@@ -50,12 +50,12 @@ export class MultisigSign extends IronfishCommand {
 
     let signingPackage = options.signingPackage
     if (!signingPackage) {
-      signingPackage = await longPrompt('Enter the signing package', { required: true })
+      signingPackage = await ui.longPrompt('Enter the signing package', { required: true })
     }
 
     let signatureShares = options.signatureShare
     if (!signatureShares) {
-      const input = await longPrompt('Enter the signature shares, separated by commas', {
+      const input = await ui.longPrompt('Enter the signature shares, separated by commas', {
         required: true,
       })
       signatureShares = input.split(',')

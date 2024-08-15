@@ -6,7 +6,7 @@ import { CurrencyUtils, RpcClient, Transaction } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
-import { longPrompt } from '../../../utils/input'
+import * as ui from '../../../ui'
 import { Ledger } from '../../../utils/ledger'
 import { renderTransactionDetails, watchTransaction } from '../../../utils/transaction'
 
@@ -46,7 +46,7 @@ export class TransactionsSignCommand extends IronfishCommand {
 
     let unsignedTransaction = flags.unsignedTransaction
     if (!unsignedTransaction) {
-      unsignedTransaction = await longPrompt('Enter the unsigned transaction', {
+      unsignedTransaction = await ui.longPrompt('Enter the unsigned transaction', {
         required: true,
       })
     }

@@ -14,7 +14,6 @@ import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { IronFlag, RemoteFlags, ValueFlag } from '../../flags'
 import * as ui from '../../ui'
-import { selectAsset } from '../../utils/asset'
 import { promptCurrency } from '../../utils/currency'
 import { promptExpiration } from '../../utils/expiration'
 import { getExplorer } from '../../utils/explorer'
@@ -126,7 +125,7 @@ This will destroy tokens and decrease supply for a given asset.`
     let assetId = flags.assetId
 
     if (assetId == null) {
-      const asset = await selectAsset(client, account, {
+      const asset = await ui.assetPrompt(client, account, {
         action: 'burn',
         showNativeAsset: false,
         showNonCreatorAsset: true,
