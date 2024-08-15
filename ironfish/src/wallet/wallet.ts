@@ -1844,7 +1844,9 @@ export class Wallet {
       this.locked = false
     } catch (e) {
       this.logger.debug('Wallet unlock failed')
+      this.stopUnlockTimeout()
       this.accountById.clear()
+      this.locked = true
 
       throw e
     } finally {
