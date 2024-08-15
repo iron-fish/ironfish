@@ -4,7 +4,6 @@
 import { NodeUtils, TransactionStatus } from '@ironfish/sdk'
 import { Args, ux } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
-import { RemoteFlags } from '../../../flags'
 
 export default class TransactionsDelete extends IronfishCommand {
   static description = 'delete an expired or pending transaction from the wallet'
@@ -14,10 +13,6 @@ export default class TransactionsDelete extends IronfishCommand {
       required: true,
       description: 'Hash of the transaction to delete from the wallet',
     }),
-  }
-
-  static flags = {
-    ...RemoteFlags,
   }
 
   async start(): Promise<void> {
