@@ -3,12 +3,15 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Args } from '@oclif/core'
 import { IronfishCommand } from '../../command'
-import { RemoteFlags } from '../../flags'
+import { JsonFlags, RemoteFlags } from '../../flags'
+import * as ui from '../../ui'
 
 export class AddressCommand extends IronfishCommand {
   static description = `show the account's public address
 
   The address for an account is the accounts public key, see more here: https://ironfish.network/docs/whitepaper/5_account`
+
+  static enableJsonFlag = true
 
   static args = {
     account: Args.string({
@@ -19,22 +22,25 @@ export class AddressCommand extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
+    ...JsonFlags,
   }
 
-  async start(): Promise<void> {
+  async start(): Promise<unknown> {
     const { args } = await this.parse(AddressCommand)
-    const { account } = args
 
     const client = await this.connectRpc()
 
     const response = await client.wallet.getAccountPublicKey({
-      account: account,
+      account: args.account,
     })
 
-    if (!response) {
-      this.error(`An error occurred while fetching the public key.`)
-    }
+    this.log(
+      ui.card({
+        Account: response.content.account,
+        Address: response.content.publicKey,
+      }),
+    )
 
-    this.log(`Account: ${response.content.account}, public key: ${response.content.publicKey}`)
+    return response.content
   }
 }
