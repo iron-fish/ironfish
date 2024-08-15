@@ -254,7 +254,7 @@ describe('EVM Chain', () => {
 
     const description = legacyTransactionToEvmDescription(signed)
 
-    const { events: evmEvents } = await chain.evm.simulateTx({ tx: signed })
+    const { events: evmEvents } = await chain.evm.simulateTx({ tx: signed }, 20n * 10n ** 8n)
     Assert.isNotUndefined(evmEvents)
     const raw = await wallet.createEvmTransaction({
       expiration: 0,
@@ -275,5 +275,63 @@ describe('EVM Chain', () => {
     const balance = await chain.evm.getBalance(Address.fromString(evmAccount.address))
 
     expect(balance).toEqual(20n * 10n ** 8n)
+  })
+
+  it('unshields IRON and consumes gas', async () => {
+    const { chain, wallet } = nodeTest
+    nodeTest.network.consensus.parameters.enableEvmDescriptions = 1
+
+    const globalAccount = await wallet.importAccount(
+      decodeAccountImport(GLOBAL_IF_ACCOUNT.spendingKey, { name: 'global' }),
+    )
+    AssertSpending(globalAccount)
+
+    const ifSendingAccount = await useAccountFixture(wallet, 'ifSendingAccount')
+
+    // Give private account some IRON
+    const block = await useMinerBlockFixture(chain, undefined, ifSendingAccount)
+    await expect(chain).toAddBlock(block)
+    await wallet.scan()
+
+    const encodedFunctionData = globalContract.encodeFunctionData('unshield_iron', [
+      evmAccount.address,
+      20n * 10n ** 8n,
+    ])
+
+    const tx = new LegacyTransaction({
+      nonce: 0n,
+      to: GLOBAL_CONTRACT_ADDRESS,
+      gasLimit: 1000000n,
+      // use gas price of 1n to require gas
+      gasPrice: 1n,
+      data: encodedFunctionData,
+    })
+
+    const signed = tx.sign(Buffer.from(evmAccount.privateKey.replace(/0x/g, ''), 'hex'))
+
+    const description = legacyTransactionToEvmDescription(signed)
+
+    const { events: evmEvents } = await chain.evm.simulateTx({ tx: signed }, 20n * 10n ** 8n)
+    Assert.isNotUndefined(evmEvents)
+    const raw = await wallet.createEvmTransaction({
+      expiration: 0,
+      expirationDelta: 0,
+      evm: description,
+      evmEvents,
+      account: ifSendingAccount,
+    })
+
+    const transaction = raw.post(ifSendingAccount.spendingKey)
+
+    const block1 = await useMinerBlockFixture(chain, undefined, undefined, undefined, [
+      transaction,
+    ])
+
+    await expect(chain).toAddBlock(block1)
+
+    const balance = await chain.evm.getBalance(Address.fromString(evmAccount.address))
+
+    // balance should reflect consumed gas
+    expect(balance).toEqual(1999975646n)
   })
 })

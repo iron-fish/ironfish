@@ -63,6 +63,28 @@ export async function useBlockFixture(
   })
 }
 
+async function getTransactionFees(
+  chain: Blockchain,
+  transactions: Transaction[],
+): Promise<bigint> {
+  const evmCopy = await chain.evm.copy()
+  let fees = 0n
+
+  for (const transaction of transactions) {
+    fees += transaction.fee()
+
+    if (transaction.evm) {
+      const evmResult = await evmCopy.runDesc(transaction.evm)
+
+      if (evmResult.result) {
+        fees += evmResult.result.minerValue
+      }
+    }
+  }
+
+  return fees
+}
+
 /**
  * Generates a block with a miners fee transaction on the current chain state
  */
@@ -74,7 +96,7 @@ export async function useMinerBlockFixture(
   transactions: Transaction[] = [],
 ): Promise<Block> {
   const spendingKey = account?.spendingKey ?? generateKey().spendingKey
-  const transactionFees = transactions.reduce((a, t) => a + t.fee(), BigInt(0))
+  const transactionFees = await getTransactionFees(chain, transactions)
 
   return await useBlockFixture(
     chain,
@@ -332,9 +354,7 @@ export async function useBlockWithCustomTxs(
         transactions.push(transaction)
       }
 
-      const transactionFees: bigint = transactions.reduce((sum, t) => {
-        return BigInt(sum) + t.fee()
-      }, BigInt(0))
+      const transactionFees: bigint = await getTransactionFees(node.chain, transactions)
 
       return node.chain.newBlock(
         transactions,

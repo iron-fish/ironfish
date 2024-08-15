@@ -35,7 +35,7 @@ contract Ironfish {
     }
 
     function unshield_iron(address payable _to, uint amount) public {
-        _to.transfer(amount);
+        // _to.transfer(amount);
         emit UnShield(address(this), 0, amount);
     }
 }

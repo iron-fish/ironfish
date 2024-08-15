@@ -7,7 +7,8 @@
   "scripts": {
     "build": "yarn hardhat compile && tsc -b",
     "test": "",
-    "lint": ""
+    "lint": "",
+    "clean": "rimraf artifacts"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
