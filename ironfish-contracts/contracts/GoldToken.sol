@@ -17,7 +17,7 @@ contract GoldToken is ERC20 {
 
     function shield(bytes32 ironfishAddress, uint amount) public {
         require(balanceOf(msg.sender) >= amount, "Insufficient balance");
-        _transfer(msg.sender, address(this), amount);
+        _burn(msg.sender, amount);
         ironfishContract.shield(ironfishAddress, 1, amount);
     }
 }
