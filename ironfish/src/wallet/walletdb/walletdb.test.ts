@@ -611,5 +611,12 @@ describe('WalletDB', () => {
 
       expect(await walletDb.accountsEncrypted()).toBe(false)
     })
+
+    it('returns false if there are no accounts', async () => {
+      const node = (await nodeTest.createSetup()).node
+      const walletDb = node.wallet.walletDb
+
+      expect(await walletDb.accountsEncrypted()).toBe(false)
+    })
   })
 })
