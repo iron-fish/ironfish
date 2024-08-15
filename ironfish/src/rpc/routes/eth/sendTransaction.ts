@@ -85,7 +85,7 @@ routes.register<typeof EthSendTransactionRequestSchema, EthSendTransactionRespon
     const result = await node.chain.evm.simulateTx({ tx: signed })
 
     const events = result.events
-    Assert.isNotUndefined(events, "No events returned from 'simulateTx'")
+    Assert.isUndefined(result.error, `Error simulating transaction ${result.error?.message}`)
 
     const raw = await node.wallet.createEvmTransaction({
       evm: evmDescription,
@@ -94,7 +94,7 @@ routes.register<typeof EthSendTransactionRequestSchema, EthSendTransactionRespon
     })
 
     // TODO: This is pretty hacky to figure out which key to post with
-    const unshields = events.filter((e) => e.name === 'unshield')
+    const unshields = events ? events.filter((e) => e.name === 'unshield') : []
     const spendingKey =
       unshields.length > 0 ? account.spendingKey : GLOBAL_IF_ACCOUNT.spendingKey
 

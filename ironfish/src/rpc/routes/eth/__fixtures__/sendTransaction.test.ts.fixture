@@ -58,5 +58,35 @@
         "sequence": 1
       }
     }
+  ],
+  "Route eth/sendRawTransaction should construct a standard evm transaction and submit to node": [
+    {
+      "value": {
+        "version": 4,
+        "id": "3d3c6925-93d6-4daa-9765-ec6a3d76adf5",
+        "name": "ifReceivingAccount",
+        "spendingKey": "329d6c9a60b89173bd6d963a9ecbfe0176100518d33588e94acd24fa857ba637",
+        "viewKey": "ff1ce8332e51120151980231794bc8a7b19f5d90ebeeb1173eb51376cf0f19a6813d4ae05ec206f55b2bf956ebf9c36a15a3c406fdd6b4623e52d57ee57ca509",
+        "incomingViewKey": "439bcbece60b73b0cae2fc5acf03e9ca983451503a8a6f744d65c4db355f7805",
+        "outgoingViewKey": "d191b0b0b1ff6fdefc364346dd994a17f22a6983de41f02980642db8d9353f16",
+        "publicAddress": "9fbe67d2456038d13599625d5ff2c8412dec1333ed26c1808d03a4f57b0fb46c",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "60e9341061981ec7368e2c77e8272710b6ed876057397c233d11828b63e6cf0d"
+      },
+      "head": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      }
+    }
   ]
 }

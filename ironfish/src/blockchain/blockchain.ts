@@ -1316,6 +1316,9 @@ export class Blockchain {
       if (transaction.evm) {
         const evmResult = await this.evm.runDesc(transaction.evm)
         const evmVerify = this.verifier.verifyEvm(transaction, evmResult)
+        this.logger.info(
+          `created contract address ${evmResult.result?.createdAddress?.toString()}`,
+        )
         if (!evmVerify.valid) {
           throw Error(evmVerify.reason)
         }
@@ -1454,7 +1457,7 @@ export class Blockchain {
 
       await this.blockchainDb.putAssetIdContractTokenMapping(
         asset.id(),
-        transaction.evm.to,
+        transaction.evm.to ?? Buffer.alloc(0),
         1,
         tx,
       )

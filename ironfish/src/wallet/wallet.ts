@@ -919,7 +919,7 @@ export class Wallet {
 
   async createEvmTransaction(options: {
     evm: EvmDescription
-    evmEvents: UTXOEvent[]
+    evmEvents?: UTXOEvent[]
     expiration?: number
     expirationDelta?: number
     account?: Account
@@ -944,7 +944,7 @@ export class Wallet {
     raw.expiration = expiration
     raw.evm = options.evm
 
-    for (const event of options.evmEvents) {
+    for (const event of options.evmEvents ?? []) {
       if (event.name === 'shield') {
         const note = new NativeNote(
           event.ironfishAddress.toString('hex'),

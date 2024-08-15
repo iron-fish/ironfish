@@ -615,7 +615,10 @@ export class Verifier {
   verifyEvm(transaction: Transaction, evmResult: EvmResult): VerificationResult {
     const { result, error, events } = evmResult
     if (result && result.execResult.exceptionError) {
-      return { valid: false, reason: VerificationResultReason.EVM_TRANSACTION_FAILED }
+      return {
+        valid: false,
+        reason: result.execResult.exceptionError.error as unknown as VerificationResultReason,
+      }
     } else if (error) {
       if (error.message.includes('Invalid Signature')) {
         return {
@@ -868,7 +871,6 @@ export enum VerificationResultReason {
   CHECKPOINT_REORG = 'Cannot add block that re-orgs past the last checkpoint',
   EVM_MINT_NON_EVM = 'EVM asset mint in non-EVM transaction',
   EVM_NOT_INITIALIZED = 'EVM is not initialized',
-  EVM_TRANSACTION_FAILED = 'EVM transaction failed',
   EVM_TRANSACTION_INVALID_SIGNATURE = 'EVM transaction has invalid signature',
   EVM_TRANSACTION_INSUFFICIENT_BALANCE = 'EVM sender account has insufficient balance',
   EVM_MINT_BALANCE_MISMATCH = 'EVM mint/shield balance mismatch',
@@ -877,6 +879,44 @@ export enum VerificationResultReason {
   EVM_ASSET_NOT_FOUND = 'EVM shield/unshield asset not found',
   EVM_UNKNOWN_ERROR = 'EVM unknown error',
   EVM_STATE_COMMITMENT = 'EVM state commitment does not match',
+
+  // EVM FAILURES, @ethereumjs/evm/src/exceptions.ts
+  OUT_OF_GAS = 'EVM ERROR: out of gas',
+  CODESTORE_OUT_OF_GAS = 'EVM ERROR: code store out of gas',
+  CODESIZE_EXCEEDS_MAXIMUM = 'EVM ERROR: code size to deposit exceeds maximum code size',
+  STACK_UNDERFLOW = 'EVM ERROR: stack underflow',
+  STACK_OVERFLOW = 'EVM ERROR: stack overflow',
+  INVALID_JUMP = 'EVM ERROR: invalid JUMP',
+  INVALID_OPCODE = 'EVM ERROR: invalid opcode',
+  OUT_OF_RANGE = 'EVM ERROR: value out of range',
+  REVERT = 'EVM ERROR: revert',
+  STATIC_STATE_CHANGE = 'EVM ERROR: static state change',
+  INTERNAL_ERROR = 'EVM ERROR: internal error',
+  CREATE_COLLISION = 'EVM ERROR: create collision',
+  STOP = 'EVM ERROR: stop',
+  REFUND_EXHAUSTED = 'EVM ERROR: refund exhausted',
+  VALUE_OVERFLOW = 'EVM ERROR: value overflow',
+  INSUFFICIENT_BALANCE = 'EVM ERROR: insufficient balance',
+  INVALID_BEGINSUB = 'EVM ERROR: invalid BEGINSUB',
+  INVALID_RETURNSUB = 'EVM ERROR: invalid RETURNSUB',
+  INVALID_JUMPSUB = 'EVM ERROR: invalid JUMPSUB',
+  INVALID_BYTECODE_RESULT = 'EVM ERROR: invalid bytecode deployed',
+  INVALID_EOF_FORMAT = 'EVM ERROR: invalid EOF format',
+  INITCODE_SIZE_VIOLATION = 'EVM ERROR: initcode exceeds max initcode size',
+  INVALID_INPUT_LENGTH = 'EVM ERROR: invalid input length',
+  AUTHCALL_UNSET = 'EVM ERROR: attempting to AUTHCALL without AUTH set',
+  AUTHCALL_NONZERO_VALUEEXT = 'EVM ERROR: attempting to execute AUTHCALL with nonzero external value',
+  AUTH_INVALID_S = 'EVM ERROR: invalid Signature: s-values greater than secp256k1n/2 are considered invalid',
+  // BLS errors
+  BLS_12_381_INVALID_INPUT_LENGTH = 'EVM ERROR: bls invalid input length',
+  BLS_12_381_POINT_NOT_ON_CURVE = 'EVM ERROR: point not on curve',
+  BLS_12_381_INPUT_EMPTY = 'EVM ERROR: input is empty',
+  BLS_12_381_FP_NOT_IN_FIELD = 'EVM ERROR: fp point not in field',
+
+  // Point Evaluation Errors
+  INVALID_COMMITMENT = 'EVM ERROR: kzg commitment does not match versioned hash',
+  INVALID_INPUTS = 'EVM ERROR: kzg inputs invalid',
+  INVALID_PROOF = 'EVM ERROR: kzg proof invalid',
 }
 
 /**

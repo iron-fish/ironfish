@@ -219,7 +219,7 @@ describe('Route wallet/createTransaction', () => {
     expect(rawTransaction.evm.nonce).toBe(BigInt(1))
     expect(rawTransaction.evm.gasPrice).toBe(BigInt(20000000000))
     expect(rawTransaction.evm.gasLimit).toBe(BigInt(21000))
-    expect(rawTransaction.evm.to.toString('hex')).toBe(
+    expect(rawTransaction.evm.to?.toString('hex')).toBe(
       'b794f5ea0ba39494ce839613fffba74279579268',
     )
     expect(rawTransaction.evm.value).toBe(BigInt(1000000000000000000))

@@ -61,4 +61,17 @@ describe('Route eth/sendRawTransaction', () => {
 
     expect(response.status).toEqual(200)
   })
+
+  it('should construct a standard evm transaction and submit to node', async () => {
+    const { wallet } = routeTest
+
+    const ifReceivingAccount = await useAccountFixture(wallet, 'ifReceivingAccount')
+
+    const response = await routeTest.client.eth.sendTransaction({
+      to: GLOBAL_CONTRACT_ADDRESS.toString(),
+      from: ifReceivingAccount.ethAddress!.toString(),
+    })
+
+    expect(response.status).toEqual(200)
+  })
 })

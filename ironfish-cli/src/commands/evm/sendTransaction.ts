@@ -52,7 +52,7 @@ export class SendTransactionTestEvmCommand extends IronfishCommand {
       from,
       to: flags.to,
       value: String(flags.value),
-      gas: '10000',
+      gas: '100000000',
       nonce: String(flags.nonce),
       gasPrice: String(0n),
       data: flags.data,
