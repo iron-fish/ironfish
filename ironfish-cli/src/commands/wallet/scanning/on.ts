@@ -6,7 +6,9 @@ import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 
 export class ScanningOnCommand extends IronfishCommand {
-  static description = `Turn on scanning for an account. Scanning is on by default. The wallet will scan the blockchain for new account transactions.`
+  static description = `turn on scanning for an account
+
+Scanning is on by default. The wallet will scan the blockchain for new account transactions.`
 
   static args = {
     account: Args.string({

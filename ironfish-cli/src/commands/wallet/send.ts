@@ -30,7 +30,7 @@ import {
 } from '../../utils/transaction'
 
 export class Send extends IronfishCommand {
-  static description = `Send coins to another account`
+  static description = `create a transaction to send coins`
 
   static examples = [
     '$ ironfish wallet:send --amount 2.003 --fee 0.00000001 --to 997c586852d1b12da499bcff53595ba37d04e4909dbdb1a75f3bfd90dd7212217a1c2c0da652d187fc52ed',

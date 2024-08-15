@@ -6,7 +6,9 @@ import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
 
 export class ScanningOffCommand extends IronfishCommand {
-  static description = `Turn off scanning for an account. The wallet will no longer scan the blockchain for new account transactions.`
+  static description = `turn off scanning for an account
+
+The wallet will no longer scan the blockchain for new account transactions.`
 
   static args = {
     account: Args.string({

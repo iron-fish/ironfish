@@ -8,7 +8,7 @@ import { RemoteFlags } from '../../flags'
 import { inputPrompt } from '../../ui'
 
 export class DeleteCommand extends IronfishCommand {
-  static description = `Permanently delete an account`
+  static description = `delete an account`
 
   static args = {
     account: Args.string({

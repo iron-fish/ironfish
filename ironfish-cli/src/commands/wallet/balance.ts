@@ -9,11 +9,23 @@ import * as ui from '../../ui'
 import { renderAssetWithVerificationStatus } from '../../utils'
 
 export class BalanceCommand extends IronfishCommand {
-  static description =
-    'Display the account balance\n\
-  What is the difference between available to spend balance, and balance?\n\
-  Available to spend balance is your coins from transactions that have been mined on blocks on your main chain.\n\
-  Balance is your coins from all of your transactions, even if they are on forks or not yet included as part of a mined block.'
+  static description = `show the account's balance for an asset
+
+What is the difference between available to spend balance, and balance?\n\
+Available to spend balance is your coins from transactions that have been mined on blocks on your main chain.\n\
+Balance is your coins from all of your transactions, even if they are on forks or not yet included as part of a mined block.`
+
+  static examples = [
+    {
+      description: 'show the balance for $IRON asset',
+      command: 'ironfish wallet:balance',
+    },
+    {
+      description: 'show the balance for $IRON asset',
+      command:
+        'ironfish wallet:balance --assetId 51f33a2f14f92735e562dc658a5639279ddca3d5079a6d1242b2a588a9cbf44c',
+    },
+  ]
 
   static args = {
     account: Args.string({

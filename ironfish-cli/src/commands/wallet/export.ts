@@ -10,7 +10,7 @@ import { EnumLanguageKeyFlag, JsonFlags, RemoteFlags } from '../../flags'
 import { confirmOrQuit } from '../../ui'
 
 export class ExportCommand extends IronfishCommand {
-  static description = `Export an account`
+  static description = `export an account`
   static enableJsonFlag = true
 
   static args = {

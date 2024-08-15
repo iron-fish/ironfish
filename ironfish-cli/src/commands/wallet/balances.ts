@@ -11,7 +11,7 @@ import { compareAssets, renderAssetWithVerificationStatus } from '../../utils'
 type AssetBalancePairs = { asset: RpcAsset; balance: GetBalancesResponse['balances'][number] }
 
 export class BalancesCommand extends IronfishCommand {
-  static description = `Display the account's balances for all assets`
+  static description = `show the account's balance for all assets`
 
   static args = {
     account: Args.string({

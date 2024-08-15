@@ -8,7 +8,7 @@ import { RemoteFlags } from '../../flags'
 import { inputPrompt } from '../../ui'
 
 export class CreateCommand extends IronfishCommand {
-  static description = `Create a new account for sending and receiving coins`
+  static description = `create a new account`
 
   static args = {
     name: Args.string({

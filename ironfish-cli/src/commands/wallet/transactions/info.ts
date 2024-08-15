@@ -22,7 +22,7 @@ import {
 import { getExplorer } from '../../../utils/explorer'
 
 export class TransactionInfoCommand extends IronfishCommand {
-  static description = `Display an account transaction`
+  static description = `show an account transaction's info`
 
   static hiddenAliases = ['wallet:transaction']
 

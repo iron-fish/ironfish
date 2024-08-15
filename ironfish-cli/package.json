@@ -100,9 +100,6 @@
       "@oclif/plugin-warn-if-update-available"
     ],
     "topics": {
-      "wallet:scanning": {
-        "description": "Turn on or off scanning for accounts"
-      },
       "chain": {
         "description": "commands for the blockchain"
       },
@@ -111,6 +108,9 @@
       },
       "chain:assets": {
         "description": "commands to look at assets"
+      },
+      "chain:transactions": {
+        "description": "commands to look at transactions"
       },
       "rpc": {
         "description": "commands for the RPC server"
@@ -123,6 +123,18 @@
       },
       "wallet": {
         "description": "commands for the wallet"
+      },
+      "wallet:multisig": {
+        "description": "commands for multisig accounts"
+      },
+      "wallet:notes": {
+        "description": "commands for account notes"
+      },
+      "wallet:scanning": {
+        "description": "commands for managing scanning"
+      },
+      "wallet:transactions": {
+        "description": "commands for account transactions"
       },
       "workers": {
         "description": "commands for the worker pool"

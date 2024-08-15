@@ -10,7 +10,7 @@ import { longPrompt } from '../../../utils/input'
 import { renderRawTransactionDetails } from '../../../utils/transaction'
 
 export class TransactionsPostCommand extends IronfishCommand {
-  static summary = 'Post a raw transaction'
+  static summary = 'post a raw transaction'
 
   static description = `Use this command to post a raw transaction.
    The output is a finalized posted transaction.`

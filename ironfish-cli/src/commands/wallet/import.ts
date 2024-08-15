@@ -15,7 +15,7 @@ import { importFile, importPipe, longPrompt } from '../../utils/input'
 import { Ledger } from '../../utils/ledger'
 
 export class ImportCommand extends IronfishCommand {
-  static description = `Import an account`
+  static description = `import an account`
 
   static args = {
     blob: Args.string({

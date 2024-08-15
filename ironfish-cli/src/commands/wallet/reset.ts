@@ -8,7 +8,7 @@ import { RemoteFlags } from '../../flags'
 import { confirmOrQuit } from '../../ui'
 
 export class ResetCommand extends IronfishCommand {
-  static description = `Resets the transaction of an account but keeps all keys.`
+  static description = `resets an account's balance and rescans`
 
   static args = {
     account: Args.string({

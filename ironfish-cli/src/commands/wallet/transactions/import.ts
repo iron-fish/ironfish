@@ -7,7 +7,7 @@ import { RemoteFlags } from '../../../flags'
 import { importFile, importPipe, longPrompt } from '../../../utils/input'
 
 export class TransactionsImportCommand extends IronfishCommand {
-  static description = `Import a transaction into your wallet`
+  static description = `import a transaction into the wallet`
 
   static hiddenAliases = ['wallet:transaction:add', 'wallet:transaction:import']
 

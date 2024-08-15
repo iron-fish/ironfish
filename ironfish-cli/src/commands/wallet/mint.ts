@@ -26,7 +26,9 @@ import { selectFee } from '../../utils/fees'
 import { watchTransaction } from '../../utils/transaction'
 
 export class Mint extends IronfishCommand {
-  static description = 'Mint tokens and increase supply for a given asset'
+  static description = `create a transaction to mint tokens
+
+This will create tokens and increase supply for a given asset.`
 
   static examples = [
     '$ ironfish wallet:mint --metadata "see more here" --name mycoin --amount 1000',

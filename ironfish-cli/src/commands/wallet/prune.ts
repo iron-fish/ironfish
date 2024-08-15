@@ -6,7 +6,7 @@ import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 
 export default class PruneCommand extends IronfishCommand {
-  static description = 'Removes expired transactions from the wallet'
+  static description = `deletes expired transactions from the wallet`
 
   static flags = {
     dryrun: Flags.boolean({

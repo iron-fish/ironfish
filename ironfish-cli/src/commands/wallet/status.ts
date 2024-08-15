@@ -7,7 +7,7 @@ import { JsonFlags, RemoteFlags } from '../../flags'
 import * as ui from '../../ui'
 
 export class StatusCommand extends IronfishCommand {
-  static description = `Get status of all accounts`
+  static description = `show wallet information`
   static enableJsonFlag = true
 
   static flags = {

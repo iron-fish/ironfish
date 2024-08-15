@@ -21,7 +21,7 @@ import {
 } from '../../../utils/transaction'
 
 export class TransactionsDecodeCommand extends IronfishCommand {
-  static description = `View transaction details`
+  static description = `show an encoded transaction's details`
   static hiddenAliases = ['wallet:transaction:view']
 
   static flags = {

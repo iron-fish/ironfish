@@ -20,7 +20,7 @@ import { Format, TableCols } from '../../utils/table'
 
 const { sort: _, ...tableFlags } = TableFlags
 export class TransactionsCommand extends IronfishCommand {
-  static description = `Display the account transactions`
+  static description = `list the account's transactions`
 
   static args = {
     account: Args.string({
