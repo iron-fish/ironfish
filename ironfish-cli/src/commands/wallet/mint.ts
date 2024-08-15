@@ -18,7 +18,6 @@ import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { IronFlag, RemoteFlags, ValueFlag } from '../../flags'
 import * as ui from '../../ui'
-import { selectAsset } from '../../utils/asset'
 import { promptCurrency } from '../../utils/currency'
 import { promptExpiration } from '../../utils/expiration'
 import { getExplorer } from '../../utils/explorer'
@@ -170,7 +169,7 @@ This will create tokens and increase supply for a given asset.`
       const newAsset = new Asset(accountPublicKey, name, metadata)
       assetId = newAsset.id().toString('hex')
     } else if (!assetId) {
-      const asset = await selectAsset(client, account, {
+      const asset = await ui.assetPrompt(client, account, {
         action: 'mint',
         showNativeAsset: false,
         showNonCreatorAsset: false,

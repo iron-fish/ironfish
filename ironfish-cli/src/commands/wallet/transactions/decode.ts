@@ -5,15 +5,13 @@ import {
   ErrorUtils,
   RawTransaction,
   RawTransactionSerde,
-  RpcClient,
   Transaction,
   UnsignedTransaction,
 } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
-import inquirer from 'inquirer'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
-import { longPrompt } from '../../../utils/input'
+import * as ui from '../../../ui'
 import {
   renderRawTransactionDetails,
   renderTransactionDetails,
@@ -42,17 +40,17 @@ export class TransactionsDecodeCommand extends IronfishCommand {
 
     const client = await this.connectRpc()
 
+    const account = flags.account ?? (await ui.accountPrompt(client))
+
     let transactionString = flags.transaction
     if (!transactionString) {
-      transactionString = await longPrompt(
+      transactionString = await ui.longPrompt(
         'Enter the hex-encoded transaction, raw transaction, or unsigned transaction to view',
         {
           required: true,
         },
       )
     }
-
-    const account = flags.account ?? (await this.selectAccount(client))
 
     const rawTransaction = this.tryDeserializeRawTransaction(transactionString)
     if (rawTransaction) {
@@ -75,33 +73,6 @@ export class TransactionsDecodeCommand extends IronfishCommand {
     }
 
     this.error('Unable to deserialize transaction input')
-  }
-
-  async selectAccount(client: Pick<RpcClient, 'wallet'>): Promise<string> {
-    const accountsResponse = await client.wallet.getAccounts()
-
-    const choices = []
-    for (const account of accountsResponse.content.accounts) {
-      choices.push({
-        account,
-        value: account,
-      })
-    }
-
-    choices.sort((a, b) => a.account.localeCompare(b.account))
-
-    const selection = await inquirer.prompt<{
-      account: string
-    }>([
-      {
-        name: 'account',
-        message: 'Select account',
-        type: 'list',
-        choices,
-      },
-    ])
-
-    return selection.account
   }
 
   tryDeserializeRawTransaction(transaction: string): RawTransaction | undefined {

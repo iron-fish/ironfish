@@ -4,9 +4,7 @@
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
-import { inputPrompt } from '../../../../ui'
-import { longPrompt } from '../../../../utils/input'
-import { selectSecret } from '../../../../utils/multisig'
+import * as ui from '../../../../ui'
 
 export class DkgRound1Command extends IronfishCommand {
   static description = 'Perform round1 of the DKG protocol for multisig account creation'
@@ -37,12 +35,12 @@ export class DkgRound1Command extends IronfishCommand {
 
     let participantName = flags.participantName
     if (!participantName) {
-      participantName = await selectSecret(client)
+      participantName = await ui.multisigSecretPrompt(client)
     }
 
     let identities = flags.identity
     if (!identities || identities.length < 2) {
-      const input = await longPrompt(
+      const input = await ui.longPrompt(
         'Enter the identities of all participants, separated by commas',
         {
           required: true,
@@ -58,7 +56,7 @@ export class DkgRound1Command extends IronfishCommand {
 
     let minSigners = flags.minSigners
     if (!minSigners) {
-      const input = await inputPrompt('Enter the number of minimum signers', true)
+      const input = await ui.inputPrompt('Enter the number of minimum signers', true)
       minSigners = parseInt(input)
       if (isNaN(minSigners) || minSigners < 2) {
         this.error('Minimum number of signers must be at least 2')

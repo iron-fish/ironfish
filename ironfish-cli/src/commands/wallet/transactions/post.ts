@@ -5,8 +5,7 @@ import { RawTransactionSerde, RpcClient, Transaction } from '@ironfish/sdk'
 import { Args, Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
-import { confirmOrQuit } from '../../../ui'
-import { longPrompt } from '../../../utils/input'
+import * as ui from '../../../ui'
 import { renderRawTransactionDetails } from '../../../utils/transaction'
 
 export class TransactionsPostCommand extends IronfishCommand {
@@ -51,7 +50,7 @@ export class TransactionsPostCommand extends IronfishCommand {
     let transaction = args.raw_transaction
 
     if (!transaction) {
-      transaction = await longPrompt('Enter the raw transaction in hex encoding', {
+      transaction = await ui.longPrompt('Enter the raw transaction in hex encoding', {
         required: true,
       })
     }
@@ -75,7 +74,7 @@ export class TransactionsPostCommand extends IronfishCommand {
 
     await renderRawTransactionDetails(client, raw, account, this.logger)
 
-    await confirmOrQuit('Do you want to post this?', flags.confirm)
+    await ui.confirmOrQuit('Do you want to post this?', flags.confirm)
 
     ux.action.start(`Posting the transaction`)
 

@@ -52,3 +52,33 @@ export async function confirmOrQuit(message?: string, confirm?: boolean): Promis
     ux.exit(0)
   }
 }
+
+export async function listPrompt<T>(
+  message: string,
+  choices: T[],
+  name: (v: T) => string,
+  alphebetize: boolean = true,
+): Promise<T> {
+  const values = choices.map((v) => ({
+    name: name(v),
+    value: v,
+  }))
+
+  if (alphebetize) {
+    values.sort((a, b) => a.name.localeCompare(b.name))
+  }
+
+  const selection = await inquirer.prompt<{
+    name: string
+    value: T
+  }>([
+    {
+      name: 'prompt',
+      message: message,
+      type: 'list',
+      choices: values,
+    },
+  ])
+
+  return selection.value
+}

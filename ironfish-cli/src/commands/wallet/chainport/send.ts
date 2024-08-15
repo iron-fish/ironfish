@@ -17,8 +17,7 @@ import { Flags, ux } from '@oclif/core'
 import inquirer from 'inquirer'
 import { IronfishCommand } from '../../../command'
 import { HexFlag, IronFlag, RemoteFlags, ValueFlag } from '../../../flags'
-import { confirmOrQuit, inputPrompt } from '../../../ui'
-import { selectAsset } from '../../../utils'
+import * as ui from '../../../ui'
 import {
   ChainportBridgeTransaction,
   ChainportNetwork,
@@ -118,7 +117,7 @@ export class BridgeCommand extends IronfishCommand {
       assetData,
     )
 
-    await confirmOrQuit()
+    await ui.confirmOrQuit()
 
     const postTransaction = await client.wallet.postTransaction({
       transaction: RawTransactionSerde.serialize(rawTransaction).toString('hex'),
@@ -177,7 +176,7 @@ export class BridgeCommand extends IronfishCommand {
     }
 
     if (!to) {
-      to = await inputPrompt('Enter the public address of the recipient', true)
+      to = await ui.inputPrompt('Enter the public address of the recipient', true)
     }
 
     if (!isEthereumAddress(to)) {
@@ -191,7 +190,7 @@ export class BridgeCommand extends IronfishCommand {
     const tokens = await fetchChainportVerifiedTokens(networkId)
 
     if (assetId == null) {
-      const asset = await selectAsset(client, from, {
+      const asset = await ui.assetPrompt(client, from, {
         action: 'send',
         showNativeAsset: true,
         showNonCreatorAsset: true,

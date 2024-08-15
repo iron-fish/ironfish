@@ -6,8 +6,7 @@ import { UnsignedTransaction } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
-import { confirmOrQuit } from '../../../../ui'
-import { longPrompt } from '../../../../utils/input'
+import * as ui from '../../../../ui'
 import { MultisigTransactionJson } from '../../../../utils/multisig'
 import { renderUnsignedTransactionDetails } from '../../../../utils/transaction'
 
@@ -43,7 +42,7 @@ export class CreateSignatureShareCommand extends IronfishCommand {
 
     let signingPackageString = options.signingPackage
     if (!signingPackageString) {
-      signingPackageString = await longPrompt('Enter the signing package')
+      signingPackageString = await ui.longPrompt('Enter the signing package')
     }
 
     const client = await this.connectRpc()
@@ -63,7 +62,7 @@ export class CreateSignatureShareCommand extends IronfishCommand {
     )
 
     if (!flags.confirm) {
-      await confirmOrQuit('Confirm new signature share creation')
+      await ui.confirmOrQuit('Confirm new signature share creation')
     }
 
     const signatureShareResponse = await client.wallet.multisig.createSignatureShare({
