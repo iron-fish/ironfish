@@ -174,6 +174,10 @@ import type {
   UseAccountResponse,
 } from '../routes'
 import { ApiNamespace } from '../routes/namespaces'
+import {
+  DeleteTransactionRequest,
+  DeleteTransactionResponse,
+} from '../routes/wallet/deleteTransaction'
 
 export abstract class RpcClient {
   abstract close(): void
@@ -582,6 +586,15 @@ export abstract class RpcClient {
     ): Promise<RpcResponseEnded<SignTransactionResponse>> => {
       return this.request<SignTransactionResponse>(
         `${ApiNamespace.wallet}/signTransaction`,
+        params,
+      ).waitForEnd()
+    },
+
+    deleteTransaction: (
+      params: DeleteTransactionRequest,
+    ): Promise<RpcResponseEnded<DeleteTransactionResponse>> => {
+      return this.request<DeleteTransactionResponse>(
+        `${ApiNamespace.wallet}/deleteTransaction`,
         params,
       ).waitForEnd()
     },
