@@ -11,7 +11,7 @@ import { MultisigKeysEncoding } from './multisigKeys'
 export const VIEW_KEY_LENGTH = 64
 const VERSION_LENGTH = 2
 
-export interface EncryptedAccountValue {
+export type EncryptedAccountValue = {
   encrypted: true
   data: Buffer
 }

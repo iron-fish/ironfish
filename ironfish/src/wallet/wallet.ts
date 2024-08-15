@@ -90,6 +90,8 @@ export type TransactionOutput = {
   assetId: Buffer
 }
 
+export const DEFAULT_UNLOCK_TIMEOUT_MS = 5 * 60 * 1000
+
 export class Wallet {
   readonly onAccountImported = new Event<[account: Account]>()
   readonly onAccountRemoved = new Event<[account: Account]>()
@@ -112,6 +114,7 @@ export class Wallet {
   protected isSyncingTransactionGossip = false
   locked: boolean
   protected eventLoopTimeout: SetTimeoutToken | null = null
+  protected lockTimeout: SetTimeoutToken | null
   private readonly createTransactionMutex: Mutex
   private readonly eventLoopAbortController: AbortController
   private eventLoopPromise: Promise<void> | null = null
@@ -146,6 +149,7 @@ export class Wallet {
     this.nodeClient = nodeClient || null
     this.rebroadcastAfter = rebroadcastAfter ?? 10
     this.locked = false
+    this.lockTimeout = null
     this.createTransactionMutex = new Mutex()
     this.eventLoopAbortController = new AbortController()
 
@@ -270,6 +274,8 @@ export class Wallet {
     if (this.eventLoopTimeout) {
       clearTimeout(this.eventLoopTimeout)
     }
+
+    this.stopUnlockTimeout()
 
     await this.scanner.abort()
     this.eventLoopAbortController.abort()
@@ -1813,10 +1819,56 @@ export class Wallet {
         return
       }
 
+      this.stopUnlockTimeout()
       this.accountById.clear()
       this.locked = true
     } finally {
       unlock()
+    }
+  }
+
+  async unlock(passphrase: string, timeout?: number, tx?: IDatabaseTransaction): Promise<void> {
+    const unlock = await this.createTransactionMutex.lock()
+
+    try {
+      const encrypted = await this.walletDb.accountsEncrypted(tx)
+      if (!encrypted) {
+        return
+      }
+
+      for (const [id, account] of this.encryptedAccountById.entries()) {
+        this.accountById.set(id, account.decrypt(passphrase))
+      }
+
+      this.startUnlockTimeout(timeout)
+      this.locked = false
+    } catch (e) {
+      this.logger.debug('Wallet unlock failed')
+      throw e
+    } finally {
+      unlock()
+    }
+  }
+
+  private startUnlockTimeout(timeout?: number): void {
+    if (!timeout) {
+      timeout = DEFAULT_UNLOCK_TIMEOUT_MS
+    }
+
+    this.stopUnlockTimeout()
+
+    // Keep the wallet unlocked indefinitely
+    if (timeout === -1) {
+      return
+    }
+
+    this.lockTimeout = setTimeout(() => void this.lock(), timeout)
+  }
+
+  private stopUnlockTimeout(): void {
+    if (this.lockTimeout) {
+      clearTimeout(this.lockTimeout)
+      this.lockTimeout = null
     }
   }
 }

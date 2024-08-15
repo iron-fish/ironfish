@@ -2471,27 +2471,78 @@ describe('Wallet', () => {
       await useAccountFixture(node.wallet, 'A')
       await useAccountFixture(node.wallet, 'B')
 
-      // TODO(rohanjadvani)
-      // This is temporary for a unit test to keep PRs small.
-      // This will be refactored once unlock comes in a subsequent change.
-      // The goal is to mock an unlocked state by copying and setting
-      // decrypted accounts within the wallet.
-      const accountById = new Map(node.wallet.accountById.entries())
-
       await node.wallet.encrypt(passphrase)
       expect(node.wallet.accounts).toHaveLength(0)
       expect(node.wallet.encryptedAccounts).toHaveLength(2)
 
-      // Mock unlock until the method is implemented
-      node.wallet.locked = false
-      for (const [k, v] of accountById.entries()) {
-        node.wallet.accountById.set(k, v)
-      }
+      await node.wallet.unlock(passphrase)
       expect(node.wallet.accounts).toHaveLength(2)
 
       await node.wallet.lock()
       expect(node.wallet.accounts).toHaveLength(0)
       expect(node.wallet.locked).toBe(true)
+    })
+  })
+
+  describe('unlock', () => {
+    it('does nothing if the wallet is decrypted', async () => {
+      const { node } = nodeTest
+
+      await useAccountFixture(node.wallet, 'A')
+      await useAccountFixture(node.wallet, 'B')
+      expect(node.wallet.accounts).toHaveLength(2)
+      expect(node.wallet.encryptedAccounts).toHaveLength(0)
+
+      await node.wallet.unlock('foobar')
+      expect(node.wallet.accounts).toHaveLength(2)
+      expect(node.wallet.encryptedAccounts).toHaveLength(0)
+    })
+
+    it('does not unlock the wallet with an invalid passphrase', async () => {
+      const { node } = nodeTest
+      const passphrase = 'foo'
+      const invalidPassphrase = 'bar'
+
+      await useAccountFixture(node.wallet, 'A')
+      await useAccountFixture(node.wallet, 'B')
+
+      await node.wallet.encrypt(passphrase)
+      expect(node.wallet.accounts).toHaveLength(0)
+      expect(node.wallet.encryptedAccounts).toHaveLength(2)
+
+      await expect(node.wallet.unlock(invalidPassphrase)).rejects.toThrow(
+        AccountDecryptionFailedError,
+      )
+      expect(node.wallet.accounts).toHaveLength(0)
+      expect(node.wallet.encryptedAccounts).toHaveLength(2)
+      expect(node.wallet.locked).toBe(true)
+    })
+
+    it('saves decrypted accounts to memory with a valid passphrase', async () => {
+      const { node } = nodeTest
+      const passphrase = 'foo'
+
+      await useAccountFixture(node.wallet, 'A')
+      await useAccountFixture(node.wallet, 'B')
+
+      await node.wallet.encrypt(passphrase)
+      expect(node.wallet.accounts).toHaveLength(0)
+      expect(node.wallet.encryptedAccounts).toHaveLength(2)
+
+      await node.wallet.unlock(passphrase)
+      expect(node.wallet.accounts).toHaveLength(2)
+      expect(node.wallet.encryptedAccounts).toHaveLength(2)
+      expect(node.wallet.locked).toBe(false)
+
+      for (const [id, account] of node.wallet.accountById.entries()) {
+        const encryptedAccount = node.wallet.encryptedAccountById.get(id)
+        Assert.isNotUndefined(encryptedAccount)
+        const decryptedAccount = encryptedAccount.decrypt(passphrase)
+
+        expect(account.serialize()).toMatchObject(decryptedAccount.serialize())
+      }
+
+      await node.wallet.lock()
     })
   })
 })
