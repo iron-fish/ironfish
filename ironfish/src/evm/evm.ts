@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Block } from '@ethereumjs/block'
 import { EVM, Log } from '@ethereumjs/evm'
+import { TypedTransaction } from '@ethereumjs/tx'
 import { Account, Address, hexToBytes } from '@ethereumjs/util'
 import { RunTxOpts, RunTxResult, VM } from '@ethereumjs/vm'
 import ContractArtifact from '@ironfish/ironfish-contracts'
@@ -78,22 +79,37 @@ export class IronfishEvm {
 
   async runDesc(description: EvmDescription): Promise<EvmResult> {
     const tx = evmDescriptionToLegacyTransaction(description)
-    return this.runTx({ tx })
+    return this.runTx({ tx }, description.publicIron)
   }
 
-  async runTx(opts: RunTxOpts): Promise<EvmResult> {
+  // TODO(hughy): avoid optional publicIron parameter
+  async runTx(opts: RunTxOpts, publicIron?: bigint): Promise<EvmResult> {
     Assert.isNotNull(this.vm, 'EVM not initialized')
 
     opts.block = Block.fromBlockData({ header: { baseFeePerGas: 0n } })
     try {
+      await this.vm.stateManager.checkpoint()
+
+      if (publicIron) {
+        const decoded = this.decodeUnshieldIron(opts.tx)
+        Assert.isNotUndefined(decoded)
+
+        await this.creditBalance(decoded.address, decoded.amount)
+      }
+
       const result = await this.vm.runTx(opts)
       const events = this.decodeLogs(result.receipt.logs)
+
+      await this.vm.stateManager.commit()
+
       return {
         result,
         events,
         error: undefined,
       }
     } catch (e) {
+      await this.vm.stateManager.revert()
+
       if (e instanceof Error) {
         return {
           result: undefined,
@@ -109,9 +125,31 @@ export class IronfishEvm {
     }
   }
 
-  async simulateTx(opts: RunTxOpts): Promise<EvmResult> {
+  async simulateTx(opts: RunTxOpts, publicIron?: bigint): Promise<EvmResult> {
     const copy = await this.copy()
-    return copy.runTx(opts)
+    return copy.runTx(opts, publicIron)
+  }
+
+  decodeUnshieldIron(tx: TypedTransaction): { address: Address; amount: bigint } | undefined {
+    const globalContract = new ethers.Interface(ContractArtifact.abi)
+
+    try {
+      const [address, amount] = globalContract.decodeFunctionData('unshield_iron', tx.data)
+      return {
+        address: Address.fromString(address as string),
+        amount: BigInt(amount as string),
+      }
+    } catch (e) {
+      return undefined
+    }
+  }
+
+  private async creditBalance(address: Address, amount: bigint): Promise<void> {
+    Assert.isNotNull(this.vm)
+    const account = await this.vm.stateManager.getAccount(address)
+    const nonce = account?.nonce ?? 0n
+    const balance = (account?.balance ?? 0n) + amount
+    await this.vm.stateManager.putAccount(address, new Account(nonce, balance))
   }
 
   decodeLogs(logs: Log[]): UTXOEvent[] {
