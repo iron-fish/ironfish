@@ -2449,4 +2449,49 @@ describe('Wallet', () => {
       expect(node.wallet.encryptedAccounts).toHaveLength(2)
     })
   })
+
+  describe('lock', () => {
+    it('does nothing if the wallet is decrypted', async () => {
+      const { node } = nodeTest
+
+      await useAccountFixture(node.wallet, 'A')
+      await useAccountFixture(node.wallet, 'B')
+      expect(node.wallet.accounts).toHaveLength(2)
+      expect(node.wallet.encryptedAccounts).toHaveLength(0)
+
+      await node.wallet.lock()
+      expect(node.wallet.accounts).toHaveLength(2)
+      expect(node.wallet.encryptedAccounts).toHaveLength(0)
+    })
+
+    it('clears decrypted accounts if the wallet is encrypted', async () => {
+      const { node } = nodeTest
+      const passphrase = 'foo'
+
+      await useAccountFixture(node.wallet, 'A')
+      await useAccountFixture(node.wallet, 'B')
+
+      // TODO(rohanjadvani)
+      // This is temporary for a unit test to keep PRs small.
+      // This will be refactored once unlock comes in a subsequent change.
+      // The goal is to mock an unlocked state by copying and setting
+      // decrypted accounts within the wallet.
+      const accountById = new Map(node.wallet.accountById.entries())
+
+      await node.wallet.encrypt(passphrase)
+      expect(node.wallet.accounts).toHaveLength(0)
+      expect(node.wallet.encryptedAccounts).toHaveLength(2)
+
+      // Mock unlock until the method is implemented
+      node.wallet.locked = false
+      for (const [k, v] of accountById.entries()) {
+        node.wallet.accountById.set(k, v)
+      }
+      expect(node.wallet.accounts).toHaveLength(2)
+
+      await node.wallet.lock()
+      expect(node.wallet.accounts).toHaveLength(0)
+      expect(node.wallet.locked).toBe(true)
+    })
+  })
 })

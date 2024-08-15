@@ -1215,6 +1215,21 @@ export class WalletDB {
     })
   }
 
+  async accountsEncrypted(tx?: IDatabaseTransaction): Promise<boolean> {
+    const accountValues: AccountValue[] = []
+    for await (const [_, account] of this.loadAccounts(tx)) {
+      accountValues.push(account)
+    }
+
+    if (accountValues.length === 0) {
+      return false
+    }
+
+    const allEqual = accountValues.every((a) => a.encrypted === accountValues[0].encrypted)
+    Assert.isTrue(allEqual)
+    return accountValues[0].encrypted
+  }
+
   async *loadTransactionsByTime(
     account: Account,
     tx?: IDatabaseTransaction,
