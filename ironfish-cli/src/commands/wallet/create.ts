@@ -11,7 +11,7 @@ export class CreateCommand extends IronfishCommand {
   static description = `Create a new account for sending and receiving coins`
 
   static args = {
-    account: Args.string({
+    name: Args.string({
       required: false,
       description: 'Name of the account',
     }),
@@ -23,7 +23,7 @@ export class CreateCommand extends IronfishCommand {
 
   async start(): Promise<void> {
     const { args } = await this.parse(CreateCommand)
-    let name = args.account
+    let name = args.name
 
     if (!name) {
       name = await inputPrompt('Enter the name of the account', true)
