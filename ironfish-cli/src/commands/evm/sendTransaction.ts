@@ -1,8 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { LegacyTransaction } from '@ethereumjs/tx'
-import { Assert, EthUtils } from '@ironfish/sdk'
+import { Assert } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
@@ -12,15 +11,13 @@ export class SendTransactionTestEvmCommand extends IronfishCommand {
 
   static flags = {
     ...LocalFlags,
-    senderKey: Flags.string({
-      char: 's',
-      description: 'Spending key of account to send transaction from',
-      required: true,
+    from: Flags.string({
+      char: 'f',
+      description: 'Account name to send from',
     }),
-    recipientAddress: Flags.string({
-      char: 'r',
+    to: Flags.string({
+      char: 't',
       description: 'EVM address to send transaction to',
-      required: true,
     }),
     data: Flags.string({
       char: 'x',
@@ -42,35 +39,25 @@ export class SendTransactionTestEvmCommand extends IronfishCommand {
     const { flags } = await this.parse(SendTransactionTestEvmCommand)
     const client = await this.sdk.connectRpc()
 
-    const senderKey = Buffer.from(flags.senderKey, 'hex')
-
-    const recipientAddress = flags.recipientAddress
-
-    const tx = new LegacyTransaction({
-      to: recipientAddress,
-      value: BigInt(flags.value),
-      gasLimit: 21000n,
-      nonce: flags.nonce,
-      gasPrice: 1n,
-      data: flags.data ? Buffer.from(EthUtils.remove0x(flags.data), 'hex') : undefined,
-    })
-    tx.sign(senderKey)
-
-    const response = await client.eth.sendRawTransaction({
-      transaction: Buffer.from(tx.serialize()).toString('hex'),
-    })
-    Assert.isNotNull(response.content)
-
-    if (response.content.accepted) {
-      this.log('Transaction accepted')
-    } else {
-      this.log('Transaction not accepted')
+    let from = flags.from
+    if (!flags.from) {
+      const response = await client.wallet.getAccountPublicKey({ account: flags.from })
+      from = response.content.evmPublicAddress
+      this.log(`Using public address: ${from}`)
+    }
+    if (!from) {
+      this.error('Account does not exist or have a ethereum public address')
     }
 
-    if (response.content.broadcasted) {
-      this.log('Transaction broadcasted')
-    } else {
-      this.log('Transaction not broadcasted')
-    }
+    const response = await client.eth.sendTransaction({
+      from,
+      to: flags.to,
+      value: String(flags.value),
+      gas: '10000',
+      nonce: String(flags.nonce),
+      gasPrice: String(0n),
+      data: flags.data,
+    })
+    this.log(`Transaction hash: ${response.content.result}`)
   }
 }
