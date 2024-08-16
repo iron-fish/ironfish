@@ -89,7 +89,7 @@ export class ShieldCommand extends IronfishCommand {
       to: contractAddress,
       from: publicAddress,
       value: isIron ? String(amount) : undefined,
-      nonce: String(nonce),
+      nonce: nonce ? String(nonce) : undefined,
       gas: String(1000000),
       gasPrice: String(0),
       data,
