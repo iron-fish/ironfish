@@ -111,7 +111,13 @@ export class IronfishEvm {
 
   async simulateTx(opts: RunTxOpts): Promise<EvmResult> {
     const copy = await this.copy()
-    return copy.runTx(opts)
+    const result = await copy.runTx(opts)
+
+    if (result.error) {
+      throw new Error(`EVM error: ${result.error.message}`)
+    }
+
+    return result
   }
 
   decodeLogs(logs: Log[]): UTXOEvent[] {

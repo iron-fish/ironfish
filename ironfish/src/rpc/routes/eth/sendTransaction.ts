@@ -83,8 +83,9 @@ routes.register<typeof EthSendTransactionRequestSchema, EthSendTransactionRespon
 
     const evmDescription = legacyTransactionToEvmDescription(signed)
     const result = await node.chain.evm.simulateTx({ tx: signed })
+
     const events = result.events
-    Assert.isNotUndefined(events)
+    Assert.isNotUndefined(events, "No events returned from 'simulateTx'")
 
     const raw = await node.wallet.createEvmTransaction({
       evm: evmDescription,
