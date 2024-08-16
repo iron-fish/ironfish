@@ -319,6 +319,15 @@ export class RawTransactionSerde {
         bw.writeBytes(raw.evm.data)
         bw.writeBigU64(raw.evm.privateIron)
         bw.writeBigU64(raw.evm.publicIron)
+
+        bw.writeU8(
+          Number(raw.evm.v !== undefined && raw.evm.r !== undefined && raw.evm.s !== undefined),
+        )
+        if (raw.evm.v !== undefined && raw.evm.r !== undefined && raw.evm.s !== undefined) {
+          bw.writeBigU64(raw.evm.v)
+          bw.writeBytes(raw.evm.r)
+          bw.writeBytes(raw.evm.s)
+        }
       }
     } else {
       Assert.isNull(raw.evm, 'Version 3 and above only has evm descriptions')
@@ -406,6 +415,17 @@ export class RawTransactionSerde {
         const privateIron = reader.readBigU64()
         const publicIron = reader.readBigU64()
 
+        let v = undefined
+        let r = undefined
+        let s = undefined
+
+        const signaturePresent = reader.readU8()
+        if (signaturePresent) {
+          v = reader.readBigU64()
+          r = reader.readBytes(32)
+          s = reader.readBytes(32)
+        }
+
         raw.evm = {
           nonce,
           gasPrice,
@@ -415,6 +435,9 @@ export class RawTransactionSerde {
           data,
           privateIron,
           publicIron,
+          v,
+          r,
+          s,
         }
       }
     }
@@ -488,6 +511,13 @@ export class RawTransactionSerde {
         size += raw.evm.data.length // data
         size += 8 // privateIron
         size += 8 // publicIron
+
+        size += 1 // signature present
+        if (raw.evm.v && raw.evm.r && raw.evm.s) {
+          size += 8 // v
+          size += 32 // r
+          size += 32 // s
+        }
       }
     }
 
