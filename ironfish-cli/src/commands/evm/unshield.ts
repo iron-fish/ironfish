@@ -7,6 +7,7 @@ import { GoldTokenJson } from '@ironfish/ironfish-contracts'
 import {
   ContractArtifact,
   EthSendTransactionRequest,
+  EthUtils,
   GLOBAL_CONTRACT_ADDRESS,
 } from '@ironfish/sdk'
 import { Flags, ux } from '@oclif/core'
@@ -110,10 +111,7 @@ export class UnshieldCommand extends IronfishCommand {
     let data: string
     if (isIron) {
       const globalContract = new ethers.Interface(ContractArtifact.abi)
-      data = globalContract.encodeFunctionData('unshield_iron', [
-        Buffer.from(to, 'hex'),
-        amount,
-      ])
+      data = globalContract.encodeFunctionData('unshield_iron', [EthUtils.prefix0x(to), amount])
     } else {
       const contract = new ethers.Interface(GoldTokenJson.abi)
       data = contract.encodeFunctionData('unshield', [amount])
