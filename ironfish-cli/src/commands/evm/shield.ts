@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { GoldTokenJson } from '@ironfish/ironfish-contracts'
-import { ContractArtifact, GLOBAL_CONTRACT_ADDRESS } from '@ironfish/sdk'
+import { ContractArtifact, EthUtils, GLOBAL_CONTRACT_ADDRESS } from '@ironfish/sdk'
 import { Flags, ux } from '@oclif/core'
 import { ethers } from 'ethers'
 import { IronfishCommand } from '../../command'
@@ -79,10 +79,10 @@ export class ShieldCommand extends IronfishCommand {
     let data: string
     if (isIron) {
       const globalContract = new ethers.Interface(ContractArtifact.abi)
-      data = globalContract.encodeFunctionData('shield_iron', [Buffer.from(to, 'hex')])
+      data = globalContract.encodeFunctionData('shield_iron', [EthUtils.prefix0x(to)])
     } else {
       const contract = new ethers.Interface(GoldTokenJson.abi)
-      data = contract.encodeFunctionData('shield', [Buffer.from(to, 'hex'), amount])
+      data = contract.encodeFunctionData('shield', [EthUtils.prefix0x(to), amount])
     }
     // TODO: should we unhardcode gas limit and gas price?
     const hash = await client.eth.sendTransaction({
