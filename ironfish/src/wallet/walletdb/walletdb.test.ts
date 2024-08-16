@@ -469,7 +469,7 @@ describe('WalletDB', () => {
       const accountA = await useAccountFixture(node.wallet, 'A')
       const accountB = await useAccountFixture(node.wallet, 'B')
 
-      await walletDb.encryptAccounts([accountA, accountB], passphrase)
+      await walletDb.encryptAccounts(passphrase)
 
       const encryptedAccountById = new Map<string, EncryptedAccount>()
       for await (const [id, accountValue] of walletDb.loadAccounts()) {
@@ -503,7 +503,7 @@ describe('WalletDB', () => {
 
       const accountA = await useAccountFixture(node.wallet, 'A')
       const accountB = await useAccountFixture(node.wallet, 'B')
-      await walletDb.encryptAccounts([accountA, accountB], passphrase)
+      await walletDb.encryptAccounts(passphrase)
 
       const encryptedAccountById = new Map<string, EncryptedAccount>()
       for await (const [id, accountValue] of walletDb.loadAccounts()) {
@@ -522,7 +522,7 @@ describe('WalletDB', () => {
       const encryptedAccountB = encryptedAccountById.get(accountB.id)
       Assert.isNotUndefined(encryptedAccountB)
 
-      await walletDb.decryptAccounts([encryptedAccountA, encryptedAccountB], passphrase)
+      await walletDb.decryptAccounts(passphrase)
 
       const accountById = new Map<string, Account>()
       for await (const [id, accountValue] of walletDb.loadAccounts()) {
@@ -551,7 +551,7 @@ describe('WalletDB', () => {
       const accountA = await useAccountFixture(node.wallet, 'A')
       const accountB = await useAccountFixture(node.wallet, 'B')
 
-      await walletDb.encryptAccounts([accountA, accountB], passphrase)
+      await walletDb.encryptAccounts(passphrase)
 
       const encryptedAccountById = new Map<string, EncryptedAccount>()
       for await (const [id, accountValue] of walletDb.loadAccounts()) {
@@ -570,9 +570,9 @@ describe('WalletDB', () => {
       const encryptedAccountB = encryptedAccountById.get(accountB.id)
       Assert.isNotUndefined(encryptedAccountB)
 
-      await expect(
-        walletDb.decryptAccounts([encryptedAccountA, encryptedAccountB], invalidPassphrase),
-      ).rejects.toThrow(AccountDecryptionFailedError)
+      await expect(walletDb.decryptAccounts(invalidPassphrase)).rejects.toThrow(
+        AccountDecryptionFailedError,
+      )
     })
   })
 
@@ -595,9 +595,9 @@ describe('WalletDB', () => {
       const walletDb = node.wallet.walletDb
       const passphrase = 'test'
 
-      const accountA = await useAccountFixture(node.wallet, 'A')
-      const accountB = await useAccountFixture(node.wallet, 'B')
-      await walletDb.encryptAccounts([accountA, accountB], passphrase)
+      await useAccountFixture(node.wallet, 'A')
+      await useAccountFixture(node.wallet, 'B')
+      await walletDb.encryptAccounts(passphrase)
 
       expect(await walletDb.accountsEncrypted()).toBe(true)
     })

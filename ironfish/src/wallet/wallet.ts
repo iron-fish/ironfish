@@ -1792,7 +1792,7 @@ export class Wallet {
     const unlock = await this.createTransactionMutex.lock()
 
     try {
-      await this.walletDb.encryptAccounts(this.accounts, passphrase, tx)
+      await this.walletDb.encryptAccounts(passphrase, tx)
       await this.load()
     } finally {
       unlock()
@@ -1803,7 +1803,7 @@ export class Wallet {
     const unlock = await this.createTransactionMutex.lock()
 
     try {
-      await this.walletDb.decryptAccounts(this.encryptedAccounts, passphrase, tx)
+      await this.walletDb.decryptAccounts(passphrase, tx)
       await this.load()
     } finally {
       unlock()
