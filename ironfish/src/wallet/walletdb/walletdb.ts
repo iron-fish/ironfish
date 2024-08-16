@@ -342,6 +342,10 @@ export class WalletDB {
 
   async setAccount(account: Account, tx?: IDatabaseTransaction): Promise<void> {
     await this.db.withTransaction(tx, async (tx) => {
+      if (await this.accountsEncrypted(tx)) {
+        throw new Error('Cannot save decrypted account when accounts are encrypted')
+      }
+
       await this.accounts.put(account.id, account.serialize(), tx)
 
       const nativeUnconfirmedBalance = await this.balances.get(

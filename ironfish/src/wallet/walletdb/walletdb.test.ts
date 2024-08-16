@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Asset, multisig } from '@ironfish/rust-nodejs'
+import { Asset, generateKey, multisig } from '@ironfish/rust-nodejs'
 import { randomBytes } from 'crypto'
 import { Assert } from '../../assert'
 import {
@@ -14,6 +14,7 @@ import { AsyncUtils } from '../../utils'
 import { Account } from '../account/account'
 import { EncryptedAccount } from '../account/encryptedAccount'
 import { AccountDecryptionFailedError } from '../errors'
+import { DecryptedAccountValue } from './accountValue'
 import { DecryptedNoteValue } from './decryptedNoteValue'
 
 describe('WalletDB', () => {
@@ -617,6 +618,55 @@ describe('WalletDB', () => {
       const walletDb = node.wallet.walletDb
 
       expect(await walletDb.accountsEncrypted()).toBe(false)
+    })
+  })
+
+  describe('setAccount', () => {
+    it('throws an error if existing accounts are encrypted', async () => {
+      const node = (await nodeTest.createSetup()).node
+      const walletDb = node.wallet.walletDb
+      const passphrase = 'foobar'
+
+      await useAccountFixture(node.wallet, 'A')
+      await walletDb.encryptAccounts(passphrase)
+
+      const key = generateKey()
+      const accountValue: DecryptedAccountValue = {
+        encrypted: false,
+        id: '0',
+        name: 'new-account',
+        version: 1,
+        createdAt: null,
+        scanningEnabled: false,
+        ...key,
+      }
+      const account = new Account({ accountValue, walletDb })
+
+      await expect(walletDb.setAccount(account)).rejects.toThrow()
+    })
+
+    it('saves the account', async () => {
+      const node = (await nodeTest.createSetup()).node
+      const walletDb = node.wallet.walletDb
+
+      const key = generateKey()
+      const accountValue: DecryptedAccountValue = {
+        encrypted: false,
+        id: '1',
+        name: 'new-account',
+        version: 1,
+        createdAt: null,
+        scanningEnabled: false,
+        ...key,
+      }
+      const account = new Account({ accountValue, walletDb })
+
+      await walletDb.setAccount(account)
+
+      expect(await walletDb.accounts.get(account.id)).not.toBeUndefined()
+      expect(
+        await walletDb.balances.get([account.prefix, Asset.nativeId()]),
+      ).not.toBeUndefined()
     })
   })
 })
