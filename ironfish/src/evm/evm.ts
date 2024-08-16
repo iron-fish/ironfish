@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Block } from '@ethereumjs/block'
-import { EVM, Log } from '@ethereumjs/evm'
+import { EVM, EVMResult as EthEVMResult, EVMRunCallOpts, Log } from '@ethereumjs/evm'
 import { Account, Address, hexToBytes } from '@ethereumjs/util'
 import { RunTxOpts, RunTxResult, VM } from '@ethereumjs/vm'
 import ContractArtifact from '@ironfish/ironfish-contracts'
@@ -112,12 +112,16 @@ export class IronfishEvm {
   async simulateTx(opts: RunTxOpts): Promise<EvmResult> {
     const copy = await this.copy()
     const result = await copy.runTx(opts)
-
     if (result.error) {
       throw new Error(`EVM error: ${result.error.message}`)
     }
 
     return result
+  }
+
+  async call(opts: EVMRunCallOpts): Promise<EthEVMResult> {
+    Assert.isNotNull(this.vm, 'EVM not initialized')
+    return this.vm.evm.runCall(opts)
   }
 
   decodeLogs(logs: Log[]): UTXOEvent[] {
