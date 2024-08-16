@@ -455,7 +455,7 @@ describe('RawTransactionSerde', () => {
     expect(IsNoteWitnessEqual(deserialized.spends[0].witness, raw.spends[0].witness)).toBe(true)
 
     expect(deserialized.evm?.data.toString('hex')).toBe(dataStr)
-    expect(deserialized.evm?.to.toString('hex')).toBe(to.toString('hex'))
+    expect(deserialized.evm?.to?.toString('hex')).toBe(to.toString('hex'))
     expect(deserialized.evm?.value).toBe(100_000_000_000_000_000n)
     expect(deserialized.evm?.nonce).toBe(0n)
   })

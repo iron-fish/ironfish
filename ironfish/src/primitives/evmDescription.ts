@@ -8,7 +8,7 @@ export interface EvmDescription {
   nonce: bigint
   gasPrice: bigint
   gasLimit: bigint
-  to: Buffer
+  to: Buffer | undefined
   value: bigint
   data: Buffer
   privateIron: bigint
@@ -23,7 +23,7 @@ export function legacyTransactionToEvmDescription(tx: LegacyTransaction): EvmDes
     nonce: BigInt(tx.nonce),
     gasPrice: tx.gasPrice,
     gasLimit: tx.gasLimit,
-    to: tx.to ? Buffer.from(tx.to.bytes) : Buffer.alloc(0),
+    to: tx.to ? Buffer.from(tx.to.bytes) : undefined,
     value: BigInt(tx.value),
     data: Buffer.from(tx.data),
     v: tx.v,
@@ -37,7 +37,7 @@ export function legacyTransactionToEvmDescription(tx: LegacyTransaction): EvmDes
 export function evmDescriptionToLegacyTransaction(desc: EvmDescription): LegacyTransaction {
   return new LegacyTransaction({
     nonce: desc.nonce,
-    to: desc.to.length > 0 ? desc.to : undefined,
+    to: desc.to,
     value: desc.value,
     data: desc.data,
     v: desc.v,
