@@ -35,7 +35,7 @@ export class UnshieldCommand extends IronfishCommand {
     }),
     to: Flags.string({
       char: 't',
-      description: 'The Ethereum public address of the recipient',
+      description: 'The EVM public address of the recipient',
     }),
     from: Flags.string({
       char: 'f',
@@ -52,14 +52,6 @@ export class UnshieldCommand extends IronfishCommand {
 
     let { amount, contractAddress, to, from } = flags
 
-    const status = await client.wallet.getNodeStatus()
-
-    if (!status.content.blockchain.synced) {
-      this.error(
-        `Your node must be synced with the Iron Fish network to send a transaction. Please try again later`,
-      )
-    }
-
     if (!from) {
       const response = await client.wallet.getDefaultAccount()
 
@@ -74,7 +66,7 @@ export class UnshieldCommand extends IronfishCommand {
     }
 
     if (!to) {
-      to = await ux.prompt('Enter the public address of the recipient', {
+      to = await ux.prompt('Enter the EVM public address of the recipient', {
         required: true,
       })
     }
