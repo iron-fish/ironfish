@@ -784,6 +784,166 @@ describe('Wallet', () => {
     })
   })
 
+  describe('deleteTransaction', () => {
+    it('should delete a pending transaction', async () => {
+      const { node, wallet } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+      const accountB = await useAccountFixture(node.wallet, 'accountB')
+
+      const block = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block)
+
+      await node.wallet.scan()
+
+      const transaction = await useTxFixture(node.wallet, accountA, accountB)
+
+      // ensure account A has the transaction as pending
+      const txValueA = await accountA.getTransaction(transaction.hash())
+      Assert.isNotUndefined(txValueA)
+      const statusA = await wallet.getTransactionStatus(accountA, txValueA)
+      expect(statusA).toEqual(TransactionStatus.PENDING)
+
+      // ensure account B has the transaction as pending
+      const txValueB = await accountA.getTransaction(transaction.hash())
+      Assert.isNotUndefined(txValueB)
+      const statusB = await wallet.getTransactionStatus(accountA, txValueB)
+      expect(statusB).toEqual(TransactionStatus.PENDING)
+
+      const deleted = await wallet.deleteTransaction(transaction.hash())
+      expect(deleted).toEqual(true)
+
+      expect(await accountA.getTransaction(transaction.hash())).toBeUndefined()
+      expect(await accountB.getTransaction(transaction.hash())).toBeUndefined()
+    })
+
+    it('should delete an expired transaction', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+      const accountB = await useAccountFixture(node.wallet, 'accountB')
+
+      const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block2)
+
+      await node.wallet.scan()
+
+      const transaction = await useTxFixture(
+        node.wallet,
+        accountA,
+        accountB,
+        undefined,
+        undefined,
+        3,
+      )
+
+      const block3 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block3)
+
+      await node.wallet.scan()
+
+      await node.wallet.expireTransactions(block3.header.sequence)
+
+      // ensure account A has the transaction as expired
+      const txValueA = await accountA.getTransaction(transaction.hash())
+      Assert.isNotUndefined(txValueA)
+      const statusA = await node.wallet.getTransactionStatus(accountA, txValueA)
+      expect(statusA).toEqual(TransactionStatus.EXPIRED)
+
+      // ensure account B has the transaction as expired
+      const txValueB = await accountA.getTransaction(transaction.hash())
+      Assert.isNotUndefined(txValueB)
+      const statusB = await node.wallet.getTransactionStatus(accountA, txValueB)
+      expect(statusB).toEqual(TransactionStatus.EXPIRED)
+
+      const deleted = await node.wallet.deleteTransaction(transaction.hash())
+      expect(deleted).toEqual(true)
+
+      expect(await accountA.getTransaction(transaction.hash())).toBeUndefined()
+      expect(await accountB.getTransaction(transaction.hash())).toBeUndefined()
+    })
+
+    it('should not delete an unconfirmed transaction', async () => {
+      const { node, wallet } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+      const accountB = await useAccountFixture(node.wallet, 'accountB')
+
+      const block = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block)
+
+      await node.wallet.scan()
+
+      const transaction = await useTxFixture(node.wallet, accountA, accountB)
+
+      const block3 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet, [
+        transaction,
+      ])
+      await node.chain.addBlock(block3)
+
+      await node.wallet.scan()
+
+      node.config.set('confirmations', 1)
+
+      // ensure account A has the transaction as pending
+      const txValueA = await accountA.getTransaction(transaction.hash())
+      Assert.isNotUndefined(txValueA)
+      const statusA = await wallet.getTransactionStatus(accountA, txValueA)
+      expect(statusA).toEqual(TransactionStatus.UNCONFIRMED)
+
+      // ensure account B has the transaction as pending
+      const txValueB = await accountA.getTransaction(transaction.hash())
+      Assert.isNotUndefined(txValueB)
+      const statusB = await wallet.getTransactionStatus(accountA, txValueB)
+      expect(statusB).toEqual(TransactionStatus.UNCONFIRMED)
+
+      const deleted = await wallet.deleteTransaction(transaction.hash())
+      expect(deleted).toEqual(false)
+
+      expect(await accountA.getTransaction(transaction.hash())).toBeDefined()
+      expect(await accountB.getTransaction(transaction.hash())).toBeDefined()
+    })
+
+    it('should not delete a confirmed transaction', async () => {
+      const { node, wallet } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+      const accountB = await useAccountFixture(node.wallet, 'accountB')
+
+      const block = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block)
+
+      await node.wallet.scan()
+
+      const transaction = await useTxFixture(node.wallet, accountA, accountB)
+
+      const block3 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet, [
+        transaction,
+      ])
+      await node.chain.addBlock(block3)
+
+      await node.wallet.scan()
+
+      // ensure account A has the transaction as pending
+      const txValueA = await accountA.getTransaction(transaction.hash())
+      Assert.isNotUndefined(txValueA)
+      const statusA = await wallet.getTransactionStatus(accountA, txValueA)
+      expect(statusA).toEqual(TransactionStatus.CONFIRMED)
+
+      // ensure account B has the transaction as pending
+      const txValueB = await accountA.getTransaction(transaction.hash())
+      Assert.isNotUndefined(txValueB)
+      const statusB = await wallet.getTransactionStatus(accountA, txValueB)
+      expect(statusB).toEqual(TransactionStatus.CONFIRMED)
+
+      const deleted = await wallet.deleteTransaction(transaction.hash())
+      expect(deleted).toEqual(false)
+
+      expect(await accountA.getTransaction(transaction.hash())).toBeDefined()
+      expect(await accountB.getTransaction(transaction.hash())).toBeDefined()
+    })
+  })
+
   describe('createAccount', () => {
     it('should set createdAt to the chain head', async () => {
       const node = nodeTest.node

@@ -1221,7 +1221,6 @@ export class Wallet {
           transactionStatus === TransactionStatus.CONFIRMED ||
           transactionStatus === TransactionStatus.UNCONFIRMED
         ) {
-          // TODO: How do we handle errors at this point. Should we?
           return false
         }
 
