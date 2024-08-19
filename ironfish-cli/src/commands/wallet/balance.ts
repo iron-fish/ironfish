@@ -102,9 +102,7 @@ Balance is your coins from all of your transactions, even if they are on forks o
       this.log(
         ui.card({
           Account: response.content.account,
-          'Head Hash': response.content.blockHash || 'NULL',
-          'Head Sequence': response.content.sequence || 'NULL',
-          Available: renderedAvailable,
+          Balance: renderedAvailable,
           Confirmed: renderedConfirmed,
           Unconfirmed: renderedUnconfirmed,
           Pending: renderedPending,
@@ -116,7 +114,7 @@ Balance is your coins from all of your transactions, even if they are on forks o
     this.log(
       ui.card({
         Account: response.content.account,
-        'Available Balance': renderedAvailable,
+        Balance: renderedAvailable,
       }),
     )
   }

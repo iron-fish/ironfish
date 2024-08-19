@@ -66,7 +66,7 @@ export class BalancesCommand extends IronfishCommand {
 
     let columns: TableColumns<AssetBalancePairs> = {
       assetName: {
-        header: 'Asset Name',
+        header: 'Asset',
         get: ({ asset }) =>
           renderAssetWithVerificationStatus(
             BufferUtils.toHuman(Buffer.from(asset.name, 'hex')),
@@ -76,12 +76,8 @@ export class BalancesCommand extends IronfishCommand {
             },
           ),
       },
-      'asset.id': {
-        header: 'Asset Id',
-        get: ({ asset }) => asset.id,
-      },
       available: {
-        header: 'Available Balance',
+        header: 'Balance',
         get: ({ asset, balance }) =>
           CurrencyUtils.render(balance.available, false, asset.id, asset.verification),
       },
@@ -90,32 +86,28 @@ export class BalancesCommand extends IronfishCommand {
     if (flags.all) {
       columns = {
         ...columns,
-        availableNotes: {
-          header: 'Available Notes',
-          get: ({ balance }) => balance.availableNoteCount,
-        },
         confirmed: {
-          header: 'Confirmed Balance',
+          header: 'Confirmed',
           get: ({ asset, balance }) =>
             CurrencyUtils.render(balance.confirmed, false, asset.id, asset.verification),
         },
         unconfirmed: {
-          header: 'Unconfirmed Balance',
+          header: 'Unconfirmed',
           get: ({ asset, balance }) =>
             CurrencyUtils.render(balance.unconfirmed, false, asset.id, asset.verification),
         },
         pending: {
-          header: 'Pending Balance',
+          header: 'Pending',
           get: ({ asset, balance }) =>
             CurrencyUtils.render(balance.pending, false, asset.id, asset.verification),
         },
-        blockHash: {
-          header: 'Head Hash',
-          get: ({ balance }) => balance.blockHash || 'NULL',
+        availableNotes: {
+          header: 'Notes',
+          get: ({ balance }) => balance.availableNoteCount,
         },
-        sequence: {
-          header: 'Head Sequence',
-          get: ({ balance }) => balance.sequence || 'NULL',
+        'asset.id': {
+          header: 'Asset Id',
+          get: ({ asset }) => asset.id,
         },
       }
     }
