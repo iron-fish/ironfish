@@ -19,7 +19,10 @@ export class EvmBalanceCommand extends IronfishCommand {
       required: false,
       description: 'Minimum number of blocks confirmations for a transaction',
     }),
-    // TODO(hughy): add support for custom tokens
+    contract: Flags.string({
+      char: 'c',
+      description: 'EVM contract address of the asset to shield',
+    }),
   }
 
   async start(): Promise<void> {
@@ -56,7 +59,7 @@ export class EvmBalanceCommand extends IronfishCommand {
     })
 
     this.log(`EVM Address:         ${address}`)
-    this.log(`Unconfirmed Balance: ${unconfirmed.content.balance}`)
-    this.log(`Confirmed Balance:   ${confirmed.content.balance}`)
+    this.log(`Unconfirmed Balance (IRON): ${unconfirmed.content.balance}`)
+    this.log(`Confirmed Balance (IRON):   ${confirmed.content.balance}`)
   }
 }
