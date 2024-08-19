@@ -68,10 +68,7 @@ export async function listPrompt<T>(
     values.sort((a, b) => a.name.localeCompare(b.name))
   }
 
-  const selection = await inquirer.prompt<{
-    name: string
-    value: T
-  }>([
+  const selection = await inquirer.prompt<{ prompt: T }>([
     {
       name: 'prompt',
       message: message,
@@ -80,5 +77,5 @@ export async function listPrompt<T>(
     },
   ])
 
-  return selection.value
+  return selection.prompt
 }
