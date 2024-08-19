@@ -1295,6 +1295,10 @@ export class Wallet {
       setDefault: false,
     },
   ): Promise<Account> {
+    if (!name.trim()) {
+      throw new Error('Account name cannot be blank')
+    }
+
     if (this.getAccountByName(name)) {
       throw new DuplicateAccountNameError(name)
     }

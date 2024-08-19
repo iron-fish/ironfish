@@ -167,6 +167,27 @@ describe('Accounts', () => {
     await expect(account.getTransaction(tx.hash())).resolves.toBeDefined()
   })
 
+  describe('setName', () => {
+    it('should rename an account', async () => {
+      const { node } = nodeTest
+
+      const account = await useAccountFixture(node.wallet, 'accountA')
+
+      await account.setName('newName')
+
+      expect(node.wallet.getAccountByName('newName')).toBeDefined()
+    })
+
+    it('should not allow blank names', async () => {
+      const { node } = nodeTest
+
+      const account = await useAccountFixture(node.wallet, 'accountA')
+
+      await expect(account.setName('')).rejects.toThrow('Account name cannot be blank')
+      await expect(account.setName('     ')).rejects.toThrow('Account name cannot be blank')
+    })
+  })
+
   describe('loadPendingTransactions', () => {
     it('should load pending transactions', async () => {
       const { node } = nodeTest
