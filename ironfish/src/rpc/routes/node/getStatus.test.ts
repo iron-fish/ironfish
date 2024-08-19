@@ -25,6 +25,9 @@ describe('Route node/getStatus', () => {
       blockSyncer: {
         status: 'stopped',
       },
+      accounts: {
+        locked: expect.any(Boolean),
+      },
     })
   })
 })
