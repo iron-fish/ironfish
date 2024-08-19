@@ -809,6 +809,18 @@ describe('Wallet', () => {
       expect(head?.hash).toEqualHash(block2.header.hash)
       expect(head?.sequence).toEqual(block2.header.sequence)
     })
+
+    it('should not allow blank names', async () => {
+      const node = nodeTest.node
+
+      await expect(node.wallet.createAccount('')).rejects.toThrow(
+        'Account name cannot be blank',
+      )
+
+      await expect(node.wallet.createAccount('     ')).rejects.toThrow(
+        'Account name cannot be blank',
+      )
+    })
   })
 
   describe('removeAccount', () => {

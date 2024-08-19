@@ -128,6 +128,10 @@ export class Account {
   }
 
   async setName(name: string, tx?: IDatabaseTransaction): Promise<void> {
+    if (!name.trim()) {
+      throw new Error('Account name cannot be blank')
+    }
+
     this.name = name
 
     await this.walletDb.setAccount(this, tx)
