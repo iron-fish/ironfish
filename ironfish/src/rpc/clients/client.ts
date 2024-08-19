@@ -179,6 +179,7 @@ import {
   SendRawTransactionRequest,
   SendRawTransactionResponse,
 } from '../routes/eth'
+import { EthCallRequest, EthCallResponse } from '../routes/eth/call'
 import {
   EthSendTransactionRequest,
   EthSendTransactionResponse,
@@ -1039,6 +1040,9 @@ export abstract class RpcClient {
         `${ApiNamespace.eth}/sendTransaction`,
         params,
       ).waitForEnd()
+    },
+    call: (params: EthCallRequest): Promise<RpcResponseEnded<EthCallResponse>> => {
+      return this.request<EthCallResponse>(`${ApiNamespace.eth}/call`, params).waitForEnd()
     },
   }
 }
