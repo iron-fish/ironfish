@@ -8,6 +8,7 @@ import * as ui from '../ui'
 export async function useAccount(
   client: RpcClient,
   account: string | undefined,
+  message?: string,
 ): Promise<string> {
   if (account !== undefined) {
     return account
@@ -19,5 +20,5 @@ export async function useAccount(
     return defaultAccount.content.accounts[0]
   }
 
-  return ui.accountPrompt(client)
+  return ui.accountPrompt(client, message)
 }

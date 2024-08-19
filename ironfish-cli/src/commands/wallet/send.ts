@@ -16,6 +16,7 @@ import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { HexFlag, IronFlag, RemoteFlags, ValueFlag } from '../../flags'
 import * as ui from '../../ui'
+import { useAccount } from '../../utils'
 import { promptCurrency } from '../../utils/currency'
 import { promptExpiration } from '../../utils/expiration'
 import { getExplorer } from '../../utils/explorer'
@@ -121,7 +122,6 @@ export class Send extends IronfishCommand {
     const { flags } = await this.parse(Send)
     let assetId = flags.assetId
     let to = flags.to
-    let from = flags.account
 
     const client = await this.connectRpc()
 
@@ -134,6 +134,8 @@ export class Send extends IronfishCommand {
         )
       }
     }
+
+    const from = await useAccount(client, flags.account, 'Select an account to send from')
 
     if (assetId == null) {
       const asset = await ui.assetPrompt(client, from, {
@@ -188,19 +190,6 @@ export class Send extends IronfishCommand {
           confirmations: flags.confirmations,
         },
       })
-    }
-
-    if (!from) {
-      const response = await client.wallet.getDefaultAccount()
-
-      if (!response.content.account) {
-        this.error(
-          `No account is currently active.
-           Use ironfish wallet:create <name> to first create an account`,
-        )
-      }
-
-      from = response.content.account.name
     }
 
     if (!to) {

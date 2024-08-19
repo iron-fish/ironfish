@@ -2,27 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { AccountFormat, ErrorUtils, LanguageUtils } from '@ironfish/sdk'
-import { Args, Flags } from '@oclif/core'
+import { Flags } from '@oclif/core'
 import fs from 'fs'
 import path from 'path'
 import { IronfishCommand } from '../../command'
 import { EnumLanguageKeyFlag, JsonFlags, RemoteFlags } from '../../flags'
 import { confirmOrQuit } from '../../ui'
+import { useAccount } from '../../utils'
 
 export class ExportCommand extends IronfishCommand {
   static description = `export an account`
   static enableJsonFlag = true
 
-  static args = {
-    account: Args.string({
-      required: false,
-      description: 'Name of the account to export',
-    }),
-  }
-
   static flags = {
     ...RemoteFlags,
     ...JsonFlags,
+    account: Flags.string({
+      char: 'a',
+      description: 'Name of the account to export',
+    }),
     local: Flags.boolean({
       default: false,
       description: 'Export an account without an online node',
@@ -47,9 +45,8 @@ export class ExportCommand extends IronfishCommand {
   }
 
   async start(): Promise<unknown> {
-    const { flags, args } = await this.parse(ExportCommand)
+    const { flags } = await this.parse(ExportCommand)
     const { local, path: exportPath, viewonly: viewOnly } = flags
-    const { account } = args
 
     if (flags.language) {
       flags.mnemonic = true
@@ -62,6 +59,9 @@ export class ExportCommand extends IronfishCommand {
       : AccountFormat.Base64Json
 
     const client = await this.connectRpc(local)
+
+    const account = await useAccount(client, flags.account)
+
     const response = await client.wallet.exportAccount({
       account,
       viewOnly,

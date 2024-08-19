@@ -8,9 +8,12 @@ import inquirer from 'inquirer'
 import { getAssetsByIDs, renderAssetWithVerificationStatus } from '../utils'
 import { listPrompt } from './prompt'
 
-export async function accountPrompt(client: Pick<RpcClient, 'wallet'>): Promise<string> {
+export async function accountPrompt(
+  client: Pick<RpcClient, 'wallet'>,
+  message: string = 'Select account',
+): Promise<string> {
   const accountsResponse = await client.wallet.getAccounts()
-  return listPrompt('Select account', accountsResponse.content.accounts, (a) => a)
+  return listPrompt(message, accountsResponse.content.accounts, (a) => a)
 }
 
 export async function multisigSecretPrompt(client: Pick<RpcClient, 'wallet'>): Promise<string> {
