@@ -1150,5 +1150,36 @@
         "sequence": 1
       }
     }
+  ],
+  "WalletDB setAccount throws an error if existing accounts are encrypted": [
+    {
+      "value": {
+        "encrypted": false,
+        "version": 4,
+        "id": "1326265d-45b5-4646-8bf1-4434c896bcd1",
+        "name": "A",
+        "spendingKey": "d71768604bc37a2cd7b48e194b58c43bee3aeb398d11b9a0ef998ef759a6e08b",
+        "viewKey": "9a1e4d1d5ea401cb0454e95b4681ddd6acef636f3b406f8664f9d2bcccaa979d0495d1e8372407cbb4505a7167232f1d3436d5723bff554f911d96df1d0e2821",
+        "incomingViewKey": "64b66b4a68d8eaba6b7bfbd55d59abe794f598750b0dc9f136d2558502c64303",
+        "outgoingViewKey": "5d40218d1b4da92ec42c0538380b682c179d44fbd25ef999566539dac1d70d4f",
+        "publicAddress": "204b3270b44e987ba022b5b8eda7f41ebf55eb19ce61b7723a031bec9ed5bfcf",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "4ebcb8cbb3bb735f9421ea40538f24ada921c9736889e2a3384ddd3707c0ad05"
+      },
+      "head": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      }
+    }
   ]
 }
