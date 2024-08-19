@@ -942,40 +942,64 @@ export class Account {
     sequence: number | null
   }> {
     const head = await this.getHead()
-    if (!head) {
-      return
+
+    let hasNative = false
+
+    if (head) {
+      const pendingByAsset = await this.getPendingDeltas(head.sequence, tx)
+      const unconfirmedByAsset = await this.getUnconfirmedDeltas(
+        head.sequence,
+        confirmations,
+        tx,
+      )
+
+      for await (const { assetId, balance } of this.walletDb.getUnconfirmedBalances(this, tx)) {
+        const { delta: unconfirmedDelta, count: unconfirmedCount } = unconfirmedByAsset.get(
+          assetId,
+        ) ?? {
+          delta: 0n,
+          count: 0,
+        }
+
+        const { delta: pendingDelta, count: pendingCount } = pendingByAsset.get(assetId) ?? {
+          delta: 0n,
+          count: 0,
+        }
+
+        const { balance: available, noteCount: availableNoteCount } =
+          await this.calculateAvailableBalance(head.sequence, assetId, confirmations, tx)
+
+        if (!hasNative && Asset.nativeId().equals(assetId)) {
+          hasNative = true
+        }
+
+        yield {
+          assetId,
+          unconfirmed: balance.unconfirmed,
+          unconfirmedCount,
+          confirmed: balance.unconfirmed - unconfirmedDelta,
+          pending: balance.unconfirmed + pendingDelta,
+          pendingCount,
+          available,
+          availableNoteCount,
+          blockHash: balance.blockHash,
+          sequence: balance.sequence,
+        }
+      }
     }
 
-    const pendingByAsset = await this.getPendingDeltas(head.sequence, tx)
-    const unconfirmedByAsset = await this.getUnconfirmedDeltas(head.sequence, confirmations, tx)
-
-    for await (const { assetId, balance } of this.walletDb.getUnconfirmedBalances(this, tx)) {
-      const { delta: unconfirmedDelta, count: unconfirmedCount } = unconfirmedByAsset.get(
-        assetId,
-      ) ?? {
-        delta: 0n,
-        count: 0,
-      }
-
-      const { delta: pendingDelta, count: pendingCount } = pendingByAsset.get(assetId) ?? {
-        delta: 0n,
-        count: 0,
-      }
-
-      const { balance: available, noteCount: availableNoteCount } =
-        await this.calculateAvailableBalance(head.sequence, assetId, confirmations, tx)
-
+    if (!hasNative) {
       yield {
-        assetId,
-        unconfirmed: balance.unconfirmed,
-        unconfirmedCount,
-        confirmed: balance.unconfirmed - unconfirmedDelta,
-        pending: balance.unconfirmed + pendingDelta,
-        pendingCount,
-        available,
-        availableNoteCount,
-        blockHash: balance.blockHash,
-        sequence: balance.sequence,
+        assetId: Asset.nativeId(),
+        unconfirmed: 0n,
+        unconfirmedCount: 0,
+        confirmed: 0n,
+        pending: 0n,
+        pendingCount: 0,
+        available: 0n,
+        availableNoteCount: 0,
+        blockHash: head?.hash ?? null,
+        sequence: head?.sequence ?? null,
       }
     }
   }
