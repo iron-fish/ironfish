@@ -1189,28 +1189,33 @@ export class WalletDB {
     }
   }
 
-  async encryptAccounts(
-    accounts: Account[],
-    passphrase: string,
-    tx?: IDatabaseTransaction,
-  ): Promise<void> {
+  async encryptAccounts(passphrase: string, tx?: IDatabaseTransaction): Promise<void> {
     await this.db.withTransaction(tx, async (tx) => {
-      for (const account of accounts) {
+      for await (const [id, accountValue] of this.accounts.getAllIter()) {
+        if (accountValue.encrypted) {
+          throw new Error('Account is already encrypted')
+        }
+
+        const account = new Account({ accountValue, walletDb: this })
         const encryptedAccount = account.encrypt(passphrase)
-        await this.accounts.put(account.id, encryptedAccount.serialize(), tx)
+        await this.accounts.put(id, encryptedAccount.serialize(), tx)
       }
     })
   }
 
-  async decryptAccounts(
-    encryptedAccounts: EncryptedAccount[],
-    passphrase: string,
-    tx?: IDatabaseTransaction,
-  ): Promise<void> {
+  async decryptAccounts(passphrase: string, tx?: IDatabaseTransaction): Promise<void> {
     await this.db.withTransaction(tx, async (tx) => {
-      for (const encryptedAccount of encryptedAccounts) {
+      for await (const [id, accountValue] of this.accounts.getAllIter()) {
+        if (!accountValue.encrypted) {
+          throw new Error('Account is already decrypted')
+        }
+
+        const encryptedAccount = new EncryptedAccount({
+          data: accountValue.data,
+          walletDb: this,
+        })
         const account = encryptedAccount.decrypt(passphrase)
-        await this.accounts.put(account.id, account.serialize(), tx)
+        await this.accounts.put(id, account.serialize(), tx)
       }
     })
   }
