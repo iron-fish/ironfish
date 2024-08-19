@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { isValidAddress } from '@ethereumjs/util'
+import { Assert } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -14,7 +14,6 @@ export class EvmBalanceCommand extends IronfishCommand {
     address: Flags.string({
       char: 'a',
       description: 'EVM address of account to get unshielded balance for',
-      required: true,
     }),
     confirmations: Flags.integer({
       required: false,
@@ -25,14 +24,16 @@ export class EvmBalanceCommand extends IronfishCommand {
 
   async start(): Promise<void> {
     const { flags } = await this.parse(EvmBalanceCommand)
-
-    const address = flags.address
-
-    if (!isValidAddress(address)) {
-      this.error('Invalid Ethereum address')
-    }
-
     const client = await this.sdk.connectRpc()
+
+    let address = flags.address
+
+    if (!address) {
+      const response = await client.wallet.getAccountPublicKey({})
+      const evmPublicAddress = response.content.evmPublicAddress
+      Assert.isNotUndefined(evmPublicAddress, 'No EVM address found for default account')
+      address = evmPublicAddress
+    }
 
     const status = await client.wallet.getNodeStatus()
 
