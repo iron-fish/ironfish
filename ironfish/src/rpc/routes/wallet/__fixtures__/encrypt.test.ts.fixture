@@ -1,0 +1,122 @@
+{
+  "Route wallet/encrypt encrypts accounts": [
+    {
+      "value": {
+        "encrypted": false,
+        "version": 4,
+        "id": "86003dbd-7d93-472f-879c-21a81fcb4fcc",
+        "name": "A",
+        "spendingKey": "810407957cd5d03dc263291acaf61883e3fcd5d0f6d9d33c71e727d02be4980b",
+        "viewKey": "ee2a5899b2bcf104f3e0c96383ced37dc96a750b616b6111cbbbdb42cd81df6cffdba56303ef07be834051ade514bb55b8fc33e9b5f1f6d8a65d207fa354dca0",
+        "incomingViewKey": "ae71cad0dab16916dc266816a2eec97e6a56880278a744739f9129697b524401",
+        "outgoingViewKey": "0cd5582c6a4cc98748957a315e96e87eacad49dd5fc4d1a3fa3e329e5710186b",
+        "publicAddress": "550e4bab2719759b3ba48eef4164addefb5ab1ea709827a8d2f242a62da4b9c6",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "d68f9ab66a90fb80ee341323ed38eb09fe0ac2fad9c16834f0c41160e6dbf304"
+      },
+      "head": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      }
+    },
+    {
+      "value": {
+        "encrypted": false,
+        "version": 4,
+        "id": "8f86ead0-93f8-4bd5-9775-2935c1a1e1ed",
+        "name": "B",
+        "spendingKey": "acc89c2e183b12b9183f2feaa5d8e1528834da3a18baecddd6ee2d96a8bac2f6",
+        "viewKey": "a62b094ac064211bfcba30354b4feff5bc4aedd982064952b6724483f7c09c9738f4efe5b87424211600edc193bc07c89be7e8548d5615cc10d5d572faeeed3f",
+        "incomingViewKey": "02979895d4a3b7219f000100ec029a9919bb2f23c4d7fb1f7b14eef0241b6104",
+        "outgoingViewKey": "9c1282d1758dec787ced4ada55735ad1cef92535ca80e38c72dadd55230bde85",
+        "publicAddress": "31ddaa091da2f2384de1355b5861cf6a4458d05e9bcee77e8dce3c62ecf0724e",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "9a2f0550b162e559e07df44c4517eb1c8b37930af68b2768d5a6349db8db960d"
+      },
+      "head": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      }
+    }
+  ],
+  "Route wallet/encrypt throws if wallet is encrypted": [
+    {
+      "value": {
+        "encrypted": false,
+        "version": 4,
+        "id": "e7b0cdf4-ebf7-4647-ac4a-970c161b8f67",
+        "name": "A",
+        "spendingKey": "c8698709f51e8b8b27366ac47773a84e103286a04f95ed5c74861fcc5b14f1e8",
+        "viewKey": "d660a67d58a6f26435ca6993a4013de10d56a6607b67c0e94fdfb4e7d2392e99b8058e548f657fa72d9bc41ece07dbbd07811444f334b96d824a3029b640cb3c",
+        "incomingViewKey": "e628ba4f58057825e21dfeefb5b652db4c8c4dead57958d46062261c8188a000",
+        "outgoingViewKey": "aed6efb86774d5292dd6b6851d6011fb2d76648694748baa1685b93cce2e0980",
+        "publicAddress": "867706d9da5632afc0cfdf7044c759d9b05579781c3c1743500aa42d6ede1c18",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "547970bb590fde11a35a47cb39cab5f7df609987ea53e566095db73763fa2903"
+      },
+      "head": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      }
+    },
+    {
+      "value": {
+        "encrypted": false,
+        "version": 4,
+        "id": "b637868f-b7a1-466c-b14e-05f3fc493ad5",
+        "name": "B",
+        "spendingKey": "8a80e1564e85b27a572b52b32334e9a26dd917e8054afe9c3df65ab502b5d268",
+        "viewKey": "a85b813148406d81c5efa836026f9c946e3544de3e11316c9ba352b186c8c9730c89e1faf4863c5c6c85d1bad6774c43cf3d6ed6a5442d218cda74cdad36bc16",
+        "incomingViewKey": "857e9d97a89b07ffb5eef5774ea6e3a808e2eba90d375be8fa023addb1d50605",
+        "outgoingViewKey": "5d2d37392995f438b03d7d83842b6565799991ed23438c51a615f3baecc465ac",
+        "publicAddress": "410c313cec38ce1ab3805104802c133c7353ff1b2584aa71c556215c2caabcee",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "5686d627e789c93c8dfd0f2546e099873a167b65834a4007b3b03728d01d260e"
+      },
+      "head": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      }
+    }
+  ]
+}
