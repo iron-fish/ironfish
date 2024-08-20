@@ -12,6 +12,8 @@ export type GetAccountsStatusRequest = Record<string, never> | undefined
 
 export type GetAccountsStatusResponse = {
   accounts: RpcAccountStatus[]
+  encrypted: boolean
+  locked: boolean
 }
 
 export const GetAccountsStatusRequestSchema: yup.ObjectSchema<GetAccountsStatusRequest> = yup
@@ -22,6 +24,8 @@ export const GetAccountsStatusRequestSchema: yup.ObjectSchema<GetAccountsStatusR
 export const GetAccountsStatusResponseSchema: yup.ObjectSchema<GetAccountsStatusResponse> = yup
   .object({
     accounts: yup.array(RpcAccountStatusSchema).defined(),
+    encrypted: yup.boolean().defined(),
+    locked: yup.boolean().defined(),
   })
   .defined()
 
@@ -35,6 +39,10 @@ routes.register<typeof GetAccountsStatusRequestSchema, GetAccountsStatusResponse
       node.wallet.accounts.map((account) => serializeRpcAccountStatus(node.wallet, account)),
     )
 
-    request.end({ accounts })
+    request.end({
+      accounts,
+      encrypted: await node.wallet.accountsEncrypted(),
+      locked: node.wallet.locked,
+    })
   },
 )

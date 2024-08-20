@@ -1834,6 +1834,10 @@ export class Wallet {
     })
   }
 
+  async accountsEncrypted(): Promise<boolean> {
+    return this.walletDb.accountsEncrypted()
+  }
+
   async encrypt(passphrase: string, tx?: IDatabaseTransaction): Promise<void> {
     const unlock = await this.createTransactionMutex.lock()
 
