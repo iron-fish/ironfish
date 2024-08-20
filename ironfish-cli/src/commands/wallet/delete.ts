@@ -5,7 +5,7 @@
 import { Args, Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { inputPrompt } from '../../ui'
+import * as ui from '../../ui'
 
 export class DeleteCommand extends IronfishCommand {
   static description = `delete an account`
@@ -40,12 +40,11 @@ export class DeleteCommand extends IronfishCommand {
     ux.action.stop()
 
     if (response.content.needsConfirm) {
-      const value = await inputPrompt(`Are you sure? Type ${account} to confirm`)
-
-      if (value !== account) {
-        this.log(`Aborting: ${value} did not match ${account}`)
-        this.exit(1)
-      }
+      await ui.confirmInputOrQuit(
+        account,
+        `Are you sure you want to delete "${account}"?\nType ${account} to confirm`,
+        flags.confirm,
+      )
 
       ux.action.start(`Deleting account '${account}'`)
       await client.wallet.removeAccount({ account, confirm: true, wait })
