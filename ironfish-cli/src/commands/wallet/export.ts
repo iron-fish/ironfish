@@ -31,12 +31,10 @@ export class ExportCommand extends IronfishCommand {
     }),
     language: EnumLanguageKeyFlag({
       description: 'Language to use for mnemonic export',
-      required: false,
       choices: LanguageUtils.LANGUAGE_KEYS,
     }),
     path: Flags.string({
       description: 'The path to export the account to',
-      required: false,
     }),
     viewonly: Flags.boolean({
       default: false,

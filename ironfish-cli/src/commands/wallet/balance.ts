@@ -42,11 +42,9 @@ Balance is your coins from all of your transactions, even if they are on forks o
       description: 'Also show unconfirmed balance',
     }),
     confirmations: Flags.integer({
-      required: false,
       description: 'Minimum number of blocks confirmations for a transaction',
     }),
     assetId: Flags.string({
-      required: false,
       description: 'Asset identifier to check the balance for',
     }),
   }

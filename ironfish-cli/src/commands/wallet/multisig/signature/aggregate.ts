@@ -17,7 +17,6 @@ export class MultisigSign extends IronfishCommand {
     account: Flags.string({
       char: 'f',
       description: 'Name of the account to use when aggregating signature shares',
-      required: false,
     }),
     signingPackage: Flags.string({
       char: 'p',

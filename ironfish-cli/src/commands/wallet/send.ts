@@ -86,7 +86,6 @@ export class Send extends IronfishCommand {
       char: 'c',
       description:
         'Minimum number of block confirmations needed to include a note. Set to 0 to include all blocks.',
-      required: false,
     }),
     assetId: HexFlag({
       char: 'i',

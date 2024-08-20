@@ -67,7 +67,6 @@ This will destroy tokens and decrease supply for a given asset.`
       char: 'c',
       description:
         'Minimum number of block confirmations needed to include a note. Set to 0 to include all blocks.',
-      required: false,
     }),
     rawTransaction: Flags.boolean({
       default: false,
