@@ -174,6 +174,7 @@ import type {
   UseAccountResponse,
 } from '../routes'
 import { ApiNamespace } from '../routes/namespaces'
+import { DecryptWalletRequest, DecryptWalletResponse } from '../routes/wallet/decrypt'
 import {
   DeleteTransactionRequest,
   DeleteTransactionResponse,
@@ -647,6 +648,15 @@ export abstract class RpcClient {
     ): Promise<RpcResponseEnded<EncryptWalletResponse>> => {
       return this.request<EncryptWalletResponse>(
         `${ApiNamespace.wallet}/encrypt`,
+        params,
+      ).waitForEnd()
+    },
+
+    decrypt: (
+      params: DecryptWalletRequest,
+    ): Promise<RpcResponseEnded<DecryptWalletResponse>> => {
+      return this.request<DecryptWalletResponse>(
+        `${ApiNamespace.wallet}/decrypt`,
         params,
       ).waitForEnd()
     },

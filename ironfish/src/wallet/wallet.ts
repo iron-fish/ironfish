@@ -1855,6 +1855,9 @@ export class Wallet {
     try {
       await this.walletDb.decryptAccounts(passphrase, tx)
       await this.load()
+    } catch (e) {
+      this.logger.error(ErrorUtils.renderError(e, true))
+      throw e
     } finally {
       unlock()
     }
