@@ -180,6 +180,7 @@ import {
   DeleteTransactionResponse,
 } from '../routes/wallet/deleteTransaction'
 import { EncryptWalletRequest, EncryptWalletResponse } from '../routes/wallet/encrypt'
+import { UnlockWalletRequest, UnlockWalletResponse } from '../routes/wallet/unlock'
 
 export abstract class RpcClient {
   abstract close(): void
@@ -657,6 +658,13 @@ export abstract class RpcClient {
     ): Promise<RpcResponseEnded<DecryptWalletResponse>> => {
       return this.request<DecryptWalletResponse>(
         `${ApiNamespace.wallet}/decrypt`,
+        params,
+      ).waitForEnd()
+    },
+
+    unlock: (params: UnlockWalletRequest): Promise<RpcResponseEnded<UnlockWalletResponse>> => {
+      return this.request<UnlockWalletResponse>(
+        `${ApiNamespace.wallet}/unlock`,
         params,
       ).waitForEnd()
     },
