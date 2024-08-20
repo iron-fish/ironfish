@@ -60,15 +60,12 @@ This will create tokens and increase supply for a given asset.`
     }),
     assetId: Flags.string({
       description: 'Identifier for the asset',
-      required: false,
     }),
     metadata: Flags.string({
       description: 'Metadata for the asset',
-      required: false,
     }),
     name: Flags.string({
       description: 'Name for the asset',
-      required: false,
     }),
     confirm: Flags.boolean({
       default: false,
@@ -77,7 +74,6 @@ This will create tokens and increase supply for a given asset.`
     confirmations: Flags.integer({
       description:
         'Minimum number of block confirmations needed to include a note. Set to 0 to include all blocks.',
-      required: false,
     }),
     rawTransaction: Flags.boolean({
       default: false,
@@ -99,7 +95,6 @@ This will create tokens and increase supply for a given asset.`
     }),
     transferOwnershipTo: Flags.string({
       description: 'The public address of the account to transfer ownership of this asset to.',
-      required: false,
     }),
     unsignedTransaction: Flags.boolean({
       default: false,

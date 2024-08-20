@@ -18,12 +18,10 @@ export class CreateSignatureShareCommand extends IronfishCommand {
     account: Flags.string({
       char: 'a',
       description: 'Name of the account from which the signature share will be created',
-      required: false,
     }),
     signingPackage: Flags.string({
       char: 's',
       description: 'The signing package for which the signature share will be created',
-      required: false,
     }),
     confirm: Flags.boolean({
       default: false,

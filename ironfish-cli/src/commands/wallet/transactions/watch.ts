@@ -28,7 +28,6 @@ export class TransactionsWatchCommand extends IronfishCommand {
       description: 'Name of the account to get transaction details for',
     }),
     confirmations: Flags.integer({
-      required: false,
       description: 'Minimum number of blocks confirmations for a transaction',
     }),
   }

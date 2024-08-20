@@ -25,7 +25,6 @@ export class BalancesCommand extends IronfishCommand {
       description: `Also show unconfirmed balance, head hash, and head sequence`,
     }),
     confirmations: Flags.integer({
-      required: false,
       description: 'Minimum number of blocks confirmations for a transaction',
     }),
   }

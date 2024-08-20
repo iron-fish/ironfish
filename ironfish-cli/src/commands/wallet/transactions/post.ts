@@ -31,7 +31,6 @@ export class TransactionsPostCommand extends IronfishCommand {
     account: Flags.string({
       description: 'Name of the account that created the raw transaction',
       char: 'f',
-      required: false,
       deprecated: true,
     }),
     confirm: Flags.boolean({
