@@ -28,6 +28,27 @@ export async function inputPrompt(message: string, required: boolean = false): P
   return userInput
 }
 
+export async function confirmInputOrQuit(
+  input: string,
+  message?: string,
+  confirm?: boolean,
+): Promise<void> {
+  if (confirm) {
+    return
+  }
+
+  if (!message) {
+    message = `Are you sure? Type ${input} to confirm.`
+  }
+
+  const entered = await inputPrompt(message, true)
+
+  if (entered !== input) {
+    ux.stdout('Operation aborted.')
+    ux.exit(0)
+  }
+}
+
 export async function confirmPrompt(message: string): Promise<boolean> {
   const result: { prompt: boolean } = await inquirer.prompt({
     type: 'confirm',
