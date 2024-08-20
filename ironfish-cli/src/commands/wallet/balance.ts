@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { CurrencyUtils, GetBalanceResponse, isNativeIdentifier, RpcAsset } from '@ironfish/sdk'
-import { Args, Flags } from '@oclif/core'
+import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import * as ui from '../../ui'
-import { renderAssetWithVerificationStatus } from '../../utils'
+import { renderAssetWithVerificationStatus, useAccount } from '../../utils'
 
 export class BalanceCommand extends IronfishCommand {
   static description = `show the account's balance for an asset
@@ -26,13 +26,6 @@ Balance is your coins from all of your transactions, even if they are on forks o
         'ironfish wallet:balance --assetId 51f33a2f14f92735e562dc658a5639279ddca3d5079a6d1242b2a588a9cbf44c',
     },
   ]
-
-  static args = {
-    account: Args.string({
-      required: false,
-      description: 'Name of the account to get balance for. DEPRECATED: use --account flag',
-    }),
-  }
 
   static flags = {
     ...RemoteFlags,
@@ -59,11 +52,11 @@ Balance is your coins from all of your transactions, even if they are on forks o
   }
 
   async start(): Promise<void> {
-    const { flags, args } = await this.parse(BalanceCommand)
-    // TODO: remove account arg
-    const account = flags.account ? flags.account : args.account
+    const { flags } = await this.parse(BalanceCommand)
 
     const client = await this.connectRpc()
+
+    const account = await useAccount(client, flags.account)
 
     const response = await client.wallet.getAccountBalance({
       account,

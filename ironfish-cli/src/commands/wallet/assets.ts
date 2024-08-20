@@ -9,11 +9,11 @@ import {
   PUBLIC_ADDRESS_LENGTH,
 } from '@ironfish/rust-nodejs'
 import { BufferUtils } from '@ironfish/sdk'
-import { Args, Flags } from '@oclif/core'
+import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { table, TableFlags } from '../../ui'
-import { renderAssetWithVerificationStatus } from '../../utils'
+import { renderAssetWithVerificationStatus, useAccount } from '../../utils'
 import { TableCols } from '../../utils/table'
 
 const MAX_ASSET_METADATA_COLUMN_WIDTH = ASSET_METADATA_LENGTH + 1
@@ -25,13 +25,6 @@ const MIN_ASSET_NAME_COLUMN_WIDTH = ASSET_NAME_LENGTH / 2 + 1
 export class AssetsCommand extends IronfishCommand {
   static description = `list the account's assets`
 
-  static args = {
-    account: Args.string({
-      required: false,
-      description: 'Name of the account. DEPRECATED: use --account flag',
-    }),
-  }
-
   static flags = {
     ...RemoteFlags,
     ...TableFlags,
@@ -42,11 +35,12 @@ export class AssetsCommand extends IronfishCommand {
   }
 
   async start(): Promise<void> {
-    const { flags, args } = await this.parse(AssetsCommand)
-    // TODO: remove account arg
-    const account = flags.account ? flags.account : args.account
+    const { flags } = await this.parse(AssetsCommand)
 
     const client = await this.connectRpc()
+
+    const account = await useAccount(client, flags.account)
+
     const response = client.wallet.getAssets({
       account,
     })

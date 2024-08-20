@@ -2,23 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Args, Flags } from '@oclif/core'
+import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { confirmOrQuit } from '../../ui'
+import { useAccount } from '../../utils'
 
 export class ResetCommand extends IronfishCommand {
   static description = `resets an account's balance and rescans`
 
-  static args = {
-    account: Args.string({
-      required: true,
-      description: 'Name of the account to reset',
-    }),
-  }
-
   static flags = {
     ...RemoteFlags,
+    account: Flags.string({
+      char: 'a',
+      description: 'Name of the account to reset',
+    }),
     resetCreated: Flags.boolean({
       default: false,
       description: 'Reset the accounts birthday',
@@ -34,8 +32,11 @@ export class ResetCommand extends IronfishCommand {
   }
 
   async start(): Promise<void> {
-    const { args, flags } = await this.parse(ResetCommand)
-    const { account } = args
+    const { flags } = await this.parse(ResetCommand)
+
+    const client = await this.connectRpc()
+
+    const account = await useAccount(client, flags.account)
 
     await confirmOrQuit(
       `Are you sure you want to reset the account '${account}'?` +
@@ -44,8 +45,6 @@ export class ResetCommand extends IronfishCommand {
         `\nAre you sure?`,
       flags.confirm,
     )
-
-    const client = await this.connectRpc()
 
     await client.wallet.resetAccount({
       account,

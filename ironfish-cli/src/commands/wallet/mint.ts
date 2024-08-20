@@ -18,6 +18,7 @@ import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { IronFlag, RemoteFlags, ValueFlag } from '../../flags'
 import * as ui from '../../ui'
+import { useAccount } from '../../utils'
 import { promptCurrency } from '../../utils/currency'
 import { promptExpiration } from '../../utils/expiration'
 import { getExplorer } from '../../utils/explorer'
@@ -129,19 +130,7 @@ This will create tokens and increase supply for a given asset.`
       }
     }
 
-    let account = flags.account
-    if (!account) {
-      const response = await client.wallet.getDefaultAccount()
-
-      if (!response.content.account) {
-        this.error(
-          `No account is currently active.
-           Use ironfish wallet:create <name> to first create an account`,
-        )
-      }
-
-      account = response.content.account.name
-    }
+    const account = await useAccount(client, flags.account)
 
     const publicKeyResponse = await client.wallet.getAccountPublicKey({ account })
     const accountPublicKey = publicKeyResponse.content.publicKey
