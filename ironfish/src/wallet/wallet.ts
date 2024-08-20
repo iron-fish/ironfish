@@ -1195,6 +1195,48 @@ export class Wallet {
     }
   }
 
+  /**
+   * Delete a transaction from all accounts in the wallet if it has not yet been
+   * added to a block
+   */
+  async deleteTransaction(hash: Buffer, tx?: IDatabaseTransaction): Promise<boolean> {
+    let deleted = false
+
+    await this.walletDb.db.withTransaction(tx, async (tx) => {
+      for (const account of this.accountById.values()) {
+        const transactionValue = await account.getTransaction(hash, tx)
+
+        if (transactionValue == null) {
+          continue
+        }
+
+        const transactionStatus = await this.getTransactionStatus(
+          account,
+          transactionValue,
+          undefined,
+          tx,
+        )
+
+        if (
+          transactionStatus === TransactionStatus.CONFIRMED ||
+          transactionStatus === TransactionStatus.UNCONFIRMED
+        ) {
+          return false
+        }
+
+        if (
+          transactionStatus === TransactionStatus.EXPIRED ||
+          transactionStatus === TransactionStatus.PENDING
+        ) {
+          await account.deleteTransaction(transactionValue.transaction, tx)
+          deleted = true
+        }
+      }
+    })
+
+    return deleted
+  }
+
   async getTransactionStatus(
     account: Account,
     transaction: TransactionValue,
