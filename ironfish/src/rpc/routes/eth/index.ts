@@ -4,3 +4,4 @@
 export * from './getAccount'
 export * from './sendRawTransaction'
 export * from './sendTransaction'
+export * from './ethRouter'
