@@ -15,7 +15,7 @@ export class CreateSigningCommitmentCommand extends IronfishCommand {
   static flags = {
     ...RemoteFlags,
     account: Flags.string({
-      char: 'f',
+      char: 'a',
       description:
         'Name of the account to use for generating the commitment, must be a multisig participant account',
       required: false,

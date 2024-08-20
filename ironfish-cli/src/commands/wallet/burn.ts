@@ -35,28 +35,24 @@ This will destroy tokens and decrease supply for a given asset.`
   static flags = {
     ...RemoteFlags,
     account: Flags.string({
-      char: 'f',
+      char: 'a',
       description: 'Name of the account to burn from',
     }),
     fee: IronFlag({
-      char: 'o',
       description: 'The fee amount in IRON',
       minimum: 1n,
       flagName: 'fee',
     }),
     feeRate: IronFlag({
-      char: 'r',
       description: 'The fee rate amount in IRON/Kilobyte',
       minimum: 1n,
       flagName: 'fee rate',
     }),
     amount: ValueFlag({
-      char: 'a',
       description: 'Amount of coins to burn in the major denomination',
       flagName: 'amount',
     }),
     assetId: Flags.string({
-      char: 'i',
       description: 'Identifier for the asset',
     }),
     confirm: Flags.boolean({
@@ -64,7 +60,6 @@ This will destroy tokens and decrease supply for a given asset.`
       description: 'Confirm without asking',
     }),
     confirmations: Flags.integer({
-      char: 'c',
       description:
         'Minimum number of block confirmations needed to include a note. Set to 0 to include all blocks.',
       required: false,
