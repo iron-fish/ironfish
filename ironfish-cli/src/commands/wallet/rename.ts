@@ -9,13 +9,13 @@ export class RenameCommand extends IronfishCommand {
   static description = 'rename the name of an account'
 
   static args = {
-    account: Args.string({
+    old_name: Args.string({
       required: true,
-      description: 'Name of the account to rename',
+      description: 'Old account to rename',
     }),
-    newName: Args.string({
+    new_name: Args.string({
       required: true,
-      description: 'New name to assign to the account',
+      description: 'New name for the account',
     }),
   }
 
@@ -25,10 +25,10 @@ export class RenameCommand extends IronfishCommand {
 
   async start(): Promise<void> {
     const { args } = await this.parse(RenameCommand)
-    const { account, newName } = args
 
     const client = await this.connectRpc()
-    await client.wallet.renameAccount({ account, newName })
-    this.log(`Account ${account} renamed to ${newName}`)
+
+    await client.wallet.renameAccount({ account: args.old_name, newName: args.new_name })
+    this.log(`Account ${args.old_name} renamed to ${args.new_name}`)
   }
 }
