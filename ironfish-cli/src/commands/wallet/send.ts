@@ -41,32 +41,27 @@ export class Send extends IronfishCommand {
   static flags = {
     ...RemoteFlags,
     account: Flags.string({
-      char: 'f',
+      char: 'a',
       description: 'Name of the account to send money from',
     }),
     amount: ValueFlag({
-      char: 'a',
       description: 'The amount to send in the major denomination',
       flagName: 'amount',
     }),
     to: Flags.string({
-      char: 't',
       description: 'The public address of the recipient',
     }),
     fee: IronFlag({
-      char: 'o',
       description: 'The fee amount in IRON',
       minimum: 1n,
       flagName: 'fee',
     }),
     feeRate: IronFlag({
-      char: 'r',
       description: 'The fee rate amount in IRON/Kilobyte',
       minimum: 1n,
       flagName: 'fee rate',
     }),
     memo: Flags.string({
-      char: 'm',
       description: 'The memo of transaction',
     }),
     confirm: Flags.boolean({
@@ -83,7 +78,6 @@ export class Send extends IronfishCommand {
         'The block sequence after which the transaction will be removed from the mempool. Set to 0 for no expiration.',
     }),
     confirmations: Flags.integer({
-      char: 'c',
       description:
         'Minimum number of block confirmations needed to include a note. Set to 0 to include all blocks.',
       required: false,
