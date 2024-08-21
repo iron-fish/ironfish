@@ -27,6 +27,7 @@ describe('Route eth/blockNumber', () => {
     block = await useMinerBlockFixture(chain)
     await expect(chain).toAddBlock(block)
 
+    response = await routeTest.client.eth.blockNumber()
     expect(response.content).toMatchObject({
       number: '0x3',
     })
