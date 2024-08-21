@@ -1,106 +1,88 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { id } from 'ethers'
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { FullNode } from '../../../node'
+import { YupSchema, YupSchemaResult } from '../../../utils/yup'
 import { RpcRequest } from '../../request'
 import { ApiNamespace } from '../namespaces'
-import { routes } from '../router'
-import {
-  sendRawTransaction,
-  SendRawTransactionRequest,
-  SendRawTransactionResponse,
-} from './sendRawTransaction'
-import {
-  EthSendTransactionRequest,
-  EthSendTransactionResponse,
-  sendTransaction,
-} from './sendTransaction'
+import { RouteHandler, routes } from '../router'
 
-export type SendRequest = {
+export type EthRequest = {
   jsonrpc: '2.0'
   id: number | string
-  method: 'eth_sendTransaction'
-  params: EthSendTransactionRequest[]
+  method: string
+  params: unknown[]
 }
 
-export type SendRawRequest = {
-  jsonrpc: '2.0'
-  id: number | string
-  method: 'eth_sendRawTransaction'
-  params: SendRawTransactionRequest[]
+export type EthResponse = unknown
+
+function createSchema<M extends string>(schema: yup.Schema<unknown>) {
+  return yup
+    .object({
+      jsonrpc: yup.string<'2.0'>().required(),
+      id: yup.mixed<number | string>().required(),
+      method: yup.string<M>().required(),
+      params: yup.array(schema).required(),
+    })
+    .defined()
 }
 
-export type RouterRequest = SendRequest | SendRawRequest
+export const ethRoutes: {
+  [key: string]: {
+    schema: yup.Schema<unknown>
+    handler: RouteHandler<YupSchemaResult<never>, unknown>
+  }
+} = {}
 
-export type RouterResponse = {
-  result: string
+export function registerEthRoute<TRequestSchema extends YupSchema, TResponse>(
+  ethRoute: string,
+  route: string,
+  requestSchema: TRequestSchema,
+  handler: RouteHandler<YupSchemaResult<TRequestSchema>, TResponse>,
+): void {
+  ethRoutes[ethRoute] = {
+    schema: createSchema(requestSchema),
+    handler: handler,
+  }
+  routes.register(route, requestSchema, handler)
 }
 
-const SendRequestSchema: yup.ObjectSchema<SendRequest> = yup
-  .object({
-    jsonrpc: yup.string<'2.0'>().required().equals(['2.0']),
-    id: yup.mixed<number | string>().required(),
-    method: yup.string<'eth_sendTransaction'>().required(),
-    params: yup.mixed<EthSendTransactionRequest[]>().required(),
-  })
-  .defined()
-const router: yup.MixedSchema<
-const SendRawRequestSchema: yup.ObjectSchema<SendRawRequest> = yup
-  .object({
-    jsonrpc: yup.string<'2.0'>().required().equals(['2.0']),
-    id: yup.mixed<number | string>().required(),
-    method: yup.string<'eth_sendRawTransaction'>().required(),
-    params: yup
-      .array()
-      .of(
-        yup.object().shape({
-          // Define the shape of SendRawTransactionRequest
-        }),
-      )
-      .required(),
-  })
-  .defined()
-
-export const RouterRequestSchema: yup.MixedSchema<RouterRequest> = yup
-  .mixed<RouterRequest>()
-  .test('is-send-request', 'Invalid SendRequest', (value) =>
-    SendRequestSchema.isValidSync(value),
+export const RouterRequestSchema: yup.MixedSchema<EthRequest> = yup
+  .mixed<EthRequest>()
+  .test('method-not-in-request', 'Invalid Request', (value) =>
+    'method' in value ? true : false,
   )
-  .test('is-send-raw-request', 'Invalid SendRawRequest', (value) =>
-    SendRawRequestSchema.isValidSync(value),
+  .test('method-not-registers', 'Method not registered', (value) =>
+    ethRoutes[(value as { method: string }).method] ? true : false,
   )
-  .defined()
-export const RouterResponseSchema: yup.ObjectSchema<RouterResponse> = yup
-  .object({
-    result: yup.string().required(),
+  .test('is-valid-request', 'Invalid Request', (value) => {
+    return value
+      ? ethRoutes[(value as { method: string }).method].schema.isValidSync(value)
+      : false
   })
   .defined()
 
-routes.register<typeof RouterRequestSchema, RouterRequest>(
+routes.register<typeof RouterRequestSchema, EthResponse>(
   `${ApiNamespace.eth}/ethRouter`,
   RouterRequestSchema,
   async (request, node): Promise<void> => {
     Assert.isInstanceOf(node, FullNode)
 
-    if (request.data.method === 'eth_sendTransaction') {
-      const req = new RpcRequest<EthSendTransactionRequest, EthSendTransactionResponse>(
+    const handlerEntry = ethRoutes[request.data.method]
+
+    if (handlerEntry) {
+      const req = new RpcRequest<typeof request.data.params[0], EthResponse>(
         request.data.params[0],
         '',
         request.onEnd as (status: number, data?: unknown) => void,
         request.onStream as (data: unknown) => void,
       )
-      await sendTransaction(req, node)
-    } else if (request.data.method === 'eth_sendRawTransaction') {
-      const req = new RpcRequest<SendRawTransactionRequest, SendRawTransactionResponse>(
-        request.data.params[0],
-        '',
-        request.onEnd as (status: number, data?: unknown) => void,
-        request.onStream as (data: unknown) => void,
-      )
-      await sendRawTransaction(req, node)
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
+      await handlerEntry.handler(req as unknown as any, node)
+    } else {
+      throw new Error(`Unsupported method: ${request.data.method}`)
     }
   },
 )

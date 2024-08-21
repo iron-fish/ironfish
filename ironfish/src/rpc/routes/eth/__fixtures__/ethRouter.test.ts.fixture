@@ -1,0 +1,32 @@
+{
+  "Route eth/ethRouter should handle eth_sendTransaction successfully": [
+    {
+      "value": {
+        "version": 4,
+        "id": "3499a534-0784-4079-a2ae-b2bbb7a9b129",
+        "name": "test",
+        "spendingKey": "db05cfb895e4e76d452850ff6a2bf9d5c79c143f300319f5bb73bbaa69758d26",
+        "viewKey": "90ee08101ef8a5ebb2b262cfc832c5802d4c48df5ef10bb4cb023478da1609c20ceb883f46597d50790898e781b3fc017f5b691593cba6359fe1e099300a71a3",
+        "incomingViewKey": "28a151f4592df9569a0d8ed9ca606973a08acc01a378fed57c537759dc9f6000",
+        "outgoingViewKey": "cc5e0c0cadd798c413b9dffac5baac20ab76944e25f5e00705d39c36f959b978",
+        "publicAddress": "71e30f5a92d7c419ba6de6b23d427e687405fe51de22282bb130c1b1b550c596",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "48ea19104afb42099882254130f6cbf02e6554055217211c3216b25a78386f01"
+      },
+      "head": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      }
+    }
+  ]
+}
