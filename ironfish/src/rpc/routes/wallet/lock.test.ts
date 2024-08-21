@@ -4,52 +4,21 @@
 import { useAccountFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 
-describe('Route wallet/unlock', () => {
+describe('Route wallet/lock', () => {
   const routeTest = createRouteTest()
 
   it('does nothing if the wallet is decrypted', async () => {
-    const passphrase = 'foobar'
-
     await useAccountFixture(routeTest.node.wallet, 'A')
     await useAccountFixture(routeTest.node.wallet, 'B')
 
-    await routeTest.client.wallet.unlock({ passphrase })
+    await routeTest.client.wallet.lock()
 
     const status = await routeTest.client.wallet.getAccountsStatus()
     expect(status.content.encrypted).toBe(false)
     expect(status.content.locked).toBe(false)
   })
 
-  it('throws if invalid timeout is provided', async () => {
-    const timeout = -2
-    await expect(
-      routeTest.client.wallet.unlock({ passphrase: 'foobar', timeout }),
-    ).rejects.toThrow(`Request failed (400) validation: Invalid timeout value: ${timeout}`)
-  })
-
-  it('throws if wallet decryption fails', async () => {
-    const passphrase = 'foobar'
-    const invalidPassphrase = 'baz'
-
-    await useAccountFixture(routeTest.node.wallet, 'A')
-    await useAccountFixture(routeTest.node.wallet, 'B')
-
-    await routeTest.client.wallet.encrypt({ passphrase })
-
-    let status = await routeTest.client.wallet.getAccountsStatus()
-    expect(status.content.encrypted).toBe(true)
-    expect(status.content.locked).toBe(true)
-
-    await expect(
-      routeTest.client.wallet.unlock({ passphrase: invalidPassphrase }),
-    ).rejects.toThrow('Request failed (400) error: Failed to decrypt account')
-
-    status = await routeTest.client.wallet.getAccountsStatus()
-    expect(status.content.encrypted).toBe(true)
-    expect(status.content.locked).toBe(true)
-  })
-
-  it('unlocks the wallet with the correct passphrase', async () => {
+  it('locks the wallet', async () => {
     const passphrase = 'foobar'
 
     const accountA = await useAccountFixture(routeTest.node.wallet, 'A')
@@ -67,9 +36,16 @@ describe('Route wallet/unlock', () => {
     expect(status.content.encrypted).toBe(true)
     expect(status.content.locked).toBe(false)
 
-    const decryptedAccounts = await routeTest.client.wallet.getAccounts()
+    let decryptedAccounts = await routeTest.client.wallet.getAccounts()
     expect(decryptedAccounts.content.accounts.sort()).toEqual([accountA.name, accountB.name])
 
     await routeTest.client.wallet.lock()
+
+    status = await routeTest.client.wallet.getAccountsStatus()
+    expect(status.content.encrypted).toBe(true)
+    expect(status.content.locked).toBe(true)
+
+    decryptedAccounts = await routeTest.client.wallet.getAccounts()
+    expect(decryptedAccounts.content.accounts).toHaveLength(0)
   })
 })

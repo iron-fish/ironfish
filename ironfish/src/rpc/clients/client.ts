@@ -35,12 +35,18 @@ import type {
   CreateTransactionResponse,
   CreateTrustedDealerKeyPackageRequest,
   CreateTrustedDealerKeyPackageResponse,
+  DecryptWalletRequest,
+  DecryptWalletResponse,
+  DeleteTransactionRequest,
+  DeleteTransactionResponse,
   DkgRound1Request,
   DkgRound1Response,
   DkgRound2Request,
   DkgRound2Response,
   DkgRound3Request,
   DkgRound3Response,
+  EncryptWalletRequest,
+  EncryptWalletResponse,
   EstimateFeeRateRequest,
   EstimateFeeRateResponse,
   EstimateFeeRatesRequest,
@@ -135,6 +141,8 @@ import type {
   ImportResponse,
   IsValidPublicAddressRequest,
   IsValidPublicAddressResponse,
+  LockWalletRequest,
+  LockWalletResponse,
   MintAssetRequest,
   MintAssetResponse,
   OnGossipRequest,
@@ -166,6 +174,8 @@ import type {
   StopNodeResponse,
   SubmitBlockRequest,
   SubmitBlockResponse,
+  UnlockWalletRequest,
+  UnlockWalletResponse,
   UnsetConfigRequest,
   UnsetConfigResponse,
   UploadConfigRequest,
@@ -174,13 +184,6 @@ import type {
   UseAccountResponse,
 } from '../routes'
 import { ApiNamespace } from '../routes/namespaces'
-import { DecryptWalletRequest, DecryptWalletResponse } from '../routes/wallet/decrypt'
-import {
-  DeleteTransactionRequest,
-  DeleteTransactionResponse,
-} from '../routes/wallet/deleteTransaction'
-import { EncryptWalletRequest, EncryptWalletResponse } from '../routes/wallet/encrypt'
-import { UnlockWalletRequest, UnlockWalletResponse } from '../routes/wallet/unlock'
 
 export abstract class RpcClient {
   abstract close(): void
@@ -665,6 +668,13 @@ export abstract class RpcClient {
     unlock: (params: UnlockWalletRequest): Promise<RpcResponseEnded<UnlockWalletResponse>> => {
       return this.request<UnlockWalletResponse>(
         `${ApiNamespace.wallet}/unlock`,
+        params,
+      ).waitForEnd()
+    },
+
+    lock: (params?: LockWalletRequest): Promise<RpcResponseEnded<LockWalletResponse>> => {
+      return this.request<LockWalletResponse>(
+        `${ApiNamespace.wallet}/lock`,
         params,
       ).waitForEnd()
     },
