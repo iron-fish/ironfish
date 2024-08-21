@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Block } from '@ethereumjs/block'
 import { EVM, EVMResult as EthEVMResult, EVMRunCallOpts, Log } from '@ethereumjs/evm'
-import { Account, Address, hexToBytes } from '@ethereumjs/util'
+import { Account, Address } from '@ethereumjs/util'
 import { RunTxOpts, RunTxResult, VM } from '@ethereumjs/vm'
 import ContractArtifact from '@ironfish/ironfish-contracts'
 import { Asset, generateKeyFromPrivateKey } from '@ironfish/rust-nodejs'
@@ -18,7 +18,7 @@ export const INITIAL_STATE_ROOT = Buffer.from(
   'hex',
 )
 
-const NULL_STATE_ROOT = Buffer.from(
+export const NULL_STATE_ROOT = Buffer.from(
   '56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421',
   'hex',
 )
@@ -54,18 +54,7 @@ export class IronfishEvm {
   }
 
   async load(): Promise<void> {
-    const stateRoot = await this.blockchainDb.stateManager.getStateRoot()
-
-    if (Buffer.from(stateRoot).equals(NULL_STATE_ROOT)) {
-      await this.blockchainDb.stateManager.checkpoint()
-      const globalAccount = new Account(0n, 10000000000000000n)
-      await this.blockchainDb.stateManager.putAccount(GLOBAL_CONTRACT_ADDRESS, globalAccount)
-      await this.blockchainDb.stateManager.putContractCode(
-        GLOBAL_CONTRACT_ADDRESS,
-        hexToBytes(ContractArtifact.deployedBytecode),
-      )
-      await this.blockchainDb.stateManager.commit()
-    }
+    await this.blockchainDb.stateManager.initializeState()
   }
 
   async open(): Promise<void> {
