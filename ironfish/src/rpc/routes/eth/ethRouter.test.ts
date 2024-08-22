@@ -32,5 +32,10 @@ describe('Route eth/ethRouter', () => {
     const response = await routeTest.client.eth.ethRouter(transactionRequest)
 
     expect(response.status).toEqual(200)
+    expect(response.content).toMatchObject({
+      jsonrpc: '2.0',
+      id: 1,
+      result: expect.anything(),
+    })
   })
 })

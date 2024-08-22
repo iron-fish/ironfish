@@ -16,7 +16,11 @@ export type EthRequest = {
   params: unknown[]
 }
 
-export type EthResponse = unknown
+export type EthResponse = {
+  jsonrpc: '2.0'
+  id: number | string
+  result: unknown
+}
 
 function createSchema<M extends string>(schema: yup.Schema<unknown>) {
   return yup
@@ -49,6 +53,7 @@ export function registerEthRoute<TRequestSchema extends YupSchema, TResponse>(
   routes.register(route, requestSchema, handler)
 }
 
+// TODO: match error type for eth: https://www.quicknode.com/docs/ethereum/error-references
 export const RouterRequestSchema: yup.MixedSchema<EthRequest> = yup
   .mixed<EthRequest>()
   .test('method-not-in-request', 'Invalid Request', (value) =>
@@ -71,12 +76,19 @@ routes.register<typeof RouterRequestSchema, EthResponse>(
     Assert.isInstanceOf(node, FullNode)
 
     const handlerEntry = ethRoutes[request.data.method]
-
+    const onEnd = (status: number, data?: unknown) => {
+      const resp = {
+        jsonrpc: '2.0' as const,
+        id: request.data.id,
+        result: data,
+      }
+      request.onEnd(status, resp)
+    }
     if (handlerEntry) {
       const req = new RpcRequest<typeof request.data.params[0], EthResponse>(
         request.data.params[0],
         '',
-        request.onEnd as (status: number, data?: unknown) => void,
+        onEnd,
         request.onStream as (data: unknown) => void,
       )
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
