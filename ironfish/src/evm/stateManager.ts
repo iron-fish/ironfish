@@ -3,9 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { DefaultStateManager, DefaultStateManagerOpts } from '@ethereumjs/statemanager'
 import { Trie } from '@ethereumjs/trie'
-import { ValueEncoding } from '@ethereumjs/util'
+import { Account, hexToBytes, ValueEncoding } from '@ethereumjs/util'
+import ContractArtifact from '@ironfish/ironfish-contracts'
 import { IDatabase } from '../storage'
 import { EvmStateDB } from './database'
+import { GLOBAL_CONTRACT_ADDRESS, NULL_STATE_ROOT } from './evm'
 
 export type IronfishStateManagerOpts = Omit<DefaultStateManagerOpts, 'trie'>
 
@@ -33,5 +35,20 @@ export class IronfishStateManager extends DefaultStateManager {
       await stateManager.setStateRoot(stateRoot)
     }
     return stateManager
+  }
+
+  async initializeState(): Promise<void> {
+    const stateRoot = await this.getStateRoot()
+
+    if (Buffer.from(stateRoot).equals(NULL_STATE_ROOT)) {
+      await this.checkpoint()
+      const globalAccount = new Account(0n, 10000000000000000n)
+      await this.putAccount(GLOBAL_CONTRACT_ADDRESS, globalAccount)
+      await this.putContractCode(
+        GLOBAL_CONTRACT_ADDRESS,
+        hexToBytes(ContractArtifact.deployedBytecode),
+      )
+      await this.commit()
+    }
   }
 }
