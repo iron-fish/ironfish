@@ -5,8 +5,8 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { FullNode } from '../../../node'
+import { registerEthRoute } from '../eth/ethRouter'
 import { ApiNamespace } from '../namespaces'
-import { routes } from '../router'
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 export type BlockNumberRequest = {} | undefined
@@ -26,7 +26,8 @@ export const BlockNumberResponseSchema: yup.ObjectSchema<BlockNumberResponse> = 
   })
   .defined()
 
-routes.register<typeof BlockNumberRequestSchema, BlockNumberResponse>(
+registerEthRoute<typeof BlockNumberRequestSchema, BlockNumberResponse>(
+  `eth_blockNumber`,
   `${ApiNamespace.eth}/blockNumber`,
   BlockNumberRequestSchema,
   (request, node): void => {
