@@ -8,7 +8,7 @@ import { GLOBAL_IF_ACCOUNT } from '../../../evm'
 import { FullNode } from '../../../node'
 import { legacyTransactionToEvmDescription } from '../../../primitives'
 import { ApiNamespace } from '../namespaces'
-import { routes } from '../router'
+import { registerEthRoute } from './ethRouter'
 
 export type SendRawTransactionRequest = {
   transaction: string
@@ -37,7 +37,8 @@ export const SendRawTransactionResponseSchema: yup.ObjectSchema<SendRawTransacti
     })
     .defined()
 
-routes.register<typeof SendRawTransactionRequestSchema, SendRawTransactionResponse>(
+registerEthRoute<typeof SendRawTransactionRequestSchema, SendRawTransactionResponse>(
+  `eth_sendRawTransaction`,
   `${ApiNamespace.eth}/sendRawTransaction`,
   SendRawTransactionRequestSchema,
   async (request, node): Promise<void> => {

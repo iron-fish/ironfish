@@ -11,7 +11,7 @@ import { legacyTransactionToEvmDescription } from '../../../primitives'
 import { EthUtils } from '../../../utils/eth'
 import { AssertSpending } from '../../../wallet/account/account'
 import { ApiNamespace } from '../namespaces'
-import { routes } from '../router'
+import { registerEthRoute } from './ethRouter'
 
 export type EthSendTransactionRequest = {
   from: string
@@ -46,7 +46,8 @@ export const EthSendTransactionResponseSchema: yup.ObjectSchema<EthSendTransacti
     })
     .defined()
 
-routes.register<typeof EthSendTransactionRequestSchema, EthSendTransactionResponse>(
+registerEthRoute<typeof EthSendTransactionRequestSchema, EthSendTransactionResponse>(
+  'eth_sendTransaction',
   `${ApiNamespace.eth}/sendTransaction`,
   EthSendTransactionRequestSchema,
   async (request, node): Promise<void> => {

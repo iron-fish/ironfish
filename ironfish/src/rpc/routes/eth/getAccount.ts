@@ -8,7 +8,7 @@ import { FullNode } from '../../../node'
 import { CurrencyUtils } from '../../../utils'
 import { RpcNotFoundError } from '../../adapters'
 import { ApiNamespace } from '../namespaces'
-import { routes } from '../router'
+import { registerEthRoute } from './ethRouter'
 
 export type GetAccountRequest = {
   address: string
@@ -38,7 +38,8 @@ export const GetAccountResponseSchema: yup.ObjectSchema<GetAccountResponse> = yu
   })
   .defined()
 
-routes.register<typeof GetAccountRequestSchema, GetAccountResponse>(
+registerEthRoute<typeof GetAccountRequestSchema, GetAccountResponse>(
+  'eth_getAccount',
   `${ApiNamespace.eth}/getAccount`,
   GetAccountRequestSchema,
   async (request, node): Promise<void> => {

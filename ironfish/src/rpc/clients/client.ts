@@ -43,6 +43,8 @@ import type {
   EstimateFeeRateResponse,
   EstimateFeeRatesRequest,
   EstimateFeeRatesResponse,
+  EthRequest,
+  EthResponse,
   ExportAccountRequest,
   ExportAccountResponse,
   ExportChainStreamRequest,
@@ -1013,6 +1015,9 @@ export abstract class RpcClient {
   }
 
   eth = {
+    ethRouter: (params: EthRequest): Promise<RpcResponseEnded<EthResponse>> => {
+      return this.request<EthResponse>(`${ApiNamespace.eth}/ethRouter`, params).waitForEnd()
+    },
     getAccount: (params: GetAccountRequest): Promise<RpcResponseEnded<GetAccountResponse>> => {
       return this.request<GetAccountResponse>(
         `${ApiNamespace.eth}/getAccount`,
