@@ -7,7 +7,7 @@ import { Assert } from '../../../assert'
 import { FullNode } from '../../../node'
 import { EthUtils } from '../../../utils/eth'
 import { ApiNamespace } from '../namespaces'
-import { routes } from '../router'
+import { registerEthRoute } from './ethRouter'
 
 // NOTE: from/nonce are not used in call RPC, but this matches spec from ETH
 export type EthCallRequest = {
@@ -42,13 +42,14 @@ export const EthCallResponseSchema: yup.ObjectSchema<EthCallResponse> = yup
   })
   .defined()
 
-routes.register<typeof EthCallRequestSchema, EthCallResponse>(
+registerEthRoute(
+  'eth_call',
   `${ApiNamespace.eth}/call`,
   EthCallRequestSchema,
   async (request, node): Promise<void> => {
     Assert.isInstanceOf(node, FullNode)
 
-    const gasLimit = request.data.gasLimit ? BigInt(request.data.gasLimit) : 1000000n
+    const gasLimit = request.data.gasLimit ? BigInt(request.data.gasLimit) : 1000000000n
     const gasPrice = request.data.gasPrice ? BigInt(request.data.gasPrice) : 0n
     const value = request.data.value ? BigInt(request.data.value) : undefined
 
