@@ -10,7 +10,7 @@ import { inputPrompt } from '../../ui'
 export class DecryptCommand extends IronfishCommand {
   static hidden = true
 
-  static description = 'Decrypt accounts in the wallet'
+  static description = 'decrypt accounts in the wallet'
 
   static flags = {
     ...RemoteFlags,
