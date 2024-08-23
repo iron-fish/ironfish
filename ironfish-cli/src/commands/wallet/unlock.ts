@@ -10,7 +10,7 @@ import { inputPrompt } from '../../ui'
 export class UnlockCommand extends IronfishCommand {
   static hidden = true
 
-  static description = 'Unlock accounts in the wallet'
+  static description = 'unlock accounts in the wallet'
 
   static flags = {
     ...RemoteFlags,
