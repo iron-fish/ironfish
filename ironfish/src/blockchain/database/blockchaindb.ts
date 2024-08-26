@@ -407,6 +407,12 @@ export class BlockchainDB extends TransactionalDatabase {
     return this.transactionHashToBlockHash.del(transactionHash, tx)
   }
 
+  async getEthTransactionHashToTransactionHash(
+    ethTransactionHash: Buffer,
+    tx?: IDatabaseTransaction,
+  ) {
+    return this.ethTransactionHashToTransactionHash.get(ethTransactionHash, tx)
+  }
   async putEthTransactionHashToTransactionHash(
     ethTransactionHash: Buffer,
     transactionHash: Buffer,
