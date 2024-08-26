@@ -1875,6 +1875,10 @@ export class Wallet {
       this.stopUnlockTimeout()
       this.accountById.clear()
       this.locked = true
+
+      this.logger.info(
+        'Wallet locked. Unlock the wallet to view your accounts and create transactions',
+      )
     } finally {
       unlock()
     }
