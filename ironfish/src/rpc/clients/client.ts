@@ -174,16 +174,16 @@ import type {
   UseAccountResponse,
 } from '../routes'
 import {
+  BlockNumberRequest,
+  BlockNumberResponse,
+  EthSendTransactionRequest,
+  EthSendTransactionResponse,
   GetAccountRequest,
   GetAccountResponse,
   SendRawTransactionRequest,
   SendRawTransactionResponse,
 } from '../routes/eth'
 import { EthCallRequest, EthCallResponse } from '../routes/eth/call'
-import {
-  EthSendTransactionRequest,
-  EthSendTransactionResponse,
-} from '../routes/eth/sendTransaction'
 import { ApiNamespace } from '../routes/namespaces'
 
 export abstract class RpcClient {
@@ -1043,6 +1043,14 @@ export abstract class RpcClient {
     },
     call: (params: EthCallRequest): Promise<RpcResponseEnded<EthCallResponse>> => {
       return this.request<EthCallResponse>(`${ApiNamespace.eth}/call`, params).waitForEnd()
+    },
+    blockNumber: (
+      params: BlockNumberRequest = undefined,
+    ): Promise<RpcResponseEnded<BlockNumberResponse>> => {
+      return this.request<BlockNumberResponse>(
+        `${ApiNamespace.eth}/blockNumber`,
+        params,
+      ).waitForEnd()
     },
   }
 }
