@@ -4,6 +4,7 @@
 export * from './call'
 export * from './blockNumber'
 export * from './getAccount'
+export * from './getBalance'
 export * from './sendRawTransaction'
 export * from './sendTransaction'
 export * from './ethRouter'
