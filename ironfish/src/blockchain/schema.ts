@@ -61,3 +61,8 @@ export interface TransactionHashToBlockHashSchema extends DatabaseSchema {
   key: TransactionHash
   value: BlockHash
 }
+
+export interface ethTransactionHashToTransactionHashSchema extends DatabaseSchema {
+  key: Buffer
+  value: TransactionHash
+}

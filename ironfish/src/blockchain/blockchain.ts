@@ -37,6 +37,7 @@ import {
   RawBlockHeader,
   transactionCommitment,
 } from '../primitives/blockheader'
+import { evmDescriptionToLegacyTransaction } from '../primitives/evmDescription'
 import {
   NoteEncrypted,
   NoteEncryptedHash,
@@ -1316,6 +1317,12 @@ export class Blockchain {
       if (transaction.evm) {
         const evmResult = await this.evm.runDesc(transaction.evm)
         const evmVerify = this.verifier.verifyEvm(transaction, evmResult)
+        const ethTransaction = evmDescriptionToLegacyTransaction(transaction.evm)
+        await this.blockchainDb.putEthTransactionHashToTransactionHash(
+          Buffer.from(ethTransaction.hash()),
+          transaction.hash(),
+          tx,
+        )
         this.logger.info(
           `created contract address ${evmResult.result?.createdAddress?.toString()}`,
         )
@@ -1346,6 +1353,12 @@ export class Blockchain {
       await this.deleteDisconnectedBurnsFromAssetsStore(transaction, tx)
       await this.deleteDisconnectedMintsFromAssetsStore(transaction, tx)
       await this.blockchainDb.deleteTransactionHashToBlockHash(transaction.hash(), tx)
+      if (transaction.evm) {
+        await this.blockchainDb.deleteEthTransactionHashToTransactionHash(
+          Buffer.from(evmDescriptionToLegacyTransaction(transaction.evm).hash()),
+          tx,
+        )
+      }
     }
 
     await this.blockchainDb.deleteNextHash(prev.hash, tx)

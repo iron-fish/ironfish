@@ -24,6 +24,7 @@ import {
   AssetSchema,
   AssetToContractTokenSchema,
   ContractTokenToAssetSchema,
+  ethTransactionHashToTransactionHashSchema,
   HashToNextSchema,
   HeadersSchema,
   MetaSchema,
@@ -64,6 +65,8 @@ export class BlockchainDB extends TransactionalDatabase {
   contractTokenToAssetId: IDatabaseStore<ContractTokenToAssetSchema>
   // TransactionHash -> BlockHash
   transactionHashToBlockHash: IDatabaseStore<TransactionHashToBlockHashSchema>
+  // EthTransactionHash -> TransactionHash
+  ethTransactionHashToTransactionHash: IDatabaseStore<ethTransactionHashToTransactionHashSchema>
 
   stateManager: IronfishStateManager
 
@@ -134,6 +137,12 @@ export class BlockchainDB extends TransactionalDatabase {
 
     this.transactionHashToBlockHash = this.db.addStore({
       name: 'tb',
+      keyEncoding: BUFFER_ENCODING,
+      valueEncoding: BUFFER_ENCODING,
+    })
+
+    this.ethTransactionHashToTransactionHash = this.db.addStore({
+      name: 'ett',
       keyEncoding: BUFFER_ENCODING,
       valueEncoding: BUFFER_ENCODING,
     })
@@ -396,6 +405,21 @@ export class BlockchainDB extends TransactionalDatabase {
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     return this.transactionHashToBlockHash.del(transactionHash, tx)
+  }
+
+  async putEthTransactionHashToTransactionHash(
+    ethTransactionHash: Buffer,
+    transactionHash: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    return this.ethTransactionHashToTransactionHash.put(ethTransactionHash, transactionHash, tx)
+  }
+
+  async deleteEthTransactionHashToTransactionHash(
+    ethTransactionHash: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    return this.ethTransactionHashToTransactionHash.del(ethTransactionHash, tx)
   }
 
   async compact(): Promise<void> {
