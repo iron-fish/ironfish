@@ -14,6 +14,11 @@ export async function useAccount(
     return account
   }
 
+  const status = await client.wallet.getAccountsStatus()
+  if (status.content.locked) {
+    throw new Error('Wallet is locked. Unlock the wallet to fetch accounts')
+  }
+
   const defaultAccount = await client.wallet.getAccounts({ default: true })
 
   if (defaultAccount.content.accounts.length) {

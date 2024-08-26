@@ -12,6 +12,10 @@ import { serializeRpcWalletNote } from './serializers'
 import { RpcWalletNote } from './types'
 
 export function getAccount(wallet: Wallet, name?: string): Account {
+  if (wallet.locked) {
+    throw new RpcValidationError('Wallet is locked. Unlock the wallet to fetch accounts')
+  }
+
   if (name) {
     const account = wallet.getAccountByName(name)
     if (account) {
