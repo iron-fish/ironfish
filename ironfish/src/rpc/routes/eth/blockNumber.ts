@@ -9,12 +9,11 @@ import { registerEthRoute } from '../eth/ethRouter'
 import { ApiNamespace } from '../namespaces'
 
 // eslint-disable-next-line @typescript-eslint/ban-types
-export type BlockNumberRequest = {} | undefined
+export type BlockNumberRequest = Record<string, never> | undefined
 
-export const BlockNumberRequestSchema: yup.ObjectSchema<BlockNumberRequest> = yup
-  .object({})
-  .notRequired()
-  .default({})
+export const BlockNumberRequestSchema: yup.MixedSchema<BlockNumberRequest> = yup
+  .mixed()
+  .oneOf([undefined] as const)
 
 export type BlockNumberResponse = {
   number: string
