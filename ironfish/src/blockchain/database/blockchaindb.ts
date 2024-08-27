@@ -25,6 +25,7 @@ import {
   AssetToContractTokenSchema,
   ContractTokenToAssetSchema,
   ethTransactionHashToTransactionHashSchema,
+  EvmReceiptSchema,
   HashToNextSchema,
   HeadersSchema,
   MetaSchema,
@@ -34,6 +35,7 @@ import {
   TransactionsSchema,
 } from '../schema'
 import { AssetValue, AssetValueEncoding } from './assetValue'
+import { EvmReceiptValue, EvmReceiptValueEncoding } from './evmReceiptValue'
 import { HeaderEncoding, HeaderValue } from './headers'
 import { SequenceToHashesValueEncoding } from './sequenceToHashes'
 import { TransactionsValue, TransactionsValueEncoding } from './transactions'
@@ -67,6 +69,8 @@ export class BlockchainDB extends TransactionalDatabase {
   transactionHashToBlockHash: IDatabaseStore<TransactionHashToBlockHashSchema>
   // EthTransactionHash -> TransactionHash
   ethTransactionHashToTransactionHash: IDatabaseStore<ethTransactionHashToTransactionHashSchema>
+  // EthTransactionHash -> Transaction Receipt
+  evmTransactionReceipts: IDatabaseStore<EvmReceiptSchema>
 
   stateManager: IronfishStateManager
 
@@ -145,6 +149,12 @@ export class BlockchainDB extends TransactionalDatabase {
       name: 'ett',
       keyEncoding: BUFFER_ENCODING,
       valueEncoding: BUFFER_ENCODING,
+    })
+
+    this.evmTransactionReceipts = this.db.addStore({
+      name: 'er',
+      keyEncoding: BUFFER_ENCODING,
+      valueEncoding: new EvmReceiptValueEncoding(),
     })
 
     this.stateManager = new IronfishStateManager(this.db)
@@ -420,6 +430,18 @@ export class BlockchainDB extends TransactionalDatabase {
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     return this.ethTransactionHashToTransactionHash.del(ethTransactionHash, tx)
+  }
+
+  async putEvmReceipt(
+    ethTransactionHash: Buffer,
+    receipt: EvmReceiptValue,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    return this.evmTransactionReceipts.put(ethTransactionHash, receipt, tx)
+  }
+
+  async deleteEvmReceipt(ethTransactionHash: Buffer, tx?: IDatabaseTransaction): Promise<void> {
+    return this.evmTransactionReceipts.del(ethTransactionHash, tx)
   }
 
   async compact(): Promise<void> {

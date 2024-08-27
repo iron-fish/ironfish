@@ -51,6 +51,7 @@ import { AsyncUtils, BenchUtils, HashUtils } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { AssetValue } from './database/assetValue'
 import { BlockchainDB, BlockchainDBTransaction } from './database/blockchaindb'
+import { runTxResultToEvmReceipt } from './database/evmReceiptValue'
 import { TransactionsValue } from './database/transactions'
 import { NullifierSet } from './nullifierSet/nullifierSet'
 
@@ -1318,17 +1319,23 @@ export class Blockchain {
         const evmResult = await this.evm.runDesc(transaction.evm)
         const evmVerify = this.verifier.verifyEvm(transaction, evmResult)
         const ethTransaction = evmDescriptionToLegacyTransaction(transaction.evm)
-        await this.blockchainDb.putEthTransactionHashToTransactionHash(
-          Buffer.from(ethTransaction.hash()),
-          transaction.hash(),
-          tx,
-        )
         this.logger.info(
           `created contract address ${evmResult.result?.createdAddress?.toString()}`,
         )
         if (!evmVerify.valid) {
           throw Error(evmVerify.reason)
         }
+        await this.blockchainDb.putEthTransactionHashToTransactionHash(
+          Buffer.from(ethTransaction.hash()),
+          transaction.hash(),
+          tx,
+        )
+        Assert.isNotUndefined(evmResult.result)
+        await this.blockchainDb.putEvmReceipt(
+          Buffer.from(ethTransaction.hash()),
+          runTxResultToEvmReceipt(evmResult.result),
+          tx,
+        )
       }
     }
 
@@ -1355,6 +1362,10 @@ export class Blockchain {
       await this.blockchainDb.deleteTransactionHashToBlockHash(transaction.hash(), tx)
       if (transaction.evm) {
         await this.blockchainDb.deleteEthTransactionHashToTransactionHash(
+          Buffer.from(evmDescriptionToLegacyTransaction(transaction.evm).hash()),
+          tx,
+        )
+        await this.blockchainDb.deleteEvmReceipt(
           Buffer.from(evmDescriptionToLegacyTransaction(transaction.evm).hash()),
           tx,
         )

@@ -6,6 +6,7 @@ import { BlockHash } from '../primitives/blockheader'
 import { TransactionHash } from '../primitives/transaction'
 import { DatabaseSchema } from '../storage'
 import { AssetValue } from './database/assetValue'
+import { EvmReceiptValue } from './database/evmReceiptValue'
 import { HeaderValue } from './database/headers'
 import { SequenceToHashesValue } from './database/sequenceToHashes'
 import { TransactionsValue } from './database/transactions'
@@ -65,4 +66,9 @@ export interface TransactionHashToBlockHashSchema extends DatabaseSchema {
 export interface ethTransactionHashToTransactionHashSchema extends DatabaseSchema {
   key: Buffer
   value: TransactionHash
+}
+
+export interface EvmReceiptSchema extends DatabaseSchema {
+  key: Buffer
+  value: EvmReceiptValue
 }

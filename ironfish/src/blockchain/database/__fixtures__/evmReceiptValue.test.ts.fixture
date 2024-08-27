@@ -1,0 +1,32 @@
+{
+  "EvmReceiptValueEncoding serializes the value into a buffer and deserializes to the original value": [
+    {
+      "value": {
+        "version": 4,
+        "id": "68205589-3a91-4466-be12-16cb1a9072be",
+        "name": "ifReceivingAccount",
+        "spendingKey": "7e79e63f44e3c4879fa297631768ef4de3355acb7fd47e4633b5a8aff718fc67",
+        "viewKey": "2e8cf0a06cc36a397aa36b4d5119a8addcc7e7bfdd4530079405cd59b70ba54028d8af1f21375c554c30a583047dcdc2f9044eb850b71062408e93caefdae655",
+        "incomingViewKey": "0c6b36a987e6be4059fa0facac0ae124e025e8f95e0137f2f78964d978f8d201",
+        "outgoingViewKey": "4d6ba8301fc5ffc49aafb04b80e3ebcbf022192a2d02dbab85f793cd0eb6f7e2",
+        "publicAddress": "13ac843bf793979dbb62e9eed1c4cdf0a617a8c2792b40f32c5c6c049b47000d",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "37b422aa9c3b21eb2fe14ae7e8b99f3881558fa47e5b0a99e73f2595a7de3b0e"
+      },
+      "head": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      }
+    }
+  ]
+}
