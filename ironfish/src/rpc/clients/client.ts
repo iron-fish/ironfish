@@ -75,6 +75,8 @@ import type {
   GetBalancesResponse,
   GetBannedPeersRequest,
   GetBannedPeersResponse,
+  GetBlockByNumberRequest,
+  GetBlockByNumberResponse,
   GetBlockRequest,
   GetBlockResponse,
   GetBlocksRequest,
@@ -1042,6 +1044,14 @@ export abstract class RpcClient {
     ): Promise<RpcResponseEnded<GetTransactionByHashResponse>> => {
       return this.request<GetTransactionByHashResponse>(
         `${ApiNamespace.eth}/getTransactionByHash`,
+        params,
+      ).waitForEnd()
+    },
+    getBlockByNumber: (
+      params: GetBlockByNumberRequest,
+    ): Promise<RpcResponseEnded<GetBlockByNumberResponse>> => {
+      return this.request<GetBlockByNumberResponse>(
+        `${ApiNamespace.eth}/getBlockByNumber`,
         params,
       ).waitForEnd()
     },
