@@ -126,7 +126,7 @@ registerEthRoute<typeof GetTransactionByHashRequestSchema, GetTransactionByHashR
       gasPrice: EthUtils.prefix0x(ethTransaction.gasPrice.toString(16)),
       maxFeePerGas: '0x',
       maxPriorityFeePerGas: '0x',
-      hash: EthUtils.prefix0x(transaction.transaction.hash().toString('hex')),
+      hash: EthUtils.prefix0x(Buffer.from(ethTransaction.hash()).toString('hex')),
       input: EthUtils.prefix0x(Buffer.from(ethTransaction.data).toString('hex')),
       nonce: EthUtils.prefix0x(ethTransaction.nonce.toString(16)),
       to: ethTransaction.to === undefined ? null : ethTransaction.to.toString(),
