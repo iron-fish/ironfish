@@ -176,6 +176,8 @@ import type {
 import {
   BlockNumberRequest,
   BlockNumberResponse,
+  EthGetBalanceRequest,
+  EthGetBalanceResponse,
   EthSendTransactionRequest,
   EthSendTransactionResponse,
   GetAccountRequest,
@@ -1022,6 +1024,14 @@ export abstract class RpcClient {
     getAccount: (params: GetAccountRequest): Promise<RpcResponseEnded<GetAccountResponse>> => {
       return this.request<GetAccountResponse>(
         `${ApiNamespace.eth}/getAccount`,
+        params,
+      ).waitForEnd()
+    },
+    getBalance: (
+      params: EthGetBalanceRequest,
+    ): Promise<RpcResponseEnded<EthGetBalanceResponse>> => {
+      return this.request<EthGetBalanceResponse>(
+        `${ApiNamespace.eth}/getBalance`,
         params,
       ).waitForEnd()
     },
