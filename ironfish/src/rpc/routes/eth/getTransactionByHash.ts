@@ -5,7 +5,6 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { FullNode } from '../../../node'
-import { Transaction } from '../../../primitives'
 import { evmDescriptionToLegacyTransaction } from '../../../primitives/evmDescription'
 import { EthUtils } from '../../../utils'
 import { RpcNotFoundError } from '../../adapters'
@@ -89,54 +88,39 @@ registerEthRoute<typeof GetTransactionByHashRequestSchema, GetTransactionByHashR
     if (!blockHeader) {
       throw new RpcNotFoundError(`Block header not found for transaction ${request.data}`)
     }
-    const transactions = await node.chain.getBlockTransactions(blockHeader)
+    const retrieved = await node.chain.getBlockTransaction(blockHeader, transactionHash)
 
-    let transaction:
-      | {
-          transaction: Transaction
-          initialNoteIndex: number
-          sequence: number
-          blockHash: Buffer
-          previousBlockHash: Buffer
-          timestamp: Date
-        }
-      | undefined = undefined
-    let transactionNum = 0
-    for (const tx of transactions) {
-      if (tx.transaction.hash().equals(transactionHash)) {
-        transaction = tx
-        break
-      }
-      transactionNum += 1
-    }
-    if (!transaction) {
+    if (!retrieved) {
       throw new RpcNotFoundError(`Transaction ${request.data} not found`)
     }
-    if (!transaction.transaction.evm) {
+    if (!retrieved.transaction.transaction.evm) {
       throw new RpcNotFoundError(`Transaction ${request.data} does not have EVM description`)
     }
-    const ethTransaction = evmDescriptionToLegacyTransaction(transaction.transaction.evm)
+    const ethTransaction = evmDescriptionToLegacyTransaction(
+      retrieved.transaction.transaction.evm,
+    )
+
     // TODO deal with items that are mocked
     request.end({
-      blockHash: EthUtils.prefix0x(transaction.blockHash.toString('hex')),
-      blockNumber: EthUtils.prefix0x(transaction.sequence.toString(16)),
-      transactionIndex: EthUtils.prefix0x(transactionNum.toString(16)),
+      blockHash: EthUtils.prefix0x(retrieved.transaction.blockHash.toString('hex')),
+      blockNumber: EthUtils.numToHex(retrieved.transaction.sequence),
+      transactionIndex: EthUtils.numToHex(retrieved.index),
       from: ethTransaction.getSenderAddress().toString(),
-      gas: EthUtils.prefix0x(ethTransaction.gasLimit.toString(16)),
-      gasPrice: EthUtils.prefix0x(ethTransaction.gasPrice.toString(16)),
+      gas: EthUtils.numToHex(ethTransaction.gasLimit),
+      gasPrice: EthUtils.numToHex(ethTransaction.gasPrice),
       maxFeePerGas: '0x',
       maxPriorityFeePerGas: '0x',
       hash: EthUtils.prefix0x(Buffer.from(ethTransaction.hash()).toString('hex')),
       input: EthUtils.prefix0x(Buffer.from(ethTransaction.data).toString('hex')),
-      nonce: EthUtils.prefix0x(ethTransaction.nonce.toString(16)),
+      nonce: EthUtils.numToHex(ethTransaction.nonce),
       to: ethTransaction.to === undefined ? null : ethTransaction.to.toString(),
-      value: EthUtils.prefix0x(ethTransaction.value.toString(16)),
-      type: EthUtils.prefix0x(ethTransaction.type.toString(16)),
+      value: EthUtils.numToHex(ethTransaction.value),
+      type: EthUtils.numToHex(ethTransaction.type),
       accessList: [],
       chainId: '0x42069',
-      v: EthUtils.prefix0x(ethTransaction.v?.toString(16) ?? ''),
-      r: EthUtils.prefix0x(ethTransaction.r?.toString(16) ?? ''),
-      s: EthUtils.prefix0x(ethTransaction.s?.toString(16) ?? ''),
+      v: EthUtils.numToHex(ethTransaction.v ?? 0),
+      r: EthUtils.numToHex(ethTransaction.r ?? 0),
+      s: EthUtils.numToHex(ethTransaction.s ?? 0),
       yParity: '0x1',
     })
   },

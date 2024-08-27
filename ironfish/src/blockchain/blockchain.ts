@@ -56,6 +56,15 @@ import { NullifierSet } from './nullifierSet/nullifierSet'
 
 export const VERSION_DATABASE_CHAIN = 28
 
+type BlockTransaction = {
+  transaction: Transaction
+  initialNoteIndex: number
+  sequence: number
+  blockHash: Buffer
+  previousBlockHash: Buffer
+  timestamp: Date
+}
+
 export class Blockchain {
   logger: Logger
   verifier: Verifier
@@ -1227,19 +1236,28 @@ export class Blockchain {
     }
   }
 
+  async getBlockTransaction(
+    header: BlockHeader,
+    hash: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<{ index: number; transaction: BlockTransaction } | undefined> {
+    const transactions = await this.getBlockTransactions(header, tx)
+    let transaction
+    let transactionNum = 0
+    for (const tx of transactions) {
+      if (tx.transaction.hash().equals(hash)) {
+        transaction = tx
+        break
+      }
+      transactionNum += 1
+    }
+    return transaction ? { index: transactionNum, transaction: transaction } : undefined
+  }
+
   async getBlockTransactions(
     header: BlockHeader,
     tx?: IDatabaseTransaction,
-  ): Promise<
-    {
-      transaction: Transaction
-      initialNoteIndex: number
-      sequence: number
-      blockHash: Buffer
-      previousBlockHash: Buffer
-      timestamp: Date
-    }[]
-  > {
+  ): Promise<BlockTransaction[]> {
     const block = await this.getBlock(header, tx)
     if (!block) {
       return []
