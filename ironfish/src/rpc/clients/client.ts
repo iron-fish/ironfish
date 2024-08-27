@@ -119,6 +119,8 @@ import type {
   GetPublicKeyResponse,
   GetRpcStatusRequest,
   GetRpcStatusResponse,
+  GetTransactionByHashRequest,
+  GetTransactionByHashResponse,
   GetTransactionNotesRequest,
   GetTransactionNotesResponse,
   GetTransactionRequest,
@@ -1032,6 +1034,14 @@ export abstract class RpcClient {
     ): Promise<RpcResponseEnded<EthGetBalanceResponse>> => {
       return this.request<EthGetBalanceResponse>(
         `${ApiNamespace.eth}/getBalance`,
+        params,
+      ).waitForEnd()
+    },
+    getTransactionByHash: (
+      params: GetTransactionByHashRequest,
+    ): Promise<RpcResponseEnded<GetTransactionByHashResponse>> => {
+      return this.request<GetTransactionByHashResponse>(
+        `${ApiNamespace.eth}/getTransactionByHash`,
         params,
       ).waitForEnd()
     },
