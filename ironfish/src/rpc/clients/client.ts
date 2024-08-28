@@ -113,6 +113,8 @@ import type {
   GetIdentitiesResponse,
   GetIdentityRequest,
   GetIdentityResponse,
+  GetLogsRequest,
+  GetLogsResponse,
   GetLogStreamResponse,
   GetMempoolStatusResponse,
   GetMempoolTransactionResponse,
@@ -1053,6 +1055,9 @@ export abstract class RpcClient {
     },
     getCode: (params: GetCodeRequest): Promise<RpcResponseEnded<GetCodeResponse>> => {
       return this.request<GetCodeResponse>(`${ApiNamespace.eth}/getCode`, params).waitForEnd()
+    },
+    getLogs: (params: GetLogsRequest): Promise<RpcResponseEnded<GetLogsResponse>> => {
+      return this.request<GetLogsResponse>(`${ApiNamespace.eth}/getLogs`, params).waitForEnd()
     },
     getTransactionByHash: (
       params: GetTransactionByHashRequest,

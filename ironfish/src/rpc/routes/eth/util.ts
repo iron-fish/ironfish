@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { bytesToHex } from '@ethereumjs/util'
+import { Blockchain } from '../../../blockchain'
 import { EvmReceiptValue } from '../../../blockchain/database/evmReceiptValue'
 import { BlockHeader, Transaction } from '../../../primitives'
 import { evmDescriptionToLegacyTransaction } from '../../../primitives/evmDescription'
@@ -73,4 +74,16 @@ export function getEthRpcLogs(
   }
 
   return logs
+}
+
+export async function blockNumberToBlockHeader(
+  blockNumber: string,
+  chain: Blockchain,
+): Promise<BlockHeader | null> {
+  // TODO: latest, earliest, pending, safe or finalized in other chains, stubbing for now
+  if (blockNumber === 'latest') {
+    return Promise.resolve(chain.latest)
+  }
+
+  return chain.getHeaderAtSequence(Number(blockNumber))
 }
