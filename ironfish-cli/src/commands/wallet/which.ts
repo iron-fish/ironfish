@@ -25,6 +25,12 @@ export class WhichCommand extends IronfishCommand {
 
     const client = await this.connectRpc()
 
+    const response = await client.wallet.getAccountsStatus()
+    if (response.content.locked) {
+      this.log('Your wallet is locked. Unlock the wallet to access your accounts')
+      this.exit(0)
+    }
+
     const {
       content: {
         accounts: [accountName],

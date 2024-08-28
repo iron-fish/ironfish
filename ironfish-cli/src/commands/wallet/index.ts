@@ -25,6 +25,11 @@ export class AccountsCommand extends IronfishCommand {
 
     const response = await client.wallet.getAccountsStatus()
 
+    if (response.content.locked) {
+      this.log('Your wallet is locked. Unlock the wallet to access your accounts')
+      this.exit(0)
+    }
+
     if (response.content.accounts.length === 0) {
       this.log('you have no accounts')
       return []
