@@ -187,7 +187,9 @@ function renderStatus(content: GetNodeStatusResponse, debugOutput: boolean): str
   ).toFixed(1)}%)`
 
   let accountStatus
-  if (content.accounts.scanning === undefined) {
+  if (content.accounts.locked) {
+    accountStatus = 'LOCKED'
+  } else if (content.accounts.scanning === undefined) {
     accountStatus = `IDLE`
   } else {
     accountStatus = `SCANNING`
