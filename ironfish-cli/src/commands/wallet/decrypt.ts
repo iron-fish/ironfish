@@ -32,7 +32,9 @@ export class DecryptCommand extends IronfishCommand {
 
     let passphrase = flags.passphrase
     if (!passphrase) {
-      passphrase = await inputPrompt('Enter a passphrase to decrypt the wallet', true)
+      passphrase = await inputPrompt('Enter a passphrase to decrypt the wallet', true, {
+        password: true,
+      })
     }
 
     try {
