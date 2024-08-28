@@ -85,46 +85,51 @@ registerEthRoute<typeof GetBlockByNumberRequestSchema, GetBlockByNumberResponse>
       throw new RpcNotFoundError(`Block ${blockNumber} not found`)
     }
 
-    const blockHeader = block.header
-    const transactions: (string | EthRpcTransaction)[] = []
-    let index = 0
-    for (const transaction of block.transactions) {
-      if (transaction.evm) {
-        const txInfo = transactionDetailFlag
-          ? blockTransactionToEthRpcTransaction(transaction, block.header, index)
-          : bytesToHex(evmDescriptionToLegacyTransaction(transaction.evm).hash())
-        transactions.push(txInfo)
-      }
-      index += 1
-    }
-
-    // TODO handle mocked fields
-    const response: GetBlockByNumberResponse = {
-      baseFeePerGas: '0x0',
-      difficulty: '0x0',
-      extraData: '0x',
-      gasLimit: '0x0',
-      gasUsed: '0x0',
-      hash: EthUtils.prefix0x(blockHeader.hash.toString('hex')),
-      logsBloom: '0x',
-      miner: '0x',
-      mixHash: '0x',
-      nonce: '0x',
-      number: EthUtils.numToHex(blockHeader.sequence),
-      parentHash: EthUtils.prefix0x(blockHeader.previousBlockHash.toString('hex')),
-      receiptsRoot: '0x',
-      sha3Uncles: '0x',
-      size: EthUtils.numToHex(getBlockSize(block)),
-      stateRoot: EthUtils.prefix0x(
-        blockHeader.stateCommitment ? blockHeader.stateCommitment.toString('hex') : '0x',
-      ),
-      timestamp: EthUtils.numToHex(Math.floor(blockHeader.timestamp.getTime() / 1000)),
-      totalDifficulty: EthUtils.numToHex(blockHeader.target.toDifficulty()),
-      transactions,
-      transactionsRoot: EthUtils.prefix0x(blockHeader.transactionCommitment.toString('hex')),
-      uncles: [],
-    }
-
-    request.end(response)
+    request.end(ethBlockResponse(block, transactionDetailFlag))
   },
 )
+
+export const ethBlockResponse = (
+  block: Block,
+  transactionDetailFlag: boolean,
+): GetBlockByNumberResponse => {
+  const blockHeader = block.header
+  const transactions: (string | EthRpcTransaction)[] = []
+  let index = 0
+  for (const transaction of block.transactions) {
+    if (transaction.evm) {
+      const txInfo = transactionDetailFlag
+        ? blockTransactionToEthRpcTransaction(transaction, block.header, index)
+        : bytesToHex(evmDescriptionToLegacyTransaction(transaction.evm).hash())
+      transactions.push(txInfo)
+    }
+    index += 1
+  }
+
+  // TODO handle mocked fields
+  return {
+    baseFeePerGas: '0x0',
+    difficulty: '0x0',
+    extraData: '0x',
+    gasLimit: '0x0',
+    gasUsed: '0x0',
+    hash: EthUtils.prefix0x(blockHeader.hash.toString('hex')),
+    logsBloom: '0x',
+    miner: '0x',
+    mixHash: '0x',
+    nonce: '0x',
+    number: EthUtils.numToHex(blockHeader.sequence),
+    parentHash: EthUtils.prefix0x(blockHeader.previousBlockHash.toString('hex')),
+    receiptsRoot: '0x',
+    sha3Uncles: '0x',
+    size: EthUtils.numToHex(getBlockSize(block)),
+    stateRoot: EthUtils.prefix0x(
+      blockHeader.stateCommitment ? blockHeader.stateCommitment.toString('hex') : '0x',
+    ),
+    timestamp: EthUtils.numToHex(Math.floor(blockHeader.timestamp.getTime() / 1000)),
+    totalDifficulty: EthUtils.numToHex(blockHeader.target.toDifficulty()),
+    transactions,
+    transactionsRoot: EthUtils.prefix0x(blockHeader.transactionCommitment.toString('hex')),
+    uncles: [],
+  }
+}
