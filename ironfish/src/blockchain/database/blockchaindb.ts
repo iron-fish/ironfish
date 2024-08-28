@@ -440,6 +440,13 @@ export class BlockchainDB extends TransactionalDatabase {
     return this.evmTransactionReceipts.put(ethTransactionHash, receipt, tx)
   }
 
+  async getEvmReceipt(
+    ethTransactionHash: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<EvmReceiptValue | undefined> {
+    return this.evmTransactionReceipts.get(ethTransactionHash, tx)
+  }
+
   async deleteEvmReceipt(ethTransactionHash: Buffer, tx?: IDatabaseTransaction): Promise<void> {
     return this.evmTransactionReceipts.del(ethTransactionHash, tx)
   }
