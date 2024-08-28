@@ -5,11 +5,11 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { FullNode } from '../../../node'
-import { evmDescriptionToLegacyTransaction } from '../../../primitives/evmDescription'
 import { EthUtils } from '../../../utils'
 import { RpcNotFoundError } from '../../adapters'
 import { registerEthRoute } from '../eth/ethRouter'
 import { ApiNamespace } from '../namespaces'
+import { blockTransactionToEthRpcTransaction } from './util'
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 export type GetTransactionByHashRequest = string
@@ -93,35 +93,12 @@ registerEthRoute<typeof GetTransactionByHashRequestSchema, GetTransactionByHashR
     if (!retrieved) {
       throw new RpcNotFoundError(`Transaction ${request.data} not found`)
     }
-    if (!retrieved.transaction.transaction.evm) {
-      throw new RpcNotFoundError(`Transaction ${request.data} does not have EVM description`)
-    }
-    const ethTransaction = evmDescriptionToLegacyTransaction(
-      retrieved.transaction.transaction.evm,
+    request.end(
+      blockTransactionToEthRpcTransaction(
+        retrieved.transaction.transaction,
+        blockHeader,
+        retrieved.index,
+      ),
     )
-
-    // TODO deal with items that are mocked
-    request.end({
-      blockHash: EthUtils.prefix0x(retrieved.transaction.blockHash.toString('hex')),
-      blockNumber: EthUtils.numToHex(retrieved.transaction.sequence),
-      transactionIndex: EthUtils.numToHex(retrieved.index),
-      from: ethTransaction.getSenderAddress().toString(),
-      gas: EthUtils.numToHex(ethTransaction.gasLimit),
-      gasPrice: EthUtils.numToHex(ethTransaction.gasPrice),
-      maxFeePerGas: '0x',
-      maxPriorityFeePerGas: '0x',
-      hash: EthUtils.prefix0x(Buffer.from(ethTransaction.hash()).toString('hex')),
-      input: EthUtils.prefix0x(Buffer.from(ethTransaction.data).toString('hex')),
-      nonce: EthUtils.numToHex(ethTransaction.nonce),
-      to: ethTransaction.to === undefined ? null : ethTransaction.to.toString(),
-      value: EthUtils.numToHex(ethTransaction.value),
-      type: EthUtils.numToHex(ethTransaction.type),
-      accessList: [],
-      chainId: '0x42069',
-      v: EthUtils.numToHex(ethTransaction.v ?? 0),
-      r: EthUtils.numToHex(ethTransaction.r ?? 0),
-      s: EthUtils.numToHex(ethTransaction.s ?? 0),
-      yParity: '0x1',
-    })
   },
 )
