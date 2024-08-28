@@ -135,6 +135,8 @@ import type {
   GetRpcStatusResponse,
   GetTransactionByHashRequest,
   GetTransactionByHashResponse,
+  GetTransactionCountRequest,
+  GetTransactionCountResponse,
   GetTransactionNotesRequest,
   GetTransactionNotesResponse,
   GetTransactionRequest,
@@ -1045,6 +1047,14 @@ export abstract class RpcClient {
     ): Promise<RpcResponseEnded<GetTransactionByHashResponse>> => {
       return this.request<GetTransactionByHashResponse>(
         `${ApiNamespace.eth}/getTransactionByHash`,
+        params,
+      ).waitForEnd()
+    },
+    getTransactionCount: (
+      params: GetTransactionCountRequest,
+    ): Promise<RpcResponseEnded<GetTransactionCountResponse>> => {
+      return this.request<GetTransactionCountResponse>(
+        `${ApiNamespace.eth}/getTransactionCount`,
         params,
       ).waitForEnd()
     },
