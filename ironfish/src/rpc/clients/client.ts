@@ -1068,6 +1068,14 @@ export abstract class RpcClient {
         params,
       ).waitForEnd()
     },
+    getTransactionCount: (
+      params: GetTransactionCountRequest,
+    ): Promise<RpcResponseEnded<GetTransactionCountResponse>> => {
+      return this.request<GetTransactionCountResponse>(
+        `${ApiNamespace.eth}/getTransactionCount`,
+        params,
+      ).waitForEnd()
+    },
     getBlockByNumber: (
       params: GetBlockByNumberRequest,
     ): Promise<RpcResponseEnded<GetBlockByNumberResponse>> => {
