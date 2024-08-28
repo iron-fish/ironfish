@@ -9,7 +9,7 @@ import { useAccountFixture, useMinerBlockFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { EthUtils } from '../../../utils'
 
-describe('Route eth/getBlockByNumber', () => {
+describe('Route eth/getBlockByHash', () => {
   const routeTest = createRouteTest()
 
   beforeAll(() => {
@@ -50,7 +50,10 @@ describe('Route eth/getBlockByNumber', () => {
 
     const ethHash = evmDescriptionToLegacyTransaction(transaction.evm!).hash()
     const ethHashString = bytesToHex(ethHash)
-    const result = await routeTest.client.eth.getBlockByNumber(['0x2', true])
+    const result = await routeTest.client.eth.getBlockByHash([
+      EthUtils.prefix0x(block1.header.hash.toString('hex')),
+      true,
+    ])
 
     expect(result.status).toEqual(200)
 

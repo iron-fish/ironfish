@@ -11,6 +11,8 @@ import type {
   AddTransactionResponse,
   AggregateSignatureSharesRequest,
   AggregateSignatureSharesResponse,
+  BlockNumberRequest,
+  BlockNumberResponse,
   BlockTemplateStreamRequest,
   BlockTemplateStreamResponse,
   BroadcastTransactionRequest,
@@ -43,8 +45,14 @@ import type {
   EstimateFeeRateResponse,
   EstimateFeeRatesRequest,
   EstimateFeeRatesResponse,
+  EthCallRequest,
+  EthCallResponse,
+  EthGetBalanceRequest,
+  EthGetBalanceResponse,
   EthRequest,
   EthResponse,
+  EthSendTransactionRequest,
+  EthSendTransactionResponse,
   ExportAccountRequest,
   ExportAccountResponse,
   ExportChainStreamRequest,
@@ -55,6 +63,8 @@ import type {
   GetAccountIdentitiesResponse,
   GetAccountNotesStreamRequest,
   GetAccountNotesStreamResponse,
+  GetAccountRequest,
+  GetAccountResponse,
   GetAccountsRequest,
   GetAccountsResponse,
   GetAccountsStatusRequest,
@@ -75,6 +85,8 @@ import type {
   GetBalancesResponse,
   GetBannedPeersRequest,
   GetBannedPeersResponse,
+  GetBlockByHashRequest,
+  GetBlockByHashResponse,
   GetBlockByNumberRequest,
   GetBlockByNumberResponse,
   GetBlockRequest,
@@ -157,6 +169,8 @@ import type {
   RescanResponse,
   ResetAccountRequest,
   ResetAccountResponse,
+  SendRawTransactionRequest,
+  SendRawTransactionResponse,
   SendTransactionRequest,
   SendTransactionResponse,
   SetAccountHeadRequest,
@@ -177,19 +191,6 @@ import type {
   UseAccountRequest,
   UseAccountResponse,
 } from '../routes'
-import {
-  BlockNumberRequest,
-  BlockNumberResponse,
-  EthGetBalanceRequest,
-  EthGetBalanceResponse,
-  EthSendTransactionRequest,
-  EthSendTransactionResponse,
-  GetAccountRequest,
-  GetAccountResponse,
-  SendRawTransactionRequest,
-  SendRawTransactionResponse,
-} from '../routes/eth'
-import { EthCallRequest, EthCallResponse } from '../routes/eth/call'
 import { ApiNamespace } from '../routes/namespaces'
 
 export abstract class RpcClient {
@@ -1052,6 +1053,14 @@ export abstract class RpcClient {
     ): Promise<RpcResponseEnded<GetBlockByNumberResponse>> => {
       return this.request<GetBlockByNumberResponse>(
         `${ApiNamespace.eth}/getBlockByNumber`,
+        params,
+      ).waitForEnd()
+    },
+    getBlockByHash: (
+      params: GetBlockByHashRequest,
+    ): Promise<RpcResponseEnded<GetBlockByHashResponse>> => {
+      return this.request<GetBlockByHashResponse>(
+        `${ApiNamespace.eth}/getBlockByHash`,
         params,
       ).waitForEnd()
     },
