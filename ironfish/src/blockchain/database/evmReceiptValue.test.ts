@@ -8,6 +8,7 @@ import { ethers } from 'ethers'
 import { Assert } from '../../assert'
 import { GLOBAL_CONTRACT_ADDRESS } from '../../evm'
 import { createNodeTest, useAccountFixture } from '../../testUtilities'
+import { EthUtils } from '../../utils'
 import { EvmReceiptValueEncoding, runTxResultToEvmReceipt } from './evmReceiptValue'
 
 describe('EvmReceiptValueEncoding', () => {
@@ -46,7 +47,7 @@ describe('EvmReceiptValueEncoding', () => {
       data: encodedFunctionData,
     })
 
-    const signed = tx.sign(Buffer.from(evmAccount.privateKey.replace(/0x/g, ''), 'hex'))
+    const signed = tx.sign(Buffer.from(EthUtils.remove0x(evmAccount.privateKey), 'hex'))
 
     const result = await chain.evm.simulateTx({ tx: signed })
 
