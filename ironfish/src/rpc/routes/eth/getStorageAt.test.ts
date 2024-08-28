@@ -1,10 +1,16 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { bytesToHex } from '@ethereumjs/util'
+import { CounterJson } from '@ironfish/ironfish-contracts'
+import { ethers } from 'ethers'
+import { Assert } from '../../../assert'
 import { Consensus } from '../../../consensus'
 import { TransactionVersion } from '../../../primitives'
+import { evmDescriptionToLegacyTransaction } from '../../../primitives/evmDescription'
 import { useAccountFixture, useMinerBlockFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
+import { EthUtils } from '../../../utils'
 
 describe('Route eth/getTransactionCount', () => {
   const routeTest = createRouteTest()
@@ -17,6 +23,9 @@ describe('Route eth/getTransactionCount', () => {
 
   it('should call retrieve correct transaction count', async () => {
     const senderIf = await useAccountFixture(routeTest.node.wallet, 'sender')
+    const factory = new ethers.ContractFactory(CounterJson.abi, CounterJson.bytecode)
+    const contract = await factory.getDeployTransaction()
+
     const raw = await routeTest.wallet.createEvmTransaction({
       evm: {
         nonce: 0n,
@@ -26,7 +35,7 @@ describe('Route eth/getTransactionCount', () => {
         privateIron: BigInt(0),
         publicIron: BigInt(0),
         to: undefined,
-        data: Buffer.alloc(0),
+        data: Buffer.from(EthUtils.remove0x(contract.data), 'hex'),
       },
     })
 
@@ -41,12 +50,17 @@ describe('Route eth/getTransactionCount', () => {
     )
     await expect(routeTest.node.chain).toAddBlock(block1)
     await routeTest.node.wallet.scan()
-
-    // TODO need getTransactionReceipt rpc to get created address
-    const result = await routeTest.client.eth.getCode(['foo', 'latest'])
+    const receipt = await routeTest.client.eth.getTransactionReceipt(
+      bytesToHex(evmDescriptionToLegacyTransaction(transaction.evm!).hash()),
+    )
+    Assert.isTruthy(receipt.content.contractAddress)
+    const result = await routeTest.client.eth.getStorageAt([
+      receipt.content.contractAddress,
+      bytesToHex(Buffer.alloc(32, 0)),
+      'latest',
+    ])
 
     expect(result.status).toEqual(200)
-    // TODO update response
-    expect(result.content).toEqual('0x1')
+    expect(result.content).toEqual('0x01')
   })
 })
