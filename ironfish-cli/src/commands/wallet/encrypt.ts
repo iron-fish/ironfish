@@ -17,6 +17,9 @@ export class EncryptCommand extends IronfishCommand {
     passphrase: Flags.string({
       description: 'Passphrase to encrypt the wallet with',
     }),
+    confirm: Flags.boolean({
+      description: 'Suppress the passphrase confirmation prompt',
+    }),
   }
 
   async start(): Promise<void> {
@@ -32,7 +35,20 @@ export class EncryptCommand extends IronfishCommand {
 
     let passphrase = flags.passphrase
     if (!passphrase) {
-      passphrase = await inputPrompt('Enter a passphrase to encrypt the wallet', true)
+      passphrase = await inputPrompt('Enter a passphrase to encrypt the wallet', true, {
+        password: true,
+      })
+    }
+
+    if (!flags.confirm) {
+      const confirmedPassphrase = await inputPrompt('Confirm your passphrase', true, {
+        password: true,
+      })
+
+      if (confirmedPassphrase !== passphrase) {
+        this.log('Passphrases do not match')
+        this.exit(1)
+      }
     }
 
     try {

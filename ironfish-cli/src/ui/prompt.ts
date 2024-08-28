@@ -5,24 +5,28 @@
 import { ux } from '@oclif/core'
 import inquirer from 'inquirer'
 
-async function _inputPrompt(message: string): Promise<string> {
+async function _inputPrompt(message: string, options?: { password: boolean }): Promise<string> {
   const result: { prompt: string } = await inquirer.prompt({
-    type: 'input',
+    type: options?.password ? 'password' : 'input',
     name: 'prompt',
     message: `${message}:`,
   })
   return result.prompt.trim()
 }
 
-export async function inputPrompt(message: string, required: boolean = false): Promise<string> {
+export async function inputPrompt(
+  message: string,
+  required: boolean = false,
+  options?: { password: boolean },
+): Promise<string> {
   let userInput: string = ''
 
   if (required) {
     while (!userInput) {
-      userInput = await _inputPrompt(message)
+      userInput = await _inputPrompt(message, options)
     }
   } else {
-    userInput = await _inputPrompt(message)
+    userInput = await _inputPrompt(message, options)
   }
 
   return userInput
