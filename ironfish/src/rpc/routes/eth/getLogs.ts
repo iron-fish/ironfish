@@ -18,16 +18,36 @@ export type GetLogsRequest = {
   fromBlock?: string
   toBlock?: string
   address?: string
-  topics?: string[]
+  topics?: Array<string | null | Array<string>>
   blockHash?: string
 }
+
+type TopicFilter = string | null | Array<string>
+
+const TopicFilterSchema: yup.Schema<TopicFilter> = yup
+  .mixed<TopicFilter>()
+  .test('topic', 'invalid topic', (value) => {
+    if (typeof value === 'string') {
+      return true
+    } else if (Array.isArray(value)) {
+      if (value.every((e) => typeof e === 'string')) {
+        return true
+      } else {
+        return false
+      }
+    } else if (value === null) {
+      return true
+    }
+
+    return false
+  })
 
 export const GetLogsRequestSchema: yup.ObjectSchema<GetLogsRequest> = yup
   .object({
     fromBlock: yup.string().optional().default('latest'),
     toBlock: yup.string().optional().default('latest'),
     address: yup.string().optional(),
-    topics: yup.array().of(yup.string().defined()).optional(),
+    topics: yup.array().of(TopicFilterSchema).optional(),
     blockHash: yup.string().optional(),
   })
   .defined()
@@ -110,7 +130,7 @@ registerEthRoute<typeof GetLogsRequestSchema, GetLogsResponse>(
   },
 )
 
-function filterLogs(logs: EthRpcLog[], address?: string, topics?: string[]): EthRpcLog[] {
+function filterLogs(logs: EthRpcLog[], address?: string, topics?: TopicFilter[]): EthRpcLog[] {
   return logs.filter((log) => {
     let include = true
     if (address) {
@@ -122,7 +142,13 @@ function filterLogs(logs: EthRpcLog[], address?: string, topics?: string[]): Eth
         include = false
       } else {
         for (const [index, filterTopic] of topics.entries()) {
-          include = log.topics[index] === filterTopic
+          if (filterTopic === null) {
+            continue
+          } else if (typeof filterTopic === 'string') {
+            include = log.topics[index] === filterTopic
+          } else {
+            include = filterTopic.find((orTopic) => orTopic === log.topics[index]) !== undefined
+          }
         }
       }
     }
