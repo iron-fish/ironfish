@@ -8,8 +8,7 @@ import { FullNode } from '../../../node'
 import { registerEthRoute } from '../eth/ethRouter'
 import { ApiNamespace } from '../namespaces'
 
-// eslint-disable-next-line @typescript-eslint/ban-types
-export type BlockNumberRequest = Record<string, never> | undefined
+export type BlockNumberRequest = undefined
 
 export const BlockNumberRequestSchema: yup.MixedSchema<BlockNumberRequest> = yup
   .mixed()

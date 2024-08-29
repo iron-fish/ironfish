@@ -5,6 +5,8 @@ import type { RpcResponse, RpcResponseEnded } from '../response'
 import type {
   AcceptTransactionRequest,
   AcceptTransactionResponse,
+  AccountsRequest,
+  AccountsResponse,
   AddPeerRequest,
   AddPeerResponse,
   AddTransactionRequest,
@@ -1029,6 +1031,9 @@ export abstract class RpcClient {
   }
 
   eth = {
+    accounts: (params: AccountsRequest): Promise<RpcResponseEnded<AccountsResponse>> => {
+      return this.request<AccountsResponse>(`${ApiNamespace.eth}/accounts`, params).waitForEnd()
+    },
     ethRouter: (params: EthRequest): Promise<RpcResponseEnded<EthResponse>> => {
       return this.request<EthResponse>(`${ApiNamespace.eth}/ethRouter`, params).waitForEnd()
     },
