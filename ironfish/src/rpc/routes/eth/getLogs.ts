@@ -112,14 +112,12 @@ registerEthRoute<typeof GetLogsRequestSchema, GetLogsResponse>(
 
 function filterLogs(logs: EthRpcLog[], address?: string, topics?: string[]): EthRpcLog[] {
   const topicSet = topics ? new Set(topics) : new Set()
-  console.log(topics)
 
   return logs.filter((log) => {
     if (address) {
       return log.address === address
     }
 
-    console.log(log.topics)
     if (topics) {
       return log.topics.some((topic) => topicSet.has(topic))
     }
