@@ -114,14 +114,15 @@ function filterLogs(logs: EthRpcLog[], address?: string, topics?: string[]): Eth
   const topicSet = topics ? new Set(topics) : new Set()
 
   return logs.filter((log) => {
+    let include = true
     if (address) {
-      return log.address === address
+      include = log.address === address
     }
 
     if (topics) {
-      return log.topics.some((topic) => topicSet.has(topic))
+      include = log.topics.some((topic) => topicSet.has(topic))
     }
 
-    return true
+    return include
   })
 }
