@@ -111,8 +111,6 @@ registerEthRoute<typeof GetLogsRequestSchema, GetLogsResponse>(
 )
 
 function filterLogs(logs: EthRpcLog[], address?: string, topics?: string[]): EthRpcLog[] {
-  const topicSet = topics ? new Set(topics) : new Set()
-
   return logs.filter((log) => {
     let include = true
     if (address) {
@@ -120,7 +118,13 @@ function filterLogs(logs: EthRpcLog[], address?: string, topics?: string[]): Eth
     }
 
     if (topics) {
-      include = log.topics.some((topic) => topicSet.has(topic))
+      if (topics.length > log.topics.length) {
+        include = false
+      } else {
+        for (const [index, filterTopic] of topics.entries()) {
+          include = log.topics[index] === filterTopic
+        }
+      }
     }
 
     return include
