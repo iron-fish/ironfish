@@ -1,10 +1,12 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { bytesToHex } from '@ethereumjs/util'
+import { EvmReceiptValue } from '../../../blockchain/database/evmReceiptValue'
 import { BlockHeader, Transaction } from '../../../primitives'
 import { evmDescriptionToLegacyTransaction } from '../../../primitives/evmDescription'
 import { EthUtils } from '../../../utils'
-import { EthRpcTransaction } from './types'
+import { EthRpcLog, EthRpcTransaction } from './types'
 
 export function blockTransactionToEthRpcTransaction(
   transaction: Transaction,
@@ -38,4 +40,37 @@ export function blockTransactionToEthRpcTransaction(
     s: EthUtils.numToHex(ethTransaction.s ?? 0),
     yParity: '0x1',
   }
+}
+
+export function getEthRpcLogs(
+  transaction: Transaction,
+  blockHeader: BlockHeader,
+  index: number,
+  receipt: EvmReceiptValue,
+): Array<EthRpcLog> {
+  const logs = []
+
+  if (!transaction.evm) {
+    throw new Error('Transaction does not have EVM description')
+  }
+  const ethTransaction = evmDescriptionToLegacyTransaction(transaction.evm)
+  const transactionHash = bytesToHex(ethTransaction.hash())
+  const transactionIndex = EthUtils.numToHex(index)
+  const blockNumber = EthUtils.numToHex(blockHeader.sequence)
+  const blockHash = bytesToHex(blockHeader.hash)
+  for (const [i, [address, topics, data]] of receipt.logs.entries()) {
+    logs.push({
+      address: bytesToHex(address),
+      topics: topics.map(bytesToHex),
+      data: bytesToHex(data),
+      blockNumber,
+      blockHash,
+      transactionHash,
+      transactionIndex,
+      logIndex: EthUtils.numToHex(i),
+      removed: false, // we delete receipts when disconnecting blocks
+    })
+  }
+
+  return logs
 }

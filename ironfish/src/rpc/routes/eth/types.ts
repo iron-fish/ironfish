@@ -50,3 +50,29 @@ export const EthRpcTransactionSchema: yup.ObjectSchema<EthRpcTransaction> = yup
     yParity: yup.string().defined(),
   })
   .defined()
+
+export type EthRpcLog = {
+  address: string
+  topics: string[]
+  data: string
+  blockNumber: string
+  blockHash: string
+  transactionHash: string
+  transactionIndex: string
+  logIndex: string
+  removed: boolean
+}
+
+export const EthRpcLogSchema: yup.ObjectSchema<EthRpcLog> = yup
+  .object({
+    address: yup.string().defined(),
+    topics: yup.array().of(yup.string().defined()).defined(),
+    data: yup.string().defined(),
+    blockNumber: yup.string().defined(),
+    blockHash: yup.string().defined(),
+    transactionHash: yup.string().defined(),
+    transactionIndex: yup.string().defined(),
+    logIndex: yup.string().defined(),
+    removed: yup.bool().defined(),
+  })
+  .defined()
