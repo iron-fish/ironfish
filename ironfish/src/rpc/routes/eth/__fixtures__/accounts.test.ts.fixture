@@ -1,0 +1,32 @@
+{
+  "Route eth/accounts should fetch account addresses on the node": [
+    {
+      "value": {
+        "version": 4,
+        "id": "7ec28e97-bb6b-4bd8-b940-e4429b721c5f",
+        "name": "test",
+        "spendingKey": "3c2f8839eb562dd732a89e57d369956c40c8b657597c7514d81250fcfa5626a2",
+        "viewKey": "1888843c8c0eeef7cf1a404da7f00a0003aea5765e356a8101d5f179c27be7039d9f92c56ab51ddd74f40e3c3c0825659d3d355ed8c32504ffe61dfe43d2354d",
+        "incomingViewKey": "865e20c2635b03282117cc030dd49c5c542ad815dc05c1a34438113bdc91f600",
+        "outgoingViewKey": "54e025a54cd9960031da6a900a89e50f97ef290f8600bf4df60b8035f03811ee",
+        "publicAddress": "341a56ef8572d51e0505997ca366bde4f0e0e27e772bcd8d51fc62c5ac62f9b4",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "1335a3f93f267594215ec5f32cd68beef19dd8a13396052be2d07c4d730d6e0b"
+      },
+      "head": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      }
+    }
+  ]
+}
