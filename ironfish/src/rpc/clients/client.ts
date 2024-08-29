@@ -95,6 +95,8 @@ import type {
   GetBlocksResponse,
   GetChainInfoRequest,
   GetChainInfoResponse,
+  GetCodeRequest,
+  GetCodeResponse,
   GetConfigRequest,
   GetConfigResponse,
   GetConsensusParametersRequest,
@@ -1043,6 +1045,9 @@ export abstract class RpcClient {
         `${ApiNamespace.eth}/getBalance`,
         params,
       ).waitForEnd()
+    },
+    getCode: (params: GetCodeRequest): Promise<RpcResponseEnded<GetCodeResponse>> => {
+      return this.request<GetCodeResponse>(`${ApiNamespace.eth}/getCode`, params).waitForEnd()
     },
     getTransactionByHash: (
       params: GetTransactionByHashRequest,
