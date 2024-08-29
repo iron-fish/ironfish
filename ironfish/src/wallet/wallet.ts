@@ -1397,7 +1397,7 @@ export class Wallet {
 
   async importAccount(
     accountValue: AccountImport,
-    options?: { createdAt?: number },
+    options?: { createdAt?: number; passphrase?: string },
   ): Promise<Account> {
     let multisigKeys = accountValue.multisigKeys
     const name = accountValue.name
@@ -1468,7 +1468,18 @@ export class Wallet {
     })
 
     await this.walletDb.db.transaction(async (tx) => {
-      await this.walletDb.setAccount(account, tx)
+      const encrypted = await this.walletDb.accountsEncrypted(tx)
+
+      if (encrypted) {
+        Assert.isNotUndefined(options?.passphrase)
+
+        const validPassphrase = await this.canUnlockAccounts(options.passphrase, tx)
+        Assert.isTrue(validPassphrase, 'Your passphrase is incorrect')
+
+        await this.walletDb.setEncryptedAccount(account, options.passphrase, tx)
+      } else {
+        await this.walletDb.setAccount(account, tx)
+      }
 
       if (createdAt !== null) {
         const previousBlock = await this.chainGetBlock({ sequence: createdAt.sequence - 1 })
@@ -1909,6 +1920,13 @@ export class Wallet {
     } finally {
       unlock()
     }
+  }
+
+  private async canUnlockAccounts(
+    passphrase: string,
+    tx?: IDatabaseTransaction,
+  ): Promise<boolean> {
+    return this.walletDb.canDecryptAccounts(passphrase, tx)
   }
 
   private startUnlockTimeout(timeout?: number): void {

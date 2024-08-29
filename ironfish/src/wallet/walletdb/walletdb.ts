@@ -33,6 +33,7 @@ import { BloomFilter } from '../../utils/bloomFilter'
 import { WorkerPool } from '../../workerPool'
 import { Account, calculateAccountPrefix } from '../account/account'
 import { EncryptedAccount } from '../account/encryptedAccount'
+import { AccountDecryptionFailedError } from '../errors'
 import { AccountValue, AccountValueEncoding } from './accountValue'
 import { AssetValue, AssetValueEncoding } from './assetValue'
 import { BalanceValue, BalanceValueEncoding } from './balanceValue'
@@ -364,6 +365,66 @@ export class WalletDB {
           tx,
         )
       }
+    })
+  }
+
+  async setEncryptedAccount(
+    account: Account,
+    passphrase: string,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    await this.db.withTransaction(tx, async (tx) => {
+      const accountsEncrypted = await this.accountsEncrypted(tx)
+      if (!accountsEncrypted) {
+        throw new Error('Cannot save encrypted account when accounts are decrypted')
+      }
+
+      const encryptedAccount = account.encrypt(passphrase)
+      await this.accounts.put(account.id, encryptedAccount.serialize(), tx)
+
+      const nativeUnconfirmedBalance = await this.balances.get(
+        [account.prefix, Asset.nativeId()],
+        tx,
+      )
+      if (nativeUnconfirmedBalance === undefined) {
+        await this.saveUnconfirmedBalance(
+          account,
+          Asset.nativeId(),
+          {
+            unconfirmed: 0n,
+            blockHash: null,
+            sequence: null,
+          },
+          tx,
+        )
+      }
+    })
+  }
+
+  async canDecryptAccounts(passphrase: string, tx?: IDatabaseTransaction): Promise<boolean> {
+    return this.db.withTransaction(tx, async (tx) => {
+      for await (const [_, accountValue] of this.accounts.getAllIter(tx)) {
+        if (!accountValue.encrypted) {
+          throw new Error('Wallet is already decrypted')
+        }
+
+        const encryptedAccount = new EncryptedAccount({
+          data: accountValue.data,
+          walletDb: this,
+        })
+
+        try {
+          encryptedAccount.decrypt(passphrase)
+        } catch (e) {
+          if (e instanceof AccountDecryptionFailedError) {
+            return false
+          }
+
+          throw e
+        }
+      }
+
+      return true
     })
   }
 
@@ -1195,9 +1256,9 @@ export class WalletDB {
 
   async encryptAccounts(passphrase: string, tx?: IDatabaseTransaction): Promise<void> {
     await this.db.withTransaction(tx, async (tx) => {
-      for await (const [id, accountValue] of this.accounts.getAllIter()) {
+      for await (const [id, accountValue] of this.accounts.getAllIter(tx)) {
         if (accountValue.encrypted) {
-          throw new Error('Account is already encrypted')
+          throw new Error('Wallet is already encrypted')
         }
 
         const account = new Account({ accountValue, walletDb: this })
@@ -1209,9 +1270,9 @@ export class WalletDB {
 
   async decryptAccounts(passphrase: string, tx?: IDatabaseTransaction): Promise<void> {
     await this.db.withTransaction(tx, async (tx) => {
-      for await (const [id, accountValue] of this.accounts.getAllIter()) {
+      for await (const [id, accountValue] of this.accounts.getAllIter(tx)) {
         if (!accountValue.encrypted) {
-          throw new Error('Account is already decrypted')
+          throw new Error('Wallet is already decrypted')
         }
 
         const encryptedAccount = new EncryptedAccount({
