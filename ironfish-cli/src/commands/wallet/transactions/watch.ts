@@ -4,6 +4,7 @@
 import { Args, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
+import * as ui from '../../../ui'
 import { watchTransaction } from '../../../utils/transaction'
 
 export class TransactionsWatchCommand extends IronfishCommand {
@@ -39,6 +40,7 @@ export class TransactionsWatchCommand extends IronfishCommand {
     const account = flags.account ? flags.account : args.account
 
     const client = await this.connectRpc()
+    await ui.checkWalletUnlocked(client)
 
     await watchTransaction({
       client,

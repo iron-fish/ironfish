@@ -92,6 +92,7 @@ This will destroy tokens and decrease supply for a given asset.`
   async start(): Promise<void> {
     const { flags } = await this.parse(Burn)
     const client = await this.connectRpc()
+    await ui.checkWalletUnlocked(client)
 
     if (!flags.offline) {
       const status = await client.wallet.getNodeStatus()

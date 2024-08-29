@@ -47,6 +47,7 @@ export class TransactionInfoCommand extends IronfishCommand {
     const { transaction: hash } = args
 
     const client = await this.connectRpc()
+    await ui.checkWalletUnlocked(client)
 
     const account = await useAccount(client, flags.account)
 

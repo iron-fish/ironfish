@@ -39,6 +39,7 @@ export class TransactionsDecodeCommand extends IronfishCommand {
     const { flags } = await this.parse(TransactionsDecodeCommand)
 
     const client = await this.connectRpc()
+    await ui.checkWalletUnlocked(client)
 
     const account = flags.account ?? (await ui.accountPrompt(client))
 

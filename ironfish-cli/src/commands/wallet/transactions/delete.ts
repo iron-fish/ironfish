@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Args } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
+import * as ui from '../../../ui'
 
 export default class TransactionsDelete extends IronfishCommand {
   static description = 'delete an expired or pending transaction from the wallet'
@@ -19,6 +20,7 @@ export default class TransactionsDelete extends IronfishCommand {
     const { transaction } = args
 
     const client = await this.connectRpc()
+    await ui.checkWalletUnlocked(client)
 
     const response = await client.wallet.deleteTransaction({ hash: transaction })
 

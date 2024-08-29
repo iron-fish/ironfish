@@ -38,6 +38,9 @@ export class CreateSigningPackage extends IronfishCommand {
     const loaded = await MultisigTransactionJson.load(this.sdk.fileSystem, flags.path)
     const options = MultisigTransactionJson.resolveFlags(flags, loaded)
 
+    const client = await this.connectRpc()
+    await ui.checkWalletUnlocked(client)
+
     let unsignedTransaction = options.unsignedTransaction
     if (!unsignedTransaction) {
       unsignedTransaction = await ui.longPrompt('Enter the unsigned transaction', {
@@ -53,8 +56,6 @@ export class CreateSigningPackage extends IronfishCommand {
       commitments = input.split(',')
     }
     commitments = commitments.map((s) => s.trim())
-
-    const client = await this.connectRpc()
 
     const signingPackageResponse = await client.wallet.multisig.createSigningPackage({
       account: flags.account,

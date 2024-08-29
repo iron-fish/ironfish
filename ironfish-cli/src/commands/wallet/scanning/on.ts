@@ -4,6 +4,7 @@
 import { Args } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
+import * as ui from '../../../ui'
 
 export class ScanningOnCommand extends IronfishCommand {
   static description = `turn on scanning for an account
@@ -26,6 +27,7 @@ Scanning is on by default. The wallet will scan the blockchain for new account t
     const { account } = args
 
     const client = await this.connectRpc()
+    await ui.checkWalletUnlocked(client)
 
     await client.wallet.setScanning({
       account: account,

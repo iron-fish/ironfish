@@ -6,7 +6,7 @@ import { setLogLevelFromConfig } from '@ironfish/sdk'
 import { Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { ProgressBar, ProgressBarPresets } from '../../ui'
+import { checkWalletUnlocked, ProgressBar, ProgressBarPresets } from '../../ui'
 import { hasUserResponseError } from '../../utils'
 
 export class RescanCommand extends IronfishCommand {
@@ -35,6 +35,7 @@ export class RescanCommand extends IronfishCommand {
     }
 
     const client = await this.connectRpc(local)
+    await checkWalletUnlocked(client)
 
     ux.action.start('Asking node to start scanning', undefined, {
       stdout: true,

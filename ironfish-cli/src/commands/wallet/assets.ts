@@ -12,7 +12,7 @@ import { BufferUtils } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { table, TableFlags } from '../../ui'
+import { checkWalletUnlocked, table, TableFlags } from '../../ui'
 import { renderAssetWithVerificationStatus, useAccount } from '../../utils'
 import { TableCols } from '../../utils/table'
 
@@ -38,6 +38,7 @@ export class AssetsCommand extends IronfishCommand {
     const { flags } = await this.parse(AssetsCommand)
 
     const client = await this.connectRpc()
+    await checkWalletUnlocked(client)
 
     const account = await useAccount(client, flags.account)
 

@@ -5,7 +5,7 @@
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { confirmOrQuit } from '../../ui'
+import { checkWalletUnlocked, confirmOrQuit } from '../../ui'
 import { useAccount } from '../../utils'
 
 export class ResetCommand extends IronfishCommand {
@@ -35,6 +35,7 @@ export class ResetCommand extends IronfishCommand {
     const { flags } = await this.parse(ResetCommand)
 
     const client = await this.connectRpc()
+    await checkWalletUnlocked(client)
 
     const account = await useAccount(client, flags.account)
 

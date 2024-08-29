@@ -39,6 +39,7 @@ export class TransactionsSignCommand extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(TransactionsSignCommand)
     const client = await this.connectRpc()
+    await ui.checkWalletUnlocked(client)
 
     if (!flags.broadcast && flags.watch) {
       this.error('Cannot use --watch without --broadcast')

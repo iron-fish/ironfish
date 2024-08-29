@@ -36,6 +36,9 @@ export class MultisigCreateDealer extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(MultisigCreateDealer)
 
+    const client = await this.connectRpc()
+    await ui.checkWalletUnlocked(client)
+
     let identities = flags.identity
     if (!identities || identities.length < 2) {
       const input = await ui.longPrompt(
@@ -60,8 +63,6 @@ export class MultisigCreateDealer extends IronfishCommand {
         this.error('Minimum number of signers must be at least 2')
       }
     }
-
-    const client = await this.connectRpc()
 
     const name = await this.getCoordinatorName(client, flags.name?.trim())
 

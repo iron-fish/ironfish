@@ -32,6 +32,7 @@ export class DkgRound1Command extends IronfishCommand {
     const { flags } = await this.parse(DkgRound1Command)
 
     const client = await this.connectRpc()
+    await ui.checkWalletUnlocked(client)
 
     let participantName = flags.participantName
     if (!participantName) {

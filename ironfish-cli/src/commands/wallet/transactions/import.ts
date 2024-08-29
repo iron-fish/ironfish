@@ -4,6 +4,7 @@
 import { Args, Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
+import * as ui from '../../../ui'
 import { importFile, importPipe, longPrompt } from '../../../ui/longPrompt'
 
 export class TransactionsImportCommand extends IronfishCommand {
@@ -42,6 +43,9 @@ export class TransactionsImportCommand extends IronfishCommand {
       )
     }
 
+    const client = await this.connectRpc()
+    await ui.checkWalletUnlocked(client)
+
     if (txArg) {
       transaction = txArg
     } else if (flags.path) {
@@ -57,7 +61,6 @@ export class TransactionsImportCommand extends IronfishCommand {
     }
 
     ux.action.start(`Importing transaction`)
-    const client = await this.connectRpc()
     const response = await client.wallet.addTransaction({
       transaction,
       broadcast: flags.broadcast,

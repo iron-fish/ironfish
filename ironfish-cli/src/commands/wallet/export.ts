@@ -7,7 +7,7 @@ import fs from 'fs'
 import path from 'path'
 import { IronfishCommand } from '../../command'
 import { EnumLanguageKeyFlag, JsonFlags, RemoteFlags } from '../../flags'
-import { confirmOrQuit } from '../../ui'
+import { checkWalletUnlocked, confirmOrQuit } from '../../ui'
 import { useAccount } from '../../utils'
 
 export class ExportCommand extends IronfishCommand {
@@ -57,6 +57,7 @@ export class ExportCommand extends IronfishCommand {
       : AccountFormat.Base64Json
 
     const client = await this.connectRpc(local)
+    await checkWalletUnlocked(client)
 
     const account = await useAccount(client, flags.account)
 
