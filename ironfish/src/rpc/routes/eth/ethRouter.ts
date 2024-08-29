@@ -28,7 +28,7 @@ function createSchema<M extends string>(schema: yup.Schema<unknown>) {
       jsonrpc: yup.string<'2.0'>().required(),
       id: yup.mixed<number | string>().required(),
       method: yup.string<M>().required(),
-      params: yup.array(schema).required(),
+      params: yup.array().of(schema).defined(),
     })
     .defined()
 }
