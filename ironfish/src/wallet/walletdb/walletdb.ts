@@ -379,6 +379,9 @@ export class WalletDB {
         throw new Error('Cannot save encrypted account when accounts are decrypted')
       }
 
+      const validPassphrase = await this.canDecryptAccounts(passphrase, tx)
+      Assert.isTrue(validPassphrase, 'Your passphrase is incorrect')
+
       const encryptedAccount = account.encrypt(passphrase)
       await this.accounts.put(account.id, encryptedAccount.serialize(), tx)
 

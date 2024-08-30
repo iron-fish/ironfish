@@ -1472,10 +1472,6 @@ export class Wallet {
 
       if (encrypted) {
         Assert.isNotUndefined(options?.passphrase)
-
-        const validPassphrase = await this.canUnlockAccounts(options.passphrase, tx)
-        Assert.isTrue(validPassphrase, 'Your passphrase is incorrect')
-
         await this.walletDb.setEncryptedAccount(account, options.passphrase, tx)
       } else {
         await this.walletDb.setAccount(account, tx)
@@ -1920,13 +1916,6 @@ export class Wallet {
     } finally {
       unlock()
     }
-  }
-
-  private async canUnlockAccounts(
-    passphrase: string,
-    tx?: IDatabaseTransaction,
-  ): Promise<boolean> {
-    return this.walletDb.canDecryptAccounts(passphrase, tx)
   }
 
   private startUnlockTimeout(timeout?: number): void {
