@@ -30,6 +30,7 @@ import {
 } from './errors'
 import { toAccountImport } from './exporter'
 import { AssetStatus, Wallet } from './wallet'
+import { DecryptedAccountValue } from './walletdb/accountValue'
 
 describe('Wallet', () => {
   const nodeTest = createNodeTest()
@@ -650,6 +651,77 @@ describe('Wallet', () => {
       )
 
       expect(accountBImport.createdAt).toBeDefined()
+    })
+
+    it('should throw an error when the wallet is encrypted and there is no passphrase', async () => {
+      const { node } = await nodeTest.createSetup()
+      const passphrase = 'foo'
+
+      await useAccountFixture(node.wallet, 'A')
+      await node.wallet.encrypt(passphrase)
+
+      const key = generateKey()
+      const accountValue: DecryptedAccountValue = {
+        encrypted: false,
+        id: '0',
+        name: 'new-account',
+        version: 1,
+        createdAt: null,
+        scanningEnabled: false,
+        ...key,
+      }
+
+      await expect(node.wallet.importAccount(accountValue)).rejects.toThrow()
+    })
+
+    it('should throw an error when the wallet is encrypted and the passphrase is incorrect', async () => {
+      const { node } = await nodeTest.createSetup()
+      const passphrase = 'foo'
+
+      await useAccountFixture(node.wallet, 'A')
+      await node.wallet.encrypt(passphrase)
+
+      const key = generateKey()
+      const accountValue: DecryptedAccountValue = {
+        encrypted: false,
+        id: '0',
+        name: 'new-account',
+        version: 1,
+        createdAt: null,
+        scanningEnabled: false,
+        ...key,
+      }
+
+      await expect(
+        node.wallet.importAccount(accountValue, { passphrase: 'incorrect' }),
+      ).rejects.toThrow('Your passphrase is incorrect')
+    })
+
+    it('should encrypt and store the account if the wallet is encrypted', async () => {
+      const { node } = await nodeTest.createSetup()
+      const passphrase = 'foo'
+
+      await useAccountFixture(node.wallet, 'A')
+      await node.wallet.encrypt(passphrase)
+
+      const key = generateKey()
+      const accountValue: DecryptedAccountValue = {
+        encrypted: false,
+        id: '0',
+        name: 'new-account',
+        version: 1,
+        createdAt: null,
+        scanningEnabled: false,
+        ...key,
+      }
+
+      const account = await node.wallet.importAccount(accountValue, { passphrase })
+      expect(account.name).toEqual(accountValue.name)
+      expect(account.viewKey).toEqual(key.viewKey)
+      expect(account.incomingViewKey).toEqual(key.incomingViewKey)
+      expect(account.outgoingViewKey).toEqual(key.outgoingViewKey)
+      expect(account.spendingKey).toEqual(key.spendingKey)
+      expect(account.publicAddress).toEqual(key.publicAddress)
     })
   })
 
