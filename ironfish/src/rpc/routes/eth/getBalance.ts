@@ -5,10 +5,10 @@ import { Address } from '@ethereumjs/util'
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { FullNode } from '../../../node'
-import { BlockHeader } from '../../../primitives'
 import { RpcNotFoundError } from '../../adapters'
 import { ApiNamespace } from '../namespaces'
 import { registerEthRoute } from './ethRouter'
+import { blockNumberToBlockHeader } from './util'
 
 export type EthGetBalanceRequest = {
   address: string
@@ -36,14 +36,7 @@ registerEthRoute<typeof EthGetBalanceRequestSchema, EthGetBalanceResponse>(
     Assert.isInstanceOf(node, FullNode)
 
     const address = Address.fromString(request.data.address)
-    // TODO: latest, earliest, pending, safe or finalized in other chains, stubbing for now
-    let header: BlockHeader | null
-    if (request.data.blockNumber === 'latest') {
-      header = node.chain.latest
-    } else {
-      const blockNumber = Number(request.data.blockNumber)
-      header = await node.chain.getHeaderAtSequence(blockNumber)
-    }
+    const header = await blockNumberToBlockHeader(request.data.blockNumber, node.chain)
     if (!header || !header.stateCommitment) {
       throw new RpcNotFoundError(
         `No header/state commitment found with reference ${request.data.blockNumber}`,

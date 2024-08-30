@@ -1337,9 +1337,6 @@ export class Blockchain {
         const evmResult = await this.evm.runDesc(transaction.evm)
         const evmVerify = this.verifier.verifyEvm(transaction, evmResult)
         const ethTransaction = evmDescriptionToLegacyTransaction(transaction.evm)
-        this.logger.info(
-          `created contract address ${evmResult.result?.createdAddress?.toString()}`,
-        )
         if (!evmVerify.valid) {
           throw Error(evmVerify.reason)
         }
