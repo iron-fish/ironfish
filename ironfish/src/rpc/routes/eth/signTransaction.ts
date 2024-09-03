@@ -57,7 +57,7 @@ registerEthRoute<typeof SignTransactionRequestSchema, SignTransactionResponse>(
     const accounts = node.wallet.listAccounts()
     const account = accounts
       .filter((a) => a.spendingKey !== undefined)
-      .find((a) => a.ethAddress === from)
+      .find((a) => a.ethAddress?.toLowerCase() === from.toLowerCase())
 
     if (!account) {
       throw new Error(`Account not found for address ${from}`)
