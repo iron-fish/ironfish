@@ -8,7 +8,7 @@ import { Assert } from '../../assert'
 import { createRootLogger, Logger } from '../../logger'
 import { Gauge, Meter } from '../../metrics'
 import { ErrorUtils } from '../../utils'
-import { RpcRequest } from '../request'
+import { isJsonRcpRequest, RpcRequest } from '../request'
 import { ApiNamespace, Router } from '../routes'
 import { RpcServer } from '../server'
 import { IRpcAdapter } from './adapter'
@@ -226,6 +226,8 @@ export class RpcHttpAdapter implements IRpcAdapter {
       // so keeping that convention here. Could think of a better way to handle?
       const body = combined.length ? combined.toString('utf8') : undefined
 
+      const useJsonRpc = isJsonRcpRequest(body)
+
       const rpcRequest = new RpcRequest(
         body === undefined ? undefined : JSON.parse(body),
         route,
@@ -233,7 +235,7 @@ export class RpcHttpAdapter implements IRpcAdapter {
           response.statusCode = status
           const delimiter = chunkStreamed ? MESSAGE_DELIMITER : ''
 
-          const responseMessage: RpcHttpResponse = { status, data }
+          const responseMessage = useJsonRpc ? data : { status, data }
           const responseData = JSON.stringify(responseMessage)
           const responseSize = Buffer.byteLength(responseData, 'utf-8')
           this.outboundTraffic.add(responseSize)

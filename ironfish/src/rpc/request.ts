@@ -1,8 +1,18 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-
 import { Event } from '../event'
+
+export function isJsonRcpRequest(body: string | undefined): boolean {
+  if (!body) {
+    return false
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  const data = JSON.parse(body)
+
+  return 'jsonrpc' in data
+}
 
 export class RpcRequest<TRequest = unknown, TResponse = unknown> {
   data: TRequest
