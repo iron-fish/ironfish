@@ -29,4 +29,17 @@ describe('Route eth/signTransaction', () => {
     expect(tx.nonce).toEqual(0n)
     expect(tx.value).toEqual(250000000n)
   })
+
+  it('should fail if from address is not in wallet', async () => {
+    await expect(
+      routeTest.client.eth.signTransaction({
+        nonce: '0x0',
+        to: '0x1234567890123456789012345678901234567890',
+        from: '0x1234567890123456789012345678901234567890',
+        value: '0xEE6B280', // 250000000
+      }),
+    ).rejects.toThrow(
+      'Request failed (400) error: Account not found for address 0x1234567890123456789012345678901234567890',
+    )
+  })
 })

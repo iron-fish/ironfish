@@ -57,14 +57,12 @@ registerEthRoute<typeof SignTransactionRequestSchema, SignTransactionResponse>(
     const accounts = node.wallet.listAccounts()
     const account = accounts
       .filter((a) => a.spendingKey !== undefined)
-      .find(
-        (a) =>
-          a.ethAddress ===
-          Address.fromPrivateKey(Buffer.from(a.spendingKey!, 'hex')).toString(),
-      )
+      .find((a) => a.ethAddress === from)
+
     if (!account) {
       throw new Error(`Account not found for address ${from}`)
     }
+
     const ethAccount = await node.chain.blockchainDb.stateManager.getAccount(
       Address.fromPrivateKey(Buffer.from(account.spendingKey!, 'hex')),
     )
