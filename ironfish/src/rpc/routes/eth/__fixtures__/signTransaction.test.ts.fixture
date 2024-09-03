@@ -1,0 +1,32 @@
+{
+  "Route eth/signTransaction should construct evm transaction and sign/return": [
+    {
+      "value": {
+        "version": 4,
+        "id": "af996f4b-e939-48ab-b014-2973bf823acd",
+        "name": "sender",
+        "spendingKey": "66bcb889b9f2a426a5f7590cf1c5b4e0fe56040b713fd4c67c5a9f7c96b2f2b9",
+        "viewKey": "5992678c4c5cce12884114daad181de3831b4ad48c64482cf0d5f4cf416877b1a15ec751c4022ba0ade7934c384bb59a8c27d7347d06f648911ace23a9007b0d",
+        "incomingViewKey": "d9dfe38f11ca245738586c463be1813fc48e33b4b10349fec09b1f3209a29900",
+        "outgoingViewKey": "48714e57991c0c9e3262418c1d9f075e807298dd59c61cad6728322eb7ae04a0",
+        "publicAddress": "c458182175f5649940a65f57198dbf16564fc4692b7ea6362e4a79bebdfd4ed5",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "49f3f4c6ab0aa9025a266792fabfbc15c703c875a9d60d5ef159e05b1b8c5e04"
+      },
+      "head": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      }
+    }
+  ]
+}

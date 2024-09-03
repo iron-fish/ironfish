@@ -193,6 +193,8 @@ import type {
   SetScanningResponse,
   ShowChainRequest,
   ShowChainResponse,
+  SignTransactionRequest,
+  SignTransactionResponse,
   StopNodeResponse,
   SubmitBlockRequest,
   SubmitBlockResponse,
@@ -1135,6 +1137,13 @@ export abstract class RpcClient {
         `${ApiNamespace.eth}/blockNumber`,
         params,
       ).waitForEnd()
+    },
+    signTransaction: (
+      params: SignTransactionRequest,
+    ): Promise<RpcResponseEnded<SignTransactionResponse>> => {
+      return this.request<SignTransactionResponse>(`${ApiNamespace.eth}/signTransaction`, [
+        params,
+      ]).waitForEnd()
     },
   }
 }
