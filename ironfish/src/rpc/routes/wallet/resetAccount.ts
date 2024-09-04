@@ -11,6 +11,7 @@ export type ResetAccountRequest = {
   account: string
   resetCreatedAt?: boolean
   resetScanningEnabled?: boolean
+  passphrase?: string
 }
 export type ResetAccountResponse = undefined
 
@@ -37,6 +38,7 @@ routes.register<typeof ResetAccountRequestSchema, ResetAccountResponse>(
     await context.wallet.resetAccount(account, {
       resetCreatedAt: request.data.resetCreatedAt,
       resetScanningEnabled: request.data.resetScanningEnabled,
+      passphrase: request.data.passphrase,
     })
 
     request.end()
