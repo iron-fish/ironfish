@@ -246,6 +246,12 @@ export default class Start extends IronfishCommand {
       await this.firstRun(node)
     }
 
+    const encrypted = await node.wallet.accountsEncrypted()
+    if (encrypted) {
+      this.log('Your wallet is encrypted. Run ironfish wallet:unlock to access your accounts')
+      this.log()
+    }
+
     await node.start()
     this.node = node
 
