@@ -26,8 +26,22 @@ export class BroadcastCommand extends IronfishCommand {
     ux.action.start(`Broadcasting transaction`)
     const client = await this.connectRpc()
     const response = await client.chain.broadcastTransaction({ transaction })
-    if (response.content) {
-      ux.action.stop(`Transaction broadcasted: ${response.content.hash}`)
+
+    if (response.content.accepted && response.content.broadcasted) {
+      ux.action.stop(
+        `Transaction broadcast successfully. Transaction hash: ${response.content.hash}`,
+      )
+    } else {
+      ux.action.stop()
+      this.error(
+        `Transaction broadcast may have failed.${
+          !response.content.accepted ? ' Transaction was not accepted by the node.' : ''
+        }${
+          !response.content.broadcasted
+            ? ' Transaction was not broadcasted to the network.'
+            : ''
+        }`,
+      )
     }
   }
 }
