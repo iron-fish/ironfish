@@ -19,6 +19,7 @@ import {
 import { AsyncUtils } from '../../utils/async'
 import { BalanceValue } from '../walletdb/balanceValue'
 import { Account } from './account'
+import { EncryptedAccount } from './encryptedAccount'
 
 describe('Accounts', () => {
   const nodeTest = createNodeTest()
@@ -185,6 +186,49 @@ describe('Accounts', () => {
 
       await expect(account.setName('')).rejects.toThrow('Account name cannot be blank')
       await expect(account.setName('     ')).rejects.toThrow('Account name cannot be blank')
+    })
+
+    it('should throw an error if the passphrase is missing and the wallet is encrypted', async () => {
+      const { node } = nodeTest
+      const passphrase = 'foo'
+
+      const account = await useAccountFixture(node.wallet, 'accountA')
+      await node.wallet.encrypt(passphrase)
+
+      await expect(account.setName('B')).rejects.toThrow()
+    })
+
+    it('should throw an error if the passphrase is incorrect and the wallet is encrypted', async () => {
+      const { node } = nodeTest
+      const passphrase = 'foo'
+
+      const account = await useAccountFixture(node.wallet, 'accountA')
+      await node.wallet.encrypt(passphrase)
+
+      await expect(account.setName('B', { passphrase: 'incorrect ' })).rejects.toThrow()
+    })
+
+    it('should save the encrypted account if the passphrase is correct and the wallet is encrypted', async () => {
+      const { node } = nodeTest
+      const passphrase = 'foo'
+      const newName = 'B'
+
+      const account = await useAccountFixture(node.wallet, 'accountA')
+      await node.wallet.encrypt(passphrase)
+
+      await account.setName(newName, { passphrase })
+
+      const accountValue = await node.wallet.walletDb.accounts.get(account.id)
+      Assert.isNotUndefined(accountValue)
+      Assert.isTrue(accountValue.encrypted)
+
+      const encryptedAccount = new EncryptedAccount({
+        data: accountValue.data,
+        walletDb: node.wallet.walletDb,
+      })
+      const decryptedAccount = encryptedAccount.decrypt(passphrase)
+
+      expect(decryptedAccount.name).toEqual(newName)
     })
   })
 
