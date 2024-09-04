@@ -18,7 +18,7 @@ import { AssertHasRpcContext } from '../rpcContext'
  * Hence, we're adding a new createAccount endpoint and will eventually sunset the create endpoint.
  */
 
-export type CreateAccountRequest = { name: string; default?: boolean }
+export type CreateAccountRequest = { name: string; default?: boolean; passphrase?: string }
 export type CreateAccountResponse = {
   name: string
   publicAddress: string
@@ -29,6 +29,7 @@ export const CreateAccountRequestSchema: yup.ObjectSchema<CreateAccountRequest> 
   .object({
     name: yup.string().defined(),
     default: yup.boolean().optional(),
+    passphrase: yup.string().optional(),
   })
   .defined()
 
@@ -48,7 +49,9 @@ routes.register<typeof CreateAccountRequestSchema, CreateAccountResponse>(
 
     let account
     try {
-      account = await context.wallet.createAccount(request.data.name)
+      account = await context.wallet.createAccount(request.data.name, {
+        passphrase: request.data.passphrase,
+      })
     } catch (e) {
       if (e instanceof DuplicateAccountNameError) {
         throw new RpcValidationError(e.message, 400, RPC_ERROR_CODES.DUPLICATE_ACCOUNT_NAME)

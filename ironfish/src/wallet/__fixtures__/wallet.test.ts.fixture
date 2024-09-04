@@ -7917,5 +7917,98 @@
         "sequence": 1
       }
     }
+  ],
+  "Wallet createAccount should throw an error if the wallet is encrypted and no passphrase is provided": [
+    {
+      "value": {
+        "encrypted": false,
+        "version": 4,
+        "id": "8b332b52-69e7-42df-be52-58113711c984",
+        "name": "A",
+        "spendingKey": "2f65864a980fbc7352f3f7f1d9df5445e3dec4421bc8841fdcafe4327300837c",
+        "viewKey": "4d61858b6cb6cdaa717accb95b4e0a997ac723d4d953e4f58544e13fba8fb55920e3cd885cc572bb5608dd56bef4f07348094540471c771df3b83d85eb7880e1",
+        "incomingViewKey": "2c14b0d85d3a6dc9e13e938bc8d95d4288cca7ed6a58f7f504ef356720053803",
+        "outgoingViewKey": "38a5bc1db94ec5c3e460ca5658030f609bdfbbea15a2784c4697379d62ecdd8f",
+        "publicAddress": "a0b49b0dec32580ba411beb3ed0e4073621880547435099863fbce642ccb5571",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "a38a96091f9b2ae5a8afa50278a7f7628eafb74605d943fa0b5668241daf220c"
+      },
+      "head": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      }
+    }
+  ],
+  "Wallet createAccount should throw an error if the wallet is encrypted and an incorrect passphrase is provided": [
+    {
+      "value": {
+        "encrypted": false,
+        "version": 4,
+        "id": "910b0a90-1739-49c2-8535-4f4fe59731a7",
+        "name": "A",
+        "spendingKey": "01862a7192b32384ca19723907aaf11ccb7132bd740a7fa2a18350c737e55b99",
+        "viewKey": "0e928b81f42457780c7f48ec39c6f3d87a7870ed27d7418241ad9ddcca1ec15bb962230350847953cdabb1e14d13e8e14f9cac0fc7d7dcb66edae57d02304e89",
+        "incomingViewKey": "f06be6ed8630c8f74daaa4e1bb3c32dc6b7e68ceccb48df23d4fdc34a1fc3d00",
+        "outgoingViewKey": "bb566ce7c5106e81df19d245b20208b0cc50413a3fc9d3f7b85f37e064cc8eba",
+        "publicAddress": "761bcce6e38ab619311b31f6f4c70ed062601aa2cd4e92582b2580d3d8089c25",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "c5c8666114e7df102047ee239cbfa42528e535e9623495d679a30733ae986305"
+      },
+      "head": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      }
+    }
+  ],
+  "Wallet createAccount should save a new encrypted account with the correct passphrase": [
+    {
+      "value": {
+        "encrypted": false,
+        "version": 4,
+        "id": "16486a6c-2077-4153-b86e-2e4357ce8d56",
+        "name": "A",
+        "spendingKey": "ec1536eef9661317bc6c8a3314532d6d88cb174ae16056a515bcc32f320229b5",
+        "viewKey": "b0121a81a845e7fe4be27bd0bb673af522e9109517038d4c78d3caad1b2c6df3a3e605052e5bcfe746e6cb3936fcd813cc554fe3ac24be6833a16560136b73ef",
+        "incomingViewKey": "3aa6d9c5de258462555dd3df8a6370b174ea5a08026266b4cf1accbce3d3d306",
+        "outgoingViewKey": "bec9d193b55735859f001f1a97615b221676daa6ac9e954fe1fe238cd1107db9",
+        "publicAddress": "c03011f472ab7838067fe0d9d5d2ceb097fe5affa423b254bdcbf2e44f5c2120",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "909c27ba51a74079672861f05bc0e660b4aff272d508d86f5430ab489d90b10b"
+      },
+      "head": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      }
+    }
   ]
 }
