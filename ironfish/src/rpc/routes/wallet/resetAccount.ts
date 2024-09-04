@@ -20,6 +20,7 @@ export const ResetAccountRequestSchema: yup.ObjectSchema<ResetAccountRequest> = 
     account: yup.string().defined(),
     resetCreatedAt: yup.boolean(),
     resetScanningEnabled: yup.boolean(),
+    passphrase: yup.string().optional(),
   })
   .defined()
 
