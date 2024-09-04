@@ -28,9 +28,7 @@ export class BroadcastCommand extends IronfishCommand {
     const response = await client.chain.broadcastTransaction({ transaction })
 
     if (response.content.accepted && response.content.broadcasted) {
-      ux.action.stop(
-        `Transaction broadcast successfully. Transaction hash: ${response.content.hash}`,
-      )
+      ux.action.stop(`Transaction broadcasted: ${response.content.hash}`)
     } else {
       ux.action.stop()
       this.error(
