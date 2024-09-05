@@ -372,8 +372,8 @@ export class WalletDB {
     account: Account,
     passphrase: string,
     tx?: IDatabaseTransaction,
-  ): Promise<void> {
-    await this.db.withTransaction(tx, async (tx) => {
+  ): Promise<EncryptedAccount> {
+    return this.db.withTransaction(tx, async (tx) => {
       const accountsEncrypted = await this.accountsEncrypted(tx)
       if (!accountsEncrypted) {
         throw new Error('Cannot save encrypted account when accounts are decrypted')
@@ -401,6 +401,8 @@ export class WalletDB {
           tx,
         )
       }
+
+      return encryptedAccount
     })
   }
 

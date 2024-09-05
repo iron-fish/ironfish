@@ -1541,7 +1541,12 @@ export class Wallet {
 
       if (encrypted) {
         Assert.isNotUndefined(options?.passphrase)
-        await this.walletDb.setEncryptedAccount(newAccount, options.passphrase, tx)
+        const encryptedAccount = await this.walletDb.setEncryptedAccount(
+          newAccount,
+          options.passphrase,
+          tx,
+        )
+        this.encryptedAccountById.set(newAccount.id, encryptedAccount)
       } else {
         await this.walletDb.setAccount(newAccount, tx)
       }
@@ -1566,11 +1571,6 @@ export class Wallet {
       if (account.id === this.defaultAccount) {
         await this.walletDb.setDefaultAccount(newAccount.id, tx)
         this.defaultAccount = newAccount.id
-      }
-
-      if (encrypted) {
-        Assert.isNotUndefined(options?.passphrase)
-        this.encryptedAccountById.set(newAccount.id, newAccount.encrypt(options?.passphrase))
       }
 
       this.accountById.set(newAccount.id, newAccount)
