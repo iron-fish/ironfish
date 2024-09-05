@@ -127,14 +127,25 @@ export class Account {
     }
   }
 
-  async setName(name: string, tx?: IDatabaseTransaction): Promise<void> {
+  async setName(
+    name: string,
+    options?: { passphrase?: string },
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
     if (!name.trim()) {
       throw new Error('Account name cannot be blank')
     }
 
+    const walletEncrypted = await this.walletDb.accountsEncrypted(tx)
+
     this.name = name
 
-    await this.walletDb.setAccount(this, tx)
+    if (walletEncrypted) {
+      Assert.isNotUndefined(options?.passphrase)
+      await this.walletDb.setEncryptedAccount(this, options.passphrase, tx)
+    } else {
+      await this.walletDb.setAccount(this, tx)
+    }
   }
 
   async *getNotes(

@@ -21,7 +21,7 @@ routes.register<typeof RenameAccountRequestSchema, RenameAccountResponse>(
     AssertHasRpcContext(request, context, 'wallet')
 
     const account = getAccount(context.wallet, request.data.account)
-    await account.setName(request.data.newName)
+    await account.setName(request.data.newName, { passphrase: request.data.passphrase })
     request.end()
   },
 )
