@@ -36,7 +36,7 @@ export class UnlockCommand extends IronfishCommand {
 
     let passphrase = flags.passphrase
     if (!passphrase) {
-      passphrase = await inputPrompt('Enter a passphrase to unlock the wallet', true, {
+      passphrase = await inputPrompt('Enter your passphrase to unlock the wallet', true, {
         password: true,
       })
     }

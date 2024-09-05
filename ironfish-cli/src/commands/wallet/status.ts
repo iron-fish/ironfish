@@ -19,6 +19,7 @@ export class StatusCommand extends IronfishCommand {
     await this.parse(StatusCommand)
 
     const client = await this.connectRpc()
+    await ui.checkWalletUnlocked(client)
 
     const [nodeStatus, walletStatus] = await Promise.all([
       client.node.getStatus(),

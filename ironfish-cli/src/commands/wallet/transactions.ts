@@ -13,7 +13,7 @@ import {
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { table, TableColumns, TableFlags } from '../../ui'
+import { checkWalletUnlocked, table, TableColumns, TableFlags } from '../../ui'
 import { getAssetsByIDs, useAccount } from '../../utils'
 import { extractChainportDataFromTransaction } from '../../utils/chainport'
 import { Format, TableCols } from '../../utils/table'
@@ -64,6 +64,7 @@ export class TransactionsCommand extends IronfishCommand {
         : Format.cli
 
     const client = await this.connectRpc()
+    await checkWalletUnlocked(client)
 
     const account = await useAccount(client, flags.account)
 

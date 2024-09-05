@@ -80,6 +80,7 @@ export class BridgeCommand extends IronfishCommand {
     const { flags } = await this.parse(BridgeCommand)
 
     const client = await this.connectRpc()
+    await ui.checkWalletUnlocked(client)
 
     const networkId = (await client.chain.getNetworkInfo()).content.networkId
 

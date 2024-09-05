@@ -5,7 +5,7 @@ import { RPC_ERROR_CODES, RpcRequestError } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
-import { inputPrompt } from '../../../../ui'
+import * as ui from '../../../../ui'
 
 export class MultisigIdentityCreate extends IronfishCommand {
   static description = `Create a multisig participant identity`
@@ -20,12 +20,15 @@ export class MultisigIdentityCreate extends IronfishCommand {
 
   async start(): Promise<void> {
     const { flags } = await this.parse(MultisigIdentityCreate)
-    let name = flags.name
-    if (!name) {
-      name = await inputPrompt('Enter a name for the identity', true)
-    }
 
     const client = await this.connectRpc()
+    await ui.checkWalletUnlocked(client)
+
+    let name = flags.name
+    if (!name) {
+      name = await ui.inputPrompt('Enter a name for the identity', true)
+    }
+
     let response
     while (!response) {
       try {
@@ -37,7 +40,7 @@ export class MultisigIdentityCreate extends IronfishCommand {
         ) {
           this.log()
           this.log(e.codeMessage)
-          name = await inputPrompt('Enter a new name for the identity', true)
+          name = await ui.inputPrompt('Enter a new name for the identity', true)
         } else {
           throw e
         }

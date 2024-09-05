@@ -48,6 +48,9 @@ export class TransactionsPostCommand extends IronfishCommand {
     const { flags, args } = await this.parse(TransactionsPostCommand)
     let transaction = args.raw_transaction
 
+    const client = await this.connectRpc()
+    await ui.checkWalletUnlocked(client)
+
     if (!transaction) {
       transaction = await ui.longPrompt('Enter the raw transaction in hex encoding', {
         required: true,
@@ -56,8 +59,6 @@ export class TransactionsPostCommand extends IronfishCommand {
 
     const serialized = Buffer.from(transaction, 'hex')
     const raw = RawTransactionSerde.deserialize(serialized)
-
-    const client = await this.connectRpc()
 
     const senderAddress = raw.sender()
     if (!senderAddress) {

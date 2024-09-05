@@ -10,7 +10,7 @@ import {
 import { Args, Flags, ux } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { inputPrompt } from '../../ui'
+import { checkWalletUnlocked, inputPrompt } from '../../ui'
 import { importFile, importPipe, longPrompt } from '../../ui/longPrompt'
 import { Ledger } from '../../utils/ledger'
 
@@ -52,6 +52,7 @@ export class ImportCommand extends IronfishCommand {
     const { blob } = args
 
     const client = await this.connectRpc()
+    await checkWalletUnlocked(client)
 
     let account: string
 

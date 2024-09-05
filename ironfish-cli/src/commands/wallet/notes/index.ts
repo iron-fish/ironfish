@@ -5,11 +5,11 @@ import { CurrencyUtils, RpcAsset } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../command'
 import { RemoteFlags } from '../../../flags'
-import { table, TableFlags } from '../../../ui'
+import * as ui from '../../../ui'
 import { useAccount } from '../../../utils'
 import { TableCols } from '../../../utils/table'
 
-const { sort: _, ...tableFlags } = TableFlags
+const { sort: _, ...tableFlags } = ui.TableFlags
 export class NotesCommand extends IronfishCommand {
   static description = `list the account's notes`
 
@@ -28,6 +28,7 @@ export class NotesCommand extends IronfishCommand {
     const assetLookup: Map<string, RpcAsset> = new Map()
 
     const client = await this.connectRpc()
+    await ui.checkWalletUnlocked(client)
 
     const account = await useAccount(client, flags.account)
 
@@ -43,7 +44,7 @@ export class NotesCommand extends IronfishCommand {
         )
       }
 
-      table(
+      ui.table(
         [note],
         {
           memo: {

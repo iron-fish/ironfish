@@ -4,6 +4,7 @@
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../../../command'
 import { RemoteFlags } from '../../../../flags'
+import * as ui from '../../../../ui'
 
 export class MultisigAccountParticipants extends IronfishCommand {
   static description = `List all participant identities in the group for a multisig account`
@@ -20,6 +21,7 @@ export class MultisigAccountParticipants extends IronfishCommand {
     const { flags } = await this.parse(MultisigAccountParticipants)
 
     const client = await this.connectRpc()
+    await ui.checkWalletUnlocked(client)
 
     const response = await client.wallet.multisig.getAccountIdentities({
       account: flags.account,

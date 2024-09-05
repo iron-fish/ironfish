@@ -219,6 +219,7 @@ export class CombineNotesCommand extends IronfishCommand {
     const { flags } = await this.parse(CombineNotesCommand)
 
     const client = await this.connectRpc()
+    await ui.checkWalletUnlocked(client)
 
     let to = flags.to
     let from = flags.account

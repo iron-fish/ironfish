@@ -29,6 +29,7 @@ export class AddressCommand extends IronfishCommand {
     const { args } = await this.parse(AddressCommand)
 
     const client = await this.connectRpc()
+    await ui.checkWalletUnlocked(client)
 
     const response = await client.wallet.getAccountPublicKey({
       account: args.account,

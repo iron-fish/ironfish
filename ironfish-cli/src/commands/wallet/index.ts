@@ -22,6 +22,7 @@ export class AccountsCommand extends IronfishCommand {
     const { flags } = await this.parse(AccountsCommand)
 
     const client = await this.connectRpc()
+    await ui.checkWalletUnlocked(client)
 
     const response = await client.wallet.getAccountsStatus()
 

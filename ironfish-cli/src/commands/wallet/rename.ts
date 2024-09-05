@@ -4,6 +4,7 @@
 import { Args } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
+import { checkWalletUnlocked } from '../../ui'
 
 export class RenameCommand extends IronfishCommand {
   static description = 'rename the name of an account'
@@ -27,6 +28,7 @@ export class RenameCommand extends IronfishCommand {
     const { args } = await this.parse(RenameCommand)
 
     const client = await this.connectRpc()
+    await checkWalletUnlocked(client)
 
     await client.wallet.renameAccount({ account: args.old_name, newName: args.new_name })
     this.log(`Account ${args.old_name} renamed to ${args.new_name}`)

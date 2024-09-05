@@ -47,6 +47,9 @@ export class MultisigSign extends IronfishCommand {
     const loaded = await MultisigTransactionJson.load(this.sdk.fileSystem, flags.path)
     const options = MultisigTransactionJson.resolveFlags(flags, loaded)
 
+    const client = await this.connectRpc()
+    await ui.checkWalletUnlocked(client)
+
     let signingPackage = options.signingPackage
     if (!signingPackage) {
       signingPackage = await ui.longPrompt('Enter the signing package', { required: true })
@@ -62,8 +65,6 @@ export class MultisigSign extends IronfishCommand {
     signatureShares = signatureShares.map((s) => s.trim())
 
     ux.action.start('Signing the multisig transaction')
-
-    const client = await this.connectRpc()
 
     const response = await client.wallet.multisig.aggregateSignatureShares({
       account: flags.account,

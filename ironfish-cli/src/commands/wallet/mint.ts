@@ -107,6 +107,7 @@ This will create tokens and increase supply for a given asset.`
   async start(): Promise<void> {
     const { flags } = await this.parse(Mint)
     const client = await this.connectRpc()
+    await ui.checkWalletUnlocked(client)
 
     if (!flags.offline) {
       const status = await client.wallet.getNodeStatus()

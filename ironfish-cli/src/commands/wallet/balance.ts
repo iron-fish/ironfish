@@ -53,6 +53,7 @@ Balance is your coins from all of your transactions, even if they are on forks o
     const { flags } = await this.parse(BalanceCommand)
 
     const client = await this.connectRpc()
+    await ui.checkWalletUnlocked(client)
 
     const account = await useAccount(client, flags.account)
 

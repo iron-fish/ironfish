@@ -5,7 +5,7 @@
 import { Args } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { inputPrompt } from '../../ui'
+import { checkWalletUnlocked, inputPrompt } from '../../ui'
 
 export class CreateCommand extends IronfishCommand {
   static description = `create a new account`
@@ -30,6 +30,7 @@ export class CreateCommand extends IronfishCommand {
     }
 
     const client = await this.connectRpc()
+    await checkWalletUnlocked(client)
 
     this.log(`Creating account ${name}`)
     const result = await client.wallet.createAccount({ name })

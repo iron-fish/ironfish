@@ -4,6 +4,7 @@
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
+import { checkWalletUnlocked } from '../../ui'
 
 export class WhichCommand extends IronfishCommand {
   static description = `show the default wallet account
@@ -24,6 +25,7 @@ export class WhichCommand extends IronfishCommand {
     const { flags } = await this.parse(WhichCommand)
 
     const client = await this.connectRpc()
+    await checkWalletUnlocked(client)
 
     const response = await client.wallet.getAccountsStatus()
     if (response.content.locked) {

@@ -5,7 +5,7 @@ import { BufferUtils, CurrencyUtils, GetBalancesResponse, RpcAsset } from '@iron
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { table, TableColumns, TableFlags } from '../../ui'
+import { checkWalletUnlocked, table, TableColumns, TableFlags } from '../../ui'
 import { compareAssets, renderAssetWithVerificationStatus, useAccount } from '../../utils'
 
 type AssetBalancePairs = { asset: RpcAsset; balance: GetBalancesResponse['balances'][number] }
@@ -32,6 +32,7 @@ export class BalancesCommand extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(BalancesCommand)
     const client = await this.connectRpc()
+    await checkWalletUnlocked(client)
 
     const account = await useAccount(client, flags.account)
 

@@ -38,12 +38,13 @@ export class CreateSignatureShareCommand extends IronfishCommand {
     const loaded = await MultisigTransactionJson.load(this.sdk.fileSystem, flags.path)
     const options = MultisigTransactionJson.resolveFlags(flags, loaded)
 
+    const client = await this.connectRpc()
+    await ui.checkWalletUnlocked(client)
+
     let signingPackageString = options.signingPackage
     if (!signingPackageString) {
       signingPackageString = await ui.longPrompt('Enter the signing package')
     }
-
-    const client = await this.connectRpc()
 
     const signingPackage = new multisig.SigningPackage(Buffer.from(signingPackageString, 'hex'))
     const unsignedTransaction = new UnsignedTransaction(

@@ -4,6 +4,7 @@
 import { Args, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
+import { checkWalletUnlocked } from '../../ui'
 
 export class UseCommand extends IronfishCommand {
   static description = 'change the default wallet account'
@@ -31,6 +32,8 @@ export class UseCommand extends IronfishCommand {
     }
 
     const client = await this.connectRpc()
+    await checkWalletUnlocked(client)
+
     await client.wallet.useAccount({ account })
     if (account == null) {
       this.log('The default account has been unset')
