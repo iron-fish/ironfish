@@ -30,7 +30,9 @@ routes.register<typeof CreateAccountRequestSchema, CreateAccountResponse>(
       )
     }
 
-    const account = await context.wallet.createAccount(name)
+    const account = await context.wallet.createAccount(name, {
+      passphrase: request.data.passphrase,
+    })
     if (context.wallet.nodeClient) {
       void context.wallet.scan()
     }

@@ -22,6 +22,7 @@ import {
 } from '../testUtilities'
 import { AsyncUtils, BufferUtils, ORE_TO_IRON } from '../utils'
 import { Account, TransactionStatus, TransactionType } from '../wallet'
+import { EncryptedAccount } from './account/encryptedAccount'
 import {
   AccountDecryptionFailedError,
   DuplicateAccountNameError,
@@ -1052,6 +1053,51 @@ describe('Wallet', () => {
       await expect(node.wallet.createAccount('     ')).rejects.toThrow(
         'Account name cannot be blank',
       )
+    })
+
+    it('should throw an error if the wallet is encrypted and no passphrase is provided', async () => {
+      const { node } = await nodeTest.createSetup()
+      const passphrase = 'foo'
+
+      await useAccountFixture(node.wallet, 'A')
+      await node.wallet.encrypt(passphrase)
+
+      await expect(node.wallet.createAccount('B')).rejects.toThrow()
+    })
+
+    it('should throw an error if the wallet is encrypted and an incorrect passphrase is provided', async () => {
+      const { node } = await nodeTest.createSetup()
+      const passphrase = 'foo'
+
+      await useAccountFixture(node.wallet, 'A')
+      await node.wallet.encrypt(passphrase)
+
+      await expect(
+        node.wallet.createAccount('B', { passphrase: 'incorrect ' }),
+      ).rejects.toThrow()
+    })
+
+    it('should save a new encrypted account with the correct passphrase', async () => {
+      const { node } = await nodeTest.createSetup()
+      const passphrase = 'foo'
+
+      await useAccountFixture(node.wallet, 'A')
+      await node.wallet.encrypt(passphrase)
+
+      const account = await node.wallet.createAccount('B', { passphrase })
+
+      const accountValue = await node.wallet.walletDb.accounts.get(account.id)
+      Assert.isNotUndefined(accountValue)
+      Assert.isTrue(accountValue.encrypted)
+
+      const encryptedAccount = new EncryptedAccount({
+        data: accountValue.data,
+        walletDb: node.wallet.walletDb,
+      })
+      const decryptedAccount = encryptedAccount.decrypt(passphrase)
+
+      expect(decryptedAccount.spendingKey).toEqual(account.spendingKey)
+      expect(decryptedAccount.name).toEqual(account.name)
     })
   })
 

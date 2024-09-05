@@ -1335,7 +1335,7 @@ export class Wallet {
 
   async createAccount(
     name: string,
-    options: { createdAt?: HeadValue | null; setDefault?: boolean } = {
+    options: { createdAt?: HeadValue | null; setDefault?: boolean; passphrase?: string } = {
       setDefault: false,
     },
   ): Promise<Account> {
@@ -1379,7 +1379,20 @@ export class Wallet {
     })
 
     await this.walletDb.db.transaction(async (tx) => {
-      await this.walletDb.setAccount(account, tx)
+      const accountsEncrypted = await this.walletDb.accountsEncrypted(tx)
+
+      if (accountsEncrypted) {
+        Assert.isNotUndefined(options.passphrase)
+        const encryptedAccount = await this.walletDb.setEncryptedAccount(
+          account,
+          options.passphrase,
+          tx,
+        )
+        this.encryptedAccountById.set(account.id, encryptedAccount)
+      } else {
+        await this.walletDb.setAccount(account, tx)
+      }
+
       await account.updateHead(createdAt, tx)
     })
 
