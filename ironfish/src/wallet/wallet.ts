@@ -352,16 +352,18 @@ export class Wallet {
     options?: {
       resetCreatedAt?: boolean
       resetScanningEnabled?: boolean
+      passphrase?: string
     },
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.resetAccounts(options, tx)
   }
 
-  resetAccounts(
+  async resetAccounts(
     options?: {
       resetCreatedAt?: boolean
       resetScanningEnabled?: boolean
+      passphrase?: string
     },
     tx?: IDatabaseTransaction,
   ): Promise<void> {
@@ -1517,6 +1519,7 @@ export class Wallet {
     options?: {
       resetCreatedAt?: boolean
       resetScanningEnabled?: boolean
+      passphrase?: string
     },
     tx?: IDatabaseTransaction,
   ): Promise<void> {
@@ -1534,7 +1537,19 @@ export class Wallet {
     this.logger.debug(`Resetting account name: ${account.name}, id: ${account.id}`)
 
     await this.walletDb.db.withTransaction(tx, async (tx) => {
-      await this.walletDb.setAccount(newAccount, tx)
+      const encrypted = await this.walletDb.accountsEncrypted(tx)
+
+      if (encrypted) {
+        Assert.isNotUndefined(options?.passphrase)
+        const encryptedAccount = await this.walletDb.setEncryptedAccount(
+          newAccount,
+          options.passphrase,
+          tx,
+        )
+        this.encryptedAccountById.set(newAccount.id, encryptedAccount)
+      } else {
+        await this.walletDb.setAccount(newAccount, tx)
+      }
 
       if (newAccount.createdAt !== null) {
         const previousBlock = await this.chainGetBlock({

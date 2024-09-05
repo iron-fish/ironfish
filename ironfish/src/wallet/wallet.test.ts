@@ -2421,6 +2421,48 @@ describe('Wallet', () => {
 
       expect(newAccount.scanningEnabled).toBe(true)
     })
+
+    it('should throw an error if the wallet is encrypted and the passphrase is not provided', async () => {
+      const { node } = await nodeTest.createSetup()
+      const passphrase = 'foo'
+
+      const account = await useAccountFixture(node.wallet, 'A')
+      await node.wallet.encrypt(passphrase)
+
+      await expect(node.wallet.resetAccount(account)).rejects.toThrow()
+    })
+
+    it('should throw an error if the wallet is encrypted and the passphrase is incorrect', async () => {
+      const { node } = await nodeTest.createSetup()
+      const passphrase = 'foo'
+
+      const account = await useAccountFixture(node.wallet, 'A')
+      await node.wallet.encrypt(passphrase)
+
+      await expect(
+        node.wallet.resetAccount(account, { passphrase: 'incorrect' }),
+      ).rejects.toThrow()
+    })
+
+    it('save the encrypted account when the wallet is encrypted and passphrase is valid', async () => {
+      const { node } = await nodeTest.createSetup()
+      const passphrase = 'foo'
+
+      const account = await useAccountFixture(node.wallet, 'A')
+      await node.wallet.encrypt(passphrase)
+
+      await node.wallet.resetAccount(account, { passphrase })
+
+      const newAccount = node.wallet.getAccountByName(account.name)
+      Assert.isNotNull(newAccount)
+
+      const encryptedAccount = node.wallet.encryptedAccountById.get(newAccount.id)
+      Assert.isNotUndefined(encryptedAccount)
+
+      const decryptedAccount = encryptedAccount.decrypt(passphrase)
+      expect(decryptedAccount.name).toEqual(account.name)
+      expect(decryptedAccount.spendingKey).toEqual(account.spendingKey)
+    })
   })
 
   describe('getTransactionType', () => {
