@@ -1013,7 +1013,7 @@ export abstract class RpcClient {
 
     isValidPublicAddress: (
       params: IsValidPublicAddressRequest,
-    ): Promise<RpcResponse<IsValidPublicAddressResponse>> => {
+    ): Promise<RpcResponseEnded<IsValidPublicAddressResponse>> => {
       return this.request<IsValidPublicAddressResponse>(
         `${ApiNamespace.chain}/isValidPublicAddress`,
         params,
@@ -1022,7 +1022,7 @@ export abstract class RpcClient {
 
     broadcastTransaction: (
       params: BroadcastTransactionRequest,
-    ): Promise<RpcResponse<BroadcastTransactionResponse>> => {
+    ): Promise<RpcResponseEnded<BroadcastTransactionResponse>> => {
       return this.request<BroadcastTransactionResponse>(
         `${ApiNamespace.chain}/broadcastTransaction`,
         params,
