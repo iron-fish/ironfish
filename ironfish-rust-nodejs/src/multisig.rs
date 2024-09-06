@@ -489,6 +489,45 @@ pub fn deserialize_public_package(round1_public_package: String) -> Result<Publi
     })
 }
 
+#[napi(object)]
+pub struct Round2PublicPackage {
+    pub sender_identity: String,
+    pub recipient_identity: String,
+    pub frost_package: String,
+    pub checksum: String,
+}
+
+#[napi(object)]
+pub struct Round2CombinedPublicPackage {
+    pub packages: Vec<Round2PublicPackage>,
+}
+
+#[napi]
+pub fn deserialize_round2_combined_public_package(
+    round2_combined_public_package: String,
+) -> Result<Round2CombinedPublicPackage> {
+    let serialized_item = hex_to_vec_bytes(&round2_combined_public_package).map_err(to_napi_err)?;
+    let pkg = dkg::round2::CombinedPublicPackage::deserialize_from(&serialized_item[..])
+        .map_err(to_napi_err)?;
+
+    let mut packages: Vec<Round2PublicPackage> = Vec::new();
+
+    for round2_public_package in pkg.packages() {
+        packages.push(Round2PublicPackage {
+            sender_identity: round2_public_package.sender_identity().to_string(),
+            recipient_identity: round2_public_package.recipient_identity().to_string(),
+            frost_package: bytes_to_hex(
+                &round2_public_package
+                    .frost_package()
+                    .serialize()
+                    .map_err(to_napi_err)?,
+            ),
+            checksum: round2_public_package.checksum().to_string(),
+        })
+    }
+
+    Ok(Round2CombinedPublicPackage { packages: packages })
+}
 #[napi(object, namespace = "multisig")]
 pub struct DkgRound3Packages {
     pub public_address: String,
