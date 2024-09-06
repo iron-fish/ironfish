@@ -5996,5 +5996,98 @@
         "sequence": 1
       }
     }
+  ],
+  "Accounts updateScanningEnabled should throw an error if the passphrase is missing and the wallet is encrypted": [
+    {
+      "value": {
+        "encrypted": false,
+        "version": 4,
+        "id": "9e39e5ef-deb0-48f2-9a14-d80295e6117c",
+        "name": "accountA",
+        "spendingKey": "fb3c91c7dfa5f5d16e4dc57dce990cb2519d2a9d6ece7cddc4dd09e358b409f9",
+        "viewKey": "42349eb1a90017be4142a66dda7ea957f8fa6012249bcccce7d9e7b3b03e83d462ddd38b6705b6d2948b9fda4f18917274efaba90248af38f15bebeaa0a96fd6",
+        "incomingViewKey": "5f007767342daf653028a5a752c9ac03d676909c105d79806f9e0216c5f57302",
+        "outgoingViewKey": "b5b1ad4e848c919f64da15695b39caa1bdfe13cb6d1e59f55ffc3725a337f463",
+        "publicAddress": "78952d7b4f60fa4e323a256ba800c45f6e082cd20e51ea3e86e69244d6eaee5f",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "c4ba065ed674858419dc4fe928471449b97b86a2058ee78a07f155092e9b7300"
+      },
+      "head": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      }
+    }
+  ],
+  "Accounts updateScanningEnabled should throw an error if the passphrase is incorrect and the wallet is encrypted": [
+    {
+      "value": {
+        "encrypted": false,
+        "version": 4,
+        "id": "fde5c6d8-9468-4c16-a5eb-9d62a11e876f",
+        "name": "accountA",
+        "spendingKey": "27ed77ff4e907e05336b86016c99ce77caac7845a6c379745b5746bd4fa9a465",
+        "viewKey": "120bd057f92be41089d06218b9af6a1a8ac7f7f1a069f4d107445d3aaa94ef27ea388563d4a5234995c737df4d754eacb12cb67747da994ed4ae8678fa8bdcca",
+        "incomingViewKey": "bf9427e3475654e651f96359c7839c8f640b8c6cbe020e9dcef821f713fda107",
+        "outgoingViewKey": "0fcae58572a1a38beb91a8875f7c47bf71bd32dd93b1e72174ba3ba5e7e4e39b",
+        "publicAddress": "2061751522201508b4d10ed14510def7165ac5cd927f732801017c014fcb8500",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "91a12674a659a20224f7816f8ba11994abab7870470679b160665a2b26547302"
+      },
+      "head": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      }
+    }
+  ],
+  "Accounts updateScanningEnabled should save the encrypted account if the passphrase is correct and the wallet is encrypted": [
+    {
+      "value": {
+        "encrypted": false,
+        "version": 4,
+        "id": "5405718d-d725-4c1b-a69e-dc6e617f44aa",
+        "name": "accountA",
+        "spendingKey": "5b4f7f2b8cf997ca7386019061217d10c36d2e30a3aa0933217aebf59d40ba96",
+        "viewKey": "f7cd9e92684e2afcdda6002143ad1337fc37bf72bc9707d0980722b26330ee0afd51bfbe082a524b3adf1d3324b88d480a7db59fd05c0607672eb0a5196e18e5",
+        "incomingViewKey": "e1dcd8f7d4af950c5fdeed8c60b7295c2c436fca37d89f28775c7b9652cbab05",
+        "outgoingViewKey": "db55213cf35d3e19e14cf2193ec53b2cd9c284a1e49b77f029ba7dd49d020f8e",
+        "publicAddress": "525daff62789108cf5f31ade7c3683773210fe07c01848ff30742430ab90ba3a",
+        "createdAt": {
+          "hash": {
+            "type": "Buffer",
+            "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+          },
+          "sequence": 1
+        },
+        "scanningEnabled": true,
+        "proofAuthorizingKey": "6381c77a8b6218d8e8857f7bd3339fab2b6b952a315f4c5eb23396dfc0bdd20b"
+      },
+      "head": {
+        "hash": {
+          "type": "Buffer",
+          "data": "base64:R5HXrp+X3xAO8VWOhHctagm0N2I4goP3XG8goyqIqoY="
+        },
+        "sequence": 1
+      }
+    }
   ]
 }

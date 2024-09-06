@@ -7,13 +7,14 @@ import { routes } from '../router'
 import { AssertHasRpcContext } from '../rpcContext'
 import { getAccount } from './utils'
 
-export type SetScanningRequest = { account: string; enabled: boolean }
+export type SetScanningRequest = { account: string; enabled: boolean; passphrase?: string }
 export type SetScanningResponse = undefined
 
 export const SetScanningRequestSchema: yup.ObjectSchema<SetScanningRequest> = yup
   .object({
     account: yup.string().defined(),
     enabled: yup.boolean().defined(),
+    passphrase: yup.string().optional(),
   })
   .defined()
 
@@ -28,7 +29,9 @@ routes.register<typeof SetScanningRequestSchema, SetScanningResponse>(
     AssertHasRpcContext(request, context, 'wallet')
 
     const account = getAccount(context.wallet, request.data.account)
-    await account.updateScanningEnabled(request.data.enabled)
+    await account.updateScanningEnabled(request.data.enabled, {
+      passphrase: request.data.passphrase,
+    })
     request.end()
   },
 )

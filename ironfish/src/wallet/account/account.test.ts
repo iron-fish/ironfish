@@ -232,6 +232,41 @@ describe('Accounts', () => {
     })
   })
 
+  describe('updateScanningEnabled', () => {
+    it('should throw an error if the passphrase is missing and the wallet is encrypted', async () => {
+      const { node } = nodeTest
+      const passphrase = 'foo'
+
+      const account = await useAccountFixture(node.wallet, 'accountA')
+      await node.wallet.encrypt(passphrase)
+
+      await expect(account.updateScanningEnabled(true)).rejects.toThrow()
+    })
+
+    it('should throw an error if the passphrase is incorrect and the wallet is encrypted', async () => {
+      const { node } = nodeTest
+      const passphrase = 'foo'
+
+      const account = await useAccountFixture(node.wallet, 'accountA')
+      await node.wallet.encrypt(passphrase)
+
+      await expect(
+        account.updateScanningEnabled(true, { passphrase: 'incorrect' }),
+      ).rejects.toThrow()
+    })
+
+    it('should save the encrypted account if the passphrase is correct and the wallet is encrypted', async () => {
+      const { node } = nodeTest
+      const passphrase = 'foo'
+
+      const account = await useAccountFixture(node.wallet, 'accountA')
+      await node.wallet.encrypt(passphrase)
+
+      await account.updateScanningEnabled(true, { passphrase })
+      expect(account.scanningEnabled).toBe(true)
+    })
+  })
+
   describe('loadPendingTransactions', () => {
     it('should load pending transactions', async () => {
       const { node } = nodeTest
