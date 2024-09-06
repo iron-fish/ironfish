@@ -252,9 +252,10 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { FishHashContext, KEY_LENGTH, NONCE_LENGTH, BoxKeyPair, randomBytes, boxMessage, unboxMessage, RollingFilter, initSignalHandler, triggerSegfault, ASSET_ID_LENGTH, ASSET_METADATA_LENGTH, ASSET_NAME_LENGTH, ASSET_LENGTH, Asset, NOTE_ENCRYPTION_KEY_LENGTH, MAC_LENGTH, ENCRYPTED_NOTE_PLAINTEXT_LENGTH, ENCRYPTED_NOTE_LENGTH, NoteEncrypted, PUBLIC_ADDRESS_LENGTH, RANDOMNESS_LENGTH, MEMO_LENGTH, AMOUNT_VALUE_LENGTH, DECRYPTED_NOTE_LENGTH, Note, PROOF_LENGTH, TRANSACTION_SIGNATURE_LENGTH, TRANSACTION_PUBLIC_KEY_RANDOMNESS_LENGTH, TRANSACTION_EXPIRATION_LENGTH, TRANSACTION_FEE_LENGTH, LATEST_TRANSACTION_VERSION, TransactionPosted, Transaction, verifyTransactions, UnsignedTransaction, encrypt, decrypt, LanguageCode, generateKey, spendingKeyToWords, wordsToSpendingKey, generatePublicAddressFromIncomingViewKey, generateKeyFromPrivateKey, initializeSapling, FoundBlockResult, ThreadPoolHandler, isValidPublicAddress, CpuCount, getCpuCount, generateRandomizedPublicKey, multisig } = nativeBinding
+const { FishHashContext, deserializePublicPackage, KEY_LENGTH, NONCE_LENGTH, BoxKeyPair, randomBytes, boxMessage, unboxMessage, RollingFilter, initSignalHandler, triggerSegfault, ASSET_ID_LENGTH, ASSET_METADATA_LENGTH, ASSET_NAME_LENGTH, ASSET_LENGTH, Asset, NOTE_ENCRYPTION_KEY_LENGTH, MAC_LENGTH, ENCRYPTED_NOTE_PLAINTEXT_LENGTH, ENCRYPTED_NOTE_LENGTH, NoteEncrypted, PUBLIC_ADDRESS_LENGTH, RANDOMNESS_LENGTH, MEMO_LENGTH, AMOUNT_VALUE_LENGTH, DECRYPTED_NOTE_LENGTH, Note, PROOF_LENGTH, TRANSACTION_SIGNATURE_LENGTH, TRANSACTION_PUBLIC_KEY_RANDOMNESS_LENGTH, TRANSACTION_EXPIRATION_LENGTH, TRANSACTION_FEE_LENGTH, LATEST_TRANSACTION_VERSION, TransactionPosted, Transaction, verifyTransactions, UnsignedTransaction, encrypt, decrypt, LanguageCode, generateKey, spendingKeyToWords, wordsToSpendingKey, generatePublicAddressFromIncomingViewKey, generateKeyFromPrivateKey, initializeSapling, FoundBlockResult, ThreadPoolHandler, isValidPublicAddress, CpuCount, getCpuCount, generateRandomizedPublicKey, multisig } = nativeBinding
 
 module.exports.FishHashContext = FishHashContext
+module.exports.deserializePublicPackage = deserializePublicPackage
 module.exports.KEY_LENGTH = KEY_LENGTH
 module.exports.NONCE_LENGTH = NONCE_LENGTH
 module.exports.BoxKeyPair = BoxKeyPair
