@@ -10,6 +10,16 @@ export interface PublicPackage {
   checksum: string
 }
 export function deserializePublicPackage(round1PublicPackage: string): PublicPackage
+export interface Round2PublicPackage {
+  senderIdentity: string
+  recipientIdentity: string
+  frostPackage: string
+  checksum: string
+}
+export interface Round2CombinedPublicPackage {
+  packages: Array<Round2PublicPackage>
+}
+export function deserializeRound2CombinedPublicPackage(round2CombinedPublicPackage: string): Round2CombinedPublicPackage
 export const KEY_LENGTH: number
 export const NONCE_LENGTH: number
 export function randomBytes(bytesLength: number): Uint8Array
