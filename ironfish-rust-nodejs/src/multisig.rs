@@ -465,6 +465,30 @@ pub fn dkg_round3(
     })
 }
 
+#[napi(object)]
+pub struct PublicPackage {
+    pub identity: String,
+    pub frost_package: String,
+    pub group_secret_key_shard_encrypted: String,
+    pub checksum: String,
+}
+
+#[napi]
+pub fn deserialize_public_package(round1_public_package: String) -> Result<PublicPackage> {
+    let serialized_item = hex_to_vec_bytes(&round1_public_package).map_err(to_napi_err)?;
+    let pkg =
+        dkg::round1::PublicPackage::deserialize_from(&serialized_item[..]).map_err(to_napi_err)?;
+
+    Ok(PublicPackage {
+        identity: pkg.identity().to_string(),
+        frost_package: bytes_to_hex(&pkg.frost_package().serialize().unwrap()),
+        group_secret_key_shard_encrypted: bytes_to_hex(
+            &pkg.group_secret_key_shard_encrypted().serialize().unwrap(),
+        ),
+        checksum: pkg.checksum().to_string(),
+    })
+}
+
 #[napi(object, namespace = "multisig")]
 pub struct DkgRound3Packages {
     pub public_address: String,
