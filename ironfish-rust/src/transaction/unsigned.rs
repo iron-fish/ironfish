@@ -5,11 +5,11 @@
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use group::GroupEncoding;
 use ironfish_frost::{
+    dkg::round3::PublicKeyPackage,
     frost::{
         aggregate, round1::SigningCommitments, round2::SignatureShare, Identifier,
         RandomizedParams, Randomizer, SigningPackage as FrostSigningPackage,
     },
-    keys::PublicKeyPackage,
     participant::Identity,
 };
 
@@ -205,7 +205,7 @@ impl UnsignedTransaction {
         let data_to_sign = self.transaction_signature_hash()?;
 
         let randomizer = Randomizer::deserialize(&self.public_key_randomness.to_bytes())
-            .map_err(|e| IronfishError::new_with_source(IronfishErrorKind::InvalidRandomizer, e))?;
+            .map_err(|e| IronfishError::new(IronfishErrorKind::InvalidRandomizer))?;
         let randomized_params =
             RandomizedParams::from_randomizer(public_key_package.verifying_key(), randomizer);
 
@@ -215,21 +215,19 @@ impl UnsignedTransaction {
             public_key_package.frost_public_key_package(),
             &randomized_params,
         )
-        .map_err(|e| {
-            IronfishError::new_with_source(IronfishErrorKind::FailedSignatureAggregation, e)
-        })?;
+        .map_err(|e| IronfishError::new(IronfishErrorKind::FailedSignatureAggregation))?;
 
         // Verify the signature with the public keys
         randomized_params
             .randomized_verifying_key()
             .verify(&data_to_sign, &authorizing_group_signature)
-            .map_err(|e| {
-                IronfishError::new_with_source(IronfishErrorKind::FailedSignatureVerification, e)
-            })?;
+            .map_err(|e| IronfishError::new(IronfishErrorKind::FailedSignatureVerification))?;
 
         let serialized_signature = authorizing_group_signature.serialize();
 
-        let transaction = self.add_signature(serialized_signature)?;
+        let mut bytes = [0; 64];
+        bytes.copy_from_slice(&serialized_signature.unwrap());
+        let transaction = self.add_signature(bytes)?;
 
         Ok(transaction)
     }

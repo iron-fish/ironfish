@@ -37,8 +37,10 @@ pub fn derive_account_keys(
         SaplingKey::new(*group_secret_key).expect("failed to derive group secret key");
 
     // Authorization key (ak), obtained from the multisig setup process
-    let authorizing_key = Option::from(SubgroupPoint::from_bytes(&authorizing_key.serialize()))
-        .expect("failied to derive authorizing key");
+    let mut bytes: [u8; 32] = [0; 32];
+    bytes.copy_from_slice(&authorizing_key.serialize().unwrap());
+    let authorizing_key =
+        Option::from(SubgroupPoint::from_bytes(&bytes)).expect("failied to derive authorizing key");
 
     // Nullifier keys (nsk and nk), derived from the gsk
     let proof_authorizing_key = group_secret_key.sapling_proof_generation_key().nsk;

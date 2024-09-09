@@ -4,6 +4,7 @@
 
 use crate::{structs::NativeUnsignedTransaction, to_napi_err};
 use ironfish::{
+    errors::{IronfishError, IronfishErrorKind},
     frost::{keys::KeyPackage, round2, Randomizer},
     frost_utils::{
         account_keys::derive_account_keys, signing_package::SigningPackage,
@@ -14,14 +15,17 @@ use ironfish::{
     SaplingKey,
 };
 use ironfish_frost::{
-    dkg, keys::PublicKeyPackage, multienc, nonces::deterministic_signing_nonces,
-    signature_share::SignatureShare, signing_commitment::SigningCommitment,
+    dkg::{self, round3::PublicKeyPackage},
+    multienc,
+    nonces::deterministic_signing_nonces,
+    signature_share::SignatureShare,
+    signing_commitment::SigningCommitment,
 };
 use napi::{bindgen_prelude::*, JsBuffer};
 use napi_derive::napi;
 use rand::thread_rng;
-use std::io;
 use std::ops::Deref;
+use std::{fmt::Display, io};
 
 #[napi(namespace = "multisig")]
 pub const IDENTITY_LEN: u32 = ironfish::frost_utils::IDENTITY_LEN as u32;
@@ -29,11 +33,13 @@ pub const IDENTITY_LEN: u32 = ironfish::frost_utils::IDENTITY_LEN as u32;
 #[napi(namespace = "multisig")]
 pub const SECRET_LEN: u32 = ironfish_frost::participant::SECRET_LEN as u32;
 
-fn try_deserialize<I, S, F, T>(items: I, deserialize_item: F) -> Result<Vec<T>>
+fn try_deserialize<I, S, F, T, E>(items: I, deserialize_item: F) -> Result<Vec<T>>
 where
     I: IntoIterator<Item = S>,
     S: Deref<Target = str>,
-    F: for<'a> Fn(&'a [u8]) -> io::Result<T>,
+    E: Display,
+    // F: for<'a> Fn(&'a [u8]) -> io::Result<T>,
+    F: for<'a> Fn(&'a [u8]) -> std::result::Result<T, E>,
 {
     items
         .into_iter()
@@ -78,7 +84,7 @@ pub fn create_signing_commitment(
         &signers,
     );
 
-    let bytes = signing_commitment.serialize();
+    let bytes = signing_commitment.unwrap().serialize();
     Ok(bytes_to_hex(&bytes[..]))
 }
 
@@ -166,9 +172,9 @@ impl ParticipantSecret {
     #[napi]
     pub fn decrypt_data(&self, js_bytes: JsBuffer) -> Result<Buffer> {
         let bytes = js_bytes.into_value()?;
-        let encrypted_blob =
-            multienc::MultiRecipientBlob::deserialize_from(bytes.as_ref()).map_err(to_napi_err)?;
-        multienc::decrypt(&self.secret, &encrypted_blob)
+        // let encrypted_blob =
+        //     multienc::MultiRecipientBlob::deserialize_from(bytes.as_ref()).map_err(to_napi_err)?;
+        multienc::decrypt(&self.secret, &bytes)
             .map(Buffer::from)
             .map_err(to_napi_err)
     }
@@ -197,11 +203,11 @@ impl ParticipantIdentity {
     #[napi]
     pub fn encrypt_data(&self, js_bytes: JsBuffer) -> Result<Buffer> {
         let bytes = js_bytes.into_value()?;
-        let encrypted_blob = multienc::encrypt(&bytes, [&self.identity], thread_rng());
-        encrypted_blob
-            .serialize()
-            .map(Buffer::from)
-            .map_err(to_napi_err)
+        Ok(Buffer::from(multienc::encrypt(
+            &bytes,
+            [&self.identity],
+            thread_rng(),
+        )))
     }
 }
 
@@ -279,8 +285,9 @@ impl NativePublicKeyPackage {
     pub fn new(value: String) -> Result<NativePublicKeyPackage> {
         let bytes = hex_to_vec_bytes(&value).map_err(to_napi_err)?;
 
-        let public_key_package =
-            PublicKeyPackage::deserialize_from(&bytes[..]).map_err(to_napi_err)?;
+        let public_key_package = PublicKeyPackage::deserialize_from(&bytes[..])
+            .map_err(|_| IronfishError::new(IronfishErrorKind::FrostLibError))
+            .map_err(to_napi_err)?;
 
         Ok(NativePublicKeyPackage { public_key_package })
     }
@@ -312,6 +319,7 @@ impl NativeSigningCommitment {
         let bytes = js_bytes.into_value()?;
         SigningCommitment::deserialize_from(bytes.as_ref())
             .map(|signing_commitment| NativeSigningCommitment { signing_commitment })
+            .map_err(|_| IronfishError::new(IronfishErrorKind::FrostLibError))
             .map_err(to_napi_err)
     }
 
@@ -383,6 +391,7 @@ pub fn dkg_round1(
         &participant_identities,
         thread_rng(),
     )
+    .map_err(|_| IronfishError::new(IronfishErrorKind::FrostLibError))
     .map_err(to_napi_err)?;
 
     Ok(DkgRound1Packages {
@@ -406,6 +415,7 @@ pub fn dkg_round2(
     let secret = Secret::deserialize_from(&hex_to_vec_bytes(&secret).map_err(to_napi_err)?[..])?;
     let round1_public_packages = try_deserialize(round1_public_packages, |bytes| {
         dkg::round1::PublicPackage::deserialize_from(bytes)
+            .map_err(|_| IronfishError::new(IronfishErrorKind::FrostLibError))
     })?;
     let round1_secret_package = hex_to_vec_bytes(&round1_secret_package).map_err(to_napi_err)?;
 
@@ -415,6 +425,7 @@ pub fn dkg_round2(
         &round1_public_packages,
         thread_rng(),
     )
+    .map_err(|_| IronfishError::new(IronfishErrorKind::FrostLibError))
     .map_err(to_napi_err)?;
 
     Ok(DkgRound2Packages {
@@ -429,7 +440,7 @@ pub struct DkgRound2Packages {
     pub round2_public_package: String,
 }
 
-#[napi(object, namespace = "multisig")]
+#[napi(namespace = "multisig")]
 pub fn dkg_round3(
     secret: &ParticipantSecret,
     round2_secret_package: String,
@@ -439,9 +450,11 @@ pub fn dkg_round3(
     let round2_secret_package = hex_to_vec_bytes(&round2_secret_package).map_err(to_napi_err)?;
     let round1_public_packages = try_deserialize(round1_public_packages, |bytes| {
         dkg::round1::PublicPackage::deserialize_from(bytes)
+            .map_err(|_| IronfishError::new(IronfishErrorKind::FrostLibError))
     })?;
     let round2_public_packages = try_deserialize(round2_public_packages, |bytes| {
         dkg::round2::CombinedPublicPackage::deserialize_from(bytes)
+            .map_err(|_| IronfishError::new(IronfishErrorKind::FrostLibError))
     })?;
 
     let (key_package, public_key_package, group_secret_key) = dkg::round3::round3(
@@ -450,6 +463,7 @@ pub fn dkg_round3(
         round1_public_packages.iter(),
         round2_public_packages.iter(),
     )
+    .map_err(|_| IronfishError::new(IronfishErrorKind::FrostLibError))
     .map_err(to_napi_err)?;
 
     let account_keys = derive_account_keys(public_key_package.verifying_key(), &group_secret_key);
@@ -476,15 +490,14 @@ pub struct PublicPackage {
 #[napi]
 pub fn deserialize_public_package(round1_public_package: String) -> Result<PublicPackage> {
     let serialized_item = hex_to_vec_bytes(&round1_public_package).map_err(to_napi_err)?;
-    let pkg =
-        dkg::round1::PublicPackage::deserialize_from(&serialized_item[..]).map_err(to_napi_err)?;
+    let pkg = dkg::round1::PublicPackage::deserialize_from(&serialized_item[..])
+        .map_err(|_| IronfishError::new(IronfishErrorKind::FrostLibError))
+        .map_err(to_napi_err)?;
 
     Ok(PublicPackage {
         identity: pkg.identity().to_string(),
         frost_package: bytes_to_hex(&pkg.frost_package().serialize().unwrap()),
-        group_secret_key_shard_encrypted: bytes_to_hex(
-            &pkg.group_secret_key_shard_encrypted().serialize().unwrap(),
-        ),
+        group_secret_key_shard_encrypted: bytes_to_hex(&pkg.group_secret_key_shard_encrypted()),
         checksum: pkg.checksum().to_string(),
     })
 }
@@ -508,6 +521,7 @@ pub fn deserialize_round2_combined_public_package(
 ) -> Result<Round2CombinedPublicPackage> {
     let serialized_item = hex_to_vec_bytes(&round2_combined_public_package).map_err(to_napi_err)?;
     let pkg = dkg::round2::CombinedPublicPackage::deserialize_from(&serialized_item[..])
+        .map_err(|_| IronfishError::new(IronfishErrorKind::FrostLibError))
         .map_err(to_napi_err)?;
 
     let mut packages: Vec<Round2PublicPackage> = Vec::new();

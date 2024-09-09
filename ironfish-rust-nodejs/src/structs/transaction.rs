@@ -8,6 +8,7 @@ use std::collections::BTreeMap;
 use std::convert::TryInto;
 
 use ironfish::assets::asset_identifier::AssetIdentifier;
+use ironfish::errors::{IronfishError, IronfishErrorKind};
 use ironfish::frost::round1::SigningCommitments;
 use ironfish::frost::round2::SignatureShare as FrostSignatureShare;
 use ironfish::frost::Identifier;
@@ -24,7 +25,7 @@ use ironfish::{
     MerkleNoteHash, OutgoingViewKey, ProposedTransaction, PublicAddress, SaplingKey, Transaction,
     ViewKey,
 };
-use ironfish_frost::keys::PublicKeyPackage;
+use ironfish_frost::dkg::round3::PublicKeyPackage;
 use ironfish_frost::signature_share::SignatureShare;
 use ironfish_frost::signing_commitment::SigningCommitment;
 use napi::{
@@ -433,8 +434,9 @@ impl NativeUnsignedTransaction {
 
         for identifier_commitment in native_identifer_commitments {
             let bytes = hex_to_vec_bytes(&identifier_commitment).map_err(to_napi_err)?;
-            let signing_commitment =
-                SigningCommitment::deserialize_from(&bytes[..]).map_err(to_napi_err)?;
+            let signing_commitment = SigningCommitment::deserialize_from(&bytes[..])
+                .map_err(|_| IronfishError::new(IronfishErrorKind::FrostLibError))
+                .map_err(to_napi_err)?;
 
             let commitment = SigningCommitments::new(
                 *signing_commitment.hiding(),
@@ -496,6 +498,7 @@ pub fn aggregate_signature_shares(
     let public_key_package = PublicKeyPackage::deserialize_from(
         &hex_to_vec_bytes(&public_key_package_str).map_err(to_napi_err)?[..],
     )
+    .map_err(|_| IronfishError::new(IronfishErrorKind::FrostLibError))
     .map_err(to_napi_err)?;
 
     let bytes = hex_to_vec_bytes(&signing_package_str).map_err(to_napi_err)?;
@@ -508,6 +511,7 @@ pub fn aggregate_signature_shares(
         let iss = SignatureShare::deserialize_from(
             &hex_to_vec_bytes(signature_share).map_err(to_napi_err)?[..],
         )
+        .map_err(|_| IronfishError::new(IronfishErrorKind::FrostLibError))
         .map_err(to_napi_err)?;
         signature_shares.insert(
             iss.identity().to_frost_identifier(),
