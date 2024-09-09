@@ -26,10 +26,7 @@ describe('Route eth/getAccount', () => {
     expect(block2.header.stateCommitment).toBeDefined()
     await expect(node.chain).toAddBlock(block2)
 
-    const response = await routeTest.client.eth.getAccount({
-      address: address.toString(),
-      blockReference: '2',
-    })
+    const response = await routeTest.client.eth.getAccount([address.toString(), '2'])
 
     expect(response.status).toEqual(200)
     expect(response.content.balance).toEqual(CurrencyUtils.encode(ethAccount.balance))
@@ -64,10 +61,7 @@ describe('Route eth/getAccount', () => {
     expect(block3.header.stateCommitment).toBeDefined()
     await expect(node.chain).toAddBlock(block3)
 
-    const response = await routeTest.client.eth.getAccount({
-      address: address.toString(),
-      blockReference: '2',
-    })
+    const response = await routeTest.client.eth.getAccount([address.toString(), '2'])
 
     expect(response.status).toEqual(200)
     expect(response.content.balance).toEqual(CurrencyUtils.encode(ethAccount1.balance))
@@ -81,10 +75,7 @@ describe('Route eth/getAccount', () => {
     const account = await useAccountFixture(node.wallet, 'test3')
     const address = Address.fromPrivateKey(Buffer.from(account.spendingKey, 'hex'))
 
-    const response = await routeTest.client.eth.getAccount({
-      address: address.toString(),
-      blockReference: '1',
-    })
+    const response = await routeTest.client.eth.getAccount([address.toString(), '1'])
 
     expect(response.status).toEqual(200)
     expect(response.content.balance).toEqual('0')

@@ -37,6 +37,7 @@ import { IDatabaseTransaction } from '../storage/database/transaction'
 import {
   AsyncUtils,
   ErrorUtils,
+  EthUtils,
   PromiseUtils,
   SetTimeoutToken,
   TransactionUtils,
@@ -697,7 +698,7 @@ export class Wallet {
     // TODO(hughy): consider persisting unconfirmed account state
     const response = await this.nodeClient.eth.getAccount([
       account.ethAddress,
-      String(head.sequence - confirmations),
+      String(EthUtils.ifToEthSequence(head.sequence - confirmations)),
     ])
 
     return new EthAccount(BigInt(response.content.nonce), BigInt(response.content.balance))

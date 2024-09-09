@@ -90,8 +90,12 @@ describe('Route eth/getLogs', () => {
         transactionHash: bytesToHex(ethHash),
         transactionIndex: '0x1',
         blockHash: EthUtils.prefix0x(blockEvm.header.hash.toString('hex')),
-        blockNumber: '0x3',
+        blockNumber: EthUtils.numToHex(EthUtils.ifToEthSequence(3)),
         address: GLOBAL_CONTRACT_ADDRESS.toString(),
+        data: '0x000000000000000000000000ffffffffffffffffffffffffffffffffffffffff00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000077359400',
+        logIndex: '0x0',
+        removed: false,
+        topics: ['0xac7fb4669ee6bcb4e65d1a3ed26d30037ba448f57ef727751be6c72f66fc4281'],
       }),
     ])
 
@@ -174,8 +178,8 @@ describe('Route eth/getLogs', () => {
 
   it('should retrieve logs using to/from block', async () => {
     const result = await routeTest.client.eth.getLogs({
-      fromBlock: EthUtils.numToHex(3),
-      toBlock: EthUtils.numToHex(3),
+      fromBlock: EthUtils.numToHex(EthUtils.ifToEthSequence(3)),
+      toBlock: EthUtils.numToHex(EthUtils.ifToEthSequence(3)),
     })
 
     expect(result.status).toEqual(200)

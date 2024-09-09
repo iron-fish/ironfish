@@ -78,7 +78,7 @@ describe('Route eth/getTransactionReceipt', () => {
     await expect(chain).toAddBlock(block1)
 
     const ethHash = evmDescriptionToLegacyTransaction(transaction.evm!).hash()
-    const result = await routeTest.client.eth.getTransactionReceipt(bytesToHex(ethHash))
+    const result = await routeTest.client.eth.getTransactionReceipt([bytesToHex(ethHash)])
 
     expect(result.status).toEqual(200)
     expect(result.content).toMatchObject({

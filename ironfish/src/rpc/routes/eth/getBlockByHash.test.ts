@@ -79,7 +79,10 @@ describe('Route eth/getBlockByHash', () => {
       s: expect.stringMatching(/^0x/),
     })
 
-    const resultTruncated = await routeTest.client.eth.getBlockByNumber(['0x2', false])
+    const resultTruncated = await routeTest.client.eth.getBlockByNumber([
+      EthUtils.numToHex(EthUtils.ifToEthSequence(2)),
+      false,
+    ])
     expect(resultTruncated.content.transactions[0]).toEqual(ethHashString)
   })
 })
