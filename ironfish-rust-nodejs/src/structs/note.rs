@@ -6,6 +6,7 @@ use std::cmp;
 
 use ironfish::{
     assets::asset::ID_LENGTH as ASSET_ID_LENGTH,
+    keys::PUBLIC_ADDRESS_SIZE,
     note::{AMOUNT_VALUE_SIZE, MEMO_SIZE, SCALAR_SIZE},
     ViewKey,
 };
@@ -13,8 +14,6 @@ use napi::{bindgen_prelude::*, JsBuffer};
 use napi_derive::napi;
 
 use ironfish::Note;
-
-use ironfish::keys::PUBLIC_ADDRESS_SIZE;
 
 use crate::to_napi_err;
 

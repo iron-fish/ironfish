@@ -141,6 +141,6 @@ impl From<num::TryFromIntError> for IronfishError {
 
 impl From<ironfish_frost::frost::Error> for IronfishError {
     fn from(e: ironfish_frost::frost::Error) -> IronfishError {
-        IronfishError::new_with_source(IronfishErrorKind::FrostLibError, e)
+        IronfishError::new(IronfishErrorKind::FrostLibError)
     }
 }

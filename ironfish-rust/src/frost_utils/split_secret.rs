@@ -4,12 +4,12 @@
 
 use ironfish_frost::participant::Identity;
 use ironfish_frost::{
+    dkg::round3::PublicKeyPackage,
     frost::{
         frost::keys::split,
         keys::{IdentifierList, KeyPackage},
         SigningKey,
     },
-    keys::PublicKeyPackage,
 };
 use rand::{CryptoRng, RngCore};
 use std::{
@@ -69,7 +69,7 @@ pub(crate) fn split_secret<R: RngCore + CryptoRng>(
     let frost_ids = frost_id_map.keys().cloned().collect::<Vec<_>>();
     let identifier_list = IdentifierList::Custom(&frost_ids[..]);
 
-    let secret_key = SigningKey::deserialize(spender_key.spend_authorizing_key.to_bytes())?;
+    let secret_key = SigningKey::deserialize(&spender_key.spend_authorizing_key.to_bytes()[..])?;
     let max_signers: u16 = num_identities.try_into()?;
 
     let (shares, pubkeys) = split(
