@@ -15,10 +15,10 @@ import { EthRpcLog, EthRpcLogSchema } from './types'
 import { getEthRpcLogs } from './util'
 
 // eslint-disable-next-line @typescript-eslint/ban-types
-export type GetTransactionReceiptRequest = string
+export type GetTransactionReceiptRequest = [string]
 
-export const GetTransactionReceiptRequestSchema: yup.StringSchema<GetTransactionReceiptRequest> =
-  yup.string().defined()
+export const GetTransactionReceiptRequestSchema: yup.MixedSchema<GetTransactionReceiptRequest> =
+  yup.mixed<[string]>().defined()
 
 export type GetTransactionReceiptResponse = {
   transactionHash: string
@@ -64,29 +64,30 @@ registerEthRoute<typeof GetTransactionReceiptRequestSchema, GetTransactionReceip
   async (request, node): Promise<void> => {
     Assert.isInstanceOf(node, FullNode)
 
-    const evmTransactionHash = Buffer.from(EthUtils.remove0x(request.data), 'hex')
+    const [txHash] = request.data
+    const evmTransactionHash = Buffer.from(EthUtils.remove0x(txHash), 'hex')
 
     const transactionHash =
       await node.chain.blockchainDb.getEthTransactionHashToTransactionHash(evmTransactionHash)
     if (!transactionHash) {
-      throw new RpcNotFoundError(`Transaction ${request.data} not found`)
+      throw new RpcNotFoundError(`Transaction ${txHash} not found`)
     }
     const blockHash = await node.chain.getBlockHashByTransactionHash(transactionHash)
 
     if (!blockHash) {
-      throw new RpcNotFoundError(`Block not found for transaction ${request.data}`)
+      throw new RpcNotFoundError(`Block not found for transaction ${txHash}`)
     }
     const blockHeader = await node.chain.getHeader(blockHash)
     if (!blockHeader) {
-      throw new RpcNotFoundError(`Block header not found for transaction ${request.data}`)
+      throw new RpcNotFoundError(`Block header not found for transaction ${txHash}`)
     }
     const retrieved = await node.chain.getBlockTransaction(blockHeader, transactionHash)
 
     if (!retrieved) {
-      throw new RpcNotFoundError(`Transaction ${request.data} not found`)
+      throw new RpcNotFoundError(`Transaction ${txHash} not found`)
     }
     if (!retrieved.transaction.transaction.evm) {
-      throw new RpcNotFoundError(`Transaction ${request.data} does not have EVM description`)
+      throw new RpcNotFoundError(`Transaction ${txHash} does not have EVM description`)
     }
     const ethTransaction = evmDescriptionToLegacyTransaction(
       retrieved.transaction.transaction.evm,
@@ -94,16 +95,14 @@ registerEthRoute<typeof GetTransactionReceiptRequestSchema, GetTransactionReceip
 
     const evmReceipt = await node.chain.blockchainDb.getEvmReceipt(evmTransactionHash)
     if (!evmReceipt) {
-      throw new RpcNotFoundError(
-        `Transaction receipt not found for transaction ${request.data}`,
-      )
+      throw new RpcNotFoundError(`Transaction receipt not found for transaction ${txHash}`)
     }
 
     request.end({
       transactionHash: EthUtils.prefix0x(Buffer.from(ethTransaction.hash()).toString('hex')),
       transactionIndex: EthUtils.numToHex(retrieved.index),
       blockHash: EthUtils.prefix0x(retrieved.transaction.blockHash.toString('hex')),
-      blockNumber: EthUtils.numToHex(retrieved.transaction.sequence),
+      blockNumber: EthUtils.numToHex(EthUtils.ifToEthSequence(retrieved.transaction.sequence)),
       from: ethTransaction.getSenderAddress().toString(),
       to: ethTransaction.to === undefined ? null : ethTransaction.to.toString(),
       cumulativeGasUsed: EthUtils.numToHex(evmReceipt.cumulativeGasUsed),

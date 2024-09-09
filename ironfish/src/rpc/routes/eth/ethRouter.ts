@@ -85,8 +85,8 @@ routes.register<typeof RouterRequestSchema, EthResponse>(
       request.onEnd(status, resp)
     }
     if (handlerEntry) {
-      const req = new RpcRequest<typeof request.data.params[0], EthResponse>(
-        request.data.params[0],
+      const req = new RpcRequest<typeof request.data.params, EthResponse>(
+        request.data.params,
         '',
         onEnd,
         request.onStream as (data: unknown) => void,

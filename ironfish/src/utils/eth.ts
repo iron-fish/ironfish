@@ -14,4 +14,12 @@ function numToHex(num: number | bigint): string {
   return prefix0x(num.toString(16))
 }
 
-export const EthUtils = { prefix0x, remove0x, numToHex }
+function ifToEthSequence(num: number): number {
+  return num - 1
+}
+
+function ethToIFSequence(num: number): number {
+  return num + 1
+}
+
+export const EthUtils = { prefix0x, remove0x, numToHex, ifToEthSequence, ethToIFSequence }

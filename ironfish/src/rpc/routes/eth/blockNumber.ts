@@ -5,6 +5,7 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { FullNode } from '../../../node'
+import { EthUtils } from '../../../utils/eth'
 import { registerEthRoute } from '../eth/ethRouter'
 import { ApiNamespace } from '../namespaces'
 
@@ -32,7 +33,7 @@ registerEthRoute<typeof BlockNumberRequestSchema, BlockNumberResponse>(
     Assert.isInstanceOf(node, FullNode)
 
     request.end({
-      number: '0x' + node.chain.head.sequence.toString(16),
+      number: EthUtils.numToHex(EthUtils.ifToEthSequence(node.chain.head.sequence)),
     })
   },
 )

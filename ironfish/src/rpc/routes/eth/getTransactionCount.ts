@@ -8,6 +8,7 @@ import { FullNode } from '../../../node'
 import { EthUtils } from '../../../utils'
 import { registerEthRoute } from '../eth/ethRouter'
 import { ApiNamespace } from '../namespaces'
+import { ethBlockRefToBlock } from './util'
 
 export type GetTransactionCountRequest = [string, string]
 
@@ -27,14 +28,9 @@ registerEthRoute<typeof GetTransactionCountRequestSchema, GetTransactionCountRes
   async (request, node): Promise<void> => {
     Assert.isInstanceOf(node, FullNode)
 
-    const [addressHex, blockNumber] = request.data
-    let block
+    const [addressHex, blockRef] = request.data
     // TODO handle pending transactions
-    if (blockNumber !== 'latest') {
-      block = await node.chain.getBlockAtSequence(parseInt(blockNumber))
-    } else {
-      block = await node.chain.getBlock(node.chain.latest)
-    }
+    const block = await ethBlockRefToBlock(blockRef, node.chain)
 
     const stateManager = await node.chain.blockchainDb.stateManager.withStateRoot(
       block?.header.stateCommitment,

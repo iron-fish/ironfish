@@ -9,11 +9,9 @@ import { CurrencyUtils } from '../../../utils'
 import { RpcNotFoundError } from '../../adapters'
 import { ApiNamespace } from '../namespaces'
 import { registerEthRoute } from './ethRouter'
+import { ethBlockRefToBlock } from './util'
 
-export type GetAccountRequest = {
-  address: string
-  blockReference: string
-}
+export type GetAccountRequest = [string, string]
 
 export type GetAccountResponse = {
   codeHash: string
@@ -22,11 +20,8 @@ export type GetAccountResponse = {
   nonce: string
 }
 
-export const GetAccountRequestSchema: yup.ObjectSchema<GetAccountRequest> = yup
-  .object({
-    address: yup.string().defined().trim(),
-    blockReference: yup.string().defined().trim(),
-  })
+export const GetAccountRequestSchema: yup.MixedSchema<GetAccountRequest> = yup
+  .mixed<[string, string]>()
   .defined()
 
 export const GetAccountResponseSchema: yup.ObjectSchema<GetAccountResponse> = yup
@@ -45,13 +40,13 @@ registerEthRoute<typeof GetAccountRequestSchema, GetAccountResponse>(
   async (request, node): Promise<void> => {
     Assert.isInstanceOf(node, FullNode)
 
-    const address = Address.fromString(request.data.address)
+    const [addr, blockRef] = request.data
+    const address = Address.fromString(addr)
 
-    // TODO(hughy): parse blockReference as hex string or as tag (e.g., 'latest')
-    const blockNumber = Number(request.data.blockReference)
-    const block = await node.chain.getBlockAtSequence(blockNumber)
+    const block = await ethBlockRefToBlock(blockRef, node.chain)
+
     if (!block) {
-      throw new RpcNotFoundError(`No block found with reference ${request.data.blockReference}`)
+      throw new RpcNotFoundError(`No block found with reference ${blockRef}`)
     }
 
     const account = await node.chain.evm.getAccount(address, block.header.stateCommitment)

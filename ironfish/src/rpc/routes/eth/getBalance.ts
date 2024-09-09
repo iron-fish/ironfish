@@ -5,23 +5,18 @@ import { Address } from '@ethereumjs/util'
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { FullNode } from '../../../node'
+import { EthUtils } from '../../../utils/eth'
 import { RpcNotFoundError } from '../../adapters'
 import { ApiNamespace } from '../namespaces'
 import { registerEthRoute } from './ethRouter'
-import { blockNumberToBlockHeader } from './util'
+import { ethBlockRefToHeader } from './util'
 
-export type EthGetBalanceRequest = {
-  address: string
-  blockNumber: string
-}
+export type EthGetBalanceRequest = [string, string]
 
 export type EthGetBalanceResponse = string
 
-export const EthGetBalanceRequestSchema: yup.ObjectSchema<EthGetBalanceRequest> = yup
-  .object({
-    address: yup.string().defined().trim(),
-    blockNumber: yup.string().defined().trim(),
-  })
+export const EthGetBalanceRequestSchema: yup.MixedSchema<EthGetBalanceRequest> = yup
+  .mixed<[string, string]>()
   .defined()
 
 export const EthGetBalanceResponseSchema: yup.StringSchema<EthGetBalanceResponse> = yup
@@ -35,19 +30,23 @@ registerEthRoute<typeof EthGetBalanceRequestSchema, EthGetBalanceResponse>(
   async (request, node): Promise<void> => {
     Assert.isInstanceOf(node, FullNode)
 
-    const address = Address.fromString(request.data.address)
-    const header = await blockNumberToBlockHeader(request.data.blockNumber, node.chain)
-    if (!header || !header.stateCommitment) {
-      throw new RpcNotFoundError(
-        `No header/state commitment found with reference ${request.data.blockNumber}`,
-      )
+    const [addr, blockRef] = request.data
+    const address = Address.fromString(addr)
+    const header = await ethBlockRefToHeader(blockRef, node.chain)
+
+    if (header?.sequence === 1 && !header.stateCommitment) {
+      return request.end(`0x0`)
     }
-    const stateRoot = header.stateCommitment
-    const balance = await node.chain.evm.getBalance(address, stateRoot)
+
+    if (!header || !header.stateCommitment) {
+      throw new RpcNotFoundError(`No header/state commitment found with reference ${blockRef}`)
+    }
+
+    const balance = await node.chain.evm.getBalance(address, header.stateCommitment)
     if (!balance) {
       return request.end('0x0')
     }
 
-    request.end(`0x${balance.toString(16)}`)
+    request.end(EthUtils.numToHex(balance))
   },
 )
