@@ -14,6 +14,22 @@ use crate::errors::{IronfishError, IronfishErrorKind};
 const KEY_LENGTH: usize = 32;
 const NONCE_LENGTH: usize = 24;
 
+pub struct EncryptionKey {
+    pub key: [u8; KEY_LENGTH],
+
+    pub nonce: [u8; NONCE_LENGTH],
+
+    pub salt: Vec<u8>,
+}
+
+impl EncryptionKey {
+    pub fn to_xchacha20poly1305_key(&self) -> Key {
+        let nonce = XNonce::from_slice(&self.nonce);
+
+        Key::from(self.key)
+    }
+}
+
 #[derive(Debug)]
 pub struct EncryptOutput {
     pub salt: Vec<u8>,
@@ -70,7 +86,13 @@ impl PartialEq for EncryptOutput {
     }
 }
 
-fn derive_key(passphrase: &[u8], salt: &[u8]) -> Result<Key, IronfishError> {
+pub fn generate_key(passphrase: &[u8]) -> Result<EncryptionKey, IronfishError> {
+    let mut nonce = [0u8; NONCE_LENGTH];
+    thread_rng().fill_bytes(&mut nonce);
+
+    let salt_str = SaltString::generate(&mut thread_rng()).to_string();
+    let salt = salt_str.as_bytes();
+
     let mut key = [0u8; KEY_LENGTH];
     let argon2 = Argon2::default();
 
@@ -78,48 +100,45 @@ fn derive_key(passphrase: &[u8], salt: &[u8]) -> Result<Key, IronfishError> {
         .hash_password_into(passphrase, salt, &mut key)
         .map_err(|_| IronfishError::new(IronfishErrorKind::FailedArgon2Hash))?;
 
-    Ok(Key::from(key))
+    Ok(EncryptionKey {
+       key,
+       salt: salt.to_vec(),
+       nonce,
+    })
 }
 
-pub fn encrypt(plaintext: &[u8], passphrase: &[u8]) -> Result<EncryptOutput, IronfishError> {
-    let salt = SaltString::generate(&mut thread_rng());
-    let salt_str = salt.to_string();
-    let salt_bytes = salt_str.as_bytes();
-    let key = derive_key(passphrase, salt_bytes)?;
+pub fn derive_key(passphrase: &[u8], salt: Vec<u8>, nonce: [u8; NONCE_LENGTH]) -> Result<EncryptionKey, IronfishError> {
 
+}
+
+pub fn encrypt(plaintext: &[u8], encryption_key: EncryptionKey) -> Result<Vec<u8>, IronfishError> {
+    let nonce = XNonce::from_slice(&encryption_key.nonce);
+    let key = Key::from(encryption_key.key);
     let cipher = XChaCha20Poly1305::new(&key);
-    let mut nonce_bytes = [0u8; NONCE_LENGTH];
-    thread_rng().fill_bytes(&mut nonce_bytes);
-    let nonce = XNonce::from_slice(&nonce_bytes);
 
     let ciphertext = cipher
         .encrypt(nonce, plaintext)
         .map_err(|_| IronfishError::new(IronfishErrorKind::FailedXChaCha20Poly1305Encryption))?;
 
-    Ok(EncryptOutput {
-        salt: salt_bytes.to_vec(),
-        nonce: nonce_bytes,
-        ciphertext,
-    })
+    Ok(ciphertext)
 }
 
 pub fn decrypt(
-    encrypted_output: EncryptOutput,
-    passphrase: &[u8],
+    ciphertext: Vec<u8>,
+    encryption_key: EncryptionKey,
 ) -> Result<Vec<u8>, IronfishError> {
-    let nonce = XNonce::from_slice(&encrypted_output.nonce);
-
-    let key = derive_key(passphrase, &encrypted_output.salt[..])?;
+    let nonce = XNonce::from_slice(&encryption_key.nonce);
+    let key = encryption_key.to_xchacha20poly1305_key();
     let cipher = XChaCha20Poly1305::new(&key);
 
     cipher
-        .decrypt(nonce, encrypted_output.ciphertext.as_ref())
+        .decrypt(nonce, ciphertext.as_ref())
         .map_err(|_| IronfishError::new(IronfishErrorKind::FailedXChaCha20Poly1305Decryption))
 }
 
 #[cfg(test)]
 mod test {
-    use crate::xchacha20poly1305::{decrypt, encrypt};
+    use crate::xchacha20poly1305::{decrypt, encrypt, generate_key};
 
     use super::EncryptOutput;
 
@@ -128,10 +147,12 @@ mod test {
         let plaintext = "thisissensitivedata";
         let passphrase = "supersecretpassword";
 
-        let encrypted_output = encrypt(plaintext.as_bytes(), passphrase.as_bytes())
+        let encryption_key = generate_key(passphrase.as_bytes()).expect("should successfully generate key");
+
+        let encrypted_output = encrypt(plaintext.as_bytes(), encryption_key)
             .expect("should successfully encrypt");
         let decrypted =
-            decrypt(encrypted_output, passphrase.as_bytes()).expect("should decrypt successfully");
+            decrypt(encrypted_output, encryption_key).expect("should decrypt successfully");
 
         assert_eq!(decrypted, plaintext.as_bytes());
     }
@@ -142,7 +163,9 @@ mod test {
         let passphrase = "supersecretpassword";
         let incorrect_passphrase = "foobar";
 
-        let encrypted_output = encrypt(plaintext.as_bytes(), passphrase.as_bytes())
+        let encryption_key = generate_key(passphrase.as_bytes()).expect("should successfully generate key");
+
+        let encrypted_output = encrypt(plaintext.as_bytes(), encryption_key)
             .expect("should successfully encrypt");
 
         decrypt(encrypted_output, incorrect_passphrase.as_bytes())
