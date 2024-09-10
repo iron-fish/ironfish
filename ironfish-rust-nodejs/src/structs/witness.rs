@@ -121,55 +121,86 @@ impl WitnessTrait for JsWitness {
     }
 }
 
-#[napi(object)]
+#[napi]
 pub struct NativeWitness {
-    pub tree_size: u32,
+    pub(crate) witness: Witness,
     pub root_hash: Buffer,
-    pub auth_path: Vec<NativeWitnessNode>,
 }
 
+#[napi]
 impl NativeWitness {
-    pub fn new(witness: Witness) -> Self {
-        let tree_size = witness.tree_size as u32;
+    #[napi]
+    pub fn tree_size(&self) -> u32 {
+        self.witness.tree_size as u32
+    }
 
-        let root_hash = Buffer::from(witness.root_hash.to_bytes_le().to_vec());
-
+    #[napi]
+    pub fn auth_path(&self) -> Vec<NativeWitnessNode> {
         let mut auth_path: Vec<NativeWitnessNode> = Vec::new();
 
-        for node in witness.get_auth_path() {
+        for node in self.witness.get_auth_path() {
             match node {
                 WitnessNode::Left(hash) => {
                     auth_path.push(NativeWitnessNode {
-                        side: 0,
+                        side: "Left".to_string(),
                         hash_of_sibling: Buffer::from(hash.to_bytes_le().to_vec()),
                     });
                 }
                 WitnessNode::Right(hash) => {
                     auth_path.push(NativeWitnessNode {
-                        side: 1,
+                        side: "Right".to_string(),
                         hash_of_sibling: Buffer::from(hash.to_bytes_le().to_vec()),
                     });
                 }
             }
         }
 
-        NativeWitness {
-            tree_size,
-            root_hash,
-            auth_path,
-        }
+        auth_path
     }
 }
 
-#[napi(object)]
+impl WitnessTrait for NativeWitness {
+    fn tree_size(&self) -> u32 {
+        self.tree_size()
+    }
+
+    fn root_hash(&self) -> Scalar {
+        self.witness.root_hash()
+    }
+
+    fn get_auth_path(&self) -> Vec<WitnessNode<Scalar>> {
+        self.witness.get_auth_path()
+    }
+
+    fn verify(&self, my_hash: &MerkleNoteHash) -> bool {
+        self.witness.verify(my_hash)
+    }
+}
+
+#[napi]
 pub struct NativeWitnessNode {
-    pub side: u8,
-    pub hash_of_sibling: Buffer,
+    pub(crate) side: String,
+    pub(crate) hash_of_sibling: Buffer,
+}
+
+#[napi]
+impl NativeWitnessNode {
+    #[napi]
+    pub fn side(&self) -> String {
+        self.side.clone()
+    }
+
+    #[napi]
+    pub fn hash_of_sibling(&self) -> Buffer {
+        self.hash_of_sibling.clone()
+    }
 }
 
 #[napi]
 pub fn make_test_witness(note: &NativeNote) -> NativeWitness {
     let witness = make_fake_witness(&note.note);
 
-    NativeWitness::new(witness)
+    let root_hash = Buffer::from(witness.root_hash.to_bytes_le().to_vec());
+
+    NativeWitness { witness, root_hash }
 }

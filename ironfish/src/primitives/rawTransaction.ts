@@ -7,6 +7,7 @@ import {
   Asset,
   ASSET_ID_LENGTH,
   ASSET_LENGTH,
+  NativeWitness,
   PROOF_LENGTH,
   PUBLIC_ADDRESS_LENGTH,
   Transaction as NativeTransaction,
@@ -51,12 +52,14 @@ export class RawTransaction {
 
   spends: {
     note: Note
-    witness: Witness<
-      NoteEncrypted,
-      NoteEncryptedHash,
-      NoteEncryptedHash,
-      SerializedNoteEncryptedHash
-    >
+    witness:
+      | Witness<
+          NoteEncrypted,
+          NoteEncryptedHash,
+          NoteEncryptedHash,
+          SerializedNoteEncryptedHash
+        >
+      | NativeWitness
   }[] = []
 
   constructor(version: TransactionVersion) {
@@ -121,7 +124,11 @@ export class RawTransaction {
   _build(): NativeTransaction {
     const builder = new NativeTransaction(this.version)
     for (const spend of this.spends) {
-      builder.spend(spend.note.takeReference(), spend.witness)
+      if (spend.witness instanceof NativeWitness) {
+        builder.spendNative(spend.note.takeReference(), spend.witness)
+      } else {
+        builder.spend(spend.note.takeReference(), spend.witness)
+      }
       spend.note.returnReference()
     }
 
@@ -216,10 +223,10 @@ export class RawTransactionSerde {
       bw.writeU64(spend.witness.authPath().length)
       for (const step of spend.witness.authPath()) {
         switch (step.side()) {
-          case Side.Left:
+          case Side.Left.toString():
             bw.writeU8(0)
             break
-          case Side.Right:
+          case Side.Right.toString():
             bw.writeU8(1)
             break
         }

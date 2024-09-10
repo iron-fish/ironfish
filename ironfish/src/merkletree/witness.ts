@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { NativeWitness } from '@ironfish/rust-nodejs'
 import {
   NoteEncrypted,
   NoteEncryptedHash,
@@ -68,12 +69,14 @@ export class Witness<E, H, SE extends JsonSerializable, SH extends JsonSerializa
   }
 }
 
-export type NoteWitness = Witness<
-  NoteEncrypted,
-  NoteEncryptedHash,
-  SerializedNoteEncrypted,
-  SerializedNoteEncryptedHash
->
+export type NoteWitness =
+  | Witness<
+      NoteEncrypted,
+      NoteEncryptedHash,
+      SerializedNoteEncrypted,
+      SerializedNoteEncryptedHash
+    >
+  | NativeWitness
 
 export function IsNoteWitnessEqual(a: NoteWitness, b: NoteWitness): boolean {
   if (a.treeSize() !== b.treeSize()) {
