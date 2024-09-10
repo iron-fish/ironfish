@@ -373,6 +373,17 @@ impl NativeSigningPackage {
             .map(|signer| Buffer::from(&signer.serialize()[..]))
             .collect()
     }
+
+    #[napi]
+    pub fn frost_signing_package(&self) -> Result<Buffer> {
+        Ok(Buffer::from(
+            &self
+                .signing_package
+                .frost_signing_package
+                .serialize()
+                .map_err(to_napi_err)?[..],
+        ))
+    }
 }
 
 #[napi(namespace = "multisig")]

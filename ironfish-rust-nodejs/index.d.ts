@@ -372,5 +372,6 @@ export namespace multisig {
     constructor(jsBytes: Buffer)
     unsignedTransaction(): NativeUnsignedTransaction
     signers(): Array<Buffer>
+    frostSigningPackage(): Buffer
   }
 }
