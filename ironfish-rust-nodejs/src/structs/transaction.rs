@@ -28,7 +28,6 @@ use ironfish::{
 use ironfish_frost::dkg::round3::PublicKeyPackage;
 use ironfish_frost::signature_share::SignatureShare;
 use ironfish_frost::signing_commitment::SigningCommitment;
-use napi::JsObject;
 use napi::{
     bindgen_prelude::{i64n, BigInt, Buffer, Env, Object, Result, Undefined},
     JsBuffer,
@@ -64,12 +63,6 @@ pub const LATEST_TRANSACTION_VERSION: u8 = TransactionVersion::latest() as u8;
 #[napi(js_name = "TransactionPosted")]
 pub struct NativeTransactionPosted {
     transaction: Transaction,
-}
-
-#[napi]
-pub enum SpendWitness {
-    JsObject,
-    NativeWitness,
 }
 
 #[napi]

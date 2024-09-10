@@ -63,10 +63,6 @@ export const TRANSACTION_PUBLIC_KEY_RANDOMNESS_LENGTH: number
 export const TRANSACTION_EXPIRATION_LENGTH: number
 export const TRANSACTION_FEE_LENGTH: number
 export const LATEST_TRANSACTION_VERSION: number
-export const enum SpendWitness {
-  JsObject = 0,
-  NativeWitness = 1
-}
 export declare function verifyTransactions(serializedTransactions: Array<Buffer>): boolean
 export declare function makeTestWitness(note: Note): NativeWitness
 export declare function encrypt(plaintext: Buffer, passphrase: string): Buffer
