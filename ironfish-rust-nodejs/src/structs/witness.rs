@@ -6,12 +6,16 @@ use std::cell::RefCell;
 use std::ops::Deref;
 
 use ironfish::sapling_bls12::Scalar;
+use ironfish::test_util::make_fake_witness;
+use ironfish::witness::Witness;
 use ironfish::MerkleNoteHash;
 use napi::bindgen_prelude::*;
 use napi::Env;
 use napi::JsObject;
 
+use super::NativeNote;
 use ironfish::witness::{WitnessNode, WitnessTrait};
+use napi_derive::napi;
 
 pub struct JsWitness {
     pub cx: RefCell<Env>,
@@ -115,4 +119,57 @@ impl WitnessTrait for JsWitness {
             .get_uint32()
             .unwrap()
     }
+}
+
+#[napi(object)]
+pub struct NativeWitness {
+    pub tree_size: u32,
+    pub root_hash: Buffer,
+    pub auth_path: Vec<NativeWitnessNode>,
+}
+
+impl NativeWitness {
+    pub fn new(witness: Witness) -> Self {
+        let tree_size = witness.tree_size as u32;
+
+        let root_hash = Buffer::from(witness.root_hash.to_bytes_le().to_vec());
+
+        let mut auth_path: Vec<NativeWitnessNode> = Vec::new();
+
+        for node in witness.get_auth_path() {
+            match node {
+                WitnessNode::Left(hash) => {
+                    auth_path.push(NativeWitnessNode {
+                        side: 0,
+                        hash_of_sibling: Buffer::from(hash.to_bytes_le().to_vec()),
+                    });
+                }
+                WitnessNode::Right(hash) => {
+                    auth_path.push(NativeWitnessNode {
+                        side: 1,
+                        hash_of_sibling: Buffer::from(hash.to_bytes_le().to_vec()),
+                    });
+                }
+            }
+        }
+
+        NativeWitness {
+            tree_size,
+            root_hash,
+            auth_path,
+        }
+    }
+}
+
+#[napi(object)]
+pub struct NativeWitnessNode {
+    pub side: u8,
+    pub hash_of_sibling: Buffer,
+}
+
+#[napi]
+pub fn make_test_witness(note: &NativeNote) -> NativeWitness {
+    let witness = make_fake_witness(&note.note);
+
+    NativeWitness::new(witness)
 }

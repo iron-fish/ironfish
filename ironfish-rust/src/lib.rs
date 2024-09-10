@@ -17,6 +17,7 @@ pub mod rolling_filter;
 pub mod sapling_bls12;
 pub mod serializing;
 pub mod signal_catcher;
+pub mod test_util;
 pub mod transaction;
 pub mod util;
 pub mod witness;
@@ -33,9 +34,6 @@ pub use {
         outputs::OutputDescription, spends::SpendDescription, ProposedTransaction, Transaction,
     },
 };
-
-#[cfg(any(test, feature = "benchmark"))]
-pub mod test_util;
 
 #[cfg(feature = "benchmark")]
 pub use ironfish_zkp::primitives::ValueCommitment;
