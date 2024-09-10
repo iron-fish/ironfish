@@ -28,6 +28,7 @@ use ironfish::{
 use ironfish_frost::dkg::round3::PublicKeyPackage;
 use ironfish_frost::signature_share::SignatureShare;
 use ironfish_frost::signing_commitment::SigningCommitment;
+use napi::JsObject;
 use napi::{
     bindgen_prelude::{i64n, BigInt, Buffer, Env, Object, Result, Undefined},
     JsBuffer,
@@ -39,7 +40,7 @@ use crate::to_napi_err;
 use super::note::NativeNote;
 use super::spend_proof::NativeSpendDescription;
 use super::witness::JsWitness;
-use super::{NativeAsset, ENCRYPTED_NOTE_LENGTH};
+use super::{NativeAsset, NativeWitness, ENCRYPTED_NOTE_LENGTH};
 use ironfish::transaction::outputs::PROOF_SIZE;
 
 #[napi]
@@ -63,6 +64,12 @@ pub const LATEST_TRANSACTION_VERSION: u8 = TransactionVersion::latest() as u8;
 #[napi(js_name = "TransactionPosted")]
 pub struct NativeTransactionPosted {
     transaction: Transaction,
+}
+
+#[napi]
+pub enum SpendWitness {
+    JsObject,
+    NativeWitness,
 }
 
 #[napi]
@@ -210,6 +217,15 @@ impl NativeTransaction {
 
         self.transaction
             .add_spend(note.note.clone(), &w)
+            .map_err(to_napi_err)?;
+
+        Ok(())
+    }
+
+    #[napi]
+    pub fn spend_native(&mut self, note: &NativeNote, witness: &NativeWitness) -> Result<()> {
+        self.transaction
+            .add_spend(note.note.clone(), witness)
             .map_err(to_napi_err)?;
 
         Ok(())

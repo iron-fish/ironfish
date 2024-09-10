@@ -3,9 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Asset, makeTestWitness, multisig, Note as NativeNote } from '@ironfish/rust-nodejs'
-import { NoteHasher, Witness } from '../merkletree'
-import { Side } from '../merkletree/merkletree'
-import { WitnessNode } from '../merkletree/witness'
 import { Note, RawTransaction } from '../primitives'
 import { Transaction, TransactionVersion } from '../primitives/transaction'
 
@@ -81,20 +78,7 @@ describe('multisig', () => {
         publicAddress,
       )
 
-      const testWitness = makeTestWitness(inNote)
-      const noteHasher = new NoteHasher()
-      const authPath: WitnessNode<Buffer>[] = testWitness.authPath.map((node) => {
-        return {
-          side: node.side ? Side.Right : Side.Left,
-          hashOfSibling: node.hashOfSibling,
-        }
-      })
-      const witness = new Witness(
-        testWitness.treeSize,
-        testWitness.rootHash,
-        authPath,
-        noteHasher,
-      )
+      const witness = makeTestWitness(inNote)
 
       raw.spends.push({ note: new Note(inNote.serialize()), witness })
       raw.outputs.push({ note: new Note(outNote.serialize()) })

@@ -63,16 +63,11 @@ export const TRANSACTION_PUBLIC_KEY_RANDOMNESS_LENGTH: number
 export const TRANSACTION_EXPIRATION_LENGTH: number
 export const TRANSACTION_FEE_LENGTH: number
 export const LATEST_TRANSACTION_VERSION: number
+export const enum SpendWitness {
+  JsObject = 0,
+  NativeWitness = 1
+}
 export declare function verifyTransactions(serializedTransactions: Array<Buffer>): boolean
-export interface NativeWitness {
-  treeSize: number
-  rootHash: Buffer
-  authPath: Array<NativeWitnessNode>
-}
-export interface NativeWitnessNode {
-  side: number
-  hashOfSibling: Buffer
-}
 export declare function makeTestWitness(note: Note): NativeWitness
 export declare function encrypt(plaintext: Buffer, passphrase: string): Buffer
 export declare function decrypt(encryptedBlob: Buffer, passphrase: string): Buffer
@@ -220,6 +215,7 @@ export class Transaction {
   output(note: Note): void
   /** Spend the note owned by spender_hex_key at the given witness location. */
   spend(note: Note, witness: object): void
+  spendNative(note: Note, witness: NativeWitness): void
   /** Mint a new asset with a given value as part of this transaction. */
   mint(asset: Asset, value: bigint, transferOwnershipTo?: string | undefined | null): void
   /** Burn some supply of a given asset and value as part of this transaction. */
@@ -263,6 +259,15 @@ export class UnsignedTransaction {
   signingPackage(nativeIdentiferCommitments: Array<string>): string
   sign(spenderHexKey: string): Buffer
   addSignature(signature: Buffer): Buffer
+}
+export class NativeWitness {
+  rootHash: Buffer
+  treeSize(): number
+  authPath(): Array<NativeWitnessNode>
+}
+export class NativeWitnessNode {
+  side(): string
+  hashOfSibling(): Buffer
 }
 export class FoundBlockResult {
   randomness: string
