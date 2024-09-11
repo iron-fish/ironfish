@@ -334,6 +334,17 @@ impl NativeSigningCommitment {
     }
 
     #[napi]
+    pub fn raw_commitments(&self) -> Result<Buffer> {
+        Ok(Buffer::from(
+            self.signing_commitment
+                .raw_commitments()
+                .serialize()
+                .map_err(to_napi_err)?
+                .as_slice(),
+        ))
+    }
+
+    #[napi]
     pub fn verify_checksum(
         &self,
         transaction_hash: JsBuffer,

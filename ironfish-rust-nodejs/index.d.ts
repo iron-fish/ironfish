@@ -368,6 +368,7 @@ export namespace multisig {
     export class SigningCommitment {
     constructor(jsBytes: Buffer)
     identity(): Buffer
+    rawCommitments(): Buffer
     verifyChecksum(transactionHash: Buffer, signerIdentities: Array<string>): boolean
   }
   export type NativeSigningPackage = SigningPackage
