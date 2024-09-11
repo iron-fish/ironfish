@@ -59,7 +59,11 @@ export function decryptEncodedAccountWithMultisigSecret(
   try {
     return secret.decryptData(encoded).toString('utf8')
   } catch (e: unknown) {
-    return null
+    try {
+      return secret.decryptLegacyData(encoded).toString('utf8')
+    } catch (e: unknown) {
+      return null
+    }
   }
 }
 
