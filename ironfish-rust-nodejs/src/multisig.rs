@@ -178,6 +178,16 @@ impl ParticipantSecret {
             .map(Buffer::from)
             .map_err(to_napi_err)
     }
+
+    #[napi]
+    pub fn decrypt_legacy_data(&self, js_bytes: JsBuffer) -> Result<Buffer> {
+        let bytes = js_bytes.into_value()?;
+        let encrypted_blob =
+            multienc::MultiRecipientBlob::deserialize_from(bytes.as_ref()).map_err(to_napi_err)?;
+        multienc::decrypt_legacy(&self.secret, &encrypted_blob)
+            .map(Buffer::from)
+            .map_err(to_napi_err)
+    }
 }
 
 #[napi(namespace = "multisig")]

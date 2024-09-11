@@ -339,6 +339,7 @@ export namespace multisig {
     static random(): ParticipantSecret
     toIdentity(): ParticipantIdentity
     decryptData(jsBytes: Buffer): Buffer
+    decryptLegacyData(jsBytes: Buffer): Buffer
   }
   export class ParticipantIdentity {
     constructor(jsBytes: Buffer)
