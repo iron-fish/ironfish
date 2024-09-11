@@ -5,7 +5,7 @@
 use std::cell::RefCell;
 
 use std::collections::BTreeMap;
-use std::convert::TryInto;
+use std::convert::{identity, TryInto};
 
 use ironfish::assets::asset_identifier::AssetIdentifier;
 use ironfish::errors::{IronfishError, IronfishErrorKind};
@@ -27,6 +27,7 @@ use ironfish::{
     ViewKey,
 };
 use ironfish_frost::dkg::round3::PublicKeyPackage;
+use ironfish_frost::frost::SigningPackage as FrostSigningPackage;
 use ironfish_frost::signature_share::SignatureShare;
 use ironfish_frost::signing_commitment::SigningCommitment;
 use napi::{
@@ -566,6 +567,59 @@ pub fn aggregate_signature_shares(
             &public_key_package,
             &signing_package.frost_signing_package,
             signature_shares,
+        )
+        .map_err(to_napi_err)?;
+
+    let mut vec: Vec<u8> = vec![];
+    signed_transaction.write(&mut vec).map_err(to_napi_err)?;
+
+    Ok(Buffer::from(vec))
+}
+
+#[napi(namespace = "multisig")]
+pub fn aggregate_raw_signature_shares(
+    identities_arr: Vec<String>,
+    public_key_package_str: String,
+    unsigned_transaction_str: String,
+    frost_signing_package_str: String,
+    frost_signature_shares_arr: Vec<String>,
+) -> Result<Buffer> {
+    let public_key_package = PublicKeyPackage::deserialize_from(
+        &hex_to_vec_bytes(&public_key_package_str).map_err(to_napi_err)?[..],
+    )
+    .map_err(|_| IronfishError::new(IronfishErrorKind::FrostLibError))
+    .map_err(to_napi_err)?;
+
+    let unsigned_transaction_bytes =
+        hex_to_vec_bytes(&unsigned_transaction_str).map_err(to_napi_err)?;
+    let mut unsigned_transaction =
+        UnsignedTransaction::read(&unsigned_transaction_bytes[..]).map_err(to_napi_err)?;
+
+    let bytes = hex_to_vec_bytes(&frost_signing_package_str).map_err(to_napi_err)?;
+    let frost_signing_package =
+        FrostSigningPackage::deserialize(&bytes[..]).map_err(to_napi_err)?;
+
+    let mut frost_signature_shares = BTreeMap::<Identifier, FrostSignatureShare>::new();
+    for (index, identity_str) in identities_arr.iter().enumerate() {
+        let identity =
+            Identity::deserialize_from(&hex_to_vec_bytes(&identity_str).map_err(to_napi_err)?[..])
+                .map_err(to_napi_err)?;
+        let identifier = identity.to_frost_identifier();
+
+        let frost_signature_share_str = &frost_signature_shares_arr[index];
+        let frost_signature_share = FrostSignatureShare::deserialize(
+            &hex_to_vec_bytes(&frost_signature_share_str).map_err(to_napi_err)?[..],
+        )
+        .map_err(|_| IronfishError::new(IronfishErrorKind::FrostLibError))
+        .map_err(to_napi_err)?;
+        frost_signature_shares.insert(identifier, frost_signature_share);
+    }
+
+    let signed_transaction = unsigned_transaction
+        .aggregate_signature_shares(
+            &public_key_package,
+            &frost_signing_package,
+            frost_signature_shares,
         )
         .map_err(to_napi_err)?;
 

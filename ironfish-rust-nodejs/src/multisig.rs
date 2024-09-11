@@ -137,6 +137,38 @@ pub fn create_signature_share(
     Ok(bytes_to_hex(&bytes[..]))
 }
 
+#[napi(js_name = "SignatureShare", namespace = "multisig")]
+pub struct NativeSignatureShare {
+    signature_share: SignatureShare,
+}
+
+#[napi(namespace = "multisig")]
+impl NativeSignatureShare {
+    #[napi(constructor)]
+    pub fn new(js_bytes: JsBuffer) -> Result<NativeSignatureShare> {
+        let bytes = js_bytes.into_value()?;
+        SignatureShare::deserialize_from(bytes.as_ref())
+            .map(|signature_share| NativeSignatureShare { signature_share })
+            .map_err(|_| IronfishError::new(IronfishErrorKind::FrostLibError))
+            .map_err(to_napi_err)
+    }
+
+    #[napi]
+    pub fn identity(&self) -> Buffer {
+        Buffer::from(self.signature_share.identity().serialize().as_slice())
+    }
+
+    #[napi]
+    pub fn frost_signature_share(&self) -> Buffer {
+        Buffer::from(
+            self.signature_share
+                .frost_signature_share()
+                .serialize()
+                .as_slice(),
+        )
+    }
+}
+
 #[napi(namespace = "multisig")]
 pub struct ParticipantSecret {
     secret: Secret,
