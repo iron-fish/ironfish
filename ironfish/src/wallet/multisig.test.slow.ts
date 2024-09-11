@@ -107,7 +107,18 @@ describe('multisig', () => {
         ),
       )
 
-      const signingPackage = unsignedTransaction.signingPackage(commitments)
+      const commitment_identities: string[] = []
+      const raw_commitments: string[] = []
+      for (const commitment of commitments) {
+        const signingCommitment = new multisig.SigningCommitment(Buffer.from(commitment, 'hex'))
+        commitment_identities.push(signingCommitment.identity().toString('hex'))
+        raw_commitments.push(signingCommitment.rawCommitments().toString('hex'))
+      }
+
+      const signingPackage = unsignedTransaction.signingPackageFromRaw(
+        commitment_identities,
+        raw_commitments,
+      )
 
       const signatureShares = secrets.map((secret, index) =>
         multisig.createSignatureShare(secret, round3Packages[index].keyPackage, signingPackage),
