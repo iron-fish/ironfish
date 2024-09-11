@@ -107,27 +107,42 @@ describe('multisig', () => {
         ),
       )
 
-      const commitment_identities: string[] = []
-      const raw_commitments: string[] = []
+      const commitmentIdentities: string[] = []
+      const rawCommitments: string[] = []
       for (const commitment of commitments) {
         const signingCommitment = new multisig.SigningCommitment(Buffer.from(commitment, 'hex'))
-        commitment_identities.push(signingCommitment.identity().toString('hex'))
-        raw_commitments.push(signingCommitment.rawCommitments().toString('hex'))
+        commitmentIdentities.push(signingCommitment.identity().toString('hex'))
+        rawCommitments.push(signingCommitment.rawCommitments().toString('hex'))
       }
 
       const signingPackage = unsignedTransaction.signingPackageFromRaw(
-        commitment_identities,
-        raw_commitments,
+        commitmentIdentities,
+        rawCommitments,
       )
 
       const signatureShares = secrets.map((secret, index) =>
         multisig.createSignatureShare(secret, round3Packages[index].keyPackage, signingPackage),
       )
 
-      const serializedTransaction = multisig.aggregateSignatureShares(
+      const shareIdentities: string[] = []
+      const frostShares: string[] = []
+      for (const share of signatureShares) {
+        const signatureShare = new multisig.SignatureShare(Buffer.from(share, 'hex'))
+        shareIdentities.push(signatureShare.identity().toString('hex'))
+        frostShares.push(signatureShare.frostSignatureShare().toString('hex'))
+      }
+
+      const nativeSigningPackage = new multisig.SigningPackage(
+        Buffer.from(signingPackage, 'hex'),
+      )
+      const frostPackage = nativeSigningPackage.frostSigningPackage().toString('hex')
+
+      const serializedTransaction = multisig.aggregateRawSignatureShares(
+        shareIdentities,
         round3Packages[0].publicKeyPackage,
-        signingPackage,
-        signatureShares,
+        unsignedTransaction.serialize().toString('hex'),
+        frostPackage,
+        frostShares,
       )
       const transaction = new Transaction(serializedTransaction)
 

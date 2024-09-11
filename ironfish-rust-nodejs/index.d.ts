@@ -345,6 +345,13 @@ export namespace multisig {
     proofAuthorizingKey: string
   }
   export function aggregateSignatureShares(publicKeyPackageStr: string, signingPackageStr: string, signatureSharesArr: Array<string>): Buffer
+  export function aggregateRawSignatureShares(identitiesArr: Array<string>, publicKeyPackageStr: string, unsignedTransactionStr: string, frostSigningPackageStr: string, frostSignatureSharesArr: Array<string>): Buffer
+  export type NativeSignatureShare = SignatureShare
+    export class SignatureShare {
+    constructor(jsBytes: Buffer)
+    identity(): Buffer
+    frostSignatureShare(): Buffer
+  }
   export class ParticipantSecret {
     constructor(jsBytes: Buffer)
     serialize(): Buffer
