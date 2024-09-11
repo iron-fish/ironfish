@@ -253,6 +253,7 @@ export class UnsignedTransaction {
   publicKeyRandomness(): string
   hash(): Buffer
   signingPackage(nativeIdentiferCommitments: Array<string>): string
+  signingPackageFromRaw(identities: Array<string>, rawCommitments: Array<string>): string
   sign(spenderHexKey: string): Buffer
   addSignature(signature: Buffer): Buffer
 }
