@@ -98,25 +98,22 @@ describe('multisig', () => {
       const unsignedTransaction = raw.build(proofAuthorizingKey, viewKey, outgoingViewKey)
       const transactionHash = unsignedTransaction.hash()
 
-      const commitments = secrets.map((secret, index) =>
-        multisig.createSigningCommitment(
-          secret,
-          round3Packages[index].keyPackage,
+      const nonces = round3Packages.map((round3Package) =>
+        multisig.getDeterministicSigningNonces(
+          round3Package.keyPackage,
           transactionHash,
           identities,
         ),
       )
 
-      const commitmentIdentities: string[] = []
       const rawCommitments: string[] = []
-      for (const commitment of commitments) {
-        const signingCommitment = new multisig.SigningCommitment(Buffer.from(commitment, 'hex'))
-        commitmentIdentities.push(signingCommitment.identity().toString('hex'))
-        rawCommitments.push(signingCommitment.rawCommitments().toString('hex'))
+      for (const rawNonces of nonces) {
+        const signingNonces = new multisig.SigningNonces(Buffer.from(rawNonces, 'hex'))
+        rawCommitments.push(signingNonces.rawCommitments().toString('hex'))
       }
 
       const signingPackage = unsignedTransaction.signingPackageFromRaw(
-        commitmentIdentities,
+        identities,
         rawCommitments,
       )
 

@@ -344,6 +344,7 @@ export namespace multisig {
     outgoingViewKey: string
     proofAuthorizingKey: string
   }
+  export function getDeterministicSigningNonces(keyPackage: string, transactionHash: Buffer, signers: Array<string>): string
   export function aggregateSignatureShares(publicKeyPackageStr: string, signingPackageStr: string, signatureSharesArr: Array<string>): Buffer
   export function aggregateRawSignatureShares(identitiesArr: Array<string>, publicKeyPackageStr: string, unsignedTransactionStr: string, frostSigningPackageStr: string, frostSignatureSharesArr: Array<string>): Buffer
   export type NativeSignatureShare = SignatureShare
@@ -383,5 +384,10 @@ export namespace multisig {
     unsignedTransaction(): NativeUnsignedTransaction
     signers(): Array<Buffer>
     frostSigningPackage(): Buffer
+  }
+  export type NativeSigningNonces = SigningNonces
+    export class SigningNonces {
+    constructor(jsBytes: Buffer)
+    rawCommitments(): Buffer
   }
 }
