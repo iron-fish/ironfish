@@ -43,6 +43,7 @@ import { AccountsDBMeta, MetaValue, MetaValueEncoding } from './metaValue'
 import { MultisigSecretValue, MultisigSecretValueEncoding } from './multisigSecretValue'
 import { ParticipantIdentity, ParticipantIdentityEncoding } from './participantIdentity'
 import { TransactionValue, TransactionValueEncoding } from './transactionValue'
+import { MasterKeyValue, NullableMasterKeyValueEncoding } from './masterKeyValue'
 
 const VERSION_DATABASE_ACCOUNTS = 32
 
@@ -146,6 +147,11 @@ export class WalletDB {
   participantIdentities: IDatabaseStore<{
     key: [Account['prefix'], Buffer]
     value: ParticipantIdentity
+  }>
+
+  masterKey: IDatabaseStore<{
+    key: 'key',
+    value: MasterKeyValue | null
   }>
 
   cacheStores: Array<IDatabaseStore<DatabaseSchema>>
@@ -312,6 +318,12 @@ export class WalletDB {
         4,
       ),
       valueEncoding: new ParticipantIdentityEncoding(),
+    })
+
+    this.masterKey = this.db.addStore({
+      name: 'mk',
+      keyEncoding: new StringEncoding<'key'>(),
+      valueEncoding: new NullableMasterKeyValueEncoding(),
     })
 
     // IDatabaseStores that cache and index decrypted chain data
@@ -1464,5 +1476,9 @@ export class WalletDB {
     for await (const value of this.multisigSecrets.getAllValuesIter(tx)) {
       yield value
     }
+  }
+
+  async loadMasterKey(tx?: IDatabaseTransaction): Promise<MasterKeyValue | null> {
+    return (await this.masterKey.get('key')) ?? null
   }
 }

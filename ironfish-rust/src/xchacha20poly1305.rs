@@ -4,114 +4,109 @@
 
 use std::io;
 
-use argon2::{password_hash::SaltString, Argon2};
+use argon2::Argon2;
+use argon2::RECOMMENDED_SALT_LEN;
 use chacha20poly1305::aead::Aead;
 use chacha20poly1305::{Key, KeyInit, XChaCha20Poly1305, XNonce};
+use hkdf::Hkdf;
 use rand::{thread_rng, RngCore};
+use sha2::Sha256;
 
 use crate::errors::{IronfishError, IronfishErrorKind};
 
-const KEY_LENGTH: usize = 32;
-const NONCE_LENGTH: usize = 24;
-
-pub struct EncryptionKey {
-    pub key: [u8; KEY_LENGTH],
-
-    pub nonce: [u8; NONCE_LENGTH],
-
-    pub salt: Vec<u8>,
-}
-
-impl EncryptionKey {
-    pub fn to_xchacha20poly1305_key(&self) -> Key {
-        let nonce = XNonce::from_slice(&self.nonce);
-
-        Key::from(self.key)
-    }
-}
+pub const KEY_LENGTH: usize = 32;
+pub const SALT_LENGTH: usize = RECOMMENDED_SALT_LEN;
+pub const XNONCE_LENGTH: usize = 24;
 
 #[derive(Debug)]
-pub struct EncryptOutput {
-    pub salt: Vec<u8>,
+pub struct XChaCha20Poly1305Key {
+    pub key: [u8; KEY_LENGTH],
 
-    pub nonce: [u8; NONCE_LENGTH],
+    pub nonce: [u8; XNONCE_LENGTH],
 
-    pub ciphertext: Vec<u8>,
+    pub salt: [u8; RECOMMENDED_SALT_LEN],
 }
 
-impl EncryptOutput {
-    pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
-        let salt_len = u32::try_from(self.salt.len())?.to_le_bytes();
-        writer.write_all(&salt_len)?;
-        writer.write_all(&self.salt)?;
+impl XChaCha20Poly1305Key {
+    pub fn generate(passphrase: &[u8]) -> Result<XChaCha20Poly1305Key, IronfishError> {
+        let mut nonce = [0u8; XNONCE_LENGTH];
+        thread_rng().fill_bytes(&mut nonce);
 
-        writer.write_all(&self.nonce)?;
+        let mut salt = [0u8; SALT_LENGTH];
+        thread_rng().fill_bytes(&mut salt);
 
-        let ciphertext_len = u32::try_from(self.ciphertext.len())?.to_le_bytes();
-        writer.write_all(&ciphertext_len)?;
-        writer.write_all(&self.ciphertext)?;
+        XChaCha20Poly1305Key::from_parts(passphrase, salt, nonce)
+    }
 
-        Ok(())
+    pub fn from_parts(
+        passphrase: &[u8],
+        salt: [u8; SALT_LENGTH],
+        nonce: [u8; XNONCE_LENGTH],
+    ) -> Result<XChaCha20Poly1305Key, IronfishError> {
+        let mut key = [0u8; KEY_LENGTH];
+        let argon2 = Argon2::default();
+
+        argon2
+            .hash_password_into(passphrase, &salt, &mut key)
+            .map_err(|_| IronfishError::new(IronfishErrorKind::FailedArgon2Hash))?;
+
+        Ok(XChaCha20Poly1305Key { key, salt, nonce })
+    }
+
+    pub fn derive_key(&self, salt: [u8; SALT_LENGTH]) -> Result<[u8; KEY_LENGTH], IronfishError> {
+        let hkdf = Hkdf::<Sha256>::new(None, &self.key);
+
+        let mut okm = [0u8; KEY_LENGTH];
+        hkdf.expand(&salt, &mut okm)
+            .map_err(|_| IronfishError::new(IronfishErrorKind::FailedHkdfExpansion))?;
+
+        Ok(okm)
+    }
+
+    pub fn derive_new_key(&self) -> Result<XChaCha20Poly1305Key, IronfishError> {
+        let mut nonce = [0u8; XNONCE_LENGTH];
+        thread_rng().fill_bytes(&mut nonce);
+
+        let mut salt = [0u8; SALT_LENGTH];
+        thread_rng().fill_bytes(&mut salt);
+
+        let hkdf = Hkdf::<Sha256>::new(None, &self.key);
+
+        let mut okm = [0u8; KEY_LENGTH];
+        hkdf.expand(&salt, &mut okm)
+            .map_err(|_| IronfishError::new(IronfishErrorKind::FailedHkdfExpansion))?;
+
+        Ok(XChaCha20Poly1305Key {
+            key: okm,
+            salt,
+            nonce,
+        })
     }
 
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
-        let mut salt_len = [0u8; 4];
-        reader.read_exact(&mut salt_len)?;
-        let salt_len = u32::from_le_bytes(salt_len) as usize;
-
-        let mut salt = vec![0u8; salt_len];
+        let mut salt = [0u8; SALT_LENGTH];
         reader.read_exact(&mut salt)?;
 
-        let mut nonce = [0u8; NONCE_LENGTH];
+        let mut nonce = [0u8; XNONCE_LENGTH];
         reader.read_exact(&mut nonce)?;
 
-        let mut ciphertext_len = [0u8; 4];
-        reader.read_exact(&mut ciphertext_len)?;
-        let ciphertext_len = u32::from_le_bytes(ciphertext_len) as usize;
+        let mut key = [0u8; KEY_LENGTH];
+        reader.read_exact(&mut key)?;
 
-        let mut ciphertext = vec![0u8; ciphertext_len];
-        reader.read_exact(&mut ciphertext)?;
-
-        Ok(EncryptOutput {
-            salt,
-            nonce,
-            ciphertext,
-        })
+        Ok(XChaCha20Poly1305Key { salt, nonce, key })
     }
 }
 
-impl PartialEq for EncryptOutput {
-    fn eq(&self, other: &EncryptOutput) -> bool {
-        self.salt == other.salt && self.nonce == other.nonce && self.ciphertext == other.ciphertext
+impl PartialEq for XChaCha20Poly1305Key {
+    fn eq(&self, other: &XChaCha20Poly1305Key) -> bool {
+        self.salt == other.salt && self.nonce == other.nonce && self.key == other.key
     }
 }
 
-pub fn generate_key(passphrase: &[u8]) -> Result<EncryptionKey, IronfishError> {
-    let mut nonce = [0u8; NONCE_LENGTH];
-    thread_rng().fill_bytes(&mut nonce);
-
-    let salt_str = SaltString::generate(&mut thread_rng()).to_string();
-    let salt = salt_str.as_bytes();
-
-    let mut key = [0u8; KEY_LENGTH];
-    let argon2 = Argon2::default();
-
-    argon2
-        .hash_password_into(passphrase, salt, &mut key)
-        .map_err(|_| IronfishError::new(IronfishErrorKind::FailedArgon2Hash))?;
-
-    Ok(EncryptionKey {
-       key,
-       salt: salt.to_vec(),
-       nonce,
-    })
-}
-
-pub fn derive_key(passphrase: &[u8], salt: Vec<u8>, nonce: [u8; NONCE_LENGTH]) -> Result<EncryptionKey, IronfishError> {
-
-}
-
-pub fn encrypt(plaintext: &[u8], encryption_key: EncryptionKey) -> Result<Vec<u8>, IronfishError> {
+pub fn encrypt(
+    plaintext: &[u8],
+    encryption_key: &XChaCha20Poly1305Key,
+) -> Result<Vec<u8>, IronfishError> {
     let nonce = XNonce::from_slice(&encryption_key.nonce);
     let key = Key::from(encryption_key.key);
     let cipher = XChaCha20Poly1305::new(&key);
@@ -125,10 +120,10 @@ pub fn encrypt(plaintext: &[u8], encryption_key: EncryptionKey) -> Result<Vec<u8
 
 pub fn decrypt(
     ciphertext: Vec<u8>,
-    encryption_key: EncryptionKey,
+    encryption_key: &XChaCha20Poly1305Key,
 ) -> Result<Vec<u8>, IronfishError> {
     let nonce = XNonce::from_slice(&encryption_key.nonce);
-    let key = encryption_key.to_xchacha20poly1305_key();
+    let key = Key::from(encryption_key.key);
     let cipher = XChaCha20Poly1305::new(&key);
 
     cipher
@@ -138,21 +133,20 @@ pub fn decrypt(
 
 #[cfg(test)]
 mod test {
-    use crate::xchacha20poly1305::{decrypt, encrypt, generate_key};
-
-    use super::EncryptOutput;
+    use crate::xchacha20poly1305::{decrypt, encrypt, XChaCha20Poly1305Key};
 
     #[test]
     fn test_valid_passphrase() {
         let plaintext = "thisissensitivedata";
         let passphrase = "supersecretpassword";
 
-        let encryption_key = generate_key(passphrase.as_bytes()).expect("should successfully generate key");
+        let encryption_key = XChaCha20Poly1305Key::generate(passphrase.as_bytes())
+            .expect("should successfully generate key");
 
-        let encrypted_output = encrypt(plaintext.as_bytes(), encryption_key)
-            .expect("should successfully encrypt");
+        let encrypted_output =
+            encrypt(plaintext.as_bytes(), &encryption_key).expect("should successfully encrypt");
         let decrypted =
-            decrypt(encrypted_output, encryption_key).expect("should decrypt successfully");
+            decrypt(encrypted_output, &encryption_key).expect("should decrypt successfully");
 
         assert_eq!(decrypted, plaintext.as_bytes());
     }
@@ -163,30 +157,50 @@ mod test {
         let passphrase = "supersecretpassword";
         let incorrect_passphrase = "foobar";
 
-        let encryption_key = generate_key(passphrase.as_bytes()).expect("should successfully generate key");
+        let encryption_key = XChaCha20Poly1305Key::generate(passphrase.as_bytes())
+            .expect("should successfully generate key");
 
-        let encrypted_output = encrypt(plaintext.as_bytes(), encryption_key)
-            .expect("should successfully encrypt");
+        let encrypted_output =
+            encrypt(plaintext.as_bytes(), &encryption_key).expect("should successfully encrypt");
 
-        decrypt(encrypted_output, incorrect_passphrase.as_bytes())
-            .expect_err("should fail decryption");
+        let incorrect_key = XChaCha20Poly1305Key::from_parts(
+            incorrect_passphrase.as_bytes(),
+            encryption_key.salt,
+            encryption_key.nonce,
+        )
+        .expect("should successfully generate key");
+
+        decrypt(encrypted_output, &incorrect_key).expect_err("should fail decryption");
     }
 
     #[test]
-    fn test_encrypt_output_serialization() {
-        let plaintext = "thisissensitivedata";
+    fn test_from_parts() {
         let passphrase = "supersecretpassword";
 
-        let encrypted_output = encrypt(plaintext.as_bytes(), passphrase.as_bytes())
-            .expect("should successfully encrypt");
+        let encryption_key = XChaCha20Poly1305Key::generate(passphrase.as_bytes())
+            .expect("should successfully generate key");
+        let reconstructed = XChaCha20Poly1305Key::from_parts(
+            passphrase.as_bytes(),
+            encryption_key.salt,
+            encryption_key.nonce,
+        )
+        .expect("should successfully generate key");
 
-        let mut vec: Vec<u8> = vec![];
-        encrypted_output
-            .write(&mut vec)
-            .expect("should serialize successfully");
+        assert_eq!(encryption_key, reconstructed);
+    }
 
-        let deserialized = EncryptOutput::read(&vec[..]).expect("should deserialize successfully");
+    #[test]
+    fn test_derive_key() {
+        let passphrase = "supersecretpassword";
 
-        assert_eq!(encrypted_output, deserialized);
+        let encryption_key = XChaCha20Poly1305Key::generate(passphrase.as_bytes())
+            .expect("should successfully generate key");
+
+        let key = encryption_key.derive_new_key().expect("should derive key");
+        let derived_key = encryption_key
+            .derive_key(key.salt)
+            .expect("should derive key");
+
+        assert_eq!(key.key, derived_key);
     }
 }

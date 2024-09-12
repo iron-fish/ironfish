@@ -26,6 +26,7 @@ export const ASSET_ID_LENGTH: number
 export const ASSET_METADATA_LENGTH: number
 export const ASSET_NAME_LENGTH: number
 export const ASSET_LENGTH: number
+export const XNONCE_LENGTH: number
 export const NOTE_ENCRYPTION_KEY_LENGTH: number
 export const MAC_LENGTH: number
 export const ENCRYPTED_NOTE_PLAINTEXT_LENGTH: number
@@ -47,8 +48,8 @@ export const TRANSACTION_EXPIRATION_LENGTH: number
 export const TRANSACTION_FEE_LENGTH: number
 export const LATEST_TRANSACTION_VERSION: number
 export function verifyTransactions(serializedTransactions: Array<Buffer>): boolean
-export function encrypt(plaintext: Buffer, passphrase: string): Buffer
-export function decrypt(encryptedBlob: Buffer, passphrase: string): Buffer
+export function encrypt(plaintext: Buffer, key: Buffer): Buffer
+export function decrypt(ciphertext: Buffer, key: Buffer): Buffer
 export const enum LanguageCode {
   English = 0,
   ChineseSimplified = 1,
@@ -117,6 +118,11 @@ export class Asset {
   id(): Buffer
   serialize(): Buffer
   static deserialize(jsBytes: Buffer, skipValidation?: boolean | undefined | null): NativeAsset
+}
+export type NativeEncryptionKey = EncryptionKey
+export class EncryptionKey {
+  constructor(passphrase: string)
+  static deserialize(jsBytes: Buffer): NativeEncryptionKey
 }
 export type NativeNoteEncrypted = NoteEncrypted
 export class NoteEncrypted {

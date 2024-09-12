@@ -61,6 +61,7 @@ import { DecryptedNoteValue } from './walletdb/decryptedNoteValue'
 import { HeadValue } from './walletdb/headValue'
 import { TransactionValue } from './walletdb/transactionValue'
 import { WalletDB } from './walletdb/walletdb'
+import { MasterKey } from './masterKey'
 
 export enum AssetStatus {
   CONFIRMED = 'confirmed',
@@ -116,6 +117,7 @@ export class Wallet {
   private readonly createTransactionMutex: Mutex
   private readonly eventLoopAbortController: AbortController
   private eventLoopPromise: Promise<void> | null = null
+  private masterKey: MasterKey | null
 
   constructor({
     config,
@@ -150,6 +152,7 @@ export class Wallet {
     this.lockTimeout = null
     this.createTransactionMutex = new Mutex()
     this.eventLoopAbortController = new AbortController()
+    this.masterKey = null
 
     this.scanner = new WalletScanner({
       wallet: this,
@@ -216,6 +219,11 @@ export class Wallet {
   private async load(): Promise<void> {
     this.encryptedAccountById.clear()
     this.accountById.clear()
+
+    const masterKeyValue = await this.walletDb.loadMasterKey()
+    if (masterKeyValue) {
+      this.masterKey = new MasterKey(masterKeyValue)
+    }
 
     for await (const [id, accountValue] of this.walletDb.loadAccounts()) {
       if (accountValue.encrypted) {
@@ -1875,7 +1883,16 @@ export class Wallet {
     const unlock = await this.createTransactionMutex.lock()
 
     try {
-      await this.walletDb.encryptAccounts(passphrase, tx)
+      Assert.isNull(this.masterKey)
+
+      await this.walletDb.db.withTransaction(tx, async (tx) => {
+        // Create new master key
+
+        // save mastr key
+
+        // create new salt and derive new key for accounts
+        await this.walletDb.encryptAccounts(passphrase, tx)
+      })
       await this.load()
     } finally {
       unlock()
