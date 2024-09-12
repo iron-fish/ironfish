@@ -53,6 +53,8 @@ rand = "0.8.5"
 tiny-bip39 = "1.0"
 xxhash-rust = { version = "0.8.5", features = ["xxh3"] }
 argon2 = { version = "0.5.3", features = ["password-hash"] }
+hkdf = "0.12.4"
+sha2 = "0.10"
 
 [dev-dependencies]
 hex-literal = "0.4"

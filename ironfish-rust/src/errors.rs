@@ -32,6 +32,7 @@ pub enum IronfishErrorKind {
     FailedSignatureVerification,
     FailedXChaCha20Poly1305Decryption,
     FailedXChaCha20Poly1305Encryption,
+    FailedHkdfExpansion,
     IllegalValue,
     InconsistentWitness,
     InvalidAssetIdentifier,
