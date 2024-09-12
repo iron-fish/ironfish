@@ -1094,6 +1094,7 @@ dependencies = [
  "rand_core",
  "serde",
  "serdect",
+ "thiserror",
  "thiserror-nostd-notrait",
  "visibility",
  "zeroize",
@@ -1523,7 +1524,7 @@ dependencies = [
 [[package]]
 name = "ironfish-frost"
 version = "0.1.0"
-source = "git+https://github.com/iron-fish/ironfish-frost.git?branch=feat/hughy/round3-min#819b37d41574584ee3edae9c32432e4d5f7b40fa"
+source = "git+https://github.com/iron-fish/ironfish-frost.git?branch=main#d0712d8c4765b6cb288860ff0f35e650faca73b9"
 dependencies = [
  "blake3",
  "chacha20 0.9.1",
@@ -2262,7 +2263,7 @@ dependencies = [
 [[package]]
 name = "reddsa"
 version = "0.5.1"
-source = "git+https://github.com/ZcashFoundation/reddsa.git?rev=9ac52c5c60e454b0032d78a22c05fb79aae1d51e#9ac52c5c60e454b0032d78a22c05fb79aae1d51e"
+source = "git+https://github.com/ZcashFoundation/reddsa.git?rev=ed49e9ca0699a6450f6d4a9fe62ff168f5ea1ead#ed49e9ca0699a6450f6d4a9fe62ff168f5ea1ead"
 dependencies = [
  "blake2b_simd",
  "byteorder",
@@ -2272,6 +2273,9 @@ dependencies = [
  "jubjub 0.10.0",
  "pasta_curves 0.5.0",
  "rand_core",
+ "serde",
+ "thiserror",
+ "zeroize",
 ]
 
 [[package]]
