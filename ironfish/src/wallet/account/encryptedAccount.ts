@@ -6,19 +6,25 @@ import { AccountDecryptionFailedError } from '../errors'
 import { AccountValueEncoding, EncryptedAccountValue } from '../walletdb/accountValue'
 import { WalletDB } from '../walletdb/walletdb'
 import { Account } from './account'
+import { MasterKey } from '../masterKey'
 
 export class EncryptedAccount {
   private readonly walletDb: WalletDB
   readonly data: Buffer
+  readonly salt: Buffer
+  readonly nonce: Buffer
 
-  constructor({ data, walletDb }: { data: Buffer; walletDb: WalletDB }) {
+  constructor({ data, salt, nonce, walletDb }: { data: Buffer; salt: Buffer; nonce: Buffer; walletDb: WalletDB }) {
     this.data = data
+    this.salt = salt
+    this.nonce = nonce
     this.walletDb = walletDb
   }
 
-  decrypt(passphrase: string): Account {
+  decrypt(masterKey: MasterKey): Account {
     try {
-      const decryptedAccountValue = decrypt(this.data, passphrase)
+      const derivedKey = masterKey.derive(this.salt, this.nonce)
+      const decryptedAccountValue = derivedKey.decrypt(this.data)
       const encoder = new AccountValueEncoding()
       const accountValue = encoder.deserializeDecrypted(decryptedAccountValue)
 
@@ -32,6 +38,8 @@ export class EncryptedAccount {
     return {
       encrypted: true,
       data: this.data,
+      salt: this.salt,
+      nonce: this.nonce
     }
   }
 }

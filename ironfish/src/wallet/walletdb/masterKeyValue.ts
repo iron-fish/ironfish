@@ -8,7 +8,6 @@ import { NONCE_LENGTH } from '@ironfish/rust-nodejs'
 export type MasterKeyValue = {
   nonce: Buffer
   salt: Buffer
-  encryptedMasterKey: Buffer
 }
 
 export class NullableMasterKeyValueEncoding implements IDatabaseEncoding<MasterKeyValue | null> {
@@ -18,7 +17,6 @@ export class NullableMasterKeyValueEncoding implements IDatabaseEncoding<MasterK
     if (value) {
       bw.writeBytes(value.nonce)
       bw.writeVarBytes(value.salt)
-      bw.writeVarBytes(value.encryptedMasterKey)
     }
 
     return bw.render()
@@ -30,8 +28,7 @@ export class NullableMasterKeyValueEncoding implements IDatabaseEncoding<MasterK
     if (reader.left()) {
       const nonce = reader.readBytes(NONCE_LENGTH)
       const salt = reader.readVarBytes()
-      const encryptedMasterKey = reader.readVarBytes()
-      return { nonce, salt, encryptedMasterKey}
+      return { nonce, salt}
     }
 
     return null
@@ -42,6 +39,6 @@ export class NullableMasterKeyValueEncoding implements IDatabaseEncoding<MasterK
       return 0
     }
 
-    return NONCE_LENGTH + bufio.sizeVarBytes(value.salt) + bufio.sizeVarBytes(value.encryptedMasterKey)
+    return NONCE_LENGTH + bufio.sizeVarBytes(value.salt)
   }
 }

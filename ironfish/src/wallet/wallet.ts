@@ -1885,13 +1885,14 @@ export class Wallet {
     try {
       Assert.isNull(this.masterKey)
 
-      await this.walletDb.db.withTransaction(tx, async (tx) => {
-        // Create new master key
+      const masterKey = MasterKey.generate(passphrase)
 
+      await this.walletDb.db.withTransaction(tx, async (tx) => {
         // save mastr key
+        await this.walletDb.saveMasterKey(masterKey, tx)
 
         // create new salt and derive new key for accounts
-        await this.walletDb.encryptAccounts(passphrase, tx)
+        await this.walletDb.encryptAccounts(masterKey, tx)
       })
       await this.load()
     } finally {

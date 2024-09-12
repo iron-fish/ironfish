@@ -24,6 +24,7 @@ import { isSignerMultisig } from '../walletdb/multisigKeys'
 import { TransactionValue } from '../walletdb/transactionValue'
 import { WalletDB } from '../walletdb/walletdb'
 import { EncryptedAccount } from './encryptedAccount'
+import { MasterKey } from '../masterKey'
 
 export const ACCOUNT_KEY_LENGTH = 32
 
@@ -1330,14 +1331,17 @@ export class Account {
     return publicKeyPackage.identities()
   }
 
-  encrypt(passphrase: string): EncryptedAccount {
+  encrypt(masterKey: MasterKey): EncryptedAccount {
     const encoder = new AccountValueEncoding()
     const serialized = encoder.serialize(this.serialize())
-    const data = encrypt(serialized, passphrase)
+    const derivedKey = masterKey.deriveNewKey()
+    const data = derivedKey.encrypt(serialized)
 
     return new EncryptedAccount({
       data,
       walletDb: this.walletDb,
+      salt: derivedKey.salt(),
+      nonce: derivedKey.nonce(),
     })
   }
 }

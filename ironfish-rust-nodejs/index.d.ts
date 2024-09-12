@@ -26,7 +26,6 @@ export const ASSET_ID_LENGTH: number
 export const ASSET_METADATA_LENGTH: number
 export const ASSET_NAME_LENGTH: number
 export const ASSET_LENGTH: number
-export const XNONCE_LENGTH: number
 export const NOTE_ENCRYPTION_KEY_LENGTH: number
 export const MAC_LENGTH: number
 export const ENCRYPTED_NOTE_PLAINTEXT_LENGTH: number
@@ -48,8 +47,7 @@ export const TRANSACTION_EXPIRATION_LENGTH: number
 export const TRANSACTION_FEE_LENGTH: number
 export const LATEST_TRANSACTION_VERSION: number
 export function verifyTransactions(serializedTransactions: Array<Buffer>): boolean
-export function encrypt(plaintext: Buffer, key: Buffer): Buffer
-export function decrypt(ciphertext: Buffer, key: Buffer): Buffer
+export const XNONCE_LENGTH: number
 export const enum LanguageCode {
   English = 0,
   ChineseSimplified = 1,
@@ -118,11 +116,6 @@ export class Asset {
   id(): Buffer
   serialize(): Buffer
   static deserialize(jsBytes: Buffer, skipValidation?: boolean | undefined | null): NativeAsset
-}
-export type NativeEncryptionKey = EncryptionKey
-export class EncryptionKey {
-  constructor(passphrase: string)
-  static deserialize(jsBytes: Buffer): NativeEncryptionKey
 }
 export type NativeNoteEncrypted = NoteEncrypted
 export class NoteEncrypted {
@@ -242,6 +235,20 @@ export class UnsignedTransaction {
   signingPackage(nativeIdentiferCommitments: Array<string>): string
   sign(spenderHexKey: string): Buffer
   addSignature(signature: Buffer): Buffer
+}
+export type NativeXChaCha20Poly1305Key = XChaCha20Poly1305Key
+export class XChaCha20Poly1305Key {
+  constructor(passphrase: string)
+  static fromParts(passphrase: string, salt: Buffer, nonce: Buffer): XChaCha20Poly1305Key
+  deriveKey(salt: Buffer, nonce: Buffer): XChaCha20Poly1305Key
+  deriveNewKey(): XChaCha20Poly1305Key
+  static deserialize(jsBytes: Buffer): NativeXChaCha20Poly1305Key
+  destroy(): void
+  salt(): Buffer
+  nonce(): Buffer
+  key(): Buffer
+  encrypt(plaintext: Buffer): Buffer
+  decrypt(ciphertext: Buffer): Buffer
 }
 export class FoundBlockResult {
   randomness: string

@@ -95,6 +95,20 @@ impl XChaCha20Poly1305Key {
 
         Ok(XChaCha20Poly1305Key { salt, nonce, key })
     }
+
+    pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
+        writer.write_all(&self.salt)?;
+        writer.write_all(&self.nonce)?;
+        writer.write_all(&self.key)?;
+
+        Ok(())
+    }
+
+    pub fn destroy(&mut self) {
+        self.key.fill(0);
+        self.nonce.fill(0);
+        self.salt.fill(0);
+    }
 }
 
 impl PartialEq for XChaCha20Poly1305Key {

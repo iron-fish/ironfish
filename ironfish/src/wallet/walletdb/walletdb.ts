@@ -44,6 +44,7 @@ import { MultisigSecretValue, MultisigSecretValueEncoding } from './multisigSecr
 import { ParticipantIdentity, ParticipantIdentityEncoding } from './participantIdentity'
 import { TransactionValue, TransactionValueEncoding } from './transactionValue'
 import { MasterKeyValue, NullableMasterKeyValueEncoding } from './masterKeyValue'
+import { MasterKey } from '../masterKey'
 
 const VERSION_DATABASE_ACCOUNTS = 32
 
@@ -1271,7 +1272,7 @@ export class WalletDB {
     }
   }
 
-  async encryptAccounts(passphrase: string, tx?: IDatabaseTransaction): Promise<void> {
+  async encryptAccounts(masterKey: MasterKey, tx?: IDatabaseTransaction): Promise<void> {
     await this.db.withTransaction(tx, async (tx) => {
       for await (const [id, accountValue] of this.accounts.getAllIter(tx)) {
         if (accountValue.encrypted) {
@@ -1279,13 +1280,13 @@ export class WalletDB {
         }
 
         const account = new Account({ accountValue, walletDb: this })
-        const encryptedAccount = account.encrypt(passphrase)
+        const encryptedAccount = account.encrypt(masterKey)
         await this.accounts.put(id, encryptedAccount.serialize(), tx)
       }
     })
   }
 
-  async decryptAccounts(passphrase: string, tx?: IDatabaseTransaction): Promise<void> {
+  async decryptAccounts(masterKey: MasterKey, tx?: IDatabaseTransaction): Promise<void> {
     await this.db.withTransaction(tx, async (tx) => {
       for await (const [id, accountValue] of this.accounts.getAllIter(tx)) {
         if (!accountValue.encrypted) {
@@ -1294,9 +1295,11 @@ export class WalletDB {
 
         const encryptedAccount = new EncryptedAccount({
           data: accountValue.data,
+          salt: accountValue.salt,
+          nonce: accountValue.nonce,
           walletDb: this,
         })
-        const account = encryptedAccount.decrypt(passphrase)
+        const account = encryptedAccount.decrypt(masterKey)
         await this.accounts.put(id, account.serialize(), tx)
       }
     })

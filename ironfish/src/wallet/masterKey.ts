@@ -1,8 +1,8 @@
-import { encrypt } from "@ironfish/rust-nodejs"
-import { Logger } from "../logger"
+import { XChaCha20Poly1305Key } from "@ironfish/rust-nodejs"
 import { Mutex } from "../mutex"
 import { MasterKeyValue } from "./walletdb/masterKeyValue"
-import { Assert } from "../assert"
+import { Assert } from '../assert'
+import { SetTimeoutToken } from ".."
 
 const DEFAULT_UNLOCK_TIMEOUT_MS = 24 * 60 * 60 * 1000
 
@@ -13,22 +13,24 @@ export class MasterKey {
 
   private salt: Buffer
   private nonce: Buffer
-  private encryptedMasterKey: Buffer
 
-  private masterKey: Buffer | null
+  private masterKey: XChaCha20Poly1305Key | null
+  private lockTimeout: SetTimeoutToken | null
 
   constructor(masterKeyValue: MasterKeyValue) {
     this.mutex = new Mutex()
 
     this.salt = masterKeyValue.salt
     this.nonce = masterKeyValue.nonce
-    this.encryptedMasterKey = masterKeyValue.encryptedMasterKey
 
+    this.locked = true
     this.masterKey = null
+    this.lockTimeout = null
   }
 
   static generate(passphrase: string): MasterKey {
-    const 
+    const key = new XChaCha20Poly1305Key(passphrase)
+    return new MasterKey({ salt: key.salt(), nonce: key.nonce()})
   }
 
   async lock(): Promise<void> {
@@ -38,7 +40,7 @@ export class MasterKey {
       this.stopUnlockTimeout()
 
       if (this.masterKey) {
-        this.masterKey.fill(0)
+        this.masterKey.destroy()
         this.masterKey = null
       }
 
@@ -52,7 +54,7 @@ export class MasterKey {
     const unlock = await this.mutex.lock()
 
     try {
-      this.masterKey = decrypt(this.encryptedMasterKey, passphrase)
+      this.masterKey = XChaCha20Poly1305Key.fromParts(passphrase, this.salt, this.nonce)
 
       this.startUnlockTimeout(timeout)
       this.locked = false
@@ -60,16 +62,29 @@ export class MasterKey {
       this.stopUnlockTimeout()
 
       if (this.masterKey) {
-        this.masterKey.fill(0)
+        this.masterKey.destroy()
         this.masterKey = null
       }
 
       this.locked = true
-
       throw e
     } finally {
       unlock()
     }
+  }
+
+  deriveNewKey(): XChaCha20Poly1305Key {
+    Assert.isFalse(this.locked)
+    Assert.isNotNull(this.masterKey)
+
+    return this.masterKey.deriveNewKey()
+  }
+
+  derive(salt: Buffer, nonce: Buffer): XChaCha20Poly1305Key {
+    Assert.isFalse(this.locked)
+    Assert.isNotNull(this.masterKey)
+
+    return this.masterKey.deriveKey(salt, nonce)
   }
 
   private startUnlockTimeout(timeout?: number): void {

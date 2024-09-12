@@ -5,9 +5,6 @@
 mod asset;
 pub use asset::*;
 
-mod encryption_key;
-pub use encryption_key::*;
-
 mod note_encrypted;
 pub use note_encrypted::*;
 
