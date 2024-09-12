@@ -33,7 +33,7 @@ describe('Route multisig/dkg/round1', () => {
       participantName,
     )
     Assert.isNotUndefined(secretValue)
-    const secret = new multisig.ParticipantSecret(secretValue.secret)
+    const secret = new multisig.ParticipantSecret(secretValue)
     secret.decryptData(Buffer.from(response.content.round1SecretPackage, 'hex'))
   })
 

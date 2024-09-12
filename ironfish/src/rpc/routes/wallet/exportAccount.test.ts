@@ -127,10 +127,10 @@ describe('Route wallet/exportAccount', () => {
       ),
     )
 
-    const multisigSecret = await routeTest.node.wallet.walletDb.getMultisigSecret(
+    const multisigIdentity = await routeTest.node.wallet.walletDb.getMultisigIdentity(
       Buffer.from(participants[0].identity, 'hex'),
     )
-    Assert.isNotUndefined(multisigSecret)
+    Assert.isNotUndefined(multisigIdentity)
 
     // Initialize the group though TDK and import one of the accounts generated
     const trustedDealerPackage = (
@@ -157,6 +157,9 @@ describe('Route wallet/exportAccount', () => {
     })
 
     expect(response.status).toBe(200)
+
+    Assert.isNotUndefined(multisigIdentity.secret)
+
     expect(JSON.parse(response.content.account)).toMatchObject({
       name: accountNames[0],
       spendingKey: null,
@@ -165,7 +168,7 @@ describe('Route wallet/exportAccount', () => {
       outgoingViewKey: trustedDealerPackage.outgoingViewKey,
       publicAddress: trustedDealerPackage.publicAddress,
       multisigKeys: {
-        secret: multisigSecret.secret.toString('hex'),
+        secret: multisigIdentity.secret.toString('hex'),
         publicKeyPackage: trustedDealerPackage.publicKeyPackage,
       },
     })
@@ -185,10 +188,10 @@ describe('Route wallet/exportAccount', () => {
       ),
     )
 
-    const multisigSecret = await routeTest.node.wallet.walletDb.getMultisigSecret(
+    const multisigIdentity = await routeTest.node.wallet.walletDb.getMultisigIdentity(
       Buffer.from(participants[0].identity, 'hex'),
     )
-    Assert.isNotUndefined(multisigSecret)
+    Assert.isNotUndefined(multisigIdentity)
 
     // Initialize the group though TDK and import one of the accounts generated
     const trustedDealerPackage = (
