@@ -205,7 +205,7 @@ impl UnsignedTransaction {
         let data_to_sign = self.transaction_signature_hash()?;
 
         let randomizer = Randomizer::deserialize(&self.public_key_randomness.to_bytes())
-            .map_err(|e| IronfishError::new(IronfishErrorKind::InvalidRandomizer))?;
+            .map_err(|e| IronfishError::new_with_source(IronfishErrorKind::InvalidRandomizer, e))?;
         let randomized_params =
             RandomizedParams::from_randomizer(public_key_package.verifying_key(), randomizer);
 
@@ -215,13 +215,17 @@ impl UnsignedTransaction {
             public_key_package.frost_public_key_package(),
             &randomized_params,
         )
-        .map_err(|e| IronfishError::new(IronfishErrorKind::FailedSignatureAggregation))?;
+        .map_err(|e| {
+            IronfishError::new_with_source(IronfishErrorKind::FailedSignatureAggregation, e)
+        })?;
 
         // Verify the signature with the public keys
         randomized_params
             .randomized_verifying_key()
             .verify(&data_to_sign, &authorizing_group_signature)
-            .map_err(|e| IronfishError::new(IronfishErrorKind::FailedSignatureVerification))?;
+            .map_err(|e| {
+                IronfishError::new_with_source(IronfishErrorKind::FailedSignatureVerification, e)
+            })?;
 
         let serialized_signature = authorizing_group_signature.serialize();
 
