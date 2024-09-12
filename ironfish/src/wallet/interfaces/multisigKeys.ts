@@ -8,8 +8,13 @@ export interface MultisigSigner {
   publicKeyPackage: string
 }
 
+export interface MultisigHardwareSigner {
+  identity: string
+  publicKeyPackage: string
+}
+
 export interface MultisigCoordinator {
   publicKeyPackage: string
 }
 
-export type MultisigKeys = MultisigSigner | MultisigCoordinator
+export type MultisigKeys = MultisigSigner | MultisigHardwareSigner | MultisigCoordinator
