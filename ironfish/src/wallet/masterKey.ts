@@ -2,20 +2,16 @@ import { XChaCha20Poly1305Key } from "@ironfish/rust-nodejs"
 import { Mutex } from "../mutex"
 import { MasterKeyValue } from "./walletdb/masterKeyValue"
 import { Assert } from '../assert'
-import { SetTimeoutToken } from ".."
-
-const DEFAULT_UNLOCK_TIMEOUT_MS = 24 * 60 * 60 * 1000
 
 export class MasterKey {
   private mutex: Mutex
 
   private locked: boolean
 
-  private salt: Buffer
-  private nonce: Buffer
+  readonly salt: Buffer
+  readonly nonce: Buffer
 
   private masterKey: XChaCha20Poly1305Key | null
-  private lockTimeout: SetTimeoutToken | null
 
   constructor(masterKeyValue: MasterKeyValue) {
     this.mutex = new Mutex()
@@ -25,7 +21,6 @@ export class MasterKey {
 
     this.locked = true
     this.masterKey = null
-    this.lockTimeout = null
   }
 
   static generate(passphrase: string): MasterKey {
@@ -37,8 +32,6 @@ export class MasterKey {
     const unlock = await this.mutex.lock()
 
     try {
-      this.stopUnlockTimeout()
-
       if (this.masterKey) {
         this.masterKey.destroy()
         this.masterKey = null
@@ -50,17 +43,16 @@ export class MasterKey {
     }
   }
 
-  async unlock(passphrase: string, timeout?: number): Promise<void> {
+  // You must explicitly call lock
+  async unlock(passphrase: string): Promise<XChaCha20Poly1305Key> {
     const unlock = await this.mutex.lock()
 
     try {
       this.masterKey = XChaCha20Poly1305Key.fromParts(passphrase, this.salt, this.nonce)
-
-      this.startUnlockTimeout(timeout)
       this.locked = false
+      
+      return this.masterKey
     } catch (e) {
-      this.stopUnlockTimeout()
-
       if (this.masterKey) {
         this.masterKey.destroy()
         this.masterKey = null
@@ -80,32 +72,16 @@ export class MasterKey {
     return this.masterKey.deriveNewKey()
   }
 
-  derive(salt: Buffer, nonce: Buffer): XChaCha20Poly1305Key {
+  deriveKey(salt: Buffer, nonce: Buffer): XChaCha20Poly1305Key {
     Assert.isFalse(this.locked)
     Assert.isNotNull(this.masterKey)
 
     return this.masterKey.deriveKey(salt, nonce)
   }
 
-  private startUnlockTimeout(timeout?: number): void {
-    if (!timeout) {
-      timeout = DEFAULT_UNLOCK_TIMEOUT_MS
-    }
-
-    this.stopUnlockTimeout()
-
-    // Keep the wallet unlocked indefinitely
-    if (timeout === -1) {
-      return
-    }
-
-    this.lockTimeout = setTimeout(() => void this.lock(), timeout)
-  }
-
-  private stopUnlockTimeout(): void {
-    if (this.lockTimeout) {
-      clearTimeout(this.lockTimeout)
-      this.lockTimeout = null
-    }
+  async destroy(): Promise<void> {
+    await this.lock()
+    this.nonce.fill(0)
+    this.salt.fill(0)
   }
 }

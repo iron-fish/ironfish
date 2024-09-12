@@ -18,7 +18,7 @@ import { AssertHasRpcContext } from '../rpcContext'
  * Hence, we're adding a new createAccount endpoint and will eventually sunset the create endpoint.
  */
 
-export type CreateAccountRequest = { name: string; default?: boolean; passphrase?: string }
+export type CreateAccountRequest = { name: string; default?: boolean }
 export type CreateAccountResponse = {
   name: string
   publicAddress: string
@@ -50,7 +50,6 @@ routes.register<typeof CreateAccountRequestSchema, CreateAccountResponse>(
     let account
     try {
       account = await context.wallet.createAccount(request.data.name, {
-        passphrase: request.data.passphrase,
       })
     } catch (e) {
       if (e instanceof DuplicateAccountNameError) {

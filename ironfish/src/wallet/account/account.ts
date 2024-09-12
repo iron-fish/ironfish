@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { encrypt, multisig } from '@ironfish/rust-nodejs'
+import { multisig } from '@ironfish/rust-nodejs'
 import { Asset } from '@ironfish/rust-nodejs'
 import { BufferMap, BufferSet } from 'buffer-map'
 import MurmurHash3 from 'imurmurhash'
@@ -130,7 +130,6 @@ export class Account {
 
   async setName(
     name: string,
-    options?: { passphrase?: string },
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     if (!name.trim()) {
@@ -142,8 +141,8 @@ export class Account {
     this.name = name
 
     if (walletEncrypted) {
-      Assert.isNotUndefined(options?.passphrase)
-      await this.walletDb.setEncryptedAccount(this, options.passphrase, tx)
+      // Assert.isNotUndefined(options?.passphrase)
+      // await this.walletDb.setEncryptedAccount(this, options.passphrase, tx)
     } else {
       await this.walletDb.setAccount(this, tx)
     }

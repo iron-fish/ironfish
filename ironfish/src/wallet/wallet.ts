@@ -91,6 +91,8 @@ export type TransactionOutput = {
   assetId: Buffer
 }
 
+export const DEFAULT_UNLOCK_TIMEOUT_MS = 24 * 60 * 60 * 1000
+
 export class Wallet {
   readonly onAccountImported = new Event<[account: Account]>()
   readonly onAccountRemoved = new Event<[account: Account]>()
@@ -219,6 +221,7 @@ export class Wallet {
   private async load(): Promise<void> {
     this.encryptedAccountById.clear()
     this.accountById.clear()
+    this.masterKey = null
 
     const masterKeyValue = await this.walletDb.loadMasterKey()
     if (masterKeyValue) {
@@ -228,8 +231,8 @@ export class Wallet {
     for await (const [id, accountValue] of this.walletDb.loadAccounts()) {
       if (accountValue.encrypted) {
         const encryptedAccount = new EncryptedAccount({
-          data: accountValue.data,
           walletDb: this.walletDb,
+          ...accountValue,
         })
         this.encryptedAccountById.set(id, encryptedAccount)
 
@@ -282,6 +285,10 @@ export class Wallet {
     }
 
     this.stopUnlockTimeout()
+
+    if (this.masterKey) {
+      await this.masterKey.destroy()
+    }
 
     await this.scanner.abort()
     this.eventLoopAbortController.abort()
@@ -1341,7 +1348,7 @@ export class Wallet {
 
   async createAccount(
     name: string,
-    options: { createdAt?: HeadValue | null; setDefault?: boolean; passphrase?: string } = {
+    options: { createdAt?: HeadValue | null; setDefault?: boolean } = {
       setDefault: false,
     },
   ): Promise<Account> {
@@ -1388,10 +1395,10 @@ export class Wallet {
       const accountsEncrypted = await this.walletDb.accountsEncrypted(tx)
 
       if (accountsEncrypted) {
-        Assert.isNotUndefined(options.passphrase)
+        Assert.isNotNull(this.masterKey)
         const encryptedAccount = await this.walletDb.setEncryptedAccount(
           account,
-          options.passphrase,
+          this.masterKey,
           tx,
         )
         this.encryptedAccountById.set(account.id, encryptedAccount)
@@ -1418,7 +1425,7 @@ export class Wallet {
 
   async importAccount(
     accountValue: AccountImport,
-    options?: { createdAt?: number; passphrase?: string },
+    options?: { createdAt?: number },
   ): Promise<Account> {
     let multisigKeys = accountValue.multisigKeys
     const name = accountValue.name
@@ -1492,8 +1499,8 @@ export class Wallet {
       const encrypted = await this.walletDb.accountsEncrypted(tx)
 
       if (encrypted) {
-        Assert.isNotUndefined(options?.passphrase)
-        await this.walletDb.setEncryptedAccount(account, options.passphrase, tx)
+        Assert.isNotNull(this.masterKey)
+        await this.walletDb.setEncryptedAccount(account, this.masterKey, tx)
       } else {
         await this.walletDb.setAccount(account, tx)
       }
@@ -1538,7 +1545,6 @@ export class Wallet {
     options?: {
       resetCreatedAt?: boolean
       resetScanningEnabled?: boolean
-      passphrase?: string
     },
     tx?: IDatabaseTransaction,
   ): Promise<void> {
@@ -1559,10 +1565,10 @@ export class Wallet {
       const encrypted = await this.walletDb.accountsEncrypted(tx)
 
       if (encrypted) {
-        Assert.isNotUndefined(options?.passphrase)
+        Assert.isNotNull(this.masterKey)
         const encryptedAccount = await this.walletDb.setEncryptedAccount(
           newAccount,
-          options.passphrase,
+          this.masterKey,
           tx,
         )
         this.encryptedAccountById.set(newAccount.id, encryptedAccount)
@@ -1885,15 +1891,7 @@ export class Wallet {
     try {
       Assert.isNull(this.masterKey)
 
-      const masterKey = MasterKey.generate(passphrase)
-
-      await this.walletDb.db.withTransaction(tx, async (tx) => {
-        // save mastr key
-        await this.walletDb.saveMasterKey(masterKey, tx)
-
-        // create new salt and derive new key for accounts
-        await this.walletDb.encryptAccounts(masterKey, tx)
-      })
+      await this.walletDb.encryptAccounts(passphrase, tx)
       await this.load()
     } finally {
       unlock()
@@ -1926,6 +1924,10 @@ export class Wallet {
       this.stopUnlockTimeout()
       this.accountById.clear()
       this.locked = true
+      
+      if (this.masterKey) {
+        await this.masterKey.lock()
+      }
 
       this.logger.info(
         'Wallet locked. Unlock the wallet to view your accounts and create transactions',
@@ -1944,8 +1946,11 @@ export class Wallet {
         return
       }
 
+      Assert.isNotNull(this.masterKey)
+      const key = await this.masterKey.unlock(passphrase)
+
       for (const [id, account] of this.encryptedAccountById.entries()) {
-        this.accountById.set(id, account.decrypt(passphrase))
+        this.accountById.set(id, account.decrypt(key))
       }
 
       this.startUnlockTimeout(timeout)

@@ -383,7 +383,7 @@ export class WalletDB {
 
   async setEncryptedAccount(
     account: Account,
-    passphrase: string,
+    masterKey: MasterKey,
     tx?: IDatabaseTransaction,
   ): Promise<EncryptedAccount> {
     return this.db.withTransaction(tx, async (tx) => {
@@ -392,10 +392,7 @@ export class WalletDB {
         throw new Error('Cannot save encrypted account when accounts are decrypted')
       }
 
-      const validPassphrase = await this.canDecryptAccounts(passphrase, tx)
-      Assert.isTrue(validPassphrase, 'Your passphrase is incorrect')
-
-      const encryptedAccount = account.encrypt(passphrase)
+      const encryptedAccount = account.encrypt(masterKey)
       await this.accounts.put(account.id, encryptedAccount.serialize(), tx)
 
       const nativeUnconfirmedBalance = await this.balances.get(
@@ -416,33 +413,6 @@ export class WalletDB {
       }
 
       return encryptedAccount
-    })
-  }
-
-  async canDecryptAccounts(passphrase: string, tx?: IDatabaseTransaction): Promise<boolean> {
-    return this.db.withTransaction(tx, async (tx) => {
-      for await (const [_, accountValue] of this.accounts.getAllIter(tx)) {
-        if (!accountValue.encrypted) {
-          throw new Error('Wallet is already decrypted')
-        }
-
-        const encryptedAccount = new EncryptedAccount({
-          data: accountValue.data,
-          walletDb: this,
-        })
-
-        try {
-          encryptedAccount.decrypt(passphrase)
-        } catch (e) {
-          if (e instanceof AccountDecryptionFailedError) {
-            return false
-          }
-
-          throw e
-        }
-      }
-
-      return true
     })
   }
 
@@ -1272,8 +1242,14 @@ export class WalletDB {
     }
   }
 
-  async encryptAccounts(masterKey: MasterKey, tx?: IDatabaseTransaction): Promise<void> {
+  async encryptAccounts(passphrase: string, tx?: IDatabaseTransaction): Promise<void> {
     await this.db.withTransaction(tx, async (tx) => {
+      const record = await this.masterKey.get('key', tx)
+      Assert.isNull(record)
+
+      const masterKey = MasterKey.generate(passphrase)
+      await this.masterKey.put('key', { nonce: masterKey.nonce, salt: masterKey.salt })
+
       for await (const [id, accountValue] of this.accounts.getAllIter(tx)) {
         if (accountValue.encrypted) {
           throw new Error('Wallet is already encrypted')
@@ -1286,8 +1262,14 @@ export class WalletDB {
     })
   }
 
-  async decryptAccounts(masterKey: MasterKey, tx?: IDatabaseTransaction): Promise<void> {
+  async decryptAccounts(passphrase: string, tx?: IDatabaseTransaction): Promise<void> {
     await this.db.withTransaction(tx, async (tx) => {
+      const masterKeyValue = await this.loadMasterKey(tx)
+      Assert.isNotNull(masterKeyValue)
+
+      const masterKey = new MasterKey(masterKeyValue)
+      const key = await masterKey.unlock(passphrase)
+
       for await (const [id, accountValue] of this.accounts.getAllIter(tx)) {
         if (!accountValue.encrypted) {
           throw new Error('Wallet is already decrypted')
@@ -1299,9 +1281,12 @@ export class WalletDB {
           nonce: accountValue.nonce,
           walletDb: this,
         })
-        const account = encryptedAccount.decrypt(masterKey)
+        const account = encryptedAccount.decrypt(key)
         await this.accounts.put(id, account.serialize(), tx)
       }
+
+      await masterKey.destroy()
+      await this.masterKey.del('key')
     })
   }
 

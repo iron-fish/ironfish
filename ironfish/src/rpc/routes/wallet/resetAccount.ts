@@ -20,7 +20,6 @@ export const ResetAccountRequestSchema: yup.ObjectSchema<ResetAccountRequest> = 
     account: yup.string().defined(),
     resetCreatedAt: yup.boolean(),
     resetScanningEnabled: yup.boolean(),
-    passphrase: yup.string().optional(),
   })
   .defined()
 
@@ -39,7 +38,6 @@ routes.register<typeof ResetAccountRequestSchema, ResetAccountResponse>(
     await context.wallet.resetAccount(account, {
       resetCreatedAt: request.data.resetCreatedAt,
       resetScanningEnabled: request.data.resetScanningEnabled,
-      passphrase: request.data.passphrase,
     })
 
     request.end()
