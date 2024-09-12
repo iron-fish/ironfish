@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Asset, makeTestWitness, multisig, Note as NativeNote } from '@ironfish/rust-nodejs'
+import { Asset, makeTestWitness, multisig, Note as NativeNote, verifyTransactions } from '@ironfish/rust-nodejs'
 import { Note, RawTransaction } from '../primitives'
 import { Transaction, TransactionVersion } from '../primitives/transaction'
 
@@ -142,6 +142,8 @@ describe('multisig', () => {
         frostShares,
       )
       const transaction = new Transaction(serializedTransaction)
+
+      expect(verifyTransactions([serializedTransaction])).toBeTruthy()
 
       expect(transaction.unsignedHash().equals(transactionHash)).toBeTruthy()
     })
