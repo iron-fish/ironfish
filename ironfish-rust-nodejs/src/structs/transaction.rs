@@ -435,7 +435,7 @@ impl NativeUnsignedTransaction {
         for identifier_commitment in native_identifer_commitments {
             let bytes = hex_to_vec_bytes(&identifier_commitment).map_err(to_napi_err)?;
             let signing_commitment = SigningCommitment::deserialize_from(&bytes[..])
-                .map_err(|_| IronfishError::new(IronfishErrorKind::FrostLibError))
+                .map_err(|e| IronfishError::new_with_source(IronfishErrorKind::FrostLibError, e))
                 .map_err(to_napi_err)?;
 
             let commitment = SigningCommitments::new(
@@ -498,7 +498,7 @@ pub fn aggregate_signature_shares(
     let public_key_package = PublicKeyPackage::deserialize_from(
         &hex_to_vec_bytes(&public_key_package_str).map_err(to_napi_err)?[..],
     )
-    .map_err(|_| IronfishError::new(IronfishErrorKind::FrostLibError))
+    .map_err(|e| IronfishError::new_with_source(IronfishErrorKind::FrostLibError, e))
     .map_err(to_napi_err)?;
 
     let bytes = hex_to_vec_bytes(&signing_package_str).map_err(to_napi_err)?;
@@ -511,7 +511,7 @@ pub fn aggregate_signature_shares(
         let iss = SignatureShare::deserialize_from(
             &hex_to_vec_bytes(signature_share).map_err(to_napi_err)?[..],
         )
-        .map_err(|_| IronfishError::new(IronfishErrorKind::FrostLibError))
+        .map_err(|e| IronfishError::new_with_source(IronfishErrorKind::FrostLibError, e))
         .map_err(to_napi_err)?;
         signature_shares.insert(
             iss.identity().to_frost_identifier(),
