@@ -23,7 +23,7 @@ pub struct MultisigAccountKeys {
 
 /// Derives the account keys for a multisig account, realizing the following key hierarchy:
 ///
-/// ```
+/// ```ignore
 ///                 ak ─┐
 ///                     ├─ ivk ── pk
 ///   gsk ── nsk ── nk ─┘
