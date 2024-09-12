@@ -38,7 +38,6 @@ where
     I: IntoIterator<Item = S>,
     S: Deref<Target = str>,
     E: Display,
-    // F: for<'a> Fn(&'a [u8]) -> io::Result<T>,
     F: for<'a> Fn(&'a [u8]) -> std::result::Result<T, E>,
 {
     items
@@ -172,8 +171,6 @@ impl ParticipantSecret {
     #[napi]
     pub fn decrypt_data(&self, js_bytes: JsBuffer) -> Result<Buffer> {
         let bytes = js_bytes.into_value()?;
-        // let encrypted_blob =
-        //     multienc::MultiRecipientBlob::deserialize_from(bytes.as_ref()).map_err(to_napi_err)?;
         multienc::decrypt(&self.secret, &bytes)
             .map(Buffer::from)
             .map_err(to_napi_err)
@@ -507,7 +504,7 @@ pub fn deserialize_public_package(round1_public_package: String) -> Result<Publi
     Ok(PublicPackage {
         identity: pkg.identity().to_string(),
         frost_package: bytes_to_hex(&pkg.frost_package().serialize().unwrap()),
-        group_secret_key_shard_encrypted: bytes_to_hex(&pkg.group_secret_key_shard_encrypted()),
+        group_secret_key_shard_encrypted: bytes_to_hex(pkg.group_secret_key_shard_encrypted()),
         checksum: pkg.checksum().to_string(),
     })
 }
@@ -550,7 +547,7 @@ pub fn deserialize_round2_combined_public_package(
         })
     }
 
-    Ok(Round2CombinedPublicPackage { packages: packages })
+    Ok(Round2CombinedPublicPackage { packages })
 }
 #[napi(object, namespace = "multisig")]
 pub struct DkgRound3Packages {
