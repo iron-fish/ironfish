@@ -1245,10 +1245,13 @@ export class WalletDB {
   async encryptAccounts(passphrase: string, tx?: IDatabaseTransaction): Promise<void> {
     await this.db.withTransaction(tx, async (tx) => {
       const record = await this.masterKey.get('key', tx)
-      Assert.isNull(record)
+      console.log(record)
+      Assert.isUndefined(record)
 
       const masterKey = MasterKey.generate(passphrase)
       await this.masterKey.put('key', { nonce: masterKey.nonce, salt: masterKey.salt })
+
+      await masterKey.unlock(passphrase)
 
       for await (const [id, accountValue] of this.accounts.getAllIter(tx)) {
         if (accountValue.encrypted) {
@@ -1259,6 +1262,8 @@ export class WalletDB {
         const encryptedAccount = account.encrypt(masterKey)
         await this.accounts.put(id, encryptedAccount.serialize(), tx)
       }
+
+      await masterKey.destroy()
     })
   }
 
