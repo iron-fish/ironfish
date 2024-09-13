@@ -999,7 +999,8 @@ fn test_dkg_signing() {
     )
     .expect("round 3 failed");
 
-    let account_keys = derive_account_keys(public_key_package.verifying_key(), &group_secret_key);
+    let account_keys = derive_account_keys(public_key_package.verifying_key(), &group_secret_key)
+        .expect("account key derivation failed");
     let public_address = account_keys.public_address;
 
     // create raw/proposed transaction

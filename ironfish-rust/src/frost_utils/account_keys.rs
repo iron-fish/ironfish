@@ -2,7 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::{IncomingViewKey, OutgoingViewKey, PublicAddress, SaplingKey, ViewKey};
+use crate::{
+    errors::{IronfishError, IronfishErrorKind},
+    IncomingViewKey, OutgoingViewKey, PublicAddress, SaplingKey, ViewKey,
+};
 use group::GroupEncoding;
 use ironfish_frost::frost::VerifyingKey;
 use ironfish_zkp::constants::PROOF_GENERATION_KEY_GENERATOR;
@@ -31,14 +34,17 @@ pub struct MultisigAccountKeys {
 pub fn derive_account_keys(
     authorizing_key: &VerifyingKey,
     group_secret_key: &[u8; 32],
-) -> MultisigAccountKeys {
+) -> Result<MultisigAccountKeys, IronfishError> {
     // Group secret key (gsk), obtained from the multisig setup process
     let group_secret_key =
         SaplingKey::new(*group_secret_key).expect("failed to derive group secret key");
 
     // Authorization key (ak), obtained from the multisig setup process
-    let authorizing_key = Option::from(SubgroupPoint::from_bytes(&authorizing_key.serialize()))
-        .expect("failied to derive authorizing key");
+    let mut bytes: [u8; 32] = [0; 32];
+    bytes.copy_from_slice(&authorizing_key.serialize()?);
+    let authorizing_key = Option::from(SubgroupPoint::from_bytes(&bytes)).ok_or(
+        IronfishError::new_with_source(IronfishErrorKind::InvalidData, "invalid authorizing_key"),
+    )?;
 
     // Nullifier keys (nsk and nk), derived from the gsk
     let proof_authorizing_key = group_secret_key.sapling_proof_generation_key().nsk;
@@ -50,8 +56,7 @@ pub fn derive_account_keys(
         nullifier_deriving_key,
     };
     let incoming_viewing_key = IncomingViewKey {
-        view_key: SaplingKey::hash_viewing_key(&authorizing_key, &nullifier_deriving_key)
-            .expect("failed to derive view key"),
+        view_key: SaplingKey::hash_viewing_key(&authorizing_key, &nullifier_deriving_key)?,
     };
 
     // Outgoing view key (ovk), derived from the gsk
@@ -60,11 +65,11 @@ pub fn derive_account_keys(
     // Public address (pk), derived from the ivk
     let public_address = incoming_viewing_key.public_address();
 
-    MultisigAccountKeys {
+    Ok(MultisigAccountKeys {
         proof_authorizing_key,
         outgoing_viewing_key,
         view_key,
         incoming_viewing_key,
         public_address,
-    }
+    })
 }
