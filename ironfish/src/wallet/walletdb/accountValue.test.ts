@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { encrypt, generateKey } from '@ironfish/rust-nodejs'
+import { encrypt, generateKey, SALT_LENGTH, XNONCE_LENGTH } from '@ironfish/rust-nodejs'
 import {
   AccountValueEncoding,
   DecryptedAccountValue,
@@ -95,6 +95,8 @@ describe('AccountValueEncoding', () => {
     const encryptedValue: EncryptedAccountValue = {
       encrypted: true,
       data: encryptedData,
+      salt: Buffer.alloc(SALT_LENGTH),
+      nonce: Buffer.alloc(XNONCE_LENGTH),
     }
 
     const buffer = encoder.serialize(encryptedValue)

@@ -1,7 +1,12 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { KEY_LENGTH, PUBLIC_ADDRESS_LENGTH } from '@ironfish/rust-nodejs'
+import {
+  KEY_LENGTH,
+  PUBLIC_ADDRESS_LENGTH,
+  SALT_LENGTH,
+  XNONCE_LENGTH,
+} from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { IDatabaseEncoding } from '../../storage'
 import { MultisigKeys } from '../interfaces/multisigKeys'
@@ -13,6 +18,8 @@ const VERSION_LENGTH = 2
 
 export type EncryptedAccountValue = {
   encrypted: true
+  salt: Buffer
+  nonce: Buffer
   data: Buffer
 }
 
@@ -48,6 +55,8 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     let flags = 0
     flags |= Number(!!value.encrypted) << 5
     bw.writeU8(flags)
+    bw.writeBytes(value.salt)
+    bw.writeBytes(value.nonce)
     bw.writeVarBytes(value.data)
 
     return bw.render()
@@ -113,9 +122,13 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     // Skip flags
     reader.readU8()
 
+    const salt = reader.readBytes(SALT_LENGTH)
+    const nonce = reader.readBytes(XNONCE_LENGTH)
     const data = reader.readVarBytes()
     return {
       encrypted: true,
+      nonce,
+      salt,
       data,
     }
   }
@@ -182,6 +195,8 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
   getSizeEncrypted(value: EncryptedAccountValue): number {
     let size = 0
     size += 1 // flags
+    size += SALT_LENGTH
+    size += XNONCE_LENGTH
     size += bufio.sizeVarBytes(value.data)
     return size
   }
