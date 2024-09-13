@@ -1,6 +1,9 @@
 
 # cargo-vet audits file
 
+[audits]
+reddsa = []
+
 [[audits.arrayvec]]
 who = "Andrea <andrea@iflabs.network>"
 criteria = "safe-to-deploy"
@@ -82,13 +85,6 @@ who = "Andrea <andrea@iflabs.network>"
 criteria = "safe-to-deploy"
 delta = "0.9.95 -> 0.9.102"
 
-[[audits.reddsa]]
-who = "Andrea <andrea@iflabs.network>"
-criteria = "safe-to-deploy"
-delta = "0.5.1 -> 0.5.1@git:311baf8865f6e21527d1f20750d8f2cf5c9e531a"
-importable = false
-notes = "Unreleased changes required by ironfish-frost to support multisig wallets"
-
 [[audits.signal-hook]]
 who = "andrea <andrea@iflabs.network>"
 criteria = "safe-to-deploy"
@@ -133,3 +129,9 @@ who = "Andrea <andrea@iflabs.network>"
 criteria = "safe-to-deploy"
 delta = "0.7.1 -> 0.7.1@git:d551820030cb596eafe82226667f32b47164f91b"
 notes = "Fork of the official zcash_proofs owned by Iron Fish"
+
+[[trusted.reddsa]]
+criteria = "safe-to-deploy"
+user-id = 6289 # str4d
+start = "2021-01-08"
+end = "2025-09-12"

@@ -102,10 +102,6 @@ criteria = "safe-to-deploy"
 version = "0.9.0"
 criteria = "safe-to-deploy"
 
-[[exemptions.bitflags]]
-version = "1.3.2"
-criteria = "safe-to-deploy"
-
 [[exemptions.bitvec]]
 version = "1.0.1"
 criteria = "safe-to-deploy"
@@ -190,8 +186,8 @@ criteria = "safe-to-deploy"
 version = "0.2.4"
 criteria = "safe-to-deploy"
 
-[[exemptions.const-crc32]]
-version = "1.2.0"
+[[exemptions.const-crc32-nostd]]
+version = "1.3.1"
 criteria = "safe-to-deploy"
 
 [[exemptions.const-oid]]
@@ -267,7 +263,7 @@ version = "0.7.1"
 criteria = "safe-to-deploy"
 
 [[exemptions.derive-getters]]
-version = "0.3.0"
+version = "0.4.0"
 criteria = "safe-to-deploy"
 
 [[exemptions.digest]]
@@ -338,8 +334,12 @@ criteria = "safe-to-deploy"
 version = "0.5.1"
 criteria = "safe-to-deploy"
 
+[[exemptions.frost-core]]
+version = "2.0.0-rc.0"
+criteria = "safe-to-deploy"
+
 [[exemptions.frost-rerandomized]]
-version = "1.0.0"
+version = "2.0.0-rc.0"
 criteria = "safe-to-deploy"
 
 [[exemptions.funty]]
@@ -443,7 +443,7 @@ version = "0.10.5"
 criteria = "safe-to-deploy"
 
 [[exemptions.itertools]]
-version = "0.12.0"
+version = "0.13.0"
 criteria = "safe-to-deploy"
 
 [[exemptions.itoa]]
@@ -463,7 +463,7 @@ version = "0.2.150"
 criteria = "safe-to-deploy"
 
 [[exemptions.libloading]]
-version = "0.7.4"
+version = "0.8.5"
 criteria = "safe-to-deploy"
 
 [[exemptions.linux-raw-sys]]
@@ -503,7 +503,7 @@ version = "0.8.8"
 criteria = "safe-to-deploy"
 
 [[exemptions.napi]]
-version = "2.13.2"
+version = "2.16.9"
 criteria = "safe-to-deploy"
 
 [[exemptions.napi-build]]
@@ -511,15 +511,15 @@ version = "2.0.1"
 criteria = "safe-to-deploy"
 
 [[exemptions.napi-derive]]
-version = "2.13.0"
+version = "2.16.11"
 criteria = "safe-to-deploy"
 
 [[exemptions.napi-derive-backend]]
-version = "1.0.52"
+version = "1.0.73"
 criteria = "safe-to-deploy"
 
 [[exemptions.napi-sys]]
-version = "2.2.3"
+version = "2.4.0"
 criteria = "safe-to-deploy"
 
 [[exemptions.nonempty]]
@@ -619,7 +619,7 @@ version = "0.8.5"
 criteria = "safe-to-deploy"
 
 [[exemptions.reddsa]]
-version = "0.3.0"
+version = "0.5.1@git:ed49e9ca0699a6450f6d4a9fe62ff168f5ea1ead"
 criteria = "safe-to-deploy"
 
 [[exemptions.redjubjub]]
@@ -735,7 +735,7 @@ version = "1.0.107"
 criteria = "safe-to-deploy"
 
 [[exemptions.syn]]
-version = "2.0.18"
+version = "2.0.77"
 criteria = "safe-to-deploy"
 
 [[exemptions.tempfile]]
@@ -748,6 +748,14 @@ criteria = "safe-to-deploy"
 
 [[exemptions.thiserror-impl]]
 version = "1.0.38"
+criteria = "safe-to-deploy"
+
+[[exemptions.thiserror-nostd-notrait]]
+version = "1.0.57"
+criteria = "safe-to-deploy"
+
+[[exemptions.thiserror-nostd-notrait-impl]]
+version = "1.0.57"
 criteria = "safe-to-deploy"
 
 [[exemptions.threadpool]]
