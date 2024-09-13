@@ -480,9 +480,8 @@ impl NativeUnsignedTransaction {
 
             let raw_commitment = &raw_commitments[index];
             let commitment_bytes = hex_to_vec_bytes(&raw_commitment).map_err(to_napi_err)?;
-            let commitment = SigningCommitments::deserialize(&commitment_bytes[..])
-                .map_err(|_| IronfishError::new(IronfishErrorKind::FrostLibError))
-                .map_err(to_napi_err)?;
+            let commitment =
+                SigningCommitments::deserialize(&commitment_bytes[..]).map_err(to_napi_err)?;
 
             commitments.push((identity, commitment));
         }
@@ -583,7 +582,6 @@ pub fn aggregate_raw_signature_shares(
     let public_key_package = PublicKeyPackage::deserialize_from(
         &hex_to_vec_bytes(&public_key_package_str).map_err(to_napi_err)?[..],
     )
-    .map_err(|_| IronfishError::new(IronfishErrorKind::FrostLibError))
     .map_err(to_napi_err)?;
 
     let unsigned_transaction_bytes =
@@ -606,7 +604,6 @@ pub fn aggregate_raw_signature_shares(
         let frost_signature_share = FrostSignatureShare::deserialize(
             &hex_to_vec_bytes(&frost_signature_share_str).map_err(to_napi_err)?[..],
         )
-        .map_err(|_| IronfishError::new(IronfishErrorKind::FrostLibError))
         .map_err(to_napi_err)?;
         frost_signature_shares.insert(identifier, frost_signature_share);
     }

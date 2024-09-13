@@ -148,7 +148,6 @@ impl NativeSignatureShare {
         let bytes = js_bytes.into_value()?;
         SignatureShare::deserialize_from(bytes.as_ref())
             .map(|signature_share| NativeSignatureShare { signature_share })
-            .map_err(|_| IronfishError::new(IronfishErrorKind::FrostLibError))
             .map_err(to_napi_err)
     }
 
@@ -617,7 +616,6 @@ impl NativeSigningNonces {
         let bytes = js_bytes.into_value()?;
         SigningNonces::deserialize(bytes.as_ref())
             .map(|signing_nonces| NativeSigningNonces { signing_nonces })
-            .map_err(|_| IronfishError::new(IronfishErrorKind::FrostLibError))
             .map_err(to_napi_err)
     }
 
