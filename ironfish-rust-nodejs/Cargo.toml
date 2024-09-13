@@ -30,7 +30,7 @@ stats = ["ironfish/note-encryption-stats", "jubjub/stats", "dep:signal-hook"]
 base64 = "0.13.0"
 fish_hash = "0.3.0"
 ironfish = { path = "../ironfish-rust" }
-ironfish-frost = { git = "https://github.com/iron-fish/ironfish-frost.git", branch = "main", features = ["std"]}
+ironfish-frost = { git = "https://github.com/iron-fish/ironfish-frost.git", branch = "fix/hughy/decrypt-legacy-allocation", features = ["std"]}
 napi = { version = "2.14.4", features = ["napi6"] }
 napi-derive = "2.14.6"
 jubjub = { git = "https://github.com/iron-fish/jubjub.git", branch = "blstrs", features = ["multiply-many"] }
