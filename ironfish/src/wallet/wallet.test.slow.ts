@@ -1141,7 +1141,7 @@ describe('Wallet', () => {
           const secret = multisig.ParticipantSecret.random()
           const identity = secret.toIdentity()
 
-          await node.wallet.walletDb.putMultisigSecret(identity.serialize(), {
+          await node.wallet.walletDb.putMultisigIdentity(identity.serialize(), {
             name,
             secret: secret.serialize(),
           })
@@ -1340,7 +1340,7 @@ describe('Wallet', () => {
         const secret = multisig.ParticipantSecret.random()
         const identity = secret.toIdentity()
 
-        await node.wallet.walletDb.putMultisigSecret(identity.serialize(), {
+        await node.wallet.walletDb.putMultisigIdentity(identity.serialize(), {
           name,
           secret: secret.serialize(),
         })

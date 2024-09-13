@@ -370,7 +370,7 @@ describe('Route wallet/importAccount', () => {
         const secret = new multisig.ParticipantSecret(Buffer.from(key, 'hex'))
         const identity = secret.toIdentity()
 
-        await routeTest.node.wallet.walletDb.putMultisigSecret(identity.serialize(), {
+        await routeTest.node.wallet.walletDb.putMultisigIdentity(identity.serialize(), {
           secret: secret.serialize(),
           name: testCaseFile,
         })
